@@ -357,7 +357,7 @@
   "clientInviteTitle": "Add a new member",
   "clientInviteIntro": "Enter the 6-digit sync code from the member's MY tab to connect right away.",
   "clientInviteIntroImmediate": "Enter the 6-digit sync code from the member's MY tab to connect right away.",
-  "clientConnectCodeLabel": "Member sync code",
+  "clientConnectCodeLabel": "Sync code",
   "clientConnectCodeRequired": "Enter all six digits",
   "clientConnectCodeInvalid": "That code is wrong or expired. Ask the member for a new one",
   "clientInviteMemberIdLabel": "Member ID",

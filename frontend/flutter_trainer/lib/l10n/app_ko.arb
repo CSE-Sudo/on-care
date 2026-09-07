@@ -220,7 +220,7 @@
   "clientInviteTitle": "신규 회원 등록",
   "clientInviteIntro": "회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.",
   "clientInviteIntroImmediate": "회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.",
-  "clientConnectCodeLabel": "회원 동기화 코드",
+  "clientConnectCodeLabel": "동기화 코드",
   "clientConnectCodeRequired": "6자리를 모두 입력해 주세요",
   "clientConnectCodeInvalid": "코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요",
   "clientInviteMemberIdLabel": "회원 ID",

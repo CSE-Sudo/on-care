@@ -741,7 +741,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter the 6-digit sync code from the member\'s MY tab to connect right away.';
 
   @override
-  String get clientConnectCodeLabel => 'Member sync code';
+  String get clientConnectCodeLabel => 'Sync code';
 
   @override
   String get clientConnectCodeRequired => 'Enter all six digits';

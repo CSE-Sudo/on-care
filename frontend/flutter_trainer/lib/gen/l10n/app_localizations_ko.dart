@@ -717,7 +717,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.';
 
   @override
-  String get clientConnectCodeLabel => '회원 동기화 코드';
+  String get clientConnectCodeLabel => '동기화 코드';
 
   @override
   String get clientConnectCodeRequired => '6자리를 모두 입력해 주세요';

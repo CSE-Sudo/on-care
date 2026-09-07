@@ -1391,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientConnectCodeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Member sync code'**
+  /// **'Sync code'**
   String get clientConnectCodeLabel;
 
   /// No description provided for @clientConnectCodeRequired.
