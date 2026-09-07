@@ -34,10 +34,6 @@ class _NoInviteClientInviteRepository implements ClientInviteRepository {
   bool get connectsImmediately => false;
 
   @override
-  Future<MemberLookup> lookup(String memberId) async =>
-      throw const NotFoundError();
-
-  @override
   Future<PairedMember> previewPairingCode(String code) async =>
       throw const NotFoundError();
 

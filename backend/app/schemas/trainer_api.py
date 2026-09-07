@@ -1390,24 +1390,6 @@ class TrainerNotificationSettingsUpdate(PartialUpdate):
 # ---------------------------------------------------------------------------
 
 
-class MemberLookupOut(BaseModel):
-    """회원 ID(`User.id`) 완전 일치로 찾은 회원 한 명.
-
-    요청을 보낼지 판단할 만큼만 담는다. 누가 담당인지·어떤 기록이 있는지는
-    담당이 아닌 트레이너가 알 이유가 없다. 성별·나이·신체 정보는 여기 없다 —
-    그 값들은 담당이 성립한 뒤 회원의 건강 프로필에서만 조회한다.
-    """
-
-    member_id: str
-    name: str
-    #: 이미 활성 담당 트레이너가 있는가. 누구인지는 밝히지 않는다.
-    has_trainer: bool
-    #: 그 담당이 나인가 — 명단에 이미 있는 회원을 다시 찾은 경우.
-    coached_by_me: bool
-    #: 내가 보낸 요청이 대기 중인가.
-    invite_pending: bool
-
-
 class PairingCodeRedeem(BaseModel):
     """트레이너가 입력한 6자리 동기화 코드. (#1634)
 

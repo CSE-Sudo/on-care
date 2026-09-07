@@ -751,24 +751,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'That code is wrong or expired. Ask the member for a new one';
 
   @override
-  String get clientInviteMemberIdLabel => 'Member ID';
-
-  @override
-  String get clientInviteLookupAction => 'Find';
-
-  @override
-  String get clientInviteMessageLabel => 'Message (optional)';
-
-  @override
-  String get clientInviteSendAction => 'Send request';
-
-  @override
   String get clientInviteConnectAction => 'Register member';
-
-  @override
-  String clientInviteSent(String name) {
-    return 'Sent a coaching request to $name';
-  }
 
   @override
   String clientInviteConnected(String name) {
@@ -776,25 +759,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientInviteNotFound => 'No member uses that member ID';
-
-  @override
   String get clientInviteFailed =>
       'Couldn\'t send the request. Please try again';
-
-  @override
-  String get clientInviteMemberIdRequired => 'Enter a member ID';
-
-  @override
-  String get clientInviteAlreadyCoached => 'You already coach this member';
-
-  @override
-  String get clientInviteHasTrainer =>
-      'Another trainer already coaches this member';
-
-  @override
-  String get clientInvitePendingHint =>
-      'A request you sent is still waiting for an answer';
 
   @override
   String get clientInvitePendingTitle => 'Waiting for an answer';
