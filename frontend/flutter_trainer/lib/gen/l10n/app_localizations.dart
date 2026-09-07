@@ -1406,41 +1406,11 @@ abstract class AppLocalizations {
   /// **'That code is wrong or expired. Ask the member for a new one'**
   String get clientConnectCodeInvalid;
 
-  /// No description provided for @clientInviteMemberIdLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Member ID'**
-  String get clientInviteMemberIdLabel;
-
-  /// No description provided for @clientInviteLookupAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Find'**
-  String get clientInviteLookupAction;
-
-  /// No description provided for @clientInviteMessageLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Message (optional)'**
-  String get clientInviteMessageLabel;
-
-  /// No description provided for @clientInviteSendAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Send request'**
-  String get clientInviteSendAction;
-
   /// No description provided for @clientInviteConnectAction.
   ///
   /// In en, this message translates to:
   /// **'Register member'**
   String get clientInviteConnectAction;
-
-  /// No description provided for @clientInviteSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent a coaching request to {name}'**
-  String clientInviteSent(String name);
 
   /// No description provided for @clientInviteConnected.
   ///
@@ -1448,41 +1418,11 @@ abstract class AppLocalizations {
   /// **'Registered {name} as a member'**
   String clientInviteConnected(String name);
 
-  /// No description provided for @clientInviteNotFound.
-  ///
-  /// In en, this message translates to:
-  /// **'No member uses that member ID'**
-  String get clientInviteNotFound;
-
   /// No description provided for @clientInviteFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t send the request. Please try again'**
   String get clientInviteFailed;
-
-  /// No description provided for @clientInviteMemberIdRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter a member ID'**
-  String get clientInviteMemberIdRequired;
-
-  /// No description provided for @clientInviteAlreadyCoached.
-  ///
-  /// In en, this message translates to:
-  /// **'You already coach this member'**
-  String get clientInviteAlreadyCoached;
-
-  /// No description provided for @clientInviteHasTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'Another trainer already coaches this member'**
-  String get clientInviteHasTrainer;
-
-  /// No description provided for @clientInvitePendingHint.
-  ///
-  /// In en, this message translates to:
-  /// **'A request you sent is still waiting for an answer'**
-  String get clientInvitePendingHint;
 
   /// No description provided for @clientInvitePendingTitle.
   ///

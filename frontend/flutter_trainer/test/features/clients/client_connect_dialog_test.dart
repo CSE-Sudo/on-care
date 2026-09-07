@@ -54,10 +54,6 @@ class _FakeInviteRepository implements ClientInviteRepository {
   }
 
   @override
-  Future<MemberLookup> lookup(String memberId) async =>
-      throw const NotFoundError();
-
-  @override
   Future<ClientInvite> invite(String memberId, {String? message}) async =>
       throw const ValidationError();
 

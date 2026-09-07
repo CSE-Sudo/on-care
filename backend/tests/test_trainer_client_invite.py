@@ -142,52 +142,6 @@ def _roster_ids(client, trainer_token: str) -> list[str]:
     return [row["id"] for row in response.json()]
 
 
-def test_lookup_finds_a_member_by_exact_member_id(client, db_session):
-    """회원 ID(`User.id`)로 찾는다 — 이메일도 성별·나이도 아니다."""
-    _, trainer_token = _trainer(client, db_session)
-    member_id, _, _ = _member(client, name="김찾음")
-
-    response = client.get(
-        "/v1/trainer/member-lookup",
-        params={"member_id": member_id.upper()},  # 대소문자는 같은 사람이다
-        headers=_auth(trainer_token),
-    )
-
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["member_id"] == member_id
-    assert body["name"] == "김찾음"
-    assert body["has_trainer"] is False
-    assert body["invite_pending"] is False
-    assert "email" not in body
-
-
-def test_lookup_does_not_answer_partial_member_id(client, db_session):
-    """부분 일치는 명부 훑기가 된다 — 완전 일치만 답한다."""
-    _, trainer_token = _trainer(client, db_session)
-    member_id, _, _ = _member(client)
-
-    response = client.get(
-        "/v1/trainer/member-lookup",
-        params={"member_id": member_id[:8]},
-        headers=_auth(trainer_token),
-    )
-
-    assert response.status_code == 404
-
-
-def test_lookup_an_unknown_member_id_is_not_found(client, db_session):
-    _, trainer_token = _trainer(client, db_session)
-
-    response = client.get(
-        "/v1/trainer/member-lookup",
-        params={"member_id": "no-such-member-id"},
-        headers=_auth(trainer_token),
-    )
-
-    assert response.status_code == 404
-
-
 def test_inviting_does_not_touch_the_roster(client, db_session):
     """요청을 보낸 것만으로는 담당이 생기지 않는다 — 이 테스트가 이 기능의 요지다."""
     _, trainer_token = _trainer(client, db_session)

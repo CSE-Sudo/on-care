@@ -65,7 +65,6 @@ from app.schemas.trainer_api import (
     ScheduleProgramSendRequest, ScheduleCreateRequest, ScheduleProgramRegisterOut,
     ScheduleRecurringPreviewOut, ScheduleRecurringRequest, ScheduleReopenRequest,
     ScheduleProgramRegisterRequest, ScheduleSessionOut, ScheduleUpdateRequest,
-    MemberLookupOut,
     PairedMemberOut,
     PairingCodeRedeem,
     TrainerClientInviteCreate, TrainerClientInviteOut,
@@ -2139,32 +2138,6 @@ def delete_trainer_program_template(
 # 회원의 수락(`POST /me/coach/invites/{id}/accept`)뿐이다 — 담당은 상대의
 # 식단·건강 기록을 여는 권한이라 한쪽이 일방적으로 만들 수 없어야 한다.
 # ---------------------------------------------------------------------------
-
-
-@router.get("/trainer/member-lookup", response_model=MemberLookupOut)
-def trainer_member_lookup(
-    trainer: RequireTrainer,
-    db: Annotated[Session, Depends(get_db)],
-    member_id: str = Query(min_length=3, max_length=64),
-) -> MemberLookupOut:
-    """회원 ID **완전 일치**로 회원을 찾는다.
-
-    회원 ID는 새로 만든 식별자가 아니라 `User.id` 그대로다(회원 앱 MY 탭의
-    "내 회원 ID"). 이메일 대신 이걸 쓰는 이유는 이메일이 개인정보라 회원이
-    공유하길 꺼릴 수 있고, 트레이너가 성별·나이 같은 인적 사항으로 회원을
-    찾거나 등록하는 일을 아예 없애기 위해서다.
-
-    부분 일치·이름 검색을 두지 않는 것은 의도다 — 트레이너가 이름 몇 글자로
-    회원 명부를 훑을 수 있으면 담당도 아닌 사람들의 존재가 드러난다.
-    """
-    try:
-        return trainer_client_invite_service.lookup_member(
-            db, trainer.id, member_id
-        )
-    except trainer_client_invite_service.MemberNotFound as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except trainer_client_invite_service.NotAMember as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post(
