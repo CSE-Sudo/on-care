@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/design_system/tokens/colors.dart';
@@ -203,37 +202,24 @@ class _CodeDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
     return Semantics(
       // 스크린리더가 "구십칠만…" 으로 읽지 않게 한 자씩 끊어 준다.
       label: code.split('').join(' '),
       // 자리마다 Text 가 하나씩 생기므로, 읽어 주는 것은 이 라벨 하나로 둔다.
       excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: dimmed
-            ? null
-            : () async {
-                await Clipboard.setData(ClipboardData(text: code));
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l.trainerSyncCopied)));
-              },
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            for (int i = 0; i < code.length; i++)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: _DigitBox(
-                  key: ValueKey<String>('sync-digit-$i'),
-                  digit: code[i],
-                  dimmed: dimmed,
-                ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          for (int i = 0; i < code.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: _DigitBox(
+                key: ValueKey<String>('sync-digit-$i'),
+                digit: code[i],
+                dimmed: dimmed,
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

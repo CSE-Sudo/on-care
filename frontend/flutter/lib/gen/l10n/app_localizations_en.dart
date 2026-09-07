@@ -1962,9 +1962,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainerSyncRetry => 'Get a new code';
 
   @override
-  String get trainerSyncCopied => 'Sync code copied';
-
-  @override
   String get signUpEmailTaken =>
       'That email is already registered. Please sign in.';
 
