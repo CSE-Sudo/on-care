@@ -1068,7 +1068,6 @@
   "trainerSyncExpired": "This code has expired.",
   "trainerSyncFailed": "Could not get a code.",
   "trainerSyncRetry": "Get a new code",
-  "trainerSyncCopied": "Sync code copied",
   "signUpEmailTaken": "That email is already registered. Please sign in.",
   "signUpFailed": "Sign-up failed. Please try again in a moment.",
   "onboardSkip": "Do this later",

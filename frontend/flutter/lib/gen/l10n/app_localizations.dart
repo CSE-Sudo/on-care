@@ -3589,12 +3589,6 @@ abstract class AppLocalizations {
   /// **'Get a new code'**
   String get trainerSyncRetry;
 
-  /// No description provided for @trainerSyncCopied.
-  ///
-  /// In en, this message translates to:
-  /// **'Sync code copied'**
-  String get trainerSyncCopied;
-
   /// No description provided for @signUpEmailTaken.
   ///
   /// In en, this message translates to:
