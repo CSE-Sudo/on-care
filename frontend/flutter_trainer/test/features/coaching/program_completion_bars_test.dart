@@ -55,7 +55,7 @@ void main() {
     await openCoaching(tester, <TrainerClient>[
       makeClient(
         id: 'steady',
-        name: '꾸준고객',
+        name: '꾸준회원',
         weekCompletion: const <int>[90, 90, 90, 90, 90, 90, 90],
       ),
     ]);
@@ -81,7 +81,7 @@ void main() {
   testWidgets('운동 쪽에 요일별 이행률 막대그래프가 보인다', (tester) async {
     const week = <int>[80, 0, 90, 70, 60, 50, 40];
     await openCoaching(tester, <TrainerClient>[
-      makeClient(id: 'week', name: '주간고객', weekCompletion: week),
+      makeClient(id: 'week', name: '주간회원', weekCompletion: week),
     ]);
     await openWorkout(tester);
 

@@ -8,7 +8,7 @@ import 'package:oncare_trainer/shared/services/follow_up_task_repository.dart';
 /// [failWrites]·[failReads] 는 저장된 할 일을 건드리지 않고 실패 모드만 켠다 —
 /// 실제 백엔드에서 요청 하나가 실패했을 때와 같은 상태다.
 ///
-/// 대시보드 카드와 고객 상세 다이얼로그가 같은 계약을 쓰므로 두 테스트가 이
+/// 대시보드 카드와 회원 상세 다이얼로그가 같은 계약을 쓰므로 두 테스트가 이
 /// 하나를 나눠 쓴다.
 class FakeFollowUpRepository implements FollowUpTaskRepository {
   FakeFollowUpRepository();

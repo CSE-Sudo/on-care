@@ -53,11 +53,11 @@ void main() {
     }
   });
 
-  test('고객의 하루 합계는 그날 끼니의 합이다', () async {
+  test('회원의 하루 합계는 그날 끼니의 합이다', () async {
     final clients = await db.select(db.trainerClients).get();
     final meals = await db.select(db.clientDietEntries).get();
 
-    // 이 표는 이제 지난 날의 끼니도 담는다(#1025). 고객 행의 합계는 **오늘**
+    // 이 표는 이제 지난 날의 끼니도 담는다(#1025). 회원 행의 합계는 **오늘**
     // 것이므로, 오늘 끼니만 골라 견줘야 같은 것을 견주는 것이 된다.
     final String todayYmd = ymd(nowKst());
     for (final client in clients) {

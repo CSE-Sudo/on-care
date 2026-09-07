@@ -1,6 +1,6 @@
 // 프로그램 탭의 `저장` — 편집기 구성을 프로그램 템플릿으로 저장한다. (#1028)
 //
-// 별도의 "저장한 프로그램" 보관함은 없다 — 저장은 곧장 고객 리스트 아래
+// 별도의 "저장한 프로그램" 보관함은 없다 — 저장은 곧장 회원 리스트 아래
 // `프로그램 템플릿` 목록에 쓰고, 버튼은 몇 번을 눌러도 항상 `저장`이다.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

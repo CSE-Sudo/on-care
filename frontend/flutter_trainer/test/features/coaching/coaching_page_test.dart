@@ -827,9 +827,9 @@ void main() {
           tester.getCenter(overview).dx,
           greaterThan(tester.getCenter(mainColumn).dx),
         );
-        // 고객 요약 카드는 없어졌고(#1027), 그 자리를 식단·운동 영역이
+        // 회원 요약 카드는 없어졌고(#1027), 그 자리를 식단·운동 영역이
         // 가져갔다 — 오른쪽 열의 **맨 위**다.
-        expect(find.text('고객 요약'), findsNothing);
+        expect(find.text('회원 요약'), findsNothing);
         expect(switcher, findsOneWidget);
         expect(
           tester.getTopLeft(switcher).dy,
@@ -844,14 +844,14 @@ void main() {
           tester.getBottomRight(nutrition).dy,
           lessThanOrEqualTo(tester.view.physicalSize.height),
         );
-        // 프로그램 탭 카드는 고객 탭과 독립적으로 관리된다(#1531) — 나트륨·
+        // 프로그램 탭 카드는 회원 탭과 독립적으로 관리된다(#1531) — 나트륨·
         // 당류는 위아래가 아니라 좌우로 나란히 놓인다.
         expect(
           tester.getTopLeft(sodium).dx,
           lessThan(tester.getTopLeft(sugar).dx),
         );
         _expectNutritionStatusCardsInBounds(tester);
-        // 전송 이력은 편집기 아래가 아니라 오른쪽 열이다 — 이 고객에게 이미
+        // 전송 이력은 편집기 아래가 아니라 오른쪽 열이다 — 이 회원에게 이미
         // 무엇이 나갔는지는 편집을 다 읽고 나서야 알 일이 아니다. (#1027)
         expect(find.text('전송 이력'), findsOneWidget);
         expect(
@@ -920,7 +920,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('템플릿이 늘어나도 고객 목록은 자리·높이 그대로다 (레이아웃/스크롤 1차 수정)', (tester) async {
+    testWidgets('템플릿이 늘어나도 회원 목록은 자리·높이 그대로다 (레이아웃/스크롤 1차 수정)', (tester) async {
       tester.view.devicePixelRatio = 1.0;
       tester.view.physicalSize = const Size(1600, 1200);
       addTearDown(tester.view.resetPhysicalSize);
@@ -954,7 +954,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      // 고객 목록의 화면 위치·크기는 템플릿이 늘기 전과 똑같아야 한다 —
+      // 회원 목록의 화면 위치·크기는 템플릿이 늘기 전과 똑같아야 한다 —
       // 템플릿 카드가 커진 만큼은 그 아래 영역 안에서만 흡수되어야 한다.
       expect(tester.getTopLeft(listFinder), beforeTopLeft);
       expect(tester.getSize(listFinder), beforeSize);
@@ -1012,11 +1012,11 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('아주 짧은 화면에서는 고객 목록 하나만으로도 빠듯해 오버플로우 없이 열 전체가 스크롤로 물러난다', (
+    testWidgets('아주 짧은 화면에서는 회원 목록 하나만으로도 빠듯해 오버플로우 없이 열 전체가 스크롤로 물러난다', (
       tester,
     ) async {
       // 실제로 1600×550 에서 "BOTTOM OVERFLOWED BY 60 PIXELS" 가 났던
-      // 창 높이 — 고객 목록(5줄) 하나만으로도 이 열에 남는 여유가
+      // 창 높이 — 회원 목록(5줄) 하나만으로도 이 열에 남는 여유가
       // 거의 없어, 템플릿 카드를 `Expanded` 로 억지로 나누면 카드
       // 헤더 한 줄 그릴 자리도 없다.
       tester.view.devicePixelRatio = 1.0;
@@ -1075,7 +1075,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('고객 목록 행에 상대시간이 남아 있지 않다 (#1027)', (tester) async {
+    testWidgets('회원 목록 행에 상대시간이 남아 있지 않다 (#1027)', (tester) async {
       await openTab(tester);
       await tester.pumpAndSettle();
 
@@ -1130,7 +1130,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('오른쪽 고객 데이터 열은 편집기와 따로 스크롤한다 (#1027)', (tester) async {
+    testWidgets('오른쪽 회원 데이터 열은 편집기와 따로 스크롤한다 (#1027)', (tester) async {
       await openTab(tester, size: const Size(1600, 900));
       await tester.pumpAndSettle();
 
@@ -1661,7 +1661,7 @@ void main() {
 
       await _sendProgram(tester);
       await settle(tester);
-      // 고객 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트가
+      // 회원 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트가
       // 흐름이 끝까지 성공했다는 신호를 대신한다.
       expect(find.text('오늘 스케줄에 등록됐어요'), findsOneWidget);
 
@@ -1825,7 +1825,7 @@ void main() {
       // 잡던 예전 단일 `pump()`로는 부족하다(#1536).
       await settle(tester);
 
-      // 고객 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트와
+      // 회원 전송 문구는 더 이상 뜨지 않는다(#1536) — 일정 등록 토스트와
       // "스케줄로 이동하기" 액션이 완료 안내를 대신한다.
       expect(find.text('오늘 스케줄에 등록됐어요'), findsOneWidget);
       expect(find.text('스케줄로 이동하기'), findsOneWidget);
@@ -1997,7 +1997,7 @@ void main() {
 
       Future<void> tapRegister() async {
         // `보내기` 가 배정+PT 등록을 함께 한다(#1029) — 등록만의 재진입
-        // 방지는 여전히 `_registeringClientIds`(고객별) 가 맡는다.
+        // 방지는 여전히 `_registeringClientIds`(회원별) 가 맡는다.
         await quicklyFillEditor();
         await _sendProgram(tester);
         await tester.pump(const Duration(milliseconds: 30));
@@ -2084,7 +2084,7 @@ void main() {
 
       // 김민수's send resolved while 이지수 is on screen: no success flash
       // lands on 이지수, and her edit survives — 김민수's reset timer must
-      // not fire against her (review PR 239). 새 등록 토스트에는 고객
+      // not fire against her (review PR 239). 새 등록 토스트에는 회원
       // 이름이 없으므로(#1536) 문구 하나로 두 회원 다 대신 검증한다.
       expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
       await tester.scrollUntilVisible(
@@ -2122,7 +2122,7 @@ void main() {
       await tester.pump();
       expect(tester.widget<ActionButton>(send).onPressed, isNull);
       expect(find.text('PT 스케줄에 등록'), findsNothing);
-      expect(find.text('고객에게 배정'), findsNothing);
+      expect(find.text('회원에게 배정'), findsNothing);
     });
   });
 
@@ -2156,7 +2156,7 @@ void main() {
         find.byKey(const ValueKey<String>('program-editor-register')),
         findsNothing,
       );
-      expect(find.text('고객에게 배정'), findsNothing);
+      expect(find.text('회원에게 배정'), findsNothing);
       expect(find.text('PT 스케줄에 등록'), findsNothing);
     });
 
@@ -2390,7 +2390,7 @@ void main() {
 
         // 이 하네스는 PT 등록(schedule-program) 엔드포인트를 목킹하지
         // 않는다 — 배정이 채팅과 무관하게 끝난다는 것만 `routineRepo`로
-        // 직접 확인한다. 고객 전송 안내 문구는 더 이상 없고(#1536), 등록
+        // 직접 확인한다. 회원 전송 안내 문구는 더 이상 없고(#1536), 등록
         // 성공 토스트는 이 케이스에서 뜨지 않는다.
         expect(routineRepo.lastAssigned, isNotNull);
       },
@@ -2404,7 +2404,7 @@ void main() {
 
       expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
       expect(
-        find.text('응답을 받지 못했어요. 고객의 받은 루틴을 확인한 뒤 필요한 경우에만 다시 보내주세요'),
+        find.text('응답을 받지 못했어요. 회원의 받은 루틴을 확인한 뒤 필요한 경우에만 다시 보내주세요'),
         findsNothing,
         reason: '멱등해진 뒤에는 "먼저 확인하라"고 막을 이유가 없다',
       );
@@ -2418,7 +2418,7 @@ void main() {
 
       expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
       expect(
-        find.text('응답을 받지 못했어요. 고객의 받은 루틴을 확인한 뒤 필요한 경우에만 다시 보내주세요'),
+        find.text('응답을 받지 못했어요. 회원의 받은 루틴을 확인한 뒤 필요한 경우에만 다시 보내주세요'),
         findsNothing,
       );
     });

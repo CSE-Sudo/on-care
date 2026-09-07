@@ -28,12 +28,12 @@ import '../helpers/pump_app.dart';
 /// 사이드바 모양이 바뀌는 경계를 지나는 폭들.
 const List<double> _widths = <double>[1440, 1280, 1100, 1024];
 
-/// 콘솔의 주요 화면. 고객 상세는 시드 고객으로 연다 — 표·카드가 가장 많은 화면이라
+/// 콘솔의 주요 화면. 회원 상세는 시드 회원으로 연다 — 표·카드가 가장 많은 화면이라
 /// 좁은 폭에서 먼저 새는 자리다.
 final Map<String, String> _surfaces = <String, String>{
   '대시보드': AppRoutes.dashboard,
-  '고객 목록': AppRoutes.clients,
-  '고객 상세': AppRoutes.clientDetail('seed-client-1', section: 'diet'),
+  '회원 목록': AppRoutes.clients,
+  '회원 상세': AppRoutes.clientDetail('seed-client-1', section: 'diet'),
   '일정': AppRoutes.schedule,
   '메시지': AppRoutes.messages,
   '코칭': AppRoutes.coaching,

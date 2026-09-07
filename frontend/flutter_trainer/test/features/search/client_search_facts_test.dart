@@ -31,7 +31,7 @@ void main() {
   final jisu = makeClient(id: 'c2', name: '이지수');
 
   group('nextSessionsByClient', () {
-    test('고객별 가장 이른 예정 예약을 반환한다', () {
+    test('회원별 가장 이른 예정 예약을 반환한다', () {
       final map = nextSessionsByClient(
         <TrainerClient>[minsu, jisu],
         <ScheduleSession>[
@@ -91,7 +91,7 @@ void main() {
     });
   });
 
-  test('기본 선택 경로는 현재 탭의 고객 화면을 유지한다', () {
+  test('기본 선택 경로는 현재 탭의 회원 화면을 유지한다', () {
     final facts = ClientSearchFacts(
       nextSession: <String, ScheduleSession>{
         minsu.id: session(

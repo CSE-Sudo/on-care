@@ -22,7 +22,7 @@ class _PdfChatRepository implements ChatRepository {
           createdAt: DateTime(2026, 8, 16, 18, 20),
           attachment: const ChatAttachment(
             kind: ChatAttachmentKind.pdf,
-            fileName: '김고객_2026-08-10_주간리포트.pdf',
+            fileName: '김회원_2026-08-10_주간리포트.pdf',
             fileId: 'trainer-pdf-file',
             fileSize: 2048,
             downloadPath: '/chat/attachments/trainer-pdf-file',
@@ -95,7 +95,7 @@ void main() {
             body: ChatView(
               clientId: 'client-1',
               clientAvatar: '김',
-              clientName: '김고객',
+              clientName: '김회원',
             ),
           ),
         ),
@@ -107,7 +107,7 @@ void main() {
       find.byKey(const Key('trainer-chat-pdf-trainer-pdf-file')),
       findsOneWidget,
     );
-    expect(find.text('김고객_2026-08-10_주간리포트.pdf'), findsOneWidget);
+    expect(find.text('김회원_2026-08-10_주간리포트.pdf'), findsOneWidget);
     expect(find.text('2.0 KB'), findsOneWidget);
   });
 }

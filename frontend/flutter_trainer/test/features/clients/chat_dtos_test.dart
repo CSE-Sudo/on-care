@@ -30,13 +30,13 @@ void main() {
         'created_at': '2026-07-30T18:10:00',
         'attachment': <String, Object?>{
           'type': 'pdf',
-          'file_name': '김고객_주간리포트.pdf',
+          'file_name': '김회원_주간리포트.pdf',
           'file_id': 'abc123',
           'file_size': 2048,
           'download_path': '/chat/attachments/abc123',
         },
       });
-      expect(m.attachment?.fileName, '김고객_주간리포트.pdf');
+      expect(m.attachment?.fileName, '김회원_주간리포트.pdf');
       expect(m.attachment?.fileSize, 2048);
     });
 

@@ -148,7 +148,7 @@ void main() {
     expect(repository.previewed, isEmpty);
   });
 
-  testWidgets('찾으면 이 고객이 맞는지 묻고 이름·성별/나이·목표를 보여준다', (
+  testWidgets('찾으면 이 회원이 맞는지 묻고 이름·성별/나이·목표를 보여준다', (
     tester,
   ) async {
     final repository = _FakeInviteRepository(paired: _paired());
@@ -159,7 +159,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     // 여섯 자리가 하나만 틀려도 다른 사람이 나온다 — 이름 하나로는 답할 수 없다.
-    expect(find.text('이 고객이 맞나요?'), findsOneWidget);
+    expect(find.text('이 회원이 맞나요?'), findsOneWidget);
     expect(find.text('이수아'), findsOneWidget);
     expect(find.text('여성 · 29세'), findsOneWidget);
     expect(find.text('체지방 감량'), findsOneWidget);
@@ -229,7 +229,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('이미 다른 트레이너가 담당 중인 회원이에요.'), findsOneWidget);
-    expect(find.text('이 고객이 맞나요?'), findsNothing);
+    expect(find.text('이 회원이 맞나요?'), findsNothing);
   });
 
   testWidgets('코드 상자 위에 입력창이 겹쳐 그려지지 않는다', (tester) async {

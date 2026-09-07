@@ -81,10 +81,10 @@ void main() {
       expect(slots.where((s) => s.isGap).length, 2);
     });
 
-    // #386 회귀: 스케줄이 고객을 이름으로 참조하던 시절에는 고객 이름을
+    // #386 회귀: 스케줄이 회원을 이름으로 참조하던 시절에는 회원 이름을
     // 바꾸면 과거 세션이 통째로 끊겼다. 크래시도 오류 표시도 없이 주간
     // 리포트가 "세션 0건" 이 되고, 그대로 회원에게 전송될 수 있었다.
-    test('고객 이름을 바꿔도 과거 세션이 끊기지 않는다', () async {
+    test('회원 이름을 바꿔도 과거 세션이 끊기지 않는다', () async {
       final repo = DriftScheduleRepository(db);
       const key = (id: 'seed-client-1', name: '김민수');
       final before = await repo.watchClientSessions(key).first;
@@ -101,9 +101,9 @@ void main() {
       expect(after.length, before.length);
     });
 
-    test('이름이 같아도 다른 고객의 세션은 섞이지 않는다', () async {
+    test('이름이 같아도 다른 회원의 세션은 섞이지 않는다', () async {
       final repo = DriftScheduleRepository(db);
-      // 이름만 같고 id 가 다른 고객은 남의 세션을 가져오면 안 된다.
+      // 이름만 같고 id 가 다른 회원은 남의 세션을 가져오면 안 된다.
       final sessions = await repo.watchClientSessions((
         id: 'other-client',
         name: '김민수',
@@ -564,7 +564,7 @@ void main() {
       expect(find.textContaining('1:1 PT'), findsWidgets);
       expect(find.text('상담'), findsWidgets);
 
-      // 로스터에 없는 상담 고객도 이름만 부른다(#1012) — 신규라는 사실은
+      // 로스터에 없는 상담 회원도 이름만 부른다(#1012) — 신규라는 사실은
       // 종류 알약(`상담`)이 이미 말한다.
       expect(find.text('윤가온'), findsWidgets);
 
@@ -774,7 +774,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('예약 슬롯 관리'), findsOneWidget);
-      expect(find.textContaining('고객이 예약할 시간을 엽니다'), findsOneWidget);
+      expect(find.textContaining('회원이 예약할 시간을 엽니다'), findsOneWidget);
       expect(find.text('열기'), findsOneWidget);
     });
 
