@@ -13,7 +13,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
 
-/// 고객 운동 현황은 회원 앱 `운동 현황` 과 **같은 그림**이다. (#943)
+/// 회원 운동 현황은 회원 앱 `운동 현황` 과 **같은 그림**이다. (#943)
 ///
 /// `오늘` 은 도넛 + 유형별 시간, 기간은 유형별 3색 누적 막대. 예전에는 트레이너만
 /// 한 색 막대를 봤다 — 회원이 "이번 주 근력이 적었죠" 라고 말해도 근거가 없었다.

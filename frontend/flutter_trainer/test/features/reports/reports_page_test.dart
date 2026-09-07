@@ -178,7 +178,7 @@ void main() {
   final Finder feedbackField = find.byWidgetPredicate(
     (widget) =>
         widget is TextField &&
-        widget.decoration?.hintText == '고객에게 전달할 코칭 피드백을 작성하세요.',
+        widget.decoration?.hintText == '회원에게 전달할 코칭 피드백을 작성하세요.',
   );
 
   /// 리포트 카드 제목 줄의 주 이동 화살표. 헤더가 아니라 카드 안에 있다(#1177).
@@ -237,8 +237,8 @@ void main() {
     }
     // Defaults to the first client rather than an empty right pane.
     expect(find.text('김민수님 주간 리포트'), findsOneWidget);
-    // 카드 안에 고객 신상을 다시 적지 않는다 — 왼쪽 목록에서 방금 고른
-    // 고객이고, 카드 제목이 이미 누구의 리포트인지 말한다(#1177).
+    // 카드 안에 회원 신상을 다시 적지 않는다 — 왼쪽 목록에서 방금 고른
+    // 회원이고, 카드 제목이 이미 누구의 리포트인지 말한다(#1177).
     expect(
       find.descendant(
         of: find.byType(ClientReportView),
@@ -252,7 +252,7 @@ void main() {
     await openReports(tester);
 
     // 식단 상자는 칼로리로 열리고, 막대는 탄·단·지로 쌓이므로 그 셋이
-    // 무엇인지 적어 준다. 고객 목록에도 `체지방 감량` 같은 목표가 있어 비교
+    // 무엇인지 적어 준다. 회원 목록에도 `체지방 감량` 같은 목표가 있어 비교
     // 상자 안으로 범위를 좁혀 본다.
     Finder inBox(String text) => find.descendant(
       of: find.byType(MetricComparisonSection),
@@ -390,7 +390,7 @@ void main() {
 
   // ---- 요약 카드 자리와 주 이동 라벨 (#897) ----
 
-  testWidgets('넓은 화면에서 요약 카드는 고객 목록 바로 아래에 놓인다 (#897)', (tester) async {
+  testWidgets('넓은 화면에서 요약 카드는 회원 목록 바로 아래에 놓인다 (#897)', (tester) async {
     await openReports(tester);
 
     final Finder leftColumn = find.byKey(
@@ -398,7 +398,7 @@ void main() {
     );
     final Finder summaryTitle = find.text('AI 코칭 보조 · 리포트 요약');
     expect(summaryTitle, findsOneWidget);
-    // 왼쪽 열 안에 있고, 고객 목록보다 아래다.
+    // 왼쪽 열 안에 있고, 회원 목록보다 아래다.
     expect(
       find.descendant(of: leftColumn, matching: summaryTitle),
       findsOneWidget,
@@ -408,7 +408,7 @@ void main() {
       greaterThan(
         tester
             .getTopLeft(
-              find.descendant(of: leftColumn, matching: find.text('고객')),
+              find.descendant(of: leftColumn, matching: find.text('회원')),
             )
             .dy,
       ),
@@ -441,8 +441,8 @@ void main() {
   testWidgets('좁은 화면 목록에서는 요약 자리에 무엇이 뜨는지 알린다 (#897)', (tester) async {
     await openReports(tester, size: const Size(700, 1000));
 
-    expect(find.text('고객을 선택하면 그 주의 리포트 요약과 코칭 제안이 여기에 표시돼요'), findsOneWidget);
-    // 아직 고른 고객이 없으니 요약을 만들지 않는다.
+    expect(find.text('회원을 선택하면 그 주의 리포트 요약과 코칭 제안이 여기에 표시돼요'), findsOneWidget);
+    // 아직 고른 회원이 없으니 요약을 만들지 않는다.
     expect(find.text('피드백으로 가져오기'), findsNothing);
   });
 
@@ -596,7 +596,7 @@ void main() {
     final double reportsWidth = tester
         .getSize(find.byKey(clientSearchFieldKey))
         .width;
-    expect(find.text('고객·목표·최근 메시지·마지막 프로그램 전송일 검색'), findsOneWidget);
+    expect(find.text('회원·목표·최근 메시지·마지막 프로그램 전송일 검색'), findsOneWidget);
 
     await goTo(tester, AppRoutes.dashboard);
     expect(
@@ -605,40 +605,40 @@ void main() {
     );
   });
 
-  testWidgets('좁은 화면에서 고객 선택 시 목록 대신 상세를 바로 연다', (tester) async {
+  testWidgets('좁은 화면에서 회원 선택 시 목록 대신 상세를 바로 연다', (tester) async {
     await openReports(
       tester,
       size: const Size(700, 1000),
       extraOverrides: <Override>[
         clientsProvider.overrideWith(
           (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
-            makeClient(id: 'mobile-client', name: '모바일 고객'),
+            makeClient(id: 'mobile-client', name: '모바일 회원'),
           ]),
         ),
       ],
     );
 
-    expect(find.text('모바일 고객님 주간 리포트'), findsNothing);
+    expect(find.text('모바일 회원님 주간 리포트'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('reports-back-to-list')),
       findsNothing,
     );
 
-    await tester.tap(find.text('모바일 고객'));
+    await tester.tap(find.text('모바일 회원'));
     await settle(tester);
 
     final back = find.byKey(const ValueKey<String>('reports-back-to-list'));
     expect(back, findsOneWidget);
-    expect(find.text('모바일 고객님 주간 리포트'), findsOneWidget);
+    expect(find.text('모바일 회원님 주간 리포트'), findsOneWidget);
     expect(tester.getTopLeft(back).dy, lessThan(220));
 
     await tester.tap(back);
     await settle(tester);
 
     expect(back, findsNothing);
-    expect(find.text('모바일 고객님 주간 리포트'), findsNothing);
-    // 목록으로 돌아오면 고객 카드가 다시 보인다.
-    expect(find.text('고객'), findsWidgets);
+    expect(find.text('모바일 회원님 주간 리포트'), findsNothing);
+    // 목록으로 돌아오면 회원 카드가 다시 보인다.
+    expect(find.text('회원'), findsWidgets);
   });
 
   testWidgets('the client query parameter focuses that client', (tester) async {
@@ -659,8 +659,8 @@ void main() {
                   StateError('client transport detail'),
                 )
               : Stream<List<TrainerClient>>.value(<TrainerClient>[
-                  makeClient(id: 'seed-client-1', name: '첫 고객'),
-                  makeClient(id: 'seed-client-3', name: '복구 고객'),
+                  makeClient(id: 'seed-client-1', name: '첫 회원'),
+                  makeClient(id: 'seed-client-3', name: '복구 회원'),
                 ]);
         }),
       ],
@@ -674,7 +674,7 @@ void main() {
     await settle(tester);
 
     expect(attempts, 2);
-    expect(find.text('복구 고객님 주간 리포트'), findsOneWidget);
+    expect(find.text('복구 회원님 주간 리포트'), findsOneWidget);
   });
 
   testWidgets('weekly report retry keeps the selected client and week', (
@@ -726,7 +726,7 @@ void main() {
     expect(find.text('이지수님 주간 리포트'), findsOneWidget);
   });
 
-  testWidgets('고객 목록은 이름·목표만 적고 이행률 막대는 두지 않는다 (#1177)', (tester) async {
+  testWidgets('회원 목록은 이름·목표만 적고 이행률 막대는 두지 않는다 (#1177)', (tester) async {
     await openReports(
       tester,
       extraOverrides: <Override>[
@@ -734,7 +734,7 @@ void main() {
           (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
             makeClient(
               id: 'measured',
-              name: '기록고객',
+              name: '기록회원',
               goal: '혈압 관리',
               weekCompletion: const <int>[80, 0, 60, 0, 0, 0, 0],
             ),
@@ -756,11 +756,11 @@ void main() {
       ),
       findsNothing,
     );
-    expect(find.text('기록고객'), findsWidgets);
+    expect(find.text('기록회원'), findsWidgets);
     expect(find.text('혈압 관리'), findsWidgets);
   });
 
-  testWidgets('좁은 리포트 고객 목록도 넘치지 않는다', (tester) async {
+  testWidgets('좁은 리포트 회원 목록도 넘치지 않는다', (tester) async {
     await openReports(
       tester,
       size: const Size(700, 760),
@@ -769,7 +769,7 @@ void main() {
           (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
             makeClient(
               id: 'narrow',
-              name: '매우긴이름의고객',
+              name: '매우긴이름의회원',
               goal: '체중 감량과 근력 향상을 함께 관리하는 목표',
               weekCompletion: const <int>[100, 100, 100, 100, 100, 100, 100],
             ),
@@ -1013,7 +1013,7 @@ void main() {
           (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
             makeClient(
               id: 'week-client',
-              name: '주간고객',
+              name: '주간회원',
               weekCompletion: weekCompletion,
             ),
           ]),
@@ -1044,7 +1044,7 @@ void main() {
     // 기록이 없는 날은 평균에서 빠지므로 7 이 아니다 — 그 사실이 적혀 있어야
     // 트레이너가 아래 막대를 세어 평균을 확인할 수 있다.
     final logged = weekCompletion.where((v) => v > 0).length;
-    expect(logged, lessThan(7), reason: '기록이 빠진 날이 있는 고객이어야 한다');
+    expect(logged, lessThan(7), reason: '기록이 빠진 날이 있는 회원이어야 한다');
     // 마지막 줄에 이번 주가 앞선 세 주 옆에 놓인다. 며칠을 나눈 값인지는
     // 값이 있는 막대를 세면 나오므로 따로 적지 않는다.
     expect(find.text('최근 4주 평균'), findsOneWidget);
@@ -1089,9 +1089,9 @@ void main() {
     // 요일 칸에는 운동 이름만 둔다 — 퍼센트는 바로 위 막대가 말하고,
     // 아직 오지 않은 날은 빈칸으로 둔다.
     //
-    // 목록의 첫 고객은 김민수라, 그의 운동 이름은 공유 픽스처가 정한다(#757).
+    // 목록의 첫 회원은 김민수라, 그의 운동 이름은 공유 픽스처가 정한다(#757).
     // 이름을 여기 적으면 픽스처와 두 벌이 되어 한쪽만 고쳤을 때 조용히 갈린다.
-    // 시드 로스터를 그대로 쓰므로 위 테스트와 달리 고객을 바꾸지 않는다.
+    // 시드 로스터를 그대로 쓰므로 위 테스트와 달리 회원을 바꾸지 않는다.
     await openReports(tester);
 
     expect(find.text(_minsuExerciseThisWeek()), findsWidgets);
@@ -1143,7 +1143,7 @@ void main() {
     final after = tester.widget<TextField>(field).controller!.text;
     expect(after, isNot(before), reason: '입력창이 요약으로 바뀌지 않았다');
     // 제목 줄과 근거가 함께 들어가야 트레이너가 손볼 재료가 된다.
-    expect(after, contains('고객은'));
+    expect(after, contains('회원은'));
     expect(after, contains('· '));
   });
 
@@ -1247,7 +1247,7 @@ void main() {
   testWidgets('부제는 리포트를 쓰라고 하지 않고 확인해 전달하라고 말한다 (#1177)', (tester) async {
     await openReports(tester);
 
-    expect(find.text('주간 변화를 확인하고 고객에게 전달하세요'), findsOneWidget);
+    expect(find.text('주간 변화를 확인하고 회원에게 전달하세요'), findsOneWidget);
   });
 
   testWidgets('식단 추이 막대는 목표를 넘긴 주만 빨강이고 목표 표기는 없다 (#1177)', (tester) async {
@@ -1258,7 +1258,7 @@ void main() {
           (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
             makeClient(
               id: 'salty-client',
-              name: '나트륨고객',
+              name: '나트륨회원',
               sodiumWeek: List<int>.filled(7, 2500),
             ),
           ]),

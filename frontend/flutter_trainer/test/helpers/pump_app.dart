@@ -190,12 +190,12 @@ List<Override> stillBadges() => <Override>[
   consultationPendingCountProvider.overrideWith((ref) => Stream<int>.value(0)),
 ];
 
-/// 고객 명단·식단·운동 기록을 **멈춘 빈 값**으로 고정하는 override.
+/// 회원 명단·식단·운동 기록을 **멈춘 빈 값**으로 고정하는 override.
 ///
 /// 실 API 의 명단은 주기적으로 다시 읽는다(#918). 명단을 쓰지 않는 화면을
 /// 검증하는 테스트(가입 흐름처럼 대시보드에 잠깐 내려앉을 뿐인 경우)는 그
 /// 타이머까지 안고 끝날 이유가 없다. 자기 명단을 직접 넣는 테스트는 이걸
-/// 쓰지 말고 그 저장소를 그대로 주입한다 — 여기서 덮으면 넣어 준 고객이
+/// 쓰지 말고 그 저장소를 그대로 주입한다 — 여기서 덮으면 넣어 준 회원이
 /// 사라진다.
 Override stillRoster() =>
     clientRepositoryProvider.overrideWithValue(const _StillClientRepository());

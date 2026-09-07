@@ -50,7 +50,7 @@ void main() {
     await pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
-      // 시드 로스터의 첫 고객(김민수) — 데모 식단이 가장 두툼하다.
+      // 시드 로스터의 첫 회원(김민수) — 데모 식단이 가장 두툼하다.
       at: AppRoutes.clientDetail('seed-client-1', section: 'diet'),
       extraOverrides: <Override>[
         if (stubMeals)

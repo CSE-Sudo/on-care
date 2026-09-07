@@ -295,7 +295,7 @@ ReportSummary ruleReportSummary(WeeklyReport report, TrainerClient client) {
   final name = client.name;
   if (evidence.isEmpty) {
     return ReportSummary(
-      headline: '$name 고객은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.',
+      headline: '$name 회원은 그 주 기록이 없어 다음 주 시작을 함께 잡아 주세요.',
       points: const <String>[],
       generatedBy: 'rule',
     );
@@ -319,7 +319,7 @@ ReportSummary ruleReportSummary(WeeklyReport report, TrainerClient client) {
 
   final String headline;
   if (watch.isEmpty) {
-    headline = '$name 고객은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.';
+    headline = '$name 회원은 기록이 목표 범위 안에 있어 지금 강도를 유지해도 좋습니다.';
   } else {
     // 주의사항이 하나라도 있으면 `목표 범위 안` 이라고 말하지 않는다. 여럿이면
     // 가장 위험한 것을 머리에 두고, 나머지는 근거 줄이 빠짐없이 말한다.
@@ -330,11 +330,11 @@ ReportSummary ruleReportSummary(WeeklyReport report, TrainerClient client) {
       final keptJosa = hasFinalConsonant(kept) ? '으로' : '로';
       final careJosa = hasFinalConsonant(top) ? '을' : '를';
       headline =
-          '$name 고객은 $kept$keptJosa 잘 지켰고, '
+          '$name 회원은 $kept$keptJosa 잘 지켰고, '
           '다음 주는 $top$careJosa 함께 챙기면 좋겠습니다.$rest';
     } else {
       final subject = hasFinalConsonant(top) ? '이' : '가';
-      headline = '$name 고객은 $top$subject 목표를 벗어나 다음 주 조정이 필요합니다.$rest';
+      headline = '$name 회원은 $top$subject 목표를 벗어나 다음 주 조정이 필요합니다.$rest';
     }
   }
   return ReportSummary(

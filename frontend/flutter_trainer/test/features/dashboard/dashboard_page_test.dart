@@ -64,7 +64,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// 주의 고객 검증이 쓰는 고정 로스터. (#907)
+  /// 주의 회원 검증이 쓰는 고정 로스터. (#907)
   ///
   /// 건강 신호 여덟(나트륨 5 · 당류 1 · 이행률 2)과 답장 대기 둘. 기대값을
   /// 데이터 바로 옆에 두어, 숫자가 어디서 왔는지 읽는 사람이 세어 볼 수 있게 한다.
@@ -75,16 +75,16 @@ void main() {
     const List<int> lowWeek = <int>[40, 40, 0, 0, 0, 0, 0];
     final List<TrainerClient> roster = <TrainerClient>[
       for (var i = 0; i < 5; i++)
-        makeClient(id: 'sodium-$i', name: '나트륨 고객 $i', sodiumMg: 2500),
-      makeClient(id: 'sugar-0', name: '당류 고객', sugarG: 80),
+        makeClient(id: 'sodium-$i', name: '나트륨 회원 $i', sodiumMg: 2500),
+      makeClient(id: 'sugar-0', name: '당류 회원', sugarG: 80),
       for (var i = 0; i < 2; i++)
         makeClient(
           id: 'completion-$i',
-          name: '이행률 고객 $i',
+          name: '이행률 회원 $i',
           weekCompletion: lowWeek,
         ),
-      makeClient(id: 'reply-0', name: '답장 고객 0'),
-      makeClient(id: 'reply-1', name: '답장 고객 1'),
+      makeClient(id: 'reply-0', name: '답장 회원 0'),
+      makeClient(id: 'reply-1', name: '답장 회원 1'),
     ];
     return <Override>[
       clientsProvider.overrideWith(
@@ -137,14 +137,14 @@ void main() {
     expect(attempts, 2, reason: '재시도 중 중복 요청이 시작됐어요');
 
     retryGate.complete(<TrainerClient>[
-      makeClient(name: '복구 고객', sodiumMg: 2500),
+      makeClient(name: '복구 회원', sodiumMg: 2500),
     ]);
     await settle(tester);
 
-    // 복구된 고객의 이름은 오늘 할 일 리스트를 스크롤해야 보인다 — 새로
+    // 복구된 회원의 이름은 오늘 할 일 리스트를 스크롤해야 보인다 — 새로
     // 고쳐 그렸다는 사실은 KPI 로 확인한다.
     final myClients = tester.widget<StatCard>(
-      find.ancestor(of: find.text('담당 고객'), matching: find.byType(StatCard)),
+      find.ancestor(of: find.text('담당 회원'), matching: find.byType(StatCard)),
     );
     expect(myClients.value, '1');
     expect(find.text('대시보드를 불러오지 못했어요'), findsNothing);
@@ -153,23 +153,23 @@ void main() {
   testWidgets('the KPI row reports the seeded numbers', (tester) async {
     await openDashboard(tester);
 
-    expect(find.text('담당 고객'), findsOneWidget);
+    expect(find.text('담당 회원'), findsOneWidget);
     // '메시지' 는 사이드바 내비게이션 항목명과도 겹친다 — KPI 카드 안에서만 찾는다.
     expect(
       find.descendant(of: find.byType(StatCard), matching: find.text('메시지')),
       findsOneWidget,
     );
-    expect(find.text('주의 고객'), findsOneWidget);
+    expect(find.text('주의 회원'), findsOneWidget);
     expect(find.text('이탈 위험'), findsOneWidget);
 
     // 13 of the 15 seeded clients are active; 박성호 and 문가영 are the
     // two 휴면 fixtures. 답장 대기는 **회원이 마지막으로 말한** 스레드다 —
     // 시드에서는 넷(오세라 · 배준혁 · 문가영 · 노태강)이 그렇다.
     expect(find.text('휴면 2명'), findsOneWidget);
-    expect(find.text('고객 4명 대기 중'), findsOneWidget);
+    expect(find.text('회원 4명 대기 중'), findsOneWidget);
   });
 
-  testWidgets('주의 고객 counts health signals, not the reply backlog', (
+  testWidgets('주의 회원 counts health signals, not the reply backlog', (
     tester,
   ) async {
     // 로스터를 이 테스트가 직접 만든다(#907). 데모 시드는 주간 이행률을 **오늘
@@ -183,7 +183,7 @@ void main() {
     // 당류 1 · 이행률 2 로 여덟이다. 답장 대기는 목록에는 남되 주의가 아니다.
     // 둘이 다시 합쳐지면 이 카드가 더 큰 수를 말하며 뜻을 잃는다.
     final attention = tester.widget<StatCard>(
-      find.ancestor(of: find.text('주의 고객'), matching: find.byType(StatCard)),
+      find.ancestor(of: find.text('주의 회원'), matching: find.byType(StatCard)),
     );
     expect(attention.value, '8');
     expect(find.text('식단·이행률 확인'), findsOneWidget);
@@ -251,7 +251,7 @@ void main() {
     );
   });
 
-  testWidgets('오늘 할 일은 건강 신호가 있는 고객을 미션으로 보여주고 그 섹션으로 연결한다', (tester) async {
+  testWidgets('오늘 할 일은 건강 신호가 있는 회원을 미션으로 보여주고 그 섹션으로 연결한다', (tester) async {
     await openDashboard(tester, extraOverrides: attentionRosterOverrides());
     await expandTaskCategory(tester, '식단');
 
@@ -323,15 +323,15 @@ void main() {
     expect(find.text('활동 피드백'), findsOneWidget);
   });
 
-  testWidgets('오늘 할 일은 각 미션에 맞는 고객만 보여준다', (tester) async {
+  testWidgets('오늘 할 일은 각 미션에 맞는 회원만 보여준다', (tester) async {
     final feedbackClient = makeClient(
       id: 'feedback-client',
-      name: '식단 고객',
+      name: '식단 회원',
       sodiumMg: 2500,
     );
     final programClient = makeClient(
       id: 'program-client',
-      name: '운동 고객',
+      name: '운동 회원',
       lastRoutine: '-',
     );
     await openDashboard(
@@ -354,22 +354,22 @@ void main() {
     expect(
       find.descendant(
         of: findMissionRow('feedback'),
-        matching: find.textContaining('식단 고객'),
+        matching: find.textContaining('식단 회원'),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: findMissionRow('program'),
-        matching: find.textContaining('운동 고객'),
+        matching: find.textContaining('운동 회원'),
       ),
       findsOneWidget,
     );
-    // 운동 고객은 프로그램 미등록 미션에만 있고, 식단 미션에는 없다.
+    // 운동 회원은 프로그램 미등록 미션에만 있고, 식단 미션에는 없다.
     expect(
       find.descendant(
         of: findMissionRow('feedback'),
-        matching: find.textContaining('운동 고객'),
+        matching: find.textContaining('운동 회원'),
       ),
       findsNothing,
     );
@@ -383,7 +383,7 @@ void main() {
     testWidgets('${scenario.prefix} 미션을 누르면 해당 화면으로 이동한다', (tester) async {
       final client = makeClient(
         id: 'nav-client',
-        name: '이동 고객',
+        name: '이동 회원',
         sodiumMg: 2500,
         lastRoutine: '-',
       );

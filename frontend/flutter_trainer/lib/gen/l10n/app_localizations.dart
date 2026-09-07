@@ -161,7 +161,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCancelByMember.
   ///
   /// In en, this message translates to:
-  /// **'Client'**
+  /// **'Member'**
   String get schedCancelByMember;
 
   /// No description provided for @schedCancelByTrainer.
@@ -251,7 +251,7 @@ abstract class AppLocalizations {
   /// No description provided for @navClients.
   ///
   /// In en, this message translates to:
-  /// **'Clients'**
+  /// **'Members'**
   String get navClients;
 
   /// No description provided for @navSchedule.
@@ -359,7 +359,7 @@ abstract class AppLocalizations {
   /// No description provided for @authTagline.
   ///
   /// In en, this message translates to:
-  /// **'The trainer-only app for managing your clients'**
+  /// **'The trainer-only app for managing your members'**
   String get authTagline;
 
   /// No description provided for @authEmail.
@@ -419,7 +419,7 @@ abstract class AppLocalizations {
   /// No description provided for @authSignUpSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Create an On-Care account and start managing clients'**
+  /// **'Create an On-Care account and start managing members'**
   String get authSignUpSubtitle;
 
   /// No description provided for @authName.
@@ -557,7 +557,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashActivityTabClient.
   ///
   /// In en, this message translates to:
-  /// **'Client'**
+  /// **'Member'**
   String get dashActivityTabClient;
 
   /// No description provided for @dashLoadFailed.
@@ -593,7 +593,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashMyClients.
   ///
   /// In en, this message translates to:
-  /// **'My clients'**
+  /// **'My members'**
   String get dashMyClients;
 
   /// No description provided for @dashDormantClients.
@@ -671,13 +671,13 @@ abstract class AppLocalizations {
   /// No description provided for @dashChurnRiskTitle.
   ///
   /// In en, this message translates to:
-  /// **'Clients at churn risk'**
+  /// **'Members at churn risk'**
   String get dashChurnRiskTitle;
 
   /// No description provided for @dashChurnRiskEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No clients are at churn risk right now.'**
+  /// **'No members are at churn risk right now.'**
   String get dashChurnRiskEmpty;
 
   /// No description provided for @dashActivityDifficultyTitle.
@@ -731,13 +731,13 @@ abstract class AppLocalizations {
   /// No description provided for @dashAiNoClients.
   ///
   /// In en, this message translates to:
-  /// **'No clients yet. Once you add one, I\'ll gather their diet and workout data and point out what to coach.'**
+  /// **'No members yet. Once you add one, I\'ll gather their diet and workout data and point out what to coach.'**
   String get dashAiNoClients;
 
   /// No description provided for @dashAiAllOnTrack.
   ///
   /// In en, this message translates to:
-  /// **'All {total} clients are within target. Hold this intensity and raise next week\'s goal.'**
+  /// **'All {total} members are within target. Hold this intensity and raise next week\'s goal.'**
   String dashAiAllOnTrack(int total);
 
   /// No description provided for @dashAiLoading.
@@ -899,7 +899,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashAiRuleUnansweredStatus.
   ///
   /// In en, this message translates to:
-  /// **'There is an unread message, so confirm the client\'s current condition before today\'s workout.'**
+  /// **'There is an unread message, so confirm the member\'s current condition before today\'s workout.'**
   String get dashAiRuleUnansweredStatus;
 
   /// No description provided for @dashAiRuleUnansweredFocus.
@@ -935,7 +935,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashAttentionTitle.
   ///
   /// In en, this message translates to:
-  /// **'Clients to check'**
+  /// **'Members to check'**
   String get dashAttentionTitle;
 
   /// No description provided for @dashMoreCount.
@@ -1085,19 +1085,19 @@ abstract class AppLocalizations {
   /// No description provided for @clientsLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t load client data'**
+  /// **'Couldn\'t load member data'**
   String get clientsLoadFailed;
 
   /// No description provided for @clientsCountSummary.
   ///
   /// In en, this message translates to:
-  /// **'{total} clients · {active} active'**
+  /// **'{total} members · {active} active'**
   String clientsCountSummary(int total, int active);
 
   /// No description provided for @clientsNew.
   ///
   /// In en, this message translates to:
-  /// **'Register new client'**
+  /// **'Register new member'**
   String get clientsNew;
 
   /// No description provided for @clientsTitle.
@@ -1151,7 +1151,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientsSortActiveFirst.
   ///
   /// In en, this message translates to:
-  /// **'Active clients first'**
+  /// **'Active members first'**
   String get clientsSortActiveFirst;
 
   /// No description provided for @clientsFilterLabel.
@@ -1169,19 +1169,19 @@ abstract class AppLocalizations {
   /// No description provided for @clientsPickHint.
   ///
   /// In en, this message translates to:
-  /// **'Pick a client on the left to open\ntheir chat, meals and workouts here'**
+  /// **'Pick a member on the left to open\ntheir chat, meals and workouts here'**
   String get clientsPickHint;
 
   /// No description provided for @clientsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No clients yet'**
+  /// **'No members yet'**
   String get clientsEmpty;
 
   /// No description provided for @clientsEmptyForFilter.
   ///
   /// In en, this message translates to:
-  /// **'No clients match {filter}'**
+  /// **'No members match {filter}'**
   String clientsEmptyForFilter(String filter);
 
   /// No description provided for @clientsFilterSummary.
@@ -1373,7 +1373,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientInviteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Add a new client'**
+  /// **'Add a new member'**
   String get clientInviteTitle;
 
   /// No description provided for @clientInviteIntro.
@@ -1391,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientConnectCodeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Member sync code'**
+  /// **'Sync code'**
   String get clientConnectCodeLabel;
 
   /// No description provided for @clientConnectCodeRequired.
@@ -1406,83 +1406,23 @@ abstract class AppLocalizations {
   /// **'That code is wrong or expired. Ask the member for a new one'**
   String get clientConnectCodeInvalid;
 
-  /// No description provided for @clientInviteMemberIdLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Member ID'**
-  String get clientInviteMemberIdLabel;
-
-  /// No description provided for @clientInviteLookupAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Find'**
-  String get clientInviteLookupAction;
-
-  /// No description provided for @clientInviteMessageLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Message (optional)'**
-  String get clientInviteMessageLabel;
-
-  /// No description provided for @clientInviteSendAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Send request'**
-  String get clientInviteSendAction;
-
   /// No description provided for @clientInviteConnectAction.
   ///
   /// In en, this message translates to:
-  /// **'Register client'**
+  /// **'Register member'**
   String get clientInviteConnectAction;
-
-  /// No description provided for @clientInviteSent.
-  ///
-  /// In en, this message translates to:
-  /// **'Sent a coaching request to {name}'**
-  String clientInviteSent(String name);
 
   /// No description provided for @clientInviteConnected.
   ///
   /// In en, this message translates to:
-  /// **'Registered {name} as a client'**
+  /// **'Registered {name} as a member'**
   String clientInviteConnected(String name);
-
-  /// No description provided for @clientInviteNotFound.
-  ///
-  /// In en, this message translates to:
-  /// **'No member uses that member ID'**
-  String get clientInviteNotFound;
 
   /// No description provided for @clientInviteFailed.
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t send the request. Please try again'**
   String get clientInviteFailed;
-
-  /// No description provided for @clientInviteMemberIdRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Enter a member ID'**
-  String get clientInviteMemberIdRequired;
-
-  /// No description provided for @clientInviteAlreadyCoached.
-  ///
-  /// In en, this message translates to:
-  /// **'You already coach this member'**
-  String get clientInviteAlreadyCoached;
-
-  /// No description provided for @clientInviteHasTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'Another trainer already coaches this member'**
-  String get clientInviteHasTrainer;
-
-  /// No description provided for @clientInvitePendingHint.
-  ///
-  /// In en, this message translates to:
-  /// **'A request you sent is still waiting for an answer'**
-  String get clientInvitePendingHint;
 
   /// No description provided for @clientInvitePendingTitle.
   ///
@@ -1517,7 +1457,7 @@ abstract class AppLocalizations {
   /// No description provided for @clientInviteConfirmPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Is this the right client?'**
+  /// **'Is this the right member?'**
   String get clientInviteConfirmPrompt;
 
   /// No description provided for @coachTemplateNew.
@@ -1655,19 +1595,19 @@ abstract class AppLocalizations {
   /// No description provided for @clientNotFound.
   ///
   /// In en, this message translates to:
-  /// **'Client not found'**
+  /// **'Member not found'**
   String get clientNotFound;
 
   /// No description provided for @clientBackToList.
   ///
   /// In en, this message translates to:
-  /// **'Back to clients'**
+  /// **'Back to members'**
   String get clientBackToList;
 
   /// No description provided for @clientList.
   ///
   /// In en, this message translates to:
-  /// **'Client list'**
+  /// **'Member list'**
   String get clientList;
 
   /// No description provided for @metricCalories.
@@ -1799,7 +1739,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatDemoNotified.
   ///
   /// In en, this message translates to:
-  /// **'The client app was notified'**
+  /// **'The member app was notified'**
   String get chatDemoNotified;
 
   /// No description provided for @chatInputHint.
@@ -1883,7 +1823,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachSheetSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Answers are grounded in this client\'s meals and workouts.'**
+  /// **'Answers are grounded in this member\'s meals and workouts.'**
   String get coachSheetSubtitle;
 
   /// No description provided for @coachSheetHint.
@@ -2153,7 +2093,7 @@ abstract class AppLocalizations {
   /// No description provided for @routinesEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No programs assigned to this client yet'**
+  /// **'No programs assigned to this member yet'**
   String get routinesEmpty;
 
   /// No description provided for @minutesShort.
@@ -2207,25 +2147,25 @@ abstract class AppLocalizations {
   /// No description provided for @clientFeedback.
   ///
   /// In en, this message translates to:
-  /// **'Client feedback'**
+  /// **'Member feedback'**
   String get clientFeedback;
 
   /// No description provided for @clientFeedbackOn.
   ///
   /// In en, this message translates to:
-  /// **'Client feedback on {name}'**
+  /// **'Member feedback on {name}'**
   String clientFeedbackOn(String name);
 
   /// No description provided for @clientFeedbackPersonal.
   ///
   /// In en, this message translates to:
-  /// **'Client feedback on this personal exercise'**
+  /// **'Member feedback on this personal exercise'**
   String get clientFeedbackPersonal;
 
   /// No description provided for @clientFeedbackSession.
   ///
   /// In en, this message translates to:
-  /// **'Client feedback on this session'**
+  /// **'Member feedback on this session'**
   String get clientFeedbackSession;
 
   /// No description provided for @workoutKindAiPersonal.
@@ -2387,7 +2327,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Review the week\'s changes and share them with your client'**
+  /// **'Review the week\'s changes and share them with your member'**
   String get reportsSubtitle;
 
   /// No description provided for @reportsLoadFailed.
@@ -2399,7 +2339,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsNoClients.
   ///
   /// In en, this message translates to:
-  /// **'No clients yet, so there\'s nothing to report on'**
+  /// **'No members yet, so there\'s nothing to report on'**
   String get reportsNoClients;
 
   /// No description provided for @reportsWeekly.
@@ -2621,7 +2561,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPickClient.
   ///
   /// In en, this message translates to:
-  /// **'Pick a client'**
+  /// **'Pick a member'**
   String get reportsPickClient;
 
   /// No description provided for @reportsClientWeekly.
@@ -2747,7 +2687,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsShareNoClient.
   ///
   /// In en, this message translates to:
-  /// **'Pick a client to see their report first.'**
+  /// **'Pick a member to see their report first.'**
   String get reportsShareNoClient;
 
   /// No description provided for @reportBodyGreeting.
@@ -2921,7 +2861,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedFieldClient.
   ///
   /// In en, this message translates to:
-  /// **'Client'**
+  /// **'Member'**
   String get schedFieldClient;
 
   /// No description provided for @schedFieldType.
@@ -3119,7 +3059,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedNoteHint.
   ///
   /// In en, this message translates to:
-  /// **'Anything to prepare, or notes about this client'**
+  /// **'Anything to prepare, or notes about this member'**
   String get schedNoteHint;
 
   /// No description provided for @schedAddAction.
@@ -3461,7 +3401,7 @@ abstract class AppLocalizations {
   /// No description provided for @myNotifNewMessageHint.
   ///
   /// In en, this message translates to:
-  /// **'A sidebar badge appears when a client messages you'**
+  /// **'A sidebar badge appears when a member messages you'**
   String get myNotifNewMessageHint;
 
   /// No description provided for @myAccount.
@@ -3533,7 +3473,7 @@ abstract class AppLocalizations {
   /// No description provided for @myLegalTermsBody.
   ///
   /// In en, this message translates to:
-  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service.\n\n3. The Service\nThe Company provides client management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n6. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n7. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n8. Termination\nA trainer may delete their account at any time. Doing so ends their client assignments and upcoming sessions, and the affected members are notified.\n\nAddendum\nThese terms take effect on January 1, 2026.'**
+  /// **'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service.\n\n3. The Service\nThe Company provides member management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n6. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n7. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n8. Termination\nA trainer may delete their account at any time. Doing so ends their member assignments and upcoming sessions, and the affected members are notified.\n\nAddendum\nThese terms take effect on January 1, 2026.'**
   String get myLegalTermsBody;
 
   /// No description provided for @myLegalPrivacyBody.
@@ -3629,19 +3569,19 @@ abstract class AppLocalizations {
   /// No description provided for @myStatClients.
   ///
   /// In en, this message translates to:
-  /// **'Clients'**
+  /// **'Members'**
   String get myStatClients;
 
   /// No description provided for @myClientManagement.
   ///
   /// In en, this message translates to:
-  /// **'Client management'**
+  /// **'Member management'**
   String get myClientManagement;
 
   /// No description provided for @myClientRemove.
   ///
   /// In en, this message translates to:
-  /// **'Remove client'**
+  /// **'Remove member'**
   String get myClientRemove;
 
   /// No description provided for @myClientRemoveTitle.
@@ -3653,25 +3593,25 @@ abstract class AppLocalizations {
   /// No description provided for @myClientRemoveBody.
   ///
   /// In en, this message translates to:
-  /// **'This client\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the client app is not deleted.'**
+  /// **'This member\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.'**
   String get myClientRemoveBody;
 
   /// No description provided for @myClientRemoveSuccess.
   ///
   /// In en, this message translates to:
-  /// **'Client removed'**
+  /// **'Member removed'**
   String get myClientRemoveSuccess;
 
   /// No description provided for @myClientRemoveFailed.
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t remove the client. Please try again'**
+  /// **'Couldn\'t remove the member. Please try again'**
   String get myClientRemoveFailed;
 
   /// No description provided for @myClientManagementEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No clients assigned'**
+  /// **'No members assigned'**
   String get myClientManagementEmpty;
 
   /// No description provided for @myStatSessionsDone.
@@ -4031,7 +3971,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachNoClients.
   ///
   /// In en, this message translates to:
-  /// **'No clients yet'**
+  /// **'No members yet'**
   String get coachNoClients;
 
   /// No description provided for @coachRecommended.
@@ -4421,7 +4361,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiSendToClient.
   ///
   /// In en, this message translates to:
-  /// **'Send to client'**
+  /// **'Send to member'**
   String get aiSendToClient;
 
   /// No description provided for @aiGoToChatHint.
@@ -4775,7 +4715,7 @@ abstract class AppLocalizations {
   /// No description provided for @coachNotMyClient.
   ///
   /// In en, this message translates to:
-  /// **'That isn\'t one of your clients'**
+  /// **'That isn\'t one of your members'**
   String get coachNotMyClient;
 
   /// No description provided for @coachAskFailed.
@@ -4925,7 +4865,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDeleteHint.
   ///
   /// In en, this message translates to:
-  /// **'Your client links and bookings go with it'**
+  /// **'Your member links and bookings go with it'**
   String get myDeleteHint;
 
   /// No description provided for @myDeleteDemo.
@@ -4943,7 +4883,7 @@ abstract class AppLocalizations {
   /// No description provided for @myDeleteBody.
   ///
   /// In en, this message translates to:
-  /// **'Your client links and bookings are removed and your clients are notified. This can\'t be undone.'**
+  /// **'Your member links and bookings are removed and your members are notified. This can\'t be undone.'**
   String get myDeleteBody;
 
   /// No description provided for @myDeleteFailed.
@@ -5069,19 +5009,19 @@ abstract class AppLocalizations {
   /// No description provided for @routineDeleteBody.
   ///
   /// In en, this message translates to:
-  /// **'{name} disappears from the client\'s app too.'**
+  /// **'{name} disappears from the member\'s app too.'**
   String routineDeleteBody(String name);
 
   /// Label/tooltip of the console header's client search.
   ///
   /// In en, this message translates to:
-  /// **'Search clients'**
+  /// **'Search members'**
   String get searchClients;
 
   /// No description provided for @searchClientsHint.
   ///
   /// In en, this message translates to:
-  /// **'Clients, goals, recent messages, last program sent date'**
+  /// **'Members, goals, recent messages, last program sent date'**
   String get searchClientsHint;
 
   /// No description provided for @searchClear.
@@ -5099,7 +5039,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchNoResults.
   ///
   /// In en, this message translates to:
-  /// **'No client matches “{query}”'**
+  /// **'No member matches “{query}”'**
   String searchNoResults(String query);
 
   /// Search dropdown footer: what picking a result does on this tab.
@@ -5411,7 +5351,7 @@ abstract class AppLocalizations {
   /// No description provided for @messagesSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Exchange coaching updates with clients and follow up quickly'**
+  /// **'Exchange coaching updates with members and follow up quickly'**
   String get messagesSubtitle;
 
   /// No description provided for @messagesLoadFailed.
@@ -5465,13 +5405,13 @@ abstract class AppLocalizations {
   /// No description provided for @messagesClientDetail.
   ///
   /// In en, this message translates to:
-  /// **'Client details'**
+  /// **'Member details'**
   String get messagesClientDetail;
 
   /// No description provided for @messagesSelectPrompt.
   ///
   /// In en, this message translates to:
-  /// **'Select a client from the list to start a conversation.'**
+  /// **'Select a member from the list to start a conversation.'**
   String get messagesSelectPrompt;
 
   /// No description provided for @clientQuickMessages.
@@ -5615,7 +5555,7 @@ abstract class AppLocalizations {
   /// No description provided for @followUpContextGeneral.
   ///
   /// In en, this message translates to:
-  /// **'Client detail'**
+  /// **'Member detail'**
   String get followUpContextGeneral;
 
   /// No description provided for @followUpContextDiet.
@@ -5747,7 +5687,7 @@ abstract class AppLocalizations {
   /// No description provided for @suggestionReviewIntro.
   ///
   /// In en, this message translates to:
-  /// **'Prepared for {name} from recent PT feedback and exercise records. The client sees only what you recommend.'**
+  /// **'Prepared for {name} from recent PT feedback and exercise records. The member sees only what you recommend.'**
   String suggestionReviewIntro(String name);
 
   /// No description provided for @suggestionReviewEmpty.
@@ -5765,13 +5705,13 @@ abstract class AppLocalizations {
   /// No description provided for @suggestionApprove.
   ///
   /// In en, this message translates to:
-  /// **'Recommend to client'**
+  /// **'Recommend to member'**
   String get suggestionApprove;
 
   /// No description provided for @suggestionConfirmTitle.
   ///
   /// In en, this message translates to:
-  /// **'Final review · recommend to client'**
+  /// **'Final review · recommend to member'**
   String get suggestionConfirmTitle;
 
   /// No description provided for @suggestionConfirmBody.
@@ -5831,7 +5771,7 @@ abstract class AppLocalizations {
   /// No description provided for @suggestionEditMemo.
   ///
   /// In en, this message translates to:
-  /// **'Note for the client'**
+  /// **'Note for the member'**
   String get suggestionEditMemo;
 
   /// No description provided for @suggestionEditMemoHint.
@@ -6131,7 +6071,7 @@ abstract class AppLocalizations {
   /// Placeholder in the report summary slot before a client is picked.
   ///
   /// In en, this message translates to:
-  /// **'Select a client to see their weekly summary and coaching suggestions here'**
+  /// **'Select a member to see their weekly summary and coaching suggestions here'**
   String get reportsSummaryEmptyClient;
 
   /// No description provided for @reportsLastWeek.
@@ -6149,7 +6089,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsBackToList.
   ///
   /// In en, this message translates to:
-  /// **'Client list'**
+  /// **'Member list'**
   String get reportsBackToList;
 
   /// No description provided for @reportsPreviousLoadFailed.
@@ -6209,7 +6149,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsFeedbackHint.
   ///
   /// In en, this message translates to:
-  /// **'Write coaching feedback for the client.'**
+  /// **'Write coaching feedback for the member.'**
   String get reportsFeedbackHint;
 
   /// No description provided for @reportsRecentWeeks.
@@ -6401,7 +6341,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfSendToClient.
   ///
   /// In en, this message translates to:
-  /// **'Send to client'**
+  /// **'Send to member'**
   String get reportsPdfSendToClient;
 
   /// No description provided for @reportsPdfSave.
@@ -6455,7 +6395,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfFallbackClient.
   ///
   /// In en, this message translates to:
-  /// **'client'**
+  /// **'member'**
   String get reportsPdfFallbackClient;
 
   /// No description provided for @reportsPdfDocTitle.
@@ -6473,7 +6413,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportsPdfClient.
   ///
   /// In en, this message translates to:
-  /// **'Client  {name}'**
+  /// **'Member  {name}'**
   String reportsPdfClient(String name);
 
   /// No description provided for @reportsPdfPeriod.

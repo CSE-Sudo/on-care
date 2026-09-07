@@ -13,7 +13,7 @@ final AppLocalizationsKo _ko = AppLocalizationsKo();
 ScheduleSession session({
   required String date,
   String status = '예정',
-  String clientName = '테스트고객',
+  String clientName = '테스트회원',
   List<ProgramItem> program = const <ProgramItem>[],
 }) {
   return ScheduleSession(

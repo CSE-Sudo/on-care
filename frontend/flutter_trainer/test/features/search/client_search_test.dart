@@ -16,12 +16,12 @@ void main() {
 
   test('빈 질의는 아무도 매치하지 않는다', () {
     // 목록이 아니라 피커다 — 빈 질의에 전체 명단을 돌려주면 트레이너가
-    // 읽어야 할 두 번째 고객 목록이 된다.
+    // 읽어야 할 두 번째 회원 목록이 된다.
     expect(searchClients(roster, ''), isEmpty);
     expect(searchClients(roster, '   '), isEmpty);
   });
 
-  test('이름이 앞에서 맞는 고객이 부분 일치보다 먼저 온다', () {
+  test('이름이 앞에서 맞는 회원이 부분 일치보다 먼저 온다', () {
     final result = searchClients(roster, '민');
     expect(
       result.map((c) => c.id).toList(),
@@ -53,7 +53,7 @@ void main() {
     expect(searchClients(many, '김', limit: 3).length, 3);
   });
 
-  test('일치하는 고객이 없으면 빈 목록', () {
+  test('일치하는 회원이 없으면 빈 목록', () {
     expect(searchClients(roster, '홍길동'), isEmpty);
   });
 }

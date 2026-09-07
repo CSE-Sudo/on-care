@@ -12,7 +12,7 @@ import '../../helpers/client_factory.dart';
 void main() {
   test('structured API payload keeps client status, evidence, and focus', () {
     final summary = AiCoachingSummary.fromJson(<String, Object?>{
-      'headline': '김민수 고객을 먼저 확인하세요.',
+      'headline': '김민수 회원을 먼저 확인하세요.',
       'generated_by': 'ai',
       'data_as_of': '2026-08-14',
       'clients': <Object?>[

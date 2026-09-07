@@ -19,7 +19,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -33,7 +33,6 @@ from app.models.models import (
     User,
 )
 from app.schemas.trainer_api import (
-    MemberLookupOut,
     PairedMemberOut,
     TrainerClientInviteOut,
     MemberClientInviteOut,
@@ -83,51 +82,6 @@ def _active_trainer_id(db: Session, member_id: str) -> str | None:
             TrainerClient.member_id == member_id,
             TrainerClient.active.is_(True),
         )
-    )
-
-
-def lookup_member(db: Session, trainer_id: str, member_id: str) -> MemberLookupOut:
-    """회원 ID **완전 일치**로 회원 한 명을 찾는다.
-
-    이메일 대신 회원 ID(=`User.id`, 회원 앱 MY 탭의 "내 회원 ID")를 쓰는
-    이유는 두 가지다. 이메일은 개인정보라 회원이 트레이너에게 공유하길 꺼릴 수
-    있고, 성별·나이 같은 인적 사항으로 찾게 하면 동명이인·오입력을 트레이너가
-    가려낼 수 없다. 이미 회원마다 고유한 `User.id` 가 있으므로 새 식별자 체계를
-    만들지 않고 그걸 그대로 쓴다.
-
-    부분 일치나 이름 검색을 두지 않는 것은 의도다. 트레이너가 이름 몇 글자로
-    회원 명부를 훑을 수 있으면, 담당도 아닌 사람들의 존재가 드러난다. 완전
-    일치는 "이미 그 회원의 ID를 알고 있다"는 뜻이라 새로 새는 정보가 없다.
-
-    돌려주는 값도 요청을 보낼지 판단할 만큼만이다 — 이름, 이미 담당이 있는지,
-    내가 보낸 요청이 대기 중인지. 성별·나이 등 신체 정보는 담당이 성립한
-    뒤에만 조회된다(`/trainer/clients/{id}/health-profile`) — 여기서는 주지
-    않는다.
-    """
-    normalized = member_id.strip().lower()
-    member = db.scalar(
-        select(User).where(func.lower(User.id) == normalized)
-    )
-    if member is None:
-        raise MemberNotFound("그 회원 ID를 쓰는 회원을 찾지 못했어요.")
-    if member.role != "member":
-        raise NotAMember("트레이너 계정에는 담당 요청을 보낼 수 없어요.")
-
-    current = _active_trainer_id(db, member.id)
-    pending = db.scalar(
-        select(TrainerClientInvite.id).where(
-            TrainerClientInvite.trainer_id == trainer_id,
-            TrainerClientInvite.member_id == member.id,
-            TrainerClientInvite.status == "pending",
-        )
-    )
-    return MemberLookupOut(
-        member_id=member.id,
-        name=member.name,
-        # 누가 담당인지까지는 밝히지 않는다. 요청을 보낼 수 있는지만 알면 된다.
-        has_trainer=current is not None,
-        coached_by_me=current == trainer_id,
-        invite_pending=pending is not None,
     )
 
 

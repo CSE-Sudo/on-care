@@ -123,7 +123,7 @@ void main() {
     // flattening the data back out to fifteen similar weeks fails here
     // rather than silently making half the UI unreachable.
     test('the roster covers the states the console has to render', () async {
-      // 시계를 고정한다. 이 테스트가 요구하는 스펙트럼("기록이 끊긴 고객" 등)은
+      // 시계를 고정한다. 이 테스트가 요구하는 스펙트럼("기록이 끊긴 회원" 등)은
       // 주가 얼마나 지났는지에 달려 있어, 실행한 날에 맡기면 주 초에는 존재할
       // 수 없다 — 월요일이면 모두에게 하루치뿐이다(#826).
       //
@@ -189,11 +189,11 @@ void main() {
       expect(
         clients.where((c) => sugarWeek(c).any((v) => v != v.roundToDouble())),
         isNotEmpty,
-        reason: '소수 당류를 가진 고객',
+        reason: '소수 당류를 가진 회원',
       );
 
-      // 추이 모양: 지난 날을 모두 기록한 고객, 중간에 끊긴 고객, 하루만 있는
-      // 고객, 하나도 없는 고객 — 각각 다른 화면을 탄다. 계열이 요일에 고정되면서
+      // 추이 모양: 지난 날을 모두 기록한 회원, 중간에 끊긴 회원, 하루만 있는
+      // 회원, 하나도 없는 회원 — 각각 다른 화면을 탄다. 계열이 요일에 고정되면서
       // '꽉 찬 주'는 7일이 아니라 **오늘까지의 날 수**다.
       int recorded(TrainerClientRow c) =>
           sodiumWeek(c).where((v) => v > 0).length;
@@ -202,13 +202,13 @@ void main() {
       expect(
         clients.where((c) => recorded(c) > 1 && recorded(c) < elapsed),
         isNotEmpty,
-        reason: '기록이 끊긴 고객',
+        reason: '기록이 끊긴 회원',
       );
       expect(clients.where((c) => recorded(c) == 1), isNotEmpty);
       expect(
         clients.where((c) => recorded(c) == 0),
         isNotEmpty,
-        reason: '기록이 하나도 없는 고객',
+        reason: '기록이 하나도 없는 회원',
       );
 
       // '최근 4주' 카드는 보고 있는 주에서 3주를 더 거슬러 읽는다. 과거로
@@ -350,7 +350,7 @@ void main() {
         }, reason: row.id);
       }
 
-      // 고객마다 최신순이다 — `watchHistory` 가 `sortOrder` 로만 정렬하므로,
+      // 회원마다 최신순이다 — `watchHistory` 가 `sortOrder` 로만 정렬하므로,
       // 날짜가 그 차례를 거스르면 목록이 뒤죽박죽으로 보인다.
       final Map<String, List<DateTime>> byClient = <String, List<DateTime>>{};
       for (final row in rows) {
@@ -369,7 +369,7 @@ void main() {
         }
       }
 
-      // 오늘 운동한 고객이 적어도 하나는 있어야 `오늘` 을 골랐을 때 데모가
+      // 오늘 운동한 회원이 적어도 하나는 있어야 `오늘` 을 골랐을 때 데모가
       // 빈 화면이 아니다.
       expect(
         rows.any(
@@ -512,7 +512,7 @@ void main() {
       final clients = await db.select(db.trainerClients).get();
       expect(clients, isNotEmpty);
       for (final client in clients) {
-        // 이 표는 이제 지난 날의 끼니도 담는다(#1025). 고객 행의 합계는
+        // 이 표는 이제 지난 날의 끼니도 담는다(#1025). 회원 행의 합계는
         // **오늘** 것이므로 오늘 끼니만 골라 견준다.
         // where 를 두 번 걸면 drift 가 AND 로 잇는다.
         final meals =
@@ -597,7 +597,7 @@ void main() {
     test('목록 미리보기가 그 스레드의 마지막 메시지와 같다', () async {
       // 예전에는 로스터의 `lastMessage` 를 손으로 적어 뒀다. 대화를 손볼 때
       // 한쪽만 바뀌어서, 김민수는 우연히 맞고 박성호는 회원이 보낸 옛
-      // 메시지가 목록에 떴다 — 같은 화면이 고객마다 다른 말을 했다.
+      // 메시지가 목록에 떴다 — 같은 화면이 회원마다 다른 말을 했다.
       await seedIfEmpty(db);
 
       final clients = await db.select(db.trainerClients).get();
@@ -652,7 +652,7 @@ void main() {
     });
 
     test('트레이너가 마지막으로 말한 스레드는 안읽음이 없다', () async {
-      // 예전에는 `threadHandled: true` 를 고객마다 손으로 적어 뒀다. 대화를
+      // 예전에는 `threadHandled: true` 를 회원마다 손으로 적어 뒀다. 대화를
       // 손볼 때 한쪽만 바뀌어 이지수·박성호는 트레이너가 마지막으로 답장해
       // 놓고도 안읽음 배지를 달고 있었다 — 아무것도 기다리는 게 없는데
       // 목록이 "답장하세요" 라고 말했다.

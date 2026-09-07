@@ -83,7 +83,7 @@ void main() {
     }
   });
 
-  testWidgets('화면별 고객 검색 입력은 제거하고 통합 검색만 유지한다', (tester) async {
+  testWidgets('화면별 회원 검색 입력은 제거하고 통합 검색만 유지한다', (tester) async {
     await openDesktop(tester, AppRoutes.clients);
     expect(
       find.byKey(const ValueKey<String>('clients-roster-search')),
@@ -106,7 +106,7 @@ void main() {
     );
   });
 
-  testWidgets('Enter로 선택하면 현재 탭 안에서 해당 고객을 연다', (tester) async {
+  testWidgets('Enter로 선택하면 현재 탭 안에서 해당 회원을 연다', (tester) async {
     await openDesktop(tester, AppRoutes.messages);
     for (final (route, expected) in <(String, String)>[
       (
@@ -126,7 +126,7 @@ void main() {
     }
   });
 
-  testWidgets('이름이 아닌 최근 메시지로도 고객을 통합 검색한다', (tester) async {
+  testWidgets('이름이 아닌 최근 메시지로도 회원을 통합 검색한다', (tester) async {
     await openDesktop(tester, AppRoutes.dashboard);
     await search(tester, '장거리');
 

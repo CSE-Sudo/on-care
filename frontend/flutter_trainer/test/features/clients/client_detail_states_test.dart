@@ -20,11 +20,11 @@ void main() {
       at: AppRoutes.clientDetail('no-such-client'),
     );
 
-    expect(find.text('고객을 찾을 수 없어요'), findsOneWidget);
+    expect(find.text('회원을 찾을 수 없어요'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
-    await tester.tap(find.text('고객 목록으로'));
+    await tester.tap(find.text('회원 목록으로'));
     await settle(tester);
-    expect(find.text('고객 관리'), findsWidgets);
+    expect(find.text('회원 관리'), findsWidgets);
   });
 
   testWidgets('a provider error offers retry', (tester) async {
@@ -39,7 +39,7 @@ void main() {
     );
     await goTo(tester, AppRoutes.clientDetail('seed-client-1'));
 
-    expect(find.text('고객 정보를 불러오지 못했어요'), findsOneWidget);
+    expect(find.text('회원 정보를 불러오지 못했어요'), findsOneWidget);
     await tester.tap(find.text('다시 시도'));
     await settle(tester);
     expect(tester.takeException(), isNull);
@@ -131,10 +131,10 @@ void main() {
     expect(find.text('메시지'), findsOneWidget);
     expect(find.text('프로그램'), findsOneWidget);
     expect(find.text('리포트'), findsOneWidget);
-    expect(find.text('고객 신체·목표 관리'), findsNothing);
+    expect(find.text('회원 신체·목표 관리'), findsNothing);
     expect(find.text('후속 관리'), findsNothing);
     expect(find.text('메모'), findsNothing);
-    // 일정 등록은 스케줄 라우트에 고객을 실을 자리가 없어 아직 넣지 않는다.
+    // 일정 등록은 스케줄 라우트에 회원을 실을 자리가 없어 아직 넣지 않는다.
     expect(find.text('일정 등록'), findsNothing);
     expect(find.text('주간 리포트'), findsNothing);
 
@@ -195,7 +195,7 @@ void main() {
     // 열기 전에는 어느 쪽도 화면에 없다 — 페이지에 펼쳐 두지 않고, 눌렀을
     // 때만 뜨는 작은 창이다.
     expect(find.byKey(dialog), findsNothing);
-    expect(find.text('고객 신체·목표 관리'), findsNothing);
+    expect(find.text('회원 신체·목표 관리'), findsNothing);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('client-detail-open-memo')),
@@ -205,7 +205,7 @@ void main() {
     // 한 창 안에 상단 신체·목표, 하단 메모가 함께 선다 — 예전처럼 하나를
     // 닫아야 다른 하나를 열 수 있지 않다.
     expect(find.byKey(dialog), findsOneWidget);
-    expect(find.text('고객 신체·목표 관리'), findsOneWidget);
+    expect(find.text('회원 신체·목표 관리'), findsOneWidget);
     expect(
       find.byKey(const ValueKey<String>('client-memo-input')),
       findsOneWidget,

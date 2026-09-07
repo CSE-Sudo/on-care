@@ -15,7 +15,7 @@ final AppLocalizationsKo _ko = AppLocalizationsKo();
 final AppLocalizationsEn _en = AppLocalizationsEn();
 
 WeeklyReport _report() => WeeklyReport(
-  client: makeClient(id: 'pdf-client', name: '김고객'),
+  client: makeClient(id: 'pdf-client', name: '김회원'),
   weekStart: DateTime(2026, 8, 10),
   sessionsBooked: 2,
   sessionsDone: 1,
@@ -61,7 +61,7 @@ void main() {
   test('한국어 로케일에서는 기존 문구 그대로 나온다', () {
     final content = _content(_ko);
 
-    expect(content, contains('고객  김고객'));
+    expect(content, contains('회원  김회원'));
     expect(content, contains('기간  2026-08-10 ~ 2026-08-16'));
     expect(content, contains('핵심 지표'));
     expect(content, contains('• 운동 수행률: 72%'));
@@ -85,7 +85,7 @@ void main() {
   test('영어 로케일에서는 제목·섹션·요일·상태 문구가 영어다', () {
     final content = _content(_en, feedback: 'Nice week');
 
-    expect(content, contains('Client  김고객'));
+    expect(content, contains('Member  김회원'));
     expect(content, contains('Period  2026-08-10 – 2026-08-16'));
     expect(content, contains('Key metrics'));
     expect(content, contains('• Workout completion: 72%'));
@@ -108,7 +108,7 @@ void main() {
     // 트레이너가 직접 쓴 피드백은 사용자 데이터라 검사에서 뺀다.
     final hangul = RegExp(r'[가-힣]');
     final leaked = content
-        .where((line) => !line.contains('김고객') && !line.contains('스쿼트'))
+        .where((line) => !line.contains('김회원') && !line.contains('스쿼트'))
         .where(hangul.hasMatch)
         .toList();
     expect(leaked, isEmpty, reason: 'PDF 문구에 한국어가 남아 있다: $leaked');

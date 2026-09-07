@@ -41,7 +41,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedCancelSource => 'Cancelled by';
 
   @override
-  String get schedCancelByMember => 'Client';
+  String get schedCancelByMember => 'Member';
 
   @override
   String get schedCancelByTrainer => 'Trainer';
@@ -94,7 +94,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navDashboard => 'Dashboard';
 
   @override
-  String get navClients => 'Clients';
+  String get navClients => 'Members';
 
   @override
   String get navSchedule => 'Schedule';
@@ -150,7 +150,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get authTagline => 'The trainer-only app for managing your clients';
+  String get authTagline => 'The trainer-only app for managing your members';
 
   @override
   String get authEmail => 'Email';
@@ -181,7 +181,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authSignUpSubtitle =>
-      'Create an On-Care account and start managing clients';
+      'Create an On-Care account and start managing members';
 
   @override
   String get authName => 'Name';
@@ -256,7 +256,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashActivityTabDiet => 'Diet';
 
   @override
-  String get dashActivityTabClient => 'Client';
+  String get dashActivityTabClient => 'Member';
 
   @override
   String get dashLoadFailed => 'Couldn\'t load the dashboard';
@@ -274,7 +274,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashSeeInSchedule => 'View in schedule';
 
   @override
-  String get dashMyClients => 'My clients';
+  String get dashMyClients => 'My members';
 
   @override
   String dashDormantClients(int count) {
@@ -317,10 +317,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashChurnRiskCheck => 'Review churn signals';
 
   @override
-  String get dashChurnRiskTitle => 'Clients at churn risk';
+  String get dashChurnRiskTitle => 'Members at churn risk';
 
   @override
-  String get dashChurnRiskEmpty => 'No clients are at churn risk right now.';
+  String get dashChurnRiskEmpty => 'No members are at churn risk right now.';
 
   @override
   String get dashActivityDifficultyTitle =>
@@ -357,11 +357,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashAiNoClients =>
-      'No clients yet. Once you add one, I\'ll gather their diet and workout data and point out what to coach.';
+      'No members yet. Once you add one, I\'ll gather their diet and workout data and point out what to coach.';
 
   @override
   String dashAiAllOnTrack(int total) {
-    return 'All $total clients are within target. Hold this intensity and raise next week\'s goal.';
+    return 'All $total members are within target. Hold this intensity and raise next week\'s goal.';
   }
 
   @override
@@ -464,7 +464,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashAiRuleUnansweredStatus =>
-      'There is an unread message, so confirm the client\'s current condition before today\'s workout.';
+      'There is an unread message, so confirm the member\'s current condition before today\'s workout.';
 
   @override
   String get dashAiRuleUnansweredFocus =>
@@ -490,7 +490,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get dashAttentionTitle => 'Clients to check';
+  String get dashAttentionTitle => 'Members to check';
 
   @override
   String dashMoreCount(int count) {
@@ -573,15 +573,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weekdaySun => 'Sun';
 
   @override
-  String get clientsLoadFailed => 'Couldn\'t load client data';
+  String get clientsLoadFailed => 'Couldn\'t load member data';
 
   @override
   String clientsCountSummary(int total, int active) {
-    return '$total clients · $active active';
+    return '$total members · $active active';
   }
 
   @override
-  String get clientsNew => 'Register new client';
+  String get clientsNew => 'Register new member';
 
   @override
   String get clientsTitle => 'Member management';
@@ -608,7 +608,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientsSortRecentMessage => 'Recent conversations';
 
   @override
-  String get clientsSortActiveFirst => 'Active clients first';
+  String get clientsSortActiveFirst => 'Active members first';
 
   @override
   String get clientsFilterLabel => 'Filters';
@@ -620,14 +620,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientsPickHint =>
-      'Pick a client on the left to open\ntheir chat, meals and workouts here';
+      'Pick a member on the left to open\ntheir chat, meals and workouts here';
 
   @override
-  String get clientsEmpty => 'No clients yet';
+  String get clientsEmpty => 'No members yet';
 
   @override
   String clientsEmptyForFilter(String filter) {
-    return 'No clients match $filter';
+    return 'No members match $filter';
   }
 
   @override
@@ -730,7 +730,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get clientInviteTitle => 'Add a new client';
+  String get clientInviteTitle => 'Add a new member';
 
   @override
   String get clientInviteIntro =>
@@ -741,7 +741,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter the 6-digit sync code from the member\'s MY tab to connect right away.';
 
   @override
-  String get clientConnectCodeLabel => 'Member sync code';
+  String get clientConnectCodeLabel => 'Sync code';
 
   @override
   String get clientConnectCodeRequired => 'Enter all six digits';
@@ -751,50 +751,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'That code is wrong or expired. Ask the member for a new one';
 
   @override
-  String get clientInviteMemberIdLabel => 'Member ID';
-
-  @override
-  String get clientInviteLookupAction => 'Find';
-
-  @override
-  String get clientInviteMessageLabel => 'Message (optional)';
-
-  @override
-  String get clientInviteSendAction => 'Send request';
-
-  @override
-  String get clientInviteConnectAction => 'Register client';
-
-  @override
-  String clientInviteSent(String name) {
-    return 'Sent a coaching request to $name';
-  }
+  String get clientInviteConnectAction => 'Register member';
 
   @override
   String clientInviteConnected(String name) {
-    return 'Registered $name as a client';
+    return 'Registered $name as a member';
   }
-
-  @override
-  String get clientInviteNotFound => 'No member uses that member ID';
 
   @override
   String get clientInviteFailed =>
       'Couldn\'t send the request. Please try again';
-
-  @override
-  String get clientInviteMemberIdRequired => 'Enter a member ID';
-
-  @override
-  String get clientInviteAlreadyCoached => 'You already coach this member';
-
-  @override
-  String get clientInviteHasTrainer =>
-      'Another trainer already coaches this member';
-
-  @override
-  String get clientInvitePendingHint =>
-      'A request you sent is still waiting for an answer';
 
   @override
   String get clientInvitePendingTitle => 'Waiting for an answer';
@@ -813,7 +779,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t withdraw the request. Please try again';
 
   @override
-  String get clientInviteConfirmPrompt => 'Is this the right client?';
+  String get clientInviteConfirmPrompt => 'Is this the right member?';
 
   @override
   String get coachTemplateNew => 'New template';
@@ -888,13 +854,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientTabWorkout => 'Workouts';
 
   @override
-  String get clientNotFound => 'Client not found';
+  String get clientNotFound => 'Member not found';
 
   @override
-  String get clientBackToList => 'Back to clients';
+  String get clientBackToList => 'Back to members';
 
   @override
-  String get clientList => 'Client list';
+  String get clientList => 'Member list';
 
   @override
   String get metricCalories => 'Calories';
@@ -965,7 +931,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get chatDemoNotified => 'The client app was notified';
+  String get chatDemoNotified => 'The member app was notified';
 
   @override
   String get chatInputHint => 'Type a message...';
@@ -1018,7 +984,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachSheetSubtitle =>
-      'Answers are grounded in this client\'s meals and workouts.';
+      'Answers are grounded in this member\'s meals and workouts.';
 
   @override
   String get coachSheetHint =>
@@ -1167,7 +1133,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routinesLoadFailed => 'Couldn\'t load programs';
 
   @override
-  String get routinesEmpty => 'No programs assigned to this client yet';
+  String get routinesEmpty => 'No programs assigned to this member yet';
 
   @override
   String minutesShort(int minutes) {
@@ -1198,19 +1164,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get legendDone => 'Done';
 
   @override
-  String get clientFeedback => 'Client feedback';
+  String get clientFeedback => 'Member feedback';
 
   @override
   String clientFeedbackOn(String name) {
-    return 'Client feedback on $name';
+    return 'Member feedback on $name';
   }
 
   @override
   String get clientFeedbackPersonal =>
-      'Client feedback on this personal exercise';
+      'Member feedback on this personal exercise';
 
   @override
-  String get clientFeedbackSession => 'Client feedback on this session';
+  String get clientFeedbackSession => 'Member feedback on this session';
 
   @override
   String get workoutKindAiPersonal => 'AI personal exercise';
@@ -1309,14 +1275,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSubtitle =>
-      'Review the week\'s changes and share them with your client';
+      'Review the week\'s changes and share them with your member';
 
   @override
   String get reportsLoadFailed => 'Couldn\'t load reports';
 
   @override
   String get reportsNoClients =>
-      'No clients yet, so there\'s nothing to report on';
+      'No members yet, so there\'s nothing to report on';
 
   @override
   String get reportsWeekly => 'Weekly report';
@@ -1465,7 +1431,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientTrendSegmentTime => 'Time';
 
   @override
-  String get reportsPickClient => 'Pick a client';
+  String get reportsPickClient => 'Pick a member';
 
   @override
   String reportsClientWeekly(String name) {
@@ -1542,7 +1508,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsShareNeedsFeedback => 'Write feedback first to send it.';
 
   @override
-  String get reportsShareNoClient => 'Pick a client to see their report first.';
+  String get reportsShareNoClient => 'Pick a member to see their report first.';
 
   @override
   String reportBodyGreeting(String name, String range) {
@@ -1657,7 +1623,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedEditTitle => 'Edit session';
 
   @override
-  String get schedFieldClient => 'Client';
+  String get schedFieldClient => 'Member';
 
   @override
   String get schedFieldType => 'Type';
@@ -1766,7 +1732,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'A consultation is recorded as a note, not a program.';
 
   @override
-  String get schedNoteHint => 'Anything to prepare, or notes about this client';
+  String get schedNoteHint => 'Anything to prepare, or notes about this member';
 
   @override
   String get schedAddAction => 'Add';
@@ -1953,7 +1919,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifNewMessageHint =>
-      'A sidebar badge appears when a client messages you';
+      'A sidebar badge appears when a member messages you';
 
   @override
   String get myAccount => 'Account';
@@ -1993,7 +1959,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myLegalTermsBody =>
-      'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service.\n\n3. The Service\nThe Company provides client management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n6. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n7. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n8. Termination\nA trainer may delete their account at any time. Doing so ends their client assignments and upcoming sessions, and the affected members are notified.\n\nAddendum\nThese terms take effect on January 1, 2026.';
+      'This English text is provided for convenience; the Korean original governs.\n\n1. Purpose\nThese terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and trainers using the On-Care trainer console (the \"Service\").\n\n2. Effect and amendment\nThese terms apply to every trainer using the Service. The Company may amend them within the limits of applicable law, announcing the effective date and the reason inside the Service.\n\n3. The Service\nThe Company provides member management, access to diet and workout records, scheduling, messaging, AI coaching programs, and report writing and delivery. The details may change with Company policy.\n\n4. Accounts\nTrainer accounts and member accounts are separate; one account cannot be used for both. Trainers must enter certification and career details truthfully and are responsible for keeping their credentials safe.\n\n5. Handling member information\nTrainers may open the diet, workout and health records only of members they are assigned to. Those records may be used solely for coaching, consultation and reports, and must never be published or handed to a third party. When an assignment ends, the access ends with it.\n\n6. Prohibited conduct\nTrainers must not make medical diagnoses or prescriptions, and must not move member information outside the Service without that member\'s consent.\n\n7. Limitation of liability\nAI coaching output and statistics are reference material. The final judgement about the guidance given to a member rests with the trainer, and the Company bears no liability for that outcome to the extent permitted by law.\n\n8. Termination\nA trainer may delete their account at any time. Doing so ends their member assignments and upcoming sessions, and the affected members are notified.\n\nAddendum\nThese terms take effect on January 1, 2026.';
 
   @override
   String get myLegalPrivacyBody =>
@@ -2044,13 +2010,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myAdd => 'Add';
 
   @override
-  String get myStatClients => 'Clients';
+  String get myStatClients => 'Members';
 
   @override
-  String get myClientManagement => 'Client management';
+  String get myClientManagement => 'Member management';
 
   @override
-  String get myClientRemove => 'Remove client';
+  String get myClientRemove => 'Remove member';
 
   @override
   String myClientRemoveTitle(String name) {
@@ -2059,17 +2025,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myClientRemoveBody =>
-      'This client\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the client app is not deleted.';
+      'This member\'s schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.';
 
   @override
-  String get myClientRemoveSuccess => 'Client removed';
+  String get myClientRemoveSuccess => 'Member removed';
 
   @override
   String get myClientRemoveFailed =>
-      'Couldn\'t remove the client. Please try again';
+      'Couldn\'t remove the member. Please try again';
 
   @override
-  String get myClientManagementEmpty => 'No clients assigned';
+  String get myClientManagementEmpty => 'No members assigned';
 
   @override
   String get myStatSessionsDone => 'Sessions done';
@@ -2267,7 +2233,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t add it to the schedule. Please try again';
 
   @override
-  String get coachNoClients => 'No clients yet';
+  String get coachNoClients => 'No members yet';
 
   @override
   String get coachRecommended => 'AI suggestions';
@@ -2502,7 +2468,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSending => 'Sending…';
 
   @override
-  String get aiSendToClient => 'Send to client';
+  String get aiSendToClient => 'Send to member';
 
   @override
   String get aiGoToChatHint =>
@@ -2700,7 +2666,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'AI coaching isn\'t available in demo mode';
 
   @override
-  String get coachNotMyClient => 'That isn\'t one of your clients';
+  String get coachNotMyClient => 'That isn\'t one of your members';
 
   @override
   String get coachAskFailed => 'Couldn\'t send your question';
@@ -2792,7 +2758,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myDeleteAction => 'Delete';
 
   @override
-  String get myDeleteHint => 'Your client links and bookings go with it';
+  String get myDeleteHint => 'Your member links and bookings go with it';
 
   @override
   String get myDeleteDemo => 'Demo mode has no account to delete';
@@ -2802,7 +2768,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myDeleteBody =>
-      'Your client links and bookings are removed and your clients are notified. This can\'t be undone.';
+      'Your member links and bookings are removed and your members are notified. This can\'t be undone.';
 
   @override
   String get myDeleteFailed =>
@@ -2873,15 +2839,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String routineDeleteBody(String name) {
-    return '$name disappears from the client\'s app too.';
+    return '$name disappears from the member\'s app too.';
   }
 
   @override
-  String get searchClients => 'Search clients';
+  String get searchClients => 'Search members';
 
   @override
   String get searchClientsHint =>
-      'Clients, goals, recent messages, last program sent date';
+      'Members, goals, recent messages, last program sent date';
 
   @override
   String get searchClear => 'Clear search';
@@ -2891,7 +2857,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String searchNoResults(String query) {
-    return 'No client matches “$query”';
+    return 'No member matches “$query”';
   }
 
   @override
@@ -3076,7 +3042,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get messagesSubtitle =>
-      'Exchange coaching updates with clients and follow up quickly';
+      'Exchange coaching updates with members and follow up quickly';
 
   @override
   String get messagesLoadFailed => 'Couldn\'t load conversations.';
@@ -3105,11 +3071,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get messagesNoPreview => 'No messages yet';
 
   @override
-  String get messagesClientDetail => 'Client details';
+  String get messagesClientDetail => 'Member details';
 
   @override
   String get messagesSelectPrompt =>
-      'Select a client from the list to start a conversation.';
+      'Select a member from the list to start a conversation.';
 
   @override
   String get clientQuickMessages => 'Messages';
@@ -3190,7 +3156,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get followUpContext => 'Opens';
 
   @override
-  String get followUpContextGeneral => 'Client detail';
+  String get followUpContextGeneral => 'Member detail';
 
   @override
   String get followUpContextDiet => 'Diet';
@@ -3268,7 +3234,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String suggestionReviewIntro(String name) {
-    return 'Prepared for $name from recent PT feedback and exercise records. The client sees only what you recommend.';
+    return 'Prepared for $name from recent PT feedback and exercise records. The member sees only what you recommend.';
   }
 
   @override
@@ -3279,10 +3245,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get suggestionReviewLoadFailed => 'Couldn\'t load the AI suggestions.';
 
   @override
-  String get suggestionApprove => 'Recommend to client';
+  String get suggestionApprove => 'Recommend to member';
 
   @override
-  String get suggestionConfirmTitle => 'Final review · recommend to client';
+  String get suggestionConfirmTitle => 'Final review · recommend to member';
 
   @override
   String suggestionConfirmBody(String client) {
@@ -3320,7 +3286,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get suggestionEditName => 'Exercise';
 
   @override
-  String get suggestionEditMemo => 'Note for the client';
+  String get suggestionEditMemo => 'Note for the member';
 
   @override
   String get suggestionEditMemoHint => 'Stop if your right shoulder hurts.';
@@ -3494,7 +3460,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportsSummaryEmptyClient =>
-      'Select a client to see their weekly summary and coaching suggestions here';
+      'Select a member to see their weekly summary and coaching suggestions here';
 
   @override
   String get reportsLastWeek => 'Last week';
@@ -3503,7 +3469,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsSelectedWeek => 'Selected week';
 
   @override
-  String get reportsBackToList => 'Client list';
+  String get reportsBackToList => 'Member list';
 
   @override
   String get reportsPreviousLoadFailed => 'Couldn\'t load last week\'s data.';
@@ -3535,7 +3501,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t save the draft. Please try again.';
 
   @override
-  String get reportsFeedbackHint => 'Write coaching feedback for the client.';
+  String get reportsFeedbackHint => 'Write coaching feedback for the member.';
 
   @override
   String get reportsRecentWeeks => 'Last 4 weekly averages';
@@ -3661,7 +3627,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPdfSending => 'Sending…';
 
   @override
-  String get reportsPdfSendToClient => 'Send to client';
+  String get reportsPdfSendToClient => 'Send to member';
 
   @override
   String get reportsPdfSave => 'Save PDF';
@@ -3691,7 +3657,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPdfMessage => 'Here\'s your weekly report.';
 
   @override
-  String get reportsPdfFallbackClient => 'client';
+  String get reportsPdfFallbackClient => 'member';
 
   @override
   String get reportsPdfDocTitle => 'Weekly coaching report';
@@ -3702,7 +3668,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportsPdfClient(String name) {
-    return 'Client  $name';
+    return 'Member  $name';
   }
 
   @override

@@ -289,7 +289,7 @@ void main() {
     await settle(tester);
 
     expect(find.byType(ClientProfileDialog), findsOneWidget);
-    expect(find.text('고객 신체·목표 관리'), findsOneWidget);
+    expect(find.text('회원 신체·목표 관리'), findsOneWidget);
     expect(find.text('아직 남긴 메모가 없어요.'), findsOneWidget);
   });
 
@@ -524,7 +524,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('0.0~1000.0 범위로 입력해 주세요.'), findsOneWidget);
-    expect(find.text('고객 신체·목표 관리'), findsOneWidget);
+    expect(find.text('회원 신체·목표 관리'), findsOneWidget);
   });
 
   testWidgets('회원 앱과 같은 목표 필드를 읽고 저장한다 (#1449)', (tester) async {

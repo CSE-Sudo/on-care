@@ -12,7 +12,7 @@ import 'package:oncare_trainer/shared/widgets/action_button.dart';
 
 import '../../helpers/pump_app.dart';
 
-/// 시드된 고객 id — 상세는 id 로 주소를 갖는다.
+/// 시드된 회원 id — 상세는 id 로 주소를 갖는다.
 const String _minsuId = 'seed-client-1';
 
 /// 질문을 기록하고 정해진 답을 주는 페이크.
@@ -85,7 +85,7 @@ Future<void> _openCoachSheet(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('데모 고객 상세에는 AI 상담 버튼이 없다', (WidgetTester tester) async {
+  testWidgets('데모 회원 상세에는 AI 상담 버튼이 없다', (WidgetTester tester) async {
     // 데모에는 근거로 삼을 회원 기록이 없다. 화면이 지금과 같아야 한다.
     await _openClient(tester);
 
@@ -139,7 +139,7 @@ void main() {
 
   testWidgets('실패하면 사유를 보여준다', (WidgetTester tester) async {
     final repo = _FakeCoachRepository(
-      failure: const NotFoundError(message: '담당 고객이 아니에요'),
+      failure: const NotFoundError(message: '담당 회원이 아니에요'),
     );
     await _openClient(tester, coach: repo);
 
@@ -149,7 +149,7 @@ void main() {
     await tester.tap(find.text('물어보기'));
     await settle(tester);
 
-    expect(find.text('담당 고객이 아니에요'), findsOneWidget);
+    expect(find.text('담당 회원이 아니에요'), findsOneWidget);
   });
 
   testWidgets('시트를 열면 지난 문답이 복원된다', (WidgetTester tester) async {

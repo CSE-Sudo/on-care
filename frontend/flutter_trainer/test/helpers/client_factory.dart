@@ -7,7 +7,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 /// target, a fully recorded week at 80% completion, active.
 TrainerClient makeClient({
   String id = 'c1',
-  String name = '테스트고객',
+  String name = '테스트회원',
   String goal = '체중 감량',
   bool active = true,
   int calories = 1800,

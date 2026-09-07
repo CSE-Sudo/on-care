@@ -22,7 +22,7 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 
 import '../../helpers/pump_app.dart';
 
-/// [ClientInviteRepository] 가 꺼진 빌드 — 신규 고객 등록 진입점 자체가
+/// [ClientInviteRepository] 가 꺼진 빌드 — 신규 회원 등록 진입점 자체가
 /// 없는 상태를 흉내낸다.
 class _NoInviteClientInviteRepository implements ClientInviteRepository {
   const _NoInviteClientInviteRepository();
@@ -32,10 +32,6 @@ class _NoInviteClientInviteRepository implements ClientInviteRepository {
 
   @override
   bool get connectsImmediately => false;
-
-  @override
-  Future<MemberLookup> lookup(String memberId) async =>
-      throw const NotFoundError();
 
   @override
   Future<PairedMember> previewPairingCode(String code) async =>
@@ -84,7 +80,7 @@ class _RecordingRefreshClientRepository extends DriftClientRepository
 
 /// 로스터 목록을 [finder] 가 그려질 때까지 끌어 내린다.
 ///
-/// 목록은 지연 생성이라 화면 밖 카드가 트리에 아예 없다. 아래쪽에 선 고객을
+/// 목록은 지연 생성이라 화면 밖 카드가 트리에 아예 없다. 아래쪽에 선 회원을
 /// 단언하려면 먼저 그려지게 해야 한다 — `.last`·`.first` 를 붙인 finder 를
 /// 그대로 넘기면 아직 한 건도 없는 동안 `Bad state: No element` 로 깨진다.
 Future<void> scrollToClient(WidgetTester tester, Finder finder) async {
@@ -326,7 +322,7 @@ void main() {
       );
     });
 
-    test('미등록 고객은 새 회원 등록과 같은 lookup·invite 로 같은 행을 되살린다', () async {
+    test('미등록 회원은 새 회원 등록과 같은 lookup·invite 로 같은 행을 되살린다', () async {
       final repo = DriftClientRepository(db);
       final invites = DemoClientInviteRepository(db);
       await repo.removeClient('seed-client-1');
@@ -346,7 +342,7 @@ void main() {
       expect(clients.length, 15); // 새 행이 추가되지 않았다
     });
 
-    test('실 계정 id 매핑이 없는 고객도 행 id 자체로 다시 등록할 수 있다', () async {
+    test('실 계정 id 매핑이 없는 회원도 행 id 자체로 다시 등록할 수 있다', () async {
       final repo = DriftClientRepository(db);
       final invites = DemoClientInviteRepository(db);
       await repo.removeClient('seed-client-3');
@@ -467,7 +463,7 @@ void main() {
         );
 
         expect(find.byType(ClientSearchBar), findsOneWidget);
-        expect(find.text('고객 관리'), findsOneWidget);
+        expect(find.text('회원 관리'), findsOneWidget);
       });
     }
 
@@ -540,12 +536,12 @@ void main() {
 
       // The roster header states the size; the coaching signals
       // (나트륨 초과, 오늘 예약) now live on the 대시보드, not here.
-      expect(find.text('고객 관리'), findsWidgets);
+      expect(find.text('회원 관리'), findsWidgets);
       expect(find.text('15명 · 활성 13명'), findsWidgets);
 
       // Priority order: sodium-over clients come first, so a client who
       // is under target is further down a now-long, lazily built list.
-      // 같은 신호를 든 고객끼리는 마지막 대화가 새로운 쪽이 앞이라, 사흘 전
+      // 같은 신호를 든 회원끼리는 마지막 대화가 새로운 쪽이 앞이라, 사흘 전
       // 대화가 마지막인 박성호는 첫 화면 아래에 선다.
       expect(find.text('김민수'), findsOneWidget);
       expect(
@@ -574,7 +570,7 @@ void main() {
       expect(find.text('김민수'), findsOneWidget);
     });
 
-    testWidgets('고객 목록은 메시지 미리보기와 안 읽은 배지를 노출하지 않는다', (tester) async {
+    testWidgets('회원 목록은 메시지 미리보기와 안 읽은 배지를 노출하지 않는다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
@@ -633,14 +629,14 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('신규 고객 등록 — 6자리 동기화 코드로 회원과 연결한다', (tester) async {
+    testWidgets('신규 회원 등록 — 6자리 동기화 코드로 회원과 연결한다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.clients,
       );
 
-      await tester.tap(find.text('신규 고객 등록'));
+      await tester.tap(find.text('신규 회원 등록'));
       await settle(tester);
 
       // 이수아가 자기 앱에 띄운 코드다. 여섯 자리가 다 차면 바로 연결된다 —
@@ -653,13 +649,13 @@ void main() {
       expect(find.textContaining('여성'), findsWidgets);
 
       // 바로 잇지 않는다 — 이름·성별·나이를 확인하고 누른다.
-      expect(find.text('이 고객이 맞나요?'), findsOneWidget);
+      expect(find.text('이 회원이 맞나요?'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey<String>('client-connect-register')),
       );
       await settle(tester);
 
-      // 연결 성공 후 고객 리스트가 (재시작 없이) 즉시 반영된다 — 실제
+      // 연결 성공 후 회원 리스트가 (재시작 없이) 즉시 반영된다 — 실제
       // repository/drift 스트림 결과이지, 화면에 끼워 넣은 값이 아니다.
       final card = find.byKey(
         const ValueKey<String>('client-user-8f2a41c9d6e3'),
@@ -677,21 +673,21 @@ void main() {
       );
     });
 
-    testWidgets('담당 종료한 고객도 동기화 코드로 같은 행을 되살린다', (tester) async {
+    testWidgets('담당 종료한 회원도 동기화 코드로 같은 행을 되살린다', (tester) async {
       final container = await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         at: AppRoutes.clients,
       );
-      // 고객 관리에서 담당을 종료한 것과 같다 — 명단에서 사라지고, 다시
-      // 잡으려면 여기(고객 탭)에서 회원의 코드를 받아 새로 연결해야 한다.
+      // 회원 관리에서 담당을 종료한 것과 같다 — 명단에서 사라지고, 다시
+      // 잡으려면 여기(회원 탭)에서 회원의 코드를 받아 새로 연결해야 한다.
       await container
           .read(clientRepositoryProvider)
           .removeClient('seed-client-1');
       await settle(tester);
       expect(find.text('김민수'), findsNothing);
 
-      await tester.tap(find.text('신규 고객 등록'));
+      await tester.tap(find.text('신규 회원 등록'));
       await settle(tester);
 
       await enterSyncCode(tester, demoAlreadyLinkedPairingCode);
@@ -700,13 +696,13 @@ void main() {
       expect(find.text('이미 담당하고 있는 회원이에요.'), findsNothing);
 
       // 바로 잇지 않는다 — 이름·성별·나이를 확인하고 누른다.
-      expect(find.text('이 고객이 맞나요?'), findsOneWidget);
+      expect(find.text('이 회원이 맞나요?'), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey<String>('client-connect-register')),
       );
       await settle(tester);
 
-      // 새 행이 아니라 같은 고객(seed-client-1)이 되살아난다 — 지난
+      // 새 행이 아니라 같은 회원(seed-client-1)이 되살아난다 — 지난
       // 스케줄·기록이 새 카드로 갈라지지 않는다.
       final card = find.byKey(const ValueKey<String>('client-seed-client-1'));
       await scrollToClient(tester, card);
@@ -728,7 +724,7 @@ void main() {
         at: AppRoutes.clients,
       );
 
-      await tester.tap(find.text('신규 고객 등록'));
+      await tester.tap(find.text('신규 회원 등록'));
       await settle(tester);
 
       // 김민수(seed-client-1)는 이미 담당 중이다.
@@ -749,7 +745,7 @@ void main() {
         at: AppRoutes.clients,
       );
 
-      await tester.tap(find.text('신규 고객 등록'));
+      await tester.tap(find.text('신규 회원 등록'));
       await settle(tester);
 
       await enterSyncCode(tester, '000000');
@@ -801,13 +797,13 @@ void main() {
         const ValueKey<String>('client-seed-client-3'),
       );
       await scrollToClient(tester, clientCard);
-      expect(find.text('신규 고객 등록'), findsNothing);
+      expect(find.text('신규 회원 등록'), findsNothing);
 
       await tester.tap(clientCard.last);
       await settle(tester);
 
-      // 신규 고객 등록과 활성/휴면은 다른 권한이다 (#707) — 백엔드 로스터에는
-      // 고객을 더하는 경로가 없지만 관리 상태 전환은 있다. 한 플래그로 묶여
+      // 신규 회원 등록과 활성/휴면은 다른 권한이다 (#707) — 백엔드 로스터에는
+      // 회원을 더하는 경로가 없지만 관리 상태 전환은 있다. 한 플래그로 묶여
       // 있던 동안에는 이 배지가 실 API 에서 계속 읽기 전용이었다.
       final statusInkWell = find.byKey(
         const ValueKey<String>('client-status-toggle'),
@@ -817,7 +813,7 @@ void main() {
     });
 
     // #1026: 툴바 관리 필터가 단일 선택 팝업에서 복수 선택 chip 으로 바뀌었다.
-    testWidgets('나트륨 초과 필터를 고르면 해당 고객만 남는다', (tester) async {
+    testWidgets('나트륨 초과 필터를 고르면 해당 회원만 남는다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
@@ -879,7 +875,7 @@ void main() {
       expect(find.text('이지수'), findsOneWidget);
     });
 
-    testWidgets('당류 초과 필터를 고르면 해당 고객만 남는다', (tester) async {
+    testWidgets('당류 초과 필터를 고르면 해당 회원만 남는다', (tester) async {
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',

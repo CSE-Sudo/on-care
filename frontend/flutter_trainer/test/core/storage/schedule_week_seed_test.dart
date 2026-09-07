@@ -172,7 +172,7 @@ void main() {
     }
   });
 
-  test('명단에 있는 이름은 고객 id 로, 미등록 상담자는 이름만 남는다', () async {
+  test('명단에 있는 이름은 회원 id 로, 미등록 상담자는 이름만 남는다', () async {
     await seedIfEmpty(db, clock: _dayOfWeek(4));
 
     final rows = await db.select(db.trainerScheduleEntries).get();

@@ -82,7 +82,7 @@ void main() {
       expect(find.text('경력 7년'), findsOneWidget);
       expect(find.text('생활스포츠지도사 2급'), findsOneWidget);
 
-      await tester.scrollUntilVisible(find.text('담당 고객'), 150);
+      await tester.scrollUntilVisible(find.text('담당 회원'), 150);
       expect(find.text('15'), findsOneWidget); // live client count
       expect(find.text('완료 세션'), findsOneWidget);
 
@@ -93,54 +93,54 @@ void main() {
       expect(find.textContaining('역할 전환'), findsNothing);
     });
 
-    testWidgets('고객 삭제 전 이름과 데이터 보존 범위를 확인한다', (tester) async {
+    testWidgets('회원 삭제 전 이름과 데이터 보존 범위를 확인한다', (tester) async {
       await openTab(tester);
 
-      final management = find.text('고객 관리');
+      final management = find.text('회원 관리');
       await tester.scrollUntilVisible(management, 200);
       await tester.tap(management);
       await tester.pumpAndSettle();
       expect(currentLocation(tester), AppRoutes.mySection('clients'));
 
-      final remove = find.byTooltip('고객 삭제').first;
+      final remove = find.byTooltip('회원 삭제').first;
       await tester.tap(remove);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('고객을 삭제할까요?'), findsOneWidget);
+      expect(find.textContaining('회원을 삭제할까요?'), findsOneWidget);
       expect(find.textContaining('스케줄, 프로그램·루틴, 리포트, 메시지, 메모'), findsOneWidget);
-      expect(find.textContaining('고객 앱의 기존 데이터는 삭제되지 않아요'), findsOneWidget);
+      expect(find.textContaining('회원 앱의 기존 데이터는 삭제되지 않아요'), findsOneWidget);
       await tester.tap(find.text('취소'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('고객을 삭제할까요?'), findsNothing);
+      expect(find.textContaining('회원을 삭제할까요?'), findsNothing);
     });
 
-    testWidgets('담당 종료한 고객은 관리 화면에서 완전히 사라진다', (tester) async {
+    testWidgets('담당 종료한 회원은 관리 화면에서 완전히 사라진다', (tester) async {
       await openTab(tester);
 
-      final management = find.text('고객 관리');
+      final management = find.text('회원 관리');
       await tester.scrollUntilVisible(management, 200);
       await tester.tap(management);
       await tester.pumpAndSettle();
 
-      final before = find.byTooltip('고객 삭제').evaluate().length;
+      final before = find.byTooltip('회원 삭제').evaluate().length;
       expect(before, greaterThan(0));
       expect(find.text('김민수'), findsWidgets);
 
-      await tester.tap(find.byTooltip('고객 삭제').first);
+      await tester.tap(find.byTooltip('회원 삭제').first);
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.text('고객 삭제'),
+          matching: find.text('회원 삭제'),
         ),
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('고객을 삭제했어요'), findsOneWidget);
-      // 미등록 상태로 목록에 남지 않는다 — 다시 잡으려면 고객 탭의
-      // "신규 고객 등록"에서 회원 ID로 새로 찾아야 한다. 여기에는 그
+      expect(find.text('회원을 삭제했어요'), findsOneWidget);
+      // 미등록 상태로 목록에 남지 않는다 — 다시 잡으려면 회원 탭의
+      // "신규 회원 등록"에서 회원 ID로 새로 찾아야 한다. 여기에는 그
       // 지름길(다시 등록 버튼, 미등록 표시)이 아예 없다.
-      expect(find.byTooltip('고객 삭제'), findsNWidgets(before - 1));
+      expect(find.byTooltip('회원 삭제'), findsNWidgets(before - 1));
       expect(find.textContaining('미등록'), findsNothing);
       expect(find.byTooltip('다시 등록'), findsNothing);
       expect(find.text('김민수'), findsNothing);

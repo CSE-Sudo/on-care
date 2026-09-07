@@ -74,7 +74,7 @@ void main() {
           )
           ''');
           // 이 표도 v1 부터 있었다. v17 이 여기에 성별·나이 컬럼을 붙이므로
-          // (신규 고객 등록), 표가 없는 인공 DB 로는 그 갈래를 지날 수 없다.
+          // (신규 회원 등록), 표가 없는 인공 DB 로는 그 갈래를 지날 수 없다.
           database.execute('''
           CREATE TABLE trainer_clients (
             id TEXT NOT NULL PRIMARY KEY,
@@ -235,7 +235,7 @@ void main() {
       expect(client.sugarWeekJson, '[]');
       expect(client.proteinG, 0);
       expect(client.fatG, 0);
-      // v17 의 성별·나이는 회원 ID로 새로 연결되는 회원만 채운다(신규 고객
+      // v17 의 성별·나이는 회원 ID로 새로 연결되는 회원만 채운다(신규 회원
       // 등록). 예전 행은 값 없이 그대로 남고, 표시는 예전처럼 roster 폴백을
       // 쓴다.
       expect(client.gender, isNull);
@@ -263,12 +263,12 @@ void main() {
               status: '취소',
               cancelledAt: Value(DateTime(2026, 8, 19, 9)),
               cancellationSource: const Value('member'),
-              cancellationReason: const Value('고객 사정'),
+              cancellationReason: const Value('회원 사정'),
             ),
           );
       final stored = await db.select(db.trainerScheduleEntries).getSingle();
       expect(stored.cancellationSource, 'member');
-      expect(stored.cancellationReason, '고객 사정');
+      expect(stored.cancellationReason, '회원 사정');
       expect(stored.cancelledAt, isNotNull);
       expect(stored.noShowAt, isNull);
       // v14 는 운동 기록에 완료 날짜 칸을 붙인다(#1114). 예전 행은 날짜가 없는
@@ -556,7 +556,7 @@ void main() {
                   720, 1320, 90.5, 28.0, 18.5, 0)
         ''');
         // 이 표도 v1 부터 있었다. v17 이 여기에 성별·나이 컬럼을 붙이므로
-        // (신규 고객 등록), 표가 없는 인공 DB 로는 그 갈래를 지날 수 없다.
+        // (신규 회원 등록), 표가 없는 인공 DB 로는 그 갈래를 지날 수 없다.
         database.execute('''
           CREATE TABLE trainer_clients (
             id TEXT NOT NULL PRIMARY KEY,
@@ -634,7 +634,7 @@ void main() {
                   720, 1320, 90.5, 28.0, 18.5, 12.5, '2026-08-23', 0)
         ''');
         // 이 표도 v1 부터 있었다. v17 이 여기에 성별·나이 컬럼을 붙이므로
-        // (신규 고객 등록), 표가 없는 인공 DB 로는 그 갈래를 지날 수 없다.
+        // (신규 회원 등록), 표가 없는 인공 DB 로는 그 갈래를 지날 수 없다.
         database.execute('''
           CREATE TABLE trainer_clients (
             id TEXT NOT NULL PRIMARY KEY,

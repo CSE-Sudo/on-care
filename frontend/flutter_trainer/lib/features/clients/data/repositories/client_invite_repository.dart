@@ -29,19 +29,13 @@ import 'package:oncare_trainer/shared/services/client_repository.dart'
 /// 두 구현이 [clientInviteRepositoryProvider] 뒤에 있고 [AppConfig.useMockApi]
 /// 로 갈린다.
 abstract interface class ClientInviteRepository {
-  /// 이 빌드에서 회원 ID로 회원을 찾아 연결할 수 있는가.
+  /// 이 빌드에서 동기화 코드로 회원을 등록할 수 있는가.
   bool get supportsInvites;
 
   /// [invite] 가 호출 즉시 담당 링크를 만드는가(데모), 아니면 회원의 수락을
   /// 기다리는 요청만 보내는가(실 API). 화면 문구·성공 처리가 이 값으로
   /// 갈린다.
   bool get connectsImmediately;
-
-  /// 회원 ID(`User.id`) **완전 일치**로 회원을 찾는다. 없으면 [NotFoundError].
-  ///
-  /// 이메일도 성별·나이도 아니다 — 회원이 자기 앱 MY 탭에서 확인할 수 있는
-  /// 그 계정의 고유 식별자다.
-  Future<MemberLookup> lookup(String memberId);
 
   /// 회원을 담당으로 연결한다. 이미 담당이 있거나 이미 보냈으면
   /// [ValidationError](서버 문구를 그대로 싣는다 — 어느 쪽인지는 서버만 안다).
@@ -91,7 +85,8 @@ class DemoClientInviteRepository implements ClientInviteRepository {
   @override
   bool get connectsImmediately => true;
 
-  @override
+  /// 데모 명부에서 회원 ID 로 후보를 찾는다. 화면은 회원 ID 를 묻지 않으므로
+  /// 인터페이스에 두지 않는다 — 데모가 [_resolveCode] 안에서만 쓰는 규칙이다.
   Future<MemberLookup> lookup(String memberId) async {
     final String normalized = memberId.trim().toLowerCase();
     if (normalized.isEmpty) throw const NotFoundError();
@@ -286,26 +281,6 @@ class DioClientInviteRepository implements ClientInviteRepository {
 
   @override
   bool get connectsImmediately => false;
-
-  @override
-  Future<MemberLookup> lookup(String memberId) async {
-    try {
-      final res = await _dio.get<Map<String, Object?>>(
-        '/trainer/member-lookup',
-        queryParameters: <String, Object?>{'member_id': memberId.trim()},
-      );
-      final data = res.data;
-      if (data == null) throw const ServerError();
-      return MemberLookup.fromJson(data);
-    } on DioException catch (e) {
-      final status = e.response?.statusCode;
-      if (status == 404) throw const NotFoundError();
-      if (status == 422 || status == 400) {
-        throw ValidationError(message: _detail(e));
-      }
-      throw AppError.fromDio(e);
-    }
-  }
 
   @override
   Future<ClientInvite> invite(String memberId, {String? message}) async {

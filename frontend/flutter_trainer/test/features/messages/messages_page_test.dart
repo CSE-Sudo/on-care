@@ -30,7 +30,7 @@ void main() {
         const ValueKey<String>('messages-client-detail-button'),
       );
       expect(
-        find.descendant(of: detail, matching: find.text('고객 상세')),
+        find.descendant(of: detail, matching: find.text('회원 상세')),
         findsOneWidget,
       );
       expect(
@@ -185,8 +185,8 @@ void main() {
     tester,
   ) async {
     await withWideSurface(tester, () async {
-      // 실 API 는 대화가 없는 고객의 `last_message` 를 빈 문자열로 준다.
-      // 그대로 그리면 미리보기 줄이 통째로 사라져 타일 높이가 고객마다
+      // 실 API 는 대화가 없는 회원의 `last_message` 를 빈 문자열로 준다.
+      // 그대로 그리면 미리보기 줄이 통째로 사라져 타일 높이가 회원마다
       // 달라졌다 — 빈 값도 뜻을 갖고 한 줄을 지켜야 한다.
       await pumpTrainerApp(
         tester,
@@ -269,7 +269,7 @@ void main() {
       );
       expect(identity, findsOneWidget);
       // 활성/휴면은 메시지 탭 어디에도 없다 — 이 사람과 지금 이야기하는
-      // 데 쓰이지 않는 값이고, 바꿀 수 있는 자리도 고객 탭이다.
+      // 데 쓰이지 않는 값이고, 바꿀 수 있는 자리도 회원 탭이다.
       expect(
         find.byKey(const ValueKey<String>('messages-thread-status')),
         findsNothing,
@@ -286,7 +286,7 @@ void main() {
         find.descendant(of: identity, matching: find.text('당류 초과')),
         findsOneWidget,
       );
-      // 대화 화면은 대화만 한다 — 운동 데이터는 고객 탭이 보여 준다.
+      // 대화 화면은 대화만 한다 — 운동 데이터는 회원 탭이 보여 준다.
       expect(find.textContaining('최근 운동'), findsNothing);
       expect(find.textContaining('주간 이행률'), findsNothing);
     });
@@ -337,7 +337,7 @@ void main() {
       // `전체` 는 대화 목록이다 — 방금 말이 오간 순서로 선다. 노태강은
       // 오늘, 박성호는 사흘 전에 마지막 말이 오갔다. 예전에는 어느
       // 필터에서든 나트륨이 넘친 박성호가 위로 올라와, 방금 답장이 온
-      // 고객이 목록 아래에 묻혔다.
+      // 회원이 목록 아래에 묻혔다.
       await goTo(tester, AppRoutes.messages);
       expect(topOf('seed-client-13'), lessThan(topOf('seed-client-3')));
 
@@ -364,7 +364,7 @@ void main() {
         ),
         findsNothing,
       );
-      // 나트륨이 넘친 박성호는 이행률만 낮은 고객보다 위다 — 사흘 전
+      // 나트륨이 넘친 박성호는 이행률만 낮은 회원보다 위다 — 사흘 전
       // 대화인데도. 최신순이었다면 반대로 섰다.
       expect(topOf('seed-client-3'), lessThan(topOf('seed-client-12')));
     });
@@ -401,7 +401,7 @@ void main() {
           of: find.byKey(
             const ValueKey<String>('messages-client-detail-button'),
           ),
-          matching: find.text('Client details'),
+          matching: find.text('Member details'),
         ),
         findsOneWidget,
       );

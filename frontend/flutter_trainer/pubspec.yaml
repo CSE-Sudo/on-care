@@ -1,5 +1,5 @@
 name: oncare_trainer
-description: "On-Care 트레이너 앱 — 트레이너용 고객 관리 / AI 루틴 / 스케줄 (Android / iOS / Web)."
+description: "On-Care 트레이너 앱 — 트레이너용 회원 관리 / AI 루틴 / 스케줄 (Android / iOS / Web)."
 publish_to: 'none'
 
 # Versioning is managed via --build-name / --build-number at build time.
