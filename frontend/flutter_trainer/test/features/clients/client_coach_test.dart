@@ -127,8 +127,8 @@ void main() {
       ).called(1);
     });
 
-    test('404 는 담당 고객이 아니라는 뜻으로 옮긴다', () async {
-      // 서버가 남의 고객을 404 로 감춘다 — 트레이너에게는 담당이 아니라는
+    test('404 는 담당 회원이 아니라는 뜻으로 옮긴다', () async {
+      // 서버가 남의 회원을 404 로 감춘다 — 트레이너에게는 담당이 아니라는
       // 사실이 필요한 정보다.
       when(
         () => dio.post<Map<String, Object?>>(
@@ -179,7 +179,7 @@ void main() {
         container.read(clientCoachRepositoryProvider),
         isA<DemoClientCoachRepository>(),
       );
-      // 데모 고객 상세는 지금과 같아야 한다 — 버튼이 아예 그려지지 않는다.
+      // 데모 회원 상세는 지금과 같아야 한다 — 버튼이 아예 그려지지 않는다.
       expect(container.read(clientCoachEnabledProvider), isFalse);
     });
 

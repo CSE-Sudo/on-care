@@ -626,7 +626,7 @@ void main() {
               recommendedExercises: const <RoutineExercise>[
                 RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
               ],
-              recommendedReason: '기존 고객 데이터 기반 추천',
+              recommendedReason: '기존 회원 데이터 기반 추천',
               onReviewCompleted: (exercises) => reviewed = exercises,
             ),
           ),
@@ -640,7 +640,7 @@ void main() {
       expect(find.byIcon(Icons.auto_awesome), findsNWidgets(2));
       expect(find.text('요청 내용'), findsOneWidget);
       final promptBlurb = tester.widget<Text>(
-        find.textContaining('요청은 고객 데이터와 함께 AI에 전달돼요'),
+        find.textContaining('요청은 회원 데이터와 함께 AI에 전달돼요'),
       );
       expect(promptBlurb.maxLines, 1);
       expect(promptBlurb.overflow, TextOverflow.ellipsis);
@@ -784,7 +784,7 @@ void main() {
       }
       await tester.pump();
 
-      // 고객에게 함께 보낼 메모는 AI 요청과 **다른 칸**이다 (#1028) — 여기 적은
+      // 회원에게 함께 보낼 메모는 AI 요청과 **다른 칸**이다 (#1028) — 여기 적은
       // 것만 회원이 받는 루틴 사유로 나간다.
       final clientNote = find.byKey(
         const ValueKey<String>('final-trainer-memo'),
@@ -809,7 +809,7 @@ void main() {
       );
       expect(assigned.memberId, isNull);
       expect(assigned.assigned, isNull);
-      // 이 화면에는 고객에게 직접 보내는 버튼이 없다 — `템플릿에 반영` 뿐이다.
+      // 이 화면에는 회원에게 직접 보내는 버튼이 없다 — `템플릿에 반영` 뿐이다.
       expect(
         find.byKey(const ValueKey<String>('send-selected-routine')),
         findsNothing,
@@ -857,7 +857,7 @@ void main() {
             recommendedExercises: const <RoutineExercise>[
               RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
             ],
-            recommendedReason: '기존 고객 데이터 기반 추천',
+            recommendedReason: '기존 회원 데이터 기반 추천',
             onReviewCompleted: (exercises) => reviewed = exercises,
           ),
         ),
@@ -1032,7 +1032,7 @@ Future<void> _pumpFlowWithOptionsError(
           recommendedExercises: <RoutineExercise>[
             RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),
           ],
-          recommendedReason: '기존 고객 데이터 기반 추천',
+          recommendedReason: '기존 회원 데이터 기반 추천',
         ),
       ),
     ),

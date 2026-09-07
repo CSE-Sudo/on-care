@@ -11,7 +11,7 @@ import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
 import '../../helpers/client_factory.dart';
 import '../../helpers/pump_app.dart';
 
-/// 고객 상세 헤더의 주의사항 배지는 **프로필 줄**에 산다. (#926)
+/// 회원 상세 헤더의 주의사항 배지는 **프로필 줄**에 산다. (#926)
 ///
 /// 활성/휴면 배지와 같이 "이 사람이 어떤 상태인가" 를 말하는 값이라, 혼자 한
 /// 줄을 쓸 이유가 없었다. 배지가 하나뿐인 경우가 대부분이라 그 줄은 거의 언제나
@@ -41,12 +41,12 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// 나트륨이 목표를 넘겨 주의 배지가 붙는 고객.
+  /// 나트륨이 목표를 넘겨 주의 배지가 붙는 회원.
   TrainerClient over() =>
-      makeClient(id: flagged, name: '주의고객', sodiumMg: sodiumTargetMg + 900);
+      makeClient(id: flagged, name: '주의회원', sodiumMg: sodiumTargetMg + 900);
 
-  /// 아무 경고도 없는 고객.
-  TrainerClient calm() => makeClient(id: flagged, name: '무난고객', sodiumMg: 900);
+  /// 아무 경고도 없는 회원.
+  TrainerClient calm() => makeClient(id: flagged, name: '무난회원', sodiumMg: 900);
 
   Finder quickActions() =>
       find.byKey(const ValueKey<String>('client-detail-quick-actions'));
@@ -64,7 +64,7 @@ void main() {
 
     // 이름과 세로로 겹친다 = 같은 줄이다. 예전에는 이름 줄 **아래**의 자기
     // 줄에 있었다.
-    final Rect name = tester.getRect(find.text('주의고객'));
+    final Rect name = tester.getRect(find.text('주의회원'));
     final Rect badge = tester.getRect(headerAlerts().first);
     expect(badge.top, lessThan(name.bottom));
     expect(badge.bottom, greaterThan(name.top));
@@ -107,7 +107,7 @@ void main() {
     expect(find.text('메시지'), findsOneWidget);
     expect(find.text('프로그램'), findsOneWidget);
     expect(find.text('리포트'), findsOneWidget);
-    expect(find.text('고객 신체·목표 관리'), findsNothing);
+    expect(find.text('회원 신체·목표 관리'), findsNothing);
     expect(find.text('후속 관리'), findsNothing);
     // 메모도 이 줄을 떠나 프로필 줄의 아이콘 버튼이 되었다 — 텍스트가 아니라
     // 키로 찾고, 빠른 동작 줄 밖(위)에 있는지까지 확인한다.

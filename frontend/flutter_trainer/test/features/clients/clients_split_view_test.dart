@@ -69,7 +69,7 @@ void main() {
     await openWide(tester);
 
     // No selection yet — list only, with the empty-panel hint.
-    expect(find.textContaining('왼쪽에서 고객을 선택하면'), findsOneWidget);
+    expect(find.textContaining('왼쪽에서 회원을 선택하면'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(ClientCard),
@@ -88,7 +88,7 @@ void main() {
     expect(find.byIcon(Icons.arrow_back_ios_new), findsNothing);
   });
 
-  testWidgets('고객 리스트 바로 위에 pill 필터·정렬 버튼이 있다', (tester) async {
+  testWidgets('회원 리스트 바로 위에 pill 필터·정렬 버튼이 있다', (tester) async {
     await openWide(tester);
 
     final search = find.byKey(clientSearchFieldKey);
@@ -165,7 +165,7 @@ void main() {
     await settle(tester);
 
     expect(find.text('운동'), findsNothing);
-    expect(find.textContaining('왼쪽에서 고객을 선택하면'), findsOneWidget);
+    expect(find.textContaining('왼쪽에서 회원을 선택하면'), findsOneWidget);
   });
 
   testWidgets('selecting another client swaps the panel in place', (
@@ -229,10 +229,10 @@ void main() {
     expect(find.textContaining('2,400', findRichText: true), findsWidgets);
   });
 
-  testWidgets('고른 정렬은 고객을 열어도 그대로다 (#816)', (tester) async {
+  testWidgets('고른 정렬은 회원을 열어도 그대로다 (#816)', (tester) async {
     await openWide(tester);
 
-    // 고객 목록 위의 pill 정렬 메뉴에서 이름순을 고른다.
+    // 회원 목록 위의 pill 정렬 메뉴에서 이름순을 고른다.
     await tester.tap(find.text('정렬: 관리 필요 우선'));
     await tester.pumpAndSettle();
     final sortButton = find.byKey(
@@ -251,7 +251,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('정렬: 이름 오름차순'), findsOneWidget);
 
-    // 목록에서 고객을 연다 — 여기서 새 라우트가 만들어진다.
+    // 목록에서 회원을 연다 — 여기서 새 라우트가 만들어진다.
     await scrollToCard(tester, '김민수');
     await tester.tap(card('김민수'));
     await tester.pumpAndSettle();
@@ -262,25 +262,25 @@ void main() {
     expect(find.text('정렬: 관리 필요 우선'), findsNothing);
   });
 
-  testWidgets('활성 고객 우선은 실제 active 필드로 정렬한다', (tester) async {
+  testWidgets('활성 회원 우선은 실제 active 필드로 정렬한다', (tester) async {
     await openWide(tester);
     const countSummary = '15명 · 활성 13명';
     expect(find.text(countSummary), findsWidgets);
 
     await tester.tap(find.text('정렬: 관리 필요 우선'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('활성 고객 우선').last);
+    await tester.tap(find.text('활성 회원 우선').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('정렬: 활성 고객 우선'), findsOneWidget);
+    expect(find.text('정렬: 활성 회원 우선'), findsOneWidget);
     final visibleCards = tester
         .widgetList<ClientCard>(find.byType(ClientCard))
         .toList(growable: false);
     expect(visibleCards, isNotEmpty);
     expect(visibleCards.every((card) => card.client.active), isTrue);
 
-    // 활성 우선은 휴면 고객을 숨기는 필터가 아니다. 명단 수를 유지한
-    // 채 활성 고객 뒤로 보낸다.
+    // 활성 우선은 휴면 회원을 숨기는 필터가 아니다. 명단 수를 유지한
+    // 채 활성 회원 뒤로 보낸다.
     await scrollToCard(tester, '박성호');
     final dormantCard = tester.widget<ClientCard>(
       find.ancestor(of: find.text('박성호'), matching: find.byType(ClientCard)),
@@ -289,7 +289,7 @@ void main() {
     expect(find.text(countSummary), findsWidgets);
   });
 
-  testWidgets('대시보드에서 걸어 준 필터는 고객을 열어도 유지된다 (#816)', (tester) async {
+  testWidgets('대시보드에서 걸어 준 필터는 회원을 열어도 유지된다 (#816)', (tester) async {
     tester.view.physicalSize = const Size(1440, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -301,7 +301,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final banner = find.textContaining('주의 고객');
+    final banner = find.textContaining('주의 회원');
     expect(banner, findsWidgets);
 
     final first = tester.widgetList<ClientCard>(find.byType(ClientCard)).first;
@@ -337,14 +337,14 @@ void main() {
             .skip(firstUnderTarget)
             .every((c) => !c.client.sodiumOverBudget),
         isTrue,
-        reason: '나트륨 초과 고객이 목표 이내 고객보다 아래에 오면 안 된다',
+        reason: '나트륨 초과 회원이 목표 이내 회원보다 아래에 오면 안 된다',
       );
     }
     // The top of the list is where the trainer looks first.
     expect(rendered.first.client.sodiumOverBudget, isTrue);
   });
 
-  testWidgets('고객 카드가 기록된 날의 주간 루틴 이행률을 보여 준다 (#1284)', (tester) async {
+  testWidgets('회원 카드가 기록된 날의 주간 루틴 이행률을 보여 준다 (#1284)', (tester) async {
     await openWide(tester);
     await scrollToCard(tester, '배준혁');
 
@@ -374,7 +374,7 @@ void main() {
     );
   });
 
-  testWidgets('루틴 기록이 없는 고객은 0%가 아니라 미집계로 표시한다 (#1284)', (tester) async {
+  testWidgets('루틴 기록이 없는 회원은 0%가 아니라 미집계로 표시한다 (#1284)', (tester) async {
     await openWide(tester);
     await scrollToCard(tester, '임도현');
 

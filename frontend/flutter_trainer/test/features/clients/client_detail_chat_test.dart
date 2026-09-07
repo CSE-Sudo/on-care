@@ -102,7 +102,7 @@ class _StaticLiveChatRepository implements ChatRepository {
         ClientChatMessage(
           id: 'live-1',
           sender: ChatSender.client,
-          body: '실제 고객 답장',
+          body: '실제 회원 답장',
           timeLabel: '금 09:00',
           createdAt: DateTime.utc(2026, 7, 31, 9),
         ),
@@ -373,7 +373,7 @@ void main() {
         AppRoutes.messagesFor('seed-client-1'),
       );
       expect(repository.watchCalls, 2);
-      expect(find.text('실제 고객 답장'), findsOneWidget);
+      expect(find.text('실제 회원 답장'), findsOneWidget);
     });
 
     testWidgets('legacy client chat deep-link redirects to messages', (
@@ -428,7 +428,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text('실제 고객 답장'), findsOneWidget);
+      expect(find.text('실제 회원 답장'), findsOneWidget);
       expect(find.text('2026년 7월 31일 금요일'), findsOneWidget);
       expect(find.textContaining('AI가 김민수님의 식단'), findsNothing);
       expect(find.textContaining('개인 추천운동'), findsNothing);

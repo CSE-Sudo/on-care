@@ -56,7 +56,7 @@ void main() {
     expect(find.text('다음 주 프로그램 점검'), findsNothing);
     // 지난 항목은 날짜 대신 늦었다는 사실을 먼저 말한다.
     expect(find.text('기한 지남'), findsOneWidget);
-    // 고객 이름이 함께 보인다 — 누구의 할 일인지 카드에서 바로 읽힌다.
+    // 회원 이름이 함께 보인다 — 누구의 할 일인지 카드에서 바로 읽힌다.
     expect(find.text('김민수'), findsOneWidget);
   });
 
@@ -119,8 +119,8 @@ void main() {
       );
     });
 
-    test('앱이 모르는 갈래는 고객 상세로 데려간다', () {
-      // 서버가 새 값을 먼저 내보내도 목록이 죽지 않고, 적어도 그 고객 화면까지는
+    test('앱이 모르는 갈래는 회원 상세로 데려간다', () {
+      // 서버가 새 값을 먼저 내보내도 목록이 죽지 않고, 적어도 그 회원 화면까지는
       // 간다.
       expect(
         AppRoutes.followUpTarget('m1', 'billing'),

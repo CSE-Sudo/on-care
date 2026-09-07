@@ -16,8 +16,8 @@ import '../../helpers/pump_app.dart';
 /// 대시보드 `오늘의 일정` 의 다음 일정 CTA. (#1422)
 ///
 /// 상담의 `메모 남기기` 는 날짜만 실어 보내 그날 첫 일정이 열렸다 — 정작 메모를
-/// 남기려던 상담이 아닌 다른 고객의 일정이 선택될 수 있었다. 1:1 PT 의
-/// `PT 준비하기` 는 처음부터 고객 ID 를 실어 보내 그 고객이 선택된다.
+/// 남기려던 상담이 아닌 다른 회원의 일정이 선택될 수 있었다. 1:1 PT 의
+/// `PT 준비하기` 는 처음부터 회원 ID 를 실어 보내 그 회원이 선택된다.
 void main() {
   /// 오늘 날짜의 `YYYY-MM-DD`. 카드는 오늘 일정만 받는다.
   final String today =
@@ -45,10 +45,10 @@ void main() {
   );
 
   final List<TrainerClient> roster = <TrainerClient>[
-    makeClient(id: 'client-pt', name: '피티고객'),
+    makeClient(id: 'client-pt', name: '피티회원'),
   ];
 
-  /// 같은 날 세 일정 — 시간순 첫 일정은 다른 고객의 PT 다. 상담 CTA 가 날짜만
+  /// 같은 날 세 일정 — 시간순 첫 일정은 다른 회원의 PT 다. 상담 CTA 가 날짜만
   /// 실어 보내면 이 첫 일정이 대신 열린다.
   final List<ScheduleSession> consultationFirst = <ScheduleSession>[
     session(
@@ -56,9 +56,9 @@ void main() {
       time: '23:50',
       type: '1:1 PT',
       clientId: 'client-pt',
-      clientName: '피티고객',
+      clientName: '피티회원',
     ),
-    session(id: 'sess-consult', time: '23:55', type: '상담', clientName: '상담고객'),
+    session(id: 'sess-consult', time: '23:55', type: '상담', clientName: '상담회원'),
   ];
 
   Future<void> openDashboard(
@@ -117,8 +117,8 @@ void main() {
     expect(location, isNot(contains('sess-pt-early')));
   });
 
-  testWidgets('로스터에 없는 상담 고객도 일정 ID 로 이동한다', (tester) async {
-    // 상담으로 잡힌 가망 고객은 로스터에 자리가 없어 표시 이름만 있다.
+  testWidgets('로스터에 없는 상담 회원도 일정 ID 로 이동한다', (tester) async {
+    // 상담으로 잡힌 가망 회원은 로스터에 자리가 없어 표시 이름만 있다.
     await openDashboard(tester, <ScheduleSession>[
       session(id: 'sess-prospect', time: '23:59', type: '상담', clientName: '신규'),
     ]);
@@ -127,7 +127,7 @@ void main() {
     expect(currentLocation(tester), contains('session=sess-prospect'));
   });
 
-  testWidgets('1:1 PT CTA 는 그 고객의 프로그램 탭으로 간다', (tester) async {
+  testWidgets('1:1 PT CTA 는 그 회원의 프로그램 탭으로 간다', (tester) async {
     await openDashboard(tester, <ScheduleSession>[consultationFirst[0]]);
 
     expect(find.text('PT 준비하기'), findsOneWidget);

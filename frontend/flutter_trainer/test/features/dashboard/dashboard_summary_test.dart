@@ -37,7 +37,7 @@ void main() {
       );
 
       // 5 messages, but only 2 people are waiting — the KPI says
-      // "3건" while the hint says "고객 2명".
+      // "3건" while the hint says "회원 2명".
       expect(summary.unreadTotal, 5);
       expect(summary.unreadClients, 2);
     });

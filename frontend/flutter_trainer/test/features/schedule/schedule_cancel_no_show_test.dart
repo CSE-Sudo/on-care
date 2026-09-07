@@ -50,7 +50,7 @@ void main() {
       await repo.cancelSession(
         session.id,
         source: CancellationSource.member,
-        reason: '고객 출장',
+        reason: '회원 출장',
       );
 
       final stored = (await repo.watchToday().first).firstWhere(
@@ -59,7 +59,7 @@ void main() {
       // 데모도 실서버와 같은 것을 저장한다 — 취소한 쪽을 고르고도 카드에 남지
       // 않으면 취소가 삭제와 어떻게 다른지 화면에서 전달되지 않는다.
       expect(stored.cancellationSource, CancellationSource.member);
-      expect(stored.cancellationReason, '고객 출장');
+      expect(stored.cancellationReason, '회원 출장');
       expect(stored.cancelledAt, isNotNull);
       expect(stored.noShowAt, isNull);
     });
@@ -86,7 +86,7 @@ void main() {
       await repo.cancelSession(
         session.id,
         source: CancellationSource.member,
-        reason: '고객 출장',
+        reason: '회원 출장',
       );
       final first = (await repo.watchToday().first).firstWhere(
         (item) => item.id == session.id,
@@ -225,7 +225,7 @@ void main() {
       await settle(tester);
       await tester.enterText(
         find.byKey(const ValueKey<String>('cancel-reason-input')),
-        '고객 출장',
+        '회원 출장',
       );
       await tester.tap(
         find.byKey(const ValueKey<String>('session-cancel-confirm')),
@@ -236,8 +236,8 @@ void main() {
       expect(find.text('박성호'), findsWidgets);
       expect(find.text('취소'), findsWidgets);
       // 데모도 주체·시각을 저장하므로 기록 줄이 그대로 뜬다(#906).
-      expect(find.textContaining('고객 취소'), findsOneWidget);
-      expect(find.text('고객 출장'), findsOneWidget);
+      expect(find.textContaining('회원 취소'), findsOneWidget);
+      expect(find.text('회원 출장'), findsOneWidget);
       // 마무리된 세션에는 완료·취소·노쇼 동작이 더 이상 나오지 않는다.
       expect(
         find.byKey(const ValueKey<String>('session-cancel-chip')),

@@ -116,7 +116,7 @@ const RoutineSuggestion _bridge = RoutineSuggestion(
 );
 
 void main() {
-  /// 첫 시드 고객과 그 다음 고객 — 회원 전환 테스트가 두 명을 쓴다.
+  /// 첫 시드 회원과 그 다음 회원 — 회원 전환 테스트가 두 명을 쓴다.
   const String firstClient = 'seed-client-1';
   const String secondClient = 'seed-client-2';
 
@@ -154,14 +154,14 @@ void main() {
   Finder approveButton(RoutineSuggestion s) =>
       find.byKey(ValueKey<String>('routine-suggestion-approve-${s.id}'));
 
-  /// 추천은 최종 검토 dialog 를 지나야 나간다 (#1028) — `고객에게 추천` 을 누르면
+  /// 추천은 최종 검토 dialog 를 지나야 나간다 (#1028) — `회원에게 추천` 을 누르면
   /// 나갈 내용이 먼저 뜨고, 거기서 확인해야 실제 mutation 이 일어난다.
   Future<void> confirmApprove(
     WidgetTester tester,
     RoutineSuggestion s, {
     bool settle = true,
   }) async {
-    // AI 개인운동 제안 카드는 오른쪽 고객 데이터 열 안에 있어(#1028 후속)
+    // AI 개인운동 제안 카드는 오른쪽 회원 데이터 열 안에 있어(#1028 후속)
     // 좁은 뷰포트에서는 스크롤해야 보인다.
     await tester.ensureVisible(approveButton(s));
     await tester.pump();
@@ -186,7 +186,7 @@ void main() {
     testWidgets('수정·거절은 이름 줄 오른쪽 끝의 아이콘 버튼이다', (tester) async {
       await openProgramTab(tester);
 
-      // 판단이 아니라 보조 동작이다. 아래 줄에 세워 두면 `고객에게 추천` 과
+      // 판단이 아니라 보조 동작이다. 아래 줄에 세워 두면 `회원에게 추천` 과
       // 함께 판단처럼 읽힌다.
       final IconButton edit = tester.widget<IconButton>(editButton(_shoulder));
       expect((edit.icon as Icon).icon, Icons.edit_outlined);
@@ -212,11 +212,11 @@ void main() {
     testWidgets('아래 줄에는 판단 하나만 남는다', (tester) async {
       await openProgramTab(tester);
 
-      // 카드 하나에 결정 하나 — 고객에게 추천. 거절은 위의 휴지통으로 옮겼다.
+      // 카드 하나에 결정 하나 — 회원에게 추천. 거절은 위의 휴지통으로 옮겼다.
       expect(find.text('추천 안 함'), findsNothing);
-      expect(find.text('고객에게 추천'), findsNWidgets(2));
-      // `회원` 은 이 화면의 다른 문구(`고객 관리` 등)와 어긋난다.
-      expect(find.text('회원에게 추천'), findsNothing);
+      expect(find.text('회원에게 추천'), findsNWidgets(2));
+      // `고객` 은 이 화면의 다른 문구(`회원 관리` 등)와 어긋난다.
+      expect(find.text('고객에게 추천'), findsNothing);
     });
 
     testWidgets('검토 중에는 세 동작이 모두 잠긴다', (tester) async {
@@ -280,7 +280,7 @@ void main() {
       final editor = tester.getTopLeft(find.byType(ProgramEditorWorkspace));
 
       // 정규 프로그램과 개인운동은 목적이 다르다 — 편집기 열에 섞이지 않고
-      // 오른쪽 고객 데이터 열의 작은 카드로 따로 선다.
+      // 오른쪽 회원 데이터 열의 작은 카드로 따로 선다.
       expect(review.dx, greaterThan(editor.dx));
     },
   );
@@ -481,7 +481,7 @@ void main() {
   testWidgets('최종 검토를 취소하면 회원에게 아무것도 나가지 않는다 (#1028)', (tester) async {
     final repo = await openProgramTab(tester);
 
-    // 목록의 `고객에게 추천` 한 번으로는 mutation 이 일어나지 않는다 — 예전에는
+    // 목록의 `회원에게 추천` 한 번으로는 mutation 이 일어나지 않는다 — 예전에는
     // 이 탭 하나가 곧바로 승인이었다.
     await tester.ensureVisible(approveButton(_shoulder));
     await tester.pump();
