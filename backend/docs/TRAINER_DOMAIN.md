@@ -9,9 +9,14 @@
 ## 1. 한 줄 요약
 
 트레이너 웹과 회원 앱은 **완전히 분리된 계정**(`users.role = 'member' | 'trainer'`)이지만
-**같은 회원 데이터를 공유**한다. "고객"은 별도 복제본이 아니라 **실제 회원 User**이며,
-트레이너 API는 회원이 회원 앱에서 남긴 `DietEntry`·`RoutineHistory`를 **그대로 읽어**
-로스터를 집계한다. 별도 동기화 파이프라인이 없어 데이터가 어긋날 여지가 없다.
+**같은 회원 데이터를 공유**한다. 트레이너가 담당하는 회원은 별도 복제본이 아니라 **실제
+회원 User**이며, 트레이너 API는 회원이 회원 앱에서 남긴 `DietEntry`·`RoutineHistory`를
+**그대로 읽어** 로스터를 집계한다. 별도 동기화 파이프라인이 없어 데이터가 어긋날 여지가
+없다.
+
+> **이름** — 화면과 문서는 담당 대상을 "회원"이라 부른다(#1676). 코드·API·테이블 이름은
+> `client` 그대로다: `TrainerClient`, `/trainer/clients`, `trainer_clients`. 같은 대상을
+> 가리키는 두 표기이니, 문서를 고칠 때 식별자까지 따라 바꾸지 않는다.
 
 ```text
 회원 앱 ──기록──▶ diet_entries / routine_history ◀──조회── 트레이너 웹
@@ -38,7 +43,7 @@
 | `trainer_clients` | 트레이너↔회원 담당 링크(로스터의 정의) |
 | `trainer_routines` | 트레이너/AI가 회원에게 배정한 루틴 |
 | `trainer_client_memos` | 트레이너가 회원별로 남긴 메모(직접 작성 + 채팅 인사이트, `0036_trainer_memos`) |
-| `trainer_follow_up_tasks` | 트레이너가 고객별로 남긴 후속 관리 할 일(예정일·완료 상태, `0047_trainer_follow_up_task`) |
+| `trainer_follow_up_tasks` | 트레이너가 회원별로 남긴 후속 관리 할 일(예정일·완료 상태, `0047_trainer_follow_up_task`) |
 | `trainer_program_drafts` | 트레이너가 저장해 둔 프로그램 초안(세션 배열, 회원과 묶이지 않음, `0038`+`0039`) |
 | `routine_history` | 회원 운동 완료 기록(회원 앱·PT 세션 공용 원본) |
 | `chat_messages` | 트레이너↔회원 1:1 채팅 |
@@ -107,7 +112,7 @@
 | POST | `/trainer/me/password` | 비밀번호 변경(현재 비밀번호 확인) |
 | GET | `/trainer/me/settings` | 알림 수신 설정 |
 | PUT | `/trainer/me/settings` | 알림 수신 설정 부분 수정 |
-| GET | `/trainer/clients` | 고객 로스터(회원 실데이터 집계) — 기본 50명, `after_id` 로 이어 받기 (#980) |
+| GET | `/trainer/clients` | 회원 로스터(회원 실데이터 집계) — 기본 50명, `after_id` 로 이어 받기 (#980) |
 | PUT | `/trainer/clients/{member_id}/status` | 활성/휴면 전환(담당 관계는 유지, #707) |
 | GET | `/trainer/clients/{member_id}/diet?date=` | 해당 회원의 실제 식단 기록 |
 | GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순) |
@@ -125,7 +130,7 @@
 | POST | `/trainer/schedule/recurring` | 주간 반복 회차 일괄 등록(전부 아니면 전무, 409 에 충돌 목록) |
 | POST | `/trainer/schedule/{session_id}/cancel` | 일정 취소 기록(`source`=member\|trainer\|other, `reason?`) |
 | POST | `/trainer/schedule/{session_id}/no-show` | 노쇼 기록 |
-| GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | 고객 후속 관리 할 일(예정일 순, 기본 미완료) |
+| GET | `/trainer/clients/{member_id}/follow-ups?include_completed=` | 회원 후속 관리 할 일(예정일 순, 기본 미완료) |
 | POST | `/trainer/clients/{member_id}/follow-ups` | 후속 관리 등록 (`client_request_id?` 로 재시도 멱등) |
 | GET | `/trainer/follow-ups?scope=due\|open` | 내 할 일 — `due` 는 오늘 예정 + 기한 지난 미완료 |
 | PUT | `/trainer/follow-ups/{task_id}` | 할 일 수정(내용·예정일) |
@@ -140,14 +145,14 @@
 | POST | `/trainer/clients/{member_id}/chat/read` | 읽음 처리 |
 | GET | `/trainer/chat/unread` | 회원별 미확인 수 |
 | GET | `/trainer/schedule?date=` | 하루 타임라인 |
-| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 고객 필터 |
+| GET | `/trainer/schedule?from=&to=&member_id=` | 구간 조회 / 회원 필터 |
 | GET | `/trainer/schedule/booked-dates` | 예약 있는 날짜 |
 | POST | `/trainer/schedule` | 예약 생성(예정, `client_request_id?`) |
 | PUT | `/trainer/schedule/{id}` | 예약 수정 |
 | DELETE | `/trainer/schedule/{id}` | 예약 삭제 |
 | POST | `/trainer/schedule/{id}/complete` | 세션 완료(예정→완료) |
-| GET | `/trainer/dashboard/coaching-summary` | 식단·운동·건강 프로필·최근 대화를 종합한 고객별 오늘 코칭 요약 |
-| POST | `/trainer/clients/{member_id}/ai-coach` | 담당 고객 데이터 기반 AI 코칭 질의 |
+| GET | `/trainer/dashboard/coaching-summary` | 식단·운동·건강 프로필·최근 대화를 종합한 회원별 오늘 코칭 요약 |
+| POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
 
@@ -177,16 +182,16 @@ scope에 포함해 회원과 트레이너가 우연히 같은 키를 만들어�
 회원 앱의 `/ai-coach/chat` 과 **같은 RAG 파이프라인**(`services/coach/chat.answer`)을
 쓰되, 검색 스코프가 호출자(트레이너)가 아니라 **담당 회원**이다. 트레이너가 자기
 자신의(비어 있는) 기록으로 코칭받는 일을 막기 위한 구분이며, 접근 경계는 담당 링크
-확인(`_require_client`) — 남의 고객이면 404 로 존재조차 드러내지 않는다.
+확인(`_require_client`) — 남의 회원이면 404 로 존재조차 드러내지 않는다.
 
 ### 대시보드 코칭 요약 (`/trainer/dashboard/coaching-summary`)
 
 담당 로스터에서 식단·주간 운동 이행률·건강 프로필·최근 14일 대화를 배치 조회하고,
-우선 확인할 고객을 최대 3명으로 제한해 LLM에 전달한다. 응답은 고객별 `현재 상태`,
-`판단 근거`, `오늘 운동 중심`, `세션 전 확인`으로 구조화하며, 입력에 없는 고객 ID나
+우선 확인할 회원을 최대 3명으로 제한해 LLM에 전달한다. 응답은 회원별 `현재 상태`,
+`판단 근거`, `오늘 운동 중심`, `세션 전 확인`으로 구조화하며, 입력에 없는 회원 ID나
 이름을 모델이 만들면 폐기한다. 대화 인용은 신뢰할 수 없는 참고 자료로 명시하고,
 공급자 장애·10초 타임아웃·응답 계약 위반 시 같은 스키마의 규칙 기반 요약으로
-폴백한다. 최근 대화는 고객별 최대 6건만 포함해 컨텍스트와 쿼리 크기를 제한한다.
+폴백한다. 최근 대화는 회원별 최대 6건만 포함해 컨텍스트와 쿼리 크기를 제한한다.
 
 ### 주간 리포트 (`/trainer/clients/{id}/report`)
 
@@ -218,7 +223,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 
 ### 반복 PT 일정 (#870)
 
-주 2회 PT 를 하는 고객이 15명이면 매주 같은 일정을 30번 다시 입력해야 했다. 반복을
+주 2회 PT 를 하는 회원이 15명이면 매주 같은 일정을 30번 다시 입력해야 했다. 반복을
 표현하지 못하면 그 입력이 매주 되풀이되고, 주차 누락·시간 오입력이 그대로 회원 앱에
 나간다.
 
@@ -258,11 +263,11 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
   분모에 넣으면 트레이너 사정의 취소가 회원의 낮은 이행률로 보인다. 취소·노쇼에 패널티를
   주는 지표는 별도 정책이다.
 
-### 고객 후속 관리 할 일 (#869)
+### 회원 후속 관리 할 일 (#869)
 
 트레이너가 "며칠 뒤 다시 확인할 것"을 남겨 두는 최소 업무 큐다. 메모
 (`trainer_client_memos`)와 나누는 까닭은 답하는 질문이 다르기 때문이다 — 메모는
-"이 고객에 대해 무엇을 알아 두었나", 할 일은 "언제까지 무엇을 해야 하나"다.
+"이 회원에 대해 무엇을 알아 두었나", 할 일은 "언제까지 무엇을 해야 하나"다.
 
 - **조회 범위를 서버가 정한다.** `scope=due` 는 오늘 예정과 **기한이 지난** 미완료를
   함께 준다. 지난 항목을 빼면 하루만 지나도 목록에서 사라져, 놓치지 않으려고 만든
@@ -275,7 +280,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
   내 것이라, 여기서 담당을 다시 요구하면 지울 수도 없는 항목이 목록에 남는다.
 - **`context_type` 은 route 힌트**다(`general|diet|exercise|message|program|schedule`).
   새 deep-link 체계가 아니라 기존 화면 중 하나를 고르는 값이라 CHECK 제약으로 못
-  박고, 앱은 모르는 값을 고객 상세로 떨어뜨린다.
+  박고, 앱은 모르는 값을 회원 상세로 떨어뜨린다.
 
 자동 생성(나트륨 초과·unread 메시지 등)은 이 범위가 아니다. 다만 나중에 자동 업무
 큐로 늘릴 수 있도록 특정 기능에 종속된 컬럼은 두지 않았다.

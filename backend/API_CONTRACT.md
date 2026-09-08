@@ -298,8 +298,9 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 그리고 트레이너↔회원 **실데이터 공유** 설계는 별도 문서로 분리했다:
 **[`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md)**.
 
-핵심: `users.role`(member|trainer)로 두 앱 계정을 구분하되, "고객"은 실제 회원 User이고
-트레이너 API는 회원의 실제 `diet_entries`·`routine_history`를 그대로 읽어 집계한다.
+핵심: `users.role`(member|trainer)로 두 앱 계정을 구분하되, 트레이너가 담당하는 회원은
+실제 회원 User이고 트레이너 API는 회원의 실제 `diet_entries`·`routine_history`를 그대로
+읽어 집계한다.
 
 ---
 
