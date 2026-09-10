@@ -1,60 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 430" width="960" height="430">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" width="1200" height="430">
   <style>
-    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
-    .title { font-size: 23px; font-weight: 700; fill: #111827; }
-    .node-t { font-size: 17px; font-weight: 700; fill: #111827; }
-    .node-s { font-size: 12.5px; fill: #6b7280; }
-    .lbl { font-size: 12.5px; font-weight: 600; fill: #374151; }
-    .leg { font-size: 12px; fill: #6b7280; }
+    text { font-family: 'Apple SD Gothic Neo', 'Pretendard', 'Helvetica Neue', Helvetica, Arial, 'Noto Sans KR', sans-serif; }
   </style>
   <defs>
-    <marker id="a-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
-    <marker id="a-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/></marker>
-    <marker id="a-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#9333ea"/></marker>
-    <filter id="soft" x="-8%" y="-8%" width="116%" height="116%"><feDropShadow dx="0" dy="1.5" stdDeviation="2.5" flood-color="#0f172a" flood-opacity="0.10"/></filter>
+    <marker id="sl" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#2E7DAB"/></marker>
   </defs>
+  <rect width="1200" height="430" fill="#ffffff"/>
+  <text x="40" y="54" font-size="26" font-weight="700" fill="#17435F" text-anchor="start">On-Care — Service Data Flow</text>
+  <text x="40" y="82" font-size="13.5" font-weight="400" fill="#5A7A90" text-anchor="start">회원의 기록이 트레이너의 코칭이 되어 돌아오는 하나의 순환</text>
+  <path d="M 934,48 H 962" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#sl)"/>
+  <text x="970" y="52" font-size="11" font-weight="600" fill="#5A7A90" text-anchor="start">기록 · 전달</text>
+  <path d="M 1058,48 H 1086" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#sl)"/>
+  <text x="1094" y="52" font-size="11" font-weight="600" fill="#5A7A90" text-anchor="start">코칭 회신</text>
 
-  <rect width="960" height="430" fill="#ffffff"/>
-  <text x="480" y="46" text-anchor="middle" class="title">Service Data Flow</text>
+  <text x="40" y="212" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">FLOW</text>
+  <text x="40" y="344" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">FEEDBACK</text>
 
-  <!-- Member -->
-  <rect x="70" y="130" width="215" height="120" rx="12" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="177" y="182" text-anchor="middle" class="node-t">회원</text>
-  <text x="177" y="210" text-anchor="middle" class="node-s">식단 사진 &#183; 간단 입력</text>
+  <rect x="190" y="150" width="220" height="110" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="300" y="196" font-size="19" font-weight="700" fill="#17435F" text-anchor="middle">회원</text>
+  <text x="300" y="220" font-size="11.5" font-weight="400" fill="#5A7A90" text-anchor="middle">식단 사진 · 간단 입력</text>
 
-  <!-- On-Care hub -->
-  <rect x="372" y="122" width="216" height="136" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.8" filter="url(#soft)"/>
-  <text x="480" y="178" text-anchor="middle" class="node-t">On-Care</text>
-  <text x="480" y="205" text-anchor="middle" class="node-s">AI 자동 인식 &#183; 정리</text>
-  <text x="480" y="226" text-anchor="middle" class="node-s">회원별 &#183; 날짜별 리포트</text>
+  <rect x="535" y="138" width="280" height="134" rx="12" fill="#17435F" stroke="#17435F" stroke-width="1.8"/>
+  <text x="675" y="192" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">On-Care</text>
+  <text x="675" y="216" font-size="11.5" font-weight="400" fill="#B9D2E4" text-anchor="middle">AI 자동 인식 · 회원별 · 날짜별 정리</text>
+  <text x="675" y="236" font-size="11.5" font-weight="400" fill="#B9D2E4" text-anchor="middle">주간 리포트 생성</text>
 
-  <!-- Trainer -->
-  <rect x="675" y="130" width="215" height="120" rx="12" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="782" y="182" text-anchor="middle" class="node-t">트레이너</text>
-  <text x="782" y="210" text-anchor="middle" class="node-s">세션 &#183; 프로그램 기록</text>
+  <rect x="940" y="150" width="220" height="110" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="1050" y="196" font-size="19" font-weight="700" fill="#17435F" text-anchor="middle">트레이너</text>
+  <text x="1050" y="220" font-size="11.5" font-weight="400" fill="#5A7A90" text-anchor="middle">세션 · 루틴 · 피드백</text>
 
-  <!-- Member -> On-Care -->
-  <line x1="285" y1="190" x2="368" y2="190" stroke="#2563eb" stroke-width="2" marker-end="url(#a-blue)"/>
-  <rect x="288" y="163" width="78" height="20" rx="4" fill="#ffffff" opacity="0.95"/>
-  <text x="327" y="177" text-anchor="middle" class="lbl">식단&#183;운동 기록</text>
+  <text x="472" y="190" font-size="10.5" font-weight="600" fill="#2E7DAB" text-anchor="middle">식단 · 운동 기록</text>
+  <path d="M 414,205 H 531" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#sl)"/>
 
-  <!-- On-Care -> Trainer -->
-  <line x1="588" y1="190" x2="671" y2="190" stroke="#16a34a" stroke-width="2" marker-end="url(#a-green)"/>
-  <rect x="596" y="163" width="66" height="20" rx="4" fill="#ffffff" opacity="0.95"/>
-  <text x="629" y="177" text-anchor="middle" class="lbl">요약 리포트</text>
+  <text x="877" y="190" font-size="10.5" font-weight="600" fill="#2E7DAB" text-anchor="middle">정리된 리포트</text>
+  <path d="M 819,205 H 936" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#sl)"/>
 
-  <!-- Trainer -> Member (coaching loop) -->
-  <path d="M782 250 L782 338 Q782 352 768 352 L191 352 Q177 352 177 338 L177 250" fill="none" stroke="#9333ea" stroke-width="2" marker-end="url(#a-purple)"/>
-  <rect x="398" y="342" width="164" height="21" rx="4" fill="#ffffff" opacity="0.95"/>
-  <text x="480" y="357" text-anchor="middle" class="lbl" style="fill:#7c3aed">데이터 기반 맞춤 코칭</text>
+  <text x="675" y="332" font-size="10.5" font-weight="600" fill="#2E7DAB" text-anchor="middle">데이터 기반 맞춤 코칭 · 운동 루틴</text>
+  <path d="M 1050,264 V 326 Q 1050,340 1036,340 H 314 Q 300,340 300,326 V 266" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#sl)"/>
 
-  <!-- legend -->
-  <g transform="translate(72,392)">
-    <line x1="0" y1="7" x2="26" y2="7" stroke="#2563eb" stroke-width="2" marker-end="url(#a-blue)"/>
-    <text x="32" y="11" class="leg">기록 수집</text>
-    <line x1="150" y1="7" x2="176" y2="7" stroke="#16a34a" stroke-width="2" marker-end="url(#a-green)"/>
-    <text x="182" y="11" class="leg">트레이너 전달</text>
-    <line x1="320" y1="7" x2="346" y2="7" stroke="#9333ea" stroke-width="2" marker-end="url(#a-purple)"/>
-    <text x="352" y="11" class="leg">맞춤 코칭 피드백</text>
-  </g>
+  <text x="40" y="414" font-size="10" font-weight="400" fill="#94A3B8" text-anchor="start">Palette — 시스템 아키텍처 그림과 같은 규칙. 브랜드 기본색 #3EAFDF · #2E7DAB · #17435F 의 명도 단계만 사용하고, 두 사람을 잇는 서비스를 짙은 면으로 강조.</text>
 </svg>
