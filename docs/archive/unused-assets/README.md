@@ -15,3 +15,4 @@
 | `oncare-banner.svg` | SVG 배너. README 는 별도 디자인의 `oncare-banner.png` 를 사용 | `docs/assets/oncare-banner.png` |
 | `healthmate-banner.svg` · `healthmate-logo.svg` | 스타트 단계 브랜딩 에셋 | `docs/assets/oncare-*.png` |
 | `spacer.png` | 마크다운 여백용 투명 이미지. 현재 미사용 | — |
+| `screenshots/` | 2026년 6월 시점의 회원 앱 화면 캡처. 이후 UI 개편으로 현재 화면과 다름 | 대체 없음 (기록용) |

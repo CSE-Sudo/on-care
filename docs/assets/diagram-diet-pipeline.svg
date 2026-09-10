@@ -1,59 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1300 280" width="1300" height="280">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" width="1200" height="430">
   <style>
-    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
-    .title { font-size: 23px; font-weight: 700; fill: #111827; }
-    .node { font-size: 14px; font-weight: 700; fill: #111827; }
-    .sub  { font-size: 11.5px; fill: #6b7280; }
-    .lbl  { font-size: 12px; font-weight: 600; fill: #2563eb; }
+    text { font-family: 'Apple SD Gothic Neo', 'Pretendard', 'Helvetica Neue', Helvetica, Arial, 'Noto Sans KR', sans-serif; }
   </style>
   <defs>
-    <marker id="p-b" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
-    <filter id="s3" x="-6%" y="-6%" width="112%" height="112%"><feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#0f172a" flood-opacity="0.10"/></filter>
+    <marker id="pr" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#2E7DAB"/></marker>
   </defs>
+  <rect width="1200" height="430" fill="#ffffff"/>
+  <text x="40" y="54" font-size="26" font-weight="700" fill="#17435F" text-anchor="start">On-Care — Diet Recognition Pipeline</text>
+  <text x="40" y="82" font-size="13.5" font-weight="400" fill="#5A7A90" text-anchor="start">음식 사진 한 장이 검증된 영양 수치와 트레이너 리포트가 되기까지</text>
+  <path d="M 934,48 H 962" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#pr)"/>
+  <text x="970" y="52" font-size="11" font-weight="600" fill="#5A7A90" text-anchor="start">내부 흐름</text>
+  <path d="M 1058,48 H 1086" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#pr)"/>
+  <text x="1094" y="52" font-size="11" font-weight="600" fill="#5A7A90" text-anchor="start">외부 서비스</text>
 
-  <rect width="1300" height="280" fill="#ffffff"/>
-  <text x="650" y="48" text-anchor="middle" class="title">Diet Recognition Pipeline</text>
+  <text x="40" y="212" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">PIPELINE</text>
+  <text x="40" y="348" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">REFERENCE</text>
 
-  <!-- 1. 사진 -->
-  <rect x="30" y="96" width="190" height="104" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" filter="url(#s3)"/>
-  <text x="125" y="140" text-anchor="middle" class="node">사진 업로드</text>
-  <text x="125" y="164" text-anchor="middle" class="sub">음식 사진 1장</text>
+  <text x="275" y="144" font-size="10" font-weight="700" fill="#94A3B8" text-anchor="middle" letter-spacing="1.4">STEP 01</text>
+  <rect x="190" y="156" width="170" height="100" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="275" y="201" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">사진 업로드</text>
+  <text x="275" y="222" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">음식 사진 한 장</text>
 
-  <!-- 2. VLM -->
-  <rect x="290" y="96" width="190" height="104" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5" filter="url(#s3)"/>
-  <text x="385" y="140" text-anchor="middle" class="node">식단 인식 (VLM)</text>
-  <text x="385" y="164" text-anchor="middle" class="sub">음식 &#183; 추정 섭취량</text>
+  <text x="475" y="144" font-size="10" font-weight="700" fill="#94A3B8" text-anchor="middle" letter-spacing="1.4">STEP 02</text>
+  <rect x="390" y="156" width="170" height="100" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="475" y="201" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">식단 인식</text>
+  <text x="475" y="222" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">음식 · 추정 섭취량</text>
 
-  <!-- 3. Public DB match (key step) -->
-  <rect x="550" y="90" width="190" height="116" rx="10" fill="#f0fdfa" stroke="#2dd4bf" stroke-width="2" filter="url(#s3)"/>
-  <text x="645" y="132" text-anchor="middle" class="node">공공 영양 DB 매칭</text>
-  <text x="645" y="155" text-anchor="middle" class="sub">나트륨&#183;칼로리&#183;당 보정</text>
-  <text x="645" y="174" text-anchor="middle" class="sub" style="fill:#0d9488;font-weight:600">AI 추정 → 참고값 보정</text>
+  <text x="675" y="144" font-size="10" font-weight="700" fill="#94A3B8" text-anchor="middle" letter-spacing="1.4">STEP 03</text>
+  <rect x="590" y="156" width="170" height="100" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="675" y="201" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">영양 수치 보정</text>
+  <text x="675" y="222" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">나트륨 · 칼로리 · 당</text>
 
-  <!-- 4. Store -->
-  <rect x="810" y="96" width="190" height="104" rx="10" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5" filter="url(#s3)"/>
-  <text x="905" y="140" text-anchor="middle" class="node">구조화 기록 저장</text>
-  <text x="905" y="164" text-anchor="middle" class="sub">회원별 &#183; 날짜별</text>
+  <text x="875" y="144" font-size="10" font-weight="700" fill="#94A3B8" text-anchor="middle" letter-spacing="1.4">STEP 04</text>
+  <rect x="790" y="156" width="170" height="100" rx="12" fill="#17435F" stroke="#17435F" stroke-width="1.8"/>
+  <text x="875" y="201" font-size="14.5" font-weight="700" fill="#ffffff" text-anchor="middle">확인 · 수정</text>
+  <text x="875" y="222" font-size="10.5" font-weight="400" fill="#B9D2E4" text-anchor="middle">회원 · 트레이너 확정</text>
 
-  <!-- 5. Trainer report -->
-  <rect x="1070" y="96" width="190" height="104" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#s3)"/>
-  <text x="1165" y="140" text-anchor="middle" class="node">트레이너 리포트</text>
-  <text x="1165" y="164" text-anchor="middle" class="sub">데이터 기반 코칭</text>
+  <text x="1075" y="144" font-size="10" font-weight="700" fill="#94A3B8" text-anchor="middle" letter-spacing="1.4">STEP 05</text>
+  <rect x="990" y="156" width="170" height="100" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="1075" y="201" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">기록 · 리포트</text>
+  <text x="1075" y="222" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">회원별 · 날짜별 집계</text>
 
-  <!-- arrows (긴 간격: 라벨이 박스와 겹치지 않음) -->
-  <line x1="222" y1="148" x2="288" y2="148" stroke="#2563eb" stroke-width="2" marker-end="url(#p-b)"/>
-  <rect x="228" y="126" width="54" height="18" rx="4" fill="#ffffff"/>
-  <text x="255" y="139" text-anchor="middle" class="lbl">이미지</text>
+  <path d="M 364,206 H 386" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#pr)"/>
+  <path d="M 564,206 H 586" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#pr)"/>
+  <path d="M 764,206 H 786" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#pr)"/>
+  <path d="M 964,206 H 986" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#pr)"/>
 
-  <line x1="482" y1="148" x2="548" y2="148" stroke="#2563eb" stroke-width="2" marker-end="url(#p-b)"/>
-  <rect x="484" y="126" width="62" height="18" rx="4" fill="#ffffff"/>
-  <text x="515" y="139" text-anchor="middle" class="lbl">인식 결과</text>
+  <rect x="390" y="316" width="170" height="52" rx="10" fill="#ffffff" stroke="#9DC3E0" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="475" y="339" font-size="12.5" font-weight="700" fill="#5A7A90" text-anchor="middle">Vision AI</text>
+  <text x="475" y="356" font-size="10" font-weight="400" fill="#5A7A90" text-anchor="middle">음식 사진 인식</text>
+  <path d="M 475,312 V 262" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#pr)"/>
 
-  <line x1="742" y1="148" x2="808" y2="148" stroke="#2563eb" stroke-width="2" marker-end="url(#p-b)"/>
-  <rect x="744" y="126" width="62" height="18" rx="4" fill="#ffffff"/>
-  <text x="775" y="139" text-anchor="middle" class="lbl">보정 수치</text>
+  <rect x="590" y="316" width="170" height="52" rx="10" fill="#D6E7F3" stroke="#9DC3E0" stroke-width="1.5"/>
+  <text x="675" y="339" font-size="12.5" font-weight="700" fill="#17435F" text-anchor="middle">공공 식품영양성분 표</text>
+  <text x="675" y="356" font-size="10" font-weight="400" fill="#5A7A90" text-anchor="middle">식약처 참고값</text>
+  <path d="M 675,312 V 262" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#pr)"/>
 
-  <line x1="1002" y1="148" x2="1068" y2="148" stroke="#2563eb" stroke-width="2" marker-end="url(#p-b)"/>
-  <rect x="1004" y="126" width="62" height="18" rx="4" fill="#ffffff"/>
-  <text x="1035" y="139" text-anchor="middle" class="lbl">일별 집계</text>
+  <text x="40" y="414" font-size="10" font-weight="400" fill="#94A3B8" text-anchor="start">Palette — 시스템 아키텍처 그림과 같은 규칙. 브랜드 기본색 #3EAFDF · #2E7DAB · #17435F 의 명도 단계만 사용하고, 사람이 최종 확정하는 단계를 짙은 면으로 강조.</text>
 </svg>

@@ -1,209 +1,82 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 980" width="1280" height="980">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" width="1200" height="780">
   <style>
-    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
-    .title   { font-size: 25px; font-weight: 700; fill: #0f172a; }
-    .subtitle{ font-size: 13px; fill: #64748b; }
-    .band    { font-size: 11px; font-weight: 700; fill: #94a3b8; letter-spacing: 1.6px; }
-    .zone    { font-size: 14.5px; font-weight: 700; fill: #1e3a8a; }
-    .zone-s  { font-size: 11px; fill: #64748b; }
-    .card-t  { font-size: 14.5px; font-weight: 700; fill: #111827; }
-    .card-t2 { font-size: 12.5px; font-weight: 700; fill: #111827; }
-    .card-s  { font-size: 11.5px; fill: #64748b; }
-    .card-xs { font-size: 10.5px; fill: #64748b; }
-    .mid     { font-size: 11px; fill: #1d4ed8; }
-    .mid-b   { font-size: 11px; font-weight: 700; fill: #1d4ed8; }
-    .eng     { font-size: 10.5px; fill: #6b21a8; }
-    .eng-b   { font-size: 11.5px; font-weight: 700; fill: #6b21a8; }
-    .note    { font-size: 11px; fill: #94a3b8; }
-    .flow    { font-size: 10.5px; font-weight: 700; fill: #2563eb; }
+    text { font-family: 'Apple SD Gothic Neo', 'Pretendard', 'Helvetica Neue', Helvetica, Arial, 'Noto Sans KR', sans-serif; }
   </style>
   <defs>
-    <marker id="ar-blue" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#2563eb"/></marker>
-    <marker id="ar-slate" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#64748b"/></marker>
-    <marker id="ar-purple" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#9333ea"/></marker>
-    <marker id="ar-green" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#16a34a"/></marker>
-    <filter id="soft" x="-10%" y="-10%" width="120%" height="124%"><feDropShadow dx="0" dy="1.5" stdDeviation="2.4" flood-color="#0f172a" flood-opacity="0.09"/></filter>
+    <marker id="ar" markerWidth="9" markerHeight="7" refX="8.5" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#2E7DAB"/></marker>
   </defs>
-
-  <rect width="1280" height="980" fill="#ffffff"/>
-
-  <text x="640" y="42" text-anchor="middle" class="title">System Architecture</text>
-  <text x="640" y="66" text-anchor="middle" class="subtitle">회원 앱 · 트레이너 웹 (Flutter)  →  FastAPI  →  PostgreSQL + pgvector  ·  교체 가능한 AI 엔진</text>
-
-  <!-- ===================== CLIENT ===================== -->
-  <rect x="40" y="88" width="904" height="150" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
-  <text x="58" y="110" class="band">CLIENT</text>
-  <text x="926" y="110" text-anchor="end" class="note">shared/demo_fixture — 두 앱과 백엔드가 같은 데모 데이터를 공유</text>
-
-  <rect x="58" y="120" width="420" height="102" rx="10" fill="#eaf7fd" stroke="#6cc4e6" stroke-width="1.6" filter="url(#soft)"/>
-  <text x="78" y="148" class="card-t">회원 앱 <tspan class="card-s">Member</tspan></text>
-  <text x="78" y="172" class="card-s">Flutter · iOS / Android / Web · GoRouter · Riverpod</text>
-  <text x="78" y="192" class="card-s">Dio + 인증/로깅 인터셉터 · Drift(SQLite) 캐시</text>
-  <text x="78" y="211" class="card-xs">토큰은 Secure Storage(Keychain / Keystore)</text>
-
-  <rect x="502" y="120" width="424" height="102" rx="10" fill="#e7f0f8" stroke="#4b8fbc" stroke-width="1.6" filter="url(#soft)"/>
-  <text x="522" y="148" class="card-t">트레이너 웹 <tspan class="card-s">Trainer</tspan></text>
-  <text x="522" y="172" class="card-s">Flutter Web · 같은 스택을 미러링(코드는 분리)</text>
-  <text x="522" y="192" class="card-s">주간 리포트 A4 PDF 생성 · 채팅 사진 첨부</text>
-  <text x="522" y="211" class="card-xs">회원 기록을 정리된 리포트 위에서 코칭</text>
-
-  <!-- ===================== TRANSPORT ===================== -->
-  <rect x="40" y="256" width="248" height="58" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5"/>
-  <text x="60" y="280" class="card-t2">GitHub Pages · 정적 호스팅</text>
-  <text x="60" y="300" class="card-xs">ewhasudo.zapto.org · /frontend · /trainer</text>
-
-  <rect x="316" y="256" width="352" height="58" rx="29" fill="#ffffff" stroke="#93c5fd" stroke-width="2" filter="url(#soft)"/>
-  <text x="492" y="280" text-anchor="middle" class="card-t2">HTTPS · JSON REST  ·  /v1</text>
-  <text x="492" y="300" text-anchor="middle" class="card-xs">Bearer JWT — access 24h / refresh 30일 회전</text>
-
-  <rect x="696" y="256" width="248" height="58" rx="10" fill="#fff7ed" stroke="#fdba74" stroke-width="1.5"/>
-  <text x="716" y="280" class="card-t2">폴링 스트림</text>
-  <text x="716" y="300" class="card-xs">알림 · 코치 메시지를 주기 갱신</text>
-
-  <line x1="164" y1="254" x2="164" y2="240" stroke="#16a34a" stroke-width="1.8" marker-end="url(#ar-green)"/>
-  <text x="176" y="248" class="note">배포</text>
-  <line x1="492" y1="240" x2="492" y2="252" stroke="#2563eb" stroke-width="1.8" marker-end="url(#ar-blue)"/>
-  <line x1="492" y1="316" x2="492" y2="330" stroke="#2563eb" stroke-width="1.8" marker-end="url(#ar-blue)"/>
-
-  <!-- ===================== BACKEND ===================== -->
-  <rect x="40" y="334" width="904" height="420" rx="14" fill="#fbfdff" stroke="#bfdbfe" stroke-width="1.8"/>
-  <text x="60" y="360" class="zone">BACKEND — FastAPI (Python 3.12 · SQLAlchemy)</text>
-  <text x="924" y="360" text-anchor="end" class="zone-s">AWS App Runner · 컨테이너 :8000 · /v1/healthz</text>
-
-  <!-- middleware -->
-  <rect x="60" y="374" width="864" height="38" rx="8" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1.3"/>
-  <text x="492" y="398" text-anchor="middle" class="mid"><tspan class="mid-b">요청 파이프라인 ▸ </tspan>Request-ID · 액세스 로그  │  보안 헤더 · HSTS  │  CORS  │  업로드 본문 상한  │  Rate Limit  │  JWT 인증 · 토큰 폐기 검사</text>
-
-  <!-- routers -->
-  <text x="60" y="429" class="band">API ROUTERS  ·  /v1</text>
-  <rect x="60" y="436" width="280" height="94" rx="10" fill="#ffffff" stroke="#dbeafe" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="78" y="460" class="card-t2">회원 도메인</text>
-  <text x="78" y="481" class="card-xs">users · social · dashboard</text>
-  <text x="78" y="499" class="card-xs">diet · exercise · schedule</text>
-  <text x="78" y="517" class="card-xs">notifications · member_coach</text>
-
-  <rect x="352" y="436" width="280" height="94" rx="10" fill="#ffffff" stroke="#dbeafe" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="370" y="460" class="card-t2">트레이너 도메인</text>
-  <text x="370" y="481" class="card-xs">trainer · trainers</text>
-  <text x="370" y="499" class="card-xs">consultations · reservations</text>
-  <text x="370" y="517" class="card-xs">coach_docs · chat_attachments</text>
-
-  <rect x="644" y="436" width="280" height="94" rx="10" fill="#ffffff" stroke="#dbeafe" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="662" y="460" class="card-t2">공통 · O2O</text>
-  <text x="662" y="481" class="card-xs">system (health · metrics)</text>
-  <text x="662" y="499" class="card-xs">places · gyms</text>
-  <text x="662" y="517" class="card-xs">ai_coach</text>
-
-  <!-- domain services -->
-  <text x="60" y="556" class="band">DOMAIN SERVICES</text>
-  <rect x="60" y="564" width="164" height="112" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="76" y="588" class="card-t2">식단 · 영양</text>
-  <text x="76" y="610" class="card-xs">사진 축소 · EXIF 제거</text>
-  <text x="76" y="628" class="card-xs">공공 영양 DB 매칭</text>
-  <text x="76" y="646" class="card-xs">수치 보정 · 추천</text>
-  <text x="76" y="664" class="card-xs">끼니 기록 집계</text>
-
-  <rect x="235" y="564" width="164" height="112" rx="10" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="251" y="588" class="card-t2">운동 · 일정</text>
-  <text x="251" y="610" class="card-xs">루틴 · 세션 기록</text>
-  <text x="251" y="628" class="card-xs">예약 슬롯 · 상담</text>
-  <text x="251" y="646" class="card-xs">일정 파싱</text>
-  <text x="251" y="664" class="card-xs">자동 루틴 생성</text>
-
-  <rect x="410" y="564" width="164" height="112" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="426" y="588" class="card-t2">AI 코치 · RAG</text>
-  <text x="426" y="610" class="card-xs">청킹 → 임베딩 적재</text>
-  <text x="426" y="628" class="card-xs">pgvector 유사도 검색</text>
-  <text x="426" y="646" class="card-xs">개인 · 공공 문서 격리</text>
-  <text x="426" y="664" class="card-xs">근거 표시 · 입력 안전</text>
-
-  <rect x="585" y="564" width="164" height="112" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="601" y="588" class="card-t2">트레이너 코칭</text>
-  <text x="601" y="610" class="card-xs">주간 리포트 요약</text>
-  <text x="601" y="628" class="card-xs">프로그램 템플릿</text>
-  <text x="601" y="646" class="card-xs">회원 초대 · 배정</text>
-  <text x="601" y="664" class="card-xs">팔로업 · 추천 매칭</text>
-
-  <rect x="760" y="564" width="164" height="112" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="776" y="588" class="card-t2">알림 · 감사</text>
-  <text x="776" y="610" class="card-xs">알림 생성 · 설정</text>
-  <text x="776" y="628" class="card-xs">audit_logs 적재</text>
-  <text x="776" y="646" class="card-xs">리프레시 토큰 폐기</text>
-  <text x="776" y="664" class="card-xs">호출 한도 · 비용 가드</text>
-
-  <!-- pluggable engines -->
-  <rect x="60" y="690" width="864" height="48" rx="8" fill="#faf5ff" stroke="#e9d5ff" stroke-width="1.3"/>
-  <text x="492" y="710" text-anchor="middle" class="eng-b">교체 가능한 AI 엔진 — 팩토리로 주입, 키가 없으면 오프라인 폴백</text>
-  <text x="492" y="729" text-anchor="middle" class="eng">인식: Gemini Vision · Claude(LiteLLM) · YOLO · Stub   │   임베딩: Gemini 768 · OpenAI · Hash   │   코치 LLM: Gemini · OpenAI · LiteLLM</text>
-
-  <line x1="300" y1="756" x2="300" y2="768" stroke="#64748b" stroke-width="1.8" marker-end="url(#ar-slate)"/>
-  <line x1="684" y1="756" x2="684" y2="768" stroke="#64748b" stroke-width="1.8" marker-end="url(#ar-slate)"/>
-
-  <!-- ===================== DATA ===================== -->
-  <rect x="40" y="770" width="904" height="114" rx="14" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
-  <text x="58" y="792" class="band">DATA</text>
-
-  <rect x="58" y="800" width="420" height="68" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="78" y="824" class="card-t2">Neon PostgreSQL · pgvector</text>
-  <text x="78" y="844" class="card-xs">34개 테이블 · SQLAlchemy ORM · 공용 엔드포인트 + TLS</text>
-  <text x="78" y="860" class="card-xs">Alembic 마이그레이션 — advisory lock 으로 직렬 실행</text>
-
-  <rect x="492" y="800" width="204" height="68" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="510" y="824" class="card-t2">벡터 · 참조 데이터</text>
-  <text x="510" y="844" class="card-xs">coach_documents (768차원)</text>
-  <text x="510" y="860" class="card-xs">food_nutrients 프로세스 캐시</text>
-
-  <rect x="710" y="800" width="216" height="68" rx="10" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="728" y="824" class="card-t2">파일 저장소</text>
-  <text x="728" y="844" class="card-xs">주간 리포트 PDF · 채팅 이미지</text>
-  <text x="728" y="860" class="card-xs">본문은 볼륨, 메타데이터는 DB</text>
-
-  <!-- ===================== EXTERNAL RAIL ===================== -->
-  <rect x="972" y="88" width="268" height="796" rx="14" fill="#fcfcfd" stroke="#e5e7eb" stroke-width="1.4"/>
-  <text x="990" y="110" class="band">EXTERNAL</text>
-
-  <rect x="990" y="122" width="232" height="104" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="1008" y="150" class="card-t2">Google Gemini</text>
-  <text x="1008" y="172" class="card-xs">식단 사진 인식 (VLM)</text>
-  <text x="1008" y="190" class="card-xs">코치 대화 생성</text>
-  <text x="1008" y="208" class="card-xs">임베딩 768차원 (기본값)</text>
-
-  <rect x="990" y="250" width="232" height="104" rx="10" fill="#faf5ff" stroke="#d8b4fe" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="1008" y="278" class="card-t2">LiteLLM Proxy</text>
-  <text x="1008" y="300" class="card-xs">OpenAI 호환 인터페이스</text>
-  <text x="1008" y="318" class="card-xs">가상 키 하나로 Claude 호출</text>
-  <text x="1008" y="336" class="card-xs">인식 · 코치 양쪽에 사용</text>
-
-  <rect x="990" y="378" width="232" height="104" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="1008" y="406" class="card-t2">OpenAI</text>
-  <text x="1008" y="428" class="card-xs">GPT-4o · text-embedding-3</text>
-  <text x="1008" y="446" class="card-xs">설정값만 바꾸면 전환되는</text>
-  <text x="1008" y="464" class="card-xs">대체 경로</text>
-
-  <rect x="990" y="506" width="232" height="104" rx="10" fill="#f0fdf4" stroke="#86efac" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="1008" y="534" class="card-t2">공공데이터포털</text>
-  <text x="1008" y="556" class="card-xs">식약처 식품영양성분 DB</text>
-  <text x="1008" y="574" class="card-xs">시드된 참조표로 적재</text>
-  <text x="1008" y="592" class="card-xs">인식 결과의 수치를 보정</text>
-
-  <rect x="990" y="634" width="232" height="104" rx="10" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="1008" y="662" class="card-t2">카카오</text>
-  <text x="1008" y="684" class="card-xs">Local REST — 헬스장 검색</text>
-  <text x="1008" y="702" class="card-xs">지도 JS SDK — 웹 임베드</text>
-  <text x="1008" y="720" class="card-xs">키가 없으면 시드로 폴백</text>
-
-  <rect x="990" y="762" width="232" height="104" rx="10" fill="#e7f0f8" stroke="#4b8fbc" stroke-width="1.5" filter="url(#soft)"/>
-  <text x="1008" y="790" class="card-t2">소셜 로그인</text>
-  <text x="1008" y="812" class="card-xs">카카오 · 구글 · 네이버 · 애플</text>
-  <text x="1008" y="830" class="card-xs">제공자 ID 토큰 검증 후</text>
-  <text x="1008" y="848" class="card-xs">자체 JWT 발급</text>
-
-  <line x1="946" y1="470" x2="968" y2="470" stroke="#9333ea" stroke-width="1.8" marker-end="url(#ar-purple)"/>
-  <line x1="946" y1="620" x2="968" y2="620" stroke="#9333ea" stroke-width="1.8" marker-end="url(#ar-purple)"/>
-
-  <!-- ===================== CI / CD ===================== -->
-  <rect x="40" y="900" width="1200" height="62" rx="12" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.4"/>
-  <text x="58" y="925" class="band">CI / CD</text>
-  <text x="140" y="924" class="card-xs">GitHub Actions — PR Gate · Backend CI(pytest · ruff) · User App CI · Trainer CI · E2E CI</text>
-  <text x="140" y="946" class="card-xs">main push ▸ Flutter web 빌드 → GitHub Pages(/frontend · /trainer)   ·   Docker 이미지 → ECR(digest 고정) → App Runner 갱신   ·   S3 + CloudFront 이전 준비(플래그로 게이트)</text>
+  <rect width="1200" height="780" fill="#ffffff"/>
+  <text x="40" y="54" font-size="26" font-weight="700" fill="#17435F" text-anchor="start">On-Care — System Architecture</text>
+  <text x="40" y="82" font-size="13.5" font-weight="400" fill="#5A7A90" text-anchor="start">회원 앱과 트레이너 웹이 하나의 백엔드를 공유하는 헬스케어 O2O 플랫폼</text>
+  <path d="M 934,48 H 962" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#ar)"/>
+  <text x="970" y="52" font-size="11" font-weight="600" fill="#5A7A90" text-anchor="start">내부 흐름</text>
+  <path d="M 1058,48 H 1086" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ar)"/>
+  <text x="1094" y="52" font-size="11" font-weight="600" fill="#5A7A90" text-anchor="start">외부 서비스</text>
+  <text x="40" y="168" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">CLIENTS</text>
+  <text x="40" y="294" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">API</text>
+  <text x="40" y="484" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">CORE FEATURES</text>
+  <text x="40" y="692" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">DATA</text>
+  <text x="980" y="244" font-size="11.5" font-weight="700" fill="#94A3B8" text-anchor="start" letter-spacing="1.6">EXTERNAL</text>
+  <rect x="190" y="120" width="360" height="88" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="370" y="158" font-size="19" font-weight="700" fill="#17435F" text-anchor="middle">회원 앱</text>
+  <text x="370" y="182" font-size="11.5" font-weight="400" fill="#5A7A90" text-anchor="middle">Flutter · 모바일 / 웹</text>
+  <rect x="580" y="120" width="360" height="88" rx="12" fill="#EAF2F9" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="760" y="158" font-size="19" font-weight="700" fill="#17435F" text-anchor="middle">트레이너 웹</text>
+  <text x="760" y="182" font-size="11.5" font-weight="400" fill="#5A7A90" text-anchor="middle">Flutter Web · 브라우저</text>
+  <rect x="190" y="250" width="750" height="80" rx="12" fill="#17435F" stroke="#17435F" stroke-width="1.6"/>
+  <text x="565" y="285" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Backend API · FastAPI</text>
+  <text x="565" y="309" font-size="11.5" font-weight="400" fill="#B9D2E4" text-anchor="middle">REST /v1 · 로그인 · 회원 / 트레이너 권한 분리</text>
+  <rect x="190" y="372" width="750" height="216" rx="14" fill="#F7FAFD" stroke="#C2DEEF" stroke-width="1.3"/>
+  <rect x="208" y="382" width="348" height="56" rx="10" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.4"/>
+  <text x="382" y="407" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">운동 · 루틴</text>
+  <text x="382" y="426" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">배정 → 수행 → 완료 기록</text>
+  <rect x="208" y="452" width="348" height="56" rx="10" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.4"/>
+  <text x="382" y="477" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">코칭 채팅 · 주간 리포트</text>
+  <text x="382" y="496" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">1:1 상담 · 피드백</text>
+  <rect x="208" y="522" width="348" height="56" rx="10" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.4"/>
+  <text x="382" y="547" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">일정 · PT 예약 · 알림</text>
+  <text x="382" y="566" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">예약 · 세션 · 알림</text>
+  <rect x="574" y="382" width="348" height="56" rx="10" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.4"/>
+  <text x="748" y="407" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">식단 기록</text>
+  <text x="748" y="426" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">사진 한 장으로 자동 인식</text>
+  <rect x="574" y="452" width="348" height="56" rx="10" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.4"/>
+  <text x="748" y="477" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">AI 건강 코치</text>
+  <text x="748" y="496" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">내 기록 기반 RAG 답변</text>
+  <rect x="574" y="522" width="348" height="56" rx="10" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.4"/>
+  <text x="748" y="547" font-size="14.5" font-weight="700" fill="#2E7DAB" text-anchor="middle">헬스장 · 트레이너 매칭</text>
+  <text x="748" y="566" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">검색 → 상담 → 연결</text>
+  <rect x="980" y="264" width="180" height="52" rx="10" fill="#ffffff" stroke="#9DC3E0" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="1070" y="287" font-size="12.5" font-weight="700" fill="#5A7A90" text-anchor="middle">소셜 로그인</text>
+  <text x="1070" y="304" font-size="10" font-weight="400" fill="#5A7A90" text-anchor="middle">카카오 · 네이버 · 구글 · 애플</text>
+  <rect x="980" y="384" width="180" height="52" rx="10" fill="#ffffff" stroke="#9DC3E0" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="1070" y="407" font-size="12.5" font-weight="700" fill="#5A7A90" text-anchor="middle">Vision AI</text>
+  <text x="1070" y="424" font-size="10" font-weight="400" fill="#5A7A90" text-anchor="middle">음식 사진 인식</text>
+  <rect x="980" y="454" width="180" height="52" rx="10" fill="#ffffff" stroke="#9DC3E0" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="1070" y="477" font-size="12.5" font-weight="700" fill="#5A7A90" text-anchor="middle">LLM</text>
+  <text x="1070" y="494" font-size="10" font-weight="400" fill="#5A7A90" text-anchor="middle">임베딩 · 답변 생성</text>
+  <rect x="980" y="524" width="180" height="52" rx="10" fill="#ffffff" stroke="#9DC3E0" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="1070" y="547" font-size="12.5" font-weight="700" fill="#5A7A90" text-anchor="middle">카카오 로컬</text>
+  <text x="1070" y="564" font-size="10" font-weight="400" fill="#5A7A90" text-anchor="middle">헬스장 · 장소 검색</text>
+  <rect x="190" y="634" width="470" height="108" rx="12" fill="#D6E7F3" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="210" y="666" font-size="15" font-weight="700" fill="#17435F" text-anchor="start">PostgreSQL · Neon</text>
+  <rect x="210" y="682" width="138" height="34" rx="8" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.2"/>
+  <text x="279" y="703" font-size="10" font-weight="600" fill="#2E7DAB" text-anchor="middle">회원 · 기록 데이터</text>
+  <rect x="356" y="682" width="138" height="34" rx="8" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.2"/>
+  <text x="425" y="703" font-size="10" font-weight="600" fill="#2E7DAB" text-anchor="middle">pgvector 벡터 검색</text>
+  <rect x="502" y="682" width="138" height="34" rx="8" fill="#ffffff" stroke="#C2DEEF" stroke-width="1.2"/>
+  <text x="571" y="703" font-size="10" font-weight="600" fill="#2E7DAB" text-anchor="middle">공공 식품영양성분 표</text>
+  <rect x="690" y="634" width="250" height="108" rx="12" fill="#D6E7F3" stroke="#9DC3E0" stroke-width="1.8"/>
+  <text x="815" y="674" font-size="15" font-weight="700" fill="#17435F" text-anchor="middle">파일 저장소</text>
+  <text x="815" y="698" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">식단 · 채팅 사진</text>
+  <text x="815" y="715" font-size="10.5" font-weight="400" fill="#5A7A90" text-anchor="middle">주간 리포트 PDF</text>
+  <path d="M 370,208 V 246" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#ar)"/>
+  <path d="M 760,208 V 246" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#ar)"/>
+  <path d="M 565,330 V 368" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#ar)"/>
+  <path d="M 400,588 V 630" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#ar)"/>
+  <path d="M 800,588 V 630" fill="none" stroke="#2E7DAB" stroke-width="1.8" marker-end="url(#ar)"/>
+  <path d="M 944,290 H 976" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ar)"/>
+  <path d="M 926,410 H 976" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ar)"/>
+  <path d="M 926,480 H 976" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ar)"/>
+  <path d="M 926,550 H 976" fill="none" stroke="#2E7DAB" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#ar)"/>
+  <text x="40" y="766" font-size="10" font-weight="400" fill="#94A3B8" text-anchor="start">Palette — 브랜드 기본색 #3EAFDF · #2E7DAB · #17435F 의 명도 단계만 사용. 계층은 면의 밝기로, 외부 서비스는 점선으로 구분.</text>
 </svg>
