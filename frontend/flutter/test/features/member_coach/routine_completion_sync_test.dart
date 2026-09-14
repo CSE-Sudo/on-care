@@ -11,12 +11,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   late MockExerciseRepository exercise;
@@ -44,11 +46,12 @@ void main() {
           ),
           memberCoachRepositoryProvider.overrideWithValue(coach),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
+          home: const Scaffold(
             body: SingleChildScrollView(
               child: Padding(
                 padding: EdgeInsets.all(24),
@@ -111,9 +114,17 @@ void main() {
     // 체크된 것을 다시 누르면 바로 풀리지 않고 먼저 묻는다.
     await tester.tap(find.byKey(Key('completeRoutine-${target.id}')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('confirmRoutineUndo')), findsOneWidget);
+    // 확인창은 공용 [AppDialog] 다(#1702). 확정 버튼은 그 창 안의 `완료 취소` 다.
+    final AppLocalizations undoL = AppLocalizations.of(
+      tester.element(find.byType(AiCoachingCard)),
+    );
+    final Finder confirmUndo = find.descendant(
+      of: find.byType(AppDialog),
+      matching: find.widgetWithText(AppButton, undoL.coachRoutineUndo),
+    );
+    expect(confirmUndo, findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('confirmRoutineUndo')));
+    await tester.tap(confirmUndo);
     await tester.pumpAndSettle();
 
     expect(

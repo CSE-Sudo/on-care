@@ -555,6 +555,7 @@
   "coachChatDemoReportSent": "{trainer}님께 요약 리포트가 전송됐어요",
   "coachChatDemoRoutineReceived": "개인 추천운동을 받았어요",
   "coachChatDemoNotified": "알림으로도 전달됐어요",
+  "coachChatDateDivider": "{date}",
   "coachCtaChat": "AI와 대화하기",
   "navAddRecordTitle": "새 기록 추가",
   "navAddRecordSubtitle": "식단 또는 운동을 선택해 주세요",
@@ -827,6 +828,8 @@
   "@coachRoutineCancelConfirm": {
     "placeholders": { "name": { "type": "String" } }
   },
+  "coachCardRoutineUndoTitle": "완료를 취소할까요?",
+  "coachCardRoutineCancelTitle": "개인 운동을 취소할까요?",
   "coachRoutineCancelled": "개인 운동을 취소했어요",
   "coachRoutineCancelFailed": "개인 운동을 취소하지 못했어요",
   "coachRoutineMyNote": "내 피드백: {note}",

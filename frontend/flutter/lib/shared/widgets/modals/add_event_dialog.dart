@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/core/utils/portrait_date_picker.dart';
-import 'package:oncare/design_system/atoms/app_button.dart';
-import 'package:oncare/design_system/atoms/app_input.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
-import 'package:oncare/design_system/tokens/radius.dart';
-import 'package:oncare/design_system/tokens/spacing.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/domain/repositories/schedule_repository.dart';
@@ -15,6 +10,7 @@ import 'package:oncare/features/schedule/presentation/controllers/schedule_contr
 import 'package:oncare/features/schedule/presentation/schedule_category_color.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 드롭다운에 놓는 순서. 값은 서버로 나가는 계약(`ScheduleCategory`)이고, 사람이
 /// 읽는 이름은 `scheduleCategoryLabel` 이 로케일에 맞춰 그린다(#847). 예전에는
@@ -32,22 +28,23 @@ const List<ScheduleCategory> _categories = <ScheduleCategory>[
 /// 눌러 들어오는 흐름이 쓴다.
 ///
 /// 저장에 성공하면 `true` 로 닫힌다. 부른 쪽이 목록을 다시 읽을지 판단한다.
+///
+/// 회원앱의 입력 폼은 바텀시트다(#1690 확정) — 이름은 호출부 호환을 위해 둔다.
 Future<bool?> showAddEventDialog(
   BuildContext context, {
   DateTime? initialDate,
 }) {
-  return showDialog<bool>(
-    context: context,
-    barrierColor: Colors.black54,
+  return showAppSheet<bool>(
+    // 캘린더·하루 시트 위에 겹쳐 뜨므로 같은 규칙으로 루트 Navigator 에 올린다.
+    context: Navigator.of(context, rootNavigator: true).context,
     builder: (BuildContext ctx) => _EventDialog(initialDate: initialDate),
   );
 }
 
 /// 이미 있는 일정을 고친다. 저장에 성공하면 `true` 로 닫힌다.
 Future<bool?> showEditEventDialog(BuildContext context, ScheduleEvent event) {
-  return showDialog<bool>(
-    context: context,
-    barrierColor: Colors.black54,
+  return showAppSheet<bool>(
+    context: Navigator.of(context, rootNavigator: true).context,
     builder: (BuildContext ctx) => _EventDialog(existing: event),
   );
 }
@@ -127,7 +124,7 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
 
   Future<void> _pickDate() async {
     final DateTime now = nowKst();
-    final DateTime? picked = await showPortraitDatePicker(
+    final DateTime? picked = await showAppDatePicker(
       context: context,
       initialDate: _date,
       // 지난 일정도 기록할 수 있어야 하고, 앞으로도 넉넉히 잡을 수 있어야 한다.
@@ -137,8 +134,10 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
     if (picked != null) setState(() => _date = picked);
   }
 
+  /// 일정은 시각 **하나**만 갖는다(서버 계약 `time`). 시작·종료를 고르는
+  /// 기간 피커가 아니라 한 시각 피커를 쓴다 — 저장되는 값의 뜻이 그대로다.
   Future<void> _pickTime() async {
-    final TimeOfDay? picked = await showTimePicker(
+    final TimeOfDay? picked = await showAppTimePicker(
       context: context,
       initialTime: _time ?? TimeOfDay.now(),
     );
@@ -152,9 +151,7 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
     final title = _title.text.trim();
     // 날짜는 피커가 늘 채우므로 제목만 확인하면 된다.
     if (title.isEmpty) {
-      toast.show(l.eventTitleRequired,
-        kind: AppToastKind.error,
-      );
+      toast.show(l.eventTitleRequired, kind: AppToastKind.error);
       return;
     }
     setState(() => _saving = true);
@@ -187,7 +184,8 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
       Navigator.of(context).pop(true);
     } catch (_) {
       if (mounted) setState(() => _saving = false);
-      toast.show(_isEdit ? l.eventEditFailed : l.eventAddFailed,
+      toast.show(
+        _isEdit ? l.eventEditFailed : l.eventAddFailed,
         kind: AppToastKind.error,
       );
     }
@@ -196,137 +194,79 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Dialog(
-      // 배경은 테마가 정한다(#925) — 예전에는 여기만 손으로 흰색을 되찾아 둬,
-      // 같은 앱의 대화상자가 어떤 것은 파랗고 어떤 것은 흰 상태였다.
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(AppRadius.card),
+    final MaterialLocalizations m = MaterialLocalizations.of(context);
+    return AppSheet(
+      title: _isEdit ? l.eventEditTitle : l.eventAddTitle,
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: _saving ? null : () => Navigator.of(context).pop(),
+        confirmLabel: _saving
+            ? (_isEdit ? l.eventSaving : l.eventAdding)
+            : (_isEdit ? l.eventSave : l.eventAdd),
+        onConfirm: _saving ? null : _submit,
       ),
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.xl,
-      ),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Text(
-                      _isEdit ? l.eventEditTitle : l.eventAddTitle,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Material(
-                    color: AppColors.accent,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Tooltip(
-                        message: MaterialLocalizations.of(
-                          context,
-                        ).closeButtonTooltip,
-                        child: const SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Icon(Icons.close, size: 18),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.md),
-              AppInput(
-                controller: _title,
-                label: l.eventTitleLabel,
-                hint: l.eventTitleHint,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              // 날짜·시간은 직접 칠 수 없다. 예전에는 자유 입력이라 `2026/05/14`
-              // 처럼 계약을 벗어난 값이 저장되고, 조회는 `YYYY-MM-DD` 를 전제해
-              // 걸러 내서 넣은 일정이 어디에도 보이지 않았다(#785).
-              _PickerField(
-                key: const Key('addEventDate'),
-                label: l.eventDateLabel,
-                value: MaterialLocalizations.of(
-                  context,
-                ).formatMediumDate(_date),
-                icon: Icons.calendar_today_outlined,
-                onTap: _saving ? null : _pickDate,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _PickerField(
-                key: const Key('addEventTime'),
-                label: l.eventTimeLabel,
-                // 시간은 선택이라 비워 둘 수 있다. 비었다는 것을 값 자리에서
-                // 그대로 말해 준다.
-                value: _time == null
-                    ? l.eventTimeNone
-                    : MaterialLocalizations.of(context).formatTimeOfDay(_time!),
-                muted: _time == null,
-                icon: Icons.schedule_outlined,
-                onTap: _saving ? null : _pickTime,
-                onClear: _time == null || _saving
-                    ? null
-                    : () => setState(() => _time = null),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: 4,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppTextField(
+            controller: _title,
+            label: l.eventTitleLabel,
+            hint: l.eventTitleHint,
+            enabled: !_saving,
+          ),
+          const SizedBox(height: OnCareSpacing.s16),
+          // 날짜·시간은 직접 칠 수 없다. 예전에는 자유 입력이라 `2026/05/14`
+          // 처럼 계약을 벗어난 값이 저장되고, 조회는 `YYYY-MM-DD` 를 전제해
+          // 걸러 내서 넣은 일정이 어디에도 보이지 않았다(#785).
+          _TapField(
+            key: const Key('addEventDate'),
+            label: l.eventDateLabel,
+            value: m.formatMediumDate(_date),
+            icon: Icons.calendar_today_rounded,
+            onTap: _saving ? null : _pickDate,
+          ),
+          const SizedBox(height: OnCareSpacing.s16),
+          _TapField(
+            key: const Key('addEventTime'),
+            label: l.eventTimeLabel,
+            // 시간은 선택이라 비워 둘 수 있다. 비었다는 것을 값 자리에서
+            // 그대로 말해 준다.
+            value: _time == null ? l.eventTimeNone : m.formatTimeOfDay(_time!),
+            muted: _time == null,
+            icon: Icons.schedule_rounded,
+            onTap: _saving ? null : _pickTime,
+            onClear: _time == null || _saving
+                ? null
+                : () => setState(() => _time = null),
+          ),
+          const SizedBox(height: OnCareSpacing.s16),
+          AppSelectField<ScheduleCategory>(
+            value: _category,
+            onChanged: _saving
+                ? null
+                : (ScheduleCategory? value) {
+                    if (value != null) setState(() => _category = value);
+                  },
+            items: <DropdownMenuItem<ScheduleCategory>>[
+              for (final ScheduleCategory c in _categories)
+                DropdownMenuItem<ScheduleCategory>(
+                  value: c,
+                  child: Text(scheduleCategoryLabel(l, c)),
                 ),
-                decoration: BoxDecoration(
-                  color: AppColors.inputBackground,
-                  borderRadius: const BorderRadius.all(AppRadius.md),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<ScheduleCategory>(
-                    value: _category,
-                    isExpanded: true,
-                    onChanged: (ScheduleCategory? value) {
-                      if (value != null) setState(() => _category = value);
-                    },
-                    items: <DropdownMenuItem<ScheduleCategory>>[
-                      for (final ScheduleCategory c in _categories)
-                        DropdownMenuItem<ScheduleCategory>(
-                          value: c,
-                          child: Text(scheduleCategoryLabel(l, c)),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppButton(
-                label: _saving
-                    ? (_isEdit ? l.eventSaving : l.eventAdding)
-                    : (_isEdit ? l.eventSave : l.eventAdd),
-                fullWidth: true,
-                onPressed: _saving ? null : _submit,
-              ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-/// 눌러서 고르는 값 한 칸. [AppInput] 과 같은 테두리·라벨을 쓰되 글자를 직접
-/// 칠 수는 없다 — 형식이 어긋난 값이 애초에 만들어지지 않게 하는 것이 목적이다.
-class _PickerField extends StatelessWidget {
-  const _PickerField({
+/// 눌러서 고르는 값 한 칸. [AppTextField] 와 같은 모양(위 라벨 + 테마의 입력
+/// 채움·테두리·반경)을 쓰되 글자를 직접 칠 수는 없다 — 형식이 어긋난 값이 애초에
+/// 만들어지지 않게 하는 것이 목적이다. 모양 숫자는 모두 테마·토큰이 정한다.
+class _TapField extends StatelessWidget {
+  const _TapField({
     required this.label,
     required this.value,
     required this.icon,
@@ -351,56 +291,58 @@ class _PickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: const BorderRadius.all(AppRadius.md),
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(
-            borderRadius: BorderRadius.all(AppRadius.md),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          label,
+          style: tokens
+              .text(OnCareTypography.label)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        InkWell(
+          onTap: onTap,
+          borderRadius: OnCareRadius.mdAll,
+          child: InputDecorator(
+            decoration: InputDecoration(
+              enabled: onTap != null,
+              constraints: BoxConstraints(
+                minHeight: tokens.density.inputMedium,
+              ),
+              contentPadding: const EdgeInsets.only(left: OnCareSpacing.s12),
+              prefixIcon: Icon(
+                icon,
+                size: OnCareSize.iconMedium,
+                color: OnCareColors.textTertiary,
+              ),
+              suffixIcon: onClear == null
+                  ? null
+                  : AppIconButton(
+                      icon: Icons.close_rounded,
+                      tooltip: l.eventClearField(label),
+                      color: OnCareColors.textTertiary,
+                      onPressed: onClear,
+                    ),
+            ),
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: tokens
+                  .text(OnCareTypography.body)
+                  .copyWith(
+                    color: muted
+                        ? OnCareColors.textTertiary
+                        : OnCareColors.textPrimary,
+                  ),
+            ),
           ),
         ),
-        child: Row(
-          children: <Widget>[
-            Icon(icon, size: 18, color: AppColors.mutedForeground),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: muted
-                      ? AppColors.mutedForeground
-                      : AppColors.foreground,
-                ),
-              ),
-            ),
-            if (onClear != null)
-              // 시각적 아이콘은 16 이지만 탭 영역은 접근성 최소치를 지킨다.
-              Semantics(
-                button: true,
-                label: l.eventClearField(label),
-                child: InkWell(
-                  onTap: onClear,
-                  customBorder: const CircleBorder(),
-                  child: const SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: Icon(
-                      Icons.close,
-                      size: 16,
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 }

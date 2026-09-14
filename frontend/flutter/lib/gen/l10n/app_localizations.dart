@@ -2851,6 +2851,12 @@ abstract class AppLocalizations {
   /// **'It was also delivered as a notification'**
   String get coachChatDemoNotified;
 
+  /// Chat date divider with full date and weekday.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}'**
+  String coachChatDateDivider(DateTime date);
+
   /// No description provided for @coachCtaChat.
   ///
   /// In en, this message translates to:
@@ -4422,6 +4428,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove \'{name}\' from the list? Anything you already logged stays.'**
   String coachRoutineCancelConfirm(String name);
+
+  /// Title of the dialog confirming undoing a completed recommended workout.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo completion?'**
+  String get coachCardRoutineUndoTitle;
+
+  /// Title of the dialog confirming removal of a recommended workout.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this workout?'**
+  String get coachCardRoutineCancelTitle;
 
   /// No description provided for @coachRoutineCancelled.
   ///

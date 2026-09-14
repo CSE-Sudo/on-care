@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/design_system/theme/app_theme.dart';
+
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
@@ -53,11 +55,12 @@ void main() {
           ),
           trainerSyncRepositoryProvider.overrideWithValue(sync),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: MyHealthPage(),
+          home: const MyHealthPage(),
         ),
       ),
     );
@@ -94,10 +97,7 @@ void main() {
     ].join();
     expect(shown, '979030');
     // 코드보다 먼저 무엇이 공유되는지 말해야 한다 — 이 시트를 여는 것이 동의다.
-    expect(
-      find.textContaining('식단·운동·건강 기록이 공유돼요'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('식단·운동·건강 기록이 공유돼요'), findsOneWidget);
   });
 
   testWidgets('시트를 닫으면 코드를 버린다', (tester) async {

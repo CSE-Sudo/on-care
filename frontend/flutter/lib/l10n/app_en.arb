@@ -921,6 +921,16 @@
   },
   "coachChatDemoRoutineReceived": "You received a personalized workout recommendation",
   "coachChatDemoNotified": "It was also delivered as a notification",
+  "coachChatDateDivider": "{date}",
+  "@coachChatDateDivider": {
+    "description": "Chat date divider with full date and weekday.",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMMEEEEd"
+      }
+    }
+  },
   "coachCtaChat": "Chat with AI",
   "navAddRecordTitle": "Add a record",
   "navAddRecordSubtitle": "Choose diet or exercise",
@@ -1464,6 +1474,14 @@
   "coachRoutineCancelConfirm": "Remove '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
     "placeholders": { "name": { "type": "String" } }
+  },
+  "coachCardRoutineUndoTitle": "Undo completion?",
+  "@coachCardRoutineUndoTitle": {
+    "description": "Title of the dialog confirming undoing a completed recommended workout."
+  },
+  "coachCardRoutineCancelTitle": "Cancel this workout?",
+  "@coachCardRoutineCancelTitle": {
+    "description": "Title of the dialog confirming removal of a recommended workout."
   },
   "coachRoutineCancelled": "Workout cancelled",
   "coachRoutineCancelFailed": "Couldn't cancel the workout",
