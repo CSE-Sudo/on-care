@@ -64,6 +64,10 @@ class OnCareColors {
   /// 어두운 오버레이 위의 동작 글자·아이콘. 브랜드 색은 이 바탕에서 가라앉는다.
   static const Color overlayAction = Color(0xFF7FD0F0);
 
+  /// 어두운 오버레이 위의 성공·실패 아이콘. 바탕 대비를 위해 상태색보다 밝다.
+  static const Color overlaySuccess = Color(0xFF4CD9B0);
+  static const Color overlayError = Color(0xFFFF8A8A);
+
   /// 모달 뒤 배경 막.
   static const Color scrim = Color(0x8008121C);
 
