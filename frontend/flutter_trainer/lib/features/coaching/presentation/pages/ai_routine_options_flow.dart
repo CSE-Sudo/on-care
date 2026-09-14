@@ -3,10 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
@@ -18,8 +14,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/labeled_field.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Conversation-style AI routine builder.
 ///
@@ -104,6 +99,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     super.dispose();
   }
 
+  /// 역할 글자에 색을 입힌다 — 전환 기간 전역 글자 배율은 [OnCareTokens.text] 가 상쇄한다.
+  TextStyle _text(TextStyle role, Color color) =>
+      context.oncare.text(role).copyWith(color: color);
+
   String _analysisSuggestion(AppLocalizations l) {
     final client = widget.client;
     final sodium = client.sodiumOverBudget
@@ -185,7 +184,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       showAppToast(
         context,
         e is RateLimitedError ? l.aiGenerateRateLimited : l.aiGenerateFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     } finally {
       if (mounted) setState(() => _generating = false);
@@ -270,8 +269,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       if (topContext == null) return;
       Scrollable.ensureVisible(
         topContext,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
+        duration: OnCareMotion.slow,
+        curve: OnCareMotion.curve,
       );
     });
   }
@@ -291,7 +290,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       return;
     }
     widget.onReviewCompleted?.call(List<RoutineExercise>.unmodifiable(_edited));
-    showAppToast(context, l.aiAppliedToTemplate, kind: AppToastKind.success);
+    showAppToast(context, l.aiAppliedToTemplate, type: AppToastType.success);
   }
 
   @override
@@ -301,23 +300,16 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       if (widget.onManualCreate != null) ...<Widget>[
         Align(
           alignment: Alignment.centerRight,
-          child: TextButton.icon(
+          child: AppButton(
             key: const ValueKey<String>('ai-manual-create'),
+            label: l.aiManualCreate,
             onPressed: widget.onManualCreate,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              textStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              visualDensity: VisualDensity.compact,
-            ),
-            icon: const Icon(Icons.edit_note_outlined, size: 14),
-            label: Text(l.aiManualCreate),
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+            leadingIcon: Icons.edit_note_rounded,
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.s8),
       ],
       KeyedSubtree(
         key: _topKey,
@@ -327,40 +319,40 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           onStageTap: _goToStage,
         ),
       ),
-      const SizedBox(height: AppSpacing.lg),
+      const SizedBox(height: OnCareSpacing.s16),
       if (_stage == 0) ...<Widget>[
         _assistantAnalysis(),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: OnCareSpacing.s16),
         _promptField(),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: OnCareSpacing.s16),
         _directionControls(),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: OnCareSpacing.s16),
         _primaryButton(
           key: const ValueKey<String>('generate-routine-options'),
           label: _generating ? l.aiAnalysing : _generateButtonLabel(l),
-          icon: Icons.auto_awesome,
+          icon: Icons.auto_awesome_rounded,
           busy: _generating,
           onTap: _generate,
         ),
       ] else if (_stage == 1) ...<Widget>[
         _generatedOptions(),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: OnCareSpacing.sectionGap),
         _routineEditor(),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: OnCareSpacing.s16),
         _trainerMemoField(),
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: OnCareSpacing.sectionGap),
         _primaryButton(
           key: const ValueKey<String>('complete-routine-review'),
           label: l.aiReviewDone,
-          icon: Icons.fact_check_outlined,
+          icon: Icons.fact_check_rounded,
           onTap: _completeReview,
         ),
       ] else ...<Widget>[
         _reviewedRoutineList(),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: OnCareSpacing.s16),
         _reviewActions(),
       ],
-      const SizedBox(height: AppSpacing.xxl),
+      const SizedBox(height: OnCareSpacing.s32),
     ];
 
     if (widget.embedded) {
@@ -371,16 +363,15 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        foregroundColor: AppColors.foreground,
-        title: Text(l.aiRoutineFor(widget.client.name)),
+      backgroundColor: OnCareColors.surfacePage,
+      appBar: AppTopBar(
+        title: l.aiRoutineFor(widget.client.name),
+        // 옛 AppBar 의 자동 뒤로가기와 같게 — 돌아갈 경로가 있을 때만 단다.
+        showBack: Navigator.canPop(context),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.xl),
+          padding: EdgeInsets.all(context.oncare.density.pagePadding),
           children: content,
         ),
       ),
@@ -392,10 +383,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 메모가 늘어도 카드가 아래로 자라면 안 된다 — 프로그램 탭은 이 박스 아래에
   /// 생성 조건과 버튼을 두고 있어, 박스가 자랄 때마다 트레이너가 누르던 자리가
   /// 밀린다. 왼쪽 네 줄과 같은 키를 못 박고, 넘치는 메모는 칸 안에서 스크롤한다.
-  static const double _analysisPanelHeight = 96;
+  static const double _analysisPanelHeight =
+      OnCareSpacing.s48 + OnCareSpacing.s48;
 
   /// 이 폭 아래에서는 두 칸을 위아래로 쌓는다.
-  static const double _analysisSplitWidth = 520;
+  static const double _analysisSplitWidth = OnCareLayout.dialogMedium;
+
+  /// 분석 줄 왼쪽 라벨 칸의 폭.
+  static const double _analysisLabelWidth =
+      OnCareSpacing.s48 + OnCareSpacing.s40;
+
+  /// 후보 카드를 나란히 둘 때 한 장의 최소 폭.
+  static const double _minOptionCardWidth = OnCareLayout.sidebarWidth;
 
   Widget _assistantAnalysis() {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -407,46 +406,46 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-          _analysisRow(l.aiGoal, client.goal),
-          // "오늘"·"어제" 같은 날짜가 아니라 **무엇을 했는지**를 적는다 —
-          // 프로그램을 짜는 자리에서 알아야 하는 것은 마지막 기록이 언제였나가
-          // 아니라 어떤 운동을 마쳤나다 (#1655).
-          _analysisRow(l.aiRecentRoutine, _recentRoutineLabel(l)),
-          _analysisRow(
-            l.aiRecentCompletion,
-            completionMean == null
-                ? l.aiNoCompletionData
-                : '${completionMean.round()}%'
-                      '${completionMean < lowCompletionThreshold ? l.aiCompletionLow : ''}',
-            warn:
-                completionMean != null &&
-                completionMean < lowCompletionThreshold,
-          ),
-          // 목표를 넘겼을 때만 꼬리표를 붙인다. 넘기지 않았다고 "적정" 이라
-          // 말하면, 목표에 한참 못 미친 값까지 적정이 된다(#1070).
-          //
-          // 오늘 나트륨 하나만으로는 "오늘 우연히 튄 값"인지 "평소 패턴"인지
-          // 구분이 안 된다 — 최근 7일 초과일수([sodiumOverDays])와 당류
-          // 초과 여부([sugarOverBudget])를 같은 줄에 더해 식단 신호를 한
-          // 번에 보여준다.
-          _analysisRow(
-            l.aiDietSignal,
-            '${client.sodiumMg}mg'
-            '${client.sodiumOverBudget ? l.aiOverTarget : ''}'
-            '${client.sodiumOverDays > 0 ? l.aiSodiumOverDaysSuffix(client.sodiumOverDays) : ''}'
-            '${client.sugarOverBudget ? l.aiSugarAlsoOver : ''}',
-            warn: client.sodiumOverBudget || client.sugarOverBudget,
-          ),
+        _analysisRow(l.aiGoal, client.goal),
+        // "오늘"·"어제" 같은 날짜가 아니라 **무엇을 했는지**를 적는다 —
+        // 프로그램을 짜는 자리에서 알아야 하는 것은 마지막 기록이 언제였나가
+        // 아니라 어떤 운동을 마쳤나다 (#1655).
+        _analysisRow(l.aiRecentRoutine, _recentRoutineLabel(l)),
+        _analysisRow(
+          l.aiRecentCompletion,
+          completionMean == null
+              ? l.aiNoCompletionData
+              : '${completionMean.round()}%'
+                    '${completionMean < lowCompletionThreshold ? l.aiCompletionLow : ''}',
+          warn:
+              completionMean != null && completionMean < lowCompletionThreshold,
+        ),
+        // 목표를 넘겼을 때만 꼬리표를 붙인다. 넘기지 않았다고 "적정" 이라
+        // 말하면, 목표에 한참 못 미친 값까지 적정이 된다(#1070).
+        //
+        // 오늘 나트륨 하나만으로는 "오늘 우연히 튄 값"인지 "평소 패턴"인지
+        // 구분이 안 된다 — 최근 7일 초과일수([sodiumOverDays])와 당류
+        // 초과 여부([sugarOverBudget])를 같은 줄에 더해 식단 신호를 한
+        // 번에 보여준다.
+        _analysisRow(
+          l.aiDietSignal,
+          '${client.sodiumMg}mg'
+          '${client.sodiumOverBudget ? l.aiOverTarget : ''}'
+          '${client.sodiumOverDays > 0 ? l.aiSodiumOverDaysSuffix(client.sodiumOverDays) : ''}'
+          '${client.sugarOverBudget ? l.aiSugarAlsoOver : ''}',
+          warn: client.sodiumOverBudget || client.sugarOverBudget,
+        ),
       ],
     );
-    return _surfaceCard(
+    // AI 가 읽은 자료 박스는 옅은 브랜드 채움·브랜드 테두리로 다른 카드와 구분한다.
+    return AppCard(
       key: const ValueKey<String>('ai-analysis-card'),
-      accent: true,
+      selected: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _AssistantLabel(text: l.aiAnalysedData),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
           LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
               final Widget memos = _chatInsightMemoPanel();
@@ -455,7 +454,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     facts,
-                    const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: OnCareSpacing.s12),
                     memos,
                   ],
                 );
@@ -466,7 +465,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Expanded(flex: 5, child: facts),
-                  const SizedBox(width: AppSpacing.lg),
+                  const SizedBox(width: OnCareSpacing.s16),
                   Expanded(flex: 3, child: memos),
                 ],
               );
@@ -483,6 +482,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 회색이면, 트레이너가 두 화면에서 같은 신호를 같은 것으로 알아보지 못한다.
   /// 손으로 쓴 트레이너 메모(`source=trainer`)는 여기 넣지 않는다 — 이 칸은
   /// AI 가 대화에서 집어낸 것만 모으는 자리다.
+  ///
+  /// 모양은 [AppBanner] 의 `danger` 톤(8% 채움·40% 테두리·반경 12·안쪽 12)과
+  /// 같다. 다만 고정 높이 안에서 메모 목록을 스크롤해야 해(#1655) 제목·본문
+  /// 두 칸뿐인 [AppBanner] 를 그대로 쓰지 못한다.
   Widget _chatInsightMemoPanel() {
     final AppLocalizations l = AppLocalizations.of(context);
     final AsyncValue<List<TrainerMemo>> memos = ref.watch(
@@ -491,14 +494,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     return Container(
       key: const ValueKey<String>('ai-chat-insight-memos'),
       height: _analysisPanelHeight,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.10),
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.28)),
+        color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.subtle),
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(
+          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,30 +509,30 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             children: <Widget>[
               const Icon(
                 Icons.warning_amber_rounded,
-                size: 14,
-                color: AppColors.warning,
+                size: OnCareSize.iconSmall,
+                color: OnCareColors.danger,
               ),
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: OnCareSpacing.s4),
               Expanded(
                 child: Text(
                   l.aiInsightMemoTitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.warning,
+                  style: _text(
+                    OnCareTypography.strong(OnCareTypography.caption),
+                    OnCareColors.danger,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: OnCareSpacing.s4),
           // 메모를 못 읽어도 이 칸만 조용히 비운다 — 생성 버튼까지 막으면
           // 참고 자료 하나 때문에 프로그램을 못 만든다 (#1655).
           Expanded(
             child: memos.when(
-              loading: () => const SizedBox.shrink(),
+              loading: () =>
+                  const AppLoading(placement: AppStatePlacement.card),
               error: (Object _, StackTrace _) =>
                   _insightMemoNote(l.aiInsightMemoFailed),
               data: (List<TrainerMemo> list) {
@@ -554,7 +556,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Widget _insightMemoNote(String text) => Text(
     text,
-    style: const TextStyle(fontSize: 11.5, color: AppColors.mutedForeground),
+    style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
   );
 
   /// `08.31  무릎 불편감이 …` — 날짜와 요약을 한 줄에 둔다.
@@ -564,28 +566,24 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         '${date.month.toString().padLeft(2, '0')}.'
         '${date.day.toString().padLeft(2, '0')}';
     return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             day,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-              color: AppColors.warning,
+            style: _text(
+              OnCareTypography.strong(OnCareTypography.caption),
+              OnCareColors.danger,
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: OnCareSpacing.s8),
           Expanded(
             child: Text(
               memo.body,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11.5,
-                color: AppColors.foreground,
-              ),
+              style: _text(OnCareTypography.caption, OnCareColors.textPrimary),
             ),
           ),
         ],
@@ -650,54 +648,48 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 실제로 읽는 유일한 자유 텍스트라 화면이 거짓말을 하지 않는다.
   Widget _promptField() {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _surfaceCard(
+    return AppCard(
       key: const ValueKey<String>('ai-prompt-card'),
-      subtleBorder: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(l.aiPromptTitle, style: _sectionTitleStyle),
-          const SizedBox(height: AppSpacing.xs),
+          Text(
+            l.aiPromptTitle,
+            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
           Text(
             l.aiPromptBlurb,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 10.5,
-              color: AppColors.mutedForeground,
-            ),
+            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
           ),
-          const SizedBox(height: AppSpacing.md),
-          LabeledField(
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            key: const ValueKey<String>('ai-natural-language-prompt'),
+            controller: _prompt,
             label: l.aiPromptLabel,
-            child: TextField(
-              key: const ValueKey<String>('ai-natural-language-prompt'),
-              controller: _prompt,
-              minLines: 3,
-              maxLines: 5,
-              maxLength: _promptMaxLength,
-              style: _inputTextStyle,
-              buildCounter:
-                  (
-                    BuildContext context, {
-                    required int currentLength,
-                    required bool isFocused,
-                    required int? maxLength,
-                  }) => Transform.translate(
-                    offset: const Offset(AppSpacing.md, 0),
-                    child: Text(
-                      '$currentLength/$maxLength',
-                      key: const ValueKey<String>('ai-prompt-counter'),
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        color: AppColors.subtleForeground,
-                      ),
+            hint: l.aiPromptHint,
+            minLines: 3,
+            maxLines: 5,
+            maxLength: _promptMaxLength,
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          // AppTextField 는 기본 글자 수 표시를 숨긴다 — 서버 상한을 트레이너가
+          // 미리 보도록 필드 오른쪽 아래에 직접 둔다.
+          Align(
+            alignment: Alignment.centerRight,
+            child: ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _prompt,
+              builder: (BuildContext context, TextEditingValue value, _) =>
+                  Text(
+                    '${value.text.characters.length}/$_promptMaxLength',
+                    key: const ValueKey<String>('ai-prompt-counter'),
+                    style: _text(
+                      OnCareTypography.caption,
+                      OnCareColors.textTertiary,
                     ),
                   ),
-              decoration: _inputDecoration(
-                hintText: l.aiPromptHint,
-                outlined: true,
-              ),
             ),
           ),
         ],
@@ -707,20 +699,20 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Widget _directionControls() {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _surfaceCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(l.aiGenerateConditions, style: _sectionTitleStyle),
-          const SizedBox(height: AppSpacing.xs),
+          Text(
+            l.aiGenerateConditions,
+            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
           Text(
             l.aiConditionsAutoHint,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.mutedForeground,
-            ),
+            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
           RoutineMinutesField(
             key: const ValueKey<String>('generation-minutes'),
             keyPrefix: 'generation-minutes',
@@ -731,7 +723,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               _minutesTouched = true;
             }),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: OnCareSpacing.s16),
           RoutineIntensityChips(
             value: _intensity,
             onChanged: (intensity) => setState(() {
@@ -770,14 +762,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         _AssistantLabel(text: l.aiCompareCandidates),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.s8),
         // 데모에서는 목표 기반 기본 추천 안내를 띄우지 않는다 —
         // [_hideTemplateState] 참고.
         if (!(_hideTemplateState &&
             options.analysis.recommendationStatus ==
                 RecommendationStatus.template)) ...<Widget>[
           _RecommendationStatusBanner(analysis: options.analysis),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
         ],
         Text(
           l.aiBasisGoalCompletion(
@@ -785,25 +777,21 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 options.analysis.avgCompletionRate,
               ) +
               (options.generatedBy == 'rule' ? l.aiBasisRuleBased : ''),
-          style: const TextStyle(
-            fontSize: 11.5,
-            color: AppColors.mutedForeground,
-          ),
+          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
         ),
         // 1단계에서 트레이너가 직접 적은 요청이 있으면 그대로 덧붙인다 —
         // 이 화면이 "무엇을 근거로" 만들어졌는지 트레이너 자신의 조건까지
         // 보여준다. 새 상태가 아니라 이미 있는 [_prompt] 를 그대로 읽는다.
         if (_prompt.text.trim().isNotEmpty) ...<Widget>[
-          const SizedBox(height: 2),
+          const SizedBox(height: OnCareSpacing.s4),
           Text(
             l.aiBasisTrainerRequest(_prompt.text.trim()),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontStyle: FontStyle.italic,
-              color: AppColors.mutedForeground,
-            ),
+            style: _text(
+              OnCareTypography.caption,
+              OnCareColors.textSecondary,
+            ).copyWith(fontStyle: FontStyle.italic),
           ),
         ],
         // Only when the AI actually generated these plans. The rule-based
@@ -812,10 +800,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         // would think a knee complaint was accounted for when it wasn't.
         if (options.generatedBy == 'ai' &&
             options.analysis.recentMessages.isNotEmpty) ...<Widget>[
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: OnCareSpacing.s4),
           _ChatEvidence(lines: options.analysis.recentMessages),
         ],
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: OnCareSpacing.s12),
         LayoutBuilder(
           builder: (context, constraints) {
             // Side by side whenever they fit: this is a COMPARISON, and a
@@ -823,14 +811,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             // splits the workspace into two columns, so the editor column
             // is narrower than the full-width page this flow was built
             // for.
-            const double minCardWidth = 220;
             final choices = _choicesOf(l);
             final needed =
-                choices.length * minCardWidth +
-                (choices.length - 1) * AppSpacing.md;
+                choices.length * _minOptionCardWidth +
+                (choices.length - 1) * OnCareSpacing.cardGap;
             if (constraints.maxWidth >= needed) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
                 child: IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -838,7 +825,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                       for (final choice in choices) ...<Widget>[
                         Expanded(child: _optionCard(choice)),
                         if (choice != choices.last)
-                          const SizedBox(width: AppSpacing.md),
+                          const SizedBox(width: OnCareSpacing.cardGap),
                       ],
                     ],
                   ),
@@ -849,14 +836,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             // 보이는 후보는 "비교"가 아니다. 각 카드는 폭 전체를 쓰고,
             // 내용만큼 세로로 자연스럽게 늘어난다(카드 내부 재스크롤 없음).
             return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   for (final choice in choices) ...<Widget>[
                     _optionCard(choice),
                     if (choice != choices.last)
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: OnCareSpacing.cardGap),
                   ],
                 ],
               ),
@@ -869,92 +856,67 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Widget _optionCard(_RoutineChoice choice) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final Color brand = context.oncare.brand.primary;
     final selected = choice.key == _selectedKey;
     final total = choice.exercises.fold<int>(
       0,
       (sum, exercise) => sum + exercise.minutes,
     );
     final optionName = _optionDisplayName(l, choice.key);
-    return Material(
-      color: AppColors.card,
-      borderRadius: const BorderRadius.all(AppRadius.card),
-      child: InkWell(
-        key: ValueKey<String>('routine-option-${choice.key}'),
-        onTap: () => _selectChoice(choice),
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(AppRadius.card),
-            border: Border.all(
-              color: selected ? AppColors.accent : AppColors.borderStrong,
-              width: selected ? 2 : 1,
-            ),
-            boxShadow: kCardShadow,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      key: ValueKey<String>('routine-option-${choice.key}'),
+      selected: selected,
+      onTap: () => _selectChoice(choice),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
             children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Icon(
-                    selected
-                        ? Icons.check_circle
-                        : Icons.radio_button_unchecked,
-                    size: 18,
-                    color: selected
-                        ? AppColors.accent
-                        : AppColors.mutedForeground,
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      '$optionName · ${choice.label}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.foreground,
-                      ),
-                    ),
-                  ),
-                ],
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.radio_button_unchecked_rounded,
+                size: OnCareSize.iconMedium,
+                color: selected ? brand : OnCareColors.textSecondary,
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                l.aiTotalAndIntensity(total, choice.intensity),
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.accent,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              for (final exercise in choice.exercises)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(
-                    '${l.aiBulletExercise(exercise.name, exercise.minutes)}'
-                    '(${routineTypeLabel(l, exercise.type)})',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.foreground,
-                    ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                child: Text(
+                  '$optionName · ${choice.label}',
+                  style: _text(
+                    OnCareTypography.titleSmall,
+                    OnCareColors.textPrimary,
                   ),
-                ),
-              const SizedBox(height: AppSpacing.sm),
-              // 카드가 세로로 늘어날 수 있게 된 만큼, 이유를 3줄로 잘라내지
-              // 않고 전부 보여준다 — 잘린 추천 이유는 비교에 쓸 수 없다.
-              Text(
-                choice.reason,
-                style: const TextStyle(
-                  fontSize: 11,
-                  height: 1.35,
-                  color: AppColors.mutedForeground,
                 ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: OnCareSpacing.s8),
+          Text(
+            l.aiTotalAndIntensity(total, choice.intensity),
+            style: _text(OnCareTypography.label, brand),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          for (final exercise in choice.exercises)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s2),
+              child: Text(
+                '${l.aiBulletExercise(exercise.name, exercise.minutes)}'
+                '(${routineTypeLabel(l, exercise.type)})',
+                style: _text(
+                  OnCareTypography.bodySmall,
+                  OnCareColors.textPrimary,
+                ),
+              ),
+            ),
+          const SizedBox(height: OnCareSpacing.s8),
+          // 카드가 세로로 늘어날 수 있게 된 만큼, 이유를 3줄로 잘라내지
+          // 않고 전부 보여준다 — 잘린 추천 이유는 비교에 쓸 수 없다.
+          Text(
+            choice.reason,
+            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+          ),
+        ],
       ),
     );
   }
@@ -965,32 +927,30 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(l.aiEditOption(optionName), style: _sectionTitleStyle),
-        const SizedBox(height: 3),
+        Text(
+          l.aiEditOption(optionName),
+          style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
+        ),
+        const SizedBox(height: OnCareSpacing.s4),
         Text(
           l.aiEditBlurb,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.mutedForeground,
-          ),
+          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: OnCareSpacing.s12),
         for (int index = 0; index < _edited.length; index++) ...<Widget>[
           _exerciseEditor(index),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
         ],
         if (_showAddExercise)
           _addExerciseForm()
         else
-          OutlinedButton.icon(
+          AppButton(
             key: const ValueKey<String>('show-add-exercise-form'),
+            label: l.aiAddExerciseManually,
             onPressed: () => setState(() => _showAddExercise = true),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.accent,
-              side: const BorderSide(color: AppColors.accent),
-            ),
-            icon: const Icon(Icons.add, size: 17),
-            label: Text(l.aiAddExerciseManually),
+            variant: AppButtonVariant.secondary,
+            leadingIcon: Icons.add_rounded,
+            fullWidth: true,
           ),
       ],
     );
@@ -999,7 +959,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   Widget _exerciseEditor(int index) {
     final AppLocalizations l = AppLocalizations.of(context);
     final exercise = _edited[index];
-    return _surfaceCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1014,38 +974,29 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   }),
                 ),
               ),
-              IconButton(
+              AppIconButton(
+                icon: Icons.close_rounded,
                 tooltip: l.progDeleteExercise,
-                visualDensity: VisualDensity.compact,
+                color: OnCareColors.textTertiary,
                 onPressed: () => setState(() => _edited.removeAt(index)),
-                icon: const Icon(
-                  Icons.close,
-                  size: 18,
-                  color: AppColors.subtleForeground,
-                ),
               ),
             ],
           ),
           SizedBox(
             key: ValueKey<String>('routine-category-name-gap-$index'),
-            height: AppSpacing.md,
+            height: OnCareSpacing.s12,
           ),
-          TextFormField(
+          _ExerciseNameField(
             key: ValueKey<String>(
               'routine-name-$_selectedKey-$index-${exercise.name}',
             ),
             initialValue: exercise.name,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.foreground,
-            ),
+            hint: l.progExerciseName,
             onChanged: (name) {
               _edited[index] = _edited[index].copyWith(name: name);
             },
-            decoration: _inputDecoration(hintText: l.progExerciseName),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           // 근력은 세트·횟수·중량을 한 줄에, 그 외 유형은 시간 한 칸으로
           // 잰다(#1029, #1310, #1489). 다른 편집 화면과 같은 compact 입력을
           // 쓴다 — 같은 운동을 화면마다 다른 칸으로 받으면 나가는 값도
@@ -1064,7 +1015,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                     }),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: RoutineRepsField(
                     key: ValueKey<String>('routine-reps-$_selectedKey-$index'),
@@ -1076,7 +1027,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                     }),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: RoutineWeightField(
                     key: ValueKey<String>(
@@ -1109,28 +1060,28 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Widget _addExerciseForm() {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _surfaceCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(l.aiAddExerciseManually, style: _sectionTitleStyle),
-          const SizedBox(height: AppSpacing.md),
-          LabeledField(
-            label: l.progExerciseName,
-            child: TextField(
-              key: const ValueKey<String>('new-exercise-name'),
-              controller: _newExerciseName,
-              style: _inputTextStyle,
-              decoration: _inputDecoration(hintText: l.aiExerciseNameExample),
-            ),
+          Text(
+            l.aiAddExerciseManually,
+            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            key: const ValueKey<String>('new-exercise-name'),
+            controller: _newExerciseName,
+            label: l.progExerciseName,
+            hint: l.aiExerciseNameExample,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
           RoutineCategoryChips(
             keyPrefix: 'new-exercise-category',
             value: _newExerciseType,
             onChanged: (type) => setState(() => _newExerciseType = type),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           // 근력은 세트·횟수·중량을 한 줄에, 그 외 유형은 시간 한 칸으로
           // 잰다(#1029, #1310, #1489).
           if (_newExerciseType == '근력')
@@ -1146,7 +1097,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                         setState(() => _newExerciseSets = sets),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: RoutineRepsField(
                     key: const ValueKey<String>('new-exercise-reps'),
@@ -1157,7 +1108,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                         setState(() => _newExerciseReps = reps),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: RoutineWeightField(
                     key: const ValueKey<String>('new-exercise-weight'),
@@ -1179,21 +1130,26 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 _newExerciseMinutes = minutes;
               }),
             ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 취소 버튼에 테스트가 찾는 Key 가 있어 AppButtonPair 대신 같은 모양을
+          // Row 로 만든다.
           Row(
             children: <Widget>[
               Expanded(
-                child: TextButton(
+                child: AppButton(
                   key: const ValueKey<String>('hide-add-exercise-form'),
+                  label: l.actionCancel,
                   onPressed: () => setState(() => _showAddExercise = false),
-                  child: Text(l.actionCancel),
+                  variant: AppButtonVariant.secondary,
+                  fullWidth: true,
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: OnCareSpacing.buttonGap),
               Expanded(
-                child: FilledButton(
+                child: AppButton(
+                  label: l.aiRegister,
                   onPressed: _addExercise,
-                  child: Text(l.aiRegister),
+                  fullWidth: true,
                 ),
               ),
             ],
@@ -1205,30 +1161,27 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Widget _trainerMemoField() {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _surfaceCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(l.schedNote, style: _sectionTitleStyle),
-          const SizedBox(height: AppSpacing.sm),
-          LabeledField(
-            label: l.aiNoteForClient,
-            child: TextField(
-              key: const ValueKey<String>('final-trainer-memo'),
-              controller: _trainerMemo,
-              minLines: 2,
-              maxLines: 4,
-              style: _inputTextStyle,
-              decoration: _inputDecoration(hintText: _analysisSuggestion(l)),
-            ),
+          Text(
+            l.schedNote,
+            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: OnCareSpacing.s8),
+          AppTextField(
+            key: const ValueKey<String>('final-trainer-memo'),
+            controller: _trainerMemo,
+            label: l.aiNoteForClient,
+            hint: _analysisSuggestion(l),
+            minLines: 2,
+            maxLines: 4,
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
           Text(
             l.aiNotePlaceholderHint,
-            style: const TextStyle(
-              fontSize: 10.5,
-              color: AppColors.mutedForeground,
-            ),
+            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
           ),
         ],
       ),
@@ -1237,7 +1190,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   Widget _reviewedRoutineList() {
     final AppLocalizations l = AppLocalizations.of(context);
-    final korean = Localizations.localeOf(context).languageCode == 'ko';
+    final Color brand = context.oncare.brand.primary;
     final optionName = _optionDisplayName(l, _selectedKey);
     final memo = _trainerMemo.text.trim();
     return Column(
@@ -1248,57 +1201,42 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           children: <Widget>[
             const Icon(
               Icons.check_circle_rounded,
-              size: 20,
-              color: AppColors.success,
+              size: OnCareSize.iconMedium,
+              color: OnCareColors.success,
             ),
-            const SizedBox(width: AppSpacing.sm),
+            const SizedBox(width: OnCareSpacing.s8),
             Expanded(
               child: Text(
                 l.aiReviewedSuggestion(optionName),
-                style: _sectionTitleStyle,
+                style: _text(
+                  OnCareTypography.titleSmall,
+                  OnCareColors.textPrimary,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: OnCareSpacing.s4),
         Text(
           l.aiEditsApplied,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.mutedForeground,
-          ),
+          style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: OnCareSpacing.s12),
         for (final exercise in _edited) ...<Widget>[
-          _surfaceCard(
+          AppCard(
             child: Row(
               children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: 3,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: AppColors.accentSurface,
-                    borderRadius: BorderRadius.all(AppRadius.pill),
-                  ),
-                  child: Text(
-                    routineTypeLabel(l, exercise.type),
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.accent,
-                    ),
-                  ),
+                AppTag(
+                  label: routineTypeLabel(l, exercise.type),
+                  tone: AppTagTone.brand,
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: OnCareSpacing.s12),
                 Expanded(
                   child: Text(
                     exercise.name,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.foreground,
+                    style: _text(
+                      OnCareTypography.strong(OnCareTypography.bodySmall),
+                      OnCareColors.textPrimary,
                     ),
                   ),
                 ),
@@ -1308,50 +1246,47 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   // 않으니, 요약도 같은 칸으로 보여줘야 방금 고친 값과
                   // 어긋나지 않는다.
                   exercise.type == '근력'
-                      ? _strengthSummary(exercise, korean: korean)
+                      ? _strengthSummary(l, exercise)
                       : l.minutesShort(exercise.minutes),
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.accent,
+                  style: _text(
+                    OnCareTypography.strong(OnCareTypography.bodySmall),
+                    brand,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
         ],
         if (memo.isNotEmpty)
-          _surfaceCard(
+          AppCard(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 const Icon(
-                  Icons.sticky_note_2_outlined,
-                  size: 17,
+                  Icons.sticky_note_2_rounded,
+                  size: OnCareSize.iconMedium,
                   // 메모다. 주의가 아니므로 빨강으로 올리지 않는다(#690).
-                  color: AppColors.brandOrange,
+                  color: OnCareColors.cautionFill,
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
                         l.schedNote,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.brandOrange,
+                        style: _text(
+                          OnCareTypography.strong(OnCareTypography.caption),
+                          OnCareColors.cautionFill,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: OnCareSpacing.s4),
                       Text(
                         memo,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          height: 1.4,
-                          color: AppColors.foreground,
+                        style: _text(
+                          OnCareTypography.bodySmall,
+                          OnCareColors.textPrimary,
                         ),
                       ),
                     ],
@@ -1369,49 +1304,29 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 수정한 뒤 프로그램 탭의 단일 `보내기`(최종 검토)에서 이뤄진다.
   Widget _reviewActions() {
     final AppLocalizations l = AppLocalizations.of(context);
-    return SizedBox(
-      height: 48,
-      child: FilledButton.icon(
-        key: const ValueKey<String>('apply-routine-to-template'),
-        onPressed: _applyToTemplate,
-        icon: const Icon(Icons.playlist_add_check_rounded, size: 17),
-        label: Text(l.aiApplyToTemplate),
-      ),
-    );
-  }
-
-  Widget _surfaceCard({
-    Key? key,
-    required Widget child,
-    bool accent = false,
-    bool subtleBorder = false,
-  }) {
-    return Container(
-      key: key,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: accent ? AppColors.accentSurface : AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        border: Border.all(
-          color: accent
-              ? AppColors.accent.withValues(alpha: 0.28)
-              : subtleBorder
-              ? AppColors.border
-              : AppColors.borderStrong,
-        ),
-        boxShadow: kCardShadow,
-      ),
-      child: child,
+    return AppButton(
+      key: const ValueKey<String>('apply-routine-to-template'),
+      label: l.aiApplyToTemplate,
+      onPressed: _applyToTemplate,
+      size: OnCareButtonSize.large,
+      leadingIcon: Icons.playlist_add_check_rounded,
+      fullWidth: true,
     );
   }
 
   Widget _analysisRow(String label, String value, {bool warn = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          SizedBox(width: 82, child: Text(label, style: _labelStyle)),
+          SizedBox(
+            width: _analysisLabelWidth,
+            child: Text(
+              label,
+              style: _text(OnCareTypography.label, OnCareColors.textSecondary),
+            ),
+          ),
           Expanded(
             child: Text(
               value,
@@ -1419,54 +1334,14 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               // 밀리므로, 좁아지면 줄을 늘리는 대신 말줄임한다 (#1655).
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: warn ? AppColors.overTarget : AppColors.foreground,
+              style: _text(
+                OnCareTypography.strong(OnCareTypography.bodySmall),
+                warn ? OnCareColors.danger : OnCareColors.textPrimary,
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  /// Filled, borderless input styling. Deliberately no `labelText` —
-  /// see [LabeledField] for why the caption goes above the box.
-  InputDecoration _inputDecoration({
-    required String hintText,
-    bool outlined = false,
-  }) {
-    return InputDecoration(
-      hintText: hintText,
-      hintStyle: const TextStyle(
-        color: AppColors.mutedForeground,
-        fontWeight: FontWeight.w400,
-      ),
-      isDense: true,
-      filled: true,
-      fillColor: outlined ? AppColors.card : AppColors.inputBackground,
-      border: outlined
-          ? const OutlineInputBorder(
-              borderRadius: BorderRadius.all(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.borderStrong),
-            )
-          : const OutlineInputBorder(
-              borderRadius: BorderRadius.all(AppRadius.md),
-              borderSide: BorderSide.none,
-            ),
-      enabledBorder: outlined
-          ? const OutlineInputBorder(
-              borderRadius: BorderRadius.all(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.borderStrong),
-            )
-          : null,
-      focusedBorder: outlined
-          ? const OutlineInputBorder(
-              borderRadius: BorderRadius.all(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.primary, width: 1.25),
-            )
-          : null,
     );
   }
 
@@ -1477,22 +1352,15 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     required VoidCallback onTap,
     bool busy = false,
   }) {
-    return SizedBox(
+    return AppButton(
       key: key,
-      height: 50,
-      child: FilledButton.icon(
-        onPressed: busy ? null : onTap,
-        icon: busy
-            ? const SizedBox.square(
-                dimension: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primaryForeground,
-                ),
-              )
-            : Icon(icon, size: 18),
-        label: Text(label),
-      ),
+      label: label,
+      onPressed: onTap,
+      size: OnCareButtonSize.large,
+      leadingIcon: icon,
+      // 처리 중이면 스피너를 두고 탭을 막는다([_generate] 도 중복 호출을 막는다).
+      loading: busy,
+      fullWidth: true,
     );
   }
 }
@@ -1501,13 +1369,52 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 ///
 /// 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 트레이너가 적은
 /// 값이다.
-String _strengthSummary(RoutineExercise exercise, {required bool korean}) {
-  final String base = korean
-      ? '${exercise.sets}세트 × ${exercise.reps}회'
-      : '${exercise.sets} sets × ${exercise.reps} reps';
+String _strengthSummary(AppLocalizations l, RoutineExercise exercise) {
   final double w = exercise.weight;
   final String weight = w == w.roundToDouble() ? '${w.round()}' : '$w';
-  return '$base · ${weight}kg';
+  return l.aiStrengthSummary(exercise.sets, exercise.reps, weight);
+}
+
+/// 후보 편집기의 운동 이름 칸.
+///
+/// 옛 `TextFormField(initialValue:)` 처럼 처음 값만 받아 자기 컨트롤러를 둔다 —
+/// 입력마다 부모를 다시 그리지 않고 [onChanged] 로 값만 넘긴다. 부모가 이름이
+/// 바뀐 뒤 다시 그려지면 Key 가 바뀌어 새 값으로 다시 만들어진다.
+class _ExerciseNameField extends StatefulWidget {
+  const _ExerciseNameField({
+    required this.initialValue,
+    required this.hint,
+    required this.onChanged,
+    super.key,
+  });
+
+  final String initialValue;
+  final String hint;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_ExerciseNameField> createState() => _ExerciseNameFieldState();
+}
+
+class _ExerciseNameFieldState extends State<_ExerciseNameField> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialValue,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppTextField(
+      controller: _controller,
+      hint: widget.hint,
+      onChanged: widget.onChanged,
+    );
+  }
 }
 
 class _RoutineChoice {
@@ -1536,6 +1443,10 @@ class _RoutineChoice {
   final String reason;
 }
 
+/// 진행 단계 — [AppStepIndicator] 막대 + 단계마다 이름.
+///
+/// 세 이름을 모두 보여 주고(어느 단계로 되돌아갈 수 있는지 읽히게), 이미 지난
+/// 단계의 이름·막대를 누르면 그 단계로 간다. 이름 칸에 단계별 Key 를 둔다.
 class _ProgressStepper extends StatelessWidget {
   const _ProgressStepper({
     required this.stage,
@@ -1547,120 +1458,70 @@ class _ProgressStepper extends StatelessWidget {
   final int maxReachedStage;
   final ValueChanged<int> onStageTap;
 
-  /// (번호, 라벨). 라벨이 로케일을 따르므로 const 로 둘 수 없다. (#501)
-  static List<(String, String)> _steps(AppLocalizations l) =>
-      <(String, String)>[
-        ('1', l.aiStepConditions),
-        ('2', l.aiStepReview),
-        ('3', l.aiStepDone),
-      ];
+  /// 단계 이름. 로케일을 따르므로 const 로 둘 수 없다. (#501)
+  static List<String> _steps(AppLocalizations l) => <String>[
+    l.aiStepConditions,
+    l.aiStepReview,
+    l.aiStepDone,
+  ];
+
+  void _tap(int index) {
+    if (index <= maxReachedStage) onStageTap(index);
+  }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final List<String> steps = _steps(l);
     return Semantics(
       label: l.aiStepperLabel,
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Positioned(
-            top: 19,
-            left: 0,
-            right: 0,
-            child: Row(
-              children: <Widget>[
-                const Spacer(),
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    height: 2,
-                    color: maxReachedStage >= 1
-                        ? AppColors.accent
-                        : AppColors.borderStrong,
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    height: 2,
-                    color: maxReachedStage >= 2
-                        ? AppColors.accent
-                        : AppColors.borderStrong,
-                  ),
-                ),
-                const Spacer(),
-              ],
-            ),
+          AppStepIndicator(
+            count: steps.length,
+            current: stage,
+            onStepTap: _tap,
           ),
+          const SizedBox(height: OnCareSpacing.s4),
           Row(
             children: <Widget>[
-              for (var index = 0; index < _steps(l).length; index++)
+              for (int index = 0; index < steps.length; index++) ...<Widget>[
+                if (index > 0) const SizedBox(width: OnCareSpacing.s4),
                 Expanded(
-                  child: Column(
-                    children: <Widget>[
-                      Material(
-                        color: Colors.transparent,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          key: ValueKey<String>('routine-stage-$index'),
-                          customBorder: const CircleBorder(),
-                          onTap: index <= maxReachedStage
-                              ? () => onStageTap(index)
-                              : null,
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 180),
-                              width: 30,
-                              height: 30,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: index <= maxReachedStage
-                                    ? AppColors.accent
-                                    : AppColors.inputBackground,
-                                border: Border.all(
-                                  color: index == stage
-                                      ? AppColors.primary
-                                      : AppColors.borderStrong,
-                                  width: index == stage ? 2 : 1,
-                                ),
-                              ),
-                              child: index < stage
-                                  ? const Icon(
-                                      Icons.check,
-                                      size: 16,
-                                      color: AppColors.accentForeground,
+                  child: InkWell(
+                    key: ValueKey<String>('routine-stage-$index'),
+                    borderRadius: OnCareRadius.smAll,
+                    onTap: index <= maxReachedStage ? () => _tap(index) : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: OnCareSpacing.s4,
+                      ),
+                      child: Text(
+                        steps[index],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(
+                              index == stage
+                                  ? OnCareTypography.strong(
+                                      OnCareTypography.caption,
                                     )
-                                  : Text(
-                                      _steps(l)[index].$1,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w800,
-                                        color: index <= maxReachedStage
-                                            ? AppColors.accentForeground
-                                            : AppColors.mutedForeground,
-                                      ),
-                                    ),
+                                  : OnCareTypography.caption,
+                            )
+                            .copyWith(
+                              color: index == stage
+                                  ? tokens.brand.primary
+                                  : index <= maxReachedStage
+                                  ? OnCareColors.textPrimary
+                                  : OnCareColors.textTertiary,
                             ),
-                          ),
-                        ),
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        _steps(l)[index].$2,
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: index == stage
-                              ? FontWeight.w800
-                              : FontWeight.w600,
-                          color: index <= maxReachedStage
-                              ? AppColors.foreground
-                              : AppColors.mutedForeground,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
+              ],
             ],
           ),
         ],
@@ -1669,6 +1530,7 @@ class _ProgressStepper extends StatelessWidget {
   }
 }
 
+/// AI 가 말하는 구획의 제목 — AI 아이콘 + `titleSmall`.
 class _AssistantLabel extends StatelessWidget {
   const _AssistantLabel({required this.text});
 
@@ -1676,21 +1538,7 @@ class _AssistantLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        const CircleAvatar(
-          radius: 14,
-          backgroundColor: AppColors.accent,
-          child: Icon(
-            Icons.auto_awesome,
-            size: 14,
-            color: AppColors.accentForeground,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(child: Text(text, style: _sectionTitleStyle)),
-      ],
-    );
+    return AppSectionHeader(title: text, icon: Icons.auto_awesome_rounded);
   }
 }
 
@@ -1708,27 +1556,32 @@ class _ChatEvidence extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.inputBackground,
-        borderRadius: BorderRadius.circular(8),
+      padding: const EdgeInsets.all(OnCareSpacing.s8),
+      decoration: const BoxDecoration(
+        color: OnCareColors.surfaceInput,
+        borderRadius: OnCareRadius.smAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(l.aiChatEvidenceTitle, style: _labelStyle),
-          const SizedBox(height: AppSpacing.xs),
+          Text(
+            l.aiChatEvidenceTitle,
+            style: tokens
+                .text(OnCareTypography.label)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
           for (final String line in lines)
             Padding(
-              padding: const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: OnCareSpacing.s2),
               child: Text(
                 line,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  color: AppColors.mutedForeground,
-                ),
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
         ],
@@ -1749,6 +1602,7 @@ class _RecommendationStatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final (String title, String body) = switch (analysis.recommendationStatus) {
       RecommendationStatus.template => (
         l.aiStatusTemplateTitle,
@@ -1768,33 +1622,35 @@ class _RecommendationStatusBanner extends StatelessWidget {
     };
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.inputBackground,
-        borderRadius: BorderRadius.circular(8),
+      padding: const EdgeInsets.all(OnCareSpacing.s8),
+      decoration: const BoxDecoration(
+        color: OnCareColors.surfaceInput,
+        borderRadius: OnCareRadius.smAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(title, style: _labelStyle),
-          const SizedBox(height: 2),
+          Text(
+            title,
+            style: tokens
+                .text(OnCareTypography.label)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          const SizedBox(height: OnCareSpacing.s2),
           Text(
             body,
-            style: const TextStyle(
-              fontSize: 11.5,
-              color: AppColors.mutedForeground,
-            ),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
           if (analysis.frequentExercises.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: OnCareSpacing.s4),
             Text(
               '${l.aiFrequentExercisesLabel}: '
               '${analysis.frequentExercises.join(', ')}',
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.foreground,
-              ),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.caption))
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
           ],
         ],
@@ -1802,24 +1658,3 @@ class _RecommendationStatusBanner extends StatelessWidget {
     );
   }
 }
-
-const TextStyle _sectionTitleStyle = TextStyle(
-  fontSize: 14,
-  fontWeight: FontWeight.w800,
-  color: AppColors.foreground,
-);
-
-const TextStyle _labelStyle = TextStyle(
-  fontSize: 11.5,
-  fontWeight: FontWeight.w700,
-  color: AppColors.mutedForeground,
-);
-
-/// 프로그램 탭의 다른 입력창(`_DraftField`, `program_editor_workspace.dart`)과
-/// 같은 크기다 — 이 화면의 본문 기본 크기(테마 `bodyLarge`, 17px)를 그대로
-/// 쓰면 같은 탭의 다른 입력창보다 눈에 띄게 커 보인다.
-const TextStyle _inputTextStyle = TextStyle(
-  color: AppColors.foreground,
-  fontSize: 12.5,
-  fontWeight: FontWeight.w600,
-);

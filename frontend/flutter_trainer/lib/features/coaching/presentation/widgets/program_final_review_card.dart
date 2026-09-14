@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// `일정 추가` 를 누르기 전 한 번 더 확인한다(#1029) — 이 버튼 하나가
 /// 배정과 PT 일정 등록을 함께 하므로, 어느 날짜·시각으로 스케줄에
@@ -15,49 +14,49 @@ Future<bool?> showProgramAssignConfirmDialog(
   required TimeOfDay registerStartTime,
   required TimeOfDay registerEndTime,
 }) {
-  return showDialog<bool>(
+  return showAppDialog<bool>(
     context: context,
     builder: (dialogContext) {
       final AppLocalizations l = AppLocalizations.of(dialogContext);
-      return AlertDialog(
+      return AppDialog(
         key: const ValueKey<String>('program-assign-confirm'),
-        backgroundColor: AppColors.card,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(AppRadius.card),
-        ),
-        title: Text(
-          l.programAssignConfirmTitle,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-        ),
-        content: SizedBox(
-          width: 360,
-          child: Text(
-            l.programAssignConfirmBody(
-              clientName,
-              ymd(registerDate),
-              '${registerStartTime.format(dialogContext)} – '
-              '${registerEndTime.format(dialogContext)}',
+        title: l.programAssignConfirmTitle,
+        showClose: false,
+        // 버튼마다 테스트가 찾는 Key 가 있어 AppButtonPair 대신 같은 모양의
+        // Row 로 둔다.
+        footer: Row(
+          children: <Widget>[
+            Expanded(
+              child: AppButton(
+                key: const ValueKey<String>('program-assign-confirm-cancel'),
+                label: l.actionCancel,
+                variant: AppButtonVariant.secondary,
+                fullWidth: true,
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+              ),
             ),
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.subtleForeground,
-              height: 1.4,
+            const SizedBox(width: OnCareSpacing.buttonGap),
+            Expanded(
+              child: AppButton(
+                key: const ValueKey<String>('program-assign-confirm-submit'),
+                label: l.programEditorAddSchedule,
+                fullWidth: true,
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+              ),
             ),
-          ),
+          ],
         ),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('program-assign-confirm-cancel'),
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.actionCancel),
+        child: Text(
+          l.programAssignConfirmBody(
+            clientName,
+            ymd(registerDate),
+            '${registerStartTime.format(dialogContext)} – '
+            '${registerEndTime.format(dialogContext)}',
           ),
-          FilledButton(
-            key: const ValueKey<String>('program-assign-confirm-submit'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.programEditorAddSchedule),
-          ),
-        ],
+          style: dialogContext.oncare
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
       );
     },
   );
