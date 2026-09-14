@@ -4,8 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
@@ -17,6 +16,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const _mockConfig = AppConfig(
   environment: Environment.dev,
@@ -160,6 +160,25 @@ Future<void> _driveToApplyReady(WidgetTester tester) async {
   );
 }
 
+/// 공용 입력창(`AppTextField`)은 Key 를 바깥 위젯에 둔다 — 그 아래 실제
+/// [TextField] 를 찾는다. (#1705)
+Finder _textFieldUnder(Finder field) =>
+    find.descendant(of: field, matching: find.byType(TextField));
+
+/// 숫자 칸의 단위는 `suffixText` 가 아니라 입력창 suffix 위젯의 글자다. (#1705)
+String? _unitOf(WidgetTester tester, Finder field) {
+  final Widget? suffix = tester
+      .widget<TextField>(_textFieldUnder(field))
+      .decoration
+      ?.suffixIcon;
+  if (suffix == null) return null;
+  return tester
+      .widget<Text>(
+        find.descendant(of: find.byWidget(suffix), matching: find.byType(Text)),
+      )
+      .data;
+}
+
 void main() {
   group('생성 실패 문구 분기', _rateLimitMessageTests);
 
@@ -279,11 +298,12 @@ void main() {
               _StaticMemoRepository(memos),
             ),
           ],
-          child: const MaterialApp(
-            locale: Locale('ko'),
+          child: MaterialApp(
+            locale: const Locale('ko'),
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: AiRoutineOptionsFlow(client: _client),
+            home: const AiRoutineOptionsFlow(client: _client),
           ),
         ),
       );
@@ -303,7 +323,12 @@ void main() {
     }
 
     // #1655 — 분석 박스는 왼쪽에 사실, 오른쪽에 최근 7일 AI 감지 메모를 둔다.
-    TrainerMemo memo(String id, String body, int daysAgo, TrainerMemoSource source) {
+    TrainerMemo memo(
+      String id,
+      String body,
+      int daysAgo,
+      TrainerMemoSource source,
+    ) {
       final DateTime today = nowKst();
       final DateTime at = DateTime(
         today.year,
@@ -342,9 +367,7 @@ void main() {
       expect(find.text('오늘'), findsNothing);
     });
 
-    testWidgets('#1655 오른쪽 칸은 최근 7일 채팅 감지 메모만 최신순으로 보여 준다', (
-      tester,
-    ) async {
+    testWidgets('#1655 오른쪽 칸은 최근 7일 채팅 감지 메모만 최신순으로 보여 준다', (tester) async {
       await pumpFlow(
         tester,
         memos: <TrainerMemo>[
@@ -388,7 +411,9 @@ void main() {
       // 칸 안에서 스크롤한다.
       expect(
         tester
-            .getSize(find.byKey(const ValueKey<String>('ai-chat-insight-memos')))
+            .getSize(
+              find.byKey(const ValueKey<String>('ai-chat-insight-memos')),
+            )
             .height,
         one.height,
       );
@@ -463,11 +488,12 @@ void main() {
               appConfigProvider.overrideWithValue(_mockConfig),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
-            child: const MaterialApp(
-              locale: Locale('ko'),
+            child: MaterialApp(
+              locale: const Locale('ko'),
+              theme: AppTheme.light(),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: AiRoutineOptionsFlow(client: _client),
+              home: const AiRoutineOptionsFlow(client: _client),
             ),
           ),
         );
@@ -498,14 +524,19 @@ void main() {
         expect(
           tester
               .widget<TextField>(
-                find.byKey(const ValueKey<String>('generation-minutes-field')),
+                _textFieldUnder(
+                  find.byKey(
+                    const ValueKey<String>('generation-minutes-field'),
+                  ),
+                ),
               )
               .controller!
               .text,
           '45',
         );
         final highIntensityLabel = tester.widget<Text>(find.text('높음'));
-        expect(highIntensityLabel.style?.color, AppColors.accent);
+        // 고른 강도 칩(AppChoiceChip)의 글자는 트레이너 브랜드 색이다.
+        expect(highIntensityLabel.style?.color, OnCareBrand.trainer.primary);
       },
     );
 
@@ -525,11 +556,12 @@ void main() {
               appConfigProvider.overrideWithValue(_mockConfig),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
-            child: const MaterialApp(
-              locale: Locale('ko'),
+            child: MaterialApp(
+              locale: const Locale('ko'),
+              theme: AppTheme.light(),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: AiRoutineOptionsFlow(client: _client),
+              home: const AiRoutineOptionsFlow(client: _client),
             ),
           ),
         );
@@ -570,11 +602,12 @@ void main() {
               appConfigProvider.overrideWithValue(_mockConfig),
               trainerRoutineOptionsRepositoryProvider.overrideWithValue(repo),
             ],
-            child: const MaterialApp(
-              locale: Locale('ko'),
+            child: MaterialApp(
+              locale: const Locale('ko'),
+              theme: AppTheme.light(),
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
-              home: AiRoutineOptionsFlow(client: _client),
+              home: const AiRoutineOptionsFlow(client: _client),
             ),
           ),
         );
@@ -619,6 +652,7 @@ void main() {
           ],
           child: MaterialApp(
             locale: const Locale('ko'),
+            theme: AppTheme.light(),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
             home: AiRoutineOptionsFlow(
@@ -637,7 +671,7 @@ void main() {
       // 참고용이라 흐린 placeholder 로 남는다.
       expect(find.text('운동 목표와 최근 활동, 오늘의 식단 정보를 확인했어요'), findsOneWidget);
       // 분석 제목과 생성 버튼의 AI 아이콘은 유지하되 요청 제목 아이콘만 뺀다.
-      expect(find.byIcon(Icons.auto_awesome), findsNWidgets(2));
+      expect(find.byIcon(Icons.auto_awesome_rounded), findsNWidgets(2));
       expect(find.text('요청 내용'), findsOneWidget);
       final promptBlurb = tester.widget<Text>(
         find.textContaining('요청은 회원 데이터와 함께 AI에 전달돼요'),
@@ -647,23 +681,32 @@ void main() {
       final promptField = find.byKey(
         const ValueKey<String>('ai-natural-language-prompt'),
       );
-      final initialPrompt = tester.widget<TextField>(promptField);
-      expect(
-        initialPrompt.decoration?.hintStyle?.color,
-        AppColors.mutedForeground,
+      final initialPrompt = tester.widget<TextField>(
+        _textFieldUnder(promptField),
       );
-      expect(initialPrompt.decoration?.fillColor, AppColors.card);
+      // 규격 입력창(#1695) 모양 — 테마 기본값이 합쳐진 실제 장식을 본다.
+      final InputDecoration promptDecoration = tester
+          .widget<InputDecorator>(
+            find.descendant(
+              of: promptField,
+              matching: find.byType(InputDecorator),
+            ),
+          )
+          .decoration;
+      expect(promptDecoration.hintStyle?.color, OnCareColors.textTertiary);
+      expect(promptDecoration.filled, isTrue);
+      expect(promptDecoration.fillColor, OnCareColors.surfaceInput);
       expect(
-        (initialPrompt.decoration?.enabledBorder! as OutlineInputBorder)
+        (promptDecoration.enabledBorder! as OutlineInputBorder)
             .borderSide
             .color,
-        AppColors.borderStrong,
+        OnCareColors.lineStrong,
       );
-      expect(initialPrompt.buildCounter, isNotNull);
-      expect(
-        find.byKey(const ValueKey<String>('ai-prompt-counter')),
-        findsOneWidget,
-      );
+      // 기본 글자 수 표시는 숨기고, 필드 아래 별도 카운터가 대신 센다.
+      expect(initialPrompt.decoration?.counterText, '');
+      final counter = find.byKey(const ValueKey<String>('ai-prompt-counter'));
+      expect(counter, findsOneWidget);
+      expect(tester.widget<Text>(counter).data, '0/500');
       // 서버 상한(`trainer_note`, 500자)을 화면에서 먼저 막는다.
       expect(initialPrompt.maxLength, 500);
       expect(
@@ -681,7 +724,10 @@ void main() {
         find.descendant(of: generationMinutes, matching: find.text('운동 시간')),
         findsNothing,
       );
-      await tester.enterText(promptField, '무릎 부담 적게, 유산소 위주로 만들어줘');
+      const String promptText = '무릎 부담 적게, 유산소 위주로 만들어줘';
+      await tester.enterText(promptField, promptText);
+      await tester.pump();
+      expect(tester.widget<Text>(counter).data, '${promptText.length}/500');
 
       await tester.ensureVisible(
         find.byKey(const ValueKey<String>('generate-routine-options')),
@@ -717,16 +763,14 @@ void main() {
       final categoryNameGap = tester.widget<SizedBox>(
         find.byKey(const ValueKey<String>('routine-category-name-gap-0')),
       );
-      expect(categoryNameGap.height, AppSpacing.md);
+      expect(categoryNameGap.height, OnCareSpacing.s12);
       // 시간 칸은 스테퍼가 아니라 라벨 없는 compact 입력이다(#1489) — 값
-      // 오른쪽의 단위(suffixText)로 무엇을 재는 칸인지 구분한다.
+      // 오른쪽의 단위(suffix)로 무엇을 재는 칸인지 구분한다.
       expect(
-        tester
-            .widget<TextField>(
-              find.byKey(const ValueKey<String>('routine-minutes-0-field')),
-            )
-            .decoration
-            ?.suffixText,
+        _unitOf(
+          tester,
+          find.byKey(const ValueKey<String>('routine-minutes-0-field')),
+        ),
         '분',
       );
 
@@ -751,12 +795,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        tester
-            .widget<TextField>(
-              find.byKey(const ValueKey<String>('routine-minutes-field')),
-            )
-            .decoration
-            ?.suffixText,
+        _unitOf(
+          tester,
+          find.byKey(const ValueKey<String>('routine-minutes-field')),
+        ),
         '분',
       );
       expect(
@@ -768,13 +810,29 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextFormField).first, '인터벌 걷기');
+      // 첫 운동의 이름 칸 — Key 가 `routine-name-<후보>-<순번>-<이름>` 이다.
+      await tester.enterText(
+        _textFieldUnder(
+          find.byWidgetPredicate(
+            (Widget w) =>
+                w.key is ValueKey<String> &&
+                (w.key! as ValueKey<String>).value.startsWith('routine-name-'),
+          ),
+        ).first,
+        '인터벌 걷기',
+      );
       final minutesField = find.byKey(
         const ValueKey<String>('routine-minutes-0-field'),
       );
       await tester.enterText(minutesField, '20');
       await tester.pump();
-      expect(tester.widget<TextField>(minutesField).controller!.text, '20');
+      expect(
+        tester
+            .widget<TextField>(_textFieldUnder(minutesField))
+            .controller!
+            .text,
+        '20',
+      );
       // 유형은 네 가지다 (#996, #1276).
       for (final category in <String>['유산소', '근력', '스트레칭', '기타']) {
         expect(
@@ -850,6 +908,7 @@ void main() {
         ],
         child: MaterialApp(
           locale: const Locale('ko'),
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: AiRoutineOptionsFlow(
@@ -1023,11 +1082,12 @@ Future<void> _pumpFlowWithOptionsError(
           _ThrowingOptionsRepository(error),
         ),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        locale: const Locale('ko'),
+        theme: AppTheme.light(),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: AiRoutineOptionsFlow(
+        home: const AiRoutineOptionsFlow(
           client: _client,
           recommendedExercises: <RoutineExercise>[
             RoutineExercise(name: '실내 자전거', minutes: 20, type: '유산소'),

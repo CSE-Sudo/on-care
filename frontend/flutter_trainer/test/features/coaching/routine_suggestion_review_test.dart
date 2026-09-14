@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -177,6 +176,15 @@ void main() {
     }
   }
 
+  /// 공용 아이콘 버튼은 색을 ButtonStyle 로 칠한다 — 실제로 그려진 아이콘의
+  /// 색(IconTheme)을 읽는다.
+  Color? renderedIconColor(WidgetTester tester, Finder button) {
+    final BuildContext iconContext = tester.element(
+      find.descendant(of: button, matching: find.byType(Icon)),
+    );
+    return IconTheme.of(iconContext).color;
+  }
+
   Finder dismissButton(RoutineSuggestion s) =>
       find.byKey(ValueKey<String>('routine-suggestion-dismiss-${s.id}'));
   Finder editButton(RoutineSuggestion s) =>
@@ -188,15 +196,25 @@ void main() {
 
       // 판단이 아니라 보조 동작이다. 아래 줄에 세워 두면 `회원에게 추천` 과
       // 함께 판단처럼 읽힌다.
-      final IconButton edit = tester.widget<IconButton>(editButton(_shoulder));
-      expect((edit.icon as Icon).icon, Icons.edit_outlined);
-      expect(edit.color, AppColors.primary);
+      final AppIconButton edit = tester.widget<AppIconButton>(
+        editButton(_shoulder),
+      );
+      expect(edit.icon, Icons.edit_rounded);
+      expect(edit.color, OnCareBrand.trainer.primary);
+      expect(
+        renderedIconColor(tester, editButton(_shoulder)),
+        OnCareBrand.trainer.primary,
+      );
 
-      final IconButton dismiss = tester.widget<IconButton>(
+      final AppIconButton dismiss = tester.widget<AppIconButton>(
         dismissButton(_shoulder),
       );
-      expect((dismiss.icon as Icon).icon, Icons.delete_outline);
-      expect(dismiss.color, AppColors.mutedForeground);
+      expect(dismiss.icon, Icons.delete_outline_rounded);
+      expect(dismiss.color, OnCareColors.textSecondary);
+      expect(
+        renderedIconColor(tester, dismissButton(_shoulder)),
+        OnCareColors.textSecondary,
+      );
 
       // 손볼 대상(운동 이름·시간) 옆에 있다 — 아래 판단 줄이 아니다.
       final Rect editRect = tester.getRect(editButton(_shoulder));
@@ -225,15 +243,15 @@ void main() {
       await confirmApprove(tester, _shoulder, settle: false);
 
       expect(
-        tester.widget<IconButton>(editButton(_shoulder)).onPressed,
+        tester.widget<AppIconButton>(editButton(_shoulder)).onPressed,
         isNull,
       );
       expect(
-        tester.widget<IconButton>(dismissButton(_shoulder)).onPressed,
+        tester.widget<AppIconButton>(dismissButton(_shoulder)).onPressed,
         isNull,
       );
       expect(
-        tester.widget<ActionButton>(approveButton(_shoulder)).onPressed,
+        tester.widget<AppButton>(approveButton(_shoulder)).onPressed,
         isNull,
       );
       await tester.pumpAndSettle();
@@ -258,8 +276,8 @@ void main() {
       ),
     );
     final decoration = surface.decoration! as BoxDecoration;
-    expect(decoration.color, AppColors.card);
-    expect((decoration.border! as Border).top.color, AppColors.borderStrong);
+    expect(decoration.color, OnCareColors.surfaceCard);
+    expect((decoration.border! as Border).top.color, OnCareColors.lineStrong);
   });
 
   testWidgets(
