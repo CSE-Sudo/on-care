@@ -1619,6 +1619,8 @@
   },
   "dashTodoProgramSubtitle": "No recent program sent",
   "dashTodoReportSubtitle": "This week's report is due",
+  "dashTaskSaveFailed": "Couldn't save your task status. Please try again in a moment",
+  "dashTaskLoadFailed": "Couldn't load your task status. Please try again in a moment",
   "dashTaskDismissTitle": "Delete this item?",
   "dashTaskDismissBody": "It only disappears from the task list. Actually handling it (consultation, program, report) still happens on its own screen.",
   "dashTaskCarriedOverTitle": "Carried over",

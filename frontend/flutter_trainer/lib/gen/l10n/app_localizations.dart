@@ -5258,6 +5258,18 @@ abstract class AppLocalizations {
   /// **'This week\'s report is due'**
   String get dashTodoReportSubtitle;
 
+  /// No description provided for @dashTaskSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your task status. Please try again in a moment'**
+  String get dashTaskSaveFailed;
+
+  /// No description provided for @dashTaskLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your task status. Please try again in a moment'**
+  String get dashTaskLoadFailed;
+
   /// No description provided for @dashTaskDismissTitle.
   ///
   /// In en, this message translates to:

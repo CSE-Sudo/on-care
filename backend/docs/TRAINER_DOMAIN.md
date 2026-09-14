@@ -153,6 +153,8 @@
 | DELETE | `/trainer/schedule/{id}` | 예약 삭제 |
 | POST | `/trainer/schedule/{id}/complete` | 세션 완료(예정→완료) |
 | GET | `/trainer/dashboard/coaching-summary` | 식단·운동·건강 프로필·최근 대화를 종합한 회원별 오늘 코칭 요약 |
+| GET | `/trainer/dashboard/task-progress` | 오늘 할 일 진행 상태 — 보관 기간(63일) 안의 날짜별 기록 |
+| PUT | `/trainer/dashboard/task-progress/{date}` | 그날 진행 상태 통째로 저장(KST 오늘·어제만) |
 | POST | `/trainer/clients/{member_id}/ai-coach` | 담당 회원 데이터 기반 AI 코칭 질의 |
 | GET | `/trainer/clients/{member_id}/report?week_start=` | 주간 리포트(어느 요일을 줘도 그 주 월요일로 정규화) |
 | POST | `/trainer/clients/{member_id}/report/send` | 리포트를 회원 채팅 스레드로 전송 |
@@ -177,6 +179,23 @@ scope에 포함해 회원과 트레이너가 우연히 같은 키를 만들어�
 (`0019_trainer_noti_settings`). **기본값은 서버가 소유한다**(모두 켬 / 30분 전) —
 클라이언트마다 기본값을 들고 있으면 기기별로 갈라진다. `reminder_lead_minutes` 는
 `REMINDER_LEAD_OPTIONS`(10/30/60) 밖의 값을 422 로 거부한다.
+
+### 오늘 할 일 진행 상태 (`/trainer/dashboard/task-progress`)
+
+대시보드 `오늘 할 일` 의 체크(완료 표시)·삭제(오늘 목록에서 제외)와 `할 일 진행률`
+그래프의 날짜별 요약이다. 알림 수신 설정과 같은 이유로 **계정 단위**다(#1633) —
+체크는 트레이너 자신의 확인 표시지만, 기기마다 다르면 센터 PC 에서 끝낸 일이
+태블릿에서 다시 할 일로 보이고 `지난 할 일` 상자도 기기별로 갈린다.
+
+- **별도 테이블**(`trainer_daily_task_progress`, `0065_trainer_daily_task_progress`).
+  그래프가 날짜별 이력을 읽어 프로필 컬럼 하나로는 담을 수 없다. (trainer_id, date)
+  하나당 한 행이고 앱이 그날 목록 전체를 **통째로 덮어쓴다**(PUT).
+- **보관 63일.** 그래프가 이번 주와 8주 전까지 되짚는 범위다. 쓸 때 오래된 행을 지운다.
+- **오늘은 서버 KST 가 정한다.** PUT 은 KST 오늘·어제만 받고 그 밖은 422 다 —
+  자정을 넘긴 화면은 받고, 기기 시계가 틀린 요청은 막는다. `지난 할 일` 은 어제 행의
+  `pending_keys` 로 가른다.
+- 미션 키(`report-<id>` 등)는 앱이 만들고 서버는 해석하지 않는다.
+- 데모(`USE_MOCK_API=true`)는 계정이 없어 기기 로컬에 둔다.
 
 ### 트레이너용 AI 코칭 (`/trainer/clients/{id}/ai-coach`)
 
