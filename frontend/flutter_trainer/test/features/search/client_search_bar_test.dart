@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
@@ -64,22 +65,34 @@ void main() {
 
       final field = find.byKey(clientSearchFieldKey);
       final context = tester.element(field);
-      final input = tester.widget<TextField>(field);
-      final hintStyle = input.decoration?.hintStyle;
       final hint = AppLocalizations.of(context).searchClientsHint;
-      final painter = TextPainter(
-        text: TextSpan(text: hint, style: hintStyle),
-        textDirection: Directionality.of(context),
-        maxLines: 1,
-      )..layout();
-      final availableWidth = tester.getSize(field).width - 40 - 16;
 
-      expect(hintStyle?.fontSize, 13, reason: route);
-      expect(
-        availableWidth,
-        greaterThan(painter.width),
-        reason: '$route: available=$availableWidth, hint=${painter.width}',
+      // 긴 안내가 실제로 그려지고, 입력창 규격(body 역할)의 힌트 글씨로
+      // 줄임표 없이 한 줄에 들어가야 한다.
+      final hintText = find.descendant(of: field, matching: find.text(hint));
+      expect(hintText, findsOneWidget, reason: route);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.descendant(of: hintText, matching: find.byType(RichText)),
       );
+      final hintStyle = Theme.of(context).inputDecorationTheme.hintStyle;
+      final visibleSize = paragraph.textScaler.scale(
+        paragraph.text.style?.fontSize ?? 0,
+      );
+      expect(
+        visibleSize,
+        moreOrLessEquals(
+          MediaQuery.textScalerOf(context).scale(hintStyle?.fontSize ?? 0),
+        ),
+        reason: route,
+      );
+      expect(
+        paragraph.getMaxIntrinsicWidth(double.infinity),
+        lessThanOrEqualTo(paragraph.size.width + 0.5),
+        reason:
+            '$route: available=${paragraph.size.width}, '
+            'hint=${paragraph.getMaxIntrinsicWidth(double.infinity)}',
+      );
+      expect(paragraph.didExceedMaxLines, isFalse, reason: route);
     }
   });
 

@@ -4,16 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
-import 'package:oncare_trainer/features/auth/presentation/widgets/auth_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
-/// Trainer login screen — email/password login. Layout follows the user
-/// app's sign-in page. Wired to [SessionController].
+/// Trainer login screen — email/password login. Layout follows the shared
+/// [AppAuthLayout]. Wired to [SessionController].
 ///
 /// "로그인 없이 데모 둘러보기" 진입은 화면에서 내렸다. 코드는 지우지 않고
 /// [AppConfig.showDemoEntry] 로 감춰 두었으므로, 다시 열려면
@@ -27,6 +24,9 @@ class TrainerSignInPage extends ConsumerStatefulWidget {
 }
 
 class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
+  /// On-Care 로고 한 변. 부품 치수라 토큰 목록에 없다.
+  static const double _logoSize = 132;
+
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
   bool _obscure = true;
@@ -72,7 +72,7 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
       showAppToast(
         context,
         AppLocalizations.of(context).authErrSocialFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     }
   }
@@ -83,7 +83,10 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
     final email = _email.text.trim();
     final password = _password.text;
     if (email.isEmpty || password.isEmpty) {
-      showAppToast(context, AppLocalizations.of(context).authErrEmptyCredentials);
+      showAppToast(
+        context,
+        AppLocalizations.of(context).authErrEmptyCredentials,
+      );
       return;
     }
     setState(() => _loading = true);
@@ -97,14 +100,14 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
       setState(() => _loading = false);
-      showAppToast(context, authFailureText(l, e), kind: AppToastKind.error);
+      showAppToast(context, authFailureText(l, e), type: AppToastType.error);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
       showAppToast(
         context,
         AppLocalizations.of(context).authErrSignInFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     }
   }
@@ -112,155 +115,119 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final OnCareTokens tokens = context.oncare;
     // 가입 경로는 이제 실 API 모드에서도 열린다 — `/auth/trainer/register` 가
     // 헬스장 초대 코드로 트레이너 계정을 만든다(#475). 전에는 회원용
     // `/auth/register` 로 나가 role='member' 계정이 생겼고, 그 계정은
     // `/trainer/me` 에서 403 이라 가입해도 아무것도 할 수 없었다.
     const signUpEnabled = true;
-    return Scaffold(
-      // 사용자 앱 로그인 화면과 동일한 흰색 배경.
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // 브랜드 — On-Care 로고(테두리 없이 크게), 사용자 앱과 동일.
-                  Center(
-                    child: Image.asset(
-                      'assets/images/oncare-logo.png',
-                      width: 132,
-                      height: 132,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    l.appTitleSpaced,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF262626),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l.authTagline,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
-
-                  AuthField(
-                    key: const ValueKey<String>('trainer-login-email'),
-                    controller: _email,
-                    hint: l.authEmail,
-                    icon: Icons.mail_outline,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  AuthField(
-                    key: const ValueKey<String>('trainer-login-password'),
-                    controller: _password,
-                    hint: l.authPassword,
-                    icon: Icons.lock_outline,
-                    obscure: _obscure,
-                    onSubmitted: (_) => _login(),
-                    trailing: IconButton(
-                      // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할 데가
-                      // 툴팁뿐이다(#972).
-                      tooltip: _obscure
-                          ? l.a11yShowPassword
-                          : l.a11yHidePassword,
-                      icon: Icon(
-                        _obscure ? Icons.visibility_off : Icons.visibility,
-                        size: 20,
-                        color: const Color(0xFF64748B),
-                      ),
-                      onPressed: () => setState(() => _obscure = !_obscure),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  AuthGradientButton(
-                    key: const ValueKey<String>('trainer-login-submit'),
-                    loading: _loading,
-                    label: l.authSignIn,
-                    onTap: _login,
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  const _OrDivider(),
-                  const SizedBox(height: AppSpacing.lg),
-                  _SocialButton.kakao(
-                    label: l.authContinueKakao,
-                    onTap: _loading ? null : () => _social('kakao'),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _SocialButton.google(
-                    label: l.authContinueGoogle,
-                    onTap: _loading ? null : () => _social('google'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  // Self sign-up is demo-only: POST /auth/register creates a
-                  // MEMBER account (no role param), so against the real
-                  // backend a registered account gets a permanent 403 from
-                  // /trainer/me — trainer accounts are provisioned server-side
-                  // (seed/admin). Hide the entry when hitting the real API so
-                  // it isn't a dead end. (Follow-up: trainer provisioning.)
-                  if (signUpEnabled)
-                    // Wrap, not Row: 영어 문구("Don't have an account?" +
-                    // "Sign up")는 한국어보다 길어 좁은 폭에서 Row 가 넘쳤다.
-                    // 줄바꿈으로 흘려보내면 어느 언어에서도 잘리지 않는다. (#501)
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        Text(
-                          l.authNoAccount,
-                          style: const TextStyle(color: Color(0xFF64748B)),
-                        ),
-                        TextButton(
-                          onPressed: _loading ? null : _onSignUp,
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                          ),
-                          child: Text(l.authSignUp),
-                        ),
-                      ],
-                    ),
-                  // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
-                  // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
-                  if (ref.watch(appConfigProvider).showDemoEntry)
-                    Center(
-                      child: TextButton(
-                        key: const Key('demoEnterButton'),
-                        onPressed: _loading ? null : _enterDemo,
-                        style: TextButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                        ),
-                        child: Text(l.authBrowseDemo),
-                      ),
-                    ),
-                ],
-              ),
+    return AppAuthLayout(
+      // 브랜드 — On-Care 로고(테두리 없이 크게).
+      logo: Image.asset(
+        'assets/images/oncare-logo.png',
+        width: _logoSize,
+        height: _logoSize,
+        fit: BoxFit.contain,
+      ),
+      title: l.appTitleSpaced,
+      subtitle: l.authTagline,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppTextField(
+            key: const ValueKey<String>('trainer-login-email'),
+            controller: _email,
+            hint: l.authEmail,
+            prefixIcon: Icons.mail_outline_rounded,
+            size: AppFieldSize.large,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            key: const ValueKey<String>('trainer-login-password'),
+            controller: _password,
+            hint: l.authPassword,
+            prefixIcon: Icons.lock_outline_rounded,
+            size: AppFieldSize.large,
+            obscureText: _obscure,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _login(),
+            suffix: AppIconButton(
+              // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할 데가
+              // 툴팁뿐이다(#972).
+              tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
+              icon: _obscure
+                  ? Icons.visibility_off_rounded
+                  : Icons.visibility_rounded,
+              color: OnCareColors.textTertiary,
+              onPressed: () => setState(() => _obscure = !_obscure),
             ),
           ),
-        ),
+          const SizedBox(height: OnCareSpacing.s24),
+          AppButton(
+            key: const ValueKey<String>('trainer-login-submit'),
+            label: l.authSignIn,
+            onPressed: _login,
+            size: OnCareButtonSize.large,
+            loading: _loading,
+            fullWidth: true,
+          ),
+          const SizedBox(height: OnCareSpacing.s16),
+          const _OrDivider(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _SocialButton.kakao(
+            label: l.authContinueKakao,
+            onTap: _loading ? null : () => _social('kakao'),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          _SocialButton.google(
+            label: l.authContinueGoogle,
+            onTap: _loading ? null : () => _social('google'),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          if (signUpEnabled)
+            // Wrap, not Row: 영어 문구("Don't have an account?" +
+            // "Sign up")는 한국어보다 길어 좁은 폭에서 Row 가 넘쳤다.
+            // 줄바꿈으로 흘려보내면 어느 언어에서도 잘리지 않는다. (#501)
+            Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                Text(
+                  l.authNoAccount,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+                AppButton(
+                  label: l.authSignUp,
+                  onPressed: _loading ? null : _onSignUp,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+              ],
+            ),
+          // 로그인 없이 들어가는 경로는 기본으로 감춰 둔다 — 되돌릴
+          // 여지를 남겨야 해서 지우는 대신 플래그로 막았다. (#1526)
+          if (ref.watch(appConfigProvider).showDemoEntry)
+            Center(
+              child: AppButton(
+                key: const Key('demoEnterButton'),
+                label: l.authBrowseDemo,
+                onPressed: _loading ? null : _enterDemo,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
 /// "— 또는 —" separator between the email login and social buttons.
-/// Mirrors the user app's sign-in divider.
 class _OrDivider extends StatelessWidget {
   const _OrDivider();
 
@@ -268,22 +235,27 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
-        const Expanded(child: Divider(color: Color(0x1A000000))),
+        const Expanded(child: AppDivider()),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
           child: Text(
             AppLocalizations.of(context).authOr,
-            style: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+            style: context.oncare
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textTertiary),
           ),
         ),
-        const Expanded(child: Divider(color: Color(0x1A000000))),
+        const Expanded(child: AppDivider()),
       ],
     );
   }
 }
 
-/// Provider-branded social sign-in button (kakao / google), matching the
-/// user app. [onTap] drives the demo-token social exchange.
+/// Provider-branded social sign-in button (kakao / google). [onTap] drives
+/// the demo-token social exchange.
+///
+/// 카카오는 외부 브랜드 색(예외 토큰)을 입어야 해서 [AppButton] 으로는 그릴 수
+/// 없다. 두 버튼이 한 모양이도록 구글도 같은 틀에 흰 바탕 + 테두리로 그린다.
 class _SocialButton extends StatelessWidget {
   const _SocialButton({
     required this.label,
@@ -292,7 +264,6 @@ class _SocialButton extends StatelessWidget {
     required this.foreground,
     required this.onTap,
     this.border,
-    this.iconSize = 20,
   });
 
   factory _SocialButton.kakao({
@@ -301,8 +272,8 @@ class _SocialButton extends StatelessWidget {
   }) => _SocialButton(
     label: label,
     icon: Icons.chat_bubble_rounded,
-    background: const Color(0xFFFEE500),
-    foreground: const Color(0xFF191600),
+    background: OnCareColors.kakaoYellow,
+    foreground: OnCareColors.kakaoLabel,
     onTap: onTap,
   );
 
@@ -311,11 +282,10 @@ class _SocialButton extends StatelessWidget {
     required VoidCallback? onTap,
   }) => _SocialButton(
     label: label,
-    icon: Icons.g_mobiledata,
-    background: const Color(0xFFFFFFFF),
-    foreground: const Color(0xFF262626),
-    border: const Color(0x1A000000),
-    iconSize: 28,
+    icon: Icons.g_mobiledata_rounded,
+    background: OnCareColors.surfaceCard,
+    foreground: OnCareColors.textPrimary,
+    border: OnCareColors.lineStrong,
     onTap: onTap,
   );
 
@@ -324,28 +294,27 @@ class _SocialButton extends StatelessWidget {
   final Color background;
   final Color foreground;
   final Color? border;
-  final double iconSize;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Material(
       color: background,
-      borderRadius: const BorderRadius.all(Radius.circular(14)),
+      shape: RoundedRectangleBorder(
+        borderRadius: OnCareRadius.mdAll,
+        side: border == null ? BorderSide.none : BorderSide(color: border!),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: const BorderRadius.all(Radius.circular(14)),
-        child: Container(
-          height: 50,
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(Radius.circular(14)),
-            border: border != null ? Border.all(color: border!) : null,
-          ),
+        child: SizedBox(
+          height: tokens.density.buttonLarge,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(icon, color: foreground, size: iconSize),
-              const SizedBox(width: AppSpacing.sm),
+              Icon(icon, color: foreground, size: OnCareSize.iconLarge),
+              const SizedBox(width: OnCareSpacing.s8),
               // 버튼 폭은 400 으로 고정인데 라벨은 로케일·글자 배율을 따라
               // 길어진다. `Continue with Google` 은 배율 1.3 에서 그대로 넘쳤다
               // (#849). 잘라내지 않고 줄여서 그린다 — `Continue with Goo…` 가
@@ -356,10 +325,9 @@ class _SocialButton extends StatelessWidget {
                   child: Text(
                     label,
                     maxLines: 1,
-                    style: TextStyle(
-                      color: foreground,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.buttonLarge)
+                        .copyWith(color: foreground),
                   ),
                 ),
               ),

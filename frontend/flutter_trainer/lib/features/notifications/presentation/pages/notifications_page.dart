@@ -3,18 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 알림함 — 트레이너가 놓친 변화를 나중에 확인하는 자리. (#503)
 ///
@@ -66,7 +61,7 @@ class NotificationsPage extends ConsumerWidget {
       await ref.read(trainerNotificationRepositoryProvider).markAllRead();
     } catch (_) {
       if (!context.mounted) return;
-      showAppToast(context, l.notifReadAllFailed, kind: AppToastKind.error);
+      showAppToast(context, l.notifReadAllFailed, type: AppToastType.error);
       return;
     }
     ref
@@ -80,65 +75,92 @@ class NotificationsPage extends ConsumerWidget {
     final notifications = ref.watch(trainerNotificationsProvider);
     final unread = ref.watch(trainerUnreadNotificationsProvider).valueOrNull;
 
-    return PageScaffold(
+    return AppWebPage(
       title: l.notifTitle,
       subtitle: unread == null
           ? null
           : (unread > 0 ? l.notifUnreadCount(unread) : l.notifAllRead),
+      width: AppWebPageWidth.narrow,
       actions: <Widget>[
         if (unread != null && unread > 0)
-          ActionButton(
+          AppButton(
             label: l.notifReadAll,
-            icon: Icons.done_all,
+            leadingIcon: Icons.done_all_rounded,
+            variant: AppButtonVariant.secondary,
             onPressed: () => _readAll(context, ref),
           ),
       ],
-      child: notifications.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.only(top: AppSpacing.xxl),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        error: (error, _) => Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.xxl),
-          child: EmptyHint(
+      body: PageScrollResetListener(
+        child: notifications.when(
+          loading: () => const AppLoading(),
+          error: (error, _) => _ErrorView(
             message: serverDetailOr(
               l,
               error is AppError ? error.message : null,
               l.notifLoadFailed,
             ),
-            icon: Icons.error_outline,
-            action: ActionButton(
-              key: const ValueKey<String>('notifications-retry'),
-              label: l.actionRetry,
-              onPressed: notifications.isLoading
-                  ? null
-                  : () => ref.invalidate(trainerNotificationsProvider),
-            ),
+            retryLabel: l.actionRetry,
+            onRetry: notifications.isLoading
+                ? null
+                : () => ref.invalidate(trainerNotificationsProvider),
           ),
-        ),
-        data: (rows) {
-          if (rows.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xxl),
-              child: EmptyHint(
-                message: l.notifEmpty,
-                icon: Icons.notifications_none,
+          data: (rows) {
+            if (rows.isEmpty) {
+              return AppEmptyState(
+                title: l.notifEmpty,
+                icon: Icons.notifications_none_rounded,
+              );
+            }
+            return ListView.separated(
+              itemCount: rows.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: OnCareSpacing.s8),
+              itemBuilder: (context, i) => _NotificationTile(
+                notification: rows[i],
+                onTap: () => _open(context, ref, rows[i]),
               ),
             );
-          }
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              for (final TrainerNotification row in rows) ...<Widget>[
-                _NotificationTile(
-                  notification: row,
-                  onTap: () => _open(context, ref, row),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-            ],
-          );
-        },
+          },
+        ),
+      ),
+    );
+  }
+}
+
+/// 오류 화면. [AppErrorState] 와 같은 모양이지만 재시도 버튼에 테스트·자동화가
+/// 찾는 Key(`notifications-retry`)를 달아야 해서 버튼을 따로 둔다.
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({
+    required this.message,
+    required this.retryLabel,
+    required this.onRetry,
+  });
+
+  final String message;
+  final String retryLabel;
+  final VoidCallback? onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(OnCareSpacing.s24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            AppEmptyState(
+              title: message,
+              icon: Icons.cloud_off_rounded,
+              placement: AppStatePlacement.card,
+            ),
+            AppButton(
+              key: const ValueKey<String>('notifications-retry'),
+              label: retryLabel,
+              variant: AppButtonVariant.secondary,
+              onPressed: onRetry,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -151,72 +173,39 @@ class _NotificationTile extends StatelessWidget {
   final VoidCallback onTap;
 
   IconData get _icon => switch (notification.kind) {
-    TrainerNotificationKind.message => Icons.chat_bubble_outline,
-    TrainerNotificationKind.consultation => Icons.mark_email_unread_outlined,
-    TrainerNotificationKind.reservation => Icons.event_available_outlined,
-    TrainerNotificationKind.other => Icons.notifications_none,
+    TrainerNotificationKind.message => Icons.chat_bubble_outline_rounded,
+    TrainerNotificationKind.consultation => Icons.mark_email_unread_rounded,
+    TrainerNotificationKind.reservation => Icons.event_available_rounded,
+    TrainerNotificationKind.other => Icons.notifications_none_rounded,
   };
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     final bool unread = !notification.read;
-    return Material(
-      // 미읽음은 배경으로 구분한다 — 점 하나보다 목록에서 먼저 눈에 들어온다.
-      color: unread ? AppColors.accent : AppColors.card,
-      borderRadius: const BorderRadius.all(AppRadius.md),
-      child: InkWell(
+    // 미읽음은 옅은 브랜드 채움 + 빨간 점 + 제목 600 으로 구분한다(#1690).
+    // 진한 남색 채움은 목록 글자를 가려 규격에서 뺐다(#1703).
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: unread ? tokens.brand.surface : OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+      ),
+      child: AppListRow(
         key: ValueKey<String>('notification-${notification.id}'),
+        title: notification.title,
+        subtitle: notification.body.isEmpty ? null : notification.body,
+        unread: unread,
         onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Icon(
-                _icon,
-                size: 18,
-                color: unread ? AppColors.primary : AppColors.mutedForeground,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      notification.title,
-                      style: TextStyle(
-                        fontSize: 14.5,
-                        fontWeight: unread ? FontWeight.w700 : FontWeight.w600,
-                        color: AppColors.foreground,
-                      ),
-                    ),
-                    if (notification.body.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 2),
-                      Text(
-                        notification.body,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          color: AppColors.mutedForeground,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                notification.timeAgo,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.subtleForeground,
-                ),
-              ),
-            ],
-          ),
+        leading: Icon(
+          _icon,
+          size: OnCareSize.iconMedium,
+          color: unread ? tokens.brand.primary : OnCareColors.textSecondary,
+        ),
+        trailing: Text(
+          notification.timeAgo,
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
         ),
       ),
     );

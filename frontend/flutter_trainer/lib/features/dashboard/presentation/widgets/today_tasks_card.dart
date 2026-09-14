@@ -7,9 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
@@ -21,8 +18,8 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Bumped whenever [TodayTasksCard] persists a new daily snapshot, so a
 /// sibling widget with no direct link to that state (the 할 일 진행률 chart)
@@ -137,24 +134,14 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     if (_checkedKeys.contains(mission.key)) {
       final l = AppLocalizations.of(context);
       final name = mission.client?.name ?? mission.title;
-      final confirmed = await showDialog<bool>(
+      final confirmed = await showAppConfirmDialog(
         context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(l.dashTaskUncheckTitle(name)),
-          content: Text(l.dashTaskUncheckBody),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(l.actionCancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(l.dashTaskUncheckConfirm),
-            ),
-          ],
-        ),
+        title: l.dashTaskUncheckTitle(name),
+        message: l.dashTaskUncheckBody,
+        cancelLabel: l.actionCancel,
+        confirmLabel: l.dashTaskUncheckConfirm,
       );
-      if (confirmed != true || !mounted) return;
+      if (!confirmed || !mounted) return;
     }
     setState(() {
       if (!_checkedKeys.remove(mission.key)) _checkedKeys.add(mission.key);
@@ -164,24 +151,15 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
 
   Future<void> _dismiss(String key, Set<String> allKeys) async {
     final l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppConfirmDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.dashTaskDismissTitle),
-        content: Text(l.dashTaskDismissBody),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.actionDelete),
-          ),
-        ],
-      ),
+      title: l.dashTaskDismissTitle,
+      message: l.dashTaskDismissBody,
+      cancelLabel: l.actionCancel,
+      confirmLabel: l.actionDelete,
+      destructive: true,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     setState(() {
       _dismissedKeys.add(key);
       _checkedKeys.remove(key);
@@ -233,7 +211,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
         _Mission(
           key: 'consultation-${request.id}',
           keyword: l.dashTodoConsultation,
-          keywordColor: AppColors.primary,
+          keywordColor: context.oncare.brand.primary,
           title: request.memberName,
           subtitle: l.dashTodoConsultationSubtitle(
             request.preferredDate.month,
@@ -247,7 +225,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           keyword: entry.primary == ClientAlert.lowCompletion
               ? l.dashTodoWorkout
               : l.dashTodoDiet,
-          keywordColor: AppColors.overTarget,
+          keywordColor: OnCareColors.danger,
           title: entry.client.name,
           client: entry.client,
           subtitle: _feedbackSubtitle(l, entry),
@@ -262,7 +240,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
         _Mission(
           key: 'program-${client.id}',
           keyword: l.dashTodoProgram,
-          keywordColor: AppColors.primary,
+          keywordColor: context.oncare.brand.primary,
           title: client.name,
           client: client,
           subtitle: l.dashTodoProgramSubtitle,
@@ -274,7 +252,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
         _Mission(
           key: DemoTaskHistory.kDemoCarryOverKey,
           keyword: l.dashTodoDiet,
-          keywordColor: AppColors.overTarget,
+          keywordColor: OnCareColors.danger,
           title: demoCarryOverClient.name,
           client: demoCarryOverClient,
           subtitle: l.dashTodoCarriedOverDemoSubtitle,
@@ -289,7 +267,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
         _Mission(
           key: 'report-${client.id}',
           keyword: l.dashTodoReport,
-          keywordColor: AppColors.primary,
+          keywordColor: context.oncare.brand.primary,
           title: client.name,
           client: client,
           subtitle: l.dashTodoReportSubtitle,
@@ -329,11 +307,11 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     // 항목이 하나도 없어도 여섯 카테고리는 항상 그 자리에 있다 — 매일 다시
     // 확인할 자리가 매번 다른 곳에서 나타났다 사라지면 습관이 안 붙는다.
     final categoryOrder = <MapEntry<String, Color>>[
-      MapEntry(l.dashTodoConsultation, AppColors.primary),
-      MapEntry(l.dashTodoWorkout, AppColors.overTarget),
-      MapEntry(l.dashTodoDiet, AppColors.overTarget),
-      MapEntry(l.dashTodoProgram, AppColors.primary),
-      MapEntry(l.dashTodoReport, AppColors.primary),
+      MapEntry(l.dashTodoConsultation, context.oncare.brand.primary),
+      MapEntry(l.dashTodoWorkout, OnCareColors.danger),
+      MapEntry(l.dashTodoDiet, OnCareColors.danger),
+      MapEntry(l.dashTodoProgram, context.oncare.brand.primary),
+      MapEntry(l.dashTodoReport, context.oncare.brand.primary),
     ];
     final carriedOver = <_Mission>[];
     final byCategory = <String, List<_Mission>>{
@@ -350,7 +328,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     final sections = <Widget>[
       _CategorySection(
         title: l.dashTaskCarriedOverTitle,
-        color: AppColors.aiCardGradientEnd,
+        color: context.oncare.brand.border,
         tinted: true,
         missions: carriedOver,
         checkedKeys: _checkedKeys,
@@ -368,30 +346,41 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
         ),
     ];
 
-    return SectionCard(
-      title: l.dashTodayTasks,
-      trailing: Text(
-        allKeys.isEmpty || allDone
-            ? l.dashTasksReviewed
-            : l.dashTasksNeedReview(remaining),
-        style: TextStyle(
-          color: allKeys.isEmpty || allDone
-              ? AppColors.success
-              : AppColors.primary,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      // 카테고리 여섯은 항목이 없어도 항상 그 자리에 있다 — "오늘 할 일이
-      // 하나도 없다"는 빈 화면이 아니라 "전부 완료"로 읽혀야 한다. 화면
-      // 안에 들어오면 그대로, 넘치면 카드 자체가 커지는 대신 이 안에서만
-      // 스크롤된다 — 옆 칸(오늘의 일정 + 활동 피드백)과 상관없이 미션이
-      // 몇십 건이어도 대시보드 전체가 한없이 길어지지 않는다.
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * 0.55,
-        ),
-        child: SingleChildScrollView(child: Column(children: sections)),
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(child: AppSectionHeader(title: l.dashTodayTasks)),
+              Text(
+                allKeys.isEmpty || allDone
+                    ? l.dashTasksReviewed
+                    : l.dashTasksNeedReview(remaining),
+                style: tokens
+                    .text(OnCareTypography.label)
+                    .copyWith(
+                      color: allKeys.isEmpty || allDone
+                          ? OnCareColors.success
+                          : tokens.brand.primary,
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 카테고리 여섯은 항목이 없어도 항상 그 자리에 있다 — "오늘 할 일이
+          // 하나도 없다"는 빈 화면이 아니라 "전부 완료"로 읽혀야 한다. 화면
+          // 안에 들어오면 그대로, 넘치면 카드 자체가 커지는 대신 이 안에서만
+          // 스크롤된다 — 옆 칸(오늘의 일정 + 활동 피드백)과 상관없이 미션이
+          // 몇십 건이어도 대시보드 전체가 한없이 길어지지 않는다.
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.55,
+            ),
+            child: SingleChildScrollView(child: Column(children: sections)),
+          ),
+        ],
       ),
     );
   }
@@ -434,18 +423,19 @@ class _CategorySectionState extends State<_CategorySection> {
         .where((m) => !widget.checkedKeys.contains(m.key))
         .length;
 
+    final OnCareTokens tokens = context.oncare;
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      margin: const EdgeInsets.only(bottom: OnCareSpacing.s8),
       decoration: BoxDecoration(
         color: widget.tinted
-            ? widget.color.withValues(alpha: 0.10)
-            : AppColors.background,
+            ? OnCareColors.onWhite(widget.color, OnCareAlpha.subtle)
+            : OnCareColors.surfacePage,
         border: Border.all(
           color: widget.tinted
-              ? widget.color.withValues(alpha: 0.4)
-              : AppColors.border,
+              ? OnCareColors.onWhite(widget.color, OnCareAlpha.strong)
+              : OnCareColors.lineSubtle,
         ),
-        borderRadius: const BorderRadius.all(AppRadius.md),
+        borderRadius: OnCareRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -453,45 +443,38 @@ class _CategorySectionState extends State<_CategorySection> {
           InkWell(
             key: ValueKey<String>('dashboard-category-toggle-${widget.title}'),
             onTap: () => setState(() => _expanded = !_expanded),
-            borderRadius: const BorderRadius.all(AppRadius.md),
+            borderRadius: OnCareRadius.mdAll,
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
+              padding: const EdgeInsets.all(OnCareSpacing.s12),
               child: Row(
                 children: <Widget>[
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: widget.color,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
+                  AppStatusDot(color: widget.color),
+                  const SizedBox(width: OnCareSpacing.s8),
                   Text(
                     widget.title,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.foreground,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.label)
+                        .copyWith(color: OnCareColors.textPrimary),
                   ),
                   const Spacer(),
                   Text(
                     remaining == 0
                         ? l.dashTaskCategoryDone
                         : l.dashTaskCategoryRemaining(remaining),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: remaining == 0
-                          ? AppColors.success
-                          : AppColors.mutedForeground,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(
+                          color: remaining == 0
+                              ? OnCareColors.success
+                              : OnCareColors.textSecondary,
+                        ),
                   ),
                   Icon(
-                    _expanded ? Icons.expand_less : Icons.chevron_right,
-                    size: 18,
-                    color: AppColors.disabledForeground,
+                    _expanded
+                        ? Icons.expand_less_rounded
+                        : Icons.chevron_right_rounded,
+                    size: OnCareSize.iconMedium,
+                    color: OnCareColors.textDisabled,
                   ),
                 ],
               ),
@@ -500,10 +483,10 @@ class _CategorySectionState extends State<_CategorySection> {
           if (_expanded)
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.sm,
+                OnCareSpacing.s8,
                 0,
-                AppSpacing.sm,
-                AppSpacing.sm,
+                OnCareSpacing.s8,
+                OnCareSpacing.s8,
               ),
               child: Column(
                 children: <Widget>[
@@ -540,82 +523,40 @@ class _MissionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isConsultation = mission.key.startsWith('consultation-');
-    final nameStyle = TextStyle(
-      fontSize: 12.5,
-      fontWeight: FontWeight.w700,
-      color: checked ? AppColors.disabledForeground : AppColors.foreground,
-    );
+    final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final nameStyle = tokens
+        .text(OnCareTypography.bodySmall)
+        .copyWith(
+          color: checked ? OnCareColors.textDisabled : OnCareColors.textPrimary,
+        );
+    final captionStyle = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textTertiary);
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
       child: Material(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.md),
+        color: OnCareColors.surfaceCard,
+        shape: const RoundedRectangleBorder(
+          borderRadius: OnCareRadius.mdAll,
+          side: BorderSide(color: OnCareColors.lineSubtle),
+        ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: mission.onTap,
-          borderRadius: const BorderRadius.all(AppRadius.md),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.borderStrong),
-              borderRadius: const BorderRadius.all(AppRadius.md),
-            ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
             child: Row(
               children: <Widget>[
-                InkWell(
-                  onTap: onToggle,
-                  borderRadius: const BorderRadius.all(AppRadius.pill),
-                  child: Container(
-                    width: 22,
-                    height: 22,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: checked ? AppColors.primary : Colors.transparent,
-                      border: Border.all(
-                        color: checked
-                            ? AppColors.primary
-                            : AppColors.borderStrong,
-                      ),
-                    ),
-                    child: checked
-                        ? const Icon(
-                            Icons.check,
-                            size: 14,
-                            color: AppColors.primaryForeground,
-                          )
-                        : null,
-                  ),
+                Checkbox(value: checked, onChanged: (_) => onToggle()),
+                const SizedBox(width: OnCareSpacing.s4),
+                AppTag(
+                  label: mission.keyword,
+                  tone: mission.keywordColor == OnCareColors.danger
+                      ? AppTagTone.danger
+                      : AppTagTone.brand,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    // 상담은 배경을 채우지 않는다 — 오늘의 일정 종류 알약과
-                    // 같은 어휘다: 상담은 원래 배경색이 없다.
-                    color: isConsultation
-                        ? AppColors.card
-                        : mission.keywordColor.withValues(alpha: 0.12),
-                    borderRadius: const BorderRadius.all(AppRadius.pill),
-                    border: isConsultation
-                        ? Border.all(
-                            color: mission.keywordColor.withValues(alpha: 0.35),
-                          )
-                        : null,
-                  ),
-                  child: Text(
-                    mission.keyword,
-                    style: TextStyle(
-                      color: mission.keywordColor,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 // 고객 정보와 세부 내용을 한 줄에 이어 붙인다 — 아코디언 안은
                 // 가로로 넉넉해서, 굳이 두 줄로 쌓아 세로 자리를 쓸 이유가
                 // 없다.
@@ -623,60 +564,46 @@ class _MissionRow extends StatelessWidget {
                   child: Row(
                     children: <Widget>[
                       Flexible(
-                        child: mission.client == null
-                            ? Text(
-                                mission.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: nameStyle,
-                              )
-                            : ClientIdentity(
-                                client: mission.client!,
-                                nameStyle: nameStyle,
-                                demographicsStyle: nameStyle.copyWith(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.subtleForeground,
-                                ),
-                              ),
+                        child: Text(
+                          mission.client?.name ?? mission.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: nameStyle,
+                        ),
                       ),
-                      if (mission.subtitle.isNotEmpty) ...<Widget>[
-                        const Text(
-                          ' · ',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.subtleForeground,
+                      if (mission.client != null) ...<Widget>[
+                        const SizedBox(width: OnCareSpacing.s4),
+                        Flexible(
+                          child: Text(
+                            clientDemographicsLabel(context, mission.client!),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: captionStyle,
                           ),
                         ),
+                      ],
+                      if (mission.subtitle.isNotEmpty) ...<Widget>[
+                        Text(' · ', style: captionStyle),
                         Flexible(
                           child: Text(
                             mission.subtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.subtleForeground,
-                            ),
+                            style: captionStyle,
                           ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                InkWell(
+                AppIconButton(
                   key: ValueKey<String>(
                     'dashboard-mission-dismiss-${mission.key}',
                   ),
-                  onTap: onDismiss,
-                  borderRadius: const BorderRadius.all(AppRadius.pill),
-                  child: const Padding(
-                    padding: EdgeInsets.all(4),
-                    child: Icon(
-                      Icons.delete_outline,
-                      size: 16,
-                      color: AppColors.disabledForeground,
-                    ),
-                  ),
+                  icon: Icons.delete_outline_rounded,
+                  tooltip: l.actionDelete,
+                  onPressed: onDismiss,
+                  color: OnCareColors.textTertiary,
                 ),
               ],
             ),

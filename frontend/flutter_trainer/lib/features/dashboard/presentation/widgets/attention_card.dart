@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Clients who need the trainer today, with the reason spelled out.
 ///
@@ -35,88 +32,60 @@ class AttentionCard extends StatelessWidget {
     ClientAlert.lowCompletion => 'workout',
   };
 
+  /// 알림 뜻을 담는 태그 톤 — 남색 = 처리 필요, 빨강 = 목표 초과, 주황 = 이행률 저조.
+  static AppTagTone _toneFor(ClientAlert alert) => switch (alert) {
+    ClientAlert.unanswered => AppTagTone.brand,
+    ClientAlert.sodiumOver => AppTagTone.danger,
+    ClientAlert.sugarOver => AppTagTone.danger,
+    ClientAlert.lowCompletion => AppTagTone.caution,
+  };
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final shown = entries.take(maxRows).toList();
-    return SectionCard(
-      title: l.dashAttentionTitle,
-      icon: Icons.priority_high,
-      trailing: entries.length > maxRows
-          ? CardLink(
-              label: l.dashMoreCount(entries.length - maxRows),
-              onTap: () => context.go(AppRoutes.clientsFiltered('attention')),
+    final bool hasMore = entries.length > maxRows;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppSectionHeader(
+            title: l.dashAttentionTitle,
+            icon: Icons.priority_high_rounded,
+            actionLabel: hasMore
+                ? l.dashMoreCount(entries.length - maxRows)
+                : null,
+            onAction: hasMore
+                ? () => context.go(AppRoutes.clientsFiltered('attention'))
+                : null,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          if (shown.isEmpty)
+            AppEmptyState(
+              title: l.dashNoAttention,
+              icon: Icons.check_circle_rounded,
+              placement: AppStatePlacement.card,
             )
-          : null,
-      child: shown.isEmpty
-          ? EmptyHint(
-              message: l.dashNoAttention,
-              icon: Icons.check_circle_outline,
-            )
-          : Column(
-              children: <Widget>[
-                for (final entry in shown)
-                  _Row(
-                    entry: entry,
-                    onTap: () => context.go(
-                      AppRoutes.clientDetail(
-                        entry.client.id,
-                        section: sectionFor(entry.primary),
-                      ),
-                    ),
+          else
+            for (final entry in shown)
+              AppListRow(
+                title: clientIdentityLabel(context, entry.client),
+                subtitle: entry.client.goal.trim().isEmpty
+                    ? null
+                    : entry.client.goal,
+                leading: AppAvatar(name: entry.client.name),
+                trailing: AppTag(
+                  label: entry.primary.label(l),
+                  tone: _toneFor(entry.primary),
+                ),
+                onTap: () => context.go(
+                  AppRoutes.clientDetail(
+                    entry.client.id,
+                    section: sectionFor(entry.primary),
                   ),
-              ],
-            ),
-    );
-  }
-}
-
-class _Row extends StatelessWidget {
-  const _Row({required this.entry, required this.onTap});
-
-  final AttentionClient entry;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: const BorderRadius.all(AppRadius.sm),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
-        child: Row(
-          children: <Widget>[
-            ClientAvatar(label: entry.client.avatar, size: 28),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  ClientIdentity(
-                    client: entry.client,
-                    nameStyle: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.foreground,
-                    ),
-                  ),
-                  Text(
-                    entry.client.goal,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      color: AppColors.subtleForeground,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            AlertBadge(alert: entry.primary, showIcon: false),
-          ],
-        ),
+        ],
       ),
     );
   }

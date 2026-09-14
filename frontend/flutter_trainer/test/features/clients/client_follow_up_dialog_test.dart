@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_follow_up_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/follow_up_task_repository.dart';
@@ -17,11 +18,13 @@ Future<void> _pumpDialog(
       overrides: <Override>[
         followUpTaskRepositoryProvider.overrideWithValue(repository),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        // 행이 규격 컴포넌트(#1703)라 앱 테마(OnCareTokens)가 있어야 그린다.
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
+        home: const Scaffold(
           body: ClientFollowUpDialog(clientId: 'm1', clientName: '이지수'),
         ),
       ),
@@ -41,7 +44,9 @@ void main() {
       find.byKey(const ValueKey<String>('client-follow-up-input')),
       '최근 식단 나트륨 다시 확인',
     );
-    await tester.tap(find.byKey(const ValueKey<String>('client-follow-up-add')));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-follow-up-add')),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('최근 식단 나트륨 다시 확인'), findsOneWidget);
@@ -55,11 +60,7 @@ void main() {
 
   testWidgets('저장이 실패하면 입력한 내용과 목록이 그대로 남는다', (tester) async {
     final repository = FakeFollowUpRepository()
-      ..seed(
-        id: 'task-1',
-        title: '이미 있던 할 일',
-        dueDate: todayKst(),
-      );
+      ..seed(id: 'task-1', title: '이미 있던 할 일', dueDate: todayKst());
     await _pumpDialog(tester, repository);
 
     repository.failWrites = true;
@@ -67,7 +68,9 @@ void main() {
       find.byKey(const ValueKey<String>('client-follow-up-input')),
       '저장 실패할 내용',
     );
-    await tester.tap(find.byKey(const ValueKey<String>('client-follow-up-add')));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-follow-up-add')),
+    );
     await tester.pumpAndSettle();
 
     // 실패한 저장을 다시 누르는 데 다시 타이핑이 필요하면 안 된다.
@@ -78,7 +81,9 @@ void main() {
     // 재시도는 **같은 멱등키**로 나간다 — 앞선 시도가 서버에 닿았더라도 할 일이
     // 두 개가 되지 않는다.
     repository.failWrites = false;
-    await tester.tap(find.byKey(const ValueKey<String>('client-follow-up-add')));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('client-follow-up-add')),
+    );
     await tester.pumpAndSettle();
     expect(repository.seenRequestIds.length, 2);
     expect(repository.seenRequestIds.first, repository.seenRequestIds.last);

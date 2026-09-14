@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 이용약관 · 개인정보 처리방침 본문. (#968)
 ///
@@ -16,8 +11,9 @@ import 'package:oncare_trainer/shared/widgets/section_card.dart';
 /// 만들어 보내는 쪽이다. 그 조건이 회원 앱에만 적혀 있으면, 데이터를 다루는
 /// 사람은 자기가 무엇에 동의했는지 앱 안에서 볼 방법이 없다.
 ///
-/// 셸(사이드바) 밖의 최상위 라우트라 자기 Scaffold 를 갖는다 — 가입 화면에서
-/// 열릴 때는 세션이 없어 셸이 존재하지 않는다.
+/// 셸(사이드바) 밖의 최상위 라우트라 배경만 있는 최소 Scaffold 를 둔다 — 가입
+/// 화면에서 열릴 때는 세션이 없어 셸이 존재하지 않고, 그러면 버튼 잉크·본문
+/// 선택이 기대는 Material 조상도 없다.
 class LegalDocumentPage extends StatelessWidget {
   /// Creates the document view. [document] is a segment from
   /// [AppRoutes.legalDocuments]; anything else falls back to 이용약관.
@@ -29,6 +25,7 @@ class LegalDocumentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final bool isPrivacy = document == AppRoutes.legalPrivacy;
     final String title = isPrivacy
         ? l.myLegalPrivacyTitle
@@ -36,46 +33,42 @@ class LegalDocumentPage extends StatelessWidget {
     final String body = isPrivacy ? l.myLegalPrivacyBody : l.myLegalTermsBody;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: OnCareColors.surfacePage,
       body: SafeArea(
-        child: PageScaffold(
+        child: AppWebPage(
           title: title,
           subtitle: l.myLegalEffectiveDate,
-          maxWidth: AppLayout.contentMaxWidth,
-          actions: <Widget>[
-            ActionButton(
-              label: l.actionBack,
-              icon: Icons.arrow_back,
-              onPressed: () => _leave(context),
-            ),
-          ],
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          width: AppWebPageWidth.narrow,
+          leading: AppBackButton(onPressed: () => _leave(context)),
+          body: ListView(
             children: <Widget>[
-              SectionCard(
-                title: title,
-                icon: isPrivacy
-                    ? Icons.privacy_tip_outlined
-                    : Icons.description_outlined,
-                child: SelectableText(
-                  body,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    height: 1.7,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.foreground,
-                  ),
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    AppSectionHeader(
+                      title: title,
+                      icon: isPrivacy
+                          ? Icons.privacy_tip_rounded
+                          : Icons.description_rounded,
+                    ),
+                    const SizedBox(height: OnCareSpacing.s12),
+                    SelectableText(
+                      body,
+                      style: tokens
+                          .text(OnCareTypography.body)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: OnCareSpacing.s16),
               Center(
                 child: Text(
                   l.myLegalEffectiveDate,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.mutedForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textTertiary),
                 ),
               ),
             ],

@@ -4,15 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
-import 'package:oncare_trainer/design_system/tokens/toast.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/search/domain/client_search.dart';
@@ -21,19 +16,12 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Width cap that keeps the full search scope readable without letting the
 /// field compete with the page title.
 const double _fieldMaxWidth = 520;
-
-/// Narrowest space the inline field is worth rendering in.
-///
-/// Measured against what the header's title and actions leave over, not
-/// against the viewport: a page with four actions runs out of room long
-/// before a page with one does.
-const double _minInlineWidth = 400;
 
 /// Height cap of the results card (≈ five rows plus the footer).
 const double _dropdownMaxHeight = 360;
@@ -221,7 +209,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
 
   Future<void> _openDialog() async {
     final location = GoRouterState.of(context).uri;
-    final pick = await showDialog<_Pick>(
+    final pick = await showAppDialog<_Pick>(
       context: context,
       builder: (_) => _ClientSearchDialog(location: location),
     );
@@ -235,25 +223,29 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
     final facts = watchClientSearchFacts(ref, _results);
 
     // Below the shell's drawer breakpoint the console is in its
-    // phone/tablet-portrait form — a 52px app bar over a page header that
+    // phone/tablet-portrait form — a compact app bar over a page header that
     // already carries the title and every action. An inline field there
     // would squeeze both, so the icon + dialog is the only form.
     final compactShell =
-        MediaQuery.sizeOf(context).width < AppLayout.sidebarDrawerBreakpoint;
+        MediaQuery.sizeOf(context).width < OnCareLayout.sidebarDrawerBreakpoint;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (compactShell || constraints.maxWidth < _minInlineWidth) {
+        // Measured against what the header's title and actions leave over,
+        // not against the viewport: a page with four actions runs out of
+        // room long before a page with one does.
+        if (compactShell ||
+            constraints.maxWidth < OnCareLayout.headerCenterMinWidth) {
           // Right-aligned so it reads as one group with the header's
           // actions rather than floating in the gap.
           return Align(
             alignment: Alignment.centerRight,
-            child: IconButton(
+            child: AppIconButton(
               key: clientSearchIconKey,
               onPressed: _openDialog,
               tooltip: l.searchClients,
-              icon: const Icon(Icons.search, size: 20),
-              color: AppColors.mutedForeground,
+              icon: Icons.search_rounded,
+              color: OnCareColors.textSecondary,
             ),
           );
         }
@@ -297,33 +289,22 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
         const SingleActivator(LogicalKeyboardKey.arrowUp): () => _move(-1),
         const SingleActivator(LogicalKeyboardKey.escape): _close,
       },
-      child: TextField(
-        key: clientSearchFieldKey,
-        controller: _controller,
-        focusNode: _focus,
-        textInputAction: TextInputAction.search,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-          color: AppColors.foreground,
-        ),
-        decoration: InputDecoration(
-          isDense: true,
-          filled: true,
-          fillColor: AppColors.card,
-          hintText: hint,
-          hintStyle: const TextStyle(
-            fontSize: 13,
-            color: AppColors.subtleForeground,
-          ),
-          prefixIcon: const Icon(
-            Icons.search,
-            size: 20,
-            color: AppColors.subtleForeground,
-          ),
-          prefixIconConstraints: const BoxConstraints(minWidth: 40),
-          suffixIcon: _hasQuery
-              ? IconButton(
+      // Tapping the field reopens the dropdown for a query that is still
+      // there. A pointer listener rather than a gesture so it does not take
+      // part in the text field's own gesture arena.
+      child: Listener(
+        onPointerDown: (_) {
+          if (_hasQuery) _dropdown.show();
+        },
+        child: AppTextField(
+          key: clientSearchFieldKey,
+          controller: _controller,
+          focusNode: _focus,
+          hint: hint,
+          prefixIcon: Icons.search_rounded,
+          textInputAction: TextInputAction.search,
+          suffix: _hasQuery
+              ? AppIconButton(
                   // The controller has to be emptied too — clearing only
                   // the state would leave the typed name on screen with
                   // the search behind it already reset.
@@ -332,23 +313,13 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
                     _onQueryChanged('');
                   },
                   tooltip: l.searchClear,
-                  iconSize: 18,
-                  splashRadius: 18,
-                  color: AppColors.subtleForeground,
-                  icon: const Icon(Icons.close),
+                  icon: Icons.close_rounded,
+                  color: OnCareColors.textTertiary,
                 )
               : null,
-          suffixIconConstraints: const BoxConstraints(minWidth: 40),
-          contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-          border: _inlineFieldBorder,
-          enabledBorder: _inlineFieldBorder,
-          focusedBorder: _inlineFieldFocusedBorder,
+          onChanged: _onQueryChanged,
+          onSubmitted: (_) => _submit(facts),
         ),
-        onChanged: _onQueryChanged,
-        onSubmitted: (_) => _submit(facts),
-        onTap: () {
-          if (_hasQuery) _dropdown.show();
-        },
       ),
     );
   }
@@ -357,7 +328,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
     return CompositedTransformFollower(
       link: _link,
       targetAnchor: Alignment.bottomLeft,
-      offset: const Offset(0, AppSpacing.xs),
+      offset: const Offset(0, OnCareSpacing.s4),
       child: Align(
         alignment: Alignment.topLeft,
         child: TapRegion(
@@ -381,31 +352,10 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
   }
 }
 
-/// Pill field with no visible border — used in the dialog form, where the
-/// field floats on the dimmed backdrop and needs nothing to stand out.
-const OutlineInputBorder _fieldBorder = OutlineInputBorder(
-  borderRadius: BorderRadius.all(AppRadius.pill),
-  borderSide: BorderSide.none,
-);
-
-/// The inline form's border. The header canvas is [AppColors.background]
-/// (`#F5F7FA`) and the input fill used to be [AppColors.inputBackground]
-/// (`#F2F4F7`) — two greys three steps apart, so the field read as a hint of
-/// a shape rather than a place to type. White fill plus a hairline is what
-/// separates it now.
-const OutlineInputBorder _inlineFieldBorder = OutlineInputBorder(
-  borderRadius: BorderRadius.all(AppRadius.pill),
-  borderSide: BorderSide(color: AppColors.borderStrong),
-);
-
-/// Focus state of the inline field — the brand navy, as elsewhere.
-const OutlineInputBorder _inlineFieldFocusedBorder = OutlineInputBorder(
-  borderRadius: BorderRadius.all(AppRadius.pill),
-  borderSide: BorderSide(color: AppColors.primary, width: 1.5),
-);
-
 /// The dropdown (and the dialog's body): matches, or why there are none,
 /// plus the footer that explains the consistent default destination.
+///
+/// 메뉴 규격(#1693) — 흰 바탕·반경 12·진한 선 테두리·떠 있는 요소 그림자.
 class _ResultsCard extends StatelessWidget {
   const _ResultsCard({
     required this.width,
@@ -416,9 +366,11 @@ class _ResultsCard extends StatelessWidget {
     required this.footer,
     required this.onPick,
     required this.onOpenDestination,
+    this.inOverlay = true,
   });
 
-  final double width;
+  /// null 이면 부모 폭을 따른다(다이얼로그 본문).
+  final double? width;
   final String query;
   final List<TrainerClient> results;
   final ClientSearchFacts facts;
@@ -427,68 +379,70 @@ class _ResultsCard extends StatelessWidget {
   final ValueChanged<TrainerClient> onPick;
   final void Function(TrainerClient client, String route) onOpenDestination;
 
+  /// 오버레이에서는 화면 높이에 맞춰 줄어들고, 스크롤 본문(다이얼로그) 안에서는
+  /// 높이 제한이 없어 줄어들 수 없으므로 최대 높이만 둔다.
+  final bool inOverlay;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final Widget list = ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: _dropdownMaxHeight),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
+        shrinkWrap: true,
+        itemCount: results.length,
+        itemBuilder: (context, i) => _ResultRow(
+          client: results[i],
+          detail: clientSearchDetail(l, results[i], facts),
+          routes: <_SearchDestination, String?>{
+            for (final destination in _SearchDestination.values)
+              destination: _destinationRoute(destination, results[i], facts),
+          },
+          highlighted: i == highlighted,
+          onTap: () => onPick(results[i]),
+          onOpenDestination: (route) => onOpenDestination(results[i], route),
+        ),
+      ),
+    );
     return Container(
       key: clientSearchResultsKey,
       width: width,
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.lg),
-        border: Border.all(color: AppColors.borderStrong),
-        boxShadow: kCardShadow,
+      decoration: const BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.fromBorderSide(
+          BorderSide(color: OnCareColors.lineStrong),
+        ),
+        boxShadow: OnCareShadows.overlay,
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          if (results.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.lg,
-              ),
-              child: Text(
-                l.searchNoResults(query.trim()),
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.mutedForeground,
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (results.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s12,
+                  vertical: OnCareSpacing.s16,
                 ),
-              ),
-            )
-          else
-            Flexible(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxHeight: _dropdownMaxHeight,
+                child: Text(
+                  l.searchNoResults(query.trim()),
+                  style: context.oncare
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                  shrinkWrap: true,
-                  itemCount: results.length,
-                  itemBuilder: (context, i) => _ResultRow(
-                    client: results[i],
-                    detail: clientSearchDetail(l, results[i], facts),
-                    routes: <_SearchDestination, String?>{
-                      for (final destination in _SearchDestination.values)
-                        destination: _destinationRoute(
-                          destination,
-                          results[i],
-                          facts,
-                        ),
-                    },
-                    highlighted: i == highlighted,
-                    onTap: () => onPick(results[i]),
-                    onOpenDestination: (route) =>
-                        onOpenDestination(results[i], route),
-                  ),
-                ),
-              ),
-            ),
-          _Footer(text: footer),
-        ],
+              )
+            else if (inOverlay)
+              Flexible(child: list)
+            else
+              list,
+            _Footer(text: footer),
+          ],
+        ),
       ),
     );
   }
@@ -520,8 +474,10 @@ class _ResultRowState extends State<_ResultRow> {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final AppLocalizations l = AppLocalizations.of(context);
     return Material(
-      color: widget.highlighted ? AppColors.accentSurface : Colors.transparent,
+      color: widget.highlighted ? tokens.brand.surface : Colors.transparent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -530,38 +486,69 @@ class _ResultRowState extends State<_ResultRow> {
               Expanded(
                 child: InkWell(
                   onTap: widget.onTap,
+                  hoverColor: tokens.brand.surface,
                   child: Padding(
                     padding: const EdgeInsets.only(
-                      left: AppSpacing.md,
-                      top: AppSpacing.md,
-                      bottom: AppSpacing.md,
+                      left: OnCareSpacing.s12,
+                      top: OnCareSpacing.s12,
+                      bottom: OnCareSpacing.s12,
                     ),
                     child: Row(
                       children: <Widget>[
-                        ClientAvatar(label: widget.client.avatar, size: 36),
-                        const SizedBox(width: AppSpacing.sm),
+                        AppAvatar(
+                          name: widget.client.avatar,
+                          size: AppAvatarSize.large,
+                        ),
+                        const SizedBox(width: OnCareSpacing.s12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: <Widget>[
-                              ClientIdentity(
-                                client: widget.client,
-                                nameStyle: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.foreground,
-                                ),
+                              Row(
+                                children: <Widget>[
+                                  Flexible(
+                                    child: Text(
+                                      widget.client.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: tokens
+                                          .text(
+                                            OnCareTypography.strong(
+                                              OnCareTypography.bodyLarge,
+                                            ),
+                                          )
+                                          .copyWith(
+                                            color: OnCareColors.textPrimary,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: OnCareSpacing.s4),
+                                  Flexible(
+                                    child: Text(
+                                      clientDemographicsLabel(
+                                        context,
+                                        widget.client,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: tokens
+                                          .text(OnCareTypography.caption)
+                                          .copyWith(
+                                            color: OnCareColors.textTertiary,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 1),
                               Text(
                                 widget.detail,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.subtleForeground,
-                                ),
+                                style: tokens
+                                    .text(OnCareTypography.bodySmall)
+                                    .copyWith(
+                                      color: OnCareColors.textSecondary,
+                                    ),
                               ),
                             ],
                           ),
@@ -571,20 +558,17 @@ class _ResultRowState extends State<_ResultRow> {
                   ),
                 ),
               ),
-              Semantics(
-                label: AppLocalizations.of(context).searchQuickActions,
-                button: true,
-                child: IconButton(
-                  key: clientSearchQuickActionsKey(widget.client.id),
-                  onPressed: () =>
-                      setState(() => _showDestinations = !_showDestinations),
-                  icon: Icon(
-                    _showDestinations ? Icons.expand_less : Icons.more_horiz,
-                    size: 22,
-                  ),
-                ),
+              AppIconButton(
+                key: clientSearchQuickActionsKey(widget.client.id),
+                tooltip: l.searchQuickActions,
+                onPressed: () =>
+                    setState(() => _showDestinations = !_showDestinations),
+                icon: _showDestinations
+                    ? Icons.expand_less_rounded
+                    : Icons.more_horiz_rounded,
+                color: OnCareColors.textSecondary,
               ),
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: OnCareSpacing.s4),
             ],
           ),
           if (_showDestinations) _destinations(context),
@@ -596,17 +580,17 @@ class _ResultRowState extends State<_ResultRow> {
   Widget _destinations(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.borderStrong)),
+        border: Border(top: BorderSide(color: OnCareColors.lineSubtle)),
       ),
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-        AppSpacing.md,
+        OnCareSpacing.s12,
+        OnCareSpacing.s8,
+        OnCareSpacing.s12,
+        OnCareSpacing.s12,
       ),
       child: Wrap(
-        spacing: AppSpacing.xs,
-        runSpacing: AppSpacing.xs,
+        spacing: OnCareSpacing.s4,
+        runSpacing: OnCareSpacing.s4,
         children: <Widget>[
           for (final destination in _SearchDestination.values)
             _destinationButton(context, destination),
@@ -624,27 +608,27 @@ class _ResultRowState extends State<_ResultRow> {
     final (label, icon, keyName) = switch (destination) {
       _SearchDestination.clients => (
         l.navClients,
-        Icons.people_outline,
+        Icons.people_outline_rounded,
         'clients',
       ),
       _SearchDestination.schedule => (
         l.navSchedule,
-        Icons.calendar_today_outlined,
+        Icons.calendar_today_rounded,
         'schedule',
       ),
       _SearchDestination.messages => (
         l.navMessages,
-        Icons.chat_bubble_outline,
+        Icons.chat_bubble_outline_rounded,
         'messages',
       ),
       _SearchDestination.coaching => (
         l.navCoaching,
-        Icons.auto_awesome_outlined,
+        Icons.auto_awesome_rounded,
         'coaching',
       ),
       _SearchDestination.reports => (
         l.navReports,
-        Icons.assessment_outlined,
+        Icons.assessment_rounded,
         'reports',
       ),
     };
@@ -652,24 +636,13 @@ class _ResultRowState extends State<_ResultRow> {
       label: route == null ? '$label · ${l.searchDetailNoUpcoming}' : label,
       button: true,
       enabled: route != null,
-      child: OutlinedButton.icon(
+      child: AppButton(
         key: clientSearchDestinationKey(widget.client.id, keyName),
+        label: label,
+        leadingIcon: icon,
+        variant: AppButtonVariant.secondary,
+        size: OnCareButtonSize.small,
         onPressed: route == null ? null : () => widget.onOpenDestination(route),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.foreground,
-          visualDensity: VisualDensity.compact,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.sm,
-          ),
-          textStyle: const TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w600,
-          ),
-          side: const BorderSide(color: AppColors.borderStrong),
-        ),
-        icon: Icon(icon, size: 17),
-        label: Text(label),
       ),
     );
   }
@@ -684,30 +657,28 @@ class _Footer extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.background,
-        border: Border(top: BorderSide(color: AppColors.borderStrong)),
+        color: OnCareColors.surfacePage,
+        border: Border(top: BorderSide(color: OnCareColors.lineSubtle)),
       ),
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+        horizontal: OnCareSpacing.s12,
+        vertical: OnCareSpacing.s8,
       ),
       child: Row(
         children: <Widget>[
           const Icon(
-            Icons.subdirectory_arrow_left,
-            size: 15,
-            color: AppColors.subtleForeground,
+            Icons.subdirectory_arrow_left_rounded,
+            size: OnCareSize.iconSmall,
+            color: OnCareColors.textTertiary,
           ),
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(width: OnCareSpacing.s4),
           Expanded(
             child: Text(
               text,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.subtleForeground,
-              ),
+              style: context.oncare
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textTertiary),
             ),
           ),
         ],
@@ -716,7 +687,7 @@ class _Footer extends StatelessWidget {
   }
 }
 
-/// The compact form: the same search as a top-anchored dialog.
+/// The compact form: the same search inside an [AppDialog].
 ///
 /// Pops with the resolved [_Pick] instead of navigating itself — the
 /// caller owns the page context, so the snackbar and the `go` both land
@@ -770,91 +741,48 @@ class _ClientSearchDialogState extends ConsumerState<_ClientSearchDialog> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final facts = watchClientSearchFacts(ref, _results);
-    final width = math.min(
-      _fieldMaxWidth + AppSpacing.xl,
-      MediaQuery.sizeOf(context).width - AppSpacing.xxl,
-    );
 
-    return Dialog(
-      alignment: Alignment.topCenter,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      // 위쪽만 [AppToastStyle.dialogTopClearance] — 상단 토스트가 이
-      // 드롭다운 위로 겹쳐 뜰 수 있다.
-      insetPadding: const EdgeInsets.only(
-        top: AppToastStyle.dialogTopClearance,
-        left: AppSpacing.lg,
-        right: AppSpacing.lg,
-      ),
-      child: SizedBox(
-        width: width,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Material(
-              color: AppColors.card,
-              borderRadius: const BorderRadius.all(AppRadius.pill),
-              child: CallbackShortcuts(
-                bindings: <ShortcutActivator, VoidCallback>{
-                  const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
-                      _move(1),
-                  const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
-                      _move(-1),
-                  const SingleActivator(LogicalKeyboardKey.escape): () =>
-                      Navigator.of(context).pop(),
-                },
-                child: TextField(
-                  controller: _controller,
-                  autofocus: true,
-                  textInputAction: TextInputAction.search,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.foreground,
-                  ),
-                  decoration: InputDecoration(
-                    isDense: true,
-                    filled: true,
-                    fillColor: AppColors.card,
-                    hintText: l.searchClientsHint,
-                    hintStyle: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.subtleForeground,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search,
-                      size: 20,
-                      color: AppColors.subtleForeground,
-                    ),
-                    prefixIconConstraints: const BoxConstraints(minWidth: 40),
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.md,
-                    ),
-                    border: _fieldBorder,
-                    enabledBorder: _fieldBorder,
-                    focusedBorder: _fieldBorder,
-                  ),
-                  onChanged: _onQueryChanged,
-                  onSubmitted: (_) => _submit(facts),
-                ),
-              ),
+    return AppDialog(
+      title: l.searchClients,
+      size: AppDialogSize.medium,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          CallbackShortcuts(
+            bindings: <ShortcutActivator, VoidCallback>{
+              const SingleActivator(LogicalKeyboardKey.arrowDown): () =>
+                  _move(1),
+              const SingleActivator(LogicalKeyboardKey.arrowUp): () =>
+                  _move(-1),
+              const SingleActivator(LogicalKeyboardKey.escape): () =>
+                  Navigator.of(context).pop(),
+            },
+            child: AppTextField(
+              controller: _controller,
+              autofocus: true,
+              hint: l.searchClientsHint,
+              prefixIcon: Icons.search_rounded,
+              textInputAction: TextInputAction.search,
+              onChanged: _onQueryChanged,
+              onSubmitted: (_) => _submit(facts),
             ),
-            if (_query.trim().isNotEmpty) ...<Widget>[
-              const SizedBox(height: AppSpacing.sm),
-              _ResultsCard(
-                width: width,
-                query: _query,
-                results: _results,
-                facts: facts,
-                highlighted: _highlight,
-                footer: clientSearchFooter(l, widget.location),
-                onPick: (client) => _pop(client, facts),
-                onOpenDestination: (client, route) => _popRoute(client, route),
-              ),
-            ],
+          ),
+          if (_query.trim().isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultsCard(
+              width: null,
+              inOverlay: false,
+              query: _query,
+              results: _results,
+              facts: facts,
+              highlighted: _highlight,
+              footer: clientSearchFooter(l, widget.location),
+              onPick: (client) => _pop(client, facts),
+              onOpenDestination: (client, route) => _popRoute(client, route),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

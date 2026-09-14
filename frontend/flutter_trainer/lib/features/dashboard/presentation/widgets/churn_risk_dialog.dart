@@ -2,19 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Opens the 이탈 위험 dialog: who's flagged, and why.
 Future<void> showChurnRiskDialog(
   BuildContext context, {
   required List<ChurnRiskClient> entries,
-}) => showDialog<void>(
+}) => showAppDialog<void>(
   context: context,
   builder: (_) => ChurnRiskDialog(entries: entries),
 );
@@ -31,45 +28,25 @@ class ChurnRiskDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return AlertDialog(
+    return AppDialog(
       key: const ValueKey<String>('churn-risk-dialog'),
-      title: Row(
-        children: <Widget>[
-          Expanded(child: Text(l.dashChurnRiskTitle)),
-          IconButton(
-            key: const ValueKey<String>('churn-risk-dialog-close'),
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close),
-            iconSize: 20,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-            color: AppColors.subtleForeground,
-          ),
-        ],
-      ),
-      content: SizedBox(
-        width: 480,
-        child: entries.isEmpty
-            ? Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                child: Text(
-                  l.dashChurnRiskEmpty,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.mutedForeground),
-                ),
-              )
-            : SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    for (final entry in entries) ...<Widget>[
-                      _ChurnRiskTile(entry: entry),
-                      const SizedBox(height: AppSpacing.sm),
-                    ],
-                  ],
-                ),
-              ),
-      ),
+      title: l.dashChurnRiskTitle,
+      size: AppDialogSize.medium,
+      child: entries.isEmpty
+          ? AppEmptyState(
+              title: l.dashChurnRiskEmpty,
+              placement: AppStatePlacement.card,
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                for (var i = 0; i < entries.length; i++) ...<Widget>[
+                  if (i > 0) const AppDivider(),
+                  _ChurnRiskTile(entry: entries[i]),
+                ],
+              ],
+            ),
     );
   }
 }
@@ -83,86 +60,41 @@ class _ChurnRiskTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final client = entry.client;
-    return InkWell(
-      key: ValueKey<String>('churn-risk-tile-${client.id}'),
-      borderRadius: const BorderRadius.all(AppRadius.md),
-      onTap: () {
-        Navigator.of(context).pop();
-        context.go(AppRoutes.clientDetail(client.id));
-      },
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.borderStrong),
-          borderRadius: const BorderRadius.all(AppRadius.md),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        AppListRow(
+          key: ValueKey<String>('churn-risk-tile-${client.id}'),
+          title: clientIdentityLabel(context, client),
+          subtitle: client.goal.trim().isNotEmpty ? client.goal : null,
+          leading: AppAvatar(name: client.name),
+          trailing: const Icon(
+            Icons.chevron_right_rounded,
+            size: OnCareSize.iconMedium,
+            color: OnCareColors.textDisabled,
+          ),
+          onTap: () {
+            Navigator.of(context).pop();
+            context.go(AppRoutes.clientDetail(client.id));
+          },
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                ClientAvatar(label: client.avatar, size: 32),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      ClientIdentity(
-                        client: client,
-                        nameStyle: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                      if (client.goal.trim().isNotEmpty)
-                        Text(
-                          client.goal,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.subtleForeground,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  size: 18,
-                  color: AppColors.disabledForeground,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
-              children: <Widget>[
-                for (final signal in entry.signals)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withValues(alpha: 0.10),
-                      borderRadius: const BorderRadius.all(AppRadius.pill),
-                    ),
-                    child: Text(
-                      signal.label(l),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.warning,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            OnCareSpacing.s16,
+            0,
+            OnCareSpacing.s16,
+            OnCareSpacing.s12,
+          ),
+          child: Wrap(
+            spacing: OnCareSpacing.s4,
+            runSpacing: OnCareSpacing.s4,
+            children: <Widget>[
+              for (final signal in entry.signals)
+                AppTag(label: signal.label(l), tone: AppTagTone.danger),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

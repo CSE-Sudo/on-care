@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 월~일 stacked bar of daily 오늘 할 일 completion.
 ///
@@ -51,21 +49,27 @@ class TaskProgressChart extends StatelessWidget {
     return '$percent%';
   }
 
+  /// 막대 칸 높이(퍼센트 라벨 포함).
+  static const double _chartHeight = 102;
+
   @override
   Widget build(BuildContext context) {
+    final Color brand = context.oncare.brand.primary;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         SizedBox(
-          height: 102,
+          height: _chartHeight,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               for (var i = 0; i < snapshots.length; i++)
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: OnCareSpacing.s4,
+                    ),
                     child: _StackedBar(
                       index: i,
                       snapshot: snapshots[i],
@@ -77,7 +81,7 @@ class TaskProgressChart extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: OnCareSpacing.s4),
         Row(
           children: <Widget>[
             for (var i = 0; i < labels.length; i++)
@@ -89,17 +93,17 @@ class TaskProgressChart extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: isCurrentWeek && i == todayIndex
-                        ? FontWeight.w800
-                        : FontWeight.w500,
-                    color: isCurrentWeek && i == todayIndex
-                        ? AppColors.primary
-                        : isCurrentWeek && i > todayIndex
-                        ? AppColors.disabledForeground
-                        : AppColors.subtleForeground,
-                  ),
+                  style:
+                      chartAxisLabelStyle(
+                        context,
+                        selected: isCurrentWeek && i == todayIndex,
+                      ).copyWith(
+                        color: isCurrentWeek && i == todayIndex
+                            ? brand
+                            : isCurrentWeek && i > todayIndex
+                            ? OnCareColors.textDisabled
+                            : OnCareColors.textTertiary,
+                      ),
                 ),
               ),
           ],
@@ -128,19 +132,13 @@ class TaskProgressLegend extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 4),
+        AppChartSwatch(color: color),
+        const SizedBox(width: OnCareSpacing.s4),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w600,
-            color: AppColors.subtleForeground,
-          ),
+          style: chartAxisLabelStyle(
+            context,
+          ).copyWith(color: OnCareColors.textSecondary),
         ),
       ],
     );
@@ -160,8 +158,15 @@ class _StackedBar extends StatelessWidget {
   final String percentLabel;
   final bool pending;
 
+  /// 기록이 없는 날의 빈 트랙 두께.
+  static const double _emptyTrackHeight = 2;
+
+  /// 막대 위 퍼센트 라벨 칸 높이 — `caption` 한 줄.
+  static const double _labelHeight = 16;
+
   @override
   Widget build(BuildContext context) {
+    final OnCareBrand brand = context.oncare.brand;
     // 아직 오지 않은 요일과, 그날 대시보드를 아예 열지 않아 기록이 없는
     // 요일은 같은 빈 트랙이지만 다른 사실이다 — 어느 쪽도 `0` 으로 읽히면
     // 안 된다.
@@ -169,18 +174,18 @@ class _StackedBar extends StatelessWidget {
     if (pending || missing) {
       return const DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.border,
-          borderRadius: BorderRadius.vertical(top: AppRadius.xs),
+          color: OnCareColors.lineSubtle,
+          borderRadius: BorderRadius.vertical(top: OnCareRadius.xs),
         ),
-        child: SizedBox(height: 2),
+        child: SizedBox(height: _emptyTrackHeight),
       );
     }
 
     final s = snapshot!;
     return LayoutBuilder(
       builder: (context, constraints) {
-        const labelHeight = 12.0;
-        const labelGap = 2.0;
+        const labelHeight = _labelHeight;
+        const labelGap = OnCareSpacing.s2;
         final maxBarHeight = constraints.maxHeight - labelHeight - labelGap;
         final completionRate = s.total == 0
             ? 0.0
@@ -203,11 +208,7 @@ class _StackedBar extends StatelessWidget {
                 child: Text(
                   percentLabel,
                   key: ValueKey<String>('task-progress-percent-$index'),
-                  style: const TextStyle(
-                    fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.subtleForeground,
-                  ),
+                  style: chartAxisLabelStyle(context),
                 ),
               ),
             ),
@@ -220,19 +221,23 @@ class _StackedBar extends StatelessWidget {
                   if (carriedHeight > 0)
                     Container(
                       height: carriedHeight,
-                      decoration: const BoxDecoration(
-                        color: AppColors.aiCardGradientEnd,
-                        borderRadius: BorderRadius.vertical(top: AppRadius.xs),
+                      decoration: BoxDecoration(
+                        color: brand.border,
+                        borderRadius: const BorderRadius.vertical(
+                          top: OnCareRadius.xs,
+                        ),
                       ),
                     ),
                   if (todayHeight > 0)
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: brand.primary,
                           borderRadius: carriedHeight > 0
                               ? null
-                              : const BorderRadius.vertical(top: AppRadius.xs),
+                              : const BorderRadius.vertical(
+                                  top: OnCareRadius.xs,
+                                ),
                         ),
                       ),
                     ),

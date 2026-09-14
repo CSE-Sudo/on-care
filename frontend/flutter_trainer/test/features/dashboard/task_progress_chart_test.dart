@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/task_progress_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   testWidgets('bar heights follow completion rates instead of task counts', (
@@ -36,6 +37,10 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: OnCareTheme.light(
+          brand: OnCareBrand.trainer,
+          density: OnCareDensity.web,
+        ),
         home: Scaffold(
           body: SizedBox(
             width: 360,
