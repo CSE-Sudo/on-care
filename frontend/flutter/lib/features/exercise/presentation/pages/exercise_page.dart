@@ -79,7 +79,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       body: SafeArea(
         bottom: false,
         child: Center(

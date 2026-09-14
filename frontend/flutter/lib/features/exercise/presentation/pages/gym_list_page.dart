@@ -45,7 +45,7 @@ class GymListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: l.exFindGym),
       body: const SafeArea(top: false, child: GymFinderView()),
     );
@@ -387,7 +387,7 @@ class _SheetSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        color: OnCareColors.surfacePage,
+        color: OnCareColors.surfaceCard,
         borderRadius: OnCareRadius.sheetTop,
         boxShadow: OnCareShadows.overlay,
       ),

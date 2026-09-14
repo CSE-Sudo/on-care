@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/tokens/brand.dart';
+import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
 
 /// 테마에 실린 브랜드·밀도. 컴포넌트는 앱 이름으로 분기하지 않고 이것만 읽는다.
@@ -14,6 +15,11 @@ class OnCareTokens extends ThemeExtension<OnCareTokens> {
   /// 화면이 쓰는 역할 글자. 전역 글자 배율이 없어져(#1707) 역할 크기 그대로다 —
   /// 글자를 그리는 곳이 한 통로를 지나도록 남겨 둔다.
   TextStyle text(TextStyle style) => style;
+
+  /// 페이지 배경. 회원앱(모바일)은 흰색, 트레이너웹은 연회색 위에 흰 카드를
+  /// 얹는다(#1740).
+  Color get pageBackground =>
+      density.isWeb ? OnCareColors.surfacePage : OnCareColors.surfaceCard;
 
   @override
   OnCareTokens copyWith({OnCareBrand? brand, OnCareDensity? density}) =>
