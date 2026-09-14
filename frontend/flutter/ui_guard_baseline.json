@@ -1,0 +1,591 @@
+{
+  "lib/app/router/main_shell.dart": {
+    "fontSize": 5,
+    "fontWeight": 3,
+    "colorLiteral": 2,
+    "materialColor": 3,
+    "opacity": 2,
+    "radius": 5,
+    "edgeInsets": 3,
+    "sizedBox": 8,
+    "nonRoundedIcon": 12,
+    "materialWidget": 1
+  },
+  "lib/core/utils/portrait_date_picker.dart": {
+    "fontWeight": 1,
+    "materialColor": 2,
+    "nonRoundedIcon": 1,
+    "materialWidget": 7
+  },
+  "lib/design_system/atoms/app_avatar.dart": {
+    "fontSize": 1,
+    "fontWeight": 1
+  },
+  "lib/design_system/atoms/app_badge.dart": {
+    "fontSize": 1,
+    "fontWeight": 1,
+    "opacity": 4,
+    "edgeInsets": 1
+  },
+  "lib/design_system/atoms/app_button.dart": {
+    "sizedBox": 1,
+    "materialWidget": 3
+  },
+  "lib/design_system/atoms/app_choice_chip.dart": {
+    "fontSize": 1,
+    "fontWeight": 1,
+    "materialColor": 1,
+    "radius": 1,
+    "edgeInsets": 1
+  },
+  "lib/design_system/atoms/app_input.dart": {
+    "materialWidget": 1
+  },
+  "lib/design_system/atoms/app_number_stepper.dart": {
+    "fontSize": 2,
+    "fontWeight": 2,
+    "radius": 3,
+    "edgeInsets": 2,
+    "sizedBox": 1,
+    "nonRoundedIcon": 2,
+    "materialWidget": 1
+  },
+  "lib/design_system/catalog/ui_catalog_page.dart": {
+    "opacity": 2,
+    "sizedBox": 5,
+    "nonRoundedIcon": 5,
+    "materialWidget": 1
+  },
+  "lib/design_system/charts/app_bar_chart.dart": {
+    "radius": 1,
+    "edgeInsets": 1
+  },
+  "lib/design_system/charts/app_line_chart.dart": {
+    "opacity": 1
+  },
+  "lib/design_system/charts/goal_line.dart": {
+    "fontWeight": 1,
+    "lineHeight": 1
+  },
+  "lib/design_system/charts/period_scroll_chart.dart": {
+    "fontSize": 1,
+    "fontWeight": 1,
+    "radius": 1,
+    "edgeInsets": 1,
+    "sizedBox": 2
+  },
+  "lib/design_system/figma/figma_kit.dart": {
+    "fontSize": 2,
+    "fontWeight": 2,
+    "letterSpacing": 1,
+    "lineHeight": 1,
+    "colorLiteral": 32,
+    "materialColor": 2,
+    "opacity": 5,
+    "radius": 1,
+    "edgeInsets": 2,
+    "sizedBox": 2,
+    "boxShadow": 2,
+    "nonRoundedIcon": 1
+  },
+  "lib/design_system/figma/section_title.dart": {
+    "fontSize": 1,
+    "fontWeight": 1,
+    "sizedBox": 1
+  },
+  "lib/design_system/molecules/metric_card.dart": {
+    "fontWeight": 1,
+    "opacity": 1,
+    "edgeInsets": 1,
+    "sizedBox": 1
+  },
+  "lib/design_system/theme/app_theme.dart": {
+    "colorLiteral": 3
+  },
+  "lib/design_system/tokens/colors.dart": {
+    "colorLiteral": 25
+  },
+  "lib/design_system/tokens/motion.dart": {
+    "animationDuration": 3
+  },
+  "lib/design_system/tokens/radius.dart": {
+    "radius": 7
+  },
+  "lib/design_system/tokens/toast.dart": {
+    "fontSize": 1,
+    "fontWeight": 1,
+    "lineHeight": 1,
+    "colorLiteral": 5,
+    "animationDuration": 3
+  },
+  "lib/design_system/tokens/typography.dart": {
+    "fontSize": 15,
+    "fontWeight": 11,
+    "lineHeight": 12
+  },
+  "lib/features/account/presentation/pages/onboarding_page.dart": {
+    "fontSize": 14,
+    "fontWeight": 16,
+    "lineHeight": 1,
+    "materialColor": 5,
+    "radius": 10,
+    "edgeInsets": 5,
+    "sizedBox": 10,
+    "animationDuration": 2,
+    "nonRoundedIcon": 2,
+    "materialWidget": 12
+  },
+  "lib/features/ai_coach/presentation/pages/ai_coach_page.dart": {
+    "fontSize": 12,
+    "fontWeight": 9,
+    "lineHeight": 3,
+    "colorLiteral": 2,
+    "materialColor": 8,
+    "radius": 14,
+    "edgeInsets": 14,
+    "sizedBox": 13,
+    "animationDuration": 1,
+    "nonRoundedIcon": 3,
+    "materialWidget": 2
+  },
+  "lib/features/auth/presentation/pages/sign_in_page.dart": {
+    "fontSize": 1,
+    "fontWeight": 2,
+    "colorLiteral": 2,
+    "sizedBox": 1,
+    "nonRoundedIcon": 5,
+    "materialWidget": 7
+  },
+  "lib/features/auth/presentation/pages/sign_up_page.dart": {
+    "fontWeight": 1,
+    "sizedBox": 2,
+    "nonRoundedIcon": 8,
+    "materialWidget": 4
+  },
+  "lib/features/auth/presentation/widgets/auth_fields.dart": {
+    "fontSize": 1,
+    "fontWeight": 1,
+    "materialColor": 1,
+    "sizedBox": 1,
+    "materialWidget": 2
+  },
+  "lib/features/dashboard/presentation/widgets/dashboard_content.dart": {
+    "fontSize": 23,
+    "fontWeight": 19,
+    "letterSpacing": 2,
+    "lineHeight": 7,
+    "colorLiteral": 5,
+    "materialColor": 5,
+    "radius": 11,
+    "edgeInsets": 18,
+    "sizedBox": 25,
+    "nonRoundedIcon": 2,
+    "materialWidget": 4
+  },
+  "lib/features/diet/presentation/pages/diet_record_page.dart": {
+    "fontSize": 29,
+    "fontWeight": 28,
+    "letterSpacing": 1,
+    "lineHeight": 4,
+    "colorLiteral": 4,
+    "materialColor": 7,
+    "opacity": 3,
+    "radius": 14,
+    "edgeInsets": 24,
+    "sizedBox": 37,
+    "animationDuration": 1,
+    "nonRoundedIcon": 7,
+    "materialWidget": 5
+  },
+  "lib/features/diet/presentation/widgets/diet_flows.dart": {
+    "fontSize": 47,
+    "fontWeight": 35,
+    "lineHeight": 4,
+    "colorLiteral": 8,
+    "materialColor": 12,
+    "opacity": 1,
+    "radius": 20,
+    "edgeInsets": 30,
+    "sizedBox": 46,
+    "animationDuration": 3,
+    "nonRoundedIcon": 10,
+    "materialWidget": 25
+  },
+  "lib/features/diet/presentation/widgets/diet_period_view.dart": {
+    "fontSize": 10,
+    "fontWeight": 9,
+    "letterSpacing": 1,
+    "lineHeight": 2,
+    "colorLiteral": 1,
+    "materialColor": 1,
+    "opacity": 4,
+    "radius": 6,
+    "edgeInsets": 10,
+    "sizedBox": 9,
+    "materialWidget": 3
+  },
+  "lib/features/exercise/presentation/pages/consultation_complete_page.dart": {
+    "fontSize": 6,
+    "fontWeight": 4,
+    "lineHeight": 1,
+    "materialColor": 3,
+    "radius": 2,
+    "edgeInsets": 3,
+    "sizedBox": 6,
+    "materialWidget": 5
+  },
+  "lib/features/exercise/presentation/pages/consultation_history_page.dart": {
+    "fontSize": 3,
+    "fontWeight": 2,
+    "materialColor": 2,
+    "edgeInsets": 2,
+    "sizedBox": 4,
+    "nonRoundedIcon": 1,
+    "materialWidget": 6
+  },
+  "lib/features/exercise/presentation/pages/consultation_request_page.dart": {
+    "fontSize": 16,
+    "fontWeight": 12,
+    "lineHeight": 2,
+    "materialColor": 3,
+    "radius": 11,
+    "edgeInsets": 10,
+    "sizedBox": 24,
+    "nonRoundedIcon": 6,
+    "materialWidget": 9
+  },
+  "lib/features/exercise/presentation/pages/exercise_page.dart": {
+    "fontSize": 23,
+    "fontWeight": 20,
+    "lineHeight": 5,
+    "colorLiteral": 1,
+    "materialColor": 4,
+    "opacity": 1,
+    "radius": 8,
+    "edgeInsets": 31,
+    "sizedBox": 40,
+    "nonRoundedIcon": 9,
+    "materialWidget": 6
+  },
+  "lib/features/exercise/presentation/pages/gym_detail_page.dart": {
+    "fontSize": 16,
+    "fontWeight": 10,
+    "lineHeight": 2,
+    "materialColor": 4,
+    "radius": 6,
+    "edgeInsets": 12,
+    "sizedBox": 18,
+    "nonRoundedIcon": 10,
+    "materialWidget": 9
+  },
+  "lib/features/exercise/presentation/pages/gym_list_page.dart": {
+    "fontSize": 13,
+    "fontWeight": 9,
+    "colorLiteral": 5,
+    "materialColor": 6,
+    "opacity": 1,
+    "radius": 10,
+    "edgeInsets": 11,
+    "sizedBox": 14,
+    "boxShadow": 2,
+    "nonRoundedIcon": 6,
+    "materialWidget": 7
+  },
+  "lib/features/exercise/presentation/pages/trainer_detail_page.dart": {
+    "fontSize": 12,
+    "fontWeight": 9,
+    "lineHeight": 2,
+    "materialColor": 3,
+    "radius": 4,
+    "edgeInsets": 5,
+    "sizedBox": 17,
+    "nonRoundedIcon": 8,
+    "materialWidget": 7
+  },
+  "lib/features/exercise/presentation/pages/trainer_list_page.dart": {
+    "fontSize": 9,
+    "fontWeight": 5,
+    "lineHeight": 1,
+    "materialColor": 4,
+    "radius": 5,
+    "edgeInsets": 4,
+    "sizedBox": 8,
+    "nonRoundedIcon": 4,
+    "materialWidget": 6
+  },
+  "lib/features/exercise/presentation/widgets/connected_gym_card.dart": {
+    "fontSize": 3,
+    "fontWeight": 3,
+    "materialColor": 1,
+    "radius": 4,
+    "edgeInsets": 3,
+    "sizedBox": 9,
+    "nonRoundedIcon": 4,
+    "materialWidget": 1
+  },
+  "lib/features/exercise/presentation/widgets/connection_disconnect.dart": {
+    "fontSize": 3,
+    "fontWeight": 2,
+    "lineHeight": 1,
+    "colorLiteral": 3,
+    "materialColor": 1,
+    "radius": 2,
+    "materialWidget": 8
+  },
+  "lib/features/exercise/presentation/widgets/consult_time_range_picker.dart": {
+    "fontSize": 3,
+    "fontWeight": 5,
+    "radius": 4,
+    "edgeInsets": 1,
+    "sizedBox": 4,
+    "nonRoundedIcon": 3,
+    "materialWidget": 9
+  },
+  "lib/features/exercise/presentation/widgets/consultation_request_card.dart": {
+    "fontSize": 7,
+    "fontWeight": 5,
+    "lineHeight": 1,
+    "materialColor": 1,
+    "opacity": 1,
+    "radius": 4,
+    "edgeInsets": 4,
+    "sizedBox": 10,
+    "nonRoundedIcon": 1,
+    "materialWidget": 2
+  },
+  "lib/features/exercise/presentation/widgets/exercise_activity_status.dart": {
+    "fontSize": 11,
+    "fontWeight": 11,
+    "letterSpacing": 3,
+    "lineHeight": 1,
+    "colorLiteral": 11,
+    "materialColor": 4,
+    "opacity": 3,
+    "radius": 7,
+    "edgeInsets": 5,
+    "sizedBox": 17,
+    "animationDuration": 1,
+    "nonRoundedIcon": 2,
+    "materialWidget": 1
+  },
+  "lib/features/exercise/presentation/widgets/exercise_flows.dart": {
+    "fontSize": 9,
+    "fontWeight": 8,
+    "colorLiteral": 1,
+    "materialColor": 3,
+    "opacity": 1,
+    "radius": 10,
+    "edgeInsets": 8,
+    "sizedBox": 20,
+    "nonRoundedIcon": 4,
+    "materialWidget": 11
+  },
+  "lib/features/exercise/presentation/widgets/gym_locator_map.dart": {
+    "fontSize": 1,
+    "colorLiteral": 4,
+    "materialColor": 3,
+    "opacity": 1,
+    "radius": 3,
+    "edgeInsets": 1
+  },
+  "lib/features/exercise/presentation/widgets/gym_tab.dart": {
+    "fontSize": 27,
+    "fontWeight": 23,
+    "lineHeight": 2,
+    "materialColor": 7,
+    "opacity": 2,
+    "radius": 12,
+    "edgeInsets": 17,
+    "sizedBox": 36,
+    "nonRoundedIcon": 8,
+    "materialWidget": 19
+  },
+  "lib/features/exercise/presentation/widgets/gym_trainer_line.dart": {
+    "fontSize": 3,
+    "fontWeight": 3,
+    "lineHeight": 1,
+    "materialColor": 2,
+    "radius": 2,
+    "edgeInsets": 3,
+    "sizedBox": 4,
+    "nonRoundedIcon": 2,
+    "materialWidget": 2
+  },
+  "lib/features/exercise/presentation/widgets/own_exercise_records.dart": {
+    "fontSize": 6,
+    "fontWeight": 6,
+    "materialColor": 3,
+    "radius": 4,
+    "edgeInsets": 5,
+    "sizedBox": 4,
+    "nonRoundedIcon": 2,
+    "materialWidget": 1
+  },
+  "lib/features/member_coach/presentation/widgets/coach_card.dart": {
+    "fontSize": 14,
+    "fontWeight": 10,
+    "lineHeight": 3,
+    "materialColor": 4,
+    "radius": 8,
+    "edgeInsets": 9,
+    "sizedBox": 19,
+    "nonRoundedIcon": 3,
+    "materialWidget": 16
+  },
+  "lib/features/member_coach/presentation/widgets/coach_chat_sheet.dart": {
+    "fontSize": 7,
+    "fontWeight": 7,
+    "lineHeight": 1,
+    "colorLiteral": 1,
+    "materialColor": 6,
+    "opacity": 3,
+    "radius": 10,
+    "edgeInsets": 11,
+    "sizedBox": 18,
+    "nonRoundedIcon": 8,
+    "materialWidget": 6
+  },
+  "lib/features/member_coach/presentation/widgets/coach_image_attachment.dart": {
+    "fontSize": 1,
+    "radius": 1,
+    "sizedBox": 3,
+    "nonRoundedIcon": 1,
+    "materialWidget": 1
+  },
+  "lib/features/member_coach/presentation/widgets/coach_invite_card.dart": {
+    "fontSize": 5,
+    "fontWeight": 2,
+    "materialColor": 1,
+    "radius": 1,
+    "edgeInsets": 3,
+    "sizedBox": 5,
+    "materialWidget": 6
+  },
+  "lib/features/member_coach/presentation/widgets/coach_report_card.dart": {
+    "fontSize": 3,
+    "fontWeight": 3,
+    "materialColor": 1,
+    "radius": 1,
+    "edgeInsets": 2,
+    "sizedBox": 2,
+    "nonRoundedIcon": 1,
+    "materialWidget": 2
+  },
+  "lib/features/my_health/presentation/pages/my_health_page.dart": {
+    "fontSize": 27,
+    "fontWeight": 23,
+    "letterSpacing": 1,
+    "lineHeight": 3,
+    "materialColor": 18,
+    "opacity": 7,
+    "radius": 18,
+    "edgeInsets": 18,
+    "sizedBox": 37,
+    "nonRoundedIcon": 10,
+    "materialWidget": 18
+  },
+  "lib/features/my_health/presentation/widgets/my_flows.dart": {
+    "fontSize": 21,
+    "fontWeight": 16,
+    "lineHeight": 3,
+    "materialColor": 6,
+    "radius": 8,
+    "edgeInsets": 11,
+    "sizedBox": 36,
+    "nonRoundedIcon": 6,
+    "materialWidget": 14
+  },
+  "lib/features/my_health/presentation/widgets/trainer_sync_sheet.dart": {
+    "fontSize": 2,
+    "fontWeight": 2,
+    "materialColor": 1,
+    "radius": 3,
+    "edgeInsets": 1,
+    "materialWidget": 3
+  },
+  "lib/features/notification/presentation/pages/notification_page.dart": {
+    "edgeInsets": 1,
+    "sizedBox": 3,
+    "nonRoundedIcon": 1,
+    "materialWidget": 4
+  },
+  "lib/features/schedule/presentation/schedule_category_color.dart": {
+    "colorLiteral": 5
+  },
+  "lib/shared/widgets/ai_advice_card.dart": {
+    "fontSize": 4,
+    "fontWeight": 4,
+    "lineHeight": 3,
+    "radius": 1,
+    "edgeInsets": 2,
+    "sizedBox": 3,
+    "materialWidget": 2
+  },
+  "lib/shared/widgets/coaching_sheet.dart": {
+    "fontSize": 6,
+    "fontWeight": 5,
+    "lineHeight": 2,
+    "colorLiteral": 2,
+    "materialColor": 3,
+    "radius": 5,
+    "edgeInsets": 6,
+    "sizedBox": 7,
+    "nonRoundedIcon": 1,
+    "materialWidget": 3
+  },
+  "lib/shared/widgets/empty_state.dart": {
+    "edgeInsets": 1,
+    "sizedBox": 2
+  },
+  "lib/shared/widgets/error_view.dart": {
+    "edgeInsets": 1,
+    "sizedBox": 3,
+    "nonRoundedIcon": 2,
+    "materialWidget": 1
+  },
+  "lib/shared/widgets/metric_trend_chart.dart": {
+    "fontSize": 3,
+    "fontWeight": 4,
+    "lineHeight": 1,
+    "colorLiteral": 1,
+    "materialColor": 2,
+    "opacity": 4,
+    "sizedBox": 1
+  },
+  "lib/shared/widgets/modals/add_event_dialog.dart": {
+    "fontWeight": 1,
+    "materialColor": 2,
+    "edgeInsets": 1,
+    "sizedBox": 2,
+    "nonRoundedIcon": 4,
+    "materialWidget": 5
+  },
+  "lib/shared/widgets/modals/day_events_sheet.dart": {
+    "fontWeight": 1,
+    "materialColor": 1,
+    "radius": 1,
+    "sizedBox": 3,
+    "nonRoundedIcon": 4,
+    "materialWidget": 10
+  },
+  "lib/shared/widgets/modals/schedule_calendar_sheet.dart": {
+    "fontSize": 1,
+    "fontWeight": 3,
+    "materialColor": 1,
+    "opacity": 1,
+    "radius": 2,
+    "edgeInsets": 4,
+    "sizedBox": 3,
+    "nonRoundedIcon": 3,
+    "materialWidget": 6
+  },
+  "lib/shared/widgets/oni_fab.dart": {
+    "fontSize": 1,
+    "fontWeight": 1,
+    "lineHeight": 1,
+    "materialColor": 2,
+    "opacity": 1,
+    "sizedBox": 1,
+    "boxShadow": 1
+  }
+}
