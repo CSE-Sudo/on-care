@@ -373,89 +373,49 @@ void main() {
   );
 
   test(
-    'registerProgram delegates lookup and write to one atomic command',
+    'registerProgramSchedule sends assignment and schedule as one command',
     () async {
-      const path = '/trainer/clients/m1/schedule-program';
+      const path = '/trainer/clients/m1/program-schedule';
       when(
-        () => dio.put<Map<String, dynamic>>(path, data: any(named: 'data')),
-      ).thenAnswer(
-        (_) async =>
-            _okMap(path, <String, dynamic>{'attached_to_existing': true}),
-      );
-
-      final attached = await repo.registerProgram(
-        date: '2026-08-06',
-        clientId: 'm1',
-        clientName: '김민수',
-        time: '16:00',
-        durationMinutes: 75,
-        program: const <ProgramItem>[ProgramItem(name: '스쿼트', sets: 1)],
-      );
-
-      expect(attached, isTrue);
-      final body =
-          verify(
-                () => dio.put<Map<String, dynamic>>(
-                  path,
-                  data: captureAny(named: 'data'),
-                ),
-              ).captured.single
-              as Map<String, Object?>;
-      expect(body.keys.toSet(), <String>{
-        'date',
-        'time',
-        'duration_minutes',
-        'client_name',
-        'program',
-      });
-      expect(body['duration_minutes'], 75);
-      expect(body['client_name'], '김민수');
-      expect((body['program'] as List<Object?>).single, <String, Object?>{
-        'name': '스쿼트',
-        'type': '근력',
-        'date': null,
-        'duration': null,
-        'sets': 1,
-        'reps': null,
-        'weight': null,
-        'intensity': 'moderate',
-        'session': '',
-      });
-      verifyNever(
-        () => dio.get<List<dynamic>>(
-          any(),
-          queryParameters: any(named: 'queryParameters'),
-        ),
-      );
-    },
-  );
-
-  test(
-    'registerProgram returns whether the server created a session',
-    () async {
-      const path = '/trainer/clients/m1/schedule-program';
-      when(
-        () => dio.put<Map<String, dynamic>>(path, data: any(named: 'data')),
+        () => dio.post<Map<String, dynamic>>(path, data: any(named: 'data')),
       ).thenAnswer(
         (_) async =>
             _okMap(path, <String, dynamic>{'attached_to_existing': false}),
       );
 
-      final attached = await repo.registerProgram(
+      final attached = await repo.registerProgramSchedule(
         date: '2026-08-06',
         clientId: 'm1',
         clientName: '김민수',
         time: '16:00',
-        durationMinutes: 45,
-        program: const <ProgramItem>[
-          ProgramItem(name: '플랭크', type: '스트레칭', duration: 10),
-        ],
+        durationMinutes: 75,
+        assignment: const <String, Object?>{
+          'name': '하체',
+          'sessions': <Object?>[],
+          'client_request_id': 'req-a',
+        },
+        program: const <ProgramItem>[ProgramItem(name: '스쿼트', sets: 1)],
       );
 
       expect(attached, isFalse);
-      verify(
-        () => dio.put<Map<String, dynamic>>(path, data: any(named: 'data')),
-      ).called(1);
+      final body =
+          verify(
+                () => dio.post<Map<String, dynamic>>(
+                  path,
+                  data: captureAny(named: 'data'),
+                ),
+              ).captured.single
+              as Map<String, Object?>;
+      // 일정 항목은 서버가 세션에서 펼친다 — 두 벌로 싣지 않는다.
+      expect(body, <String, Object?>{
+        'name': '하체',
+        'sessions': <Object?>[],
+        'client_request_id': 'req-a',
+        'date': '2026-08-06',
+        'time': '16:00',
+        'duration_minutes': 75,
+        'client_name': '김민수',
+      });
     },
   );
 

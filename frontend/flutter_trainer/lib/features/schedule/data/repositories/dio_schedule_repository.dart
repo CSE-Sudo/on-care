@@ -207,31 +207,32 @@ class DioScheduleRepository implements ScheduleRepository {
   }
 
   @override
-  Future<bool> registerProgram({
+  Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
     required String clientName,
     required String time,
     required int durationMinutes,
+    required Map<String, Object?> assignment,
     required List<ProgramItem> program,
   }) async {
     late bool attachedToExisting;
     final memberId = Uri.encodeComponent(clientId);
     await _mutate(() async {
-      final response = await _dio.put<Map<String, dynamic>>(
-        '/trainer/clients/$memberId/schedule-program',
-        data: scheduleProgramRegisterToJson(
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/trainer/clients/$memberId/program-schedule',
+        data: programScheduleToJson(
+          assignment: assignment,
           date: date,
           time: time,
           durationMinutes: durationMinutes,
           clientName: clientName,
-          program: program,
         ),
       );
       final attached = response.data?['attached_to_existing'];
       if (attached is! bool) {
         throw const FormatException(
-          'schedule-program response is missing attached_to_existing',
+          'program-schedule response is missing attached_to_existing',
         );
       }
       attachedToExisting = attached;

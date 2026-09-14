@@ -1055,20 +1055,36 @@ class ScheduleRecurringPreviewOut(BaseModel):
     conflicts: list[ScheduleSessionOut]
 
 
-class ScheduleProgramRegisterRequest(BaseModel):
-    """AI coaching command to attach a program or create its PT session."""
+class ProgramScheduleRequest(BaseModel):
+    """프로그램 탭 `일정 추가` 한 번 — 회원 배정과 PT 일정 등록을 함께 한다. (#1580)
 
+    예전에는 배정(`POST .../program`)과 일정 등록(`PUT .../schedule-program`)을
+    화면이 차례로 불러, 배정만 되고 일정은 빠진 반쪽 상태가 남을 수 있었다. 두
+    쓰기를 한 트랜잭션에 묶어 둘 다 되거나 둘 다 안 된다.
+
+    일정에 실릴 항목은 서버가 `sessions` 에서 펼친다 — 클라이언트가 같은 운동을
+    두 벌로 실어 보내면 배정과 일정이 서로 다른 구성을 가질 수 있다.
+    """
+
+    name: str = Field(min_length=1, max_length=100)
+    sessions: list[ProgramDraftSession] = Field(
+        min_length=1, max_length=_PROGRAM_MAX_SESSIONS
+    )
     date: str = Field(max_length=10)
     time: str = Field(max_length=10)
     duration_minutes: int = Field(gt=0, le=600)
     client_name: str = Field(default="", max_length=100)
-    program: list[ProgramItem] = Field(min_length=1, max_length=30)
+    #: 전송 시도 하나의 멱등키. 응답을 잃고 같은 키로 다시 보내면 배정도 일정도
+    #: 새로 만들지 않고 먼저 처리한 결과를 돌려준다. 서버가 `{key}#{index}`·
+    #: `{key}#schedule` 로 나눠 저장하므로 프로그램 배정과 같은 48자 상한이다.
+    client_request_id: str | None = Field(default=None, min_length=1, max_length=48)
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
 
 
-class ScheduleProgramRegisterOut(BaseModel):
+class ProgramScheduleOut(BaseModel):
+    routines: list[RoutineOut]
     session: ScheduleSessionOut
     attached_to_existing: bool
 
