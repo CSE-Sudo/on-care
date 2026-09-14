@@ -248,10 +248,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   key: ValueKey<String>('trainer-message-bubble-${m.id}'),
                   weekStart: reportWeek,
                   onOpen: () => context.go(
-                    AppRoutes.reportFor(
-                      widget.clientId,
-                      weekStart: reportWeek,
-                    ),
+                    AppRoutes.reportFor(widget.clientId, weekStart: reportWeek),
                   ),
                 ),
         )
@@ -427,10 +424,13 @@ class _ChatViewState extends ConsumerState<ChatView> {
 
 /// 대화에서 감지한 불편·부정 신호. (#1655)
 ///
-/// 메모로 남긴 뒤에도 배너의 톤은 그대로다 — 무슨 일이 있었는지(부정적
+/// 대화 폭을 다 쓰는 흰 카드에 옅은 빨간 테두리 — 가운데 안내(분석했어요·
+/// 전송됐어요)와 달리 트레이너가 **읽고 조치할** 자리라 폭을 다 쓴다.
+///
+/// 메모로 남긴 뒤에도 카드의 빨간색은 그대로다 — 무슨 일이 있었는지(부정적
 /// 피드백)는 바뀌지 않았고, 그 사실까지 지우면 나중에 훑을 때 이 자리가
-/// 무엇이었는지 알아볼 수 없다. 처리 여부는 동작 버튼의 문구(메모 추가 →
-/// 메모 추가됨)와 비활성 상태가 말한다.
+/// 무엇이었는지 알아볼 수 없다. 처리 여부는 오른쪽 알약의 아이콘(＋ → ✓)과
+/// 문구(메모 추가 → 메모 추가됨)가 말한다.
 class _ChatInsightBanner extends StatelessWidget {
   const _ChatInsightBanner({
     required this.insight,
@@ -446,6 +446,7 @@ class _ChatInsightBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
     final isDiscomfort = insight.kind == ChatInsightKind.discomfort;
     final title = isDiscomfort
         ? l.chatInsightDiscomfortTitle(
@@ -456,21 +457,174 @@ class _ChatInsightBanner extends StatelessWidget {
         ? l.chatInsightDiscomfortDescription
         : l.chatInsightNegativeDescription;
 
-    // 메모 추가 버튼은 이 배너 안의 [AppButton] 이다 — 키는 배너에 있다.
-    return KeyedSubtree(
-      key: ValueKey<String>('chat-insight-add-${insight.id}'),
-      child: AppBanner(
-        key: ValueKey<String>('chat-insight-banner-${insight.messageId}'),
-        tone: AppBannerTone.danger,
-        icon: Icons.warning_amber_rounded,
-        title: title,
-        message: description,
-        actionLabel: saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
-        onAction: saved ? null : onAddMemo,
+    return Container(
+      key: ValueKey<String>('chat-insight-banner-${insight.messageId}'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: OnCareSpacing.s12,
+        vertical: OnCareSpacing.s8,
+      ),
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(
+          color: OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
+        ),
+      ),
+      child: Row(
+        children: <Widget>[
+          const Icon(
+            Icons.warning_amber_rounded,
+            size: OnCareSize.iconMedium,
+            color: OnCareColors.danger,
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                      .copyWith(color: OnCareColors.danger),
+                ),
+                const SizedBox(height: OnCareSpacing.s2),
+                Text(
+                  description,
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
+          // 알약은 저장 뒤에도 빨간색이다. 초록으로 뒤집으면 빨간 카드
+          // 한가운데서 가장 밝은 것이 "메모 추가됨" 이 되어, 정작 읽어야 할
+          // 감지 내용보다 눈에 먼저 들어온다.
+          Material(
+            color: OnCareColors.onWhite(
+              OnCareColors.danger,
+              OnCareAlpha.subtle,
+            ),
+            borderRadius: OnCareRadius.pillAll,
+            child: InkWell(
+              key: ValueKey<String>('chat-insight-add-${insight.id}'),
+              onTap: saved ? null : onAddMemo,
+              borderRadius: OnCareRadius.pillAll,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s8,
+                  vertical: OnCareSpacing.s4,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      saved ? Icons.check_rounded : Icons.add_rounded,
+                      size: OnCareSize.iconSmall,
+                      color: OnCareColors.danger,
+                    ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    Text(
+                      saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
+                      style: tokens
+                          .text(
+                            OnCareTypography.strong(OnCareTypography.caption),
+                          )
+                          .copyWith(color: OnCareColors.danger),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
+/// 스레드 가운데에 서는 작은 안내 상자 — 아이콘 + 굵은 제목, 그 아래 흐린 한 줄.
+///
+/// 누가 무슨 말을 했는가가 아니라 스레드에 무슨 일이 있었는가를 적는
+/// 자리라, 대화 폭을 채우지 않고 글자만큼만 가운데에 선다. 폭을 다 쓰면
+/// 말풍선보다 무거워져 대화를 가로막는다.
+class _ThreadNotice extends StatelessWidget {
+  const _ThreadNotice({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.fill,
+    required this.border,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final Color fill;
+  final Color border;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.oncare;
+    final Color accent = tokens.brand.primary;
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: OnCareSpacing.s12,
+          vertical: OnCareSpacing.s8,
+        ),
+        decoration: BoxDecoration(
+          color: fill,
+          borderRadius: OnCareRadius.mdAll,
+          border: Border.all(color: border),
+        ),
+        // 글자 배율을 키우면 제목·설명·다음 행동이 차례로 길어진다. 한 줄에
+        // 이어 붙이지 않고 세로로 쌓아 두면, 잘리는 대신 상자가 아래로 자란다.
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(icon, size: OnCareSize.iconSmall, color: accent),
+                const SizedBox(width: OnCareSpacing.s4),
+                Flexible(
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: accent),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: OnCareSpacing.s2),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+            ?action,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 시스템 안내(분석·전송)의 옅은 브랜드 채움과 옅은 테두리.
+Color _noticeFill(BuildContext context) =>
+    OnCareColors.onWhite(context.oncare.brand.primary, OnCareAlpha.subtle);
+Color _noticeBorder(BuildContext context) =>
+    OnCareColors.onWhite(context.oncare.brand.primary, OnCareAlpha.medium);
 
 class _SystemBanner extends StatelessWidget {
   const _SystemBanner({required this.clientName, super.key});
@@ -480,18 +634,19 @@ class _SystemBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppBanner(
+    return _ThreadNotice(
       icon: Icons.auto_awesome_rounded,
       title: l.chatDemoAnalyzed(clientName),
       message: l.chatDemoReportSent,
+      fill: _noticeFill(context),
+      border: _noticeBorder(context),
     );
   }
 }
 
-/// The "루틴 전송됨" system banner at the end of the seeded thread (mock:
-/// the notice under the last message). Same brand tone as
-/// [_SystemBanner] — not green (#1379): green read as a different kind of
-/// "완료" than this routine-sent notice means.
+/// The "루틴 전송됨" system notice at the end of the seeded thread. Same
+/// brand tone as [_SystemBanner] — not green (#1379): green read as a
+/// different kind of "완료" than this routine-sent notice means.
 class _SentBanner extends StatelessWidget {
   const _SentBanner({required this.clientName, super.key});
 
@@ -500,14 +655,18 @@ class _SentBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppBanner(
-      icon: Icons.check_circle_rounded,
+    return _ThreadNotice(
+      icon: Icons.check_circle_outline_rounded,
       title: l.chatDemoRoutineSent(clientName),
       message: l.chatDemoNotified,
+      fill: _noticeFill(context),
+      border: _noticeBorder(context),
     );
   }
 }
 
+/// 날짜 — 가운데 흐린 굵은 글자만. 선을 긋지 않는다: 스레드 안에 이미
+/// 안내 상자·말풍선 테두리가 있어, 선까지 더하면 줄이 겹쳐 보인다.
 class _DateDivider extends StatelessWidget {
   const _DateDivider({required this.date});
 
@@ -516,12 +675,19 @@ class _DateDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final localDate = date.toLocal();
-    return KeyedSubtree(
-      key: ValueKey<String>(
-        'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
-      ),
-      child: AppChatDateDivider(
-        AppLocalizations.of(context).chatDateDivider(localDate),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+      child: Center(
+        child: Text(
+          AppLocalizations.of(context).chatDateDivider(localDate),
+          key: ValueKey<String>(
+            'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
+          ),
+          textAlign: TextAlign.center,
+          style: context.oncare
+              .text(OnCareTypography.strong(OnCareTypography.caption))
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
       ),
     );
   }
@@ -646,7 +812,7 @@ class _Bubble extends ConsumerWidget {
 ///
 /// 자리는 말풍선이 아니라 **대화 가운데**다. 누가 무슨 말을 했는가가 아니라
 /// 스레드에 무슨 일이 있었는가를 적는 자리라, 같은 흐름의 다른 안내(분석했어요·
-/// 개인 추천운동이 전송됐어요)와 같은 [AppBanner] 를 쓴다.
+/// 개인 추천운동이 전송됐어요)와 같은 가운데 안내 상자를 쓴다.
 ///
 /// 다음 행동은 역할마다 다르다. 트레이너 쪽에는 열 PDF 가 없다 — 데모·드리프트
 /// 는 파일을 저장하지 못하므로(#1378), 있지도 않은 파일을 여는 시늉 대신 그
@@ -673,14 +839,22 @@ class ReportRegisteredCard extends StatelessWidget {
       l.dateMonthDay(weekStart.month, weekStart.day),
       l.dateMonthDay(weekEnd.month, weekEnd.day),
     );
-    // 글자 배율을 키우면 제목·기간·다음 행동이 차례로 길어진다. 배너는 셋을
-    // 세로로 쌓으므로, 배율이 커져도 잘리는 대신 상자가 아래로 자란다.
-    return AppBanner(
+    // 바탕은 흰색이고 테두리만 앱의 메인 색이다. 구조가 같으면 같은 안내로
+    // 읽히고, 흰 바탕은 이 안내에만 **누를 것**이 있다는 것을 말해 준다.
+    return _ThreadNotice(
       icon: Icons.description_rounded,
       title: l.chatReportRegistered,
       message: range,
-      actionLabel: l.chatReportOpenInReports,
-      onAction: onOpen,
+      fill: OnCareColors.surfaceCard,
+      border: context.oncare.brand.primary,
+      // 테두리 없는 글자 버튼. 안내 상자 안에서 두 번째 테두리를 그리면
+      // 상자가 둘로 보인다 — 여기서 눌릴 것은 하나뿐이라 글자로 충분하다.
+      action: AppButton(
+        label: l.chatReportOpenInReports,
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
+        onPressed: onOpen,
+      ),
     );
   }
 }

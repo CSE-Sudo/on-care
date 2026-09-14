@@ -186,12 +186,11 @@ class _MainShellState extends ConsumerState<MainShell>
           ),
         ],
         // 식단과 운동 사이의 `+` — "새 기록 추가" 시트를 연다.
-        centerAction: AppIconButton(
+        // 바 위로 튀어나온 원형 버튼이다(#1742).
+        centerAction: AppNavAddButton(
           key: const Key('recordAddButton'),
-          icon: Icons.add_rounded,
           // 아이콘 하나뿐이라 무엇을 여는 자리인지 툴팁이 말한다(#972).
           tooltip: l.navAddRecordTitle,
-          variant: AppIconButtonVariant.filled,
           onPressed: () =>
               _showRecordAddSheet(context, onSaved: _goToRecordBranch),
         ),
