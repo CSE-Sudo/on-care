@@ -14,7 +14,7 @@ import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.d
 import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 enum _GymSort { recommended, distance, rating }
 
@@ -562,9 +562,13 @@ class _GymListCard extends ConsumerWidget {
                     const SizedBox(height: OnCareSpacing.s4),
                     Row(
                       children: <Widget>[
-                        Text(
-                          '${gym.distanceKm.toStringAsFixed(1)}km',
-                          style: OnCareTypography.numeric(meta),
+                        Flexible(
+                          child: Text(
+                            '${gym.distanceKm.toStringAsFixed(1)}km',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: OnCareTypography.numeric(meta),
+                          ),
                         ),
                         const SizedBox(width: OnCareSpacing.s8),
                         const Icon(
@@ -575,6 +579,7 @@ class _GymListCard extends ConsumerWidget {
                         const SizedBox(width: OnCareSpacing.s2),
                         Text(
                           gym.rating.toStringAsFixed(1),
+                          maxLines: 1,
                           style: OnCareTypography.numeric(
                             tokens
                                 .text(

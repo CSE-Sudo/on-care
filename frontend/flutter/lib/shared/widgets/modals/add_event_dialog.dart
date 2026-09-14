@@ -9,7 +9,6 @@ import 'package:oncare/features/schedule/domain/schedule_format.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/features/schedule/presentation/schedule_category_color.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 드롭다운에 놓는 순서. 값은 서버로 나가는 계약(`ScheduleCategory`)이고, 사람이
@@ -151,7 +150,7 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
     final title = _title.text.trim();
     // 날짜는 피커가 늘 채우므로 제목만 확인하면 된다.
     if (title.isEmpty) {
-      toast.show(l.eventTitleRequired, kind: AppToastKind.error);
+      toast.show(l.eventTitleRequired, type: AppToastType.error);
       return;
     }
     setState(() => _saving = true);
@@ -186,7 +185,7 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
       if (mounted) setState(() => _saving = false);
       toast.show(
         _isEdit ? l.eventEditFailed : l.eventAddFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     }
   }

@@ -203,27 +203,38 @@ class MetricTrendChart extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
+                      // 폭이 모자라면(영어 요일 등) 라벨만 줄여 넘치지 않게 한다.
                       for (int i = 0; i < dayLabels.length; i++)
                         if (i == todayIndex)
                           // 오늘: 브랜드색 원 안에 흰 글씨.
-                          Container(
-                            width: OnCareSize.countBadgeMin,
-                            height: OnCareSize.countBadgeMin,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: tokens.brand.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              dayLabels[i],
-                              maxLines: 1,
-                              style: axisStyle.copyWith(
-                                color: OnCareColors.textOnFill,
+                          Flexible(
+                            child: Container(
+                              width: OnCareSize.countBadgeMin,
+                              height: OnCareSize.countBadgeMin,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: tokens.brand.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  dayLabels[i],
+                                  maxLines: 1,
+                                  style: axisStyle.copyWith(
+                                    color: OnCareColors.textOnFill,
+                                  ),
+                                ),
                               ),
                             ),
                           )
                         else
-                          Text(dayLabels[i], style: axisStyle),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(dayLabels[i], style: axisStyle),
+                            ),
+                          ),
                     ],
                   ),
                 ],

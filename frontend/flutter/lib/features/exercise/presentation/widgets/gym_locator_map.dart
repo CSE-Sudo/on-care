@@ -4,7 +4,7 @@ import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 헬스장 찾기 지도의 높이. 실지도와 폴백 그래픽이 같은 자리를 차지해야
 /// 폴백으로 떨어질 때 시트 레이아웃이 흔들리지 않는다.

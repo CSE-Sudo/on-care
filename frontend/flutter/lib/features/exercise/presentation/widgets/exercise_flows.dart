@@ -9,8 +9,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 조작이 멎은 뒤 칼로리 미리보기를 부르기까지 기다리는 시간. 애니메이션이
 /// 아니라 요청을 모으는 창이다.
@@ -103,7 +102,7 @@ Future<bool> confirmDeleteExerciseSession(
   final AppToastHost toast = AppToastHost.of(context);
   final String? id = session.id;
   if (id == null) {
-    toast.show(l.exCannotDelete, kind: AppToastKind.error);
+    toast.show(l.exCannotDelete, type: AppToastType.error);
     return false;
   }
   // 되돌릴 수 없는 쪽은 파괴적 색으로 말한다.
@@ -120,10 +119,10 @@ Future<bool> confirmDeleteExerciseSession(
     await ref.read(exerciseRepositoryProvider).deleteSession(id);
     // 목록·주간 통계·그래프가 한 번에 최신이 된다 — 추가 경로와 같은 무효화다.
     ref.invalidate(exerciseWeekProvider);
-    toast.show(l.exDeleted, kind: AppToastKind.success);
+    toast.show(l.exDeleted, type: AppToastType.success);
     return true;
   } on Object {
-    toast.show(l.exDeleteFailed, kind: AppToastKind.error);
+    toast.show(l.exDeleteFailed, type: AppToastType.error);
     return false;
   }
 }
@@ -348,14 +347,14 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     final AppToastHost toast = AppToastHost.of(context);
     final String name = _name.text.trim();
     if (name.isEmpty) {
-      toast.show(l.exEnterName, kind: AppToastKind.error);
+      toast.show(l.exEnterName, type: AppToastType.error);
       return;
     }
     final int minutes = _effectiveMinutes;
     if (minutes <= 0) {
       toast.show(
         _isStrength ? l.exEnterSets : l.exEnterDuration,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
       return;
     }
@@ -368,7 +367,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     final ExerciseSession? editing = widget.session;
     if (editing != null && editing.id == null) {
       // No id → PUT impossible; don't silently create a duplicate session.
-      toast.show(l.exCannotEdit, kind: AppToastKind.error);
+      toast.show(l.exCannotEdit, type: AppToastType.error);
       return;
     }
     // Intensity is persisted now, so always recompute calories from the
@@ -419,11 +418,11 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       navigator.pop(true);
       toast.show(
         widget.isEdit ? l.exUpdated : l.exLogged,
-        kind: AppToastKind.success,
+        type: AppToastType.success,
       );
     } catch (_) {
       if (mounted) setState(() => _saving = false);
-      toast.show(l.exSaveFailed, kind: AppToastKind.error);
+      toast.show(l.exSaveFailed, type: AppToastType.error);
     }
   }
 

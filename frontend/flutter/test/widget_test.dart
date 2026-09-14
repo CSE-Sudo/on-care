@@ -9,7 +9,6 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -193,8 +192,8 @@ void main() {
     // 이 시트는 "무엇을 기록할까" 를 고르는 자리라 색이 영역을 가르는 뜻으로
     // 읽히지 않는다 — 초록 하나만 남으면 그 카드가 다른 성격처럼 보인다.
     // (예전에는 식단 초록·운동 파랑이었다, #1060 → #1154)
-    expect(iconColorOf(Icons.restaurant_rounded), FigmaColors.primary);
-    expect(iconColorOf(Icons.fitness_center_rounded), FigmaColors.primary);
+    expect(iconColorOf(Icons.restaurant_rounded), OnCareBrand.member.primary);
+    expect(iconColorOf(Icons.fitness_center_rounded), OnCareBrand.member.primary);
   });
 
   testWidgets('Enters the Home tab in English after demo', (tester) async {
