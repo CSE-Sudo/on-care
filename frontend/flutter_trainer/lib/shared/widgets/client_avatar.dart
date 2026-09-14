@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
+/// 이니셜 글씨 크기 : 지름.
+const double _kInitialFactor = 0.34;
 
 /// The navy gradient circle + initial used for a client everywhere they
 /// appear (list card, detail header, chat bubbles). Optionally shows an
@@ -33,20 +35,23 @@ class ClientAvatar extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[AppColors.accent, AppColors.accentDark],
+          colors: <Color>[
+            OnCareBrand.trainer.primary,
+            OnCareBrand.trainer.strong,
+          ],
         ),
       ),
       child: Text(
         label,
-        style: TextStyle(
-          color: AppColors.accentForeground,
-          fontWeight: FontWeight.w800,
-          fontSize: size * 0.34,
+        // 이니셜은 지름에 비례한다 — 굵기·서체는 역할에서, 크기만 지름에서.
+        style: OnCareTypography.titleSmall.copyWith(
+          color: OnCareColors.textOnFill,
+          fontSize: size * _kInitialFactor,
         ),
       ),
     );
@@ -70,9 +75,9 @@ class ClientAvatar extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: active
-                    ? AppColors.success
-                    : AppColors.disabledForeground,
-                border: Border.all(color: AppColors.card, width: 2),
+                    ? OnCareColors.success
+                    : OnCareColors.textDisabled,
+                border: Border.all(color: OnCareColors.surfaceCard, width: 2),
               ),
             ),
           ),

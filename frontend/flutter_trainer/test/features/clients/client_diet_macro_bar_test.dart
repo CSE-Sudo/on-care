@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/design_system/theme/app_theme.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 탄단지 누적 막대가 **어떤 데이터에도** 무너지지 않는지. (리뷰 #952)
 ///
@@ -89,7 +88,7 @@ void main() {
     ]) {
       expect(
         tester.widget<Text>(find.text(label).last).style!.color,
-        AppColors.mutedForeground,
+        OnCareColors.textSecondary,
       );
     }
   });
@@ -120,7 +119,7 @@ void main() {
 
     final List<(Color, double)> segments = segmentsOf(tester);
     expect(segments, hasLength(1), reason: '0 인 성분은 구간을 만들지 않는다');
-    expect(segments.single.$1, AppColors.macroCarbs);
+    expect(segments.single.$1, OnCareBrand.trainer.primary);
     expect(segments.single.$2, greaterThan(0));
     expect(tester.takeException(), isNull);
   });
@@ -172,14 +171,14 @@ void main() {
     // 설명되지 않는 칼로리가 절반쯤이므로 `나머지` 구간이 있어야 한다.
     final Iterable<(Color, double)> rest = segments.where(
       // `나머지` 는 회원 앱과 같은 트랙 색이다 (#1400).
-      ((Color, double) s) => s.$1 == AppColors.inputBackground,
+      ((Color, double) s) => s.$1 == OnCareColors.surfaceInput,
     );
     expect(rest, hasLength(1), reason: '설명되지 않는 칼로리가 자리를 차지해야 한다');
     expect(rest.single.$2 / total, closeTo((1560 - 780) / 1560, 0.03));
 
     // 탄수화물은 400/1560 만큼만 차지한다 — 780 을 분모로 잡으면 0.51 이 된다.
     final (Color, double) carbs = segments.firstWhere(
-      ((Color, double) s) => s.$1 == AppColors.macroCarbs,
+      ((Color, double) s) => s.$1 == OnCareBrand.trainer.primary,
     );
     expect(carbs.$2 / total, closeTo(400 / 1560, 0.03));
   });
@@ -201,7 +200,7 @@ void main() {
 
     final List<(Color, double)> segments = segmentsOf(tester);
     expect(
-      segments.where(((Color, double) s) => s.$1 == AppColors.inputBackground),
+      segments.where(((Color, double) s) => s.$1 == OnCareColors.surfaceInput),
       isEmpty,
     );
     expect(segments, hasLength(3));

@@ -13,9 +13,7 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 // 대응이 없어 앱 위젯을 그대로 쓴다. BurnBarChart 가 받는 선택 상태도 그 앱
 // 쪽 [PeriodChartSelection] 이라 이것만 가져온다.
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
-import 'package:oncare_trainer/shared/widgets/period_scroll_chart.dart'
-    show PeriodChartSelection;
-import 'package:oncare_ui/oncare_ui.dart' hide PeriodChartSelection;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데이터를 받는 동안 비워 두는 높이 — 받은 뒤의 그래프 자리와 크게 어긋나지
 /// 않게 둔다.

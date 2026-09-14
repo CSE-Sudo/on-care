@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-ThemeData _member() => OnCareTheme.light(
-  brand: OnCareBrand.member,
-  density: OnCareDensity.mobile,
-);
+ThemeData _member() =>
+    OnCareTheme.light(brand: OnCareBrand.member, density: OnCareDensity.mobile);
 
 ThemeData _trainer() =>
     OnCareTheme.light(brand: OnCareBrand.trainer, density: OnCareDensity.web);
@@ -27,7 +25,10 @@ void main() {
       expect(m.colorScheme.primary, OnCareBrand.member.primary);
       expect(t.colorScheme.primary, OnCareBrand.trainer.primary);
       expect(m.scaffoldBackgroundColor, t.scaffoldBackgroundColor);
-      expect(m.textTheme.bodyMedium!.fontSize, t.textTheme.bodyMedium!.fontSize);
+      expect(
+        m.textTheme.bodyMedium!.fontSize,
+        t.textTheme.bodyMedium!.fontSize,
+      );
       expect(m.dialogTheme.shape, t.dialogTheme.shape);
       expect(m.snackBarTheme.backgroundColor, t.snackBarTheme.backgroundColor);
     });
@@ -72,9 +73,7 @@ void main() {
           theme.outlinedButtonTheme.style,
           theme.textButtonTheme.style,
         ]) {
-          final OutlinedBorder? shape = style!.shape!.resolve(
-            <WidgetState>{},
-          );
+          final OutlinedBorder? shape = style!.shape!.resolve(<WidgetState>{});
           expect(
             (shape! as RoundedRectangleBorder).borderRadius,
             OnCareRadius.mdAll,
@@ -98,7 +97,10 @@ void main() {
         OnCareRadius.xlAll,
       );
       expect(web.dialogTheme.titleTextStyle!.fontSize, 18);
-      expect(web.dialogTheme.insetPadding!.top, OnCareLayout.dialogTopClearance);
+      expect(
+        web.dialogTheme.insetPadding!.top,
+        OnCareLayout.dialogTopClearance,
+      );
       expect(_member().dialogTheme.insetPadding!.left, OnCareSpacing.s20);
     });
 
@@ -157,16 +159,6 @@ void main() {
       expect(text.labelLarge!.fontSize, 14);
       expect(text.labelSmall!.fontSize, 12);
       expect(text.bodyMedium!.color, OnCareColors.textPrimary);
-    });
-
-    test('옛 전역 배율을 넘기면 그만큼 나눠 보이는 크기를 지킨다', () {
-      final ThemeData theme = OnCareTheme.light(
-        brand: OnCareBrand.member,
-        density: OnCareDensity.mobile,
-        legacyTextScale: 1.10,
-      );
-      expect(theme.textTheme.bodyMedium!.fontSize! * 1.10, closeTo(15, 1e-9));
-      expect(theme.dialogTheme.titleTextStyle!.fontSize! * 1.10, closeTo(18, 1e-9));
     });
 
     testWidgets('AlertDialog 제목이 22px 기본값이 아니라 18 로 그려진다', (tester) async {

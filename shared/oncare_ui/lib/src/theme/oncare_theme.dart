@@ -23,18 +23,10 @@ class OnCareTheme {
   OnCareTheme._();
 
   /// [brand] 와 [density] 로 테마를 만든다.
-  ///
-  /// [legacyTextScale] 은 앱이 아직 전역 글자 배율을 얹고 있을 때 그 값을 넘긴다.
-  /// 테마 글자 크기가 그만큼 나뉘어 **보이는 크기 = 역할 크기** 가 유지된다
-  /// ([OnCareTypography.compensate]). 전역 배율을 걷는 정리 이슈(#1707)에서 뺀다.
   static ThemeData light({
     required OnCareBrand brand,
     required OnCareDensity density,
-    double legacyTextScale = 1.0,
   }) {
-    TextStyle t(TextStyle style) =>
-        OnCareTypography.compensate(style, legacyTextScale);
-
     final ColorScheme scheme = ColorScheme(
       brightness: Brightness.light,
       primary: brand.primary,
@@ -89,8 +81,8 @@ class OnCareTheme {
           EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),
         ),
         shape: const WidgetStatePropertyAll<OutlinedBorder>(controlShape),
-        textStyle: WidgetStatePropertyAll<TextStyle>(
-          t(OnCareTypography.buttonMedium),
+        textStyle: const WidgetStatePropertyAll<TextStyle>(
+          OnCareTypography.buttonMedium,
         ),
         iconSize: const WidgetStatePropertyAll<double>(OnCareSize.iconMedium),
         elevation: const WidgetStatePropertyAll<double>(0),
@@ -140,14 +132,15 @@ class OnCareTheme {
       foreground: OnCareColors.textPrimary,
       side: const BorderSide(color: OnCareColors.lineStrong),
     );
-    final ButtonStyle textButton = baseButton(
-      background: Colors.transparent,
-      foreground: brand.primary,
-    ).copyWith(
-      padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
-        EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
-      ),
-    );
+    final ButtonStyle textButton =
+        baseButton(
+          background: Colors.transparent,
+          foreground: brand.primary,
+        ).copyWith(
+          padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
+            EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
+          ),
+        );
 
     OutlineInputBorder inputBorder(Color color, [double width = 1]) =>
         OutlineInputBorder(
@@ -158,9 +151,7 @@ class OnCareTheme {
     const MenuStyle menuStyle = MenuStyle(
       backgroundColor: WidgetStatePropertyAll<Color>(OnCareColors.surfaceCard),
       surfaceTintColor: WidgetStatePropertyAll<Color>(Colors.transparent),
-      elevation: WidgetStatePropertyAll<double>(
-        OnCareShadows.overlayElevation,
-      ),
+      elevation: WidgetStatePropertyAll<double>(OnCareShadows.overlayElevation),
       shape: WidgetStatePropertyAll<OutlinedBorder>(
         RoundedRectangleBorder(
           borderRadius: OnCareRadius.mdAll,
@@ -199,20 +190,13 @@ class OnCareTheme {
       scaffoldBackgroundColor: OnCareColors.surfacePage,
       canvasColor: OnCareColors.surfaceCard,
       dividerColor: OnCareColors.lineSubtle,
-      textTheme: OnCareTypography.textTheme(
-        color: OnCareColors.textPrimary,
-        legacyTextScale: legacyTextScale,
-      ),
+      textTheme: OnCareTypography.textTheme(color: OnCareColors.textPrimary),
       iconTheme: const IconThemeData(
         color: OnCareColors.textPrimary,
         size: OnCareSize.iconLarge,
       ),
       extensions: <ThemeExtension<dynamic>>[
-        OnCareTokens(
-          brand: brand,
-          density: density,
-          legacyTextScale: legacyTextScale,
-        ),
+        OnCareTokens(brand: brand, density: density),
       ],
 
       // --- 버튼 ---
@@ -249,7 +233,7 @@ class OnCareTheme {
         hoverElevation: 0,
         highlightElevation: 0,
         shape: controlShape,
-        extendedTextStyle: t(OnCareTypography.buttonMedium),
+        extendedTextStyle: OnCareTypography.buttonMedium,
       ),
 
       // --- 입력 ---
@@ -262,21 +246,21 @@ class OnCareTheme {
           horizontal: OnCareSpacing.s12,
           vertical: OnCareSpacing.s8,
         ),
-        hintStyle: t(
-          OnCareTypography.body,
-        ).copyWith(color: OnCareColors.textTertiary),
-        labelStyle: t(
-          OnCareTypography.label,
-        ).copyWith(color: OnCareColors.textSecondary),
-        floatingLabelStyle: t(
-          OnCareTypography.label,
-        ).copyWith(color: brand.primary),
-        helperStyle: t(
-          OnCareTypography.caption,
-        ).copyWith(color: OnCareColors.textTertiary),
-        errorStyle: t(
-          OnCareTypography.caption,
-        ).copyWith(color: OnCareColors.danger),
+        hintStyle: OnCareTypography.body.copyWith(
+          color: OnCareColors.textTertiary,
+        ),
+        labelStyle: OnCareTypography.label.copyWith(
+          color: OnCareColors.textSecondary,
+        ),
+        floatingLabelStyle: OnCareTypography.label.copyWith(
+          color: brand.primary,
+        ),
+        helperStyle: OnCareTypography.caption.copyWith(
+          color: OnCareColors.textTertiary,
+        ),
+        errorStyle: OnCareTypography.caption.copyWith(
+          color: OnCareColors.danger,
+        ),
         prefixIconColor: OnCareColors.textTertiary,
         suffixIconColor: OnCareColors.textTertiary,
         border: inputBorder(OnCareColors.lineStrong),
@@ -289,9 +273,9 @@ class OnCareTheme {
           OnCareSize.focusBorder,
         ),
       ),
-      dropdownMenuTheme: DropdownMenuThemeData(
+      dropdownMenuTheme: const DropdownMenuThemeData(
         menuStyle: menuStyle,
-        textStyle: t(OnCareTypography.body),
+        textStyle: OnCareTypography.body,
       ),
       chipTheme: ChipThemeData(
         backgroundColor: OnCareColors.surfaceCard,
@@ -301,12 +285,12 @@ class OnCareTheme {
         side: const BorderSide(color: OnCareColors.lineStrong),
         shape: controlShape,
         showCheckmark: false,
-        labelStyle: t(
-          OnCareTypography.label,
-        ).copyWith(color: OnCareColors.textPrimary),
-        secondaryLabelStyle: t(
-          OnCareTypography.label,
-        ).copyWith(color: brand.primary),
+        labelStyle: OnCareTypography.label.copyWith(
+          color: OnCareColors.textPrimary,
+        ),
+        secondaryLabelStyle: OnCareTypography.label.copyWith(
+          color: brand.primary,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
         iconTheme: const IconThemeData(size: OnCareSize.iconSmall),
       ),
@@ -351,12 +335,12 @@ class OnCareTheme {
         surfaceTintColor: Colors.transparent,
         elevation: OnCareShadows.overlayElevation,
         shape: const RoundedRectangleBorder(borderRadius: OnCareRadius.xlAll),
-        titleTextStyle: t(
-          OnCareTypography.titleMedium,
-        ).copyWith(color: OnCareColors.textPrimary),
-        contentTextStyle: t(
-          OnCareTypography.body,
-        ).copyWith(color: OnCareColors.textSecondary),
+        titleTextStyle: OnCareTypography.titleMedium.copyWith(
+          color: OnCareColors.textPrimary,
+        ),
+        contentTextStyle: OnCareTypography.body.copyWith(
+          color: OnCareColors.textSecondary,
+        ),
         insetPadding: dialogInset,
         actionsPadding: const EdgeInsets.fromLTRB(
           OnCareSpacing.s24,
@@ -392,9 +376,9 @@ class OnCareTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: OnCareColors.overlayInk,
-        contentTextStyle: t(
-          OnCareTypography.bodySmall,
-        ).copyWith(color: OnCareColors.textOnFill),
+        contentTextStyle: OnCareTypography.bodySmall.copyWith(
+          color: OnCareColors.textOnFill,
+        ),
         actionTextColor: OnCareColors.overlayAction,
         closeIconColor: OnCareColors.textOnFill,
         elevation: OnCareShadows.overlayElevation,
@@ -411,9 +395,9 @@ class OnCareTheme {
           color: OnCareColors.overlayInk,
           borderRadius: OnCareRadius.smAll,
         ),
-        textStyle: t(
-          OnCareTypography.caption,
-        ).copyWith(color: OnCareColors.textOnFill),
+        textStyle: OnCareTypography.caption.copyWith(
+          color: OnCareColors.textOnFill,
+        ),
         padding: const EdgeInsets.symmetric(
           horizontal: OnCareSpacing.s8,
           vertical: OnCareSpacing.s4,
@@ -428,9 +412,9 @@ class OnCareTheme {
           borderRadius: OnCareRadius.mdAll,
           side: BorderSide(color: OnCareColors.lineStrong),
         ),
-        textStyle: t(
-          OnCareTypography.bodySmall,
-        ).copyWith(color: OnCareColors.textPrimary),
+        textStyle: OnCareTypography.bodySmall.copyWith(
+          color: OnCareColors.textPrimary,
+        ),
         menuPadding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
       ),
       menuTheme: const MenuThemeData(style: menuStyle),
@@ -440,8 +424,8 @@ class OnCareTheme {
           padding: const WidgetStatePropertyAll<EdgeInsetsGeometry>(
             EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
           ),
-          textStyle: WidgetStatePropertyAll<TextStyle>(
-            t(OnCareTypography.bodySmall),
+          textStyle: const WidgetStatePropertyAll<TextStyle>(
+            OnCareTypography.bodySmall,
           ),
           foregroundColor: const WidgetStatePropertyAll<Color>(
             OnCareColors.textPrimary,
@@ -493,12 +477,12 @@ class OnCareTheme {
         minVerticalPadding: OnCareSpacing.s12,
         minTileHeight: density.listRowMin,
         shape: controlShape,
-        titleTextStyle: t(
-          OnCareTypography.bodyLarge,
-        ).copyWith(color: OnCareColors.textPrimary),
-        subtitleTextStyle: t(
-          OnCareTypography.bodySmall,
-        ).copyWith(color: OnCareColors.textSecondary),
+        titleTextStyle: OnCareTypography.bodyLarge.copyWith(
+          color: OnCareColors.textPrimary,
+        ),
+        subtitleTextStyle: OnCareTypography.bodySmall.copyWith(
+          color: OnCareColors.textSecondary,
+        ),
         iconColor: OnCareColors.textSecondary,
         selectedColor: brand.primary,
         selectedTileColor: brand.surface,
@@ -524,9 +508,9 @@ class OnCareTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: !density.isWeb,
-        titleTextStyle: t(
-          OnCareTypography.titleMedium,
-        ).copyWith(color: OnCareColors.textPrimary),
+        titleTextStyle: OnCareTypography.titleMedium.copyWith(
+          color: OnCareColors.textPrimary,
+        ),
         iconTheme: const IconThemeData(
           color: OnCareColors.textPrimary,
           size: OnCareSize.backCloseIcon,
@@ -542,8 +526,8 @@ class OnCareTheme {
         indicatorColor: Colors.transparent,
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          final TextStyle style = t(
-            OnCareTypography.strong(OnCareTypography.caption),
+          final TextStyle style = OnCareTypography.strong(
+            OnCareTypography.caption,
           );
           return states.contains(WidgetState.selected)
               ? style.copyWith(color: brand.primary)

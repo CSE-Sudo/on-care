@@ -9,7 +9,6 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/typography.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart'
     show trainerAuthRepositoryProvider;
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
@@ -1237,10 +1236,8 @@ void main() {
       expect(listFinder, findsOneWidget);
       // 한 줄에 이름 · 목표 두 줄만 남는다 — `오늘`/`5일 전` 같은 상대시간
       // 줄을 지우면서 104 에서 88 로(#1027), 이행률 막대까지 지우면서 88
-      // 에서 64 로 내려왔다(#1029). 앱 기본 글씨 배율이 올라가면 줄 높이도
-      // 함께 늘어난다 — 화면과 같은 식으로 기대값을 잡는다. (#995)
-      final double expectedRow =
-          64 + 56 * (AppTypography.textScale - 1).clamp(0.0, 2.0);
+      // 에서 64 로 내려왔다(#1029). 전역 글씨 배율은 없앴다(#1707).
+      const double expectedRow = 64;
       expect(tester.getSize(listFinder).height, expectedRow * 5);
       final list = tester.widget<ListView>(listFinder);
       expect(list.controller, isNotNull);

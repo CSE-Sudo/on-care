@@ -3,7 +3,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
 import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_detail_view.dart';
@@ -14,7 +13,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
-/// Master-detail split on wide viewports (content ≥ AppLayout.splitBreakpoint).
+/// Master-detail split on wide viewports (content ≥ OnCareLayout.splitBreakpoint).
 ///
 /// Selection lives in the path (`/clients/<id>/<section>`), so these
 /// tests assert on the URL as much as the pixels — a split panel that
@@ -416,7 +415,7 @@ void main() {
     // name + 활성 + 채팅 button + close on one row, then three metric
     // tiles, then two actions. Flutter throws on a RenderFlex overflow,
     // so rendering it here is the assertion.
-    tester.view.physicalSize = const Size(AppLayout.splitBreakpoint, 900);
+    tester.view.physicalSize = const Size(OnCareLayout.splitBreakpoint, 900);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);

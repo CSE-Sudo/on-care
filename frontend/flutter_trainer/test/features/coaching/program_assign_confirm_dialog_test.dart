@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare_trainer/design_system/theme/app_theme.dart';
+import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_final_review_card.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';

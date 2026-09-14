@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/design_system/theme/app_theme.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
@@ -13,6 +11,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/client_peri
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 회원 운동 현황은 회원 앱 `운동 현황` 과 **같은 그림**이다. (#943)
 ///
@@ -137,9 +136,9 @@ void main() {
         .widgetList<ActivityValueRow>(find.byType(ActivityValueRow))
         .toList();
     expect(rows.map((ActivityValueRow x) => x.color).take(3).toList(), <Color>[
-      AppColors.chartCardio,
-      AppColors.chartStrength,
-      AppColors.chartStretching,
+      OnCareBrand.trainer.exerciseCardio,
+      OnCareBrand.trainer.exerciseStrength,
+      OnCareBrand.trainer.exerciseStretching,
     ]);
   });
 

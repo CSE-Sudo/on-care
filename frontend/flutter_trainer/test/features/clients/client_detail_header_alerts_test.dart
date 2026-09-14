@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -88,7 +87,7 @@ void main() {
 
     expect(headerAlerts(), findsWidgets);
     // 주의사항만 있던 줄이 사라졌으므로, 남는 것은 원래의 한 칸 간격뿐이다.
-    expect(gapUnderIdentity(tester), closeTo(AppSpacing.md, 0.5));
+    expect(gapUnderIdentity(tester), closeTo(OnCareSpacing.s12, 0.5));
   });
 
   testWidgets('경고가 없는 회원의 간격도 같다', (tester) async {
@@ -96,7 +95,7 @@ void main() {
 
     expect(headerAlerts(), findsNothing);
     // 회원을 옮겨 다녀도 빠른 버튼 줄의 세로 위치가 흔들리지 않는다.
-    expect(gapUnderIdentity(tester), closeTo(AppSpacing.md, 0.5));
+    expect(gapUnderIdentity(tester), closeTo(OnCareSpacing.s12, 0.5));
   });
 
   testWidgets('빠른 버튼 줄이 #1024 정리 이후의 구성이다', (tester) async {

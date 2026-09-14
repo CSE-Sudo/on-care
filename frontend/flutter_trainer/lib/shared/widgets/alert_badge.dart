@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// The colour that carries [alert]'s meaning.
 ///
@@ -13,11 +12,11 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 /// 예전에는 완만한 주의를 주황으로 따로 두었는데, 회원이 자기 폰에서 빨갛게 보는
 /// 것을 트레이너는 주황으로 봐서 **두 앱이 같은 사실을 다른 세기로** 말했다(#690).
 Color alertColor(ClientAlert alert) => switch (alert) {
-  ClientAlert.unanswered => AppColors.primary,
-  ClientAlert.sodiumOver => AppColors.overTarget,
+  ClientAlert.unanswered => OnCareBrand.trainer.primary,
+  ClientAlert.sodiumOver => OnCareColors.danger,
   // 회원 앱이 당류 초과를 빨갛게 보여 준다 — 같은 사실을 같은 세기로.
-  ClientAlert.sugarOver => AppColors.overTarget,
-  ClientAlert.lowCompletion => AppColors.warning,
+  ClientAlert.sugarOver => OnCareColors.danger,
+  ClientAlert.lowCompletion => OnCareColors.danger,
 };
 
 /// A pill naming why a client is flagged.
@@ -42,27 +41,30 @@ class AlertBadge extends StatelessWidget {
     final color = alertColor(alert);
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: showIcon ? 9 : 7,
-        vertical: showIcon ? 4 : 2,
+        horizontal: OnCareSpacing.s8,
+        vertical: showIcon ? OnCareSpacing.s4 : OnCareSpacing.s2,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: const BorderRadius.all(AppRadius.pill),
+        // 배지 바탕은 카드 위 톤 채움 — 흰 바탕에 얹은 불투명 값으로 둔다.
+        color: OnCareColors.onWhite(color, OnCareAlpha.subtle),
+        borderRadius: OnCareRadius.pillAll,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (showIcon) ...<Widget>[
-            Icon(Icons.error_outline, size: 12, color: color),
-            const SizedBox(width: 4),
+            Icon(
+              Icons.error_outline_rounded,
+              size: OnCareSize.iconSmall,
+              color: color,
+            ),
+            const SizedBox(width: OnCareSpacing.s4),
           ],
           Text(
             alert.label(AppLocalizations.of(context)),
-            style: TextStyle(
-              fontSize: showIcon ? 11 : 10,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
+            style: context.oncare
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: color),
           ),
         ],
       ),

@@ -20,6 +20,7 @@ import 'package:oncare_trainer/features/notifications/data/repositories/notifica
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fixed_clock.dart';
@@ -122,7 +123,7 @@ Future<ProviderContainer> pumpTrainerApp(
 ///
 /// Tests drive navigation through the router rather than by tapping the
 /// sidebar: the console's nav is only in the tree above
-/// [AppLayout.sidebarDrawerBreakpoint] (below that it lives in a
+/// [OnCareLayout.sidebarDrawerBreakpoint] (below that it lives in a
 /// drawer), and the default 800x600 test surface is under that. Going by
 /// location also keeps the tests honest about the URL contract.
 Future<void> goTo(WidgetTester tester, String location) async {
@@ -149,7 +150,7 @@ Future<void> withWideSurface(
   // Set the view directly (not `setSurfaceSize`): the shell reads
   // `MediaQuery.sizeOf`, which is derived from the view's physical size
   // and DPR, and a DPR of 1 keeps logical == physical so the numbers in
-  // the test match the breakpoints in `AppLayout`.
+  // the test match the breakpoints in `OnCareLayout`.
   tester.view.devicePixelRatio = 1.0;
   tester.view.physicalSize = size;
   addTearDown(() {

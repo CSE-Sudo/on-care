@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
+import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   Future<void> pumpChart(WidgetTester tester, {int? pendingFromIndex}) {
     return tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -59,6 +61,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -83,8 +86,8 @@ void main() {
           .map((c) => (c.decoration as BoxDecoration?)?.color)
           .whereType<Color>()
           .toList();
-      expect(tracks, isNot(contains(AppColors.overTarget)));
-      expect(tracks.where((c) => c == AppColors.border).length, 3);
+      expect(tracks, isNot(contains(OnCareColors.danger)));
+      expect(tracks.where((c) => c == OnCareColors.lineSubtle).length, 3);
     });
 
     testWidgets('missing comparison values render as unknown, not zero', (
@@ -92,6 +95,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

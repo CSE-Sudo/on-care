@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -100,7 +99,7 @@ void main() {
 
       // 시드가 채운 날 중 하나를 고른다 — 기록이 없는 날은 쌓지 않는다.
       final Finder stacked = find.byWidgetPredicate(
-        (Widget w) => w is ColoredBox && w.color == AppColors.macroCarbs,
+        (Widget w) => w is ColoredBox && w.color == OnCareBrand.trainer.primary,
       );
       expect(stacked, findsWidgets);
 
@@ -129,15 +128,15 @@ void main() {
       await tester.pumpAndSettle();
 
       // 나트륨에는 쌓을 성분이 없다 — 한 색 막대로 돌아가고 머리의 탄단지
-      // 줄도 사라진다. 카드 안으로 범위를 좁힌다 — `AppColors.macroCarbs`
-      // 와 `AppColors.primary` 가 같은 색이라, 넓은 화면에서 옆에 함께
+      // 줄도 사라진다. 카드 안으로 범위를 좁힌다 — `OnCareBrand.trainer.primary`
+      // 와 `OnCareBrand.trainer.primary` 가 같은 색이라, 넓은 화면에서 옆에 함께
       // 뜨는 회원 목록의 정렬 툴바(선택 회원 주간 이행률 바)까지 훑으면
       // 이 카드와 무관한 primary색 막대까지 걸린다.
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('client-diet-period-card')),
           matching: find.byWidgetPredicate(
-            (Widget w) => w is ColoredBox && w.color == AppColors.macroCarbs,
+            (Widget w) => w is ColoredBox && w.color == OnCareBrand.trainer.primary,
           ),
         ),
         findsNothing,

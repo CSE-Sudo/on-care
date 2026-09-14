@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/app/router/app_router.dart';
-import 'package:oncare_trainer/design_system/theme/app_theme.dart';
-import 'package:oncare_trainer/design_system/tokens/typography.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Root widget for the trainer app. Wires the GoRouter, theme and
 /// localizations into a [MaterialApp.router].
@@ -37,7 +36,7 @@ class OncareTrainerApp extends ConsumerWidget {
       builder: (BuildContext context, Widget? child) {
         final MediaQueryData mq = MediaQuery.of(context);
         return MediaQuery(
-          data: mq.copyWith(textScaler: AppTypography.scaler(mq.textScaler)),
+          data: mq.copyWith(textScaler: OnCareTypography.scaler(mq.textScaler)),
           child: child ?? const SizedBox.shrink(),
         );
       },

@@ -8,7 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare_trainer/design_system/theme/app_theme.dart';
+import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/metric_trend_section.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
