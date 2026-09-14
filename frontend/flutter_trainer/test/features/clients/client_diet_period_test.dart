@@ -7,6 +7,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_period.da
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -79,13 +80,13 @@ void main() {
     testWidgets('이번 주는 꺾은선, 이번 달은 막대다', (tester) async {
       await openDiet(tester);
 
-      await tester.tap(find.byKey(const Key('client-period-week')));
+      await tester.tap(_periodSegment('이번 주'));
       await tester.pumpAndSettle();
       // 회원 앱과 같이 주는 꺾은선이다 — 7칸은 점과 값이 겹치지 않는다.
       expect(find.byType(MetricTrendChart), findsOneWidget);
       expect(find.byKey(const Key('client-diet-bar-0')), findsNothing);
 
-      await tester.tap(find.byKey(const Key('client-period-month')));
+      await tester.tap(_periodSegment('전체'));
       await tester.pumpAndSettle();
       // 30칸을 꺾은선으로 그리면 점과 값 라벨이 서로 겹친다.
       expect(find.byType(MetricTrendChart), findsNothing);
@@ -94,7 +95,7 @@ void main() {
 
     testWidgets('이번 달 칼로리 막대가 탄단지 3색으로 쌓인다', (tester) async {
       await openDiet(tester);
-      await tester.tap(find.byKey(const Key('client-period-month')));
+      await tester.tap(_periodSegment('전체'));
       await tester.pumpAndSettle();
 
       // 시드가 채운 날 중 하나를 고른다 — 기록이 없는 날은 쌓지 않는다.
@@ -118,7 +119,7 @@ void main() {
 
     testWidgets('나트륨으로 바꾸면 쌓지 않는다', (tester) async {
       await openDiet(tester);
-      await tester.tap(find.byKey(const Key('client-period-month')));
+      await tester.tap(_periodSegment('전체'));
       await tester.pumpAndSettle();
 
       final AppLocalizations l = AppLocalizations.of(
@@ -167,14 +168,14 @@ void main() {
       expect(
         find.descendant(
           of: header,
-          matching: find.byIcon(Icons.restaurant_outlined),
+          matching: find.byIcon(Icons.restaurant_rounded),
         ),
         findsOneWidget,
       );
 
       // 기간을 바꿔도 제목·아이콘이 나타났다 사라지지 않는다.
       final Rect atToday = tester.getRect(header);
-      await tester.tap(find.byKey(const Key('client-period-month')));
+      await tester.tap(_periodSegment('전체'));
       await tester.pumpAndSettle();
       expect(tester.getRect(header), atToday);
       expect(
@@ -213,30 +214,22 @@ void main() {
         findsOneWidget,
       );
 
-      // 배포 화면에서 사용하는 기간 토글 규격을 유지한다.
-      final Container periodToggle = tester.widget<Container>(
-        find.byKey(const ValueKey<String>('client-period-toggle')),
-      );
-      expect(periodToggle.padding, const EdgeInsets.all(3));
-
-      final Finder todayButton = find.byKey(const Key('client-period-today'));
-      final Padding todayPadding = tester.widget<Padding>(
-        find.descendant(of: todayButton, matching: find.byType(Padding)).first,
-      );
+      // 기간 토글은 공용 세그먼트 토글 규격을 쓴다(#1704).
       expect(
-        todayPadding.padding,
-        const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+        tester
+            .widget<AppSegmentedToggle<ClientPeriod>>(
+              find.byKey(const ValueKey<String>('client-period-toggle')),
+            )
+            .selected,
+        ClientPeriod.today,
       );
-      final Text todayLabel = tester.widget<Text>(
-        find.descendant(of: todayButton, matching: find.text('오늘')),
-      );
-      expect(todayLabel.style?.fontSize, 12.5);
+      expect(_periodSegment('오늘'), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('client-diet-period-card')),
         findsNothing,
       );
 
-      await tester.tap(find.byKey(const Key('client-period-week')));
+      await tester.tap(_periodSegment('이번 주'));
       await tester.pumpAndSettle();
 
       expect(
@@ -253,14 +246,14 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(find.byKey(const Key('client-period-month')));
+      await tester.tap(_periodSegment('전체'));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey<String>('client-diet-period-card')),
         findsOneWidget,
       );
 
-      await tester.tap(find.byKey(const Key('client-period-today')));
+      await tester.tap(_periodSegment('오늘'));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const Key('client-nutrition-summary-card')),
@@ -269,3 +262,9 @@ void main() {
     });
   });
 }
+
+/// 기간 토글에서 [label] 칸. 세그먼트는 칸마다 키가 없어 토글 안의 글자로 찾는다.
+Finder _periodSegment(String label) => find.descendant(
+  of: find.byKey(const ValueKey<String>('client-period-toggle')),
+  matching: find.text(label),
+);

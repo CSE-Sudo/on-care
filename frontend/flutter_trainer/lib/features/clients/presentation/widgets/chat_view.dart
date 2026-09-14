@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,9 +7,6 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_image_attachment.dart';
@@ -19,12 +15,12 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/icon_label.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 import 'package:printing/printing.dart';
+
+/// PDF 미리보기 창에서 문서가 차지하는 높이. 한 쪽을 줄이지 않고 읽을 수 있는
+/// 크기다 — 창이 화면보다 낮으면 창 본문이 스크롤된다.
+const double _pdfPreviewHeight = 640;
 
 /// The 채팅 sub-tab: an AI-received system banner, the message thread
 /// (trainer right / client left), and an input bar that appends a
@@ -104,7 +100,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
       // user left would otherwise touch a disposed context.
       if (!mounted) return;
       // Keep the draft in the input and tell the user it didn't go out.
-      showAppToast(context, l.chatSendFailed, kind: AppToastKind.error);
+      showAppToast(context, l.chatSendFailed, type: AppToastType.error);
       return;
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -173,7 +169,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
       showAppToast(
         context,
         serverDetailOr(l, error.message, l.chatImageSendFailed),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
       return;
     } finally {
@@ -225,11 +221,10 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 clientName: widget.clientName,
               ),
             )
-            ..add(const SizedBox(height: AppSpacing.md));
+            ..add(const SizedBox(height: OnCareSpacing.s12));
         }
-        out
-          ..add(_DateDivider(date: m.createdAt))
-          ..add(const SizedBox(height: AppSpacing.md));
+        // 구분선은 위아래 여백을 스스로 갖는다.
+        out.add(_DateDivider(date: m.createdAt));
         if (showDemoBanners && m.id.startsWith('seed-')) {
           out
             ..add(
@@ -238,7 +233,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                 clientName: widget.clientName,
               ),
             )
-            ..add(const SizedBox(height: AppSpacing.md));
+            ..add(const SizedBox(height: OnCareSpacing.s12));
         }
       }
       // 리포트 전송은 말풍선이 아니라 **가운데 안내**다. 누가 무슨 말을 했는가가
@@ -260,7 +255,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
                   ),
                 ),
         )
-        ..add(const SizedBox(height: AppSpacing.md));
+        ..add(const SizedBox(height: OnCareSpacing.s12));
       final insight = _insightDetector.detect(m);
       if (insight != null) {
         out
@@ -272,7 +267,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
               onAddMemo: () => _addInsightMemo(insight),
             ),
           )
-          ..add(const SizedBox(height: AppSpacing.md));
+          ..add(const SizedBox(height: OnCareSpacing.s12));
       }
       // 시드 대화가 여기서 끝난다. 그 뒤에 오는 메시지(방금 보낸 답장)는
       // 배너 **아래**에 쌓인다. 시드가 하루짜리인 고객 대부분에게는 이
@@ -280,7 +275,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
       if (i == lastSeeded) {
         out.add(_SentBanner(clientName: widget.clientName));
         if (i != list.length - 1) {
-          out.add(const SizedBox(height: AppSpacing.md));
+          out.add(const SizedBox(height: OnCareSpacing.s12));
         }
       }
     }
@@ -316,7 +311,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
       showAppToast(
         context,
         AppLocalizations.of(context).chatInsightMemoSaved,
-        kind: AppToastKind.success,
+        type: AppToastType.success,
       );
     } on Object {
       // The button stays in its unsaved state so the trainer can try again —
@@ -325,7 +320,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
       showAppToast(
         context,
         AppLocalizations.of(context).chatInsightMemoSaveFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     } finally {
       _savingInsights.remove(insight.id);
@@ -345,8 +340,8 @@ class _ChatViewState extends ConsumerState<ChatView> {
       if (!mounted || !_scroll.hasClients) return;
       _scroll.animateTo(
         _scroll.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
+        duration: OnCareMotion.normal,
+        curve: OnCareMotion.curve,
       );
     });
   }
@@ -369,17 +364,15 @@ class _ChatViewState extends ConsumerState<ChatView> {
       children: <Widget>[
         Expanded(
           child: messages.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => EmptyHint(
-              message: l.chatLoadFailed,
-              icon: Icons.error_outline,
-              action: ActionButton(
-                key: ValueKey<String>('chat-retry-${widget.clientId}'),
-                label: l.actionRetry,
-                onPressed: messages.isLoading
-                    ? null
-                    : () => ref.invalidate(chatThreadProvider(widget.clientId)),
-              ),
+            loading: () => const AppLoading(),
+            error: (e, _) => AppErrorState(
+              // 다시 시도 버튼은 이 상태 안의 [AppButton] 이다.
+              key: ValueKey<String>('chat-retry-${widget.clientId}'),
+              title: l.chatLoadFailed,
+              retryLabel: l.actionRetry,
+              onRetry: messages.isLoading
+                  ? null
+                  : () => ref.invalidate(chatThreadProvider(widget.clientId)),
             ),
             data: (list) {
               // Auto-scroll only when a message arrived, not every build.
@@ -408,7 +401,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
               }
               return ListView(
                 controller: _scroll,
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.all(OnCareSpacing.s16),
                 children: _threadChildren(
                   list,
                   showDemoBanners: showDemoBanners,
@@ -432,6 +425,12 @@ class _ChatViewState extends ConsumerState<ChatView> {
   }
 }
 
+/// 대화에서 감지한 불편·부정 신호. (#1655)
+///
+/// 메모로 남긴 뒤에도 배너의 톤은 그대로다 — 무슨 일이 있었는지(부정적
+/// 피드백)는 바뀌지 않았고, 그 사실까지 지우면 나중에 훑을 때 이 자리가
+/// 무엇이었는지 알아볼 수 없다. 처리 여부는 동작 버튼의 문구(메모 추가 →
+/// 메모 추가됨)와 비활성 상태가 말한다.
 class _ChatInsightBanner extends StatelessWidget {
   const _ChatInsightBanner({
     required this.insight,
@@ -457,95 +456,17 @@ class _ChatInsightBanner extends StatelessWidget {
         ? l.chatInsightDiscomfortDescription
         : l.chatInsightNegativeDescription;
 
-    return Container(
-      key: ValueKey<String>('chat-insight-banner-${insight.messageId}'),
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        // 메모로 남기고 나면 **바탕만** 하얗게 비운다. 붉은 바탕은 "여기
-        // 아직 볼 것이 있다" 는 신호인데, 옮겨 적은 뒤에도 그대로 두면
-        // 스레드를 다시 열 때마다 처리한 것과 안 한 것이 똑같이 붉다.
-        //
-        // 윤곽선과 버튼의 붉은색은 남긴다 — 무슨 일이 있었는지(부정적
-        // 피드백)는 바뀌지 않았고, 그 사실까지 회색으로 지우면 나중에
-        // 훑을 때 이 자리가 무엇이었는지 알아볼 수 없다.
-        color: saved
-            ? AppColors.card
-            : AppColors.warning.withValues(alpha: 0.10),
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.28)),
-      ),
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: AppColors.warning,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: const TextStyle(
-                    color: AppColors.mutedForeground,
-                    fontSize: 11.5,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          // 버튼은 저장 뒤에도 붉은색이다. 초록으로 뒤집었더니 빨간 배너
-          // 한가운데서 가장 밝은 것이 "메모 추가됨" 이 되어, 정작 읽어야 할
-          // 감지 내용보다 눈에 먼저 들어왔다. 상태 차이는 색이 아니라
-          // 아이콘(＋ → ✓)과 문구가 말한다.
-          Material(
-            color: AppColors.warning.withValues(alpha: 0.13),
-            borderRadius: const BorderRadius.all(AppRadius.pill),
-            child: InkWell(
-              key: ValueKey<String>('chat-insight-add-${insight.id}'),
-              onTap: saved ? null : onAddMemo,
-              borderRadius: const BorderRadius.all(AppRadius.pill),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: 6,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Icon(
-                      saved ? Icons.check_rounded : Icons.add_rounded,
-                      size: 15,
-                      color: AppColors.warning,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
-                      style: const TextStyle(
-                        color: AppColors.warning,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+    // 메모 추가 버튼은 이 배너 안의 [AppButton] 이다 — 키는 배너에 있다.
+    return KeyedSubtree(
+      key: ValueKey<String>('chat-insight-add-${insight.id}'),
+      child: AppBanner(
+        key: ValueKey<String>('chat-insight-banner-${insight.messageId}'),
+        tone: AppBannerTone.danger,
+        icon: Icons.warning_amber_rounded,
+        title: title,
+        message: description,
+        actionLabel: saved ? l.chatInsightMemoAdded : l.chatInsightAddMemo,
+        onAction: saved ? null : onAddMemo,
       ),
     );
   }
@@ -559,44 +480,16 @@ class _SystemBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.accentSurface,
-          borderRadius: const BorderRadius.all(AppRadius.card),
-          border: Border.all(color: AppColors.borderStrong),
-        ),
-        child: Column(
-          children: <Widget>[
-            IconLabel(
-              icon: Icons.auto_awesome,
-              label: l.chatDemoAnalyzed(clientName),
-              color: AppColors.accent,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              l.chatDemoReportSent,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 10.5,
-                color: AppColors.mutedForeground,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AppBanner(
+      icon: Icons.auto_awesome_rounded,
+      title: l.chatDemoAnalyzed(clientName),
+      message: l.chatDemoReportSent,
     );
   }
 }
 
 /// The "루틴 전송됨" system banner at the end of the seeded thread (mock:
-/// the centered notice under the last message). Same navy tone as
+/// the notice under the last message). Same brand tone as
 /// [_SystemBanner] — not green (#1379): green read as a different kind of
 /// "완료" than this routine-sent notice means.
 class _SentBanner extends StatelessWidget {
@@ -607,38 +500,10 @@ class _SentBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.accentSurface,
-          borderRadius: const BorderRadius.all(AppRadius.card),
-          border: Border.all(color: AppColors.borderStrong),
-        ),
-        child: Column(
-          children: <Widget>[
-            IconLabel(
-              icon: Icons.check_circle_outline,
-              label: l.chatDemoRoutineSent(clientName),
-              color: AppColors.accent,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              l.chatDemoNotified,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 10.5,
-                color: AppColors.mutedForeground,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return AppBanner(
+      icon: Icons.check_circle_rounded,
+      title: l.chatDemoRoutineSent(clientName),
+      message: l.chatDemoNotified,
     );
   }
 }
@@ -648,30 +513,15 @@ class _DateDivider extends StatelessWidget {
 
   final DateTime date;
 
-  static const List<String> _weekdays = <String>[
-    '월요일',
-    '화요일',
-    '수요일',
-    '목요일',
-    '금요일',
-    '토요일',
-    '일요일',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final localDate = date.toLocal();
-    return Center(
-      child: Text(
-        '${localDate.year}년 ${localDate.month}월 ${localDate.day}일 ${_weekdays[localDate.weekday - 1]}',
-        key: ValueKey<String>(
-          'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
-        ),
-        style: const TextStyle(
-          color: AppColors.mutedForeground,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
+    return KeyedSubtree(
+      key: ValueKey<String>(
+        'trainer-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
+      ),
+      child: AppChatDateDivider(
+        AppLocalizations.of(context).chatDateDivider(localDate),
       ),
     );
   }
@@ -680,115 +530,58 @@ class _DateDivider extends StatelessWidget {
 class _Bubble extends ConsumerWidget {
   const _Bubble({required this.message, required this.avatar});
 
-  /// 말풍선이 차지할 수 있는 대화 폭의 최대 비율.
-  ///
-  /// 상한이 없으면 긴 메시지가 대화 창을 가로로 다 채운다. 그러면 말풍선이
-  /// 말풍선으로 읽히지 않는다 — 누가 한 말인지는 색과 **어느 쪽으로 붙어
-  /// 있는가**가 말하는데, 양쪽 끝에 닿아 버리면 그 신호가 사라진다.
-  ///
-  /// 절대값 상한은 두지 않는다. 대화 패널이 가장 넓어지는 경우
-  /// (`wideMaxWidth` 1440 에서 `splitListWidth` 380 을 뺀 ~1000)에도 이
-  /// 비율이면 720 안쪽이라, 읽기 좋은 줄 길이의 기준으로 이미 쓰고 있는
-  /// `contentMaxWidth`(760) 를 넘지 않는다.
-  static const double _maxWidthFraction = 0.72;
-
   final ClientChatMessage message;
   final String avatar;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final fromTrainer = message.fromTrainer;
-    final Widget bubble = Container(
-      key: ValueKey<String>('trainer-message-bubble-${message.id}'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: fromTrainer ? AppColors.accent : AppColors.card,
-        border: fromTrainer
-            ? null
-            : Border.all(color: AppColors.borderStrong),
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(16),
-          topRight: const Radius.circular(16),
-          bottomLeft: Radius.circular(fromTrainer ? 16 : 4),
-          bottomRight: Radius.circular(fromTrainer ? 4 : 16),
-        ),
-      ),
+    // 말풍선 폭 상한(대화 폭의 72%)과 시간 위치는 [AppChatBubble] 이 정한다.
+    // 누가 한 말인지는 색과 **어느 쪽으로 붙어 있는가**가 말한다.
+    final Widget bubble = AppChatBubble(
+      mine: fromTrainer,
+      time: _clockOnly(message.timeLabel),
       child: Column(
+        key: ValueKey<String>('trainer-message-bubble-${message.id}'),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            message.body,
-            style: TextStyle(
-              fontSize: 13.5,
-              height: 1.4,
-              fontWeight: FontWeight.w500,
-              color: fromTrainer
-                  ? AppColors.accentForeground
-                  : AppColors.foreground,
-            ),
-          ),
+          Text(message.body),
           if (message.attachment case final attachment?) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: OnCareSpacing.s8),
             // 사진은 대화 안에서 그리고, PDF 는 내려받는 카드로 둔다. 사진을
             // 카드로 두면 자세를 확인하려고 매번 파일을 열어야 하고, 그건
             // 채팅에 사진을 붙이는 이유 자체를 없앤다. (#921)
             if (attachment.isImage)
               ChatImageAttachment(attachment: attachment)
             else
-              _ChatPdfCard(
-                attachment: attachment,
-                onOpen: () => _openPdf(context, ref, attachment),
+              AppChatFileCard(
+                key: ValueKey<String>('trainer-chat-pdf-${attachment.fileId}'),
+                name: attachment.fileName,
+                detail: _fileSize(attachment.fileSize),
+                onTap: () => _openPdf(context, ref, attachment),
               ),
           ],
         ],
       ),
-    );
-    final time = Text(
-      _clockOnly(message.timeLabel),
-      key: ValueKey<String>('trainer-message-time-${message.id}'),
-      style: const TextStyle(fontSize: 10, color: AppColors.subtleForeground),
     );
 
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) => Row(
-        mainAxisAlignment: fromTrainer
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: <Widget>[
-          if (!fromTrainer) ...<Widget>[
-            ClientAvatar(label: avatar, size: 28),
-            const SizedBox(width: AppSpacing.sm),
-          ],
-          if (fromTrainer) ...<Widget>[
-            time,
-            const SizedBox(width: AppSpacing.xs),
-          ],
-          // `Flexible` 도 함께 둔다. 아주 좁은 폭에서는 아바타와 여백이
-          // 먼저 자리를 가져가 비율로 계산한 상한보다도 남는 폭이 적을 수
-          // 있는데, 그때는 상한이 아니라 남은 폭을 따라야 넘치지 않는다.
-          Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: constraints.maxWidth * _maxWidthFraction,
-              ),
-              child: bubble,
-            ),
-          ),
-          if (!fromTrainer) ...<Widget>[
-            const SizedBox(width: AppSpacing.xs),
-            time,
-          ],
-        ],
-      ),
+    if (fromTrainer) return bubble;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: <Widget>[
+        AppAvatar(name: avatar, size: AppAvatarSize.small),
+        const SizedBox(width: OnCareSpacing.s8),
+        Expanded(child: bubble),
+      ],
     );
   }
 
   static String _clockOnly(String label) =>
       RegExp(r'\d{1,2}:\d{2}').firstMatch(label)?.group(0) ?? label;
+
+  static String _fileSize(int bytes) => bytes >= 1024 * 1024
+      ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
+      : '${(bytes / 1024).toStringAsFixed(1)} KB';
 
   /// 채팅에 붙은 PDF 한 부를 미리보기로 연다.
   ///
@@ -808,12 +601,14 @@ class _Bubble extends ConsumerWidget {
           .read(trainerChatPdfRepositoryProvider)
           .download(attachment.downloadPath);
       if (!context.mounted) return;
-      await showDialog<void>(
+      await showAppDialog<void>(
         context: context,
-        builder: (_) => Dialog(
+        builder: (BuildContext dialogContext) => AppDialog(
+          title: attachment.fileName,
+          size: AppDialogSize.large,
+          bodyPadding: EdgeInsets.zero,
           child: SizedBox(
-            width: 760,
-            height: 720,
+            height: _pdfPreviewHeight,
             child: PdfPreview(
               build: (_) async => Uint8List.fromList(bytes),
               pdfFileName: attachment.fileName,
@@ -822,11 +617,13 @@ class _Bubble extends ConsumerWidget {
               // 것을 구별할 수 없다.
               onError: (_, _) => Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  padding: const EdgeInsets.all(OnCareSpacing.s16),
                   child: Text(
                     l.chatPdfOpenFailed,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.mutedForeground),
+                    style: dialogContext.oncare
+                        .text(OnCareTypography.body)
+                        .copyWith(color: OnCareColors.textSecondary),
                   ),
                 ),
               ),
@@ -836,7 +633,7 @@ class _Bubble extends ConsumerWidget {
       );
     } catch (_) {
       if (!context.mounted) return;
-      showAppToast(context, l.chatPdfOpenFailed, kind: AppToastKind.error);
+      showAppToast(context, l.chatPdfOpenFailed, type: AppToastType.error);
     }
   }
 }
@@ -849,10 +646,7 @@ class _Bubble extends ConsumerWidget {
 ///
 /// 자리는 말풍선이 아니라 **대화 가운데**다. 누가 무슨 말을 했는가가 아니라
 /// 스레드에 무슨 일이 있었는가를 적는 자리라, 같은 흐름의 다른 안내(분석했어요·
-/// 개인 추천운동이 전송됐어요)와 같은 모양을 쓴다.
-///
-/// 바탕은 흰색이고 테두리만 각 앱의 메인 색이다. 구조와 바탕이 같으면 같은
-/// 안내로 읽히고, 테두리 색은 어느 앱을 보고 있는지를 말해 준다.
+/// 개인 추천운동이 전송됐어요)와 같은 [AppBanner] 를 쓴다.
 ///
 /// 다음 행동은 역할마다 다르다. 트레이너 쪽에는 열 PDF 가 없다 — 데모·드리프트
 /// 는 파일을 저장하지 못하므로(#1378), 있지도 않은 파일을 여는 시늉 대신 그
@@ -879,106 +673,16 @@ class ReportRegisteredCard extends StatelessWidget {
       l.dateMonthDay(weekStart.month, weekStart.day),
       l.dateMonthDay(weekEnd.month, weekEnd.day),
     );
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: const BorderRadius.all(AppRadius.card),
-          border: Border.all(color: AppColors.primary),
-        ),
-        // 글자 배율을 키우면 제목·기간·다음 행동이 차례로 길어진다. 셋을 한
-        // 줄에 이어 붙이지 않고 세로로 쌓아 두면, 배율이 커져도 잘리는 대신
-        // 상자가 아래로 자란다.
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            IconLabel(
-              icon: Icons.description_outlined,
-              label: l.chatReportRegistered,
-              color: AppColors.primary,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              range,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 10.5,
-                color: AppColors.mutedForeground,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            // 테두리 없는 글자 버튼. 안내 상자 안에서 두 번째 테두리를 그리면
-            // 상자가 둘로 보인다 — 여기서 눌릴 것은 하나뿐이라 글자로 충분하다.
-            TextButton(
-              onPressed: onOpen,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                textStyle: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              child: Text(l.chatReportOpenInReports),
-            ),
-          ],
-        ),
-      ),
+    // 글자 배율을 키우면 제목·기간·다음 행동이 차례로 길어진다. 배너는 셋을
+    // 세로로 쌓으므로, 배율이 커져도 잘리는 대신 상자가 아래로 자란다.
+    return AppBanner(
+      icon: Icons.description_rounded,
+      title: l.chatReportRegistered,
+      message: range,
+      actionLabel: l.chatReportOpenInReports,
+      onAction: onOpen,
     );
   }
-}
-
-class _ChatPdfCard extends StatelessWidget {
-  const _ChatPdfCard({required this.attachment, required this.onOpen});
-
-  final ChatAttachment attachment;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: AppColors.card.withValues(alpha: 0.92),
-    borderRadius: const BorderRadius.all(AppRadius.sm),
-    child: InkWell(
-      key: ValueKey<String>('trainer-chat-pdf-${attachment.fileId}'),
-      onTap: onOpen,
-      borderRadius: const BorderRadius.all(AppRadius.sm),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.sm),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(Icons.picture_as_pdf, color: AppColors.destructive),
-            const SizedBox(width: AppSpacing.sm),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(attachment.fileName, overflow: TextOverflow.ellipsis),
-                  Text(_fileSize(attachment.fileSize)),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            const Icon(Icons.open_in_new, size: 18),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  static String _fileSize(int bytes) => bytes >= 1024 * 1024
-      ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
-      : '${(bytes / 1024).toStringAsFixed(1)} KB';
 }
 
 class _InputBar extends StatelessWidget {
@@ -1003,77 +707,27 @@ class _InputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.sm,
-        AppSpacing.md,
-        AppSpacing.md,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.card,
-        border: Border(top: BorderSide(color: AppColors.borderStrong)),
-      ),
-      child: Row(
-        children: <Widget>[
-          if (onAttachImage != null) ...<Widget>[
-            IconButton(
-              key: const ValueKey<String>('client-chat-attach-image'),
-              onPressed: sending ? null : onAttachImage,
-              icon: const Icon(Icons.image_outlined),
-              color: AppColors.mutedForeground,
-              tooltip: l.chatAttachImage,
-            ),
-            const SizedBox(width: AppSpacing.xs),
-          ],
-          Expanded(
-            child: TextField(
-              // The console header carries a 고객 검색 field too, so the
-              // composer is addressable by key rather than by being the
-              // page's only input.
-              key: const ValueKey<String>('client-chat-input'),
-              controller: controller,
-              enabled: !sending,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => onSend(),
-              decoration: InputDecoration(
-                hintText: l.chatInputHint,
-                filled: true,
-                fillColor: AppColors.accentSurface,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-                border: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(AppRadius.card),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Material(
-            color: sending ? AppColors.disabledForeground : AppColors.accent,
-            shape: const CircleBorder(),
-            child: InkWell(
-              key: const ValueKey<String>('client-chat-send'),
-              customBorder: const CircleBorder(),
-              onTap: sending ? null : onSend,
-              child: Tooltip(
-                message: AppLocalizations.of(context).a11ySendMessage,
-                child: const Padding(
-                  padding: EdgeInsets.all(AppSpacing.sm),
-                  child: Icon(
-                    Icons.send,
-                    size: 18,
-                    color: AppColors.accentForeground,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+    final Future<void> Function()? attach = onAttachImage;
+    // 웹에서 Enter 는 이전처럼 바로 보낸다(Shift+Enter 는 줄바꿈). 입력줄은
+    // 여러 줄을 받으므로 Enter 를 여기서 가로채지 않으면 줄바꿈이 된다.
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.enter): () {
+          if (!sending) onSend();
+        },
+        const SingleActivator(LogicalKeyboardKey.numpadEnter): () {
+          if (!sending) onSend();
+        },
+      },
+      child: AppChatInputBar(
+        key: const ValueKey<String>('client-chat-input'),
+        controller: controller,
+        hint: l.chatInputHint,
+        sendTooltip: l.a11ySendMessage,
+        onSend: onSend,
+        attachTooltip: l.chatAttachImage,
+        onAttach: attach == null ? null : () => attach(),
+        enabled: !sending,
       ),
     );
   }

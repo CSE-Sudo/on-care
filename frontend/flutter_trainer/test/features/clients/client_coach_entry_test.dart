@@ -8,7 +8,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_coach_repository.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_coach_sheet.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_detail_view.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -213,7 +213,7 @@ void main() {
     );
     expect(
       tester
-          .widget<ActionButton>(find.widgetWithText(ActionButton, '물어보기'))
+          .widget<AppButton>(find.widgetWithText(AppButton, '물어보기'))
           .onPressed,
       isNull,
     );
@@ -228,7 +228,7 @@ void main() {
     );
     expect(
       tester
-          .widget<ActionButton>(find.widgetWithText(ActionButton, '물어보기'))
+          .widget<AppButton>(find.widgetWithText(AppButton, '물어보기'))
           .onPressed,
       isNotNull,
     );

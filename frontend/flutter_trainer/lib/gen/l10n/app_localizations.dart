@@ -6649,6 +6649,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to AI suggestions'**
   String get aiReturnToWizard;
+
+  /// 채팅 스레드에서 날이 바뀌는 자리의 날짜 구분선. 요일까지 적는다(ko: 2026년 9월 14일 월요일, en: Monday, September 14, 2026).
+  ///
+  /// In en, this message translates to:
+  /// **'{date}'**
+  String chatDateDivider(DateTime date);
+
+  /// Tag on a pending assigned routine that the AI suggested.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get clientWorkoutSourceAi;
 }
 
 class _AppLocalizationsDelegate

@@ -3813,4 +3813,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiReturnToWizard => 'Back to AI suggestions';
+
+  @override
+  String chatDateDivider(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMMEEEEd(
+      localeName,
+    );
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String get clientWorkoutSourceAi => 'AI';
 }
