@@ -14,10 +14,14 @@ part 'seed_clients.dart';
 
 /// Idempotent seeder for the trainer app's local DB. Runs at bootstrap.
 ///
-/// **Flag.** `AppKeyValues['trainer_seeded_v31']` stores the date string
+/// **Flag.** `AppKeyValues['trainer_seeded_v32']` stores the date string
 /// (`YYYY-MM-DD`) the seed last ran with. Bump the version suffix
 /// whenever the seeded *content* changes — otherwise a browser that
 /// already seeded today keeps the old data until the date rolls over.
+///
+/// `_v32` 는 김민수를 뺀 고객의 끼니를 회원 앱 모양으로 맞췄다(#1381) — 거른
+/// 끼니(`거름`·`기록 없음`) 카드를 없애고, 음식마다 한 줄씩 kcal·mg·g 을
+/// 채웠다. 올리지 않으면 오늘 이미 시드된 브라우저에 `거름` 카드가 남는다.
 ///
 /// `_v30` 은 오늘 김민수의 PT 를 공유 픽스처에 맞춘 변경이다 — 시각(18:00)·
 /// 종목·세트·횟수·중량이 사용자앱과 같아졌다. 올리지 않으면 오늘 이미 시드된
@@ -118,7 +122,7 @@ Future<void> seedIfEmpty(
   // 주간 계열을 요일 자리에 놓기 위한 오늘의 인덱스(월=0).
   final todayIndex = now.weekday - 1;
 
-  if (await db.readValue('trainer_seeded_v31') == today) return;
+  if (await db.readValue('trainer_seeded_v32') == today) return;
 
   // 김민수의 하루는 픽스처가 정한다 — 이 앱은 날짜에 붙여 저장하기만 한다(#757).
   final DemoFixture demo = fixture ?? DemoFixture.load();
@@ -497,7 +501,7 @@ Future<void> seedIfEmpty(
     });
 
     // ---- Mark seeded (inside the txn so it commits atomically) ----
-    await db.putValue('trainer_seeded_v31', today);
+    await db.putValue('trainer_seeded_v32', today);
   });
 }
 
@@ -509,25 +513,65 @@ Future<void> seedIfEmpty(
 class _Meal {
   const _Meal(
     this.meal,
-    this.items,
-    this.calories,
-    this.sodiumMg, {
-    this.sugarG = 0,
+    this._items,
+    this._calories,
+    this._sodiumMg, {
+    this._sugarG = 0,
     this.carbsG = 0,
     this.proteinG = 0,
     this.fatG = 0,
     this.photoAsset,
     this.date,
     this.timeLabel = '',
-    this.foodsJson = '[]',
-  });
+    this._foodsJson = '[]',
+  }) : foods = const <_Food>[];
+
+  /// 음식 목록으로 적는 끼니 — 김민수를 뺀 시드 고객이 쓴다. (#1381)
+  ///
+  /// 이름·열량·나트륨·당류는 **음식에서 센다.** 끼니 합계를 따로 적어 두면
+  /// 음식 줄의 숫자와 아래 알약이 조용히 갈린다. 탄단지는 음식 줄에 나오지
+  /// 않으므로 끼니에 그대로 둔다.
+  const _Meal.of(
+    this.meal,
+    this.foods, {
+    this.carbsG = 0,
+    this.proteinG = 0,
+    this.fatG = 0,
+    this.photoAsset,
+  }) : _items = '',
+       _calories = 0,
+       _sodiumMg = 0,
+       _sugarG = 0,
+       _foodsJson = '[]',
+       date = null,
+       timeLabel = '';
+
   final String meal;
-  final String items;
-  final int calories;
-  final int sodiumMg;
+  final String _items;
+  final int _calories;
+  final int _sodiumMg;
+  final double _sugarG;
+  final String _foodsJson;
+
+  /// 음식 하나에 한 줄. 비어 있으면 위의 끼니 값을 그대로 쓴다(픽스처 경로).
+  final List<_Food> foods;
+
+  String get items =>
+      foods.isEmpty ? _items : foods.map((_Food f) => f.name).join(', ');
+  int get calories => foods.isEmpty
+      ? _calories
+      : foods.fold(0, (int total, _Food f) => total + f.calories);
+  int get sodiumMg => foods.isEmpty
+      ? _sodiumMg
+      : foods.fold(0, (int total, _Food f) => total + f.sodiumMg);
 
   /// 그 끼니의 당류(g) — 나트륨과 나란히 읽는 값이다(#1025).
-  final double sugarG;
+  double get sugarG => foods.isEmpty
+      ? _sugarG
+      : (foods.fold<double>(0, (double total, _Food f) => total + f.sugarG) *
+                    10)
+                .round() /
+            10;
   final double carbsG;
   final double proteinG;
   final double fatG;
@@ -542,9 +586,32 @@ class _Meal {
   /// 먹은 시각 문구(`08:30`). 회원 앱 끼니 카드가 배지 옆에 적는 값이다. (#1166)
   final String timeLabel;
 
-  /// 음식별 영양(JSON 배열). 회원 앱과 **같은 픽스처**에서 온다 — 같은 끼니의
-  /// 같은 음식이 두 화면에서 다른 수치로 읽히지 않는다. (#1166)
-  final String foodsJson;
+  /// 음식별 영양(JSON 배열). 김민수는 회원 앱과 **같은 픽스처**에서 온다 — 같은
+  /// 끼니의 같은 음식이 두 화면에서 다른 수치로 읽히지 않는다. (#1166) 나머지
+  /// 고객은 [foods] 를 같은 키로 옮긴다(#1381).
+  String get foodsJson => foods.isEmpty
+      ? _foodsJson
+      : jsonEncode(<Map<String, Object?>>[
+          for (final _Food f in foods)
+            <String, Object?>{
+              'name': f.name,
+              'calories': f.calories,
+              'sodium_mg': f.sodiumMg,
+              'sugar_g': f.sugarG,
+            },
+        ]);
+}
+
+/// 끼니 안의 음식 하나 — `이름 · kcal · mg · g`. (#1381)
+///
+/// 트레이너 식단 카드가 음식마다 회색 작은 글씨로 적는 세 값이다. 키는
+/// 픽스처의 `FixtureFood.toJson` 과 같다.
+class _Food {
+  const _Food(this.name, this.calories, this.sodiumMg, this.sugarG);
+  final String name;
+  final int calories;
+  final int sodiumMg;
+  final double sugarG;
 }
 
 class _Routine {

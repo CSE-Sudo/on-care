@@ -509,12 +509,11 @@ class OnCareTheme {
         circularTrackColor: Colors.transparent,
         linearMinHeight: OnCareSize.progressBar,
       ),
-      badgeTheme: BadgeThemeData(
+      // 크기는 M3 기본값을 둔다 — 규격 크기(점 8·카운트 20)는 배지 컴포넌트가
+      // 정한다. 테마에서 키우면 옛 화면의 배지 위치 계산이 한꺼번에 어긋난다.
+      badgeTheme: const BadgeThemeData(
         backgroundColor: OnCareColors.danger,
         textColor: OnCareColors.textOnFill,
-        smallSize: OnCareSize.dot,
-        largeSize: OnCareSize.countBadgeMin,
-        textStyle: t(OnCareTypography.strong(OnCareTypography.caption)),
       ),
 
       // --- 내비게이션 ---

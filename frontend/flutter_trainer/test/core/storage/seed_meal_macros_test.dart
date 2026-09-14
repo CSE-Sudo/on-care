@@ -25,7 +25,7 @@ void main() {
     expect(meals, isNotEmpty);
 
     for (final meal in meals) {
-      // 0 kcal 은 '거름'·'기록 없음' 처럼 먹지 않은 자리다 — 영양소도 0 이 맞다.
+      // 0 kcal 끼니가 생기더라도 먹지 않은 자리다 — 영양소도 0 이 맞다.
       if (meal.calories == 0) continue;
       expect(
         meal.carbsG + meal.proteinG + meal.fatG,
@@ -83,6 +83,59 @@ void main() {
         sum((m) => m.fatG),
         closeTo(client.fatG, 0.5),
         reason: '${client.name}: 지방 합계',
+      );
+    }
+  });
+
+  test('김민수를 뺀 고객의 끼니는 음식별 영양을 갖고, 합이 하루 합계다 (#1381)', () async {
+    final clients = await db.select(db.trainerClients).get();
+    final meals = await db.select(db.clientDietEntries).get();
+    final String todayYmd = ymd(nowKst());
+
+    for (final client in clients) {
+      // 김민수는 공유 픽스처가 원본이다 — 이 테스트의 대상이 아니다.
+      if (client.id == 'seed-client-1') continue;
+      final mine = meals
+          .where((m) => m.clientId == client.id && m.date == todayYmd)
+          .toList();
+      if (mine.isEmpty) continue;
+
+      for (final meal in mine) {
+        final String where = '${client.name} · ${meal.meal}';
+        // 거른 끼니는 카드를 만들지 않는다 — 0kcal 자리가 남으면 안 된다.
+        expect(meal.calories, greaterThan(0), reason: '$where: 빈 끼니');
+        final List<Map<String, Object?>> foods =
+            (jsonDecode(meal.foodsJson) as List<Object?>)
+                .cast<Map<String, Object?>>();
+        expect(foods, isNotEmpty, reason: '$where: 음식별 영양이 없다');
+        // 한 줄에 음식 하나 — 이름에 쉼표로 여러 음식을 몰아 적지 않는다.
+        for (final Map<String, Object?> f in foods) {
+          expect(f['name'], isNot(contains(',')), reason: where);
+        }
+        num sum(String key) => foods.fold<num>(
+          0,
+          (num t, Map<String, Object?> f) => t + (f[key]! as num),
+        );
+        expect(sum('calories'), meal.calories, reason: '$where: kcal');
+        expect(sum('sodium_mg'), meal.sodiumMg, reason: '$where: mg');
+        expect(sum('sugar_g'), closeTo(meal.sugarG, 0.05), reason: '$where: g');
+      }
+
+      // 끼니를 더하면 요약 카드의 하루 합계와 같다.
+      expect(
+        mine.fold<int>(0, (t, m) => t + m.calories),
+        client.caloriesToday,
+        reason: '${client.name}: kcal 합계',
+      );
+      expect(
+        mine.fold<int>(0, (t, m) => t + m.sodiumMg),
+        client.sodiumMg,
+        reason: '${client.name}: 나트륨 합계',
+      );
+      expect(
+        mine.fold<double>(0, (t, m) => t + m.sugarG),
+        closeTo(client.sugarG, 0.05),
+        reason: '${client.name}: 당류 합계',
       );
     }
   });
