@@ -1106,6 +1106,9 @@ class ProgramScheduleRequest(BaseModel):
     #: 새로 만들지 않고 먼저 처리한 결과를 돌려준다. 서버가 `{key}#{index}`·
     #: `{key}#schedule` 로 나눠 저장하므로 프로그램 배정과 같은 48자 상한이다.
     client_request_id: str | None = Field(default=None, min_length=1, max_length=48)
+    #: 고른 시간대와 겹치는 예정 세션이 여럿일 때 트레이너가 확인창에서 고른
+    #: 연결 대상(#1581). 후보가 하나 이하면 비워 둔다.
+    session_id: str | None = Field(default=None, min_length=1, max_length=64)
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)

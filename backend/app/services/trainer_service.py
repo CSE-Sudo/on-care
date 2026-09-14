@@ -3168,6 +3168,59 @@ def _schedule_program_items(
     ]
 
 
+class AttachTargetConflict(Exception):
+    """프로그램을 붙일 기존 세션을 하나로 정할 수 없다(#1581).
+
+    고른 시간대와 겹치는 예정 세션이 여럿인데 고르지 않았거나, 고른 세션이 더는
+    후보가 아니다. 라우터가 409 와 함께 후보를 싣는다.
+    """
+
+    def __init__(self, message: str, candidates: Sequence[TrainerSchedule]):
+        super().__init__(message)
+        self.candidates = [_schedule_out(s) for s in candidates]
+
+
+def _clock_minutes(value: str) -> int:
+    """`HH:MM` 을 자정부터의 분으로. 형식이 다르면 ValueError."""
+    hour, minute = value.split(":")
+    return int(hour) * 60 + int(minute)
+
+
+def _overlapping_planned_sessions(
+    db: Session, trainer_id: str, member_id: str, *,
+    date: str, time: str, duration_minutes: int,
+) -> list[TrainerSchedule]:
+    """고른 시간대와 겹치는 그 회원·그날의 예정 세션(시작 시각 순). (#1581)
+
+    예전에는 시간과 상관없이 그날 가장 이른 예정 세션에 붙어, 같은 날 PT 가
+    여럿이면 의도하지 않은 회차에 프로그램이 들어갔다. 겹침은 반열린 구간
+    `[시작, 끝)` 끼리 본다 — 10:00–11:00 과 11:00–12:00 은 이어질 뿐 겹치지
+    않는다. 길이가 0인 세션은 시작 1분으로 본다.
+    """
+    rows = db.scalars(
+        select(TrainerSchedule)
+        .where(
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.date == date,
+            TrainerSchedule.status == "예정",
+        )
+        .order_by(TrainerSchedule.time, TrainerSchedule.id)
+        .with_for_update()
+    ).all()
+    start = _clock_minutes(time)
+    end = start + duration_minutes
+    overlapping: list[TrainerSchedule] = []
+    for row in rows:
+        try:
+            row_start = _clock_minutes(row.time)
+        except ValueError:
+            continue
+        if start < row_start + max(row.duration_minutes, 1) and row_start < end:
+            overlapping.append(row)
+    return overlapping
+
+
 def _schedule_request_key(base: str) -> str:
     """`일정 추가` 가 새로 만든 일정 행의 멱등키. 루틴 키(`#0`…)와 겹치지 않는다."""
     return f"{base}#schedule"
@@ -3230,6 +3283,7 @@ def assign_program_with_schedule(
     duration_minutes: int,
     client_name: str,
     client_request_id: str | None = None,
+    session_id: str | None = None,
 ) -> ProgramScheduleOut | None:
     """프로그램을 회원에게 배정하고 PT 일정에 올린다 — 둘 다 되거나 둘 다 안 된다. (#1580)
 
@@ -3237,8 +3291,10 @@ def assign_program_with_schedule(
     두 요청이 같은 빈 일정을 보고 각자 일정을 만들지 못하고, 같은 멱등키의 재시도는
     앞 요청이 커밋한 루틴을 보고 결과만 돌려받는다.
 
-    그날 예정 세션이 있으면 거기에 프로그램을 붙이고(고른 시간은 쓰지 않는다),
-    없으면 고른 시간으로 새 일정을 만든다. 담당 고객이 아니면 None.
+    연결 대상은 고른 시간대와 겹치는 그날 예정 세션이다(#1581). 없으면 고른
+    시간으로 새 일정을 만들고, 하나면 거기에 붙이며(고른 시간은 쓰지 않는다),
+    여럿이면 [session_id] 로 고른 것에만 붙인다 — 고르지 않았거나 고른 것이
+    후보가 아니면 [AttachTargetConflict]. 담당 고객이 아니면 None.
     """
     client_link = db.scalar(
         select(TrainerClient)
@@ -3265,18 +3321,25 @@ def assign_program_with_schedule(
                 program_json=program_json,
             )
 
-    target = db.scalar(
-        select(TrainerSchedule)
-        .where(
-            TrainerSchedule.trainer_id == trainer_id,
-            TrainerSchedule.member_id == member_id,
-            TrainerSchedule.date == date,
-            TrainerSchedule.status == "예정",
-        )
-        .order_by(TrainerSchedule.time, TrainerSchedule.id)
-        .limit(1)
-        .with_for_update()
+    candidates = _overlapping_planned_sessions(
+        db, trainer_id, member_id,
+        date=date, time=time, duration_minutes=duration_minutes,
     )
+    target: TrainerSchedule | None
+    if session_id is not None:
+        target = next((s for s in candidates if s.id == session_id), None)
+        if target is None:
+            raise AttachTargetConflict(
+                "고른 PT 일정이 더는 이 시간대의 예정 세션이 아닙니다. 다시 확인해 주세요.",
+                candidates,
+            )
+    elif len(candidates) > 1:
+        raise AttachTargetConflict(
+            "고른 시간대와 겹치는 PT 일정이 여러 개입니다. 연결할 회차를 골라 주세요.",
+            candidates,
+        )
+    else:
+        target = candidates[0] if candidates else None
     routines = _add_program_routines(
         db, trainer_id, member_id,
         name=name, sessions=sessions, client_request_id=client_request_id,

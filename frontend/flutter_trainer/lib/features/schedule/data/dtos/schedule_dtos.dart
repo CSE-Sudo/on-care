@@ -42,12 +42,14 @@ Map<String, Object?> programScheduleToJson({
   required String time,
   required int durationMinutes,
   required String clientName,
+  String? sessionId,
 }) => <String, Object?>{
   ...assignment,
   'date': date,
   'time': time,
   'duration_minutes': durationMinutes,
   'client_name': clientName,
+  'session_id': ?sessionId,
 };
 
 /// 항목 하나의 계약 형태. 서버 `ProgramItem` 스키마와 1:1 이다 (#1276).

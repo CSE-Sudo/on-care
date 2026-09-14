@@ -243,30 +243,46 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         !_registerDateStillValid()) {
       return;
     }
-    final confirmed = await showProgramAssignConfirmDialog(
+    final l = AppLocalizations.of(context);
+    final List<ScheduleSession> candidates;
+    try {
+      candidates = await _attachCandidates(client);
+    } catch (error) {
+      if (mounted && _isStillSelected(client.id)) {
+        showAppToast(
+          context,
+          _sendFailureMessage(l, error),
+          kind: AppToastKind.error,
+        );
+      }
+      return;
+    }
+    if (!mounted || !_isStillSelected(client.id)) return;
+    final confirmation = await showProgramAssignConfirmDialog(
       context,
       clientName: client.name,
       registerDate: _registerDate,
       registerStartTime: _registerStartTime,
       registerEndTime: _registerEndTime,
+      candidates: candidates,
     );
-    if (confirmed != true || !mounted || !_isStillSelected(client.id)) return;
+    if (confirmation == null || !mounted || !_isStillSelected(client.id)) {
+      return;
+    }
     // 확인창을 띄워 둔 사이에도 자정이 지날 수 있다 — 보내기 직전에 한 번 더.
     if (!_registerDateStillValid()) return;
     final sentFor = client.id;
     final registerDate = _registerDate;
     final date = ymd(registerDate);
-    final time =
-        '${_registerStartTime.hour.toString().padLeft(2, '0')}:'
-        '${_registerStartTime.minute.toString().padLeft(2, '0')}';
+    final time = _registerStartHhmm;
     final durationMinutes = _registerDurationMinutes;
     final requestId = _requestIdFor(sentFor, <Object?>[
       programAssignToJson(draft),
       date,
       time,
       durationMinutes,
+      confirmation.sessionId,
     ]);
-    final l = AppLocalizations.of(context);
     setState(() => _sendingClientIds.add(sentFor));
     final bool attachedToExisting;
     try {
@@ -280,6 +296,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             durationMinutes: durationMinutes,
             assignment: programAssignToJson(draft, clientRequestId: requestId),
             program: _draftProgram(draft),
+            sessionId: confirmation.sessionId,
           );
     } catch (error) {
       if (!mounted) return;
@@ -332,6 +349,38 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     });
   }
 
+  /// 등록할 시작 시각 `HH:mm`.
+  String get _registerStartHhmm =>
+      '${_registerStartTime.hour.toString().padLeft(2, '0')}:'
+      '${_registerStartTime.minute.toString().padLeft(2, '0')}';
+
+  /// 고른 날짜·시간대와 겹치는 이 회원의 예정 세션(시작 시각 순). 확인창이
+  /// 새 일정인지 기존 일정 연결인지를 저장 전에 보여 주려고 읽는다(#1581).
+  /// 서버가 같은 규칙으로 다시 고르므로, 그 사이 일정이 바뀌어 여기서 본 것과
+  /// 어긋나면 저장이 409 로 멈춘다.
+  Future<List<ScheduleSession>> _attachCandidates(TrainerClient client) async {
+    final date = ymd(_registerDate);
+    final time = _registerStartHhmm;
+    final duration = _registerDurationMinutes;
+    final sessions = await ref
+        .read(scheduleRepositoryProvider)
+        .fetchClientSessionsOn((id: client.id, name: client.name), date);
+    return sessions
+        .where(
+          (session) =>
+              session.isUpcoming &&
+              session.date == date &&
+              timeRangesOverlap(
+                session.time,
+                session.durationMinutes,
+                time,
+                duration,
+              ),
+        )
+        .toList()
+      ..sort((a, b) => a.time.compareTo(b.time));
+  }
+
   /// 등록 날짜가 아직 오늘 이후인가. 화면을 연 채 자정을 넘겨 전날이 됐으면
   /// 오늘로 되돌리고 알린 뒤 false — 전날 날짜로는 보내지 않는다(#1582).
   bool _registerDateStillValid() {
@@ -352,6 +401,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   /// 먼저 확인하게 한다.
   String _sendFailureMessage(AppLocalizations l, Object error) =>
       switch (error) {
+        ProgramAttachConflictError() => l.coachAttachTargetChanged,
         NetworkError() => l.coachSendNetworkFailed,
         NotFoundError() => l.coachSendClientNotFound,
         ValidationError() => l.coachSendInvalid,
