@@ -4,9 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_profile_dialog.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
@@ -16,11 +13,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/status_dot_label.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// The trainer-only client detail: identity and actions stay above the diet and
 /// workout tabs. The selected tab mirrors the route so deep links, refreshes,
@@ -103,7 +96,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
       showAppToast(
         context,
         serverDetailOr(l, error.message, l.clientStatusChangeFailed),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     } on Object {
       if (!mounted) return;
@@ -111,7 +104,7 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
       showAppToast(
         context,
         AppLocalizations.of(context).clientStatusChangeFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     }
   }
@@ -130,21 +123,28 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
         ref.watch(unreadCountsProvider).valueOrNull ?? const <String, int>{};
 
     return clientsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const AppLoading(),
       error: (e, _) => _StatusView(
-        message: l.clientsLoadFailed,
         showBack: widget.showBack,
-        // Re-subscribes the stream for a fresh attempt.
-        onRetry: () => ref.invalidate(clientsProvider),
+        child: AppErrorState(
+          title: l.clientsLoadFailed,
+          retryLabel: l.actionRetry,
+          // Re-subscribes the stream for a fresh attempt.
+          onRetry: () => ref.invalidate(clientsProvider),
+          placement: AppStatePlacement.card,
+        ),
       ),
       data: (clients) {
         final match = clients.where((c) => c.id == widget.clientId);
         if (match.isEmpty) {
           // Stale deep link / removed client.
           return _StatusView(
-            message: l.clientNotFound,
             showBack: widget.showBack,
-            onRetry: null,
+            child: AppEmptyState(
+              title: l.clientNotFound,
+              icon: Icons.person_search_rounded,
+              placement: AppStatePlacement.card,
+            ),
           );
         }
         final client = match.first;
@@ -190,10 +190,10 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
             Expanded(
               child: ListView(
                 key: ValueKey<String>('client-detail-tabs-${widget.clientId}'),
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.all(OnCareSpacing.s16),
                 children: <Widget>[
                   _sectionTabs(l, section),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: OnCareSpacing.s12),
                   content,
                 ],
               ),
@@ -204,149 +204,55 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
     );
   }
 
-  /// 식단 ↔ 운동 전환 스트립 — 프로그램 탭 `_ClientDataTab` 과 같은 pill
-  /// 스타일이다(#1024). `coaching_page.dart` 를 고치지 않고 그 모양만 여기에
-  /// 다시 그린다 — 공유 위젯으로 뽑으면 그 파일의 동작까지 바뀔 위험이
-  /// 있어서다.
-  Widget _sectionTabs(AppLocalizations l, String current) => Container(
-    key: const ValueKey<String>('client-detail-sub-tabs'),
-    height: 44,
-    decoration: BoxDecoration(
-      color: AppColors.primary.withValues(alpha: 0.1),
-      borderRadius: const BorderRadius.all(AppRadius.pill),
-    ),
-    foregroundDecoration: BoxDecoration(
-      borderRadius: const BorderRadius.all(AppRadius.pill),
-      border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
-    ),
-    clipBehavior: Clip.antiAlias,
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Expanded(
-          child: _SectionTab(
+  /// 식단 ↔ 운동 전환 — 보기 전환 규격인 [AppSegmentedToggle] 이다(#1704).
+  /// 라우트가 곧 선택 상태라, 누르면 호스트에게 섹션 이동만 부탁한다.
+  Widget _sectionTabs(AppLocalizations l, String current) =>
+      AppSegmentedToggle<String>(
+        key: const ValueKey<String>('client-detail-sub-tabs'),
+        expand: true,
+        selected: current,
+        onChanged: widget.onSectionChange,
+        segments: <AppSegment<String>>[
+          AppSegment<String>(
+            value: 'diet',
             label: l.clientTabDiet,
-            icon: Icons.restaurant_outlined,
-            selected: current == 'diet',
-            onTap: () => widget.onSectionChange('diet'),
+            icon: Icons.restaurant_rounded,
           ),
-        ),
-        Expanded(
-          child: _SectionTab(
+          AppSegment<String>(
+            value: 'workout',
             label: l.clientTabWorkout,
-            icon: Icons.fitness_center_outlined,
-            selected: current == 'workout',
-            onTap: () => widget.onSectionChange('workout'),
+            icon: Icons.fitness_center_rounded,
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      );
 }
 
-class _SectionTab extends StatelessWidget {
-  const _SectionTab({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final foreground = selected ? AppColors.primary : AppColors.mutedForeground;
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.card : const Color(0x00000000),
-          borderRadius: const BorderRadius.all(AppRadius.pill),
-          border: selected ? Border.all(color: AppColors.card) : null,
-          boxShadow: selected
-              ? <BoxShadow>[
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Material(
-          color: const Color(0x00000000),
-          child: InkWell(
-            onTap: onTap,
-            customBorder: const StadiumBorder(),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Icon(icon, size: 17, color: foreground),
-                const SizedBox(width: AppSpacing.sm),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: foreground,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Fallback body for the error and not-found states: a message, an
-/// optional 다시 시도 button, and a way back to the 고객 list.
+/// Fallback body for the error and not-found states: the package state
+/// ([AppErrorState] with 다시 시도, or [AppEmptyState]) and a way back to
+/// the 고객 list.
 class _StatusView extends StatelessWidget {
-  const _StatusView({
-    required this.message,
-    required this.showBack,
-    required this.onRetry,
-  });
+  const _StatusView({required this.showBack, required this.child});
 
-  final String message;
   final bool showBack;
-  final VoidCallback? onRetry;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            message,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (onRetry != null)
-            TextButton(onPressed: onRetry, child: Text(l.actionRetry)),
-          if (showBack)
-            TextButton(
-              onPressed: () => context.go(AppRoutes.clients),
-              child: Text(l.clientBackToList),
-            ),
-        ],
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            child,
+            if (showBack)
+              AppButton(
+                label: l.clientBackToList,
+                variant: AppButtonVariant.text,
+                onPressed: () => context.go(AppRoutes.clients),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -386,12 +292,12 @@ class _Header extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
+        horizontal: OnCareSpacing.s16,
+        vertical: OnCareSpacing.s12,
       ),
       decoration: const BoxDecoration(
-        color: AppColors.card,
-        border: Border(bottom: BorderSide(color: AppColors.borderStrong)),
+        color: OnCareColors.surfaceCard,
+        border: Border(bottom: BorderSide(color: OnCareColors.lineSubtle)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -404,13 +310,13 @@ class _Header extends StatelessWidget {
           // 세로 위치까지 달라졌다. (#1024 에서 다시 검토했지만, 이름이 짧아진
           // 지금도 여전히 가장 자연스러운 자리라 그대로 둔다.)
           _identityRow(context),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
           Wrap(
             key: const ValueKey<String>('client-detail-quick-actions'),
             alignment: WrapAlignment.end,
             crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
+            spacing: OnCareSpacing.buttonGap,
+            runSpacing: OnCareSpacing.s8,
             // 메시지 · 프로그램 · 리포트는 모두 흰 배경이다 — 이 회원의 다른
             // 화면으로 넘어가는 동등한 세 자리라, 하나만 색이 다르면 그중
             // 하나가 특별해 보인다. 이 줄은 '나가는 동작'만 모은 자리이고,
@@ -420,24 +326,27 @@ class _Header extends StatelessWidget {
               // 이 회원을 보다가 바로 이어지는 자리들. 예전에는 식단·운동을
               // 다 읽고도 메시지 탭·프로그램 탭으로 건너가 같은 사람을 목록에서
               // 다시 찾아야 했다(#823).
-              ActionButton(
+              AppButton(
                 key: const ValueKey<String>('client-detail-open-messages'),
                 label: l.clientQuickMessages,
-                icon: Icons.chat_bubble_outline,
+                variant: AppButtonVariant.secondary,
+                leadingIcon: Icons.chat_bubble_outline_rounded,
                 onPressed: () => context.go(AppRoutes.messagesFor(client.id)),
               ),
-              ActionButton(
+              AppButton(
                 key: const ValueKey<String>('client-detail-open-program'),
                 label: l.clientQuickProgram,
-                icon: Icons.auto_awesome_outlined,
+                variant: AppButtonVariant.secondary,
+                leadingIcon: Icons.auto_awesome_rounded,
                 onPressed: () => context.go(AppRoutes.coachingFor(client.id)),
               ),
               // 새로 생긴 자리(#1024) — 리포트를 보려면 예전에는 리포트 탭으로
               // 옮겨 가 이 고객을 다시 찾아야 했다.
-              ActionButton(
+              AppButton(
                 key: const ValueKey<String>('client-detail-open-report'),
                 label: l.clientQuickReport,
-                icon: Icons.bar_chart_outlined,
+                variant: AppButtonVariant.secondary,
+                leadingIcon: Icons.bar_chart_rounded,
                 onPressed: () => context.go(AppRoutes.reportFor(client.id)),
               ),
               // 신체·목표 관리와 후속 관리 버튼은 사라졌다 — 전자는 메모와
@@ -457,14 +366,15 @@ class _Header extends StatelessWidget {
       key: const ValueKey<String>('client-detail-identity'),
       children: <Widget>[
         if (showBack)
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, size: 18),
-            color: AppColors.accent,
-            tooltip: l.clientList,
-            onPressed: () => context.go(AppRoutes.clients),
+          Semantics(
+            label: l.clientList,
+            child: AppBackButton(
+              key: const ValueKey<String>('client-detail-back'),
+              onPressed: () => context.go(AppRoutes.clients),
+            ),
           ),
-        ClientAvatar(label: client.avatar, size: 36),
-        const SizedBox(width: AppSpacing.md),
+        AppAvatar(name: client.avatar, size: AppAvatarSize.large),
+        const SizedBox(width: OnCareSpacing.s12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,8 +391,8 @@ class _Header extends StatelessWidget {
               LayoutBuilder(
                 builder: (BuildContext context, BoxConstraints c) => Wrap(
                   crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: AppSpacing.xs,
-                  runSpacing: 4,
+                  spacing: OnCareSpacing.s8,
+                  runSpacing: OnCareSpacing.s4,
                   children: <Widget>[
                     // 이름만 — 성별·나이는 더 이상 여기 없다(#1024). 목록
                     // 카드가 같은 화면에 늘 함께 떠 있는 분할 보기에서, 그
@@ -498,11 +408,9 @@ class _Header extends StatelessWidget {
                         client.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.foreground,
-                        ),
+                        style: context.oncare
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
                       ),
                     ),
                     // The backend roster has no status mutation endpoint
@@ -510,29 +418,44 @@ class _Header extends StatelessWidget {
                     // make it interactive when the selected repository
                     // supports roster mutations.
                     Material(
-                      color:
-                          (client.active
-                                  ? AppColors.success
-                                  : AppColors.disabledForeground)
-                              .withValues(alpha: 0.12),
-                      borderRadius: const BorderRadius.all(AppRadius.pill),
+                      color: OnCareColors.onWhite(
+                        client.active
+                            ? OnCareColors.success
+                            : OnCareColors.textDisabled,
+                        OnCareAlpha.subtle,
+                      ),
+                      borderRadius: OnCareRadius.pillAll,
                       child: InkWell(
                         key: const ValueKey<String>('client-status-toggle'),
                         onTap: onToggleActive,
-                        borderRadius: const BorderRadius.all(AppRadius.pill),
+                        borderRadius: OnCareRadius.pillAll,
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: 3,
+                            horizontal: OnCareSpacing.s8,
+                            vertical: OnCareSpacing.s4,
                           ),
-                          child: StatusDotLabel(
-                            label: client.active
-                                ? l.clientActive
-                                : l.clientDormant,
-                            filled: client.active,
-                            color: client.active
-                                ? AppColors.success
-                                : AppColors.disabledForeground,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              AppStatusDot(
+                                color: client.active
+                                    ? OnCareColors.success
+                                    : OnCareColors.textDisabled,
+                              ),
+                              const SizedBox(width: OnCareSpacing.s4),
+                              Text(
+                                client.active
+                                    ? l.clientActive
+                                    : l.clientDormant,
+                                style: context.oncare
+                                    .text(
+                                      OnCareTypography.strong(
+                                        OnCareTypography.caption,
+                                      ),
+                                    )
+                                    .copyWith(color: OnCareColors.textPrimary),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -544,7 +467,16 @@ class _Header extends StatelessWidget {
                         key: ValueKey<String>(
                           'client-detail-alert-${alert.name}',
                         ),
-                        child: AlertBadge(alert: alert),
+                        child: AppTag(
+                          label: alert.label(l),
+                          icon: Icons.error_outline_rounded,
+                          tone: switch (alert) {
+                            ClientAlert.unanswered => AppTagTone.brand,
+                            ClientAlert.sodiumOver ||
+                            ClientAlert.sugarOver => AppTagTone.danger,
+                            ClientAlert.lowCompletion => AppTagTone.caution,
+                          },
+                        ),
                       ),
                   ],
                 ),
@@ -552,11 +484,9 @@ class _Header extends StatelessWidget {
               Text(
                 client.goal,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  color: AppColors.subtleForeground,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: context.oncare
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
               ),
             ],
           ),
@@ -564,28 +494,29 @@ class _Header extends StatelessWidget {
         // 메모는 새로고침·닫기와 같은 아이콘 버튼이다. 이 셋은 화면을
         // 떠나지 않고 이 자리에서 끝나는 동작이라, 다른 화면으로 건너가는
         // 아래 줄(메시지·프로그램·리포트)과 생김새로 갈라 둔다(#1024).
-        IconButton(
+        AppIconButton(
           key: const ValueKey<String>('client-detail-open-memo'),
-          icon: const Icon(Icons.edit_note_outlined, size: 18),
-          color: AppColors.subtleForeground,
+          icon: Icons.edit_note_rounded,
+          color: OnCareColors.textTertiary,
           // 이 버튼이 여는 것은 메모만이 아니다 — 신체·목표가 같은 창 위쪽에
           // 있다. 툴팁도 창 제목과 같은 말을 한다.
           tooltip: l.clientProfileSectionTitle,
           onPressed: onOpenProfile,
         ),
-        IconButton(
+        AppIconButton(
           key: const ValueKey<String>('client-data-refresh'),
-          icon: const Icon(Icons.refresh, size: 18),
-          color: AppColors.subtleForeground,
+          icon: Icons.refresh_rounded,
+          color: OnCareColors.textTertiary,
           tooltip: l.actionRefresh,
           onPressed: onRefresh,
         ),
         if (onClose != null)
-          IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            color: AppColors.subtleForeground,
-            tooltip: l.clientClosePanel,
-            onPressed: onClose,
+          Semantics(
+            label: l.clientClosePanel,
+            child: AppCloseButton(
+              key: const ValueKey<String>('client-detail-close'),
+              onPressed: onClose,
+            ),
           ),
       ],
     );

@@ -7,15 +7,16 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 /// 짝수 날은 목표(2,000kcal)를 넘고 홀수 날은 못 미친다 — 한 화면에서 두 색이
@@ -76,11 +77,12 @@ Future<void> _pumpDiet(
         ),
         accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: DietRecordPage(),
+        home: const DietRecordPage(),
       ),
     ),
   );
@@ -90,11 +92,14 @@ Future<void> _pumpDiet(
   await tester.pump(const Duration(milliseconds: 300));
 }
 
-double? _donutValue(WidgetTester tester) => tester
-    .widget<CircularProgressIndicator>(
-      find.byKey(const Key('nutrition-calorie-progress')),
-    )
-    .value;
+double? _donutValue(WidgetTester tester) =>
+    (tester
+                .widget<CustomPaint>(
+                  find.byKey(const Key('nutrition-calorie-progress')),
+                )
+                .painter!
+            as DietCalorieRingPainter)
+        .value;
 
 void main() {
   testWidgets('달성률 도넛은 채워지며 들어온다 (#1202)', (WidgetTester tester) async {
@@ -124,7 +129,7 @@ void main() {
   ) async {
     await _pumpDiet(tester, repository: _OverAndUnderDietRepository());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
 
     final Iterable<Color?> filled = tester
@@ -132,7 +137,7 @@ void main() {
         .map((Container box) => (box.decoration as BoxDecoration?)?.color);
 
     expect(
-      filled.contains(FigmaColors.dangerRed.withValues(alpha: 0.85)),
+      filled.contains(OnCareColors.danger),
       isTrue,
       reason: '초과한 날의 막대가 아직 통짜 빨강이 아니다',
     );
@@ -152,9 +157,9 @@ void main() {
     expect(
       segmentColors,
       containsAll(<Color>[
-        FigmaColors.macroCarbs,
-        FigmaColors.macroProtein,
-        FigmaColors.macroFat,
+        OnCareBrand.member.macroCarbs,
+        OnCareBrand.member.macroProtein,
+        OnCareBrand.member.macroFat,
       ]),
       reason: '목표 이내인 날의 탄단지 누적 막대가 없다',
     );

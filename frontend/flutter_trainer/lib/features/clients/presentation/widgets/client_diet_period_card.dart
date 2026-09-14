@@ -6,20 +6,16 @@ import 'package:intl/intl.dart' show DateFormat;
 
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
+// 패키지에 대응이 없는 차트 예외(#1704): 주간 꺾은선과 음성 안내 문자열.
 import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
-import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
-import 'package:oncare_trainer/shared/widgets/period_scroll_chart.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart'
+    show MetricTrendChart;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 고객의 기간 영양 추이 — 회원 앱 식단 탭 기간 뷰와 **같은 것**을 트레이너에게.
 /// (#914)
@@ -44,6 +40,16 @@ class ClientDietPeriodCard extends ConsumerStatefulWidget {
   ConsumerState<ClientDietPeriodCard> createState() =>
       _ClientDietPeriodCardState();
 }
+
+/// `전체` 막대 그래프 높이 — 콘텐츠 고유 치수. 카드 높이를 오늘·이번 주와
+/// 같게 맞추기 위한 값이다 (회원 앱 #1124).
+const double _barChartHeight = 105;
+
+/// 이번 주 꺾은선 높이.
+const double _trendChartHeight = 105;
+
+/// 아직 오지 않은 날의 빈 트랙 두께.
+const double _pendingTrackHeight = 2;
 
 /// 기간 그래프가 그리는 지표.
 enum _Metric { calories, sodium, sugar }
@@ -132,26 +138,21 @@ class _ClientDietPeriodCardState extends ConsumerState<ClientDietPeriodCard> {
           metricLabel: _label,
           range: range,
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: OnCareSpacing.s12),
         _Card(
           child: async.when(
-            loading: () => const SizedBox(
-              height: 160,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-            ),
-            error: (Object e, StackTrace _) => EmptyHint(
-              message: l.dietLoadFailed,
-              icon: Icons.error_outline,
-              action: ActionButton(
-                key: const ValueKey<String>('client-diet-period-retry'),
-                label: l.actionRetry,
-                onPressed: () => ref.invalidate(clientDietPeriodProvider(key)),
-              ),
+            loading: () => const AppLoading(placement: AppStatePlacement.card),
+            error: (Object e, StackTrace _) => AppErrorState(
+              title: l.dietLoadFailed,
+              retryLabel: l.actionRetry,
+              onRetry: () => ref.invalidate(clientDietPeriodProvider(key)),
+              placement: AppStatePlacement.card,
             ),
             data: (ClientDietPeriod period) => period.isEmpty
-                ? EmptyHint(
-                    message: l.clientPeriodEmpty,
-                    icon: Icons.restaurant_outlined,
+                ? AppEmptyState(
+                    title: l.clientPeriodEmpty,
+                    icon: Icons.restaurant_rounded,
+                    placement: AppStatePlacement.card,
                   )
                 : _Body(
                     selection: _selection,
@@ -216,14 +217,14 @@ class _MetricRow extends StatelessWidget {
     return Row(
       children: <Widget>[
         for (final _Metric m in _Metric.values) ...<Widget>[
-          _MetricPill(
+          AppChoiceChip(
             label: metricLabel(l, m),
-            active: metric == m,
-            onTap: () => onMetric(m),
+            selected: metric == m,
+            onSelected: (bool _) => onMetric(m),
           ),
-          if (m != _Metric.values.last) const SizedBox(width: AppSpacing.sm),
+          if (m != _Metric.values.last) const SizedBox(width: OnCareSpacing.s8),
         ],
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: OnCareSpacing.s8),
         // 좁은 화면에서 먼저 줄어드는 쪽은 범위다 — 버튼은 눌러야 하는 것이라
         // 잘리면 안 된다.
         Expanded(
@@ -232,11 +233,9 @@ class _MetricRow extends StatelessWidget {
             textAlign: TextAlign.right,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.mutedForeground,
-            ),
+            style: context.oncare
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.textSecondary),
           ),
         ),
       ],
@@ -255,18 +254,13 @@ class _Card extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => ConstrainedBox(
     key: const ValueKey<String>('client-diet-period-card'),
-    width: double.infinity,
-    constraints: const BoxConstraints(minHeight: kClientNutritionCardHeight),
-    padding: const EdgeInsets.all(AppSpacing.lg),
-    decoration: BoxDecoration(
-      color: AppColors.card,
-      borderRadius: const BorderRadius.all(AppRadius.card),
-      boxShadow: kCardShadow,
-      border: Border.all(color: AppColors.border),
+    constraints: const BoxConstraints(
+      minWidth: double.infinity,
+      minHeight: kClientNutritionCardHeight,
     ),
-    child: child,
+    child: AppCard(child: child),
   );
 }
 
@@ -317,6 +311,7 @@ class _Body extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     // 이번 주(꺾은선)는 스크롤도 선택도 없다 — 일곱 칸이 이미 한 화면이다.
     final bool selectable = !weekly;
     // 카드의 빈 곳을 누르면 고른 날이 풀려 다시 하루 평균이 뜬다 (회원 앱
@@ -361,36 +356,41 @@ class _Body extends StatelessWidget {
                                 : '${DateFormat.yMd(Localizations.localeOf(context).toString()).format(dates[picked])} · $label',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.mutedForeground,
-                            ),
+                            style: tokens
+                                .text(
+                                  OnCareTypography.strong(
+                                    OnCareTypography.caption,
+                                  ),
+                                )
+                                .copyWith(color: OnCareColors.textSecondary),
                           ),
-                          const SizedBox(height: 5),
+                          const SizedBox(height: OnCareSpacing.s4),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text.rich(
                               TextSpan(
                                 text: format(value),
-                                style: TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
-                                  color: over
-                                      ? AppColors.overTarget
-                                      : AppColors.foreground,
-                                ),
+                                style: tokens
+                                    .text(
+                                      OnCareTypography.numeric(
+                                        OnCareTypography.display,
+                                      ),
+                                    )
+                                    .copyWith(
+                                      color: over
+                                          ? OnCareColors.danger
+                                          : OnCareColors.textPrimary,
+                                    ),
                                 children: <InlineSpan>[
                                   TextSpan(
                                     text: ' / ${format(goal)} $unit',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0,
-                                      color: AppColors.mutedForeground,
-                                    ),
+                                    style: tokens
+                                        .text(OnCareTypography.label)
+                                        .copyWith(
+                                          letterSpacing: 0,
+                                          color: OnCareColors.textSecondary,
+                                        ),
                                   ),
                                 ],
                               ),
@@ -401,7 +401,7 @@ class _Body extends StatelessWidget {
                       ),
                     ),
                     if (macros != null) ...<Widget>[
-                      const SizedBox(width: AppSpacing.md),
+                      const SizedBox(width: OnCareSpacing.s12),
                       _MacroDetail(
                         macros: macros,
                         format: format,
@@ -416,7 +416,7 @@ class _Body extends StatelessWidget {
           // 머리와 그래프 사이의 구분선도 간격도 두지 않는다 (회원 앱 #1123).
           // `전체` 는 그 빈 칸을 그래프가 들고 있어(topGap) 고른 막대의
           // 세로선이 머리 카드까지 닿는다.
-          SizedBox(height: weekly ? 14 : 0),
+          if (weekly) const SizedBox(height: OnCareSpacing.s12),
           if (weekly)
             Builder(
               builder: (BuildContext context) {
@@ -454,7 +454,7 @@ class _Body extends StatelessWidget {
                         formatTick: (double v) => format(v),
                         // 남는 자리는 그래프가 쓴다 — 세 화면의 카드 높이를
                         // 같게 두면서 빈 칸을 만들지 않는다. (회원 앱 #1124)
-                        height: 105,
+                        height: _trendChartHeight,
                       ),
                 );
               },
@@ -535,21 +535,26 @@ class _MacroDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final OnCareBrand brand = tokens.brand;
+    final TextStyle captionStrong = tokens.text(
+      OnCareTypography.strong(OnCareTypography.caption),
+    );
     final List<(String, double, Color)> rows = <(String, double, Color)>[
       (
         l.metricCarbs,
         macros.carbs,
-        muted ? AppColors.mutedForeground : AppColors.macroCarbs,
+        muted ? OnCareColors.textSecondary : brand.macroCarbs,
       ),
       (
         l.metricProtein,
         macros.protein,
-        muted ? AppColors.mutedForeground : AppColors.macroProtein,
+        muted ? OnCareColors.textSecondary : brand.macroProtein,
       ),
       (
         l.metricFat,
         macros.fat,
-        muted ? AppColors.mutedForeground : AppColors.macroFat,
+        muted ? OnCareColors.textSecondary : brand.macroFat,
       ),
     ];
     return Column(
@@ -558,34 +563,25 @@ class _MacroDetail extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         for (final (String label, double value, Color color) in rows)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  // `204g` — 소수점은 버린다. 옆의 머리 숫자가 주인공이고 이
-                  // 줄은 곁들이다. (회원 앱 `_macroGrams`)
-                  '${value.round()}g',
-                  maxLines: 1,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.foreground,
-                  ),
-                ),
-              ],
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                label,
+                maxLines: 1,
+                style: captionStrong.copyWith(color: color),
+              ),
+              const SizedBox(width: OnCareSpacing.s4),
+              Text(
+                // `204g` — 소수점은 버린다. 옆의 머리 숫자가 주인공이고 이
+                // 줄은 곁들이다. (회원 앱 `_macroGrams`)
+                '${value.round()}g',
+                maxLines: 1,
+                style: OnCareTypography.numeric(
+                  captionStrong,
+                ).copyWith(color: OnCareColors.textPrimary),
+              ),
+            ],
           ),
       ],
     );
@@ -664,10 +660,11 @@ class _PeriodBars extends StatelessWidget {
   /// 빼고 줄바꿈은 쉼표로 바꾼다 — 음성 안내는 줄을 나누어 읽지 않는다.
   String _tipText(
     AppLocalizations l,
+    OnCareBrand brand,
     DateFormat dayFormat,
     int i,
     bool hasGoal,
-  ) => TextSpan(children: _tipSpans(l, dayFormat, i, hasGoal))
+  ) => TextSpan(children: _tipSpans(l, brand, dayFormat, i, hasGoal))
       .toPlainText(includePlaceholders: false)
       .split('\n')
       .map((String line) => line.trim())
@@ -677,15 +674,9 @@ class _PeriodBars extends StatelessWidget {
   /// 색 사각형 하나 — 툴팁 줄 앞에 붙는 범례다.
   InlineSpan _swatch(Color color) => WidgetSpan(
     alignment: PlaceholderAlignment.middle,
-    child: Container(
-      width: 9,
-      height: 9,
-      margin: const EdgeInsets.only(right: 6),
-      decoration: BoxDecoration(
-        color: color,
-        // 9px 네모라 모서리도 그만큼 작다 — 회원 앱과 같은 2 다.
-        borderRadius: BorderRadius.circular(2),
-      ),
+    child: Padding(
+      padding: const EdgeInsets.only(right: OnCareSpacing.s8),
+      child: AppChartSwatch(color: color),
     ),
   );
 
@@ -693,6 +684,7 @@ class _PeriodBars extends StatelessWidget {
   /// `[색 사각형] 지표  값 단위` 한 줄, 목표를 넘긴 날은 초과분을 한 줄 더.
   List<InlineSpan> _tipSpans(
     AppLocalizations l,
+    OnCareBrand brand,
     DateFormat dayFormat,
     int i,
     bool hasGoal,
@@ -702,7 +694,7 @@ class _PeriodBars extends StatelessWidget {
     final List<InlineSpan> spans = <InlineSpan>[
       TextSpan(
         text: '${dayFormat.format(dates[i])}\n',
-        style: const TextStyle(color: AppColors.mutedForeground),
+        style: const TextStyle(color: OnCareColors.textSecondary),
       ),
     ];
     // 아직 오지 않은 날과 지나갔는데 비운 날은 다른 말이다(회원 앱 #950).
@@ -716,7 +708,7 @@ class _PeriodBars extends StatelessWidget {
       spans.add(TextSpan(text: l.chartNoRecord));
       return spans;
     }
-    spans.add(_swatch(over ? AppColors.overTarget : AppColors.dietChart));
+    spans.add(_swatch(over ? OnCareColors.danger : brand.dietChart));
     spans.add(TextSpan(text: '$label   ${format(value)} $unit'));
     // 칼로리 뒤에는 그 칼로리가 어디서 왔는지를 적는다 — 숫자 하나만 보고는
     // 같은 2,000kcal 이 밥에서 왔는지 기름에서 왔는지 알 수 없다.
@@ -724,17 +716,13 @@ class _PeriodBars extends StatelessWidget {
     if (day != null && day.hasMacros) {
       for (final ({Color color, String label, double grams}) m
           in <({Color color, String label, double grams})>[
+            (color: brand.macroCarbs, label: l.metricCarbs, grams: day.carbsG),
             (
-              color: AppColors.macroCarbs,
-              label: l.metricCarbs,
-              grams: day.carbsG,
-            ),
-            (
-              color: AppColors.macroProtein,
+              color: brand.macroProtein,
               label: l.metricProtein,
               grams: day.proteinG,
             ),
-            (color: AppColors.macroFat, label: l.metricFat, grams: day.fatG),
+            (color: brand.macroFat, label: l.metricFat, grams: day.fatG),
           ]) {
         spans.add(const TextSpan(text: '\n'));
         spans.add(_swatch(m.color));
@@ -746,7 +734,7 @@ class _PeriodBars extends StatelessWidget {
       spans.add(
         TextSpan(
           text: '\n${l.chartOverGoal(format(value - goal), unit)}',
-          style: const TextStyle(color: AppColors.overTarget),
+          style: const TextStyle(color: OnCareColors.danger),
         ),
       );
     }
@@ -756,14 +744,13 @@ class _PeriodBars extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareBrand brand = context.oncare.brand;
     // `8월 12일 (화)` / `Tue, Aug 12` — 어느 막대가 며칠인지 x축 라벨만으로는
     // 짚을 수 없다(달은 6칸에 하나만 적는다).
     final DateFormat dayFormat = DateFormat.MMMEd(
       Localizations.localeOf(context).toString(),
     );
-    // 카드 높이를 오늘·이번 주와 같게 맞추기 위한 값이다 (회원 앱 #1124) —
-    // 여기서 1px 을 바꾸면 `전체` 카드 높이가 그만큼 달라진다.
-    const double chartHeight = 109;
+    const double chartHeight = _barChartHeight;
     // 축 위에 여유를 둔다. 목표를 넘은 날이 없으면 목표가 곧 최댓값이 되어
     // 목표선이 차트 맨 위(=바깥)에 놓여 잘려 보인다.
     final double peak = <double>[
@@ -777,13 +764,6 @@ class _PeriodBars extends StatelessWidget {
     // 기록이 하나도 없는 달은 막대마다 `기록 없음` 을 서른 번 읽히는 대신 비어
     // 있다고 한 번만 말한다(#972).
     final bool empty = logged.every((bool it) => !it);
-    // 회원 앱 기간 막대의 툴팁 상자 — 옅은 회색 바탕에 실선 테두리.
-    final BoxDecoration tipDecoration = BoxDecoration(
-      color: AppColors.inputBackground,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: AppColors.borderStrong),
-      boxShadow: kCardShadow,
-    );
 
     return Semantics(
       container: true,
@@ -800,6 +780,9 @@ class _PeriodBars extends StatelessWidget {
             selectedIndex: selection.selected,
             onSelected: selection.select,
             onVisibleRangeChanged: selection.setVisible,
+            // 지표·칸 수가 바뀔 때만 막대가 다시 자란다. 날을 고르는 것으로는
+            // 다시 그리지 않는다 (#1697).
+            revealKey: (label, values.length),
             // 목표치는 왼쪽 칸에 두 줄로 적는다 (#1071).
             goalBottom: hasGoal
                 ? chartHeight * (goal / maxValue).clamp(0.0, 1.0)
@@ -807,36 +790,36 @@ class _PeriodBars extends StatelessWidget {
             goalLabel: '${l.clientPeriodGoal}\n${format(goal)}',
             // 머리 카드와 막대 사이의 빈 칸 — 고른 날의 세로선이 여기까지
             // 올라와 회색 카드에 닿는다 (회원 앱 #1123).
-            topGap: 14,
+            topGap: OnCareSpacing.s12,
             // 날짜만 적으면 `26`, `9` 가 무슨 날인지 알 수 없다 — 달을 함께
             // 적는다 (회원 앱 #1123).
             labelBuilder: (int i) =>
                 i % labelStep == 0 ? '${dates[i].month}/${dates[i].day}' : '',
-            calloutBuilder: (BuildContext context, int i) =>
-                const SizedBox.shrink(),
             barBuilder: (BuildContext context, int i) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+              padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s2),
               // 툴팁은 올려야 보인다. 같은 내용을 시맨틱 라벨로도 준다 — 막대
               // 하나가 며칠 얼마인지는 이 노드 말고는 음성 안내에 나올 데가
               // 없다(#972).
               child: Semantics(
-                label: _tipText(l, dayFormat, i, hasGoal),
+                label: _tipText(l, brand, dayFormat, i, hasGoal),
                 child: Tooltip(
                   key: Key('client-diet-bar-$i'),
-                  richMessage: TextSpan(
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.foreground,
-                      height: 1.3,
+                  // 같은 말은 바깥 [Semantics] 가 이미 한다 — 상자 모양만
+                  // 들어간 툴팁 문구는 음성 안내에서 뺀다.
+                  excludeFromSemantics: true,
+                  // 상자는 공용 [AppChartTooltip] 이 그린다. Tooltip 자체의
+                  // 바탕·안쪽 여백은 비운다.
+                  decoration: const BoxDecoration(),
+                  padding: EdgeInsets.zero,
+                  richMessage: WidgetSpan(
+                    child: AppChartTooltip(
+                      child: Text.rich(
+                        TextSpan(
+                          children: _tipSpans(l, brand, dayFormat, i, hasGoal),
+                        ),
+                      ),
                     ),
-                    children: _tipSpans(l, dayFormat, i, hasGoal),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: tipDecoration,
                   child: Align(
                     alignment: Alignment.bottomCenter,
                     child: _MacroBar(
@@ -892,17 +875,17 @@ class _MacroBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 회원 앱 기간 막대와 같은 3 이다 — 6 은 좁은 칸에서 막대 끝이 반원처럼
-    // 뭉뚱그려져 높이를 읽기 어려웠다.
-    const BorderRadius radius = BorderRadius.vertical(top: Radius.circular(3));
+    // 차트 막대 반경(xs) — 좁은 칸에서 막대 끝이 반원처럼 뭉뚱그려지지 않는다.
+    const BorderRadius radius = BorderRadius.vertical(top: OnCareRadius.xs);
+    final OnCareBrand brand = context.oncare.brand;
     final ClientDietDay? d = day;
     if (pending) {
       // 아직 오지 않은 날은 **빈 트랙**이다. 지나간 빈 날과 같은 그루터기를
       // 그리면 둘이 구분되지 않는다.
       return Container(
-        height: 2,
+        height: _pendingTrackHeight,
         decoration: const BoxDecoration(
-          color: AppColors.border,
+          color: OnCareColors.lineSubtle,
           borderRadius: radius,
         ),
       );
@@ -924,15 +907,14 @@ class _MacroBar extends StatelessWidget {
           color: !logged
               // 기록이 없는 날은 색이 없다 — 0 으로 칠하면 '적지 않은 날' 이
               // '0kcal 먹은 날' 이 된다.
-              ? AppColors.borderStrong
+              ? OnCareColors.lineStrong
               : over
-              ? AppColors.overTarget.withValues(alpha: 0.85)
-              // 목표 안쪽 막대는 [AppColors.dietChart] — 이 앱의 브랜드
+              ? OnCareColors.danger
+              // 목표 안쪽 막대는 `brand.dietChart` — 이 앱의 브랜드
               // 남색이다. 한때 초록이었지만(#1027) 초록은 `정상` 으로 읽혀
               // 목표에 한참 못 미친 날까지 괜찮다고 말해 걷어냈다(#1168).
-              // 판단은 초과 여부만 하고, 초과한 날만 [AppColors.overTarget]
-              // 으로 갈린다(#1239).
-              : AppColors.dietChart.withValues(alpha: 0.85),
+              // 판단은 초과 여부만 하고, 초과한 날만 빨강으로 갈린다(#1239).
+              : brand.dietChart,
           borderRadius: radius,
         ),
       );
@@ -957,11 +939,10 @@ class _MacroBar extends StatelessWidget {
     parts = <({Color color, double kcal})>[
       // 어느 영양소로도 설명되지 않는 칼로리. 반올림 때문에 생기는
       // 실오라기는 그리지 않는다 — 1% 를 넘을 때만 자리를 준다.
-      if (rest / basis > 0.01) (color: AppColors.inputBackground, kcal: rest),
-      if (d.fatKcal > 0) (color: AppColors.macroFat, kcal: d.fatKcal),
-      if (d.proteinKcal > 0)
-        (color: AppColors.macroProtein, kcal: d.proteinKcal),
-      if (d.carbsKcal > 0) (color: AppColors.macroCarbs, kcal: d.carbsKcal),
+      if (rest / basis > 0.01) (color: OnCareColors.surfaceInput, kcal: rest),
+      if (d.fatKcal > 0) (color: brand.macroFat, kcal: d.fatKcal),
+      if (d.proteinKcal > 0) (color: brand.macroProtein, kcal: d.proteinKcal),
+      if (d.carbsKcal > 0) (color: brand.macroCarbs, kcal: d.carbsKcal),
     ];
     return ClipRRect(
       borderRadius: radius,
@@ -979,67 +960,6 @@ class _MacroBar extends StatelessWidget {
                 child: ColoredBox(color: part.color),
               ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetricPill extends StatelessWidget {
-  const _MetricPill({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // `GestureDetector` 가 아니라 `InkWell` 이다. 트레이너 앱은 웹·데스크톱에서도
-    // 쓰이는데, 탭만 받는 위젯은 Tab 포커스와 Enter 를 받지 못해 마우스 없이는
-    // 지표를 바꿀 수 없었다. 같은 화면의 `_ClientDataTab` 이 이미 쓰는 방식이다.
-    return Semantics(
-      button: true,
-      selected: active,
-      child: Container(
-        decoration: BoxDecoration(
-          // 식단 카드 전체가 초록 계열이다 — 고른 지표 버튼도 같은 색으로
-          // 맞춘다(#1025).
-          color: active
-              ? AppColors.dietChart.withValues(alpha: 0.12)
-              : AppColors.inputBackground,
-          borderRadius: const BorderRadius.all(AppRadius.pill),
-          border: Border.all(
-            color: active
-                ? AppColors.dietChart.withValues(alpha: 0.35)
-                : const Color(0x00000000),
-          ),
-        ),
-        child: Material(
-          color: const Color(0x00000000),
-          child: InkWell(
-            onTap: onTap,
-            customBorder: const StadiumBorder(),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: 6,
-              ),
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: active
-                      ? AppColors.dietChart
-                      : AppColors.mutedForeground,
-                ),
-              ),
-            ),
-          ),
         ),
       ),
     );

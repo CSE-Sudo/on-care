@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_toggle.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// `[아이콘] 제목 … [기간 토글]` 한 줄, 그 아래 카드. — 회원 앱 `영양 요약`·
 /// `운동 현황` 과 같은 구조다. (#943, #944)
@@ -42,6 +40,8 @@ class ClientPeriodSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -56,25 +56,27 @@ class ClientPeriodSection extends StatelessWidget {
             // 밀어내 줄이 넘치면 안 된다.
             Flexible(
               child: Padding(
-                padding: const EdgeInsets.only(right: AppSpacing.sm),
+                padding: const EdgeInsets.only(right: OnCareSpacing.s8),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    // 아이콘 크기·간격·글자 크기 모두 회원 앱 `SectionTitle`
-                    // 과 같은 값이다 — 두 화면이 같은 것을 말하는지 제목
-                    // 줄에서 바로 붙어야 한다.
-                    Icon(icon, size: 16, color: AppColors.primary),
-                    const SizedBox(width: 6),
+                    // 아이콘·간격·글자는 `AppSectionHeader` 와 같은 규격이다.
+                    // 그 위젯은 제목을 `Expanded` 로 늘려 토글 자리를 밀어내므로
+                    // 같은 값으로 이 자리에서 조립한다.
+                    Icon(
+                      icon,
+                      size: OnCareSize.iconMedium,
+                      color: tokens.brand.primary,
+                    ),
+                    const SizedBox(width: OnCareSpacing.s8),
                     Flexible(
                       child: Text(
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.foreground,
-                        ),
+                        style: tokens
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
                       ),
                     ),
                   ],
@@ -85,14 +87,34 @@ class ClientPeriodSection extends StatelessWidget {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
-                child: ClientPeriodToggle(active: period, onChanged: onChanged),
+                child: AppSegmentedToggle<ClientPeriod>(
+                  key: const ValueKey<String>('client-period-toggle'),
+                  segments: clientPeriodSegments(l),
+                  selected: period,
+                  onChanged: onChanged,
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.s8),
         child,
       ],
     );
   }
 }
+
+/// `오늘 / 이번 주 / 전체` 세그먼트 — 회원 앱 식단·운동 탭의 같은 토글과 문구도
+/// 순서도 같다. (#914)
+List<AppSegment<ClientPeriod>> clientPeriodSegments(AppLocalizations l) =>
+    <AppSegment<ClientPeriod>>[
+      for (final ClientPeriod period in ClientPeriod.values)
+        AppSegment<ClientPeriod>(
+          value: period,
+          label: switch (period) {
+            ClientPeriod.today => l.clientPeriodToday,
+            ClientPeriod.week => l.clientPeriodWeek,
+            ClientPeriod.month => l.clientPeriodMonth,
+          },
+        ),
+    ];

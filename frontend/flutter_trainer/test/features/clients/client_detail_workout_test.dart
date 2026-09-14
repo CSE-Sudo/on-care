@@ -10,12 +10,11 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/exercise_line.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -230,6 +229,13 @@ class _FeedbackRepository extends DriftClientRepository {
   }
 }
 
+/// 운동 한 줄(`_ExerciseLine`)은 화면 비공개 위젯이라 키 접두사로 찾는다.
+final Finder _exerciseLines = find.byWidgetPredicate(
+  (Widget w) =>
+      w.key is ValueKey<String> &&
+      (w.key! as ValueKey<String>).value.startsWith('workout-exercise-line-'),
+);
+
 void main() {
   group('ClientRepository.watchHistory', () {
     late AppDatabase db;
@@ -372,7 +378,7 @@ void main() {
       // 식단만 기간별 조언을 읽고 운동은 못 읽으면 한 화면에서 반쪽만
       // 코칭이 된다.
       await openWorkout(tester, '김민수');
-      await tester.tap(find.byKey(const Key('client-period-week')));
+      await tester.tap(_periodSegment('이번 주'));
       await settle(tester);
 
       expect(find.text('AI 기간 분석'), findsOneWidget);
@@ -387,7 +393,10 @@ void main() {
         ValueKey<String>('client-day-tile-${ymd(todayKst())}'),
       );
       expect(
-        find.descendant(of: todayRow, matching: find.byIcon(Icons.expand_more)),
+        find.descendant(
+          of: todayRow,
+          matching: find.byIcon(Icons.expand_more_rounded),
+        ),
         findsOneWidget,
       );
       expect(
@@ -399,14 +408,14 @@ void main() {
       );
       // 알약은 "얼마나" 를 말한다. 무엇으로 채워졌는지는 이름이 말한다.
       expect(
-        find.descendant(of: records, matching: find.byType(ExerciseLine)),
+        find.descendant(of: records, matching: _exerciseLines),
         findsWidgets,
       );
     });
 
     testWidgets('운동 전체 AI 카드는 전체 기간을 제목으로 말한다 (#1025)', (tester) async {
       await openWorkout(tester, '김민수');
-      await tester.tap(find.byKey(const Key('client-period-month')));
+      await tester.tap(_periodSegment('전체'));
       await settle(tester);
 
       await tester.scrollUntilVisible(
@@ -434,7 +443,10 @@ void main() {
         ValueKey<String>('client-day-tile-${ymd(todayKst())}'),
       );
       expect(
-        find.descendant(of: todayRow, matching: find.byIcon(Icons.expand_more)),
+        find.descendant(
+          of: todayRow,
+          matching: find.byIcon(Icons.expand_more_rounded),
+        ),
         findsOneWidget,
       );
     });
@@ -454,7 +466,10 @@ void main() {
       expect(find.text(_todayRowLabel()), findsOneWidget);
       expect(todayRow, findsOneWidget);
       expect(
-        find.descendant(of: todayRow, matching: find.byIcon(Icons.expand_more)),
+        find.descendant(
+          of: todayRow,
+          matching: find.byIcon(Icons.expand_more_rounded),
+        ),
         findsNothing,
       );
       // 완료 배지 — 원형 게이지가 아니라 아이콘+글자 배지다(#1025).
@@ -468,7 +483,7 @@ void main() {
       // 거른 항목은 지난 날에 있다. 이 목록은 고른 기간만 다루므로(식단과
       // 같은 규칙, #1025) 기간을 넓힌 뒤 그 날을 펼친다.
       final ({DateTime day, String name}) skipped = _minsuSkipped();
-      await tester.tap(find.byKey(const Key('client-period-month')));
+      await tester.tap(_periodSegment('전체'));
       await settle(tester);
       final Finder skippedRow = find.text(_rowLabel(skipped.day));
       expect(skippedRow, findsOneWidget);
@@ -502,7 +517,9 @@ void main() {
       await tester.tap(cancel);
       await settle(tester);
       expect(find.text('프로그램을 삭제할까요?'), findsOneWidget);
-      await tester.tap(find.text('취소'));
+      await tester.tap(
+        find.descendant(of: find.byType(AppDialog), matching: find.text('취소')),
+      );
       await settle(tester);
       expect(find.textContaining('저강도 유산소 (걷기)'), findsOneWidget);
 
@@ -511,7 +528,10 @@ void main() {
       await tester.tap(cancel);
       await settle(tester);
       await tester.tap(
-        find.byKey(const ValueKey<String>('confirm-cancel-pending-routine')),
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.widgetWithText(AppButton, '삭제'),
+        ),
       );
       await settle(tester);
       expect(find.textContaining('저강도 유산소 (걷기)'), findsNothing);
@@ -519,12 +539,12 @@ void main() {
       expect(find.textContaining('하체 스트레칭'), findsOneWidget);
 
       // 이번 주·전체는 지나간 기록을 되짚는 화면이라 '앞으로 할 일' 은 접는다.
-      await tester.tap(find.byKey(const Key('client-period-week')));
+      await tester.tap(_periodSegment('이번 주'));
       await settle(tester);
       expect(pending, findsNothing);
       expect(find.textContaining('하체 스트레칭'), findsNothing);
 
-      await tester.tap(find.byKey(const Key('client-period-today')));
+      await tester.tap(_periodSegment('오늘'));
       await settle(tester);
       expect(pending, findsOneWidget);
     });
@@ -535,7 +555,7 @@ void main() {
 
       // 오늘 줄은 처음부터 펼쳐져 있고 그 안에 완료한 기록이 있다.
       expect(find.text('트레이너 메모'), findsOneWidget);
-      final int linesBefore = find.byType(ExerciseLine).evaluate().length;
+      final int linesBefore = _exerciseLines.evaluate().length;
       expect(linesBefore, greaterThan(0));
 
       await tester.tap(
@@ -547,14 +567,17 @@ void main() {
       );
       await settle(tester);
       await tester.tap(
-        find.byKey(const ValueKey<String>('confirm-cancel-pending-routine')),
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.widgetWithText(AppButton, '삭제'),
+        ),
       );
       await settle(tester);
 
       // 배정만 사라지고 기록은 그대로다 — 한 일이 없던 일이 되지 않는다.
       expect(find.textContaining('저강도 유산소 (걷기)'), findsNothing);
       expect(find.text('트레이너 메모'), findsOneWidget);
-      expect(find.byType(ExerciseLine).evaluate().length, linesBefore);
+      expect(_exerciseLines.evaluate().length, linesBefore);
     });
 
     testWidgets('이미 수행한 배정에는 취소가 없다 (#1020)', (tester) async {
@@ -608,7 +631,7 @@ void main() {
 
       // 전체로 넓히면 날짜 없는 기록은 그대로 있고, 지난 기록은 그 날 줄에
       // 가 있다 — 접혀 있으므로 펼쳐야 보인다.
-      await tester.tap(find.byKey(const Key('client-period-month')));
+      await tester.tap(_periodSegment('전체'));
       await settle(tester);
       expect(marker(_DatedHistoryRepository.undatedLabel), findsOneWidget);
 
@@ -627,27 +650,17 @@ void main() {
       //
       // 그림자를 가진 판만 고른다. 안쪽의 메모 상자도 왼쪽에 색 띠가 있지만
       // 그건 배포본에도 있는 것이고 그림자가 없다.
-      final Iterable<Container> cards = tester
-          .widgetList<Container>(
-            find.descendant(
-              of: find.byKey(const ValueKey<String>('exercise-daily-records')),
-              matching: find.byType(Container),
-            ),
-          )
-          .where(
-            (Container c) =>
-                c.decoration is BoxDecoration &&
-                (c.decoration! as BoxDecoration).boxShadow != null,
-          );
+      // 판은 공용 [AppCard] 다 — 흰 바탕·네 변 같은 테두리가 컴포넌트에 묶여
+      // 있고, 선택 채움(브랜드색)으로 칠해지지 않아야 한다.
+      final Iterable<AppCard> cards = tester.widgetList<AppCard>(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('exercise-daily-records')),
+          matching: find.byType(AppCard),
+        ),
+      );
       expect(cards, isNotEmpty);
-      for (final Container card in cards) {
-        final BoxDecoration decoration = card.decoration! as BoxDecoration;
-        expect(decoration.color, AppColors.card);
-        expect(
-          decoration.border,
-          Border.all(color: AppColors.border),
-          reason: '기록 카드에 색 띠가 다시 붙었습니다.',
-        );
+      for (final AppCard card in cards) {
+        expect(card.selected, isFalse, reason: '기록 카드에 색이 다시 입혀졌습니다.');
       }
     });
 
@@ -681,8 +694,11 @@ void main() {
 
       // 재시도 버튼은 안내 문구 바로 아래라, 문구가 보이는 지점에서 아직
       // 화면 밖일 수 있다 — 눌러야 할 것을 직접 끌어올린다.
-      final retry = find.byKey(
-        const ValueKey<String>('workout-history-retry-seed-client-1'),
+      final retry = find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('workout-history-retry-seed-client-1'),
+        ),
+        matching: find.byType(AppButton),
       );
       await tester.ensureVisible(retry);
       await settle(tester);
@@ -702,3 +718,9 @@ void main() {
     });
   });
 }
+
+/// 기간 토글에서 [label] 칸. 세그먼트는 칸마다 키가 없어 토글 안의 글자로 찾는다.
+Finder _periodSegment(String label) => find.descendant(
+  of: find.byKey(const ValueKey<String>('client-period-toggle')),
+  matching: find.text(label),
+);

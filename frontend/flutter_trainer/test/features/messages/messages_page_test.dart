@@ -4,15 +4,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        AppAvatar,
+        AppBackButton,
+        AppBanner,
+        AppBannerTone,
+        AppButton,
+        AppListRow,
+        OnCareLayout,
+        OnCareSize;
 
 import '../../helpers/pump_app.dart';
 
@@ -34,47 +39,39 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: detail, matching: find.byIcon(Icons.chevron_right)),
+        find.descendant(
+          of: detail,
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
         findsOneWidget,
       );
       expect(find.byType(TextField), findsWidgets);
 
+      // 대화 행은 규격 목록 행이다 — 고른 대화는 행 자체가 선택 상태를 그린다.
       final selectedTile = find.byKey(
         const ValueKey<String>('messages-conversation-seed-client-1'),
       );
-      final avatar = tester.widget<ClientAvatar>(
-        find.descendant(of: selectedTile, matching: find.byType(ClientAvatar)),
+      final row = tester.widget<AppListRow>(
+        find.descendant(of: selectedTile, matching: find.byType(AppListRow)),
       );
-      expect(avatar.showStatus, isFalse);
-      expect(avatar.size, 36);
-      final surface = tester.widget<Material>(
-        find
-            .descendant(of: selectedTile, matching: find.byType(Material))
-            .first,
+      expect(row.selected, isTrue);
+      final avatar = tester.widget<AppAvatar>(
+        find.descendant(of: selectedTile, matching: find.byType(AppAvatar)),
       );
-      expect(surface.color, AppColors.accentSurface);
-      final tappable = tester.widget<InkWell>(
-        find.descendant(of: selectedTile, matching: find.byType(InkWell)),
-      );
-      expect(tappable.borderRadius, const BorderRadius.all(AppRadius.card));
-      final cardBody = tester.widget<Container>(
-        find
-            .descendant(of: selectedTile, matching: find.byType(Container))
-            .first,
-      );
-      expect(cardBody.padding, const EdgeInsets.all(AppSpacing.lg));
-      expect(cardBody.constraints?.minHeight, 88);
+      // 목록 아바타에는 활성/휴면 점이 없다.
+      expect(avatar.online, isNull);
 
       final listColumn = tester.widget<SizedBox>(
         find.ancestor(
           of: selectedTile,
           matching: find.byWidgetPredicate(
             (widget) =>
-                widget is SizedBox && widget.width == AppLayout.splitListWidth,
+                widget is SizedBox &&
+                widget.width == OnCareLayout.splitListWidth,
           ),
         ),
       );
-      expect(listColumn.width, AppLayout.splitListWidth);
+      expect(listColumn.width, OnCareLayout.splitListWidth);
     });
   });
 
@@ -120,9 +117,11 @@ void main() {
         const ValueKey<String>('messages-unread-seed-client-8'),
       );
       expect(unreadBadge, findsOneWidget);
-      // 세로로 긴 알약처럼 깨졌던 적이 있다 (#1380) — 정원인지 폭·높이로 잡는다.
+      // 세로로 긴 타원처럼 깨졌던 적이 있다 (#1380). 규격 배지는 높이 20 에
+      // 두 자리 수부터 가로로 늘어나는 알약이다 — 세로로는 늘어나지 않는다.
       final Size badgeSize = tester.getSize(unreadBadge);
-      expect(badgeSize.width, badgeSize.height);
+      expect(badgeSize.height, OnCareSize.countBadgeMin);
+      expect(badgeSize.width, greaterThanOrEqualTo(badgeSize.height));
       // 목록은 어느 대화를 열까를 정하는 자리다 — 이름 · 시각 · 마지막
       // 말 · 안읽음뿐이고, 목표도 상태도 없다.
       expect(
@@ -168,7 +167,8 @@ void main() {
         );
         expect(unreadBadge, findsOneWidget);
         final Size badgeSize = tester.getSize(unreadBadge);
-        expect(badgeSize.width, badgeSize.height);
+        expect(badgeSize.height, OnCareSize.countBadgeMin);
+        expect(badgeSize.width, greaterThanOrEqualTo(badgeSize.height));
 
         final numberText = find.descendant(
           of: unreadBadge,
@@ -418,7 +418,7 @@ void main() {
       AppRoutes.messagesFor('seed-client-1', filter: 'unread'),
     );
 
-    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.tap(find.byType(AppBackButton));
     await settle(tester);
 
     final context = tester.element(find.byType(Navigator).first);
@@ -443,32 +443,26 @@ void main() {
       await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
 
       expect(find.text('무릎 불편 표현 감지'), findsOneWidget);
-      final addButton = find.byKey(
-        const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
+      final addButton = find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
+        ),
+        matching: find.byType(AppButton),
       );
       await tester.ensureVisible(addButton);
       await tester.tap(addButton);
       await settle(tester);
 
       expect(find.text('메모 추가됨'), findsOneWidget);
-      // 옮겨 적은 뒤에는 바탕만 비운다 — 붉은 바탕은 "아직 볼 것이 있다"
-      // 는 신호라, 처리한 배너와 안 한 배너가 똑같이 붉으면 안 된다.
-      // 윤곽선과 버튼의 붉은색은 무슨 일이 있었는지를 남긴다.
-      final banner = tester.widget<Container>(
+      // 옮겨 적은 뒤에도 배너의 톤은 그대로다 — 무슨 일이 있었는지(부정적
+      // 피드백)는 바뀌지 않았다. 처리 여부는 버튼 문구와 비활성 상태가 말한다.
+      final banner = tester.widget<AppBanner>(
         find.byKey(
           const ValueKey<String>('chat-insight-banner-seed-chat-1-16'),
         ),
       );
-      final decoration = banner.decoration! as BoxDecoration;
-      expect(decoration.color, AppColors.card);
-      expect(
-        (decoration.border! as Border).top.color,
-        AppColors.warning.withValues(alpha: 0.28),
-      );
-      expect(
-        tester.widget<Text>(find.text('메모 추가됨')).style?.color,
-        AppColors.warning,
-      );
+      expect(banner.tone, AppBannerTone.danger);
+      expect(banner.onAction, isNull);
       // 채팅에서 저장한 메모는 회원 상세가 읽는 것과 **같은** 메모 목록에 들어간다.
       final memos = await container
           .read(trainerMemoRepositoryProvider)

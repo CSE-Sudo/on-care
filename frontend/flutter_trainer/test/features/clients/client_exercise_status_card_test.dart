@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
@@ -73,11 +74,12 @@ class _HostState extends State<_Host> {
 
 Widget _app(List<Override> overrides) => ProviderScope(
   overrides: overrides,
-  child: const MaterialApp(
-    locale: Locale('ko'),
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: _Host(),
+    home: const _Host(),
   ),
 );
 
@@ -111,10 +113,7 @@ void main() {
     // 소모 칼로리는 도넛 **안**에서 말한다(#1166) — 링 옆에 같은 숫자를 또
     // 적으면 한 화면에서 같은 말이 두 번 나온다. 그래서 `오늘 소모` 는 이제
     // 화면의 글자가 아니라 도넛의 시맨틱 라벨에만 있다.
-    expect(
-      tester.widget<BurnDonut>(find.byType(BurnDonut)).title,
-      '오늘 소모',
-    );
+    expect(tester.widget<BurnDonut>(find.byType(BurnDonut)).title, '오늘 소모');
     // 유산소·근력·스트레칭이 이름과 값으로 함께 읽힌다 — 소모 칼로리가
     // 무엇으로 채워졌는지가 화면에 있어야 한다.
     for (final String label in <String>['유산소', '근력', '스트레칭']) {
@@ -128,7 +127,7 @@ void main() {
   testWidgets('이번 주는 유형별 목표 링으로 보인다', (tester) async {
     await pump(tester, withSplit());
 
-    await tester.tap(find.byKey(const Key('client-period-week')));
+    await tester.tap(_periodSegment('이번 주'));
     await tester.pumpAndSettle();
 
     expect(find.byType(BurnGoalRings), findsOneWidget);
@@ -146,7 +145,7 @@ void main() {
 
   testWidgets('이번 달 막대 툴팁이 소모 칼로리와 유형별 값을 말한다', (tester) async {
     await pump(tester, withSplit());
-    await tester.tap(find.byKey(const Key('client-period-month')));
+    await tester.tap(_periodSegment('전체'));
     await tester.pumpAndSettle();
 
     final Tooltip tip = tester.widget<Tooltip>(
@@ -158,7 +157,7 @@ void main() {
 
   testWidgets('전체는 한 칸이 한 주다 (#1077)', (tester) async {
     await pump(tester, withSplit());
-    await tester.tap(find.byKey(const Key('client-period-month')));
+    await tester.tap(_periodSegment('전체'));
     await tester.pumpAndSettle();
 
     // 몇 칸인지는 오늘이 무슨 요일인지에 따라 12 나 13 이 된다 — 숫자를 여기
@@ -193,10 +192,10 @@ void main() {
     );
 
     final Rect atToday = toggleRect();
-    await tester.tap(find.byKey(const Key('client-period-week')));
+    await tester.tap(_periodSegment('이번 주'));
     await tester.pumpAndSettle();
     final Rect atWeek = toggleRect();
-    await tester.tap(find.byKey(const Key('client-period-month')));
+    await tester.tap(_periodSegment('전체'));
     await tester.pumpAndSettle();
     final Rect atMonth = toggleRect();
 
@@ -221,7 +220,7 @@ void main() {
       ),
     ]);
 
-    await tester.tap(find.byKey(const Key('client-period-month')));
+    await tester.tap(_periodSegment('전체'));
     await tester.pumpAndSettle();
 
     final Tooltip tip = tester.widget<Tooltip>(
@@ -245,6 +244,7 @@ void main() {
       ProviderScope(
         overrides: withSplit(),
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('en'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -265,8 +265,8 @@ void main() {
     );
     final Rect atToday = toggleRect();
 
-    for (final String period in <String>['week', 'month']) {
-      await tester.tap(find.byKey(Key('client-period-$period')));
+    for (final String period in <String>['This week', 'All']) {
+      await tester.tap(_periodSegment(period));
       await tester.pumpAndSettle();
       expect(toggleRect(), atToday, reason: period);
       expect(tester.takeException(), isNull, reason: period);
@@ -302,7 +302,7 @@ void main() {
       }),
     ]);
 
-    await tester.tap(find.byKey(const Key('client-period-week')));
+    await tester.tap(_periodSegment('이번 주'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.byType(BurnGoalRings), findsOneWidget);
@@ -370,6 +370,7 @@ void main() {
         ),
       ],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -413,7 +414,7 @@ void main() {
       expect(find.textContaining('어제 기록'), findsNothing);
       expect(find.text('레그프레스 3세트 × 12회 · 80kg'), findsOneWidget);
       expect(toggle, findsOneWidget);
-      expect(find.byIcon(Icons.expand_more), findsOneWidget);
+      expect(find.byIcon(Icons.expand_more_rounded), findsOneWidget);
       // 접힌 상태에서는 접을 것이 없다 — 버튼도 없다.
       expect(collapse, findsNothing);
     });
@@ -431,7 +432,7 @@ void main() {
       // 두 건뿐이라 더 펼칠 것이 없다 — `더보기` 는 사라지고 `접기` 만 남는다.
       expect(toggle, findsNothing);
       expect(collapse, findsOneWidget);
-      expect(find.byIcon(Icons.expand_less), findsOneWidget);
+      expect(find.byIcon(Icons.expand_less_rounded), findsOneWidget);
 
       await tester.tap(collapse);
       await tester.pumpAndSettle();
@@ -541,3 +542,9 @@ void main() {
     });
   });
 }
+
+/// 기간 토글에서 [label] 칸. 세그먼트는 칸마다 키가 없어 토글 안의 글자로 찾는다.
+Finder _periodSegment(String label) => find.descendant(
+  of: find.byKey(const ValueKey<String>('client-period-toggle')),
+  matching: find.text(label),
+);

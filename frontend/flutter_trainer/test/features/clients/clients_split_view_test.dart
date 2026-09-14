@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_detail_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -85,7 +86,7 @@ void main() {
     expect(find.text('운동'), findsOneWidget);
     expect(find.text('메시지'), findsWidgets);
     expect(find.text('식단'), findsOneWidget);
-    expect(find.byIcon(Icons.arrow_back_ios_new), findsNothing);
+    expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
   });
 
   testWidgets('회원 리스트 바로 위에 pill 필터·정렬 버튼이 있다', (tester) async {
@@ -127,12 +128,8 @@ void main() {
 
     expect(
       detailRect.left - cardRect.right,
-      AppSpacing.lg,
+      OnCareLayout.splitGap + OnCareSpacing.s8,
       reason: '목록 카드의 우측 테두리와 그림자가 잘리지 않아야 한다',
-    );
-    expect(
-      find.byKey(const ValueKey<String>('clients-master-detail-gap')),
-      findsOneWidget,
     );
   });
 
@@ -161,7 +158,7 @@ void main() {
     await settle(tester);
     expect(find.text('운동'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('패널 닫기'));
+    await tester.tap(find.byKey(const ValueKey<String>('client-detail-close')));
     await settle(tester);
 
     expect(find.text('운동'), findsNothing);
@@ -183,7 +180,7 @@ void main() {
 
     expect(find.textContaining('3,428', findRichText: true), findsNothing);
     // Still embedded — no full-screen push happened.
-    expect(find.byIcon(Icons.arrow_back_ios_new), findsNothing);
+    expect(find.byIcon(Icons.chevron_left_rounded), findsNothing);
   });
 
   testWidgets('the detail tab state does not leak into another client', (
@@ -239,14 +236,16 @@ void main() {
       const ValueKey<String>('clients-sort-button'),
     );
     final nameOptionFinder = find.text('이름 오름차순').last;
-    final nameOption = tester.widget<Text>(nameOptionFinder);
-    expect(find.byIcon(Icons.arrow_drop_up), findsOneWidget);
+    final TextStyle? nameOptionStyle = tester
+        .renderObject<RenderParagraph>(nameOptionFinder)
+        .text
+        .style;
     expect(
       tester.getTopLeft(nameOptionFinder).dy,
       greaterThan(tester.getBottomLeft(sortButton).dy),
     );
-    expect(nameOption.style?.fontSize, 12.5);
-    expect(nameOption.style?.fontWeight, FontWeight.w600);
+    // 메뉴 항목은 테마의 bodySmall 역할을 쓴다(#1704).
+    expect(nameOptionStyle?.fontWeight, OnCareTypography.bodySmall.fontWeight);
     await tester.tap(nameOptionFinder);
     await tester.pumpAndSettle();
     expect(find.text('정렬: 이름 오름차순'), findsOneWidget);
@@ -369,7 +368,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      tester.widget<LinearProgressIndicator>(progress).value,
+      tester.widget<AppProgressBar>(progress).value,
       closeTo(expected / 100, 0.001),
     );
   });
@@ -392,7 +391,7 @@ void main() {
         const ValueKey<String>('client-weekly-adherence-seed-client-7'),
       ),
     );
-    expect(tester.widget<LinearProgressIndicator>(progress).value, 0);
+    expect(tester.widget<AppProgressBar>(progress).value, 0);
   });
 
   testWidgets('the panel location is a path that encodes the section', (

@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_ai_analysis_card.dart';
@@ -17,8 +13,14 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_s
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart' show EmptyHint;
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 끼니 카드 사진의 한 변 — 콘텐츠 고유 치수다.
+const double _mealPhotoSize = 56;
+
+/// 펼친 끼니의 이름 알약 칸 폭. 여러 끼니가 세로로 설 때 음식 이름의 시작점을
+/// 가지런히 맞추는 콘텐츠 고유 치수다.
+const double _mealChipWidth = 56;
 
 /// The 식단 sub-tab: `오늘 / 이번 주 / 이번 달` over the client's nutrition.
 ///
@@ -50,7 +52,7 @@ class _DietViewState extends ConsumerState<DietView> {
     // 이름과 토글은 카드 밖 섹션 헤더가 든다 — 운동 탭과 같은 모양이다(#944).
     Widget section(Widget child) => _wrap(<Widget>[
       ClientPeriodSection(
-        icon: Icons.restaurant_outlined,
+        icon: Icons.restaurant_rounded,
         title: l.clientNutritionSummary,
         period: _period,
         onChanged: (ClientPeriod p) => setState(() => _period = p),
@@ -67,11 +69,11 @@ class _DietViewState extends ConsumerState<DietView> {
             ClientDietPeriodCard(clientId: client.id, period: period),
             // 그래프를 읽은 흐름에서 곧바로 같은 기간의 해석을 본다. 기록이
             // 열두 주까지 길어져도 분석을 찾으러 끝까지 내려갈 필요가 없다.
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: OnCareSpacing.s12),
             _AiComment(client: client, period: period),
             // 그래프와 분석 아래 날짜별 기록. 접힌 줄만 늘어놓고 누른 날만
             // 펼치므로 전체(12주)에서도 스크롤이 감당한다. (#1025, #1284)
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: OnCareSpacing.s12),
             _DailyDietRecords(clientId: client.id, period: period),
           ],
         ),
@@ -88,7 +90,7 @@ class _DietViewState extends ConsumerState<DietView> {
       );
     }
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(OnCareSpacing.s16),
       children: children,
     );
   }
@@ -112,23 +114,17 @@ class _TodayDiet extends ConsumerWidget {
     // 로딩·실패에도 헤더는 같은 자리에 있다. 탭에 처음 들어올 때 조작이
     // 사라졌다가 다시 나타나면, 트레이너가 누르려던 자리를 매번 다시 찾게 된다.
     return diet.when(
-      loading: () => section(
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
+      loading: () =>
+          section(const AppLoading(placement: AppStatePlacement.card)),
       error: (e, _) => section(
-        EmptyHint(
-          message: l.dietLoadFailed,
-          icon: Icons.error_outline,
-          action: ActionButton(
-            key: ValueKey<String>('diet-retry-${client.id}'),
-            label: l.actionRetry,
-            onPressed: diet.isLoading
-                ? null
-                : () => ref.invalidate(clientDietProvider(client.id)),
-          ),
+        AppErrorState(
+          key: ValueKey<String>('diet-retry-${client.id}'),
+          title: l.dietLoadFailed,
+          retryLabel: l.actionRetry,
+          onRetry: diet.isLoading
+              ? null
+              : () => ref.invalidate(clientDietProvider(client.id)),
+          placement: AppStatePlacement.card,
         ),
       ),
       data: (meals) => section(
@@ -136,16 +132,20 @@ class _TodayDiet extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             NutritionSummaryCard(client: client),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: OnCareSpacing.s12),
             // Nothing logged yet: say so, and withhold the verdict. The
             // summary tiles read 0 either way, and `_AiComment` would call
             // a blank day "균형이 잘 맞아요" — praise for a member who has
             // not recorded a single meal.
             if (meals.isEmpty)
-              EmptyHint(message: l.dietEmpty, icon: Icons.restaurant_outlined)
+              AppEmptyState(
+                title: l.dietEmpty,
+                icon: Icons.restaurant_rounded,
+                placement: AppStatePlacement.card,
+              )
             else ...<Widget>[
               _AiComment(client: client, period: ClientPeriod.today),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: OnCareSpacing.s12),
               for (final meal in meals) ...<Widget>[
                 _MealCard(
                   // 같은 날 같은 끼니 라벨이 두 번 저장될 수 있어(예: 간식
@@ -153,7 +153,7 @@ class _TodayDiet extends ConsumerWidget {
                   key: ValueKey<String>('diet-meal-${meal.id}'),
                   entry: meal,
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: OnCareSpacing.s8),
               ],
             ],
           ],
@@ -180,60 +180,33 @@ class _MealCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-        border: Border.all(color: AppColors.border),
-      ),
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
               Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: 2,
-                  ),
-                  decoration: const BoxDecoration(
-                    color: AppColors.accentSurface,
-                    borderRadius: BorderRadius.all(AppRadius.pill),
-                  ),
-                  child: Text(
-                    entry.meal,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.accent,
-                    ),
-                  ),
-                ),
+                child: AppTag(label: entry.meal, tone: AppTagTone.brand),
               ),
               // 먹은 시각. 없는 기록(옛 시드·옛 응답)에는 아무것도 적지 않는다.
               if (entry.timeLabel.isNotEmpty) ...<Widget>[
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Flexible(
                   child: Text(
                     entry.timeLabel,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.mutedForeground,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textSecondary),
                   ),
                 ),
               ],
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
@@ -241,35 +214,35 @@ class _MealCard extends StatelessWidget {
               // 읽힌다. (#699)
               if (entry.photoUrl case final String path) ...<Widget>[
                 ClientMealPhoto(path: path),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: OnCareSpacing.s12),
               ]
               // 데모에는 사진을 받아 올 백엔드가 없어 시드가 번들 이미지를
               // 가리킨다. 실 API 모드에서는 위의 경로만 쓰인다(#819).
               else if (entry.photoAsset case final String asset) ...<Widget>[
-                ClipRRect(
-                  borderRadius: const BorderRadius.all(AppRadius.card),
+                AppImageFrame(
+                  width: _mealPhotoSize,
+                  height: _mealPhotoSize,
                   child: Image.asset(
                     asset,
-                    width: 56,
-                    height: 56,
                     fit: BoxFit.cover,
                     // 자산이 빠져도 끼니 카드는 그대로 읽혀야 한다.
                     errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: OnCareSpacing.s12),
               ],
               Expanded(
                 child: entry.foods.isEmpty
                     // 음식별 영양이 없는 기록은 예전처럼 이름 한 줄이다.
                     ? Text(
                         entry.items,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                          height: 1.35,
-                          color: AppColors.foreground,
-                        ),
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(
+                                OnCareTypography.bodySmall,
+                              ),
+                            )
+                            .copyWith(color: OnCareColors.textPrimary),
                       )
                     : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,36 +254,35 @@ class _MealCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
             children: <Widget>[
-              _TotalPill(
-                label: l.metricCalories,
-                value: '${formatNumber(entry.calories)} ${l.unitKcal}',
-                color: AppColors.statusWithinGoal,
+              AppTag(
+                label:
+                    '${l.metricCalories} '
+                    '${formatNumber(entry.calories)} ${l.unitKcal}',
+                tone: AppTagTone.brand,
               ),
-              _TotalPill(
-                label: l.metricSodium,
-                value: '${formatNumber(entry.sodiumMg)} mg',
+              AppTag(
+                label: '${l.metricSodium} ${formatNumber(entry.sodiumMg)} mg',
                 // 나트륨이 과다한 끼니만 빨강. 회원 앱과 같은 기준(1,000mg)이라
                 // 회원이 빨갛게 본 끼니가 트레이너 화면에서도 빨갛다.
-                color: entry.sodiumMg > kMealSodiumWarnMg
-                    ? AppColors.statusOver
-                    : AppColors.statusWithinGoal,
+                tone: entry.sodiumMg > kMealSodiumWarnMg
+                    ? AppTagTone.danger
+                    : AppTagTone.brand,
               ),
-              _TotalPill(
-                label: l.metricSugar,
-                value: '${_grams(entry.sugarG)} g',
-                color: AppColors.statusWithinGoal,
+              AppTag(
+                label: '${l.metricSugar} ${_grams(entry.sugarG)} g',
+                tone: AppTagTone.brand,
               ),
             ],
           ),
           // 탄단지는 알약 아래 한 줄로. 회원 앱 끼니 카드에는 없지만, 트레이너는
           // 이 값을 보고 다음 식단을 고쳐 주므로 남긴다(#1025 에서 들어온 줄).
           // `이번 주`·`전체` 의 펼친 끼니도 같은 줄을 쓴다(#1439).
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           _MealMacroLine(entry: entry),
         ],
       ),
@@ -332,8 +304,9 @@ class _FoodLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s2),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
@@ -343,14 +316,12 @@ class _FoodLine extends StatelessWidget {
               food.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
-              ),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: OnCareSpacing.s8),
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -360,11 +331,9 @@ class _FoodLine extends StatelessWidget {
                 '${formatNumber(food.sodiumMg)}mg · '
                 '${_grams(food.sugarG)}g',
                 maxLines: 1,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.mutedForeground,
-                ),
+                style: tokens
+                    .text(OnCareTypography.strong(OnCareTypography.caption))
+                    .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
           ),
@@ -372,50 +341,6 @@ class _FoodLine extends StatelessWidget {
       ),
     );
   }
-}
-
-/// `칼로리 520 kcal` — 끼니 합계 알약. 회원 앱과 같은 세 개다.
-class _TotalPill extends StatelessWidget {
-  const _TotalPill({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: 0.10),
-      borderRadius: const BorderRadius.all(AppRadius.pill),
-    ),
-    child: Text.rich(
-      TextSpan(
-        children: <InlineSpan>[
-          TextSpan(
-            text: '$label ',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color.withValues(alpha: 0.75),
-            ),
-          ),
-          TextSpan(
-            text: value,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 String _grams(double value) => value == value.roundToDouble()
@@ -557,6 +482,7 @@ class _DayMeals extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final AsyncValue<List<ClientDietEntry>> async = ref.watch(
       clientDietOnProvider((clientId: clientId, date: date)),
     );
@@ -569,43 +495,55 @@ class _DayMeals extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: OnCareSpacing.s12),
             for (final ClientDietEntry meal in meals)
               Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     // 끼니 이름은 알약이다 — 운동 기록 카드의 종류 알약과
                     // 같은 모양이라, 두 탭에서 같은 성격의 값이 같게 읽힌다.
-                    _MealChip(label: meal.meal),
-                    const SizedBox(width: AppSpacing.sm),
+                    SizedBox(
+                      width: _mealChipWidth,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: AppTag(
+                            label: meal.meal,
+                            tone: AppTagTone.brand,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: OnCareSpacing.s8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
                             meal.items,
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              height: 1.35,
-                              color: AppColors.foreground,
-                            ),
+                            style: tokens
+                                .text(
+                                  OnCareTypography.strong(
+                                    OnCareTypography.bodySmall,
+                                  ),
+                                )
+                                .copyWith(color: OnCareColors.textPrimary),
                           ),
-                          const SizedBox(height: 3),
+                          const SizedBox(height: OnCareSpacing.s4),
                           Text(
                             '${formatNumber(meal.calories)} ${l.unitKcal} · '
                             '${l.dietSodiumValue(meal.sodiumMg)} · '
                             '${l.metricSugar} ${_grams(meal.sugarG)}g',
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              color: AppColors.subtleForeground,
-                            ),
+                            style: tokens
+                                .text(OnCareTypography.caption)
+                                .copyWith(color: OnCareColors.textTertiary),
                           ),
                           // `오늘` 끼니 카드와 같은 줄이다(#1439) — 트레이너가
                           // 과거 식단을 볼 때만 정보가 얕아질 이유가 없다.
-                          const SizedBox(height: 2),
+                          const SizedBox(height: OnCareSpacing.s4),
                           _MealMacroLine(entry: meal),
                         ],
                       ),
@@ -649,44 +587,9 @@ class _MealMacroLine extends StatelessWidget {
                 '${l.metricProtein} ${_grams(entry.proteinG)}g · '
                 '${l.metricFat} ${_grams(entry.fatG)}g'
           : l.clientDietMacrosMissing,
-      style: const TextStyle(
-        fontSize: 11.5,
-        fontWeight: FontWeight.w600,
-        color: AppColors.subtleForeground,
-      ),
+      style: context.oncare
+          .text(OnCareTypography.strong(OnCareTypography.caption))
+          .copyWith(color: OnCareColors.textTertiary),
     );
   }
-}
-
-/// 끼니 이름 알약(아침·점심·저녁·간식).
-///
-/// 운동 기록 카드의 종류 알약과 같은 모양이다. 폭을 고정해 여러 끼니가
-/// 세로로 설 때 음식 이름의 시작점이 가지런하다.
-class _MealChip extends StatelessWidget {
-  const _MealChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 54,
-    alignment: Alignment.center,
-    padding: const EdgeInsets.symmetric(vertical: 4),
-    decoration: const BoxDecoration(
-      color: AppColors.accentSurface,
-      borderRadius: BorderRadius.all(AppRadius.pill),
-    ),
-    child: FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Text(
-        label,
-        maxLines: 1,
-        style: const TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w700,
-          color: AppColors.accent,
-        ),
-      ),
-    ),
-  );
 }

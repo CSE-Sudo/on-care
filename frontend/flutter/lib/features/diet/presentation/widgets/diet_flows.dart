@@ -7,10 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/core/utils/portrait_date_picker.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/breakpoints.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
@@ -19,8 +15,9 @@ import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
-import 'package:oncare/shared/widgets/modals/add_event_dialog.dart' show wireDate;
+import 'package:oncare/shared/widgets/modals/add_event_dialog.dart'
+    show wireDate;
+import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A single logged food item, with the per-food nutrition shown on the meal
@@ -109,62 +106,20 @@ String _currentMealType() {
   return 'snack';
 }
 
-Widget _sheetShell(BuildContext context, Widget child, {Key? key}) {
-  return ConstrainedBox(
-    constraints: BoxConstraints(
-      maxHeight: MediaQuery.of(context).size.height * 0.9,
-      // Match the main content width so the sheet scales with the viewport
-      // like the tab pages. The theme lifts the modal route cap to this
-      // width too (see AppTheme._bottomSheetTheme); this centres the child.
-      maxWidth: AppBreakpoints.contentMaxWidth,
-    ),
-    child: Container(
-      key: key,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(top: false, child: child),
-    ),
-  );
-}
-
-Widget _pageShell(Widget child) {
-  return Scaffold(
-    key: const Key('mealDetailPage'),
-    backgroundColor: Colors.white,
-    body: SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: AppBreakpoints.contentMaxWidth,
-          ),
-          child: SizedBox.expand(child: child),
-        ),
-      ),
-    ),
-  );
-}
-
-Widget _sheetHandle() => Container(
-  margin: const EdgeInsets.only(top: 12, bottom: 4),
-  width: 36,
-  height: 4,
-  decoration: BoxDecoration(
-    color: const Color(0xFFDDE3EA),
-    borderRadius: BorderRadius.circular(999),
-  ),
-);
-
-/// 시트 바닥의 동작 버튼 높이. `저장하기`·`취소` 가 폭만 다르고 세로는 같아야
-/// 한 행으로 읽힌다(#1564).
-const double _actionHeight = 48;
+/// 역할 글자 + 색. 크기·굵기 숫자는 적지 않는다(#1690).
+TextStyle _text(BuildContext context, TextStyle role, Color color) =>
+    context.oncare.text(role).copyWith(color: color);
 
 /// 그램 수치 한 줄. 소수 첫째 자리까지만, 정수는 콤마만 — 칼로리·나트륨 행과
 /// 같은 서식이다. 당류와 탄·단·지가 이 함수를 같이 쓴다(#1564).
 String _gramsText(double grams) => grams == grams.roundToDouble()
     ? NumberFormat('#,###').format(grams)
     : NumberFormat('#,##0.#').format(grams);
+
+/// 하단 내비·`+` 버튼 위에 뜨도록 루트 내비게이터에서 연다(#791). 탭 페이지는
+/// 자기 내비게이터를 따로 갖고 있어, 그 안에서 열면 하단 바가 시트 위로 올라온다.
+BuildContext _rootContext(BuildContext context) =>
+    Navigator.of(context, rootNavigator: true).context;
 
 // ─────────────────────────────────────────────────── 식단 추가하기 ──
 
@@ -176,14 +131,8 @@ typedef DietPickedPhoto = ({MealPhoto photo, String mealType});
 /// **기록이 저장되면 true.** 하단 `+` 로 연 흐름이 저장 성공에만 식단 탭으로
 /// 옮겨 가려면, 취소·권한 거부·분석 실패와 저장 성공을 구분해야 한다(#1434).
 Future<bool> showDietAddSheet(BuildContext context) async {
-  final DietPickedPhoto? picked = await showModalBottomSheet<DietPickedPhoto>(
-    context: context,
-    // Keep the sheet above the main shell's floating buttons even when it is
-    // opened from a tab page that has its own nested Navigator.
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: FigmaColors.sheetScrim,
+  final DietPickedPhoto? picked = await showAppSheet<DietPickedPhoto>(
+    context: _rootContext(context),
     builder: (BuildContext ctx) => const _DietAddSheet(),
   );
   if (picked == null) return false;
@@ -196,7 +145,7 @@ Future<bool> showDietAddSheet(BuildContext context) async {
 /// Photo-source choice for 식단 추가.
 ///
 /// Owns the picker outcome so a failure can be shown *inside* the sheet: a
-/// SnackBar would sit behind this sheet, and the sheet staying open is what
+/// toast would sit apart from this sheet, and the sheet staying open is what
 /// lets the user retry (or open Settings) without restarting the flow.
 /// Cancelling the camera/gallery is not a failure — nothing is shown.
 class _DietAddSheet extends ConsumerStatefulWidget {
@@ -260,94 +209,50 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
     final MealPhotoChoiceLayout layout = ref.watch(
       mealPhotoChoiceLayoutProvider,
     );
-    return _sheetShell(
-      context,
-      Column(
+    return AppSheet(
+      key: const Key('dietAddSheet'),
+      title: l.dietAddSheetTitle,
+      subtitle: l.dietAddSheetSubtitle,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Center(child: _sheetHandle()),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        l.dietAddSheetTitle,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: FigmaColors.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        l.dietAddSheetSubtitle,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          color: AppColors.mutedForeground,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                _CircleClose(onTap: () => Navigator.of(context).pop()),
-              ],
-            ),
-          ),
-          if (failure != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: _PhotoFailureNotice(failure: failure),
-            ),
-          Padding(
+          if (failure != null) ...<Widget>[
+            _PhotoFailureNotice(failure: failure),
+            const SizedBox(height: OnCareSpacing.s12),
+          ],
+          Column(
             key: const Key('dietAddOptions'),
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Column(
-              children: <Widget>[
-                if (layout == MealPhotoChoiceLayout.systemMenu)
-                  // 웹: 브라우저가 보관함·촬영·파일을 묻는 메뉴를 스스로 띄운다.
-                  // 앱에 촬영을 따로 두면 그 메뉴의 `사진 찍기`와 겹친다(#1433).
-                  _SourceOption(
-                    icon: Icons.image_outlined,
-                    iconBg: FigmaColors.primaryA(0.10),
-                    iconColor: FigmaColors.primaryA(0.55),
-                    title: l.dietAddPhoto,
-                    subtitle: l.dietAddPhotoSub,
-                    onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
-                  )
-                else ...<Widget>[
-                  // 두 갈래 모두 브랜드 파랑의 농담이다 — 촬영이 진한 쪽(주된
-                  // 경로), 갤러리가 옅은 쪽이다.
-                  _SourceOption(
-                    icon: Icons.image_outlined,
-                    iconBg: FigmaColors.primaryA(0.10),
-                    iconColor: FigmaColors.primaryA(0.55),
-                    title: l.dietPickPhoto,
-                    subtitle: l.dietPickPhotoSub,
-                    onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
-                  ),
-                  const SizedBox(height: 12),
-                  _SourceOption(
-                    icon: Icons.photo_camera_outlined,
-                    iconBg: FigmaColors.primaryA(0.12),
-                    iconColor: FigmaColors.primary,
-                    title: l.dietTakePhoto,
-                    subtitle: l.dietTakePhotoSub,
-                    onTap: () => _pickAndAnalyze(MealPhotoSource.camera),
-                  ),
-                ],
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              if (layout == MealPhotoChoiceLayout.systemMenu)
+                // 웹: 브라우저가 보관함·촬영·파일을 묻는 메뉴를 스스로 띄운다.
+                // 앱에 촬영을 따로 두면 그 메뉴의 `사진 찍기`와 겹친다(#1433).
+                _SourceOption(
+                  icon: Icons.image_rounded,
+                  title: l.dietAddPhoto,
+                  subtitle: l.dietAddPhotoSub,
+                  onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
+                )
+              else ...<Widget>[
+                _SourceOption(
+                  icon: Icons.image_rounded,
+                  title: l.dietPickPhoto,
+                  subtitle: l.dietPickPhotoSub,
+                  onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
+                ),
+                const SizedBox(height: OnCareSpacing.s12),
+                _SourceOption(
+                  icon: Icons.photo_camera_rounded,
+                  title: l.dietTakePhoto,
+                  subtitle: l.dietTakePhotoSub,
+                  onTap: () => _pickAndAnalyze(MealPhotoSource.camera),
+                ),
               ],
-            ),
+            ],
           ),
-          // 마지막 카드가 화면 끝(홈 인디케이터)에 닿아 잘려 보이던 것을
-          // 띄운다 — 시스템 인셋이 없는 기기에서도 남는 여백이다.
-          const SizedBox(height: 20),
         ],
       ),
-      key: const Key('dietAddSheet'),
     );
   }
 }
@@ -365,9 +270,6 @@ class _PhotoFailureNotice extends StatefulWidget {
 }
 
 class _PhotoFailureNoticeState extends State<_PhotoFailureNotice> {
-  static const Color _warningBg = Color(0xFFFFF1EF);
-  static const Color _warningInk = Color(0xFFD1442C);
-
   /// Settings wouldn't open — fall back to telling the user the manual path.
   /// A tap that silently does nothing reads as a broken app (#507).
   bool _openSettingsFailed = false;
@@ -415,69 +317,13 @@ class _PhotoFailureNoticeState extends State<_PhotoFailureNotice> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
+    return AppBanner(
       key: const Key('dietPhotoFailureNotice'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _warningBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Icon(Icons.error_outline, size: 18, color: _warningInk),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  _message(l),
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    height: 1.4,
-                    fontWeight: FontWeight.w600,
-                    color: _warningInk,
-                  ),
-                ),
-                if (_canOpenAppSettings)
-                  Semantics(
-                    button: true,
-                    child: GestureDetector(
-                      onTap: _openSettings,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          l.dietOpenSettings,
-                          key: const Key('dietOpenSettingsLink'),
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w800,
-                            color: FigmaColors.primary,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                if (_openSettingsFailed)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      l.dietOpenSettingsFailed,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        height: 1.4,
-                        color: _warningInk,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      tone: AppBannerTone.danger,
+      title: _message(l),
+      message: _openSettingsFailed ? l.dietOpenSettingsFailed : null,
+      actionLabel: _canOpenAppSettings ? l.dietOpenSettings : null,
+      onAction: _canOpenAppSettings ? _openSettings : null,
     );
   }
 }
@@ -485,76 +331,43 @@ class _PhotoFailureNoticeState extends State<_PhotoFailureNotice> {
 class _SourceOption extends StatelessWidget {
   const _SourceOption({
     required this.icon,
-    required this.iconBg,
-    required this.iconColor,
     required this.title,
     required this.subtitle,
     required this.onTap,
   });
 
   final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(14),
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
+      onTap: onTap,
+      padding: EdgeInsets.zero,
+      child: AppListRow(
+        title: title,
+        subtitle: subtitle,
+        leading: DecoratedBox(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: FigmaColors.primaryA(0.15)),
+            color: tokens.brand.surface,
+            borderRadius: OnCareRadius.mdAll,
           ),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: iconColor, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: FigmaColors.ink,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        color: AppColors.mutedForeground,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: FigmaColors.textFaint,
-              ),
-            ],
+          child: SizedBox.square(
+            dimension: tokens.density.iconButton,
+            child: Icon(
+              icon,
+              size: OnCareSize.iconLarge,
+              color: tokens.brand.primary,
+            ),
           ),
+        ),
+        trailing: const Icon(
+          Icons.chevron_right_rounded,
+          size: OnCareSize.iconMedium,
+          color: OnCareColors.textTertiary,
         ),
       ),
     );
@@ -567,21 +380,17 @@ class _SourceOption extends StatelessWidget {
 /// Runs the real `POST /diet/analyze` on the picked [photo] and shows the
 /// recognised foods + nutrition. The backend persists the entry as part of
 /// analysis, so a successful result refreshes [dietTodayProvider].
-/// 결과 시트. `완료` 까지 마치면 true — 저장된 기록을 확인할 준비가 됐다는
+/// 결과 시트. `저장하기` 까지 마치면 true — 저장된 기록을 확인할 준비가 됐다는
 /// 뜻이다(#1434).
 Future<bool> showDietResultSheet(
   BuildContext context,
   MealPhoto photo,
   String mealType,
 ) async {
-  final bool? done = await showModalBottomSheet<bool>(
-    context: context,
+  final bool? done = await showAppSheet<bool>(
     // 하단 바·+ 버튼이 시트 위로 올라오지 않도록 루트에 올린다. 식단 추가 시트와
-    // 같은 규칙이다 — 그 시트가 이 시트를 열므로 둘이 같은 층에 있어야 한다(#791).
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: FigmaColors.sheetScrim,
+    // 같은 규칙이다 — 둘이 같은 층에 있어야 한다(#791).
+    context: _rootContext(context),
     builder: (BuildContext ctx) =>
         _ResultSheet(photo: photo, mealType: mealType),
   );
@@ -633,7 +442,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   /// 결과가 촬영 직후 튀어나와 AI 가 무엇을 했는지 보이지 않는다(#1564).
   /// 실제 분석이 더 걸리면 기다린 만큼이 그대로 노출 시간이라 이 값은
   /// 아무 일도 하지 않는다 — 늦추는 것이 아니라 바닥을 깔아 두는 값이다.
-  static const Duration _minAnalyzing = Duration(milliseconds: 2200);
+  static const Duration _minAnalyzingDelay = Duration(milliseconds: 2200);
 
   Future<void> _run() async {
     setState(() {
@@ -652,7 +461,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       if (!mounted) return;
       // analyze() already persisted the entry → refresh the day's summary/list.
       ref.invalidate(dietTodayProvider);
-      // 기간 뷰(이번 주·이번 달)는 오늘을 dietByDateProvider 로 읽는다.
+      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
       // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
       ref.invalidate(dietByDateProvider(nowKst()));
       await _holdAnalyzing(elapsed);
@@ -674,9 +483,9 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     }
   }
 
-  /// [_minAnalyzing] 에서 이미 지난 만큼을 뺀 나머지를 기다린다.
+  /// [_minAnalyzingDelay] 에서 이미 지난 만큼을 뺀 나머지를 기다린다.
   Future<void> _holdAnalyzing(Stopwatch elapsed) {
-    final Duration left = _minAnalyzing - elapsed.elapsed;
+    final Duration left = _minAnalyzingDelay - elapsed.elapsed;
     if (left <= Duration.zero) return Future<void>.value();
     return Future<void>.delayed(left);
   }
@@ -697,13 +506,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   /// 기록 날짜를 고쳐 그 날의 식단으로 옮긴다. (#1241)
   ///
   /// 분석이 끝난 시점에 기록은 이미 서버에 남아 있다. 그래서 고른 즉시 옮긴다 —
-  /// 시트를 닫는 방법(완료·X·바깥 누르기)이 여럿인데, 저장을 완료 버튼에만
-  /// 걸어 두면 화면에 보이는 날짜와 실제로 남은 날짜가 갈린다.
+  /// 시트를 닫는 방법이 여럿인데, 저장을 한 버튼에만 걸어 두면 화면에 보이는
+  /// 날짜와 실제로 남은 날짜가 갈린다.
   Future<void> _pickDate() async {
     final DietAnalysisResult? result = _result;
     if (result == null || result.entryId.isEmpty || _movingDate) return;
     final DateTime today = _todayKst();
-    final DateTime? picked = await showPortraitDatePicker(
+    final DateTime? picked = await showAppDatePicker(
       context: context,
       initialDate: _date,
       // 지난 식사는 얼마든지 올릴 수 있지만, 앞날의 식사는 아직 먹지 않았다.
@@ -734,19 +543,17 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       showAppToast(
         context,
         l.dietRecordDateMoved(_dateLabel(context, chosen)),
-        kind: AppToastKind.success,
+        type: AppToastType.success,
       );
     } on Object catch (_) {
       if (!mounted) return;
       setState(() => _movingDate = false);
-      showAppToast(context, l.dietRecordDateFailed, kind: AppToastKind.error);
+      showAppToast(context, l.dietRecordDateFailed, type: AppToastType.error);
     }
   }
 
   String _dateLabel(BuildContext context, DateTime date) =>
-      DateFormat.yMMMd(
-        Localizations.localeOf(context).toString(),
-      ).format(date);
+      DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date);
 
   /// Sends the user back to the source picker. The photo they have can't be
   /// analysed, so "다시 시도" would just fail again — the useful next step is
@@ -773,6 +580,15 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     );
     navigator.pop();
     await session.signOut();
+  }
+
+  /// 저장은 분석 때 이미 끝났다 — 시트를 `true` 로 닫고 알린다.
+  void _finish() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    // 시트가 닫힌 뒤에도 토스트를 띄울 수 있는 자리를 먼저 잡아 둔다.
+    final NavigatorState navigator = Navigator.of(context);
+    navigator.pop(true);
+    showAppToast(navigator.context, l.dietSaved, type: AppToastType.success);
   }
 
   String _failureMessage(AppLocalizations l, DietAnalysisFailure failure) =>
@@ -811,129 +627,83 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     };
   }
 
+  /// `_result == null` without a classified failure shouldn't happen, but
+  /// treating it as temporary keeps a retry available instead of a dead end.
+  DietAnalysisFailure get _shownFailure =>
+      _failure ?? DietAnalysisFailure.temporary;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _sheetShell(
-      context,
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Center(child: _sheetHandle()),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-            child: Row(
-              children: <Widget>[
-                const OniAvatar(),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        _loading
-                            ? l.dietAnalyzing
-                            : _failed
-                            ? l.dietAnalysisFailed
-                            : l.dietAnalysisDone,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: FigmaColors.ink,
-                        ),
-                      ),
-                      Text(
-                        l.dietAiNutritionResult,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          color: FigmaColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // 닫기는 아래 `취소` 버튼 하나로 모은다 — 머리의 X 와 둘이
-                // 있으면 같은 일을 하는 자리가 화면에 둘이다(#1564).
-              ],
-            ),
-          ),
-          // 결과가 길어지면 시트 안에서 스크롤한다 — 탄·단·지 줄이 붙으면서
-          // 작은 화면에서는 버튼이 시트 밖으로 밀렸다(#1432).
-          Flexible(
-            child: SingleChildScrollView(
-              // 아래 여백이 없으면 버튼이 시트 끝에 붙는다(#1564).
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-              child: _body(),
-            ),
-          ),
-        ],
-      ),
+    return AppSheet(
+      title: _loading
+          ? l.dietAnalyzing
+          : _failed
+          ? l.dietAnalysisFailed
+          : l.dietAnalysisDone,
+      subtitle: l.dietAiNutritionResult,
+      // 닫기는 아래 `취소` 버튼 하나로 모은다 — 머리의 X 와 둘이 있으면 같은
+      // 일을 하는 자리가 화면에 둘이다(#1564).
+      showClose: false,
+      // 결과가 길어지면 시트 안에서만 스크롤하고 버튼은 바닥에 붙어 있다(#1432).
+      footer: _footer(l),
+      child: _body(),
+    );
+  }
+
+  Widget? _footer(AppLocalizations l) {
+    if (_loading) return null;
+    if (_failed || _result == null) {
+      final DietAnalysisFailure failure = _shownFailure;
+      return AppButton(
+        key: const Key('dietAnalysisFailureAction'),
+        label: _failureActionLabel(l, failure),
+        onPressed: _failureAction(failure),
+        fullWidth: true,
+      );
+    }
+    // [취소] 왼쪽, [저장하기] 오른쪽 — 앱의 모든 하단 두 버튼과 같은 순서다(#1690).
+    return AppButtonPair(
+      cancelLabel: l.dietCancel,
+      // 저장은 이미 끝났고, 이 버튼은 시트를 닫기만 한다.
+      onCancel: () => Navigator.of(context).pop(),
+      confirmLabel: l.dietSaveEntry,
+      onConfirm: _finish,
     );
   }
 
   Widget _body() {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     if (_loading) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Column(
-          key: const Key('diet-result-analyzing'),
-          children: <Widget>[
-            const _AnalyzingPulse(),
-            const SizedBox(height: 18),
-            Text(
-              l.dietAnalyzingBody,
-              style: const TextStyle(fontSize: 14, color: AppColors.foreground),
+      return Column(
+        key: const Key('diet-result-analyzing'),
+        children: <Widget>[
+          const AppLoading(placement: AppStatePlacement.card),
+          Text(
+            l.dietAnalyzingBody,
+            textAlign: TextAlign.center,
+            style: _text(
+              context,
+              OnCareTypography.body,
+              OnCareColors.textPrimary,
             ),
-            const SizedBox(height: 10),
-            const _AnalyzingDots(),
-          ],
-        ),
+          ),
+        ],
       );
     }
     if (_failed || _result == null) {
-      // `_result == null` without a classified failure shouldn't happen, but
-      // treating it as temporary keeps a retry available instead of a dead end.
-      final DietAnalysisFailure failure =
-          _failure ?? DietAnalysisFailure.temporary;
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          children: <Widget>[
-            Text(
-              _failureMessage(l, failure),
-              key: const Key('dietAnalysisFailureBody'),
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.45,
-                color: AppColors.foreground,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                key: const Key('dietAnalysisFailureAction'),
-                onPressed: _failureAction(failure),
-                style: FilledButton.styleFrom(
-                  backgroundColor: FigmaColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Text(
-                  _failureActionLabel(l, failure),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s20),
+        child: Text(
+          _failureMessage(l, _shownFailure),
+          key: const Key('dietAnalysisFailureBody'),
+          textAlign: TextAlign.center,
+          style: _text(
+            context,
+            OnCareTypography.body,
+            OnCareColors.textPrimary,
+          ),
         ),
       );
     }
@@ -943,14 +713,9 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
         .map((RecognizedFood f) => f.name)
         .join(' · ');
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(14, 14, 6, 14),
-          decoration: BoxDecoration(
-            color: FigmaColors.softBlue,
-            borderRadius: BorderRadius.circular(14),
-          ),
+        AppTile(
           child: Row(
             children: <Widget>[
               Expanded(
@@ -959,121 +724,93 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
                   children: <Widget>[
                     Text(
                       l.dietRecognizedFood,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: FigmaColors.primary,
+                      style: _text(
+                        context,
+                        OnCareTypography.strong(OnCareTypography.caption),
+                        tokens.brand.primary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: OnCareSpacing.s4),
                     Text(
                       recognized.isEmpty ? l.dietNoRecognizedFood : recognized,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: FigmaColors.ink,
+                      style: _text(
+                        context,
+                        OnCareTypography.titleSmall,
+                        OnCareColors.textPrimary,
                       ),
                     ),
                   ],
                 ),
               ),
-              // 잘못 읽은 메뉴를 그 자리에서 고치러 간다(#1564). 인식 결과 옆이
-              // 아니면 저장한 뒤 목록에서 다시 찾아 들어가야 한다.
-              TextButton(
+              // 잘못 읽은 메뉴를 그 자리에서 고치러 간다(#1564).
+              AppButton(
                 key: const Key('diet-result-edit'),
+                label: l.actionEdit,
                 onPressed: r.entryId.isEmpty ? null : _openEdit,
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  minimumSize: const Size(0, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  l.actionEdit,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaColors.primary,
-                  ),
-                ),
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: OnCareSpacing.s12),
         // 기록 날짜 — 기본은 오늘이고, 지난 식사의 사진이면 그 날로 옮긴다(#1241).
         Row(
           children: <Widget>[
             Text(
               l.dietRecordDate,
-              style: const TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
+              style: _text(
+                context,
+                OnCareTypography.label,
+                OnCareColors.textSecondary,
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: OnCareSpacing.s12),
             Expanded(
               child: Text(
                 _dateLabel(context, _date),
                 key: const Key('diet-result-date'),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: FigmaColors.ink,
+                style: _text(
+                  context,
+                  OnCareTypography.strong(OnCareTypography.bodySmall),
+                  OnCareColors.textPrimary,
                 ),
               ),
             ),
             if (_movingDate)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+              const AppLoading.inline()
             else
-              TextButton(
+              AppButton(
                 key: const Key('diet-result-date-change'),
+                label: l.dietRecordDateChange,
                 onPressed: () => unawaited(_pickDate()),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: const Size(0, 32),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  l.dietRecordDateChange,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaColors.primary,
-                  ),
-                ),
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
               ),
           ],
         ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            l.dietNutritionResult,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.foreground,
-            ),
+        const SizedBox(height: OnCareSpacing.s12),
+        Text(
+          l.dietNutritionResult,
+          style: _text(
+            context,
+            OnCareTypography.label,
+            OnCareColors.textSecondary,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: OnCareSpacing.s8),
         _ResultRow(
           label: l.dietCalories,
           value: '${r.totalCalories}',
           unit: l.unitKcal,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: OnCareSpacing.s8),
         _ResultRow(
           label: l.dietSodium,
           value: '${r.totalSodiumMg}',
           unit: l.dietUnitMg,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: OnCareSpacing.s8),
         _ResultRow(
           label: l.dietSugar,
           // 서버가 준 double 을 그대로 문자열로 만들면 29.497999999999998 이
@@ -1081,10 +818,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           value: _gramsText(r.totalSugarG),
           unit: l.dietUnitG,
         ),
-        const SizedBox(height: 8),
-        // 탄·단·지는 칼로리를 나눈 것이라 한 줄에 묶는다 — 나트륨·당류처럼
-        // 따로 세우면 같은 칼로리를 설명하는 값이라는 것이 보이지 않는다.
-        // 색·이름·단위는 식단 탭의 기존 규칙 그대로다(#1432).
+        const SizedBox(height: OnCareSpacing.s8),
+        // 탄·단·지는 칼로리를 나눈 것이라 한 줄에 묶는다(#1432).
         _MacroRow(
           key: const Key('diet-result-macros'),
           carbsG: r.totalCarbsG,
@@ -1092,36 +827,26 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           fatG: r.totalFatG,
         ),
         if (r.coachComment.isNotEmpty) ...<Widget>[
-          const SizedBox(height: 12),
-          Container(
+          const SizedBox(height: OnCareSpacing.s12),
+          // AI 가 쓴 말은 AI 조언 카드와 같은 옅은 브랜드 채움이다(#1432).
+          AppTile(
             key: const Key('diet-result-coach-comment'),
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              // AI 가 쓴 말은 수치 카드와 같은 회색이면 서버가 잰 값처럼
-              // 읽힌다. AI 조언 카드와 같은 옅은 파랑을 쓴다(#1432).
-              color: FigmaColors.softBlue,
-              borderRadius: BorderRadius.circular(12),
-            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Padding(
-                  padding: EdgeInsets.only(top: 1, right: 8),
-                  child: Icon(
-                    Icons.auto_awesome,
-                    size: 15,
-                    color: FigmaColors.primary,
-                  ),
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  size: OnCareSize.iconSmall,
+                  color: tokens.brand.primary,
                 ),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: Text(
                     r.coachComment,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.foreground,
+                    style: _text(
+                      context,
+                      OnCareTypography.bodySmall,
+                      OnCareColors.textPrimary,
                     ),
                   ),
                 ),
@@ -1129,80 +854,15 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
             ),
           ),
         ],
-        const SizedBox(height: 16),
-        // 저장하기가 넓고 취소가 좁다 — 둘이 같은 폭이면 무엇이 기본 동작인지
-        // 사라진다. 세로는 같게 맞춘다(#1564).
-        Row(
-          children: <Widget>[
-            Expanded(
-              flex: 2,
-              child: SizedBox(
-                height: _actionHeight,
-                child: FilledButton(
-                  key: const Key('diet-result-save'),
-                  onPressed: () {
-                    Navigator.of(context).pop(true);
-                    showAppToast(
-                      context,
-                      l.dietSaved,
-                      kind: AppToastKind.success,
-                    );
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: FigmaColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: Text(
-                    l.dietSaveEntry,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: SizedBox(
-                height: _actionHeight,
-                child: OutlinedButton(
-                  key: const Key('diet-result-cancel'),
-                  // 머리에 있던 X 와 같은 동작 — 저장은 이미 끝났고, 이 버튼은
-                  // 시트를 닫기만 한다.
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: FigmaColors.primary,
-                    side: const BorderSide(color: FigmaColors.primary),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: Text(
-                    l.dietCancel,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
 }
 
-/// 탄·단·지 한 줄. 값 셋이 한 칼로리를 나눈 것이라 한 상자 안에 나란히 선다.
+/// 탄·단·지 한 줄. 값 셋이 한 칼로리를 나눈 것이라 한 타일 안에 나란히 선다.
 ///
-/// 색 네모(그래프 범례)는 두지 않는다 — 이 줄에는 대응하는 그래프가 없어
-/// 색이 가리킬 곳이 없고, 라벨만 오른쪽으로 밀어냈다(#1564). 수치는 칼로리·
-/// 나트륨·당류 행과 같은 규칙이다: 숫자는 파랑 볼드, 단위는 회색.
+/// 색 견본은 두지 않는다 — 이 줄에는 대응하는 그래프가 없다(#1564). 수치는
+/// 칼로리·나트륨·당류 행과 같은 규칙이다: 숫자는 브랜드 색, 단위는 보조 색.
 ///
 /// 서버가 0 을 주면 0 을 적는다: 값을 감추면 분석이 그 영양소를 재지 못한
 /// 것인지 정말 0 인지 알 수 없다.
@@ -1221,18 +881,14 @@ class _MacroRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final List<({String label, double grams})> parts =
         <({String label, double grams})>[
           (label: l.homeMacroCarbs, grams: carbsG),
           (label: l.homeMacroProtein, grams: proteinG),
           (label: l.homeMacroFat, grams: fatG),
         ];
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: FigmaColors.statBg,
-        borderRadius: BorderRadius.circular(14),
-      ),
+    return AppTile(
       child: Row(
         children: <Widget>[
           for (final part in parts)
@@ -1244,13 +900,13 @@ class _MacroRow extends StatelessWidget {
                     part.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.mutedForeground,
+                    style: _text(
+                      context,
+                      OnCareTypography.strong(OnCareTypography.caption),
+                      OnCareColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: OnCareSpacing.s2),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
@@ -1260,19 +916,22 @@ class _MacroRow extends StatelessWidget {
                           _gramsText(part.grams),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: FigmaColors.primary,
+                          style: OnCareTypography.numeric(
+                            _text(
+                              context,
+                              OnCareTypography.titleSmall,
+                              tokens.brand.primary,
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 3),
+                      const SizedBox(width: OnCareSpacing.s4),
                       Text(
                         l.dietUnitG,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          color: AppColors.mutedForeground,
+                        style: _text(
+                          context,
+                          OnCareTypography.bodySmall,
+                          OnCareColors.textSecondary,
                         ),
                       ),
                     ],
@@ -1284,122 +943,6 @@ class _MacroRow extends StatelessWidget {
       ),
     );
   }
-}
-
-/// 분석 중 링. 브랜드 색 링이 돌면서 옅은 원이 함께 숨을 쉰다 — 멈춘 그림이
-/// 아니라 지금 무언가 돌아가고 있다는 신호다(#1564).
-class _AnalyzingPulse extends StatefulWidget {
-  const _AnalyzingPulse();
-
-  @override
-  State<_AnalyzingPulse> createState() => _AnalyzingPulseState();
-}
-
-class _AnalyzingPulseState extends State<_AnalyzingPulse>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1400),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 64,
-      height: 64,
-      child: Stack(
-        alignment: Alignment.center,
-        children: <Widget>[
-          AnimatedBuilder(
-            animation: _c,
-            builder: (BuildContext context, Widget? child) {
-              final double t = Curves.easeInOut.transform(_c.value);
-              return Container(
-                width: 40 + 20 * t,
-                height: 40 + 20 * t,
-                decoration: BoxDecoration(
-                  color: FigmaColors.softBlue.withValues(alpha: 1 - 0.7 * t),
-                  shape: BoxShape.circle,
-                ),
-              );
-            },
-          ),
-          const SizedBox(
-            width: 30,
-            height: 30,
-            child: CircularProgressIndicator(
-              strokeWidth: 3,
-              color: FigmaColors.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 분석 중 점 셋. 차례로 밝아지며 흐른다.
-class _AnalyzingDots extends StatefulWidget {
-  const _AnalyzingDots();
-
-  @override
-  State<_AnalyzingDots> createState() => _AnalyzingDotsState();
-}
-
-class _AnalyzingDotsState extends State<_AnalyzingDots>
-    with SingleTickerProviderStateMixin {
-  static const int _count = 3;
-
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1050),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (BuildContext context, Widget? child) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            for (int i = 0; i < _count; i++)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: Opacity(
-                  // 점마다 위상을 어긋내 한 방향으로 흐르게 한다.
-                  opacity: 0.25 + 0.75 * _wave((_c.value + i / _count) % 1.0),
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      color: FigmaColors.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  /// 0→1→0 한 번. 앞뒤가 이어져야 매 바퀴 눈에 띄는 끊김이 없다.
-  static double _wave(double t) =>
-      Curves.easeInOut.transform(t < 0.5 ? t * 2 : (1 - t) * 2);
 }
 
 class _ResultRow extends StatelessWidget {
@@ -1414,37 +957,35 @@ class _ResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: FigmaColors.statBg,
-        borderRadius: BorderRadius.circular(14),
-      ),
+    final OnCareTokens tokens = context.oncare;
+    return AppTile(
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: FigmaColors.ink,
+          Expanded(
+            child: Text(
+              label,
+              style: _text(
+                context,
+                OnCareTypography.strong(OnCareTypography.body),
+                OnCareColors.textPrimary,
+              ),
             ),
           ),
-          const Spacer(),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: FigmaColors.primary,
+            style: OnCareTypography.numeric(
+              _text(context, OnCareTypography.titleSmall, tokens.brand.primary),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: OnCareSpacing.s4),
           Text(
             unit,
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.mutedForeground,
+            style: _text(
+              context,
+              OnCareTypography.bodySmall,
+              OnCareColors.textSecondary,
             ),
           ),
         ],
@@ -1480,7 +1021,7 @@ class DietMealDetailPage extends ConsumerWidget {
     time: entry.timeLabel,
     total: entry.totalCalories,
     emoji: '',
-    thumbBg: Colors.white,
+    thumbBg: OnCareColors.surfaceInput,
     photoAsset: entry.photoAsset,
     photoUrl: entry.photoUrl,
     aiComment: entry.aiComment,
@@ -1521,8 +1062,8 @@ class DietMealDetailPage extends ConsumerWidget {
             return _MealDetailUnavailable(message: l.dietLoadError);
           },
           loading: () => const Scaffold(
-            backgroundColor: Colors.white,
-            body: Center(child: CircularProgressIndicator()),
+            backgroundColor: OnCareColors.surfacePage,
+            body: AppLoading(),
           ),
           error: (_, _) => _MealDetailUnavailable(message: l.dietLoadError),
         );
@@ -1537,9 +1078,9 @@ class _MealDetailUnavailable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(backgroundColor: Colors.white),
-      body: Center(child: Text(message)),
+      backgroundColor: OnCareColors.surfacePage,
+      appBar: AppTopBar(title: ''),
+      body: AppEmptyState(title: message, icon: Icons.error_outline_rounded),
     );
   }
 }
@@ -1558,13 +1099,18 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   late List<DietFood> _foods = List<DietFood>.of(widget.meal.items);
   bool _busy = false;
 
+  /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
+  /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
+  static const double _photoHeight = 300;
+
   int get _total => _foods.fold(0, (int a, DietFood f) => a + f.kcal);
 
   Future<void> _save() async {
     final String? id = widget.meal.id;
     final AppLocalizations l = AppLocalizations.of(context);
     final NavigatorState navigator = Navigator.of(context);
-    final AppToastHost toast = AppToastHost.of(context);
+    // 페이지를 닫은 뒤에 결과를 알리므로, 사라지지 않는 내비게이터 자리를 쓴다.
+    final BuildContext toastContext = navigator.context;
     if (id == null) {
       navigator.pop();
       return;
@@ -1589,17 +1135,20 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
               (int a, FoodItem f) => a + f.calories,
             ),
           );
-      // Sheet dismissed mid-save → don't pop the page below.
+      // Page dismissed mid-save → don't pop the page below.
       if (!mounted) return;
       ref.invalidate(dietTodayProvider);
-      // 기간 뷰(이번 주·이번 달)는 오늘을 dietByDateProvider 로 읽는다.
+      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
       // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
       ref.invalidate(dietByDateProvider(nowKst()));
       navigator.pop();
-      toast.show(l.dietSaved, kind: AppToastKind.success);
+      if (!toastContext.mounted) return;
+      showAppToast(toastContext, l.dietSaved, type: AppToastType.success);
     } catch (_) {
       if (mounted) setState(() => _busy = false);
-      toast.show(l.dietSaveFailed, kind: AppToastKind.error);
+      if (toastContext.mounted) {
+        showAppToast(toastContext, l.dietSaveFailed, type: AppToastType.error);
+      }
     }
   }
 
@@ -1610,338 +1159,266 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       return;
     }
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool ok =
-        await showDialog<bool>(
-          context: context,
-          builder: (BuildContext ctx) => AlertDialog(
-            title: Text(l.dietDeleteTitle),
-            content: Text(l.dietDeleteConfirm),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l.dietCancel),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFFFF3B30),
-                ),
-                child: Text(l.dietDelete),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.dietDeleteTitle,
+      message: l.dietDeleteConfirm,
+      confirmLabel: l.dietDelete,
+      cancelLabel: l.dietCancel,
+      destructive: true,
+    );
     if (!ok || !mounted) return;
 
     final NavigatorState navigator = Navigator.of(context);
-    final AppToastHost toast = AppToastHost.of(context);
+    final BuildContext toastContext = navigator.context;
     setState(() => _busy = true);
     try {
       await ref.read(dietRepositoryProvider).deleteEntry(id);
-      // Sheet dismissed mid-delete → don't pop the page below.
+      // Page dismissed mid-delete → don't pop the page below.
       if (!mounted) return;
       ref.invalidate(dietTodayProvider);
-      // 기간 뷰(이번 주·이번 달)는 오늘을 dietByDateProvider 로 읽는다.
+      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
       // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
       ref.invalidate(dietByDateProvider(nowKst()));
       navigator.pop();
-      toast.show(l.dietDeleted, kind: AppToastKind.success);
+      if (!toastContext.mounted) return;
+      showAppToast(toastContext, l.dietDeleted, type: AppToastType.success);
     } catch (_) {
       if (mounted) setState(() => _busy = false);
-      toast.show(l.dietDeleteFailed, kind: AppToastKind.error);
+      if (toastContext.mounted) {
+        showAppToast(
+          toastContext,
+          l.dietDeleteFailed,
+          type: AppToastType.error,
+        );
+      }
     }
   }
 
-  /// 수정 화면 상단의 큰 끼니 사진. 200 → 300 으로 키웠다 (#1125) — 이 화면에
-  /// 들어온 이유가 대개 "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
   MealPhotoView get _photo => MealPhotoView(
     photoUrl: widget.meal.photoUrl,
     photoAsset: widget.meal.photoAsset,
     emoji: widget.meal.emoji,
-    background: widget.meal.thumbBg,
     width: double.infinity,
-    height: 300,
-    borderRadius: 16,
-    emojiSize: 96,
+    height: _photoHeight,
+    large: true,
   );
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // Block back/drag dismiss while a save/delete request is in flight.
-    final Widget page = _pageShell(
-      Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-            child: Row(
-              children: <Widget>[
-                _CircleClose(
-                  icon: Icons.arrow_back,
-                  onTap: _busy ? null : () => Navigator.of(context).pop(),
-                ),
-                Expanded(
-                  child: Text(
-                    l.dietMealSheetTitle(mealBadge(l, widget.meal.mealType)),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: FigmaColors.ink,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: _busy ? null : _save,
-                  child: Text(
-                    l.dietSave,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: FigmaColors.primary,
-                    ),
-                  ),
-                ),
-              ],
+    final OnCareTokens tokens = context.oncare;
+    final double side = tokens.density.pagePadding;
+    final Widget page = Scaffold(
+      key: const Key('mealDetailPage'),
+      backgroundColor: OnCareColors.surfacePage,
+      // 뒤로는 앱바 한 곳, 저장은 하단 한 곳이다 — 머리의 글자 저장은 없다(#1700).
+      appBar: AppTopBar(
+        title: l.dietMealSheetTitle(mealBadge(l, widget.meal.mealType)),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: OnCareLayout.mobileContentMaxWidth,
             ),
-          ),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 28),
+            child: Column(
               children: <Widget>[
-                // 무엇을 고치는 끼니인지 사진으로 먼저 알아본다 — 숫자를
-                // 고치기 전에 눈으로 확인하는 순서가 자연스럽다. 사진이 없는
-                // 끼니는 큰 이모지 자리를 만들지 않고 지금까지처럼 연다. (#1053)
-                if (_photo.hasPhoto) ...<Widget>[
-                  _photo,
-                  const SizedBox(height: 12),
-                ],
-                _card(<Widget>[
-                  _FieldLabel(l.dietMealInfo),
-                  const SizedBox(height: 10),
-                  Row(
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      side,
+                      OnCareSpacing.s8,
+                      side,
+                      OnCareSpacing.sectionGap,
+                    ),
                     children: <Widget>[
-                      for (final MealType t in _types) ...<Widget>[
-                        Expanded(
-                          child: Semantics(
-                            button: true,
-                            selected: _type == t,
-                            child: GestureDetector(
-                              onTap: () => setState(() => _type = t),
-                              child: Container(
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _type == t
-                                      ? FigmaColors.primaryA(0.10)
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: _type == t
-                                        ? FigmaColors.primary
-                                        : FigmaColors.hairline,
-                                  ),
-                                ),
-                                child: Text(
-                                  mealBadge(l, t),
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: _type == t
-                                        ? FigmaColors.primary
-                                        : AppColors.mutedForeground,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (t != _types.last) const SizedBox(width: 8),
+                      // 무엇을 고치는 끼니인지 사진으로 먼저 알아본다. 사진이 없는
+                      // 끼니는 큰 이모지 자리를 만들지 않는다. (#1053)
+                      if (_photo.hasPhoto) ...<Widget>[
+                        _photo,
+                        const SizedBox(height: OnCareSpacing.cardGap),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: <Widget>[
-                      _FieldLabel(l.dietEatenTime),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: FigmaColors.statBg,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            const Icon(
-                              Icons.schedule,
-                              size: 14,
-                              color: FigmaColors.textMuted,
+                            _FieldLabel(l.dietMealInfo),
+                            const SizedBox(height: OnCareSpacing.s12),
+                            Wrap(
+                              spacing: OnCareSpacing.s8,
+                              runSpacing: OnCareSpacing.s8,
+                              children: <Widget>[
+                                for (final MealType t in _types)
+                                  AppChoiceChip(
+                                    label: mealBadge(l, t),
+                                    selected: _type == t,
+                                    onSelected: (_) =>
+                                        setState(() => _type = t),
+                                  ),
+                              ],
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              widget.meal.time,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: FigmaColors.ink,
-                              ),
+                            const SizedBox(height: OnCareSpacing.s16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: <Widget>[
+                                _FieldLabel(l.dietEatenTime),
+                                AppTag(
+                                  label: widget.meal.time,
+                                  icon: Icons.schedule_rounded,
+                                ),
+                              ],
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                ]),
-                const SizedBox(height: 12),
-                _card(<Widget>[
-                  Row(
-                    children: <Widget>[
-                      Expanded(child: _FieldLabel(l.dietEatenFood)),
-                      Semantics(
-                        button: true,
-                        child: GestureDetector(
-                          onTap: () => setState(
-                            () => _foods = <DietFood>[
-                              ..._foods,
-                              // Empty draft name; the localized label is shown
-                              // only as a placeholder and is validated out on save.
-                              const DietFood('', 0),
-                            ],
-                          ),
-                          child: Text(
-                            l.dietAddFood,
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: FigmaColors.primary,
+                      const SizedBox(height: OnCareSpacing.cardGap),
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                Expanded(child: _FieldLabel(l.dietEatenFood)),
+                                AppButton(
+                                  label: l.dietAddFood,
+                                  leadingIcon: Icons.add_rounded,
+                                  variant: AppButtonVariant.text,
+                                  size: OnCareButtonSize.small,
+                                  onPressed: () => setState(
+                                    () => _foods = <DietFood>[
+                                      ..._foods,
+                                      // Empty draft name; the localized label is
+                                      // shown only as a placeholder and is
+                                      // validated out on save.
+                                      const DietFood('', 0),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
+                            Text(
+                              l.dietEditFoodHint,
+                              style: _text(
+                                context,
+                                OnCareTypography.caption,
+                                OnCareColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: OnCareSpacing.s12),
+                            for (int i = 0; i < _foods.length; i++) ...<Widget>[
+                              _FoodRow(
+                                index: i + 1,
+                                food: _foods[i],
+                                onDelete: () => setState(
+                                  () =>
+                                      _foods = <DietFood>[..._foods]
+                                        ..removeAt(i),
+                                ),
+                              ),
+                              const SizedBox(height: OnCareSpacing.s8),
+                            ],
+                            const AppDivider(),
+                            const SizedBox(height: OnCareSpacing.s12),
+                            Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: Text(
+                                    l.dietTotalCalories,
+                                    style: _text(
+                                      context,
+                                      OnCareTypography.strong(
+                                        OnCareTypography.bodySmall,
+                                      ),
+                                      OnCareColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '$_total ${l.unitKcal}',
+                                  style: OnCareTypography.numeric(
+                                    _text(
+                                      context,
+                                      OnCareTypography.titleSmall,
+                                      tokens.brand.primary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: OnCareSpacing.cardGap),
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            _FieldLabel(l.dietNutritionInfo),
+                            const SizedBox(height: OnCareSpacing.s4),
+                            Text(
+                              l.dietEditNutritionHint,
+                              style: _text(
+                                context,
+                                OnCareTypography.caption,
+                                OnCareColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: OnCareSpacing.s12),
+                            _NutrientRow(
+                              label: l.dietSodium,
+                              hint: l.dietSodiumHint,
+                              value: '${widget.meal.sodium}',
+                              unit: l.dietUnitMg,
+                            ),
+                            const SizedBox(height: OnCareSpacing.s8),
+                            _NutrientRow(
+                              label: l.dietSugar,
+                              hint: l.dietSugarHint,
+                              value: '${widget.meal.sugar}',
+                              unit: l.dietUnitG,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: OnCareSpacing.s16),
+                      // 화면 안에서 삭제 확인창을 여는 버튼은 빨간 글자다(#1690).
+                      Center(
+                        child: AppButton(
+                          label: l.dietDeleteMeal,
+                          leadingIcon: Icons.delete_outline_rounded,
+                          variant: AppButtonVariant.destructiveText,
+                          onPressed: _busy ? null : _confirmDelete,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l.dietEditFoodHint,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.mutedForeground,
-                    ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    side,
+                    OnCareSpacing.s8,
+                    side,
+                    OnCareSpacing.s16,
                   ),
-                  const SizedBox(height: 10),
-                  for (int i = 0; i < _foods.length; i++) ...<Widget>[
-                    _FoodRow(
-                      index: i + 1,
-                      food: _foods[i],
-                      onDelete: () => setState(
-                        () => _foods = <DietFood>[..._foods]..removeAt(i),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  const Divider(height: 16, color: FigmaColors.hairline),
-                  Row(
-                    children: <Widget>[
-                      Text(
-                        l.dietTotalCalories,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.foreground,
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '$_total ${l.unitKcal}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: FigmaColors.primary,
-                        ),
-                      ),
-                    ],
+                  child: AppButtonPair(
+                    cancelLabel: l.dietCancel,
+                    onCancel: _busy ? null : () => Navigator.of(context).pop(),
+                    confirmLabel: l.dietSave,
+                    onConfirm: _busy ? null : _save,
                   ),
-                ]),
-                const SizedBox(height: 12),
-                _card(<Widget>[
-                  _FieldLabel(l.dietNutritionInfo),
-                  const SizedBox(height: 4),
-                  Text(
-                    l.dietEditNutritionHint,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _NutrientRow(
-                    label: l.dietSodium,
-                    hint: l.dietSodiumHint,
-                    value: '${widget.meal.sodium}',
-                    unit: l.dietUnitMg,
-                  ),
-                  const SizedBox(height: 10),
-                  _NutrientRow(
-                    label: l.dietSugar,
-                    hint: l.dietSugarHint,
-                    value: '${widget.meal.sugar}',
-                    unit: l.dietUnitG,
-                  ),
-                ]),
+                ),
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            child: SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _busy ? null : _confirmDelete,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFFF3B30),
-                  side: const BorderSide(color: Color(0x33FF3B30)),
-                  padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: Text(
-                  l.dietDeleteMeal,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
+    // Block back/drag dismiss while a save/delete request is in flight.
     return PopScope(canPop: !_busy, child: page);
   }
-
-  Widget _card(List<Widget> children) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: FigmaColors.statBg,
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: children,
-    ),
-  );
 }
 
 class _FieldLabel extends StatelessWidget {
@@ -1950,10 +1427,10 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text,
-    style: const TextStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      color: FigmaColors.ink,
+    style: _text(
+      context,
+      OnCareTypography.titleSmall,
+      OnCareColors.textPrimary,
     ),
   );
 }
@@ -1971,71 +1448,45 @@ class _FoodRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: FigmaColors.hairline),
-      ),
+    return AppTile(
       child: Row(
         children: <Widget>[
-          Container(
-            width: 20,
-            height: 20,
-            alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: FigmaColors.primary,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '$index',
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
+          AppTag(label: '$index', tone: AppTagTone.brand),
+          const SizedBox(width: OnCareSpacing.s8),
           Expanded(
             child: Text(
               food.name.trim().isEmpty ? l.dietNewFood : food.name,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: FigmaColors.ink,
+              style: _text(
+                context,
+                OnCareTypography.strong(OnCareTypography.body),
+                OnCareColors.textPrimary,
               ),
             ),
           ),
           Text(
             '${food.kcal}',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: FigmaColors.ink,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            l.unitKcal,
-            style: const TextStyle(
-              fontSize: 12.5,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Semantics(
-            button: true,
-            label: l.a11yRemoveFood,
-            child: GestureDetector(
-              onTap: onDelete,
-              child: const Icon(
-                Icons.cancel,
-                size: 18,
-                color: Color(0xFFFFB4A8),
+            style: OnCareTypography.numeric(
+              _text(
+                context,
+                OnCareTypography.strong(OnCareTypography.body),
+                OnCareColors.textPrimary,
               ),
             ),
+          ),
+          const SizedBox(width: OnCareSpacing.s4),
+          Text(
+            l.unitKcal,
+            style: _text(
+              context,
+              OnCareTypography.caption,
+              OnCareColors.textSecondary,
+            ),
+          ),
+          AppIconButton(
+            icon: Icons.close_rounded,
+            tooltip: l.a11yRemoveFood,
+            color: OnCareColors.textTertiary,
+            onPressed: onDelete,
           ),
         ],
       ),
@@ -2057,34 +1508,27 @@ class _NutrientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: FigmaColors.hairline),
-      ),
+    return AppTile(
       child: Row(
         children: <Widget>[
-          Container(width: 3, height: 34, color: FigmaColors.primary),
-          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaColors.ink,
+                  style: _text(
+                    context,
+                    OnCareTypography.strong(OnCareTypography.bodySmall),
+                    OnCareColors.textPrimary,
                   ),
                 ),
                 Text(
                   hint,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.mutedForeground,
+                  style: _text(
+                    context,
+                    OnCareTypography.caption,
+                    OnCareColors.textSecondary,
                   ),
                 ),
               ],
@@ -2092,48 +1536,24 @@ class _NutrientRow extends StatelessWidget {
           ),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: FigmaColors.ink,
+            style: OnCareTypography.numeric(
+              _text(
+                context,
+                OnCareTypography.titleSmall,
+                OnCareColors.textPrimary,
+              ),
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: OnCareSpacing.s4),
           Text(
             unit,
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.mutedForeground,
+            style: _text(
+              context,
+              OnCareTypography.bodySmall,
+              OnCareColors.textSecondary,
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CircleClose extends StatelessWidget {
-  const _CircleClose({required this.onTap, this.icon = Icons.close});
-  final VoidCallback? onTap;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFF4F6F8),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        // 아이콘만 있는 버튼이라 무엇을 닫는지 말할 데가 없다(#972).
-        child: Tooltip(
-          message: MaterialLocalizations.of(context).closeButtonTooltip,
-          child: SizedBox(
-            width: 32,
-            height: 32,
-            child: Icon(icon, size: 16, color: FigmaColors.textSub),
-          ),
-        ),
       ),
     );
   }

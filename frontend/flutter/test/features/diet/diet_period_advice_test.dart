@@ -10,7 +10,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -19,6 +19,7 @@ import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 /// 기간 조언을 붙잡아 두거나 실패시키는 대역. 나머지 동작은 그대로 쓴다.
@@ -50,11 +51,12 @@ Widget _app([DietRepository? repo]) => ProviderScope(
     dietRepositoryProvider.overrideWithValue(repo ?? FakeDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
-  child: const MaterialApp(
-    locale: Locale('ko'),
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: DietRecordPage(),
+    home: const DietRecordPage(),
   ),
 );
 
@@ -68,9 +70,11 @@ void main() {
     await tester.pumpAndSettle();
 
     String advice() {
-      final Finder card = find.byType(_adviceCardType(tester));
+      final Finder card = find.byType(PeriodAiAdviceCard);
       return tester
-          .widgetList<Text>(find.descendant(of: card, matching: find.byType(Text)))
+          .widgetList<Text>(
+            find.descendant(of: card, matching: find.byType(Text)),
+          )
           .map((Text t) => t.data ?? '')
           .join(' ');
     }
@@ -78,13 +82,13 @@ void main() {
     final String today = advice();
     expect(today, isNotEmpty);
 
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
     final String week = advice();
     expect(week, isNot(today), reason: '이번 주인데 오늘 조언이 그대로다');
     expect(week, contains('이번 주'));
 
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
     final String all = advice();
     expect(all, isNot(week), reason: '전체인데 이번 주 조언이 그대로다');
@@ -104,7 +108,7 @@ void main() {
     final String todayAdvice = _shellText(tester);
     expect(todayAdvice, isNotEmpty);
 
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey<String>('ai-advice-loading')), findsOne);
@@ -124,7 +128,7 @@ void main() {
     await tester.pumpAndSettle();
     final String todayAdvice = _shellText(tester);
 
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey<String>('ai-advice-error')), findsOne);
@@ -147,14 +151,3 @@ String _shellText(WidgetTester tester) => tester
     )
     .map((Text t) => t.data ?? '')
     .join(' ');
-
-/// AI 조언 카드의 타입 — 위젯이 private 이라 화면에서 찾아 쓴다.
-Type _adviceCardType(WidgetTester tester) => tester
-    .widget(
-      find
-          .byWidgetPredicate(
-            (Widget w) => w.runtimeType.toString() == '_AiFeedback',
-          )
-          .first,
-    )
-    .runtimeType;

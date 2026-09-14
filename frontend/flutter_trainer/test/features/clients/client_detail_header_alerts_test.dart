@@ -6,7 +6,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
 import '../../helpers/pump_app.dart';
@@ -54,7 +54,7 @@ void main() {
   /// 프로필 줄 안의 주의사항 배지. 헤더 어딘가가 아니라 **이 줄에** 있어야 한다.
   Finder headerAlerts() => find.descendant(
     of: find.byKey(const ValueKey<String>('client-detail-identity')),
-    matching: find.byType(AlertBadge),
+    matching: find.byType(AppTag),
   );
 
   testWidgets('주의사항 배지가 이름·상태와 같은 줄에 보인다', (tester) async {
