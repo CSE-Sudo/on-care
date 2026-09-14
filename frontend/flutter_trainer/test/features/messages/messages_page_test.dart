@@ -15,7 +15,8 @@ import 'package:oncare_ui/oncare_ui.dart'
         AppBanner,
         AppBannerTone,
         AppButton,
-        AppListRow,
+        AppCard,
+        OnCareColors,
         OnCareLayout,
         OnCareSize;
 
@@ -47,14 +48,38 @@ void main() {
       );
       expect(find.byType(TextField), findsWidgets);
 
-      // 대화 행은 규격 목록 행이다 — 고른 대화는 행 자체가 선택 상태를 그린다.
+      // 대화는 고객마다 카드 한 장이다(회원 탭 목록과 같은 모양) — 고른
+      // 대화는 카드 자체가 선택 상태를 그린다.
       final selectedTile = find.byKey(
         const ValueKey<String>('messages-conversation-seed-client-1'),
       );
-      final row = tester.widget<AppListRow>(
-        find.descendant(of: selectedTile, matching: find.byType(AppListRow)),
+      AppCard cardOf(String id) => tester.widget<AppCard>(
+        find.descendant(
+          of: find.byKey(ValueKey<String>('messages-conversation-$id')),
+          matching: find.byType(AppCard),
+        ),
       );
-      expect(row.selected, isTrue);
+      expect(cardOf('seed-client-1').selected, isTrue);
+      expect(cardOf('seed-client-2').selected, isFalse);
+      // 카드 사이에는 간격이 있다 — 큰 카드 한 장 안에 행을 쌓지 않는다.
+      expect(
+        find.ancestor(of: selectedTile, matching: find.byType(AppCard)),
+        findsNothing,
+      );
+      // 성별·나이는 이름보다 작고 흐린 글씨로 따로 선다.
+      final identityTexts = find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('messages-identity-seed-client-1'),
+        ),
+        matching: find.byType(Text),
+      );
+      final nameText = tester.widget<Text>(identityTexts.first);
+      final demographicsText = tester.widget<Text>(identityTexts.last);
+      expect(demographicsText.style!.color, OnCareColors.textTertiary);
+      expect(
+        demographicsText.style!.fontSize!,
+        lessThan(nameText.style!.fontSize!),
+      );
       final avatar = tester.widget<AppAvatar>(
         find.descendant(of: selectedTile, matching: find.byType(AppAvatar)),
       );
@@ -144,42 +169,39 @@ void main() {
     });
   });
 
-  testWidgets(
-    '안읽음 배지 숫자는 글자 배율이 커도 원을 벗어나지 않는다 (#1380)',
-    (tester) async {
-      await withWideSurface(tester, size: const Size(1440, 2200), () async {
-        // 기기 접근성 배율이 앱 기본 바닥값(1.10)보다 큰 경우를 흉내낸다.
-        // Container는 자식을 자르지 않으므로, 숫자가 원(20x20)보다 크게
-        // 그려지면 위아래로 삐져나와 타원처럼 보인다 — FittedBox로 줄여야
-        // 원 안에 남는다.
-        tester.platformDispatcher.textScaleFactorTestValue = 1.3;
-        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  testWidgets('안읽음 배지 숫자는 글자 배율이 커도 원을 벗어나지 않는다 (#1380)', (tester) async {
+    await withWideSurface(tester, size: const Size(1440, 2200), () async {
+      // 기기 접근성 배율이 앱 기본 바닥값(1.10)보다 큰 경우를 흉내낸다.
+      // Container는 자식을 자르지 않으므로, 숫자가 원(20x20)보다 크게
+      // 그려지면 위아래로 삐져나와 타원처럼 보인다 — FittedBox로 줄여야
+      // 원 안에 남는다.
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-        await pumpTrainerApp(
-          tester,
-          token: 'demo-trainer-token-existing',
-          seedClock: DateTime(2026, 8, 16), // 일요일
-        );
-        await goTo(tester, AppRoutes.messages);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token-existing',
+        seedClock: DateTime(2026, 8, 16), // 일요일
+      );
+      await goTo(tester, AppRoutes.messages);
 
-        final unreadBadge = find.byKey(
-          const ValueKey<String>('messages-unread-seed-client-8'),
-        );
-        expect(unreadBadge, findsOneWidget);
-        final Size badgeSize = tester.getSize(unreadBadge);
-        expect(badgeSize.height, OnCareSize.countBadgeMin);
-        expect(badgeSize.width, greaterThanOrEqualTo(badgeSize.height));
+      final unreadBadge = find.byKey(
+        const ValueKey<String>('messages-unread-seed-client-8'),
+      );
+      expect(unreadBadge, findsOneWidget);
+      final Size badgeSize = tester.getSize(unreadBadge);
+      expect(badgeSize.height, OnCareSize.countBadgeMin);
+      expect(badgeSize.width, greaterThanOrEqualTo(badgeSize.height));
 
-        final numberText = find.descendant(
-          of: unreadBadge,
-          matching: find.byType(Text),
-        );
-        final Size textSize = tester.getSize(numberText);
-        expect(textSize.height, lessThanOrEqualTo(20));
-        expect(textSize.width, lessThanOrEqualTo(20));
-      });
-    },
-  );
+      final numberText = find.descendant(
+        of: unreadBadge,
+        matching: find.byType(Text),
+      );
+      final Size textSize = tester.getSize(numberText);
+      expect(textSize.height, lessThanOrEqualTo(20));
+      expect(textSize.width, lessThanOrEqualTo(20));
+    });
+  });
 
   testWidgets('conversation without a thread still shows a preview line', (
     tester,
@@ -423,11 +445,9 @@ void main() {
 
     final context = tester.element(find.byType(Navigator).first);
     expect(
-      GoRouter.of(context)
-          .routerDelegate
-          .currentConfiguration
-          .uri
-          .queryParameters['f'],
+      GoRouter.of(
+        context,
+      ).routerDelegate.currentConfiguration.uri.queryParameters['f'],
       'unread',
     );
   });
