@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/my/data/trainer_profile_repository.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -130,7 +131,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(
         find.descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(AppDialog),
           matching: find.text('회원 삭제'),
         ),
       );

@@ -43,7 +43,8 @@ class NavDestination {
   /// `navLabel(l, destination.label)` 로 그릴 때 비로소 문구가 정해진다. (#501)
   final NavLabel label;
 
-  /// Icon in the unselected state.
+  /// Icon in the unselected state. `_rounded` 계열만 쓰고, 채움/윤곽 짝이 있는
+  /// 아이콘은 선택 상태에만 채움 아이콘을 쓴다(#1703).
   final IconData icon;
 
   /// Icon in the selected state.
@@ -88,42 +89,42 @@ String navLabel(AppLocalizations l, NavLabel label) => switch (label) {
 const List<NavDestination> navDestinations = <NavDestination>[
   NavDestination(
     label: NavLabel.dashboard,
-    icon: Icons.space_dashboard_outlined,
-    activeIcon: Icons.space_dashboard,
+    icon: Icons.space_dashboard_rounded,
+    activeIcon: Icons.space_dashboard_rounded,
     route: AppRoutes.dashboard,
   ),
   NavDestination(
     label: NavLabel.clients,
-    icon: Icons.people_outline,
-    activeIcon: Icons.people,
+    icon: Icons.people_outline_rounded,
+    activeIcon: Icons.people_rounded,
     route: AppRoutes.clients,
   ),
   NavDestination(
     label: NavLabel.messages,
-    icon: Icons.chat_bubble_outline,
-    activeIcon: Icons.chat_bubble,
+    icon: Icons.chat_bubble_outline_rounded,
+    activeIcon: Icons.chat_bubble_rounded,
     route: AppRoutes.messages,
     badge: NavBadge.unreadMessages,
   ),
   NavDestination(
     label: NavLabel.schedule,
-    icon: Icons.calendar_today_outlined,
-    activeIcon: Icons.calendar_today,
+    icon: Icons.calendar_today_rounded,
+    activeIcon: Icons.calendar_today_rounded,
     route: AppRoutes.schedule,
     badge: NavBadge.todayPendingSessions,
   ),
   NavDestination(
     label: NavLabel.coaching,
-    icon: Icons.auto_awesome_outlined,
-    activeIcon: Icons.auto_awesome,
+    icon: Icons.auto_awesome_rounded,
+    activeIcon: Icons.auto_awesome_rounded,
     route: AppRoutes.coaching,
   ),
   NavDestination(
     label: NavLabel.reports,
     // 고객 상세의 '리포트' 버튼과 같은 막대그래프다 — 같은 화면으로 가는 두
     // 자리가 서로 다른 그림이면 같은 곳인 줄 모른다.
-    icon: Icons.bar_chart_outlined,
-    activeIcon: Icons.bar_chart,
+    icon: Icons.bar_chart_rounded,
+    activeIcon: Icons.bar_chart_rounded,
     route: AppRoutes.reports,
   ),
 ];
@@ -137,8 +138,8 @@ const List<NavDestination> navDestinations = <NavDestination>[
 /// render it with an explicit branch index and leaves the demo untouched.
 const NavDestination consultationsDestination = NavDestination(
   label: NavLabel.consultations,
-  icon: Icons.mark_email_unread_outlined,
-  activeIcon: Icons.mark_email_unread,
+  icon: Icons.mark_email_unread_rounded,
+  activeIcon: Icons.mark_email_unread_rounded,
   route: AppRoutes.consultations,
   badge: NavBadge.pendingConsultations,
 );
@@ -147,8 +148,8 @@ const NavDestination consultationsDestination = NavDestination(
 /// 둔다. 실 API 빌드에서만 보이고, 브랜치 인덱스를 사이드바가 직접 넘긴다. (#503)
 const NavDestination notificationsDestination = NavDestination(
   label: NavLabel.notifications,
-  icon: Icons.notifications_none,
-  activeIcon: Icons.notifications,
+  icon: Icons.notifications_none_rounded,
+  activeIcon: Icons.notifications_rounded,
   route: AppRoutes.notifications,
   badge: NavBadge.unreadNotifications,
 );

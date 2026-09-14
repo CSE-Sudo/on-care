@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/dashboard/domain/activity_feedback.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/oni_avatar.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// "활동 피드백" — 트레이너 활동 피드백 3가지(이행률·이탈 위험 감지, 7일
 /// 이상 활동 저조, 식단 피드백 미완료)를 풀어서 보여 주는 카드.
@@ -29,38 +26,34 @@ class AiSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     // 대상이 없는 신호는 아예 그리지 않는다 — "0명" 문장은 안내가 아니다.
     final active = activityFeedback.where((i) => i.count > 0).toList();
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        border: Border.all(color: AppColors.aiCardGradientEnd),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[AppColors.aiCardGradientStart, AppColors.bannerEnd],
-        ),
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _Header(title: l.dashAiSummaryTitle),
-          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: <Widget>[
+              const OniAvatar(size: OnCareSize.avatarMedium),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(child: AppSectionHeader(title: l.dashAiSummaryTitle)),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
           if (active.isEmpty)
             Text(
               l.dashAiNoClients,
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: AppColors.mutedForeground,
-              ),
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
             )
           else
             for (var i = 0; i < active.length; i++) ...<Widget>[
               if (i > 0) ...<Widget>[
-                const SizedBox(height: AppSpacing.sm),
-                const Divider(color: AppColors.aiCardGradientEnd, height: 1),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: OnCareSpacing.s12),
+                const AppDivider(),
+                const SizedBox(height: OnCareSpacing.s12),
               ],
               _ActivityFeedbackDetail(item: active[i]),
             ],
@@ -70,36 +63,9 @@ class AiSummaryCard extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        const OniAvatar(size: 28),
-        const SizedBox(width: AppSpacing.sm),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: AppColors.foreground,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// One 트레이너 활동 피드백 bullet, written out in full — headline, a
 /// sentence that names the clients naturally, and a right-aligned link to
 /// go act on it.
-///
-/// 흰 박스로 감싸지 않는다 — 카드 자체가 이미 그라디언트로 구분돼 있어,
-/// 안에 또 흰 상자를 두면 레이어가 하나 더 생길 뿐이었다(#[dashboard]).
 class _ActivityFeedbackDetail extends StatelessWidget {
   const _ActivityFeedbackDetail({required this.item});
 
@@ -122,21 +88,20 @@ class _ActivityFeedbackDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final destination = _destination();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
           item.kind.title(l),
-          style: const TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w800,
-            color: AppColors.foreground,
-          ),
+          style: tokens
+              .text(OnCareTypography.label)
+              .copyWith(color: OnCareColors.textPrimary),
         ),
-        const SizedBox(height: 4),
-        // 설명은 왼쪽에서 넓게 숨 쉬고, 버튼은 오른쪽에 고정 너비로 붙는다 —
-        // 세 항목이 같은 두 칸 그리드로 줄을 맞춰야 나란히 훑어 읽힌다.
+        const SizedBox(height: OnCareSpacing.s4),
+        // 설명은 왼쪽에서 넓게 숨 쉬고, 버튼은 오른쪽에 붙는다 — 세 항목이 같은
+        // 두 칸 그리드로 줄을 맞춰야 나란히 훑어 읽힌다.
         Row(
           children: <Widget>[
             Expanded(
@@ -146,42 +111,20 @@ class _ActivityFeedbackDetail extends StatelessWidget {
               child: Text(
                 '${item.kind.description(l, _names(l, item.clientNames))} '
                 '${item.kind.recommendation(l)}',
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  height: 1.5,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.mutedForeground,
-                ),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
+            const SizedBox(width: OnCareSpacing.s8),
             if (destination != null)
-              // 오늘의 일정 배너의 "수업 준비하기" 버튼과 같은 마감 —
-              // 알약처럼 둥글고 여유 있게, 짧은 탭 이름이 초라해 보이지
-              // 않도록.
-              FilledButton.icon(
+              AppButton(
                 key: ValueKey<String>('ai-summary-cta-${item.kind.name}'),
+                label: item.kind.tabLabel(l),
                 onPressed: () => context.go(destination),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.accentDark,
-                  foregroundColor: AppColors.accentForeground,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                    vertical: 12,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(AppRadius.pill),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                icon: Text(item.kind.tabLabel(l)),
-                label: const Icon(Icons.chevron_right, size: 16),
-                iconAlignment: IconAlignment.start,
+                variant: AppButtonVariant.secondary,
+                size: OnCareButtonSize.small,
+                trailingIcon: Icons.chevron_right_rounded,
               ),
           ],
         ),

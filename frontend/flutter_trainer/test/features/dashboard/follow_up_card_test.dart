@@ -7,6 +7,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/follow_up_task.d
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/follow_up_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/follow_up_task_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../clients/follow_up_fake_repository.dart';
 
@@ -19,11 +20,17 @@ Future<void> _pumpCard(
       overrides: <Override>[
         followUpTaskRepositoryProvider.overrideWithValue(repository),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: OnCareTheme.light(
+          brand: OnCareBrand.trainer,
+          density: OnCareDensity.web,
+        ),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: SingleChildScrollView(child: FollowUpCard())),
+        home: const Scaffold(
+          body: SingleChildScrollView(child: FollowUpCard()),
+        ),
       ),
     ),
   );
@@ -31,9 +38,7 @@ Future<void> _pumpCard(
 }
 
 void main() {
-  testWidgets('오늘 예정과 기한이 지난 항목이 함께 뜨고, 앞으로의 할 일은 빠진다', (
-    tester,
-  ) async {
+  testWidgets('오늘 예정과 기한이 지난 항목이 함께 뜨고, 앞으로의 할 일은 빠진다', (tester) async {
     final today = todayKst();
     final repository = FakeFollowUpRepository()
       ..seed(
@@ -126,10 +131,7 @@ void main() {
         AppRoutes.followUpTarget('m1', 'billing'),
         AppRoutes.clientDetail('m1'),
       );
-      expect(
-        FollowUpContext.fromWire('billing'),
-        FollowUpContext.general,
-      );
+      expect(FollowUpContext.fromWire('billing'), FollowUpContext.general);
     });
   });
 }

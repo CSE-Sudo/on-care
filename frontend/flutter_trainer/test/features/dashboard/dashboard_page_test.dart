@@ -11,7 +11,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/stat_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
 import '../../helpers/pump_app.dart';
@@ -129,7 +129,10 @@ void main() {
     expect(find.text('대시보드를 불러오지 못했어요'), findsOneWidget);
     expect(find.text('internal transport detail'), findsNothing);
 
-    final retry = find.byKey(const ValueKey<String>('dashboard-retry'));
+    final retry = find.descendant(
+      of: find.byKey(const ValueKey<String>('dashboard-retry')),
+      matching: find.byType(AppButton),
+    );
     await tester.tap(retry);
     await tester.pump();
     await tester.tap(retry, warnIfMissed: false);
@@ -143,8 +146,8 @@ void main() {
 
     // 복구된 회원의 이름은 오늘 할 일 리스트를 스크롤해야 보인다 — 새로
     // 고쳐 그렸다는 사실은 KPI 로 확인한다.
-    final myClients = tester.widget<StatCard>(
-      find.ancestor(of: find.text('담당 회원'), matching: find.byType(StatCard)),
+    final myClients = tester.widget<AppStatCard>(
+      find.ancestor(of: find.text('담당 회원'), matching: find.byType(AppStatCard)),
     );
     expect(myClients.value, '1');
     expect(find.text('대시보드를 불러오지 못했어요'), findsNothing);
@@ -156,7 +159,7 @@ void main() {
     expect(find.text('담당 회원'), findsOneWidget);
     // '메시지' 는 사이드바 내비게이션 항목명과도 겹친다 — KPI 카드 안에서만 찾는다.
     expect(
-      find.descendant(of: find.byType(StatCard), matching: find.text('메시지')),
+      find.descendant(of: find.byType(AppStatCard), matching: find.text('메시지')),
       findsOneWidget,
     );
     expect(find.text('주의 회원'), findsOneWidget);
@@ -182,8 +185,8 @@ void main() {
     // 답장을 기다리는 스레드가 둘이지만 주의는 건강 신호만 센다 — 나트륨 5 ·
     // 당류 1 · 이행률 2 로 여덟이다. 답장 대기는 목록에는 남되 주의가 아니다.
     // 둘이 다시 합쳐지면 이 카드가 더 큰 수를 말하며 뜻을 잃는다.
-    final attention = tester.widget<StatCard>(
-      find.ancestor(of: find.text('주의 회원'), matching: find.byType(StatCard)),
+    final attention = tester.widget<AppStatCard>(
+      find.ancestor(of: find.text('주의 회원'), matching: find.byType(AppStatCard)),
     );
     expect(attention.value, '8');
     expect(find.text('식단·이행률 확인'), findsOneWidget);
@@ -193,7 +196,7 @@ void main() {
     await openDashboard(tester);
 
     await tester.tap(
-      find.descendant(of: find.byType(StatCard), matching: find.text('메시지')),
+      find.descendant(of: find.byType(AppStatCard), matching: find.text('메시지')),
     );
     await settle(tester);
     // The number and the list it opens have to be the same claim.
@@ -315,7 +318,7 @@ void main() {
   ) async {
     await openDashboard(tester);
 
-    expect(find.byType(StatCard), findsNWidgets(4));
+    expect(find.byType(AppStatCard), findsNWidgets(4));
     final actionRow = tester.widget<Row>(
       find.byKey(const ValueKey<String>('dashboard-action-row')),
     );

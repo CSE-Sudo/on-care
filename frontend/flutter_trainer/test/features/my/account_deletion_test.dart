@@ -12,6 +12,7 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -77,14 +78,17 @@ void main() {
     await _pumpSettings(tester);
 
     expect(find.text(_ko.myDeleteAccount), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('delete-account')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('delete-account')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('지울 계정이 없는 빌드에서는 비활성이고 사유를 보여 준다', (tester) async {
     await _pumpSettings(tester, supportsDeletion: false);
 
     expect(find.text(_ko.myDeleteDemo), findsOneWidget);
-    final button = tester.widget<TextButton>(
+    final button = tester.widget<AppButton>(
       find.byKey(const ValueKey<String>('delete-account')),
     );
     expect(button.onPressed, isNull);
@@ -97,17 +101,15 @@ void main() {
     expect(find.text(_ko.myDeleteTitle), findsOneWidget);
 
     // 이름이 맞기 전에는 눌리지 않는다 — 예/아니오만으로는 실수를 못 거른다.
-    final submit = find.byKey(
-      const ValueKey<String>('delete-account-submit'),
-    );
-    expect(tester.widget<TextButton>(submit).onPressed, isNull);
+    final submit = find.byKey(const ValueKey<String>('delete-account-submit'));
+    expect(tester.widget<AppButton>(submit).onPressed, isNull);
 
     await tester.enterText(
       find.byKey(const ValueKey<String>('delete-account-confirm')),
       '틀린 이름',
     );
     await settle(tester);
-    expect(tester.widget<TextButton>(submit).onPressed, isNull);
+    expect(tester.widget<AppButton>(submit).onPressed, isNull);
     expect(repo.deleteCalls, 0);
 
     await tester.enterText(
@@ -115,7 +117,7 @@ void main() {
       seedTrainerProfile.name,
     );
     await settle(tester);
-    expect(tester.widget<TextButton>(submit).onPressed, isNotNull);
+    expect(tester.widget<AppButton>(submit).onPressed, isNotNull);
 
     await tester.tap(submit);
     await settle(tester);
