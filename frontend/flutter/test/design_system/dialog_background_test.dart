@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/design_system/tokens/colors.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 확인 창의 배경은 **카드와 같은 흰색**이다. (#925)
 ///
@@ -69,8 +70,11 @@ void main() {
   });
 
   test('accent 는 대화상자 배경으로 쓰이지 않는다', () {
-    // 목록 행·알약이 계속 쓰는 색이므로 ColorScheme 쪽은 그대로 둔다.
-    expect(AppTheme.light().colorScheme.surfaceContainerHigh, AppColors.accent);
+    // 목록 행·알약이 쓰는 옅은 브랜드 채움은 ColorScheme 쪽에 그대로 둔다(#1691).
+    expect(
+      AppTheme.light().colorScheme.surfaceContainerHigh,
+      OnCareBrand.member.surface,
+    );
     expect(AppTheme.light().dialogTheme.backgroundColor, AppColors.card);
   });
 }
