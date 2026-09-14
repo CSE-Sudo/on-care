@@ -428,3 +428,58 @@ def test_another_trainer_cannot_assign_a_program(client, db_session, trainer_tok
     finally:
         db_session.delete(other_trainer)
         db_session.commit()
+
+
+def _sized_sessions(session_count: int, exercise_count: int) -> list[dict]:
+    """[session_count] 개 세션에 운동 [exercise_count] 개를 고르게 나눈다."""
+    sessions = [
+        {"id": f"session-{index}", "name": f"세션 {index}", "exercises": []}
+        for index in range(session_count)
+    ]
+    for index in range(exercise_count):
+        sessions[index % session_count]["exercises"].append(
+            {"id": f"ex-{index}", "name": f"운동 {index}", "sets": 3}
+        )
+    return sessions
+
+
+@pytest.mark.parametrize(
+    ("session_count", "exercise_count", "accepted"),
+    [(12, 30, True), (13, 30, False), (12, 31, False)],
+)
+def test_program_size_limits_are_the_same_for_draft_assign_and_schedule(
+    session_count, exercise_count, accepted
+):
+    """초안·배정·일정 추가가 같은 크기(12세션·전체 30운동)를 받는다. (#1583)
+
+    배정만 받고 일정 등록이 422 가 되는 크기 불일치가 없어야 한다.
+    """
+    from pydantic import ValidationError
+
+    from app.core import clock
+    from app.schemas.trainer_api import (
+        ProgramAssignRequest,
+        ProgramScheduleRequest,
+        TrainerProgramDraftCreate,
+        TrainerProgramDraftUpdate,
+    )
+
+    sessions = _sized_sessions(session_count, exercise_count)
+    payloads = {
+        TrainerProgramDraftCreate: {"name": "크기", "sessions": sessions},
+        TrainerProgramDraftUpdate: {"sessions": sessions},
+        ProgramAssignRequest: {"name": "크기", "sessions": sessions},
+        ProgramScheduleRequest: {
+            "name": "크기",
+            "sessions": sessions,
+            "date": clock.today().isoformat(),
+            "time": "10:00",
+            "duration_minutes": 60,
+        },
+    }
+    for model, payload in payloads.items():
+        if accepted:
+            model.model_validate(payload)
+        else:
+            with pytest.raises(ValidationError):
+                model.model_validate(payload)

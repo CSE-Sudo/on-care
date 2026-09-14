@@ -48,6 +48,52 @@ void main() {
     expect(multiple.supportsAssignment, isFalse);
   });
 
+  test('버튼을 막는 이유가 실제 검사 조건과 같다 (#1582)', () {
+    const empty = ProgramEditorState(
+      name: '프로그램',
+      sessions: <ProgramSessionDraft>[
+        ProgramSessionDraft(id: 'session-1', name: '세션 A', exercises: []),
+      ],
+    );
+    expect(empty.assignmentBlocker, ProgramAssignmentBlocker.noExercises);
+    expect(
+      draftWith(name: ' ').assignmentBlocker,
+      ProgramAssignmentBlocker.invalidExerciseName,
+    );
+    expect(draftWith(name: '스쿼트').assignmentBlocker, isNull);
+  });
+
+  test('세션 12개·전체 운동 30개까지만 일정에 추가할 수 있다 (#1583)', () {
+    ProgramEditorState sized(int sessionCount, int exerciseCount) =>
+        ProgramEditorState(
+          name: '프로그램',
+          sessions: <ProgramSessionDraft>[
+            for (var s = 0; s < sessionCount; s++)
+              ProgramSessionDraft(
+                id: 'session-$s',
+                name: '세션 $s',
+                exercises: <ProgramExerciseDraft>[
+                  for (var e = 0; e < exerciseCount; e++)
+                    if (e % sessionCount == s)
+                      ProgramExerciseDraft(id: 'exercise-$e', name: '운동 $e'),
+                ],
+              ),
+          ],
+        );
+
+    final atLimit = sized(12, 30);
+    expect(atLimit.supportsAssignment, isTrue);
+    expect(atLimit.canAddSession, isFalse);
+    expect(atLimit.canAddExercise, isFalse);
+    expect(sized(11, 29).canAddSession, isTrue);
+    expect(sized(11, 29).canAddExercise, isTrue);
+
+    for (final over in <ProgramEditorState>[sized(13, 30), sized(12, 31)]) {
+      expect(over.exceedsSizeLimit, isTrue);
+      expect(over.supportsAssignment, isFalse);
+    }
+  });
+
   test('근력은 세트에서 분을 환산하고, 그 외 유형은 시간을 그대로 쓴다 (#1276)', () {
     const strength = ProgramExerciseDraft(
       id: 'e1',

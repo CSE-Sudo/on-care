@@ -1188,6 +1188,46 @@ class TrainerReportFeedback(Base):
     )
 
 
+class TrainerDailyTaskProgress(Base):
+    """대시보드 `오늘 할 일` 의 하루 진행 상태. (#1633)
+
+    기기 로컬이 아니라 **계정 단위** — 트레이너는 센터 PC 와 태블릿을 오간다(알림
+    수신 설정과 같은 이유). 체크는 "트레이너 자신의 확인 표시"지만, 그 표시가
+    기기마다 다르면 한쪽에서 끝낸 일이 다른 쪽에서 다시 할 일로 보인다.
+
+    (trainer_id, date) 하나당 한 행이고, 앱이 그날 목록을 바꿀 때마다 통째로
+    덮어쓴다. `pending_keys` 는 다음 날의 `지난 할 일` 판정이, `dismissed_keys` 는
+    같은 날 다시 연 화면이 읽는다. 키는 앱이 만드는 미션 키(`report-<id>` 등)라
+    서버는 내용을 해석하지 않는다.
+
+    `date` 는 KST `YYYY-MM-DD` — `TrainerSchedule.date` 와 같은 표기라 문자열
+    비교로 보관 기간을 자른다.
+    """
+
+    __tablename__ = "trainer_daily_task_progress"
+
+    trainer_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    date: Mapped[str] = mapped_column(String(10), primary_key=True)
+    total: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0", default=0)
+    completed_today: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    completed_carried_over: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0", default=0
+    )
+    pending_keys_json: Mapped[str] = mapped_column(
+        Text, nullable=False, server_default="[]", default="[]"
+    )
+    dismissed_keys_json: Mapped[str] = mapped_column(
+        Text, nullable=False, server_default="[]", default="[]"
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class TrainerFollowUpTask(Base):
     """트레이너가 고객별로 남기는 후속 관리 할 일. (#869)
 
