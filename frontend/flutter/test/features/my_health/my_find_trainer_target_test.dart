@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -58,6 +59,7 @@ void main() {
           ),
         ],
         child: MaterialApp.router(
+          theme: AppTheme.light(),
           routerConfig: router,
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
