@@ -506,7 +506,7 @@
   "lib/features/notification/presentation/pages/notification_page.dart": {
     "edgeInsets": 1,
     "sizedBox": 3,
-    "nonRoundedIcon": 2,
+    "nonRoundedIcon": 1,
     "materialWidget": 4
   },
   "lib/features/schedule/presentation/schedule_category_color.dart": {
