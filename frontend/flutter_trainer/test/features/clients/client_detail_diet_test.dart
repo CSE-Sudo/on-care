@@ -96,7 +96,7 @@ void main() {
       final repo = DriftClientRepository(db);
       final jisu = await repo.watchDiet('seed-client-2').first;
       final seongho = await repo.watchDiet('seed-client-3').first;
-      expect(jisu.first.items, '그릭요거트, 과일');
+      expect(jisu.first.items, '그릭요거트, 블루베리');
       expect(seongho[1].items, '짜장면'); // 점심
     });
   });
@@ -400,19 +400,23 @@ void main() {
       expect(find.text('38.0'), findsNothing);
     });
 
-    testWidgets('a recorded 0g meal remains a meal instead of empty state', (
-      tester,
-    ) async {
+    testWidgets('거른 끼니는 카드 없이 다음 끼니부터 선다 (#1381)', (tester) async {
+      // 강서연은 아침을 걸렀다 — `거름` 카드가 아니라 점심 카드부터다.
       await openDiet(tester, '강서연');
 
       await tester.scrollUntilVisible(
-        find.text('거름'),
+        find.text('점심'),
         150,
         scrollable: detailScrollable('seed-client-6'),
       );
       expect(find.text('아직 기록된 식단이 없어요'), findsNothing);
-      // 끼니 카드의 탄단지는 한 줄로 함께 적는다 (#1166).
-      expect(find.textContaining('탄수화물 0g · 단백질 0g · 지방 0g'), findsWidgets);
+      expect(find.text('거름'), findsNothing);
+      expect(find.text('아침'), findsNothing);
+      // 음식은 한 줄에 하나, 그 옆에 회색 글씨로 kcal · mg · g.
+      expect(find.text('치킨'), findsOneWidget);
+      expect(find.text('맥주'), findsOneWidget);
+      expect(find.text('치킨, 맥주'), findsNothing);
+      expect(find.text('960kcal · 870mg · 48g'), findsOneWidget);
     });
 
     testWidgets('macro values wrap without overflow on a narrow screen', (
@@ -648,11 +652,11 @@ void main() {
       // The detail header sits above the list, so her 아침 card can start
       // below the fold on the test viewport.
       await tester.scrollUntilVisible(
-        find.text('그릭요거트, 과일'),
+        find.text('그릭요거트'),
         150,
         scrollable: detailScrollable('seed-client-2'),
       );
-      expect(find.text('그릭요거트, 과일'), findsOneWidget);
+      expect(find.text('그릭요거트'), findsOneWidget);
       // Under target in the diet summary.
       expect(find.text('mg 초과'), findsNothing);
       await tester.scrollUntilVisible(

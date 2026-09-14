@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/design_system/atoms/app_badge.dart';
 import 'package:oncare/design_system/atoms/app_card.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
@@ -83,7 +82,6 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final config = ref.watch(appConfigProvider);
     final state = ref.watch(notificationControllerProvider);
     final notifier = ref.read(notificationControllerProvider.notifier);
     final bool showRetry = state.failedToLoad;
@@ -146,19 +144,6 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
           },
         ),
       ),
-      // 가상 푸시는 목/데모 모드 전용 개발 도구 — 실모드에서는 버튼을 숨긴다
-      // (서버에 없는 팬텀 알림 방지, 죽은 버튼 방지).
-      floatingActionButton: config.useMockApi
-          ? FloatingActionButton.extended(
-              icon: const Icon(Icons.notification_add_outlined),
-              label: const Text('Simulate push'),
-              onPressed: () => notifier.simulatePush(
-                title: l.alertSimulatedTitle,
-                body: l.alertSimulatedBody,
-                timeAgo: l.alertJustNow,
-              ),
-            )
-          : null,
     );
     // The product currently has a light-only design. Keep this route on the
     // shared light theme even when ThemeMode.system selects the dark theme.
