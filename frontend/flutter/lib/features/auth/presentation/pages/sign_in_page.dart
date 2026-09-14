@@ -71,11 +71,14 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Future<void> _social(String provider) async {
     final AppLocalizations l = AppLocalizations.of(context);
     if (_loading) return;
+    // 목업이 받아 주지 않는 설정에서는 고정 토큰을 내보내지 않는다. 버튼을
+    // 감추는 것과 별개로 이 경로 자체를 한 번 더 막는다(#1553).
+    if (!ref.read(appConfigProvider).socialDemoLoginEnabled) return;
     final AppToastHost toast = AppToastHost.of(context);
     setState(() => _loading = true);
     try {
-      // 실기기 SDK(kakao/google) 연동 전까지는 데모 토큰을 보낸다. 실서버
-      // (USE_MOCK_API=false)에서는 FastAPI가 provider 토큰을 실제 검증한다.
+      // 실 SDK(kakao/google) 연동 전까지는 데모 토큰을 보낸다. 받아 주는 것은
+      // 기기 안 목업뿐이라 [AppConfig.socialDemoLoginEnabled] 일 때만 온다.
       await ref
           .read(sessionControllerProvider.notifier)
           .socialLogin(provider: provider, token: 'demo-$provider-token');
@@ -93,6 +96,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final bool socialEnabled = ref
+        .watch(appConfigProvider)
+        .socialDemoLoginEnabled;
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -173,18 +179,22 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                         onTap: _login,
                       ),
                       const SizedBox(height: AppSpacing.lg),
-                      const _OrDivider(),
-                      const SizedBox(height: AppSpacing.lg),
-                      _SocialButton.kakao(
-                        label: l.authKakaoAction,
-                        onTap: _loading ? null : () => _social('kakao'),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      _SocialButton.google(
-                        label: l.authGoogleAction,
-                        onTap: _loading ? null : () => _social('google'),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
+                      // 소셜 버튼은 고정 데모 토큰을 보내므로 목업이 받아 주는
+                      // 설정에서만 보인다 — 실서버에서는 눌러도 거절된다(#1553).
+                      if (socialEnabled) ...<Widget>[
+                        const _OrDivider(),
+                        const SizedBox(height: AppSpacing.lg),
+                        _SocialButton.kakao(
+                          label: l.authKakaoAction,
+                          onTap: _loading ? null : () => _social('kakao'),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        _SocialButton.google(
+                          label: l.authGoogleAction,
+                          onTap: _loading ? null : () => _social('google'),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
                       // Wrap 인 이유: 로케일에 따라 이 줄의 길이가 크게 달라진다.
                       // Row 로 두면 영어에서 화면 밖으로 넘친다(폭 400 기준 실측).
                       Wrap(

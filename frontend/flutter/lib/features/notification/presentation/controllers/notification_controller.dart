@@ -13,7 +13,7 @@ class NotificationController extends StateNotifier<NotificationState> {
   /// 데모 둘러보기 화면이 기존과 동일하게 보이도록 유지한다. 실모드는 seed=null
   /// 로 생성해 백엔드(`/notifications`)에서 최신 알림을 불러온다.
   NotificationController(this._repo, {List<AlertItem>? seed, this.onChanged})
-    : _allowSimulatePush = seed != null,
+    : _seeded = seed != null,
       super(NotificationState(items: seed ?? const <AlertItem>[])) {
     if (seed == null) {
       _load();
@@ -26,10 +26,10 @@ class NotificationController extends StateNotifier<NotificationState> {
   /// 읽음 처리 직후 다음 폴링을 기다리지 않고 즉시 다시 세게 한다.
   final void Function()? onChanged;
 
-  /// 가상 푸시 주입은 목/데모 모드에서만 허용한다(seed 가 주어진 경우).
-  /// 실모드는 서버가 진실원본이라, 로컬 팬텀을 넣으면 다음 [refresh] 에서
-  /// 사라져 상태가 어긋난다.
-  final bool _allowSimulatePush;
+  /// 시드로 띄운 목/데모 모드인지(seed 가 주어진 경우). 실모드는 서버가
+  /// 진실원본이라 조회·이어받기가 모두 네트워크를 타고, 목/데모는 시드가
+  /// 전부라 그 경로를 건너뛴다.
+  final bool _seeded;
 
   /// 진행 중인 조회. 화면 진입과 포그라운드 복귀가 겹쳐도 요청이 두 번 나가지 않게
   /// 같은 future 를 돌려준다 — 중복 조회는 목록이 두 번 흔들리는 것으로 보인다.
@@ -65,7 +65,7 @@ class NotificationController extends StateNotifier<NotificationState> {
   /// 조회가 진행 중일 때는 아무 일도 하지 않는다 — 새로고침이 첫 쪽으로 되돌리는
   /// 중에 뒤쪽을 붙이면 목록이 어긋난다.
   Future<void> loadMore() async {
-    if (_allowSimulatePush) return; // 목/데모는 시드가 전부다.
+    if (_seeded) return; // 목/데모는 시드가 전부다.
     if (!state.hasMore || state.loadingMore || _inFlight != null) return;
     final AlertItem? last = state.items.isEmpty ? null : state.items.last;
     if (last == null || last.createdAt.isEmpty) return;
@@ -102,7 +102,7 @@ class NotificationController extends StateNotifier<NotificationState> {
   /// 화면 진입·복귀·당겨서 새로고침이 모두 이 경로를 쓴다. 목 모드에서는 시드가
   /// 진실원본이라 아무 일도 하지 않는다 — 데모 화면이 네트워크를 타면 안 된다.
   Future<void> refresh() async {
-    if (_allowSimulatePush) return;
+    if (_seeded) return;
     await _load();
   }
 
@@ -137,27 +137,6 @@ class NotificationController extends StateNotifier<NotificationState> {
       onChanged?.call();
     }
   }
-
-  /// Q9: in-app panel + simulated push. Inserts a new unread item
-  /// at the top, as if a real FCM notification had landed. 목/데모 모드
-  /// 전용(개발용) — 실모드에서는 서버에 없는 팬텀을 만들지 않도록 무시한다.
-  /// 문구는 부른 쪽이 넘긴다 — 컨트롤러에는 로케일이 없다(#847).
-  void simulatePush({
-    required String title,
-    required String body,
-    required String timeAgo,
-  }) {
-    if (!_allowSimulatePush) return;
-    final id = 'sim-${DateTime.now().millisecondsSinceEpoch}';
-    final injected = AlertItem(
-      id: id,
-      title: title,
-      body: body,
-      timeAgo: timeAgo,
-      category: AlertCategory.reminder,
-    );
-    state = state.copyWith(items: <AlertItem>[injected, ...state.items]);
-  }
 }
 
 /// 데모/로컬 모드는 목, 실모드는 백엔드(`/notifications`) 리포.
@@ -168,7 +147,7 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return DioNotificationRepository(ref.watch(dioProvider));
 }, name: 'notificationRepository');
 
-/// 알림 목록 + 세션 변이(읽음/전체읽음/가상푸시)를 담는 컨트롤러.
+/// 알림 목록 + 세션 변이(읽음/전체읽음)를 담는 컨트롤러.
 /// 목 모드는 [demoAlerts] 를 즉시 시드로 사용하고, 실모드는 백엔드에서 로드한다.
 final notificationControllerProvider =
     StateNotifierProvider<NotificationController, NotificationState>((ref) {
