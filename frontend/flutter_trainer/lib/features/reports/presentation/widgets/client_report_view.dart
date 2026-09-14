@@ -223,8 +223,9 @@ class _SectionCard extends StatelessWidget {
                     Flexible(child: end)
                   else
                     ConstrainedBox(
+                      // 앞 간격만큼 뺀다 — 그대로 두면 그 간격만큼 넘친다.
                       constraints: BoxConstraints(
-                        maxWidth: constraints.maxWidth,
+                        maxWidth: constraints.maxWidth - OnCareSpacing.s8,
                       ),
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
@@ -275,8 +276,17 @@ class _WeekSummaryChips extends StatelessWidget {
       children: <Widget>[
         // 카드 제목이 소모 칼로리를 말하게 됐으므로(#1289) 이 칩이 무엇의
         // 평균인지 스스로 밝힌다 — `평균 87%` 만으로는 칼로리의 평균으로 읽힌다.
-        if (avg != null) AppTag(label: l.reportsAdherenceChip('$avg%')),
-        if (logged > 0) AppTag(label: l.reportsRecordedDays(logged)),
+        // 영어·큰 글자 배율에서는 태그 하나가 칸보다 길다 — 넘치지 않게 줄여 그린다.
+        if (avg != null)
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: AppTag(label: l.reportsAdherenceChip('$avg%')),
+          ),
+        if (logged > 0)
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: AppTag(label: l.reportsRecordedDays(logged)),
+          ),
       ],
     );
   }

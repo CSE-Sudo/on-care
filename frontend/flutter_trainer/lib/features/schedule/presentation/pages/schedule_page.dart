@@ -451,12 +451,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       title: l.schedTitle,
       subtitle: dateLabel(l, _selectedDay),
       actions: <Widget>[
+        // 넓은 화면에서는 최소 폭만 준다 — 검색 바가 스스로 정한 최대 폭까지
+        // 자라야 긴 검색 범위 안내가 잘리지 않는다. 리포트 탭과 같은 규칙이다.
         ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: inlineSearch
-                ? OnCareLayout.headerCenterMinWidth
-                : OnCareSpacing.s48,
-          ),
+          constraints: inlineSearch
+              ? const BoxConstraints(
+                  minWidth: OnCareLayout.headerCenterMinWidth,
+                )
+              : BoxConstraints(maxWidth: context.oncare.density.iconButton),
           child: const ClientSearchBar(),
         ),
         AppButton(
