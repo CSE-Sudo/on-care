@@ -1,5 +1,13 @@
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 
+/// 한 프로그램의 세션 수 상한 — 서버 `_PROGRAM_MAX_SESSIONS` 와 같다(#1583).
+const int kProgramMaxSessions = 12;
+
+/// 한 프로그램 전체의 운동 수 상한 — 서버 `_PROGRAM_MAX_TOTAL_EXERCISES` 와
+/// 같다(#1583). 초안 저장·배정·일정 추가가 모두 이 크기까지만 받으므로, 편집기가
+/// 같은 상한을 지켜야 배정은 되고 일정만 422 가 되는 경로가 없다.
+const int kProgramMaxExercises = 30;
+
 /// Frontend-only draft for the Figma multi-session program editor.
 ///
 /// This deliberately does not implement or extend [AssignedRoutine]: the
@@ -20,12 +28,28 @@ class ProgramEditorState {
   final String memo;
   final List<ProgramSessionDraft> sessions;
 
+  /// 프로그램 전체의 운동 수.
+  int get exerciseCount =>
+      sessions.fold<int>(0, (count, session) => count + session.exercises.length);
+
+  /// 세션을 하나 더 추가할 수 있는가(#1583).
+  bool get canAddSession => sessions.length < kProgramMaxSessions;
+
+  /// 운동을 하나 더 추가할 수 있는가(#1583).
+  bool get canAddExercise => exerciseCount < kProgramMaxExercises;
+
+  /// 서버가 받는 크기를 넘었는가 — 템플릿·AI 제안을 합쳐 넘을 수 있다. 자르지
+  /// 않고 트레이너가 직접 줄이게 둔다(#1583).
+  bool get exceedsSizeLimit =>
+      sessions.length > kProgramMaxSessions ||
+      exerciseCount > kProgramMaxExercises;
+
   /// Whether this draft can be assigned to a member or put on the schedule.
   ///
-  /// Session count is no longer part of the answer — the backend takes a
-  /// program of any number of sessions (#709). 숫자 칸은 스테퍼가 이미 범위
-  /// 안으로 묶어 두므로(#1276) 여기서 볼 것은 이름뿐이다.
+  /// 세션 수·운동 수는 서버와 같은 상한 안이어야 한다(#1583). 숫자 칸은
+  /// 스테퍼가 이미 범위 안으로 묶어 두므로(#1276) 그 밖에 볼 것은 이름이다.
   bool get supportsAssignment {
+    if (exceedsSizeLimit) return false;
     final exercises = <ProgramExerciseDraft>[
       for (final session in sessions) ...session.exercises,
     ];
