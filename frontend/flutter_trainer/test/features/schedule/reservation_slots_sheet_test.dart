@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -115,7 +116,7 @@ void main() {
       await settle(tester);
 
       expect(tester.takeException(), isNull);
-      expect(find.byKey(const Key('portraitDatePicker')), findsOneWidget);
+      expect(find.byType(DatePickerDialog), findsOneWidget);
     });
 
     testWidgets('시간 범위는 한 필드에 보이고 시 선택 뒤 단계 화살표가 나타난다', (tester) async {
@@ -125,7 +126,14 @@ void main() {
       await tester.tap(find.byKey(const ValueKey<String>('slot-time-range')));
       await settle(tester);
 
-      expect(find.byType(TextField), findsNWidgets(2));
+      expect(
+        find.byKey(const ValueKey<String>('session-time-range-start-input')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('session-time-range-end-input')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey<String>('time-range-back')),
         findsNothing,
@@ -158,7 +166,7 @@ void main() {
       // 스케줄 화면에도 삭제 아이콘이 있으므로 그 줄 안에서만 찾는다.
       final Finder deleteInRow = find.descendant(
         of: find.byKey(const ValueKey<String>('slot-row-slot-1')),
-        matching: find.byIcon(Icons.delete_outline),
+        matching: find.byIcon(Icons.delete_outline_rounded),
       );
       expect(deleteInRow, findsOneWidget);
       expect(find.text('김하늘'), findsNothing);
@@ -188,7 +196,7 @@ void main() {
 
       // 닫혀 있는 동안 회원이 예약한다 — 캐시를 그대로 쓰면 다시 열어도
       // 빈 자리로 보인다.
-      await tester.tap(find.byKey(const ValueKey<String>('dialog-close')));
+      await tester.tap(find.byType(AppCloseButton));
       await settle(tester);
       repository.publish(<ReservationSlot>[
         _slot(booked: true, bookedByName: '김하늘'),

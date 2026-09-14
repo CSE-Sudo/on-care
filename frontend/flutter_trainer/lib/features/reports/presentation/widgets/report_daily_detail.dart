@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show weekdayCount;
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/exercise_line.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 요일별 운동 내역 — 막대 아래에 하루하루를 이행률·운동 이름과 함께 적는다.
 ///
@@ -49,11 +48,12 @@ class _DailyDetailColumn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     final names = day?.exercises ?? const <String>[];
     return Expanded(
       // 막대와 같은 좌우 여백을 써야 칸이 세로로 맞는다.
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2.5),
+        padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s2),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -62,26 +62,73 @@ class _DailyDetailColumn extends StatelessWidget {
             // 기록이 없는 날은 막대 쪽에 '기록 없음' 이 적히고, 아직 오지 않은
             // 날은 비워 둔다 — 빈칸이 곧 "아직" 이다.
             for (final name in names.take(_maxLines))
-              ExerciseLine(line: name, fontSize: 11.5, maxLines: 2),
+              _ExerciseName(line: name),
             // 운동을 많이 배정한 날이 카드 높이를 혼자 정하지 않게 한다.
             // 일요일 한 칸 때문에 카드가 두 배로 길어지면 정작 견줘야 할
             // 요일 일곱 칸이 한눈에 들어오지 않는다(#1177).
             if (names.length > _maxLines)
               Padding(
-                padding: const EdgeInsets.only(top: 2),
+                padding: const EdgeInsets.only(top: OnCareSpacing.s2),
                 child: Text(
                   AppLocalizations.of(
                     context,
                   ).reportsMoreExercises(names.length - _maxLines),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.subtleForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.caption))
+                      .copyWith(color: OnCareColors.textTertiary),
                 ),
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 기록된 운동 한 줄 — 이름과 수행 여부.
+///
+/// 저장된 문자열은 끝에 '✓' / '✗' 로 결과를 표시한다. 그 글자는 **저장 규칙**
+/// 이지 화면에 찍을 것이 아니다: Flutter web 의 폰트 스택에 글리프가 없어
+/// 두부 상자로 그려진다. 표시를 읽어 아이콘과 취소선으로 바꿔 그린다.
+class _ExerciseName extends StatelessWidget {
+  const _ExerciseName({required this.line});
+
+  final String line;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final bool skipped = line.contains('✗');
+    final String text = line.replaceAll(RegExp(r'\s*[✓✗]\s*'), ' ').trim();
+    final Color color = skipped
+        ? OnCareColors.textDisabled
+        : OnCareColors.textSecondary;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(
+            skipped ? Icons.close_rounded : Icons.check_rounded,
+            size: OnCareSize.iconSmall,
+            color: skipped ? OnCareColors.textDisabled : OnCareColors.success,
+          ),
+          const SizedBox(width: OnCareSpacing.s4),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(
+                    color: color,
+                    decoration: skipped ? TextDecoration.lineThrough : null,
+                    decorationColor: color,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

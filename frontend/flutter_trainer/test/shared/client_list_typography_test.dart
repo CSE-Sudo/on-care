@@ -6,6 +6,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../helpers/client_factory.dart';
 import '../helpers/pump_app.dart';
@@ -102,27 +103,36 @@ void main() {
     expectAvatarCentered(tester, 'program-client-type-a');
   });
 
-  testWidgets('리포트 탭 회원명이 프로그램 탭과 같은 크기·굵기다', (tester) async {
+  // 리포트 탭은 공용 UI 규격(#1706)의 목록 행으로 옮겼다 — 이름·목표 글씨와
+  // 아바타 크기는 `AppListRow`·`AppAvatar` 가 정한다. 프로그램 탭이 같은 규격으로
+  // 옮겨 오면 위 테스트도 이 모양으로 합친다.
+  testWidgets('리포트 탭 회원 목록은 공용 목록 행을 쓴다 (#1706)', (tester) async {
     await openTab(tester, AppRoutes.reports);
 
-    final TextStyle selected = nameStyleIn(
-      tester,
-      'report-client-type-a',
-      '가회원',
-    );
-    final TextStyle unselected = nameStyleIn(
-      tester,
-      'report-client-type-b',
-      '나회원',
-    );
+    AppListRow rowOf(String key) =>
+        tester.widget<AppListRow>(find.byKey(ValueKey<String>(key)));
+    // 첫 회원이 기본으로 선택된다.
+    expect(rowOf('report-client-type-a').selected, isTrue);
+    expect(rowOf('report-client-type-b').selected, isFalse);
 
-    expect(selected.fontSize, clientListNameFontSize);
-    expect(unselected.fontSize, clientListNameFontSize);
-    expect(selected.fontWeight, FontWeight.w800);
-    expect(unselected.fontWeight, FontWeight.w600);
-    expect(goalSizeIn(tester, 'report-client-type-a'), clientListGoalFontSize);
-    expect(avatarSizeIn(tester, 'report-client-type-a'), clientListAvatarSize);
-    expectAvatarCentered(tester, 'report-client-type-a');
+    // 고를 때 이름 크기가 달라져 행 높이가 흔들리지 않는다.
+    expect(
+      nameStyleIn(tester, 'report-client-type-a', '가회원').fontSize,
+      nameStyleIn(tester, 'report-client-type-b', '나회원').fontSize,
+    );
+    final Finder row = find.byKey(
+      const ValueKey<String>('report-client-type-a'),
+    );
+    expect(
+      find.descendant(of: row, matching: find.text(goal)),
+      findsOneWidget,
+    );
+    final Finder avatar = find.descendant(
+      of: row,
+      matching: find.byType(AppAvatar),
+    );
+    expect(tester.widget<AppAvatar>(avatar).size, AppAvatarSize.medium);
+    expect(tester.getCenter(avatar).dy, closeTo(tester.getCenter(row).dy, 0.1));
   });
 
   testWidgets('긴 이름과 큰 배율에서도 행이 넘치지 않는다', (tester) async {

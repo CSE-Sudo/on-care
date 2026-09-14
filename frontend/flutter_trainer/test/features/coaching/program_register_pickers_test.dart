@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 프로그램 직접 만들기의 PT 등록 날짜·시각 선택 UI. (#1425)
 ///
@@ -34,6 +35,10 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: OnCareTheme.light(
+          brand: OnCareBrand.trainer,
+          density: OnCareDensity.web,
+        ),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

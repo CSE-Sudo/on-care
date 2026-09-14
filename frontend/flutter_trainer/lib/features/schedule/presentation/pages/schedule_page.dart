@@ -5,11 +5,6 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
-import 'package:oncare_trainer/design_system/tokens/toast.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/presentation/pages/consultations_page.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -25,10 +20,7 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/session_sh
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/dialog_close_button.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 스케줄 tab — 트레이너의 주간 시간표. (#988)
 ///
@@ -126,54 +118,22 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   void _shiftWeek(int direction) =>
       _selectDay(_selectedDay.add(Duration(days: 7 * direction)));
 
-  /// 정보량에 맞춰 커지되 화면을 다 채우지 않는 가운데 모달(#1250).
+  /// 입력 폼 크기(560)의 가운데 모달로 [child] 를 연다(#1250, #1706).
   ///
-  /// 일정·프로그램·메모 편집과 새 일정 추가는 예전에 상세 패널 안에서
-  /// 그 자리에 펼치거나(카드 폭이 좁아 세트·횟수/시간·중량 칸이 잘렸다)
-  /// 화면 폭 그대로 쓰는 바텀시트를 썼다(세로로 화면 끝까지 꽉 찼다).
-  /// 최대 높이(화면의 85%)까지는 내용만큼만 커지고, 넘치면 그 안에서만
-  /// 스크롤한다. [scrollable] 을 false 로 두면 바깥 스크롤을 씌우지
-  /// 않는다 — [SessionSheet] 처럼 안에 이미 자기 스크롤이 있는 내용을
-  /// 이중으로 감싸면 높이 제약이 풀려 무한 높이 예외가 난다.
-  Future<void> _openCenteredDialog(
-    WidgetBuilder builder, {
-    bool scrollable = true,
-  }) {
-    return showDialog<void>(
+  /// 일정·프로그램·메모 편집과 예약 슬롯은 모두 같은 틀이다. 최대 높이(화면의
+  /// 85%)까지는 내용만큼만 커지고, 넘치면 그 안에서만 스크롤한다 — 틀은
+  /// [AppDialog] 가 정한다. 내용 위젯은 제목을 그리지 않으므로 [title] 은
+  /// 틀의 헤더에 한 번만 선다.
+  Future<void> _openFormDialog(
+    String title,
+    Widget Function(BuildContext) builder,
+  ) {
+    return showAppDialog<void>(
       context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        // 위쪽만 [AppToastStyle.dialogTopClearance] — 상단 토스트가 이
-        // 대화상자 위로 겹쳐 뜰 수 있다.
-        insetPadding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppToastStyle.dialogTopClearance,
-          AppSpacing.lg,
-          AppSpacing.lg,
-        ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: 560,
-            maxHeight: MediaQuery.of(dialogContext).size.height * 0.85,
-          ),
-          // 카드 밖으로 걸치면 잘리기 쉽다(모서리를 벗어난 만큼 다른
-          // 요소에 가려지거나 탭이 닿지 않았다) — 카드 안쪽, 오른쪽
-          // 위 구석에 둔다.
-          child: Stack(
-            children: <Widget>[
-              scrollable
-                  ? SingleChildScrollView(child: builder(dialogContext))
-                  : builder(dialogContext),
-              Positioned(
-                top: AppSpacing.sm,
-                right: AppSpacing.sm,
-                child: DialogCloseButton(
-                  onTap: () => Navigator.of(dialogContext).pop(),
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (dialogContext) => AppDialog(
+        title: title,
+        size: AppDialogSize.medium,
+        child: builder(dialogContext),
       ),
     );
   }
@@ -183,7 +143,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     ScheduleSession session, {
     required bool noteOnly,
   }) {
-    return _openCenteredDialog(
+    final AppLocalizations l = AppLocalizations.of(context);
+    return _openFormDialog(
+      noteOnly ? l.schedEditNote : l.progEditTitle,
       (dialogContext) => SessionProgramEditor(
         key: ValueKey<String>(
           noteOnly
@@ -199,12 +161,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   }
 
   /// 일정을 가운데 모달로 연다 — [existing] 이 없으면 `새 일정 추가`,
-  /// 있으면 `일정 수정`이다. [SessionSheet] 는 자기 안에 이미
-  /// `SingleChildScrollView` 가 있으므로 바깥 스크롤은 씌우지 않는다.
+  /// 있으면 `일정 수정`이다.
   Future<void> _openScheduleDialog({ScheduleSession? existing}) {
     final clients = ref.read(clientsProvider).valueOrNull ?? const [];
     if (existing == null && clients.isEmpty) return Future<void>.value();
-    return _openCenteredDialog(scrollable: false, (dialogContext) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return _openFormDialog(
+      existing == null ? l.schedAddTitle : l.schedEditTitle,
+      (dialogContext) {
       return SessionSheet(
         key: ValueKey<String>(
           existing == null
@@ -224,86 +188,95 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 예약 슬롯도 새 일정·일정 수정과 같은 가운데 모달로 연다 — 아래에서
   /// 올라오는 바텀시트만 여기서 유독 다른 모양이었다.
   Future<void> _openReservationSlotsSheet() {
-    return _openCenteredDialog(
-      scrollable: false,
+    return _openFormDialog(
+      AppLocalizations.of(context).slotManageTitle,
       (dialogContext) => ReservationSlotsSheet(selectedDay: _selectedDay),
     );
   }
 
-  Future<void> _confirmDelete(ScheduleSession s) async {
+  /// 확인창 — 제목·본문·반반 버튼. 확정하면 `true` 다.
+  ///
+  /// [showAppConfirmDialog] 와 같은 모양이지만 직접 짓는다. 테스트가 확정
+  /// 버튼을 키([confirmKey])로 누르고, 삭제 확인은 본문이 두 문단이라 한
+  /// 문자열로 합치면 문장 단위로 찾을 수 없다.
+  Future<bool> _confirm({
+    required String title,
+    required List<Widget> body,
+    required String confirmLabel,
+    Key? confirmKey,
+    bool destructive = false,
+  }) async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
+    final bool? ok = await showAppDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.card,
-        surfaceTintColor: Colors.transparent,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(AppRadius.card),
-        ),
-        title: Row(
+      builder: (dialogContext) => AppDialog(
+        title: title,
+        showClose: false,
+        footer: Row(
           children: <Widget>[
-            Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                color: AppColors.destructive.withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.all(AppRadius.md),
-              ),
-              child: const Icon(
-                Icons.delete_outline,
-                color: AppColors.destructive,
-                size: 19,
+            Expanded(
+              child: AppButton(
+                label: l.actionCancel,
+                variant: AppButtonVariant.secondary,
+                fullWidth: true,
+                onPressed: () => Navigator.of(dialogContext).pop(false),
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(l.schedDeleteTitle, style: const TextStyle(fontSize: 17)),
+            const SizedBox(width: OnCareSpacing.buttonGap),
+            Expanded(
+              child: AppButton(
+                key: confirmKey,
+                label: confirmLabel,
+                variant: destructive
+                    ? AppButtonVariant.destructive
+                    : AppButtonVariant.primary,
+                fullWidth: true,
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+              ),
+            ),
           ],
         ),
-        content: Column(
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              l.schedDeleteConfirm(timeRangeLabel(l, s), s.clientName),
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            // 삭제와 취소를 가르는 문장이다(#871). 실제 PT 가 진행되지 않은
-            // 경우까지 삭제로 처리하면 그 사실이 어디에도 남지 않는다.
-            // 취소·노쇼 제안은 예정 세션에만 맞는 말이다 — 완료·취소·노쇼로
-            // 이미 끝난 세션(전이는 예정에서만 갈린다)에는 그 조치 자체가
-            // 불가능해, 다른 문구로 갈아 끼운다(#1226).
-            Text(
-              s.isFinished
-                  ? l.schedDeleteMeansRemoveFinished
-                  : l.schedDeleteMeansRemove,
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: AppColors.subtleForeground,
-              ),
-            ),
-          ],
+          children: body,
         ),
-        actions: <Widget>[
-          ActionButton(
-            label: l.actionCancel,
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          ActionButton(
-            label: l.actionDelete,
-            primary: true,
-            tone: AppColors.destructive,
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ],
       ),
     );
-    if (ok != true || !mounted) return;
+    return ok ?? false;
+  }
+
+  Future<void> _confirmDelete(ScheduleSession s) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final ok = await _confirm(
+      title: l.schedDeleteTitle,
+      confirmLabel: l.actionDelete,
+      destructive: true,
+      body: <Widget>[
+        Text(l.schedDeleteConfirm(timeRangeLabel(l, s), s.clientName)),
+        const SizedBox(height: OnCareSpacing.s8),
+        // 삭제와 취소를 가르는 문장이다(#871). 실제 PT 가 진행되지 않은
+        // 경우까지 삭제로 처리하면 그 사실이 어디에도 남지 않는다.
+        // 취소·노쇼 제안은 예정 세션에만 맞는 말이다 — 완료·취소·노쇼로
+        // 이미 끝난 세션(전이는 예정에서만 갈린다)에는 그 조치 자체가
+        // 불가능해, 다른 문구로 갈아 끼운다(#1226).
+        Text(
+          s.isFinished
+              ? l.schedDeleteMeansRemoveFinished
+              : l.schedDeleteMeansRemove,
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
+      ],
+    );
+    if (!ok || !mounted) return;
     try {
       await ref.read(scheduleRepositoryProvider).deleteSession(s.id);
     } catch (_) {
       if (!mounted) return;
-      showAppToast(context, l.schedDeleteFailed, kind: AppToastKind.error);
+      showAppToast(context, l.schedDeleteFailed, type: AppToastType.error);
     }
   }
 
@@ -314,35 +287,13 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 언제든 남길 수 있어, 여기서는 빈 메모란을 보여주지 않는다.
   Future<void> _confirmComplete(ScheduleSession s) async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.card,
-        surfaceTintColor: Colors.transparent,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(AppRadius.card),
-        ),
-        title: Text(l.schedCompleteTitle, style: const TextStyle(fontSize: 17)),
-        content: Text(
-          l.schedCompleteConfirm(s.time, s.clientName),
-          style: const TextStyle(fontSize: 14),
-        ),
-        actions: <Widget>[
-          ActionButton(
-            label: l.actionCancel,
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          ActionButton(
-            key: const ValueKey<String>('session-complete-confirm'),
-            label: l.legendDone,
-            primary: true,
-            tone: AppColors.success,
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ],
-      ),
+    final ok = await _confirm(
+      title: l.schedCompleteTitle,
+      confirmLabel: l.legendDone,
+      confirmKey: const ValueKey<String>('session-complete-confirm'),
+      body: <Widget>[Text(l.schedCompleteConfirm(s.time, s.clientName))],
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
     try {
       await ref
           .read(scheduleRepositoryProvider)
@@ -351,7 +302,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       // A DB or programJson-decode failure must not escape to the UI —
       // the session stays 예정 and the trainer is told (review PR 237).
       if (!mounted) return;
-      showAppToast(context, l.schedCompleteFailed, kind: AppToastKind.error);
+      showAppToast(context, l.schedCompleteFailed, type: AppToastType.error);
     }
   }
 
@@ -361,7 +312,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 지표 때문이다 — 트레이너 사정의 취소와 고객 취소를 구분하지 않으면 나중에
   /// 회원의 낮은 이행률을 잘못 읽는다.
   Future<void> _confirmCancel(ScheduleSession s) async {
-    final result = await showDialog<({String source, String reason})>(
+    final result = await showAppDialog<({String source, String reason})>(
       context: context,
       builder: (context) => CancelSessionDialog(session: s),
     );
@@ -373,47 +324,25 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           .cancelSession(s.id, source: result.source, reason: result.reason);
     } catch (_) {
       if (!mounted) return;
-      showAppToast(context, l.schedCancelFailed, kind: AppToastKind.error);
+      showAppToast(context, l.schedCancelFailed, type: AppToastType.error);
     }
   }
 
   /// 노쇼 처리 — 예약된 시간에 회원이 오지 않았다는 기록. (#871)
   Future<void> _confirmNoShow(ScheduleSession s) async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.card,
-        surfaceTintColor: Colors.transparent,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(AppRadius.card),
-        ),
-        title: Text(l.schedNoShowTitle, style: const TextStyle(fontSize: 17)),
-        content: Text(
-          l.schedNoShowConfirm(s.time, s.clientName),
-          style: const TextStyle(fontSize: 14),
-        ),
-        actions: <Widget>[
-          ActionButton(
-            label: l.actionCancel,
-            onPressed: () => Navigator.of(context).pop(false),
-          ),
-          ActionButton(
-            key: const ValueKey<String>('session-no-show-confirm'),
-            label: l.schedNoShow,
-            primary: true,
-            tone: AppColors.warning,
-            onPressed: () => Navigator.of(context).pop(true),
-          ),
-        ],
-      ),
+    final ok = await _confirm(
+      title: l.schedNoShowTitle,
+      confirmLabel: l.schedNoShow,
+      confirmKey: const ValueKey<String>('session-no-show-confirm'),
+      body: <Widget>[Text(l.schedNoShowConfirm(s.time, s.clientName))],
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
     try {
       await ref.read(scheduleRepositoryProvider).markNoShow(s.id);
     } catch (_) {
       if (!mounted) return;
-      showAppToast(context, l.schedNoShowFailed, kind: AppToastKind.error);
+      showAppToast(context, l.schedNoShowFailed, type: AppToastType.error);
     }
   }
 
@@ -434,10 +363,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           );
       if (!mounted) return;
       _sendRequestIds.remove(s.id); // 다음 전송은 새 시도다.
-      showAppToast(context, l.schedSentTo(s.clientName), kind: AppToastKind.success);
+      showAppToast(
+        context,
+        l.schedSentTo(s.clientName),
+        type: AppToastType.success,
+      );
     } catch (_) {
       if (!mounted) return;
-      showAppToast(context, l.coachSendFailed, kind: AppToastKind.error);
+      showAppToast(context, l.coachSendFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _sendingProgramId = null);
     }
@@ -484,9 +417,10 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     final AppLocalizations l = AppLocalizations.of(context);
     final today = _dateOnly(nowKst());
     if (_selectedDay == today) return const SizedBox.shrink();
-    return ActionButton(
+    return AppButton(
       label: l.labelToday,
-      icon: Icons.today_outlined,
+      variant: AppButtonVariant.secondary,
+      leadingIcon: Icons.today_rounded,
       onPressed: () => _selectDay(today),
     );
   }
@@ -504,15 +438,32 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         ? ref.watch(consultationPendingCountProvider).valueOrNull
         : null;
 
-    return PageScaffold(
+    // [AppWebPage] 에는 헤더 가운데 자리가 없어 검색을 액션 줄 맨 앞에 둔다.
+    // 검색 바는 받은 폭이 인라인 최소 폭보다 좁거나 셸이 서랍 형태(사이드바
+    // 서랍 기준 폭 미만)이면 스스로 아이콘으로 접힌다. 접히는 폭에서도 넓은
+    // 자리를 주면 아이콘이 그 자리 오른쪽 끝에 서서 제목을 괜히 밀어내므로,
+    // 같은 기준 폭으로 아이콘 한 칸만큼만 준다 — 360 폭에서도 넘치지 않는다.
+    final bool inlineSearch =
+        MediaQuery.sizeOf(context).width >=
+        OnCareLayout.sidebarDrawerBreakpoint;
+
+    return AppWebPage(
       title: l.schedTitle,
       subtitle: dateLabel(l, _selectedDay),
-      headerCenter: const ClientSearchBar(),
       actions: <Widget>[
-        ActionButton(
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: inlineSearch
+                ? OnCareLayout.headerCenterMinWidth
+                : OnCareSpacing.s48,
+          ),
+          child: const ClientSearchBar(),
+        ),
+        AppButton(
           key: const ValueKey<String>('schedule-open-slots'),
           label: l.schedSlots,
-          icon: Icons.event_available_outlined,
+          variant: AppButtonVariant.secondary,
+          leadingIcon: Icons.event_available_rounded,
           onPressed: () => _openReservationSlotsSheet(),
         ),
         // 상담 확인은 맨 오른쪽이다(#882, #1009). 예약 슬롯 왼쪽에 있을 때는
@@ -524,12 +475,10 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
             onTap: () => showConsultationsDialog(context),
           ),
       ],
-      scrollable: false,
-      contentPadding: EdgeInsets.zero,
       // 날짜 행은 async `when()` **바깥**에 있다: 주를 넘길 때마다 새 provider
       // 가 `loading` 으로 시작하는데, 그때 페이지 전체를 스피너로 비우면 날짜
       // 행이 깜빡인다. 격자만 async 상태를 따른다(review PR 245).
-      child: _buildTimetable(),
+      body: _buildTimetable(),
     );
   }
 
@@ -548,12 +497,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     // 이 상세 패널 위에 떠, 무엇을 조작하는 버튼인지 자리로 말하지 못한다.
     // 시간표 안에 두면 오른쪽 끝이 일요일 칸 위로 온다(#988).
     final navBar = Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppLayout.pagePadding,
-        AppLayout.pagePadding,
-        AppLayout.pagePadding,
-        AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
       child: ScheduleDateNavBar(
         start: start,
         end: end,
@@ -562,10 +506,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         // `새 일정` 은 이 행의 오른쪽 끝, 일요일 칸 위에 선다. 예전에는 페이지
         // 헤더의 다른 문서 액션과 섞여 있어, 무엇을 조작하는 버튼인지 시간표와
         // 자리로 이어지지 않았다(#882 와 같은 이유).
-        newSession: ActionButton(
+        newSession: AppButton(
           label: l.schedNewSession,
-          icon: Icons.add,
-          primary: true,
+          leadingIcon: Icons.add_rounded,
           onPressed: () => _openScheduleDialog(),
         ),
       ),
@@ -577,15 +520,13 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         // 요일 머리글은 async 상태와 상관없이 남는다 — 주를 넘길 때마다
         // 날짜 줄이 스피너로 사라지면 고를 자리가 잠깐 없어진다.
         final Widget? bodyOverride = switch (week) {
-          AsyncError() => Center(
-            child: Text(
-              l.schedLoadFailed,
-              style: const TextStyle(color: AppColors.mutedForeground),
-            ),
+          // 다시 시도할 동작이 없어(스트림이 스스로 다시 붙는다) 버튼 없는
+          // 빈 화면 틀에 오류 아이콘을 얹는다.
+          AsyncError() => AppEmptyState(
+            title: l.schedLoadFailed,
+            icon: Icons.cloud_off_rounded,
           ),
-          AsyncValue(hasValue: false) => const Center(
-            child: CircularProgressIndicator(),
-          ),
+          AsyncValue(hasValue: false) => const AppLoading(),
           _ => null,
         };
 
@@ -638,7 +579,9 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                 Expanded(child: grid),
               ],
             );
-            if (constraints.maxWidth < 980) {
+            // 시간표와 상세 패널은 분할 기준 폭에서 나란히 선다. 두 열 기준 폭
+            // (1080)으로 두면 사이드바를 편 1280 창에서도 패널이 아래로 밀린다.
+            if (constraints.maxWidth < OnCareLayout.splitBreakpoint) {
               // 좁은 화면에는 오른쪽에 패널을 둘 폭이 없다. 예전에는
               // 패널을 통째로 버렸는데, 탭 핸들러는 그대로 살아 있어서
               // 누르면 선택만 바뀌고 화면은 그대로였다 — 트레이너에게는
@@ -651,7 +594,10 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   Expanded(flex: 3, child: stacked),
-                  const Divider(height: 1, color: AppColors.borderStrong),
+                  Container(
+                    height: OnCareSize.hairline,
+                    color: OnCareColors.lineSubtle,
+                  ),
                   Expanded(flex: 2, child: _buildWeekDetail(selected)),
                 ],
               );
@@ -669,8 +615,15 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: <Widget>[
-                    Expanded(child: navBar),
-                    const SizedBox(width: 1),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(
+                          right: OnCareLayout.splitGap,
+                        ),
+                        child: navBar,
+                      ),
+                    ),
+                    const SizedBox(width: OnCareSize.hairline),
                     SizedBox(width: _panelWidth, child: _panelHeader()),
                   ],
                 ),
@@ -678,10 +631,17 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      Expanded(child: grid),
-                      const VerticalDivider(
-                        width: 1,
-                        color: AppColors.borderStrong,
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            right: OnCareLayout.splitGap,
+                          ),
+                          child: grid,
+                        ),
+                      ),
+                      Container(
+                        width: OnCareSize.hairline,
+                        color: OnCareColors.lineSubtle,
                       ),
                       SizedBox(
                         width: _panelWidth,
@@ -700,7 +660,7 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
 
   /// 상세 패널의 폭. 날짜 행과 패널 머리글이 같은 값을 써야 두 열의 경계가
   /// 위아래로 이어진다.
-  static const double _panelWidth = 340;
+  static const double _panelWidth = OnCareLayout.splitListWidth;
 
   /// 날짜 행과 한 줄에 서는 패널 머리글. (#1008)
   ///
@@ -710,33 +670,28 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     final AppLocalizations l = AppLocalizations.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppLayout.pagePadding,
-        AppLayout.pagePadding,
-        AppSpacing.sm,
+        OnCareSpacing.s16,
+        0,
+        0,
+        OnCareSpacing.s8,
       ),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(
-          l.schedDetailTitle,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-        ),
+        child: Text(l.schedDetailTitle, style: _panelTitleStyle()),
       ),
     );
   }
 
+  TextStyle _panelTitleStyle() => context.oncare
+      .text(OnCareTypography.titleSmall)
+      .copyWith(color: OnCareColors.textPrimary);
+
   Widget _buildWeekDetail(ScheduleSession? session, {bool withTitle = true}) {
     final l = AppLocalizations.of(context);
     if (session == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Text(
-            l.schedEmptyDay,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.mutedForeground),
-          ),
-        ),
+      return AppEmptyState(
+        title: l.schedEmptyDay,
+        icon: Icons.event_busy_rounded,
       );
     }
 
@@ -748,15 +703,12 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         : l.dateMonthDay(day.month, day.day);
     return ListView(
       key: const Key('week-detail'),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(OnCareSpacing.s16),
       children: <Widget>[
         // 넓은 화면에서는 제목이 날짜 행과 한 줄에 서므로 여기서는 빼둔다.
         if (withTitle) ...<Widget>[
-          Text(
-            l.schedDetailTitle,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: AppSpacing.md),
+          Text(l.schedDetailTitle, style: _panelTitleStyle()),
+          const SizedBox(height: OnCareSpacing.s12),
         ],
         SessionCard(
           session: session,

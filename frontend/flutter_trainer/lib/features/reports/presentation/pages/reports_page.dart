@@ -6,9 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
@@ -25,10 +22,7 @@ import 'package:oncare_trainer/features/search/presentation/widgets/client_searc
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 — the week, from two angles.
 ///
@@ -155,10 +149,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         )),
       );
       if (!mounted) return;
-      showAppToast(context, l.reportsFeedbackSaved, kind: AppToastKind.success);
+      showAppToast(context, l.reportsFeedbackSaved, type: AppToastType.success);
     } catch (_) {
       if (!mounted) return;
-      showAppToast(context, l.reportsFeedbackSaveFailed, kind: AppToastKind.error);
+      showAppToast(
+        context,
+        l.reportsFeedbackSaveFailed,
+        type: AppToastType.error,
+      );
     } finally {
       if (mounted) setState(() => _savingFeedback = false);
     }
@@ -302,7 +300,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _sending = null);
-      showAppToast(context, l.reportsSendFailed, kind: AppToastKind.error);
+      showAppToast(context, l.reportsSendFailed, type: AppToastType.error);
       return;
     }
     if (!mounted) return;
@@ -315,11 +313,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     showAppToast(
       context,
       l.reportsSent(report.client.name),
-      kind: AppToastKind.success,
-      action: AppToastAction(
-        label: l.reportsGoToChat,
-        onTap: () => context.go(AppRoutes.messagesFor(id)),
-      ),
+      type: AppToastType.success,
+      actionLabel: l.reportsGoToChat,
+      onAction: () => context.go(AppRoutes.messagesFor(id)),
     );
   }
 
@@ -332,22 +328,65 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     try {
       final bytes = await _generateReportPdf(l, report, feedback);
       if (!mounted) return;
-      await showDialog<void>(
+      await showAppDialog<void>(
         context: context,
         builder: (_) => ReportPdfExportDialog(report: report, bytes: bytes),
       );
     } catch (_) {
       if (mounted) {
-        showAppToast(context, l.reportsPdfGenerationFailed, kind: AppToastKind.error);
+        showAppToast(
+          context,
+          l.reportsPdfGenerationFailed,
+          type: AppToastType.error,
+        );
       }
     } finally {
       if (mounted) setState(() => _generatingPdf = false);
     }
   }
 
+  /// 리포트를 읽는 중이거나 못 읽은 주의 카드. 주 이동은 여기에도 있어야
+  /// 실패한 주에서 나갈 길이 남는다(#1177).
+  static Widget _weeklyStateCard(
+    AppLocalizations l,
+    Widget weekNav,
+    Widget child,
+  ) => AppCard(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        // 큰 글자 배율에서는 380 목록 옆 카드 폭에 주 이동이 다 들어가지
+        // 않는다 — 넘치게 두지 않고, 모자랄 때만 통째로 줄여 그린다.
+        LayoutBuilder(
+          builder: (context, constraints) => Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSectionHeader(
+                  title: l.reportsWeekly,
+                  icon: Icons.description_rounded,
+                ),
+              ),
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: constraints.maxWidth),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: weekNav,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        child,
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final clientsAsync = ref.watch(clientsProvider);
     final range = (
       from: ymd(_weekStart),
@@ -387,16 +426,25 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       );
     }
 
-    return PageScaffold(
+    // 헤더 검색은 액션 줄의 첫 칸이다. 넓은 창에서는 인라인 최소 폭 아래로
+    // 눌리지 않게 하고(검색 바 스스로 최대 폭까지만 자란다), 셸이 서랍으로
+    // 접히는 창에서는 아이콘 한 칸만 내준다 — 검색 바도 그 폭에서 아이콘으로
+    // 접힌다.
+    final bool compactHeader =
+        MediaQuery.sizeOf(context).width < OnCareLayout.sidebarDrawerBreakpoint;
+    return AppWebPage(
       key: ValueKey<String>('reports-${_clientId ?? 'list'}'),
       title: l.reportsTitle,
       subtitle: l.reportsSubtitle,
-      // 페이지 전체 스크롤을 끈다 — 넓은 화면에서 왼쪽 고객 열을 고정하고
-      // 오른쪽 리포트만 스크롤하기 위해서다. 좁은 화면은 아래 분기에서
-      // 스스로 스크롤을 갖는다.
-      scrollable: false,
-      headerCenter: const ClientSearchBar(),
       actions: <Widget>[
+        ConstrainedBox(
+          constraints: compactHeader
+              ? BoxConstraints(maxWidth: tokens.density.iconButton)
+              : const BoxConstraints(
+                  minWidth: OnCareLayout.headerCenterMinWidth,
+                ),
+          child: const ClientSearchBar(),
+        ),
         // 주 이동은 통째로 리포트 카드 제목 줄에 있다 — 화살표도, 이번 주로
         // 돌아가는 버튼도. 헤더에 두면 옮기는 대상과 버튼이 다른 줄에 서고,
         // 날짜 버튼이 가운데 고객 검색 바의 폭을 먹어 다른 탭과 다른 모양으로
@@ -412,33 +460,24 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           onPdf: _openPdfExport,
         ),
       ],
-      child: clientsAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.only(top: AppSpacing.xxxl),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        error: (e, _) => Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.xxxl),
-          child: EmptyHint(
-            message: l.reportsLoadFailed,
-            icon: Icons.error_outline,
-            action: ActionButton(
-              key: const ValueKey<String>('reports-clients-retry'),
-              label: l.actionRetry,
-              onPressed: clientsAsync.isLoading
-                  ? null
-                  : () => ref.invalidate(clientsProvider),
-            ),
+      body: clientsAsync.when(
+        loading: () => const AppLoading(),
+        // 재시도 버튼은 상태 위젯 안에 있어 키를 줄 수 없다 — 묶음에 키를 둔다.
+        error: (e, _) => KeyedSubtree(
+          key: const ValueKey<String>('reports-clients-retry'),
+          child: AppErrorState(
+            title: l.reportsLoadFailed,
+            retryLabel: l.actionRetry,
+            onRetry: clientsAsync.isLoading
+                ? null
+                : () => ref.invalidate(clientsProvider),
           ),
         ),
         data: (clients) {
           if (clients.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xxxl),
-              child: EmptyHint(
-                message: l.reportsNoClients,
-                icon: Icons.insights_outlined,
-              ),
+            return AppEmptyState(
+              title: l.reportsNoClients,
+              icon: Icons.insights_rounded,
             );
           }
           final selected = clients.firstWhere(
@@ -455,7 +494,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final wide =
-                        constraints.maxWidth >= AppLayout.splitBreakpoint;
+                        constraints.maxWidth >= OnCareLayout.splitBreakpoint;
                     // 좌측 열: 고객 목록. 넓은 화면에서는 이 열이 고정이고
                     // 오른쪽 리포트만 스크롤한다 — 리포트를 아래로 읽는 동안
                     // 다른 고객으로 넘어가려면 목록이 늘 보여야 한다.
@@ -475,7 +514,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
                             clientPicker,
-                            const SizedBox(height: AppSpacing.lg),
+                            const SizedBox(height: OnCareSpacing.s16),
                             ReportSummaryHint(
                               message: l.reportsSummaryEmptyClient,
                             ),
@@ -508,28 +547,21 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         .watch(reportFeedbackDraftProvider(reportKey))
                         .valueOrNull;
                     final report = reportAsync.when(
-                      loading: () => SectionCard(
-                        title: l.reportsWeekly,
-                        icon: Icons.description_outlined,
-                        trailing: weekNav,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: AppSpacing.xl,
-                          ),
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
+                      loading: () => _weeklyStateCard(
+                        l,
+                        weekNav,
+                        const AppLoading(placement: AppStatePlacement.card),
                       ),
-                      error: (e, _) => SectionCard(
-                        title: l.reportsWeekly,
-                        icon: Icons.description_outlined,
-                        trailing: weekNav,
-                        child: EmptyHint(
-                          message: l.reportsLoadFailed,
-                          icon: Icons.error_outline,
-                          action: ActionButton(
-                            key: const ValueKey<String>('reports-weekly-retry'),
-                            label: l.actionRetry,
-                            onPressed: reportAsync.isLoading
+                      error: (e, _) => _weeklyStateCard(
+                        l,
+                        weekNav,
+                        KeyedSubtree(
+                          key: const ValueKey<String>('reports-weekly-retry'),
+                          child: AppErrorState(
+                            title: l.reportsLoadFailed,
+                            retryLabel: l.actionRetry,
+                            placement: AppStatePlacement.card,
+                            onRetry: reportAsync.isLoading
                                 ? null
                                 : () => ref.invalidate(
                                     weeklyReportProvider(reportKey),
@@ -593,16 +625,17 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           children: <Widget>[
                             Align(
                               alignment: Alignment.centerLeft,
-                              child: TextButton.icon(
+                              child: AppButton(
                                 key: const ValueKey<String>(
                                   'reports-back-to-list',
                                 ),
+                                label: l.reportsBackToList,
+                                variant: AppButtonVariant.text,
+                                leadingIcon: Icons.chevron_left_rounded,
                                 onPressed: () => context.go(AppRoutes.reports),
-                                icon: const Icon(Icons.arrow_back),
-                                label: Text(l.reportsBackToList),
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.sm),
+                            const SizedBox(height: OnCareSpacing.s8),
                             report,
                           ],
                         ),
@@ -616,6 +649,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       // 때 열이 흔들리지 않는다.
                       loading: () => ReportSummaryHint(
                         message: l.reportsAiLoading,
+                        loading: true,
                         fill: true,
                       ),
                       error: (_, _) => ReportSummaryHint(
@@ -636,11 +670,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       children: <Widget>[
                         SizedBox(
                           key: const ValueKey<String>('reports-left-column'),
-                          // 프로그램 탭의 왼쪽 고객 열과 같은 폭이다 — 두 탭이
-                          // 같은 자리에 같은 목록을 놓는데 카드 폭만 달라
-                          // 탭을 오갈 때 열이 흔들려 보였다. 줄어든 만큼은
-                          // 오른쪽 리포트 카드들이 가져간다. (#958)
-                          width: 260,
+                          // 분할 화면 목록 폭 — 다른 탭의 왼쪽 목록 열과 같은
+                          // 규격이다(#958, #1690).
+                          width: OnCareLayout.splitListWidth,
                           // 목록(5줄 고정)에 요약 카드가 더해지면 짧은 창에서는
                           // 열이 화면보다 길어진다. 이 열 안에서만 스크롤하게
                           // 두어 오른쪽 리포트와는 여전히 따로 움직인다.
@@ -664,7 +696,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                           CrossAxisAlignment.stretch,
                                       children: <Widget>[
                                         clientPicker,
-                                        const SizedBox(height: AppSpacing.lg),
+                                        const SizedBox(
+                                          height: OnCareSpacing.s16,
+                                        ),
                                         Expanded(child: summarySlot),
                                       ],
                                     ),
@@ -674,7 +708,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             },
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.lg),
+                        const SizedBox(width: OnCareLayout.splitGap),
                         // 스크롤은 이 열 안에서만 일어난다. 페이지 전체가 스크롤
                         // 되면 왼쪽 목록이 함께 밀려 올라가 버린다.
                         Expanded(
@@ -692,14 +726,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               ),
               if (weekSessions.hasError)
                 Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  padding: const EdgeInsets.only(top: OnCareSpacing.s12),
                   child: Text(
                     l.reportsScheduleWarning,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      color: AppColors.warning,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: OnCareColors.caution),
                   ),
                 ),
             ],

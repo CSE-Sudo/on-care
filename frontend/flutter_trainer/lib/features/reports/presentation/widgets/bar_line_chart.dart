@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 막대 하나에 쌓는 조각(칼로리의 탄·단·지).
 typedef BarSegment = ({double value, Color color});
@@ -65,12 +65,12 @@ class BarLineChart extends StatelessWidget {
   /// 넘으면 막대가 빨강이 되는 값. 없으면 늘 [barColor] 다.
   final double? goal;
 
-  /// 목표 이내 막대의 색. 기본은 브랜드 색이다. 보고 있는 지표가 색을 갖는
-  /// 그래프(운동 유형별 비교 등)만 자기 색을 준다 — 지표를 바꿔도 그림이 그대로면
-  /// 지금 무엇을 보고 있는지 색으로 알 수 없다(#1424).
+  /// 목표 이내 막대의 색. 기본은 브랜드 색(목표 안쪽 색)이다. 보고 있는 지표가
+  /// 색을 갖는 그래프(운동 유형별 비교 등)만 자기 색을 준다 — 지표를 바꿔도
+  /// 그림이 그대로면 지금 무엇을 보고 있는지 색으로 알 수 없다(#1424).
   final Color? barColor;
 
-  /// 꺾은선·점의 색. 기본은 [AppColors.accentDark]. 막대에 지표 색을 줄 때는
+  /// 꺾은선·점의 색. 기본은 브랜드의 진한 색. 막대에 지표 색을 줄 때는
   /// 같은 계열의 진한 색을 함께 줘 한 그림이 한 지표를 말하게 한다.
   final Color? lineColor;
 
@@ -85,13 +85,16 @@ class BarLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    // `TextPainter` 는 위젯 트리 밖이라 테마·글자 배율을 물려받지 않는다.
+    // 여기서 역할 글자를 풀어 넘겨야 같은 카드 안에서 서체·크기가 갈리지 않는다.
+    final TextStyle axis = chartAxisLabelStyle(context);
     return Semantics(
       container: true,
       label: semanticsLabel,
       child: ExcludeSemantics(
         child: SizedBox(
-          height:
-              height + _BarLinePainter.topPad + _BarLinePainter.labelHeight,
+          height: height + _BarLinePainter.topPad + _BarLinePainter.labelHeight,
           child: CustomPaint(
             painter: _BarLinePainter(
               values: values,
@@ -102,15 +105,24 @@ class BarLineChart extends StatelessWidget {
               pendingFrom: pendingFrom ?? values.length,
               segments: segments,
               goal: goal,
-              barColor: barColor ?? AppColors.primary,
-              lineColor: lineColor ?? AppColors.accentDark,
+              barColor: barColor ?? tokens.brand.statusWithinGoal,
+              lineColor: lineColor ?? tokens.brand.strong,
               maxBarWidth: maxBarWidth,
               highlightIndex: highlightIndex,
               textDirection: Directionality.of(context),
-              // `TextPainter` 는 위젯 트리 밖이라 앱 서체를 물려받지 않는다.
-              // 넘겨 주지 않으면 이 그래프의 글자만 시스템 기본 서체로
-              // 그려져, 같은 카드 안에서 서체가 갈린다.
-              base: DefaultTextStyle.of(context).style,
+              textScaler: MediaQuery.textScalerOf(context),
+              valueStyle: OnCareTypography.numeric(
+                tokens.text(OnCareTypography.strong(OnCareTypography.caption)),
+              ).copyWith(color: OnCareColors.textPrimary),
+              emptyStyle: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textDisabled),
+              axisStyle: axis,
+              axisHighlightStyle: chartAxisLabelStyle(
+                context,
+                selected: true,
+              ).copyWith(color: tokens.brand.primary),
+              axisPendingStyle: axis.copyWith(color: OnCareColors.textDisabled),
             ),
             size: Size.infinite,
           ),
@@ -135,7 +147,12 @@ class _BarLinePainter extends CustomPainter {
     required this.maxBarWidth,
     required this.highlightIndex,
     required this.textDirection,
-    required this.base,
+    required this.textScaler,
+    required this.valueStyle,
+    required this.emptyStyle,
+    required this.axisStyle,
+    required this.axisHighlightStyle,
+    required this.axisPendingStyle,
   });
 
   final List<double?> values;
@@ -151,15 +168,40 @@ class _BarLinePainter extends CustomPainter {
   final double maxBarWidth;
   final int? highlightIndex;
   final TextDirection textDirection;
+  final TextScaler textScaler;
 
-  /// 화면의 기본 글자 모양. 크기·굵기·색만 이 위에 덧입힌다.
-  final TextStyle base;
+  /// 점 위 값 라벨. 목표를 넘긴 칸만 빨강으로 바꿔 쓴다.
+  final TextStyle valueStyle;
+
+  /// 값이 없는 칸의 말.
+  final TextStyle emptyStyle;
+
+  /// 칸 라벨 — 평소 / 보고 있는 칸 / 아직 오지 않은 칸.
+  final TextStyle axisStyle;
+  final TextStyle axisHighlightStyle;
+  final TextStyle axisPendingStyle;
 
   /// 값 라벨이 들어갈 위쪽 여백. 꽉 찬 막대의 숫자가 카드 제목에 닿지 않는다.
-  static const double topPad = 18;
+  static const double topPad = OnCareSpacing.s20;
 
-  /// 칸 라벨 줄.
-  static const double labelHeight = 20;
+  /// 칸 라벨 줄 — `caption` 한 줄(12 × 1.4)과 막대와의 틈이 들어가는 높이.
+  static const double labelHeight = 22;
+
+  // 리포트 탭 막대 그래프들이 같은 값을 쓴다 — 그래프마다 선 굵기·점 크기가
+  // 다르면 같은 화면에서 다른 종류의 그림처럼 읽힌다(#1177).
+
+  /// 꺾은선·점 테두리 굵기.
+  static const double lineWidth = 2;
+
+  /// 꺾은선 점 반지름.
+  static const double pointRadius = 4;
+
+  /// 0 인 막대도 남기는 높이 — '기록했고 아무것도 못 했다' 와 '기록 없음' 은
+  /// 다른 말이다.
+  static const double zeroStub = 2;
+
+  /// 칸 폭 대비 막대 폭.
+  static const double barWidthFactor = 0.46;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -168,14 +210,15 @@ class _BarLinePainter extends CustomPainter {
     if (plotHeight <= 0) return;
     final double baseline = topPad + plotHeight;
     final double slot = size.width / values.length;
-    final double barWidth = slot * 0.46 > maxBarWidth
+    final double barWidth = slot * barWidthFactor > maxBarWidth
         ? maxBarWidth
-        : slot * 0.46;
+        : slot * barWidthFactor;
 
     double centerOf(int i) => slot * (i + 0.5);
     double topOf(double v) =>
         baseline - plotHeight * (v / ceiling).clamp(0.0, 1.0);
     bool drawn(int i) => i < pendingFrom && values[i] != null;
+    bool over(double v) => goal != null && v > goal!;
 
     for (var i = 0; i < values.length; i++) {
       if (!drawn(i)) continue;
@@ -183,16 +226,11 @@ class _BarLinePainter extends CustomPainter {
       final double top = topOf(value);
       final Rect rect = Rect.fromLTRB(
         centerOf(i) - barWidth / 2,
-        // 0 도 2px 은 남긴다 — '기록했고 아무것도 못 했다' 와 '기록 없음' 은
-        // 다른 말이다.
-        top > baseline - 2 ? baseline - 2 : top,
+        top > baseline - zeroStub ? baseline - zeroStub : top,
         centerOf(i) + barWidth / 2,
         baseline,
       );
-      final RRect bar = RRect.fromRectAndRadius(
-        rect,
-        const Radius.circular(7),
-      );
+      final RRect bar = RRect.fromRectAndRadius(rect, OnCareRadius.xs);
       final List<BarSegment>? stack = segments != null && i < segments!.length
           ? segments![i]
           : null;
@@ -219,10 +257,7 @@ class _BarLinePainter extends CustomPainter {
         // 만들었다. 색을 나누는 것은 조각을 일부러 쌓을 때뿐이다(#1177).
         canvas.drawRRect(
           bar,
-          Paint()
-            ..color = goal != null && value > goal!
-                ? AppColors.overTarget
-                : barColor,
+          Paint()..color = over(value) ? OnCareColors.danger : barColor,
         );
       }
     }
@@ -241,7 +276,7 @@ class _BarLinePainter extends CustomPainter {
           Paint()
             ..color = lineColor
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 2
+            ..strokeWidth = lineWidth
             ..strokeCap = StrokeCap.round
             ..strokeJoin = StrokeJoin.round,
         );
@@ -261,26 +296,26 @@ class _BarLinePainter extends CustomPainter {
     for (var i = 0; i < values.length; i++) {
       if (!drawn(i)) continue;
       final Offset point = Offset(centerOf(i), topOf(values[i]!));
-      canvas.drawCircle(point, 4, Paint()..color = AppColors.card);
       canvas.drawCircle(
         point,
-        4,
+        pointRadius,
+        Paint()..color = OnCareColors.surfaceCard,
+      );
+      canvas.drawCircle(
+        point,
+        pointRadius,
         Paint()
           ..color = lineColor
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2,
+          ..strokeWidth = lineWidth,
       );
       _text(
         canvas,
         format(values[i]!),
-        Offset(point.dx, point.dy - 8),
-        TextStyle(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w800,
-          color: goal != null && values[i]! > goal!
-              ? AppColors.overTarget
-              : AppColors.foreground,
-        ),
+        Offset(point.dx, point.dy - OnCareSpacing.s8),
+        over(values[i]!)
+            ? valueStyle.copyWith(color: OnCareColors.danger)
+            : valueStyle,
         anchorBottom: true,
         maxWidth: slot,
       );
@@ -292,12 +327,8 @@ class _BarLinePainter extends CustomPainter {
         _text(
           canvas,
           emptyLabel!,
-          Offset(centerOf(i), baseline - 6),
-          const TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.w600,
-            color: AppColors.disabledForeground,
-          ),
+          Offset(centerOf(i), baseline - OnCareSpacing.s4),
+          emptyStyle,
           anchorBottom: true,
           maxWidth: slot,
         );
@@ -308,18 +339,12 @@ class _BarLinePainter extends CustomPainter {
       _text(
         canvas,
         labels[i],
-        Offset(centerOf(i), baseline + 5),
-        TextStyle(
-          fontSize: 11.5,
-          fontWeight: highlightIndex == i
-              ? FontWeight.w800
-              : FontWeight.w600,
-          color: i >= pendingFrom
-              ? AppColors.disabledForeground
-              : highlightIndex == i
-              ? AppColors.primary
-              : AppColors.subtleForeground,
-        ),
+        Offset(centerOf(i), baseline + OnCareSpacing.s4),
+        i >= pendingFrom
+            ? axisPendingStyle
+            : highlightIndex == i
+            ? axisHighlightStyle
+            : axisStyle,
         maxWidth: slot,
       );
     }
@@ -335,8 +360,9 @@ class _BarLinePainter extends CustomPainter {
     double? maxWidth,
   }) {
     final painter = TextPainter(
-      text: TextSpan(text: text, style: base.merge(style)),
+      text: TextSpan(text: text, style: style),
       textDirection: textDirection,
+      textScaler: textScaler,
       maxLines: 1,
       ellipsis: '…',
     )..layout(maxWidth: maxWidth ?? double.infinity);
@@ -362,7 +388,12 @@ class _BarLinePainter extends CustomPainter {
       old.maxBarWidth != maxBarWidth ||
       old.labels.join() != labels.join() ||
       old.segments != segments ||
-      old.base != base;
+      old.textScaler != textScaler ||
+      old.valueStyle != valueStyle ||
+      old.emptyStyle != emptyStyle ||
+      old.axisStyle != axisStyle ||
+      old.axisHighlightStyle != axisHighlightStyle ||
+      old.axisPendingStyle != axisPendingStyle;
 
   static bool _sameValues(List<double?> a, List<double?> b) {
     if (a.length != b.length) return false;

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/bar_line_chart.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 두 주 막대 영역 높이 — 비교 상자의 그래프와 같은 높이다.
+const double _chartHeight = 96;
 
 /// 이번 주 vs 지난 주 — 같은 지표를 두 주로 나란히 놓는다.
 class WeekComparison extends ConsumerWidget {
@@ -17,6 +18,7 @@ class WeekComparison extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final previousStart = report.weekStart.subtract(const Duration(days: 7));
     final previous = ref.watch(
       weeklyReportProvider((client: report.client, weekStart: previousStart)),
@@ -25,10 +27,10 @@ class WeekComparison extends ConsumerWidget {
     final completionDelta = _delta(report.completionAvg, before?.completionAvg);
     final sodiumDelta = _delta(report.sodiumAvg, before?.sodiumAvg);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
       decoration: const BoxDecoration(
-        color: AppColors.inputBackground,
-        borderRadius: BorderRadius.all(AppRadius.md),
+        color: OnCareColors.surfaceInput,
+        borderRadius: OnCareRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -37,19 +39,19 @@ class WeekComparison extends ConsumerWidget {
             l.reportsComparisonTitle(
               report.isCurrentWeek ? l.reportsThisWeek : l.reportsSelectedWeek,
             ),
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+            style: tokens
+                .text(OnCareTypography.label)
+                .copyWith(color: OnCareColors.textPrimary),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           if (previous.isLoading)
-            const LinearProgressIndicator(minHeight: 2)
+            const AppLoading(placement: AppStatePlacement.card)
           else if (previous.hasError)
             Text(
               l.reportsPreviousLoadFailed,
-              style: const TextStyle(
-                color: AppColors.warning,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-              ),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.caption))
+                  .copyWith(color: OnCareColors.danger),
             )
           else
             LayoutBuilder(
@@ -87,11 +89,11 @@ class WeekComparison extends ConsumerWidget {
                     positive: sodiumDelta == null || sodiumDelta <= 0,
                   ),
                 ];
-                if (constraints.maxWidth < 520) {
+                if (constraints.maxWidth < OnCareLayout.tabletBreakpoint) {
                   return Column(
                     children: <Widget>[
                       charts.first,
-                      const SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: OnCareSpacing.s8),
                       charts.last,
                     ],
                   );
@@ -100,7 +102,7 @@ class WeekComparison extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Expanded(child: charts.first),
-                    const SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: OnCareSpacing.s8),
                     Expanded(child: charts.last),
                   ],
                 );
@@ -141,48 +143,68 @@ class _ComparisonMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final int highest = <int>[
+      maxValue ?? 0,
+      previous ?? 0,
+      current ?? 0,
+      1,
+    ].reduce((a, b) => a > b ? a : b);
+    String format(double v) => '${v.round()}$valueSuffix';
+    // 기록이 없는 주는 읽지 않는다 — 빈 칸을 `0` 으로 읽으면 측정된 0 과
+    // 구분되지 않는다.
+    final List<String> points = <String>[
+      if (previous != null)
+        l.a11yChartPoint(previousLabel, format(previous!.toDouble())),
+      if (current != null)
+        l.a11yChartPoint(currentLabel, format(current!.toDouble())),
+    ];
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
+      padding: const EdgeInsets.all(OnCareSpacing.s8),
       decoration: const BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.all(AppRadius.sm),
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.smAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             label,
-            style: const TextStyle(
-              color: AppColors.subtleForeground,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
           ),
-          const SizedBox(height: 3),
-          BarSeriesChart(
-            title: label,
-            values: <int>[previous ?? 0, current ?? 0],
+          const SizedBox(height: OnCareSpacing.s4),
+          // 리포트 탭의 두 주 비교는 모두 같은 막대 + 꺾은선 그림이다(#1177).
+          BarLineChart(
+            values: <double?>[previous?.toDouble(), current?.toDouble()],
             labels: <String>[previousLabel, currentLabel],
-            maxValue: maxValue,
-            showValues: true,
-            valueSuffix: valueSuffix,
+            ceiling: highest.toDouble(),
+            format: format,
+            emptyLabel: l.chartNoRecord,
             highlightIndex: 1,
-            missingIndices: <int>{
-              if (previous == null) 0,
-              if (current == null) 1,
-            },
+            height: _chartHeight,
+            semanticsLabel: points.isEmpty
+                ? l.a11yChartEmpty(label)
+                : l.a11yChartSummary(label, points.join(', ')),
           ),
           if (delta != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: OnCareSpacing.s4),
             Align(
               alignment: Alignment.centerRight,
               child: Text(
                 delta!,
-                style: TextStyle(
-                  color: positive ? AppColors.success : AppColors.overTarget,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                ),
+                style:
+                    OnCareTypography.numeric(
+                      tokens.text(
+                        OnCareTypography.strong(OnCareTypography.caption),
+                      ),
+                    ).copyWith(
+                      color: positive
+                          ? OnCareColors.success
+                          : OnCareColors.danger,
+                    ),
               ),
             ),
           ],

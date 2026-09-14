@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/metric_trend_section.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -44,6 +45,8 @@ Future<void> _pump(WidgetTester tester, WeeklyReport report) async {
   await tester.pumpWidget(
     ProviderScope(
       child: MaterialApp(
+        // 위젯이 두 앱 공용 규격 토큰(`context.oncare`)을 읽는다.
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

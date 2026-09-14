@@ -8,7 +8,7 @@ import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repo
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
@@ -205,13 +205,13 @@ void main() {
       final confirm = find.byKey(
         const ValueKey<String>('session-cancel-confirm'),
       );
-      expect(tester.widget<ActionButton>(confirm).onPressed, isNull);
+      expect(tester.widget<AppButton>(confirm).onPressed, isNull);
 
       await tester.tap(
         find.byKey(const ValueKey<String>('cancel-source-member')),
       );
       await settle(tester);
-      expect(tester.widget<ActionButton>(confirm).onPressed, isNotNull);
+      expect(tester.widget<AppButton>(confirm).onPressed, isNotNull);
     });
 
     testWidgets('취소한 세션은 목록에 남고 상태와 기록을 보여 준다', (tester) async {

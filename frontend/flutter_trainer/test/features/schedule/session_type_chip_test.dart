@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
@@ -127,14 +127,14 @@ void main() {
     final TextStyle upcoming = chipStyle(tester);
     expect(cardStatus(tester), '예정');
 
-    // 목표 줄은 11.5px · w500 · subtleForeground 다. 같은 무게로 두면 옮겨도
-    // 여전히 부가 정보로 읽힌다.
-    expect(finished.fontWeight, FontWeight.w800);
-    expect(upcoming.fontWeight, FontWeight.w800);
+    // 목표 줄은 caption · w500 · 힌트 색이다. 같은 무게로 두면 옮겨도
+    // 여전히 부가 정보로 읽힌다 — 알약(AppTag)은 caption 600 이다.
+    expect(finished.fontWeight, FontWeight.w600);
+    expect(upcoming.fontWeight, FontWeight.w600);
 
-    // 예정 세션은 브랜드 남색, 끝난 세션은 상태 칩과 함께 물러난다.
-    expect(upcoming.color, AppColors.primary);
-    expect(finished.color, AppColors.disabledForeground);
+    // 예정 세션은 브랜드 톤, 끝난 세션은 중립 톤으로 상태 칩과 함께 물러난다.
+    expect(upcoming.color, OnCareBrand.trainer.primary);
+    expect(finished.color, OnCareColors.textSecondary);
   });
 
   testWidgets('가장 좁은 지원 조합에서 알약이 카드 안에 들어온다', (tester) async {
