@@ -874,5 +874,12 @@
   "a11yRemoveFood": "음식 지우기",
   "a11yOpenCalendar": "일정 달력 열기",
   "a11yPrevWeek": "지난 주",
-  "a11yNextWeek": "다음 주"
+  "a11yNextWeek": "다음 주",
+  "exConsultHistoryCancelTitle": "상담 요청을 취소할까요?",
+  "exConsultHistoryCancelBody": "취소한 요청은 다시 되돌릴 수 없어요.",
+  "exDemoPtSessionCount": "김트레이너와 12회차",
+  "exDemoPtTrainerName": "김트레이너",
+  "exDemoPtFeedback": "숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!",
+  "exStepperDecrease": "줄이기",
+  "exStepperIncrease": "늘리기"
 }

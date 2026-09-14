@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -162,18 +163,16 @@ Future<void> _openSheet(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: <Override>[
-        exerciseRepositoryProvider.overrideWithValue(repo),
-      ],
+      overrides: <Override>[exerciseRepositoryProvider.overrideWithValue(repo)],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Builder(
             builder: (BuildContext context) => TextButton(
-              onPressed: () =>
-                  showExerciseAddSheet(context, session: session),
+              onPressed: () => showExerciseAddSheet(context, session: session),
               child: const Text('열기'),
             ),
           ),
@@ -195,8 +194,11 @@ Future<void> _typeName(WidgetTester tester, String name) async {
 String _stepperValue(WidgetTester tester, Key key) => tester
     .widget<TextField>(
       find.descendant(
-        of: find.byKey(key),
-        matching: find.byKey(const Key('numberStepperField')),
+        of: find.descendant(
+          of: find.byKey(key),
+          matching: find.byKey(const Key('numberStepperField')),
+        ),
+        matching: find.byType(TextField),
       ),
     )
     .controller!
@@ -208,9 +210,7 @@ Future<void> _save(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('근력을 고르면 시간 대신 세트·횟수·중량으로 묻는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('근력을 고르면 시간 대신 세트·횟수·중량으로 묻는다', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);
 
@@ -251,9 +251,7 @@ void main() {
     expect(repo.minutes, 36);
   });
 
-  testWidgets('근력이 아닌 기록에는 세트·횟수·중량이 실리지 않는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('근력이 아닌 기록에는 세트·횟수·중량이 실리지 않는다', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);
 
@@ -389,9 +387,7 @@ void main() {
     expect(_stepperValue(tester, const Key('exerciseSetsStepper')), '10');
   });
 
-  testWidgets('근력이던 기록을 유산소로 고치면 세트·횟수·중량이 지워진다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('근력이던 기록을 유산소로 고치면 세트·횟수·중량이 지워진다', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(
       tester,

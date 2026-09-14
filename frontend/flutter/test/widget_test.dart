@@ -304,9 +304,10 @@ void main() {
     await pumpApp(tester, locale: const Locale('ko'));
     await openExerciseAddSheet(tester);
 
+    // 시트 하단은 저장 버튼 아래 규격 안쪽 여백(sheetPadding 20)뿐이다(#1701).
     expect(
-      bottomSpacingBetween(tester, 'exerciseAddSheet', 'exerciseAddContent'),
-      0,
+      bottomSpacingBetween(tester, 'exerciseAddSheet', 'exerciseSaveButton'),
+      20,
     );
   });
 
@@ -323,9 +324,10 @@ void main() {
     await pumpApp(tester, locale: const Locale('ko'));
     await openExerciseAddSheet(tester);
 
+    // 규격 안쪽 여백(20)에 시스템 인셋(34)만 더해진다(#1701).
     expect(
-      bottomSpacingBetween(tester, 'exerciseAddSheet', 'exerciseAddContent'),
-      34,
+      bottomSpacingBetween(tester, 'exerciseAddSheet', 'exerciseSaveButton'),
+      20 + 34,
     );
   });
 

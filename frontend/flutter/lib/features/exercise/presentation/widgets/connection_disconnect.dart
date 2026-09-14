@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
 
 /// 헬스장·트레이너 연결을 끊는 하나의 흐름 — 확인 창을 띄우고, 승인되면
 /// 끊은 뒤 연결 상태를 새로 읽는다.
@@ -21,49 +20,14 @@ Future<bool> confirmDisconnect(
   required Future<void> Function(GymRepository repo) disconnect,
 }) async {
   final AppLocalizations l = AppLocalizations.of(context);
-  final bool ok =
-      await showDialog<bool>(
-        context: context,
-        builder: (BuildContext ctx) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            l.myConnectionDeleteTitle,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: FigmaColors.ink,
-            ),
-          ),
-          content: Text(
-            message,
-            style: const TextStyle(
-              fontSize: 14.5,
-              color: AppColors.foreground,
-              height: 1.4,
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.mutedForeground,
-              ),
-              child: Text(l.myCancel),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFFFF3B30),
-              ),
-              child: Text(l.myDelete),
-            ),
-          ],
-        ),
-      ) ??
-      false;
+  final bool ok = await showAppConfirmDialog(
+    context: context,
+    title: l.myConnectionDeleteTitle,
+    message: message,
+    confirmLabel: l.myDelete,
+    cancelLabel: l.myCancel,
+    destructive: true,
+  );
   if (!ok) return false;
   await disconnect(ref.read(gymRepositoryProvider));
   // 해제를 기다리는 동안 화면을 벗어났다면 ref 가 이미 폐기됐을 수 있다.
@@ -86,25 +50,14 @@ class DisconnectButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        key: const Key('connection-disconnect-button'),
-        onPressed: onTap,
-        icon: const Icon(Icons.link_off_rounded, size: 18),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFFFF3B30),
-          side: const BorderSide(color: Color(0x33FF3B30)),
-          minimumSize: const Size.fromHeight(48),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
-        label: Text(
-          label,
-          style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
-        ),
-      ),
+    // 확인창을 여는 위험 동작이라 빨간 글자 버튼이다(#1690).
+    return AppButton(
+      key: const Key('connection-disconnect-button'),
+      label: label,
+      onPressed: onTap,
+      variant: AppButtonVariant.destructiveText,
+      leadingIcon: Icons.link_off_rounded,
+      fullWidth: true,
     );
   }
 }

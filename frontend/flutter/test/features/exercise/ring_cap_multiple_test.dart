@@ -25,10 +25,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/charts/chart_reveal.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show ChartReveal;
 
 import '../../helpers/painter_ink.dart';
 
@@ -159,6 +160,7 @@ void main() {
   // ── 화면 렌더링 공통 ─────────────────────────────────────────────────
 
   Widget wrap(Widget child) => MaterialApp(
+    theme: AppTheme.light(),
     locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
@@ -171,7 +173,10 @@ void main() {
   /// 의 painter 와 실제 렌더 크기를 함께 돌려준다 — 도넛·링 painter 를
   /// 감싸는 자리다. `exercise_chart_animation_test.dart` 의 `chartPainter`
   /// 와 같은 자리를 짚는다.
-  Future<(CustomPainter, Size)> pumpChart(WidgetTester tester, Widget child) async {
+  Future<(CustomPainter, Size)> pumpChart(
+    WidgetTester tester,
+    Widget child,
+  ) async {
     tester.view.physicalSize = const Size(390, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -201,13 +206,19 @@ void main() {
   );
 
   Future<int> donutDarkAtCap(WidgetTester tester, double calories) async {
-    final (CustomPainter painter, Size size) = await pumpDonut(tester, calories);
+    final (CustomPainter painter, Size size) = await pumpDonut(
+      tester,
+      calories,
+    );
     final Offset cap = _donutCapPoint(size, calories / 300);
     return (await tester.runAsync(() => _darkPixelsNear(painter, size, cap)))!;
   }
 
   Future<int> donutInk(WidgetTester tester, double calories) async {
-    final (CustomPainter painter, Size size) = await pumpDonut(tester, calories);
+    final (CustomPainter painter, Size size) = await pumpDonut(
+      tester,
+      calories,
+    );
     return (await tester.runAsync(() => painterInk(painter, size)))!;
   }
 
@@ -288,7 +299,9 @@ void main() {
     double flex = 0,
   }) => pumpChart(
     tester,
-    ExerciseWeekLoadCard(loads: weekOf(cardio: cardio, strength: strength, flex: flex)),
+    ExerciseWeekLoadCard(
+      loads: weekOf(cardio: cardio, strength: strength, flex: flex),
+    ),
   );
 
   /// [index] 번째 링(0=유산소, 1=근력, 2=스트레칭)의 캡 자리에 어두운 픽셀이
@@ -298,6 +311,7 @@ void main() {
     required int index,
     required double filled,
     required double goal,
+    int threshold = 150,
   }) async {
     final double value = filled * goal;
     final (CustomPainter painter, Size size) = await pumpRings(
@@ -307,27 +321,9 @@ void main() {
       flex: index == 2 ? value : 0,
     );
     final Offset cap = _ringCapPoint(size, index, filled);
-    return (await tester.runAsync(() => _darkPixelsNear(painter, size, cap)))!;
-  }
-
-  /// [index] 번째 링만 채운 전체 그림의 칠해진 픽셀 수. 나머지 두 링은
-  /// 0(빈 트랙)으로 둔다 — 세 링이 같은 화면에 있어도 다른 두 링은 두
-  /// 값(비교 대상) 사이에서 그대로이므로, 이 값의 차이는 오롯이 [index]
-  /// 링의 변화만 반영한다.
-  Future<int> ringInk(
-    WidgetTester tester, {
-    required int index,
-    required double filled,
-    required double goal,
-  }) async {
-    final double value = filled * goal;
-    final (CustomPainter painter, Size size) = await pumpRings(
-      tester,
-      cardio: index == 0 ? value : 0,
-      strength: index == 1 ? value.round() : 0,
-      flex: index == 2 ? value : 0,
-    );
-    return (await tester.runAsync(() => painterInk(painter, size)))!;
+    return (await tester.runAsync(
+      () => _darkPixelsNear(painter, size, cap, threshold: threshold),
+    ))!;
   }
 
   group('유산소·근력·스트레칭 다중 링 (기본 목표: 근력 21세트·유산소 150분·스트레칭 60분)', () {
@@ -363,33 +359,50 @@ void main() {
     testWidgets('근력 링: 배수가 아닌 값(약 119%·219%·319%)은 기존처럼 그려진다', (
       WidgetTester tester,
     ) async {
-      final int at21 = await ringInk(tester, index: 1, filled: 21 / 21, goal: 21);
-      final int at25 = await ringInk(tester, index: 1, filled: 25 / 21, goal: 21);
-      expect(at25, greaterThan(at21), reason: '25세트는 21세트(100%)의 배수가 아니다');
-
-      final int at42 = await ringInk(tester, index: 1, filled: 42 / 21, goal: 21);
-      final int at46 = await ringInk(tester, index: 1, filled: 46 / 21, goal: 21);
-      expect(at46, greaterThan(at42), reason: '46세트는 42세트(200%)의 배수가 아니다');
-
-      final int at63 = await ringInk(tester, index: 1, filled: 63 / 21, goal: 21);
-      final int at67 = await ringInk(tester, index: 1, filled: 67 / 21, goal: 21);
-      expect(at67, greaterThan(at63), reason: '67세트는 63세트(300%)의 배수가 아니다');
+      // 트랙이 불투명 토큰 색(`OnCareColors.onWhite`)으로 바뀌어 링 자리의
+      // 칠해진 픽셀 수는 배수 여부와 무관하게 같다 — 그림자가 **캡 자리에
+      // 실제로 깔렸는지**를 어두운 픽셀로 잰다. 그림자 색은 순검정이 아니라
+      // `overlayInk` 토큰이라, 링 색(RGB 합 500 이상)보다 확연히 어두운지로
+      // 가른다. (#1701)
+      for (final int sets in <int>[25, 46, 67]) {
+        expect(
+          await ringDarkAtCap(
+            tester,
+            index: 1,
+            filled: sets / 21,
+            goal: 21,
+            threshold: 300,
+          ),
+          greaterThan(0),
+          reason: '$sets 세트는 21세트의 배수가 아니라 캡 그림자가 있어야 한다',
+        );
+      }
     });
 
     testWidgets('스트레칭 링: 배수가 아닌 120% 는 기존처럼 그림자·끝 기호가 있다', (
       WidgetTester tester,
     ) async {
       expect(await ringDarkAtCap(tester, index: 2, filled: 1, goal: 60), 0);
-      final int at100 = await ringInk(tester, index: 2, filled: 1, goal: 60);
-      final int at120 = await ringInk(tester, index: 2, filled: 1.2, goal: 60);
-      expect(at120, greaterThan(at100));
+      expect(
+        await ringDarkAtCap(
+          tester,
+          index: 2,
+          filled: 1.2,
+          goal: 60,
+          threshold: 300,
+        ),
+        greaterThan(0),
+      );
     });
 
     testWidgets('세 링 모두 0% 인 초기 상태는 기존 빈 트랙 표시를 유지한다', (
       WidgetTester tester,
     ) async {
       final (CustomPainter painter, Size size) = await pumpRings(tester);
-      expect(await tester.runAsync(() => painterInk(painter, size)), greaterThan(0));
+      expect(
+        await tester.runAsync(() => painterInk(painter, size)),
+        greaterThan(0),
+      );
       expect(
         await tester.runAsync(
           () => _darkPixelsNear(painter, size, _ringCapPoint(size, 0, 0)),

@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/utils/preferred_time_format.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 완료 표시 원 지름.
+const double _completionBadgeSize = 80;
+
+/// 요약 행 왼쪽 라벨 칸 폭.
+const double _summaryLabelWidth = 92;
 
 class ConsultationCompletePage extends StatelessWidget {
   const ConsultationCompletePage({required this.request, super.key});
@@ -18,40 +23,29 @@ class ConsultationCompletePage extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final ConsultationRequest? consultation = request;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        automaticallyImplyLeading: consultation == null,
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        scrolledUnderElevation: 0,
-        title: Text(
-          l.exConsultRequestTitle,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: FigmaColors.ink,
-          ),
-        ),
+    return AppPage(
+      header: AppTopBar(
+        title: l.exConsultRequestTitle,
+        // 요청을 막 보냈으면 뒤로 가서 폼을 다시 보내지 않도록 뒤로가기를 뺀다.
+        showBack: consultation == null,
       ),
-      body: SafeArea(
-        top: false,
-        child: consultation == null
-            ? _MissingRequest(message: l.exConsultTargetNotFound)
-            : _CompletionContent(request: consultation),
-      ),
+      children: consultation == null
+          ? <Widget>[
+              AppEmptyState(
+                title: l.exConsultTargetNotFound,
+                icon: Icons.info_rounded,
+              ),
+            ]
+          : _completionChildren(context, l, consultation),
     );
   }
-}
 
-class _CompletionContent extends StatelessWidget {
-  const _CompletionContent({required this.request});
-
-  final ConsultationRequest request;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
+  List<Widget> _completionChildren(
+    BuildContext context,
+    AppLocalizations l,
+    ConsultationRequest request,
+  ) {
+    final OnCareTokens tokens = context.oncare;
     // 트레이너 이름이 없으면(대상이 지워진 경우) 종류 문구만 남긴다.
     final String targetName = request.trainerName ?? '';
     final String targetType = l.exTrainerConsultType;
@@ -59,95 +53,80 @@ class _CompletionContent extends StatelessWidget {
       context,
     ).formatMediumDate(request.preferredDate);
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 42, 20, 32),
+    return <Widget>[
+      const SizedBox(height: OnCareSpacing.s32),
+      Center(
+        child: Container(
+          width: _completionBadgeSize,
+          height: _completionBadgeSize,
+          decoration: BoxDecoration(
+            color: tokens.brand.surface,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.check_rounded,
+            size: OnCareSize.iconEmptyState,
+            color: tokens.brand.primary,
+          ),
+        ),
+      ),
+      const SizedBox(height: OnCareSpacing.s24),
+      Text(
+        l.exConsultReceived,
+        textAlign: TextAlign.center,
+        style: tokens
+            .text(OnCareTypography.titleLarge)
+            .copyWith(color: OnCareColors.textPrimary),
+      ),
+      const SizedBox(height: OnCareSpacing.s8),
+      Text(
+        l.exConsultCompletionInfo,
+        textAlign: TextAlign.center,
+        style: tokens
+            .text(OnCareTypography.body)
+            .copyWith(color: OnCareColors.textSecondary),
+      ),
+      const SizedBox(height: OnCareSpacing.s32),
+      AppCard(
+        child: Column(
           children: <Widget>[
-            Center(
-              child: Container(
-                width: 82,
-                height: 82,
-                decoration: BoxDecoration(
-                  color: FigmaColors.primaryA(0.10),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.check_rounded,
-                  size: 44,
-                  color: FigmaColors.primary,
-                ),
-              ),
+            _SummaryRow(label: targetType, value: targetName),
+            const _SummaryDivider(),
+            _SummaryRow(
+              label: l.exPreferredDate,
+              value:
+                  '$date · '
+                  '${preferredTimeLabel(context, l, request.preferredTimeSlot)}',
             ),
-            const SizedBox(height: 22),
-            Text(
-              l.exConsultReceived,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: FigmaColors.ink,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              l.exConsultCompletionInfo,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: AppColors.foreground,
-              ),
-            ),
-            const SizedBox(height: 28),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: FigmaColors.hairline),
-              ),
-              child: Column(
-                children: <Widget>[
-                  _SummaryRow(label: targetType, value: targetName),
-                  const Divider(height: 25, color: FigmaColors.hairline),
-                  _SummaryRow(
-                    label: l.exPreferredDate,
-                    value:
-                        '$date · '
-                        '${preferredTimeLabel(context, l, request.preferredTimeSlot)}',
-                  ),
-                  const Divider(height: 25, color: FigmaColors.hairline),
-                  _SummaryRow(
-                    label: l.exConsultStatus,
-                    value: l.exConsultPendingStatus,
-                    emphasized: true,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 28),
-            FilledButton(
-              onPressed: () => context.go(AppRoutes.exerciseGym),
-              style: FilledButton.styleFrom(
-                backgroundColor: FigmaColors.primary,
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: Text(
-                l.exReturnExercise,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
+            const _SummaryDivider(),
+            _SummaryRow(
+              label: l.exConsultStatus,
+              value: l.exConsultPendingStatus,
+              emphasized: true,
             ),
           ],
         ),
       ),
-    );
+      const SizedBox(height: OnCareSpacing.s32),
+      AppButton(
+        label: l.exReturnExercise,
+        onPressed: () => context.go(AppRoutes.exerciseGym),
+        size: OnCareButtonSize.large,
+        fullWidth: true,
+      ),
+    ];
   }
+}
+
+class _SummaryDivider extends StatelessWidget {
+  const _SummaryDivider();
+
+  @override
+  Widget build(BuildContext context) => const Padding(
+    padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+    child: AppDivider(),
+  );
 }
 
 class _SummaryRow extends StatelessWidget {
@@ -163,54 +142,36 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         SizedBox(
-          width: 92,
+          width: _summaryLabelWidth,
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.mutedForeground,
-            ),
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: OnCareSpacing.s12),
         Expanded(
           child: Text(
             value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.right,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: emphasized ? FigmaColors.primary : FigmaColors.ink,
-            ),
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.body))
+                .copyWith(
+                  color: emphasized
+                      ? tokens.brand.primary
+                      : OnCareColors.textPrimary,
+                ),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _MissingRequest extends StatelessWidget {
-  const _MissingRequest({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          message,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 14, color: AppColors.foreground),
-        ),
-      ),
     );
   }
 }

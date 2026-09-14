@@ -1614,5 +1614,12 @@
   "a11yRemoveFood": "Remove food",
   "a11yOpenCalendar": "Open schedule calendar",
   "a11yPrevWeek": "Previous week",
-  "a11yNextWeek": "Next week"
+  "a11yNextWeek": "Next week",
+  "exConsultHistoryCancelTitle": "Cancel this consultation request?",
+  "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
+  "exDemoPtSessionCount": "Session 12 with Trainer Kim",
+  "exDemoPtTrainerName": "Trainer Kim",
+  "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
+  "exStepperDecrease": "Decrease",
+  "exStepperIncrease": "Increase"
 }

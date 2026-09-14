@@ -11,8 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -21,6 +21,7 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show OnCareTokensContext;
 
 import '../../helpers/fake_diet_repository.dart';
 
@@ -45,6 +46,7 @@ Future<void> _pump(
     ProviderScope(
       overrides: overrides,
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -104,11 +106,7 @@ void _expectLabelIntact(
   expect(text, findsOneWidget, reason: '`$label` 라벨이 없다');
 
   final RenderParagraph paragraph = tester.renderObject<RenderParagraph>(text);
-  expect(
-    paragraph.didExceedMaxLines,
-    isFalse,
-    reason: '`$label` 이 줄임표로 잘렸다',
-  );
+  expect(paragraph.didExceedMaxLines, isFalse, reason: '`$label` 이 줄임표로 잘렸다');
 
   final double drawn = tester.getRect(text).width;
   expect(paragraph.size.width, greaterThan(0));
@@ -134,9 +132,7 @@ void main() {
       }
     });
 
-    testWidgets('폭 320 · 글자 배율 1.3 에서도 세 라벨이 남는다', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('폭 320 · 글자 배율 1.3 에서도 세 라벨이 남는다', (WidgetTester tester) async {
       await _pumpDiet(tester, size: const Size(320, 900), textScale: 1.3);
       for (final String label in labels) {
         _expectLabelIntact(tester, toggle, label, minScale: 0.6);
@@ -156,9 +152,7 @@ void main() {
       }
     });
 
-    testWidgets('폭 320 · 글자 배율 1.3 에서도 세 라벨이 남는다', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('폭 320 · 글자 배율 1.3 에서도 세 라벨이 남는다', (WidgetTester tester) async {
       await _pumpExercise(tester, size: const Size(320, 900), textScale: 1.3);
       for (final String label in labels) {
         _expectLabelIntact(tester, toggle, label, minScale: 0.6);
@@ -166,19 +160,17 @@ void main() {
     });
   });
 
-  testWidgets('두 탭의 토글은 같은 크기다 (#1126)', (WidgetTester tester) async {
-    await _pumpDiet(tester, size: const Size(390, 900));
-    final Size diet = tester.getSize(
-      find.byKey(const ValueKey<String>('diet-period-toggle')),
-    );
-    // 두 화면 사이에서 트리를 한 번 비운다 — 같은 `ProviderScope` 를 다른
-    // override 로 갈아 끼우는 것은 리버포드가 막는다.
-    await tester.pumpWidget(const SizedBox.shrink());
+  testWidgets('운동 탭 토글은 공용 세그먼트 규격 높이다 (#1126 → #1701)', (
+    WidgetTester tester,
+  ) async {
+    // 두 탭의 토글은 공용 `AppSegmentedToggle` 하나로 옮겨 가 규격 칩 높이로
+    // 같아진다. 운동 탭이 먼저 옮겨 갔으므로 규격 값과 맞는지 잰다 — 식단 탭이
+    // 옮겨 가면 두 토글을 다시 나란히 비교한다.
     await _pumpExercise(tester, size: const Size(390, 900));
-    final Size exercise = tester.getSize(
-      find.byKey(const ValueKey<String>('exercise-period-toggle')),
+    final Finder toggle = find.byKey(
+      const ValueKey<String>('exercise-period-toggle'),
     );
-    expect(exercise.width, moreOrLessEquals(diet.width, epsilon: 0.5));
-    expect(exercise.height, moreOrLessEquals(diet.height, epsilon: 0.5));
+    final double chip = tester.element(toggle).oncare.density.chip;
+    expect(tester.getSize(toggle).height, moreOrLessEquals(chip, epsilon: 0.5));
   });
 }

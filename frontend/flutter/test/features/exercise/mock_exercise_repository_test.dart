@@ -278,10 +278,7 @@ void main() {
 
     test('회원이 직접 적은 기록은 하나도 없다 — `직접 추가한 운동` 은 비어 있다', () async {
       final ExerciseWeek w = await _repo().fetchThisWeek();
-      expect(
-        w.sessions.where((ExerciseSession s) => s.isEditable),
-        isEmpty,
-      );
+      expect(w.sessions.where((ExerciseSession s) => s.isEditable), isEmpty);
     });
 
     test('파생 기록은 회원이 고치거나 지우지 못한다 — 서버의 409 와 같다', () async {

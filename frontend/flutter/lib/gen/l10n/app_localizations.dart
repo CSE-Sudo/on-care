@@ -4674,6 +4674,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Next week'**
   String get a11yNextWeek;
+
+  /// No description provided for @exConsultHistoryCancelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this consultation request?'**
+  String get exConsultHistoryCancelTitle;
+
+  /// No description provided for @exConsultHistoryCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A cancelled request can\'t be restored.'**
+  String get exConsultHistoryCancelBody;
+
+  /// No description provided for @exDemoPtSessionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Session 12 with Trainer Kim'**
+  String get exDemoPtSessionCount;
+
+  /// No description provided for @exDemoPtTrainerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer Kim'**
+  String get exDemoPtTrainerName;
+
+  /// No description provided for @exDemoPtFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!'**
+  String get exDemoPtFeedback;
+
+  /// No description provided for @exStepperDecrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get exStepperDecrease;
+
+  /// No description provided for @exStepperIncrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get exStepperIncrease;
 }
 
 class _AppLocalizationsDelegate

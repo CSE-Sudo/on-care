@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
 
 /// 헬스장 카드 안에 서는 **트레이너 한 줄** (#1185 · #1187).
 ///
@@ -33,38 +32,38 @@ class GymTrainerLine extends StatelessWidget {
   /// 오른쪽에 배지나 버튼이 서는가. 그때는 이름·직함을 두 줄로 쌓는다.
   bool get stacked => onDetail != null;
 
-  Widget _name() => Text(
+  Widget _name(BuildContext context) => Text(
     trainer.name,
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
-    style: const TextStyle(
-      fontSize: 13.5,
-      fontWeight: FontWeight.w800,
-      color: FigmaColors.ink,
-    ),
+    style: context.oncare
+        .text(OnCareTypography.label)
+        .copyWith(color: OnCareColors.textPrimary),
   );
 
-  Widget _role(AppLocalizations l) => Text(
+  Widget _role(BuildContext context, AppLocalizations l) => Text(
     trainer.role ?? l.exTrainerDedicated,
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
-    style: const TextStyle(
-      fontSize: 12.5,
-      fontWeight: FontWeight.w600,
-      color: AppColors.mutedForeground,
-    ),
+    style: context.oncare
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textSecondary),
   );
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final String? reason = trainer.reason;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      padding: const EdgeInsets.symmetric(
+        horizontal: OnCareSpacing.s8,
+        vertical: OnCareSpacing.s8,
+      ),
       decoration: BoxDecoration(
-        color: FigmaColors.softBlue,
-        borderRadius: BorderRadius.circular(12),
+        color: tokens.brand.surface,
+        borderRadius: OnCareRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,20 +71,20 @@ class GymTrainerLine extends StatelessWidget {
           Row(
             children: <Widget>[
               Container(
-                width: 26,
-                height: 26,
+                width: OnCareSize.avatarSmall,
+                height: OnCareSize.avatarSmall,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: OnCareColors.surfaceCard,
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: const Icon(
-                  Icons.person_outline,
-                  size: 15,
-                  color: FigmaColors.primary,
+                child: Icon(
+                  Icons.person_rounded,
+                  size: OnCareSize.iconSmall,
+                  color: tokens.brand.primary,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: OnCareSpacing.s8),
               // 오른쪽에 배지·버튼이 붙는 줄에서는 이름 아래로 직함을 내린다
               // (#1187) — 한 줄에 넷을 밀어 넣으면 직함부터 `퍼스널 트…` 로
               // 잘려, 이 사람이 무엇을 하는 사람인지가 사라진다.
@@ -96,16 +95,16 @@ class GymTrainerLine extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          _name(),
-                          const SizedBox(height: 1),
-                          _role(l),
+                          _name(context),
+                          const SizedBox(height: OnCareSpacing.s2),
+                          _role(context, l),
                         ],
                       )
                     : Row(
                         children: <Widget>[
-                          Flexible(child: _name()),
-                          const SizedBox(width: 6),
-                          Flexible(child: _role(l)),
+                          Flexible(child: _name(context)),
+                          const SizedBox(width: OnCareSpacing.s8),
+                          Flexible(child: _role(context, l)),
                         ],
                       ),
               ),
@@ -113,47 +112,43 @@ class GymTrainerLine extends StatelessWidget {
               // 버튼과 같은 자리다 (#1267). 오른쪽 칸은 제 몫을 다 차지하고
               // 그 안에서 오른쪽 정렬한다: 내용 크기로만 잡으면 남는 자리가
               // 버튼 오른쪽에 빈 칸으로 남아 버튼이 줄 가운데에서 끝난다.
-              // 문구가 긴 로케일에서는 FittedBox 가 버튼부터 줄인다.
+              // 좁은 폭에서는 FittedBox 가 버튼부터 줄인다.
               if (onDetail != null)
                 Expanded(
                   flex: 2,
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerRight,
-                    child: Tooltip(
-                      message: l.myTrainerDetailTooltip,
-                      child: TextButton(
-                        key: const Key('gymTrainerDetailButton'),
-                        onPressed: onDetail,
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          minimumSize: const Size(0, 32),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          foregroundColor: FigmaColors.textFaint,
-                        ),
-                        child: const Icon(Icons.chevron_right, size: 20),
-                      ),
+                    child: AppIconButton(
+                      key: const Key('gymTrainerDetailButton'),
+                      icon: Icons.chevron_right_rounded,
+                      tooltip: l.myTrainerDetailTooltip,
+                      onPressed: onDetail,
+                      color: OnCareColors.textTertiary,
                     ),
                   ),
                 ),
             ],
           ),
           if (showReason && reason != null) ...<Widget>[
-            const SizedBox(height: 7),
+            const SizedBox(height: OnCareSpacing.s8),
             Align(
               alignment: Alignment.centerLeft,
               child: Container(
                 key: const ValueKey<String>('gym-trainer-reason'),
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s8,
+                  vertical: OnCareSpacing.s4,
+                ),
                 decoration: BoxDecoration(
                   // 추천 이유는 고를 근거다 — 흰 배경에 회색 글씨면 옆의 일반
                   // 설명과 위계가 같아진다. 트레이너 목록·상세가 이미 쓰는
                   // 브랜드 파랑으로 윤곽선과 글자를 맞춘다(#1445). 배경은
                   // 흰색 그대로다 — 줄 자체가 옅은 파랑이라 배지까지 파래지면
                   // 배지가 사라진다.
-                  color: Colors.white,
-                  border: Border.all(color: FigmaColors.primaryA(0.45)),
-                  borderRadius: BorderRadius.circular(999),
+                  color: OnCareColors.surfaceCard,
+                  border: Border.all(color: tokens.brand.border),
+                  borderRadius: OnCareRadius.pillAll,
                 ),
                 child: Text(
                   '${l.exRecommendationReason}: $reason',
@@ -161,12 +156,9 @@ class GymTrainerLine extends StatelessWidget {
                   // 두 줄을 넘기면 줄여 적는다 — 큰 배율에서 배지가 카드 밖으로
                   // 밀려 나가지 않게.
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: FigmaColors.primary,
-                    height: 1.3,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.caption))
+                      .copyWith(color: tokens.brand.primary),
                 ),
               ),
             ),

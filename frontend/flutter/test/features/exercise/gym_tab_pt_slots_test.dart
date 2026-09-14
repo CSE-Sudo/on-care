@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -106,6 +107,7 @@ void main() {
           coachUnreadProvider.overrideWith((ref) async => 0),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -133,7 +135,8 @@ void main() {
         of: find.byKey(const ValueKey<String>('slot-chip-slot-open')),
         matching: find.byType(Text),
       ),
-      findsNWidgets(2),
+      findsOneWidget,
+      reason: '고르기 칩은 한 줄 라벨이다(#1701)',
     );
     expect(
       tester.getSize(find.byKey(const ValueKey<String>('slot-chip-slot-open'))),
@@ -142,9 +145,10 @@ void main() {
       ),
       reason: '비활성 색상 외에는 같은 슬롯 크기를 쓴다',
     );
+    // 종류는 칩마다 적지 않고 예약 상자 제목 줄에 한 번 적는다(#1701).
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey<String>('slot-chip-slot-open')),
+        of: find.byKey(const Key('my-gym-reservation-panel')),
         matching: find.text(l.exSlotTypePersonalTraining),
       ),
       findsOneWidget,
@@ -165,7 +169,7 @@ void main() {
     expect(find.text(l.exTrainerAvailability(_trainer.name)), findsOneWidget);
     expect(find.text('김트레이너 빈 예약 시간'), findsOneWidget);
     // AI 표식 대신 예약 성격에 맞는 아이콘이 붙는다.
-    expect(find.byIcon(Icons.event_available_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.event_available_rounded), findsOneWidget);
   });
 
   testWidgets('연결된 헬스장은 정보 다음에 예약 상자만 배치한다 (#1287)', (
@@ -246,9 +250,7 @@ void main() {
     expect(find.text('트레이너와 채팅'), findsNothing);
   });
 
-  testWidgets('연결된 헬스장에서는 상담 자리를 내주지 않는다 (#1136)', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('연결된 헬스장에서는 상담 자리를 내주지 않는다 (#1136)', (WidgetTester tester) async {
     final AppLocalizations l = await pumpTab(tester);
 
     // 이미 연결된 헬스장이라 상담은 지난 걸음이다 — 1:1 PT 자리만 남는다.
