@@ -14,6 +14,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -84,7 +85,7 @@ void main() {
       expect(opened, 1);
     });
 
-    testWidgets('추천운동 수신 배너와 같은 안내 배너(info)에 동작 버튼 하나 (#1577)', (
+    testWidgets('흰 바탕 + 메인 색 테두리 안내 상자에 글자 링크 하나 (#1577)', (
       WidgetTester tester,
     ) async {
       await pumpCard(
@@ -95,26 +96,33 @@ void main() {
         ),
       );
 
-      final AppBanner banner = tester.widget<AppBanner>(
+      final CoachChatNotice notice = tester.widget<CoachChatNotice>(
         find.descendant(
           of: find.byType(CoachReportCard),
-          matching: find.byType(AppBanner),
+          matching: find.byType(CoachChatNotice),
         ),
       );
-      expect(banner.tone, AppBannerTone.info);
+      expect(notice.style, CoachChatNoticeStyle.outlined);
       final Container box = tester.widget<Container>(
         find
             .descendant(
-              of: find.byType(AppBanner),
+              of: find.byType(CoachChatNotice),
               matching: find.byType(Container),
             )
             .first,
       );
       final BoxDecoration decoration = box.decoration! as BoxDecoration;
-      expect(decoration.color, OnCareBrand.member.surface);
-      expect(decoration.border, Border.all(color: OnCareBrand.member.border));
-      // 다음 행동은 하나뿐이다.
-      expect(find.byType(AppButton), findsOneWidget);
+      expect(decoration.color, OnCareColors.surfaceCard);
+      expect(decoration.border, Border.all(color: OnCareBrand.member.primary));
+      // 다음 행동은 하나뿐이고, 상자 안에 두 번째 테두리를 그리지 않는다.
+      expect(
+        find.descendant(
+          of: find.byType(CoachChatNotice),
+          matching: find.byType(InkWell),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(AppButton), findsNothing);
     });
 
     testWidgets('영어 로케일도 같은 정보 구조다', (WidgetTester tester) async {
