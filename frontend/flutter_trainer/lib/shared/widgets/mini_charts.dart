@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// A compact labelled bar series (주간 이행률, 세션 수 …).
 ///
@@ -127,7 +125,7 @@ class BarSeriesChart extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: OnCareSpacing.s4),
             Row(
               children: <Widget>[
                 for (var i = 0; i < labels.length; i++)
@@ -143,10 +141,10 @@ class BarSeriesChart extends StatelessWidget {
                             ? FontWeight.w800
                             : FontWeight.w500,
                         color: highlightIndex == i
-                            ? AppColors.primary
+                            ? OnCareBrand.trainer.primary
                             : i >= pendingFrom
-                            ? AppColors.disabledForeground
-                            : AppColors.subtleForeground,
+                            ? OnCareColors.textDisabled
+                            : OnCareColors.textTertiary,
                       ),
                     ),
                   ),
@@ -160,10 +158,10 @@ class BarSeriesChart extends StatelessWidget {
 
   Color _colorFor(int index) {
     if (overThreshold != null && values[index] > overThreshold!) {
-      return AppColors.overTarget;
+      return OnCareColors.danger;
     }
-    if (highlightIndex == index) return AppColors.primary;
-    return AppColors.aiCardGradientEnd;
+    if (highlightIndex == index) return OnCareBrand.trainer.primary;
+    return OnCareBrand.trainer.exerciseStrength;
   }
 }
 
@@ -211,7 +209,7 @@ class InlineBarValue extends StatelessWidget {
     // 채로 남아, 잴 값이 있는데 못 읽은 것처럼 보인다. 흐린 줄은 누를 것도
     // 읽을 것도 없다는 뜻이다.
     final bool empty = fraction == null;
-    final Color tone = empty ? AppColors.borderStrong : AppColors.primary;
+    final Color tone = empty ? OnCareColors.lineStrong : OnCareBrand.trainer.primary;
     return Row(
       children: <Widget>[
         if (label != null) ...<Widget>[
@@ -225,21 +223,21 @@ class InlineBarValue extends StatelessWidget {
                 maxLines: 1,
                 style: TextStyle(
                   color: empty
-                      ? AppColors.disabledForeground
-                      : AppColors.subtleForeground,
+                      ? OnCareColors.textDisabled
+                      : OnCareColors.textTertiary,
                   fontSize: 10.5,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: OnCareSpacing.s8),
         ],
         Expanded(
           child: ClipRRect(
-            borderRadius: const BorderRadius.all(AppRadius.pill),
+            borderRadius: const BorderRadius.all(OnCareRadius.pill),
             child: Stack(
               children: <Widget>[
-                Container(height: 6, color: AppColors.inputBackground),
+                Container(height: 6, color: OnCareColors.surfaceInput),
                 FractionallySizedBox(
                   widthFactor: (fraction ?? 0).clamp(0.0, 1.0),
                   child: Container(height: 6, color: tone),
@@ -248,7 +246,7 @@ class InlineBarValue extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: OnCareSpacing.s8),
         SizedBox(
           width: valueWidth,
           // `데이터 부족` 처럼 값 대신 들어가는 안내는 숫자보다 길다. 잘라내면
@@ -265,7 +263,7 @@ class InlineBarValue extends StatelessWidget {
                 // 값이 없으면 굵기까지 낮춘다 — 흐린 색만으로는 여전히
                 // 읽을 값처럼 보인다.
                 fontWeight: empty ? FontWeight.w600 : FontWeight.w800,
-                color: empty ? AppColors.disabledForeground : tone,
+                color: empty ? OnCareColors.textDisabled : tone,
               ),
             ),
           ),
@@ -325,7 +323,7 @@ class _Bar extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.mutedForeground,
+                      color: OnCareColors.textSecondary,
                     ),
                   ),
                 ),
@@ -333,8 +331,8 @@ class _Bar extends StatelessWidget {
             Container(
               height: (plot * ratio).clamp(2.0, plot),
               decoration: BoxDecoration(
-                color: pending || missing ? AppColors.border : color,
-                borderRadius: const BorderRadius.vertical(top: AppRadius.xs),
+                color: pending || missing ? OnCareColors.lineSubtle : color,
+                borderRadius: const BorderRadius.vertical(top: OnCareRadius.sm),
               ),
             ),
           ],

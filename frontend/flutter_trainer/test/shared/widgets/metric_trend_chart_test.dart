@@ -8,8 +8,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   Future<void> pump(
@@ -83,12 +83,12 @@ void main() {
   test('목표 안쪽인 날은 영양 요약 카드와 같은 메인 색으로 찍는다 (#1166)', () {
     // 초록이 아니다. 초록은 "정상" 으로 읽혀서 목표에 한참 못 미친 날까지
     // 괜찮다고 말한다 — 회원 앱이 #1070 에서 걷어낸 것과 같은 이유다.
-    expect(metricStatusColor(1800, 2000), AppColors.statusWithinGoal);
-    expect(metricStatusColor(1800, 2000), isNot(AppColors.success));
+    expect(metricStatusColor(1800, 2000), OnCareBrand.trainer.primary);
+    expect(metricStatusColor(1800, 2000), isNot(OnCareColors.success));
     // 초과는 그대로 빨강이다.
-    expect(metricStatusColor(2400, 2000), AppColors.overTarget);
+    expect(metricStatusColor(2400, 2000), OnCareColors.danger);
     // 목표가 없는 지표(0)는 초과로 보지 않는다.
-    expect(metricStatusColor(2400, 0), AppColors.statusWithinGoal);
+    expect(metricStatusColor(2400, 0), OnCareBrand.trainer.primary);
   });
 
   testWidgets('진입 애니메이션 없이 한 번에 그린다 (#1027)', (WidgetTester tester) async {

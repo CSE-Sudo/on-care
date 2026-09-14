@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 // 문구·조회 함수는 `shared/utils` 로 옮겼다(#1703). 기존 사용처를 위해 다시 내보낸다.
 export 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
@@ -20,7 +19,7 @@ export 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 TextStyle clientListNameStyle({required bool selected}) => TextStyle(
   fontSize: clientListNameFontSize,
   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-  color: AppColors.foreground,
+  color: OnCareColors.textPrimary,
 );
 
 /// 고객 목록 이름 글씨 크기. 프로그램 탭 열은 세 열 중 가장 좁아 15 는 긴
@@ -66,7 +65,7 @@ class ClientGoalLabel extends StatelessWidget {
     super.key,
     required this.client,
     this.fontSize = 11.5,
-    this.color = AppColors.subtleForeground,
+    this.color = OnCareColors.textTertiary,
   });
 
   final TrainerClient client;
@@ -115,14 +114,14 @@ class ClientIdentity extends StatelessWidget {
     final resolvedNameStyle =
         nameStyle ??
         const TextStyle(
-          color: AppColors.foreground,
+          color: OnCareColors.textPrimary,
           fontSize: 14,
           fontWeight: FontWeight.w800,
         );
     final resolvedDemographicsStyle =
         demographicsStyle ??
         resolvedNameStyle.copyWith(
-          color: AppColors.subtleForeground,
+          color: OnCareColors.textTertiary,
           fontSize: (resolvedNameStyle.fontSize ?? 14) - 3,
           fontWeight: FontWeight.w600,
         );
@@ -158,7 +157,7 @@ class ClientIdentity extends StatelessWidget {
           : MainAxisAlignment.start,
       children: <Widget>[
         Flexible(child: name),
-        const SizedBox(width: AppSpacing.xs),
+        const SizedBox(width: OnCareSpacing.s4),
         Flexible(child: demographics),
       ],
     );

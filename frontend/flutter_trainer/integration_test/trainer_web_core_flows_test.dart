@@ -9,7 +9,6 @@ import 'package:oncare_trainer/app/bootstrap.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/pages/clients_page.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
@@ -18,7 +17,8 @@ import 'package:oncare_trainer/features/consultations/presentation/pages/consult
 import 'package:oncare_trainer/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare_trainer/features/messages/presentation/pages/messages_page.dart';
 import 'package:oncare_trainer/features/schedule/presentation/pages/schedule_page.dart';
-import 'package:oncare_ui/oncare_ui.dart' show AppButton, AppDialog;
+import 'package:oncare_ui/oncare_ui.dart'
+    show AppButton, AppDialog, OnCareBrand;
 
 const String _trainerEmail = 'trainer@oncare.com';
 const String _memberEmail = 'jisu@oncare.com';
@@ -462,7 +462,7 @@ void main() {
             widget is Container &&
             widget.decoration is BoxDecoration &&
             (widget.decoration! as BoxDecoration).color ==
-                AppColors.accentSurface,
+                OnCareBrand.trainer.surface,
       ),
     );
     expect(

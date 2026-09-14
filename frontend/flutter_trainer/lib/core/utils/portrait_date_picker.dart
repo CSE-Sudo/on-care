@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 앱 전역에서 날짜 하나를 고르는 공용 달력 모달.
 ///
@@ -106,13 +104,13 @@ class _PortraitDatePickerDialogState extends State<_PortraitDatePickerDialog> {
     }
     return Dialog(
       key: const Key('portraitDatePicker'),
-      backgroundColor: AppColors.card,
+      backgroundColor: OnCareColors.surfaceCard,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(AppRadius.card),
+        borderRadius: BorderRadius.all(OnCareRadius.xl),
       ),
       insetPadding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.xl,
+        horizontal: OnCareSpacing.s16,
+        vertical: OnCareSpacing.s24,
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
@@ -122,7 +120,7 @@ class _PortraitDatePickerDialogState extends State<_PortraitDatePickerDialog> {
           child: Padding(
             // 시간 선택 다이얼로그(`_TimeRangePickerDialog`)와 같은 여백을
             // 써서 두 다이얼로그의 크기 차이가 두드러지지 않게 한다.
-            padding: const EdgeInsets.all(AppSpacing.xl),
+            padding: const EdgeInsets.all(OnCareSpacing.s24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -135,7 +133,7 @@ class _PortraitDatePickerDialogState extends State<_PortraitDatePickerDialog> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.foreground,
+                          color: OnCareColors.textPrimary,
                         ),
                       ),
                     ),
@@ -159,7 +157,7 @@ class _PortraitDatePickerDialogState extends State<_PortraitDatePickerDialog> {
                   ),
                   onChanged: (String text) => _handleTextChanged(l, text),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: OnCareSpacing.s8),
                 CalendarDatePicker(
                   key: ValueKey<DateTime>(_selected),
                   initialDate: _selected,
@@ -168,7 +166,7 @@ class _PortraitDatePickerDialogState extends State<_PortraitDatePickerDialog> {
                   onDateChanged: (DateTime date) =>
                       _handleCalendarChanged(l, date),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: OnCareSpacing.s8),
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -178,7 +176,7 @@ class _PortraitDatePickerDialogState extends State<_PortraitDatePickerDialog> {
                         child: Text(l.cancelButtonLabel),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: OnCareSpacing.s8),
                     Expanded(
                       child: FilledButton(
                         key: const Key('portraitDatePickerConfirm'),
@@ -375,13 +373,13 @@ class _PortraitDateRangePickerDialogState
     }
     return Dialog(
       key: const Key('portraitDateRangePicker'),
-      backgroundColor: AppColors.card,
+      backgroundColor: OnCareColors.surfaceCard,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(AppRadius.card),
+        borderRadius: BorderRadius.all(OnCareRadius.xl),
       ),
       insetPadding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.xl,
+        horizontal: OnCareSpacing.s16,
+        vertical: OnCareSpacing.s24,
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
@@ -391,7 +389,7 @@ class _PortraitDateRangePickerDialogState
           child: Padding(
             // 시간 선택 다이얼로그(`_TimeRangePickerDialog`)와 같은 여백을
             // 써서 두 다이얼로그의 크기 차이가 두드러지지 않게 한다.
-            padding: const EdgeInsets.all(AppSpacing.xl),
+            padding: const EdgeInsets.all(OnCareSpacing.s24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -404,7 +402,7 @@ class _PortraitDateRangePickerDialogState
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.foreground,
+                          color: OnCareColors.textPrimary,
                         ),
                       ),
                     ),
@@ -433,7 +431,7 @@ class _PortraitDateRangePickerDialogState
                             _handleStartTextChanged(l, text),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: OnCareSpacing.s8),
                     Expanded(
                       child: TextField(
                         key: const Key('portraitDateRangePickerEndInput'),
@@ -449,7 +447,7 @@ class _PortraitDateRangePickerDialogState
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: OnCareSpacing.s8),
                 Row(
                   children: <Widget>[
                     IconButton(
@@ -479,7 +477,7 @@ class _PortraitDateRangePickerDialogState
                   end: _end,
                   onDayTap: (DateTime day) => _handleCalendarTap(l, day),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: OnCareSpacing.s8),
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -489,7 +487,7 @@ class _PortraitDateRangePickerDialogState
                         child: Text(l.cancelButtonLabel),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: OnCareSpacing.s8),
                     Expanded(
                       child: FilledButton(
                         key: const Key('portraitDateRangePickerConfirm'),
@@ -550,7 +548,7 @@ class _MonthGrid extends StatelessWidget {
                     weekday,
                     style: const TextStyle(
                       fontSize: 12,
-                      color: AppColors.mutedForeground,
+                      color: OnCareColors.textSecondary,
                     ),
                   ),
                 ),
@@ -599,7 +597,7 @@ class _MonthGrid extends StatelessWidget {
         decoration: BoxDecoration(
           // 띠와 시작·종료일 원을 같은 진한 색으로 둬, 두 원이 띠 하나로
           // 이어진 것처럼 보이게 한다 — 옅은 배경색을 따로 쓰지 않는다.
-          color: inBand ? AppColors.primary : Colors.transparent,
+          color: inBand ? OnCareBrand.trainer.primary : Colors.transparent,
           borderRadius: bandRadius,
         ),
         child: Center(
@@ -609,8 +607,8 @@ class _MonthGrid extends StatelessWidget {
               color: inBand
                   ? Colors.white
                   : disabled
-                  ? AppColors.mutedForeground
-                  : AppColors.foreground,
+                  ? OnCareColors.textSecondary
+                  : OnCareColors.textPrimary,
               fontWeight: isCap ? FontWeight.w700 : FontWeight.w400,
             ),
           ),

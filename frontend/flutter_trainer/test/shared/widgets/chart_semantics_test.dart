@@ -12,7 +12,7 @@ import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
 import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
 import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
-import 'package:oncare_trainer/shared/widgets/period_scroll_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 Future<Map<String, String>> _perLocale(
   WidgetTester tester,

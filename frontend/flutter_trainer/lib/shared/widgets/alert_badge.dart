@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// The colour that carries [alert]'s meaning.
 ///
@@ -13,11 +12,11 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 /// 예전에는 완만한 주의를 주황으로 따로 두었는데, 회원이 자기 폰에서 빨갛게 보는
 /// 것을 트레이너는 주황으로 봐서 **두 앱이 같은 사실을 다른 세기로** 말했다(#690).
 Color alertColor(ClientAlert alert) => switch (alert) {
-  ClientAlert.unanswered => AppColors.primary,
-  ClientAlert.sodiumOver => AppColors.overTarget,
+  ClientAlert.unanswered => OnCareBrand.trainer.primary,
+  ClientAlert.sodiumOver => OnCareColors.danger,
   // 회원 앱이 당류 초과를 빨갛게 보여 준다 — 같은 사실을 같은 세기로.
-  ClientAlert.sugarOver => AppColors.overTarget,
-  ClientAlert.lowCompletion => AppColors.warning,
+  ClientAlert.sugarOver => OnCareColors.danger,
+  ClientAlert.lowCompletion => OnCareColors.danger,
 };
 
 /// A pill naming why a client is flagged.
@@ -47,7 +46,7 @@ class AlertBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
-        borderRadius: const BorderRadius.all(AppRadius.pill),
+        borderRadius: const BorderRadius.all(OnCareRadius.pill),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

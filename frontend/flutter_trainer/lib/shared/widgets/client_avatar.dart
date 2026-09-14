@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 
 /// The navy gradient circle + initial used for a client everywhere they
 /// appear (list card, detail header, chat bubbles). Optionally shows an
@@ -33,18 +33,18 @@ class ClientAvatar extends StatelessWidget {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[AppColors.accent, AppColors.accentDark],
+          colors: <Color>[OnCareBrand.trainer.primary, OnCareBrand.trainer.strong],
         ),
       ),
       child: Text(
         label,
         style: TextStyle(
-          color: AppColors.accentForeground,
+          color: OnCareColors.textOnFill,
           fontWeight: FontWeight.w800,
           fontSize: size * 0.34,
         ),
@@ -70,9 +70,9 @@ class ClientAvatar extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: active
-                    ? AppColors.success
-                    : AppColors.disabledForeground,
-                border: Border.all(color: AppColors.card, width: 2),
+                    ? OnCareColors.success
+                    : OnCareColors.textDisabled,
+                border: Border.all(color: OnCareColors.surfaceCard, width: 2),
               ),
             ),
           ),

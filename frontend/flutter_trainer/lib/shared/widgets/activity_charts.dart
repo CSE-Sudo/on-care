@@ -27,28 +27,24 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/typography.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
-import 'package:oncare_trainer/shared/widgets/period_scroll_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 소모 칼로리 색. **트레이너 메인 색**이다 (#1168).
 ///
-/// 유형 셋이 쓰는 램프([AppColors.chartCardio] 이하)보다 한 단계 진하다 — 도넛과
+/// 유형 셋이 쓰는 램프([OnCareBrand.trainer.exerciseCardio] 이하)보다 한 단계 진하다 — 도넛과
 /// 링이 재는 것은 유형이 아니라 그 셋이 함께 만든 결과라, 램프의 어느 단계와도
 /// 겹치면 안 된다. 흰 글자 대비로 4.5 : 3.4 : 2.0 : 1.4 로 네 값이 차례로
 /// 벌어진다(회원 앱과 같은 간격).
-const Color kBurnColor = AppColors.exerciseChart;
+final Color kBurnColor = OnCareBrand.trainer.primary;
 
 /// 유형 색 — 회원 앱과 같은 순서·같은 농담이다.
 Color kindColor(ExerciseKind kind) => switch (kind) {
-  ExerciseKind.cardio => AppColors.chartCardio,
-  ExerciseKind.strength => AppColors.chartStrength,
-  ExerciseKind.stretching => AppColors.chartStretching,
+  ExerciseKind.cardio => OnCareBrand.trainer.exerciseCardio,
+  ExerciseKind.strength => OnCareBrand.trainer.exerciseStrength,
+  ExerciseKind.stretching => OnCareBrand.trainer.exerciseStretching,
 };
 
 /// 유형 이름.
@@ -306,7 +302,7 @@ class ActivityStreakLine extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: AppColors.brandOrange.withValues(alpha: 0.12),
+          color: OnCareColors.cautionFill.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Row(
@@ -317,7 +313,7 @@ class ActivityStreakLine extends StatelessWidget {
             const Icon(
               Icons.bolt_rounded,
               size: 17,
-              color: AppColors.brandOrange,
+              color: OnCareColors.cautionFill,
             ),
             const SizedBox(width: 4),
             Flexible(
@@ -328,7 +324,7 @@ class ActivityStreakLine extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.brandOrange,
+                  color: OnCareColors.cautionFill,
                 ),
               ),
             ),
@@ -436,7 +432,7 @@ class BurnGoalRings extends StatelessWidget {
                                 // 한 줄로 붙는다 (회원 앱 #1352).
                                 if (split.otherMinutes > 0)
                                   ActivityValueRow(
-                                    color: AppColors.borderStrong,
+                                    color: OnCareColors.lineStrong,
                                     label: l.exTypeOther,
                                     value: l.minutesShort(
                                       split.otherMinutes.round(),
@@ -487,7 +483,7 @@ class ActivityHeadlineLine extends StatelessWidget {
           style: const TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w700,
-            color: AppColors.mutedForeground,
+            color: OnCareColors.textSecondary,
           ),
         ),
         const SizedBox(width: 6),
@@ -496,7 +492,7 @@ class ActivityHeadlineLine extends StatelessWidget {
           style: const TextStyle(
             fontSize: 21,
             fontWeight: FontWeight.w800,
-            color: AppColors.foreground,
+            color: OnCareColors.textPrimary,
             letterSpacing: -0.4,
           ),
         ),
@@ -506,7 +502,7 @@ class ActivityHeadlineLine extends StatelessWidget {
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w700,
-            color: AppColors.subtleForeground,
+            color: OnCareColors.textTertiary,
           ),
         ),
       ],
@@ -580,8 +576,8 @@ class ActivityValueRow extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: muted
-                  ? AppColors.disabledForeground
-                  : AppColors.mutedForeground,
+                  ? OnCareColors.textDisabled
+                  : OnCareColors.textSecondary,
             ),
           ),
           const SizedBox(width: 12),
@@ -593,7 +589,7 @@ class ActivityValueRow extends StatelessWidget {
                 if (g != null)
                   TextSpan(
                     text: g,
-                    style: const TextStyle(color: AppColors.mutedForeground),
+                    style: const TextStyle(color: OnCareColors.textSecondary),
                   ),
               ],
             ),
@@ -603,8 +599,8 @@ class ActivityValueRow extends StatelessWidget {
               fontSize: 14,
               fontWeight: FontWeight.w800,
               color: muted
-                  ? AppColors.disabledForeground
-                  : AppColors.foreground,
+                  ? OnCareColors.textDisabled
+                  : OnCareColors.textPrimary,
               letterSpacing: -0.2,
             ),
           ),
@@ -631,7 +627,7 @@ class ActivityLegend extends StatelessWidget {
         height: 9,
         decoration: BoxDecoration(
           color: color,
-          borderRadius: const BorderRadius.all(AppRadius.xs),
+          borderRadius: const BorderRadius.all(OnCareRadius.sm),
         ),
       ),
       const SizedBox(width: 6),
@@ -640,7 +636,7 @@ class ActivityLegend extends StatelessWidget {
         style: const TextStyle(
           fontSize: 11.5,
           fontWeight: FontWeight.w600,
-          color: AppColors.mutedForeground,
+          color: OnCareColors.textSecondary,
         ),
       ),
     ],
@@ -746,8 +742,6 @@ class BurnBarChart extends StatelessWidget {
                     (i == 0 || dates[i].month != dates[i - 1].month)
                 ? DateFormat.MMM(locale).format(dates[i])
                 : '',
-            calloutBuilder: (BuildContext context, int i) =>
-                const SizedBox.shrink(),
             // 눈금선(0·50·100%)과 달 경계 파선을 막대 뒤에 깐다 — 회원 앱
             // 운동 탭 `전체` 그래프와 같은 자다.
             background: _ChartGridPainter(
@@ -765,17 +759,17 @@ class BurnBarChart extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.foreground,
+                  color: OnCareColors.textPrimary,
                   height: 1.35,
                 ),
                 children: _tipSpans(l, i),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.inputBackground,
+                color: OnCareColors.surfaceInput,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.borderStrong),
-                boxShadow: kCardShadow,
+                border: Border.all(color: OnCareColors.lineStrong),
+                boxShadow: OnCareShadows.card,
               ),
               child: _BurnBarColumn(
                 value: calories[i].toDouble(),
@@ -829,7 +823,7 @@ class _BurnBarColumn extends StatelessWidget {
           child: Container(
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.borderStrong,
+              color: OnCareColors.lineStrong,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -850,7 +844,7 @@ class _BurnBarColumn extends StatelessWidget {
             child: SizedBox(
               height: math.max((value / max).clamp(0.0, 1.0) * height, 3),
               child: total <= 0
-                  ? const ColoredBox(color: kBurnColor)
+                  ? ColoredBox(color: kBurnColor)
                   : Column(
                       // 가로로 늘려야 한다 — 가운데 정렬(기본값)이면 조각마다
                       // 폭이 0 이 되어 막대가 통째로 사라진다.
@@ -920,21 +914,21 @@ class _DonutPainter extends CustomPainter {
           caption,
           size.width * 0.085,
           FontWeight.w700,
-          AppColors.subtleForeground,
+          OnCareColors.textTertiary,
           inner,
         ),
       _layout(
         center,
         size.width * 0.2,
         FontWeight.w800,
-        AppColors.foreground,
+        OnCareColors.textPrimary,
         inner,
       ),
       _layout(
         unit,
         size.width * 0.105,
         FontWeight.w700,
-        AppColors.subtleForeground,
+        OnCareColors.textTertiary,
         inner,
       ),
     ], gap: size.width * 0.012);
@@ -954,7 +948,7 @@ class _DonutPainter extends CustomPainter {
           // 캔버스에 직접 그리는 글자는 테마를 타지 않는다 — 앱 폰트를 손으로
           // 붙여 준다. 한글 머리줄이 붙으면서 필요해졌다: 기본 폰트로 떨어지면
           // 웹에서 두부(□)로 나온다 (회원 앱 #1352).
-          fontFamily: AppTypography.fontFamily,
+          fontFamily: OnCareTypography.fontFamily,
           fontSize: fontSize,
           fontWeight: w,
           color: color,

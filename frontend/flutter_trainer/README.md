@@ -150,19 +150,19 @@ flutter run -d chrome   --dart-define=USE_MOCK_API=false   --dart-define=API_BAS
 ## 구조
 
 [frontend/flutter/docs/STRUCTURE.md](../flutter/docs/STRUCTURE.md)의 레이어 규칙
-(app / core / shared / design_system / features, 단방향 의존)을 그대로 따릅니다.
+(app / core / shared / features, 단방향 의존)을 그대로 따릅니다. 디자인 토큰·테마·공용
+컴포넌트는 두 앱이 함께 쓰는 [`shared/oncare_ui`](../../shared/oncare_ui/README.md) 에 있고,
+이 앱은 브랜드(트레이너 남색)와 밀도(웹)만 정합니다.
 
 ```
 lib/
-├─ app/            # 부트스트랩, GoRouter(+세션 인증 게이트)
+├─ app/            # 부트스트랩, GoRouter(+세션 인증 게이트), app_theme(oncare_ui 위임)
 │  ├─ router/      # routes(경로 상수·빌더) · app_router(6 브랜치 셸)
 │  └─ shell/       # app_shell(반응형 셸) · app_sidebar · nav_destinations
 ├─ core/           # drift DB·시드, 토큰 저장, 날짜 유틸(ymd·koreanDateLabel)
 ├─ shared/         # 여러 feature 공유: TrainerClient·ClientAlert 모델,
-│                  # ClientRepository/ChatRepository, PageScaffold·SectionCard·
-│                  # StatCard·ActionButton·mini_charts(BarSeriesChart)
+│                  # ClientRepository/ChatRepository, mini_charts(BarSeriesChart)
 │                  # metric_trend_chart(주간 추이 꺾은선)
-├─ design_system/  # 토큰(남색 primary + 오렌지 액센트), 테마
 └─ features/       # auth / dashboard / clients / schedule / coaching / reports / my
 ```
 

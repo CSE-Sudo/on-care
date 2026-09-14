@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_ai_analysis_card.dart';
@@ -263,7 +262,7 @@ void main() {
       // 목표 안쪽은 **메인 색**이다 (#1166) — 회원 앱이 자기 메인 색을 쓰는
       // 자리와 같다. 초록은 "정상" 으로 읽혀서 목표에 한참 못 미친 날까지
       // 괜찮다고 말한다.
-      expect(calorieProgress.color, AppColors.statusWithinGoal);
+      expect(calorieProgress.color, OnCareBrand.trainer.primary);
       for (final String label in <String>['탄수화물', '단백질', '지방']) {
         expect(
           find.byKey(Key('client-nutrition-macro-$label')),
@@ -383,7 +382,7 @@ void main() {
                   matching: find.byType(AppProgressBar),
                 ),
               )
-              .any((bar) => bar.color == AppColors.statusWithinGoal),
+              .any((bar) => bar.color == OnCareBrand.trainer.primary),
           isTrue,
           reason: '$key 목표 안쪽 막대가 트레이너 메인 색을 써야 합니다.',
         );
