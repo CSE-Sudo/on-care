@@ -33,8 +33,10 @@ class ProgramEditorState {
   final List<ProgramSessionDraft> sessions;
 
   /// 프로그램 전체의 운동 수.
-  int get exerciseCount =>
-      sessions.fold<int>(0, (count, session) => count + session.exercises.length);
+  int get exerciseCount => sessions.fold<int>(
+    0,
+    (count, session) => count + session.exercises.length,
+  );
 
   /// 세션을 하나 더 추가할 수 있는가(#1583).
   bool get canAddSession => sessions.length < kProgramMaxSessions;
