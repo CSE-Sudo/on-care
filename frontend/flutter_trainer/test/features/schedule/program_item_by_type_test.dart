@@ -5,6 +5,7 @@ import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_program_section.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 유형마다 재는 단위가 다르다(#1276) — 근력은 세트·횟수·중량, 나머지는 시간.
 ///
@@ -79,6 +80,11 @@ void main() {
     Future<void> pumpRow(WidgetTester tester, ProgramItem item) =>
         tester.pumpWidget(
           MaterialApp(
+            // 행이 규격 토큰(`context.oncare`)을 읽는다 — 앱과 같은 테마를 준다.
+            theme: OnCareTheme.light(
+              brand: OnCareBrand.trainer,
+              density: OnCareDensity.web,
+            ),
             locale: const Locale('ko'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,

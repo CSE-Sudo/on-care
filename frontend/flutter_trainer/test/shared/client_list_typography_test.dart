@@ -5,7 +5,6 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../helpers/client_factory.dart';
@@ -17,9 +16,9 @@ import '../helpers/pump_app.dart';
 /// 같은데, 이름 글씨는 13.5 와 15, 아바타는 32 와 38 로 갈려 있었다. 탭을
 /// 오갈 때 같은 목록이 다른 밀도로 보인다.
 ///
-/// #1705 에서 프로그램(코칭) 탭 목록은 공용 `oncare_ui` 규격(역할 글자·
-/// [AppAvatar])으로 옮겼다. 리포트 탭은 아직 옛 공용 값이라, 두 탭을 각자의
-/// 기준으로 따로 확인한다.
+/// #1705 에서 프로그램(코칭) 탭 목록을, #1706 에서 리포트 탭 목록을 공용
+/// `oncare_ui` 규격(역할 글자·[AppAvatar])으로 옮겼다. 두 탭은 행 위젯이 달라
+/// 각자의 기준으로 따로 확인한다.
 void main() {
   const String goal = '혈압 관리 · 체중 감량';
 
@@ -80,16 +79,6 @@ void main() {
         .dimension;
   }
 
-  /// [rowKey] 행 안 [ClientAvatar] 의 지름.
-  double avatarSizeIn(WidgetTester tester, String rowKey) {
-    final Finder row = find.byKey(ValueKey<String>(rowKey));
-    return tester
-        .widget<ClientAvatar>(
-          find.descendant(of: row, matching: find.byType(ClientAvatar)),
-        )
-        .size;
-  }
-
   void expectAvatarCentered(
     WidgetTester tester,
     String rowKey, {
@@ -144,27 +133,35 @@ void main() {
     );
   });
 
-  testWidgets('리포트 탭 회원명은 공용 목록 크기·굵기를 쓴다', (tester) async {
+  // 리포트 탭은 공용 UI 규격(#1706)의 목록 행으로 옮겼다 — 이름·목표 글씨와
+  // 아바타 크기는 `AppListRow`·`AppAvatar` 가 정한다.
+  testWidgets('리포트 탭 회원 목록은 공용 목록 행을 쓴다 (#1706)', (tester) async {
     await openTab(tester, AppRoutes.reports);
 
-    final TextStyle selected = nameStyleIn(
-      tester,
-      'report-client-type-a',
-      '가회원',
-    );
-    final TextStyle unselected = nameStyleIn(
-      tester,
-      'report-client-type-b',
-      '나회원',
-    );
+    AppListRow rowOf(String key) =>
+        tester.widget<AppListRow>(find.byKey(ValueKey<String>(key)));
+    // 첫 회원이 기본으로 선택된다.
+    expect(rowOf('report-client-type-a').selected, isTrue);
+    expect(rowOf('report-client-type-b').selected, isFalse);
 
-    expect(selected.fontSize, clientListNameFontSize);
-    expect(unselected.fontSize, clientListNameFontSize);
-    expect(selected.fontWeight, FontWeight.w800);
-    expect(unselected.fontWeight, FontWeight.w600);
-    expect(goalSizeIn(tester, 'report-client-type-a'), clientListGoalFontSize);
-    expect(avatarSizeIn(tester, 'report-client-type-a'), clientListAvatarSize);
-    expectAvatarCentered(tester, 'report-client-type-a');
+    // 고를 때 이름 크기가 달라져 행 높이가 흔들리지 않는다.
+    expect(
+      nameStyleIn(tester, 'report-client-type-a', '가회원').fontSize,
+      nameStyleIn(tester, 'report-client-type-b', '나회원').fontSize,
+    );
+    final Finder row = find.byKey(
+      const ValueKey<String>('report-client-type-a'),
+    );
+    expect(
+      find.descendant(of: row, matching: find.text(goal)),
+      findsOneWidget,
+    );
+    final Finder avatar = find.descendant(
+      of: row,
+      matching: find.byType(AppAvatar),
+    );
+    expect(tester.widget<AppAvatar>(avatar).size, AppAvatarSize.medium);
+    expect(tester.getCenter(avatar).dy, closeTo(tester.getCenter(row).dy, 0.1));
   });
 
   testWidgets('긴 이름과 큰 배율에서도 행이 넘치지 않는다', (tester) async {

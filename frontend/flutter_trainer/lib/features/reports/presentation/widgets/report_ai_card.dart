@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 요약 카드 — 트레이너가 매주 같은 문장을 처음부터 쓰지 않게 한다.
 ///
@@ -17,6 +15,9 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 /// 데모에는 모델이 없어 수치에서 조립한 문장이 온다. 실서버도 공급자 장애면
 /// 같은 문장으로 되돌아온다 — 그 경우 `생성` 배지를 달지 않아, 트레이너가 이
 /// 문장을 어디까지 믿을지 알 수 있다.
+///
+/// 화면의 AI 카드는 이것 하나다 — 그라디언트·단색 강조 카드 대신 일반 카드에
+/// AI 아이콘 제목을 단다(#1690).
 class ReportAiCard extends ConsumerWidget {
   const ReportAiCard({
     super.key,
@@ -41,73 +42,51 @@ class ReportAiCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final key = (client: report.client, weekStart: report.weekStart);
     final summary = ref.watch(reportSummaryProvider(key));
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.aiCardGradientStart,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.aiCardGradientEnd),
+    final Widget content = summary.when(
+      loading: () => const AppLoading(placement: AppStatePlacement.card),
+      // 생성이 실패해도 카드가 비지 않는다 — 예전 안내문으로 되돌아가 그
+      // 자리에 무엇이 올지는 말해 준다.
+      error: (_, _) => Text(
+        l.reportsAiUnavailable,
+        style: tokens
+            .text(OnCareTypography.bodySmall)
+            .copyWith(color: OnCareColors.textSecondary),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      data: (value) => _SummaryBody(
+        summary: value,
+        actions: summaryCoachingActions(l, report),
+        // 자리가 모자라 접은 주의사항이 몇 건인지 말한다 — 말하지 않으면
+        // 카드가 다 보여 준 것으로 읽힌다(#1430).
+        hiddenCount: summaryHiddenWatchCount(l, report),
+        fill: fill,
+        onRegenerate: () => ref.invalidate(reportSummaryProvider(key)),
+        onUseAsDraft: () => onUseAsDraft(value.asDraft),
+      ),
+    );
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
         children: <Widget>[
-          const Icon(Icons.auto_awesome, color: AppColors.primary, size: 19),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        l.reportsAiTitle,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    if (summary.valueOrNull?.isGenerated ?? false)
-                      Text(
-                        l.reportsAiGenerated,
-                        style: const TextStyle(
-                          color: AppColors.subtleForeground,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                  ],
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSectionHeader(
+                  title: l.reportsAiTitle,
+                  icon: Icons.auto_awesome_rounded,
                 ),
-                const SizedBox(height: 3),
-                // 한 번만 조립하고, 자리를 채울 때만 [Expanded] 로 감싼다.
-                () {
-                  final Widget content = summary.when(
-                    loading: () => _Muted(text: l.reportsAiLoading),
-                    // 생성이 실패해도 카드가 비지 않는다 — 예전 안내문으로
-                    // 되돌아가 그 자리에 무엇이 올지는 말해 준다.
-                    error: (_, _) => _Muted(text: l.reportsAiUnavailable),
-                    data: (value) => _SummaryBody(
-                      summary: value,
-                      actions: summaryCoachingActions(l, report),
-                      // 자리가 모자라 접은 주의사항이 몇 건인지 말한다 —
-                      // 말하지 않으면 카드가 다 보여 준 것으로 읽힌다(#1430).
-                      hiddenCount: summaryHiddenWatchCount(l, report),
-                      fill: fill,
-                      onRegenerate: () =>
-                          ref.invalidate(reportSummaryProvider(key)),
-                      onUseAsDraft: () => onUseAsDraft(value.asDraft),
-                    ),
-                  );
-                  return fill ? Expanded(child: content) : content;
-                }(),
+              ),
+              if (summary.valueOrNull?.isGenerated ?? false) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand),
               ],
-            ),
+            ],
           ),
+          const SizedBox(height: OnCareSpacing.s8),
+          if (fill) Expanded(child: content) else content,
         ],
       ),
     );
@@ -141,102 +120,82 @@ class _SummaryBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final TextStyle detail = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textSecondary);
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         Text(
           summary.headline,
-          style: const TextStyle(
-            color: AppColors.foreground,
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            height: 1.4,
-          ),
+          style: tokens
+              .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+              .copyWith(color: OnCareColors.textPrimary),
         ),
         for (final point in summary.points) ...<Widget>[
-          const SizedBox(height: 2),
-          Text(
-            '· $point',
-            style: const TextStyle(
-              color: AppColors.mutedForeground,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text('· $point', style: detail),
         ],
         if (actions.isNotEmpty) ...<Widget>[
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s12),
           Text(
             l.reportsAiNextWeek,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w800,
-            ),
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: tokens.brand.primary),
           ),
-          const SizedBox(height: 3),
           for (var i = 0; i < actions.length; i++) ...<Widget>[
-            const SizedBox(height: 3),
+            const SizedBox(height: OnCareSpacing.s4),
             Row(
               key: ValueKey<String>('reports-summary-action-$i'),
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Padding(
-                  padding: EdgeInsets.only(top: 3),
-                  child: Icon(
-                    Icons.check_circle_outline,
-                    size: 13,
-                    color: AppColors.primary,
-                  ),
+                Icon(
+                  Icons.check_circle_outline_rounded,
+                  size: OnCareSize.iconSmall,
+                  color: tokens.brand.primary,
                 ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    actions[i],
-                    style: const TextStyle(
-                      color: AppColors.mutedForeground,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
-                      height: 1.4,
-                    ),
-                  ),
-                ),
+                const SizedBox(width: OnCareSpacing.s4),
+                Expanded(child: Text(actions[i], style: detail)),
               ],
             ),
           ],
           if (hiddenCount > 0) ...<Widget>[
-            const SizedBox(height: 3),
+            const SizedBox(height: OnCareSpacing.s4),
             Text(
               key: const ValueKey<String>('reports-summary-hidden'),
               l.reportsAiMoreWatchpoints(hiddenCount),
-              style: const TextStyle(
-                color: AppColors.subtleForeground,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.caption))
+                  .copyWith(color: OnCareColors.textTertiary),
             ),
           ],
         ],
       ],
     );
     final buttons = Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xs),
-      // 카드가 292px 왼쪽 열로 내려오면서(#897) 두 동작이 한 줄에 들어가지
-      // 않는 조합이 생겼다 — 영어 · 배율 1.3 이 그렇다. 줄을 접어 받는다.
+      padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+      // 왼쪽 열 폭에서 두 동작이 한 줄에 들어가지 않는 조합이 있다 — 영어 ·
+      // 배율 1.3 이 그렇다. 줄을 접어 받는다.
       child: Wrap(
-        spacing: AppSpacing.md,
-        runSpacing: AppSpacing.xs,
+        spacing: OnCareSpacing.buttonGap,
+        runSpacing: OnCareSpacing.s4,
         children: <Widget>[
-          _SummaryAction(
+          AppButton(
             label: l.reportsAiUseAsDraft,
-            icon: Icons.edit_note,
-            onTap: onUseAsDraft,
+            leadingIcon: Icons.edit_note_rounded,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+            onPressed: onUseAsDraft,
           ),
-          _SummaryAction(
+          AppButton(
             label: l.reportsAiRegenerate,
-            icon: Icons.refresh,
-            onTap: onRegenerate,
+            leadingIcon: Icons.refresh_rounded,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+            onPressed: onRegenerate,
           ),
         ],
       ),
@@ -263,60 +222,4 @@ class _SummaryBody extends StatelessWidget {
       ],
     );
   }
-}
-
-/// 아직 문장이 없을 때의 한 줄.
-class _Muted extends StatelessWidget {
-  const _Muted({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: const TextStyle(
-      color: AppColors.mutedForeground,
-      fontSize: 11.5,
-      fontWeight: FontWeight.w600,
-    ),
-  );
-}
-
-class _SummaryAction extends StatelessWidget {
-  const _SummaryAction({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: const BorderRadius.all(AppRadius.sm),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Icon(icon, size: 14, color: AppColors.primary),
-          const SizedBox(width: 3),
-          // 한 동작만으로도 열 폭을 넘는 조합이 있다 — 잘라내지 않고 접는다.
-          Flexible(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }

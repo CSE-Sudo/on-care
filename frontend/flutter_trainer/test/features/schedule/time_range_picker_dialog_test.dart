@@ -1,11 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/time_range_picker_dialog.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   Future<void> openPicker(WidgetTester tester) async {
+    // 대화상자가 시계 전체를 스크롤 없이 담는 창 크기.
+    tester.view.devicePixelRatio = 1.0;
+    tester.view.physicalSize = const Size(1200, 1000);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(
       MaterialApp(
+        theme: OnCareTheme.light(
+          brand: OnCareBrand.trainer,
+          density: OnCareDensity.web,
+        ),
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (BuildContext context) => TextButton(
             onPressed: () => showScheduleTimeRangePicker(
@@ -41,7 +55,7 @@ void main() {
     );
     expect(
       tester
-          .widget<FilledButton>(
+          .widget<AppButton>(
             find.byKey(const ValueKey<String>('session-time-range-confirm')),
           )
           .onPressed,
@@ -59,7 +73,7 @@ void main() {
     );
     expect(
       tester
-          .widget<FilledButton>(
+          .widget<AppButton>(
             find.byKey(const ValueKey<String>('session-time-range-confirm')),
           )
           .onPressed,

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 그 주에 **실제로 운동한 시간** — 유산소·근력·스트레칭으로 쌓은 한 줄.
 ///
@@ -23,6 +21,7 @@ class WeeklyExerciseMinutes extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final ClientPeriodKey key = (
       clientId: report.client.id,
       period: ClientPeriod.week,
@@ -36,63 +35,58 @@ class WeeklyExerciseMinutes extends ConsumerWidget {
     }
     final int total = period.totalMinutes;
     final int goal = period.weeklyGoalMinutes;
+    // 유형 셋은 다른 운동 그래프와 같은 램프다(#1168). 목표가 없는 `기타` 는
+    // 램프 밖의 중립 회색이다.
     final parts = <({String label, int minutes, Color color})>[
       (
         label: l.routineTypeCardio,
         minutes: period.totalCardioMinutes,
-        color: AppColors.chartCardio,
+        color: tokens.brand.exerciseCardio,
       ),
       (
         label: l.routineTypeStrength,
         minutes: period.totalStrengthMinutes,
-        color: AppColors.chartStrength,
+        color: tokens.brand.exerciseStrength,
       ),
       (
         label: l.routineTypeStretching,
         minutes: period.totalStretchingMinutes,
-        color: AppColors.chartStretching,
+        color: tokens.brand.exerciseStretching,
       ),
       (
         label: l.routineTypeOther,
         minutes: period.totalOtherMinutes,
-        color: AppColors.borderStrong,
+        color: OnCareColors.lineStrong,
       ),
     ].where((p) => p.minutes > 0).toList(growable: false);
     // 눈금 끝은 목표와 실제 중 큰 쪽. 목표를 넘긴 주의 막대가 잘리면 넘겼다는
     // 사실이 사라진다.
     final int ceiling = goal > total ? goal : total;
+    final TextStyle heading = tokens
+        .text(OnCareTypography.strong(OnCareTypography.caption))
+        .copyWith(color: OnCareColors.textTertiary);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Row(
           children: <Widget>[
-            Expanded(
-              child: Text(
-                l.clientTrendWorkoutMinutes,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.subtleForeground,
-                ),
-              ),
-            ),
+            Expanded(child: Text(l.clientTrendWorkoutMinutes, style: heading)),
             Text(
               goal > 0
                   ? '${l.minutesShort(total)} · ${l.reportsGoalOf(l.minutesShort(goal))}'
                   : l.minutesShort(total),
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w800,
-                color: AppColors.foreground,
-              ),
+              style: OnCareTypography.numeric(
+                tokens.text(OnCareTypography.strong(OnCareTypography.caption)),
+              ).copyWith(color: OnCareColors.textPrimary),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: OnCareSpacing.s4),
         ClipRRect(
-          borderRadius: const BorderRadius.all(AppRadius.pill),
+          borderRadius: OnCareRadius.pillAll,
           child: SizedBox(
-            height: 10,
+            // 리포트 탭의 가로 막대는 모두 진행 막대와 같은 굵기다.
+            height: OnCareSize.progressBar,
             child: Row(
               // 세로로 늘려야 한다 — 가운데 정렬(기본값)이면 자식이 스스로
               // 높이를 못 정해 막대가 통째로 사라진다.
@@ -108,37 +102,28 @@ class WeeklyExerciseMinutes extends ConsumerWidget {
                 if (ceiling > total)
                   Expanded(
                     flex: ceiling - total,
-                    child: const ColoredBox(color: AppColors.inputBackground),
+                    child: const ColoredBox(color: OnCareColors.surfaceInput),
                   ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: OnCareSpacing.s4),
         Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.xs,
+          spacing: OnCareSpacing.s12,
+          runSpacing: OnCareSpacing.s4,
           children: <Widget>[
             for (final part in parts)
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: part.color,
-                      borderRadius: const BorderRadius.all(Radius.circular(2)),
-                    ),
-                  ),
-                  const SizedBox(width: 5),
+                  AppChartSwatch(color: part.color),
+                  const SizedBox(width: OnCareSpacing.s4),
                   Text(
                     '${part.label} ${l.minutesShort(part.minutes)}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.mutedForeground,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textSecondary),
                   ),
                 ],
               ),

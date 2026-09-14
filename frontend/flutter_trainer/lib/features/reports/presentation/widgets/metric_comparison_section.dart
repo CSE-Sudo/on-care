@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/bar_line_chart.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
-import 'package:oncare_trainer/shared/widgets/metric_pill.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 운동 상자가 견주는 값.
 enum ExerciseCompareMetric {
@@ -38,6 +33,16 @@ enum DietCompareMetric {
   sugar,
 }
 
+/// 비교 그래프의 막대 영역 높이 — 막대 둘이 상자 안에서 값 차이가 읽히는 높이.
+const double _chartHeight = 96;
+
+/// 비교 그래프 막대 최대 폭 — 칸이 둘뿐이라 넓게 두되 통짜 블록이 되지 않게.
+const double _maxBarWidth = 46;
+
+/// 지표 색에서 꺾은선 색으로 어둡게 섞는 비율. 막대와 같은 계열을 유지하면서
+/// 옅은 색(스트레칭)의 선도 흰 바탕에서 보이게 한다.
+const double _lineDarken = 0.3;
+
 /// 이번 주 vs 지난 주 — 운동과 식단을 흰 상자 둘로 나눠 나란히 놓는다.
 ///
 /// 한 상자 안에서는 알약 버튼으로 지표를 갈아 끼우고, 그래프는 `주간 운동
@@ -53,10 +58,10 @@ class MetricComparisonSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
       decoration: const BoxDecoration(
-        color: AppColors.inputBackground,
-        borderRadius: BorderRadius.all(AppRadius.md),
+        color: OnCareColors.surfaceInput,
+        borderRadius: OnCareRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,25 +70,23 @@ class MetricComparisonSection extends StatelessWidget {
             l.reportsComparisonTitle(
               report.isCurrentWeek ? l.reportsThisWeek : l.reportsSelectedWeek,
             ),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              color: AppColors.foreground,
-            ),
+            style: context.oncare
+                .text(OnCareTypography.label)
+                .copyWith(color: OnCareColors.textPrimary),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           LayoutBuilder(
             builder: (context, constraints) {
               final Widget workout = _ExerciseComparisonBox(report: report);
               final Widget diet = _DietComparisonBox(report: report);
               // 좁은 카드에서는 위아래로 쌓는다 — 한 줄에 우겨넣으면 상자 하나가
               // 막대 둘도 못 담는 폭이 된다.
-              if (constraints.maxWidth < 620) {
+              if (constraints.maxWidth < OnCareLayout.tabletBreakpoint) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     workout,
-                    const SizedBox(height: AppSpacing.sm),
+                    const SizedBox(height: OnCareSpacing.s8),
                     diet,
                   ],
                 );
@@ -92,7 +95,7 @@ class MetricComparisonSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Expanded(child: workout),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: OnCareSpacing.s8),
                   Expanded(child: diet),
                 ],
               );
@@ -159,6 +162,7 @@ class _ComparisonBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     // 눈금 끝은 두 주와 목표를 모두 담는다. 그 주의 최댓값에 맞춰 늘이면 두 주가
     // 늘 같은 높이에서 조금 다른 그림이 된다.
     final double ceiling = <double>[
@@ -168,11 +172,11 @@ class _ComparisonBox extends StatelessWidget {
       1,
     ].reduce((a, b) => a > b ? a : b);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
+      padding: const EdgeInsets.all(OnCareSpacing.s8),
       decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.borderStrong),
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -181,21 +185,17 @@ class _ComparisonBox extends StatelessWidget {
             children: <Widget>[
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.foreground,
-                ),
+                style: tokens
+                    .text(OnCareTypography.label)
+                    .copyWith(color: OnCareColors.textPrimary),
               ),
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: OnCareSpacing.s4),
               Expanded(
                 child: Text(
                   caption,
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.subtleForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
                 ),
               ),
               _DeltaBadge(
@@ -206,7 +206,7 @@ class _ComparisonBox extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: OnCareSpacing.s4),
           // 범례는 알약 **오른쪽**에 둔다. 그래프 아래에 있던 때에는 칼로리를
           // 고를 때만 한 줄이 생겨 상자 높이가 달라졌고, 나란히 선 운동 상자와
           // 아래 끝이 어긋났다. 알약 줄은 지표와 무관하게 늘 있는 자리다(#1177).
@@ -214,13 +214,13 @@ class _ComparisonBox extends StatelessWidget {
             children: <Widget>[
               Flexible(
                 child: Wrap(
-                  spacing: AppSpacing.xs,
-                  runSpacing: AppSpacing.xs,
+                  spacing: OnCareSpacing.s4,
+                  runSpacing: OnCareSpacing.s4,
                   children: pills,
                 ),
               ),
               if (legend != null) ...<Widget>[
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 // 자리가 좁으면 줄을 접는 대신 글씨를 줄인다 — 접히는 순간
                 // 상자 높이가 다시 달라진다.
                 Flexible(
@@ -233,12 +233,9 @@ class _ComparisonBox extends StatelessWidget {
               ],
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           if (loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-              child: LinearProgressIndicator(minHeight: 2),
-            )
+            const AppLoading(placement: AppStatePlacement.card)
           else
             BarLineChart(
               values: <double?>[previous, current],
@@ -251,8 +248,8 @@ class _ComparisonBox extends StatelessWidget {
               format: format,
               emptyLabel: emptyLabel,
               highlightIndex: 1,
-              height: 96,
-              maxBarWidth: 46,
+              height: _chartHeight,
+              maxBarWidth: _maxBarWidth,
               semanticsLabel: semanticsLabel,
             ),
         ],
@@ -285,19 +282,20 @@ class _ExerciseComparisonBoxState
       };
 
   /// 지금 고른 지표의 색. 유형 셋은 다른 운동 그래프(주간 운동 시간·이행률
-  /// 막대)와 같은 램프를, 소모 칼로리는 그 셋이 함께 만든 결과를 뜻하는
-  /// [kBurnColor] 를 쓴다 — 같은 값이 화면마다 다른 색이면 색이 뜻을 잃는다.
-  Color get _metricColor => switch (_metric) {
-    ExerciseCompareMetric.burned => kBurnColor,
-    ExerciseCompareMetric.cardio => kindColor(ExerciseKind.cardio),
-    ExerciseCompareMetric.strength => kindColor(ExerciseKind.strength),
-    ExerciseCompareMetric.stretching => kindColor(ExerciseKind.stretching),
+  /// 막대)와 같은 램프를(#1168), 소모 칼로리는 그 셋이 함께 만든 결과를 뜻하는
+  /// 운동 그래프 색을 쓴다 — 같은 값이 화면마다 다른 색이면 색이 뜻을 잃는다.
+  Color _metricColor(OnCareBrand brand) => switch (_metric) {
+    ExerciseCompareMetric.burned => brand.exerciseChart,
+    ExerciseCompareMetric.cardio => brand.exerciseCardio,
+    ExerciseCompareMetric.strength => brand.exerciseStrength,
+    ExerciseCompareMetric.stretching => brand.exerciseStretching,
   };
 
   /// 꺾은선은 같은 색의 한 단계 진한 쪽이다. 스트레칭처럼 옅은 색은 흰 바탕
   /// 위에서 선이 거의 보이지 않는다 — 막대와 같은 계열을 유지하면서 선만
   /// 또렷하게 둔다.
-  Color get _metricLineColor => Color.lerp(_metricColor, Colors.black, 0.3)!;
+  Color _metricLineColor(OnCareBrand brand) =>
+      Color.lerp(_metricColor(brand), OnCareColors.textPrimary, _lineDarken)!;
 
   double? _value(ClientExercisePeriod? period) {
     if (period == null) return null;
@@ -314,12 +312,10 @@ class _ExerciseComparisonBoxState
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final OnCareBrand brand = context.oncare.brand;
     final report = widget.report;
-    ClientPeriodKey keyFor(DateTime week) => (
-      clientId: report.client.id,
-      period: ClientPeriod.week,
-      day: week,
-    );
+    ClientPeriodKey keyFor(DateTime week) =>
+        (clientId: report.client.id, period: ClientPeriod.week, day: week);
     final week = ref.watch(
       clientExercisePeriodProvider(keyFor(report.weekStart)),
     );
@@ -337,11 +333,11 @@ class _ExerciseComparisonBoxState
       caption: l.reportsWeekTotal,
       pills: <Widget>[
         for (final metric in ExerciseCompareMetric.values)
-          MetricPill(
+          AppChoiceChip(
             key: ValueKey<String>('compare-exercise-${metric.name}'),
             label: _label(l, metric),
             selected: metric == _metric,
-            onTap: () => setState(() => _metric = metric),
+            onSelected: (_) => setState(() => _metric = metric),
           ),
       ],
       previous: _value(before.valueOrNull),
@@ -356,8 +352,8 @@ class _ExerciseComparisonBoxState
       legend: null,
       // 지표를 바꾸면 그래프 색도 바뀐다 — 알약만 보고 무엇을 보고 있는지
       // 되짚지 않아도 되게(#1424).
-      barColor: _metricColor,
-      lineColor: _metricLineColor,
+      barColor: _metricColor(brand),
+      lineColor: _metricLineColor(brand),
       // 운동은 많이 할수록 좋은 값이다.
       higherIsBetter: true,
       loading: week.isLoading || before.isLoading,
@@ -419,20 +415,21 @@ class _DietComparisonBoxState extends ConsumerState<_DietComparisonBox> {
 
   /// 막대를 쌓을 조각. 몫은 **열량 기여분**이다(탄·단 4kcal/g, 지방 9kcal/g) —
   /// 그램으로 쌓으면 열량의 절반을 내는 지방이 가장 얇게 그려져 막대 전체가
-  /// 칼로리를 말하지 않게 된다.
-  List<BarSegment>? _segments(WeeklyReport? report) {
+  /// 칼로리를 말하지 않게 된다. 색은 메인 색 한 가지의 농담이다(#953).
+  List<BarSegment>? _segments(WeeklyReport? report, OnCareBrand brand) {
     final means = _macros(report);
     if (means.isEmpty) return null;
     return <BarSegment>[
-      (value: means[0] * 4, color: AppColors.macroCarbs),
-      (value: means[1] * 4, color: AppColors.macroProtein),
-      (value: means[2] * 9, color: AppColors.macroFat),
+      (value: means[0] * 4, color: brand.macroCarbs),
+      (value: means[1] * 4, color: brand.macroProtein),
+      (value: means[2] * 9, color: brand.macroFat),
     ];
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final OnCareBrand brand = context.oncare.brand;
     final report = widget.report;
     final previous = ref.watch(
       weeklyReportProvider((
@@ -455,11 +452,11 @@ class _DietComparisonBoxState extends ConsumerState<_DietComparisonBox> {
       caption: l.clientPeriodAverage,
       pills: <Widget>[
         for (final metric in DietCompareMetric.values)
-          MetricPill(
+          AppChoiceChip(
             key: ValueKey<String>('compare-diet-${metric.name}'),
             label: _label(l, metric),
             selected: metric == _metric,
-            onTap: () => setState(() => _metric = metric),
+            onSelected: (_) => setState(() => _metric = metric),
           ),
       ],
       previous: _value(before),
@@ -470,7 +467,10 @@ class _DietComparisonBoxState extends ConsumerState<_DietComparisonBox> {
           : l.reportsSelectedWeek,
       format: format,
       goal: _goal,
-      segments: <List<BarSegment>?>[_segments(before), _segments(report)],
+      segments: <List<BarSegment>?>[
+        _segments(before, brand),
+        _segments(report, brand),
+      ],
       legend: means.isEmpty
           ? null
           : _MacroLegend(means: means, unit: l.unitGram),
@@ -494,12 +494,16 @@ class _MacroLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final labels = <String>[l.metricCarbs, l.metricProtein, l.metricFat];
-    const colors = <Color>[
-      AppColors.macroCarbs,
-      AppColors.macroProtein,
-      AppColors.macroFat,
+    final colors = <Color>[
+      tokens.brand.macroCarbs,
+      tokens.brand.macroProtein,
+      tokens.brand.macroFat,
     ];
+    final TextStyle style = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textSecondary);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -507,24 +511,14 @@ class _MacroLegend extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: colors[i],
-                  borderRadius: const BorderRadius.all(Radius.circular(2)),
-                ),
-              ),
-              const SizedBox(width: 4),
+              AppChartSwatch(color: colors[i]),
+              const SizedBox(width: OnCareSpacing.s4),
               Text(
                 '${labels[i]} ${formatNumber(means[i].round())}$unit',
-                style: const TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.mutedForeground,
-                ),
+                style: style,
               ),
-              if (i < labels.length - 1) const SizedBox(width: AppSpacing.sm),
+              if (i < labels.length - 1)
+                const SizedBox(width: OnCareSpacing.s8),
             ],
           ),
       ],
@@ -556,18 +550,16 @@ class _DeltaBadge extends StatelessWidget {
         : current! - previous!;
     if (delta == null) return const SizedBox.shrink();
     final Color color = higherIsBetter == null
-        ? AppColors.mutedForeground
+        ? OnCareColors.textSecondary
         : (delta >= 0) == higherIsBetter!
-        ? AppColors.success
-        : AppColors.overTarget;
+        ? OnCareColors.success
+        : OnCareColors.danger;
     return Text(
       '${delta >= 0 ? '+' : '-'}${format(delta.abs())}',
       maxLines: 1,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-        color: color,
-      ),
+      style: OnCareTypography.numeric(
+        context.oncare.text(OnCareTypography.strong(OnCareTypography.caption)),
+      ).copyWith(color: color),
     );
   }
 }
