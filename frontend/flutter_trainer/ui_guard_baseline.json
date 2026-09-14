@@ -22,11 +22,6 @@
     "nonRoundedIcon": 4,
     "materialWidget": 15
   },
-  "lib/design_system/theme/app_theme.dart": {
-    "fontSize": 4,
-    "fontWeight": 4,
-    "materialWidget": 1
-  },
   "lib/design_system/tokens/colors.dart": {
     "colorLiteral": 37
   },
@@ -260,8 +255,8 @@
     "materialWidget": 18
   },
   "lib/features/coaching/presentation/widgets/program_editor_workspace.dart": {
-    "fontSize": 20,
-    "fontWeight": 17,
+    "fontSize": 21,
+    "fontWeight": 18,
     "lineHeight": 2,
     "edgeInsets": 2,
     "sizedBox": 2,
@@ -273,6 +268,7 @@
     "fontWeight": 2,
     "lineHeight": 1,
     "sizedBox": 1,
+    "nonRoundedIcon": 2,
     "materialWidget": 4
   },
   "lib/features/coaching/presentation/widgets/program_nutrition_summary_card.dart": {

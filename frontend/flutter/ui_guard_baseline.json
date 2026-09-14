@@ -99,9 +99,6 @@
     "edgeInsets": 1,
     "sizedBox": 1
   },
-  "lib/design_system/theme/app_theme.dart": {
-    "colorLiteral": 3
-  },
   "lib/design_system/tokens/colors.dart": {
     "colorLiteral": 25
   },
@@ -208,7 +205,7 @@
     "edgeInsets": 30,
     "sizedBox": 46,
     "animationDuration": 3,
-    "nonRoundedIcon": 10,
+    "nonRoundedIcon": 11,
     "materialWidget": 25
   },
   "lib/features/diet/presentation/widgets/diet_period_view.dart": {
