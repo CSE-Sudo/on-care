@@ -1362,7 +1362,10 @@ void main() {
       Future<void> returnToAi() async {
         final back = find.byKey(const ValueKey<String>('return-to-ai-flow'));
         expect(
-          find.descendant(of: back, matching: find.byIcon(Icons.chevron_left)),
+          find.descendant(
+            of: back,
+            matching: find.byIcon(Icons.chevron_left_rounded),
+          ),
           findsOneWidget,
         );
         await tester.tap(back);

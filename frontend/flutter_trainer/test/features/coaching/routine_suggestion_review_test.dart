@@ -222,7 +222,8 @@ void main() {
       final Rect nameRect = tester.getRect(find.textContaining(_shoulder.name));
       final Rect approveRect = tester.getRect(approveButton(_shoulder));
       expect(editRect.left, greaterThan(nameRect.right));
-      expect(dismissRect.left, greaterThan(editRect.right));
+      // 새 아이콘 버튼은 사이 여백 없이 붙는다 — 오른쪽 순서만 본다.
+      expect(dismissRect.left, greaterThanOrEqualTo(editRect.right));
       expect(editRect.center.dy, lessThan(approveRect.top));
       expect(dismissRect.center.dy, lessThan(approveRect.top));
     });
