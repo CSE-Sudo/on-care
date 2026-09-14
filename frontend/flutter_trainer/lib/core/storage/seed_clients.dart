@@ -184,22 +184,28 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[1600, 1760, 1380, 1850, 1560, 1480, 1680],
     sugarWeek: <double>[36.1, 39.9, 31.2, 41.8, 35.3, 33.4, 38.0],
     diet: <_Meal>[
-      _Meal('아침', '그릭요거트, 과일', 280, 200, carbsG: 40, proteinG: 15, fatG: 6),
-      _Meal(
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('그릭요거트', 180, 190, 6), _Food('블루베리', 100, 10, 9)],
+        carbsG: 40,
+        proteinG: 15,
+        fatG: 6,
+      ),
+      _Meal.of(
         '점심',
-        '현미밥, 불고기, 나물',
-        750,
-        980,
+        <_Food>[
+          _Food('현미밥', 310, 5, 0.5),
+          _Food('불고기', 330, 720, 9),
+          _Food('시금치나물', 110, 255, 1.5),
+        ],
         carbsG: 90,
         proteinG: 35,
         fatG: 20,
         photoAsset: 'assets/images/lunch-bulgogi-brown-rice.jpg',
       ),
-      _Meal(
+      _Meal.of(
         '저녁',
-        '연어 샐러드',
-        650,
-        620,
+        <_Food>[_Food('연어 샐러드', 650, 620, 12)],
         carbsG: 25,
         proteinG: 45,
         fatG: 40,
@@ -275,22 +281,28 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[2200, 1720, 2310, 1950, 1850, 2000, 2100],
     sugarWeek: <double>[57.8, 45.1, 60.5, 51.2, 48.4, 52.2, 55.0],
     diet: <_Meal>[
-      _Meal('아침', '계란 3개, 토스트', 480, 520, carbsG: 35, proteinG: 28, fatG: 24),
-      _Meal(
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('삶은 계란 3개', 230, 210, 1), _Food('잼 토스트', 250, 310, 12)],
+        carbsG: 35,
+        proteinG: 28,
+        fatG: 24,
+      ),
+      _Meal.of(
         '점심',
-        '짜장면',
-        890,
-        1200,
+        <_Food>[_Food('짜장면', 890, 1200, 26)],
         carbsG: 120,
         proteinG: 25,
         fatG: 30,
         photoAsset: 'assets/images/lunch-jjajangmyeon.jpg',
       ),
-      _Meal(
+      _Meal.of(
         '저녁',
-        '삼겹살, 쌈채소',
-        730,
-        680,
+        <_Food>[
+          _Food('삼겹살', 590, 260, 0.5),
+          _Food('쌈채소', 40, 20, 2.5),
+          _Food('쌈장', 100, 400, 13),
+        ],
         carbsG: 20,
         proteinG: 45,
         fatG: 50,
@@ -362,13 +374,27 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[1250, 1670, 1410, 1340, 1440, 1600, 1520],
     sugarWeek: <double>[26.2, 35.2, 29.8, 28.2, 30.4, 33.6, 32.0],
     diet: <_Meal>[
-      _Meal('아침', '통밀토스트, 아보카도', 340, 290, carbsG: 30, proteinG: 8, fatG: 20),
-      _Meal('점심', '닭가슴살 도시락', 520, 640, carbsG: 60, proteinG: 42, fatG: 12),
-      _Meal(
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('통밀토스트', 190, 270, 3), _Food('아보카도', 150, 20, 0.5)],
+        carbsG: 30,
+        proteinG: 8,
+        fatG: 20,
+      ),
+      _Meal.of(
+        '점심',
+        <_Food>[_Food('닭가슴살 도시락', 520, 640, 9.5)],
+        carbsG: 60,
+        proteinG: 42,
+        fatG: 12,
+      ),
+      _Meal.of(
         '저녁',
-        '채소 스프, 두부, 현미밥',
-        660,
-        720,
+        <_Food>[
+          _Food('채소 스프', 150, 480, 14),
+          _Food('두부', 220, 230, 4.5),
+          _Food('현미밥', 290, 10, 0.5),
+        ],
         carbsG: 90,
         proteinG: 28,
         fatG: 21,
@@ -434,35 +460,47 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[2480, 2610, 2540, 2660, 2720, 2390, 2600],
     sugarWeek: <double>[35.4, 32.5, 30.4, 33.9, 36.1, 29.0, 34.0],
     diet: <_Meal>[
-      _Meal(
+      _Meal.of(
         '아침',
-        '오트밀, 바나나, 견과',
-        520,
-        190,
+        <_Food>[
+          _Food('오트밀', 260, 160, 1),
+          _Food('바나나', 110, 0, 6),
+          _Food('견과', 150, 30, 1),
+        ],
         carbsG: 72,
         proteinG: 15,
         fatG: 19,
         photoAsset: 'assets/images/diet-oatmeal-banana.jpeg',
       ),
-      _Meal(
+      _Meal.of(
         '점심',
-        '현미밥, 흰살생선, 나물',
-        780,
-        600,
+        <_Food>[
+          _Food('현미밥', 330, 10, 0.5),
+          _Food('흰살생선', 300, 340, 0),
+          _Food('나물', 150, 250, 0.5),
+        ],
         carbsG: 105,
         proteinG: 47,
         fatG: 19,
       ),
-      _Meal(
+      _Meal.of(
         '저녁',
-        '닭가슴살, 고구마, 파스타',
-        900,
-        560,
+        <_Food>[
+          _Food('닭가슴살', 230, 150, 0),
+          _Food('고구마', 170, 30, 4),
+          _Food('파스타', 500, 380, 3),
+        ],
         carbsG: 122,
         proteinG: 56,
         fatG: 20,
       ),
-      _Meal('간식', '스포츠음료, 바나나', 400, 100, carbsG: 95, proteinG: 3, fatG: 1),
+      _Meal.of(
+        '간식',
+        <_Food>[_Food('스포츠음료', 180, 90, 12), _Food('바나나 2개', 220, 10, 6)],
+        carbsG: 95,
+        proteinG: 3,
+        fatG: 1,
+      ),
     ],
     aiRoutine: <_Routine>[
       _Routine('LSD 러닝', 45, '유산소', '유산소 기반 다지기'),
@@ -521,22 +559,18 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[2100, 1990, 2150, 2370, 1850, 2490, 2260],
     sugarWeek: <double>[63.2, 59.8, 64.6, 71.4, 55.8, 78.8, 74.0],
     diet: <_Meal>[
-      _Meal('아침', '거름', 0, 0),
-      _Meal(
+      // 아침은 걸렀다 — 거른 끼니는 카드를 만들지 않는다(#1381).
+      _Meal.of(
         '점심',
-        '마라탕',
-        980,
-        1850,
+        <_Food>[_Food('마라탕', 980, 1850, 18)],
         carbsG: 90,
         proteinG: 35,
         fatG: 52,
         photoAsset: 'assets/images/lunch-malatang.jpg',
       ),
-      _Meal(
+      _Meal.of(
         '저녁',
-        '치킨, 맥주',
-        1280,
-        900,
+        <_Food>[_Food('치킨', 960, 870, 48), _Food('맥주', 320, 30, 8)],
         carbsG: 95,
         proteinG: 60,
         fatG: 72,
@@ -628,18 +662,28 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[2360, 2600, 2030, 2730, 2310, 2180, 2480],
     sugarWeek: <double>[58.9, 62.1, 51.2, 64.2, 56.3, 59.2, 61.0],
     diet: <_Meal>[
-      _Meal(
+      _Meal.of(
         '아침',
-        '편의점 삼각김밥 2개',
-        420,
-        780,
+        <_Food>[_Food('편의점 삼각김밥 2개', 420, 780, 6)],
         carbsG: 80,
         proteinG: 10,
         fatG: 6,
         photoAsset: 'assets/images/breakfast-onigiri.jpg',
       ),
-      _Meal('점심', '부대찌개, 공기밥', 920, 1650, carbsG: 110, proteinG: 40, fatG: 34),
-      _Meal('저녁', '족발, 소주', 1140, 820, carbsG: 62, proteinG: 66, fatG: 70),
+      _Meal.of(
+        '점심',
+        <_Food>[_Food('부대찌개', 620, 1640, 9), _Food('공기밥', 300, 10, 0)],
+        carbsG: 110,
+        proteinG: 40,
+        fatG: 34,
+      ),
+      _Meal.of(
+        '저녁',
+        <_Food>[_Food('족발', 700, 780, 30), _Food('소주', 440, 40, 16)],
+        carbsG: 62,
+        proteinG: 66,
+        fatG: 70,
+      ),
     ],
     aiRoutine: <_Routine>[
       _Routine('저강도 걷기', 20, '유산소', '혈압 우선 안정'),
@@ -690,13 +734,23 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[2150, 1680, 2260, 1910, 1800, 1950, 2050],
     sugarWeek: <double>[49.4, 38.5, 51.7, 43.7, 41.4, 44.6, 47.0],
     diet: <_Meal>[
-      _Meal('아침', '커피만', 20, 10, carbsG: 3, proteinG: 1, fatG: 0.5),
-      _Meal('점심', '김치찌개, 공기밥', 780, 1420, carbsG: 103, proteinG: 31, fatG: 27),
-      _Meal(
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('아메리카노', 20, 10, 0)],
+        carbsG: 3,
+        proteinG: 1,
+        fatG: 0.5,
+      ),
+      _Meal.of(
+        '점심',
+        <_Food>[_Food('김치찌개', 480, 1410, 7), _Food('공기밥', 300, 10, 0)],
+        carbsG: 103,
+        proteinG: 31,
+        fatG: 27,
+      ),
+      _Meal.of(
         '저녁',
-        '야근 도시락, 편의점 야식',
-        1250,
-        850,
+        <_Food>[_Food('편의점 도시락', 750, 700, 12), _Food('크림빵 2개', 500, 150, 28)],
         carbsG: 150,
         proteinG: 45,
         fatG: 51,
@@ -750,22 +804,28 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[1300, 1750, 1480, 1400, 1510, 1670, 1590],
     sugarWeek: <double>[28.7, 38.5, 32.6, 30.8, 33.2, 36.8, 35.0],
     diet: <_Meal>[
-      _Meal('아침', '두유, 삶은 계란', 260, 240, carbsG: 14, proteinG: 18, fatG: 14),
-      _Meal(
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('두유', 130, 110, 8), _Food('삶은 계란 2개', 130, 130, 0.5)],
+        carbsG: 14,
+        proteinG: 18,
+        fatG: 14,
+      ),
+      _Meal.of(
         '점심',
-        '비빔밥 (고추장 절반)',
-        680,
-        780,
+        <_Food>[_Food('비빔밥 (고추장 절반)', 680, 780, 14)],
         carbsG: 100,
         proteinG: 22,
         fatG: 20,
         photoAsset: 'assets/images/diet-vegetable-bibimbap.jpg',
       ),
-      _Meal(
+      _Meal.of(
         '저녁',
-        '샐러드, 닭가슴살, 현미밥',
-        650,
-        700,
+        <_Food>[
+          _Food('샐러드', 120, 380, 11.5),
+          _Food('닭가슴살', 230, 300, 0.5),
+          _Food('현미밥', 300, 20, 0.5),
+        ],
         carbsG: 70,
         proteinG: 45,
         fatG: 20,
@@ -824,13 +884,23 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[2070, 1750, 1650, 1790, 1970, 1540, 1880],
     sugarWeek: <double>[55.0, 46.5, 44.0, 47.5, 52.5, 41.0, 50.0],
     diet: <_Meal>[
-      _Meal('아침', '시리얼, 우유', 380, 320, carbsG: 64, proteinG: 12, fatG: 8),
-      _Meal('점심', '백반 정식', 720, 980, carbsG: 100, proteinG: 30, fatG: 22),
-      _Meal(
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('시리얼', 250, 220, 15), _Food('우유', 130, 100, 10)],
+        carbsG: 64,
+        proteinG: 12,
+        fatG: 8,
+      ),
+      _Meal.of(
+        '점심',
+        <_Food>[_Food('백반 정식', 720, 980, 21)],
+        carbsG: 100,
+        proteinG: 30,
+        fatG: 22,
+      ),
+      _Meal.of(
         '저녁',
-        '된장찌개, 공기밥',
-        780,
-        710,
+        <_Food>[_Food('된장찌개', 480, 700, 4), _Food('공기밥', 300, 10, 0)],
         carbsG: 105,
         proteinG: 30,
         fatG: 25,
@@ -878,9 +948,21 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[1350, 1420, 770],
     sugarWeek: <double>[23.8, 31.9, 29.0],
     diet: <_Meal>[
-      _Meal('아침', '토스트, 커피', 290, 310, carbsG: 40, proteinG: 8, fatG: 10),
-      _Meal('점심', '샌드위치', 480, 720, carbsG: 55, proteinG: 20, fatG: 20),
-      _Meal('저녁', '기록 없음', 0, 0),
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('토스트', 240, 300, 9), _Food('커피', 50, 10, 5)],
+        carbsG: 40,
+        proteinG: 8,
+        fatG: 10,
+      ),
+      _Meal.of(
+        '점심',
+        <_Food>[_Food('샌드위치', 480, 720, 15)],
+        carbsG: 55,
+        proteinG: 20,
+        fatG: 20,
+      ),
+      // 저녁은 기록하지 않았다 — 빈 끼니 카드를 만들지 않는다(#1381).
     ],
     aiRoutine: <_Routine>[
       _Routine('가벼운 걷기', 20, '유산소', '복귀 준비'),
@@ -922,21 +1004,27 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[2750, 2960, 3280, 2560, 3430, 2900, 3120],
     sugarWeek: <double>[48.1, 44.5, 46.5, 41.6, 49.1, 43.6, 42.0],
     diet: <_Meal>[
-      _Meal('아침', '계란 5개, 오트밀', 720, 480, carbsG: 60, proteinG: 45, fatG: 34),
-      _Meal(
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('계란 5개', 390, 340, 1.5), _Food('오트밀', 330, 140, 1.5)],
+        carbsG: 60,
+        proteinG: 45,
+        fatG: 34,
+      ),
+      _Meal.of(
         '점심',
-        '소고기 덮밥, 현미밥 곱빼기',
-        1180,
-        720,
+        <_Food>[_Food('소고기 덮밥', 780, 700, 14), _Food('현미밥 곱빼기', 400, 20, 1)],
         carbsG: 170,
         proteinG: 55,
         fatG: 32,
       ),
-      _Meal(
+      _Meal.of(
         '저녁',
-        '닭가슴살, 고구마, 프로틴',
-        1220,
-        750,
+        <_Food>[
+          _Food('닭가슴살', 460, 600, 0),
+          _Food('고구마', 400, 60, 20),
+          _Food('프로틴', 360, 90, 4),
+        ],
         carbsG: 145,
         proteinG: 108,
         fatG: 22,
@@ -995,13 +1083,23 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[1820, 2020, 1570, 2110, 1790, 1690, 1920],
     sugarWeek: <double>[41.8, 46.2, 36.1, 48.4, 40.9, 38.7, 44.0],
     diet: <_Meal>[
-      _Meal('아침', '북엇국, 공기밥', 520, 1120, carbsG: 82, proteinG: 23, fatG: 10),
-      _Meal('점심', '칼국수', 880, 1260, carbsG: 133, proteinG: 31, fatG: 25),
-      _Meal(
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('북엇국', 220, 1110, 2), _Food('공기밥', 300, 10, 0)],
+        carbsG: 82,
+        proteinG: 23,
+        fatG: 10,
+      ),
+      _Meal.of(
+        '점심',
+        <_Food>[_Food('칼국수', 790, 980, 5), _Food('겉절이', 90, 280, 9)],
+        carbsG: 133,
+        proteinG: 31,
+        fatG: 25,
+      ),
+      _Meal.of(
         '저녁',
-        '닭가슴살 샐러드',
-        520,
-        300,
+        <_Food>[_Food('닭가슴살 샐러드', 400, 260, 8), _Food('오렌지주스', 120, 40, 20)],
         carbsG: 30,
         proteinG: 50,
         fatG: 22,
@@ -1049,9 +1147,27 @@ const List<_Client> _clients = <_Client>[
     caloriesWeek: <int>[1280],
     sugarWeek: <double>[18.0],
     diet: <_Meal>[
-      _Meal('아침', '바나나, 우유', 220, 130, carbsG: 35, proteinG: 8, fatG: 5),
-      _Meal('점심', '샐러드 볼', 430, 610, carbsG: 42, proteinG: 16, fatG: 22),
-      _Meal('저녁', '두부 스테이크, 잡곡밥', 630, 710, carbsG: 80, proteinG: 30, fatG: 20),
+      _Meal.of(
+        '아침',
+        <_Food>[_Food('바나나', 100, 10, 5), _Food('우유', 120, 120, 4)],
+        carbsG: 35,
+        proteinG: 8,
+        fatG: 5,
+      ),
+      _Meal.of(
+        '점심',
+        <_Food>[_Food('샐러드 볼', 430, 610, 5)],
+        carbsG: 42,
+        proteinG: 16,
+        fatG: 22,
+      ),
+      _Meal.of(
+        '저녁',
+        <_Food>[_Food('두부 스테이크', 330, 700, 3.5), _Food('잡곡밥', 300, 10, 0.5)],
+        carbsG: 80,
+        proteinG: 30,
+        fatG: 20,
+      ),
     ],
     aiRoutine: <_Routine>[
       _Routine('걷기', 20, '유산소', '습관 형성 우선'),
