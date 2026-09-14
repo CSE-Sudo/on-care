@@ -22,7 +22,9 @@ Widget _app() => ProviderScope(
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
   child: MaterialApp(
-    theme: AppTheme.light(),
+    // 헤더의 채팅 버튼(oncare_ui)이 읽는 토큰만 싣는다. 식단 화면 글자는 아직
+    // 규격 전환 전(#1700)이라, 높이 비교는 예전과 같은 기본 테마에서 한다.
+    theme: ThemeData(extensions: AppTheme.light().extensions.values),
     locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
