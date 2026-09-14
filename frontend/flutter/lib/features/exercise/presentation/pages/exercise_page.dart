@@ -481,6 +481,8 @@ class _ExerciseWeekStrip extends StatelessWidget {
             selected: selected,
             today: today,
             onSelected: onSelect,
+            // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다.
+            lastSelectableDay: today,
             previousTooltip: l.a11yPrevWeek,
             nextTooltip: l.a11yNextWeek,
             onPrevious: onPrev,
