@@ -57,7 +57,7 @@ void main() {
     await pumpShell(tester);
 
     // 가운데 + 는 AI 조언이 아니라 기록 추가다 — 함께 사라지면 안 된다.
-    expect(find.byIcon(Icons.add), findsWidgets);
+    expect(find.byKey(const Key('recordAddButton')), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('nav-exercise')), findsOneWidget);
   });
 

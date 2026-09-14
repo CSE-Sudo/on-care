@@ -13,6 +13,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.dart';
 import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
 
 enum _GymSort { recommended, distance, rating }
@@ -161,24 +162,13 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                       const SizedBox(width: OnCareSpacing.s8),
                       // 헤더의 채팅 버튼과 같은 자리·배지 모양이다 — 대기 중인
                       // 상담 요청이 있으면 점이 켜진다(#1257).
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: <Widget>[
-                          AppIconButton(
-                            key: const Key('consult-history-shortcut'),
-                            icon: Icons.assignment_rounded,
-                            tooltip: l.exViewConsultationRequest,
-                            variant: AppIconButtonVariant.tonal,
-                            onPressed: () =>
-                                context.push(AppRoutes.consultationHistory),
-                          ),
-                          if (hasPendingConsultation)
-                            const Positioned(
-                              top: OnCareSpacing.s4,
-                              right: OnCareSpacing.s4,
-                              child: AppStatusDot(),
-                            ),
-                        ],
+                      HeaderActionButton(
+                        key: const Key('consult-history-shortcut'),
+                        icon: Icons.assignment_rounded,
+                        tooltip: l.exViewConsultationRequest,
+                        showDot: hasPendingConsultation,
+                        onPressed: () =>
+                            context.push(AppRoutes.consultationHistory),
                       ),
                     ],
                   ),

@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
@@ -32,11 +33,12 @@ Future<void> _pumpSignIn(WidgetTester tester, {required bool showDemo}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[appConfigProvider.overrideWithValue(config)],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: SignInPage(),
+        home: const SignInPage(),
       ),
     ),
   );

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -20,7 +19,9 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   const liveSummary = DashboardSummary(
@@ -200,22 +201,24 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(FigmaTabHeader), findsOneWidget);
-    expect(find.byType(HeartLogo), findsOneWidget);
+    expect(find.byType(MemberTabHeader), findsOneWidget);
+    expect(find.byType(MemberLogo), findsOneWidget);
 
-    final FigmaCircleButton notificationButton = tester.widget(
-      find.byWidgetPredicate(
-        (Widget widget) =>
-            widget is FigmaCircleButton &&
-            widget.icon == Icons.notifications_none_rounded,
-      ),
+    final Finder bellFinder = find.byWidgetPredicate(
+      (Widget widget) =>
+          widget is HeaderActionButton &&
+          widget.icon == Icons.notifications_none_rounded,
     );
+    final HeaderActionButton notificationButton = tester.widget(bellFinder);
     // 점은 이제 **서버 미읽음을 따른다.** 예전에는 항상 켜져 있어서 읽을 것이
     // 없어도 남았다(#636).
     expect(notificationButton.showDot, isTrue);
     // 읽지 않은 알림은 `주의` 가 아니라 새 소식이다 — 주황은 같은 화면의
-    // 주의 색과 겹쳤다. 옆 채팅 버튼이 이미 쓰던 빨강으로 맞춘다. (#1060)
-    expect(notificationButton.dotColor, FigmaColors.redDot);
+    // 주의 색과 겹쳤다. 새 알림 점은 위험 빨강 한 가지다. (#1060, #1690)
+    final AppStatusDot dot = tester.widget(
+      find.descendant(of: bellFinder, matching: find.byType(AppStatusDot)),
+    );
+    expect(dot.color, OnCareColors.danger);
   });
 
   testWidgets('읽지 않은 알림이 없으면 벨에 점이 없다', (WidgetTester tester) async {
@@ -228,10 +231,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final FigmaCircleButton bell = tester.widget(
+    final HeaderActionButton bell = tester.widget(
       find.byWidgetPredicate(
         (Widget widget) =>
-            widget is FigmaCircleButton &&
+            widget is HeaderActionButton &&
             widget.icon == Icons.notifications_none_rounded,
       ),
     );

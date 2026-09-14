@@ -22,6 +22,8 @@ import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_h
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare/shared/widgets/member_tab_header.dart';
+import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
 
 /// 하단 내비게이션 위로 남겨 두는 높이. 내비 막대가 내용을 가리지 않게 한다.
@@ -121,17 +123,15 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
   /// 페이지 머리. 벨 배지는 서버 미읽음을 본다 — 이 build 에는 ref 가 없어
   /// 여기서만 지역적으로 얻는다. 헤더 전체를 다시 그리지 않는다.
   Widget _header(BuildContext context, AppLocalizations l) => Consumer(
-    builder: (BuildContext context, WidgetRef ref, Widget? _) => AppTabHeader(
-      title: l.pageExerciseTitle,
-      actions: <Widget>[
-        _NotificationBell(
-          hasUnread:
+    builder: (BuildContext context, WidgetRef ref, Widget? _) =>
+        MemberTabHeader(
+          title: l.pageExerciseTitle,
+          trailingAction: const TrainerChatHeaderButton(),
+          onBell: () => context.push(AppRoutes.notification),
+          bellHasUnread:
               (ref.watch(notificationUnreadProvider).valueOrNull ?? 0) > 0,
-          onPressed: () => context.push(AppRoutes.notification),
+          onCalendar: () => showScheduleCalendarSheet(context),
         ),
-        const TrainerChatHeaderButton(),
-      ],
-    ),
   );
 
   Widget _subTabs(AppLocalizations l) => Padding(
@@ -185,36 +185,6 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
       notifier.state = notifier.state == s ? null : s;
     },
   );
-}
-
-/// 헤더의 알림 버튼 — 읽지 않은 알림이 있으면 모서리에 점을 띄운다.
-class _NotificationBell extends StatelessWidget {
-  const _NotificationBell({required this.hasUnread, required this.onPressed});
-
-  final bool hasUnread;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: <Widget>[
-        AppIconButton(
-          icon: Icons.notifications_none_rounded,
-          tooltip: l.pageNotificationTitle,
-          variant: AppIconButtonVariant.tonal,
-          onPressed: onPressed,
-        ),
-        if (hasUnread)
-          const Positioned(
-            top: OnCareSpacing.s8,
-            right: OnCareSpacing.s8,
-            child: IgnorePointer(child: AppStatusDot()),
-          ),
-      ],
-    );
-  }
 }
 
 // ───────────────────────────────────────────────────────── 운동 기록 ──

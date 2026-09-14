@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// "Nothing to show yet" placeholder, intended for list / detail pages
 /// before the user has any data.
+///
+/// 그림은 공용 [AppEmptyState] 가 그린다(#1699). 이 이름은 정리 이슈(#1707)에서
+/// 사라지니 새 코드는 [AppEmptyState] 를 바로 쓴다.
 class EmptyState extends StatelessWidget {
   const EmptyState({required this.title, this.message, this.icon, super.key});
 
@@ -11,25 +15,10 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            if (icon != null) ...<Widget>[
-              Icon(icon, size: 48, color: theme.colorScheme.outline),
-              const SizedBox(height: 16),
-            ],
-            Text(title, style: theme.textTheme.titleMedium),
-            if (message != null) ...<Widget>[
-              const SizedBox(height: 8),
-              Text(message!, textAlign: TextAlign.center),
-            ],
-          ],
-        ),
-      ),
+    return AppEmptyState(
+      title: title,
+      message: message,
+      icon: icon ?? Icons.inbox_rounded,
     );
   }
 }

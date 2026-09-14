@@ -193,8 +193,8 @@ void main() {
     // 이 시트는 "무엇을 기록할까" 를 고르는 자리라 색이 영역을 가르는 뜻으로
     // 읽히지 않는다 — 초록 하나만 남으면 그 카드가 다른 성격처럼 보인다.
     // (예전에는 식단 초록·운동 파랑이었다, #1060 → #1154)
-    expect(iconColorOf(Icons.restaurant), FigmaColors.primary);
-    expect(iconColorOf(Icons.fitness_center), FigmaColors.primary);
+    expect(iconColorOf(Icons.restaurant_rounded), FigmaColors.primary);
+    expect(iconColorOf(Icons.fitness_center_rounded), FigmaColors.primary);
   });
 
   testWidgets('Enters the Home tab in English after demo', (tester) async {
@@ -245,7 +245,8 @@ void main() {
 
     final bottomSpacing = await openRecordSheetAndMeasureBottomSpacing(tester);
 
-    expect(bottomSpacing, 0);
+    // 인셋이 없으면 시트 안쪽 여백만 남는다(#1690 바텀시트 안쪽 20).
+    expect(bottomSpacing, OnCareSpacing.sheetPadding);
   });
 
   testWidgets('record sheet keeps only the required system inset', (
@@ -262,7 +263,8 @@ void main() {
 
     final bottomSpacing = await openRecordSheetAndMeasureBottomSpacing(tester);
 
-    expect(bottomSpacing, 34);
+    // 홈 인디케이터 인셋만큼 더 띄워 카드가 가리지 않는다(#1154).
+    expect(bottomSpacing, OnCareSpacing.sheetPadding + 34);
   });
 
   testWidgets('diet add opens as a content-sized sheet with a bottom gap', (
@@ -476,10 +478,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Diet'), findsAtLeastNWidgets(1));
 
-    final exerciseDestination = find.ancestor(
-      of: find.byIcon(Icons.fitness_center_outlined),
-      matching: find.byType(InkWell),
-    );
+    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
     expect(find.text('Exercise'), findsAtLeastNWidgets(1));
@@ -492,10 +491,7 @@ void main() {
   testWidgets('전체 기간 운동 현황은 스크롤 막대 그래프다 (#1018)', (tester) async {
     await pumpApp(tester, locale: const Locale('en'));
 
-    final exerciseDestination = find.ancestor(
-      of: find.byIcon(Icons.fitness_center_outlined),
-      matching: find.byType(InkWell),
-    );
+    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
     final monthlyToggle = find.text('All');
@@ -738,10 +734,7 @@ void main() {
   testWidgets('운동 탭 재진입 시 운동 현황 기간 토글이 기본값으로 복원된다 (#861)', (tester) async {
     await pumpApp(tester, locale: const Locale('ko'));
 
-    final exerciseDestination = find.ancestor(
-      of: find.byIcon(Icons.fitness_center_outlined),
-      matching: find.byType(InkWell),
-    );
+    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
 
@@ -772,10 +765,7 @@ void main() {
       tester.element(find.byType(OncareApp)),
     );
 
-    final exerciseDestination = find.ancestor(
-      of: find.byIcon(Icons.fitness_center_outlined),
-      matching: find.byType(InkWell),
-    );
+    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
 

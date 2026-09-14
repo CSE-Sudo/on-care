@@ -95,7 +95,7 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      await open(find.byIcon(Icons.restaurant_outlined));
+      await open(find.byKey(const ValueKey<String>('nav-diet')));
       await open(find.byKey(const ValueKey<String>('nav-exercise')));
       await open(find.byKey(const ValueKey<String>('exercise-subtab-1')));
       await open(find.byKey(const ValueKey<String>('nav-my')));
