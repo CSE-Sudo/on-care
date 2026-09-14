@@ -458,9 +458,6 @@
   "lib/features/reports/presentation/widgets/metric_trend_section.dart": {
     "fontSize": 2,
     "fontWeight": 2,
-    "radius": 3,
-    "edgeInsets": 1,
-    "sizedBox": 2,
     "materialWidget": 1
   },
   "lib/features/reports/presentation/widgets/report_ai_card.dart": {
