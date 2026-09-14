@@ -105,14 +105,14 @@ void main() {
     expect(badgeColorOf(tester, l.dietSodium), FigmaColors.statusWithinGoal);
   });
 
-  testWidgets('목록 썸네일은 정사각 52 다', (WidgetTester tester) async {
+  testWidgets('목록 썸네일은 정사각 56 이다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
     final List<MealPhotoView> thumbs = tester
         .widgetList<MealPhotoView>(find.byType(MealPhotoView))
         .toList();
     expect(thumbs, isNotEmpty);
-    expect(thumbs.every((MealPhotoView p) => p.height == 52), isTrue);
+    expect(thumbs.every((MealPhotoView p) => p.height == 56), isTrue);
   });
 
   testWidgets('끼니를 열면 상단에 사진이 크게 뜬다', (WidgetTester tester) async {

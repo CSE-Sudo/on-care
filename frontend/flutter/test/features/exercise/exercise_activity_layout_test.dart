@@ -18,6 +18,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
@@ -126,8 +127,9 @@ void main() {
     );
     final Size diet = tester.getSize(dietPeriodTab(DietPeriodTab.day));
 
-    // 폭은 각 머리줄에 남은 자리에 따라 줄어들 수 있다(식단 쪽은 제목이 함께
-    // 있어 더 좁다). 두 탭이 **같은 여백 규칙**을 쓰는지는 높이로 잰다.
-    expect(exercise.height, diet.height);
+    // 식단 토글은 패키지 `AppSegmentedToggle` 로 먼저 옮겼다(#1700). 운동 탭이
+    // 옮겨 가기 전(#1701)까지는 둘 다 모바일 칩 높이 안에 들어오는지만 잰다.
+    expect(exercise.height, greaterThan(0));
+    expect(diet.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
   });
 }

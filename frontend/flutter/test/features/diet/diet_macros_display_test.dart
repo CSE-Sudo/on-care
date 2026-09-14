@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
@@ -11,6 +10,7 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
@@ -246,16 +246,15 @@ void main() {
         findsOneWidget,
       );
       Color? barColor(String label) => tester
-          .widgetList<ColoredBox>(
+          .widget<LinearProgressIndicator>(
             find.descendant(
               of: find.byKey(Key('nutrition-macro-progress-$label')),
-              matching: find.byType(ColoredBox),
+              matching: find.byType(LinearProgressIndicator),
             ),
           )
-          .last
           .color;
-      expect(barColor('나트륨'), FigmaColors.dangerRed);
-      expect(barColor('당류'), FigmaColors.statusWithinGoal);
+      expect(barColor('나트륨'), OnCareColors.danger);
+      expect(barColor('당류'), OnCareBrand.member.statusWithinGoal);
 
       final Finder carbs = find.byKey(const Key('nutrition-macro-탄수화물'));
       final Finder protein = find.byKey(const Key('nutrition-macro-단백질'));
@@ -325,9 +324,7 @@ void main() {
       expect((span.children!.first as TextSpan).style?.color, expectedColor);
     }
 
-    final Color macroValueColor = FigmaColors.statusWithinGoal.withValues(
-      alpha: 0.65,
-    );
+    final Color macroValueColor = OnCareBrand.member.macroProtein;
     expectMacroValueColor('탄수화물', macroValueColor);
     expectMacroValueColor('단백질', macroValueColor);
     expectMacroValueColor('지방', macroValueColor);
@@ -490,15 +487,14 @@ void main() {
     await tester.pumpAndSettle();
 
     Color barColor(String label) {
-      final ColoredBox box = tester.widget<ColoredBox>(
-        find
-            .descendant(
+      final LinearProgressIndicator bar = tester
+          .widget<LinearProgressIndicator>(
+            find.descendant(
               of: find.byKey(Key('nutrition-macro-progress-$label')),
-              matching: find.byType(ColoredBox),
-            )
-            .last,
-      );
-      return box.color;
+              matching: find.byType(LinearProgressIndicator),
+            ),
+          );
+      return bar.color!;
     }
 
     final AppLocalizations l = AppLocalizations.of(
@@ -509,7 +505,7 @@ void main() {
       barColor(l.dietSugar),
       reason: '목표 안쪽의 나트륨과 당류가 다른 색이면 안 된다',
     );
-    expect(barColor(l.dietSodium), FigmaColors.statusWithinGoal);
+    expect(barColor(l.dietSodium), OnCareBrand.member.statusWithinGoal);
   });
 
   testWidgets('목표를 넘기면 달성률이 100% 를 넘어 적힌다 (#846)', (WidgetTester tester) async {

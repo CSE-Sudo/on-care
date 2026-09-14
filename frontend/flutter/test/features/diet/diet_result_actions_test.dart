@@ -17,6 +17,7 @@ import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart'
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
@@ -110,8 +111,12 @@ void main() {
     expect(find.byIcon(Icons.close_rounded), findsNothing);
 
     // 두 버튼은 한 행에 서고 크기가 같다.
-    final Size save = tester.getSize(find.text('저장하기'));
-    final Size cancel = tester.getSize(find.text('취소'));
+    final Size save = tester.getSize(
+      find.ancestor(of: find.text('저장하기'), matching: find.byType(AppButton)),
+    );
+    final Size cancel = tester.getSize(
+      find.ancestor(of: find.text('취소'), matching: find.byType(AppButton)),
+    );
     expect(save.height, cancel.height);
     // 폭은 반반이다 — 앱의 모든 하단 두 버튼과 같다(#1690).
     expect(save.width, cancel.width);

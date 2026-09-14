@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -263,7 +262,7 @@ void main() {
       );
       expect(
         (bar.decoration! as BoxDecoration).color,
-        FigmaColors.primary.withValues(alpha: 0.85),
+        OnCareBrand.member.dietChart,
       );
     });
   });
