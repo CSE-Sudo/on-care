@@ -6,6 +6,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../helpers/client_factory.dart';
 import '../helpers/pump_app.dart';
@@ -15,6 +16,10 @@ import '../helpers/pump_app.dart';
 /// 두 탭은 같은 구조(왼쪽 회원 목록 → 오른쪽 작업 영역)에 카드 제목·아이콘도
 /// 같은데, 이름 글씨는 13.5 와 15, 아바타는 32 와 38 로 갈려 있었다. 탭을
 /// 오갈 때 같은 목록이 다른 밀도로 보인다.
+///
+/// #1705 에서 프로그램(코칭) 탭 목록은 공용 `oncare_ui` 규격(역할 글자·
+/// [AppAvatar])으로 옮겼다. 리포트 탭은 아직 옛 공용 값이라, 두 탭을 각자의
+/// 기준으로 따로 확인한다.
 void main() {
   const String goal = '혈압 관리 · 체중 감량';
 
@@ -59,6 +64,22 @@ void main() {
         .fontSize!;
   }
 
+  /// [rowKey] 행이 쓰는 테마의 규격 토큰.
+  OnCareTokens tokensOf(WidgetTester tester, String rowKey) => Theme.of(
+    tester.element(find.byKey(ValueKey<String>(rowKey))),
+  ).extension<OnCareTokens>()!;
+
+  /// [rowKey] 행 안 [AppAvatar] 의 지름.
+  double appAvatarSizeIn(WidgetTester tester, String rowKey) {
+    final Finder row = find.byKey(ValueKey<String>(rowKey));
+    return tester
+        .widget<AppAvatar>(
+          find.descendant(of: row, matching: find.byType(AppAvatar)),
+        )
+        .size
+        .dimension;
+  }
+
   /// [rowKey] 행 안 [ClientAvatar] 의 지름.
   double avatarSizeIn(WidgetTester tester, String rowKey) {
     final Finder row = find.byKey(ValueKey<String>(rowKey));
@@ -69,19 +90,24 @@ void main() {
         .size;
   }
 
-  void expectAvatarCentered(WidgetTester tester, String rowKey) {
+  void expectAvatarCentered(
+    WidgetTester tester,
+    String rowKey, {
+    Type avatarType = ClientAvatar,
+  }) {
     final Finder row = find.byKey(ValueKey<String>(rowKey));
     final Finder avatar = find.descendant(
       of: row,
-      matching: find.byType(ClientAvatar),
+      matching: find.byType(avatarType),
     );
     expect(tester.getCenter(avatar).dy, closeTo(tester.getCenter(row).dy, 0.1));
   }
 
-  testWidgets('프로그램 탭 회원명은 공용 크기·굵기를 쓴다', (tester) async {
+  testWidgets('프로그램 탭 회원명은 공용 규격 크기·굵기를 쓴다 (#1705)', (tester) async {
     await openTab(tester, AppRoutes.coaching);
 
-    // 첫 회원이 기본으로 선택된다 — 고른 쪽은 굵게, 나머지는 한 단계 얇게.
+    // 첫 회원이 기본으로 선택된다 — 고른 쪽은 600 강조, 나머지는 기본 굵기.
+    // 글씨 크기는 같다(고를 때 행 높이가 흔들리지 않는다).
     final TextStyle selected = nameStyleIn(
       tester,
       'program-client-type-a',
@@ -93,16 +119,32 @@ void main() {
       '나회원',
     );
 
-    expect(selected.fontSize, clientListNameFontSize);
-    expect(unselected.fontSize, clientListNameFontSize);
-    expect(selected.fontWeight, FontWeight.w800);
-    expect(unselected.fontWeight, FontWeight.w600);
-    expect(goalSizeIn(tester, 'program-client-type-a'), clientListGoalFontSize);
-    expect(avatarSizeIn(tester, 'program-client-type-a'), clientListAvatarSize);
-    expectAvatarCentered(tester, 'program-client-type-a');
+    final OnCareTokens tokens = tokensOf(tester, 'program-client-type-a');
+    final TextStyle nameRole = tokens.text(OnCareTypography.bodySmall);
+    final TextStyle goalRole = tokens.text(OnCareTypography.caption);
+
+    expect(selected.fontSize, nameRole.fontSize);
+    expect(unselected.fontSize, nameRole.fontSize);
+    expect(selected.fontWeight, FontWeight.w600);
+    expect(unselected.fontWeight, nameRole.fontWeight);
+    expect(unselected.fontWeight, isNot(FontWeight.w600));
+    expect(selected.color, OnCareColors.textPrimary);
+    expect(unselected.color, OnCareColors.textPrimary);
+    // 목표 줄은 이름보다 한 단계 작고 흐리다.
+    expect(goalSizeIn(tester, 'program-client-type-a'), goalRole.fontSize);
+    expect(goalRole.fontSize!, lessThan(nameRole.fontSize!));
+    expect(
+      appAvatarSizeIn(tester, 'program-client-type-a'),
+      OnCareSize.avatarMedium,
+    );
+    expectAvatarCentered(
+      tester,
+      'program-client-type-a',
+      avatarType: AppAvatar,
+    );
   });
 
-  testWidgets('리포트 탭 회원명이 프로그램 탭과 같은 크기·굵기다', (tester) async {
+  testWidgets('리포트 탭 회원명은 공용 목록 크기·굵기를 쓴다', (tester) async {
     await openTab(tester, AppRoutes.reports);
 
     final TextStyle selected = nameStyleIn(

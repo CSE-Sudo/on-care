@@ -38,10 +38,16 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show
+        AppAvatar,
+        AppAvatarSize,
+        AppButton,
+        AppIconButton,
+        AppListRow,
+        OnCareLayout,
+        OnCareMotion;
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
@@ -391,9 +397,10 @@ class _FakeTrainerAuthRepository implements TrainerAuthRepository {
       seedTrainerProfile;
 }
 
+/// 운동 줄마다 있는 `AppMenu` 트리거 버튼(#1705) — 편집 중이 아닐 때만 메뉴다.
 Finder _exerciseActionMenus() => find.byWidgetPredicate((widget) {
   final key = widget.key;
-  return widget is PopupMenuButton<String> &&
+  return widget is AppIconButton &&
       key is ValueKey<String> &&
       key.value.startsWith('exercise-edit-');
 });
@@ -510,7 +517,7 @@ Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
   );
   await _ensureCentered(tester, send);
   await tester.pump();
-  if (tester.widget<ActionButton>(send).onPressed == null) {
+  if (tester.widget<AppButton>(send).onPressed == null) {
     final returnToAi = find.byKey(const ValueKey<String>('return-to-ai-flow'));
     if (returnToAi.evaluate().isNotEmpty) {
       await tester.tap(returnToAi);
@@ -551,16 +558,17 @@ Future<void> _sendProgram(WidgetTester tester) async {
   );
 }
 
-/// [showPortraitDatePicker] 의 세로형 달력에서 [date] 를 고르고 확인한다 (#1028).
+/// `showAppDatePicker`(달력만 쓰는 Material [DatePickerDialog]) 에서 [date] 를
+/// 고르고 확인한다 (#1028, #1705).
 ///
-/// 프로그램 편집 화면(`program_editor_workspace.dart`)도 앱의 다른 화면과 같은
-/// `showPortraitDatePicker` 를 쓴다 — 확인 버튼은 취소 버튼과 나란히 있어
-/// 텍스트가 아니라 키(`portraitDatePickerConfirm`)로 찾는다.
+/// 확인 버튼은 취소 버튼과 나란히 있다 — 로케일의 확인 문구
+/// (`MaterialLocalizations.okButtonLabel`, ko 는 `확인`)로 대화상자 안에서 찾는다.
 ///
 /// 지금 보이는 달과 [date] 의 달이 다르면(예: 오늘이 말일이라 "내일"이 다음
 /// 달인 경우) 한 달 넘긴다 — 오늘에서 하루 넘어가는 것뿐이라 한 번이면 된다.
 Future<void> _pickDateInPicker(WidgetTester tester, DateTime date) async {
-  final dialog = find.byKey(const Key('portraitDatePicker'));
+  final dialog = find.byType(DatePickerDialog);
+  expect(dialog, findsOneWidget);
   final today = nowKst();
   if (date.year != today.year || date.month != today.month) {
     await tester.tap(
@@ -572,21 +580,34 @@ Future<void> _pickDateInPicker(WidgetTester tester, DateTime date) async {
     find.descendant(of: dialog, matching: find.text('${date.day}')).last,
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const Key('portraitDatePickerConfirm')));
+  final String ok = MaterialLocalizations.of(
+    tester.element(dialog),
+  ).okButtonLabel;
+  await tester.tap(find.descendant(of: dialog, matching: find.text(ok)));
   await tester.pumpAndSettle();
 }
 
+/// 운동 줄의 `AppMenu` 를 트리거로 열고 [label] 문구의 항목을 고른다 (#1705).
+///
+/// 메뉴 항목 문구: 수정 `수정`, 위로·아래로, 삭제 `삭제`
+/// (`program_editor_workspace.dart` 의 `_handleExerciseAction`).
 Future<void> _selectExerciseAction(
   WidgetTester tester,
-  String action, {
+  String label, {
   bool last = false,
 }) async {
   final finder = last
       ? _exerciseActionMenus().last
       : _exerciseActionMenus().first;
-  final menu = tester.widget<PopupMenuButton<String>>(finder);
-  menu.onSelected?.call(action);
+  await _ensureCentered(tester, finder);
+  await tester.tap(finder);
   await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
+  final item = find.widgetWithText(MenuItemButton, label);
+  expect(item, findsOneWidget);
+  await tester.tap(item);
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 void _expectNutritionStatusCardsInBounds(WidgetTester tester) {
@@ -799,10 +820,11 @@ void main() {
           ),
           findsNothing,
         );
-        final avatar = tester.widget<ClientAvatar>(
-          find.descendant(of: programCard, matching: find.byType(ClientAvatar)),
+        final avatar = tester.widget<AppAvatar>(
+          find.descendant(of: programCard, matching: find.byType(AppAvatar)),
         );
-        expect(avatar.size, 32);
+        expect(avatar.size, AppAvatarSize.medium);
+        expect(avatar.size.dimension, 32);
       },
     );
 
@@ -909,7 +931,12 @@ void main() {
       );
       expect(mainColumn, findsOneWidget);
       expect(rightRail, findsOneWidget);
-      expect(tester.getSize(mainColumn).width, greaterThanOrEqualTo(600));
+      // 3열 기준은 양옆 열(splitListWidth 둘)과 간격 둘을 빼고도 편집기가
+      // 입력 폼 폭(dialogSmall)만큼은 남는 너비다(#1705).
+      expect(
+        tester.getSize(mainColumn).width,
+        greaterThanOrEqualTo(OnCareLayout.dialogSmall),
+      );
       expect(tester.takeException(), isNull);
     });
 
@@ -1256,26 +1283,26 @@ void main() {
         seedClock: kMidWeekKst,
       );
 
-      final minsuIdentity = find.byWidgetPredicate(
+      // 좁은 화면의 회원 고르기 줄은 `AppListRow` 다(#1705) — 이름이 title,
+      // 성별·나이가 subtitle 로 이름 아래에 쌓인다.
+      final minsuRow = find.byWidgetPredicate(
         (widget) =>
-            widget is ClientIdentity &&
-            widget.stacked &&
-            widget.client.id == 'seed-client-1',
+            widget is AppListRow &&
+            widget.title == '김민수' &&
+            (widget.subtitle ?? '').isNotEmpty,
       );
-      expect(minsuIdentity, findsOneWidget);
-      final identity = tester.widget<ClientIdentity>(minsuIdentity);
-      final demographics = clientDemographicsLabel(
-        tester.element(minsuIdentity),
-        identity.client,
-      );
+      expect(minsuRow, findsOneWidget);
+      final row = tester.widget<AppListRow>(minsuRow);
       final name = find.descendant(
-        of: minsuIdentity,
-        matching: find.text(identity.client.name),
+        of: minsuRow,
+        matching: find.text(row.title),
       );
       final detail = find.descendant(
-        of: minsuIdentity,
-        matching: find.text(demographics),
+        of: minsuRow,
+        matching: find.text(row.subtitle!),
       );
+      expect(name, findsOneWidget);
+      expect(detail, findsOneWidget);
       expect(
         tester.getTopLeft(detail).dy,
         greaterThan(tester.getTopLeft(name).dy),
@@ -1320,7 +1347,7 @@ void main() {
         );
         expect(
           tester
-              .widget<ActionButton>(
+              .widget<AppButton>(
                 find.byKey(const ValueKey<String>('program-editor-send')),
               )
               .onPressed,
@@ -1335,7 +1362,10 @@ void main() {
       Future<void> returnToAi() async {
         final back = find.byKey(const ValueKey<String>('return-to-ai-flow'));
         expect(
-          find.descendant(of: back, matching: find.byIcon(Icons.chevron_left)),
+          find.descendant(
+            of: back,
+            matching: find.byIcon(Icons.chevron_left_rounded),
+          ),
           findsOneWidget,
         );
         await tester.tap(back);
@@ -1464,9 +1494,11 @@ void main() {
         final progressFinder = find.byKey(
           const Key('client-nutrition-calorie-progress'),
         );
-        final initialProgress = tester
-            .widget<CircularProgressIndicator>(progressFinder)
-            .value;
+        double calorieProgress() =>
+            (tester.widget<CustomPaint>(progressFinder).painter!
+                    as ProgramCalorieRingPainter)
+                .progress;
+        final initialProgress = calorieProgress();
 
         await tester.tap(find.text('이지수'));
         await settle(tester);
@@ -1475,10 +1507,7 @@ void main() {
           find.byKey(const Key('client-nutrition-summary-card')),
           findsOneWidget,
         );
-        expect(
-          tester.widget<CircularProgressIndicator>(progressFinder).value,
-          isNot(initialProgress),
-        );
+        expect(calorieProgress(), isNot(initialProgress));
         // 프로그램 정보 박스는 빈 상태로 시작한다(#1028) — 이 회원의 AI
         // 추천 루틴을 편집기에 반영해야 기본 추천이 보인다. AI 흐름 자신의
         // 검토 목록에도 같은 이름이 뜰 수 있어 편집기 안으로 범위를 좁힌다.
@@ -1526,7 +1555,7 @@ void main() {
       expect(find.text('레그프레스 5세트'), findsOneWidget);
 
       // Delete it again.
-      await _selectExerciseAction(tester, 'delete', last: true);
+      await _selectExerciseAction(tester, '삭제', last: true);
       expect(find.text('레그프레스 5세트'), findsNothing);
     });
 
@@ -1625,7 +1654,7 @@ void main() {
         matching: find.text('저강도 유산소 (걷기)'),
       );
       expect(inEditor, findsOneWidget);
-      await _selectExerciseAction(tester, 'delete');
+      await _selectExerciseAction(tester, '삭제');
       expect(inEditor, findsNothing);
 
       // 다른 회원으로 옮겼다가 돌아오면 편집기는 새로 시작한다 — 지운 것이
@@ -1735,7 +1764,7 @@ void main() {
       await tester.tap(dateButton);
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('portraitDatePicker')), findsOneWidget);
+      expect(find.byType(DatePickerDialog), findsOneWidget);
       await _pickDateInPicker(tester, nowKst().add(const Duration(days: 1)));
 
       await _sendProgram(tester);
@@ -1758,8 +1787,9 @@ void main() {
       expect(booked, hasLength(1));
       expect(booked.single.program, isNotEmpty);
 
-      // Drain the 3s confirmation timer so it isn't left pending.
-      await tester.pump(const Duration(seconds: 3));
+      // Drain the action toast timer (`스케줄로 이동하기`) so it isn't left
+      // pending.
+      await tester.pump(OnCareMotion.toastActionVisible);
     });
 
     testWidgets('시간 선택 박스로 고른 시각이 그대로 PT 등록에 쓰인다', (tester) async {
@@ -1845,7 +1875,7 @@ void main() {
         75,
       );
 
-      await tester.pump(const Duration(seconds: 3));
+      await tester.pump(OnCareMotion.toastActionVisible);
     });
 
     testWidgets('send shows confirmation then resets edits', (tester) async {
@@ -1877,7 +1907,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      expect(tester.widget<ActionButton>(send).onPressed, isNull);
+      expect(tester.widget<AppButton>(send).onPressed, isNull);
     });
 
     testWidgets('mashing 스케줄 등록 registers only once', (tester) async {
@@ -1955,14 +1985,14 @@ void main() {
       // editor is a lazy list, so bring the button back into view first.
       final send = await _ensureSendButtonReady(tester);
       expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
-      expect(tester.widget<ActionButton>(send).onPressed, isNotNull);
+      expect(tester.widget<AppButton>(send).onPressed, isNotNull);
       await tester.pump(const Duration(seconds: 5));
       await settle(tester);
 
       // 회원을 바꿔도 김민수 몫의 명령은 끝까지 처리된다(#1580).
-      final repo = container.read(
-        scheduleRepositoryProvider,
-      ) as _SlowCountingScheduleRepository;
+      final repo =
+          container.read(scheduleRepositoryProvider)
+              as _SlowCountingScheduleRepository;
       expect(repo.completedFor, <String>['seed-client-1']);
     });
 
@@ -2028,7 +2058,11 @@ void main() {
           const ValueKey<String>('custom-exercise-name'),
         );
         await tester.enterText(nameField, '등록 테스트 운동');
-        tester.widget<TextField>(nameField).onSubmitted!('등록 테스트 운동');
+        tester
+            .widget<TextField>(
+              find.descendant(of: nameField, matching: find.byType(TextField)),
+            )
+            .onSubmitted!('등록 테스트 운동');
         await tester.pump();
       }
 
@@ -2068,7 +2102,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pump();
-      expect(tester.widget<ActionButton>(send).onPressed, isNull);
+      expect(tester.widget<AppButton>(send).onPressed, isNull);
       await tester.tap(send, warnIfMissed: false);
       await settle(tester);
 
@@ -2124,7 +2158,11 @@ void main() {
         const ValueKey<String>('custom-exercise-name'),
       );
       await tester.enterText(nameField, '레그프레스 5세트');
-      tester.widget<TextField>(nameField).onSubmitted!('레그프레스 5세트');
+      tester
+          .widget<TextField>(
+            find.descendant(of: nameField, matching: find.byType(TextField)),
+          )
+          .onSubmitted!('레그프레스 5세트');
       await tester.pump();
       await settle(tester); // let 김민수's send + reset window elapse
 
@@ -2153,7 +2191,7 @@ void main() {
       // 김민수의 개인 운동을 모두 지운다 — 공유 픽스처가 정한 네 건이다
       // (#1170).
       for (var i = 0; i < 4; i++) {
-        await _selectExerciseAction(tester, 'delete');
+        await _selectExerciseAction(tester, '삭제');
       }
 
       // 운동이 하나도 없으면 `보내기` 자체가 잠긴다 — 확인창도 뜨지 않으니
@@ -2166,7 +2204,7 @@ void main() {
       );
       await _ensureCentered(tester, send);
       await tester.pump();
-      expect(tester.widget<ActionButton>(send).onPressed, isNull);
+      expect(tester.widget<AppButton>(send).onPressed, isNull);
       expect(find.text('PT 스케줄에 등록'), findsNothing);
       expect(find.text('회원에게 배정'), findsNothing);
     });
@@ -2235,7 +2273,7 @@ void main() {
       );
       expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
       // 취소했으니 편집기 내용도 그대로 남아 있고, 다시 눌러 보낼 수 있다.
-      expect(tester.widget<ActionButton>(send).onPressed, isNotNull);
+      expect(tester.widget<AppButton>(send).onPressed, isNotNull);
     });
 
     testWidgets('AI 요청 흐름과 AI 개인운동 제안은 클릭 없이 동시에 보인다 (#1028 후속)', (
@@ -2453,16 +2491,11 @@ void main() {
 
       await tapSend(tester);
 
-      expect(
-        find.text('담당 회원을 찾을 수 없어요. 회원 연결 상태를 확인해 주세요'),
-        findsOneWidget,
-      );
+      expect(find.text('담당 회원을 찾을 수 없어요. 회원 연결 상태를 확인해 주세요'), findsOneWidget);
       expect(find.textContaining('다시 시도해 주세요'), findsNothing);
     });
 
-    testWidgets('서버가 입력을 거절하면(422) 재시도 대신 입력을 확인하게 한다 (#1582)', (
-      tester,
-    ) async {
+    testWidgets('서버가 입력을 거절하면(422) 재시도 대신 입력을 확인하게 한다 (#1582)', (tester) async {
       await openRealApiTab(tester, sendError: const ValidationError());
 
       await tapSend(tester);
@@ -2505,9 +2538,7 @@ void main() {
       );
     });
 
-    testWidgets('실패 후 재시도는 같은 구성·같은 멱등키를 다시 보낸다 (#581, #1580)', (
-      tester,
-    ) async {
+    testWidgets('실패 후 재시도는 같은 구성·같은 멱등키를 다시 보낸다 (#581, #1580)', (tester) async {
       // 키가 매번 새로 생기면 서버의 유니크 제약이 아무것도 막지 못한다.
       final scheduleRepo = await openRealApiTab(
         tester,
@@ -2540,7 +2571,7 @@ void main() {
 
         // Remove all 3 seeded AI suggestions for 김민수.
         for (var i = 0; i < 3; i++) {
-          await _selectExerciseAction(tester, 'delete');
+          await _selectExerciseAction(tester, '삭제');
         }
 
         await tester.scrollUntilVisible(

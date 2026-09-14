@@ -2,11 +2,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
 
@@ -37,6 +38,7 @@ Future<void> _pump(WidgetTester tester, ProgramEditorState draft) async {
   await tester.pumpWidget(
     MaterialApp(
       locale: const Locale('ko'),
+      theme: AppTheme.light(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
@@ -60,30 +62,33 @@ Future<void> _pump(WidgetTester tester, ProgramEditorState draft) async {
 }
 
 VoidCallback? _onPressed(WidgetTester tester, Finder finder) =>
-    tester.widget<ButtonStyleButton>(finder).onPressed;
+    tester.widget<AppButton>(finder).onPressed;
 
 void main() {
   final send = find.byKey(const ValueKey<String>('program-editor-send'));
   final addSession = find.byKey(
     const ValueKey<String>('program-editor-add-session'),
   );
-  final addExercise = find.widgetWithText(ActionButton, '운동 추가');
+  final addExercise = find.widgetWithText(AppButton, '운동 추가');
 
   testWidgets('한도(12세션·30운동)에 닿으면 추가만 잠기고 일정 추가는 된다', (tester) async {
     await _pump(tester, _sized(12, 30));
 
     expect(_onPressed(tester, addSession), isNull);
-    for (final button in tester.widgetList<ActionButton>(addExercise)) {
+    for (final button in tester.widgetList<AppButton>(addExercise)) {
       expect(button.onPressed, isNull);
     }
-    expect(tester.widget<ActionButton>(send).onPressed, isNotNull);
-    expect(find.byKey(const ValueKey<String>('program-size-exceeded')), findsNothing);
+    expect(tester.widget<AppButton>(send).onPressed, isNotNull);
+    expect(
+      find.byKey(const ValueKey<String>('program-size-exceeded')),
+      findsNothing,
+    );
   });
 
   testWidgets('한도를 넘으면 일정 추가가 잠기고 줄일 만큼을 안내한다', (tester) async {
     await _pump(tester, _sized(12, 31));
 
-    expect(tester.widget<ActionButton>(send).onPressed, isNull);
+    expect(tester.widget<AppButton>(send).onPressed, isNull);
     expect(
       find.text('세션 12/12개 · 운동 31/30개 — 한도를 넘은 만큼 줄여야 일정에 추가할 수 있어요'),
       findsOneWidget,

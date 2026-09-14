@@ -143,14 +143,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ClientGoalLabel), findsWidgets);
-    // 그릴 것이 없으면 Text 를 만들지 않는다.
+    // 프로그램 목록 행은 공용 규격 행으로 옮겨 목표 줄을 행 안에서 직접
+    // 그린다(#1705) — 목표가 공백뿐이면 그 줄의 Text 자체가 없어야 한다.
+    final Finder row = find.byKey(
+      const ValueKey<String>('program-client-no-goal'),
+    );
+    expect(row, findsOneWidget);
+    expect(
+      find.descendant(of: row, matching: find.text('목표없음')),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
-        of: find.byType(ClientGoalLabel),
-        matching: find.byType(Text),
+        of: row,
+        matching: find.byWidgetPredicate(
+          (Widget w) => w is Text && (w.data ?? '').trim().isEmpty,
+        ),
       ),
       findsNothing,
     );
+    expect(find.descendant(of: row, matching: find.text('   ')), findsNothing);
   });
 }

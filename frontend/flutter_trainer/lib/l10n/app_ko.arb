@@ -9,7 +9,16 @@
   "schedNoShow": "노쇼 처리",
   "schedCancelTitle": "이 PT를 취소할까요?",
   "schedCancelConfirm": "{time} {name} 님 PT가 취소로 기록됩니다. 일정은 지워지지 않아요.",
-  "@schedCancelConfirm": {"placeholders": {"time": {"type": "String"}, "name": {"type": "String"}}},
+  "@schedCancelConfirm": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "schedCancelSource": "취소한 쪽",
   "schedCancelByMember": "회원 취소",
   "schedCancelByTrainer": "트레이너 취소",
@@ -18,10 +27,28 @@
   "schedCancelFailed": "취소 처리하지 못했어요. 잠시 후 다시 시도해 주세요",
   "schedNoShowTitle": "노쇼로 기록할까요?",
   "schedNoShowConfirm": "{time} {name} 님이 오지 않은 것으로 기록됩니다.",
-  "@schedNoShowConfirm": {"placeholders": {"time": {"type": "String"}, "name": {"type": "String"}}},
+  "@schedNoShowConfirm": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "schedNoShowFailed": "노쇼 처리하지 못했어요. 잠시 후 다시 시도해 주세요",
   "schedCancelledBy": "{source} · {date}",
-  "@schedCancelledBy": {"placeholders": {"source": {"type": "String"}, "date": {"type": "String"}}},
+  "@schedCancelledBy": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "schedDeleteMeansRemove": "기록이 지워집니다. 진행되지 않은 PT는 취소·노쇼로 남기세요.",
   "schedDeleteMeansRemoveFinished": "기록이 지워집니다. 이미 완료한 일정이라 되돌릴 수 없어요.",
   "scheduleStatusGap": "공백",
@@ -181,7 +208,16 @@
   "clientsSortActiveFirst": "활성 회원 우선",
   "clientsFilterLabel": "필터",
   "clientsToolbarCount": "{shown}명 · 활성 {active}명",
-  "@clientsToolbarCount": {"placeholders": {"shown": {"type": "int"}, "active": {"type": "int"}}},
+  "@clientsToolbarCount": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "active": {
+        "type": "int"
+      }
+    }
+  },
   "clientsPickHint": "왼쪽에서 회원을 선택하면\n대화·식단·운동 기록이 여기에 열려요",
   "clientsEmpty": "아직 담당 회원이 없어요",
   "clientsEmptyForFilter": "{filter}에 해당하는 회원이 없어요",
@@ -216,7 +252,16 @@
   "memberHealthWeeklyMinutes": "시간(분)",
   "memberHealthWeeklyBurn": "소모 kcal",
   "memberHealthRange": "{min}~{max} 범위로 입력해 주세요.",
-  "@memberHealthRange": {"placeholders": {"min": {"type": "String"}, "max": {"type": "String"}}},
+  "@memberHealthRange": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
   "clientInviteTitle": "신규 회원 등록",
   "clientInviteIntro": "회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.",
   "clientInviteIntroImmediate": "회원 앱 MY 탭의 6자리 동기화 코드를 입력하면 바로 연결돼요.",
@@ -225,7 +270,13 @@
   "clientConnectCodeInvalid": "코드가 맞지 않거나 만료됐어요. 회원에게 새 코드를 받아 주세요",
   "clientInviteConnectAction": "회원 등록",
   "clientInviteConnected": "{name}님을 회원으로 등록했어요",
-  "@clientInviteConnected": {"placeholders": {"name": {"type": "String"}}},
+  "@clientInviteConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "clientInviteFailed": "요청을 보내지 못했어요. 다시 시도해 주세요",
   "clientInvitePendingTitle": "답을 기다리는 요청",
   "clientInvitePendingEmpty": "기다리는 요청이 없어요",
@@ -248,7 +299,13 @@
   "coachTemplateSaveFailed": "템플릿을 저장하지 못했어요. 다시 시도해 주세요",
   "coachTemplateDeleteFailed": "템플릿을 지우지 못했어요. 다시 시도해 주세요",
   "coachTemplateDeleteConfirm": "{name} 템플릿을 지울까요?",
-  "@coachTemplateDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@coachTemplateDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "coachTemplateLoadFailed": "템플릿을 불러오지 못했어요",
   "coachTemplateStarterHint": "기본 구성이에요. 고치면 내 템플릿으로 저장돼요",
   "chatAttachImage": "사진 첨부",
@@ -283,7 +340,13 @@
   "chatDemoNotified": "회원 앱에 알림이 전달됐어요",
   "chatInputHint": "메시지 입력...",
   "chatInsightDiscomfortTitle": "{part} 불편 표현 감지",
-  "@chatInsightDiscomfortTitle": {"placeholders": {"part": {"type": "String"}}},
+  "@chatInsightDiscomfortTitle": {
+    "placeholders": {
+      "part": {
+        "type": "String"
+      }
+    }
+  },
   "chatInsightBodyPartGeneral": "신체",
   "chatInsightNegativeTitle": "부정적 피드백 감지",
   "chatInsightDiscomfortDescription": "AI가 불편감 호소를 감지했어요. 증상을 확인하고 다음 운동 강도를 조절해 보세요.",
@@ -291,7 +354,13 @@
   "chatInsightAddMemo": "메모에 추가",
   "chatInsightMemoAdded": "메모 추가됨",
   "chatInsightMemoSummaryDiscomfort": "{part} 불편 감지",
-  "@chatInsightMemoSummaryDiscomfort": {"placeholders": {"part": {"type": "String"}}},
+  "@chatInsightMemoSummaryDiscomfort": {
+    "placeholders": {
+      "part": {
+        "type": "String"
+      }
+    }
+  },
   "chatInsightMemoSummaryNegative": "운동 부담 감지",
   "chatInsightMemoSaved": "AI 감지 내용을 트레이너 메모에 추가했어요.",
   "chatInsightMemoSaveFailed": "메모에 추가하지 못했어요. 잠시 후 다시 시도해 주세요",
@@ -308,7 +377,13 @@
   "consultNoPending": "대기 중인 요청이 없어요",
   "consultFilterAll": "전체",
   "consultFilterPendingCount": "대기 {count}",
-  "@consultFilterPendingCount": {"placeholders": {"count": {"type": "int"}}},
+  "@consultFilterPendingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "consultLoadMore": "지난 요청 더 보기",
   "consultLoadFailed": "상담 요청을 불러오지 못했어요",
   "consultRetryLater": "잠시 후 다시 시도해 주세요",
@@ -320,7 +395,16 @@
   "consultScheduleCreated": "{name}님의 상담 일정을 등록했어요",
   "consultRejected": "상담 요청을 거절했어요",
   "consultScheduleConflict": "{name}님 {time} 일정과 겹쳐요",
-  "@consultScheduleConflict": {"placeholders": {"name": {"type": "String"}, "time": {"type": "String"}}},
+  "@consultScheduleConflict": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "consultDecisionNote": "거절 사유",
   "consultTargetTrainer": "트레이너 지정",
   "consultExerciseGoal": "운동 목표",
@@ -418,9 +502,24 @@
   "exBurnDayTitle": "소모",
   "exBurnAllTitle": "평균 소모",
   "exWeekOfMonthLabel": "{month}월 {week}주차",
-  "@exWeekOfMonthLabel": {"placeholders": {"month": {"type": "int"}, "week": {"type": "int"}}},
+  "@exWeekOfMonthLabel": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "week": {
+        "type": "int"
+      }
+    }
+  },
   "exStreakCheer": "{days}일 연속 운동 중이에요!",
-  "@exStreakCheer": {"placeholders": {"days": {"type": "int"}}},
+  "@exStreakCheer": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "exStreakStart": "아직 연속 기록이 없어요",
   "exTypeOther": "기타",
   "exSetsValue": "{count}세트",
@@ -446,28 +545,65 @@
   "reportsCompletionByDay": "주간 운동 이행률",
   "reportsNoWorkoutsThisWeek": "이번 주 운동 기록이 없어요",
   "reportsMetricTrend": "{metric} 추이",
-  "@reportsMetricTrend": {"placeholders": {"metric": {"type": "String"}}},
+  "@reportsMetricTrend": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
   "reportsNoLastWeekMetricTrend": "지난 주 {metric} 추이는 아직 없어요",
-  "@reportsNoLastWeekMetricTrend": {"placeholders": {"metric": {"type": "String"}}},
+  "@reportsNoLastWeekMetricTrend": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
   "reportsNoMetricRecords": "이번 주 {metric} 기록이 아직 없어요",
-  "@reportsNoMetricRecords": {"placeholders": {"metric": {"type": "String"}}},
+  "@reportsNoMetricRecords": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
   "reportsDietTrend": "주간 식단 추이",
   "workoutDoneOfTotal": "{total}개 중 {done}개 완료",
-  "@workoutDoneOfTotal": {"placeholders": {"total": {"type": "int"}, "done": {"type": "int"}}},
+  "@workoutDoneOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
   "chartNoRecord": "기록 없음",
   "chartNotYet": "아직 오지 않은 날",
   "chartOverGoal": "목표 초과 +{amount} {unit}",
   "@chartOverGoal": {
     "placeholders": {
-      "amount": {"type": "String"},
-      "unit": {"type": "String"}
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
     }
   },
   "reportsSendStateSent": "전송됨",
   "reportsSendStateSending": "전송 중…",
   "reportsShare": "공유",
   "reportsShareSendTo": "{name}님에게 전송",
-  "@reportsShareSendTo": {"placeholders": {"name": {"type": "String"}}},
+  "@reportsShareSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "reportsShareNeedsFeedback": "피드백을 입력하면 전송할 수 있어요",
   "reportsShareNoClient": "리포트를 볼 회원을 먼저 선택해 주세요",
   "reportBodyGreeting": "{name}님, {range} 주간 리포트 정리해서 보내드려요.",
@@ -487,9 +623,18 @@
   "schedDeleteFailed": "일정 삭제에 실패했어요. 다시 시도해 주세요",
   "schedCompleteTitle": "일정 완료",
   "schedCompleteConfirm": "{time} {name}님 세션을 완료할까요?",
-  "@schedCompleteConfirm": {"placeholders": {"time": {"type": "String"}, "name": {"type": "String"}}},
+  "@schedCompleteConfirm": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "schedCompleteFailed": "완료 처리에 실패했어요. 다시 시도해 주세요",
-  "schedTimeRange": "{start}\u2013{end}",
+  "schedTimeRange": "{start}–{end}",
   "schedBlockTime": "{range} ({duration})",
   "schedEmptyWeek": "이번 주에는 일정이 없어요.",
   "schedSlots": "예약 슬롯",
@@ -522,13 +667,46 @@
   "schedRepeatWeekly": "매주",
   "schedRepeatDays": "반복 요일",
   "schedRepeatPreview": "총 {count}회 · {first} ~ {last}",
-  "@schedRepeatPreview": {"placeholders": {"count": {"type": "int"}, "first": {"type": "String"}, "last": {"type": "String"}}},
+  "@schedRepeatPreview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
   "schedRepeatNeedsDays": "반복할 요일을 골라 주세요.",
   "schedRepeatNeedsEndDate": "반복 종료일을 골라 주세요.",
   "schedRepeatConflictTitle": "총 {total}회 중 {count}개의 일정이 겹칩니다",
-  "@schedRepeatConflictTitle": {"placeholders": {"total": {"type": "int"}, "count": {"type": "int"}}},
+  "@schedRepeatConflictTitle": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "schedRepeatConflictRow": "{date} {time} · 기존 일정: {name}",
-  "@schedRepeatConflictRow": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}, "name": {"type": "String"}}},
+  "@schedRepeatConflictRow": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "schedRepeatConflictHint": "겹치는 회차가 있어 아무 일정도 만들지 않았어요. 시간을 바꾸거나 겹치는 일정을 정리해 주세요.",
   "schedNote": "트레이너 메모",
   "schedEditNote": "메모 수정",
@@ -624,7 +802,13 @@
   "myClientManagement": "회원 관리",
   "myClientRemove": "회원 삭제",
   "myClientRemoveTitle": "{name} 회원을 삭제할까요?",
-  "@myClientRemoveTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@myClientRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "myClientRemoveBody": "이 회원의 스케줄, 프로그램·루틴, 리포트, 메시지, 메모 등이 트레이너 화면에서 모두 사라져요. 회원 앱의 기존 데이터는 삭제되지 않아요.",
   "myClientRemoveSuccess": "회원을 삭제했어요",
   "myClientRemoveFailed": "회원을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요",
@@ -708,10 +892,22 @@
   "coachReviewed": "AI 생성 후 트레이너 검토 완료",
   "coachTrainerAdded": "트레이너 추가",
   "coachTemplateAdded": "{name} 템플릿 추가",
-  "@coachTemplateAdded": {"placeholders": {"name": {"type": "String"}}},
+  "@coachTemplateAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "coachRegisteredOn": "{date} 스케줄에 등록됐어요",
   "coachRegisteredAttachedExisting": "{date}에 이미 예정된 세션이 있어 그 세션에 프로그램만 추가됐어요 — 고른 시간 범위는 적용되지 않았어요",
-  "@coachRegisteredAttachedExisting": {"placeholders": {"date": {"type": "String"}}},
+  "@coachRegisteredAttachedExisting": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "coachRegisterOn": "{date} PT 스케줄에 등록",
   "coachRegisterAction": "PT 스케줄에 등록",
   "coachGoToSchedule": "스케줄로 이동하기",
@@ -729,8 +925,12 @@
   "coachSessionProgramSummary": "{name} 외 {count}개",
   "@coachSessionProgramSummary": {
     "placeholders": {
-      "name": { "type": "String" },
-      "count": { "type": "int" }
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
   "aiReasonSodium": "오늘 나트륨이 목표를 초과해 저강도 유산소 비중을 높이는 것이 좋아요.",
@@ -791,7 +991,16 @@
   "aiInsightMemoEmpty": "최근 7일간 감지된 메모가 없어요",
   "aiInsightMemoFailed": "감지 메모를 불러오지 못했어요",
   "aiRecentRoutineMore": "{name} 외 {count}개",
-  "@aiRecentRoutineMore": {"placeholders": {"name": {"type": "String"}, "count": {"type": "int"}}},
+  "@aiRecentRoutineMore": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "aiNoRecentRoutine": "기록 없음",
   "aiRecentRoutine": "최근 운동",
   "aiTrainerNoteEditable": "트레이너 메모 · 수정 가능",
@@ -974,12 +1183,24 @@
   "clientTrainerMemoDeleteBody": "지운 메모는 되돌릴 수 없어요.",
   "followUp": "후속 관리",
   "followUpTitle": "{name}님 후속 관리",
-  "@followUpTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@followUpTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "followUpHint": "다시 확인할 내용을 적어 주세요",
   "followUpAdd": "후속 관리 추가",
   "followUpDue": "확인 예정일",
   "followUpDueOn": "{date} 확인",
-  "@followUpDueOn": {"placeholders": {"date": {"type": "String"}}},
+  "@followUpDueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "followUpOverdue": "기한 지남",
   "followUpContext": "관련 화면",
   "followUpContextGeneral": "회원 상세",
@@ -990,7 +1211,13 @@
   "followUpContextSchedule": "일정",
   "followUpComplete": "완료",
   "followUpCount": "{count}건",
-  "@followUpCount": {"placeholders": {"count": {"type": "int"}}},
+  "@followUpCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "followUpEmpty": "남은 후속 관리가 없어요.",
   "followUpDashboardEmpty": "오늘 처리할 후속 관리가 없어요.",
   "followUpLoadFailed": "후속 관리를 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
@@ -1002,24 +1229,63 @@
   "programEditorSaveEdit": "수정 저장",
   "programSavedTitle": "저장한 프로그램",
   "programSavedExerciseCount": "운동 {count}개",
-  "@programSavedExerciseCount": {"placeholders": {"count": {"type": "int"}}},
+  "@programSavedExerciseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "programSavedNew": "새 프로그램",
   "suggestionReviewTitle": "AI 개인운동 제안",
   "suggestionReviewBadge": "검토 필요 {count}",
-  "@suggestionReviewBadge": {"placeholders": {"count": {"type": "int"}}},
+  "@suggestionReviewBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "suggestionReviewIntro": "최근 PT 피드백과 운동 기록을 바탕으로 {name}님에게 도움이 될 개인운동을 준비했어요. 추천한 것만 회원에게 보여요.",
-  "@suggestionReviewIntro": {"placeholders": {"name": {"type": "String"}}},
+  "@suggestionReviewIntro": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionReviewEmpty": "검토할 AI 개인운동 제안이 없어요",
   "suggestionReviewLoadFailed": "AI 개인운동 제안을 불러오지 못했어요",
   "suggestionApprove": "회원에게 추천",
   "suggestionConfirmTitle": "최종 검토 · 회원에게 추천",
   "suggestionConfirmBody": "아래 내용 그대로 {client}님에게 추천돼요. 추천하면 회원 앱에 바로 보여요.",
-  "@suggestionConfirmBody": {"placeholders": {"client": {"type": "String"}}},
+  "@suggestionConfirmBody": {
+    "placeholders": {
+      "client": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionDismiss": "추천 안 함",
   "suggestionApproved": "{name}을(를) {client}님에게 추천했어요",
-  "@suggestionApproved": {"placeholders": {"name": {"type": "String"}, "client": {"type": "String"}}},
+  "@suggestionApproved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "client": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionDismissed": "{name}은(는) 추천하지 않아요",
-  "@suggestionDismissed": {"placeholders": {"name": {"type": "String"}}},
+  "@suggestionDismissed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionActionFailed": "처리하지 못했어요. 잠시 후 다시 시도해 주세요",
   "suggestionAlreadyReviewed": "이미 검토한 제안이에요. 목록을 새로 불러왔어요",
   "suggestionEditTitle": "개인운동 수정",
@@ -1030,7 +1296,13 @@
   "programDraftSaved": "프로그램을 저장했어요",
   "programDraftSaveFailed": "프로그램을 저장하지 못했어요. 잠시 후 다시 시도해 주세요",
   "programDraftLoaded": "{name}을(를) 편집기로 불러왔어요",
-  "@programDraftLoaded": {"placeholders": {"name": {"type": "String"}}},
+  "@programDraftLoaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "programDraftLoadFailed": "저장한 프로그램을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
   "programDraftDeleteFailed": "프로그램을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요",
   "programDraftDeleteTitle": "저장한 프로그램을 삭제할까요?",
@@ -1060,10 +1332,22 @@
   "programEditorAddSchedule": "일정 추가",
   "programReviewTitle": "전송 확인",
   "programReviewBlurb": "아래 구성 그대로 {name}님에게 전송돼요. 확인한 뒤 전송해 주세요.",
-  "@programReviewBlurb": {"placeholders": {"name": {"type": "String"}}},
+  "@programReviewBlurb": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "programReviewBack": "편집기로 돌아가 수정",
   "programReviewSessionSummary": "운동 {count}개",
-  "@programReviewSessionSummary": {"placeholders": {"count": {"type": "int"}}},
+  "@programReviewSessionSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "programEditorInfo": "프로그램 정보",
   "programEditorName": "프로그램명",
   "programEditorGoal": "목표 (선택)",
@@ -1075,14 +1359,26 @@
   "programEditorAddSession": "세션 추가",
   "programTemplateSessionPickerTitle": "어느 세션에 추가할까요?",
   "programTemplateSessionPickerBody": "'{name}' 템플릿을 추가할 세션을 골라 주세요.",
-  "@programTemplateSessionPickerBody": {"placeholders": {"name": {"type": "String"}}},
+  "@programTemplateSessionPickerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "programEditorSessionName": "세션 {letter}",
   "programEditorSessionUp": "세션 위로 이동",
   "programEditorSessionDown": "세션 아래로 이동",
   "programEditorSessionReset": "세션 초기화",
   "programEditorSessionResetTitle": "세션을 초기화할까요?",
   "programEditorSessionResetBody": "'{name}' 세션의 운동이 모두 지워져요. 세션 자체와 다른 세션은 그대로 남아요.",
-  "@programEditorSessionResetBody": {"placeholders": {"name": {"type": "String"}}},
+  "@programEditorSessionResetBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "programEditorSessionEmpty": "운동을 추가해 세션을 구성하세요.",
   "programEditorAdd": "추가",
   "programEditorAddExercise": "운동 추가",
@@ -1097,7 +1393,13 @@
   "programEditorRest": "휴식 초",
   "programEditorExerciseMemo": "메모",
   "reportsComparisonTitle": "{week} vs 지난 주",
-  "@reportsComparisonTitle": {"placeholders": {"week": {"type": "String"}}},
+  "@reportsComparisonTitle": {
+    "placeholders": {
+      "week": {
+        "type": "String"
+      }
+    }
+  },
   "reportsGoThisWeek": "이번 주로",
   "reportsSummaryEmptyClient": "회원을 선택하면 그 주의 리포트 요약과 코칭 제안이 여기에 표시돼요",
   "reportsLastWeek": "지난 주",
@@ -1118,17 +1420,47 @@
   "reportsGoalOf": "목표 {value}",
   "reportsCompareWith": "지난 주 대비",
   "reportsMoreExercises": "+{count}개",
-  "@reportsMoreExercises": {"placeholders": {"count": {"type": "int"}}},
+  "@reportsMoreExercises": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportsRecordedDays": "기록 {days}일",
-  "@reportsRecordedDays": {"placeholders": {"days": {"type": "int"}}},
+  "@reportsRecordedDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "reportsAdherenceChip": "이행률 평균 {value}",
-  "@reportsAdherenceChip": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsAdherenceChip": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsBurnByDay": "주간 소모 칼로리",
   "reportsBurnEstimateNote": "소모 칼로리는 운동 유형·시간·강도로 낸 추정치예요.",
   "chartGoalLabel": "목표\n{value}",
-  "@chartGoalLabel": {"placeholders": {"value": {"type": "String"}}},
+  "@chartGoalLabel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsWeeksAgo": "{count}주 전",
-  "@reportsWeeksAgo": {"placeholders": {"count": {"type": "int"}}},
+  "@reportsWeeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportsAiTitle": "AI 코칭 보조 · 리포트 요약",
   "reportsAiNextWeek": "다음 주 코칭 제안",
   "reportsAiMoreWatchpoints": "외 {count}건은 리포트 본문에서 확인하세요.",
@@ -1148,7 +1480,13 @@
   "reportsPdfGenerating": "PDF 생성 중…",
   "reportsPdfGenerationFailed": "PDF를 생성하지 못했어요. 다시 시도해 주세요.",
   "reportsPdfReady": "{name}님의 주간 리포트가 준비됐어요.",
-  "@reportsPdfReady": {"placeholders": {"name": {"type": "String"}}},
+  "@reportsPdfReady": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfSending": "전송 중…",
   "reportsPdfSendToClient": "회원에게 전송",
   "reportsPdfSave": "PDF 저장",
@@ -1156,7 +1494,13 @@
   "reportsPdfClose": "닫기",
   "reportsPdfActionFailed": "작업을 완료하지 못했어요. 다시 시도해 주세요.",
   "reportsPdfSent": "{name}님에게 PDF를 전송했어요.",
-  "@reportsPdfSent": {"placeholders": {"name": {"type": "String"}}},
+  "@reportsPdfSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfSaveStarted": "PDF 저장을 시작했어요.",
   "reportsPdfPrintOpened": "인쇄 창을 열었어요.",
   "reportsPdfMessage": "이번 주 리포트를 보내드려요.",
@@ -1164,17 +1508,53 @@
   "reportsPdfDocTitle": "주간 코칭 리포트",
   "reportsPdfDocTitleContinued": "주간 코칭 리포트 (계속)",
   "reportsPdfClient": "회원  {name}",
-  "@reportsPdfClient": {"placeholders": {"name": {"type": "String"}}},
+  "@reportsPdfClient": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfPeriod": "기간  {start} ~ {end}",
-  "@reportsPdfPeriod": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
+  "@reportsPdfPeriod": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfSectionMetrics": "핵심 지표",
   "reportsPdfSectionChange": "전주 대비 변화",
   "reportsPdfSectionTrend": "주간 추이 (월~일)",
   "reportsPdfSectionDaily": "일자별 운동",
   "reportsPdfBullet": "• {label}: {value}",
-  "@reportsPdfBullet": {"placeholders": {"label": {"type": "String"}, "value": {"type": "String"}}},
+  "@reportsPdfBullet": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfDay": "{weekday}: {completion} · {exercises}",
-  "@reportsPdfDay": {"placeholders": {"weekday": {"type": "String"}, "completion": {"type": "String"}, "exercises": {"type": "String"}}},
+  "@reportsPdfDay": {
+    "placeholders": {
+      "weekday": {
+        "type": "String"
+      },
+      "completion": {
+        "type": "String"
+      },
+      "exercises": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfLabelCompletion": "운동 수행률",
   "reportsPdfLabelSessions": "PT 진행",
   "reportsPdfLabelSessionCount": "PT 진행 횟수",
@@ -1185,27 +1565,99 @@
   "reportsPdfLabelSodiumShort": "나트륨",
   "reportsPdfLabelSugarShort": "당류",
   "reportsPdfValuePercent": "{value}%",
-  "@reportsPdfValuePercent": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValuePercent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueMg": "{value}mg",
-  "@reportsPdfValueMg": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueMg": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueKcal": "{value}kcal",
-  "@reportsPdfValueKcal": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueKcal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueGram": "{value}g",
-  "@reportsPdfValueGram": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueGram": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueDays": "{value}일",
-  "@reportsPdfValueDays": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueDays": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueSessions": "{value}회",
-  "@reportsPdfValueSessions": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueSessions": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfAttendance": "{done}/{booked}회 ({rate}%)",
-  "@reportsPdfAttendance": {"placeholders": {"done": {"type": "String"}, "booked": {"type": "String"}, "rate": {"type": "String"}}},
+  "@reportsPdfAttendance": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "booked": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfNoData": "미집계",
   "reportsPdfNoFeedback": "피드백 없음",
   "a11yChartSummary": "{title}. {detail}",
-  "@a11yChartSummary": {"placeholders": {"title": {"type": "String"}, "detail": {"type": "String"}}},
+  "@a11yChartSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "a11yChartEmpty": "{title}. 기록이 없어요",
-  "@a11yChartEmpty": {"placeholders": {"title": {"type": "String"}}},
+  "@a11yChartEmpty": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "a11yChartPoint": "{day} {value}",
-  "@a11yChartPoint": {"placeholders": {"day": {"type": "String"}, "value": {"type": "String"}}},
+  "@a11yChartPoint": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "a11yShowPassword": "비밀번호 표시",
   "a11yHidePassword": "비밀번호 숨기기",
   "unitMg": "mg",
@@ -1216,5 +1668,33 @@
   "a11yNextWeek": "다음 주",
   "a11ySendMessage": "메시지 보내기",
   "aiManualCreate": "직접 만들기",
-  "aiReturnToWizard": "AI 추천으로 돌아가기"
+  "aiReturnToWizard": "AI 추천으로 돌아가기",
+  "coachClientDemographics": "{gender} · {age}세",
+  "@coachClientDemographics": {
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      },
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "coachTemplateMenu": "템플릿 메뉴",
+  "aiStrengthSummary": "{sets}세트 × {reps}회 · {weight}kg",
+  "@aiStrengthSummary": {
+    "placeholders": {
+      "sets": {
+        "type": "int"
+      },
+      "reps": {
+        "type": "int"
+      },
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
+  "routineFormDecrease": "줄이기",
+  "routineFormIncrease": "늘리기"
 }
