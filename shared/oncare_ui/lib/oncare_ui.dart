@@ -6,6 +6,8 @@
 library;
 
 export 'src/catalog/token_catalog_page.dart';
+export 'src/components/app_button.dart';
+export 'src/components/app_icon_button.dart';
 export 'src/theme/oncare_theme.dart';
 export 'src/theme/oncare_tokens.dart';
 export 'src/tokens/brand.dart';
