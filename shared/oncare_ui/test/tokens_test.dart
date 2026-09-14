@@ -139,9 +139,9 @@ void main() {
       );
     });
 
-    test('페이지 좌우 여백 — 모바일 20, 웹 24', () {
+    test('페이지 좌우 여백 — 모바일 20, 웹 16', () {
       expect(OnCareDensity.mobile.pagePadding, 20);
-      expect(OnCareDensity.web.pagePadding, 24);
+      expect(OnCareDensity.web.pagePadding, 16);
     });
   });
 

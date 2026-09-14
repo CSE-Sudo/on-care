@@ -60,7 +60,8 @@ class OnCareDensity {
     iconButtonIcon: 20,
     listRowMin: 48,
     minTouchTarget: 32,
-    pagePadding: 24,
+    // 콘솔 화면은 목록 열 폭이 고정이라 바깥 여백이 곧 빈 공간이다 — 좁게 둔다.
+    pagePadding: 16,
     menuItem: 36,
     chatBubblePadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
   );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 등록 안내. (#1421, #1600, #1577)
 ///
@@ -12,7 +12,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 자리는 말풍선이 아니라 **대화 가운데**다. 누가 무슨 말을 했는가가 아니라
 /// 스레드에 무슨 일이 있었는가를 적는 자리라, 같은 흐름의 다른 안내(`분석했어요`·
-/// `개인 추천운동을 받았어요`)와 같은 안내 배너([AppBanner] info)를 쓴다(#1577).
+/// `개인 추천운동을 받았어요`)와 같은 안내 상자([CoachChatNotice])를 쓴다(#1577).
 ///
 /// 다음 행동은 역할마다 다르다. 회원은 리포트를 열어 보고([onOpenPdf]),
 /// 트레이너는 리포트 탭으로 간다.
@@ -43,12 +43,13 @@ class CoachReportCard extends StatelessWidget {
       weekEnd.month,
       weekEnd.day,
     );
-    // 제목·기간·다음 행동을 세로로 쌓는 배너라, 글자 배율이 커져도 잘리는 대신
-    // 상자가 아래로 자란다.
-    return AppBanner(
+    // 바탕은 흰색이고 테두리만 메인 색이다 — 같은 흐름의 다른 안내(옅은 채움)와
+    // 구조는 같고, 눌러 열 것이 있는 안내라 테두리로 한 단계 더 드러낸다.
+    return CoachChatNotice(
+      style: CoachChatNoticeStyle.outlined,
       icon: Icons.description_rounded,
       title: l.coachChatReportRegistered,
-      message: range,
+      subtitle: range,
       actionLabel: l.coachChatReportPreviewPdf,
       onAction: onOpenPdf,
     );

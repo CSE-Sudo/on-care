@@ -62,6 +62,51 @@ void main() {
     );
   });
 
+  testWidgets('버튼 아이콘은 글자와 같은 색이다', (tester) async {
+    Color iconColorOf(IconData icon) {
+      final BuildContext context = tester.element(find.byIcon(icon));
+      return IconTheme.of(context).color!;
+    }
+
+    final Map<AppButtonVariant, Color> expected = <AppButtonVariant, Color>{
+      AppButtonVariant.primary: OnCareColors.textOnFill,
+      AppButtonVariant.destructive: OnCareColors.textOnFill,
+      AppButtonVariant.secondary: OnCareColors.textPrimary,
+      AppButtonVariant.destructiveText: OnCareColors.danger,
+    };
+    for (final MapEntry<AppButtonVariant, Color> entry in expected.entries) {
+      await _pump(
+        tester,
+        AppButton(
+          // 종류마다 새로 그려 이전 버튼의 색 전환 중간값을 읽지 않는다.
+          key: ValueKey<AppButtonVariant>(entry.key),
+          label: '추가',
+          onPressed: () {},
+          variant: entry.key,
+          leadingIcon: Icons.add_rounded,
+          trailingIcon: Icons.chevron_right_rounded,
+        ),
+      );
+      for (final IconData icon in <IconData>[
+        Icons.add_rounded,
+        Icons.chevron_right_rounded,
+      ]) {
+        expect(iconColorOf(icon), entry.value, reason: '${entry.key}');
+      }
+    }
+
+    await _pump(
+      tester,
+      const AppButton(
+        key: ValueKey<String>('disabled'),
+        label: '추가',
+        onPressed: null,
+        leadingIcon: Icons.add_rounded,
+      ),
+    );
+    expect(iconColorOf(Icons.add_rounded), OnCareColors.textDisabled);
+  });
+
   testWidgets('처리 중이면 탭이 막히고 스피너가 보인다', (tester) async {
     int taps = 0;
     await _pump(

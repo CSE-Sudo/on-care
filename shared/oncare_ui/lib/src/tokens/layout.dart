@@ -17,7 +17,10 @@ class OnCareLayout {
   static const double webNarrowMaxWidth = 760;
 
   /// 여러 열 페이지(대시보드·분할 화면) 최대 폭.
-  static const double webWideMaxWidth = 1440;
+  ///
+  /// 1920 창에서 사이드바를 뺀 콘텐츠 영역을 거의 다 쓴다. 목록 열은
+  /// [splitListWidth] 로 고정이라 늘어난 폭은 상세 영역이 받는다.
+  static const double webWideMaxWidth = 1680;
 
   /// 페이지 헤더 높이.
   static const double webHeaderHeight = 88;

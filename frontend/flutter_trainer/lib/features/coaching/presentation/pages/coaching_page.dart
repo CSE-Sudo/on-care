@@ -495,13 +495,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       child: AppWebPage(
         title: l.coachTitle,
         subtitle: l.coachSubtitle,
-        actions: const <Widget>[
-          // 검색 범위 안내 문구가 잘리지 않을 만큼 넓힌다(client_search_bar_test).
-          SizedBox(
-            width: OnCareLayout.headerCenterMinWidth + OnCareSpacing.s48,
-            child: ClientSearchBar(),
-          ),
-        ],
+        headerCenter: const ClientSearchBar(),
         body: clientsAsync.when(
           loading: () => const AppLoading(),
           error: (e, _) => AppErrorState(
