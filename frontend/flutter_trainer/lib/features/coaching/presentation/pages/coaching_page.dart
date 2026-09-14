@@ -239,7 +239,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     if (_sent ||
         _sendingClientIds.contains(client.id) ||
         !draft.supportsAssignment ||
-        _registerDurationMinutes <= 0) {
+        _registerDurationMinutes <= 0 ||
+        !_registerDateStillValid()) {
       return;
     }
     final confirmed = await showProgramAssignConfirmDialog(
@@ -250,6 +251,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       registerEndTime: _registerEndTime,
     );
     if (confirmed != true || !mounted || !_isStillSelected(client.id)) return;
+    // 확인창을 띄워 둔 사이에도 자정이 지날 수 있다 — 보내기 직전에 한 번 더.
+    if (!_registerDateStillValid()) return;
     final sentFor = client.id;
     final registerDate = _registerDate;
     final date = ymd(registerDate);
@@ -278,11 +281,15 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             assignment: programAssignToJson(draft, clientRequestId: requestId),
             program: _draftProgram(draft),
           );
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() => _sendingClientIds.remove(sentFor));
       if (_isStillSelected(sentFor)) {
-        showAppToast(context, l.coachSendFailed, kind: AppToastKind.error);
+        showAppToast(
+          context,
+          _sendFailureMessage(l, error),
+          kind: AppToastKind.error,
+        );
       }
       return;
     }
@@ -324,6 +331,33 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       });
     });
   }
+
+  /// 등록 날짜가 아직 오늘 이후인가. 화면을 연 채 자정을 넘겨 전날이 됐으면
+  /// 오늘로 되돌리고 알린 뒤 false — 전날 날짜로는 보내지 않는다(#1582).
+  bool _registerDateStillValid() {
+    final today = _todayKst();
+    if (!_registerDate.isBefore(today)) return true;
+    setState(() => _registerDate = today);
+    showAppToast(
+      context,
+      AppLocalizations.of(context).programEditorRegisterDatePast,
+      kind: AppToastKind.error,
+    );
+    return false;
+  }
+
+  /// 실패 원인별 안내(#1582). 다시 눌러 풀리는 실패만 재시도를 권한다 — 담당
+  /// 관계가 없거나(404) 서버가 입력을 거절한(400·422) 경우는 같은 요청을
+  /// 반복해도 결과가 같다. 응답 형식이 어긋나면 서버에는 반영됐을 수 있어
+  /// 먼저 확인하게 한다.
+  String _sendFailureMessage(AppLocalizations l, Object error) =>
+      switch (error) {
+        NetworkError() => l.coachSendNetworkFailed,
+        NotFoundError() => l.coachSendClientNotFound,
+        ValidationError() => l.coachSendInvalid,
+        FormatException() => l.coachSendUnverified,
+        _ => l.coachSendFailed,
+      };
 
   /// [clientId] 의 이번 전송에 쓸 멱등키. [payload] 가 지난 실패 때와 같으면
   /// 그 키를 다시 쓴다 — 응답만 잃은 요청을 재시도해도 서버가 두 번 만들지

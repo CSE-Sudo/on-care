@@ -8,6 +8,8 @@ import 'package:oncare_trainer/features/coaching/presentation/widgets/program_ed
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/action_button.dart';
 
+import '../../helpers/fixed_clock.dart';
+
 ProgramEditorState _sized(int sessionCount, int exerciseCount) =>
     ProgramEditorState(
       name: '프로그램',
@@ -26,6 +28,8 @@ ProgramEditorState _sized(int sessionCount, int exerciseCount) =>
     );
 
 Future<void> _pump(WidgetTester tester, ProgramEditorState draft) async {
+  // 등록 날짜(2026-01-01)가 '지난 날짜'로 막히지 않게 오늘을 맞춘다(#1582).
+  useFixedKstDate(DateTime(2026, 1, 1, 9));
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(1400, 1000);
   addTearDown(tester.view.resetPhysicalSize);

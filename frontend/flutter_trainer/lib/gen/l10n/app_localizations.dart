@@ -5822,11 +5822,47 @@ abstract class AppLocalizations {
   /// **'Programs you already assigned and sessions you scheduled stay as they are.'**
   String get programDraftDeleteBody;
 
-  /// No description provided for @programEditorAssignUnsupported.
+  /// No description provided for @programEditorNoExercises.
   ///
   /// In en, this message translates to:
-  /// **'Check each exercise\'s name and set count.'**
-  String get programEditorAssignUnsupported;
+  /// **'Add at least one exercise'**
+  String get programEditorNoExercises;
+
+  /// No description provided for @programEditorExerciseNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'An exercise name is empty or longer than 100 characters'**
+  String get programEditorExerciseNameInvalid;
+
+  /// No description provided for @programEditorRegisterDatePast.
+  ///
+  /// In en, this message translates to:
+  /// **'That date has passed. Pick today or a later date'**
+  String get programEditorRegisterDatePast;
+
+  /// No description provided for @coachSendNetworkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your network connection and try again'**
+  String get coachSendNetworkFailed;
+
+  /// No description provided for @coachSendClientNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This member isn\'t linked to you. Check the member\'s connection'**
+  String get coachSendClientNotFound;
+
+  /// No description provided for @coachSendInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The server didn\'t accept this schedule. Check the date, time and exercises'**
+  String get coachSendInvalid;
+
+  /// No description provided for @coachSendUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t confirm the result. Check the schedule to see whether it was added'**
+  String get coachSendUnverified;
 
   /// No description provided for @programEditorSessionLimitReached.
   ///

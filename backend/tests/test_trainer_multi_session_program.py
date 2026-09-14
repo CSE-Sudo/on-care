@@ -456,6 +456,7 @@ def test_program_size_limits_are_the_same_for_draft_assign_and_schedule(
     """
     from pydantic import ValidationError
 
+    from app.core import clock
     from app.schemas.trainer_api import (
         ProgramAssignRequest,
         ProgramScheduleRequest,
@@ -471,7 +472,7 @@ def test_program_size_limits_are_the_same_for_draft_assign_and_schedule(
         ProgramScheduleRequest: {
             "name": "크기",
             "sessions": sessions,
-            "date": "2026-09-15",
+            "date": clock.today().isoformat(),
             "time": "10:00",
             "duration_minutes": 60,
         },

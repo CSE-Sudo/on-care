@@ -2409,12 +2409,58 @@ void main() {
 
       await tapSend(tester);
 
-      expect(find.text('전송에 실패했어요. 다시 시도해 주세요'), findsOneWidget);
+      expect(find.text('네트워크 연결을 확인한 뒤 다시 시도해 주세요'), findsOneWidget);
       expect(
         find.text('응답을 받지 못했어요. 회원의 받은 루틴을 확인한 뒤 필요한 경우에만 다시 보내주세요'),
         findsNothing,
         reason: '멱등해진 뒤에는 "먼저 확인하라"고 막을 이유가 없다',
       );
+    });
+
+    testWidgets('담당 회원이 아니면(404) 재시도 대신 연결 상태를 확인하게 한다 (#1582)', (
+      tester,
+    ) async {
+      await openRealApiTab(tester, sendError: const NotFoundError());
+
+      await tapSend(tester);
+
+      expect(
+        find.text('담당 회원을 찾을 수 없어요. 회원 연결 상태를 확인해 주세요'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('다시 시도해 주세요'), findsNothing);
+    });
+
+    testWidgets('서버가 입력을 거절하면(422) 재시도 대신 입력을 확인하게 한다 (#1582)', (
+      tester,
+    ) async {
+      await openRealApiTab(tester, sendError: const ValidationError());
+
+      await tapSend(tester);
+
+      expect(
+        find.text('서버가 이 일정을 받지 않았어요. 날짜·시간·운동 구성을 확인해 주세요'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('다시 시도해 주세요'), findsNothing);
+    });
+
+    testWidgets('화면을 연 채 자정을 넘기면 전날 날짜로 보내지 않는다 (#1582)', (tester) async {
+      final scheduleRepo = await openRealApiTab(tester);
+      final send = await _ensureSendButtonReady(tester);
+      await tester.pump(const Duration(seconds: 5));
+
+      // 편집기가 다시 그려지기 전에 자정이 지났다 — 버튼은 아직 살아 있다.
+      debugNowKstOverride = () => kMidWeekKst.add(const Duration(days: 1));
+      await tester.tap(send);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey<String>('program-assign-confirm')),
+        findsNothing,
+      );
+      expect(find.text('지난 날짜예요. 오늘 이후 날짜를 골라 주세요'), findsOneWidget);
+      expect(scheduleRepo.registerCalls, 0);
     });
 
     testWidgets('a non-network assign failure shows the generic retry message '

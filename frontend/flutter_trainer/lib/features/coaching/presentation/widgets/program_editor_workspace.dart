@@ -124,6 +124,10 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
 
   int _minutes(TimeOfDay value) => value.hour * 60 + value.minute;
 
+  /// 고른 등록 날짜가 이미 지났는가 — 화면을 연 채 자정을 넘긴 경우다(#1582).
+  /// 누르는 순간의 재검증은 호출부가 한 번 더 한다.
+  bool get _registerDateIsPast => widget.registerDate.isBefore(_todayDate());
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -551,13 +555,21 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                 onTap: () => unawaited(_pickRegisterTimeRange(context)),
               ),
               Tooltip(
-                message: _draft.exceedsSizeLimit
-                    ? _sizeExceededMessage(l)
-                    : !_draft.supportsAssignment
-                    ? l.programEditorAssignUnsupported
-                    : !_hasValidRegisterTimeRange
-                    ? l.schedEndBeforeStart
-                    : '',
+                // 버튼을 막는 조건과 같은 순서로 이유를 말한다(#1582).
+                message: switch (_draft.assignmentBlocker) {
+                  ProgramAssignmentBlocker.sizeExceeded =>
+                    _sizeExceededMessage(l),
+                  ProgramAssignmentBlocker.noExercises =>
+                    l.programEditorNoExercises,
+                  ProgramAssignmentBlocker.invalidExerciseName =>
+                    l.programEditorExerciseNameInvalid,
+                  null =>
+                    !_hasValidRegisterTimeRange
+                        ? l.schedEndBeforeStart
+                        : _registerDateIsPast
+                        ? l.programEditorRegisterDatePast
+                        : '',
+                },
                 child: ActionButton(
                   key: const ValueKey<String>('program-editor-send'),
                   label: l.programEditorAddSchedule,
@@ -565,6 +577,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                   onPressed:
                       _draft.supportsAssignment &&
                           _hasValidRegisterTimeRange &&
+                          !_registerDateIsPast &&
                           !widget.sending
                       ? () => widget.onSend(_draft)
                       : null,

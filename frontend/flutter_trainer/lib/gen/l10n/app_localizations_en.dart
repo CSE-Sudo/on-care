@@ -3319,8 +3319,31 @@ class AppLocalizationsEn extends AppLocalizations {
       'Programs you already assigned and sessions you scheduled stay as they are.';
 
   @override
-  String get programEditorAssignUnsupported =>
-      'Check each exercise\'s name and set count.';
+  String get programEditorNoExercises => 'Add at least one exercise';
+
+  @override
+  String get programEditorExerciseNameInvalid =>
+      'An exercise name is empty or longer than 100 characters';
+
+  @override
+  String get programEditorRegisterDatePast =>
+      'That date has passed. Pick today or a later date';
+
+  @override
+  String get coachSendNetworkFailed =>
+      'Check your network connection and try again';
+
+  @override
+  String get coachSendClientNotFound =>
+      'This member isn\'t linked to you. Check the member\'s connection';
+
+  @override
+  String get coachSendInvalid =>
+      'The server didn\'t accept this schedule. Check the date, time and exercises';
+
+  @override
+  String get coachSendUnverified =>
+      'Couldn\'t confirm the result. Check the schedule to see whether it was added';
 
   @override
   String programEditorSessionLimitReached(int max) {

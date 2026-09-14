@@ -69,13 +69,21 @@ def _program_command_body(
 
 
 def test_program_schedule_payload_requires_positive_duration():
-    body = _program_command_body("2026-08-26", "걷기")
+    body = _program_command_body(_today(), "걷기")
     payload = ProgramScheduleRequest.model_validate(body)
     assert payload.time == "16:00"
     assert payload.duration_minutes == 75
 
     with pytest.raises(ValidationError):
         ProgramScheduleRequest.model_validate({**body, "duration_minutes": 0})
+
+
+def test_program_schedule_rejects_a_past_date():
+    """자정을 넘겨 전날 날짜가 와도 일정을 만들지 않는다. 오늘은 받는다. (#1582)"""
+    yesterday = (clock.today() - timedelta(days=1)).isoformat()
+    with pytest.raises(ValidationError):
+        ProgramScheduleRequest.model_validate(_program_command_body(yesterday, "걷기"))
+    ProgramScheduleRequest.model_validate(_program_command_body(_today(), "걷기"))
 
 
 def _delete_program_test_sessions(db_session, day: str) -> None:

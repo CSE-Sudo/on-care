@@ -3178,7 +3178,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programDraftDeleteBody => '이미 배정한 프로그램과 등록한 일정은 그대로 남아요.';
 
   @override
-  String get programEditorAssignUnsupported => '운동 이름과 세트 수를 확인해 주세요';
+  String get programEditorNoExercises => '운동을 하나 이상 추가해 주세요';
+
+  @override
+  String get programEditorExerciseNameInvalid => '이름이 비었거나 100자를 넘는 운동이 있어요';
+
+  @override
+  String get programEditorRegisterDatePast => '지난 날짜예요. 오늘 이후 날짜를 골라 주세요';
+
+  @override
+  String get coachSendNetworkFailed => '네트워크 연결을 확인한 뒤 다시 시도해 주세요';
+
+  @override
+  String get coachSendClientNotFound => '담당 회원을 찾을 수 없어요. 회원 연결 상태를 확인해 주세요';
+
+  @override
+  String get coachSendInvalid => '서버가 이 일정을 받지 않았어요. 날짜·시간·운동 구성을 확인해 주세요';
+
+  @override
+  String get coachSendUnverified => '등록 결과를 확인하지 못했어요. 스케줄에서 등록 여부를 확인해 주세요';
 
   @override
   String programEditorSessionLimitReached(int max) {
