@@ -2867,6 +2867,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTodoReportSubtitle => '이번 주 리포트 작성 대상';
 
   @override
+  String get dashTaskSaveFailed => '할 일 상태를 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get dashTaskLoadFailed => '할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
   String get dashTaskDismissTitle => '이 항목을 삭제할까요?';
 
   @override
@@ -3178,14 +3184,75 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programDraftDeleteBody => '이미 배정한 프로그램과 등록한 일정은 그대로 남아요.';
 
   @override
-  String get programEditorAssignUnsupported => '운동 이름과 세트 수를 확인해 주세요';
+  String programAssignConfirmAttachBody(
+    String name,
+    String date,
+    String session,
+    String selected,
+  ) {
+    return '$date $session에 이미 예정된 $name님의 PT에 이 프로그램이 연결돼요. 고른 시간($selected)은 적용되지 않아요.';
+  }
+
+  @override
+  String programAssignConfirmChooseBody(
+    String name,
+    String date,
+    String selected,
+  ) {
+    return '$date에 고른 시간($selected)과 겹치는 $name님의 PT가 여러 개예요. 프로그램을 연결할 회차를 골라 주세요. 고른 시간은 적용되지 않아요.';
+  }
+
+  @override
+  String get coachAttachTargetChanged =>
+      '연결할 PT 일정이 그 사이 바뀌었어요. 일정 추가를 다시 눌러 확인해 주세요';
+
+  @override
+  String get programEditorNoExercises => '운동을 하나 이상 추가해 주세요';
+
+  @override
+  String get programEditorExerciseNameInvalid => '이름이 비었거나 100자를 넘는 운동이 있어요';
+
+  @override
+  String get programEditorRegisterDatePast => '지난 날짜예요. 오늘 이후 날짜를 골라 주세요';
+
+  @override
+  String get coachSendNetworkFailed => '네트워크 연결을 확인한 뒤 다시 시도해 주세요';
+
+  @override
+  String get coachSendClientNotFound => '담당 회원을 찾을 수 없어요. 회원 연결 상태를 확인해 주세요';
+
+  @override
+  String get coachSendInvalid => '서버가 이 일정을 받지 않았어요. 날짜·시간·운동 구성을 확인해 주세요';
+
+  @override
+  String get coachSendUnverified => '등록 결과를 확인하지 못했어요. 스케줄에서 등록 여부를 확인해 주세요';
+
+  @override
+  String programEditorSessionLimitReached(int max) {
+    return '세션은 최대 $max개까지 만들 수 있어요';
+  }
+
+  @override
+  String programEditorExerciseLimitReached(int max) {
+    return '운동은 프로그램 전체에서 최대 $max개까지 넣을 수 있어요';
+  }
+
+  @override
+  String programEditorSizeExceeded(
+    int sessions,
+    int maxSessions,
+    int exercises,
+    int maxExercises,
+  ) {
+    return '세션 $sessions/$maxSessions개 · 운동 $exercises/$maxExercises개 — 한도를 넘은 만큼 줄여야 일정에 추가할 수 있어요';
+  }
 
   @override
   String get programAssignConfirmTitle => '일정에 추가할까요?';
 
   @override
   String programAssignConfirmBody(String name, String date, String time) {
-    return '$date $time에 $name님의 PT 스케줄에 이 프로그램이 추가돼요.';
+    return '$date $time에 $name님의 PT 일정을 새로 만들고 이 프로그램을 추가해요.';
   }
 
   @override

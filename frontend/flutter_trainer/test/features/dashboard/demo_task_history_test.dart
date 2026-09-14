@@ -26,9 +26,7 @@ void main() {
     final DemoTaskHistory demo = DemoTaskHistory(today: DateTime(2026, 8, 20));
 
     final DailyTaskSnapshot yesterday = demo.snapshotFor(daysBefore(1))!;
-    expect(yesterday.pendingKeys, <String>{
-      DemoTaskHistory.kDemoCarryOverKey,
-    });
+    expect(yesterday.pendingKeys, <String>{DemoTaskHistory.kDemoCarryOverKey});
     expect(yesterday.total - yesterday.completed, 1);
     expect(demo.snapshotFor(daysBefore(2))!.pendingKeys, isEmpty);
   });
@@ -85,20 +83,26 @@ void main() {
   test('가장 이른 저장일이 데모의 경계다', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final DailyTaskProgressStore store = DailyTaskProgressStore(prefs);
+    final LocalDailyTaskProgressStore store = LocalDailyTaskProgressStore(
+      prefs,
+    );
 
-    expect(store.firstSavedDate(), isNull);
+    expect((await store.load()).firstSavedDate, isNull);
 
     const DailyTaskSnapshot snapshot = DailyTaskSnapshot(
       total: 3,
       completedToday: 1,
       completedCarriedOver: 0,
       pendingKeys: <String>{'report-c1'},
+      dismissedKeys: <String>{'program-c2'},
     );
     await store.save('2026-08-19', snapshot);
     await store.save('2026-08-17', snapshot);
     await store.save('2026-08-20', snapshot);
 
-    expect(store.firstSavedDate(), '2026-08-17');
+    final DailyTaskHistory history = await store.load();
+    expect(history.firstSavedDate, '2026-08-17');
+    // 삭제한 항목도 함께 남는다(#1633).
+    expect(history.read('2026-08-20')!.dismissedKeys, <String>{'program-c2'});
   });
 }

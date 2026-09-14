@@ -33,7 +33,7 @@ from app.models.models import (
 from app.schemas.trainer_api import (
     ChatAttachmentOut, ChatMessageOut, ClientDietEntryOut, MemberCoachOut, ProgramDraftExercise,
     ProgramDraftSession,
-    ProgramItem, ReportFeedbackOut, RoutineHistoryOut,
+    ProgramItem, ProgramScheduleOut, ReportFeedbackOut, RoutineHistoryOut,
     RoutineOut, ScheduleSessionOut, TrainerClientOut, TrainerClientStatusOut,
     TrainerFollowUpTaskOut,
     TrainerGymOut, TrainerMe, TrainerMemoOut, TrainerNotificationSettings,
@@ -1785,7 +1785,41 @@ def assign_program(
     가득 찬다.
     """
     if client_request_id:
-        existing = db.scalars(
+        existing = _program_routines_for_request(
+            db, trainer_id, member_id, client_request_id, len(sessions)
+        )
+        if existing:
+            return [_routine_out(db, rt) for rt in existing]
+
+    # 단일 배정과 같은 이유로 알림보다 먼저 flush 한다 — 동시 요청이 유니크
+    # 제약에 걸리면 진 쪽이 알림까지 쌓지 않아야 한다.
+    try:
+        created = _add_program_routines(
+            db, trainer_id, member_id,
+            name=name, sessions=sessions, client_request_id=client_request_id,
+        )
+    except IntegrityError:
+        db.rollback()
+        if client_request_id:
+            existing = _program_routines_for_request(
+                db, trainer_id, member_id, client_request_id, len(sessions)
+            )
+            if existing:
+                return [_routine_out(db, rt) for rt in existing]
+        raise
+    db.commit()
+    for rt in created:
+        db.refresh(rt)
+    return [_routine_out(db, rt) for rt in created]
+
+
+def _program_routines_for_request(
+    db: Session, trainer_id: str, member_id: str, client_request_id: str,
+    session_count: int,
+) -> list[TrainerRoutine]:
+    """그 멱등키로 이미 배정된 세션 루틴들(세션 순서대로). 없으면 빈 목록."""
+    return list(
+        db.scalars(
             select(TrainerRoutine)
             .where(
                 TrainerRoutine.trainer_id == trainer_id,
@@ -1793,15 +1827,27 @@ def assign_program(
                 TrainerRoutine.client_request_id.in_(
                     [
                         _program_request_key(client_request_id, index)
-                        for index in range(len(sessions))
+                        for index in range(session_count)
                     ]
                 ),
             )
             .order_by(TrainerRoutine.session_order)
         ).all()
-        if existing:
-            return [_routine_out(db, rt) for rt in existing]
+    )
 
+
+def _add_program_routines(
+    db: Session, trainer_id: str, member_id: str, *,
+    name: str,
+    sessions: Sequence[ProgramDraftSession],
+    client_request_id: str | None,
+) -> list[TrainerRoutine]:
+    """세션 루틴과 배정 알림을 세션에 올리고 flush 한다. 커밋은 호출부 몫이다.
+
+    커밋하지 않는 이유는 `일정 추가`(#1580) 때문이다 — 배정과 일정 등록이 한
+    트랜잭션이어야 둘 중 하나만 남는 반쪽 상태가 생기지 않는다. 유니크 제약
+    위반은 flush 에서 [IntegrityError] 로 올라온다.
+    """
     multi = len(sessions) > 1
     max_order = db.scalar(
         select(func.max(TrainerRoutine.sort_order)).where(
@@ -1839,31 +1885,7 @@ def assign_program(
         )
         db.add(rt)
         created.append(rt)
-
-    # 단일 배정과 같은 이유로 알림보다 먼저 flush 한다 — 동시 요청이 유니크
-    # 제약에 걸리면 진 쪽이 알림까지 쌓지 않아야 한다.
-    try:
-        db.flush()
-    except IntegrityError:
-        db.rollback()
-        if client_request_id:
-            existing = db.scalars(
-                select(TrainerRoutine)
-                .where(
-                    TrainerRoutine.trainer_id == trainer_id,
-                    TrainerRoutine.member_id == member_id,
-                    TrainerRoutine.client_request_id.in_(
-                        [
-                            _program_request_key(client_request_id, index)
-                            for index in range(len(sessions))
-                        ]
-                    ),
-                )
-                .order_by(TrainerRoutine.session_order)
-            ).all()
-            if existing:
-                return [_routine_out(db, rt) for rt in existing]
-        raise
+    db.flush()
 
     total_minutes = sum(rt.minutes for rt in created)
     notification_service.queue(
@@ -1878,10 +1900,7 @@ def assign_program(
             else f"{name} · {total_minutes}분"
         ),
     )
-    db.commit()
-    for rt in created:
-        db.refresh(rt)
-    return [_routine_out(db, rt) for rt in created]
+    return created
 
 
 # ---- 회원별 트레이너 메모 (#706) ----
@@ -2817,26 +2836,22 @@ def create_session(
                 program_json=program_json,
             )
 
-    s = TrainerSchedule(
-        id=f"sched-{uuid.uuid4().hex[:12]}",
-        trainer_id=trainer_id,
-        member_id=member_id,
-        date=date,
-        time=time,
-        client_name=client_name,
-        type=type_,
-        duration_minutes=duration_minutes,
-        status="예정",
-        note=note,
-        program_json=program_json,
-        sort_order=0,
-        client_request_id=client_request_id,
-    )
-    db.add(s)
     # 같은 키의 동시 요청은 유니크 제약으로 하나만 통과시킨 뒤, 패배한 요청은
     # 승자의 행을 읽어 같은 결과를 반환한다. 알림은 flush 뒤라 중복되지 않는다.
     try:
-        db.flush()
+        s = _add_session(
+            db,
+            trainer_id,
+            date=date,
+            time=time,
+            client_name=client_name,
+            member_id=member_id,
+            type_=type_,
+            duration_minutes=duration_minutes,
+            note=note,
+            program_json=program_json,
+            client_request_id=client_request_id,
+        )
     except IntegrityError:
         db.rollback()
         if client_request_id:
@@ -2859,6 +2874,37 @@ def create_session(
                     program_json=program_json,
                 )
         raise
+    db.commit()
+    db.refresh(s)
+    return _schedule_out(s)
+
+
+def _add_session(
+    db: Session, trainer_id: str, *, date: str, time: str, client_name: str,
+    member_id: str | None, type_: str, duration_minutes: int, note: str,
+    program_json: str, client_request_id: str | None,
+) -> TrainerSchedule:
+    """예정 일정과 그 알림을 세션에 올리고 flush 한다. 커밋은 호출부 몫이다.
+
+    [_add_program_routines] 와 같은 이유로 커밋하지 않는다(#1580).
+    """
+    s = TrainerSchedule(
+        id=f"sched-{uuid.uuid4().hex[:12]}",
+        trainer_id=trainer_id,
+        member_id=member_id,
+        date=date,
+        time=time,
+        client_name=client_name,
+        type=type_,
+        duration_minutes=duration_minutes,
+        status="예정",
+        note=note,
+        program_json=program_json,
+        sort_order=0,
+        client_request_id=client_request_id,
+    )
+    db.add(s)
+    db.flush()
 
     # 회원 몫의 일정이 잡혔을 때만 알린다 — 가망 고객('신규 고객 · 상담')처럼
     # member_id 가 없는 슬롯은 알릴 대상 자체가 없다(#489).
@@ -2871,9 +2917,7 @@ def create_session(
             title="새 일정이 등록되었어요",
             body=f"{date} {time} · {type_}",
         )
-    db.commit()
-    db.refresh(s)
-    return _schedule_out(s)
+    return s
 
 
 #: 한 번의 반복 설정으로 만들 수 있는 최대 회차. 주 2회면 반년, 주 1회면 1년치다.
@@ -3097,23 +3141,160 @@ def create_recurring_sessions(
     return [_schedule_out(row) for row in created]
 
 
-def register_program(
+def _schedule_program_items(
+    sessions: Sequence[ProgramDraftSession],
+) -> list[ProgramItem]:
+    """프로그램 세션들을 일정 한 건의 평면 항목으로 펼친다. (#709, #1580)
+
+    세션 이름은 항목마다 붙는다 — 일정은 평면 목록이지만 이 값으로 다시 세션별로
+    묶어 보여 줄 수 있다. 세션이 하나뿐이면 빈 문자열이라 예전 일정과 같은 모양이다.
+    유형에 맞지 않는 칸은 [ProgramItem] 검증이 비운다(#1276).
+    """
+    multi = len(sessions) > 1
+    return [
+        ProgramItem(
+            name=exercise.name,
+            type=exercise.type,
+            date=exercise.date,
+            duration=exercise.duration,
+            sets=exercise.sets,
+            reps=exercise.reps,
+            weight=exercise.weight,
+            intensity=exercise.intensity,
+            session=session.name if multi else "",
+        )
+        for session in sessions
+        for exercise in session.exercises
+    ]
+
+
+class AttachTargetConflict(Exception):
+    """프로그램을 붙일 기존 세션을 하나로 정할 수 없다(#1581).
+
+    고른 시간대와 겹치는 예정 세션이 여럿인데 고르지 않았거나, 고른 세션이 더는
+    후보가 아니다. 라우터가 409 와 함께 후보를 싣는다.
+    """
+
+    def __init__(self, message: str, candidates: Sequence[TrainerSchedule]):
+        super().__init__(message)
+        self.candidates = [_schedule_out(s) for s in candidates]
+
+
+def _clock_minutes(value: str) -> int:
+    """`HH:MM` 을 자정부터의 분으로. 형식이 다르면 ValueError."""
+    hour, minute = value.split(":")
+    return int(hour) * 60 + int(minute)
+
+
+def _overlapping_planned_sessions(
+    db: Session, trainer_id: str, member_id: str, *,
+    date: str, time: str, duration_minutes: int,
+) -> list[TrainerSchedule]:
+    """고른 시간대와 겹치는 그 회원·그날의 예정 세션(시작 시각 순). (#1581)
+
+    예전에는 시간과 상관없이 그날 가장 이른 예정 세션에 붙어, 같은 날 PT 가
+    여럿이면 의도하지 않은 회차에 프로그램이 들어갔다. 겹침은 반열린 구간
+    `[시작, 끝)` 끼리 본다 — 10:00–11:00 과 11:00–12:00 은 이어질 뿐 겹치지
+    않는다. 길이가 0인 세션은 시작 1분으로 본다.
+    """
+    rows = db.scalars(
+        select(TrainerSchedule)
+        .where(
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.member_id == member_id,
+            TrainerSchedule.date == date,
+            TrainerSchedule.status == "예정",
+        )
+        .order_by(TrainerSchedule.time, TrainerSchedule.id)
+        .with_for_update()
+    ).all()
+    start = _clock_minutes(time)
+    end = start + duration_minutes
+    overlapping: list[TrainerSchedule] = []
+    for row in rows:
+        try:
+            row_start = _clock_minutes(row.time)
+        except ValueError:
+            continue
+        if start < row_start + max(row.duration_minutes, 1) and row_start < end:
+            overlapping.append(row)
+    return overlapping
+
+
+def _schedule_request_key(base: str) -> str:
+    """`일정 추가` 가 새로 만든 일정 행의 멱등키. 루틴 키(`#0`…)와 겹치지 않는다."""
+    return f"{base}#schedule"
+
+
+def _replayed_program_schedule(
+    db: Session, trainer_id: str, member_id: str, *,
+    client_request_id: str,
+    routines: Sequence[TrainerRoutine],
+    date: str,
+    program_json: str,
+) -> ProgramScheduleOut:
+    """같은 멱등키로 이미 끝난 `일정 추가` 의 결과를 다시 만든다. (#1580)
+
+    배정과 일정은 한 트랜잭션이라, 루틴이 있으면 일정도 이미 반영돼 있다. 새로
+    만든 일정은 멱등키로 찾고, 기존 일정에 붙인 경우는 그 날짜에서 같은 구성을
+    가진 일정으로 찾는다. 그 사이 트레이너가 일정을 고쳐 둘 다 없으면 무엇을
+    돌려줘야 할지 알 수 없으므로 충돌로 알린다 — 다시 만들면 중복이 된다.
+    """
+    created = db.scalar(
+        select(TrainerSchedule).where(
+            TrainerSchedule.trainer_id == trainer_id,
+            TrainerSchedule.client_request_id == _schedule_request_key(client_request_id),
+        )
+    )
+    attached: TrainerSchedule | None = None
+    if created is None:
+        attached = db.scalar(
+            select(TrainerSchedule)
+            .where(
+                TrainerSchedule.trainer_id == trainer_id,
+                TrainerSchedule.member_id == member_id,
+                TrainerSchedule.date == date,
+                TrainerSchedule.program_json == program_json,
+            )
+            .order_by(TrainerSchedule.time, TrainerSchedule.id)
+            .limit(1)
+        )
+    session = created or attached
+    if session is None:
+        raise IdempotencyConflict(
+            "이미 처리된 요청입니다. 일정을 확인한 뒤 새로 추가해 주세요."
+        )
+    return ProgramScheduleOut(
+        routines=[_routine_out(db, rt) for rt in routines],
+        session=_schedule_out(session),
+        attached_to_existing=created is None,
+    )
+
+
+def assign_program_with_schedule(
     db: Session,
     trainer_id: str,
     member_id: str,
     *,
+    name: str,
+    sessions: Sequence[ProgramDraftSession],
     date: str,
     time: str,
     duration_minutes: int,
     client_name: str,
-    program: list[ProgramItem],
-) -> tuple[ScheduleSessionOut, bool] | None:
-    """Atomically attach a program to a planned session or create one.
+    client_request_id: str | None = None,
+    session_id: str | None = None,
+) -> ProgramScheduleOut | None:
+    """프로그램을 회원에게 배정하고 PT 일정에 올린다 — 둘 다 되거나 둘 다 안 된다. (#1580)
 
-    Locking the trainer-client link serializes this command for one
-    trainer/member pair. A concurrent request therefore cannot observe the
-    same empty schedule state and create a duplicate session: the second
-    request waits, then sees and updates the row committed by the first.
+    담당 링크 행을 잠가 한 트레이너·회원 쌍의 명령을 줄 세운다. 동시에 들어온
+    두 요청이 같은 빈 일정을 보고 각자 일정을 만들지 못하고, 같은 멱등키의 재시도는
+    앞 요청이 커밋한 루틴을 보고 결과만 돌려받는다.
+
+    연결 대상은 고른 시간대와 겹치는 그날 예정 세션이다(#1581). 없으면 고른
+    시간으로 새 일정을 만들고, 하나면 거기에 붙이며(고른 시간은 쓰지 않는다),
+    여럿이면 [session_id] 로 고른 것에만 붙인다 — 고르지 않았거나 고른 것이
+    후보가 아니면 [AttachTargetConflict]. 담당 고객이 아니면 None.
     """
     client_link = db.scalar(
         select(TrainerClient)
@@ -3126,20 +3307,45 @@ def register_program(
     if client_link is None:
         return None
 
-    session = db.scalar(
-        select(TrainerSchedule)
-        .where(
-            TrainerSchedule.trainer_id == trainer_id,
-            TrainerSchedule.member_id == member_id,
-            TrainerSchedule.date == date,
-            TrainerSchedule.status == "예정",
+    program_json = _dump_program(_schedule_program_items(sessions))
+    if client_request_id:
+        replayed = _program_routines_for_request(
+            db, trainer_id, member_id, client_request_id, len(sessions)
         )
-        .order_by(TrainerSchedule.time, TrainerSchedule.id)
-        .limit(1)
-        .with_for_update()
+        if replayed:
+            return _replayed_program_schedule(
+                db, trainer_id, member_id,
+                client_request_id=client_request_id,
+                routines=replayed,
+                date=date,
+                program_json=program_json,
+            )
+
+    candidates = _overlapping_planned_sessions(
+        db, trainer_id, member_id,
+        date=date, time=time, duration_minutes=duration_minutes,
     )
-    if session is None:
-        created = create_session(
+    target: TrainerSchedule | None
+    if session_id is not None:
+        target = next((s for s in candidates if s.id == session_id), None)
+        if target is None:
+            raise AttachTargetConflict(
+                "고른 PT 일정이 더는 이 시간대의 예정 세션이 아닙니다. 다시 확인해 주세요.",
+                candidates,
+            )
+    elif len(candidates) > 1:
+        raise AttachTargetConflict(
+            "고른 시간대와 겹치는 PT 일정이 여러 개입니다. 연결할 회차를 골라 주세요.",
+            candidates,
+        )
+    else:
+        target = candidates[0] if candidates else None
+    routines = _add_program_routines(
+        db, trainer_id, member_id,
+        name=name, sessions=sessions, client_request_id=client_request_id,
+    )
+    if target is None:
+        session = _add_session(
             db,
             trainer_id,
             date=date,
@@ -3149,14 +3355,23 @@ def register_program(
             type_="1:1 PT",
             duration_minutes=duration_minutes,
             note="",
-            program=program,
+            program_json=program_json,
+            client_request_id=(
+                _schedule_request_key(client_request_id) if client_request_id else None
+            ),
         )
-        return created, False
-
-    session.program_json = _dump_program(program)
+    else:
+        target.program_json = program_json
+        session = target
     db.commit()
+    for rt in routines:
+        db.refresh(rt)
     db.refresh(session)
-    return _schedule_out(session), True
+    return ProgramScheduleOut(
+        routines=[_routine_out(db, rt) for rt in routines],
+        session=_schedule_out(session),
+        attached_to_existing=target is not None,
+    )
 
 
 def _member_visible_slot(s: TrainerSchedule) -> tuple[str, str, str, int]:
