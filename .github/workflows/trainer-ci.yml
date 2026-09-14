@@ -58,6 +58,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # #1690 규격이 다시 흩어지지 않도록 화면 코드의 새 하드코딩을 막는다(#1698).
+      # 기준선은 앱 안의 ui_guard_baseline.json 이다. 도구 자체 테스트는 회원 앱 CI 에서 돈다.
+      - name: UI hardcoding guard
+        working-directory: tool/ui_guard
+        run: |
+          dart pub get
+          dart run bin/ui_guard.dart check frontend/flutter_trainer
+
       - name: Analyze
         run: flutter analyze
 
