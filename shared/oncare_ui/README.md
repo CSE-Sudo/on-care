@@ -43,9 +43,9 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 
 `OnCareTokenCatalog` 위젯으로 현재 앱의 토큰을 한 화면에서 볼 수 있습니다.
 
-## 전환 기간
+## 글자 배율
 
-두 앱은 모든 화면이 역할 글자로 옮겨 갈 때까지 전역 글자 배율 1.10 을 유지합니다. `OnCareTheme.light(legacyTextScale: …)` 로 그 배율을 넘기면 테마 글자 크기가 상쇄되어 보이는 크기가 규격과 같아집니다. 배율과 이 인자는 정리 이슈(#1707)에서 함께 없앱니다.
+앱 전역 글자 배율은 없습니다(#1707). 기기 접근성 배율만 `OnCareTypography.scaler` 로 1.0 ~ 1.3 사이에서 따릅니다. 두 앱 모두 `lib/design_system` 없이 이 패키지만 쓰며, 화면 코드의 새 하드코딩은 `tool/ui_guard` 가 막습니다(앱별 기준선 `ui_guard_baseline.json` 은 비어 있습니다).
 
 ## 테스트
 

@@ -115,19 +115,6 @@ void main() {
       expect(OnCareTypography.buttonSmall.fontSize, 13);
     });
 
-    test('옛 전역 배율을 상쇄하면 보이는 크기가 역할 크기가 된다', () {
-      const double legacy = 1.10;
-      final TextStyle compensated = OnCareTypography.compensate(
-        OnCareTypography.body,
-        legacy,
-      );
-      expect(compensated.fontSize! * legacy, closeTo(15, 1e-9));
-      expect(
-        OnCareTypography.compensate(OnCareTypography.body, 1.0),
-        same(OnCareTypography.body),
-      );
-    });
-
     test('기기 배율은 1.0 ~ 1.3 으로 묶인다', () {
       expect(
         OnCareTypography.scaler(const TextScaler.linear(2)).scale(10),
@@ -192,9 +179,8 @@ double _contrast(Color a, Color b) {
 }
 
 double _luminance(Color color) {
-  double channel(double v) => v <= 0.03928
-      ? v / 12.92
-      : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+  double channel(double v) =>
+      v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
   return 0.2126 * channel(color.r) +
       0.7152 * channel(color.g) +
       0.0722 * channel(color.b);

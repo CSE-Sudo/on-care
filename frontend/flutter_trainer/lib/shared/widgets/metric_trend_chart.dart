@@ -24,7 +24,7 @@ import 'package:intl/intl.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 이번 주 꺾은선의 색. 값의 상태는 점으로 말하므로 선은 눈에 띄지 않게 둔다.
-const Color kMetricTrendLine = Color(0xFFDDE2E8);
+const Color kMetricTrendLine = OnCareColors.lineStrong;
 
 /// 목표 대비 상태색: 초과(빨강) / 그 외(목표 안쪽).
 ///
@@ -169,7 +169,7 @@ class MetricTrendChart extends StatelessWidget {
                       },
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: OnCareSpacing.s8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
@@ -177,8 +177,8 @@ class MetricTrendChart extends StatelessWidget {
                         if (i == todayIndex && markToday)
                           // 오늘: 브랜드색 원 안에 흰 글씨.
                           Container(
-                            width: 18,
-                            height: 18,
+                            width: OnCareSize.countBadgeMin,
+                            height: OnCareSize.countBadgeMin,
                             alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: OnCareBrand.trainer.primary,
@@ -186,21 +186,15 @@ class MetricTrendChart extends StatelessWidget {
                             ),
                             child: Text(
                               dayLabels[i],
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                color: OnCareColors.textOnFill,
-                              ),
+                              style: chartAxisLabelStyle(
+                                context,
+                              ).copyWith(color: OnCareColors.textOnFill),
                             ),
                           )
                         else
                           Text(
                             dayLabels[i],
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: OnCareColors.textSecondary,
-                            ),
+                            style: chartAxisLabelStyle(context),
                           ),
                     ],
                   ),
@@ -242,7 +236,6 @@ class MetricTrendChart extends StatelessWidget {
     return i == selectedIndex ? null : i;
   }
 }
-
 
 /// 꺾은선 본체.
 class MetricTrendPainter extends CustomPainter {
@@ -323,7 +316,8 @@ class MetricTrendPainter extends CustomPainter {
           pts[i],
           8.5,
           Paint()
-            ..color = sc.withValues(alpha: 0.45)
+            // 흰 카드 위에 얹은 불투명 값 — 반투명이면 아래 꺾은선이 비친다.
+            ..color = OnCareColors.onWhite(sc, OnCareAlpha.strong)
             ..style = PaintingStyle.stroke
             ..strokeWidth = 2,
         );
@@ -345,15 +339,12 @@ class MetricTrendPainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: s,
-        style: TextStyle(
-          // `TextPainter` 는 위젯 트리 밖이라 앱 서체를 물려받지 않는다.
-          // 적어 주지 않으면 이 숫자만 시스템 기본 서체로 그려져, 같은 카드
-          // 안에서 서체가 갈린다(#1177).
-          fontFamily: OnCareTypography.fontFamily,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
+        // `TextPainter` 는 위젯 트리 밖이라 앱 서체를 물려받지 않는다. 역할
+        // 스타일이 서체까지 담고 있어, 이 숫자만 시스템 기본 서체로 그려져 같은
+        // 카드 안에서 서체가 갈리는 일이 없다(#1177).
+        style: OnCareTypography.strong(
+          OnCareTypography.caption,
+        ).copyWith(color: color),
       ),
       textDirection: ui.TextDirection.ltr,
     )..layout();

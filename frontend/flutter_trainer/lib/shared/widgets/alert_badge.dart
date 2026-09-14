@@ -41,27 +41,30 @@ class AlertBadge extends StatelessWidget {
     final color = alertColor(alert);
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: showIcon ? 9 : 7,
-        vertical: showIcon ? 4 : 2,
+        horizontal: OnCareSpacing.s8,
+        vertical: showIcon ? OnCareSpacing.s4 : OnCareSpacing.s2,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: const BorderRadius.all(OnCareRadius.pill),
+        // 배지 바탕은 카드 위 톤 채움 — 흰 바탕에 얹은 불투명 값으로 둔다.
+        color: OnCareColors.onWhite(color, OnCareAlpha.subtle),
+        borderRadius: OnCareRadius.pillAll,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (showIcon) ...<Widget>[
-            Icon(Icons.error_outline, size: 12, color: color),
-            const SizedBox(width: 4),
+            Icon(
+              Icons.error_outline_rounded,
+              size: OnCareSize.iconSmall,
+              color: color,
+            ),
+            const SizedBox(width: OnCareSpacing.s4),
           ],
           Text(
             alert.label(AppLocalizations.of(context)),
-            style: TextStyle(
-              fontSize: showIcon ? 11 : 10,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
+            style: context.oncare
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: color),
           ),
         ],
       ),

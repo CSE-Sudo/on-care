@@ -6,6 +6,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_theme.dart';
 
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
@@ -22,6 +23,7 @@ Future<Map<String, String>> _perLocale(
   for (final code in <String>['ko', 'en']) {
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light(),
         locale: Locale(code),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -41,6 +43,7 @@ Future<Map<String, String>> _perLocale(
 Future<void> _pump(WidgetTester tester, Widget child, {String locale = 'ko'}) {
   return tester.pumpWidget(
     MaterialApp(
+      theme: AppTheme.light(),
       locale: Locale(locale),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,

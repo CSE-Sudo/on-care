@@ -107,7 +107,9 @@ class BarSeriesChart extends StatelessWidget {
                   for (var i = 0; i < values.length; i++)
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 2.5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: OnCareSpacing.s2,
+                        ),
                         child: _Bar(
                           value: values[i],
                           ceiling: ceiling,
@@ -135,17 +137,21 @@ class BarSeriesChart extends StatelessWidget {
                       textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.clip,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: highlightIndex == i
-                            ? FontWeight.w800
-                            : FontWeight.w500,
-                        color: highlightIndex == i
-                            ? OnCareBrand.trainer.primary
-                            : i >= pendingFrom
-                            ? OnCareColors.textDisabled
-                            : OnCareColors.textTertiary,
-                      ),
+                      style: context.oncare
+                          .text(
+                            highlightIndex == i
+                                ? OnCareTypography.strong(
+                                    OnCareTypography.caption,
+                                  )
+                                : OnCareTypography.caption,
+                          )
+                          .copyWith(
+                            color: highlightIndex == i
+                                ? OnCareBrand.trainer.primary
+                                : i >= pendingFrom
+                                ? OnCareColors.textDisabled
+                                : OnCareColors.textTertiary,
+                          ),
                     ),
                   ),
               ],
@@ -209,7 +215,9 @@ class InlineBarValue extends StatelessWidget {
     // 채로 남아, 잴 값이 있는데 못 읽은 것처럼 보인다. 흐린 줄은 누를 것도
     // 읽을 것도 없다는 뜻이다.
     final bool empty = fraction == null;
-    final Color tone = empty ? OnCareColors.lineStrong : OnCareBrand.trainer.primary;
+    final Color tone = empty
+        ? OnCareColors.lineStrong
+        : OnCareBrand.trainer.primary;
     return Row(
       children: <Widget>[
         if (label != null) ...<Widget>[
@@ -221,12 +229,13 @@ class InlineBarValue extends StatelessWidget {
               child: Text(
                 label!,
                 maxLines: 1,
-                style: TextStyle(
-                  color: empty
-                      ? OnCareColors.textDisabled
-                      : OnCareColors.textTertiary,
-                  fontSize: 10.5,
-                ),
+                style: context.oncare
+                    .text(OnCareTypography.caption)
+                    .copyWith(
+                      color: empty
+                          ? OnCareColors.textDisabled
+                          : OnCareColors.textTertiary,
+                    ),
               ),
             ),
           ),
@@ -258,13 +267,15 @@ class InlineBarValue extends StatelessWidget {
               text,
               textAlign: TextAlign.right,
               maxLines: 1,
-              style: TextStyle(
-                fontSize: 11,
-                // 값이 없으면 굵기까지 낮춘다 — 흐린 색만으로는 여전히
-                // 읽을 값처럼 보인다.
-                fontWeight: empty ? FontWeight.w600 : FontWeight.w800,
-                color: empty ? OnCareColors.textDisabled : tone,
-              ),
+              // 값이 없으면 굵기까지 낮춘다 — 흐린 색만으로는 여전히
+              // 읽을 값처럼 보인다.
+              style: context.oncare
+                  .text(
+                    empty
+                        ? OnCareTypography.caption
+                        : OnCareTypography.strong(OnCareTypography.caption),
+                  )
+                  .copyWith(color: empty ? OnCareColors.textDisabled : tone),
             ),
           ),
         ),
@@ -320,11 +331,9 @@ class _Bar extends StatelessWidget {
                 child: FittedBox(
                   child: Text(
                     label!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: OnCareColors.textSecondary,
-                    ),
+                    style: context.oncare
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: OnCareColors.textSecondary),
                   ),
                 ),
               ),

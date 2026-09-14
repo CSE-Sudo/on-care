@@ -136,24 +136,9 @@ class OnCareTypography {
     return TextScaler.linear(value);
   }
 
-  /// 앱이 아직 전역 글자 배율(옛 `AppTypography.textScale`)을 얹고 있을 때,
-  /// 역할 크기가 **보이는 크기**로 나오도록 그 배율만큼 나눈다.
-  ///
-  /// 모든 화면이 역할로 옮겨 가기 전에 전역 배율을 먼저 걷으면 숫자를 박아 둔
-  /// 화면이 한꺼번에 작아진다. 그래서 전환 기간에는 배율을 두고 이쪽에서
-  /// 상쇄하며, 정리 이슈(#1707)에서 배율과 함께 이 인자를 없앤다.
-  static TextStyle compensate(TextStyle style, double legacyTextScale) {
-    if (legacyTextScale == 1.0 || style.fontSize == null) return style;
-    return style.copyWith(fontSize: style.fontSize! / legacyTextScale);
-  }
-
   /// Material `TextTheme` 슬롯을 역할에 맞춘다.
-  static TextTheme textTheme({
-    required Color color,
-    double legacyTextScale = 1.0,
-  }) {
-    TextStyle s(TextStyle style) =>
-        compensate(style, legacyTextScale).copyWith(color: color);
+  static TextTheme textTheme({required Color color}) {
+    TextStyle s(TextStyle style) => style.copyWith(color: color);
     return TextTheme(
       displayLarge: s(display),
       displayMedium: s(display),

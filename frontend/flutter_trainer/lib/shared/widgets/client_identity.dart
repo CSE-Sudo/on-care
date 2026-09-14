@@ -16,11 +16,11 @@ export 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 ///
 /// 고른 고객은 굵기로만 도드라진다 — 글씨 크기가 함께 바뀌면 고를 때마다
 /// 행 높이가 흔들린다.
-TextStyle clientListNameStyle({required bool selected}) => TextStyle(
-  fontSize: clientListNameFontSize,
-  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-  color: OnCareColors.textPrimary,
-);
+TextStyle clientListNameStyle({required bool selected}) =>
+    (selected
+            ? OnCareTypography.strong(OnCareTypography.bodySmall)
+            : OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textPrimary);
 
 /// 고객 목록 이름 글씨 크기. 프로그램 탭 열은 세 열 중 가장 좁아 15 는 긴
 /// 이름에서 잘리기 쉬웠고, 13.5 는 리포트 탭에서 목표 줄과 위계가 붙었다.
@@ -64,28 +64,25 @@ class ClientGoalLabel extends StatelessWidget {
   const ClientGoalLabel({
     super.key,
     required this.client,
-    this.fontSize = 11.5,
+    this.fontSize,
     this.color = OnCareColors.textTertiary,
   });
 
   final TrainerClient client;
 
-  /// 부르는 쪽 행의 이름 글씨보다 한 단계 작게 준다.
-  final double fontSize;
+  /// 부르는 쪽 행의 이름 글씨보다 한 단계 작게 준다. null 이면 `caption` 크기다.
+  final double? fontSize;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
     if (client.goal.trim().isEmpty) return const SizedBox.shrink();
+    final TextStyle role = context.oncare.text(OnCareTypography.caption);
     return Text(
       client.goal,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: TextStyle(
-        color: color,
-        fontSize: fontSize,
-        fontWeight: FontWeight.w500,
-      ),
+      style: role.copyWith(color: color, fontSize: fontSize ?? role.fontSize),
     );
   }
 }
@@ -111,20 +108,21 @@ class ClientIdentity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     final resolvedNameStyle =
         nameStyle ??
-        const TextStyle(
-          color: OnCareColors.textPrimary,
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-        );
+        tokens
+            .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+            .copyWith(color: OnCareColors.textPrimary);
+    // 성별·나이는 이름보다 작고 흐린 `caption` 강조다. 이름 스타일의 서체 등은
+    // 물려받되 크기·굵기는 역할이 정한다.
     final resolvedDemographicsStyle =
         demographicsStyle ??
-        resolvedNameStyle.copyWith(
-          color: OnCareColors.textTertiary,
-          fontSize: (resolvedNameStyle.fontSize ?? 14) - 3,
-          fontWeight: FontWeight.w600,
-        );
+        resolvedNameStyle
+            .merge(
+              tokens.text(OnCareTypography.strong(OnCareTypography.caption)),
+            )
+            .copyWith(color: OnCareColors.textTertiary);
     final name = Text(
       client.name,
       maxLines: maxLines,
@@ -146,7 +144,11 @@ class ClientIdentity extends StatelessWidget {
         crossAxisAlignment: textAlign == TextAlign.center
             ? CrossAxisAlignment.center
             : CrossAxisAlignment.start,
-        children: <Widget>[name, const SizedBox(height: 2), demographics],
+        children: <Widget>[
+          name,
+          const SizedBox(height: OnCareSpacing.s2),
+          demographics,
+        ],
       );
     }
 

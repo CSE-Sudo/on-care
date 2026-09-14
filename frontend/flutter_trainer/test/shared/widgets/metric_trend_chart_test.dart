@@ -7,6 +7,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/app/app_theme.dart';
 
 import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -18,6 +19,7 @@ void main() {
     String? goalLabel,
   }) => tester.pumpWidget(
     MaterialApp(
+      theme: AppTheme.light(),
       home: Scaffold(
         body: MetricTrendChart(
           values: const <double>[2200, 1900, 2050, 2300, 1850, 3428, 0],

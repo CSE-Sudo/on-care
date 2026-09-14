@@ -99,7 +99,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     super.dispose();
   }
 
-  /// 역할 글자에 색을 입힌다 — 전환 기간 전역 글자 배율은 [OnCareTokens.text] 가 상쇄한다.
+  /// 역할 글자에 색을 입힌다.
   TextStyle _text(TextStyle role, Color color) =>
       context.oncare.text(role).copyWith(color: color);
 

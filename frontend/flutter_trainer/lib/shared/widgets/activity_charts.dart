@@ -69,7 +69,7 @@ String kindValueText(AppLocalizations l, ExerciseKind kind, num value) =>
 /// 짚는다.
 IconData ringStartIcon(ExerciseKind kind) => switch (kind) {
   ExerciseKind.cardio => Icons.directions_run_rounded,
-  ExerciseKind.strength => Icons.fitness_center,
+  ExerciseKind.strength => Icons.fitness_center_rounded,
   ExerciseKind.stretching => Icons.self_improvement_rounded,
 };
 
@@ -79,6 +79,17 @@ const IconData kBurnStartIcon = Icons.local_fire_department_rounded;
 /// 세 기간 카드의 **공통 높이**. 토글을 눌러도 카드가 커졌다 작아졌다 하지
 /// 않도록 셋을 같은 높이로 둔다. 회원 앱과 같은 값이다.
 const double kActivityCardHeight = 218;
+
+/// 도넛·링 오른쪽 상세 목록 칸의 너비. 회원 앱과 같은 값이다.
+const double _kDetailWidth = 150;
+
+/// 원호 끝 그림자 두 겹 — 넓고 흐린 것 / 좁고 진한 것. 회원 앱 #1161 과 같은 값.
+const double _kCapShadowOuterSpread = 4;
+const double _kCapShadowOuterBlur = 12;
+const double _kCapShadowOuterAlpha = 0.75;
+const double _kCapShadowInnerSpread = 1;
+const double _kCapShadowInnerBlur = 5;
+const double _kCapShadowInnerAlpha = 0.65;
 
 /// `397/500` — 값과 목표를 한 덩어리로. 목표를 따로 떼어 적으면 머리 줄이
 /// 길어져 카드 폭을 다 먹는다.
@@ -173,7 +184,7 @@ class BurnDonut extends StatelessWidget {
       children: <Widget>[
         if (streak != null) ...<Widget>[
           ActivityStreakLine(days: streak),
-          const SizedBox(height: 6),
+          const SizedBox(height: OnCareSpacing.s8),
         ],
         Expanded(
           child: LayoutBuilder(
@@ -220,13 +231,13 @@ class BurnDonut extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: OnCareSpacing.s8),
                   // 상세는 폭을 못 박아 줄들이 서로 붙어 읽힌다. 자리가
                   // 모자라면(좁은 사이드바·큰 글자) `Flexible` 이 그만큼 줄여
                   // 준다 — 못 박기만 하면 카드 밖으로 밀려난다.
                   Flexible(
                     child: SizedBox(
-                      width: 150,
+                      width: _kDetailWidth,
                       child: Center(
                         // 목록 전체를 **한 번에** 줄인다 (#1170) — 줄마다 따로
                         // 줄이면 나란히 선 세 줄의 글자 크기가 제각각이 된다.
@@ -300,10 +311,17 @@ class ActivityStreakLine extends StatelessWidget {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        padding: const EdgeInsets.symmetric(
+          horizontal: OnCareSpacing.s12,
+          vertical: OnCareSpacing.s4,
+        ),
         decoration: BoxDecoration(
-          color: OnCareColors.cautionFill.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
+          // 흰 카드 위 톤 채움 — 불투명 값으로 둔다.
+          color: OnCareColors.onWhite(
+            OnCareColors.cautionFill,
+            OnCareAlpha.subtle,
+          ),
+          borderRadius: OnCareRadius.pillAll,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -312,20 +330,18 @@ class ActivityStreakLine extends StatelessWidget {
             // 둔다. 한 화면에서 같은 그림이 두 가지를 뜻하면 안 된다.
             const Icon(
               Icons.bolt_rounded,
-              size: 17,
+              size: OnCareSize.iconSmall,
               color: OnCareColors.cautionFill,
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: OnCareSpacing.s4),
             Flexible(
               child: Text(
                 days > 0 ? l.exStreakCheer(days) : l.exStreakStart,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: OnCareColors.cautionFill,
-                ),
+                style: context.oncare
+                    .text(OnCareTypography.strong(OnCareTypography.caption))
+                    .copyWith(color: OnCareColors.cautionFill),
               ),
             ),
           ],
@@ -396,10 +412,10 @@ class BurnGoalRings extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: OnCareSpacing.s8),
                   Flexible(
                     child: SizedBox(
-                      width: 150,
+                      width: _kDetailWidth,
                       child: Center(
                         // 목록 전체를 **한 번에** 줄인다 (#1170) — 줄마다 따로
                         // 줄이면 나란히 선 세 줄의 글자 크기가 제각각이 된다.
@@ -471,43 +487,35 @@ class ActivityHeadlineLine extends StatelessWidget {
   final String unit;
 
   @override
-  Widget build(BuildContext context) => FittedBox(
-    fit: BoxFit.scaleDown,
-    alignment: AlignmentDirectional.centerStart,
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: <Widget>[
-        Text(
-          caption,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: OnCareColors.textSecondary,
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final TextStyle minor = tokens.text(
+      OnCareTypography.strong(OnCareTypography.caption),
+    );
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerStart,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: <Widget>[
+          Text(
+            caption,
+            style: minor.copyWith(color: OnCareColors.textSecondary),
           ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-            color: OnCareColors.textPrimary,
-            letterSpacing: -0.4,
+          const SizedBox(width: OnCareSpacing.s8),
+          Text(
+            value,
+            style: tokens
+                .text(OnCareTypography.numeric(OnCareTypography.titleLarge))
+                .copyWith(color: OnCareColors.textPrimary),
           ),
-        ),
-        const SizedBox(width: 3),
-        Text(
-          unit,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: OnCareColors.textTertiary,
-          ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(width: OnCareSpacing.s4),
+          Text(unit, style: minor.copyWith(color: OnCareColors.textTertiary)),
+        ],
+      ),
+    );
+  }
 }
 
 /// `▪ 유산소   145/150분` — 유형 한 줄.
@@ -542,20 +550,21 @@ class ActivityValueRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color? c = color;
     final String? g = goal;
+    final OnCareTokens tokens = context.oncare;
+    final Color tone = muted
+        ? OnCareColors.textDisabled
+        : OnCareColors.textSecondary;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6, left: 10, right: 10),
+      padding: const EdgeInsets.only(
+        bottom: OnCareSpacing.s8,
+        left: OnCareSpacing.s8,
+        right: OnCareSpacing.s8,
+      ),
       child: Row(
         children: <Widget>[
           if (c != null) ...<Widget>[
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: c,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 7),
+            AppChartSwatch(color: c),
+            const SizedBox(width: OnCareSpacing.s8),
           ],
           // **줄마다 따로 줄이지 않는다** (#1170). 칸마다 `FittedBox` 를 두면
           // 긴 값(`180/150분`)만 더 작아져, 나란히 선 세 줄의 글자 크기가
@@ -572,15 +581,11 @@ class ActivityValueRow extends StatelessWidget {
             label,
             maxLines: 1,
             softWrap: false,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: muted
-                  ? OnCareColors.textDisabled
-                  : OnCareColors.textSecondary,
-            ),
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: tone),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: OnCareSpacing.s12),
           const Spacer(),
           Text.rich(
             TextSpan(
@@ -595,14 +600,13 @@ class ActivityValueRow extends StatelessWidget {
             ),
             maxLines: 1,
             softWrap: false,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: muted
-                  ? OnCareColors.textDisabled
-                  : OnCareColors.textPrimary,
-              letterSpacing: -0.2,
-            ),
+            style: tokens
+                .text(OnCareTypography.numeric(OnCareTypography.label))
+                .copyWith(
+                  color: muted
+                      ? OnCareColors.textDisabled
+                      : OnCareColors.textPrimary,
+                ),
           ),
         ],
       ),
@@ -622,22 +626,13 @@ class ActivityLegend extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: <Widget>[
-      Container(
-        width: 9,
-        height: 9,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: const BorderRadius.all(OnCareRadius.sm),
-        ),
-      ),
-      const SizedBox(width: 6),
+      AppChartSwatch(color: color),
+      const SizedBox(width: OnCareSpacing.s8),
       Text(
         label,
-        style: const TextStyle(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-          color: OnCareColors.textSecondary,
-        ),
+        style: context.oncare
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(color: OnCareColors.textSecondary),
       ),
     ],
   );
@@ -645,7 +640,8 @@ class ActivityLegend extends StatelessWidget {
 
 /// [BurnBarChart] 가 막대 영역 **밖에** 더 쓰는 세로 크기(간격 + 날짜 라벨 줄).
 /// 남는 자리를 그래프에 넘길 때 이만큼을 빼야 카드가 넘치지 않는다.
-const double kBurnBarChartExtraHeight = 20;
+const double kBurnBarChartExtraHeight =
+    OnCareSpacing.s8 + 16; // 공용 PeriodScrollChart 의 라벨 간격 + 라벨 줄 높이
 
 /// `전체` — **한 칸이 한 주**인 소모 칼로리 막대. 한 칸을 고르면 그 주의
 /// 내역이 카드 머리 오른쪽에 뜬다.
@@ -756,18 +752,18 @@ class BurnBarChart extends StatelessWidget {
             barBuilder: (BuildContext context, int i) => Tooltip(
               key: Key('client-exercise-bar-$i'),
               richMessage: TextSpan(
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: OnCareColors.textPrimary,
-                  height: 1.35,
-                ),
+                style: context.oncare
+                    .text(OnCareTypography.strong(OnCareTypography.caption))
+                    .copyWith(color: OnCareColors.textPrimary),
                 children: _tipSpans(l, i),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s12,
+                vertical: OnCareSpacing.s8,
+              ),
               decoration: BoxDecoration(
                 color: OnCareColors.surfaceInput,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: OnCareRadius.mdAll,
                 border: Border.all(color: OnCareColors.lineStrong),
                 boxShadow: OnCareShadows.card,
               ),
@@ -812,6 +808,9 @@ class _BurnBarColumn extends StatelessWidget {
   /// `전체` 그래프의 12/26 과 같은 몫이다.
   static const double _fill = 0.46;
 
+  /// 값이 아주 작아도 막대로 읽히는 최소 높이.
+  static const double _minBarHeight = 3;
+
   @override
   Widget build(BuildContext context) {
     if (value <= 0) {
@@ -822,15 +821,19 @@ class _BurnBarColumn extends StatelessWidget {
           widthFactor: _fill,
           child: Container(
             height: 4,
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: OnCareColors.lineStrong,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: OnCareRadius.pillAll,
             ),
           ),
         ),
       );
     }
     final num total = parts.values.fold<num>(0, (num a, num b) => a + b);
+    final double barHeight = math.max(
+      (value / max).clamp(0.0, 1.0) * height,
+      _minBarHeight,
+    );
     return Align(
       alignment: Alignment.bottomCenter,
       child: Opacity(
@@ -840,9 +843,9 @@ class _BurnBarColumn extends StatelessWidget {
         child: FractionallySizedBox(
           widthFactor: _fill,
           child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            borderRadius: const BorderRadius.vertical(top: OnCareRadius.xs),
             child: SizedBox(
-              height: math.max((value / max).clamp(0.0, 1.0) * height, 3),
+              height: barHeight,
               child: total <= 0
                   ? ColoredBox(color: kBurnColor)
                   : Column(
@@ -908,26 +911,27 @@ class _DonutPainter extends CustomPainter {
     // 예전에는 두 줄을 중심에서 각각 -0.09 · +0.10 만큼 밀어 놓았는데, 그
     // 자리는 두 줄일 때만 맞는 값이라 머리줄이 붙으면 묶음이 아래로 쏠린다.
     // 이제는 세 줄의 실제 높이를 재서 묶음째 가운데로 옮긴다.
+    final TextStyle minor = OnCareTypography.strong(OnCareTypography.caption);
     _paintCenteredLines(canvas, c, <TextPainter>[
       if (caption.isNotEmpty)
         _layout(
           caption,
           size.width * 0.085,
-          FontWeight.w700,
+          minor,
           OnCareColors.textTertiary,
           inner,
         ),
       _layout(
         center,
         size.width * 0.2,
-        FontWeight.w800,
+        OnCareTypography.numeric(OnCareTypography.display),
         OnCareColors.textPrimary,
         inner,
       ),
       _layout(
         unit,
         size.width * 0.105,
-        FontWeight.w700,
+        minor,
         OnCareColors.textTertiary,
         inner,
       ),
@@ -937,23 +941,17 @@ class _DonutPainter extends CustomPainter {
   TextPainter _layout(
     String s,
     double size,
-    FontWeight w,
+    TextStyle role,
     Color color,
     double maxWidth,
   ) {
     TextPainter at(double fontSize) => TextPainter(
       text: TextSpan(
         text: s,
-        style: TextStyle(
-          // 캔버스에 직접 그리는 글자는 테마를 타지 않는다 — 앱 폰트를 손으로
-          // 붙여 준다. 한글 머리줄이 붙으면서 필요해졌다: 기본 폰트로 떨어지면
-          // 웹에서 두부(□)로 나온다 (회원 앱 #1352).
-          fontFamily: OnCareTypography.fontFamily,
-          fontSize: fontSize,
-          fontWeight: w,
-          color: color,
-          letterSpacing: -0.3,
-        ),
+        // 캔버스에 직접 그리는 글자는 테마를 타지 않는다 — 역할 스타일(앱 폰트
+        // 포함)을 손으로 붙여 준다. 기본 폰트로 떨어지면 웹에서 두부(□)로
+        // 나온다 (회원 앱 #1352). 크기는 도넛 지름을 따른다.
+        style: role.copyWith(fontSize: fontSize, color: color),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
@@ -1006,7 +1004,7 @@ class _ChartGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint line = Paint()
-      ..color = const Color(0xFFEDF1F4)
+      ..color = OnCareColors.lineSubtle
       ..strokeWidth = 1;
     for (final double f in <double>[0, 0.5, 1]) {
       final double y = size.height * f;
@@ -1015,7 +1013,7 @@ class _ChartGridPainter extends CustomPainter {
     if (count <= 0) return;
     final double step = size.width / count;
     final Paint dash = Paint()
-      ..color = const Color(0xFFD8E1E8)
+      ..color = OnCareColors.lineStrong
       ..strokeWidth = 1;
     for (final int i in monthBreaks) {
       final double x = step * i;
@@ -1098,7 +1096,8 @@ void paintRing(
     Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
-      ..color = color.withValues(alpha: 0.16),
+      // 흰 카드 위 트랙 — 불투명 값이라 한 바퀴 넘긴 원호 아래로 비치지 않는다.
+      ..color = OnCareColors.onWhite(color, OnCareAlpha.medium),
   );
   double capAngle = -math.pi / 2;
   final Paint arc = Paint()
@@ -1164,17 +1163,31 @@ void _paintCapShadow(
     // 하므로 진하고 넓게 둔다. (회원 앱 #1161 과 같은 값)
     ..drawCircle(
       cap,
-      stroke / 2 + 4,
+      stroke / 2 + _kCapShadowOuterSpread,
       Paint()
-        ..color = const Color(0xBF000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+        ..color = Color.lerp(
+          Colors.transparent,
+          OnCareColors.overlayInk,
+          _kCapShadowOuterAlpha,
+        )!
+        ..maskFilter = const MaskFilter.blur(
+          BlurStyle.normal,
+          _kCapShadowOuterBlur,
+        ),
     )
     ..drawCircle(
       cap,
-      stroke / 2 + 1,
+      stroke / 2 + _kCapShadowInnerSpread,
       Paint()
-        ..color = const Color(0xA6000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+        ..color = Color.lerp(
+          Colors.transparent,
+          OnCareColors.overlayInk,
+          _kCapShadowInnerAlpha,
+        )!
+        ..maskFilter = const MaskFilter.blur(
+          BlurStyle.normal,
+          _kCapShadowInnerBlur,
+        ),
     )
     ..restore();
 }
@@ -1202,7 +1215,7 @@ void _paintCapChevron(
         ..lineTo(arm * 0.55, 0)
         ..lineTo(-arm * 0.55, arm),
       Paint()
-        ..color = const Color(0xFFFFFFFF)
+        ..color = OnCareColors.textOnFill
         ..style = PaintingStyle.stroke
         ..strokeWidth = math.max(stroke * 0.07, 1)
         ..strokeCap = StrokeCap.round
@@ -1228,7 +1241,7 @@ void _paintStartIcon(
         fontSize: glyph,
         fontFamily: icon.fontFamily,
         package: icon.fontPackage,
-        color: const Color(0xFFFFFFFF),
+        color: OnCareColors.textOnFill,
       ),
     ),
     textDirection: TextDirection.ltr,

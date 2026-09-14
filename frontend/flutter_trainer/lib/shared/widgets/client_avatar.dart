@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+/// 이니셜 글씨 크기 : 지름.
+const double _kInitialFactor = 0.34;
 
 /// The navy gradient circle + initial used for a client everywhere they
 /// appear (list card, detail header, chat bubbles). Optionally shows an
@@ -38,15 +40,18 @@ class ClientAvatar extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[OnCareBrand.trainer.primary, OnCareBrand.trainer.strong],
+          colors: <Color>[
+            OnCareBrand.trainer.primary,
+            OnCareBrand.trainer.strong,
+          ],
         ),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        // 이니셜은 지름에 비례한다 — 굵기·서체는 역할에서, 크기만 지름에서.
+        style: OnCareTypography.titleSmall.copyWith(
           color: OnCareColors.textOnFill,
-          fontWeight: FontWeight.w800,
-          fontSize: size * 0.34,
+          fontSize: size * _kInitialFactor,
         ),
       ),
     );
