@@ -274,8 +274,9 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
 
   /// 긴 검색 범위 안내가 들어갈 만한 폭. 이보다 좁으면 짧은 안내로 바꾼다 —
   /// 줄임표로 끝이 잘리면(`…마지막 루틴 전송…`) 무엇까지 찾아 주는지가 사라진다.
-  /// 글씨를 키운 뒤 1280 폭에서 실제로 그렇게 됐다. (#1004)
-  static const double _longHintMinWidth = 460;
+  /// 글씨를 키운 뒤 1280 폭에서 실제로 그렇게 됐다. (#1004) 규격 입력창(#1703)은
+  /// 아이콘·여백이 약 68 을 쓰고 긴 안내가 434 라, 504 보다 좁으면 짧은 안내로 간다.
+  static const double _longHintMinWidth = 504;
 
   Widget _field(AppLocalizations l, ClientSearchFacts facts, double width) {
     final String hint = width >= _longHintMinWidth

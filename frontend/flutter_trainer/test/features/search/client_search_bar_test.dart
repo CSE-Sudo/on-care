@@ -52,6 +52,9 @@ void main() {
   testWidgets('긴 검색 범위 안내를 생략하지 않는 너비와 글자 크기를 사용한다', (tester) async {
     await openDesktop(tester, AppRoutes.dashboard);
 
+    // 긴 안내는 줄임표 없이 들어갈 폭에서만 쓴다. 헤더 동작이 많은 화면(AI
+    // 코칭)은 짧은 안내로 바뀐다 — 어느 쪽이든 잘리지 않고 한 줄이어야 한다.
+    final longHintRoutes = <String>{};
     for (final route in <String>[
       AppRoutes.dashboard,
       AppRoutes.clients,
@@ -65,9 +68,16 @@ void main() {
 
       final field = find.byKey(clientSearchFieldKey);
       final context = tester.element(field);
-      final hint = AppLocalizations.of(context).searchClientsHint;
+      final l = AppLocalizations.of(context);
+      final longHint = find.descendant(
+        of: field,
+        matching: find.text(l.searchClientsHint),
+      );
+      final bool isLong = longHint.evaluate().isNotEmpty;
+      if (isLong) longHintRoutes.add(route);
+      final hint = isLong ? l.searchClientsHint : l.searchClients;
 
-      // 긴 안내가 실제로 그려지고, 입력창 규격(body 역할)의 힌트 글씨로
+      // 안내가 실제로 그려지고, 입력창 규격(body 역할)의 힌트 글씨로
       // 줄임표 없이 한 줄에 들어가야 한다.
       final hintText = find.descendant(of: field, matching: find.text(hint));
       expect(hintText, findsOneWidget, reason: route);
@@ -94,6 +104,8 @@ void main() {
       );
       expect(paragraph.didExceedMaxLines, isFalse, reason: route);
     }
+    // 자리가 넉넉한 대시보드에서는 긴 안내를 보여 준다.
+    expect(longHintRoutes, contains(AppRoutes.dashboard));
   });
 
   testWidgets('화면별 회원 검색 입력은 제거하고 통합 검색만 유지한다', (tester) async {
