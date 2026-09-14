@@ -421,9 +421,10 @@ void main() {
   });
 
   testWidgets('짧은 창에서도 요약 카드가 띠로 눌리지 않는다 (#1177)', (tester) async {
-    // 목록이 열을 거의 다 쓰는 높이다. `Expanded` 만 쓰면 요약이 몇 픽셀짜리
-    // 띠가 되어 내용이 넘치고, 렌더 오버플로가 난다.
-    await openReports(tester, size: const Size(1600, 700));
+    // 목록 하나로도 열이 빠듯한 높이다. 프로그램 탭 왼쪽 열과 같은 기준
+    // (`clientSidebarSplitMinHeight`)보다 짧아 목록·요약을 나누지 않는다 —
+    // `Expanded` 로 나누면 요약이 몇 픽셀짜리 띠가 되어 내용이 넘친다.
+    await openReports(tester, size: const Size(1600, 480));
 
     expect(tester.takeException(), isNull);
     final Finder summary = find.text('AI 코칭 보조 · 리포트 요약');
@@ -433,6 +434,32 @@ void main() {
       find.byKey(const ValueKey<String>('reports-left-scroll')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('요약 카드는 프로그램 탭 프로그램 템플릿 카드와 같은 크기다', (tester) async {
+    await openReports(tester);
+    await tester.pumpAndSettle();
+    final Finder summaryCard = find.byKey(
+      const ValueKey<String>('reports-ai-card'),
+    );
+    expect(summaryCard, findsOneWidget);
+    final Size summarySize = tester.getSize(summaryCard);
+    final Offset summaryTopLeft = tester.getTopLeft(summaryCard);
+
+    await goTo(tester, AppRoutes.coaching);
+    await tester.pumpAndSettle();
+    final Finder templateCard = find.byKey(
+      const ValueKey<String>('program-template-sidebar'),
+    );
+    expect(templateCard, findsOneWidget);
+    // 같은 열 폭·같은 자리(회원 목록 아래)·같은 높이다.
+    expect(tester.getSize(templateCard).width, closeTo(summarySize.width, 0.5));
+    expect(
+      tester.getSize(templateCard).height,
+      closeTo(summarySize.height, 0.5),
+    );
+    expect(tester.getTopLeft(templateCard).dy, closeTo(summaryTopLeft.dy, 0.5));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('좁은 화면 목록에서는 요약 자리에 무엇이 뜨는지 알린다 (#897)', (tester) async {
