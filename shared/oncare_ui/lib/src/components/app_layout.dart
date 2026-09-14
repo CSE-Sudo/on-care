@@ -438,11 +438,29 @@ class AppSidebarItem extends StatelessWidget {
     final Color color = selected
         ? tokens.brand.primary
         : OnCareColors.textSecondary;
-    final Widget icon0 = Badge(
-      isLabelVisible: badgeCount > 0,
-      label: Text(badgeCount > 99 ? '99+' : '$badgeCount'),
-      child: Icon(icon, size: OnCareSize.iconLarge, color: color),
+    final bool hasBadge = badgeCount > 0;
+    final Widget iconGlyph = Icon(
+      icon,
+      size: OnCareSize.iconLarge,
+      color: color,
     );
+    // 배지는 빨간 알림 점이 아니라 브랜드 남색 원이다(통일 전 트레이너웹 모양).
+    // 펼침: 행 오른쪽 끝. 레일: 아이콘 오른쪽 위에 겹친다.
+    final Widget icon0 = collapsed && hasBadge
+        ? Stack(
+            clipBehavior: Clip.none,
+            children: <Widget>[
+              iconGlyph,
+              Positioned(
+                top: -OnCareSpacing.s4,
+                right: -OnCareSpacing.s12,
+                width: OnCareSize.countBadgeMin,
+                height: OnCareSize.countBadgeMin,
+                child: _SidebarCountBadge(count: badgeCount),
+              ),
+            ],
+          )
+        : iconGlyph;
     final Widget content = Material(
       color: selected ? tokens.brand.surface : Colors.transparent,
       borderRadius: OnCareRadius.mdAll,
@@ -482,6 +500,11 @@ class AppSidebarItem extends StatelessWidget {
                         .copyWith(color: color),
                   ),
                 ),
+                if (hasBadge) ...<Widget>[
+                  const SizedBox(width: OnCareSpacing.s8),
+                  _SidebarCountBadge(count: badgeCount),
+                  const SizedBox(width: OnCareSpacing.s12),
+                ],
               ],
             ],
           ),
@@ -493,6 +516,42 @@ class AppSidebarItem extends StatelessWidget {
       selected: selected,
       label: collapsed ? label : null,
       child: collapsed ? Tooltip(message: label, child: content) : content,
+    );
+  }
+}
+
+/// 사이드바 카운트 배지 — 브랜드 주색으로 채운 고정 지름 원 + 흰 굵은 숫자.
+///
+/// 숫자 자릿수에 따라 폭이 늘어나는 알약이면 내비 행 끝이 들쭉날쭉해진다.
+/// 그래서 원 크기는 고정이고 "99+" 처럼 긴 글자는 원 안에 맞게 줄인다.
+class _SidebarCountBadge extends StatelessWidget {
+  const _SidebarCountBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Container(
+      key: const ValueKey<String>('app-sidebar-item-badge'),
+      width: OnCareSize.countBadgeMin,
+      height: OnCareSize.countBadgeMin,
+      padding: const EdgeInsets.all(OnCareSpacing.s2),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: tokens.brand.primary,
+        shape: BoxShape.circle,
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          count > 99 ? '99+' : '$count',
+          maxLines: 1,
+          style: tokens
+              .text(OnCareTypography.strong(OnCareTypography.caption))
+              .copyWith(color: OnCareColors.textOnFill, height: 1),
+        ),
+      ),
     );
   }
 }

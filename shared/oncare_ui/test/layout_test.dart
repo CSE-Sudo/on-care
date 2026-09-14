@@ -111,4 +111,77 @@ void main() {
     );
     expect(tester.getSize(find.byType(AppSidebarItem)).height, 44);
   });
+
+  testWidgets('사이드바 배지는 행 오른쪽 끝의 브랜드색 원이다', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _theme(OnCareDensity.web),
+        home: Scaffold(
+          body: SizedBox(
+            width: 240,
+            child: AppSidebarItem(
+              icon: Icons.chat_bubble_outline_rounded,
+              label: '메시지',
+              selected: false,
+              onTap: () {},
+              badgeCount: 6,
+            ),
+          ),
+        ),
+      ),
+    );
+    final Finder badge = find.byKey(
+      const ValueKey<String>('app-sidebar-item-badge'),
+    );
+    expect(badge, findsOneWidget);
+    expect(find.byType(Badge), findsNothing);
+    expect(
+      tester.getSize(badge),
+      const Size(OnCareSize.countBadgeMin, OnCareSize.countBadgeMin),
+    );
+    final Rect label = tester.getRect(find.text('메시지'));
+    expect(tester.getRect(badge).left, greaterThan(label.left));
+    expect(
+      tester.getRect(badge).right,
+      greaterThan(tester.getRect(find.byType(AppSidebarItem)).right - 40),
+    );
+    final BoxDecoration deco =
+        tester.widget<Container>(badge).decoration! as BoxDecoration;
+    expect(deco.shape, BoxShape.circle);
+    expect(deco.color, OnCareBrand.trainer.primary);
+    expect(find.text('6'), findsOneWidget);
+  });
+
+  testWidgets('레일 모드 배지는 아이콘 오른쪽 위에 겹친다', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: _theme(OnCareDensity.web),
+        home: Scaffold(
+          body: SizedBox(
+            width: 72,
+            child: AppSidebarItem(
+              icon: Icons.calendar_today_rounded,
+              label: '스케줄',
+              selected: false,
+              collapsed: true,
+              onTap: () {},
+              badgeCount: 120,
+            ),
+          ),
+        ),
+      ),
+    );
+    final Finder badge = find.byKey(
+      const ValueKey<String>('app-sidebar-item-badge'),
+    );
+    expect(badge, findsOneWidget);
+    expect(
+      tester.getSize(badge),
+      const Size(OnCareSize.countBadgeMin, OnCareSize.countBadgeMin),
+    );
+    final Rect icon = tester.getRect(find.byType(Icon));
+    expect(tester.getRect(badge).center.dx, greaterThan(icon.right));
+    expect(tester.getRect(badge).top, lessThan(icon.top));
+    expect(find.text('99+'), findsOneWidget);
+  });
 }
