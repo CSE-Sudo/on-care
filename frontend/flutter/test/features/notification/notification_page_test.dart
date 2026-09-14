@@ -4,10 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const AppConfig _mockConfig = AppConfig(
   environment: Environment.dev,
@@ -28,7 +28,6 @@ Future<void> _pumpNotificationPage(
       overrides: <Override>[appConfigProvider.overrideWithValue(_mockConfig)],
       child: MaterialApp(
         theme: AppTheme.light(),
-        darkTheme: AppTheme.dark(),
         // 이 파일은 한국어 문구로 화면을 찾는다. 로케일을 고정하지 않으면
         // 테스트 환경의 기본값(en)으로 떠서 찾지 못한다(#847).
         locale: const Locale('ko'),
@@ -54,9 +53,12 @@ void main() {
         final ThemeData theme = Theme.of(pageContext);
 
         expect(theme.brightness, Brightness.light);
-        expect(theme.scaffoldBackgroundColor, AppColors.background);
-        expect(theme.colorScheme.onSurface, AppColors.foreground);
-        expect(theme.colorScheme.surfaceContainerHigh, AppColors.accent);
+        expect(theme.scaffoldBackgroundColor, OnCareColors.surfacePage);
+        expect(theme.colorScheme.onSurface, OnCareColors.textPrimary);
+        expect(
+          theme.colorScheme.surfaceContainerHigh,
+          OnCareBrand.member.surface,
+        );
         expect(find.text('나트륨 섭취 주의'), findsOneWidget);
         expect(find.text('서비스 점검 안내'), findsOneWidget);
         expect(find.text('Simulate push'), findsOneWidget);
