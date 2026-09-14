@@ -136,6 +136,7 @@ class AppStatCard extends StatelessWidget {
     this.caption,
     this.icon,
     this.onTap,
+    this.toneColor,
   });
 
   final String label;
@@ -145,9 +146,15 @@ class AppStatCard extends StatelessWidget {
   final IconData? icon;
   final VoidCallback? onTap;
 
+  /// 판단을 담는 지표의 상태색(예: 위험 [OnCareColors.danger], 정상
+  /// [OnCareColors.success]). 주면 숫자와 아이콘을 이 색으로 칠한다. 비우면
+  /// 숫자는 기본 글자색, 아이콘은 브랜드 메인 색이다.
+  final Color? toneColor;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    final Color? tone = toneColor;
     return AppCard(
       onTap: onTap,
       child: Column(
@@ -159,7 +166,7 @@ class AppStatCard extends StatelessWidget {
                 Icon(
                   icon,
                   size: OnCareSize.iconSmall,
-                  color: tokens.brand.primary,
+                  color: tone ?? tokens.brand.primary,
                 ),
                 const SizedBox(width: OnCareSpacing.s4),
               ],
@@ -181,7 +188,7 @@ class AppStatCard extends StatelessWidget {
                   text: value,
                   style: OnCareTypography.numeric(
                     tokens.text(OnCareTypography.display),
-                  ).copyWith(color: OnCareColors.textPrimary),
+                  ).copyWith(color: tone ?? OnCareColors.textPrimary),
                 ),
                 if (unit != null)
                   TextSpan(

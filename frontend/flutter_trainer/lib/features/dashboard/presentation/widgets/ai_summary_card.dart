@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/domain/activity_feedback.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/widgets/soft_navy_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// "활동 피드백" — 트레이너 활동 피드백 3가지(이행률·이탈 위험 감지, 7일
@@ -29,7 +30,9 @@ class AiSummaryCard extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     // 대상이 없는 신호는 아예 그리지 않는다 — "0명" 문장은 안내가 아니다.
     final active = activityFeedback.where((i) => i.count > 0).toList();
-    return AppCard(
+    // 흰 카드들 사이에서 안내 카드로 구분되도록 옅은 남색 바탕(규격 전환 전
+    // 모양 복원) — 리포트 탭 요약 카드와 같은 SoftNavyCard 를 쓴다.
+    return SoftNavyCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
