@@ -24,6 +24,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -77,6 +78,7 @@ void main() {
           ...overrides,
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: Locale(lang),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

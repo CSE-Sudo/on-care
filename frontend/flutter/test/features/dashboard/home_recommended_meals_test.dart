@@ -16,7 +16,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -30,6 +29,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   const DashboardSummary summary = DashboardSummary(
@@ -233,10 +233,10 @@ void main() {
   });
 
   testWidgets('이유 문구는 제목보다 작은 회색으로 남는다', (WidgetTester tester) async {
-    // 카드 폭이 130px 고정이라, 앱 전역 가독성 개선(3299f996)에서 이 문구까지
-    // 12.5px 로 키웠더니 "나트륨 조절에 좋아요" 가 두 줄로 밀려 아래가 잘렸다.
-    // 카드 안 높이는 이유 한 줄만 감당한다 — 크기를 다시 올리면 같은 잘림이
-    // 재발하므로 여기서 값을 못박는다.
+    // 카드 폭이 고정이라, 앱 전역 가독성 개선(3299f996)에서 이 문구까지 키웠더니
+    // "나트륨 조절에 좋아요" 가 두 줄로 밀려 아래가 잘렸다. 이유는 가장 작은 역할
+    // 글자(`caption`)·옅은 색으로 두고 제목보다 작아야 한다 — 숫자 대신 그 관계를
+    // 못박는다(#1690 글자 역할).
     await pumpHome(
       tester,
       recommendations: () async => MealRecommendations.fallback,
@@ -248,9 +248,13 @@ void main() {
         .style!;
     final TextStyle name = tester.widget<Text>(find.text('닭가슴살 샐러드')).style!;
 
-    expect(reason.fontSize, 11);
+    final OnCareTokens tokens = AppTheme.light().extension<OnCareTokens>()!;
+    expect(
+      reason.fontSize,
+      tokens.text(OnCareTypography.caption).fontSize,
+    );
     expect(reason.fontSize, lessThan(name.fontSize!));
-    expect(reason.color, FigmaColors.textMuted);
-    expect(name.color, FigmaColors.ink);
+    expect(reason.color, OnCareColors.textTertiary);
+    expect(name.color, OnCareColors.textPrimary);
   });
 }

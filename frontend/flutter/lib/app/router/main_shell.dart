@@ -273,29 +273,34 @@ class _RecordAddSheet extends StatelessWidget {
       key: const Key('recordAddSheet'),
       title: l.navAddRecordTitle,
       subtitle: l.navAddRecordSubtitle,
-      child: Row(
-        key: const Key('recordOptions'),
-        children: <Widget>[
-          // 두 갈래 모두 브랜드 파랑이다 (#1154). 이 시트는 "무엇을 기록할까" 를
-          // 고르는 자리라 색이 영역을 가르는 뜻으로 읽히지 않는다.
-          Expanded(
-            child: _RecordOption(
-              icon: Icons.restaurant_rounded,
-              title: l.navDiet,
-              subtitle: l.navDietOptionSub,
-              onTap: onDiet,
+      // 시트는 화면 끝까지 내려오므로, 홈 인디케이터가 있는 기기에서는 그만큼을
+      // 더 띄워야 카드가 가리지 않는다(#1154). 인셋이 없으면 시트 안쪽 여백만 남는다.
+      child: SafeArea(
+        top: false,
+        child: Row(
+          key: const Key('recordOptions'),
+          children: <Widget>[
+            // 두 갈래 모두 브랜드 파랑이다 (#1154). 이 시트는 "무엇을 기록할까" 를
+            // 고르는 자리라 색이 영역을 가르는 뜻으로 읽히지 않는다.
+            Expanded(
+              child: _RecordOption(
+                icon: Icons.restaurant_rounded,
+                title: l.navDiet,
+                subtitle: l.navDietOptionSub,
+                onTap: onDiet,
+              ),
             ),
-          ),
-          const SizedBox(width: OnCareSpacing.cardGap),
-          Expanded(
-            child: _RecordOption(
-              icon: Icons.fitness_center_rounded,
-              title: l.navExercise,
-              subtitle: l.navExerciseOptionSub,
-              onTap: onExercise,
+            const SizedBox(width: OnCareSpacing.cardGap),
+            Expanded(
+              child: _RecordOption(
+                icon: Icons.fitness_center_rounded,
+                title: l.navExercise,
+                subtitle: l.navExerciseOptionSub,
+                onTap: onExercise,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
