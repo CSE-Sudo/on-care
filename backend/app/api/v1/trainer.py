@@ -59,12 +59,12 @@ from app.schemas.trainer_api import (
     RoutineAssignRequest, RoutineOut, RoutineHistoryOut,
     RoutineFeedbackRequest,
     RoutineSuggestionApproveRequest, RoutineSuggestionCreateRequest,
-    ProgramAssignRequest,
+    ProgramAssignRequest, ProgramScheduleOut, ProgramScheduleRequest,
     RoutineOptionsOut, RoutineOptionsRequest, RoutineUpdateRequest,
     ScheduleCancelRequest, ScheduleCompleteRequest,
-    ScheduleProgramSendRequest, ScheduleCreateRequest, ScheduleProgramRegisterOut,
+    ScheduleProgramSendRequest, ScheduleCreateRequest,
     ScheduleRecurringPreviewOut, ScheduleRecurringRequest, ScheduleReopenRequest,
-    ScheduleProgramRegisterRequest, ScheduleSessionOut, ScheduleUpdateRequest,
+    ScheduleSessionOut, ScheduleUpdateRequest,
     PairedMemberOut,
     PairingCodeRedeem,
     TrainerClientInviteCreate, TrainerClientInviteOut,
@@ -80,6 +80,7 @@ from app.schemas.trainer_api import (
     TrainerProgramTemplateUpdate,
     TrainerNotificationOut, TrainerNotificationSettings, TrainerNotificationSettingsUpdate,
     TrainerPasswordChange, WeeklyReportOut,
+    TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
 from app.services import (
     diet_service,
@@ -96,6 +97,7 @@ from app.services import (
     report_pdf_storage,
     trainer_routine_options_service,
     trainer_service,
+    trainer_task_progress_service,
 )
 from app.services.coach import conversation
 from app.services.exercise_service import (
@@ -1314,6 +1316,39 @@ def trainer_dashboard_coaching_summary(
     return trainer_dashboard_coaching_service.generate_summary(db, trainer.id)
 
 
+@router.get("/trainer/dashboard/task-progress", response_model=TrainerTaskProgressOut)
+def trainer_task_progress(
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> TrainerTaskProgressOut:
+    """오늘 할 일 진행 상태 — 보관 기간 안의 날짜별 기록. (#1633)
+
+    기기 로컬이 아니라 계정 단위다. 센터 PC 에서 체크한 항목이 태블릿에서도
+    체크돼 있어야 한다.
+    """
+    return trainer_task_progress_service.build_progress(db, trainer.id)
+
+
+@router.put(
+    "/trainer/dashboard/task-progress/{day}",
+    response_model=TrainerTaskProgressDayOut,
+)
+def trainer_save_task_progress(
+    day: str,
+    payload: TrainerTaskProgressSave,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> TrainerTaskProgressDayOut:
+    """그날의 진행 상태를 통째로 저장한다. KST 오늘·어제만 받는다."""
+    if not _is_ymd(day):
+        raise HTTPException(status_code=422, detail="날짜는 YYYY-MM-DD 형식이어야 합니다.")
+    if day not in trainer_task_progress_service.writable_dates():
+        raise HTTPException(
+            status_code=422, detail="오늘 또는 어제(KST)만 저장할 수 있습니다."
+        )
+    return trainer_task_progress_service.save_day(db, trainer.id, day, payload)
+
+
 # ---- 스케줄 (트레이너 타임라인 + 예약→수업→기록 완료 루프) ----
 
 @router.get("/trainer/schedule/booked-dates", response_model=list[str])
@@ -1478,34 +1513,57 @@ def trainer_create_recurring_sessions(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.put(
-    "/trainer/clients/{member_id}/schedule-program",
-    response_model=ScheduleProgramRegisterOut,
+@router.post(
+    "/trainer/clients/{member_id}/program-schedule",
+    response_model=ProgramScheduleOut,
+    status_code=201,
 )
-def trainer_register_schedule_program(
+def trainer_assign_program_with_schedule(
     member_id: str,
-    payload: ScheduleProgramRegisterRequest,
+    payload: ProgramScheduleRequest,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-) -> ScheduleProgramRegisterOut:
-    """Atomically attach an AI program or create the member's PT session."""
-    result = trainer_service.register_program(
-        db,
-        trainer.id,
-        member_id,
-        date=payload.date,
-        time=payload.time,
-        duration_minutes=payload.duration_minutes,
-        client_name=payload.client_name,
-        program=payload.program,
-    )
+) -> ProgramScheduleOut:
+    """프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로. (#1580)
+
+    둘 중 하나만 반영되는 경우가 없다. `client_request_id` 는 명령 전체에 대해
+    멱등하다 — 응답을 잃고 같은 키로 다시 보내면 먼저 처리한 결과가 돌아온다.
+    """
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
+    if not any(session.exercises for session in payload.sessions):
+        raise HTTPException(status_code=400, detail="운동이 하나 이상 필요합니다.")
+    try:
+        result = trainer_service.assign_program_with_schedule(
+            db,
+            trainer.id,
+            member_id,
+            name=name,
+            sessions=payload.sessions,
+            date=payload.date,
+            time=payload.time,
+            duration_minutes=payload.duration_minutes,
+            client_name=payload.client_name,
+            client_request_id=payload.client_request_id,
+            session_id=payload.session_id,
+        )
+    except trainer_service.IdempotencyConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except trainer_service.AttachTargetConflict as exc:
+        # 겹치는 후보를 함께 실어 화면이 어느 회차를 고를지 다시 물을 수 있게 한다.
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "candidates": [
+                    candidate.model_dump(mode="json") for candidate in exc.candidates
+                ],
+            },
+        ) from exc
     if result is None:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
-    session, attached_to_existing = result
-    return ScheduleProgramRegisterOut(
-        session=session,
-        attached_to_existing=attached_to_existing,
-    )
+    return result
 
 
 @router.put("/trainer/schedule/{session_id}", response_model=ScheduleSessionOut)

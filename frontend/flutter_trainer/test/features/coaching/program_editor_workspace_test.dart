@@ -8,6 +8,8 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/time_range
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/widgets/action_button.dart';
 
+import '../../helpers/fixed_clock.dart';
+
 void main() {
   const duplicateSuggestions = <AiRoutineItem>[
     AiRoutineItem(
@@ -28,7 +30,12 @@ void main() {
 
   ProgramEditorState? sent;
 
-  setUp(() => sent = null);
+  setUp(() {
+    sent = null;
+    // 편집기에 넘기는 등록 날짜(2026-01-01)가 '지난 날짜'로 막히지 않게 오늘을
+    // 그날에 맞춘다(#1582).
+    useFixedKstDate(DateTime(2026, 1, 1, 9));
+  });
 
   Widget buildApp(List<AiRoutineItem> aiSuggestions) => MaterialApp(
     locale: const Locale('ko'),
