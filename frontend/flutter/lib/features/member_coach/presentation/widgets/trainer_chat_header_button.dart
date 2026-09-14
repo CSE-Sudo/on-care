@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_toast.dart';
+import 'package:oncare/shared/widgets/member_tab_header.dart';
 
 /// 모든 메인 탭 헤더에서 동일한 담당 트레이너 채팅으로 진입하는 버튼이다.
 ///
@@ -30,16 +30,17 @@ class TrainerChatHeaderButton extends ConsumerWidget {
         ? l.coachTrainerLoading
         : l.coachTrainerNone;
 
+    // 이름은 버튼의 툴팁이 말한다. 흐린 상태도 탭을 받으므로 쓸 수 있는지는
+    // 따로 알린다.
     return Semantics(
-      button: true,
       enabled: ready,
-      label: l.coachChatWithTrainer,
-      child: FigmaCircleButton(
+      child: HeaderActionButton(
         key: const Key('trainerChatHeaderButton'),
         icon: Icons.chat_bubble_outline_rounded,
+        tooltip: l.coachChatWithTrainer,
         showDot: unread > 0,
         enabled: ready,
-        onTap: ready
+        onPressed: ready
             ? () => openTrainerChatPage(context, trainerName: coach.name)
             : () => showAppToast(context, unavailableReason),
       ),

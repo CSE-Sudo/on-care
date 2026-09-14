@@ -20,6 +20,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_h
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 
 /// 식단 tab, rebuilt to match the On-Care Figma redesign. The weekly date
@@ -240,7 +241,7 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 108),
               children: <Widget>[
-                FigmaTabHeader(
+                MemberTabHeader(
                   title: l.dietTitle,
                   trailingAction: const TrainerChatHeaderButton(),
                   onBell: () => context.push(AppRoutes.notification),

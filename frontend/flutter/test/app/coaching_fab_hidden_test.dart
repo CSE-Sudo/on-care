@@ -15,6 +15,7 @@ import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/main_shell.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
 
@@ -35,6 +36,7 @@ void main() {
         overrides: <Override>[appConfigProvider.overrideWithValue(_config)],
         child: MaterialApp.router(
           routerConfig: router,
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -55,7 +57,7 @@ void main() {
     await pumpShell(tester);
 
     // 가운데 + 는 AI 조언이 아니라 기록 추가다 — 함께 사라지면 안 된다.
-    expect(find.byIcon(Icons.add), findsWidgets);
+    expect(find.byKey(const Key('recordAddButton')), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('nav-exercise')), findsOneWidget);
   });
 

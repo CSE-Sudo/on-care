@@ -24,6 +24,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_h
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
+import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 
 /// 헬스장 서브탭에서 고른 예약 카드 — 탭을 벗어났다가 운동 탭에 다시 들어오면
@@ -112,7 +113,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
   /// 페이지 머리. 벨 배지는 서버 미읽음을 본다 — 이 build 에는 ref 가 없어
   /// 여기서만 지역적으로 얻는다. 헤더 전체를 다시 그리지 않는다.
   Widget _header(BuildContext context, AppLocalizations l) => Consumer(
-    builder: (BuildContext context, WidgetRef ref, Widget? _) => FigmaTabHeader(
+    builder: (BuildContext context, WidgetRef ref, Widget? _) => MemberTabHeader(
       title: l.pageExerciseTitle,
       trailingAction: const TrainerChatHeaderButton(),
       onBell: () => context.push(AppRoutes.notification),

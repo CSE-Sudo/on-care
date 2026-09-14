@@ -17,6 +17,7 @@ import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/my_health/presentation/widgets/trainer_sync_sheet.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 
 /// MY tab, rebuilt to the On-Care Figma redesign: profile, role toggle
@@ -56,7 +57,7 @@ class MyHealthPage extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 108),
               children: <Widget>[
-                FigmaTabHeader(
+                MemberTabHeader(
                   title: l.myTabTitle,
                   trailingAction: const TrainerChatHeaderButton(),
                   onBell: () => context.push(AppRoutes.notification),

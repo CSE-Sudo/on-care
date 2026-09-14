@@ -1,26 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/design_system/atoms/app_badge.dart';
-import 'package:oncare/design_system/atoms/app_card.dart';
-import 'package:oncare/design_system/theme/app_theme.dart';
-import 'package:oncare/design_system/tokens/spacing.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/alert_navigation.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/empty_state.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
-/// 알림 갈래 → 배지에 그릴 이름과 색. 갈래 자체는 서버가 주는 계약값이라 그대로
+/// 알림 갈래 → 태그에 그릴 이름과 톤. 갈래 자체는 서버가 주는 계약값이라 그대로
 /// 두고, 사람이 읽는 이름만 로케일을 따른다(#847).
-({String label, AppBadgeTone tone}) _categoryDisplay(
+({String label, AppTagTone tone}) _categoryDisplay(
   AppLocalizations l,
   AlertCategory c,
 ) => switch (c) {
-  AlertCategory.reminder => (label: l.alertCategoryReminder, tone: AppBadgeTone.info),
-  AlertCategory.healthCheck => (label: l.alertCategoryHealth, tone: AppBadgeTone.warning),
-  AlertCategory.achievement => (label: l.alertCategoryAchievement, tone: AppBadgeTone.achievement),
-  AlertCategory.system => (label: l.alertCategorySystem, tone: AppBadgeTone.neutral),
+  AlertCategory.reminder => (label: l.alertCategoryReminder, tone: AppTagTone.brand),
+  AlertCategory.healthCheck => (label: l.alertCategoryHealth, tone: AppTagTone.caution),
+  AlertCategory.achievement => (label: l.alertCategoryAchievement, tone: AppTagTone.success),
+  AlertCategory.system => (label: l.alertCategorySystem, tone: AppTagTone.neutral),
 };
 
 class NotificationPage extends ConsumerStatefulWidget {
@@ -84,6 +80,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
     final l = AppLocalizations.of(context);
     final state = ref.watch(notificationControllerProvider);
     final notifier = ref.read(notificationControllerProvider.notifier);
+    final double side = context.oncare.density.pagePadding;
     final bool showRetry = state.failedToLoad;
     final int leading = showRetry ? 1 : 0;
     final int bodyCount = state.items.isEmpty ? 1 : state.items.length;
@@ -92,62 +89,86 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
     final int trailing =
         state.items.isNotEmpty && (state.hasMore || state.loadingMore) ? 1 : 0;
 
-    final Widget page = Scaffold(
+    // 모바일 페이지 틀(`AppPage`)과 같은 배경·좌우 여백·최대 폭이다. 당겨서
+    // 새로고침과 이어 받기가 목록을 직접 쥐어야 해서 틀만 풀어 둔다.
+    return Scaffold(
       key: const Key('notificationPage'),
-      appBar: AppBar(
-        title: Text(l.pageNotificationTitle),
+      backgroundColor: OnCareColors.surfacePage,
+      appBar: AppTopBar(
+        title: l.pageNotificationTitle,
         actions: <Widget>[
-          TextButton(
+          AppButton(
+            label: l.alertMarkAllRead,
             onPressed: state.unreadCount == 0 ? null : notifier.markAllRead,
-            child: Text(l.alertMarkAllRead),
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
           ),
         ],
       ),
       // 목록이 비어 있어도 당겨서 새로고침할 수 있어야 한다 — 빈 화면이야말로
       // 다시 받아 보고 싶은 순간이다. 그래서 본문은 항상 스크롤 가능하다.
-      body: RefreshIndicator(
-        onRefresh: _refresh,
-        child: ListView.separated(
-          controller: _scroll,
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          physics: const AlwaysScrollableScrollPhysics(),
-          itemCount: leading + bodyCount + trailing,
-          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-          itemBuilder: (BuildContext ctx, int i) {
-            // 조회가 실패해도 **받아 둔 목록은 그대로 둔다.** 맨 위에 사정과 재시도만
-            // 얹는다 — 목록이 사라지면 읽지 않은 알림이 있었는지조차 알 수 없다.
-            if (showRetry && i == 0) {
-              return _RetryBanner(onRetry: _refresh);
-            }
-            if (state.items.isEmpty) {
-              return SizedBox(
-                height: 320,
-                child: EmptyState(
-                  icon: Icons.notifications_off_outlined,
-                  title: l.alertEmpty,
-                ),
-              );
-            }
-            final int j = i - leading;
-            // 마지막 칸은 이어 받기 표시다. 과거 알림이 남아 있는 동안만 그린다.
-            if (j >= state.items.length) return const _LoadingMoreFooter();
-            final AlertItem item = state.items[j];
-            return _AlertTile(
-              item: item,
-              // 읽음 처리를 기다리지 않고 이동한다 — 서버 왕복 동안 화면이 멈춰
-              // 있으면 누른 것이 먹지 않은 것처럼 보인다.
-              onTap: () {
-                notifier.markRead(item.id);
-                openAlertTarget(context, ref, item);
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: OnCareLayout.mobileContentMaxWidth,
+          ),
+          child: RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.separated(
+              controller: _scroll,
+              padding: EdgeInsets.fromLTRB(
+                side,
+                OnCareSpacing.s8,
+                side,
+                OnCareSpacing.sectionGap,
+              ),
+              physics: const AlwaysScrollableScrollPhysics(),
+              itemCount: leading + bodyCount + trailing,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: OnCareSpacing.cardGap),
+              itemBuilder: (BuildContext ctx, int i) {
+                // 조회가 실패해도 **받아 둔 목록은 그대로 둔다.** 맨 위에 사정과
+                // 재시도만 얹는다 — 목록이 사라지면 읽지 않은 알림이 있었는지조차
+                // 알 수 없다.
+                if (showRetry && i == 0) {
+                  return AppBanner(
+                    key: const Key('notificationRetryBanner'),
+                    tone: AppBannerTone.danger,
+                    icon: Icons.cloud_off_rounded,
+                    title: l.alertLoadFailed,
+                    actionLabel: l.actionRetry,
+                    onAction: _refresh,
+                  );
+                }
+                if (state.items.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: OnCareSpacing.s48),
+                    child: AppEmptyState(
+                      icon: Icons.notifications_off_rounded,
+                      title: l.alertEmpty,
+                    ),
+                  );
+                }
+                final int j = i - leading;
+                // 마지막 칸은 이어 받기 표시다. 과거 알림이 남아 있는 동안만 그린다.
+                if (j >= state.items.length) return const _LoadingMoreFooter();
+                final AlertItem item = state.items[j];
+                return _AlertTile(
+                  item: item,
+                  // 읽음 처리를 기다리지 않고 이동한다 — 서버 왕복 동안 화면이
+                  // 멈춰 있으면 누른 것이 먹지 않은 것처럼 보인다.
+                  onTap: () {
+                    notifier.markRead(item.id);
+                    openAlertTarget(context, ref, item);
+                  },
+                );
               },
-            );
-          },
+            ),
+          ),
         ),
       ),
     );
-    // The product currently has a light-only design. Keep this route on the
-    // shared light theme even when ThemeMode.system selects the dark theme.
-    return Theme(data: AppTheme.light(), child: page);
   }
 }
 
@@ -158,73 +179,25 @@ class _AlertTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final display = _categoryDisplay(AppLocalizations.of(context), item.category);
     return AppCard(
-      onTap: onTap,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Container(
-            width: 10,
-            height: 10,
-            margin: const EdgeInsets.only(top: 6, right: AppSpacing.md),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: item.read ? Colors.transparent : theme.colorScheme.primary,
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  children: <Widget>[
-                    AppBadge(label: display.label, tone: display.tone),
-                    const Spacer(),
-                    Text(item.timeAgo, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(item.title, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 2),
-                Text(item.body, style: theme.textTheme.bodyMedium),
-              ],
-            ),
-          ),
-        ],
+      padding: EdgeInsets.zero,
+      child: AppListRow(
+        title: item.title,
+        subtitle: item.body,
+        unread: !item.read,
+        onTap: onTap,
+        leading: AppTag(label: display.label, tone: display.tone),
+        trailing: Text(
+          item.timeAgo,
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
+        ),
       ),
     );
   }
 }
-
-
-/// 조회 실패를 알리고 다시 시도하게 한다.
-class _RetryBanner extends StatelessWidget {
-  const _RetryBanner({required this.onRetry});
-
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppCard(
-      key: const Key('notificationRetryBanner'),
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.cloud_off_rounded, size: 20),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(l.alertLoadFailed)),
-          TextButton(
-            onPressed: () => onRetry(),
-            child: Text(l.actionRetry),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 
 /// 과거 알림을 이어 받는 동안 목록 끝에 서는 표시. (#965)
 class _LoadingMoreFooter extends StatelessWidget {
@@ -234,14 +207,8 @@ class _LoadingMoreFooter extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Padding(
       key: Key('notificationLoadMore'),
-      padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-      child: Center(
-        child: SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
+      padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
+      child: Center(child: AppLoading.inline()),
     );
   }
 }

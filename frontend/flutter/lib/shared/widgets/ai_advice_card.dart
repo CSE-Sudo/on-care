@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// AI 가 건네는 한 문단짜리 조언 카드. (#1021)
 ///
@@ -32,58 +31,76 @@ class AiAdviceCard extends StatelessWidget {
       title: title,
       child: Text(
         message,
-        style: const TextStyle(
-          fontSize: 13.5,
-          height: 1.5,
-          fontWeight: FontWeight.w500,
-          color: FigmaColors.ink,
-        ),
+        style: context.oncare
+            .text(OnCareTypography.bodySmall)
+            .copyWith(color: OnCareColors.textPrimary),
       ),
     );
   }
 }
 
-/// 조언 카드의 그릇 — 아바타·머리 한 줄·본문. 본문만 갈아 끼우면 로딩·실패도
+/// 조언 카드의 그릇 — 오니·머리 한 줄·본문. 본문만 갈아 끼우면 로딩·실패도
 /// 같은 카드 안에서 말할 수 있다. 상태마다 다른 그림을 그리면 기간을 옮길 때
 /// 화면이 통째로 들썩인다. (#1574)
+///
+/// 앱의 AI 카드는 이 한 가지다(#1690) — 안내 배너(info)와 같은 옅은 브랜드
+/// 채움·테두리·반경 12 에 아이콘 대신 오니를 둔다. [onTap] 을 주면 카드 전체가
+/// 눌리고, [trailing] 에 이동 표시를 둘 수 있다.
 class AiAdviceShell extends StatelessWidget {
-  const AiAdviceShell({super.key, required this.title, required this.child});
+  const AiAdviceShell({
+    super.key,
+    required this.title,
+    required this.child,
+    this.onTap,
+    this.trailing,
+  });
 
   final String title;
   final Widget child;
+  final VoidCallback? onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: FigmaColors.softBlue,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: FigmaColors.primaryA(0.15)),
+    final OnCareTokens tokens = context.oncare;
+    return Material(
+      color: tokens.brand.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: OnCareRadius.mdAll,
+        side: BorderSide(color: tokens.brand.border),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const OniAvatar(size: 40),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaColors.primary,
-                  ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const OniAvatar(),
+              const SizedBox(width: OnCareSpacing.s12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      title,
+                      style: tokens
+                          .text(OnCareTypography.titleSmall)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s4),
+                    child,
+                  ],
                 ),
-                const SizedBox(height: 2),
-                child,
+              ),
+              if (trailing != null) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                trailing!,
               ],
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -118,20 +135,15 @@ class PeriodAiAdviceCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final TextStyle statusStyle = context.oncare
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textSecondary);
     return advice.when(
       data: (String message) => AiAdviceCard(title: title, message: message),
       loading: () => AiAdviceShell(
         key: const ValueKey<String>('ai-advice-loading'),
         title: title,
-        child: Text(
-          l.aiAdviceLoading,
-          style: const TextStyle(
-            fontSize: 13.5,
-            height: 1.5,
-            fontWeight: FontWeight.w500,
-            color: AppColors.mutedForeground,
-          ),
-        ),
+        child: Text(l.aiAdviceLoading, style: statusStyle),
       ),
       error: (Object error, StackTrace _) => AiAdviceShell(
         key: const ValueKey<String>('ai-advice-error'),
@@ -139,28 +151,16 @@ class PeriodAiAdviceCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(
-              l.aiAdviceError,
-              style: const TextStyle(
-                fontSize: 13.5,
-                height: 1.5,
-                fontWeight: FontWeight.w500,
-                color: AppColors.mutedForeground,
-              ),
-            ),
-            const SizedBox(height: 6),
+            Text(l.aiAdviceError, style: statusStyle),
+            const SizedBox(height: OnCareSpacing.s8),
             // 카드 안에 두는 이유: 실패한 것은 이 카드 하나다. 화면 전체를
             // 다시 부르면 방금 보던 그래프까지 깜빡인다.
-            TextButton(
+            AppButton(
               key: const ValueKey<String>('ai-advice-retry'),
+              label: l.actionRetry,
               onPressed: onRetry,
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                minimumSize: const Size(0, 32),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                foregroundColor: FigmaColors.primary,
-              ),
-              child: Text(l.actionRetry),
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
             ),
           ],
         ),
