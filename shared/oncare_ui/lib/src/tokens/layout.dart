@@ -54,6 +54,10 @@ class OnCareLayout {
   /// 웹 다이얼로그가 화면 위에 남겨야 하는 여백 — 상단 토스트를 가리지 않는다(#1378).
   static const double dialogTopClearance = 100;
 
+  /// 바텀시트 핸들 크기.
+  static const double sheetHandleWidth = 36;
+  static const double sheetHandleHeight = 4;
+
   // --- 공통 ---
   /// 로그인·가입 화면 폭.
   static const double authMaxWidth = 400;
