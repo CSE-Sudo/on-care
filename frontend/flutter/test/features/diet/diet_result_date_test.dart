@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show DateFormat;
-
 import 'package:oncare/app/session_feature_reset.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
@@ -76,6 +76,7 @@ Future<ProviderContainer> _openResultSheet(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -118,8 +119,9 @@ void main() {
 
     // 저장소를 직접 읽는다 — 위젯 테스트의 가짜 시계에서는 provider 의 future 를
     // 그냥 await 하면 시간이 흐르지 않아 영영 기다린다.
-    final int before =
-        (await tester.runAsync(() => repo.fetchToday()))!.entries.length;
+    final int before = (await tester.runAsync(
+      () => repo.fetchToday(),
+    ))!.entries.length;
 
     await tester.tap(find.byKey(const Key('diet-result-date-change')));
     await tester.pumpAndSettle();

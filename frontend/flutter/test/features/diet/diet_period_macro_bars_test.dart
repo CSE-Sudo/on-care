@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
@@ -11,7 +10,9 @@ import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 /// 전체 칼로리 막대는 탄단지의 칼로리 기여분을 색 구간으로 쌓는다 (#1479).
@@ -65,11 +66,12 @@ class _MacroRepository extends FakeDietRepository {
 
 Widget _app({required List<Override> overrides}) => ProviderScope(
   overrides: overrides,
-  child: const MaterialApp(
-    locale: Locale('ko'),
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: DietRecordPage(),
+    home: const DietRecordPage(),
   ),
 );
 
@@ -121,7 +123,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.month));
       await tester.pumpAndSettle();
     }
 
@@ -146,16 +148,25 @@ void main() {
         tester.element(find.byType(DietRecordPage)),
       );
 
-      expect(labelColor(tester, l.homeMacroCarbs), FigmaColors.macroCarbs);
-      expect(labelColor(tester, l.homeMacroProtein), FigmaColors.macroProtein);
-      expect(labelColor(tester, l.homeMacroFat), FigmaColors.macroFat);
+      expect(
+        labelColor(tester, l.homeMacroCarbs),
+        OnCareBrand.member.macroCarbs,
+      );
+      expect(
+        labelColor(tester, l.homeMacroProtein),
+        OnCareBrand.member.macroProtein,
+      );
+      expect(labelColor(tester, l.homeMacroFat), OnCareBrand.member.macroFat);
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
 
-      expect(labelColor(tester, l.homeMacroCarbs), AppColors.mutedForeground);
-      expect(labelColor(tester, l.homeMacroProtein), AppColors.mutedForeground);
-      expect(labelColor(tester, l.homeMacroFat), AppColors.mutedForeground);
+      expect(labelColor(tester, l.homeMacroCarbs), OnCareColors.textSecondary);
+      expect(
+        labelColor(tester, l.homeMacroProtein),
+        OnCareColors.textSecondary,
+      );
+      expect(labelColor(tester, l.homeMacroFat), OnCareColors.textSecondary);
     });
 
     testWidgets('막대가 칸 폭을 채우고 높이를 갖는다 (#947)', (WidgetTester tester) async {
@@ -171,10 +182,8 @@ void main() {
     });
 
     /// 막대 툴팁의 글자.
-    String tipTextAt(WidgetTester tester, int index) => tester
-        .widget<Tooltip>(find.byKey(Key('diet-period-bar-tip-$index')))
-        .richMessage!
-        .toPlainText();
+    String tipTextAt(WidgetTester tester, int index) =>
+        _tipText(tester, find.byKey(Key('diet-period-bar-tip-$index')));
 
     testWidgets('전체 구간에는 아직 오지 않은 날이 없다 (#950, #1018)', (
       WidgetTester tester,
@@ -204,20 +213,17 @@ void main() {
     testWidgets('막대는 탄단지 색 구간을 쌓는다 (#1479)', (WidgetTester tester) async {
       await openMonth(tester);
 
-      expect(
-        segmentColorsOf(tester, 0),
-        <Color>[
-          FigmaColors.macroFat,
-          FigmaColors.macroProtein,
-          FigmaColors.macroCarbs,
-        ],
-      );
+      expect(segmentColorsOf(tester, 0), <Color>[
+        OnCareBrand.member.macroFat,
+        OnCareBrand.member.macroProtein,
+        OnCareBrand.member.macroCarbs,
+      ]);
     });
 
     testWidgets('툴팁이 탄단지 수치를 함께 적는다', (WidgetTester tester) async {
       await openMonth(tester);
 
-      final Tooltip tip = tester.widget<Tooltip>(
+      final Finder tip = _tipFinder(
         // 전체는 오늘로 끝나는 구간이라 오늘은 **마지막 칸**이다 (#1018).
         find.byKey(
           Key(
@@ -226,7 +232,7 @@ void main() {
           ),
         ),
       );
-      final String text = tip.richMessage!.toPlainText();
+      final String text = _tipText(tester, tip);
 
       expect(text, contains('탄수화물'));
       expect(text, contains('200'));
@@ -256,10 +262,23 @@ void main() {
       );
       expect(
         (bar.decoration! as BoxDecoration).color,
-        FigmaColors.primary.withValues(alpha: 0.85),
+        OnCareBrand.member.dietChart,
       );
     });
   });
 }
 
 final DateTime _anyDate = DateTime(2026, 8, 19);
+
+/// 막대 툴팁의 글자 — 툴팁은 패키지 차트 툴팁 위젯을 담으므로(#1700) 같은 내용을
+/// 한 줄로 적은 막대의 시맨틱 라벨을 읽는다.
+String _tipText(WidgetTester tester, Finder tip) =>
+    tester
+        .widget<Semantics>(
+          find.ancestor(of: tip, matching: find.byType(Semantics)).first,
+        )
+        .properties
+        .label ??
+    '';
+
+Finder _tipFinder(Finder tip) => tip;

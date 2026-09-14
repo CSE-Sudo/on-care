@@ -42,6 +42,8 @@ final storedMealPhotoProvider = FutureProvider.family<Uint8List?, String>((
 /// loads and whenever it can't be shown (no photo, network failure, corrupt
 /// bytes). The fallback is the existing emoji/asset chip, so a photo that
 /// isn't there changes nothing about the layout.
+///
+/// 모서리는 감싸는 틀(`AppImageFrame`)이 자른다 — 여기서는 반경을 모른다.
 class StoredMealPhoto extends ConsumerWidget {
   const StoredMealPhoto({
     super.key,
@@ -49,7 +51,6 @@ class StoredMealPhoto extends ConsumerWidget {
     required this.width,
     required this.height,
     required this.fallback,
-    this.borderRadius = 12,
   });
 
   /// API path relative to the API base (`/diet/photos/<id>`).
@@ -60,7 +61,6 @@ class StoredMealPhoto extends ConsumerWidget {
   final double width;
   final double height;
   final Widget fallback;
-  final double borderRadius;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -70,16 +70,13 @@ class StoredMealPhoto extends ConsumerWidget {
     return photo.maybeWhen(
       data: (Uint8List? bytes) => bytes == null
           ? fallback
-          : ClipRRect(
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: Image.memory(
-                bytes,
-                width: width,
-                height: height,
-                fit: BoxFit.cover,
-                errorBuilder: (BuildContext _, Object _, StackTrace? _) =>
-                    fallback,
-              ),
+          : Image.memory(
+              bytes,
+              width: width,
+              height: height,
+              fit: BoxFit.cover,
+              errorBuilder: (BuildContext _, Object _, StackTrace? _) =>
+                  fallback,
             ),
       orElse: () => fallback,
     );
