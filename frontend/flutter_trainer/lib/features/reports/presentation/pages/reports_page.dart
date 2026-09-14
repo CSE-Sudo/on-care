@@ -22,6 +22,7 @@ import 'package:oncare_trainer/features/search/presentation/widgets/client_searc
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 — the week, from two angles.
@@ -528,8 +529,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     final reportKey = (client: selected, weekStart: _weekStart);
                     // 주 이동은 리포트를 못 읽은 화면에도 있어야 한다 —
                     // 카드 안에만 두면 실패한 주에서 나갈 길이 사라진다.
-                    final bool isThisWeek =
-                        _weekStart == weekStartOf(nowKst());
+                    final bool isThisWeek = _weekStart == weekStartOf(nowKst());
                     final Widget weekNav = ReportWeekNav(
                       rangeLabel: _weekRangeLabel(l, _weekStart),
                       onPrev: () => _shiftWeek(-1),
@@ -670,9 +670,9 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       children: <Widget>[
                         SizedBox(
                           key: const ValueKey<String>('reports-left-column'),
-                          // 분할 화면 목록 폭 — 다른 탭의 왼쪽 목록 열과 같은
-                          // 규격이다(#958, #1690).
-                          width: OnCareLayout.splitListWidth,
+                          // 회원을 고르는 열이라 분할 목록 폭의 3분의 2만 쓴다 —
+                          // 프로그램 탭 왼쪽 열과 같은 폭이다(#958, #1690).
+                          width: clientPickerColumnWidth,
                           // 목록(5줄 고정)에 요약 카드가 더해지면 짧은 창에서는
                           // 열이 화면보다 길어진다. 이 열 안에서만 스크롤하게
                           // 두어 오른쪽 리포트와는 여전히 따로 움직인다.

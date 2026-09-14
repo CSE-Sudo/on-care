@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 리포트 카드의 주 이동 — `‹  8월 17일 – 8월 23일  ›  [이번 주]`.
+/// 리포트 카드의 주 이동 — `[이번 주]  ‹  8월 17일 – 8월 23일  ›`.
 ///
 /// 헤더가 아니라 **리포트 카드 제목 줄**에 있다. 옮기는 것은 이 카드의
 /// 내용이지 화면 전체가 아니고, 헤더에 두면 날짜 버튼 하나가 고객 검색 바의
 /// 폭을 먹어 다른 탭과 다른 모양으로 접혔다(#1177).
 ///
-/// `이번 주` 가 들어설 자리를 오른쪽에 늘 비워 두고, 같은 폭을 왼쪽에도
-/// 거울처럼 비워 둔다. 버튼 표시 여부와 무관하게 두 화살표 묶음이 이 위젯의
-/// 한가운데에 서고, 오른쪽 화살표는 제자리를 지킨다(#1245, #1295).
+/// 날짜·화살표 묶음은 카드 오른쪽 끝(다른 카드 제목 줄과 같은 안쪽 여백)에
+/// 붙는다. `이번 주` 는 그 **왼쪽**에 선다 — 버튼 자리를 날짜 오른쪽에 비워
+/// 두면 날짜가 카드 끝에서 떨어져 보였다. 버튼 자리는 늘 같은 폭으로 비워
+/// 두어, 버튼이 나타나도 날짜·화살표는 제자리를 지킨다(#1245, #1295).
 class ReportWeekNav extends StatelessWidget {
   /// Creates the week nav.
   const ReportWeekNav({
@@ -43,29 +44,29 @@ class ReportWeekNav extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        // `이번 주` 자리(앞 간격 포함)의 거울.
-        const SizedBox(width: _thisWeekSlot + OnCareSpacing.s8),
+        // 날짜 바로 왼쪽에 붙도록 오른쪽 정렬한다.
+        SizedBox(
+          width: _thisWeekSlot,
+          child: onThisWeek == null
+              ? const SizedBox.shrink()
+              : Align(
+                  alignment: Alignment.centerRight,
+                  child: AppButton(
+                    key: const ValueKey<String>('reports-go-this-week'),
+                    label: l.reportsThisWeek,
+                    variant: AppButtonVariant.secondary,
+                    size: OnCareButtonSize.small,
+                    onPressed: onThisWeek,
+                  ),
+                ),
+        ),
+        const SizedBox(width: OnCareSpacing.s8),
         AppPeriodNav(
           label: rangeLabel,
           previousTooltip: l.a11yPrevWeek,
           nextTooltip: l.a11yNextWeek,
           onPrevious: onPrev,
           onNext: onNext,
-          trailing: SizedBox(
-            width: _thisWeekSlot,
-            child: onThisWeek == null
-                ? const SizedBox.shrink()
-                : Align(
-                    alignment: Alignment.centerLeft,
-                    child: AppButton(
-                      key: const ValueKey<String>('reports-go-this-week'),
-                      label: l.reportsThisWeek,
-                      variant: AppButtonVariant.secondary,
-                      size: OnCareButtonSize.small,
-                      onPressed: onThisWeek,
-                    ),
-                  ),
-          ),
         ),
       ],
     );

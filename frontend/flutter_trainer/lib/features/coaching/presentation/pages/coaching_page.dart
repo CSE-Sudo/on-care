@@ -41,6 +41,7 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 // 예외 둘: 탭 이동 시 스크롤 초기화(UI 위젯 아님), 그리고 요일별 막대그래프
 // — 패키지에 대응 차트가 없고 리포트 탭·테스트가 같은 위젯 타입을 쓴다.
+import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
 import 'package:oncare_trainer/shared/widgets/page_scroll_reset.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -527,7 +528,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 // 빼고도 편집기가 입력 폼 폭만큼은 가져야 한다.
                 final fullWidth =
                     constraints.maxWidth >=
-                    OnCareLayout.splitListWidth +
+                    clientPickerColumnWidth +
                         OnCareLayout.splitListWidth +
                         OnCareLayout.splitGap +
                         OnCareLayout.splitGap +
@@ -560,7 +561,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           SizedBox(
-                            width: OnCareLayout.splitListWidth,
+                            // 회원을 고르는 열이라 분할 목록 폭의 3분의 2만
+                            // 쓴다 — 리포트 탭 왼쪽 열과 같은 폭이다.
+                            width: clientPickerColumnWidth,
                             // 고객 목록(5줄 고정)은 그 자리·높이 그대로 두고,
                             // 템플릿 카드가 늘어나는 만큼만 그 아래 남는 공간
                             // 안에서 따로 스크롤한다.
@@ -902,23 +905,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   }
 }
 
-/// 고객 목록에 보이는 행 수.
-const int _visibleClientRows = 5;
+/// 고객 목록에 보이는 행 수 — 리포트 탭과 같다.
+const int _visibleClientRows = clientPickerVisibleRows;
 
-/// 고객 목록 한 줄 높이 — 이름 · 목표 두 줄이 들어간다.
-///
-/// 기본은 밀도의 목록 행 최소 높이에 여유 16 을 더한 값이고, 접근성 글자
-/// 배율이 올라가면 그만큼 함께 늘어난다(#995). 리포트 탭 고객 목록과 같은
-/// 높이다.
-double _clientRowHeight(BuildContext context) {
-  final density = context.oncare.density;
-  final double base = OnCareTypography.bodySmall.fontSize!;
-  final scale = MediaQuery.textScalerOf(context).scale(base) / base;
-  final extraScale = (scale - 1).clamp(0.0, 2.0);
-  return density.listRowMin +
-      OnCareSpacing.s16 +
-      (density.listRowMin + OnCareSpacing.s8) * extraScale;
-}
+/// 고객 목록 한 줄 높이 — 리포트 탭 고객 목록과 같은 높이다.
+double _clientRowHeight(BuildContext context) => clientPickerRowHeight(context);
 
 /// 1열이 "고객 목록 고정 + 템플릿 카드만 스크롤"로 나뉘려면 필요한 최소
 /// 높이 — 고객 목록 5줄 + 두 카드의 안쪽 여백·헤더·헤더 아래 간격 + 카드
@@ -1061,12 +1052,11 @@ class _MemberProgramListState extends State<_MemberProgramList> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final tokens = context.oncare;
     final rowHeight = _clientRowHeight(context);
     return _SectionCard(
       // 리포트 탭 좌측 고객 카드와 같은 제목·아이콘을 쓴다 (#958).
       title: l.navClients,
-      icon: Icons.people_outline_rounded,
+      icon: clientPickerHeaderIcon,
       child: SizedBox(
         height: rowHeight * _visibleClientRows,
         child: ListView.builder(
@@ -1077,81 +1067,12 @@ class _MemberProgramListState extends State<_MemberProgramList> {
           itemExtent: rowHeight,
           itemBuilder: (context, index) {
             final client = widget.clients[index];
-            final selected = client.id == widget.selectedId;
-            final nameStyle = tokens
-                .text(
-                  selected
-                      ? OnCareTypography.strong(OnCareTypography.bodySmall)
-                      : OnCareTypography.bodySmall,
-                )
-                .copyWith(color: OnCareColors.textPrimary);
-            final detailStyle = tokens
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary);
-            return Padding(
-              padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
-              child: Material(
-                key: ValueKey<String>('program-client-${client.id}'),
-                color: selected ? tokens.brand.surface : Colors.transparent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: OnCareRadius.mdAll,
-                  side: selected
-                      ? BorderSide(color: tokens.brand.primary)
-                      : BorderSide.none,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => widget.onSelect(client.id),
-                  hoverColor: tokens.brand.surface,
-                  child: Padding(
-                    padding: const EdgeInsets.all(OnCareSpacing.s8),
-                    child: Row(
-                      children: <Widget>[
-                        AppAvatar(name: client.name),
-                        const SizedBox(width: OnCareSpacing.s8),
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Row(
-                                children: <Widget>[
-                                  Flexible(
-                                    child: Text(
-                                      client.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: nameStyle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: OnCareSpacing.s4),
-                                  Flexible(
-                                    child: Text(
-                                      _clientDemographics(l, client),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: detailStyle,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              // 목표는 늘 보인다(#898). 비어 있으면 빈 줄을
-                              // 만들지 않는다.
-                              if (client.goal.trim().isNotEmpty)
-                                Text(
-                                  client.goal,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: detailStyle,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            // 리포트 탭 회원 목록과 같은 행이다.
+            return ClientPickerCard(
+              key: ValueKey<String>('program-client-${client.id}'),
+              client: client,
+              selected: client.id == widget.selectedId,
+              onTap: () => widget.onSelect(client.id),
             );
           },
         ),
