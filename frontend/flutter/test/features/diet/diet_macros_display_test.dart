@@ -195,7 +195,19 @@ void main() {
           await tester.runAsync(() => FakeDietRepository().fetchToday())
               as DietDay;
 
-      await tester.pumpWidget(_app(Scaffold(body: NutritionSummary(day: day))));
+      // 식단 탭에서 카드는 페이지 좌우 여백(`AppPage`) 안에 놓인다(#1700).
+      await tester.pumpWidget(
+        _app(
+          Scaffold(
+            body: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: OnCareDensity.mobile.pagePadding,
+              ),
+              child: NutritionSummary(day: day),
+            ),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final Finder summaryCard = find.byKey(
