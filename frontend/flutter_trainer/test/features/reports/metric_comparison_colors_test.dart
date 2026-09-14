@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/bar_line_chart.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/metric_comparison_section.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -15,6 +15,9 @@ import '../../helpers/pump_app.dart';
 /// 읽어야 안다. 색 기준은 다른 운동 그래프(주간 운동 시간·이행률 막대)와 같은
 /// 램프다 — 같은 값이 화면마다 다른 색이면 색이 뜻을 잃는다.
 void main() {
+  // 트레이너웹 브랜드의 운동 그래프 색 — 화면이 테마에서 읽는 값과 같다.
+  const OnCareBrand brand = OnCareBrand.trainer;
+
   Future<void> openReports(WidgetTester tester) async {
     tester.view.devicePixelRatio = 1.0;
     tester.view.physicalSize = const Size(1600, 1400);
@@ -59,13 +62,13 @@ void main() {
     await openReports(tester);
 
     // 기본은 소모 칼로리 — 유형 램프보다 한 단계 진한 결과 색이다.
-    expect(exerciseChart(tester).barColor, kBurnColor);
+    expect(exerciseChart(tester).barColor, brand.exerciseChart);
 
     for (final entry in <({String metric, Color color})>[
-      (metric: 'cardio', color: AppColors.chartCardio),
-      (metric: 'strength', color: AppColors.chartStrength),
-      (metric: 'stretching', color: AppColors.chartStretching),
-      (metric: 'burned', color: kBurnColor),
+      (metric: 'cardio', color: brand.exerciseCardio),
+      (metric: 'strength', color: brand.exerciseStrength),
+      (metric: 'stretching', color: brand.exerciseStretching),
+      (metric: 'burned', color: brand.exerciseChart),
     ]) {
       await pickExercise(tester, entry.metric);
       final BarLineChart chart = exerciseChart(tester);
@@ -73,16 +76,17 @@ void main() {
       // 꺾은선은 같은 색의 진한 쪽이다 — 한 그림이 한 지표를 말한다.
       expect(
         chart.lineColor,
-        Color.lerp(entry.color, Colors.black, 0.3),
+        Color.lerp(entry.color, OnCareColors.textPrimary, 0.3),
         reason: entry.metric,
       );
     }
   });
 
   testWidgets('운동 유형 색은 다른 운동 그래프와 같은 램프다', (tester) async {
-    expect(kindColor(ExerciseKind.cardio), AppColors.chartCardio);
-    expect(kindColor(ExerciseKind.strength), AppColors.chartStrength);
-    expect(kindColor(ExerciseKind.stretching), AppColors.chartStretching);
+    expect(kindColor(ExerciseKind.cardio), brand.exerciseCardio);
+    expect(kindColor(ExerciseKind.strength), brand.exerciseStrength);
+    expect(kindColor(ExerciseKind.stretching), brand.exerciseStretching);
+    expect(kBurnColor, brand.exerciseChart);
   });
 
   testWidgets('식단 비교 그래프의 색은 그대로다', (tester) async {

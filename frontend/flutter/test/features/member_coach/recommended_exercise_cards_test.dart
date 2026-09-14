@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
@@ -18,6 +19,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 코칭 포인트 — 운동 주간 데이터의 `aiCoachMessage` 자리에 들어가는 값.
 
@@ -123,6 +125,7 @@ const AppConfig _demoConfig = AppConfig(
 
 /// 채팅 화면 문구는 l10n 에서 온다 — 델리게이트 없이 띄우면 빌드가 실패한다.
 Widget _chatApp(Widget home) => MaterialApp(
+  theme: AppTheme.light(),
   locale: const Locale('ko'),
   localizationsDelegates: AppLocalizations.localizationsDelegates,
   supportedLocales: AppLocalizations.supportedLocales,
@@ -142,11 +145,12 @@ void main() {
           coachRoutinesProvider.overrideWith((ref) async => routines),
           coachUnreadProvider.overrideWith((ref) async => 0),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
+          home: const Scaffold(
             body: SingleChildScrollView(
               child: Column(
                 children: <Widget>[
@@ -268,11 +272,12 @@ void main() {
           ),
           coachUnreadProvider.overrideWith((ref) async => 0),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
+          home: const Scaffold(
             body: SingleChildScrollView(
               child: AiCoachingCard(),
             ),
@@ -387,7 +392,7 @@ void main() {
     expect(
       find.descendant(
         of: coaching,
-        matching: find.byIcon(Icons.list_alt_outlined),
+        matching: find.byIcon(Icons.list_alt_rounded),
       ),
       findsNothing,
     );
@@ -405,11 +410,12 @@ void main() {
           memberCoachRepositoryProvider.overrideWithValue(repository),
           myTrainerProvider.overrideWith((ref) async => _assignedTrainer),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: AiCoachingCard()),
+          home: const Scaffold(body: AiCoachingCard()),
         ),
       ),
     );
@@ -423,7 +429,10 @@ void main() {
     // 내려갔고, 남긴 값은 강도와 피드백뿐이다 (#1360).
     expect(find.byKey(const Key('routineCompletionMinutes')), findsNothing);
     final TextField feedback = tester.widget<TextField>(
-      find.byKey(const Key('routineCompletionNote')),
+      find.descendant(
+        of: find.byKey(const Key('routineCompletionNote')),
+        matching: find.byType(TextField),
+      ),
     );
     expect(feedback.maxLength, 100);
     await tester.enterText(
@@ -501,6 +510,7 @@ void main() {
         ],
         child: MaterialApp.router(
           routerConfig: router,
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -527,6 +537,7 @@ void main() {
           appConfigProvider.overrideWithValue(_demoConfig),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -566,8 +577,10 @@ void main() {
     final Finder trainerAvatar = find.byKey(
       const Key('coach-message-avatar-seed-m18'),
     );
-    final Finder trainerTime = find.byKey(
-      const Key('coach-message-time-seed-m18'),
+    // 시간은 규격 말풍선(AppChatBubble)이 옆에 붙이는 AppChatTimestamp 다.
+    final Finder trainerTime = find.descendant(
+      of: find.byKey(const ValueKey<String>('coach-message-seed-m18')),
+      matching: find.byType(AppChatTimestamp),
     );
     expect(
       tester.getTopLeft(trainerTime).dx,
@@ -577,22 +590,33 @@ void main() {
       tester.getBottomLeft(trainerAvatar).dy,
       closeTo(tester.getBottomLeft(trainerTime).dy, 0.1),
     );
+    // 받은 말풍선 = 흰 카드, 보낸 쪽(왼쪽) 아래 모서리만 작다.
     final BoxDecoration trainerBubbleDecoration =
-        tester.widget<Container>(trainerBubble).decoration! as BoxDecoration;
-    expect(trainerBubbleDecoration.color, Colors.white);
+        tester
+                .widget<Container>(
+                  find
+                      .ancestor(
+                        of: trainerBubble,
+                        matching: find.byType(Container),
+                      )
+                      .first,
+                )
+                .decoration!
+            as BoxDecoration;
+    expect(trainerBubbleDecoration.color, OnCareColors.surfaceCard);
     expect(
       trainerBubbleDecoration.borderRadius,
       const BorderRadius.only(
-        topLeft: Radius.circular(14),
-        topRight: Radius.circular(14),
-        bottomLeft: Radius.circular(4),
-        bottomRight: Radius.circular(14),
+        topLeft: OnCareRadius.lg,
+        topRight: OnCareRadius.lg,
+        bottomLeft: OnCareRadius.xs,
+        bottomRight: OnCareRadius.lg,
       ),
     );
     expect(find.text('트레이너에게 메시지 보내기...'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '운동 후 확인할게요');
-    await tester.tap(find.byIcon(Icons.send));
+    await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
     await tester.pumpAndSettle();
 
     expect(find.text('운동 후 확인할게요'), findsOneWidget);
@@ -602,18 +626,18 @@ void main() {
         .first;
     final BoxDecoration sentBubbleDecoration =
         tester.widget<Container>(sentBubble).decoration! as BoxDecoration;
-    expect(sentBubbleDecoration.color, FigmaColors.primary);
+    expect(sentBubbleDecoration.color, OnCareBrand.member.primary);
     expect(
       sentBubbleDecoration.borderRadius,
       const BorderRadius.only(
-        topLeft: Radius.circular(14),
-        topRight: Radius.circular(14),
-        bottomLeft: Radius.circular(14),
-        bottomRight: Radius.circular(4),
+        topLeft: OnCareRadius.lg,
+        topRight: OnCareRadius.lg,
+        bottomLeft: OnCareRadius.lg,
+        bottomRight: OnCareRadius.xs,
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.arrow_back_ios_new));
+    await tester.tap(find.byType(AppBackButton));
     await tester.pumpAndSettle();
 
     expect(find.byType(TrainerChatPage), findsNothing);
@@ -648,6 +672,7 @@ void main() {
           appConfigProvider.overrideWithValue(_demoConfig),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -691,7 +716,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '다시 보낼 메시지');
-    await tester.tap(find.byIcon(Icons.send));
+    await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
     await tester.pumpAndSettle();
 
     final TextField input = tester.widget<TextField>(find.byType(TextField));
@@ -716,7 +741,7 @@ void main() {
     expect(find.byKey(const Key('coach-pdf-pdf-file')), findsOneWidget);
     expect(find.text('김고객_2026-08-10_주간리포트.pdf'), findsOneWidget);
     expect(find.text('2.0 KB'), findsOneWidget);
-    expect(find.byIcon(Icons.open_in_new), findsOneWidget);
+    expect(find.byIcon(Icons.picture_as_pdf_rounded), findsOneWidget);
   });
 
   // 카드를 눌렀을 때 정말 그 첨부의 경로로 내려받는지, 실패하면 회원이 이유를

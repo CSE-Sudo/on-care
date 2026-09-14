@@ -59,9 +59,7 @@ Future<void> _openAllPeriod(
     ),
   );
   await tester.pumpAndSettle();
-  await tester.tap(
-    find.byKey(const ValueKey<String>('exercise-period-tab-2')),
-  );
+  await tester.tap(find.byKey(const ValueKey<String>('exercise-period-tab-2')));
   await tester.pumpAndSettle();
 }
 

@@ -268,12 +268,7 @@ void main() {
             status: '완료',
             note: '오른쪽 어깨 가동 범위를 확인해 주세요.',
             program: const <CoachProgramItem>[
-              CoachProgramItem(
-                name: '숄더 프레스',
-                sets: 4,
-                reps: 12,
-                weight: 10,
-              ),
+              CoachProgramItem(name: '숄더 프레스', sets: 4, reps: 12, weight: 10),
             ],
           ),
         ],

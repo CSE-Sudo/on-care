@@ -4,17 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 월~일 주간 시간표 — 왼쪽 시간축과 요일 열의 격자. (#988)
 ///
@@ -71,16 +67,19 @@ class ScheduleWeekTimetable extends ConsumerWidget {
 
   /// 한 시간 칸의 최소 높이. 30분 블록에 **시간·이름 두 줄**이 들어가는 값이다.
   ///
-  /// 필요한 높이 = 세로 여백 6 + (시간 13.1 + 이름 13.75) × 글씨 배율 1.1 ≈ 36.
-  /// 30분이 그만큼이려면 한 시간은 72 이상이어야 한다. 76 으로 조금 띄워 둔다 —
+  /// 필요한 높이 = 세로 여백 2×2 + `caption`(보이는 12 × 줄 높이 1.4) × 2 ≈ 38.
+  /// 30분이 그만큼이려면 한 시간은 76 이상이어야 한다. 80 으로 조금 띄워 둔다 —
   /// 딱 맞춰 두면 글꼴이 바뀌는 것만으로 이름 줄이 통째로 사라진다.
-  static const double minHourHeight = 76;
+  static const double minHourHeight = 80;
 
   /// 왼쪽 시간축 폭.
   static const double gutterWidth = 48;
 
   /// 요일 머리글 높이.
   static const double headerHeight = 46;
+
+  /// 블록의 최소 높이 — 0분·아주 짧은 행도 손가락으로 짚을 수 있어야 한다.
+  static const double _minBlockHeight = 24;
 
   /// 세션이 없어도 늘 보여 주는 시간대(자정부터의 분).
   ///
@@ -133,6 +132,7 @@ class ScheduleWeekTimetable extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final days = <DateTime>[
       for (var i = 0; i < 7; i++) weekStart.add(Duration(days: i)),
     ];
@@ -143,7 +143,7 @@ class ScheduleWeekTimetable extends ConsumerWidget {
     final names = <String, String>{
       for (final s in sessions)
         s.id:
-            findClientIdentity(
+            _rosterClient(
               roster,
               clientId: s.clientId,
               clientName: s.clientName,
@@ -159,17 +159,12 @@ class ScheduleWeekTimetable extends ConsumerWidget {
     final today = ymd(nowKst());
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppLayout.pagePadding,
-        0,
-        AppLayout.pagePadding,
-        AppSpacing.lg,
-      ),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: const BorderRadius.all(AppRadius.md),
-          border: Border.all(color: AppColors.borderStrong),
+          color: OnCareColors.surfaceCard,
+          borderRadius: OnCareRadius.mdAll,
+          border: Border.all(color: OnCareColors.lineStrong),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -191,7 +186,10 @@ class ScheduleWeekTimetable extends ConsumerWidget {
                 ],
               ),
             ),
-            const Divider(height: 1, color: AppColors.borderStrong),
+            Container(
+              height: OnCareSize.hairline,
+              color: OnCareColors.lineStrong,
+            ),
             Expanded(
               child:
                   bodyOverride ??
@@ -237,15 +235,15 @@ class ScheduleWeekTimetable extends ConsumerWidget {
             ),
             if (bodyOverride == null && byDate.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(
+                  vertical: OnCareSpacing.s8,
+                ),
                 child: Text(
                   l.schedEmptyWeek,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.subtleForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
                 ),
               ),
           ],
@@ -253,6 +251,22 @@ class ScheduleWeekTimetable extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// 세션이 가리키는 로스터 회원. id 가 맞으면 그 회원, 없으면 이름이 **정확히
+/// 한 명**을 가리킬 때만 그 회원이다(`shared/widgets/client_identity.dart` 의
+/// `findClientIdentity` 와 같은 규칙 — 화면 위젯 파일을 끌어오지 않으려고
+/// 여기 둔다).
+TrainerClient? _rosterClient(
+  List<TrainerClient> clients, {
+  required String? clientId,
+  required String clientName,
+}) {
+  for (final client in clients) {
+    if (clientId != null && client.id == clientId) return client;
+  }
+  final sameName = clients.where((client) => client.name == clientName);
+  return sameName.length == 1 ? sameName.single : null;
 }
 
 /// 요일 머리글 한 칸 — `월` 과 날짜. 누르면 그 날을 고른다.
@@ -272,6 +286,7 @@ class _DayHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final weekend = day.weekday >= DateTime.saturday;
 
     return InkWell(
@@ -280,8 +295,10 @@ class _DayHeader extends StatelessWidget {
       child: Container(
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected ? AppColors.accentSurface : Colors.transparent,
-          border: const Border(left: BorderSide(color: AppColors.border)),
+          color: selected ? tokens.brand.surface : Colors.transparent,
+          border: const Border(
+            left: BorderSide(color: OnCareColors.lineSubtle),
+          ),
         ),
         // 큰 글자 배율(#849 관문은 1.3 을 쓴다)에서 두 줄이 머리글 높이를
         // 넘는다. 글자를 자르는 대신 통째로 작게 그린다.
@@ -293,21 +310,20 @@ class _DayHeader extends StatelessWidget {
             children: <Widget>[
               Text(
                 weekdayNames(l)[day.weekday - 1],
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
+                style: chartAxisLabelStyle(context).copyWith(
                   color: weekend
-                      ? AppColors.subtleForeground
-                      : AppColors.mutedForeground,
+                      ? OnCareColors.textTertiary
+                      : OnCareColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 1),
               Text(
                 '${day.day}',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: isToday ? AppColors.primary : AppColors.foreground,
+                style: OnCareTypography.numeric(
+                  tokens.text(OnCareTypography.titleSmall),
+                ).copyWith(
+                  color: isToday
+                      ? tokens.brand.primary
+                      : OnCareColors.textPrimary,
                 ),
               ),
             ],
@@ -329,16 +345,14 @@ class _TimeGutter extends StatelessWidget {
   final ({int start, int end}) window;
   final double hourHeight;
 
-  static const TextStyle _style = TextStyle(
-    fontSize: 10.5,
-    fontWeight: FontWeight.w600,
-    color: AppColors.subtleForeground,
-  );
-
   @override
   Widget build(BuildContext context) {
+    final TextStyle style = OnCareTypography.numeric(
+      chartAxisLabelStyle(context),
+    );
     final double labelHeight =
-        MediaQuery.textScalerOf(context).scale(_style.fontSize!) * 1.3;
+        MediaQuery.textScalerOf(context).scale(style.fontSize!) *
+        (style.height ?? 1);
     final double gridHeight = (window.end - window.start) / 60 * hourHeight;
     final int firstHour = (window.start + 59) ~/ 60;
 
@@ -354,10 +368,10 @@ class _TimeGutter extends StatelessWidget {
                   ((hour * 60 - window.start) / 60 * hourHeight -
                           labelHeight / 2)
                       .clamp(0.0, math.max(gridHeight - labelHeight, 0.0)),
-              right: AppSpacing.sm,
+              right: OnCareSpacing.s8,
               child: Text(
                 '${hour.toString().padLeft(2, '0')}:00',
-                style: _style,
+                style: style,
               ),
             ),
         ],
@@ -389,6 +403,9 @@ class _DayColumn extends StatelessWidget {
 
   final ValueChanged<ScheduleSession> onPickSession;
 
+  /// 블록과 열 경계 사이의 틈(좌우 각각).
+  static const double _laneInset = OnCareSpacing.s2;
+
   @override
   Widget build(BuildContext context) {
     final placed = _placeSessions(sessions);
@@ -398,7 +415,7 @@ class _DayColumn extends StatelessWidget {
 
     return DecoratedBox(
       decoration: const BoxDecoration(
-        border: Border(left: BorderSide(color: AppColors.border)),
+        border: Border(left: BorderSide(color: OnCareColors.lineSubtle)),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -413,7 +430,10 @@ class _DayColumn extends StatelessWidget {
                   top: (hour * 60 - windowStart) / 60 * hourHeight,
                   left: 0,
                   right: 0,
-                  child: const Divider(height: 1, color: AppColors.border),
+                  child: Container(
+                    height: OnCareSize.hairline,
+                    color: OnCareColors.lineSubtle,
+                  ),
                 ),
               for (final p in placed)
                 Positioned(
@@ -421,11 +441,14 @@ class _DayColumn extends StatelessWidget {
                       (p.startMinute - windowStart).clamp(0, windowMinutes) /
                       60 *
                       hourHeight,
-                  left: width * p.lane / p.lanes + 2,
+                  left: width * p.lane / p.lanes + _laneInset,
                   // 열이 좁은데 같은 시간대가 여럿 겹치면 음수가 된다. 음수 폭은
                   // `BoxConstraints` 단정에 걸려 시간표를 통째로 죽인다 — 겹침
                   // 수는 트레이너가 만드는 값이라 막아 둔다.
-                  width: math.max(width / p.lanes - 4, 1),
+                  width: math.max(
+                    width / p.lanes - _laneInset * 2,
+                    OnCareSize.hairline,
+                  ),
                   // 끝나는 시각도 창 안으로 자른다. 자정을 넘는 세션은 창의
                   // 끝(24시)까지만 그려야 격자 아래로 삐져나오지 않는다.
                   height: math.max(
@@ -439,7 +462,7 @@ class _DayColumn extends StatelessWidget {
                             )) /
                         60 *
                         hourHeight,
-                    24,
+                    ScheduleWeekTimetable._minBlockHeight,
                   ),
                   child: _SessionBlock(
                     session: p.session,
@@ -556,33 +579,31 @@ class _SessionBlock extends StatelessWidget {
   final VoidCallback onTap;
 
   /// 상담인가. 종류는 색을 하나 더 들이는 대신 **채움과 비움**으로 가른다 —
-  /// 1:1 PT 는 연한 남색으로 채우고, 상담은 흰 바탕에 남색 윤곽선을 두른다.
-  /// 헤더의 `예약 슬롯` 버튼과 같은 표현이라 화면이 이미 쓰고 있는 어휘를
-  /// 그대로 빌린다(#1013).
+  /// 1:1 PT 는 연한 브랜드 면으로 채우고, 상담은 흰 바탕에 브랜드 윤곽선을
+  /// 두른다(#1013).
   bool get _isConsultation => session.type == SessionType.consultation;
-
-  /// **왼쪽 띠의 색은 상태**를 말한다 — 예정(남색)·완료(초록)·취소/노쇼(빨강).
-  /// 면(종류)과 갈래가 달라 두 값이 서로를 덮지 않는다.
-  Color get _statusTone => switch (session.status) {
-    ScheduleStatus.done => AppColors.success,
-    ScheduleStatus.cancelled || ScheduleStatus.noShow => AppColors.warning,
-    _ => AppColors.primary,
-  };
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    const tone = AppColors.primary;
-    final statusTone = _statusTone;
-    // 끝난 세션은 종류(파랑)가 아니라 **상세 카드와 같은 회색**으로 물러난다.
-    // 왼쪽 띠가 이미 초록(완료)으로 결과를 말하는데, 면까지 파랑이면 종류가
+    final OnCareTokens tokens = context.oncare;
+    final Color tone = tokens.brand.primary;
+    // **왼쪽 띠의 색은 상태**를 말한다 — 예정(브랜드)·완료(초록)·취소/노쇼
+    // (주의). 면(종류)과 갈래가 달라 두 값이 서로를 덮지 않는다.
+    final Color statusTone = switch (session.status) {
+      ScheduleStatus.done => OnCareColors.success,
+      ScheduleStatus.cancelled || ScheduleStatus.noShow => OnCareColors.caution,
+      _ => tone,
+    };
+    // 끝난 세션은 종류(브랜드)가 아니라 **상세 카드와 같은 회색**으로 물러난다.
+    // 왼쪽 띠가 이미 초록(완료)으로 결과를 말하는데, 면까지 브랜드 색이면 종류가
     // 아직 진행 중인 것처럼 두 번 읽혔다(#1012, #1013).
-    const Color finishedTone = AppColors.disabledForeground;
-    final surface = _isConsultation
-        ? AppColors.card
+    const Color finishedTone = OnCareColors.textDisabled;
+    final Color surface = _isConsultation
+        ? OnCareColors.surfaceCard
         : (session.isFinished
-              ? AppColors.inputBackground
-              : tone.withValues(alpha: 0.12));
+              ? OnCareColors.surfaceInput
+              : tokens.brand.surface);
     final start = ScheduleWeekTimetable.minutesOfDay(session.time) ?? 0;
     final end = start + session.durationMinutes;
     final type = sessionTypeLabel(l, session.type);
@@ -596,6 +617,9 @@ class _SessionBlock extends StatelessWidget {
     // 소요 시간은 첫 줄에 적지 않는다. 시각 옆 `(60분)` 은 좁은 블록에서
     // 자리만 먹고, 종류·이름을 훑는 데 보태는 것이 없었다 — 필요하면 툴팁·
     // 시맨틱스(`detail`)에 남아 있다.
+    final TextStyle lineStyle = tokens.text(
+      OnCareTypography.strong(OnCareTypography.caption),
+    );
 
     return Tooltip(
       message: '$range · $name · $detail',
@@ -607,19 +631,19 @@ class _SessionBlock extends StatelessWidget {
         excludeSemantics: true,
         child: Material(
           color: surface,
-          borderRadius: const BorderRadius.all(AppRadius.xs),
+          borderRadius: OnCareRadius.xsAll,
           child: InkWell(
             // 일정 한 건이 달력에 그려졌음을 가리키는 키. 일 보기 타임라인이
             // 쓰던 이름을 그대로 이어받는다 — E2E 가 이 이름으로 찾는다.
             key: ValueKey<String>('schedule-session-${session.id}'),
             onTap: onTap,
-            borderRadius: const BorderRadius.all(AppRadius.xs),
+            borderRadius: OnCareRadius.xsAll,
             // 상태 띠를 `Border` 의 왼쪽 변으로 그리면 네 변의 색이 달라져,
             // 둥근 모서리와 함께 쓸 수 없다("borderRadius can only be given on
             // borders with uniform colors"). 띠를 자식으로 세우고 윤곽선은
             // 균일하게 둔다.
             child: ClipRRect(
-              borderRadius: const BorderRadius.all(AppRadius.xs),
+              borderRadius: OnCareRadius.xsAll,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   // 상담은 사면을 두른다 — 그 윤곽선이 종류를 말한다. 고른
@@ -628,9 +652,12 @@ class _SessionBlock extends StatelessWidget {
                       ? Border.all(
                           color: selected
                               ? statusTone
-                              : (session.isFinished ? finishedTone : tone)
-                                    .withValues(alpha: 0.45),
-                          width: selected ? 1.5 : 1,
+                              : (session.isFinished
+                                    ? OnCareColors.lineStrong
+                                    : tokens.brand.border),
+                          width: selected
+                              ? OnCareSize.focusBorder
+                              : OnCareSize.hairline,
                         )
                       : null,
                 ),
@@ -639,12 +666,15 @@ class _SessionBlock extends StatelessWidget {
                   children: <Widget>[
                     // 왼쪽 띠가 상태를 말한다.
                     SizedBox(
-                      width: selected ? 4 : 2.5,
+                      width: selected ? OnCareSpacing.s4 : OnCareSpacing.s2,
                       child: ColoredBox(color: statusTone),
                     ),
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(5, 3, 4, 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: OnCareSpacing.s4,
+                          vertical: OnCareSpacing.s2,
+                        ),
                         // 남는 높이에 맞춰 **들어가는 줄만** 그린다. 잘라 내면 반 토막
                         // 난 글자가 남아 읽을 수도 없고 읽으려 하게 된다 — 아예 빼는
                         // 편이 낫다. 시간이 먼저고 사람이 그 다음이다.
@@ -652,30 +682,25 @@ class _SessionBlock extends StatelessWidget {
                           lines: <_BlockLine>[
                             _BlockLine(
                               text: range,
-                              // 소요 시간을 빼며 생긴 자리만큼 조금 키운다.
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                height: 1.25,
+                              style: OnCareTypography.numeric(
+                                lineStyle,
+                              ).copyWith(
                                 color: session.isFinished ? finishedTone : tone,
                               ),
                             ),
                             // 둘째 줄에서 먼저 읽혀야 하는 것은 **누구인가** 다. 종류는
-                            // 같은 줄에 붙되 한 단계 작게 물린다 — 이름과 같은 무게로
-                            // 두면 `1:1 PT` 가 이름만큼 눈에 들어온다.
+                            // 같은 줄에 붙되 줄 높이 안으로 줄여 물린다 — 이름과 같은
+                            // 무게로 두면 `1:1 PT` 가 이름만큼 눈에 들어온다.
                             //
                             // 흐린 글씨이던 것을 **상세 카드와 같은 알약**으로 바꾼다.
                             // 같은 값을 두 자리가 다른 모양으로 말하면 읽는 쪽이 두 번
-                            // 익혀야 하고, 흐린 글씨로는 상담의 `비움` 이 보이지 않았다.
+                            // 익혀야 한다.
                             _BlockLine(
                               text: name,
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                height: 1.25,
+                              style: lineStyle.copyWith(
                                 color: session.isFinished
-                                    ? AppColors.mutedForeground
-                                    : AppColors.foreground,
+                                    ? OnCareColors.textSecondary
+                                    : OnCareColors.textPrimary,
                               ),
                               trailing: SessionTypeChip(
                                 label: type,
@@ -715,14 +740,16 @@ class _BlockLine {
 
   /// [text] 오른쪽 끝에 붙는 것 — 종류 알약. 같은 줄이지만 무게가 다르다.
   ///
-  /// 글씨가 [style] 보다 한 단계 작아야 한다. 이 줄의 높이는 [text] 로만 재므로,
-  /// 더 두꺼운 것을 붙이면 [_BlockLines] 의 자리 계산이 어긋난다.
+  /// 이 줄의 높이는 [text] 로만 잰다. [_BlockLines] 가 그 높이만 주므로, 알약은
+  /// 그 안으로 줄어들어야 한다(`FittedBox`).
   final Widget? trailing;
 
   /// 이 줄이 실제로 차지할 높이. 배율이 커지면 함께 커진다.
   double heightIn(BuildContext context) =>
-      MediaQuery.textScalerOf(context).scale(style.fontSize ?? 14) *
-      (style.height ?? 1.2);
+      MediaQuery.textScalerOf(context).scale(
+        style.fontSize ?? OnCareTypography.caption.fontSize!,
+      ) *
+      (style.height ?? OnCareTypography.caption.height!);
 }
 
 /// 남는 높이에 들어가는 줄만 위에서부터 그린다. (#988)
@@ -769,8 +796,13 @@ class _BlockLines extends StatelessWidget {
                   ),
                 ),
                 if (line.trailing != null) ...<Widget>[
-                  const SizedBox(width: 3),
-                  Flexible(flex: 2, child: line.trailing!),
+                  const SizedBox(width: OnCareSpacing.s4),
+                  Flexible(
+                    flex: 2,
+                    // 알약(태그 높이)이 이름 줄보다 두꺼우면 줄 계산이 어긋나
+                    // 30분 블록이 넘친다. 줄 높이만 주고 그 안으로 줄인다.
+                    child: SizedBox(height: needed, child: line.trailing),
+                  ),
                 ],
               ],
             ),

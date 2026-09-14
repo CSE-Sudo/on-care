@@ -21,12 +21,18 @@ const MemberCoach _coach = MemberCoach(
   goal: '',
 );
 
-/// 버튼의 아이콘 색으로 활성/비활성을 읽는다 — 화면에서 사용자가 구별하는 근거와
-/// 같은 것을 본다. 아이콘 버튼은 색을 아이콘 테마로 내려 주므로 그것을 읽는다.
-Color _iconColor(WidgetTester tester) {
-  return IconTheme.of(
-    tester.element(find.byIcon(Icons.chat_bubble_outline_rounded)),
-  ).color!;
+/// 규격 아이콘 버튼이 활성으로 그려지는지 읽는다 — 비활성이면 버튼이 흐린
+/// 비활성 색으로 칠해지므로, 화면에서 사용자가 구별하는 근거와 같은 것을 본다.
+bool _drawnEnabled(WidgetTester tester) {
+  return tester
+          .widget<IconButton>(
+            find.descendant(
+              of: find.byType(AppIconButton),
+              matching: find.byType(IconButton),
+            ),
+          )
+          .onPressed !=
+      null;
 }
 
 void main() {
@@ -58,7 +64,7 @@ void main() {
       coachOverride: memberCoachProvider.overrideWith((ref) async => _coach),
     );
 
-    expect(_iconColor(tester), OnCareBrand.member.primary);
+    expect(_drawnEnabled(tester), isTrue);
   });
 
   testWidgets('담당 트레이너가 없으면 흐리게 그린다', (WidgetTester tester) async {
@@ -68,7 +74,7 @@ void main() {
     );
 
     // 예전에는 색이 그대로여서 눌리는 버튼과 구별되지 않았다(#786).
-    expect(_iconColor(tester), OnCareColors.textDisabled);
+    expect(_drawnEnabled(tester), isFalse);
   });
 
   testWidgets('담당 트레이너가 없을 때 누르면 이유를 알린다', (WidgetTester tester) async {

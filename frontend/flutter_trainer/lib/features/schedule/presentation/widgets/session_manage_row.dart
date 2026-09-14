@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 세션 하나에 할 수 있는 일들. (#871, #1011, #1012)
 ///
@@ -16,10 +14,10 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 ///    손본다"(수정·삭제) / "고객에게 간다"(채팅) 를 구분선으로 가른다.
 ///  * **자주 쓰는 것만 글씨로 남긴다.** 매 세션마다 누르는 `완료`·`채팅` 은
 ///    글씨를 지키고, 나머지는 아이콘으로 줄인다. 아이콘만으로는 무엇인지 말하지
-///    못하므로 툴팁과 시맨틱 라벨을 반드시 함께 단다.
+///    못하므로 툴팁(= 시맨틱 라벨)을 반드시 함께 단다.
 ///
-/// `삭제` 는 마지막 자리에 채우지 않은 알약으로 둔다. 되돌릴 수 없는 동작을
-/// 다른 것들과 같은 무게로 세우지 않는다.
+/// `삭제` 는 마지막 자리에 채우지 않은 빨간 아이콘으로 둔다. 되돌릴 수 없는
+/// 동작을 다른 것들과 같은 무게로 세우지 않는다.
 class SessionManageRow extends StatelessWidget {
   const SessionManageRow({
     super.key,
@@ -81,66 +79,59 @@ class SessionManageRow extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final ended = <Widget>[
       if (onComplete != null)
-        _ActionChip(
+        AppButton(
           // Keyed: l.legendDone is also a status word elsewhere on this row,
           // so text alone no longer identifies the action.
           key: const ValueKey<String>('session-complete-chip'),
-          icon: Icons.check,
+          leadingIcon: Icons.check_rounded,
           label: l.legendDone,
-          color: AppColors.success,
-          onTap: onComplete!,
+          variant: AppButtonVariant.secondary,
+          size: OnCareButtonSize.small,
+          onPressed: onComplete,
         ),
       if (onCancel != null)
-        _ActionChip(
+        AppIconButton(
           key: const ValueKey<String>('session-cancel-chip'),
-          icon: Icons.event_busy_outlined,
-          label: l.schedCancel,
-          color: AppColors.warning,
-          iconOnly: true,
-          onTap: onCancel!,
+          icon: Icons.event_busy_rounded,
+          tooltip: l.schedCancel,
+          color: OnCareColors.textSecondary,
+          onPressed: onCancel,
         ),
       if (onNoShow != null)
-        _ActionChip(
+        AppIconButton(
           key: const ValueKey<String>('session-no-show-chip'),
-          icon: Icons.person_off_outlined,
-          label: l.schedNoShow,
-          color: AppColors.warning,
-          iconOnly: true,
-          onTap: onNoShow!,
+          icon: Icons.person_off_rounded,
+          tooltip: l.schedNoShow,
+          color: OnCareColors.textSecondary,
+          onPressed: onNoShow,
         ),
     ];
 
     final edits = <Widget>[
-      _ActionChip(
+      AppIconButton(
         key: const ValueKey<String>('session-edit-schedule-chip'),
-        icon: Icons.edit_calendar_outlined,
-        label: l.schedEditTitle,
-        color: AppColors.accent,
-        iconOnly: true,
-        onTap: onEditSchedule,
+        icon: Icons.edit_calendar_rounded,
+        tooltip: l.schedEditTitle,
+        color: OnCareColors.textSecondary,
+        onPressed: onEditSchedule,
       ),
       if (hasProgram && showEditProgram)
-        _ActionChip(
+        AppIconButton(
           key: const ValueKey<String>('session-edit-program-chip'),
-          icon: Icons.fitness_center,
-          label: l.progEditTitle,
-          color: AppColors.secondary,
-          iconOnly: true,
-          onTap: onEditProgram,
+          icon: Icons.fitness_center_rounded,
+          tooltip: l.progEditTitle,
+          color: OnCareColors.textSecondary,
+          onPressed: onEditProgram,
         ),
       if (showEditNote)
-        _ActionChip(
+        AppIconButton(
           key: const ValueKey<String>('session-edit-note-chip'),
           // 아이콘도 함께 갈린다 — 글자 없이 아이콘만 그리는 자리라, 글자만
           // 바꾸면 툴팁을 띄우기 전에는 무엇이 달라졌는지 보이지 않는다.
-          icon: hasNote ? Icons.edit_note : Icons.note_add_outlined,
-          label: hasNote ? l.schedEditNote : l.schedAddNote,
-          // 메모지의 색이다. `SessionNoteBox` 와 같은 주황을 써야 두 자리가
-          // 같은 것을 가리킨다 — 주의(빨강)가 아니라 적어 두는 자리다(#690,
-          // #1012).
-          color: AppColors.brandOrange,
-          iconOnly: true,
-          onTap: onEditNote,
+          icon: hasNote ? Icons.edit_note_rounded : Icons.note_add_rounded,
+          tooltip: hasNote ? l.schedEditNote : l.schedAddNote,
+          color: OnCareColors.textSecondary,
+          onPressed: onEditNote,
         ),
     ];
 
@@ -150,8 +141,8 @@ class SessionManageRow extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: Wrap(
-            spacing: AppSpacing.xs,
-            runSpacing: AppSpacing.xs,
+            spacing: OnCareSpacing.s4,
+            runSpacing: OnCareSpacing.s4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: <Widget>[
               ...ended,
@@ -160,24 +151,25 @@ class SessionManageRow extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: AppSpacing.sm),
-        _ActionChip(
+        const SizedBox(width: OnCareSpacing.s8),
+        AppButton(
           key: const ValueKey<String>('session-chat-chip'),
-          icon: Icons.chat_bubble_outline,
+          leadingIcon: Icons.chat_bubble_outline_rounded,
           label: l.clientChat,
-          color: AppColors.accent,
-          onTap: onChat,
+          variant: AppButtonVariant.text,
+          size: OnCareButtonSize.small,
+          onPressed: onChat,
         ),
-        const SizedBox(width: AppSpacing.xs),
-        // 되돌릴 수 없는 동작이라 마지막 자리에, 채우지 않은 알약으로 둔다.
-        _ActionChip(
+        const SizedBox(width: OnCareSpacing.s4),
+        // 되돌릴 수 없는 동작이라 마지막 자리에, 채우지 않은 빨간 아이콘으로
+        // 둔다. 누르면 확인창이 먼저 뜬다. 글씨를 달면 이 줄의 글씨 버튼이
+        // 셋이 되어(`완료`·`채팅`·`삭제`) 다시 "버튼이 많은 줄" 이 된다.
+        AppIconButton(
           key: const ValueKey<String>('session-delete-chip'),
-          icon: Icons.delete_outline,
-          label: l.actionDelete,
-          color: AppColors.destructive,
-          iconOnly: true,
-          quiet: true,
-          onTap: onDelete,
+          icon: Icons.delete_outline_rounded,
+          tooltip: l.actionDelete,
+          color: OnCareColors.danger,
+          onPressed: onDelete,
         ),
       ],
     );
@@ -191,90 +183,10 @@ class _GroupDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 1,
-      height: 16,
-      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-      color: AppColors.border,
-    );
-  }
-}
-
-class _ActionChip extends StatelessWidget {
-  const _ActionChip({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-    this.iconOnly = false,
-    this.quiet = false,
-  });
-
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  /// A real icon rather than a '✓'/'💬' typed into the label: those depend on
-  /// whatever fallback font the platform loads and render as 두부 boxes on
-  /// Flutter web.
-  final IconData icon;
-
-  /// 글씨 없이 아이콘만 그린다. 그래도 [label] 은 툴팁과 시맨틱스로 남는다 —
-  /// 아이콘만으로는 무엇인지 말하지 못한다.
-  final bool iconOnly;
-
-  /// 채우지 않는다. 되돌릴 수 없는 동작을 자주 쓰는 것들과 같은 무게로 세우지
-  /// 않기 위해서다.
-  final bool quiet;
-
-  @override
-  Widget build(BuildContext context) {
-    final Widget content = iconOnly
-        ? Icon(icon, size: 15, color: color)
-        : Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, size: 12, color: color),
-              const SizedBox(width: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
-              ),
-            ],
-          );
-
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        label: label,
-        excludeSemantics: true,
-        child: Material(
-          color: quiet ? Colors.transparent : color.withValues(alpha: 0.08),
-          borderRadius: const BorderRadius.all(AppRadius.pill),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: const BorderRadius.all(AppRadius.pill),
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: iconOnly ? AppSpacing.sm : AppSpacing.md,
-                vertical: AppSpacing.xs,
-              ),
-              decoration: quiet
-                  ? BoxDecoration(
-                      borderRadius: const BorderRadius.all(AppRadius.pill),
-                      border: Border.all(color: color.withValues(alpha: 0.25)),
-                    )
-                  : null,
-              child: content,
-            ),
-          ),
-        ),
-      ),
+      width: OnCareSize.hairline,
+      height: OnCareSize.iconSmall,
+      margin: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
+      color: OnCareColors.lineSubtle,
     );
   }
 }

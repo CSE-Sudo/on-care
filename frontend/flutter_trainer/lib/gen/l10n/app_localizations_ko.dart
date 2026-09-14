@@ -1608,6 +1608,44 @@ class AppLocalizationsKo extends AppLocalizations {
   String get schedTimeRangeInvalid => '올바른 시간을 입력하세요 (HH:mm)';
 
   @override
+  String get schedTimePickerTimeLabel => '시각';
+
+  @override
+  String get schedTimePickerEndTime => '종료 시간';
+
+  @override
+  String get schedTimePickerHour => '시';
+
+  @override
+  String get schedTimePickerMinute => '분';
+
+  @override
+  String get schedTimePickerStartHour => '시작 시';
+
+  @override
+  String get schedTimePickerStartMinute => '시작 분';
+
+  @override
+  String get schedTimePickerEndHour => '종료 시';
+
+  @override
+  String get schedTimePickerEndMinute => '종료 분';
+
+  @override
+  String get schedTimePickerPrevStep => '이전 단계';
+
+  @override
+  String get schedTimePickerNextStep => '다음 단계';
+
+  @override
+  String get schedTimePickerEndBeforeStart => '종료 시간이 시작 시간보다 빠릅니다';
+
+  @override
+  String schedClockHourSemantics(String hour) {
+    return '$hour시';
+  }
+
+  @override
   String get schedRepeat => '반복';
 
   @override

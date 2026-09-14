@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 한 주 한 줄 — 라벨 · 가로 막대 · 값.
 ///
@@ -38,65 +36,60 @@ class WeekTrendBar extends StatelessWidget {
   /// 값 칸 너비. 'kcal' 처럼 단위가 붙으면 넓혀 준다.
   final double valueWidth;
 
+  /// 주 라벨 칸 너비 — `3주 전`·`이번 주` 가 한 줄에 들어가는 폭.
+  static const double _labelWidth = 52;
+
   @override
   Widget build(BuildContext context) {
-    // 목표를 벗어난 주는 빨강, 그 밖은 브랜드 색. 보고 있는 주만 제 색을
-    // 쓰고 앞선 주는 흐리게 깔아, 색으로 초과 여부를 읽으면서도 어느 줄이
+    final OnCareTokens tokens = context.oncare;
+    // 목표를 벗어난 주는 빨강, 그 밖은 목표 안쪽 색(브랜드). 보고 있는 주만 제
+    // 색을 쓰고 앞선 주는 흐리게 깔아, 색으로 초과 여부를 읽으면서도 어느 줄이
     // 이번 주인지 헷갈리지 않게 한다.
-    final base = warn ? AppColors.overTarget : AppColors.primary;
+    final Color base = warn
+        ? OnCareColors.danger
+        : tokens.brand.statusWithinGoal;
     // 목표를 넘긴 주는 지난 주라도 흐리게 깔지 않는다. 흐린 빨강은 분홍으로
     // 보여, 정작 초과를 알아보라고 넣은 색이 가장 약하게 그려졌다(#1177).
-    final tone = fraction == null
-        ? AppColors.borderStrong
-        : current || warn
+    final Color tone = current || warn
         ? base
-        : base.withValues(alpha: 0.35);
+        : OnCareColors.onWhite(base, OnCareAlpha.strong);
+    final TextStyle caption = tokens.text(
+      current
+          ? OnCareTypography.strong(OnCareTypography.caption)
+          : OnCareTypography.caption,
+    );
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
       child: Row(
         children: <Widget>[
           SizedBox(
-            width: 52,
+            width: _labelWidth,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: current ? FontWeight.w700 : FontWeight.w500,
+              style: caption.copyWith(
                 color: current
-                    ? AppColors.foreground
-                    : AppColors.subtleForeground,
+                    ? OnCareColors.textPrimary
+                    : OnCareColors.textTertiary,
               ),
             ),
           ),
           Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.all(AppRadius.pill),
-              child: Stack(
-                children: <Widget>[
-                  Container(height: 9, color: AppColors.inputBackground),
-                  // 눈금 위쪽 끝을 고정해 둔다 — 그 주의 최댓값에 맞춰 늘이면
-                  // 2,288 과 2,166 이 전혀 다른 길이로 보인다.
-                  FractionallySizedBox(
-                    widthFactor: (fraction ?? 0).clamp(0.0, 1.0),
-                    child: Container(height: 9, color: tone),
-                  ),
-                ],
-              ),
-            ),
+            // 눈금 위쪽 끝을 고정해 둔다 — 그 주의 최댓값에 맞춰 늘이면
+            // 2,288 과 2,166 이 전혀 다른 길이로 보인다. 기록이 없으면 빈
+            // 트랙만 남는다.
+            child: AppProgressBar(value: fraction ?? 0, color: tone),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: OnCareSpacing.s8),
           SizedBox(
             width: valueWidth,
             child: Text(
               loading ? '…' : text,
               textAlign: TextAlign.right,
               maxLines: 1,
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: current ? FontWeight.w800 : FontWeight.w600,
+              style: OnCareTypography.numeric(caption).copyWith(
                 color: current
-                    ? AppColors.foreground
-                    : AppColors.mutedForeground,
+                    ? OnCareColors.textPrimary
+                    : OnCareColors.textSecondary,
               ),
             ),
           ),

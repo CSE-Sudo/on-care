@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 프로그램 한 줄 — 운동 이름과, 유형에 맞는 값.
 ///
@@ -18,6 +16,7 @@ class SessionProgramRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final List<String> parts = <String>[
       if (item.type == '근력') ...<String>[
         if (item.sets != null) l.progSetsValue(item.sets!),
@@ -31,55 +30,44 @@ class SessionProgramRow extends StatelessWidget {
         l.minutesShort(item.duration!),
     ];
     final String detail = parts.join(' · ');
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.all(AppRadius.md),
-      ),
+    return AppTile(
       child: Row(
         children: <Widget>[
           Container(
-            width: 20,
-            height: 20,
+            width: OnCareSize.countBadgeMin,
+            height: OnCareSize.countBadgeMin,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: AppColors.accent.withValues(alpha: 0.12),
-              borderRadius: const BorderRadius.all(AppRadius.sm),
+              color: OnCareColors.onWhite(
+                tokens.brand.primary,
+                OnCareAlpha.medium,
+              ),
+              borderRadius: OnCareRadius.smAll,
             ),
             child: Text(
               '$index',
-              style: const TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w800,
-                color: AppColors.secondary,
-              ),
+              style: OnCareTypography.numeric(
+                tokens.text(OnCareTypography.strong(OnCareTypography.caption)),
+              ).copyWith(color: tokens.brand.strong),
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: OnCareSpacing.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
                   item.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.foreground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
                 if (detail.isNotEmpty)
                   Text(
                     detail,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.subtleForeground,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textTertiary),
                   ),
               ],
             ),
@@ -111,17 +99,9 @@ class SessionNoPlanBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
+    final OnCareTokens tokens = context.oncare;
+    return AppTile(
       key: const ValueKey<String>('session-no-plan'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.borderStrong),
-      ),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -130,69 +110,32 @@ class SessionNoPlanBox extends StatelessWidget {
               children: <Widget>[
                 Text(
                   l.progEmpty,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mutedForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: OnCareSpacing.s2),
                 Text(
                   l.progEmptyHint,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.subtleForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: OnCareSpacing.s8),
           // `프로그램 수정`(관리 줄, `session-edit-program-chip`)과는 다른
           // 동작이라 키도 다르다 — 이 카드에서 편집기를 여는 게 아니라 코칭
           // 탭으로 나간다.
-          _ProgramAddChip(
+          AppIconButton(
             key: const ValueKey<String>('session-add-program-chip'),
-            label: l.progAddTitle,
-            onTap: onGoToProgram,
+            icon: Icons.fitness_center_rounded,
+            tooltip: l.progAddTitle,
+            variant: AppIconButtonVariant.tonal,
+            onPressed: onGoToProgram,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ProgramAddChip extends StatelessWidget {
-  const _ProgramAddChip({super.key, required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        label: label,
-        excludeSemantics: true,
-        child: Material(
-          color: AppColors.secondary.withValues(alpha: 0.08),
-          borderRadius: const BorderRadius.all(AppRadius.pill),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: const BorderRadius.all(AppRadius.pill),
-            child: const Padding(
-              padding: EdgeInsets.all(AppSpacing.sm),
-              child: Icon(
-                Icons.fitness_center,
-                size: 15,
-                color: AppColors.secondary,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

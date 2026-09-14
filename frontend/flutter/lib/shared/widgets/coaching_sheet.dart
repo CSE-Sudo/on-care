@@ -4,11 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// "AI 건강 도우미" bottom sheet — the daily coaching digest opened from the
 /// floating Oni button and the Home coaching banner. Its CTA hands off to the
@@ -19,15 +18,12 @@ Future<void> showCoachingSheet(BuildContext context, {WidgetRef? ref}) {
   ref?.read(coachingSeenCountProvider.notifier).state = ref.read(
     coachingSuggestionCountProvider,
   );
-  return showModalBottomSheet<void>(
-    context: context,
-    // 탭 페이지마다 Navigator 가 따로 있어 기본값으로 열면 시트가 그 안에 뜬다.
-    // MainShell 의 하단 바와 + 버튼은 그 바깥이라 시트 **위에** 그려지고, 스크림도
-    // 걸리지 않은 채 눌린다 — 시트를 열어 둔 채 탭이 바뀐다(#791).
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: FigmaColors.sheetScrim,
+  return showAppSheet<void>(
+    // 탭 페이지마다 Navigator 가 따로 있어 가까운 Navigator 로 열면 시트가 그
+    // 안에 뜬다. MainShell 의 하단 바와 + 버튼은 그 바깥이라 시트 **위에**
+    // 그려지고, 스크림도 걸리지 않은 채 눌린다 — 시트를 열어 둔 채 탭이
+    // 바뀐다(#791). 루트 Navigator 의 context 로 띄워 맨 위에 올린다.
+    context: Navigator.of(context, rootNavigator: true).context,
     builder: (BuildContext ctx) => const _CoachingSheet(),
   );
 }
@@ -129,112 +125,39 @@ class _CoachingSheet extends ConsumerWidget {
           : live.map((AiSuggestion s) => _cardFromSuggestion(l, s)).toList();
     }
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.88,
-        maxWidth: 480,
+    // 폭 상한(콘텐츠 최대 폭)·높이 90%·핸들·닫기 X 는 [AppSheet] 와 테마가 정한다.
+    return AppSheet(
+      key: const Key('coachingSheet'),
+      title: l.coachHeaderPill,
+      subtitle: l.coachHeaderSubtitle,
+      // 하단 여백·홈 인디케이터는 AppSheet 의 footer 가 맡는다 — 예전에는 여백
+      // 0 이라 SafeArea 가 없는 기기에서 버튼이 시트 끝에 붙어 잘렸다(#1180).
+      footer: KeyedSubtree(
+        key: const Key('coachingSheetCta'),
+        child: AppButton(
+          label: l.coachCtaChat,
+          leadingIcon: Icons.chat_bubble_outline_rounded,
+          size: OnCareButtonSize.large,
+          fullWidth: true,
+          onPressed: () {
+            Navigator.of(context).pop();
+            context.push(AppRoutes.aiCoach);
+          },
+        ),
       ),
-      child: Container(
-        key: const Key('coachingSheet'),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDDE3EA),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                child: Row(
-                  children: <Widget>[
-                    const OniAvatar(size: 44),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            l.coachHeaderPill,
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: FigmaColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            l.coachHeaderSubtitle,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: FigmaColors.ink,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _CloseButton(onTap: () => Navigator.of(context).pop()),
-                  ],
-                ),
-              ),
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  itemCount: cards.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (_, int i) => _CoachCardTile(card: cards[i]),
-                ),
-              ),
-              Padding(
-                key: const Key('coachingSheetCta'),
-                // 아래 여백 0 이면 SafeArea 가 없는 기기·창(웹·안드로이드 제스처
-                // 바)에서 버튼이 시트 끝에 붙어 잘려 보인다(#1180). 좌우와 같은
-                // 여백을 두고, 홈 인디케이터가 있으면 SafeArea 가 더 밀어 준다.
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      context.push(AppRoutes.aiCoach);
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: FigmaColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: const Icon(
-                      Icons.chat_bubble_outline_rounded,
-                      size: 19,
-                    ),
-                    label: Text(
-                      l.coachCtaChat,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: OniAvatar(),
           ),
-        ),
+          const SizedBox(height: OnCareSpacing.cardGap),
+          for (final (int i, _CoachCard card) in cards.indexed) ...<Widget>[
+            if (i > 0) const SizedBox(height: OnCareSpacing.cardGap),
+            _CoachCardTile(card: card),
+          ],
+        ],
       ),
     );
   }
@@ -246,88 +169,36 @@ class _CoachCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: FigmaColors.hairline),
-        boxShadow: kCardShadow,
-      ),
+    final OnCareTokens tokens = context.oncare;
+    return AppTile(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            // 태그는 종류를 알려 줄 뿐 상태가 아니라, 카드마다 색을 달리
-            // 하지 않고 시트의 다른 요소와 같은 메인 컬러로 둔다(#1375).
-            decoration: BoxDecoration(
-              color: FigmaColors.primaryA(0.12),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              card.tag,
-              style: const TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w700,
-                color: FigmaColors.primary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
+          // 태그는 종류를 알려 줄 뿐 상태가 아니라, 카드마다 색을 달리
+          // 하지 않고 시트의 다른 요소와 같은 메인 컬러로 둔다(#1375).
+          AppTag(label: card.tag, tone: AppTagTone.brand),
+          const SizedBox(width: OnCareSpacing.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Text(
                   card.title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: FigmaColors.ink,
-                    height: 1.3,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: OnCareSpacing.s4),
                 Text(
                   card.body,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    color: AppColors.foreground,
-                    height: 1.4,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFF4F6F8),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        // 아이콘만 있는 버튼이라 무엇을 닫는지 말할 데가 없다(#972). 닫기는
-        // 플랫폼이 이미 제 언어로 부르는 이름이 있다.
-        child: Tooltip(
-          message: MaterialLocalizations.of(context).closeButtonTooltip,
-          child: const SizedBox(
-            width: 32,
-            height: 32,
-            child: Icon(Icons.close, size: 16, color: FigmaColors.textSub),
-          ),
-        ),
       ),
     );
   }

@@ -18,6 +18,7 @@ import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/bar_line_chart.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/client_report_view.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/metric_comparison_section.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/metric_trend_section.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_client_picker.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_pdf_export_dialog.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_week_nav.dart';
@@ -29,10 +30,8 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
 import '../../helpers/pump_app.dart';
@@ -182,12 +181,18 @@ void main() {
   );
 
   /// 리포트 카드 제목 줄의 주 이동 화살표. 헤더가 아니라 카드 안에 있다(#1177).
-  final Finder prevWeek = find.byKey(
-    const ValueKey<String>('report-week-prev'),
+  /// 공용 `AppPeriodNav` 의 화살표라 키 대신 주 이동 안의 아이콘 버튼으로 찾는다.
+  final Finder prevWeek = find.descendant(
+    of: find.byType(ReportWeekNav),
+    matching: find.widgetWithIcon(IconButton, Icons.chevron_left_rounded),
   );
-  final Finder nextWeek = find.byKey(
-    const ValueKey<String>('report-week-next'),
+  final Finder nextWeek = find.descendant(
+    of: find.byType(ReportWeekNav),
+    matching: find.widgetWithIcon(IconButton, Icons.chevron_right_rounded),
   );
+
+  /// 공유 메뉴 항목. 공용 `AppMenu` 항목에는 키가 없어 문구로 찾는다.
+  Finder shareItem(String label) => find.widgetWithText(MenuItemButton, label);
 
   Future<ProviderContainer> openReports(
     WidgetTester tester, {
@@ -293,11 +298,7 @@ void main() {
     expect(find.text('PDF 내보내기'), findsOneWidget);
     // PDF 는 현재 리포트로 실제 binary를 만드는 경로와 연결된다.
     expect(
-      tester
-          .widget<MenuItemButton>(
-            find.byKey(const ValueKey<String>('reports-share-pdf')),
-          )
-          .onPressed,
+      tester.widget<MenuItemButton>(shareItem('PDF 내보내기')).onPressed,
       isNotNull,
     );
   });
@@ -351,17 +352,13 @@ void main() {
     );
 
     await openShareMenu(tester);
-    await tester.tap(find.byKey(const ValueKey<String>('reports-share-pdf')));
+    await tester.tap(shareItem('PDF 내보내기'));
     await settle(tester);
     expect(generator.calls, 1);
 
     await openShareMenu(tester);
     expect(
-      tester
-          .widget<MenuItemButton>(
-            find.byKey(const ValueKey<String>('reports-share-pdf')),
-          )
-          .onPressed,
+      tester.widget<MenuItemButton>(shareItem('PDF 생성 중…')).onPressed,
       isNull,
     );
     await openShareMenu(tester); // 열려 있는 메뉴를 닫는다. 재시도는 아래에서 연다.
@@ -371,7 +368,7 @@ void main() {
 
     // 실패가 현재 리포트를 없애지 않고, 재시도는 액션 대화상자로 이어진다.
     await openShareMenu(tester);
-    await tester.tap(find.byKey(const ValueKey<String>('reports-share-pdf')));
+    await tester.tap(shareItem('PDF 내보내기'));
     await settle(tester);
     expect(generator.calls, 2);
     expect(
@@ -480,13 +477,13 @@ void main() {
   testWidgets('가장 최근 주에서는 다음 주 화살표가 죽어 있다 (#1177)', (tester) async {
     await openReports(tester);
 
-    InkResponse arrow(Finder finder) => tester.widget<InkResponse>(finder);
-    expect(arrow(nextWeek).onTap, isNull, reason: '앞으로 갈 주가 없다');
-    expect(arrow(prevWeek).onTap, isNotNull);
+    IconButton arrow(Finder finder) => tester.widget<IconButton>(finder);
+    expect(arrow(nextWeek).onPressed, isNull, reason: '앞으로 갈 주가 없다');
+    expect(arrow(prevWeek).onPressed, isNotNull);
 
     await tester.tap(prevWeek);
     await settle(tester);
-    expect(arrow(nextWeek).onTap, isNotNull);
+    expect(arrow(nextWeek).onPressed, isNotNull);
   });
 
   testWidgets('`이번 주` 버튼은 주 이동 줄 안에 있고 이번 주에서는 아예 감춘다 (#1177, #1245)', (
@@ -500,8 +497,8 @@ void main() {
     // 헤더에는 더 이상 없다.
     expect(
       find.descendant(
-        of: find.byType(PageScaffold),
-        matching: find.widgetWithText(ActionButton, '이번 주로'),
+        of: find.byType(AppWebPage),
+        matching: find.widgetWithText(AppButton, '이번 주로'),
       ),
       findsNothing,
     );
@@ -518,7 +515,7 @@ void main() {
       find.descendant(of: find.byType(ReportWeekNav), matching: currentWeek),
       findsOneWidget,
     );
-    expect(tester.widget<ActionButton>(currentWeek).onPressed, isNotNull);
+    expect(tester.widget<AppButton>(currentWeek).onPressed, isNotNull);
     // 비교 카드와 최근 4주 목록에 같은 말이 쓰인다.
     expect(find.text('선택 주'), findsWidgets);
 
@@ -570,7 +567,6 @@ void main() {
 
     final double currentNavCenter = tester.getCenter(nav).dx;
     expect(arrowGroupCenter(), closeTo(currentNavCenter, 0.5));
-    final double currentPrevX = tester.getCenter(prevWeek).dx;
     final double currentNextX = tester.getCenter(nextWeek).dx;
 
     await tester.tap(prevWeek);
@@ -581,7 +577,9 @@ void main() {
       findsOneWidget,
     );
     expect(arrowGroupCenter(), closeTo(tester.getCenter(nav).dx, 0.5));
-    expect(tester.getCenter(prevWeek).dx, closeTo(currentPrevX, 0.5));
+    // 버튼이 나타나도 그 자리는 이미 비워 두었으므로 오른쪽 화살표는 제자리다.
+    // 왼쪽 화살표는 날짜 문구 폭(`9월 7일`/`9월 14일`)에 따라 움직일 수 있다 —
+    // 공용 `AppPeriodNav` 는 날짜 칸 폭을 고정하지 않는다.
     expect(tester.getCenter(nextWeek).dx, closeTo(currentNextX, 0.5));
   });
 
@@ -668,8 +666,12 @@ void main() {
 
     expect(find.text('리포트를 불러오지 못했어요'), findsOneWidget);
     expect(find.text('client transport detail'), findsNothing);
+    // 재시도 버튼은 공용 오류 상태 안에 있다 — 키는 그 묶음에 있다.
     await tester.tap(
-      find.byKey(const ValueKey<String>('reports-clients-retry')),
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('reports-clients-retry')),
+        matching: find.byType(AppButton),
+      ),
     );
     await settle(tester);
 
@@ -692,7 +694,10 @@ void main() {
     await tester.tap(prevWeek);
     await settle(tester);
     await tester.tap(
-      find.byKey(const ValueKey<String>('reports-weekly-retry')),
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('reports-weekly-retry')),
+        matching: find.byType(AppButton),
+      ),
     );
     await settle(tester);
 
@@ -808,11 +813,7 @@ void main() {
 
     await openShareMenu(tester);
     expect(
-      tester
-          .widget<MenuItemButton>(
-            find.byKey(const ValueKey<String>('reports-share-send')),
-          )
-          .onPressed,
+      tester.widget<MenuItemButton>(shareItem('김민수님에게 전송')).onPressed,
       isNull,
     );
   });
@@ -900,11 +901,7 @@ void main() {
     );
     await openShareMenu(tester);
     expect(
-      tester
-          .widget<MenuItemButton>(
-            find.byKey(const ValueKey<String>('reports-share-send')),
-          )
-          .onPressed,
+      tester.widget<MenuItemButton>(shareItem('김민수님에게 전송')).onPressed,
       isNotNull,
     );
   });
@@ -922,7 +919,7 @@ void main() {
     }
 
     List<double> drawnValues() =>
-        tester.widget<MetricTrendChart>(find.byType(MetricTrendChart)).values;
+        tester.widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart)).values;
 
     // 어제는 약속이 있던 날이라 로스터의 평상시 배열 대신 그날 값이 그려진다.
     // 어제가 주 안에서 몇 번째 칸인지는 데모를 여는 날마다 달라지므로 계산해서
@@ -952,7 +949,7 @@ void main() {
   testWidgets('지난 주도 그 주의 계열로 그려지고 이번 주와 섞이지 않는다 (#752)', (tester) async {
     await openReports(tester);
     List<double> drawnValues() =>
-        tester.widget<MetricTrendChart>(find.byType(MetricTrendChart)).values;
+        tester.widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart)).values;
 
     final thisWeek = drawnValues();
     expect(thisWeek, hasLength(7));
@@ -968,7 +965,7 @@ void main() {
     expect(lastWeek.last, greaterThan(0));
     // 지난 주 일요일에 '오늘' 표시가 붙으면 그 날이 오늘인 것처럼 읽힌다.
     expect(
-      tester.widget<MetricTrendChart>(find.byType(MetricTrendChart)).markToday,
+      tester.widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart)).markToday,
       isFalse,
     );
 
@@ -1168,8 +1165,8 @@ void main() {
     final draft = tester.widget<TextField>(field).controller!.text;
 
     // 되돌릴 것이 없으면 버튼은 꺼져 있다.
-    ActionButton restore() => tester.widget<ActionButton>(
-      find.widgetWithText(ActionButton, '초안으로 되돌리기'),
+    AppButton restore() => tester.widget<AppButton>(
+      find.widgetWithText(AppButton, '초안으로 되돌리기'),
     );
     expect(restore().onPressed, isNull);
 
@@ -1216,7 +1213,7 @@ void main() {
       ],
     );
 
-    expect(tester.widget<ActionButton>(saveFeedback).onPressed, isNotNull);
+    expect(tester.widget<AppButton>(saveFeedback).onPressed, isNotNull);
 
     await tester.enterText(feedbackField, '어깨 안정화 위주로 한 주 더 갑니다.');
     await settle(tester);

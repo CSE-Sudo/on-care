@@ -1682,6 +1682,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedTimeRangeInvalid => 'Enter a valid time (HH:mm)';
 
   @override
+  String get schedTimePickerTimeLabel => 'Time';
+
+  @override
+  String get schedTimePickerEndTime => 'End time';
+
+  @override
+  String get schedTimePickerHour => 'Hour';
+
+  @override
+  String get schedTimePickerMinute => 'Minute';
+
+  @override
+  String get schedTimePickerStartHour => 'Start hour';
+
+  @override
+  String get schedTimePickerStartMinute => 'Start minute';
+
+  @override
+  String get schedTimePickerEndHour => 'End hour';
+
+  @override
+  String get schedTimePickerEndMinute => 'End minute';
+
+  @override
+  String get schedTimePickerPrevStep => 'Previous step';
+
+  @override
+  String get schedTimePickerNextStep => 'Next step';
+
+  @override
+  String get schedTimePickerEndBeforeStart =>
+      'End time is earlier than the start time';
+
+  @override
+  String schedClockHourSemantics(String hour) {
+    return '$hour o\'clock';
+  }
+
+  @override
   String get schedRepeat => 'Repeat';
 
   @override

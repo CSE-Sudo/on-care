@@ -348,9 +348,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // 하단 버튼 아래 여백은 시트 안쪽 여백(AppSheet footer)만 둔다(#1690).
     expect(
       bottomSpacingBetween(tester, 'coachingSheet', 'coachingSheetCta'),
-      0,
+      OnCareSpacing.sheetPadding,
     );
   });
 
@@ -373,7 +374,7 @@ void main() {
 
     expect(
       bottomSpacingBetween(tester, 'coachingSheet', 'coachingSheetCta'),
-      34,
+      OnCareSpacing.sheetPadding + 34,
     );
   });
 
@@ -400,7 +401,7 @@ void main() {
         .getBottomRight(
           find.descendant(
             of: find.byKey(const Key('coachingSheetCta')),
-            matching: find.byType(FilledButton),
+            matching: find.byType(AppButton),
           ),
         )
         .dy;

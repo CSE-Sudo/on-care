@@ -69,7 +69,9 @@ Future<AppLocalizations> _pump(
         myReservationsProvider.overrideWith((ref) async => reservations),
         memberCoachProvider.overrideWith((ref) async => _coach),
         // 트레이너가 잡아 준 일정은 없다 — 예약만으로 다음 PT 가 서야 한다.
-        coachSessionsProvider.overrideWith((ref) async => const <CoachSession>[]),
+        coachSessionsProvider.overrideWith(
+          (ref) async => const <CoachSession>[],
+        ),
         coachUnreadProvider.overrideWith((ref) async => 0),
       ],
       child: MaterialApp(

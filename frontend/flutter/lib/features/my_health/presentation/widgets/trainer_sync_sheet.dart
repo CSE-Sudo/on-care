@@ -2,11 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import 'package:oncare/design_system/tokens/colors.dart';
-import 'package:oncare/design_system/tokens/spacing.dart';
 import 'package:oncare/features/my_health/data/repositories/trainer_sync_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 트레이너에게 불러 줄 6자리 동기화 코드를 띄우는 시트. (#1634)
 ///
@@ -14,21 +12,15 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 자리에서 담당이 되어 회원의 식단·운동·건강 기록을 읽는다. 그래서 코드보다
 /// 먼저 무엇이 공유되는지 말하고, 회원이 닫으면 코드를 즉시 버린다.
 ///
-/// 코드를 크게 띄우고 자간을 벌리는 것은 마주 앉아 불러 주거나 받아 적는
+/// 코드를 크게 띄우고 자리마다 나누는 것은 마주 앉아 불러 주거나 받아 적는
 /// 값이기 때문이다. 남은 시간을 함께 보여 주지 않으면, 트레이너가 늦게
 /// 입력했을 때 회원은 왜 안 되는지 알 수 없다.
 Future<void> showTrainerSyncSheet(BuildContext context) {
-  return showModalBottomSheet<void>(
-    context: context,
-    // 탭 페이지마다 Navigator 가 있고 MainShell 은 `extendBody` 라, 기본값으로
-    // 열면 시트가 브랜치 Navigator 안에 뜬다 — 하단 바와 + 버튼이 시트 위에
-    // 그려지고 스크림도 걸리지 않은 채 눌린다(#791).
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
+  return showAppSheet<void>(
+    // 탭 페이지마다 Navigator 가 있고 MainShell 은 `extendBody` 라, 가까운
+    // Navigator 로 열면 시트가 브랜치 Navigator 안에 뜬다 — 하단 바와 + 버튼이
+    // 시트 위에 그려지고 스크림도 걸리지 않은 채 눌린다(#791). 루트 Navigator 로 연다.
+    context: Navigator.of(context, rootNavigator: true).context,
     builder: (_) => const _TrainerSyncSheet(),
   );
 }
@@ -107,80 +99,43 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
     final bool expired = _code != null && _remaining <= 0;
+    final TextStyle secondary = tokens
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textSecondary);
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl,
-          AppSpacing.lg,
-          AppSpacing.xl,
-          AppSpacing.xl,
-        ),
+    return AppSheet(
+      title: l.trainerSyncTitle,
+      child: SafeArea(
+        top: false,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.inputBackground,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              l.trainerSyncTitle,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
             // 코드보다 먼저 무엇이 공유되는지 말한다 — 이 시트를 여는 것이
             // 동의라, 동의하는 내용이 코드 아래에 있으면 안 된다.
-            Text(
-              l.trainerSyncConsent,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.mutedForeground,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
+            Text(l.trainerSyncConsent, style: secondary),
+            const SizedBox(height: OnCareSpacing.s24),
             if (_failed)
               _Message(text: l.trainerSyncFailed, onRetry: _issue)
             else if (_code == null)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                child: Center(child: CircularProgressIndicator()),
-              )
+              const AppLoading(placement: AppStatePlacement.card)
             else ...<Widget>[
               _CodeDisplay(code: _code!, dimmed: expired),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: OnCareSpacing.s12),
               if (expired)
                 _Message(text: l.trainerSyncExpired, onRetry: _issue)
               else
                 Text(
                   l.trainerSyncCountdown(_countdown),
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.mutedForeground,
-                  ),
+                  style: secondary,
                 ),
             ],
-            const SizedBox(height: AppSpacing.xl),
-            Text(
-              l.trainerSyncHint,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.mutedForeground,
-              ),
-            ),
+            const SizedBox(height: OnCareSpacing.s24),
+            Text(l.trainerSyncHint, style: secondary),
           ],
         ),
       ),
@@ -210,15 +165,14 @@ class _CodeDisplay extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          for (int i = 0; i < code.length; i++)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: _DigitBox(
-                key: ValueKey<String>('sync-digit-$i'),
-                digit: code[i],
-                dimmed: dimmed,
-              ),
+          for (int i = 0; i < code.length; i++) ...<Widget>[
+            if (i > 0) const SizedBox(width: OnCareSpacing.s4),
+            _DigitBox(
+              key: ValueKey<String>('sync-digit-$i'),
+              digit: code[i],
+              dimmed: dimmed,
             ),
+          ],
         ],
       ),
     );
@@ -234,22 +188,28 @@ class _DigitBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    // 여섯 칸이 360 폭 시트 안에 한 줄로 들어가야 한다 — 칸 폭은 터치 영역과
+    // 같은 44, 높이는 가장 큰 아바타와 같은 56 을 쓴다.
     return Container(
-      width: 46,
-      height: 58,
+      width: tokens.density.minTouchTarget,
+      height: OnCareSize.avatarXLarge,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: AppColors.inputBackground,
-        borderRadius: BorderRadius.circular(12),
+      decoration: const BoxDecoration(
+        color: OnCareColors.surfaceInput,
+        borderRadius: OnCareRadius.mdAll,
       ),
-      child: Text(
-        digit,
-        style: TextStyle(
-          fontSize: 30,
-          fontWeight: FontWeight.w800,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          digit,
           // 자리마다 폭이 달라 보이면 상자 안에서 숫자가 흔들린다.
-          fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-          color: dimmed ? AppColors.mutedForeground : AppColors.foreground,
+          style: OnCareTypography.numeric(tokens.text(OnCareTypography.display))
+              .copyWith(
+                color: dimmed
+                    ? OnCareColors.textDisabled
+                    : OnCareColors.textPrimary,
+              ),
         ),
       ),
     );
@@ -271,13 +231,16 @@ class _Message extends StatelessWidget {
         Text(
           text,
           textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 13,
-            color: AppColors.mutedForeground,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        TextButton(onPressed: onRetry, child: Text(l.trainerSyncRetry)),
+        const SizedBox(height: OnCareSpacing.s8),
+        AppButton(
+          label: l.trainerSyncRetry,
+          onPressed: onRetry,
+          variant: AppButtonVariant.text,
+        ),
       ],
     );
   }

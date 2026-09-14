@@ -6,13 +6,13 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_toast.dart';
-import 'package:oncare/shared/widgets/member_tab_header.dart';
+import 'package:oncare_ui/oncare_ui.dart' hide showAppToast;
 
 /// 모든 메인 탭 헤더에서 동일한 담당 트레이너 채팅으로 진입하는 버튼이다.
 ///
-/// 담당 트레이너가 아직 없거나 조회 중이면 흐리게 그리고, 눌렀을 때는 왜 지금은
-/// 쓸 수 없는지 한 줄로 알린다. 예전에는 이 상태에서 `onTap: null` 만 넘겨서
-/// 모양은 그대로인 채 아무 반응도 없었다 — 고장 난 버튼으로 읽혔다(#786).
+/// 담당 트레이너가 아직 없거나 조회 중이면 흐리게(비활성 모양) 그리고, 눌렀을
+/// 때는 왜 지금은 쓸 수 없는지 한 줄로 알린다. 예전에는 이 상태에서 `onTap: null`
+/// 만 넘겨서 모양은 그대로인 채 아무 반응도 없었다 — 고장 난 버튼으로 읽혔다(#786).
 class TrainerChatHeaderButton extends ConsumerWidget {
   const TrainerChatHeaderButton({super.key});
 
@@ -30,19 +30,35 @@ class TrainerChatHeaderButton extends ConsumerWidget {
         ? l.coachTrainerLoading
         : l.coachTrainerNone;
 
-    // 이름은 버튼의 툴팁이 말한다. 흐린 상태도 탭을 받으므로 쓸 수 있는지는
-    // 따로 알린다.
     return Semantics(
+      button: true,
       enabled: ready,
-      child: HeaderActionButton(
+      label: l.coachChatWithTrainer,
+      // 쓸 수 없을 때 버튼은 비활성 모양이지만, 비활성 버튼은 탭을 받지 않으므로
+      // 바깥에서 받아 이유를 알린다.
+      child: GestureDetector(
         key: const Key('trainerChatHeaderButton'),
-        icon: Icons.chat_bubble_outline_rounded,
-        tooltip: l.coachChatWithTrainer,
-        showDot: unread > 0,
-        enabled: ready,
-        onPressed: ready
-            ? () => openTrainerChatPage(context, trainerName: coach.name)
-            : () => showAppToast(context, unavailableReason),
+        behavior: HitTestBehavior.opaque,
+        onTap: ready ? null : () => showAppToast(context, unavailableReason),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: <Widget>[
+            AppIconButton(
+              icon: Icons.chat_bubble_outline_rounded,
+              tooltip: l.coachChatWithTrainer,
+              variant: AppIconButtonVariant.tonal,
+              onPressed: ready
+                  ? () => openTrainerChatPage(context, trainerName: coach.name)
+                  : null,
+            ),
+            if (unread > 0)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: IgnorePointer(child: AppCountBadge(count: unread)),
+              ),
+          ],
+        ),
       ),
     );
   }

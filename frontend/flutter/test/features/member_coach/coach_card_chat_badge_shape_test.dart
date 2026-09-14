@@ -3,18 +3,21 @@
 /// gym_tab.dart의 _TrainerChatButton(#1138)과 같은 종류의 배지인데, 이
 /// 카드는 그 수정을 받지 못해 좌우 여백만 있는 옛 패턴(padding + pill
 /// radius)이 남아 있었다 — 글자 높이만큼 세로로 길어져 알약처럼 보였다.
+/// 지금은 두 앱 공용 [AppCountBadge] 를 쓴다(#1702): 한 자리 수는 정원이고,
+/// 두 자리 이상은 같은 높이의 알약이다.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const MemberCoach _coach = MemberCoach(
   trainerId: 'trainer-badge',
@@ -34,29 +37,23 @@ Future<void> _pump(WidgetTester tester, int unread) async {
         myTrainerProvider.overrideWith((ref) async => null),
         coachUnreadProvider.overrideWith((ref) async => unread),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: SingleChildScrollView(child: CoachCard())),
+        home: const Scaffold(
+          body: SingleChildScrollView(child: CoachCard()),
+        ),
       ),
     ),
   );
   await tester.pumpAndSettle();
 }
 
-/// 배지 = 빨간 원. 카드 안에서 그 색으로 칠해진 상자를 찾는다.
-Size _badgeSize(WidgetTester tester) {
-  final Finder badge = find
-      .byWidgetPredicate(
-        (Widget w) =>
-            w is Container &&
-            w.decoration is BoxDecoration &&
-            (w.decoration! as BoxDecoration).color == FigmaColors.redDot,
-      )
-      .first;
-  return tester.getSize(badge);
-}
+/// 카드 안의 안읽음 배지 크기.
+Size _badgeSize(WidgetTester tester) =>
+    tester.getSize(find.byType(AppCountBadge));
 
 void main() {
   testWidgets('한 자리 수 배지는 정원이다', (WidgetTester tester) async {
@@ -65,10 +62,17 @@ void main() {
     expect(size.width, size.height);
   });
 
-  testWidgets('99+ 도 같은 원 안에 들어간다', (WidgetTester tester) async {
+  testWidgets('99+ 도 같은 높이의 배지로 줄여 적는다', (WidgetTester tester) async {
     await _pump(tester, 120);
     final Size size = _badgeSize(tester);
-    expect(size.width, size.height);
+    // 세 글자는 원에 욱여넣지 않고 같은 높이의 알약으로 늘어난다.
+    expect(size.height, OnCareSize.countBadgeMin);
+    expect(size.width, greaterThanOrEqualTo(size.height));
     expect(find.text('99+'), findsOneWidget);
+  });
+
+  testWidgets('안 읽은 것이 없으면 배지를 그리지 않는다', (WidgetTester tester) async {
+    await _pump(tester, 0);
+    expect(find.text('0'), findsNothing);
   });
 }

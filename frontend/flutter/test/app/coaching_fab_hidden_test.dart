@@ -35,8 +35,8 @@ void main() {
       ProviderScope(
         overrides: <Override>[appConfigProvider.overrideWithValue(_config)],
         child: MaterialApp.router(
-          routerConfig: router,
           theme: AppTheme.light(),
+          routerConfig: router,
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
