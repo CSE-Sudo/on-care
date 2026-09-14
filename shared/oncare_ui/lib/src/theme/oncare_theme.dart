@@ -208,7 +208,11 @@ class OnCareTheme {
         size: OnCareSize.iconLarge,
       ),
       extensions: <ThemeExtension<dynamic>>[
-        OnCareTokens(brand: brand, density: density),
+        OnCareTokens(
+          brand: brand,
+          density: density,
+          legacyTextScale: legacyTextScale,
+        ),
       ],
 
       // --- 버튼 ---

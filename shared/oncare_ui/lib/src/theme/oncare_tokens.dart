@@ -2,18 +2,37 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/tokens/brand.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
+import 'package:oncare_ui/src/tokens/typography.dart';
 
 /// 테마에 실린 브랜드·밀도. 컴포넌트는 앱 이름으로 분기하지 않고 이것만 읽는다.
 @immutable
 class OnCareTokens extends ThemeExtension<OnCareTokens> {
-  const OnCareTokens({required this.brand, required this.density});
+  const OnCareTokens({
+    required this.brand,
+    required this.density,
+    this.legacyTextScale = 1.0,
+  });
 
   final OnCareBrand brand;
   final OnCareDensity density;
 
+  /// 앱이 아직 얹고 있는 전역 글자 배율. 컴포넌트는 [text] 로 상쇄한다(#1707 에서 제거).
+  final double legacyTextScale;
+
+  /// 역할 글자를 보이는 크기가 규격과 같도록 상쇄한 스타일.
+  TextStyle text(TextStyle style) =>
+      OnCareTypography.compensate(style, legacyTextScale);
+
   @override
-  OnCareTokens copyWith({OnCareBrand? brand, OnCareDensity? density}) =>
-      OnCareTokens(brand: brand ?? this.brand, density: density ?? this.density);
+  OnCareTokens copyWith({
+    OnCareBrand? brand,
+    OnCareDensity? density,
+    double? legacyTextScale,
+  }) => OnCareTokens(
+    brand: brand ?? this.brand,
+    density: density ?? this.density,
+    legacyTextScale: legacyTextScale ?? this.legacyTextScale,
+  );
 
   /// 브랜드·밀도는 연속값이 아니라 중간이 없다.
   @override
@@ -22,10 +41,13 @@ class OnCareTokens extends ThemeExtension<OnCareTokens> {
 
   @override
   bool operator ==(Object other) =>
-      other is OnCareTokens && other.brand == brand && other.density == density;
+      other is OnCareTokens &&
+      other.brand == brand &&
+      other.density == density &&
+      other.legacyTextScale == legacyTextScale;
 
   @override
-  int get hashCode => Object.hash(brand, density);
+  int get hashCode => Object.hash(brand, density, legacyTextScale);
 }
 
 extension OnCareTokensContext on BuildContext {
