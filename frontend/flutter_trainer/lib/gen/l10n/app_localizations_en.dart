@@ -2990,6 +2990,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTodoReportSubtitle => 'This week\'s report is due';
 
   @override
+  String get dashTaskSaveFailed =>
+      'Couldn\'t save your task status. Please try again in a moment';
+
+  @override
+  String get dashTaskLoadFailed =>
+      'Couldn\'t load your task status. Please try again in a moment';
+
+  @override
   String get dashTaskDismissTitle => 'Delete this item?';
 
   @override

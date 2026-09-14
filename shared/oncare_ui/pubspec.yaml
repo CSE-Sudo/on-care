@@ -1,0 +1,24 @@
+name: oncare_ui
+description: "On-Care 두 앱(회원앱·트레이너웹)이 함께 쓰는 UI 규격 — 토큰·테마·컴포넌트의 단일 원본 (#1690)."
+publish_to: 'none'
+version: 0.1.0
+
+# 회원 앱(^3.10.0)과 트레이너 앱(^3.12.0) 양쪽이 쓰므로 더 낮은 쪽에 맞춘다.
+environment:
+  sdk: ^3.10.0
+  flutter: '>=3.35.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+# 서체(Pretendard)는 두 앱 pubspec 이 같은 패밀리 이름으로 선언한다. 패키지는
+# 패밀리 이름만 쓰고 파일은 들고 있지 않는다 — 패키지에 넣으면 앱 쪽 이름이
+# `packages/oncare_ui/Pretendard` 로 바뀌어 옛 화면 코드의 서체가 끊긴다.
+flutter:
+  uses-material-design: true
