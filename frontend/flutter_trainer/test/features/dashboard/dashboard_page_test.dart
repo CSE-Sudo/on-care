@@ -189,6 +189,8 @@ void main() {
       find.ancestor(of: find.text('주의 회원'), matching: find.byType(AppStatCard)),
     );
     expect(attention.value, '8');
+    // 1명 이상이면 빨강, 0명이면 초록 — 판단을 담는 지표라 색으로도 말한다.
+    expect(attention.toneColor, OnCareColors.danger);
     expect(find.text('식단·이행률 확인'), findsOneWidget);
   });
 

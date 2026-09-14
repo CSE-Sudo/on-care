@@ -429,6 +429,17 @@ void main() {
 
     final banner = find.byKey(const Key('pointsBanner'));
     await tester.ensureVisible(banner);
+
+    // 포인트 카드 화살표는 카드 안쪽 여백만큼 떨어진 오른쪽 끝에 선다.
+    final chevron = find.descendant(
+      of: banner,
+      matching: find.byIcon(Icons.chevron_right_rounded),
+    );
+    expect(
+      tester.getTopRight(chevron).dx,
+      tester.getTopRight(banner).dx - OnCareSpacing.cardPadding,
+    );
+
     await tester.tap(banner);
     await tester.pumpAndSettle();
 

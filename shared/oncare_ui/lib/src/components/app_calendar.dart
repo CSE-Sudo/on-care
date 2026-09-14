@@ -69,6 +69,10 @@ class AppPeriodNav extends StatelessWidget {
 }
 
 /// 주간 날짜 줄 — 요일 `caption` 600 + 날짜. 선택 = 브랜드 채움, 오늘 = 브랜드 글자.
+///
+/// [previousTooltip]·[nextTooltip] 을 둘 다 주면 줄 **양옆**에 이전/다음 주
+/// 꺾쇠 버튼을 날짜 칸과 같은 높이 가운데에 그린다(회원앱 주간 달력).
+/// 비우면 날짜 칸만 그린다 — 이동은 바깥의 [AppPeriodNav] 가 맡는다.
 class AppWeekStrip extends StatelessWidget {
   const AppWeekStrip({
     super.key,
@@ -78,7 +82,15 @@ class AppWeekStrip extends StatelessWidget {
     required this.onSelected,
     this.today,
     this.markedDays = const <DateTime>{},
-  }) : assert(days.length == weekdayLabels.length);
+    this.previousTooltip,
+    this.nextTooltip,
+    this.onPrevious,
+    this.onNext,
+  }) : assert(days.length == weekdayLabels.length),
+       assert(
+         (previousTooltip == null) == (nextTooltip == null),
+         '양옆 꺾쇠는 두 툴팁을 함께 줘야 한다.',
+       );
 
   /// 보여 줄 날(보통 7일).
   final List<DateTime> days;
@@ -92,11 +104,39 @@ class AppWeekStrip extends StatelessWidget {
   /// 기록이 있는 날 — 날짜 아래 점.
   final Set<DateTime> markedDays;
 
+  /// 양옆 꺾쇠의 접근성 이름. 둘 다 있을 때만 꺾쇠를 그린다.
+  final String? previousTooltip;
+  final String? nextTooltip;
+
+  /// `null` 이면 그 방향으로 갈 수 없다(흐리게 비활성).
+  final VoidCallback? onPrevious;
+  final VoidCallback? onNext;
+
   static bool _same(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   @override
   Widget build(BuildContext context) {
+    final Widget strip = _days(context);
+    if (previousTooltip == null || nextTooltip == null) return strip;
+    return Row(
+      children: <Widget>[
+        _WeekStripArrow(
+          icon: Icons.chevron_left_rounded,
+          tooltip: previousTooltip!,
+          onPressed: onPrevious,
+        ),
+        Expanded(child: strip),
+        _WeekStripArrow(
+          icon: Icons.chevron_right_rounded,
+          tooltip: nextTooltip!,
+          onPressed: onNext,
+        ),
+      ],
+    );
+  }
+
+  Widget _days(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return Row(
       children: <Widget>[
@@ -114,13 +154,25 @@ class AppWeekStrip extends StatelessWidget {
                   ),
                   child: Column(
                     children: <Widget>[
-                      Text(
-                        weekdayLabels[i],
-                        style: tokens
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
-                            .copyWith(color: OnCareColors.textTertiary),
+                      // 영어 요일(Mon)은 한글 한 글자보다 넓다 — 말줄임 대신
+                      // 통째로 줄여 무슨 요일인지 남긴다.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          weekdayLabels[i],
+                          maxLines: 1,
+                          style: tokens
+                              .text(
+                                OnCareTypography.strong(
+                                  OnCareTypography.caption,
+                                ),
+                              )
+                              .copyWith(
+                                color: today != null && _same(days[i], today!)
+                                    ? tokens.brand.primary
+                                    : OnCareColors.textTertiary,
+                              ),
+                        ),
                       ),
                       const SizedBox(height: OnCareSpacing.s4),
                       Container(
@@ -167,6 +219,46 @@ class AppWeekStrip extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// [AppWeekStrip] 양옆의 작은 원형 꺾쇠 — 옅은 브랜드 채움, 비활성은 흐리게.
+class _WeekStripArrow extends StatelessWidget {
+  const _WeekStripArrow({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Opacity(
+      opacity: onPressed == null ? OnCareAlpha.strong : 1,
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: tokens.brand.surface,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            child: SizedBox.square(
+              dimension: OnCareSize.avatarMedium,
+              child: Icon(
+                icon,
+                size: OnCareSize.iconSmall,
+                color: tokens.brand.primary,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
