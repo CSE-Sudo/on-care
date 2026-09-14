@@ -50,9 +50,7 @@ void main() {
     final DateTime monday = today.subtract(
       Duration(days: today.weekday - DateTime.monday),
     );
-    return <int>[
-      for (int i = 0; i < 7; i++) monday.add(Duration(days: i)).day,
-    ];
+    return <int>[for (int i = 0; i < 7; i++) monday.add(Duration(days: i)).day];
   }
 
   testWidgets('스트립은 월요일에서 시작해 일요일로 끝난다', (WidgetTester tester) async {

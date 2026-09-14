@@ -11,10 +11,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/client_factory.dart';
 
@@ -29,8 +30,10 @@ void main() {
         matching: find.byType(Text),
       ),
     )) {
-      for (final InlineSpan? span
-          in <InlineSpan?>[text.textSpan, ...?(text.textSpan as TextSpan?)?.children]) {
+      for (final InlineSpan? span in <InlineSpan?>[
+        text.textSpan,
+        ...?(text.textSpan as TextSpan?)?.children,
+      ]) {
         final Color? color = span?.style?.color;
         if (color != null) out.add(color);
       }
@@ -41,6 +44,7 @@ void main() {
   Future<void> pumpCard(WidgetTester tester, TrainerClient client) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -58,13 +62,13 @@ void main() {
     // 지방만 초과(56 > 55). 탄수·단백질은 목표 아래.
     await pumpCard(tester, makeClient(carbsG: 120, proteinG: 45, fatG: 56));
 
-    expect(barColors(tester, '지방'), contains(AppColors.overTarget));
+    expect(barColors(tester, '지방'), contains(OnCareColors.danger));
     expect(
       barColors(tester, '탄수화물'),
-      isNot(contains(AppColors.overTarget)),
+      isNot(contains(OnCareColors.danger)),
       reason: '탄수화물은 목표 아래인데 빨강이 됐습니다.',
     );
-    expect(barColors(tester, '단백질'), isNot(contains(AppColors.overTarget)));
+    expect(barColors(tester, '단백질'), isNot(contains(OnCareColors.danger)));
   });
 
   testWidgets('목표 아래면 메인 색이다 (#1166)', (WidgetTester tester) async {
@@ -73,10 +77,11 @@ void main() {
     for (final String label in <String>['탄수화물', '단백질', '지방']) {
       expect(
         barColors(tester, label),
-        contains(AppColors.statusWithinGoal.withValues(alpha: 0.65)),
+        // 목표 안쪽은 메인 색의 65% 농담(불투명 환산) — 탄단지 중간 단계와 같다.
+        contains(OnCareBrand.trainer.macroProtein),
         reason: label,
       );
-      expect(barColors(tester, label), isNot(contains(AppColors.overTarget)));
+      expect(barColors(tester, label), isNot(contains(OnCareColors.danger)));
     }
   });
 
@@ -87,7 +92,7 @@ void main() {
     for (final String label in <String>['탄수화물', '단백질', '지방']) {
       expect(
         barColors(tester, label),
-        isNot(contains(AppColors.overTarget)),
+        isNot(contains(OnCareColors.danger)),
         reason: label,
       );
     }
@@ -99,7 +104,7 @@ void main() {
     for (final String label in <String>['탄수화물', '단백질', '지방']) {
       expect(
         barColors(tester, label),
-        contains(AppColors.overTarget),
+        contains(OnCareColors.danger),
         reason: label,
       );
     }

@@ -13,7 +13,7 @@ import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_toggle.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/ai_routine_repository.dart';
@@ -1265,8 +1265,10 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
-                child: ClientPeriodToggle(
-                  active: _period,
+                child: AppSegmentedToggle<ClientPeriod>(
+                  key: const ValueKey<String>('client-period-toggle'),
+                  segments: clientPeriodSegments(AppLocalizations.of(context)),
+                  selected: _period,
                   onChanged: (ClientPeriod p) => setState(() => _period = p),
                 ),
               ),

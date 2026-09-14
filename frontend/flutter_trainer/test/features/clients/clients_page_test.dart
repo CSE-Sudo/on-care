@@ -755,7 +755,6 @@ void main() {
       expect(find.textContaining('새 코드를 받아'), findsOneWidget);
     });
 
-
     testWidgets('the detail header chip toggles 활성/휴면', (tester) async {
       await pumpTrainerApp(
         tester,

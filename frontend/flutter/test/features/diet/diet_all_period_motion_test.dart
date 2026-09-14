@@ -7,7 +7,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -17,6 +16,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 /// 날마다 다른 값을 주는 대역 — 막대 높이가 서로 달라야 자라는 것이 보인다.
@@ -101,7 +101,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     // 애니메이션이 도는 중간에서 멈춘다 — settle 하면 다 자란 뒤다.
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 60));

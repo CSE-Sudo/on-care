@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/icon_label.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 서버가 기간에 맞춰 만든 조언 한 문장. (#1017 식단 · #1025 운동)
 ///
@@ -46,35 +43,13 @@ class ClientAiAnalysisCard extends StatelessWidget {
     // 빈 문장으로 카드를 세우지 않는다 — 제목만 있고 내용이 없으면 조언이
     // 사라진 것인지 아직 안 온 것인지 알 수 없다.
     if (message.trim().isEmpty) return const SizedBox.shrink();
-    return Container(
+    // AI 카드는 한 종류다 — 안내 배너(info) 모양에 제목이 기간을, 본문이
+    // 서버 문장을 말한다(#1704).
+    return AppBanner(
       key: cardKey,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.accentSurface,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        border: Border.all(color: AppColors.borderStrong),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          IconLabel(
-            icon: Icons.auto_awesome,
-            label: titleOf(l, period),
-            color: AppColors.accent,
-            fontSize: 11,
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            message,
-            style: const TextStyle(
-              fontSize: 13,
-              height: 1.55,
-              fontWeight: FontWeight.w500,
-              color: AppColors.foreground,
-            ),
-          ),
-        ],
-      ),
+      icon: Icons.auto_awesome_rounded,
+      title: titleOf(l, period),
+      message: message,
     );
   }
 }

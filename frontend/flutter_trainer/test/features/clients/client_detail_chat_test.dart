@@ -10,12 +10,15 @@ import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show AppButton, AppChatBubble, AppChatTimestamp;
 
 import '../../helpers/pump_app.dart';
 
@@ -363,7 +366,10 @@ void main() {
 
       expect(find.text('대화를 불러오지 못했어요'), findsOneWidget);
       await tester.tap(
-        find.byKey(const ValueKey<String>('chat-retry-seed-client-1')),
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('chat-retry-seed-client-1')),
+          matching: find.byType(AppButton),
+        ),
       );
       await settle(tester);
 
@@ -411,11 +417,12 @@ void main() {
               const _NoMemoRepository(),
             ),
           ],
-          child: const MaterialApp(
-            locale: Locale('ko'),
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            locale: const Locale('ko'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
+            home: const Scaffold(
               body: ChatView(
                 clientId: 'user-7d4e9a2c5f18',
                 clientAvatar: '김',
@@ -436,10 +443,11 @@ void main() {
       final bubble = find.byKey(
         const ValueKey<String>('trainer-message-bubble-live-1'),
       );
-      final time = find.byKey(
-        const ValueKey<String>('trainer-message-time-live-1'),
+      final time = find.descendant(
+        of: find.ancestor(of: bubble, matching: find.byType(AppChatBubble)),
+        matching: find.byType(AppChatTimestamp),
       );
-      expect(tester.widget<Text>(time).data, '09:00');
+      expect(tester.widget<AppChatTimestamp>(time).text, '09:00');
       expect(find.text('금 09:00'), findsNothing);
       expect(
         tester.getTopLeft(time).dx,
@@ -490,8 +498,9 @@ void main() {
       final sentBubble = find.byKey(
         const ValueKey<String>('trainer-message-bubble-seed-chat-1-18'),
       );
-      final sentTime = find.byKey(
-        const ValueKey<String>('trainer-message-time-seed-chat-1-18'),
+      final sentTime = find.descendant(
+        of: find.ancestor(of: sentBubble, matching: find.byType(AppChatBubble)),
+        matching: find.byType(AppChatTimestamp),
       );
       expect(
         tester.getTopLeft(sentTime).dx,
@@ -502,7 +511,7 @@ void main() {
     testWidgets('sending a message appends it to the thread', (tester) async {
       await openMessages(tester);
       await tester.enterText(find.byType(TextField).last, '다음 세션 때 봐요!');
-      await tester.tap(find.byIcon(Icons.send));
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
       await settle(tester);
       // The sent message appears in both the thread and the conversation
       // preview, keeping the two-pane workspace in sync.
@@ -593,7 +602,7 @@ void main() {
     ) async {
       await openMessages(tester);
       await tester.enterText(find.byType(TextField).last, '다음 세션 때 봬요!');
-      await tester.tap(find.byIcon(Icons.send));
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
       await settle(tester);
 
       // 배너는 그날의 분석 → 대화 → 루틴 전송이라는 하루의 **끝**을 표시한다.
@@ -623,9 +632,9 @@ void main() {
           ],
         );
         await tester.enterText(find.byType(TextField).last, '중복 방지 확인');
-        await tester.tap(find.byIcon(Icons.send));
+        await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
         await tester.pump(const Duration(milliseconds: 50));
-        await tester.tap(find.byIcon(Icons.send), warnIfMissed: false);
+        await tester.tap(find.byIcon(Icons.arrow_upward_rounded), warnIfMissed: false);
         await settle(tester);
         expect(find.text('중복 방지 확인'), findsOneWidget);
       },
@@ -645,7 +654,7 @@ void main() {
         ],
       );
       await tester.enterText(find.byType(TextField).last, '이탈 중 전송');
-      await tester.tap(find.byIcon(Icons.send));
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
       await tester.pump(const Duration(milliseconds: 50));
       await goTo(tester, AppRoutes.dashboard);
       await settle(tester);
@@ -674,7 +683,7 @@ void main() {
           ],
         );
         await tester.enterText(find.byType(TextField).last, '이탈 중 실패');
-        await tester.tap(find.byIcon(Icons.send));
+        await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
         await tester.pump(const Duration(milliseconds: 50));
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pump();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
@@ -80,11 +81,12 @@ void main() {
             ),
             chatRepositoryProvider.overrideWithValue(fake),
           ],
-          child: const MaterialApp(
-          locale: Locale('ko'),
+          child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
+            home: const Scaffold(
               body: ChatView(
                 clientId: 'm1',
                 clientAvatar: '김',
@@ -97,7 +99,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '방금 보낸 메시지');
-      await tester.tap(find.byIcon(Icons.send));
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
       // Let the send future, the provider invalidation, the refetch, and
       // the resulting scroll animation all settle.
       await tester.pumpAndSettle();

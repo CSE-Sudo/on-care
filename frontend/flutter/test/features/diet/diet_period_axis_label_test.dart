@@ -9,7 +9,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -19,6 +18,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
 
@@ -66,9 +66,7 @@ final RegExp _dateLabel = RegExp(r'^\d{1,2}/\d{1,2}$');
 List<Element> _labelElements() => find
     .byType(Text)
     .evaluate()
-    .where(
-      (Element e) => _dateLabel.hasMatch((e.widget as Text).data ?? ''),
-    )
+    .where((Element e) => _dateLabel.hasMatch((e.widget as Text).data ?? ''))
     .toList(growable: false);
 
 void main() {
@@ -93,7 +91,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
   }
 
@@ -130,16 +128,18 @@ void main() {
     expect(chart, findsOneWidget);
 
     final ScrollableState scrollable = tester.state<ScrollableState>(
-      find.byType(Scrollable).at(
-        find
-            .byType(Scrollable)
-            .evaluate()
-            .toList()
-            .indexWhere(
-              (Element e) =>
-                  (e.widget as Scrollable).axis == Axis.horizontal,
-            ),
-      ),
+      find
+          .byType(Scrollable)
+          .at(
+            find
+                .byType(Scrollable)
+                .evaluate()
+                .toList()
+                .indexWhere(
+                  (Element e) =>
+                      (e.widget as Scrollable).axis == Axis.horizontal,
+                ),
+          ),
     );
     expect(scrollable.position.pixels, 0);
 
@@ -158,15 +158,10 @@ void main() {
     final RenderBox first = labels.first.renderObject! as RenderBox;
     final double left = first.localToGlobal(Offset.zero).dx;
     expect(left, greaterThanOrEqualTo(viewRect.left - 0.5));
-    expect(
-      left + first.size.width,
-      lessThanOrEqualTo(viewRect.right + 0.5),
-    );
+    expect(left + first.size.width, lessThanOrEqualTo(viewRect.right + 0.5));
   });
 
-  testWidgets('연·월이 바뀌는 구간도 실제 달력 날짜를 순서대로 적는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('연·월이 바뀌는 구간도 실제 달력 날짜를 순서대로 적는다', (WidgetTester tester) async {
     // 2027-01-10 기준 `전체`(84일)는 2026-10-19 부터다 — 달 경계와 해 경계를
     // 모두 지난다.
     useFixedKstDate(DateTime(2027, 1, 10));

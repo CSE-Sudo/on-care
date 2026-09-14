@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_coach_repository.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 담당 회원에 대해 AI 에게 묻는 시트를 연다. (#497)
 Future<void> showClientCoachSheet(
@@ -15,7 +12,7 @@ Future<void> showClientCoachSheet(
   required String memberId,
   required String clientName,
 }) {
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
     builder: (_) =>
         _ClientCoachSheet(memberId: memberId, clientName: clientName),
@@ -129,122 +126,99 @@ class _ClientCoachSheetState extends ConsumerState<_ClientCoachSheet> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AlertDialog(
-      backgroundColor: AppColors.card,
-      title: Text(l.coachSheetTitle(widget.clientName)),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                l.coachSheetSubtitle,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-              if (_restoring) ...<Widget>[
-                const SizedBox(height: AppSpacing.md),
-                const Center(child: CircularProgressIndicator()),
-              ],
-              // 스레드를 입력칸 위에 둔다 — 대화는 위에서 아래로 읽고, 새로 쓰는
-              // 칸은 항상 같은 자리(맨 아래)에 있어야 찾지 않는다.
-              for (final ClientCoachTurn turn in _turns) ...<Widget>[
-                const SizedBox(height: AppSpacing.md),
-                _Note(
-                  tone: turn.isTrainer
-                      ? AppColors.mutedForeground
-                      : AppColors.primary,
-                  text: turn.content,
-                ),
-                if (turn.sources.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    l.coachSheetSources,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.subtleForeground,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  for (final String source in turn.sources)
-                    Text(
-                      '· $source',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.mutedForeground,
-                      ),
-                    ),
-                ],
-              ],
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                controller: _question,
-                maxLines: 3,
-                maxLength: 1000,
-                enabled: !_asking && !_restoring,
-                onSubmitted: (_) => _ask(),
-                decoration: InputDecoration(
-                  hintText: l.coachSheetHint,
-                  filled: true,
-                  fillColor: AppColors.inputBackground,
-                ),
-              ),
-              if (_asking) ...<Widget>[
-                const SizedBox(height: AppSpacing.md),
-                const Center(child: CircularProgressIndicator()),
-              ],
-              if (_error != null) ...<Widget>[
-                const SizedBox(height: AppSpacing.md),
-                _Note(tone: AppColors.destructive, text: _error!),
-              ],
-            ],
-          ),
-        ),
+    final OnCareTokens tokens = context.oncare;
+    return AppDialog(
+      title: l.coachSheetTitle(widget.clientName),
+      size: AppDialogSize.medium,
+      // 닫기는 하단 [닫기] 한 곳이다 — 답을 기다리는 동안에는 그 버튼이 잠긴다.
+      showClose: false,
+      footer: AppButtonPair(
+        cancelLabel: l.actionClose,
+        onCancel: _asking ? null : () => Navigator.of(context).pop(),
+        confirmLabel: _turns.isEmpty ? l.coachSheetAsk : l.coachSheetAskAgain,
+        onConfirm: _asking || _restoring ? null : _ask,
       ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: _asking ? null : () => Navigator.of(context).pop(),
-          child: Text(l.actionClose),
-        ),
-        ActionButton(
-          label: _turns.isEmpty ? l.coachSheetAsk : l.coachSheetAskAgain,
-          primary: true,
-          onPressed: _asking || _restoring ? null : _ask,
-        ),
-      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            l.coachSheetSubtitle,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          if (_restoring) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s16),
+            const Center(child: AppLoading.inline()),
+          ],
+          // 스레드를 입력칸 위에 둔다 — 대화는 위에서 아래로 읽고, 새로 쓰는
+          // 칸은 항상 같은 자리(맨 아래)에 있어야 찾지 않는다.
+          for (final ClientCoachTurn turn in _turns) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s16),
+            _Turn(turn: turn),
+            if (turn.sources.isNotEmpty) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                l.coachSheetSources,
+                style: tokens
+                    .text(OnCareTypography.strong(OnCareTypography.caption))
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              for (final String source in turn.sources)
+                Text(
+                  '· $source',
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+            ],
+          ],
+          const SizedBox(height: OnCareSpacing.s16),
+          AppTextField(
+            controller: _question,
+            hint: l.coachSheetHint,
+            maxLines: 3,
+            maxLength: 1000,
+            enabled: !_asking && !_restoring,
+            onSubmitted: (_) => _ask(),
+          ),
+          if (_asking) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s16),
+            const Center(child: AppLoading.inline()),
+          ],
+          if (_error != null) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s16),
+            AppBanner(tone: AppBannerTone.danger, title: _error!),
+          ],
+        ],
+      ),
     );
   }
 }
 
-/// 답변·오류를 담는 색 있는 블록.
-class _Note extends StatelessWidget {
-  const _Note({required this.tone, required this.text});
+/// 스레드의 문답 한 칸 — 옅은 브랜드 채움 구획.
+///
+/// 질문(트레이너)은 강조 굵기의 보조색, 답(AI)은 본문 검정으로 나눈다. 둘 다
+/// 같은 구획이라 한 쌍으로 읽힌다.
+class _Turn extends StatelessWidget {
+  const _Turn({required this.turn});
 
-  final Color tone;
-  final String text;
+  final ClientCoachTurn turn;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: tone.withValues(alpha: 0.08),
-        borderRadius: const BorderRadius.all(AppRadius.card),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          height: 1.5,
-          color: AppColors.foreground,
-        ),
-      ),
+    final OnCareTokens tokens = context.oncare;
+    final TextStyle style = turn.isTrainer
+        ? tokens
+              .text(OnCareTypography.strong(OnCareTypography.body))
+              .copyWith(color: OnCareColors.textSecondary)
+        : tokens
+              .text(OnCareTypography.body)
+              .copyWith(color: OnCareColors.textPrimary);
+    return AppTile(
+      child: Text(turn.content, style: style),
     );
   }
 }

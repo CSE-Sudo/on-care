@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/design_system/theme/app_theme.dart';
+
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
@@ -82,6 +84,7 @@ Future<void> _pumpAddSheet(
         dietRepositoryProvider.overrideWithValue(repository),
       ],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -213,7 +216,7 @@ void main() {
     // 시트에 가려지지 않도록 안내를 시트 안에 그린다.
     expect(find.byKey(const Key('dietPhotoFailureNotice')), findsOneWidget);
     expect(find.textContaining('카메라 권한이 필요해요'), findsOneWidget);
-    expect(find.byKey(const Key('dietOpenSettingsLink')), findsNothing);
+    expect(find.text('설정 열기'), findsNothing);
     expect(repository.uploaded, isNull);
     expect(find.byKey(const Key('dietAddSheet')), findsOneWidget);
 
@@ -235,7 +238,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('설정에서 카메라를 켜면'), findsOneWidget);
-      expect(find.byKey(const Key('dietOpenSettingsLink')), findsOneWidget);
+      expect(find.text('설정 열기'), findsOneWidget);
       expect(find.byKey(const Key('dietAddSheet')), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;
@@ -257,7 +260,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('기기 설정이나 관리 정책'), findsOneWidget);
-      expect(find.byKey(const Key('dietOpenSettingsLink')), findsNothing);
+      expect(find.text('설정 열기'), findsNothing);
       expect(tester.takeException(), isNull);
     } finally {
       debugDefaultTargetPlatformOverride = null;
@@ -291,6 +294,7 @@ void main() {
           dietRepositoryProvider.overrideWithValue(repository),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -334,7 +338,7 @@ void main() {
     await tester.pump();
 
     // OS 픽커가 떠 있는 동안 사용자가 시트를 닫는다.
-    await tester.tap(find.byIcon(Icons.close));
+    await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dietAddSheet')), findsNothing);
 
@@ -362,6 +366,7 @@ void main() {
           dietRepositoryProvider.overrideWithValue(repository),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

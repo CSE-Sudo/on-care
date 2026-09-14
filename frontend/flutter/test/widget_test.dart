@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
-
 import 'package:oncare/app/app.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
@@ -16,6 +15,7 @@ import 'package:oncare/features/dashboard/domain/repositories/dashboard_reposito
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_period_view.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -30,6 +30,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import 'helpers/diet_period_tabs.dart';
 import 'helpers/fake_diet_repository.dart';
 
 class _CountingMemberCoachRepository extends MockMemberCoachRepository {
@@ -692,7 +693,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 이번 주로 바꾸면 하루 요약 대신 기간 뷰가 보인다.
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
     expect(find.byType(DietPeriodView), findsOneWidget);
     expect(find.byKey(const Key('nutrition-summary-card')), findsNothing);
@@ -715,7 +716,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('mealCard-mock-breakfast')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('MY').first);
@@ -814,7 +815,7 @@ void main() {
     for (int i = 0; i < 3; i++) {
       await tester.tap(find.text('식단').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
       expect(find.byType(DietPeriodView), findsOneWidget);
 
@@ -831,7 +832,7 @@ void main() {
 
     await tester.tap(find.text('식단').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
     expect(find.byType(DietPeriodView), findsOneWidget);
 
