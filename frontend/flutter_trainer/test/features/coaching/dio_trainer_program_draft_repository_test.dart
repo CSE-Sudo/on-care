@@ -211,17 +211,17 @@ void main() {
                 'id': 'session-1',
                 'name': '세션 A',
                 'exercises': <Map<String, Object?>>[
-                  <String, Object?>{
-                    'id': 'exercise-2',
-                    'name': '레그프레스',
-                    // 예전 초안은 자유 문자열로 저장돼 있다 — 숫자만 되짚어
-                    // 읽는다 (#1276).
-                    'sets': '4',
-                    'weight': '60kg',
-                    'memo': '무릎 각도 확인',
-                    'type': '근력',
-                    'source': 'ai',
-                  },
+              <String, Object?>{
+                'id': 'exercise-2',
+                'name': '레그프레스',
+                // 예전 초안은 자유 문자열로 저장돼 있다 — 숫자만 되짚어
+                // 읽는다 (#1276).
+                'sets': '4',
+                'weight': '60kg',
+                'memo': '무릎 각도 확인',
+                'type': '근력',
+                'source': 'ai',
+              },
                 ],
               },
             ],
