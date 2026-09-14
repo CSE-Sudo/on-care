@@ -23,13 +23,10 @@ void main() {
     expect(state.risk.level, RiskLevel.medium);
     expect(state.activityPoints, 1240);
     expect(state.settings.length, 3);
-    expect(
-      state.settings.map((SettingsItem s) => s.kind),
-      <SettingsKind>[
-        SettingsKind.myProfile,
-        SettingsKind.notification,
-        SettingsKind.support,
-      ],
-    );
+    expect(state.settings.map((SettingsItem s) => s.kind), <SettingsKind>[
+      SettingsKind.myProfile,
+      SettingsKind.notification,
+      SettingsKind.support,
+    ]);
   });
 }

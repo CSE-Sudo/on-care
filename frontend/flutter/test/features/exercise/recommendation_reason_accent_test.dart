@@ -122,10 +122,7 @@ void main() {
     final BoxDecoration decoration =
         tester.widget<Container>(badge).decoration! as BoxDecoration;
     expect(decoration.border, isNotNull, reason: '파란 윤곽선으로 강조한다');
-    expect(
-      (decoration.border! as Border).top.color,
-      OnCareBrand.member.border,
-    );
+    expect((decoration.border! as Border).top.color, OnCareBrand.member.border);
     // 줄 자체가 옅은 파랑이라 배지 배경은 흰색 그대로다 — 같은 색이면 배지가
     // 사라진다.
     expect(decoration.color, OnCareColors.surfaceCard);

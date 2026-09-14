@@ -132,19 +132,6 @@
     "nonRoundedIcon": 2,
     "materialWidget": 12
   },
-  "lib/features/ai_coach/presentation/pages/ai_coach_page.dart": {
-    "fontSize": 12,
-    "fontWeight": 9,
-    "lineHeight": 3,
-    "colorLiteral": 2,
-    "materialColor": 8,
-    "radius": 14,
-    "edgeInsets": 14,
-    "sizedBox": 13,
-    "animationDuration": 1,
-    "nonRoundedIcon": 3,
-    "materialWidget": 2
-  },
   "lib/features/auth/presentation/pages/sign_in_page.dart": {
     "fontSize": 1,
     "fontWeight": 2,
@@ -179,96 +166,11 @@
     "nonRoundedIcon": 2,
     "materialWidget": 4
   },
-  "lib/features/member_coach/presentation/widgets/coach_card.dart": {
-    "fontSize": 14,
-    "fontWeight": 10,
-    "lineHeight": 3,
-    "materialColor": 4,
-    "radius": 8,
-    "edgeInsets": 9,
-    "sizedBox": 19,
-    "nonRoundedIcon": 3,
-    "materialWidget": 16
-  },
-  "lib/features/member_coach/presentation/widgets/coach_chat_sheet.dart": {
-    "fontSize": 7,
-    "fontWeight": 7,
-    "lineHeight": 1,
-    "colorLiteral": 1,
-    "materialColor": 6,
-    "opacity": 3,
-    "radius": 10,
-    "edgeInsets": 11,
-    "sizedBox": 18,
-    "nonRoundedIcon": 8,
-    "materialWidget": 6
-  },
-  "lib/features/member_coach/presentation/widgets/coach_image_attachment.dart": {
-    "fontSize": 1,
-    "radius": 1,
-    "sizedBox": 3,
-    "nonRoundedIcon": 1,
-    "materialWidget": 1
-  },
-  "lib/features/member_coach/presentation/widgets/coach_invite_card.dart": {
-    "fontSize": 5,
-    "fontWeight": 2,
-    "materialColor": 1,
-    "radius": 1,
-    "edgeInsets": 3,
-    "sizedBox": 5,
-    "materialWidget": 6
-  },
-  "lib/features/member_coach/presentation/widgets/coach_report_card.dart": {
-    "fontSize": 3,
-    "fontWeight": 3,
-    "materialColor": 1,
-    "radius": 1,
-    "edgeInsets": 2,
-    "sizedBox": 2,
-    "nonRoundedIcon": 1,
-    "materialWidget": 2
-  },
-  "lib/features/my_health/presentation/pages/my_health_page.dart": {
-    "fontSize": 27,
-    "fontWeight": 23,
-    "letterSpacing": 1,
-    "lineHeight": 3,
-    "materialColor": 18,
-    "opacity": 7,
-    "radius": 18,
-    "edgeInsets": 18,
-    "sizedBox": 37,
-    "nonRoundedIcon": 10,
-    "materialWidget": 18
-  },
-  "lib/features/my_health/presentation/widgets/my_flows.dart": {
-    "fontSize": 21,
-    "fontWeight": 16,
-    "lineHeight": 3,
-    "materialColor": 6,
-    "radius": 8,
-    "edgeInsets": 11,
-    "sizedBox": 36,
-    "nonRoundedIcon": 6,
-    "materialWidget": 14
-  },
-  "lib/features/my_health/presentation/widgets/trainer_sync_sheet.dart": {
-    "fontSize": 2,
-    "fontWeight": 2,
-    "materialColor": 1,
-    "radius": 3,
-    "edgeInsets": 1,
-    "materialWidget": 3
-  },
   "lib/features/notification/presentation/pages/notification_page.dart": {
     "edgeInsets": 1,
     "sizedBox": 3,
     "nonRoundedIcon": 1,
     "materialWidget": 4
-  },
-  "lib/features/schedule/presentation/schedule_category_color.dart": {
-    "colorLiteral": 5
   },
   "lib/shared/widgets/ai_advice_card.dart": {
     "fontSize": 4,
@@ -279,18 +181,6 @@
     "sizedBox": 3,
     "materialWidget": 2
   },
-  "lib/shared/widgets/coaching_sheet.dart": {
-    "fontSize": 6,
-    "fontWeight": 5,
-    "lineHeight": 2,
-    "colorLiteral": 2,
-    "materialColor": 3,
-    "radius": 5,
-    "edgeInsets": 6,
-    "sizedBox": 7,
-    "nonRoundedIcon": 1,
-    "materialWidget": 3
-  },
   "lib/shared/widgets/empty_state.dart": {
     "edgeInsets": 1,
     "sizedBox": 2
@@ -300,42 +190,6 @@
     "sizedBox": 3,
     "nonRoundedIcon": 2,
     "materialWidget": 1
-  },
-  "lib/shared/widgets/metric_trend_chart.dart": {
-    "fontSize": 3,
-    "fontWeight": 4,
-    "lineHeight": 1,
-    "colorLiteral": 1,
-    "materialColor": 2,
-    "opacity": 4,
-    "sizedBox": 1
-  },
-  "lib/shared/widgets/modals/add_event_dialog.dart": {
-    "fontWeight": 1,
-    "materialColor": 2,
-    "edgeInsets": 1,
-    "sizedBox": 2,
-    "nonRoundedIcon": 4,
-    "materialWidget": 5
-  },
-  "lib/shared/widgets/modals/day_events_sheet.dart": {
-    "fontWeight": 1,
-    "materialColor": 1,
-    "radius": 1,
-    "sizedBox": 3,
-    "nonRoundedIcon": 4,
-    "materialWidget": 10
-  },
-  "lib/shared/widgets/modals/schedule_calendar_sheet.dart": {
-    "fontSize": 1,
-    "fontWeight": 3,
-    "materialColor": 1,
-    "opacity": 1,
-    "radius": 2,
-    "edgeInsets": 4,
-    "sizedBox": 3,
-    "nonRoundedIcon": 3,
-    "materialWidget": 6
   },
   "lib/shared/widgets/oni_fab.dart": {
     "fontSize": 1,

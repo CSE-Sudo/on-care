@@ -7,7 +7,7 @@ import 'package:oncare_trainer/features/reports/services/report_pdf_actions.dart
 import 'package:oncare_trainer/features/reports/services/report_pdf_file_name.dart';
 import 'package:oncare_trainer/features/reports/services/report_pdf_sender.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// A generated report's explicit delivery actions.
 ///
@@ -35,10 +35,14 @@ class _ReportPdfExportDialogState extends ConsumerState<ReportPdfExportDialog> {
     final l = AppLocalizations.of(context);
     try {
       await action();
-      if (mounted) showAppToast(context, success, kind: AppToastKind.success);
+      if (mounted) showAppToast(context, success, type: AppToastType.success);
     } catch (_) {
       if (mounted) {
-        showAppToast(context, l.reportsPdfActionFailed, kind: AppToastKind.error);
+        showAppToast(
+          context,
+          l.reportsPdfActionFailed,
+          type: AppToastType.error,
+        );
       }
     }
   }
@@ -66,41 +70,61 @@ class _ReportPdfExportDialogState extends ConsumerState<ReportPdfExportDialog> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final actions = ref.read(reportPdfActionsProvider);
-    return AlertDialog(
-      title: Text(l.reportsPdfLabel),
-      content: Text(l.reportsPdfReady(widget.report.client.name)),
-      actions: <Widget>[
-        TextButton.icon(
-          key: const ValueKey<String>('report-pdf-send'),
-          onPressed: _sending ? null : _send,
-          icon: const Icon(Icons.send_outlined),
-          label: Text(
-            _sending ? l.reportsPdfSending : l.reportsPdfSendToClient,
+    return AppDialog(
+      title: l.reportsPdfLabel,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(l.reportsPdfReady(widget.report.client.name)),
+          const SizedBox(height: OnCareSpacing.s16),
+          AppButton(
+            key: const ValueKey<String>('report-pdf-send'),
+            label: _sending ? l.reportsPdfSending : l.reportsPdfSendToClient,
+            leadingIcon: Icons.send_rounded,
+            variant: AppButtonVariant.secondary,
+            fullWidth: true,
+            onPressed: _sending ? null : _send,
           ),
-        ),
-        TextButton.icon(
-          key: const ValueKey<String>('report-pdf-save'),
-          onPressed: () => _run(
-            () => actions.save(widget.bytes, reportPdfFileName(l, widget.report)),
-            l.reportsPdfSaveStarted,
+          const SizedBox(height: OnCareSpacing.buttonGap),
+          AppButton(
+            key: const ValueKey<String>('report-pdf-save'),
+            label: l.reportsPdfSave,
+            leadingIcon: Icons.download_rounded,
+            variant: AppButtonVariant.secondary,
+            fullWidth: true,
+            onPressed: () => _run(
+              () => actions.save(
+                widget.bytes,
+                reportPdfFileName(l, widget.report),
+              ),
+              l.reportsPdfSaveStarted,
+            ),
           ),
-          icon: const Icon(Icons.download_outlined),
-          label: Text(l.reportsPdfSave),
-        ),
-        TextButton.icon(
-          key: const ValueKey<String>('report-pdf-print'),
-          onPressed: () => _run(
-            () => actions.print(widget.bytes, reportPdfFileName(l, widget.report)),
-            l.reportsPdfPrintOpened,
+          const SizedBox(height: OnCareSpacing.buttonGap),
+          AppButton(
+            key: const ValueKey<String>('report-pdf-print'),
+            label: l.reportsPdfPrint,
+            leadingIcon: Icons.print_rounded,
+            variant: AppButtonVariant.secondary,
+            fullWidth: true,
+            onPressed: () => _run(
+              () => actions.print(
+                widget.bytes,
+                reportPdfFileName(l, widget.report),
+              ),
+              l.reportsPdfPrintOpened,
+            ),
           ),
-          icon: const Icon(Icons.print_outlined),
-          label: Text(l.reportsPdfPrint),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.reportsPdfClose),
-        ),
-      ],
+          const SizedBox(height: OnCareSpacing.buttonGap),
+          AppButton(
+            label: l.reportsPdfClose,
+            variant: AppButtonVariant.text,
+            fullWidth: true,
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
     );
   }
 }

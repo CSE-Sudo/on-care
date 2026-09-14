@@ -48,7 +48,9 @@ void main() {
     await openSchedule(tester, const Size(1440, 1200));
 
     final Rect title = tester.getRect(find.text('상세 일정'));
-    final Rect dateRow = tester.getRect(find.byIcon(Icons.chevron_left));
+    final Rect dateRow = tester.getRect(
+      find.byIcon(Icons.chevron_left_rounded).first,
+    );
 
     // 같은 `Row` 에 있으므로 세로로 겹친다 — 어느 한쪽 높이를 상수로 베끼면
     // 그 값이 바뀌는 순간 조용히 어긋난다.

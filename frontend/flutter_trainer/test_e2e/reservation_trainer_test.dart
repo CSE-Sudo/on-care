@@ -18,6 +18,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/schedule/presentation/pages/schedule_page.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/reservation_slots_sheet.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import 'support/e2e_harness.dart';
 
@@ -37,9 +38,13 @@ Future<void> _openSchedule(WidgetTester tester, DateTime day) async {
   // 시간표는 월~일 한 주만 보여 준다(#988). 고르려는 날이 다음 주면 — 오늘이
   // 일요일이면 내일이 그렇다 — 화살표로 한 주 넘긴 뒤에야 그 요일 칸이 있다.
   final Finder cell = find.byKey(ValueKey<String>('schedule-day-${ymd(day)}'));
-  await pumpUntil(tester, find.byIcon(Icons.chevron_right), step: '주 이동 화살표');
+  await pumpUntil(
+    tester,
+    find.byIcon(Icons.chevron_right_rounded).first,
+    step: '주 이동 화살표',
+  );
   if (cell.evaluate().isEmpty) {
-    await tester.tap(find.byIcon(Icons.chevron_right));
+    await tester.tap(find.byIcon(Icons.chevron_right_rounded).first);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
   }
@@ -112,10 +117,9 @@ void main() {
         // 다시 열면 목록을 새로 받아오므로, 확인하려는 계약("연 자리가 슬롯 목록에
         // 보인다")은 그대로 두고 타이밍 의존만 걷어낼 수 있다.
         // 예약 슬롯도 가운데 모달로 뜬다 — 닫기(X)는 시트 안이 아니라
-        // `_openCenteredDialog` 가 카드 바깥에 그리는 공용 버튼
-        // (`DialogCloseButton`, key `dialog-close`)이다. 그 시점에는 모달이
-        // 하나만 열려 있어 키로 바로 찾아도 여러 개가 잡히지 않는다.
-        await tester.tap(find.byKey(const ValueKey<String>('dialog-close')));
+        // `AppDialog` 헤더의 `AppCloseButton` 이다(#1706). 그 시점에는 모달이
+        // 하나만 열려 있어 타입으로 바로 찾아도 여러 개가 잡히지 않는다.
+        await tester.tap(find.byType(AppCloseButton));
         await pumpUntilAbsent(
           tester,
           find.byType(ReservationSlotsSheet),
@@ -133,11 +137,9 @@ void main() {
         await pumpUntilVisibleInList(
           tester,
           find.byKey(ValueKey<String>('slot-row-${created['id']}')),
-          // `Scrollable` 로 찾으면 정원 입력칸의 내부 편집 스크롤까지 잡힌다.
-          list: find.descendant(
-            of: find.byType(ReservationSlotsSheet),
-            matching: find.byType(ListView),
-          ),
+          // 슬롯 목록은 `AppDialog` 본문 스크롤 안에 있다(#1706) — 시트를 끌면
+          // 그 스크롤이 움직인다.
+          list: find.byType(ReservationSlotsSheet),
           step: '새 슬롯이 시트 목록에 표시',
         );
 

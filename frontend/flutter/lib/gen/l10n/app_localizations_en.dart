@@ -1570,6 +1570,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatDemoNotified => 'It was also delivered as a notification';
 
   @override
+  String coachChatDateDivider(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMMEEEEd(
+      localeName,
+    );
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
   String get coachCtaChat => 'Chat with AI';
 
   @override
@@ -2428,6 +2438,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String coachRoutineCancelConfirm(String name) {
     return 'Remove \'$name\' from the list? Anything you already logged stays.';
   }
+
+  @override
+  String get coachCardRoutineUndoTitle => 'Undo completion?';
+
+  @override
+  String get coachCardRoutineCancelTitle => 'Cancel this workout?';
 
   @override
   String get coachRoutineCancelled => 'Workout cancelled';

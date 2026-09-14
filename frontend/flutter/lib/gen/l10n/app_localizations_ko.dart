@@ -1539,6 +1539,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatDemoNotified => '알림으로도 전달됐어요';
 
   @override
+  String coachChatDateDivider(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMMEEEEd(
+      localeName,
+    );
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
   String get coachCtaChat => 'AI와 대화하기';
 
   @override
@@ -2364,6 +2374,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String coachRoutineCancelConfirm(String name) {
     return '\'$name\'을(를) 목록에서 지울까요? 이미 수행한 기록은 그대로 남아요.';
   }
+
+  @override
+  String get coachCardRoutineUndoTitle => '완료를 취소할까요?';
+
+  @override
+  String get coachCardRoutineCancelTitle => '개인 운동을 취소할까요?';
 
   @override
   String get coachRoutineCancelled => '개인 운동을 취소했어요';

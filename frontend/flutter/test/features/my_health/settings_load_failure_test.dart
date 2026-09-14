@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/design_system/theme/app_theme.dart';
+
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
@@ -21,8 +23,11 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: <Override>[profileProvider.overrideWith(_FailingProfile.new)],
+        overrides: <Override>[
+          profileProvider.overrideWith(_FailingProfile.new),
+        ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

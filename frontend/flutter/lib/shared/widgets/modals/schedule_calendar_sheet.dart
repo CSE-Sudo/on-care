@@ -1,18 +1,14 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/tokens/breakpoints.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
-import 'package:oncare/design_system/tokens/radius.dart';
-import 'package:oncare/design_system/tokens/spacing.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/features/schedule/presentation/schedule_category_color.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/modals/add_event_dialog.dart';
 import 'package:oncare/shared/widgets/modals/day_events_sheet.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 String _monthKey(DateTime m) =>
     '${m.year}-${m.month.toString().padLeft(2, '0')}';
@@ -24,27 +20,14 @@ Future<void> showScheduleCalendarSheet(
   BuildContext context, {
   DateTime? initialDate,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    // 탭 페이지에는 저마다 Navigator 가 있고 MainShell 은 extendBody 라, 기본값
-    // 으로 열면 시트가 하단 내비게이션 **뒤쪽**까지 펼쳐져 마지막 주가 바에
-    // 가린다(#680). 루트에 올려 바 위를 덮는다 — 식단 추가 시트와 같은 규칙.
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: AppColors.background,
-    barrierColor: Colors.black54,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: AppRadius.card),
-    ),
-    builder: (BuildContext ctx) => ConstrainedBox(
-      // Match the main content width so the sheet scales with the viewport
-      // like the tab pages. The theme lifts the modal route cap to this
-      // width too (see AppTheme._bottomSheetTheme); this centres the child.
-      constraints: const BoxConstraints(
-        maxWidth: AppBreakpoints.contentMaxWidth,
-      ),
-      child: _CalendarBody(initialDate: initialDate ?? nowKst()),
-    ),
+  return showAppSheet<void>(
+    // 탭 페이지에는 저마다 Navigator 가 있고 MainShell 은 extendBody 라, 탭의
+    // Navigator 에 올리면 시트가 하단 내비게이션 **뒤쪽**까지 펼쳐져 마지막 주가
+    // 바에 가린다(#680). 루트 Navigator 의 context 로 열어 바 위를 덮는다 — 식단
+    // 추가 시트와 같은 규칙. 폭 상한(콘텐츠 최대 폭)은 테마가 정한다.
+    context: Navigator.of(context, rootNavigator: true).context,
+    builder: (BuildContext ctx) =>
+        _CalendarBody(initialDate: initialDate ?? nowKst()),
   );
 }
 
@@ -62,10 +45,10 @@ class _CalendarBodyState extends ConsumerState<_CalendarBody> {
     widget.initialDate.month,
   );
 
-  /// 한 주 칸의 최소 높이. 남은 높이를 주 수로 나눈 값이 이보다 작아지면 —
-  /// 세로가 짧은 기기나 6주짜리 달 — 칸을 더 줄이는 대신 그리드를 스크롤한다.
-  /// 날짜 숫자와 일정 칩 한 줄이 들어가는 최소치다.
-  static const double _minRowHeight = 56;
+  /// 한 칸에 그리는 일정 점의 최대 개수. 칸 높이는 규격이 정하므로 일정이 많은
+  /// 날도 점을 이 수까지만 그려 칸을 넘치지 않는다 — 전부는 날짜를 눌러 펼친
+  /// 하루 시트에서 본다.
+  static const int _maxDots = 3;
 
   /// 그리드의 요일 머리. 일요일부터 시작한다 — 문구는 식단 탭이 쓰는 것과 같은
   /// 키를 재사용한다(#847).
@@ -103,268 +86,116 @@ class _CalendarBodyState extends ConsumerState<_CalendarBody> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
+    final MaterialLocalizations m = MaterialLocalizations.of(context);
     final monthKey = _monthKey(_month);
     final async = ref.watch(scheduleMonthProvider(monthKey));
     final today = nowKst();
-    final days = _daysInGrid(_month);
 
-    return FractionallySizedBox(
-      heightFactor: 0.85,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-        child: Column(
-          children: <Widget>[
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    l.scheduleSheetTitle,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-                _CircleClose(onTap: () => Navigator.of(context).pop()),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: <Widget>[
-                IconButton(
-                  // 달 이동은 플랫폼이 이미 제 언어로 부르는 이름이 있다.
-                  tooltip: MaterialLocalizations.of(
-                    context,
-                  ).previousMonthTooltip,
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: () => setState(
-                    () => _month = DateTime(_month.year, _month.month - 1),
-                  ),
-                ),
-                Text(
-                  // 연·월 표기는 로케일마다 순서가 다르다. 직접 조립하지 않고
-                  // 플랫폼 형식을 쓴다(#847).
-                  MaterialLocalizations.of(context).formatMonthYear(_month),
-                  style: theme.textTheme.titleMedium,
-                ),
-                IconButton(
-                  tooltip: MaterialLocalizations.of(context).nextMonthTooltip,
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: () => setState(
-                    () => _month = DateTime(_month.year, _month.month + 1),
-                  ),
-                ),
-                const Spacer(),
-                FilledButton(
-                  onPressed: () async {
-                    await showAddEventDialog(context);
-                    // 추가된 일정이 이 달 그리드에 반영되도록 새로고침.
-                    ref.invalidate(scheduleMonthProvider(monthKey));
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(AppRadius.md),
-                    ),
-                  ),
-                  child: Text(l.eventAddTitle),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            const _CategoryLegend(),
-            const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: <Widget>[
-                for (final String w in _weekdays(l))
-                  Expanded(
-                    child: Container(
-                      color: AppColors.accent,
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(
-                        w,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.mutedForeground,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            Expanded(
-              child: async.when(
-                skipLoadingOnRefresh: true,
-                data: (List<ScheduleEvent> events) {
-                  final byDay = _groupByDay(events);
-                  return LayoutBuilder(
-                    builder: (BuildContext _, BoxConstraints constraints) {
-                      // 칸 높이를 남은 세로 공간에서 정한다. 가로폭에서 고정
-                      // 비율로 잡으면 6주짜리 달의 마지막 주가 남은 높이를
-                      // 넘겨 잘렸다 — 스크롤도 꺼져 있어 8월이 22일에서
-                      // 끝나 보이던 원인이다(#669).
-                      // _daysInGrid 가 앞뒤를 채워 항상 7의 배수를 돌려주므로
-                      // 나누어떨어진다.
-                      final int rows = days.length ~/ 7;
-                      final double rowHeight = math.max(
-                        _minRowHeight,
-                        constraints.maxHeight / rows,
-                      );
-                      return GridView.builder(
-                        // 최소 높이에 걸려 다 담기지 않는 경우에만 스크롤이
-                        // 생긴다. 어떤 경우에도 잘라내지 않는다.
-                        physics: const ClampingScrollPhysics(),
-                        padding: EdgeInsets.zero,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 7,
-                          mainAxisExtent: rowHeight,
-                        ),
-                        itemCount: days.length,
-                        itemBuilder: (BuildContext _, int i) {
-                          final day = days[i];
-                          if (day == null) {
-                            return const DecoratedBox(
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  right: BorderSide(color: AppColors.border),
-                                  bottom: BorderSide(color: AppColors.border),
-                                ),
-                              ),
-                            );
-                          }
-                          final isToday =
-                              day.year == today.year &&
-                              day.month == today.month &&
-                              day.day == today.day;
-                          final dayEvents =
-                              byDay[day.day] ?? const <ScheduleEvent>[];
-                          return InkWell(
-                            key: Key('calendar-day-${day.day}'),
-                            // 칸을 눌러 그 날의 일정을 펼친다. 예전에는 칸도 칩도
-                            // 어떤 탭에도 반응하지 않아, 한 번 넣은 일정을 열어
-                            // 보거나 고치거나 지울 방법이 없었다(#784).
-                            onTap: () => _openDay(day, dayEvents),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: isToday
-                                    ? AppColors.primary.withValues(alpha: 0.05)
-                                    : null,
-                                border: const Border(
-                                  right: BorderSide(color: AppColors.border),
-                                  bottom: BorderSide(color: AppColors.border),
-                                ),
-                              ),
-                              padding: const EdgeInsets.all(4),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Text(
-                                    '${day.day}',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: isToday ? AppColors.primary : null,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  // 칸 높이는 남은 공간에서 정해지므로 일정이
-                                  // 여럿인 날은 칩이 칸을 넘길 수 있다. 넘치는
-                                  // 만큼은 ClipRect 가 잘라내고, OverflowBox 가
-                                  // Column 에 무한 높이를 줘 오버플로 경고 없이
-                                  // 그린다. 날짜 숫자는 언제나 남는다.
-                                  //
-                                  // 칸마다 ListView 를 두면 한 달에 스크롤 뷰가
-                                  // 35~42개 생긴다 — 자르기만 하는 데 치르는
-                                  // 값으로는 너무 비싸다.
-                                  Expanded(
-                                    child: ClipRect(
-                                      child: OverflowBox(
-                                        alignment: Alignment.topLeft,
-                                        maxHeight: double.infinity,
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: <Widget>[
-                                            for (final ScheduleEvent e
-                                                in dayEvents)
-                                              Container(
-                                                margin: const EdgeInsets.only(
-                                                  bottom: 2,
-                                                ),
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                      vertical: 2,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: scheduleCategoryColor(
-                                                    e.category,
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
-                                                ),
-                                                child: Text(
-                                                  '${e.time} ${e.title}'.trim(),
-                                                  style: const TextStyle(
-                                                    fontSize: 9,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (Object e, _) => Center(
-                  child: Text(
-                    l.eventsLoadFailed,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: AppColors.foreground,
-                    ),
-                  ),
-                ),
+    return AppSheet(
+      title: l.scheduleSheetTitle,
+      footer: AppButton(
+        label: l.eventAddTitle,
+        fullWidth: true,
+        onPressed: () async {
+          await showAddEventDialog(context);
+          // 추가된 일정이 이 달 그리드에 반영되도록 새로고침.
+          ref.invalidate(scheduleMonthProvider(monthKey));
+        },
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Center(
+            child: AppPeriodNav(
+              // 연·월 표기는 로케일마다 순서가 다르다. 직접 조립하지 않고
+              // 플랫폼 형식을 쓴다(#847). 달 이동도 플랫폼이 이미 제 언어로
+              // 부르는 이름이 있다.
+              label: m.formatMonthYear(_month),
+              previousTooltip: m.previousMonthTooltip,
+              nextTooltip: m.nextMonthTooltip,
+              onPrevious: () => setState(
+                () => _month = DateTime(_month.year, _month.month - 1),
+              ),
+              onNext: () => setState(
+                () => _month = DateTime(_month.year, _month.month + 1),
               ),
             ),
-            // 시스템 내비게이션 바 인셋만큼 더 띄운다 — 인셋이 있는 기기에서
-            // 마지막 주가 내비게이션 바 뒤로 들어가 보이지 않던 문제(#669).
-            SizedBox(
-              height: AppSpacing.md + MediaQuery.viewPaddingOf(context).bottom,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          const _CategoryLegend(),
+          const SizedBox(height: OnCareSpacing.s16),
+          async.when(
+            skipLoadingOnRefresh: true,
+            data: (List<ScheduleEvent> events) {
+              final byDay = _groupByDay(events);
+              // 칸 높이는 규격(AppMonthGrid)이 정하고, 시트 본문이 스크롤된다.
+              // 세로가 짧은 기기나 6주짜리 달도 잘라내지 않고 스크롤로 말일에
+              // 닿는다(#669).
+              return AppMonthGrid(
+                month: _month,
+                weekdayLabels: _weekdays(l),
+                firstWeekday: DateTime.sunday,
+                selected: null,
+                today: today,
+                // 칸을 눌러 그 날의 일정을 펼친다. 예전에는 칸도 칩도 어떤 탭에도
+                // 반응하지 않아, 한 번 넣은 일정을 열어 보거나 고치거나 지울
+                // 방법이 없었다(#784).
+                onSelected: (DateTime day) =>
+                    _openDay(day, byDay[day.day] ?? const <ScheduleEvent>[]),
+                dayBuilder: (BuildContext _, DateTime day) => _DayMarkers(
+                  key: Key('calendar-day-${day.day}'),
+                  events: byDay[day.day] ?? const <ScheduleEvent>[],
+                  maxDots: _maxDots,
+                ),
+              );
+            },
+            loading: () => const AppLoading(),
+            error: (Object e, _) => AppErrorState(
+              title: l.eventsLoadFailed,
+              retryLabel: l.actionRetry,
+              onRetry: () => ref.invalidate(scheduleMonthProvider(monthKey)),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 날짜 숫자 아래 일정 점 줄. 일정이 없는 날도 같은 높이를 차지해 칸마다 날짜
+/// 숫자의 자리가 같다. 점 색은 카테고리 색이고, 읽는 이름은 시맨틱으로 준다.
+class _DayMarkers extends StatelessWidget {
+  const _DayMarkers({
+    super.key,
+    required this.events,
+    required this.maxDots,
+  });
+
+  final List<ScheduleEvent> events;
+  final int maxDots;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: events.isEmpty
+          ? null
+          : <String>[
+              for (final ScheduleEvent e in events) '${e.time} ${e.title}'.trim(),
+            ].join(', '),
+      child: SizedBox(
+        height: OnCareSize.dot,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            for (int i = 0; i < events.length && i < maxDots; i++) ...<Widget>[
+              if (i > 0) const SizedBox(width: OnCareSpacing.s2),
+              AppStatusDot(color: scheduleCategoryColor(events[i].category)),
+            ],
           ],
         ),
       ),
     );
-  }
-
-  /// 그 달의 그리드 칸. 앞쪽은 1일의 요일까지 비우고, 뒤쪽도 마지막 주가 7칸이
-  /// 되도록 채운다 — 채우지 않으면 마지막 주의 테두리가 중간에서 끊긴다.
-  static List<DateTime?> _daysInGrid(DateTime month) {
-    final first = DateTime(month.year, month.month);
-    final lastDay = DateTime(month.year, month.month + 1, 0);
-    final leading = first.weekday % 7; // Sunday-first
-    final trailing = (7 - (leading + lastDay.day) % 7) % 7;
-    return <DateTime?>[
-      for (int i = 0; i < leading; i++) null,
-      for (int d = 1; d <= lastDay.day; d++)
-        DateTime(month.year, month.month, d),
-      for (int i = 0; i < trailing; i++) null,
-    ];
   }
 }
 
@@ -373,58 +204,25 @@ class _CategoryLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
+    final TextStyle style = context.oncare
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textSecondary);
     return Wrap(
-      spacing: AppSpacing.md,
-      runSpacing: 4,
+      alignment: WrapAlignment.center,
+      spacing: OnCareSpacing.s12,
+      runSpacing: OnCareSpacing.s4,
       children: <Widget>[
         for (final ScheduleCategory c in ScheduleCategory.values)
           Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: scheduleCategoryColor(c),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                scheduleCategoryLabel(l, c),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.mutedForeground,
-                ),
-              ),
+              AppStatusDot(color: scheduleCategoryColor(c)),
+              const SizedBox(width: OnCareSpacing.s4),
+              Text(scheduleCategoryLabel(l, c), style: style),
             ],
           ),
       ],
-    );
-  }
-}
-
-class _CircleClose extends StatelessWidget {
-  const _CircleClose({required this.onTap});
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.accent,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Tooltip(
-          message: MaterialLocalizations.of(context).closeButtonTooltip,
-          child: const SizedBox(
-            width: 32,
-            height: 32,
-            child: Icon(Icons.close, size: 18),
-          ),
-        ),
-      ),
     );
   }
 }

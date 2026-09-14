@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_image_attachment.dart';
@@ -35,11 +36,12 @@ Future<void> _pump(WidgetTester tester, {Uint8List? bytes}) async {
           _image.downloadPath,
         ).overrideWith((ref) async => bytes),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: CoachImageAttachment(attachment: _image)),
+        home: const Scaffold(body: CoachImageAttachment(attachment: _image)),
       ),
     ),
   );

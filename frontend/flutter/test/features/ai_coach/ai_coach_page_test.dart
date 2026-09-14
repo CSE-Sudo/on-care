@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
@@ -59,11 +60,12 @@ void main() {
         overrides: <Override>[
           aiCoachRepositoryProvider.overrideWithValue(const _QuietRepository()),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: AICoachPage(),
+          home: const AICoachPage(),
         ),
       ),
     );
@@ -84,7 +86,7 @@ void main() {
 
     // 보내기 버튼을 함께 확인한다 — 입력창이 그려지지도 않았는데 findsNothing
     // 이라 통과하는 빈 검사가 되지 않도록.
-    expect(find.byIcon(Icons.arrow_upward), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
     expect(find.byIcon(Icons.add), findsNothing);
   });
 
@@ -99,11 +101,12 @@ void main() {
         overrides: <Override>[
           aiCoachRepositoryProvider.overrideWithValue(repo),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: AICoachPage(),
+          home: const AICoachPage(),
         ),
       ),
     );
@@ -128,6 +131,6 @@ void main() {
     await pumpPage(tester);
 
     // 죽은 버튼을 지우면서 뒤로 가기까지 함께 지우는 실수를 막는다.
-    expect(find.byIcon(Icons.chevron_left), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
   });
 }

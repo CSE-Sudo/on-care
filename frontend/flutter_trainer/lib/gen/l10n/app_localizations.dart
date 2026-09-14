@@ -2972,6 +2972,78 @@ abstract class AppLocalizations {
   /// **'Enter a valid time (HH:mm)'**
   String get schedTimeRangeInvalid;
 
+  /// No description provided for @schedTimePickerTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get schedTimePickerTimeLabel;
+
+  /// No description provided for @schedTimePickerEndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get schedTimePickerEndTime;
+
+  /// No description provided for @schedTimePickerHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Hour'**
+  String get schedTimePickerHour;
+
+  /// No description provided for @schedTimePickerMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'Minute'**
+  String get schedTimePickerMinute;
+
+  /// No description provided for @schedTimePickerStartHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Start hour'**
+  String get schedTimePickerStartHour;
+
+  /// No description provided for @schedTimePickerStartMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'Start minute'**
+  String get schedTimePickerStartMinute;
+
+  /// No description provided for @schedTimePickerEndHour.
+  ///
+  /// In en, this message translates to:
+  /// **'End hour'**
+  String get schedTimePickerEndHour;
+
+  /// No description provided for @schedTimePickerEndMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'End minute'**
+  String get schedTimePickerEndMinute;
+
+  /// No description provided for @schedTimePickerPrevStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous step'**
+  String get schedTimePickerPrevStep;
+
+  /// No description provided for @schedTimePickerNextStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Next step'**
+  String get schedTimePickerNextStep;
+
+  /// No description provided for @schedTimePickerEndBeforeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'End time is earlier than the start time'**
+  String get schedTimePickerEndBeforeStart;
+
+  /// No description provided for @schedClockHourSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{hour} o\'clock'**
+  String schedClockHourSemantics(String hour);
+
   /// No description provided for @schedRepeat.
   ///
   /// In en, this message translates to:

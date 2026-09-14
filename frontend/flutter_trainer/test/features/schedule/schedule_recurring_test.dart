@@ -180,7 +180,7 @@ void main() {
         at: AppRoutes.schedule,
       );
 
-      await tester.tap(find.byIcon(Icons.add).first);
+      await tester.tap(find.byIcon(Icons.add_rounded).first);
       await settle(tester);
 
       // 기본은 반복 없음 — 지금까지의 동작 그대로다.
