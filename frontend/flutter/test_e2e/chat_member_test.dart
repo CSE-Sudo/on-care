@@ -39,7 +39,13 @@ void main() {
           find.byKey(const ValueKey<String>('member-chat-input')),
           fromMember,
         );
-        await tester.tap(find.byKey(const ValueKey<String>('member-chat-send')));
+        // 전송 버튼은 공용 입력줄(`AppChatInputBar`) 안의 아이콘 버튼이다(#1702).
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(const ValueKey<String>('member-chat-input')),
+            matching: find.byIcon(Icons.arrow_upward_rounded),
+          ),
+        );
 
         // 화면에 뜨는 것과 서버에 남는 것은 다른 주장이다. 둘 다 본다.
         await pumpUntil(tester, find.text(fromMember), step: '보낸 메시지 표시');
@@ -136,7 +142,13 @@ void main() {
         final String retried = '$marker 재시도';
         const String requestId = 'e2e-639-retry';
 
-        expect((await api.sendAsMember(retried, clientRequestId: requestId)).statusCode, 201);
+        expect(
+          (await api.sendAsMember(
+            retried,
+            clientRequestId: requestId,
+          )).statusCode,
+          201,
+        );
         final Response<Object?> again = await api.sendAsMember(
           retried,
           clientRequestId: requestId,
