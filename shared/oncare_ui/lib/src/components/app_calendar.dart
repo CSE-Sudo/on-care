@@ -86,6 +86,7 @@ class AppWeekStrip extends StatelessWidget {
     this.nextTooltip,
     this.onPrevious,
     this.onNext,
+    this.lastSelectableDay,
   }) : assert(days.length == weekdayLabels.length),
        assert(
          (previousTooltip == null) == (nextTooltip == null),
@@ -111,6 +112,20 @@ class AppWeekStrip extends StatelessWidget {
   /// `null` 이면 그 방향으로 갈 수 없다(흐리게 비활성).
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
+
+  /// 고를 수 있는 마지막 날. 이보다 뒤의 날은 모양은 그대로 두고 탭만 받지
+  /// 않는다(아직 오지 않은 날). `null` 이면 모든 날을 고를 수 있다.
+  final DateTime? lastSelectableDay;
+
+  bool _selectable(DateTime day) {
+    final DateTime? last = lastSelectableDay;
+    if (last == null) return true;
+    return !DateTime(
+      day.year,
+      day.month,
+      day.day,
+    ).isAfter(DateTime(last.year, last.month, last.day));
+  }
 
   static bool _same(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
@@ -144,10 +159,11 @@ class AppWeekStrip extends StatelessWidget {
           Expanded(
             child: Semantics(
               button: true,
+              enabled: _selectable(days[i]),
               selected: _same(days[i], selected),
               child: InkWell(
                 borderRadius: OnCareRadius.mdAll,
-                onTap: () => onSelected(days[i]),
+                onTap: _selectable(days[i]) ? () => onSelected(days[i]) : null,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     vertical: OnCareSpacing.s4,
