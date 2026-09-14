@@ -2867,6 +2867,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTodoReportSubtitle => '이번 주 리포트 작성 대상';
 
   @override
+  String get dashTaskSaveFailed => '할 일 상태를 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get dashTaskLoadFailed => '할 일 상태를 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
   String get dashTaskDismissTitle => '이 항목을 삭제할까요?';
 
   @override

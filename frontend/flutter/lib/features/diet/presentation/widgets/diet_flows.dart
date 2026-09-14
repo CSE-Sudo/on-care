@@ -257,6 +257,9 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final MealPhotoFailure? failure = _failure;
+    final MealPhotoChoiceLayout layout = ref.watch(
+      mealPhotoChoiceLayoutProvider,
+    );
     return _sheetShell(
       context,
       Column(
@@ -304,25 +307,38 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
             child: Column(
               children: <Widget>[
-                // 두 갈래 모두 브랜드 파랑의 농담이다 — 촬영이 진한 쪽(주된
-                // 경로), 갤러리가 옅은 쪽이다.
-                _SourceOption(
-                  icon: Icons.image_outlined,
-                  iconBg: FigmaColors.primaryA(0.10),
-                  iconColor: FigmaColors.primaryA(0.55),
-                  title: l.dietPickPhoto,
-                  subtitle: l.dietPickPhotoSub,
-                  onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
-                ),
-                const SizedBox(height: 12),
-                _SourceOption(
-                  icon: Icons.photo_camera_outlined,
-                  iconBg: FigmaColors.primaryA(0.12),
-                  iconColor: FigmaColors.primary,
-                  title: l.dietTakePhoto,
-                  subtitle: l.dietTakePhotoSub,
-                  onTap: () => _pickAndAnalyze(MealPhotoSource.camera),
-                ),
+                if (layout == MealPhotoChoiceLayout.systemMenu)
+                  // 웹: 브라우저가 보관함·촬영·파일을 묻는 메뉴를 스스로 띄운다.
+                  // 앱에 촬영을 따로 두면 그 메뉴의 `사진 찍기`와 겹친다(#1433).
+                  _SourceOption(
+                    icon: Icons.image_outlined,
+                    iconBg: FigmaColors.primaryA(0.10),
+                    iconColor: FigmaColors.primaryA(0.55),
+                    title: l.dietAddPhoto,
+                    subtitle: l.dietAddPhotoSub,
+                    onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
+                  )
+                else ...<Widget>[
+                  // 두 갈래 모두 브랜드 파랑의 농담이다 — 촬영이 진한 쪽(주된
+                  // 경로), 갤러리가 옅은 쪽이다.
+                  _SourceOption(
+                    icon: Icons.image_outlined,
+                    iconBg: FigmaColors.primaryA(0.10),
+                    iconColor: FigmaColors.primaryA(0.55),
+                    title: l.dietPickPhoto,
+                    subtitle: l.dietPickPhotoSub,
+                    onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
+                  ),
+                  const SizedBox(height: 12),
+                  _SourceOption(
+                    icon: Icons.photo_camera_outlined,
+                    iconBg: FigmaColors.primaryA(0.12),
+                    iconColor: FigmaColors.primary,
+                    title: l.dietTakePhoto,
+                    subtitle: l.dietTakePhotoSub,
+                    onTap: () => _pickAndAnalyze(MealPhotoSource.camera),
+                  ),
+                ],
               ],
             ),
           ),

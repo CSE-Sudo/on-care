@@ -348,6 +348,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietTakePhotoSub => '카메라로 음식 촬영';
 
   @override
+  String get dietAddPhoto => '사진 추가';
+
+  @override
+  String get dietAddPhotoSub => '앨범·카메라·파일에서 음식 사진 선택';
+
+  @override
   String get dietPhotoLoadError => '사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
@@ -2428,15 +2434,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get alertLoadFailed => '최신 알림을 불러오지 못했어요';
-
-  @override
-  String get alertSimulatedTitle => '시뮬레이션 알림';
-
-  @override
-  String get alertSimulatedBody => '지금 막 가상 푸시가 도착했어요.';
-
-  @override
-  String get alertJustNow => '방금';
 
   @override
   String get exPtLogTitle => '오늘 완료한 PT';
