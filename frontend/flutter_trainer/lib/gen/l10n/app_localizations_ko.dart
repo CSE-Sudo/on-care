@@ -3184,6 +3184,29 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programDraftDeleteBody => '이미 배정한 프로그램과 등록한 일정은 그대로 남아요.';
 
   @override
+  String programAssignConfirmAttachBody(
+    String name,
+    String date,
+    String session,
+    String selected,
+  ) {
+    return '$date $session에 이미 예정된 $name님의 PT에 이 프로그램이 연결돼요. 고른 시간($selected)은 적용되지 않아요.';
+  }
+
+  @override
+  String programAssignConfirmChooseBody(
+    String name,
+    String date,
+    String selected,
+  ) {
+    return '$date에 고른 시간($selected)과 겹치는 $name님의 PT가 여러 개예요. 프로그램을 연결할 회차를 골라 주세요. 고른 시간은 적용되지 않아요.';
+  }
+
+  @override
+  String get coachAttachTargetChanged =>
+      '연결할 PT 일정이 그 사이 바뀌었어요. 일정 추가를 다시 눌러 확인해 주세요';
+
+  @override
   String get programEditorNoExercises => '운동을 하나 이상 추가해 주세요';
 
   @override
@@ -3229,7 +3252,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String programAssignConfirmBody(String name, String date, String time) {
-    return '$date $time에 $name님의 PT 스케줄에 이 프로그램이 추가돼요.';
+    return '$date $time에 $name님의 PT 일정을 새로 만들고 이 프로그램을 추가해요.';
   }
 
   @override

@@ -1546,9 +1546,21 @@ def trainer_assign_program_with_schedule(
             duration_minutes=payload.duration_minutes,
             client_name=payload.client_name,
             client_request_id=payload.client_request_id,
+            session_id=payload.session_id,
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except trainer_service.AttachTargetConflict as exc:
+        # 겹치는 후보를 함께 실어 화면이 어느 회차를 고를지 다시 물을 수 있게 한다.
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": str(exc),
+                "candidates": [
+                    candidate.model_dump(mode="json") for candidate in exc.candidates
+                ],
+            },
+        ) from exc
     if result is None:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return result

@@ -189,7 +189,8 @@ def test_program_schedule_attaches_to_the_created_session(client, db_session):
             url,
             json={
                 **_program_command_body(day, "플랭크"),
-                "time": "18:30",
+                # 16:00–17:15 세션과 부분 겹침 — 거기에 붙는다(#1581).
+                "time": "16:30",
                 "duration_minutes": 30,
             },
             headers=_h(token),
@@ -218,6 +219,72 @@ def test_program_schedule_attaches_to_the_created_session(client, db_session):
         assert len(rows) == 1
         assert rows[0].time == "16:00"
         assert rows[0].duration_minutes == 75
+    finally:
+        _delete_program_test_sessions(db_session, day)
+
+
+def test_program_schedule_attach_target_follows_the_selected_time(
+    client, db_session
+):
+    """기존 PT 연결은 고른 시간대와 겹치는 예정 세션만 대상으로 한다. (#1581)"""
+    token = _tok(client)
+    day = (clock.today() + timedelta(days=64)).isoformat()
+    _delete_program_test_sessions(db_session, day)
+
+    def book(time_: str) -> str:
+        booked = client.post(
+            "/v1/trainer/schedule",
+            json={
+                "date": day,
+                "time": time_,
+                "client_name": "이지수",
+                "member_id": "user-jisu",
+                "type": "1:1 PT",
+                "duration_minutes": 60,
+            },
+            headers=_h(token),
+        )
+        assert booked.status_code == 201, booked.text
+        return booked.json()["id"]
+
+    def add(time_: str, minutes: int = 60, session_id: str | None = None):
+        return client.post(
+            _PROGRAM_SCHEDULE_URL,
+            json={
+                **_program_command_body(day, "걷기"),
+                "time": time_,
+                "duration_minutes": minutes,
+                "session_id": session_id,
+            },
+            headers=_h(token),
+        )
+
+    try:
+        morning = book("09:00")
+        evening = book("18:00")
+
+        exact = add("09:00")
+        assert exact.status_code == 201, exact.text
+        assert exact.json()["attached_to_existing"] is True
+        assert exact.json()["session"]["id"] == morning
+
+        partial = add("17:30")  # 17:30–18:30 이 18:00 세션과 겹친다.
+        assert partial.status_code == 201, partial.text
+        assert partial.json()["session"]["id"] == evening
+
+        none = add("13:00")  # 겹치는 세션이 없으면 가장 이른 회차가 아니라 새 일정.
+        assert none.status_code == 201, none.text
+        assert none.json()["attached_to_existing"] is False
+        assert none.json()["session"]["time"] == "13:00"
+
+        # 08:30–18:30 은 09:00·13:00·18:00 세션과 모두 겹친다.
+        ambiguous = add("08:30", minutes=600)
+        assert ambiguous.status_code == 409, ambiguous.text
+        assert len(ambiguous.json()["detail"]["candidates"]) == 3
+
+        chosen = add("08:30", minutes=600, session_id=evening)
+        assert chosen.status_code == 201, chosen.text
+        assert chosen.json()["session"]["id"] == evening
     finally:
         _delete_program_test_sessions(db_session, day)
 

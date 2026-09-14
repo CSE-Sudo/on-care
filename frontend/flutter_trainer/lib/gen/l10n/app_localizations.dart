@@ -5834,6 +5834,33 @@ abstract class AppLocalizations {
   /// **'Programs you already assigned and sessions you scheduled stay as they are.'**
   String get programDraftDeleteBody;
 
+  /// No description provided for @programAssignConfirmAttachBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This program will be attached to {name}\'s PT already planned for {date} {session}. The time you picked ({selected}) won\'t be applied.'**
+  String programAssignConfirmAttachBody(
+    String name,
+    String date,
+    String session,
+    String selected,
+  );
+
+  /// No description provided for @programAssignConfirmChooseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has several PT sessions on {date} that overlap the time you picked ({selected}). Choose the session to attach this program to. The picked time won\'t be applied.'**
+  String programAssignConfirmChooseBody(
+    String name,
+    String date,
+    String selected,
+  );
+
+  /// No description provided for @coachAttachTargetChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The PT session to attach to has changed. Tap Add to schedule again to check'**
+  String get coachAttachTargetChanged;
+
   /// No description provided for @programEditorNoExercises.
   ///
   /// In en, this message translates to:
@@ -5908,7 +5935,7 @@ abstract class AppLocalizations {
   /// No description provided for @programAssignConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This program will be added to {name}\'s PT schedule on {date} at {time}.'**
+  /// **'A new PT session will be created for {name} on {date} at {time} with this program.'**
   String programAssignConfirmBody(String name, String date, String time);
 
   /// No description provided for @programEditorSaveTemplate.

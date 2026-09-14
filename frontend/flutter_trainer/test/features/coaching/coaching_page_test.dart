@@ -107,6 +107,7 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
     required int durationMinutes,
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
+    String? sessionId,
   }) async {
     registerCalls++;
     // Keep the write in flight across client-switching/scroll animations.
@@ -119,6 +120,7 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
       durationMinutes: durationMinutes,
       assignment: assignment,
       program: program,
+      sessionId: sessionId,
     );
     completedFor.add(clientId);
     return attached;
@@ -150,6 +152,7 @@ class _CapturingScheduleRepository extends DriftScheduleRepository {
     required int durationMinutes,
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
+    String? sessionId,
   }) async {
     registerCalls++;
     assignments.add(assignment);
@@ -682,7 +685,8 @@ void main() {
           date: ymd(nowKst()),
           clientId: 'seed-client-3',
           clientName: '박성호',
-          time: '10:00',
+          // 고른 시간대가 그 세션과 겹쳐야 연결된다(#1581).
+          time: before.time,
           durationMinutes: 75,
           assignment: const <String, Object?>{},
           program: const <ProgramItem>[
@@ -1640,9 +1644,19 @@ void main() {
     ) async {
       await openTab(tester);
 
-      // 박성호 → his 15:00 예정 session receives the program.
+      // 박성호 → his 16:00 (45분) 예정 session receives the program.
       await tester.tap(find.text('박성호'));
       await settle(tester);
+
+      // 연결 대상은 고른 시간대와 겹치는 세션이다(#1581) — 16:00 에 맞춘다.
+      await _ensureSendButtonReady(tester);
+      tester
+          .widget<ProgramEditorWorkspace>(find.byType(ProgramEditorWorkspace))
+          .onRegisterTimeRangeChanged((
+            start: const TimeOfDay(hour: 16, minute: 0),
+            end: const TimeOfDay(hour: 17, minute: 0),
+          ));
+      await tester.pump();
 
       await _sendProgram(tester);
       await settle(tester);

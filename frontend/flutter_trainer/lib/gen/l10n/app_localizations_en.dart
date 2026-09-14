@@ -3327,6 +3327,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'Programs you already assigned and sessions you scheduled stay as they are.';
 
   @override
+  String programAssignConfirmAttachBody(
+    String name,
+    String date,
+    String session,
+    String selected,
+  ) {
+    return 'This program will be attached to $name\'s PT already planned for $date $session. The time you picked ($selected) won\'t be applied.';
+  }
+
+  @override
+  String programAssignConfirmChooseBody(
+    String name,
+    String date,
+    String selected,
+  ) {
+    return '$name has several PT sessions on $date that overlap the time you picked ($selected). Choose the session to attach this program to. The picked time won\'t be applied.';
+  }
+
+  @override
+  String get coachAttachTargetChanged =>
+      'The PT session to attach to has changed. Tap Add to schedule again to check';
+
+  @override
   String get programEditorNoExercises => 'Add at least one exercise';
 
   @override
@@ -3378,7 +3401,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String programAssignConfirmBody(String name, String date, String time) {
-    return 'This program will be added to $name\'s PT schedule on $date at $time.';
+    return 'A new PT session will be created for $name on $date at $time with this program.';
   }
 
   @override

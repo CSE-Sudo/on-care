@@ -91,6 +91,20 @@ class DioScheduleRepository implements ScheduleRepository {
     });
   }
 
+  /// 그날 타임라인을 한 번 읽어 이 회원 몫만 남긴다(#1581). 서버가 시간순으로
+  /// 준다.
+  @override
+  Future<List<ScheduleSession>> fetchClientSessionsOn(
+    ScheduleClientKey client,
+    String date,
+  ) async {
+    final sessions = await _fetch(<String, String>{'date': date});
+    return <ScheduleSession>[
+      for (final session in sessions)
+        if (session.clientId == client.id && !session.isGap) session,
+    ];
+  }
+
   /// Booked dates come from their own endpoint (a 90-day window server
   /// side), so this doesn't page the whole timeline to find them.
   @override
@@ -215,20 +229,30 @@ class DioScheduleRepository implements ScheduleRepository {
     required int durationMinutes,
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
+    String? sessionId,
   }) async {
     late bool attachedToExisting;
     final memberId = Uri.encodeComponent(clientId);
     await _mutate(() async {
-      final response = await _dio.post<Map<String, dynamic>>(
-        '/trainer/clients/$memberId/program-schedule',
-        data: programScheduleToJson(
-          assignment: assignment,
-          date: date,
-          time: time,
-          durationMinutes: durationMinutes,
-          clientName: clientName,
-        ),
-      );
+      final Response<Map<String, dynamic>> response;
+      try {
+        response = await _dio.post<Map<String, dynamic>>(
+          '/trainer/clients/$memberId/program-schedule',
+          data: programScheduleToJson(
+            assignment: assignment,
+            date: date,
+            time: time,
+            durationMinutes: durationMinutes,
+            clientName: clientName,
+            sessionId: sessionId,
+          ),
+        );
+      } on DioException catch (e) {
+        // 연결할 회차를 정할 수 없다는 409 는 후보를 함께 싣는다(#1581) — 멱등키
+        // 충돌 같은 다른 409 와 구분해 화면이 다시 고르게 안내할 수 있게 한다.
+        if (_isAttachConflict(e)) throw const ProgramAttachConflictError();
+        rethrow;
+      }
       final attached = response.data?['attached_to_existing'];
       if (attached is! bool) {
         throw const FormatException(
@@ -360,6 +384,15 @@ class DioScheduleRepository implements ScheduleRepository {
     if (rule.until != null) 'until': ymd(rule.until!),
     'client_request_id': ?clientRequestId,
   };
+
+  /// `일정 추가` 가 연결 대상을 정하지 못해 받은 409 인가(#1581).
+  bool _isAttachConflict(DioException error) {
+    if (error.response?.statusCode != 409) return false;
+    final data = error.response?.data;
+    return data is Map &&
+        data['detail'] is Map &&
+        (data['detail'] as Map).containsKey('candidates');
+  }
 
   /// 409 응답에 실려 온 겹친 세션들. 다른 오류면 null.
   List<ScheduleSession>? _conflictsFrom(DioException error) {
