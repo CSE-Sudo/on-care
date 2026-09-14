@@ -9,9 +9,8 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-// 순수 문자열 함수(`clientIdentityLabel`·`clientDemographicsLabel`)만 쓴다.
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
-    show clientDemographicsLabel, clientIdentityLabel;
+    show ClientIdentity, clientDemographicsLabel;
 import 'package:oncare_ui/oncare_ui.dart';
 
 enum _ConversationFilter {
@@ -102,6 +101,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 list: _ConversationList(
                   clients: filtered,
                   selectedId: narrow ? null : selected?.id,
+                  // 카드의 오른쪽 테두리·그림자가 스크롤 영역에 잘리지 않게,
+                  // 분할일 때만 한 칸 비워 둔다 — 회원 탭 목록과 같다.
+                  trailingPadding: narrow ? 0 : OnCareSpacing.s8,
                   unread: unread,
                   filter: filter,
                   onFilterChanged: _setFilter,
@@ -141,6 +143,7 @@ class _ConversationList extends StatelessWidget {
   const _ConversationList({
     required this.clients,
     required this.selectedId,
+    required this.trailingPadding,
     required this.unread,
     required this.filter,
     required this.onFilterChanged,
@@ -149,6 +152,7 @@ class _ConversationList extends StatelessWidget {
 
   final List<TrainerClient> clients;
   final String? selectedId;
+  final double trailingPadding;
   final Map<String, int> unread;
   final _ConversationFilter filter;
   final ValueChanged<_ConversationFilter> onFilterChanged;
@@ -181,32 +185,34 @@ class _ConversationList extends StatelessWidget {
           ),
         ),
         const SizedBox(height: OnCareSpacing.s16),
+        // 고객마다 카드 한 장 — 회원 탭 목록과 같은 카드·같은 간격이다.
+        // 예전에는 큰 카드 하나 안에 행을 쌓아, 두 탭이 같은 고객 목록을
+        // 다른 모양으로 보여 줬다.
         Expanded(
-          child: AppCard(
-            padding: const EdgeInsets.all(OnCareSpacing.s8),
-            child: clients.isEmpty
-                ? AppEmptyState(
-                    title: l.messagesEmpty,
-                    icon: Icons.forum_rounded,
-                  )
-                : ListView.separated(
-                    itemCount: clients.length,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(height: OnCareSpacing.s4),
-                    itemBuilder: (context, index) {
-                      final client = clients[index];
-                      return _ConversationTile(
-                        key: ValueKey<String>(
-                          'messages-conversation-${client.id}',
-                        ),
-                        client: client,
-                        selected: client.id == selectedId,
-                        unread: unread[client.id] ?? 0,
-                        onTap: () => onSelected(client.id),
-                      );
-                    },
-                  ),
-          ),
+          child: clients.isEmpty
+              ? AppEmptyState(
+                  title: l.messagesEmpty,
+                  icon: Icons.forum_rounded,
+                  placement: AppStatePlacement.card,
+                )
+              : ListView.separated(
+                  padding: EdgeInsets.only(right: trailingPadding),
+                  itemCount: clients.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: OnCareSpacing.cardGap),
+                  itemBuilder: (context, index) {
+                    final client = clients[index];
+                    return _ConversationTile(
+                      key: ValueKey<String>(
+                        'messages-conversation-${client.id}',
+                      ),
+                      client: client,
+                      selected: client.id == selectedId,
+                      unread: unread[client.id] ?? 0,
+                      onTap: () => onSelected(client.id),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -245,29 +251,62 @@ class _ConversationTile extends StatelessWidget {
     //
     // 안읽음은 숫자 배지 하나로 말한다 — 행의 빨간 점까지 켜면 같은 사실이
     // 한 뼘 안에 두 번 선다.
-    return AppListRow(
+    //
+    // 이름 옆 성별·나이는 회원 탭 카드처럼 한 단계 작고 흐리게 둔다 — 한
+    // 줄에 같은 굵기로 이어 붙이면 이름과 구분되지 않았다.
+    return AppCard(
       selected: selected,
       onTap: onTap,
-      leading: AppAvatar(name: client.avatar),
-      title: clientIdentityLabel(context, client),
-      subtitle: hasPreview ? client.lastMessage : l.messagesNoPreview,
-      trailing: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+      child: Row(
         children: <Widget>[
-          Text(
-            client.lastTime,
-            style: tokens
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
-          if (unread > 0) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s4),
-            KeyedSubtree(
-              key: ValueKey<String>('messages-unread-${client.id}'),
-              child: AppCountBadge(count: unread),
+          AppAvatar(name: client.avatar, size: AppAvatarSize.large),
+          const SizedBox(width: OnCareSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                ClientIdentity(
+                  key: ValueKey<String>('messages-identity-${client.id}'),
+                  client: client,
+                  nameStyle: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.bodyLarge))
+                      .copyWith(color: OnCareColors.textPrimary),
+                  demographicsStyle: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+                Text(
+                  hasPreview ? client.lastMessage : l.messagesNoPreview,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
+                ),
+              ],
             ),
-          ],
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: <Widget>[
+              Text(
+                client.lastTime,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+              if (unread > 0) ...<Widget>[
+                const SizedBox(height: OnCareSpacing.s4),
+                KeyedSubtree(
+                  key: ValueKey<String>('messages-unread-${client.id}'),
+                  child: AppCountBadge(count: unread),
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );

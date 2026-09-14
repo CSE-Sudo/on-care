@@ -309,11 +309,8 @@ void main() {
       );
       await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
 
-      final addButton = find.descendant(
-        of: find.byKey(
-          const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
-        ),
-        matching: find.byType(AppButton),
+      final addButton = find.byKey(
+        const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
       );
       await tester.ensureVisible(addButton);
       await tester.tap(addButton);
