@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
@@ -32,6 +33,7 @@ Widget _app(
 }) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
+    theme: AppTheme.light(),
     locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
@@ -63,9 +65,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('이번 주 탄단지 라벨은 같은 보조 회색을 사용한다 (#1479)', (
-    tester,
-  ) async {
+  testWidgets('이번 주 탄단지 라벨은 같은 보조 회색을 사용한다 (#1479)', (tester) async {
     await pump(
       tester,
       (DateTime d) => ClientDietDay(

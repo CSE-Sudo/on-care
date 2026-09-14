@@ -35,7 +35,7 @@ void main() {
 
   testWidgets('식단 접힌 줄에는 요약 수치가 없다', (tester) async {
     await openSection(tester, 'diet');
-    await tester.tap(find.byKey(const Key('client-period-week')));
+    await tester.tap(_periodSegment('이번 주'));
     await tester.pumpAndSettle();
 
     // 접힌 줄에는 날짜와 화살표뿐이다 — `1,820 kcal · 나트륨 …` 같은 요약이
@@ -46,14 +46,17 @@ void main() {
       findsNothing,
     );
     expect(
-      find.descendant(of: collapsed, matching: find.byIcon(Icons.expand_more)),
+      find.descendant(
+        of: collapsed,
+        matching: find.byIcon(Icons.expand_more_rounded),
+      ),
       findsWidgets,
     );
   });
 
   testWidgets('식단 펼친 줄은 칼로리(탄단지) → 나트륨 → 당류 순이다', (tester) async {
     await openSection(tester, 'diet');
-    await tester.tap(find.byKey(const Key('client-period-week')));
+    await tester.tap(_periodSegment('이번 주'));
     await tester.pumpAndSettle();
 
     // 기록이 있는 날을 펼친다.
@@ -79,7 +82,7 @@ void main() {
 
   testWidgets('운동 상세는 소모 칼로리라고 부른다', (tester) async {
     await openSection(tester, 'workout');
-    await tester.tap(find.byKey(const Key('client-period-week')));
+    await tester.tap(_periodSegment('이번 주'));
     await tester.pumpAndSettle();
 
     for (int i = 0; i < dayTiles().evaluate().length; i++) {
@@ -99,3 +102,9 @@ void main() {
     expect(find.textContaining('소모 칼로리', findRichText: true), findsWidgets);
   });
 }
+
+/// 기간 토글에서 [label] 칸. 세그먼트는 칸마다 키가 없어 토글 안의 글자로 찾는다.
+Finder _periodSegment(String label) => find.descendant(
+  of: find.byKey(const ValueKey<String>('client-period-toggle')),
+  matching: find.text(label),
+);

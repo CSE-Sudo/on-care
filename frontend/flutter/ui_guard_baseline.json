@@ -179,48 +179,6 @@
     "nonRoundedIcon": 2,
     "materialWidget": 4
   },
-  "lib/features/diet/presentation/pages/diet_record_page.dart": {
-    "fontSize": 29,
-    "fontWeight": 28,
-    "letterSpacing": 1,
-    "lineHeight": 4,
-    "colorLiteral": 4,
-    "materialColor": 7,
-    "opacity": 3,
-    "radius": 14,
-    "edgeInsets": 24,
-    "sizedBox": 37,
-    "animationDuration": 1,
-    "nonRoundedIcon": 7,
-    "materialWidget": 5
-  },
-  "lib/features/diet/presentation/widgets/diet_flows.dart": {
-    "fontSize": 47,
-    "fontWeight": 35,
-    "lineHeight": 4,
-    "colorLiteral": 8,
-    "materialColor": 12,
-    "opacity": 1,
-    "radius": 20,
-    "edgeInsets": 30,
-    "sizedBox": 46,
-    "animationDuration": 3,
-    "nonRoundedIcon": 11,
-    "materialWidget": 25
-  },
-  "lib/features/diet/presentation/widgets/diet_period_view.dart": {
-    "fontSize": 10,
-    "fontWeight": 9,
-    "letterSpacing": 1,
-    "lineHeight": 2,
-    "colorLiteral": 1,
-    "materialColor": 1,
-    "opacity": 4,
-    "radius": 6,
-    "edgeInsets": 10,
-    "sizedBox": 9,
-    "materialWidget": 3
-  },
   "lib/features/member_coach/presentation/widgets/coach_card.dart": {
     "fontSize": 14,
     "fontWeight": 10,

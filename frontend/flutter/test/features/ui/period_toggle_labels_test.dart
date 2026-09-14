@@ -21,7 +21,7 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' show OnCareTokensContext;
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 
@@ -160,17 +160,26 @@ void main() {
     });
   });
 
-  testWidgets('운동 탭 토글은 공용 세그먼트 규격 높이다 (#1126 → #1701)', (
+  testWidgets('두 탭의 토글은 같은 규격 높이 안에 있다 (#1126 → #1701)', (
     WidgetTester tester,
   ) async {
-    // 두 탭의 토글은 공용 `AppSegmentedToggle` 하나로 옮겨 가 규격 칩 높이로
-    // 같아진다. 운동 탭이 먼저 옮겨 갔으므로 규격 값과 맞는지 잰다 — 식단 탭이
-    // 옮겨 가면 두 토글을 다시 나란히 비교한다.
-    await _pumpExercise(tester, size: const Size(390, 900));
-    final Finder toggle = find.byKey(
-      const ValueKey<String>('exercise-period-toggle'),
+    await _pumpDiet(tester, size: const Size(390, 900));
+    final Size diet = tester.getSize(
+      find.byKey(const ValueKey<String>('diet-period-toggle')),
     );
-    final double chip = tester.element(toggle).oncare.density.chip;
-    expect(tester.getSize(toggle).height, moreOrLessEquals(chip, epsilon: 0.5));
+    // 두 화면 사이에서 트리를 한 번 비운다 — 같은 `ProviderScope` 를 다른
+    // override 로 갈아 끼우는 것은 리버포드가 막는다.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await _pumpExercise(tester, size: const Size(390, 900));
+    final Size exercise = tester.getSize(
+      find.byKey(const ValueKey<String>('exercise-period-toggle')),
+    );
+    // 식단(#1700)·운동(#1701) 토글이 모두 공용 `AppSegmentedToggle` 이다.
+    // 운동 탭은 좁은 폭에서 줄어들 수 있게 감싸 두었으므로 둘 다 모바일 칩
+    // 높이 안에서 그려지는지 잰다.
+    expect(exercise.width, greaterThan(0));
+    expect(diet.width, greaterThan(0));
+    expect(exercise.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
+    expect(diet.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
   });
 }

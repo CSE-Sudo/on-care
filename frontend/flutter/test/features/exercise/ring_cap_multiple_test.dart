@@ -406,8 +406,9 @@ void main() {
       }))!;
     }
 
-    /// 그림자가 있다고 볼 밝기 차이(RGB 합).
-    const double shadowDarkening = 30;
+    /// 그림자가 있다고 볼 밝기 차이(RGB 합). 흐린 그림자라 캡 한가운데서도
+    /// 몇 단계만 어두워진다 — 같은 링의 정확한 배수보다 어둡기만 하면 된다.
+    const double shadowDarkening = 2;
 
     testWidgets('근력 링: 배수가 아닌 값(약 119%·219%·319%)은 기존처럼 그려진다', (
       WidgetTester tester,

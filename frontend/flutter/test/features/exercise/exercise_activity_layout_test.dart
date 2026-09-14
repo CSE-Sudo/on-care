@@ -9,13 +9,19 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/design_system/theme/app_theme.dart';
+import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
+import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' show OnCareTokensContext;
+import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/diet_period_tabs.dart';
+import '../../helpers/fake_diet_repository.dart';
 
 const ExerciseWeek _week = ExerciseWeek(
   sessions: <ExerciseSession>[],
@@ -87,7 +93,35 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(_app(0));
+    // 두 탭을 한 화면에 세워 같은 폭에서 잰다 — 리버팟은 한 ProviderScope 의
+    // override 를 도중에 갈아 끼울 수 없다.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: <Override>[
+          exerciseActivityPeriodProvider.overrideWith((ref) => 0),
+          exerciseWeekProvider.overrideWith((ref) async => _week),
+          dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
+          accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: Column(
+              children: <Widget>[
+                Padding(
+                  padding: EdgeInsets.all(24),
+                  child: ExerciseActivityStatus(week: _week),
+                ),
+                Expanded(child: DietRecordPage()),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     // 식단·운동 두 탭의 기간 토글은 같은 공용 세그먼트(`AppSegmentedToggle`)로
@@ -96,7 +130,13 @@ void main() {
       const ValueKey<String>('exercise-period-toggle'),
     );
     expect(toggle, findsOneWidget);
-    final double chip = tester.element(toggle).oncare.density.chip;
-    expect(tester.getSize(toggle).height, moreOrLessEquals(chip, epsilon: 0.5));
+    final Size exercise = tester.getSize(toggle);
+    final Size diet = tester.getSize(dietPeriodTab(DietPeriodTab.day));
+
+    // 운동 탭 토글은 좁은 폭에서 줄어들 수 있게 감싸 두었으므로 두 토글 모두
+    // 모바일 칩 높이 안에 들어오는지 잰다.
+    expect(exercise.height, greaterThan(0));
+    expect(exercise.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
+    expect(diet.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
   });
 }

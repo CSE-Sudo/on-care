@@ -6,10 +6,11 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_shell.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show AppButton, AppButtonVariant, AppTextField;
 
 import '../../helpers/pump_app.dart';
 
@@ -301,25 +302,25 @@ void main() {
       );
       await settle(tester);
 
-      final confirm = tester.widget<TextButton>(
+      // 거절 트리거는 빨간 글자, 사유 창의 확정은 빨간 채움, 취소는 보조다.
+      final trigger = tester.widget<AppButton>(
+        find.byKey(const ValueKey<String>('consultation-reject-consult-1')),
+      );
+      expect(trigger.variant, AppButtonVariant.destructiveText);
+      final confirm = tester.widget<AppButton>(
         find.byKey(const ValueKey<String>('consultation-reject-confirm')),
       );
-      final cancel = tester.widget<TextButton>(
-        find.widgetWithText(TextButton, _ko.actionCancel),
+      final cancel = tester.widget<AppButton>(
+        find.widgetWithText(AppButton, _ko.actionCancel),
       );
-      expect(
-        confirm.style?.foregroundColor?.resolve(const <WidgetState>{}),
-        AppColors.destructive,
-      );
-      expect(
-        cancel.style?.foregroundColor?.resolve(const <WidgetState>{}),
-        isNot(AppColors.destructive),
-      );
+      expect(confirm.variant, AppButtonVariant.destructive);
+      expect(cancel.variant, isNot(AppButtonVariant.destructive));
+      expect(cancel.variant, isNot(AppButtonVariant.destructiveText));
 
-      final reason = tester.widget<TextField>(
+      final reason = tester.widget<AppTextField>(
         find.byKey(const ValueKey<String>('consultation-reject-reason')),
       );
-      expect(reason.decoration?.hintText, '예) 요청하신 시간에 다른 일정이 있어요.');
+      expect(reason.hint, '예) 요청하신 시간에 다른 일정이 있어요.');
       expect(find.textContaining('이번 달은 정원이 찼어요'), findsNothing);
     });
   }

@@ -3730,4 +3730,36 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiReturnToWizard => 'AI 추천으로 돌아가기';
+
+  @override
+  String chatDateDivider(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMMEEEEd(
+      localeName,
+    );
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
+  String get clientWorkoutSourceAi => 'AI';
+
+  @override
+  String coachClientDemographics(String gender, int age) {
+    return '$gender · $age세';
+  }
+
+  @override
+  String get coachTemplateMenu => '템플릿 메뉴';
+
+  @override
+  String aiStrengthSummary(int sets, int reps, String weight) {
+    return '$sets세트 × $reps회 · ${weight}kg';
+  }
+
+  @override
+  String get routineFormDecrease => '줄이기';
+
+  @override
+  String get routineFormIncrease => '늘리기';
 }

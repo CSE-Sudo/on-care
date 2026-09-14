@@ -4,13 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_program_template_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 템플릿을 만들고 고치는 다이얼로그. (#920)
 ///
@@ -124,67 +123,75 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
     // 시작 구성이든 직접 만든 템플릿이든 편집 창은 똑같이 생겼다 — 저장 시
     // 시작 구성만 조용히 새 템플릿으로 만들어지는 차이는 데이터 계층
     // (`_save`)에만 있고, 화면엔 드러내지 않는다.
-    return AlertDialog(
-      title: Text(widget.template == null ? l.coachTemplateNew : l.coachTemplateEdit),
-      content: SizedBox(
-        width: 420,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              TextField(
-                key: const ValueKey<String>('template-name'),
-                controller: _name,
-                decoration: InputDecoration(
-                  labelText: l.coachTemplateNameLabel,
-                  errorText: _error,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              TextField(
-                key: const ValueKey<String>('template-goal'),
-                controller: _goal,
-                decoration: InputDecoration(
-                  labelText: l.coachTemplateGoalLabel,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              for (var index = 0; index < _exercises.length; index++)
-                _ExerciseRow(
-                  key: ValueKey<int>(_exercises[index].key),
-                  draft: _exercises[index],
-                  onChanged: () => setState(() {}),
-                  onRemove: _exercises.length == 1
-                      ? null
-                      : () => setState(() {
-                          _exercises.removeAt(index).dispose();
-                        }),
-                ),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () =>
-                      setState(() => _exercises.add(_ExerciseDraft.empty())),
-                  icon: const Icon(Icons.add),
-                  label: Text(l.coachTemplateAddExercise),
-                ),
-              ),
-            ],
+    return AppDialog(
+      title: widget.template == null ? l.coachTemplateNew : l.coachTemplateEdit,
+      size: AppDialogSize.medium,
+      // 하단 [취소, 저장] 으로만 닫는다 — 예전 창에도 닫기 X 는 없었다.
+      showClose: false,
+      // 저장 버튼은 테스트가 Key 로 누르므로 AppButtonPair 대신 같은 모양의
+      // Row 로 짓는다.
+      footer: Row(
+        children: <Widget>[
+          Expanded(
+            child: AppButton(
+              label: l.actionCancel,
+              onPressed: _saving ? null : () => Navigator.of(context).pop(),
+              variant: AppButtonVariant.secondary,
+              fullWidth: true,
+            ),
           ),
-        ),
+          const SizedBox(width: OnCareSpacing.buttonGap),
+          Expanded(
+            child: AppButton(
+              key: const ValueKey<String>('template-save'),
+              label: l.coachTemplateSave,
+              onPressed: _saving ? null : _save,
+              fullWidth: true,
+            ),
+          ),
+        ],
       ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: Text(l.actionCancel),
-        ),
-        FilledButton(
-          key: const ValueKey<String>('template-save'),
-          onPressed: _saving ? null : _save,
-          child: Text(l.coachTemplateSave),
-        ),
-      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppTextField(
+            key: const ValueKey<String>('template-name'),
+            controller: _name,
+            label: l.coachTemplateNameLabel,
+            errorText: _error,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            key: const ValueKey<String>('template-goal'),
+            controller: _goal,
+            label: l.coachTemplateGoalLabel,
+          ),
+          const SizedBox(height: OnCareSpacing.s16),
+          for (var index = 0; index < _exercises.length; index++)
+            _ExerciseRow(
+              key: ValueKey<int>(_exercises[index].key),
+              draft: _exercises[index],
+              onChanged: () => setState(() {}),
+              onRemove: _exercises.length == 1
+                  ? null
+                  : () => setState(() {
+                      _exercises.removeAt(index).dispose();
+                    }),
+            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: AppButton(
+              label: l.coachTemplateAddExercise,
+              onPressed: () =>
+                  setState(() => _exercises.add(_ExerciseDraft.empty())),
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+              leadingIcon: Icons.add_rounded,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -282,109 +289,89 @@ class _ExerciseRow extends StatelessWidget {
   final VoidCallback onChanged;
   final VoidCallback? onRemove;
 
-  /// 트레이너웹의 다른 운동 입력칸([_DraftField] 류)과 맞춘 타이포다.
-  static const TextStyle _fieldStyle = TextStyle(
-    fontSize: 12.5,
-    fontWeight: FontWeight.w600,
-    color: AppColors.foreground,
-  );
-
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final isStrength = draft.type == '근력';
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
               Expanded(
-                child: TextField(
+                child: AppTextField(
                   controller: draft.name,
-                  style: _fieldStyle,
-                  decoration: InputDecoration(
-                    labelText: l.coachTemplateExerciseName,
-                    hintText: l.aiExerciseNameExample,
-                  ),
+                  label: l.coachTemplateExerciseName,
+                  hint: l.aiExerciseNameExample,
                 ),
               ),
-              IconButton(
+              AppIconButton(
                 tooltip: l.a11yRemoveExercise,
                 onPressed: onRemove,
-                icon: const Icon(Icons.remove_circle_outline),
-                color: AppColors.mutedForeground,
+                icon: Icons.remove_circle_outline_rounded,
+                color: OnCareColors.textSecondary,
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: OnCareSpacing.s4),
           // 근력은 세트·횟수·중량으로, 그 외 유형은 시간으로 잰다
           // (#1029, #1310). 숫자 칸은 이름 아래 제 줄에 둔다 — 한 줄에 넷을
           // 밀어 넣으면 라벨이 잘려 무슨 칸인지 읽히지 않는다.
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               if (isStrength) ...<Widget>[
                 Expanded(
-                  child: TextField(
+                  child: AppTextField(
                     controller: draft.sets,
-                    style: _fieldStyle,
+                    label: l.programEditorSets,
                     keyboardType: TextInputType.number,
                     inputFormatters: <TextInputFormatter>[
                       FilteringTextInputFormatter.digitsOnly,
                     ],
-                    decoration: InputDecoration(
-                      labelText: l.programEditorSets,
-                    ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
-                  child: TextField(
+                  child: AppTextField(
                     controller: draft.reps,
-                    style: _fieldStyle,
+                    label: l.programEditorReps,
                     keyboardType: TextInputType.number,
                     inputFormatters: <TextInputFormatter>[
                       FilteringTextInputFormatter.digitsOnly,
                     ],
-                    decoration: InputDecoration(
-                      labelText: l.programEditorReps,
-                    ),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
-                  child: TextField(
+                  child: AppTextField(
                     controller: draft.weight,
-                    style: _fieldStyle,
+                    label: l.programEditorWeight,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     inputFormatters: <TextInputFormatter>[
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                     ],
-                    decoration: InputDecoration(
-                      labelText: l.programEditorWeight,
-                    ),
                   ),
                 ),
               ] else
                 Expanded(
-                  child: TextField(
+                  child: AppTextField(
                     controller: draft.minutes,
-                    style: _fieldStyle,
+                    label: l.coachTemplateExerciseMinutes,
                     keyboardType: TextInputType.number,
                     inputFormatters: <TextInputFormatter>[
                       FilteringTextInputFormatter.digitsOnly,
                     ],
-                    decoration: InputDecoration(
-                      labelText: l.coachTemplateExerciseMinutes,
-                    ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: OnCareSpacing.s4),
           RoutineCategoryChips(
             value: draft.type,
             onChanged: (value) {

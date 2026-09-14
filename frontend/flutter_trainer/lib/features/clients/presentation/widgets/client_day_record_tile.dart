@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 날짜 칸의 고정 폭 — 줄들이 왼쪽에서 가지런히 서게 하는 콘텐츠 치수.
+const double _dateColumnWidth = 104;
 
 /// 날짜별 기록을 담는 판. (#1025)
 ///
 /// 옆에 놓이는 그래프 카드(`client-exercise-status-card` 등)와 **같은 규격**
-/// 이다 — 흰 판 하나에 `AppSpacing.md` 안쪽 여백, 머리카락 테두리, 같은 그림자.
+/// 이다 — [AppCard] 하나(흰 판·옅은 테두리·카드 그림자).
 ///
 /// 날마다 카드를 세우지 않는다. 12주면 판이 여든 개 겹쳐 서서, 그래프 카드
 /// 하나와 나란히 놓으면 이 목록만 화면을 다 먹는다. 판은 하나고 그 안에서
@@ -25,29 +25,25 @@ class ClientDayRecordCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (children.isEmpty) return const SizedBox.shrink();
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-        border: Border.all(color: AppColors.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          for (var i = 0; i < children.length; i++) ...<Widget>[
-            if (i > 0)
-              // 줄 사이의 실선. 날짜 칸 아래는 비워 두어 왼쪽 열이 하나로
-              // 이어져 보이게 한다.
-              const Padding(
-                padding: EdgeInsets.only(left: AppSpacing.md),
-                child: Divider(height: 1, color: AppColors.border),
-              ),
-            children[i],
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            for (var i = 0; i < children.length; i++) ...<Widget>[
+              if (i > 0)
+                // 줄 사이의 실선. 날짜 칸 아래는 비워 두어 왼쪽 열이 하나로
+                // 이어져 보이게 한다.
+                const Padding(
+                  padding: EdgeInsets.only(left: OnCareSpacing.s16),
+                  child: AppDivider(),
+                ),
+              children[i],
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -124,8 +120,8 @@ class ClientDayRecordTile extends StatelessWidget {
             onTap: logged && toggleable ? onToggle : null,
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm + 2,
+                horizontal: OnCareSpacing.s16,
+                vertical: OnCareSpacing.s12,
               ),
               child: Row(
                 children: <Widget>[
@@ -138,7 +134,7 @@ class ClientDayRecordTile extends StatelessWidget {
                   // 보였다. 어차피 목록이 최근 날부터 내려가므로 맨 위가
                   // 오늘이라는 것은 순서가 말한다.
                   SizedBox(
-                    width: 104,
+                    width: _dateColumnWidth,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: AlignmentDirectional.centerStart,
@@ -149,17 +145,23 @@ class ClientDayRecordTile extends StatelessWidget {
                           weekdayNames(l)[date.weekday - 1],
                         ),
                         maxLines: 1,
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: logged
-                              ? AppColors.foreground
-                              : AppColors.disabledForeground,
-                        ),
+                        style: context.oncare
+                            .text(
+                              OnCareTypography.numeric(
+                                OnCareTypography.strong(
+                                  OnCareTypography.bodySmall,
+                                ),
+                              ),
+                            )
+                            .copyWith(
+                              color: logged
+                                  ? OnCareColors.textPrimary
+                                  : OnCareColors.textDisabled,
+                            ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: OnCareSpacing.s8),
                   // 접힌 줄에는 수치를 적지 않는다(#1465). 기록이 없는 날만
                   // 그렇다고 말한다 — 그 줄은 펼칠 것이 없어 화살표도 없다.
                   Expanded(
@@ -167,26 +169,25 @@ class ClientDayRecordTile extends StatelessWidget {
                       logged ? '' : (emptyLabel ?? ''),
                       textAlign: TextAlign.end,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.disabledForeground,
-                      ),
+                      style: context.oncare
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textDisabled),
                     ),
                   ),
                   // 펼칠 것이 없는 날에도 자리는 남긴다 — 화살표만 빠지면
                   // 그 줄의 요약이 오른쪽으로 밀려 열이 어긋난다.
                   if (toggleable)
                     SizedBox(
-                      width: 24,
+                      width: OnCareSize.iconLarge,
                       child: logged
                           ? AnimatedRotation(
                               turns: expanded ? 0.5 : 0,
-                              duration: const Duration(milliseconds: 160),
+                              duration: OnCareMotion.normal,
+                              curve: OnCareMotion.curve,
                               child: const Icon(
-                                Icons.expand_more,
-                                size: 20,
-                                color: AppColors.subtleForeground,
+                                Icons.expand_more_rounded,
+                                size: OnCareSize.iconMedium,
+                                color: OnCareColors.textTertiary,
                               ),
                             )
                           : null,
@@ -201,24 +202,33 @@ class ClientDayRecordTile extends StatelessWidget {
             // 펼친 속에 색을 깔지 않는다. 이 판은 이미 흰 카드이고, 안에서
             // 바탕색이 한 번 더 갈리면 카드 안에 카드가 있는 것처럼 읽힌다.
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.sm,
-              AppSpacing.md,
-              AppSpacing.md,
+              OnCareSpacing.s16,
+              OnCareSpacing.s8,
+              OnCareSpacing.s16,
+              OnCareSpacing.s16,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 if (details.isNotEmpty)
                   Wrap(
-                    spacing: AppSpacing.xs,
-                    runSpacing: AppSpacing.xs,
+                    spacing: OnCareSpacing.s8,
+                    runSpacing: OnCareSpacing.s8,
                     children: <Widget>[
                       for (final ({String label, String value}) row in details)
-                        _DetailPill(
-                          label: row.label,
-                          value: row.value,
-                          note: notes[row.label],
+                        // 이름표·값·구성을 태그 하나에 한 줄로 적는다(#1704).
+                        // 태그는 한 줄·고정 높이라, 좁은 패널·큰 글씨에서는
+                        // 넘치는 대신 날짜 칸처럼 줄어든다(#1025).
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: AlignmentDirectional.centerStart,
+                          child: AppTag(
+                            label: <String>[
+                              row.label,
+                              row.value,
+                              ?notes[row.label],
+                            ].join(' '),
+                          ),
                         ),
                     ],
                   ),
@@ -229,59 +239,4 @@ class ClientDayRecordTile extends StatelessWidget {
       ],
     );
   }
-}
-
-/// 펼친 하루의 항목 하나 — `칼로리 1,820 kcal` 처럼 이름표와 값을 한 알약에.
-///
-/// 두 열짜리 표를 쓰지 않는다. 항목 수가 날마다 다른데(탄단지가 없는 날,
-/// 유형이 하나뿐인 날) 표로 두면 빈 칸이 남아 화면이 성글어 보인다.
-class _DetailPill extends StatelessWidget {
-  const _DetailPill({required this.label, required this.value, this.note});
-
-  final String label;
-  final String value;
-
-  /// 값의 구성을 덧붙이는 보조 문구(칼로리 옆의 탄·단·지). 작고 옅게 적어
-  /// 값보다 한 단계 아래로 읽힌다(#1465).
-  final String? note;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-    decoration: BoxDecoration(
-      color: AppColors.card,
-      borderRadius: const BorderRadius.all(AppRadius.pill),
-      border: Border.all(color: AppColors.borderStrong),
-    ),
-    child: Text.rich(
-      TextSpan(
-        children: <InlineSpan>[
-          TextSpan(
-            text: '$label ',
-            style: const TextStyle(
-              fontSize: 12.5,
-              color: AppColors.subtleForeground,
-            ),
-          ),
-          TextSpan(
-            text: value,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.foreground,
-            ),
-          ),
-          if (note case final String text)
-            TextSpan(
-              text: '  $text',
-              style: const TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w600,
-                color: AppColors.subtleForeground,
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
 }

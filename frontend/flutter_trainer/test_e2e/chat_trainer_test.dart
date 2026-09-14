@@ -93,7 +93,13 @@ void main() {
           find.byKey(const ValueKey<String>('client-chat-input')),
           fromTrainer,
         );
-        await tester.tap(find.byKey(const ValueKey<String>('client-chat-send')));
+        // 전송 버튼은 공용 입력줄(`AppChatInputBar`) 안의 아이콘 버튼이다(#1704).
+        await tester.tap(
+          find.descendant(
+            of: find.byKey(const ValueKey<String>('client-chat-input')),
+            matching: find.byIcon(Icons.arrow_upward_rounded),
+          ),
+        );
         await pumpUntil(tester, find.text(fromTrainer), step: '보낸 답장 표시');
 
         List<Map<String, dynamic>> rows = const <Map<String, dynamic>>[];

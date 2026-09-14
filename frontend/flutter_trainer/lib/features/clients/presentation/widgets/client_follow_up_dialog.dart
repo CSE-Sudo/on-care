@@ -4,16 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/core/utils/portrait_date_picker.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/follow_up_task.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/follow_up_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/follow_up_task_repository.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// [clientId] 의 후속 관리 목록을 연다.
 ///
@@ -23,7 +20,7 @@ Future<void> showClientFollowUpDialog(
   BuildContext context, {
   required String clientId,
   required String clientName,
-}) => showDialog<void>(
+}) => showAppDialog<void>(
   context: context,
   builder: (_) =>
       ClientFollowUpDialog(clientId: clientId, clientName: clientName),
@@ -77,7 +74,7 @@ class _ClientFollowUpDialogState extends ConsumerState<ClientFollowUpDialog> {
   }
 
   void _toast(String message) {
-    showAppToast(context, message, kind: AppToastKind.error);
+    showAppToast(context, message, type: AppToastType.error);
   }
 
   void _reload() {
@@ -141,7 +138,7 @@ class _ClientFollowUpDialogState extends ConsumerState<ClientFollowUpDialog> {
 
   Future<void> _pickDate() async {
     final DateTime today = todayKst();
-    final picked = await showPortraitDatePicker(
+    final picked = await showAppDatePicker(
       context: context,
       initialDate: _dueDate,
       // 지난 날짜로 새 할 일을 만들 이유가 없다 — 만드는 순간 '기한 지남'이다.
@@ -167,38 +164,28 @@ class _ClientFollowUpDialogState extends ConsumerState<ClientFollowUpDialog> {
     final AppLocalizations l = AppLocalizations.of(context);
     final tasks = ref.watch(clientFollowUpsProvider(widget.clientId));
 
-    return AlertDialog(
-      title: Text(l.followUpTitle(widget.clientName)),
-      content: SizedBox(
-        width: 520,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            TextField(
-              key: const ValueKey<String>('client-follow-up-input'),
-              controller: _draft,
-              maxLines: 2,
-              maxLength: _maxLength,
-              enabled: !_busy,
-              decoration: InputDecoration(
-                hintText: l.followUpHint,
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            Wrap(
-              alignment: WrapAlignment.end,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.xs,
-              children: <Widget>[
-                OutlinedButton.icon(
-                  key: const ValueKey<String>('client-follow-up-due'),
-                  onPressed: _busy ? null : _pickDate,
-                  icon: const Icon(Icons.event_outlined, size: 18),
-                  label: Text('${l.followUpDue} ${ymd(_dueDate)}'),
-                ),
-                DropdownButton<FollowUpContext>(
+    // 닫기는 헤더 X 하나다 — 다른 가운데 모달과 같은 자리·모양이다. 쓰기가
+    // 나가 있는 동안 닫혀도 모든 후속 처리가 `mounted` 를 먼저 본다.
+    return AppDialog(
+      title: l.followUpTitle(widget.clientName),
+      size: AppDialogSize.medium,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppTextField(
+            key: const ValueKey<String>('client-follow-up-input'),
+            controller: _draft,
+            maxLines: 2,
+            maxLength: _maxLength,
+            enabled: !_busy,
+            hint: l.followUpHint,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSelectField<FollowUpContext>(
                   key: const ValueKey<String>('client-follow-up-context'),
                   value: _context,
                   onChanged: _busy
@@ -214,88 +201,61 @@ class _ClientFollowUpDialogState extends ConsumerState<ClientFollowUpDialog> {
                       ),
                   ],
                 ),
-                FilledButton.icon(
-                  key: const ValueKey<String>('client-follow-up-add'),
-                  onPressed: _busy ? null : _add,
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: Text(l.followUpAdd),
-                ),
-              ],
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              AppButton(
+                key: const ValueKey<String>('client-follow-up-due'),
+                onPressed: _busy ? null : _pickDate,
+                variant: AppButtonVariant.secondary,
+                leadingIcon: Icons.event_rounded,
+                label: '${l.followUpDue} ${ymd(_dueDate)}',
+              ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: AppButton(
+              key: const ValueKey<String>('client-follow-up-add'),
+              onPressed: _busy ? null : _add,
+              leadingIcon: Icons.add_rounded,
+              label: l.followUpAdd,
             ),
-            const SizedBox(height: AppSpacing.md),
-            // 고정 높이가 아니라 Flexible — 낮은 창에서도 아래 동작 줄이 화면
-            // 밖으로 밀리지 않는다(메모 다이얼로그와 같은 이유).
-            Flexible(
-              child: tasks.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (error, _) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                  child: Column(
+          ),
+          const SizedBox(height: OnCareSpacing.s16),
+          // 목록은 창 본문과 함께 스크롤된다 — 낮은 창에서도 창이 화면 밖으로
+          // 밀리지 않는다(메모 다이얼로그와 같은 이유).
+          tasks.when(
+            loading: () => const AppLoading(placement: AppStatePlacement.card),
+            error: (error, _) => AppErrorState(
+              placement: AppStatePlacement.card,
+              title: error is AppError
+                  ? serverDetailOr(l, error.message, l.followUpLoadFailed)
+                  : l.followUpLoadFailed,
+              retryLabel: l.actionRetry,
+              onRetry: () =>
+                  ref.invalidate(clientFollowUpsProvider(widget.clientId)),
+            ),
+            data: (list) => list.isEmpty
+                ? AppEmptyState(
+                    placement: AppStatePlacement.card,
+                    title: l.followUpEmpty,
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      Text(
-                        error is AppError
-                            ? serverDetailOr(
-                                l,
-                                error.message,
-                                l.followUpLoadFailed,
-                              )
-                            : l.followUpLoadFailed,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: AppColors.mutedForeground,
+                      for (final task in list)
+                        FollowUpRow(
+                          key: ValueKey<String>('client-follow-up-${task.id}'),
+                          task: task,
+                          busy: _completing == task.id,
+                          onComplete: () => _complete(task),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      TextButton(
-                        onPressed: () => ref.invalidate(
-                          clientFollowUpsProvider(widget.clientId),
-                        ),
-                        child: Text(l.actionRetry),
-                      ),
                     ],
                   ),
-                ),
-                data: (list) => list.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: AppSpacing.xl,
-                        ),
-                        child: Text(
-                          l.followUpEmpty,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: AppColors.mutedForeground,
-                          ),
-                        ),
-                      )
-                    : ListView(
-                        shrinkWrap: true,
-                        children: <Widget>[
-                          for (final task in list)
-                            FollowUpRow(
-                              key: ValueKey<String>(
-                                'client-follow-up-${task.id}',
-                              ),
-                              task: task,
-                              busy: _completing == task.id,
-                              onComplete: () => _complete(task),
-                            ),
-                        ],
-                      ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: _busy ? null : () => Navigator.of(context).pop(),
-          child: Text(l.actionClose),
-        ),
-      ],
     );
   }
 }

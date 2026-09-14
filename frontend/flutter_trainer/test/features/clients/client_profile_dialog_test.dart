@@ -8,13 +8,14 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_profile_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -146,6 +147,7 @@ Future<void> _pumpDialog(
         clientRepositoryProvider.overrideWithValue(resolved),
       ],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -235,7 +237,7 @@ void main() {
     // The draft is still in the field, so the retry costs no retyping.
     expect(
       tester
-          .widget<TextField>(
+          .widget<AppTextField>(
             find.byKey(const ValueKey<String>('client-memo-input')),
           )
           .controller!
@@ -307,8 +309,11 @@ void main() {
       );
       await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
 
-      final addButton = find.byKey(
-        const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
+      final addButton = find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
+        ),
+        matching: find.byType(AppButton),
       );
       await tester.ensureVisible(addButton);
       await tester.tap(addButton);
@@ -351,7 +356,9 @@ void main() {
       // 글자 버튼에서 작은 아이콘 버튼으로 바뀌었다(#1448) — 잠그는 규칙은
       // 그대로다.
       expect(
-        tester.widget<IconButton>(find.byKey(ValueKey<String>(key))).onPressed,
+        tester
+            .widget<AppIconButton>(find.byKey(ValueKey<String>(key)))
+            .onPressed,
         isNull,
         reason: '$key 이 편집 중에도 눌린다',
       );
@@ -364,7 +371,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<IconButton>(
+          .widget<AppIconButton>(
             find.byKey(const ValueKey<String>('client-memo-edit-open-memo-2')),
           )
           .onPressed,
@@ -415,19 +422,19 @@ void main() {
     await repository.create('m1', body: '무릎이 아파요');
     await _pumpDialog(tester, repository);
 
-    final IconButton edit = tester.widget<IconButton>(
+    final AppIconButton edit = tester.widget<AppIconButton>(
       find.byKey(const ValueKey<String>('client-memo-edit-open-memo-1')),
     );
-    final IconButton remove = tester.widget<IconButton>(
+    final AppIconButton remove = tester.widget<AppIconButton>(
       find.byKey(const ValueKey<String>('client-memo-delete-memo-1')),
     );
 
-    expect(edit.tooltip, isNotNull);
-    expect(remove.tooltip, isNotNull);
-    expect(remove.color, AppColors.destructive);
-    expect(edit.color, isNot(AppColors.destructive));
-    // 본문보다 작다 — 글자 버튼일 때는 본문만큼 눈에 들어왔다.
-    expect(edit.iconSize, lessThanOrEqualTo(18));
+    expect(edit.tooltip, isNotEmpty);
+    expect(remove.tooltip, isNotEmpty);
+    expect(remove.color, OnCareColors.danger);
+    expect(edit.color, isNot(OnCareColors.danger));
+    // 배경 없는 아이콘 버튼이다 — 글자 버튼일 때는 본문만큼 눈에 들어왔다.
+    expect(edit.variant, AppIconButtonVariant.plain);
   });
 
   testWidgets('삭제 확인창의 확정 버튼이 붉다 (#1448)', (tester) async {
@@ -440,16 +447,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final FilledButton confirm = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('client-memo-delete-confirm')),
-    );
+    final Finder confirmButton = find.widgetWithText(AppButton, '삭제');
     expect(
-      confirm.style?.backgroundColor?.resolve(<WidgetState>{}),
-      AppColors.destructive,
+      tester.widget<AppButton>(confirmButton).variant,
+      AppButtonVariant.destructive,
     );
 
     // 취소하면 메모가 남는다 — 확인 전에는 아무것도 지우지 않는다.
-    await tester.tap(find.widgetWithText(TextButton, '취소'));
+    await tester.tap(find.widgetWithText(AppButton, '취소'));
     await tester.pumpAndSettle();
     expect(find.text('무릎이 아파요'), findsOneWidget);
 
@@ -458,9 +463,7 @@ void main() {
       find.byKey(const ValueKey<String>('client-memo-delete-memo-1')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey<String>('client-memo-delete-confirm')),
-    );
+    await tester.tap(find.widgetWithText(AppButton, '삭제'));
     await tester.pumpAndSettle();
     expect(find.text('무릎이 아파요'), findsNothing);
   });
@@ -512,7 +515,7 @@ void main() {
       const MemberHealthProfile(memberId: 'm1', memberName: '회원'),
     );
     await tester.pumpAndSettle();
-    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+    expect(tester.widget<AppButton>(save).onPressed, isNotNull);
 
     // 목표 칸은 회원 앱 마이페이지와 같은 필드다(#1449) — 주간 근력 세트에
     // 소수를 넣으면 되돌려보낸다.
@@ -573,7 +576,7 @@ void main() {
         ]) {
       expect(
         tester
-            .widget<TextFormField>(find.byKey(ValueKey<String>(field.key)))
+            .widget<AppTextField>(find.byKey(ValueKey<String>(field.key)))
             .controller!
             .text,
         field.value,

@@ -211,8 +211,9 @@ void main() {
       findsOneWidget,
     );
 
+    // 닫기는 창 헤더의 X 하나다(AppDialog) — 접근성 이름으로 찾는다.
     await tester.tap(
-      find.byKey(const ValueKey<String>('client-profile-dialog-close')),
+      find.descendant(of: find.byKey(dialog), matching: find.byTooltip('닫기')),
     );
     await tester.pumpAndSettle();
     expect(find.byKey(dialog), findsNothing);
