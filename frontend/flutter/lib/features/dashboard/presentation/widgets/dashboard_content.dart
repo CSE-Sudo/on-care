@@ -919,7 +919,10 @@ class _RecommendedMeals extends ConsumerWidget {
 }
 
 /// 카드 좌측 상단의 추천 출처 배지. 사진 위에 얹히므로 바탕은 불투명하다 —
-/// 트레이너 추천은 브랜드 채움, AI 추천은 옅은 브랜드 채움이다.
+/// 트레이너 추천은 브랜드 채움, AI 추천은 흰 바탕에 옅은 테두리다.
+///
+/// 태그 높이(24)로 키우지 않는다. 사진이 낮아 태그 크기면 음식을 가리므로,
+/// 글자에 딱 맞는 작은 알약으로 모서리에만 얹는다.
 class _RecSourceBadge extends StatelessWidget {
   const _RecSourceBadge({required this.source});
 
@@ -930,11 +933,29 @@ class _RecSourceBadge extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final bool trainer = source == _RecSource.trainer;
-    return _Badge(
-      label: trainer ? l.homeMealSourceTrainer : l.homeMealSourceAi,
-      textKey: const Key('rec-meal-source'),
-      fill: trainer ? tokens.brand.primary : tokens.brand.surface,
-      foreground: trainer ? OnCareColors.textOnFill : tokens.brand.primary,
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: OnCareSpacing.s8,
+        vertical: OnCareSpacing.s2,
+      ),
+      decoration: BoxDecoration(
+        color: trainer ? tokens.brand.primary : OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.pillAll,
+        border: Border.all(
+          color: trainer ? tokens.brand.primary : OnCareColors.lineSubtle,
+        ),
+      ),
+      child: Text(
+        trainer ? l.homeMealSourceTrainer : l.homeMealSourceAi,
+        key: const Key('rec-meal-source'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: tokens
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(
+              color: trainer ? OnCareColors.textOnFill : tokens.brand.primary,
+            ),
+      ),
     );
   }
 }
@@ -1006,12 +1027,14 @@ class _RecMealCard extends StatelessWidget {
                 ),
                 // 누가 고른 추천인지 사진 위에 얹는다 — 카드가 좁아 아래 글자
                 // 자리를 더 쓰면 이름이나 이유가 밀린다. (#1056)
-                Positioned(
-                  left: OnCareSpacing.s8,
-                  top: OnCareSpacing.s8,
-                  right: OnCareSpacing.s8,
+                // 끝쪽도 묶어 두어야 긴 영어 배지가 카드 밖으로 나가지 않고
+                // 말줄임된다. 배지 자체는 글자 폭만큼만 차지한다.
+                PositionedDirectional(
+                  start: OnCareSpacing.s4,
+                  top: OnCareSpacing.s4,
+                  end: OnCareSpacing.s4,
                   child: Align(
-                    alignment: AlignmentDirectional.centerStart,
+                    alignment: AlignmentDirectional.topStart,
                     child: _RecSourceBadge(source: meal.source),
                   ),
                 ),
