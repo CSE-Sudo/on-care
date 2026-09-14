@@ -10,6 +10,7 @@ export 'src/components/app_button.dart';
 export 'src/components/app_dialog.dart';
 export 'src/components/app_icon_button.dart';
 export 'src/components/app_menu.dart';
+export 'src/components/app_surfaces.dart';
 export 'src/components/app_toast.dart';
 export 'src/theme/oncare_theme.dart';
 export 'src/theme/oncare_tokens.dart';
