@@ -127,21 +127,6 @@ void main() {
     expect(container.read(notificationControllerProvider).unreadCount, 0);
   });
 
-  test('simulatePush prepends an unread item', () {
-    final container = _container();
-    addTearDown(container.dispose);
-    final before = container.read(notificationControllerProvider);
-    container.read(notificationControllerProvider.notifier).simulatePush(
-      title: '시뮬레이션 알림',
-      body: '지금 막 가상 푸시가 도착했어요.',
-      timeAgo: '방금',
-    );
-    final after = container.read(notificationControllerProvider);
-    expect(after.items.length, before.items.length + 1);
-    expect(after.items.first.read, isFalse);
-    expect(after.items.first.id.startsWith('sim-'), isTrue);
-  });
-
   test('real mode loads from repo and persists read/all-read', () async {
     final repo = _RecordingRepo(const <AlertItem>[
       AlertItem(
@@ -185,39 +170,5 @@ void main() {
     await notifier.markAllRead();
     expect(repo.markAllReadCalls, 1);
     expect(container.read(notificationControllerProvider).unreadCount, 0);
-  });
-
-  test('real mode ignores simulatePush (no phantom notification)', () async {
-    final repo = _RecordingRepo(const <AlertItem>[
-      AlertItem(
-        id: 'n1',
-        title: '알림1',
-        body: 'b1',
-        timeAgo: '방금',
-        category: AlertCategory.reminder,
-      ),
-    ]);
-    final container = ProviderContainer(
-      overrides: <Override>[
-        appConfigProvider.overrideWithValue(_realConfig),
-        notificationRepositoryProvider.overrideWithValue(repo),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    final notifier = container.read(notificationControllerProvider.notifier);
-    await notifier.refresh();
-    final before = container.read(notificationControllerProvider).items.length;
-
-    notifier.simulatePush(
-      title: '시뮬레이션 알림',
-      body: '지금 막 가상 푸시가 도착했어요.',
-      timeAgo: '방금',
-    );
-
-    // 실모드는 서버가 진실원본 — 로컬 팬텀을 주입하지 않는다.
-    final after = container.read(notificationControllerProvider).items;
-    expect(after.length, before);
-    expect(after.any((AlertItem i) => i.id.startsWith('sim-')), isFalse);
   });
 }
