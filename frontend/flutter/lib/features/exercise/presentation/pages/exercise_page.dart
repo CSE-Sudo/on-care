@@ -134,46 +134,9 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
         ),
   );
 
-  Widget _subTabs(AppLocalizations l) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
-    child: Stack(
-      children: <Widget>[
-        AppSegmentedToggle<int>(
-          expand: true,
-          segments: <AppSegment<int>>[
-            AppSegment<int>(
-              value: 0,
-              label: l.exExerciseLog,
-              icon: Icons.event_note_rounded,
-            ),
-            AppSegment<int>(
-              value: 1,
-              label: l.exGymTab,
-              icon: Icons.place_rounded,
-            ),
-          ],
-          selected: _subTab,
-          onChanged: (int i) => setState(() => _subTab = i),
-        ),
-        // 칸마다 붙어 있던 `exercise-subtab-N` 키를 그대로 남긴다. 토글은 칸에
-        // 키를 받지 않으므로, 같은 자리를 덮는 빈 상자에 키만 달고 터치는
-        // 아래 토글로 흘려보낸다(칸은 폭을 똑같이 나눈다).
-        Positioned.fill(
-          child: IgnorePointer(
-            child: Row(
-              children: <Widget>[
-                for (int i = 0; i < 2; i++)
-                  Expanded(
-                    child: SizedBox.expand(
-                      key: ValueKey<String>('exercise-subtab-$i'),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    ),
+  Widget _subTabs(AppLocalizations l) => _SubTabs(
+    active: _subTab,
+    onChanged: (int i) => setState(() => _subTab = i),
   );
 
   Widget _gymTab() => GymTab(
@@ -185,6 +148,96 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
       notifier.state = notifier.state == s ? null : s;
     },
   );
+}
+
+/// `운동 기록` / `헬스장` 서브탭 — 제목 바로 아래 폭 전체를 반씩 나누는 탭 줄.
+///
+/// 고른 탭은 진한 라벨·브랜드 아이콘·그 절반을 채우는 브랜드 밑줄, 나머지는
+/// 회색이다. 줄 전체 아래에 옅은 구분선이 깔린다.
+class _SubTabs extends StatelessWidget {
+  const _SubTabs({required this.active, required this.onChanged});
+
+  final int active;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: OnCareColors.lineSubtle,
+              width: OnCareSize.focusBorder,
+            ),
+          ),
+        ),
+        child: Row(
+          children: <Widget>[
+            _tab(context, 0, Icons.event_note_rounded, l.exExerciseLog),
+            _tab(context, 1, Icons.place_rounded, l.exGymTab),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tab(BuildContext context, int i, IconData icon, String label) {
+    final OnCareTokens tokens = context.oncare;
+    final bool on = active == i;
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: on,
+        child: GestureDetector(
+          key: ValueKey<String>('exercise-subtab-$i'),
+          onTap: () => onChanged(i),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: on ? tokens.brand.primary : Colors.transparent,
+                  width: OnCareSpacing.s2,
+                ),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(
+                  icon,
+                  size: OnCareSize.iconSmall,
+                  color: on ? tokens.brand.primary : OnCareColors.textTertiary,
+                ),
+                const SizedBox(width: OnCareSpacing.s8),
+                // 라벨은 남는 폭 안에서 접힌다. 아이콘·라벨 둘 다 고정 폭이면
+                // 320px 에서 탭 두 개가 화면을 넘겼다 — 영어(`Exercise log`)는
+                // 기본 배율에서도 넘친다(#766). 아이콘은 접지 않는다.
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.body))
+                        .copyWith(
+                          color: on
+                              ? OnCareColors.textPrimary
+                              : OnCareColors.textTertiary,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ───────────────────────────────────────────────────────── 운동 기록 ──
@@ -383,36 +436,43 @@ class _ExerciseWeekStrip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          // 영어의 날짜 라벨은 한국어보다 훨씬 길다. 줄이 모자라면 말줄임 대신
-          // 통째로 줄여, 오늘 버튼이 밀려 나가지 않게 한다(#766).
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: AlignmentDirectional.centerStart,
-              child: AppPeriodNav(
-                label: weekStripLabel(
-                  context,
-                  l,
-                  selected: selected,
-                  today: today,
+          Row(
+            children: <Widget>[
+              // 영어의 날짜 라벨은 한국어보다 훨씬 길다. 고정 폭으로 두면 좁은
+              // 화면에서 오늘 버튼을 밀어내며 넘친다(#766).
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: OnCareSpacing.s8,
+                  ),
+                  child: Text(
+                    weekStripLabel(
+                      context,
+                      l,
+                      selected: selected,
+                      today: today,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.oncare
+                        .text(
+                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                        )
+                        .copyWith(color: OnCareColors.textTertiary),
+                  ),
                 ),
-                previousTooltip: l.a11yPrevWeek,
-                nextTooltip: l.a11yNextWeek,
-                onPrevious: onPrev,
-                onNext: onNext,
-                trailing: showTodayButton
-                    ? AppButton(
-                        label: l.dietToday,
-                        onPressed: onToday,
-                        variant: AppButtonVariant.text,
-                        size: OnCareButtonSize.small,
-                      )
-                    : null,
               ),
-            ),
+              if (showTodayButton)
+                AppButton(
+                  label: l.dietToday,
+                  onPressed: onToday,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                ),
+            ],
           ),
-          const SizedBox(height: OnCareSpacing.s12),
+          const SizedBox(height: OnCareSpacing.s8),
+          // 이전/다음 주 꺾쇠는 날짜 줄 양옆에 둔다 — 식단 탭과 같은 모양이다.
           AppWeekStrip(
             days: days,
             weekdayLabels: <String>[
@@ -421,6 +481,10 @@ class _ExerciseWeekStrip extends StatelessWidget {
             selected: selected,
             today: today,
             onSelected: onSelect,
+            previousTooltip: l.a11yPrevWeek,
+            nextTooltip: l.a11yNextWeek,
+            onPrevious: onPrev,
+            onNext: onNext,
           ),
         ],
       ),

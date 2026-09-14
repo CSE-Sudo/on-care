@@ -494,18 +494,20 @@ class _DateStrip extends StatelessWidget {
       children: <Widget>[
         Row(
           children: <Widget>[
-            // 영어의 날짜 라벨은 한국어보다 훨씬 길다. 줄이 모자라면 이동 묶음을
-            // 통째로 줄여 오늘 버튼을 밀어내지 않는다(#743).
+            // 영어의 날짜 라벨은 한국어보다 훨씬 길다. 고정 폭으로 두면 좁은
+            // 화면에서 오늘 버튼을 밀어내며 넘친다(#743).
             Expanded(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: AppPeriodNav(
-                  label: weekLabel,
-                  previousTooltip: l.a11yPrevWeek,
-                  nextTooltip: l.a11yNextWeek,
-                  onPrevious: onPrev,
-                  onNext: onNext,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s8,
+                ),
+                child: Text(
+                  weekLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.oncare
+                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                      .copyWith(color: OnCareColors.textTertiary),
                 ),
               ),
             ),
@@ -524,6 +526,7 @@ class _DateStrip extends StatelessWidget {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s8),
+        // 이전/다음 주 꺾쇠는 날짜 줄 양옆에 둔다 — 날짜 숫자와 같은 높이.
         AppWeekStrip(
           days: days,
           weekdayLabels: <String>[
@@ -532,6 +535,10 @@ class _DateStrip extends StatelessWidget {
           selected: selected,
           today: today,
           onSelected: onSelect,
+          previousTooltip: l.a11yPrevWeek,
+          nextTooltip: l.a11yNextWeek,
+          onPrevious: onPrev,
+          onNext: onNext,
         ),
       ],
     );
