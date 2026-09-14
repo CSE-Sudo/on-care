@@ -10,7 +10,9 @@ import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 
 /// 최소 유효 페이로드(indicators·settings 는 빈 배열). activity_rank 만 파라미터화.
-Map<String, Object?> _payload({required Object? activityRank}) => <String, Object?>{
+Map<String, Object?> _payload({
+  required Object? activityRank,
+}) => <String, Object?>{
   'profile': <String, Object?>{'name': '김민수', 'email': 'minsu@oncare.com'},
   'risk': <String, Object?>{'title': '주의', 'body': '관리 필요', 'level': 'medium'},
   'indicators': <Object?>[],

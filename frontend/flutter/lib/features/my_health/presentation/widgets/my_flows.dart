@@ -5,9 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/routes.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/breakpoints.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -18,6 +15,7 @@ import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 숫자 전용 입력 필터 — 붙여넣기/외부 키보드로 문자가 들어와 저장 시 int
@@ -32,305 +30,66 @@ Widget _shell(
   List<Widget> children, {
   bool saving = false,
 }) {
-  final Widget page = Scaffold(
+  final Widget page = AppPage(
     key: const Key('mySettingsPage'),
-    backgroundColor: Colors.white,
-    appBar: AppBar(
-      centerTitle: true,
-      backgroundColor: Colors.white,
-      scrolledUnderElevation: 0,
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w800,
-          color: FigmaColors.ink,
-        ),
-      ),
-    ),
-    body: SafeArea(
-      top: false,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: AppBreakpoints.contentMaxWidth,
-          ),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-            children: children,
-          ),
-        ),
-      ),
-    ),
+    bottomInset: MediaQuery.paddingOf(context).bottom,
+    header: AppTopBar(title: title),
+    children: children,
   );
   return PopScope(canPop: !saving, child: page);
 }
 
-Widget _card(List<Widget> children) => Container(
-  padding: const EdgeInsets.all(16),
-  decoration: BoxDecoration(
-    color: FigmaColors.statBg,
-    borderRadius: BorderRadius.circular(16),
-  ),
+/// 폼 칸을 묶는 카드.
+Widget _card(List<Widget> children) => AppCard(
   child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: children,
   ),
 );
 
-/// Figma-styled label + editable text field used by the profile sheet.
-/// White fill on the `statBg` card, brand-blue focus ring.
-class _SheetField extends StatelessWidget {
-  const _SheetField({
-    super.key,
-    required this.label,
-    required this.controller,
-    this.keyboardType,
-    this.hintText,
-    this.helperText,
-    this.inputFormatters,
-    this.onChanged,
-  });
+/// 목록 행을 묶는 카드. 행이 제 안쪽 여백을 갖고 있어 카드 안쪽은 비운다.
+Widget _listCard(List<Widget> children) => AppCard(
+  padding: EdgeInsets.zero,
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: children,
+  ),
+);
 
-  final String label;
-  final TextEditingController controller;
-  final TextInputType? keyboardType;
-  final String? hintText;
-
-  /// 칸 아래 한 줄 안내. 값이 어디서 왔는지 말해야 할 때만 준다.
-  final String? helperText;
-  final List<TextInputFormatter>? inputFormatters;
-
-  /// 사람이 친 글자만 올라온다 — 컨트롤러에 프로그램이 써 넣은 값은
-  /// `onChanged` 를 부르지 않으므로, 서로 맞물린 칸끼리 되먹임이 생기지 않는다.
-  final ValueChanged<String>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w600,
-            color: AppColors.foreground,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          onChanged: onChanged,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: FigmaColors.ink,
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: Colors.white,
-            hintText: hintText,
-            hintStyle: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
-            ),
-            helperText: helperText,
-            helperMaxLines: 2,
-            helperStyle: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: FigmaColors.hairline),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: FigmaColors.primary,
-                width: 1.4,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// The gradient profile disc with the member's initial.
-class _Avatar extends StatelessWidget {
-  const _Avatar({required this.initial});
-  final String initial;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 64,
-      height: 64,
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[FigmaColors.primary, FigmaColors.primaryDeep],
-        ),
-      ),
-      child: Text(
-        initial,
-        style: const TextStyle(
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
-}
-
-/// Spinner shown inside a sheet while `profileProvider` is loading.
 /// 프로필을 못 읽었을 때의 화면.
 ///
 /// 예전에는 빈 [UserProfile] 로 폼을 그렸다. 화면만 보면 조회 성공과 구별되지
 /// 않아, 기본값이 내 설정인 것처럼 보이고 그대로 저장하면 서버에 있던 실제 값이
 /// 기본값으로 덮였다(#789). 읽지 못했으면 읽지 못했다고 말하고, 저장 자체를
 /// 막는 것이 맞다.
-class _LoadFailed extends StatelessWidget {
-  const _LoadFailed({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
-      child: Column(
-        children: <Widget>[
-          const Icon(
-            Icons.cloud_off_rounded,
-            size: 32,
-            color: FigmaColors.textMuted,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l.mySettingsLoadFailed,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: FigmaColors.ink,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            l.mySettingsLoadFailedBody,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13.5,
-              height: 1.4,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton(
-            key: const Key('mySettingsRetry'),
-            onPressed: onRetry,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: FigmaColors.primary,
-              side: BorderSide(color: FigmaColors.primaryA(0.4)),
-              minimumSize: const Size(48, 44),
-            ),
-            child: Text(l.actionRetry),
-          ),
-        ],
-      ),
-    );
-  }
+Widget _loadFailed(BuildContext context, VoidCallback onRetry) {
+  final AppLocalizations l = AppLocalizations.of(context);
+  return KeyedSubtree(
+    key: const Key('mySettingsRetry'),
+    child: AppErrorState(
+      title: l.mySettingsLoadFailed,
+      message: l.mySettingsLoadFailedBody,
+      retryLabel: l.actionRetry,
+      onRetry: onRetry,
+    ),
+  );
 }
 
-class _SheetLoader extends StatelessWidget {
-  const _SheetLoader();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 40),
-      child: Center(
-        child: CircularProgressIndicator(color: FigmaColors.primary),
-      ),
-    );
-  }
-}
-
-/// The 취소 · 저장 footer shared by the profile and goal sheets. The primary
-/// button shows a spinner and both buttons disable while [saving].
+/// The 취소 · 저장 footer shared by the profile and goal pages. The confirm
+/// button shows a spinner and cancel disables while [saving].
 Widget _saveRow({
   required BuildContext context,
   required bool saving,
   required VoidCallback onSave,
 }) {
   final AppLocalizations l = AppLocalizations.of(context);
-  return Row(
-    children: <Widget>[
-      Expanded(
-        child: OutlinedButton(
-          onPressed: saving ? null : () => Navigator.of(context).pop(),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.mutedForeground,
-            side: const BorderSide(color: FigmaColors.hairline),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: Text(
-            l.myCancel,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: FilledButton(
-          onPressed: saving ? null : onSave,
-          style: FilledButton.styleFrom(
-            backgroundColor: FigmaColors.primary,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          child: saving
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(
-                  l.mySave,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-        ),
-      ),
-    ],
+  return AppButtonPair(
+    cancelLabel: l.myCancel,
+    onCancel: saving ? null : () => Navigator.of(context).pop(),
+    confirmLabel: l.mySave,
+    onConfirm: onSave,
+    confirmLoading: saving,
+    size: OnCareButtonSize.large,
   );
 }
 
@@ -352,11 +111,11 @@ class ProfileSettingsPage extends ConsumerWidget {
     return profile.when(
       data: (UserProfile p) => _ProfileForm(initial: p),
       loading: () =>
-          _shell(context, l.myProfileTitle, const <Widget>[_SheetLoader()]),
+          _shell(context, l.myProfileTitle, const <Widget>[AppLoading()]),
       // 건강 목표와 같은 이유로 폼을 그리지 않는다 — 빈 프로필을 저장하면
       // 이름·연락처가 지워진다(#789).
       error: (_, _) => _shell(context, l.myProfileTitle, <Widget>[
-        _LoadFailed(onRetry: () => ref.invalidate(profileProvider)),
+        _loadFailed(context, () => ref.invalidate(profileProvider)),
       ]),
     );
   }
@@ -441,59 +200,76 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final String name = widget.initial.name.trim();
-    final String initial = name.isNotEmpty ? name.substring(0, 1) : '·';
     return _shell(context, l.myProfileTitle, <Widget>[
-      Center(child: _Avatar(initial: initial)),
-      const SizedBox(height: 16),
+      Center(
+        child: AppAvatar(
+          name: widget.initial.name.trim(),
+          size: AppAvatarSize.xLarge,
+        ),
+      ),
+      const SizedBox(height: OnCareSpacing.s16),
       _card(<Widget>[
-        _SheetField(label: l.myFieldName, controller: _name),
-        const SizedBox(height: 12),
-        _SheetField(
+        AppTextField(label: l.myFieldName, controller: _name),
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           label: l.myFieldEmail,
           controller: _email,
           keyboardType: TextInputType.emailAddress,
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           label: l.myFieldPhone,
           controller: _phone,
           keyboardType: TextInputType.phone,
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           label: l.myFieldBirth,
           controller: _birth,
-          hintText: '1996-03-21',
+          hint: '1996-03-21',
         ),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          initialValue: _gender.isEmpty ? null : _gender,
-          decoration: InputDecoration(labelText: l.myFieldGender),
-          items: <DropdownMenuItem<String>>[
-            DropdownMenuItem(value: 'male', child: Text(l.onboardGenderMale)),
-            DropdownMenuItem(
-              value: 'female',
-              child: Text(l.onboardGenderFemale),
-            ),
-            DropdownMenuItem(value: 'other', child: Text(l.onboardGenderOther)),
+        const SizedBox(height: OnCareSpacing.s12),
+        // 세 값 중 하나를 고르는 칸이라 펼침 메뉴 대신 칩을 늘어놓는다 — 고른 값과
+        // 고를 수 있는 값이 한눈에 보인다.
+        Text(
+          l.myFieldGender,
+          style: context.oncare
+              .text(OnCareTypography.label)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Wrap(
+          spacing: OnCareSpacing.s8,
+          runSpacing: OnCareSpacing.s8,
+          children: <Widget>[
+            for (final ({String value, String label}) option
+                in <({String value, String label})>[
+                  (value: 'male', label: l.onboardGenderMale),
+                  (value: 'female', label: l.onboardGenderFemale),
+                  (value: 'other', label: l.onboardGenderOther),
+                ])
+              AppChoiceChip(
+                key: ValueKey<String>('profile-gender-${option.value}'),
+                label: option.label,
+                selected: _gender == option.value,
+                onSelected: (_) => setState(() => _gender = option.value),
+              ),
           ],
-          onChanged: (value) => setState(() => _gender = value ?? ''),
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           label: l.myFieldHeight,
           controller: _height,
           keyboardType: TextInputType.number,
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           label: l.myFieldWeight,
           controller: _weight,
           keyboardType: TextInputType.number,
         ),
       ]),
-      const SizedBox(height: 16),
+      const SizedBox(height: OnCareSpacing.s16),
       _saveRow(context: context, saving: _saving, onSave: _save),
     ], saving: _saving);
   }
@@ -517,9 +293,9 @@ class HealthGoalsPage extends ConsumerWidget {
     return profile.when(
       data: (UserProfile p) => _GoalsForm(initial: p),
       loading: () =>
-          _shell(context, l.myHealthGoalsTitle, const <Widget>[_SheetLoader()]),
+          _shell(context, l.myHealthGoalsTitle, const <Widget>[AppLoading()]),
       error: (_, _) => _shell(context, l.myHealthGoalsTitle, <Widget>[
-        _LoadFailed(onRetry: () => ref.invalidate(profileProvider)),
+        _loadFailed(context, () => ref.invalidate(profileProvider)),
       ]),
     );
   }
@@ -812,93 +588,93 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       // 순서: 관리 초점 → 자유 입력 운동 목표 → 수치형 운동 목표 → 식단 목표
       // (#1471). 온보딩 2단계가 묻는 것과 같은 순서라, 두 화면이 같은 이야기를
       // 같은 차례로 한다.
-      _GoalsSectionLabel(l.myGoalsFocusSection),
-      const SizedBox(height: 8),
+      AppSectionHeader(title: l.myGoalsFocusSection),
+      const SizedBox(height: OnCareSpacing.s8),
       _card(<Widget>[
         Text(
           l.myGoalsFocusHint,
-          style: const TextStyle(
-            fontSize: 12.5,
-            height: 1.4,
-            color: AppColors.mutedForeground,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textSecondary),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: OnCareSpacing.s12),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: OnCareSpacing.s8,
+          runSpacing: OnCareSpacing.s8,
           children: <Widget>[
             for (final ({String key, String label}) option
                 in <({String key, String label})>[
-                  (key: kHealthFocusHypertension, label: l.myGoalsFocusHypertension),
+                  (
+                    key: kHealthFocusHypertension,
+                    label: l.myGoalsFocusHypertension,
+                  ),
                   (key: kHealthFocusDiabetes, label: l.myGoalsFocusDiabetes),
                 ])
-              _FocusChip(
+              AppChoiceChip(
                 key: ValueKey<String>('goal-focus-${option.key}'),
                 label: option.label,
                 selected: _focus.contains(option.key),
-                onTap: () => setState(() {
+                onSelected: (_) => setState(() {
                   if (!_focus.remove(option.key)) _focus.add(option.key);
                 }),
               ),
           ],
         ),
-        const SizedBox(height: 14),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s16),
+        AppTextField(
           key: const Key('goalExerciseNoteField'),
           label: l.myGoalsExerciseNote,
           controller: _exerciseGoal,
-          hintText: l.myGoalsExerciseNoteHint,
+          hint: l.myGoalsExerciseNoteHint,
         ),
       ]),
-      const SizedBox(height: 20),
-      _GoalsSectionLabel(l.myGoalsExerciseSection),
-      const SizedBox(height: 8),
+      const SizedBox(height: OnCareSpacing.s20),
+      AppSectionHeader(title: l.myGoalsExerciseSection),
+      const SizedBox(height: OnCareSpacing.s8),
       _card(<Widget>[
-        _SheetField(
+        AppTextField(
           key: const Key('goalDailyBurnField'),
           label: l.myGoalBurnDaily,
           controller: _burn,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: '${kDefaultExerciseLoadGoals.dailyBurnKcal.round()}',
+          hint: '${kDefaultExerciseLoadGoals.dailyBurnKcal.round()}',
           onChanged: (_) => _markTouched(_kBurn),
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           key: const Key('goalCardioField'),
           label: l.myGoalCardioWeekly,
           controller: _cardio,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: '${kDefaultExerciseLoadGoals.weeklyCardioMinutes.round()}',
+          hint: '${kDefaultExerciseLoadGoals.weeklyCardioMinutes.round()}',
           onChanged: (_) => _markTouched(_kCardio),
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           key: const Key('goalStrengthField'),
           label: l.myGoalStrengthWeekly,
           controller: _strength,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: '${kDefaultExerciseLoadGoals.weeklyStrengthSets.round()}',
+          hint: '${kDefaultExerciseLoadGoals.weeklyStrengthSets.round()}',
           onChanged: (_) => _markTouched(_kStrength),
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           key: const Key('goalFlexibilityField'),
           label: l.myGoalFlexibilityWeekly,
           controller: _flexibility,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText:
-              '${kDefaultExerciseLoadGoals.weeklyFlexibilityMinutes.round()}',
+          hint: '${kDefaultExerciseLoadGoals.weeklyFlexibilityMinutes.round()}',
           onChanged: (_) => _markTouched(_kFlexibility),
         ),
         // 식단 목표의 `권장 비율로 채우기` 와 같은 자리·같은 모양이다 (#1139).
         // 권장값은 WHO 권고(주 150분 중강도 유산소)를 따르는
         // [kDefaultExerciseLoadGoals] 그대로다.
-        const SizedBox(height: 10),
+        const SizedBox(height: OnCareSpacing.s12),
         _MacroSuggestionRow(
           buttonKey: const Key('goalApplyExerciseGoals'),
           note: l.myGoalExerciseSuggestionNote,
@@ -906,49 +682,49 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           onApply: _applySuggestedExerciseGoals,
         ),
       ]),
-      const SizedBox(height: 20),
-      _GoalsSectionLabel(l.myGoalsDietSection),
-      const SizedBox(height: 8),
+      const SizedBox(height: OnCareSpacing.s20),
+      AppSectionHeader(title: l.myGoalsDietSection),
+      const SizedBox(height: OnCareSpacing.s8),
       _card(<Widget>[
-        _SheetField(
+        AppTextField(
           label: l.myGoalCalories,
           controller: _kcal,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: '${UserProfile.defaultDailyCalories}',
-          helperText: _kcalFromMacros ? l.myGoalCaloriesFromMacros : null,
+          hint: '${UserProfile.defaultDailyCalories}',
+          helper: _kcalFromMacros ? l.myGoalCaloriesFromMacros : null,
           // 회원이 직접 고친 순간부터는 계산된 값이 아니다.
           onChanged: (_) => setState(() {
             _kcalFromMacros = false;
             _markTouched(_kKcal);
           }),
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           label: l.myGoalSodium,
           controller: _sodium,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: '${UserProfile.defaultDailySodiumMg}',
+          hint: '${UserProfile.defaultDailySodiumMg}',
           onChanged: (_) => _markTouched(_kSodium),
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           label: l.myGoalSugar,
           controller: _sugar,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: '${UserProfile.defaultDailySugarG}',
+          hint: '${UserProfile.defaultDailySugarG}',
           onChanged: (_) => _markTouched(_kSugar),
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           key: const Key('goalCarbsField'),
           label: l.myGoalCarbs,
           controller: _carbs,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: split == null
+          hint: split == null
               ? '${UserProfile.defaultDailyCarbsG}'
               : '${split.carbs}',
           onChanged: (_) {
@@ -956,14 +732,14 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
             _syncCaloriesFromMacros();
           },
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           key: const Key('goalProteinField'),
           label: l.myGoalProtein,
           controller: _protein,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: split == null
+          hint: split == null
               ? '${UserProfile.defaultDailyProteinG}'
               : '${split.protein}',
           onChanged: (_) {
@@ -971,14 +747,14 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
             _syncCaloriesFromMacros();
           },
         ),
-        const SizedBox(height: 12),
-        _SheetField(
+        const SizedBox(height: OnCareSpacing.s12),
+        AppTextField(
           key: const Key('goalFatField'),
           label: l.myGoalFat,
           controller: _fat,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hintText: split == null
+          hint: split == null
               ? '${UserProfile.defaultDailyFatG}'
               : '${split.fat}',
           onChanged: (_) {
@@ -991,7 +767,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
         // 어디서 왔는지** 말하는 유일한 자리이고, 값을 고쳐 둔 다음 되돌릴
         // 길도 이 버튼 하나뿐이다.
         if (split != null) ...<Widget>[
-          const SizedBox(height: 10),
+          const SizedBox(height: OnCareSpacing.s12),
           _MacroSuggestionRow(
             buttonKey: const Key('goalApplyMacroSplit'),
             note: l.myGoalMacroSuggestionNote(_kcalValue!),
@@ -1000,53 +776,9 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           ),
         ],
       ]),
-      const SizedBox(height: 16),
+      const SizedBox(height: OnCareSpacing.s16),
       _saveRow(context: context, saving: _saving, onSave: _save),
     ], saving: _saving);
-  }
-}
-
-/// 관리 초점 하나를 고르는 칩. 온보딩 2단계의 칩과 같은 모양이다 — 두 화면이
-/// 같은 값을 묻는데 생김새가 다르면 같은 질문으로 읽히지 않는다. (#1471)
-class _FocusChip extends StatelessWidget {
-  const _FocusChip({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? FigmaColors.primaryA(0.10) : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? FigmaColors.primary : FigmaColors.hairline,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: selected ? FigmaColors.primary : AppColors.mutedForeground,
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -1072,52 +804,28 @@ class _MacroSuggestionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    // 안내와 버튼을 한 줄에 두면 좁은 폰·큰 글자에서 영어 버튼 라벨이 넘친다.
+    // 안내를 위에, 버튼을 그 아래 끝에 둔다.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Expanded(
-          child: Text(
-            note,
-            style: const TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
-            ),
-          ),
+        Text(
+          note,
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textSecondary),
         ),
-        const SizedBox(width: 8),
-        TextButton(
-          key: buttonKey,
-          onPressed: onApply,
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            foregroundColor: FigmaColors.primary,
-          ),
-          child: Text(
-            actionLabel,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+        Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: AppButton(
+            key: buttonKey,
+            label: actionLabel,
+            onPressed: onApply,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Small section heading between the two goal groups.
-class _GoalsSectionLabel extends StatelessWidget {
-  const _GoalsSectionLabel(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w800,
-        color: FigmaColors.ink,
-      ),
     );
   }
 }
@@ -1211,42 +919,29 @@ class _NotificationSettingsPageState
             item.key: item.fallback,
         };
     return _shell(context, l.myNotifTitle, <Widget>[
-      _card(<Widget>[
+      _listCard(<Widget>[
         for (int i = 0; i < kNotificationSettingItems.length; i++) ...<Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  _notifLabel(l, kNotificationSettingItems[i].key),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: FigmaColors.ink,
-                  ),
-                ),
+          if (i > 0) const AppDivider(),
+          AppListRow(
+            title: _notifLabel(l, kNotificationSettingItems[i].key),
+            trailing: Switch(
+              value: _valueOf(
+                kNotificationSettingItems[i].key,
+                saved,
+                kNotificationSettingItems[i].fallback,
               ),
-              Switch.adaptive(
-                value: _valueOf(
+              onChanged: (bool v) => _persist(
+                kNotificationSettingItems[i].key,
+                v,
+                // 실패했을 때 돌아갈 곳 — 지금 화면에 보이는 값.
+                _valueOf(
                   kNotificationSettingItems[i].key,
                   saved,
                   kNotificationSettingItems[i].fallback,
                 ),
-                activeThumbColor: FigmaColors.primary,
-                onChanged: (bool v) => _persist(
-                  kNotificationSettingItems[i].key,
-                  v,
-                  // 실패했을 때 돌아갈 곳 — 지금 화면에 보이는 값.
-                  _valueOf(
-                    kNotificationSettingItems[i].key,
-                    saved,
-                    kNotificationSettingItems[i].fallback,
-                  ),
-                ),
               ),
-            ],
+            ),
           ),
-          if (i < kNotificationSettingItems.length - 1)
-            const Divider(height: 1, color: FigmaColors.hairline),
         ],
       ]),
     ]);
@@ -1269,38 +964,46 @@ class SupportPage extends StatelessWidget {
     return _shell(context, l.mySupportTitle, <Widget>[
       // FAQ·1:1 문의는 앱 안에 화면을 만들지 않고 운영 중인 카카오톡 채널로
       // 보낸다. 문의는 사람이 답해야 하는 일이고 그 창구는 이미 있다. (#507)
-      _supportRow(
-        Icons.help_outline,
-        l.mySupportFaq,
-        () => _openExternal(context, kSupportChannelUrl),
-        external: true,
-        hint: l.mySupportExternalHint,
-      ),
-      _supportRow(
-        Icons.chat_bubble_outline,
-        l.mySupportInquiry,
-        () => _openExternal(context, kSupportChatUrl),
-        external: true,
-        hint: l.mySupportExternalHint,
-      ),
-      _supportRow(
-        Icons.description_outlined,
-        l.myLegalTermsTitle,
-        () => _openLegal(context, _LegalDoc.terms),
-      ),
-      _supportRow(
-        Icons.privacy_tip_outlined,
-        l.myLegalPrivacyTitle,
-        () => _openLegal(context, _LegalDoc.privacy),
-      ),
-      const SizedBox(height: 12),
+      _listCard(<Widget>[
+        _supportRow(
+          context,
+          Icons.help_outline_rounded,
+          l.mySupportFaq,
+          () => _openExternal(context, kSupportChannelUrl),
+          external: true,
+          hint: l.mySupportExternalHint,
+        ),
+        const AppDivider(),
+        _supportRow(
+          context,
+          Icons.chat_bubble_outline_rounded,
+          l.mySupportInquiry,
+          () => _openExternal(context, kSupportChatUrl),
+          external: true,
+          hint: l.mySupportExternalHint,
+        ),
+        const AppDivider(),
+        _supportRow(
+          context,
+          Icons.description_rounded,
+          l.myLegalTermsTitle,
+          () => _openLegal(context, _LegalDoc.terms),
+        ),
+        const AppDivider(),
+        _supportRow(
+          context,
+          Icons.privacy_tip_rounded,
+          l.myLegalPrivacyTitle,
+          () => _openLegal(context, _LegalDoc.privacy),
+        ),
+      ]),
+      const SizedBox(height: OnCareSpacing.s12),
       Center(
         child: Text(
           l.myAppVersion,
-          style: const TextStyle(
-            fontSize: 13.5,
-            color: AppColors.mutedForeground,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
         ),
       ),
     ]);
@@ -1335,61 +1038,29 @@ void _openLegal(BuildContext context, _LegalDoc doc) {
 }
 
 Widget _supportRow(
+  BuildContext context,
   IconData icon,
   String label,
   VoidCallback onTap, {
   bool external = false,
   String? hint,
 }) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Material(
-      color: FigmaColors.statBg,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: <Widget>[
-              Icon(icon, size: 18, color: FigmaColors.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: FigmaColors.ink,
-                      ),
-                    ),
-                    if (hint != null)
-                      Text(
-                        hint,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: FigmaColors.textFaint,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              // 앱 밖으로 나가는 행은 화살표 대신 외부 링크 아이콘을 쓴다 —
-              // 눌렀을 때 무엇이 일어나는지 미리 보이게.
-              Icon(
-                external ? Icons.open_in_new : Icons.chevron_right,
-                size: 18,
-                color: FigmaColors.textFaint,
-              ),
-            ],
-          ),
-        ),
-      ),
+  return AppListRow(
+    leading: Icon(
+      icon,
+      size: OnCareSize.iconMedium,
+      color: context.oncare.brand.primary,
     ),
+    title: label,
+    subtitle: hint,
+    // 앱 밖으로 나가는 행은 화살표 대신 외부 링크 아이콘을 쓴다 —
+    // 눌렀을 때 무엇이 일어나는지 미리 보이게.
+    trailing: Icon(
+      external ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
+      size: OnCareSize.iconMedium,
+      color: OnCareColors.textTertiary,
+    ),
+    onTap: onTap,
   );
 }
 
@@ -1412,22 +1083,18 @@ class LegalDocumentPage extends StatelessWidget {
       _card(<Widget>[
         Text(
           body,
-          style: const TextStyle(
-            fontSize: 14,
-            height: 1.7,
-            fontWeight: FontWeight.w500,
-            color: AppColors.foreground,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.body)
+              .copyWith(color: OnCareColors.textPrimary),
         ),
       ]),
-      const SizedBox(height: 12),
+      const SizedBox(height: OnCareSpacing.s12),
       Center(
         child: Text(
           l.myLegalEffectiveDate,
-          style: const TextStyle(
-            fontSize: 12.5,
-            color: AppColors.mutedForeground,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
         ),
       ),
     ]);

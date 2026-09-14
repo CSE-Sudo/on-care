@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/domain/repositories/schedule_repository.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 지정한 일정만 돌려주는 대역. 기본값은 빈 달 — 칸 수를 보는 테스트는
 /// 칸 안의 일정에 좌우되지 않아야 한다.
@@ -62,6 +64,7 @@ Widget _app({
       ),
     ],
     child: MaterialApp(
+      theme: AppTheme.light(),
       locale: const Locale('ko'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -89,17 +92,39 @@ Future<void> _openSheet(
 }
 
 /// 달력 그리드가 그린 칸 수(선행 공백 + 날짜 + 후행 채움).
+///
+/// `AppMonthGrid` 는 요일 머리 줄·간격 뒤에 주마다 7칸짜리 줄을 하나씩 쌓는다.
+/// 주 줄 수 × 7 이 칸 수다.
 int _gridCellCount(WidgetTester tester) {
-  final GridView grid = tester.widget<GridView>(find.byType(GridView));
-  return (grid.childrenDelegate as SliverChildBuilderDelegate).childCount!;
+  final Column grid = tester.widget<Column>(
+    find
+        .descendant(
+          of: find.byType(AppMonthGrid),
+          matching: find.byType(Column),
+        )
+        .first,
+  );
+  final int weekRows = grid.children.whereType<Row>().length - 1;
+  return weekRows * 7;
 }
 
-/// 달력 그리드 **자신의** Scrollable. 화면에 다른 스크롤 뷰가 있어도 이것을
-/// 집도록 GridView 밑에서 찾는다 — 엉뚱한 Scrollable 위에서 스크롤을 시험하면
-/// 아무것도 검증하지 못한다.
+/// 달력 그리드를 감싼 **가장 가까운** Scrollable(시트 본문). 화면에 다른 스크롤
+/// 뷰가 있어도 이것을 집도록 그리드에서 위로 찾는다 — 엉뚱한 Scrollable 위에서
+/// 스크롤을 시험하면 아무것도 검증하지 못한다.
 Finder _calendarScrollable() => find
-    .descendant(of: find.byType(GridView), matching: find.byType(Scrollable))
+    .ancestor(of: find.byType(AppMonthGrid), matching: find.byType(Scrollable))
     .first;
+
+/// 말일 칸이 실제로 화면에 닿아 눌리는지. 시트 본문은 칸을 모두 만들어 두므로
+/// 존재가 아니라 히트 테스트로 본다(빈 날의 점 줄은 그 자체로는 히트되지 않아
+/// 칸의 InkWell 을 본다).
+Finder _lastDayCell() => find
+    .ancestor(
+      of: find.byKey(const Key('calendar-day-31')),
+      matching: find.byType(InkWell),
+    )
+    .first
+    .hitTestable();
 
 void main() {
   // 2026-08 은 1일이 토요일이라 6주 그리드가 되는 달이다 — 선행 공백 6칸 +
@@ -139,16 +164,16 @@ void main() {
     );
     // 스크롤하기 전에는 말일에 닿지 못한다 — 이 전제가 깨지면 아래 스크롤
     // 검증이 아무것도 확인하지 않게 된다.
-    expect(find.byKey(const Key('calendar-day-31')), findsNothing);
+    expect(_lastDayCell(), findsNothing);
 
     await tester.scrollUntilVisible(
-      find.byKey(const Key('calendar-day-31')),
+      _lastDayCell(),
       80,
       scrollable: _calendarScrollable(),
     );
 
     expect(grid.position.pixels, greaterThan(0));
-    expect(find.byKey(const Key('calendar-day-31')), findsOneWidget);
+    expect(_lastDayCell(), findsOneWidget);
     // 스크롤해도 칸 수는 그대로다(잘라낸 것이 아니라 밀려나 있을 뿐).
     expect(_gridCellCount(tester), 42);
   });
@@ -202,11 +227,18 @@ void main() {
     expect(
       tester.takeException(),
       isNull,
-      reason: '칩이 칸을 넘쳐도 오버플로 예외가 나면 안 된다',
+      reason: '일정이 칸을 넘쳐도 오버플로 예외가 나면 안 된다',
     );
     expect(find.byKey(const Key('calendar-day-3')), findsOneWidget);
-    // 칸 안에서 잘리더라도 첫 칩은 그려진다.
-    expect(find.text('00:00 일정 0'), findsOneWidget);
+    // 일정 표시는 칸 안에 들어가는 개수(3)의 점까지만 그린다 — 넘치는 일정은
+    // 날짜를 눌러 하루 시트에서 본다.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('calendar-day-3')),
+        matching: find.byType(AppStatusDot),
+      ),
+      findsNWidgets(3),
+    );
   });
 
   testWidgets('하단 내비게이션이 있는 화면에서도 달력이 그 위를 덮는다 (#680)', (
@@ -229,6 +261,7 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -275,31 +308,32 @@ void main() {
     );
   });
 
-  testWidgets('시트 안에서 연 일정 추가 다이얼로그가 시트 위에 뜬다 (#680)', (
+  testWidgets('시트 안에서 연 일정 추가 시트가 달력 시트 위에 뜬다 (#680)', (
     WidgetTester tester,
   ) async {
-    // 시트를 루트 Navigator 로 옮기면서 시트가 여는 다이얼로그가 시트 뒤로
-    // 가지 않는지 확인한다. showDialog 도 기본이 루트라 나중에 밀린 쪽(다이얼로그)
-    // 이 위에 있어야 한다.
+    // 시트를 루트 Navigator 로 옮기면서 시트가 여는 일정 추가 폼(회원앱은 바텀
+    // 시트)이 달력 뒤로 가지 않는지 확인한다. 둘 다 루트에 올라가므로 나중에
+    // 밀린 쪽(일정 추가)이 위에 있어야 한다.
     tester.view.physicalSize = const Size(900, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
     await _openSheet(tester, august2026);
-    expect(find.byType(Dialog), findsNothing);
+    final Finder addForm = find.byKey(const Key('addEventDate'));
+    expect(addForm, findsNothing);
 
-    await tester.tap(find.widgetWithText(FilledButton, '일정 추가'));
+    await tester.tap(find.widgetWithText(AppButton, '일정 추가'));
     await tester.pumpAndSettle();
 
-    expect(find.byType(Dialog), findsOneWidget);
-    // 시트도 아직 살아 있다(다이얼로그가 시트를 대체한 것이 아니다).
+    expect(addForm.hitTestable(), findsOneWidget);
+    // 시트도 아직 살아 있다(일정 추가가 달력을 대체한 것이 아니다).
     expect(find.byKey(const Key('calendar-day-1')), findsOneWidget);
 
-    // 다이얼로그를 닫으면 달력으로 돌아온다 — 닫힌 뒤 provider 새로고침 경로가
+    // 일정 추가를 닫으면 달력으로 돌아온다 — 닫힌 뒤 provider 새로고침 경로가
     // 그대로 도는지까지 본다(예외가 나면 pumpAndSettle 이 잡는다).
-    Navigator.of(tester.element(find.byType(Dialog))).pop();
+    Navigator.of(tester.element(addForm)).pop();
     await tester.pumpAndSettle();
-    expect(find.byType(Dialog), findsNothing);
+    expect(addForm, findsNothing);
     expect(find.byKey(const Key('calendar-day-31')), findsOneWidget);
   });
 

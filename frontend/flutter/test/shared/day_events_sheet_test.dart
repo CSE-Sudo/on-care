@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/domain/repositories/schedule_repository.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/modals/day_events_sheet.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const ScheduleEvent _hospital = ScheduleEvent(
   id: 'evt-1',
@@ -98,6 +100,7 @@ void main() {
           scheduleRepositoryProvider.overrideWithValue(repo),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -148,7 +151,7 @@ void main() {
     // 되돌릴 수 없는 동작이라 확인을 한 번 받는다.
     expect(find.text('일정 삭제'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('deleteEventCancel')));
+    await tester.tap(find.widgetWithText(AppButton, '취소'));
     await tester.pumpAndSettle();
 
     expect(repo.deleted, isEmpty);
@@ -160,7 +163,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('deleteEvent-evt-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('deleteEventConfirm')));
+    await tester.tap(find.widgetWithText(AppButton, '삭제'));
     await tester.pumpAndSettle();
 
     expect(repo.deleted, <String>['evt-1']);
@@ -175,7 +178,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('deleteEvent-evt-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('deleteEventConfirm')));
+    await tester.tap(find.widgetWithText(AppButton, '삭제'));
     await tester.pumpAndSettle();
 
     // 실패했는데 사라진 것처럼 보이면 안 된다.
@@ -188,10 +191,10 @@ void main() {
 
     await tester.tap(find.byKey(const Key('deleteEvent-evt-2')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('deleteEventConfirm')));
+    await tester.tap(find.widgetWithText(AppButton, '삭제'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.close));
+    await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
 
     // 부른 쪽(캘린더)이 달을 다시 읽어야 하는지 판단할 근거다.
