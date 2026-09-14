@@ -1419,6 +1419,8 @@ class TrainerTaskProgressDayOut(BaseModel):
     completed_carried_over: int
     pending_keys: list[str]
     dismissed_keys: list[str]
+    #: 체크한 키(#1716). 이 값이 생기기 전에 저장된 날은 null.
+    completed_keys: list[str] | None = None
 
 
 class TrainerTaskProgressOut(BaseModel):
@@ -1438,6 +1440,8 @@ class TrainerTaskProgressSave(BaseModel):
     completed_carried_over: int = Field(ge=0, le=1000)
     pending_keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
     dismissed_keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+    #: 체크한 키(#1716). 옛 앱은 보내지 않는다 — 그때는 저장하지 않고 null 로 둔다.
+    completed_keys: list[_TaskKey] | None = Field(default=None, max_length=1000)
 
     @model_validator(mode="after")
     def _completed_within_total(self) -> TrainerTaskProgressSave:
