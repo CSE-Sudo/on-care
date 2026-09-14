@@ -48,6 +48,21 @@ void main() {
     expect(multiple.supportsAssignment, isFalse);
   });
 
+  test('버튼을 막는 이유가 실제 검사 조건과 같다 (#1582)', () {
+    const empty = ProgramEditorState(
+      name: '프로그램',
+      sessions: <ProgramSessionDraft>[
+        ProgramSessionDraft(id: 'session-1', name: '세션 A', exercises: []),
+      ],
+    );
+    expect(empty.assignmentBlocker, ProgramAssignmentBlocker.noExercises);
+    expect(
+      draftWith(name: ' ').assignmentBlocker,
+      ProgramAssignmentBlocker.invalidExerciseName,
+    );
+    expect(draftWith(name: '스쿼트').assignmentBlocker, isNull);
+  });
+
   test('세션 12개·전체 운동 30개까지만 일정에 추가할 수 있다 (#1583)', () {
     ProgramEditorState sized(int sessionCount, int exerciseCount) =>
         ProgramEditorState(

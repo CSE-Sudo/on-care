@@ -8,6 +8,10 @@ const int kProgramMaxSessions = 12;
 /// 같은 상한을 지켜야 배정은 되고 일정만 422 가 되는 경로가 없다.
 const int kProgramMaxExercises = 30;
 
+/// `일정 추가` 를 막는 초안 쪽 이유. 버튼 안내가 실제 검사와 같은 조건을
+/// 말하게 한다(#1582) — 날짜·시간은 편집기 하단 값이라 여기 없다.
+enum ProgramAssignmentBlocker { noExercises, invalidExerciseName, sizeExceeded }
+
 /// Frontend-only draft for the Figma multi-session program editor.
 ///
 /// This deliberately does not implement or extend [AssignedRoutine]: the
@@ -48,16 +52,20 @@ class ProgramEditorState {
   ///
   /// 세션 수·운동 수는 서버와 같은 상한 안이어야 한다(#1583). 숫자 칸은
   /// 스테퍼가 이미 범위 안으로 묶어 두므로(#1276) 그 밖에 볼 것은 이름이다.
-  bool get supportsAssignment {
-    if (exceedsSizeLimit) return false;
+  bool get supportsAssignment => assignmentBlocker == null;
+
+  /// 일정 추가를 막는 첫 번째 이유. 보낼 수 있으면 null.
+  ProgramAssignmentBlocker? get assignmentBlocker {
+    if (exceedsSizeLimit) return ProgramAssignmentBlocker.sizeExceeded;
     final exercises = <ProgramExerciseDraft>[
       for (final session in sessions) ...session.exercises,
     ];
-    if (exercises.isEmpty) return false;
-    return exercises.every((ProgramExerciseDraft e) {
+    if (exercises.isEmpty) return ProgramAssignmentBlocker.noExercises;
+    final namesValid = exercises.every((ProgramExerciseDraft e) {
       final int length = e.name.trim().length;
       return length >= 1 && length <= 100;
     });
+    return namesValid ? null : ProgramAssignmentBlocker.invalidExerciseName;
   }
 
   ProgramEditorState copyWith({

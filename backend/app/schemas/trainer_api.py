@@ -17,6 +17,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.core import clock
 from app.schemas.partial_update import PartialUpdate
 from app.services import exercise_types
 
@@ -1109,6 +1110,19 @@ class ProgramScheduleRequest(BaseModel):
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
     _v_total = field_validator("sessions")(_check_program_total_exercises)
+
+    @field_validator("date")
+    @classmethod
+    def _not_in_the_past(cls, value: str) -> str:
+        """지난 날짜로는 새 일정을 잡지 않는다(#1582).
+
+        화면을 자정 넘게 열어 둔 채 누르면 전날 날짜가 올 수 있다. 날짜만 본다 —
+        오늘이면 고른 시각이 이미 지났어도 받는다. 스케줄 탭의 지난 수업 기록
+        (`POST /trainer/schedule`)은 과거 날짜가 정상이라 이 검사를 두지 않는다.
+        """
+        if _date.fromisoformat(value) < clock.today():
+            raise ValueError("지난 날짜에는 일정을 추가할 수 없습니다.")
+        return value
 
 
 class ProgramScheduleOut(BaseModel):
