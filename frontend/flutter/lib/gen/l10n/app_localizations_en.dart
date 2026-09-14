@@ -350,6 +350,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietTakePhotoSub => 'Snap your food with the camera';
 
   @override
+  String get dietAddPhoto => 'Add a Photo';
+
+  @override
+  String get dietAddPhotoSub =>
+      'Choose a food photo from your library, camera, or files';
+
+  @override
   String get dietPhotoLoadError =>
       'Couldn\'t load the photo. Please try again in a moment.';
 
@@ -2509,15 +2516,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
-
-  @override
-  String get alertSimulatedTitle => 'Simulated notification';
-
-  @override
-  String get alertSimulatedBody => 'A test push just arrived.';
-
-  @override
-  String get alertJustNow => 'Just now';
 
   @override
   String get exPtLogTitle => 'Today\'s completed PT';

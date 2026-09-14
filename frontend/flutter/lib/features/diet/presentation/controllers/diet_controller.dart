@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/dio_client.dart';
@@ -5,6 +6,7 @@ import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart'
 import 'package:oncare/features/diet/data/sources/image_picker_meal_photo_picker.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
+import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
@@ -27,6 +29,12 @@ final dietRepositoryProvider = Provider<DietRepository>((ref) {
 final mealPhotoPickerProvider = Provider<MealPhotoPicker>((ref) {
   return ImagePickerMealPhotoPicker();
 }, name: 'mealPhotoPicker');
+
+/// 식단 추가 시트의 사진 갈래 배치 — 웹은 시스템 메뉴 하나, 네이티브는 둘.
+/// 테스트가 웹 배치를 VM 에서 확인할 수 있게 provider 로 둔다. (#1433)
+final mealPhotoChoiceLayoutProvider = Provider<MealPhotoChoiceLayout>((ref) {
+  return MealPhotoChoiceLayout.forPlatform(isWeb: kIsWeb);
+}, name: 'mealPhotoChoiceLayout');
 
 final dietTodayProvider = FutureProvider<DietDay>((ref) {
   return ref.watch(dietRepositoryProvider).fetchToday();

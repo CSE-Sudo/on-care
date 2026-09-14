@@ -125,8 +125,8 @@ class DashboardPage extends ConsumerWidget {
   }
 }
 
-/// 몇 주 전까지 볼 수 있는가 — 무한정 뒤로 가면 SharedPreferences 에도 없는
-/// 빈 주만 계속 나온다.
+/// 몇 주 전까지 볼 수 있는가 — 무한정 뒤로 가면 저장된 기록이 없는 빈 주만
+/// 계속 나온다. 서버 보관 기간(63일)이 이 범위에 맞춰져 있다(#1633).
 const int _maxTaskProgressWeeksBack = 8;
 
 /// 할 일 진행률 그래프가 보는 주 — 0 이 이번 주, 음수가 지난 주.
@@ -142,11 +142,9 @@ class _TaskProgressCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 값 자체는 안 쓰지만, 오늘 할 일 카드가 새로 저장할 때마다 이 카드도
-    // 다시 그리게 만드는 구독이다 — SharedPreferences 는 스트림이 아니다.
-    ref.watch(taskProgressVersionProvider);
     final l = AppLocalizations.of(context);
-    final store = ref.watch(dailyTaskProgressStoreProvider);
+    // 오늘 할 일 카드가 저장할 때 같은 provider 가 갱신돼 이 카드도 다시 그린다.
+    final history = ref.watch(dailyTaskHistoryProvider).valueOrNull;
     final demoHistory = ref.watch(demoTaskHistoryProvider);
     final offset = ref.watch(_taskProgressWeekOffsetProvider);
     final today = nowKst();
@@ -213,10 +211,13 @@ class _TaskProgressCard extends ConsumerWidget {
       ),
       child: TaskProgressChart(
         // 실제 기록이 먼저다. 데모 이력은 그 기록이 시작되기 전의 지난
-        // 날들만 채운다(#1203).
+        // 날들만 채운다(#1203). 이력을 읽기 전에는 데모도 그리지 않는다 —
+        // 실제 기록이 있는 계정에서 데모 막대가 잠깐 비쳤다 사라진다.
         snapshots: <DailyTaskSnapshot?>[
           for (final d in dates)
-            store.read(ymd(d)) ?? demoHistory.snapshotFor(d),
+            history == null
+                ? null
+                : history.read(ymd(d)) ?? demoHistory.snapshotFor(d),
         ],
         dates: dates,
         labels: weekdayLabels(l),
