@@ -3181,6 +3181,26 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programEditorAssignUnsupported => '운동 이름과 세트 수를 확인해 주세요';
 
   @override
+  String programEditorSessionLimitReached(int max) {
+    return '세션은 최대 $max개까지 만들 수 있어요';
+  }
+
+  @override
+  String programEditorExerciseLimitReached(int max) {
+    return '운동은 프로그램 전체에서 최대 $max개까지 넣을 수 있어요';
+  }
+
+  @override
+  String programEditorSizeExceeded(
+    int sessions,
+    int maxSessions,
+    int exercises,
+    int maxExercises,
+  ) {
+    return '세션 $sessions/$maxSessions개 · 운동 $exercises/$maxExercises개 — 한도를 넘은 만큼 줄여야 일정에 추가할 수 있어요';
+  }
+
+  @override
   String get programAssignConfirmTitle => '일정에 추가할까요?';
 
   @override

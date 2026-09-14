@@ -5828,6 +5828,29 @@ abstract class AppLocalizations {
   /// **'Check each exercise\'s name and set count.'**
   String get programEditorAssignUnsupported;
 
+  /// No description provided for @programEditorSessionLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'A program can have up to {max} sessions'**
+  String programEditorSessionLimitReached(int max);
+
+  /// No description provided for @programEditorExerciseLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'A program can have up to {max} exercises in total'**
+  String programEditorExerciseLimitReached(int max);
+
+  /// No description provided for @programEditorSizeExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'{sessions}/{maxSessions} sessions · {exercises}/{maxExercises} exercises — remove the extra to add it to the schedule'**
+  String programEditorSizeExceeded(
+    int sessions,
+    int maxSessions,
+    int exercises,
+    int maxExercises,
+  );
+
   /// No description provided for @programAssignConfirmTitle.
   ///
   /// In en, this message translates to:

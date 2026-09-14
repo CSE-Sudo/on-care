@@ -442,21 +442,26 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               // 박스형 버튼이던 `세션 추가`를 작은 텍스트 액션으로 줄였다 —
               // `_addSession` 과 그 결과(빈 세션 append)는 그대로다, 시각
               // 형태만 낮은 우선순위로 바뀌었다.
-              TextButton.icon(
-                key: const ValueKey<String>('program-editor-add-session'),
-                onPressed: _addSession,
-                icon: const Icon(Icons.add, size: 14),
-                label: Text(l.programEditorAddSession),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  textStyle: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+              Tooltip(
+                message: _draft.canAddSession
+                    ? ''
+                    : l.programEditorSessionLimitReached(kProgramMaxSessions),
+                child: TextButton.icon(
+                  key: const ValueKey<String>('program-editor-add-session'),
+                  onPressed: _draft.canAddSession ? _addSession : null,
+                  icon: const Icon(Icons.add, size: 14),
+                  label: Text(l.programEditorAddSession),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                    ),
+                    visualDensity: VisualDensity.compact,
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs,
-                  ),
-                  visualDensity: VisualDensity.compact,
                 ),
               ),
             ],
@@ -473,6 +478,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               canMoveUp: index > 0,
               canMoveDown: index < _draft.sessions.length - 1,
               canDelete: _draft.sessions.length > 1,
+              canAddExercise: _draft.canAddExercise,
               addingExercise: _addingToSession == _draft.sessions[index].id,
               exerciseNameController: _exerciseName,
               exerciseType: _newExerciseType,
@@ -545,7 +551,9 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
                 onTap: () => unawaited(_pickRegisterTimeRange(context)),
               ),
               Tooltip(
-                message: !_draft.supportsAssignment
+                message: _draft.exceedsSizeLimit
+                    ? _sizeExceededMessage(l)
+                    : !_draft.supportsAssignment
                     ? l.programEditorAssignUnsupported
                     : !_hasValidRegisterTimeRange
                     ? l.schedEndBeforeStart
@@ -564,6 +572,18 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
               ),
             ],
           ),
+          if (_draft.exceedsSizeLimit) ...<Widget>[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              _sizeExceededMessage(l),
+              key: const ValueKey<String>('program-size-exceeded'),
+              style: const TextStyle(
+                color: AppColors.destructive,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
           if (!_hasValidRegisterTimeRange) ...<Widget>[
             const SizedBox(height: AppSpacing.xs),
             Text(
@@ -580,6 +600,14 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
       ),
     );
   }
+
+  /// 한도를 넘었을 때 무엇을 얼마나 줄여야 하는지 알려 주는 안내(#1583).
+  String _sizeExceededMessage(AppLocalizations l) => l.programEditorSizeExceeded(
+    _draft.sessions.length,
+    kProgramMaxSessions,
+    _draft.exerciseCount,
+    kProgramMaxExercises,
+  );
 
   /// 등록할 날짜를 고른다 — 기본값은 오늘, 과거 날짜는 고를 수 없다.
   Future<void> _pickRegisterDate(BuildContext context) async {
@@ -622,6 +650,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
   }
 
   void _addSession() {
+    if (!_draft.canAddSession) return;
     final l = AppLocalizations.of(context);
     final id = 'session-${_nextId++}';
     _update(
@@ -667,7 +696,7 @@ class _ProgramEditorWorkspaceState extends State<ProgramEditorWorkspace> {
 
   void _addExercise(int sessionIndex) {
     final name = _exerciseName.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty || !_draft.canAddExercise) return;
     final session = _draft.sessions[sessionIndex];
     _replaceSession(
       sessionIndex,
@@ -778,6 +807,7 @@ class _SessionEditor extends StatefulWidget {
     required this.canMoveUp,
     required this.canMoveDown,
     required this.canDelete,
+    required this.canAddExercise,
     required this.addingExercise,
     required this.exerciseNameController,
     required this.exerciseType,
@@ -809,6 +839,9 @@ class _SessionEditor extends StatefulWidget {
   final bool canMoveUp;
   final bool canMoveDown;
   final bool canDelete;
+
+  /// 프로그램 전체 운동 수가 상한 아래인가 — 아니면 추가 버튼이 잠긴다(#1583).
+  final bool canAddExercise;
   final bool addingExercise;
   final TextEditingController exerciseNameController;
   final String exerciseType;
@@ -1068,7 +1101,9 @@ class _SessionEditorState extends State<_SessionEditor> {
                       ActionButton(
                         label: l.programEditorAdd,
                         primary: true,
-                        onPressed: widget.onConfirmAdd,
+                        onPressed: widget.canAddExercise
+                            ? widget.onConfirmAdd
+                            : null,
                       ),
                     ],
                   ),
@@ -1076,10 +1111,15 @@ class _SessionEditorState extends State<_SessionEditor> {
               ),
             )
           else
-            ActionButton(
-              label: l.programEditorAddExercise,
-              icon: Icons.add,
-              onPressed: widget.onStartAdd,
+            Tooltip(
+              message: widget.canAddExercise
+                  ? ''
+                  : l.programEditorExerciseLimitReached(kProgramMaxExercises),
+              child: ActionButton(
+                label: l.programEditorAddExercise,
+                icon: Icons.add,
+                onPressed: widget.canAddExercise ? widget.onStartAdd : null,
+              ),
             ),
         ],
       ),

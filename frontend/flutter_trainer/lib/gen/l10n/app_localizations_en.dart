@@ -3323,6 +3323,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'Check each exercise\'s name and set count.';
 
   @override
+  String programEditorSessionLimitReached(int max) {
+    return 'A program can have up to $max sessions';
+  }
+
+  @override
+  String programEditorExerciseLimitReached(int max) {
+    return 'A program can have up to $max exercises in total';
+  }
+
+  @override
+  String programEditorSizeExceeded(
+    int sessions,
+    int maxSessions,
+    int exercises,
+    int maxExercises,
+  ) {
+    return '$sessions/$maxSessions sessions · $exercises/$maxExercises exercises — remove the extra to add it to the schedule';
+  }
+
+  @override
   String get programAssignConfirmTitle => 'Add to the schedule?';
 
   @override

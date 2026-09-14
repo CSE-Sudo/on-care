@@ -572,6 +572,11 @@ _PROGRAM_DRAFT_MAX_EXERCISES = 50
 #: 한 프로그램의 세션 수 상한. 주 단위 분할(A/B/C…)을 충분히 담는 값이다.
 _PROGRAM_MAX_SESSIONS = 12
 
+#: 한 프로그램 **전체**의 운동 수 상한. 일정 한 건이 담는 항목 상한과 같다 —
+#: 초안·배정·일정 추가가 같은 크기를 받아야 배정은 되고 일정만 422 가 되는 경로가
+#: 없다(#1583). 트레이너 웹 편집기(`kProgramMaxExercises`)도 같은 값을 쓴다.
+_PROGRAM_MAX_TOTAL_EXERCISES = 30
+
 
 class ProgramDraftSession(BaseModel):
     """프로그램의 세션 하나 — 편집기 `ProgramSessionDraft` 계약 정렬. (#709)
@@ -584,6 +589,20 @@ class ProgramDraftSession(BaseModel):
     exercises: list[ProgramDraftExercise] = Field(
         default_factory=list, max_length=_PROGRAM_DRAFT_MAX_EXERCISES
     )
+
+
+def _check_program_total_exercises(
+    sessions: list[ProgramDraftSession] | None,
+) -> list[ProgramDraftSession] | None:
+    """세션 전체의 운동 수가 [_PROGRAM_MAX_TOTAL_EXERCISES] 이하인지 본다(#1583)."""
+    if sessions is not None and (
+        sum(len(session.exercises) for session in sessions)
+        > _PROGRAM_MAX_TOTAL_EXERCISES
+    ):
+        raise ValueError(
+            f"운동은 프로그램 전체에서 최대 {_PROGRAM_MAX_TOTAL_EXERCISES}개까지 담을 수 있습니다."
+        )
+    return sessions
 
 
 class TrainerProgramDraftOut(BaseModel):
@@ -625,6 +644,8 @@ class TrainerProgramDraftCreate(BaseModel):
         default_factory=list, max_length=_PROGRAM_MAX_SESSIONS
     )
 
+    _v_total = field_validator("sessions")(_check_program_total_exercises)
+
 
 class TrainerProgramDraftUpdate(PartialUpdate):
     """초안 부분 수정. 보낸 필드만 반영한다.
@@ -640,6 +661,8 @@ class TrainerProgramDraftUpdate(PartialUpdate):
     sessions: list[ProgramDraftSession] | None = Field(
         default=None, max_length=_PROGRAM_MAX_SESSIONS
     )
+
+    _v_total = field_validator("sessions")(_check_program_total_exercises)
 
 
 class ProgramAssignRequest(BaseModel):
@@ -660,6 +683,8 @@ class ProgramAssignRequest(BaseModel):
     #: 그 값이 들어갈 컬럼이 `String(64)` 라, 접미사 자리를 남겨 두지 않으면 긴
     #: 키가 저장 단계에서 길이 초과로 터진다.
     client_request_id: str | None = Field(default=None, max_length=48)
+
+    _v_total = field_validator("sessions")(_check_program_total_exercises)
 
 
 #: 메모 출처. 'trainer' 는 회원 상세에서 직접 쓴 메모, 'chat_insight' 는 채팅에서
@@ -992,7 +1017,9 @@ class ScheduleCreateRequest(BaseModel):
     type: str = Field(default="", max_length=30)
     duration_minutes: int = Field(default=0, ge=0, le=600)
     note: str = Field(default="", max_length=500)
-    program: list[ProgramItem] = Field(default_factory=list, max_length=30)
+    program: list[ProgramItem] = Field(
+        default_factory=list, max_length=_PROGRAM_MAX_TOTAL_EXERCISES
+    )
     client_request_id: str | None = Field(default=None, min_length=1, max_length=64)
 
     _v_date = field_validator("date")(_validate_ymd)
@@ -1081,6 +1108,7 @@ class ProgramScheduleRequest(BaseModel):
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
+    _v_total = field_validator("sessions")(_check_program_total_exercises)
 
 
 class ProgramScheduleOut(BaseModel):
