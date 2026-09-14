@@ -220,7 +220,14 @@ class _SectionCard extends StatelessWidget {
                 if (end != null) ...<Widget>[
                   const SizedBox(width: OnCareSpacing.s8),
                   if (trailingFlexible)
-                    Flexible(child: end)
+                    // 칩 묶음은 제 폭만 차지해 칸 왼쪽에 떠 있었다 — 칸을
+                    // 채우고 오른쪽 끝에 붙인다.
+                    Flexible(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: end,
+                      ),
+                    )
                   else
                     ConstrainedBox(
                       // 앞 간격만큼 뺀다 — 그대로 두면 그 간격만큼 넘친다.
