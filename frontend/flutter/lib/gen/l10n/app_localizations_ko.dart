@@ -2436,15 +2436,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertLoadFailed => '최신 알림을 불러오지 못했어요';
 
   @override
-  String get alertSimulatedTitle => '시뮬레이션 알림';
-
-  @override
-  String get alertSimulatedBody => '지금 막 가상 푸시가 도착했어요.';
-
-  @override
-  String get alertJustNow => '방금';
-
-  @override
   String get exPtLogTitle => '오늘 완료한 PT';
 
   @override

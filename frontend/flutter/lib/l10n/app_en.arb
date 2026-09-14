@@ -1562,18 +1562,6 @@
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
   },
-  "alertSimulatedTitle": "Simulated notification",
-  "@alertSimulatedTitle": {
-    "description": "Title of the demo push the mock build can trigger."
-  },
-  "alertSimulatedBody": "A test push just arrived.",
-  "@alertSimulatedBody": {
-    "description": "Body of the demo push the mock build can trigger."
-  },
-  "alertJustNow": "Just now",
-  "@alertJustNow": {
-    "description": "Relative time for something that just happened."
-  },
   "exPtLogTitle": "Today's completed PT",
   "@exPtLogTitle": {
     "description": "Title of the completed PT session card."

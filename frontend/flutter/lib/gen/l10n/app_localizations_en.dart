@@ -2502,15 +2502,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
 
   @override
-  String get alertSimulatedTitle => 'Simulated notification';
-
-  @override
-  String get alertSimulatedBody => 'A test push just arrived.';
-
-  @override
-  String get alertJustNow => 'Just now';
-
-  @override
   String get exPtLogTitle => 'Today\'s completed PT';
 
   @override

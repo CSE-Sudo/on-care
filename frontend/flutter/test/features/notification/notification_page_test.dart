@@ -59,7 +59,9 @@ void main() {
         expect(theme.colorScheme.surfaceContainerHigh, AppColors.accent);
         expect(find.text('나트륨 섭취 주의'), findsOneWidget);
         expect(find.text('서비스 점검 안내'), findsOneWidget);
-        expect(find.text('Simulate push'), findsOneWidget);
+        // 개발용 가상 푸시 버튼은 목/데모 빌드에도 두지 않는다(#1242).
+        expect(find.text('Simulate push'), findsNothing);
+        expect(find.byType(FloatingActionButton), findsNothing);
       },
     );
   }
@@ -72,10 +74,6 @@ void main() {
       find.byKey(const Key('notificationPage')),
     );
     final ProviderContainer container = ProviderScope.containerOf(pageContext);
-
-    await tester.tap(find.text('Simulate push'));
-    await tester.pump();
-    expect(find.text('시뮬레이션 알림'), findsOneWidget);
 
     await tester.tap(find.text('모두 읽음'));
     await tester.pump();
