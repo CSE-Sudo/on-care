@@ -30,10 +30,7 @@ ProgramEditorState _twoSessionDraft() => ProgramEditorState(
     ProgramSessionDraft(
       id: 'session-1',
       name: '세션 A · 하체',
-      exercises: <ProgramExerciseDraft>[
-        _exercise('레그프레스'),
-        _exercise('스쿼트'),
-      ],
+      exercises: <ProgramExerciseDraft>[_exercise('레그프레스'), _exercise('스쿼트')],
     ),
     ProgramSessionDraft(
       id: 'session-2',
@@ -100,8 +97,9 @@ void main() {
           .toList();
       expect(first.map((e) => e['name']), <String>['레그프레스', '스쿼트']);
       expect(first.first['weight'], 60.0);
-      final second = (sessions.last['exercises']! as List<Object?>).single!
-          as Map<String, Object?>;
+      final second =
+          (sessions.last['exercises']! as List<Object?>).single!
+              as Map<String, Object?>;
       // AI 제안인지 트레이너가 넣은 것인지가 배정에도 남는다.
       expect(second['source'], 'ai');
       expect(second['type'], '유산소');
@@ -121,10 +119,7 @@ void main() {
           .toList();
       expect(sessions, hasLength(2));
       expect(sessions.map((s) => s['id']), <String>['session-1', 'session-2']);
-      expect(
-        (sessions.first['exercises']! as List<Object?>),
-        hasLength(2),
-      );
+      expect((sessions.first['exercises']! as List<Object?>), hasLength(2));
     });
   });
 }
