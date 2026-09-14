@@ -2577,4 +2577,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get a11yNextWeek => 'Next week';
+
+  @override
+  String get exConsultHistoryCancelTitle => 'Cancel this consultation request?';
+
+  @override
+  String get exConsultHistoryCancelBody =>
+      'A cancelled request can\'t be restored.';
+
+  @override
+  String get exDemoPtSessionCount => 'Session 12 with Trainer Kim';
+
+  @override
+  String get exDemoPtTrainerName => 'Trainer Kim';
+
+  @override
+  String get exDemoPtFeedback =>
+      'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!';
+
+  @override
+  String get exStepperDecrease => 'Decrease';
+
+  @override
+  String get exStepperIncrease => 'Increase';
 }

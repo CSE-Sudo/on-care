@@ -1,20 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/core/utils/portrait_date_picker.dart';
-import 'package:oncare/design_system/atoms/app_choice_chip.dart';
-import 'package:oncare/design_system/atoms/app_number_stepper.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/breakpoints.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+
+/// 조작이 멎은 뒤 칼로리 미리보기를 부르기까지 기다리는 시간. 애니메이션이
+/// 아니라 요청을 모으는 창이다.
+const Duration _estimateDebounceDelay = Duration(milliseconds: 400);
 
 // Backend value sent as `dayLabel` — DO NOT localize (persisted to the server).
 /// The "운동 종류" chip display labels — 유산소 / 근력 / 스트레칭 / 기타 네 가지다
@@ -69,34 +69,6 @@ int _estimateCalories(ExerciseType type, int minutes, int level) =>
       intensity: _intensityFromIndex(level),
     );
 
-Widget _shell(BuildContext context, Widget child) => ConstrainedBox(
-  constraints: BoxConstraints(
-    maxHeight: MediaQuery.of(context).size.height * 0.9,
-    // Match the main content width so the sheet scales with the viewport
-    // like the tab pages. The theme lifts the modal route cap to this
-    // width too (see AppTheme._bottomSheetTheme); this centres the child.
-    maxWidth: AppBreakpoints.contentMaxWidth,
-  ),
-  child: Container(
-    key: const Key('exerciseAddSheet'),
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    child: SafeArea(top: false, child: child),
-  ),
-);
-
-Widget _handle() => Container(
-  margin: const EdgeInsets.only(top: 12, bottom: 4),
-  width: 36,
-  height: 4,
-  decoration: BoxDecoration(
-    color: const Color(0xFFDDE3EA),
-    borderRadius: BorderRadius.circular(999),
-  ),
-);
-
 // ─────────────────────────────────────────────────────── 운동 추가 ──
 
 /// A compact "운동 추가" sheet: pick a type + duration/intensity, then save.
@@ -108,13 +80,9 @@ Future<bool> showExerciseAddSheet(
   ExerciseSession? session,
   DateTime? initialDate,
 }) async {
-  final bool? saved = await showModalBottomSheet<bool>(
-    context: context,
+  final bool? saved = await showAppSheet<bool>(
     // 하단 바·+ 버튼이 시트 위로 올라오지 않도록 루트에 올린다(#791).
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: FigmaColors.sheetScrim,
+    context: Navigator.of(context, rootNavigator: true).context,
     builder: (BuildContext ctx) =>
         _ExerciseAddSheet(session: session, initialDate: initialDate),
   );
@@ -138,26 +106,16 @@ Future<bool> confirmDeleteExerciseSession(
     toast.show(l.exCannotDelete, kind: AppToastKind.error);
     return false;
   }
-  final bool? confirmed = await showDialog<bool>(
+  // 되돌릴 수 없는 쪽은 파괴적 색으로 말한다.
+  final bool confirmed = await showAppConfirmDialog(
     context: context,
-    builder: (BuildContext dialogContext) => AlertDialog(
-      title: Text(l.exDeleteExercise),
-      content: Text(l.exDeleteExerciseBody),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext, false),
-          child: Text(l.actionCancel),
-        ),
-        // 되돌릴 수 없는 쪽은 파괴적 색으로 말한다.
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext, true),
-          style: TextButton.styleFrom(foregroundColor: AppColors.destructive),
-          child: Text(l.actionDelete),
-        ),
-      ],
-    ),
+    title: l.exDeleteExercise,
+    message: l.exDeleteExerciseBody,
+    confirmLabel: l.actionDelete,
+    cancelLabel: l.actionCancel,
+    destructive: true,
   );
-  if (confirmed != true) return false;
+  if (!confirmed) return false;
   try {
     await ref.read(exerciseRepositoryProvider).deleteSession(id);
     // 목록·주간 통계·그래프가 한 번에 최신이 된다 — 추가 경로와 같은 무효화다.
@@ -208,6 +166,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   late final TextEditingController _name = TextEditingController(
     text: widget.session?.name ?? '',
   );
+  final FocusNode _nameFocus = FocusNode();
   bool _saving = false;
 
   /// 지금 화면이 보여 줄 소모 칼로리. **이름이 차기 전에는 null 이다.**
@@ -245,6 +204,11 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   @override
   void initState() {
     super.initState();
+    // 이름 칸을 벗어나면(다른 곳을 누르거나 키보드를 닫으면) 기다리지 않고
+    // 바로 계산한다(#1312).
+    _nameFocus.addListener(() {
+      if (!_nameFocus.hasFocus) _scheduleEstimate(immediate: true);
+    });
     // 수정 시트는 이름이 이미 차 있다 — 열자마자 그 이름의 값을 보여 준다.
     if (_name.text.trim().isNotEmpty) _scheduleEstimate(immediate: true);
   }
@@ -252,6 +216,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   @override
   void dispose() {
     _estimateDebounce?.cancel();
+    _nameFocus.dispose();
     _name.dispose();
     super.dispose();
   }
@@ -265,6 +230,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   /// 이름을 지웠는데 아까 숫자가 남아 있으면 그 값이 무엇의 값인지 알 수 없다.
   void _scheduleEstimate({bool immediate = false}) {
     _estimateDebounce?.cancel();
+    if (!mounted) return;
     if (_name.text.trim().isEmpty) {
       if (_estimate != null || _estimating) {
         setState(() {
@@ -281,12 +247,13 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       return;
     }
     _estimateDebounce = Timer(
-      const Duration(milliseconds: 400),
+      _estimateDebounceDelay,
       () => unawaited(_fetchEstimate()),
     );
   }
 
   Future<void> _fetchEstimate() async {
+    if (!mounted) return;
     final String key = _estimateKey;
     final String name = _name.text.trim();
     if (name.isEmpty) return;
@@ -364,14 +331,14 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
 
   Future<void> _pickDate() async {
     final DateTime now = nowKst();
-    final DateTime? picked = await showPortraitDatePicker(
+    final DateTime? picked = await showAppDatePicker(
       context: context,
       initialDate: _date,
       firstDate: DateTime(now.year - 2),
       // 앞으로 한 기록은 없다 — 아직 하지 않은 운동을 적을 자리가 아니다.
       lastDate: _dateOnly(now),
     );
-    if (picked != null) setState(() => _date = _dateOnly(picked));
+    if (picked != null && mounted) setState(() => _date = _dateOnly(picked));
   }
 
   Future<void> _save() async {
@@ -465,270 +432,340 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     final AppLocalizations l = AppLocalizations.of(context);
     final List<String> types = _exerciseTypeLabels(l);
     final List<String> levels = _levelLabels(l);
-    // Block back/drag dismiss while the save request is in flight.
-    final Widget sheet = _shell(
-      context,
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Center(child: _handle()),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    widget.isEdit ? l.exEditExercise : l.exAddExercise,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: FigmaColors.ink,
-                    ),
-                  ),
-                ),
-                // 이 시트를 끝내는 동작이다 — 배경 없는 글자 버튼이면 옆의
-                // 보조 버튼과 위계가 같다(#1460). 다른 화면의 주요 확인
-                // 버튼과 같은 파란 배경·흰 글씨를 쓴다. 저장 중에는 비활성
-                // 색으로 바뀌어 두 번 눌리지 않는다.
-                FilledButton(
-                  key: const Key('exerciseSaveButton'),
-                  onPressed: _saving ? null : _save,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: FigmaColors.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: FigmaColors.primaryA(0.35),
-                    disabledForegroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    l.exSave,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+    final Widget sheet = AppSheet(
+      key: const Key('exerciseAddSheet'),
+      title: widget.isEdit ? l.exEditExercise : l.exAddExercise,
+      // 이 시트를 끝내는 동작이다 — 하단에 넓은 주요 버튼으로 둔다. 저장 중에는
+      // 비활성이 되어 두 번 눌리지 않는다.
+      footer: AppButton(
+        key: const Key('exerciseSaveButton'),
+        label: l.exSave,
+        onPressed: _saving ? null : _save,
+        size: OnCareButtonSize.large,
+        fullWidth: true,
+      ),
+      child: GestureDetector(
+        // 이름 칸 밖을 누르면 키보드를 닫는다 — 포커스를 잃는 순간 칼로리를
+        // 바로 계산한다(위 `_nameFocus` 리스너).
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
+          key: const Key('exerciseAddContent'),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _Label(l.exExerciseDate),
+            const SizedBox(height: OnCareSpacing.s8),
+            _DateField(
+              key: const Key('exerciseDateField'),
+              date: _date,
+              onTap: _pickDate,
             ),
-          ),
-          Flexible(
-            child: ListView(
-              key: const Key('exerciseAddContent'),
-              shrinkWrap: true,
-              // 아래 여백을 준다 — 0 이면 마지막 칼로리 상자가 시트 끝선에
-              // 붙어 잘린 것처럼 보였다.
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+            const SizedBox(height: OnCareSpacing.s20),
+            _Label(l.exExerciseType),
+            const SizedBox(height: OnCareSpacing.s8),
+            Wrap(
+              spacing: OnCareSpacing.s8,
+              runSpacing: OnCareSpacing.s8,
               children: <Widget>[
-                _Label(l.exExerciseDate),
-                const SizedBox(height: 10),
-                _DateField(
-                  key: const Key('exerciseDateField'),
-                  date: _date,
-                  onTap: _pickDate,
-                ),
-                const SizedBox(height: 20),
-                _Label(l.exExerciseType),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: <Widget>[
-                    for (int i = 0; i < types.length; i++)
-                      _chip(types[i], _type == i, () {
-                        setState(() => _type = i);
-                        _scheduleEstimate();
-                      }),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                _Label(l.exExerciseName),
-                const SizedBox(height: 10),
-                TextField(
-                  key: const Key('exerciseNameField'),
-                  controller: _name,
-                  textInputAction: TextInputAction.done,
-                  maxLength: 100,
-                  // 글자마다 부르지 않는다 — 이름 해석이 외부 호출을 탈 수 있어,
-                  // 조작이 멎은 뒤 한 번이면 된다(#1312). 비우면 그 자리에서
-                  // 숫자를 지운다.
-                  onChanged: (String _) => _scheduleEstimate(),
-                  onSubmitted: (String _) => _scheduleEstimate(immediate: true),
-                  onTapOutside: (PointerDownEvent _) {
-                    FocusScope.of(context).unfocus();
-                    _scheduleEstimate(immediate: true);
-                  },
-                  decoration: InputDecoration(
-                    isDense: true,
-                    counterText: '',
-                    // 고른 종류의 예시를 보여 준다 — 근력을 고른 사람에게
-                    // `러닝머신` 을 예로 들면 무엇을 적어야 하는지 되레
-                    // 헷갈린다(#1460). 이미 적은 이름은 건드리지 않는다.
-                    hintText: _nameHint(l),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: FigmaColors.hairline),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: FigmaColors.hairline),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: FigmaColors.primary),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // 근력은 세트·횟수·중량으로, 나머지는 분으로 묻는다
-                // (#1262, #1276, #1310).
-                // 화면 여러 곳(홈 운동 카드·운동 현황 링·주간 목표)이 근력을
-                // 세트로 읽는데 기록만 분이면, 회원이 적지 않은 수가 화면에 뜬다.
-                if (_isStrength) ...<Widget>[
-                  _Label(l.exExerciseSets),
-                  const SizedBox(height: 10),
-                  AppNumberStepper(
-                    key: const Key('exerciseSetsStepper'),
-                    value: _sets,
-                    min: 1,
-                    max: 40,
-                    suffix: l.exUnitSets,
-                    onChanged: (double v) {
-                      setState(() => _sets = v);
+                for (int i = 0; i < types.length; i++)
+                  AppChoiceChip(
+                    label: types[i],
+                    selected: _type == i,
+                    onSelected: (bool _) {
+                      setState(() => _type = i);
                       _scheduleEstimate();
                     },
                   ),
-                  const SizedBox(height: 20),
-                  _Label(l.exExerciseReps),
-                  const SizedBox(height: 10),
-                  AppNumberStepper(
-                    key: const Key('exerciseRepsStepper'),
-                    value: _reps,
-                    min: 1,
-                    max: 999,
-                    suffix: l.exUnitReps,
-                    onChanged: (double v) => setState(() => _reps = v),
-                  ),
-                  const SizedBox(height: 20),
-                  _Label(l.exExerciseWeight),
-                  const SizedBox(height: 10),
-                  AppNumberStepper(
-                    key: const Key('exerciseWeightStepper'),
-                    value: _weight,
-                    min: 0,
-                    max: 500,
-                    // 원판은 0.5kg 단위로 붙는다 — 버튼 한 번에 1kg 이 실용적인
-                    // 걸음이고, 소수 자리는 직접 적어 채운다.
-                    decimals: 1,
-                    suffix: l.exUnitKg,
-                    onChanged: (double v) => setState(() => _weight = v),
-                  ),
-                ] else ...<Widget>[
-                  _Label(l.exExerciseDuration),
-                  const SizedBox(height: 10),
-                  AppNumberStepper(
-                    key: const Key('exerciseMinutesStepper'),
-                    value: _minutes,
-                    min: 1,
-                    max: 600,
-                    suffix: l.exUnitMinutes,
-                    onChanged: (double v) {
-                      setState(() => _minutes = v);
+              ],
+            ),
+            const SizedBox(height: OnCareSpacing.s20),
+            _Label(l.exExerciseName),
+            const SizedBox(height: OnCareSpacing.s8),
+            AppTextField(
+              key: const Key('exerciseNameField'),
+              controller: _name,
+              focusNode: _nameFocus,
+              textInputAction: TextInputAction.done,
+              maxLength: 100,
+              // 고른 종류의 예시를 보여 준다 — 근력을 고른 사람에게
+              // `러닝머신` 을 예로 들면 무엇을 적어야 하는지 되레
+              // 헷갈린다(#1460). 이미 적은 이름은 건드리지 않는다.
+              hint: _nameHint(l),
+              // 글자마다 부르지 않는다 — 이름 해석이 외부 호출을 탈 수 있어,
+              // 조작이 멎은 뒤 한 번이면 된다(#1312). 비우면 그 자리에서
+              // 숫자를 지운다.
+              onChanged: (String _) => _scheduleEstimate(),
+              onSubmitted: (String _) => _scheduleEstimate(immediate: true),
+            ),
+            const SizedBox(height: OnCareSpacing.s20),
+            // 근력은 세트·횟수·중량으로, 나머지는 분으로 묻는다
+            // (#1262, #1276, #1310).
+            // 화면 여러 곳(홈 운동 카드·운동 현황 링·주간 목표)이 근력을
+            // 세트로 읽는데 기록만 분이면, 회원이 적지 않은 수가 화면에 뜬다.
+            if (_isStrength) ...<Widget>[
+              _Label(l.exExerciseSets),
+              const SizedBox(height: OnCareSpacing.s8),
+              _NumberStepper(
+                key: const Key('exerciseSetsStepper'),
+                value: _sets,
+                min: 1,
+                max: 40,
+                suffix: l.exUnitSets,
+                onChanged: (double v) {
+                  setState(() => _sets = v);
+                  _scheduleEstimate();
+                },
+              ),
+              const SizedBox(height: OnCareSpacing.s20),
+              _Label(l.exExerciseReps),
+              const SizedBox(height: OnCareSpacing.s8),
+              _NumberStepper(
+                key: const Key('exerciseRepsStepper'),
+                value: _reps,
+                min: 1,
+                max: 999,
+                suffix: l.exUnitReps,
+                onChanged: (double v) => setState(() => _reps = v),
+              ),
+              const SizedBox(height: OnCareSpacing.s20),
+              _Label(l.exExerciseWeight),
+              const SizedBox(height: OnCareSpacing.s8),
+              _NumberStepper(
+                key: const Key('exerciseWeightStepper'),
+                value: _weight,
+                min: 0,
+                max: 500,
+                // 원판은 0.5kg 단위로 붙는다 — 버튼 한 번에 1kg 이 실용적인
+                // 걸음이고, 소수 자리는 직접 적어 채운다.
+                decimals: 1,
+                suffix: l.exUnitKg,
+                onChanged: (double v) => setState(() => _weight = v),
+              ),
+            ] else ...<Widget>[
+              _Label(l.exExerciseDuration),
+              const SizedBox(height: OnCareSpacing.s8),
+              _NumberStepper(
+                key: const Key('exerciseMinutesStepper'),
+                value: _minutes,
+                min: 1,
+                max: 600,
+                suffix: l.exUnitMinutes,
+                onChanged: (double v) {
+                  setState(() => _minutes = v);
+                  _scheduleEstimate();
+                },
+              ),
+            ],
+            const SizedBox(height: OnCareSpacing.s20),
+            _Label(l.exExerciseIntensity),
+            const SizedBox(height: OnCareSpacing.s8),
+            // 개인운동 완료창의 강도 선택도 같은 칩을 쓴다 — 모양을 한 벌만
+            // 둔다(#1457).
+            Wrap(
+              spacing: OnCareSpacing.s8,
+              runSpacing: OnCareSpacing.s8,
+              children: <Widget>[
+                for (int i = 0; i < levels.length; i++)
+                  AppChoiceChip(
+                    label: levels[i],
+                    selected: _level == i,
+                    onSelected: (bool _) {
+                      setState(() => _level = i);
                       _scheduleEstimate();
                     },
                   ),
-                ],
-                const SizedBox(height: 20),
-                _Label(l.exExerciseIntensity),
-                const SizedBox(height: 10),
-                Row(
-                  children: <Widget>[
-                    for (int i = 0; i < levels.length; i++) ...<Widget>[
-                      Expanded(
-                        child: _chip(levels[i], _level == i, () {
-                          setState(() => _level = i);
-                          _scheduleEstimate();
-                        }, center: true),
-                      ),
-                      if (i < levels.length - 1) const SizedBox(width: 8),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _CalorieBox(
-                  key: const Key('exerciseCalorieBox'),
-                  estimate: _estimate,
-                  loading: _estimating,
-                ),
-                // 지우기는 고치는 화면 맨 아래에서만 한다 — 목록 줄의 휴지통은
-                // 없앴다. 새로 적는 시트에는(수정이 아니면) 지울 기록 자체가
-                // 없으니 두지 않는다.
-                if (widget.isEdit) ...<Widget>[
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      key: const Key('exerciseDeleteButton'),
-                      onPressed: _saving ? null : _delete,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.destructive,
-                        side: BorderSide(
-                          color: AppColors.destructive.withValues(alpha: 0.2),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      label: Text(
-                        l.exDeleteExercise,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: OnCareSpacing.s16),
+            _CalorieBox(
+              key: const Key('exerciseCalorieBox'),
+              estimate: _estimate,
+              loading: _estimating,
+            ),
+            // 지우기는 고치는 화면 맨 아래에서만 한다 — 목록 줄의 휴지통은
+            // 없앴다. 새로 적는 시트에는(수정이 아니면) 지울 기록 자체가
+            // 없으니 두지 않는다.
+            if (widget.isEdit) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s20),
+              AppButton(
+                key: const Key('exerciseDeleteButton'),
+                label: l.exDeleteExercise,
+                onPressed: _saving ? null : _delete,
+                variant: AppButtonVariant.destructiveText,
+                leadingIcon: Icons.delete_outline_rounded,
+                fullWidth: true,
+              ),
+            ],
+          ],
+        ),
       ),
     );
+    // Block back/drag dismiss while the save request is in flight.
     return PopScope(canPop: !_saving, child: sheet);
   }
+}
 
-  /// 개인운동 완료창의 강도 선택도 같은 칩을 쓴다 — 모양을 한 벌만 둔다
-  /// (#1457).
-  Widget _chip(
-    String label,
-    bool on,
-    VoidCallback onTap, {
-    bool center = false,
-  }) {
-    return AppChoiceChip(
-      label: label,
-      selected: on,
-      onTap: onTap,
-      center: center,
+/// 숫자 한 칸 — 직접 입력하는 텍스트 필드와 양옆의 −/+ 버튼. (#1276)
+///
+/// 회원이 아는 값(45분·12세트·62.5kg)을 그대로 적고, 한 칸씩 고칠 때만 버튼을
+/// 쓴다. 공용 스테퍼는 정수만 다루고 직접 입력이 없어, 소수 중량과 타이핑을
+/// 받는 이 폼은 공용 입력창·아이콘 버튼으로 같은 규격의 칸을 짠다.
+///
+/// [decimals] 가 0 보다 크면 소수 입력을 허용하고 그 자리까지 반올림한다.
+class _NumberStepper extends StatefulWidget {
+  const _NumberStepper({
+    required this.value,
+    required this.onChanged,
+    required this.min,
+    required this.max,
+    this.decimals = 0,
+    this.suffix,
+    super.key,
+  });
+
+  final double value;
+  final ValueChanged<double> onChanged;
+  final double min;
+  final double max;
+
+  /// 소수점 자릿수. 0 이면 정수로 읽고 쓴다.
+  final int decimals;
+
+  /// 필드 오른쪽에 붙는 단위 문구("분", "세트", "kg").
+  final String? suffix;
+
+  @override
+  State<_NumberStepper> createState() => _NumberStepperState();
+}
+
+class _NumberStepperState extends State<_NumberStepper> {
+  late final TextEditingController _controller = TextEditingController(
+    text: _format(widget.value),
+  );
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    // 포커스를 잃을 때 비워 둔 칸이나 범위 밖 값을 되돌린다. 타이핑 도중에
+    // 고치면 "1" 을 지나 "12" 로 가는 길이 막힌다.
+    _focus.addListener(() {
+      if (!_focus.hasFocus) _commit(_controller.text);
+    });
+  }
+
+  @override
+  void didUpdateWidget(_NumberStepper old) {
+    super.didUpdateWidget(old);
+    // 밖에서 값이 바뀐 경우(유형 전환 등)만 필드를 다시 그린다 — 편집 중인
+    // 문자열을 덮어쓰면 커서가 튄다.
+    if (widget.value != old.value && !_focus.hasFocus) {
+      _controller.text = _format(widget.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  String _format(double v) => widget.decimals == 0
+      ? v.round().toString()
+      : v.toStringAsFixed(widget.decimals);
+
+  double _clamp(double v) => v.clamp(widget.min, widget.max);
+
+  double _round(double v) => widget.decimals == 0
+      ? v.roundToDouble()
+      : double.parse(v.toStringAsFixed(widget.decimals));
+
+  /// 적히는 대로 값을 올린다. **필드의 글자는 건드리지 않는다** — 정리는
+  /// 포커스를 잃을 때 [_commit] 이 한다.
+  void _typed(String raw) {
+    final double? parsed = double.tryParse(raw.trim());
+    if (parsed != null) widget.onChanged(_round(_clamp(parsed)));
+  }
+
+  /// 비워 둔 칸이나 범위 밖 값을 되돌리고 글자를 다시 그린다.
+  void _commit(String raw) {
+    if (!mounted) return;
+    final double next = _round(
+      _clamp(double.tryParse(raw.trim()) ?? widget.value),
+    );
+    _controller.text = _format(next);
+    widget.onChanged(next);
+  }
+
+  void _bump(double delta) {
+    _focus.unfocus();
+    _commit(
+      ((double.tryParse(_controller.text.trim()) ?? widget.value) + delta)
+          .toString(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final String? suffix = widget.suffix;
+    return Row(
+      children: <Widget>[
+        AppIconButton(
+          key: const Key('numberStepperDecrement'),
+          icon: Icons.remove_rounded,
+          tooltip: l.exStepperDecrease,
+          variant: AppIconButtonVariant.tonal,
+          onPressed: widget.value > widget.min ? () => _bump(-1) : null,
+        ),
+        const SizedBox(width: OnCareSpacing.s12),
+        Expanded(
+          child: AppTextField(
+            key: const Key('numberStepperField'),
+            controller: _controller,
+            focusNode: _focus,
+            keyboardType: TextInputType.numberWithOptions(
+              decimal: widget.decimals > 0,
+            ),
+            inputFormatters: <TextInputFormatter>[
+              FilteringTextInputFormatter.allow(
+                widget.decimals > 0 ? RegExp(r'[0-9.]') : RegExp(r'[0-9]'),
+              ),
+            ],
+            onChanged: _typed,
+            onSubmitted: _commit,
+            suffix: suffix == null
+                ? null
+                : Padding(
+                    padding: const EdgeInsets.only(right: OnCareSpacing.s12),
+                    child: Center(
+                      widthFactor: 1,
+                      child: Text(
+                        suffix,
+                        style: tokens
+                            .text(OnCareTypography.label)
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ),
+                  ),
+          ),
+        ),
+        const SizedBox(width: OnCareSpacing.s12),
+        AppIconButton(
+          key: const Key('numberStepperIncrement'),
+          icon: Icons.add_rounded,
+          tooltip: l.exStepperIncrease,
+          variant: AppIconButtonVariant.tonal,
+          onPressed: widget.value < widget.max ? () => _bump(1) : null,
+        ),
+      ],
     );
   }
 }
 
-/// 날짜 한 칸 — 눌러서 달력을 연다. 기본값은 오늘이다.
 /// 예상 소모 칼로리 상자. (#1312)
 ///
 /// 이름이 차기 전에는 **숫자를 띄우지 않는다.** 예전에는 시트를 여는 순간
@@ -751,66 +788,55 @@ class _CalorieBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final ExerciseCalorieEstimate? value = estimate;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: FigmaColors.softBlue,
-        borderRadius: BorderRadius.circular(14),
-      ),
+    return AppTile(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
               const Icon(
-                Icons.local_fire_department,
-                color: FigmaColors.heartOrange,
-                size: 20,
+                Icons.local_fire_department_rounded,
+                color: OnCareColors.cautionFill,
+                size: OnCareSize.iconMedium,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: OnCareSpacing.s8),
               Expanded(
                 child: Text(
                   l.exEstimatedCalories,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.foreground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
               ),
               if (value == null)
                 Text(
                   loading ? l.exCaloriesCalculating : l.exCaloriesNeedName,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mutedForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 )
               else
                 Text(
                   l.unitKcalValue(value.calories),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: FigmaColors.primary,
-                  ),
+                  style: OnCareTypography.numeric(
+                    tokens.text(OnCareTypography.titleSmall),
+                  ).copyWith(color: tokens.brand.primary),
                 ),
             ],
           ),
           if (value != null) ...<Widget>[
-            const SizedBox(height: 6),
+            const SizedBox(height: OnCareSpacing.s4),
             Text(
               // 참조표로 계산했으면 무엇으로 계산했는지까지 말한다 — 회원이 적은
               // 말과 종목 이름이 다를 수 있다("런닝머신" → "러닝머신").
               value.source.isGrounded && value.matchedName.isNotEmpty
                   ? l.exCaloriesFromCatalog(value.matchedName)
                   : l.exCaloriesRoughEstimate,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.mutedForeground,
-              ),
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
           ],
         ],
@@ -819,6 +845,7 @@ class _CalorieBox extends StatelessWidget {
   }
 }
 
+/// 날짜 한 칸 — 눌러서 달력을 연다. 기본값은 오늘이다.
 class _DateField extends StatelessWidget {
   const _DateField({required this.date, required this.onTap, super.key});
 
@@ -827,41 +854,46 @@ class _DateField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: FigmaColors.hairline),
-        ),
-        child: Row(
-          children: <Widget>[
-            const Icon(
-              Icons.calendar_today_outlined,
-              size: 18,
-              color: FigmaColors.primary,
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                // 로케일이 정하는 날짜 문구. 하드코딩한 'yyyy.MM.dd' 로 적으면
-                // 영어 화면에도 한국식 표기가 남는다.
-                MaterialLocalizations.of(context).formatFullDate(date),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: FigmaColors.ink,
+    final OnCareTokens tokens = context.oncare;
+    return Material(
+      color: OnCareColors.surfaceInput,
+      shape: const RoundedRectangleBorder(
+        borderRadius: OnCareRadius.mdAll,
+        side: BorderSide(color: OnCareColors.lineStrong),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: tokens.density.inputMedium),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: OnCareSize.iconMedium,
+                  color: tokens.brand.primary,
                 ),
-              ),
+                const SizedBox(width: OnCareSpacing.s8),
+                Expanded(
+                  child: Text(
+                    // 로케일이 정하는 날짜 문구. 하드코딩한 'yyyy.MM.dd' 로 적으면
+                    // 영어 화면에도 한국식 표기가 남는다.
+                    MaterialLocalizations.of(context).formatFullDate(date),
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.body))
+                        .copyWith(color: OnCareColors.textPrimary),
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: OnCareSize.iconMedium,
+                  color: OnCareColors.textSecondary,
+                ),
+              ],
             ),
-            const Icon(
-              Icons.keyboard_arrow_down,
-              size: 20,
-              color: AppColors.mutedForeground,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -874,12 +906,8 @@ class _Label extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text,
-    style: const TextStyle(
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      color: FigmaColors.ink,
-    ),
+    style: context.oncare
+        .text(OnCareTypography.titleSmall)
+        .copyWith(color: OnCareColors.textPrimary),
   );
 }
-
-// ─────────────────────────────────────────────────────── 헬스장 찾기 ──

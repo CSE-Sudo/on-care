@@ -11,12 +11,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show OnCareColors;
 
 const List<String> _dayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
@@ -72,6 +73,7 @@ Widget _app(int period, ExerciseWeek week) => ProviderScope(
     exerciseAllPeriodProvider.overrideWith((ref) async => _bars()),
   ],
   child: MaterialApp(
+    theme: AppTheme.light(),
     locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
@@ -134,15 +136,15 @@ void main() {
         ]) {
       final (Color? name, Color? value) = _lineColors(tester, label);
       expect(name, kindColor(kind), reason: label);
-      expect(value, FigmaColors.ink, reason: label);
+      expect(value, OnCareColors.textPrimary, reason: label);
     }
     // 기타는 유형이 아니라 회색 이름이다. 값은 다른 줄과 같이 검정이다.
     final (Color? otherName, Color? otherValue) = _lineColors(
       tester,
       l.exTypeOtherChip,
     );
-    expect(otherName, FigmaColors.textBody);
-    expect(otherValue, FigmaColors.ink);
+    expect(otherName, OnCareColors.textSecondary);
+    expect(otherValue, OnCareColors.textPrimary);
   });
 
   testWidgets('오늘: 세 유형은 0 이어도 남고, 기타는 없으면 뜨지 않는다', (
@@ -180,7 +182,7 @@ void main() {
       expect(find.text(l.exTypeOtherChip), findsOneWidget);
       expect(
         _colorOf(tester, find.text(l.exTypeOtherChip)),
-        FigmaColors.textMuted,
+        OnCareColors.textTertiary,
         reason: '기타가 유형 셋과 같은 진하기로 적혀 있다 (period=$period)',
       );
       // 유형 셋보다 아래다.

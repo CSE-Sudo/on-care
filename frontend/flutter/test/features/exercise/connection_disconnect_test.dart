@@ -19,6 +19,7 @@ import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const Gym _myGym = Gym(
   id: 'gym-mine',
@@ -146,7 +147,7 @@ void main() {
     await pumpDetail(tester, location: AppRoutes.gymDetailPath(_myGym.id));
     await tapDisconnect(tester);
 
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byType(AppDialog), findsOneWidget);
     expect(find.textContaining('온케어짐 신촌점'), findsWidgets);
     expect(find.textContaining('김트레이너 연결도 함께 해제됩니다'), findsOneWidget);
   });
@@ -162,7 +163,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(AppDialog), findsNothing);
     expect(await tester.runAsync(repository.fetchMyGym), isNotNull);
   });
 

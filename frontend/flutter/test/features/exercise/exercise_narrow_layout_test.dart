@@ -16,9 +16,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/figma/section_title.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -29,6 +27,7 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show AppSectionHeader;
 
 void main() {
   const ExerciseWeek week = ExerciseWeek(
@@ -136,7 +135,7 @@ void main() {
       // 제목은 여전히 줄 왼쪽에 있다 — 둘이 가운데로 몰리지 않는다. 제목
       // 왼쪽에는 이제 아이콘이 붙으므로 제목 묶음 전체로 잰다. (#1058)
       expect(
-        tester.getRect(find.byType(SectionTitle).first).left,
+        tester.getRect(find.byType(AppSectionHeader).first).left,
         moreOrLessEquals(tester.getRect(row).left, epsilon: 0.5),
       );
     });

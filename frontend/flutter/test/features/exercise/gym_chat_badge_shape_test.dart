@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -19,6 +19,7 @@ import 'package:oncare/features/exercise/presentation/widgets/gym_tab.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../support/consultation_test_support.dart';
 
@@ -82,11 +83,12 @@ Future<void> _pump(WidgetTester tester, int unread) async {
         memberCoachProvider.overrideWith((ref) async => _coach),
         coachUnreadProvider.overrideWith((ref) async => unread),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
+        home: const Scaffold(
           body: SingleChildScrollView(
             child: GymTab(selectedSlot: null, onSlot: _noop),
           ),
@@ -108,7 +110,7 @@ Size _badgeSize(WidgetTester tester) {
           (Widget w) =>
               w is Container &&
               w.decoration is BoxDecoration &&
-              (w.decoration! as BoxDecoration).color == FigmaColors.redDot,
+              (w.decoration! as BoxDecoration).color == OnCareColors.danger,
         ),
       )
       .first;

@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consultation_request_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 내 상담 요청 전체 내역(#948). 운동 탭은 대기 중이거나 가장 최근 요청 1건만
 /// 요약해 보여준다 — 요청이 누적될수록 과거 이력을 확인할 곳이 없었다. 이
@@ -35,141 +34,56 @@ class ConsultationHistoryPage extends ConsumerWidget {
         )
         .toList(growable: false);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        scrolledUnderElevation: 0,
-        title: Text(
-          l.exConsultHistoryTitle,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: FigmaColors.ink,
+    return AppPage(
+      header: AppTopBar(title: l.exConsultHistoryTitle),
+      children: <Widget>[
+        // 빈 화면도 목록과 같은 최대 폭 틀 안에 둔다.
+        if (requests.isEmpty) AppEmptyState(title: l.exConsultHistoryEmpty),
+        if (inProgress.isNotEmpty) ...<Widget>[
+          Text(
+            l.exConsultHistoryInProgress,
+            style: context.oncare
+                .text(OnCareTypography.label)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
-        ),
-      ),
-      body: SafeArea(
-        top: false,
-        child: requests.isEmpty
-            ? _EmptyState(message: l.exConsultHistoryEmpty)
-            : Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                    children: <Widget>[
-                      if (inProgress.isNotEmpty) ...<Widget>[
-                        _SectionLabel(text: l.exConsultHistoryInProgress),
-                        const SizedBox(height: 10),
-                        for (final ConsultationRequest r
-                            in inProgress) ...<Widget>[
-                          ConsultationRequestCard(
-                            key: ValueKey<String>('consult-history-${r.id}'),
-                            request: r,
-                            onCancel: () async {
-                              final bool? confirmed = await showDialog<bool>(
-                                context: context,
-                                builder: (BuildContext dialogContext) => AlertDialog(
-                                  title: const Text('상담 요청을 취소할까요?'),
-                                  content: const Text('취소한 요청은 다시 되돌릴 수 없어요.'),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(dialogContext, false),
-                                      child: const Text('유지'),
-                                    ),
-                                    // 되돌릴 수 없는 쪽이다 — 카드의 취소
-                                    // 버튼과 같은 파괴적 색 토큰을 쓴다.
-                                    // 유지와 취소가 같은 색이면 두 동작의
-                                    // 위험도 차이가 보이지 않는다(#1429).
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(dialogContext, true),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: AppColors.destructive,
-                                      ),
-                                      child: Text(l.actionCancel),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (confirmed == true) {
-                                await ref
-                                    .read(consultationRequestControllerProvider.notifier)
-                                    .cancel(r.id);
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      ],
-                      // `지난 요청` 소제목은 두지 않는다(#1429). 완료·취소는
-                      // 카드가 상태로 말하고 있어, 소제목은 같은 목록을 한 겹
-                      // 더 나누기만 했다. 진행 중 묶음과 같은 간격으로 이어
-                      // 붙어 카드 흐름이 끊기지 않는다.
-                      if (past.isNotEmpty) ...<Widget>[
-                        for (final ConsultationRequest r in past) ...<Widget>[
-                          ConsultationRequestCard(
-                            key: ValueKey<String>('consult-history-${r.id}'),
-                            request: r,
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: AppColors.mutedForeground,
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(
-              Icons.inbox_outlined,
-              size: 34,
-              color: FigmaColors.textFaint,
+          const SizedBox(height: OnCareSpacing.s8),
+          for (final ConsultationRequest r in inProgress) ...<Widget>[
+            ConsultationRequestCard(
+              key: ValueKey<String>('consult-history-${r.id}'),
+              request: r,
+              onCancel: () async {
+                // 되돌릴 수 없는 쪽이다 — 확정은 파괴적 채움으로, 유지는
+                // 중립 버튼으로 그려 두 동작의 위험도 차이가 보이게 한다
+                // (#1429).
+                final bool confirmed = await showAppConfirmDialog(
+                  context: context,
+                  title: l.exConsultHistoryCancelTitle,
+                  message: l.exConsultHistoryCancelBody,
+                  cancelLabel: l.exCancelKeep,
+                  confirmLabel: l.actionCancel,
+                  destructive: true,
+                );
+                if (confirmed) {
+                  await ref
+                      .read(consultationRequestControllerProvider.notifier)
+                      .cancel(r.id);
+                }
+              },
             ),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: AppColors.foreground),
-            ),
+            const SizedBox(height: OnCareSpacing.cardGap),
           ],
-        ),
-      ),
+        ],
+        // `지난 요청` 소제목은 두지 않는다(#1429). 완료·취소는 카드가 상태로
+        // 말하고 있어, 소제목은 같은 목록을 한 겹 더 나누기만 했다. 진행 중
+        // 묶음과 같은 간격으로 이어 붙어 카드 흐름이 끊기지 않는다.
+        for (final ConsultationRequest r in past) ...<Widget>[
+          ConsultationRequestCard(
+            key: ValueKey<String>('consult-history-${r.id}'),
+            request: r,
+          ),
+          const SizedBox(height: OnCareSpacing.cardGap),
+        ],
+      ],
     );
   }
 }

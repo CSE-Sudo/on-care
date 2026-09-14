@@ -120,7 +120,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const Key('gymTrainerDetailButton')),
-          matching: find.byIcon(Icons.chevron_right),
+          matching: find.byIcon(Icons.chevron_right_rounded),
         ),
         findsOneWidget,
       );

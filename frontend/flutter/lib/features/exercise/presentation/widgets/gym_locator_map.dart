@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
 
 /// 헬스장 찾기 지도의 높이. 실지도와 폴백 그래픽이 같은 자리를 차지해야
 /// 폴백으로 떨어질 때 시트 레이아웃이 흔들리지 않는다.
 const double kGymLocatorMapHeight = 190;
+
+/// 대체 지도 그래픽의 도로 두께와 핀 반지름.
+const double _mapRoadWidth = 6;
+const double _mapPinRadius = 7;
 
 /// [gyms] 를 카카오맵 핀으로 찍는다. `KAKAO_JS_KEY` 가
 /// 없거나 web 이 아니거나 SDK 로드가 실패하면 [_MapPlaceholder] 그래픽으로
@@ -25,23 +28,21 @@ class GymLocatorMap extends StatelessWidget {
         .where((Gym g) => g.hasCoordinates)
         .toList(growable: false);
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: SizedBox(
-        height: kGymLocatorMapHeight,
-        width: double.infinity,
-        child: KakaoMapView(
-          // 지도 중심은 언제나 검색 중심([kGymFinderArea])이다. 첫 결과 좌표를
-          // 쓰면 검색어에 따라 중심이 흔들려, 지도 중심과 장소 검색 중심이
-          // 같아야 한다는 요건이 깨진다.
-          centerLat: kGymFinderArea.lat,
-          centerLng: kGymFinderArea.lng,
-          markers: <KakaoMapMarker>[
-            for (final Gym g in located)
-              KakaoMapMarker(lat: g.lat!, lng: g.lng!, title: g.name),
-          ],
-          fallback: const _MapPlaceholder(),
-        ),
+    return AppImageFrame(
+      large: true,
+      height: kGymLocatorMapHeight,
+      width: double.infinity,
+      child: KakaoMapView(
+        // 지도 중심은 언제나 검색 중심([kGymFinderArea])이다. 첫 결과 좌표를
+        // 쓰면 검색어에 따라 중심이 흔들려, 지도 중심과 장소 검색 중심이
+        // 같아야 한다는 요건이 깨진다.
+        centerLat: kGymFinderArea.lat,
+        centerLng: kGymFinderArea.lng,
+        markers: <KakaoMapMarker>[
+          for (final Gym g in located)
+            KakaoMapMarker(lat: g.lat!, lng: g.lng!, title: g.name),
+        ],
+        fallback: const _MapPlaceholder(),
       ),
     );
   }
@@ -55,74 +56,73 @@ class _MapPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: SizedBox(
-        height: kGymLocatorMapHeight,
-        width: double.infinity,
-        child: Stack(
-          children: <Widget>[
-            Positioned.fill(child: CustomPaint(painter: _MapPainter())),
-            Positioned(
-              right: 8,
-              bottom: 8,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  l.exKakaoMapArea,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
+    final OnCareBrand brand = context.oncare.brand;
+    // 모서리는 바깥 [AppImageFrame] 이 둥글린다.
+    return SizedBox(
+      height: kGymLocatorMapHeight,
+      width: double.infinity,
+      child: Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _MapPainter(
+                primary: brand.primary,
+                water: brand.surface,
               ),
             ),
-          ],
-        ),
+          ),
+          Positioned(
+            right: OnCareSpacing.s8,
+            bottom: OnCareSpacing.s8,
+            child: AppTag(label: l.exKakaoMapArea),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _MapPainter extends CustomPainter {
+  const _MapPainter({required this.primary, required this.water});
+
+  final Color primary;
+  final Color water;
+
   @override
   void paint(Canvas canvas, Size size) {
     final double w = size.width;
     final double h = size.height;
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = const Color(0xFFEDEEE9),
+      Paint()..color = OnCareColors.surfaceInput,
     );
     canvas.drawRect(
       Rect.fromLTWH(0, h * 0.8, w, h * 0.2),
-      Paint()..color = const Color(0xFFCFE4EF),
+      Paint()..color = water,
     );
-    final Paint green = Paint()..color = const Color(0xFFCFE0C4);
+    final Paint green = Paint()
+      ..color = OnCareColors.onWhite(OnCareColors.success, OnCareAlpha.medium);
     canvas.drawRect(
       Rect.fromLTWH(w * 0.05, h * 0.08, w * 0.17, h * 0.22),
       green,
     );
     canvas.drawRect(Rect.fromLTWH(w * 0.63, h * 0.5, w * 0.2, h * 0.22), green);
-    final Paint beige = Paint()..color = const Color(0xFFE3D9C7);
+    final Paint block = Paint()..color = OnCareColors.lineStrong;
     canvas.drawRect(
       Rect.fromLTWH(w * 0.31, h * 0.1, w * 0.22, h * 0.26),
-      beige,
+      block,
     );
     canvas.drawRect(
       Rect.fromLTWH(w * 0.05, h * 0.44, w * 0.2, h * 0.28),
-      beige,
+      block,
     );
     canvas.drawRect(
       Rect.fromLTWH(w * 0.61, h * 0.08, w * 0.33, h * 0.28),
-      beige,
+      block,
     );
     final Paint road = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 6
+      ..color = OnCareColors.surfaceCard
+      ..strokeWidth = _mapRoadWidth
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(Offset(0, h * 0.4), Offset(w, h * 0.4), road);
     canvas.drawLine(Offset(0, h * 0.74), Offset(w, h * 0.74), road);
@@ -135,12 +135,12 @@ class _MapPainter extends CustomPainter {
   }
 
   void _pin(Canvas c, Offset p, {required bool selected}) {
-    const double r = 7;
+    const double r = _mapPinRadius;
     if (selected) {
       c.drawCircle(
         p,
         r * 2,
-        Paint()..color = FigmaColors.primary.withValues(alpha: 0.18),
+        Paint()..color = OnCareColors.onWhite(primary, OnCareAlpha.medium),
       );
     }
     final Path path = Path()
@@ -162,14 +162,15 @@ class _MapPainter extends CustomPainter {
         p.dy + r * 1.9,
       )
       ..close();
-    c.drawPath(path, Paint()..color = FigmaColors.primary);
+    c.drawPath(path, Paint()..color = primary);
     c.drawCircle(
       Offset(p.dx, p.dy - r * 0.15),
       r * 0.4,
-      Paint()..color = Colors.white,
+      Paint()..color = OnCareColors.surfaceCard,
     );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MapPainter oldDelegate) =>
+      oldDelegate.primary != primary || oldDelegate.water != water;
 }

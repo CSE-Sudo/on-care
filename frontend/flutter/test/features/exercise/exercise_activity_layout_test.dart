@@ -86,8 +86,10 @@ void main() {
     expect(card.right - cardio.right, greaterThan(8));
   });
 
-  testWidgets('기간 토글은 식단 탭과 같은 크기다 (#1126)', (WidgetTester tester) async {
-    tester.view.physicalSize = const Size(390, 2000);
+  testWidgets('기간 토글은 공용 세그먼트 규격 높이다 (#1126 → #1701)', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -122,14 +124,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final Size exercise = tester.getSize(
-      find.byKey(const ValueKey<String>('exercise-period-tab-0')),
+    // 식단·운동 두 탭의 기간 토글은 같은 공용 세그먼트(`AppSegmentedToggle`)로
+    // 옮겨 간다 — 같은 자리의 같은 조작은 규격 칩 높이 하나로 선다.
+    final Finder toggle = find.byKey(
+      const ValueKey<String>('exercise-period-toggle'),
     );
+    expect(toggle, findsOneWidget);
+    final Size exercise = tester.getSize(toggle);
     final Size diet = tester.getSize(dietPeriodTab(DietPeriodTab.day));
 
-    // 식단 토글은 패키지 `AppSegmentedToggle` 로 먼저 옮겼다(#1700). 운동 탭이
-    // 옮겨 가기 전(#1701)까지는 둘 다 모바일 칩 높이 안에 들어오는지만 잰다.
+    // 운동 탭 토글은 좁은 폭에서 줄어들 수 있게 감싸 두었으므로 두 토글 모두
+    // 모바일 칩 높이 안에 들어오는지 잰다.
     expect(exercise.height, greaterThan(0));
+    expect(exercise.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
     expect(diet.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
   });
 }

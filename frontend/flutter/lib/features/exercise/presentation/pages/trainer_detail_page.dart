@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -13,6 +11,7 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 class TrainerDetailPage extends ConsumerWidget {
   const TrainerDetailPage({required this.trainerId, super.key});
@@ -53,29 +52,21 @@ class TrainerDetailPage extends ConsumerWidget {
                 request.status == ConsultationStatus.pending,
           ),
         ),
-      AsyncData<Trainer?>() => _StateMessage(message: l.exTrainerNotFound),
-      AsyncError<Trainer?>() => _StateMessage(
-        message: l.exTrainersLoadError,
+      AsyncData<Trainer?>() => AppEmptyState(
+        title: l.exTrainerNotFound,
+        icon: Icons.info_rounded,
+      ),
+      AsyncError<Trainer?>() => AppErrorState(
+        title: l.exTrainersLoadError,
+        retryLabel: l.actionRetry,
         onRetry: () => ref.invalidate(trainerProvider(trainerId)),
       ),
-      _ => const Center(child: CircularProgressIndicator(strokeWidth: 3)),
+      _ => const AppLoading(),
     };
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        scrolledUnderElevation: 0,
-        title: Text(
-          l.exTrainerDetailTitle,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: FigmaColors.ink,
-          ),
-        ),
-      ),
+      backgroundColor: OnCareColors.surfacePage,
+      appBar: AppTopBar(title: l.exTrainerDetailTitle),
       body: SafeArea(top: false, child: body),
     );
   }
@@ -121,6 +112,8 @@ class _TrainerDetails extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final double side = tokens.density.pagePadding;
     final String intro = trainer.intro?.trim() ?? '';
     final String career = trainer.career?.trim() ?? '';
     final List<String> certifications = trainer.certifications
@@ -132,76 +125,65 @@ class _TrainerDetails extends ConsumerWidget {
     // 합치고(#1255), 소개가 아예 없으면 예전처럼 별도로 보여준다.
     final bool hasProfile =
         intro.isNotEmpty || career.isNotEmpty || certifications.isNotEmpty;
-    return Center(
+    return Align(
+      alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
+        constraints: const BoxConstraints(
+          maxWidth: OnCareLayout.mobileContentMaxWidth,
+        ),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+          padding: EdgeInsets.fromLTRB(
+            side,
+            OnCareSpacing.s20,
+            side,
+            OnCareSpacing.s32,
+          ),
           children: <Widget>[
             Center(
-              child: Container(
-                width: 86,
-                height: 86,
-                decoration: const BoxDecoration(
-                  color: FigmaColors.iconTint,
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.person_outline,
-                  size: 40,
-                  color: FigmaColors.primary,
-                ),
-              ),
+              child: AppAvatar(name: trainer.name, size: AppAvatarSize.xLarge),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: OnCareSpacing.s16),
             Text(
               trainer.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: FigmaColors.ink,
-              ),
+              style: tokens
+                  .text(OnCareTypography.titleLarge)
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
             if (trainer.role?.isNotEmpty ?? false) ...<Widget>[
-              const SizedBox(height: 5),
+              const SizedBox(height: OnCareSpacing.s4),
               Text(
                 trainer.role!,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.mutedForeground,
-                ),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
               ),
             ],
-            const SizedBox(height: 22),
+            const SizedBox(height: OnCareSpacing.s24),
             // 추천 목록에서 골라 들어온 흐름이라, **왜 추천됐는지**가 소개보다
             // 먼저다(#1445). 소개가 없는 트레이너도 이 박스는 늘 있어 소속·
             // 상담 CTA 와의 순서가 흔들리지 않는다.
             _DetailSection(
               key: const Key('trainer-detail-reason'),
-              icon: Icons.auto_awesome_outlined,
+              icon: Icons.auto_awesome_rounded,
               title: l.exRecommendationReason,
               child: Text(
                 trainer.reason ?? l.exTrainerRecommendationReason,
-                style: const TextStyle(
-                  fontSize: 14,
-                  height: 1.5,
-                  fontWeight: FontWeight.w600,
-                  color: FigmaColors.primary,
-                ),
+                style: tokens
+                    .text(OnCareTypography.strong(OnCareTypography.body))
+                    .copyWith(color: tokens.brand.primary),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: OnCareSpacing.cardGap),
             // 트레이너 앱 프로필(소개·경력·자격증)과 같은 값을 보여준다.
             if (hasProfile) ...<Widget>[
               _DetailSection(
-                icon: Icons.badge_outlined,
+                icon: Icons.badge_rounded,
                 title: l.exTrainerIntroSection,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,52 +191,47 @@ class _TrainerDetails extends ConsumerWidget {
                     if (intro.isNotEmpty)
                       Text(
                         intro,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: AppColors.foreground,
-                        ),
+                        style: tokens
+                            .text(OnCareTypography.body)
+                            .copyWith(color: OnCareColors.textPrimary),
                       ),
                     if (career.isNotEmpty) ...<Widget>[
-                      if (intro.isNotEmpty) const SizedBox(height: 12),
+                      if (intro.isNotEmpty)
+                        const SizedBox(height: OnCareSpacing.s12),
                       Row(
                         children: <Widget>[
-                          const Icon(
-                            Icons.workspace_premium_outlined,
-                            size: 15,
-                            color: FigmaColors.primary,
+                          Icon(
+                            Icons.workspace_premium_rounded,
+                            size: OnCareSize.iconSmall,
+                            color: tokens.brand.primary,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: OnCareSpacing.s8),
                           Expanded(
                             child: Text(
                               l.exTrainerCareer(career),
-                              style: const TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: FigmaColors.ink,
-                              ),
+                              style: tokens
+                                  .text(OnCareTypography.label)
+                                  .copyWith(color: OnCareColors.textPrimary),
                             ),
                           ),
                         ],
                       ),
                     ],
                     if (certifications.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: OnCareSpacing.s16),
                       Text(
                         l.exTrainerCertifications,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.mutedForeground,
-                        ),
+                        style: tokens
+                            .text(OnCareTypography.label)
+                            .copyWith(color: OnCareColors.textSecondary),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: OnCareSpacing.s8),
                       Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
+                        spacing: OnCareSpacing.s8,
+                        runSpacing: OnCareSpacing.s8,
                         children: <Widget>[
                           for (final String cert in certifications)
-                            _CertChip(label: cert),
+                            AppTag(label: cert, tone: AppTagTone.brand),
                         ],
                       ),
                     ],
@@ -262,9 +239,9 @@ class _TrainerDetails extends ConsumerWidget {
                     // 별도 박스로 한 번 더 강조할 필요가 낮다 — 소개 박스가 이미
                     // 있으면 그 안 한 줄로 합친다(#1255).
                     if (gym != null) ...<Widget>[
-                      const SizedBox(height: 14),
-                      const Divider(height: 1, color: FigmaColors.hairline),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: OnCareSpacing.s16),
+                      const AppDivider(),
+                      const SizedBox(height: OnCareSpacing.s12),
                       _AffiliatedGymRow(gym: gym!),
                     ],
                   ],
@@ -274,13 +251,13 @@ class _TrainerDetails extends ConsumerWidget {
               // 소개할 내용이 아예 없으면 합칠 박스도 없다 — 소속만은 예전처럼
               // 따로 보여준다.
               _DetailSection(
-                icon: Icons.fitness_center,
+                icon: Icons.fitness_center_rounded,
                 title: l.exTrainerAffiliation,
                 child: _AffiliatedGymRow(gym: gym!),
               ),
             ],
             if (isMyTrainer) ...<Widget>[
-              const SizedBox(height: 24),
+              const SizedBox(height: OnCareSpacing.sectionGap),
               // 목록 카드에서 삭제를 여기로 옮겼다 (#1057).
               DisconnectButton(
                 label: l.myTrainerDisconnectTooltip,
@@ -288,9 +265,12 @@ class _TrainerDetails extends ConsumerWidget {
               ),
             ],
             if (!isMyTrainer) ...<Widget>[
-              const SizedBox(height: 24),
-              FilledButton(
+              const SizedBox(height: OnCareSpacing.sectionGap),
+              AppButton(
                 key: const Key('consult-start'),
+                label: hasPending
+                    ? l.exConsultPendingCta
+                    : l.exTrainerConsultRequest,
                 onPressed: hasPending
                     ? null
                     : () => context.push(
@@ -299,48 +279,11 @@ class _TrainerDetails extends ConsumerWidget {
                           trainerId: trainer.id,
                         ),
                       ),
-                style: FilledButton.styleFrom(
-                  backgroundColor: FigmaColors.primary,
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Text(
-                  hasPending
-                      ? l.exConsultPendingCta
-                      : l.exTrainerConsultRequest,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
+                size: OnCareButtonSize.large,
+                fullWidth: true,
               ),
             ],
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 자격증 한 건을 나타내는 칩. 헬스장 태그 칩과 같은 톤을 쓴다.
-class _CertChip extends StatelessWidget {
-  const _CertChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: FigmaColors.primaryA(0.09),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: FigmaColors.primary,
         ),
       ),
     );
@@ -357,19 +300,20 @@ class _AffiliatedGymRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => context.push(AppRoutes.gymDetailPath(gym.id)),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: OnCareRadius.mdAll,
         child: Row(
           children: <Widget>[
-            const Icon(
-              Icons.fitness_center,
-              size: 15,
-              color: FigmaColors.primary,
+            Icon(
+              Icons.fitness_center_rounded,
+              size: OnCareSize.iconSmall,
+              color: tokens.brand.primary,
             ),
-            const SizedBox(width: 7),
+            const SizedBox(width: OnCareSpacing.s8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,29 +323,26 @@ class _AffiliatedGymRow extends StatelessWidget {
                     gym.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: FigmaColors.ink,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.label)
+                        .copyWith(color: OnCareColors.textPrimary),
                   ),
                   Text(
                     gym.address,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.mutedForeground,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textSecondary),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: OnCareSpacing.s8),
             const Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: FigmaColors.textFaint,
+              Icons.chevron_right_rounded,
+              size: OnCareSize.iconMedium,
+              color: OnCareColors.textTertiary,
             ),
           ],
         ),
@@ -424,76 +365,26 @@ class _DetailSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: FigmaColors.hairline),
-      ),
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
-            child: Row(
-              children: <Widget>[
-                Icon(icon, size: 17, color: FigmaColors.primary),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: FigmaColors.ink,
-                    ),
-                  ),
-                ),
-              ],
+            padding: const EdgeInsets.fromLTRB(
+              OnCareSpacing.cardPadding,
+              OnCareSpacing.s12,
+              OnCareSpacing.cardPadding,
+              OnCareSpacing.s12,
             ),
+            child: AppSectionHeader(title: title, icon: icon),
           ),
-          const Divider(height: 1, color: FigmaColors.hairline),
-          Padding(padding: const EdgeInsets.all(16), child: child),
+          const AppDivider(),
+          Padding(
+            padding: const EdgeInsets.all(OnCareSpacing.cardPadding),
+            child: child,
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _StateMessage extends StatelessWidget {
-  const _StateMessage({required this.message, this.onRetry});
-
-  final String message;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(
-              Icons.info_outline,
-              size: 34,
-              color: FigmaColors.textFaint,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: AppColors.foreground),
-            ),
-            if (onRetry != null) ...<Widget>[
-              const SizedBox(height: 12),
-              OutlinedButton(onPressed: onRetry, child: Text(l.actionRetry)),
-            ],
-          ],
-        ),
       ),
     );
   }

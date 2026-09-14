@@ -315,27 +315,23 @@ void main() {
     expect(find.byKey(const Key('gymTrainerChatButton')), findsNothing);
   });
 
-  testWidgets(
-    'pending consultation uses only the finder history shortcut',
-    (WidgetTester tester) async {
-      await pumpGymTab(
-        tester,
-        hasMyGym: false,
-        consultation: _consultation(ConsultationStatus.pending),
-        coach: _coach,
-      );
+  testWidgets('pending consultation uses only the finder history shortcut', (
+    WidgetTester tester,
+  ) async {
+    await pumpGymTab(
+      tester,
+      hasMyGym: false,
+      consultation: _consultation(ConsultationStatus.pending),
+      coach: _coach,
+    );
 
-      final AppLocalizations l = AppLocalizations.of(
-        tester.element(find.byType(Scaffold).first),
-      );
-      expect(find.text(l.exViewConsultationRequest), findsNothing);
-      expect(
-        find.byKey(const Key('consult-history-shortcut')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const Key('gymTrainerChatButton')), findsNothing);
-    },
-  );
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(Scaffold).first),
+    );
+    expect(find.text(l.exViewConsultationRequest), findsNothing);
+    expect(find.byKey(const Key('consult-history-shortcut')), findsOneWidget);
+    expect(find.byKey(const Key('gymTrainerChatButton')), findsNothing);
+  });
 
   testWidgets('pending consultation does not add a connected-gym summary', (
     WidgetTester tester,
@@ -428,9 +424,7 @@ void main() {
     });
   }
 
-  testWidgets('연결 화면에는 지난 상담 결과 요약을 다시 노출하지 않는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('연결 화면에는 지난 상담 결과 요약을 다시 노출하지 않는다', (WidgetTester tester) async {
     await pumpGymTab(
       tester,
       consultation: _consultation(

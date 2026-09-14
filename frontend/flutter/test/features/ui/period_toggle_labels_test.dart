@@ -160,7 +160,9 @@ void main() {
     });
   });
 
-  testWidgets('두 탭의 토글은 같은 크기다 (#1126)', (WidgetTester tester) async {
+  testWidgets('두 탭의 토글은 같은 규격 높이 안에 있다 (#1126 → #1701)', (
+    WidgetTester tester,
+  ) async {
     await _pumpDiet(tester, size: const Size(390, 900));
     final Size diet = tester.getSize(
       find.byKey(const ValueKey<String>('diet-period-toggle')),
@@ -172,11 +174,12 @@ void main() {
     final Size exercise = tester.getSize(
       find.byKey(const ValueKey<String>('exercise-period-toggle')),
     );
-    // 식단 토글은 패키지 `AppSegmentedToggle` 로 먼저 옮겼다(#1700). 운동 탭이
-    // 같은 부품으로 옮겨 가기 전(#1701)까지는 폭이 다르다 — 둘 다 모바일 칩
-    // 높이 안에서 그려지는지만 잰다.
+    // 식단(#1700)·운동(#1701) 토글이 모두 공용 `AppSegmentedToggle` 이다.
+    // 운동 탭은 좁은 폭에서 줄어들 수 있게 감싸 두었으므로 둘 다 모바일 칩
+    // 높이 안에서 그려지는지 잰다.
     expect(exercise.width, greaterThan(0));
     expect(diet.width, greaterThan(0));
+    expect(exercise.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
     expect(diet.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
   });
 }

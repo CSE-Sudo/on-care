@@ -13,7 +13,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -21,6 +20,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const Gym _gym = Gym(
   id: 'gym-reason',
@@ -122,18 +122,15 @@ void main() {
     final BoxDecoration decoration =
         tester.widget<Container>(badge).decoration! as BoxDecoration;
     expect(decoration.border, isNotNull, reason: '파란 윤곽선으로 강조한다');
-    expect(
-      (decoration.border! as Border).top.color,
-      FigmaColors.primaryA(0.45),
-    );
+    expect((decoration.border! as Border).top.color, OnCareBrand.member.border);
     // 줄 자체가 옅은 파랑이라 배지 배경은 흰색 그대로다 — 같은 색이면 배지가
     // 사라진다.
-    expect(decoration.color, Colors.white);
+    expect(decoration.color, OnCareColors.surfaceCard);
 
     final Text text = tester.widget<Text>(
       find.descendant(of: badge, matching: find.byType(Text)),
     );
-    expect(text.style!.color, FigmaColors.primary);
+    expect(text.style!.color, OnCareBrand.member.primary);
     // 두 줄 제한은 그대로다 — 긴 이유가 카드를 밀지 않는다.
     expect(text.maxLines, 2);
   });

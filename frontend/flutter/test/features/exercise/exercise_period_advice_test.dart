@@ -192,9 +192,7 @@ void main() {
   });
 
   testWidgets('주간 조언을 기다리는 동안 오늘 조언으로 되돌아가지 않는다', (WidgetTester tester) async {
-    final _AdviceRepository repo = _AdviceRepository(
-      pending: <String>{'week'},
-    );
+    final _AdviceRepository repo = _AdviceRepository(pending: <String>{'week'});
     await _pump(tester, repo);
     final String todayAdvice = _adviceText(tester);
 
