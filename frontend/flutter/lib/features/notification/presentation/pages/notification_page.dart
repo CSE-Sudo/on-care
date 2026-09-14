@@ -93,7 +93,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
     // 새로고침과 이어 받기가 목록을 직접 쥐어야 해서 틀만 풀어 둔다.
     return Scaffold(
       key: const Key('notificationPage'),
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(
         title: l.pageNotificationTitle,
         actions: <Widget>[

@@ -69,7 +69,7 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
         !chat.messages.any((ChatMessage m) => m.isUser) && !chat.sending;
 
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

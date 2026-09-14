@@ -24,7 +24,9 @@ void main() {
       final ThemeData t = _trainer();
       expect(m.colorScheme.primary, OnCareBrand.member.primary);
       expect(t.colorScheme.primary, OnCareBrand.trainer.primary);
-      expect(m.scaffoldBackgroundColor, t.scaffoldBackgroundColor);
+      // 페이지 배경만 앱마다 다르다 — 회원앱 흰색, 트레이너웹 연회색(#1740).
+      expect(m.scaffoldBackgroundColor, OnCareColors.surfaceCard);
+      expect(t.scaffoldBackgroundColor, OnCareColors.surfacePage);
       expect(
         m.textTheme.bodyMedium!.fontSize,
         t.textTheme.bodyMedium!.fontSize,
@@ -54,9 +56,9 @@ void main() {
   });
 
   group('M3 기본값이 튀어나오지 않는다', () {
-    test('배경 — 페이지는 연회색, 다이얼로그·시트는 흰색이다', () {
+    test('배경 — 회원앱 페이지는 흰색, 다이얼로그·시트도 흰색이다', () {
       final ThemeData theme = _member();
-      expect(theme.scaffoldBackgroundColor, OnCareColors.surfacePage);
+      expect(theme.scaffoldBackgroundColor, OnCareColors.surfaceCard);
       expect(theme.dialogTheme.backgroundColor, OnCareColors.surfaceCard);
       expect(theme.bottomSheetTheme.backgroundColor, OnCareColors.surfaceCard);
       expect(theme.colorScheme.surfaceTint, Colors.transparent);

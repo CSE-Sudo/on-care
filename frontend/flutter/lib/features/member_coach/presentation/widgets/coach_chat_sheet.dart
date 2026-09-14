@@ -9,6 +9,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_weekly_report.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_image_attachment.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
@@ -242,7 +243,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final chat = ref.watch(coachChatProvider);
     final bool showDemoBanners = ref.watch(appConfigProvider).useMockApi;
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       body: SafeArea(
         child: Column(
           children: <Widget>[
@@ -372,10 +373,10 @@ class _AnalyzedBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppBanner(
+    return CoachChatNotice(
       icon: Icons.auto_awesome_rounded,
       title: l.coachChatDemoAnalyzed,
-      message: l.coachChatDemoReportSent(trainerName),
+      subtitle: l.coachChatDemoReportSent(trainerName),
     );
   }
 }
@@ -390,10 +391,10 @@ class _ReceivedBanner extends StatelessWidget {
     // 칠했는데, 이 배너는 상태 완료가 아니라 "개인 추천운동을 받았다"는
     // 안내다 — 위 [_AnalyzedBanner]와 같은 흐름의 다음 단계라, 초록이
     // 아니라 그 배너와 같은 안내(info) 톤으로 맞춘다(#1379).
-    return AppBanner(
-      icon: Icons.check_circle_rounded,
+    return CoachChatNotice(
+      icon: Icons.check_circle_outline_rounded,
       title: l.coachChatDemoRoutineReceived,
-      message: l.coachChatDemoNotified,
+      subtitle: l.coachChatDemoNotified,
     );
   }
 }
