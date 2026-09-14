@@ -1346,6 +1346,45 @@ class TrainerNotificationOut(BaseModel):
     time_ago: str
 
 
+#: 미션 키 하나(`report-<id>` 등). 서버는 내용을 해석하지 않고 길이만 막는다.
+_TaskKey = Annotated[str, Field(min_length=1, max_length=200)]
+
+
+class TrainerTaskProgressDayOut(BaseModel):
+    """대시보드 `오늘 할 일` 의 하루 진행 상태. (#1633)"""
+    date: str
+    total: int
+    completed_today: int
+    completed_carried_over: int
+    pending_keys: list[str]
+    dismissed_keys: list[str]
+
+
+class TrainerTaskProgressOut(BaseModel):
+    """보관 기간 안의 날짜별 진행 상태(날짜 오름차순).
+
+    `first_saved_date` 는 보관 중인 가장 이른 날이다. 앱의 데모 이력이 어디까지
+    끼어들어도 되는지의 경계로 쓴다(#1203).
+    """
+    first_saved_date: str | None
+    days: list[TrainerTaskProgressDayOut]
+
+
+class TrainerTaskProgressSave(BaseModel):
+    """하루 진행 상태를 통째로 저장한다 — 부분 수정이 아니다."""
+    total: int = Field(ge=0, le=1000)
+    completed_today: int = Field(ge=0, le=1000)
+    completed_carried_over: int = Field(ge=0, le=1000)
+    pending_keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+    dismissed_keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+
+    @model_validator(mode="after")
+    def _completed_within_total(self) -> TrainerTaskProgressSave:
+        if self.completed_today + self.completed_carried_over > self.total:
+            raise ValueError("완료 수는 전체 할 일 수보다 많을 수 없습니다.")
+        return self
+
+
 class TrainerNotificationSettings(BaseModel):
     """트레이너 알림 수신 설정."""
     notify_new_message: bool
