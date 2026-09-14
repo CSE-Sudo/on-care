@@ -356,24 +356,77 @@ void main() {
       );
     });
 
+    /// [index] 번째 링 캡 자리의 평균 밝기(칠해진 픽셀의 RGB 합 평균).
+    ///
+    /// 트랙이 불투명 토큰 색(`OnCareColors.onWhite`)이고 그림자가 순검정이 아닌
+    /// 흐린 `overlayInk` 라, 고정 문턱의 "아주 어두운" 픽셀은 생기지 않는다.
+    /// 그래서 정확한 배수(그림자 없음)의 캡 자리보다 **확연히 어두운지**로
+    /// 그림자를 가른다(#1701).
+    Future<double> ringCapBrightness(
+      WidgetTester tester, {
+      required int index,
+      required double filled,
+      required double goal,
+    }) async {
+      final double value = filled * goal;
+      final (CustomPainter painter, Size size) = await pumpRings(
+        tester,
+        cardio: index == 0 ? value : 0,
+        strength: index == 1 ? value.round() : 0,
+        flex: index == 2 ? value : 0,
+      );
+      final Offset cap = _ringCapPoint(size, index, filled);
+      return (await tester.runAsync(() async {
+        final ui.PictureRecorder recorder = ui.PictureRecorder();
+        painter.paint(Canvas(recorder), size);
+        final ui.Image image = await recorder.endRecording().toImage(
+          size.width.ceil(),
+          size.height.ceil(),
+        );
+        final ByteData pixels = (await image.toByteData())!;
+        final int w = image.width;
+        final int h = image.height;
+        image.dispose();
+        final int cx = cap.dx.round();
+        final int cy = cap.dy.round();
+        int sum = 0;
+        int count = 0;
+        for (int y = math.max(0, cy - 2); y <= math.min(h - 1, cy + 2); y++) {
+          for (int x = math.max(0, cx - 2); x <= math.min(w - 1, cx + 2); x++) {
+            final int i = (y * w + x) * 4;
+            if (pixels.getUint8(i + 3) < 200) continue;
+            sum +=
+                pixels.getUint8(i) +
+                pixels.getUint8(i + 1) +
+                pixels.getUint8(i + 2);
+            count++;
+          }
+        }
+        return count == 0 ? 765.0 : sum / count;
+      }))!;
+    }
+
+    /// 그림자가 있다고 볼 밝기 차이(RGB 합).
+    const double shadowDarkening = 30;
+
     testWidgets('근력 링: 배수가 아닌 값(약 119%·219%·319%)은 기존처럼 그려진다', (
       WidgetTester tester,
     ) async {
-      // 트랙이 불투명 토큰 색(`OnCareColors.onWhite`)으로 바뀌어 링 자리의
-      // 칠해진 픽셀 수는 배수 여부와 무관하게 같다 — 그림자가 **캡 자리에
-      // 실제로 깔렸는지**를 어두운 픽셀로 잰다. 그림자 색은 순검정이 아니라
-      // `overlayInk` 토큰이라, 링 색(RGB 합 500 이상)보다 확연히 어두운지로
-      // 가른다. (#1701)
+      final double exact = await ringCapBrightness(
+        tester,
+        index: 1,
+        filled: 1,
+        goal: 21,
+      );
       for (final int sets in <int>[25, 46, 67]) {
         expect(
-          await ringDarkAtCap(
+          await ringCapBrightness(
             tester,
             index: 1,
             filled: sets / 21,
             goal: 21,
-            threshold: 300,
           ),
-          greaterThan(0),
+          lessThan(exact - shadowDarkening),
           reason: '$sets 세트는 21세트의 배수가 아니라 캡 그림자가 있어야 한다',
         );
       }
@@ -383,15 +436,15 @@ void main() {
       WidgetTester tester,
     ) async {
       expect(await ringDarkAtCap(tester, index: 2, filled: 1, goal: 60), 0);
+      final double exact = await ringCapBrightness(
+        tester,
+        index: 2,
+        filled: 1,
+        goal: 60,
+      );
       expect(
-        await ringDarkAtCap(
-          tester,
-          index: 2,
-          filled: 1.2,
-          goal: 60,
-          threshold: 300,
-        ),
-        greaterThan(0),
+        await ringCapBrightness(tester, index: 2, filled: 1.2, goal: 60),
+        lessThan(exact - shadowDarkening),
       );
     });
 

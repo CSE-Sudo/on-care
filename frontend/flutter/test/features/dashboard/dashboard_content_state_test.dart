@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -110,6 +110,7 @@ void main() {
           ...extraOverrides,
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: locale,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -222,9 +223,7 @@ void main() {
       tester,
       load: () async => liveSummary,
       extraOverrides: <Override>[
-        notificationUnreadProvider.overrideWith(
-          (ref) => Stream<int>.value(0),
-        ),
+        notificationUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
       ],
     );
     await tester.pumpAndSettle();
@@ -293,9 +292,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('지표 카드는 소수 수치를 반올림하지 않는다 (당류 17.8)', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('지표 카드는 소수 수치를 반올림하지 않는다 (당류 17.8)', (WidgetTester tester) async {
     await pumpDashboard(
       tester,
       load: () async => const DashboardSummary(
@@ -330,9 +327,7 @@ void main() {
     expect(find.text('3,428'), findsOneWidget);
   });
 
-  testWidgets('지표 카드 단위는 라벨이 아니라 목표치 오른쪽에 붙는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('지표 카드 단위는 라벨이 아니라 목표치 오른쪽에 붙는다', (WidgetTester tester) async {
     await pumpDashboard(
       tester,
       load: () async => liveSummary,
@@ -357,9 +352,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('목표가 없는 지표(max=0)는 목표치 대신 단위만 남긴다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('목표가 없는 지표(max=0)는 목표치 대신 단위만 남긴다', (WidgetTester tester) async {
     // 단위가 목표치 줄로 옮겨간 뒤로는, 목표치 줄이 통째로 빠지면 큰 숫자가
     // 단위를 잃는다. 그래서 max=0 이면 같은 자리에 단위만 적는다.
     await pumpDashboard(
@@ -432,10 +425,7 @@ void main() {
     // 기준이 아니다 — MY 목표를 이 값에 연결하는 것은 #1139 이 다룬다.
     //
     // 값과 목표는 한 덩어리(`Text.rich`)로 적히므로 부분 문자열로 찾는다.
-    expect(
-      find.textContaining('/2,100', findRichText: true),
-      findsOneWidget,
-    );
+    expect(find.textContaining('/2,100', findRichText: true), findsOneWidget);
     expect(find.textContaining('/150분', findRichText: true), findsOneWidget);
     expect(find.textContaining('/21세트', findRichText: true), findsOneWidget);
     expect(find.textContaining('/60분', findRichText: true), findsOneWidget);
