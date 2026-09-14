@@ -71,165 +71,6 @@
     "sizedBox": 1,
     "materialWidget": 2
   },
-  "lib/features/clients/presentation/pages/clients_page.dart": {
-    "fontSize": 8,
-    "fontWeight": 8,
-    "lineHeight": 1,
-    "edgeInsets": 1,
-    "sizedBox": 2,
-    "animationDuration": 2,
-    "nonRoundedIcon": 7,
-    "materialWidget": 7
-  },
-  "lib/features/clients/presentation/widgets/chat_image_attachment.dart": {
-    "fontSize": 1,
-    "sizedBox": 3,
-    "nonRoundedIcon": 1,
-    "materialWidget": 1
-  },
-  "lib/features/clients/presentation/widgets/chat_view.dart": {
-    "fontSize": 10,
-    "fontWeight": 8,
-    "lineHeight": 2,
-    "opacity": 4,
-    "radius": 4,
-    "edgeInsets": 1,
-    "sizedBox": 6,
-    "animationDuration": 1,
-    "nonRoundedIcon": 8,
-    "materialWidget": 7
-  },
-  "lib/features/clients/presentation/widgets/client_ai_analysis_card.dart": {
-    "fontSize": 2,
-    "fontWeight": 1,
-    "lineHeight": 1,
-    "nonRoundedIcon": 1
-  },
-  "lib/features/clients/presentation/widgets/client_card.dart": {
-    "fontSize": 7,
-    "fontWeight": 7,
-    "opacity": 1,
-    "sizedBox": 3,
-    "nonRoundedIcon": 1,
-    "materialWidget": 2
-  },
-  "lib/features/clients/presentation/widgets/client_coach_sheet.dart": {
-    "fontSize": 4,
-    "fontWeight": 1,
-    "lineHeight": 1,
-    "opacity": 1,
-    "sizedBox": 2,
-    "materialWidget": 6
-  },
-  "lib/features/clients/presentation/widgets/client_connect_dialog.dart": {
-    "fontSize": 13,
-    "fontWeight": 9,
-    "sizedBox": 4,
-    "nonRoundedIcon": 1,
-    "materialWidget": 6
-  },
-  "lib/features/clients/presentation/widgets/client_day_record_tile.dart": {
-    "fontSize": 5,
-    "fontWeight": 4,
-    "edgeInsets": 2,
-    "sizedBox": 2,
-    "animationDuration": 1,
-    "nonRoundedIcon": 1,
-    "materialWidget": 1
-  },
-  "lib/features/clients/presentation/widgets/client_detail_view.dart": {
-    "fontSize": 4,
-    "fontWeight": 4,
-    "opacity": 4,
-    "edgeInsets": 1,
-    "boxShadow": 1,
-    "animationDuration": 1,
-    "nonRoundedIcon": 9,
-    "materialWidget": 7
-  },
-  "lib/features/clients/presentation/widgets/client_diet_period_card.dart": {
-    "fontSize": 8,
-    "fontWeight": 8,
-    "letterSpacing": 1,
-    "lineHeight": 1,
-    "opacity": 4,
-    "radius": 3,
-    "edgeInsets": 5,
-    "sizedBox": 4,
-    "nonRoundedIcon": 2,
-    "materialWidget": 1
-  },
-  "lib/features/clients/presentation/widgets/client_exercise_status_card.dart": {
-    "fontSize": 7,
-    "fontWeight": 6,
-    "lineHeight": 1,
-    "edgeInsets": 3,
-    "sizedBox": 4,
-    "nonRoundedIcon": 4,
-    "materialWidget": 3
-  },
-  "lib/features/clients/presentation/widgets/client_follow_up_dialog.dart": {
-    "sizedBox": 1,
-    "nonRoundedIcon": 1,
-    "materialWidget": 9
-  },
-  "lib/features/clients/presentation/widgets/client_period_section.dart": {
-    "fontSize": 1,
-    "fontWeight": 1,
-    "sizedBox": 1
-  },
-  "lib/features/clients/presentation/widgets/client_period_toggle.dart": {
-    "fontSize": 1,
-    "fontWeight": 1,
-    "edgeInsets": 2,
-    "animationDuration": 1
-  },
-  "lib/features/clients/presentation/widgets/client_profile_dialog.dart": {
-    "fontSize": 6,
-    "fontWeight": 6,
-    "opacity": 1,
-    "edgeInsets": 1,
-    "sizedBox": 2,
-    "nonRoundedIcon": 2,
-    "materialWidget": 25
-  },
-  "lib/features/clients/presentation/widgets/diet_view.dart": {
-    "fontSize": 11,
-    "fontWeight": 10,
-    "lineHeight": 2,
-    "opacity": 2,
-    "edgeInsets": 4,
-    "sizedBox": 2,
-    "nonRoundedIcon": 3,
-    "materialWidget": 1
-  },
-  "lib/features/clients/presentation/widgets/nutrition_summary_card.dart": {
-    "fontSize": 12,
-    "fontWeight": 12,
-    "letterSpacing": 1,
-    "lineHeight": 1,
-    "opacity": 1,
-    "radius": 1,
-    "edgeInsets": 1,
-    "sizedBox": 8,
-    "materialWidget": 1
-  },
-  "lib/features/clients/presentation/widgets/pairing_code_input.dart": {
-    "fontSize": 1,
-    "fontWeight": 1,
-    "radius": 1,
-    "edgeInsets": 1,
-    "materialWidget": 1
-  },
-  "lib/features/clients/presentation/widgets/workout_view.dart": {
-    "fontSize": 17,
-    "fontWeight": 15,
-    "opacity": 3,
-    "edgeInsets": 2,
-    "sizedBox": 3,
-    "nonRoundedIcon": 7,
-    "materialWidget": 11
-  },
   "lib/features/coaching/presentation/pages/ai_routine_options_flow.dart": {
     "fontSize": 32,
     "fontWeight": 18,
@@ -313,15 +154,6 @@
     "nonRoundedIcon": 3,
     "materialWidget": 4
   },
-  "lib/features/consultations/presentation/pages/consultations_page.dart": {
-    "fontSize": 9,
-    "fontWeight": 7,
-    "opacity": 1,
-    "edgeInsets": 2,
-    "sizedBox": 2,
-    "nonRoundedIcon": 5,
-    "materialWidget": 10
-  },
   "lib/features/dashboard/presentation/pages/dashboard_page.dart": {
     "nonRoundedIcon": 8,
     "materialWidget": 3
@@ -380,17 +212,6 @@
     "edgeInsets": 4,
     "sizedBox": 2,
     "nonRoundedIcon": 4,
-    "materialWidget": 3
-  },
-  "lib/features/messages/presentation/pages/messages_page.dart": {
-    "fontSize": 8,
-    "fontWeight": 6,
-    "lineHeight": 3,
-    "materialColor": 1,
-    "opacity": 1,
-    "edgeInsets": 3,
-    "sizedBox": 1,
-    "nonRoundedIcon": 5,
     "materialWidget": 3
   },
   "lib/features/my/presentation/pages/legal_document_page.dart": {
