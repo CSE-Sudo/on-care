@@ -11,8 +11,8 @@ from pydantic import ValidationError
 from sqlalchemy import select
 
 from app.core import clock
-from app.models.models import TrainerClient, TrainerSchedule
-from app.schemas.trainer_api import ScheduleProgramRegisterRequest
+from app.models.models import TrainerClient, TrainerRoutine, TrainerSchedule
+from app.schemas.trainer_api import ProgramScheduleRequest
 
 
 def _tok(client) -> str:
@@ -45,28 +45,37 @@ def test_schedule_seeded_timeline(client):
     assert any(len(s["program"]) > 0 for s in slots)
 
 
-def _program_command_body(day: str, exercise: str) -> dict:
+_PROGRAM_SCHEDULE_URL = "/v1/trainer/clients/user-jisu/program-schedule"
+
+
+def _program_command_body(
+    day: str, exercise: str, request_id: str | None = None
+) -> dict:
     return {
+        "name": f"일정 추가 테스트 {exercise}",
+        "sessions": [
+            {
+                "id": "session-1",
+                "name": "세션 A",
+                "exercises": [{"id": "ex-1", "name": exercise, "sets": 1}],
+            }
+        ],
         "date": day,
         "time": "16:00",
         "duration_minutes": 75,
         "client_name": "이지수",
-        "program": [
-            {"name": exercise, "sets": 1, "reps": "20분", "weight": "-"}
-        ],
+        "client_request_id": request_id,
     }
 
 
-def test_schedule_program_payload_requires_positive_duration():
+def test_program_schedule_payload_requires_positive_duration():
     body = _program_command_body("2026-08-26", "걷기")
-    payload = ScheduleProgramRegisterRequest.model_validate(body)
+    payload = ProgramScheduleRequest.model_validate(body)
     assert payload.time == "16:00"
     assert payload.duration_minutes == 75
 
     with pytest.raises(ValidationError):
-        ScheduleProgramRegisterRequest.model_validate(
-            {**body, "duration_minutes": 0}
-        )
+        ProgramScheduleRequest.model_validate({**body, "duration_minutes": 0})
 
 
 def _delete_program_test_sessions(db_session, day: str) -> None:
@@ -79,22 +88,96 @@ def _delete_program_test_sessions(db_session, day: str) -> None:
     ).all()
     for row in rows:
         db_session.delete(row)
+    for routine in db_session.scalars(
+        select(TrainerRoutine).where(
+            TrainerRoutine.member_id == "user-jisu",
+            TrainerRoutine.name.like("일정 추가 테스트%"),
+        )
+    ).all():
+        db_session.delete(routine)
     db_session.commit()
 
 
-def test_schedule_program_command_reuses_the_created_session(client, db_session):
+def _program_test_routines(db_session) -> list[TrainerRoutine]:
+    db_session.expire_all()
+    return list(
+        db_session.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.member_id == "user-jisu",
+                TrainerRoutine.name.like("일정 추가 테스트%"),
+            )
+        ).all()
+    )
+
+
+def test_program_schedule_retry_with_same_key_creates_nothing_twice(
+    client, db_session
+):
+    """응답을 잃고 같은 키로 다시 보내도 배정·일정이 한 벌만 남는다. (#1580)"""
+    token = _tok(client)
+    day = (clock.today() + timedelta(days=60)).isoformat()
+    _delete_program_test_sessions(db_session, day)
+    body = _program_command_body(day, "걷기", request_id="req-1580-retry")
+
+    try:
+        first = client.post(_PROGRAM_SCHEDULE_URL, json=body, headers=_h(token))
+        retry = client.post(_PROGRAM_SCHEDULE_URL, json=body, headers=_h(token))
+
+        assert first.status_code == 201, first.text
+        assert retry.status_code == 201, retry.text
+        assert first.json()["attached_to_existing"] is False
+        assert retry.json() == first.json()
+        assert len(_program_test_routines(db_session)) == 1
+        rows = db_session.scalars(
+            select(TrainerSchedule).where(
+                TrainerSchedule.member_id == "user-jisu",
+                TrainerSchedule.date == day,
+            )
+        ).all()
+        assert [(row.time, row.duration_minutes) for row in rows] == [("16:00", 75)]
+    finally:
+        _delete_program_test_sessions(db_session, day)
+
+
+def test_program_schedule_rolls_back_assignment_when_schedule_fails(
+    client, db_session, monkeypatch
+):
+    """일정 쓰기가 실패하면 배정도 남지 않는다 — 반쪽 성공이 없다. (#1580)"""
+    from app.services import trainer_service
+
+    token = _tok(client)
+    day = (clock.today() + timedelta(days=63)).isoformat()
+    _delete_program_test_sessions(db_session, day)
+
+    def fail(*_args, **_kwargs):
+        raise RuntimeError("schedule write failed")
+
+    monkeypatch.setattr(trainer_service, "_add_session", fail)
+    try:
+        with pytest.raises(RuntimeError):
+            client.post(
+                _PROGRAM_SCHEDULE_URL,
+                json=_program_command_body(day, "걷기", request_id="req-1580-fail"),
+                headers=_h(token),
+            )
+        assert _program_test_routines(db_session) == []
+    finally:
+        _delete_program_test_sessions(db_session, day)
+
+
+def test_program_schedule_attaches_to_the_created_session(client, db_session):
     token = _tok(client)
     day = (clock.today() + timedelta(days=61)).isoformat()
-    url = "/v1/trainer/clients/user-jisu/schedule-program"
+    url = _PROGRAM_SCHEDULE_URL
     _delete_program_test_sessions(db_session, day)
 
     try:
-        first = client.put(
+        first = client.post(
             url,
             json=_program_command_body(day, "걷기"),
             headers=_h(token),
         )
-        second = client.put(
+        second = client.post(
             url,
             json={
                 **_program_command_body(day, "플랭크"),
@@ -104,8 +187,8 @@ def test_schedule_program_command_reuses_the_created_session(client, db_session)
             headers=_h(token),
         )
 
-        assert first.status_code == 200, first.text
-        assert second.status_code == 200, second.text
+        assert first.status_code == 201, first.text
+        assert second.status_code == 201, second.text
         assert first.json()["attached_to_existing"] is False
         assert second.json()["attached_to_existing"] is True
         assert first.json()["session"]["id"] == second.json()["session"]["id"]
@@ -131,12 +214,12 @@ def test_schedule_program_command_reuses_the_created_session(client, db_session)
         _delete_program_test_sessions(db_session, day)
 
 
-def test_concurrent_schedule_program_commands_create_one_session(
+def test_concurrent_program_schedule_commands_create_one_session(
     client, db_session
 ):
     token = _tok(client)
     day = (clock.today() + timedelta(days=62)).isoformat()
-    url = "/v1/trainer/clients/user-jisu/schedule-program"
+    url = _PROGRAM_SCHEDULE_URL
     _delete_program_test_sessions(db_session, day)
 
     # Hold the same row used as the service's mutex until both HTTP requests
@@ -154,7 +237,7 @@ def test_concurrent_schedule_program_commands_create_one_session(
 
     def register(exercise: str):
         barrier.wait()
-        return client.put(
+        return client.post(
             url,
             json=_program_command_body(day, exercise),
             headers=_h(token),
@@ -168,7 +251,7 @@ def test_concurrent_schedule_program_commands_create_one_session(
             db_session.commit()
             responses = [future.result(timeout=10) for future in futures]
 
-        assert [response.status_code for response in responses] == [200, 200]
+        assert [response.status_code for response in responses] == [201, 201]
         assert sorted(
             response.json()["attached_to_existing"] for response in responses
         ) == [False, True]

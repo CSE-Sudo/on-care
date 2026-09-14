@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -84,24 +85,20 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   /// AI 1~3단계와 프로그램 편집기 중 어느 쪽을 표시할지 정한다.
   bool _aiWizardVisible = true;
+  /// `일정 추가` 가 방금 성공했다 — 성공 토스트가 떠 있는 동안 같은 구성을
+  /// 다시 보내지 못하게 잠그고, 잠시 뒤 편집기를 새로 세운다.
   bool _sent = false;
   Timer? _sentTimer;
 
-  /// A homework send is in flight (blocks re-entry, disables the button).
-  bool _sending = false;
+  /// `일정 추가` 가 진행 중인 회원들. 여러 회원을 동시에 보낼 수 있지만 한
+  /// 회원에게는 한 번에 하나만 나간다 — 회원을 바꿔도 앞 요청은 계속 돈다.
+  final Set<String> _sendingClientIds = <String>{};
 
-  /// 진행 중인 전송 시도의 멱등키와 그 대상 회원. 실패 후 재시도는 같은 키를
-  /// 다시 쓰고(중복 배정 방지), 성공하거나 대상이 바뀌면 새로 잡는다(#581).
-  String? _sendRequestId;
-  String? _sendRequestFor;
-
-  /// A schedule registration just succeeded — blocks re-registration for a
-  /// few seconds while the success toast is still fresh.
-  bool _registered = false;
-  // Every client whose registration is in flight. Multiple clients may save
-  // concurrently, but each client may have only one pending write.
-  final Set<String> _registeringClientIds = <String>{};
-  Timer? _registerTimer;
+  /// 회원별 미완료 전송의 멱등키와, 그 키를 만든 구성(초안·날짜·시간)의 지문.
+  /// 실패 후 같은 구성으로 다시 보내면 같은 키를 쓰고(응답 유실 뒤 중복 방지,
+  /// #581·#1580), 구성이 바뀌었거나 성공하면 새로 잡는다.
+  final Map<String, ({String fingerprint, String id})> _sendRequests =
+      <String, ({String fingerprint, String id})>{};
 
   /// PT 스케줄에 등록할 날. 기본값은 오늘.
   DateTime _registerDate = _todayKst();
@@ -123,7 +120,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   @override
   void dispose() {
     _sentTimer?.cancel();
-    _registerTimer?.cancel();
     super.dispose();
   }
 
@@ -144,8 +140,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       // A different client gets a clean slate, like the mock.
       _typeEdits.clear();
       _sent = false;
-      _sending = false;
-      _registered = false;
       _registerDate = _todayKst();
       _registerStartTime = const TimeOfDay(hour: 10, minute: 0);
       _registerEndTime = const TimeOfDay(hour: 11, minute: 0);
@@ -153,11 +147,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _templateRevision = 0;
       _editorRevision = 0;
       _aiWizardVisible = true;
-      // NOTE: _registeringClientIds is intentionally NOT cleared — writes
-      // for other clients keep being tracked while the selection changes.
+      // NOTE: _sendingClientIds is intentionally NOT cleared — writes for
+      // other clients keep being tracked while the selection changes.
     });
     _sentTimer?.cancel();
-    _registerTimer?.cancel();
   }
 
   bool _isStillSelected(String clientId) =>
@@ -231,16 +224,20 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     }
   }
 
-  /// 편집기의 `보내기` 가 부른다 — 확인창을 띄우고, 확인되면 배정한다
-  /// (#1028). 초안은 편집기가 그 자리에서 쥐고 있던 값을 그대로 인자로
-  /// 받는다 — 예전에는 "최종 검토" 화면이 스냅샷을 붙잡아 두는 역할을
-  /// 했지만, 이제 그 화면이 없어 호출 시점의 값을 곧장 쓴다.
+  /// 편집기의 `일정 추가` 가 부른다 — 확인창을 띄우고, 확인되면 회원 배정과
+  /// PT 일정 등록을 **한 명령으로** 보낸다(#1580). 예전에는 두 API 를 차례로
+  /// 불러 배정만 되고 일정은 빠진 반쪽 상태가 남을 수 있었다.
+  ///
+  /// 확인한 순간의 대상 회원·날짜·시간·구성을 붙잡아 보낸다 — 요청이 도는
+  /// 동안 회원을 바꿔도 그 회원의 작업은 확인한 값 그대로 끝난다. 실패하면
+  /// 편집기·날짜·시간을 그대로 두어 같은 멱등키로 다시 보낼 수 있고, 성공
+  /// 표시는 명령이 끝난 뒤에만 뜬다.
   Future<void> _sendProgram(
     TrainerClient client,
     ProgramEditorState draft,
   ) async {
     if (_sent ||
-        _sending ||
+        _sendingClientIds.contains(client.id) ||
         !draft.supportsAssignment ||
         _registerDurationMinutes <= 0) {
       return;
@@ -254,39 +251,68 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     );
     if (confirmed != true || !mounted || !_isStillSelected(client.id)) return;
     final sentFor = client.id;
-    if (_sendRequestId == null || _sendRequestFor != sentFor) {
-      _sendRequestId = newClientRequestId();
-      _sendRequestFor = sentFor;
-    }
-    setState(() => _sending = true);
+    final registerDate = _registerDate;
+    final date = ymd(registerDate);
+    final time =
+        '${_registerStartTime.hour.toString().padLeft(2, '0')}:'
+        '${_registerStartTime.minute.toString().padLeft(2, '0')}';
+    final durationMinutes = _registerDurationMinutes;
+    final requestId = _requestIdFor(sentFor, <Object?>[
+      programAssignToJson(draft),
+      date,
+      time,
+      durationMinutes,
+    ]);
     final l = AppLocalizations.of(context);
+    setState(() => _sendingClientIds.add(sentFor));
+    final bool attachedToExisting;
     try {
-      // 세션이 몇 개든 프로그램 배정 한 번으로 보낸다 — 세션당 루틴 한 건이
-      // 되고, 세션이 하나뿐이면 예전 단일 배정과 같은 결과다(#709).
-      await ref
-          .read(trainerRoutineRepositoryProvider)
-          .assignProgram(
-            client.id,
-            programAssignToJson(draft, clientRequestId: _sendRequestId),
+      attachedToExisting = await ref
+          .read(scheduleRepositoryProvider)
+          .registerProgramSchedule(
+            date: date,
+            clientId: sentFor,
+            clientName: client.name,
+            time: time,
+            durationMinutes: durationMinutes,
+            assignment: programAssignToJson(draft, clientRequestId: requestId),
+            program: _draftProgram(draft),
           );
     } catch (_) {
-      if (!mounted || !_isStillSelected(sentFor)) return;
-      setState(() => _sending = false);
-      showAppToast(context, l.coachSendFailed, kind: AppToastKind.error);
+      if (!mounted) return;
+      setState(() => _sendingClientIds.remove(sentFor));
+      if (_isStillSelected(sentFor)) {
+        showAppToast(context, l.coachSendFailed, kind: AppToastKind.error);
+      }
       return;
     }
-    // 배정은 여기서 이미 끝났다 — 3열 `전송 이력`(`assignedRoutinesProvider`)
-    // 은 실 API 모드에서 1회성 fetch 라 다시 읽으라고 말해 줘야 한다(#1029).
-    // 데모의 `assignedRoutinesProvider`/PT 등록이 읽는 `clientSessionsProvider`
-    // 는 로컬 DB를 그대로 지켜보는 스트림이라 여기서 손대지 않아도 된다.
-    ref.invalidate(assignedRoutinesProvider(client.id));
-    if (!mounted || !_isStillSelected(sentFor)) return;
+    _sendRequests.remove(sentFor);
+    if (!mounted) return;
+    // 3열 `전송 이력`(`assignedRoutinesProvider`)은 실 API 모드에서 1회성
+    // fetch 라 다시 읽으라고 말해 줘야 한다(#1029). 일정 쪽은 저장소가
+    // 스스로 다시 읽는다.
+    ref.invalidate(assignedRoutinesProvider(sentFor));
+    final stillSelected = _isStillSelected(sentFor);
     setState(() {
-      _sending = false;
-      _sent = true;
-      _sendRequestId = null;
-      _sendRequestFor = null;
+      _sendingClientIds.remove(sentFor);
+      if (stillSelected) _sent = true;
     });
+    if (!stillSelected) return;
+    // 등록 완료는 인라인 문구가 아니라 다른 성공 알림과 같은 상단
+    // 토스트로 뜬다(#1536) — "스케줄로 이동" 액션으로 바로 그 날짜의
+    // 스케줄 탭을 연다. `AppToastKind`엔 경고 종류가 없어, 기존 세션에
+    // 붙은 경우도 실패는 아니므로 `info`로 알린다.
+    showAppToast(
+      context,
+      attachedToExisting
+          ? l.coachRegisteredAttachedExisting(_dateChipLabel(l, registerDate))
+          : l.coachRegisteredOn(_dateChipLabel(l, registerDate)),
+      kind: attachedToExisting ? AppToastKind.info : AppToastKind.success,
+      action: AppToastAction(
+        label: l.coachGoToSchedule,
+        onTap: () => context.go(AppRoutes.scheduleAt(date: date)),
+      ),
+    );
     _sentTimer?.cancel();
     _sentTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
@@ -297,82 +323,20 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         _editorRevision++;
       });
     });
-    // `보내기` 하나가 배정과 PT 등록을 함께 한다(#1029) —
-    // `assignProgram`/`registerProgram` 은 여전히 서로 다른 API 라 억지로
-    // 합치지 않고 순서대로 부른다. 배정이 이미 됐으니 등록이 실패해도
-    // 배정 자체를 취소하지 않는다 — [_registerProgram] 은 자기 몫의
-    // 실패만 그 자리에서 따로 알린다(`coachScheduleFailed`), 방금 보인
-    // 배정 성공을 덮어쓰지 않는다.
-    await _registerProgram(client, draft);
   }
 
-  /// [_sendProgram] 이 배정 성공 뒤에만 부른다(#1029) — 이 앱에 PT 등록
-  /// 버튼은 따로 없다.
-  Future<void> _registerProgram(
-    TrainerClient client,
-    ProgramEditorState draft,
-  ) async {
-    if (!draft.supportsAssignment ||
-        _registered ||
-        _registeringClientIds.contains(client.id)) {
-      return;
+  /// [clientId] 의 이번 전송에 쓸 멱등키. [payload] 가 지난 실패 때와 같으면
+  /// 그 키를 다시 쓴다 — 응답만 잃은 요청을 재시도해도 서버가 두 번 만들지
+  /// 않는다. 구성을 고쳤으면 다른 요청이므로 새 키를 만든다.
+  String _requestIdFor(String clientId, Object payload) {
+    final fingerprint = jsonEncode(payload, toEncodable: (value) => '$value');
+    final pending = _sendRequests[clientId];
+    if (pending != null && pending.fingerprint == fingerprint) {
+      return pending.id;
     }
-    final registeredFor = client.id;
-    final date = ymd(_registerDate);
-    final time =
-        '${_registerStartTime.hour.toString().padLeft(2, '0')}:'
-        '${_registerStartTime.minute.toString().padLeft(2, '0')}';
-    final l = AppLocalizations.of(context);
-    setState(() => _registeringClientIds.add(registeredFor));
-    bool attachedToExisting;
-    try {
-      attachedToExisting = await ref
-          .read(scheduleRepositoryProvider)
-          .registerProgram(
-            date: date,
-            clientId: client.id,
-            clientName: client.name,
-            time: time,
-            durationMinutes: _registerDurationMinutes,
-            program: _draftProgram(draft),
-          );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _registeringClientIds.remove(registeredFor));
-      if (_isStillSelected(registeredFor)) {
-        showAppToast(context, l.coachScheduleFailed, kind: AppToastKind.error);
-      }
-      return;
-    }
-    if (!mounted) return;
-    final stillSelected = _isStillSelected(registeredFor);
-    setState(() {
-      _registeringClientIds.remove(registeredFor);
-      if (stillSelected) _registered = true;
-    });
-    if (stillSelected) {
-      // 등록 완료는 인라인 문구가 아니라 다른 성공 알림과 같은 상단
-      // 토스트로 뜬다(#1536) — "스케줄로 이동" 액션으로 바로 그 날짜의
-      // 스케줄 탭을 연다. `AppToastKind`엔 경고 종류가 없어, 기존 세션에
-      // 붙은 경우도 실패는 아니므로 `info`로 알린다.
-      showAppToast(
-        context,
-        attachedToExisting
-            ? l.coachRegisteredAttachedExisting(
-                _dateChipLabel(l, _registerDate),
-              )
-            : l.coachRegisteredOn(_dateChipLabel(l, _registerDate)),
-        kind: attachedToExisting ? AppToastKind.info : AppToastKind.success,
-        action: AppToastAction(
-          label: l.coachGoToSchedule,
-          onTap: () => context.go(AppRoutes.scheduleAt(date: date)),
-        ),
-      );
-    }
-    _registerTimer?.cancel();
-    _registerTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _registered = false);
-    });
+    final id = newClientRequestId();
+    _sendRequests[clientId] = (fingerprint: fingerprint, id: id);
+    return id;
   }
 
   /// The draft flattened into schedule items, each tagged with its session.
@@ -685,7 +649,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _appliedTemplate = template;
     _templateRevision++;
     _aiWizardVisible = false;
-    _registered = false;
     _sent = false;
   });
 
@@ -695,7 +658,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _templateRevision = 0;
     _editorRevision++;
     _aiWizardVisible = false;
-    _registered = false;
     _sent = false;
   });
 
@@ -825,18 +787,15 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 onSend: (draft) => unawaited(_sendProgram(client, draft)),
                 onSave: _saveTemplate,
                 saving: _savingTemplate,
-                sending: _sending || _sent,
+                sending: _sendingClientIds.contains(client.id) || _sent,
                 registerDate: _registerDate,
-                onRegisterDateChanged: (date) => setState(() {
-                  _registerDate = date;
-                  _registered = false;
-                }),
+                onRegisterDateChanged: (date) =>
+                    setState(() => _registerDate = date),
                 registerStartTime: _registerStartTime,
                 registerEndTime: _registerEndTime,
                 onRegisterTimeRangeChanged: (range) => setState(() {
                   _registerStartTime = range.start;
                   _registerEndTime = range.end;
-                  _registered = false;
                 }),
               ),
             ),

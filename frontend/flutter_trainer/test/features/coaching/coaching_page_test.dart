@@ -94,33 +94,43 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
 
   int registerCalls = 0;
 
+  /// 명령이 끝까지 처리된 회원들 — 도중에 회원을 바꿔도 원래 회원의 일정이
+  /// 빠지지 않는지 본다(#1580).
+  final List<String> completedFor = <String>[];
+
   @override
-  Future<bool> registerProgram({
+  Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
     required String clientName,
     required String time,
     required int durationMinutes,
+    required Map<String, Object?> assignment,
     required List<ProgramItem> program,
   }) async {
     registerCalls++;
     // Keep the write in flight across client-switching/scroll animations.
     await Future<void>.delayed(delay);
-    return super.registerProgram(
+    final attached = await super.registerProgramSchedule(
       date: date,
       clientId: clientId,
       clientName: clientName,
       time: time,
       durationMinutes: durationMinutes,
+      assignment: assignment,
       program: program,
     );
+    completedFor.add(clientId);
+    return attached;
   }
 }
 
-/// Captures the schedule operation selected by the coaching page without
-/// performing a local write. Dio behavior is covered by its repository test.
+/// Captures the `일정 추가` command without performing a local write, and can
+/// be made to fail. Dio behavior is covered by its repository test.
 class _CapturingScheduleRepository extends DriftScheduleRepository {
-  _CapturingScheduleRepository(super.db);
+  _CapturingScheduleRepository(super.db, {this.error});
+
+  final Object? error;
 
   int registerCalls = 0;
   String? clientId;
@@ -128,21 +138,39 @@ class _CapturingScheduleRepository extends DriftScheduleRepository {
   int? durationMinutes;
   List<ProgramItem>? program;
 
+  /// 시도마다 넘어온 배정 본문(세션·운동·멱등키).
+  final List<Map<String, Object?>> assignments = <Map<String, Object?>>[];
+
   @override
-  Future<bool> registerProgram({
+  Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
     required String clientName,
     required String time,
     required int durationMinutes,
+    required Map<String, Object?> assignment,
     required List<ProgramItem> program,
   }) async {
     registerCalls++;
+    assignments.add(assignment);
+    if (error != null) throw error!;
     this.clientId = clientId;
     this.time = time;
     this.durationMinutes = durationMinutes;
     this.program = program;
     return true;
+  }
+
+  /// 마지막으로 보낸 첫 세션의 운동 목록 — 유형·출처 요약은 서버가 접는다.
+  List<Map<String, Object?>> get lastAssignedExercises {
+    final sessions = assignments.last['sessions'] as List<Object?>?;
+    if (sessions == null || sessions.isEmpty) {
+      return const <Map<String, Object?>>[];
+    }
+    final first = sessions.first! as Map<String, Object?>;
+    return ((first['exercises'] as List<Object?>?) ?? const <Object?>[])
+        .map((item) => (item! as Map<Object?, Object?>).cast<String, Object?>())
+        .toList();
   }
 }
 
@@ -256,10 +284,8 @@ class _FixedClientRepository implements ClientRepository {
   Future<void> removeClient(String id) async {}
 }
 
-/// Spies on `assignRoutine` (captures the [AssignedRoutine] sent) and can
-/// be configured to throw a specific error, so tests can distinguish the
-/// ambiguous (network) failure message from the generic one (subin21cc
-/// review Major#2a).
+/// 실 API 모드의 배정 저장소 자리를 채운다 — `일정 추가` 는 이제 일정
+/// 저장소의 한 명령으로 나가므로(#1580), 여기로 배정이 오면 잘못이다.
 class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
   @override
   Future<void> updateRoutine(
@@ -274,44 +300,18 @@ class _SpyTrainerRoutineRepository implements TrainerRoutineRepository {
   @override
   Future<void> deleteRoutine(String memberId, String routineId) async {}
 
-  _SpyTrainerRoutineRepository({this.throwOnAssign});
-
-  final Object? throwOnAssign;
-
-  /// 마지막으로 배정된 프로그램 payload(세션·운동 구성 포함, #709).
-  Map<String, Object?>? lastAssigned;
-
-  /// 전송 시도마다 넘어온 멱등키. 재시도가 같은 키를 쓰는지 본다(#581).
-  final List<String?> assignAttempts = <String?>[];
-
   @override
   Future<void> assignRoutine(
     String memberId,
     AssignedRoutine routine, {
     String? clientRequestId,
-  }) async => throw UnsupportedError('프로그램 배정 경로만 쓴다 (#709)');
+  }) async => throw UnsupportedError('일정 추가 명령만 쓴다 (#1580)');
 
   @override
   Future<void> assignProgram(
     String memberId,
     Map<String, Object?> payload,
-  ) async {
-    assignAttempts.add(payload['client_request_id'] as String?);
-    if (throwOnAssign != null) throw throwOnAssign!;
-    lastAssigned = payload;
-  }
-
-  /// 배정된 첫 세션의 운동 목록 — 유형·출처 요약은 이제 서버가 접는다.
-  List<Map<String, Object?>> get lastAssignedExercises {
-    final sessions = lastAssigned?['sessions'] as List<Object?>?;
-    if (sessions == null || sessions.isEmpty) {
-      return const <Map<String, Object?>>[];
-    }
-    final first = sessions.first! as Map<String, Object?>;
-    return ((first['exercises'] as List<Object?>?) ?? const <Object?>[])
-        .map((item) => (item! as Map<Object?, Object?>).cast<String, Object?>())
-        .toList();
-  }
+  ) async => throw UnsupportedError('일정 추가 명령만 쓴다 (#1580)');
 
   @override
   Stream<List<AssignedRoutine>> watchAssignedRoutines(String memberId) =>
@@ -667,12 +667,13 @@ void main() {
                   row.date == ymd(nowKst()) &&
                   row.status == '예정',
             );
-        final attached = await repo.registerProgram(
+        final attached = await repo.registerProgramSchedule(
           date: ymd(nowKst()),
           clientId: 'seed-client-3',
           clientName: '박성호',
           time: '10:00',
           durationMinutes: 75,
+          assignment: const <String, Object?>{},
           program: const <ProgramItem>[
             ProgramItem(name: '저강도 유산소', type: '유산소', duration: 30),
           ],
@@ -696,12 +697,13 @@ void main() {
       () async {
         final repo = DriftScheduleRepository(db);
         // 김민수's only session today is 완료 — a new slot gets booked.
-        final attached = await repo.registerProgram(
+        final attached = await repo.registerProgramSchedule(
           date: ymd(nowKst()),
           clientId: 'seed-client-1',
           clientName: '김민수',
           time: '10:00',
           durationMinutes: 75,
+          assignment: const <String, Object?>{},
           program: const <ProgramItem>[
             ProgramItem(name: '코어 강화', type: '스트레칭', duration: 10),
           ],
@@ -1891,7 +1893,7 @@ void main() {
 
     testWidgets('switching clients mid-registration does not flash success '
         'on the new client', (tester) async {
-      await pumpTrainerApp(
+      final container = await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
         extraOverrides: <Override>[
@@ -1927,6 +1929,12 @@ void main() {
       expect(tester.widget<ActionButton>(send).onPressed, isNotNull);
       await tester.pump(const Duration(seconds: 5));
       await settle(tester);
+
+      // 회원을 바꿔도 김민수 몫의 명령은 끝까지 처리된다(#1580).
+      final repo = container.read(
+        scheduleRepositoryProvider,
+      ) as _SlowCountingScheduleRepository;
+      expect(repo.completedFor, <String>['seed-client-1']);
     });
 
     testWidgets('homework delivery does not depend on the chat repository', (
@@ -2022,8 +2030,17 @@ void main() {
       await tapRegister();
       await selectClient('김민수');
       // Back on 김민수 while the first write is still in flight — the
-      // button stays disabled, so this tap must NOT start a second one.
-      await tapRegister();
+      // button stays disabled (#1580), so this tap must NOT start a second one.
+      await quicklyFillEditor();
+      final send = find.byKey(const ValueKey<String>('program-editor-send'));
+      await tester.scrollUntilVisible(
+        send,
+        150,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+      expect(tester.widget<ActionButton>(send).onPressed, isNull);
+      await tester.tap(send, warnIfMissed: false);
       await settle(tester);
 
       final repo = container.read(
@@ -2258,20 +2275,17 @@ void main() {
       useMockApi: false,
     );
 
-    Future<_SpyTrainerRoutineRepository> openRealApiTab(
+    Future<_CapturingScheduleRepository> openRealApiTab(
       WidgetTester tester, {
       bool chatFails = false,
-      Object? assignError,
+      Object? sendError,
       bool includeInitialSuggestions = true,
-      void Function(_CapturingScheduleRepository repo)? captureSchedule,
     }) async {
       tester.view.devicePixelRatio = 1.0;
       tester.view.physicalSize = const Size(1600, 1200);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      final routineRepo = _SpyTrainerRoutineRepository(
-        throwOnAssign: assignError,
-      );
+      late _CapturingScheduleRepository scheduleRepo;
       await pumpTrainerApp(
         tester,
         token: 'demo-trainer-token',
@@ -2292,19 +2306,19 @@ void main() {
           trainerRoutineOptionsRepositoryProvider.overrideWithValue(
             const MockTrainerRoutineOptionsRepository(),
           ),
-          trainerRoutineRepositoryProvider.overrideWithValue(routineRepo),
+          trainerRoutineRepositoryProvider.overrideWithValue(
+            _SpyTrainerRoutineRepository(),
+          ),
           if (includeInitialSuggestions)
             aiRoutineRepositoryProvider.overrideWithValue(
               const _FixedAiRoutineRepository(realSuggestions),
             ),
-          if (captureSchedule != null)
-            scheduleRepositoryProvider.overrideWith((ref) {
-              final repo = _CapturingScheduleRepository(
-                ref.watch(appDatabaseProvider),
-              );
-              captureSchedule(repo);
-              return repo;
-            }),
+          scheduleRepositoryProvider.overrideWith(
+            (ref) => scheduleRepo = _CapturingScheduleRepository(
+              ref.watch(appDatabaseProvider),
+              error: sendError,
+            ),
+          ),
           chatRepositoryProvider.overrideWithValue(
             _FakeRealChatRepository(failSend: chatFails),
           ),
@@ -2312,7 +2326,7 @@ void main() {
         seedClock: kMidWeekKst,
       );
       await goTo(tester, AppRoutes.coaching);
-      return routineRepo;
+      return scheduleRepo;
     }
 
     Future<void> tapSend(WidgetTester tester) async {
@@ -2337,11 +2351,7 @@ void main() {
       'real-API schedule registration uses the selected member id and the '
       'shared schedule repository',
       (tester) async {
-        late _CapturingScheduleRepository scheduleRepo;
-        await openRealApiTab(
-          tester,
-          captureSchedule: (repo) => scheduleRepo = repo,
-        );
+        final scheduleRepo = await openRealApiTab(tester);
 
         await tapSend(tester);
 
@@ -2384,21 +2394,18 @@ void main() {
       '(routine delivery shows in the member routine feed, not as a chat '
       'bubble)',
       (tester) async {
-        final routineRepo = await openRealApiTab(tester, chatFails: true);
+        final scheduleRepo = await openRealApiTab(tester, chatFails: true);
 
         await tapSend(tester);
 
-        // 이 하네스는 PT 등록(schedule-program) 엔드포인트를 목킹하지
-        // 않는다 — 배정이 채팅과 무관하게 끝난다는 것만 `routineRepo`로
-        // 직접 확인한다. 회원 전송 안내 문구는 더 이상 없고(#1536), 등록
-        // 성공 토스트는 이 케이스에서 뜨지 않는다.
-        expect(routineRepo.lastAssigned, isNotNull);
+        // 배정은 채팅과 무관하게 `일정 추가` 명령 하나로 나간다(#1580).
+        expect(scheduleRepo.assignments, hasLength(1));
       },
     );
 
     testWidgets('네트워크 실패도 재시도를 안내한다 — 멱등키를 함께 보내므로 다시 눌러도 '
         '회원에게 루틴이 두 번 배정되지 않는다 (#581)', (tester) async {
-      await openRealApiTab(tester, assignError: const NetworkError());
+      await openRealApiTab(tester, sendError: const NetworkError());
 
       await tapSend(tester);
 
@@ -2412,7 +2419,7 @@ void main() {
 
     testWidgets('a non-network assign failure shows the generic retry message '
         '(a clear failure, safe to retry)', (tester) async {
-      await openRealApiTab(tester, assignError: const ServerError());
+      await openRealApiTab(tester, sendError: const ServerError());
 
       await tapSend(tester);
 
@@ -2423,21 +2430,25 @@ void main() {
       );
     });
 
-    testWidgets('실패 후 재시도는 같은 멱등키를 다시 보낸다 (#581)', (tester) async {
+    testWidgets('실패 후 재시도는 같은 구성·같은 멱등키를 다시 보낸다 (#581, #1580)', (
+      tester,
+    ) async {
       // 키가 매번 새로 생기면 서버의 유니크 제약이 아무것도 막지 못한다.
-      final routineRepo = await openRealApiTab(
+      final scheduleRepo = await openRealApiTab(
         tester,
-        assignError: const NetworkError(),
+        sendError: const NetworkError(),
       );
 
       await tapSend(tester);
+      expect(find.text('오늘 스케줄에 등록됐어요'), findsNothing);
       await tapSend(tester);
 
-      expect(routineRepo.assignAttempts, hasLength(2));
-      expect(routineRepo.assignAttempts.first, isNotNull);
+      expect(scheduleRepo.assignments, hasLength(2));
+      expect(scheduleRepo.assignments.first['client_request_id'], isNotNull);
+      // 실패해도 초안이 남아 있어 같은 본문(같은 키)이 그대로 다시 나간다.
       expect(
-        routineRepo.assignAttempts.first,
-        routineRepo.assignAttempts.last,
+        scheduleRepo.assignments.last,
+        scheduleRepo.assignments.first,
         reason: '재시도가 새 키를 만들면 중복 배정이 그대로 생긴다',
       );
     });
@@ -2446,7 +2457,7 @@ void main() {
       'an all-custom send (every AI suggestion removed) assigns type/source '
       "from the custom exercises, not '근력'/'ai' by default",
       (tester) async {
-        final routineRepo = await openRealApiTab(tester);
+        final scheduleRepo = await openRealApiTab(tester);
 
         // 프로그램 정보 박스는 빈 상태로 시작한다(#1028 후속) — 지울
         // 운동이 있으려면 먼저 AI 코칭 보조 제안을 편집기에 반영해야 한다.
@@ -2487,16 +2498,14 @@ void main() {
 
         await tapSend(tester);
 
-        // 이 하네스는 PT 등록 엔드포인트를 목킹하지 않는다 — 배정
-        // payload만 `routineRepo`로 직접 확인한다.
         // 유형·출처 요약은 서버가 세션 단위로 접는다(#709) — 클라이언트는
         // 트레이너가 넣은 운동을 그대로 실어 보낸다.
         expect(
-          routineRepo.lastAssignedExercises.map((e) => e['type']),
+          scheduleRepo.lastAssignedExercises.map((e) => e['type']),
           everyElement('스트레칭'),
         );
         expect(
-          routineRepo.lastAssignedExercises.map((e) => e['source']),
+          scheduleRepo.lastAssignedExercises.map((e) => e['source']),
           everyElement('trainer'),
         );
       },

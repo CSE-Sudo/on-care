@@ -59,12 +59,12 @@ from app.schemas.trainer_api import (
     RoutineAssignRequest, RoutineOut, RoutineHistoryOut,
     RoutineFeedbackRequest,
     RoutineSuggestionApproveRequest, RoutineSuggestionCreateRequest,
-    ProgramAssignRequest,
+    ProgramAssignRequest, ProgramScheduleOut, ProgramScheduleRequest,
     RoutineOptionsOut, RoutineOptionsRequest, RoutineUpdateRequest,
     ScheduleCancelRequest, ScheduleCompleteRequest,
-    ScheduleProgramSendRequest, ScheduleCreateRequest, ScheduleProgramRegisterOut,
+    ScheduleProgramSendRequest, ScheduleCreateRequest,
     ScheduleRecurringPreviewOut, ScheduleRecurringRequest, ScheduleReopenRequest,
-    ScheduleProgramRegisterRequest, ScheduleSessionOut, ScheduleUpdateRequest,
+    ScheduleSessionOut, ScheduleUpdateRequest,
     PairedMemberOut,
     PairingCodeRedeem,
     TrainerClientInviteCreate, TrainerClientInviteOut,
@@ -1478,34 +1478,45 @@ def trainer_create_recurring_sessions(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.put(
-    "/trainer/clients/{member_id}/schedule-program",
-    response_model=ScheduleProgramRegisterOut,
+@router.post(
+    "/trainer/clients/{member_id}/program-schedule",
+    response_model=ProgramScheduleOut,
+    status_code=201,
 )
-def trainer_register_schedule_program(
+def trainer_assign_program_with_schedule(
     member_id: str,
-    payload: ScheduleProgramRegisterRequest,
+    payload: ProgramScheduleRequest,
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
-) -> ScheduleProgramRegisterOut:
-    """Atomically attach an AI program or create the member's PT session."""
-    result = trainer_service.register_program(
-        db,
-        trainer.id,
-        member_id,
-        date=payload.date,
-        time=payload.time,
-        duration_minutes=payload.duration_minutes,
-        client_name=payload.client_name,
-        program=payload.program,
-    )
+) -> ProgramScheduleOut:
+    """프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로. (#1580)
+
+    둘 중 하나만 반영되는 경우가 없다. `client_request_id` 는 명령 전체에 대해
+    멱등하다 — 응답을 잃고 같은 키로 다시 보내면 먼저 처리한 결과가 돌아온다.
+    """
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="프로그램 이름이 필요합니다.")
+    if not any(session.exercises for session in payload.sessions):
+        raise HTTPException(status_code=400, detail="운동이 하나 이상 필요합니다.")
+    try:
+        result = trainer_service.assign_program_with_schedule(
+            db,
+            trainer.id,
+            member_id,
+            name=name,
+            sessions=payload.sessions,
+            date=payload.date,
+            time=payload.time,
+            duration_minutes=payload.duration_minutes,
+            client_name=payload.client_name,
+            client_request_id=payload.client_request_id,
+        )
+    except trainer_service.IdempotencyConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if result is None:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
-    session, attached_to_existing = result
-    return ScheduleProgramRegisterOut(
-        session=session,
-        attached_to_existing=attached_to_existing,
-    )
+    return result
 
 
 @router.put("/trainer/schedule/{session_id}", response_model=ScheduleSessionOut)

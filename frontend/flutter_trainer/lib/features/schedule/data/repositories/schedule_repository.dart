@@ -90,20 +90,23 @@ abstract interface class ScheduleRepository {
     required String note,
   });
 
-  /// Attaches [program] to the client's earliest upcoming PT session on
-  /// [date], or creates a new one at [time] for [durationMinutes] when none
-  /// exists.
+  /// 프로그램 탭 `일정 추가` 한 번 — 회원 배정과 PT 일정 등록을 한 명령으로
+  /// 처리한다(#1580). 둘 중 하나만 반영되는 경우가 없다.
   ///
-  /// Returns `true` when an existing session was updated and `false` when a
-  /// new session was created. Both mock and real implementations expose the
-  /// same operation so AI coaching cannot accidentally write to a different
-  /// data source than the schedule screen.
-  Future<bool> registerProgram({
+  /// [assignment] 는 `programAssignToJson` 이 만든 배정 본문(이름·세션·멱등키)
+  /// 이다. 같은 멱등키로 다시 보내면 배정도 일정도 두 번 생기지 않는다.
+  /// [program] 은 같은 구성을 일정 항목으로 펼친 것으로, 로컬(데모) 구현만
+  /// 쓴다 — 서버는 세션에서 직접 펼친다.
+  ///
+  /// 그날 예정 세션이 있으면 거기에 붙이고 `true`, 없으면 [time] 부터
+  /// [durationMinutes] 짜리 세션을 새로 만들고 `false` 를 돌려준다.
+  Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
     required String clientName,
     required String time,
     required int durationMinutes,
+    required Map<String, Object?> assignment,
     required List<ProgramItem> program,
   });
 
@@ -401,13 +404,17 @@ class DriftScheduleRepository implements ScheduleRepository {
     );
   }
 
+  /// 데모에는 루틴을 받을 회원 백엔드가 없어 배정은 쓰지 않는다
+  /// (`MockTrainerRoutineRepository.assignProgram` 도 no-op) — 일정 쪽만
+  /// 로컬에 한 트랜잭션으로 반영한다.
   @override
-  Future<bool> registerProgram({
+  Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
     required String clientName,
     required String time,
     required int durationMinutes,
+    required Map<String, Object?> assignment,
     required List<ProgramItem> program,
   }) {
     final table = _db.trainerScheduleEntries;
