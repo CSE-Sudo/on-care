@@ -10,15 +10,15 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/app/session_feature_reset.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
@@ -52,6 +52,7 @@ Future<void> _openResultSheet(
         sessionFeatureResetOverride(),
       ],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -151,12 +152,17 @@ void main() {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _openResultSheet(tester, FakeDietRepository());
 
-    final Container comment = tester.widget<Container>(
-      find.byKey(const Key('diet-result-coach-comment')),
+    final Material comment = tester.widget<Material>(
+      find
+          .descendant(
+            of: find.byKey(const Key('diet-result-coach-comment')),
+            matching: find.byType(Material),
+          )
+          .first,
     );
     expect(
-      (comment.decoration! as BoxDecoration).color,
-      FigmaColors.softBlue,
+      comment.color,
+      OnCareBrand.member.surface,
       reason: '수치 카드(statBg)와 같은 색이면 서버가 잰 값처럼 읽힌다',
     );
   });
