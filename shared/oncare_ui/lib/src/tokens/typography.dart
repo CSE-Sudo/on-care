@@ -1,0 +1,175 @@
+import 'package:flutter/material.dart';
+
+/// 글자 역할 9단계(#1690 §3 확정).
+///
+/// 크기는 **보이는 크기**다. 화면은 숫자 대신 이 역할만 쓴다. 반 포인트와 굵기
+/// 800 은 없다. 본문 계열에만 같은 크기의 600 강조 변형([strong])을 허용한다.
+///
+/// 색은 담지 않는다 — 테마의 `TextTheme` 이 텍스트 색을 입힌다.
+class OnCareTypography {
+  OnCareTypography._();
+
+  /// 두 앱 공통 서체. 두 앱 pubspec 의 `fonts:` 패밀리 이름과 같아야 한다.
+  static const String fontFamily = 'Pretendard';
+
+  /// 큰 숫자(KPI·칼로리).
+  static const TextStyle display = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 28,
+    fontWeight: FontWeight.w700,
+    height: 1.2,
+    letterSpacing: -0.5,
+  );
+
+  /// 페이지 제목(모바일 탭 대제목·웹 페이지 헤더).
+  static const TextStyle titleLarge = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 22,
+    fontWeight: FontWeight.w700,
+    height: 1.3,
+  );
+
+  /// 다이얼로그·시트 제목, 모바일 서브 페이지 앱바.
+  static const TextStyle titleMedium = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+    height: 1.3,
+  );
+
+  /// 섹션·카드 제목.
+  static const TextStyle titleSmall = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    height: 1.35,
+  );
+
+  /// 강조 본문·목록 행 제목.
+  static const TextStyle bodyLarge = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    height: 1.5,
+  );
+
+  /// 본문·입력 텍스트.
+  static const TextStyle body = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
+    height: 1.5,
+  );
+
+  /// 보조 설명·메뉴 항목·토스트.
+  static const TextStyle bodySmall = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    height: 1.45,
+  );
+
+  /// 칩·탭·필드 라벨.
+  static const TextStyle label = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  );
+
+  /// 도움말·시간·축 라벨·태그.
+  static const TextStyle caption = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    height: 1.4,
+  );
+
+  // --- 버튼 라벨 — 버튼 컴포넌트 안에서만 쓴다(#1690 §3 확정) ---
+  static const TextStyle buttonLarge = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  );
+  static const TextStyle buttonMedium = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 15,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  );
+  static const TextStyle buttonSmall = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    height: 1.2,
+  );
+
+  /// 역할 목록. 카탈로그·테스트가 순서대로 읽는다.
+  static const Map<String, TextStyle> roles = <String, TextStyle>{
+    'display': display,
+    'titleLarge': titleLarge,
+    'titleMedium': titleMedium,
+    'titleSmall': titleSmall,
+    'bodyLarge': bodyLarge,
+    'body': body,
+    'bodySmall': bodySmall,
+    'label': label,
+    'caption': caption,
+  };
+
+  /// 기기 접근성 배율 상한. 레이아웃이 실제로 버티는 한계다.
+  static const double maxTextScale = 1.3;
+
+  /// 본문 계열의 600 강조 변형. 크기는 그대로 둔다.
+  static TextStyle strong(TextStyle style) =>
+      style.copyWith(fontWeight: FontWeight.w600);
+
+  /// 숫자가 바뀌어도 폭이 흔들리지 않는 고정폭 숫자.
+  static TextStyle numeric(TextStyle style) => style.copyWith(
+    fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+  );
+
+  /// 기기 배율을 존중하되 1.0 ~ [maxTextScale] 로 묶는다.
+  static TextScaler scaler(TextScaler device) {
+    final double value = device.scale(1).clamp(1.0, maxTextScale);
+    return TextScaler.linear(value);
+  }
+
+  /// 앱이 아직 전역 글자 배율(옛 `AppTypography.textScale`)을 얹고 있을 때,
+  /// 역할 크기가 **보이는 크기**로 나오도록 그 배율만큼 나눈다.
+  ///
+  /// 모든 화면이 역할로 옮겨 가기 전에 전역 배율을 먼저 걷으면 숫자를 박아 둔
+  /// 화면이 한꺼번에 작아진다. 그래서 전환 기간에는 배율을 두고 이쪽에서
+  /// 상쇄하며, 정리 이슈(#1707)에서 배율과 함께 이 인자를 없앤다.
+  static TextStyle compensate(TextStyle style, double legacyTextScale) {
+    if (legacyTextScale == 1.0 || style.fontSize == null) return style;
+    return style.copyWith(fontSize: style.fontSize! / legacyTextScale);
+  }
+
+  /// Material `TextTheme` 슬롯을 역할에 맞춘다.
+  static TextTheme textTheme({
+    required Color color,
+    double legacyTextScale = 1.0,
+  }) {
+    TextStyle s(TextStyle style) =>
+        compensate(style, legacyTextScale).copyWith(color: color);
+    return TextTheme(
+      displayLarge: s(display),
+      displayMedium: s(display),
+      displaySmall: s(display),
+      headlineLarge: s(titleLarge),
+      headlineMedium: s(titleLarge),
+      headlineSmall: s(titleLarge),
+      titleLarge: s(titleLarge),
+      titleMedium: s(titleMedium),
+      titleSmall: s(titleSmall),
+      bodyLarge: s(bodyLarge),
+      bodyMedium: s(body),
+      bodySmall: s(bodySmall),
+      labelLarge: s(label),
+      labelMedium: s(strong(caption)),
+      labelSmall: s(caption),
+    );
+  }
+}

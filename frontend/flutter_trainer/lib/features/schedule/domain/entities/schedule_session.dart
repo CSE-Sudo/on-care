@@ -186,6 +186,34 @@ String timeRangeLabel(AppLocalizations l, ScheduleSession session) {
   return l.schedTimeRange(session.time, _hhmm(start + session.durationMinutes));
 }
 
+/// 두 시간대가 겹치는가 — 반열린 구간 `[시작, 끝)` 끼리 비교한다(#1581).
+///
+/// 10:00–11:00 과 11:00–12:00 은 이어질 뿐 겹치지 않는다. 길이가 0인 세션은
+/// 시작 1분으로 본다. 시각이 `HH:mm` 이 아니면 겹치지 않는 것으로 본다. 서버
+/// `_overlapping_planned_sessions` 와 같은 규칙이다.
+bool timeRangesOverlap(
+  String aTime,
+  int aMinutes,
+  String bTime,
+  int bMinutes,
+) {
+  final aStart = clockMinutes(aTime);
+  final bStart = clockMinutes(bTime);
+  if (aStart == null || bStart == null) return false;
+  final aEnd = aStart + (aMinutes < 1 ? 1 : aMinutes);
+  final bEnd = bStart + (bMinutes < 1 ? 1 : bMinutes);
+  return aStart < bEnd && bStart < aEnd;
+}
+
+/// 프로그램을 붙일 기존 PT 를 하나로 정할 수 없다(#1581) — 겹치는 예정 세션이
+/// 여럿인데 고르지 않았거나, 고른 세션이 그 사이 후보에서 빠졌다.
+class ProgramAttachConflictError implements Exception {
+  const ProgramAttachConflictError();
+
+  @override
+  String toString() => 'ProgramAttachConflictError';
+}
+
 /// 자정부터의 분을 `HH:mm` 으로.
 String _hhmm(int minutes) {
   final wrapped = minutes % (24 * 60);

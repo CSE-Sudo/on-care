@@ -10,6 +10,8 @@ on:
       - "frontend/flutter/**"
       # 김민수 데모 픽스처는 세 곳이 함께 읽는다 — 이것만 바뀌어도 돌아야 한다(#757).
       - "shared/demo_fixture/**"
+      # 두 앱이 함께 쓰는 UI 규격 패키지(#1691).
+      - "shared/oncare_ui/**"
       - ".github/workflows/user-app-ci.yml"
   push:
     branches: [main]
@@ -17,6 +19,8 @@ on:
       - "frontend/flutter/**"
       # 김민수 데모 픽스처는 세 곳이 함께 읽는다 — 이것만 바뀌어도 돌아야 한다(#757).
       - "shared/demo_fixture/**"
+      # 두 앱이 함께 쓰는 UI 규격 패키지(#1691).
+      - "shared/oncare_ui/**"
       - ".github/workflows/user-app-ci.yml"
 
 permissions:
@@ -65,6 +69,15 @@ jobs:
         run: |
           dart pub get
           dart test
+
+      # 두 앱이 함께 쓰는 UI 규격 패키지(#1691). 토큰·테마 불변식은 앱 테스트가
+      # 보지 않으므로 여기서 한 번 돌린다(트레이너 CI 에는 두지 않는다).
+      - name: Analyze and test shared UI package
+        working-directory: shared/oncare_ui
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
 
       - name: Install dependencies
         run: flutter pub get
