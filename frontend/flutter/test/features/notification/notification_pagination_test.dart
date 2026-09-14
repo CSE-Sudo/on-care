@@ -12,7 +12,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
 import 'package:oncare/features/notification/data/repositories/mock_notification_repository.dart';
@@ -216,11 +216,12 @@ void main() {
             appConfigProvider.overrideWithValue(_realConfig),
             notificationRepositoryProvider.overrideWithValue(repo),
           ],
-          child: const MaterialApp(
-            locale: Locale('ko'),
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            locale: const Locale('ko'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: NotificationPage(),
+            home: const NotificationPage(),
           ),
         ),
       );

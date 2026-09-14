@@ -18,6 +18,7 @@ import 'package:oncare_trainer/features/consultations/presentation/pages/consult
 import 'package:oncare_trainer/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare_trainer/features/messages/presentation/pages/messages_page.dart';
 import 'package:oncare_trainer/features/schedule/presentation/pages/schedule_page.dart';
+import 'package:oncare_ui/oncare_ui.dart' show AppButton, AppDialog;
 
 const String _trainerEmail = 'trainer@oncare.com';
 const String _memberEmail = 'jisu@oncare.com';
@@ -38,12 +39,17 @@ final Finder _chatThread = find.byKey(
 );
 
 /// 초안이 빠져나간 입력창 — 전송이 서버까지 갔다는 신호다.
-final Finder _clearedChatInput = find.byWidgetPredicate(
-  (widget) =>
-      widget is TextField &&
-      widget.key == const ValueKey<String>('client-chat-input') &&
-      (widget.controller?.text ?? '').isEmpty,
-  description: 'cleared chat composer',
+/// 입력창은 공용 입력줄(`AppChatInputBar`) 안에 있어, 키는 입력줄 전체에 붙는다(#1704).
+final Finder _chatComposer = find.byKey(
+  const ValueKey<String>('client-chat-input'),
+);
+
+final Finder _clearedChatInput = find.descendant(
+  of: _chatComposer,
+  matching: find.byWidgetPredicate(
+    (widget) => widget is TextField && (widget.controller?.text ?? '').isEmpty,
+    description: 'cleared chat composer',
+  ),
 );
 
 Future<void> _pumpUntil(
@@ -324,7 +330,12 @@ void main() {
     // `enterText` 는 프레임을 그려 주지 않는다. 안 그리고 바로 누르면 전송 핸들러가
     // 빈 입력을 읽고 조용히 돌아간다.
     await tester.pump();
-    await tester.tap(find.byKey(const ValueKey<String>('client-chat-send')));
+    await tester.tap(
+      find.descendant(
+        of: _chatComposer,
+        matching: find.byIcon(Icons.arrow_upward_rounded),
+      ),
+    );
     // 입력창은 **서버 저장이 끝난 뒤에만** 비워진다(`ChatView._send`) — 실패하면 초안이
     // 그대로 남는다. 입력창이 비는 것을 기다려야 "보냈다" 를 기다리는 것이 된다.
     // 글자만 찾으면 입력창에 남은 초안이 잡혀, 전송이 안 나가도 통과한다.
@@ -384,7 +395,7 @@ void main() {
     );
     await _pumpUntil(
       tester,
-      find.byType(AlertDialog),
+      find.byType(AppDialog),
       step: 'consultation rejection dialog',
     );
     await tester.enterText(
@@ -396,7 +407,7 @@ void main() {
     // 무시되고 다이얼로그가 그대로 남는다.
     final rejectConfirm = find.byWidgetPredicate(
       (widget) =>
-          widget is TextButton &&
+          widget is AppButton &&
           widget.key == const Key('consultation-reject-confirm') &&
           widget.onPressed != null,
       description: 'enabled rejection confirm button',

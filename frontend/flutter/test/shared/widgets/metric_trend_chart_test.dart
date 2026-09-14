@@ -4,24 +4,25 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   group('metricStatusColor', () {
     test('목표를 넘긴 날만 초과색이다', () {
-      expect(metricStatusColor(2100, 2000), FigmaColors.dangerRed);
-      expect(metricStatusColor(1900, 2000), FigmaColors.statusWithinGoal);
+      expect(metricStatusColor(2100, 2000), OnCareColors.danger);
+      expect(metricStatusColor(1900, 2000), OnCareBrand.member.statusWithinGoal);
       // 경계는 초과가 아니다.
-      expect(metricStatusColor(2000, 2000), FigmaColors.statusWithinGoal);
+      expect(metricStatusColor(2000, 2000), OnCareBrand.member.statusWithinGoal);
     });
 
     test('목표가 0 이면 어떤 값도 초과가 아니다', () {
       // `v > goal` 만 두면 목표 없는 지표의 **모든** 기록이 빨간 점이 되어,
       // 같은 카드의 평균 뱃지(목표가 있을 때만 초과 판정)와 어긋난다.
-      expect(metricStatusColor(1, 0), FigmaColors.statusWithinGoal);
-      expect(metricStatusColor(9999, 0), FigmaColors.statusWithinGoal);
+      expect(metricStatusColor(1, 0), OnCareBrand.member.statusWithinGoal);
+      expect(metricStatusColor(9999, 0), OnCareBrand.member.statusWithinGoal);
     });
   });
 
@@ -80,6 +81,7 @@ void main() {
   testWidgets('요일 수만큼 라벨을 그리고 오늘만 강조한다', (WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light(),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(

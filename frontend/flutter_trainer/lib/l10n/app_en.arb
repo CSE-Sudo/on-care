@@ -18,7 +18,16 @@
   "schedNoShow": "Mark no-show",
   "schedCancelTitle": "Cancel this PT?",
   "schedCancelConfirm": "The {time} session with {name} will be recorded as cancelled. The entry stays.",
-  "@schedCancelConfirm": {"placeholders": {"time": {"type": "String"}, "name": {"type": "String"}}},
+  "@schedCancelConfirm": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "schedCancelSource": "Cancelled by",
   "schedCancelByMember": "Member",
   "schedCancelByTrainer": "Trainer",
@@ -27,10 +36,28 @@
   "schedCancelFailed": "Couldn't cancel the session. Please try again.",
   "schedNoShowTitle": "Record as a no-show?",
   "schedNoShowConfirm": "The {time} session with {name} will be recorded as a no-show.",
-  "@schedNoShowConfirm": {"placeholders": {"time": {"type": "String"}, "name": {"type": "String"}}},
+  "@schedNoShowConfirm": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "schedNoShowFailed": "Couldn't record the no-show. Please try again.",
   "schedCancelledBy": "{source} · {date}",
-  "@schedCancelledBy": {"placeholders": {"source": {"type": "String"}, "date": {"type": "String"}}},
+  "@schedCancelledBy": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "schedDeleteMeansRemove": "Deleting erases the record. Use cancel or no-show for a PT that didn't happen.",
   "schedDeleteMeansRemoveFinished": "Deleting erases the record. This session is already complete and can't be undone.",
   "scheduleStatusGap": "Open",
@@ -150,28 +177,38 @@
   "dashActivityDifficultyDesc": "{names} have low workout completion or a churn-risk signal (including negative feedback). Lower the difficulty before the next session and check whether recent feedback was negative.",
   "@dashActivityDifficultyDesc": {
     "placeholders": {
-      "names": {"type": "String"}
+      "names": {
+        "type": "String"
+      }
     }
   },
   "dashActivityInactiveTitle": "Inactive 7+ days",
   "dashActivityInactiveDesc": "{names} haven't logged a workout in the last 7 days. Reach out before it turns into churn.",
   "@dashActivityInactiveDesc": {
     "placeholders": {
-      "names": {"type": "String"}
+      "names": {
+        "type": "String"
+      }
     }
   },
   "dashActivityDietFeedbackTitle": "Diet feedback pending",
   "dashActivityDietFeedbackDesc": "{names} have a diet warning (sodium/sugar over target) but haven't gotten trainer feedback in 7 days. Leave a comment so they know it was seen.",
   "@dashActivityDietFeedbackDesc": {
     "placeholders": {
-      "names": {"type": "String"}
+      "names": {
+        "type": "String"
+      }
     }
   },
   "dashActivityMoreClients": "{shown} and {count} more",
   "@dashActivityMoreClients": {
     "placeholders": {
-      "shown": {"type": "String"},
-      "count": {"type": "int"}
+      "shown": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
   "dashAiSummaryTitle": "Activity feedback",
@@ -188,7 +225,13 @@
   "dashAiPriorityMedium": "Monitor",
   "dashAiPriorityLow": "Maintain",
   "dashAiRuleHeadline": "Check {name} first and adjust training load to the diet and condition signals.",
-  "@dashAiRuleHeadline": {"placeholders": {"name": {"type": "String"}}},
+  "@dashAiRuleHeadline": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "dashAiRuleKneeStatus": "A recent message indicates knee or lower-body discomfort, so lower-body load should be adjusted.",
   "dashAiRuleKneeFocus": "Reduce heavy squats and lunges; focus on glute activation, knee mobility, and level walking.",
   "dashAiRuleKneeCaution": "Confirm the pain location and range of motion before the session.",
@@ -208,11 +251,32 @@
   "dashAiRuleUnansweredFocus": "Hold off on increasing load until they reply, and begin with mobility work at the existing intensity.",
   "dashAiRuleUnansweredCaution": "Confirm pain, fatigue, and sleep before choosing today's body area and intensity.",
   "dashAiRuleEvidenceMessage": "Recent message: “{message}”",
-  "@dashAiRuleEvidenceMessage": {"placeholders": {"message": {"type": "String"}}},
+  "@dashAiRuleEvidenceMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "dashAiRuleEvidenceSodium": "Sodium today: {value}mg / target: {target}mg",
-  "@dashAiRuleEvidenceSodium": {"placeholders": {"value": {"type": "int"}, "target": {"type": "int"}}},
+  "@dashAiRuleEvidenceSodium": {
+    "placeholders": {
+      "value": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
   "dashAiRuleEvidenceCompletion": "Average completion on recorded days this week: {average}%",
-  "@dashAiRuleEvidenceCompletion": {"placeholders": {"average": {"type": "int"}}},
+  "@dashAiRuleEvidenceCompletion": {
+    "placeholders": {
+      "average": {
+        "type": "int"
+      }
+    }
+  },
   "@dashAiAllOnTrack": {
     "placeholders": {
       "total": {
@@ -237,20 +301,28 @@
   "dashScheduleNowLabel": "Now {time}",
   "@dashScheduleNowLabel": {
     "placeholders": {
-      "time": {"type": "String"}
+      "time": {
+        "type": "String"
+      }
     }
   },
   "dashScheduleNextSession": "Next: {time} · {name}",
   "@dashScheduleNextSession": {
     "placeholders": {
-      "time": {"type": "String"},
-      "name": {"type": "String"}
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
     }
   },
   "dashScheduleMinutesLeft": "in {minutes} min",
   "@dashScheduleMinutesLeft": {
     "placeholders": {
-      "minutes": {"type": "int"}
+      "minutes": {
+        "type": "int"
+      }
     }
   },
   "dashPreparePt": "Prepare PT",
@@ -298,7 +370,16 @@
   "clientsSortActiveFirst": "Active members first",
   "clientsFilterLabel": "Filters",
   "clientsToolbarCount": "{shown} members · {active} active",
-  "@clientsToolbarCount": {"placeholders": {"shown": {"type": "int"}, "active": {"type": "int"}}},
+  "@clientsToolbarCount": {
+    "placeholders": {
+      "shown": {
+        "type": "int"
+      },
+      "active": {
+        "type": "int"
+      }
+    }
+  },
   "clientsPickHint": "Pick a member on the left to open\ntheir chat, meals and workouts here",
   "clientsEmpty": "No members yet",
   "clientsEmptyForFilter": "No members match {filter}",
@@ -353,7 +434,16 @@
   "memberHealthWeeklyMinutes": "Minutes",
   "memberHealthWeeklyBurn": "Calories burned",
   "memberHealthRange": "Enter a value between {min} and {max}.",
-  "@memberHealthRange": {"placeholders": {"min": {"type": "String"}, "max": {"type": "String"}}},
+  "@memberHealthRange": {
+    "placeholders": {
+      "min": {
+        "type": "String"
+      },
+      "max": {
+        "type": "String"
+      }
+    }
+  },
   "clientInviteTitle": "Add a new member",
   "clientInviteIntro": "Enter the 6-digit sync code from the member's MY tab to connect right away.",
   "clientInviteIntroImmediate": "Enter the 6-digit sync code from the member's MY tab to connect right away.",
@@ -362,7 +452,13 @@
   "clientConnectCodeInvalid": "That code is wrong or expired. Ask the member for a new one",
   "clientInviteConnectAction": "Register member",
   "clientInviteConnected": "Registered {name} as a member",
-  "@clientInviteConnected": {"placeholders": {"name": {"type": "String"}}},
+  "@clientInviteConnected": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "clientInviteFailed": "Couldn't send the request. Please try again",
   "clientInvitePendingTitle": "Waiting for an answer",
   "clientInvitePendingEmpty": "No requests are waiting",
@@ -385,7 +481,13 @@
   "coachTemplateSaveFailed": "Couldn't save the template. Please try again",
   "coachTemplateDeleteFailed": "Couldn't delete the template. Please try again",
   "coachTemplateDeleteConfirm": "Delete the {name} template?",
-  "@coachTemplateDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@coachTemplateDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "coachTemplateLoadFailed": "Couldn't load templates",
   "coachTemplateStarterHint": "A starter block. Editing saves it as your own",
   "chatAttachImage": "Attach a photo",
@@ -434,7 +536,13 @@
   "chatDemoNotified": "The member app was notified",
   "chatInputHint": "Type a message...",
   "chatInsightDiscomfortTitle": "{part} discomfort detected",
-  "@chatInsightDiscomfortTitle": {"placeholders": {"part": {"type": "String"}}},
+  "@chatInsightDiscomfortTitle": {
+    "placeholders": {
+      "part": {
+        "type": "String"
+      }
+    }
+  },
   "chatInsightBodyPartGeneral": "Physical",
   "chatInsightNegativeTitle": "Negative feedback detected",
   "chatInsightDiscomfortDescription": "AI detected a report of discomfort. Check the symptoms and consider adjusting the next workout's intensity.",
@@ -442,7 +550,13 @@
   "chatInsightAddMemo": "Add to memo",
   "chatInsightMemoAdded": "Added to memo",
   "chatInsightMemoSummaryDiscomfort": "{part} discomfort detected",
-  "@chatInsightMemoSummaryDiscomfort": {"placeholders": {"part": {"type": "String"}}},
+  "@chatInsightMemoSummaryDiscomfort": {
+    "placeholders": {
+      "part": {
+        "type": "String"
+      }
+    }
+  },
   "chatInsightMemoSummaryNegative": "Workout strain detected",
   "chatInsightMemoSaved": "The AI insight was added to the trainer memo.",
   "chatInsightMemoSaveFailed": "Couldn't add the memo. Please try again.",
@@ -565,7 +679,13 @@
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
   "clientFeedbackOn": "Member feedback on {name}",
-  "@clientFeedbackOn": {"placeholders": {"name": {"type": "String"}}},
+  "@clientFeedbackOn": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "clientFeedbackPersonal": "Member feedback on this personal exercise",
   "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
@@ -703,14 +823,20 @@
   "exWeekOfMonthLabel": "Week {week}, {month}/",
   "@exWeekOfMonthLabel": {
     "placeholders": {
-      "month": { "type": "int" },
-      "week": { "type": "int" }
+      "month": {
+        "type": "int"
+      },
+      "week": {
+        "type": "int"
+      }
     }
   },
   "exStreakCheer": "{days, plural, =1{1 day in a row!} other{{days} days in a row!}}",
   "@exStreakCheer": {
     "placeholders": {
-      "days": { "type": "int" }
+      "days": {
+        "type": "int"
+      }
     }
   },
   "exStreakStart": "No streak yet",
@@ -718,7 +844,9 @@
   "exSetsValue": "{count, plural, =1{1 set} other{{count} sets}}",
   "@exSetsValue": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "clientPeriodLoggedDays": "{days, plural, =1{1 day logged} other{{days} days logged}}",
@@ -757,48 +885,135 @@
   "reportsCompletionByDay": "Weekly workout completion",
   "reportsNoWorkoutsThisWeek": "No workouts logged this week",
   "reportsMetricTrend": "{metric} trend",
-  "@reportsMetricTrend": {"placeholders": {"metric": {"type": "String"}}},
+  "@reportsMetricTrend": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
   "reportsNoLastWeekMetricTrend": "No {metric} trend for last week yet",
-  "@reportsNoLastWeekMetricTrend": {"placeholders": {"metric": {"type": "String"}}},
+  "@reportsNoLastWeekMetricTrend": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
   "reportsNoMetricRecords": "No {metric} logged this week yet",
-  "@reportsNoMetricRecords": {"placeholders": {"metric": {"type": "String"}}},
+  "@reportsNoMetricRecords": {
+    "placeholders": {
+      "metric": {
+        "type": "String"
+      }
+    }
+  },
   "reportsDietTrend": "Weekly diet trend",
   "workoutDoneOfTotal": "{done} of {total} done",
-  "@workoutDoneOfTotal": {"placeholders": {"total": {"type": "int"}, "done": {"type": "int"}}},
+  "@workoutDoneOfTotal": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "done": {
+        "type": "int"
+      }
+    }
+  },
   "chartNoRecord": "Not logged",
   "chartNotYet": "Not yet",
   "chartOverGoal": "{amount} {unit} over goal",
   "@chartOverGoal": {
     "placeholders": {
-      "amount": {"type": "String"},
-      "unit": {"type": "String"}
+      "amount": {
+        "type": "String"
+      },
+      "unit": {
+        "type": "String"
+      }
     }
   },
   "reportsSendStateSent": "Sent",
   "reportsSendStateSending": "Sending…",
   "reportsShare": "Share",
   "reportsShareSendTo": "Send to {name}",
-  "@reportsShareSendTo": {"placeholders": {"name": {"type": "String"}}},
+  "@reportsShareSendTo": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "reportsShareNeedsFeedback": "Write feedback first to send it.",
   "reportsShareNoClient": "Pick a member to see their report first.",
   "reportBodyGreeting": "{name}, here's your weekly report for {range}.",
   "@reportBodyGreeting": {
-    "placeholders": {"name": {"type": "String"}, "range": {"type": "String"}}
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "range": {
+        "type": "String"
+      }
+    }
   },
   "reportBodyCompletionGood": "You kept up well — {avg}% of your workouts done.",
-  "@reportBodyCompletionGood": {"placeholders": {"avg": {"type": "int"}}},
+  "@reportBodyCompletionGood": {
+    "placeholders": {
+      "avg": {
+        "type": "int"
+      }
+    }
+  },
   "reportBodyCompletionLow": "Workout completion came in at {avg}%. Sounds like a busy one.",
-  "@reportBodyCompletionLow": {"placeholders": {"avg": {"type": "int"}}},
+  "@reportBodyCompletionLow": {
+    "placeholders": {
+      "avg": {
+        "type": "int"
+      }
+    }
+  },
   "reportBodySkipped": "One thing — {names} got skipped. If that was a condition thing, tell me at the next session and I'll swap in an alternative.",
-  "@reportBodySkipped": {"placeholders": {"names": {"type": "String"}}},
+  "@reportBodySkipped": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "reportBodySodiumOver": "Sodium averaged {avg}mg a day, and went over the {target}mg target on {days} days. Leaving half the broth behind saves 400-500mg a day.",
   "@reportBodySodiumOver": {
-    "placeholders": {"avg": {"type": "String"}, "target": {"type": "String"}, "days": {"type": "int"}}
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
   },
   "reportBodySodiumOk": "Sodium averaged {avg}mg a day — comfortably inside the {target}mg target.",
-  "@reportBodySodiumOk": {"placeholders": {"avg": {"type": "String"}, "target": {"type": "String"}}},
+  "@reportBodySodiumOk": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
   "reportBodyCalories": "Calories averaged {avg}kcal a day.",
-  "@reportBodyCalories": {"placeholders": {"avg": {"type": "String"}}},
+  "@reportBodyCalories": {
+    "placeholders": {
+      "avg": {
+        "type": "String"
+      }
+    }
+  },
   "reportBodyPraise": "Great work — let's keep this pace next week!",
   "reportBodyEncourage": "Let's focus on just that one thing next week. I'll adjust your program and send it over.",
   "reportBodyNoRecords": "There's nothing logged for this week, so nothing to sum up. Let's plan next week's start together.",
@@ -819,9 +1034,18 @@
   "schedDeleteFailed": "Couldn't delete the session. Please try again",
   "schedCompleteTitle": "Complete session",
   "schedCompleteConfirm": "Mark the {time} session with {name} as complete?",
-  "@schedCompleteConfirm": {"placeholders": {"time": {"type": "String"}, "name": {"type": "String"}}},
+  "@schedCompleteConfirm": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "schedCompleteFailed": "Couldn't mark it complete. Please try again",
-  "schedTimeRange": "{start}\u2013{end}",
+  "schedTimeRange": "{start}–{end}",
   "@schedTimeRange": {
     "placeholders": {
       "start": {
@@ -870,17 +1094,63 @@
   "schedTimeRangeTitle": "Select time",
   "schedTimeRangeConfirm": "Confirm",
   "schedTimeRangeInvalid": "Enter a valid time (HH:mm)",
+  "schedTimePickerTimeLabel": "Time",
+  "schedTimePickerEndTime": "End time",
+  "schedTimePickerHour": "Hour",
+  "schedTimePickerMinute": "Minute",
+  "schedTimePickerStartHour": "Start hour",
+  "schedTimePickerStartMinute": "Start minute",
+  "schedTimePickerEndHour": "End hour",
+  "schedTimePickerEndMinute": "End minute",
+  "schedTimePickerPrevStep": "Previous step",
+  "schedTimePickerNextStep": "Next step",
+  "schedTimePickerEndBeforeStart": "End time is earlier than the start time",
+  "schedClockHourSemantics": "{hour} o'clock",
+  "@schedClockHourSemantics": {"placeholders": {"hour": {"type": "String"}}},
   "schedRepeat": "Repeat",
   "schedRepeatWeekly": "Weekly",
   "schedRepeatDays": "Repeat on",
   "schedRepeatPreview": "{count} sessions · {first} – {last}",
-  "@schedRepeatPreview": {"placeholders": {"count": {"type": "int"}, "first": {"type": "String"}, "last": {"type": "String"}}},
+  "@schedRepeatPreview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
   "schedRepeatNeedsDays": "Pick at least one weekday.",
   "schedRepeatNeedsEndDate": "Pick an end date for the repeat.",
   "schedRepeatConflictTitle": "{count} of {total} sessions clash",
-  "@schedRepeatConflictTitle": {"placeholders": {"total": {"type": "int"}, "count": {"type": "int"}}},
+  "@schedRepeatConflictTitle": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "schedRepeatConflictRow": "{date} {time} · already booked: {name}",
-  "@schedRepeatConflictRow": {"placeholders": {"date": {"type": "String"}, "time": {"type": "String"}, "name": {"type": "String"}}},
+  "@schedRepeatConflictRow": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "schedRepeatConflictHint": "Nothing was created. Change the time, or clear the sessions that clash.",
   "schedNote": "Trainer's note",
   "schedEditNote": "Edit note",
@@ -1021,7 +1291,13 @@
   "myClientManagement": "Member management",
   "myClientRemove": "Remove member",
   "myClientRemoveTitle": "Remove {name}?",
-  "@myClientRemoveTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@myClientRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "myClientRemoveBody": "This member's schedules, programs and routines, reports, messages, and notes will all disappear from the trainer app. Existing data in the member app is not deleted.",
   "myClientRemoveSuccess": "Member removed",
   "myClientRemoveFailed": "Couldn't remove the member. Please try again",
@@ -1116,7 +1392,13 @@
   "coachReviewed": "AI-generated, reviewed by you",
   "coachTrainerAdded": "Added by trainer",
   "coachTemplateAdded": "Added from {name} template",
-  "@coachTemplateAdded": {"placeholders": {"name": {"type": "String"}}},
+  "@coachTemplateAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "coachRegisteredOn": "Added to the {date} schedule",
   "@coachRegisteredOn": {
     "placeholders": {
@@ -1126,7 +1408,13 @@
     }
   },
   "coachRegisteredAttachedExisting": "There was already a session planned on {date}, so the program was only attached to it — the time range you picked wasn't applied",
-  "@coachRegisteredAttachedExisting": {"placeholders": {"date": {"type": "String"}}},
+  "@coachRegisteredAttachedExisting": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "coachRegisterOn": "Add to the {date} PT schedule",
   "@coachRegisterOn": {
     "placeholders": {
@@ -1168,8 +1456,12 @@
   "coachSessionProgramSummary": "{name} + {count} more",
   "@coachSessionProgramSummary": {
     "placeholders": {
-      "name": { "type": "String" },
-      "count": { "type": "int" }
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
   "aiReasonSodium": "Sodium is over target today, so lean into low-intensity cardio.",
@@ -1309,7 +1601,16 @@
   "aiInsightMemoEmpty": "No insights detected in the last 7 days",
   "aiInsightMemoFailed": "Couldn't load the detected memos",
   "aiRecentRoutineMore": "{name} and {count} more",
-  "@aiRecentRoutineMore": {"placeholders": {"name": {"type": "String"}, "count": {"type": "int"}}},
+  "@aiRecentRoutineMore": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "aiNoRecentRoutine": "No record",
   "aiRecentRoutine": "Recent activity",
   "aiTrainerNoteEditable": "Trainer's note · editable",
@@ -1580,7 +1881,9 @@
   "dashTasksNeedReview": "{count} to review",
   "@dashTasksNeedReview": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "dashTaskProgressTitle": "Task completion",
@@ -1594,22 +1897,34 @@
   "dashTodoConsultationSubtitle": "Consultation request for {month}/{day}",
   "@dashTodoConsultationSubtitle": {
     "placeholders": {
-      "month": {"type": "int"},
-      "day": {"type": "int"}
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
     }
   },
   "dashTodoSodiumSubtitle": "Sodium {sodiumMg}mg · target {targetMg}mg",
   "@dashTodoSodiumSubtitle": {
     "placeholders": {
-      "sodiumMg": {"type": "int"},
-      "targetMg": {"type": "int"}
+      "sodiumMg": {
+        "type": "int"
+      },
+      "targetMg": {
+        "type": "int"
+      }
     }
   },
   "dashTodoSugarSubtitle": "Sugar {sugarG}g · target {targetG}g",
   "@dashTodoSugarSubtitle": {
     "placeholders": {
-      "sugarG": {"type": "int"},
-      "targetG": {"type": "int"}
+      "sugarG": {
+        "type": "int"
+      },
+      "targetG": {
+        "type": "int"
+      }
     }
   },
   "dashTodoCompletionSubtitle": "Low completion · check recent records",
@@ -1619,6 +1934,8 @@
   },
   "dashTodoProgramSubtitle": "No recent program sent",
   "dashTodoReportSubtitle": "This week's report is due",
+  "dashTaskSaveFailed": "Couldn't save your task status. Please try again in a moment",
+  "dashTaskLoadFailed": "Couldn't load your task status. Please try again in a moment",
   "dashTaskDismissTitle": "Delete this item?",
   "dashTaskDismissBody": "It only disappears from the task list. Actually handling it (consultation, program, report) still happens on its own screen.",
   "dashTaskCarriedOverTitle": "Carried over",
@@ -1626,13 +1943,17 @@
   "dashTaskCategoryRemaining": "+{count}",
   "@dashTaskCategoryRemaining": {
     "placeholders": {
-      "count": {"type": "int"}
+      "count": {
+        "type": "int"
+      }
     }
   },
   "dashTaskUncheckTitle": "Undo completion of '{name}'?",
   "@dashTaskUncheckTitle": {
     "placeholders": {
-      "name": {"type": "String"}
+      "name": {
+        "type": "String"
+      }
     }
   },
   "dashTaskUncheckBody": "It also drops off the task progress chart.",
@@ -1651,7 +1972,13 @@
   "messagesFilterUnread": "Unread",
   "messagesFilterAttention": "Needs attention",
   "messagesFilterUnreadCount": "Unread {count}",
-  "@messagesFilterUnreadCount": {"placeholders": {"count": {"type": "int"}}},
+  "@messagesFilterUnreadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "messagesBackToList": "Conversation list",
   "messagesNoPreview": "No messages yet",
   "messagesClientDetail": "Member details",
@@ -1673,12 +2000,24 @@
   "clientTrainerMemoDeleteBody": "A deleted memo can't be restored.",
   "followUp": "Follow-ups",
   "followUpTitle": "Follow-ups on {name}",
-  "@followUpTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@followUpTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "followUpHint": "Note what you want to check again",
   "followUpAdd": "Add follow-up",
   "followUpDue": "Check on",
   "followUpDueOn": "Check on {date}",
-  "@followUpDueOn": {"placeholders": {"date": {"type": "String"}}},
+  "@followUpDueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "followUpOverdue": "Overdue",
   "followUpContext": "Opens",
   "followUpContextGeneral": "Member detail",
@@ -1689,37 +2028,88 @@
   "followUpContextSchedule": "Schedule",
   "followUpComplete": "Done",
   "followUpCount": "{count} left",
-  "@followUpCount": {"placeholders": {"count": {"type": "int"}}},
+  "@followUpCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "followUpEmpty": "No follow-ups left.",
   "followUpDashboardEmpty": "Nothing to follow up on today.",
   "followUpLoadFailed": "Couldn't load follow-ups. Please try again.",
   "followUpSaveFailed": "Couldn't save the follow-up. Please try again.",
   "followUpCompleteFailed": "Couldn't mark it done. Please try again.",
   "programEditorDefaultName": "{goal} program",
-  "@programEditorDefaultName": {"placeholders": {"goal": {"type": "String"}}},
+  "@programEditorDefaultName": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
   "programEditorDefaultSession": "Session A",
   "programEditorSaveUnsupported": "Give the program a name first.",
   "programEditorSaveEdit": "Save changes",
   "programSavedTitle": "Saved programs",
   "programSavedExerciseCount": "{count} exercises",
-  "@programSavedExerciseCount": {"placeholders": {"count": {"type": "int"}}},
+  "@programSavedExerciseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "programSavedNew": "New program",
   "suggestionReviewTitle": "AI personal exercises",
   "suggestionReviewBadge": "{count} to review",
-  "@suggestionReviewBadge": {"placeholders": {"count": {"type": "int"}}},
+  "@suggestionReviewBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "suggestionReviewIntro": "Prepared for {name} from recent PT feedback and exercise records. The member sees only what you recommend.",
-  "@suggestionReviewIntro": {"placeholders": {"name": {"type": "String"}}},
+  "@suggestionReviewIntro": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionReviewEmpty": "No AI personal exercises are waiting for review.",
   "suggestionReviewLoadFailed": "Couldn't load the AI suggestions.",
   "suggestionApprove": "Recommend to member",
   "suggestionConfirmTitle": "Final review · recommend to member",
   "suggestionConfirmBody": "Exactly what you see below is what {client} receives. Once recommended it shows up in their app.",
-  "@suggestionConfirmBody": {"placeholders": {"client": {"type": "String"}}},
+  "@suggestionConfirmBody": {
+    "placeholders": {
+      "client": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionDismiss": "Don't recommend",
   "suggestionApproved": "Recommended {name} to {client}.",
-  "@suggestionApproved": {"placeholders": {"name": {"type": "String"}, "client": {"type": "String"}}},
+  "@suggestionApproved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "client": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionDismissed": "{name} won't be recommended.",
-  "@suggestionDismissed": {"placeholders": {"name": {"type": "String"}}},
+  "@suggestionDismissed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "suggestionActionFailed": "Couldn't finish that. Please try again.",
   "suggestionAlreadyReviewed": "This suggestion was already reviewed. The list has been refreshed.",
   "suggestionEditTitle": "Edit personal exercise",
@@ -1730,23 +2120,58 @@
   "programDraftSaved": "Program saved.",
   "programDraftSaveFailed": "Couldn't save the program. Please try again.",
   "programDraftLoaded": "Opened {name} in the editor.",
-  "@programDraftLoaded": {"placeholders": {"name": {"type": "String"}}},
+  "@programDraftLoaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "programDraftLoadFailed": "Couldn't open the saved program. Please try again.",
   "programDraftDeleteFailed": "Couldn't delete the program. Please try again.",
   "programDraftDeleteTitle": "Delete this saved program?",
   "programDraftDeleteBody": "Programs you already assigned and sessions you scheduled stay as they are.",
-  "programEditorAssignUnsupported": "Check each exercise's name and set count.",
+  "programAssignConfirmAttachBody": "This program will be attached to {name}'s PT already planned for {date} {session}. The time you picked ({selected}) won't be applied.",
+  "@programAssignConfirmAttachBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "session": {"type": "String"}, "selected": {"type": "String"}}},
+  "programAssignConfirmChooseBody": "{name} has several PT sessions on {date} that overlap the time you picked ({selected}). Choose the session to attach this program to. The picked time won't be applied.",
+  "@programAssignConfirmChooseBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "selected": {"type": "String"}}},
+  "coachAttachTargetChanged": "The PT session to attach to has changed. Tap Add to schedule again to check",
+  "programEditorNoExercises": "Add at least one exercise",
+  "programEditorExerciseNameInvalid": "An exercise name is empty or longer than 100 characters",
+  "programEditorRegisterDatePast": "That date has passed. Pick today or a later date",
+  "coachSendNetworkFailed": "Check your network connection and try again",
+  "coachSendClientNotFound": "This member isn't linked to you. Check the member's connection",
+  "coachSendInvalid": "The server didn't accept this schedule. Check the date, time and exercises",
+  "coachSendUnverified": "Couldn't confirm the result. Check the schedule to see whether it was added",
+  "programEditorSessionLimitReached": "A program can have up to {max} sessions",
+  "@programEditorSessionLimitReached": {"placeholders": {"max": {"type": "int"}}},
+  "programEditorExerciseLimitReached": "A program can have up to {max} exercises in total",
+  "@programEditorExerciseLimitReached": {"placeholders": {"max": {"type": "int"}}},
+  "programEditorSizeExceeded": "{sessions}/{maxSessions} sessions · {exercises}/{maxExercises} exercises — remove the extra to add it to the schedule",
+  "@programEditorSizeExceeded": {"placeholders": {"sessions": {"type": "int"}, "maxSessions": {"type": "int"}, "exercises": {"type": "int"}, "maxExercises": {"type": "int"}}},
   "programAssignConfirmTitle": "Add to the schedule?",
-  "programAssignConfirmBody": "This program will be added to {name}'s PT schedule on {date} at {time}.",
+  "programAssignConfirmBody": "A new PT session will be created for {name} on {date} at {time} with this program.",
   "@programAssignConfirmBody": {"placeholders": {"name": {"type": "String"}, "date": {"type": "String"}, "time": {"type": "String"}}},
   "programEditorSaveTemplate": "Save as template",
   "programEditorAddSchedule": "Add to schedule",
   "programReviewTitle": "Confirm & send",
   "programReviewBlurb": "Exactly what you see below is what {name} receives. Check it, then send.",
-  "@programReviewBlurb": {"placeholders": {"name": {"type": "String"}}},
+  "@programReviewBlurb": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "programReviewBack": "Back to the editor",
   "programReviewSessionSummary": "{count} exercises",
-  "@programReviewSessionSummary": {"placeholders": {"count": {"type": "int"}}},
+  "@programReviewSessionSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "programEditorInfo": "Program information",
   "programEditorName": "Program name",
   "programEditorGoal": "Goal (optional)",
@@ -1758,15 +2183,33 @@
   "programEditorAddSession": "Add session",
   "programTemplateSessionPickerTitle": "Add to which session?",
   "programTemplateSessionPickerBody": "Choose a session for the '{name}' template.",
-  "@programTemplateSessionPickerBody": {"placeholders": {"name": {"type": "String"}}},
+  "@programTemplateSessionPickerBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "programEditorSessionName": "Session {letter}",
-  "@programEditorSessionName": {"placeholders": {"letter": {"type": "String"}}},
+  "@programEditorSessionName": {
+    "placeholders": {
+      "letter": {
+        "type": "String"
+      }
+    }
+  },
   "programEditorSessionUp": "Move session up",
   "programEditorSessionDown": "Move session down",
   "programEditorSessionReset": "Reset session",
   "programEditorSessionResetTitle": "Reset this session?",
   "programEditorSessionResetBody": "Every exercise in '{name}' will be cleared. The session itself and other sessions stay.",
-  "@programEditorSessionResetBody": {"placeholders": {"name": {"type": "String"}}},
+  "@programEditorSessionResetBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "programEditorSessionEmpty": "Add exercises to build this session.",
   "programEditorAdd": "Add",
   "programEditorAddExercise": "Add exercise",
@@ -1781,7 +2224,13 @@
   "programEditorRest": "Rest sec",
   "programEditorExerciseMemo": "Memo",
   "reportsComparisonTitle": "{week} vs last week",
-  "@reportsComparisonTitle": {"placeholders": {"week": {"type": "String"}}},
+  "@reportsComparisonTitle": {
+    "placeholders": {
+      "week": {
+        "type": "String"
+      }
+    }
+  },
   "reportsGoThisWeek": "Go to this week",
   "reportsSummaryEmptyClient": "Select a member to see their weekly summary and coaching suggestions here",
   "@reportsSummaryEmptyClient": {
@@ -1803,35 +2252,101 @@
   "reportsRecentWeeks": "Last 4 weekly averages",
   "reportsWeekTotal": "Week total",
   "reportsGoalOf": "Goal {value}",
-  "@reportsGoalOf": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsGoalOf": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsCompareWith": "vs last week",
   "reportsMoreExercises": "+{count} more",
-  "@reportsMoreExercises": {"placeholders": {"count": {"type": "int"}}},
+  "@reportsMoreExercises": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportsRecordedDays": "{days} days logged",
-  "@reportsRecordedDays": {"placeholders": {"days": {"type": "int"}}},
+  "@reportsRecordedDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "reportsAdherenceChip": "Adherence avg {value}",
-  "@reportsAdherenceChip": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsAdherenceChip": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsBurnByDay": "Weekly calories burned",
   "reportsBurnEstimateNote": "Calories burned are estimated from workout type, duration, and intensity.",
   "chartGoalLabel": "Goal\n{value}",
-  "@chartGoalLabel": {"placeholders": {"value": {"type": "String"}}},
+  "@chartGoalLabel": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsWeeksAgo": "{count}w ago",
-  "@reportsWeeksAgo": {"placeholders": {"count": {"type": "int"}}},
+  "@reportsWeeksAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportsAiTitle": "AI coaching assistant · Report summary",
   "reportsAiNextWeek": "Next week's coaching",
   "reportsAiMoreWatchpoints": "{count} more — see the full report.",
-  "@reportsAiMoreWatchpoints": {"placeholders": {"count": {"type": "int"}}},
+  "@reportsAiMoreWatchpoints": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "reportsActionSodium": "Ask them to leave half the broth and the pickled sides.",
   "reportsActionSugar": "Some days went over the {target}g sugar target. Start with drinks and snacks.",
-  "@reportsActionSugar": {"placeholders": {"target": {"type": "String"}}},
+  "@reportsActionSugar": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
   "reportsActionLowCompletion": "Drop the program a notch so they finish it first.",
   "reportsActionHighCompletion": "Good pace. Add a set or a little weight next week.",
   "reportsActionSkipped": "Prepare alternatives for {names} for the next session.",
-  "@reportsActionSkipped": {"placeholders": {"names": {"type": "String"}}},
+  "@reportsActionSkipped": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "reportsActionUnlogged": "{days} days went unlogged. Build the logging habit first.",
-  "@reportsActionUnlogged": {"placeholders": {"days": {"type": "int"}}},
+  "@reportsActionUnlogged": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "reportsActionCalories": "Intake is under the {target}kcal target. Suggest one protein-led meal.",
-  "@reportsActionCalories": {"placeholders": {"target": {"type": "String"}}},
+  "@reportsActionCalories": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
   "reportsAiGenerated": "AI generated",
   "reportsAiLoading": "Writing this week's summary…",
   "reportsAiUseAsDraft": "Use as feedback",
@@ -1841,7 +2356,13 @@
   "reportsPdfGenerating": "Generating PDF…",
   "reportsPdfGenerationFailed": "Couldn't generate the PDF. Please try again.",
   "reportsPdfReady": "{name}'s weekly report is ready.",
-  "@reportsPdfReady": {"placeholders": {"name": {"type": "String"}}},
+  "@reportsPdfReady": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfSending": "Sending…",
   "reportsPdfSendToClient": "Send to member",
   "reportsPdfSave": "Save PDF",
@@ -1849,7 +2370,13 @@
   "reportsPdfClose": "Close",
   "reportsPdfActionFailed": "Couldn't complete the action. Please try again.",
   "reportsPdfSent": "Sent the PDF to {name}.",
-  "@reportsPdfSent": {"placeholders": {"name": {"type": "String"}}},
+  "@reportsPdfSent": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfSaveStarted": "Started saving the PDF.",
   "reportsPdfPrintOpened": "Opened the print dialog.",
   "reportsPdfMessage": "Here's your weekly report.",
@@ -1857,17 +2384,53 @@
   "reportsPdfDocTitle": "Weekly coaching report",
   "reportsPdfDocTitleContinued": "Weekly coaching report (continued)",
   "reportsPdfClient": "Member  {name}",
-  "@reportsPdfClient": {"placeholders": {"name": {"type": "String"}}},
+  "@reportsPdfClient": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfPeriod": "Period  {start} – {end}",
-  "@reportsPdfPeriod": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
+  "@reportsPdfPeriod": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfSectionMetrics": "Key metrics",
   "reportsPdfSectionChange": "Change from last week",
   "reportsPdfSectionTrend": "Weekly trend (Mon–Sun)",
   "reportsPdfSectionDaily": "Workouts by day",
   "reportsPdfBullet": "• {label}: {value}",
-  "@reportsPdfBullet": {"placeholders": {"label": {"type": "String"}, "value": {"type": "String"}}},
+  "@reportsPdfBullet": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfDay": "{weekday}: {completion} · {exercises}",
-  "@reportsPdfDay": {"placeholders": {"weekday": {"type": "String"}, "completion": {"type": "String"}, "exercises": {"type": "String"}}},
+  "@reportsPdfDay": {
+    "placeholders": {
+      "weekday": {
+        "type": "String"
+      },
+      "completion": {
+        "type": "String"
+      },
+      "exercises": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfLabelCompletion": "Workout completion",
   "reportsPdfLabelSessions": "PT sessions",
   "reportsPdfLabelSessionCount": "PT sessions completed",
@@ -1878,27 +2441,99 @@
   "reportsPdfLabelSodiumShort": "Sodium",
   "reportsPdfLabelSugarShort": "Sugar",
   "reportsPdfValuePercent": "{value}%",
-  "@reportsPdfValuePercent": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValuePercent": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueMg": "{value}mg",
-  "@reportsPdfValueMg": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueMg": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueKcal": "{value}kcal",
-  "@reportsPdfValueKcal": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueKcal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueGram": "{value}g",
-  "@reportsPdfValueGram": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueGram": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueDays": "{value} days",
-  "@reportsPdfValueDays": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueDays": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfValueSessions": "{value}",
-  "@reportsPdfValueSessions": {"placeholders": {"value": {"type": "String"}}},
+  "@reportsPdfValueSessions": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfAttendance": "{done}/{booked} ({rate}%)",
-  "@reportsPdfAttendance": {"placeholders": {"done": {"type": "String"}, "booked": {"type": "String"}, "rate": {"type": "String"}}},
+  "@reportsPdfAttendance": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "booked": {
+        "type": "String"
+      },
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
   "reportsPdfNoData": "Not measured",
   "reportsPdfNoFeedback": "No feedback",
   "a11yChartSummary": "{title}. {detail}",
-  "@a11yChartSummary": {"placeholders": {"title": {"type": "String"}, "detail": {"type": "String"}}},
+  "@a11yChartSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "a11yChartEmpty": "{title}. No records yet",
-  "@a11yChartEmpty": {"placeholders": {"title": {"type": "String"}}},
+  "@a11yChartEmpty": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "a11yChartPoint": "{day} {value}",
-  "@a11yChartPoint": {"placeholders": {"day": {"type": "String"}, "value": {"type": "String"}}},
+  "@a11yChartPoint": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "a11yShowPassword": "Show password",
   "a11yHidePassword": "Hide password",
   "unitMg": "mg",
@@ -1915,5 +2550,47 @@
   "aiReturnToWizard": "Back to AI suggestions",
   "@aiReturnToWizard": {
     "description": "직접 만들기로 넘어간 뒤 다시 AI 마법사 화면으로 돌아가는 링크."
-  }
+  },
+  "chatDateDivider": "{date}",
+  "@chatDateDivider": {
+    "description": "채팅 스레드에서 날이 바뀌는 자리의 날짜 구분선. 요일까지 적는다(ko: 2026년 9월 14일 월요일, en: Monday, September 14, 2026).",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMMEEEEd"
+      }
+    }
+  },
+  "clientWorkoutSourceAi": "AI",
+  "@clientWorkoutSourceAi": {
+    "description": "Tag on a pending assigned routine that the AI suggested."
+  },
+  "coachClientDemographics": "{gender} · Age {age}",
+  "@coachClientDemographics": {
+    "placeholders": {
+      "gender": {
+        "type": "String"
+      },
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "coachTemplateMenu": "Template menu",
+  "aiStrengthSummary": "{sets} sets × {reps} reps · {weight}kg",
+  "@aiStrengthSummary": {
+    "placeholders": {
+      "sets": {
+        "type": "int"
+      },
+      "reps": {
+        "type": "int"
+      },
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
+  "routineFormDecrease": "Decrease",
+  "routineFormIncrease": "Increase"
 }

@@ -1,0 +1,17 @@
+name: ui_guard
+description: "화면 코드의 UI 하드코딩(글자·색·모양·간격·Material 원시 위젯)이 늘지 않게 막는 검사 (#1698)."
+publish_to: 'none'
+version: 1.0.0
+
+# 사용자 앱(^3.10.0)과 트레이너 앱(^3.12.0)을 같은 CI 러너에서 읽으므로 더 낮은 쪽에 맞춘다.
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  # 13.x 부터 인자 구문 트리(NamedExpression → NamedArgument)가 옮겨 가는 중이라 API 가
+  # 실험 단계다. 구문 트리가 안정적인 10.x 에 묶는다.
+  analyzer: ^10.2.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.26.0

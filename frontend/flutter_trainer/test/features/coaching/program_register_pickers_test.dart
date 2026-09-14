@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
 /// 프로그램 직접 만들기의 PT 등록 날짜·시각 선택 UI. (#1425)
 ///
-/// 앱의 다른 입력 화면과 같은 세로형 달력(`showPortraitDatePicker`)과 스케줄
-/// 탭의 시계 선택기(`showScheduleTimePicker`)를 쓴다 — 같은 앱에서 날짜·시각을
+/// 두 앱 공용 달력(`showAppDatePicker`, #1705)과 스케줄 탭의 시계
+/// 선택기(`showScheduleTimeRangePicker`)를 쓴다 — 같은 앱에서 날짜·시각을
 /// 고르는 방법이 탭마다 다르면 공통 검증·접근성 개선도 함께 가지 않는다.
 void main() {
   DateTime today() {
@@ -35,6 +36,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         locale: const Locale('ko'),
+        theme: AppTheme.light(),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
@@ -90,16 +92,19 @@ void main() {
     );
   });
 
-  testWidgets('날짜 선택은 넓은 창에서도 세로형 달력이다', (tester) async {
+  testWidgets('날짜 선택은 넓은 창에서도 달력으로만 연다', (tester) async {
     await pumpWorkspace(tester);
     await tapChip(tester, 'program-register-date');
 
-    // `showPortraitDatePicker` 는 Material 기본 `DatePickerDialog` 대신
-    // `CalendarDatePicker` 를 직접 감싸 그린다 — 그 자체가 화면 가로·세로에
-    // 상관없이 늘 세로 배치라 트레이너 웹처럼 늘 넓은 창에서도 좌우로
-    // 갈라지지 않는다.
-    final Finder dialog = find.byKey(const Key('portraitDatePicker'));
+    // 공용 `showAppDatePicker` 는 Material `DatePickerDialog` 를 달력 전용
+    // (`calendarOnly`)으로 연다 — 직접 입력 모드로 시작하지 않고, 달력
+    // (`CalendarDatePicker`) 하나로 고른다(#1705).
+    final Finder dialog = find.byType(DatePickerDialog);
     expect(dialog, findsOneWidget);
+    expect(
+      tester.widget<DatePickerDialog>(dialog).initialEntryMode,
+      DatePickerEntryMode.calendarOnly,
+    );
     expect(
       find.descendant(of: dialog, matching: find.byType(CalendarDatePicker)),
       findsOneWidget,

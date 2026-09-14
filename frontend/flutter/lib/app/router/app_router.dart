@@ -7,7 +7,6 @@ import 'package:oncare/app/router/nav_logger_observer.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/design_system/catalog/ui_catalog_page.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
@@ -28,6 +27,7 @@ import 'package:oncare/features/exercise/presentation/pages/trainer_list_page.da
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Pure auth-guard policy for the router's `redirect`. Kept free of
 /// `BuildContext`/`GoRouterState` so it can be unit-tested directly.
@@ -208,7 +208,7 @@ GoRouter buildAppRouter({
       if (!config.isProd)
         GoRoute(
           path: AppRoutes.uiCatalog,
-          builder: (context, state) => const UiCatalogPage(),
+          builder: (context, state) => const OnCareTokenCatalog(),
         ),
     ],
   );

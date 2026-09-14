@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -31,11 +32,12 @@ void main() {
           dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
           accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: DietRecordPage(),
+          home: const DietRecordPage(),
         ),
       ),
     );
@@ -48,9 +50,7 @@ void main() {
     final DateTime monday = today.subtract(
       Duration(days: today.weekday - DateTime.monday),
     );
-    return <int>[
-      for (int i = 0; i < 7; i++) monday.add(Duration(days: i)).day,
-    ];
+    return <int>[for (int i = 0; i < 7; i++) monday.add(Duration(days: i)).day];
   }
 
   testWidgets('스트립은 월요일에서 시작해 일요일로 끝난다', (WidgetTester tester) async {

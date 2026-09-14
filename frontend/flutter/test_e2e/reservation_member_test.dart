@@ -15,6 +15,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import 'support/e2e_harness.dart';
 
@@ -112,9 +113,14 @@ void main() {
         await tester.pump();
 
         // 되돌릴 수 없는 동작이라 앱이 확인을 한 번 받는다. 그 확인을 눌러야 진행된다.
-        // 문구가 아니라 키로 찾는다 — 이 스위트는 로케일 기본값이 무엇이든 돌아야 한다.
-        final Finder confirmCancel = find.byKey(
-          const ValueKey<String>('cancel-dialog-confirm'),
+        // 문구가 아니라 모양으로 찾는다 — 이 스위트는 로케일 기본값이 무엇이든
+        // 돌아야 한다. 확인창의 빨간 채움 버튼이 확정이다(#1701).
+        final Finder confirmCancel = find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.byWidgetPredicate(
+            (Widget w) =>
+                w is AppButton && w.variant == AppButtonVariant.destructive,
+          ),
         );
         await pumpUntil(tester, confirmCancel, step: '취소 확인 다이얼로그');
         await tester.tap(confirmCancel);

@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/client_filter.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
@@ -19,9 +15,10 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 관리 필터 패널 폭 — 일곱 개 칩이 두세 줄로 접히는 폭이다.
+const double _filterPanelWidth = 360;
 
 /// 고객 — the roster and, beside it, the selected client's detail.
 ///
@@ -66,7 +63,7 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
   /// 상담 요청 인박스(`showConsultationsDialog`)와 같은 자리에서 여는
   /// 작업이라 같은 형식(가운데 뜨는 작은 창)으로 통일한다 — 하나는 아래에서
   /// 올라오고 하나는 가운데 뜨면, 두 흐름이 다른 화면처럼 읽힌다.
-  Future<void> _openConnectDialog(BuildContext context) => showDialog<void>(
+  Future<void> _openConnectDialog(BuildContext context) => showAppDialog<void>(
     context: context,
     builder: (_) => const ClientConnectDialog(),
   );
@@ -90,29 +87,15 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
     final activeFilter = clientFilterFrom(widget.filter);
 
     final Widget page = clientsAsync.when(
-      loading: () => const _Frame(
-        subtitle: null,
-        child: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () => const _Frame(subtitle: null, body: AppLoading()),
       error: (e, _) => _Frame(
         subtitle: null,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                l.clientsLoadFailed,
-                style: const TextStyle(color: AppColors.mutedForeground),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              // A failed roster with no way to retry leaves the trainer
-              // with a dead page — re-subscribing is one tap.
-              TextButton(
-                onPressed: () => ref.invalidate(clientsProvider),
-                child: Text(l.actionRetry),
-              ),
-            ],
-          ),
+        // A failed roster with no way to retry leaves the trainer with a
+        // dead page — re-subscribing is one tap.
+        body: AppErrorState(
+          title: l.clientsLoadFailed,
+          retryLabel: l.actionRetry,
+          onRetry: () => ref.invalidate(clientsProvider),
         ),
       ),
       data: (all) {
@@ -146,81 +129,21 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
           ),
           actions: <Widget>[
             if (canConnect)
-              ActionButton(
+              AppButton(
                 label: l.clientsNew,
-                icon: Icons.person_add_alt,
-                primary: true,
+                leadingIcon: Icons.person_add_rounded,
                 onPressed: () => _openConnectDialog(context),
               ),
           ],
-          child: LayoutBuilder(
+          body: LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= AppLayout.splitBreakpoint;
-              final listView = _RosterList(
-                clients: list,
-                unread: unread,
-                selectedId: selected,
-                filter: activeFilter,
-                totalCount: all.length,
-                trailingPadding: wide ? AppSpacing.sm : 0,
-                onOpen: (id) => context.go(
-                  AppRoutes.clientDetail(
-                    id,
-                    section: widget.section,
-                    filter: widget.filter,
-                  ),
-                ),
-                onClearFilter: _clearFilters,
-              );
-              final Widget body;
-              if (!wide && selected != null) {
-                body = ClientDetailView(
-                  clientId: selected,
-                  section: widget.section,
-                  onSectionChange: (next) => context.go(
-                    AppRoutes.clientDetail(
-                      selected,
-                      section: next,
-                      filter: widget.filter,
-                    ),
-                  ),
-                  onClose: () => context.go(AppRoutes.clients),
-                );
-              } else if (!wide) {
-                body = listView;
-              } else {
-                body = Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    SizedBox(width: AppLayout.splitListWidth, child: listView),
-                    const SizedBox(
-                      key: ValueKey<String>('clients-master-detail-gap'),
-                      width: AppSpacing.sm,
-                    ),
-                    Expanded(
-                      child: selected == null
-                          ? const _NoSelection()
-                          : ClientDetailView(
-                              clientId: selected,
-                              section: widget.section,
-                              showBack: false,
-                              onSectionChange: (next) => context.go(
-                                AppRoutes.clientDetail(
-                                  selected,
-                                  section: next,
-                                  filter: widget.filter,
-                                ),
-                              ),
-                              onClose: () => context.go(AppRoutes.clients),
-                            ),
-                    ),
-                  ],
-                );
-              }
+              // [AppSplitView] 과 같은 폭·같은 기준으로 잰다 — 좁은 폭에서
+              // 상세가 뒤로가기를 달지, 툴바를 남길지를 여기서 정한다.
+              final wide = constraints.maxWidth >= OnCareLayout.splitBreakpoint;
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  if (wide || selected == null)
+                  if (wide || selected == null) ...<Widget>[
                     _MemberManagementToolbar(
                       managementFilters: view.filters,
                       sort: view.sort,
@@ -231,15 +154,47 @@ class _ClientsPageState extends ConsumerState<ClientsPage> {
                           ref.read(rosterViewProvider.notifier).state = view
                               .copyWith(sort: value),
                     ),
+                    const SizedBox(height: OnCareSpacing.s12),
+                  ],
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppLayout.pagePadding,
-                        AppSpacing.md,
-                        AppLayout.pagePadding,
-                        0,
+                    child: AppSplitView(
+                      showDetailWhenNarrow: selected != null,
+                      list: _RosterList(
+                        clients: list,
+                        selectedId: selected,
+                        unread: unread,
+                        filter: activeFilter,
+                        totalCount: all.length,
+                        // 목록 카드의 오른쪽 테두리·그림자가 스크롤 영역에
+                        // 잘리지 않게, 분할일 때만 한 칸 비워 둔다.
+                        trailingPadding: wide ? OnCareSpacing.s8 : 0,
+                        onOpen: (id) => context.go(
+                          AppRoutes.clientDetail(
+                            id,
+                            section: widget.section,
+                            filter: widget.filter,
+                          ),
+                        ),
+                        onClearFilter: _clearFilters,
                       ),
-                      child: body,
+                      detail: selected == null
+                          ? AppEmptyState(
+                              title: l.clientsPickHint,
+                              icon: Icons.person_search_rounded,
+                            )
+                          : ClientDetailView(
+                              clientId: selected,
+                              section: widget.section,
+                              showBack: !wide,
+                              onSectionChange: (next) => context.go(
+                                AppRoutes.clientDetail(
+                                  selected,
+                                  section: next,
+                                  filter: widget.filter,
+                                ),
+                              ),
+                              onClose: () => context.go(AppRoutes.clients),
+                            ),
                     ),
                   ),
                 ],
@@ -365,33 +320,35 @@ class _MemberManagementToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppLayout.pagePadding,
-        AppSpacing.sm,
-        AppLayout.pagePadding,
-        0,
-      ),
-      child: Wrap(
-        spacing: AppSpacing.sm,
-        runSpacing: AppSpacing.sm,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: <Widget>[
-          _FilterMenuButton(
-            filters: managementFilters,
-            labelFor: (value) => _managementLabel(l, value),
-            onChanged: onFiltersChanged,
-          ),
-          _SortMenuButton<RosterSort>(
+    return Wrap(
+      spacing: OnCareSpacing.s8,
+      runSpacing: OnCareSpacing.s8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: <Widget>[
+        _FilterMenuButton(
+          filters: managementFilters,
+          labelFor: (value) => _managementLabel(l, value),
+          onChanged: onFiltersChanged,
+        ),
+        AppMenu(
+          items: <AppMenuItem>[
+            for (final RosterSort item in RosterSort.values)
+              AppMenuItem(
+                label: _sortLabel(l, item),
+                selected: item == sort,
+                onSelected: () => onSortChanged(item),
+              ),
+          ],
+          triggerBuilder: (context, toggle) => AppButton(
             key: const ValueKey<String>('clients-sort-button'),
-            value: sort,
             label: '${l.clientsSortLabel}: ${_sortLabel(l, sort)}',
-            items: RosterSort.values,
-            itemLabel: (value) => _sortLabel(l, value),
-            onSelected: onSortChanged,
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            trailingIcon: Icons.arrow_drop_down_rounded,
+            onPressed: toggle,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -430,8 +387,84 @@ class _MemberManagementToolbar extends StatelessWidget {
   }
 }
 
-class _FilterMenuButton extends StatelessWidget {
+/// 복수 선택 관리 필터(#1026) — 버튼 아래에 뜨는 칩 패널.
+///
+/// [AppMenu] 는 항목 하나를 고르면 닫히는 단일 선택 목록이라, 여러 칩을 연달아
+/// 켜고 끄는 이 패널은 담지 못한다. 그래서 패널만 메뉴와 같은 규격(카드 채움·
+/// 반경 12·강한 선·떠 있는 그림자)으로 조립하고, 여닫기는 버튼과 패널을 한
+/// [TapRegion] 묶음으로 두어 바깥을 누르면 닫히게 한다.
+class _FilterMenuButton extends StatefulWidget {
   const _FilterMenuButton({
+    required this.filters,
+    required this.labelFor,
+    required this.onChanged,
+  });
+
+  final Set<RosterManagementFilter> filters;
+  final String Function(RosterManagementFilter value) labelFor;
+  final ValueChanged<Set<RosterManagementFilter>> onChanged;
+
+  @override
+  State<_FilterMenuButton> createState() => _FilterMenuButtonState();
+}
+
+class _FilterMenuButtonState extends State<_FilterMenuButton> {
+  final OverlayPortalController _panel = OverlayPortalController();
+  final LayerLink _link = LayerLink();
+
+  void _toggle() => setState(_panel.toggle);
+
+  void _close() {
+    if (_panel.isShowing) setState(_panel.hide);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final filters = widget.filters;
+    return CompositedTransformTarget(
+      link: _link,
+      child: OverlayPortal(
+        controller: _panel,
+        overlayChildBuilder: (context) => CompositedTransformFollower(
+          link: _link,
+          targetAnchor: Alignment.bottomLeft,
+          offset: const Offset(0, OnCareSpacing.s4),
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: TapRegion(
+              groupId: this,
+              onTapOutside: (_) => _close(),
+              child: _FilterPanel(
+                filters: filters,
+                labelFor: widget.labelFor,
+                onChanged: widget.onChanged,
+              ),
+            ),
+          ),
+        ),
+        child: TapRegion(
+          groupId: this,
+          child: AppButton(
+            key: const ValueKey<String>('clients-filter-button'),
+            label: filters.isEmpty
+                ? l.clientsFilterLabel
+                : '${l.clientsFilterLabel} ${filters.length}',
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            trailingIcon: _panel.isShowing
+                ? Icons.arrow_drop_up_rounded
+                : Icons.arrow_drop_down_rounded,
+            onPressed: _toggle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterPanel extends StatelessWidget {
+  const _FilterPanel({
     required this.filters,
     required this.labelFor,
     required this.onChanged,
@@ -444,319 +477,57 @@ class _FilterMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final selected = Set<RosterManagementFilter>.of(filters);
-    return MenuAnchor(
-      alignmentOffset: const Offset(0, AppSpacing.xs),
-      style: const MenuStyle(
-        backgroundColor: WidgetStatePropertyAll<Color>(AppColors.card),
-        padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(EdgeInsets.zero),
-        shape: WidgetStatePropertyAll<OutlinedBorder>(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(AppRadius.md),
-            side: BorderSide(color: AppColors.borderStrong),
-          ),
-        ),
+    final OnCareTokens tokens = context.oncare;
+    return Container(
+      width: _filterPanelWidth,
+      padding: const EdgeInsets.all(OnCareSpacing.s16),
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineStrong),
+        boxShadow: OnCareShadows.overlay,
       ),
-      menuChildren: <Widget>[
-        StatefulBuilder(
-          builder: (context, setMenuState) => SizedBox(
-            width: 360,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Text(
-                        l.clientsFilterLabel,
-                        style: const TextStyle(
-                          color: AppColors.foreground,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const Spacer(),
-                      if (selected.isNotEmpty)
-                        TextButton(
-                          onPressed: () {
-                            setMenuState(selected.clear);
-                            onChanged(const <RosterManagementFilter>{});
-                          },
-                          style: TextButton.styleFrom(
-                            foregroundColor: AppColors.mutedForeground,
-                            textStyle: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            minimumSize: const Size(0, 28),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                            ),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: Text(l.clientsFiltersClearAll),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    children: <Widget>[
-                      for (final value in RosterManagementFilter.values)
-                        _ManagementFilterChip(
-                          key: ValueKey<String>(
-                            'management-filter-${value.name}',
-                          ),
-                          label: labelFor(value),
-                          selected: selected.contains(value),
-                          onTap: () {
-                            setMenuState(() {
-                              if (!selected.remove(value)) {
-                                selected.add(value);
-                              }
-                            });
-                            onChanged(Set<RosterManagementFilter>.of(selected));
-                          },
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-      builder: (context, controller, child) => _PillToolbarButton(
-        key: const ValueKey<String>('clients-filter-button'),
-        label: filters.isEmpty
-            ? l.clientsFilterLabel
-            : '${l.clientsFilterLabel} ${filters.length}',
-        expanded: controller.isOpen,
-        onTap: controller.isOpen ? controller.close : controller.open,
-      ),
-    );
-  }
-}
-
-/// One multi-select filter option, shown and removed as a chip/tag (#1026).
-///
-/// Selected chips stay in the same quiet navy/neutral family as unselected
-/// chips, using border, fill and text color instead of a heavy button fill or
-/// check icon. Toggling a chip therefore never shifts the surrounding options.
-class _ManagementFilterChip extends StatelessWidget {
-  const _ManagementFilterChip({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-        hoverColor: selected ? AppColors.bannerEnd : AppColors.accentSurface,
-        focusColor: AppColors.bannerEnd,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.accentSurface : AppColors.card,
-            borderRadius: const BorderRadius.all(AppRadius.pill),
-            border: Border.all(
-              color: selected ? AppColors.primary : AppColors.borderStrong,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
             children: <Widget>[
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                  color: selected
-                      ? AppColors.primary
-                      : AppColors.mutedForeground,
+              Expanded(
+                child: Text(
+                  l.clientsFilterLabel,
+                  style: tokens
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
               ),
+              if (filters.isNotEmpty)
+                AppButton(
+                  label: l.clientsFiltersClearAll,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  onPressed: () => onChanged(const <RosterManagementFilter>{}),
+                ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SortMenuButton<T> extends StatelessWidget {
-  const _SortMenuButton({
-    super.key,
-    required this.value,
-    required this.label,
-    required this.items,
-    required this.itemLabel,
-    required this.onSelected,
-  });
-
-  final T value;
-  final String label;
-  final List<T> items;
-  final String Function(T value) itemLabel;
-  final ValueChanged<T> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return MenuAnchor(
-      alignmentOffset: const Offset(0, AppSpacing.xs),
-      style: const MenuStyle(
-        backgroundColor: WidgetStatePropertyAll<Color>(AppColors.card),
-        padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(EdgeInsets.zero),
-        shape: WidgetStatePropertyAll<OutlinedBorder>(
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(AppRadius.md),
-            side: BorderSide(color: AppColors.borderStrong),
-          ),
-        ),
-      ),
-      menuChildren: <Widget>[
-        for (final item in items)
-          MenuItemButton(
-            onPressed: () => onSelected(item),
-            style: const ButtonStyle(
-              minimumSize: WidgetStatePropertyAll<Size>(Size(220, 40)),
-              padding: WidgetStatePropertyAll<EdgeInsetsGeometry>(
-                EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              ),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              overlayColor: WidgetStatePropertyAll<Color>(
-                AppColors.accentSurface,
-              ),
-            ),
-            child: Row(
-              children: <Widget>[
-                SizedBox(
-                  width: 22,
-                  child: item == value
-                      ? const Icon(
-                          Icons.check,
-                          size: 15,
-                          color: AppColors.primary,
-                        )
-                      : null,
+          const SizedBox(height: OnCareSpacing.s12),
+          Wrap(
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[
+              for (final value in RosterManagementFilter.values)
+                AppChoiceChip(
+                  key: ValueKey<String>('management-filter-${value.name}'),
+                  label: labelFor(value),
+                  selected: filters.contains(value),
+                  onSelected: (_) {
+                    final next = Set<RosterManagementFilter>.of(filters);
+                    if (!next.remove(value)) next.add(value);
+                    onChanged(next);
+                  },
                 ),
-                Text(
-                  itemLabel(item),
-                  style: TextStyle(
-                    color: item == value
-                        ? AppColors.primary
-                        : AppColors.mutedForeground,
-                    fontSize: 12.5,
-                    fontWeight: item == value
-                        ? FontWeight.w700
-                        : FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-      ],
-      builder: (context, controller, child) => _PillToolbarButton(
-        label: label,
-        expanded: controller.isOpen,
-        onTap: controller.isOpen ? controller.close : controller.open,
-      ),
-    );
-  }
-}
-
-class _PillToolbarButton extends StatelessWidget {
-  const _PillToolbarButton({
-    super.key,
-    required this.label,
-    required this.expanded,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool expanded;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-        hoverColor: AppColors.accentSurface,
-        focusColor: AppColors.bannerEnd,
-        child: _PillToolbarSurface(
-          label: label,
-          active: expanded,
-          trailing: Icon(
-            expanded ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-            size: 18,
-            color: AppColors.foreground,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PillToolbarSurface extends StatelessWidget {
-  const _PillToolbarSurface({
-    required this.label,
-    required this.trailing,
-    this.active = false,
-  });
-
-  final String label;
-  final Widget trailing;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 140),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: active ? AppColors.accentSurface : AppColors.inputBackground,
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-        border: Border.all(
-          color: active ? AppColors.primary : AppColors.border,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.foreground,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          trailing,
         ],
       ),
     );
@@ -801,59 +572,28 @@ class _RefreshOnBranchResumeState extends State<_RefreshOnBranchResume> {
 class _Frame extends StatelessWidget {
   const _Frame({
     required this.subtitle,
-    required this.child,
+    required this.body,
     this.actions = const <Widget>[],
   });
 
   final String? subtitle;
-  final Widget child;
+  final Widget body;
 
   final List<Widget> actions;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return PageScaffold(
+    return AppWebPage(
       title: l.clientsTitle,
       subtitle: subtitle,
-      headerCenter: const ClientSearchBar(),
-      actions: actions,
-      scrollable: false,
-      contentPadding: EdgeInsets.zero,
-      child: child,
-    );
-  }
-}
-
-/// Placeholder shown in the split panel before a client is picked.
-class _NoSelection extends StatelessWidget {
-  const _NoSelection();
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          const Icon(
-            Icons.person_search_outlined,
-            size: 34,
-            color: AppColors.disabledForeground,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            l.clientsPickHint,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13.5,
-              height: 1.6,
-              fontWeight: FontWeight.w500,
-              color: AppColors.subtleForeground,
-            ),
-          ),
-        ],
-      ),
+      // 고객 검색은 제목과 액션 사이 남는 폭을 나눠 쓴다 — 액션이 많은
+      // 화면에서 검색이 줄어들지, 헤더가 넘치지 않는다.
+      actions: <Widget>[
+        const Flexible(child: ClientSearchBar()),
+        ...actions,
+      ],
+      body: body,
     );
   }
 }
@@ -883,28 +623,30 @@ class _RosterList extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return ListView(
-      padding: EdgeInsets.fromLTRB(
-        0,
-        0,
-        trailingPadding,
-        AppLayout.pagePadding,
-      ),
+      padding: EdgeInsets.only(right: trailingPadding),
       children: <Widget>[
+        // Tells the trainer the list is filtered — and how to get out. A
+        // silently filtered roster reads as "I've lost clients".
         if (filter != ClientFilter.all) ...<Widget>[
-          _FilterBanner(
-            filter: filter,
-            shown: clients.length,
-            total: totalCount,
-            onClear: onClearFilter,
+          AppBanner(
+            title: l.clientsFilterSummary(
+              filter.label(l),
+              clients.length,
+              totalCount,
+            ),
+            icon: Icons.filter_alt_rounded,
+            actionLabel: l.clientsSeeAll,
+            onAction: onClearFilter,
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
         ],
         if (clients.isEmpty)
-          EmptyHint(
-            message: filter == ClientFilter.all
+          AppEmptyState(
+            title: filter == ClientFilter.all
                 ? l.clientsEmpty
                 : l.clientsEmptyForFilter(filter.label(l)),
-            icon: Icons.people_outline,
+            icon: Icons.people_rounded,
+            placement: AppStatePlacement.card,
           )
         else
           for (final client in clients) ...<Widget>[
@@ -916,75 +658,9 @@ class _RosterList extends StatelessWidget {
               compact: true,
               onTap: () => onOpen(client.id),
             ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: OnCareSpacing.cardGap),
           ],
       ],
-    );
-  }
-}
-
-/// Tells the trainer the list is filtered — and how to get out. A
-/// silently filtered roster reads as "I've lost clients".
-class _FilterBanner extends StatelessWidget {
-  const _FilterBanner({
-    required this.filter,
-    required this.shown,
-    required this.total,
-    required this.onClear,
-  });
-
-  final ClientFilter filter;
-  final int shown;
-  final int total;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.accentSurface,
-        borderRadius: BorderRadius.all(AppRadius.md),
-      ),
-      child: Row(
-        children: <Widget>[
-          const Icon(
-            Icons.filter_alt_outlined,
-            size: 15,
-            color: AppColors.primary,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: Text(
-              l.clientsFilterSummary(filter.label(l), shown, total),
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
-              ),
-            ),
-          ),
-          InkWell(
-            onTap: onClear,
-            borderRadius: const BorderRadius.all(AppRadius.sm),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(
-                l.clientsSeeAll,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

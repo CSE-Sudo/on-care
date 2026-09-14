@@ -3,17 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_suggestion_edit_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// The AI personal-exercise review area of the program tab (#790).
 ///
@@ -140,7 +135,7 @@ class _RoutineSuggestionReviewCardState
       await action();
       ref.invalidate(routineSuggestionsProvider(reviewedFor));
       if (!mounted) return;
-      showAppToast(context, success, kind: AppToastKind.success);
+      showAppToast(context, success, type: AppToastType.success);
     } on RoutineSuggestionAlreadyReviewed {
       // 두 번 눌렀거나 다른 창에서 이미 처리했다. 실패로 말하면 트레이너는 자기
       // 판단이 반영되지 않았다고 읽는다 — 실제로는 반영돼 있다.
@@ -152,11 +147,11 @@ class _RoutineSuggestionReviewCardState
       showAppToast(
         context,
         serverDetailOr(l, error.message, l.suggestionActionFailed),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     } on Object {
       if (!mounted) return;
-      showAppToast(context, l.suggestionActionFailed, kind: AppToastKind.error);
+      showAppToast(context, l.suggestionActionFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _busy.remove(suggestion.id));
     }
@@ -165,108 +160,82 @@ class _RoutineSuggestionReviewCardState
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final pending = ref.watch(routineSuggestionsProvider(widget.clientId));
     final rows = pending.valueOrNull ?? const <RoutineSuggestion>[];
+    final TextStyle quietStyle = tokens
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textTertiary);
 
-    return SectionCard(
+    return AppCard(
       key: const ValueKey<String>('routine-suggestion-review-card'),
-      title: l.suggestionReviewTitle,
-      // 정규 프로그램 카드들과 한눈에 갈라지는 표시 — 여기는 AI 가 준비한 것을
-      // 판단하는 자리다.
-      icon: Icons.auto_awesome,
-      dense: true,
-      trailing: rows.isEmpty ? null : _ReviewBadge(count: rows.length),
-      child: switch (pending) {
-        AsyncError() => Text(
-          l.suggestionReviewLoadFailed,
-          key: const ValueKey<String>('routine-suggestion-error'),
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: AppColors.subtleForeground,
-          ),
-        ),
-        // 목록이 비었을 때 큰 empty card 를 만들지 않는다 — 검토할 것이 없는
-        // 날에도 프로그램 탭의 절반을 차지하면 안 된다.
-        AsyncData(:final value) when value.isEmpty => Text(
-          l.suggestionReviewEmpty,
-          key: const ValueKey<String>('routine-suggestion-empty'),
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: AppColors.subtleForeground,
-          ),
-        ),
-        AsyncLoading() when rows.isEmpty => const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-          child: Center(
-            child: SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
-          ),
-        ),
-        _ => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Text(
-              l.suggestionReviewIntro(widget.clientName),
-              // 카드 안의 근거 문구(`suggestion.reason`)와 같은 굵기다 — 이
-              // 줄만 진하면 안내문이 판단거리처럼 강조돼 보였다.
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.subtleForeground,
-                height: 1.4,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSectionHeader(
+                  title: l.suggestionReviewTitle,
+                  // 정규 프로그램 카드들과 한눈에 갈라지는 표시 — 여기는 AI 가
+                  // 준비한 것을 판단하는 자리다.
+                  icon: Icons.auto_awesome_rounded,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            for (final suggestion in rows) ...<Widget>[
-              _SuggestionCard(
-                key: ValueKey<String>('routine-suggestion-${suggestion.id}'),
-                suggestion: suggestion,
-                busy: _busy.contains(suggestion.id),
-                onApprove: () => _confirmThenApprove(suggestion),
-                onEdit: () => _editThenApprove(suggestion),
-                onDismiss: () => _dismiss(suggestion),
-              ),
-              if (suggestion != rows.last)
-                const SizedBox(height: AppSpacing.sm),
+              if (rows.isNotEmpty)
+                AppTag(
+                  key: const ValueKey<String>('routine-suggestion-badge'),
+                  label: l.suggestionReviewBadge(rows.length),
+                  tone: AppTagTone.brand,
+                ),
             ],
-          ],
-        ),
-      },
-    );
-  }
-}
-
-class _ReviewBadge extends StatelessWidget {
-  const _ReviewBadge({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.accentSurface,
-        borderRadius: BorderRadius.all(AppRadius.sm),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: 2,
-        ),
-        child: Text(
-          AppLocalizations.of(context).suggestionReviewBadge(count),
-          key: const ValueKey<String>('routine-suggestion-badge'),
-          style: const TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w800,
-            color: AppColors.accent,
           ),
-        ),
+          const SizedBox(height: OnCareSpacing.s12),
+          switch (pending) {
+            AsyncError() => Text(
+              l.suggestionReviewLoadFailed,
+              key: const ValueKey<String>('routine-suggestion-error'),
+              style: quietStyle,
+            ),
+            // 목록이 비었을 때 큰 empty card 를 만들지 않는다 — 검토할 것이
+            // 없는 날에도 프로그램 탭의 절반을 차지하면 안 된다.
+            AsyncData(:final value) when value.isEmpty => Text(
+              l.suggestionReviewEmpty,
+              key: const ValueKey<String>('routine-suggestion-empty'),
+              style: quietStyle,
+            ),
+            AsyncLoading() when rows.isEmpty => const Padding(
+              padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+              child: Center(child: AppLoading.inline()),
+            ),
+            _ => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Text(
+                  l.suggestionReviewIntro(widget.clientName),
+                  // 카드 안의 근거 문구(`suggestion.reason`)와 같은 굵기다 — 이
+                  // 줄만 진하면 안내문이 판단거리처럼 강조돼 보였다.
+                  style: quietStyle,
+                ),
+                const SizedBox(height: OnCareSpacing.s12),
+                for (final suggestion in rows) ...<Widget>[
+                  _SuggestionCard(
+                    key: ValueKey<String>(
+                      'routine-suggestion-${suggestion.id}',
+                    ),
+                    suggestion: suggestion,
+                    busy: _busy.contains(suggestion.id),
+                    onApprove: () => _confirmThenApprove(suggestion),
+                    onEdit: () => _editThenApprove(suggestion),
+                    onDismiss: () => _dismiss(suggestion),
+                  ),
+                  if (suggestion != rows.last)
+                    const SizedBox(height: OnCareSpacing.s8),
+                ],
+              ],
+            ),
+          },
+        ],
       ),
     );
   }
@@ -295,19 +264,25 @@ class _SuggestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final TextStyle metaStyle = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textTertiary);
+    final TextStyle metaStrongStyle = tokens
+        .text(OnCareTypography.strong(OnCareTypography.caption))
+        .copyWith(color: OnCareColors.textTertiary);
     return Container(
       key: ValueKey<String>('routine-suggestion-surface-${suggestion.id}'),
       decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.borderStrong),
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineStrong),
       ),
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Expanded(
                 // 이름 - 종류 - 시간/분/회 를 한 줄에 둔다. 이름/종류/설명처럼
@@ -317,36 +292,20 @@ class _SuggestionCard extends StatelessWidget {
                     children: <InlineSpan>[
                       TextSpan(
                         text: suggestion.name,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.foreground,
-                        ),
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(
+                                OnCareTypography.bodySmall,
+                              ),
+                            )
+                            .copyWith(color: OnCareColors.textPrimary),
                       ),
-                      const TextSpan(
-                        text: ' · ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.subtleForeground,
-                        ),
-                      ),
+                      TextSpan(text: ' · ', style: metaStyle),
                       TextSpan(
                         text: routineTypeLabel(l, suggestion.type),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.subtleForeground,
-                        ),
+                        style: metaStrongStyle,
                       ),
-                      const TextSpan(
-                        text: ' · ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.subtleForeground,
-                        ),
-                      ),
+                      TextSpan(text: ' · ', style: metaStyle),
                       TextSpan(
                         // 근력은 시간이 아니라 세트·횟수·중량으로 적는다 — 최종
                         // 검토 dialog·수정 창과 같은 함수를 쓴다. (#1321)
@@ -354,11 +313,7 @@ class _SuggestionCard extends StatelessWidget {
                         // 종류(`routineTypeLabel`)와 같은 크기·색이다 — 강조색을
                         // 쓰면 이 값만 판단거리처럼 튀어 보였다.
                         text: routineSuggestionAmountLabel(l, suggestion),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.subtleForeground,
-                        ),
+                        style: metaStrongStyle,
                       ),
                     ],
                   ),
@@ -369,74 +324,50 @@ class _SuggestionCard extends StatelessWidget {
               // `수정`·`거절` 은 판단이 아니라 **보조 동작**이다(#939). 아래
               // 줄에 세워 두면 `고객에게 추천` 과 함께 판단처럼 읽혔다. 손볼
               // 대상(운동 이름·시간) 옆에 연필·휴지통으로 둔다.
-              const SizedBox(width: AppSpacing.xs),
-              SizedBox(
-                width: 28,
-                height: 28,
-                child: IconButton(
-                  key: ValueKey<String>(
-                    'routine-suggestion-edit-${suggestion.id}',
-                  ),
-                  onPressed: busy ? null : onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  color: AppColors.primary,
-                  tooltip: l.actionEdit,
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                  constraints: const BoxConstraints.tightFor(
-                    width: 28,
-                    height: 28,
-                  ),
+              const SizedBox(width: OnCareSpacing.s4),
+              AppIconButton(
+                key: ValueKey<String>(
+                  'routine-suggestion-edit-${suggestion.id}',
                 ),
+                icon: Icons.edit_rounded,
+                tooltip: l.actionEdit,
+                color: tokens.brand.primary,
+                onPressed: busy ? null : onEdit,
               ),
-              const SizedBox(width: AppSpacing.xs),
-              SizedBox(
-                width: 28,
-                height: 28,
-                child: IconButton(
-                  key: ValueKey<String>(
-                    'routine-suggestion-dismiss-${suggestion.id}',
-                  ),
-                  onPressed: busy ? null : onDismiss,
-                  icon: const Icon(Icons.delete_outline, size: 16),
-                  color: AppColors.mutedForeground,
-                  tooltip: l.suggestionDismiss,
-                  padding: EdgeInsets.zero,
-                  visualDensity: VisualDensity.compact,
-                  constraints: const BoxConstraints.tightFor(
-                    width: 28,
-                    height: 28,
-                  ),
+              AppIconButton(
+                key: ValueKey<String>(
+                  'routine-suggestion-dismiss-${suggestion.id}',
                 ),
+                icon: Icons.delete_outline_rounded,
+                tooltip: l.suggestionDismiss,
+                color: OnCareColors.textSecondary,
+                onPressed: busy ? null : onDismiss,
               ),
             ],
           ),
           if (suggestion.reason.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: OnCareSpacing.s8),
             Text(
               suggestion.reason,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.foreground,
-                height: 1.4,
-              ),
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
           ],
           if (suggestion.evidence.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: OnCareSpacing.s8),
             // 근거는 서버가 만든 짧은 표시다 — AI 내부 분석을 길게 노출하지 않고
             // 트레이너가 승인 판단에 쓸 재료만 보여 준다.
             Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
+              spacing: OnCareSpacing.s4,
+              runSpacing: OnCareSpacing.s4,
               children: <Widget>[
                 for (final item in suggestion.evidence)
-                  _EvidenceChip(label: item),
+                  AppTag(label: item, tone: AppTagTone.brand),
               ],
             ),
           ],
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: OnCareSpacing.s12),
           // 아래 줄에는 **결정 하나**만 남는다 — 이 제안을 고객에게 줄 것인가.
           // 거절은 판단이 아니라 위의 휴지통으로 옮겼다(#939 후속).
           Align(
@@ -447,56 +378,21 @@ class _SuggestionCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 if (busy) ...<Widget>[
-                  const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const AppLoading.inline(),
+                  const SizedBox(width: OnCareSpacing.s8),
                 ],
-                ActionButton(
+                AppButton(
                   key: ValueKey<String>(
                     'routine-suggestion-approve-${suggestion.id}',
                   ),
                   label: l.suggestionApprove,
-                  primary: true,
-                  dense: true,
+                  size: OnCareButtonSize.small,
                   onPressed: busy ? null : onApprove,
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _EvidenceChip extends StatelessWidget {
-  const _EvidenceChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.accentSurface,
-        borderRadius: BorderRadius.all(AppRadius.pill),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: 2,
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: AppColors.accent,
-          ),
-        ),
       ),
     );
   }

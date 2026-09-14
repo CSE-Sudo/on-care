@@ -5,15 +5,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/breakpoints.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
-import 'package:oncare/design_system/tokens/spacing.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
-import 'package:oncare/features/auth/presentation/widgets/auth_fields.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 가입 직후 한 번 보는 첫 설정 마법사 — 네 단계다.
 ///
@@ -227,18 +222,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   void _next() {
     if (_step < _steps - 1) {
-      _pager.nextPage(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
+      _pager.nextPage(duration: OnCareMotion.normal, curve: OnCareMotion.curve);
     }
   }
 
   void _back() {
     if (_step > 0) {
       _pager.previousPage(
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
+        duration: OnCareMotion.normal,
+        curve: OnCareMotion.curve,
       );
     }
   }
@@ -260,7 +252,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Future<void> _finish() async {
     if (_saving) return;
     final AppLocalizations l = AppLocalizations.of(context);
-    final AppToastHost toast = AppToastHost.of(context);
     setState(() => _saving = true);
     try {
       await ref
@@ -287,8 +278,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       ref.invalidate(profileProvider);
       context.go(AppRoutes.dashboard);
     } catch (_) {
-      if (mounted) setState(() => _saving = false);
-      toast.show(l.onboardSaveFailed, kind: AppToastKind.error);
+      if (!mounted) return;
+      setState(() => _saving = false);
+      showAppToast(context, l.onboardSaveFailed, type: AppToastType.error);
     }
   }
 
@@ -358,12 +350,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     return PopScope(
       canPop: !_saving,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: OnCareColors.surfacePage,
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(
-                maxWidth: AppBreakpoints.contentMaxWidth,
+                maxWidth: OnCareLayout.mobileContentMaxWidth,
               ),
               child: Column(
                 children: <Widget>[
@@ -392,80 +384,67 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
+  double get _side => context.oncare.density.pagePadding;
+
   Widget _header(AppLocalizations l) => Padding(
-    padding: const EdgeInsets.fromLTRB(
-      AppSpacing.lg,
-      AppSpacing.md,
-      AppSpacing.sm,
-      AppSpacing.sm,
+    padding: EdgeInsets.fromLTRB(
+      _side,
+      OnCareSpacing.s8,
+      OnCareSpacing.s8,
+      OnCareSpacing.s8,
     ),
     child: Row(
       children: <Widget>[
         Text(
           '${_step + 1} / $_steps',
-          style: const TextStyle(
-            color: AppColors.mutedForeground,
-            fontWeight: FontWeight.w700,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.label)
+              .copyWith(color: OnCareColors.textSecondary),
         ),
         const Spacer(),
-        TextButton(
+        AppButton(
+          label: l.onboardSkip,
           onPressed: _saving ? null : _skip,
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.mutedForeground,
-          ),
-          child: Text(l.onboardSkip),
+          variant: AppButtonVariant.text,
+          size: OnCareButtonSize.small,
         ),
       ],
     ),
   );
 
   Widget _progress() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: LinearProgressIndicator(
-        value: (_step + 1) / _steps,
-        minHeight: 6,
-        backgroundColor: FigmaColors.track,
-        valueColor: const AlwaysStoppedAnimation<Color>(FigmaColors.primary),
-      ),
-    ),
+    padding: EdgeInsets.symmetric(horizontal: _side),
+    child: AppStepIndicator(count: _steps, current: _step),
   );
 
   Widget _footer(AppLocalizations l, {required bool isLast}) => Padding(
-    padding: const EdgeInsets.all(AppSpacing.lg),
+    padding: EdgeInsets.fromLTRB(
+      _side,
+      OnCareSpacing.s16,
+      _side,
+      OnCareSpacing.s16,
+    ),
     child: Row(
       children: <Widget>[
         if (_step > 0) ...<Widget>[
           // 되돌아가기는 보조 동작이다 — 글자를 단 큰 외곽선 버튼이면 옆의
-          // 주 동작과 무게가 비슷해진다(#1471). 화살표 하나로 줄이되 터치
+          // 주 동작과 무게가 비슷해진다(#1471). 뒤로 표시 하나로 줄이되 터치
           // 영역과 접근성 라벨은 그대로 둔다.
-          IconButton(
+          AppIconButton(
             key: const Key('onboardBackButton'),
-            onPressed: _saving ? null : _back,
+            icon: Icons.chevron_left_rounded,
             tooltip: l.onboardPrevious,
-            iconSize: 22,
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            style: IconButton.styleFrom(
-              foregroundColor: AppColors.foreground,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.border),
-              ),
-            ),
-            icon: Semantics(
-              label: l.onboardPrevious,
-              child: const Icon(Icons.chevron_left),
-            ),
+            onPressed: _saving ? null : _back,
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: OnCareSpacing.s12),
         ],
         Expanded(
-          child: AuthGradientButton(
-            loading: _saving,
+          child: AppButton(
             label: isLast ? l.onboardDone : l.onboardNext,
-            onTap: isLast ? _finish : _next,
+            onPressed: isLast ? _finish : _next,
+            loading: _saving,
+            size: OnCareButtonSize.large,
+            fullWidth: true,
           ),
         ),
       ],
@@ -476,7 +455,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   ///
   /// 예전에는 단계마다 생김새가 조금씩 달랐다. 1·2단계는 흰 바닥에 칩이 그냥
   /// 놓여 있고 3·4단계만 회색 카드였다 — 같은 마법사를 네 번 넘기는 동안 화면이
-  /// 세 번 바뀌는 셈이었다. 이제 모든 내용은 [_OnboardCard] 안에 들어가고,
+  /// 세 번 바뀌는 셈이었다. 이제 모든 내용은 [AppCard] 안에 들어가고,
   /// 카드 아래 각주 자리도 [_StepNote] 하나로 같다.
   Widget _stepBody({
     required String title,
@@ -486,74 +465,56 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     VoidCallback? onSkipStep,
   }) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final ThemeData theme = Theme.of(context);
+    final OnCareTokens tokens = context.oncare;
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        AppSpacing.xl,
-        AppSpacing.lg,
-        AppSpacing.lg,
+      padding: EdgeInsets.fromLTRB(
+        _side,
+        OnCareSpacing.s24,
+        _side,
+        OnCareSpacing.s16,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
             children: <Widget>[
               Flexible(
                 child: Text(
                   title,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: FigmaColors.ink,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.titleLarge)
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
               ),
               // 안 채워도 되는 단계라는 말은 제목 옆에 붙어야 읽힌다 — 아래
               // 설명 줄에 섞으면 다음 버튼을 먼저 누른 뒤에나 눈에 들어온다.
               if (optional) ...<Widget>[
-                const SizedBox(width: 6),
-                Text(
-                  l.onboardOptionalTag,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: FigmaColors.textSub,
-                  ),
-                ),
+                const SizedBox(width: OnCareSpacing.s8),
+                AppTag(label: l.onboardOptionalTag),
               ],
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: OnCareSpacing.s8),
           Text(
             subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: FigmaColors.textSub,
-            ),
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
-          const SizedBox(height: AppSpacing.xl),
+          const SizedBox(height: OnCareSpacing.sectionGap),
           for (int i = 0; i < sections.length; i++) ...<Widget>[
-            if (i > 0) const SizedBox(height: AppSpacing.xl),
+            if (i > 0) const SizedBox(height: OnCareSpacing.sectionGap),
             sections[i],
           ],
           if (onSkipStep != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: OnCareSpacing.s16),
             Center(
-              child: TextButton(
+              child: AppButton(
                 key: const Key('onboardSkipStep'),
+                label: l.onboardSkipStep,
                 onPressed: _saving ? null : onSkipStep,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.mutedForeground,
-                ),
-                child: Text(
-                  l.onboardSkipStep,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
               ),
             ),
           ],
@@ -573,7 +534,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           card: _OnboardCard(
             children: <Widget>[
               _FieldLabel(l.onboardBirthLabel),
-              const SizedBox(height: 6),
+              const SizedBox(height: OnCareSpacing.s8),
               Row(
                 children: <Widget>[
                   Expanded(
@@ -592,7 +553,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                             }),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: OnCareSpacing.s8),
                   Expanded(
                     flex: 3,
                     child: _BirthPartDropdown(
@@ -609,7 +570,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                             }),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: OnCareSpacing.s8),
                   Expanded(
                     flex: 3,
                     child: _BirthPartDropdown(
@@ -630,7 +591,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               ),
               const SizedBox(height: _kFieldGap),
               _FieldLabel(l.onboardGenderLabel),
-              const SizedBox(height: 6),
+              const SizedBox(height: OnCareSpacing.s8),
               _GenderSelector(
                 value: _gender,
                 onChanged: (String? g) {
@@ -650,7 +611,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       onChanged: (_) => _onBasicChanged(),
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  const SizedBox(width: OnCareSpacing.s12),
                   Expanded(
                     child: _OnboardField(
                       key: const Key('onboardWeightField'),
@@ -685,14 +646,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           card: _OnboardCard(
             children: <Widget>[
               Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
+                spacing: OnCareSpacing.s8,
+                runSpacing: OnCareSpacing.s8,
                 children: <Widget>[
                   for (final String c in _conditionOptions)
-                    _OnboardChip(
+                    AppChoiceChip(
                       label: _conditionLabel(l, c),
                       selected: _conditions.contains(c),
-                      onTap: () => setState(() {
+                      onSelected: (_) => setState(() {
                         if (!_conditions.remove(c)) _conditions.add(c);
                       }),
                     ),
@@ -815,7 +776,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 }
 
 /// 카드 안 칸과 칸 사이. 네 단계가 같은 간격을 쓴다.
-const double _kFieldGap = 14;
+const double _kFieldGap = OnCareSpacing.s12;
 
 /// 한 단계 안의 묶음 하나 — 제목(선택) · 한 줄 설명(선택) · 카드 · 각주(선택).
 ///
@@ -841,34 +802,31 @@ class _StepSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (label != null) ...<Widget>[
           Text(
             label!,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-              color: FigmaColors.ink,
-            ),
+            style: tokens
+                .text(OnCareTypography.titleSmall)
+                .copyWith(color: OnCareColors.textPrimary),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: OnCareSpacing.s4),
         ],
         if (description != null) ...<Widget>[
           Text(
             description!,
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w500,
-              color: FigmaColors.textSub,
-            ),
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: OnCareSpacing.s12),
         ],
         card,
         if (note != null) ...<Widget>[
-          const SizedBox(height: 10),
+          const SizedBox(height: OnCareSpacing.s12),
           note!,
         ],
       ],
@@ -876,18 +834,13 @@ class _StepSection extends StatelessWidget {
   }
 }
 
-/// 카드 한 장 — MY `건강 목표` 시트와 같은 회색 판이다.
+/// 카드 한 장 — 네 단계가 같은 카드를 쓴다.
 class _OnboardCard extends StatelessWidget {
   const _OnboardCard({required this.children});
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: FigmaColors.statBg,
-      borderRadius: BorderRadius.circular(16),
-    ),
+  Widget build(BuildContext context) => AppCard(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: children,
@@ -895,6 +848,7 @@ class _OnboardCard extends StatelessWidget {
   );
 }
 
+/// 필드 위 라벨 — 입력창 컴포넌트의 라벨과 같은 역할 글자다.
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel(this.text);
   final String text;
@@ -902,74 +856,10 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text,
-    style: const TextStyle(
-      fontSize: 13.5,
-      fontWeight: FontWeight.w600,
-      color: AppColors.foreground,
-    ),
+    style: context.oncare
+        .text(OnCareTypography.label)
+        .copyWith(color: OnCareColors.textSecondary),
   );
-}
-
-/// 온보딩의 **모든** 칩. 성별(하나만)과 만성질환(여럿)이 같은 모양을 쓴다.
-///
-/// 예전에는 두 자리가 `ChoiceChip` 과 `FilterChip` 이었다. 머티리얼 기본
-/// 생김새라 카드 안의 입력칸과도, 서로와도 달라 보였다 — 한쪽에는 체크 표시가
-/// 붙고 다른 쪽에는 안 붙었다.
-class _OnboardChip extends StatelessWidget {
-  const _OnboardChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.expand = false,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  /// 성별처럼 한 줄을 고르게 나눠 채울 때 true.
-  final bool expand;
-
-  @override
-  Widget build(BuildContext context) {
-    final Widget chip = Material(
-      color: selected ? FigmaColors.primary : Colors.white,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Container(
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected ? FigmaColors.primary : FigmaColors.hairline,
-            ),
-          ),
-          // 글자만큼만 넓어야 한다 — `Container.alignment` 를 주면 칸이 남는
-          // 너비를 통째로 먹어, 만성질환 칩 넷이 한 줄에 나란히 서지 못하고
-          // 화면 폭짜리 막대 넷으로 쌓인다.
-          child: Row(
-            mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : FigmaColors.textBody,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    return expand ? Expanded(child: chip) : chip;
-  }
 }
 
 /// 라벨 + 입력칸. MY `건강 목표` 시트의 칸과 같은 모양이라, 온보딩에서 채운
@@ -995,59 +885,25 @@ class _OnboardField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        _FieldLabel(label),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          inputFormatters: digitsOnly
-              ? <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly]
-              : null,
-          onChanged: onChanged,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: FigmaColors.ink,
-          ),
-          decoration: _fieldDecoration(),
-        ),
-      ],
+    return AppTextField(
+      label: label,
+      controller: controller,
+      keyboardType: keyboardType,
+      inputFormatters: digitsOnly
+          ? <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly]
+          : null,
+      onChanged: onChanged,
     );
   }
 }
 
-InputDecoration _fieldDecoration({String? hintText}) => InputDecoration(
-  isDense: true,
-  filled: true,
-  fillColor: Colors.white,
-  hintText: hintText,
-  hintStyle: const TextStyle(
-    fontSize: 15,
-    fontWeight: FontWeight.w500,
-    color: AppColors.mutedForeground,
-  ),
-  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-  enabledBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: FigmaColors.hairline),
-  ),
-  focusedBorder: OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
-    borderSide: const BorderSide(color: FigmaColors.primary, width: 1.4),
-  ),
-);
-
-/// 생년월일의 한 칸 — 년·월·일 중 하나를 고르는 드롭다운.
+/// 생년월일의 한 칸 — 년·월·일 중 하나를 고르는 선택 필드.
 ///
 /// 예전에는 칸을 누르면 달력 다이얼로그가 떴다. 가입하고 처음 보는 화면에서
 /// 곧바로 새 창이 덮었고, 40년 전을 찾아가려면 연도 격자까지 두 번 더 들어가야
 /// 했다. 세 칸을 그 자리에서 고르는 편이 짧다.
 ///
-/// 생김새는 같은 카드 안의 입력칸과 하나다 — 흰 바탕, 같은 테두리, 같은 반경.
-/// 펼쳐지는 목록도 흰 바탕이라 달력 창과 색이 갈리지 않는다.
+/// 생김새는 같은 카드 안의 입력칸과 하나다(공용 선택 필드).
 class _BirthPartDropdown extends StatelessWidget {
   const _BirthPartDropdown({
     required this.dropdownKey,
@@ -1071,46 +927,18 @@ class _BirthPartDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InputDecorator(
-      decoration: _fieldDecoration(),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<int>(
-          key: dropdownKey,
-          value: value,
-          isExpanded: true,
-          isDense: true,
-          borderRadius: BorderRadius.circular(12),
-          dropdownColor: Colors.white,
-          icon: const Icon(
-            Icons.expand_more,
-            size: 18,
-            color: AppColors.mutedForeground,
+    return AppSelectField<int>(
+      key: dropdownKey,
+      value: value,
+      hint: hint,
+      items: <DropdownMenuItem<int>>[
+        for (final int option in options)
+          DropdownMenuItem<int>(
+            value: option,
+            child: Text(labelOf(option), overflow: TextOverflow.ellipsis),
           ),
-          hint: Text(
-            hint,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-          // 펼친 목록은 오버레이라 화면의 기본 글꼴이 그대로 따라오지 않는다 —
-          // 테마의 타입 스케일에서 시작해야 목록 안 숫자도 같은 서체로 찍힌다.
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: FigmaColors.ink,
-          ),
-          items: <DropdownMenuItem<int>>[
-            for (final int option in options)
-              DropdownMenuItem<int>(
-                value: option,
-                child: Text(labelOf(option), overflow: TextOverflow.ellipsis),
-              ),
-          ],
-          onChanged: onChanged,
-        ),
-      ),
+      ],
+      onChanged: onChanged,
     );
   }
 }
@@ -1154,48 +982,28 @@ class _BodySummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: OnCareSpacing.s8,
+          runSpacing: OnCareSpacing.s8,
           children: <Widget>[
-            if (age != null) _Pill(l.onboardAgeSummary(age!)),
+            if (age != null)
+              AppTag(label: l.onboardAgeSummary(age!), tone: AppTagTone.brand),
             if (bmi != null)
-              _Pill(
-                l.onboardBmiSummary(
+              AppTag(
+                label: l.onboardBmiSummary(
                   bmi.toStringAsFixed(1),
                   _category(l, bmi),
                 ),
+                tone: AppTagTone.brand,
               ),
           ],
         ),
         if (bmi != null) ...<Widget>[
-          const SizedBox(height: 8),
+          const SizedBox(height: OnCareSpacing.s8),
           _SourceLine(l.onboardBmiSourceNote),
         ],
       ],
     );
   }
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: FigmaColors.softBlue,
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Text(
-      text,
-      style: const TextStyle(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w700,
-        color: FigmaColors.primary,
-      ),
-    ),
-  );
 }
 
 /// 카드 아래 각주 자리 — 네 단계가 **같은 위젯**을 쓴다.
@@ -1230,39 +1038,24 @@ class _StepNote extends StatelessWidget {
         if (infoLine != null) ...<Widget>[
           Text(
             infoLine!,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: FigmaColors.textSub,
-            ),
+            style: context.oncare
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: OnCareColors.textSecondary),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: OnCareSpacing.s4),
         ],
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Expanded(child: _SourceLine(sourceNote)),
             if (onAction != null && actionLabel != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              TextButton(
+              const SizedBox(width: OnCareSpacing.s8),
+              AppButton(
                 key: actionKey,
+                label: actionLabel!,
                 onPressed: onAction,
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  foregroundColor: FigmaColors.primary,
-                ),
-                child: Text(
-                  actionLabel!,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
               ),
             ],
           ],
@@ -1280,15 +1073,13 @@ class _SourceLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text,
-    style: const TextStyle(
-      fontSize: 11,
-      fontWeight: FontWeight.w500,
-      height: 1.4,
-      color: AppColors.mutedForeground,
-    ),
+    style: context.oncare
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textTertiary),
   );
 }
 
+/// 성별 — 만성질환과 같은 선택 칩이다(#1690 선택 상태 규격).
 class _GenderSelector extends StatelessWidget {
   const _GenderSelector({required this.value, required this.onChanged});
   final String? value;
@@ -1306,17 +1097,16 @@ class _GenderSelector extends StatelessWidget {
     final List<MapEntry<String, String>> entries = _labelsOf(
       AppLocalizations.of(context),
     ).entries.toList();
-    return Row(
+    return Wrap(
+      spacing: OnCareSpacing.s8,
+      runSpacing: OnCareSpacing.s8,
       children: <Widget>[
-        for (int i = 0; i < entries.length; i++) ...<Widget>[
-          _OnboardChip(
-            label: entries[i].value,
-            selected: value == entries[i].key,
-            onTap: () => onChanged(entries[i].key),
-            expand: true,
+        for (final MapEntry<String, String> entry in entries)
+          AppChoiceChip(
+            label: entry.value,
+            selected: value == entry.key,
+            onSelected: (_) => onChanged(entry.key),
           ),
-          if (i < entries.length - 1) const SizedBox(width: AppSpacing.sm),
-        ],
       ],
     );
   }

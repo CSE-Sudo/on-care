@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
@@ -13,6 +13,7 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 class _MockDio extends Mock implements Dio {}
 
@@ -109,11 +110,12 @@ Future<void> _pumpCard(
       overrides: <Override>[
         memberCoachRepositoryProvider.overrideWithValue(repository),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: CoachInviteCard()),
+        home: const Scaffold(body: CoachInviteCard()),
       ),
     ),
   );
@@ -143,7 +145,7 @@ void main() {
     testWidgets('받은 요청이 없으면 자리를 차지하지 않는다', (tester) async {
       await _pumpCard(tester, _FakeCoachRepository());
 
-      expect(find.byType(FilledButton), findsNothing);
+      expect(find.byType(AppButton), findsNothing);
     });
 
     testWidgets('누가 보냈고 무엇이 열리는지 함께 말한다', (tester) async {
@@ -171,8 +173,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // 연결 전에 무엇이 넘어가는지 알리고 동의를 받는다 (#1022).
-      expect(find.byKey(const Key('coachInviteConsentDialog')), findsOneWidget);
-      await tester.tap(find.byKey(const Key('coachInviteConsentAgree')));
+      // 규격 확인창(showAppConfirmDialog) — 제목 있는 창으로 뜬다.
+      expect(find.byType(AppDialog), findsOneWidget);
+      expect(find.text('담당 연결 전에 확인해 주세요'), findsOneWidget);
+      await tester.tap(find.text('동의하고 연결'));
       await tester.pumpAndSettle();
 
       expect(repository.accepted, <String>['tci-1']);
@@ -204,7 +208,7 @@ void main() {
         find.byKey(const ValueKey<String>('coach-invite-accept-tci-1')),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('coachInviteConsentAgree')));
+      await tester.tap(find.text('동의하고 연결'));
       await tester.pumpAndSettle();
 
       expect(find.text('처리하지 못했어요. 다시 시도해 주세요'), findsOneWidget);

@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/chart_semantics.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
@@ -104,10 +105,11 @@ void main() {
   testWidgets('꺾은선 그래프는 요약 한 문장만 시맨틱 트리에 남긴다', (WidgetTester tester) async {
     final SemanticsHandle handle = tester.ensureSemantics();
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
+        theme: AppTheme.light(),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(
+        home: const Scaffold(
           body: SizedBox(
             width: 320,
             child: MetricTrendChart(

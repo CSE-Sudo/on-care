@@ -230,23 +230,22 @@ void main() {
 
   testWidgets('코드 상자 위에 입력창이 겹쳐 그려지지 않는다', (tester) async {
     // 상자 위에 겹쳐 둔 입력은 탭만 받고 아무것도 그리지 않아야 한다.
-    // 앱 테마가 모든 입력에 주는 회색 채움·둥근 테두리를 이 입력이 그대로
-    // 받으면, 가로로 긴 입력창이 여섯 상자를 덮어 숫자가 보이지 않는다.
+    // 입력(`AppTextField`)은 규격대로 채움·테두리를 그리므로, 그대로 보이면
+    // 가로로 긴 입력창이 여섯 상자를 덮어 숫자가 보이지 않는다(#1636).
+    // 그래서 입력 전체를 투명(불투명도 0)으로 감싼다.
     await pumpDialog(tester, _FakeInviteRepository(paired: _paired()));
 
-    final InputDecorator decorator = tester.widget<InputDecorator>(
-      find.descendant(
-        of: find.byKey(const ValueKey<String>('client-connect-code')),
-        matching: find.byType(InputDecorator),
-      ),
+    final Finder input = find.byKey(const ValueKey<String>('client-connect-code'));
+    expect(input, findsOneWidget);
+    final Opacity cover = tester.widget<Opacity>(
+      find.ancestor(of: input, matching: find.byType(Opacity)).first,
     );
-    final InputDecoration decoration = decorator.decoration;
-    expect(decoration.filled, isFalse);
-    expect(decoration.border, InputBorder.none);
-    expect(decoration.enabledBorder, InputBorder.none);
-    expect(decoration.focusedBorder, InputBorder.none);
-    expect(decoration.disabledBorder, InputBorder.none);
-    expect(decoration.errorBorder, InputBorder.none);
+    expect(cover.opacity, 0);
+
+    // 투명해도 입력은 그대로 받는다.
+    await enterCode(tester, '12');
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
   });
 
   testWidgets('입력 칸은 여섯 자리를 한 상자씩 보여준다', (tester) async {

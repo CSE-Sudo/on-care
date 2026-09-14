@@ -722,6 +722,18 @@ abstract class AppLocalizations {
   /// **'Snap your food with the camera'**
   String get dietTakePhotoSub;
 
+  /// No description provided for @dietAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a Photo'**
+  String get dietAddPhoto;
+
+  /// No description provided for @dietAddPhotoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a food photo from your library, camera, or files'**
+  String get dietAddPhotoSub;
+
   /// No description provided for @dietPhotoLoadError.
   ///
   /// In en, this message translates to:
@@ -2851,6 +2863,12 @@ abstract class AppLocalizations {
   /// **'It was also delivered as a notification'**
   String get coachChatDemoNotified;
 
+  /// Chat date divider with full date and weekday.
+  ///
+  /// In en, this message translates to:
+  /// **'{date}'**
+  String coachChatDateDivider(DateTime date);
+
   /// No description provided for @coachCtaChat.
   ///
   /// In en, this message translates to:
@@ -4423,6 +4441,18 @@ abstract class AppLocalizations {
   /// **'Remove \'{name}\' from the list? Anything you already logged stays.'**
   String coachRoutineCancelConfirm(String name);
 
+  /// Title of the dialog confirming undoing a completed recommended workout.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo completion?'**
+  String get coachCardRoutineUndoTitle;
+
+  /// Title of the dialog confirming removal of a recommended workout.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this workout?'**
+  String get coachCardRoutineCancelTitle;
+
   /// No description provided for @coachRoutineCancelled.
   ///
   /// In en, this message translates to:
@@ -4555,24 +4585,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the latest notifications'**
   String get alertLoadFailed;
 
-  /// Title of the demo push the mock build can trigger.
-  ///
-  /// In en, this message translates to:
-  /// **'Simulated notification'**
-  String get alertSimulatedTitle;
-
-  /// Body of the demo push the mock build can trigger.
-  ///
-  /// In en, this message translates to:
-  /// **'A test push just arrived.'**
-  String get alertSimulatedBody;
-
-  /// Relative time for something that just happened.
-  ///
-  /// In en, this message translates to:
-  /// **'Just now'**
-  String get alertJustNow;
-
   /// Title of the completed PT session card.
   ///
   /// In en, this message translates to:
@@ -4674,6 +4686,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Next week'**
   String get a11yNextWeek;
+
+  /// No description provided for @exConsultHistoryCancelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this consultation request?'**
+  String get exConsultHistoryCancelTitle;
+
+  /// No description provided for @exConsultHistoryCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'A cancelled request can\'t be restored.'**
+  String get exConsultHistoryCancelBody;
+
+  /// No description provided for @exDemoPtSessionCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Session 12 with Trainer Kim'**
+  String get exDemoPtSessionCount;
+
+  /// No description provided for @exDemoPtTrainerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer Kim'**
+  String get exDemoPtTrainerName;
+
+  /// No description provided for @exDemoPtFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!'**
+  String get exDemoPtFeedback;
+
+  /// No description provided for @exStepperDecrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get exStepperDecrease;
+
+  /// No description provided for @exStepperIncrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get exStepperIncrease;
 }
 
 class _AppLocalizationsDelegate

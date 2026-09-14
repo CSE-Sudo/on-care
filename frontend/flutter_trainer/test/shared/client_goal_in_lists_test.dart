@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/features/reports/presentation/widgets/report_client_picker.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 
 import '../helpers/client_factory.dart';
 import '../helpers/pump_app.dart';
@@ -81,7 +81,14 @@ void main() {
 
     // 리포트 본문에는 목표를 적지 않는다 — 왼쪽 선택 목록에만 있다.
     expect(find.text(goal), findsOneWidget);
-    expect(find.byType(ClientGoalLabel), findsOneWidget);
+    // 목표는 목록 행의 부제 자리에 선다(#1706).
+    expect(
+      find.descendant(
+        of: find.byType(ReportClientPicker),
+        matching: find.text(goal),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('스케줄 상세 패널의 세션 카드에 회원 목표가 보인다', (tester) async {
@@ -143,14 +150,25 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(ClientGoalLabel), findsWidgets);
-    // 그릴 것이 없으면 Text 를 만들지 않는다.
+    // 프로그램 목록 행은 공용 규격 행으로 옮겨 목표 줄을 행 안에서 직접
+    // 그린다(#1705) — 목표가 공백뿐이면 그 줄의 Text 자체가 없어야 한다.
+    final Finder row = find.byKey(
+      const ValueKey<String>('program-client-no-goal'),
+    );
+    expect(row, findsOneWidget);
+    expect(
+      find.descendant(of: row, matching: find.text('목표없음')),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
-        of: find.byType(ClientGoalLabel),
-        matching: find.byType(Text),
+        of: row,
+        matching: find.byWidgetPredicate(
+          (Widget w) => w is Text && (w.data ?? '').trim().isEmpty,
+        ),
       ),
       findsNothing,
     );
+    expect(find.descendant(of: row, matching: find.text('   ')), findsNothing);
   });
 }

@@ -9,15 +9,15 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -33,6 +33,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: AppTheme.light(),
         locale: Locale(lang),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -52,6 +53,7 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: Locale(lang),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -82,7 +84,7 @@ void main() {
       expect(opened, 1);
     });
 
-    testWidgets('흰 바탕에 메인 색 테두리, 그리고 테두리 없는 글자 버튼', (
+    testWidgets('추천운동 수신 배너와 같은 안내 배너(info)에 동작 버튼 하나 (#1577)', (
       WidgetTester tester,
     ) async {
       await pumpCard(
@@ -93,20 +95,26 @@ void main() {
         ),
       );
 
+      final AppBanner banner = tester.widget<AppBanner>(
+        find.descendant(
+          of: find.byType(CoachReportCard),
+          matching: find.byType(AppBanner),
+        ),
+      );
+      expect(banner.tone, AppBannerTone.info);
       final Container box = tester.widget<Container>(
         find
             .descendant(
-              of: find.byType(CoachReportCard),
+              of: find.byType(AppBanner),
               matching: find.byType(Container),
             )
             .first,
       );
       final BoxDecoration decoration = box.decoration! as BoxDecoration;
-      expect(decoration.color, Colors.white);
-      expect(decoration.border, Border.all(color: FigmaColors.primary));
-      // 안내 상자 안에서 두 번째 테두리를 그리면 상자가 둘로 보인다.
-      expect(find.byType(TextButton), findsOneWidget);
-      expect(find.byType(OutlinedButton), findsNothing);
+      expect(decoration.color, OnCareBrand.member.surface);
+      expect(decoration.border, Border.all(color: OnCareBrand.member.border));
+      // 다음 행동은 하나뿐이다.
+      expect(find.byType(AppButton), findsOneWidget);
     });
 
     testWidgets('영어 로케일도 같은 정보 구조다', (WidgetTester tester) async {

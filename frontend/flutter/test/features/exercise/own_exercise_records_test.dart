@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -161,11 +162,12 @@ Widget _app(ExerciseRepository repo) => ProviderScope(
       MockMemberCoachRepository() as MemberCoachRepository,
     ),
   ],
-  child: const MaterialApp(
-    locale: Locale('ko'),
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: ExercisePage(),
+    home: const ExercisePage(),
   ),
 );
 

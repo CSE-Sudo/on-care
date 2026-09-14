@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
@@ -95,6 +95,7 @@ void main() {
           myReservationsProvider.overrideWith((ref) async => const []),
         ],
         child: MaterialApp.router(
+          theme: AppTheme.light(),
           routerConfig: router,
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -118,7 +119,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const Key('gymTrainerDetailButton')),
-          matching: find.byIcon(Icons.chevron_right),
+          matching: find.byIcon(Icons.chevron_right_rounded),
         ),
         findsOneWidget,
       );

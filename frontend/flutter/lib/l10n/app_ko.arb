@@ -120,6 +120,8 @@
   "dietPickPhotoSub": "갤러리에서 음식 사진 선택",
   "dietTakePhoto": "사진 찍기",
   "dietTakePhotoSub": "카메라로 음식 촬영",
+  "dietAddPhoto": "사진 추가",
+  "dietAddPhotoSub": "앨범·카메라·파일에서 음식 사진 선택",
   "dietPhotoLoadError": "사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
   "dietCameraPermissionDenied": "음식 사진을 촬영하려면 카메라 권한이 필요해요. 사진 찍기를 눌러 다시 시도해 주세요",
   "dietCameraPermissionPermanentlyDenied": "카메라 접근이 꺼져 있어요. 설정에서 카메라를 켜면 음식 사진을 촬영할 수 있어요",
@@ -555,6 +557,7 @@
   "coachChatDemoReportSent": "{trainer}님께 요약 리포트가 전송됐어요",
   "coachChatDemoRoutineReceived": "개인 추천운동을 받았어요",
   "coachChatDemoNotified": "알림으로도 전달됐어요",
+  "coachChatDateDivider": "{date}",
   "coachCtaChat": "AI와 대화하기",
   "navAddRecordTitle": "새 기록 추가",
   "navAddRecordSubtitle": "식단 또는 운동을 선택해 주세요",
@@ -827,6 +830,8 @@
   "@coachRoutineCancelConfirm": {
     "placeholders": { "name": { "type": "String" } }
   },
+  "coachCardRoutineUndoTitle": "완료를 취소할까요?",
+  "coachCardRoutineCancelTitle": "개인 운동을 취소할까요?",
   "coachRoutineCancelled": "개인 운동을 취소했어요",
   "coachRoutineCancelFailed": "개인 운동을 취소하지 못했어요",
   "coachRoutineMyNote": "내 피드백: {note}",
@@ -849,9 +854,6 @@
   "alertMarkAllRead": "모두 읽음",
   "alertEmpty": "알림이 없습니다",
   "alertLoadFailed": "최신 알림을 불러오지 못했어요",
-  "alertSimulatedTitle": "시뮬레이션 알림",
-  "alertSimulatedBody": "지금 막 가상 푸시가 도착했어요.",
-  "alertJustNow": "방금",
   "exPtLogTitle": "오늘 완료한 PT",
   "exPtFeedbackTitle": "오늘의 피드백",
   "exNextPtSchedule": "다음 PT · {when}",
@@ -874,5 +876,12 @@
   "a11yRemoveFood": "음식 지우기",
   "a11yOpenCalendar": "일정 달력 열기",
   "a11yPrevWeek": "지난 주",
-  "a11yNextWeek": "다음 주"
+  "a11yNextWeek": "다음 주",
+  "exConsultHistoryCancelTitle": "상담 요청을 취소할까요?",
+  "exConsultHistoryCancelBody": "취소한 요청은 다시 되돌릴 수 없어요.",
+  "exDemoPtSessionCount": "김트레이너와 12회차",
+  "exDemoPtTrainerName": "김트레이너",
+  "exDemoPtFeedback": "숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!",
+  "exStepperDecrease": "줄이기",
+  "exStepperIncrease": "늘리기"
 }

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 수정 후 추천으로 나가는 값. 취소는 null 이다.
 ///
@@ -40,7 +38,7 @@ Future<RoutineSuggestionEdit?> showRoutineSuggestionEditDialog(
   BuildContext context,
   RoutineSuggestion suggestion,
 ) {
-  return showDialog<RoutineSuggestionEdit>(
+  return showAppDialog<RoutineSuggestionEdit>(
     context: context,
     builder: (_) => RoutineSuggestionEditDialog(suggestion: suggestion),
   );
@@ -58,93 +56,88 @@ Future<bool?> showRoutineSuggestionConfirmDialog(
   required RoutineSuggestion suggestion,
   required String clientName,
 }) {
-  return showDialog<bool>(
+  return showAppDialog<bool>(
     context: context,
     builder: (dialogContext) {
       final AppLocalizations l = AppLocalizations.of(dialogContext);
-      return AlertDialog(
+      final OnCareTokens tokens = dialogContext.oncare;
+      return AppDialog(
         key: const ValueKey<String>('routine-suggestion-confirm'),
-        backgroundColor: AppColors.card,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(AppRadius.card),
-        ),
-        title: Text(
-          l.suggestionConfirmTitle,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-        ),
-        content: SizedBox(
-          width: 360,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Text(
-                l.suggestionConfirmBody(clientName),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.subtleForeground,
-                  height: 1.4,
-                ),
+        title: l.suggestionConfirmTitle,
+        showClose: false,
+        // 버튼마다 테스트 키가 있어 AppButtonPair 대신 같은 모양을 직접 둔다.
+        footer: Row(
+          children: <Widget>[
+            Expanded(
+              child: AppButton(
+                key: const ValueKey<String>('suggestion-confirm-cancel'),
+                label: l.actionCancel,
+                variant: AppButtonVariant.secondary,
+                fullWidth: true,
+                onPressed: () => Navigator.of(dialogContext).pop(false),
               ),
-              const SizedBox(height: AppSpacing.md),
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: const BoxDecoration(
-                  color: AppColors.inputBackground,
-                  borderRadius: BorderRadius.all(AppRadius.md),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
+            ),
+            const SizedBox(width: OnCareSpacing.buttonGap),
+            Expanded(
+              child: AppButton(
+                key: const ValueKey<String>('suggestion-confirm-submit'),
+                label: l.suggestionApprove,
+                fullWidth: true,
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+              ),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Text(
+              l.suggestionConfirmBody(clientName),
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+            const SizedBox(height: OnCareSpacing.s12),
+            Container(
+              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+              decoration: const BoxDecoration(
+                color: OnCareColors.surfaceInput,
+                borderRadius: OnCareRadius.mdAll,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    '${suggestion.name} · '
+                    '${routineSuggestionAmountLabel(l, suggestion)}',
+                    style: tokens
+                        .text(
+                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                        )
+                        .copyWith(color: OnCareColors.textPrimary),
+                  ),
+                  const SizedBox(height: OnCareSpacing.s4),
+                  Text(
+                    routineTypeLabel(l, suggestion.type),
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: OnCareColors.textTertiary),
+                  ),
+                  if (suggestion.reason.isNotEmpty) ...<Widget>[
+                    const SizedBox(height: OnCareSpacing.s8),
                     Text(
-                      '${suggestion.name} · '
-                      '${routineSuggestionAmountLabel(l, suggestion)}',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.foreground,
-                      ),
+                      suggestion.reason,
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textPrimary),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      routineTypeLabel(l, suggestion.type),
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.subtleForeground,
-                      ),
-                    ),
-                    if (suggestion.reason.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        suggestion.reason,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.foreground,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        actions: <Widget>[
-          TextButton(
-            key: const ValueKey<String>('suggestion-confirm-cancel'),
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          FilledButton(
-            key: const ValueKey<String>('suggestion-confirm-submit'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.suggestionApprove),
-          ),
-        ],
       );
     },
   );
@@ -241,121 +234,86 @@ class _RoutineSuggestionEditDialogState
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AlertDialog(
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(AppRadius.card),
-      ),
-      title: Text(
-        l.suggestionEditTitle,
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-      ),
-      content: SizedBox(
-        width: 360,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _FieldLabel(l.suggestionEditName),
-              TextField(
-                key: const ValueKey<String>('suggestion-edit-name'),
-                controller: _name,
-                maxLength: _nameMaxLength,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  counterText: '',
-                  border: OutlineInputBorder(),
-                ),
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              // 유형을 먼저 고른다 — 아래 칸이 세트·횟수·중량인지 시간인지를
-              // 이 값이 정한다.
-              RoutineCategoryChips(
-                keyPrefix: 'suggestion-edit-type',
-                value: _type,
-                onChanged: (next) => setState(() => _type = next),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              if (_isStrength) ...<Widget>[
-                RoutineSetsField(
-                  keyPrefix: 'suggestion-edit-sets',
-                  sets: _sets,
-                  onChanged: (next) => setState(() => _sets = next),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                RoutineRepsField(
-                  keyPrefix: 'suggestion-edit-reps',
-                  reps: _reps,
-                  onChanged: (next) => setState(() => _reps = next),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                RoutineWeightField(
-                  keyPrefix: 'suggestion-edit-weight',
-                  weight: _weight,
-                  onChanged: (next) => setState(() => _weight = next),
-                ),
-              ] else
-                RoutineMinutesField(
-                  keyPrefix: 'suggestion-edit-minutes',
-                  minutes: _minutes,
-                  onChanged: (next) => setState(() => _minutes = next),
-                ),
-              const SizedBox(height: AppSpacing.md),
-              _FieldLabel(l.suggestionEditMemo),
-              TextField(
-                key: const ValueKey<String>('suggestion-edit-memo'),
-                controller: _reason,
-                maxLength: _reasonMaxLength,
-                maxLines: 3,
-                minLines: 2,
-                decoration: InputDecoration(
-                  isDense: true,
-                  counterText: '',
-                  hintText: l.suggestionEditMemoHint,
-                  border: const OutlineInputBorder(),
-                ),
-                style: const TextStyle(fontSize: 12.5),
-              ),
-            ],
+    return AppDialog(
+      title: l.suggestionEditTitle,
+      size: AppDialogSize.medium,
+      showClose: false,
+      // 버튼마다 테스트 키가 있어 AppButtonPair 대신 같은 모양을 직접 둔다.
+      footer: Row(
+        children: <Widget>[
+          Expanded(
+            child: AppButton(
+              key: const ValueKey<String>('suggestion-edit-cancel'),
+              label: l.actionCancel,
+              variant: AppButtonVariant.secondary,
+              fullWidth: true,
+              onPressed: () => Navigator.of(context).pop(),
+            ),
           ),
-        ),
+          const SizedBox(width: OnCareSpacing.buttonGap),
+          Expanded(
+            child: AppButton(
+              key: const ValueKey<String>('suggestion-edit-submit'),
+              label: l.suggestionEditSubmit,
+              fullWidth: true,
+              onPressed: _submit,
+            ),
+          ),
+        ],
       ),
-      actions: <Widget>[
-        TextButton(
-          key: const ValueKey<String>('suggestion-edit-cancel'),
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l.actionCancel),
-        ),
-        FilledButton(
-          key: const ValueKey<String>('suggestion-edit-submit'),
-          onPressed: _submit,
-          child: Text(l.suggestionEditSubmit),
-        ),
-      ],
-    );
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.subtleForeground,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppTextField(
+            key: const ValueKey<String>('suggestion-edit-name'),
+            controller: _name,
+            label: l.suggestionEditName,
+            maxLength: _nameMaxLength,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 유형을 먼저 고른다 — 아래 칸이 세트·횟수·중량인지 시간인지를
+          // 이 값이 정한다.
+          RoutineCategoryChips(
+            keyPrefix: 'suggestion-edit-type',
+            value: _type,
+            onChanged: (next) => setState(() => _type = next),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          if (_isStrength) ...<Widget>[
+            RoutineSetsField(
+              keyPrefix: 'suggestion-edit-sets',
+              sets: _sets,
+              onChanged: (next) => setState(() => _sets = next),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            RoutineRepsField(
+              keyPrefix: 'suggestion-edit-reps',
+              reps: _reps,
+              onChanged: (next) => setState(() => _reps = next),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            RoutineWeightField(
+              keyPrefix: 'suggestion-edit-weight',
+              weight: _weight,
+              onChanged: (next) => setState(() => _weight = next),
+            ),
+          ] else
+            RoutineMinutesField(
+              keyPrefix: 'suggestion-edit-minutes',
+              minutes: _minutes,
+              onChanged: (next) => setState(() => _minutes = next),
+            ),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            key: const ValueKey<String>('suggestion-edit-memo'),
+            controller: _reason,
+            label: l.suggestionEditMemo,
+            hint: l.suggestionEditMemoHint,
+            maxLength: _reasonMaxLength,
+            maxLines: 3,
+            minLines: 2,
+          ),
+        ],
       ),
     );
   }

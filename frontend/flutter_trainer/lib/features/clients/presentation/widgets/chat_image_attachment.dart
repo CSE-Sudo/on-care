@@ -5,10 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/network/dio_client.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 사진을 받아 오는 동안 차지하는 자리의 높이. 받은 뒤 크기가 크게 튀지 않을
+/// 만큼만 잡는다.
+const double _loadingHeight = 120;
+
+/// 사진을 못 그렸을 때 남는 자리의 높이.
+const double _unavailableHeight = 96;
 
 /// 첨부 사진의 바이트. 경로로 키를 잡는다.
 ///
@@ -54,8 +60,7 @@ class ChatImageAttachment extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final bytes = ref.watch(chatImageProvider(attachment.downloadPath));
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.all(AppRadius.md),
+    return AppImageFrame(
       child: ConstrainedBox(
         constraints: const BoxConstraints(
           maxWidth: maxEdge,
@@ -64,14 +69,8 @@ class ChatImageAttachment extends ConsumerWidget {
         child: bytes.when(
           loading: () => const SizedBox(
             width: maxEdge,
-            height: 120,
-            child: Center(
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
+            height: _loadingHeight,
+            child: Center(child: AppLoading.inline()),
           ),
           error: (_, _) => _Unavailable(label: l.chatImageUnavailable),
           data: (data) => data == null
@@ -101,23 +100,25 @@ class _Unavailable extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: ChatImageAttachment.maxEdge,
-      height: 96,
-      color: AppColors.background,
+      height: _unavailableHeight,
+      color: OnCareColors.surfaceInput,
       alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           const Icon(
-            Icons.image_not_supported_outlined,
-            size: 16,
-            color: AppColors.mutedForeground,
+            Icons.image_not_supported_rounded,
+            size: OnCareSize.iconSmall,
+            color: OnCareColors.textTertiary,
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.mutedForeground,
+          const SizedBox(width: OnCareSpacing.s8),
+          Flexible(
+            child: Text(
+              label,
+              style: context.oncare
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
           ),
         ],

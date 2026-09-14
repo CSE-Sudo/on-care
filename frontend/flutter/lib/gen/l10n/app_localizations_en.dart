@@ -350,6 +350,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietTakePhotoSub => 'Snap your food with the camera';
 
   @override
+  String get dietAddPhoto => 'Add a Photo';
+
+  @override
+  String get dietAddPhotoSub =>
+      'Choose a food photo from your library, camera, or files';
+
+  @override
   String get dietPhotoLoadError =>
       'Couldn\'t load the photo. Please try again in a moment.';
 
@@ -1563,6 +1570,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachChatDemoNotified => 'It was also delivered as a notification';
 
   @override
+  String coachChatDateDivider(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMMEEEEd(
+      localeName,
+    );
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
   String get coachCtaChat => 'Chat with AI';
 
   @override
@@ -2423,6 +2440,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get coachCardRoutineUndoTitle => 'Undo completion?';
+
+  @override
+  String get coachCardRoutineCancelTitle => 'Cancel this workout?';
+
+  @override
   String get coachRoutineCancelled => 'Workout cancelled';
 
   @override
@@ -2495,15 +2518,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
 
   @override
-  String get alertSimulatedTitle => 'Simulated notification';
-
-  @override
-  String get alertSimulatedBody => 'A test push just arrived.';
-
-  @override
-  String get alertJustNow => 'Just now';
-
-  @override
   String get exPtLogTitle => 'Today\'s completed PT';
 
   @override
@@ -2563,4 +2577,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get a11yNextWeek => 'Next week';
+
+  @override
+  String get exConsultHistoryCancelTitle => 'Cancel this consultation request?';
+
+  @override
+  String get exConsultHistoryCancelBody =>
+      'A cancelled request can\'t be restored.';
+
+  @override
+  String get exDemoPtSessionCount => 'Session 12 with Trainer Kim';
+
+  @override
+  String get exDemoPtTrainerName => 'Trainer Kim';
+
+  @override
+  String get exDemoPtFeedback =>
+      'Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!';
+
+  @override
+  String get exStepperDecrease => 'Decrease';
+
+  @override
+  String get exStepperIncrease => 'Increase';
 }

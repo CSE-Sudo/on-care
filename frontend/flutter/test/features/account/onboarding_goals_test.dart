@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
@@ -11,6 +11,7 @@ import 'package:oncare/features/account/domain/repositories/account_repository.d
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 온보딩 3·4단계가 권장값을 미리 채우고, 회원이 고친 값을 지키고, 끝에서 그
 /// 열 칸을 그대로 저장하는지.
@@ -135,11 +136,12 @@ Future<_RecordingRepository> _open(WidgetTester tester) async {
       overrides: <Override>[
         accountRepositoryProvider.overrideWithValue(repo),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: OnboardingPage(),
+        home: const OnboardingPage(),
       ),
     ),
   );
@@ -190,7 +192,7 @@ Future<void> _pickBirth(
 }
 
 int? _birthValue(WidgetTester tester, String key) =>
-    tester.widget<DropdownButton<int>>(find.byKey(Key(key))).value;
+    tester.widget<AppSelectField<int>>(find.byKey(Key(key))).value;
 
 Future<void> _tapNext(WidgetTester tester) async {
   await tester.tap(find.text('다음'));

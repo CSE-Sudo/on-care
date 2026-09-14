@@ -13,7 +13,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -138,11 +138,12 @@ Widget _app(ExerciseRepository repo) => ProviderScope(
       MockMemberCoachRepository() as MemberCoachRepository,
     ),
   ],
-  child: const MaterialApp(
-    locale: Locale('ko'),
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: ExercisePage(),
+    home: const ExercisePage(),
   ),
 );
 
@@ -190,9 +191,7 @@ void main() {
   });
 
   testWidgets('주간 조언을 기다리는 동안 오늘 조언으로 되돌아가지 않는다', (WidgetTester tester) async {
-    final _AdviceRepository repo = _AdviceRepository(
-      pending: <String>{'week'},
-    );
+    final _AdviceRepository repo = _AdviceRepository(pending: <String>{'week'});
     await _pump(tester, repo);
     final String todayAdvice = _adviceText(tester);
 

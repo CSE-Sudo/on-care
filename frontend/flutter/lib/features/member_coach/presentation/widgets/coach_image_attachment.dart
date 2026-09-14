@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 트레이너가 보낸 사진의 바이트. 경로로 키를 잡는다.
 ///
@@ -43,13 +43,16 @@ class CoachImageAttachment extends ConsumerWidget {
   /// 말풍선 안에서의 최대 크기. 원본이 작으면 그 크기로 그린다.
   static const double maxEdge = 220;
 
+  /// 사진을 받는 동안 비워 두는 자리의 높이. 말풍선 안 사진 자리에 맞는
+  /// 토큰이 없어 여기서 정한다.
+  static const double _loadingHeight = 120;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final bytes = ref.watch(coachImageProvider(attachment.downloadPath));
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+    return AppImageFrame(
       child: ConstrainedBox(
         constraints: const BoxConstraints(
           maxWidth: maxEdge,
@@ -58,14 +61,8 @@ class CoachImageAttachment extends ConsumerWidget {
         child: bytes.when(
           loading: () => const SizedBox(
             width: maxEdge,
-            height: 120,
-            child: Center(
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
+            height: _loadingHeight,
+            child: Center(child: AppLoading.inline()),
           ),
           error: (_, _) => _Unavailable(label: l.coachImageUnavailable),
           data: (data) => data == null
@@ -83,33 +80,38 @@ class CoachImageAttachment extends ConsumerWidget {
   }
 }
 
-/// 사진을 못 그렸을 때 남는 자리.
+/// 사진을 못 그렸을 때 남는 자리 — 입력 채움 바탕에 아이콘과 한 줄.
 class _Unavailable extends StatelessWidget {
   const _Unavailable({required this.label});
 
   final String label;
 
+  /// 대신 남는 자리의 높이. 맞는 토큰이 없어 여기서 정한다.
+  static const double _height = 96;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: CoachImageAttachment.maxEdge,
-      height: 96,
-      color: AppColors.background,
+      height: _height,
+      color: OnCareColors.surfaceInput,
       alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           const Icon(
-            Icons.image_not_supported_outlined,
-            size: 16,
-            color: AppColors.mutedForeground,
+            Icons.image_not_supported_rounded,
+            size: OnCareSize.iconSmall,
+            color: OnCareColors.textTertiary,
           ),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppColors.mutedForeground,
+          const SizedBox(width: OnCareSpacing.s4),
+          Flexible(
+            child: Text(
+              label,
+              style: context.oncare
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
             ),
           ),
         ],

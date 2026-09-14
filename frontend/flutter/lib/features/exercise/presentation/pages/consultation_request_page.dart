@@ -5,9 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/core/utils/portrait_date_picker.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -16,7 +13,7 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consult_time_range_picker.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 enum _ExerciseGoal { weightLoss, strength, fitness, posture, health, other }
 
@@ -25,6 +22,11 @@ enum _ExerciseGoal { weightLoss, strength, fitness, posture, health, other }
 extension on _ExerciseGoal {
   ExerciseGoal get wire => ExerciseGoal.values[index];
 }
+
+/// 필드 위 제목 — 섹션 제목 역할 글자.
+TextStyle _fieldTitleStyle(BuildContext context) => context.oncare
+    .text(OnCareTypography.titleSmall)
+    .copyWith(color: OnCareColors.textPrimary);
 
 class ConsultationRequestPage extends ConsumerStatefulWidget {
   const ConsultationRequestPage({
@@ -74,7 +76,7 @@ class _ConsultationRequestPageState
 
   Future<void> _selectDate() async {
     final DateTime today = DateUtils.dateOnly(nowKst());
-    final DateTime? selected = await showPortraitDatePicker(
+    final DateTime? selected = await showAppDatePicker(
       context: context,
       initialDate: _preferredDate ?? today,
       firstDate: today,
@@ -85,9 +87,8 @@ class _ConsultationRequestPageState
     }
   }
 
-  /// 시작과 종료 시각을 한 다이얼에서 이어서 고른다. 트레이너 앱 스케줄
-  /// 탭의 시간 범위 선택기를 그대로 써서 두 앱이 같은 방식으로 정확한
-  /// 범위를 입력한다.
+  /// 시작과 종료 시각을 차례로 고른다. 두 앱이 같은 공용 시간 선택기로
+  /// 정확한 범위를 입력한다.
   Future<void> _selectTime() async {
     final TimeRangeValue? picked = await showConsultTimeRangePicker(
       context: context,
@@ -194,7 +195,7 @@ class _ConsultationRequestPageState
       showAppToast(
         context,
         AppLocalizations.of(context).errorUnknown,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
       return;
     }
@@ -241,38 +242,33 @@ class _ConsultationRequestPageState
       );
       body = _buildForm(gym: gym, trainer: trainer, hasPending: hasPending);
     } else if (hasTrainerId && trainerAsync.isLoading) {
-      body = const Center(child: CircularProgressIndicator(strokeWidth: 3));
+      body = const AppLoading();
     } else if (!hasTrainerId || widget.gymId.isEmpty || gym != null) {
-      body = _StateMessage(message: l.exConsultTargetNotFound);
+      body = AppEmptyState(
+        title: l.exConsultTargetNotFound,
+        icon: Icons.info_rounded,
+      );
     } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
-      body = const Center(child: CircularProgressIndicator(strokeWidth: 3));
+      body = const AppLoading();
     } else if (nearbyAsync.hasError || myGymAsync.hasError) {
-      body = _StateMessage(
-        message: l.exGymsLoadError,
+      body = AppErrorState(
+        title: l.exGymsLoadError,
+        retryLabel: l.actionRetry,
         onRetry: () {
           ref.invalidate(nearbyGymsProvider);
           ref.invalidate(myGymProvider);
         },
       );
     } else {
-      body = _StateMessage(message: l.exConsultTargetNotFound);
+      body = AppEmptyState(
+        title: l.exConsultTargetNotFound,
+        icon: Icons.info_rounded,
+      );
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        scrolledUnderElevation: 0,
-        title: Text(
-          l.exConsultRequestTitle,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-            color: FigmaColors.ink,
-          ),
-        ),
-      ),
+      backgroundColor: OnCareColors.surfacePage,
+      appBar: AppTopBar(title: l.exConsultRequestTitle),
       body: SafeArea(top: false, child: body),
     );
   }
@@ -283,6 +279,7 @@ class _ConsultationRequestPageState
     required bool hasPending,
   }) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final Map<_ExerciseGoal, String> goalLabels = <_ExerciseGoal, String>{
       _ExerciseGoal.weightLoss: l.exGoalWeightLoss,
       _ExerciseGoal.strength: l.exGoalStrength,
@@ -294,23 +291,30 @@ class _ConsultationRequestPageState
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
+        constraints: const BoxConstraints(
+          maxWidth: OnCareLayout.mobileContentMaxWidth,
+        ),
         child: ListView(
           // 폼이 한 화면보다 길다. 아래쪽 항목은 화면에 들어오기 전까지 만들어지지
           // 않으므로, E2E 가 이 목록을 잡고 스크롤할 수 있어야 한다. (#640)
           key: const Key('consult-form'),
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          padding: const EdgeInsets.fromLTRB(
+            OnCareSpacing.s20,
+            OnCareSpacing.s16,
+            OnCareSpacing.s20,
+            OnCareSpacing.s32,
+          ),
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           children: <Widget>[
             _TargetCard(gym: gym, trainer: trainer),
-            const SizedBox(height: 12),
+            const SizedBox(height: OnCareSpacing.s12),
             _DataSharingNotice(
               consented: _dataSharingConsent,
               onChanged: (bool next) =>
                   setState(() => _dataSharingConsent = next),
               showRequired: _attempted && !_dataSharingConsent,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: OnCareSpacing.s20),
             _ChoiceField<_ExerciseGoal>(
               chipKeyPrefix: 'consult-goal',
               title: l.exExerciseGoal,
@@ -324,61 +328,72 @@ class _ConsultationRequestPageState
                   : null,
             ),
             if (_exerciseGoal == _ExerciseGoal.other) ...<Widget>[
-              const SizedBox(height: 8),
+              const SizedBox(height: OnCareSpacing.s8),
               Text(
                 l.exOtherGoalHint,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  color: AppColors.mutedForeground,
-                ),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
               ),
             ],
-            const SizedBox(height: 20),
-            _FieldTitle(title: l.exPreferredDate),
-            const SizedBox(height: 8),
-            _DateField(
+            const SizedBox(height: OnCareSpacing.s20),
+            Text(l.exPreferredDate, style: _fieldTitleStyle(context)),
+            const SizedBox(height: OnCareSpacing.s8),
+            _PickerField(
               key: const Key('consult-date'),
-              date: _preferredDate,
+              icon: Icons.calendar_today_rounded,
+              text: _preferredDate == null
+                  ? l.exSelectDate
+                  : MaterialLocalizations.of(
+                      context,
+                    ).formatMediumDate(_preferredDate!),
+              filled: _preferredDate != null,
               onTap: _selectDate,
             ),
             if (_attempted && _preferredDate == null)
               _ErrorText(l.exDateRequired),
-            const SizedBox(height: 20),
-            _FieldTitle(title: l.exPreferredTime),
-            const SizedBox(height: 8),
-            _TimeField(
+            const SizedBox(height: OnCareSpacing.s20),
+            Text(l.exPreferredTime, style: _fieldTitleStyle(context)),
+            const SizedBox(height: OnCareSpacing.s8),
+            // 날짜 필드와 같은 자리·스타일이다 — 눌렀을 때 뜨는 게 날짜 대신
+            // [showConsultTimeRangePicker]일 뿐이다(#1256). 옆에 나란히 서던
+            // "시간 협의" 토글은 없앴다(#1587) — 값은 반드시 채워야 한다.
+            _PickerField(
               key: const Key('consult-time'),
-              start: _preferredTimeOfDay,
-              end: _preferredEndTimeOfDay,
+              icon: Icons.access_time_rounded,
+              text: _timeText(context),
+              filled: _preferredTimeOfDay != null,
               onTap: _selectTime,
             ),
             if (_attempted &&
                 (_preferredTimeOfDay == null || _preferredEndTimeOfDay == null))
               _ErrorText(l.exTimeRequired),
-            const SizedBox(height: 20),
-            _FieldTitle(title: l.exConsultMessage),
-            const SizedBox(height: 8),
-            TextField(
+            const SizedBox(height: OnCareSpacing.s20),
+            Text(l.exConsultMessage, style: _fieldTitleStyle(context)),
+            const SizedBox(height: OnCareSpacing.s8),
+            AppTextField(
               key: const Key('consult-message'),
               controller: _messageController,
               onChanged: (_) => setState(() {}),
               minLines: 4,
               maxLines: 7,
-              decoration: InputDecoration(
-                hintText: l.exConsultMessageHint,
-                errorText: _attempted && _otherGoalDetailMissing
-                    ? l.exOtherGoalDetailRequired
-                    : null,
-              ),
+              hint: l.exConsultMessageHint,
+              errorText: _attempted && _otherGoalDetailMissing
+                  ? l.exOtherGoalDetailRequired
+                  : null,
             ),
             if (hasPending) ...<Widget>[
-              const SizedBox(height: 14),
-              _PendingNotice(message: l.exConsultPendingExists),
+              const SizedBox(height: OnCareSpacing.s16),
+              AppBanner(title: l.exConsultPendingExists),
             ],
-            const SizedBox(height: 24),
-            FilledButton(
+            const SizedBox(height: OnCareSpacing.s24),
+            AppButton(
               key: const Key('consult-submit'),
-              onPressed: hasPending || _submitting
+              label: hasPending
+                  ? l.exConsultPendingCta
+                  : l.exSendConsultRequest,
+              // 보내는 중에는 스피너를 띄우고 탭을 막는다(loading).
+              onPressed: hasPending
                   ? null
                   : () => unawaited(
                       _submit(
@@ -387,33 +402,25 @@ class _ConsultationRequestPageState
                         goalLabels: goalLabels,
                       ),
                     ),
-              style: FilledButton.styleFrom(
-                backgroundColor: FigmaColors.primary,
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              child: _submitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      hasPending
-                          ? l.exConsultPendingCta
-                          : l.exSendConsultRequest,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
+              loading: _submitting,
+              size: OnCareButtonSize.large,
+              fullWidth: true,
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _timeText(BuildContext context) {
+    final TimeOfDay? start = _preferredTimeOfDay;
+    final TimeOfDay? end = _preferredEndTimeOfDay;
+    if (start == null || end == null) {
+      return AppLocalizations.of(context).exSelectTime;
+    }
+    final MaterialLocalizations m = MaterialLocalizations.of(context);
+    return '${m.formatTimeOfDay(start, alwaysUse24HourFormat: true)}'
+        '–${m.formatTimeOfDay(end, alwaysUse24HourFormat: true)}';
   }
 }
 
@@ -426,14 +433,8 @@ class _TargetCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final String typeLabel = l.exTrainerConsultType;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: FigmaColors.softBlue,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: FigmaColors.primaryA(0.18)),
-      ),
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -442,61 +443,40 @@ class _TargetCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   l.exConsultTarget,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaColors.primary,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: tokens.brand.primary),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                decoration: BoxDecoration(
-                  color: FigmaColors.primaryA(0.10),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  typeLabel,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaColors.primary,
-                  ),
-                ),
-              ),
+              AppTag(label: l.exTrainerConsultType, tone: AppTagTone.brand),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: OnCareSpacing.s8),
           Text(
             trainer.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-              color: FigmaColors.ink,
-            ),
+            style: tokens
+                .text(OnCareTypography.titleSmall)
+                .copyWith(color: OnCareColors.textPrimary),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: OnCareSpacing.s4),
           Text(
             trainer.role ?? l.exTrainerDedicated,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.mutedForeground,
-            ),
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: OnCareSpacing.s8),
           Text(
             '${l.exTrainerAffiliation} · ${gym.name}',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.foreground,
-            ),
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                .copyWith(color: OnCareColors.textPrimary),
           ),
         ],
       ),
@@ -530,14 +510,15 @@ class _DataSharingNotice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     return Container(
       key: const Key('consult-data-sharing-notice'),
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(OnCareSpacing.s12),
       decoration: BoxDecoration(
-        color: FigmaColors.statBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: FigmaColors.hairline),
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineSubtle),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -546,26 +527,24 @@ class _DataSharingNotice extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               const Icon(
-                Icons.info_outline,
-                size: 16,
-                color: FigmaColors.textSub,
+                Icons.info_rounded,
+                size: OnCareSize.iconSmall,
+                color: OnCareColors.textSecondary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: OnCareSpacing.s8),
               Expanded(
                 child: Text(
                   l.exConsultDataSharingNotice,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    height: 1.4,
-                    color: FigmaColors.textBody,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
               ),
             ],
           ),
           // 안내로 지나가지 않고 **동의를 받는다** — 수락되는 순간 넘어가는
           // 것은 회원의 건강 기록이다. (#1022)
-          const SizedBox(height: 6),
+          const SizedBox(height: OnCareSpacing.s4),
           InkWell(
             key: const Key('consultDataSharingConsent'),
             onTap: () => onChanged(!consented),
@@ -577,20 +556,19 @@ class _DataSharingNotice extends StatelessWidget {
                   onChanged: (bool? next) => onChanged(next ?? false),
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  activeColor: FigmaColors.primary,
+                  activeColor: tokens.brand.primary,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: OnCareSpacing.s4),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.only(top: OnCareSpacing.s2),
                     child: Text(
                       l.exConsultDataSharingAgree,
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        height: 1.4,
-                        fontWeight: FontWeight.w600,
-                        color: FigmaColors.ink,
-                      ),
+                      style: tokens
+                          .text(
+                            OnCareTypography.strong(OnCareTypography.bodySmall),
+                          )
+                          .copyWith(color: OnCareColors.textPrimary),
                     ),
                   ),
                 ),
@@ -598,14 +576,12 @@ class _DataSharingNotice extends StatelessWidget {
             ),
           ),
           if (showRequired) ...<Widget>[
-            const SizedBox(height: 4),
+            const SizedBox(height: OnCareSpacing.s4),
             Text(
               l.exConsultDataSharingRequired,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: FigmaColors.dangerRed,
-              ),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.caption))
+                  .copyWith(color: OnCareColors.danger),
             ),
           ],
         ],
@@ -642,25 +618,19 @@ class _ChoiceField<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        _FieldTitle(title: title),
-        const SizedBox(height: 8),
+        Text(title, style: _fieldTitleStyle(context)),
+        const SizedBox(height: OnCareSpacing.s8),
         Wrap(
-          spacing: 8,
-          runSpacing: 8,
+          spacing: OnCareSpacing.s8,
+          runSpacing: OnCareSpacing.s8,
           children: <Widget>[
             for (final (int i, T value) in values.indexed)
-              ChoiceChip(
+              AppChoiceChip(
                 key: chipKeyPrefix == null
                     ? null
                     : ValueKey<String>('$chipKeyPrefix-$i'),
-                label: Text(labels[value]!),
+                label: labels[value]!,
                 selected: selected == value,
-                selectedColor: FigmaColors.primaryA(0.14),
-                side: BorderSide(
-                  color: selected == value
-                      ? FigmaColors.primary
-                      : FigmaColors.hairline,
-                ),
                 onSelected: (_) => onSelected(value),
               ),
           ],
@@ -671,144 +641,70 @@ class _ChoiceField<T> extends StatelessWidget {
   }
 }
 
-class _DateField extends StatelessWidget {
-  const _DateField({required this.date, required this.onTap, super.key});
-
-  final DateTime? date;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final String text = date == null
-        ? l.exSelectDate
-        : MaterialLocalizations.of(context).formatMediumDate(date!);
-    return Material(
-      color: FigmaColors.softBlue,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: FigmaColors.hairline),
-          ),
-          child: Row(
-            children: <Widget>[
-              const Icon(
-                Icons.calendar_today_outlined,
-                size: 18,
-                color: FigmaColors.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: date == null
-                        ? FontWeight.w500
-                        : FontWeight.w700,
-                    color: date == null
-                        ? AppColors.mutedForeground
-                        : FigmaColors.ink,
-                  ),
-                ),
-              ),
-              const Icon(Icons.chevron_right, color: FigmaColors.textFaint),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 정확한 희망 시각 입력 필드. [_DateField]와 같은 자리·스타일이다 — 눌렀을 때
-/// 뜨는 게 날짜 대신 [showConsultTimeRangePicker]일 뿐이다(#1256).
-///
-/// 옆에 나란히 서던 "시간 협의" 토글은 없앴다(#1587) — 이제 이 필드가 줄
-/// 전체를 쓰고, 값은 반드시 채워야 한다.
-class _TimeField extends StatelessWidget {
-  const _TimeField({
-    required this.start,
-    required this.end,
+/// 눌러서 선택기를 여는 한 칸(희망 날짜·희망 시각). 입력창과 같은 채움·테두리다.
+class _PickerField extends StatelessWidget {
+  const _PickerField({
+    required this.icon,
+    required this.text,
+    required this.filled,
     required this.onTap,
     super.key,
   });
 
-  final TimeOfDay? start;
-  final TimeOfDay? end;
+  final IconData icon;
+  final String text;
+
+  /// 값이 골라졌는가 — 아니면 안내 문구를 옅게 쓴다.
+  final bool filled;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final MaterialLocalizations m = MaterialLocalizations.of(context);
-    final String text = start == null || end == null
-        ? l.exSelectTime
-        : '${m.formatTimeOfDay(start!, alwaysUse24HourFormat: true)}'
-              '–${m.formatTimeOfDay(end!, alwaysUse24HourFormat: true)}';
+    final OnCareTokens tokens = context.oncare;
     return Material(
-      color: FigmaColors.softBlue,
-      borderRadius: BorderRadius.circular(14),
+      color: OnCareColors.surfaceInput,
+      shape: const RoundedRectangleBorder(
+        borderRadius: OnCareRadius.mdAll,
+        side: BorderSide(color: OnCareColors.lineStrong),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: FigmaColors.hairline),
-          ),
-          child: Row(
-            children: <Widget>[
-              const Icon(
-                Icons.access_time_outlined,
-                size: 18,
-                color: FigmaColors.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: start == null
-                        ? FontWeight.w500
-                        : FontWeight.w700,
-                    color: start == null
-                        ? AppColors.mutedForeground
-                        : FigmaColors.ink,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: tokens.density.inputMedium),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
+            child: Row(
+              children: <Widget>[
+                Icon(
+                  icon,
+                  size: OnCareSize.iconMedium,
+                  color: tokens.brand.primary,
+                ),
+                const SizedBox(width: OnCareSpacing.s8),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: filled
+                        ? tokens
+                              .text(
+                                OnCareTypography.strong(OnCareTypography.body),
+                              )
+                              .copyWith(color: OnCareColors.textPrimary)
+                        : tokens
+                              .text(OnCareTypography.body)
+                              .copyWith(color: OnCareColors.textTertiary),
                   ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: FigmaColors.textFaint),
-            ],
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: OnCareSize.iconMedium,
+                  color: OnCareColors.textTertiary,
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FieldTitle extends StatelessWidget {
-  const _FieldTitle({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w800,
-        color: FigmaColors.ink,
       ),
     );
   }
@@ -822,77 +718,15 @@ class _ErrorText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 7, left: 4),
+      padding: const EdgeInsets.only(
+        top: OnCareSpacing.s8,
+        left: OnCareSpacing.s4,
+      ),
       child: Text(
         text,
-        style: TextStyle(
-          fontSize: 12.5,
-          color: Theme.of(context).colorScheme.error,
-        ),
-      ),
-    );
-  }
-}
-
-class _PendingNotice extends StatelessWidget {
-  const _PendingNotice({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: FigmaColors.primaryA(0.08),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        message,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          fontSize: 13.5,
-          fontWeight: FontWeight.w600,
-          color: FigmaColors.primary,
-        ),
-      ),
-    );
-  }
-}
-
-class _StateMessage extends StatelessWidget {
-  const _StateMessage({required this.message, this.onRetry});
-
-  final String message;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(
-              Icons.info_outline,
-              size: 34,
-              color: FigmaColors.textFaint,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: AppColors.foreground),
-            ),
-            if (onRetry != null) ...<Widget>[
-              const SizedBox(height: 12),
-              OutlinedButton(onPressed: onRetry, child: Text(l.actionRetry)),
-            ],
-          ],
-        ),
+        style: context.oncare
+            .text(OnCareTypography.caption)
+            .copyWith(color: OnCareColors.danger),
       ),
     );
   }

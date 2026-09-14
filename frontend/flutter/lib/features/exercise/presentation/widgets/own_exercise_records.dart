@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 회원이 **직접 적은** 그날의 운동 기록. (#1428)
 ///
@@ -45,6 +44,7 @@ class OwnExerciseRecords extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final List<ExerciseSession> sessions = _sessionsOf();
     return Column(
       key: const ValueKey<String>('exercise-own-records'),
@@ -63,88 +63,48 @@ class OwnExerciseRecords extends ConsumerWidget {
                 l.exOwnRecords,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: FigmaColors.ink,
-                ),
+                style: tokens
+                    .text(OnCareTypography.titleSmall)
+                    .copyWith(color: OnCareColors.textPrimary),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: OnCareSpacing.s8),
             // 하단 `+` → 운동과 **같은 시트**를 연다. 다른 점은 기본 날짜뿐이다
             // — 지금 보고 있는 날로 열려 어제를 보다 적은 기록이 오늘로 새지
             // 않는다.
             Flexible(
-              child: _AddExerciseButton(
-                onTap: () => showExerciseAddSheet(context, initialDate: date),
+              child: AppButton(
+                key: const ValueKey<String>('exercise-add-button'),
+                label: l.exAddExercise,
+                variant: AppButtonVariant.secondary,
+                size: OnCareButtonSize.small,
+                leadingIcon: Icons.add_rounded,
+                onPressed: () =>
+                    showExerciseAddSheet(context, initialDate: date),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: OnCareSpacing.s12),
         if (sessions.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18),
+            padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
             child: Center(
               child: Text(
                 l.exOwnRecordsEmpty,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.mutedForeground,
-                ),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
           )
         else
           for (final ExerciseSession s in sessions)
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
               child: _OwnRecordCard(session: s),
             ),
       ],
-    );
-  }
-}
-
-class _AddExerciseButton extends StatelessWidget {
-  const _AddExerciseButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Material(
-      key: const ValueKey<String>('exercise-add-button'),
-      color: FigmaColors.primary,
-      borderRadius: BorderRadius.circular(999),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(999),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const Icon(Icons.add, size: 13, color: Colors.white),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  l.exAddExercise,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -161,16 +121,16 @@ class _OwnRecordCard extends ConsumerWidget {
     final String title = session.name.isNotEmpty
         ? session.name
         : exerciseTypeLabel(l, session.type);
-    return Container(
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
       key: session.id == null
           ? null
           : ValueKey<String>('exercise-own-record-${session.id}'),
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: FigmaColors.hairline),
+      padding: const EdgeInsets.fromLTRB(
+        OnCareSpacing.s16,
+        OnCareSpacing.s12,
+        OnCareSpacing.s4,
+        OnCareSpacing.s12,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -183,31 +143,27 @@ class _OwnRecordCard extends ConsumerWidget {
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaColors.ink,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: OnCareSpacing.s4),
                 // 유형·운동량·강도·칼로리를 한 줄로. 저장한 값 그대로다 —
                 // 목록에서 다시 계산하면 시트가 보여 준 수와 갈린다.
                 Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
+                  spacing: OnCareSpacing.s4,
+                  runSpacing: OnCareSpacing.s4,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: <Widget>[
-                    _Tag(text: exerciseTypeLabel(l, session.type)),
-                    _Tag(text: exerciseAmountLabel(l, session)),
-                    _Tag(text: _intensityLabel(l, session.intensity)),
+                    AppTag(label: exerciseTypeLabel(l, session.type)),
+                    AppTag(label: exerciseAmountLabel(l, session)),
+                    AppTag(label: _intensityLabel(l, session.intensity)),
                     Text(
                       '${NumberFormat('#,###').format(session.calories)} '
                       '${l.unitKcal}',
-                      style: const TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.mutedForeground,
-                      ),
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textSecondary),
                     ),
                   ],
                 ),
@@ -217,43 +173,16 @@ class _OwnRecordCard extends ConsumerWidget {
           // 지우기는 수정 시트 맨 아래로 옮겼다 — 목록 줄에는 되돌릴 수 없는
           // 동작을 한 번에 누를 자리를 두지 않는다(#1468). 연필만 남기고,
           // 색은 상세 식사 카드의 수정 아이콘과 같은 옅은 회색을 쓴다.
-          IconButton(
+          AppIconButton(
             key: session.id == null
                 ? null
                 : ValueKey<String>('exercise-own-record-edit-${session.id}'),
+            icon: Icons.edit_rounded,
             tooltip: l.exEditExercise,
-            iconSize: 16,
-            visualDensity: VisualDensity.compact,
-            color: FigmaColors.textFaint,
+            color: OnCareColors.textTertiary,
             onPressed: () => showExerciseAddSheet(context, session: session),
-            icon: const Icon(Icons.edit_outlined),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Tag extends StatelessWidget {
-  const _Tag({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: FigmaColors.statBg,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.foreground,
-        ),
       ),
     );
   }

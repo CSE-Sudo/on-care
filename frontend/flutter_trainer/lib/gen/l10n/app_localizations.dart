@@ -2972,6 +2972,78 @@ abstract class AppLocalizations {
   /// **'Enter a valid time (HH:mm)'**
   String get schedTimeRangeInvalid;
 
+  /// No description provided for @schedTimePickerTimeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get schedTimePickerTimeLabel;
+
+  /// No description provided for @schedTimePickerEndTime.
+  ///
+  /// In en, this message translates to:
+  /// **'End time'**
+  String get schedTimePickerEndTime;
+
+  /// No description provided for @schedTimePickerHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Hour'**
+  String get schedTimePickerHour;
+
+  /// No description provided for @schedTimePickerMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'Minute'**
+  String get schedTimePickerMinute;
+
+  /// No description provided for @schedTimePickerStartHour.
+  ///
+  /// In en, this message translates to:
+  /// **'Start hour'**
+  String get schedTimePickerStartHour;
+
+  /// No description provided for @schedTimePickerStartMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'Start minute'**
+  String get schedTimePickerStartMinute;
+
+  /// No description provided for @schedTimePickerEndHour.
+  ///
+  /// In en, this message translates to:
+  /// **'End hour'**
+  String get schedTimePickerEndHour;
+
+  /// No description provided for @schedTimePickerEndMinute.
+  ///
+  /// In en, this message translates to:
+  /// **'End minute'**
+  String get schedTimePickerEndMinute;
+
+  /// No description provided for @schedTimePickerPrevStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous step'**
+  String get schedTimePickerPrevStep;
+
+  /// No description provided for @schedTimePickerNextStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Next step'**
+  String get schedTimePickerNextStep;
+
+  /// No description provided for @schedTimePickerEndBeforeStart.
+  ///
+  /// In en, this message translates to:
+  /// **'End time is earlier than the start time'**
+  String get schedTimePickerEndBeforeStart;
+
+  /// No description provided for @schedClockHourSemantics.
+  ///
+  /// In en, this message translates to:
+  /// **'{hour} o\'clock'**
+  String schedClockHourSemantics(String hour);
+
   /// No description provided for @schedRepeat.
   ///
   /// In en, this message translates to:
@@ -5258,6 +5330,18 @@ abstract class AppLocalizations {
   /// **'This week\'s report is due'**
   String get dashTodoReportSubtitle;
 
+  /// No description provided for @dashTaskSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your task status. Please try again in a moment'**
+  String get dashTaskSaveFailed;
+
+  /// No description provided for @dashTaskLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your task status. Please try again in a moment'**
+  String get dashTaskLoadFailed;
+
   /// No description provided for @dashTaskDismissTitle.
   ///
   /// In en, this message translates to:
@@ -5822,11 +5906,97 @@ abstract class AppLocalizations {
   /// **'Programs you already assigned and sessions you scheduled stay as they are.'**
   String get programDraftDeleteBody;
 
-  /// No description provided for @programEditorAssignUnsupported.
+  /// No description provided for @programAssignConfirmAttachBody.
   ///
   /// In en, this message translates to:
-  /// **'Check each exercise\'s name and set count.'**
-  String get programEditorAssignUnsupported;
+  /// **'This program will be attached to {name}\'s PT already planned for {date} {session}. The time you picked ({selected}) won\'t be applied.'**
+  String programAssignConfirmAttachBody(
+    String name,
+    String date,
+    String session,
+    String selected,
+  );
+
+  /// No description provided for @programAssignConfirmChooseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has several PT sessions on {date} that overlap the time you picked ({selected}). Choose the session to attach this program to. The picked time won\'t be applied.'**
+  String programAssignConfirmChooseBody(
+    String name,
+    String date,
+    String selected,
+  );
+
+  /// No description provided for @coachAttachTargetChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The PT session to attach to has changed. Tap Add to schedule again to check'**
+  String get coachAttachTargetChanged;
+
+  /// No description provided for @programEditorNoExercises.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one exercise'**
+  String get programEditorNoExercises;
+
+  /// No description provided for @programEditorExerciseNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'An exercise name is empty or longer than 100 characters'**
+  String get programEditorExerciseNameInvalid;
+
+  /// No description provided for @programEditorRegisterDatePast.
+  ///
+  /// In en, this message translates to:
+  /// **'That date has passed. Pick today or a later date'**
+  String get programEditorRegisterDatePast;
+
+  /// No description provided for @coachSendNetworkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your network connection and try again'**
+  String get coachSendNetworkFailed;
+
+  /// No description provided for @coachSendClientNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This member isn\'t linked to you. Check the member\'s connection'**
+  String get coachSendClientNotFound;
+
+  /// No description provided for @coachSendInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The server didn\'t accept this schedule. Check the date, time and exercises'**
+  String get coachSendInvalid;
+
+  /// No description provided for @coachSendUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t confirm the result. Check the schedule to see whether it was added'**
+  String get coachSendUnverified;
+
+  /// No description provided for @programEditorSessionLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'A program can have up to {max} sessions'**
+  String programEditorSessionLimitReached(int max);
+
+  /// No description provided for @programEditorExerciseLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'A program can have up to {max} exercises in total'**
+  String programEditorExerciseLimitReached(int max);
+
+  /// No description provided for @programEditorSizeExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'{sessions}/{maxSessions} sessions · {exercises}/{maxExercises} exercises — remove the extra to add it to the schedule'**
+  String programEditorSizeExceeded(
+    int sessions,
+    int maxSessions,
+    int exercises,
+    int maxExercises,
+  );
 
   /// No description provided for @programAssignConfirmTitle.
   ///
@@ -5837,7 +6007,7 @@ abstract class AppLocalizations {
   /// No description provided for @programAssignConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This program will be added to {name}\'s PT schedule on {date} at {time}.'**
+  /// **'A new PT session will be created for {name} on {date} at {time} with this program.'**
   String programAssignConfirmBody(String name, String date, String time);
 
   /// No description provided for @programEditorSaveTemplate.
@@ -6649,6 +6819,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to AI suggestions'**
   String get aiReturnToWizard;
+
+  /// 채팅 스레드에서 날이 바뀌는 자리의 날짜 구분선. 요일까지 적는다(ko: 2026년 9월 14일 월요일, en: Monday, September 14, 2026).
+  ///
+  /// In en, this message translates to:
+  /// **'{date}'**
+  String chatDateDivider(DateTime date);
+
+  /// Tag on a pending assigned routine that the AI suggested.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get clientWorkoutSourceAi;
+
+  /// No description provided for @coachClientDemographics.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender} · Age {age}'**
+  String coachClientDemographics(String gender, int age);
+
+  /// No description provided for @coachTemplateMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Template menu'**
+  String get coachTemplateMenu;
+
+  /// No description provided for @aiStrengthSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{sets} sets × {reps} reps · {weight}kg'**
+  String aiStrengthSummary(int sets, int reps, String weight);
+
+  /// No description provided for @routineFormDecrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get routineFormDecrease;
+
+  /// No description provided for @routineFormIncrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get routineFormIncrease;
 }
 
 class _AppLocalizationsDelegate

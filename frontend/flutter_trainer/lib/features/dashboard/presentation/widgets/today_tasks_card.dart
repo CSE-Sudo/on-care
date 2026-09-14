@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
@@ -20,14 +21,6 @@ import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
-
-/// Bumped whenever [TodayTasksCard] persists a new daily snapshot, so a
-/// sibling widget with no direct link to that state (the 할 일 진행률 chart)
-/// knows to re-read [dailyTaskProgressStoreProvider].
-final taskProgressVersionProvider = StateProvider<int>(
-  (ref) => 0,
-  name: 'taskProgressVersion',
-);
 
 /// 상담 요청 확인 미션이 쓰는 대기 목록 — **한 번만** 읽는다.
 ///
@@ -84,9 +77,14 @@ class _Mission {
 /// 카테고리가 아니라 "지난 할 일"이라는 별도 상자로 모인다.
 ///
 /// 체크(완료 처리, 회색+취소선)와 삭제(오늘 목록에서만 제외)는 서로 다른
-/// 동작이다. 아래는 모두 이 세션이 로컬로만 기억하는 상태다: 실제 상담
-/// 수락/거절, 프로그램 전송, 리포트 발송은 각 화면(상담·AI 코칭·리포트)에서
-/// 해야 한다 — 여기 체크는 "확인했다"는 트레이너 자신의 표시일 뿐이다.
+/// 동작이다. 실제 상담 수락/거절, 프로그램 전송, 리포트 발송은 각 화면(상담·AI
+/// 코칭·리포트)에서 해야 한다 — 여기 체크는 "확인했다"는 트레이너 자신의
+/// 표시일 뿐이다.
+///
+/// 그 표시도 **계정 단위**로 저장한다([dailyTaskHistoryProvider], #1633).
+/// 트레이너는 센터 PC 와 태블릿을 오가는데(알림 수신 설정과 같은 이유), 기기
+/// 로컬에 두면 한쪽에서 끝낸 일이 다른 쪽에서 다시 할 일로 남고 `지난 할 일`
+/// 상자도 기기마다 갈린다. 데모 모드만 계정이 없어 기기에 둔다.
 class TodayTasksCard extends ConsumerStatefulWidget {
   /// Creates the card. [entries] is the health-alert roster (같은 정의를
   /// 주의 고객 KPI 가 쓴다).
@@ -104,29 +102,53 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
   Set<String> _carriedOverKeys = <String>{};
   String? _initializedForDate;
 
-  void _initializeIfNewDay(Set<String> allKeys) {
+  void _initializeIfNewDay(Set<String> missionKeys, DailyTaskHistory history) {
     final today = ymd(nowKst());
     if (_initializedForDate == today) return;
     _initializedForDate = today;
-    final store = ref.read(dailyTaskProgressStoreProvider);
-    final snapshot = store.read(today);
+    final snapshot = history.read(today);
     final DateTime yesterdayDay = nowKst().subtract(const Duration(days: 1));
     final yesterdayDate = ymd(yesterdayDay);
     // 어제 기록이 없으면 데모 이력을 본다 — 그 안의 미완료 키는 데모 전용이라
     // 오늘의 실제 항목을 이월로 끌어가지 않는다(#1203).
     final yesterday =
-        store.read(yesterdayDate) ??
+        history.read(yesterdayDate) ??
         ref.read(demoTaskHistoryProvider).snapshotFor(yesterdayDay);
+    _dismissedKeys = snapshot == null
+        ? <String>{}
+        : Set<String>.of(snapshot.dismissedKeys);
     _checkedKeys = snapshot == null
         ? <String>{}
-        : allKeys.where((k) => !snapshot.pendingKeys.contains(k)).toSet();
+        : missionKeys
+              .where(
+                (k) =>
+                    !snapshot.pendingKeys.contains(k) &&
+                    !_dismissedKeys.contains(k),
+              )
+              .toSet();
     _carriedOverKeys = yesterday == null
         ? <String>{}
-        : yesterday.pendingKeys.intersection(allKeys);
-    _dismissedKeys = <String>{};
+        : yesterday.pendingKeys.intersection(missionKeys);
+  }
+
+  /// 저장된 상태를 아직 못 읽었으면 체크·삭제를 받지 않는다 — 빈 상태에서
+  /// 저장하면 다른 기기에서 해 둔 체크를 덮어쓴다. 읽기에 실패했으면 알리고
+  /// 다시 읽는다.
+  bool _ensureReady() {
+    if (_initializedForDate != null) return true;
+    if (ref.read(dailyTaskHistoryProvider).hasError) {
+      showAppToast(
+        context,
+        AppLocalizations.of(context).dashTaskLoadFailed,
+        type: AppToastType.error,
+      );
+      ref.invalidate(dailyTaskHistoryProvider);
+    }
+    return false;
   }
 
   Future<void> _toggle(_Mission mission, Set<String> allKeys) async {
+    if (!_ensureReady()) return;
     // 체크 해제 = 완료 취소다. 되돌리면 할 일 진행률 그래프에서도 그 완료가
     // 빠지는데, 그 사실이 체크박스 하나 누르는 것만으로는 안 보인다 —
     // 회원 앱 운동탭의 "완료 취소" 확인창과 같은 안내를 준다. 체크(완료)는
@@ -150,6 +172,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
   }
 
   Future<void> _dismiss(String key, Set<String> allKeys) async {
+    if (!_ensureReady()) return;
     final l = AppLocalizations.of(context);
     final confirmed = await showAppConfirmDialog(
       context: context,
@@ -168,20 +191,29 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
   }
 
   Future<void> _persist(Set<String> allKeys) async {
-    final store = ref.read(dailyTaskProgressStoreProvider);
     final checked = _checkedKeys.intersection(allKeys);
     final carriedCompleted = checked.intersection(_carriedOverKeys).length;
-    await store.save(
-      ymd(nowKst()),
-      DailyTaskSnapshot(
-        total: allKeys.length,
-        completedToday: checked.length - carriedCompleted,
-        completedCarriedOver: carriedCompleted,
-        pendingKeys: allKeys.difference(checked),
-      ),
-    );
-    if (!mounted) return;
-    ref.read(taskProgressVersionProvider.notifier).state++;
+    try {
+      await ref
+          .read(dailyTaskHistoryProvider.notifier)
+          .save(
+            ymd(nowKst()),
+            DailyTaskSnapshot(
+              total: allKeys.length,
+              completedToday: checked.length - carriedCompleted,
+              completedCarriedOver: carriedCompleted,
+              pendingKeys: allKeys.difference(checked),
+              dismissedKeys: Set<String>.of(_dismissedKeys),
+            ),
+          );
+    } on AppError {
+      if (!mounted) return;
+      showAppToast(
+        context,
+        AppLocalizations.of(context).dashTaskSaveFailed,
+        type: AppToastType.error,
+      );
+    }
   }
 
   List<_Mission> _buildMissions(AppLocalizations l) {
@@ -198,10 +230,13 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
           (c.lastRoutine.trim().isEmpty || c.lastRoutine.trim() == '-'),
     );
     final activeClients = clients.where((c) => c.active);
-    // 데모·새 계정의 이월 항목(#1203). 실제 이력이 시작되면 사라진다.
-    final demoCarriedOver = ref
-        .watch(demoTaskHistoryProvider)
-        .snapshotFor(nowKst().subtract(const Duration(days: 1)));
+    // 데모·새 계정의 이월 항목(#1203). 실제 이력이 시작되면 사라진다. 이력을
+    // 읽기 전에는 실제 기록이 있는지 모르므로 띄우지 않는다.
+    final demoCarriedOver = ref.watch(dailyTaskHistoryProvider).hasValue
+        ? ref
+              .watch(demoTaskHistoryProvider)
+              .snapshotFor(nowKst().subtract(const Duration(days: 1)))
+        : null;
     final TrainerClient? demoCarryOverClient = activeClients.isEmpty
         ? null
         : activeClients.first;
@@ -296,9 +331,10 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final missions = _buildMissions(l);
-    final allKeys = <String>{for (final m in missions) m.key}
-      ..removeAll(_dismissedKeys);
-    _initializeIfNewDay(allKeys);
+    final missionKeys = <String>{for (final m in missions) m.key};
+    final history = ref.watch(dailyTaskHistoryProvider).valueOrNull;
+    if (history != null) _initializeIfNewDay(missionKeys, history);
+    final allKeys = missionKeys.difference(_dismissedKeys);
     final visible = missions.where((m) => allKeys.contains(m.key)).toList();
 
     final remaining = allKeys.difference(_checkedKeys).length;

@@ -11,9 +11,11 @@ import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_ai_analysis_card.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -96,7 +98,7 @@ void main() {
       final repo = DriftClientRepository(db);
       final jisu = await repo.watchDiet('seed-client-2').first;
       final seongho = await repo.watchDiet('seed-client-3').first;
-      expect(jisu.first.items, '그릭요거트, 과일');
+      expect(jisu.first.items, '그릭요거트, 블루베리');
       expect(seongho[1].items, '짜장면'); // 점심
     });
   });
@@ -229,7 +231,10 @@ void main() {
       expect(tester.takeException(), isNull);
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('diet-retry-seed-client-1')),
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('diet-retry-seed-client-1')),
+          matching: find.byType(AppButton),
+        ),
       );
       await settle(tester);
 
@@ -252,13 +257,13 @@ void main() {
         find.byKey(const Key('client-nutrition-calorie-progress')),
         findsOneWidget,
       );
-      final calorieProgress = tester.widget<CircularProgressIndicator>(
+      final calorieProgress = tester.widget<NutritionCalorieRing>(
         find.byKey(const Key('client-nutrition-calorie-progress')),
       );
       // 목표 안쪽은 **메인 색**이다 (#1166) — 회원 앱이 자기 메인 색을 쓰는
       // 자리와 같다. 초록은 "정상" 으로 읽혀서 목표에 한참 못 미친 날까지
       // 괜찮다고 말한다.
-      expect(calorieProgress.valueColor?.value, AppColors.statusWithinGoal);
+      expect(calorieProgress.color, AppColors.statusWithinGoal);
       for (final String label in <String>['탄수화물', '단백질', '지방']) {
         expect(
           find.byKey(Key('client-nutrition-macro-$label')),
@@ -352,7 +357,7 @@ void main() {
       // 강서연은 2,260 / 2,000 kcal 로 목표를 넘겼다.
       await openDiet(tester, '강서연');
 
-      final ring = tester.widget<CircularProgressIndicator>(
+      final ring = tester.widget<NutritionCalorieRing>(
         find.byKey(const Key('client-nutrition-calorie-progress')),
       );
       // 링은 한 바퀴에서 멈춘다 — 넘긴 양은 링이 그릴 수 없다.
@@ -372,13 +377,13 @@ void main() {
       ]) {
         expect(
           tester
-              .widgetList<ColoredBox>(
+              .widgetList<AppProgressBar>(
                 find.descendant(
                   of: find.byKey(key),
-                  matching: find.byType(ColoredBox),
+                  matching: find.byType(AppProgressBar),
                 ),
               )
-              .any((box) => box.color == AppColors.statusWithinGoal),
+              .any((bar) => bar.color == AppColors.statusWithinGoal),
           isTrue,
           reason: '$key 목표 안쪽 막대가 트레이너 메인 색을 써야 합니다.',
         );
@@ -400,19 +405,23 @@ void main() {
       expect(find.text('38.0'), findsNothing);
     });
 
-    testWidgets('a recorded 0g meal remains a meal instead of empty state', (
-      tester,
-    ) async {
+    testWidgets('거른 끼니는 카드 없이 다음 끼니부터 선다 (#1381)', (tester) async {
+      // 강서연은 아침을 걸렀다 — `거름` 카드가 아니라 점심 카드부터다.
       await openDiet(tester, '강서연');
 
       await tester.scrollUntilVisible(
-        find.text('거름'),
+        find.text('점심'),
         150,
         scrollable: detailScrollable('seed-client-6'),
       );
       expect(find.text('아직 기록된 식단이 없어요'), findsNothing);
-      // 끼니 카드의 탄단지는 한 줄로 함께 적는다 (#1166).
-      expect(find.textContaining('탄수화물 0g · 단백질 0g · 지방 0g'), findsWidgets);
+      expect(find.text('거름'), findsNothing);
+      expect(find.text('아침'), findsNothing);
+      // 음식은 한 줄에 하나, 그 옆에 회색 글씨로 kcal · mg · g.
+      expect(find.text('치킨'), findsOneWidget);
+      expect(find.text('맥주'), findsOneWidget);
+      expect(find.text('치킨, 맥주'), findsNothing);
+      expect(find.text('960kcal · 870mg · 48g'), findsOneWidget);
     });
 
     testWidgets('macro values wrap without overflow on a narrow screen', (
@@ -467,7 +476,7 @@ void main() {
         scrollable: detailScrollable('seed-client-1'),
       );
 
-      await tester.tap(find.byKey(const Key('client-period-week')));
+      await tester.tap(_periodSegment('이번 주'));
       await tester.pumpAndSettle();
 
       // 이번 주 며칠이 넘었는지는 실행한 요일마다 달라진다 — 시드가 오늘까지만
@@ -512,7 +521,7 @@ void main() {
         lessThan(tester.getTopLeft(mealCardFinder('아침')).dy),
       );
 
-      await tester.tap(find.byKey(const Key('client-period-week')));
+      await tester.tap(_periodSegment('이번 주'));
       await tester.pumpAndSettle();
       // 기간을 바꾸면 그래프 카드 아래에 날짜별 기록이 붙어 AI 카드가 화면
       // 밖으로 내려간다 — 목록이 게으르게 만들어지므로 다시 끌어올린다.
@@ -564,7 +573,7 @@ void main() {
     testWidgets('날짜 줄을 누르면 그날 기록이 펼쳐진다 (#1025)', (tester) async {
       // 그래프는 "얼마나" 만 말한다. 그날 무엇을 먹었는지는 줄을 눌러야 나온다.
       await openDiet(tester, '김민수');
-      await tester.tap(find.byKey(const Key('client-period-week')));
+      await tester.tap(_periodSegment('이번 주'));
       await tester.pumpAndSettle();
 
       final Finder records = find.byKey(
@@ -580,7 +589,7 @@ void main() {
       expect(find.text('탄단지'), findsNothing);
       final Finder openable = find.descendant(
         of: records,
-        matching: find.byIcon(Icons.expand_more),
+        matching: find.byIcon(Icons.expand_more_rounded),
       );
       expect(openable, findsWidgets);
       await tester.ensureVisible(openable.first);
@@ -615,7 +624,7 @@ void main() {
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
       await openDiet(tester, '김민수');
-      await tester.tap(find.byKey(const Key('client-period-week')));
+      await tester.tap(_periodSegment('이번 주'));
       await tester.pumpAndSettle();
 
       final Finder records = find.byKey(
@@ -628,7 +637,7 @@ void main() {
       );
       final Finder openable = find.descendant(
         of: records,
-        matching: find.byIcon(Icons.expand_more),
+        matching: find.byIcon(Icons.expand_more_rounded),
       );
       await tester.ensureVisible(openable.first);
       await tester.pumpAndSettle();
@@ -648,11 +657,11 @@ void main() {
       // The detail header sits above the list, so her 아침 card can start
       // below the fold on the test viewport.
       await tester.scrollUntilVisible(
-        find.text('그릭요거트, 과일'),
+        find.text('그릭요거트'),
         150,
         scrollable: detailScrollable('seed-client-2'),
       );
-      expect(find.text('그릭요거트, 과일'), findsOneWidget);
+      expect(find.text('그릭요거트'), findsOneWidget);
       // Under target in the diet summary.
       expect(find.text('mg 초과'), findsNothing);
       await tester.scrollUntilVisible(
@@ -664,3 +673,9 @@ void main() {
     });
   });
 }
+
+/// 기간 토글에서 [label] 칸. 세그먼트는 칸마다 키가 없어 토글 안의 글자로 찾는다.
+Finder _periodSegment(String label) => find.descendant(
+  of: find.byKey(const ValueKey<String>('client-period-toggle')),
+  matching: find.text(label),
+);

@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+// 같은 이름의 회원을 가르는 `남성 · 35세` 문구만 쓴다 — 그리는 위젯은 쓰지 않는다.
+import 'package:oncare_trainer/shared/widgets/client_identity.dart'
+    show clientDemographicsLabel;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 주간 리포트를 볼 고객을 고르는 왼쪽 목록.
-class ReportClientPicker extends StatefulWidget {
+class ReportClientPicker extends StatelessWidget {
   const ReportClientPicker({
     super.key,
     required this.clients,
@@ -21,98 +19,54 @@ class ReportClientPicker extends StatefulWidget {
   final String selectedId;
   final ValueChanged<String> onSelect;
 
-  @override
-  State<ReportClientPicker> createState() => _ReportClientPickerState();
-}
+  /// 한 번에 보이는 행 수. 넘치면 목록 안에서 스크롤한다(#1423).
+  static const int _visibleRows = 5;
 
-class _ReportClientPickerState extends State<ReportClientPicker> {
-  /// 목록과 스크롤바가 같은 위치를 가리키도록 컨트롤러를 공유한다.
-  final ScrollController _scroll = ScrollController();
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
+  /// 제목·부제 두 줄짜리 [AppListRow] 한 행의 웹 밀도 높이. 목록 칸 높이를
+  /// 정하는 데만 쓴다 — 행은 글자 배율에 따라 스스로 자라고, 칸이 모자라면
+  /// 스크롤한다.
+  static const double _rowExtent = 68;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final clients = widget.clients;
-    final selectedId = widget.selectedId;
-    final onSelect = widget.onSelect;
-    final double rowHeight = clientListRowHeight(context);
-    return SectionCard(
-      title: l.navClients,
-      icon: Icons.people_outline,
-      dense: true,
-      child: SizedBox(
-        height: rowHeight * clientListVisibleRows,
-        child: Scrollbar(
-          controller: _scroll,
-          thumbVisibility: clients.length > clientListVisibleRows,
-          child: ListView.builder(
-            key: const ValueKey<String>('report-client-list-scroll'),
-            controller: _scroll,
-            padding: const EdgeInsets.only(right: AppSpacing.sm),
-            itemCount: clients.length,
-            itemExtent: rowHeight,
-            itemBuilder: (context, index) {
-              final client = clients[index];
-              final selected = client.id == selectedId;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                child: Material(
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppSectionHeader(title: l.navClients, icon: Icons.people_rounded),
+          const SizedBox(height: OnCareSpacing.s12),
+          SizedBox(
+            height: _rowExtent * _visibleRows,
+            child: ListView.separated(
+              key: const ValueKey<String>('report-client-list-scroll'),
+              itemCount: clients.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(height: OnCareSpacing.s4),
+              itemBuilder: (context, index) {
+                final client = clients[index];
+                return AppListRow(
                   key: ValueKey<String>('report-client-${client.id}'),
-                  color: selected
-                      ? AppColors.accentSurface
-                      : Colors.transparent,
-                  borderRadius: const BorderRadius.all(AppRadius.md),
-                  child: InkWell(
-                    onTap: () => onSelect(client.id),
-                    borderRadius: const BorderRadius.all(AppRadius.md),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Row(
-                        children: <Widget>[
-                          // 아바타 크기는 프로그램 탭 고객 목록과 같은
-                          // 기준을 쓴다(#1423).
-                          ClientAvatar(
-                            label: client.avatar,
-                            size: clientListAvatarSize,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                // 프로그램 탭 고객 목록과 같은 기준이다(#1423).
-                                ClientIdentity(
-                                  client: client,
-                                  nameStyle: clientListNameStyle(
-                                    selected: selected,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                // 어느 고객의 리포트를 열지 고르는 자리다 —
-                                // 이름만으로는 고를 근거가 되지 않는다(#898).
-                                ClientGoalLabel(
-                                  client: client,
-                                  fontSize: clientListGoalFontSize,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  selected: client.id == selectedId,
+                  onTap: () => onSelect(client.id),
+                  leading: AppAvatar(name: client.name),
+                  title: client.name,
+                  // 어느 고객의 리포트를 열지 고르는 자리다 — 이름만으로는
+                  // 고를 근거가 되지 않는다(#898).
+                  subtitle: client.goal.trim().isEmpty ? null : client.goal,
+                  trailing: Text(
+                    clientDemographicsLabel(context, client),
+                    maxLines: 1,
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textTertiary),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

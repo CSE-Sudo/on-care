@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/design_system/theme/app_theme.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/time_range_picker_dialog.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+import '../../helpers/fixed_clock.dart';
 
 void main() {
   const duplicateSuggestions = <AiRoutineItem>[
@@ -28,10 +31,16 @@ void main() {
 
   ProgramEditorState? sent;
 
-  setUp(() => sent = null);
+  setUp(() {
+    sent = null;
+    // 편집기에 넘기는 등록 날짜(2026-01-01)가 '지난 날짜'로 막히지 않게 오늘을
+    // 그날에 맞춘다(#1582).
+    useFixedKstDate(DateTime(2026, 1, 1, 9));
+  });
 
   Widget buildApp(List<AiRoutineItem> aiSuggestions) => MaterialApp(
     locale: const Locale('ko'),
+    theme: AppTheme.light(),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
@@ -72,6 +81,21 @@ void main() {
     await tester.pump();
   }
 
+  /// 운동 카드의 더보기(⋯) 트리거를 눌러 [AppMenu] 를 열고 [label] 항목을 고른다.
+  Future<void> chooseExerciseAction(
+    WidgetTester tester,
+    String exerciseId,
+    String label,
+  ) async {
+    final trigger = find.byKey(ValueKey<String>('exercise-edit-$exerciseId'));
+    await tester.ensureVisible(trigger);
+    await tester.pump();
+    await tester.tap(trigger);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(MenuItemButton, label));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('AI suggestions are deduplicated within the same batch', (
     tester,
   ) async {
@@ -88,11 +112,7 @@ void main() {
     await pumpEditor(tester);
     await mergeSuggestions(tester);
 
-    final editMenu = tester.widget<PopupMenuButton<String>>(
-      find.byKey(const ValueKey<String>('exercise-edit-exercise-2')),
-    );
-    editMenu.onSelected?.call('edit');
-    await tester.pump();
+    await chooseExerciseAction(tester, 'exercise-2', '수정');
 
     final field = find.byKey(const ValueKey<String>('exercise-2-sets-field'));
     await tester.tap(field);
@@ -168,7 +188,7 @@ void main() {
       expect(
         find.descendant(
           of: date,
-          matching: find.byIcon(Icons.calendar_today_outlined),
+          matching: find.byIcon(Icons.calendar_today_rounded),
         ),
         findsOneWidget,
       );
@@ -182,6 +202,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           locale: const Locale('ko'),
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           builder: (context, child) => MediaQuery(
@@ -245,6 +266,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           locale: const Locale('ko'),
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
@@ -273,7 +295,7 @@ void main() {
       expect(find.text('종료 시간은 시작 시간보다 늦어야 해요'), findsOneWidget);
       expect(
         tester
-            .widget<ActionButton>(
+            .widget<AppButton>(
               find.byKey(const ValueKey<String>('program-editor-send')),
             )
             .onPressed,
@@ -323,6 +345,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           locale: const Locale('ko'),
+          theme: AppTheme.light(),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
@@ -410,7 +433,7 @@ void main() {
     testWidgets('운동이 없으면 초기화 아이콘이 비활성이다', (tester) async {
       await pumpEditor(tester);
 
-      final button = tester.widget<IconButton>(resetIcon);
+      final button = tester.widget<AppIconButton>(resetIcon);
       expect(button.onPressed, isNull);
     });
 
@@ -543,7 +566,12 @@ void main() {
       expect(
         tester
             .widget<TextField>(
-              find.byKey(const ValueKey<String>('custom-exercise-sets-field')),
+              find.descendant(
+                of: find.byKey(
+                  const ValueKey<String>('custom-exercise-sets-field'),
+                ),
+                matching: find.byType(TextField),
+              ),
             )
             .controller!
             .text,
@@ -601,18 +629,22 @@ void main() {
       );
       await tester.enterText(setsField, '4');
       await tester.pump();
-      expect(tester.widget<TextField>(setsField).controller!.text, '4');
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(of: setsField, matching: find.byType(TextField)),
+            )
+            .controller!
+            .text,
+        '4',
+      );
     });
 
     testWidgets('운동 수정 모드도 같은 compact 입력으로 값을 고친다', (tester) async {
       await pumpEditor(tester);
       await mergeSuggestions(tester);
 
-      final editMenu = tester.widget<PopupMenuButton<String>>(
-        find.byKey(const ValueKey<String>('exercise-edit-exercise-2')),
-      );
-      editMenu.onSelected?.call('edit');
-      await tester.pump();
+      await chooseExerciseAction(tester, 'exercise-2', '수정');
 
       // 병합된 스쿼트는 근력 제안이라 세트 칸으로 열린다 — 유형을 유산소로
       // 바꾸면 그 자리가 시간 칸이 된다.
@@ -625,7 +657,18 @@ void main() {
         const ValueKey<String>('exercise-2-duration-field'),
       );
       // AI 제안이 들고 온 20분이 그대로 열린다.
-      expect(tester.widget<TextField>(durationField).controller!.text, '20');
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(
+                of: durationField,
+                matching: find.byType(TextField),
+              ),
+            )
+            .controller!
+            .text,
+        '20',
+      );
 
       await tester.enterText(durationField, '80');
       await tester.pump();
@@ -679,11 +722,7 @@ void main() {
 
       // 새 인스턴스의 `_nextId` 는 2 부터 시작하니, 이 편집기에서 처음 손으로
       // 추가한 운동의 id 는 항상 `exercise-2` 다.
-      final editMenu = tester.widget<PopupMenuButton<String>>(
-        find.byKey(const ValueKey<String>('exercise-edit-exercise-2')),
-      );
-      editMenu.onSelected?.call('delete');
-      await tester.pump();
+      await chooseExerciseAction(tester, 'exercise-2', '삭제');
 
       expect(find.text('버피'), findsNothing);
     });
@@ -703,7 +742,10 @@ void main() {
 
       // 기본 유형은 근력 — 근력 예시가 placeholder 로 보인다.
       final nameField = tester.widget<TextField>(
-        find.byKey(const ValueKey<String>('custom-exercise-name')),
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('custom-exercise-name')),
+          matching: find.byType(TextField),
+        ),
       );
       expect(nameField.decoration?.hintText, '예) 스쿼트, 벤치프레스');
 
@@ -713,7 +755,10 @@ void main() {
       await tester.pump();
 
       final nameFieldAfterTypeChange = tester.widget<TextField>(
-        find.byKey(const ValueKey<String>('custom-exercise-name')),
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('custom-exercise-name')),
+          matching: find.byType(TextField),
+        ),
       );
       expect(nameFieldAfterTypeChange.decoration?.hintText, '예) 러닝머신, 실내 자전거');
     });

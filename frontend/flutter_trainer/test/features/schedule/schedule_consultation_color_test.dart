@@ -10,8 +10,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
@@ -51,12 +51,12 @@ void main() {
 
     expect(
       surfaceOf(tester, '박성호'),
-      AppColors.primary.withValues(alpha: 0.12),
-      reason: '1:1 PT 는 연한 남색으로 채운다',
+      OnCareBrand.trainer.surface,
+      reason: '1:1 PT 는 연한 브랜드 면으로 채운다',
     );
     expect(
       surfaceOf(tester, '윤가온'),
-      AppColors.card,
+      OnCareColors.surfaceCard,
       reason: '상담은 흰 바탕에 윤곽선으로 — `예약 슬롯` 과 같은 표현이다',
     );
   });
@@ -68,8 +68,8 @@ void main() {
     expect(find.textContaining('1:1 PT'), findsWidgets);
   });
 
-  /// [name] 블록 안의 종류 알약 테두리 상자.
-  BoxDecoration chipOf(WidgetTester tester, String name) {
+  /// [name] 블록 안의 종류 알약.
+  AppTag chipOf(WidgetTester tester, String name) {
     final chip = find
         .descendant(
           of: find.ancestor(
@@ -84,7 +84,7 @@ void main() {
           matching: find.byKey(const ValueKey<String>('session-type-chip')),
         )
         .first;
-    return tester.widget<Container>(chip).decoration! as BoxDecoration;
+    return tester.widget<AppTag>(chip);
   }
 
   // 같은 값을 두 자리가 다른 모양으로 말하면 읽는 쪽이 두 번 익혀야 한다.
@@ -93,14 +93,14 @@ void main() {
     await openSchedule(tester);
 
     expect(
-      chipOf(tester, '박성호').color,
-      AppColors.primary.withValues(alpha: 0.10),
-      reason: '1:1 PT 는 채운 알약이다',
+      chipOf(tester, '박성호').tone,
+      AppTagTone.brand,
+      reason: '1:1 PT 는 브랜드 톤 알약이다',
     );
     expect(
-      chipOf(tester, '윤가온').color,
-      AppColors.card,
-      reason: '상담은 비운 알약이다 — 블록의 면과 같은 규칙',
+      chipOf(tester, '윤가온').tone,
+      AppTagTone.neutral,
+      reason: '상담은 중립 톤 알약이다 — 블록의 면(비움)과 같은 갈래',
     );
   });
 
@@ -144,17 +144,18 @@ void main() {
     );
   });
 
-  testWidgets('상담 요청 버튼이 예약 슬롯과 같은 남색을 쓴다', (tester) async {
+  testWidgets('상담 요청 버튼이 헤더 버튼의 브랜드 톤을 쓴다', (tester) async {
     await openSchedule(tester);
 
-    // 대기 건이 있어도 테두리까지 빨갛게 물들이지 않는다 — 알리는 일은 배지
+    // 대기 건이 있어도 버튼까지 빨갛게 물들이지 않는다 — 알리는 일은 배지
     // 하나로 충분하다.
-    final Icon glyph = tester.widget<Icon>(
+    final AppIconButton button = tester.widget<AppIconButton>(
       find.descendant(
         of: find.byKey(const Key('consult-inbox-entry')),
-        matching: find.byIcon(Icons.mark_email_unread_outlined),
+        matching: find.byType(AppIconButton),
       ),
     );
-    expect(glyph.color, AppColors.primary);
+    expect(button.icon, Icons.mark_email_unread_rounded);
+    expect(button.variant, AppIconButtonVariant.tonal);
   });
 }

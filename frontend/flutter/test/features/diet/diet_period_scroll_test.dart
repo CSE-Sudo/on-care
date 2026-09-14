@@ -8,7 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -17,6 +17,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
 
@@ -67,11 +68,12 @@ Widget _app() => ProviderScope(
     dietRepositoryProvider.overrideWithValue(_VaryingDietRepository()),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
-  child: const MaterialApp(
-    locale: Locale('ko'),
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: DietRecordPage(),
+    home: const DietRecordPage(),
   ),
 );
 
@@ -88,7 +90,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
   }
 
@@ -119,9 +121,7 @@ void main() {
     );
   });
 
-  testWidgets('평균은 화면에 보이는 구간만 센다 — 밀면 따라 바뀐다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('평균은 화면에 보이는 구간만 센다 — 밀면 따라 바뀐다', (WidgetTester tester) async {
     await openAll(tester);
 
     String headline() => tester

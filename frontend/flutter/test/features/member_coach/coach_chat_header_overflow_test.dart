@@ -10,12 +10,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -42,6 +43,7 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: Locale(lang),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -101,6 +103,8 @@ void main() {
     testWidgets('날짜 구분선과 말풍선 가장자리 시간이 보인다', (WidgetTester tester) async {
       await pumpChat(tester, lang: 'ko', size: const Size(430, 932));
 
+      // 규격 안내 배너가 예전 알약보다 커서, 맨 아래에서 열린 화면에는 구분선이
+      // 뷰포트 밖(목록 캐시 영역)에 있을 수 있다 — 화면 밖 자식까지 센다.
       expect(
         find.byWidgetPredicate(
           (widget) =>
@@ -108,6 +112,7 @@ void main() {
               RegExp(
                 r'^\d{4}년 \d{1,2}월 \d{1,2}일 [월화수목금토일]요일$',
               ).hasMatch(widget.data ?? ''),
+          skipOffstage: false,
         ),
         findsAtLeastNWidgets(1),
       );
@@ -115,8 +120,10 @@ void main() {
       final sentBubble = find.byKey(
         const ValueKey<String>('coach-message-bubble-seed-m17'),
       );
-      final sentTime = find.byKey(
-        const ValueKey<String>('coach-message-time-seed-m17'),
+      // 시간은 규격 말풍선(AppChatBubble)이 옆에 붙이는 AppChatTimestamp 다.
+      final sentTime = find.descendant(
+        of: find.byKey(const ValueKey<String>('coach-message-seed-m17')),
+        matching: find.byType(AppChatTimestamp),
       );
       expect(
         tester.getTopLeft(sentTime).dx,
@@ -128,8 +135,9 @@ void main() {
       final receivedBubble = find.byKey(
         const ValueKey<String>('coach-message-bubble-seed-m18'),
       );
-      final receivedTime = find.byKey(
-        const ValueKey<String>('coach-message-time-seed-m18'),
+      final receivedTime = find.descendant(
+        of: find.byKey(const ValueKey<String>('coach-message-seed-m18')),
+        matching: find.byType(AppChatTimestamp),
       );
       expect(
         tester.getTopLeft(receivedTime).dx,
@@ -140,7 +148,7 @@ void main() {
     testWidgets('새 메시지는 루틴 수신 배너 아래에 쌓인다', (WidgetTester tester) async {
       await pumpChat(tester, lang: 'ko', size: const Size(430, 932));
       await tester.enterText(find.byType(TextField), '확인했습니다');
-      await tester.tap(find.byIcon(Icons.send));
+      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
       await tester.pumpAndSettle();
 
       final banner = find.textContaining('추천운동을 받았어요').last;

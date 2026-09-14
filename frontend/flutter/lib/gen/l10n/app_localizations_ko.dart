@@ -348,6 +348,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietTakePhotoSub => '카메라로 음식 촬영';
 
   @override
+  String get dietAddPhoto => '사진 추가';
+
+  @override
+  String get dietAddPhotoSub => '앨범·카메라·파일에서 음식 사진 선택';
+
+  @override
   String get dietPhotoLoadError => '사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
@@ -1533,6 +1539,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachChatDemoNotified => '알림으로도 전달됐어요';
 
   @override
+  String coachChatDateDivider(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMMMMEEEEd(
+      localeName,
+    );
+    final String dateString = dateDateFormat.format(date);
+
+    return '$dateString';
+  }
+
+  @override
   String get coachCtaChat => 'AI와 대화하기';
 
   @override
@@ -2360,6 +2376,12 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get coachCardRoutineUndoTitle => '완료를 취소할까요?';
+
+  @override
+  String get coachCardRoutineCancelTitle => '개인 운동을 취소할까요?';
+
+  @override
   String get coachRoutineCancelled => '개인 운동을 취소했어요';
 
   @override
@@ -2430,15 +2452,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertLoadFailed => '최신 알림을 불러오지 못했어요';
 
   @override
-  String get alertSimulatedTitle => '시뮬레이션 알림';
-
-  @override
-  String get alertSimulatedBody => '지금 막 가상 푸시가 도착했어요.';
-
-  @override
-  String get alertJustNow => '방금';
-
-  @override
   String get exPtLogTitle => '오늘 완료한 PT';
 
   @override
@@ -2498,4 +2511,26 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get a11yNextWeek => '다음 주';
+
+  @override
+  String get exConsultHistoryCancelTitle => '상담 요청을 취소할까요?';
+
+  @override
+  String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
+
+  @override
+  String get exDemoPtSessionCount => '김트레이너와 12회차';
+
+  @override
+  String get exDemoPtTrainerName => '김트레이너';
+
+  @override
+  String get exDemoPtFeedback =>
+      '숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!';
+
+  @override
+  String get exStepperDecrease => '줄이기';
+
+  @override
+  String get exStepperIncrease => '늘리기';
 }

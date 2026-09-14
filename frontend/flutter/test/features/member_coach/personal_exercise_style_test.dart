@@ -10,14 +10,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/atoms/app_choice_chip.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const Trainer _assignedTrainer = Trainer(
   id: 'trainer-assigned',
@@ -38,11 +38,12 @@ Future<void> _pumpCoachingCard(WidgetTester tester) async {
         ),
         myTrainerProvider.overrideWith((ref) async => _assignedTrainer),
       ],
-      child: const MaterialApp(
-        locale: Locale('ko'),
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
-        home: Scaffold(body: AiCoachingCard()),
+        home: const Scaffold(body: AiCoachingCard()),
       ),
     ),
   );
@@ -134,8 +135,8 @@ void main() {
     expect(
       sources.any(
         (Text t) =>
-            t.style?.color == FigmaColors.primary ||
-            t.style?.color == FigmaColors.primaryA(0.55),
+            t.style?.color == OnCareBrand.member.primary ||
+            t.style?.color == OnCareBrand.member.primary.withValues(alpha: 0.55),
       ),
       isTrue,
       reason: '출처가 회색이면 옆의 부연과 무게가 같다',

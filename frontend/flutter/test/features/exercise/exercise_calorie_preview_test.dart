@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -112,6 +113,7 @@ Future<void> _openSheet(
         exerciseRepositoryProvider.overrideWithValue(repository),
       ],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -190,10 +192,7 @@ void main() {
     await _typeName(tester, 'PT 하체날');
 
     expect(
-      find.descendant(
-        of: box,
-        matching: find.text(l.exCaloriesRoughEstimate),
-      ),
+      find.descendant(of: box, matching: find.text(l.exCaloriesRoughEstimate)),
       findsOneWidget,
     );
   });

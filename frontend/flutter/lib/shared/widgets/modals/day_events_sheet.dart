@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare/design_system/tokens/breakpoints.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
-import 'package:oncare/design_system/tokens/radius.dart';
-import 'package:oncare/design_system/tokens/spacing.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/features/schedule/presentation/schedule_category_color.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
 import 'package:oncare/shared/widgets/modals/add_event_dialog.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 하루치 일정을 펼쳐 수정·삭제할 수 있게 한다.
 ///
-/// 캘린더 칸의 칩을 직접 누르게 하지 않는 이유: 칩은 9px 글씨에 칸 높이를 넘치면
-/// 잘리는 자리라, 일정이 여럿인 날은 누를 수 없는 칩이 생긴다. 날짜를 눌러
+/// 캘린더 칸의 점을 직접 누르게 하지 않는 이유: 점은 칸 하나에 몇 개만 들어가는
+/// 작은 표시라, 일정이 여럿인 날은 누를 수 없는 일정이 생긴다. 날짜를 눌러
 /// 목록으로 펼치면 그 날의 모든 일정에 손이 닿는다.
 ///
 /// 저장·삭제가 한 건이라도 일어났으면 `true` 로 닫힌다 — 부른 쪽이 달을 다시
@@ -26,22 +22,10 @@ Future<bool?> showDayEventsSheet(
   required DateTime date,
   required List<ScheduleEvent> events,
 }) {
-  return showModalBottomSheet<bool>(
-    context: context,
-    // 캘린더 시트 위에 겹쳐 뜨므로 같은 규칙으로 루트에 올린다.
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: AppColors.background,
-    barrierColor: Colors.black54,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: AppRadius.card),
-    ),
-    builder: (BuildContext ctx) => ConstrainedBox(
-      constraints: const BoxConstraints(
-        maxWidth: AppBreakpoints.contentMaxWidth,
-      ),
-      child: _DayEventsBody(date: date, events: events),
-    ),
+  return showAppSheet<bool>(
+    // 캘린더 시트 위에 겹쳐 뜨므로 같은 규칙으로 루트 Navigator 에 올린다.
+    context: Navigator.of(context, rootNavigator: true).context,
+    builder: (BuildContext ctx) => _DayEventsBody(date: date, events: events),
   );
 }
 
@@ -91,30 +75,14 @@ class _DayEventsBodyState extends ConsumerState<_DayEventsBody> {
     final AppToastHost toast = AppToastHost.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
     // 되돌릴 수 없으므로 확인을 한 번 받는다.
-    final bool ok =
-        await showDialog<bool>(
-          context: context,
-          builder: (BuildContext ctx) => AlertDialog(
-            title: Text(l.eventDeleteTitle),
-            content: Text(l.eventDeleteConfirm(event.title)),
-            actions: <Widget>[
-              TextButton(
-                key: const Key('deleteEventCancel'),
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text(l.actionCancel),
-              ),
-              TextButton(
-                key: const Key('deleteEventConfirm'),
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.destructive,
-                ),
-                child: Text(l.actionDelete),
-              ),
-            ],
-          ),
-        ) ??
-        false;
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.eventDeleteTitle,
+      message: l.eventDeleteConfirm(event.title),
+      confirmLabel: l.actionDelete,
+      cancelLabel: l.actionCancel,
+      destructive: true,
+    );
     if (!ok || !mounted) return;
 
     setState(() => _deleting = event.id);
@@ -123,7 +91,7 @@ class _DayEventsBodyState extends ConsumerState<_DayEventsBody> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _deleting = null);
-      toast.show(l.eventDeleteFailed, kind: AppToastKind.error);
+      toast.show(l.eventDeleteFailed, type: AppToastType.error);
       return;
     }
     if (!mounted) return;
@@ -132,11 +100,14 @@ class _DayEventsBodyState extends ConsumerState<_DayEventsBody> {
       _deleting = null;
       _events.removeWhere((ScheduleEvent e) => e.id == event.id);
     });
-    toast.show(l.eventDeleted, kind: AppToastKind.success);
+    toast.show(l.eventDeleted, type: AppToastType.success);
   }
 
   Future<void> _add() async {
-    final bool? saved = await showAddEventDialog(context, initialDate: widget.date);
+    final bool? saved = await showAddEventDialog(
+      context,
+      initialDate: widget.date,
+    );
     if (saved != true || !mounted) return;
     _markChanged();
     // 새로 만든 일정은 이 목록이 모르므로 부모가 다시 읽게 하고 닫는다.
@@ -145,90 +116,55 @@ class _DayEventsBodyState extends ConsumerState<_DayEventsBody> {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
     final MaterialLocalizations m = MaterialLocalizations.of(context);
     final AppLocalizations l = AppLocalizations.of(context);
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.lg,
+    // 헤더의 닫기 X·배경 탭은 경로를 그냥 닫으려 한다. 이 시트는 닫힐 때 무엇이
+    // 바뀌었는지를 돌려줘야 하므로 그 닫기를 받아 결과를 실어 닫는다.
+    return PopScope<bool>(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, bool? _) {
+        if (didPop) return;
+        Navigator.of(context).pop(_changed);
+      },
+      child: AppSheet(
+        title: m.formatMediumDate(widget.date),
+        footer: AppButton(
+          key: const Key('dayEventsAdd'),
+          label: l.eventAddForDay,
+          variant: AppButtonVariant.secondary,
+          leadingIcon: Icons.add_rounded,
+          fullWidth: true,
+          onPressed: _deleting != null ? null : _add,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    m.formatMediumDate(widget.date),
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+        child: _events.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.symmetric(
+                  vertical: OnCareSpacing.s16,
                 ),
-                Material(
-                  color: AppColors.accent,
-                  shape: const CircleBorder(),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => Navigator.of(context).pop(_changed),
-                    child: Tooltip(
-                      message: MaterialLocalizations.of(
-                        context,
-                      ).closeButtonTooltip,
-                      child: const SizedBox(
-                        width: 32,
-                        height: 32,
-                        child: Icon(Icons.close, size: 18),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            if (_events.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                 child: Text(
                   l.eventsEmptyForDay,
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.mutedForeground,
-                  ),
+                  style: context.oncare
+                      .text(OnCareTypography.body)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
               )
-            else
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: _events.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppSpacing.sm),
-                  itemBuilder: (BuildContext _, int i) => _EventRow(
-                    event: _events[i],
-                    deleting: _deleting == _events[i].id,
-                    // 삭제가 오가는 동안에는 다른 줄도 잠근다.
-                    disabled: _deleting != null,
-                    onEdit: () => _edit(_events[i]),
-                    onDelete: () => _delete(_events[i]),
-                  ),
-                ),
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (int i = 0; i < _events.length; i++) ...<Widget>[
+                    if (i > 0) const SizedBox(height: OnCareSpacing.s8),
+                    _EventRow(
+                      event: _events[i],
+                      deleting: _deleting == _events[i].id,
+                      // 삭제가 오가는 동안에는 다른 줄도 잠근다.
+                      disabled: _deleting != null,
+                      onEdit: () => _edit(_events[i]),
+                      onDelete: () => _delete(_events[i]),
+                    ),
+                  ],
+                ],
               ),
-            const SizedBox(height: AppSpacing.md),
-            OutlinedButton.icon(
-              key: const Key('dayEventsAdd'),
-              onPressed: _deleting != null ? null : _add,
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(l.eventAddForDay),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -251,26 +187,23 @@ class _EventRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.only(
+        left: OnCareSpacing.tilePadding,
+        top: OnCareSpacing.s4,
+        bottom: OnCareSpacing.s4,
+      ),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.border),
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineSubtle),
       ),
       child: Row(
         children: <Widget>[
-          Container(
-            width: 4,
-            height: 36,
-            decoration: BoxDecoration(
-              color: scheduleCategoryColor(event.category),
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
+          AppStatusDot(color: scheduleCategoryColor(event.category)),
+          const SizedBox(width: OnCareSpacing.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,44 +212,42 @@ class _EventRow extends StatelessWidget {
                   event.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.titleSmall,
+                  style: tokens
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: OnCareSpacing.s2),
                 Text(
                   // 시간이 없는 일정도 있다 — 그 사실을 그대로 적는다.
                   <String>[
                     scheduleCategoryLabel(l, event.category),
                     if (event.time.isNotEmpty) event.time else l.eventTimeUnset,
                   ].join(' · '),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.mutedForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.bodySmall)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
               ],
             ),
           ),
           if (deleting)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              child: SizedBox(
-                width: 18,
-                height: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
+            SizedBox.square(
+              dimension: tokens.density.iconButton,
+              child: const Center(child: AppLoading.inline()),
             )
           else ...<Widget>[
-            IconButton(
+            AppIconButton(
               key: Key('editEvent-${event.id}'),
+              icon: Icons.edit_rounded,
               tooltip: l.actionEdit,
               onPressed: disabled ? null : onEdit,
-              icon: const Icon(Icons.edit_outlined, size: 20),
             ),
-            IconButton(
+            AppIconButton(
               key: Key('deleteEvent-${event.id}'),
+              icon: Icons.delete_outline_rounded,
               tooltip: l.actionDelete,
+              color: OnCareColors.danger,
               onPressed: disabled ? null : onDelete,
-              icon: const Icon(Icons.delete_outline, size: 20),
-              color: AppColors.destructive,
             ),
           ],
         ],

@@ -224,9 +224,7 @@ void main() {
     final gyms = await container.read(gymFinderResultsProvider.future);
 
     for (final Gym gym in gyms) {
-      final trainers = await container.read(
-        gymTrainersProvider(gym.id).future,
-      );
+      final trainers = await container.read(gymTrainersProvider(gym.id).future);
       expect(
         trainers.length,
         greaterThanOrEqualTo(2),

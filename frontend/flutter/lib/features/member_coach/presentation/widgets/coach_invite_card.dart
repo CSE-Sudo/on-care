@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 트레이너가 보낸 담당 요청 카드. (#919)
 ///
@@ -35,28 +33,15 @@ class _CoachInviteCardState extends ConsumerState<CoachInviteCard> {
   /// 수락하는 순간 트레이너가 회원의 식단·운동·신체 정보를 읽는다. 안내로
   /// 지나가지 않고 동의를 받아야, 회원이 무엇에 동의했는지 나중에도 말할 수
   /// 있다. 서버도 동의 없는 수락은 400 으로 막는다.
-  Future<bool> _confirmConsent(CoachInvite invite) async {
+  Future<bool> _confirmConsent(CoachInvite invite) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool? agreed = await showDialog<bool>(
+    return showAppConfirmDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        key: const Key('coachInviteConsentDialog'),
-        title: Text(l.coachInviteConsentTitle),
-        content: Text(l.coachInviteConsentBody(invite.trainerName)),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          FilledButton(
-            key: const Key('coachInviteConsentAgree'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l.coachInviteConsentAgree),
-          ),
-        ],
-      ),
+      title: l.coachInviteConsentTitle,
+      message: l.coachInviteConsentBody(invite.trainerName),
+      confirmLabel: l.coachInviteConsentAgree,
+      cancelLabel: l.actionCancel,
     );
-    return agreed ?? false;
   }
 
   Future<void> _decide(CoachInvite invite, {required bool accept}) async {
@@ -87,11 +72,11 @@ class _CoachInviteCardState extends ConsumerState<CoachInviteCard> {
       toast.show(accept
             ? l.coachInviteAccepted(invite.trainerName)
             : l.coachInviteRejected,
-        kind: AppToastKind.success,
+        type: AppToastType.success,
       );
     } on AppError {
       if (!mounted) return;
-      toast.show(l.coachInviteFailed, kind: AppToastKind.error);
+      toast.show(l.coachInviteFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -100,101 +85,102 @@ class _CoachInviteCardState extends ConsumerState<CoachInviteCard> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final invites =
         ref.watch(coachInvitesProvider).valueOrNull ?? const <CoachInvite>[];
     if (invites.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+      padding: const EdgeInsets.fromLTRB(
+        OnCareSpacing.s24,
+        0,
+        OnCareSpacing.s24,
+        OnCareSpacing.s20,
+      ),
       child: Column(
         children: <Widget>[
           for (final CoachInvite invite in invites)
-            Container(
-              key: ValueKey<String>('coach-invite-${invite.id}'),
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: kCardShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    l.coachInviteTitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l.coachInviteFrom(invite.trainerName),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: FigmaColors.ink,
-                    ),
-                  ),
-                  if (invite.gymName case final String gym when gym.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.cardGap),
+              child: AppCard(
+                key: ValueKey<String>('coach-invite-${invite.id}'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
                     Text(
-                      l.coachInviteGym(gym),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.mutedForeground,
-                      ),
+                      l.coachInviteTitle,
+                      style: tokens
+                          .text(OnCareTypography.strong(OnCareTypography.caption))
+                          .copyWith(color: OnCareColors.textTertiary),
                     ),
-                  if (invite.message case final String message
-                      when message.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: OnCareSpacing.s2),
                     Text(
-                      message,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: FigmaColors.ink,
-                      ),
+                      l.coachInviteFrom(invite.trainerName),
+                      style: tokens
+                          .text(OnCareTypography.titleSmall)
+                          .copyWith(color: OnCareColors.textPrimary),
                     ),
-                  ],
-                  const SizedBox(height: 8),
-                  // 무엇에 동의하는지 버튼 위에 적는다.
-                  Text(
-                    l.coachInviteExplain,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: OutlinedButton(
-                          key: ValueKey<String>(
-                            'coach-invite-reject-${invite.id}',
-                          ),
-                          onPressed: _busy
-                              ? null
-                              : () => _decide(invite, accept: false),
-                          child: Text(l.coachInviteReject),
-                        ),
+                    if (invite.gymName case final String gym
+                        when gym.isNotEmpty)
+                      Text(
+                        l.coachInviteGym(gym),
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton(
-                          key: ValueKey<String>(
-                            'coach-invite-accept-${invite.id}',
-                          ),
-                          onPressed: _busy
-                              ? null
-                              : () => _decide(invite, accept: true),
-                          child: Text(l.coachInviteAccept),
-                        ),
+                    if (invite.message case final String message
+                        when message.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: OnCareSpacing.s8),
+                      Text(
+                        message,
+                        style: tokens
+                            .text(OnCareTypography.bodySmall)
+                            .copyWith(color: OnCareColors.textPrimary),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: OnCareSpacing.s8),
+                    // 무엇에 동의하는지 버튼 위에 적는다.
+                    Text(
+                      l.coachInviteExplain,
+                      style: tokens
+                          .text(OnCareTypography.caption)
+                          .copyWith(color: OnCareColors.textSecondary),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s12),
+                    // [거절 secondary][수락 primary] 반반 — AppButtonPair 와 같은
+                    // 배치지만, 테스트·자동화가 각 버튼을 키로 찾으므로 직접 둔다.
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: AppButton(
+                            key: ValueKey<String>(
+                              'coach-invite-reject-${invite.id}',
+                            ),
+                            label: l.coachInviteReject,
+                            variant: AppButtonVariant.secondary,
+                            fullWidth: true,
+                            onPressed: _busy
+                                ? null
+                                : () => _decide(invite, accept: false),
+                          ),
+                        ),
+                        const SizedBox(width: OnCareSpacing.buttonGap),
+                        Expanded(
+                          child: AppButton(
+                            key: ValueKey<String>(
+                              'coach-invite-accept-${invite.id}',
+                            ),
+                            label: l.coachInviteAccept,
+                            fullWidth: true,
+                            onPressed: _busy
+                                ? null
+                                : () => _decide(invite, accept: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
         ],

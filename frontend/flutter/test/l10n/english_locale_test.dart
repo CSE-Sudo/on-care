@@ -22,7 +22,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -60,7 +60,9 @@ Iterable<String> _semanticLabels(WidgetTester tester) => <String>[
   ...tester
       .widgetList<Semantics>(find.byType(Semantics))
       .map((Semantics s) => s.properties.label ?? ''),
-  ...tester.widgetList<Tooltip>(find.byType(Tooltip)).map((Tooltip t) => t.message ?? ''),
+  ...tester
+      .widgetList<Tooltip>(find.byType(Tooltip))
+      .map((Tooltip t) => t.message ?? ''),
 ].where((String s) => s.trim().isNotEmpty);
 
 void main() {
@@ -77,6 +79,7 @@ void main() {
           ...overrides,
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: Locale(lang),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -185,9 +188,7 @@ void main() {
       tester,
       const HealthGoalsPage(),
       lang: 'en',
-      overrides: <Override>[
-        profileProvider.overrideWith(_EmptyProfile.new),
-      ],
+      overrides: <Override>[profileProvider.overrideWith(_EmptyProfile.new)],
     );
 
     expectNoHangul(tester, '건강 목표 시트');
@@ -214,9 +215,7 @@ void main() {
   testWidgets('AI 코칭 카드에 한글이 남지 않는다', (WidgetTester tester) async {
     await pump(
       tester,
-      const Scaffold(
-        body: SingleChildScrollView(child: AiCoachingCard()),
-      ),
+      const Scaffold(body: SingleChildScrollView(child: AiCoachingCard())),
       lang: 'en',
       overrides: <Override>[
         // 담당 트레이너·루틴은 서버가 주는 데이터다. 비워 두면 카드에는 앱이 쓴
@@ -240,9 +239,7 @@ void main() {
       tester,
       const HealthGoalsPage(),
       lang: 'ko',
-      overrides: <Override>[
-        profileProvider.overrideWith(_EmptyProfile.new),
-      ],
+      overrides: <Override>[profileProvider.overrideWith(_EmptyProfile.new)],
     );
 
     expect(_renderedText(tester).any(_hangul.hasMatch), isTrue);
@@ -252,7 +249,8 @@ void main() {
 /// 값이 비어 있는 프로필 — 목표 시트가 입력 라벨만 그리게 한다.
 class _EmptyProfile extends ProfileController {
   @override
-  Future<UserProfile> build() async => const UserProfile(id: 'test-user', name: '', email: '');
+  Future<UserProfile> build() async =>
+      const UserProfile(id: 'test-user', name: '', email: '');
 }
 
 class _EmptyNotificationRepository implements NotificationRepository {

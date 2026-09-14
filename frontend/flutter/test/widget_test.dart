@@ -3,19 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
-
 import 'package:oncare/app/app.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_period_view.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -28,7 +27,9 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
+import 'helpers/diet_period_tabs.dart';
 import 'helpers/fake_diet_repository.dart';
 
 class _CountingMemberCoachRepository extends MockMemberCoachRepository {
@@ -191,8 +192,8 @@ void main() {
     // 이 시트는 "무엇을 기록할까" 를 고르는 자리라 색이 영역을 가르는 뜻으로
     // 읽히지 않는다 — 초록 하나만 남으면 그 카드가 다른 성격처럼 보인다.
     // (예전에는 식단 초록·운동 파랑이었다, #1060 → #1154)
-    expect(iconColorOf(Icons.restaurant), FigmaColors.primary);
-    expect(iconColorOf(Icons.fitness_center), FigmaColors.primary);
+    expect(iconColorOf(Icons.restaurant_rounded), OnCareBrand.member.primary);
+    expect(iconColorOf(Icons.fitness_center_rounded), OnCareBrand.member.primary);
   });
 
   testWidgets('Enters the Home tab in English after demo', (tester) async {
@@ -243,7 +244,8 @@ void main() {
 
     final bottomSpacing = await openRecordSheetAndMeasureBottomSpacing(tester);
 
-    expect(bottomSpacing, 0);
+    // 인셋이 없으면 시트 안쪽 여백만 남는다(#1690 바텀시트 안쪽 20).
+    expect(bottomSpacing, OnCareSpacing.sheetPadding);
   });
 
   testWidgets('record sheet keeps only the required system inset', (
@@ -260,7 +262,8 @@ void main() {
 
     final bottomSpacing = await openRecordSheetAndMeasureBottomSpacing(tester);
 
-    expect(bottomSpacing, 34);
+    // 홈 인디케이터 인셋만큼 더 띄워 카드가 가리지 않는다(#1154).
+    expect(bottomSpacing, OnCareSpacing.sheetPadding + 34);
   });
 
   testWidgets('diet add opens as a content-sized sheet with a bottom gap', (
@@ -304,9 +307,10 @@ void main() {
     await pumpApp(tester, locale: const Locale('ko'));
     await openExerciseAddSheet(tester);
 
+    // 시트 하단은 저장 버튼 아래 규격 안쪽 여백(sheetPadding 20)뿐이다(#1701).
     expect(
-      bottomSpacingBetween(tester, 'exerciseAddSheet', 'exerciseAddContent'),
-      0,
+      bottomSpacingBetween(tester, 'exerciseAddSheet', 'exerciseSaveButton'),
+      20,
     );
   });
 
@@ -323,9 +327,10 @@ void main() {
     await pumpApp(tester, locale: const Locale('ko'));
     await openExerciseAddSheet(tester);
 
+    // 규격 안쪽 여백(20)에 시스템 인셋(34)만 더해진다(#1701).
     expect(
-      bottomSpacingBetween(tester, 'exerciseAddSheet', 'exerciseAddContent'),
-      34,
+      bottomSpacingBetween(tester, 'exerciseAddSheet', 'exerciseSaveButton'),
+      20 + 34,
     );
   });
 
@@ -344,9 +349,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // 하단 버튼 아래 여백은 시트 안쪽 여백(AppSheet footer)만 둔다(#1690).
     expect(
       bottomSpacingBetween(tester, 'coachingSheet', 'coachingSheetCta'),
-      0,
+      OnCareSpacing.sheetPadding,
     );
   });
 
@@ -369,7 +375,7 @@ void main() {
 
     expect(
       bottomSpacingBetween(tester, 'coachingSheet', 'coachingSheetCta'),
-      34,
+      OnCareSpacing.sheetPadding + 34,
     );
   });
 
@@ -396,7 +402,7 @@ void main() {
         .getBottomRight(
           find.descendant(
             of: find.byKey(const Key('coachingSheetCta')),
-            matching: find.byType(FilledButton),
+            matching: find.byType(AppButton),
           ),
         )
         .dy;
@@ -471,10 +477,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Diet'), findsAtLeastNWidgets(1));
 
-    final exerciseDestination = find.ancestor(
-      of: find.byIcon(Icons.fitness_center_outlined),
-      matching: find.byType(InkWell),
-    );
+    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
     expect(find.text('Exercise'), findsAtLeastNWidgets(1));
@@ -487,10 +490,7 @@ void main() {
   testWidgets('전체 기간 운동 현황은 스크롤 막대 그래프다 (#1018)', (tester) async {
     await pumpApp(tester, locale: const Locale('en'));
 
-    final exerciseDestination = find.ancestor(
-      of: find.byIcon(Icons.fitness_center_outlined),
-      matching: find.byType(InkWell),
-    );
+    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
     final monthlyToggle = find.text('All');
@@ -695,7 +695,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // 이번 주로 바꾸면 하루 요약 대신 기간 뷰가 보인다.
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
     expect(find.byType(DietPeriodView), findsOneWidget);
     expect(find.byKey(const Key('nutrition-summary-card')), findsNothing);
@@ -718,7 +718,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('mealCard-mock-breakfast')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('MY').first);
@@ -733,10 +733,7 @@ void main() {
   testWidgets('운동 탭 재진입 시 운동 현황 기간 토글이 기본값으로 복원된다 (#861)', (tester) async {
     await pumpApp(tester, locale: const Locale('ko'));
 
-    final exerciseDestination = find.ancestor(
-      of: find.byIcon(Icons.fitness_center_outlined),
-      matching: find.byType(InkWell),
-    );
+    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
 
@@ -767,10 +764,7 @@ void main() {
       tester.element(find.byType(OncareApp)),
     );
 
-    final exerciseDestination = find.ancestor(
-      of: find.byIcon(Icons.fitness_center_outlined),
-      matching: find.byType(InkWell),
-    );
+    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
 
@@ -823,7 +817,7 @@ void main() {
     for (int i = 0; i < 3; i++) {
       await tester.tap(find.text('식단').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
       expect(find.byType(DietPeriodView), findsOneWidget);
 
@@ -840,7 +834,7 @@ void main() {
 
     await tester.tap(find.text('식단').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
     expect(find.byType(DietPeriodView), findsOneWidget);
 

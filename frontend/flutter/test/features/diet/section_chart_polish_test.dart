@@ -7,14 +7,16 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/section_title.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 void main() {
@@ -29,11 +31,12 @@ void main() {
           dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
           accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: DietRecordPage(),
+          home: const DietRecordPage(),
         ),
       ),
     );
@@ -43,33 +46,35 @@ void main() {
   testWidgets('영양 요약 제목에 아이콘이 붙는다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
-    final SectionTitle title = tester.widget<SectionTitle>(
-      find.byType(SectionTitle).first,
+    final AppSectionHeader title = tester.widget<AppSectionHeader>(
+      find.byType(AppSectionHeader).first,
     );
     // 트레이너웹 고객 식단이 쓰는 아이콘과 같은 모양이다.
-    expect(title.icon, Icons.restaurant_outlined);
-    expect(find.text(title.label), findsWidgets);
+    expect(title.icon, Icons.restaurant_rounded);
+    expect(find.text(title.title), findsWidgets);
   });
 
   testWidgets('기간 버튼은 글자보다 넉넉하다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
-    final Rect button = tester.getRect(
-      find.byKey(const Key('diet-period-tab-day')),
-    );
+    final Rect button = tester.getRect(dietPeriodTab(DietPeriodTab.day));
     final Rect label = tester.getRect(
       find.descendant(
-        of: find.byKey(const Key('diet-period-tab-day')),
+        of: dietPeriodTab(DietPeriodTab.day),
         matching: find.byType(Text),
       ),
     );
-    // 누를 자리가 글자에 딱 붙어 빠듯했다 — 좌우로 여유를 둔다.
-    expect(button.width - label.width, greaterThanOrEqualTo(32));
+    // 누를 자리가 글자에 딱 붙어 빠듯했다 — 패키지 세그먼트의 좌우 여백만큼
+    // 여유가 있다(#1700).
+    expect(
+      button.width - label.width,
+      greaterThanOrEqualTo(OnCareSpacing.s12 * 2),
+    );
   });
 
   testWidgets('전체 그래프의 막대는 바닥에서 자라 오른다', (WidgetTester tester) async {
     await pumpDiet(tester);
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
 
     // 전체는 오늘로 끝나는 구간이고 그래프는 끝으로 스크롤돼 열린다 —
     // 화면에 실제로 있는 마지막 칸을 본다.

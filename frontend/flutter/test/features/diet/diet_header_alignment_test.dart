@@ -12,14 +12,15 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:oncare/design_system/figma/section_title.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 void main() {
@@ -38,11 +39,12 @@ void main() {
               MockAccountRepository(),
             ),
           ],
-          child: const MaterialApp(
-            locale: Locale('ko'),
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            locale: const Locale('ko'),
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            home: DietRecordPage(),
+            home: const DietRecordPage(),
           ),
         ),
       );
@@ -70,7 +72,7 @@ void main() {
       // 제목은 여전히 줄 왼쪽에 있다 — 둘이 가운데로 몰리지 않는다.
       // 제목 왼쪽에는 이제 아이콘이 붙으므로 제목 묶음 전체로 잰다. (#1058)
       expect(
-        tester.getRect(find.byType(SectionTitle).first).left,
+        tester.getRect(find.byType(AppSectionHeader).first).left,
         moreOrLessEquals(tester.getRect(header).left, epsilon: 0.5),
       );
     });
@@ -78,7 +80,7 @@ void main() {
     testWidgets('기간을 이번 주로 바꿔도 토글은 오른쪽 끝에 남는다', (WidgetTester tester) async {
       await pumpPage(tester);
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
 
       expect(
@@ -109,7 +111,7 @@ void main() {
         final Finder header = headers.at(i);
         final Finder editIcon = find.descendant(
           of: header,
-          matching: find.byIcon(Icons.edit_outlined),
+          matching: find.byIcon(Icons.edit_rounded),
         );
         expect(editIcon, findsOneWidget);
         expect(

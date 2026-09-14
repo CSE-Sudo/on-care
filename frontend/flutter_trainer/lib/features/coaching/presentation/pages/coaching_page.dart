@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,14 +10,10 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/request_id.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_diet_period_card.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_exercise_status_card.dart';
-import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_toggle.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/client_period_section.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/program_draft_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/ai_routine_repository.dart';
@@ -42,13 +39,11 @@ import 'package:oncare_trainer/features/search/presentation/widgets/client_searc
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
-import 'package:oncare_trainer/shared/widgets/icon_label.dart';
+// 예외 둘: 탭 이동 시 스크롤 초기화(UI 위젯 아님), 그리고 요일별 막대그래프
+// — 패키지에 대응 차트가 없고 리포트 탭·테스트가 같은 위젯 타입을 쓴다.
 import 'package:oncare_trainer/shared/widgets/mini_charts.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_trainer/shared/widgets/page_scroll_reset.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// AI 코칭 — the workspace where a client's data becomes a routine.
 ///
@@ -84,24 +79,21 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   /// AI 1~3단계와 프로그램 편집기 중 어느 쪽을 표시할지 정한다.
   bool _aiWizardVisible = true;
+
+  /// `일정 추가` 가 방금 성공했다 — 성공 토스트가 떠 있는 동안 같은 구성을
+  /// 다시 보내지 못하게 잠그고, 잠시 뒤 편집기를 새로 세운다.
   bool _sent = false;
   Timer? _sentTimer;
 
-  /// A homework send is in flight (blocks re-entry, disables the button).
-  bool _sending = false;
+  /// `일정 추가` 가 진행 중인 회원들. 여러 회원을 동시에 보낼 수 있지만 한
+  /// 회원에게는 한 번에 하나만 나간다 — 회원을 바꿔도 앞 요청은 계속 돈다.
+  final Set<String> _sendingClientIds = <String>{};
 
-  /// 진행 중인 전송 시도의 멱등키와 그 대상 회원. 실패 후 재시도는 같은 키를
-  /// 다시 쓰고(중복 배정 방지), 성공하거나 대상이 바뀌면 새로 잡는다(#581).
-  String? _sendRequestId;
-  String? _sendRequestFor;
-
-  /// A schedule registration just succeeded — blocks re-registration for a
-  /// few seconds while the success toast is still fresh.
-  bool _registered = false;
-  // Every client whose registration is in flight. Multiple clients may save
-  // concurrently, but each client may have only one pending write.
-  final Set<String> _registeringClientIds = <String>{};
-  Timer? _registerTimer;
+  /// 회원별 미완료 전송의 멱등키와, 그 키를 만든 구성(초안·날짜·시간)의 지문.
+  /// 실패 후 같은 구성으로 다시 보내면 같은 키를 쓰고(응답 유실 뒤 중복 방지,
+  /// #581·#1580), 구성이 바뀌었거나 성공하면 새로 잡는다.
+  final Map<String, ({String fingerprint, String id})> _sendRequests =
+      <String, ({String fingerprint, String id})>{};
 
   /// PT 스케줄에 등록할 날. 기본값은 오늘.
   DateTime _registerDate = _todayKst();
@@ -122,8 +114,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   @override
   void dispose() {
+    _resetNotifier?.removeListener(_resetScroll);
     _sentTimer?.cancel();
-    _registerTimer?.cancel();
     super.dispose();
   }
 
@@ -144,8 +136,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       // A different client gets a clean slate, like the mock.
       _typeEdits.clear();
       _sent = false;
-      _sending = false;
-      _registered = false;
       _registerDate = _todayKst();
       _registerStartTime = const TimeOfDay(hour: 10, minute: 0);
       _registerEndTime = const TimeOfDay(hour: 11, minute: 0);
@@ -153,11 +143,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       _templateRevision = 0;
       _editorRevision = 0;
       _aiWizardVisible = true;
-      // NOTE: _registeringClientIds is intentionally NOT cleared — writes
-      // for other clients keep being tracked while the selection changes.
+      // NOTE: _sendingClientIds is intentionally NOT cleared — writes for
+      // other clients keep being tracked while the selection changes.
     });
     _sentTimer?.cancel();
-    _registerTimer?.cancel();
   }
 
   bool _isStillSelected(String clientId) =>
@@ -215,7 +204,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       ref.invalidate(programTemplatesProvider);
       if (!mounted) return false;
       setState(() => _savingTemplate = false);
-      showAppToast(context, l.programDraftSaved, kind: AppToastKind.success);
+      showAppToast(context, l.programDraftSaved, type: AppToastType.success);
       return true;
     } on Object catch (error) {
       if (!mounted) return false;
@@ -225,68 +214,123 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         error is AppError
             ? serverDetailOr(l, error.message, l.coachTemplateSaveFailed)
             : l.coachTemplateSaveFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
       return false;
     }
   }
 
-  /// 편집기의 `보내기` 가 부른다 — 확인창을 띄우고, 확인되면 배정한다
-  /// (#1028). 초안은 편집기가 그 자리에서 쥐고 있던 값을 그대로 인자로
-  /// 받는다 — 예전에는 "최종 검토" 화면이 스냅샷을 붙잡아 두는 역할을
-  /// 했지만, 이제 그 화면이 없어 호출 시점의 값을 곧장 쓴다.
+  /// 편집기의 `일정 추가` 가 부른다 — 확인창을 띄우고, 확인되면 회원 배정과
+  /// PT 일정 등록을 **한 명령으로** 보낸다(#1580). 예전에는 두 API 를 차례로
+  /// 불러 배정만 되고 일정은 빠진 반쪽 상태가 남을 수 있었다.
+  ///
+  /// 확인한 순간의 대상 회원·날짜·시간·구성을 붙잡아 보낸다 — 요청이 도는
+  /// 동안 회원을 바꿔도 그 회원의 작업은 확인한 값 그대로 끝난다. 실패하면
+  /// 편집기·날짜·시간을 그대로 두어 같은 멱등키로 다시 보낼 수 있고, 성공
+  /// 표시는 명령이 끝난 뒤에만 뜬다.
   Future<void> _sendProgram(
     TrainerClient client,
     ProgramEditorState draft,
   ) async {
     if (_sent ||
-        _sending ||
+        _sendingClientIds.contains(client.id) ||
         !draft.supportsAssignment ||
-        _registerDurationMinutes <= 0) {
+        _registerDurationMinutes <= 0 ||
+        !_registerDateStillValid()) {
       return;
     }
-    final confirmed = await showProgramAssignConfirmDialog(
+    final l = AppLocalizations.of(context);
+    final List<ScheduleSession> candidates;
+    try {
+      candidates = await _attachCandidates(client);
+    } catch (error) {
+      if (mounted && _isStillSelected(client.id)) {
+        showAppToast(
+          context,
+          _sendFailureMessage(l, error),
+          type: AppToastType.error,
+        );
+      }
+      return;
+    }
+    if (!mounted || !_isStillSelected(client.id)) return;
+    final confirmation = await showProgramAssignConfirmDialog(
       context,
       clientName: client.name,
       registerDate: _registerDate,
       registerStartTime: _registerStartTime,
       registerEndTime: _registerEndTime,
+      candidates: candidates,
     );
-    if (confirmed != true || !mounted || !_isStillSelected(client.id)) return;
-    final sentFor = client.id;
-    if (_sendRequestId == null || _sendRequestFor != sentFor) {
-      _sendRequestId = newClientRequestId();
-      _sendRequestFor = sentFor;
-    }
-    setState(() => _sending = true);
-    final l = AppLocalizations.of(context);
-    try {
-      // 세션이 몇 개든 프로그램 배정 한 번으로 보낸다 — 세션당 루틴 한 건이
-      // 되고, 세션이 하나뿐이면 예전 단일 배정과 같은 결과다(#709).
-      await ref
-          .read(trainerRoutineRepositoryProvider)
-          .assignProgram(
-            client.id,
-            programAssignToJson(draft, clientRequestId: _sendRequestId),
-          );
-    } catch (_) {
-      if (!mounted || !_isStillSelected(sentFor)) return;
-      setState(() => _sending = false);
-      showAppToast(context, l.coachSendFailed, kind: AppToastKind.error);
+    if (confirmation == null || !mounted || !_isStillSelected(client.id)) {
       return;
     }
-    // 배정은 여기서 이미 끝났다 — 3열 `전송 이력`(`assignedRoutinesProvider`)
-    // 은 실 API 모드에서 1회성 fetch 라 다시 읽으라고 말해 줘야 한다(#1029).
-    // 데모의 `assignedRoutinesProvider`/PT 등록이 읽는 `clientSessionsProvider`
-    // 는 로컬 DB를 그대로 지켜보는 스트림이라 여기서 손대지 않아도 된다.
-    ref.invalidate(assignedRoutinesProvider(client.id));
-    if (!mounted || !_isStillSelected(sentFor)) return;
+    // 확인창을 띄워 둔 사이에도 자정이 지날 수 있다 — 보내기 직전에 한 번 더.
+    if (!_registerDateStillValid()) return;
+    final sentFor = client.id;
+    final registerDate = _registerDate;
+    final date = ymd(registerDate);
+    final time = _registerStartHhmm;
+    final durationMinutes = _registerDurationMinutes;
+    final requestId = _requestIdFor(sentFor, <Object?>[
+      programAssignToJson(draft),
+      date,
+      time,
+      durationMinutes,
+      confirmation.sessionId,
+    ]);
+    setState(() => _sendingClientIds.add(sentFor));
+    final bool attachedToExisting;
+    try {
+      attachedToExisting = await ref
+          .read(scheduleRepositoryProvider)
+          .registerProgramSchedule(
+            date: date,
+            clientId: sentFor,
+            clientName: client.name,
+            time: time,
+            durationMinutes: durationMinutes,
+            assignment: programAssignToJson(draft, clientRequestId: requestId),
+            program: _draftProgram(draft),
+            sessionId: confirmation.sessionId,
+          );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _sendingClientIds.remove(sentFor));
+      if (_isStillSelected(sentFor)) {
+        showAppToast(
+          context,
+          _sendFailureMessage(l, error),
+          type: AppToastType.error,
+        );
+      }
+      return;
+    }
+    _sendRequests.remove(sentFor);
+    if (!mounted) return;
+    // 3열 `전송 이력`(`assignedRoutinesProvider`)은 실 API 모드에서 1회성
+    // fetch 라 다시 읽으라고 말해 줘야 한다(#1029). 일정 쪽은 저장소가
+    // 스스로 다시 읽는다.
+    ref.invalidate(assignedRoutinesProvider(sentFor));
+    final stillSelected = _isStillSelected(sentFor);
     setState(() {
-      _sending = false;
-      _sent = true;
-      _sendRequestId = null;
-      _sendRequestFor = null;
+      _sendingClientIds.remove(sentFor);
+      if (stillSelected) _sent = true;
     });
+    if (!stillSelected) return;
+    // 등록 완료는 인라인 문구가 아니라 다른 성공 알림과 같은 상단
+    // 토스트로 뜬다(#1536) — "스케줄로 이동" 액션으로 바로 그 날짜의
+    // 스케줄 탭을 연다. `AppToastType`엔 경고 종류가 없어, 기존 세션에
+    // 붙은 경우도 실패는 아니므로 `info`로 알린다.
+    showAppToast(
+      context,
+      attachedToExisting
+          ? l.coachRegisteredAttachedExisting(_dateChipLabel(l, registerDate))
+          : l.coachRegisteredOn(_dateChipLabel(l, registerDate)),
+      type: attachedToExisting ? AppToastType.info : AppToastType.success,
+      actionLabel: l.coachGoToSchedule,
+      onAction: () => context.go(AppRoutes.scheduleAt(date: date)),
+    );
     _sentTimer?.cancel();
     _sentTimer = Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
@@ -297,82 +341,80 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
         _editorRevision++;
       });
     });
-    // `보내기` 하나가 배정과 PT 등록을 함께 한다(#1029) —
-    // `assignProgram`/`registerProgram` 은 여전히 서로 다른 API 라 억지로
-    // 합치지 않고 순서대로 부른다. 배정이 이미 됐으니 등록이 실패해도
-    // 배정 자체를 취소하지 않는다 — [_registerProgram] 은 자기 몫의
-    // 실패만 그 자리에서 따로 알린다(`coachScheduleFailed`), 방금 보인
-    // 배정 성공을 덮어쓰지 않는다.
-    await _registerProgram(client, draft);
   }
 
-  /// [_sendProgram] 이 배정 성공 뒤에만 부른다(#1029) — 이 앱에 PT 등록
-  /// 버튼은 따로 없다.
-  Future<void> _registerProgram(
-    TrainerClient client,
-    ProgramEditorState draft,
-  ) async {
-    if (!draft.supportsAssignment ||
-        _registered ||
-        _registeringClientIds.contains(client.id)) {
-      return;
-    }
-    final registeredFor = client.id;
+  /// 등록할 시작 시각 `HH:mm`.
+  String get _registerStartHhmm =>
+      '${_registerStartTime.hour.toString().padLeft(2, '0')}:'
+      '${_registerStartTime.minute.toString().padLeft(2, '0')}';
+
+  /// 고른 날짜·시간대와 겹치는 이 회원의 예정 세션(시작 시각 순). 확인창이
+  /// 새 일정인지 기존 일정 연결인지를 저장 전에 보여 주려고 읽는다(#1581).
+  /// 서버가 같은 규칙으로 다시 고르므로, 그 사이 일정이 바뀌어 여기서 본 것과
+  /// 어긋나면 저장이 409 로 멈춘다.
+  Future<List<ScheduleSession>> _attachCandidates(TrainerClient client) async {
     final date = ymd(_registerDate);
-    final time =
-        '${_registerStartTime.hour.toString().padLeft(2, '0')}:'
-        '${_registerStartTime.minute.toString().padLeft(2, '0')}';
-    final l = AppLocalizations.of(context);
-    setState(() => _registeringClientIds.add(registeredFor));
-    bool attachedToExisting;
-    try {
-      attachedToExisting = await ref
-          .read(scheduleRepositoryProvider)
-          .registerProgram(
-            date: date,
-            clientId: client.id,
-            clientName: client.name,
-            time: time,
-            durationMinutes: _registerDurationMinutes,
-            program: _draftProgram(draft),
-          );
-    } catch (_) {
-      if (!mounted) return;
-      setState(() => _registeringClientIds.remove(registeredFor));
-      if (_isStillSelected(registeredFor)) {
-        showAppToast(context, l.coachScheduleFailed, kind: AppToastKind.error);
-      }
-      return;
+    final time = _registerStartHhmm;
+    final duration = _registerDurationMinutes;
+    final sessions = await ref
+        .read(scheduleRepositoryProvider)
+        .fetchClientSessionsOn((id: client.id, name: client.name), date);
+    return sessions
+        .where(
+          (session) =>
+              session.isUpcoming &&
+              session.date == date &&
+              timeRangesOverlap(
+                session.time,
+                session.durationMinutes,
+                time,
+                duration,
+              ),
+        )
+        .toList()
+      ..sort((a, b) => a.time.compareTo(b.time));
+  }
+
+  /// 등록 날짜가 아직 오늘 이후인가. 화면을 연 채 자정을 넘겨 전날이 됐으면
+  /// 오늘로 되돌리고 알린 뒤 false — 전날 날짜로는 보내지 않는다(#1582).
+  bool _registerDateStillValid() {
+    final today = _todayKst();
+    if (!_registerDate.isBefore(today)) return true;
+    setState(() => _registerDate = today);
+    showAppToast(
+      context,
+      AppLocalizations.of(context).programEditorRegisterDatePast,
+      type: AppToastType.error,
+    );
+    return false;
+  }
+
+  /// 실패 원인별 안내(#1582). 다시 눌러 풀리는 실패만 재시도를 권한다 — 담당
+  /// 관계가 없거나(404) 서버가 입력을 거절한(400·422) 경우는 같은 요청을
+  /// 반복해도 결과가 같다. 응답 형식이 어긋나면 서버에는 반영됐을 수 있어
+  /// 먼저 확인하게 한다.
+  String _sendFailureMessage(AppLocalizations l, Object error) =>
+      switch (error) {
+        ProgramAttachConflictError() => l.coachAttachTargetChanged,
+        NetworkError() => l.coachSendNetworkFailed,
+        NotFoundError() => l.coachSendClientNotFound,
+        ValidationError() => l.coachSendInvalid,
+        FormatException() => l.coachSendUnverified,
+        _ => l.coachSendFailed,
+      };
+
+  /// [clientId] 의 이번 전송에 쓸 멱등키. [payload] 가 지난 실패 때와 같으면
+  /// 그 키를 다시 쓴다 — 응답만 잃은 요청을 재시도해도 서버가 두 번 만들지
+  /// 않는다. 구성을 고쳤으면 다른 요청이므로 새 키를 만든다.
+  String _requestIdFor(String clientId, Object payload) {
+    final fingerprint = jsonEncode(payload, toEncodable: (value) => '$value');
+    final pending = _sendRequests[clientId];
+    if (pending != null && pending.fingerprint == fingerprint) {
+      return pending.id;
     }
-    if (!mounted) return;
-    final stillSelected = _isStillSelected(registeredFor);
-    setState(() {
-      _registeringClientIds.remove(registeredFor);
-      if (stillSelected) _registered = true;
-    });
-    if (stillSelected) {
-      // 등록 완료는 인라인 문구가 아니라 다른 성공 알림과 같은 상단
-      // 토스트로 뜬다(#1536) — "스케줄로 이동" 액션으로 바로 그 날짜의
-      // 스케줄 탭을 연다. `AppToastKind`엔 경고 종류가 없어, 기존 세션에
-      // 붙은 경우도 실패는 아니므로 `info`로 알린다.
-      showAppToast(
-        context,
-        attachedToExisting
-            ? l.coachRegisteredAttachedExisting(
-                _dateChipLabel(l, _registerDate),
-              )
-            : l.coachRegisteredOn(_dateChipLabel(l, _registerDate)),
-        kind: attachedToExisting ? AppToastKind.info : AppToastKind.success,
-        action: AppToastAction(
-          label: l.coachGoToSchedule,
-          onTap: () => context.go(AppRoutes.scheduleAt(date: date)),
-        ),
-      );
-    }
-    _registerTimer?.cancel();
-    _registerTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted) setState(() => _registered = false);
-    });
+    final id = newClientRequestId();
+    _sendRequests[clientId] = (fingerprint: fingerprint, id: id);
+    return id;
   }
 
   /// The draft flattened into schedule items, each tagged with its session.
@@ -405,73 +447,112 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 탭을 다시 누르면 이 페이지의 세로 스크롤을 맨 위로 되돌린다 — 예전
+    // `PageScaffold` 가 하던 일을 페이지 틀이 바뀐 뒤에도 그대로 한다.
+    final next = PageScrollResetScope.maybeOf(context);
+    if (identical(next, _resetNotifier)) return;
+    _resetNotifier?.removeListener(_resetScroll);
+    _resetNotifier = next;
+    _resetNotifier?.addListener(_resetScroll);
+  }
+
+  final Set<ScrollableState> _topLevelScrollables = <ScrollableState>{};
+  ValueNotifier<int>? _resetNotifier;
+
+  void _resetScroll() {
+    if (!TickerMode.valuesOf(context).enabled) return;
+    _topLevelScrollables.removeWhere((scrollable) => !scrollable.mounted);
+    for (final scrollable in _topLevelScrollables) {
+      final position = scrollable.position;
+      if (position.hasPixels && position.pixels != position.minScrollExtent) {
+        position.jumpTo(position.minScrollExtent);
+      }
+    }
+  }
+
+  bool _rememberScroll(ScrollNotification notification) {
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    final notificationContext = notification.context;
+    if (notificationContext != null) {
+      final scrollable = Scrollable.maybeOf(notificationContext);
+      if (scrollable != null) _topLevelScrollables.add(scrollable);
+    }
+    return false;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final clientsAsync = ref.watch(clientsProvider);
 
-    return PageScaffold(
-      title: l.coachTitle,
-      subtitle: l.coachSubtitle,
-      headerCenter: const ClientSearchBar(),
-      scrollable: false,
-      contentPadding: EdgeInsets.zero,
-      child: clientsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Text(
-            l.clientsLoadFailed,
-            style: const TextStyle(color: AppColors.mutedForeground),
+    return NotificationListener<ScrollNotification>(
+      onNotification: _rememberScroll,
+      child: AppWebPage(
+        title: l.coachTitle,
+        subtitle: l.coachSubtitle,
+        actions: const <Widget>[
+          // 검색 범위 안내 문구가 잘리지 않을 만큼 넓힌다(client_search_bar_test).
+          SizedBox(
+            width: OnCareLayout.headerCenterMinWidth + OnCareSpacing.s48,
+            child: ClientSearchBar(),
           ),
-        ),
-        data: (clients) {
-          if (clients.isEmpty) {
-            return Center(
-              child: Text(
-                l.coachNoClients,
-                style: const TextStyle(color: AppColors.mutedForeground),
-              ),
+        ],
+        body: clientsAsync.when(
+          loading: () => const AppLoading(),
+          error: (e, _) => AppErrorState(
+            title: l.clientsLoadFailed,
+            retryLabel: l.actionRetry,
+            onRetry: () => ref.invalidate(clientsProvider),
+          ),
+          data: (clients) {
+            if (clients.isEmpty) {
+              return AppEmptyState(
+                title: l.coachNoClients,
+                icon: Icons.people_outline_rounded,
+              );
+            }
+            final selected = clients.firstWhere(
+              (c) => c.id == _clientId,
+              orElse: () => clients.first,
             );
-          }
-          final selected = clients.firstWhere(
-            (c) => c.id == _clientId,
-            orElse: () => clients.first,
-          );
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= AppLayout.splitBreakpoint;
-              // 3열의 고정 폭(목록 260 + 우측 360 + 간격 48)과 페이지 여백을
-              // 빼고도 편집기가 최소 600px을 가져야 한다.
-              final fullWidth = constraints.maxWidth >= 1320;
-              if (!wide) {
-                return ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppLayout.pagePadding,
-                    AppLayout.pagePadding,
-                    AppLayout.pagePadding,
-                    AppLayout.pagePadding,
-                  ),
-                  children: <Widget>[
-                    // Single column: context, then the editor, then the
-                    // library. The editor is the task — pushing it below
-                    // the templates would bury it.
-                    ..._contextChildren(l, clients, selected),
-                    const SizedBox(height: AppSpacing.lg),
-                    ..._suggestionChildren(selected),
-                    ..._editorChildren(selected),
-                    const SizedBox(height: AppSpacing.lg),
-                    ..._libraryChildren(selected),
-                  ],
-                );
-              }
-              // 넓은 화면은 **세 열이 각자 스크롤한다.** 왼쪽(고객 · 템플릿)은
-              // #958 이후로 이미 그랬고, 이번에는 오른쪽 고객 데이터 열도
-              // 가운데 편집기 스크롤에서 떼어 냈다(#1027) — 편집기를 아래로
-              // 읽는 동안 지금 고른 고객의 식단·운동이 함께 밀려 올라가면,
-              // 정작 그 데이터를 근거로 짜야 할 프로그램을 쓰면서 근거를 볼
-              // 수 없다. 열을 나누면 오른쪽 열은 제자리에 머무른다.
-              return Padding(
-                padding: const EdgeInsets.all(AppLayout.pagePadding),
-                child: Column(
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final wide =
+                    constraints.maxWidth >= OnCareLayout.splitBreakpoint;
+                // 3열의 고정 폭(왼쪽 목록 + 오른쪽 고객 데이터 열 + 간격 둘)을
+                // 빼고도 편집기가 입력 폼 폭만큼은 가져야 한다.
+                final fullWidth =
+                    constraints.maxWidth >=
+                    OnCareLayout.splitListWidth +
+                        OnCareLayout.splitListWidth +
+                        OnCareLayout.splitGap +
+                        OnCareLayout.splitGap +
+                        OnCareLayout.dialogSmall;
+                if (!wide) {
+                  return ListView(
+                    children: <Widget>[
+                      // Single column: context, then the editor, then the
+                      // library. The editor is the task — pushing it below
+                      // the templates would bury it.
+                      ..._contextChildren(l, clients, selected),
+                      const SizedBox(height: OnCareSpacing.s16),
+                      ..._suggestionChildren(selected),
+                      ..._editorChildren(selected),
+                      const SizedBox(height: OnCareSpacing.s16),
+                      ..._libraryChildren(selected),
+                    ],
+                  );
+                }
+                // 넓은 화면은 **세 열이 각자 스크롤한다.** 왼쪽(고객 · 템플릿)은
+                // #958 이후로 이미 그랬고, 오른쪽 고객 데이터 열도 가운데 편집기
+                // 스크롤에서 떼어 냈다(#1027) — 편집기를 아래로 읽는 동안 지금
+                // 고른 고객의 식단·운동이 함께 밀려 올라가면, 정작 그 데이터를
+                // 근거로 짜야 할 프로그램을 쓰면서 근거를 볼 수 없다.
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     Expanded(
@@ -479,20 +560,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           SizedBox(
-                            width: 260,
+                            width: OnCareLayout.splitListWidth,
                             // 고객 목록(5줄 고정)은 그 자리·높이 그대로 두고,
-                            // 템플릿 카드가 늘어나는 만큼만 그 아래 남는
-                            // 공간 안에서 따로 스크롤한다 — 예전처럼 열
-                            // 전체를 한 스크롤로 묶으면 템플릿을 보려고
-                            // 내릴 때 고객 목록까지 함께 밀려 올라갔다.
+                            // 템플릿 카드가 늘어나는 만큼만 그 아래 남는 공간
+                            // 안에서 따로 스크롤한다.
                             //
-                            // 다만 이 열에 실제로 주어진 높이가 고객 목록
-                            // 하나만으로도 빠듯할 만큼 짧으면(작은 창) 그대로
-                            // 나누지 않는다 — 템플릿 카드는 헤더 한 줄 만큼의
-                            // 최소 높이도 없이는 그릴 수 없어 RenderFlex
-                            // 오버플로우가 난다. 그런 창에서는 예전처럼 열
-                            // 전체를 한 스크롤로 묶어 오버플로우 대신
-                            // 스크롤로 흡수한다.
+                            // 다만 이 열에 주어진 높이가 고객 목록 하나만으로도
+                            // 빠듯할 만큼 짧으면(작은 창) 나누지 않고 열 전체를
+                            // 한 스크롤로 묶어 오버플로우 대신 스크롤로 흡수한다.
                             child: LayoutBuilder(
                               builder: (context, sidebarConstraints) {
                                 final canSplit =
@@ -521,7 +596,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: <Widget>[
                                         list,
-                                        const SizedBox(height: AppSpacing.lg),
+                                        const SizedBox(
+                                          height: OnCareSpacing.s16,
+                                        ),
                                         template,
                                       ],
                                     ),
@@ -532,10 +609,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                       CrossAxisAlignment.stretch,
                                   children: <Widget>[
                                     list,
-                                    const SizedBox(height: AppSpacing.lg),
+                                    const SizedBox(height: OnCareSpacing.s16),
                                     // 남는 세로 공간은 전부 템플릿 카드가
-                                    // 갖는다 — 카드 박스 자체가 이 높이로
-                                    // 고정되고, 카드 내부가 그 안에서만
+                                    // 갖는다 — 카드 내부가 그 안에서만
                                     // 스크롤한다.
                                     Expanded(child: template),
                                   ],
@@ -543,7 +619,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                               },
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.lg),
+                          const SizedBox(width: OnCareLayout.splitGap),
                           Expanded(
                             child: SingleChildScrollView(
                               key: const ValueKey<String>(
@@ -555,10 +631,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                 ),
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: <Widget>[
-                                  // 오른쪽 열을 세울 만큼 넓지 않은 창에서는 식단·운동이 가운데
-                                  // 열 **맨 위**에 온다 — 넓은 화면의 오른쪽 열 맨 위와 같은
-                                  // 자리다(#1027). 좁은 화면(`_contextChildren`)도 이미 이
-                                  // 순서다.
+                                  // 오른쪽 열을 세울 만큼 넓지 않은 창에서는
+                                  // 식단·운동이 가운데 열 **맨 위**에 온다 —
+                                  // 넓은 화면의 오른쪽 열 맨 위와 같은
+                                  // 자리다(#1027).
                                   if (!fullWidth) ...<Widget>[
                                     _ClientDataSwitcher(
                                       key: const ValueKey<String>(
@@ -566,18 +642,16 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                       ),
                                       client: selected,
                                     ),
-                                    const SizedBox(height: AppSpacing.md),
-                                    // 3열이 따로 생기지 않는 너비에서도 AI 개인운동 제안은
-                                    // 고객 데이터 바로 아래, 작은 카드로 유지한다.
+                                    const SizedBox(height: OnCareSpacing.s12),
+                                    // 3열이 따로 생기지 않는 너비에서도 AI
+                                    // 개인운동 제안은 고객 데이터 바로 아래,
+                                    // 작은 카드로 유지한다.
                                     _suggestionColumn(selected),
-                                    const SizedBox(height: AppSpacing.lg),
+                                    const SizedBox(height: OnCareSpacing.s16),
                                   ],
-                                  // `AI에게 맞춤 루틴 요청하기` 는 더 이상 클릭해야 나타나지
-                                  // 않는다 — `_editorChildren` 이 프로그램 정보 박스 위에 늘
-                                  // 붙여 둔다(#1028).
                                   ..._editorChildren(selected),
                                   if (!fullWidth) ...<Widget>[
-                                    const SizedBox(height: AppSpacing.lg),
+                                    const SizedBox(height: OnCareSpacing.s16),
                                     _SendHistoryCard(client: selected),
                                   ],
                                 ],
@@ -585,15 +659,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                             ),
                           ),
                           if (fullWidth) ...<Widget>[
-                            const SizedBox(width: AppSpacing.lg),
+                            const SizedBox(width: OnCareLayout.splitGap),
                             SizedBox(
                               key: const ValueKey<String>(
                                 'coaching-wide-client-overview',
                               ),
-                              width: 360,
-                              // 가운데 열과 **다른 스크롤**이다 — 편집기를 아래로
-                              // 읽어도 이 열은 제자리에 머문다. 열 자체가 화면보다
-                              // 길어질 때만 이 안에서 따로 움직인다.
+                              width: OnCareLayout.splitListWidth,
+                              // 가운데 열과 **다른 스크롤**이다 — 편집기를
+                              // 아래로 읽어도 이 열은 제자리에 머문다.
                               child: SingleChildScrollView(
                                 key: const ValueKey<String>(
                                   'coaching-client-rail-scroll',
@@ -603,15 +676,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                       CrossAxisAlignment.stretch,
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
-                                    // 식단·운동이 열의 맨 위다. 고객을 고른 뒤
-                                    // 가장 자주 보는 값이 가장 먼저 온다.
                                     _ClientDataSwitcher(client: selected),
-                                    const SizedBox(height: AppSpacing.lg),
-                                    // AI 개인운동 제안은 식단·운동 바로
-                                    // 아래, 전송 이력 위에 둔다 — 고객
-                                    // 데이터를 본 직후 판단하는 흐름이다.
+                                    const SizedBox(height: OnCareSpacing.s16),
                                     _suggestionColumn(selected),
-                                    const SizedBox(height: AppSpacing.lg),
+                                    const SizedBox(height: OnCareSpacing.s16),
                                     _SendHistoryCard(client: selected),
                                   ],
                                 ),
@@ -622,11 +690,11 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                       ),
                     ),
                   ],
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }
@@ -638,9 +706,12 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     List<TrainerClient> clients,
     TrainerClient client,
   ) {
+    final TextStyle labelStyle = context.oncare
+        .text(OnCareTypography.strong(OnCareTypography.caption))
+        .copyWith(color: OnCareColors.textTertiary);
     return <Widget>[
-      _sectionLabel(l.reportsPickClient),
-      const SizedBox(height: AppSpacing.sm),
+      Text(l.reportsPickClient, style: labelStyle),
+      const SizedBox(height: OnCareSpacing.s8),
       // Horizontal scroll instead of one cramped Row — stays usable as
       // the roster grows past the seeded three (codex review).
       SingleChildScrollView(
@@ -649,19 +720,23 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
           children: <Widget>[
             for (final c in clients) ...<Widget>[
               SizedBox(
-                width: 104,
-                child: _ClientChip(
-                  client: c,
+                width: OnCareLayout.sidebarWidth,
+                // 이름 아래에 성별·나이를 쌓는다 — 이름이 같은 회원을
+                // 가려내는 정보다.
+                child: AppListRow(
+                  title: c.name,
+                  subtitle: _clientDemographics(l, c),
+                  leading: AppAvatar(name: c.name),
                   selected: c.id == client.id,
                   onTap: () => _selectClient(c.id),
                 ),
               ),
-              if (c != clients.last) const SizedBox(width: AppSpacing.sm),
+              if (c != clients.last) const SizedBox(width: OnCareSpacing.s8),
             ],
           ],
         ),
       ),
-      const SizedBox(height: AppSpacing.lg),
+      const SizedBox(height: OnCareSpacing.s16),
       // 좁은 화면도 넓은 화면과 같은 것을 본다 — 오늘의 영양 카드 하나만
       // 붙여 두면 이 폭에서는 운동 데이터를 볼 길이 아예 없었다.
       _ClientDataSwitcher(client: client),
@@ -676,7 +751,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   List<Widget> _libraryChildren(TrainerClient client) {
     return <Widget>[
       _TemplateCard(onApply: _applyTemplate),
-      const SizedBox(height: AppSpacing.lg),
+      const SizedBox(height: OnCareSpacing.s16),
       _SendHistoryCard(client: client),
     ];
   }
@@ -685,7 +760,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _appliedTemplate = template;
     _templateRevision++;
     _aiWizardVisible = false;
-    _registered = false;
     _sent = false;
   });
 
@@ -695,22 +769,20 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
     _templateRevision = 0;
     _editorRevision++;
     _aiWizardVisible = false;
-    _registered = false;
     _sent = false;
   });
 
   /// AI 가 준비한 개인운동 제안. (#790)
   ///
   /// 개인운동은 PT 사이를 메우는 짧은 운동이고 정규 프로그램은 기간 전체의
-  /// 계획이라, 같은 프로그램 탭 안에 두더라도 편집기에 섞지 않는다 — 여기서
-  /// 하는 일은 편집이 아니라 판단(추천/수정 후 추천/추천 안 함)이다. 넓은
+  /// 계획이라, 같은 프로그램 탭 안에 두더라도 편집기에 섞지 않는다. 넓은
   /// 화면에서는 오른쪽 고객 데이터 열의 식단·운동 바로 아래, 전송 이력 위에
-  /// 작은 카드로 두고(호출부 참고), 열을 나눌 폭이 없는 화면에서만 이
-  /// 목록으로 편집기 위에 쌓인다.
+  /// 작은 카드로 두고, 열을 나눌 폭이 없는 화면에서만 이 목록으로 편집기 위에
+  /// 쌓인다.
   List<Widget> _suggestionChildren(TrainerClient client) {
     return <Widget>[
       _suggestionColumn(client),
-      const SizedBox(height: AppSpacing.lg),
+      const SizedBox(height: OnCareSpacing.s16),
     ];
   }
 
@@ -722,27 +794,22 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   /// The routine editor column (right column on wide).
   ///
-  /// `AI에게 맞춤 루틴 요청하기` 는 더 이상 클릭해야 나타나지 않는다 —
-  /// `프로그램 정보` 박스([ProgramEditorWorkspace]) 바로 위에 항상 붙인다.
-  /// AI 요청 흐름의 `템플릿에 반영` 이 그 결과를 [ProgramEditorWorkspace]
-  /// 의 `aiSuggestions` 로 넘기면 편집기가 세션 1에 병합할 뿐, 이 흐름도
-  /// 편집기도 여기서 회원에게 직접 API 를 부르지 않는다 — 실제 전송은
-  /// 편집기의 `보내기` 가 [_sendProgram] 을 통해 호출부에서만 한다.
+  /// `AI에게 맞춤 루틴 요청하기` 는 `프로그램 정보` 박스([ProgramEditorWorkspace])
+  /// 바로 위에 항상 붙인다. 실제 전송은 편집기의 `보내기` 가 [_sendProgram] 을
+  /// 통해 호출부에서만 한다.
   List<Widget> _editorChildren(TrainerClient client) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final routineAsync = ref.watch(
-      aiRoutineProvider((id: client.id, name: client.name)),
-    );
+    final routineArgs = (id: client.id, name: client.name);
+    final routineAsync = ref.watch(aiRoutineProvider(routineArgs));
 
     return <Widget>[
       routineAsync.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(AppSpacing.xl),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        error: (e, _) => Text(
-          l.routinesLoadFailed,
-          style: const TextStyle(color: AppColors.mutedForeground),
+        loading: () => const AppLoading(placement: AppStatePlacement.card),
+        error: (e, _) => AppErrorState(
+          title: l.routinesLoadFailed,
+          retryLabel: l.actionRetry,
+          onRetry: () => ref.invalidate(aiRoutineProvider(routineArgs)),
+          placement: AppStatePlacement.card,
         ),
         data: (items) => Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -788,30 +855,21 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             ),
             if (!_aiWizardVisible)
               Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
+                  child: AppButton(
                     key: const ValueKey<String>('return-to-ai-flow'),
+                    label: l.aiReturnToWizard,
                     onPressed: () => setState(() => _aiWizardVisible = true),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.primary,
-                      textStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xs,
-                      ),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    icon: const Icon(Icons.chevron_left, size: 18),
-                    label: Text(l.aiReturnToWizard),
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    leadingIcon: Icons.chevron_left_rounded,
                   ),
                 ),
               )
             else
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: OnCareSpacing.s16),
             Offstage(
               offstage: _aiWizardVisible,
               child: ProgramEditorWorkspace(
@@ -825,18 +883,15 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 onSend: (draft) => unawaited(_sendProgram(client, draft)),
                 onSave: _saveTemplate,
                 saving: _savingTemplate,
-                sending: _sending || _sent,
+                sending: _sendingClientIds.contains(client.id) || _sent,
                 registerDate: _registerDate,
-                onRegisterDateChanged: (date) => setState(() {
-                  _registerDate = date;
-                  _registered = false;
-                }),
+                onRegisterDateChanged: (date) =>
+                    setState(() => _registerDate = date),
                 registerStartTime: _registerStartTime,
                 registerEndTime: _registerEndTime,
                 onRegisterTimeRangeChanged: (range) => setState(() {
                   _registerStartTime = range.start;
                   _registerEndTime = range.end;
-                  _registered = false;
                 }),
               ),
             ),
@@ -845,36 +900,101 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       ),
     ];
   }
+}
 
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w600,
-        color: AppColors.subtleForeground,
-      ),
-    );
-  }
+/// 고객 목록에 보이는 행 수.
+const int _visibleClientRows = 5;
+
+/// 고객 목록 한 줄 높이 — 이름 · 목표 두 줄이 들어간다.
+///
+/// 기본은 밀도의 목록 행 최소 높이에 여유 16 을 더한 값이고, 접근성 글자
+/// 배율이 올라가면 그만큼 함께 늘어난다(#995). 리포트 탭 고객 목록과 같은
+/// 높이다.
+double _clientRowHeight(BuildContext context) {
+  final density = context.oncare.density;
+  final double base = OnCareTypography.bodySmall.fontSize!;
+  final scale = MediaQuery.textScalerOf(context).scale(base) / base;
+  final extraScale = (scale - 1).clamp(0.0, 2.0);
+  return density.listRowMin +
+      OnCareSpacing.s16 +
+      (density.listRowMin + OnCareSpacing.s8) * extraScale;
 }
 
 /// 1열이 "고객 목록 고정 + 템플릿 카드만 스크롤"로 나뉘려면 필요한 최소
-/// 높이 — 고객 목록 5줄([_MemberProgramList], 글자 배율 반영) + 그 아래
-/// 간격 + 템플릿 카드가 최소한 헤더 한 줄을 그릴 수 있는 높이를 더한
-/// 값이다. 실제 주어진 높이가 이보다 작으면 나누지 않는다(호출부 참고).
+/// 높이 — 고객 목록 5줄 + 두 카드의 안쪽 여백·헤더·헤더 아래 간격 + 카드
+/// 사이 간격. 실제 주어진 높이가 이보다 작으면 나누지 않는다(호출부 참고).
+///
+/// 헤더 줄 높이는 카드마다 다르다 — 고객 목록 헤더는 아이콘 + 제목뿐이라
+/// 큰 아이콘 한 칸이면 되지만, 템플릿 카드 헤더는 편집 가능할 때
+/// `template-new` 아이콘 버튼(밀도의 아이콘 버튼 한 변)을 달아 그 높이가
+/// 기준이 된다. 더 큰 쪽으로 어림해야 경계에서 카드가 헤더 한 줄도 못
+/// 그리는 채로 `canSplit`이 켜지지 않는다.
 double _sidebarSplitMinHeight(BuildContext context) {
-  final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-  final extraScale = (scale - 1).clamp(0.0, 2.0);
-  final rowHeight = 64 + 56 * extraScale;
-  // 두 카드 모두 dense 패딩(AppSpacing.md 상하) + 헤더 아래 간격
-  // (AppSpacing.sm)을 쓴다. 헤더 줄 높이는 카드마다 다르다 — 고객 목록
-  // 헤더는 아이콘 16 + 글자뿐이지만, 템플릿 카드 헤더는 편집 가능할 때
-  // `template-new` IconButton(28×28, `_TemplateCard` 참고)을 달아 그
-  // 28px 가 기준이 된다. 더 큰 쪽으로 어림해야 경계에서 카드가 헤더
-  // 한 줄도 못 그리는 채로 `canSplit`이 켜지지 않는다.
-  const listChrome = AppSpacing.md * 2 + 22 + AppSpacing.sm;
-  const templateChrome = AppSpacing.md * 2 + 28 + AppSpacing.sm;
-  return rowHeight * 5 + listChrome + AppSpacing.lg + templateChrome;
+  final density = context.oncare.density;
+  const listChrome =
+      OnCareSpacing.cardPadding +
+      OnCareSpacing.cardPadding +
+      OnCareSize.iconLarge +
+      OnCareSpacing.s12;
+  final templateChrome =
+      OnCareSpacing.cardPadding +
+      OnCareSpacing.cardPadding +
+      density.iconButton +
+      OnCareSpacing.s12;
+  return _clientRowHeight(context) * _visibleClientRows +
+      listChrome +
+      OnCareSpacing.s16 +
+      templateChrome;
+}
+
+/// 이름이 같은 회원을 가려내는 `성별 · 나이`.
+String _clientDemographics(AppLocalizations l, TrainerClient client) {
+  final gender = switch (client.rosterGender) {
+    'female' => l.memberHealthGenderFemale,
+    'male' => l.memberHealthGenderMale,
+    _ => l.memberHealthGenderOther,
+  };
+  return l.coachClientDemographics(gender, client.rosterAge);
+}
+
+/// 카드 제목 줄 + 본문. [expand] 면 카드가 부모가 준 높이를 그대로 받고
+/// 본문이 남는 높이를 모두 갖는다.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+    this.trailing,
+    this.expand = false,
+  });
+
+  final String title;
+  final IconData icon;
+  final Widget child;
+  final Widget? trailing;
+  final bool expand;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSectionHeader(title: title, icon: icon),
+              ),
+              ?trailing,
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          if (expand) Expanded(child: child) else child,
+        ],
+      ),
+    );
+  }
 }
 
 class _MemberProgramList extends StatefulWidget {
@@ -893,14 +1013,8 @@ class _MemberProgramList extends StatefulWidget {
 }
 
 class _MemberProgramListState extends State<_MemberProgramList> {
-  /// 한 줄 높이. 이름 · 목표 두 줄이 들어간다.
-  ///
   /// 이행률 막대는 뺐다(#1029) — 이 목록은 회원을 고르는 자리고, 이행률
-  /// 비교는 리포트 탭의 몫이다. 예전에는 `오늘`/`5일 전` 같은 마지막 루틴
-  /// 시각도 있었는데 그것도 지운 채였다(#1027).
-  ///
-  /// 웹에서는 줄 안의 글이 브라우저 기본 글꼴로 몇 px 넘쳐 줄무늬가 뜬 적이
-  /// 있다(#958) — 테스트 글꼴보다 줄 높이가 살짝 크다. 그만큼 여유를 둔다.
+  /// 비교는 리포트 탭의 몫이다. 마지막 루틴 시각도 지운 채다(#1027).
   final ScrollController _scroll = ScrollController();
 
   @override
@@ -925,8 +1039,8 @@ class _MemberProgramListState extends State<_MemberProgramList> {
   }
 
   void _revealSelected() {
-    if (!_scroll.hasClients) return;
-    final rowHeight = clientListRowHeight(context);
+    if (!mounted || !_scroll.hasClients) return;
+    final rowHeight = _clientRowHeight(context);
     final index = widget.clients.indexWhere(
       (client) => client.id == widget.selectedId,
     );
@@ -947,100 +1061,110 @@ class _MemberProgramListState extends State<_MemberProgramList> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final rowHeight = clientListRowHeight(context);
-    return SectionCard(
-      // 리포트 탭 좌측 고객 카드와 같은 제목·아이콘을 쓴다 — 두 탭이 같은
-      // `왼쪽 고객 열 + 오른쪽 작업 영역` 구조라, 카드가 서로 다른 이름을
-      // 달고 있으면 같은 목록인지 매번 다시 읽어야 한다. (#958)
+    final tokens = context.oncare;
+    final rowHeight = _clientRowHeight(context);
+    return _SectionCard(
+      // 리포트 탭 좌측 고객 카드와 같은 제목·아이콘을 쓴다 (#958).
       title: l.navClients,
-      icon: Icons.people_outline,
-      dense: true,
+      icon: Icons.people_outline_rounded,
       child: SizedBox(
-        height: rowHeight * clientListVisibleRows,
-        child: Scrollbar(
+        height: rowHeight * _visibleClientRows,
+        child: ListView.builder(
+          key: const ValueKey<String>('program-client-list-scroll'),
           controller: _scroll,
-          thumbVisibility: widget.clients.length > clientListVisibleRows,
-          child: ListView.builder(
-            key: const ValueKey<String>('program-client-list-scroll'),
-            controller: _scroll,
-            padding: const EdgeInsets.only(right: AppSpacing.sm),
-            itemCount: widget.clients.length,
-            itemExtent: rowHeight,
-            itemBuilder: (context, index) {
-              final client = widget.clients[index];
-              final selected = client.id == widget.selectedId;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                child: Material(
-                  key: ValueKey<String>('program-client-${client.id}'),
-                  color: selected
-                      ? AppColors.accentSurface
-                      : Colors.transparent,
-                  borderRadius: const BorderRadius.all(AppRadius.md),
-                  child: InkWell(
-                    onTap: () => widget.onSelect(client.id),
-                    borderRadius: const BorderRadius.all(AppRadius.md),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Row(
-                        children: <Widget>[
-                          // 아바타 크기는 리포트 탭 고객 목록과 같은
-                          // 기준을 쓴다(#1423).
-                          ClientAvatar(
-                            label: client.avatar,
-                            size: clientListAvatarSize,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                // 이름 타이포는 리포트 탭 고객 목록과 같은
-                                // 기준을 쓴다(#1423) — 같은 목록이 탭마다
-                                // 다른 크기로 보이지 않게.
-                                ClientIdentity(
-                                  client: client,
-                                  nameStyle: clientListNameStyle(
-                                    selected: selected,
+          padding: EdgeInsets.zero,
+          itemCount: widget.clients.length,
+          itemExtent: rowHeight,
+          itemBuilder: (context, index) {
+            final client = widget.clients[index];
+            final selected = client.id == widget.selectedId;
+            final nameStyle = tokens
+                .text(
+                  selected
+                      ? OnCareTypography.strong(OnCareTypography.bodySmall)
+                      : OnCareTypography.bodySmall,
+                )
+                .copyWith(color: OnCareColors.textPrimary);
+            final detailStyle = tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+              child: Material(
+                key: ValueKey<String>('program-client-${client.id}'),
+                color: selected ? tokens.brand.surface : Colors.transparent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: OnCareRadius.mdAll,
+                  side: selected
+                      ? BorderSide(color: tokens.brand.primary)
+                      : BorderSide.none,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () => widget.onSelect(client.id),
+                  hoverColor: tokens.brand.surface,
+                  child: Padding(
+                    padding: const EdgeInsets.all(OnCareSpacing.s8),
+                    child: Row(
+                      children: <Widget>[
+                        AppAvatar(name: client.name),
+                        const SizedBox(width: OnCareSpacing.s8),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Row(
+                                children: <Widget>[
+                                  Flexible(
+                                    child: Text(
+                                      client.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: nameStyle,
+                                    ),
                                   ),
+                                  const SizedBox(width: OnCareSpacing.s4),
+                                  Flexible(
+                                    child: Text(
+                                      _clientDemographics(l, client),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: detailStyle,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // 목표는 늘 보인다(#898). 비어 있으면 빈 줄을
+                              // 만들지 않는다.
+                              if (client.goal.trim().isNotEmpty)
+                                Text(
+                                  client.goal,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: detailStyle,
                                 ),
-                                const SizedBox(height: 2),
-                                // 목표는 늘 보인다. 전에는 `lastRoutine` 이
-                                // 비었을 때만 그 자리를 빌려 써서, 루틴을 한
-                                // 번이라도 보낸 고객은 목표가 사라졌다(#898).
-                                ClientGoalLabel(
-                                  client: client,
-                                  fontSize: clientListGoalFontSize,
-                                ),
-                              ],
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
-
 }
 
 /// 요일별 운동 이행률(월→일). (#899)
 ///
-/// 프로그램을 짜는 화면인데 이 회원의 한 주가 어떻게 흘렀는지가 없었다 —
-/// 어느 요일이 비었는지가 다음 주 프로그램을 정하는 자료다.
-///
 /// 리포트 탭이 쓰는 [BarSeriesChart] 를 그대로 쓴다. 두 탭이 같은 그림으로
-/// 말해야 트레이너가 같은 값을 두 번 읽지 않는다.
-///
-/// 요약 카드가 사라진 뒤로는 `운동` 쪽 아래에 선다(#1027). 제목은 카드가
-/// 들므로 그래프 위에 같은 문구를 한 번 더 적지 않는다.
+/// 말해야 트레이너가 같은 값을 두 번 읽지 않는다. 요약 카드가 사라진 뒤로는
+/// `운동` 쪽 아래에 선다(#1027).
 class _WeekCompletionBars extends StatelessWidget {
   const _WeekCompletionBars({required this.client});
 
@@ -1050,19 +1174,21 @@ class _WeekCompletionBars extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final week = client.weekCompletion;
-    return SectionCard(
+    return _SectionCard(
       title: l.reportsCompletionByDay,
-      icon: Icons.calendar_view_week_outlined,
-      dense: true,
+      icon: Icons.calendar_view_week_rounded,
       child: week.length != weekdayCount
-          ? EmptyHint(message: l.reportsNoWorkoutsThisWeek)
+          ? AppEmptyState(
+              title: l.reportsNoWorkoutsThisWeek,
+              placement: AppStatePlacement.card,
+            )
           : BarSeriesChart(
               key: const ValueKey<String>('program-week-completion-chart'),
               title: l.reportsCompletionByDay,
               values: week,
               labels: weekdayLabels(l),
               maxValue: 100,
-              height: 72,
+              height: OnCareSize.avatarXLarge + OnCareSpacing.s16,
               showValues: true,
               valueSuffix: '%',
               // 로스터의 계열은 늘 이번 주다 — 아직 오지 않은 요일을 0% 로
@@ -1082,11 +1208,8 @@ enum _ClientDataView { diet, workout }
 
 /// 고른 고객의 식단 · 운동 — 프로그램 탭에서 가장 자주 보는 값이다.
 ///
-/// 넓은 화면에서는 오른쪽 열의 맨 위, 좁은 화면에서는 페이지 맨 위에 온다.
-/// 예전에는 고객 요약 카드가 그 자리를 차지하고 이 영역이 그 아래(또는
-/// 옆)였다 — 요약 카드가 말하던 것(이름 · 목표 · 최근 세션 · 초과 배지)은
-/// 왼쪽 고객 목록과 아래 카드들이 이미 하고 있어, 카드를 지우고 자리를
-/// 넘겼다(#1027).
+/// 넓은 화면에서는 오른쪽 열의 맨 위, 좁은 화면에서는 페이지 맨 위에 온다
+/// (#1027).
 class _ClientDataSwitcher extends ConsumerStatefulWidget {
   const _ClientDataSwitcher({super.key, required this.client});
 
@@ -1101,8 +1224,6 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
   _ClientDataView _view = _ClientDataView.diet;
 
   /// 프로그램 탭에서도 `오늘 / 이번 주 / 이번 달` 을 고를 수 있다(#914).
-  /// 다음 주 프로그램을 짜는 화면인데 오늘 하루만 보이면, 무엇을 근거로 짜야
-  /// 하는지가 화면 밖에 있다.
   ClientPeriod _period = ClientPeriod.today;
 
   @override
@@ -1112,36 +1233,50 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
       key: const ValueKey<String>('program-client-data-switcher'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 기간 토글은 전환 스트립과 **한 줄**에 둔다(#943).
-        //
-        // 회원 앱처럼 카드 위에 `제목 + 토글` 한 줄을 따로 두면 고객 데이터 열이
-        // 그만큼 길어져, 폭 1552px·높이 900px 에서 당류 카드가 화면 밖으로 7.8px
-        // 밀렸다. 스트립이 이미 `식단`/`운동` 이라는 제목 노릇을 하고 있으므로
-        // 그 줄의 오른쪽 끝을 빌려 쓴다 — 세로 자리를 한 픽셀도 더 쓰지 않고,
-        // 기간을 바꿔도 토글이 움직이지 않는다.
+        // 기간 토글은 전환 토글과 **한 줄**에 둔다(#943) — 카드 위에 줄을
+        // 따로 두면 고객 데이터 열이 그만큼 길어져 당류 카드가 화면 밖으로
+        // 밀린다.
         Row(
           children: <Widget>[
-            Expanded(child: _dataTabs(l)),
-            const SizedBox(width: AppSpacing.sm),
-            // 토글은 줄어들되 잘리지는 않는다. 영어 `Today / This week /
-            // This month` 는 배율 1.3 · 폭 1024 에서 줄을 115px 넘겼다 —
-            // FittedBox 가 세 칸을 다 보여 준 채 통째로 작게 그린다.
+            Expanded(
+              child: AppSegmentedToggle<_ClientDataView>(
+                key: const ValueKey<String>('program-client-data-tabs'),
+                expand: true,
+                selected: _view,
+                onChanged: (view) => setState(() => _view = view),
+                segments: <AppSegment<_ClientDataView>>[
+                  AppSegment<_ClientDataView>(
+                    value: _ClientDataView.diet,
+                    label: l.clientTabDiet,
+                    icon: Icons.restaurant_rounded,
+                  ),
+                  AppSegment<_ClientDataView>(
+                    value: _ClientDataView.workout,
+                    label: l.clientTabWorkout,
+                    icon: Icons.fitness_center_rounded,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
+            // 토글은 줄어들되 잘리지는 않는다 — FittedBox 가 세 칸을 다 보여
+            // 준 채 통째로 작게 그린다.
             Flexible(
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
-                child: ClientPeriodToggle(
-                  active: _period,
+                child: AppSegmentedToggle<ClientPeriod>(
+                  key: const ValueKey<String>('client-period-toggle'),
+                  segments: clientPeriodSegments(AppLocalizations.of(context)),
+                  selected: _period,
                   onChanged: (ClientPeriod p) => setState(() => _period = p),
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
-        // 전환에 애니메이션을 두지 않는다(#1027). 식단 그래프는 움직이지 않는
-        // 그림이어야 한다는 것이 이번 결정이고, 카드를 페이드로 바꾸면 기간을
-        // 옮길 때마다 그 그래프가 다시 떠오른다.
+        const SizedBox(height: OnCareSpacing.s8),
+        // 전환에 애니메이션을 두지 않는다(#1027).
         if (_view == _ClientDataView.diet)
           if (_period == ClientPeriod.today)
             ProgramNutritionSummaryCard(
@@ -1150,9 +1285,8 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
             )
           else
             ClientDietPeriodCard(
-              // 키에 기간을 넣지 않는다. 넣으면 주 ↔ 달을 옮길 때마다 카드가
-              // 새로 만들어져, 나트륨을 보다 기간만 넓힌 트레이너가 지표를
-              // 다시 골라야 했다.
+              // 키에 기간을 넣지 않는다 — 넣으면 주 ↔ 달을 옮길 때마다 카드가
+              // 새로 만들어져 고른 지표가 초기화된다.
               key: ValueKey<String>('program-diet-period-${widget.client.id}'),
               clientId: widget.client.id,
               period: _period,
@@ -1162,208 +1296,16 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
             key: ValueKey<String>('program-workout-${widget.client.id}'),
             clientId: widget.client.id,
             period: _period,
-            // 운동 그래프 아래에 세트 · 횟수 · 시간을 붙인다. 그래프는 "얼마나
-            // 오래" 만 말해서, 다음 프로그램을 짤 때 정작 필요한 "무엇을 몇
-            // 세트" 가 화면 밖에 있었다.
             clientName: widget.client.name,
           ),
-          const SizedBox(height: AppSpacing.md),
-          // 요약 카드가 들고 있던 그림이다. 카드는 지웠지만 이 그래프는
-          // 운동 데이터라 운동 쪽으로 옮겼다 — 어느 요일이 비었는지가 다음
-          // 주 프로그램을 정하는 자료다.
+          const SizedBox(height: OnCareSpacing.s12),
           _WeekCompletionBars(client: widget.client),
         ],
       ],
     );
   }
-
-  /// 식단 ↔ 운동 전환 스트립.
-  Widget _dataTabs(AppLocalizations l) => Container(
-    key: const ValueKey<String>('program-client-data-tabs'),
-    height: 44,
-    padding: EdgeInsets.zero,
-    decoration: BoxDecoration(
-      color: AppColors.primary.withValues(alpha: 0.1),
-      borderRadius: const BorderRadius.all(AppRadius.pill),
-    ),
-    foregroundDecoration: BoxDecoration(
-      borderRadius: const BorderRadius.all(AppRadius.pill),
-      border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
-    ),
-    clipBehavior: Clip.antiAlias,
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Expanded(
-          child: _ClientDataTab(
-            label: l.clientTabDiet,
-            icon: Icons.restaurant_outlined,
-            selected: _view == _ClientDataView.diet,
-            onTap: () => setState(() {
-              _view = _ClientDataView.diet;
-            }),
-          ),
-        ),
-        Expanded(
-          child: _ClientDataTab(
-            label: l.clientTabWorkout,
-            icon: Icons.fitness_center_outlined,
-            selected: _view == _ClientDataView.workout,
-            onTap: () => setState(() {
-              _view = _ClientDataView.workout;
-            }),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
-class _ClientDataTab extends StatelessWidget {
-  const _ClientDataTab({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final foreground = selected ? AppColors.primary : AppColors.mutedForeground;
-    return Semantics(
-      button: true,
-      selected: selected,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.card : const Color(0x00000000),
-          borderRadius: const BorderRadius.all(AppRadius.pill),
-          border: selected ? Border.all(color: AppColors.card) : null,
-          boxShadow: selected
-              ? <BoxShadow>[
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Material(
-          color: const Color(0x00000000),
-          child: InkWell(
-            onTap: onTap,
-            customBorder: const StadiumBorder(),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Icon(icon, size: 17, color: foreground),
-                const SizedBox(width: AppSpacing.sm),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: foreground,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ClientChip extends StatelessWidget {
-  const _ClientChip({
-    required this.client,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final TrainerClient client;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.primary : AppColors.card,
-      borderRadius: const BorderRadius.all(AppRadius.card),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(AppRadius.card),
-            border: selected ? null : Border.all(color: AppColors.borderStrong),
-          ),
-          child: Column(
-            children: <Widget>[
-              selected
-                  ? Container(
-                      width: 32,
-                      height: 32,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primaryForeground.withValues(
-                          alpha: 0.25,
-                        ),
-                      ),
-                      child: Text(
-                        client.avatar,
-                        style: const TextStyle(
-                          color: AppColors.primaryForeground,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                        ),
-                      ),
-                    )
-                  : ClientAvatar(label: client.avatar, size: 32),
-              const SizedBox(height: AppSpacing.xs),
-              ClientIdentity(
-                client: client,
-                stacked: true,
-                nameStyle: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: selected
-                      ? AppColors.primaryForeground
-                      : AppColors.foreground,
-                ),
-                demographicsStyle: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: selected
-                      ? AppColors.primaryForeground.withValues(alpha: 0.8)
-                      : AppColors.subtleForeground,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 운동 한 줄을 템플릿에 담을 때 쓸 시간(분). `duration` 이 비어 있거나
-/// 0 이하면(세트·중량 위주 운동) 새 운동 줄의 기본값(10분, 다이얼로그와 동일)을
-/// 대신 쓴다 — 값이 없다고 그 운동째로 템플릿에서 빠지지 않게 한다.
 /// 오늘 자정(KST) — PT 등록 날짜의 기본값이자 고를 수 있는 가장 이른 날.
 DateTime _todayKst() {
   final now = nowKst();
@@ -1380,7 +1322,7 @@ String _dateChipLabel(AppLocalizations l, DateTime date) {
   return '${date.month}/${date.day}';
 }
 
-/// One selectable register-day chip.
+/// 프로그램 템플릿 목록.
 class _TemplateCard extends ConsumerWidget {
   const _TemplateCard({
     super.key,
@@ -1391,15 +1333,13 @@ class _TemplateCard extends ConsumerWidget {
   final ValueChanged<ProgramTemplate> onApply;
 
   /// 넓은 화면 사이드바(`Expanded`로 높이가 이미 정해진 자리)에서만 켠다 —
-  /// 카드 박스를 그 높이로 고정하고 목록만 안에서 스크롤한다. 좁은 화면의
-  /// `_libraryChildren`는 페이지 자체가 스크롤하는 `ListView` 안이라 높이가
-  /// 정해져 있지 않다(unbounded) — 여기서 켜면 `Expanded`/내부 스크롤이
-  /// 레이아웃 예외를 던진다.
+  /// 카드 박스를 그 높이로 고정하고 목록만 안에서 스크롤한다. 좁은 화면은
+  /// 페이지 자체가 스크롤하는 `ListView` 안이라 높이가 정해져 있지 않다.
   final bool fixedBox;
 
   /// 만들기·편집 다이얼로그. 시작 구성을 열면 저장이 '새로 만들기' 가 된다.
   Future<void> _edit(BuildContext context, {ProgramTemplate? template}) {
-    return showDialog<void>(
+    return showAppDialog<void>(
       context: context,
       builder: (_) => ProgramTemplateDialog(template: template),
     );
@@ -1411,23 +1351,14 @@ class _TemplateCard extends ConsumerWidget {
     ProgramTemplate template,
   ) async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppConfirmDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        content: Text(l.coachTemplateDeleteConfirm(template.name)),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l.coachTemplateDelete),
-          ),
-        ],
-      ),
+      title: l.coachTemplateDeleteConfirm(template.name),
+      confirmLabel: l.coachTemplateDelete,
+      cancelLabel: l.actionCancel,
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
     try {
       await ref
           .read(trainerProgramTemplateRepositoryProvider)
@@ -1438,7 +1369,7 @@ class _TemplateCard extends ConsumerWidget {
       showAppToast(
         context,
         l.coachTemplateDeleteFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     }
   }
@@ -1446,107 +1377,93 @@ class _TemplateCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final tokens = context.oncare;
     final templatesAsync = ref.watch(programTemplatesProvider);
     // 데모는 읽기 전용이다 — 저장할 백엔드가 없어, 만든 것이 새로고침 한 번에
     // 사라지면 만들 수 있다고 말한 화면이 거짓이 된다. (#920)
     final canEdit = ref.watch(programTemplateEditingEnabledProvider);
     final templates = templatesAsync.valueOrNull ?? const <ProgramTemplate>[];
     if (templatesAsync.hasError && templates.isEmpty) {
-      return SectionCard(
+      final error = AppErrorState(
+        title: l.coachTemplateLoadFailed,
+        retryLabel: l.actionRetry,
+        onRetry: () => ref.invalidate(programTemplatesProvider),
+        placement: AppStatePlacement.card,
+      );
+      return _SectionCard(
         title: l.coachTemplates,
-        icon: Icons.dashboard_customize_outlined,
-        dense: true,
-        // 정상 경로와 같은 규칙이다 — `fixedBox`(넓은 사이드바)일 때는
-        // 오류 상태도 부모가 준 고정 높이를 그대로 받아야 한다. 여기서
-        // 빠뜨리면 오류가 난 그 순간에만 카드가 제 높이를 못 지켜
-        // RenderFlex 오버플로우가 난다(코드리뷰).
-        expandChild: fixedBox,
-        child: Text(
-          l.coachTemplateLoadFailed,
-          style: const TextStyle(
-            fontSize: 12,
-            color: AppColors.mutedForeground,
-          ),
-        ),
+        icon: Icons.dashboard_customize_rounded,
+        // 정상 경로와 같은 규칙이다 — `fixedBox`(넓은 사이드바)일 때는 오류
+        // 상태도 부모가 준 고정 높이 안에서만 그린다(코드리뷰).
+        expand: fixedBox,
+        child: fixedBox ? SingleChildScrollView(child: error) : error,
       );
     }
-    // 넓은 사이드바(`fixedBox`)에서만 카드 박스를 고정 높이로 만들고, 그
-    // 안에서 목록만 스크롤한다. 좁은 화면(페이지 자체가 스크롤하는
-    // `ListView` 안, 높이 unbounded)에서는 예전처럼 자연스러운 높이로
-    // 그린다 — 거기서 고정 높이를 쓰면 `Expanded`가 레이아웃 예외를 던진다.
     final body = LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 680 ? 3 : 1;
+        final columns = constraints.maxWidth >= OnCareLayout.dialogMedium
+            ? 3
+            : 1;
         final width =
-            (constraints.maxWidth - AppSpacing.sm * (columns - 1)) / columns;
+            (constraints.maxWidth - OnCareSpacing.s8 * (columns - 1)) / columns;
         return Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
+          spacing: OnCareSpacing.s8,
+          runSpacing: OnCareSpacing.s8,
           children: <Widget>[
             for (final template in templates)
               SizedBox(
                 width: width,
-                child: Material(
-                  color: AppColors.inputBackground,
-                  borderRadius: const BorderRadius.all(AppRadius.md),
-                  child: InkWell(
-                    onTap: () => onApply(template),
-                    borderRadius: const BorderRadius.all(AppRadius.md),
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                child: AppTile(
+                  onTap: () => onApply(template),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Row(
                         children: <Widget>[
-                          Row(
-                            children: <Widget>[
-                              Expanded(
-                                child: Text(
-                                  template.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.foreground,
-                                  ),
-                                ),
-                              ),
-                              if (canEdit)
-                                _TemplateMenu(
-                                  template: template,
-                                  onEdit: () =>
-                                      _edit(context, template: template),
-                                  onDelete: template.isStarter
-                                      ? null
-                                      : () => _delete(context, ref, template),
-                                )
-                              else
-                                const Icon(
-                                  Icons.add_circle_outline,
-                                  size: 17,
-                                  color: AppColors.primary,
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Text(
-                            l.coachTemplateSummaryWithGoal(
-                              template.goal,
-                              template.exercises.length,
-                              template.totalMinutes,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              height: 1.35,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.subtleForeground,
+                          Expanded(
+                            child: Text(
+                              template.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: tokens
+                                  .text(
+                                    OnCareTypography.strong(
+                                      OnCareTypography.bodySmall,
+                                    ),
+                                  )
+                                  .copyWith(color: OnCareColors.textPrimary),
                             ),
                           ),
+                          if (canEdit)
+                            _TemplateMenu(
+                              template: template,
+                              onEdit: () => _edit(context, template: template),
+                              onDelete: template.isStarter
+                                  ? null
+                                  : () => _delete(context, ref, template),
+                            )
+                          else
+                            Icon(
+                              Icons.add_circle_outline_rounded,
+                              size: OnCareSize.iconMedium,
+                              color: tokens.brand.primary,
+                            ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: OnCareSpacing.s4),
+                      Text(
+                        l.coachTemplateSummaryWithGoal(
+                          template.goal,
+                          template.exercises.length,
+                          template.totalMinutes,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1554,22 +1471,18 @@ class _TemplateCard extends ConsumerWidget {
         );
       },
     );
-    return SectionCard(
+    return _SectionCard(
       title: l.coachTemplates,
-      icon: Icons.dashboard_customize_outlined,
-      dense: true,
-      expandChild: fixedBox,
-      // 아이콘만 쓴다(#1028) — 이 카드는 260px 고정 폭 사이드바에 있어,
-      // 영어·큰 글자 배율에서 "새 템플릿" 글자가 제목과 함께 넘친다.
+      icon: Icons.dashboard_customize_rounded,
+      expand: fixedBox,
+      // 아이콘만 쓴다(#1028) — 좁은 사이드바에서 영어·큰 글자 배율이면
+      // "새 템플릿" 글자가 제목과 함께 넘친다.
       trailing: canEdit
-          ? IconButton(
+          ? AppIconButton(
               key: const ValueKey<String>('template-new'),
-              onPressed: () => _edit(context),
-              icon: const Icon(Icons.add, size: 18),
+              icon: Icons.add_rounded,
               tooltip: l.coachTemplateNew,
-              visualDensity: VisualDensity.compact,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+              onPressed: () => _edit(context),
             )
           : null,
       child: fixedBox
@@ -1585,15 +1498,9 @@ class _TemplateCard extends ConsumerWidget {
 /// 템플릿 한 장의 편집·삭제 메뉴 — 기본 템플릿(시작 구성)도 사용자 템플릿과
 /// 같은 두 항목을 보여 준다(#1029).
 ///
-/// 시작 구성은 삭제만 항목 자체가 아니라 **비활성**으로 남긴다 — 서버 행이
-/// 아예 없어(합성 `starter:` id) 지울 것이 없다. 항목을 통째로 숨기면 두
-/// 템플릿 종류가 다른 기능을 가진 것처럼 보이지만, 회색으로 남기면 "이건 못
-/// 하는 동작" 이라는 뜻이 그대로 전해진다 — 지운 것처럼 보였다가 다음 조회에
-/// 되돌아오는 거짓말은 여전히 만들지 않는다(#920).
-///
-/// 고친다는 동작 자체는 같지만 결과가 다르다 — 시작 구성은 고치면 내 첫
-/// 템플릿으로 **새로 저장**되고, 내 템플릿은 그 행을 그대로 고친다. 그래서
-/// 라벨도 다르게 남긴다 — 같은 말로 두면 실제로 무슨 일이 일어나는지 감춘다.
+/// 시작 구성은 삭제만 **비활성**으로 남긴다 — 서버 행이 아예 없어(합성
+/// `starter:` id) 지울 것이 없다. 회색으로 남기면 "이건 못 하는 동작" 이라는
+/// 뜻이 그대로 전해진다(#920).
 class _TemplateMenu extends StatelessWidget {
   const _TemplateMenu({
     required this.template,
@@ -1608,63 +1515,27 @@ class _TemplateMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return PopupMenuButton<String>(
-      key: ValueKey<String>('template-menu-${template.id}'),
-      tooltip: '',
-      padding: EdgeInsets.zero,
-      iconSize: 17,
-      icon: const Icon(Icons.more_vert, color: AppColors.subtleForeground),
-      color: AppColors.card,
-      elevation: 4,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(AppRadius.md),
-        side: BorderSide(color: AppColors.borderStrong),
+    return AppMenu(
+      items: <AppMenuItem>[
+        AppMenuItem(
+          label: l.coachTemplateEdit,
+          icon: Icons.edit_rounded,
+          onSelected: onEdit,
+        ),
+        AppMenuItem(
+          label: l.coachTemplateDelete,
+          icon: Icons.delete_outline_rounded,
+          destructive: true,
+          onSelected: onDelete,
+        ),
+      ],
+      triggerBuilder: (context, toggle) => AppIconButton(
+        key: ValueKey<String>('template-menu-${template.id}'),
+        icon: Icons.more_vert_rounded,
+        tooltip: l.coachTemplateMenu,
+        color: OnCareColors.textTertiary,
+        onPressed: toggle,
       ),
-      onSelected: (value) => value == 'edit' ? onEdit() : onDelete?.call(),
-      itemBuilder: (context) => <PopupMenuEntry<String>>[
-        PopupMenuItem<String>(
-          value: 'edit',
-          child: _TemplateMenuLabel(
-            icon: Icons.edit_outlined,
-            label: l.coachTemplateEdit,
-          ),
-        ),
-        PopupMenuItem<String>(
-          value: 'delete',
-          enabled: onDelete != null,
-          child: _TemplateMenuLabel(
-            icon: Icons.delete_outline,
-            label: l.coachTemplateDelete,
-            destructive: true,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 팝업 메뉴 한 줄 — 아이콘 + 글자. 프로그램 편집기의 세션·운동 메뉴
-/// (`_MenuLabel`)와 같은 모양을 쓴다.
-class _TemplateMenuLabel extends StatelessWidget {
-  const _TemplateMenuLabel({
-    required this.icon,
-    required this.label,
-    this.destructive = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool destructive;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = destructive ? AppColors.destructive : AppColors.foreground;
-    return Row(
-      children: <Widget>[
-        Icon(icon, size: 17, color: color),
-        const SizedBox(width: AppSpacing.sm),
-        Text(label, style: TextStyle(color: color, fontSize: 12.5)),
-      ],
     );
   }
 }
@@ -1683,24 +1554,26 @@ class _SendHistoryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final sessions = ref.watch(
-      clientSessionsProvider((id: client.id, name: client.name)),
-    );
+    final tokens = context.oncare;
+    final sessionArgs = (id: client.id, name: client.name);
+    final sessions = ref.watch(clientSessionsProvider(sessionArgs));
     // Homework goes out via `assignRoutine`, which writes no schedule row.
-    // Watching only the schedule left this card empty right after a send,
-    // so the trainer could send the same routine again believing nothing
-    // had gone out.
+    // Watching only the schedule left this card empty right after a send.
     final assigned = ref.watch(assignedRoutinesProvider(client.id));
-    return SectionCard(
+    final rowStyle = tokens
+        .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+        .copyWith(color: OnCareColors.textPrimary);
+    return _SectionCard(
       title: l.coachSentHistory,
-      icon: Icons.history,
-      dense: true,
+      icon: Icons.history_rounded,
       child: sessions.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        loading: () => const AppLoading(placement: AppStatePlacement.card),
+        error: (e, _) => AppErrorState(
+          title: l.coachHistoryFailed,
+          retryLabel: l.actionRetry,
+          onRetry: () => ref.invalidate(clientSessionsProvider(sessionArgs)),
+          placement: AppStatePlacement.card,
         ),
-        error: (e, _) => EmptyHint(message: l.coachHistoryFailed),
         data: (list) {
           final withProgram = list
               .where((s) => s.program.isNotEmpty)
@@ -1708,16 +1581,19 @@ class _SendHistoryCard extends ConsumerWidget {
               .toList();
           final routines = assigned.valueOrNull ?? const <AssignedRoutine>[];
           if (withProgram.isEmpty && routines.isEmpty) {
-            return EmptyHint(
-              message: l.coachHistoryEmpty,
-              icon: Icons.outbox_outlined,
+            return AppEmptyState(
+              title: l.coachHistoryEmpty,
+              icon: Icons.outbox_rounded,
+              placement: AppStatePlacement.card,
             );
           }
           return Column(
             children: <Widget>[
               for (final routine in routines.take(3))
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: OnCareSpacing.s4,
+                  ),
                   child: Row(
                     children: <Widget>[
                       _SendHistoryTypeBadge(label: l.coachHomework),
@@ -1726,31 +1602,19 @@ class _SendHistoryCard extends ConsumerWidget {
                           l.coachRoutineSummary(routine.name, routine.minutes),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.foreground,
-                          ),
+                          style: rowStyle,
                         ),
                       ),
-                      routine.source == 'ai'
-                          ? const IconLabel(
-                              icon: Icons.auto_awesome,
-                              label: 'AI',
-                              color: AppColors.primary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            )
-                          : IconLabel(
-                              icon: Icons.badge_outlined,
-                              label: l.coachTrainer,
-                              color: AppColors.primary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
+                      const SizedBox(width: OnCareSpacing.s4),
+                      AppTag(
+                        label: routine.source == 'ai' ? 'AI' : l.coachTrainer,
+                        tone: AppTagTone.brand,
+                        icon: routine.source == 'ai'
+                            ? Icons.auto_awesome_rounded
+                            : Icons.badge_rounded,
+                      ),
                       // 보낸 뒤 물리는 자리. 여기 목록이 배정된 개인운동을
-                      // 보여 주는 유일한 곳인데 취소가 없어서, 잘못 보냈을 때
-                      // 고객 탭까지 옮겨 가야 지울 수 있었다. (#1020)
+                      // 보여 주는 유일한 곳이다. (#1020)
                       _CancelRoutineButton(
                         clientId: client.id,
                         routine: routine,
@@ -1760,7 +1624,9 @@ class _SendHistoryCard extends ConsumerWidget {
                 ),
               for (final s in withProgram)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: OnCareSpacing.s4,
+                  ),
                   child: Row(
                     children: <Widget>[
                       _SendHistoryTypeBadge(label: l.coachPersonalTraining),
@@ -1774,22 +1640,21 @@ class _SendHistoryCard extends ConsumerWidget {
                                 ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.foreground,
-                          ),
+                          style: rowStyle,
                         ),
                       ),
+                      const SizedBox(width: OnCareSpacing.s4),
                       Text(
                         scheduleStatusLabel(l, s.status),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: s.isDone
-                              ? AppColors.success
-                              : AppColors.primary,
-                        ),
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(OnCareTypography.caption),
+                            )
+                            .copyWith(
+                              color: s.isDone
+                                  ? OnCareColors.success
+                                  : tokens.brand.primary,
+                            ),
                       ),
                     ],
                   ),
@@ -1802,7 +1667,7 @@ class _SendHistoryCard extends ConsumerWidget {
   }
 }
 
-/// 전송 이력의 프로그램 종류 — 개인운동과 PT를 같은 디자인 언어로 구분한다.
+/// 전송 이력의 프로그램 종류 — 개인운동과 PT를 같은 폭의 태그로 구분한다.
 class _SendHistoryTypeBadge extends StatelessWidget {
   const _SendHistoryTypeBadge({required this.label});
 
@@ -1810,30 +1675,18 @@ class _SendHistoryTypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 46,
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          key: ValueKey<String>('send-history-type-$label'),
-          width: 40,
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: const BoxDecoration(
-            color: AppColors.accentSurface,
-            borderRadius: BorderRadius.all(AppRadius.pill),
-          ),
+    // 종류마다 글자 수가 달라도 줄의 이름 칸이 같은 자리에서 시작하도록
+    // 칸 폭을 고정한다.
+    return Padding(
+      padding: const EdgeInsets.only(right: OnCareSpacing.s8),
+      child: SizedBox(
+        key: ValueKey<String>('send-history-type-$label'),
+        width: OnCareSpacing.s48,
+        child: Align(
+          alignment: Alignment.centerLeft,
           child: FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              maxLines: 1,
-              style: const TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.accent,
-              ),
-            ),
+            child: AppTag(label: label, tone: AppTagTone.brand),
           ),
         ),
       ),
@@ -1861,28 +1714,15 @@ class _CancelRoutineButtonState extends ConsumerState<_CancelRoutineButton> {
 
   Future<void> _cancel() async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool? ok = await showDialog<bool>(
+    final bool ok = await showAppConfirmDialog(
       context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(l.routineDeleteTitle),
-        content: Text(l.routineDeleteBody(widget.routine.name)),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          TextButton(
-            key: const ValueKey<String>('confirm-cancel-routine'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              l.actionDelete,
-              style: const TextStyle(color: AppColors.destructive),
-            ),
-          ),
-        ],
-      ),
+      title: l.routineDeleteTitle,
+      message: l.routineDeleteBody(widget.routine.name),
+      confirmLabel: l.actionDelete,
+      cancelLabel: l.actionCancel,
+      destructive: true,
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
 
     setState(() => _busy = true);
     try {
@@ -1890,7 +1730,7 @@ class _CancelRoutineButtonState extends ConsumerState<_CancelRoutineButton> {
           .read(trainerRoutineRepositoryProvider)
           .deleteRoutine(widget.clientId, widget.routine.id);
       if (!mounted) return;
-      showAppToast(context, l.routineDeleted, kind: AppToastKind.success);
+      showAppToast(context, l.routineDeleted, type: AppToastType.success);
     } on StateError {
       // 404 — 이미 없는 것을 지우려 했다. 목적은 이뤄진 셈이라 목록만 다시 읽고
       // 그 줄을 화면에서 걷어낸다.
@@ -1898,7 +1738,7 @@ class _CancelRoutineButtonState extends ConsumerState<_CancelRoutineButton> {
       showAppToast(context, l.routineAlreadyGone);
     } on Object {
       if (!mounted) return;
-      showAppToast(context, l.routineDeleteFailed, kind: AppToastKind.error);
+      showAppToast(context, l.routineDeleteFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _busy = false);
       ref.invalidate(assignedRoutinesProvider(widget.clientId));
@@ -1909,23 +1749,16 @@ class _CancelRoutineButtonState extends ConsumerState<_CancelRoutineButton> {
   Widget build(BuildContext context) {
     if (_busy) {
       return const Padding(
-        padding: EdgeInsets.only(left: AppSpacing.sm),
-        child: SizedBox(
-          width: 14,
-          height: 14,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        padding: EdgeInsets.only(left: OnCareSpacing.s8),
+        child: AppLoading.inline(),
       );
     }
-    return IconButton(
+    return AppIconButton(
       key: ValueKey<String>('history-cancel-routine-${widget.routine.id}'),
-      onPressed: _cancel,
-      icon: const Icon(Icons.close_rounded, size: 15),
-      color: AppColors.mutedForeground,
+      icon: Icons.close_rounded,
       tooltip: AppLocalizations.of(context).routineDelete,
-      visualDensity: VisualDensity.compact,
-      constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-      padding: EdgeInsets.zero,
+      color: OnCareColors.textSecondary,
+      onPressed: _cancel,
     );
   }
 }

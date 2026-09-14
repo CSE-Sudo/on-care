@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -149,10 +149,7 @@ void main() {
 
     /// 진입 화면(`/home`)이 살아 있는 채로 각 목적지를 확인한다. 목적지 화면은
     /// 이름표만 둔다 — 여기서 볼 것은 "어디로 갔는가" 뿐이다.
-    Future<void> pumpApp(
-      WidgetTester tester,
-      _FakeCoachRepository repo,
-    ) async {
+    Future<void> pumpApp(WidgetTester tester, _FakeCoachRepository repo) async {
       final GoRouter router = GoRouter(
         initialLocation: '/home',
         routes: <RouteBase>[
@@ -168,9 +165,15 @@ void main() {
               },
             ),
           ),
-          GoRoute(path: AppRoutes.dashboard, builder: (_, _) => const Text('대시보드')),
+          GoRoute(
+            path: AppRoutes.dashboard,
+            builder: (_, _) => const Text('대시보드'),
+          ),
           GoRoute(path: AppRoutes.diet, builder: (_, _) => const Text('식단')),
-          GoRoute(path: AppRoutes.exercise, builder: (_, _) => const Text('운동')),
+          GoRoute(
+            path: AppRoutes.exercise,
+            builder: (_, _) => const Text('운동'),
+          ),
         ],
       );
 
@@ -181,6 +184,7 @@ void main() {
             memberCoachRepositoryProvider.overrideWithValue(repo),
           ],
           child: MaterialApp.router(
+            theme: AppTheme.light(),
             routerConfig: router,
             // 대화 화면이 현지화 문자열을 읽는다 — 없으면 이동은 했는데 화면이
             // 못 그려져, 이동 실패처럼 보인다.
@@ -200,7 +204,9 @@ void main() {
         openAlertTarget(
           ctx,
           wref,
-          _alert(action: AlertAction(label: '보기', target: target)),
+          _alert(
+            action: AlertAction(label: '보기', target: target),
+          ),
         ),
       );
       await tester.pump(); // 코치 정보를 새로 받는 구간

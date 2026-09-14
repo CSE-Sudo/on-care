@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/domain/repositories/schedule_repository.dart';
 import 'package:oncare/features/schedule/domain/schedule_format.dart';
@@ -9,7 +10,7 @@ import 'package:oncare/features/schedule/presentation/controllers/schedule_contr
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/modals/add_event_dialog.dart';
 
-/// 저장된 값을 그대로 붙잡아 둔다 — 다이얼로그가 서버에 무엇을 보내는지가
+/// 저장된 값을 그대로 붙잡아 둔다 — 일정 추가 시트가 서버에 무엇을 보내는지가
 /// 이 테스트의 관심사다.
 class _CapturingRepository implements ScheduleRepository {
   String? date;
@@ -79,6 +80,7 @@ void main() {
           scheduleRepositoryProvider.overrideWithValue(repo),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

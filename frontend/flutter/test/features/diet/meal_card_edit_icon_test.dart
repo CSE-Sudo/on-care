@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -55,6 +56,7 @@ void main() {
           dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
         ],
         child: MaterialApp.router(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -71,14 +73,14 @@ void main() {
     expect(
       find.descendant(
         of: _anyMealCard,
-        matching: find.byIcon(Icons.edit_outlined),
+        matching: find.byIcon(Icons.edit_rounded),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: _anyMealCard,
-        matching: find.byIcon(Icons.chevron_right),
+        matching: find.byIcon(Icons.chevron_right_rounded),
       ),
       findsNothing,
     );
@@ -91,7 +93,7 @@ void main() {
       find
           .descendant(
             of: _anyMealCard,
-            matching: find.byIcon(Icons.edit_outlined),
+            matching: find.byIcon(Icons.edit_rounded),
           )
           .first,
     );
@@ -109,7 +111,7 @@ void main() {
       find
           .descendant(
             of: _anyMealCard,
-            matching: find.byIcon(Icons.edit_outlined),
+            matching: find.byIcon(Icons.edit_rounded),
           )
           .first,
     );

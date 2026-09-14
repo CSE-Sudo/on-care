@@ -4,15 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
-import 'package:oncare/design_system/atoms/app_choice_chip.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
+// 토스트는 아직 앱의 AppToastHost 를 쓴다 — 패키지 쪽 같은 이름은 가린다.
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 담당 트레이너 관계와 소통만 담는다 — 이름·전문 분야·프로필 이동·채팅.
 ///
@@ -26,6 +24,7 @@ class CoachCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final coachAsync = ref.watch(memberCoachProvider);
     final coach = coachAsync.valueOrNull;
     if (coach == null) return const SizedBox.shrink();
@@ -36,14 +35,13 @@ class CoachCard extends ConsumerWidget {
     final unread = ref.watch(coachUnreadProvider).valueOrNull ?? 0;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: kCardShadow,
-        ),
+      padding: const EdgeInsets.fromLTRB(
+        OnCareSpacing.s24,
+        0,
+        OnCareSpacing.s24,
+        OnCareSpacing.s20,
+      ),
+      child: AppCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -56,42 +54,42 @@ class CoachCard extends ConsumerWidget {
                     : () => context.push(
                         AppRoutes.trainerDetailPath(assignedTrainer.id),
                       ),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: OnCareRadius.mdAll,
                 child: Row(
                   children: <Widget>[
                     Container(
-                      width: 36,
-                      height: 36,
-                      decoration: const BoxDecoration(
-                        color: FigmaColors.iconTint,
+                      width: OnCareSize.avatarMedium,
+                      height: OnCareSize.avatarMedium,
+                      decoration: BoxDecoration(
+                        color: tokens.brand.surface,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.person,
-                        color: FigmaColors.primary,
-                        size: 20,
+                      child: Icon(
+                        Icons.person_rounded,
+                        color: tokens.brand.primary,
+                        size: OnCareSize.iconMedium,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: OnCareSpacing.s12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
                             l.coachAssignedTrainer,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.mutedForeground,
-                            ),
+                            style: tokens
+                                .text(
+                                  OnCareTypography.strong(
+                                    OnCareTypography.caption,
+                                  ),
+                                )
+                                .copyWith(color: OnCareColors.textTertiary),
                           ),
                           Text(
                             '${coach.name} · ${coach.specialty}',
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: FigmaColors.ink,
-                            ),
+                            style: tokens
+                                .text(OnCareTypography.titleSmall)
+                                .copyWith(color: OnCareColors.textPrimary),
                           ),
                         ],
                       ),
@@ -103,14 +101,14 @@ class CoachCard extends ConsumerWidget {
                     if (assignedTrainer != null)
                       const Icon(
                         Icons.chevron_right_rounded,
-                        size: 20,
-                        color: FigmaColors.textMuted,
+                        size: OnCareSize.iconMedium,
+                        color: OnCareColors.textTertiary,
                       ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: OnCareSpacing.s12),
             _ChatButton(
               unread: unread,
               onTap: () =>
@@ -139,6 +137,7 @@ class AiCoachingCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     // 트레이너 추천과 AI 추천을 한 목록으로 합친다. 회원에게는 "지금 무엇을
     // 하면 되는가" 라는 한 가지 질문이고, 누가 정했는지는 각 줄의 출처가 말한다.
     final List<CoachRoutine> routines =
@@ -153,64 +152,60 @@ class AiCoachingCard extends ConsumerWidget {
     // 두 번 있으면 안 된다. (#1021)
     if (routines.isEmpty) return const SizedBox.shrink();
 
-    return Container(
+    return AppCard(
       key: const Key('aiCoachingCard'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: kCardShadow,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              // 카드가 말하는 것은 `AI 코칭` 이 아니라 **추천 개인운동**이다
-              // (#1130). 제목이 곧 내용이라 아이콘도 운동 쪽으로 바꿨다.
-              const Icon(
-                Icons.directions_run_rounded,
-                size: 18,
-                color: FigmaColors.primary,
-              ),
-              const SizedBox(width: 6),
-              // 큰 글자 배율에서 제목이 카드를 넘겼다(#766).
-              Flexible(
-                child: Text(
-                  l.coachRoutineTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: FigmaColors.ink,
-                  ),
+          // 카드가 말하는 것은 `AI 코칭` 이 아니라 **추천 개인운동**이다
+          // (#1130). 제목이 곧 내용이라 아이콘도 운동 쪽으로 바꿨다. 큰 글자
+          // 배율에서는 제목이 줄을 바꿔 카드 안에 머문다(#766).
+          AppSectionHeader(
+            title: l.coachRoutineTitle,
+            icon: Icons.directions_run_rounded,
+          ),
+          // 카드 제목이 이미 `추천 개인운동` 이라 안에 같은 말을 또 두지
+          // 않는다. `PT 와 다음 PT 사이…` 안내도 뺐다 (#1130).
+          const SizedBox(height: OnCareSpacing.s12),
+          for (final (int index, CoachRoutine routine)
+              in routines.indexed) ...<Widget>[
+            // 여러 세션짜리 프로그램은 첫 세션 위에 프로그램 이름을 한 번
+            // 얹는다 — 세션 카드가 어디에 묶이는지 보이지 않으면 그냥 낱개
+            // 루틴 여러 개로 읽힌다(#709).
+            if (routine.programName.isNotEmpty &&
+                (index == 0 ||
+                    routines[index - 1].programName != routine.programName))
+              Padding(
+                padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+                child: Row(
+                  children: <Widget>[
+                    Icon(
+                      Icons.list_alt_rounded,
+                      size: OnCareSize.iconSmall,
+                      color: tokens.brand.primary,
+                    ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    Expanded(
+                      child: Text(
+                        routine.programName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          if (routines.isNotEmpty) ...<Widget>[
-            // 카드 제목이 이미 `추천 개인운동` 이라 안에 같은 말을 또 두지
-            // 않는다. `PT 와 다음 PT 사이…` 안내도 뺐다 (#1130).
-            const SizedBox(height: 12),
-            for (final (int index, CoachRoutine routine)
-                in routines.indexed) ...<Widget>[
-              // 여러 세션짜리 프로그램은 첫 세션 위에 프로그램 이름을 한 번
-              // 얹는다 — 세션 카드가 어디에 묶이는지 보이지 않으면 그냥 낱개
-              // 루틴 여러 개로 읽힌다(#709).
-              if (routine.programName.isNotEmpty &&
-                  (index == 0 ||
-                      routines[index - 1].programName != routine.programName))
-                _ProgramHeading(name: routine.programName),
-              _RecommendedExerciseRow(
-                routine: routine,
-                sourceLabel: routineSourceLabel(l, routine, coach),
-                // 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이
-                // 서로 다른 기록을 본다. 담당이 없을 때만 스스로 물린다. (#1020)
-                cancellable: coach == null,
-              ),
-              const SizedBox(height: 10),
-            ],
+            _RecommendedExerciseRow(
+              routine: routine,
+              sourceLabel: routineSourceLabel(l, routine, coach),
+              // 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이
+              // 서로 다른 기록을 본다. 담당이 없을 때만 스스로 물린다. (#1020)
+              cancellable: coach == null,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
           ],
         ],
       ),
@@ -238,24 +233,22 @@ class _RoutineCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (saving) {
-      return const Padding(
-        padding: EdgeInsets.all(9),
-        child: SizedBox.square(
-          dimension: 18,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      );
-    }
-    return Semantics(
-      checked: done,
-      label: l.coachRoutineDone,
-      child: Checkbox(
-        value: done,
-        onChanged: (bool? _) => onCheck(),
-        visualDensity: VisualDensity.compact,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        activeColor: FigmaColors.primary,
+    // 저장 중 스피너와 체크 박스가 같은 최소 터치 크기 칸을 차지해 줄이 들썩이지
+    // 않는다. 모양은 테마의 체크 박스 규격을 그대로 따른다.
+    return SizedBox.square(
+      dimension: context.oncare.density.minTouchTarget,
+      child: Center(
+        child: saving
+            ? const AppLoading.inline()
+            : Semantics(
+                checked: done,
+                label: l.coachRoutineDone,
+                child: Checkbox(
+                  value: done,
+                  onChanged: (bool? _) => onCheck(),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
       ),
     );
   }
@@ -307,24 +300,15 @@ class _RecommendedExerciseRowState
   Future<void> _cancel() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final CoachRoutine routine = widget.routine;
-    final bool? ok = await showDialog<bool>(
+    final bool ok = await showAppConfirmDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        content: Text(l.coachRoutineCancelConfirm(routine.name)),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          FilledButton(
-            key: const Key('confirmRoutineCancel'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l.coachRoutineCancel),
-          ),
-        ],
-      ),
+      title: l.coachCardRoutineCancelTitle,
+      message: l.coachRoutineCancelConfirm(routine.name),
+      confirmLabel: l.coachRoutineCancel,
+      cancelLabel: l.actionCancel,
+      destructive: true,
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
 
     setState(() => _saving = true);
     try {
@@ -334,7 +318,7 @@ class _RecommendedExerciseRowState
         showAppToast(
           context,
           l.coachRoutineCancelled,
-          kind: AppToastKind.success,
+          type: AppToastType.success,
         );
       }
     } on Object {
@@ -342,7 +326,7 @@ class _RecommendedExerciseRowState
         showAppToast(
           context,
           l.coachRoutineCancelFailed,
-          kind: AppToastKind.error,
+          type: AppToastType.error,
         );
       }
     } finally {
@@ -358,24 +342,16 @@ class _RecommendedExerciseRowState
   Future<void> _undoComplete() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final CoachRoutine routine = widget.routine;
-    final bool? ok = await showDialog<bool>(
+    // 기록에서 빼는 동작이라 확정 버튼은 위험 동작 색이다.
+    final bool ok = await showAppConfirmDialog(
       context: context,
-      builder: (BuildContext context) => AlertDialog(
-        content: Text(l.coachRoutineUndoConfirm(routine.name)),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          FilledButton(
-            key: const Key('confirmRoutineUndo'),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l.coachRoutineUndo),
-          ),
-        ],
-      ),
+      title: l.coachCardRoutineUndoTitle,
+      message: l.coachRoutineUndoConfirm(routine.name),
+      confirmLabel: l.coachRoutineUndo,
+      cancelLabel: l.actionCancel,
+      destructive: true,
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
 
     setState(() => _saving = true);
     try {
@@ -385,7 +361,7 @@ class _RecommendedExerciseRowState
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
       if (mounted) {
-        showAppToast(context, l.coachRoutineUndone, kind: AppToastKind.success);
+        showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
       }
     } on Object catch (error, stackTrace) {
       debugPrint('uncompleteRoutine failed: $error\n$stackTrace');
@@ -393,7 +369,7 @@ class _RecommendedExerciseRowState
         showAppToast(
           context,
           l.coachRoutineUndoFailed,
-          kind: AppToastKind.error,
+          type: AppToastType.error,
         );
       }
     } finally {
@@ -404,10 +380,13 @@ class _RecommendedExerciseRowState
   Future<void> _complete() async {
     final AppLocalizations l = AppLocalizations.of(context);
     final CoachRoutine routine = widget.routine;
+    // 강도·피드백을 받는 입력이라 모바일 규격대로 바텀시트다. 탭 페이지의
+    // Navigator 가 아니라 루트에서 띄워 하단 바 위를 덮는다 — 예전 다이얼로그와
+    // 같은 층이다.
     final _RoutineCompletionInput? input =
-        await showDialog<_RoutineCompletionInput>(
-          context: context,
-          builder: (_) => const _RoutineCompletionDialog(),
+        await showAppSheet<_RoutineCompletionInput>(
+          context: Navigator.of(context, rootNavigator: true).context,
+          builder: (_) => const _RoutineCompletionSheet(),
         );
     if (input == null || !mounted) return;
 
@@ -428,7 +407,7 @@ class _RecommendedExerciseRowState
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
       if (mounted) {
-        showAppToast(context, l.coachRoutineLogged, kind: AppToastKind.success);
+        showAppToast(context, l.coachRoutineLogged, type: AppToastType.success);
       }
     } catch (error, stackTrace) {
       debugPrint('completeRoutine failed: $error\n$stackTrace');
@@ -441,7 +420,7 @@ class _RecommendedExerciseRowState
           NetworkError() => l.coachRoutineNetworkError,
           _ => l.coachRoutineLogFailed,
         };
-        showAppToast(context, message, kind: AppToastKind.error);
+        showAppToast(context, message, type: AppToastType.error);
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -451,21 +430,32 @@ class _RecommendedExerciseRowState
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final CoachRoutine routine = widget.routine;
     // 이미 한 운동은 글자를 한 단계 낮춘다 (#1196). 체크 박스 하나만으로는
     // 여러 줄짜리 목록에서 어디까지 했는지 한눈에 갈리지 않는다 — 남은 줄이
     // 검정으로 남아 있어야 다음에 할 것이 먼저 읽힌다.
     final Color titleColor = routine.completed
-        ? FigmaColors.textSub
-        : FigmaColors.ink;
+        ? OnCareColors.textTertiary
+        : OnCareColors.textPrimary;
     final Color detailColor = routine.completed
-        ? AppColors.mutedForeground
-        : AppColors.foreground;
+        ? OnCareColors.textTertiary
+        : OnCareColors.textSecondary;
+    final TextStyle detailStyle = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: detailColor);
+    // 안쪽 칸은 중립 바탕이다 — 트레이너 피드백 상자가 브랜드 옅은 바탕이라
+    // 칸까지 같은 색이면 그 상자가 사라진다.
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: FigmaColors.statBg,
-        borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.fromLTRB(
+        0,
+        OnCareSpacing.s4,
+        OnCareSpacing.tilePadding,
+        OnCareSpacing.tilePadding,
+      ),
+      decoration: const BoxDecoration(
+        color: OnCareColors.surfacePage,
+        borderRadius: OnCareRadius.mdAll,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -483,70 +473,67 @@ class _RecommendedExerciseRowState
                 saving: _saving,
                 onCheck: routine.completed ? _undoComplete : _complete,
               ),
-              const SizedBox(width: 8),
               Expanded(
                 flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      routine.isProgramSession
-                          ? routine.sessionName
-                          : routine.name,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: titleColor,
-                      ),
-                    ),
-                    // 운동 구성이 오면 그것을 보여 준다 — 이름만 이어 붙인
-                    // reason 보다 정확하다(세트·횟수·중량까지 온다, #709).
-                    if (routine.exercises.isNotEmpty)
-                      for (final CoachRoutineExercise exercise
-                          in routine.exercises) ...<Widget>[
-                        const SizedBox(height: 2),
-                        Text(
-                          exercise.detail.isEmpty
-                              ? exercise.name
-                              : '${exercise.name} · ${exercise.detail}',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: detailColor,
-                          ),
-                        ),
-                      ]
-                    else if (routine.reason.isNotEmpty) ...<Widget>[
-                      const SizedBox(height: 2),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
                       Text(
-                        routine.reason,
-                        style: TextStyle(
-                          fontSize: 12.5,
-                          color: detailColor,
-                        ),
+                        routine.isProgramSession
+                            ? routine.sessionName
+                            : routine.name,
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(
+                                OnCareTypography.bodySmall,
+                              ),
+                            )
+                            .copyWith(color: titleColor),
+                      ),
+                      // 운동 구성이 오면 그것을 보여 준다 — 이름만 이어 붙인
+                      // reason 보다 정확하다(세트·횟수·중량까지 온다, #709).
+                      if (routine.exercises.isNotEmpty)
+                        for (final CoachRoutineExercise exercise
+                            in routine.exercises) ...<Widget>[
+                          const SizedBox(height: OnCareSpacing.s2),
+                          Text(
+                            exercise.detail.isEmpty
+                                ? exercise.name
+                                : '${exercise.name} · ${exercise.detail}',
+                            style: detailStyle,
+                          ),
+                        ]
+                      else if (routine.reason.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: OnCareSpacing.s2),
+                        Text(routine.reason, style: detailStyle),
+                      ],
+                      // 누가 이 운동을 정했는지. 트레이너가 본 추천과 AI 가 혼자
+                      // 낸 추천은 회원에게 무게가 다르다(#782).
+                      const SizedBox(height: OnCareSpacing.s4),
+                      Text(
+                        widget.sourceLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(OnCareTypography.caption),
+                            )
+                            .copyWith(
+                              // 누가 정한 운동인지는 보조 설명이 아니다 — 회색이면
+                              // 옆의 부연과 무게가 같다(#1457). 완료한 줄에서는
+                              // 본문이 흐려지므로 같은 파랑을 한 단계 옅게 둔다.
+                              color: routine.completed
+                                  ? tokens.brand.border
+                                  : tokens.brand.primary,
+                            ),
                       ),
                     ],
-                    // 누가 이 운동을 정했는지. 트레이너가 본 추천과 AI 가 혼자
-                    // 낸 추천은 회원에게 무게가 다르다(#782).
-                    const SizedBox(height: 4),
-                    Text(
-                      widget.sourceLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w600,
-                        // 누가 정한 운동인지는 보조 설명이 아니다 — 회색이면
-                        // 옆의 부연과 무게가 같다(#1457). 완료한 줄에서는
-                        // 본문이 흐려지므로 같은 파랑을 한 단계 옅게 둔다.
-                        color: widget.routine.completed
-                            ? FigmaColors.primaryA(0.55)
-                            : FigmaColors.primary,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: OnCareSpacing.s8),
               // 오른쪽 묶음은 **제 몫을 다 차지한다** (#1153). `Flexible` 은
               // 내용 크기로 줄어들어, 남은 자리가 그 오른쪽에 빈 칸으로 남았고
               // 값이 카드 가운데에서 끝난 것처럼 보였다. 폭을 받아 두고 안에서
@@ -554,50 +541,44 @@ class _RecommendedExerciseRowState
               // 아래 FittedBox 가 값부터 줄인다(#766).
               Expanded(
                 flex: 2,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: <Widget>[
-                    // 카드 오른쪽 끝에 한 줄로 붙인다 (#1130). 두 줄로
-                    // 접히면 첫 줄이 카드 가운데에서 끝나 어디에 걸린 값인지
-                    // 애매해진다.
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        '${routine.type} · '
-                        '${l.unitMinutesValue(routine.completedMinutes ?? routine.minutes)}',
-                        maxLines: 1,
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                          color: FigmaColors.primary,
-                        ),
-                      ),
-                    ),
-                    // 아직 하지 않은 것만 물릴 수 있다 — 이미 한 운동을 목록에서
-                    // 지우면 기록과 화면이 갈린다.
-                    if (widget.cancellable && !routine.completed)
-                      TextButton(
-                        key: Key('cancelRoutine-${routine.id}'),
-                        onPressed: _saving ? null : _cancel,
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(0, 28),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          foregroundColor: AppColors.mutedForeground,
-                        ),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: <Widget>[
+                      // 카드 오른쪽 끝에 한 줄로 붙인다 (#1130). 두 줄로
+                      // 접히면 첫 줄이 카드 가운데에서 끝나 어디에 걸린 값인지
+                      // 애매해진다.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
                         child: Text(
-                          l.coachRoutineCancel,
+                          '${routine.type} · '
+                          '${l.unitMinutesValue(routine.completedMinutes ?? routine.minutes)}',
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          textAlign: TextAlign.end,
+                          style: tokens
+                              .text(
+                                OnCareTypography.strong(
+                                  OnCareTypography.caption,
+                                ),
+                              )
+                              .copyWith(color: tokens.brand.primary),
                         ),
                       ),
-                  ],
+                      // 아직 하지 않은 것만 물릴 수 있다 — 이미 한 운동을 목록에서
+                      // 지우면 기록과 화면이 갈린다. 목록에서 지우는 동작이라
+                      // 화면 안의 트리거는 위험 글자 버튼이다.
+                      if (widget.cancellable && !routine.completed)
+                        AppButton(
+                          key: Key('cancelRoutine-${routine.id}'),
+                          label: l.coachRoutineCancel,
+                          variant: AppButtonVariant.destructiveText,
+                          size: OnCareButtonSize.small,
+                          onPressed: _saving ? null : _cancel,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -607,43 +588,43 @@ class _RecommendedExerciseRowState
           // 카드에서 그 줄만 혼자 커 보였다. 색만 달리해 누가 쓴 글인지
           // 구분한다 — 내 피드백은 흰 바탕, 트레이너 피드백은 파란 바탕.
           if (routine.memberNote.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
+            const SizedBox(height: OnCareSpacing.s8),
             Container(
               key: Key('routineMemberNote-${routine.id}'),
               width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: FigmaColors.hairline),
+              margin: const EdgeInsets.only(left: OnCareSpacing.tilePadding),
+              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+              decoration: const BoxDecoration(
+                color: OnCareColors.surfaceCard,
+                borderRadius: OnCareRadius.mdAll,
+                border: Border.fromBorderSide(
+                  BorderSide(color: OnCareColors.lineSubtle),
+                ),
               ),
               child: Text(
                 l.coachRoutineMyNote(routine.memberNote),
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  height: 1.4,
-                  color: FigmaColors.textBody,
-                ),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
               ),
             ),
           ],
           if (routine.trainerFeedback.isNotEmpty) ...<Widget>[
-            const SizedBox(height: 8),
+            const SizedBox(height: OnCareSpacing.s8),
             Container(
               key: Key('routineFeedback-${routine.id}'),
               width: double.infinity,
-              padding: const EdgeInsets.all(10),
+              margin: const EdgeInsets.only(left: OnCareSpacing.tilePadding),
+              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
               decoration: BoxDecoration(
-                color: FigmaColors.softBlue,
-                borderRadius: BorderRadius.circular(10),
+                color: tokens.brand.surface,
+                borderRadius: OnCareRadius.mdAll,
               ),
               child: Text(
                 l.coachRoutineTrainerFeedback(routine.trainerFeedback),
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  height: 1.4,
-                  color: FigmaColors.ink,
-                ),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textPrimary),
               ),
             ),
           ],
@@ -663,15 +644,15 @@ class _RoutineCompletionInput {
 /// 체크했을 때 뜨는 완료 입력. 회원이 정하는 것은 **얼마나 힘들었는지와
 /// 피드백** 뿐이다 (#1360) — 시간·구성 같은 운동의 세부 내용은 추천이 든 값을
 /// 그대로 쓴다.
-class _RoutineCompletionDialog extends StatefulWidget {
-  const _RoutineCompletionDialog();
+class _RoutineCompletionSheet extends StatefulWidget {
+  const _RoutineCompletionSheet();
 
   @override
-  State<_RoutineCompletionDialog> createState() =>
-      _RoutineCompletionDialogState();
+  State<_RoutineCompletionSheet> createState() =>
+      _RoutineCompletionSheetState();
 }
 
-class _RoutineCompletionDialogState extends State<_RoutineCompletionDialog> {
+class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
   /// 피드백 길이 상한. 카드에 그대로 펼쳐 보여 주는 글이라 몇 줄 안에서
   /// 끝나야 한다 (#1360).
   static const int _noteMaxLength = 100;
@@ -688,79 +669,89 @@ class _RoutineCompletionDialogState extends State<_RoutineCompletionDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l.coachRoutineCompleteTitle),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(l.coachRoutineIntensity),
-            ),
-            const SizedBox(height: 6),
-            // 운동 직접 추가 화면과 같은 분리형 칩이다(#1457). 셋이 하나의
-            // 타원으로 이어진 `SegmentedButton` 은 같은 3단계 강도를 다른
-            // UI 로 보이게 했다. value 는 서버로 나가는 계약이라 그대로 두고,
-            // 라벨만 로케일을 따른다(#847).
-            Row(
-              key: const Key('routineCompletionIntensity'),
-              children: <Widget>[
-                for (final ({String value, String label}) option
-                    in <({String value, String label})>[
-                      (value: 'light', label: l.coachIntensityLight),
-                      (value: 'moderate', label: l.coachIntensityModerate),
-                      (value: 'high', label: l.coachIntensityHigh),
-                    ]) ...<Widget>[
-                  if (option.value != 'light') const SizedBox(width: 8),
-                  Expanded(
-                    child: AppChoiceChip(
-                      key: Key('routineIntensity-${option.value}'),
-                      label: option.label,
-                      selected: _intensity == option.value,
-                      center: true,
-                      onTap: () => setState(() => _intensity = option.value),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const Key('routineCompletionNote'),
-              controller: _noteController,
-              maxLength: _noteMaxLength,
-              maxLines: 3,
-              decoration: InputDecoration(
-                labelText: l.coachRoutineNoteLabel,
-                hintText: l.coachRoutineNoteHint,
-              ),
-            ),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l.actionCancel),
-        ),
-        FilledButton(
-          key: const Key('confirmRoutineCompletion'),
-          onPressed: () => Navigator.of(context).pop(
-            _RoutineCompletionInput(
-              intensity: _intensity,
-              note: _noteController.text,
+    final OnCareTokens tokens = context.oncare;
+    return AppSheet(
+      title: l.coachRoutineCompleteTitle,
+      // [AppButtonPair] 와 같은 배치(취소 왼쪽 보조, 확정 오른쪽 주요)다. 확정
+      // 버튼에 테스트·자동화가 잡는 키가 있어 두 버튼을 직접 놓는다.
+      footer: Row(
+        children: <Widget>[
+          Expanded(
+            child: AppButton(
+              label: l.actionCancel,
+              variant: AppButtonVariant.secondary,
+              fullWidth: true,
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ),
-          child: Text(l.coachRoutineSubmit),
-        ),
-      ],
+          const SizedBox(width: OnCareSpacing.buttonGap),
+          Expanded(
+            child: AppButton(
+              key: const Key('confirmRoutineCompletion'),
+              label: l.coachRoutineSubmit,
+              fullWidth: true,
+              onPressed: () => Navigator.of(context).pop(
+                _RoutineCompletionInput(
+                  intensity: _intensity,
+                  note: _noteController.text,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            l.coachRoutineIntensity,
+            style: tokens
+                .text(OnCareTypography.label)
+                .copyWith(color: OnCareColors.textPrimary),
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          // 운동 직접 추가 화면과 같은 분리형 칩이다(#1457). 셋이 하나의
+          // 타원으로 이어진 `SegmentedButton` 은 같은 3단계 강도를 다른
+          // UI 로 보이게 했다. value 는 서버로 나가는 계약이라 그대로 두고,
+          // 라벨만 로케일을 따른다(#847).
+          Row(
+            key: const Key('routineCompletionIntensity'),
+            children: <Widget>[
+              for (final ({String value, String label}) option
+                  in <({String value, String label})>[
+                    (value: 'light', label: l.coachIntensityLight),
+                    (value: 'moderate', label: l.coachIntensityModerate),
+                    (value: 'high', label: l.coachIntensityHigh),
+                  ]) ...<Widget>[
+                if (option.value != 'light')
+                  const SizedBox(width: OnCareSpacing.s8),
+                Expanded(
+                  child: AppChoiceChip(
+                    key: Key('routineIntensity-${option.value}'),
+                    label: option.label,
+                    selected: _intensity == option.value,
+                    onSelected: (bool _) =>
+                        setState(() => _intensity = option.value),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s16),
+          AppTextField(
+            key: const Key('routineCompletionNote'),
+            controller: _noteController,
+            maxLength: _noteMaxLength,
+            maxLines: 3,
+            label: l.coachRoutineNoteLabel,
+            hint: l.coachRoutineNoteHint,
+          ),
+        ],
+      ),
     );
   }
 }
-
-/// 읽지 않음 배지의 지름. 원을 유지하려면 가로·세로가 같아야 한다 (#1418).
-const double _kUnreadBadgeSize = 18;
 
 class _ChatButton extends StatelessWidget {
   const _ChatButton({required this.unread, required this.onTap});
@@ -771,26 +762,29 @@ class _ChatButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final String unreadLabel = unread > 99 ? '99+' : '$unread';
+    final OnCareTokens tokens = context.oncare;
 
+    // 안 읽은 개수 배지를 라벨 옆에 붙여야 해서 [AppButton] 대신 같은 높이·반경의
+    // 옅은 브랜드 칸을 직접 놓는다.
     return Material(
-      color: FigmaColors.softBlue,
-      borderRadius: BorderRadius.circular(12),
+      color: tokens.brand.surface,
+      borderRadius: OnCareRadius.mdAll,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: OnCareRadius.mdAll,
         child: Container(
-          height: 44,
+          height: tokens.density.buttonMedium,
           alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              const Icon(
-                Icons.chat_bubble_outline,
-                size: 16,
-                color: FigmaColors.primary,
+              Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: OnCareSize.iconSmall,
+                color: tokens.brand.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: OnCareSpacing.s8),
               // 큰 글자 배율에서 라벨이 버튼을 넘겼다. 안 읽은 개수 배지는
               // 접지 않는다 — 몇 건인지가 이 버튼을 누를 이유다(#766).
               Flexible(
@@ -801,86 +795,22 @@ class _ChatButton extends StatelessWidget {
                   child: Text(
                     l.coachChatWithTrainer,
                     maxLines: 1,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: FigmaColors.primary,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.buttonMedium)
+                        .copyWith(color: tokens.brand.primary),
                   ),
                 ),
               ),
               if (unread > 0) ...<Widget>[
-                const SizedBox(width: 8),
-                // 한 자리 수는 **정원**이어야 한다 (#1418, gym_tab.dart의
-                // _TrainerChatButton과 같은 패턴, #1138). 좌우 여백만 주면
-                // 글자 높이만큼 세로로 길어져 알약처럼 보였다. 최소 지름을
-                // 정해 두고 숫자는 그 안에서 줄인다 — `99+` 도 같은 원 안에
-                // 들어간다.
-                Container(
-                  width: _kUnreadBadgeSize,
-                  height: _kUnreadBadgeSize,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: FigmaColors.redDot,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        unreadLabel,
-                        maxLines: 1,
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          height: 1,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                const SizedBox(width: OnCareSpacing.s8),
+                // 한 자리 수는 정원, 두 자리 이상은 같은 높이의 알약이다 —
+                // 두 앱 공용 배지 규격(#1418, #1695). 버튼 높이를 그대로 받으면
+                // 배지가 세로로 늘어나므로 제 크기로 풀어 둔다.
+                UnconstrainedBox(child: AppCountBadge(count: unread)),
               ],
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// 여러 세션이 묶인 프로그램의 이름표. (#709)
-class _ProgramHeading extends StatelessWidget {
-  const _ProgramHeading({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: <Widget>[
-          const Icon(
-            Icons.list_alt_outlined,
-            size: 15,
-            color: FigmaColors.primary,
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w800,
-                color: FigmaColors.primary,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

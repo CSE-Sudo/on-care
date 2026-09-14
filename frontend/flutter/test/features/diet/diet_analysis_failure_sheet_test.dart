@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
@@ -80,6 +80,7 @@ Future<ProviderContainer> _openResultSheet(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,

@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_theme.dart';
+
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
@@ -72,14 +74,17 @@ Future<void> _pumpAddSheet(
   WidgetTester tester, {
   required MealPhotoPicker picker,
   required _RecordingDietRepository repository,
+  MealPhotoChoiceLayout layout = MealPhotoChoiceLayout.separate,
 }) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
         mealPhotoPickerProvider.overrideWithValue(picker),
+        mealPhotoChoiceLayoutProvider.overrideWithValue(layout),
         dietRepositoryProvider.overrideWithValue(repository),
       ],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -147,6 +152,39 @@ void main() {
     expect(repository.uploaded?.mimeType, 'image/png');
   });
 
+  testWidgets('웹은 사진 추가 한 갈래만 두고 촬영을 앱에서 따로 내놓지 않는다(#1433)', (
+    WidgetTester tester,
+  ) async {
+    final _FakeMealPhotoPicker picker = _FakeMealPhotoPicker(
+      photo: MealPhoto.fromBytes(_jpegBytes)!,
+    );
+    final _RecordingDietRepository repository = _RecordingDietRepository();
+    await _pumpAddSheet(
+      tester,
+      picker: picker,
+      repository: repository,
+      layout: MealPhotoChoiceLayout.systemMenu,
+    );
+
+    // 브라우저 시스템 메뉴가 보관함·촬영·파일을 묻는다 — 앱에 촬영이 또 있으면 겹친다.
+    expect(find.text('사진 찍기'), findsNothing);
+    expect(find.text('사진 선택'), findsNothing);
+
+    await tester.tap(find.text('사진 추가'));
+    await tester.pumpAndSettle();
+
+    expect(picker.requestedSource, MealPhotoSource.gallery);
+    expect(repository.uploaded?.mimeType, 'image/jpeg');
+    expect(
+      MealPhotoChoiceLayout.forPlatform(isWeb: true),
+      MealPhotoChoiceLayout.systemMenu,
+    );
+    expect(
+      MealPhotoChoiceLayout.forPlatform(isWeb: false),
+      MealPhotoChoiceLayout.separate,
+    );
+  });
+
   testWidgets('촬영을 취소하면 오류 없이 추가 시트에 머무른다', (WidgetTester tester) async {
     final _FakeMealPhotoPicker picker = _FakeMealPhotoPicker();
     final _RecordingDietRepository repository = _RecordingDietRepository();
@@ -178,7 +216,7 @@ void main() {
     // 시트에 가려지지 않도록 안내를 시트 안에 그린다.
     expect(find.byKey(const Key('dietPhotoFailureNotice')), findsOneWidget);
     expect(find.textContaining('카메라 권한이 필요해요'), findsOneWidget);
-    expect(find.byKey(const Key('dietOpenSettingsLink')), findsNothing);
+    expect(find.text('설정 열기'), findsNothing);
     expect(repository.uploaded, isNull);
     expect(find.byKey(const Key('dietAddSheet')), findsOneWidget);
 
@@ -200,7 +238,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('설정에서 카메라를 켜면'), findsOneWidget);
-      expect(find.byKey(const Key('dietOpenSettingsLink')), findsOneWidget);
+      expect(find.text('설정 열기'), findsOneWidget);
       expect(find.byKey(const Key('dietAddSheet')), findsOneWidget);
     } finally {
       debugDefaultTargetPlatformOverride = null;
@@ -222,7 +260,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('기기 설정이나 관리 정책'), findsOneWidget);
-      expect(find.byKey(const Key('dietOpenSettingsLink')), findsNothing);
+      expect(find.text('설정 열기'), findsNothing);
       expect(tester.takeException(), isNull);
     } finally {
       debugDefaultTargetPlatformOverride = null;
@@ -256,6 +294,7 @@ void main() {
           dietRepositoryProvider.overrideWithValue(repository),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
@@ -299,7 +338,7 @@ void main() {
     await tester.pump();
 
     // OS 픽커가 떠 있는 동안 사용자가 시트를 닫는다.
-    await tester.tap(find.byIcon(Icons.close));
+    await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dietAddSheet')), findsNothing);
 
@@ -327,6 +366,7 @@ void main() {
           dietRepositoryProvider.overrideWithValue(repository),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

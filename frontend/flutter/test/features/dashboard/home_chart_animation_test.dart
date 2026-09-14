@@ -5,11 +5,14 @@
 /// 가 다시 거짓이 되는 것으로 "그리고 멈춘다"를 못박는다.
 library;
 
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/charts/chart_reveal.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -22,8 +25,28 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
-import '../../helpers/painter_ink.dart';
+/// [painter] 를 [size] 로 그려 **거의 불투명하고 트랙보다 진한**(RGB 합 600
+/// 미만) 픽셀 수를 센다. 옅은 불투명 트랙은 빠지고 자라는 호만 남는다.
+Future<int> _strongInk(CustomPainter painter, Size size) async {
+  final ui.PictureRecorder recorder = ui.PictureRecorder();
+  painter.paint(Canvas(recorder), size);
+  final ui.Image image = await recorder.endRecording().toImage(
+    size.width.ceil(),
+    size.height.ceil(),
+  );
+  final ByteData pixels = (await image.toByteData())!;
+  image.dispose();
+  int ink = 0;
+  for (int i = 0; i < pixels.lengthInBytes; i += 4) {
+    if (pixels.getUint8(i + 3) < 200) continue;
+    final int sum =
+        pixels.getUint8(i) + pixels.getUint8(i + 1) + pixels.getUint8(i + 2);
+    if (sum < 600) ink++;
+  }
+  return ink;
+}
 
 void main() {
   const DashboardSummary summary = DashboardSummary(
@@ -90,11 +113,12 @@ void main() {
           ),
           exerciseWeekViewProvider.overrideWithValue(exerciseWeek),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: DashboardContent()),
+          home: const Scaffold(body: DashboardContent()),
         ),
       ),
     );
@@ -130,11 +154,13 @@ void main() {
     await tester.pumpAndSettle();
     final CustomPainter settled = painterIn(tester, exerciseRings);
 
+    // 링 트랙이 불투명 토큰 색이라(#1701) 칠해진 픽셀 수는 처음부터 같다 —
+    // 트랙보다 진한 호만 세어 자라는 것을 잰다.
     final List<int> ink = (await tester.runAsync(() async {
       return <int>[
-        await painterInk(atStart, size),
-        await painterInk(midway, size),
-        await painterInk(settled, size),
+        await _strongInk(atStart, size),
+        await _strongInk(midway, size),
+        await _strongInk(settled, size),
       ];
     }))!;
 
@@ -210,6 +236,7 @@ void main() {
           exerciseWeekViewProvider.overrideWithValue(exerciseWeek),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

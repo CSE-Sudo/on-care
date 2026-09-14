@@ -9,13 +9,13 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
@@ -663,11 +663,20 @@ void main() {
       final Finder entry = find.byKey(const Key('consult-inbox-entry'));
       expect(entry, findsOneWidget);
 
-      final Badge badge = tester.widget<Badge>(
-        find.descendant(of: entry, matching: find.byType(Badge)),
+      final Finder badge = find.descendant(
+        of: entry,
+        matching: find.byType(AppCountBadge),
       );
-      expect(badge.isLabelVisible, isTrue, reason: '시드에 대기 2건');
-      expect(badge.backgroundColor, AppColors.destructive);
+      expect(badge, findsOneWidget);
+      expect(tester.widget<AppCountBadge>(badge).count, 2, reason: '시드에 대기 2건');
+      final BoxDecoration fill =
+          tester
+                  .widget<Container>(
+                    find.descendant(of: badge, matching: find.byType(Container)),
+                  )
+                  .decoration!
+              as BoxDecoration;
+      expect(fill.color, OnCareColors.danger);
       expect(
         find.descendant(of: entry, matching: find.text('2')),
         findsOneWidget,
@@ -684,7 +693,7 @@ void main() {
       final Rect icon = tester.getRect(
         find.descendant(
           of: entry,
-          matching: find.byIcon(Icons.mark_email_unread_outlined),
+          matching: find.byIcon(Icons.mark_email_unread_rounded),
         ),
       );
       final Rect label = tester.getRect(
@@ -700,7 +709,7 @@ void main() {
         reason: '배지가 아이콘 오른쪽 바깥에 있어야 한다',
       );
       final Rect box = tester.getRect(
-        find.descendant(of: entry, matching: find.byType(InkWell)).first,
+        find.descendant(of: entry, matching: find.byType(AppIconButton)),
       );
       expect(
         label.center.dy,
@@ -726,10 +735,14 @@ void main() {
 
       final Finder entry = find.byKey(const Key('consult-inbox-entry'));
       expect(entry, findsOneWidget);
-      final Badge badge = tester.widget<Badge>(
-        find.descendant(of: entry, matching: find.byType(Badge)),
+      expect(
+        find.descendant(of: entry, matching: find.byType(AppCountBadge)),
+        findsNothing,
       );
-      expect(badge.isLabelVisible, isFalse);
+      expect(
+        find.descendant(of: entry, matching: find.text('0')),
+        findsNothing,
+      );
     });
 
     testWidgets('상담 요청 진입점이 좁은 폭에서 넘치지 않는다', (tester) async {
@@ -997,7 +1010,7 @@ void main() {
         confirm: false,
       );
 
-      final confirm = tester.widget<FilledButton>(
+      final confirm = tester.widget<AppButton>(
         find.byKey(const ValueKey<String>('session-time-range-confirm')),
       );
       expect(confirm.onPressed, isNull);
@@ -1102,7 +1115,7 @@ void main() {
         find.byKey(const ValueKey<String>('save-program')),
       );
       await tester.pump();
-      final save = tester.widget<FilledButton>(
+      final save = tester.widget<AppButton>(
         find.byKey(const ValueKey<String>('save-program')),
       );
       save.onPressed!();
@@ -1156,7 +1169,7 @@ void main() {
       );
       await tester.pump();
       tester
-          .widget<FilledButton>(
+          .widget<AppButton>(
             find.byKey(const ValueKey<String>('save-program')),
           )
           .onPressed!();
@@ -1185,7 +1198,10 @@ void main() {
       await revealInPanel(tester, noteChip);
       expect(noteActionLabel(tester), '메모 수정');
       expect(
-        find.descendant(of: noteChip, matching: find.byIcon(Icons.edit_note)),
+        find.descendant(
+          of: noteChip,
+          matching: find.byIcon(Icons.edit_note_rounded),
+        ),
         findsOneWidget,
         reason: '아이콘도 함께 갈린다 — 글씨 없이 아이콘만 그리는 자리다',
       );
@@ -1197,7 +1213,7 @@ void main() {
       expect(
         find.descendant(
           of: noteChip,
-          matching: find.byIcon(Icons.note_add_outlined),
+          matching: find.byIcon(Icons.note_add_rounded),
         ),
         findsOneWidget,
       );
@@ -1468,8 +1484,8 @@ void main() {
         seedClock: kMidWeekKst,
       );
 
-      expect(find.byIcon(Icons.chevron_left), findsOneWidget);
-      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_left_rounded), findsWidgets);
+      expect(find.byIcon(Icons.chevron_right_rounded), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 
@@ -1479,14 +1495,14 @@ void main() {
       expect(find.text('오늘'), findsNothing);
 
       // 다음 주에는 시드가 없다 — 시간표가 통째로 비고 `오늘` 이 나타난다.
-      await tester.tap(find.byIcon(Icons.chevron_right));
+      await tester.tap(find.byIcon(Icons.chevron_right_rounded).first);
       await settle(tester);
       expect(find.text('김민수'), findsNothing);
       expect(find.text('이번 주에는 일정이 없어요.'), findsOneWidget);
       expect(find.text('오늘'), findsOneWidget);
 
       // 되돌아오면 오늘이 다시 선택된 주다.
-      await tester.tap(find.byIcon(Icons.chevron_left));
+      await tester.tap(find.byIcon(Icons.chevron_left_rounded).first);
       await settle(tester);
       expect(find.text('김민수'), findsWidgets);
       expect(find.text('오늘'), findsNothing);

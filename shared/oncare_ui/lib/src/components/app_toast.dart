@@ -22,15 +22,46 @@ OverlayEntry? _current;
 /// 루트 오버레이에 그려 다이얼로그·시트 위에서도 보인다. 새 토스트가 뜨면 앞의
 /// 것은 바로 닫힌다. 실패는 [OnCareMotion.toastErrorVisible], 동작 버튼이 있으면
 /// [OnCareMotion.toastActionVisible] 만큼 머문다.
+/// 토스트 손잡이 — 화면이 닫힌 **뒤에** 도착하는 결과도 띄울 수 있게 루트 오버레이와
+/// 토큰을 미리 잡아 둔다. 시트를 닫고 저장 응답을 기다리는 흐름에서 쓴다.
+class AppToastHost {
+  const AppToastHost._(this._overlay, this._tokens);
+
+  /// 지금 화면에서 손잡이를 잡는다.
+  factory AppToastHost.of(BuildContext context) =>
+      AppToastHost._(Overlay.of(context, rootOverlay: true), context.oncare);
+
+  final OverlayState _overlay;
+  final OnCareTokens _tokens;
+
+  /// 토스트를 띄운다.
+  void show(
+    String message, {
+    AppToastType type = AppToastType.info,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) => _insertToast(_overlay, _tokens, message, type, actionLabel, onAction);
+}
+
+/// 화면 위쪽에 잠깐 떴다 사라지는 알림(#1693). 두 앱이 같은 모양이다.
 void showAppToast(
   BuildContext context,
   String message, {
   AppToastType type = AppToastType.info,
   String? actionLabel,
   VoidCallback? onAction,
-}) {
-  final OverlayState overlay = Overlay.of(context, rootOverlay: true);
-  final OnCareTokens tokens = context.oncare;
+}) => AppToastHost.of(
+  context,
+).show(message, type: type, actionLabel: actionLabel, onAction: onAction);
+
+void _insertToast(
+  OverlayState overlay,
+  OnCareTokens tokens,
+  String message,
+  AppToastType type,
+  String? actionLabel,
+  VoidCallback? onAction,
+) {
   _current?.remove();
   late final OverlayEntry entry;
   entry = OverlayEntry(

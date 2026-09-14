@@ -9,13 +9,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const ExerciseWeek _emptyWeek = ExerciseWeek(
   sessions: <ExerciseSession>[],
@@ -95,6 +96,7 @@ Future<void> _openSheet(WidgetTester tester, {ExerciseSession? session}) async {
         exerciseRepositoryProvider.overrideWithValue(_StubRepository()),
       ],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -115,7 +117,12 @@ Future<void> _openSheet(WidgetTester tester, {ExerciseSession? session}) async {
 
 /// 이름 입력의 지금 예시 문구.
 String _hint(WidgetTester tester) => tester
-    .widget<TextField>(find.byKey(const Key('exerciseNameField')))
+    .widget<TextField>(
+      find.descendant(
+        of: find.byKey(const Key('exerciseNameField')),
+        matching: find.byType(TextField),
+      ),
+    )
     .decoration!
     .hintText!;
 
@@ -183,17 +190,17 @@ void main() {
     expect(_hint(tester), l.exExerciseNameHintStrength);
   });
 
-  testWidgets('저장은 파란 배경·흰 글씨 버튼이다', (WidgetTester tester) async {
+  testWidgets('저장은 주요(브랜드 채움) 버튼이다', (WidgetTester tester) async {
     await _openSheet(tester);
 
-    final FilledButton save = tester.widget<FilledButton>(
+    // 시트를 끝내는 동작이라 보조 버튼과 위계가 달라야 한다 — 규격의 주요
+    // 버튼(브랜드 채움·흰 글자)을 넓게 쓴다(#1701).
+    final AppButton save = tester.widget<AppButton>(
       find.byKey(const Key('exerciseSaveButton')),
     );
-    expect(
-      save.style?.backgroundColor?.resolve(<WidgetState>{}),
-      FigmaColors.primary,
-    );
-    expect(save.style?.foregroundColor?.resolve(<WidgetState>{}), Colors.white);
+    expect(save.variant, AppButtonVariant.primary);
+    expect(save.size, OnCareButtonSize.large);
+    expect(save.fullWidth, isTrue);
     // 저장 중이 아니면 눌린다.
     expect(save.onPressed, isNotNull);
   });

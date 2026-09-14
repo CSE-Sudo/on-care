@@ -8,9 +8,9 @@
 ///
 ///  * 선은 **오늘까지만** 잇는다 — 아직 오지 않은 요일의 0 이 급락처럼 보이지
 ///    않도록. x 좌표는 7칸 기준 그대로라 주끼리 정렬된다.
-///  * 점 색은 그날이 목표를 넘겼는지만 말한다(초과=빨강, 그 외=초록). 지표
+///  * 점 색은 그날이 목표를 넘겼는지만 말한다(초과=빨강, 그 외=브랜드). 지표
 ///    카드의 뱃지와 같은 두 색이라 한 카드 안에서 서로 다른 이야기를 하지 않는다.
-///  * 목표선은 그리지 않는다. 눈금과 겹치면 선이 두꺼워 보였다.
+///  * 목표선은 [ChartGoalLine] 하나다.
 library;
 
 import 'dart:math' as math;
@@ -19,14 +19,11 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:oncare/design_system/charts/chart_reveal.dart';
-import 'package:oncare/design_system/charts/goal_line.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 이번 주 꺾은선의 색. 값의 상태는 점으로 말하므로 선은 눈에 띄지 않게 둔다.
-const Color kMetricTrendLine = Color(0xFFDDE2E8);
+const Color kMetricTrendLine = OnCareColors.lineStrong;
 
 /// 목표 대비 상태색: 초과(빨강) / 그 외(브랜드 파랑).
 ///
@@ -36,8 +33,9 @@ const Color kMetricTrendLine = Color(0xFFDDE2E8);
 /// 목표가 0 이면 초과로 보지 않는다. `v > goal` 만 두면 목표가 없는 지표의 **모든**
 /// 기록이 빨간 점이 되어, 같은 카드의 평균 뱃지(목표가 있을 때만 초과 판정)와 서로
 /// 다른 이야기를 한다.
-Color metricStatusColor(double v, double goal) =>
-    goal > 0 && v > goal ? FigmaColors.dangerRed : FigmaColors.statusWithinGoal;
+Color metricStatusColor(double v, double goal) => goal > 0 && v > goal
+    ? OnCareColors.danger
+    : OnCareBrand.member.statusWithinGoal;
 
 /// 월→일 요일 라벨. 홈 탭과 식단 탭이 **같은 문구**를 쓰도록 여기 둔다 — 한쪽만
 /// 하드코딩하면 영어 로케일에서 한글 요일이 그대로 남는다.
@@ -75,6 +73,12 @@ String metricTrendNumber(num v) => v == v.roundToDouble()
   return (lo, hi);
 }
 
+/// 그래프 기본 높이. 차트 기하라 맞는 토큰이 없다.
+const double _kDefaultChartHeight = 68;
+
+/// 점을 누른 것으로 보는 가로 거리. 차트 기하라 맞는 토큰이 없다. (#1122)
+const double _kPointHitSlop = 18;
+
 /// 눈금 라벨 + 꺾은선 + 요일 라벨 한 덩어리.
 class MetricTrendChart extends StatelessWidget {
   const MetricTrendChart({
@@ -87,7 +91,7 @@ class MetricTrendChart extends StatelessWidget {
     required this.semanticsLabel,
     this.goalLabel,
     required this.formatTick,
-    this.height = 68,
+    this.height = _kDefaultChartHeight,
     this.selectedIndex,
     this.onSelected,
     super.key,
@@ -130,10 +134,15 @@ class MetricTrendChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     final (double lo, double hi) = metricTrendScale(
       values: values,
       ticks: ticks,
       goal: goal,
+    );
+    final TextStyle axisStyle = chartAxisLabelStyle(context);
+    final TextStyle valueStyle = tokens.text(
+      OnCareTypography.strong(OnCareTypography.caption),
     );
     // 눈금·요일 라벨은 낱개로 읽어 봐야 `월` `화` 뿐이라 그래프가 무슨 값을
     // 말하는지 알 수 없다. 한 덩어리로 묶고 요약 한 문장만 읽힌다.
@@ -144,8 +153,7 @@ class MetricTrendChart extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // 목표치 칸 — 이 그래프가 쓰던 배치를 [ChartGoalAxis] 로 옮겼고,
-            // 이제 두 앱의 모든 그래프가 같은 칸을 쓴다. (#1071)
+            // 목표치 칸 — 모든 그래프가 같은 칸을 쓴다. (#1071)
             ChartGoalAxis(
               height: height,
               label: goalLabel,
@@ -153,12 +161,6 @@ class MetricTrendChart extends StatelessWidget {
                   goalLabel != null && goal > 0 && goal >= lo && goal <= hi
                   ? ((goal - lo) / ((hi - lo) <= 0 ? 1 : (hi - lo))) * height
                   : null,
-              style: const TextStyle(
-                fontSize: _axisLabelSize,
-                height: 1.35,
-                fontWeight: FontWeight.w600,
-                color: AppColors.mutedForeground,
-              ),
             ),
             const SizedBox(width: chartGoalAxisGap),
             Expanded(
@@ -182,6 +184,7 @@ class MetricTrendChart extends StatelessWidget {
                                   todayIndex: todayIndex,
                                   progress: t,
                                   selectedIndex: selectedIndex,
+                                  valueStyle: valueStyle,
                                 ),
                               ),
                         );
@@ -196,37 +199,40 @@ class MetricTrendChart extends StatelessWidget {
                       },
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: OnCareSpacing.s8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: <Widget>[
+                      // 폭이 모자라면(영어 요일 등) 라벨만 줄여 넘치지 않게 한다.
                       for (int i = 0; i < dayLabels.length; i++)
                         if (i == todayIndex)
                           // 오늘: 브랜드색 원 안에 흰 글씨.
-                          Container(
-                            width: 18,
-                            height: 18,
-                            alignment: Alignment.center,
-                            decoration: const BoxDecoration(
-                              color: FigmaColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Text(
-                              dayLabels[i],
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                          Flexible(
+                            child: Container(
+                              width: OnCareSize.countBadgeMin,
+                              height: OnCareSize.countBadgeMin,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: tokens.brand.primary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  dayLabels[i],
+                                  maxLines: 1,
+                                  style: axisStyle.copyWith(
+                                    color: OnCareColors.textOnFill,
+                                  ),
+                                ),
                               ),
                             ),
                           )
                         else
-                          Text(
-                            dayLabels[i],
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.mutedForeground,
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(dayLabels[i], style: axisStyle),
                             ),
                           ),
                     ],
@@ -248,9 +254,9 @@ extension on MetricTrendChart {
     if (values.length < 2 || width <= 0) return null;
     final double step = width / (values.length - 1);
     final int i = (dx / step).round().clamp(0, values.length - 1);
-    // 점에서 18px 안쪽만 그 점을 누른 것으로 본다. 반 칸까지 넓히면 그래프
-    // 어디를 눌러도 어느 점엔가 붙어, 선택을 풀 자리가 없어진다. (#1122)
-    if ((dx - i * step).abs() > 18) return null;
+    // 점에서 [_kPointHitSlop] 안쪽만 그 점을 누른 것으로 본다. 반 칸까지 넓히면
+    // 그래프 어디를 눌러도 어느 점엔가 붙어, 선택을 풀 자리가 없어진다. (#1122)
+    if ((dx - i * step).abs() > _kPointHitSlop) return null;
     // 아직 그리지 않은(오늘 이후) 점은 고를 수 없다 — 0 을 그날 값이라고
     // 말하게 된다.
     if (i > todayIndex.clamp(0, values.length - 1)) return null;
@@ -259,8 +265,33 @@ extension on MetricTrendChart {
   }
 }
 
-/// 축 라벨 글씨 크기. 라벨 칸 높이를 이 값에서 재므로 한 곳에 둔다. (#1004)
-const double _axisLabelSize = 10;
+// --- 꺾은선 기하 — 차트 안의 선·점 크기라 맞는 토큰이 없다. ---
+const double _kLineStroke = 1.6;
+const double _kDotRadius = 4.2;
+const double _kLastDotRadius = 5.0;
+
+/// 점 둘레 흰 테두리 두께.
+const double _kDotHalo = 1.3;
+
+/// 고른 점을 두르는 고리 반지름과 두께. (#1122)
+const double _kSelectedRingRadius = 8.5;
+const double _kSelectedRingStroke = 2;
+
+/// 값 라벨과 점 사이 거리.
+const double _kValueLabelGap = 7;
+
+/// 점이 선보다 먼저 페이드인을 시작하는 구간(선 한 칸 기준 비율).
+const double _kDotFadeLead = 0.35;
+
+/// 진입 애니메이션 진행도만큼 [color] 를 옅게 한다. 규격 색을 새로 만드는 것이
+/// 아니라 등장 중인 점·라벨의 진행 상태라서 투명도 토큰 대신 진행값을 곱한다.
+Color _fade(Color color, double progress) => Color.from(
+  alpha: color.a * progress,
+  red: color.r,
+  green: color.g,
+  blue: color.b,
+  colorSpace: color.colorSpace,
+);
 
 /// 꺾은선 본체. 홈 탭에 있던 `_TrendChartPainter` 를 그대로 옮긴 것이다.
 class MetricTrendPainter extends CustomPainter {
@@ -273,6 +304,7 @@ class MetricTrendPainter extends CustomPainter {
     required this.todayIndex,
     this.progress = 1,
     this.selectedIndex,
+    this.valueStyle,
   });
 
   final List<double> cur;
@@ -290,6 +322,9 @@ class MetricTrendPainter extends CustomPainter {
 
   /// 고른 점. 그 점만 고리를 둘러 어느 날을 보고 있는지 알린다. (#1122)
   final int? selectedIndex;
+
+  /// 점 위 값 라벨 글자. 색은 점의 상태색으로 덮는다. null 이면 `caption` 600.
+  final TextStyle? valueStyle;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -333,7 +368,7 @@ class MetricTrendPainter extends CustomPainter {
         Paint()
           ..color = kMetricTrendLine
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6
+          ..strokeWidth = _kLineStroke
           ..strokeJoin = StrokeJoin.round
           ..strokeCap = StrokeCap.round,
       );
@@ -343,20 +378,26 @@ class MetricTrendPainter extends CustomPainter {
       // 선이 이 점에 닿기 직전부터 짧게 페이드인한다.
       final double a = lastIdx == 0
           ? p
-          : ((drawn - i) / 0.35 + 1).clamp(0.0, 1.0);
+          : ((drawn - i) / _kDotFadeLead + 1).clamp(0.0, 1.0);
       if (a <= 0) continue;
       final Color sc = metricStatusColor(cur[i], goal);
       if (i == selectedIndex) {
         canvas.drawCircle(
           pts[i],
-          8.5,
+          _kSelectedRingRadius,
           Paint()
-            ..color = sc.withValues(alpha: 0.45 * a)
+            ..color = _fade(sc, OnCareAlpha.strong * a)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 2,
+            ..strokeWidth = _kSelectedRingStroke,
         );
       }
-      _dot(canvas, pts[i], sc, r: i == cur.length - 1 ? 5.0 : 4.2, alpha: a);
+      _dot(
+        canvas,
+        pts[i],
+        sc,
+        r: i == cur.length - 1 ? _kLastDotRadius : _kDotRadius,
+        alpha: a,
+      );
       _text(canvas, metricTrendNumber(cur[i]), pts[i], w, sc, alpha: a);
     }
   }
@@ -365,15 +406,15 @@ class MetricTrendPainter extends CustomPainter {
     Canvas c,
     Offset o,
     Color color, {
-    double r = 3.0,
+    required double r,
     double alpha = 1,
   }) {
     c.drawCircle(
       o,
-      r + 1.3,
-      Paint()..color = Colors.white.withValues(alpha: alpha),
+      r + _kDotHalo,
+      Paint()..color = _fade(OnCareColors.surfaceCard, alpha),
     );
-    c.drawCircle(o, r, Paint()..color = color.withValues(alpha: alpha));
+    c.drawCircle(o, r, Paint()..color = _fade(color, alpha));
   }
 
   void _text(
@@ -384,20 +425,18 @@ class MetricTrendPainter extends CustomPainter {
     Color color, {
     double alpha = 1,
   }) {
+    final TextStyle base =
+        valueStyle ?? OnCareTypography.strong(OnCareTypography.caption);
     final TextPainter tp = TextPainter(
       text: TextSpan(
         text: s,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: color.withValues(alpha: alpha),
-        ),
+        style: base.copyWith(color: _fade(color, alpha)),
       ),
       textDirection: ui.TextDirection.ltr,
     )..layout();
     final double bx = (at.dx - tp.width / 2).clamp(0.0, w - tp.width);
-    double by = at.dy - tp.height - 7;
-    if (by < 0) by = at.dy + 7;
+    double by = at.dy - tp.height - _kValueLabelGap;
+    if (by < 0) by = at.dy + _kValueLabelGap;
     tp.paint(c, Offset(bx, by));
   }
 
@@ -410,5 +449,6 @@ class MetricTrendPainter extends CustomPainter {
       old.hi != hi ||
       old.todayIndex != todayIndex ||
       old.progress != progress ||
-      old.selectedIndex != selectedIndex;
+      old.selectedIndex != selectedIndex ||
+      old.valueStyle != valueStyle;
 }

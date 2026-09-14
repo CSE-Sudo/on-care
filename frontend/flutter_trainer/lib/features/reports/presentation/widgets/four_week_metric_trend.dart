@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
+import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/features/reports/data/repositories/report_repository.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/week_trend_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 선택한 영양 지표의 최근 4주 주간 평균 — 운동 카드의 같은 블록과 짝이다.
 ///
@@ -40,6 +39,9 @@ class FourWeekMetricTrend extends ConsumerWidget {
   /// 값 뒤에 붙는 단위.
   final String unit;
 
+  /// 값 칸 너비 — `2,288kcal` 처럼 단위가 붙은 값이 한 줄에 들어가는 폭.
+  static const double _valueWidth = 62;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
@@ -66,13 +68,11 @@ class FourWeekMetricTrend extends ConsumerWidget {
         // 겹쳐 읽혀 오히려 눈금처럼 보였다(#1177).
         Text(
           '${l.reportsRecentWeeks} · $label',
-          style: const TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.subtleForeground,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.strong(OnCareTypography.caption))
+              .copyWith(color: OnCareColors.textTertiary),
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: OnCareSpacing.s4),
         for (var i = 0; i < weeks.length; i++)
           () {
             final week = weeks[i].valueOrNull;
@@ -84,13 +84,12 @@ class FourWeekMetricTrend extends ConsumerWidget {
               // 눈금 끝이 곧 목표다. 막대가 트랙을 다 채웠다는 것이 목표에
               // 닿았다는 뜻이 되고, 넘긴 주는 꽉 찬 빨간 막대로 남는다(#1177).
               fraction: mean == null ? null : mean / goal,
-              text: mean == null
-                  ? '-'
-                  : '${metricTrendNumber(mean.round())}$unit',
+              // 정수로 반올림한 평균이라 천 단위 콤마만 붙는다.
+              text: mean == null ? '-' : '${formatNumber(mean.round())}$unit',
               loading: weeks[i].isLoading,
               current: i == weeks.length - 1,
               warn: mean != null && mean > goal,
-              valueWidth: 62,
+              valueWidth: _valueWidth,
             );
           }(),
       ],

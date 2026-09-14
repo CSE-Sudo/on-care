@@ -11,13 +11,14 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 
@@ -46,11 +47,12 @@ void main() {
         overrides: <Override>[
           dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: DietRecordPage(),
+          home: const DietRecordPage(),
         ),
       ),
     );
@@ -98,19 +100,19 @@ void main() {
       tester.element(find.byType(DietRecordPage)),
     );
     // 대역의 아침은 217kcal · 나트륨 320mg — 세 지표 모두 목표 안쪽이다.
-    expect(badgeColorOf(tester, l.dietCalories), FigmaColors.statusWithinGoal);
-    expect(badgeColorOf(tester, l.dietSugar), FigmaColors.statusWithinGoal);
-    expect(badgeColorOf(tester, l.dietSodium), FigmaColors.statusWithinGoal);
+    expect(badgeColorOf(tester, l.dietCalories), OnCareBrand.member.statusWithinGoal);
+    expect(badgeColorOf(tester, l.dietSugar), OnCareBrand.member.statusWithinGoal);
+    expect(badgeColorOf(tester, l.dietSodium), OnCareBrand.member.statusWithinGoal);
   });
 
-  testWidgets('목록 썸네일은 정사각 52 다', (WidgetTester tester) async {
+  testWidgets('목록 썸네일은 정사각 56 이다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
     final List<MealPhotoView> thumbs = tester
         .widgetList<MealPhotoView>(find.byType(MealPhotoView))
         .toList();
     expect(thumbs, isNotEmpty);
-    expect(thumbs.every((MealPhotoView p) => p.height == 52), isTrue);
+    expect(thumbs.every((MealPhotoView p) => p.height == 56), isTrue);
   });
 
   testWidgets('끼니를 열면 상단에 사진이 크게 뜬다', (WidgetTester tester) async {
@@ -124,6 +126,7 @@ void main() {
           dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
         ],
         child: MaterialApp(
+          theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,

@@ -10,7 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/main_shell.dart';
 import 'package:oncare/app/router/routes.dart';
@@ -34,6 +34,7 @@ void main() {
       ProviderScope(
         overrides: <Override>[appConfigProvider.overrideWithValue(_config)],
         child: MaterialApp.router(
+          theme: AppTheme.light(),
           routerConfig: router,
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -55,7 +56,7 @@ void main() {
     await pumpShell(tester);
 
     // 가운데 + 는 AI 조언이 아니라 기록 추가다 — 함께 사라지면 안 된다.
-    expect(find.byIcon(Icons.add), findsWidgets);
+    expect(find.byKey(const Key('recordAddButton')), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('nav-exercise')), findsOneWidget);
   });
 

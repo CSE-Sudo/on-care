@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 코드 한 자리 상자의 폭·높이 — 회원 앱이 띄우는 상자와 같은 콘텐츠 고유 치수다.
+const double _digitBoxWidth = 42;
+const double _digitBoxHeight = 54;
 
 /// 회원이 불러 주는 6자리 동기화 코드를 한 자리씩 상자에 받는 입력. (#1634)
 ///
 /// 회원 앱이 같은 모양(자리마다 상자)으로 코드를 띄운다 — 트레이너가 보는 것과
 /// 회원이 보는 것이 같은 형태여야 "세 번째 자리가 뭐라고요?" 가 통한다.
 ///
-/// 칸을 여섯 개 두는 대신 **보이지 않는 입력 하나**를 상자들 위에 겹친다.
-/// 칸마다 컨트롤러를 두면 백스페이스·붙여넣기·자동완성이 칸 경계에서 어긋나고,
-/// 포커스를 옮기는 코드가 화면 로직에 섞인다.
+/// 칸을 여섯 개 두는 대신 **보이지 않는 입력 하나**([AppTextField])를 상자들
+/// 위에 겹친다. 칸마다 컨트롤러를 두면 백스페이스·붙여넣기·자동완성이 칸
+/// 경계에서 어긋나고, 포커스를 옮기는 코드가 화면 로직에 섞인다.
 class PairingCodeInput extends StatefulWidget {
   const PairingCodeInput({
     super.key,
@@ -37,17 +41,19 @@ class _PairingCodeInputState extends State<PairingCodeInput> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_onControllerChanged);
+    widget.controller.addListener(_onChanged);
+    widget.focusNode.addListener(_onChanged);
   }
 
   @override
   void dispose() {
-    widget.controller.removeListener(_onControllerChanged);
+    widget.controller.removeListener(_onChanged);
+    widget.focusNode.removeListener(_onChanged);
     super.dispose();
   }
 
-  void _onControllerChanged() {
-    // 상자에 그려진 값이 컨트롤러를 따라가야 한다.
+  void _onChanged() {
+    // 상자에 그려진 값·다음 자리 표시가 컨트롤러·포커스를 따라가야 한다.
     if (mounted) setState(() {});
   }
 
@@ -62,7 +68,9 @@ class _PairingCodeInputState extends State<PairingCodeInput> {
           children: <Widget>[
             for (int i = 0; i < PairingCodeInput.length; i++)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s4,
+                ),
                 child: _DigitBox(
                   key: ValueKey<String>('pairing-digit-$i'),
                   digit: i < value.length ? value[i] : '',
@@ -73,45 +81,25 @@ class _PairingCodeInputState extends State<PairingCodeInput> {
               ),
           ],
         ),
-        // 실제 입력. 투명하게 겹쳐 두고 탭을 받는다.
+        // 실제 입력. 값은 상자가 그리므로 입력창 자체는 그리지 않고(투명)
+        // 탭·키 입력만 받는다 — 보이면 가로로 긴 입력창이 상자들을 덮는다(#1636).
         Positioned.fill(
-          child: TextField(
-            key: const ValueKey<String>('client-connect-code'),
-            controller: widget.controller,
-            focusNode: widget.focusNode,
-            enabled: widget.enabled,
-            autocorrect: false,
-            enableSuggestions: false,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            maxLength: PairingCodeInput.length,
-            inputFormatters: <TextInputFormatter>[
-              FilteringTextInputFormatter.digitsOnly,
-            ],
-            // 값은 상자가 그린다 — 여기 글자가 보이면 두 벌로 겹친다.
-            style: const TextStyle(color: Colors.transparent),
-            cursorColor: Colors.transparent,
-            showCursor: false,
-            // 테마(`AppTheme.inputDecorationTheme`)가 모든 입력에 회색 채움과
-            // 둥근 테두리를 주므로 [InputDecoration.border] 하나만 지워서는
-            // 지워지지 않는다 — `enabledBorder`·`focusedBorder` 가 그대로
-            // 남아 상자들 위에 가로로 긴 입력창이 겹쳐 그려진다(#1636).
-            // 여기서 보여야 하는 것은 자리 상자뿐이므로 채움·테두리를 모두
-            // 끄고, 높이도 상자 줄에 맡긴다.
-            decoration: const InputDecoration(
-              counterText: '',
-              filled: false,
-              isCollapsed: true,
-              contentPadding: EdgeInsets.zero,
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              disabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              errorBorder: InputBorder.none,
-              focusedErrorBorder: InputBorder.none,
+          child: Opacity(
+            opacity: 0,
+            child: AppTextField(
+              key: const ValueKey<String>('client-connect-code'),
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              enabled: widget.enabled,
+              size: AppFieldSize.large,
+              keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
+              maxLength: PairingCodeInput.length,
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+              ],
+              onChanged: widget.onChanged,
             ),
-            onChanged: widget.onChanged,
-            onTap: () => setState(() {}),
           ),
         ),
       ],
@@ -128,27 +116,25 @@ class _DigitBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Container(
-      width: 42,
-      height: 54,
+      width: _digitBoxWidth,
+      height: _digitBoxHeight,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(12),
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
         border: Border.all(
-          color: active ? AppColors.primary : AppColors.border,
-          width: active ? 1.5 : 1,
+          color: active ? tokens.brand.primary : OnCareColors.lineStrong,
+          width: active ? OnCareSize.focusBorder : OnCareSize.hairline,
         ),
       ),
       child: Text(
         digit,
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
-          // 자리마다 폭이 달라 보이면 상자 안에서 숫자가 흔들린다.
-          fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-          color: AppColors.foreground,
-        ),
+        // 자리마다 폭이 달라 보이면 상자 안에서 숫자가 흔들린다.
+        style: tokens
+            .text(OnCareTypography.numeric(OnCareTypography.titleLarge))
+            .copyWith(color: OnCareColors.textPrimary),
       ),
     );
   }

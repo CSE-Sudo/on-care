@@ -3,10 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/breakpoints.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
-import 'package:oncare/design_system/tokens/nav_metrics.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -19,6 +15,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Persistent `Scaffold` hosting the bottom navigation bar. Icons and
 /// labels mirror the original React `BottomNav.tsx` (Home / 식단 /
@@ -138,26 +135,9 @@ class _MainShellState extends ConsumerState<MainShell>
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final double bottomInset = MediaQuery.of(context).padding.bottom;
-    const double maxNavBottomPadding = AppNavMetrics.maxBottomInset;
-    final double navBottomPadding = bottomInset > maxNavBottomPadding
-        ? maxNavBottomPadding
-        : bottomInset;
-    // 예전에는 라벨을 4dp 아래로 '그려서' 미는 바람에 바닥 여백이 0 인 웹에서
-    // 글자 아래가 잘렸고, 그만큼을 웹에서만 따로 확보하고 있었다. 이제
-    // 목적지 열이 바 높이 안에서 가운데 정렬되므로 그 보정은 필요 없다(#840).
-    //
-    // 안전영역 위에 얹는 고정 여백은 라벨이 화면 끝에 붙어 보이지 않게 한다 —
-    // 인셋을 다 따르는 기기에서도 빠듯했다.
-    final double effectiveBottomPadding =
-        navBottomPadding + AppNavMetrics.labelBottomPadding;
-    // 바 본체 높이와 `+` 버튼이 솟은 높이는 [AppNavMetrics] 가 들고 있다 —
-    // 바 위에 뜨는 토스트가 같은 값을 봐야 `+` 를 비킬 수 있다(#1259).
-    const double barHeight = AppNavMetrics.barHeight;
-    const double lift = AppNavMetrics.addButtonLift;
     return Scaffold(
-      // Let the page continue behind the transparent FAB headroom instead of
-      // showing a separate white strip above the navigation bar.
+      // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
+      // 스스로 둔다.
       extendBody: true,
       body: navigationShell,
       // AI 조언 진입점이 이 자리에 있을지가 아직 정해지지 않아 **노출만** 끈다
@@ -172,84 +152,48 @@ class _MainShellState extends ConsumerState<MainShell>
               onTap: () => showCoachingSheet(context, ref: ref),
             )
           : null,
-      bottomNavigationBar: SizedBox(
-        height: barHeight + lift + effectiveBottomPadding,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 672),
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: <Widget>[
-                // Nav bar pinned to the bottom. The middle slot is left empty
-                // so the floating + button has room between 식단 and 운동.
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    height: barHeight + effectiveBottomPadding,
-                    padding: EdgeInsets.only(bottom: effectiveBottomPadding),
-                    decoration: const BoxDecoration(
-                      color: AppColors.background,
-                      border: Border(top: BorderSide(color: AppColors.border)),
-                    ),
-                    child: Row(
-                      children: <Widget>[
-                        _Destination(
-                          icon: Icons.home_outlined,
-                          activeIcon: Icons.home,
-                          label: l.navDashboard,
-                          selected: navigationShell.currentIndex == 0,
-                          onTap: () => _onTap(0),
-                        ),
-                        _Destination(
-                          icon: Icons.restaurant_outlined,
-                          activeIcon: Icons.restaurant,
-                          label: l.navDiet,
-                          selected: navigationShell.currentIndex == 1,
-                          onTap: () => _onTap(1),
-                        ),
-                        const SizedBox(width: 64),
-                        _Destination(
-                          key: const ValueKey<String>('nav-exercise'),
-                          icon: Icons.fitness_center_outlined,
-                          activeIcon: Icons.fitness_center,
-                          label: l.navExercise,
-                          selected: navigationShell.currentIndex == 2,
-                          onTap: () => _onTap(2),
-                        ),
-                        _Destination(
-                          // 운동 칸과 같이 열쇠를 준다 — 사람 아이콘은 이제
-                          // 헬스장 카드의 트레이너 줄에도 있어서(#1185),
-                          // 아이콘만으로는 이 칸을 지목할 수 없다.
-                          key: const ValueKey<String>('nav-my'),
-                          icon: Icons.person_outline,
-                          activeIcon: Icons.person,
-                          label: l.navMyHealth,
-                          selected: navigationShell.currentIndex == 3,
-                          onTap: () => _onTap(3),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Floating + button straddling the bar's top edge.
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: _NavAddButton(
-                      onTap: () => _showRecordAddSheet(
-                        context,
-                        onSaved: _goToRecordBranch,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+      // 바 높이·라벨 아래 여백은 공용 하단 내비가 정한다. 안전영역이 0 인 웹에서도
+      // 라벨 아래 여백이 남는다(#1664, #840).
+      bottomNavigationBar: AppBottomNav(
+        selectedIndex: navigationShell.currentIndex,
+        onSelected: _onTap,
+        destinations: <AppNavDestination>[
+          AppNavDestination(
+            key: const ValueKey<String>('nav-dashboard'),
+            icon: Icons.home_rounded,
+            selectedIcon: Icons.home_rounded,
+            label: l.navDashboard,
           ),
+          AppNavDestination(
+            key: const ValueKey<String>('nav-diet'),
+            icon: Icons.restaurant_rounded,
+            selectedIcon: Icons.restaurant_rounded,
+            label: l.navDiet,
+          ),
+          AppNavDestination(
+            key: const ValueKey<String>('nav-exercise'),
+            icon: Icons.fitness_center_rounded,
+            selectedIcon: Icons.fitness_center_rounded,
+            label: l.navExercise,
+          ),
+          // 운동 칸과 같이 열쇠를 준다 — 사람 아이콘은 이제 헬스장 카드의
+          // 트레이너 줄에도 있어서(#1185), 아이콘만으로는 이 칸을 지목할 수 없다.
+          AppNavDestination(
+            key: const ValueKey<String>('nav-my'),
+            icon: Icons.person_rounded,
+            selectedIcon: Icons.person_rounded,
+            label: l.navMyHealth,
+          ),
+        ],
+        // 식단과 운동 사이의 `+` — "새 기록 추가" 시트를 연다.
+        centerAction: AppIconButton(
+          key: const Key('recordAddButton'),
+          icon: Icons.add_rounded,
+          // 아이콘 하나뿐이라 무엇을 여는 자리인지 툴팁이 말한다(#972).
+          tooltip: l.navAddRecordTitle,
+          variant: AppIconButtonVariant.filled,
+          onPressed: () =>
+              _showRecordAddSheet(context, onSaved: _goToRecordBranch),
         ),
       ),
     );
@@ -284,109 +228,21 @@ class _MainShellState extends ConsumerState<MainShell>
   }
 }
 
-class _Destination extends StatelessWidget {
-  const _Destination({
-    super.key,
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.mutedForeground;
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        // 아이콘+라벨을 바 높이 안에서 가운데 정렬한다. 예전에는 위쪽 여백
-        // 8dp 로 아래로 민 뒤 `Transform.translate` 로 4dp 더 밀었는데, 앞의
-        // 여백이 열이 쓸 높이를 줄여 배율을 조금만 올려도 넘쳤고(#840), 뒤의
-        // 밀기는 그리기 단계라 라벨 아래가 잘렸다.
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Icon(selected ? activeIcon : icon, size: 24, color: color),
-            const SizedBox(height: 4),
-            // 접근성 배율에서 라벨이 커져도 열이 넘치지 않게 줄여서 그린다 —
-            // 잘라내면 '대시보드' 가 '대시…' 로 읽힌다.
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    fontSize: 13.5,
-                    color: color,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// The circular "+" button docked in the centre of the bottom nav bar, between
-/// 식단 and 운동. Opens the "새 기록 추가" chooser. Mirrors the Figma bottom-nav FAB.
-class _NavAddButton extends StatelessWidget {
-  const _NavAddButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    // `GestureDetector` 는 버튼으로 인식되지 않고, 안에 있는 것은 `+` 아이콘
-    // 하나뿐이라 무엇을 여는 자리인지 말할 데가 없다(#972).
-    return Semantics(
-      button: true,
-      label: AppLocalizations.of(context).navAddRecordTitle,
-      child: GestureDetector(
-        key: const Key('recordAddButton'),
-        onTap: onTap,
-        behavior: HitTestBehavior.opaque,
-        child: Container(
-          width: AppNavMetrics.addButtonSize,
-          height: AppNavMetrics.addButtonSize,
-          decoration: const BoxDecoration(
-            color: FigmaColors.primary,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
-      ),
-    );
-  }
-}
-
 /// "새 기록 추가" chooser opened by the bottom-nav + button. Routes to the diet
 /// or exercise add flow. Mirrors the Figma add sheet.
 ///
 /// 저장에 성공하면 [onSaved] 를 그 기록의 탭 index 로 부른다 — 홈이나 MY 에서
 /// 적고 나면 방금 저장한 것을 보러 사용자가 탭을 다시 찾아가야 했다(#1434).
 /// 취소·권한 거부·분석 실패에서는 부르지 않는다.
+///
+/// 셸의 context 로 띄우므로 시트는 셸 바깥(루트) 내비게이터에 올라가, 하단 바와
+/// `+` 버튼이 시트 위로 올라오지 않는다(#791).
 Future<void> _showRecordAddSheet(
   BuildContext context, {
   required ValueChanged<int> onSaved,
 }) {
-  return showModalBottomSheet<void>(
+  return showAppSheet<void>(
     context: context,
-    // 하단 바·+ 버튼이 시트 위로 올라오지 않도록 루트에 올린다(#791).
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    barrierColor: FigmaColors.sheetScrim,
     builder: (BuildContext ctx) => _RecordAddSheet(
       onDiet: () async {
         Navigator.of(ctx).pop();
@@ -413,109 +269,37 @@ class _RecordAddSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return ConstrainedBox(
-      // Match the main content width so the sheet scales with the viewport
-      // like the tab pages. The theme lifts the modal route cap to this
-      // width too (see AppTheme._bottomSheetTheme); this centres the child.
-      constraints: const BoxConstraints(
-        maxWidth: AppBreakpoints.contentMaxWidth,
-      ),
-      child: Container(
-        key: const Key('recordAddSheet'),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDDE3EA),
-                  borderRadius: BorderRadius.circular(999),
-                ),
+    return AppSheet(
+      key: const Key('recordAddSheet'),
+      title: l.navAddRecordTitle,
+      subtitle: l.navAddRecordSubtitle,
+      // 시트는 화면 끝까지 내려오므로, 홈 인디케이터가 있는 기기에서는 그만큼을
+      // 더 띄워야 카드가 가리지 않는다(#1154). 인셋이 없으면 시트 안쪽 여백만 남는다.
+      child: SafeArea(
+        top: false,
+        child: Row(
+          key: const Key('recordOptions'),
+          children: <Widget>[
+            // 두 갈래 모두 브랜드 파랑이다 (#1154). 이 시트는 "무엇을 기록할까" 를
+            // 고르는 자리라 색이 영역을 가르는 뜻으로 읽히지 않는다.
+            Expanded(
+              child: _RecordOption(
+                icon: Icons.restaurant_rounded,
+                title: l.navDiet,
+                subtitle: l.navDietOptionSub,
+                onTap: onDiet,
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            l.navAddRecordTitle,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: FigmaColors.ink,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            l.navAddRecordSubtitle,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.mutedForeground,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    _SheetCloseButton(onTap: () => Navigator.of(context).pop()),
-                  ],
-                ),
+            ),
+            const SizedBox(width: OnCareSpacing.cardGap),
+            Expanded(
+              child: _RecordOption(
+                icon: Icons.fitness_center_rounded,
+                title: l.navExercise,
+                subtitle: l.navExerciseOptionSub,
+                onTap: onExercise,
               ),
-              Padding(
-                key: const Key('recordOptions'),
-                // 아래 여백이 0 이라 카드가 시트 끝에 붙어 잘려 보였다
-                // (#1154). 홈 인디케이터가 있는 기기에서는 `SafeArea` 가 그
-                // 위에 더 얹히지만, 없는 기기에서는 이 여백이 전부다.
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                child: Row(
-                  children: <Widget>[
-                    // 두 갈래 모두 브랜드 파랑이다 (#1154). 예전에는 식단을
-                    // 초록으로 두었는데(#1060), 이 시트는 "무엇을 기록할까" 를
-                    // 고르는 자리라 색이 영역을 가르는 뜻으로 읽히지 않았다 —
-                    // 초록 하나만 남아 그 카드가 다른 성격처럼 보였다.
-                    Expanded(
-                      child: _RecordOption(
-                        icon: Icons.restaurant,
-                        iconColor: FigmaColors.primary,
-                        iconBg: FigmaColors.softBlue,
-                        borderColor: FigmaColors.primary.withValues(
-                          alpha: 0.35,
-                        ),
-                        title: l.navDiet,
-                        subtitle: l.navDietOptionSub,
-                        onTap: onDiet,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _RecordOption(
-                        icon: Icons.fitness_center,
-                        iconColor: FigmaColors.primary,
-                        iconBg: FigmaColors.softBlue,
-                        borderColor: FigmaColors.primary.withValues(
-                          alpha: 0.35,
-                        ),
-                        title: l.navExercise,
-                        subtitle: l.navExerciseOptionSub,
-                        onTap: onExercise,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -525,96 +309,58 @@ class _RecordAddSheet extends StatelessWidget {
 class _RecordOption extends StatelessWidget {
   const _RecordOption({
     required this.icon,
-    required this.iconColor,
-    required this.iconBg,
-    required this.borderColor,
     required this.title,
     required this.subtitle,
     required this.onTap,
   });
 
   final IconData icon;
-  final Color iconColor;
-  final Color iconBg;
-  final Color borderColor;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(18),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 22),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: borderColor),
-          ),
-          child: Column(
-            children: <Widget>[
-              Container(
-                width: 56,
-                height: 56,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(icon, color: iconColor, size: 26),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: FigmaColors.ink,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-            ],
-          ),
-        ),
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(
+        horizontal: OnCareSpacing.s12,
+        vertical: OnCareSpacing.s20,
       ),
-    );
-  }
-}
-
-class _SheetCloseButton extends StatelessWidget {
-  const _SheetCloseButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFFF4F6F8),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        // 아이콘만 있는 버튼이라 무엇을 닫는지 말할 데가 없다(#972). 닫기는
-        // 플랫폼이 이미 제 언어로 부르는 이름이 있다.
-        child: Tooltip(
-          message: MaterialLocalizations.of(context).closeButtonTooltip,
-          child: const SizedBox(
-            width: 32,
-            height: 32,
-            child: Icon(Icons.close, size: 16, color: FigmaColors.textSub),
+      child: Column(
+        children: <Widget>[
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: tokens.brand.surface,
+              borderRadius: OnCareRadius.mdAll,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(OnCareSpacing.s12),
+              child: Icon(
+                icon,
+                size: OnCareSize.iconLarge,
+                color: tokens.brand.primary,
+              ),
+            ),
           ),
-        ),
+          const SizedBox(height: OnCareSpacing.s12),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: tokens
+                .text(OnCareTypography.titleSmall)
+                .copyWith(color: OnCareColors.textPrimary),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+        ],
       ),
     );
   }

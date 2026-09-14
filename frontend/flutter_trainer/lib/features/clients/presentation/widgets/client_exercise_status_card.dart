@@ -4,20 +4,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
+// 차트 그림(BurnDonut·BurnGoalRings·BurnBarChart·ActivityHeadlineLine)은 패키지에
+// 대응이 없어 앱 위젯을 그대로 쓴다. BurnBarChart 가 받는 선택 상태도 그 앱
+// 쪽 [PeriodChartSelection] 이라 이것만 가져온다.
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
-import 'package:oncare_trainer/shared/widgets/exercise_line.dart';
-import 'package:oncare_trainer/shared/widgets/period_scroll_chart.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_trainer/shared/widgets/period_scroll_chart.dart'
+    show PeriodChartSelection;
+import 'package:oncare_ui/oncare_ui.dart' hide PeriodChartSelection;
+
+/// 데이터를 받는 동안 비워 두는 높이 — 받은 뒤의 그래프 자리와 크게 어긋나지
+/// 않게 둔다.
+const double _loadingHeight = 170;
+
+/// `전체` 상세 영역의 최대 높이 (#1426).
+///
+/// 기록 수만큼 열이 길어지면 프로그램 탭의 좁은 칸이 통째로 목록이 되어,
+/// 프로그램 작성 화면과 나란히 볼 수 없다. 넘치는 만큼은 이 영역 **안에서**
+/// 스크롤한다. 기록이 적으면 그만큼만 차지한다 — 늘 이 높이를 차지하면 빈
+/// 칸이 남는다.
+const double _allMaxHeight = 260;
+
+/// `전체` 카드 머리줄의 기준 높이 — 유형별 내역 세 줄이 들어간다.
+const double _allHeaderHeight = 44;
+
+/// 막대 영역의 최소 높이. 좁은 칸에서도 막대가 사라지지 않게 한다.
+const double _minBarHeight = 40;
+
+/// 그래프 자리가 따라가는 글자 배율의 하한·상한.
+const double _minChartTextScale = 1;
+const double _maxChartTextScale = 1.6;
 
 /// 고객 운동 현황 — 회원 앱 운동 탭 `운동 현황` 과 **같은 그림**이다. (#943)
 ///
@@ -59,33 +79,39 @@ class ClientExerciseStatusCard extends ConsumerWidget {
       clientExercisePeriodProvider(key),
     );
     final String? name = clientName;
-    return _Card(
+    // 제목은 바깥 섹션 헤더가 그린다 — 카드는 흰 판만 맡는다.
+    return AppCard(
+      key: const ValueKey<String>('client-exercise-status-card'),
+      // 좌우를 세로보다 넉넉하게 둔다 — 도넛과 상세 묶음이 카드 양 끝에 붙지
+      // 않게 하는 회원 앱 운동 카드와 같은 비율이다. (회원 앱 #1151)
+      padding: const EdgeInsets.symmetric(
+        horizontal: OnCareSpacing.s24,
+        vertical: OnCareSpacing.s12,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           async.when(
             loading: () => const SizedBox(
-              height: 170,
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              height: _loadingHeight,
+              child: AppLoading(placement: AppStatePlacement.card),
             ),
-            error: (_, _) => EmptyHint(
-              message: l.clientTrendLoadFailed,
-              action: ActionButton(
-                key: const ValueKey<String>('weekly-exercise-retry'),
-                label: l.actionRetry,
-                onPressed: () =>
-                    ref.invalidate(clientExercisePeriodProvider(key)),
-              ),
+            error: (_, _) => AppErrorState(
+              key: const ValueKey<String>('weekly-exercise-retry'),
+              title: l.clientTrendLoadFailed,
+              retryLabel: l.actionRetry,
+              onRetry: () => ref.invalidate(clientExercisePeriodProvider(key)),
+              placement: AppStatePlacement.card,
             ),
             data: (ClientExercisePeriod data) => period == ClientPeriod.today
                 ? _Today(clientId: clientId, period: data)
                 : _Range(period: data),
           ),
           if (name != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.md),
-            const Divider(height: 1, thickness: 1, color: AppColors.border),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: OnCareSpacing.s12),
+            const AppDivider(),
+            const SizedBox(height: OnCareSpacing.s12),
             _WorkoutDetail(clientId: clientId, period: period),
           ],
         ],
@@ -126,14 +152,6 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
   /// `이번 주` 에서 펼쳤을 때 늘어놓는 최대 기록 수 — **한 주**다 (#1172).
   static const int _weekLimit = 7;
 
-  /// `전체` 상세 영역의 최대 높이 (#1426).
-  ///
-  /// 기록 수만큼 열이 길어지면 프로그램 탭의 좁은 칸이 통째로 목록이 되어,
-  /// 프로그램 작성 화면과 나란히 볼 수 없다. 넘치는 만큼은 이 영역 **안에서**
-  /// 스크롤한다. 기록이 적으면 그만큼만 차지한다 — 늘 이 높이를 차지하면 빈
-  /// 칸이 남는다.
-  static const double _allMaxHeight = 260;
-
   /// 펼쳤는가. 접힌 기본 상태는 가장 최근 기록 하나다.
   ///
   /// 예전에는 누를 때마다 일곱씩 늘어나는 수(`_shown`)였다. 그래서 한 번 펼친
@@ -170,6 +188,7 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final AsyncValue<List<RoutineHistoryEntry>> async = ref.watch(
       clientHistoryProvider(widget.clientId),
     );
@@ -183,24 +202,27 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
       children: <Widget>[
         Text(
           l.workoutRecords,
-          style: const TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.subtleForeground,
-          ),
+          style: tokens
+              .text(OnCareTypography.strong(OnCareTypography.caption))
+              .copyWith(color: OnCareColors.textTertiary),
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: OnCareSpacing.s8),
         async.when(
           loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
+            child: Center(child: AppLoading.inline()),
           ),
-          error: (_, _) => EmptyHint(message: l.workoutLoadFailed),
+          error: (_, _) => AppEmptyState(
+            title: l.workoutLoadFailed,
+            icon: Icons.cloud_off_rounded,
+            placement: AppStatePlacement.card,
+          ),
           data: (List<RoutineHistoryEntry> entries) {
             if (entries.isEmpty) {
-              return EmptyHint(
-                message: l.workoutEmpty,
-                icon: Icons.fitness_center_outlined,
+              return AppEmptyState(
+                title: l.workoutEmpty,
+                icon: Icons.fitness_center_rounded,
+                placement: AppStatePlacement.card,
               );
             }
             // 이력은 이미 최신순이다(`clientHistoryProvider`) — 접힌 상태의
@@ -213,14 +235,6 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
             final List<RoutineHistoryEntry> shown = entries
                 .take(limit)
                 .toList(growable: false);
-            final Widget list = Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                for (final RoutineHistoryEntry entry in shown)
-                  _DetailEntry(entry: entry),
-              ],
-            );
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
@@ -230,33 +244,50 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
                     constraints: const BoxConstraints(
                       maxHeight: _allMaxHeight,
                     ),
-                    child: Scrollbar(
-                      controller: _scroll,
-                      thumbVisibility: true,
-                      child: ListView(
-                        key: const ValueKey<String>(
-                          'client-exercise-detail-scroll',
-                        ),
-                        controller: _scroll,
-                        // 바깥 세로 스크롤이 이 목록을 자기 것으로 삼지 않게
-                        // 한다 — `primary` 로 두면 두 스크롤이 같은 손짓을
-                        // 두고 다툰다.
-                        primary: false,
-                        padding: EdgeInsets.zero,
-                        shrinkWrap: true,
-                        children: <Widget>[
-                          for (final RoutineHistoryEntry entry in shown)
-                            _DetailEntry(entry: entry),
-                        ],
+                    // 스크롤바는 테마 기본(스크롤할 때 나타남)을 따른다 — 늘
+                    // 보이게 강제하지 않는다.
+                    child: ListView(
+                      key: const ValueKey<String>(
+                        'client-exercise-detail-scroll',
                       ),
+                      controller: _scroll,
+                      // 바깥 세로 스크롤이 이 목록을 자기 것으로 삼지 않게
+                      // 한다 — `primary` 로 두면 두 스크롤이 같은 손짓을
+                      // 두고 다툰다.
+                      primary: false,
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      children: <Widget>[
+                        for (final RoutineHistoryEntry entry in shown)
+                          _DetailEntry(entry: entry),
+                      ],
                     ),
                   )
                 else
-                  list,
+                  for (final RoutineHistoryEntry entry in shown)
+                    _DetailEntry(entry: entry),
                 // 펼침 버튼은 늘 한 자리에 하나다 — 접혔으면 `더보기`,
-                // 펼쳤으면 `접기`(#1426).
+                // 펼쳤으면 `접기`(#1426). 화살표 방향이 곧 무엇을 하는
+                // 버튼인지라, 옆에 적힌 글자를 안 읽어도 안다.
                 if (entries.length > 1)
-                  _ExpandToggle(expanded: _expanded, onTap: _toggle),
+                  Center(
+                    child: AppButton(
+                      key: ValueKey<String>(
+                        _expanded
+                            ? 'client-exercise-detail-collapse'
+                            : 'client-exercise-detail-toggle',
+                      ),
+                      label: _expanded
+                          ? l.workoutRecordsShowLess
+                          : l.workoutRecordsShowMore,
+                      trailingIcon: _expanded
+                          ? Icons.expand_less_rounded
+                          : Icons.expand_more_rounded,
+                      variant: AppButtonVariant.text,
+                      size: OnCareButtonSize.small,
+                      onPressed: _toggle,
+                    ),
+                  ),
               ],
             );
           },
@@ -266,92 +297,10 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
   }
 }
 
-/// 상세 내역을 펼치고 접는 줄. (#1172, #1426)
-///
-/// 한 자리에 버튼 하나다 — 접혀 있으면 `더보기`, 펼쳐져 있으면 `접기`. 둘이
-/// 나란히 서던 때에는 무엇이 지금 상태인지 버튼만 봐서는 알 수 없었다.
-/// 화살표 방향이 곧 무엇을 하는 버튼인지라, 옆에 적힌 글자를 안 읽어도 안다.
-class _ExpandToggle extends StatelessWidget {
-  const _ExpandToggle({required this.expanded, required this.onTap});
-
-  /// 지금 펼쳐져 있는가.
-  final bool expanded;
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          _ToggleButton(
-            buttonKey: ValueKey<String>(
-              expanded
-                  ? 'client-exercise-detail-collapse'
-                  : 'client-exercise-detail-toggle',
-            ),
-            label: expanded
-                ? l.workoutRecordsShowLess
-                : l.workoutRecordsShowMore,
-            icon: expanded ? Icons.expand_less : Icons.expand_more,
-            onTap: onTap,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 펼치기·접기 버튼 하나.
-class _ToggleButton extends StatelessWidget {
-  const _ToggleButton({
-    required this.buttonKey,
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final Key buttonKey;
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    key: buttonKey,
-    onTap: onTap,
-    borderRadius: const BorderRadius.all(AppRadius.sm),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: 4,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
-          ),
-          Icon(icon, size: 16, color: AppColors.primary),
-        ],
-      ),
-    ),
-  );
-}
-
-/// 이력 한 건 — 날짜·종류, 몇 개 중 몇 개를 했는지, 그리고 `ExerciseLine`
-/// 으로 그리는 종목별 수행 여부. 고객 탭 `_HistoryCard` 와 같은 자료를 쓰되,
-/// 사이드바 폭에 맞춰 완료율 도넛·피드백·트레이너 메모는 뺀 압축판이다 —
-/// 그 편집 동작은 고객 탭에만 있고, 여긴 그래프 옆 참고 자료다.
+/// 이력 한 건 — 날짜·종류, 몇 개 중 몇 개를 했는지, 그리고 종목별 수행 여부.
+/// 고객 탭 `_HistoryCard` 와 같은 자료를 쓰되, 사이드바 폭에 맞춰 완료율
+/// 도넛·피드백·트레이너 메모는 뺀 압축판이다 — 그 편집 동작은 고객 탭에만
+/// 있고, 여긴 그래프 옆 참고 자료다.
 class _DetailEntry extends StatelessWidget {
   const _DetailEntry({required this.entry});
 
@@ -359,8 +308,9 @@ class _DetailEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -371,11 +321,9 @@ class _DetailEntry extends StatelessWidget {
                   '${entry.dateLabel} · ${entry.label}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.foreground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.caption))
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
               ),
               // 고객 탭 기록 카드와 같은 표기다(#1484) — 좁은 칸이라
@@ -388,49 +336,66 @@ class _DetailEntry extends StatelessWidget {
                     key: ValueKey<String>('program-done-count-${entry.id}'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.subtleForeground,
-                    ),
+                    style: tokens
+                        .text(
+                          OnCareTypography.numeric(OnCareTypography.caption),
+                        )
+                        .copyWith(color: OnCareColors.textTertiary),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 3),
-          for (final String line in entry.exercises)
-            ExerciseLine(line: line, fontSize: 11.5),
+          const SizedBox(height: OnCareSpacing.s4),
+          for (final String line in entry.exercises) _ExerciseLine(line: line),
         ],
       ),
     );
   }
 }
 
-/// 회원 앱 카드와 같은 흰 판 — `SectionCard` 는 제목 줄을 갖는데, 제목은 이제
-/// 바깥 섹션 헤더가 그린다.
-class _Card extends StatelessWidget {
-  const _Card({required this.child});
+/// 기록된 운동 한 줄 — 이름과 수행 여부.
+///
+/// 저장된 문자열은 끝에 '✓' / '✗' 로 결과를 표시한다. 그 글자는 **저장 규칙**
+/// 이지 화면에 찍을 것이 아니다: Flutter web 의 폰트 스택에 글리프가 없어
+/// 두부 상자로 그려진다. 표시를 읽어 아이콘과 취소선으로 바꿔 그린다 — 앱의
+/// 운동 기록 탭(`ExerciseLine`)과 같은 규칙이다.
+class _ExerciseLine extends StatelessWidget {
+  const _ExerciseLine({required this.line});
 
-  final Widget child;
+  /// 저장된 문자열. 끝의 '✓'/'✗' 가 수행 여부를 나타낸다.
+  final String line;
 
   @override
-  Widget build(BuildContext context) => Container(
-    key: const ValueKey<String>('client-exercise-status-card'),
-    width: double.infinity,
-    // 좌우를 세로보다 넉넉하게 둔다 — 회원 앱과 같은 여백이라 도넛과 상세
-    // 묶음이 카드 양 끝에 붙지 않는다. (#1151)
-    // 회원 앱 운동 카드와 **같은 값**이다(좌우 28 · 위아래 14) — 좌우를
-    // 세로보다 넉넉히 두어야 도넛과 상세 묶음이 카드 양 끝에 붙지 않는다.
-    // (회원 앱 #1151)
-    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-    decoration: BoxDecoration(
-      color: AppColors.card,
-      borderRadius: const BorderRadius.all(AppRadius.card),
-      boxShadow: kCardShadow,
-      border: Border.all(color: AppColors.border),
-    ),
-    child: child,
-  );
+  Widget build(BuildContext context) {
+    final bool skipped = line.contains('✗');
+    final String text = line.replaceAll(RegExp(r'\s*[✓✗]\s*'), ' ').trim();
+    final Color color = skipped
+        ? OnCareColors.textDisabled
+        : OnCareColors.textSecondary;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(
+          skipped ? Icons.close_rounded : Icons.check_rounded,
+          size: OnCareSize.iconSmall,
+          color: skipped ? OnCareColors.textDisabled : OnCareColors.success,
+        ),
+        const SizedBox(width: OnCareSpacing.s4),
+        Expanded(
+          child: Text(
+            text,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(
+                  color: color,
+                  decoration: skipped ? TextDecoration.lineThrough : null,
+                  decorationColor: color,
+                ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// 세 기간이 함께 쓰는 그래프 자리. 높이를 같게 두어야 토글을 눌러도 카드가
@@ -444,9 +409,7 @@ class _ChartSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height:
-        kActivityCardHeight *
-        MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6),
+    height: kActivityCardHeight * _chartTextScale(context),
     child: child,
   );
 }
@@ -487,11 +450,9 @@ class _Today extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     if (period.isEmpty) {
       return _ChartSlot(
-        child: Center(
-          child: EmptyHint(
-            message: l.clientTrendTodayEmpty,
-            icon: Icons.fitness_center_outlined,
-          ),
+        child: AppEmptyState(
+          title: l.clientTrendTodayEmpty,
+          icon: Icons.fitness_center_rounded,
         ),
       );
     }
@@ -540,6 +501,7 @@ class _RangeState extends State<_Range> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final String locale = Localizations.localeOf(context).toString();
     final ClientExercisePeriod period = widget.period;
     final List<ClientExerciseDay> days = period.days;
@@ -626,7 +588,7 @@ class _RangeState extends State<_Range> {
                     // 그래프 아래에 따로 두면 구분선까지 필요해져 카드가 셋으로
                     // 갈린다.
                     if (week != null) ...<Widget>[
-                      const SizedBox(width: AppSpacing.sm),
+                      const SizedBox(width: OnCareSpacing.s8),
                       Expanded(
                         flex: 5,
                         // `기타` 까지 네 줄이 되는 주도 있다 — 그때는 목록
@@ -663,7 +625,7 @@ class _RangeState extends State<_Range> {
                         ),
                       ),
                     ] else if (visible.isNotEmpty) ...<Widget>[
-                      const SizedBox(width: AppSpacing.sm),
+                      const SizedBox(width: OnCareSpacing.s8),
                       // 평균이 어느 구간의 것인지 숫자만으로는 알 수 없다 — 밀
                       // 때마다 바뀌는 값이라 기간을 옆에 붙여 둔다.
                       Expanded(
@@ -676,11 +638,13 @@ class _RangeState extends State<_Range> {
                             ' ~ '
                             '${DateFormat.Md(locale).format(_sundayOf(visible.last.monday))}',
                             maxLines: 1,
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.mutedForeground,
-                            ),
+                            style: tokens
+                                .text(
+                                  OnCareTypography.strong(
+                                    OnCareTypography.caption,
+                                  ),
+                                )
+                                .copyWith(color: OnCareColors.textSecondary),
                           ),
                         ),
                       ),
@@ -690,7 +654,7 @@ class _RangeState extends State<_Range> {
               );
             },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: OnCareSpacing.s8),
           Expanded(
             child: LayoutBuilder(
               builder: (BuildContext context, BoxConstraints c) => BurnBarChart(
@@ -699,7 +663,10 @@ class _RangeState extends State<_Range> {
                 goalKcal: kWeeklyBurnKcal,
                 // 막대 영역만의 높이다 — 아래 날짜 라벨 줄은 따로 자리를
                 // 차지한다.
-                height: math.max(c.maxHeight - kBurnBarChartExtraHeight, 40),
+                height: math.max(
+                  c.maxHeight - kBurnBarChartExtraHeight,
+                  _minBarHeight,
+                ),
                 calories: <int>[for (final _WeekBucket w in weeks) w.calories],
                 splits: <ActivitySplit>[
                   for (final _WeekBucket w in weeks) w.split,
@@ -742,19 +709,17 @@ class _DetailLine extends StatelessWidget {
         children: <InlineSpan>[
           TextSpan(
             text: label,
-            style: TextStyle(color: color ?? AppColors.mutedForeground),
+            style: TextStyle(color: color ?? OnCareColors.textSecondary),
           ),
           TextSpan(
             text: ' $value',
-            style: const TextStyle(color: AppColors.foreground),
+            style: const TextStyle(color: OnCareColors.textPrimary),
           ),
         ],
       ),
       maxLines: 1,
-      style: const TextStyle(
-        fontSize: 11.5,
-        fontWeight: FontWeight.w700,
-        height: 1.25,
+      style: context.oncare.text(
+        OnCareTypography.strong(OnCareTypography.caption),
       ),
     ),
   );
@@ -766,7 +731,13 @@ class _DetailLine extends StatelessWidget {
 /// 두어, 막대를 골라도 그래프가 줄지 않는다 (회원 앱 #1194). 글자 배율을 따라
 /// 커지되 카드와 같은 선(1.6)에서 멈춘다.
 double _allPeriodHeaderHeight(BuildContext context) =>
-    44 * MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.6);
+    _allHeaderHeight * _chartTextScale(context);
+
+/// 그래프 자리가 따라가는 글자 배율 — 1 아래로는 줄지 않고 [_maxChartTextScale]
+/// 에서 멈춘다. 배율만 커지면 고정 높이 안에서 내용이 넘친다.
+double _chartTextScale(BuildContext context) => MediaQuery.textScalerOf(
+  context,
+).scale(1).clamp(_minChartTextScale, _maxChartTextScale);
 
 /// 그 달의 몇 번째 주인지 — `8월 1주차` 의 1.
 int _weekOfMonth(DateTime monday) => ((monday.day - 1) ~/ 7) + 1;

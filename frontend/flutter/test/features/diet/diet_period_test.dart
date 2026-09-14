@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -9,7 +10,9 @@ import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
 
@@ -68,6 +71,7 @@ Widget _app({
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
+      theme: AppTheme.light(),
       locale: Locale(locale),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -172,7 +176,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
       return AppLocalizations.of(tester.element(find.byType(DietRecordPage)));
     }
@@ -265,10 +269,9 @@ void main() {
       final DateTime other = today.subtract(const Duration(days: 2));
       await _showWeekOf(tester, other);
       await tester.tap(
-        find.byKey(
-          ValueKey<String>(
-            'diet-day-${other.year}-${other.month}-${other.day}',
-          ),
+        find.descendant(
+          of: find.byType(AppWeekStrip),
+          matching: find.text('${other.day}'),
         ),
       );
       await tester.pumpAndSettle();
@@ -379,7 +382,7 @@ void main() {
       expect(find.text(l.dietNutritionSummary), findsOneWidget);
       expect(l.dietNutritionSummary.contains('오늘'), isFalse);
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
 
       // 요약 자리만 그래프로 바뀐다.
@@ -389,13 +392,13 @@ void main() {
       expect(find.text(l.dietMealLog), findsOneWidget);
       expect(find.text(l.dietAddMeal), findsOneWidget);
       // 토글도 제목 줄에 그대로 있다.
-      expect(find.byKey(const Key('diet-period-tab-month')), findsOneWidget);
+      expect(dietPeriodTab(DietPeriodTab.month), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.month));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('diet-period-card')), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-day')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.day));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('nutrition-summary-card')), findsOneWidget);
       expect(find.byKey(const Key('diet-period-card')), findsNothing);
@@ -441,7 +444,6 @@ void main() {
         expect(dates.last, today, reason: '$today');
       }
     });
-
   });
 
   test('음식 배열이 비어 있으면 서버가 준 하루 합계로 떨어진다', () async {
@@ -489,7 +491,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('diet-period-card')), findsOneWidget);
 
@@ -539,7 +541,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
 
       await _tapPastDay(tester, 1);
@@ -569,7 +571,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.month));
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('diet-period-bar-0')), findsOneWidget);
@@ -592,7 +594,7 @@ void main() {
         tester.element(find.byType(DietRecordPage)),
       );
       // 대역은 오늘·어제·그저께에만 기록을 둔다.
-      final Tooltip todayTip = tester.widget<Tooltip>(
+      final Finder todayTip = _tipFinder(
         // 전체는 오늘로 끝나는 구간이라 오늘은 **마지막 칸**이다 (#1018).
         find.byKey(
           Key(
@@ -601,7 +603,7 @@ void main() {
           ),
         ),
       );
-      final String text = todayTip.richMessage!.toPlainText();
+      final String text = _tipText(tester, todayTip);
       // 지표 이름과 단위가 카드 머리 숫자와 같은 말로 적혀야 한다.
       expect(text, contains(l.dietCalories));
       expect(text, contains(l.unitKcal));
@@ -626,7 +628,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+      await tester.tap(dietPeriodTab(DietPeriodTab.month));
       await tester.pumpAndSettle();
 
       final AppLocalizations l = AppLocalizations.of(
@@ -637,13 +639,11 @@ void main() {
       final List<DateTime> dates = dietRangeDates(
         dietRangeForTab(DietPeriodTab.month, nowKst()),
       );
-      final int emptyIndex = dates.indexWhere(
-        (DateTime d) => d.day.isOdd,
-      );
-      final Tooltip empty = tester.widget<Tooltip>(
+      final int emptyIndex = dates.indexWhere((DateTime d) => d.day.isOdd);
+      final Finder empty = _tipFinder(
         find.byKey(Key('diet-period-bar-tip-$emptyIndex')),
       );
-      expect(empty.richMessage!.toPlainText(), contains(l.dietPeriodNoRecord));
+      expect(_tipText(tester, empty), contains(l.dietPeriodNoRecord));
     });
   });
 }
@@ -711,3 +711,16 @@ class _FailPastRepository extends FakeDietRepository {
     return super.fetchByDate(date);
   }
 }
+
+/// 막대 툴팁의 글자 — 툴팁은 패키지 차트 툴팁 위젯을 담으므로(#1700) 같은 내용을
+/// 한 줄로 적은 막대의 시맨틱 라벨을 읽는다.
+String _tipText(WidgetTester tester, Finder tip) =>
+    tester
+        .widget<Semantics>(
+          find.ancestor(of: tip, matching: find.byType(Semantics)).first,
+        )
+        .properties
+        .label ??
+    '';
+
+Finder _tipFinder(Finder tip) => tip;

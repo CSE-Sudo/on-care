@@ -5,24 +5,18 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
-import 'package:oncare_trainer/design_system/tokens/toast.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 승인이 만드는 세션의 소요 시간(분). 백엔드 기본값과 같다.
 const int _defaultConsultationDurationMinutes = 30;
+
+/// 카드 필드 라벨 열 폭 — `운동 목표`·`희망 일시` 가 한 줄에 들어가는 폭.
+const double _fieldLabelWidth = 84;
 
 /// `HH:mm` 에 [minutes] 를 더한다. 자정을 넘기면 다음 날로 넘어가지 않고
 /// 24시간 안에서만 돈다 — 희망 시각 표시용이라 날짜가 바뀌는 값까지 다룰
@@ -66,7 +60,69 @@ class ConsultationsPage extends ConsumerWidget {
   final String? returnTo;
 
   /// Whether the inbox is being shown over its entry surface.
+  ///
+  /// 모달이면 페이지 틀 없이 [AppDialog] 안에 **목록만** 넣는다 — 창의
+  /// 제목·닫기 X 가 페이지 헤더를 대신한다.
   final bool modal;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+
+    if (modal) {
+      return KeyedSubtree(
+        key: const ValueKey<String>('consultations-dialog'),
+        child: AppDialog(
+          title: l.consultTitle,
+          size: AppDialogSize.large,
+          child: const _Inbox(),
+        ),
+      );
+    }
+
+    final fromDashboard = returnTo == 'dashboard';
+    return AppWebPage(
+      title: l.consultTitle,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: AppButton(
+                key: const ValueKey<String>('consultations-back-to-schedule'),
+                label: fromDashboard
+                    ? l.consultBackToDashboard
+                    : l.consultBackToSchedule,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+                leadingIcon: Icons.chevron_left_rounded,
+                onPressed: () => context.go(
+                  fromDashboard ? AppRoutes.dashboard : AppRoutes.schedule,
+                ),
+              ),
+            ),
+            const SizedBox(height: OnCareSpacing.s16),
+            const _Inbox(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Opens the shared consultation inbox without leaving the current workspace.
+Future<void> showConsultationsDialog(BuildContext context) =>
+    showAppDialog<void>(
+      context: context,
+      builder: (_) => const ConsultationsPage(modal: true),
+    );
+
+/// 필터 칩 + 요청 목록. 페이지와 모달이 같은 것을 쓴다.
+///
+/// 스크롤은 감싸는 쪽(페이지의 스크롤 뷰, 창의 본문)이 맡는다.
+class _Inbox extends ConsumerWidget {
+  const _Inbox();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -74,169 +130,87 @@ class ConsultationsPage extends ConsumerWidget {
     final filter = ref.watch(consultationFilterProvider);
     final inbox = ref.watch(consultationsProvider);
     final pending = ref.watch(consultationPendingCountProvider).valueOrNull;
-    final fromDashboard = returnTo == 'dashboard';
 
-    final page = PageScaffold(
-      title: l.consultTitle,
-      // 메시지 탭 고객 리스트 상단의 `전체 / 읽지 않음 N` 칩과 같은 언어다 —
-      // 글자 토글(`전체 보기`/`대기 중만`) 대신 두 상태를 한눈에 본다. 부제
-      // 자리에 그대로 얹는다: 본문 쪽에 별도 줄로 끼워 넣으면 헤더가 이미
-      // 부제 한 줄만큼 예약해 둔 높이(`AppLayout.pageHeaderHeight`)가 빈
-      // 채로 남아 그 아래에 또 여백을 넣는 꼴이 된다.
-      subtitleWidget: Padding(
-        // 제목과 칩 사이를 살짝 띄운다 — 헤더 전체는 고정 높이 안에서
-        // 세로 가운데 정렬되므로, 둘이 붙어 있으면 그 블록이 위로
-        // 치우쳐 보이고 우측 닫기 버튼과도 중심이 안 맞아 보였다.
-        padding: const EdgeInsets.only(top: AppSpacing.sm),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        // 메시지 탭 고객 리스트 상단의 `전체 / 읽지 않음 N` 칩과 같은 언어다 —
+        // 글자 토글(`전체 보기`/`대기 중만`) 대신 두 상태를 한눈에 본다.
+        Row(
           children: <Widget>[
-            _ConsultFilterChip(
+            AppChoiceChip(
               key: const ValueKey<String>('consultation-filter-all'),
               label: l.consultFilterAll,
               selected: filter == 'all',
-              onTap: () =>
+              onSelected: (_) =>
                   ref.read(consultationFilterProvider.notifier).state = 'all',
             ),
-            const SizedBox(width: AppSpacing.xs),
-            _ConsultFilterChip(
+            const SizedBox(width: OnCareSpacing.s8),
+            AppChoiceChip(
               key: const ValueKey<String>('consultation-filter-pending'),
               label: l.consultFilterPendingCount(pending ?? 0),
               selected: filter == 'pending',
-              onTap: () => ref.read(consultationFilterProvider.notifier).state =
-                  'pending',
+              onSelected: (_) =>
+                  ref.read(consultationFilterProvider.notifier).state =
+                      'pending',
             ),
           ],
         ),
-      ),
-      actions: <Widget>[
-        if (modal)
-          IconButton(
-            key: const ValueKey<String>('consultations-close'),
-            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close),
+        const SizedBox(height: OnCareSpacing.s16),
+        inbox.requests.when(
+          loading: () => const AppLoading(placement: AppStatePlacement.card),
+          error: (error, _) => AppErrorState(
+            placement: AppStatePlacement.card,
+            title: l.consultLoadFailed,
+            message: serverDetailOr(
+              l,
+              error is AppError ? error.message : null,
+              l.consultRetryLater,
+            ),
+            retryLabel: l.actionRetry,
+            onRetry: () => ref.invalidate(consultationsProvider),
           ),
-      ],
-      // 위쪽만 줄인다 — 기본값(`AppLayout.pagePadding`)은 헤더가 부제
-      // 없이 끝날 때를 기준으로 맞춘 여백이라, 칩이 그 부제 자리를 채운
-      // 지금은 칩과 본문 사이가 필요 이상으로 벌어져 보였다.
-      contentPadding: const EdgeInsets.fromLTRB(
-        AppLayout.pagePadding,
-        AppSpacing.sm,
-        AppLayout.pagePadding,
-        AppLayout.pagePadding,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          if (!modal) ...<Widget>[
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: ActionButton(
-                key: const ValueKey<String>('consultations-back-to-schedule'),
-                label: fromDashboard
-                    ? l.consultBackToDashboard
-                    : l.consultBackToSchedule,
-                icon: Icons.arrow_back,
-                onPressed: () => context.go(
-                  fromDashboard ? AppRoutes.dashboard : AppRoutes.schedule,
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          inbox.requests.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.only(top: AppSpacing.lg),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (error, _) => _InboxMessage(
-              icon: Icons.error_outline,
-              title: l.consultLoadFailed,
-              detail: serverDetailOr(
-                l,
-                error is AppError ? error.message : null,
-                l.consultRetryLater,
-              ),
-              action: ActionButton(
-                label: l.actionRetry,
-                onPressed: () => ref.invalidate(consultationsProvider),
-              ),
-            ),
-            data: (list) => list.isEmpty
-                ? _InboxMessage(
-                    icon: Icons.inbox_outlined,
-                    title: filter == 'pending'
-                        ? l.consultEmptyPending
-                        : l.consultEmptyHistory,
-                    detail: l.consultEmptyHint,
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      for (final request in list) ...<Widget>[
-                        _RequestCard(
-                          key: ValueKey<String>('consultation-${request.id}'),
-                          request: request,
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                      ],
-                      // 서버는 한 쪽만 준다(#980). 상한에 닿았을 때만 버튼을 띄운다 —
-                      // 늘 보이면 더 없는데도 누를 것이 있는 것처럼 읽힌다.
-                      if (inbox.hasMore)
-                        Align(
-                          child: ActionButton(
-                            key: const ValueKey<String>(
-                              'consultation-load-more',
-                            ),
-                            label: l.consultLoadMore,
-                            icon: Icons.history,
-                            onPressed: inbox.loadingMore
-                                ? null
-                                : () => ref
-                                      .read(consultationsProvider.notifier)
-                                      .loadMore(),
-                          ),
-                        ),
+          data: (list) => list.isEmpty
+              ? AppEmptyState(
+                  placement: AppStatePlacement.card,
+                  title: filter == 'pending'
+                      ? l.consultEmptyPending
+                      : l.consultEmptyHistory,
+                  message: l.consultEmptyHint,
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    for (final request in list) ...<Widget>[
+                      _RequestCard(
+                        key: ValueKey<String>('consultation-${request.id}'),
+                        request: request,
+                      ),
+                      const SizedBox(height: OnCareSpacing.cardGap),
                     ],
-                  ),
-          ),
-        ],
-      ),
-    );
-
-    if (!modal) return page;
-    return Dialog(
-      key: const ValueKey<String>('consultations-dialog'),
-      backgroundColor: AppColors.background,
-      surfaceTintColor: Colors.transparent,
-      // 위쪽만 [AppToastStyle.dialogTopClearance] — 상단 토스트가 이
-      // 대화상자 위로 겹쳐 뜰 수 있다.
-      insetPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        AppToastStyle.dialogTopClearance,
-        AppSpacing.xl,
-        AppSpacing.xl,
-      ),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(AppRadius.card),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: SizedBox(
-        width: 960,
-        height: MediaQuery.sizeOf(context).height * .82,
-        child: page,
-      ),
+                    // 서버는 한 쪽만 준다(#980). 상한에 닿았을 때만 버튼을 띄운다 —
+                    // 늘 보이면 더 없는데도 누를 것이 있는 것처럼 읽힌다.
+                    if (inbox.hasMore)
+                      Align(
+                        child: AppButton(
+                          key: const ValueKey<String>('consultation-load-more'),
+                          label: l.consultLoadMore,
+                          variant: AppButtonVariant.secondary,
+                          leadingIcon: Icons.history_rounded,
+                          onPressed: inbox.loadingMore
+                              ? null
+                              : () => ref
+                                    .read(consultationsProvider.notifier)
+                                    .loadMore(),
+                        ),
+                      ),
+                  ],
+                ),
+        ),
+      ],
     );
   }
 }
-
-/// Opens the shared consultation inbox without leaving the current workspace.
-Future<void> showConsultationsDialog(BuildContext context) => showDialog<void>(
-  context: context,
-  builder: (_) => const ConsultationsPage(modal: true),
-);
 
 /// One request. Pending cards carry the 승인 / 거절 actions; decided ones
 /// keep their place under the 전체 filter as a read-only record.
@@ -254,9 +228,9 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   /// would otherwise race and the second call would 409.
   bool _busy = false;
 
-  /// 승인하려던 시간이 겹쳐 막혔을 때의 안내 — 스낵바 대신 승인 버튼 왼쪽
+  /// 승인하려던 시간이 겹쳐 막혔을 때의 안내 — 토스트 대신 승인 버튼 왼쪽
   /// 여백에 인라인으로 보인다. 다른 409(이미 처리됨 등)는 여기 담기지
-  /// 않고 예전처럼 스낵바로 뜬다.
+  /// 않고 예전처럼 토스트로 뜬다.
   String? _conflict;
 
   Future<void> _run(Future<void> Function() action, String success) async {
@@ -269,7 +243,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     try {
       await action();
       if (!mounted) return;
-      showAppToast(context, success, kind: AppToastKind.success);
+      showAppToast(context, success, type: AppToastType.success);
     } on AppError catch (e) {
       // A failed decision usually means the request moved on without us —
       // another trainer at the same gym accepted it first. Refresh before
@@ -283,7 +257,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       showAppToast(
         context,
         serverDetailOr(l, e.message, failureText),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -299,7 +273,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   /// 비워 둔다.
   ///
   /// 겹치면 서버가 아무것도 만들지 않고 [ConsultationScheduleConflictError]
-  /// 로 막는데, 그건 스낵바가 아니라 버튼 옆 인라인 문구로 보여준다.
+  /// 로 막는데, 그건 토스트가 아니라 버튼 옆 인라인 문구로 보여준다.
   Future<void> _accept() async {
     setState(() {
       _busy = true;
@@ -327,7 +301,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
         result.scheduleCreated
             ? l.consultScheduleCreated(request.memberName)
             : l.consultApproved(request.memberName),
-        kind: AppToastKind.success,
+        type: AppToastType.success,
       );
     } on ConsultationScheduleConflictError catch (e) {
       if (mounted) {
@@ -342,7 +316,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
       showAppToast(
         context,
         serverDetailOr(l, e.message, l.consultActionFailed),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -351,7 +325,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
 
   Future<void> _reject() async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final note = await showDialog<String?>(
+    final note = await showAppDialog<String?>(
       context: context,
       builder: (_) => const _RejectDialog(),
     );
@@ -365,51 +339,45 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final tokens = context.oncare;
     final request = widget.request;
     // 이름이 비어 오는 경우의 대체 문구는 화면이 붙인다 — DTO 는
     // 로케일을 모른다. (#501)
     final String name = request.memberName.isEmpty
         ? l.unknownMember
         : request.memberName;
-    return SectionCard(
-      title: name,
-      // 아바타를 이름 옆(제목 자리)에 둔다 — 예전에는 아바타가 운동
-      // 목표·희망 일시 줄과 한 Row에 있어 이름은 카드 제목으로, 아바타는
-      // 그 아래 필드 줄 옆으로 떨어져 보였다(#1395).
-      titleWidget: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ClientAvatar(
-            label: request.memberName.isEmpty
-                ? '?'
-                : request.memberName.characters.first,
-            size: 28,
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(
-                name,
-                maxLines: 1,
-                style: const TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.foreground,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      // 승인·거절 결과를 카드 우측 상단 배지로 바로 보여준다. 대기 중은
-      // 배지를 달지 않는다 — 위 `대기 N` 필터가 이미 그 상태를 말하고
-      // 있어, 카드마다 또 붙이면 같은 말을 반복하는 셈이다.
-      trailing: request.isPending ? null : _StatusBadge(status: request.status),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          // 아바타를 이름 옆(제목 자리)에 둔다 — 예전에는 아바타가 운동
+          // 목표·희망 일시 줄과 한 Row에 있어 이름은 카드 제목으로, 아바타는
+          // 그 아래 필드 줄 옆으로 떨어져 보였다(#1395).
+          Row(
+            children: <Widget>[
+              AppAvatar(
+                name: request.memberName.isEmpty
+                    ? '?'
+                    : request.memberName.characters.first,
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
+                ),
+              ),
+              // 승인·거절 결과를 카드 우측 상단 태그로 바로 보여준다. 대기 중은
+              // 태그를 달지 않는다 — 위 `대기 N` 필터가 이미 그 상태를 말하고
+              // 있어, 카드마다 또 붙이면 같은 말을 반복하는 셈이다.
+              if (!request.isPending) _StatusTag(status: request.status),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
           // 건강관리 목적은 회원이 따로 고르지 않는다 — 운동 목표 하나에서
           // 서버 호환용으로 파생된 값이라, 여기서 또 보여주면 같은 정보를
           // 두 번 말하는 셈이다. `기타` 목표에서는 그 상세가 문의 내용과
@@ -434,42 +402,46 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
               value: request.message!,
               bold: false,
             ),
-          // 상태는 이제 위 배지가 말한다 — 거절 사유만 있으면 별도로
+          // 상태는 이제 위 태그가 말한다 — 거절 사유만 있으면 별도로
           // 덧붙인다(회원에게 보낸 알림 본문과 같은 문구).
           if (request.status == 'rejected' &&
               (request.decisionNote?.isNotEmpty ?? false)) ...<Widget>[
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: OnCareSpacing.s12),
             _Field(label: l.consultDecisionNote, value: request.decisionNote!),
           ],
           if (request.isPending) ...<Widget>[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: OnCareSpacing.s16),
             Row(
               children: <Widget>[
-                // 겹침 안내는 버튼 왼쪽 여백을 그대로 쓴다 — 스낵바 대신
+                // 겹침 안내는 버튼 왼쪽 여백을 그대로 쓴다 — 토스트 대신
                 // 여기서 바로 무엇과 겹치는지 읽을 수 있다.
                 Expanded(
                   child: _conflict == null
                       ? const SizedBox.shrink()
                       : Text(
                           _conflict!,
-                          style: const TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.destructive,
-                          ),
+                          style: tokens
+                              .text(
+                                OnCareTypography.strong(
+                                  OnCareTypography.caption,
+                                ),
+                              )
+                              .copyWith(color: OnCareColors.danger),
                         ),
                 ),
-                ActionButton(
+                // 거절은 사유를 받는 확인창을 연다 — 화면 안 트리거라 빨간 글자다.
+                AppButton(
                   key: ValueKey<String>('consultation-reject-${request.id}'),
                   label: l.consultReject,
-                  tone: AppColors.destructive,
+                  variant: AppButtonVariant.destructiveText,
+                  size: OnCareButtonSize.small,
                   onPressed: _busy ? null : _reject,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                ActionButton(
+                const SizedBox(width: OnCareSpacing.buttonGap),
+                AppButton(
                   key: ValueKey<String>('consultation-accept-${request.id}'),
                   label: l.consultApprove,
-                  primary: true,
+                  size: OnCareButtonSize.small,
                   onPressed: _busy ? null : _accept,
                 ),
               ],
@@ -503,55 +475,60 @@ class _RejectDialogState extends State<_RejectDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AlertDialog(
-      backgroundColor: AppColors.card,
-      title: Text(l.consultRejectTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    // [AppButtonPair] 와 같은 반반 배치다. 버튼마다 테스트가 찾는 키가 있어
+    // 짝 위젯 대신 같은 규격의 [AppButton] 두 개로 조립한다.
+    return AppDialog(
+      title: l.consultRejectTitle,
+      size: AppDialogSize.medium,
+      footer: Row(
         children: <Widget>[
-          Text(
-            l.consultRejectNotice,
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.mutedForeground,
+          Expanded(
+            child: AppButton(
+              key: const ValueKey<String>('consultation-reject-cancel'),
+              label: l.actionCancel,
+              variant: AppButtonVariant.secondary,
+              fullWidth: true,
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          TextField(
-            key: const ValueKey<String>('consultation-reject-reason'),
-            controller: _controller,
-            maxLength: 500,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText: l.consultRejectHint,
-              filled: true,
-              fillColor: AppColors.inputBackground,
+          const SizedBox(width: OnCareSpacing.buttonGap),
+          Expanded(
+            child: AppButton(
+              key: const ValueKey<String>('consultation-reject-confirm'),
+              label: l.consultRejectAction,
+              variant: AppButtonVariant.destructive,
+              fullWidth: true,
+              // Returns '' rather than null when left blank: null is the
+              // cancel signal, and an empty note is a valid "no reason given".
+              onPressed: () =>
+                  Navigator.of(context).pop(_controller.text.trim()),
             ),
           ),
         ],
       ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l.actionCancel),
-        ),
-        TextButton(
-          key: const ValueKey<String>('consultation-reject-confirm'),
-          style: TextButton.styleFrom(foregroundColor: AppColors.destructive),
-          // Returns '' rather than null when left blank: null is the
-          // cancel signal, and an empty note is a valid "no reason given".
-          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
-          child: Text(l.consultRejectAction),
-        ),
-      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(l.consultRejectNotice),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            key: const ValueKey<String>('consultation-reject-reason'),
+            controller: _controller,
+            hint: l.consultRejectHint,
+            maxLength: 500,
+            minLines: 3,
+            maxLines: 3,
+          ),
+        ],
+      ),
     );
   }
 }
 
-/// 대기·승인·거절 — 카드 우측 상단에 색으로 구분해 붙인다.
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
+/// 승인·거절 — 카드 우측 상단에 톤으로 구분해 붙인다.
+class _StatusTag extends StatelessWidget {
+  const _StatusTag({required this.status});
 
   /// `pending` | `accepted` | `rejected`.
   final String status;
@@ -559,29 +536,12 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final (String label, Color color) = switch (status) {
-      'accepted' => (l.consultStatusAccepted, AppColors.success),
-      'rejected' => (l.consultStatusRejected, AppColors.destructive),
-      _ => (l.consultStatusPending, AppColors.statusCaution),
+    final (String label, AppTagTone tone) = switch (status) {
+      'accepted' => (l.consultStatusAccepted, AppTagTone.success),
+      'rejected' => (l.consultStatusRejected, AppTagTone.danger),
+      _ => (l.consultStatusPending, AppTagTone.caution),
     };
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w800,
-          color: color,
-        ),
-      ),
-    );
+    return AppTag(label: label, tone: tone);
   }
 }
 
@@ -597,125 +557,34 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.oncare;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           SizedBox(
-            width: 84,
+            width: _fieldLabelWidth,
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.subtleForeground,
-                fontWeight: FontWeight.w600,
-              ),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textTertiary),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.foreground,
-                fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
-              ),
+              style: tokens
+                  .text(
+                    bold
+                        ? OnCareTypography.strong(OnCareTypography.bodySmall)
+                        : OnCareTypography.bodySmall,
+                  )
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Shared empty / error presentation so both read as the same surface.
-class _InboxMessage extends StatelessWidget {
-  const _InboxMessage({
-    required this.icon,
-    required this.title,
-    required this.detail,
-    this.action,
-  });
-
-  final IconData icon;
-  final String title;
-  final String detail;
-  final Widget? action;
-
-  @override
-  Widget build(BuildContext context) {
-    // 필터 칩 바로 아래 오는 자리라 예전(부제+헤더 뒤)만큼 넓은 위쪽
-    // 여백은 필요 없다 — `AppSpacing.xxl` 은 그 자리를 기준으로 잡은
-    // 값이라 지금은 칩과 겹쳐 과하게 벌어져 보였다.
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.lg),
-      child: Column(
-        children: <Widget>[
-          Icon(icon, size: 40, color: AppColors.disabledForeground),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.foreground,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            detail,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 13.5,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-          if (action != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.lg),
-            action!,
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// 전체 / 대기 N — 메시지 탭 고객 리스트 상단의 `전체 / 읽지 않음 N` 필과
-/// 같은 언어다. 글자 토글(`전체 보기`/`대기 중만`) 대신 두 상태를 한눈에
-/// 본다.
-class _ConsultFilterChip extends StatelessWidget {
-  const _ConsultFilterChip({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.accentSurface : AppColors.inputBackground,
-      borderRadius: const BorderRadius.all(AppRadius.pill),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? AppColors.primary : AppColors.mutedForeground,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
       ),
     );
   }

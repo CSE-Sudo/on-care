@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_theme.dart';
+
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -42,11 +44,12 @@ class _LaunchRecorder {
 
 Future<void> _pumpSupport(WidgetTester tester) async {
   await tester.pumpWidget(
-    const MaterialApp(
-      locale: Locale('ko'),
+    MaterialApp(
+      theme: AppTheme.light(),
+      locale: const Locale('ko'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: SupportPage(),
+      home: const SupportPage(),
     ),
   );
   await tester.pumpAndSettle();
@@ -100,7 +103,7 @@ void main() {
     await _pumpSupport(tester);
 
     // 아이콘과 안내 문구 둘 다 — 누르기 전에 무엇이 일어나는지 보이게.
-    expect(find.byIcon(Icons.open_in_new), findsNWidgets(2));
+    expect(find.byIcon(Icons.open_in_new_rounded), findsNWidgets(2));
     expect(find.text('카카오톡 채널로 연결돼요'), findsNWidgets(2));
   });
 

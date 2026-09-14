@@ -186,6 +186,8 @@
   "dietPickPhotoSub": "Pick a food photo from your gallery",
   "dietTakePhoto": "Take a Photo",
   "dietTakePhotoSub": "Snap your food with the camera",
+  "dietAddPhoto": "Add a Photo",
+  "dietAddPhotoSub": "Choose a food photo from your library, camera, or files",
   "dietPhotoLoadError": "Couldn't load the photo. Please try again in a moment.",
   "dietCameraPermissionDenied": "Camera permission is needed to photograph your meal. Tap Take Photo to try again.",
   "dietCameraPermissionPermanentlyDenied": "Camera access is off. Turn it on in Settings to photograph your meal.",
@@ -921,6 +923,16 @@
   },
   "coachChatDemoRoutineReceived": "You received a personalized workout recommendation",
   "coachChatDemoNotified": "It was also delivered as a notification",
+  "coachChatDateDivider": "{date}",
+  "@coachChatDateDivider": {
+    "description": "Chat date divider with full date and weekday.",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMMMMEEEEd"
+      }
+    }
+  },
   "coachCtaChat": "Chat with AI",
   "navAddRecordTitle": "Add a record",
   "navAddRecordSubtitle": "Choose diet or exercise",
@@ -1465,6 +1477,14 @@
   "@coachRoutineCancelConfirm": {
     "placeholders": { "name": { "type": "String" } }
   },
+  "coachCardRoutineUndoTitle": "Undo completion?",
+  "@coachCardRoutineUndoTitle": {
+    "description": "Title of the dialog confirming undoing a completed recommended workout."
+  },
+  "coachCardRoutineCancelTitle": "Cancel this workout?",
+  "@coachCardRoutineCancelTitle": {
+    "description": "Title of the dialog confirming removal of a recommended workout."
+  },
   "coachRoutineCancelled": "Workout cancelled",
   "coachRoutineCancelFailed": "Couldn't cancel the workout",
   "@coachRoutineDone": {
@@ -1560,18 +1580,6 @@
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
   },
-  "alertSimulatedTitle": "Simulated notification",
-  "@alertSimulatedTitle": {
-    "description": "Title of the demo push the mock build can trigger."
-  },
-  "alertSimulatedBody": "A test push just arrived.",
-  "@alertSimulatedBody": {
-    "description": "Body of the demo push the mock build can trigger."
-  },
-  "alertJustNow": "Just now",
-  "@alertJustNow": {
-    "description": "Relative time for something that just happened."
-  },
   "exPtLogTitle": "Today's completed PT",
   "@exPtLogTitle": {
     "description": "Title of the completed PT session card."
@@ -1614,5 +1622,12 @@
   "a11yRemoveFood": "Remove food",
   "a11yOpenCalendar": "Open schedule calendar",
   "a11yPrevWeek": "Previous week",
-  "a11yNextWeek": "Next week"
+  "a11yNextWeek": "Next week",
+  "exConsultHistoryCancelTitle": "Cancel this consultation request?",
+  "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
+  "exDemoPtSessionCount": "Session 12 with Trainer Kim",
+  "exDemoPtTrainerName": "Trainer Kim",
+  "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
+  "exStepperDecrease": "Decrease",
+  "exStepperIncrease": "Increase"
 }

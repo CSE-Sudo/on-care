@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_weekly_report.dart';
@@ -15,7 +13,7 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_image_at
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 import 'package:printing/printing.dart';
 
 /// 루트 화면 위에 채팅 페이지를 열어 하단 내비게이션과 플로팅 버튼을 가린다.
@@ -69,7 +67,8 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
       // 스레드의 마지막 요소는 아래 여백을 달지 않는다 — 원래 목록의 끝이라서다.
       // 그 뒤에 안내를 붙이면 `개인 추천운동을 받았어요` 배너와 맞붙으므로,
       // 스레드가 비어 있지 않을 때만 한 칸 띄운다.
-      if (thread.isNotEmpty && reports.isNotEmpty) const SizedBox(height: 16),
+      if (thread.isNotEmpty && reports.isNotEmpty)
+        const SizedBox(height: OnCareSpacing.s16),
       for (final CoachMessage message in reports)
         _ReportNotice(
           key: ValueKey<String>('coach-message-bubble-${message.id}'),
@@ -106,19 +105,21 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
           out.add(
             _ReceivedBanner(key: ValueKey<String>('received-before-${m.id}')),
           );
-          out.add(const SizedBox(height: 16));
+          out.add(const SizedBox(height: OnCareSpacing.s8));
         }
-        out.add(_DateDivider(date: m.createdAt));
-        out.add(const SizedBox(height: 16));
+        out.add(_dateDivider(m.createdAt));
+        out.add(const SizedBox(height: OnCareSpacing.s8));
         if (seeded) {
           out.add(_AnalyzedBanner(trainerName: widget.trainerName));
-          out.add(const SizedBox(height: 16));
+          out.add(const SizedBox(height: OnCareSpacing.s16));
         }
       }
-      out.add(_Bubble(message: m));
+      out.add(_MessageRow(message: m, trainerName: widget.trainerName));
       if (i == lastSeeded) {
         out.add(const _ReceivedBanner());
-        if (i != messages.length - 1) out.add(const SizedBox(height: 16));
+        if (i != messages.length - 1) {
+          out.add(const SizedBox(height: OnCareSpacing.s16));
+        }
       }
     }
     return out;
@@ -130,12 +131,38 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
       final message = messages[i];
       if (i == 0 || !_sameDay(messages[i - 1].createdAt, message.createdAt)) {
         out
-          ..add(_DateDivider(date: message.createdAt))
-          ..add(const SizedBox(height: 16));
+          ..add(_dateDivider(message.createdAt))
+          ..add(const SizedBox(height: OnCareSpacing.s8));
       }
-      out.add(_Bubble(message: message));
+      out.add(_MessageRow(message: message, trainerName: widget.trainerName));
     }
     return out;
+  }
+
+  /// 날짜 구분선. 요일까지 로케일 형식(`yMMMMEEEEd`)으로 적는다.
+  ///
+  /// 규격 구분선은 날짜 글자를 줄이지 않는다. 영어 전체 날짜에 글자 배율 1.3 이면
+  /// 폰 폭보다 길어져 넘치므로, 그때만 줄 폭에 맞춰 통째로 줄인다 — 평소에는
+  /// 가용 폭 그대로다. (패키지 구분선이 긴 날짜를 감당하게 되면 걷어낸다.)
+  Widget _dateDivider(DateTime date) {
+    final DateTime localDate = date.toLocal();
+    final Widget divider = AppChatDateDivider(
+      AppLocalizations.of(context).coachChatDateDivider(localDate),
+      key: ValueKey<String>(
+        'coach-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
+      ),
+    );
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints box) => FittedBox(
+        fit: BoxFit.scaleDown,
+        child: IntrinsicWidth(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: box.maxWidth),
+            child: divider,
+          ),
+        ),
+      ),
+    );
   }
 
   static bool _sameDay(DateTime a, DateTime b) {
@@ -198,7 +225,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
       await ref.read(memberCoachRepositoryProvider).sendMessage(text);
     } catch (_) {
       if (!mounted) return;
-      toast.show(l.coachChatSendFailed, kind: AppToastKind.error);
+      toast.show(l.coachChatSendFailed, type: AppToastType.error);
       return;
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -211,112 +238,114 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final chat = ref.watch(coachChatProvider);
     final bool showDemoBanners = ref.watch(appConfigProvider).useMockApi;
     return Scaffold(
-      backgroundColor: FigmaColors.statBg,
+      backgroundColor: OnCareColors.surfacePage,
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(4, 8, 12, 12),
-              child: Row(
-                children: <Widget>[
-                  IconButton(
-                    tooltip: l.coachChatBack,
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(
-                      Icons.arrow_back_ios_new,
-                      size: 19,
-                      color: FigmaColors.ink,
-                    ),
-                  ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: FigmaColors.iconTint,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.person,
-                      color: FigmaColors.primary,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          widget.trainerName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: FigmaColors.ink,
+            ColoredBox(
+              color: OnCareColors.surfaceCard,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: OnCareSpacing.s4,
+                  vertical: OnCareSpacing.s8,
+                ),
+                // 서브 페이지 머리처럼 [뒤로][가운데 제목][같은 폭 빈 자리] —
+                // AI 코치 채팅 머리와 같은 배치다.
+                child: Row(
+                  children: <Widget>[
+                    AppBackButton(onPressed: () => Navigator.of(context).pop()),
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          AppAvatar(
+                            name: widget.trainerName,
+                            size: AppAvatarSize.large,
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          l.coachChatSubtitle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.mutedForeground,
+                          const SizedBox(width: OnCareSpacing.s8),
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Text(
+                                  widget.trainerName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: tokens
+                                      .text(OnCareTypography.titleSmall)
+                                      .copyWith(
+                                        color: OnCareColors.textPrimary,
+                                      ),
+                                ),
+                                Text(
+                                  l.coachChatSubtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: tokens
+                                      .text(OnCareTypography.caption)
+                                      .copyWith(
+                                        color: OnCareColors.textTertiary,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: FigmaColors.hairline),
-            Expanded(
-              child: ColoredBox(
-                color: FigmaColors.statBg,
-                child: chat.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (_, _) => Center(
-                    child: Text(
-                      l.coachChatLoadFailed,
-                      style: const TextStyle(color: AppColors.foreground),
-                    ),
-                  ),
-                  data: (messages) {
-                    // 길이가 바뀐 프레임에서만 — 매 빌드마다 부르면 사용자가
-                    // 위로 올려 읽는 중에도 아래로 끌어내린다.
-                    if (messages.length != _lastCount) {
-                      _lastCount = messages.length;
-                      _scrollToBottom();
-                      // Mark newly polled trainer messages read while this
-                      // full-screen route is visible, then refresh its badge.
-                      Future<void>.microtask(_markRead);
-                    }
-                    return ListView(
-                      controller: _scroll,
-                      padding: const EdgeInsets.fromLTRB(16, 18, 16, 12),
-                      children: _chatChildren(
-                        messages,
-                        showDemoBanners: showDemoBanners,
+                        ],
                       ),
-                    );
-                  },
+                    ),
+                    const SizedBox(width: OnCareSize.backCloseTouch),
+                  ],
                 ),
               ),
             ),
-            SafeArea(
-              top: false,
-              child: _InputBar(
+            const AppDivider(),
+            Expanded(
+              child: chat.when(
+                loading: () => const AppLoading(),
+                // 재시도 동작은 원래 없었다 — 문구만 규격 빈 화면 틀에 담는다.
+                error: (_, _) => AppEmptyState(
+                  title: l.coachChatLoadFailed,
+                  icon: Icons.error_outline_rounded,
+                ),
+                data: (messages) {
+                  // 길이가 바뀐 프레임에서만 — 매 빌드마다 부르면 사용자가
+                  // 위로 올려 읽는 중에도 아래로 끌어내린다.
+                  if (messages.length != _lastCount) {
+                    _lastCount = messages.length;
+                    _scrollToBottom();
+                    // Mark newly polled trainer messages read while this
+                    // full-screen route is visible, then refresh its badge.
+                    Future<void>.microtask(_markRead);
+                  }
+                  return ListView(
+                    controller: _scroll,
+                    padding: const EdgeInsets.fromLTRB(
+                      OnCareSpacing.s16,
+                      OnCareSpacing.s16,
+                      OnCareSpacing.s16,
+                      OnCareSpacing.s12,
+                    ),
+                    children: _chatChildren(
+                      messages,
+                      showDemoBanners: showDemoBanners,
+                    ),
+                  );
+                },
+              ),
+            ),
+            // 입력줄은 여러 줄 입력(줄바꿈)을 받으므로 보내기는 전송 버튼으로 한다.
+            KeyedSubtree(
+              key: const ValueKey<String>('member-chat-input'),
+              child: AppChatInputBar(
                 controller: _input,
-                sending: _sending,
+                hint: l.coachChatInputHint,
+                sendTooltip: l.a11ySendMessage,
+                enabled: !_sending,
                 onSend: _send,
               ),
             ),
@@ -343,13 +372,10 @@ class _AnalyzedBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _BannerFrame(
-      background: FigmaColors.iconTint,
-      border: FigmaColors.primary.withValues(alpha: 0.25),
-      icon: Icons.auto_awesome,
-      iconColor: FigmaColors.primary,
+    return AppBanner(
+      icon: Icons.auto_awesome_rounded,
       title: l.coachChatDemoAnalyzed,
-      subtitle: l.coachChatDemoReportSent(trainerName),
+      message: l.coachChatDemoReportSent(trainerName),
     );
   }
 }
@@ -360,213 +386,79 @@ class _ReceivedBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _BannerFrame(
-      // #1239 이후로는 "완료" 배너를 두 앱이 함께 쓰는 완료 초록으로
-      // 칠했는데, 이 배너는 상태 완료가 아니라 "개인 추천운동을 받았다"는
-      // 안내다 — 위 [_AnalyzedBanner]와 같은 흐름의 다음 단계라, 초록이
-      // 아니라 그 배너와 같은 하양+파랑으로 맞춘다(#1379).
-      background: FigmaColors.iconTint,
-      border: FigmaColors.primary.withValues(alpha: 0.25),
-      icon: Icons.check_circle_outline,
-      iconColor: FigmaColors.primary,
+    // #1239 이후로는 "완료" 배너를 두 앱이 함께 쓰는 완료 초록으로
+    // 칠했는데, 이 배너는 상태 완료가 아니라 "개인 추천운동을 받았다"는
+    // 안내다 — 위 [_AnalyzedBanner]와 같은 흐름의 다음 단계라, 초록이
+    // 아니라 그 배너와 같은 안내(info) 톤으로 맞춘다(#1379).
+    return AppBanner(
+      icon: Icons.check_circle_rounded,
       title: l.coachChatDemoRoutineReceived,
-      subtitle: l.coachChatDemoNotified,
+      message: l.coachChatDemoNotified,
     );
   }
 }
 
-class _BannerFrame extends StatelessWidget {
-  const _BannerFrame({
-    required this.background,
-    required this.border,
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final Color background;
-  final Color border;
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: border),
-        ),
-        child: Column(
-          children: <Widget>[
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(icon, size: 14, color: iconColor),
-                const SizedBox(width: 5),
-                Flexible(
-                  child: Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: iconColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
-                color: AppColors.mutedForeground,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DateDivider extends StatelessWidget {
-  const _DateDivider({required this.date});
-
-  final DateTime date;
-
-  static const List<String> _weekdays = <String>[
-    '월요일',
-    '화요일',
-    '수요일',
-    '목요일',
-    '금요일',
-    '토요일',
-    '일요일',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final localDate = date.toLocal();
-    return Center(
-      child: Text(
-        '${localDate.year}년 ${localDate.month}월 ${localDate.day}일 ${_weekdays[localDate.weekday - 1]}',
-        key: ValueKey<String>(
-          'coach-chat-date-${localDate.year}-${localDate.month}-${localDate.day}',
-        ),
-        style: const TextStyle(
-          color: AppColors.mutedForeground,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-class _Bubble extends ConsumerWidget {
-  const _Bubble({required this.message});
+/// 메시지 한 줄 — 받은 메시지는 트레이너 아바타, 말풍선, 시간 순서다.
+class _MessageRow extends ConsumerWidget {
+  const _MessageRow({required this.message, required this.trainerName});
 
   final CoachMessage message;
+  final String trainerName;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fromMe = message.fromMe;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        mainAxisAlignment: fromMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: <Widget>[
-          if (!fromMe) ...<Widget>[
-            Container(
-              key: ValueKey<String>('coach-message-avatar-${message.id}'),
-              width: 32,
-              height: 32,
-              decoration: const BoxDecoration(
-                color: FigmaColors.iconTint,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.person,
-                size: 17,
-                color: FigmaColors.primary,
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          if (fromMe) ...<Widget>[
-            _MessageTime(message: message),
-            const SizedBox(width: 5),
-          ],
-          Flexible(child: _bubble(context, ref)),
-          if (!fromMe) ...<Widget>[
-            const SizedBox(width: 5),
-            _MessageTime(message: message),
-          ],
-        ],
+    final bool fromMe = message.fromMe;
+    final Widget bubble = AppChatBubble(
+      mine: fromMe,
+      time: _clockOnly(message.timeLabel),
+      child: KeyedSubtree(
+        key: ValueKey<String>('coach-message-bubble-${message.id}'),
+        child: _body(context, ref),
       ),
+    );
+    return Padding(
+      key: ValueKey<String>('coach-message-${message.id}'),
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
+      child: fromMe
+          ? bubble
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                AppAvatar(
+                  key: ValueKey<String>('coach-message-avatar-${message.id}'),
+                  name: trainerName,
+                ),
+                const SizedBox(width: OnCareSpacing.s8),
+                Expanded(child: bubble),
+              ],
+            ),
     );
   }
 
-  /// 말풍선 하나. 리포트 등록 안내는 여기로 오지 않는다 — 그것은 말풍선이
+  /// 말풍선 내용. 리포트 등록 안내는 여기로 오지 않는다 — 그것은 말풍선이
   /// 아니라 대화 가운데 안내라, 스레드를 세울 때 갈라진다(#1600).
-  Widget _bubble(BuildContext context, WidgetRef ref) {
-    final bool fromMe = message.fromMe;
-    return Container(
-      key: ValueKey<String>('coach-message-bubble-${message.id}'),
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.sizeOf(context).width * 0.70,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-      decoration: BoxDecoration(
-        color: fromMe ? FigmaColors.primary : Colors.white,
-        border: fromMe ? null : Border.all(color: FigmaColors.hairline),
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(14),
-          topRight: const Radius.circular(14),
-          bottomLeft: Radius.circular(fromMe ? 14 : 4),
-          bottomRight: Radius.circular(fromMe ? 4 : 14),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            message.body,
-            style: TextStyle(
-              fontSize: 14,
-              height: 1.4,
-              fontWeight: FontWeight.w500,
-              color: fromMe ? Colors.white : FigmaColors.ink,
+  Widget _body(BuildContext context, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(message.body),
+        if (message.attachment case final attachment?) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s8),
+          // 사진은 대화 안에서 그리고, 리포트 PDF 는 내려받는
+          // 카드로 둔다. 사진을 카드로 두면 볼 때마다 파일을
+          // 열어야 한다. (#921)
+          if (attachment.isImage)
+            CoachImageAttachment(attachment: attachment)
+          else
+            AppChatFileCard(
+              key: ValueKey<String>('coach-pdf-${attachment.fileId}'),
+              name: attachment.fileName,
+              detail: _fileSize(attachment.fileSize),
+              onTap: () => _openPdf(context, ref, attachment),
             ),
-          ),
-          if (message.attachment case final attachment?) ...<Widget>[
-            const SizedBox(height: 8),
-            // 사진은 대화 안에서 그리고, 리포트 PDF 는 내려받는
-            // 카드로 둔다. 사진을 카드로 두면 볼 때마다 파일을
-            // 열어야 한다. (#921)
-            if (attachment.isImage)
-              CoachImageAttachment(attachment: attachment)
-            else
-              _PdfCard(
-                attachment: attachment,
-                onOpen: () => _openPdf(context, ref, attachment),
-              ),
-          ],
         ],
-      ),
+      ],
     );
   }
 
@@ -584,13 +476,22 @@ class _Bubble extends ConsumerWidget {
       if (!context.mounted) return;
       await showPdfPreviewDialog(context, bytes, attachment.fileName);
     } catch (_) {
-      toast.show(l.coachChatPdfOpenFailed, kind: AppToastKind.error);
+      toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
     }
   }
+
+  static String _clockOnly(String label) =>
+      RegExp(r'\d{1,2}:\d{2}').firstMatch(label)?.group(0) ?? label;
+
+  static String _fileSize(int bytes) => bytes >= 1024 * 1024
+      ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
+      : '${(bytes / 1024).toStringAsFixed(1)} KB';
 }
 
 /// PDF 한 부를 미리보기로 연다. 첨부 파일과 회원 기록으로 만든 문서가 같은
 /// 화면으로 열려야, 회원이 무엇을 보고 있는지 헷갈리지 않는다. (#1600)
+///
+/// 모바일 전체 화면 시트다 — 위에 파일 이름과 닫기, 아래는 미리보기(#1702).
 ///
 /// `build` 는 **부를 때마다 복사본**을 준다. 웹에서 미리보기는 pdf.js 로 그리는데,
 /// pdf.js 는 받은 바이트의 버퍼를 워커로 넘기면서(transfer) 원본을 비워 버린다.
@@ -603,35 +504,65 @@ Future<void> showPdfPreviewDialog(
   String fileName,
 ) {
   final AppLocalizations l = AppLocalizations.of(context);
-  return showDialog<void>(
+  return showAppSheet<void>(
     context: context,
-    builder: (_) => Dialog(
-      child: SizedBox(
-        width: 760,
-        height: 720,
-        child: PdfPreview(
-          build: (_) async => Uint8List.fromList(bytes),
-          pdfFileName: fileName,
-          allowSharing: false,
-          // 미리보기가 실패했을 때 스피너를 계속 돌리면 회원은 느린 것과
-          // 안 되는 것을 구별할 수 없다.
-          onError: (_, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                l.coachChatPdfOpenFailed,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.mutedForeground),
+    builder: (BuildContext sheetContext) {
+      final OnCareTokens tokens = sheetContext.oncare;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              OnCareSpacing.sheetPadding,
+              OnCareSpacing.s8,
+              OnCareSpacing.s8,
+              OnCareSpacing.s8,
+            ),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.titleMedium)
+                        .copyWith(color: OnCareColors.textPrimary),
+                  ),
+                ),
+                const AppCloseButton(),
+              ],
+            ),
+          ),
+          const AppDivider(),
+          Expanded(
+            child: PdfPreview(
+              build: (_) async => Uint8List.fromList(bytes),
+              pdfFileName: fileName,
+              allowSharing: false,
+              // 미리보기가 실패했을 때 스피너를 계속 돌리면 회원은 느린 것과
+              // 안 되는 것을 구별할 수 없다.
+              onError: (_, _) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(OnCareSpacing.s24),
+                  child: Text(
+                    l.coachChatPdfOpenFailed,
+                    textAlign: TextAlign.center,
+                    style: tokens
+                        .text(OnCareTypography.bodySmall)
+                        .copyWith(color: OnCareColors.textSecondary),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    ),
+        ],
+      );
+    },
   );
 }
 
-/// 리포트 등록 안내 — 대화 가운데 상자와 `PDF 미리보기`. (#1600)
+/// 리포트 등록 안내 — 대화 가운데 안내 배너와 `PDF 미리보기`. (#1600, #1577)
 ///
 /// 누르면 트레이너가 보낸 파일을 연다. 열 파일이 없으면(데모, 그리고 본문만
 /// 보낸 리포트) 같은 주를 회원 기록으로 정리한 문서를 만들어 같은 미리보기로
@@ -657,7 +588,7 @@ class _ReportNoticeState extends ConsumerState<_ReportNotice> {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
     child: CoachReportCard(
       weekStart: widget.weekStart,
       onOpenPdf: _opening ? () {} : _open,
@@ -696,7 +627,7 @@ class _ReportNoticeState extends ConsumerState<_ReportNotice> {
       if (!mounted) return;
       await showPdfPreviewDialog(context, bytes, fileName);
     } catch (_) {
-      toast.show(l.coachChatPdfOpenFailed, kind: AppToastKind.error);
+      toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _opening = false);
     }
@@ -706,142 +637,4 @@ class _ReportNoticeState extends ConsumerState<_ReportNotice> {
       '${value.year.toString().padLeft(4, '0')}-'
       '${value.month.toString().padLeft(2, '0')}-'
       '${value.day.toString().padLeft(2, '0')}';
-}
-
-class _PdfCard extends StatelessWidget {
-  const _PdfCard({required this.attachment, required this.onOpen});
-
-  final CoachAttachment attachment;
-  final VoidCallback onOpen;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: Colors.white.withValues(alpha: 0.92),
-    borderRadius: BorderRadius.circular(10),
-    child: InkWell(
-      key: ValueKey<String>('coach-pdf-${attachment.fileId}'),
-      onTap: onOpen,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            const Icon(Icons.picture_as_pdf, color: Color(0xffb3261e)),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(attachment.fileName, overflow: TextOverflow.ellipsis),
-                  Text(_fileSize(attachment.fileSize)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.open_in_new, size: 18),
-          ],
-        ),
-      ),
-    ),
-  );
-
-  static String _fileSize(int bytes) => bytes >= 1024 * 1024
-      ? '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB'
-      : '${(bytes / 1024).toStringAsFixed(1)} KB';
-}
-
-class _MessageTime extends StatelessWidget {
-  const _MessageTime({required this.message});
-
-  final CoachMessage message;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    _clockOnly(message.timeLabel),
-    key: ValueKey<String>('coach-message-time-${message.id}'),
-    style: const TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.w600,
-      color: AppColors.mutedForeground,
-    ),
-  );
-
-  static String _clockOnly(String label) =>
-      RegExp(r'\d{1,2}:\d{2}').firstMatch(label)?.group(0) ?? label;
-}
-
-class _InputBar extends StatelessWidget {
-  const _InputBar({
-    required this.controller,
-    required this.sending,
-    required this.onSend,
-  });
-
-  final TextEditingController controller;
-  final bool sending;
-  final Future<void> Function() onSend;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: FigmaColors.hairline)),
-      ),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: TextField(
-              key: const ValueKey<String>('member-chat-input'),
-              controller: controller,
-              enabled: !sending,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => onSend(),
-              decoration: InputDecoration(
-                hintText: AppLocalizations.of(context).coachChatInputHint,
-                filled: true,
-                fillColor: FigmaColors.statBg,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: FigmaColors.hairline),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: const BorderSide(color: FigmaColors.hairline),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: FigmaColors.primaryA(0.45)),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Material(
-            color: sending ? FigmaColors.textFaint : FigmaColors.primary,
-            shape: const CircleBorder(),
-            child: InkWell(
-              key: const ValueKey<String>('member-chat-send'),
-              customBorder: const CircleBorder(),
-              onTap: sending ? null : onSend,
-              child: Tooltip(
-                message: AppLocalizations.of(context).a11ySendMessage,
-                child: const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Icon(Icons.send, size: 18, color: Colors.white),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

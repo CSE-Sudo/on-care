@@ -10,15 +10,15 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/consultation_history_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consultation_request_card.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../support/consultation_test_support.dart';
 
@@ -57,34 +57,31 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_config),
-          consultationRequestControllerProvider.overrideWith(
-            (_) => controller,
-          ),
+          consultationRequestControllerProvider.overrideWith((_) => controller),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: ConsultationHistoryPage(),
+          home: const ConsultationHistoryPage(),
         ),
       ),
     );
     await tester.pumpAndSettle();
   }
 
-  /// 다이얼로그 버튼의 글자색. `TextButton` 은 스타일을 해석해 자식 텍스트에
-  /// 물려주므로, 눈에 보이는 색은 그려진 텍스트에서 읽는다.
-  Color? labelColorOf(WidgetTester tester, String label) {
-    final Finder button = find.ancestor(
-      of: find.text(label),
-      matching: find.byType(TextButton),
-    );
-    final TextButton widget = tester.widget<TextButton>(button);
-    return widget.style?.foregroundColor?.resolve(<WidgetState>{});
-  }
+  /// 확인창 안의 버튼. 카드의 취소 버튼은 확인창이 덮고 있어도 트리에
+  /// 남으므로, 다이얼로그 안으로 범위를 좁혀 찾는다.
+  Finder dialogButton(String label) => find.descendant(
+    of: find.byType(AppDialog),
+    matching: find.widgetWithText(AppButton, label),
+  );
 
   Future<void> openConfirm(WidgetTester tester) async {
-    await tester.tap(find.widgetWithText(TextButton, '취소').first);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('cancel-consultation-request-cancel')),
+    );
     await tester.pumpAndSettle();
     expect(find.text('상담 요청을 취소할까요?'), findsOneWidget);
   }
@@ -93,26 +90,33 @@ void main() {
     await pumpHistory(tester);
     await openConfirm(tester);
 
-    // 확인창 안의 `취소` — 카드의 취소 버튼은 확인창이 덮고 있어도 트리에
-    // 남으므로, 다이얼로그 안으로 범위를 좁혀 찾는다.
-    final Finder confirm = find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.widgetWithText(TextButton, '취소'),
-    );
-    final TextButton confirmButton = tester.widget<TextButton>(confirm);
+    // 카드의 취소는 파괴적 글자 버튼이다.
     expect(
-      confirmButton.style?.foregroundColor?.resolve(<WidgetState>{}),
-      AppColors.destructive,
+      tester
+          .widget<AppButton>(
+            find.byKey(
+              const ValueKey<String>('cancel-consultation-request-cancel'),
+            ),
+          )
+          .variant,
+      AppButtonVariant.destructiveText,
     );
-
-    expect(labelColorOf(tester, '유지'), isNot(AppColors.destructive));
+    // 확정은 같은 파괴적 토큰의 채움, 유지는 중립 버튼이다.
+    expect(
+      tester.widget<AppButton>(dialogButton('취소')).variant,
+      AppButtonVariant.destructive,
+    );
+    expect(
+      tester.widget<AppButton>(dialogButton('유지')).variant,
+      AppButtonVariant.secondary,
+    );
   });
 
   testWidgets('유지를 누르면 요청 상태가 그대로다', (WidgetTester tester) async {
     await pumpHistory(tester);
     await openConfirm(tester);
 
-    await tester.tap(find.text('유지'));
+    await tester.tap(dialogButton('유지'));
     await tester.pumpAndSettle();
 
     expect(controller.state.single.status, ConsultationStatus.pending);
@@ -123,12 +127,7 @@ void main() {
 
     // 요청 하나를 취소해 `지난 요청` 쪽으로 옮긴다.
     await openConfirm(tester);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(TextButton, '취소'),
-      ),
-    );
+    await tester.tap(dialogButton('취소'));
     await tester.pumpAndSettle();
 
     expect(controller.state.single.status, isNot(ConsultationStatus.pending));
@@ -140,17 +139,9 @@ void main() {
     await pumpHistory(tester);
     await openConfirm(tester);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(TextButton, '취소'),
-      ),
-    );
+    await tester.tap(dialogButton('취소'));
     await tester.pumpAndSettle();
 
-    expect(
-      controller.state.single.status,
-      isNot(ConsultationStatus.pending),
-    );
+    expect(controller.state.single.status, isNot(ConsultationStatus.pending));
   });
 }
