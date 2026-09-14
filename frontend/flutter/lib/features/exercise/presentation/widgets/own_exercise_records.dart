@@ -7,7 +7,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 회원이 **직접 적은** 그날의 운동 기록. (#1428)
 ///

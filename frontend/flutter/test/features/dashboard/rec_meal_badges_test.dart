@@ -12,8 +12,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/theme/app_theme.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
@@ -21,6 +20,7 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const Set<String> _allowedTags = <String>{
   '저나트륨',
@@ -109,7 +109,7 @@ void main() {
         .map((Text t) => t.style?.color)
         .toList();
     expect(colors, isNotEmpty);
-    expect(colors.every((Color? c) => c == FigmaColors.primary), isTrue);
+    expect(colors.every((Color? c) => c == OnCareBrand.member.primary), isTrue);
   });
 
   testWidgets('담당이 있으면 첫 장만 트레이너 추천이다', (WidgetTester tester) async {

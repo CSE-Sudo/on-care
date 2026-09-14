@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 헬스장·트레이너 연결을 끊는 하나의 흐름 — 확인 창을 띄우고, 승인되면
 /// 끊은 뒤 연결 상태를 새로 읽는다.

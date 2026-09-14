@@ -11,7 +11,7 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 상세 머리의 헬스장 아이콘 상자 한 변.
 const double _heroIconBox = 80;

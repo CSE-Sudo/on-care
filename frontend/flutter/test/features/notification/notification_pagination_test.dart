@@ -12,9 +12,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/notification/data/repositories/dio_notification_repository.dart';
 import 'package:oncare/features/notification/data/repositories/mock_notification_repository.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';

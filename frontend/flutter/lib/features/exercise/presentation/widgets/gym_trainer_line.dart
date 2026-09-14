@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 헬스장 카드 안에 서는 **트레이너 한 줄** (#1185 · #1187).
 ///

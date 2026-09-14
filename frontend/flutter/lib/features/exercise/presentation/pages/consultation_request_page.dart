@@ -13,8 +13,7 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consult_time_range_picker.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 enum _ExerciseGoal { weightLoss, strength, fitness, posture, health, other }
 
@@ -196,7 +195,7 @@ class _ConsultationRequestPageState
       showAppToast(
         context,
         AppLocalizations.of(context).errorUnknown,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
       return;
     }

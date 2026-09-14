@@ -9,9 +9,8 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
 // 토스트는 아직 앱의 AppToastHost 를 쓴다 — 패키지 쪽 같은 이름은 가린다.
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 담당 트레이너 관계와 소통만 담는다 — 이름·전문 분야·프로필 이동·채팅.
 ///
@@ -319,7 +318,7 @@ class _RecommendedExerciseRowState
         showAppToast(
           context,
           l.coachRoutineCancelled,
-          kind: AppToastKind.success,
+          type: AppToastType.success,
         );
       }
     } on Object {
@@ -327,7 +326,7 @@ class _RecommendedExerciseRowState
         showAppToast(
           context,
           l.coachRoutineCancelFailed,
-          kind: AppToastKind.error,
+          type: AppToastType.error,
         );
       }
     } finally {
@@ -362,7 +361,7 @@ class _RecommendedExerciseRowState
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
       if (mounted) {
-        showAppToast(context, l.coachRoutineUndone, kind: AppToastKind.success);
+        showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
       }
     } on Object catch (error, stackTrace) {
       debugPrint('uncompleteRoutine failed: $error\n$stackTrace');
@@ -370,7 +369,7 @@ class _RecommendedExerciseRowState
         showAppToast(
           context,
           l.coachRoutineUndoFailed,
-          kind: AppToastKind.error,
+          type: AppToastType.error,
         );
       }
     } finally {
@@ -408,7 +407,7 @@ class _RecommendedExerciseRowState
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
       if (mounted) {
-        showAppToast(context, l.coachRoutineLogged, kind: AppToastKind.success);
+        showAppToast(context, l.coachRoutineLogged, type: AppToastType.success);
       }
     } catch (error, stackTrace) {
       debugPrint('completeRoutine failed: $error\n$stackTrace');
@@ -421,7 +420,7 @@ class _RecommendedExerciseRowState
           NetworkError() => l.coachRoutineNetworkError,
           _ => l.coachRoutineLogFailed,
         };
-        showAppToast(context, message, kind: AppToastKind.error);
+        showAppToast(context, message, type: AppToastType.error);
       }
     } finally {
       if (mounted) setState(() => _saving = false);

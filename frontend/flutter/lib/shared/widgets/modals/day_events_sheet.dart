@@ -6,7 +6,6 @@ import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/features/schedule/presentation/schedule_category_color.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
 import 'package:oncare/shared/widgets/modals/add_event_dialog.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -92,7 +91,7 @@ class _DayEventsBodyState extends ConsumerState<_DayEventsBody> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _deleting = null);
-      toast.show(l.eventDeleteFailed, kind: AppToastKind.error);
+      toast.show(l.eventDeleteFailed, type: AppToastType.error);
       return;
     }
     if (!mounted) return;
@@ -101,7 +100,7 @@ class _DayEventsBodyState extends ConsumerState<_DayEventsBody> {
       _deleting = null;
       _events.removeWhere((ScheduleEvent e) => e.id == event.id);
     });
-    toast.show(l.eventDeleted, kind: AppToastKind.success);
+    toast.show(l.eventDeleted, type: AppToastType.success);
   }
 
   Future<void> _add() async {

@@ -5,11 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
@@ -189,8 +187,8 @@ void main() {
         tester.widget<Text>(find.text(text)).style!.color!;
 
     // 남은 줄은 검정 그대로 — 다음에 할 것이 먼저 읽혀야 한다.
-    expect(colorOf(_aiRoutine.name), FigmaColors.ink);
-    expect(colorOf(done.name), isNot(FigmaColors.ink));
+    expect(colorOf(_aiRoutine.name), OnCareColors.textPrimary);
+    expect(colorOf(done.name), isNot(OnCareColors.textPrimary));
     expect(colorOf(done.reason), isNot(colorOf(_aiRoutine.reason)));
   });
 

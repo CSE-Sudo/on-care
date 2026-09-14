@@ -11,14 +11,14 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/theme/app_theme.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 
@@ -100,9 +100,9 @@ void main() {
       tester.element(find.byType(DietRecordPage)),
     );
     // 대역의 아침은 217kcal · 나트륨 320mg — 세 지표 모두 목표 안쪽이다.
-    expect(badgeColorOf(tester, l.dietCalories), FigmaColors.statusWithinGoal);
-    expect(badgeColorOf(tester, l.dietSugar), FigmaColors.statusWithinGoal);
-    expect(badgeColorOf(tester, l.dietSodium), FigmaColors.statusWithinGoal);
+    expect(badgeColorOf(tester, l.dietCalories), OnCareBrand.member.statusWithinGoal);
+    expect(badgeColorOf(tester, l.dietSugar), OnCareBrand.member.statusWithinGoal);
+    expect(badgeColorOf(tester, l.dietSodium), OnCareBrand.member.statusWithinGoal);
   });
 
   testWidgets('목록 썸네일은 정사각 56 이다', (WidgetTester tester) async {

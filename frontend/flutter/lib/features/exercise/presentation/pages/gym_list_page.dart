@@ -14,7 +14,7 @@ import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.d
 import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
-import 'package:oncare_ui/oncare_ui.dart' hide showAppToast, AppToastType;
+import 'package:oncare_ui/oncare_ui.dart';
 
 enum _GymSort { recommended, distance, rating }
 

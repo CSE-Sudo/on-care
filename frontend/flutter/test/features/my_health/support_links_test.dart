@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/theme/app_theme.dart';
+import 'package:oncare/app/app_theme.dart';
 
 import 'package:oncare/features/my_health/domain/support_links.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';

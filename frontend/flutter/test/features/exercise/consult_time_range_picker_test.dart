@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/theme/app_theme.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consult_time_range_picker.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 

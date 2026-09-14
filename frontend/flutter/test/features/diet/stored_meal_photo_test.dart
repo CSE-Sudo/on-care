@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/widgets/stored_meal_photo.dart';
 

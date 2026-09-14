@@ -13,7 +13,6 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_image_at
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/app_toast.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:printing/printing.dart';
 
@@ -226,7 +225,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
       await ref.read(memberCoachRepositoryProvider).sendMessage(text);
     } catch (_) {
       if (!mounted) return;
-      toast.show(l.coachChatSendFailed, kind: AppToastKind.error);
+      toast.show(l.coachChatSendFailed, type: AppToastType.error);
       return;
     } finally {
       if (mounted) setState(() => _sending = false);
@@ -477,7 +476,7 @@ class _MessageRow extends ConsumerWidget {
       if (!context.mounted) return;
       await showPdfPreviewDialog(context, bytes, attachment.fileName);
     } catch (_) {
-      toast.show(l.coachChatPdfOpenFailed, kind: AppToastKind.error);
+      toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
     }
   }
 
@@ -628,7 +627,7 @@ class _ReportNoticeState extends ConsumerState<_ReportNotice> {
       if (!mounted) return;
       await showPdfPreviewDialog(context, bytes, fileName);
     } catch (_) {
-      toast.show(l.coachChatPdfOpenFailed, kind: AppToastKind.error);
+      toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _opening = false);
     }
