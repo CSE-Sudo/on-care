@@ -722,6 +722,18 @@ abstract class AppLocalizations {
   /// **'Snap your food with the camera'**
   String get dietTakePhotoSub;
 
+  /// No description provided for @dietAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a Photo'**
+  String get dietAddPhoto;
+
+  /// No description provided for @dietAddPhotoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a food photo from your library, camera, or files'**
+  String get dietAddPhotoSub;
+
   /// No description provided for @dietPhotoLoadError.
   ///
   /// In en, this message translates to:
@@ -4554,24 +4566,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the latest notifications'**
   String get alertLoadFailed;
-
-  /// Title of the demo push the mock build can trigger.
-  ///
-  /// In en, this message translates to:
-  /// **'Simulated notification'**
-  String get alertSimulatedTitle;
-
-  /// Body of the demo push the mock build can trigger.
-  ///
-  /// In en, this message translates to:
-  /// **'A test push just arrived.'**
-  String get alertSimulatedBody;
-
-  /// Relative time for something that just happened.
-  ///
-  /// In en, this message translates to:
-  /// **'Just now'**
-  String get alertJustNow;
 
   /// Title of the completed PT session card.
   ///

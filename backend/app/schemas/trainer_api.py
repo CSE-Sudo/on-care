@@ -17,6 +17,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.core import clock
 from app.schemas.partial_update import PartialUpdate
 from app.services import exercise_types
 
@@ -572,6 +573,11 @@ _PROGRAM_DRAFT_MAX_EXERCISES = 50
 #: 한 프로그램의 세션 수 상한. 주 단위 분할(A/B/C…)을 충분히 담는 값이다.
 _PROGRAM_MAX_SESSIONS = 12
 
+#: 한 프로그램 **전체**의 운동 수 상한. 일정 한 건이 담는 항목 상한과 같다 —
+#: 초안·배정·일정 추가가 같은 크기를 받아야 배정은 되고 일정만 422 가 되는 경로가
+#: 없다(#1583). 트레이너 웹 편집기(`kProgramMaxExercises`)도 같은 값을 쓴다.
+_PROGRAM_MAX_TOTAL_EXERCISES = 30
+
 
 class ProgramDraftSession(BaseModel):
     """프로그램의 세션 하나 — 편집기 `ProgramSessionDraft` 계약 정렬. (#709)
@@ -584,6 +590,20 @@ class ProgramDraftSession(BaseModel):
     exercises: list[ProgramDraftExercise] = Field(
         default_factory=list, max_length=_PROGRAM_DRAFT_MAX_EXERCISES
     )
+
+
+def _check_program_total_exercises(
+    sessions: list[ProgramDraftSession] | None,
+) -> list[ProgramDraftSession] | None:
+    """세션 전체의 운동 수가 [_PROGRAM_MAX_TOTAL_EXERCISES] 이하인지 본다(#1583)."""
+    if sessions is not None and (
+        sum(len(session.exercises) for session in sessions)
+        > _PROGRAM_MAX_TOTAL_EXERCISES
+    ):
+        raise ValueError(
+            f"운동은 프로그램 전체에서 최대 {_PROGRAM_MAX_TOTAL_EXERCISES}개까지 담을 수 있습니다."
+        )
+    return sessions
 
 
 class TrainerProgramDraftOut(BaseModel):
@@ -625,6 +645,8 @@ class TrainerProgramDraftCreate(BaseModel):
         default_factory=list, max_length=_PROGRAM_MAX_SESSIONS
     )
 
+    _v_total = field_validator("sessions")(_check_program_total_exercises)
+
 
 class TrainerProgramDraftUpdate(PartialUpdate):
     """초안 부분 수정. 보낸 필드만 반영한다.
@@ -640,6 +662,8 @@ class TrainerProgramDraftUpdate(PartialUpdate):
     sessions: list[ProgramDraftSession] | None = Field(
         default=None, max_length=_PROGRAM_MAX_SESSIONS
     )
+
+    _v_total = field_validator("sessions")(_check_program_total_exercises)
 
 
 class ProgramAssignRequest(BaseModel):
@@ -660,6 +684,8 @@ class ProgramAssignRequest(BaseModel):
     #: 그 값이 들어갈 컬럼이 `String(64)` 라, 접미사 자리를 남겨 두지 않으면 긴
     #: 키가 저장 단계에서 길이 초과로 터진다.
     client_request_id: str | None = Field(default=None, max_length=48)
+
+    _v_total = field_validator("sessions")(_check_program_total_exercises)
 
 
 #: 메모 출처. 'trainer' 는 회원 상세에서 직접 쓴 메모, 'chat_insight' 는 채팅에서
@@ -992,7 +1018,9 @@ class ScheduleCreateRequest(BaseModel):
     type: str = Field(default="", max_length=30)
     duration_minutes: int = Field(default=0, ge=0, le=600)
     note: str = Field(default="", max_length=500)
-    program: list[ProgramItem] = Field(default_factory=list, max_length=30)
+    program: list[ProgramItem] = Field(
+        default_factory=list, max_length=_PROGRAM_MAX_TOTAL_EXERCISES
+    )
     client_request_id: str | None = Field(default=None, min_length=1, max_length=64)
 
     _v_date = field_validator("date")(_validate_ymd)
@@ -1055,20 +1083,53 @@ class ScheduleRecurringPreviewOut(BaseModel):
     conflicts: list[ScheduleSessionOut]
 
 
-class ScheduleProgramRegisterRequest(BaseModel):
-    """AI coaching command to attach a program or create its PT session."""
+class ProgramScheduleRequest(BaseModel):
+    """프로그램 탭 `일정 추가` 한 번 — 회원 배정과 PT 일정 등록을 함께 한다. (#1580)
 
+    예전에는 배정(`POST .../program`)과 일정 등록(`PUT .../schedule-program`)을
+    화면이 차례로 불러, 배정만 되고 일정은 빠진 반쪽 상태가 남을 수 있었다. 두
+    쓰기를 한 트랜잭션에 묶어 둘 다 되거나 둘 다 안 된다.
+
+    일정에 실릴 항목은 서버가 `sessions` 에서 펼친다 — 클라이언트가 같은 운동을
+    두 벌로 실어 보내면 배정과 일정이 서로 다른 구성을 가질 수 있다.
+    """
+
+    name: str = Field(min_length=1, max_length=100)
+    sessions: list[ProgramDraftSession] = Field(
+        min_length=1, max_length=_PROGRAM_MAX_SESSIONS
+    )
     date: str = Field(max_length=10)
     time: str = Field(max_length=10)
     duration_minutes: int = Field(gt=0, le=600)
     client_name: str = Field(default="", max_length=100)
-    program: list[ProgramItem] = Field(min_length=1, max_length=30)
+    #: 전송 시도 하나의 멱등키. 응답을 잃고 같은 키로 다시 보내면 배정도 일정도
+    #: 새로 만들지 않고 먼저 처리한 결과를 돌려준다. 서버가 `{key}#{index}`·
+    #: `{key}#schedule` 로 나눠 저장하므로 프로그램 배정과 같은 48자 상한이다.
+    client_request_id: str | None = Field(default=None, min_length=1, max_length=48)
+    #: 고른 시간대와 겹치는 예정 세션이 여럿일 때 트레이너가 확인창에서 고른
+    #: 연결 대상(#1581). 후보가 하나 이하면 비워 둔다.
+    session_id: str | None = Field(default=None, min_length=1, max_length=64)
 
     _v_date = field_validator("date")(_validate_ymd)
     _v_time = field_validator("time")(_validate_hhmm)
+    _v_total = field_validator("sessions")(_check_program_total_exercises)
+
+    @field_validator("date")
+    @classmethod
+    def _not_in_the_past(cls, value: str) -> str:
+        """지난 날짜로는 새 일정을 잡지 않는다(#1582).
+
+        화면을 자정 넘게 열어 둔 채 누르면 전날 날짜가 올 수 있다. 날짜만 본다 —
+        오늘이면 고른 시각이 이미 지났어도 받는다. 스케줄 탭의 지난 수업 기록
+        (`POST /trainer/schedule`)은 과거 날짜가 정상이라 이 검사를 두지 않는다.
+        """
+        if _date.fromisoformat(value) < clock.today():
+            raise ValueError("지난 날짜에는 일정을 추가할 수 없습니다.")
+        return value
 
 
-class ScheduleProgramRegisterOut(BaseModel):
+class ProgramScheduleOut(BaseModel):
+    routines: list[RoutineOut]
     session: ScheduleSessionOut
     attached_to_existing: bool
 
@@ -1344,6 +1405,45 @@ class TrainerNotificationOut(BaseModel):
     read: bool
     created_at: _datetime
     time_ago: str
+
+
+#: 미션 키 하나(`report-<id>` 등). 서버는 내용을 해석하지 않고 길이만 막는다.
+_TaskKey = Annotated[str, Field(min_length=1, max_length=200)]
+
+
+class TrainerTaskProgressDayOut(BaseModel):
+    """대시보드 `오늘 할 일` 의 하루 진행 상태. (#1633)"""
+    date: str
+    total: int
+    completed_today: int
+    completed_carried_over: int
+    pending_keys: list[str]
+    dismissed_keys: list[str]
+
+
+class TrainerTaskProgressOut(BaseModel):
+    """보관 기간 안의 날짜별 진행 상태(날짜 오름차순).
+
+    `first_saved_date` 는 보관 중인 가장 이른 날이다. 앱의 데모 이력이 어디까지
+    끼어들어도 되는지의 경계로 쓴다(#1203).
+    """
+    first_saved_date: str | None
+    days: list[TrainerTaskProgressDayOut]
+
+
+class TrainerTaskProgressSave(BaseModel):
+    """하루 진행 상태를 통째로 저장한다 — 부분 수정이 아니다."""
+    total: int = Field(ge=0, le=1000)
+    completed_today: int = Field(ge=0, le=1000)
+    completed_carried_over: int = Field(ge=0, le=1000)
+    pending_keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+    dismissed_keys: list[_TaskKey] = Field(default_factory=list, max_length=1000)
+
+    @model_validator(mode="after")
+    def _completed_within_total(self) -> TrainerTaskProgressSave:
+        if self.completed_today + self.completed_carried_over > self.total:
+            raise ValueError("완료 수는 전체 할 일 수보다 많을 수 없습니다.")
+        return self
 
 
 class TrainerNotificationSettings(BaseModel):

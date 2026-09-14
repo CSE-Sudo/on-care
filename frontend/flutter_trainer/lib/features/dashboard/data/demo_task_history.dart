@@ -6,7 +6,7 @@ import 'package:oncare_trainer/features/dashboard/data/daily_task_progress_store
 
 /// 데모·새 계정의 지난 할 일 이력. (#1203)
 ///
-/// `할 일 진행률` 과 `지난 할 일` 은 [DailyTaskProgressStore] 에 쌓인 하루
+/// `할 일 진행률` 과 `지난 할 일` 은 [DailyTaskHistory] 에 쌓인 하루
 /// 요약만 읽는다. 그래서 트레이너가 이틀 이상 실제로 체크하기 전에는 그래프가
 /// 월~일 전부 `기록 없음` 이고 지난 할 일도 늘 비어 있어, 그 기능이 있는지조차
 /// 확인할 수 없었다. 여기서 **지난 날들의** 하루 요약을 지어 준다.
@@ -86,10 +86,13 @@ class DemoTaskHistory {
 }
 
 /// 오늘 기준의 데모 이력. 실제 저장 이력이 있으면 그 앞쪽만 채운다.
-final demoTaskHistoryProvider = Provider<DemoTaskHistory>((ref) {
+final demoTaskHistoryProvider = Provider.autoDispose<DemoTaskHistory>((ref) {
   final DateTime now = nowKst();
   return DemoTaskHistory(
     today: DateTime(now.year, now.month, now.day),
-    firstSavedDate: ref.watch(dailyTaskProgressStoreProvider).firstSavedDate(),
+    firstSavedDate: ref
+        .watch(dailyTaskHistoryProvider)
+        .valueOrNull
+        ?.firstSavedDate,
   );
 }, name: 'demoTaskHistory');

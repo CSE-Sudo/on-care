@@ -186,6 +186,8 @@
   "dietPickPhotoSub": "Pick a food photo from your gallery",
   "dietTakePhoto": "Take a Photo",
   "dietTakePhotoSub": "Snap your food with the camera",
+  "dietAddPhoto": "Add a Photo",
+  "dietAddPhotoSub": "Choose a food photo from your library, camera, or files",
   "dietPhotoLoadError": "Couldn't load the photo. Please try again in a moment.",
   "dietCameraPermissionDenied": "Camera permission is needed to photograph your meal. Tap Take Photo to try again.",
   "dietCameraPermissionPermanentlyDenied": "Camera access is off. Turn it on in Settings to photograph your meal.",
@@ -1559,18 +1561,6 @@
   "alertLoadFailed": "Couldn't load the latest notifications",
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
-  },
-  "alertSimulatedTitle": "Simulated notification",
-  "@alertSimulatedTitle": {
-    "description": "Title of the demo push the mock build can trigger."
-  },
-  "alertSimulatedBody": "A test push just arrived.",
-  "@alertSimulatedBody": {
-    "description": "Body of the demo push the mock build can trigger."
-  },
-  "alertJustNow": "Just now",
-  "@alertJustNow": {
-    "description": "Relative time for something that just happened."
   },
   "exPtLogTitle": "Today's completed PT",
   "@exPtLogTitle": {
