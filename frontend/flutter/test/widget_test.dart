@@ -28,6 +28,7 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import 'helpers/fake_diet_repository.dart';
 
@@ -344,9 +345,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    // 하단 버튼 아래 여백은 시트 안쪽 여백(AppSheet footer)만 둔다(#1690).
     expect(
       bottomSpacingBetween(tester, 'coachingSheet', 'coachingSheetCta'),
-      0,
+      OnCareSpacing.sheetPadding,
     );
   });
 
@@ -369,7 +371,7 @@ void main() {
 
     expect(
       bottomSpacingBetween(tester, 'coachingSheet', 'coachingSheetCta'),
-      34,
+      OnCareSpacing.sheetPadding + 34,
     );
   });
 
@@ -396,7 +398,7 @@ void main() {
         .getBottomRight(
           find.descendant(
             of: find.byKey(const Key('coachingSheetCta')),
-            matching: find.byType(FilledButton),
+            matching: find.byType(AppButton),
           ),
         )
         .dy;
