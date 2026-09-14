@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show clientDemographicsLabel;
@@ -32,6 +33,156 @@ double clientPickerRowHeight(BuildContext context) {
   return density.listRowMin +
       OnCareSpacing.s16 +
       (density.listRowMin + OnCareSpacing.s8) * extraScale;
+}
+
+/// 왼쪽 열이 "회원 목록 고정 + 아래 카드가 남는 높이를 채움"으로 나뉘려면
+/// 필요한 최소 높이 — 회원 목록 5줄 + 두 카드의 안쪽 여백·헤더·헤더 아래
+/// 간격 + 카드 사이 간격. 주어진 높이가 이보다 작으면 나누지 않고 열 전체를
+/// 한 스크롤로 묶는다.
+///
+/// 프로그램 탭(아래 카드 = 프로그램 템플릿)과 리포트 탭(아래 카드 = AI 코칭
+/// 보조 리포트)이 같은 기준을 써서 두 탭의 아래 카드가 같은 크기로 선다.
+///
+/// 헤더 줄 높이는 카드마다 다르다 — 회원 목록 헤더는 아이콘 + 제목뿐이라
+/// 큰 아이콘 한 칸이면 되지만, 템플릿 카드 헤더는 편집 가능할 때 아이콘
+/// 버튼(밀도의 아이콘 버튼 한 변)을 달아 그 높이가 기준이 된다. 더 큰 쪽으로
+/// 어림해야 경계에서 카드가 헤더 한 줄도 못 그리는 채로 나뉘지 않는다.
+double clientSidebarSplitMinHeight(BuildContext context) {
+  final density = context.oncare.density;
+  const listChrome =
+      OnCareSpacing.cardPadding +
+      OnCareSpacing.cardPadding +
+      OnCareSize.iconLarge +
+      OnCareSpacing.s12;
+  final lowerCardChrome =
+      OnCareSpacing.cardPadding +
+      OnCareSpacing.cardPadding +
+      density.iconButton +
+      OnCareSpacing.s12;
+  return clientPickerRowHeight(context) * clientPickerVisibleRows +
+      listChrome +
+      OnCareSpacing.s16 +
+      lowerCardChrome;
+}
+
+/// 프로그램·리포트 탭 왼쪽의 회원 목록 카드 — 제목·아이콘, 5줄 높이 목록,
+/// 고른 회원이 늘 보이도록 따라가는 스크롤까지 두 탭이 **같은 위젯**이다.
+///
+/// 탭마다 다른 것은 행 키 접두어([rowKeyPrefix] → `<접두어>-<회원 id>`)와
+/// 목록 스크롤 키([scrollKey]), 고를 때의 동작([onSelect])뿐이다.
+class ClientPickerList extends StatefulWidget {
+  const ClientPickerList({
+    super.key,
+    required this.clients,
+    required this.selectedId,
+    required this.onSelect,
+    required this.rowKeyPrefix,
+    required this.scrollKey,
+  });
+
+  final List<TrainerClient> clients;
+  final String selectedId;
+  final ValueChanged<String> onSelect;
+
+  /// 행 키 접두어 — `program-client`, `report-client`.
+  final String rowKeyPrefix;
+
+  /// 목록 스크롤 키 — `program-client-list-scroll`, `report-client-list-scroll`.
+  final String scrollKey;
+
+  @override
+  State<ClientPickerList> createState() => _ClientPickerListState();
+}
+
+class _ClientPickerListState extends State<ClientPickerList> {
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
+  }
+
+  @override
+  void didUpdateWidget(ClientPickerList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedId != widget.selectedId ||
+        oldWidget.clients.length != widget.clients.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// 고른 회원이 목록 칸 밖에 있으면 그 행이 보이도록 옮긴다.
+  void _revealSelected() {
+    if (!mounted || !_scroll.hasClients) return;
+    final rowHeight = clientPickerRowHeight(context);
+    final index = widget.clients.indexWhere(
+      (client) => client.id == widget.selectedId,
+    );
+    if (index < 0) return;
+    final top = index * rowHeight;
+    final bottom = top + rowHeight;
+    final viewportTop = _scroll.offset;
+    final viewportBottom = viewportTop + _scroll.position.viewportDimension;
+    final target = top < viewportTop
+        ? top
+        : bottom > viewportBottom
+        ? bottom - _scroll.position.viewportDimension
+        : viewportTop;
+    if (target == viewportTop) return;
+    _scroll.jumpTo(target.clamp(0.0, _scroll.position.maxScrollExtent));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final double rowHeight = clientPickerRowHeight(context);
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSectionHeader(
+                  title: l.navClients,
+                  icon: clientPickerHeaderIcon,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 한 번에 5줄만 보이고, 넘치면 목록 안에서 스크롤한다(#1423).
+          SizedBox(
+            height: rowHeight * clientPickerVisibleRows,
+            child: ListView.builder(
+              key: ValueKey<String>(widget.scrollKey),
+              controller: _scroll,
+              padding: EdgeInsets.zero,
+              itemCount: widget.clients.length,
+              itemExtent: rowHeight,
+              itemBuilder: (context, index) {
+                final client = widget.clients[index];
+                return ClientPickerCard(
+                  key: ValueKey<String>('${widget.rowKeyPrefix}-${client.id}'),
+                  client: client,
+                  selected: client.id == widget.selectedId,
+                  onTap: () => widget.onSelect(client.id),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// 프로그램·리포트 탭 왼쪽 목록의 회원 한 줄.

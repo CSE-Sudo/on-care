@@ -569,11 +569,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                               builder: (context, sidebarConstraints) {
                                 final canSplit =
                                     sidebarConstraints.maxHeight >=
-                                    _sidebarSplitMinHeight(context);
-                                final list = _MemberProgramList(
+                                    clientSidebarSplitMinHeight(context);
+                                // 리포트 탭 회원 목록과 같은 위젯이다.
+                                final list = ClientPickerList(
                                   clients: clients,
                                   selectedId: selected.id,
                                   onSelect: _selectClient,
+                                  rowKeyPrefix: 'program-client',
+                                  scrollKey: 'program-client-list-scroll',
                                 );
                                 final template = _TemplateCard(
                                   key: const ValueKey<String>(
@@ -899,39 +902,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   }
 }
 
-/// 고객 목록에 보이는 행 수 — 리포트 탭과 같다.
-const int _visibleClientRows = clientPickerVisibleRows;
-
-/// 고객 목록 한 줄 높이 — 리포트 탭 고객 목록과 같은 높이다.
-double _clientRowHeight(BuildContext context) => clientPickerRowHeight(context);
-
-/// 1열이 "고객 목록 고정 + 템플릿 카드만 스크롤"로 나뉘려면 필요한 최소
-/// 높이 — 고객 목록 5줄 + 두 카드의 안쪽 여백·헤더·헤더 아래 간격 + 카드
-/// 사이 간격. 실제 주어진 높이가 이보다 작으면 나누지 않는다(호출부 참고).
-///
-/// 헤더 줄 높이는 카드마다 다르다 — 고객 목록 헤더는 아이콘 + 제목뿐이라
-/// 큰 아이콘 한 칸이면 되지만, 템플릿 카드 헤더는 편집 가능할 때
-/// `template-new` 아이콘 버튼(밀도의 아이콘 버튼 한 변)을 달아 그 높이가
-/// 기준이 된다. 더 큰 쪽으로 어림해야 경계에서 카드가 헤더 한 줄도 못
-/// 그리는 채로 `canSplit`이 켜지지 않는다.
-double _sidebarSplitMinHeight(BuildContext context) {
-  final density = context.oncare.density;
-  const listChrome =
-      OnCareSpacing.cardPadding +
-      OnCareSpacing.cardPadding +
-      OnCareSize.iconLarge +
-      OnCareSpacing.s12;
-  final templateChrome =
-      OnCareSpacing.cardPadding +
-      OnCareSpacing.cardPadding +
-      density.iconButton +
-      OnCareSpacing.s12;
-  return _clientRowHeight(context) * _visibleClientRows +
-      listChrome +
-      OnCareSpacing.s16 +
-      templateChrome;
-}
-
 /// 이름이 같은 회원을 가려내는 `성별 · 나이`.
 String _clientDemographics(AppLocalizations l, TrainerClient client) {
   final gender = switch (client.rosterGender) {
@@ -977,99 +947,6 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: OnCareSpacing.s12),
           if (expand) Expanded(child: child) else child,
         ],
-      ),
-    );
-  }
-}
-
-class _MemberProgramList extends StatefulWidget {
-  const _MemberProgramList({
-    required this.clients,
-    required this.selectedId,
-    required this.onSelect,
-  });
-
-  final List<TrainerClient> clients;
-  final String selectedId;
-  final ValueChanged<String> onSelect;
-
-  @override
-  State<_MemberProgramList> createState() => _MemberProgramListState();
-}
-
-class _MemberProgramListState extends State<_MemberProgramList> {
-  /// 이행률 막대는 뺐다(#1029) — 이 목록은 회원을 고르는 자리고, 이행률
-  /// 비교는 리포트 탭의 몫이다. 마지막 루틴 시각도 지운 채다(#1027).
-  final ScrollController _scroll = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
-  }
-
-  @override
-  void didUpdateWidget(_MemberProgramList oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedId != widget.selectedId ||
-        oldWidget.clients.length != widget.clients.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
-    }
-  }
-
-  @override
-  void dispose() {
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _revealSelected() {
-    if (!mounted || !_scroll.hasClients) return;
-    final rowHeight = _clientRowHeight(context);
-    final index = widget.clients.indexWhere(
-      (client) => client.id == widget.selectedId,
-    );
-    if (index < 0) return;
-    final top = index * rowHeight;
-    final bottom = top + rowHeight;
-    final viewportTop = _scroll.offset;
-    final viewportBottom = viewportTop + _scroll.position.viewportDimension;
-    final target = top < viewportTop
-        ? top
-        : bottom > viewportBottom
-        ? bottom - _scroll.position.viewportDimension
-        : viewportTop;
-    if (target == viewportTop) return;
-    _scroll.jumpTo(target.clamp(0.0, _scroll.position.maxScrollExtent));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final rowHeight = _clientRowHeight(context);
-    return _SectionCard(
-      // 리포트 탭 좌측 고객 카드와 같은 제목·아이콘을 쓴다 (#958).
-      title: l.navClients,
-      icon: clientPickerHeaderIcon,
-      child: SizedBox(
-        height: rowHeight * _visibleClientRows,
-        child: ListView.builder(
-          key: const ValueKey<String>('program-client-list-scroll'),
-          controller: _scroll,
-          padding: EdgeInsets.zero,
-          itemCount: widget.clients.length,
-          itemExtent: rowHeight,
-          itemBuilder: (context, index) {
-            final client = widget.clients[index];
-            // 리포트 탭 회원 목록과 같은 행이다.
-            return ClientPickerCard(
-              key: ValueKey<String>('program-client-${client.id}'),
-              client: client,
-              selected: client.id == widget.selectedId,
-              onTap: () => widget.onSelect(client.id),
-            );
-          },
-        ),
       ),
     );
   }
