@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 취소·노쇼로 마무리된 세션의 기록 — 언제, 누가, (있으면) 왜. (#871)
 ///
@@ -29,36 +27,18 @@ class SessionEndedBox extends StatelessWidget {
             at == null ? '' : ymd(at.toLocal()),
           )
         : (at == null ? '' : ymd(at.toLocal()));
-    return Container(
+    return SizedBox(
       key: ValueKey<String>('session-ended-${session.id}'),
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.08),
-        borderRadius: const BorderRadius.all(AppRadius.md),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            detail.isEmpty ? head : '$head · $detail',
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.warning,
-            ),
-          ),
-          if (session.cancellationReason.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              session.cancellationReason,
-              style: const TextStyle(
-                fontSize: 12.5,
-                color: AppColors.subtleForeground,
-              ),
-            ),
-          ],
-        ],
+      child: AppBanner(
+        tone: AppBannerTone.caution,
+        icon: session.isCancelled
+            ? Icons.event_busy_rounded
+            : Icons.person_off_rounded,
+        title: detail.isEmpty ? head : '$head · $detail',
+        message: session.cancellationReason.isEmpty
+            ? null
+            : session.cancellationReason,
       ),
     );
   }

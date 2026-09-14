@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/reports/presentation/widgets/report_ai_card.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 요약 자리에 아직 내용이 없을 때 — 그 자리에 **무엇이 뜨는지**만 적는다.
 ///
@@ -14,10 +12,14 @@ class ReportSummaryHint extends StatelessWidget {
   const ReportSummaryHint({
     super.key,
     required this.message,
+    this.loading = false,
     this.fill = false,
   });
 
   final String message;
+
+  /// 요약을 읽는 중인가. 안내문 앞에 작은 스피너를 둔다.
+  final bool loading;
 
   /// 남은 세로 자리를 채우는가. [ReportAiCard] 와 같은 자리에 놓이므로 같은
   /// 규칙을 쓴다 — 칸이 안내문보다 짧으면 카드 안에서 스크롤한다.
@@ -31,51 +33,46 @@ class ReportSummaryHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final Widget body = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Text(
-          l.reportsAiTitle,
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontSize: 13,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          message,
-          style: const TextStyle(
-            color: AppColors.mutedForeground,
-            fontSize: 11.5,
-            fontWeight: FontWeight.w600,
-            height: 1.4,
-          ),
-        ),
-      ],
+    final OnCareTokens tokens = context.oncare;
+    final Widget text = Text(
+      message,
+      style: tokens
+          .text(OnCareTypography.bodySmall)
+          .copyWith(color: OnCareColors.textSecondary),
     );
-    return Container(
+    final Widget body = loading
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              const Padding(
+                padding: EdgeInsets.only(top: OnCareSpacing.s2),
+                child: AppLoading.inline(),
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(child: text),
+            ],
+          )
+        : text;
+    return AppCard(
       key: const ValueKey<String>('reports-summary-hint'),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.aiCardGradientStart,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.aiCardGradientEnd),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
         children: <Widget>[
-          const Icon(Icons.auto_awesome, color: AppColors.primary, size: 19),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: fill
-                ? SingleChildScrollView(
-                    key: const ValueKey<String>('reports-summary-hint-scroll'),
-                    child: body,
-                  )
-                : body,
+          AppSectionHeader(
+            title: l.reportsAiTitle,
+            icon: Icons.auto_awesome_rounded,
           ),
+          const SizedBox(height: OnCareSpacing.s8),
+          if (fill)
+            Expanded(
+              child: SingleChildScrollView(
+                key: const ValueKey<String>('reports-summary-hint-scroll'),
+                child: body,
+              ),
+            )
+          else
+            body,
         ],
       ),
     );

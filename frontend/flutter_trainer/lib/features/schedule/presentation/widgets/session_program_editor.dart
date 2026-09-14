@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/models/program_draft.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 세션 하나의 프로그램을 그 자리에서 고치는 편집기.
 ///
 /// 운동 행을 [ProgramDraft] 로 들고 있다가 저장할 때 한 번에 반영한다.
+///
+/// 틀(테두리·반경·안쪽 여백)과 제목은 이 위젯을 감싸는 `AppDialog` 가 그린다 —
+/// 제목은 `noteOnly ? schedEditNote : progEditTitle` 이다. 여기서는 내용과
+/// 하단 [취소]·[저장] 두 버튼만 세운다.
 class SessionProgramEditor extends ConsumerStatefulWidget {
   const SessionProgramEditor({
     required this.session,
@@ -97,7 +98,7 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
     } catch (_) {
       if (mounted) setState(() => _saving = false);
       if (!mounted) return;
-      showAppToast(context, l.progSaveFailed, kind: AppToastKind.error);
+      showAppToast(context, l.progSaveFailed, type: AppToastType.error);
       return;
     }
     if (!mounted) return;
@@ -108,105 +109,73 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: const BorderRadius.all(AppRadius.lg),
-        border: Border.all(color: AppColors.borderStrong),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Text(
-            widget.noteOnly ? l.schedEditNote : l.progEditTitle,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppColors.foreground,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        if (!widget.noteOnly) ...<Widget>[
+          for (var index = 0; index < _items.length; index++) ...<Widget>[
+            _ProgramDraftFields(
+              index: index,
+              draft: _items[index],
+              onRemove: () => _removeItem(index),
+              onChanged: () => setState(() {}),
             ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          if (!widget.noteOnly) ...<Widget>[
-            for (var index = 0; index < _items.length; index++) ...<Widget>[
-              _ProgramDraftFields(
-                index: index,
-                draft: _items[index],
-                onRemove: () => _removeItem(index),
-                onChanged: () => setState(() {}),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.accent,
-                side: const BorderSide(color: AppColors.accent),
-              ),
-              onPressed: _saving ? null : _addItem,
-              icon: const Icon(Icons.add, size: 16),
-              label: Text(l.progAddExercise),
-            ),
-            const SizedBox(height: AppSpacing.md),
+            const SizedBox(height: OnCareSpacing.s8),
           ],
-          // 메모는 **메모 자리에서만** 고친다. 프로그램 편집기 안쪽, 운동 목록을
-          // 다 지나야 나오는 자리에도 두면 같은 값을 고치는 곳이 둘이 되어
-          // 어느 쪽이 최신인지 읽는 사람이 알 수 없다(#1011).
-          if (widget.noteOnly) ...<Widget>[
-            Text(
-              l.schedNote,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            TextField(
-              key: const ValueKey<String>('program-trainer-note'),
-              controller: _note,
-              minLines: 2,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: l.progNoteHint,
-                hintStyle: const TextStyle(color: AppColors.mutedForeground),
-                border: const OutlineInputBorder(),
-                isDense: true,
-                filled: true,
-                fillColor: AppColors.card,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-          ],
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _saving ? null : widget.onCancel,
-                  // 좁은 화면에서 "프로그램 저장"이 두 줄로 접히던 것과
-                  // 같은 안전장치 — 잘리는 대신 통째로 줄어든다.
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(l.actionCancel),
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: FilledButton(
-                  key: const ValueKey<String>('save-program'),
-                  onPressed: _saving ? null : _save,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _saving
-                          ? l.progSaving
-                          : widget.noteOnly
-                          ? l.progSaveNoteAction
-                          : l.progSaveAction,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          AppButton(
+            label: l.progAddExercise,
+            leadingIcon: Icons.add_rounded,
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
+            fullWidth: true,
+            onPressed: _saving ? null : _addItem,
           ),
+          const SizedBox(height: OnCareSpacing.s16),
         ],
-      ),
+        // 메모는 **메모 자리에서만** 고친다. 프로그램 편집기 안쪽, 운동 목록을
+        // 다 지나야 나오는 자리에도 두면 같은 값을 고치는 곳이 둘이 되어
+        // 어느 쪽이 최신인지 읽는 사람이 알 수 없다(#1011).
+        if (widget.noteOnly) ...<Widget>[
+          AppTextField(
+            key: const ValueKey<String>('program-trainer-note'),
+            controller: _note,
+            label: l.schedNote,
+            hint: l.progNoteHint,
+            minLines: 2,
+            maxLines: 4,
+          ),
+          const SizedBox(height: OnCareSpacing.s24),
+        ],
+        // [취소] 왼쪽, [저장] 오른쪽, 폭 반반 — `AppButtonPair` 와 같은 모양이다.
+        // 테스트가 저장 버튼을 키로 찾으므로 키를 받는 두 [AppButton] 으로 세운다.
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: AppButton(
+                label: l.actionCancel,
+                variant: AppButtonVariant.secondary,
+                fullWidth: true,
+                onPressed: _saving ? null : widget.onCancel,
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.buttonGap),
+            Expanded(
+              child: AppButton(
+                key: const ValueKey<String>('save-program'),
+                label: _saving
+                    ? l.progSaving
+                    : widget.noteOnly
+                    ? l.progSaveNoteAction
+                    : l.progSaveAction,
+                fullWidth: true,
+                loading: _saving,
+                onPressed: _saving ? null : _save,
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -231,11 +200,11 @@ class _ProgramDraftFields extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
       decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.borderStrong),
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -258,24 +227,21 @@ class _ProgramDraftFields extends StatelessWidget {
                   },
                 ),
               ),
-              IconButton(
+              AppIconButton(
+                icon: Icons.delete_outline_rounded,
                 tooltip: l.progDeleteExercise,
+                color: OnCareColors.textTertiary,
                 onPressed: onRemove,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  size: 18,
-                  color: AppColors.subtleForeground,
-                ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           RoutineNameField(
             keyPrefix: 'program-name-$index',
             controller: draft.name,
             label: l.progExerciseName,
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           // 근력은 세트·횟수·중량을 한 줄에, 나머지는 시간 한 칸으로 묻는다.
           // 라벨이 테두리에 얹히는 compact 입력이라 세 칸이 나란히 들어가도
           // 세로 폭이 늘어나지 않는다. (#1489)
@@ -293,7 +259,7 @@ class _ProgramDraftFields extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: RoutineRepsField(
                     keyPrefix: 'program-reps-$index',
@@ -305,7 +271,7 @@ class _ProgramDraftFields extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: RoutineWeightField(
                     keyPrefix: 'program-weight-$index',
@@ -329,7 +295,7 @@ class _ProgramDraftFields extends StatelessWidget {
                 onChanged();
               },
             ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           RoutineIntensityChips(
             keyPrefix: 'program-intensity-$index',
             value: draft.intensity,
@@ -338,7 +304,7 @@ class _ProgramDraftFields extends StatelessWidget {
               onChanged();
             },
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
           // 이름 칸은 `onChanged` 없이 컨트롤러만 들고 있다 — 글자를 적는 동안
           // 이 줄이 따라 그려지려면 컨트롤러를 직접 들어야 한다(#1312).
           ValueListenableBuilder<TextEditingValue>(

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 완료된 세션에 남긴 트레이너 메모 상자.
+///
+/// 아이콘 + 제목(`트레이너 메모`) + 본문(메모) 구조라 [AppBanner] 로 그린다.
+/// 메모지 표시다 — 주의가 아니므로 경고 톤으로 올리지 않는다(#690).
 class SessionNoteBox extends StatelessWidget {
   const SessionNoteBox({super.key, required this.note});
 
@@ -13,44 +14,10 @@ class SessionNoteBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.brandOrange.withValues(alpha: 0.06),
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border(
-          left: BorderSide(
-            color: AppColors.brandOrange.withValues(alpha: 0.4),
-            width: 3,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            l.schedNote,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              // 메모지 표시다. 주의가 아니므로 빨강으로 올리지 않는다(#690).
-              color: AppColors.brandOrange,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            note,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-        ],
-      ),
+    return AppBanner(
+      icon: Icons.sticky_note_2_rounded,
+      title: l.schedNote,
+      message: note,
     );
   }
 }
@@ -74,16 +41,9 @@ class SessionNoNoteBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
+    final OnCareTokens tokens = context.oncare;
+    return AppTile(
       key: const ValueKey<String>('session-no-note'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.borderStrong),
-      ),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -92,69 +52,32 @@ class SessionNoNoteBox extends StatelessWidget {
               children: <Widget>[
                 Text(
                   l.schedNoNote,
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mutedForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: OnCareColors.textSecondary),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: OnCareSpacing.s2),
                 Text(
                   l.schedNoteOnlyHint,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.subtleForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          // 키는 이 자리 전체(`_NoteAddChip`)에 둔다 — `session_manage_row.dart`
-          // 의 `_ActionChip` 과 같은 규약이라, 테스트가 툴팁 문구를 그 자손에서
-          // 찾는 방식(`noteActionLabel`)을 그대로 쓸 수 있다.
-          _NoteAddChip(
+          const SizedBox(width: OnCareSpacing.s8),
+          // 키는 이 자리 전체에 둔다 — `session_manage_row.dart` 의 같은 키와
+          // 같은 규약이라, 테스트가 툴팁 문구를 그 자손에서 찾는 방식
+          // (`noteActionLabel`)을 그대로 쓸 수 있다.
+          AppIconButton(
             key: const ValueKey<String>('session-edit-note-chip'),
-            label: l.schedAddNote,
-            onTap: onAdd,
+            icon: Icons.note_add_rounded,
+            tooltip: l.schedAddNote,
+            variant: AppIconButtonVariant.tonal,
+            onPressed: onAdd,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _NoteAddChip extends StatelessWidget {
-  const _NoteAddChip({super.key, required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Semantics(
-        button: true,
-        label: label,
-        excludeSemantics: true,
-        child: Material(
-          color: AppColors.brandOrange.withValues(alpha: 0.08),
-          borderRadius: const BorderRadius.all(AppRadius.pill),
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: const BorderRadius.all(AppRadius.pill),
-            child: const Padding(
-              padding: EdgeInsets.all(AppSpacing.sm),
-              child: Icon(
-                Icons.note_add_outlined,
-                size: 15,
-                color: AppColors.brandOrange,
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }
