@@ -270,11 +270,11 @@ enum AppWebPageWidth {
   /// 760 — 한 열짜리 폼·목록·설정.
   narrow,
 
-  /// 1440 — 대시보드·분할 화면.
+  /// 1680 — 대시보드·분할 화면.
   wide,
 }
 
-/// 웹 페이지 틀(#1696) — 헤더 88(`titleLarge` + `bodySmall` 부제 + 액션), 좌우 24.
+/// 웹 페이지 틀(#1696) — 헤더 88(`titleLarge` + `bodySmall` 부제 + 액션), 좌우 16.
 ///
 /// 여백은 틀만 넣는다. 페이지가 직접 여백을 더하지 않는다.
 class AppWebPage extends StatelessWidget {
@@ -286,6 +286,7 @@ class AppWebPage extends StatelessWidget {
     required this.body,
     this.width = AppWebPageWidth.wide,
     this.leading,
+    this.headerCenter,
   });
 
   final String title;
@@ -297,10 +298,89 @@ class AppWebPage extends StatelessWidget {
   /// 제목 앞 뒤로가기 등.
   final Widget? leading;
 
+  /// 헤더 가운데 자리 — 트레이너웹 통합 검색 바.
+  ///
+  /// 제목과 액션 중 넓은 쪽 폭을 **양쪽에 똑같이** 비워 두고 그 사이에 둔다.
+  /// 그래서 탭마다 제목 길이·액션 수가 달라도 헤더(=콘텐츠) 폭의 한가운데,
+  /// 같은 가로 위치에 선다. 대칭으로 비우면 [OnCareLayout.headerCenterMinWidth]
+  /// 보다 좁아질 때만 대칭을 포기하고 제목과 액션 사이 남는 폭을 쓴다(#995).
+  /// 자식은 받은 폭을 보고 스스로 아이콘으로 접을 수 있다.
+  final Widget? headerCenter;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final double side = tokens.density.pagePadding;
+    final Widget titleBlock = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: tokens
+              .text(OnCareTypography.titleLarge)
+              .copyWith(color: OnCareColors.textPrimary),
+        ),
+        if (subtitle != null)
+          Text(
+            subtitle!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+      ],
+    );
+    final Widget header = headerCenter == null
+        ? Row(
+            children: <Widget>[
+              if (leading != null) ...<Widget>[
+                leading!,
+                const SizedBox(width: OnCareSpacing.s8),
+              ],
+              Expanded(child: titleBlock),
+              for (final Widget action in actions) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                action,
+              ],
+            ],
+          )
+        : CustomMultiChildLayout(
+            delegate: _WebHeaderLayoutDelegate(
+              centerMinExtent: tokens.density.iconButton,
+            ),
+            children: <Widget>[
+              LayoutId(
+                id: _WebHeaderSlot.start,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    if (leading != null) ...<Widget>[
+                      leading!,
+                      const SizedBox(width: OnCareSpacing.s8),
+                    ],
+                    Flexible(child: titleBlock),
+                  ],
+                ),
+              ),
+              LayoutId(id: _WebHeaderSlot.center, child: headerCenter!),
+              LayoutId(
+                id: _WebHeaderSlot.end,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    for (int i = 0; i < actions.length; i++) ...<Widget>[
+                      if (i > 0) const SizedBox(width: OnCareSpacing.s8),
+                      actions[i],
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          );
     return ColoredBox(
       color: tokens.pageBackground,
       child: Align(
@@ -318,45 +398,7 @@ class AppWebPage extends StatelessWidget {
                 height: OnCareLayout.webHeaderHeight,
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: side),
-                  child: Row(
-                    children: <Widget>[
-                      if (leading != null) ...<Widget>[
-                        leading!,
-                        const SizedBox(width: OnCareSpacing.s8),
-                      ],
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tokens
-                                  .text(OnCareTypography.titleLarge)
-                                  .copyWith(color: OnCareColors.textPrimary),
-                            ),
-                            if (subtitle != null)
-                              Text(
-                                subtitle!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: tokens
-                                    .text(OnCareTypography.bodySmall)
-                                    .copyWith(
-                                      color: OnCareColors.textSecondary,
-                                    ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      for (final Widget action in actions) ...<Widget>[
-                        const SizedBox(width: OnCareSpacing.s8),
-                        action,
-                      ],
-                    ],
-                  ),
+                  child: header,
                 ),
               ),
               Expanded(
@@ -371,6 +413,77 @@ class AppWebPage extends StatelessWidget {
       ),
     );
   }
+}
+
+enum _WebHeaderSlot { start, center, end }
+
+/// [AppWebPage.headerCenter] 를 헤더의 물리적 가운데에 둔다.
+///
+/// 액션과 제목을 먼저 재고, 둘 중 넓은 폭을 양쪽에 똑같이 비운다 — 탭을 옮겨도
+/// 짧은 쪽으로 가운데가 끌려가지 않는다. 대칭 예약 때문에 가운데가
+/// [OnCareLayout.headerCenterMinWidth] 아래로 떨어지면 대칭을 포기하고 제목과
+/// 액션 사이 남는 폭을 준다. 가운데에는 늘 [centerMinExtent](아이콘 한 칸)만큼은
+/// 남기도록 제목 폭을 먼저 제한한다.
+class _WebHeaderLayoutDelegate extends MultiChildLayoutDelegate {
+  _WebHeaderLayoutDelegate({required this.centerMinExtent});
+
+  final double centerMinExtent;
+
+  static const double _gap = OnCareSpacing.s16;
+
+  @override
+  void performLayout(Size size) {
+    final Size endSize = layoutChild(
+      _WebHeaderSlot.end,
+      BoxConstraints.loose(size),
+    );
+    final double startMax =
+        size.width - endSize.width - centerMinExtent - _gap * 2;
+    final Size startSize = layoutChild(
+      _WebHeaderSlot.start,
+      BoxConstraints(
+        maxWidth: startMax > 0 ? startMax : 0,
+        maxHeight: size.height,
+      ),
+    );
+    positionChild(
+      _WebHeaderSlot.start,
+      Offset(0, (size.height - startSize.height) / 2),
+    );
+    positionChild(
+      _WebHeaderSlot.end,
+      Offset(size.width - endSize.width, (size.height - endSize.height) / 2),
+    );
+
+    final double sideWidth = startSize.width > endSize.width
+        ? startSize.width
+        : endSize.width;
+    double centerWidth = (size.width - (sideWidth + _gap) * 2).clamp(
+      0.0,
+      size.width,
+    );
+    double centerLeft = (size.width - centerWidth) / 2;
+
+    // 대칭 예약이 가운데를 굶기면 대칭을 포기한다(#995).
+    if (centerWidth < OnCareLayout.headerCenterMinWidth) {
+      final double freeGap =
+          size.width - startSize.width - endSize.width - _gap * 2;
+      if (freeGap > centerWidth) {
+        centerWidth = freeGap;
+        centerLeft = startSize.width + _gap;
+      }
+    }
+
+    layoutChild(
+      _WebHeaderSlot.center,
+      BoxConstraints.tightFor(width: centerWidth, height: size.height),
+    );
+    positionChild(_WebHeaderSlot.center, Offset(centerLeft, 0));
+  }
+
+  @override
+  bool shouldRelayout(_WebHeaderLayoutDelegate oldDelegate) =>
+      centerMinExtent != oldDelegate.centerMinExtent;
 }
 
 /// 분할 레이아웃 — 목록 380 + 간격 16 + 상세. 좁으면 목록·상세 중 하나만 보인다.

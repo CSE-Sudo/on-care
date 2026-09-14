@@ -44,7 +44,7 @@ class DashboardPage extends ConsumerWidget {
     return AppWebPage(
       title: l.dashTitle,
       subtitle: dateLabel(l, today),
-      actions: const <Widget>[Flexible(child: ClientSearchBar())],
+      headerCenter: const ClientSearchBar(),
       body: PageScrollResetListener(
         child: summaryAsync.when(
           loading: () => const AppLoading(),
