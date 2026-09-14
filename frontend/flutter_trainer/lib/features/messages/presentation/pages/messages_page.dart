@@ -2,11 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_view.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
@@ -14,12 +9,10 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/alert_badge.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+// 순수 문자열 함수(`clientIdentityLabel`·`clientDemographicsLabel`)만 쓴다.
+import 'package:oncare_trainer/shared/widgets/client_identity.dart'
+    show clientDemographicsLabel, clientIdentityLabel;
+import 'package:oncare_ui/oncare_ui.dart';
 
 enum _ConversationFilter {
   all('all'),
@@ -70,20 +63,16 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         ? ref.watch(prioritizedClientsProvider)
         : ref.watch(recentlyMessagedClientsProvider);
 
-    return PageScaffold(
+    return AppWebPage(
       title: l.navMessages,
       subtitle: l.messagesSubtitle,
-      headerCenter: const ClientSearchBar(),
-      scrollable: false,
-      child: clientsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) => EmptyHint(
-          message: l.messagesLoadFailed,
-          icon: Icons.error_outline,
-          action: ActionButton(
-            label: l.actionRetry,
-            onPressed: () => ref.invalidate(clientsProvider),
-          ),
+      actions: const <Widget>[ClientSearchBar()],
+      body: clientsAsync.when(
+        loading: () => const AppLoading(),
+        error: (error, stackTrace) => AppErrorState(
+          title: l.messagesLoadFailed,
+          retryLabel: l.actionRetry,
+          onRetry: () => ref.invalidate(clientsProvider),
         ),
         data: (clients) {
           final filtered = clients.where((client) {
@@ -102,47 +91,35 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                   orElse: () => null,
                 );
 
+          // 좁은 폭에서는 목록·대화 중 하나만 보이므로, 그때만 대화에
+          // 목록으로 돌아가는 길을 단다. [AppSplitView] 와 같은 기준 폭이다.
           return LayoutBuilder(
             builder: (context, constraints) {
-              if (constraints.maxWidth < AppLayout.splitBreakpoint) {
-                if (selected == null) {
-                  return _ConversationList(
-                    clients: filtered,
-                    selectedId: null,
-                    unread: unread,
-                    filter: filter,
-                    onFilterChanged: _setFilter,
-                    onSelected: _selectClient,
-                  );
-                }
-                return _ThreadPanel(
-                  client: selected,
-                  onBack: () => context.go(
-                    AppRoutes.messagesFor(null, filter: widget.filter),
-                  ),
-                );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  SizedBox(
-                    width: AppLayout.splitListWidth,
-                    child: _ConversationList(
-                      clients: filtered,
-                      selectedId: selected?.id,
-                      unread: unread,
-                      filter: filter,
-                      onFilterChanged: _setFilter,
-                      onSelected: _selectClient,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: selected == null
-                        ? const _EmptyThread()
-                        : _ThreadPanel(client: selected),
-                  ),
-                ],
+              final narrow =
+                  constraints.maxWidth < OnCareLayout.splitBreakpoint;
+              return AppSplitView(
+                showDetailWhenNarrow: selected != null,
+                list: _ConversationList(
+                  clients: filtered,
+                  selectedId: narrow ? null : selected?.id,
+                  unread: unread,
+                  filter: filter,
+                  onFilterChanged: _setFilter,
+                  onSelected: _selectClient,
+                ),
+                detail: selected == null
+                    ? const _EmptyThread()
+                    : _ThreadPanel(
+                        client: selected,
+                        onBack: narrow
+                            ? () => context.go(
+                                AppRoutes.messagesFor(
+                                  null,
+                                  filter: widget.filter,
+                                ),
+                              )
+                            : null,
+                      ),
               );
             },
           );
@@ -188,83 +165,50 @@ class _ConversationList extends StatelessWidget {
           child: Row(
             children: <Widget>[
               for (final item in _ConversationFilter.values) ...<Widget>[
-                _FilterChip(
+                AppChoiceChip(
                   label: item == _ConversationFilter.unread
                       ? l.messagesFilterUnreadCount(
                           unread.values.where((n) => n > 0).length,
                         )
                       : item.label(l),
                   selected: filter == item,
-                  onTap: () => onFilterChanged(item),
+                  onSelected: (_) => onFilterChanged(item),
                 ),
                 if (item != _ConversationFilter.values.last)
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: OnCareSpacing.s8),
               ],
             ],
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: OnCareSpacing.s16),
         Expanded(
-          child: clients.isEmpty
-              ? EmptyHint(message: l.messagesEmpty, icon: Icons.forum_outlined)
-              : ListView.separated(
-                  padding: const EdgeInsets.only(
-                    right: AppSpacing.sm,
-                    bottom: AppLayout.pagePadding,
+          child: AppCard(
+            padding: const EdgeInsets.all(OnCareSpacing.s8),
+            child: clients.isEmpty
+                ? AppEmptyState(
+                    title: l.messagesEmpty,
+                    icon: Icons.forum_rounded,
+                  )
+                : ListView.separated(
+                    itemCount: clients.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: OnCareSpacing.s4),
+                    itemBuilder: (context, index) {
+                      final client = clients[index];
+                      return _ConversationTile(
+                        key: ValueKey<String>(
+                          'messages-conversation-${client.id}',
+                        ),
+                        client: client,
+                        selected: client.id == selectedId,
+                        unread: unread[client.id] ?? 0,
+                        onTap: () => onSelected(client.id),
+                      );
+                    },
                   ),
-                  itemCount: clients.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: AppSpacing.md),
-                  itemBuilder: (context, index) {
-                    final client = clients[index];
-                    return _ConversationTile(
-                      key: ValueKey<String>(
-                        'messages-conversation-${client.id}',
-                      ),
-                      client: client,
-                      selected: client.id == selectedId,
-                      unread: unread[client.id] ?? 0,
-                      onTap: () => onSelected(client.id),
-                    );
-                  },
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.accentSurface : AppColors.inputBackground,
-      borderRadius: const BorderRadius.all(AppRadius.pill),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? AppColors.primary : AppColors.mutedForeground,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -286,155 +230,45 @@ class _ConversationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
     // 로스터의 미리보기는 대화가 없는 고객에게 빈 문자열이다(실 API의
     // `last_message=… if last_msg else ""`). 빈 `Text` 는 아무것도 그리지
     // 않아 그 줄이 통째로 사라졌고, 옆 고객만 한 줄 높은 타일을 가졌다 —
     // 화면은 "미리보기가 없다"가 아니라 "아직 대화가 없다"를 말해야 한다.
     final hasPreview = client.lastMessage.trim().isNotEmpty;
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        borderRadius: BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-      ),
-      child: Material(
-        color: selected ? AppColors.accentSurface : AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: const BorderRadius.all(AppRadius.card),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 88),
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.all(AppRadius.card),
-              border: Border.all(
-                color: selected
-                    ? AppColors.accent.withValues(alpha: 0.5)
-                    : AppColors.border,
-                width: selected ? 1.5 : 1,
-              ),
-            ),
-            child: Row(
-              children: <Widget>[
-                // 활성/휴면 점은 없다. 메시지 탭은 회원을 **관리**하는
-                // 곳이 아니라 이야기하는 곳이고, 활성 여부는 어느 대화를
-                // 열지 정하는 데 쓰이지 않는다 — 그 판단은 고객 탭이 한다.
-                ClientAvatar(label: client.avatar, size: 36),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: ClientIdentity(
-                              client: client,
-                              nameStyle: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.foreground,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            client.lastTime,
-                            style: const TextStyle(
-                              color: AppColors.subtleForeground,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ],
-                      ),
-                      // 목표(`혈압 관리 · 체중 감량`)는 여기 없다. #898 이
-                      // 넣었을 때는 대화 패널 머리에만 있어서 목록에서 고를
-                      // 근거가 없었는데, 지금은 헤더가 목표를 말한다. 어느
-                      // 대화를 열지는 **마지막에 무슨 말이 오갔는가**로
-                      // 정하지 목표로 정하지 않는다.
-                      //
-                      // 그 자리를 미리보기에 준다 — 두 줄이면 "이번 주 일이
-                      // 너무 많아서" 뒤에 무엇이 붙는지까지 읽히고, 열어 볼
-                      // 대화인지 목록에서 판단할 수 있다.
-                      const SizedBox(height: 4),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Expanded(
-                            child: Text(
-                              hasPreview
-                                  ? client.lastMessage
-                                  : l.messagesNoPreview,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: hasPreview
-                                    ? AppColors.mutedForeground
-                                    : AppColors.subtleForeground,
-                                fontSize: 11.5,
-                                height: 1.35,
-                                fontStyle: hasPreview
-                                    ? FontStyle.normal
-                                    : FontStyle.italic,
-                                fontWeight: unread > 0
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          if (unread > 0)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: AppSpacing.xs,
-                              ),
-                              // 원 자체(정확히 20x20)와 앞 여백을 한 Container에
-                              // 같이 두면 margin까지 포함해 측정돼 타원처럼
-                              // 잡히기 쉽다 — 여백은 Padding으로 밖에 둔다.
-                              child: Container(
-                                key: ValueKey<String>(
-                                  'messages-unread-${client.id}',
-                                ),
-                                width: 20,
-                                height: 20,
-                                alignment: Alignment.center,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                                // 앱 전체 글자 배율(#995, 1.10배)이 고정
-                                // fontSize에도 곱해져, Text만 두면 원 높이를
-                                // 넘겨 위아래로 삐져나온다 — Container는
-                                // 자식을 자르지 않으니 그 삐져나온 부분이
-                                // 세로로 긴 타원처럼 보였다. FittedBox로
-                                // 원 안에 들어갈 만큼 항상 줄인다.
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 2,
-                                  ),
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      unread > 99 ? '99+' : '$unread',
-                                      maxLines: 1,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w800,
-                                        height: 1,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+    // 목표(`혈압 관리 · 체중 감량`)는 여기 없다. 어느 대화를 열지는 **마지막에
+    // 무슨 말이 오갔는가**로 정하지 목표로 정하지 않는다 — 그 자리를 두 줄
+    // 미리보기에 준다.
+    //
+    // 활성/휴면 점도 없다. 메시지 탭은 회원을 **관리**하는 곳이 아니라
+    // 이야기하는 곳이다.
+    //
+    // 안읽음은 숫자 배지 하나로 말한다 — 행의 빨간 점까지 켜면 같은 사실이
+    // 한 뼘 안에 두 번 선다.
+    return AppListRow(
+      selected: selected,
+      onTap: onTap,
+      leading: AppAvatar(name: client.avatar),
+      title: clientIdentityLabel(context, client),
+      subtitle: hasPreview ? client.lastMessage : l.messagesNoPreview,
+      trailing: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          Text(
+            client.lastTime,
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
           ),
-        ),
+          if (unread > 0) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            KeyedSubtree(
+              key: ValueKey<String>('messages-unread-${client.id}'),
+              child: AppCountBadge(count: unread),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -449,41 +283,38 @@ class _ThreadPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return _Panel(
+    return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(OnCareSpacing.s12),
             child: Row(
               children: <Widget>[
                 if (onBack != null) ...<Widget>[
-                  IconButton(
-                    tooltip: l.messagesBackToList,
-                    onPressed: onBack,
-                    icon: const Icon(Icons.arrow_back),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
+                  AppBackButton(onPressed: onBack),
+                  const SizedBox(width: OnCareSpacing.s4),
                 ],
-                // 활성/휴면은 옆의 알약이 글자로 말한다 — 여기 점까지 찍으면
-                // 같은 사실이 한 뼘 안에 두 번 선다. 목록의 아바타는 반대다:
-                // 그쪽엔 알약이 없어 점이 유일한 표시다.
-                ClientAvatar(label: client.avatar),
-                const SizedBox(width: AppSpacing.md),
+                AppAvatar(name: client.avatar, size: AppAvatarSize.large),
+                const SizedBox(width: OnCareSpacing.s12),
                 Expanded(child: _Identity(client: client)),
                 // 식단·운동은 고객 탭이 훨씬 자세히 보여 준다. 이 화면은
                 // 대화를 하는 곳이므로, 그 데이터를 여기로 옮겨 오는 대신
                 // **가는 길**만 둔다.
-                _ClientDetailLink(
+                AppButton(
                   key: const ValueKey<String>('messages-client-detail-button'),
                   label: l.messagesClientDetail,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  trailingIcon: Icons.chevron_right_rounded,
                   onPressed: () =>
                       context.go(AppRoutes.clientDetail(client.id)),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, color: AppColors.borderStrong),
+          const AppDivider(),
           Expanded(
             child: ChatView(
               key: ValueKey<String>('messages-thread-${client.id}'),
@@ -498,20 +329,13 @@ class _ThreadPanel extends StatelessWidget {
   }
 }
 
-/// 대화 헤더가 말하는 이 사람 — 이름 · 성별·나이 · 활성/휴면 · 주의사항,
-/// 그 아래 목표.
-///
-/// 고객 탭 상세(`client_detail_view.dart` 의 `_identityRow`)와 같은 구성이다.
-/// 같은 사실을 두 탭이 다른 모양으로 말하지 않도록 색·문구·모양을 맞춘다(#926).
+/// 대화 헤더가 말하는 이 사람 — 이름 · 성별·나이 · 주의사항, 그 아래 목표.
 ///
 /// 여기가 목록보다 **자세한** 자리다. 목록은 어느 대화를 열까만 정하고,
 /// 연 뒤에 이 사람이 어떤 상태인지는 여기서 읽는다.
 ///
-/// `Row` 가 아니라 `Wrap` 인 이유: 알약과 배지는 글자 길이만큼 자리를 요구할
+/// `Row` 가 아니라 `Wrap` 인 이유: 태그는 글자 길이만큼 자리를 요구할
 /// 뿐 줄어들 수 없어서, 좁은 폭에서는 다음 줄로 내려야 한다.
-///
-/// 알약은 **읽기 전용**이다. 활성/휴면을 바꾸는 자리는 고객 탭이고, 대화
-/// 중에 눌러서 바뀌면 되돌릴 곳이 이 화면에 없다.
 class _Identity extends StatelessWidget {
   const _Identity({required this.client});
 
@@ -519,6 +343,8 @@ class _Identity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
     final alerts = healthAlertsFor(client);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -527,35 +353,51 @@ class _Identity extends StatelessWidget {
           builder: (BuildContext context, BoxConstraints c) => Wrap(
             key: const ValueKey<String>('messages-thread-identity'),
             crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: AppSpacing.xs,
-            runSpacing: 4,
+            spacing: OnCareSpacing.s4,
+            runSpacing: OnCareSpacing.s4,
             children: <Widget>[
               // 이름만은 줄 폭 안에서 말줄임한다 — `Wrap` 의 자식은 폭이
               // 무제한이라 기대는 곳이 없으면 긴 이름이 그대로 뻗는다.
               ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: c.maxWidth),
-                child: ClientIdentity(
-                  client: client,
-                  nameStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.foreground,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        client.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
+                      ),
+                    ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    Flexible(
+                      child: Text(
+                        clientDemographicsLabel(context, client),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              // 활성/휴면 알약도 없다 — 이 사람과 지금 이야기하는 데
-              // 쓰이지 않는 값이고, 바꿀 수 있는 자리도 고객 탭이다.
-              // 주의사항은 다르다: 나트륨이 넘쳤다는 사실은 **지금 이
-              // 대화에서 할 말**을 바꾼다.
-              //
-              // 배지는 하나씩 `Wrap` 의 자식이다. 묶어서 넣으면 그 묶음이
-              // 통째로 다음 줄로 내려가고, 묶음 안에서는 다시 접히지 않는다.
-              //
-              // 목록과 달리 **전부** 세운다 — 자세한 쪽이 여기다.
+              // 활성/휴면은 없다 — 이 사람과 지금 이야기하는 데 쓰이지 않는
+              // 값이다. 주의사항은 다르다: 나트륨이 넘쳤다는 사실은 **지금 이
+              // 대화에서 할 말**을 바꾼다. 목록과 달리 **전부** 세운다.
               for (final alert in alerts)
                 KeyedSubtree(
                   key: ValueKey<String>('messages-thread-alert-${alert.name}'),
-                  child: AlertBadge(alert: alert),
+                  child: AppTag(
+                    label: alert.label(l),
+                    tone: _alertTone(alert),
+                    icon: Icons.error_outline_rounded,
+                  ),
                 ),
             ],
           ),
@@ -564,73 +406,23 @@ class _Identity extends StatelessWidget {
           client.goal,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: AppColors.subtleForeground,
-            fontSize: 12,
-          ),
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textTertiary),
         ),
       ],
     );
   }
 }
 
-/// 고객 탭으로 가는 길 — 화살표 앞에 목적지 이름을 세운다.
-///
-/// 화살표만 두면 "여기서 어디로 가는가" 를 아이콘 모양으로 짐작해야 한다.
-/// 그렇다고 채워진 버튼으로 세우면 이 화면의 주된 동작인 메시지 보내기보다
-/// 강하게 읽힌다 — 글자를 화살표와 **같은 색·같은 크기**로 두어, 길잡이는
-/// 되되 눈길은 끌지 않게 한다.
-class _ClientDetailLink extends StatelessWidget {
-  const _ClientDetailLink({
-    super.key,
-    required this.label,
-    required this.onPressed,
-  });
-
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: const BorderRadius.all(AppRadius.pill),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: 6,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  label,
-                  style: const TextStyle(
-                    // 화살표(20)와 같은 크기·같은 색. 둘이 한 덩어리로 읽힌다.
-                    fontSize: 13,
-                    height: 1.1,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.disabledForeground,
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: AppColors.disabledForeground,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
+/// 하나의 색은 하나의 뜻만: 브랜드 = 처리 필요(답장 대기), 빨강 = 주의
+/// (목표 초과·완료율 저조). 회원 앱이 같은 사실을 같은 세기로 보여 준다.
+AppTagTone _alertTone(ClientAlert alert) => switch (alert) {
+  ClientAlert.unanswered => AppTagTone.brand,
+  ClientAlert.sodiumOver => AppTagTone.danger,
+  ClientAlert.sugarOver => AppTagTone.danger,
+  ClientAlert.lowCompletion => AppTagTone.danger,
+};
 
 class _EmptyThread extends StatelessWidget {
   const _EmptyThread();
@@ -638,35 +430,10 @@ class _EmptyThread extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return _Panel(
-      child: EmptyHint(
-        message: l.messagesSelectPrompt,
-        icon: Icons.chat_bubble_outline,
-      ),
-    );
-  }
-}
-
-class _Panel extends StatelessWidget {
-  const _Panel({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-      ),
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.all(AppRadius.card),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: child,
+    return AppCard(
+      child: AppEmptyState(
+        title: l.messagesSelectPrompt,
+        icon: Icons.chat_bubble_outline_rounded,
       ),
     );
   }

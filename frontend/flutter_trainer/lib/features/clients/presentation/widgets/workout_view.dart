@@ -5,10 +5,6 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_ai_analysis_card.dart';
@@ -21,11 +17,13 @@ import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routin
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/exercise_line.dart';
-import 'package:oncare_trainer/shared/widgets/icon_label.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart' show EmptyHint;
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 수행 피드백 입력의 최대 글자 수 — 서버 계약 값이다.
+const int _feedbackMaxLength = 2000;
+
+/// 수행 피드백 입력 칸의 줄 수.
+const int _feedbackLines = 5;
 
 /// 운동 — 기록 확인 중심 화면. 얼마나 했나(운동 현황) → 무엇을 했나(운동
 /// 기록) 순서로 답한다(#1025).
@@ -67,7 +65,7 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
       ClientPeriodSection(
         // 회원 앱 `운동 현황` 제목이 쓰는 것과 같은 아이콘이다 (회원 앱 #1126)
         // — 같은 섹션을 두 화면이 다른 그림으로 가리키면 안 된다.
-        icon: Icons.fitness_center,
+        icon: Icons.fitness_center_rounded,
         title: l.clientTrendTitle,
         period: _period,
         onChanged: (ClientPeriod p) => setState(() => _period = p),
@@ -81,23 +79,16 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
       // 무관한 '앞으로 할 일' 이 거기 계속 붙어 있으면 두 성격이 섞인다 —
       // 기간 토글이 목록을 지배한다는 이 화면의 규칙과도 어긋난다.
       if (_period == ClientPeriod.today) _PendingRoutines(clientId: client.id),
-      const SizedBox(height: AppSpacing.md),
+      const SizedBox(height: OnCareSpacing.s12),
       // 현황을 본 다음 같은 기간의 AI 해석을 읽고, 바로 아래에서 날짜별
       // 근거를 확인한다. 긴 기록 끝에 분석을 두지 않는다. (#1284)
       _ExerciseAiComment(clientId: client.id, period: _period),
-      const SizedBox(height: AppSpacing.md),
+      const SizedBox(height: OnCareSpacing.s12),
       // 기록은 이 목록 하나다. 예전에는 날짜별 목록 아래에 `운동 기록` 카드
       // 목록이 또 있어, 이번 주·전체에서 같은 날의 같은 운동이 두 벌로
       // 나왔다(#1025). 미션 카드는 버리지 않고 이 목록의 펼친 자리로 들어왔다.
-      Text(
-        l.workoutRecords,
-        style: const TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w600,
-          color: AppColors.subtleForeground,
-        ),
-      ),
-      const SizedBox(height: AppSpacing.sm),
+      AppSectionHeader(title: l.workoutRecords),
+      const SizedBox(height: OnCareSpacing.s8),
       _DailyExerciseRecords(clientId: client.id, period: _period),
     ];
     if (embedded) {
@@ -107,7 +98,7 @@ class _WorkoutViewState extends ConsumerState<WorkoutView> {
       );
     }
     return ListView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(OnCareSpacing.s16),
       children: children,
     );
   }
@@ -125,12 +116,20 @@ Color workoutRateColor(int rate) {
   // (`#22A882`)이었는데, 그 색은 회원 앱에서 식단 화면의 계열색으로 남아 있어
   // 같은 `완료` 를 두 앱이 다른 초록으로 칠하고 있었다 — 트레이너 앱 안에서도
   // 일정·할 일 완료와 이 배지의 초록이 갈렸다.
-  if (rate >= 100) return AppColors.success;
-  if (rate > 0) return AppColors.brandOrange;
+  if (rate >= 100) return OnCareColors.success;
+  if (rate > 0) return OnCareColors.caution;
   // 미시작은 `borderStrong`(#DEE8F1) 이었다. 4px 띠일 때는 옅어도 보였지만,
   // 색 띠를 걷어낸 지금은 이 색이 배지의 글자색이라 판에 거의 묻힌다.
   // 비활성이되 읽히는 회색으로 내린다 — 뜻은 그대로다(#1025).
-  return AppColors.disabledForeground;
+  return OnCareColors.textSecondary;
+}
+
+/// [workoutRateColor] 와 같은 세 단계를 태그 톤으로 옮긴 것. 배지는 [AppTag]
+/// 라 색을 직접 받지 않는다 — 두 함수가 같은 단계를 같은 색으로 말한다.
+AppTagTone workoutRateTone(int rate) {
+  if (rate >= 100) return AppTagTone.success;
+  if (rate > 0) return AppTagTone.caution;
+  return AppTagTone.neutral;
 }
 
 /// A single workout record, styled as a mission card: date/kind, a
@@ -151,7 +150,7 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
 
   Future<void> _editFeedback() async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final String? feedback = await showDialog<String>(
+    final String? feedback = await showAppDialog<String>(
       context: context,
       builder: (_) => _FeedbackDialog(initialValue: widget.entry.trainerNote),
     );
@@ -164,7 +163,7 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
           .updateHistoryFeedback(widget.clientId, widget.entry.id, feedback);
       ref.invalidate(clientHistoryProvider(widget.clientId));
       if (!mounted) return;
-      showAppToast(context, l.routineFeedbackSaved, kind: AppToastKind.success);
+      showAppToast(context, l.routineFeedbackSaved, type: AppToastType.success);
     } catch (error) {
       if (!mounted) return;
       showAppToast(
@@ -174,7 +173,7 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
           error is AppError ? error.message : null,
           l.routineFeedbackFailed,
         ),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -184,6 +183,7 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final RoutineHistoryEntry entry = widget.entry;
     // 미션 카드 — 왼쪽 띠 색이 완료 상태를 한눈에 말한다. 원형 게이지는
     // 지웠다: 몇 개 중 몇 개를 했는지는 바로 아래 줄이 이미 정확히 말하고,
@@ -196,14 +196,7 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
     // 배포된 화면과 같은 흰 판이다 — 색 띠를 두르지 않는다. 완료 상태는
     // 오른쪽 배지가 색과 숫자로 말하고, 판까지 그 색을 입으면 한 카드가
     // 같은 말을 두 번 한다(#1025).
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-        border: Border.all(color: AppColors.border),
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -216,11 +209,14 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
                   children: <Widget>[
                     // 날짜는 적지 않는다 — 이 판을 펼친 줄이 바로 위에서
                     // 이미 그 날을 말하고 있다(#1025).
-                    _RecordTypeChip(label: routineKindLabel(l, entry.label)),
+                    AppTag(
+                      label: routineKindLabel(l, entry.label),
+                      tone: AppTagTone.brand,
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: OnCareSpacing.s8),
               // 배지의 `67%` 가 어디서 나온 값인지 — 배정한 운동 중 몇 개를
               // 했는가다. 왼쪽에 한 문장으로 두던 것을 퍼센트 바로 옆으로
               // 옮겨 두 값을 한눈에 함께 읽는다(#1484).
@@ -228,49 +224,55 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
                 Text(
                   entry.completionCountLabel,
                   key: ValueKey<String>('workout-done-count-${entry.id}'),
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.subtleForeground,
-                  ),
+                  style: OnCareTypography.numeric(
+                    tokens.text(
+                      OnCareTypography.strong(OnCareTypography.caption),
+                    ),
+                  ).copyWith(color: OnCareColors.textTertiary),
                 ),
-                const SizedBox(width: AppSpacing.xs),
+                const SizedBox(width: OnCareSpacing.s4),
               ],
               _MissionBadge(rate: entry.displayRate),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          for (final line in entry.exercises) ExerciseLine(line: line),
+          const SizedBox(height: OnCareSpacing.s8),
+          for (final (int i, String line) in entry.exercises.indexed)
+            _ExerciseLine(
+              key: ValueKey<String>('workout-exercise-line-${entry.id}-$i'),
+              line: line,
+            ),
           if (entry.clientFeedback.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: OnCareSpacing.s8),
             _NoteBox(
               // 이 피드백이 **무엇에 대한 말인지** 제목이 말한다(#1453).
               // `고객 피드백` 만 적으면 목록 아래에 붙은 그날 전체의 소감처럼
               // 읽혔다 — 배정 개인 운동의 피드백은 그 운동 하나에 달린 것이다.
               title: clientFeedbackTitle(l, entry),
               body: entry.clientFeedback,
-              color: AppColors.accent,
+              color: tokens.brand.primary,
             ),
           ],
           if (entry.trainerNote.isNotEmpty) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: OnCareSpacing.s4),
             _NoteBox(
               title: l.trainerNote,
               body: entry.trainerNote,
               // 노트다. 주의가 아니므로 빨강으로 올리지 않는다(#690).
-              color: AppColors.brandOrange,
+              color: OnCareColors.caution,
             ),
           ],
           if (entry.assignedRoutineId != null) ...<Widget>[
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: OnCareSpacing.s8),
             Align(
               alignment: Alignment.centerRight,
-              child: ActionButton(
+              child: AppButton(
                 key: ValueKey<String>('routine-feedback-${entry.id}'),
                 label: entry.trainerNote.isEmpty
                     ? l.routineFeedbackWrite
                     : l.routineFeedbackEdit,
                 onPressed: _saving ? null : _editFeedback,
+                variant: AppButtonVariant.secondary,
+                size: OnCareButtonSize.small,
               ),
             ),
           ],
@@ -307,30 +309,43 @@ class _FeedbackDialogState extends State<_FeedbackDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l.routineFeedbackTitle),
-      content: TextField(
+    // 입력 폼이라 중간 폭이다. 하단 버튼은 [AppButtonPair] 와 같은 반반
+    // 배치이되, 테스트와 자동화가 저장 버튼을 키로 찾으므로 직접 세운다.
+    return AppDialog(
+      title: l.routineFeedbackTitle,
+      size: AppDialogSize.medium,
+      footer: Row(
+        children: <Widget>[
+          Expanded(
+            child: AppButton(
+              label: l.actionCancel,
+              onPressed: () => Navigator.of(context).pop(),
+              variant: AppButtonVariant.secondary,
+              fullWidth: true,
+            ),
+          ),
+          const SizedBox(width: OnCareSpacing.buttonGap),
+          Expanded(
+            child: AppButton(
+              key: const ValueKey<String>('routine-feedback-save'),
+              label: l.actionSave,
+              onPressed: () {
+                final String text = _controller.text.trim();
+                if (text.isNotEmpty) Navigator.of(context).pop(text);
+              },
+              fullWidth: true,
+            ),
+          ),
+        ],
+      ),
+      child: AppTextField(
         key: const ValueKey<String>('routine-feedback-input'),
         controller: _controller,
         autofocus: true,
-        maxLength: 2000,
-        maxLines: 5,
-        decoration: InputDecoration(hintText: l.routineFeedbackHint),
+        maxLength: _feedbackMaxLength,
+        maxLines: _feedbackLines,
+        hint: l.routineFeedbackHint,
       ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(l.actionCancel),
-        ),
-        FilledButton(
-          key: const ValueKey<String>('routine-feedback-save'),
-          onPressed: () {
-            final String text = _controller.text.trim();
-            if (text.isNotEmpty) Navigator.of(context).pop(text);
-          },
-          child: Text(l.actionSave),
-        ),
-      ],
     );
   }
 }
@@ -347,59 +362,15 @@ class _MissionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color = workoutRateColor(rate);
     final IconData icon = rate >= 100
-        ? Icons.emoji_events_outlined
+        ? Icons.emoji_events_rounded
         : rate > 0
-        ? Icons.flag_outlined
-        : Icons.radio_button_unchecked;
+        ? Icons.flag_rounded
+        : Icons.radio_button_unchecked_rounded;
     // 판에서 색 띠를 걷어낸 뒤로 완료 상태를 말하는 것은 이 배지뿐이다.
     // 예전에는 오른쪽 원형 게이지가 그만한 자리를 차지했으니(배포된 화면),
     // 그 자리를 이어받을 만큼은 읽혀야 한다(#1025).
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-      ),
-      child: IconLabel(
-        icon: icon,
-        label: '$rate%',
-        color: color,
-        fontSize: 13,
-        fontWeight: FontWeight.w800,
-      ),
-    );
-  }
-}
-
-/// 운동 유형/분류 칩 — 글씨를 키우고 칩으로 올려 시선이 먼저 닿게 한다
-/// (#1025). 기록 하나가 실제로 들고 오는 분류는 이 값(세션 종류) 뿐이다 —
-/// 개별 운동 항목에는 유산소/근력/스트레칭 같은 세부 유형이 실려 오지 않는다
-/// (#996 스키마는 확정됐지만, 기록에 세부 종목 필드가 내려오는지는 별도
-/// 확인이 필요하다).
-class _RecordTypeChip extends StatelessWidget {
-  const _RecordTypeChip({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: const BoxDecoration(
-        color: AppColors.accentSurface,
-        borderRadius: BorderRadius.all(AppRadius.pill),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w700,
-          color: AppColors.accent,
-        ),
-      ),
-    );
+    return AppTag(label: '$rate%', icon: icon, tone: workoutRateTone(rate));
   }
 }
 
@@ -417,17 +388,21 @@ class _NoteBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+        horizontal: OnCareSpacing.s12,
+        vertical: OnCareSpacing.s8,
       ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: const BorderRadius.all(AppRadius.md),
+        color: OnCareColors.onWhite(color, OnCareAlpha.subtle),
+        borderRadius: OnCareRadius.mdAll,
         border: Border(
-          left: BorderSide(color: color.withValues(alpha: 0.4), width: 3),
+          left: BorderSide(
+            color: OnCareColors.onWhite(color, OnCareAlpha.strong),
+            width: OnCareSpacing.s4,
+          ),
         ),
       ),
       child: Column(
@@ -435,19 +410,66 @@ class _NoteBox extends StatelessWidget {
         children: <Widget>[
           Text(
             title,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: color),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: OnCareSpacing.s2),
           Text(
             body,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 기록된 운동 한 줄 — 이름과 수행 여부.
+///
+/// 저장된 문자열은 끝에 '✓' / '✗' 로 결과를 표시한다. 그 글자는 **저장 규칙**
+/// 이지 화면에 찍을 것이 아니다: Flutter web 의 폰트 스택에 글리프가 없어
+/// 두부 상자로 그려진다. 표시를 읽어 아이콘과 취소선으로 바꿔 그린다.
+class _ExerciseLine extends StatelessWidget {
+  const _ExerciseLine({super.key, required this.line});
+
+  final String line;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool skipped = line.contains('✗');
+    final String text = line.replaceAll(RegExp(r'\s*[✓✗]\s*'), ' ').trim();
+    final Color color = skipped
+        ? OnCareColors.textDisabled
+        : OnCareColors.textSecondary;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // 아이콘을 첫 줄 높이에 맞춘다 — 위쪽에 붙이면 한글 글자의 시각적
+          // 중심보다 높이 떠 보인다.
+          Padding(
+            padding: const EdgeInsets.only(top: OnCareSpacing.s2),
+            child: Icon(
+              skipped ? Icons.close_rounded : Icons.check_rounded,
+              size: OnCareSize.iconSmall,
+              color: skipped ? OnCareColors.textDisabled : OnCareColors.success,
+            ),
+          ),
+          const SizedBox(width: OnCareSpacing.s4),
+          Expanded(
+            child: Text(
+              text,
+              style: context.oncare
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(
+                    color: color,
+                    decoration: skipped ? TextDecoration.lineThrough : null,
+                    decorationColor: color,
+                  ),
             ),
           ),
         ],
@@ -554,16 +576,14 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
     // 비워 두면 "그날 아무것도 안 했다" 와 구분되지 않는다 — 위 그래프는 다른
     // provider 라 그대로 보인다.
     if (history.hasError) {
-      return EmptyHint(
-        message: l.workoutLoadFailed,
-        icon: Icons.error_outline,
-        action: ActionButton(
-          key: ValueKey<String>('workout-history-retry-${widget.clientId}'),
-          label: l.actionRetry,
-          onPressed: history.isLoading
-              ? null
-              : () => ref.invalidate(clientHistoryProvider(widget.clientId)),
-        ),
+      return AppErrorState(
+        key: ValueKey<String>('workout-history-retry-${widget.clientId}'),
+        title: l.workoutLoadFailed,
+        retryLabel: l.actionRetry,
+        onRetry: history.isLoading
+            ? null
+            : () => ref.invalidate(clientHistoryProvider(widget.clientId)),
+        placement: AppStatePlacement.card,
       );
     }
     Widget withUndated(Widget days) {
@@ -574,19 +594,12 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           days,
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            l.workoutUndatedTitle,
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.subtleForeground,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s16),
+          AppSectionHeader(title: l.workoutUndatedTitle),
+          const SizedBox(height: OnCareSpacing.s8),
           for (final RoutineHistoryEntry entry in undated) ...<Widget>[
             _HistoryCard(clientId: widget.clientId, entry: entry),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: OnCareSpacing.s8),
           ],
         ],
       );
@@ -676,7 +689,7 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
 /// 채워졌는지는 이름이 말한다 — 식단에서 하루 합계 아래 끼니를 펴는 것과 같은
 /// 자리다.
 ///
-/// 줄은 아래 운동 기록 카드와 같은 [ExerciseLine] 이다. 걸른 운동에 취소선이
+/// 줄은 아래 운동 기록 카드와 같은 [_ExerciseLine] 이다. 걸른 운동에 취소선이
 /// 그어지는 규칙도 그대로라, 한 화면에서 같은 표시가 다른 뜻으로 읽히지 않는다.
 class _DayDetail extends ConsumerWidget {
   const _DayDetail({
@@ -695,13 +708,13 @@ class _DayDetail extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (entries.isNotEmpty) {
       return Padding(
-        padding: const EdgeInsets.only(top: AppSpacing.md),
+        padding: const EdgeInsets.only(top: OnCareSpacing.s12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             for (final RoutineHistoryEntry entry in entries) ...<Widget>[
               _HistoryCard(clientId: clientId, entry: entry),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: OnCareSpacing.s8),
             ],
           ],
         ),
@@ -716,12 +729,15 @@ class _DayDetail extends ConsumerWidget {
         // 그럴 때는 아무 말도 하지 않는다: 위 알약이 이미 그날을 말했다.
         if (lines.isEmpty) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.md),
+          padding: const EdgeInsets.only(top: OnCareSpacing.s12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              for (final String line in lines)
-                ExerciseLine(line: line, fontSize: 13.5),
+              for (final (int i, String line) in lines.indexed)
+                _ExerciseLine(
+                  key: ValueKey<String>('workout-exercise-line-${ymd(date)}-$i'),
+                  line: line,
+                ),
             ],
           ),
         );
@@ -756,19 +772,12 @@ class _PendingRoutines extends ConsumerWidget {
       key: const ValueKey<String>('workout-pending-routines'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        const SizedBox(height: AppSpacing.lg),
-        Text(
-          l.workoutPendingTitle,
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: AppColors.subtleForeground,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.s16),
+        AppSectionHeader(title: l.workoutPendingTitle),
+        const SizedBox(height: OnCareSpacing.s8),
         for (final AssignedRoutine routine in pending)
           Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
             child: _PendingRoutineRow(clientId: clientId, routine: routine),
           ),
       ],
@@ -817,28 +826,15 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
   Future<void> _cancel() async {
     final AppLocalizations l = AppLocalizations.of(context);
     // 되돌릴 수 없는 일이라 한 번 묻는다 — 프로그램 탭의 취소와 같은 문구다.
-    final bool? ok = await showDialog<bool>(
+    final bool ok = await showAppConfirmDialog(
       context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: Text(l.routineDeleteTitle),
-        content: Text(l.routineDeleteBody(widget.routine.name)),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          TextButton(
-            key: const ValueKey<String>('confirm-cancel-pending-routine'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              l.actionDelete,
-              style: const TextStyle(color: AppColors.destructive),
-            ),
-          ),
-        ],
-      ),
+      title: l.routineDeleteTitle,
+      message: l.routineDeleteBody(widget.routine.name),
+      confirmLabel: l.actionDelete,
+      cancelLabel: l.actionCancel,
+      destructive: true,
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
 
     setState(() => _busy = true);
     try {
@@ -847,7 +843,7 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
           .read(trainerRoutineRepositoryProvider)
           .deleteRoutine(widget.clientId, widget.routine.id);
       if (!mounted) return;
-      showAppToast(context, l.routineDeleted, kind: AppToastKind.success);
+      showAppToast(context, l.routineDeleted, type: AppToastType.success);
     } on StateError {
       // 404 — 이미 없는 것을 지우려 했다. 목적은 이뤄진 셈이라 목록만 다시 읽고
       // 그 줄을 화면에서 걷어낸다.
@@ -855,7 +851,7 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
       showAppToast(context, l.routineAlreadyGone);
     } on Object {
       if (!mounted) return;
-      showAppToast(context, l.routineDeleteFailed, kind: AppToastKind.error);
+      showAppToast(context, l.routineDeleteFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _busy = false);
       ref.invalidate(assignedRoutinesProvider(widget.clientId));
@@ -865,17 +861,15 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final AssignedRoutine routine = widget.routine;
-    return Container(
+    final TextStyle separator = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textTertiary);
+    return AppCard(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-        border: Border.all(color: AppColors.border),
+        horizontal: OnCareSpacing.s16,
+        vertical: OnCareSpacing.s12,
       ),
       child: Row(
         children: <Widget>[
@@ -890,43 +884,31 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
                     children: <InlineSpan>[
                       TextSpan(
                         text: routine.name,
-                        style: const TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.foreground,
-                        ),
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(
+                                OnCareTypography.bodySmall,
+                              ),
+                            )
+                            .copyWith(color: OnCareColors.textPrimary),
                       ),
-                      const TextSpan(
-                        text: ' · ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.subtleForeground,
-                        ),
-                      ),
+                      TextSpan(text: ' · ', style: separator),
                       TextSpan(
                         text: routineTypeLabel(l, routine.type),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.subtleForeground,
-                        ),
+                        style: tokens
+                            .text(
+                              OnCareTypography.strong(OnCareTypography.caption),
+                            )
+                            .copyWith(color: OnCareColors.textTertiary),
                       ),
-                      const TextSpan(
-                        text: ' · ',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.subtleForeground,
-                        ),
-                      ),
+                      TextSpan(text: ' · ', style: separator),
                       TextSpan(
                         text: _pendingRoutineAmountLabel(l, routine),
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.accent,
-                        ),
+                        style: OnCareTypography.numeric(
+                          tokens.text(
+                            OnCareTypography.strong(OnCareTypography.caption),
+                          ),
+                        ).copyWith(color: tokens.brand.primary),
                       ),
                     ],
                   ),
@@ -934,52 +916,40 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (routine.reason.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: OnCareSpacing.s2),
                   Text(
                     routine.reason,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.subtleForeground,
-                    ),
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textTertiary),
                   ),
                 ],
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: OnCareSpacing.s8),
           // 누가 보낸 것인지 — AI 추천과 트레이너 배정은 물릴 때의 무게가 다르다.
           routine.source == 'ai'
-              ? const IconLabel(
-                  icon: Icons.auto_awesome,
-                  label: 'AI',
-                  color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
+              ? AppTag(
+                  label: l.clientWorkoutSourceAi,
+                  icon: Icons.auto_awesome_rounded,
+                  tone: AppTagTone.brand,
                 )
-              : IconLabel(
-                  icon: Icons.badge_outlined,
+              : AppTag(
                   label: l.coachTrainer,
-                  color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
+                  icon: Icons.badge_rounded,
+                  tone: AppTagTone.brand,
                 ),
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(width: OnCareSpacing.s4),
           if (_busy)
-            const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
+            const AppLoading.inline()
           else
-            IconButton(
+            AppIconButton(
               key: ValueKey<String>('workout-cancel-routine-${routine.id}'),
               onPressed: _cancel,
-              icon: const Icon(Icons.close_rounded, size: 16),
-              color: AppColors.mutedForeground,
+              icon: Icons.close_rounded,
+              color: OnCareColors.textSecondary,
               tooltip: l.workoutPendingCancel,
-              visualDensity: VisualDensity.compact,
-              constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-              padding: EdgeInsets.zero,
             ),
         ],
       ),

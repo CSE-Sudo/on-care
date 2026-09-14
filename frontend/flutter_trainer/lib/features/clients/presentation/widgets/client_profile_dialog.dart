@@ -3,16 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/dialog_close_button.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Opens the merged 신체·목표·메모 dialog for [clientId].
 ///
@@ -23,7 +19,7 @@ Future<void> showClientProfileDialog(
   required String clientId,
   required String clientName,
   String fallbackGender = '',
-}) => showDialog<void>(
+}) => showAppDialog<void>(
   context: context,
   builder: (_) => ClientProfileDialog(
     clientId: clientId,
@@ -64,46 +60,46 @@ class ClientProfileDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AlertDialog(
+    // 닫기는 다른 가운데 모달과 같은 자리·모양이다 — 헤더 오른쪽 위 X 하나로
+    // 충분해, 아래에 따로 `닫기` 글자 버튼을 두지 않는다. 본문은 창이 스크롤하므로
+    // 메모가 아무리 쌓여도 창이 화면을 넘치지 않는다.
+    return AppDialog(
       key: const ValueKey<String>('client-profile-dialog'),
-      // 닫기는 다른 가운데 모달과 같은 자리·모양이다 — 오른쪽 위 X 하나로
-      // 충분해, 아래에 따로 `닫기` 글자 버튼을 두지 않는다.
-      title: Row(
+      title: l.clientProfileSectionTitle,
+      size: AppDialogSize.medium,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Expanded(child: Text(l.clientProfileSectionTitle)),
-          DialogCloseButton(
-            key: const ValueKey<String>('client-profile-dialog-close'),
-            tooltip: l.actionClose,
-            onTap: () => Navigator.of(context).pop(),
+          // 상단: 신체정보와 목표.
+          _HealthProfileSection(
+            clientId: clientId,
+            fallbackGender: fallbackGender,
           ),
+          const SizedBox(height: OnCareSpacing.s16),
+          const AppDivider(),
+          const SizedBox(height: OnCareSpacing.s16),
+          // 하단: 메모.
+          _MemoSection(clientId: clientId, clientName: clientName),
         ],
-      ),
-      content: SizedBox(
-        // Same width as the two dialogs this replaces, so the form fields
-        // keep the proportions trainers already know.
-        width: 520,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // 상단: 신체정보와 목표.
-              _HealthProfileSection(
-                clientId: clientId,
-                fallbackGender: fallbackGender,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              const Divider(color: AppColors.borderStrong, height: 1),
-              const SizedBox(height: AppSpacing.lg),
-              // 하단: 메모. 이 열 전체가 하나의 스크롤 안에 있어, 메모가 아무리
-              // 쌓여도 대화상자가 화면을 넘치지 않는다.
-              _MemoSection(clientId: clientId, clientName: clientName),
-            ],
-          ),
-        ),
       ),
     );
   }
+}
+
+/// 섹션 머리 글자 — 신체·목표와 메모 두 구획이 같은 모양이다.
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: context.oncare
+        .text(OnCareTypography.strong(OnCareTypography.label))
+        .copyWith(color: OnCareColors.textSecondary),
+  );
 }
 
 /// 신체정보 · 목표 폼 — 예전 `MemberHealthProfileDialog` 의 내용을 다이얼로그
@@ -124,7 +120,6 @@ class _HealthProfileSection extends ConsumerStatefulWidget {
 }
 
 class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
-  final _formKey = GlobalKey<FormState>();
   late final Future<MemberHealthProfile> _profile;
   final _height = TextEditingController();
   final _weight = TextEditingController();
@@ -148,6 +143,10 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   bool _profileLoaded = false;
   bool _saving = false;
   bool _saved = false;
+
+  /// 저장을 누른 순간 검사한 칸별 오류. 예전 `Form.validate()` 처럼 저장을
+  /// 누를 때만 다시 계산하고, 그 사이에는 마지막 결과를 그대로 보여 준다.
+  Map<String, String?> _errors = const <String, String?>{};
 
   @override
   void initState() {
@@ -233,9 +232,106 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     return null;
   }
 
+  /// 숫자 칸 전부 — 검사 범위와 오류를 붙일 이름을 한곳에 둔다.
+  List<_NumberField> _numberFields(AppLocalizations l) => <_NumberField>[
+    _NumberField('height', _height, l.memberHealthHeight, 50, 300, false),
+    _NumberField('weight', _weight, l.memberHealthWeight, 20, 500, false),
+    _NumberField(
+      'client-goal-calories',
+      _goalCalories,
+      l.memberHealthGoalCalories,
+      500,
+      10000,
+      true,
+    ),
+    _NumberField(
+      'client-goal-sodium',
+      _goalSodium,
+      l.memberHealthGoalSodium,
+      0,
+      50000,
+      true,
+    ),
+    _NumberField(
+      'client-goal-sugar',
+      _goalSugar,
+      l.memberHealthGoalSugar,
+      0,
+      1000,
+      true,
+    ),
+    _NumberField(
+      'client-goal-carbs',
+      _goalCarbs,
+      l.memberHealthGoalCarbs,
+      0,
+      2000,
+      true,
+    ),
+    _NumberField(
+      'client-goal-protein',
+      _goalProtein,
+      l.memberHealthGoalProtein,
+      0,
+      1000,
+      true,
+    ),
+    _NumberField(
+      'client-goal-fat',
+      _goalFat,
+      l.memberHealthGoalFat,
+      0,
+      1000,
+      true,
+    ),
+    _NumberField(
+      'client-goal-burn',
+      _goalBurn,
+      l.memberHealthGoalBurnDaily,
+      0,
+      20000,
+      true,
+    ),
+    _NumberField(
+      'client-goal-cardio',
+      _goalCardio,
+      l.memberHealthGoalCardioWeekly,
+      0,
+      10080,
+      true,
+    ),
+    _NumberField(
+      'client-goal-strength',
+      _goalStrength,
+      l.memberHealthGoalStrengthWeekly,
+      0,
+      1000,
+      true,
+    ),
+    _NumberField(
+      'client-goal-flexibility',
+      _goalFlexibility,
+      l.memberHealthGoalFlexibilityWeekly,
+      0,
+      10080,
+      true,
+    ),
+  ];
+
   Future<void> _save() async {
-    final form = _formKey.currentState;
-    if (form == null || !form.validate()) return;
+    final l = AppLocalizations.of(context);
+    final Map<String, String?> errors = <String, String?>{
+      for (final field in _numberFields(l))
+        field.id: _validate(
+          l,
+          field.controller.text,
+          min: field.min,
+          max: field.max,
+          integer: field.integer,
+        ),
+    };
+    setState(() => _errors = errors);
+    if (errors.values.any((error) => error != null)) return;
     setState(() {
       _saving = true;
       _saved = false;
@@ -277,51 +373,43 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       showAppToast(
         context,
         serverDetailOr(l, error.message, l.memberHealthSaveFailed),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
       setState(() => _saving = false);
     } catch (_) {
       if (!mounted) return;
       final l = AppLocalizations.of(context);
-      showAppToast(context, l.memberHealthSaveFailed, kind: AppToastKind.error);
+      showAppToast(context, l.memberHealthSaveFailed, type: AppToastType.error);
       setState(() => _saving = false);
     }
   }
 
-  InputDecoration _decoration(String label) =>
-      InputDecoration(labelText: label, isDense: true);
-
-  /// 목표 두 칸을 한 줄에. 좁은 창에서도 라벨이 잘리지 않게 폭을 나눈다.
-  Widget _goalRow(List<Widget> fields) => Row(
+  /// 한 줄에 칸 여럿. 좁은 창에서도 라벨이 잘리지 않게 폭을 나눈다.
+  Widget _fieldRow(List<Widget> fields) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: <Widget>[
       for (int i = 0; i < fields.length; i++) ...<Widget>[
-        if (i > 0) const SizedBox(width: AppSpacing.xs),
+        if (i > 0) const SizedBox(width: OnCareSpacing.s8),
         Expanded(child: fields[i]),
       ],
     ],
   );
 
-  /// 목표 한 칸. 비우면 `없음` 이고, 서버가 그 자리를 지운다.
-  Widget _goalField({
-    required String key,
-    required TextEditingController controller,
-    required String label,
-    required AppLocalizations l,
-    required double min,
-    required double max,
-  }) => TextFormField(
-    key: ValueKey<String>(key),
-    controller: controller,
-    decoration: _decoration(label),
+  /// 숫자 한 칸. 목표 칸은 비우면 `없음` 이고, 서버가 그 자리를 지운다.
+  Widget _numberField(_NumberField field) => AppTextField(
+    key: field.id.startsWith('client-goal-')
+        ? ValueKey<String>(field.id)
+        : null,
+    controller: field.controller,
+    label: field.label,
     keyboardType: TextInputType.number,
-    validator: (value) =>
-        _validate(l, value, min: min, max: max, integer: true),
+    errorText: _errors[field.id],
   );
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
     return FutureBuilder<MemberHealthProfile>(
       future: _profile,
       builder: (context, snapshot) {
@@ -334,237 +422,128 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
           );
         }
         if (!snapshot.hasData) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-            child: Center(child: CircularProgressIndicator()),
-          );
+          return const AppLoading(placement: AppStatePlacement.card);
         }
         final profile = snapshot.data!;
         _initialize(profile);
-        return Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                l.clientHealthGoals,
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.mutedForeground,
+        final fields = _numberFields(l);
+        Widget number(int index) => _numberField(fields[index]);
+        final TextStyle groupStyle = tokens
+            .text(OnCareTypography.titleSmall)
+            .copyWith(color: OnCareColors.textPrimary);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _SectionLabel(l.clientHealthGoals),
+            const SizedBox(height: OnCareSpacing.s8),
+            AppSelectField<String>(
+              key: const ValueKey<String>('client-profile-gender'),
+              label: l.memberHealthGender,
+              value: <String>['', 'male', 'female', 'other'].contains(_gender)
+                  ? _gender
+                  : '',
+              items: <DropdownMenuItem<String>>[
+                DropdownMenuItem<String>(
+                  value: '',
+                  child: Text(l.memberHealthGenderUnset),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              DropdownButtonFormField<String>(
-                key: const ValueKey<String>('client-profile-gender'),
-                initialValue:
-                    <String>['', 'male', 'female', 'other'].contains(_gender)
-                    ? _gender
-                    : '',
-                decoration: _decoration(l.memberHealthGender),
-                items: <DropdownMenuItem<String>>[
-                  DropdownMenuItem<String>(
-                    value: '',
-                    child: Text(l.memberHealthGenderUnset),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'male',
-                    child: Text(l.memberHealthGenderMale),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'female',
-                    child: Text(l.memberHealthGenderFemale),
-                  ),
-                  DropdownMenuItem<String>(
-                    value: 'other',
-                    child: Text(l.memberHealthGenderOther),
-                  ),
-                ],
-                onChanged: (value) => _gender = value ?? '',
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
+                DropdownMenuItem<String>(
+                  value: 'male',
+                  child: Text(l.memberHealthGenderMale),
+                ),
+                DropdownMenuItem<String>(
+                  value: 'female',
+                  child: Text(l.memberHealthGenderFemale),
+                ),
+                DropdownMenuItem<String>(
+                  value: 'other',
+                  child: Text(l.memberHealthGenderOther),
+                ),
+              ],
+              onChanged: (value) => _gender = value ?? '',
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _fieldRow(<Widget>[number(0), number(1)]),
+            const SizedBox(height: OnCareSpacing.s8),
+            AppTextField(
+              controller: _conditions,
+              label: l.memberHealthConditions,
+              maxLines: 2,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            AppTextField(
+              controller: _goals,
+              label: l.memberHealthGoals,
+              maxLines: 2,
+            ),
+            const SizedBox(height: OnCareSpacing.s16),
+            Text(l.memberHealthDietGoal, style: groupStyle),
+            const SizedBox(height: OnCareSpacing.s8),
+            // 회원 앱 마이페이지의 `식단 목표` 여섯과 같은 필드·단위·라벨이다.
+            _fieldRow(<Widget>[number(2), number(3)]),
+            const SizedBox(height: OnCareSpacing.s8),
+            _fieldRow(<Widget>[number(4), number(5)]),
+            const SizedBox(height: OnCareSpacing.s8),
+            _fieldRow(<Widget>[number(6), number(7)]),
+            const SizedBox(height: OnCareSpacing.s16),
+            Text(l.memberHealthExerciseGoal, style: groupStyle),
+            const SizedBox(height: OnCareSpacing.s8),
+            // 회원 앱의 `운동 목표` 넷과 같은 값이다(#1139). 옛 주간
+            // 횟수·시간·소모 목표는 회원 화면에 대응하는 자리가 없어 여기서
+            // 다루지 않는다.
+            _fieldRow(<Widget>[number(8), number(9)]),
+            const SizedBox(height: OnCareSpacing.s8),
+            _fieldRow(<Widget>[number(10), number(11)]),
+            const SizedBox(height: OnCareSpacing.s16),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Expanded(
-                    child: TextFormField(
-                      controller: _height,
-                      decoration: _decoration(l.memberHealthHeight),
-                      keyboardType: TextInputType.number,
-                      validator: (value) =>
-                          _validate(l, value, min: 50, max: 300),
+                  // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이
+                  // 결과인지 읽히지 않아 완료 전용 문구를 쓴다.
+                  if (_saved) ...<Widget>[
+                    Text(
+                      l.actionSaved,
+                      // 저장이 끝났다 = 완료. 다른 완료 표시와 같은 초록이다(#1239).
+                      style: tokens
+                          .text(OnCareTypography.strong(OnCareTypography.label))
+                          .copyWith(color: OnCareColors.success),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _weight,
-                      decoration: _decoration(l.memberHealthWeight),
-                      keyboardType: TextInputType.number,
-                      validator: (value) =>
-                          _validate(l, value, min: 20, max: 500),
-                    ),
+                    const SizedBox(width: OnCareSpacing.s8),
+                  ],
+                  AppButton(
+                    key: const ValueKey<String>('client-profile-save'),
+                    onPressed: _saving || !_profileLoaded ? null : _save,
+                    label: _saving ? l.memberHealthSaving : l.actionSave,
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
-              TextFormField(
-                controller: _conditions,
-                decoration: _decoration(l.memberHealthConditions),
-                maxLines: 2,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              TextFormField(
-                controller: _goals,
-                decoration: _decoration(l.memberHealthGoals),
-                maxLines: 2,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                l.memberHealthDietGoal,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              // 회원 앱 마이페이지의 `식단 목표` 여섯과 같은 필드·단위·라벨이다.
-              _goalRow(<Widget>[
-                _goalField(
-                  key: 'client-goal-calories',
-                  controller: _goalCalories,
-                  label: l.memberHealthGoalCalories,
-                  l: l,
-                  min: 500,
-                  max: 10000,
-                ),
-                _goalField(
-                  key: 'client-goal-sodium',
-                  controller: _goalSodium,
-                  label: l.memberHealthGoalSodium,
-                  l: l,
-                  min: 0,
-                  max: 50000,
-                ),
-              ]),
-              const SizedBox(height: AppSpacing.xs),
-              _goalRow(<Widget>[
-                _goalField(
-                  key: 'client-goal-sugar',
-                  controller: _goalSugar,
-                  label: l.memberHealthGoalSugar,
-                  l: l,
-                  min: 0,
-                  max: 1000,
-                ),
-                _goalField(
-                  key: 'client-goal-carbs',
-                  controller: _goalCarbs,
-                  label: l.memberHealthGoalCarbs,
-                  l: l,
-                  min: 0,
-                  max: 2000,
-                ),
-              ]),
-              const SizedBox(height: AppSpacing.xs),
-              _goalRow(<Widget>[
-                _goalField(
-                  key: 'client-goal-protein',
-                  controller: _goalProtein,
-                  label: l.memberHealthGoalProtein,
-                  l: l,
-                  min: 0,
-                  max: 1000,
-                ),
-                _goalField(
-                  key: 'client-goal-fat',
-                  controller: _goalFat,
-                  label: l.memberHealthGoalFat,
-                  l: l,
-                  min: 0,
-                  max: 1000,
-                ),
-              ]),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                l.memberHealthExerciseGoal,
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              // 회원 앱의 `운동 목표` 넷과 같은 값이다(#1139). 옛 주간
-              // 횟수·시간·소모 목표는 회원 화면에 대응하는 자리가 없어 여기서
-              // 다루지 않는다.
-              _goalRow(<Widget>[
-                _goalField(
-                  key: 'client-goal-burn',
-                  controller: _goalBurn,
-                  label: l.memberHealthGoalBurnDaily,
-                  l: l,
-                  min: 0,
-                  max: 20000,
-                ),
-                _goalField(
-                  key: 'client-goal-cardio',
-                  controller: _goalCardio,
-                  label: l.memberHealthGoalCardioWeekly,
-                  l: l,
-                  min: 0,
-                  max: 10080,
-                ),
-              ]),
-              const SizedBox(height: AppSpacing.xs),
-              _goalRow(<Widget>[
-                _goalField(
-                  key: 'client-goal-strength',
-                  controller: _goalStrength,
-                  label: l.memberHealthGoalStrengthWeekly,
-                  l: l,
-                  min: 0,
-                  max: 1000,
-                ),
-                _goalField(
-                  key: 'client-goal-flexibility',
-                  controller: _goalFlexibility,
-                  label: l.memberHealthGoalFlexibilityWeekly,
-                  l: l,
-                  min: 0,
-                  max: 10080,
-                ),
-              ]),
-              const SizedBox(height: AppSpacing.md),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // 저장이 끝났다는 표시. 버튼과 같은 `저장` 이면 어느 쪽이
-                    // 결과인지 읽히지 않아 완료 전용 문구를 쓴다.
-                    if (_saved)
-                      Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.sm),
-                        child: Text(
-                          l.actionSaved,
-                          style: const TextStyle(
-                            // 저장이 끝났다 = 완료. 다른 완료 표시와 같은
-                            // 초록이다(#1239).
-                            color: AppColors.success,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    FilledButton(
-                      key: const ValueKey<String>('client-profile-save'),
-                      onPressed: _saving || !_profileLoaded ? null : _save,
-                      child: Text(
-                        _saving ? l.memberHealthSaving : l.actionSave,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
   }
+}
+
+/// 숫자 입력 칸 하나의 검사 규칙.
+class _NumberField {
+  const _NumberField(
+    this.id,
+    this.controller,
+    this.label,
+    this.min,
+    this.max,
+    this.integer,
+  );
+
+  final String id;
+  final TextEditingController controller;
+  final String label;
+  final double min;
+  final double max;
+  final bool integer;
 }
 
 /// 메모 목록 — 예전 `ClientMemoDialog` 의 내용을 다이얼로그 밖으로 꺼낸 것이다.
@@ -616,7 +595,7 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
   }
 
   void _toast(String message) {
-    showAppToast(context, message, kind: AppToastKind.error);
+    showAppToast(context, message, type: AppToastType.error);
   }
 
   Future<void> _add() async {
@@ -649,31 +628,17 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
 
   Future<void> _delete(TrainerMemo memo) async {
     final l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    // 되돌릴 수 없는 쪽은 파괴적 색으로 말한다 — 취소와 같은 계열이면
+    // 두 동작의 위험도 차이가 보이지 않는다(#1448).
+    final confirmed = await showAppConfirmDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l.clientTrainerMemoDeleteTitle),
-        content: Text(l.clientTrainerMemoDeleteBody),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          // 되돌릴 수 없는 쪽은 파괴적 색으로 말한다 — 취소와 같은 계열이면
-          // 두 동작의 위험도 차이가 보이지 않는다(#1448).
-          FilledButton(
-            key: const ValueKey<String>('client-memo-delete-confirm'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.destructive,
-              foregroundColor: AppColors.destructiveForeground,
-            ),
-            child: Text(l.actionDelete),
-          ),
-        ],
-      ),
+      title: l.clientTrainerMemoDeleteTitle,
+      message: l.clientTrainerMemoDeleteBody,
+      cancelLabel: l.actionCancel,
+      confirmLabel: l.actionDelete,
+      destructive: true,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await _run(() async {
       await ref
           .read(trainerMemoRepositoryProvider)
@@ -685,37 +650,27 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final tokens = context.oncare;
     final memos = ref.watch(trainerMemosProvider(widget.clientId));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          l.clientTrainerMemo,
-          style: const TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.mutedForeground,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        TextField(
+        _SectionLabel(l.clientTrainerMemo),
+        const SizedBox(height: OnCareSpacing.s8),
+        // 기본 카운터는 버튼과 다른 줄에 떨어져 그려진다 — 아래에서 직접
+        // 그리므로 입력창은 카운터를 감춘다.
+        AppTextField(
           key: const ValueKey<String>('client-memo-input'),
           controller: _draft,
           maxLines: 3,
           maxLength: _maxLength,
           enabled: !_busy,
-          decoration: InputDecoration(
-            hintText: l.clientTrainerMemoHint,
-            border: const OutlineInputBorder(),
-            // 기본 카운터는 버튼과 다른 줄에 떨어져 그려진다 — 아래 Row에서
-            // 버튼과 나란히 직접 그리므로 여기서는 감춘다.
-            counterText: '',
-          ),
+          hint: l.clientTrainerMemoHint,
         ),
         // 글자 수는 입력 상자 **바로 아래 오른쪽**에 붙인다(#1448). `추가` 와
         // 한 줄에 나눠 두면 왼쪽 끝의 보조 정보가 입력 상자와 따로 놀았다.
-        const SizedBox(height: 4),
+        const SizedBox(height: OnCareSpacing.s4),
         Align(
           alignment: Alignment.centerRight,
           child: ValueListenableBuilder<TextEditingValue>(
@@ -723,56 +678,52 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
             builder: (context, value, _) => Text(
               key: const ValueKey<String>('client-memo-counter'),
               '${value.text.characters.length}/$_maxLength',
-              style: const TextStyle(
-                fontSize: 11.5,
-                color: AppColors.mutedForeground,
-              ),
+              style: OnCareTypography.numeric(
+                tokens.text(OnCareTypography.caption),
+              ).copyWith(color: OnCareColors.textTertiary),
             ),
           ),
         ),
         // 입력 상자와 바로 붙어 있으면 `추가` 가 상자의 일부처럼 보인다 —
         // 다른 카드 사이 간격과 같은 여백을 준다.
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.s8),
         Align(
           alignment: Alignment.centerRight,
-          child: FilledButton.icon(
+          child: AppButton(
             key: const ValueKey<String>('client-memo-add'),
             onPressed: _busy ? null : _add,
-            icon: const Icon(Icons.add_rounded, size: 18),
-            label: Text(l.clientTrainerMemoAdd),
+            leadingIcon: Icons.add_rounded,
+            label: l.clientTrainerMemoAdd,
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.s8),
         memos.when(
-          loading: () => const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (error, _) => _LoadFailed(
-            message: error is AppError
+          loading: () => const AppLoading(placement: AppStatePlacement.card),
+          error: (error, _) => AppErrorState(
+            key: const ValueKey<String>('client-memo-retry'),
+            placement: AppStatePlacement.card,
+            title: error is AppError
                 ? serverDetailOr(
                     l,
                     error.message,
                     l.clientTrainerMemoLoadFailed,
                   )
                 : l.clientTrainerMemoLoadFailed,
+            retryLabel: l.actionRetry,
             onRetry: () =>
                 ref.invalidate(trainerMemosProvider(widget.clientId)),
           ),
           data: (list) => list.isEmpty
-              ? Padding(
-                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
-                  child: Text(
-                    l.clientTrainerMemoEmpty,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.mutedForeground),
-                  ),
+              ? AppEmptyState(
+                  placement: AppStatePlacement.card,
+                  title: l.clientTrainerMemoEmpty,
                 )
               : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     for (final memo in list) ...<Widget>[
                       _memoTile(l, memo),
-                      const SizedBox(height: AppSpacing.sm),
+                      const SizedBox(height: OnCareSpacing.s8),
                     ],
                   ],
                 ),
@@ -782,84 +733,63 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
   }
 
   Widget _memoTile(AppLocalizations l, TrainerMemo memo) {
+    final tokens = context.oncare;
     final editing = _editingId == memo.id;
-    return Container(
+    return AppTile(
       key: ValueKey<String>('client-memo-${memo.id}'),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.borderStrong),
-        borderRadius: const BorderRadius.all(AppRadius.md),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           if (memo.source == TrainerMemoSource.chatInsight)
             Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.10),
-                  borderRadius: const BorderRadius.all(AppRadius.pill),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      size: 14,
-                      color: AppColors.warning,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      _insightReasonLabel(l, memo.insightKind),
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.warning,
-                      ),
-                    ),
-                  ],
-                ),
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.s4),
+              child: AppTag(
+                label: _insightReasonLabel(l, memo.insightKind),
+                tone: AppTagTone.caution,
+                icon: Icons.warning_amber_rounded,
               ),
             ),
           if (editing)
-            TextField(
+            AppTextField(
               key: ValueKey<String>('client-memo-edit-${memo.id}'),
               controller: _edit,
               maxLines: 3,
               maxLength: _maxLength,
               enabled: !_busy,
-              decoration: const InputDecoration(border: OutlineInputBorder()),
             )
           else
-            Text(memo.body),
-          const SizedBox(height: AppSpacing.xs),
+            Text(
+              memo.body,
+              style: tokens
+                  .text(OnCareTypography.body)
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+          const SizedBox(height: OnCareSpacing.s4),
           Row(
             children: <Widget>[
               Expanded(
                 child: Text(
                   _dayLabel(memo.updatedAt),
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    color: AppColors.mutedForeground,
-                  ),
+                  style: OnCareTypography.numeric(
+                    tokens.text(OnCareTypography.caption),
+                  ).copyWith(color: OnCareColors.textTertiary),
                 ),
               ),
               if (editing) ...<Widget>[
-                TextButton(
+                AppButton(
                   onPressed: _busy
                       ? null
                       : () => setState(() => _editingId = null),
-                  child: Text(l.actionCancel),
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  label: l.actionCancel,
                 ),
-                TextButton(
+                AppButton(
                   key: ValueKey<String>('client-memo-save-${memo.id}'),
                   onPressed: _busy ? null : () => _saveEdit(memo),
-                  child: Text(l.actionSave),
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  label: l.actionSave,
                 ),
               ] else ...<Widget>[
                 // 메모 본문보다 덜 도드라져야 한다 — 글자 버튼 둘이 본문만큼
@@ -867,36 +797,26 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
                 // 편집 중에는 다른 메모의 `수정` 을 잠근다. 편집 상태와
                 // 입력 컨트롤러가 하나씩뿐이라, 열려 있는 편집을 두고 다른
                 // 메모를 열면 쓰던 글이 확인도 없이 사라진다.
-                IconButton(
+                AppIconButton(
                   key: ValueKey<String>('client-memo-edit-open-${memo.id}'),
+                  icon: Icons.edit_rounded,
                   tooltip: l.actionEdit,
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                  color: AppColors.mutedForeground,
+                  color: OnCareColors.textSecondary,
                   onPressed: _busy || _editingId != null
                       ? null
                       : () => setState(() {
                           _editingId = memo.id;
                           _edit.text = memo.body;
                         }),
-                  icon: Semantics(
-                    label: l.actionEdit,
-                    child: const Icon(Icons.edit_outlined),
-                  ),
                 ),
-                IconButton(
+                AppIconButton(
                   key: ValueKey<String>('client-memo-delete-${memo.id}'),
+                  icon: Icons.delete_outline_rounded,
                   tooltip: l.actionDelete,
-                  iconSize: 18,
-                  visualDensity: VisualDensity.compact,
-                  color: AppColors.destructive,
+                  color: OnCareColors.danger,
                   onPressed: _busy || _editingId != null
                       ? null
                       : () => _delete(memo),
-                  icon: Semantics(
-                    label: l.actionDelete,
-                    child: const Icon(Icons.delete_outline),
-                  ),
                 ),
               ],
             ],
@@ -925,32 +845,5 @@ class _MemoSectionState extends ConsumerState<_MemoSection> {
     String two(int v) => v.toString().padLeft(2, '0');
     return '${local.year}.${two(local.month)}.${two(local.day)} '
         '${two(local.hour)}:${two(local.minute)}';
-  }
-}
-
-class _LoadFailed extends StatelessWidget {
-  const _LoadFailed({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(message, textAlign: TextAlign.center),
-          const SizedBox(height: AppSpacing.sm),
-          TextButton(
-            key: const ValueKey<String>('client-memo-retry'),
-            onPressed: onRetry,
-            child: Text(l.actionRetry),
-          ),
-        ],
-      ),
-    );
   }
 }

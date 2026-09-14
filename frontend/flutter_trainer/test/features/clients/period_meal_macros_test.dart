@@ -105,7 +105,7 @@ void main() {
   testWidgets('이번 주에서 날짜를 펼치면 그 끼니의 탄단지가 보인다', (tester) async {
     await openDiet(tester, stubMeals: true);
 
-    await tester.tap(find.byKey(const Key('client-period-week')));
+    await tester.tap(_periodSegment('이번 주'));
     await tester.pumpAndSettle();
     await expandUntilMeals(tester);
 
@@ -131,7 +131,7 @@ void main() {
   testWidgets('전체도 같은 컴포넌트를 쓴다', (tester) async {
     await openDiet(tester, stubMeals: true);
 
-    await tester.tap(find.byKey(const Key('client-period-month')));
+    await tester.tap(_periodSegment('전체'));
     await tester.pumpAndSettle();
     await expandUntilMeals(tester);
 
@@ -141,3 +141,9 @@ void main() {
     expect(withMacros.data, '탄수화물 92.5g · 단백질 21g · 지방 14g');
   });
 }
+
+/// 기간 토글에서 [label] 칸. 세그먼트는 칸마다 키가 없어 토글 안의 글자로 찾는다.
+Finder _periodSegment(String label) => find.descendant(
+  of: find.byKey(const ValueKey<String>('client-period-toggle')),
+  matching: find.text(label),
+);
