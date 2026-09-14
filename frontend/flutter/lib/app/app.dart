@@ -6,7 +6,6 @@ import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/design_system/tokens/typography.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
-import 'package:oncare/shared/services/theme_mode_provider.dart';
 
 class OncareApp extends ConsumerWidget {
   const OncareApp({super.key});
@@ -14,15 +13,13 @@ class OncareApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
-    final mode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
 
     return MaterialApp.router(
       onGenerateTitle: (ctx) => AppLocalizations.of(ctx).appTitle,
       debugShowCheckedModeBanner: false,
+      // 라이트 전용이다 — 시스템 다크 모드를 따라가지 않는다(#1604).
       theme: AppTheme.light(),
-      darkTheme: AppTheme.dark(),
-      themeMode: mode,
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

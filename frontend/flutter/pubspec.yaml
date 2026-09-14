@@ -39,6 +39,11 @@ dependencies:
   demo_fixture:
     path: ../../shared/demo_fixture
 
+  # --- UI 규격 ---
+  # 두 앱이 같은 토큰·테마·컴포넌트를 쓴다(#1690). 화면마다 크기·색을 적지 않는다.
+  oncare_ui:
+    path: ../../shared/oncare_ui
+
   # --- Local persistence ---
   drift: ^2.20.3
   drift_flutter: ^0.2.4
