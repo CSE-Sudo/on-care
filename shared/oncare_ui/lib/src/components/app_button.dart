@@ -104,6 +104,13 @@ class AppButton extends StatelessWidget {
       OnCareButtonSize.small => OnCareSpacing.s12,
     };
 
+    Color resolveForeground(Set<WidgetState> states) {
+      if (states.contains(WidgetState.disabled)) {
+        return OnCareColors.textDisabled;
+      }
+      return foreground;
+    }
+
     final ButtonStyle style = ButtonStyle(
       minimumSize: WidgetStatePropertyAll<Size>(Size(height, height)),
       maximumSize: WidgetStatePropertyAll<Size>(Size(double.infinity, height)),
@@ -122,12 +129,10 @@ class AppButton extends StatelessWidget {
         }
         return background;
       }),
-      foregroundColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.disabled)) {
-          return OnCareColors.textDisabled;
-        }
-        return foreground;
-      }),
+      foregroundColor: WidgetStateProperty.resolveWith(resolveForeground),
+      // 아이콘도 글자와 같은 색이다. 비워 두면 테마의 글자 버튼 아이콘 색(브랜드)이
+      // 적용돼 브랜드 채움 위에서 아이콘이 보이지 않는다.
+      iconColor: WidgetStateProperty.resolveWith(resolveForeground),
       overlayColor: WidgetStatePropertyAll<Color>(
         (filled ? OnCareColors.textOnFill : foreground).withValues(
           alpha: OnCareAlpha.medium,
