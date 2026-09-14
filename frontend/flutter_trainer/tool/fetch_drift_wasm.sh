@@ -30,10 +30,12 @@ echo "Resolved drift version    : $DRIFT_VERSION"
 echo "Resolved sqlite3 version  : $SQLITE3_VERSION"
 
 mkdir -p web
-curl --fail --location --silent --show-error \
+# GitHub 릴리스 다운로드가 가끔 504 를 돌려 CI 빌드가 멈춘다 — 잠깐 쉬었다 다시 받는다.
+RETRY=(--retry 5 --retry-delay 5 --retry-all-errors)
+curl --fail --location --silent --show-error "${RETRY[@]}" \
   -o web/sqlite3.wasm \
   "https://github.com/simolus3/sqlite3.dart/releases/download/sqlite3-${SQLITE3_VERSION}/sqlite3.wasm"
-curl --fail --location --silent --show-error \
+curl --fail --location --silent --show-error "${RETRY[@]}" \
   -o web/drift_worker.js \
   "https://github.com/simolus3/drift/releases/download/drift-${DRIFT_VERSION}/drift_worker.js"
 
