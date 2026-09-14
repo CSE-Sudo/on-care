@@ -19,6 +19,7 @@ Future<void> _pumpDialog(
         followUpTaskRepositoryProvider.overrideWithValue(repository),
       ],
       child: MaterialApp(
+        // 행이 규격 컴포넌트(#1703)라 앱 테마(OnCareTokens)가 있어야 그린다.
         theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,

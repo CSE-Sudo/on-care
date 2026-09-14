@@ -1,21 +1,6 @@
-import 'package:flutter/material.dart';
+/// 셸 이동 신호는 `app/shell` 로 옮겼다(#1703). 아직 `PageScaffold` 를 쓰는
+/// 화면이 이 경로로 가져가므로, 정리 이슈(#1707)까지 다시 내보낸다.
+library;
 
-/// Delivers page-navigation events to the active top-level page.
-///
-/// The indexed navigation shell deliberately keeps every branch alive. That
-/// preserves useful page state, but it must not preserve the viewport when a
-/// trainer explicitly navigates to a page: the destination should open at its
-/// beginning.
-class PageScrollResetScope extends InheritedNotifier<ValueNotifier<int>> {
-  /// Creates a reset scope around the trainer navigation shell.
-  const PageScrollResetScope({
-    super.key,
-    required ValueNotifier<int> notifier,
-    required super.child,
-  }) : super(notifier: notifier);
-
-  /// Returns the navigation reset notifier for the surrounding shell.
-  static ValueNotifier<int>? maybeOf(BuildContext context) => context
-      .dependOnInheritedWidgetOfExactType<PageScrollResetScope>()
-      ?.notifier;
-}
+export 'package:oncare_trainer/app/shell/page_scroll_reset.dart'
+    show PageScrollResetScope;

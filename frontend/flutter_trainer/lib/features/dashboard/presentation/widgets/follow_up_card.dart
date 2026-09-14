@@ -7,14 +7,10 @@ import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/follow_up_task.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/follow_up_task_repository.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 오늘 처리해야 할 후속 관리 — 트레이너가 직접 남긴 업무 큐. (#869)
 ///
@@ -62,63 +58,77 @@ class _FollowUpCardState extends ConsumerState<FollowUpCard> {
   }
 
   void _toast(String message) {
-    showAppToast(context, message, kind: AppToastKind.error);
+    showAppToast(context, message, type: AppToastType.error);
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final tasks = ref.watch(dueFollowUpsProvider);
-    return SectionCard(
-      title: l.followUp,
-      icon: Icons.event_available_outlined,
-      trailing: switch (tasks.valueOrNull) {
-        final List<FollowUpTask> list when list.isNotEmpty => Text(
-          l.followUpCount(list.length),
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        _ => null,
-      },
-      child: tasks.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-        // 후속 관리 조회가 실패해도 대시보드의 다른 카드는 그대로 산다 — 이
-        // 카드 안에서만 다시 시도한다.
-        error: (error, _) => _LoadFailed(
-          message: error is AppError
-              ? serverDetailOr(l, error.message, l.followUpLoadFailed)
-              : l.followUpLoadFailed,
-          onRetry: () => ref.invalidate(dueFollowUpsProvider),
-        ),
-        data: (list) => list.isEmpty
-            ? EmptyHint(
-                message: l.followUpDashboardEmpty,
-                icon: Icons.check_circle_outline,
-              )
-            : Column(
-                children: <Widget>[
-                  for (final task in list.take(widget.maxRows))
-                    FollowUpRow(
-                      key: ValueKey<String>('dashboard-follow-up-${task.id}'),
-                      task: task,
-                      showMemberName: true,
-                      busy: _completing == task.id,
-                      onComplete: () => _complete(task),
-                      onTap: () => context.go(
-                        AppRoutes.followUpTarget(
-                          task.memberId,
-                          task.context.wire,
-                        ),
-                      ),
-                    ),
-                ],
+    final List<FollowUpTask>? loaded = tasks.valueOrNull;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSectionHeader(
+                  title: l.followUp,
+                  icon: Icons.event_available_rounded,
+                ),
               ),
+              if (loaded != null && loaded.isNotEmpty)
+                Text(
+                  l.followUpCount(loaded.length),
+                  style: tokens
+                      .text(OnCareTypography.label)
+                      .copyWith(color: tokens.brand.primary),
+                ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          tasks.when(
+            loading: () => const AppLoading(placement: AppStatePlacement.card),
+            // 후속 관리 조회가 실패해도 대시보드의 다른 카드는 그대로 산다 — 이
+            // 카드 안에서만 다시 시도한다.
+            error: (error, _) => AppErrorState(
+              title: error is AppError
+                  ? serverDetailOr(l, error.message, l.followUpLoadFailed)
+                  : l.followUpLoadFailed,
+              retryLabel: l.actionRetry,
+              onRetry: () => ref.invalidate(dueFollowUpsProvider),
+              placement: AppStatePlacement.card,
+            ),
+            data: (list) => list.isEmpty
+                ? AppEmptyState(
+                    title: l.followUpDashboardEmpty,
+                    icon: Icons.check_circle_rounded,
+                    placement: AppStatePlacement.card,
+                  )
+                : Column(
+                    children: <Widget>[
+                      for (final task in list.take(widget.maxRows))
+                        FollowUpRow(
+                          key: ValueKey<String>(
+                            'dashboard-follow-up-${task.id}',
+                          ),
+                          task: task,
+                          showMemberName: true,
+                          busy: _completing == task.id,
+                          onComplete: () => _complete(task),
+                          onTap: () => context.go(
+                            AppRoutes.followUpTarget(
+                              task.memberId,
+                              task.context.wire,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -152,109 +162,25 @@ class FollowUpRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final bool overdue = task.isOverdue(todayKst());
-    final Color tone = overdue ? AppColors.overTarget : AppColors.primary;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Material(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: const BorderRadius.all(AppRadius.md),
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.borderStrong),
-              borderRadius: const BorderRadius.all(AppRadius.md),
-            ),
-            child: Row(
-              children: <Widget>[
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: tone.withValues(alpha: 0.12),
-                    borderRadius: const BorderRadius.all(AppRadius.pill),
-                  ),
-                  child: Text(
-                    // 지난 항목은 날짜 대신 그 사실을 말한다 — 목록에서 먼저
-                    // 눈에 띄어야 하는 정보가 "며칠인가"가 아니라 "늦었다"다.
-                    overdue ? l.followUpOverdue : ymd(task.dueDate),
-                    style: TextStyle(
-                      color: tone,
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      if (showMemberName && task.memberName.isNotEmpty)
-                        Text(
-                          task.memberName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.subtleForeground,
-                          ),
-                        ),
-                      Text(
-                        task.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                TextButton(
-                  key: ValueKey<String>('follow-up-complete-${task.id}'),
-                  onPressed: busy ? null : onComplete,
-                  child: Text(l.followUpComplete),
-                ),
-              ],
-            ),
-          ),
-        ),
+    return AppListRow(
+      title: task.title,
+      subtitle: showMemberName && task.memberName.isNotEmpty
+          ? task.memberName
+          : null,
+      leading: AppTag(
+        // 지난 항목은 날짜 대신 그 사실을 말한다 — 목록에서 먼저 눈에 띄어야
+        // 하는 정보가 "며칠인가"가 아니라 "늦었다"다.
+        label: overdue ? l.followUpOverdue : ymd(task.dueDate),
+        tone: overdue ? AppTagTone.danger : AppTagTone.brand,
       ),
-    );
-  }
-}
-
-/// 조회 실패 자리 — 카드 안에서만 다시 시도한다.
-class _LoadFailed extends StatelessWidget {
-  const _LoadFailed({required this.message, required this.onRetry});
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-      child: Column(
-        children: <Widget>[
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.mutedForeground),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          TextButton(onPressed: onRetry, child: Text(l.actionRetry)),
-        ],
+      trailing: AppButton(
+        key: ValueKey<String>('follow-up-complete-${task.id}'),
+        label: l.followUpComplete,
+        onPressed: busy ? null : onComplete,
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
       ),
+      onTap: onTap,
     );
   }
 }

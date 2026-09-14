@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_chips.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/client_identity.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
+import 'package:oncare_trainer/shared/utils/client_identity_labels.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 상담은 "메모 남기기"로, 그 외(1:1 PT 등)는 "PT 준비하기"로 갈린다 —
 /// 상담엔 준비할 프로그램이 없고, PT엔 남길 상담 메모가 없다.
@@ -38,65 +36,73 @@ class TodayTimelineCard extends ConsumerWidget {
     final clients =
         ref.watch(clientsProvider).valueOrNull ?? const <TrainerClient>[];
 
-    return SectionCard(
-      title: l.dashTodaySchedule,
-      icon: Icons.today_outlined,
-      trailing: CardLink(
-        label: l.dashSeeAll,
-        onTap: () => context.go(AppRoutes.scheduleAt()),
-      ),
-      child: schedule.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
-          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-        ),
-        error: (e, _) => EmptyHint(message: l.dashScheduleLoadFailed),
-        data: (sessions) {
-          final booked = sessions.where((s) => !s.isGap).toList();
-          if (booked.isEmpty) {
-            return EmptyHint(
-              message: l.dashNoScheduleToday,
-              icon: Icons.event_busy_outlined,
-            );
-          }
-          final next = booked.where((s) => s.isUpcoming).toList();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              if (next.isNotEmpty) ...<Widget>[
-                _NextUpBanner(
-                  now: nowKst(),
-                  next: next.first,
-                  client: findClientIdentity(
-                    clients,
-                    clientId: next.first.clientId,
-                    clientName: next.first.clientName,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-              ],
-              for (final session in booked)
-                _Row(
-                  key: ValueKey<String>('dashboard-schedule-${session.id}'),
-                  session: session,
-                  client: findClientIdentity(
-                    clients,
-                    clientId: session.clientId,
-                    clientName: session.clientName,
-                  ),
-                  // 로스터에 없는 고객(상담으로 잡힌 가망 고객)도 이름만
-                  // 부른다 — 스케줄 탭과 같은 표기다(#1012).
-                  fallbackName: session.clientName,
-                  onTap: () => context.go(
-                    AppRoutes.scheduleAt(
-                      date: session.date,
-                      sessionId: session.id,
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppSectionHeader(
+            title: l.dashTodaySchedule,
+            icon: Icons.today_rounded,
+            actionLabel: l.dashSeeAll,
+            onAction: () => context.go(AppRoutes.scheduleAt()),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          schedule.when(
+            loading: () => const AppLoading(placement: AppStatePlacement.card),
+            error: (e, _) => AppEmptyState(
+              title: l.dashScheduleLoadFailed,
+              icon: Icons.cloud_off_rounded,
+              placement: AppStatePlacement.card,
+            ),
+            data: (sessions) {
+              final booked = sessions.where((s) => !s.isGap).toList();
+              if (booked.isEmpty) {
+                return AppEmptyState(
+                  title: l.dashNoScheduleToday,
+                  icon: Icons.event_busy_rounded,
+                  placement: AppStatePlacement.card,
+                );
+              }
+              final next = booked.where((s) => s.isUpcoming).toList();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  if (next.isNotEmpty) ...<Widget>[
+                    _NextUpBanner(
+                      now: nowKst(),
+                      next: next.first,
+                      client: findClientIdentity(
+                        clients,
+                        clientId: next.first.clientId,
+                        clientName: next.first.clientName,
+                      ),
                     ),
-                  ),
-                ),
-            ],
-          );
-        },
+                    const SizedBox(height: OnCareSpacing.s8),
+                  ],
+                  for (final session in booked)
+                    _Row(
+                      key: ValueKey<String>('dashboard-schedule-${session.id}'),
+                      session: session,
+                      client: findClientIdentity(
+                        clients,
+                        clientId: session.clientId,
+                        clientName: session.clientName,
+                      ),
+                      // 로스터에 없는 고객(상담으로 잡힌 가망 고객)도 이름만
+                      // 부른다 — 스케줄 탭과 같은 표기다(#1012).
+                      fallbackName: session.clientName,
+                      onTap: () => context.go(
+                        AppRoutes.scheduleAt(
+                          date: session.date,
+                          sessionId: session.id,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -105,6 +111,9 @@ class TodayTimelineCard extends ConsumerWidget {
 /// "지금 16:03  다음 수업 17:00 · 신규 고객  56분 뒤" — 오늘의 다음 일정이
 /// 무엇이고 얼마나 남았는지, 그리고 그 일정에 맞는 행동(수업 준비/메모)을
 /// 목록을 훑지 않고도 알 수 있게 한 줄로 요약한다.
+///
+/// 모양은 안내 배너(`AppBanner` info)와 같다. 한 줄 요약 글자와 키가 달린
+/// 동작 버튼을 담아야 해서 같은 토큰으로 그 자리에서 조립한다.
 class _NextUpBanner extends StatelessWidget {
   const _NextUpBanner({required this.now, required this.next, this.client});
 
@@ -115,6 +124,7 @@ class _NextUpBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final name = client?.name ?? next.clientName;
     final nextMinutes = clockMinutes(next.time);
     final minutesLeft = nextMinutes == null
@@ -122,42 +132,42 @@ class _NextUpBanner extends StatelessWidget {
         : (nextMinutes - (now.hour * 60 + now.minute)).clamp(0, 24 * 60);
     final isConsultation = _isConsultation(next.type);
     final clientId = client?.id;
+    final TextStyle base = tokens
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textSecondary);
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.accentSurface,
-        borderRadius: BorderRadius.all(AppRadius.md),
+      padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
+      decoration: BoxDecoration(
+        color: tokens.brand.surface,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: tokens.brand.border),
       ),
       child: Row(
         children: <Widget>[
-          const Icon(Icons.schedule, size: 16, color: AppColors.primary),
-          const SizedBox(width: AppSpacing.xs),
+          Icon(
+            Icons.schedule_rounded,
+            size: OnCareSize.iconMedium,
+            color: tokens.brand.primary,
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
           Expanded(
             child: Text.rich(
               TextSpan(
-                style: const TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.mutedForeground,
-                ),
+                style: base,
                 children: <InlineSpan>[
                   TextSpan(text: l.dashScheduleNowLabel(_hm(now))),
                   const TextSpan(text: '   '),
                   TextSpan(
                     text: l.dashScheduleNextSession(next.time, name),
-                    style: const TextStyle(color: AppColors.foreground),
+                    style: const TextStyle(color: OnCareColors.textPrimary),
                   ),
                   const TextSpan(text: '  '),
                   TextSpan(
                     text: l.dashScheduleMinutesLeft(minutesLeft),
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: OnCareTypography.strong(
+                      base,
+                    ).copyWith(color: tokens.brand.primary),
                   ),
                 ],
               ),
@@ -165,9 +175,12 @@ class _NextUpBanner extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
-          FilledButton.icon(
+          const SizedBox(width: OnCareSpacing.s8),
+          AppButton(
             key: const ValueKey<String>('dashboard-next-session-cta'),
+            label: isConsultation || clientId == null
+                ? l.dashLeaveMemo
+                : l.dashPreparePt,
             onPressed: () => context.go(
               isConsultation || clientId == null
                   // 날짜만 실어 보내면 그날 첫 일정이 열려, 정작 메모를
@@ -176,29 +189,8 @@ class _NextUpBanner extends StatelessWidget {
                   ? AppRoutes.scheduleAt(date: next.date, sessionId: next.id)
                   : AppRoutes.coachingFor(clientId),
             ),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.primaryForeground,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: 12,
-              ),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(AppRadius.pill),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            icon: const Icon(Icons.arrow_forward, size: 16),
-            label: Text(
-              isConsultation || clientId == null
-                  ? l.dashLeaveMemo
-                  : l.dashPreparePt,
-            ),
+            size: OnCareButtonSize.small,
+            leadingIcon: Icons.arrow_forward_rounded,
           ),
         ],
       ),
@@ -223,22 +215,26 @@ class _Row extends StatelessWidget {
 
   final VoidCallback onTap;
 
-  Color get _dotColor {
-    if (session.isDone) return AppColors.success;
-    if (session.isUpcoming) return AppColors.primary;
-    return AppColors.disabledForeground;
+  /// 시간 칸 폭 — `18:00–18:50` 이 한 줄에 들어간다.
+  static const double _timeColumnWidth = 92;
+
+  Color _dotColor(BuildContext context) {
+    if (session.isDone) return OnCareColors.success;
+    if (session.isUpcoming) return context.oncare.brand.primary;
+    return OnCareColors.textDisabled;
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final isConsultation = _isConsultation(session.type);
     // 완료된 세션은 시간도 함께 물러난다 — 종류 알약이 완료 때 회색으로
     // 바래는 것과 같은 기준이다. 아직 끝나지 않은 시간은 "지금 처리해야
     // 할 일"이라 검은 글씨로 또렷하게 남는다.
     final timeColor = session.isDone
-        ? AppColors.subtleForeground
-        : AppColors.foreground;
+        ? OnCareColors.textTertiary
+        : OnCareColors.textPrimary;
     // "준비"는 아직 끝나지 않은 수업이 프로그램을 미리 짜 뒀는가이고,
     // "전송"(PT)/"작성"(상담)은 끝난 뒤 실제로 회원에게 나간 결과다 — 같은
     // 세션이 두 라벨을 동시에 달 일은 없다. 되지 않은 쪽도 회색으로나마
@@ -246,65 +242,59 @@ class _Row extends StatelessWidget {
     // 없다"를 구분할 수 없다. 상담이 끝나기 전만 예외(아직 남길 메모
     // 자체가 없다).
     String? statusTagLabel;
-    Color statusTagColor = AppColors.primary;
+    AppTagTone statusTagTone = AppTagTone.brand;
     if (isConsultation) {
       if (session.isDone) {
         final written = session.note.trim().isNotEmpty;
         statusTagLabel = written
             ? l.dashSessionNoteWritten
             : l.dashSessionNoteNotWritten;
-        statusTagColor = written
-            ? AppColors.brandOrange
-            : AppColors.disabledForeground;
+        statusTagTone = written ? AppTagTone.caution : AppTagTone.neutral;
       }
     } else if (session.isDone) {
       statusTagLabel = session.programSent
           ? l.dashSessionSent
           : l.dashSessionSentNo;
-      statusTagColor = session.programSent
-          ? AppColors.success
-          : AppColors.disabledForeground;
+      statusTagTone = session.programSent
+          ? AppTagTone.success
+          : AppTagTone.neutral;
     } else {
       final prepared = session.program.isNotEmpty;
       statusTagLabel = prepared
           ? l.dashSessionPrepared
           : l.dashSessionPreparedNo;
-      statusTagColor = prepared
-          ? AppColors.primary
-          : AppColors.disabledForeground;
+      statusTagTone = prepared ? AppTagTone.brand : AppTagTone.neutral;
     }
+
+    final TextStyle nameStyle = tokens
+        .text(OnCareTypography.label)
+        .copyWith(color: OnCareColors.textPrimary);
 
     return InkWell(
       onTap: onTap,
-      borderRadius: const BorderRadius.all(AppRadius.sm),
+      borderRadius: OnCareRadius.mdAll,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 4),
+        padding: const EdgeInsets.symmetric(
+          vertical: OnCareSpacing.s8,
+          horizontal: OnCareSpacing.s4,
+        ),
         // 오른쪽 칸(완료/예정 + 상태 알약)이 둘로 쌓이면 왼쪽보다 키가 커진다
         // — Row 기본값인 가운데 정렬이라 시간·점도 그 가운데로 맞춰진다.
         child: Row(
           children: <Widget>[
             SizedBox(
-              width: 92,
+              width: _timeColumnWidth,
               child: Text(
                 timeRangeLabel(l, session),
                 maxLines: 1,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: timeColor,
-                ),
+                style: OnCareTypography.numeric(
+                  tokens.text(OnCareTypography.label),
+                ).copyWith(color: timeColor),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.sm),
-              child: Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _dotColor,
-                ),
-              ),
+              padding: const EdgeInsets.only(right: OnCareSpacing.s8),
+              child: AppStatusDot(color: _dotColor(context)),
             ),
             Expanded(
               child: Row(
@@ -316,131 +306,67 @@ class _Row extends StatelessWidget {
                             fallbackName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.foreground,
-                            ),
+                            style: nameStyle,
                           )
-                        : ClientIdentity(
-                            client: client!,
-                            nameStyle: const TextStyle(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.foreground,
-                            ),
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Flexible(
+                                child: Text(
+                                  client!.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: nameStyle,
+                                ),
+                              ),
+                              const SizedBox(width: OnCareSpacing.s4),
+                              Flexible(
+                                child: Text(
+                                  clientDemographicsLabel(context, client!),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: tokens
+                                      .text(OnCareTypography.caption)
+                                      .copyWith(
+                                        color: OnCareColors.textTertiary,
+                                      ),
+                                ),
+                              ),
+                            ],
                           ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
-                  // `Flexible`(고정폭이 아니라)로 감싸야 이 알약도 좁을 때
-                  // 실제로 축소 대상이 된다 — 그래야 안의 `FittedBox` 가
-                  // 줄어들 상한을 받는다.
+                  const SizedBox(width: OnCareSpacing.s4),
+                  // 이름이 길어 좁아지면 종류 태그가 먼저 줄어든다 — `Flexible`
+                  // 로 상한을 받고 `FittedBox` 로 그 안에서 축소된다.
                   Flexible(
-                    child: _TypeBadge(
-                      label: session.type,
-                      muted: session.isDone,
-                      outlined: isConsultation,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: AppTag(
+                        label: session.type,
+                        tone: session.isDone
+                            ? AppTagTone.neutral
+                            : AppTagTone.brand,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: AppSpacing.xs),
+            const SizedBox(width: OnCareSpacing.s4),
             // 완료/예정 알약과 나란히, 세로로는 이 줄 전체 기준 가운데 —
             // 아래에 쌓지 않아야 왼쪽 시간·점과 같은 높이로 읽힌다.
             Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 if (statusTagLabel != null) ...<Widget>[
-                  _StatusTag(label: statusTagLabel, color: statusTagColor),
-                  const SizedBox(width: 6),
+                  AppTag(label: statusTagLabel, tone: statusTagTone),
+                  const SizedBox(width: OnCareSpacing.s4),
                 ],
                 SessionStatusChip(status: session.status),
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/// "1:1 PT"/"상담" — 원으로 감싼 알약. 이름 줄의 나이 옆에 붙어, 상세
-/// 카드의 알약(`SessionTypeChip`)보다 한 단계 더 크게 그린다.
-class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({
-    required this.label,
-    required this.muted,
-    this.outlined = false,
-  });
-
-  final String label;
-  final bool muted;
-
-  /// 채우지 않고 윤곽선만 두른다(상담) — 스케줄 탭의 `SessionTypeChip` 과
-  /// 같은 어휘다: 상담은 원래 파란 배경이 없다.
-  final bool outlined;
-
-  @override
-  Widget build(BuildContext context) {
-    // 이름이 길어 좁아지면 이 알약이 먼저 줄어든다 — `SessionTypeChip` 과
-    // 같은 안전장치다. `Flexible` 하나로는 알약 자신의 최소 폭까지만
-    // 줄어드는데, 좁은 화면에서는 그마저도 넘친다.
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: muted
-              ? AppColors.inputBackground
-              : (outlined
-                    ? AppColors.card
-                    : AppColors.primary.withValues(alpha: 0.10)),
-          borderRadius: const BorderRadius.all(AppRadius.pill),
-          border: Border.all(
-            color: muted
-                ? AppColors.border
-                : AppColors.primary.withValues(alpha: outlined ? 0.45 : 0.25),
-          ),
-        ),
-        child: Text(
-          label,
-          maxLines: 1,
-          style: TextStyle(
-            fontSize: 13.5,
-            fontWeight: FontWeight.w800,
-            color: muted ? AppColors.disabledForeground : AppColors.primary,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "전송됨"/"준비됨" — 완료 상태와 별개로, 회원에게 프로그램이 실제로
-/// 나갔는지를 말한다. `session.programSent` 가 없으면 짠 프로그램만 있다는
-/// 뜻이라 "준비됨"으로, 있으면 "전송됨"으로 갈린다.
-class _StatusTag extends StatelessWidget {
-  const _StatusTag({required this.label, required this.color});
-
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 9.5,
-          fontWeight: FontWeight.w700,
-          color: color,
         ),
       ),
     );

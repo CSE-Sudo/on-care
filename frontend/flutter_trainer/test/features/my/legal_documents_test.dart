@@ -118,7 +118,7 @@ void main() {
       expect(_shownDocument(tester), 'terms');
 
       // 읽고 돌아오면 가입 화면이 그대로 있어야 한다 — 입력하던 값이 남는다.
-      await tester.tap(find.text('뒤로'));
+      await tester.tap(find.byTooltip('뒤로'));
       await settle(tester);
       expect(currentLocation(tester), AppRoutes.signUp);
     });
@@ -135,7 +135,7 @@ void main() {
       await tester.tap(row);
       await settle(tester);
 
-      await tester.tap(find.text('뒤로'));
+      await tester.tap(find.byTooltip('뒤로'));
       await settle(tester);
       expect(currentLocation(tester), AppRoutes.mySection('settings'));
     });

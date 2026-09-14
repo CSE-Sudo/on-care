@@ -4,11 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/app_sidebar.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
+import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/page_scroll_reset.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Persistent console shell: a left [AppSidebar] plus the active branch.
 ///
@@ -90,8 +88,8 @@ class _AppShellState extends State<AppShell> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final compact = width < AppLayout.sidebarDrawerBreakpoint;
-    final expanded = width >= AppLayout.sidebarExpandBreakpoint;
+    final compact = width < OnCareLayout.sidebarDrawerBreakpoint;
+    final expanded = width >= OnCareLayout.sidebarExpandBreakpoint;
     final onMy = widget.navigationShell.currentIndex == AppShell.myBranchIndex;
 
     final shell = PageScrollResetScope(
@@ -101,10 +99,10 @@ class _AppShellState extends State<AppShell> {
 
     if (compact) {
       return Scaffold(
-        backgroundColor: AppColors.background,
+        backgroundColor: OnCareColors.surfacePage,
         drawer: Drawer(
-          width: AppLayout.sidebarWidth,
-          backgroundColor: AppColors.card,
+          width: OnCareLayout.sidebarWidth,
+          backgroundColor: OnCareColors.surfaceCard,
           child: Builder(
             builder: (drawerContext) => AppSidebar(
               currentIndex: widget.navigationShell.currentIndex,
@@ -122,7 +120,7 @@ class _AppShellState extends State<AppShell> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: OnCareColors.surfacePage,
       body: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -147,39 +145,63 @@ class _CompactBar extends StatelessWidget implements PreferredSizeWidget {
 
   final VoidCallback onHome;
 
+  /// 좁은 화면 상단바 높이. 패키지에 웹 상단바 토큰이 없어 부품 치수로 둔다.
+  static const double _barHeight = 52;
+
   @override
-  Size get preferredSize => const Size.fromHeight(52);
+  Size get preferredSize => const Size.fromHeight(_barHeight);
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppBar(
-      backgroundColor: AppColors.card,
-      surfaceTintColor: Colors.transparent,
-      toolbarHeight: 52,
-      titleSpacing: 0,
-      iconTheme: const IconThemeData(color: AppColors.mutedForeground),
-      shape: const Border(bottom: BorderSide(color: AppColors.borderStrong)),
-      title: InkWell(
-        key: const ValueKey<String>('compact-brand-home'),
-        onTap: onHome,
-        child: Padding(
-          padding: const EdgeInsets.only(left: AppSpacing.xs),
-          child: Text.rich(
-            TextSpan(
-              children: <InlineSpan>[
-                const TextSpan(
-                  text: 'On-Care ',
-                  style: TextStyle(color: AppColors.foreground),
-                ),
-                TextSpan(
-                  text: l.appWordmarkTrainer,
-                  style: const TextStyle(color: AppColors.primary),
-                ),
-              ],
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+    final OnCareTokens tokens = context.oncare;
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        height: _barHeight,
+        padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
+        decoration: const BoxDecoration(
+          color: OnCareColors.surfaceCard,
+          border: Border(bottom: BorderSide(color: OnCareColors.lineStrong)),
+        ),
+        child: Row(
+          children: <Widget>[
+            AppIconButton(
+              icon: Icons.menu_rounded,
+              tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+              color: OnCareColors.textSecondary,
+              onPressed: () => Scaffold.of(context).openDrawer(),
             ),
-          ),
+            const SizedBox(width: OnCareSpacing.s4),
+            Flexible(
+              child: InkWell(
+                key: const ValueKey<String>('compact-brand-home'),
+                onTap: onHome,
+                borderRadius: OnCareRadius.mdAll,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: OnCareSpacing.s4,
+                  ),
+                  child: Text.rich(
+                    TextSpan(
+                      children: <InlineSpan>[
+                        const TextSpan(
+                          text: 'On-Care ',
+                          style: TextStyle(color: OnCareColors.textPrimary),
+                        ),
+                        TextSpan(
+                          text: l.appWordmarkTrainer,
+                          style: TextStyle(color: tokens.brand.primary),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    style: tokens.text(OnCareTypography.titleMedium),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

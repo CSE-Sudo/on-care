@@ -4,17 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
+import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // Session은 앱 전역 상태라 예외적으로 auth feature 의 provider 를 직접
 // 사용한다 (라우터의 인증 게이트와 동일한 소비자). TODO: 실 백엔드
 // 도입 시 세션 계층을 core/session 으로 승격해 이 의존을 정리한다.
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/elevation.dart';
-import 'package:oncare_trainer/design_system/tokens/layout.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
-import 'package:oncare_trainer/design_system/tokens/toast.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
@@ -24,11 +19,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/action_button.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/page_scaffold.dart';
-import 'package:oncare_trainer/shared/widgets/section_card.dart';
-import 'package:oncare_trainer/shared/widgets/status_dot_label.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 내 정보 / 설정 — reached from the sidebar footer, not the nav list.
 ///
@@ -187,7 +178,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       if (restored != null) _applyRestoredProfile(restored);
       setState(() => _saving = false);
       final message = _saveFailureMessage(error, profileSaved: profileSaved);
-      showAppToast(context, message, kind: AppToastKind.error);
+      showAppToast(context, message, type: AppToastType.error);
       return;
     }
 
@@ -243,24 +234,15 @@ class _MyPageState extends ConsumerState<MyPage> {
 
   Future<void> _removeClient(TrainerClient client) async {
     final l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l.myClientRemoveTitle(client.name)),
-        content: Text(l.myClientRemoveBody),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l.actionCancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l.myClientRemove),
-          ),
-        ],
-      ),
+      title: l.myClientRemoveTitle(client.name),
+      message: l.myClientRemoveBody,
+      cancelLabel: l.actionCancel,
+      confirmLabel: l.myClientRemove,
+      destructive: true,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     setState(() => _removingClients.add(client.id));
     try {
       await ref.read(clientRepositoryProvider).removeClient(client.id);
@@ -271,7 +253,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       showAppToast(context, l.myClientRemoveSuccess);
     } catch (_) {
       if (!mounted) return;
-      showAppToast(context, l.myClientRemoveFailed, kind: AppToastKind.error);
+      showAppToast(context, l.myClientRemoveFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _removingClients.remove(client.id));
     }
@@ -281,7 +263,7 @@ class _MyPageState extends ConsumerState<MyPage> {
   /// 로그인 화면에 도달한다(라우터의 인증 게이트). (#505)
   Future<void> _deleteAccount() async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAppDialog<bool>(
       context: context,
       builder: (_) => _DeleteAccountDialog(name: _profile.name),
     );
@@ -294,7 +276,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       showAppToast(
         context,
         serverDetailOr(l, e.message, l.myDeleteFailed),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
       return;
     }
@@ -315,50 +297,83 @@ class _MyPageState extends ConsumerState<MyPage> {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final managingClients = widget.tab == 'clients';
-    return PageScaffold(
+    // 한 열짜리 프로필·설정·목록이라 좁은 폭 틀을 쓴다(옛 최대 폭 760 과 같다).
+    return AppWebPage(
+      width: AppWebPageWidth.narrow,
       title: managingClients
           ? l.myClientManagement
           : _tab == 0
           ? l.myTabProfile
           : l.myTabSettings,
       subtitle: _profile.name,
-      maxWidth: AppLayout.contentMaxWidth,
+      leading: managingClients
+          ? AppBackButton(
+              onPressed: () => context.go(AppRoutes.mySection('profile')),
+            )
+          : null,
       actions: <Widget>[
-        if (managingClients)
-          ActionButton(
-            label: l.clientBackToList,
-            icon: Icons.arrow_back,
-            onPressed: () => context.go(AppRoutes.mySection('profile')),
-          )
-        else
-          SegmentedSwitch(
-            labels: <String>[l.myTabProfile, l.myTabSettings],
-            selected: _tab,
-            onChanged: (i) {
-              setState(() => _tab = i);
-              context.go(AppRoutes.mySection(i == 0 ? 'profile' : 'settings'));
-            },
-          ),
         if (!managingClients && _tab == 0)
           if (_editing)
-            ActionButton(
+            AppButton(
               label: _saving ? l.mySaving : l.actionSave,
-              icon: _saving ? Icons.hourglass_top : Icons.check,
-              primary: true,
-              onPressed: _saving ? null : _save,
+              leadingIcon: Icons.check_rounded,
+              loading: _saving,
+              onPressed: _save,
             )
           else
-            ActionButton(
+            AppButton(
               label: l.myEditProfile,
-              icon: Icons.edit_outlined,
+              leadingIcon: Icons.edit_rounded,
+              variant: AppButtonVariant.secondary,
               onPressed: _saving ? null : _startEdit,
             ),
       ],
-      child: managingClients
-          ? _buildClientManagement()
-          : _tab == 0
-          ? _buildProfile()
-          : _buildSettings(),
+      // 보기 전환은 헤더가 아니라 본문 맨 위에 둔다 — 좁은 틀의 헤더에 토글과
+      // 편집 버튼을 함께 올리면 화면 이름이 줄임표로 잘린다(#1004).
+      body: PageScrollResetListener(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            if (!managingClients) ...<Widget>[
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: AppSegmentedToggle<int>(
+                  segments: <AppSegment<int>>[
+                    AppSegment<int>(value: 0, label: l.myTabProfile),
+                    AppSegment<int>(value: 1, label: l.myTabSettings),
+                  ],
+                  selected: _tab,
+                  onChanged: (i) {
+                    setState(() => _tab = i);
+                    context.go(
+                      AppRoutes.mySection(i == 0 ? 'profile' : 'settings'),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s16),
+            ],
+            Expanded(
+              // 구획마다 새 스크롤 상태를 둔다 — 프로필을 내려 둔 채 회원 관리로
+              // 들어가면 목록이 중간부터 보였다.
+              child: SingleChildScrollView(
+                key: ValueKey<String>(
+                  managingClients
+                      ? 'my-clients'
+                      : _tab == 0
+                      ? 'my-profile'
+                      : 'my-settings',
+                ),
+                child: managingClients
+                    ? _buildClientManagement()
+                    : _tab == 0
+                    ? _buildProfile()
+                    : _buildSettings(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -371,11 +386,11 @@ class _MyPageState extends ConsumerState<MyPage> {
         if (_editing) ...<Widget>[
           Align(
             alignment: Alignment.centerRight,
-            child: _ChipButton(
+            child: AppButton(
               label: l.actionCancel,
-              background: AppColors.inputBackground,
-              foreground: AppColors.subtleForeground,
-              onTap: _saving
+              variant: AppButtonVariant.secondary,
+              size: OnCareButtonSize.small,
+              onPressed: _saving
                   ? null
                   : () => setState(() {
                       _editing = false;
@@ -385,36 +400,16 @@ class _MyPageState extends ConsumerState<MyPage> {
                     }),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: OnCareSpacing.s8),
         ],
         if (_saveFlash) ...<Widget>[
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.1),
-              borderRadius: const BorderRadius.all(AppRadius.card),
-              border: Border.all(
-                color: AppColors.success.withValues(alpha: 0.25),
-              ),
-            ),
-            child: Text(
-              l.mySaved,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.success,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
+          AppBanner(title: l.mySaved, tone: AppBannerTone.success),
+          const SizedBox(height: OnCareSpacing.s12),
         ],
         _ProfileCard(profile: _profile, editing: _editing, field: _field),
-        const SizedBox(height: AppSpacing.lg),
-        _sectionLabel(l.myCertifications),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        AppSectionHeader(title: l.myCertifications),
+        const SizedBox(height: OnCareSpacing.s8),
         _CertsCard(
           certs: _editing ? _draftCerts : _certs,
           editing: _editing,
@@ -429,13 +424,13 @@ class _MyPageState extends ConsumerState<MyPage> {
           },
           onRemove: (i) => setState(() => _draftCerts.removeAt(i)),
         ),
-        const SizedBox(height: AppSpacing.lg),
-        _sectionLabel(l.myMonthStats),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        AppSectionHeader(title: l.myMonthStats),
+        const SizedBox(height: OnCareSpacing.s8),
         _StatsCard(clientCount: clientCount),
-        const SizedBox(height: AppSpacing.lg),
-        _sectionLabel(l.myGym),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        AppSectionHeader(title: l.myGym),
+        const SizedBox(height: OnCareSpacing.s8),
         _GymCard(
           gym: _gym,
           editing: _editing,
@@ -444,7 +439,7 @@ class _MyPageState extends ConsumerState<MyPage> {
           selectedGymId: _draftGymId,
           onGymChanged: (value) => setState(() => _draftGymId = value),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: OnCareSpacing.sectionGap),
         _ClientManagementEntry(
           onTap: () => context.go(AppRoutes.mySection('clients')),
         ),
@@ -475,7 +470,7 @@ class _MyPageState extends ConsumerState<MyPage> {
       showAppToast(
         context,
         AppLocalizations.of(context).mySettingsSaveFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     }
   }
@@ -489,156 +484,148 @@ class _MyPageState extends ConsumerState<MyPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        SectionCard(
+        _SettingsCard(
           title: l.myNotifications,
-          icon: Icons.notifications_none,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _SwitchRow(
-                label: l.myNotifNewMessage,
-                hint: l.myNotifNewMessageHint,
+          icon: Icons.notifications_rounded,
+          children: <Widget>[
+            AppListRow(
+              title: l.myNotifNewMessage,
+              subtitle: l.myNotifNewMessageHint,
+              trailing: Switch(
                 value: settings.newMessageAlerts,
                 onChanged: (v) =>
                     _applySetting(() => controller.setNewMessageAlerts(v)),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: OnCareSpacing.cardGap),
         // 약관은 계정 카드보다 위에 둔다 — 로그아웃·탈퇴 옆에 붙이면 읽는
         // 문서가 되돌릴 수 없는 동작과 같은 무게로 보인다. (#968)
-        SectionCard(
+        _SettingsCard(
           title: l.myLegal,
-          icon: Icons.gavel_outlined,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _LegalRow(
-                icon: Icons.description_outlined,
-                label: l.myLegalTermsTitle,
-                hint: l.myLegalTermsHint,
-                document: AppRoutes.legalTerms,
-              ),
-              const Divider(height: 1, color: AppColors.borderStrong),
-              _LegalRow(
-                icon: Icons.privacy_tip_outlined,
-                label: l.myLegalPrivacyTitle,
-                hint: l.myLegalPrivacyHint,
-                document: AppRoutes.legalPrivacy,
-              ),
-            ],
-          ),
+          icon: Icons.gavel_rounded,
+          children: <Widget>[
+            _LegalRow(
+              icon: Icons.description_rounded,
+              label: l.myLegalTermsTitle,
+              hint: l.myLegalTermsHint,
+              document: AppRoutes.legalTerms,
+            ),
+            const AppDivider(),
+            _LegalRow(
+              icon: Icons.privacy_tip_rounded,
+              label: l.myLegalPrivacyTitle,
+              hint: l.myLegalPrivacyHint,
+              document: AppRoutes.legalPrivacy,
+            ),
+          ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        SectionCard(
+        const SizedBox(height: OnCareSpacing.cardGap),
+        _SettingsCard(
           title: l.myAccount,
-          icon: Icons.lock_outline,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          l.myChangePassword,
-                          style: const TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.mutedForeground,
-                          ),
-                        ),
-                        Text(
-                          account.supportsPasswordChange
-                              ? l.myChangePasswordHint
-                              : l.myChangePasswordDemo,
-                          style: const TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.disabledForeground,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ActionButton(
-                    label: l.actionChange,
-                    icon: Icons.key_outlined,
-                    onPressed: account.supportsPasswordChange
-                        ? _openPasswordSheet
-                        : null,
-                  ),
-                ],
+          icon: Icons.lock_rounded,
+          children: <Widget>[
+            AppListRow(
+              title: l.myChangePassword,
+              subtitle: account.supportsPasswordChange
+                  ? l.myChangePasswordHint
+                  : l.myChangePasswordDemo,
+              trailing: AppButton(
+                label: l.actionChange,
+                leadingIcon: Icons.key_rounded,
+                variant: AppButtonVariant.secondary,
+                size: OnCareButtonSize.small,
+                onPressed: account.supportsPasswordChange
+                    ? _openPasswordDialog
+                    : null,
               ),
-              const SizedBox(height: AppSpacing.md),
-              const Divider(height: 1, color: AppColors.borderStrong),
-              const SizedBox(height: AppSpacing.md),
-              _InfoRow(label: l.myLoginAccount, value: _profile.email),
-              const SizedBox(height: AppSpacing.md),
-              // 역할 전환 대신 로그아웃만 둔다 (계정 기반 분리).
-              _LogoutButton(onTap: _signOut),
-              const SizedBox(height: AppSpacing.md),
-              // 탈퇴는 로그아웃 아래, 더 조용한 문구로 둔다 — 매일 쓰는 동작
-              // 옆에 같은 무게로 놓으면 잘못 누르기 쉽다. (#505)
-              _DeleteAccountRow(
-                enabled: account.supportsDeletion,
-                onTap: _deleteAccount,
+            ),
+            const AppDivider(),
+            _InfoRow(label: l.myLoginAccount, value: _profile.email),
+            // 역할 전환 대신 로그아웃만 둔다 (계정 기반 분리).
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s16,
+                vertical: OnCareSpacing.s4,
               ),
-            ],
-          ),
+              child: AppButton(
+                label: l.mySignOut,
+                leadingIcon: Icons.logout_rounded,
+                variant: AppButtonVariant.destructiveText,
+                fullWidth: true,
+                onPressed: _signOut,
+              ),
+            ),
+            // 탈퇴는 로그아웃 아래, 더 조용한 문구로 둔다 — 매일 쓰는 동작
+            // 옆에 같은 무게로 놓으면 잘못 누르기 쉽다. (#505)
+            _DeleteAccountRow(
+              enabled: account.supportsDeletion,
+              onTap: _deleteAccount,
+            ),
+          ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        SectionCard(
+        const SizedBox(height: OnCareSpacing.cardGap),
+        _SettingsCard(
           title: l.myAppInfo,
-          icon: Icons.info_outline,
-          child: Column(
-            children: <Widget>[
-              _InfoRow(label: l.myService, value: l.appTitle),
-              _InfoRow(label: l.myVersion, value: '0.1.0'),
-              _InfoRow(label: l.myContact, value: seedTrainerProfile.email),
-            ],
-          ),
+          icon: Icons.info_rounded,
+          children: <Widget>[
+            _InfoRow(label: l.myService, value: l.appTitle),
+            _InfoRow(label: l.myVersion, value: '0.1.0'),
+            _InfoRow(label: l.myContact, value: seedTrainerProfile.email),
+          ],
         ),
       ],
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 12.5,
-        fontWeight: FontWeight.w600,
-        color: AppColors.subtleForeground,
-      ),
-    );
-  }
-
-  Future<void> _openPasswordSheet() async {
-    final changed = await showModalBottomSheet<bool>(
+  Future<void> _openPasswordDialog() async {
+    final changed = await showAppDialog<bool>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.card,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: AppRadius.card),
-      ),
-      // 상단 토스트가 이 시트 위로 겹쳐 뜰 수 있다 — 화면 꼭대기까지
-      // 올라오지 않게 남길 최소 높이를 [AppToastStyle.dialogTopClearance]
-      // 로 잡는다.
-      constraints: BoxConstraints(
-        maxHeight:
-            MediaQuery.sizeOf(context).height -
-            AppToastStyle.dialogTopClearance,
-      ),
-      builder: (context) => const _PasswordSheet(),
+      builder: (context) => const _PasswordDialog(),
     );
     if (changed == true && mounted) {
       final AppLocalizations l = AppLocalizations.of(context);
-      showAppToast(context, l.myPasswordChanged, kind: AppToastKind.success);
+      showAppToast(context, l.myPasswordChanged, type: AppToastType.success);
     }
+  }
+}
+
+/// 설정 탭의 카드 — 제목 줄 아래에 [AppListRow] 들을 세로로 쌓는다.
+///
+/// 행이 자기 좌우 여백 16 을 가지므로 카드는 위아래만 채우고, 제목도 행과 같은
+/// 16 에서 시작한다.
+class _SettingsCard extends StatelessWidget {
+  const _SettingsCard({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              OnCareSpacing.s16,
+              OnCareSpacing.s4,
+              OnCareSpacing.s16,
+              OnCareSpacing.s4,
+            ),
+            child: AppSectionHeader(title: title, icon: icon),
+          ),
+          ...children,
+        ],
+      ),
+    );
   }
 }
 
@@ -659,45 +646,20 @@ class _LegalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () => context.push(AppRoutes.legalDocument(document)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        child: Row(
-          children: <Widget>[
-            Icon(icon, size: 18, color: AppColors.mutedForeground),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                  Text(
-                    hint,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.disabledForeground,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              size: 18,
-              color: AppColors.disabledForeground,
-            ),
-          ],
-        ),
+    return AppListRow(
+      leading: Icon(
+        icon,
+        size: OnCareSize.iconMedium,
+        color: OnCareColors.textSecondary,
       ),
+      title: label,
+      subtitle: hint,
+      trailing: const Icon(
+        Icons.chevron_right_rounded,
+        size: OnCareSize.iconMedium,
+        color: OnCareColors.textTertiary,
+      ),
+      onTap: () => context.push(AppRoutes.legalDocument(document)),
     );
   }
 }
@@ -715,41 +677,16 @@ class _DeleteAccountRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                l.myDeleteAccount,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.mutedForeground,
-                ),
-              ),
-              Text(
-                enabled ? l.myDeleteHint : l.myDeleteDemo,
-                style: const TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.disabledForeground,
-                ),
-              ),
-            ],
-          ),
-        ),
-        TextButton(
-          key: const ValueKey<String>('delete-account'),
-          onPressed: enabled ? onTap : null,
-          style: TextButton.styleFrom(foregroundColor: AppColors.destructive),
-          child: Text(
-            l.myDeleteAction,
-            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
+    return AppListRow(
+      title: l.myDeleteAccount,
+      subtitle: enabled ? l.myDeleteHint : l.myDeleteDemo,
+      trailing: AppButton(
+        key: const ValueKey<String>('delete-account'),
+        label: l.myDeleteAction,
+        variant: AppButtonVariant.destructiveText,
+        size: OnCareButtonSize.small,
+        onPressed: enabled ? onTap : null,
+      ),
     );
   }
 }
@@ -786,83 +723,49 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AlertDialog(
-      title: Text(l.myDeleteTitle),
-      content: Column(
+    return AppDialog(
+      title: l.myDeleteTitle,
+      showClose: false,
+      // [AppButtonPair] 와 같은 배치다. 확정 버튼에 Key 를 달아야 해서(이름이
+      // 맞기 전 비활성인지 테스트가 확인한다) 두 버튼을 직접 놓는다.
+      footer: Row(
+        children: <Widget>[
+          Expanded(
+            child: AppButton(
+              label: l.actionCancel,
+              variant: AppButtonVariant.secondary,
+              fullWidth: true,
+              onPressed: () => Navigator.of(context).pop(false),
+            ),
+          ),
+          const SizedBox(width: OnCareSpacing.buttonGap),
+          Expanded(
+            child: AppButton(
+              key: const ValueKey<String>('delete-account-submit'),
+              label: l.myDeleteAction,
+              variant: AppButtonVariant.destructive,
+              fullWidth: true,
+              // 이름이 맞아야 눌린다 — 확인 절차가 형식만 남지 않도록.
+              onPressed: _matches
+                  ? () => Navigator.of(context).pop(true)
+                  : null,
+            ),
+          ),
+        ],
+      ),
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(l.myDeleteBody, style: const TextStyle(fontSize: 13.5)),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            l.myDeleteConfirmPrompt(widget.name),
-            style: const TextStyle(
-              fontSize: 12.5,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          TextField(
+          Text(l.myDeleteBody),
+          const SizedBox(height: OnCareSpacing.s16),
+          AppTextField(
             key: const ValueKey<String>('delete-account-confirm'),
+            label: l.myDeleteConfirmPrompt(widget.name),
             controller: _input,
             autofocus: true,
           ),
         ],
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('취소'),
-        ),
-        TextButton(
-          key: const ValueKey<String>('delete-account-submit'),
-          // 이름이 맞아야 눌린다 — 확인 절차가 형식만 남지 않도록.
-          onPressed: _matches ? () => Navigator.of(context).pop(true) : null,
-          child: Text(
-            l.myDeleteAction,
-            style: const TextStyle(color: AppColors.destructive),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ChipButton extends StatelessWidget {
-  const _ChipButton({
-    required this.label,
-    required this.background,
-    required this.foreground,
-    required this.onTap,
-  });
-
-  final String label;
-  final Color background;
-  final Color foreground;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: background,
-      borderRadius: const BorderRadius.all(AppRadius.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: 6,
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: foreground,
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -882,76 +785,42 @@ class _ProfileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-        border: Border.all(
-          color: editing
-              ? AppColors.primary.withValues(alpha: 0.35)
-              : AppColors.border,
-        ),
-      ),
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
+      selected: editing,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
             children: <Widget>[
-              // 사용자 앱 MY 프로필과 동일한 이니셜 원형 아바타(블루 그라데이션).
-              Container(
-                width: 52,
-                height: 52,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: <Color>[AppColors.primary, AppColors.secondary],
-                  ),
-                  border: Border.all(color: AppColors.primary, width: 2.5),
-                ),
-                child: Text(
-                  profile.name.isNotEmpty ? profile.name.substring(0, 1) : '·',
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
+              AppAvatar(name: profile.name, size: AppAvatarSize.xLarge),
+              const SizedBox(width: OnCareSpacing.s12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
                       profile.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.foreground,
-                      ),
+                      style: tokens
+                          .text(OnCareTypography.titleSmall)
+                          .copyWith(color: OnCareColors.textPrimary),
                     ),
                     Text(
                       profile.email,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.subtleForeground,
-                      ),
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textSecondary),
                     ),
-                    const SizedBox(height: AppSpacing.xs),
+                    const SizedBox(height: OnCareSpacing.s4),
                     Wrap(
-                      spacing: AppSpacing.xs,
-                      runSpacing: AppSpacing.xs,
+                      spacing: OnCareSpacing.s4,
+                      runSpacing: OnCareSpacing.s4,
                       children: <Widget>[
-                        _Tag(text: profile.specialty, color: AppColors.primary),
-                        _Tag(
-                          text: l.myCareerYears(profile.career),
-                          color: AppColors.accent,
+                        AppTag(
+                          label: profile.specialty,
+                          tone: AppTagTone.brand,
                         ),
+                        AppTag(label: l.myCareerYears(profile.career)),
                       ],
                     ),
                   ],
@@ -961,8 +830,8 @@ class _ProfileCard extends StatelessWidget {
           ),
           if (editing) ...<Widget>[
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-              child: Divider(height: 1, color: AppColors.borderStrong),
+              padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
+              child: AppDivider(),
             ),
             _EditField(
               label: l.myFieldName,
@@ -1000,35 +869,7 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
-class _Tag extends StatelessWidget {
-  const _Tag({required this.text, required this.color});
-
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: 2,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: const BorderRadius.all(AppRadius.pill),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
-      ),
-    );
-  }
-}
-
+/// 편집 폼의 한 칸 — [AppTextField] 에 칸 사이 간격만 더한다.
 class _EditField extends StatelessWidget {
   const _EditField({
     required this.label,
@@ -1047,44 +888,13 @@ class _EditField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.subtleForeground,
-            ),
-          ),
-          const SizedBox(height: 3),
-          TextField(
-            key: inputKey,
-            controller: controller,
-            enabled: enabled,
-            maxLines: maxLines,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.foreground,
-            ),
-            decoration: const InputDecoration(
-              isDense: true,
-              filled: true,
-              fillColor: AppColors.background,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.all(AppRadius.md),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+      child: AppTextField(
+        key: inputKey,
+        label: label,
+        controller: controller,
+        enabled: enabled,
+        maxLines: maxLines,
       ),
     );
   }
@@ -1108,63 +918,39 @@ class _CertsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-        border: Border.all(color: AppColors.border),
-      ),
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
       child: Column(
         children: <Widget>[
           for (var i = 0; i < certs.length; i++)
             Padding(
-              padding: EdgeInsets.only(
-                bottom: i < certs.length - 1 || editing ? AppSpacing.sm : 0,
-              ),
+              padding: i < certs.length - 1 || editing
+                  ? const EdgeInsets.only(bottom: OnCareSpacing.s8)
+                  : EdgeInsets.zero,
               child: Row(
                 children: <Widget>[
-                  Container(
-                    width: 24,
-                    height: 24,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      color: AppColors.accentSurface,
-                      borderRadius: BorderRadius.all(AppRadius.sm),
-                    ),
-                    child: const Icon(
-                      Icons.workspace_premium_outlined,
-                      size: 13,
-                      color: AppColors.primary,
-                    ),
+                  Icon(
+                    Icons.workspace_premium_rounded,
+                    size: OnCareSize.iconMedium,
+                    color: tokens.brand.primary,
                   ),
-                  const SizedBox(width: AppSpacing.md),
+                  const SizedBox(width: OnCareSpacing.s12),
                   Expanded(
                     child: Text(
                       certs[i],
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.foreground,
-                      ),
+                      style: tokens
+                          .text(OnCareTypography.body)
+                          .copyWith(color: OnCareColors.textPrimary),
                     ),
                   ),
                   if (editing)
-                    // `GestureDetector` 는 버튼으로 인식되지 않고, 안에 있는
-                    // 것은 X 아이콘 하나뿐이라 무엇을 지우는지 말할 데가
-                    // 없다(#972).
-                    Semantics(
-                      button: true,
-                      label: l.a11yRemoveCertification,
-                      child: GestureDetector(
-                        onTap: () => onRemove(i),
-                        child: const Icon(
-                          Icons.close,
-                          size: 14,
-                          color: AppColors.subtleForeground,
-                        ),
-                      ),
+                    // 아이콘 하나뿐인 버튼이라 무엇을 지우는지 툴팁이 접근성
+                    // 이름으로 말한다(#972).
+                    AppIconButton(
+                      icon: Icons.close_rounded,
+                      tooltip: l.a11yRemoveCertification,
+                      color: OnCareColors.textTertiary,
+                      onPressed: () => onRemove(i),
                     ),
                 ],
               ),
@@ -1173,31 +959,13 @@ class _CertsCard extends StatelessWidget {
             Row(
               children: <Widget>[
                 Expanded(
-                  child: TextField(
+                  child: AppTextField(
                     controller: newCert,
-                    decoration: InputDecoration(
-                      hintText: l.myAddCertification,
-                      isDense: true,
-                      filled: true,
-                      fillColor: AppColors.background,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
-                      ),
-                      border: const OutlineInputBorder(
-                        borderRadius: BorderRadius.all(AppRadius.md),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
+                    hint: l.myAddCertification,
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                _ChipButton(
-                  label: l.myAdd,
-                  background: AppColors.primary,
-                  foreground: AppColors.primaryForeground,
-                  onTap: onAdd,
-                ),
+                const SizedBox(width: OnCareSpacing.s8),
+                AppButton(label: l.myAdd, onPressed: onAdd),
               ],
             ),
         ],
@@ -1216,18 +984,22 @@ class _ClientManagementEntry extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return Semantics(
       button: true,
-      child: InkWell(
-        borderRadius: const BorderRadius.all(AppRadius.card),
+      child: AppCard(
         onTap: onTap,
-        child: SectionCard(
-          title: l.myClientManagement,
-          icon: Icons.manage_accounts_outlined,
-          trailing: const Icon(
-            Icons.chevron_right,
-            size: 18,
-            color: AppColors.disabledForeground,
-          ),
-          child: const SizedBox.shrink(),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: AppSectionHeader(
+                title: l.myClientManagement,
+                icon: Icons.manage_accounts_rounded,
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: OnCareSize.iconMedium,
+              color: OnCareColors.textTertiary,
+            ),
+          ],
         ),
       ),
     );
@@ -1249,13 +1021,16 @@ class _ClientManagementCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return clients.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, _) => Text(l.clientsLoadFailed),
+      loading: () => const AppLoading(),
+      error: (_, _) => AppEmptyState(
+        title: l.clientsLoadFailed,
+        icon: Icons.cloud_off_rounded,
+      ),
       data: (items) {
         if (items.isEmpty) {
-          return EmptyHint(
-            message: l.myClientManagementEmpty,
-            icon: Icons.people_outline,
+          return AppEmptyState(
+            title: l.myClientManagementEmpty,
+            icon: Icons.people_rounded,
           );
         }
         return Column(
@@ -1267,7 +1042,7 @@ class _ClientManagementCard extends StatelessWidget {
                 busy: removing.contains(client.id),
                 onRemove: () => onRemove(client),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: OnCareSpacing.cardGap),
             ],
           ],
         );
@@ -1308,19 +1083,18 @@ class _ManagedClientRow extends StatelessWidget {
           compact: true,
           onTap: () => context.go(AppRoutes.clientDetail(client.id)),
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: OnCareSpacing.s4),
         Align(
           alignment: Alignment.centerRight,
           child: Tooltip(
             message: l.myClientRemove,
-            child: TextButton(
+            // 확인창을 여는 위험 동작이라 빨간 글자 버튼이다.
+            child: AppButton(
+              label: l.myClientRemove,
+              variant: AppButtonVariant.destructiveText,
+              size: OnCareButtonSize.small,
+              loading: busy,
               onPressed: busy ? null : onRemove,
-              child: busy
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(l.myClientRemove),
             ),
           ),
         ),
@@ -1329,8 +1103,11 @@ class _ManagedClientRow extends StatelessWidget {
   }
 }
 
-/// "이번 달 통계" — 남색 그라데이션 블록. 담당 고객(live count) /
-/// 완료 세션 / 루틴 전송 (mock figures from the Figma).
+/// "이번 달 통계" — 담당 고객(live count) / 완료 세션 / 루틴 전송
+/// (mock figures from the Figma).
+///
+/// [AppStatCard] 는 숫자와 단위를 한 줄(`15 명`)로 묶는데, 이 화면은 숫자만
+/// 따로 읽히는 계약(테스트가 `15` 를 찾는다)이라 한 카드 안에 세 칸을 조립한다.
 class _StatsCard extends StatelessWidget {
   const _StatsCard({required this.clientCount});
 
@@ -1339,22 +1116,11 @@ class _StatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[AppColors.bannerStart, AppColors.bannerEnd],
-        ),
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18)),
-        boxShadow: kCardShadow,
-      ),
+    return AppCard(
       child: Row(
         children: <Widget>[
           _Stat(
-            icon: Icons.people_alt_outlined,
+            icon: Icons.people_alt_rounded,
             value: '$clientCount',
             unit: l.dashUnitPeople,
             label: l.myStatClients,
@@ -1392,34 +1158,29 @@ class _Stat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Expanded(
       child: Column(
         children: <Widget>[
-          Icon(icon, size: 18, color: AppColors.primary),
-          const SizedBox(height: 4),
+          Icon(icon, size: OnCareSize.iconMedium, color: tokens.brand.primary),
+          const SizedBox(height: OnCareSpacing.s4),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: AppColors.secondary,
-            ),
+            style: OnCareTypography.numeric(
+              tokens.text(OnCareTypography.display),
+            ).copyWith(color: OnCareColors.textPrimary),
           ),
           Text(
             unit,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
-            ),
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.caption))
+                .copyWith(color: tokens.brand.primary),
           ),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w500,
-              color: AppColors.mutedForeground,
-            ),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
         ],
       ),
@@ -1447,18 +1208,9 @@ class _GymCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        boxShadow: kCardShadow,
-        border: Border.all(
-          color: editing
-              ? AppColors.primary.withValues(alpha: 0.35)
-              : AppColors.border,
-        ),
-      ),
+    final OnCareTokens tokens = context.oncare;
+    return AppCard(
+      selected: editing,
       child: editing
           ? Column(
               children: <Widget>[
@@ -1494,53 +1246,50 @@ class _GymCard extends StatelessWidget {
               children: <Widget>[
                 Row(
                   children: <Widget>[
-                    Container(
-                      width: 34,
-                      height: 34,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: AppColors.accentSurface,
-                        borderRadius: BorderRadius.all(AppRadius.md),
-                      ),
-                      child: const Icon(
-                        Icons.home_outlined,
-                        size: 17,
-                        color: AppColors.accent,
-                      ),
+                    Icon(
+                      Icons.home_rounded,
+                      size: OnCareSize.iconLarge,
+                      color: tokens.brand.primary,
                     ),
-                    const SizedBox(width: AppSpacing.md),
+                    const SizedBox(width: OnCareSpacing.s12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
                             gym.name,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.foreground,
-                            ),
+                            style: tokens
+                                .text(
+                                  OnCareTypography.strong(
+                                    OnCareTypography.bodyLarge,
+                                  ),
+                                )
+                                .copyWith(color: OnCareColors.textPrimary),
                           ),
                           Text(
                             gym.address,
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.subtleForeground,
-                            ),
+                            style: tokens
+                                .text(OnCareTypography.bodySmall)
+                                .copyWith(color: OnCareColors.textSecondary),
                           ),
                         ],
                       ),
                     ),
-                    StatusDotLabel(
-                      label: l.myGymOpen,
-                      color: AppColors.success,
+                    const AppStatusDot(color: OnCareColors.success),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    Text(
+                      l.myGymOpen,
+                      style: tokens
+                          .text(
+                            OnCareTypography.strong(OnCareTypography.caption),
+                          )
+                          .copyWith(color: OnCareColors.textSecondary),
                     ),
                   ],
                 ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                  child: Divider(height: 1, color: AppColors.borderStrong),
+                  padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+                  child: AppDivider(),
                 ),
                 Row(
                   children: <Widget>[
@@ -1570,70 +1319,70 @@ class _GymChoiceField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            l.myGym,
-            style: const TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.subtleForeground,
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
+      child: choices.when(
+        loading: () => Row(
+          children: <Widget>[
+            Text(
+              l.myGym,
+              style: tokens
+                  .text(OnCareTypography.label)
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
-          ),
-          const SizedBox(height: 3),
-          choices.when(
-            loading: () => const LinearProgressIndicator(minHeight: 2),
-            error: (_, _) => Text(
+            const SizedBox(width: OnCareSpacing.s8),
+            const AppLoading.inline(),
+          ],
+        ),
+        error: (_, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              l.myGym,
+              style: tokens
+                  .text(OnCareTypography.label)
+                  .copyWith(color: OnCareColors.textSecondary),
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            Text(
               l.myGymListFailed,
-              style: const TextStyle(
-                color: AppColors.destructive,
-                fontSize: 12,
-              ),
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.danger),
             ),
-            data: (items) {
-              final currentId = selectedGymId;
-              final hasCurrent =
-                  currentId.isEmpty ||
-                  items.any((choice) => choice.id == currentId);
-              return DropdownButtonFormField<String>(
-                key: ValueKey<String>(currentId),
-                initialValue: currentId,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  filled: true,
-                  fillColor: AppColors.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(AppRadius.md),
-                    borderSide: BorderSide.none,
+          ],
+        ),
+        data: (items) {
+          final currentId = selectedGymId;
+          final hasCurrent =
+              currentId.isEmpty ||
+              items.any((choice) => choice.id == currentId);
+          return AppSelectField<String>(
+            key: ValueKey<String>(currentId),
+            label: l.myGym,
+            value: currentId,
+            items: <DropdownMenuItem<String>>[
+              DropdownMenuItem<String>(value: '', child: Text(l.myNoGym)),
+              if (!hasCurrent)
+                DropdownMenuItem<String>(
+                  value: currentId,
+                  child: Text(currentGym.name),
+                ),
+              for (final choice in items)
+                DropdownMenuItem<String>(
+                  value: choice.id,
+                  child: Text(
+                    choice.address.isEmpty
+                        ? choice.name
+                        : '${choice.name} · ${choice.address}',
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                items: <DropdownMenuItem<String>>[
-                  DropdownMenuItem<String>(value: '', child: Text(l.myNoGym)),
-                  if (!hasCurrent)
-                    DropdownMenuItem<String>(
-                      value: currentId,
-                      child: Text(currentGym.name),
-                    ),
-                  for (final choice in items)
-                    DropdownMenuItem<String>(
-                      value: choice.id,
-                      child: Text(
-                        choice.address.isEmpty
-                            ? choice.name
-                            : '${choice.name} · ${choice.address}',
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                ],
-                onChanged: (value) => onChanged(value ?? ''),
-              );
-            },
-          ),
-        ],
+            ],
+            onChanged: (value) => onChanged(value ?? ''),
+          );
+        },
       ),
     );
   }
@@ -1647,26 +1396,23 @@ class _GymDetail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AppColors.subtleForeground,
-            ),
+            style: tokens
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: OnCareSpacing.s2),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.foreground,
-            ),
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                .copyWith(color: OnCareColors.textPrimary),
           ),
         ],
       ),
@@ -1674,107 +1420,7 @@ class _GymDetail extends StatelessWidget {
   }
 }
 
-class _LogoutButton extends StatelessWidget {
-  const _LogoutButton({required this.onTap});
-
-  final Future<void> Function() onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return Material(
-      color: AppColors.card,
-      borderRadius: const BorderRadius.all(AppRadius.card),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.card),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(AppRadius.card),
-            border: Border.all(color: AppColors.borderStrong),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const Icon(Icons.logout, size: 16, color: AppColors.destructive),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                l.mySignOut,
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.destructive,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// One notification preference. The switch writes through immediately —
-/// there is no save button, because a settings screen with unsaved state
-/// is a settings screen people leave half-applied.
-class _SwitchRow extends StatelessWidget {
-  const _SwitchRow({
-    required this.label,
-    required this.hint,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final String hint;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
-                Text(
-                  hint,
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.disabledForeground,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeThumbColor: AppColors.primary,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Which box a password-sheet validation message belongs under.
+/// Which box a password-dialog validation message belongs under.
 enum _PasswordField {
   /// 현재 비밀번호.
   current,
@@ -1786,18 +1432,18 @@ enum _PasswordField {
   confirm,
 }
 
-/// Bottom sheet for changing the password.
+/// Dialog for changing the password.
 ///
 /// Asks for the current password as well: a stolen token should not be
 /// enough to take the account over.
-class _PasswordSheet extends ConsumerStatefulWidget {
-  const _PasswordSheet();
+class _PasswordDialog extends ConsumerStatefulWidget {
+  const _PasswordDialog();
 
   @override
-  ConsumerState<_PasswordSheet> createState() => _PasswordSheetState();
+  ConsumerState<_PasswordDialog> createState() => _PasswordDialogState();
 }
 
-class _PasswordSheetState extends ConsumerState<_PasswordSheet> {
+class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
   final TextEditingController _current = TextEditingController();
   final TextEditingController _next = TextEditingController();
   final TextEditingController _confirm = TextEditingController();
@@ -1897,110 +1543,44 @@ class _PasswordSheetState extends ConsumerState<_PasswordSheet> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        AppSpacing.lg,
-        AppSpacing.xl,
-        AppSpacing.xl + MediaQuery.viewInsetsOf(context).bottom,
+    return AppDialog(
+      title: l.myChangePassword,
+      size: AppDialogSize.medium,
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: _saving ? null : () => Navigator.of(context).pop(false),
+        confirmLabel: _saving ? l.myPwChanging : l.myPwChangeAction,
+        confirmLoading: _saving,
+        onConfirm: _submit,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Text(
-            l.myChangePassword,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppColors.foreground,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _PasswordInput(
+          AppTextField(
             controller: _current,
-            hint: l.myPwCurrent,
+            label: l.myPwCurrent,
+            obscureText: true,
             errorText: _errorFor(_PasswordField.current),
-            onChanged: _clearError,
+            onChanged: (_) => _clearError(),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _PasswordInput(
+          const SizedBox(height: OnCareSpacing.s16),
+          AppTextField(
             controller: _next,
-            hint: l.myPwNew(_minLength),
+            label: l.myPwNew(_minLength),
+            obscureText: true,
             errorText: _errorFor(_PasswordField.next),
-            onChanged: _clearError,
+            onChanged: (_) => _clearError(),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          _PasswordInput(
+          const SizedBox(height: OnCareSpacing.s16),
+          AppTextField(
             controller: _confirm,
-            hint: l.myPwConfirm,
+            label: l.myPwConfirm,
+            obscureText: true,
             errorText: _errorFor(_PasswordField.confirm),
-            onChanged: _clearError,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Material(
-            color: _saving ? AppColors.disabledForeground : AppColors.primary,
-            borderRadius: const BorderRadius.all(AppRadius.lg),
-            child: InkWell(
-              onTap: _saving ? null : _submit,
-              borderRadius: const BorderRadius.all(AppRadius.lg),
-              child: Container(
-                height: 44,
-                alignment: Alignment.center,
-                child: Text(
-                  _saving ? l.myPwChanging : l.myPwChangeAction,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primaryForeground,
-                  ),
-                ),
-              ),
-            ),
+            onChanged: (_) => _clearError(),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _PasswordInput extends StatelessWidget {
-  const _PasswordInput({
-    required this.controller,
-    required this.hint,
-    required this.onChanged,
-    this.errorText,
-  });
-
-  final TextEditingController controller;
-  final String hint;
-  final VoidCallback onChanged;
-  final String? errorText;
-
-  @override
-  Widget build(BuildContext context) {
-    const border = OutlineInputBorder(
-      borderRadius: BorderRadius.all(AppRadius.lg),
-      borderSide: BorderSide.none,
-    );
-    return TextField(
-      controller: controller,
-      obscureText: true,
-      onChanged: (_) => onChanged(),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.subtleForeground),
-        isDense: true,
-        filled: true,
-        fillColor: AppColors.inputBackground,
-        errorText: errorText,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
-        ),
-        border: border,
-        enabledBorder: border,
-        focusedBorder: border,
       ),
     );
   }
@@ -2014,18 +1594,20 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(
+        horizontal: OnCareSpacing.s16,
+        vertical: OnCareSpacing.s8,
+      ),
       child: Row(
         children: <Widget>[
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.subtleForeground,
-              ),
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
           ),
           Flexible(
@@ -2034,11 +1616,9 @@ class _InfoRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.end,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.foreground,
-              ),
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
         ],

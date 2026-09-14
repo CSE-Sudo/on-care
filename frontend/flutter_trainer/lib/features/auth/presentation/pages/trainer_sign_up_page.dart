@@ -4,15 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
-import 'package:oncare_trainer/features/auth/presentation/widgets/auth_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
-/// 트레이너 회원가입 화면 — 사용자 앱 회원가입과 동일한 디자인. 이름/이메일/
+/// 트레이너 회원가입 화면 — 공용 [AppAuthLayout]. 이름/이메일/
 /// 비밀번호와 **헬스장 초대 코드**로 계정을 만들고, 성공 시 자동 로그인해 고객
 /// 탭으로 진입한다 (라우터 가드가 인증 상태를 감지).
 ///
@@ -66,15 +63,24 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     final requiresInviteCode = !ref.read(appConfigProvider).useMockApi;
     final inviteCode = _inviteCode.text.trim();
     if (email.isEmpty || password.isEmpty) {
-      showAppToast(context, AppLocalizations.of(context).authErrEmptyCredentials);
+      showAppToast(
+        context,
+        AppLocalizations.of(context).authErrEmptyCredentials,
+      );
       return;
     }
     if (password.length < 8) {
-      showAppToast(context, AppLocalizations.of(context).authErrPasswordTooShort);
+      showAppToast(
+        context,
+        AppLocalizations.of(context).authErrPasswordTooShort,
+      );
       return;
     }
     if (password != confirm) {
-      showAppToast(context, AppLocalizations.of(context).authErrPasswordMismatch);
+      showAppToast(
+        context,
+        AppLocalizations.of(context).authErrPasswordMismatch,
+      );
       return;
     }
     if (requiresInviteCode && inviteCode.isEmpty) {
@@ -102,14 +108,14 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
       if (!mounted) return;
       final AppLocalizations l = AppLocalizations.of(context);
       setState(() => _loading = false);
-      showAppToast(context, authFailureText(l, e), kind: AppToastKind.error);
+      showAppToast(context, authFailureText(l, e), type: AppToastType.error);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
       showAppToast(
         context,
         AppLocalizations.of(context).authErrSignUpFailed,
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     }
   }
@@ -117,171 +123,124 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final TextStyle mutedStyle = tokens
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textSecondary);
     // 데모 가입 화면은 지금과 동일해야 한다 — 코드 입력을 그리지 않는다.
     final showInviteCode = !ref.watch(appConfigProvider).useMockApi;
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          children: <Widget>[
-            Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xs),
-                child: IconButton(
-                  // 뒤로 가기는 플랫폼이 이미 제 언어로 부르는 이름이 있다.
-                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                  onPressed: _backToSignIn,
-                  icon: const Icon(Icons.arrow_back),
-                  color: const Color(0xFF64748B),
-                ),
-              ),
+    return AppAuthLayout(
+      leading: AppBackButton(onPressed: _backToSignIn),
+      title: l.authSignUp,
+      subtitle: l.authSignUpSubtitle,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppTextField(
+            controller: _name,
+            hint: l.authName,
+            prefixIcon: Icons.person_outline_rounded,
+            size: AppFieldSize.large,
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            controller: _email,
+            hint: l.authEmail,
+            prefixIcon: Icons.mail_outline_rounded,
+            size: AppFieldSize.large,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            controller: _password,
+            hint: l.authPasswordHint,
+            prefixIcon: Icons.lock_outline_rounded,
+            size: AppFieldSize.large,
+            obscureText: _obscure,
+            textInputAction: TextInputAction.next,
+            suffix: AppIconButton(
+              // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할
+              // 데가 툴팁뿐이다(#972).
+              tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
+              icon: _obscure
+                  ? Icons.visibility_off_rounded
+                  : Icons.visibility_rounded,
+              color: OnCareColors.textTertiary,
+              onPressed: () => setState(() => _obscure = !_obscure),
             ),
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.xl),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Text(
-                        l.authSignUp,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF262626),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l.authSignUpSubtitle,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
-
-                      AuthField(
-                        controller: _name,
-                        hint: l.authName,
-                        icon: Icons.person_outline,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      AuthField(
-                        controller: _email,
-                        hint: l.authEmail,
-                        icon: Icons.mail_outline,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      AuthField(
-                        controller: _password,
-                        hint: l.authPasswordHint,
-                        icon: Icons.lock_outline,
-                        obscure: _obscure,
-                        trailing: IconButton(
-                          // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할
-                          // 데가 툴팁뿐이다(#972).
-                          tooltip: _obscure
-                              ? l.a11yShowPassword
-                              : l.a11yHidePassword,
-                          icon: Icon(
-                            _obscure ? Icons.visibility_off : Icons.visibility,
-                            size: 20,
-                            color: const Color(0xFF64748B),
-                          ),
-                          onPressed: () => setState(() => _obscure = !_obscure),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      AuthField(
-                        controller: _passwordConfirm,
-                        hint: l.authPasswordConfirm,
-                        icon: Icons.lock_outline,
-                        obscure: _obscure,
-                        // 데모에서는 이 필드가 마지막이라 제출 액션이 여기 붙는다.
-                        onSubmitted: showInviteCode ? null : (_) => _register(),
-                      ),
-                      if (showInviteCode) ...<Widget>[
-                        const SizedBox(height: AppSpacing.md),
-                        AuthField(
-                          controller: _inviteCode,
-                          hint: l.authInviteCode,
-                          icon: Icons.confirmation_number_outlined,
-                          textCapitalization: TextCapitalization.characters,
-                          onSubmitted: (_) => _register(),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          l.authInviteCodeHelp,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.xl),
-
-                      AuthGradientButton(
-                        loading: _loading,
-                        label: l.authSignUpAndStart,
-                        onTap: _register,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      // 동의 대상 문서는 동의하기 전에 열 수 있어야 한다 —
-                      // 두 문서 모두 세션 없이 열리는 라우트다. (#968)
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: <Widget>[
-                          Text(
-                            l.authLegalNotice,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF64748B),
-                            ),
-                          ),
-                          _LegalLink(
-                            label: l.myLegalTermsTitle,
-                            document: AppRoutes.legalTerms,
-                          ),
-                          _LegalLink(
-                            label: l.myLegalPrivacyTitle,
-                            document: AppRoutes.legalPrivacy,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      // Row 가 아니라 Wrap — 영어 문구가 길어 좁은 폭에서
-                      // 넘친다(로그인 화면과 같은 이유). (#501)
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: <Widget>[
-                          Text(
-                            l.authHasAccount,
-                            style: const TextStyle(color: Color(0xFF64748B)),
-                          ),
-                          TextButton(
-                            onPressed: _backToSignIn,
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                            ),
-                            child: Text(l.authSignIn),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppTextField(
+            controller: _passwordConfirm,
+            hint: l.authPasswordConfirm,
+            prefixIcon: Icons.lock_outline_rounded,
+            size: AppFieldSize.large,
+            obscureText: _obscure,
+            // 데모에서는 이 필드가 마지막이라 제출 액션이 여기 붙는다.
+            textInputAction: showInviteCode
+                ? TextInputAction.next
+                : TextInputAction.done,
+            onSubmitted: showInviteCode ? null : (_) => _register(),
+          ),
+          if (showInviteCode) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            AppTextField(
+              controller: _inviteCode,
+              hint: l.authInviteCode,
+              prefixIcon: Icons.confirmation_number_rounded,
+              size: AppFieldSize.large,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _register(),
             ),
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(l.authInviteCodeHelp, style: mutedStyle),
           ],
-        ),
+          const SizedBox(height: OnCareSpacing.s24),
+          AppButton(
+            label: l.authSignUpAndStart,
+            onPressed: _register,
+            size: OnCareButtonSize.large,
+            loading: _loading,
+            fullWidth: true,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          // 동의 대상 문서는 동의하기 전에 열 수 있어야 한다 —
+          // 두 문서 모두 세션 없이 열리는 라우트다. (#968)
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              Text(l.authLegalNotice, style: mutedStyle),
+              _LegalLink(
+                label: l.myLegalTermsTitle,
+                document: AppRoutes.legalTerms,
+              ),
+              _LegalLink(
+                label: l.myLegalPrivacyTitle,
+                document: AppRoutes.legalPrivacy,
+              ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          // Row 가 아니라 Wrap — 영어 문구가 길어 좁은 폭에서
+          // 넘친다(로그인 화면과 같은 이유). (#501)
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              Text(l.authHasAccount, style: mutedStyle),
+              AppButton(
+                label: l.authSignIn,
+                onPressed: _backToSignIn,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -297,20 +256,11 @@ class _LegalLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextButton(
+    return AppButton(
+      label: label,
       onPressed: () => context.push(AppRoutes.legalDocument(document)),
-      style: TextButton.styleFrom(
-        foregroundColor: AppColors.primary,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-        minimumSize: Size.zero,
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        textStyle: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          decoration: TextDecoration.underline,
-        ),
-      ),
-      child: Text(label),
+      variant: AppButtonVariant.text,
+      size: OnCareButtonSize.small,
     );
   }
 }
