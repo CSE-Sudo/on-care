@@ -5330,6 +5330,18 @@ abstract class AppLocalizations {
   /// **'This week\'s report is due'**
   String get dashTodoReportSubtitle;
 
+  /// No description provided for @dashTaskSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save your task status. Please try again in a moment'**
+  String get dashTaskSaveFailed;
+
+  /// No description provided for @dashTaskLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your task status. Please try again in a moment'**
+  String get dashTaskLoadFailed;
+
   /// No description provided for @dashTaskDismissTitle.
   ///
   /// In en, this message translates to:
@@ -5894,11 +5906,97 @@ abstract class AppLocalizations {
   /// **'Programs you already assigned and sessions you scheduled stay as they are.'**
   String get programDraftDeleteBody;
 
-  /// No description provided for @programEditorAssignUnsupported.
+  /// No description provided for @programAssignConfirmAttachBody.
   ///
   /// In en, this message translates to:
-  /// **'Check each exercise\'s name and set count.'**
-  String get programEditorAssignUnsupported;
+  /// **'This program will be attached to {name}\'s PT already planned for {date} {session}. The time you picked ({selected}) won\'t be applied.'**
+  String programAssignConfirmAttachBody(
+    String name,
+    String date,
+    String session,
+    String selected,
+  );
+
+  /// No description provided for @programAssignConfirmChooseBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} has several PT sessions on {date} that overlap the time you picked ({selected}). Choose the session to attach this program to. The picked time won\'t be applied.'**
+  String programAssignConfirmChooseBody(
+    String name,
+    String date,
+    String selected,
+  );
+
+  /// No description provided for @coachAttachTargetChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The PT session to attach to has changed. Tap Add to schedule again to check'**
+  String get coachAttachTargetChanged;
+
+  /// No description provided for @programEditorNoExercises.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one exercise'**
+  String get programEditorNoExercises;
+
+  /// No description provided for @programEditorExerciseNameInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'An exercise name is empty or longer than 100 characters'**
+  String get programEditorExerciseNameInvalid;
+
+  /// No description provided for @programEditorRegisterDatePast.
+  ///
+  /// In en, this message translates to:
+  /// **'That date has passed. Pick today or a later date'**
+  String get programEditorRegisterDatePast;
+
+  /// No description provided for @coachSendNetworkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your network connection and try again'**
+  String get coachSendNetworkFailed;
+
+  /// No description provided for @coachSendClientNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'This member isn\'t linked to you. Check the member\'s connection'**
+  String get coachSendClientNotFound;
+
+  /// No description provided for @coachSendInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The server didn\'t accept this schedule. Check the date, time and exercises'**
+  String get coachSendInvalid;
+
+  /// No description provided for @coachSendUnverified.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t confirm the result. Check the schedule to see whether it was added'**
+  String get coachSendUnverified;
+
+  /// No description provided for @programEditorSessionLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'A program can have up to {max} sessions'**
+  String programEditorSessionLimitReached(int max);
+
+  /// No description provided for @programEditorExerciseLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'A program can have up to {max} exercises in total'**
+  String programEditorExerciseLimitReached(int max);
+
+  /// No description provided for @programEditorSizeExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'{sessions}/{maxSessions} sessions · {exercises}/{maxExercises} exercises — remove the extra to add it to the schedule'**
+  String programEditorSizeExceeded(
+    int sessions,
+    int maxSessions,
+    int exercises,
+    int maxExercises,
+  );
 
   /// No description provided for @programAssignConfirmTitle.
   ///
@@ -5909,7 +6007,7 @@ abstract class AppLocalizations {
   /// No description provided for @programAssignConfirmBody.
   ///
   /// In en, this message translates to:
-  /// **'This program will be added to {name}\'s PT schedule on {date} at {time}.'**
+  /// **'A new PT session will be created for {name} on {date} at {time} with this program.'**
   String programAssignConfirmBody(String name, String date, String time);
 
   /// No description provided for @programEditorSaveTemplate.

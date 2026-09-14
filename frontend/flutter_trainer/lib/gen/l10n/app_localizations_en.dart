@@ -3029,6 +3029,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTodoReportSubtitle => 'This week\'s report is due';
 
   @override
+  String get dashTaskSaveFailed =>
+      'Couldn\'t save your task status. Please try again in a moment';
+
+  @override
+  String get dashTaskLoadFailed =>
+      'Couldn\'t load your task status. Please try again in a moment';
+
+  @override
   String get dashTaskDismissTitle => 'Delete this item?';
 
   @override
@@ -3358,15 +3366,81 @@ class AppLocalizationsEn extends AppLocalizations {
       'Programs you already assigned and sessions you scheduled stay as they are.';
 
   @override
-  String get programEditorAssignUnsupported =>
-      'Check each exercise\'s name and set count.';
+  String programAssignConfirmAttachBody(
+    String name,
+    String date,
+    String session,
+    String selected,
+  ) {
+    return 'This program will be attached to $name\'s PT already planned for $date $session. The time you picked ($selected) won\'t be applied.';
+  }
+
+  @override
+  String programAssignConfirmChooseBody(
+    String name,
+    String date,
+    String selected,
+  ) {
+    return '$name has several PT sessions on $date that overlap the time you picked ($selected). Choose the session to attach this program to. The picked time won\'t be applied.';
+  }
+
+  @override
+  String get coachAttachTargetChanged =>
+      'The PT session to attach to has changed. Tap Add to schedule again to check';
+
+  @override
+  String get programEditorNoExercises => 'Add at least one exercise';
+
+  @override
+  String get programEditorExerciseNameInvalid =>
+      'An exercise name is empty or longer than 100 characters';
+
+  @override
+  String get programEditorRegisterDatePast =>
+      'That date has passed. Pick today or a later date';
+
+  @override
+  String get coachSendNetworkFailed =>
+      'Check your network connection and try again';
+
+  @override
+  String get coachSendClientNotFound =>
+      'This member isn\'t linked to you. Check the member\'s connection';
+
+  @override
+  String get coachSendInvalid =>
+      'The server didn\'t accept this schedule. Check the date, time and exercises';
+
+  @override
+  String get coachSendUnverified =>
+      'Couldn\'t confirm the result. Check the schedule to see whether it was added';
+
+  @override
+  String programEditorSessionLimitReached(int max) {
+    return 'A program can have up to $max sessions';
+  }
+
+  @override
+  String programEditorExerciseLimitReached(int max) {
+    return 'A program can have up to $max exercises in total';
+  }
+
+  @override
+  String programEditorSizeExceeded(
+    int sessions,
+    int maxSessions,
+    int exercises,
+    int maxExercises,
+  ) {
+    return '$sessions/$maxSessions sessions · $exercises/$maxExercises exercises — remove the extra to add it to the schedule';
+  }
 
   @override
   String get programAssignConfirmTitle => 'Add to the schedule?';
 
   @override
   String programAssignConfirmBody(String name, String date, String time) {
-    return 'This program will be added to $name\'s PT schedule on $date at $time.';
+    return 'A new PT session will be created for $name on $date at $time with this program.';
   }
 
   @override

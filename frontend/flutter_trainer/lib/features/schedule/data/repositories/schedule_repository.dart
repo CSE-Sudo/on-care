@@ -47,6 +47,15 @@ abstract interface class ScheduleRepository {
   /// One client's booked sessions, newest first.
   Stream<List<ScheduleSession>> watchClientSessions(ScheduleClientKey client);
 
+  /// [client] 의 [date] 세션을 한 번 읽는다(공백 제외, 시작 시각 순).
+  ///
+  /// `일정 추가` 확인창이 저장 전에 연결 후보를 보여 주려고 부른다(#1581) —
+  /// 계속 지켜볼 화면이 아니라 누른 순간의 한 장면이면 된다.
+  Future<List<ScheduleSession>> fetchClientSessionsOn(
+    ScheduleClientKey client,
+    String date,
+  );
+
   /// Books a new session (status 예정).
   Future<void> addSession({
     required String date,
@@ -90,21 +99,27 @@ abstract interface class ScheduleRepository {
     required String note,
   });
 
-  /// Attaches [program] to the client's earliest upcoming PT session on
-  /// [date], or creates a new one at [time] for [durationMinutes] when none
-  /// exists.
+  /// 프로그램 탭 `일정 추가` 한 번 — 회원 배정과 PT 일정 등록을 한 명령으로
+  /// 처리한다(#1580). 둘 중 하나만 반영되는 경우가 없다.
   ///
-  /// Returns `true` when an existing session was updated and `false` when a
-  /// new session was created. Both mock and real implementations expose the
-  /// same operation so AI coaching cannot accidentally write to a different
-  /// data source than the schedule screen.
-  Future<bool> registerProgram({
+  /// [assignment] 는 `programAssignToJson` 이 만든 배정 본문(이름·세션·멱등키)
+  /// 이다. 같은 멱등키로 다시 보내면 배정도 일정도 두 번 생기지 않는다.
+  /// [program] 은 같은 구성을 일정 항목으로 펼친 것으로, 로컬(데모) 구현만
+  /// 쓴다 — 서버는 세션에서 직접 펼친다.
+  ///
+  /// 연결 대상은 [time] 부터 [durationMinutes] 동안과 겹치는 그날 예정
+  /// 세션이다(#1581). 없으면 그 시간으로 새로 만들고 `false`, 하나면 거기에
+  /// 붙이고 `true`. 여럿이면 [sessionId] 로 고른 것에만 붙이며, 고르지
+  /// 않았거나 고른 것이 후보가 아니면 [ProgramAttachConflictError].
+  Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
     required String clientName,
     required String time,
     required int durationMinutes,
+    required Map<String, Object?> assignment,
     required List<ProgramItem> program,
+    String? sessionId,
   });
 
   /// Removes a session from the timeline.
@@ -298,6 +313,30 @@ class DriftScheduleRepository implements ScheduleRepository {
     return query.watch().map((rows) => rows.map(_toEntity).toList());
   }
 
+  /// [watchClientSessions] 와 같은 회원 매칭으로 그날 세션을 한 번 읽는다(#1581).
+  @override
+  Future<List<ScheduleSession>> fetchClientSessionsOn(
+    ScheduleClientKey client,
+    String date,
+  ) async {
+    final query = _db.select(_db.trainerScheduleEntries)
+      ..where(
+        (t) =>
+            t.date.equals(date) &
+            (t.clientId.equals(client.id) |
+                (t.clientId.isNull() &
+                    t.clientName.lower().trim().equals(
+                      client.name.trim().toLowerCase(),
+                    ))) &
+            t.status.equals(ScheduleStatus.gap).not(),
+      )
+      ..orderBy(<OrderingTerm Function($TrainerScheduleEntriesTable)>[
+        (t) => OrderingTerm(expression: t.time),
+      ]);
+    final rows = await query.get();
+    return rows.map(_toEntity).toList();
+  }
+
   /// Books a new session on [date]'s timeline (status 예정). The
   /// non-`seed-` id survives the daily re-seed.
   @override
@@ -401,18 +440,23 @@ class DriftScheduleRepository implements ScheduleRepository {
     );
   }
 
+  /// 데모에는 루틴을 받을 회원 백엔드가 없어 배정은 쓰지 않는다
+  /// (`MockTrainerRoutineRepository.assignProgram` 도 no-op) — 일정 쪽만
+  /// 로컬에 한 트랜잭션으로 반영한다.
   @override
-  Future<bool> registerProgram({
+  Future<bool> registerProgramSchedule({
     required String date,
     required String clientId,
     required String clientName,
     required String time,
     required int durationMinutes,
+    required Map<String, Object?> assignment,
     required List<ProgramItem> program,
+    String? sessionId,
   }) {
     final table = _db.trainerScheduleEntries;
     return _db.transaction(() async {
-      final candidates =
+      final sameDay =
           await (_db.select(table)
                 ..where(
                   (t) =>
@@ -424,15 +468,31 @@ class DriftScheduleRepository implements ScheduleRepository {
                 ]))
               .get();
 
-      TrainerScheduleRow? existing;
+      // 서버와 같은 규칙 — 이 회원의, 고른 시간대와 겹치는 예정 세션(#1581).
       final normalizedName = clientName.trim().toLowerCase();
-      for (final candidate in candidates) {
-        if (candidate.clientId == clientId ||
-            (candidate.clientId == null &&
-                candidate.clientName.trim().toLowerCase() == normalizedName)) {
-          existing = candidate;
-          break;
+      final candidates = <TrainerScheduleRow>[
+        for (final row in sameDay)
+          if ((row.clientId == clientId ||
+                  (row.clientId == null &&
+                      row.clientName.trim().toLowerCase() == normalizedName)) &&
+              timeRangesOverlap(
+                row.time,
+                row.durationMinutes,
+                time,
+                durationMinutes,
+              ))
+            row,
+      ];
+      TrainerScheduleRow? existing;
+      if (sessionId != null) {
+        for (final row in candidates) {
+          if (row.id == sessionId) existing = row;
         }
+        if (existing == null) throw const ProgramAttachConflictError();
+      } else if (candidates.length > 1) {
+        throw const ProgramAttachConflictError();
+      } else if (candidates.isNotEmpty) {
+        existing = candidates.single;
       }
 
       final encodedProgram = jsonEncode(programToJson(program));
