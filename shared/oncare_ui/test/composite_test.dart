@@ -65,6 +65,27 @@ void main() {
                     today: DateTime(2026, 9, 14),
                     onSelected: (_) {},
                   ),
+                  AppWeekStrip(
+                    days: List<DateTime>.generate(
+                      7,
+                      (i) => DateTime(2026, 9, 8 + i),
+                    ),
+                    weekdayLabels: const <String>[
+                      '월',
+                      '화',
+                      '수',
+                      '목',
+                      '금',
+                      '토',
+                      '일',
+                    ],
+                    selected: DateTime(2026, 9, 14),
+                    today: DateTime(2026, 9, 14),
+                    onSelected: (_) {},
+                    previousTooltip: '지난 주',
+                    nextTooltip: '다음 주',
+                    onPrevious: () {},
+                  ),
                   AppMonthGrid(
                     month: DateTime(2026, 9),
                     weekdayLabels: const <String>[

@@ -279,18 +279,26 @@ class _PointsCard extends StatelessWidget {
               size: OnCareSize.iconLarge,
             ),
             const SizedBox(width: OnCareSpacing.s8),
-            Flexible(
-              child: Text(
-                points != null ? '${points}P' : '—P',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: OnCareTypography.numeric(
-                  tokens.text(OnCareTypography.titleMedium),
-                ).copyWith(color: OnCareColors.textPrimary),
+            // 숫자와 (i) 를 한 칸으로 묶어 남는 폭을 모두 차지하게 한다.
+            // Flexible(loose)와 Spacer 가 flex 를 반씩 나누면 숫자가 못 쓴
+            // 몫이 화살표 오른쪽에 빈칸으로 남아, 화살표가 다른 행보다 안쪽에 선다.
+            Expanded(
+              child: Row(
+                children: <Widget>[
+                  Flexible(
+                    child: Text(
+                      points != null ? '${points}P' : '—P',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: OnCareTypography.numeric(
+                        tokens.text(OnCareTypography.titleMedium),
+                      ).copyWith(color: OnCareColors.textPrimary),
+                    ),
+                  ),
+                  const _PointsInfoButton(),
+                ],
               ),
             ),
-            const _PointsInfoButton(),
-            const Spacer(),
             const Icon(
               Icons.chevron_right_rounded,
               color: OnCareColors.textTertiary,
