@@ -77,7 +77,13 @@ void main() {
     final chat = await MockMemberCoachRepository().fetchChat();
     final now = nowKst();
     final last = chat.last.createdAt;
-    expect((last.year, last.month, last.day), (now.year, now.month, now.day));
+    // 시드 기준 시각은 프로세스에서 한 번만 잡는다. 테스트 실행이 KST 자정을
+    // 넘기면 그 사이 시드는 전날에 머문다 — 자정 직후 한 시간만 전날을 받는다.
+    final DateTime lastDay = DateTime(last.year, last.month, last.day);
+    final DateTime today = DateTime(now.year, now.month, now.day);
+    final bool crossedMidnight =
+        now.hour == 0 && lastDay == today.subtract(const Duration(days: 1));
+    expect(lastDay == today || crossedMidnight, isTrue, reason: '$last / $now');
     expect(last.isBefore(now), isTrue);
   });
 
