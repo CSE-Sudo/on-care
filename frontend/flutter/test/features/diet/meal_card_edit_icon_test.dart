@@ -71,14 +71,14 @@ void main() {
     expect(
       find.descendant(
         of: _anyMealCard,
-        matching: find.byIcon(Icons.edit_outlined),
+        matching: find.byIcon(Icons.edit_rounded),
       ),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: _anyMealCard,
-        matching: find.byIcon(Icons.chevron_right),
+        matching: find.byIcon(Icons.chevron_right_rounded),
       ),
       findsNothing,
     );
@@ -91,7 +91,7 @@ void main() {
       find
           .descendant(
             of: _anyMealCard,
-            matching: find.byIcon(Icons.edit_outlined),
+            matching: find.byIcon(Icons.edit_rounded),
           )
           .first,
     );
@@ -109,7 +109,7 @@ void main() {
       find
           .descendant(
             of: _anyMealCard,
-            matching: find.byIcon(Icons.edit_outlined),
+            matching: find.byIcon(Icons.edit_rounded),
           )
           .first,
     );

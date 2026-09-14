@@ -9,7 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -19,6 +19,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 const ExerciseWeek _week = ExerciseWeek(
@@ -41,11 +42,12 @@ Widget _app(int period) => ProviderScope(
     exerciseActivityPeriodProvider.overrideWith((ref) => period),
     exerciseWeekProvider.overrideWith((ref) async => _week),
   ],
-  child: const MaterialApp(
-    locale: Locale('ko'),
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: Scaffold(
+    home: const Scaffold(
       body: Padding(
         padding: EdgeInsets.all(24),
         child: ExerciseActivityStatus(week: _week),
@@ -75,11 +77,7 @@ void main() {
           )
           .last,
     );
-    expect(
-      donut.right,
-      lessThan(cardio.left),
-      reason: '도넛이 유형별 값 왼쪽에 있어야 한다',
-    );
+    expect(donut.right, lessThan(cardio.left), reason: '도넛이 유형별 값 왼쪽에 있어야 한다');
 
     // 도넛과 상세가 한 덩어리로 가운데에 서고, 카드 양옆에 여백이 남는다.
     final Rect card = tester.getRect(find.byType(ExerciseDayLoadCard));
@@ -102,11 +100,12 @@ void main() {
           dietRepositoryProvider.overrideWithValue(FakeDietRepository()),
           accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(
+          home: const Scaffold(
             body: Column(
               children: <Widget>[
                 Padding(
@@ -125,9 +124,7 @@ void main() {
     final Size exercise = tester.getSize(
       find.byKey(const ValueKey<String>('exercise-period-tab-0')),
     );
-    final Size diet = tester.getSize(
-      find.byKey(const Key('diet-period-tab-day')),
-    );
+    final Size diet = tester.getSize(dietPeriodTab(DietPeriodTab.day));
 
     // 폭은 각 머리줄에 남은 자리에 따라 줄어들 수 있다(식단 쪽은 제목이 함께
     // 있어 더 좁다). 두 탭이 **같은 여백 규칙**을 쓰는지는 높이로 잰다.

@@ -10,8 +10,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/app/session_feature_reset.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -36,7 +36,10 @@ class _FixedPicker implements MealPhotoPicker {
       MealPhoto.fromBytes(_jpegBytes)!;
 }
 
-Future<void> _pumpApp(WidgetTester tester, FakeDietRepository repository) async {
+Future<void> _pumpApp(
+  WidgetTester tester,
+  FakeDietRepository repository,
+) async {
   await tester.binding.setSurfaceSize(const Size(500, 1600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
@@ -47,6 +50,7 @@ Future<void> _pumpApp(WidgetTester tester, FakeDietRepository repository) async 
         sessionFeatureResetOverride(),
       ],
       child: MaterialApp(
+        theme: AppTheme.light(),
         locale: const Locale('ko'),
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
@@ -82,11 +86,11 @@ void main() {
     // 촬영 직후 결과가 튀어나와 AI 가 무엇을 했는지 보이지 않는다.
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const Key('diet-result-analyzing')), findsOneWidget);
-    expect(find.byKey(const Key('diet-result-save')), findsNothing);
+    expect(find.text('저장하기'), findsNothing);
 
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('diet-result-analyzing')), findsNothing);
-    expect(find.byKey(const Key('diet-result-save')), findsOneWidget);
+    expect(find.text('저장하기'), findsOneWidget);
   });
 
   testWidgets('완료 시트는 저장하기·취소·수정을 갖고 X 는 없다', (WidgetTester tester) async {
@@ -96,24 +100,21 @@ void main() {
     await tester.pumpAndSettle();
 
     final AppLocalizations l = AppLocalizations.of(
-      tester.element(find.byKey(const Key('diet-result-save'))),
+      tester.element(find.text('저장하기')),
     );
     expect(find.text(l.dietSaveEntry), findsOneWidget);
-    expect(find.byKey(const Key('diet-result-cancel')), findsOneWidget);
+    expect(find.text('취소'), findsOneWidget);
     expect(find.byKey(const Key('diet-result-edit')), findsOneWidget);
     // 체크 아이콘과 머리의 X 는 지웠다 — 닫는 자리는 `취소` 하나다.
     expect(find.byIcon(Icons.check), findsNothing);
-    expect(find.byIcon(Icons.close), findsNothing);
+    expect(find.byIcon(Icons.close_rounded), findsNothing);
 
-    // 두 버튼은 한 행에 서고 세로 크기는 같다.
-    final Size save = tester.getSize(
-      find.byKey(const Key('diet-result-save')),
-    );
-    final Size cancel = tester.getSize(
-      find.byKey(const Key('diet-result-cancel')),
-    );
+    // 두 버튼은 한 행에 서고 크기가 같다.
+    final Size save = tester.getSize(find.text('저장하기'));
+    final Size cancel = tester.getSize(find.text('취소'));
     expect(save.height, cancel.height);
-    expect(save.width, greaterThan(cancel.width));
+    // 폭은 반반이다 — 앱의 모든 하단 두 버튼과 같다(#1690).
+    expect(save.width, cancel.width);
   });
 
   testWidgets('취소는 저장 없이 시트를 닫는다', (WidgetTester tester) async {
@@ -123,12 +124,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // 시트가 길어 버튼이 접힌 화면에서는 스크롤해야 닿는다.
-    await tester.ensureVisible(find.byKey(const Key('diet-result-cancel')));
+    await tester.ensureVisible(find.text('취소'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-result-cancel')));
+    await tester.tap(find.text('취소'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('diet-result-save')), findsNothing);
+    expect(find.text('저장하기'), findsNothing);
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.text('open')),
     );
