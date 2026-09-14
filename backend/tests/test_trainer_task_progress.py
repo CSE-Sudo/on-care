@@ -16,6 +16,7 @@ _BODY = {
     "completed_carried_over": 0,
     "pending_keys": ["report-b", "report-a"],
     "dismissed_keys": ["program-c"],
+    "completed_keys": ["alert-d"],
 }
 
 
@@ -38,6 +39,8 @@ def test_saved_day_is_read_back_from_another_login(client):
     day = next(d for d in days if d["date"] == today)
     assert day["pending_keys"] == ["report-a", "report-b"]
     assert day["dismissed_keys"] == ["program-c"]
+    # 체크한 키는 추정하지 않고 저장한 그대로 돌아온다(#1716).
+    assert day["completed_keys"] == ["alert-d"]
 
 
 def test_only_server_today_or_yesterday_is_writable(client):

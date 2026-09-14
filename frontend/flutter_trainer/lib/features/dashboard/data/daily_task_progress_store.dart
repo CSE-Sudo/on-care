@@ -23,6 +23,7 @@ class DailyTaskSnapshot {
     required this.completedCarriedOver,
     required this.pendingKeys,
     this.dismissedKeys = const <String>{},
+    this.completedKeys,
   });
 
   /// How many tasks were on the list that day.
@@ -41,6 +42,11 @@ class DailyTaskSnapshot {
   /// 그날 오늘 목록에서 삭제한 키 — 같은 날 다시 연 화면(다른 기기 포함)이
   /// 지운 항목을 되살리지 않게 한다(#1633).
   final Set<String> dismissedKeys;
+
+  /// 그날 체크한 키(#1716). 복원은 이 값만 체크로 되살린다 — [pendingKeys] 에서
+  /// 거꾸로 추정하면 마지막 저장 뒤에 새로 생긴 미션까지 완료로 보인다. 이 값이
+  /// 생기기 전에 저장된 날은 null.
+  final Set<String>? completedKeys;
 
   /// Total checked, either kind.
   int get completed => completedToday + completedCarriedOver;
@@ -113,6 +119,7 @@ class LocalDailyTaskProgressStore implements DailyTaskProgressStore {
         'completedCarriedOver': snapshot.completedCarriedOver,
         'pendingKeys': snapshot.pendingKeys.toList(growable: false),
         'dismissedKeys': snapshot.dismissedKeys.toList(growable: false),
+        'completedKeys': snapshot.completedKeys?.toList(growable: false),
       }),
     );
   }
@@ -132,6 +139,7 @@ class LocalDailyTaskProgressStore implements DailyTaskProgressStore {
         decoded['completedCarriedOver'],
         decoded['pendingKeys'],
         decoded['dismissedKeys'],
+        decoded['completedKeys'],
       );
       if (snapshot != null) days[key.substring(_prefix.length)] = snapshot;
     }
@@ -181,6 +189,7 @@ DailyTaskSnapshot? _decode(
   Object? completedCarriedOver,
   Object? pendingKeys,
   Object? dismissedKeys,
+  Object? completedKeys,
 ) {
   if (total is! int ||
       completedToday is! int ||
@@ -197,6 +206,10 @@ DailyTaskSnapshot? _decode(
     dismissedKeys: dismissedKeys is List
         ? dismissedKeys.whereType<String>().toSet()
         : const <String>{},
+    // 체크한 키 기록 이전(#1716)에 저장된 날에는 이 값이 없다.
+    completedKeys: completedKeys is List
+        ? completedKeys.whereType<String>().toSet()
+        : null,
   );
 }
 
@@ -214,6 +227,7 @@ DailyTaskHistory dailyTaskHistoryFromJson(Map<String, dynamic> json) {
         item['completed_carried_over'],
         item['pending_keys'],
         item['dismissed_keys'],
+        item['completed_keys'],
       );
       if (date is String && snapshot != null) days[date] = snapshot;
     }
@@ -233,6 +247,7 @@ Map<String, Object?> dailyTaskSnapshotToJson(DailyTaskSnapshot snapshot) {
     'completed_carried_over': snapshot.completedCarriedOver,
     'pending_keys': snapshot.pendingKeys.toList(growable: false),
     'dismissed_keys': snapshot.dismissedKeys.toList(growable: false),
+    'completed_keys': snapshot.completedKeys?.toList(growable: false),
   };
 }
 

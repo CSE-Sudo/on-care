@@ -1223,6 +1223,10 @@ class TrainerDailyTaskProgress(Base):
     dismissed_keys_json: Mapped[str] = mapped_column(
         Text, nullable=False, server_default="[]", default="[]"
     )
+    #: 체크한 키. `pending_keys` 에서 거꾸로 추정하면 마지막 저장 뒤에 새로 생긴
+    #: 미션까지 체크로 보인다(#1716). 이 컬럼 이전에 저장된 행은 NULL — 앱이 옛
+    #: 추정으로 되살린다.
+    completed_keys_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

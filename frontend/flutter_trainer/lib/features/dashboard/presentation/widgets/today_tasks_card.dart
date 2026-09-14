@@ -121,8 +121,13 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     _dismissedKeys = snapshot == null
         ? <String>{}
         : Set<String>.of(snapshot.dismissedKeys);
+    // 체크한 키를 저장해 둔 날은 그 키만 되살린다(#1716). 옛 기록만 있는 날은
+    // pending 에서 추정한다 — 그때는 마지막 저장 뒤에 생긴 미션도 체크로 보인다.
+    final Set<String>? completed = snapshot?.completedKeys;
     _checkedKeys = snapshot == null
         ? <String>{}
+        : completed != null
+        ? completed.intersection(missionKeys).difference(_dismissedKeys)
         : missionKeys
               .where(
                 (k) =>
@@ -227,6 +232,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
               completedCarriedOver: carriedCompleted,
               pendingKeys: allKeys.difference(checked),
               dismissedKeys: Set<String>.of(_dismissedKeys),
+              completedKeys: checked,
             ),
           );
     } on AppError {
