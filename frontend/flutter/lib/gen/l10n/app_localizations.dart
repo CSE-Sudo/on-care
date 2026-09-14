@@ -722,6 +722,18 @@ abstract class AppLocalizations {
   /// **'Snap your food with the camera'**
   String get dietTakePhotoSub;
 
+  /// No description provided for @dietAddPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a Photo'**
+  String get dietAddPhoto;
+
+  /// No description provided for @dietAddPhotoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a food photo from your library, camera, or files'**
+  String get dietAddPhotoSub;
+
   /// No description provided for @dietPhotoLoadError.
   ///
   /// In en, this message translates to:

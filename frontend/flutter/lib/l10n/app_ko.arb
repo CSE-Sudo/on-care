@@ -120,6 +120,8 @@
   "dietPickPhotoSub": "갤러리에서 음식 사진 선택",
   "dietTakePhoto": "사진 찍기",
   "dietTakePhotoSub": "카메라로 음식 촬영",
+  "dietAddPhoto": "사진 추가",
+  "dietAddPhotoSub": "앨범·카메라·파일에서 음식 사진 선택",
   "dietPhotoLoadError": "사진을 불러오지 못했어요. 잠시 후 다시 시도해 주세요",
   "dietCameraPermissionDenied": "음식 사진을 촬영하려면 카메라 권한이 필요해요. 사진 찍기를 눌러 다시 시도해 주세요",
   "dietCameraPermissionPermanentlyDenied": "카메라 접근이 꺼져 있어요. 설정에서 카메라를 켜면 음식 사진을 촬영할 수 있어요",

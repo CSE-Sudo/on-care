@@ -350,6 +350,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietTakePhotoSub => 'Snap your food with the camera';
 
   @override
+  String get dietAddPhoto => 'Add a Photo';
+
+  @override
+  String get dietAddPhotoSub =>
+      'Choose a food photo from your library, camera, or files';
+
+  @override
   String get dietPhotoLoadError =>
       'Couldn\'t load the photo. Please try again in a moment.';
 
