@@ -3743,4 +3743,23 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientWorkoutSourceAi => 'AI';
+
+  @override
+  String coachClientDemographics(String gender, int age) {
+    return '$gender · $age세';
+  }
+
+  @override
+  String get coachTemplateMenu => '템플릿 메뉴';
+
+  @override
+  String aiStrengthSummary(int sets, int reps, String weight) {
+    return '$sets세트 × $reps회 · ${weight}kg';
+  }
+
+  @override
+  String get routineFormDecrease => '줄이기';
+
+  @override
+  String get routineFormIncrease => '늘리기';
 }
