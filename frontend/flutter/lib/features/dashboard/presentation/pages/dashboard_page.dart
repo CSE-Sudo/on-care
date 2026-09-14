@@ -15,7 +15,7 @@ class DashboardPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       body: SafeArea(
         bottom: false,
         child: DashboardContent(

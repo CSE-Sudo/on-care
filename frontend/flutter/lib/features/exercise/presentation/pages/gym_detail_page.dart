@@ -70,7 +70,7 @@ class GymDetailPage extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: l.exGymDetailTitle),
       body: SafeArea(top: false, child: body),
     );

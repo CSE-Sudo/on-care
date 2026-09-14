@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
+import 'package:oncare_ui/src/tokens/elevation.dart';
 import 'package:oncare_ui/src/tokens/layout.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
@@ -31,7 +31,7 @@ class AppPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final double side = context.oncare.density.pagePadding;
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: context.oncare.pageBackground,
       appBar: header,
       body: SafeArea(
         top: header == null,
@@ -84,7 +84,7 @@ class AppTabHeader extends StatelessWidget implements PreferredSizeWidget {
       bottom: false,
       child: Container(
         height: _height,
-        color: OnCareColors.surfacePage,
+        color: tokens.pageBackground,
         padding: EdgeInsets.symmetric(horizontal: tokens.density.pagePadding),
         child: Row(
           children: <Widget>[
@@ -172,7 +172,8 @@ class AppNavDestination {
 /// 모바일 하단 내비(#1696, #1664) — 바 높이 64, 아이콘 24, 라벨 `caption` 600.
 ///
 /// 안전영역이 0 인 환경에서도 라벨 아래 여백 8 이 남는다. 가운데 [centerAction]
-/// (기록 추가)을 둘 수 있다.
+/// (기록 추가)을 둘 수 있다 — 바 위로 [centerActionLift] 만큼 튀어나온 원형
+/// 버튼([AppNavAddButton])이 자리 잡는다(#1742).
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({
     super.key,
@@ -189,6 +190,10 @@ class AppBottomNav extends StatelessWidget {
 
   static const double barHeight = 64;
   static const double minBottomPadding = OnCareSpacing.s8;
+
+  /// 가운데 원형 버튼 지름과 바 위로 튀어나오는 높이.
+  static const double centerActionSize = 56;
+  static const double centerActionLift = OnCareSpacing.s24;
 
   @override
   Widget build(BuildContext context) {
@@ -237,27 +242,82 @@ class AppBottomNav extends StatelessWidget {
       );
     }
 
-    return DecoratedBox(
+    final double bottom = inset > minBottomPadding ? inset : minBottomPadding;
+    final Widget bar = DecoratedBox(
       decoration: const BoxDecoration(
         color: OnCareColors.surfaceCard,
         border: Border(top: BorderSide(color: OnCareColors.lineSubtle)),
       ),
       child: Padding(
-        padding: EdgeInsets.only(
-          bottom: inset > minBottomPadding ? inset : minBottomPadding,
-        ),
+        padding: EdgeInsets.only(bottom: bottom),
         child: SizedBox(
           height: barHeight,
           child: Row(
             children: <Widget>[
               for (int i = 0; i < half; i++) item(i),
+              // 가운데 칸은 비워 두고, 원형 버튼이 바 윗선에 걸쳐 앉는다.
               if (centerAction != null)
-                SizedBox(
-                  width: tokens.density.buttonLarge + OnCareSpacing.s16,
-                  child: Center(child: centerAction),
-                ),
+                const SizedBox(width: centerActionSize + OnCareSpacing.s8),
               for (int i = half; i < destinations.length; i++) item(i),
             ],
+          ),
+        ),
+      ),
+    );
+    final Widget? action = centerAction;
+    if (action == null) return bar;
+    return SizedBox(
+      height: centerActionLift + barHeight + bottom,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Positioned(left: 0, right: 0, bottom: 0, child: bar),
+          Positioned(top: 0, left: 0, right: 0, child: Center(child: action)),
+        ],
+      ),
+    );
+  }
+}
+
+/// 하단 내비 가운데의 원형 `+` 버튼 — 브랜드 채움, 흰 아이콘, 바 위로 튀어나온다
+/// (#1742). 아이콘 하나뿐이라 [tooltip] 이 무엇을 여는지 말한다.
+class AppNavAddButton extends StatelessWidget {
+  const AppNavAddButton({
+    super.key,
+    required this.tooltip,
+    required this.onPressed,
+    this.icon = Icons.add_rounded,
+  });
+
+  final String tooltip;
+  final VoidCallback onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        excludeSemantics: true,
+        child: Material(
+          color: tokens.brand.primary,
+          shape: const CircleBorder(),
+          elevation: OnCareShadows.overlayElevation,
+          shadowColor: tokens.brand.primary,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onPressed,
+            child: SizedBox.square(
+              dimension: AppBottomNav.centerActionSize,
+              child: Icon(
+                icon,
+                size: OnCareSize.iconLarge,
+                color: OnCareColors.textOnFill,
+              ),
+            ),
           ),
         ),
       ),
@@ -302,7 +362,7 @@ class AppWebPage extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     final double side = tokens.density.pagePadding;
     return ColoredBox(
-      color: OnCareColors.surfacePage,
+      color: tokens.pageBackground,
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -518,7 +578,7 @@ class AppAuthLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: tokens.pageBackground,
       body: SafeArea(
         child: Stack(
           children: <Widget>[
