@@ -12,10 +12,9 @@ import 'package:oncare_ui/oncare_ui.dart'
     show
         AppAvatar,
         AppBackButton,
-        AppBanner,
-        AppBannerTone,
-        AppButton,
-        AppListRow,
+        AppCard,
+        OnCareAlpha,
+        OnCareColors,
         OnCareLayout,
         OnCareSize;
 
@@ -47,14 +46,38 @@ void main() {
       );
       expect(find.byType(TextField), findsWidgets);
 
-      // 대화 행은 규격 목록 행이다 — 고른 대화는 행 자체가 선택 상태를 그린다.
+      // 대화는 고객마다 카드 한 장이다(회원 탭 목록과 같은 모양) — 고른
+      // 대화는 카드 자체가 선택 상태를 그린다.
       final selectedTile = find.byKey(
         const ValueKey<String>('messages-conversation-seed-client-1'),
       );
-      final row = tester.widget<AppListRow>(
-        find.descendant(of: selectedTile, matching: find.byType(AppListRow)),
+      AppCard cardOf(String id) => tester.widget<AppCard>(
+        find.descendant(
+          of: find.byKey(ValueKey<String>('messages-conversation-$id')),
+          matching: find.byType(AppCard),
+        ),
       );
-      expect(row.selected, isTrue);
+      expect(cardOf('seed-client-1').selected, isTrue);
+      expect(cardOf('seed-client-2').selected, isFalse);
+      // 카드 사이에는 간격이 있다 — 큰 카드 한 장 안에 행을 쌓지 않는다.
+      expect(
+        find.ancestor(of: selectedTile, matching: find.byType(AppCard)),
+        findsNothing,
+      );
+      // 성별·나이는 이름보다 작고 흐린 글씨로 따로 선다.
+      final identityTexts = find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('messages-identity-seed-client-1'),
+        ),
+        matching: find.byType(Text),
+      );
+      final nameText = tester.widget<Text>(identityTexts.first);
+      final demographicsText = tester.widget<Text>(identityTexts.last);
+      expect(demographicsText.style!.color, OnCareColors.textTertiary);
+      expect(
+        demographicsText.style!.fontSize!,
+        lessThan(nameText.style!.fontSize!),
+      );
       final avatar = tester.widget<AppAvatar>(
         find.descendant(of: selectedTile, matching: find.byType(AppAvatar)),
       );
@@ -144,42 +167,39 @@ void main() {
     });
   });
 
-  testWidgets(
-    '안읽음 배지 숫자는 글자 배율이 커도 원을 벗어나지 않는다 (#1380)',
-    (tester) async {
-      await withWideSurface(tester, size: const Size(1440, 2200), () async {
-        // 기기 접근성 배율이 앱 기본 바닥값(1.10)보다 큰 경우를 흉내낸다.
-        // Container는 자식을 자르지 않으므로, 숫자가 원(20x20)보다 크게
-        // 그려지면 위아래로 삐져나와 타원처럼 보인다 — FittedBox로 줄여야
-        // 원 안에 남는다.
-        tester.platformDispatcher.textScaleFactorTestValue = 1.3;
-        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+  testWidgets('안읽음 배지 숫자는 글자 배율이 커도 원을 벗어나지 않는다 (#1380)', (tester) async {
+    await withWideSurface(tester, size: const Size(1440, 2200), () async {
+      // 기기 접근성 배율이 앱 기본 바닥값(1.10)보다 큰 경우를 흉내낸다.
+      // Container는 자식을 자르지 않으므로, 숫자가 원(20x20)보다 크게
+      // 그려지면 위아래로 삐져나와 타원처럼 보인다 — FittedBox로 줄여야
+      // 원 안에 남는다.
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-        await pumpTrainerApp(
-          tester,
-          token: 'demo-trainer-token-existing',
-          seedClock: DateTime(2026, 8, 16), // 일요일
-        );
-        await goTo(tester, AppRoutes.messages);
+      await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token-existing',
+        seedClock: DateTime(2026, 8, 16), // 일요일
+      );
+      await goTo(tester, AppRoutes.messages);
 
-        final unreadBadge = find.byKey(
-          const ValueKey<String>('messages-unread-seed-client-8'),
-        );
-        expect(unreadBadge, findsOneWidget);
-        final Size badgeSize = tester.getSize(unreadBadge);
-        expect(badgeSize.height, OnCareSize.countBadgeMin);
-        expect(badgeSize.width, greaterThanOrEqualTo(badgeSize.height));
+      final unreadBadge = find.byKey(
+        const ValueKey<String>('messages-unread-seed-client-8'),
+      );
+      expect(unreadBadge, findsOneWidget);
+      final Size badgeSize = tester.getSize(unreadBadge);
+      expect(badgeSize.height, OnCareSize.countBadgeMin);
+      expect(badgeSize.width, greaterThanOrEqualTo(badgeSize.height));
 
-        final numberText = find.descendant(
-          of: unreadBadge,
-          matching: find.byType(Text),
-        );
-        final Size textSize = tester.getSize(numberText);
-        expect(textSize.height, lessThanOrEqualTo(20));
-        expect(textSize.width, lessThanOrEqualTo(20));
-      });
-    },
-  );
+      final numberText = find.descendant(
+        of: unreadBadge,
+        matching: find.byType(Text),
+      );
+      final Size textSize = tester.getSize(numberText);
+      expect(textSize.height, lessThanOrEqualTo(20));
+      expect(textSize.width, lessThanOrEqualTo(20));
+    });
+  });
 
   testWidgets('conversation without a thread still shows a preview line', (
     tester,
@@ -423,11 +443,9 @@ void main() {
 
     final context = tester.element(find.byType(Navigator).first);
     expect(
-      GoRouter.of(context)
-          .routerDelegate
-          .currentConfiguration
-          .uri
-          .queryParameters['f'],
+      GoRouter.of(
+        context,
+      ).routerDelegate.currentConfiguration.uri.queryParameters['f'],
       'unread',
     );
   });
@@ -443,26 +461,33 @@ void main() {
       await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
 
       expect(find.text('무릎 불편 표현 감지'), findsOneWidget);
-      final addButton = find.descendant(
-        of: find.byKey(
-          const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
-        ),
-        matching: find.byType(AppButton),
+      final addButton = find.byKey(
+        const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
       );
       await tester.ensureVisible(addButton);
       await tester.tap(addButton);
       await settle(tester);
 
       expect(find.text('메모 추가됨'), findsOneWidget);
-      // 옮겨 적은 뒤에도 배너의 톤은 그대로다 — 무슨 일이 있었는지(부정적
-      // 피드백)는 바뀌지 않았다. 처리 여부는 버튼 문구와 비활성 상태가 말한다.
-      final banner = tester.widget<AppBanner>(
+      // 감지 카드는 흰 바탕에 옅은 빨간 테두리다. 옮겨 적은 뒤에도 빨간색은
+      // 그대로다 — 무슨 일이 있었는지(부정적 피드백)는 바뀌지 않았다. 처리
+      // 여부는 알약의 문구와 눌리지 않는 상태가 말한다.
+      final banner = tester.widget<Container>(
         find.byKey(
           const ValueKey<String>('chat-insight-banner-seed-chat-1-16'),
         ),
       );
-      expect(banner.tone, AppBannerTone.danger);
-      expect(banner.onAction, isNull);
+      final decoration = banner.decoration! as BoxDecoration;
+      expect(decoration.color, OnCareColors.surfaceCard);
+      expect(
+        (decoration.border! as Border).top.color,
+        OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
+      );
+      expect(
+        tester.widget<Text>(find.text('메모 추가됨')).style?.color,
+        OnCareColors.danger,
+      );
+      expect(tester.widget<InkWell>(addButton).onTap, isNull);
       // 채팅에서 저장한 메모는 회원 상세가 읽는 것과 **같은** 메모 목록에 들어간다.
       final memos = await container
           .read(trainerMemoRepositoryProvider)

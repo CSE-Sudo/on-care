@@ -151,7 +151,9 @@ class _TaskProgressCard extends ConsumerWidget {
         children: <Widget>[
           // 범례(오늘 처리/이월 처리)를 그래프 위 별도 줄 대신 제목 옆으로 —
           // 자리가 모자라면 범례만 FittedBox 로 줄어들고, 주 이동 버튼은
-          // 터치 크기를 지킨다.
+          // 터치 크기를 지킨다. 범례 칸은 Expanded 로 몫을 다 쓰고 그 안에서
+          // 오른쪽 정렬한다 — Flexible(loose) 이면 범례가 안 쓴 몫이 버튼
+          // 오른쪽 빈칸으로 남아 버튼이 카드 오른쪽 끝에 붙지 않았다.
           Row(
             children: <Widget>[
               Expanded(
@@ -160,7 +162,7 @@ class _TaskProgressCard extends ConsumerWidget {
                   icon: Icons.stacked_bar_chart_rounded,
                 ),
               ),
-              Flexible(
+              Expanded(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
@@ -272,6 +274,10 @@ class _KpiRow extends StatelessWidget {
         value: '${summary.healthAttentionCount}',
         unit: l.dashUnitPeople,
         icon: Icons.report_gmailerrorred_rounded,
+        // 0명이면 초록(정상), 1명 이상이면 빨강 — 숫자와 아이콘을 칠한다.
+        toneColor: summary.healthAttentionCount == 0
+            ? OnCareColors.success
+            : OnCareColors.danger,
         caption: summary.healthAttentionCount == 0
             ? l.dashNoIssues
             : l.dashCheckSodiumCompletion,
@@ -282,6 +288,10 @@ class _KpiRow extends StatelessWidget {
         value: '${churnRisk.length}',
         unit: l.dashUnitPeople,
         icon: Icons.person_off_rounded,
+        // 주의 회원과 같은 규칙·같은 빨강 — 톤이 다르면 서로 다른 심각도로 읽힌다.
+        toneColor: churnRisk.isEmpty
+            ? OnCareColors.success
+            : OnCareColors.danger,
         caption: churnRisk.isEmpty ? l.dashChurnRiskNone : l.dashChurnRiskCheck,
         onTap: () => showChurnRiskDialog(context, entries: churnRisk),
       ),
