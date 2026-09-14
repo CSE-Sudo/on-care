@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 확인창에서 고른 결과 — 연결할 기존 세션 id, 새 일정이면 null(#1581).
 typedef ProgramAssignConfirmation = ({String? sessionId});
@@ -26,19 +25,16 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
   List<ScheduleSession> candidates = const <ScheduleSession>[],
 }) {
   String? chosen = candidates.length == 1 ? candidates.single.id : null;
-  const bodyStyle = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w600,
-    color: AppColors.subtleForeground,
-    height: 1.4,
-  );
-  return showDialog<ProgramAssignConfirmation>(
+  return showAppDialog<ProgramAssignConfirmation>(
     context: context,
     builder: (dialogContext) {
       final AppLocalizations l = AppLocalizations.of(dialogContext);
       final selectedRange =
           '${registerStartTime.format(dialogContext)} – '
           '${registerEndTime.format(dialogContext)}';
+      final TextStyle bodyStyle = dialogContext.oncare
+          .text(OnCareTypography.bodySmall)
+          .copyWith(color: OnCareColors.textSecondary);
       return StatefulBuilder(
         builder: (context, setDialogState) {
           final Widget body;
@@ -75,52 +71,65 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
                   ),
                   style: bodyStyle,
                 ),
+                const SizedBox(height: OnCareSpacing.s8),
                 for (final session in candidates)
-                  ListTile(
+                  AppListRow(
                     key: ValueKey<String>(
                       'program-attach-candidate-${session.id}',
                     ),
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
                     selected: chosen == session.id,
                     leading: Icon(
                       chosen == session.id
-                          ? Icons.radio_button_checked
-                          : Icons.radio_button_unchecked,
+                          ? Icons.radio_button_checked_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      size: OnCareSize.iconMedium,
+                      color: chosen == session.id
+                          ? context.oncare.brand.primary
+                          : OnCareColors.textTertiary,
                     ),
-                    title: Text(timeRangeLabel(l, session)),
+                    title: timeRangeLabel(l, session),
                     onTap: () => setDialogState(() => chosen = session.id),
                   ),
               ],
             );
           }
-          return AlertDialog(
+          return AppDialog(
             key: const ValueKey<String>('program-assign-confirm'),
-            backgroundColor: AppColors.card,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(AppRadius.card),
+            title: l.programAssignConfirmTitle,
+            showClose: false,
+            // 버튼마다 테스트가 찾는 Key 가 있어 AppButtonPair 대신 같은 모양의
+            // Row 로 둔다.
+            footer: Row(
+              children: <Widget>[
+                Expanded(
+                  child: AppButton(
+                    key: const ValueKey<String>(
+                      'program-assign-confirm-cancel',
+                    ),
+                    label: l.actionCancel,
+                    variant: AppButtonVariant.secondary,
+                    fullWidth: true,
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                  ),
+                ),
+                const SizedBox(width: OnCareSpacing.buttonGap),
+                Expanded(
+                  child: AppButton(
+                    key: const ValueKey<String>(
+                      'program-assign-confirm-submit',
+                    ),
+                    label: l.programEditorAddSchedule,
+                    fullWidth: true,
+                    onPressed: candidates.length > 1 && chosen == null
+                        ? null
+                        : () => Navigator.of(
+                            dialogContext,
+                          ).pop((sessionId: chosen)),
+                  ),
+                ),
+              ],
             ),
-            title: Text(
-              l.programAssignConfirmTitle,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
-            ),
-            content: SizedBox(width: 360, child: body),
-            actions: <Widget>[
-              TextButton(
-                key: const ValueKey<String>('program-assign-confirm-cancel'),
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: Text(l.actionCancel),
-              ),
-              FilledButton(
-                key: const ValueKey<String>('program-assign-confirm-submit'),
-                onPressed: candidates.length > 1 && chosen == null
-                    ? null
-                    : () => Navigator.of(
-                        dialogContext,
-                      ).pop((sessionId: chosen)),
-                child: Text(l.programEditorAddSchedule),
-              ),
-            ],
+            child: body,
           );
         },
       );

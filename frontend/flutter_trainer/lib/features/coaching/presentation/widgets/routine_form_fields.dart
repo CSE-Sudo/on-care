@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
-import 'package:oncare_trainer/core/utils/portrait_date_picker.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
-import 'package:oncare_trainer/shared/widgets/number_stepper.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// Category order mirrors the member app's exercise-add sheet.
 ///
@@ -39,25 +35,23 @@ class RoutineCategoryChips extends StatelessWidget {
       children: <Widget>[
         Text(
           l.routineFieldType,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.subtleForeground,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.label)
+              .copyWith(color: OnCareColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.s8),
         Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
+          spacing: OnCareSpacing.s8,
+          runSpacing: OnCareSpacing.s8,
           children: <Widget>[
             for (final category in kRoutineCategoryLabels)
-              _ChoiceButton(
+              AppChoiceChip(
                 // key 는 계약값으로 — 로케일이 바뀌어도 위젯 identity 는 같아야
                 // 하고, 기존 테스트도 이 키를 쓴다.
                 key: ValueKey<String>('$keyPrefix-$category'),
                 label: routineTypeLabel(l, category),
                 selected: selected == category,
-                onTap: () => onChanged(category),
+                onSelected: (_) => onChanged(category),
               ),
           ],
         ),
@@ -90,32 +84,22 @@ class RoutineMinutesField extends StatelessWidget {
 
   final String? keyPrefix;
 
-  /// 스테퍼 박스 대신 라벨 없는 키보드 입력 칸으로 그린다. 근력의 세트·횟수·
-  /// 중량과 한 줄에 나란히 둘 때 쓴다 — 세 칸 모두 라벨을 얹으면 세로 폭이
-  /// 너무 길어진다. (#1489)
+  /// 스테퍼 버튼 없이 키보드 입력 칸만 그린다. 근력의 세트·횟수·중량과 한
+  /// 줄에 나란히 둘 때 쓴다 — 세 칸 모두 −/+ 를 달면 가로 폭이 모자란다.
+  /// (#1489)
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (compact) {
-      return _CompactNumberField(
-        value: minutes.toDouble(),
-        min: 1,
-        max: 600,
-        label: label ?? l.routineFieldMinutes,
-        suffix: l.routineUnitMinutes,
-        keyPrefix: keyPrefix ?? 'routine-minutes',
-        onChanged: (double v) => onChanged(v.round()),
-      );
-    }
-    return _LabeledStepper(
+    return _NumberInput(
       label: label ?? l.routineFieldMinutes,
       value: minutes.toDouble(),
       min: 1,
       max: 600,
       suffix: l.routineUnitMinutes,
       keyPrefix: keyPrefix ?? 'routine-minutes',
+      steppers: !compact,
       onChanged: (double v) => onChanged(v.round()),
     );
   }
@@ -141,24 +125,14 @@ class RoutineSetsField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (compact) {
-      return _CompactNumberField(
-        value: sets.toDouble(),
-        min: 1,
-        max: 99,
-        label: l.routineFieldSets,
-        suffix: l.routineUnitSets,
-        keyPrefix: keyPrefix ?? 'routine-sets',
-        onChanged: (double v) => onChanged(v.round()),
-      );
-    }
-    return _LabeledStepper(
+    return _NumberInput(
       label: l.routineFieldSets,
       value: sets.toDouble(),
       min: 1,
       max: 99,
       suffix: l.routineUnitSets,
       keyPrefix: keyPrefix ?? 'routine-sets',
+      steppers: !compact,
       onChanged: (double v) => onChanged(v.round()),
     );
   }
@@ -187,24 +161,14 @@ class RoutineRepsField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (compact) {
-      return _CompactNumberField(
-        value: reps.toDouble(),
-        min: 1,
-        max: 999,
-        label: l.routineFieldReps,
-        suffix: l.routineUnitReps,
-        keyPrefix: keyPrefix ?? 'routine-reps',
-        onChanged: (double v) => onChanged(v.round()),
-      );
-    }
-    return _LabeledStepper(
+    return _NumberInput(
       label: l.routineFieldReps,
       value: reps.toDouble(),
       min: 1,
       max: 999,
       suffix: l.routineUnitReps,
       keyPrefix: keyPrefix ?? 'routine-reps',
+      steppers: !compact,
       onChanged: (double v) => onChanged(v.round()),
     );
   }
@@ -230,19 +194,7 @@ class RoutineWeightField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    if (compact) {
-      return _CompactNumberField(
-        value: weight,
-        min: 0,
-        max: 1000,
-        decimals: 1,
-        label: l.routineFieldWeight,
-        suffix: l.routineUnitKg,
-        keyPrefix: keyPrefix ?? 'routine-weight',
-        onChanged: onChanged,
-      );
-    }
-    return _LabeledStepper(
+    return _NumberInput(
       label: l.routineFieldWeight,
       value: weight,
       min: 0,
@@ -250,6 +202,7 @@ class RoutineWeightField extends StatelessWidget {
       decimals: 1,
       suffix: l.routineUnitKg,
       keyPrefix: keyPrefix ?? 'routine-weight',
+      steppers: !compact,
       onChanged: onChanged,
     );
   }
@@ -282,45 +235,14 @@ class RoutineNameField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        _FieldLabel(label ?? l.routineFieldExerciseName),
-        const SizedBox(height: AppSpacing.sm),
-        TextField(
-          key: ValueKey<String>(keyPrefix),
-          controller: controller,
-          maxLength: 100,
-          autofocus: autofocus,
-          onSubmitted: onSubmitted,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.foreground,
-          ),
-          decoration: InputDecoration(
-            isDense: true,
-            counterText: '',
-            hintText: hint ?? l.routineFieldExerciseNameHint,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm + 2,
-            ),
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.borderStrong),
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.borderStrong),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.accent),
-            ),
-          ),
-        ),
-      ],
+    return AppTextField(
+      key: ValueKey<String>(keyPrefix),
+      controller: controller,
+      label: label ?? l.routineFieldExerciseName,
+      hint: hint ?? l.routineFieldExerciseNameHint,
+      maxLength: 100,
+      autofocus: autofocus,
+      onSubmitted: onSubmitted,
     );
   }
 }
@@ -341,63 +263,74 @@ class RoutineDateField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _FieldLabel(l.routineFieldDate),
-        const SizedBox(height: AppSpacing.sm),
-        InkWell(
-          key: ValueKey<String>(keyPrefix),
-          borderRadius: const BorderRadius.all(AppRadius.md),
-          onTap: () async {
-            final DateTime now = nowKst();
-            final DateTime? picked = await showPortraitDatePicker(
-              context: context,
-              initialDate: date,
-              firstDate: DateTime(now.year - 2),
-              // 프로그램은 앞으로 할 운동도 잡는다 — 회원 기록과 달리 미래를
-              // 막지 않는다.
-              lastDate: DateTime(now.year + 2),
-            );
-            if (picked != null) {
-              onChanged(DateTime(picked.year, picked.month, picked.day));
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm + 2,
-            ),
-            decoration: BoxDecoration(
-              borderRadius: const BorderRadius.all(AppRadius.md),
-              border: Border.all(color: AppColors.borderStrong),
-            ),
-            child: Row(
-              children: <Widget>[
-                const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 15,
-                  color: AppColors.accent,
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    // 로케일이 정하는 날짜 문구 — 하드코딩하면 영어 화면에도
-                    // 한국식 표기가 남는다.
-                    MaterialLocalizations.of(context).formatFullDate(date),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.foreground,
+        Text(
+          l.routineFieldDate,
+          style: tokens
+              .text(OnCareTypography.label)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        // 입력창과 같은 모양(채움·테두리·반경 12)의 누르는 칸.
+        Material(
+          color: OnCareColors.surfaceInput,
+          shape: const RoundedRectangleBorder(
+            borderRadius: OnCareRadius.mdAll,
+            side: BorderSide(color: OnCareColors.lineStrong),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            key: ValueKey<String>(keyPrefix),
+            onTap: () async {
+              final DateTime now = nowKst();
+              final DateTime? picked = await showAppDatePicker(
+                context: context,
+                initialDate: date,
+                firstDate: DateTime(now.year - 2),
+                // 프로그램은 앞으로 할 운동도 잡는다 — 회원 기록과 달리 미래를
+                // 막지 않는다.
+                lastDate: DateTime(now.year + 2),
+              );
+              if (picked != null) {
+                onChanged(DateTime(picked.year, picked.month, picked.day));
+              }
+            },
+            child: Container(
+              constraints: BoxConstraints(
+                minHeight: tokens.density.inputMedium,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s12,
+                vertical: OnCareSpacing.s8,
+              ),
+              child: Row(
+                children: <Widget>[
+                  Icon(
+                    Icons.calendar_today_rounded,
+                    size: OnCareSize.iconSmall,
+                    color: tokens.brand.primary,
+                  ),
+                  const SizedBox(width: OnCareSpacing.s8),
+                  Expanded(
+                    child: Text(
+                      // 로케일이 정하는 날짜 문구 — 하드코딩하면 영어 화면에도
+                      // 한국식 표기가 남는다.
+                      MaterialLocalizations.of(context).formatFullDate(date),
+                      style: tokens
+                          .text(OnCareTypography.body)
+                          .copyWith(color: OnCareColors.textPrimary),
                     ),
                   ),
-                ),
-                const Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 18,
-                  color: AppColors.subtleForeground,
-                ),
-              ],
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: OnCareSize.iconMedium,
+                    color: OnCareColors.textTertiary,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -420,66 +353,52 @@ class RoutineCaloriesLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final RoutineCalorieEstimate? value = estimate;
-    return Container(
+    return AppTile(
       key: const ValueKey<String>('routine-calories'),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm + 2,
-      ),
-      decoration: const BoxDecoration(
-        color: AppColors.accentSurface,
-        borderRadius: BorderRadius.all(AppRadius.md),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Row(
             children: <Widget>[
               const Icon(
-                Icons.local_fire_department,
-                size: 16,
-                color: AppColors.brandOrange,
+                Icons.local_fire_department_rounded,
+                size: OnCareSize.iconSmall,
+                color: OnCareColors.cautionFill,
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: OnCareSpacing.s8),
               Expanded(
                 child: Text(
                   l.routineFieldCalories,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.foreground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                      .copyWith(color: OnCareColors.textPrimary),
                 ),
               ),
               if (value == null)
                 Text(
                   l.routineCaloriesNeedName,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.subtleForeground,
-                  ),
+                  style: tokens
+                      .text(OnCareTypography.strong(OnCareTypography.caption))
+                      .copyWith(color: OnCareColors.textTertiary),
                 )
               else
                 Text(
                   l.routineKcalValue(value.calories),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.accent,
-                  ),
+                  style: OnCareTypography.numeric(
+                    tokens.text(OnCareTypography.label),
+                  ).copyWith(color: tokens.brand.primary),
                 ),
             ],
           ),
           if (value != null && value.isRough) ...<Widget>[
-            const SizedBox(height: 4),
+            const SizedBox(height: OnCareSpacing.s4),
             Text(
               l.routineCaloriesRoughEstimate,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.subtleForeground,
-              ),
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
             ),
           ],
         ],
@@ -488,86 +407,45 @@ class RoutineCaloriesLine extends StatelessWidget {
   }
 }
 
-class _LabeledStepper extends StatelessWidget {
-  const _LabeledStepper({
+/// 숫자 한 칸 — 직접 입력하는 입력창과 (compact 가 아니면) 양옆의 −/+ 버튼.
+///
+/// 공용 `AppNumberStepper` 는 정수 값만 받고 직접 입력을 하지 못해, 중량의
+/// 소수(62.5kg)와 "아는 값을 그대로 적기"(#1276)를 담지 못한다. 그래서 같은
+/// 부품(tonal 아이콘 버튼 + 입력창)으로 이 파일 안에서 조립한다. 테스트가 짚는
+/// 키 규칙(`<keyPrefix>-minus` / `-field` / `-plus`)은 옛 스테퍼와 같다.
+class _NumberInput extends StatefulWidget {
+  const _NumberInput({
     required this.label,
     required this.value,
     required this.min,
     required this.max,
     required this.suffix,
     required this.keyPrefix,
+    required this.steppers,
     required this.onChanged,
     this.decimals = 0,
   });
 
+  /// 필드 위 라벨("세트 수"·"횟수"·"중량"·"운동 시간").
   final String label;
   final double value;
   final double min;
   final double max;
-  final String suffix;
-  final String keyPrefix;
-  final int decimals;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Align(alignment: Alignment.centerLeft, child: _FieldLabel(label)),
-        const SizedBox(height: AppSpacing.sm),
-        NumberStepper(
-          value: value,
-          min: min,
-          max: max,
-          decimals: decimals,
-          suffix: suffix,
-          keyPrefix: keyPrefix,
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-}
-
-/// 숫자 한 칸 — 스테퍼 없이 키보드로 직접 입력한다. 라벨은 위에 따로 얹지
-/// 않고 테두리에 걸치는 Material outline label 로 대신한다. 근력의
-/// 세트·횟수·중량을 한 줄에 나란히 둘 때 쓴다 — 셋 다 라벨+스테퍼 박스를
-/// 쌓으면 세로 폭이 다른 필드보다 훨씬
-/// 길어진다. (#1489)
-class _CompactNumberField extends StatefulWidget {
-  const _CompactNumberField({
-    required this.value,
-    required this.onChanged,
-    required this.min,
-    required this.max,
-    required this.label,
-    required this.suffix,
-    this.decimals = 0,
-    this.keyPrefix,
-  });
-
-  final double value;
-  final ValueChanged<double> onChanged;
-  final double min;
-  final double max;
-
-  /// 테두리에 얹히는 라벨("세트 수"·"횟수"·"중량"·"운동 시간"). 칸이 항상
-  /// 기본값으로 채워져 있어 hint(빈 칸 문구)는 사실상 보이지 않는다 —
-  /// Material 의 outline label 은 값이 있어도 계속 보이므로 이걸 쓴다.
-  /// (#1489 후속)
-  final String label;
 
   /// 값 오른쪽에 붙는 단위("세트"·"회"·"kg"·"분").
   final String suffix;
+  final String keyPrefix;
+
+  /// −/+ 버튼을 둘지. compact 칸은 키보드 입력만 받는다.
+  final bool steppers;
   final int decimals;
-  final String? keyPrefix;
+  final ValueChanged<double> onChanged;
 
   @override
-  State<_CompactNumberField> createState() => _CompactNumberFieldState();
+  State<_NumberInput> createState() => _NumberInputState();
 }
 
-class _CompactNumberFieldState extends State<_CompactNumberField> {
+class _NumberInputState extends State<_NumberInput> {
   late final TextEditingController _controller = TextEditingController(
     text: _format(widget.value),
   );
@@ -582,7 +460,7 @@ class _CompactNumberFieldState extends State<_CompactNumberField> {
   }
 
   @override
-  void didUpdateWidget(_CompactNumberField old) {
+  void didUpdateWidget(_NumberInput old) {
     super.didUpdateWidget(old);
     // 밖에서 값이 바뀐 경우(유형 전환 등)만 필드를 다시 그린다 — 편집 중인
     // 문자열을 덮어쓰면 커서가 튄다.
@@ -608,6 +486,8 @@ class _CompactNumberFieldState extends State<_CompactNumberField> {
 
   double _clamp(double v) => v.clamp(widget.min, widget.max);
 
+  /// 적히는 대로 값을 올린다. **필드의 글자는 건드리지 않는다** — 타이핑 중에
+  /// 고쳐 쓰면 "4" 를 지나 "47" 로 가는 길이 막히고 커서가 튄다.
   void _typed(String raw) {
     final double? parsed = double.tryParse(raw.trim());
     if (parsed != null) widget.onChanged(_round(_clamp(parsed)));
@@ -622,15 +502,27 @@ class _CompactNumberFieldState extends State<_CompactNumberField> {
     widget.onChanged(next);
   }
 
+  void _bump(double delta) {
+    _focus.unfocus();
+    _commit(
+      ((double.tryParse(_controller.text.trim()) ?? widget.value) + delta)
+          .toString(),
+    );
+  }
+
+  Key _key(String suffix) => ValueKey<String>('${widget.keyPrefix}-$suffix');
+
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      key: widget.keyPrefix == null
-          ? null
-          : ValueKey<String>('${widget.keyPrefix}-field'),
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final Widget field = AppTextField(
+      key: _key('field'),
       controller: _controller,
       focusNode: _focus,
-      textAlign: TextAlign.center,
+      // compact 칸은 라벨을 필드에 붙여 둔다 — 세 칸이 나란히 서도 무엇의
+      // 값인지 읽힌다. 스테퍼 칸은 버튼까지 덮도록 위에 따로 얹는다.
+      label: widget.steppers ? null : widget.label,
       keyboardType: TextInputType.numberWithOptions(
         decimal: widget.decimals > 0,
       ),
@@ -641,65 +533,55 @@ class _CompactNumberFieldState extends State<_CompactNumberField> {
       ],
       onChanged: _typed,
       onSubmitted: _commit,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-        color: AppColors.foreground,
-      ),
-      decoration: InputDecoration(
-        isDense: true,
-        labelText: widget.label,
-        labelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: AppColors.subtleForeground,
-        ),
-        floatingLabelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: AppColors.accent,
-        ),
-        suffixText: widget.suffix,
-        suffixStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-          color: AppColors.subtleForeground,
-        ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.sm + 2,
-        ),
-        border: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(AppRadius.md),
-          borderSide: BorderSide(color: AppColors.borderStrong),
-        ),
-        enabledBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(AppRadius.md),
-          borderSide: BorderSide(color: AppColors.borderStrong),
-        ),
-        focusedBorder: const OutlineInputBorder(
-          borderRadius: BorderRadius.all(AppRadius.md),
-          borderSide: BorderSide(color: AppColors.accent),
+      suffix: Padding(
+        padding: const EdgeInsetsDirectional.only(end: OnCareSpacing.s12),
+        child: Center(
+          widthFactor: 1,
+          child: Text(
+            widget.suffix,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
         ),
       ),
     );
+    if (!widget.steppers) return field;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          widget.label,
+          style: tokens
+              .text(OnCareTypography.label)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        Row(
+          children: <Widget>[
+            AppIconButton(
+              key: _key('minus'),
+              icon: Icons.remove_rounded,
+              tooltip: l.routineFormDecrease,
+              variant: AppIconButtonVariant.tonal,
+              onPressed: widget.value > widget.min ? () => _bump(-1) : null,
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
+            Expanded(child: field),
+            const SizedBox(width: OnCareSpacing.s8),
+            AppIconButton(
+              key: _key('plus'),
+              icon: Icons.add_rounded,
+              tooltip: l.routineFormIncrease,
+              variant: AppIconButtonVariant.tonal,
+              onPressed: widget.value < widget.max ? () => _bump(1) : null,
+            ),
+          ],
+        ),
+      ],
+    );
   }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: const TextStyle(
-      fontSize: 12,
-      fontWeight: FontWeight.w600,
-      color: AppColors.subtleForeground,
-    ),
-  );
 }
 
 /// Three-button intensity picker matching the member add sheet.
@@ -726,94 +608,35 @@ class RoutineIntensityChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final List<(String, String)> choices = _choices(l);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
           l.routineFieldIntensity,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.subtleForeground,
-          ),
+          style: context.oncare
+              .text(OnCareTypography.label)
+              .copyWith(color: OnCareColors.textSecondary),
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: OnCareSpacing.s8),
         Row(
           children: <Widget>[
-            for (
-              var index = 0;
-              index < _choices(l).length;
-              index++
-            ) ...<Widget>[
-              Builder(
-                builder: (BuildContext context) {
-                  final (String label, String wire) = _choices(l)[index];
-                  return Expanded(
-                    child: _ChoiceButton(
-                      // key 는 계약값으로 — 로케일이 바뀌어도 identity 는 같다.
-                      key: ValueKey<String>('$keyPrefix-$wire'),
-                      label: label,
-                      selected: value == wire,
-                      centered: true,
-                      onTap: () => onChanged(wire),
-                    ),
-                  );
-                },
+            for (var index = 0; index < choices.length; index++) ...<Widget>[
+              Expanded(
+                child: AppChoiceChip(
+                  // key 는 계약값으로 — 로케일이 바뀌어도 identity 는 같다.
+                  key: ValueKey<String>('$keyPrefix-${choices[index].$2}'),
+                  label: choices[index].$1,
+                  selected: value == choices[index].$2,
+                  onSelected: (_) => onChanged(choices[index].$2),
+                ),
               ),
-              if (index < _choices(l).length - 1)
-                const SizedBox(width: AppSpacing.sm),
+              if (index < choices.length - 1)
+                const SizedBox(width: OnCareSpacing.s8),
             ],
           ],
         ),
       ],
-    );
-  }
-}
-
-class _ChoiceButton extends StatelessWidget {
-  const _ChoiceButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-    this.centered = false,
-    super.key,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-  final bool centered;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? AppColors.accentSurface : AppColors.card,
-      borderRadius: const BorderRadius.all(AppRadius.md),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        child: Container(
-          alignment: centered ? Alignment.center : null,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: const BorderRadius.all(AppRadius.md),
-            border: Border.all(
-              color: selected ? AppColors.accent : AppColors.borderStrong,
-            ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-              color: selected ? AppColors.accent : AppColors.subtleForeground,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -48,8 +48,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Finder rowOf(String id) =>
-      find.byKey(ValueKey<String>('program-client-$id'));
+  Finder rowOf(String id) => find.byKey(ValueKey<String>('program-client-$id'));
 
   testWidgets('회원 목록 행에는 이행률 막대도 퍼센트도 없다 (#1029)', (tester) async {
     await openCoaching(tester, <TrainerClient>[
@@ -65,7 +64,10 @@ void main() {
     // 된다.
     expect(rowOf('steady'), findsOneWidget);
     expect(
-      find.descendant(of: rowOf('steady'), matching: find.byType(InlineBarValue)),
+      find.descendant(
+        of: rowOf('steady'),
+        matching: find.byType(InlineBarValue),
+      ),
       findsNothing,
     );
     expect(
