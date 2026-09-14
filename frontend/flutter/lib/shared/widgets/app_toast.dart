@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-
-import 'package:oncare/design_system/tokens/spacing.dart';
-import 'package:oncare/design_system/tokens/toast.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 토스트가 전하는 소식의 종류.
 ///
@@ -27,6 +25,9 @@ enum AppToastKind { info, success, error }
 /// 화면을 닫은 **뒤에** 결과가 도착하는 자리(시트를 pop 하고 저장 응답을
 /// 기다리는 흐름)에서는 [AppToastHost.of] 로 손잡이를 미리 잡아 둔다 —
 /// 사라진 화면의 `BuildContext` 로는 오버레이를 찾을 수 없다.
+///
+/// 생김새·시간은 공용 토스트(`oncare_ui` 의 `showAppToast`)와 같은 토큰을 쓴다
+/// (#1699). 이 사본은 정리 이슈(#1707)에서 공용 토스트로 합친다.
 void showAppToast(
   BuildContext context,
   String message, {
@@ -64,8 +65,8 @@ class AppToastHost {
         duration:
             duration ??
             (kind == AppToastKind.error
-                ? AppToastStyle.errorDuration
-                : AppToastStyle.duration),
+                ? OnCareMotion.toastErrorVisible
+                : OnCareMotion.toastVisible),
         onDismissed: () => handle.dismiss(),
       ),
     );
@@ -111,8 +112,8 @@ class _AppToastState extends State<_AppToast>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: AppToastStyle.enterDuration,
-    reverseDuration: AppToastStyle.exitDuration,
+    duration: OnCareMotion.toastEnter,
+    reverseDuration: OnCareMotion.toastExit,
   );
   Timer? _dwell;
 
@@ -143,11 +144,11 @@ class _AppToastState extends State<_AppToast>
   Widget build(BuildContext context) {
     final CurvedAnimation curve = CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
+      curve: OnCareMotion.curve,
+      reverseCurve: OnCareMotion.exitCurve,
     );
     return Positioned(
-      top: MediaQuery.paddingOf(context).top + AppToastStyle.topGap,
+      top: MediaQuery.paddingOf(context).top + OnCareSpacing.s12,
       left: 0,
       right: 0,
       child: SlideTransition(
@@ -159,10 +160,12 @@ class _AppToastState extends State<_AppToast>
           opacity: curve,
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s16,
+              ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
-                  maxWidth: AppToastStyle.maxWidth,
+                  maxWidth: OnCareLayout.toastMaxWidth,
                 ),
                 child: _pill(context),
               ),
@@ -183,31 +186,40 @@ class _AppToastState extends State<_AppToast>
         onVerticalDragEnd: (DragEndDetails details) {
           if ((details.primaryVelocity ?? 0) < 0) _hide();
         },
-        child: Material(
-          color: AppToastStyle.background,
-          elevation: 6,
-          borderRadius: AppToastStyle.borderRadius,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Icon(
-                  _icon(widget.kind),
-                  size: 20,
-                  color: _iconColor(widget.kind),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Text(
-                    widget.message,
-                    style: AppToastStyle.contentTextStyle,
+        child: DecoratedBox(
+          decoration: const BoxDecoration(
+            color: OnCareColors.overlayInk,
+            borderRadius: OnCareRadius.lgAll,
+            boxShadow: OnCareShadows.overlay,
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s16,
+                vertical: OnCareSpacing.s12,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Icon(
+                    _icon(widget.kind),
+                    size: OnCareSize.iconMedium,
+                    color: _iconColor(widget.kind),
                   ),
-                ),
-              ],
+                  const SizedBox(width: OnCareSpacing.s8),
+                  Expanded(
+                    child: Text(
+                      widget.message,
+                      // 토스트는 앱 어디서나 뜨므로 테마 글자(`bodySmall`)를
+                      // 그대로 읽는다 — 테마가 전역 배율을 이미 상쇄해 두었다.
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: OnCareColors.textOnFill,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -230,10 +242,10 @@ IconData _icon(AppToastKind kind) {
 Color _iconColor(AppToastKind kind) {
   switch (kind) {
     case AppToastKind.success:
-      return AppToastStyle.successIcon;
+      return OnCareColors.overlaySuccess;
     case AppToastKind.error:
-      return AppToastStyle.errorIcon;
+      return OnCareColors.overlayError;
     case AppToastKind.info:
-      return AppToastStyle.infoIcon;
+      return OnCareColors.overlayAction;
   }
 }

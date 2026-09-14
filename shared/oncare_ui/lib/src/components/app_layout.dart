@@ -156,12 +156,17 @@ class AppNavDestination {
     required this.selectedIcon,
     required this.label,
     this.badgeCount = 0,
+    this.key,
   });
 
   final IconData icon;
   final IconData selectedIcon;
   final String label;
   final int badgeCount;
+
+  /// 이 목적지 칸을 가리키는 열쇠. 아이콘·라벨이 화면의 다른 곳과 겹칠 때
+  /// 테스트·자동화가 칸을 지목하는 데 쓴다.
+  final Key? key;
 }
 
 /// 모바일 하단 내비(#1696, #1664) — 바 높이 64, 아이콘 24, 라벨 `caption` 600.
@@ -197,6 +202,7 @@ class AppBottomNav extends StatelessWidget {
           ? tokens.brand.primary
           : OnCareColors.textTertiary;
       return Expanded(
+        key: d.key,
         child: Semantics(
           button: true,
           selected: selected,

@@ -4,8 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
-import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/ai_advice_text.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -21,10 +19,13 @@ import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_h
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/exercise_goals_provider.dart';
+import 'package:oncare/shared/widgets/ai_advice_card.dart';
 import 'package:oncare/shared/widgets/chart_semantics.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
+import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// The Home tab, rebuilt to match the On-Care Figma redesign.
 ///
@@ -33,6 +34,9 @@ import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 /// 운동 card (좌측 지표 3종 + 우측 주간 추이), 이번 주 AI 추천 식단 carousel,
 /// 오늘의 일정. Per the product decision the 건강 지표 (심박수·수면) cards and
 /// the sleep AI-coaching banner are omitted.
+///
+/// 틀은 모바일 페이지 틀(`AppPage`)이다 — 연회색 배경·좌우 여백·최대 폭·탭 머리를
+/// 틀이 정하고, 이 화면은 내용만 쌓는다(#1699).
 class DashboardContent extends StatelessWidget {
   const DashboardContent({
     super.key,
@@ -45,85 +49,65 @@ class DashboardContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 720),
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 108),
-          children: <Widget>[
-            // 벨 배지는 서버 미읽음을 본다. 이 build 에는 ref 가 없어 여기서만
-            // 지역적으로 얻는다 — 헤더 전체를 다시 그리지 않는다.
-            Consumer(
-              builder: (BuildContext context, WidgetRef ref, Widget? _) =>
-                  FigmaTabHeader(
-                    title: 'On - Care',
-                    leading: const HeartLogo(),
-                    trailingAction: const TrainerChatHeaderButton(),
-                    onBell: onNotificationTap,
-                    bellHasUnread:
-                        (ref.watch(notificationUnreadProvider).valueOrNull ??
-                            0) >
-                        0,
-                    onCalendar: onCalendarTap,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Consumer(
-              builder: (BuildContext context, WidgetRef ref, _) {
-                return ref
-                    .watch(dashboardSummaryProvider)
-                    .when(
-                      loading: () => const _DashboardLoading(),
-                      error: (Object error, StackTrace stackTrace) =>
-                          _DashboardError(
-                            onRetry: () =>
-                                ref.invalidate(dashboardSummaryProvider),
-                          ),
-                      data: (DashboardSummary summary) => _DashboardData(
-                        summary: summary,
-                        // 홈 배너로 열어도 같은 시트다 — 배지도 같이 내려간다.
-                        onCoachingTap: () =>
-                            showCoachingSheet(context, ref: ref),
-                        onDietTap: () => context.go(AppRoutes.diet),
-                        onExerciseTap: () => context.go(AppRoutes.exercise),
-                      ),
-                    );
-              },
-            ),
-          ],
-        ),
+    return AppPage(
+      header: _HomeHeader(
+        onNotificationTap: onNotificationTap,
+        onCalendarTap: onCalendarTap,
       ),
+      // 셸이 하단 바 뒤까지 본문을 늘리므로 바가 가린 만큼 아래를 비운다.
+      bottomInset: MediaQuery.paddingOf(context).bottom,
+      children: <Widget>[
+        Consumer(
+          builder: (BuildContext context, WidgetRef ref, _) {
+            return ref
+                .watch(dashboardSummaryProvider)
+                .when(
+                  loading: () => const AppLoading(),
+                  error: (Object error, StackTrace stackTrace) =>
+                      AppErrorState(
+                        title: AppLocalizations.of(
+                          context,
+                        ).homeDashboardLoadError,
+                        retryLabel: AppLocalizations.of(context).actionRetry,
+                        onRetry: () => ref.invalidate(dashboardSummaryProvider),
+                      ),
+                  data: (DashboardSummary summary) => _DashboardData(
+                    summary: summary,
+                    // 홈 배너로 열어도 같은 시트다 — 배지도 같이 내려간다.
+                    onCoachingTap: () => showCoachingSheet(context, ref: ref),
+                    onDietTap: () => context.go(AppRoutes.diet),
+                    onExerciseTap: () => context.go(AppRoutes.exercise),
+                  ),
+                );
+          },
+        ),
+      ],
     );
   }
 }
 
-class _DashboardLoading extends StatelessWidget {
-  const _DashboardLoading();
+/// 홈 탭 머리. 벨 점은 서버 미읽음을 본다 — 이 머리만 다시 그린다.
+class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
+  const _HomeHeader({this.onNotificationTap, this.onCalendarTap});
+
+  final VoidCallback? onNotificationTap;
+  final VoidCallback? onCalendarTap;
 
   @override
-  Widget build(BuildContext context) => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 80),
-    child: Center(child: CircularProgressIndicator()),
-  );
-}
-
-class _DashboardError extends StatelessWidget {
-  const _DashboardError({required this.onRetry});
-
-  final VoidCallback onRetry;
+  Size get preferredSize =>
+      const MemberTabHeader(title: '', trailingAction: SizedBox.shrink())
+          .preferredSize;
 
   @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
-      child: Column(
-        children: <Widget>[
-          Text(l.homeDashboardLoadError),
-          const SizedBox(height: 12),
-          FilledButton(onPressed: onRetry, child: Text(l.actionRetry)),
-        ],
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return MemberTabHeader(
+      title: 'On - Care',
+      leading: const MemberLogo(),
+      trailingAction: const TrainerChatHeaderButton(),
+      onBell: onNotificationTap,
+      bellHasUnread:
+          (ref.watch(notificationUnreadProvider).valueOrNull ?? 0) > 0,
+      onCalendar: onCalendarTap,
     );
   }
 }
@@ -145,41 +129,31 @@ class _DashboardData extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (summary.isEmpty)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-            child: Text(
-              l.homeDashboardEmpty,
-              style: const TextStyle(color: AppColors.foreground),
-            ),
+        if (summary.isEmpty) ...<Widget>[
+          Text(
+            l.homeDashboardEmpty,
+            style: context.oncare
+                .text(OnCareTypography.body)
+                .copyWith(color: OnCareColors.textPrimary),
           ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-          child: _CoachingBanner(summary: summary, onTap: onCoachingTap),
+          const SizedBox(height: OnCareSpacing.cardGap),
+        ],
+        _CoachingBanner(summary: summary, onTap: onCoachingTap),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        _DietNutritionCard(
+          summary: summary,
+          showCharts: !summary.isEmpty,
+          onOpen: onDietTap,
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-          child: _DietNutritionCard(
-            summary: summary,
-            showCharts: !summary.isEmpty,
-            onOpen: onDietTap,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
-          child: _ExerciseCard(onOpen: onExerciseTap),
-        ),
-        const Padding(
-          padding: EdgeInsets.only(bottom: 20),
-          child: _RecommendedMeals(),
-        ),
+        const SizedBox(height: OnCareSpacing.cardGap),
+        _ExerciseCard(onOpen: onExerciseTap),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        const _RecommendedMeals(),
         // 오늘의 일정은 지금 쓰지 않는다. 되살릴 수 있어 지우지 않고 남겨
         // 둔다. (#1055)
-        // Padding(
-        //   padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-        //   child: _ScheduleCard(items: summary.todaySchedule),
-        // ),
+        // _ScheduleCard(items: summary.todaySchedule),
       ],
     );
   }
@@ -187,6 +161,8 @@ class _DashboardData extends StatelessWidget {
 
 // ─────────────────────────────────────────────────────── coaching banner ──
 
+/// 홈의 AI 조언 배너. 앱의 AI 카드 한 가지([AiAdviceShell])를 눌리는 모양으로
+/// 쓴다 — 그라디언트 강조 카드는 없앴다(#1690).
 class _CoachingBanner extends StatelessWidget {
   const _CoachingBanner({required this.summary, required this.onTap});
   final DashboardSummary summary;
@@ -195,80 +171,22 @@ class _CoachingBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        // 플로팅 버튼을 감춘 동안(#862) AI 조언으로 들어가는 자리는 여기 하나다.
-        key: const ValueKey<String>('home-coaching-banner'),
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          // AI 조언 배너만 원래의 연한 파랑 그라데이션을 유지한다(식단·운동
-          // 카드는 흰색 + 회색 그림자).
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[FigmaColors.bannerStart, FigmaColors.bannerEnd],
-            ),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Row(
-                  children: <Widget>[
-                    const OniAvatar(size: 46),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            l.homeAiAdviceTitle,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                              color: FigmaColors.ink,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            aiAdviceBody(l, summary),
-                            style: const TextStyle(
-                              fontSize: 14.5,
-                              height: 1.5,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.foreground,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: FigmaColors.primaryA(0.15),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.chevron_right_rounded,
-                        size: 20,
-                        color: FigmaColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+    final OnCareTokens tokens = context.oncare;
+    return AiAdviceShell(
+      // 플로팅 버튼을 감춘 동안(#862) AI 조언으로 들어가는 자리는 여기 하나다.
+      key: const ValueKey<String>('home-coaching-banner'),
+      title: l.homeAiAdviceTitle,
+      onTap: onTap,
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        size: OnCareSize.iconMedium,
+        color: tokens.brand.primary,
+      ),
+      child: Text(
+        aiAdviceBody(l, summary),
+        style: tokens
+            .text(OnCareTypography.bodySmall)
+            .copyWith(color: OnCareColors.textPrimary),
       ),
     );
   }
@@ -276,36 +194,10 @@ class _CoachingBanner extends StatelessWidget {
 
 // ────────────────────────────────────────────────────── summary cards ──
 
-/// Shared card chrome for the two Home summary cards: white fill, rounded
-/// corners and the shared grey [kCardShadow]. No border, no top stripe.
-class _HomeCard extends StatelessWidget {
-  const _HomeCard({required this.child});
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: kCardShadow,
-      ),
-      child: Padding(padding: const EdgeInsets.all(16), child: child),
-    );
-  }
-}
-
-/// 홈 카드 헤더 — 제목 + AI 필 + 더보기 링크. 식단·운동 카드가 같은 구조라
-/// 한 곳에 둔다.
+/// 홈 카드 헤더 — 제목 + 자세히 링크. 식단·운동 카드가 같은 구조라 한 곳에 둔다.
 ///
-/// 셋 다 고유 폭을 요구하고 `Spacer` 로 밀어내던 예전 구조는 **줄어들 수가
-/// 없어서**, 폭이 모자라면 그대로 `RenderFlex overflowed` 를 냈다(#440).
-/// 더보기 링크는 누를 것이라 항상 남기고, 제목·필이 남는 폭에 맞춰 줄어든다.
-///
-/// 발견 경로는 영어 로케일 위젯 테스트였는데, 그 환경의 기본 폰트는 라틴
-/// 문자를 실제의 약 2배 폭으로 그린다. 즉 **실제 기기에서 잘려 보이던 것을
-/// 확인하고 고친 것은 아니다.** 그래도 이 구조가 맞다 — 문구·폰트·폭 중 하나만
-/// 달라져도 넘치던 것을, 넘치는 대신 줄어들게 바꾼 것이다.
+/// 제목은 남는 폭 안에서 줄바꿈되고 링크는 항상 남는다 — 셋 다 고유 폭을 요구하던
+/// 예전 구조는 폭이 모자라면 `RenderFlex overflowed` 를 냈다(#440).
 class _CardHeader extends StatelessWidget {
   const _CardHeader({required this.icon, required this.label, this.onOpen});
 
@@ -315,48 +207,12 @@ class _CardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // `AI 분석` 필은 뗐다 (#1055). 홈의 요약은 대부분 AI 가 만든 것이라
-    // 필이 카드를 갈라 주지 못하면서, 제목 줄만 좁혔다.
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: _CardTitle(icon: icon, label: label),
-        ),
-        const SizedBox(width: 8),
-        _DetailLink(onTap: onOpen),
-      ],
-    );
-  }
-}
-
-class _CardTitle extends StatelessWidget {
-  const _CardTitle({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        // 배경 틴트 없이 아이콘만 둔다 (#1117) — 카드마다 붙은 사각 틴트가
-        // 제목 줄을 무겁게 만들었다.
-        Icon(icon, size: 18, color: FigmaColors.primary),
-        const SizedBox(width: 6),
-        // 폭이 모자라면 제목부터 줄인다 — 아이콘·필·더보기는 남긴다(#440).
-        Flexible(
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: FigmaColors.ink,
-            ),
-          ),
-        ),
-      ],
+    // `AI 분석` 필은 뗐다 (#1055). 아이콘은 배경 틴트 없이 둔다 (#1117).
+    return AppSectionHeader(
+      title: label,
+      icon: icon,
+      actionLabel: AppLocalizations.of(context).homeDetails,
+      onAction: onOpen,
     );
   }
 }
@@ -400,7 +256,7 @@ class _DietNutritionCard extends ConsumerWidget {
     final NumberFormat nf = NumberFormat('#,###');
     final String chartTitle = l.homeWeeklyMetricTrend(_nutLabel(l, tab));
 
-    return _HomeCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -409,13 +265,14 @@ class _DietNutritionCard extends ConsumerWidget {
             label: l.homeDietNutritionTitle,
             onOpen: onOpen,
           ),
-          const SizedBox(height: 14),
-          // 상단: 칼로리·나트륨·당류를 큰 숫자 카드로 나란히. 탭하면 아래
+          const SizedBox(height: OnCareSpacing.s12),
+          // 상단: 칼로리·나트륨·당류를 큰 숫자 칸으로 나란히. 누르면 아래
           // 그래프가 그 지표의 주간 추이로 바뀐다.
           Row(
             children: <Widget>[
               for (final _NutTabKind kind in nutrition.keys) ...<Widget>[
-                if (kind != nutrition.keys.first) const SizedBox(width: 8),
+                if (kind != nutrition.keys.first)
+                  const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: _MetricStatCard(
                     label: _nutLabel(l, kind),
@@ -431,10 +288,10 @@ class _DietNutritionCard extends ConsumerWidget {
               ],
             ],
           ),
-          if (showCharts) const SizedBox(height: 10),
-          if (showCharts) const _SoftDivider(),
-          if (showCharts) const SizedBox(height: 10),
-          if (showCharts)
+          if (showCharts) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            const AppDivider(),
+            const SizedBox(height: OnCareSpacing.s12),
             Row(
               key: const ValueKey<String>('dashboard-nutrition-chart'),
               children: <Widget>[
@@ -445,7 +302,7 @@ class _DietNutritionCard extends ConsumerWidget {
                       // 목표는 그래프의 목표선 라벨이 말한다 — 카드 위에 또
                       // 적으면 한 화면에서 같은 말이 두 번 나온다(#756).
                       _ChartLegend(title: chartTitle),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: OnCareSpacing.s8),
                       MetricTrendChart(
                         values: cfg.cur,
                         dayLabels: days,
@@ -478,15 +335,18 @@ class _DietNutritionCard extends ConsumerWidget {
                 ),
               ],
             ),
+          ],
         ],
       ),
     );
   }
 }
 
-/// 식단 카드 상단의 지표 카드 하나 — "칼로리" 라벨 + 큰 숫자 + "/2,000kcal"
-/// 목표치 + 정상/초과 배지. 탭하면 아래 주간 추이 그래프가 이 지표로 바뀌고,
-/// 선택된 카드만 브랜드 블루 테두리로 표시한다.
+/// 식단 카드 상단의 지표 칸 하나 — "칼로리" 라벨 + 큰 숫자 + "/2,000kcal"
+/// 목표치. 누르면 아래 주간 추이 그래프가 이 지표로 바뀐다.
+///
+/// 카드 안 칸이라 안쪽 타일 모양(반경 12)이고, 선택은 옅은 브랜드 채움 +
+/// 브랜드 테두리다(#1690 선택 상태).
 class _MetricStatCard extends StatelessWidget {
   const _MetricStatCard({
     required this.label,
@@ -502,81 +362,77 @@ class _MetricStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     final bool over =
         indicator.overBudget ||
         (indicator.max > 0 && indicator.current > indicator.max);
-    // 선택 상태를 흰 배경·파란 테두리로만 알리면 스크린리더 사용자는 어떤
-    // 지표가 켜져 있는지도, 이 카드가 누를 수 있는 요소인지도 알 수 없다.
+    final TextStyle subStyle = tokens
+        .text(OnCareTypography.strong(OnCareTypography.caption))
+        .copyWith(color: OnCareColors.textSecondary);
+    // 선택 상태를 색으로만 알리면 스크린리더 사용자는 어떤 지표가 켜져 있는지도,
+    // 이 칸이 누를 수 있는 요소인지도 알 수 없다.
     return Semantics(
       button: true,
       selected: selected,
       label: '$label (${indicator.unit})',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected ? Colors.white : FigmaColors.statBg,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: selected ? FigmaColors.primary : Colors.transparent,
-              width: 1.4,
-            ),
+      child: Material(
+        color: selected ? tokens.brand.surface : OnCareColors.surfaceInput,
+        shape: RoundedRectangleBorder(
+          borderRadius: OnCareRadius.mdAll,
+          side: BorderSide(
+            color: selected ? tokens.brand.primary : Colors.transparent,
           ),
-          child: Column(
-            children: <Widget>[
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mutedForeground,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: OnCareSpacing.s8,
+              vertical: OnCareSpacing.s12,
+            ),
+            child: Column(
+              children: <Widget>[
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(label, maxLines: 1, style: subStyle),
+                ),
+                const SizedBox(height: OnCareSpacing.s4),
+                // 초과는 배지가 아니라 수치 자체를 빨갛게 해서 말한다. 배지는
+                // 카드마다 있고 없고가 갈려 카드 높이를 들쭉날쭉하게 만들었다
+                // (#1070). 색은 어느 카드에도 자리를 더 먹지 않는다.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _metricNumber(indicator.current),
+                    maxLines: 1,
+                    style: OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.display),
+                    ).copyWith(
+                      color: over
+                          ? OnCareColors.danger
+                          : OnCareColors.textPrimary,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              // 초과는 배지가 아니라 수치 자체를 빨갛게 해서 말한다. 배지는
-              // 카드마다 있고 없고가 갈려 카드 높이를 들쭉날쭉하게 만들었다
-              // (#1070). 색은 어느 카드에도 자리를 더 먹지 않는다.
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  _metricNumber(indicator.current),
-                  maxLines: 1,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: over ? FigmaColors.dangerRed : FigmaColors.ink,
-                    letterSpacing: -0.5,
-                    height: 1,
+                const SizedBox(height: OnCareSpacing.s4),
+                // 목표치는 작은 글씨로 현재 수치 바로 아래. 단위는 라벨이
+                // 아니라 목표치 오른쪽에 붙인다("/2,000kcal") — 라벨에 두면
+                // "칼로리 (kcal)" 처럼 길어져 좁은 칸에서 먼저 줄어들었다.
+                // 목표가 없는 지표(max=0)면 단위만 남겨 큰 숫자가 단위를 잃지
+                // 않게 한다.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    indicator.max > 0
+                        ? '/${_metricNumber(indicator.max)}${indicator.unit}'
+                        : indicator.unit,
+                    maxLines: 1,
+                    style: subStyle,
                   ),
                 ),
-              ),
-              const SizedBox(height: 3),
-              // 목표치는 회색 작은 글씨로 현재 수치 바로 아래. 단위는 라벨이
-              // 아니라 목표치 오른쪽에 붙인다("/2,000kcal") — 라벨에 두면
-              // "칼로리 (kcal)" 처럼 길어져 좁은 카드에서 먼저 줄어들었다.
-              // 목표가 없는 지표(max=0)면 단위만 남겨 큰 숫자가 단위를 잃지
-              // 않게 한다.
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  indicator.max > 0
-                      ? '/${_metricNumber(indicator.max)}${indicator.unit}'
-                      : indicator.unit,
-                  maxLines: 1,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -584,57 +440,6 @@ class _MetricStatCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────── shared card chrome ──
-
-/// The "자세히 >" trailing link used in the card headers.
-class _DetailLink extends StatelessWidget {
-  const _DetailLink({this.onTap});
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    // `GestureDetector` 는 눌러도 버튼으로 인식되지 않는다 — 문구는 읽히지만
-    // 누를 수 있는 자리라는 사실이 빠진다(#972).
-    return Semantics(
-      button: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(
-              l.homeDetails,
-              style: const TextStyle(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w600,
-                color: FigmaColors.primary,
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              size: 14,
-              color: FigmaColors.primary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// A hairline divider used to separate the sub-sections inside a card.
-class _SoftDivider extends StatelessWidget {
-  const _SoftDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(height: 1, color: FigmaColors.primaryA(0.07));
-  }
-}
-
-/// A tiny right-aligned chart Y-axis value label.
 /// 이번 주의 시작(월요일). 운동 탭과 같은 기준으로 잘라야 홈이 같은 한 주를
 /// 말한다.
 DateTime _thisMonday() {
@@ -670,7 +475,7 @@ class _ExerciseCard extends ConsumerWidget {
     // MY 건강 목표에서 저장한 값을 운동 탭과 함께 읽는다 (#1139).
     final ExerciseLoadGoals goals = ref.watch(exerciseLoadGoalsProvider);
 
-    return _HomeCard(
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -679,7 +484,7 @@ class _ExerciseCard extends ConsumerWidget {
             label: l.dashboardMetricExercise,
             onOpen: onOpen,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: OnCareSpacing.s12),
           if (wk != null)
             ExerciseWeekLoadCard(
               key: const ValueKey<String>('dashboard-exercise-week'),
@@ -723,29 +528,17 @@ class _ExerciseUnavailable extends StatelessWidget {
         children: <Widget>[
           Text(
             l.homeExerciseTrendUnavailable,
-            style: const TextStyle(
-              fontSize: 12.5,
-              height: 1.35,
-              color: AppColors.mutedForeground,
-            ),
+            style: context.oncare
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
-          const SizedBox(height: 6),
-          TextButton(
+          const SizedBox(height: OnCareSpacing.s8),
+          AppButton(
             key: const ValueKey<String>('dashboard-exercise-retry'),
+            label: l.actionRetry,
             onPressed: onRetry,
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(0, 32),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: Text(
-              l.actionRetry,
-              style: const TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: FigmaColors.primary,
-              ),
-            ),
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.small,
           ),
         ],
       ),
@@ -758,13 +551,15 @@ class _ExercisePlaceholder extends StatelessWidget {
   const _ExercisePlaceholder();
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => SizedBox(
     key: const ValueKey<String>('dashboard-exercise-loading'),
     height: _kExerciseBodyHeight,
     width: double.infinity,
-    decoration: BoxDecoration(
-      color: FigmaColors.primaryA(0.05),
-      borderRadius: BorderRadius.circular(10),
+    child: const DecoratedBox(
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceInput,
+        borderRadius: OnCareRadius.mdAll,
+      ),
     ),
   );
 }
@@ -773,13 +568,6 @@ class _ExercisePlaceholder extends StatelessWidget {
 /// 같은 높이를 쓴다 — 카드가 튀지 않는다.
 double get _kExerciseBodyHeight => kActivityCardHeight;
 
-/// Padded min/max scale for the nutrition line chart. Deliberately excludes a
-/// zero baseline so day-to-day variation reads as a dynamic slope rather than
-/// 목표 대비 상태색: 초과(빨강) / 그 외(브랜드 파랑).
-///
-/// 지표 카드의 초과 표시와 같은 두 색(dangerRed/statusWithinGoal)만 쓴다 —
-/// 카드는 2단계인데 그래프만 근접(주황) 3단계라, 초과가 아닌 날의 점이
-/// 주황으로 찍혀 서로 다른 이야기를 했다. 이제 점은
 // ───────────────────────────────────────────────────── nutrition data ──
 
 class _NutData {
@@ -788,7 +576,6 @@ class _NutData {
     required this.unit,
     required this.goal,
     required this.ticks,
-    required this.color,
     required this.warn,
   });
   final List<double> cur;
@@ -797,7 +584,6 @@ class _NutData {
 
   /// 세로축(가로 눈금선) 값들. 지표마다 다르게 지정한다.
   final List<double> ticks;
-  final Color color;
   final bool warn;
 }
 
@@ -805,11 +591,14 @@ class _NutData {
 /// so the shown language never becomes an internal key.
 enum _NutTabKind { calories, sodium, sugar }
 
-/// 지표마다 고정된 표시 규칙 — 단위·눈금·색. 값은 여기 없다.
+/// 지표마다 고정된 표시 규칙 — 단위·눈금. 값은 여기 없다.
 ///
 /// 예전에는 이 자리에 주간 이력 예시 숫자까지 함께 들어 있었고, 응답이 7일을
 /// 채우지 않으면 그 숫자가 그대로 그려졌다. 화면에 뜬 한 주가 회원의 것이
 /// 아닐 수 있다는 뜻이라, 표시 규칙만 남기고 값은 응답에서만 온다(#962).
+///
+/// 그래프 색은 지표와 무관하게 식단 그래프 색 하나다(`OnCareBrand.dietChart`) —
+/// 여기 두던 지표별 색은 그리는 곳이 없어 뺐다.
 const Map<_NutTabKind, _NutStyle> _nutStyles = <_NutTabKind, _NutStyle>{
   _NutTabKind.calories: _NutStyle(
     unit: 'kcal',
@@ -820,29 +609,21 @@ const Map<_NutTabKind, _NutStyle> _nutStyles = <_NutTabKind, _NutStyle>{
     // 없었다. 목표선은 따로 그리지 않으므로(상단 '목표 N' 라벨과 데이터
     // 포인트 상태색으로만 표현) 2000 을 빼도 잃는 정보가 없다.
     ticks: <double>[0, 1500, 2500],
-    color: FigmaColors.primary,
   ),
   _NutTabKind.sodium: _NutStyle(
     unit: 'mg',
     ticks: <double>[0, 1750, 3500],
-    color: FigmaColors.orange,
   ),
   _NutTabKind.sugar: _NutStyle(
     unit: 'g',
     ticks: <double>[0, 25, 50],
-    color: FigmaColors.sugarPurple,
   ),
 };
 
 class _NutStyle {
-  const _NutStyle({
-    required this.unit,
-    required this.ticks,
-    required this.color,
-  });
+  const _NutStyle({required this.unit, required this.ticks});
   final String unit;
   final List<double> ticks;
-  final Color color;
 }
 
 Map<_NutTabKind, _NutData> _nutritionFor(DashboardSummary summary) {
@@ -876,7 +657,6 @@ Map<_NutTabKind, _NutData> _nutritionFor(DashboardSummary summary) {
         unit: entry.value.unit,
         goal: liveValues[entry.key]!.max.toDouble(),
         ticks: entry.value.ticks,
-        color: entry.value.color,
         warn: liveValues[entry.key]!.overBudget,
       ),
   };
@@ -910,15 +690,11 @@ HealthIndicator _indicatorFor(DashboardSummary s, _NutTabKind key) =>
       _NutTabKind.sugar => s.sugarIndicator,
     };
 
-// 이번 주 꺾은선(연회색). 선은 배경처럼 물러나고 데이터 포인트(상태색)와 값
-// 라벨이 읽히도록 눈금선보다 아주 조금만 진하게 잡는다.
-
-/// The weekly nutrition trend line: a solid current-week line, solid
-/// horizontal tick gridlines (uniform weight), and value labels on each
-/// point. The goal is shown via the top label + point status colors, not a
-/// separate line. The [lo]/[hi] scale is padded away from zero so the line
-/// reads as a dynamic slope rather than a flat trace.
 // ───────────────────────────────────────────────────── recommended meals ──
+
+/// 추천 식단 카드의 폭과 사진 높이. 가로로 흘러가는 목록이라 카드 폭이 고정이다.
+const double _kRecMealCardWidth = 128;
+const double _kRecMealPhotoHeight = 72;
 
 /// 추천을 누가 골랐는지. 트레이너가 짚어 준 식단과 AI 가 고른 식단은 회원이
 /// 받아들이는 무게가 다르다 — 카드에 적어 둔다. (#1056)
@@ -930,18 +706,17 @@ class _RecMeal {
     this.emoji,
     this.name,
     this.reason,
-    this.bg,
     this.tag, {
     this.source = _RecSource.ai,
   });
 
-  /// Bundled dish photo shown on the card. [emoji] over [bg] is the fallback
-  /// when the asset is missing, so the section still renders end-to-end.
+  /// Bundled dish photo shown on the card. [emoji] over the tile colour is
+  /// the fallback when the asset is missing, so the section still renders
+  /// end-to-end.
   final String photo;
   final String emoji;
   final String name;
   final String reason;
-  final Color bg;
 
   /// 영양 특성 배지. 어휘는 여섯 가지로 고정한다 — 같은 뜻을 화면마다 다른
   /// 말로 부르지 않기 위해서다. (#1056)
@@ -952,26 +727,28 @@ class _RecMeal {
   /// 사진·태그는 그대로 두고 추천 이유 문구만 바꾼 사본.
   /// 서버가 개인화 문구를 보냈을 때 쓴다.
   _RecMeal withReason(String newReason) =>
-      _RecMeal(photo, emoji, name, newReason, bg, tag, source: source);
+      _RecMeal(photo, emoji, name, newReason, tag, source: source);
 
   /// 출처만 바꾼 사본.
   _RecMeal withSource(_RecSource newSource) =>
-      _RecMeal(photo, emoji, name, reason, bg, tag, source: newSource);
+      _RecMeal(photo, emoji, name, reason, tag, source: newSource);
 }
 
-/// 서버 카탈로그 key → 화면 표시(사진·이모지·문구·색).
+/// 서버 카탈로그 key → 화면 표시(사진·이모지·문구).
 ///
 /// 추천 API 는 무엇을 어떤 순서로 보여줄지(`key`)만 정하고, 실제 그리기는 여기서
 /// 한다. 사진은 앱 번들 에셋이고 문구는 로케일별 ARB 라, 서버가 문자열을 만들면
 /// 영어 화면에 한국어가 섞이고 사진 없는 요리가 나오기 때문이다.
 /// key 값은 백엔드 `app/data/meal_catalog.py` 와 일치해야 한다.
+///
+/// 사진이 빠졌을 때의 바탕은 요리마다 색을 고르지 않고 안쪽 타일 색 하나로 둔다 —
+/// 요리별 색은 식단 탭의 끼니 색과 같은 값을 따로 들고 있었다.
 Map<String, _RecMeal> _recMealsByKey(AppLocalizations l) => <String, _RecMeal>{
   'chicken_salad': _RecMeal(
     'assets/images/rec-chicken-salad.jpg',
     '🥗',
     l.homeMealChickenSalad,
     l.homeMealReasonSodium,
-    const Color(0xFFE8F5E9),
     l.homeMealTagLowSodium,
   ),
   'brown_rice_box': _RecMeal(
@@ -979,7 +756,6 @@ Map<String, _RecMeal> _recMealsByKey(AppLocalizations l) => <String, _RecMeal>{
     '🍱',
     l.homeMealBrownRiceBox,
     l.homeMealReasonGlucose,
-    const Color(0xFFFFF8E1),
     // 혈당을 가리키던 `저GI` 는 이 앱이 다른 곳에서 쓰지 않는 말이었다.
     l.homeMealTagLowSugar,
   ),
@@ -988,7 +764,6 @@ Map<String, _RecMeal> _recMealsByKey(AppLocalizations l) => <String, _RecMeal>{
     '🐟',
     l.homeMealSalmon,
     l.homeMealReasonOmega,
-    const Color(0xFFE3F2FD),
     l.homeMealTagHighProtein,
   ),
   'tofu': _RecMeal(
@@ -996,7 +771,6 @@ Map<String, _RecMeal> _recMealsByKey(AppLocalizations l) => <String, _RecMeal>{
     '🥦',
     l.homeMealTofu,
     l.homeMealReasonLowCal,
-    const Color(0xFFF3E5F5),
     l.homeMealTagLowCal,
   ),
   'namul_bibimbap': _RecMeal(
@@ -1004,7 +778,6 @@ Map<String, _RecMeal> _recMealsByKey(AppLocalizations l) => <String, _RecMeal>{
     '🥬',
     l.homeMealNamulBibimbap,
     l.homeMealReasonFiber,
-    const Color(0xFFEFF7ED),
     // 나물 위주라 지방이 적다 — `고식이섬유` 는 정해 둔 여섯 어휘 밖이다.
     l.homeMealTagLowFat,
   ),
@@ -1074,6 +847,7 @@ class _RecommendedMeals extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     // valueOrNull 이라 로딩·에러에서 기본 추천이 그대로 그려진다. 스켈레톤을 두면
     // 홈 진입 때 카드가 한 번 비었다가 채워져 화면이 깜빡인다(목업 모드에서는
     // 결과가 기본값과 같아 아예 아무 변화도 보이지 않는다).
@@ -1093,55 +867,46 @@ class _RecommendedMeals extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                child: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: <Widget>[
-                    Text(
-                      l.homeRecMealsTitle,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: FigmaColors.ink,
-                      ),
-                    ),
-                    if (basis != null)
-                      Text(
-                        basis,
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w500,
-                          color: FigmaColors.textMuted,
-                        ),
-                      ),
-                  ],
-                ),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: OnCareSpacing.s8,
+          runSpacing: OnCareSpacing.s4,
+          children: <Widget>[
+            Text(
+              l.homeRecMealsTitle,
+              style: tokens
+                  .text(OnCareTypography.titleSmall)
+                  .copyWith(color: OnCareColors.textPrimary),
+            ),
+            if (basis != null)
+              Text(
+                basis,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
               ),
-            ],
-          ),
+          ],
         ),
         // 카드 높이를 숫자로 박지 않는다 (#1118). 예전에는 설명 두 줄을 미리
         // 잡아 두느라, 설명이 한 줄인 카드는 태그 아래가 통째로 비었다.
         // IntrinsicHeight 가 실제 내용으로 높이를 재고, 카드끼리는 가장 높은
         // 것에 맞춰 늘어난다 — 글씨 배율이 커져도 계산이 어긋날 자리가 없다.
         //
-        // 아래 여백(18)은 카드 그림자(blur 14, y+4)가 뷰포트에 잘리지 않을
-        // 만큼이다. 위(8)보다 넉넉한 것은 그림자가 아래로 치우쳐 지기 때문.
+        // 아래 여백은 카드 그림자가 뷰포트에 잘리지 않을 만큼이다. 위보다
+        // 넉넉한 것은 그림자가 아래로 치우쳐 지기 때문.
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 18),
+          clipBehavior: Clip.none,
+          padding: const EdgeInsets.only(
+            top: OnCareSpacing.s12,
+            bottom: OnCareSpacing.s16,
+          ),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
                 for (int i = 0; i < meals.length; i++) ...<Widget>[
-                  if (i != 0) const SizedBox(width: 12),
+                  if (i != 0) const SizedBox(width: OnCareSpacing.cardGap),
                   _RecMealCard(meal: meals[i]),
                 ],
               ],
@@ -1153,7 +918,8 @@ class _RecommendedMeals extends ConsumerWidget {
   }
 }
 
-/// 카드 좌측 상단의 추천 출처 배지.
+/// 카드 좌측 상단의 추천 출처 배지. 사진 위에 얹히므로 바탕은 불투명하다 —
+/// 트레이너 추천은 브랜드 채움, AI 추천은 옅은 브랜드 채움이다.
 class _RecSourceBadge extends StatelessWidget {
   const _RecSourceBadge({required this.source});
 
@@ -1162,28 +928,52 @@ class _RecSourceBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final bool trainer = source == _RecSource.trainer;
+    return _Badge(
+      label: trainer ? l.homeMealSourceTrainer : l.homeMealSourceAi,
+      textKey: const Key('rec-meal-source'),
+      fill: trainer ? tokens.brand.primary : tokens.brand.surface,
+      foreground: trainer ? OnCareColors.textOnFill : tokens.brand.primary,
+    );
+  }
+}
+
+/// 태그 모양(알약·높이 24·`caption` 600) 그대로, 글자에 열쇠를 달 수 있게 풀어 둔
+/// 배지. 추천 카드의 테스트가 글자를 찾아 읽는다.
+class _Badge extends StatelessWidget {
+  const _Badge({
+    required this.label,
+    required this.textKey,
+    required this.fill,
+    required this.foreground,
+  });
+
+  final String label;
+  final Key textKey;
+  final Color fill;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      height: OnCareSize.tagHeight,
+      padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        // 사진 위에 얹히므로 배경은 불투명해야 글자가 읽힌다.
-        color: trainer ? FigmaColors.primary : Colors.white,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: trainer ? FigmaColors.primary : FigmaColors.hairline,
-        ),
+        color: fill,
+        borderRadius: OnCareRadius.pillAll,
       ),
       child: Text(
-        trainer ? l.homeMealSourceTrainer : l.homeMealSourceAi,
-        key: const Key('rec-meal-source'),
+        label,
+        key: textKey,
+        // 영어 태그는 길어서 두 줄이 되고, 그만큼 설명이 눌려 사라진다 — 한
+        // 줄로 못 박는다. (#1004)
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-          height: 1.2,
-          color: trainer ? Colors.white : FigmaColors.primary,
-        ),
+        style: context.oncare
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(color: foreground),
       ),
     );
   }
@@ -1195,111 +985,87 @@ class _RecMealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 130,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: kCardShadow,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Stack(
-            children: <Widget>[
-              Image.asset(
-                meal.photo,
-                height: 72,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                // Fall back to the emoji tile if the bundled photo is missing.
-                errorBuilder: (BuildContext _, Object _, StackTrace? _) =>
-                    _emojiHeader(),
-              ),
-              // 누가 고른 추천인지 사진 위에 얹는다 — 카드가 130px 로 좁아
-              // 아래 글자 자리를 더 쓰면 이름이나 이유가 밀린다. (#1056)
-              Positioned(
-                left: 6,
-                top: 6,
-                child: _RecSourceBadge(source: meal.source),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+    final OnCareTokens tokens = context.oncare;
+    return SizedBox(
+      width: _kRecMealCardWidth,
+      child: AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Stack(
               children: <Widget>[
-                Text(
-                  meal.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: FigmaColors.ink,
-                    height: 1.3,
-                  ),
+                Image.asset(
+                  meal.photo,
+                  height: _kRecMealPhotoHeight,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  // Fall back to the emoji tile if the bundled photo is missing.
+                  errorBuilder: (BuildContext context, Object _, StackTrace? _) =>
+                      _emojiHeader(context),
                 ),
-                const SizedBox(height: 3),
-                // 카드 폭이 130px 고정이라 12.5px 로는 "나트륨 조절에
-                // 좋아요" 가 한 줄에 못 들어간다. 가독성 개선(3299f996)에서
-                // 키운 값을 이 카드만 되돌린다 — 제목이 진한 14px 이라 부제는
-                // 작은 회색이어야 위계도 산다.
-                Text(
-                  meal.reason,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: FigmaColors.textMuted,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    // 배지 색은 하나다 (#1056). 요리마다 색이 달라지면 색이
-                    // 영양 특성을 뜻하는지 요리 종류를 뜻하는지 알 수 없다.
-                    color: FigmaColors.primaryA(0.12),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    meal.tag,
-                    key: const Key('rec-meal-tag'),
-                    // 영어 태그는 길어서 두 줄이 되고, 그만큼 설명이 눌려
-                    // 사라진다 — 태그는 한 줄로 못 박는다. (#1004)
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
-                      color: FigmaColors.primary,
-                    ),
+                // 누가 고른 추천인지 사진 위에 얹는다 — 카드가 좁아 아래 글자
+                // 자리를 더 쓰면 이름이나 이유가 밀린다. (#1056)
+                Positioned(
+                  left: OnCareSpacing.s8,
+                  top: OnCareSpacing.s8,
+                  right: OnCareSpacing.s8,
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: _RecSourceBadge(source: meal.source),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(OnCareSpacing.s8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    meal.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                        .copyWith(color: OnCareColors.textPrimary),
+                  ),
+                  const SizedBox(height: OnCareSpacing.s2),
+                  // 카드 폭이 좁아 설명은 가장 작은 역할 글자로 둔다 — 제목이
+                  // 진한 글씨라 부제는 작은 회색이어야 위계도 산다.
+                  Text(
+                    meal.reason,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textTertiary),
+                  ),
+                  const SizedBox(height: OnCareSpacing.s8),
+                  // 배지 색은 하나다 (#1056). 요리마다 색이 달라지면 색이
+                  // 영양 특성을 뜻하는지 요리 종류를 뜻하는지 알 수 없다.
+                  _Badge(
+                    label: meal.tag,
+                    textKey: const Key('rec-meal-tag'),
+                    fill: tokens.brand.surface,
+                    foreground: tokens.brand.primary,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _emojiHeader() => Container(
-    height: 72,
+  Widget _emojiHeader(BuildContext context) => Container(
+    height: _kRecMealPhotoHeight,
     width: double.infinity,
-    color: meal.bg,
+    color: context.oncare.brand.surface,
     alignment: Alignment.center,
-    child: Text(meal.emoji, style: const TextStyle(fontSize: 36)),
+    child: Text(meal.emoji, style: context.oncare.text(OnCareTypography.display)),
   );
 }
 
@@ -1339,6 +1105,7 @@ class _ScheduleCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final DateTime now = nowKst();
     final String weekday = weekDayLabels(l)[now.weekday - 1];
     final String todayLabel = l.homeScheduleDate(weekday, now.month, now.day);
@@ -1356,72 +1123,34 @@ class _ScheduleCard extends ConsumerWidget {
               first.time.compareTo(second.time),
         );
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    l.homeScheduleTitle,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: FigmaColors.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    todayLabel,
-                    style: const TextStyle(
-                      fontSize: 14.5,
-                      color: AppColors.mutedForeground,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Semantics(
-              button: true,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => showScheduleCalendarSheet(context),
-                child: Text(
-                  l.homeViewAll,
-                  style: const TextStyle(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w600,
-                    color: FigmaColors.primary,
-                  ),
-                ),
-              ),
-            ),
-          ],
+        AppSectionHeader(
+          title: l.homeScheduleTitle,
+          actionLabel: l.homeViewAll,
+          onAction: () => showScheduleCalendarSheet(context),
         ),
-        const SizedBox(height: 12),
+        Text(
+          todayLabel,
+          style: tokens
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
         if (merged.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: FigmaColors.softBlue,
-              borderRadius: BorderRadius.circular(16),
-            ),
+          AppTile(
             child: Text(
               l.homeScheduleEmpty,
-              style: const TextStyle(
-                fontSize: 14.5,
-                color: AppColors.foreground,
-              ),
+              style: tokens
+                  .text(OnCareTypography.body)
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
           )
         else
           for (int index = 0; index < merged.length; index++) ...<Widget>[
             _ScheduleItemCard(item: merged[index]),
-            if (index != merged.length - 1) const SizedBox(height: 8),
+            if (index != merged.length - 1)
+              const SizedBox(height: OnCareSpacing.s8),
           ],
       ],
     );
@@ -1435,62 +1164,44 @@ class _ScheduleItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     return Semantics(
       button: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      child: AppTile(
         onTap: () => showScheduleCalendarSheet(context),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: FigmaColors.softBlue,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            children: <Widget>[
-              Text(
-                item.time,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: FigmaColors.primary,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                width: 1,
-                height: 34,
-                color: FigmaColors.primaryA(0.35),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Row(
-                  children: <Widget>[
-                    if (item.emoji.isNotEmpty) ...<Widget>[
-                      Text(item.emoji),
-                      const SizedBox(width: 8),
-                    ],
-                    Expanded(
-                      child: Text(
-                        item.title,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: FigmaColors.ink,
-                        ),
-                      ),
-                    ),
+        child: Row(
+          children: <Widget>[
+            Text(
+              item.time,
+              style: OnCareTypography.numeric(
+                tokens.text(OnCareTypography.titleSmall),
+              ).copyWith(color: tokens.brand.primary),
+            ),
+            const SizedBox(width: OnCareSpacing.s16),
+            Expanded(
+              child: Row(
+                children: <Widget>[
+                  if (item.emoji.isNotEmpty) ...<Widget>[
+                    Text(item.emoji),
+                    const SizedBox(width: OnCareSpacing.s8),
                   ],
-                ),
+                  Expanded(
+                    child: Text(
+                      item.title,
+                      style: tokens
+                          .text(OnCareTypography.titleSmall)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                  ),
+                ],
               ),
-              const Icon(
-                Icons.chevron_right,
-                size: 18,
-                color: FigmaColors.primary,
-              ),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              size: OnCareSize.iconMedium,
+              color: tokens.brand.primary,
+            ),
+          ],
         ),
       ),
     );
@@ -1518,11 +1229,9 @@ class _ChartLegend extends StatelessWidget {
             child: Text(
               title,
               maxLines: 1,
-              style: const TextStyle(
-                fontSize: 14.5,
-                fontWeight: FontWeight.w700,
-                color: FigmaColors.ink,
-              ),
+              style: context.oncare
+                  .text(OnCareTypography.titleSmall)
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
         ),

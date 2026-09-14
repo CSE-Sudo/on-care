@@ -1,16 +1,4 @@
 {
-  "lib/app/router/main_shell.dart": {
-    "fontSize": 5,
-    "fontWeight": 3,
-    "colorLiteral": 2,
-    "materialColor": 3,
-    "opacity": 2,
-    "radius": 5,
-    "edgeInsets": 3,
-    "sizedBox": 8,
-    "nonRoundedIcon": 12,
-    "materialWidget": 1
-  },
   "lib/core/utils/portrait_date_picker.dart": {
     "fontWeight": 1,
     "materialColor": 2,
@@ -120,52 +108,6 @@
     "fontWeight": 11,
     "lineHeight": 12
   },
-  "lib/features/account/presentation/pages/onboarding_page.dart": {
-    "fontSize": 14,
-    "fontWeight": 16,
-    "lineHeight": 1,
-    "materialColor": 5,
-    "radius": 10,
-    "edgeInsets": 5,
-    "sizedBox": 10,
-    "animationDuration": 2,
-    "nonRoundedIcon": 2,
-    "materialWidget": 12
-  },
-  "lib/features/auth/presentation/pages/sign_in_page.dart": {
-    "fontSize": 1,
-    "fontWeight": 2,
-    "colorLiteral": 2,
-    "sizedBox": 1,
-    "nonRoundedIcon": 5,
-    "materialWidget": 7
-  },
-  "lib/features/auth/presentation/pages/sign_up_page.dart": {
-    "fontWeight": 1,
-    "sizedBox": 2,
-    "nonRoundedIcon": 8,
-    "materialWidget": 4
-  },
-  "lib/features/auth/presentation/widgets/auth_fields.dart": {
-    "fontSize": 1,
-    "fontWeight": 1,
-    "materialColor": 1,
-    "sizedBox": 1,
-    "materialWidget": 2
-  },
-  "lib/features/dashboard/presentation/widgets/dashboard_content.dart": {
-    "fontSize": 23,
-    "fontWeight": 19,
-    "letterSpacing": 2,
-    "lineHeight": 7,
-    "colorLiteral": 5,
-    "materialColor": 5,
-    "radius": 11,
-    "edgeInsets": 18,
-    "sizedBox": 25,
-    "nonRoundedIcon": 2,
-    "materialWidget": 4
-  },
   "lib/features/exercise/presentation/pages/consultation_complete_page.dart": {
     "fontSize": 6,
     "fontWeight": 4,
@@ -230,7 +172,7 @@
     "edgeInsets": 11,
     "sizedBox": 14,
     "boxShadow": 2,
-    "nonRoundedIcon": 6,
+    "nonRoundedIcon": 5,
     "materialWidget": 7
   },
   "lib/features/exercise/presentation/pages/trainer_detail_page.dart": {
@@ -362,39 +304,5 @@
     "sizedBox": 4,
     "nonRoundedIcon": 2,
     "materialWidget": 1
-  },
-  "lib/features/notification/presentation/pages/notification_page.dart": {
-    "edgeInsets": 1,
-    "sizedBox": 3,
-    "nonRoundedIcon": 1,
-    "materialWidget": 4
-  },
-  "lib/shared/widgets/ai_advice_card.dart": {
-    "fontSize": 4,
-    "fontWeight": 4,
-    "lineHeight": 3,
-    "radius": 1,
-    "edgeInsets": 2,
-    "sizedBox": 3,
-    "materialWidget": 2
-  },
-  "lib/shared/widgets/empty_state.dart": {
-    "edgeInsets": 1,
-    "sizedBox": 2
-  },
-  "lib/shared/widgets/error_view.dart": {
-    "edgeInsets": 1,
-    "sizedBox": 3,
-    "nonRoundedIcon": 2,
-    "materialWidget": 1
-  },
-  "lib/shared/widgets/oni_fab.dart": {
-    "fontSize": 1,
-    "fontWeight": 1,
-    "lineHeight": 1,
-    "materialColor": 2,
-    "opacity": 1,
-    "sizedBox": 1,
-    "boxShadow": 1
   }
 }

@@ -145,7 +145,7 @@ void main() {
       router.routerDelegate.currentConfiguration.uri.toString();
 
   Future<void> openAddSheet(WidgetTester tester) async {
-    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.tap(find.byKey(const Key('recordAddButton')));
     await tester.pumpAndSettle();
   }
 

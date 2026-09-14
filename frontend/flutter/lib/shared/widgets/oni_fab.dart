@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// The floating "Oni" assistant button shown on every main tab. Taps open the
 /// coaching sheet. A red badge shows the number of pending suggestions.
@@ -25,51 +25,24 @@ class OniFab extends StatelessWidget {
       label: AppLocalizations.of(context).a11yOpenCoaching,
       child: GestureDetector(
         onTap: onTap,
-        child: SizedBox(
-          width: 56,
-          height: 56,
+        child: SizedBox.square(
+          dimension: OnCareSize.avatarXLarge,
           child: Stack(
-            alignment: Alignment.center,
             clipBehavior: Clip.none,
             children: <Widget>[
-              Container(
-                width: 52,
-                height: 52,
+              // 떠 있는 요소라 떠 있는 그림자 한 가지만 쓴다(#1690).
+              const DecoratedBox(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: FigmaColors.primary.withValues(alpha: 0.55),
-                      blurRadius: 22,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+                  boxShadow: OnCareShadows.overlay,
                 ),
-                child: const OniAvatar(size: 52, shadow: false),
+                child: OniAvatar(size: OnCareSize.avatarXLarge),
               ),
               if (badgeCount > 0)
                 Positioned(
-                  top: -2,
-                  right: -2,
-                  child: Container(
-                    width: 20,
-                    height: 20,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: FigmaColors.redDot,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: Text(
-                      badgeCount > 9 ? '9+' : '$badgeCount',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1,
-                      ),
-                    ),
-                  ),
+                  top: -OnCareSpacing.s4,
+                  right: -OnCareSpacing.s4,
+                  child: AppCountBadge(count: badgeCount),
                 ),
             ],
           ),
