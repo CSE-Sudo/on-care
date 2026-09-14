@@ -6819,6 +6819,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to AI suggestions'**
   String get aiReturnToWizard;
+
+  /// No description provided for @coachClientDemographics.
+  ///
+  /// In en, this message translates to:
+  /// **'{gender} · Age {age}'**
+  String coachClientDemographics(String gender, int age);
+
+  /// No description provided for @coachTemplateMenu.
+  ///
+  /// In en, this message translates to:
+  /// **'Template menu'**
+  String get coachTemplateMenu;
+
+  /// No description provided for @aiStrengthSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{sets} sets × {reps} reps · {weight}kg'**
+  String aiStrengthSummary(int sets, int reps, String weight);
+
+  /// No description provided for @routineFormDecrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get routineFormDecrease;
+
+  /// No description provided for @routineFormIncrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get routineFormIncrease;
 }
 
 class _AppLocalizationsDelegate

@@ -3926,4 +3926,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiReturnToWizard => 'Back to AI suggestions';
+
+  @override
+  String coachClientDemographics(String gender, int age) {
+    return '$gender · Age $age';
+  }
+
+  @override
+  String get coachTemplateMenu => 'Template menu';
+
+  @override
+  String aiStrengthSummary(int sets, int reps, String weight) {
+    return '$sets sets × $reps reps · ${weight}kg';
+  }
+
+  @override
+  String get routineFormDecrease => 'Decrease';
+
+  @override
+  String get routineFormIncrease => 'Increase';
 }
