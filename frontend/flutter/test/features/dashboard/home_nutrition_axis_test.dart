@@ -14,7 +14,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:oncare/design_system/charts/goal_line.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -27,6 +26,7 @@ import 'package:oncare/features/member_coach/data/repositories/mock_member_coach
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 void main() {
   const DashboardSummary summary = DashboardSummary(
@@ -91,12 +91,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// 세로축 라벨 칸 — 폭 38 · 높이 68 의 `SizedBox` 하나뿐이다.
+  /// 세로축 라벨 칸 — 두 앱 공용 [ChartGoalAxis] 하나뿐이다(#1702).
   final Finder axis = find.descendant(
     of: find.byKey(const ValueKey<String>('dashboard-nutrition-chart')),
-    matching: find.byWidgetPredicate(
-      (Widget w) => w is SizedBox && w.width == 38 && w.height == 68,
-    ),
+    matching: find.byType(ChartGoalAxis),
   );
 
   /// 축 칸의 글자를 위에서 아래 순서로 (문구, 사각형) 으로 읽는다.
