@@ -65,7 +65,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     return AppWebPage(
       title: l.navMessages,
       subtitle: l.messagesSubtitle,
-      actions: const <Widget>[ClientSearchBar()],
+      headerCenter: const ClientSearchBar(),
       body: clientsAsync.when(
         loading: () => const AppLoading(),
         error: (error, stackTrace) => AppErrorState(

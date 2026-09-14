@@ -426,25 +426,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       );
     }
 
-    // 헤더 검색은 액션 줄의 첫 칸이다. 넓은 창에서는 인라인 최소 폭 아래로
-    // 눌리지 않게 하고(검색 바 스스로 최대 폭까지만 자란다), 셸이 서랍으로
-    // 접히는 창에서는 아이콘 한 칸만 내준다 — 검색 바도 그 폭에서 아이콘으로
-    // 접힌다.
-    final bool compactHeader =
-        MediaQuery.sizeOf(context).width < OnCareLayout.sidebarDrawerBreakpoint;
     return AppWebPage(
       key: ValueKey<String>('reports-${_clientId ?? 'list'}'),
       title: l.reportsTitle,
       subtitle: l.reportsSubtitle,
+      // 헤더 검색은 가운데 자리다 — 다른 탭과 같은 가로 위치에 서고, 자리가
+      // 모자라면 검색 바가 스스로 아이콘으로 접힌다.
+      headerCenter: const ClientSearchBar(),
       actions: <Widget>[
-        ConstrainedBox(
-          constraints: compactHeader
-              ? BoxConstraints(maxWidth: tokens.density.iconButton)
-              : const BoxConstraints(
-                  minWidth: OnCareLayout.headerCenterMinWidth,
-                ),
-          child: const ClientSearchBar(),
-        ),
         // 주 이동은 통째로 리포트 카드 제목 줄에 있다 — 화살표도, 이번 주로
         // 돌아가는 버튼도. 헤더에 두면 옮기는 대상과 버튼이 다른 줄에 서고,
         // 날짜 버튼이 가운데 고객 검색 바의 폭을 먹어 다른 탭과 다른 모양으로

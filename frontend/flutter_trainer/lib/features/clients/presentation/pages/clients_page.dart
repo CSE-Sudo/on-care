@@ -587,12 +587,9 @@ class _Frame extends StatelessWidget {
     return AppWebPage(
       title: l.clientsTitle,
       subtitle: subtitle,
-      // 고객 검색은 제목과 액션 사이 남는 폭을 나눠 쓴다 — 액션이 많은
-      // 화면에서 검색이 줄어들지, 헤더가 넘치지 않는다.
-      actions: <Widget>[
-        const Flexible(child: ClientSearchBar()),
-        ...actions,
-      ],
+      // 고객 검색은 헤더 가운데 자리다 — 탭을 옮겨도 같은 가로 위치에 선다.
+      headerCenter: const ClientSearchBar(),
+      actions: actions,
       body: body,
     );
   }

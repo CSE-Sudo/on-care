@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/search/presentation/widgets/client_search_bar.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -46,6 +47,35 @@ void main() {
       GoRouter.of(tester.element(find.byKey(clientSearchFieldKey))).go(route);
       await settle(tester);
       expect(find.byKey(clientSearchFieldKey), findsOneWidget, reason: route);
+    }
+  });
+
+  testWidgets('검색 바는 모든 탭에서 헤더 한가운데 같은 가로 위치에 선다', (tester) async {
+    await openDesktop(tester, AppRoutes.dashboard);
+
+    double? firstCenter;
+    for (final route in <String>[
+      AppRoutes.dashboard,
+      AppRoutes.clients,
+      AppRoutes.schedule,
+      AppRoutes.messages,
+      AppRoutes.coaching,
+      AppRoutes.reports,
+    ]) {
+      GoRouter.of(tester.element(find.byKey(clientSearchFieldKey))).go(route);
+      await settle(tester);
+
+      final field = find.byKey(clientSearchFieldKey);
+      final double center = tester.getCenter(field).dx;
+      // 제목 길이·액션 수와 무관하게 페이지(=헤더) 폭의 가운데다.
+      final page = find.ancestor(of: field, matching: find.byType(AppWebPage));
+      expect(
+        center,
+        moreOrLessEquals(tester.getCenter(page.first).dx, epsilon: 0.5),
+        reason: route,
+      );
+      firstCenter ??= center;
+      expect(center, moreOrLessEquals(firstCenter, epsilon: 0.5), reason: route);
     }
   });
 

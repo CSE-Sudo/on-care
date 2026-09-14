@@ -438,29 +438,13 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         ? ref.watch(consultationPendingCountProvider).valueOrNull
         : null;
 
-    // [AppWebPage] 에는 헤더 가운데 자리가 없어 검색을 액션 줄 맨 앞에 둔다.
-    // 검색 바는 받은 폭이 인라인 최소 폭보다 좁거나 셸이 서랍 형태(사이드바
-    // 서랍 기준 폭 미만)이면 스스로 아이콘으로 접힌다. 접히는 폭에서도 넓은
-    // 자리를 주면 아이콘이 그 자리 오른쪽 끝에 서서 제목을 괜히 밀어내므로,
-    // 같은 기준 폭으로 아이콘 한 칸만큼만 준다 — 360 폭에서도 넘치지 않는다.
-    final bool inlineSearch =
-        MediaQuery.sizeOf(context).width >=
-        OnCareLayout.sidebarDrawerBreakpoint;
-
     return AppWebPage(
       title: l.schedTitle,
       subtitle: dateLabel(l, _selectedDay),
+      // 검색 바는 헤더 가운데 자리다 — 다른 탭과 같은 가로 위치에 서고, 자리가
+      // 모자라면 스스로 아이콘으로 접힌다.
+      headerCenter: const ClientSearchBar(),
       actions: <Widget>[
-        // 넓은 화면에서는 최소 폭만 준다 — 검색 바가 스스로 정한 최대 폭까지
-        // 자라야 긴 검색 범위 안내가 잘리지 않는다. 리포트 탭과 같은 규칙이다.
-        ConstrainedBox(
-          constraints: inlineSearch
-              ? const BoxConstraints(
-                  minWidth: OnCareLayout.headerCenterMinWidth,
-                )
-              : BoxConstraints(maxWidth: context.oncare.density.iconButton),
-          child: const ClientSearchBar(),
-        ),
         AppButton(
           key: const ValueKey<String>('schedule-open-slots'),
           label: l.schedSlots,

@@ -288,7 +288,8 @@ class _Brand extends StatelessWidget {
 }
 
 /// One destination row — the package [AppSidebarItem] (옅은 브랜드 채움 +
-/// 왼쪽 막대, 높이 44·아이콘 24, 빨간 숫자 배지).
+/// 왼쪽 막대, 높이 44·아이콘 24). 알림 수는 행 오른쪽 끝의 브랜드 남색 원
+/// 배지이고, 레일에서는 아이콘 오른쪽 위에 겹친다.
 class _NavTile extends StatelessWidget {
   const _NavTile({
     required this.destination,
