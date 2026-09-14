@@ -31,7 +31,7 @@ class AppPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final double side = context.oncare.density.pagePadding;
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: context.oncare.pageBackground,
       appBar: header,
       body: SafeArea(
         top: header == null,
@@ -84,7 +84,7 @@ class AppTabHeader extends StatelessWidget implements PreferredSizeWidget {
       bottom: false,
       child: Container(
         height: _height,
-        color: OnCareColors.surfacePage,
+        color: tokens.pageBackground,
         padding: EdgeInsets.symmetric(horizontal: tokens.density.pagePadding),
         child: Row(
           children: <Widget>[
@@ -362,7 +362,7 @@ class AppWebPage extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     final double side = tokens.density.pagePadding;
     return ColoredBox(
-      color: OnCareColors.surfacePage,
+      color: tokens.pageBackground,
       child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -578,7 +578,7 @@ class AppAuthLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: tokens.pageBackground,
       body: SafeArea(
         child: Stack(
           children: <Widget>[
