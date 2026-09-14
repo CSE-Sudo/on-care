@@ -5,6 +5,34 @@ import 'dart:typed_data';
 /// picker can be faked in tests).
 enum MealPhotoSource { camera, gallery }
 
+/// 식단 추가 시트가 사진 입력 갈래를 어떻게 내놓는가. (#1433)
+///
+/// 네이티브 앱은 보관함(iOS PHPicker·Android Photo Picker)과 카메라가 서로 다른
+/// 시스템 화면이라 앱이 두 갈래로 나눠 보여 준다.
+///
+/// 웹은 다르다. `image_picker_for_web` 은 보관함 선택을
+/// `<input type="file" accept="image/*">` 로 여는데(`capture` 없음), iOS Safari 는
+/// 이 입력에 **사진 보관함 / 사진 찍기 / 파일 선택** 시스템 메뉴를 항상 띄우고 웹
+/// 표준으로는 그중 하나만 숨길 수 없다. 앱에 `사진 찍기` 를 따로 두면 같은 갈래가
+/// 두 번 나온다(Android Chrome 도 같은 구조이고, 데스크톱 브라우저에서는 촬영이
+/// 파일 선택과 같아진다). 그래서 웹은 입력 하나만 두고 무엇을 쓸지는 시스템 메뉴에
+/// 맡긴다. 그 메뉴의 원·사각형 모양은 브라우저가 그리는 시스템 UI 이지 Flutter
+/// 레이아웃 결함이 아니다 — 수동 확인 절차는 `docs/QA_DIET_PHOTO_PICKER.md`.
+///
+/// 메뉴의 `파일 선택` 도 받는다. 올린 파일은 바이트로 형식을 가리므로
+/// ([MealImageFormat.detect]) 서버가 받지 않는 형식은 업로드 전에 안내된다.
+enum MealPhotoChoiceLayout {
+  /// 네이티브: `사진 선택`(보관함)과 `사진 찍기`(카메라) 두 갈래.
+  separate,
+
+  /// 웹: `사진 추가` 한 갈래. 보관함·촬영·파일 중 무엇을 쓸지는 브라우저 메뉴가 묻는다.
+  systemMenu;
+
+  /// 플랫폼에 맞는 배치. 웹이면 브라우저를 가리지 않고 [systemMenu] 다.
+  static MealPhotoChoiceLayout forPlatform({required bool isWeb}) =>
+      isWeb ? systemMenu : separate;
+}
+
 /// Image formats `POST /diet/analyze` accepts — keep in sync with
 /// `_ALLOWED_MIME` in `backend/app/api/v1/diet.py`. An iPhone photo can be
 /// HEIC, which the server rejects with 415, so the picker sniffs the real
