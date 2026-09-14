@@ -393,8 +393,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   static const double _analysisLabelWidth =
       OnCareSpacing.s48 + OnCareSpacing.s40;
 
-  /// 후보 카드를 나란히 둘 때 한 장의 최소 폭.
-  static const double _minOptionCardWidth = OnCareLayout.sidebarWidth;
+  /// 후보 카드를 나란히 둘 때 한 장의 최소 폭(160).
+  ///
+  /// 세 후보는 **나란히 세 열**로 비교한다. 프로그램 탭의 가운데 편집기 열은
+  /// 넓은 창에서도 600 안팎이라, 한 장에 232 를 요구하면 늘 세로로 쌓였다.
+  /// 이 폭보다도 좁을 때만 세로로 쌓는다.
+  static const double _minOptionCardWidth = OnCareSpacing.s40 * 4;
 
   Widget _assistantAnalysis() {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -1443,10 +1447,12 @@ class _RoutineChoice {
   final String reason;
 }
 
-/// 진행 단계 — [AppStepIndicator] 막대 + 단계마다 이름.
+/// 진행 단계 — 번호 원 세 개를 옅은 회색 선이 잇고, 원 아래에 단계 이름.
 ///
-/// 세 이름을 모두 보여 주고(어느 단계로 되돌아갈 수 있는지 읽히게), 이미 지난
-/// 단계의 이름·막대를 누르면 그 단계로 간다. 이름 칸에 단계별 Key 를 둔다.
+/// 지금 단계의 원만 트레이너 남색으로 채우고 흰 굵은 번호를 쓴다. 나머지는
+/// 옅은 회색 채움·얇은 테두리·회색 번호다. 첫 단계는 왼쪽 끝, 가운데 단계는
+/// 가운데, 마지막 단계는 오른쪽 끝에 서고 이름도 같은 쪽으로 정렬한다.
+/// 이미 지난 단계(원·이름)를 누르면 그 단계로 간다. 단계마다 Key 를 둔다.
 class _ProgressStepper extends StatelessWidget {
   const _ProgressStepper({
     required this.stage,
@@ -1465,6 +1471,9 @@ class _ProgressStepper extends StatelessWidget {
     l.aiStepDone,
   ];
 
+  /// 번호 원의 지름.
+  static const double _circle = OnCareSize.avatarMedium;
+
   void _tap(int index) {
     if (index <= maxReachedStage) onStageTap(index);
   }
@@ -1474,55 +1483,102 @@ class _ProgressStepper extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final List<String> steps = _steps(l);
+    final int last = steps.length - 1;
     return Semantics(
       label: l.aiStepperLabel,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Stack(
         children: <Widget>[
-          AppStepIndicator(
-            count: steps.length,
-            current: stage,
-            onStepTap: _tap,
+          // 첫 원의 가운데에서 마지막 원의 가운데까지 잇는 가는 선. 원이
+          // 불투명해 선은 원 사이에서만 보인다.
+          const Positioned(
+            top: (_circle - OnCareSize.hairline) / 2,
+            left: _circle / 2,
+            right: _circle / 2,
+            child: ColoredBox(
+              color: OnCareColors.lineSubtle,
+              child: SizedBox(height: OnCareSize.hairline),
+            ),
           ),
-          const SizedBox(height: OnCareSpacing.s4),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              for (int index = 0; index < steps.length; index++) ...<Widget>[
-                if (index > 0) const SizedBox(width: OnCareSpacing.s4),
+              for (int index = 0; index < steps.length; index++)
                 Expanded(
-                  child: InkWell(
-                    key: ValueKey<String>('routine-stage-$index'),
-                    borderRadius: OnCareRadius.smAll,
-                    onTap: index <= maxReachedStage ? () => _tap(index) : null,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: OnCareSpacing.s4,
-                      ),
-                      child: Text(
-                        steps[index],
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tokens
-                            .text(
-                              index == stage
-                                  ? OnCareTypography.strong(
-                                      OnCareTypography.caption,
-                                    )
-                                  : OnCareTypography.caption,
-                            )
-                            .copyWith(
-                              color: index == stage
-                                  ? tokens.brand.primary
-                                  : index <= maxReachedStage
-                                  ? OnCareColors.textPrimary
-                                  : OnCareColors.textTertiary,
-                            ),
-                      ),
-                    ),
+                  child: Align(
+                    alignment: index == 0
+                        ? Alignment.topLeft
+                        : index == last
+                        ? Alignment.topRight
+                        : Alignment.topCenter,
+                    child: _step(tokens, steps[index], index, last),
                   ),
                 ),
-              ],
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _step(OnCareTokens tokens, String label, int index, int last) {
+    final bool current = index == stage;
+    final CrossAxisAlignment align = index == 0
+        ? CrossAxisAlignment.start
+        : index == last
+        ? CrossAxisAlignment.end
+        : CrossAxisAlignment.center;
+    final TextAlign textAlign = index == 0
+        ? TextAlign.start
+        : index == last
+        ? TextAlign.end
+        : TextAlign.center;
+    return InkWell(
+      key: ValueKey<String>('routine-stage-$index'),
+      borderRadius: OnCareRadius.smAll,
+      onTap: index <= maxReachedStage ? () => _tap(index) : null,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: align,
+        children: <Widget>[
+          Container(
+            width: _circle,
+            height: _circle,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: current ? tokens.brand.primary : OnCareColors.surfaceInput,
+              border: current
+                  ? null
+                  : Border.all(color: OnCareColors.lineStrong),
+            ),
+            child: Text(
+              '${index + 1}',
+              style: tokens
+                  .text(OnCareTypography.strong(OnCareTypography.label))
+                  .copyWith(
+                    color: current
+                        ? OnCareColors.textOnFill
+                        : OnCareColors.textSecondary,
+                  ),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: textAlign,
+            style: tokens
+                .text(
+                  current
+                      ? OnCareTypography.strong(OnCareTypography.caption)
+                      : OnCareTypography.caption,
+                )
+                .copyWith(
+                  color: current
+                      ? OnCareColors.textPrimary
+                      : OnCareColors.textTertiary,
+                ),
           ),
         ],
       ),

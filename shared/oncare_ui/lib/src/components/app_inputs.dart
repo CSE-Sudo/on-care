@@ -68,6 +68,7 @@ class AppTextField extends StatelessWidget {
     this.autofocus = false,
     this.onChanged,
     this.onSubmitted,
+    this.textAlign = TextAlign.start,
   });
 
   final TextEditingController? controller;
@@ -79,6 +80,10 @@ class AppTextField extends StatelessWidget {
   final IconData? prefixIcon;
   final Widget? suffix;
   final AppFieldSize size;
+
+  /// 입력 글자의 가로 정렬. 숫자 한 칸(−/+ 사이 값)처럼 가운데가 읽기 쉬운
+  /// 칸만 바꾼다.
+  final TextAlign textAlign;
   final int? minLines;
   final int? maxLines;
   final int? maxLength;
@@ -112,6 +117,7 @@ class AppTextField extends StatelessWidget {
         inputFormatters: inputFormatters,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
+        textAlign: textAlign,
         style: tokens
             .text(OnCareTypography.body)
             .copyWith(color: OnCareColors.textPrimary),

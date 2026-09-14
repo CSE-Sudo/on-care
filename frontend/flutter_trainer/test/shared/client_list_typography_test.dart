@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
+import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import '../helpers/client_factory.dart';
@@ -16,9 +16,8 @@ import '../helpers/pump_app.dart';
 /// 같은데, 이름 글씨는 13.5 와 15, 아바타는 32 와 38 로 갈려 있었다. 탭을
 /// 오갈 때 같은 목록이 다른 밀도로 보인다.
 ///
-/// #1705 에서 프로그램(코칭) 탭 목록을, #1706 에서 리포트 탭 목록을 공용
-/// `oncare_ui` 규격(역할 글자·[AppAvatar])으로 옮겼다. 두 탭은 행 위젯이 달라
-/// 각자의 기준으로 따로 확인한다.
+/// #1705·#1706 에서 공용 `oncare_ui` 규격(역할 글자·[AppAvatar])으로 옮겼고,
+/// 지금은 두 탭이 같은 [ClientPickerCard] 한 줄을 쓴다.
 void main() {
   const String goal = '혈압 관리 · 체중 감량';
 
@@ -79,17 +78,20 @@ void main() {
         .dimension;
   }
 
-  void expectAvatarCentered(
-    WidgetTester tester,
-    String rowKey, {
-    Type avatarType = ClientAvatar,
-  }) {
+  /// 아바타가 보이는 카드 면(바닥 간격 제외)의 세로 가운데에 있다.
+  void expectAvatarCentered(WidgetTester tester, String rowKey) {
     final Finder row = find.byKey(ValueKey<String>(rowKey));
     final Finder avatar = find.descendant(
       of: row,
-      matching: find.byType(avatarType),
+      matching: find.byType(AppAvatar),
     );
-    expect(tester.getCenter(avatar).dy, closeTo(tester.getCenter(row).dy, 0.1));
+    final Finder surface = find
+        .descendant(of: row, matching: find.byType(Material))
+        .first;
+    expect(
+      tester.getCenter(avatar).dy,
+      closeTo(tester.getCenter(surface).dy, 0.1),
+    );
   }
 
   testWidgets('프로그램 탭 회원명은 공용 규격 크기·굵기를 쓴다 (#1705)', (tester) async {
@@ -126,20 +128,15 @@ void main() {
       appAvatarSizeIn(tester, 'program-client-type-a'),
       OnCareSize.avatarMedium,
     );
-    expectAvatarCentered(
-      tester,
-      'program-client-type-a',
-      avatarType: AppAvatar,
-    );
+    expectAvatarCentered(tester, 'program-client-type-a');
   });
 
-  // 리포트 탭은 공용 UI 규격(#1706)의 목록 행으로 옮겼다 — 이름·목표 글씨와
-  // 아바타 크기는 `AppListRow`·`AppAvatar` 가 정한다.
-  testWidgets('리포트 탭 회원 목록은 공용 목록 행을 쓴다 (#1706)', (tester) async {
+  // 리포트 탭도 프로그램 탭과 같은 회원 카드 한 줄([ClientPickerCard])을 쓴다.
+  testWidgets('리포트 탭 회원 목록은 프로그램 탭과 같은 카드를 쓴다 (#1706)', (tester) async {
     await openTab(tester, AppRoutes.reports);
 
-    AppListRow rowOf(String key) =>
-        tester.widget<AppListRow>(find.byKey(ValueKey<String>(key)));
+    ClientPickerCard rowOf(String key) =>
+        tester.widget<ClientPickerCard>(find.byKey(ValueKey<String>(key)));
     // 첫 회원이 기본으로 선택된다.
     expect(rowOf('report-client-type-a').selected, isTrue);
     expect(rowOf('report-client-type-b').selected, isFalse);
@@ -152,16 +149,13 @@ void main() {
     final Finder row = find.byKey(
       const ValueKey<String>('report-client-type-a'),
     );
-    expect(
-      find.descendant(of: row, matching: find.text(goal)),
-      findsOneWidget,
-    );
+    expect(find.descendant(of: row, matching: find.text(goal)), findsOneWidget);
     final Finder avatar = find.descendant(
       of: row,
       matching: find.byType(AppAvatar),
     );
     expect(tester.widget<AppAvatar>(avatar).size, AppAvatarSize.medium);
-    expect(tester.getCenter(avatar).dy, closeTo(tester.getCenter(row).dy, 0.1));
+    expectAvatarCentered(tester, 'report-client-type-a');
   });
 
   testWidgets('긴 이름과 큰 배율에서도 행이 넘치지 않는다', (tester) async {

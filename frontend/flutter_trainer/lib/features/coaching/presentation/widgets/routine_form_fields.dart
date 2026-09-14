@@ -523,6 +523,8 @@ class _NumberInputState extends State<_NumberInput> {
       // compact 칸은 라벨을 필드에 붙여 둔다 — 세 칸이 나란히 서도 무엇의
       // 값인지 읽힌다. 스테퍼 칸은 버튼까지 덮도록 위에 따로 얹는다.
       label: widget.steppers ? null : widget.label,
+      // −/+ 사이의 값은 칸 가운데에 선다(규격 전환 전 스테퍼와 같다).
+      textAlign: widget.steppers ? TextAlign.center : TextAlign.start,
       keyboardType: TextInputType.numberWithOptions(
         decimal: widget.decimals > 0,
       ),

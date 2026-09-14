@@ -4,6 +4,7 @@ import 'package:oncare_trainer/features/reports/data/repositories/report_reposit
 import 'package:oncare_trainer/features/reports/domain/report_summary.dart';
 import 'package:oncare_trainer/features/reports/domain/weekly_report.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/widgets/soft_navy_card.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 리포트 요약 카드 — 트레이너가 매주 같은 문장을 처음부터 쓰지 않게 한다.
@@ -16,8 +17,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 같은 문장으로 되돌아온다 — 그 경우 `생성` 배지를 달지 않아, 트레이너가 이
 /// 문장을 어디까지 믿을지 알 수 있다.
 ///
-/// 화면의 AI 카드는 이것 하나다 — 그라디언트·단색 강조 카드 대신 일반 카드에
-/// AI 아이콘 제목을 단다(#1690).
+/// 화면의 AI 카드는 이것 하나다 — 대시보드 `활동 피드백` 카드와 같은 옅은 남색
+/// 그라디언트 카드에 AI 아이콘 제목을 단다.
 class ReportAiCard extends ConsumerWidget {
   const ReportAiCard({
     super.key,
@@ -66,29 +67,44 @@ class ReportAiCard extends ConsumerWidget {
         onUseAsDraft: () => onUseAsDraft(value.asDraft),
       ),
     );
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: AppSectionHeader(
-                  title: l.reportsAiTitle,
-                  icon: Icons.auto_awesome_rounded,
-                ),
-              ),
-              if (summary.valueOrNull?.isGenerated ?? false) ...<Widget>[
-                const SizedBox(width: OnCareSpacing.s8),
-                AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand),
-              ],
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          if (fill) Expanded(child: content) else content,
-        ],
+    // 대시보드 `활동 피드백` 카드와 같은 옅은 남색 카드다. 흰 일반 카드 사이에서
+    // AI 가 만든 초안이라는 것이 드러난다.
+    return SoftNavyCard(
+      key: const ValueKey<String>('reports-ai-card'),
+      // 버튼 잉크가 그라디언트 위에 그려지도록 투명 Material 을 둔다.
+      child: Material(
+        type: MaterialType.transparency,
+        child: _cardColumn(l, summary, content),
       ),
+    );
+  }
+
+  Widget _cardColumn(
+    AppLocalizations l,
+    AsyncValue<ReportSummary> summary,
+    Widget content,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: fill ? MainAxisSize.max : MainAxisSize.min,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: AppSectionHeader(
+                title: l.reportsAiTitle,
+                icon: Icons.auto_awesome_rounded,
+              ),
+            ),
+            if (summary.valueOrNull?.isGenerated ?? false) ...<Widget>[
+              const SizedBox(width: OnCareSpacing.s8),
+              AppTag(label: l.reportsAiGenerated, tone: AppTagTone.brand),
+            ],
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        if (fill) Expanded(child: content) else content,
+      ],
     );
   }
 }

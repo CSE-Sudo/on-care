@@ -57,6 +57,9 @@ class AppChoiceChip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              // 칸 폭이 정해진 칩(한 줄을 N 등분)에서도 라벨이 가운데에 선다.
+              // 내용만큼의 칩은 폭이 곧 내용이라 모양이 같다.
+              mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 if (icon != null) ...<Widget>[
                   Icon(icon, size: OnCareSize.iconSmall, color: foreground),

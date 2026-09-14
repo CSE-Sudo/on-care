@@ -556,31 +556,36 @@ void main() {
     );
   });
 
-  testWidgets('`이번 주` 버튼 여부와 무관하게 날짜·화살표 묶음은 중앙이다 (#1295)', (
+  testWidgets('날짜·화살표 묶음은 카드 오른쪽 끝에 붙고 `이번 주` 는 그 왼쪽이다 (#1295)', (
     WidgetTester tester,
   ) async {
     await openReports(tester);
 
     final Finder nav = find.byType(ReportWeekNav);
-    double arrowGroupCenter() =>
-        (tester.getCenter(prevWeek).dx + tester.getCenter(nextWeek).dx) / 2;
-
-    final double currentNavCenter = tester.getCenter(nav).dx;
-    expect(arrowGroupCenter(), closeTo(currentNavCenter, 0.5));
+    final Finder card = find.ancestor(of: nav, matching: find.byType(AppCard));
+    // 다른 카드 제목 줄과 같은 안쪽 여백만 두고 오른쪽 끝에 붙는다.
+    double cardInnerRight() =>
+        tester.getTopRight(card.first).dx - OnCareSpacing.cardPadding;
+    expect(tester.getTopRight(nextWeek).dx, closeTo(cardInnerRight(), 0.5));
+    expect(tester.getTopRight(nav).dx, closeTo(cardInnerRight(), 0.5));
     final double currentNextX = tester.getCenter(nextWeek).dx;
 
     await tester.tap(prevWeek);
     await settle(tester);
 
-    expect(
-      find.byKey(const ValueKey<String>('reports-go-this-week')),
-      findsOneWidget,
+    final Finder currentWeek = find.byKey(
+      const ValueKey<String>('reports-go-this-week'),
     );
-    expect(arrowGroupCenter(), closeTo(tester.getCenter(nav).dx, 0.5));
-    // 버튼이 나타나도 그 자리는 이미 비워 두었으므로 오른쪽 화살표는 제자리다.
-    // 왼쪽 화살표는 날짜 문구 폭(`9월 7일`/`9월 14일`)에 따라 움직일 수 있다 —
-    // 공용 `AppPeriodNav` 는 날짜 칸 폭을 고정하지 않는다.
+    expect(currentWeek, findsOneWidget);
+    // 버튼은 날짜 묶음의 왼쪽에 선다.
+    expect(
+      tester.getTopRight(currentWeek).dx,
+      lessThanOrEqualTo(tester.getTopLeft(prevWeek).dx),
+    );
+    // 버튼이 나타나도 날짜 묶음은 여전히 카드 끝이고, 오른쪽 화살표는 제자리다.
+    expect(tester.getTopRight(nextWeek).dx, closeTo(cardInnerRight(), 0.5));
     expect(tester.getCenter(nextWeek).dx, closeTo(currentNextX, 0.5));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('헤더 검색 바가 다른 탭과 같은 인라인 모양이다 (#1177)', (tester) async {
@@ -918,8 +923,9 @@ void main() {
       await settle(tester);
     }
 
-    List<double> drawnValues() =>
-        tester.widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart)).values;
+    List<double> drawnValues() => tester
+        .widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart))
+        .values;
 
     // 어제는 약속이 있던 날이라 로스터의 평상시 배열 대신 그날 값이 그려진다.
     // 어제가 주 안에서 몇 번째 칸인지는 데모를 여는 날마다 달라지므로 계산해서
@@ -948,8 +954,9 @@ void main() {
 
   testWidgets('지난 주도 그 주의 계열로 그려지고 이번 주와 섞이지 않는다 (#752)', (tester) async {
     await openReports(tester);
-    List<double> drawnValues() =>
-        tester.widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart)).values;
+    List<double> drawnValues() => tester
+        .widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart))
+        .values;
 
     final thisWeek = drawnValues();
     expect(thisWeek, hasLength(7));
@@ -965,7 +972,9 @@ void main() {
     expect(lastWeek.last, greaterThan(0));
     // 지난 주 일요일에 '오늘' 표시가 붙으면 그 날이 오늘인 것처럼 읽힌다.
     expect(
-      tester.widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart)).markToday,
+      tester
+          .widget<ReportMetricTrendChart>(find.byType(ReportMetricTrendChart))
+          .markToday,
       isFalse,
     );
 
@@ -1165,9 +1174,8 @@ void main() {
     final draft = tester.widget<TextField>(field).controller!.text;
 
     // 되돌릴 것이 없으면 버튼은 꺼져 있다.
-    AppButton restore() => tester.widget<AppButton>(
-      find.widgetWithText(AppButton, '초안으로 되돌리기'),
-    );
+    AppButton restore() =>
+        tester.widget<AppButton>(find.widgetWithText(AppButton, '초안으로 되돌리기'));
     expect(restore().onPressed, isNull);
 
     await tester.ensureVisible(find.text('피드백으로 가져오기'));
