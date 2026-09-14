@@ -267,7 +267,7 @@ class _ConsultationRequestPageState
     }
 
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: l.exConsultRequestTitle),
       body: SafeArea(top: false, child: body),
     );

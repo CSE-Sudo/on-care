@@ -187,7 +187,10 @@ class OnCareTheme {
     );
 
     return base.copyWith(
-      scaffoldBackgroundColor: OnCareColors.surfacePage,
+      // 회원앱(모바일)은 흰 배경, 트레이너웹은 연회색 배경(#1740).
+      scaffoldBackgroundColor: density.isWeb
+          ? OnCareColors.surfacePage
+          : OnCareColors.surfaceCard,
       canvasColor: OnCareColors.surfaceCard,
       dividerColor: OnCareColors.lineSubtle,
       textTheme: OnCareTypography.textTheme(color: OnCareColors.textPrimary),

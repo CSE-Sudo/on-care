@@ -65,7 +65,7 @@ class TrainerDetailPage extends ConsumerWidget {
     };
 
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: l.exTrainerDetailTitle),
       body: SafeArea(top: false, child: body),
     );

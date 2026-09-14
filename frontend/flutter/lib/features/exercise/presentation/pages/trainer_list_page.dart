@@ -75,7 +75,7 @@ class _TrainerListPageState extends ConsumerState<TrainerListPage> {
     // 검색창은 위에 고정하고 결과만 스크롤한다 — ListView 틀(AppPage)이 맞지
     // 않아 Scaffold 로 둔다.
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: l.exFindTrainer),
       body: SafeArea(
         top: false,
