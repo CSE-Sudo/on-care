@@ -58,6 +58,9 @@ def _day_out(row: TrainerDailyTaskProgress) -> TrainerTaskProgressDayOut:
         completed_carried_over=row.completed_carried_over,
         pending_keys=_keys(row.pending_keys_json),
         dismissed_keys=_keys(row.dismissed_keys_json),
+        completed_keys=(
+            None if row.completed_keys_json is None else _keys(row.completed_keys_json)
+        ),
     )
 
 
@@ -92,6 +95,11 @@ def save_day(
         "completed_carried_over": payload.completed_carried_over,
         "pending_keys_json": json.dumps(sorted(set(payload.pending_keys))),
         "dismissed_keys_json": json.dumps(sorted(set(payload.dismissed_keys))),
+        "completed_keys_json": (
+            None
+            if payload.completed_keys is None
+            else json.dumps(sorted(set(payload.completed_keys)))
+        ),
     }
     db.execute(
         insert(TrainerDailyTaskProgress)
