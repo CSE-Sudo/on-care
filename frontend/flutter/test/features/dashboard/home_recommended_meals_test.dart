@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -81,18 +82,17 @@ void main() {
             ),
           ),
           dashboardSummaryProvider.overrideWith((ref) async => summary),
-          dietRecommendationsProvider.overrideWith(
-            (ref) => recommendations(),
-          ),
+          dietRecommendationsProvider.overrideWith((ref) => recommendations()),
           memberCoachRepositoryProvider.overrideWithValue(
             MockMemberCoachRepository(),
           ),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Scaffold(body: DashboardContent()),
+          home: const Scaffold(body: DashboardContent()),
         ),
       ),
     );
@@ -104,12 +104,15 @@ void main() {
   /// (그렇게 짰다가 서버 정렬 반영을 검증하지 못했다). 가로 캐러셀이므로 각 제목
   /// 위젯의 x 좌표로 정렬해 화면 순서를 그대로 얻는다.
   List<String> renderedMealNames(WidgetTester tester) {
-    final List<({String name, double dx})> found = <({String name, double dx})>[
-      for (final String name in demoOrder)
-        if (find.text(name).evaluate().isNotEmpty)
-          (name: name, dx: tester.getTopLeft(find.text(name)).dx),
-    ]..sort((({String name, double dx}) a, ({String name, double dx}) b) =>
-        a.dx.compareTo(b.dx));
+    final List<({String name, double dx})> found =
+        <({String name, double dx})>[
+          for (final String name in demoOrder)
+            if (find.text(name).evaluate().isNotEmpty)
+              (name: name, dx: tester.getTopLeft(find.text(name)).dx),
+        ]..sort(
+          (({String name, double dx}) a, ({String name, double dx}) b) =>
+              a.dx.compareTo(b.dx),
+        );
     return <String>[for (final entry in found) entry.name];
   }
 

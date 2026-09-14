@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/design_system/tokens/colors.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -65,11 +66,12 @@ class _MacroRepository extends FakeDietRepository {
 
 Widget _app({required List<Override> overrides}) => ProviderScope(
   overrides: overrides,
-  child: const MaterialApp(
-    locale: Locale('ko'),
+  child: MaterialApp(
+    theme: AppTheme.light(),
+    locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
-    home: DietRecordPage(),
+    home: const DietRecordPage(),
   ),
 );
 
@@ -204,14 +206,11 @@ void main() {
     testWidgets('막대는 탄단지 색 구간을 쌓는다 (#1479)', (WidgetTester tester) async {
       await openMonth(tester);
 
-      expect(
-        segmentColorsOf(tester, 0),
-        <Color>[
-          FigmaColors.macroFat,
-          FigmaColors.macroProtein,
-          FigmaColors.macroCarbs,
-        ],
-      );
+      expect(segmentColorsOf(tester, 0), <Color>[
+        FigmaColors.macroFat,
+        FigmaColors.macroProtein,
+        FigmaColors.macroCarbs,
+      ]);
     });
 
     testWidgets('툴팁이 탄단지 수치를 함께 적는다', (WidgetTester tester) async {

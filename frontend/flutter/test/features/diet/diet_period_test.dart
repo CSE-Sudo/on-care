@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
@@ -68,6 +69,7 @@ Widget _app({
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
+      theme: AppTheme.light(),
       locale: Locale(locale),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -441,7 +443,6 @@ void main() {
         expect(dates.last, today, reason: '$today');
       }
     });
-
   });
 
   test('음식 배열이 비어 있으면 서버가 준 하루 합계로 떨어진다', () async {
@@ -637,9 +638,7 @@ void main() {
       final List<DateTime> dates = dietRangeDates(
         dietRangeForTab(DietPeriodTab.month, nowKst()),
       );
-      final int emptyIndex = dates.indexWhere(
-        (DateTime d) => d.day.isOdd,
-      );
+      final int emptyIndex = dates.indexWhere((DateTime d) => d.day.isOdd);
       final Tooltip empty = tester.widget<Tooltip>(
         find.byKey(Key('diet-period-bar-tip-$emptyIndex')),
       );

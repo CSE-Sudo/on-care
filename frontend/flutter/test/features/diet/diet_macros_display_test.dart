@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -18,6 +19,7 @@ Widget _app(Widget home, {List<Override> overrides = const <Override>[]}) {
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
+      theme: AppTheme.light(),
       locale: const Locale('ko'),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
@@ -231,16 +233,10 @@ void main() {
         findsOneWidget,
       );
       // 목표 안쪽인 당류에는 초과분 글씨가 붙지 않는다.
-      expect(
-        find.textContaining('+32.2g', findRichText: true),
-        findsNothing,
-      );
+      expect(find.textContaining('+32.2g', findRichText: true), findsNothing);
       // 나트륨·당류는 요약 카드 안 가로 바로 들어왔다 (#1120) — 따로 뗀
       // 상태 카드와 세로 바는 없다.
-      expect(
-        find.byKey(const Key('nutrition-sodium-status')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('nutrition-sodium-status')), findsNothing);
       expect(
         find.byKey(const Key('nutrition-macro-progress-나트륨')),
         findsOneWidget,

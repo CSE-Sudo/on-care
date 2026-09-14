@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/design_system/figma/figma_kit.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
@@ -73,11 +74,12 @@ void main() {
           dietRepositoryProvider.overrideWithValue(_FixedDietRepository(day)),
           accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
         ],
-        child: const MaterialApp(
-          locale: Locale('ko'),
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: DietRecordPage(),
+          home: const DietRecordPage(),
         ),
       ),
     );
@@ -94,7 +96,10 @@ void main() {
               matching: find.byType(ColoredBox),
             )
             .evaluate())
-      ((e.widget as ColoredBox).color, (e.renderObject! as RenderBox).size.height),
+      (
+        (e.widget as ColoredBox).color,
+        (e.renderObject! as RenderBox).size.height,
+      ),
   ];
 
   testWidgets('탄단지가 다 있는 날은 세 색 구간을 쌓는다', (WidgetTester tester) async {
@@ -110,9 +115,7 @@ void main() {
     ]);
   });
 
-  testWidgets('칼로리와 탄단지 합계가 어긋나면 나머지 구간이 남는다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('칼로리와 탄단지 합계가 어긋나면 나머지 구간이 남는다', (WidgetTester tester) async {
     // 탄 100g(400) + 단 50g(200) + 지 20g(180) = 780kcal 인데 하루는 1,560kcal.
     await openMonth(
       tester,
