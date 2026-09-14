@@ -10,8 +10,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/widgets/stored_meal_photo.dart';
 
@@ -41,8 +41,9 @@ Future<void> _pump(WidgetTester tester, Dio dio) async {
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(
-        home: Scaffold(
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        home: const Scaffold(
           body: StoredMealPhoto(
             path: _path,
             width: 52,
@@ -149,8 +150,9 @@ void main() {
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: const MaterialApp(
-            home: Scaffold(
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            home: const Scaffold(
               body: StoredMealPhoto(
                 path: _path,
                 width: 52,

@@ -8,7 +8,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -18,6 +17,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
 
@@ -90,7 +90,7 @@ void main() {
 
     await tester.pumpWidget(_app());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
   }
 

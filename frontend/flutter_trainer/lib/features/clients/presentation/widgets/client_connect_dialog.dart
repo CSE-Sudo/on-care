@@ -3,18 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
-import 'package:oncare_trainer/design_system/tokens/colors.dart';
-import 'package:oncare_trainer/design_system/tokens/radius.dart';
-import 'package:oncare_trainer/design_system/tokens/spacing.dart';
-import 'package:oncare_trainer/design_system/tokens/toast.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/client_invite_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_invite.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/pairing_code_input.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
-import 'package:oncare_trainer/shared/widgets/app_toast.dart';
-import 'package:oncare_trainer/shared/widgets/client_avatar.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 회원이 자기 앱에 띄운 6자리 동기화 코드로 연결하는 신규 고객 등록 창.
 /// (#919·#1634)
@@ -136,7 +131,7 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
       showAppToast(
         context,
         l.clientInviteConnected(found.name),
-        kind: AppToastKind.success,
+        type: AppToastType.success,
       );
     } catch (error) {
       if (!mounted) return;
@@ -175,14 +170,14 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
       showAppToast(
         context,
         l.clientInviteCancelled,
-        kind: AppToastKind.success,
+        type: AppToastType.success,
       );
     } on AppError catch (error) {
       if (!mounted) return;
       showAppToast(
         context,
         serverDetailOr(l, error.message, l.clientInviteCancelFailed),
-        kind: AppToastKind.error,
+        type: AppToastType.error,
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -192,189 +187,81 @@ class _ClientConnectDialogState extends ConsumerState<ClientConnectDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final bool connectsImmediately = ref.watch(
       clientInviteRepositoryProvider.select((r) => r.connectsImmediately),
     );
+    final TextStyle sectionTitle = tokens
+        .text(OnCareTypography.titleSmall)
+        .copyWith(color: OnCareColors.textPrimary);
 
-    return Dialog(
+    // 헤더의 닫기 X 는 [AppDialog] 가 둔다 — 가운데 뜨는 창은 아래로 끌어
+    // 내려 닫을 수 없으므로 배경을 눌러 닫는 것과 별개로 명시적인 닫기가 있다.
+    return AppDialog(
       key: const ValueKey<String>('client-connect-dialog'),
-      backgroundColor: AppColors.background,
-      surfaceTintColor: Colors.transparent,
-      // 위쪽만 [AppToastStyle.dialogTopClearance] — 상단 토스트가 이
-      // 대화상자 위로 겹쳐 뜰 수 있다.
-      insetPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl,
-        AppToastStyle.dialogTopClearance,
-        AppSpacing.xl,
-        AppSpacing.xl,
-      ),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(AppRadius.card),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 440,
-          maxHeight: MediaQuery.sizeOf(context).height * .82,
-        ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        l.clientInviteTitle,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.foreground,
-                        ),
-                      ),
-                    ),
-                    _CloseButton(onTap: () => Navigator.of(context).pop()),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                // 수락해야 고객이 된다는 것(실 API)을, 또는 바로 연결된다는 것
-                // (데모)을 창이 먼저 말한다 — 연결한 뒤 명단을 새로고침하며
-                // 기다리는 일이 없도록.
-                Text(
-                  connectsImmediately
-                      ? l.clientInviteIntroImmediate
-                      : l.clientInviteIntro,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  l.clientConnectCodeLabel,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.mutedForeground,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                PairingCodeInput(
-                  controller: _code,
-                  focusNode: _codeFocus,
-                  enabled: !_busy,
-                  onChanged: _onCodeChanged,
-                ),
-                if (_error case final String error) ...<Widget>[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    error,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.destructive,
-                    ),
-                  ),
-                ],
-                if (_busy) ...<Widget>[
-                  const SizedBox(height: AppSpacing.md),
-                  const Center(
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                ],
-                if (_found case final PairedMember found) ...<Widget>[
-                  const SizedBox(height: AppSpacing.lg),
-                  // 바로 잇지 않고 한 번 더 확인시킨다 — 여섯 자리가 하나만
-                  // 틀려도 남의 식단·건강 기록이 열린다.
-                  Text(
-                    l.clientInviteConfirmPrompt,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.foreground,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _PairedMemberCard(paired: found),
-                  const SizedBox(height: AppSpacing.md),
-                  SizedBox(
-                    height: 44,
-                    child: FilledButton.icon(
-                      key: const ValueKey<String>('client-connect-register'),
-                      onPressed: _busy ? null : () => _connect(found),
-                      icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                      label: Text(l.clientInviteConnectAction),
-                      style: FilledButton.styleFrom(
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(AppRadius.md),
-                        ),
-                        textStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                if (!connectsImmediately) ...<Widget>[
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    l.clientInvitePendingTitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.foreground,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _PendingInvitesList(busy: _busy, onCancel: _cancel),
-                ],
-              ],
-            ),
+      title: l.clientInviteTitle,
+      size: AppDialogSize.medium,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          // 수락해야 고객이 된다는 것(실 API)을, 또는 바로 연결된다는 것
+          // (데모)을 창이 먼저 말한다 — 연결한 뒤 명단을 새로고침하며
+          // 기다리는 일이 없도록.
+          Text(
+            connectsImmediately
+                ? l.clientInviteIntroImmediate
+                : l.clientInviteIntro,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 창 우상단의 닫기 버튼 — 바닥 시트와 달리 가운데 뜨는 창은 아래로 끌어
-/// 내려 닫을 수 없으므로, 배경을 눌러 닫는 것과 별개로 명시적인 닫기
-/// 동작을 둔다(상담 요청 인박스의 닫기 버튼과 같은 이유).
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: MaterialLocalizations.of(context).closeButtonTooltip,
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: const CircleBorder(),
-          child: const SizedBox(
-            width: 32,
-            height: 32,
-            child: Icon(
-              Icons.close,
-              size: 18,
-              color: AppColors.mutedForeground,
-            ),
+          const SizedBox(height: OnCareSpacing.s16),
+          Text(
+            l.clientConnectCodeLabel,
+            style: tokens
+                .text(OnCareTypography.label)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
-        ),
+          const SizedBox(height: OnCareSpacing.s8),
+          PairingCodeInput(
+            controller: _code,
+            focusNode: _codeFocus,
+            enabled: !_busy,
+            onChanged: _onCodeChanged,
+          ),
+          if (_error case final String error) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            AppBanner(title: error, tone: AppBannerTone.danger),
+          ],
+          if (_busy) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            const AppLoading.inline(),
+          ],
+          if (_found case final PairedMember found) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s16),
+            // 바로 잇지 않고 한 번 더 확인시킨다 — 여섯 자리가 하나만
+            // 틀려도 남의 식단·건강 기록이 열린다.
+            Text(l.clientInviteConfirmPrompt, style: sectionTitle),
+            const SizedBox(height: OnCareSpacing.s8),
+            _PairedMemberCard(paired: found),
+            const SizedBox(height: OnCareSpacing.s12),
+            AppButton(
+              key: const ValueKey<String>('client-connect-register'),
+              label: l.clientInviteConnectAction,
+              onPressed: _busy ? null : () => _connect(found),
+              leadingIcon: Icons.person_add_alt_1_rounded,
+              size: OnCareButtonSize.large,
+              fullWidth: true,
+            ),
+          ],
+          if (!connectsImmediately) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s24),
+            Text(l.clientInvitePendingTitle, style: sectionTitle),
+            const SizedBox(height: OnCareSpacing.s8),
+            _PendingInvitesList(busy: _busy, onCancel: _cancel),
+          ],
+        ],
       ),
     );
   }
@@ -394,21 +281,19 @@ class _PendingInvitesList extends ConsumerWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final pending = ref.watch(pendingClientInvitesProvider);
     return pending.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (_, _) => Text(
-        l.clientInviteFailed,
-        style: const TextStyle(fontSize: 12, color: AppColors.mutedForeground),
+      loading: () => const AppLoading.inline(),
+      error: (_, _) => AppErrorState(
+        title: l.clientInviteFailed,
+        retryLabel: l.actionRetry,
+        onRetry: () => ref.invalidate(pendingClientInvitesProvider),
+        placement: AppStatePlacement.card,
       ),
       data: (rows) => rows.isEmpty
           ? Text(
               l.clientInvitePendingEmpty,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.mutedForeground,
-              ),
+              style: context.oncare
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textTertiary),
             )
           : Column(
               children: <Widget>[
@@ -437,29 +322,25 @@ class _PairedMemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     // 고객 목록과 같은 함수로 적는다 — 표기가 갈리면 견주기 어렵다.
     final String demographics = demographicsLabel(
       context,
       gender: paired.rosterGender,
       age: paired.rosterAge,
     );
-    final String initial = paired.name.isEmpty
-        ? '?'
-        : String.fromCharCode(paired.name.runes.first);
+    final TextStyle detail = tokens
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textTertiary);
 
-    return Container(
+    return AppCard(
       key: const ValueKey<String>('client-connect-result'),
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: const BorderRadius.all(AppRadius.md),
-        border: Border.all(color: AppColors.primary),
-      ),
+      selected: true,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          ClientAvatar(label: initial, size: 36),
-          const SizedBox(width: AppSpacing.sm),
+          AppAvatar(name: paired.name, size: AppAvatarSize.large),
+          const SizedBox(width: OnCareSpacing.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,45 +351,32 @@ class _PairedMemberCard extends StatelessWidget {
                       child: Text(
                         paired.name,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.foreground,
-                        ),
+                        style: tokens
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.xs),
+                    const SizedBox(width: OnCareSpacing.s4),
                     Flexible(
                       child: Text(
                         demographics,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.subtleForeground,
-                        ),
+                        style: OnCareTypography.strong(detail),
                       ),
                     ),
                   ],
                 ),
                 if (paired.goal.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 2),
-                  Text(
-                    paired.goal,
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.subtleForeground,
-                    ),
-                  ),
+                  const SizedBox(height: OnCareSpacing.s4),
+                  Text(paired.goal, style: detail),
                 ],
               ],
             ),
           ),
-          const Icon(
+          Icon(
             Icons.check_circle_rounded,
-            size: 20,
-            color: AppColors.primary,
+            size: OnCareSize.iconMedium,
+            color: tokens.brand.primary,
           ),
         ],
       ),
@@ -527,22 +395,22 @@ class _PendingInviteRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
       child: Row(
         children: <Widget>[
           Expanded(
             child: Text(
               invite.memberName,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.foreground,
-              ),
+              style: context.oncare
+                  .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                  .copyWith(color: OnCareColors.textPrimary),
             ),
           ),
-          TextButton(
+          AppButton(
+            label: l.clientInviteCancelAction,
             onPressed: onCancel,
-            child: Text(l.clientInviteCancelAction),
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
           ),
         ],
       ),

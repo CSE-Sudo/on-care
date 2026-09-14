@@ -1669,6 +1669,8 @@
   "a11ySendMessage": "메시지 보내기",
   "aiManualCreate": "직접 만들기",
   "aiReturnToWizard": "AI 추천으로 돌아가기",
+  "chatDateDivider": "{date}",
+  "clientWorkoutSourceAi": "AI",
   "coachClientDemographics": "{gender} · {age}세",
   "@coachClientDemographics": {
     "placeholders": {

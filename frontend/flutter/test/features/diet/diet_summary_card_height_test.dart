@@ -6,7 +6,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -14,6 +13,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 Widget _app() => ProviderScope(
@@ -22,9 +22,7 @@ Widget _app() => ProviderScope(
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
   ],
   child: MaterialApp(
-    // 헤더의 채팅 버튼(oncare_ui)이 읽는 토큰만 싣는다. 식단 화면 글자는 아직
-    // 규격 전환 전(#1700)이라, 높이 비교는 예전과 같은 기본 테마에서 한다.
-    theme: ThemeData(extensions: AppTheme.light().extensions.values),
+    theme: AppTheme.light(),
     locale: const Locale('ko'),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
     supportedLocales: AppLocalizations.supportedLocales,
@@ -45,13 +43,13 @@ void main() {
         .getSize(find.byKey(const Key('nutrition-summary-card')))
         .height;
 
-    await tester.tap(find.byKey(const Key('diet-period-tab-week')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
     final double week = tester
         .getSize(find.byKey(const Key('diet-period-card')))
         .height;
 
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
     final double all = tester
         .getSize(find.byKey(const Key('diet-period-card')))

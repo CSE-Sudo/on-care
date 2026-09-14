@@ -10,12 +10,12 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 
@@ -116,16 +116,13 @@ void main() {
     // 지방만 초과(56 > 55). 탄수·단백질은 목표 아래.
     await pumpDiet(tester, carbsG: 120, proteinG: 45, fatG: 56);
 
-    expect(barColor(tester, '지방'), FigmaColors.dangerRed);
+    expect(barColor(tester, '지방'), OnCareColors.danger);
     expect(
       barColor(tester, '탄수화물'),
-      FigmaColors.statusWithinGoal.withValues(alpha: 0.65),
+      OnCareBrand.member.macroProtein,
       reason: '탄수화물은 목표 아래인데 빨강이 됐습니다.',
     );
-    expect(
-      barColor(tester, '단백질'),
-      FigmaColors.statusWithinGoal.withValues(alpha: 0.65),
-    );
+    expect(barColor(tester, '단백질'), OnCareBrand.member.macroProtein);
   });
 
   testWidgets('목표 아래면 브랜드 파랑이다 (#1070)', (WidgetTester tester) async {
@@ -134,7 +131,7 @@ void main() {
     for (final String label in <String>['탄수화물', '단백질', '지방']) {
       expect(
         barColor(tester, label),
-        FigmaColors.statusWithinGoal.withValues(alpha: 0.65),
+        OnCareBrand.member.macroProtein,
         reason: label,
       );
     }
@@ -147,7 +144,7 @@ void main() {
     for (final String label in <String>['탄수화물', '단백질', '지방']) {
       expect(
         barColor(tester, label),
-        FigmaColors.statusWithinGoal.withValues(alpha: 0.65),
+        OnCareBrand.member.macroProtein,
         reason: label,
       );
     }
@@ -157,7 +154,7 @@ void main() {
     await pumpDiet(tester, carbsG: 300, proteinG: 140, fatG: 80);
 
     for (final String label in <String>['탄수화물', '단백질', '지방']) {
-      expect(barColor(tester, label), FigmaColors.dangerRed, reason: label);
+      expect(barColor(tester, label), OnCareColors.danger, reason: label);
     }
   });
 }

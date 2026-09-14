@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -9,7 +8,9 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 /// 누적 칼로리 막대가 불완전한 영양 데이터에서도 총칼로리와 구성 비율을
@@ -84,7 +85,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('diet-period-tab-month')));
+    await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
   }
 
@@ -109,9 +110,9 @@ void main() {
     );
 
     expect(segmentsOf(tester).map(((Color, double) s) => s.$1), <Color>[
-      FigmaColors.macroFat,
-      FigmaColors.macroProtein,
-      FigmaColors.macroCarbs,
+      OnCareBrand.member.macroFat,
+      OnCareBrand.member.macroProtein,
+      OnCareBrand.member.macroCarbs,
     ]);
   });
 
@@ -128,7 +129,7 @@ void main() {
       (double sum, (Color, double) segment) => sum + segment.$2,
     );
     final (Color, double) rest = segments.firstWhere(
-      ((Color, double) segment) => segment.$1 == FigmaColors.track,
+      ((Color, double) segment) => segment.$1 == OnCareColors.surfaceInput,
     );
     expect(rest.$2 / total, closeTo((1560 - 780) / 1560, 0.03));
   });
@@ -136,7 +137,7 @@ void main() {
   testWidgets('탄수화물만 있는 날도 해당 색 구간이 그려진다', (WidgetTester tester) async {
     await openMonth(tester, _day(calories: 800, carbsG: 200));
 
-    expect(segmentsOf(tester).single.$1, FigmaColors.macroCarbs);
+    expect(segmentsOf(tester).single.$1, OnCareBrand.member.macroCarbs);
     expect(tester.takeException(), isNull);
   });
 

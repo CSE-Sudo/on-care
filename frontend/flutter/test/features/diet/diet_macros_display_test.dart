@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/utils/clock.dart';
-import 'package:oncare/design_system/figma/figma_kit.dart';
 import 'package:oncare/design_system/theme/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
@@ -11,6 +10,7 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 import '../../helpers/fixed_clock.dart';
@@ -195,7 +195,19 @@ void main() {
           await tester.runAsync(() => FakeDietRepository().fetchToday())
               as DietDay;
 
-      await tester.pumpWidget(_app(Scaffold(body: NutritionSummary(day: day))));
+      // 식단 탭에서 카드는 페이지 좌우 여백(`AppPage`) 안에 놓인다(#1700).
+      await tester.pumpWidget(
+        _app(
+          Scaffold(
+            body: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: OnCareDensity.mobile.pagePadding,
+              ),
+              child: NutritionSummary(day: day),
+            ),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       final Finder summaryCard = find.byKey(
@@ -209,7 +221,7 @@ void main() {
       expect(
         find.descendant(
           of: summaryCard,
-          matching: find.byType(CircularProgressIndicator),
+          matching: find.byKey(const Key('nutrition-calorie-progress')),
         ),
         findsOneWidget,
       );
@@ -246,16 +258,15 @@ void main() {
         findsOneWidget,
       );
       Color? barColor(String label) => tester
-          .widgetList<ColoredBox>(
+          .widget<LinearProgressIndicator>(
             find.descendant(
               of: find.byKey(Key('nutrition-macro-progress-$label')),
-              matching: find.byType(ColoredBox),
+              matching: find.byType(LinearProgressIndicator),
             ),
           )
-          .last
           .color;
-      expect(barColor('나트륨'), FigmaColors.dangerRed);
-      expect(barColor('당류'), FigmaColors.statusWithinGoal);
+      expect(barColor('나트륨'), OnCareColors.danger);
+      expect(barColor('당류'), OnCareBrand.member.statusWithinGoal);
 
       final Finder carbs = find.byKey(const Key('nutrition-macro-탄수화물'));
       final Finder protein = find.byKey(const Key('nutrition-macro-단백질'));
@@ -325,9 +336,7 @@ void main() {
       expect((span.children!.first as TextSpan).style?.color, expectedColor);
     }
 
-    final Color macroValueColor = FigmaColors.statusWithinGoal.withValues(
-      alpha: 0.65,
-    );
+    final Color macroValueColor = OnCareBrand.member.macroProtein;
     expectMacroValueColor('탄수화물', macroValueColor);
     expectMacroValueColor('단백질', macroValueColor);
     expectMacroValueColor('지방', macroValueColor);
@@ -490,15 +499,14 @@ void main() {
     await tester.pumpAndSettle();
 
     Color barColor(String label) {
-      final ColoredBox box = tester.widget<ColoredBox>(
-        find
-            .descendant(
+      final LinearProgressIndicator bar = tester
+          .widget<LinearProgressIndicator>(
+            find.descendant(
               of: find.byKey(Key('nutrition-macro-progress-$label')),
-              matching: find.byType(ColoredBox),
-            )
-            .last,
-      );
-      return box.color;
+              matching: find.byType(LinearProgressIndicator),
+            ),
+          );
+      return bar.color!;
     }
 
     final AppLocalizations l = AppLocalizations.of(
@@ -509,7 +517,7 @@ void main() {
       barColor(l.dietSugar),
       reason: '목표 안쪽의 나트륨과 당류가 다른 색이면 안 된다',
     );
-    expect(barColor(l.dietSodium), FigmaColors.statusWithinGoal);
+    expect(barColor(l.dietSodium), OnCareBrand.member.statusWithinGoal);
   });
 
   testWidgets('목표를 넘기면 달성률이 100% 를 넘어 적힌다 (#846)', (WidgetTester tester) async {
@@ -558,10 +566,13 @@ void main() {
     expect(find.text('100%'), findsNothing, reason: '초과인데 100% 로 멈추면 안 된다');
 
     // 링은 1.0 을 넘으면 눈금이 깨진다. 라벨과 달리 잘린 값을 받아야 한다.
-    final CircularProgressIndicator ring = tester
-        .widget<CircularProgressIndicator>(
-          find.byKey(const Key('nutrition-calorie-progress')),
-        );
+    final DietCalorieRingPainter ring =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(const Key('nutrition-calorie-progress')),
+                )
+                .painter!
+            as DietCalorieRingPainter;
     expect(ring.value, 1.0);
   });
 
@@ -607,10 +618,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('50%'), findsOneWidget);
-    final CircularProgressIndicator ring = tester
-        .widget<CircularProgressIndicator>(
-          find.byKey(const Key('nutrition-calorie-progress')),
-        );
+    final DietCalorieRingPainter ring =
+        tester
+                .widget<CustomPaint>(
+                  find.byKey(const Key('nutrition-calorie-progress')),
+                )
+                .painter!
+            as DietCalorieRingPainter;
     expect(ring.value, 0.5);
   });
 }
