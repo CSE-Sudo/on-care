@@ -254,12 +254,16 @@ class AppCountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
+    // 한 자리 수는 좌우 여백 없이 원 안에 둬야 글자 폭 때문에 알약이 되지 않는다.
+    final bool singleDigit = count < 10;
     return Container(
       constraints: const BoxConstraints(
         minWidth: OnCareSize.countBadgeMin,
         minHeight: OnCareSize.countBadgeMin,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
+      padding: singleDigit
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: OnCareColors.danger,

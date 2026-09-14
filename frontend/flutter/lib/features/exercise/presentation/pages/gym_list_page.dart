@@ -562,9 +562,13 @@ class _GymListCard extends ConsumerWidget {
                     const SizedBox(height: OnCareSpacing.s4),
                     Row(
                       children: <Widget>[
-                        Text(
-                          '${gym.distanceKm.toStringAsFixed(1)}km',
-                          style: OnCareTypography.numeric(meta),
+                        Flexible(
+                          child: Text(
+                            '${gym.distanceKm.toStringAsFixed(1)}km',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: OnCareTypography.numeric(meta),
+                          ),
                         ),
                         const SizedBox(width: OnCareSpacing.s8),
                         const Icon(
@@ -575,6 +579,7 @@ class _GymListCard extends ConsumerWidget {
                         const SizedBox(width: OnCareSpacing.s2),
                         Text(
                           gym.rating.toStringAsFixed(1),
+                          maxLines: 1,
                           style: OnCareTypography.numeric(
                             tokens
                                 .text(
