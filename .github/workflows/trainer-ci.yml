@@ -9,6 +9,8 @@ on:
       - "frontend/flutter_trainer/**"
       # 김민수 데모 픽스처는 세 곳이 함께 읽는다 — 이것만 바뀌어도 돌아야 한다(#757).
       - "shared/demo_fixture/**"
+      # 두 앱이 함께 쓰는 UI 규격 패키지(#1691).
+      - "shared/oncare_ui/**"
       - ".github/workflows/trainer-ci.yml"
   push:
     branches: [main]
@@ -16,6 +18,8 @@ on:
       - "frontend/flutter_trainer/**"
       # 김민수 데모 픽스처는 세 곳이 함께 읽는다 — 이것만 바뀌어도 돌아야 한다(#757).
       - "shared/demo_fixture/**"
+      # 두 앱이 함께 쓰는 UI 규격 패키지(#1691).
+      - "shared/oncare_ui/**"
       - ".github/workflows/trainer-ci.yml"
 
 permissions:

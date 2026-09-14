@@ -404,6 +404,17 @@ Finder _exerciseActionMenus() => find.byWidgetPredicate((widget) {
 /// 좁은 화면은 `ListView` 라 아직 뷰포트 밖인 위젯은 빌드조차 되지 않는다 —
 /// `find.text(...).evaluate().isEmpty` 로 미리 존재를 확인하면 항상 비어
 /// 있는 것으로 보인다. 그래서 존재 여부를 먼저 묻지 않고, `scrollUntilVisible`
+
+/// 탭할 대상을 뷰포트 **가운데**로 가져온다.
+///
+/// `ensureVisible` 은 대상을 뷰포트 끝에 붙인다. 코칭 흐름은 위쪽에 단계 표시가
+/// 겹쳐 있어, 끝에 붙은 버튼을 탭하면 단계 칩이 탭을 받아 흐름이 처음으로
+/// 되돌아갔다(#1691 테마 교체로 레이아웃이 조금 바뀌며 드러남).
+Future<void> _ensureCentered(WidgetTester tester, Finder finder) async {
+  await Scrollable.ensureVisible(tester.element(finder), alignment: 0.5);
+  await tester.pump();
+}
+
 /// 이 스크롤해 가며 직접 찾게 한다.
 Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   final scrollable = find.byType(Scrollable).first;
@@ -417,7 +428,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
     scrollable: scrollable,
     maxScrolls: 100,
   );
-  await tester.ensureVisible(generate);
+  await _ensureCentered(tester, generate);
   await tester.pump();
   await tester.tap(generate);
   await tester.pumpAndSettle();
@@ -433,7 +444,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
     scrollable: scrollable,
     maxScrolls: 100,
   );
-  await tester.ensureVisible(existing);
+  await _ensureCentered(tester, existing);
   await tester.pump();
   await tester.tap(existing);
   await tester.pumpAndSettle();
@@ -447,7 +458,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
     scrollable: scrollable,
     maxScrolls: 100,
   );
-  await tester.ensureVisible(complete);
+  await _ensureCentered(tester, complete);
   await tester.pump();
   await tester.tap(complete);
   await tester.pumpAndSettle();
@@ -459,7 +470,7 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
     scrollable: scrollable,
     maxScrolls: 100,
   );
-  await tester.ensureVisible(apply);
+  await _ensureCentered(tester, apply);
   await tester.pump();
   await tester.tap(apply);
   await tester.pumpAndSettle();
@@ -471,7 +482,7 @@ Future<void> _openManualProgram(WidgetTester tester) async {
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -300));
     await tester.pump();
   }
-  await tester.ensureVisible(manual);
+  await _ensureCentered(tester, manual);
   await tester.pump();
   await tester.tap(manual);
   await tester.pumpAndSettle();
@@ -494,7 +505,7 @@ Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
     150,
     scrollable: find.byType(Scrollable).first,
   );
-  await tester.ensureVisible(send);
+  await _ensureCentered(tester, send);
   await tester.pump();
   if (tester.widget<ActionButton>(send).onPressed == null) {
     final returnToAi = find.byKey(const ValueKey<String>('return-to-ai-flow'));
@@ -516,7 +527,7 @@ Future<Finder> _ensureSendButtonReady(WidgetTester tester) async {
       150,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.ensureVisible(send);
+    await _ensureCentered(tester, send);
     await tester.pump();
   }
   return send;
@@ -1358,7 +1369,8 @@ void main() {
 
       // 3단계: 최종 검토.
       await returnToAi();
-      await tester.ensureVisible(
+      await _ensureCentered(
+        tester,
         find.byKey(const ValueKey<String>('complete-routine-review')),
       );
       await tester.tap(
@@ -1386,7 +1398,8 @@ void main() {
     ) async {
       await openTab(tester);
 
-      await tester.ensureVisible(
+      await _ensureCentered(
+        tester,
         find.byKey(const ValueKey<String>('generate-routine-options')),
       );
       await tester.pump();
@@ -1394,7 +1407,8 @@ void main() {
         find.byKey(const ValueKey<String>('generate-routine-options')),
       );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(
+      await _ensureCentered(
+        tester,
         find.byKey(const ValueKey<String>('complete-routine-review')),
       );
       await tester.pump();
@@ -1413,7 +1427,8 @@ void main() {
         findsNothing,
       );
 
-      await tester.ensureVisible(
+      await _ensureCentered(
+        tester,
         find.byKey(const ValueKey<String>('apply-routine-to-template')),
       );
       await tester.pump();
@@ -1484,7 +1499,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(find.text('운동 추가'));
+      await _ensureCentered(tester, find.text('운동 추가'));
       await tester.pump();
       await tester.tap(find.text('운동 추가'));
       await tester.pump();
@@ -1493,7 +1508,7 @@ void main() {
         find.byKey(const ValueKey<String>('custom-exercise-name')),
         '레그프레스 5세트',
       );
-      await tester.ensureVisible(find.text('추가'));
+      await _ensureCentered(tester, find.text('추가'));
       await tester.pump();
       await tester.tap(find.text('추가'));
       await tester.pump();
@@ -1522,7 +1537,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(find.text('운동 추가'));
+      await _ensureCentered(tester, find.text('운동 추가'));
       await tester.pump();
       await tester.tap(find.text('운동 추가'));
       await tester.pump();
@@ -1530,7 +1545,7 @@ void main() {
         find.byKey(const ValueKey<String>('custom-exercise-name')),
         '탭 이동 테스트 운동',
       );
-      await tester.ensureVisible(find.text('추가'));
+      await _ensureCentered(tester, find.text('추가'));
       await tester.pump();
       await tester.tap(find.text('추가'));
       await tester.pump();
@@ -1564,7 +1579,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(find.text('운동 추가'));
+      await _ensureCentered(tester, find.text('운동 추가'));
       await tester.pump();
       await tester.tap(find.text('운동 추가'));
       await tester.pump();
@@ -1646,13 +1661,13 @@ void main() {
       await goTo(tester, AppRoutes.schedule);
       // 시간표 블록의 둘째 줄은 `이름 종류` 다(#1010).
       final Finder block = find.textContaining('박성호').first;
-      await tester.ensureVisible(block);
+      await _ensureCentered(tester, block);
       await tester.pump();
       await tester.tap(block);
       await settle(tester);
       // 세트 수는 이름이 아니라 칸이 든다(#1276) — 배정 이름은 `벤치프레스`
       // 이고, 세트·횟수·중량은 그 아래 줄에 따로 적힌다.
-      await tester.ensureVisible(find.text('벤치프레스'));
+      await _ensureCentered(tester, find.text('벤치프레스'));
       expect(find.text('벤치프레스'), findsOneWidget); // AI routine item
     });
 
@@ -1695,7 +1710,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(dateButton);
+      await _ensureCentered(tester, dateButton);
       await tester.pump();
       // 기본값은 오늘 — YYYY-MM-DD 로 표시된다. 다이얼로그 없이 박스
       // 하단에 바로 보이는 칩이다.
@@ -1768,7 +1783,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(timeButton);
+      await _ensureCentered(tester, timeButton);
       await tester.pump();
       expect(
         find.descendant(
@@ -1789,7 +1804,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(dateButton);
+      await _ensureCentered(tester, dateButton);
       await tester.pump();
       await tester.tap(dateButton);
       await tester.pumpAndSettle();
@@ -1883,9 +1898,9 @@ void main() {
       );
       await settle(tester);
 
-      final repo = container.read(
-        scheduleRepositoryProvider,
-      ) as _SlowCountingScheduleRepository;
+      final repo =
+          container.read(scheduleRepositoryProvider)
+              as _SlowCountingScheduleRepository;
       expect(repo.registerCalls, 1);
       await tester.pump(const Duration(seconds: 5));
       await settle(tester);
@@ -1916,7 +1931,7 @@ void main() {
         -150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(find.text('이지수'));
+      await _ensureCentered(tester, find.text('이지수'));
       await tester.pump();
       await tester.tap(find.text('이지수'));
       await settle(tester);
@@ -2017,7 +2032,7 @@ void main() {
           -150,
           scrollable: find.byType(Scrollable).first,
         );
-        await tester.ensureVisible(find.text(name));
+        await _ensureCentered(tester, find.text(name));
         await tester.pump();
         await tester.tap(find.text(name));
         await settle(tester);
@@ -2043,9 +2058,9 @@ void main() {
       await tester.tap(send, warnIfMissed: false);
       await settle(tester);
 
-      final repo = container.read(
-        scheduleRepositoryProvider,
-      ) as _SlowCountingScheduleRepository;
+      final repo =
+          container.read(scheduleRepositoryProvider)
+              as _SlowCountingScheduleRepository;
       expect(repo.registerCalls, 2);
       // 두 write 모두 흘려보낸다 — 지연을 늘렸으니(30초) 그만큼 더 기다린다.
       await tester.pump(const Duration(seconds: 35));
@@ -2075,7 +2090,7 @@ void main() {
         -150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(find.text('이지수'));
+      await _ensureCentered(tester, find.text('이지수'));
       await tester.pump();
       await tester.tap(find.text('이지수'));
       await settle(tester);
@@ -2087,7 +2102,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(find.text('운동 추가'));
+      await _ensureCentered(tester, find.text('운동 추가'));
       await tester.pump();
       await tester.tap(find.text('운동 추가'));
       await tester.pump();
@@ -2135,7 +2150,7 @@ void main() {
         150,
         scrollable: find.byType(Scrollable).first,
       );
-      await tester.ensureVisible(send);
+      await _ensureCentered(tester, send);
       await tester.pump();
       expect(tester.widget<ActionButton>(send).onPressed, isNull);
       expect(find.text('PT 스케줄에 등록'), findsNothing);
@@ -2473,7 +2488,7 @@ void main() {
           150,
           scrollable: find.byType(Scrollable).first,
         );
-        await tester.ensureVisible(find.text('운동 추가'));
+        await _ensureCentered(tester, find.text('운동 추가'));
         await tester.pump();
         await tester.tap(find.text('운동 추가'));
         await tester.pump();
@@ -2488,10 +2503,10 @@ void main() {
         final stretching = find.byKey(
           const ValueKey<String>('custom-exercise-category-스트레칭'),
         );
-        await tester.ensureVisible(stretching);
+        await _ensureCentered(tester, stretching);
         await tester.tap(stretching);
         await tester.pump();
-        await tester.ensureVisible(find.text('추가'));
+        await _ensureCentered(tester, find.text('추가'));
         await tester.pump();
         await tester.tap(find.text('추가'));
         await tester.pump();
