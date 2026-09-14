@@ -240,7 +240,10 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
         ],
       ),
       // 하단 내비와 가운데 `+` 버튼 위로 마지막 카드를 올린다.
-      bottomInset: AppBottomNav.barHeight + OnCareSpacing.s20,
+      bottomInset:
+          AppBottomNav.barHeight +
+          AppBottomNav.centerActionLift +
+          OnCareSpacing.s20,
       children: <Widget>[
         // 날짜 스트립은 기간과 무관하게 늘 있다 — 기간 토글은 영양 요약 섹션
         // 하나만 바꾼다(운동 탭의 `운동 현황` 과 같다, #681).
