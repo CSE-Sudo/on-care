@@ -1062,7 +1062,7 @@ class DietMealDetailPage extends ConsumerWidget {
             return _MealDetailUnavailable(message: l.dietLoadError);
           },
           loading: () => const Scaffold(
-            backgroundColor: OnCareColors.surfacePage,
+            backgroundColor: OnCareColors.surfaceCard,
             body: AppLoading(),
           ),
           error: (_, _) => _MealDetailUnavailable(message: l.dietLoadError),
@@ -1078,7 +1078,7 @@ class _MealDetailUnavailable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: ''),
       body: AppEmptyState(title: message, icon: Icons.error_outline_rounded),
     );
@@ -1211,7 +1211,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     final double side = tokens.density.pagePadding;
     final Widget page = Scaffold(
       key: const Key('mealDetailPage'),
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       // 뒤로는 앱바 한 곳, 저장은 하단 한 곳이다 — 머리의 글자 저장은 없다(#1700).
       appBar: AppTopBar(
         title: l.dietMealSheetTitle(mealBadge(l, widget.meal.mealType)),

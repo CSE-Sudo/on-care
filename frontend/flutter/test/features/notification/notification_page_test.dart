@@ -52,7 +52,7 @@ void main() {
         final ThemeData theme = Theme.of(pageContext);
 
         expect(theme.brightness, Brightness.light);
-        expect(theme.scaffoldBackgroundColor, OnCareColors.surfacePage);
+        expect(theme.scaffoldBackgroundColor, OnCareColors.surfaceCard);
         expect(theme.colorScheme.onSurface, OnCareColors.textPrimary);
         expect(
           theme.colorScheme.surfaceContainerHigh,

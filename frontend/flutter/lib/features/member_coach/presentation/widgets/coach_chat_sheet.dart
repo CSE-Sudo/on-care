@@ -243,7 +243,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     final chat = ref.watch(coachChatProvider);
     final bool showDemoBanners = ref.watch(appConfigProvider).useMockApi;
     return Scaffold(
-      backgroundColor: OnCareColors.surfacePage,
+      backgroundColor: OnCareColors.surfaceCard,
       body: SafeArea(
         child: Column(
           children: <Widget>[

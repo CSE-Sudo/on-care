@@ -350,7 +350,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     return PopScope(
       canPop: !_saving,
       child: Scaffold(
-        backgroundColor: OnCareColors.surfacePage,
+        backgroundColor: OnCareColors.surfaceCard,
         body: SafeArea(
           child: Center(
             child: ConstrainedBox(
