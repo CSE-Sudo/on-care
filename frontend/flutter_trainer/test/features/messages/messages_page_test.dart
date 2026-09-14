@@ -12,10 +12,8 @@ import 'package:oncare_ui/oncare_ui.dart'
     show
         AppAvatar,
         AppBackButton,
-        AppBanner,
-        AppBannerTone,
-        AppButton,
         AppCard,
+        OnCareAlpha,
         OnCareColors,
         OnCareLayout,
         OnCareSize;
@@ -463,26 +461,33 @@ void main() {
       await goTo(tester, AppRoutes.messagesFor('seed-client-1'));
 
       expect(find.text('무릎 불편 표현 감지'), findsOneWidget);
-      final addButton = find.descendant(
-        of: find.byKey(
-          const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
-        ),
-        matching: find.byType(AppButton),
+      final addButton = find.byKey(
+        const ValueKey<String>('chat-insight-add-seed-chat-1-16:discomfort'),
       );
       await tester.ensureVisible(addButton);
       await tester.tap(addButton);
       await settle(tester);
 
       expect(find.text('메모 추가됨'), findsOneWidget);
-      // 옮겨 적은 뒤에도 배너의 톤은 그대로다 — 무슨 일이 있었는지(부정적
-      // 피드백)는 바뀌지 않았다. 처리 여부는 버튼 문구와 비활성 상태가 말한다.
-      final banner = tester.widget<AppBanner>(
+      // 감지 카드는 흰 바탕에 옅은 빨간 테두리다. 옮겨 적은 뒤에도 빨간색은
+      // 그대로다 — 무슨 일이 있었는지(부정적 피드백)는 바뀌지 않았다. 처리
+      // 여부는 알약의 문구와 눌리지 않는 상태가 말한다.
+      final banner = tester.widget<Container>(
         find.byKey(
           const ValueKey<String>('chat-insight-banner-seed-chat-1-16'),
         ),
       );
-      expect(banner.tone, AppBannerTone.danger);
-      expect(banner.onAction, isNull);
+      final decoration = banner.decoration! as BoxDecoration;
+      expect(decoration.color, OnCareColors.surfaceCard);
+      expect(
+        (decoration.border! as Border).top.color,
+        OnCareColors.onWhite(OnCareColors.danger, OnCareAlpha.strong),
+      );
+      expect(
+        tester.widget<Text>(find.text('메모 추가됨')).style?.color,
+        OnCareColors.danger,
+      );
+      expect(tester.widget<InkWell>(addButton).onTap, isNull);
       // 채팅에서 저장한 메모는 회원 상세가 읽는 것과 **같은** 메모 목록에 들어간다.
       final memos = await container
           .read(trainerMemoRepositoryProvider)
