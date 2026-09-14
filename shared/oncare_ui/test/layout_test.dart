@@ -67,6 +67,52 @@ void main() {
     );
   });
 
+  testWidgets('가운데 + 버튼은 바 위로 튀어나온 56 원형이다(#1742)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: OnCareTheme.light(
+          brand: OnCareBrand.member,
+          density: OnCareDensity.mobile,
+        ),
+        home: Scaffold(
+          bottomNavigationBar: AppBottomNav(
+            destinations: const <AppNavDestination>[
+              AppNavDestination(
+                icon: Icons.home_rounded,
+                selectedIcon: Icons.home_rounded,
+                label: '홈',
+              ),
+              AppNavDestination(
+                icon: Icons.person_rounded,
+                selectedIcon: Icons.person_rounded,
+                label: 'MY',
+              ),
+            ],
+            selectedIndex: 0,
+            onSelected: (_) {},
+            centerAction: AppNavAddButton(tooltip: '기록 추가', onPressed: () {}),
+          ),
+        ),
+      ),
+    );
+    final Rect nav = tester.getRect(find.byType(AppBottomNav));
+    final Rect add = tester.getRect(find.byType(AppNavAddButton));
+    expect(add.size, const Size.square(AppBottomNav.centerActionSize));
+    expect(
+      nav.height,
+      AppBottomNav.centerActionLift +
+          AppBottomNav.barHeight +
+          AppBottomNav.minBottomPadding,
+    );
+    // 버튼 윗부분이 흰 바 윗선보다 위에 있다.
+    expect(
+      add.top,
+      lessThan(
+        nav.bottom - AppBottomNav.barHeight - AppBottomNav.minBottomPadding,
+      ),
+    );
+  });
+
   testWidgets('웹 분할 레이아웃은 목록 380 + 간격 16 이다', (tester) async {
     tester.view.physicalSize = const Size(1280, 900);
     tester.view.devicePixelRatio = 1;
