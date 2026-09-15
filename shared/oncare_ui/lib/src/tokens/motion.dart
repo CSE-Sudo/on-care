@@ -41,4 +41,18 @@ class OnCareMotion {
 
   /// 동작 버튼이 있으면 눌러 볼 시간을 준다.
   static const Duration toastActionVisible = Duration(seconds: 4);
+
+  // --- 포인트 적립 ---
+  /// 토스트의 적립 표시(★ +50P)가 톡 튀며 한 번 반짝이는 시간. 토스트가 내려앉은
+  /// 뒤 시작해 [toastVisible] 안에 끝난다.
+  static const Duration rewardSparkle = Duration(milliseconds: 900);
+
+  /// 잔액 숫자가 이전 값에서 새 값으로 올라가는 시간.
+  static const Duration pointsCountUp = Duration(milliseconds: 800);
+
+  /// 별 아이콘이 톡 튀었다 돌아오는 시간.
+  static const Duration pointsPop = Duration(milliseconds: 360);
+
+  /// 톡 튈 때 가장 커지는 배율.
+  static const double rewardPopScale = 1.3;
 }

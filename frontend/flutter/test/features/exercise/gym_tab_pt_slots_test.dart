@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -168,7 +169,7 @@ void main() {
     expect(find.text(l.exTrainerAvailability(_trainer.name)), findsOneWidget);
     expect(find.text('김트레이너 빈 예약 시간'), findsOneWidget);
     // AI 표식 대신 예약 성격에 맞는 아이콘이 붙는다.
-    expect(find.byIcon(Icons.event_available_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.eventAvailable), findsOneWidget);
   });
 
   testWidgets('연결된 헬스장은 정보 다음에 예약 상자만 배치한다 (#1287)', (

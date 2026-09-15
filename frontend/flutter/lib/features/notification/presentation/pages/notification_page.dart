@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/alert_navigation.dart';
+import 'package:oncare/features/notification/presentation/alert_text.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -18,20 +20,17 @@ import 'package:oncare_ui/oncare_ui.dart';
 ) => switch (c) {
   AlertCategory.reminder => (
     label: l.alertCategoryReminder,
-    icon: Icons.notifications_rounded,
+    icon: AppIcons.notifications,
   ),
   AlertCategory.healthCheck => (
     label: l.alertCategoryHealth,
-    icon: Icons.monitor_heart_rounded,
+    icon: AppIcons.healthCheck,
   ),
   AlertCategory.achievement => (
     label: l.alertCategoryAchievement,
-    icon: Icons.emoji_events_rounded,
+    icon: AppIcons.achievement,
   ),
-  AlertCategory.system => (
-    label: l.alertCategorySystem,
-    icon: Icons.info_rounded,
-  ),
+  AlertCategory.system => (label: l.alertCategorySystem, icon: AppIcons.info),
 };
 
 /// 목록 행 바탕 — 안 읽은 알림은 브랜드 옅은 색, 읽은 알림은 흰색(#1810).
@@ -159,7 +158,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                     child: AppBanner(
                       key: const Key('notificationRetryBanner'),
                       tone: AppBannerTone.danger,
-                      icon: Icons.cloud_off_rounded,
+                      icon: AppIcons.offline,
                       title: l.alertLoadFailed,
                       actionLabel: l.actionRetry,
                       onAction: _refresh,
@@ -175,7 +174,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                       0,
                     ),
                     child: AppEmptyState(
-                      icon: Icons.notifications_off_rounded,
+                      icon: AppIcons.notificationsOff,
                       title: l.alertEmpty,
                     ),
                   );
@@ -216,6 +215,7 @@ class _AlertTile extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final display = _categoryDisplay(l, item.category);
+    final text = alertText(l, item);
     final double side = tokens.density.pagePadding;
     return Semantics(
       key: ValueKey<String>('notification-row-${item.id}'),
@@ -240,17 +240,17 @@ class _AlertTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        item.title,
+                        text.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: tokens
                             .text(OnCareTypography.titleSmall)
                             .copyWith(color: OnCareColors.textPrimary),
                       ),
-                      if (item.body.trim().isNotEmpty) ...<Widget>[
+                      if (text.body.trim().isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s4),
                         Text(
-                          item.body,
+                          text.body,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: tokens
@@ -260,7 +260,7 @@ class _AlertTile extends StatelessWidget {
                       ],
                       const SizedBox(height: OnCareSpacing.s4),
                       Text(
-                        item.timeAgo,
+                        alertTimeAgo(l, item),
                         key: ValueKey<String>('notification-time-${item.id}'),
                         style: OnCareTypography.numeric(
                           tokens.text(OnCareTypography.caption),
@@ -295,7 +295,7 @@ class _CategoryBadge extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: OnCareColors.lineSubtle),
       ),
-      child: Icon(
+      child: AppIcon(
         icon,
         size: OnCareSize.iconMedium,
         color: OnCareColors.textSecondary,

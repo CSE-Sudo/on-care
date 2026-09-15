@@ -1257,9 +1257,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachInviteReject => '거절';
 
   @override
-  String get coachInviteRejectConfirmTitle => '초대를 거절할까요?';
-
-  @override
   String coachInviteAccepted(String name) {
     return '$name 트레이너가 담당으로 연결됐어요';
   }
@@ -1850,7 +1847,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authDemoAction => '로그인 없이 데모 둘러보기';
 
   @override
-  String get authOrDivider => '또는';
+  String get authSocialDivider => 'SNS 계정으로 로그인';
 
   @override
   String get authKakaoAction => '카카오로 시작하기';
@@ -1859,7 +1856,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authGoogleAction => '구글로 시작하기';
 
   @override
-  String get authMissingCredentials => '이메일과 비밀번호를 입력해 주세요';
+  String get authEmailEmpty => '이메일을 입력해 주세요';
+
+  @override
+  String get authEmailInvalid => '이메일 형식이 올바르지 않아요';
+
+  @override
+  String get authPasswordEmpty => '비밀번호를 입력해 주세요';
 
   @override
   String get authSignInFailed => '로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요';
@@ -1877,13 +1880,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpNameHint => '이름';
 
   @override
-  String get signUpPhoneHint => '전화번호';
+  String get signUpNameEmpty => '이름을 입력해 주세요';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
 
   @override
   String get signUpPhoneHelper => '트레이너가 회원님을 확인할 때 쓰는 연락처예요';
 
   @override
-  String get signUpPasswordHint => '비밀번호 (8자 이상)';
+  String get signUpPasswordHint => '비밀번호 (영문·숫자 포함 8자 이상)';
 
   @override
   String get signUpPasswordConfirmHint => '비밀번호 확인';
@@ -1895,13 +1901,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpHaveAccountQuestion => '이미 계정이 있으신가요?';
 
   @override
-  String get signUpPasswordTooShort => '비밀번호는 8자 이상이어야 해요';
+  String get signUpPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
 
   @override
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';
 
   @override
-  String get signUpPhoneInvalid => '전화번호를 4자리 이상 입력해 주세요';
+  String get signUpPhoneFormatInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get trainerSyncEntryLabel => '트레이너와 데이터 동기화';
@@ -2334,10 +2340,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsDietAdd => '식단 추가';
 
   @override
-  String get myPointsAiExercise => 'AI 추천 운동 완료';
+  String get myPointsRoutineComplete => '추천·배정 운동 완료';
 
   @override
   String get myPointsExerciseAdd => '운동 직접 추가';
+
+  @override
+  String myPointsRuleWithDailyCap(String action, int count) {
+    return '$action (하루 $count회)';
+  }
 
   @override
   String get coachAssignedTrainer => '담당 트레이너';
@@ -2476,6 +2487,82 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertLoadFailed => '최신 알림을 불러오지 못했어요';
 
   @override
+  String get alertTimeJustNow => '방금';
+
+  @override
+  String alertTimeMinutesAgo(int minutes) {
+    return '$minutes분 전';
+  }
+
+  @override
+  String alertTimeHoursAgo(int hours) {
+    return '$hours시간 전';
+  }
+
+  @override
+  String get alertTimeYesterday => '어제';
+
+  @override
+  String alertTimeDaysAgo(int days) {
+    return '$days일 전';
+  }
+
+  @override
+  String get demoAlertSodiumTitle => '나트륨 섭취 주의';
+
+  @override
+  String get demoAlertSodiumBody =>
+      '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.';
+
+  @override
+  String get demoAlertDinnerTitle => '저녁 식단을 기록해 주세요';
+
+  @override
+  String get demoAlertDinnerBody => '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.';
+
+  @override
+  String get demoAlertRoutineTitle => '새 운동 루틴이 도착했어요';
+
+  @override
+  String get demoAlertRoutineBody => '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+
+  @override
+  String get demoAlertReportTitle => '이번 주 리포트가 등록됐어요';
+
+  @override
+  String get demoAlertReportBody => '김트레이너님이 이번 주 리포트를 등록했어요.';
+
+  @override
+  String get demoAlertPtDoneTitle => 'PT 수업 완료';
+
+  @override
+  String get demoAlertPtDoneBody => '오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!';
+
+  @override
+  String get demoAlertTrainerFeedbackTitle => '트레이너 피드백 도착';
+
+  @override
+  String get demoAlertTrainerFeedbackBody => '마무리로 어깨 회전근개 스트레칭을 꼭 해주세요.';
+
+  @override
+  String get demoAlertWeeklyGoalTitle => '이번 주 운동 목표까지 조금 남았어요';
+
+  @override
+  String get demoAlertWeeklyGoalBody => '저강도 유산소(걷기) 30분부터 채워 봐요.';
+
+  @override
+  String get demoAlertMealStreakTitle => '식단 기록을 꾸준히 이어가고 있어요';
+
+  @override
+  String get demoAlertMealStreakBody => '한 달 넘게 하루도 빠짐없이 식단을 기록하고 있어요.';
+
+  @override
+  String get demoAlertMaintenanceTitle => '서비스 점검 안내';
+
+  @override
+  String get demoAlertMaintenanceBody => '내일 02:00~03:00 점검 예정입니다.';
+
+  @override
   String get exPtLogTitle => '오늘 완료한 PT';
 
   @override
@@ -2557,4 +2644,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exStepperIncrease => '늘리기';
+
+  @override
+  String pointsRewardBadge(int points) {
+    return '+${points}P';
+  }
 }

@@ -2,7 +2,7 @@ import 'package:test/test.dart';
 import 'package:ui_guard/ui_guard.dart';
 
 /// [body] 를 위젯 build 메서드 안에 넣어 검사하고 걸린 항목 id 를 돌려준다.
-List<String> scan(String body) {
+List<String> scan(String body, {IconPolicy iconPolicy = IconPolicy.rounded}) {
   final source =
       '''
 import 'package:flutter/material.dart';
@@ -11,7 +11,10 @@ Widget build(BuildContext context) {
   return $body;
 }
 ''';
-  return scanSource(source).map((f) => f.rule.id).toList();
+  return scanSource(
+    source,
+    iconPolicy: iconPolicy,
+  ).map((f) => f.rule.id).toList();
 }
 
 void main() {
@@ -177,6 +180,53 @@ class A {
       expect(
         scan('Row(children: [Icon(Icons.close), Icon(Icons.close_rounded)])'),
         ['nonRoundedIcon'],
+      );
+    });
+
+    test('트레이너웹(rounded)은 Symbols·Icon 생성을 보지 않는다', () {
+      expect(
+        scan('Row(children: [Icon(Symbols.home_rounded), const Icon(x)])'),
+        isEmpty,
+      );
+    });
+
+    test('회원앱 화면(registry)은 목록 밖 아이콘과 Icon 생성을 잡는다', () {
+      expect(
+        scan(
+          'Row(children: [Icon(Icons.close_rounded), '
+          'const Icon(Symbols.home_rounded, size: 16), '
+          'AppIcon(AppIcons.home), AppButton(leadingIcon: Icons.add)])',
+          iconPolicy: IconPolicy.registry,
+        ),
+        [
+          'rawIcon',
+          'iconOutsideRegistry',
+          'rawIcon',
+          'iconOutsideRegistry',
+          'iconOutsideRegistry',
+        ],
+      );
+      expect(
+        scan('Symbols.home_rounded.codePoint', iconPolicy: IconPolicy.registry),
+        ['iconOutsideRegistry'],
+      );
+      expect(
+        scan(
+          'Row(children: [AppIcon(AppIcons.home, size: 16), '
+          'AppIconButton(icon: AppIcons.close), IconTheme(data: d, child: x)])',
+          iconPolicy: IconPolicy.registry,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('아이콘 목록 파일(none)은 아이콘을 보지 않는다', () {
+      expect(
+        scan(
+          'Row(children: [Icon(Symbols.home_rounded), Icon(Icons.close)])',
+          iconPolicy: IconPolicy.none,
+        ),
+        isEmpty,
       );
     });
 

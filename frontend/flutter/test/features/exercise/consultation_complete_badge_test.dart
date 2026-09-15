@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
@@ -47,7 +48,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final Finder check = find.byIcon(Icons.check_rounded);
+    final Finder check = find.byIcon(AppIcons.check);
     expect(check, findsOneWidget);
 
     final Finder badge = find

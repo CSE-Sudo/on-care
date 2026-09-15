@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
@@ -291,7 +292,7 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
             child: AppTag(
               label: s,
               tone: AppTagTone.brand,
-              icon: Icons.menu_book_rounded,
+              icon: AppIcons.guide,
             ),
           ),
       ],

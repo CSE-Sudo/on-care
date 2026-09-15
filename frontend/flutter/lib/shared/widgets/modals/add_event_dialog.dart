@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
@@ -222,7 +223,7 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
             key: const Key('addEventDate'),
             label: l.eventDateLabel,
             value: m.formatMediumDate(_date),
-            icon: Icons.calendar_today_rounded,
+            icon: AppIcons.calendar,
             onTap: _saving ? null : _pickDate,
           ),
           const SizedBox(height: OnCareSpacing.s16),
@@ -233,7 +234,7 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
             // 그대로 말해 준다.
             value: _time == null ? l.eventTimeNone : m.formatTimeOfDay(_time!),
             muted: _time == null,
-            icon: Icons.schedule_rounded,
+            icon: AppIcons.clock,
             onTap: _saving ? null : _pickTime,
             onClear: _time == null || _saving
                 ? null
@@ -313,7 +314,7 @@ class _TapField extends StatelessWidget {
                 minHeight: tokens.density.inputMedium,
               ),
               contentPadding: const EdgeInsets.only(left: OnCareSpacing.s12),
-              prefixIcon: Icon(
+              prefixIcon: AppIcon(
                 icon,
                 size: OnCareSize.iconMedium,
                 color: OnCareColors.textTertiary,
@@ -321,7 +322,7 @@ class _TapField extends StatelessWidget {
               suffixIcon: onClear == null
                   ? null
                   : AppIconButton(
-                      icon: Icons.close_rounded,
+                      icon: AppIcons.close,
                       tooltip: l.eventClearField(label),
                       color: OnCareColors.textTertiary,
                       onPressed: onClear,

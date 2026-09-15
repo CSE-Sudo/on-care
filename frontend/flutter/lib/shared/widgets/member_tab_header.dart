@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -40,7 +41,7 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       actions: <Widget>[
         HeaderActionButton(
-          icon: Icons.notifications_rounded,
+          icon: AppIcons.notifications,
           tooltip: l.pageNotificationTitle,
           showDot: bellHasUnread,
           onPressed: onBell,
@@ -113,8 +114,8 @@ class MemberLogo extends StatelessWidget {
       height: size,
       fit: BoxFit.contain,
       // 자산이 빠져도 머리는 그려야 한다.
-      errorBuilder: (BuildContext _, Object _, StackTrace? _) => Icon(
-        Icons.favorite_rounded,
+      errorBuilder: (BuildContext _, Object _, StackTrace? _) => AppIcon(
+        AppIcons.favorite,
         size: size,
         color: context.oncare.brand.primary,
       ),
