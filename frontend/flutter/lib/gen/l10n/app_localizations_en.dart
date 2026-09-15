@@ -2382,6 +2382,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsExerciseAdd => 'Log a workout yourself';
 
   @override
+  String myPointsRuleWithDailyCap(String action, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'up to $count times a day',
+      one: 'once a day',
+    );
+    return '$action ($_temp0)';
+  }
+
+  @override
   String get coachAssignedTrainer => 'My trainer';
 
   @override

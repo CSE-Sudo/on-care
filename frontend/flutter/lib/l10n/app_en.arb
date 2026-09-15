@@ -1419,6 +1419,18 @@
   "@myPointsExerciseAdd": {
     "description": "Point-earning action in the points guide."
   },
+  "myPointsRuleWithDailyCap": "{action} ({count, plural, =1{once a day} other{up to {count} times a day}})",
+  "@myPointsRuleWithDailyCap": {
+    "description": "Point-earning action in the points guide with its daily earning limit, e.g. 'Log a meal (up to 3 times a day)'.",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "coachAssignedTrainer": "My trainer",
   "@coachAssignedTrainer": {
     "description": "Header of the assigned trainer card."

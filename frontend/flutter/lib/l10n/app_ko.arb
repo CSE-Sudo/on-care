@@ -807,6 +807,17 @@
   "myPointsDietAdd": "식단 추가",
   "myPointsAiExercise": "AI 추천 운동 완료",
   "myPointsExerciseAdd": "운동 직접 추가",
+  "myPointsRuleWithDailyCap": "{action} (하루 {count}회)",
+  "@myPointsRuleWithDailyCap": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "coachAssignedTrainer": "담당 트레이너",
   "coachPointsTitle": "이번 코칭 포인트",
   "coachRoutineTitle": "추천 개인운동",

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/points/points_rules.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -584,26 +585,31 @@ class _PointsInfoButton extends StatelessWidget {
           onPressed: () => Navigator.of(ctx).pop(),
           fullWidth: true,
         ),
+        // 포인트와 하루 한도는 적립 규칙([PointsRule])에서 읽는다(#1786). 안내창에
+        // 숫자를 따로 적어 두면 규칙을 바꿀 때 문구만 옛 값으로 남는다.
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _PointRule(
+            _PointRule.of(
+              l,
               icon: Icons.restaurant_rounded,
-              text: l.myPointsDietAdd,
-              points: '+50P',
+              action: l.myPointsDietAdd,
+              rule: PointsRule.dietEntry,
             ),
             const SizedBox(height: OnCareSpacing.s12),
-            _PointRule(
+            _PointRule.of(
+              l,
               icon: Icons.auto_awesome_rounded,
-              text: l.myPointsAiExercise,
-              points: '+50P',
+              action: l.myPointsAiExercise,
+              rule: PointsRule.aiRoutineComplete,
             ),
             const SizedBox(height: OnCareSpacing.s12),
-            _PointRule(
+            _PointRule.of(
+              l,
               icon: Icons.fitness_center_rounded,
-              text: l.myPointsExerciseAdd,
-              points: '+20P',
+              action: l.myPointsExerciseAdd,
+              rule: PointsRule.exerciseManual,
             ),
           ],
         ),
@@ -629,6 +635,18 @@ class _PointRule extends StatelessWidget {
     required this.text,
     required this.points,
   });
+
+  /// 적립 규칙 한 줄 — 왼쪽에 `식단 추가 (하루 3회)`, 오른쪽에 `+50P`.
+  _PointRule.of(
+    AppLocalizations l, {
+    required IconData icon,
+    required String action,
+    required PointsRule rule,
+  }) : this(
+         icon: icon,
+         text: l.myPointsRuleWithDailyCap(action, rule.dailyCap),
+         points: l.pointsRewardBadge(rule.points),
+       );
 
   final IconData icon;
   final String text;

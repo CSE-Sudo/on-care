@@ -2,36 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/points/points_award.dart';
+import 'package:oncare/core/points/points_rules.dart';
 import 'package:oncare/core/utils/clock.dart';
+
+// 원장을 쓰는 목업들이 규칙도 함께 읽으므로 같이 내보낸다.
+export 'package:oncare/core/points/points_rules.dart';
 
 /// 데모 회원(김민수)의 시작 잔액. 백엔드 시드(`DEMO_OPENING_POINTS`)와 같은 값이다.
 const int kDemoOpeningPoints = 1240;
-
-/// 적립 규칙 — 백엔드 `points_service` 의 규칙과 같다. (#1786)
-///
-/// 하루 한도는 KST 달력 날짜로 센다. 한쪽만 고치면 데모와 실서버가 같은 기록에
-/// 다른 포인트를 준다.
-enum PointsRule {
-  /// 사진 분석으로 끼니가 새로 저장될 때.
-  dietEntry(sourceType: 'diet_entry', points: 50, dailyCap: 3),
-
-  /// 회원이 직접 추가한 운동.
-  exerciseManual(sourceType: 'exercise_session', points: 20, dailyCap: 3),
-
-  /// AI 가 추천한 루틴을 완료해 생긴 운동 기록.
-  aiRoutineComplete(sourceType: 'exercise_session', points: 50, dailyCap: 1);
-
-  const PointsRule({
-    required this.sourceType,
-    required this.points,
-    required this.dailyCap,
-  });
-
-  /// 적립의 근거가 된 기록 종류. 회수할 때 이 값과 기록 id 로 찾는다.
-  final String sourceType;
-  final int points;
-  final int dailyCap;
-}
 
 /// 목업 API 의 포인트 원장. 서버 `points_ledger` 의 대역이다. (#1786)
 ///

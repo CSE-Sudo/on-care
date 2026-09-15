@@ -2319,6 +2319,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsExerciseAdd => '운동 직접 추가';
 
   @override
+  String myPointsRuleWithDailyCap(String action, int count) {
+    return '$action (하루 $count회)';
+  }
+
+  @override
   String get coachAssignedTrainer => '담당 트레이너';
 
   @override

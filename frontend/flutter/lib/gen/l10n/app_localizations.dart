@@ -4339,6 +4339,12 @@ abstract class AppLocalizations {
   /// **'Log a workout yourself'**
   String get myPointsExerciseAdd;
 
+  /// Point-earning action in the points guide with its daily earning limit, e.g. 'Log a meal (up to 3 times a day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} ({count, plural, =1{once a day} other{up to {count} times a day}})'**
+  String myPointsRuleWithDailyCap(String action, int count);
+
   /// Header of the assigned trainer card.
   ///
   /// In en, this message translates to:
