@@ -41,13 +41,12 @@ String? shopBlockLabel(AppLocalizations l, ShopItem item) {
 }
 
 /// 쿠폰의 혜택 한 줄.
-String couponBenefit(AppLocalizations l, Coupon coupon) =>
-    switch (coupon.item) {
-      kPtRenewalItem => l.myCouponPtRenewalBenefit,
-      kSaladDiscountItem => l.myShopSaladTitle,
-      kProteinDiscountItem => l.myShopProteinTitle,
-      _ => coupon.benefit.isNotEmpty ? coupon.benefit : coupon.title,
-    };
+String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) {
+  kPtRenewalItem => l.myCouponPtRenewalBenefit,
+  kSaladDiscountItem => l.myShopSaladTitle,
+  kProteinDiscountItem => l.myShopProteinTitle,
+  _ => coupon.benefit.isNotEmpty ? coupon.benefit : coupon.title,
+};
 
 IconData benefitIcon(String itemId) => switch (itemId) {
   kPtRenewalItem => Icons.card_membership_rounded,
