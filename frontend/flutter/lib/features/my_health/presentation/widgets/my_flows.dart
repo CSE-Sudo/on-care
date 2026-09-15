@@ -687,9 +687,12 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
                 key: ValueKey<String>('goal-focus-$option'),
                 label: healthFocusLabel(l, option),
                 selected: _focus.contains(option),
-                onSelected: (_) => setState(() {
-                  if (!_focus.remove(option)) _focus.add(option);
-                }),
+                // 두 개를 고르면 나머지 칩은 잠긴다 — 온보딩과 같다(#1814).
+                onSelected: canPickHealthFocus(_focus, option)
+                    ? (_) => setState(() {
+                        if (!_focus.remove(option)) _focus.add(option);
+                      })
+                    : null,
               ),
           ],
         ),

@@ -654,11 +654,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     AppChoiceChip(
                       label: healthFocusLabel(l, c),
                       selected: _conditions.contains(c),
-                      onSelected: (_) => setState(() {
-                        if (!_conditions.remove(c)) _conditions.add(c);
-                        // 손대지 않은 목표 칸이 고른 목표를 따라간다(#1816).
-                        _fillRecommended();
-                      }),
+                      // 두 개를 고르면 나머지 칩은 잠긴다(#1814).
+                      onSelected: canPickHealthFocus(_conditions, c)
+                          ? (_) => setState(() {
+                              if (!_conditions.remove(c)) _conditions.add(c);
+                              // 손대지 않은 목표 칸이 고른 목표를 따라간다(#1816).
+                              _fillRecommended();
+                            })
+                          : null,
                     ),
                 ],
               ),

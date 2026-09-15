@@ -335,16 +335,22 @@ void main() {
       expect(r.weeklyFlexibilityMinutes, 90);
     });
 
-    test('여러 목표는 칸마다 가장 적극적인 값을 쓴다', () {
-      final RecommendedGoals r = from(const <String>{
+    // 회원은 목표를 두 개까지 고른다(#1814) — 두 목표가 겹치는 조합으로 본다.
+    test('두 목표는 칸마다 가장 적극적인 값을 쓴다', () {
+      final RecommendedGoals loss = from(const <String>{
         kHealthFocusWeightLoss,
         kHealthFocusStrength,
-        kHealthFocusRehab,
       }, weightKg: 70);
-      expect(r.weeklyCardioMinutes, 200);
-      expect(r.weeklyStrengthSets, 28);
-      expect(r.weeklyFlexibilityMinutes, 90);
-      expect(r.dailyProteinG, 112);
+      expect(loss.weeklyCardioMinutes, 200);
+      expect(loss.weeklyStrengthSets, 28);
+      expect(loss.dailyProteinG, 112);
+
+      final RecommendedGoals rehab = from(const <String>{
+        kHealthFocusRehab,
+        kHealthFocusStrength,
+      });
+      expect(rehab.weeklyStrengthSets, 28);
+      expect(rehab.weeklyFlexibilityMinutes, 90);
     });
 
     test('운동 습관을 고르면 유산소는 낮게 시작한다', () {

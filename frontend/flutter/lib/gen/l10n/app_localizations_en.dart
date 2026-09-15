@@ -2023,7 +2023,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardHealthSubtitle =>
-      'Pick what you want to focus on in your health care. (multiple allowed)';
+      'Pick what you want to focus on in your health care. (up to 2)';
 
   @override
   String get onboardGoalTitle => 'Exercise goal';
@@ -2277,7 +2277,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGoalsFocusHint =>
-      'Pick what you want to focus on in your health care. (multiple allowed)';
+      'Pick what you want to focus on in your health care. (up to 2)';
 
   @override
   String get healthFocusWeightLoss => 'Weight loss';

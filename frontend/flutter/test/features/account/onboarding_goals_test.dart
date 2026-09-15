@@ -334,9 +334,9 @@ void main() {
     await _open(tester);
     await _tapNext(tester);
 
+    // 건강 목표는 두 개까지다(#1814).
     await tester.tap(find.text('체중 감량'));
     await tester.tap(find.text('식습관 개선'));
-    await tester.tap(find.text('자세 교정'));
     await tester.pumpAndSettle();
     await _tapNext(tester);
 
@@ -353,7 +353,7 @@ void main() {
     expect(_text(tester, 'onboardBurnField'), '400');
     expect(_text(tester, 'onboardCardioField'), '200');
     expect(_text(tester, 'onboardStrengthField'), '21');
-    expect(_text(tester, 'onboardFlexibilityField'), '90');
+    expect(_text(tester, 'onboardFlexibilityField'), '60');
     expect(find.textContaining('고른 건강 목표를 반영한 값이에요'), findsOneWidget);
   });
 
@@ -427,6 +427,13 @@ void main() {
     await tester.tap(find.text('근력 향상'));
     await tester.tap(find.text('혈압 관리'));
     await tester.pumpAndSettle();
+    // 두 개를 골랐으니 세 번째는 잠긴다(#1814).
+    expect(
+      tester
+          .widget<AppChoiceChip>(find.widgetWithText(AppChoiceChip, '재활'))
+          .onSelected,
+      isNull,
+    );
 
     await _tapNext(tester);
     await _tapNext(tester);

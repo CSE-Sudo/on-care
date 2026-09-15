@@ -1969,8 +1969,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardHealthTitle => '건강 목표';
 
   @override
-  String get onboardHealthSubtitle =>
-      '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (복수 선택 가능)';
+  String get onboardHealthSubtitle => '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (최대 2개)';
 
   @override
   String get onboardGoalTitle => '운동 목표';
@@ -2215,7 +2214,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalsFocusSection => '주로 관리하고 싶은 항목';
 
   @override
-  String get myGoalsFocusHint => '건강 관리에서 더 집중하고 싶은 항목을 골라 주세요. (복수 선택 가능)';
+  String get myGoalsFocusHint => '건강 관리에서 더 집중하고 싶은 항목을 골라 주세요. (최대 2개)';
 
   @override
   String get healthFocusWeightLoss => '체중 감량';

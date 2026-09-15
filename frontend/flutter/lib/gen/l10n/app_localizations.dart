@@ -3688,7 +3688,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardHealthSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Pick what you want to focus on in your health care. (multiple allowed)'**
+  /// **'Pick what you want to focus on in your health care. (up to 2)'**
   String get onboardHealthSubtitle;
 
   /// No description provided for @onboardGoalTitle.
@@ -4138,7 +4138,7 @@ abstract class AppLocalizations {
   /// No description provided for @myGoalsFocusHint.
   ///
   /// In en, this message translates to:
-  /// **'Pick what you want to focus on in your health care. (multiple allowed)'**
+  /// **'Pick what you want to focus on in your health care. (up to 2)'**
   String get myGoalsFocusHint;
 
   /// Health goal chip in onboarding and MY health goals.
