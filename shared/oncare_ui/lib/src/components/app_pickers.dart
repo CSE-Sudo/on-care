@@ -1103,28 +1103,3 @@ Future<TimeOfDay?> showAppTimePicker({
     helpText: helpText,
   );
 }
-
-/// 시작·종료 시각을 차례로 고른다. 종료가 시작보다 이르면 `null` 이다.
-Future<(TimeOfDay, TimeOfDay)?> showAppTimeRangePicker({
-  required BuildContext context,
-  required TimeOfDay initialStart,
-  required TimeOfDay initialEnd,
-  String? startHelpText,
-  String? endHelpText,
-}) async {
-  final TimeOfDay? start = await showAppTimePicker(
-    context: context,
-    initialTime: initialStart,
-    helpText: startHelpText,
-  );
-  if (start == null || !context.mounted) return null;
-  final TimeOfDay? end = await showAppTimePicker(
-    context: context,
-    initialTime: initialEnd,
-    helpText: endHelpText,
-  );
-  if (end == null) return null;
-  final int startMinutes = start.hour * 60 + start.minute;
-  final int endMinutes = end.hour * 60 + end.minute;
-  return endMinutes > startMinutes ? (start, end) : null;
-}

@@ -3190,7 +3190,7 @@ abstract class AppLocalizations {
   /// No description provided for @exTimeRangeInvalidEnd.
   ///
   /// In en, this message translates to:
-  /// **'End time is earlier than start time'**
+  /// **'End time must be later than the start time.'**
   String get exTimeRangeInvalidEnd;
 
   /// No description provided for @exTimeRangePrevStep.

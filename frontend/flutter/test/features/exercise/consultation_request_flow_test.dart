@@ -13,7 +13,8 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' show OnCareColors;
+import 'package:oncare_ui/oncare_ui.dart'
+    show AppButton, AppTimeRangePickerDialog, OnCareColors;
 
 import '../../support/consultation_test_support.dart';
 
@@ -105,24 +106,18 @@ Future<void> _revealInForm(
 ///
 /// "시간 협의"가 없어진 뒤(#1587) 폼을 끝까지 채우려면 이 단계가 반드시
 /// 필요하다 — 선택기 내부 조작은 `consult_time_range_picker_test.dart` 의
-/// 몫이라 여기서는 열고 확인만 누른다. 공용 선택기는 시작·종료를 차례로
-/// 묻으므로(#1701) 확인을 두 번 누른다.
+/// 몫이라 여기서는 열고 확인만 누른다. 시작·종료를 한 창에서 고르므로
+/// (#1779) 확인은 한 번이다 — 창 아래 두 버튼(취소 / 확인)의 오른쪽이다.
 Future<void> _pickPreferredTime(WidgetTester tester) async {
   await _revealInForm(tester, find.byKey(const Key('consult-time')), 180);
   await tester.tap(find.byKey(const Key('consult-time')));
   await tester.pumpAndSettle();
-  for (int step = 0; step < 2; step++) {
-    final Finder dialog = find.byType(TimePickerDialog);
-    expect(dialog, findsOneWidget);
-    final String ok = MaterialLocalizations.of(
-      tester.element(dialog),
-    ).okButtonLabel;
-    final Finder confirm = find.descendant(of: dialog, matching: find.text(ok));
-    await tester.ensureVisible(confirm);
-    await tester.pumpAndSettle();
-    await tester.tap(confirm);
-    await tester.pumpAndSettle();
-  }
+  final Finder dialog = find.byType(AppTimeRangePickerDialog);
+  expect(dialog, findsOneWidget);
+  await tester.tap(
+    find.descendant(of: dialog, matching: find.byType(AppButton)).last,
+  );
+  await tester.pumpAndSettle();
 }
 
 AppLocalizations _localizations(WidgetTester tester) {

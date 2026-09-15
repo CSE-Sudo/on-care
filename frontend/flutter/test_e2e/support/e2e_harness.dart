@@ -36,6 +36,8 @@ import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare_ui/oncare_ui.dart'
+    show AppButton, AppTimeRangePickerDialog;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String memberEmail = 'minsu@oncare.com';
@@ -728,72 +730,6 @@ Future<Finder> _revealInForm(WidgetTester tester, Finder target) async {
   return target;
 }
 
-/// 떠 있는 시간 선택기를 입력 모드로 바꿔 `HH:mm` 을 넣고 확인한다.
-///
-/// 12시간 표기 로케일이면 시를 1~12 로 넣고 오전/오후를 따로 고른다.
-Future<void> _enterTimeInPicker(
-  WidgetTester tester,
-  String hhmm, {
-  required String step,
-}) async {
-  final Finder dialog = find.byType(TimePickerDialog);
-  await pumpUntil(tester, dialog, step: step);
-  // 다이얼 모드의 유일한 아이콘 버튼이 입력 모드 전환이다.
-  final Finder toggle = find.descendant(
-    of: dialog,
-    matching: find.byType(IconButton),
-  );
-  if (toggle.evaluate().isNotEmpty) {
-    await tester.tap(toggle.last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 400));
-  }
-
-  final MaterialLocalizations ml = MaterialLocalizations.of(
-    tester.element(dialog),
-  );
-  final bool use24 = MediaQuery.alwaysUse24HourFormatOf(
-    tester.element(dialog),
-  );
-  final List<String> parts = hhmm.split(':');
-  final int hour = int.parse(parts[0]);
-  final String minute = parts[1];
-
-  final Finder fields = find.descendant(
-    of: dialog,
-    matching: find.byType(TextFormField),
-  );
-  await pumpUntil(tester, fields, step: '$step 입력칸');
-  final int shownHour = use24 ? hour : (hour % 12 == 0 ? 12 : hour % 12);
-  await tester.enterText(fields.first, '$shownHour');
-  await tester.pump();
-  await tester.enterText(fields.last, minute);
-  await tester.pump();
-
-  if (!use24) {
-    final Finder period = find.descendant(
-      of: dialog,
-      matching: find.text(
-        hour < 12 ? ml.anteMeridiemAbbreviation : ml.postMeridiemAbbreviation,
-      ),
-    );
-    if (period.evaluate().isNotEmpty) {
-      await tester.tap(period.first);
-      await tester.pump();
-    }
-  }
-
-  final Finder ok = find.descendant(
-    of: dialog,
-    matching: find.text(ml.okButtonLabel),
-  );
-  await tester.ensureVisible(ok);
-  await tester.pump();
-  await tester.tap(ok);
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-}
-
 /// [submitConsultation] 이 넣는 희망 시각. 서버에 남는 값
 /// (`preferred_time_slot`)이 `$consultStartTime-$consultEndTime` 이라,
 /// 시나리오가 그대로 단언할 수 있다.
@@ -862,10 +798,10 @@ Future<void> submitConsultation(
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
 
-  // "시간 협의"는 없앴다(#1587) — 희망 시각은 필수다. 공용 시간 범위 선택기는
-  // 시작·종료 시간 선택기를 차례로 연다(#1701). 다이얼을 돌리는 대신 입력
-  // 모드로 바꿔 시·분을 직접 넣는다: 제스처보다 흔들리지 않고, 값도 아래
-  // 단언과 맞춰 고정할 수 있다.
+  // "시간 협의"는 없앴다(#1587) — 희망 시각은 필수다. 상담 시간 선택창은
+  // 시작·종료를 한 창에서 고른다(#1779). 시계판을 돌리는 대신 시작·종료 칸에
+  // `HH:mm` 을 직접 넣는다: 제스처보다 흔들리지 않고, 값도 아래 단언과 맞춰
+  // 고정할 수 있다.
   final Finder time = await _revealInForm(
     tester,
     find.byKey(const Key('consult-time')),
@@ -874,8 +810,25 @@ Future<void> submitConsultation(
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
 
-  await _enterTimeInPicker(tester, consultStartTime, step: '희망 시작 시각');
-  await _enterTimeInPicker(tester, consultEndTime, step: '희망 종료 시각');
+  final Finder timeDialog = find.byType(AppTimeRangePickerDialog);
+  await pumpUntil(tester, timeDialog, step: '희망 시각 선택창');
+  await tester.enterText(
+    find.byKey(const ValueKey<String>('consult-time-range-start-input')),
+    consultStartTime,
+  );
+  await tester.pump();
+  await tester.enterText(
+    find.byKey(const ValueKey<String>('consult-time-range-end-input')),
+    consultEndTime,
+  );
+  await tester.pump();
+  // 확인은 창 아래 두 버튼(취소 / 확인)의 오른쪽이다 — 문구는 로케일마다
+  // 달라 자리로 고른다. 창이 길어도 두 버튼은 본문 스크롤 밖이라 늘 보인다.
+  await tester.tap(
+    find.descendant(of: timeDialog, matching: find.byType(AppButton)).last,
+  );
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
 
   final Finder box = await _revealInForm(
     tester,
