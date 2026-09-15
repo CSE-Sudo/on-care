@@ -9,11 +9,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import 'fake_benefits_repository.dart';
+import 'fake_challenge_repository.dart';
 
 void main() {
   Future<void> pumpShop(WidgetTester tester, FakeBenefitsRepository repo) async {
@@ -21,7 +23,13 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       ProviderScope(
-        overrides: <Override>[benefitsRepositoryProvider.overrideWithValue(repo)],
+        overrides: <Override>[
+          benefitsRepositoryProvider.overrideWithValue(repo),
+          // 사용처 화면은 주간 챌린지도 읽는다(#1789) — 가짜 저장소로 채운다.
+          challengeRepositoryProvider.overrideWithValue(
+            FakeChallengeRepository(),
+          ),
+        ],
         child: MaterialApp(
           theme: AppTheme.light(),
           locale: const Locale('ko'),

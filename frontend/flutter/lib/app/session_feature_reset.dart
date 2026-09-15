@@ -5,6 +5,7 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
@@ -57,6 +58,9 @@ Override sessionFeatureResetOverride() {
       // 앞 계정의 잔액·교환 가능 여부·쿠폰 코드가 남는다.
       ref.invalidate(pointsShopProvider);
       ref.invalidate(myCouponsProvider);
+      // 주간 챌린지(#1789) — 같은 이유로 앞 계정의 참가·진행이 남지 않게 한다.
+      ref.invalidate(weeklyChallengeProvider);
+      ref.invalidate(myChallengesProvider);
       ref.invalidate(notificationControllerProvider);
       ref.invalidate(notificationListProvider);
       // 알림 수신 설정은 실 백엔드에서 계정 단위다. 여기 없으면 앞 계정의 토글이
