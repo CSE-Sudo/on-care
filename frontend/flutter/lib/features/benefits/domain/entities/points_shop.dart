@@ -84,11 +84,8 @@ class PointsShop {
     balance: (json['balance'] as num?)?.toInt() ?? 0,
     hasTrainer: json['has_trainer'] == true,
     items: <ShopItem>[
-      for (final Object? raw
-          in (json['items'] as List<Object?>?) ?? <Object?>[])
-        ShopItem.fromJson(
-          (raw! as Map<Object?, Object?>).cast<String, Object?>(),
-        ),
+      for (final Object? raw in (json['items'] as List<Object?>?) ?? <Object?>[])
+        ShopItem.fromJson((raw! as Map<Object?, Object?>).cast<String, Object?>()),
     ],
   );
 }
