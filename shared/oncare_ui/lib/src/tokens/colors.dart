@@ -34,7 +34,7 @@ class OnCareColors {
   /// 카드·다이얼로그·시트.
   static const Color surfaceCard = Color(0xFFFFFFFF);
 
-  /// 입력 채움·진행 트랙·세그먼트 트랙.
+  /// 입력 채움·진행 트랙. 세그먼트 트랙은 브랜드별 값(`OnCareBrand.segmentTrack`)이다.
   static const Color surfaceInput = Color(0xFFF2F4F7);
 
   // --- 선 ---

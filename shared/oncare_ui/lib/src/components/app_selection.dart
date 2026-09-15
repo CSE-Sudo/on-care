@@ -94,9 +94,14 @@ class AppSegment<T> {
   final IconData? icon;
 }
 
-/// 세그먼트 토글(#1690 확정) — 오늘/주/월 같은 보기 전환.
+/// 세그먼트 토글(#1690) — 오늘/이번 주/전체·식단/운동 같은 보기 전환.
 ///
-/// 입력 채움 알약 트랙 위에서 선택 칸만 브랜드로 꽉 채우고 흰 글자로 쓴다.
+/// 공용 토글로 옮기기 전 두 앱의 알약 토글 모양이다(#1777).
+/// - 트랙: 알약, 안쪽 여백 3, 브랜드별 옅은 회색([OnCareBrand.segmentTrack]).
+/// - 선택 칸: 알약, 브랜드 채움, 흰 굵은 글자.
+/// - 선택 안 된 칸: 배경 없음, 브랜드별 회색 굵은 글자([OnCareBrand.segmentLabel]).
+/// - 높이는 고정하지 않고 글자와 여백으로 정해진다. 그래서 밀도(칩 높이)와 무관하게
+///   두 앱이 같은 크기로 선다.
 class AppSegmentedToggle<T> extends StatelessWidget {
   const AppSegmentedToggle({
     super.key,
@@ -116,12 +121,18 @@ class AppSegmentedToggle<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    final double height = tokens.density.chip;
+    // 글자를 키운 화면에서는 칸 폭 합이 커져 토글 전체가 그만큼 줄어드므로 좌우
+    // 여백을 좁힌다(#1058 · #1182). 앱은 배율을 상한에서 묶으므로 상한을 **넘는**
+    // 경우만 좁힌다 — 이전 토글과 같은 기준이다.
+    final double horizontalPadding =
+        MediaQuery.textScalerOf(context).scale(1) >
+            OnCareTypography.maxTextScale
+        ? OnCareSize.segmentPaddingHorizontalCompact
+        : OnCareSize.segmentPaddingHorizontal;
     return Container(
-      height: height,
-      padding: const EdgeInsets.all(OnCareSpacing.s2),
-      decoration: const BoxDecoration(
-        color: OnCareColors.surfaceInput,
+      padding: const EdgeInsets.all(OnCareSize.segmentTrackInset),
+      decoration: BoxDecoration(
+        color: tokens.brand.segmentTrack,
         borderRadius: OnCareRadius.pillAll,
       ),
       child: Row(
@@ -129,60 +140,75 @@ class AppSegmentedToggle<T> extends StatelessWidget {
         children: <Widget>[
           for (final AppSegment<T> segment in segments)
             _wrap(
-              Semantics(
-                button: true,
+              _segment(
+                tokens,
+                segment,
                 selected: segment.value == selected,
-                inMutuallyExclusiveGroup: true,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => onChanged(segment.value),
-                  child: AnimatedContainer(
-                    duration: OnCareMotion.normal,
-                    curve: OnCareMotion.curve,
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: OnCareSpacing.s12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: segment.value == selected
-                          ? tokens.brand.primary
-                          : Colors.transparent,
-                      borderRadius: OnCareRadius.mdAll,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        if (segment.icon != null) ...<Widget>[
-                          Icon(
-                            segment.icon,
-                            size: OnCareSize.iconSmall,
-                            color: segment.value == selected
-                                ? OnCareColors.textOnFill
-                                : OnCareColors.textSecondary,
-                          ),
-                          const SizedBox(width: OnCareSpacing.s4),
-                        ],
-                        Flexible(
-                          child: Text(
-                            segment.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: tokens
-                                .text(OnCareTypography.label)
-                                .copyWith(
-                                  color: segment.value == selected
-                                      ? OnCareColors.textOnFill
-                                      : OnCareColors.textSecondary,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                horizontalPadding: horizontalPadding,
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _segment(
+    OnCareTokens tokens,
+    AppSegment<T> segment, {
+    required bool selected,
+    required double horizontalPadding,
+  }) {
+    final Color foreground = selected
+        ? OnCareColors.textOnFill
+        : tokens.brand.segmentLabel;
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onChanged(segment.value),
+        child: AnimatedContainer(
+          duration: OnCareMotion.normal,
+          curve: OnCareMotion.curve,
+          // `alignment` 를 주지 않는다 — 주면 칸이 부모 높이만큼 늘어나 글자에
+          // 맞춘 높이가 깨진다. 가운데 정렬은 안쪽 Row 가 맡는다.
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: OnCareSize.segmentPaddingVertical,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? tokens.brand.primary : Colors.transparent,
+            borderRadius: OnCareRadius.pillAll,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            // 폭을 나눠 받는 칸(`expand`)에서도 아이콘·라벨이 가운데에 선다.
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              if (segment.icon != null) ...<Widget>[
+                Icon(
+                  segment.icon,
+                  size: OnCareSize.iconSmall,
+                  color: foreground,
+                ),
+                const SizedBox(width: OnCareSpacing.s4),
+              ],
+              // 폭을 나눠 받는 칸(`expand`)에서만 줄임표가 생긴다. 내용만큼의
+              // 토글은 부모가 폭을 묶지 않아 라벨이 온전하다(#1182).
+              Flexible(
+                child: Text(
+                  segment.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareTypography.segment)
+                      .copyWith(color: foreground),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

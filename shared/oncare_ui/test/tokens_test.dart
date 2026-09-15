@@ -28,6 +28,24 @@ void main() {
     test('탄단지는 메인 색을 흰 바탕에 65·35% 로 얹은 불투명 색이다(#953)', () {
       expect(OnCareBrand.trainer.macroProtein.a, 1.0);
     });
+
+    test('세그먼트 트랙·비선택 글자는 이전 앱별 값이다(#1777)', () {
+      expect(OnCareBrand.member.segmentTrack, const Color(0xFFF8FAFB));
+      expect(OnCareBrand.member.segmentLabel, const Color(0xFF64748B));
+      expect(OnCareBrand.trainer.segmentTrack, OnCareColors.surfaceInput);
+      expect(OnCareBrand.trainer.segmentLabel, OnCareColors.textSecondary);
+      for (final OnCareBrand brand in <OnCareBrand>[
+        OnCareBrand.member,
+        OnCareBrand.trainer,
+      ]) {
+        // 트랙 위 비선택 라벨도 본문 대비(4.5:1)를 지킨다.
+        expect(
+          _contrast(brand.segmentLabel, brand.segmentTrack),
+          greaterThanOrEqualTo(4.5),
+          reason: brand.name,
+        );
+      }
+    });
   });
 
   group('상태색은 두 앱이 같다', () {
@@ -103,6 +121,7 @@ void main() {
         OnCareTypography.buttonLarge,
         OnCareTypography.buttonMedium,
         OnCareTypography.buttonSmall,
+        OnCareTypography.segment,
       ]) {
         expect(style.fontSize! % 1, 0);
         expect(style.fontWeight!.value, lessThanOrEqualTo(700));
