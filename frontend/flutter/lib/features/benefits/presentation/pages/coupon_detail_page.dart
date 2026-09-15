@@ -8,18 +8,17 @@ import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 쿠폰 한 장 — 혜택, (PT 재등록이면) 담당 트레이너·헬스장, 교환일,
-/// 만료일(D-n), 상태, 사용했으면 사용 시각. (#1787)
+/// 쿠폰 한 장 — 혜택, 담당 트레이너(PT 재등록)·헬스장(PT 재등록·개인 락커),
+/// 교환일, 만료일(D-n), 상태, 사용했으면 사용 시각. (#1787)
 ///
 /// 제목 옆에는 상태 태그를 두지 않는다. D-n 은 만료일 줄, 사용 완료는 위 안내 줄과
 /// 상태 줄이 말하고, 태그가 넓으면 제목이 두 줄로 밀린다.
 ///
-/// 모든 쿠폰은 회원 휴대폰에서 `사용 완료` 를 누른다. 파란 확인창을 한 번 거치고
-/// 되돌리기는 없다.
-/// - PT 재등록 쿠폰은 헬스장에서 회원이 이 화면을 열고 **트레이너·헬스장 직원이
-///   확인한 뒤** 누른다(직원 확인 버튼). 그래서 버튼 위에 직원에게 말하는 안내를
-///   두고, 확인창도 직원 확인용이라고 밝힌다.
-/// - 건강식·보충제 쿠폰은 매장에서 이 화면을 보여 준 뒤 회원이 누른다.
+/// 모든 쿠폰은 헬스장이 현장에서 주는 혜택이다. 헬스장에서 회원이 이 화면을 열고
+/// **직원이 확인한 뒤** 회원 휴대폰의 `사용 완료` 를 누른다(직원 확인 버튼). 그래서
+/// 버튼 위에 직원에게 말하는 안내를 두고, 파란 확인창도 직원 확인용이라고 밝힌다.
+/// 되돌리기는 없다. 안내는 PT 재등록이면 트레이너·헬스장 직원, 개인 락커면 헬스장
+/// 직원에게 말한다.
 ///
 /// 목록([myCouponsProvider])에서 이 쿠폰을 찾아 그린다. 사용 처리 뒤 목록을 다시
 /// 읽으면 이 화면도 사용 완료 상태로 바뀐다.
@@ -37,13 +36,10 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
 
   Future<void> _use(Coupon coupon) async {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool isRenewal = coupon.item == kPtRenewalItem;
     final bool ok = await showAppConfirmDialog(
       context: context,
-      title: isRenewal ? l.myCouponStaffConfirmTitle : l.myCouponUseConfirmTitle,
-      message: isRenewal
-          ? l.myCouponStaffConfirmMessage
-          : l.myCouponUseConfirmMessage,
+      title: l.myCouponStaffConfirmTitle,
+      message: l.myCouponStaffConfirmMessage,
       confirmLabel: l.myCouponUse,
       cancelLabel: l.myCancel,
     );
@@ -105,6 +101,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
   List<Widget> _details(BuildContext context, AppLocalizations l, Coupon coupon) {
     final OnCareTokens tokens = context.oncare;
     final bool isRenewal = coupon.item == kPtRenewalItem;
+    final bool isLocker = coupon.item == kLockerMonthItem;
     final String expiry = formatCouponDate(coupon.expiresOn);
     final DateTime? usedAt = coupon.usedAt;
     return <Widget>[
@@ -141,10 +138,10 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
             const SizedBox(height: OnCareSpacing.s16),
             const AppDivider(),
             const SizedBox(height: OnCareSpacing.s8),
-            if (isRenewal) ...<Widget>[
+            if (isRenewal)
               _InfoRow(label: l.myCouponTrainer, value: coupon.trainerName),
+            if (isRenewal || isLocker)
               _InfoRow(label: l.myCouponGym, value: coupon.gymName),
-            ],
             _InfoRow(
               label: l.myCouponIssuedOn,
               value: formatCouponDate(coupon.issuedOn),
@@ -182,13 +179,12 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
               .copyWith(color: OnCareColors.textSecondary),
         ),
         const SizedBox(height: OnCareSpacing.s16),
-        // 누르기 전에 눈에 걸리는 안내 — 버튼 바로 위. PT 재등록은 직원 확인,
-        // 건강식은 매장에서 보여 준 뒤 누른다.
+        // 누르기 전에 눈에 걸리는 안내 — 버튼 바로 위. 직원이 확인한 뒤 누른다.
         _Notice(
-          key: Key(isRenewal ? 'couponStaffNote' : 'couponStoreNote'),
-          icon: isRenewal ? Icons.badge_rounded : Icons.storefront_rounded,
+          key: const Key('couponStaffNote'),
+          icon: Icons.badge_rounded,
           color: tokens.brand.primary,
-          text: isRenewal ? l.myCouponStaffNote : l.myCouponMemberGuide,
+          text: isRenewal ? l.myCouponStaffNote : l.myCouponGymStaffNote,
         ),
         const SizedBox(height: OnCareSpacing.s8),
         AppButton(

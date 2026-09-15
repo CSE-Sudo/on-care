@@ -1,7 +1,8 @@
-/// 포인트 사용처 — 교환 카드, 잔액 부족 상태, 파란 2열 확인창 흐름. (#1787)
+/// 포인트 사용처 — 헬스장 쿠폰 두 장의 교환 카드, 막힌 이유, 파란 2열 확인창 흐름. (#1787)
 ///
-/// 예전 세 카드(결제 차감 할인·예측 리포트·레시피)는 사라지고 교환할 수 있는
-/// 항목이 선다. 교환은 `교환` → `취소 / 교환하기` 확인창 → 포인트 차감 순서다.
+/// 예전 세 카드(결제 차감 할인·예측 리포트·레시피)와 외부 매장 쿠폰은 사라지고
+/// 헬스장이 주는 PT 재등록 3만원 할인·개인 락커 1개월 무료가 선다. 교환은 `교환` →
+/// `취소 / 교환하기` 확인창 → 포인트 차감 순서다.
 library;
 
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ void main() {
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const PointsBenefitsPage(points: 1240),
+          home: const PointsBenefitsPage(points: 9000),
         ),
       ),
     );
@@ -40,24 +41,32 @@ void main() {
   AppButton buttonOf(WidgetTester tester, String item) =>
       tester.widget<AppButton>(exchangeButton(item));
 
+  String blockedText(WidgetTester tester, String item) => tester
+      .widget<Text>(find.byKey(ValueKey<String>('shop-blocked-$item')))
+      .data!;
+
   /// 토스트가 스스로 사라질 때까지 흘려보낸다 — 남은 타이머로 테스트가 깨지지 않게.
   Future<void> drainToast(WidgetTester tester) async {
     await tester.pump(const Duration(seconds: 10));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('교환할 수 있는 세 항목이 서고 예전 카드는 없다', (tester) async {
+  testWidgets('헬스장 쿠폰 두 항목이 서고 예전 카드·매장 쿠폰은 없다', (tester) async {
     await pumpShop(tester, FakeBenefitsRepository());
 
-    expect(find.text('PT 재등록 할인 쿠폰'), findsOneWidget);
-    expect(find.text('샐러드 10% 할인'), findsOneWidget);
-    expect(find.text('프로틴 3,000원 할인'), findsOneWidget);
-    expect(find.text('5,000P'), findsOneWidget);
-    expect(find.text('1,000P'), findsNWidgets(2));
-    expect(find.text('교환 후 30일 동안 사용'), findsNWidgets(3));
-    expect(find.text('보유 1,240P'), findsNothing);
-    expect(find.text('보유 1240P'), findsOneWidget);
+    expect(find.text('PT 재등록 3만원 할인'), findsOneWidget);
+    expect(find.text('개인 락커 1개월 무료'), findsOneWidget);
+    // 혜택 1만원 = 7,000P.
+    expect(find.text('21,000P'), findsOneWidget);
+    expect(find.text('7,000P'), findsOneWidget);
+    expect(find.text('교환 후 30일 동안 사용'), findsNWidgets(2));
+    expect(find.byIcon(Icons.card_membership_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.checkroom_rounded), findsOneWidget);
+    expect(find.text('보유 9,000P'), findsNothing);
+    expect(find.text('보유 9000P'), findsOneWidget);
 
+    expect(find.textContaining('샐러드'), findsNothing);
+    expect(find.textContaining('프로틴'), findsNothing);
     expect(find.textContaining('결제'), findsNothing);
     expect(find.textContaining('리포트'), findsNothing);
     expect(find.textContaining('레시피'), findsNothing);
@@ -75,14 +84,10 @@ void main() {
     await pumpShop(tester, FakeBenefitsRepository());
 
     expect(buttonOf(tester, 'pt_renewal').onPressed, isNull);
+    expect(blockedText(tester, 'pt_renewal'), '12,000P 부족해요');
+    expect(buttonOf(tester, 'locker_month').onPressed, isNotNull);
     expect(
-      find.byKey(const ValueKey<String>('shop-blocked-pt_renewal')),
-      findsOneWidget,
-    );
-    expect(find.text('3,760P 부족해요'), findsOneWidget);
-    expect(buttonOf(tester, 'salad_discount').onPressed, isNotNull);
-    expect(
-      find.byKey(const ValueKey<String>('shop-blocked-salad_discount')),
+      find.byKey(const ValueKey<String>('shop-blocked-locker_month')),
       findsNothing,
     );
   });
@@ -90,18 +95,43 @@ void main() {
   testWidgets('담당 트레이너가 없으면 재등록 쿠폰은 그 이유로 막힌다', (tester) async {
     await pumpShop(
       tester,
-      FakeBenefitsRepository(shop: shopWith(balance: 9000, hasTrainer: false)),
+      FakeBenefitsRepository(shop: shopWith(balance: 30000, hasTrainer: false)),
     );
 
     expect(buttonOf(tester, 'pt_renewal').onPressed, isNull);
-    expect(find.text('담당 트레이너가 있어야 교환할 수 있어요'), findsOneWidget);
+    expect(blockedText(tester, 'pt_renewal'), '담당 트레이너가 있어야 교환할 수 있어요');
+    expect(buttonOf(tester, 'locker_month').onPressed, isNotNull);
+  });
+
+  testWidgets('헬스장을 연결하지 않았으면 락커 쿠폰은 그 이유로 막힌다', (tester) async {
+    await pumpShop(
+      tester,
+      FakeBenefitsRepository(shop: shopWith(balance: 30000, hasGym: false)),
+    );
+
+    expect(buttonOf(tester, 'locker_month').onPressed, isNull);
+    expect(blockedText(tester, 'locker_month'), '헬스장을 연결해야 교환할 수 있어요');
+    expect(buttonOf(tester, 'pt_renewal').onPressed, isNotNull);
+  });
+
+  testWidgets('이번 달에 락커 쿠폰을 교환했으면 그 이유로 막힌다', (tester) async {
+    await pumpShop(
+      tester,
+      FakeBenefitsRepository(
+        shop: shopWith(balance: 30000, monthlyUsed: <String>{'locker_month'}),
+      ),
+    );
+
+    expect(buttonOf(tester, 'locker_month').onPressed, isNull);
+    expect(blockedText(tester, 'locker_month'), '이번 달에는 이미 교환했어요');
+    expect(buttonOf(tester, 'pt_renewal').onPressed, isNotNull);
   });
 
   testWidgets('교환 → 파란 2열 확인창 → 교환하기로 포인트를 쓴다', (tester) async {
     final FakeBenefitsRepository repo = FakeBenefitsRepository();
     await pumpShop(tester, repo);
 
-    await tester.tap(exchangeButton('salad_discount'));
+    await tester.tap(exchangeButton('locker_month'));
     await tester.pumpAndSettle();
 
     expect(find.byType(AppDialog), findsOneWidget);
@@ -117,10 +147,10 @@ void main() {
     await tester.tap(find.text('교환하기'));
     await tester.pumpAndSettle();
 
-    expect(repo.exchanged, <String>['salad_discount']);
+    expect(repo.exchanged, <String>['locker_month']);
     expect(find.byType(AppDialog), findsNothing);
     // 목록을 다시 읽어 잔액이 줄었다.
-    expect(find.text('보유 240P'), findsOneWidget);
+    expect(find.text('보유 2000P'), findsOneWidget);
     expect(find.text('교환했어요'), findsOneWidget);
     await drainToast(tester);
   });
@@ -129,42 +159,32 @@ void main() {
     await pumpShop(
       tester,
       FakeBenefitsRepository(
-        shop: shopWith(balance: 9000, activeItems: <String>{'salad_discount'}),
+        shop: shopWith(balance: 30000, activeItems: <String>{'pt_renewal'}),
       ),
     );
 
-    expect(buttonOf(tester, 'salad_discount').onPressed, isNull);
-    expect(
-      tester
-          .widget<Text>(
-            find.byKey(const ValueKey<String>('shop-blocked-salad_discount')),
-          )
-          .data,
-      '사용하지 않은 쿠폰이 있어요',
-    );
+    expect(buttonOf(tester, 'pt_renewal').onPressed, isNull);
+    expect(blockedText(tester, 'pt_renewal'), '사용하지 않은 쿠폰이 있어요');
     // 다른 종류는 따로 센다.
-    expect(buttonOf(tester, 'protein_discount').onPressed, isNotNull);
-    expect(buttonOf(tester, 'pt_renewal').onPressed, isNotNull);
+    expect(buttonOf(tester, 'locker_month').onPressed, isNotNull);
   });
 
-  testWidgets('건강식 쿠폰을 교환하면 그 카드가 사용하지 않은 쿠폰으로 막힌다', (tester) async {
+  testWidgets('락커 쿠폰을 교환하면 그 카드가 사용하지 않은 쿠폰으로 막힌다', (tester) async {
     final FakeBenefitsRepository repo = FakeBenefitsRepository(
-      shop: shopWith(balance: 3000),
+      shop: shopWith(balance: 30000),
     );
     await pumpShop(tester, repo);
 
-    await tester.tap(exchangeButton('protein_discount'));
+    await tester.tap(exchangeButton('locker_month'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('교환하기'));
     await tester.pumpAndSettle();
 
-    expect(repo.exchanged, <String>['protein_discount']);
-    expect(buttonOf(tester, 'protein_discount').onPressed, isNull);
-    expect(
-      find.byKey(const ValueKey<String>('shop-blocked-protein_discount')),
-      findsOneWidget,
-    );
-    expect(buttonOf(tester, 'salad_discount').onPressed, isNotNull);
+    expect(repo.exchanged, <String>['locker_month']);
+    expect(buttonOf(tester, 'locker_month').onPressed, isNull);
+    // 사용 가능한 같은 쿠폰이 이번 달 교환보다 먼저다.
+    expect(blockedText(tester, 'locker_month'), '사용하지 않은 쿠폰이 있어요');
+    expect(buttonOf(tester, 'pt_renewal').onPressed, isNotNull);
     await drainToast(tester);
   });
 
@@ -172,12 +192,12 @@ void main() {
     final FakeBenefitsRepository repo = FakeBenefitsRepository();
     await pumpShop(tester, repo);
 
-    await tester.tap(exchangeButton('protein_discount'));
+    await tester.tap(exchangeButton('locker_month'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('취소'));
     await tester.pumpAndSettle();
 
     expect(repo.exchanged, isEmpty);
-    expect(find.text('보유 1240P'), findsOneWidget);
+    expect(find.text('보유 9000P'), findsOneWidget);
   });
 }

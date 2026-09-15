@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
@@ -21,7 +22,7 @@ void main() {
     expect(state.profile.name, '김민수');
     expect(state.profile.email, 'minsu@oncare.com');
     expect(state.risk.level, RiskLevel.medium);
-    expect(state.activityPoints, 1240);
+    expect(state.activityPoints, kDemoOpeningPoints);
     expect(state.settings.length, 3);
     expect(state.settings.map((SettingsItem s) => s.kind), <SettingsKind>[
       SettingsKind.myProfile,

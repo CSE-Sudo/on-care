@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -31,8 +32,11 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           gymRepositoryProvider.overrideWithValue(MockGymRepository()),
+          // 잔액 문구를 데모 시작 잔액과 떼어 둔다.
           myHealthRepositoryProvider.overrideWithValue(
-            const MockMyHealthRepository(),
+            MockMyHealthRepository(
+              points: DemoPointsLedger(openingBalance: 1240),
+            ),
           ),
           // 사용처 화면은 교환 목록을 읽는다(#1787) — 가짜 저장소로 채운다.
           benefitsRepositoryProvider.overrideWithValue(FakeBenefitsRepository()),

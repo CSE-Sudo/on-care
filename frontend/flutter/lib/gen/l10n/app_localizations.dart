@@ -2060,11 +2060,23 @@ abstract class AppLocalizations {
   /// **'Requires an assigned trainer'**
   String get myPointsNeedTrainer;
 
+  /// No description provided for @myPointsNeedGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires a connected gym'**
+  String get myPointsNeedGym;
+
   /// No description provided for @myPointsActiveCoupon.
   ///
   /// In en, this message translates to:
   /// **'You already have an unused coupon'**
   String get myPointsActiveCoupon;
+
+  /// No description provided for @myPointsMonthlyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You already redeemed this month'**
+  String get myPointsMonthlyLimit;
 
   /// No description provided for @myPointsValidDays.
   ///
@@ -2081,43 +2093,31 @@ abstract class AppLocalizations {
   /// No description provided for @myShopPtRenewalTitle.
   ///
   /// In en, this message translates to:
-  /// **'PT renewal discount coupon'**
+  /// **'₩30,000 off PT renewal'**
   String get myShopPtRenewalTitle;
 
   /// No description provided for @myShopPtRenewalDescription.
   ///
   /// In en, this message translates to:
-  /// **'Get ₩10,000 off when you renew PT with your trainer.'**
+  /// **'Get ₩30,000 off when you renew PT with your trainer.'**
   String get myShopPtRenewalDescription;
 
-  /// No description provided for @myShopSaladTitle.
+  /// No description provided for @myShopLockerTitle.
   ///
   /// In en, this message translates to:
-  /// **'10% off salad'**
-  String get myShopSaladTitle;
+  /// **'Free personal locker for 1 month'**
+  String get myShopLockerTitle;
 
-  /// No description provided for @myShopSaladDescription.
+  /// No description provided for @myShopLockerDescription.
   ///
   /// In en, this message translates to:
-  /// **'Get 10% off a healthy salad order.'**
-  String get myShopSaladDescription;
-
-  /// No description provided for @myShopProteinTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'₩3,000 off protein'**
-  String get myShopProteinTitle;
-
-  /// No description provided for @myShopProteinDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Get ₩3,000 off a protein supplement.'**
-  String get myShopProteinDescription;
+  /// **'Use a personal locker at your gym free for a month.'**
+  String get myShopLockerDescription;
 
   /// No description provided for @myCouponPtRenewalBenefit.
   ///
   /// In en, this message translates to:
-  /// **'₩10,000 off PT renewal'**
+  /// **'₩30,000 off PT renewal'**
   String get myCouponPtRenewalBenefit;
 
   /// No description provided for @myBenefitsTitle.
@@ -2240,6 +2240,12 @@ abstract class AppLocalizations {
   /// **'Tap only after your trainer or gym staff has checked it'**
   String get myCouponStaffNote;
 
+  /// No description provided for @myCouponGymStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap only after gym staff has checked it'**
+  String get myCouponGymStaffNote;
+
   /// No description provided for @myCouponStaffConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -2264,12 +2270,6 @@ abstract class AppLocalizations {
   /// **'Used on {time}'**
   String myCouponUsedBanner(String time);
 
-  /// No description provided for @myCouponMemberGuide.
-  ///
-  /// In en, this message translates to:
-  /// **'Show this screen at the store, then tap Mark as used.'**
-  String get myCouponMemberGuide;
-
   /// No description provided for @myCouponExpireNotice.
   ///
   /// In en, this message translates to:
@@ -2281,18 +2281,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mark as used'**
   String get myCouponUse;
-
-  /// No description provided for @myCouponUseConfirmTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Mark this coupon as used?'**
-  String get myCouponUseConfirmTitle;
-
-  /// No description provided for @myCouponUseConfirmMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'You can\'t undo this.'**
-  String get myCouponUseConfirmMessage;
 
   /// No description provided for @myCouponUseDone.
   ///

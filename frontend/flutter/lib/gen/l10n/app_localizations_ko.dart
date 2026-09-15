@@ -1086,7 +1086,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsNeedTrainer => '담당 트레이너가 있어야 교환할 수 있어요';
 
   @override
+  String get myPointsNeedGym => '헬스장을 연결해야 교환할 수 있어요';
+
+  @override
   String get myPointsActiveCoupon => '사용하지 않은 쿠폰이 있어요';
+
+  @override
+  String get myPointsMonthlyLimit => '이번 달에는 이미 교환했어요';
 
   @override
   String myPointsValidDays(int days) {
@@ -1097,26 +1103,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsShopLoadFailed => '사용처를 불러오지 못했어요';
 
   @override
-  String get myShopPtRenewalTitle => 'PT 재등록 할인 쿠폰';
+  String get myShopPtRenewalTitle => 'PT 재등록 3만원 할인';
 
   @override
   String get myShopPtRenewalDescription =>
-      '담당 트레이너에게 PT를 다시 등록할 때 10,000원을 할인받아요.';
+      '담당 트레이너에게 PT를 다시 등록할 때 30,000원을 할인받아요.';
 
   @override
-  String get myShopSaladTitle => '샐러드 10% 할인';
+  String get myShopLockerTitle => '개인 락커 1개월 무료';
 
   @override
-  String get myShopSaladDescription => '건강식 샐러드를 주문할 때 10% 할인받아요.';
+  String get myShopLockerDescription => '연결한 헬스장에서 개인 락커를 한 달 동안 무료로 써요.';
 
   @override
-  String get myShopProteinTitle => '프로틴 3,000원 할인';
-
-  @override
-  String get myShopProteinDescription => '프로틴 보충제를 살 때 3,000원 할인받아요.';
-
-  @override
-  String get myCouponPtRenewalBenefit => 'PT 재등록 10,000원 할인';
+  String get myCouponPtRenewalBenefit => 'PT 재등록 30,000원 할인';
 
   @override
   String get myBenefitsTitle => '내 혜택';
@@ -1185,6 +1185,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCouponStaffNote => '트레이너·헬스장 직원이 확인한 뒤 눌러 주세요';
 
   @override
+  String get myCouponGymStaffNote => '헬스장 직원이 확인한 뒤 눌러 주세요';
+
+  @override
   String get myCouponStaffConfirmTitle => '쿠폰을 사용 완료할까요?';
 
   @override
@@ -1199,19 +1202,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myCouponMemberGuide => '매장에서 이 화면을 보여 준 뒤 사용 완료를 눌러 주세요.';
-
-  @override
   String get myCouponExpireNotice => '만료되면 포인트는 돌려받을 수 없어요.';
 
   @override
   String get myCouponUse => '사용 완료';
-
-  @override
-  String get myCouponUseConfirmTitle => '쿠폰을 사용했나요?';
-
-  @override
-  String get myCouponUseConfirmMessage => '사용 완료로 바꾸면 되돌릴 수 없어요.';
 
   @override
   String get myCouponUseDone => '사용 완료로 바꿨어요';

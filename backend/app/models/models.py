@@ -192,16 +192,18 @@ class PointsCoupon(Base):
     """포인트로 교환한 쿠폰 한 장. (#1787)
 
     교환하면 `issued` 로 생기고, 사용 처리되면 `used`, 기한이 지나면 `expired`,
-    담당 트레이너 연결이 끊겨 취소되면 `cancelled` 다. 기한은 스케줄러 없이
+    담당 트레이너 연결(PT 재등록)·헬스장 연결(개인 락커)이 끊겨 취소되면
+    `cancelled` 다. 기한은 스케줄러 없이
     **읽는 쪽이 늦게 반영한다** — 조회·교환·사용 경로가 `expires_at` 이 지난
     `issued` 를 `expired` 로 내린다(`points_coupon_service._expire_stale`).
 
-    - `cost` 는 교환할 때 쓴 포인트다. 담당 해제로 취소되면 이 값을 돌려준다 —
+    - `cost` 는 교환할 때 쓴 포인트다. 연결 해제로 취소되면 이 값을 돌려준다 —
       카탈로그 가격이 나중에 바뀌어도 낸 만큼 돌려받는다.
-    - `trainer_name`·`gym_name` 은 교환 시점의 사본이다. 쿠폰 화면이 사용 뒤에도
-      어느 트레이너에게 쓴 쿠폰인지 말할 수 있게 한다.
-    - 사용 처리는 늘 회원 휴대폰에서 한다(PT 재등록은 직원 확인 뒤). 처리한 사람이
-      늘 이 회원이라 따로 적지 않고, 시각만 `used_at` 에 남긴다.
+    - `trainer_name`(PT 재등록)·`gym_name`(PT 재등록·개인 락커) 은 교환 시점의
+      사본이다. 쿠폰 화면이 사용 뒤에도 어느 트레이너·헬스장에서 쓴 쿠폰인지 말할
+      수 있게 한다.
+    - 사용 처리는 늘 직원 확인 뒤 회원 휴대폰에서 한다. 누른 사람이 늘 이
+      회원이라 따로 적지 않고, 시각만 `used_at` 에 남긴다.
     - 사용 가능한 쿠폰은 종류마다 회원당 한 장뿐이다(partial unique index).
     """
 
@@ -211,7 +213,7 @@ class PointsCoupon(Base):
     user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    #: 카탈로그 항목 id — pt_renewal|salad_discount|protein_discount.
+    #: 카탈로그 항목 id — pt_renewal|locker_month.
     item: Mapped[str] = mapped_column(String(40))
     cost: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(
@@ -251,7 +253,7 @@ class PointsCoupon(Base):
         ),
         Index("ix_points_coupons_user_status", "user_id", "status"),
         # 종류마다 사용 가능한 쿠폰은 회원당 최대 한 장 — PT 재등록은 재등록 1회에
-        # 1장, 건강식·보충제 쿠폰도 같은 규칙이다.
+        # 1장, 개인 락커 쿠폰도 같은 규칙이다.
         Index(
             "uq_points_coupons_active_item",
             "user_id",

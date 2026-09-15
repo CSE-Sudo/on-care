@@ -628,7 +628,9 @@
     }
   },
   "myPointsNeedTrainer": "Requires an assigned trainer",
+  "myPointsNeedGym": "Requires a connected gym",
   "myPointsActiveCoupon": "You already have an unused coupon",
+  "myPointsMonthlyLimit": "You already redeemed this month",
   "myPointsValidDays": "Valid for {days} days after redeeming",
   "@myPointsValidDays": {
     "placeholders": {
@@ -638,13 +640,11 @@
     }
   },
   "myPointsShopLoadFailed": "Couldn't load rewards",
-  "myShopPtRenewalTitle": "PT renewal discount coupon",
-  "myShopPtRenewalDescription": "Get ₩10,000 off when you renew PT with your trainer.",
-  "myShopSaladTitle": "10% off salad",
-  "myShopSaladDescription": "Get 10% off a healthy salad order.",
-  "myShopProteinTitle": "₩3,000 off protein",
-  "myShopProteinDescription": "Get ₩3,000 off a protein supplement.",
-  "myCouponPtRenewalBenefit": "₩10,000 off PT renewal",
+  "myShopPtRenewalTitle": "₩30,000 off PT renewal",
+  "myShopPtRenewalDescription": "Get ₩30,000 off when you renew PT with your trainer.",
+  "myShopLockerTitle": "Free personal locker for 1 month",
+  "myShopLockerDescription": "Use a personal locker at your gym free for a month.",
+  "myCouponPtRenewalBenefit": "₩30,000 off PT renewal",
   "myBenefitsTitle": "My benefits",
   "myBenefitsView": "View",
   "myBenefitsCoupons": "Coupons",
@@ -689,6 +689,7 @@
   },
   "myCouponStatus": "Status",
   "myCouponStaffNote": "Tap only after your trainer or gym staff has checked it",
+  "myCouponGymStaffNote": "Tap only after gym staff has checked it",
   "myCouponStaffConfirmTitle": "Mark this coupon as used?",
   "myCouponStaffConfirmMessage": "For staff · This can't be undone once used",
   "myCouponUsedAt": "Used at",
@@ -700,11 +701,8 @@
       }
     }
   },
-  "myCouponMemberGuide": "Show this screen at the store, then tap Mark as used.",
   "myCouponExpireNotice": "Points aren't refunded once the coupon expires.",
   "myCouponUse": "Mark as used",
-  "myCouponUseConfirmTitle": "Mark this coupon as used?",
-  "myCouponUseConfirmMessage": "You can't undo this.",
   "myCouponUseDone": "Marked as used",
   "myCouponUseFailed": "Couldn't mark as used. Please try again.",
   "myCouponNotFound": "Coupon not found",

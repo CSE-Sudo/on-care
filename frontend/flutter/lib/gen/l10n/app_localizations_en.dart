@@ -1113,7 +1113,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsNeedTrainer => 'Requires an assigned trainer';
 
   @override
+  String get myPointsNeedGym => 'Requires a connected gym';
+
+  @override
   String get myPointsActiveCoupon => 'You already have an unused coupon';
+
+  @override
+  String get myPointsMonthlyLimit => 'You already redeemed this month';
 
   @override
   String myPointsValidDays(int days) {
@@ -1124,26 +1130,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsShopLoadFailed => 'Couldn\'t load rewards';
 
   @override
-  String get myShopPtRenewalTitle => 'PT renewal discount coupon';
+  String get myShopPtRenewalTitle => '₩30,000 off PT renewal';
 
   @override
   String get myShopPtRenewalDescription =>
-      'Get ₩10,000 off when you renew PT with your trainer.';
+      'Get ₩30,000 off when you renew PT with your trainer.';
 
   @override
-  String get myShopSaladTitle => '10% off salad';
+  String get myShopLockerTitle => 'Free personal locker for 1 month';
 
   @override
-  String get myShopSaladDescription => 'Get 10% off a healthy salad order.';
+  String get myShopLockerDescription =>
+      'Use a personal locker at your gym free for a month.';
 
   @override
-  String get myShopProteinTitle => '₩3,000 off protein';
-
-  @override
-  String get myShopProteinDescription => 'Get ₩3,000 off a protein supplement.';
-
-  @override
-  String get myCouponPtRenewalBenefit => '₩10,000 off PT renewal';
+  String get myCouponPtRenewalBenefit => '₩30,000 off PT renewal';
 
   @override
   String get myBenefitsTitle => 'My benefits';
@@ -1213,6 +1214,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Tap only after your trainer or gym staff has checked it';
 
   @override
+  String get myCouponGymStaffNote => 'Tap only after gym staff has checked it';
+
+  @override
   String get myCouponStaffConfirmTitle => 'Mark this coupon as used?';
 
   @override
@@ -1228,21 +1232,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myCouponMemberGuide =>
-      'Show this screen at the store, then tap Mark as used.';
-
-  @override
   String get myCouponExpireNotice =>
       'Points aren\'t refunded once the coupon expires.';
 
   @override
   String get myCouponUse => 'Mark as used';
-
-  @override
-  String get myCouponUseConfirmTitle => 'Mark this coupon as used?';
-
-  @override
-  String get myCouponUseConfirmMessage => 'You can\'t undo this.';
 
   @override
   String get myCouponUseDone => 'Marked as used';

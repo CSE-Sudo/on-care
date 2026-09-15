@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import GymProfile, MemberGym, Place, TrainerProfile, User
 from app.schemas.gym_api import GymOut, TrainerOut
-from app.services import trainer_recommendation
+from app.services import points_coupon_service, trainer_recommendation
 
 
 def _haversine_m(lat1: float, lng1: float, lat2: float, lng2: float) -> int:
@@ -132,6 +132,9 @@ def unlink_member_gym(db: Session, member_id: str) -> bool:
 
     담당 링크와 달리 행을 지운다 — 이 링크를 참조하는 이력이 없다.
 
+    헬스장이 끝나므로 회원의 개인 락커 쿠폰을 취소하고 포인트를 돌려준다(#1787).
+    회원 헬스장 링크를 지우는 곳은 여기 하나다.
+
     **커밋하지 않는다.** 헬스장 해제는 담당 트레이너 해제와 함께 일어나므로
     (`trainer_service.disconnect_member_gym`), 여기서 커밋하면 뒤 단계가 실패했을 때
     헬스장만 끊기고 담당은 남는 반쪽 상태가 된다. 커밋은 호출부가 한 번만 한다.
@@ -140,6 +143,7 @@ def unlink_member_gym(db: Session, member_id: str) -> bool:
     if link is None:
         return False
     db.delete(link)
+    points_coupon_service.cancel_locker_coupons(db, member_id)
     return True
 
 
