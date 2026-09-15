@@ -160,10 +160,12 @@ void main() {
     expect(find.text('고혈압'), findsNothing);
     expect(find.text('당뇨'), findsNothing);
 
-    // 저장돼 있던 값이 그대로 열린다.
-    expect(find.text('3개월 안에 5km 완주'), findsOneWidget);
+    // 자유 입력 `운동 목표` 칸은 없다 — 목표는 칩만 고른다(#1829). 저장돼 있던
+    // 문구도 이 화면에는 보이지 않는다.
+    expect(find.byKey(const Key('goalExerciseNoteField')), findsNothing);
+    expect(find.text('3개월 안에 5km 완주'), findsNothing);
 
-    // 순서: 관리 초점 → 운동 목표 → 수치형 운동 목표 → 식단 목표.
+    // 순서: 건강 목표 → 수치형 운동 목표 → 식단 목표.
     final double focus = tester.getTopLeft(find.text(l.myGoalsFocusSection)).dy;
     final double exercise = tester
         .getTopLeft(find.text(l.myGoalsExerciseSection))
@@ -173,21 +175,16 @@ void main() {
     expect(exercise, lessThan(diet));
   });
 
-  testWidgets('관리 초점과 운동 목표를 함께 저장한다', (tester) async {
+  testWidgets('건강 목표를 저장하고 자유 입력 목표는 보내지 않는다', (tester) async {
     final (AppLocalizations l, MockAccountRepository repository) =
         await _openGoals(tester);
 
-    // 근력 향상을 추가로 고르고 목표 문구를 고친다.
+    // 근력 향상을 추가로 고른다.
     await tester.ensureVisible(
       find.byKey(const ValueKey<String>('goal-focus-근력 향상')),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey<String>('goal-focus-근력 향상')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('goalExerciseNoteField')),
-      '주 3회 근력 운동',
-    );
     await tester.pumpAndSettle();
 
     // 두 개를 채웠으니 다른 칩은 잠긴다.
@@ -206,6 +203,7 @@ void main() {
     final UserProfile saved = await repository.fetchProfile();
     // 트레이너가 적은 주의사항은 지워지지 않는다.
     expect(saved.conditions, '근력 향상, 혈압 관리, 무릎 통증으로 러닝 자제');
-    expect(saved.goals, '주 3회 근력 운동');
+    // 회원이 이 화면에서 적지 않는 값이라 그대로 남는다(#1829).
+    expect(saved.goals, '3개월 안에 5km 완주');
   });
 }

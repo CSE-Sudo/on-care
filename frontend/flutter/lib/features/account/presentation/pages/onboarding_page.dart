@@ -85,7 +85,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   // ── 2단계 ──
   final Set<String> _conditions = <String>{};
-  final TextEditingController _goals = TextEditingController();
 
   // ── 3·4단계 ── 칸 하나에 컨트롤러 하나.
   late final Map<_GoalField, TextEditingController> _goalControllers =
@@ -111,7 +110,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     _pager.dispose();
     _height.dispose();
     _weight.dispose();
-    _goals.dispose();
     for (final TextEditingController c in _goalControllers.values) {
       c.dispose();
     }
@@ -239,7 +237,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   void _skipConditions() {
     setState(() {
       _conditions.clear();
-      _goals.clear();
       // 목표를 비웠으니 그 목표로 조정한 권장값도 기준값으로 돌린다(#1816).
       _fillRecommended();
     });
@@ -259,7 +256,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             heightCm: _num(_height),
             weightKg: _num(_weight),
             conditions: _conditions.isEmpty ? null : _conditions.join(', '),
-            goals: _goals.text.trim().isEmpty ? null : _goals.text.trim(),
             dailyCalories: _goalValue(_GoalField.calories),
             dailySodiumMg: _goalValue(_GoalField.sodium),
             dailySugarG: _goalValue(_GoalField.sugar),
@@ -635,7 +631,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
-  // ── 2단계: 건강 상태 ──
+  // ── 2단계: 건강 목표 ──
+  //
+  // 목표는 건강 목표 칩(최대 2개)만 고른다. 자유 입력 `운동 목표` 칸은 없앴다(#1829) —
+  // 목표를 두 곳에서 말하면 무엇이 목표인지 흐려지고, 권장치·트레이너 화면은 칩을 읽는다.
 
   Widget _stepConditions(AppLocalizations l) {
     return _stepBody(
@@ -665,21 +664,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                           : null,
                     ),
                 ],
-              ),
-            ],
-          ),
-        ),
-        _StepSection(
-          label: l.onboardGoalTitle,
-          description: l.onboardGoalSubtitle,
-          card: _OnboardCard(
-            children: <Widget>[
-              _OnboardField(
-                key: const Key('onboardGoalTextField'),
-                label: l.onboardGoalHint,
-                controller: _goals,
-                keyboardType: TextInputType.text,
-                digitsOnly: false,
               ),
             ],
           ),
@@ -801,19 +785,9 @@ const double _kFieldGap = OnCareSpacing.s12;
 /// 단계마다 담기는 내용은 달라도 **쌓는 순서와 간격은 하나**다. 마법사를 네 번
 /// 넘기는 동안 눈이 같은 자리에서 같은 것을 찾게 하려는 것이다.
 class _StepSection extends StatelessWidget {
-  const _StepSection({
-    required this.card,
-    this.label,
-    this.description,
-    this.note,
-  });
+  const _StepSection({required this.card, this.note});
 
   final Widget card;
-
-  /// 한 단계에 묶음이 둘 이상일 때만 준다. 하나뿐이면 단계 제목이 곧 이름이라
-  /// 같은 말을 두 번 적게 된다.
-  final String? label;
-  final String? description;
 
   /// 카드 아래 작은 글씨 자리 — 출처·되돌리기·요약이 모두 여기 온다.
   final Widget? note;
@@ -824,24 +798,6 @@ class _StepSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (label != null) ...<Widget>[
-          Text(
-            label!,
-            style: tokens
-                .text(OnCareTypography.titleSmall)
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-        ],
-        if (description != null) ...<Widget>[
-          Text(
-            description!,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-        ],
         card,
         if (note != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
@@ -887,18 +843,11 @@ class _OnboardField extends StatelessWidget {
     super.key,
     required this.label,
     required this.controller,
-    this.keyboardType = TextInputType.number,
-    this.digitsOnly = true,
     this.onChanged,
   });
 
   final String label;
   final TextEditingController controller;
-  final TextInputType keyboardType;
-
-  /// 숫자 칸은 붙여넣기로도 문자가 들어오지 못하게 막는다 — 저장 때 int 파싱이
-  /// null 로 날아가면 목표가 조용히 비어 버린다.
-  final bool digitsOnly;
   final ValueChanged<String>? onChanged;
 
   @override
@@ -906,10 +855,12 @@ class _OnboardField extends StatelessWidget {
     return AppTextField(
       label: label,
       controller: controller,
-      keyboardType: keyboardType,
-      inputFormatters: digitsOnly
-          ? <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly]
-          : null,
+      keyboardType: TextInputType.number,
+      // 숫자 칸은 붙여넣기로도 문자가 들어오지 못하게 막는다 — 저장 때 int 파싱이
+      // null 로 날아가면 목표가 조용히 비어 버린다. 온보딩의 입력칸은 모두 숫자다(#1829).
+      inputFormatters: <TextInputFormatter>[
+        FilteringTextInputFormatter.digitsOnly,
+      ],
       onChanged: onChanged,
     );
   }

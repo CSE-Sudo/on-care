@@ -3703,24 +3703,6 @@ abstract class AppLocalizations {
   /// **'Pick what you want to focus on in your health care. (up to 2)'**
   String get onboardHealthSubtitle;
 
-  /// No description provided for @onboardGoalTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Exercise goal'**
-  String get onboardGoalTitle;
-
-  /// No description provided for @onboardGoalSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Tell us what you want to achieve. You can change this later.'**
-  String get onboardGoalSubtitle;
-
-  /// No description provided for @onboardGoalHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Finish a 5K within three months'**
-  String get onboardGoalHint;
-
   /// No description provided for @onboardOptionalTag.
   ///
   /// In en, this message translates to:
@@ -4200,18 +4182,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Blood pressure care'**
   String get healthFocusBloodPressure;
-
-  /// No description provided for @myGoalsExerciseNote.
-  ///
-  /// In en, this message translates to:
-  /// **'Exercise goal'**
-  String get myGoalsExerciseNote;
-
-  /// No description provided for @myGoalsExerciseNoteHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Finish a 5K within three months'**
-  String get myGoalsExerciseNoteHint;
 
   /// Section label in the health goals sheet.
   ///
