@@ -469,7 +469,6 @@
   "coachInviteExplain": "수락하면 내 식단·운동 기록을 이 트레이너가 볼 수 있어요.",
   "coachInviteAccept": "수락",
   "coachInviteReject": "거절",
-  "coachInviteRejectConfirmTitle": "초대를 거절할까요?",
   "coachInviteAccepted": "{name} 트레이너가 담당으로 연결됐어요",
   "@coachInviteAccepted": {"placeholders": {"name": {"type": "String"}}},
   "coachInviteRejected": "요청을 거절했어요",

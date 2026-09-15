@@ -686,10 +686,6 @@
   "coachInviteExplain": "Accepting lets this trainer see your meal and workout records.",
   "coachInviteAccept": "Accept",
   "coachInviteReject": "Decline",
-  "coachInviteRejectConfirmTitle": "Decline this invite?",
-  "@coachInviteRejectConfirmTitle": {
-    "description": "Title of the red dialog confirming a declined trainer invite."
-  },
   "coachInviteAccepted": "{name} is now your coach",
   "@coachInviteAccepted": {"placeholders": {"name": {"type": "String"}}},
   "coachInviteRejected": "Request declined",
