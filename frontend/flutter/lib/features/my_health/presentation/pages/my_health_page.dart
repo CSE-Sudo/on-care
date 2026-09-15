@@ -86,46 +86,12 @@ class MyHealthPage extends ConsumerWidget {
         _TrainerGymSection(onFindGym: () => context.go(AppRoutes.exerciseGym)),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _PointsCard(points: health.valueOrNull?.activityPoints),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        const _BenefitsEntry(),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _Settings(
           onTap: (_MySetting id) => _openSetting(context, id),
           onLogout: () => _confirmLogout(context, ref),
         ),
       ],
-    );
-  }
-}
-
-/// 내 혜택 입구 — 포인트 카드 바로 아래 한 줄. (#1787)
-///
-/// 포인트로 교환한 쿠폰(이후 연속 기록 보호권·챌린지)을 모아 보는 화면으로 간다.
-/// MY 의 순서(프로필 → 트레이너·헬스장 → 포인트 → 설정)를 흔들지 않도록 새 구역
-/// 제목을 두지 않고 포인트 카드에 카드 간격으로 붙인다 — 포인트를 쓰는 곳과 쓴
-/// 결과가 나란히 선다. 설정 목록에 넣지 않은 까닭은 설정이 계정을 바꾸는 자리라서다.
-///
-/// 보유 장수는 적지 않는다. MY 를 열 때마다 쿠폰을 따로 읽게 되고, 읽는 중·실패일 때
-/// 이 줄이 흔들린다.
-class _BenefitsEntry extends StatelessWidget {
-  const _BenefitsEntry();
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppCard(
-      padding: EdgeInsets.zero,
-      child: AppListRow(
-        key: const Key('myBenefitsEntry'),
-        leading: const _IconTile(icon: Icons.redeem_rounded),
-        title: l.myBenefitsTitle,
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
-          size: OnCareSize.iconMedium,
-          color: OnCareColors.textTertiary,
-        ),
-        onTap: () => context.push<void>(AppRoutes.myBenefits),
-      ),
     );
   }
 }
@@ -381,9 +347,7 @@ class _PointsCardState extends State<_PointsCard>
   }
 
   void _startWhenVisible() {
-    if (!_holding ||
-        _startScheduled ||
-        !TickerMode.valuesOf(context).enabled) {
+    if (!_holding || _startScheduled || !TickerMode.valuesOf(context).enabled) {
       return;
     }
     _startScheduled = true;
