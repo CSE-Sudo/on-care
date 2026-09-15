@@ -3709,6 +3709,42 @@ abstract class AppLocalizations {
   /// **'(optional)'**
   String get onboardOptionalTag;
 
+  /// Points guide shown once after onboarding (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Points quests'**
+  String get pointsGuideTitle;
+
+  /// Points guide shown once after onboarding (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'The more you log each day, the more points you earn. Try these quests'**
+  String get pointsGuideSubtitle;
+
+  /// Points guide: numbered quest label (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Quest {number}'**
+  String pointsGuideQuest(int number);
+
+  /// Points guide: how many times a day the points can be earned (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Once a day} other{Up to {count} times a day}}'**
+  String pointsGuideDailyCap(int count);
+
+  /// Points guide: where the points are used (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Spend your points in MY › Points'**
+  String get pointsGuideSpendNote;
+
+  /// Points guide: button that goes to Home (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get pointsGuideStart;
+
   /// Onboarding step 1: the basic info step must be filled in (#1830).
   ///
   /// In en, this message translates to:

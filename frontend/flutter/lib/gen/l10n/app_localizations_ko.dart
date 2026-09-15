@@ -1981,6 +1981,28 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardOptionalTag => '(선택)';
 
   @override
+  String get pointsGuideTitle => '포인트 퀘스트';
+
+  @override
+  String get pointsGuideSubtitle => '매일 기록할수록 포인트가 쌓여요. 아래 퀘스트로 모아 보세요';
+
+  @override
+  String pointsGuideQuest(int number) {
+    return '퀘스트 $number';
+  }
+
+  @override
+  String pointsGuideDailyCap(int count) {
+    return '하루 $count회까지';
+  }
+
+  @override
+  String get pointsGuideSpendNote => '모은 포인트는 MY › 포인트 사용처에서 쓸 수 있어요';
+
+  @override
+  String get pointsGuideStart => '시작하기';
+
+  @override
   String get onboardRequiredTag => '(필수)';
 
   @override

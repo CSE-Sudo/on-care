@@ -58,6 +58,9 @@ class AppRoutes {
   // First-run onboarding (shown right after sign-up)
   static const String onboarding = '/onboarding';
 
+  /// 온보딩을 마치거나 건너뛴 뒤 홈으로 가기 전에 보는 포인트 안내(#1826).
+  static const String pointsGuide = '/onboarding/points';
+
   // Dev-only routes (registered only in non-prod builds).
   static const String uiCatalog = '/dev/ui-catalog';
 }
