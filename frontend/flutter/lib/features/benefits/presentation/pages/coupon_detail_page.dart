@@ -8,7 +8,7 @@ import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 쿠폰 한 장 — 혜택, 코드, (PT 재등록이면) 담당 트레이너·헬스장, 교환일,
+/// 쿠폰 한 장 — 혜택, (PT 재등록이면) 담당 트레이너·헬스장, 교환일,
 /// 만료일(D-n), 상태, 사용했으면 사용 시각. (#1787)
 ///
 /// 모든 쿠폰은 회원 휴대폰에서 `사용 완료` 를 누른다. 파란 확인창을 한 번 거치고
@@ -16,7 +16,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// - PT 재등록 쿠폰은 헬스장에서 회원이 이 화면을 열고 **트레이너·헬스장 직원이
 ///   확인한 뒤** 누른다(직원 확인 버튼). 그래서 버튼 위에 직원에게 말하는 안내를
 ///   두고, 확인창도 직원 확인용이라고 밝힌다.
-/// - 건강식·보충제 쿠폰은 매장에서 코드를 보여 준 뒤 회원이 누른다.
+/// - 건강식·보충제 쿠폰은 매장에서 이 화면을 보여 준 뒤 회원이 누른다.
 ///
 /// 목록([myCouponsProvider])에서 이 쿠폰을 찾아 그린다. 사용 처리 뒤 목록을 다시
 /// 읽으면 이 화면도 사용 완료 상태로 바뀐다.
@@ -136,36 +136,6 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
                 const SizedBox(width: OnCareSpacing.s8),
                 CouponStatusTag(coupon: coupon),
               ],
-            ),
-            const SizedBox(height: OnCareSpacing.s16),
-            Container(
-              padding: const EdgeInsets.all(OnCareSpacing.s16),
-              decoration: const BoxDecoration(
-                color: OnCareColors.surfaceInput,
-                borderRadius: OnCareRadius.mdAll,
-              ),
-              child: Column(
-                children: <Widget>[
-                  Text(
-                    l.myCouponCode,
-                    style: tokens
-                        .text(OnCareTypography.caption)
-                        .copyWith(color: OnCareColors.textTertiary),
-                  ),
-                  const SizedBox(height: OnCareSpacing.s4),
-                  Text(
-                    coupon.displayCode,
-                    key: const Key('couponCode'),
-                    style: OnCareTypography.numeric(
-                      tokens.text(OnCareTypography.titleLarge),
-                    ).copyWith(
-                      color: coupon.usable
-                          ? OnCareColors.textPrimary
-                          : OnCareColors.textDisabled,
-                    ),
-                  ),
-                ],
-              ),
             ),
             const SizedBox(height: OnCareSpacing.s16),
             const AppDivider(),

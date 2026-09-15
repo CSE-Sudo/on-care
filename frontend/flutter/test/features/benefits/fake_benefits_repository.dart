@@ -121,7 +121,6 @@ Coupon couponOf({
     title: item,
     benefit: item,
     cost: renewal ? 5000 : 1000,
-    code: 'ABCD2345',
     status: status,
     // 모든 쿠폰을 회원 휴대폰에서 사용 처리한다.
     redeemer: CouponRedeemer.member,

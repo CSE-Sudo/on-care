@@ -672,7 +672,6 @@
       }
     }
   },
-  "myCouponCode": "Coupon code",
   "myCouponTrainer": "Trainer",
   "myCouponGym": "Gym",
   "myCouponIssuedOn": "Redeemed on",
@@ -702,7 +701,7 @@
       }
     }
   },
-  "myCouponMemberGuide": "Show the code at the store, then tap Mark as used.",
+  "myCouponMemberGuide": "Show this screen at the store, then tap Mark as used.",
   "myCouponExpireNotice": "Points aren't refunded once the coupon expires.",
   "myCouponUse": "Mark as used",
   "myCouponUseConfirmTitle": "Mark this coupon as used?",

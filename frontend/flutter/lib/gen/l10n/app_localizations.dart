@@ -2198,12 +2198,6 @@ abstract class AppLocalizations {
   /// **'Until {date}'**
   String myCouponUntil(String date);
 
-  /// No description provided for @myCouponCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Coupon code'**
-  String get myCouponCode;
-
   /// No description provided for @myCouponTrainer.
   ///
   /// In en, this message translates to:
@@ -2279,7 +2273,7 @@ abstract class AppLocalizations {
   /// No description provided for @myCouponMemberGuide.
   ///
   /// In en, this message translates to:
-  /// **'Show the code at the store, then tap Mark as used.'**
+  /// **'Show this screen at the store, then tap Mark as used.'**
   String get myCouponMemberGuide;
 
   /// No description provided for @myCouponExpireNotice.

@@ -454,7 +454,6 @@
       }
     }
   },
-  "myCouponCode": "쿠폰 코드",
   "myCouponTrainer": "담당 트레이너",
   "myCouponGym": "헬스장",
   "myCouponIssuedOn": "교환일",
@@ -484,7 +483,7 @@
       }
     }
   },
-  "myCouponMemberGuide": "매장에서 코드를 보여 준 뒤 사용 완료를 눌러 주세요.",
+  "myCouponMemberGuide": "매장에서 이 화면을 보여 준 뒤 사용 완료를 눌러 주세요.",
   "myCouponExpireNotice": "만료되면 포인트는 돌려받을 수 없어요.",
   "myCouponUse": "사용 완료",
   "myCouponUseConfirmTitle": "쿠폰을 사용했나요?",

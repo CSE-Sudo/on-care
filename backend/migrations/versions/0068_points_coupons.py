@@ -55,7 +55,6 @@ def upgrade() -> None:
         ),
         sa.Column("item", sa.String(40), nullable=False),
         sa.Column("cost", sa.Integer(), nullable=False),
-        sa.Column("code", sa.String(16), nullable=False),
         sa.Column(
             "status", sa.String(12), nullable=False, server_default="issued"
         ),
@@ -78,7 +77,6 @@ def upgrade() -> None:
             name="ck_points_coupons_status",
         ),
         sa.CheckConstraint("cost > 0", name="ck_points_coupons_cost"),
-        sa.UniqueConstraint("code", name="uq_points_coupons_code"),
         sa.UniqueConstraint(
             "user_id", "client_request_id", name="uq_points_coupons_client_request"
         ),

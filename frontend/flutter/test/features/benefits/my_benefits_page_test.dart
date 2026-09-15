@@ -1,9 +1,9 @@
 /// 내 혜택 목록과 쿠폰 화면. (#1787)
 ///
 /// 모든 쿠폰은 회원 휴대폰에서 `사용 완료` 를 누른다. PT 재등록 쿠폰은 혜택·담당
-/// 트레이너·헬스장·코드·만료일(D-n)을 보여 주고, 트레이너·헬스장 직원이 확인한 뒤
+/// 트레이너·헬스장·만료일(D-n)을 보여 주고, 트레이너·헬스장 직원이 확인한 뒤
 /// 누르라는 안내가 버튼 위에 선다(직원 확인 버튼). 건강식 쿠폰은 회원이 매장에서
-/// 코드를 보여 준 뒤 누른다. 사용하면 사용 완료와 사용 시각을 보여 준다.
+/// 이 화면을 보여 준 뒤 누른다. 사용하면 사용 완료와 사용 시각을 보여 준다.
 library;
 
 import 'package:flutter/material.dart';
@@ -121,7 +121,7 @@ void main() {
     expect(usedTag.tone, AppTagTone.neutral);
   });
 
-  testWidgets('PT 재등록 쿠폰 화면은 트레이너·헬스장·코드·D-n 과 직원 확인 안내·사용 완료 버튼을 보여 준다', (
+  testWidgets('PT 재등록 쿠폰 화면은 트레이너·헬스장·D-n 과 직원 확인 안내·사용 완료 버튼을 보여 준다', (
     tester,
   ) async {
     await pumpAt(
@@ -137,7 +137,8 @@ void main() {
 
     expect(find.byKey(const Key('couponDetailPage')), findsOneWidget);
     expect(find.text('PT 재등록 10,000원 할인'), findsOneWidget);
-    expect(find.text('ABCD-2345'), findsOneWidget);
+    // 쿠폰 코드는 없다 — 코드 상자·이름표를 그리지 않는다.
+    expect(find.textContaining('코드'), findsNothing);
     expect(find.text('김트레이너'), findsOneWidget);
     expect(find.text('온케어짐 신촌점'), findsOneWidget);
     expect(find.text('2026.09.15'), findsOneWidget);
@@ -238,7 +239,8 @@ void main() {
 
     expect(find.text('담당 트레이너'), findsNothing);
     expect(staffNote(), findsNothing);
-    expect(find.textContaining('매장에서 코드를 보여 준 뒤'), findsOneWidget);
+    expect(find.textContaining('매장에서 이 화면을 보여 준 뒤'), findsOneWidget);
+    expect(find.textContaining('코드'), findsNothing);
     await tester.tap(useButton());
     await tester.pumpAndSettle();
 
