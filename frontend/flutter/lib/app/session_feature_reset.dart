@@ -51,6 +51,9 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(coachSessionsProvider);
       ref.invalidate(coachChatProvider);
       ref.invalidate(coachUnreadProvider);
+      // 받은 담당 요청은 셸이 듣는 동안 살아 있다. 데모에서 로그인해도 셸이 그대로면
+      // 앞 세션의 목록이 남는다(#1801).
+      ref.invalidate(coachInvitesProvider);
       ref.invalidate(myHealthStateProvider);
       ref.invalidate(notificationControllerProvider);
       ref.invalidate(notificationListProvider);

@@ -1284,9 +1284,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachInviteReject => 'Decline';
 
   @override
-  String get coachInviteRejectConfirmTitle => 'Decline this invite?';
-
-  @override
   String coachInviteAccepted(String name) {
     return '$name is now your coach';
   }

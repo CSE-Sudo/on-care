@@ -13,6 +13,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
@@ -140,7 +141,9 @@ class _MainShellState extends ConsumerState<MainShell>
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.
       extendBody: true,
-      body: navigationShell,
+      // 받은 담당 요청은 어느 탭에 있든 가운데 창으로 뜬다(#1801). 탭 전체를
+      // 감싸 두어 탭을 옮겨도 요청을 듣는 일이 끊기지 않는다.
+      body: CoachInvitePrompter(child: navigationShell),
       // AI 조언 진입점이 이 자리에 있을지가 아직 정해지지 않아 **노출만** 끈다
       // (#862). 기능·라우트·provider 는 그대로라, 자리가 정해지면 이 상수를
       // 되돌리는 것으로 복원된다 — 아래 [kShowCoachingFab] 주석 참고.
