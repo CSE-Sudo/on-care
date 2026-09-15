@@ -1641,6 +1641,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightHistoryFailed => 'Couldn\'t load noted signals';
 
   @override
+  String aicRetentionNotice(int days) {
+    return 'AI chat history is kept for the last $days days';
+  }
+
+  @override
+  String get aicTrainerConnectedTitle => 'Chat with your trainer';
+
+  @override
+  String aicTrainerConnectedBody(String name) {
+    return 'You\'re connected with $name. Members with a trainer chat with their trainer instead of the AI chatbot';
+  }
+
+  @override
   String get aicQuickReply1 => 'Recommend a dinner menu for today';
 
   @override

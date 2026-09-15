@@ -18,19 +18,55 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core import clock
 from app.models.models import AiConversation, AiMessage
 
 #: 한 대화에서 복원·프롬프트에 쓰는 최대 메시지 수. 오래된 대화가 길어져도
 #: 프롬프트가 무한정 커지지 않게 막는다(비용·지연 가드).
 MAX_HISTORY_MESSAGES = 50
 
+#: 회원 본인 AI 챗봇 대화를 보관하는 기간(일). (#1823)
+#:
+#: 이보다 오래된 메시지는 복원·프롬프트에 쓰지 않고, 새 대화를 저장할 때 지운다.
+#: 트레이너가 회원에 대해 AI 에게 묻는 스레드(`trainer_id` 있음)는 대상이 아니다 —
+#: 그 기록은 트레이너 쪽 기능이라 회원 챗봇의 보관 규칙을 따르지 않는다.
+HISTORY_RETENTION_DAYS = 30
+
 ROLE_USER = "user"
 ROLE_COACH = "coach"
+
+
+def retention_cutoff(now: datetime | None = None) -> datetime:
+    """이 시각보다 먼저 쓴 회원 AI 챗봇 메시지는 보관 기간이 지났다."""
+    return (now or clock.now()) - timedelta(days=HISTORY_RETENTION_DAYS)
+
+
+def purge_expired_messages(
+    db: Session, user_id: str, *, now: datetime | None = None
+) -> int:
+    """회원 본인 스레드에서 보관 기간이 지난 메시지를 지운다. 지운 개수를 돌려준다.
+
+    커밋은 호출자가 한다 — 새 대화 저장과 한 트랜잭션으로 묶어, 지우기만 하고
+    저장이 실패하는 반쪽 상태를 만들지 않는다.
+    """
+    own_threads = select(AiConversation.id).where(
+        AiConversation.user_id == user_id, AiConversation.trainer_id.is_(None)
+    )
+    result = db.execute(
+        delete(AiMessage)
+        .where(
+            AiMessage.conversation_id.in_(own_threads),
+            AiMessage.created_at < retention_cutoff(now),
+        )
+        .execution_options(synchronize_session=False)
+    )
+    return result.rowcount or 0
 
 
 def _new_id(prefix: str) -> str:
@@ -103,6 +139,10 @@ def load_messages(
 
     스레드를 만들지 않는 조회 전용 경로다. 채팅 화면을 열기만 하고 아무 말도 하지
     않은 사용자에게 빈 대화 레코드를 남기지 않는다.
+
+    회원 본인 스레드는 보관 기간(`HISTORY_RETENTION_DAYS`) 안의 메시지만 준다(#1823).
+    지우는 일은 저장 경로가 하지만, 한동안 말을 걸지 않은 회원에게도 지난 대화가
+    복원·프롬프트에 섞이지 않게 조회에서도 같은 선을 긋는다.
     """
     convo = db.scalar(
         select(AiConversation)
@@ -113,10 +153,11 @@ def load_messages(
     if convo is None:
         return []
 
+    conditions = [AiMessage.conversation_id == convo.id]
+    if trainer_id is None:
+        conditions.append(AiMessage.created_at >= retention_cutoff())
     rows = db.scalars(
-        select(AiMessage)
-        .where(AiMessage.conversation_id == convo.id)
-        .order_by(AiMessage.seq.asc())
+        select(AiMessage).where(*conditions).order_by(AiMessage.seq.asc())
     ).all()
     return list(rows)[-MAX_HISTORY_MESSAGES:]
 
@@ -175,6 +216,9 @@ def append_exchange(
             sources_json=json.dumps(sources, ensure_ascii=False),
         )
     )
+    if trainer_id is None:
+        # 회원 본인 대화는 한 달만 남긴다(#1823). 저장과 같은 커밋으로 지운다.
+        purge_expired_messages(db, user_id)
     db.commit()
     return convo
 

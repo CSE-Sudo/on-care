@@ -1610,6 +1610,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightHistoryFailed => '감지 기록을 불러오지 못했어요';
 
   @override
+  String aicRetentionNotice(int days) {
+    return 'AI 챗봇 대화는 최근 $days일 동안만 보관돼요';
+  }
+
+  @override
+  String get aicTrainerConnectedTitle => '담당 트레이너와 대화해 주세요';
+
+  @override
+  String aicTrainerConnectedBody(String name) {
+    return '$name 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 챗봇 대신 트레이너와 채팅해요';
+  }
+
+  @override
   String get aicQuickReply1 => '오늘 저녁 메뉴 추천해줘';
 
   @override
