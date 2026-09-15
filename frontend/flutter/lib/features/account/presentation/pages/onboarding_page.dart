@@ -794,7 +794,6 @@ class _StepSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
