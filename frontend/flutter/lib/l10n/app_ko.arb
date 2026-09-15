@@ -650,7 +650,7 @@
   "exCancelDone": "{when} 예약을 취소했어요",
   "mySupportOpenFailed": "링크를 열지 못했어요. 잠시 후 다시 시도해 주세요",
   "mySupportExternalHint": "카카오톡 채널로 연결돼요",
-  "authTagline": "고혈압·당뇨 관리를 위한 AI 헬스케어",
+  "authTagline": "식단·운동 관리 앱",
   "authEmailHint": "이메일",
   "authPasswordHint": "비밀번호",
   "authSignInAction": "로그인",

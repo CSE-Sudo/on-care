@@ -25,7 +25,7 @@ class TrainerSignInPage extends ConsumerStatefulWidget {
 
 class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
   /// On-Care 로고 한 변. 부품 치수라 토큰 목록에 없다.
-  static const double _logoSize = 132;
+  static const double _logoSize = 128;
 
   final TextEditingController _email = TextEditingController();
   final TextEditingController _password = TextEditingController();
@@ -139,7 +139,7 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
             key: const ValueKey<String>('trainer-login-email'),
             controller: _email,
             hint: l.authEmail,
-            prefixIcon: Icons.mail_outline_rounded,
+            prefixIcon: Icons.mail_rounded,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -149,7 +149,7 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
             key: const ValueKey<String>('trainer-login-password'),
             controller: _password,
             hint: l.authPassword,
-            prefixIcon: Icons.lock_outline_rounded,
+            prefixIcon: Icons.lock_rounded,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
@@ -182,9 +182,14 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
             onTap: _loading ? null : () => _social('kakao'),
           ),
           const SizedBox(height: OnCareSpacing.s8),
-          _SocialButton.google(
+          // 회원앱 로그인과 같은 모양 — 흰 바탕 보조 버튼.
+          AppButton(
             label: l.authContinueGoogle,
-            onTap: _loading ? null : () => _social('google'),
+            leadingIcon: Icons.g_mobiledata_rounded,
+            onPressed: _loading ? null : () => _social('google'),
+            variant: AppButtonVariant.secondary,
+            size: OnCareButtonSize.large,
+            fullWidth: true,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           if (signUpEnabled)
@@ -241,7 +246,7 @@ class _OrDivider extends StatelessWidget {
           child: Text(
             AppLocalizations.of(context).authOr,
             style: context.oncare
-                .text(OnCareTypography.bodySmall)
+                .text(OnCareTypography.caption)
                 .copyWith(color: OnCareColors.textTertiary),
           ),
         ),
@@ -255,7 +260,7 @@ class _OrDivider extends StatelessWidget {
 /// the demo-token social exchange.
 ///
 /// 카카오는 외부 브랜드 색(예외 토큰)을 입어야 해서 [AppButton] 으로는 그릴 수
-/// 없다. 두 버튼이 한 모양이도록 구글도 같은 틀에 흰 바탕 + 테두리로 그린다.
+/// 없다. 구글은 회원앱 로그인과 같은 보조 [AppButton] 이다(#1770).
 class _SocialButton extends StatelessWidget {
   const _SocialButton({
     required this.label,
@@ -263,7 +268,6 @@ class _SocialButton extends StatelessWidget {
     required this.background,
     required this.foreground,
     required this.onTap,
-    this.border,
   });
 
   factory _SocialButton.kakao({
@@ -277,23 +281,10 @@ class _SocialButton extends StatelessWidget {
     onTap: onTap,
   );
 
-  factory _SocialButton.google({
-    required String label,
-    required VoidCallback? onTap,
-  }) => _SocialButton(
-    label: label,
-    icon: Icons.g_mobiledata_rounded,
-    background: OnCareColors.surfaceCard,
-    foreground: OnCareColors.textPrimary,
-    border: OnCareColors.lineStrong,
-    onTap: onTap,
-  );
-
   final String label;
   final IconData icon;
   final Color background;
   final Color foreground;
-  final Color? border;
   final VoidCallback? onTap;
 
   @override
@@ -301,10 +292,7 @@ class _SocialButton extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     return Material(
       color: background,
-      shape: RoundedRectangleBorder(
-        borderRadius: OnCareRadius.mdAll,
-        side: border == null ? BorderSide.none : BorderSide(color: border!),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: OnCareRadius.mdAll),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -313,7 +301,7 @@ class _SocialButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(icon, color: foreground, size: OnCareSize.iconLarge),
+              Icon(icon, color: foreground, size: OnCareSize.iconMedium),
               const SizedBox(width: OnCareSpacing.s8),
               // 버튼 폭은 400 으로 고정인데 라벨은 로케일·글자 배율을 따라
               // 길어진다. `Continue with Google` 은 배율 1.3 에서 그대로 넘쳤다

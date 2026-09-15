@@ -3406,7 +3406,7 @@ abstract class AppLocalizations {
   /// No description provided for @authTagline.
   ///
   /// In en, this message translates to:
-  /// **'AI healthcare for hypertension and diabetes'**
+  /// **'Diet & exercise management app'**
   String get authTagline;
 
   /// No description provided for @authEmailHint.

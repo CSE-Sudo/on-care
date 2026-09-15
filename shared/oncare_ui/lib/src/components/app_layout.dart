@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
+import 'package:oncare_ui/src/tokens/density.dart';
 import 'package:oncare_ui/src/tokens/elevation.dart';
 import 'package:oncare_ui/src/tokens/layout.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
@@ -729,7 +730,11 @@ class _SidebarCountBadge extends StatelessWidget {
   }
 }
 
-/// 로그인·가입·온보딩 틀 — 로고 + 최대 폭 400 + 연회색 배경 + `titleLarge` 제목.
+/// 로그인·가입·온보딩 틀 — 로고 + 최대 폭 400 + 앱 페이지 배경 + `display` 제목.
+///
+/// 회원앱(모바일)과 트레이너웹(웹)이 **같은 크기·같은 위치**로 보이도록 안쪽
+/// 내용은 모바일 밀도로 그린다(#1770) — 웹 밀도면 입력칸·버튼이 낮아져 두
+/// 로그인 화면의 세로 배치가 어긋났다. 브랜드 색과 배경은 앱 것을 그대로 쓴다.
 class AppAuthLayout extends StatelessWidget {
   const AppAuthLayout({
     super.key,
@@ -761,33 +766,40 @@ class AppAuthLayout extends StatelessWidget {
                   constraints: const BoxConstraints(
                     maxWidth: OnCareLayout.authMaxWidth,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      if (logo != null) ...<Widget>[
-                        Center(child: logo),
-                        const SizedBox(height: OnCareSpacing.s24),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      extensions: <ThemeExtension<dynamic>>[
+                        tokens.copyWith(density: OnCareDensity.mobile),
                       ],
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: tokens
-                            .text(OnCareTypography.titleLarge)
-                            .copyWith(color: OnCareColors.textPrimary),
-                      ),
-                      if (subtitle != null) ...<Widget>[
-                        const SizedBox(height: OnCareSpacing.s8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        if (logo != null) ...<Widget>[
+                          Center(child: logo),
+                          const SizedBox(height: OnCareSpacing.s24),
+                        ],
                         Text(
-                          subtitle!,
+                          title,
                           textAlign: TextAlign.center,
                           style: tokens
-                              .text(OnCareTypography.bodySmall)
-                              .copyWith(color: OnCareColors.textSecondary),
+                              .text(OnCareTypography.display)
+                              .copyWith(color: OnCareColors.textPrimary),
                         ),
+                        if (subtitle != null) ...<Widget>[
+                          const SizedBox(height: OnCareSpacing.s8),
+                          Text(
+                            subtitle!,
+                            textAlign: TextAlign.center,
+                            style: tokens
+                                .text(OnCareTypography.bodySmall)
+                                .copyWith(color: OnCareColors.textSecondary),
+                          ),
+                        ],
+                        const SizedBox(height: OnCareSpacing.s32),
+                        child,
                       ],
-                      const SizedBox(height: OnCareSpacing.s32),
-                      child,
-                    ],
+                    ),
                   ),
                 ),
               ),
