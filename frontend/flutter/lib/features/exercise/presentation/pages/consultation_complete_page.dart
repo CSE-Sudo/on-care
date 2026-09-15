@@ -59,10 +59,6 @@ class ConsultationCompletePage extends StatelessWidget {
         child: Container(
           width: _completionBadgeSize,
           height: _completionBadgeSize,
-          decoration: BoxDecoration(
-            color: tokens.brand.surface,
-            shape: BoxShape.circle,
-          ),
           alignment: Alignment.center,
           child: Icon(
             Icons.check_rounded,

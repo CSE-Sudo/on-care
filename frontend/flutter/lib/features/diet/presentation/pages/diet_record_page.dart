@@ -364,9 +364,9 @@ class _BellButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.notifications_none_rounded,
+          icon: Icons.notifications_rounded,
           tooltip: AppLocalizations.of(context).pageNotificationTitle,
-          variant: AppIconButtonVariant.tonal,
+          color: context.oncare.brand.primary,
           onPressed: onTap,
         ),
         if (hasUnread)

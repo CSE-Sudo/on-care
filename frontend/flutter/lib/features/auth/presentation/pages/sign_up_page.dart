@@ -115,7 +115,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           AppTextField(
             controller: _name,
             hint: l.signUpNameHint,
-            prefixIcon: Icons.person_outline_rounded,
+            prefixIcon: Icons.person_rounded,
             size: AppFieldSize.large,
             textInputAction: TextInputAction.next,
           ),

@@ -136,7 +136,7 @@ class _CoachingSheet extends ConsumerWidget {
         key: const Key('coachingSheetCta'),
         child: AppButton(
           label: l.coachCtaChat,
-          leadingIcon: Icons.chat_bubble_outline_rounded,
+          leadingIcon: Icons.chat_bubble_rounded,
           size: OnCareButtonSize.large,
           fullWidth: true,
           onPressed: () {

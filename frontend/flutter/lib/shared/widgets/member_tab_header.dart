@@ -40,7 +40,7 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       actions: <Widget>[
         HeaderActionButton(
-          icon: Icons.notifications_none_rounded,
+          icon: Icons.notifications_rounded,
           tooltip: l.pageNotificationTitle,
           showDot: bellHasUnread,
           onPressed: onBell,
@@ -51,7 +51,7 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// 헤더 오른쪽의 옅은 채움 아이콘 버튼 + 새 소식 점.
+/// 헤더 오른쪽의 배경 없는 브랜드색 아이콘 버튼 + 새 소식 점(#1781).
 ///
 /// [enabled] 를 [onPressed] 와 따로 둔다. 쓸 수 없다는 것과 눌러도 소용없다는
 /// 것은 다르다 — 왜 쓸 수 없는지 알려 주려면 흐린 채로도 탭을 받아야 한다(#786).
@@ -78,7 +78,7 @@ class HeaderActionButton extends StatelessWidget {
             icon: icon,
             tooltip: tooltip,
             onPressed: onPressed,
-            variant: AppIconButtonVariant.tonal,
+            color: context.oncare.brand.primary,
           )
         : DecoratedBox(
             decoration: const BoxDecoration(
