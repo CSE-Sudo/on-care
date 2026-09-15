@@ -118,9 +118,15 @@ class AppTextField extends StatelessWidget {
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         textAlign: textAlign,
+        // 비활성 칸은 회색 채움(테마)에 흐린 글자 — 고칠 수 있는 값처럼
+        // 읽히지 않는다(#1776).
         style: tokens
             .text(OnCareTypography.body)
-            .copyWith(color: OnCareColors.textPrimary),
+            .copyWith(
+              color: enabled
+                  ? OnCareColors.textPrimary
+                  : OnCareColors.textDisabled,
+            ),
         decoration: InputDecoration(
           hintText: hint,
           helperText: helper,

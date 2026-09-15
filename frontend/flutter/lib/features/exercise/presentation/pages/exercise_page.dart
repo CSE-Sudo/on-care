@@ -431,62 +431,25 @@ class _ExerciseWeekStrip extends StatelessWidget {
     );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              // 영어의 날짜 라벨은 한국어보다 훨씬 길다. 고정 폭으로 두면 좁은
-              // 화면에서 오늘 버튼을 밀어내며 넘친다(#766).
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: OnCareSpacing.s8,
-                  ),
-                  child: Text(
-                    weekStripLabel(
-                      context,
-                      l,
-                      selected: selected,
-                      today: today,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.oncare
-                        .text(
-                          OnCareTypography.strong(OnCareTypography.bodySmall),
-                        )
-                        .copyWith(color: OnCareColors.textTertiary),
-                  ),
-                ),
-              ),
-              if (showTodayButton)
-                AppButton(
-                  label: l.dietToday,
-                  onPressed: onToday,
-                  variant: AppButtonVariant.text,
-                  size: OnCareButtonSize.small,
-                ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          // 이전/다음 주 꺾쇠는 날짜 줄 양옆에 둔다 — 식단 탭과 같은 모양이다.
-          AppWeekStrip(
-            days: days,
-            weekdayLabels: <String>[
-              for (final DateTime d in days) _weekday(l, d.weekday),
-            ],
-            selected: selected,
-            today: today,
-            onSelected: onSelect,
-            // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다.
-            lastSelectableDay: today,
-            previousTooltip: l.a11yPrevWeek,
-            nextTooltip: l.a11yNextWeek,
-            onPrevious: onPrev,
-            onNext: onNext,
-          ),
+      // 식단 탭과 같은 모양 — 주 라벨·`오늘` 알약과 양옆 원형 꺾쇠(#1778).
+      child: AppWeekStrip(
+        // 영어의 날짜 라벨은 한국어보다 훨씬 길어 좁은 화면에서는 말줄임한다(#766).
+        label: weekStripLabel(context, l, selected: selected, today: today),
+        todayLabel: l.dietToday,
+        onToday: showTodayButton ? onToday : null,
+        days: days,
+        weekdayLabels: <String>[
+          for (final DateTime d in days) _weekday(l, d.weekday),
         ],
+        selected: selected,
+        today: today,
+        onSelected: onSelect,
+        // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다(#1765).
+        lastSelectableDay: today,
+        previousTooltip: l.a11yPrevWeek,
+        nextTooltip: l.a11yNextWeek,
+        onPrevious: onPrev,
+        onNext: onNext,
       ),
     );
   }
@@ -986,10 +949,6 @@ class _DemoPtLogCard extends StatelessWidget {
                       width: OnCareSize.avatarMedium,
                       height: OnCareSize.avatarMedium,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: OnCareColors.surfaceCard,
-                        shape: BoxShape.circle,
-                      ),
                       child: Icon(
                         Icons.person_rounded,
                         size: OnCareSize.iconMedium,

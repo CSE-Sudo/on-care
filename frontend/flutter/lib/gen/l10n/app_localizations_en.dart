@@ -1746,7 +1746,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exSlotPm => 'PM';
 
   @override
-  String get exTimeRangeInvalidEnd => 'End time is earlier than start time';
+  String get exTimeRangeInvalidEnd =>
+      'End time must be later than the start time.';
 
   @override
   String get exTimeRangePrevStep => 'Previous step';
