@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         Value;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
+import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
@@ -22,6 +23,7 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
@@ -1843,6 +1845,9 @@ class LocalApiInterceptor extends Interceptor {
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
           'time_ago': _timeAgoKorean(now.difference(r.createdAt)),
+          // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
+          // 고른다. 시드 밖의 알림은 키가 없다(#1812).
+          'message_key': ?kDemoAlertKeyBySeedId[r.id],
         },
     ];
     return _ok(options, list);
@@ -2117,7 +2122,8 @@ class LocalApiInterceptor extends Interceptor {
     'gender': 'male',
     'height_cm': 175.0,
     'weight_kg': 72.0,
-    'conditions': '',
+    // 건강 목표(#1814) — 트레이너 앱이 이 회원의 목표로 보여 주는 값과 같다.
+    'conditions': '체중 감량, 혈압 관리',
     // 트레이너 앱이 이 회원의 목표로 보여 주는 값과 같다 (#1140).
     'goals': '혈압 관리 · 체중 감량',
     'daily_calories': 2000,
@@ -2194,6 +2200,10 @@ class LocalApiInterceptor extends Interceptor {
     final body = _jsonBody(options);
     final patch = <String, Object?>{};
     for (final String k in <String>[
+      // MY 건강 목표가 목표 칸과 함께 보내는 건강 목표·자유 입력 목표. 빠져 있어
+      // 데모에서 고른 목표가 저장되지 않았다(#1814).
+      'conditions',
+      'goals',
       'daily_calories',
       'daily_sodium_mg',
       'daily_sugar_g',
@@ -2212,8 +2222,17 @@ class LocalApiInterceptor extends Interceptor {
       // 오버레이에도 null 로 남아야 한다 — 건너뛰면 지운 목표가 되살아난다.
       if (body.containsKey(k)) patch[k] = body[k];
     }
+    _normalizeConditions(patch);
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
+  }
+
+  /// 옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다 — 서버 스키마가
+  /// 저장 전에 하는 정리와 같다(#1814).
+  static void _normalizeConditions(Map<String, Object?> patch) {
+    if (patch['conditions'] case final String raw) {
+      patch['conditions'] = normalizeHealthFocusText(raw);
+    }
   }
 
   /// DELETE /users/me — withdraw. The demo wipes the profile overlay so a
@@ -2252,6 +2271,7 @@ class LocalApiInterceptor extends Interceptor {
       if (body[k] != null) patch[k] = body[k];
     }
     patch['onboarded'] = true;
+    _normalizeConditions(patch);
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
   }

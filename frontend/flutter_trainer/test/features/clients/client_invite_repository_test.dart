@@ -247,7 +247,7 @@ void main() {
       // 둔 값이지 지금 지어낸 값이 아니다.
       expect(found.gender, 'female');
       expect(found.age, isNotNull);
-      expect(found.goal, '체지방 감량');
+      expect(found.goal, '체중 감량');
     });
 
     test('두 데모 회원은 서로 다른 신체정보·운동목표를 갖는다', () async {

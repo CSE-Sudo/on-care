@@ -847,13 +847,14 @@ class ReportRegisteredCard extends StatelessWidget {
       message: range,
       fill: OnCareColors.surfaceCard,
       border: context.oncare.brand.primary,
-      // 테두리 없는 글자 버튼. 안내 상자 안에서 두 번째 테두리를 그리면
-      // 상자가 둘로 보인다 — 여기서 눌릴 것은 하나뿐이라 글자로 충분하다.
-      action: AppButton(
-        label: l.chatReportOpenInReports,
-        variant: AppButtonVariant.text,
-        size: OnCareButtonSize.small,
-        onPressed: onOpen,
+      // 흰 글씨 + 메인 파랑 채움 알약(#1828). 글자 버튼일 때는 제목·날짜와
+      // 구분이 약해 누를 것으로 읽히지 않았다. 회원앱 `PDF 미리보기` 와 같은 모양.
+      action: Padding(
+        padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+        child: ChatPillButton(
+          label: l.chatReportOpenInReports,
+          onPressed: onOpen,
+        ),
       ),
     );
   }
@@ -902,6 +903,59 @@ class _InputBar extends StatelessWidget {
         attachTooltip: l.chatAttachImage,
         onAttach: attach == null ? null : () => attach(),
         enabled: !sending,
+      ),
+    );
+  }
+}
+
+/// 채팅 안내 상자 안의 행동 버튼 — 흰 글씨, 메인 파랑 채움, 양 끝이 둥근 알약. (#1828)
+///
+/// 회원앱 채팅의 `PDF 미리보기` 와 같은 모양이다. 공용 버튼은 반경이 12 로
+/// 고정이라, 알약 모양은 이 자리에서 그린다.
+class ChatPillButton extends StatelessWidget {
+  /// Creates the pill.
+  const ChatPillButton({
+    required this.label,
+    required this.onPressed,
+    super.key,
+  });
+
+  /// 버튼 글자.
+  final String label;
+
+  /// 눌렀을 때.
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Semantics(
+      button: true,
+      child: Material(
+        key: const Key('chatPillButton'),
+        color: tokens.brand.primary,
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: tokens.density.buttonSmall),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s16,
+              ),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  label,
+                  style: tokens
+                      .text(OnCareTypography.buttonSmall)
+                      .copyWith(color: OnCareColors.textOnFill),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

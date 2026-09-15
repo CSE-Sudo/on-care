@@ -261,7 +261,6 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     String routineId, {
     required int minutes,
     String intensity = 'moderate',
-    String memberNote = '',
   }) async {
     final int index = _routines.indexWhere(
       (CoachRoutine routine) => routine.id == routineId,
@@ -282,7 +281,6 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       completedAt: nowKst(),
       completedMinutes: minutes,
       completedIntensity: intensity,
-      memberNote: memberNote.trim(),
     );
     _routines[index] = completed;
     await _logSession(completed, minutes: minutes, intensity: intensity);

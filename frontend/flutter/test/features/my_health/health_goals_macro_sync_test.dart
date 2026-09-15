@@ -12,7 +12,8 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 건강 목표의 칼로리 ↔ 탄단지 연동. (#896)
 ///
 /// 목 프로필의 출발값은 2000kcal · 탄 275g · 단 100g · 지 55g 이고,
-/// 2000kcal 의 권장 배분(탄 50 · 단 30 · 지 20)은 250 / 150 / 44 다.
+/// 2000kcal 의 권장 배분은 온보딩과 같은 탄 55 · 단 20 · 지 25 로 275 / 100 / 56 이다
+/// (#1816 — 전에는 이 화면만 탄 50 · 단 30 · 지 20 을 썼다).
 
 Future<void> _openHealthGoals(WidgetTester tester) async {
   await tester.binding.setSurfaceSize(const Size(900, 2400));
@@ -95,7 +96,7 @@ void main() {
     await tester.enterText(_field('goalFatField'), '');
     await tester.pump();
 
-    // 1600kcal → 탄 200 · 단 120 · 지 36
+    // 1600kcal → 탄 220 · 단 80 · 지 44
     await tester.enterText(
       find.descendant(
         of: find
@@ -112,15 +113,15 @@ void main() {
 
     expect(
       tester.widget<TextField>(_field('goalCarbsField')).decoration!.hintText,
-      '200',
+      '220',
     );
     expect(
       tester.widget<TextField>(_field('goalProteinField')).decoration!.hintText,
-      '120',
+      '80',
     );
     expect(
       tester.widget<TextField>(_field('goalFatField')).decoration!.hintText,
-      '36',
+      '44',
     );
     // 값을 덮어쓰지는 않는다.
     expect(_text(tester, 'goalCarbsField'), isEmpty);
@@ -134,11 +135,11 @@ void main() {
     await tester.tap(apply);
     await tester.pump();
 
-    // 2000kcal → 탄 250 · 단 150 · 지 44, 되돌려 세면 4×400 + 9×44 = 1996
-    expect(_text(tester, 'goalCarbsField'), '250');
-    expect(_text(tester, 'goalProteinField'), '150');
-    expect(_text(tester, 'goalFatField'), '44');
-    expect(_calories(tester), '1996');
+    // 2000kcal → 탄 275 · 단 100 · 지 56, 되돌려 세면 4×375 + 9×56 = 2004
+    expect(_text(tester, 'goalCarbsField'), '275');
+    expect(_text(tester, 'goalProteinField'), '100');
+    expect(_text(tester, 'goalFatField'), '56');
+    expect(_calories(tester), '2004');
     // 세 칸이 배분과 같아져도 버튼은 그대로 남는다 — 값을 고쳐 둔 다음 권장
     // 배분으로 되돌릴 길이 이 버튼 하나뿐이라, 조건에 따라 사라지면 되돌릴
     // 방법이 없어진다.
