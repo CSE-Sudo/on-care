@@ -57,7 +57,7 @@ Future<({TimeOfDay start, TimeOfDay end})?> _openRange(
     startMinuteStepLabel: '시작 분',
     endHourStepLabel: '종료 시',
     endMinuteStepLabel: '종료 분',
-    invalidEndMessage: '종료 시간이 시작 시간보다 빠릅니다',
+    invalidEndMessage: '종료 시간은 시작 시간보다 늦어야 해요',
     keyPrefix: 'range',
   );
 }
