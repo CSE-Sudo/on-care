@@ -96,18 +96,28 @@ void main() {
     await pumpWorkspace(tester);
     await tapChip(tester, 'program-register-date');
 
-    // 공용 `showAppDatePicker` 는 Material `DatePickerDialog` 를 달력 전용
-    // (`calendarOnly`)으로 연다 — 직접 입력 모드로 시작하지 않고, 달력
-    // (`CalendarDatePicker`) 하나로 고른다(#1705).
-    final Finder dialog = find.byType(DatePickerDialog);
+    // 공용 `showAppDatePicker` 는 Material 기본 `DatePickerDialog` 대신
+    // 입력칸과 달력(`CalendarDatePicker`)을 한 창에 세로로 둔다 — 넓은 창에서도
+    // 좌우로 퍼진 landscape 달력이 되지 않는다(#1705, #1778).
+    expect(find.byType(DatePickerDialog), findsNothing);
+    final Finder dialog = find.byKey(const Key('portraitDatePicker'));
     expect(dialog, findsOneWidget);
     expect(
-      tester.widget<DatePickerDialog>(dialog).initialEntryMode,
-      DatePickerEntryMode.calendarOnly,
-    );
-    expect(
-      find.descendant(of: dialog, matching: find.byType(CalendarDatePicker)),
+      find.descendant(
+        of: dialog,
+        matching: find.byKey(const Key('portraitDatePickerInput')),
+      ),
       findsOneWidget,
+    );
+    final Finder calendar = find.descendant(
+      of: dialog,
+      matching: find.byType(CalendarDatePicker),
+    );
+    expect(calendar, findsOneWidget);
+    // 세로 배치 — 입력칸이 달력 위에 있다.
+    expect(
+      tester.getRect(find.byKey(const Key('portraitDatePickerInput'))).bottom,
+      lessThanOrEqualTo(tester.getRect(calendar).top),
     );
   });
 
