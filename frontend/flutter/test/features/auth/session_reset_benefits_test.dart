@@ -1,7 +1,7 @@
 /// 세션 전환은 포인트 사용처·내 쿠폰을 다시 읽게 한다. (#1787)
 ///
 /// 두 provider 는 auto-dispose 지만, 사용처나 내 혜택 화면을 연 채로 데모에서
-/// 로그인으로 넘어가면 살아남아 앞 계정의 잔액·교환 가능 여부·쿠폰 코드를 보여 준다.
+/// 로그인으로 넘어가면 살아남아 앞 계정의 잔액·교환 가능 여부·쿠폰을 보여 준다.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';

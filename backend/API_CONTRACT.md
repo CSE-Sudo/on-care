@@ -149,7 +149,7 @@ available, blocked_reason, shortfall }`. `redeemer` 는 지금 모두 `member` �
 `active_coupon` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란 포인트(모자라지
 않으면 0).
 
-`coupon`: `{ id, item, title, benefit, cost, code, status, redeemer, trainer_name, gym_name, issued_at, issued_on,
+`coupon`: `{ id, item, title, benefit, cost, status, redeemer, trainer_name, gym_name, issued_at, issued_on,
 expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name`·`gym_name` 은 PT 재등록 쿠폰을 교환할
 때의 담당 트레이너·헬스장 사본이다(쿠폰 화면 표시용).
 
@@ -157,7 +157,6 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name`·`
   `expired` 로 싣는다. 스케줄러가 없어 조회·교환·사용 경로가 만날 때 만료로 내린다.
 - **기한** 쓸 수 있는 마지막 날(`expires_on`, KST)은 교환일 + 30일이다. `expires_at` 은 그 다음 날 KST 0시.
   `days_left` 는 마지막 날까지 남은 날(당일 0).
-- **코드** 8자리, 헷갈리는 0·O·1·I 를 뺀 글자. 앱은 4자리씩 끊어 보여 준다.
 - **교환** 잔액 행을 잠근 채 확인하고 `spend`(음수)를 남긴다. 없는 항목 404, 잔액 부족·담당 없음·같은 종류의 사용 가능한
   쿠폰 보유는 409. 같은 `client_request_id` 재전송은 새로 쓰지 않고 처음 쿠폰을 돌려준다.
 - **사용 처리** 회원 휴대폰의 `POST /me/coupons/{id}/use` 하나다. `issued` 이고 기한 전일 때만 바꾸는 조건부

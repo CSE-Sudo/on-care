@@ -226,8 +226,7 @@ def test_exchange_demo_coupon_spends_points(client, db_session):
     coupon = body["coupon"]
     assert coupon["status"] == "issued"
     assert coupon["redeemer"] == "member"
-    assert len(coupon["code"]) == 8
-    assert not set(coupon["code"]) & set("01OI")
+    assert "code" not in coupon
     assert coupon["days_left"] == 30
     assert coupon["expires_on"] == (clock.today() + timedelta(days=30)).isoformat()
     assert coupon["issued_on"] == clock.today_iso()

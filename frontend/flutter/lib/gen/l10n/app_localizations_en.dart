@@ -1247,9 +1247,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get myCouponCode => 'Coupon code';
-
-  @override
   String get myCouponTrainer => 'Trainer';
 
   @override
@@ -1268,10 +1265,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myCouponStatus => 'Status';
-
-  @override
-  String get myCouponRenewalGuide =>
-      'When you renew PT, show this screen to your trainer or gym staff.';
 
   @override
   String get myCouponStaffNote =>
@@ -1294,7 +1287,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myCouponMemberGuide =>
-      'Show the code at the store, then tap Mark as used.';
+      'Show this screen at the store, then tap Mark as used.';
 
   @override
   String get myCouponExpireNotice =>

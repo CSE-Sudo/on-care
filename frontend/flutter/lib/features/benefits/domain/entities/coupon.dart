@@ -57,7 +57,6 @@ class Coupon {
     required this.title,
     required this.benefit,
     required this.cost,
-    required this.code,
     required this.status,
     required this.redeemer,
     required this.issuedOn,
@@ -79,9 +78,6 @@ class Coupon {
 
   /// 교환에 쓴 포인트.
   final int cost;
-
-  /// 8자리 코드. 화면에는 [displayCode] 로 끊어 보여 준다.
-  final String code;
   final CouponStatus status;
   final CouponRedeemer redeemer;
 
@@ -103,18 +99,12 @@ class Coupon {
 
   bool get usable => status == CouponStatus.issued;
 
-  /// 불러 주거나 받아 적기 쉽게 네 자리씩 끊는다(`ABCD-EFGH`).
-  String get displayCode => code.length == 8
-      ? '${code.substring(0, 4)}-${code.substring(4)}'
-      : code;
-
   factory Coupon.fromJson(Map<String, Object?> json) => Coupon(
     id: json['id']! as String,
     item: (json['item'] as String?) ?? '',
     title: (json['title'] as String?) ?? '',
     benefit: (json['benefit'] as String?) ?? '',
     cost: (json['cost'] as num?)?.toInt() ?? 0,
-    code: (json['code'] as String?) ?? '',
     status: _statusFrom(json['status']),
     redeemer: couponRedeemerFrom(json['redeemer']),
     trainerName: (json['trainer_name'] as String?) ?? '',

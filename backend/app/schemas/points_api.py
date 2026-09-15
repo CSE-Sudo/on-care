@@ -66,7 +66,6 @@ class CouponOut(BaseModel):
     title: str
     benefit: str
     cost: int
-    code: str
     status: str
     redeemer: str
     trainer_name: str = ""

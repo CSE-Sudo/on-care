@@ -54,7 +54,7 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(coachUnreadProvider);
       ref.invalidate(myHealthStateProvider);
       // 포인트 사용처·내 쿠폰(#1787). auto-dispose 지만 화면을 연 채 전환하면
-      // 앞 계정의 잔액·교환 가능 여부·쿠폰 코드가 남는다.
+      // 앞 계정의 잔액·교환 가능 여부·쿠폰이 남는다.
       ref.invalidate(pointsShopProvider);
       ref.invalidate(myCouponsProvider);
       ref.invalidate(notificationControllerProvider);
