@@ -160,7 +160,7 @@ void main() {
     });
   });
 
-  testWidgets('두 탭의 토글은 같은 규격 높이 안에 있다 (#1126 → #1701)', (
+  testWidgets('두 탭의 토글은 글자에 맞춘 같은 높이다 (#1126 → #1777)', (
     WidgetTester tester,
   ) async {
     await _pumpDiet(tester, size: const Size(390, 900));
@@ -175,11 +175,16 @@ void main() {
       find.byKey(const ValueKey<String>('exercise-period-toggle')),
     );
     // 식단(#1700)·운동(#1701) 토글이 모두 공용 `AppSegmentedToggle` 이다.
-    // 운동 탭은 좁은 폭에서 줄어들 수 있게 감싸 두었으므로 둘 다 모바일 칩
-    // 높이 안에서 그려지는지 잰다.
+    // 이전 알약 토글처럼 높이를 칩 높이로 묶지 않고 글자에 맞춘다(#1777) —
+    // 라벨 한 줄 높이에 칸·트랙 여백이 온전히 들어가야 라벨이 위아래로 잘리지
+    // 않는다. 두 탭은 같은 자리의 같은 조작이라 높이도 같다(#1126).
+    final double content =
+        OnCareTypography.segment.fontSize! * OnCareTypography.segment.height! +
+        OnCareSize.segmentPaddingVertical * 2 +
+        OnCareSize.segmentTrackInset * 2;
     expect(exercise.width, greaterThan(0));
     expect(diet.width, greaterThan(0));
-    expect(exercise.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
-    expect(diet.height, lessThanOrEqualTo(OnCareDensity.mobile.chip));
+    expect(diet.height, closeTo(content, 0.01));
+    expect(exercise.height, closeTo(diet.height, 0.01));
   });
 }

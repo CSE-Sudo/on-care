@@ -414,7 +414,7 @@ void main() {
   ) async {
     await pumpApp(tester, locale: const Locale('ko'));
 
-    await tester.tap(find.byIcon(Icons.notifications_none_rounded).first);
+    await tester.tap(find.byIcon(Icons.notifications_rounded).first);
     await tester.pumpAndSettle();
 
     final page = find.byKey(const Key('notificationPage'));

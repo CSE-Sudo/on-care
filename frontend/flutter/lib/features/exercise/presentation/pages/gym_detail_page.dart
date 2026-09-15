@@ -129,10 +129,6 @@ class _GymDetails extends ConsumerWidget {
               child: Container(
                 width: _heroIconBox,
                 height: _heroIconBox,
-                decoration: BoxDecoration(
-                  color: tokens.brand.surface,
-                  borderRadius: OnCareRadius.xlAll,
-                ),
                 alignment: Alignment.center,
                 child: Icon(
                   Icons.fitness_center_rounded,
@@ -456,10 +452,6 @@ class _AffiliatedTrainerRow extends StatelessWidget {
       leading: Container(
         width: OnCareSize.avatarLarge,
         height: OnCareSize.avatarLarge,
-        decoration: BoxDecoration(
-          color: tokens.brand.surface,
-          shape: BoxShape.circle,
-        ),
         alignment: Alignment.center,
         child: Icon(
           Icons.person_rounded,

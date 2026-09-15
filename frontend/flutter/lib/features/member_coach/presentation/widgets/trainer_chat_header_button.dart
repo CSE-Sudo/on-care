@@ -43,9 +43,9 @@ class TrainerChatHeaderButton extends ConsumerWidget {
           clipBehavior: Clip.none,
           children: <Widget>[
             AppIconButton(
-              icon: Icons.chat_bubble_outline_rounded,
+              icon: Icons.chat_bubble_rounded,
               tooltip: l.coachChatWithTrainer,
-              variant: AppIconButtonVariant.tonal,
+              color: context.oncare.brand.primary,
               onPressed: ready
                   ? () => openTrainerChatPage(context, trainerName: coach.name)
                   : null,

@@ -57,13 +57,9 @@ class CoachCard extends ConsumerWidget {
                 borderRadius: OnCareRadius.mdAll,
                 child: Row(
                   children: <Widget>[
-                    Container(
+                    SizedBox(
                       width: OnCareSize.avatarMedium,
                       height: OnCareSize.avatarMedium,
-                      decoration: BoxDecoration(
-                        color: tokens.brand.surface,
-                        shape: BoxShape.circle,
-                      ),
                       child: Icon(
                         Icons.person_rounded,
                         color: tokens.brand.primary,
@@ -305,7 +301,9 @@ class _RecommendedExerciseRowState
       title: l.coachCardRoutineCancelTitle,
       message: l.coachRoutineCancelConfirm(routine.name),
       confirmLabel: l.coachRoutineCancel,
-      cancelLabel: l.actionCancel,
+      // 확정 버튼에 이미 '취소' 가 들어 있다 — 왼쪽까지 `취소` 면 어느 쪽이
+      // 물리는 버튼인지 헷갈린다(#1782).
+      cancelLabel: l.coachRoutineKeep,
       destructive: true,
     );
     if (!ok || !mounted) return;
@@ -348,7 +346,8 @@ class _RecommendedExerciseRowState
       title: l.coachCardRoutineUndoTitle,
       message: l.coachRoutineUndoConfirm(routine.name),
       confirmLabel: l.coachRoutineUndo,
-      cancelLabel: l.actionCancel,
+      // 확정 버튼 `완료 취소` 와 둘 다 '취소' 가 되지 않게 왼쪽은 `유지` 다(#1782).
+      cancelLabel: l.coachRoutineKeep,
       destructive: true,
     );
     if (!ok || !mounted) return;
@@ -780,7 +779,7 @@ class _ChatButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Icon(
-                Icons.chat_bubble_outline_rounded,
+                Icons.chat_bubble_rounded,
                 size: OnCareSize.iconSmall,
                 color: tokens.brand.primary,
               ),

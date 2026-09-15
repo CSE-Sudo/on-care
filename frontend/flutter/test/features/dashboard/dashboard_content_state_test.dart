@@ -207,7 +207,7 @@ void main() {
     final Finder bellFinder = find.byWidgetPredicate(
       (Widget widget) =>
           widget is HeaderActionButton &&
-          widget.icon == Icons.notifications_none_rounded,
+          widget.icon == Icons.notifications_rounded,
     );
     final HeaderActionButton notificationButton = tester.widget(bellFinder);
     // 점은 이제 **서버 미읽음을 따른다.** 예전에는 항상 켜져 있어서 읽을 것이
@@ -235,7 +235,7 @@ void main() {
       find.byWidgetPredicate(
         (Widget widget) =>
             widget is HeaderActionButton &&
-            widget.icon == Icons.notifications_none_rounded,
+            widget.icon == Icons.notifications_rounded,
       ),
     );
     expect(bell.showDot, isFalse);

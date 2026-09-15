@@ -127,15 +127,23 @@ class AppDialog extends StatelessWidget {
 }
 
 /// [AppDialog] 를 띄운다. 배경 막 색·반경은 테마가 정한다.
+///
+/// [dismissible] 을 끄면 바깥을 눌러도, 뒤로가기를 눌러도 닫히지 않는다 — 창 안의
+/// 버튼으로 답해야만 닫히는 창이다. 창 안 버튼이 부르는 `Navigator.pop` 은 그대로
+/// 닫는다. [barrierDismissible] 은 바깥 누르기만 막는다.
 Future<T?> showAppDialog<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool barrierDismissible = true,
+  bool dismissible = true,
 }) {
   return showDialog<T>(
     context: context,
-    barrierDismissible: barrierDismissible,
-    builder: builder,
+    barrierDismissible: dismissible && barrierDismissible,
+    builder: dismissible
+        ? builder
+        : (BuildContext dialogContext) =>
+              PopScope<T>(canPop: false, child: builder(dialogContext)),
   );
 }
 
