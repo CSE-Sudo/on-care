@@ -23,7 +23,7 @@ const instance, in which case Riverpod may leave its dependents unchanged.
 | `gymRepositoryProvider`, `myGymProvider`, `myTrainerProvider` | The mock repository mutates membership links; leaves cache account links | Recreate the mock root and invalidate account leaves |
 | `myReservationsProvider` | Reservations are per account. The leaf already refetches through the gym repository root, but relying on that propagation is fragile | Invalidate the leaf explicitly, like the other gym leaves |
 | `consultationRequestControllerProvider` | Non-auto-dispose in-memory requests and pending state | Recreate the controller |
-| `memberCoachRepositoryProvider` and its four leaf providers | The mock repository mutates chat; leaves cache coach, routines, chat, and unread state | Recreate the mock root and invalidate all four leaves |
+| `memberCoachRepositoryProvider` and its leaf providers | The mock repository mutates chat; leaves cache coach, routines, sessions, chat, unread state, and received trainer invites (the invite list stays alive while the member shell listens, #1801) | Recreate the mock root and invalidate every leaf |
 | `myHealthStateProvider` | Non-auto-dispose profile, health risk, points, and settings cache | Invalidate the cached state |
 | Notification controller/list | The controller retains read and simulated-push state; an active list watcher can retain fetched items | Recreate the controller and invalidate the list |
 | `notificationSettingsProvider` | Delivery settings are stored per account on the real backend; the cached toggles otherwise survive until an app restart | Invalidate the cached settings |

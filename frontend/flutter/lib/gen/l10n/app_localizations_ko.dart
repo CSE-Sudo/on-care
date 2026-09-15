@@ -1257,9 +1257,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachInviteReject => '거절';
 
   @override
-  String get coachInviteRejectConfirmTitle => '초대를 거절할까요?';
-
-  @override
   String coachInviteAccepted(String name) {
     return '$name 트레이너가 담당으로 연결됐어요';
   }

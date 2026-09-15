@@ -17,7 +17,6 @@ import 'package:oncare/features/exercise/presentation/widgets/own_exercise_recor
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
-import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -375,10 +374,9 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
               ),
               child: OwnExerciseRecords(week: week, date: today),
             ),
+            // 받은 담당 요청 카드는 이 자리를 떠나 앱 어디서든 뜨는 창이 됐다
+            // (#1801). 운동 탭 맨 아래에서는 요청이 온 줄 모르고 지나쳤다.
             const SizedBox(height: OnCareSpacing.s20),
-            // 5) 받은 담당 요청. 담당 트레이너 카드는 뺐다 — 이 화면은 기록을
-            //    보는 자리이고, 트레이너와의 관계는 MY 탭이 말한다. (#1021)
-            const CoachInviteCard(),
           ],
         ],
       ),

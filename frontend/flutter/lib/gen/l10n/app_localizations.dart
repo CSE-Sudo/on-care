@@ -2390,12 +2390,6 @@ abstract class AppLocalizations {
   /// **'Decline'**
   String get coachInviteReject;
 
-  /// Title of the red dialog confirming a declined trainer invite.
-  ///
-  /// In en, this message translates to:
-  /// **'Decline this invite?'**
-  String get coachInviteRejectConfirmTitle;
-
   /// No description provided for @coachInviteAccepted.
   ///
   /// In en, this message translates to:
