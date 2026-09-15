@@ -276,7 +276,7 @@ class RoutineDateField extends StatelessWidget {
         const SizedBox(height: OnCareSpacing.s8),
         // 입력창과 같은 모양(채움·테두리·반경 12)의 누르는 칸.
         Material(
-          color: OnCareColors.surfaceInput,
+          color: OnCareColors.surfaceCard,
           shape: const RoundedRectangleBorder(
             borderRadius: OnCareRadius.mdAll,
             side: BorderSide(color: OnCareColors.lineStrong),

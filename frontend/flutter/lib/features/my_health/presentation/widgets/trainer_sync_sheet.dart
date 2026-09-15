@@ -190,13 +190,17 @@ class _DigitBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     // 여섯 칸이 360 폭 시트 안에 한 줄로 들어가야 한다 — 칸 폭은 터치 영역과
-    // 같은 44, 높이는 가장 큰 아바타와 같은 56 을 쓴다.
+    // 같은 44, 높이는 가장 큰 아바타와 같은 56 을 쓴다. 입력칸과 같은 흰 채움 +
+    // 회색 테두리다(#1776).
     return Container(
       width: tokens.density.minTouchTarget,
       height: OnCareSize.avatarXLarge,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
-        color: OnCareColors.surfaceInput,
+        color: OnCareColors.surfaceCard,
+        border: Border.fromBorderSide(
+          BorderSide(color: OnCareColors.lineStrong),
+        ),
         borderRadius: OnCareRadius.mdAll,
       ),
       child: FittedBox(

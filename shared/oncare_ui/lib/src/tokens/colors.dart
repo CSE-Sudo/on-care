@@ -31,10 +31,11 @@ class OnCareColors {
   /// 페이지 배경. 두 앱 공통(#1690 확정).
   static const Color surfacePage = Color(0xFFF5F7FA);
 
-  /// 카드·다이얼로그·시트.
+  /// 카드·다이얼로그·시트·입력칸 채움(#1776).
   static const Color surfaceCard = Color(0xFFFFFFFF);
 
-  /// 입력 채움·진행 트랙·세그먼트 트랙.
+  /// 진행 트랙·세그먼트 트랙·비활성 채움(비활성 입력칸 포함). 활성 입력칸은
+  /// 흰 채움이다(#1776).
   static const Color surfaceInput = Color(0xFFF2F4F7);
 
   // --- 선 ---
