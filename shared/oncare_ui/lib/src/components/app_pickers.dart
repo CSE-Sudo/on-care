@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_button.dart';
@@ -7,7 +9,6 @@ import 'package:oncare_ui/src/components/app_inputs.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/calendar.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
-import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
 import 'package:oncare_ui/src/tokens/typography.dart';
 
@@ -178,7 +179,8 @@ class _AppDatePickerDialogState extends State<AppDatePickerDialog> {
 ///
 /// Material 기본 [showDateRangePicker] 는 전체 화면에 달이 끝없이 이어지는 목록이라
 /// 다른 창과 모양이 완전히 달랐다. 이 창은 한 번에 한 달만 보여 주고 좌우 꺾쇠로
-/// 달을 넘기는 고정 격자를 그린다 — 시작·종료일 사이는 브랜드 색 알약 띠로 잇는다.
+/// 달을 넘기는 고정 격자를 그린다 — 시작·종료일은 브랜드 색 원, 그 사이는 옅은
+/// 브랜드 띠로 잇는다.
 /// 시작·종료일 값 자체가 입력창이라 타이핑도 달력 탭도 둘 다 항상 된다.
 ///
 /// [initialRange] 가 없으면 두 칸을 비우고 오늘이 든 달부터 연다.
@@ -455,9 +457,10 @@ class _AppDateRangePickerDialogState extends State<AppDateRangePickerDialog> {
   }
 }
 
-/// 한 달을 고정 격자로 그린다 — [start]~[end] 는 이어진 브랜드 색 띠로,
-/// 시작·종료일 자체는 띠의 둥근 끝으로 강조한다. [firstDate]~[lastDate] 밖의
-/// 날짜는 흐리게 두고 탭을 막는다.
+/// 한 달을 고정 격자로 그린다 — 시작·종료일은 칸 크기의 브랜드 색 원에 흰 숫자,
+/// 그 사이 날은 옅은 브랜드 띠([OnCareBrand.surface])에 짙은 브랜드 숫자다. 띠는
+/// 시작·종료일 칸의 안쪽 절반까지 이어져 두 원과 붙는다. [firstDate]~[lastDate]
+/// 밖의 날짜는 흐리게 두고 탭을 막는다.
 class _RangeMonthGrid extends StatelessWidget {
   const _RangeMonthGrid({
     required this.month,
@@ -532,18 +535,21 @@ class _RangeMonthGrid extends StatelessWidget {
     final bool disabled = day.isBefore(firstDate) || day.isAfter(lastDate);
     final bool isStart = start != null && DateUtils.isSameDay(day, start);
     final bool isEnd = end != null && DateUtils.isSameDay(day, end);
-    // 시작·종료일도 띠에 넣어(양 끝 포함) 하나로 이어진 알약처럼 보이게 한다.
-    // 시작일의 왼쪽·종료일의 오른쪽 모서리만 둥글리고, 주가 바뀌며 줄이 꺾이는
-    // 자리를 포함한 나머지는 각지게 둬 옆 칸과 색이 그대로 이어진다.
-    final bool inBand =
-        start != null &&
-        end != null &&
-        !day.isBefore(start!) &&
-        !day.isAfter(end!);
-    final BorderRadius bandRadius = BorderRadius.horizontal(
-      left: isStart ? OnCareRadius.pill : Radius.zero,
-      right: isEnd ? OnCareRadius.pill : Radius.zero,
-    );
+    final bool isCap = isStart || isEnd;
+    // 시작·종료가 서로 다른 날일 때만 띠가 있다. 같은 날이거나 종료일을 아직
+    // 고르지 않았으면 원 하나만 그린다.
+    final bool hasBand =
+        start != null && end != null && !DateUtils.isSameDay(start, end);
+    final bool between = hasBand && day.isAfter(start!) && day.isBefore(end!);
+    // 시작일은 오른쪽 절반, 종료일은 왼쪽 절반에만 띠를 깔아 원과 붙인다. 주가
+    // 바뀌며 줄이 꺾이는 자리는 각진 채로 줄 끝까지 이어진다.
+    final Alignment? halfBand = !hasBand
+        ? null
+        : isStart
+        ? Alignment.centerRight
+        : isEnd
+        ? Alignment.centerLeft
+        : null;
     final TextStyle base = OnCareTypography.numeric(
       tokens.text(OnCareCalendar.rangeDay),
     );
@@ -552,28 +558,53 @@ class _RangeMonthGrid extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: !disabled,
-      selected: isStart || isEnd,
+      selected: isCap,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: disabled ? null : () => onDayTap(day),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            // 띠와 양 끝을 같은 진한 색으로 둬 한 덩이로 읽힌다.
-            color: inBand ? tokens.brand.primary : Colors.transparent,
-            borderRadius: bandRadius,
-          ),
-          child: Center(
-            child: Text(
-              '$dayOfMonth',
-              style: (isStart || isEnd ? cap : base).copyWith(
-                color: inBand
-                    ? OnCareColors.textOnFill
-                    : disabled
-                    ? OnCareColors.textDisabled
-                    : OnCareColors.textPrimary,
-              ),
-            ),
-          ),
+        child: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints box) {
+            // 원 지름 = 칸의 짧은 변. 띠도 같은 높이라 원과 매끈하게 붙는다.
+            final double diameter = math.min(box.maxWidth, box.maxHeight);
+            return Stack(
+              alignment: Alignment.center,
+              children: <Widget>[
+                if (between || halfBand != null)
+                  Align(
+                    alignment: halfBand ?? Alignment.center,
+                    child: SizedBox(
+                      width: halfBand == null ? box.maxWidth : box.maxWidth / 2,
+                      height: diameter,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(color: tokens.brand.surface),
+                      ),
+                    ),
+                  ),
+                if (isCap)
+                  SizedBox.square(
+                    dimension: diameter,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: tokens.brand.primary,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                Text(
+                  '$dayOfMonth',
+                  style: (isCap ? cap : base).copyWith(
+                    color: isCap
+                        ? OnCareColors.textOnFill
+                        : between
+                        ? tokens.brand.strong
+                        : disabled
+                        ? OnCareColors.textDisabled
+                        : OnCareColors.textPrimary,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

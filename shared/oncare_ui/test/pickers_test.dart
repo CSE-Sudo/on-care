@@ -266,15 +266,31 @@ void main() {
       end: DateTime(2026, 9, 10),
     );
 
-    /// 기간 띠(브랜드 채움) 칸.
-    Finder bandCells() => find.descendant(
+    /// 창 안에서 [color] 로 칠한 [shape] 모양 DecoratedBox.
+    Finder painted(Color color, BoxShape shape) => find.descendant(
       of: find.byKey(AppDateRangePickerDialog.dialogKey),
       matching: find.byWidgetPredicate(
         (Widget w) =>
             w is DecoratedBox &&
             w.decoration is BoxDecoration &&
-            (w.decoration as BoxDecoration).color ==
-                OnCareBrand.trainer.primary,
+            (w.decoration as BoxDecoration).color == color &&
+            (w.decoration as BoxDecoration).shape == shape,
+      ),
+    );
+
+    /// 시작·종료일 원(브랜드 채움).
+    Finder circleCells() =>
+        painted(OnCareBrand.trainer.primary, BoxShape.circle);
+
+    /// 사이 날 띠(옅은 브랜드). 시작·종료일 칸의 안쪽 절반 조각도 포함한다.
+    Finder bandCells() =>
+        painted(OnCareBrand.trainer.surface, BoxShape.rectangle);
+
+    /// [day] 숫자를 그린 글자.
+    Text dayText(WidgetTester tester, String day) => tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(AppDateRangePickerDialog.dialogKey),
+        matching: find.text(day),
       ),
     );
 
@@ -282,7 +298,7 @@ void main() {
       find.descendant(of: find.byKey(key), matching: find.byType(TextField)),
     );
 
-    testWidgets('한 달 격자·시작/종료 입력칸·2열 버튼을 그리고 기간을 브랜드 띠로 잇는다', (
+    testWidgets('한 달 격자·시작/종료 입력칸·2열 버튼을 그리고 기간을 원과 옅은 띠로 잇는다', (
       WidgetTester tester,
     ) async {
       await openRangePicker(tester, initialRange: september);
@@ -320,17 +336,39 @@ void main() {
       expect(find.byKey(AppDateRangePickerDialog.cancelKey), findsOneWidget);
       expect(find.byKey(AppDateRangePickerDialog.confirmKey), findsOneWidget);
 
-      // 7·8·9·10 네 칸이 한 띠다. 양 끝만 둥글다.
+      // 시작(7)·종료(10)는 브랜드 원에 흰 굵은 숫자.
+      expect(circleCells(), findsNWidgets(2));
+      for (final String cap in <String>['7', '10']) {
+        expect(dayText(tester, cap).style!.color, OnCareColors.textOnFill);
+        expect(dayText(tester, cap).style!.fontWeight, FontWeight.w700);
+      }
+      final Rect startCircle = tester.getRect(circleCells().first);
+      expect(startCircle.center, tester.getCenter(find.text('7')));
+
+      // 사이 날(8·9)은 칸 폭 전체의 옅은 띠에 짙은 브랜드 보통 굵기 숫자.
+      for (final String mid in <String>['8', '9']) {
+        expect(dayText(tester, mid).style!.color, OnCareBrand.trainer.strong);
+        expect(dayText(tester, mid).style!.fontWeight, FontWeight.w500);
+      }
+      // 띠 조각 = 8·9 온칸 둘 + 7 의 오른쪽 절반 + 10 의 왼쪽 절반.
       expect(bandCells(), findsNWidgets(4));
-      final List<BorderRadius> radii = <BorderRadius>[
-        for (final Element e in bandCells().evaluate())
-          ((e.widget as DecoratedBox).decoration as BoxDecoration).borderRadius!
-              as BorderRadius,
+      final List<Rect> bands = <Rect>[
+        for (int i = 0; i < 4; i++) tester.getRect(bandCells().at(i)),
       ];
-      expect(radii.first.topLeft, OnCareRadius.pill);
-      expect(radii.first.topRight, Radius.zero);
-      expect(radii.last.topRight, OnCareRadius.pill);
-      expect(radii.last.topLeft, Radius.zero);
+      final double cellWidth = bands[1].width;
+      expect(bands[2].width, cellWidth);
+      expect(bands[0].width, closeTo(cellWidth / 2, 0.01));
+      expect(bands[3].width, closeTo(cellWidth / 2, 0.01));
+      // 시작일은 원 가운데에서 오른쪽으로, 종료일은 원 가운데까지 띠가 붙는다.
+      expect(bands[0].left, closeTo(startCircle.center.dx, 0.01));
+      expect(
+        bands[3].right,
+        closeTo(tester.getRect(circleCells().last).center.dx, 0.01),
+      );
+      // 띠 높이는 원 지름과 같다.
+      expect(bands[1].height, startCircle.height);
+      // 범위 밖 숫자는 본문 색 그대로다.
+      expect(dayText(tester, '15').style!.color, OnCareColors.textPrimary);
     });
 
     testWidgets('두 번 탭해 새 기간을 고르고 확인하면 그 기간을 돌려준다', (
@@ -352,8 +390,14 @@ void main() {
         isEmpty,
       );
 
+      // 종료일을 고르기 전에는 시작일 원 하나뿐이고 띠가 없다.
+      expect(circleCells(), findsOneWidget);
+      expect(bandCells(), findsNothing);
+
       await tester.tap(find.text('20'));
       await tester.pump();
+      // 16~19 온칸 넷 + 15·20 의 안쪽 절반 둘.
+      expect(circleCells(), findsNWidgets(2));
       expect(bandCells(), findsNWidgets(6));
 
       await tester.tap(find.byKey(AppDateRangePickerDialog.confirmKey));
@@ -361,6 +405,54 @@ void main() {
       expect(results, hasLength(1));
       expect(results.single!.start, DateTime(2026, 9, 15));
       expect(results.single!.end, DateTime(2026, 9, 20));
+    });
+
+    testWidgets('같은 날을 두 번 누르면 원 하나만 그리고 그 하루를 돌려준다', (
+      WidgetTester tester,
+    ) async {
+      final List<DateTimeRange?> results = await openRangePicker(
+        tester,
+        initialRange: september,
+      );
+
+      await tester.tap(find.text('15'));
+      await tester.pump();
+      await tester.tap(find.text('15'));
+      await tester.pump();
+
+      expect(circleCells(), findsOneWidget);
+      expect(bandCells(), findsNothing);
+      expect(dayText(tester, '15').style!.color, OnCareColors.textOnFill);
+
+      await tester.tap(find.byKey(AppDateRangePickerDialog.confirmKey));
+      await tester.pumpAndSettle();
+      expect(results.single!.start, DateTime(2026, 9, 15));
+      expect(results.single!.end, DateTime(2026, 9, 15));
+    });
+
+    testWidgets('기간이 주를 넘기면 줄 끝에서 띠가 각진 채로 이어진다', (WidgetTester tester) async {
+      // 2026-09-12 는 토요일(줄 끝), 13 은 일요일(다음 줄 처음) — en_US 는 일요일 시작.
+      await openRangePicker(
+        tester,
+        initialRange: DateTimeRange(
+          start: DateTime(2026, 9, 11),
+          end: DateTime(2026, 9, 14),
+        ),
+      );
+
+      // 12·13 온칸 둘 + 11·14 절반 둘. 모서리를 둥글리지 않는다.
+      expect(bandCells(), findsNWidgets(4));
+      for (final Element e in bandCells().evaluate()) {
+        final BoxDecoration d =
+            (e.widget as DecoratedBox).decoration as BoxDecoration;
+        expect(d.borderRadius, isNull);
+      }
+      expect(dayText(tester, '12').style!.color, OnCareBrand.trainer.strong);
+      expect(dayText(tester, '13').style!.color, OnCareBrand.trainer.strong);
+      expect(
+        tester.getRect(find.text('13')).top,
+        greaterThan(tester.getRect(find.text('12')).bottom),
+      );
     });
 
     testWidgets('시작일을 종료일 뒤로 타이핑하면 종료일을 비운다', (WidgetTester tester) async {
