@@ -145,6 +145,11 @@ void main() {
     expect(find.text('2026.09.15'), findsOneWidget);
     expect(find.text('2026.10.15 (D-30)'), findsOneWidget);
     expect(find.text('사용 가능'), findsOneWidget);
+    // 제목이 한 줄에 들어가도록 제목 옆 상태 태그는 두지 않는다.
+    expect(
+      find.byKey(const ValueKey<String>('coupon-status-c-renewal')),
+      findsNothing,
+    );
     // 직원에게 보여 주라는 안내는 버튼 위 직원 안내 줄과 겹쳐 따로 두지 않는다.
     expect(find.textContaining('직원에게 보여 주세요'), findsNothing);
     expect(
@@ -225,14 +230,12 @@ void main() {
       ),
       findsOneWidget,
     );
+    // 제목 옆 상태 태그는 없다 — 상태 줄이 사용 완료를 말한다.
     expect(
-      tester
-          .widget<AppTag>(
-            find.byKey(const ValueKey<String>('coupon-status-c-renewal')),
-          )
-          .label,
-      '사용 완료',
+      find.byKey(const ValueKey<String>('coupon-status-c-renewal')),
+      findsNothing,
     );
+    expect(find.text('사용 완료'), findsOneWidget);
     expect(useButton(), findsNothing);
     expect(staffNote(), findsNothing);
     // 사용한 쿠폰에는 만료 안내를 두지 않는다.
@@ -293,11 +296,10 @@ void main() {
     expect(repo.used, <String>['c-salad']);
     expect(useButton(), findsNothing);
     expect(
-      tester
-          .widget<AppTag>(find.byKey(const ValueKey<String>('coupon-status-c-salad')))
-          .label,
-      '사용 완료',
+      find.byKey(const ValueKey<String>('coupon-status-c-salad')),
+      findsNothing,
     );
+    expect(find.text('사용 완료'), findsOneWidget);
     expect(find.byKey(const Key('couponUsedAt')), findsOneWidget);
     await drainToast(tester);
   });

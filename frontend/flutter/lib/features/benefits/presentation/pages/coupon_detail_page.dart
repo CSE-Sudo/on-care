@@ -11,6 +11,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 쿠폰 한 장 — 혜택, (PT 재등록이면) 담당 트레이너·헬스장, 교환일,
 /// 만료일(D-n), 상태, 사용했으면 사용 시각. (#1787)
 ///
+/// 제목 옆에는 상태 태그를 두지 않는다. D-n 은 만료일 줄, 사용 완료는 위 안내 줄과
+/// 상태 줄이 말하고, 태그가 넓으면 제목이 두 줄로 밀린다.
+///
 /// 모든 쿠폰은 회원 휴대폰에서 `사용 완료` 를 누른다. 파란 확인창을 한 번 거치고
 /// 되돌리기는 없다.
 /// - PT 재등록 쿠폰은 헬스장에서 회원이 이 화면을 열고 **트레이너·헬스장 직원이
@@ -133,8 +136,6 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
                         .copyWith(color: OnCareColors.textPrimary),
                   ),
                 ),
-                const SizedBox(width: OnCareSpacing.s8),
-                CouponStatusTag(coupon: coupon),
               ],
             ),
             const SizedBox(height: OnCareSpacing.s16),
