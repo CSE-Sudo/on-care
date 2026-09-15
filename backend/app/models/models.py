@@ -153,7 +153,7 @@ class PointsLedger(Base):
     kind: Mapped[str] = mapped_column(String(10))  # earn|spend|revoke
     #: 잔액 변화량. 적립은 양수, 사용·회수는 0 이하(실제로 뺀 값).
     delta: Mapped[int] = mapped_column(Integer)
-    #: 규칙 이름 — diet_entry|exercise_manual|ai_routine_complete. 한도를 세는 단위.
+    #: 규칙 이름 — diet_entry|exercise_manual|routine_complete. 한도를 세는 단위.
     reason: Mapped[str] = mapped_column(String(40))
     #: 근거 기록 종류와 id — diet_entry|exercise_session.
     source_type: Mapped[str | None] = mapped_column(String(40), nullable=True)

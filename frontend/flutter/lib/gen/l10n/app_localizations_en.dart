@@ -2376,7 +2376,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsDietAdd => 'Log a meal';
 
   @override
-  String get myPointsAiExercise => 'Complete an AI-recommended workout';
+  String get myPointsRoutineComplete =>
+      'Complete a recommended or assigned workout';
 
   @override
   String get myPointsExerciseAdd => 'Log a workout yourself';

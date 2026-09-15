@@ -13,8 +13,9 @@ enum PointsRule {
   /// 회원이 직접 추가한 운동.
   exerciseManual(sourceType: 'exercise_session', points: 20, dailyCap: 3),
 
-  /// AI 가 추천한 루틴을 완료해 생긴 운동 기록.
-  aiRoutineComplete(sourceType: 'exercise_session', points: 50, dailyCap: 1);
+  /// 추천·배정 운동 완료 — AI 가 추천한 루틴이든 트레이너가 배정한 루틴이든
+  /// 완료해 생긴 운동 기록. 두 출처가 하루 한도를 함께 쓴다.
+  routineComplete(sourceType: 'exercise_session', points: 50, dailyCap: 1);
 
   const PointsRule({
     required this.sourceType,

@@ -2313,7 +2313,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsDietAdd => '식단 추가';
 
   @override
-  String get myPointsAiExercise => 'AI 추천 운동 완료';
+  String get myPointsRoutineComplete => '추천·배정 운동 완료';
 
   @override
   String get myPointsExerciseAdd => '운동 직접 추가';

@@ -600,9 +600,11 @@ class _PointsInfoButton extends StatelessWidget {
             const SizedBox(height: OnCareSpacing.s12),
             _PointRule.of(
               l,
-              icon: Icons.auto_awesome_rounded,
-              action: l.myPointsAiExercise,
-              rule: PointsRule.aiRoutineComplete,
+              // AI 추천과 트레이너 배정을 한 규칙으로 묶었다 — AI 를 뜻하던 반짝이
+              // 대신 완료 표시를 쓴다.
+              icon: Icons.task_alt_rounded,
+              action: l.myPointsRoutineComplete,
+              rule: PointsRule.routineComplete,
             ),
             const SizedBox(height: OnCareSpacing.s12),
             _PointRule.of(

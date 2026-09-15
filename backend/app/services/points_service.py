@@ -3,8 +3,8 @@
 포인트는 서버에 숫자 하나(`HealthProfile.activity_points`)로만 있었고 올리는 코드가
 없었다. 적립 안내창에 적힌 규칙을 실제로 적용한다.
 
-- 식단 기록 +50P(하루 3회), 운동 직접 추가 +20P(하루 3회), AI 추천 운동 완료
-  +50P(하루 1회). 하루는 **KST 달력 날짜**다 — 서버 로컬 시각을 쓰면 아침 기록이
+- 식단 기록 +50P(하루 3회), 운동 직접 추가 +20P(하루 3회), 추천·배정 운동 완료
+  +50P(하루 1회 — AI 추천과 트레이너 배정이 한도를 함께 쓴다). 하루는 **KST 달력 날짜**다 — 서버 로컬 시각을 쓰면 아침 기록이
   전날 한도에 잡힌다([clock]).
 - 같은 기록(source)은 한 번만 받는다. 내역 표의 유니크 제약이 마지막 방어선이다.
 - 기록을 지우면 받은 만큼 회수한다. 잔액은 0 아래로 내려가지 않는다 — 그사이
@@ -57,10 +57,11 @@ class EarnRule:
 DIET_ENTRY = EarnRule("diet_entry", SOURCE_DIET_ENTRY, 50, 3)
 #: 회원이 직접 추가한 운동 기록.
 EXERCISE_MANUAL = EarnRule("exercise_manual", SOURCE_EXERCISE_SESSION, 20, 3)
-#: AI 가 추천한 루틴(`TrainerRoutine.source == "ai"`)을 완료해 생긴 운동 기록.
-AI_ROUTINE_COMPLETE = EarnRule(
-    "ai_routine_complete", SOURCE_EXERCISE_SESSION, 50, 1
-)
+#: 추천·배정 운동 완료 — 회원이 받은 루틴을 완료해 생긴 운동 기록. AI 가 추천한
+#: 루틴(`source == "ai"`)이든 트레이너가 배정한 루틴(`source == "trainer"`)이든
+#: 같은 규칙이고, 하루 한도 1회를 함께 쓴다. 회원에게는 둘 다 "오늘 받은 운동을
+#: 했다" 는 한 가지 일이라, 출처마다 따로 세면 하루 두 번 받을 수 있게 된다.
+ROUTINE_COMPLETE = EarnRule("routine_complete", SOURCE_EXERCISE_SESSION, 50, 1)
 
 
 @dataclass(frozen=True)

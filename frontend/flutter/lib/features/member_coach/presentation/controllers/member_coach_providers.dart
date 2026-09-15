@@ -25,7 +25,7 @@ final memberCoachRepositoryProvider = Provider<MemberCoachRepository>((ref) {
     final ExerciseRepository exercise = ref.watch(exerciseRepositoryProvider);
     return MockMemberCoachRepository(
       exercise: exercise is MockExerciseRepository ? exercise : null,
-      // AI 추천 루틴 완료 적립도 같은 원장이다(#1786).
+      // 루틴 완료(추천·배정) 적립도 같은 원장이다(#1786).
       points: ref.watch(demoPointsLedgerProvider),
     );
   }

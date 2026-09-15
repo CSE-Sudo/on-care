@@ -17,7 +17,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 일(`assigned_routine_id` 로 세션 한 건 생성)을 데모에서 대신한다. 없으면
   /// 예전처럼 루틴 상태만 바뀐다(테스트·단독 사용). (#1131)
   ///
-  /// [points] 를 주면 AI 추천 루틴 완료가 포인트를 받고 되돌리면 회수된다(#1786).
+  /// [points] 를 주면 루틴 완료(AI 추천·트레이너 배정)가 포인트를 받고 되돌리면
+  /// 회수된다(#1786).
   MockMemberCoachRepository({
     MockExerciseRepository? exercise,
     DemoPointsLedger? points,
@@ -273,7 +274,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       final DemoPointsLedger? points = _points;
       if (points == null || source == null) return current;
       return current.copyWith(
-        pointsAward: points.awardedFor(PointsRule.aiRoutineComplete, source),
+        pointsAward: points.awardedFor(PointsRule.routineComplete, source),
       );
     }
     final CoachRoutine completed = current.copyWith(
@@ -289,8 +290,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     return award == null ? completed : completed.copyWith(pointsAward: award);
   }
 
-  /// 완료 적립(#1786). 적립 규칙은 `AI 추천 운동 완료` 뿐이라 트레이너가 배정한
-  /// 루틴은 0 이다.
+  /// 완료 적립(#1786). AI 추천이든 트레이너 배정이든 `추천·배정 운동 완료` 한
+  /// 규칙이라 하루 한도를 함께 쓴다 — 실서버와 같다.
   PointsAward? _awardCompletion(CoachRoutine routine) {
     final DemoPointsLedger? points = _points;
     if (points == null) return null;
@@ -298,10 +299,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         _completionSessions[routine.id] ??
         'mock-routine-${routine.id}-${++_completionSeq}';
     _completionSources[routine.id] = source;
-    if (!routine.isAiRecommended) {
-      return PointsAward(awarded: 0, balance: points.balance);
-    }
-    return points.award(PointsRule.aiRoutineComplete, source);
+    return points.award(PointsRule.routineComplete, source);
   }
 
   @override
@@ -331,7 +329,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     // 이 완료로 받은 포인트를 회수한다(#1786).
     final String? source = _completionSources.remove(routineId);
     if (source != null) {
-      _points?.revoke(PointsRule.aiRoutineComplete.sourceType, source);
+      _points?.revoke(PointsRule.routineComplete.sourceType, source);
     }
     final String? sessionId = _completionSessions.remove(routineId);
     if (sessionId != null) {

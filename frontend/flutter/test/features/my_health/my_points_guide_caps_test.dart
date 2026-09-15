@@ -49,7 +49,7 @@ void main() {
 
     expect(inDialog('식단 추가 (하루 3회)'), findsOneWidget);
     expect(inDialog('운동 직접 추가 (하루 3회)'), findsOneWidget);
-    expect(inDialog('AI 추천 운동 완료 (하루 1회)'), findsOneWidget);
+    expect(inDialog('추천·배정 운동 완료 (하루 1회)'), findsOneWidget);
     // 포인트는 예전처럼 줄 오른쪽에 선다.
     expect(inDialog('+50P'), findsNWidgets(2));
     expect(inDialog('+20P'), findsOneWidget);
@@ -68,7 +68,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      inDialog('Complete an AI-recommended workout (once a day)'),
+      inDialog('Complete a recommended or assigned workout (once a day)'),
       findsOneWidget,
     );
   });
@@ -79,7 +79,7 @@ void main() {
     for (final (String action, PointsRule rule) in <(String, PointsRule)>[
       (l.myPointsDietAdd, PointsRule.dietEntry),
       (l.myPointsExerciseAdd, PointsRule.exerciseManual),
-      (l.myPointsAiExercise, PointsRule.aiRoutineComplete),
+      (l.myPointsRoutineComplete, PointsRule.routineComplete),
     ]) {
       final Finder row = find.ancestor(
         of: inDialog(l.myPointsRuleWithDailyCap(action, rule.dailyCap)),

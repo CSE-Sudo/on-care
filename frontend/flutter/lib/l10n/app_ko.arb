@@ -805,7 +805,7 @@
   "myNotificationSaveFailed": "알림 설정을 저장하지 못했어요",
   "myPointsGuideTitle": "포인트 적립 안내",
   "myPointsDietAdd": "식단 추가",
-  "myPointsAiExercise": "AI 추천 운동 완료",
+  "myPointsRoutineComplete": "추천·배정 운동 완료",
   "myPointsExerciseAdd": "운동 직접 추가",
   "myPointsRuleWithDailyCap": "{action} (하루 {count}회)",
   "@myPointsRuleWithDailyCap": {

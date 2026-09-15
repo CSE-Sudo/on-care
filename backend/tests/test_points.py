@@ -1,7 +1,7 @@
 """활동 포인트 적립·하루 한도·중복 방지·삭제 회수. (#1786) DB 필요(로컬 skip, CI 실행).
 
 기록 규칙은 적립 안내창과 같다 — 식단 +50P(하루 3회), 운동 직접 추가 +20P(하루
-3회), AI 추천 운동 완료 +50P(하루 1회). 새로 가입한 회원으로 확인해 다른 테스트가
+3회), 추천·배정 운동 완료 +50P(하루 1회, AI 추천과 트레이너 배정이 한도를 함께 쓴다). 새로 가입한 회원으로 확인해 다른 테스트가
 만든 적립과 섞이지 않게 한다.
 """
 from __future__ import annotations
@@ -215,7 +215,9 @@ def test_ai_routine_completion_awards_50_once_a_day_and_undo_revokes(client):
     assert _balance(client, h) == 50
 
 
-def test_trainer_assigned_routine_completion_awards_nothing(client, db_session):
+def test_trainer_assigned_routine_completion_awards_and_shares_cap_with_ai(
+    client, db_session
+):
     from app.models.models import TrainerRoutine
 
     h = _register(client)
@@ -235,11 +237,40 @@ def test_trainer_assigned_routine_completion_awards_nothing(client, db_session):
         )
     )
     db_session.commit()
+    ai = [
+        r
+        for r in client.get("/v1/me/coach/routines", headers=h).json()
+        if r["source"] == "ai"
+    ]
+    assert ai
 
+    # 트레이너 배정 루틴 완료도 +50P 다.
     done = _complete(client, h, routine_id)
-
     assert done["completed"] is True
-    assert done["points"] == {"awarded": 0, "balance": 0}
+    assert done["points"] == {"awarded": 50, "balance": 50}
+    # 재전송은 새로 적립하지 않는다.
+    assert _complete(client, h, routine_id)["points"] == {
+        "awarded": 50,
+        "balance": 50,
+    }
+
+    # 하루 1회는 AI 추천과 함께 쓰는 한도다 — 같은 날 AI 루틴은 적립이 없다.
+    assert _complete(client, h, ai[0]["id"])["points"] == {
+        "awarded": 0,
+        "balance": 50,
+    }
+
+    # 배정 완료를 되돌리면 회수되고 그날 한도가 풀린다.
+    undone = client.delete(
+        f"/v1/me/coach/routines/{routine_id}/complete", headers=h
+    )
+    assert undone.status_code == 200, undone.text
+    assert _balance(client, h) == 0
+    client.delete(f"/v1/me/coach/routines/{ai[0]['id']}/complete", headers=h)
+    assert _complete(client, h, ai[0]["id"])["points"] == {
+        "awarded": 50,
+        "balance": 50,
+    }
 
 
 def test_revoke_never_takes_the_balance_below_zero(client, db_session):

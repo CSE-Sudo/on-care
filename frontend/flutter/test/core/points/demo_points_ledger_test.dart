@@ -28,7 +28,7 @@ void main() {
     expect(ledger.balance, 1240 + 150);
   });
 
-  test('운동 직접 추가는 +20P 하루 3회, AI 추천 운동 완료는 +50P 하루 1회', () {
+  test('운동 직접 추가는 +20P 하루 3회, 추천·배정 운동 완료는 +50P 하루 1회', () {
     expect(
       <int>[
         for (int i = 0; i < 4; i++)
@@ -36,8 +36,8 @@ void main() {
       ],
       <int>[20, 20, 20, 0],
     );
-    expect(ledger.award(PointsRule.aiRoutineComplete, 'ai-1').awarded, 50);
-    expect(ledger.award(PointsRule.aiRoutineComplete, 'ai-2').awarded, 0);
+    expect(ledger.award(PointsRule.routineComplete, 'routine-1').awarded, 50);
+    expect(ledger.award(PointsRule.routineComplete, 'routine-2').awarded, 0);
     // 규칙마다 한도를 따로 센다 — 운동 한도를 채워도 식단은 받는다.
     expect(ledger.award(PointsRule.dietEntry, 'diet-1').awarded, 50);
   });

@@ -4327,11 +4327,11 @@ abstract class AppLocalizations {
   /// **'Log a meal'**
   String get myPointsDietAdd;
 
-  /// Point-earning action in the points guide.
+  /// Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer.
   ///
   /// In en, this message translates to:
-  /// **'Complete an AI-recommended workout'**
-  String get myPointsAiExercise;
+  /// **'Complete a recommended or assigned workout'**
+  String get myPointsRoutineComplete;
 
   /// Point-earning action in the points guide.
   ///

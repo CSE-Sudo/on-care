@@ -409,14 +409,14 @@ class _RecommendedExerciseRowState
           );
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
-      // AI 추천 운동 완료는 포인트를 받는다 — MY 잔액을 다시 읽는다(#1786).
+      // 추천·배정 운동 완료는 포인트를 받는다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
       if (mounted) {
         showAppToast(
           context,
           l.coachRoutineLogged,
           type: AppToastType.success,
-          // 받은 포인트가 있으면 ★ +50P. 트레이너 배정·하루 한도는 저장 알림만.
+          // 받은 포인트가 있으면 ★ +50P. 하루 한도를 넘었으면 저장 알림만.
           rewardLabel: pointsRewardLabel(l, done.pointsAward),
         );
       }

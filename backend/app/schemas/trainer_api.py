@@ -477,8 +477,8 @@ class RoutineOut(BaseModel):
 class RoutineCompleteOut(RoutineOut):
     """POST /me/coach/routines/{id}/complete 응답 — 이번 완료의 포인트 적립을 더한다. (#1786)
 
-    AI 추천 루틴(`source == "ai"`)만 적립 규칙이 있다. 트레이너가 직접 배정한
-    루틴은 `awarded` 가 0 이다. 목록 응답(`RoutineOut`)에는 붙지 않는다.
+    AI 추천 루틴과 트레이너 배정 루틴 모두 `추천·배정 운동 완료` 규칙으로 적립하고
+    하루 한도 1회를 함께 쓴다. 목록 응답(`RoutineOut`)에는 붙지 않는다.
     """
 
     points: PointsOut

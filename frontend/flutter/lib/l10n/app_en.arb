@@ -1411,9 +1411,9 @@
   "@myPointsDietAdd": {
     "description": "Point-earning action in the points guide."
   },
-  "myPointsAiExercise": "Complete an AI-recommended workout",
-  "@myPointsAiExercise": {
-    "description": "Point-earning action in the points guide."
+  "myPointsRoutineComplete": "Complete a recommended or assigned workout",
+  "@myPointsRoutineComplete": {
+    "description": "Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer."
   },
   "myPointsExerciseAdd": "Log a workout yourself",
   "@myPointsExerciseAdd": {

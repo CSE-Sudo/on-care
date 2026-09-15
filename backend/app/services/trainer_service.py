@@ -1469,7 +1469,7 @@ def complete_assigned_routine(
     `assigned_routine_id` unique 제약이 더블 탭·재전송을 같은 기록으로
     모은다. 이름은 스냅샷이라 이후 배정 수정·철회에 흔들리지 않는다.
 
-    AI 추천 루틴이면 포인트를 적립하고 그 결과를 응답에 싣는다(#1786). 재전송은
+    포인트를 적립하고 그 결과를 응답에 싣는다(#1786). 재전송은
     새로 적립하지 않고 처음 완료할 때 받은 값을 돌려준다.
     """
     routine = _owned_routine(db, trainer_id, member_id, routine_id)
@@ -1569,15 +1569,11 @@ def _completion_points(
 ) -> points_service.PointsResult:
     """배정 완료로 받는 포인트. (#1786)
 
-    적립 안내의 규칙은 `AI 추천 운동 완료` 뿐이라 AI 가 추천한 루틴만 적립한다 —
-    트레이너가 직접 배정한 루틴은 0 이다. [award] 가 거짓이면 이미 저장된 완료가
-    받은 값을 읽기만 한다(재전송 응답).
+    AI 추천 루틴이든 트레이너 배정 루틴이든 `추천·배정 운동 완료` 한 규칙으로
+    적립하고, 하루 한도를 함께 쓴다 — 그래서 [routine] 의 출처를 보지 않는다.
+    [award] 가 거짓이면 이미 저장된 완료가 받은 값을 읽기만 한다(재전송 응답).
     """
-    if routine.source != "ai":
-        return points_service.PointsResult(
-            awarded=0, balance=points_service.balance(db, member_id)
-        )
-    rule = points_service.AI_ROUTINE_COMPLETE
+    rule = points_service.ROUTINE_COMPLETE
     if award:
         return points_service.award(db, member_id, rule, session_id)
     return points_service.awarded_for(db, member_id, rule, session_id)

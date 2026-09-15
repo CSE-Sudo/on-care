@@ -106,7 +106,7 @@
 |---|---|---|---|
 | `diet_entry` | `POST /diet/analyze` 로 끼니가 새로 저장될 때 | +50 | 3회 |
 | `exercise_manual` | `POST /exercise/sessions` (회원이 직접 추가) | +20 | 3회 |
-| `ai_routine_complete` | `POST /me/coach/routines/{id}/complete` 중 AI 추천 루틴(`source: "ai"`) | +50 | 1회 |
+| `routine_complete` | `POST /me/coach/routines/{id}/complete` — AI 추천(`source: "ai"`)·트레이너 배정(`source: "trainer"`) 모두 | +50 | 1회(두 출처 합산) |
 
 생성 응답의 `points`: `{ awarded(int), balance(int) }` — 이번에 받은 포인트와 그 뒤의 잔액.
 
@@ -116,8 +116,9 @@
 - **기록을 지우면 회수**한다(`DELETE /diet/entries/{id}`, `DELETE /exercise/sessions/{id}`,
   `DELETE /me/coach/routines/{id}/complete`). 잔액은 0 아래로 내려가지 않는다 — 모자라면 남은 만큼만
   빼고 내역에 실제로 뺀 값을 적는다. 회수된 적립은 그날 한도에서 빠진다. 다시 만든 기록은 새 기록이다.
-- 배정 루틴 완료 응답은 `RoutineOut` + `points` 다. 트레이너가 직접 배정한 루틴(`source: "trainer"`)은
-  적립 규칙이 없어 `awarded: 0`. 목록·수정 응답에는 `points` 가 붙지 않는다.
+- 배정 루틴 완료 응답은 `RoutineOut` + `points` 다. 앱의 안내 문구는 `추천·배정 운동 완료` 로, AI 추천과
+  트레이너 배정이 **하루 1회를 함께** 쓴다 — 배정 루틴으로 받은 날은 AI 루틴을 완료해도 `awarded: 0`.
+  목록·수정 응답에는 `points` 가 붙지 않는다.
 
 ### 일정 (캘린더 상세 CRUD)
 

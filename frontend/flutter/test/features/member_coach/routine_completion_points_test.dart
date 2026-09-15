@@ -1,8 +1,8 @@
 /// 데모 루틴 완료·운동 추가의 포인트 적립과 응답 파싱. (#1786)
 ///
-/// 적립 규칙의 `AI 추천 운동 완료` 는 AI 가 추천한 루틴(`source: ai`)만이다.
-/// 트레이너가 직접 배정한 루틴은 0 이다. 목업은 식단(목업 API)과 같은 원장을
-/// 써서 하루 한도와 MY 잔액이 하나로 움직인다.
+/// 적립 규칙 `추천·배정 운동 완료` 는 AI 가 추천한 루틴과 트레이너가 배정한 루틴을
+/// 함께 다룬다 — 둘 다 +50P 이고 하루 1회 한도를 함께 쓴다. 목업은 식단(목업
+/// API)과 같은 원장을 써서 하루 한도와 MY 잔액이 하나로 움직인다.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -26,11 +26,14 @@ void main() {
     coach = MockMemberCoachRepository(exercise: exercise, points: ledger);
   });
 
+  Future<List<CoachRoutine>> routinesFrom(String source) async =>
+      (await coach.fetchRoutines())
+          .where((CoachRoutine r) => r.source == source)
+          .toList();
+
   group('데모 루틴 완료', () {
     test('AI 추천 루틴 완료는 +50P 하루 1회, 되돌리면 회수한다', () async {
-      final List<CoachRoutine> ai = (await coach.fetchRoutines())
-          .where((CoachRoutine r) => r.isAiRecommended)
-          .toList();
+      final List<CoachRoutine> ai = await routinesFrom('ai');
       expect(ai.length, greaterThanOrEqualTo(2));
 
       final CoachRoutine first = await coach.completeRoutine(
@@ -65,25 +68,38 @@ void main() {
       expect(redone.pointsAward?.awarded, 50);
     });
 
-    test('트레이너가 직접 배정한 루틴 완료는 적립하지 않는다', () async {
-      final CoachRoutine trainer = (await coach.fetchRoutines()).firstWhere(
-        (CoachRoutine r) => r.isTrainerRecommended,
-      );
+    test('트레이너 배정 루틴 완료도 +50P 이고, AI 추천과 하루 한도를 함께 쓴다', () async {
+      final CoachRoutine trainer = (await routinesFrom('trainer')).first;
+      final CoachRoutine ai = (await routinesFrom('ai')).first;
 
       final CoachRoutine done = await coach.completeRoutine(
         trainer.id,
         minutes: 10,
       );
-
       expect(done.completed, isTrue);
-      expect(done.pointsAward?.awarded, 0);
+      expect(done.pointsAward?.awarded, 50);
+      expect(ledger.balance, kDemoOpeningPoints + 50);
+
+      // 같은 날 AI 추천을 완료해도 한도를 이미 썼다.
+      final CoachRoutine aiDone = await coach.completeRoutine(
+        ai.id,
+        minutes: 10,
+      );
+      expect(aiDone.pointsAward?.awarded, 0);
+
+      // 배정 완료를 되돌리면 회수되고 한도가 풀린다.
+      await coach.uncompleteRoutine(trainer.id);
       expect(ledger.balance, kDemoOpeningPoints);
+      await coach.uncompleteRoutine(ai.id);
+      final CoachRoutine aiRedone = await coach.completeRoutine(
+        ai.id,
+        minutes: 10,
+      );
+      expect(aiRedone.pointsAward?.awarded, 50);
     });
 
     test('목록의 루틴에는 적립 결과가 따라가지 않는다', () async {
-      final CoachRoutine ai = (await coach.fetchRoutines()).firstWhere(
-        (CoachRoutine r) => r.isAiRecommended,
-      );
+      final CoachRoutine ai = (await routinesFrom('ai')).first;
       await coach.completeRoutine(ai.id, minutes: 10);
 
       final CoachRoutine listed = (await coach.fetchRoutines()).firstWhere(
@@ -134,7 +150,7 @@ void main() {
         'minutes': 20,
         'type': '유산소',
         'reason': '',
-        'source': 'ai',
+        'source': 'trainer',
         'completed': true,
         'points': points,
       });

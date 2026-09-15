@@ -52,7 +52,7 @@ class CoachRoutine {
   final String reason;
 
   /// 방금 완료해 받은 포인트(#1786). 완료 응답에만 있고, 목록의 루틴은 null 이다.
-  /// AI 추천 루틴만 적립 규칙이 있어 트레이너 배정 루틴은 0 이다.
+  /// AI 추천·트레이너 배정 모두 같은 규칙이고 하루 한도를 넘으면 0 이다.
   final PointsAward? pointsAward;
 
   /// `ai` (AI-suggested) or `trainer` (hand-assigned).
