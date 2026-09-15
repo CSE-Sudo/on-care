@@ -246,6 +246,60 @@ void main() {
     });
   });
 
+  for (final scale in <double>[1.0, 1.3]) {
+    testWidgets('짧은 말과 긴 말의 고객 카드 높이가 같다 (배율 $scale)', (tester) async {
+      await withWideSurface(tester, () async {
+        // 미리보기 길이에 따라 카드 높이가 고객마다 달랐다 — 미리보기는
+        // 늘 두 줄 자리를 차지해, 한 줄 말도 두 줄 넘는 말도 같은 카드다.
+        tester.platformDispatcher.textScaleFactorTestValue = scale;
+        addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+        TrainerClient clientWith(String id, String lastMessage) =>
+            TrainerClient(
+              id: id,
+              name: '고객$id',
+              avatar: '고',
+              goal: '체중 감량',
+              lastMessage: lastMessage,
+              lastTime: '12:00',
+              active: true,
+              calories: 0,
+              sodiumMg: 0,
+              sugarG: 0,
+              lastRoutine: '-',
+              weekCompletion: const <int>[],
+              sodiumWeek: const <int>[],
+            );
+
+        await pumpTrainerApp(
+          tester,
+          token: 'demo-trainer-token-existing',
+          extraOverrides: <Override>[
+            clientsProvider.overrideWith(
+              (ref) => Stream<List<TrainerClient>>.value(<TrainerClient>[
+                clientWith('short', '네!'),
+                clientWith(
+                  'long',
+                  List<String>.filled(
+                    12,
+                    '오늘 점심 식단 사진 올렸는데 나트륨이 좀 많은 것 같아요.',
+                  ).join(' '),
+                ),
+              ]),
+            ),
+          ],
+        );
+        await goTo(tester, AppRoutes.messages);
+
+        Size sizeOf(String id) => tester.getSize(
+          find.byKey(ValueKey<String>('messages-conversation-$id')),
+        );
+        expect(sizeOf('short').height, sizeOf('long').height);
+        expect(tester.takeException(), isNull);
+      });
+    });
+  }
+
   testWidgets(
     'narrowest desktop split keeps message and time without overflow',
     (tester) async {

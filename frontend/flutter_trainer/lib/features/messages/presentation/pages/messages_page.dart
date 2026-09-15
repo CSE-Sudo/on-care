@@ -219,6 +219,31 @@ class _ConversationList extends StatelessWidget {
   }
 }
 
+/// 목록 미리보기가 늘 차지하는 줄 수.
+const int _previewLines = 2;
+
+/// 줄마다 같은 높이를 강제한다 — 한글 대체 글꼴처럼 줄마다 글꼴 지표가
+/// 달라도 줄 높이가 흔들리지 않아, 아래에서 잰 높이와 그린 높이가 맞는다.
+StrutStyle _previewStrut(TextStyle style) =>
+    StrutStyle.fromTextStyle(style, forceStrutHeight: true);
+
+/// 미리보기 두 줄의 높이 — 현재 글자 배율을 반영해 잰다.
+double _twoLinePreviewHeight(BuildContext context, TextStyle style) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: List<String>.filled(_previewLines, ' ').join('\n'),
+      style: DefaultTextStyle.of(context).style.merge(style),
+    ),
+    strutStyle: _previewStrut(style),
+    maxLines: _previewLines,
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+  )..layout();
+  final height = painter.height;
+  painter.dispose();
+  return height;
+}
+
 class _ConversationTile extends StatelessWidget {
   const _ConversationTile({
     super.key,
@@ -242,6 +267,9 @@ class _ConversationTile extends StatelessWidget {
     // 않아 그 줄이 통째로 사라졌고, 옆 고객만 한 줄 높은 타일을 가졌다 —
     // 화면은 "미리보기가 없다"가 아니라 "아직 대화가 없다"를 말해야 한다.
     final hasPreview = client.lastMessage.trim().isNotEmpty;
+    final previewStyle = tokens
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textSecondary);
     // 목표(`혈압 관리 · 체중 감량`)는 여기 없다. 어느 대화를 열지는 **마지막에
     // 무슨 말이 오갔는가**로 정하지 목표로 정하지 않는다 — 그 자리를 두 줄
     // 미리보기에 준다.
@@ -276,13 +304,21 @@ class _ConversationTile extends StatelessWidget {
                       .text(OnCareTypography.caption)
                       .copyWith(color: OnCareColors.textTertiary),
                 ),
-                Text(
-                  hasPreview ? client.lastMessage : l.messagesNoPreview,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.bodySmall)
-                      .copyWith(color: OnCareColors.textSecondary),
+                // 미리보기는 **항상 두 줄 자리**를 차지한다. 한 줄짜리 말과
+                // 두 줄을 넘는 말이 같은 목록에 섞이면 카드 높이가 고객마다
+                // 달라져 목록이 들쭉날쭉했다. 줄 높이를 고정(strut)하고, 그
+                // 두 줄 높이를 현재 글자 배율로 재어 상자 높이로 삼는다 —
+                // 배율이 커지면 잘리지 않고 카드가 함께 커진다.
+                SizedBox(
+                  key: ValueKey<String>('messages-preview-${client.id}'),
+                  height: _twoLinePreviewHeight(context, previewStyle),
+                  child: Text(
+                    hasPreview ? client.lastMessage : l.messagesNoPreview,
+                    maxLines: _previewLines,
+                    overflow: TextOverflow.ellipsis,
+                    style: previewStyle,
+                    strutStyle: _previewStrut(previewStyle),
+                  ),
                 ),
               ],
             ),
