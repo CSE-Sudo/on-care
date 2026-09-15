@@ -1611,6 +1611,101 @@
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
   },
+  "alertTimeJustNow": "Just now",
+  "@alertTimeJustNow": {
+    "description": "Relative time for a notification less than a minute old."
+  },
+  "alertTimeMinutesAgo": "{minutes}m ago",
+  "@alertTimeMinutesAgo": {
+    "description": "Relative time for a notification under an hour old.",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "alertTimeHoursAgo": "{hours}h ago",
+  "@alertTimeHoursAgo": {
+    "description": "Relative time for a notification under a day old.",
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "alertTimeYesterday": "Yesterday",
+  "@alertTimeYesterday": {
+    "description": "Relative time for a notification from about a day ago."
+  },
+  "alertTimeDaysAgo": "{days}d ago",
+  "@alertTimeDaysAgo": {
+    "description": "Relative time for a notification two or more days old.",
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "demoAlertSodiumTitle": "Watch your sodium",
+  "@demoAlertSodiumTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 3,428mg. Drink plenty of water.",
+  "@demoAlertSodiumBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertDinnerTitle": "Log your dinner",
+  "@demoAlertDinnerTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertDinnerBody": "No dinner logged yet today. One photo is all it takes.",
+  "@demoAlertDinnerBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertRoutineTitle": "A new workout routine arrived",
+  "@demoAlertRoutineTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertRoutineBody": "Trainer Kim adjusted it to a walking routine for your knee.",
+  "@demoAlertRoutineBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertReportTitle": "This week's report is ready",
+  "@demoAlertReportTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertReportBody": "Trainer Kim posted your report for this week.",
+  "@demoAlertReportBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertPtDoneTitle": "PT session complete",
+  "@demoAlertPtDoneTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer Kim at 18:00 today!",
+  "@demoAlertPtDoneBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertTrainerFeedbackTitle": "Feedback from your trainer",
+  "@demoAlertTrainerFeedbackTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertTrainerFeedbackBody": "Be sure to stretch your rotator cuff to finish.",
+  "@demoAlertTrainerFeedbackBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertWeeklyGoalTitle": "Almost at this week's workout goal",
+  "@demoAlertWeeklyGoalTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertWeeklyGoalBody": "Start with 30 minutes of low-intensity cardio (walking).",
+  "@demoAlertWeeklyGoalBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertMealStreakTitle": "You're keeping up your meal log",
+  "@demoAlertMealStreakTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertMealStreakBody": "You've logged your meals every day for over a month.",
+  "@demoAlertMealStreakBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertMaintenanceTitle": "Scheduled maintenance",
+  "@demoAlertMaintenanceTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertMaintenanceBody": "Maintenance is scheduled for tomorrow, 02:00–03:00.",
+  "@demoAlertMaintenanceBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
   "exPtLogTitle": "Today's completed PT",
   "@exPtLogTitle": {
     "description": "Title of the completed PT session card."

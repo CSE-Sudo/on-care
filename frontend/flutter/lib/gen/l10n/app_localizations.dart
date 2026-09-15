@@ -4615,6 +4615,144 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the latest notifications'**
   String get alertLoadFailed;
 
+  /// Relative time for a notification less than a minute old.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get alertTimeJustNow;
+
+  /// Relative time for a notification under an hour old.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m ago'**
+  String alertTimeMinutesAgo(int minutes);
+
+  /// Relative time for a notification under a day old.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h ago'**
+  String alertTimeHoursAgo(int hours);
+
+  /// Relative time for a notification from about a day ago.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get alertTimeYesterday;
+
+  /// Relative time for a notification two or more days old.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d ago'**
+  String alertTimeDaysAgo(int days);
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch your sodium'**
+  String get demoAlertSodiumTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.'**
+  String get demoAlertSodiumBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Log your dinner'**
+  String get demoAlertDinnerTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'No dinner logged yet today. One photo is all it takes.'**
+  String get demoAlertDinnerBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'A new workout routine arrived'**
+  String get demoAlertRoutineTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer Kim adjusted it to a walking routine for your knee.'**
+  String get demoAlertRoutineBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s report is ready'**
+  String get demoAlertReportTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer Kim posted your report for this week.'**
+  String get demoAlertReportBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session complete'**
+  String get demoAlertPtDoneTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished PT session 12 with Trainer Kim at 18:00 today!'**
+  String get demoAlertPtDoneBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback from your trainer'**
+  String get demoAlertTrainerFeedbackTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Be sure to stretch your rotator cuff to finish.'**
+  String get demoAlertTrainerFeedbackBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost at this week\'s workout goal'**
+  String get demoAlertWeeklyGoalTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with 30 minutes of low-intensity cardio (walking).'**
+  String get demoAlertWeeklyGoalBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re keeping up your meal log'**
+  String get demoAlertMealStreakTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve logged your meals every day for over a month.'**
+  String get demoAlertMealStreakBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled maintenance'**
+  String get demoAlertMaintenanceTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance is scheduled for tomorrow, 02:00–03:00.'**
+  String get demoAlertMaintenanceBody;
+
   /// Title of the completed PT session card.
   ///
   /// In en, this message translates to:

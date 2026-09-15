@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         Value;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
+import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
@@ -880,11 +881,9 @@ class LocalApiInterceptor extends Interceptor {
         // 채운다. 이미 있으면 그대로 둔다 — 같은 끼니의 사진이다.
         if (photoBytes != null &&
             (existing.photoBytes == null || existing.photoBytes!.isEmpty)) {
-          await (_db.update(
-            _db.dietEntries,
-          )..where((t) => t.id.equals(existing.id))).write(
-            DietEntriesCompanion(photoBytes: Value(photoBytes)),
-          );
+          await (_db.update(_db.dietEntries)
+                ..where((t) => t.id.equals(existing.id)))
+              .write(DietEntriesCompanion(photoBytes: Value(photoBytes)));
         }
         final storedFoods = (jsonDecode(existing.foodsJson) as List<Object?>)
             .cast<Map<String, Object?>>();
@@ -1125,13 +1124,13 @@ class LocalApiInterceptor extends Interceptor {
     }
     final (String start, String end) = _periodBounds(period);
     final List<String> weeks = _weekStartsCovering(start, end);
-    final rows =
-        await (_db.select(
-          _db.exerciseSessions,
-        )..where((t) => t.weekStart.isIn(weeks))).get();
+    final rows = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.weekStart.isIn(weeks))).get();
 
     final Map<String, ({int minutes, int calories, Map<String, int> byType})>
-    perDate = <String, ({int minutes, int calories, Map<String, int> byType})>{};
+    perDate =
+        <String, ({int minutes, int calories, Map<String, int> byType})>{};
     for (final r in rows) {
       final int index = _weekdayLabels.indexOf(r.dayLabel);
       if (index < 0) continue;
@@ -1141,8 +1140,7 @@ class LocalApiInterceptor extends Interceptor {
       );
       if (date.compareTo(start) < 0 || date.compareTo(end) > 0) continue;
       final ({int minutes, int calories, Map<String, int> byType}) day =
-          perDate[date] ??
-          (minutes: 0, calories: 0, byType: <String, int>{});
+          perDate[date] ?? (minutes: 0, calories: 0, byType: <String, int>{});
       final String kind = switch (r.type) {
         'cardio' || 'walking' => 'cardio',
         'strength' => 'strength',
@@ -1197,8 +1195,8 @@ class LocalApiInterceptor extends Interceptor {
   Future<Response<Object?>> _exerciseCurrentWeek(RequestOptions options) async {
     // 저장된 기록의 칼로리 근거를 되짚을 때 쓴다 — 이름이 종목표에 붙어도
     // 체중을 모르면 어림값으로 계산된 기록이다(`_demoEstimate` 와 같은 판단).
-    final double? weightKg =
-        ((await _mergedProfile())['weight_kg'] as num?)?.toDouble();
+    final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
+        ?.toDouble();
     // 파라미터가 **있으면** 그 값을 그대로 검사한다. 빈 문자열도 "잘못된 값"이다
     // — 서버(FastAPI)가 그렇게 답하므로 여기서 조용히 이번 주로 흘려보내면 두
     //   구현이 갈린다.
@@ -1424,7 +1422,8 @@ class LocalApiInterceptor extends Interceptor {
   /// 예전에는 요일 라벨만 받고 주차는 늘 이번 주로 박았다 — 지난 날짜를 골라도
   /// 기록이 이번 주로 들어왔다. (#1276)
   (String, String) _placement(Object? raw) {
-    final DateTime day = raw is String ? (DateTime.tryParse(raw) ?? nowKst())
+    final DateTime day = raw is String
+        ? (DateTime.tryParse(raw) ?? nowKst())
         : nowKst();
     return (_mondayOf(day), _weekdayLabels[day.weekday - 1]);
   }
@@ -1486,8 +1485,8 @@ class LocalApiInterceptor extends Interceptor {
     final String normalized = _normalizedExerciseType(type);
     final double factor = _intensityFactor[intensity ?? 'moderate'] ?? 1.0;
     final DemoExerciseActivity? matched = matchDemoExercise(name);
-    final double? weightKg =
-        ((await _mergedProfile())['weight_kg'] as num?)?.toDouble();
+    final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
+        ?.toDouble();
     // 체중을 모르면 참조표로 계산하지 않는다 — 기준 체중으로 낸 값은 이 회원의
     // 값이 아닌데 `db` 로 표시되면 실제보다 높은 신뢰 신호를 준다.
     if (matched == null || weightKg == null || weightKg <= 0) {
@@ -1507,19 +1506,19 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// 옛 어휘를 표준 유형으로 접는다 — 서버 `exercise_types.normalize` 와 같다.
-  static String _normalizedExerciseType(String? raw) =>
-      switch (raw?.trim()) {
-        'cardio' || 'walking' => 'cardio',
-        'strength' => 'strength',
-        'flexibility' || 'stretching' || 'yoga' => 'stretching',
-        _ => 'other',
-      };
+  static String _normalizedExerciseType(String? raw) => switch (raw?.trim()) {
+    'cardio' || 'walking' => 'cardio',
+    'strength' => 'strength',
+    'flexibility' || 'stretching' || 'yoga' => 'stretching',
+    _ => 'other',
+  };
 
   /// 요청 몸통을 Map 으로. dio 는 Map 으로도 JSON 문자열로도 준다.
   static Map<String, Object?> _payloadOf(Object? body) {
     if (body is Map) return body.cast<String, Object?>();
     if (body is String && body.isNotEmpty) {
-      return (jsonDecode(body) as Map<Object?, Object?>).cast<String, Object?>();
+      return (jsonDecode(body) as Map<Object?, Object?>)
+          .cast<String, Object?>();
     }
     return <String, Object?>{};
   }
@@ -1842,6 +1841,9 @@ class LocalApiInterceptor extends Interceptor {
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
           'time_ago': _timeAgoKorean(now.difference(r.createdAt)),
+          // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
+          // 고른다. 시드 밖의 알림은 키가 없다(#1812).
+          'message_key': ?kDemoAlertKeyBySeedId[r.id],
         },
     ];
     return _ok(options, list);
@@ -2196,9 +2198,7 @@ class LocalApiInterceptor extends Interceptor {
   Future<Response<Object?>> _pairingCodeIssue(RequestOptions options) async {
     return _ok(options, <String, Object?>{
       'code': _demoPairingCode,
-      'expires_at': nowKst()
-          .add(const Duration(minutes: 5))
-          .toIso8601String(),
+      'expires_at': nowKst().add(const Duration(minutes: 5)).toIso8601String(),
       'expires_in_seconds': 5 * 60,
     });
   }
