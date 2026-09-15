@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -43,7 +44,11 @@ Future<void> _open(WidgetTester tester) async {
   );
   await tester.pumpWidget(
     ProviderScope(
-      overrides: <Override>[appConfigProvider.overrideWithValue(_mock)],
+      overrides: <Override>[
+        appConfigProvider.overrideWithValue(_mock),
+        // 담당 트레이너가 없는 회원 — 대화 버튼이 AI 챗봇으로 간다(#1823).
+        memberCoachProvider.overrideWith((ref) => null),
+      ],
       child: MaterialApp.router(
         theme: AppTheme.light(),
         locale: const Locale('ko'),
