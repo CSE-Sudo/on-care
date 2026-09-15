@@ -117,7 +117,6 @@ def complete_my_routine(
             reps=payload.reps,
             weight=payload.weight,
             intensity=payload.intensity,
-            member_note=payload.member_note,
         )
     except trainer_service.RoutineNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

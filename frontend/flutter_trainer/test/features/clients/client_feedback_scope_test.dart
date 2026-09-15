@@ -28,31 +28,7 @@ RoutineHistoryEntry _entry({
 
 void main() {
   group('clientFeedbackTitle', () {
-    test('배정 개인 운동 하나면 그 운동 이름을 적는다', () {
-      final String title = clientFeedbackTitle(
-        _ko,
-        _entry(exercises: <String>['런닝 25분 ✓'], assignedRoutineId: 'routine-1'),
-      );
-
-      expect(title, contains('런닝'));
-      expect(title, contains('회원 피드백'));
-      // 분량·완료 표시는 제목에 넣지 않는다.
-      expect(title, isNot(contains('25분')));
-      expect(title, isNot(contains('✓')));
-    });
-
-    test('운동이 여럿인 배정 기록은 개인 운동 전체로 말한다', () {
-      final String title = clientFeedbackTitle(
-        _ko,
-        _entry(
-          exercises: <String>['런닝 25분 ✓', '스쿼트 3세트 ✓'],
-          assignedRoutineId: 'routine-1',
-        ),
-      );
-
-      expect(title, _ko.clientFeedbackPersonal);
-    });
-
+    // 개인 운동의 회원 피드백은 없앴다(#1825). 제목은 세션 기록 하나다.
     test('PT·프로그램 기록은 세션 전체에 달린 말이다', () {
       final String title = clientFeedbackTitle(
         _ko,
@@ -61,8 +37,6 @@ void main() {
           label: 'PT 세션 · 트레이너 지도',
         ),
       );
-
-      // 배정 개인 운동이 아니면 운동 하나에 억지로 붙이지 않는다.
       expect(title, _ko.clientFeedbackSession);
     });
   });

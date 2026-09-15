@@ -85,11 +85,7 @@ void main() {
       when(
         () => dio.post<Map<String, Object?>>(
           '/me/coach/routines/r1/complete',
-          data: <String, Object?>{
-            'minutes': 35,
-            'intensity': 'moderate',
-            'member_note': '마지막 세트가 힘들었어요',
-          },
+          data: <String, Object?>{'minutes': 35, 'intensity': 'moderate'},
         ),
       ).thenAnswer(
         (_) async => _ok<Map<String, Object?>>(<String, Object?>{
@@ -100,18 +96,15 @@ void main() {
           'reason': '',
           'source': 'trainer',
           'completed': true,
-          'member_note': '마지막 세트가 힘들었어요',
         }, '/me/coach/routines/r1/complete'),
       );
 
       final CoachRoutine completed = await repo.completeRoutine(
         'r1',
         minutes: 35,
-        memberNote: '  마지막 세트가 힘들었어요  ',
       );
 
       expect(completed.completed, isTrue);
-      expect(completed.memberNote, '마지막 세트가 힘들었어요');
     },
   );
 
