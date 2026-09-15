@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
-import 'package:oncare_ui/src/tokens/typography.dart';
 
 /// 원형 소셜 로그인 버튼이 여는 계정 종류(#1783).
 enum AppSocialProvider {
-  /// 카카오 — 노란 원 + 검은 말풍선 속 노란 `TALK`.
+  /// 카카오 — 노란 원 + 검은 말풍선 심볼(카카오 로그인 디자인 가이드).
   kakao,
 
-  /// 구글 — 빨간 원 + 흰 `G`.
+  /// 구글 — 흰 원 + 회색 테두리 + 네 색 `G` 로고(Google Identity 브랜딩 가이드).
   google,
 }
 
 /// 로그인 화면의 원형 소셜 로그인 버튼(#1783).
 ///
-/// 두 앱이 같은 모양을 쓴다. 로고는 이미지 파일 없이 코드로 그리고, 한 변은
-/// 밀도와 무관하게 [OnCareSize.socialLoginButton] 이다.
+/// 두 앱이 같은 모양을 쓴다. 계정 회사 표식은 각 회사 가이드의 공식 모양·색을
+/// 이미지 파일 없이 코드로 그리고, 한 변은 밀도와 무관하게
+/// [OnCareSize.socialLoginButton] 이다.
 ///
 /// 그림만 있는 버튼이라 [label] 이 화면 읽기 이름이자 툴팁이다.
 class AppSocialLoginButton extends StatelessWidget {
@@ -40,18 +40,22 @@ class AppSocialLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final (
       Color background,
+      BorderSide side,
       Color ink,
-      CustomPainter symbol,
+      CustomPainter logo,
     ) = switch (provider) {
       AppSocialProvider.kakao => (
         OnCareColors.kakaoYellow,
+        BorderSide.none,
         OnCareColors.kakaoSymbol,
         const _KakaoSymbolPainter(),
       ),
       AppSocialProvider.google => (
-        OnCareColors.googleRed,
-        OnCareColors.textOnFill,
-        const _GoogleSymbolPainter(),
+        OnCareColors.googleButtonFill,
+        // 가이드의 1px 안쪽 선 — BorderSide 기본 두께·정렬 그대로다.
+        const BorderSide(color: OnCareColors.googleButtonStroke),
+        OnCareColors.textPrimary,
+        const _GoogleLogoPainter(),
       ),
     };
     final bool enabled = onPressed != null;
@@ -66,12 +70,12 @@ class AppSocialLoginButton extends StatelessWidget {
         label: label,
         child: Material(
           color: background,
-          shape: const CircleBorder(),
+          shape: CircleBorder(side: side),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onPressed,
             customBorder: const CircleBorder(),
-            // 눌림은 심볼 색을 옅게 얹는다 — 노랑 위 흰 잉크는 보이지 않는다.
+            // 눌림은 어두운 색을 옅게 얹는다 — 노랑·흰 바탕 위 흰 잉크는 보이지 않는다.
             overlayColor: WidgetStateProperty.resolveWith<Color?>((
               Set<WidgetState> states,
             ) {
@@ -86,7 +90,7 @@ class AppSocialLoginButton extends StatelessWidget {
             }),
             child: SizedBox.square(
               dimension: OnCareSize.socialLoginButton,
-              child: CustomPaint(painter: symbol),
+              child: CustomPaint(painter: logo),
             ),
           ),
         ),
@@ -112,49 +116,54 @@ class AppSocialLoginRow extends StatelessWidget {
   }
 }
 
-/// 카카오 심볼 — 아래 왼쪽으로 꼬리가 난 검은 말풍선과 그 안의 노란 `TALK`.
+/// 원본 좌표계 [viewBox] 한 변짜리 로고를 원 가운데에 지름 × [ratio] 크기로 그린다.
+void _paintCentered(
+  Canvas canvas,
+  Size size, {
+  required double ratio,
+  required double viewBox,
+  required void Function(Canvas canvas) draw,
+}) {
+  final double side = size.shortestSide * ratio;
+  canvas
+    ..save()
+    ..translate((size.width - side) / 2, (size.height - side) / 2)
+    ..scale(side / viewBox);
+  draw(canvas);
+  canvas.restore();
+}
+
+/// 카카오 말풍선 심볼 — 카카오 로그인 디자인 가이드의 심볼(18×18 좌표계).
 ///
-/// 비율은 원 지름에 대한 값이다.
+/// 글자 없이 검은 말풍선 하나다.
 class _KakaoSymbolPainter extends CustomPainter {
   const _KakaoSymbolPainter();
 
-  static const double _bubbleWidth = 0.62;
-  static const double _bubbleHeight = 0.46;
-
-  /// 꼬리 몫만큼 말풍선을 가운데보다 올린다.
-  static const double _bubbleLift = 0.04;
-  static const double _labelFont = 0.16;
-
-  /// `TALK` 가 말풍선 폭에서 차지할 수 있는 최대 몫.
-  static const double _labelMaxWidth = 0.78;
+  /// 원 지름에 대한 심볼 한 변.
+  static const double _ratio = 0.46;
+  static const double _viewBox = 18;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double d = size.shortestSide;
-    final Rect body = Rect.fromCenter(
-      center: size.center(Offset.zero).translate(0, -d * _bubbleLift),
-      width: d * _bubbleWidth,
-      height: d * _bubbleHeight,
-    );
-    final Paint fill = Paint()..color = OnCareColors.kakaoSymbol;
-    canvas.drawOval(body, fill);
-    // 꼬리는 따로 채운다 — 한 Path 에 넣으면 감긴 방향에 따라 겹친 곳이 비어 보인다.
-    final double cx = body.center.dx;
-    canvas.drawPath(
-      Path()
-        ..moveTo(cx - d * 0.16, body.bottom - d * 0.06)
-        ..lineTo(cx - d * 0.20, body.bottom + d * 0.09)
-        ..lineTo(cx - d * 0.02, body.bottom - d * 0.02)
-        ..close(),
-      fill,
-    );
-    _paintGlyph(
+    _paintCentered(
       canvas,
-      'TALK',
-      center: body.center,
-      fontSize: d * _labelFont,
-      maxWidth: body.width * _labelMaxWidth,
-      color: OnCareColors.kakaoYellow,
+      size,
+      ratio: _ratio,
+      viewBox: _viewBox,
+      draw: (Canvas canvas) => canvas.drawPath(
+        Path()
+          ..moveTo(9, 0.6)
+          ..cubicTo(4.02917, 0.6, 0, 3.71296, 0, 7.55229)
+          ..cubicTo(0, 9.94003, 1.55847, 12.0452, 3.93152, 13.2969)
+          ..lineTo(2.93303, 16.9446)
+          ..cubicTo(2.84481, 17.2669, 3.21341, 17.5239, 3.49646, 17.3371)
+          ..lineTo(7.87334, 14.4483)
+          ..cubicTo(8.2427, 14.4839, 8.61808, 14.5046, 9, 14.5046)
+          ..cubicTo(13.9705, 14.5046, 17.9999, 11.3917, 17.9999, 7.55229)
+          ..cubicTo(17.9999, 3.71296, 13.9705, 0.6, 9, 0.6)
+          ..close(),
+        Paint()..color = OnCareColors.kakaoSymbol,
+      ),
     );
   }
 
@@ -162,64 +171,78 @@ class _KakaoSymbolPainter extends CustomPainter {
   bool shouldRepaint(covariant _KakaoSymbolPainter oldDelegate) => false;
 }
 
-/// 구글 심볼 — 원 가운데 흰 `G`.
-class _GoogleSymbolPainter extends CustomPainter {
-  const _GoogleSymbolPainter();
+/// 구글 `G` 로고 — Google Identity 브랜딩 가이드의 네 색 로고(48×48 좌표계).
+///
+/// 조각 순서는 빨강(위) · 파랑(오른쪽 가로획) · 노랑(왼쪽) · 초록(아래)이다.
+class _GoogleLogoPainter extends CustomPainter {
+  const _GoogleLogoPainter();
 
-  static const double _glyphFont = 0.5;
-  static const double _glyphMaxWidth = 0.6;
+  /// 원 지름에 대한 로고 한 변. 가이드의 아이콘 버튼(40 안에 20)과 같은 비율이다.
+  static const double _ratio = 0.5;
+  static const double _viewBox = 48;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final double d = size.shortestSide;
-    _paintGlyph(
+    _paintCentered(
       canvas,
-      'G',
-      center: size.center(Offset.zero),
-      fontSize: d * _glyphFont,
-      maxWidth: d * _glyphMaxWidth,
-      color: OnCareColors.textOnFill,
+      size,
+      ratio: _ratio,
+      viewBox: _viewBox,
+      draw: (Canvas canvas) {
+        canvas
+          ..drawPath(
+            Path()
+              ..moveTo(24, 9.5)
+              ..relativeCubicTo(3.54, 0, 6.71, 1.22, 9.21, 3.6)
+              ..relativeLineTo(6.85, -6.85)
+              ..cubicTo(35.9, 2.38, 30.47, 0, 24, 0)
+              ..cubicTo(14.62, 0, 6.51, 5.38, 2.56, 13.22)
+              ..relativeLineTo(7.98, 6.19)
+              ..cubicTo(12.43, 13.72, 17.74, 9.5, 24, 9.5)
+              ..close(),
+            Paint()..color = OnCareColors.googleRed,
+          )
+          ..drawPath(
+            Path()
+              ..moveTo(46.98, 24.55)
+              ..relativeCubicTo(0, -1.57, -0.15, -3.09, -0.38, -4.55)
+              ..lineTo(24, 20)
+              ..relativeLineTo(0, 9.02)
+              ..relativeLineTo(12.94, 0)
+              ..relativeCubicTo(-0.58, 2.96, -2.26, 5.48, -4.78, 7.18)
+              ..relativeLineTo(7.73, 6)
+              ..relativeCubicTo(4.51, -4.18, 7.09, -10.36, 7.09, -17.65)
+              ..close(),
+            Paint()..color = OnCareColors.googleBlue,
+          )
+          ..drawPath(
+            Path()
+              ..moveTo(10.53, 28.59)
+              ..relativeCubicTo(-0.48, -1.45, -0.76, -2.99, -0.76, -4.59)
+              ..relativeCubicTo(0, -1.6, 0.27, -3.14, 0.76, -4.59)
+              ..relativeLineTo(-7.98, -6.19)
+              ..cubicTo(0.92, 16.46, 0, 20.12, 0, 24)
+              ..relativeCubicTo(0, 3.88, 0.92, 7.54, 2.56, 10.78)
+              ..relativeLineTo(7.97, -6.19)
+              ..close(),
+            Paint()..color = OnCareColors.googleYellow,
+          )
+          ..drawPath(
+            Path()
+              ..moveTo(24, 48)
+              ..relativeCubicTo(6.48, 0, 11.93, -2.13, 15.89, -5.81)
+              ..relativeLineTo(-7.73, -6)
+              ..relativeCubicTo(-2.15, 1.45, -4.92, 2.3, -8.16, 2.3)
+              ..relativeCubicTo(-6.26, 0, -11.57, -4.22, -13.47, -9.91)
+              ..relativeLineTo(-7.98, 6.19)
+              ..cubicTo(6.51, 42.62, 14.62, 48, 24, 48)
+              ..close(),
+            Paint()..color = OnCareColors.googleGreen,
+          );
+      },
     );
   }
 
   @override
-  bool shouldRepaint(covariant _GoogleSymbolPainter oldDelegate) => false;
-}
-
-/// 로고 속 글자를 [center] 에 굵게 그린다.
-///
-/// 그림의 일부라 기기 글자 배율을 따르지 않는다(`TextPainter` 기본값). 대체 서체가
-/// 더 넓게 그려도 [maxWidth] 를 넘지 않게 줄여서 그린다.
-void _paintGlyph(
-  Canvas canvas,
-  String text, {
-  required Offset center,
-  required double fontSize,
-  required double maxWidth,
-  required Color color,
-}) {
-  TextPainter layout(double size) => TextPainter(
-    text: TextSpan(
-      text: text,
-      style: TextStyle(
-        fontFamily: OnCareTypography.fontFamily,
-        fontSize: size,
-        fontWeight: FontWeight.w700,
-        height: 1,
-        leadingDistribution: TextLeadingDistribution.even,
-        color: color,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-    maxLines: 1,
-  )..layout();
-
-  TextPainter painter = layout(fontSize);
-  if (painter.width > maxWidth) {
-    final double fitted = fontSize * maxWidth / painter.width;
-    painter.dispose();
-    painter = layout(fitted);
-  }
-  painter.paint(canvas, center - Offset(painter.width / 2, painter.height / 2));
-  painter.dispose();
+  bool shouldRepaint(covariant _GoogleLogoPainter oldDelegate) => false;
 }

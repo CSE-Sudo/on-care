@@ -25,10 +25,20 @@ const Map<AppSocialProvider, String> _labels = <AppSocialProvider, String>{
   AppSocialProvider.google: '구글로 시작하기',
 };
 
+/// 각 회사 가이드의 버튼 바탕.
 const Map<AppSocialProvider, Color> _backgrounds = <AppSocialProvider, Color>{
   AppSocialProvider.kakao: OnCareColors.kakaoYellow,
-  AppSocialProvider.google: OnCareColors.googleRed,
+  AppSocialProvider.google: OnCareColors.googleButtonFill,
 };
+
+/// 카카오는 테두리가 없고, 구글은 흰 바탕이라 1px 회색 테두리가 있다.
+const Map<AppSocialProvider, BorderSide> _sides =
+    <AppSocialProvider, BorderSide>{
+      AppSocialProvider.kakao: BorderSide.none,
+      AppSocialProvider.google: BorderSide(
+        color: OnCareColors.googleButtonStroke,
+      ),
+    };
 
 Widget _row() => AppSocialLoginRow(
   children: <Widget>[
@@ -69,6 +79,7 @@ void main() {
           find.descendant(of: button, matching: find.byType(Material)),
         );
         expect(material.shape, isA<CircleBorder>());
+        expect((material.shape! as CircleBorder).side, _sides[provider]);
         expect(material.clipBehavior, Clip.antiAlias);
         expect(material.color, _backgrounds[provider]);
         // 잉크도 원 밖으로 번지지 않는다.
@@ -82,6 +93,39 @@ void main() {
         );
       }
     }
+  });
+
+  testWidgets('공식 로고를 가이드 색으로 그리고 글자는 그리지 않는다', (tester) async {
+    await _pump(tester, _row());
+
+    // 테두리를 그리는 Material 의 CustomPaint(foregroundPainter)는 빼고 로고만 본다.
+    RenderObject logoOf(AppSocialProvider provider) => tester.renderObject(
+      find.descendant(
+        of: find.byKey(ValueKey<AppSocialProvider>(provider)),
+        matching: find.byWidgetPredicate(
+          (Widget widget) => widget is CustomPaint && widget.painter != null,
+        ),
+      ),
+    );
+
+    // 카카오 — 검은 말풍선 하나. `TALK` 같은 글자가 없다.
+    final RenderObject kakao = logoOf(AppSocialProvider.kakao);
+    expect(kakao, paints..path(color: OnCareColors.kakaoSymbol));
+    expect(kakao, paintsExactlyCountTimes(#drawPath, 1));
+    expect(kakao, paintsExactlyCountTimes(#drawParagraph, 0));
+
+    // 구글 — 네 색 `G` 조각. 흰 글자 `G` 가 아니다.
+    final RenderObject google = logoOf(AppSocialProvider.google);
+    expect(
+      google,
+      paints
+        ..path(color: OnCareColors.googleRed)
+        ..path(color: OnCareColors.googleBlue)
+        ..path(color: OnCareColors.googleYellow)
+        ..path(color: OnCareColors.googleGreen),
+    );
+    expect(google, paintsExactlyCountTimes(#drawPath, 4));
+    expect(google, paintsExactlyCountTimes(#drawParagraph, 0));
   });
 
   testWidgets('그림만 있어 라벨이 화면 읽기 이름이자 툴팁이다', (tester) async {
@@ -105,7 +149,7 @@ void main() {
       // 툴팁이 같은 이름을 한 번 더 읽지 않는다.
       expect(node.tooltip, isEmpty);
     }
-    // 로고 속 글자(`TALK`·`G`)는 그림이라 글자 위젯으로 올라가지 않는다.
+    // 로고는 그림이라 글자 위젯으로 올라가지 않는다.
     expect(find.byType(Text), findsNothing);
   });
 
@@ -139,17 +183,17 @@ void main() {
       tester.getSemantics(find.bySemanticsLabel('구글로 시작하기')),
       isSemantics(isButton: true, hasEnabledState: true, isEnabled: false),
     );
-    // 비활성이어도 계정 회사 색은 그대로다.
+    // 비활성이어도 계정 회사 색·테두리는 그대로다.
+    final Material material = tester.widget<Material>(
+      find.descendant(
+        of: find.byType(AppSocialLoginButton),
+        matching: find.byType(Material),
+      ),
+    );
+    expect(material.color, OnCareColors.googleButtonFill);
     expect(
-      tester
-          .widget<Material>(
-            find.descendant(
-              of: find.byType(AppSocialLoginButton),
-              matching: find.byType(Material),
-            ),
-          )
-          .color,
-      OnCareColors.googleRed,
+      (material.shape! as CircleBorder).side,
+      _sides[AppSocialProvider.google],
     );
   });
 
