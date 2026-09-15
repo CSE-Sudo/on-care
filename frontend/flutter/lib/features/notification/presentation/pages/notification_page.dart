@@ -7,17 +7,39 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 알림 갈래 → 태그에 그릴 이름과 톤. 갈래 자체는 서버가 주는 계약값이라 그대로
-/// 두고, 사람이 읽는 이름만 로케일을 따른다(#847).
-({String label, AppTagTone tone}) _categoryDisplay(
+/// 알림 갈래 → 왼쪽 원에 그릴 아이콘과 화면 읽기용 이름. 갈래 자체는 서버가 주는
+/// 계약값이라 그대로 두고, 사람이 읽는 이름만 로케일을 따른다(#847).
+///
+/// 목록형(#1810)에서는 갈래를 글자 태그 대신 아이콘으로 보여 준다 — 한 줄에 태그·
+/// 제목·시각이 함께 서면 제목이 밀려 잘린다. 이름은 화면 읽기 라벨로 남긴다.
+({String label, IconData icon}) _categoryDisplay(
   AppLocalizations l,
   AlertCategory c,
 ) => switch (c) {
-  AlertCategory.reminder => (label: l.alertCategoryReminder, tone: AppTagTone.brand),
-  AlertCategory.healthCheck => (label: l.alertCategoryHealth, tone: AppTagTone.caution),
-  AlertCategory.achievement => (label: l.alertCategoryAchievement, tone: AppTagTone.success),
-  AlertCategory.system => (label: l.alertCategorySystem, tone: AppTagTone.neutral),
+  AlertCategory.reminder => (
+    label: l.alertCategoryReminder,
+    icon: Icons.notifications_rounded,
+  ),
+  AlertCategory.healthCheck => (
+    label: l.alertCategoryHealth,
+    icon: Icons.monitor_heart_rounded,
+  ),
+  AlertCategory.achievement => (
+    label: l.alertCategoryAchievement,
+    icon: Icons.emoji_events_rounded,
+  ),
+  AlertCategory.system => (
+    label: l.alertCategorySystem,
+    icon: Icons.info_rounded,
+  ),
 };
+
+/// 목록 행 바탕 — 안 읽은 알림은 브랜드 옅은 색, 읽은 알림은 흰색(#1810).
+///
+/// 카드마다 굵은 점을 찍던 방식은 목록이 길어지면 어느 줄이 새 것인지 훑기
+/// 어려웠다. 줄 전체의 바탕으로 가르면 스크롤하면서도 경계가 한눈에 보인다.
+Color alertRowBackground(OnCareBrand brand, {required bool read}) =>
+    read ? OnCareColors.surfaceCard : brand.surface;
 
 class NotificationPage extends ConsumerStatefulWidget {
   const NotificationPage({super.key});
@@ -115,35 +137,43 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
           ),
           child: RefreshIndicator(
             onRefresh: _refresh,
-            child: ListView.separated(
+            // 알림 줄은 좌우 끝까지 채운다(#1810) — 줄 바탕색이 곧 읽음 상태라
+            // 여백에서 끊기면 줄 경계가 흐려진다. 여백은 줄 안쪽이 갖는다.
+            child: ListView.builder(
               controller: _scroll,
-              padding: EdgeInsets.fromLTRB(
-                side,
-                OnCareSpacing.s8,
-                side,
-                OnCareSpacing.sectionGap,
-              ),
+              padding: const EdgeInsets.only(bottom: OnCareSpacing.sectionGap),
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: leading + bodyCount + trailing,
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: OnCareSpacing.cardGap),
               itemBuilder: (BuildContext ctx, int i) {
                 // 조회가 실패해도 **받아 둔 목록은 그대로 둔다.** 맨 위에 사정과
                 // 재시도만 얹는다 — 목록이 사라지면 읽지 않은 알림이 있었는지조차
                 // 알 수 없다.
                 if (showRetry && i == 0) {
-                  return AppBanner(
-                    key: const Key('notificationRetryBanner'),
-                    tone: AppBannerTone.danger,
-                    icon: Icons.cloud_off_rounded,
-                    title: l.alertLoadFailed,
-                    actionLabel: l.actionRetry,
-                    onAction: _refresh,
+                  return Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      side,
+                      OnCareSpacing.s8,
+                      side,
+                      OnCareSpacing.s8,
+                    ),
+                    child: AppBanner(
+                      key: const Key('notificationRetryBanner'),
+                      tone: AppBannerTone.danger,
+                      icon: Icons.cloud_off_rounded,
+                      title: l.alertLoadFailed,
+                      actionLabel: l.actionRetry,
+                      onAction: _refresh,
+                    ),
                   );
                 }
                 if (state.items.isEmpty) {
                   return Padding(
-                    padding: const EdgeInsets.only(top: OnCareSpacing.s48),
+                    padding: EdgeInsets.fromLTRB(
+                      side,
+                      OnCareSpacing.s48,
+                      side,
+                      0,
+                    ),
                     child: AppEmptyState(
                       icon: Icons.notifications_off_rounded,
                       title: l.alertEmpty,
@@ -172,6 +202,10 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
   }
 }
 
+/// 알림 한 줄(#1810) — 왼쪽 원형 갈래 아이콘, 오른쪽에 굵은 제목·본문·시각.
+///
+/// 줄 바탕이 읽음 상태를 말한다([alertRowBackground]). 읽고 나면 흰 바탕이 되어
+/// 새 알림만 옅은 파랑으로 남는다.
 class _AlertTile extends StatelessWidget {
   const _AlertTile({required this.item, required this.onTap});
   final AlertItem item;
@@ -179,21 +213,92 @@ class _AlertTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final display = _categoryDisplay(AppLocalizations.of(context), item.category);
-    return AppCard(
-      padding: EdgeInsets.zero,
-      child: AppListRow(
-        title: item.title,
-        subtitle: item.body,
-        unread: !item.read,
-        onTap: onTap,
-        leading: AppTag(label: display.label, tone: display.tone),
-        trailing: Text(
-          item.timeAgo,
-          style: context.oncare
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textTertiary),
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final display = _categoryDisplay(l, item.category);
+    final double side = tokens.density.pagePadding;
+    return Semantics(
+      key: ValueKey<String>('notification-row-${item.id}'),
+      button: true,
+      label: display.label,
+      child: Material(
+        color: alertRowBackground(tokens.brand, read: item.read),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: side,
+              vertical: OnCareSpacing.s16,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _CategoryBadge(icon: display.icon),
+                const SizedBox(width: OnCareSpacing.s16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tokens
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
+                      ),
+                      if (item.body.trim().isNotEmpty) ...<Widget>[
+                        const SizedBox(height: OnCareSpacing.s4),
+                        Text(
+                          item.body,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: tokens
+                              .text(OnCareTypography.body)
+                              .copyWith(color: OnCareColors.textSecondary),
+                        ),
+                      ],
+                      const SizedBox(height: OnCareSpacing.s4),
+                      Text(
+                        item.timeAgo,
+                        key: ValueKey<String>('notification-time-${item.id}'),
+                        style: OnCareTypography.numeric(
+                          tokens.text(OnCareTypography.caption),
+                        ).copyWith(color: OnCareColors.textTertiary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// 알림 줄 왼쪽의 흰 원 — 옅은 테두리 안에 갈래 아이콘. 줄 바탕이 파래도 원은
+/// 흰색이라 아이콘이 묻히지 않는다.
+class _CategoryBadge extends StatelessWidget {
+  const _CategoryBadge({required this.icon});
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: OnCareSize.avatarLarge,
+      height: OnCareSize.avatarLarge,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        shape: BoxShape.circle,
+        border: Border.all(color: OnCareColors.lineSubtle),
+      ),
+      child: Icon(
+        icon,
+        size: OnCareSize.iconMedium,
+        color: OnCareColors.textSecondary,
       ),
     );
   }
