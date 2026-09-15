@@ -2533,4 +2533,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exStepperIncrease => '늘리기';
+
+  @override
+  String pointsRewardBadge(int points) {
+    return '+${points}P';
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -24,6 +25,8 @@ final memberCoachRepositoryProvider = Provider<MemberCoachRepository>((ref) {
     final ExerciseRepository exercise = ref.watch(exerciseRepositoryProvider);
     return MockMemberCoachRepository(
       exercise: exercise is MockExerciseRepository ? exercise : null,
+      // AI 추천 루틴 완료 적립도 같은 원장이다(#1786).
+      points: ref.watch(demoPointsLedgerProvider),
     );
   }
   return DioMemberCoachRepository(ref.watch(dioProvider));

@@ -14,6 +14,7 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
+import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/modals/add_event_dialog.dart'
     show wireDate;
@@ -461,6 +462,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       if (!mounted) return;
       // analyze() already persisted the entry → refresh the day's summary/list.
       ref.invalidate(dietTodayProvider);
+      // 저장과 함께 포인트도 적립됐다 — MY 잔액을 다시 읽는다(#1786).
+      refreshPointsBalance(ref);
       // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
       // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
       ref.invalidate(dietByDateProvider(nowKst()));
@@ -585,10 +588,17 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   /// 저장은 분석 때 이미 끝났다 — 시트를 `true` 로 닫고 알린다.
   void _finish() {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 시트가 닫힌 뒤에도 토스트를 띄울 수 있는 자리를 먼저 잡아 둔다.
-    final NavigatorState navigator = Navigator.of(context);
-    navigator.pop(true);
-    showAppToast(navigator.context, l.dietSaved, type: AppToastType.success);
+    // 시트가 닫힌 뒤에도 토스트를 띄울 수 있는 자리를 먼저 잡아 둔다. 내비게이터
+    // 자신의 context 는 그 내비게이터의 오버레이보다 위라, 거기서 오버레이를 찾으면
+    // 바깥 내비게이터가 없는 화면에서 실패한다 — 닫기 전에 손잡이를 잡는다.
+    final AppToastHost toast = AppToastHost.of(context);
+    Navigator.of(context).pop(true);
+    toast.show(
+      l.dietSaved,
+      type: AppToastType.success,
+      // 받은 포인트가 있으면 ★ +50P 가 반짝인다. 한도를 넘었으면 저장 알림만.
+      rewardLabel: pointsRewardLabel(l, _result?.points),
+    );
   }
 
   String _failureMessage(AppLocalizations l, DietAnalysisFailure failure) =>
@@ -1176,6 +1186,8 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       await ref.read(dietRepositoryProvider).deleteEntry(id);
       // Page dismissed mid-delete → don't pop the page below.
       if (!mounted) return;
+      // 지운 끼니의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
+      refreshPointsBalance(ref);
       ref.invalidate(dietTodayProvider);
       // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
       // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.

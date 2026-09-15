@@ -18,6 +18,7 @@ import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
 import 'package:oncare/core/utils/clock.dart';
@@ -40,10 +41,19 @@ import 'package:oncare/features/schedule/domain/schedule_format.dart';
 /// `core/network/case_mapper.dart` so the contract matches the real
 /// server's Pydantic models.
 class LocalApiInterceptor extends Interceptor {
-  LocalApiInterceptor(this._db, this._logger, {this.isRealApi});
+  LocalApiInterceptor(
+    this._db,
+    this._logger, {
+    this.isRealApi,
+    DemoPointsLedger? points,
+  }) : _points = points ?? DemoPointsLedger();
 
   final AppDatabase _db;
   final Logger _logger;
+
+  /// 포인트 원장(#1786). 앱에서는 목업 운동·코치 저장소와 같은 원장을 받아
+  /// 하루 한도와 MY 잔액이 한 숫자로 움직인다. 주지 않으면(테스트) 따로 만든다.
+  final DemoPointsLedger _points;
 
   /// 이 요청을 목업이 아니라 실 백엔드로 보내야 하는지 판정한다(`AppConfig.isRealApi`).
   ///
@@ -256,6 +266,8 @@ class LocalApiInterceptor extends Interceptor {
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).go();
     if (n == 0) return _notFound(options, '식단 기록을 찾을 수 없습니다.');
+    // 이 끼니로 받은 포인트를 회수한다 — 실서버와 같은 규칙이다(#1786).
+    _points.revoke(PointsRule.dietEntry.sourceType, id);
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
 
@@ -265,6 +277,7 @@ class LocalApiInterceptor extends Interceptor {
       _db.exerciseSessions,
     )..where((t) => t.id.equals(id))).go();
     if (n == 0) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
+    _points.revoke(PointsRule.exerciseManual.sourceType, id);
     return _ok(options, <String, Object?>{'status': 'deleted'});
   }
 
@@ -892,6 +905,10 @@ class LocalApiInterceptor extends Interceptor {
             // 사용자만 코멘트 없는 결과를 보게 된다.
             'coach_comment': existing.aiComment,
           },
+          // 재시도는 새로 적립하지 않고 처음 받은 값을 싣는다(#1786).
+          'points': _points
+              .awardedFor(PointsRule.dietEntry, existing.id)
+              .toJson(),
         });
       }
     }
@@ -983,6 +1000,8 @@ class LocalApiInterceptor extends Interceptor {
         'total_fat_g': _sumMacro(foods, 'fat_g'),
         'coach_comment': coach,
       },
+      // 식단 기록 +50P, 하루 3회(#1786).
+      'points': _points.award(PointsRule.dietEntry, id).toJson(),
     });
   }
 
@@ -1546,9 +1565,8 @@ class LocalApiInterceptor extends Interceptor {
           ),
         );
 
-    return _ok(
-      options,
-      _sessionJson(
+    return _ok(options, <String, Object?>{
+      ..._sessionJson(
         id: id,
         weekStart: weekStart,
         dayLabel: dayLabel,
@@ -1562,7 +1580,10 @@ class LocalApiInterceptor extends Interceptor {
         intensity: intensity,
         calorieSource: estimated.source,
       ),
-    );
+      // 운동 직접 추가 +20P, 하루 3회(#1786). 생성 응답에만 싣는다 — 수정 응답은
+      // 같은 모양을 쓰지만 적립이 없다.
+      'points': _points.award(PointsRule.exerciseManual, id).toJson(),
+    });
   }
 
   /// 단건 응답 한 벌. 생성과 수정이 같은 모양을 내야 앱이 두 경로에서 같은
@@ -2196,7 +2217,8 @@ class LocalApiInterceptor extends Interceptor {
         'body': '최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.',
         'level': 'medium',
       },
-      'activity_points': 1240,
+      // 원장의 잔액 — 적립·회수가 그대로 보인다(#1786).
+      'activity_points': _points.balance,
       'activity_rank': 14,
       'settings': <Map<String, Object?>>[
         <String, Object?>{'label': '내 프로필', 'icon': '👤', 'kind': 'my-profile'},

@@ -8,6 +8,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 // 토스트는 아직 앱의 AppToastHost 를 쓴다 — 패키지 쪽 같은 이름은 가린다.
 import 'package:oncare_ui/oncare_ui.dart';
@@ -360,6 +361,8 @@ class _RecommendedExerciseRowState
           .uncompleteRoutine(routine.id);
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
+      // 되돌린 완료의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
+      refreshPointsBalance(ref);
       if (mounted) {
         showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
       }
@@ -392,7 +395,7 @@ class _RecommendedExerciseRowState
 
     setState(() => _saving = true);
     try {
-      await ref
+      final CoachRoutine done = await ref
           .read(memberCoachRepositoryProvider)
           .completeRoutine(
             routine.id,
@@ -406,8 +409,16 @@ class _RecommendedExerciseRowState
           );
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
+      // AI 추천 운동 완료는 포인트를 받는다 — MY 잔액을 다시 읽는다(#1786).
+      refreshPointsBalance(ref);
       if (mounted) {
-        showAppToast(context, l.coachRoutineLogged, type: AppToastType.success);
+        showAppToast(
+          context,
+          l.coachRoutineLogged,
+          type: AppToastType.success,
+          // 받은 포인트가 있으면 ★ +50P. 트레이너 배정·하루 한도는 저장 알림만.
+          rewardLabel: pointsRewardLabel(l, done.pointsAward),
+        );
       }
     } catch (error, stackTrace) {
       debugPrint('completeRoutine failed: $error\n$stackTrace');

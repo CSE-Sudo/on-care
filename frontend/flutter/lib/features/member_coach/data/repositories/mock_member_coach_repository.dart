@@ -1,5 +1,7 @@
 import 'package:demo_fixture/demo_fixture.dart';
 
+import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
@@ -14,14 +16,25 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// [exercise] 를 주면 루틴 완료가 **운동 기록으로도 남는다** — 실서버가 하는
   /// 일(`assigned_routine_id` 로 세션 한 건 생성)을 데모에서 대신한다. 없으면
   /// 예전처럼 루틴 상태만 바뀐다(테스트·단독 사용). (#1131)
-  MockMemberCoachRepository({MockExerciseRepository? exercise})
-    : _exercise = exercise;
+  ///
+  /// [points] 를 주면 AI 추천 루틴 완료가 포인트를 받고 되돌리면 회수된다(#1786).
+  MockMemberCoachRepository({
+    MockExerciseRepository? exercise,
+    DemoPointsLedger? points,
+  }) : _exercise = exercise,
+       _points = points;
 
   final MockExerciseRepository? _exercise;
+  final DemoPointsLedger? _points;
 
   /// 완료로 만들어 둔 운동 기록 — `루틴 id → 세션 id`. 되돌릴 때 무엇을 지울지
   /// 알아야 한다.
   final Map<String, String> _completionSessions = <String, String>{};
+
+  /// 완료 적립의 근거 기록 — `루틴 id → 기록 id`. 운동 저장소가 없으면 세션 id 가
+  /// 없어 완료마다 새 id 를 만든다. 실서버처럼 되돌린 뒤 다시 완료하면 새 기록이다.
+  final Map<String, String> _completionSources = <String, String>{};
+  int _completionSeq = 0;
 
   static const _coach = MemberCoach(
     trainerId: 'seed-trainer',
@@ -254,7 +267,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     );
     if (index < 0) throw StateError('Routine not found.');
     final CoachRoutine current = _routines[index];
-    if (current.completed) return current;
+    if (current.completed) {
+      // 재전송은 새로 적립하지 않고 처음 받은 값을 돌려준다 — 실서버와 같다.
+      final String? source = _completionSources[routineId];
+      final DemoPointsLedger? points = _points;
+      if (points == null || source == null) return current;
+      return current.copyWith(
+        pointsAward: points.awardedFor(PointsRule.aiRoutineComplete, source),
+      );
+    }
     final CoachRoutine completed = current.copyWith(
       completed: true,
       completedAt: nowKst(),
@@ -264,7 +285,23 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     );
     _routines[index] = completed;
     await _logSession(completed, minutes: minutes, intensity: intensity);
-    return completed;
+    final PointsAward? award = _awardCompletion(completed);
+    return award == null ? completed : completed.copyWith(pointsAward: award);
+  }
+
+  /// 완료 적립(#1786). 적립 규칙은 `AI 추천 운동 완료` 뿐이라 트레이너가 배정한
+  /// 루틴은 0 이다.
+  PointsAward? _awardCompletion(CoachRoutine routine) {
+    final DemoPointsLedger? points = _points;
+    if (points == null) return null;
+    final String source =
+        _completionSessions[routine.id] ??
+        'mock-routine-${routine.id}-${++_completionSeq}';
+    _completionSources[routine.id] = source;
+    if (!routine.isAiRecommended) {
+      return PointsAward(awarded: 0, balance: points.balance);
+    }
+    return points.award(PointsRule.aiRoutineComplete, source);
   }
 
   @override
@@ -291,6 +328,11 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       trainerFeedback: current.trainerFeedback,
     );
     _routines[index] = reverted;
+    // 이 완료로 받은 포인트를 회수한다(#1786).
+    final String? source = _completionSources.remove(routineId);
+    if (source != null) {
+      _points?.revoke(PointsRule.aiRoutineComplete.sourceType, source);
+    }
     final String? sessionId = _completionSessions.remove(routineId);
     if (sessionId != null) {
       await _exercise?.removeAssignedRoutineSession(sessionId);

@@ -1,3 +1,5 @@
+import 'package:oncare/core/points/points_award.dart';
+
 /// The member's assigned trainer (coach) summary — `/me/coach`.
 class MemberCoach {
   const MemberCoach({
@@ -40,6 +42,7 @@ class CoachRoutine {
     this.sessionName = '',
     this.sessionOrder = 0,
     this.exercises = const <CoachRoutineExercise>[],
+    this.pointsAward,
   });
 
   final String id;
@@ -47,6 +50,10 @@ class CoachRoutine {
   final int minutes;
   final String type;
   final String reason;
+
+  /// 방금 완료해 받은 포인트(#1786). 완료 응답에만 있고, 목록의 루틴은 null 이다.
+  /// AI 추천 루틴만 적립 규칙이 있어 트레이너 배정 루틴은 0 이다.
+  final PointsAward? pointsAward;
 
   /// `ai` (AI-suggested) or `trainer` (hand-assigned).
   final String source;
@@ -82,6 +89,7 @@ class CoachRoutine {
     String? completedIntensity,
     String? memberNote,
     String? trainerFeedback,
+    PointsAward? pointsAward,
   }) => CoachRoutine(
     id: id,
     name: name,
@@ -101,6 +109,8 @@ class CoachRoutine {
     sessionName: sessionName,
     sessionOrder: sessionOrder,
     exercises: exercises,
+    // 적립은 그 응답 한 번의 일이라 복사본에 따라가지 않는다 — 넘길 때만 싣는다.
+    pointsAward: pointsAward,
   );
 }
 

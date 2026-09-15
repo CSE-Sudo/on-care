@@ -883,5 +883,13 @@
   "exDemoPtTrainerName": "김트레이너",
   "exDemoPtFeedback": "숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!",
   "exStepperDecrease": "줄이기",
-  "exStepperIncrease": "늘리기"
+  "exStepperIncrease": "늘리기",
+  "pointsRewardBadge": "+{points}P",
+  "@pointsRewardBadge": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  }
 }

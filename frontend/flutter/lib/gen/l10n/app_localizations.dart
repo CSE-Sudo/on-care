@@ -4728,6 +4728,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Increase'**
   String get exStepperIncrease;
+
+  /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
+  ///
+  /// In en, this message translates to:
+  /// **'+{points}P'**
+  String pointsRewardBadge(int points);
 }
 
 class _AppLocalizationsDelegate

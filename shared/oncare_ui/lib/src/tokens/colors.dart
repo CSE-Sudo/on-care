@@ -68,6 +68,12 @@ class OnCareColors {
   static const Color overlaySuccess = Color(0xFF4CD9B0);
   static const Color overlayError = Color(0xFFFF8A8A);
 
+  /// 어두운 오버레이 위의 포인트 적립 표시(★ +50P) 바탕. 글자는 [overlayInk].
+  static const Color overlayReward = Color(0xFFFFD166);
+
+  /// 적립 표시 위를 한 번 지나가는 반짝임.
+  static const Color rewardShine = Color(0xB3FFFFFF);
+
   /// 모달 뒤 배경 막.
   static const Color scrim = Color(0x8008121C);
 

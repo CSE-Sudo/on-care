@@ -71,6 +71,11 @@ void main() {
         _contrast(OnCareColors.overlayAction, OnCareColors.overlayInk),
         greaterThan(4.5),
       );
+      // 적립 표시(★ +50P)는 밝은 바탕에 어두운 글자다.
+      expect(
+        _contrast(OnCareColors.overlayInk, OnCareColors.overlayReward),
+        greaterThan(4.5),
+      );
     });
   });
 

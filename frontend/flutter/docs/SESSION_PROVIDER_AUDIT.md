@@ -25,6 +25,7 @@ const instance, in which case Riverpod may leave its dependents unchanged.
 | `consultationRequestControllerProvider` | Non-auto-dispose in-memory requests and pending state | Recreate the controller |
 | `memberCoachRepositoryProvider` and its four leaf providers | The mock repository mutates chat; leaves cache coach, routines, chat, and unread state | Recreate the mock root and invalidate all four leaves |
 | `myHealthStateProvider` | Non-auto-dispose profile, health risk, points, and settings cache | Invalidate the cached state |
+| `demoPointsLedgerProvider` (not reset) | Demo-only point ledger shared by the local API, the mock exercise/coach repositories, and the mock MY repository (#1786) | Kept for the app lifetime like the drift demo database: clearing it alone would leave stored meals whose awards can no longer be revoked. The demo has a single member account |
 | Notification controller/list | The controller retains read and simulated-push state; an active list watcher can retain fetched items | Recreate the controller and invalidate the list |
 | `notificationSettingsProvider` | Delivery settings are stored per account on the real backend; the cached toggles otherwise survive until an app restart | Invalidate the cached settings |
 | Schedule date/month families | Active family instances can retain account schedule entries | Invalidate every family instance |

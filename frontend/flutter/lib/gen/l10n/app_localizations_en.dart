@@ -2600,4 +2600,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exStepperIncrease => 'Increase';
+
+  @override
+  String pointsRewardBadge(int points) {
+    return '+${points}P';
+  }
 }
