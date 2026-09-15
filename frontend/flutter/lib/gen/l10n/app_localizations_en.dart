@@ -2137,6 +2137,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week';
 
   @override
+  String get onboardFocusAdjusted => 'Adjusted for the health goals you picked';
+
+  @override
+  String get onboardFocusSourceNote =>
+      'Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)';
+
+  @override
   String get onboardGenderMale => 'Male';
 
   @override
@@ -2321,8 +2328,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalFlexibilityWeekly => 'Weekly stretching (min)';
 
   @override
-  String get myGoalExerciseSuggestionNote =>
-      'Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week';
+  String myGoalExerciseSuggestionNote(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return 'Suggested: $burn kcal a day · $cardio min cardio · $strength sets · $flexibility min stretching a week';
+  }
 
   @override
   String get myGoalExerciseApplySuggestion => 'Use suggested goals';
@@ -2350,8 +2363,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Calculated from your carb, protein and fat goals';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal) {
-    return 'Suggested split for $kcal kcal: 50% carbs · 30% protein · 20% fat';
+  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
+    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat';
   }
 
   @override

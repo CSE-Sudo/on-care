@@ -1153,6 +1153,14 @@
   "onboardResetToRecommended": "Reset to suggested",
   "onboardDietSourceNote": "Sources: Dietary Reference Intakes for Koreans 2020 (EER, AMDR) · WHO sodium and free-sugar guidelines",
   "onboardExerciseSourceNote": "Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week",
+  "onboardFocusAdjusted": "Adjusted for the health goals you picked",
+  "@onboardFocusAdjusted": {
+    "description": "Shown under goal fields when the picked health goals changed the suggestion."
+  },
+  "onboardFocusSourceNote": "Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)",
+  "@onboardFocusSourceNote": {
+    "description": "Sources for the goal-based adjustments."
+  },
   "onboardGenderMale": "Male",
   "onboardGenderFemale": "Female",
   "onboardGenderOther": "Other",
@@ -1359,7 +1367,16 @@
   "myGoalCardioWeekly": "Weekly cardio (min)",
   "myGoalStrengthWeekly": "Weekly strength (sets)",
   "myGoalFlexibilityWeekly": "Weekly stretching (min)",
-  "myGoalExerciseSuggestionNote": "Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week",
+  "myGoalExerciseSuggestionNote": "Suggested: {burn} kcal a day · {cardio} min cardio · {strength} sets · {flexibility} min stretching a week",
+  "@myGoalExerciseSuggestionNote": {
+    "description": "Explains the suggested exercise goals, adjusted for the picked health goals.",
+    "placeholders": {
+      "burn": { "type": "int" },
+      "cardio": { "type": "int" },
+      "strength": { "type": "int" },
+      "flexibility": { "type": "int" }
+    }
+  },
   "myGoalExerciseApplySuggestion": "Use suggested goals",
   "@myGoalsExerciseSection": {
     "description": "Section label in the health goals sheet."
@@ -1392,13 +1409,16 @@
   "@myGoalCaloriesFromMacros": {
     "description": "Helper under the calorie goal field when it was derived from the macro fields."
   },
-  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: 50% carbs · 30% protein · 20% fat",
+  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat",
   "@myGoalMacroSuggestionNote": {
     "description": "Explains the placeholder grams shown in the macro fields.",
     "placeholders": {
       "kcal": {
         "type": "int"
-      }
+      },
+      "carbs": { "type": "int" },
+      "protein": { "type": "int" },
+      "fat": { "type": "int" }
     }
   },
   "myGoalMacroApplySuggestion": "Use suggested split",

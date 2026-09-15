@@ -2080,6 +2080,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '출처: WHO 신체활동 지침(2020) — 주 150분 중강도 유산소, 주 2회 이상 근력';
 
   @override
+  String get onboardFocusAdjusted => '고른 건강 목표를 반영한 값이에요';
+
+  @override
+  String get onboardFocusSourceNote =>
+      '목표 반영 기준: 감량 하루 500kcal(대한비만학회 진료지침) · 근력 단백질 체중 1kg당 1.6g(국제스포츠영양학회) · 당류 총열량 5%(WHO) · 유산소 주 150~300분(WHO)';
+
+  @override
   String get onboardGenderMale => '남성';
 
   @override
@@ -2259,8 +2266,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalFlexibilityWeekly => '주간 스트레칭 (분)';
 
   @override
-  String get myGoalExerciseSuggestionNote =>
-      '권장: 하루 300kcal · 주 유산소 150분 · 근력 21세트 · 스트레칭 60분';
+  String myGoalExerciseSuggestionNote(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return '권장: 하루 ${burn}kcal · 주 유산소 $cardio분 · 근력 $strength세트 · 스트레칭 $flexibility분';
+  }
 
   @override
   String get myGoalExerciseApplySuggestion => '권장 비율로 채우기';
@@ -2287,8 +2300,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalCaloriesFromMacros => '탄·단·지 목표로 계산한 값이에요';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal) {
-    return '${kcal}kcal 기준 권장 배분: 탄수화물 50% · 단백질 30% · 지방 20%';
+  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
+    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g';
   }
 
   @override
