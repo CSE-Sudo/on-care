@@ -332,7 +332,7 @@ class _Notice extends StatelessWidget {
     return Row(
       children: <Widget>[
         const Icon(
-          Icons.info_outline_rounded,
+          Icons.info_rounded,
           size: OnCareSize.iconSmall,
           color: OnCareColors.textTertiary,
         ),
