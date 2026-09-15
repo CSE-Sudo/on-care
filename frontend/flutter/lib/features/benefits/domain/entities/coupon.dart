@@ -104,9 +104,8 @@ class Coupon {
   bool get usable => status == CouponStatus.issued;
 
   /// 불러 주거나 받아 적기 쉽게 네 자리씩 끊는다(`ABCD-EFGH`).
-  String get displayCode => code.length == 8
-      ? '${code.substring(0, 4)}-${code.substring(4)}'
-      : code;
+  String get displayCode =>
+      code.length == 8 ? '${code.substring(0, 4)}-${code.substring(4)}' : code;
 
   factory Coupon.fromJson(Map<String, Object?> json) => Coupon(
     id: json['id']! as String,
