@@ -117,12 +117,26 @@ void main() {
       expect(input.border, isNot(isA<UnderlineInputBorder>()));
     });
 
-    test('입력창은 두 앱 모두 흰 채움 + 회색 테두리다(#1776)', () {
+    test('입력창은 두 앱 모두 흰 채움 + 회색 테두리, 비활성만 회색 채움이다(#1776)', () {
       for (final ThemeData theme in <ThemeData>[_member(), _trainer()]) {
         final InputDecorationThemeData input = theme.inputDecorationTheme;
         Color side(InputBorder? border) =>
             (border! as OutlineInputBorder).borderSide.color;
-        expect(input.fillColor, OnCareColors.surfaceCard);
+        Color fill(Set<WidgetState> states) =>
+            WidgetStateProperty.resolveAs<Color>(input.fillColor!, states);
+        expect(fill(<WidgetState>{}), OnCareColors.surfaceCard);
+        expect(
+          fill(<WidgetState>{WidgetState.focused}),
+          OnCareColors.surfaceCard,
+        );
+        expect(
+          fill(<WidgetState>{WidgetState.error}),
+          OnCareColors.surfaceCard,
+        );
+        expect(
+          fill(<WidgetState>{WidgetState.disabled}),
+          OnCareColors.surfaceInput,
+        );
         expect(side(input.border), OnCareColors.lineStrong);
         expect(side(input.enabledBorder), OnCareColors.lineStrong);
         expect(side(input.disabledBorder), OnCareColors.lineSubtle);

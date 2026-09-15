@@ -695,8 +695,14 @@ void main() {
           .decoration;
       expect(promptDecoration.hintStyle?.color, OnCareColors.textTertiary);
       expect(promptDecoration.filled, isTrue);
-      // 흰 채움 + 회색 테두리(#1776).
-      expect(promptDecoration.fillColor, OnCareColors.surfaceCard);
+      // 흰 채움 + 회색 테두리(#1776). 채움은 상태별 색이라 활성 상태로 푼다.
+      expect(
+        WidgetStateProperty.resolveAs<Color>(
+          promptDecoration.fillColor!,
+          <WidgetState>{},
+        ),
+        OnCareColors.surfaceCard,
+      );
       expect(
         (promptDecoration.enabledBorder! as OutlineInputBorder)
             .borderSide
