@@ -93,33 +93,38 @@ Future<void> _openSheet(
 
 /// 달력 그리드가 그린 칸 수(선행 공백 + 날짜 + 후행 채움).
 ///
-/// 요일 띠는 시트가 격자 바깥에 두므로(`showWeekdayHeader: false`), `AppMonthGrid`
-/// 안의 7칸짜리 줄은 모두 주 줄이다. 주 줄 수 × 7 이 칸 수다.
+/// `AppMonthGrid` 는 요일 머리 줄·간격 뒤에 주마다 7칸짜리 줄을 하나씩 쌓는다.
+/// 주 줄 수 × 7 이 칸 수다.
 int _gridCellCount(WidgetTester tester) {
-  final int weekRows = find
-      .descendant(
-        of: find.byType(AppMonthGrid),
-        matching: find.byWidgetPredicate(
-          (Widget w) => w is Row && w.children.length == 7,
-        ),
-      )
-      .evaluate()
-      .length;
+  final Column grid = tester.widget<Column>(
+    find
+        .descendant(
+          of: find.byType(AppMonthGrid),
+          matching: find.byType(Column),
+        )
+        .first,
+  );
+  final int weekRows = grid.children.whereType<Row>().length - 1;
   return weekRows * 7;
 }
 
-/// 격자 **안**의 Scrollable. 시트는 높이가 고정이고 격자만 스크롤한다(#1778) —
-/// 엉뚱한 Scrollable 위에서 스크롤을 시험하면 아무것도 검증하지 못한다.
+/// 달력 그리드를 감싼 **가장 가까운** Scrollable(시트 본문). 화면에 다른 스크롤
+/// 뷰가 있어도 이것을 집도록 그리드에서 위로 찾는다 — 엉뚱한 Scrollable 위에서
+/// 스크롤을 시험하면 아무것도 검증하지 못한다.
 Finder _calendarScrollable() => find
-    .descendant(
-      of: find.byType(AppMonthGrid),
-      matching: find.byType(Scrollable),
-    )
+    .ancestor(of: find.byType(AppMonthGrid), matching: find.byType(Scrollable))
     .first;
 
-/// 말일 칸이 실제로 화면에 닿아 눌리는지. 격자는 칸을 모두 만들어 두므로
-/// 존재가 아니라 히트 테스트로 본다(키는 칸의 InkWell 에 붙어 있다).
-Finder _lastDayCell() => find.byKey(const Key('calendar-day-31')).hitTestable();
+/// 말일 칸이 실제로 화면에 닿아 눌리는지. 시트 본문은 칸을 모두 만들어 두므로
+/// 존재가 아니라 히트 테스트로 본다(빈 날의 점 줄은 그 자체로는 히트되지 않아
+/// 칸의 InkWell 을 본다).
+Finder _lastDayCell() => find
+    .ancestor(
+      of: find.byKey(const Key('calendar-day-31')),
+      matching: find.byType(InkWell),
+    )
+    .first
+    .hitTestable();
 
 void main() {
   // 2026-08 은 1일이 토요일이라 6주 그리드가 되는 달이다 — 선행 공백 6칸 +
@@ -225,16 +230,15 @@ void main() {
       reason: '일정이 칸을 넘쳐도 오버플로 예외가 나면 안 된다',
     );
     expect(find.byKey(const Key('calendar-day-3')), findsOneWidget);
-    // 일정은 칸 안에 `시각 제목` 칩으로 쌓인다. 칸을 넘치는 칩은 잘릴 뿐 칸이
-    // 늘어나지 않는다 — 전부는 날짜를 눌러 하루 시트에서 본다.
+    // 일정 표시는 칸 안에 들어가는 개수(3)의 점까지만 그린다 — 넘치는 일정은
+    // 날짜를 눌러 하루 시트에서 본다.
     expect(
       find.descendant(
         of: find.byKey(const Key('calendar-day-3')),
-        matching: find.byType(AppCalendarEventChip),
+        matching: find.byType(AppStatusDot),
       ),
-      findsNWidgets(6),
+      findsNWidgets(3),
     );
-    expect(find.text('00:00 일정 0'), findsOneWidget);
   });
 
   testWidgets('하단 내비게이션이 있는 화면에서도 달력이 그 위를 덮는다 (#680)', (

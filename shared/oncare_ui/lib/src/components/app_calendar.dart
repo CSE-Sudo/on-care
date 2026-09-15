@@ -1,8 +1,5 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
-import 'package:oncare_ui/src/components/app_button.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/calendar.dart';
@@ -413,189 +410,17 @@ class AppTodayPill extends StatelessWidget {
   }
 }
 
-/// 원형 닫기 — 옅은 브랜드(accent) 원 안의 작은 X(#1778, 월간 달력 시트 제목 옆).
-///
-/// [onPressed] 를 비우면 현재 경로를 닫는다.
-class AppCircleCloseButton extends StatelessWidget {
-  const AppCircleCloseButton({super.key, this.onPressed});
-
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: context.oncare.brand.surfaceAccent,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onPressed ?? () => Navigator.maybePop(context),
-        child: Tooltip(
-          message: MaterialLocalizations.of(context).closeButtonTooltip,
-          child: const SizedBox.square(
-            dimension: OnCareCalendar.circleClose,
-            child: Icon(
-              Icons.close_rounded,
-              size: OnCareCalendar.circleCloseIcon,
-              color: OnCareColors.textPrimary,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// 월간 달력 시트 머리(#1778) — 제목 + 원형 닫기, 그 아래 달 이동 꺾쇠·달 라벨과
-/// 오른쪽 끝 동작 버튼(`일정 추가`).
-class AppMonthCalendarHeader extends StatelessWidget {
-  const AppMonthCalendarHeader({
-    super.key,
-    required this.title,
-    required this.monthLabel,
-    required this.previousTooltip,
-    required this.nextTooltip,
-    required this.onPrevious,
-    required this.onNext,
-    required this.actionLabel,
-    required this.onAction,
-    this.onClose,
-  });
-
-  final String title;
-
-  /// 연·월 표기(로케일 형식은 호출하는 쪽이 정한다).
-  final String monthLabel;
-  final String previousTooltip;
-  final String nextTooltip;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-  final String actionLabel;
-  final VoidCallback? onAction;
-
-  /// 비우면 현재 경로를 닫는다.
-  final VoidCallback? onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const SizedBox(height: OnCareSpacing.s12),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                title,
-                style: tokens
-                    .text(OnCareTypography.titleLarge)
-                    .copyWith(color: OnCareColors.textPrimary),
-              ),
-            ),
-            AppCircleCloseButton(onPressed: onClose),
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: <Widget>[
-            Flexible(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  AppIconButton(
-                    icon: Icons.chevron_left_rounded,
-                    tooltip: previousTooltip,
-                    onPressed: onPrevious,
-                  ),
-                  Flexible(
-                    child: Text(
-                      monthLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tokens
-                          .text(OnCareCalendar.monthLabel)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                  ),
-                  AppIconButton(
-                    icon: Icons.chevron_right_rounded,
-                    tooltip: nextTooltip,
-                    onPressed: onNext,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s8),
-            AppButton(label: actionLabel, onPressed: onAction),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-/// 월간 달력 요일 머리 띠(#1778) — 옅은 브랜드(accent) 바탕에 요일 글자.
-class AppMonthWeekdayHeader extends StatelessWidget {
-  const AppMonthWeekdayHeader({super.key, required this.labels});
-
-  /// 격자의 첫 요일부터 7개.
-  final List<String> labels;
-
-  @override
-  Widget build(BuildContext context) {
-    // 상수 생성자에서는 목록 길이를 볼 수 없어 여기서 확인한다.
-    assert(labels.length == 7, '요일 띠는 7개 문구를 받는다.');
-    final OnCareTokens tokens = context.oncare;
-    return Row(
-      children: <Widget>[
-        for (final String w in labels)
-          Expanded(
-            child: Container(
-              color: tokens.brand.surfaceAccent,
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(
-                vertical: OnCareCalendar.weekdayBandVerticalPadding,
-              ),
-              // 좁은 화면·큰 글자 배율에서 영어 요일(Wed)이 칸보다 넓어지면
-              // 잘리는 대신 통째로 줄인다.
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  w,
-                  maxLines: 1,
-                  style: tokens
-                      .text(OnCareCalendar.monthWeekday)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// 월간 달력 격자(#1778) — `2db5b04` 시점의 일정 달력 모양.
-///
-/// 칸 사이 경계선, 오늘 칸 옅은 브랜드 바탕, 왼쪽 위 굵은 날짜 숫자, 그 아래
-/// [dayBuilder] 가 그리는 일정 칩. 높이가 정해진 자리에 두면 주 줄이 남은 높이를
-/// 나눠 갖고, 한 줄이 [OnCareCalendar.monthMinRowHeight] 보다 낮아지면 줄이는
-/// 대신 격자만 스크롤한다(#669). 높이가 정해지지 않은 자리(목록 안)에서는 최소
-/// 높이로 모든 줄을 그린다.
+/// 월 달력 칸 — 요일 머리글 + 날짜 격자. 칸 안의 일정 표시는 [dayBuilder] 가 그린다.
 class AppMonthGrid extends StatelessWidget {
   const AppMonthGrid({
     super.key,
     required this.month,
     required this.weekdayLabels,
+    required this.selected,
     required this.onSelected,
-    this.selected,
     this.today,
     this.dayBuilder,
-    this.dayKey,
     this.firstWeekday = DateTime.monday,
-    this.showWeekdayHeader = true,
   }) : assert(weekdayLabels.length == 7);
 
   /// 보여 줄 달(일은 무시).
@@ -603,288 +428,105 @@ class AppMonthGrid extends StatelessWidget {
 
   /// [firstWeekday] 부터 7개.
   final List<String> weekdayLabels;
-  final ValueChanged<DateTime> onSelected;
-
-  /// 고른 날. 오늘 칸과 같은 옅은 바탕으로 그린다.
   final DateTime? selected;
+  final ValueChanged<DateTime> onSelected;
   final DateTime? today;
-
-  /// 날짜 숫자 아래 칸을 채우는 내용(보통 일정 칩 세로 묶음). 칸을 넘치는 만큼은
-  /// 잘리고, 날짜 숫자는 언제나 남는다.
   final Widget? Function(BuildContext context, DateTime day)? dayBuilder;
-
-  /// 날짜 칸(누르는 영역)에 붙일 키.
-  final Key? Function(DateTime day)? dayKey;
   final int firstWeekday;
-
-  /// 격자 위에 요일 띠를 함께 그릴지. 불러오는 동안에도 띠를 남기려면 끄고
-  /// [AppMonthWeekdayHeader] 를 바깥에 둔다.
-  final bool showWeekdayHeader;
 
   @override
   Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
     final DateTime first = DateTime(month.year, month.month);
     final int daysInMonth = DateTime(month.year, month.month + 1, 0).day;
     final int leading = (first.weekday - firstWeekday) % 7;
-    // 앞은 1일의 요일까지 비우고, 뒤도 마지막 주가 7칸이 되도록 채운다 — 채우지
-    // 않으면 마지막 주의 경계선이 중간에서 끊긴다.
-    final int weeks = ((leading + daysInMonth) / 7).ceil();
-    final Widget? header = showWeekdayHeader
-        ? AppMonthWeekdayHeader(labels: weekdayLabels)
-        : null;
-
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        if (!constraints.hasBoundedHeight) {
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              ?header,
-              _weeks(
-                context,
-                weeks,
-                leading,
-                daysInMonth,
-                OnCareCalendar.monthMinRowHeight,
-              ),
-            ],
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            ?header,
-            Expanded(
-              child: LayoutBuilder(
-                builder: (BuildContext context, BoxConstraints inner) {
-                  // 칸 높이를 남은 세로 공간에서 정한다. 가로폭에서 고정 비율로
-                  // 잡으면 6주짜리 달의 마지막 주가 잘린다(#669).
-                  final double rowHeight = math.max(
-                    OnCareCalendar.monthMinRowHeight,
-                    inner.maxHeight / weeks,
-                  );
-                  return SingleChildScrollView(
-                    // 최소 높이에 걸려 다 담기지 않을 때만 스크롤이 생긴다.
-                    physics: const ClampingScrollPhysics(),
-                    child: _weeks(
-                      context,
-                      weeks,
-                      leading,
-                      daysInMonth,
-                      rowHeight,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _weeks(
-    BuildContext context,
-    int weeks,
-    int leading,
-    int daysInMonth,
-    double rowHeight,
-  ) {
+    final int cells = ((leading + daysInMonth) / 7).ceil() * 7;
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        for (int week = 0; week < weeks; week++)
-          SizedBox(
-            height: rowHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                for (int col = 0; col < 7; col++)
-                  Expanded(
-                    child: _cell(
-                      context,
-                      week * 7 + col - leading + 1,
-                      daysInMonth,
-                    ),
+        Row(
+          children: <Widget>[
+            for (final String w in weekdayLabels)
+              Expanded(
+                child: Center(
+                  child: Text(
+                    w,
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: OnCareColors.textTertiary),
                   ),
-              ],
-            ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        for (int row = 0; row < cells ~/ 7; row++)
+          Row(
+            children: <Widget>[
+              for (int col = 0; col < 7; col++)
+                Expanded(
+                  child: _cell(
+                    context,
+                    tokens,
+                    row * 7 + col - leading + 1,
+                    daysInMonth,
+                  ),
+                ),
+            ],
           ),
       ],
     );
   }
 
-  static const Border _cellBorder = Border(
-    right: BorderSide(color: OnCareColors.lineSubtle),
-    bottom: BorderSide(color: OnCareColors.lineSubtle),
-  );
-
-  Widget _cell(BuildContext context, int day, int daysInMonth) {
+  Widget _cell(
+    BuildContext context,
+    OnCareTokens tokens,
+    int day,
+    int daysInMonth,
+  ) {
     if (day < 1 || day > daysInMonth) {
-      return const DecoratedBox(decoration: BoxDecoration(border: _cellBorder));
+      return SizedBox(height: tokens.density.chip + OnCareSpacing.s12);
     }
-    final OnCareTokens tokens = context.oncare;
     final DateTime date = DateTime(month.year, month.month, day);
-    final bool isToday = today != null && _sameDay(date, today!);
     final bool isSelected = selected != null && _sameDay(date, selected!);
+    final bool isToday = today != null && _sameDay(date, today!);
     final Widget? extra = dayBuilder?.call(context, date);
     return InkWell(
-      key: dayKey?.call(date),
+      borderRadius: OnCareRadius.mdAll,
       onTap: () => onSelected(date),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isToday || isSelected
-              ? tokens.brand.primary.withValues(
-                  alpha: OnCareCalendar.todayCellAlpha,
-                )
-              : null,
-          border: _cellBorder,
-        ),
-        padding: const EdgeInsets.all(OnCareSpacing.s4),
+      child: SizedBox(
+        height: tokens.density.chip + OnCareSpacing.s12,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
-              '$day',
-              maxLines: 1,
-              style: tokens
-                  .text(OnCareCalendar.monthDayNumber)
-                  .copyWith(
-                    color: isToday
-                        ? tokens.brand.primary
-                        : OnCareColors.textPrimary,
-                  ),
-            ),
-            const SizedBox(height: OnCareSpacing.s2),
-            // 칸 높이는 남은 공간에서 정해지므로 일정이 여럿인 날은 칩이 칸을
-            // 넘길 수 있다. 넘치는 만큼은 ClipRect 가 잘라내고, OverflowBox 가
-            // 무한 높이를 줘 오버플로 경고 없이 그린다. 칸마다 스크롤 뷰를 두면
-            // 한 달에 35~42개가 생겨 자르기만 하는 값으로는 비싸다.
-            Expanded(
-              child: ClipRect(
-                child: OverflowBox(
-                  alignment: Alignment.topLeft,
-                  maxHeight: double.infinity,
-                  child: extra ?? const SizedBox.shrink(),
-                ),
+            Container(
+              width: tokens.density.chip - OnCareSpacing.s4,
+              height: tokens.density.chip - OnCareSpacing.s4,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? tokens.brand.primary : Colors.transparent,
+                borderRadius: OnCareRadius.mdAll,
+              ),
+              child: Text(
+                '$day',
+                style:
+                    OnCareTypography.numeric(
+                      tokens.text(
+                        isToday
+                            ? OnCareTypography.strong(
+                                OnCareTypography.bodySmall,
+                              )
+                            : OnCareTypography.bodySmall,
+                      ),
+                    ).copyWith(
+                      color: isSelected
+                          ? OnCareColors.textOnFill
+                          : isToday
+                          ? tokens.brand.primary
+                          : OnCareColors.textPrimary,
+                    ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 월간 달력 칸 안 일정 칩(#1778) — 카테고리 색을 옅게 깐 작은 네모에 `시각 제목`.
-///
-/// [color] 는 카테고리의 원래(진한) 색이다. 칩 바탕은 이 색을 흰 바탕에 옅게
-/// 얹은 파스텔이고 글자는 본문 색이다.
-class AppCalendarEventChip extends StatelessWidget {
-  const AppCalendarEventChip({
-    super.key,
-    required this.color,
-    required this.label,
-  });
-
-  final Color color;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: OnCareSpacing.s2),
-      padding: OnCareCalendar.eventChipPadding,
-      decoration: BoxDecoration(
-        color: OnCareColors.onWhite(color, OnCareCalendar.eventTintAlpha),
-        borderRadius: OnCareRadius.xsAll,
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: context.oncare
-            .text(OnCareCalendar.eventChip)
-            .copyWith(color: OnCareColors.textPrimary),
-      ),
-    );
-  }
-}
-
-/// 월간 달력 범례(#1778) — 칩과 같은 파스텔 네모 견본 + 이름.
-class AppCalendarLegend extends StatelessWidget {
-  const AppCalendarLegend({super.key, required this.entries});
-
-  /// (카테고리 원래 색, 이름) 목록. 견본 색은 [AppCalendarEventChip] 과 같게 옅힌다.
-  final List<(Color, String)> entries;
-
-  @override
-  Widget build(BuildContext context) {
-    final TextStyle style = context.oncare
-        .text(OnCareCalendar.legendLabel)
-        .copyWith(color: OnCareColors.textTertiary);
-    return Wrap(
-      spacing: OnCareSpacing.s12,
-      runSpacing: OnCareSpacing.s4,
-      children: <Widget>[
-        for (final (Color color, String label) in entries)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Container(
-                width: OnCareCalendar.legendSwatch,
-                height: OnCareCalendar.legendSwatch,
-                decoration: BoxDecoration(
-                  color: OnCareColors.onWhite(
-                    color,
-                    OnCareCalendar.eventTintAlpha,
-                  ),
-                  borderRadius: const BorderRadius.all(
-                    OnCareCalendar.legendSwatchRadius,
-                  ),
-                ),
-              ),
-              const SizedBox(width: OnCareSpacing.s4),
-              Text(label, style: style),
-            ],
-          ),
-      ],
-    );
-  }
-}
-
-/// 높이가 고정된 달력 시트 틀(#1778) — 화면 높이의 85%, 좌우 16.
-///
-/// [header] 를 위에 차례로 쌓고 [body] 가 남은 높이를 모두 갖는다(격자가 주 줄을
-/// 늘린다). 아래는 시스템 내비게이션 바 인셋만큼 더 띄운다 — 인셋이 있는 기기에서
-/// 마지막 주가 바 뒤로 들어가지 않는다(#669).
-class AppCalendarSheetFrame extends StatelessWidget {
-  const AppCalendarSheetFrame({
-    super.key,
-    required this.header,
-    required this.body,
-  });
-
-  final List<Widget> header;
-  final Widget body;
-
-  @override
-  Widget build(BuildContext context) {
-    return FractionallySizedBox(
-      heightFactor: OnCareCalendar.monthSheetHeightFactor,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            ...header,
-            Expanded(child: body),
-            SizedBox(
-              height:
-                  OnCareSpacing.s12 + MediaQuery.viewPaddingOf(context).bottom,
-            ),
+            ?extra,
           ],
         ),
       ),

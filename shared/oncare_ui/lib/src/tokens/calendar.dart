@@ -12,7 +12,7 @@ import 'package:oncare_ui/src/tokens/typography.dart';
 ///
 /// 글자 크기는 **그때 눈에 보이던 크기**다. 옛 두 앱은 전역 글자 배율 1.10 을
 /// 얹어 그렸는데 #1707 에서 배율을 없앴으므로, 옛 코드의 크기에 1.1 을 곱해
-/// 정수로 반올림했다(예: 13.5 → 15, 12 → 13, 9 → 10). 글자를 따라 커지던 날짜
+/// 정수로 반올림했다(예: 13.5 → 15, 12 → 13, 16 → 18). 글자를 따라 커지던 날짜
 /// 칸도 같은 배율을 곱했다.
 class OnCareCalendar {
   OnCareCalendar._();
@@ -40,37 +40,6 @@ class OnCareCalendar {
     horizontal: 8,
     vertical: 3,
   );
-
-  // --- 월간 달력 시트(회원앱 일정) ---
-  /// 시트 높이(화면 높이 비율). 주 줄이 남은 높이를 나눠 갖는다.
-  static const double monthSheetHeightFactor = 0.85;
-
-  /// 한 주 줄의 최소 높이. 날짜 숫자와 일정 칩 한 줄이 들어가는 최소치다 —
-  /// 남은 높이를 주 수로 나눈 값이 이보다 작으면 줄이지 않고 스크롤한다(#669).
-  static const double monthMinRowHeight = 56;
-
-  /// 시트 제목 옆 원형 닫기 버튼의 지름과 그 안 아이콘 크기.
-  static const double circleClose = 32;
-  static const double circleCloseIcon = 18;
-
-  /// 요일 머리 띠의 위아래 안쪽.
-  static const double weekdayBandVerticalPadding = 6;
-
-  /// 오늘 칸 바탕 — 브랜드 색에 곱하는 투명도.
-  static const double todayCellAlpha = 0.05;
-
-  /// 칸 안 일정 칩의 안쪽.
-  static const EdgeInsets eventChipPadding = EdgeInsets.symmetric(
-    horizontal: 4,
-    vertical: 2,
-  );
-
-  /// 일정 칩·범례 견본 바탕 — 카테고리 색을 흰 바탕에 얹는 비율(옅은 파스텔).
-  static const double eventTintAlpha = 0.18;
-
-  /// 범례 견본 한 변과 모서리.
-  static const double legendSwatch = 10;
-  static const Radius legendSwatchRadius = Radius.circular(3);
 
   // --- 기간 선택창(트레이너웹) ---
   /// 날짜 칸의 가로:세로 비율.
@@ -103,40 +72,6 @@ class OnCareCalendar {
     fontFamily: OnCareTypography.fontFamily,
     fontSize: 13,
     fontWeight: FontWeight.w700,
-  );
-
-  /// 월간 달력 시트의 달 라벨(예: `2026년 9월`). 옛 18(500) — 제목보다 가볍다.
-  static const TextStyle monthLabel = TextStyle(
-    fontFamily: OnCareTypography.fontFamily,
-    fontSize: 20,
-    fontWeight: FontWeight.w500,
-  );
-
-  /// 월간 달력 요일 띠 글자. 옛 15(600).
-  static const TextStyle monthWeekday = TextStyle(
-    fontFamily: OnCareTypography.fontFamily,
-    fontSize: 17,
-    fontWeight: FontWeight.w600,
-  );
-
-  /// 월간 달력 칸 왼쪽 위 날짜 숫자. 옛 15(700).
-  static const TextStyle monthDayNumber = TextStyle(
-    fontFamily: OnCareTypography.fontFamily,
-    fontSize: 17,
-    fontWeight: FontWeight.w700,
-  );
-
-  /// 월간 달력 칸 안 일정 칩 글자. 칸이 좁아 가장 작다. 옛 9.
-  static const TextStyle eventChip = TextStyle(
-    fontFamily: OnCareTypography.fontFamily,
-    fontSize: 10,
-  );
-
-  /// 월간 달력 범례 이름. 옛 15.
-  static const TextStyle legendLabel = TextStyle(
-    fontFamily: OnCareTypography.fontFamily,
-    fontSize: 17,
-    fontWeight: FontWeight.w500,
   );
 
   /// 기간 선택창 달 라벨(예: `2026년 9월`). 옛 16(700).

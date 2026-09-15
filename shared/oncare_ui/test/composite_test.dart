@@ -90,22 +90,6 @@ void main() {
                     onToday: () {},
                     lastSelectableDay: DateTime(2026, 9, 14),
                   ),
-                  AppMonthCalendarHeader(
-                    title: '일정',
-                    monthLabel: '2026년 9월',
-                    previousTooltip: '이전 달',
-                    nextTooltip: '다음 달',
-                    onPrevious: () {},
-                    onNext: () {},
-                    actionLabel: '일정 추가',
-                    onAction: () {},
-                  ),
-                  AppCalendarLegend(
-                    entries: <(Color, String)>[
-                      (brand.primary, '약 복용'),
-                      (OnCareColors.success, '운동'),
-                    ],
-                  ),
                   AppMonthGrid(
                     month: DateTime(2026, 9),
                     weekdayLabels: const <String>[
@@ -118,14 +102,7 @@ void main() {
                       '일',
                     ],
                     selected: DateTime(2026, 9, 14),
-                    today: DateTime(2026, 9, 15),
                     onSelected: (_) {},
-                    dayBuilder: (_, day) => day.day == 15
-                        ? const AppCalendarEventChip(
-                            color: OnCareColors.success,
-                            label: '10:00 PT',
-                          )
-                        : null,
                   ),
                   const Row(
                     children: <Widget>[
