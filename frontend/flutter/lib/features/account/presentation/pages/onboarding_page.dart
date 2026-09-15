@@ -279,7 +279,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     }
   }
 
-  void _skip() => context.go(AppRoutes.dashboard);
+  /// 온보딩을 건너뛰어도 홈으로 가기 전에 포인트 안내를 한 번 본다(#1826) —
+  /// 포인트를 어디서 얻는지는 목표를 정했는지와 상관없이 처음부터 알아야 한다.
+  void _skip() => context.go(AppRoutes.pointsGuide);
 
   /// 건강 상태 단계를 건너뛴다 — 이 단계에서 적은 것을 **비우고** 넘어간다.
   ///
@@ -320,7 +322,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           );
       if (!mounted) return;
       ref.invalidate(profileProvider);
-      context.go(AppRoutes.dashboard);
+      // 홈으로 가기 전에 포인트를 어디서 얻는지 한 장으로 본다(#1826).
+      context.go(AppRoutes.pointsGuide);
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);

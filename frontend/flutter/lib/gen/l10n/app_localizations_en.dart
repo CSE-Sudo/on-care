@@ -2077,6 +2077,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardOptionalTag => '(optional)';
 
   @override
+  String get pointsGuideTitle => 'Points quests';
+
+  @override
+  String get pointsGuideSubtitle =>
+      'The more you log each day, the more points you earn. Try these quests';
+
+  @override
+  String pointsGuideQuest(int number) {
+    return 'Quest $number';
+  }
+
+  @override
+  String pointsGuideDailyCap(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Up to $count times a day',
+      one: 'Once a day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get pointsGuideSpendNote => 'Spend your points in MY › Points';
+
+  @override
+  String get pointsGuideStart => 'Get started';
+
+  @override
   String get onboardRequiredTag => '(required)';
 
   @override
