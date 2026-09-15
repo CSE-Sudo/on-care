@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
@@ -295,8 +296,8 @@ final exerciseWeekViewProvider = Provider<AsyncValue<ExerciseWeek>>((ref) {
 final gymRepositoryProvider = Provider<GymRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
     // 한 인스턴스를 provider 수명 동안 유지해, 연결 해제 상태가 MY 탭과
-    // 운동 탭에 함께 반영된다.
-    return MockGymRepository();
+    // 운동 탭에 함께 반영된다. 해제하면 목업 락커·재등록 쿠폰도 취소된다(#1787).
+    return MockGymRepository(coupons: ref.watch(demoCouponBookProvider));
   }
   return DioGymRepository(ref.watch(dioProvider));
 }, name: 'gymRepository');

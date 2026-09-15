@@ -337,7 +337,8 @@ def seed_member_health_data() -> None:
 
 
 def seed_demo_opening_points() -> None:
-    """데모 회원의 시작 포인트(1240P)를 프로필에 넣는다(멱등). (#1786)
+    """데모 회원의 시작 포인트(`DEMO_OPENING_POINTS`, 25,000P)를 프로필에 넣는다(멱등).
+    (#1786)
 
     예전에는 `/users/me/health` 가 위험 문구 없는 프로필에 1240 을 지어 보내,
     이지수·박성호 같은 데모 회원도 1240P 로 보였다. 이제 잔액을 프로필에서 그대로

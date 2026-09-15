@@ -200,6 +200,13 @@ MEMBER_COACH_CHAT = "coach_chat"
 MEMBER_ROUTINE = "routine"
 MEMBER_SCHEDULE = "member_schedule"
 MEMBER_CONSULTATION = "consultation_result"
+#: 포인트 쿠폰(내 혜택)으로 가는 알림 — 담당 해제로 인한 취소·만료 임박. (#1787)
+MEMBER_BENEFITS = "benefits"
+
+#: 포인트 쿠폰 알림의 kind. 회원 수신 설정 키가 아니다 — 설정 화면에 스위치가
+#: 없고 `wants` 는 모르는 kind 를 받는 쪽으로 둔다. 쿠폰 사용·취소는 회원의
+#: 포인트가 움직인 일이라 끌 수 있는 알림으로 두지 않는다.
+POINTS_COUPON = "points_coupon"
 
 #: 트레이너 알림의 종류. `Notification.category` 에 그대로 저장되고, 트레이너 앱이
 #: 이 값으로 어디로 이동할지 정한다. 회원 알림의 category 집합

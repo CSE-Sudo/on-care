@@ -48,6 +48,7 @@ from app.services import (
     exercise_service,
     exercise_types,
     notification_service,
+    points_coupon_service,
     points_service,
     routine_suggestion_service,
     schedule_parse,
@@ -898,8 +899,11 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     관계 행이 사라지면 트레이너의 고객 기반 화면과 권한에서 제외된다. 스케줄,
     프로그램·루틴, 리포트, PT 이력과 대화 원본은 삭제하지 않으므로 회원 앱에서는
     기존 기록을 계속 볼 수 있다.
+
+    담당이 끝나므로 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787).
     """
     link.active = False
+    points_coupon_service.cancel_renewal_coupons(db, link.member_id)
     db.commit()
 
 
@@ -990,6 +994,17 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
         db.delete(reservation)
     # RESTRICT 자식을 먼저 비운 뒤에야 트레이너 삭제의 CASCADE 가 성립한다.
     db.flush()
+
+    # 지금 담당 중인 회원의 PT 재등록 쿠폰은 쓸 트레이너가 사라지므로 취소하고
+    # 포인트를 돌려준다(#1787). 과거 담당(휴면 링크) 회원은 이미 해제 때 처리됐다.
+    active_member_ids = db.scalars(
+        select(TrainerClient.member_id).where(
+            TrainerClient.trainer_id == trainer.id,
+            TrainerClient.active.is_(True),
+        )
+    ).all()
+    for member_id in active_member_ids:
+        points_coupon_service.cancel_renewal_coupons(db, member_id)
 
     trainer_name = trainer.name or "트레이너"
     for member_id in member_ids:
@@ -4014,6 +4029,9 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
     **전부** 내리는 이유: partial unique index 가 회원당 1건을 강제하지만, 정합성이
     깨져 여러 건이 남은 경우 첫 건만 끄면 get_member_trainer_id() 가 계속 다른 링크를
     반환해 "해제했는데 그대로"가 된다(리뷰 지적).
+
+    담당이 끝나면 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787) — 헬스장
+    해제·트레이너만 해제 두 경로가 모두 여기를 지난다.
     """
     links = db.scalars(
         select(TrainerClient).where(
@@ -4023,6 +4041,8 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
     ).all()
     for link in links:
         link.active = False
+    if links:
+        points_coupon_service.cancel_renewal_coupons(db, member_id)
     return bool(links)
 
 

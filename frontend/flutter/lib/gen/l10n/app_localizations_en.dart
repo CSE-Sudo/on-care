@@ -1076,34 +1076,176 @@ class AppLocalizationsEn extends AppLocalizations {
       'Keep logging your activity to earn points and use the benefits above.';
 
   @override
-  String get myPointsDiscountTitle => 'Cash discount with points';
+  String myPointsCost(int points) {
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return '${pointsString}P';
+  }
 
   @override
-  String get myPointsDiscountDescription =>
-      'Use points like cash for up to 10% off 1:1 coaching and personal training.';
+  String get myPointsExchange => 'Redeem';
 
   @override
-  String get myPointsDiscountCost => 'Up to 10%';
+  String get myPointsExchangeConfirmTitle => 'Redeem points?';
 
   @override
-  String get myPointsReportTitle => 'Unlock glucose and blood pressure reports';
+  String myPointsExchangeConfirmMessage(String item, String cost) {
+    return 'Use $cost for $item. You can find the coupon in My benefits.';
+  }
 
   @override
-  String get myPointsReportDescription =>
-      'View comprehensive weekly and monthly health-data reports.';
+  String get myPointsExchangeConfirmAction => 'Redeem';
 
   @override
-  String get myPointsReportCost => '500P';
+  String get myPointsExchangeDone => 'Redeemed';
 
   @override
-  String get myPointsRecipeTitle => 'Personalized healthy recipe package';
+  String get myPointsExchangeFailed => 'Couldn\'t redeem. Please try again.';
 
   @override
-  String get myPointsRecipeDescription =>
-      'Get PDF and interactive meal guides tailored to goals such as diabetes prevention or weight loss.';
+  String myPointsShortfall(String points) {
+    return '$points short';
+  }
 
   @override
-  String get myPointsRecipeCost => '500P';
+  String get myPointsNeedTrainer => 'Requires an assigned trainer';
+
+  @override
+  String get myPointsNeedGym => 'Requires a connected gym';
+
+  @override
+  String get myPointsActiveCoupon => 'You already have an unused coupon';
+
+  @override
+  String get myPointsMonthlyLimit => 'You already redeemed this month';
+
+  @override
+  String myPointsValidDays(int days) {
+    return 'Valid for $days days after redeeming';
+  }
+
+  @override
+  String get myPointsShopLoadFailed => 'Couldn\'t load rewards';
+
+  @override
+  String get myShopPtRenewalTitle => '₩30,000 off PT renewal';
+
+  @override
+  String get myShopPtRenewalDescription =>
+      'Get ₩30,000 off when you renew PT with your trainer.';
+
+  @override
+  String get myShopLockerTitle => 'Free personal locker for 1 month';
+
+  @override
+  String get myShopLockerDescription =>
+      'Use a personal locker at your gym free for a month.';
+
+  @override
+  String get myCouponPtRenewalBenefit => '₩30,000 off PT renewal';
+
+  @override
+  String get myBenefitsTitle => 'My benefits';
+
+  @override
+  String get myBenefitsView => 'View';
+
+  @override
+  String get myBenefitsCoupons => 'Coupons';
+
+  @override
+  String get myBenefitsEmpty => 'No coupons yet';
+
+  @override
+  String get myBenefitsEmptyMessage => 'Redeem your points for a coupon.';
+
+  @override
+  String get myBenefitsLoadFailed => 'Couldn\'t load benefits';
+
+  @override
+  String get myCouponStatusUsable => 'Available';
+
+  @override
+  String get myCouponStatusUsed => 'Used';
+
+  @override
+  String get myCouponStatusExpired => 'Expired';
+
+  @override
+  String get myCouponStatusCancelled => 'Cancelled';
+
+  @override
+  String myCouponDaysLeft(int days) {
+    return 'D-$days';
+  }
+
+  @override
+  String get myCouponDDay => 'D-day';
+
+  @override
+  String myCouponUntil(String date) {
+    return 'Until $date';
+  }
+
+  @override
+  String get myCouponTrainer => 'Trainer';
+
+  @override
+  String get myCouponGym => 'Gym';
+
+  @override
+  String get myCouponIssuedOn => 'Redeemed on';
+
+  @override
+  String get myCouponExpiry => 'Expires';
+
+  @override
+  String myCouponExpiryWithDday(String date, String dday) {
+    return '$date ($dday)';
+  }
+
+  @override
+  String get myCouponStatus => 'Status';
+
+  @override
+  String get myCouponStaffNote =>
+      'Tap only after your trainer or gym staff has checked it';
+
+  @override
+  String get myCouponGymStaffNote => 'Tap only after gym staff has checked it';
+
+  @override
+  String get myCouponStaffConfirmTitle => 'Mark this coupon as used?';
+
+  @override
+  String get myCouponStaffConfirmMessage =>
+      'For staff · This can\'t be undone once used';
+
+  @override
+  String get myCouponUsedAt => 'Used at';
+
+  @override
+  String myCouponUsedBanner(String time) {
+    return 'Used on $time';
+  }
+
+  @override
+  String get myCouponExpireNotice =>
+      'Points aren\'t refunded once the coupon expires.';
+
+  @override
+  String get myCouponUse => 'Mark as used';
+
+  @override
+  String get myCouponUseDone => 'Marked as used';
+
+  @override
+  String get myCouponUseFailed => 'Couldn\'t mark as used. Please try again.';
+
+  @override
+  String get myCouponNotFound => 'Coupon not found';
 
   @override
   String get myLogout => 'Log out';

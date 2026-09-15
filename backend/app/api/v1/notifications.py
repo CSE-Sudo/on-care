@@ -24,7 +24,7 @@ from app.schemas.user import (
     MemberNotificationSettings,
     MemberNotificationSettingsUpdate,
 )
-from app.services import notification_service
+from app.services import notification_service, points_coupon_service
 
 router = APIRouter(tags=["notifications"])
 
@@ -46,6 +46,10 @@ _ACTION_BY_CATEGORY: dict[str, NotificationAction] = {
     ),
     notification_service.MEMBER_CONSULTATION: NotificationAction(
         label="트레이너 보기", target="exercise"
+    ),
+    # 쿠폰 사용 처리·취소·만료 임박 — MY 의 내 혜택으로 간다(#1787).
+    notification_service.MEMBER_BENEFITS: NotificationAction(
+        label="내 혜택 보기", target="my_benefits"
     ),
 }
 
@@ -83,7 +87,16 @@ def list_notifications(
     하나가 여러 건을 한 트랜잭션에 넣기도 해서 동시각이 실제로 나온다.
 
     파라미터 없이 부르면 최신 50건이다. 기존 클라이언트는 그대로 동작한다.
+
+    읽기 전에 만료가 3일 이내로 다가온 쿠폰의 알림을 만든다(#1787). 주기 작업이
+    없어, 회원이 알림함을 여는 순간이 알림이 생기는 시점이다. 쿠폰마다 한 번뿐이고,
+    만들지 못해도 알림 목록은 그대로 준다.
     """
+    try:
+        if points_coupon_service.remind_expiring(db, current_user.id):
+            db.commit()
+    except Exception:  # noqa: BLE001 — 만료 알림 실패가 알림함을 막지 않는다
+        db.rollback()
     query = select(Notification).where(Notification.user_id == current_user.id)
     cursor = parse_before(before)
     if cursor is not None:

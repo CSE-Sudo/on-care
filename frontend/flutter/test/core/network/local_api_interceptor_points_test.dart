@@ -23,7 +23,8 @@ void main() {
       LocalApiInterceptor(
         db,
         Logger(level: Level.off),
-        points: DemoPointsLedger(),
+        // 시작 잔액을 못 박아 둔다 — 데모 시작 잔액이 바뀌어도 적립 규칙만 본다.
+        points: DemoPointsLedger(openingBalance: 1240),
       ),
     );
   });

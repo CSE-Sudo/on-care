@@ -14,6 +14,10 @@ class AppRoutes {
   static const String notification = '/notification';
   static const String dietEntryDetail = '/diet/entries/:entryId';
   static const String myPoints = '/my-health/points';
+
+  /// 내 혜택 — 보유 쿠폰(이후 보호권·챌린지)을 모은다(#1787).
+  static const String myBenefits = '/my-health/benefits';
+  static const String myCouponDetail = '/my-health/benefits/coupons/:couponId';
   static const String mySettings = '/my-health/settings/:section';
   static const String gyms = '/gyms';
   static const String trainers = '/trainers';
@@ -35,6 +39,9 @@ class AppRoutes {
 
   static String dietEntryDetailPath(String entryId) =>
       '$diet/entries/${Uri.encodeComponent(entryId)}';
+
+  static String myCouponDetailPath(String couponId) =>
+      '$myBenefits/coupons/${Uri.encodeComponent(couponId)}';
 
   static String mySettingsPath(String section) =>
       '/my-health/settings/${Uri.encodeComponent(section)}';

@@ -593,15 +593,119 @@
   },
   "myPointsBenefitsSubtitle": "Benefits available with points",
   "myPointsBenefitsHint": "Keep logging your activity to earn points and use the benefits above.",
-  "myPointsDiscountTitle": "Cash discount with points",
-  "myPointsDiscountDescription": "Use points like cash for up to 10% off 1:1 coaching and personal training.",
-  "myPointsDiscountCost": "Up to 10%",
-  "myPointsReportTitle": "Unlock glucose and blood pressure reports",
-  "myPointsReportDescription": "View comprehensive weekly and monthly health-data reports.",
-  "myPointsReportCost": "500P",
-  "myPointsRecipeTitle": "Personalized healthy recipe package",
-  "myPointsRecipeDescription": "Get PDF and interactive meal guides tailored to goals such as diabetes prevention or weight loss.",
-  "myPointsRecipeCost": "500P",
+  "myPointsCost": "{points}P",
+  "@myPointsCost": {
+    "description": "A point amount with thousands separators, e.g. 5,000P.",
+    "placeholders": {
+      "points": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "myPointsExchange": "Redeem",
+  "myPointsExchangeConfirmTitle": "Redeem points?",
+  "myPointsExchangeConfirmMessage": "Use {cost} for {item}. You can find the coupon in My benefits.",
+  "@myPointsExchangeConfirmMessage": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myPointsExchangeConfirmAction": "Redeem",
+  "myPointsExchangeDone": "Redeemed",
+  "myPointsExchangeFailed": "Couldn't redeem. Please try again.",
+  "myPointsShortfall": "{points} short",
+  "@myPointsShortfall": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "myPointsNeedTrainer": "Requires an assigned trainer",
+  "myPointsNeedGym": "Requires a connected gym",
+  "myPointsActiveCoupon": "You already have an unused coupon",
+  "myPointsMonthlyLimit": "You already redeemed this month",
+  "myPointsValidDays": "Valid for {days} days after redeeming",
+  "@myPointsValidDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myPointsShopLoadFailed": "Couldn't load rewards",
+  "myShopPtRenewalTitle": "₩30,000 off PT renewal",
+  "myShopPtRenewalDescription": "Get ₩30,000 off when you renew PT with your trainer.",
+  "myShopLockerTitle": "Free personal locker for 1 month",
+  "myShopLockerDescription": "Use a personal locker at your gym free for a month.",
+  "myCouponPtRenewalBenefit": "₩30,000 off PT renewal",
+  "myBenefitsTitle": "My benefits",
+  "myBenefitsView": "View",
+  "myBenefitsCoupons": "Coupons",
+  "myBenefitsEmpty": "No coupons yet",
+  "myBenefitsEmptyMessage": "Redeem your points for a coupon.",
+  "myBenefitsLoadFailed": "Couldn't load benefits",
+  "myCouponStatusUsable": "Available",
+  "myCouponStatusUsed": "Used",
+  "myCouponStatusExpired": "Expired",
+  "myCouponStatusCancelled": "Cancelled",
+  "myCouponDaysLeft": "D-{days}",
+  "@myCouponDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myCouponDDay": "D-day",
+  "myCouponUntil": "Until {date}",
+  "@myCouponUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "myCouponTrainer": "Trainer",
+  "myCouponGym": "Gym",
+  "myCouponIssuedOn": "Redeemed on",
+  "myCouponExpiry": "Expires",
+  "myCouponExpiryWithDday": "{date} ({dday})",
+  "@myCouponExpiryWithDday": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "dday": {
+        "type": "String"
+      }
+    }
+  },
+  "myCouponStatus": "Status",
+  "myCouponStaffNote": "Tap only after your trainer or gym staff has checked it",
+  "myCouponGymStaffNote": "Tap only after gym staff has checked it",
+  "myCouponStaffConfirmTitle": "Mark this coupon as used?",
+  "myCouponStaffConfirmMessage": "For staff · This can't be undone once used",
+  "myCouponUsedAt": "Used at",
+  "myCouponUsedBanner": "Used on {time}",
+  "@myCouponUsedBanner": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "myCouponExpireNotice": "Points aren't refunded once the coupon expires.",
+  "myCouponUse": "Mark as used",
+  "myCouponUseDone": "Marked as used",
+  "myCouponUseFailed": "Couldn't mark as used. Please try again.",
+  "myCouponNotFound": "Coupon not found",
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
   "myCancel": "Cancel",

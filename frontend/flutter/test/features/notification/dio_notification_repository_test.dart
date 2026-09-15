@@ -104,6 +104,30 @@ void main() {
       expect(item.action?.isNavigable, isTrue);
     });
 
+    test('쿠폰 알림의 my_benefits 는 내 혜택으로 옮긴다', () async {
+      // 쿠폰 사용 처리·취소·만료 임박 알림 — 서버 `benefits` 카테고리(#1787).
+      final repo = DioNotificationRepository(
+        _dio(<Object?>[
+          <String, Object?>{
+            'id': 'n-coupon',
+            'title': '재등록 쿠폰이 사용 처리됐어요',
+            'body': '본문',
+            'time_ago': '방금',
+            'category': 'benefits',
+            'read': false,
+            'action': <String, Object?>{
+              'label': '내 혜택 보기',
+              'target': 'my_benefits',
+            },
+          },
+        ]),
+      );
+
+      final AlertItem item = (await repo.fetchPage()).single;
+      expect(item.action?.target, AlertTarget.myBenefits);
+      expect(item.action?.isNavigable, isTrue);
+    });
+
     test('모르는 target 은 목록에서 빼지 않고 이동만 하지 않는다', () async {
       final repo = DioNotificationRepository(
         _dio(<Object?>[
