@@ -221,6 +221,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign-in failed. Please try again in a moment.';
 
   @override
+  String get authErrNameEmpty => 'Enter your name';
+
+  @override
   String get authErrEmailEmpty => 'Enter your email';
 
   @override

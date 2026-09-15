@@ -488,6 +488,12 @@ abstract class AppLocalizations {
   /// **'Sign-in failed. Please try again in a moment.'**
   String get authErrSignInFailed;
 
+  /// Red text under the name field on sign-up when it is empty or whitespace only (#1784).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name'**
+  String get authErrNameEmpty;
+
   /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In en, this message translates to:

@@ -41,6 +41,20 @@ List<String> _typeAtEnd(String keys) {
 }
 
 void main() {
+  group('이름', () {
+    test('비었거나 공백뿐이면 빈칸 오류다', () {
+      expect(AppInputRules.name(''), AppInputError.nameEmpty);
+      expect(AppInputRules.name('   '), AppInputError.nameEmpty);
+      expect(AppInputRules.name('\t\n'), AppInputError.nameEmpty);
+    });
+
+    test('한 글자라도 있으면 통과한다', () {
+      expect(AppInputRules.name('김'), isNull);
+      expect(AppInputRules.name(' 김신규 '), isNull);
+      expect(AppInputRules.name('Jisu Lee'), isNull);
+    });
+  });
+
   group('이메일', () {
     test('흔히 쓰는 주소는 통과한다', () {
       for (final String email in <String>[

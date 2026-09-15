@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 /// 문구는 앱마다 로케일 파일에 있으므로 여기서는 종류만 돌려주고, 두 앱이
 /// 각자의 문구로 바꿔 칸 아래에 그린다.
 enum AppInputError {
+  /// 이름 칸이 비었다(공백뿐인 경우 포함).
+  nameEmpty,
+
   /// 이메일 칸이 비었다.
   emailEmpty,
 
@@ -47,6 +50,10 @@ abstract final class AppInputRules {
 
   /// 전화번호 숫자 개수(3 + 4 + 4).
   static const int phoneDigits = 11;
+
+  /// 이름 — 가입에 꼭 필요하다. 공백만 친 값은 잘라내면 비므로 빈칸으로 본다.
+  static AppInputError? name(String value) =>
+      value.trim().isEmpty ? AppInputError.nameEmpty : null;
 
   /// 이메일 — 앞뒤 공백은 보내기 전에 잘라내므로 잘라낸 값으로 본다.
   static AppInputError? email(String value) {

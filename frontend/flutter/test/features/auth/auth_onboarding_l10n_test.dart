@@ -71,6 +71,7 @@ const Map<String, String> _koBefore = <String, String>{
 /// 함께 돈다.
 const Map<String, String> _koAdded = <String, String>{
   // 로그인·가입 칸 아래 오류 문구(#1784).
+  'signUpNameEmpty': '이름을 입력해 주세요',
   'authEmailEmpty': '이메일을 입력해 주세요',
   'authEmailInvalid': '이메일 형식이 올바르지 않아요',
   'authPasswordEmpty': '비밀번호를 입력해 주세요',
@@ -126,6 +127,7 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'signUpTitle' => l.signUpTitle,
   'signUpSubtitle' => l.signUpSubtitle,
   'signUpNameHint' => l.signUpNameHint,
+  'signUpNameEmpty' => l.signUpNameEmpty,
   'signUpPasswordHint' => l.signUpPasswordHint,
   'signUpPasswordConfirmHint' => l.signUpPasswordConfirmHint,
   'signUpAction' => l.signUpAction,

@@ -3511,6 +3511,12 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get signUpNameHint;
 
+  /// Red text under the name field on sign-up when it is empty or whitespace only (#1784).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name'**
+  String get signUpNameEmpty;
+
   /// Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784).
   ///
   /// In en, this message translates to:

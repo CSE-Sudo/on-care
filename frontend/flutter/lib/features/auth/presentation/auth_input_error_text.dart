@@ -9,6 +9,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 String? authInputErrorText(AppLocalizations l, AppInputError? error) =>
     switch (error) {
       null => null,
+      AppInputError.nameEmpty => l.signUpNameEmpty,
       AppInputError.emailEmpty => l.authEmailEmpty,
       AppInputError.emailInvalid => l.authEmailInvalid,
       AppInputError.phoneInvalid => l.signUpPhoneFormatInvalid,

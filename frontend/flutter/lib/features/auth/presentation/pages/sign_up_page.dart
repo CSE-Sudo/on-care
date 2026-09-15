@@ -10,8 +10,8 @@ import 'package:oncare/features/auth/presentation/controllers/session_controller
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 가입 화면에서 형식을 검사하는 칸. 이름은 비워도 가입되므로 검사하지 않는다.
-enum _Field { email, phone, password, passwordConfirm }
+/// 가입 화면에서 검사하는 칸. 이름도 꼭 받는다(#1784).
+enum _Field { name, email, phone, password, passwordConfirm }
 
 /// 회원가입 화면 — 이름/이메일/전화번호/비밀번호로 계정을 만들고, 성공 시 자동
 /// 로그인해 대시보드로 진입한다(라우터 가드가 인증 상태를 감지).
@@ -53,6 +53,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   /// 숫자만 쳐도 [AppPhoneNumberFormatter] 가 하이픈을 넣어 준다(#1784).
   String? _check(_Field field) =>
       authInputErrorText(AppLocalizations.of(context), switch (field) {
+        _Field.name => AppInputRules.name(_name.text),
         _Field.email => AppInputRules.email(_email.text),
         _Field.phone => AppInputRules.phone(_phone.text),
         _Field.password => AppInputRules.signUpPassword(_password.text),
@@ -126,11 +127,14 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           AppTextField(
+            key: const ValueKey<String>('member-signup-name'),
             controller: _name,
             hint: l.signUpNameHint,
+            errorText: _errors.of(_Field.name),
             prefixIcon: Icons.person_outline_rounded,
             size: AppFieldSize.large,
             textInputAction: TextInputAction.next,
+            onChanged: _onEdited,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(

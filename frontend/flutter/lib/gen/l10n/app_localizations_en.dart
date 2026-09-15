@@ -1925,6 +1925,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpNameHint => 'Name';
 
   @override
+  String get signUpNameEmpty => 'Enter your name';
+
+  @override
   String get signUpPhoneHint => '010-0000-0000';
 
   @override

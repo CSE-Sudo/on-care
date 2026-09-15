@@ -1069,6 +1069,10 @@
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",
+  "signUpNameEmpty": "Enter your name",
+  "@signUpNameEmpty": {
+    "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
+  },
   "signUpPhoneHint": "010-0000-0000",
   "@signUpPhoneHint": {
     "description": "Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784)."

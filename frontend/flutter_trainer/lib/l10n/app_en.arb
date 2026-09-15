@@ -130,6 +130,10 @@
   "authErrEmptyCredentials": "Enter your email and password",
   "authErrSocialFailed": "Social sign-in failed. Please try again in a moment.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
+  "authErrNameEmpty": "Enter your name",
+  "@authErrNameEmpty": {
+    "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
+  },
   "authErrEmailEmpty": "Enter your email",
   "@authErrEmailEmpty": {
     "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."

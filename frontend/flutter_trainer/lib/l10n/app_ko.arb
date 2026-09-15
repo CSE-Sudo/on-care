@@ -95,6 +95,7 @@
   "authErrEmptyCredentials": "이메일과 비밀번호를 입력해 주세요",
   "authErrSocialFailed": "소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
   "authErrSignInFailed": "로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
+  "authErrNameEmpty": "이름을 입력해 주세요",
   "authErrEmailEmpty": "이메일을 입력해 주세요",
   "authErrEmailInvalid": "이메일 형식이 올바르지 않아요",
   "authErrPasswordEmpty": "비밀번호를 입력해 주세요",

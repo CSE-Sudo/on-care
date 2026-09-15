@@ -668,6 +668,7 @@
   "signUpTitle": "회원가입",
   "signUpSubtitle": "On-Care 계정을 만들어 건강 관리를 시작하세요",
   "signUpNameHint": "이름",
+  "signUpNameEmpty": "이름을 입력해 주세요",
   "signUpPhoneHint": "010-0000-0000",
   "signUpPhoneHelper": "트레이너가 회원님을 확인할 때 쓰는 연락처예요",
   "signUpPasswordHint": "비밀번호 (영문·숫자 포함 8자 이상)",

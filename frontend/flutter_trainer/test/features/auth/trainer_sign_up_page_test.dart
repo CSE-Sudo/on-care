@@ -100,6 +100,7 @@ Future<_RecordingAuthRepository> _pumpSignUp(
   return repo;
 }
 
+const ValueKey<String> _nameKey = ValueKey<String>('trainer-signup-name');
 const ValueKey<String> _emailKey = ValueKey<String>('trainer-signup-email');
 const ValueKey<String> _passwordKey = ValueKey<String>(
   'trainer-signup-password',
@@ -226,10 +227,12 @@ void main() {
     final repo = await _pumpSignUp(tester);
 
     // 제출하기 전에는 아무 칸에도 오류가 없다.
+    expect(find.text('이름을 입력해 주세요'), findsNothing);
     expect(find.text('이메일을 입력해 주세요'), findsNothing);
 
     await _submit(tester);
 
+    expect(_errorUnder(_nameKey, '이름을 입력해 주세요'), findsOneWidget);
     expect(_errorUnder(_emailKey, '이메일을 입력해 주세요'), findsOneWidget);
     expect(_errorUnder(_passwordKey, '비밀번호를 입력해 주세요'), findsOneWidget);
     expect(_errorUnder(_codeKey, '헬스장에서 받은 초대 코드를 입력해 주세요'), findsOneWidget);
@@ -238,6 +241,30 @@ void main() {
     // 예전 토스트 문구는 더 이상 뜨지 않는다.
     expect(find.text('이메일과 비밀번호를 입력해 주세요'), findsNothing);
     expect(repo.registerCalls, 0);
+  });
+
+  testWidgets('이름이 비었거나 공백뿐이면 보내지 않고, 치면 문구가 사라진다', (
+    WidgetTester tester,
+  ) async {
+    final repo = await _pumpSignUp(tester);
+    // 이름 말고는 모두 맞게 채운다.
+    await _fill(tester, name: '   ', code: 'ONCARE1');
+    expect(find.text('이름을 입력해 주세요'), findsNothing);
+
+    await _submit(tester);
+
+    expect(_errorUnder(_nameKey, '이름을 입력해 주세요'), findsOneWidget);
+    expect(find.text('이메일을 입력해 주세요'), findsNothing);
+    expect(repo.registerCalls, 0);
+
+    // 다시 제출하지 않아도 이름을 치는 대로 문구가 사라진다.
+    await _type(tester, _nameKey, '김신규');
+    expect(find.text('이름을 입력해 주세요'), findsNothing);
+
+    await _submit(tester);
+
+    expect(repo.registerCalls, 1);
+    expect(repo.name, '김신규');
   });
 
   testWidgets('이메일 형식·비밀번호 규칙이 틀리면 보내지 않는다', (WidgetTester tester) async {

@@ -1880,6 +1880,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpNameHint => '이름';
 
   @override
+  String get signUpNameEmpty => '이름을 입력해 주세요';
+
+  @override
   String get signUpPhoneHint => '010-0000-0000';
 
   @override

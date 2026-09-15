@@ -112,6 +112,7 @@ Finder _errorUnder(String key, String message) => find.descendant(
   matching: find.text(message),
 );
 
+const String _nameEmpty = '이름을 입력해 주세요';
 const String _emailEmpty = '이메일을 입력해 주세요';
 const String _emailInvalid = '이메일 형식이 올바르지 않아요';
 const String _passwordEmpty = '비밀번호를 입력해 주세요';
@@ -216,6 +217,7 @@ void main() {
   });
 
   group('회원가입', () {
+    const String name = 'member-signup-name';
     const String email = 'member-signup-email';
     const String phone = 'member-signup-phone';
     const String password = 'member-signup-password';
@@ -239,8 +241,12 @@ void main() {
     ) async {
       final _FakeServer server = await _pump(tester, const SignUpPage());
 
+      // 제출하기 전에는 이름 칸에도 오류가 없다.
+      expect(find.text(_nameEmpty), findsNothing);
+
       await _submit(tester, submit);
 
+      expect(_errorUnder(name, _nameEmpty), findsOneWidget);
       expect(_errorUnder(email, _emailEmpty), findsOneWidget);
       expect(_errorUnder(phone, _phoneInvalid), findsOneWidget);
       expect(_errorUnder(password, _passwordEmpty), findsOneWidget);
@@ -249,6 +255,42 @@ void main() {
       // 전화번호 도움말 자리를 오류 문구가 대신한다.
       expect(find.text(phoneHelper), findsNothing);
       expect(server.requests, isEmpty);
+    });
+
+    testWidgets('이름이 비었거나 공백뿐이면 보내지 않고, 치면 문구가 사라진다', (
+      WidgetTester tester,
+    ) async {
+      final _FakeServer server = await _pump(
+        tester,
+        const SignUpPage(),
+        status: 409,
+      );
+
+      // 이름 말고는 모두 맞게 채운다.
+      await _type(tester, name, '   ');
+      await _type(tester, email, 'minsu@oncare.com');
+      await _type(tester, phone, '01012345678');
+      await _type(tester, password, '1234567a');
+      await _type(tester, confirm, '1234567a');
+      expect(find.text(_nameEmpty), findsNothing);
+
+      await _submit(tester, submit);
+
+      expect(_errorUnder(name, _nameEmpty), findsOneWidget);
+      expect(find.text(_emailInvalid), findsNothing);
+      expect(server.requests, isEmpty);
+
+      // 다시 제출하지 않아도 이름을 치는 대로 문구가 사라진다.
+      await _type(tester, name, '김민수');
+      expect(find.text(_nameEmpty), findsNothing);
+
+      await _submit(tester, submit);
+
+      final List<RequestOptions> registers = server.to('/auth/register');
+      expect(registers, hasLength(1));
+      final Map<String, Object?> data =
+          registers.single.data! as Map<String, Object?>;
+      expect(data['name'], '김민수');
     });
 
     testWidgets('전화번호는 숫자만 쳐도 000-0000-0000 으로 끊긴다', (
@@ -292,6 +334,7 @@ void main() {
         status: 409,
       );
 
+      await _type(tester, name, '김민수');
       await _type(tester, email, 'minsu@oncare');
       await _type(tester, phone, '0101234');
       await _type(tester, password, '12345678');

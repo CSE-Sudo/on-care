@@ -10,8 +10,8 @@ import 'package:oncare_trainer/features/auth/presentation/controllers/session_co
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 가입 화면에서 검사하는 칸. 이름은 비워도 가입되므로 검사하지 않는다.
-enum _Field { email, password, passwordConfirm, inviteCode }
+/// 가입 화면에서 검사하는 칸. 이름도 꼭 받는다(#1784).
+enum _Field { name, email, password, passwordConfirm, inviteCode }
 
 /// 트레이너 회원가입 화면 — 공용 [AppAuthLayout]. 이름/이메일/
 /// 비밀번호와 **헬스장 초대 코드**로 계정을 만들고, 성공 시 자동 로그인해 고객
@@ -57,6 +57,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
   String? _check(_Field field) {
     final AppLocalizations l = AppLocalizations.of(context);
     return switch (field) {
+      _Field.name => authInputErrorText(l, AppInputRules.name(_name.text)),
       _Field.email => authInputErrorText(l, AppInputRules.email(_email.text)),
       _Field.password => authInputErrorText(
         l,
@@ -94,6 +95,7 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     // 틀린 칸이 하나라도 있으면 요청을 보내지 않고 칸 아래에 알린다. 서버가
     // 돌려준 실패(이메일 중복·초대 코드 무효 등)만 아래에서 토스트로 알린다.
     final bool valid = _errors.validate(<_Field>[
+      _Field.name,
       _Field.email,
       _Field.password,
       _Field.passwordConfirm,
@@ -155,11 +157,14 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           AppTextField(
+            key: const ValueKey<String>('trainer-signup-name'),
             controller: _name,
             hint: l.authName,
+            errorText: _errors.of(_Field.name),
             prefixIcon: Icons.person_outline_rounded,
             size: AppFieldSize.large,
             textInputAction: TextInputAction.next,
+            onChanged: _onEdited,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(

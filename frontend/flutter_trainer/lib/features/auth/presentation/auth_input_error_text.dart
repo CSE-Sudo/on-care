@@ -9,6 +9,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 String? authInputErrorText(AppLocalizations l, AppInputError? error) =>
     switch (error) {
       null => null,
+      AppInputError.nameEmpty => l.authErrNameEmpty,
       AppInputError.emailEmpty => l.authErrEmailEmpty,
       AppInputError.emailInvalid => l.authErrEmailInvalid,
       // 트레이너 가입에는 전화번호 칸이 없다. 공용 종류를 빠짐없이 옮기려고 둔다.
