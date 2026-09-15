@@ -1614,6 +1614,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicGeneratingReply => 'Writing your answer';
 
   @override
+  String aicInsightDiscomfortPart(String part) {
+    return '$part pain noted';
+  }
+
+  @override
+  String get aicInsightDiscomfort => 'Pain noted';
+
+  @override
+  String get aicInsightNegative => 'Negative feedback noted';
+
+  @override
+  String get aicInsightHistoryTitle => 'Noted signals';
+
+  @override
+  String aicInsightHistorySubtitle(int days) {
+    return 'Pain and negative feedback noted in the last $days days';
+  }
+
+  @override
+  String aicInsightHistoryEmpty(int days) {
+    return 'Nothing noted in the last $days days';
+  }
+
+  @override
+  String get aicInsightHistoryFailed => 'Couldn\'t load noted signals';
+
+  @override
   String get aicQuickReply1 => 'Recommend a dinner menu for today';
 
   @override

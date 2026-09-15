@@ -2935,6 +2935,48 @@ abstract class AppLocalizations {
   /// **'Writing your answer'**
   String get aicGeneratingReply;
 
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'{part} pain noted'**
+  String aicInsightDiscomfortPart(String part);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Pain noted'**
+  String get aicInsightDiscomfort;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Negative feedback noted'**
+  String get aicInsightNegative;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Noted signals'**
+  String get aicInsightHistoryTitle;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Pain and negative feedback noted in the last {days} days'**
+  String aicInsightHistorySubtitle(int days);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing noted in the last {days} days'**
+  String aicInsightHistoryEmpty(int days);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load noted signals'**
+  String get aicInsightHistoryFailed;
+
   /// No description provided for @aicQuickReply1.
   ///
   /// In en, this message translates to:

@@ -22,6 +22,8 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
@@ -84,6 +86,7 @@ class LocalApiInterceptor extends Interceptor {
     'GET /notifications': _notifications,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
+    'GET /ai-coach/insights': _aiCoachInsights,
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
@@ -880,11 +883,9 @@ class LocalApiInterceptor extends Interceptor {
         // 채운다. 이미 있으면 그대로 둔다 — 같은 끼니의 사진이다.
         if (photoBytes != null &&
             (existing.photoBytes == null || existing.photoBytes!.isEmpty)) {
-          await (_db.update(
-            _db.dietEntries,
-          )..where((t) => t.id.equals(existing.id))).write(
-            DietEntriesCompanion(photoBytes: Value(photoBytes)),
-          );
+          await (_db.update(_db.dietEntries)
+                ..where((t) => t.id.equals(existing.id)))
+              .write(DietEntriesCompanion(photoBytes: Value(photoBytes)));
         }
         final storedFoods = (jsonDecode(existing.foodsJson) as List<Object?>)
             .cast<Map<String, Object?>>();
@@ -1125,13 +1126,13 @@ class LocalApiInterceptor extends Interceptor {
     }
     final (String start, String end) = _periodBounds(period);
     final List<String> weeks = _weekStartsCovering(start, end);
-    final rows =
-        await (_db.select(
-          _db.exerciseSessions,
-        )..where((t) => t.weekStart.isIn(weeks))).get();
+    final rows = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.weekStart.isIn(weeks))).get();
 
     final Map<String, ({int minutes, int calories, Map<String, int> byType})>
-    perDate = <String, ({int minutes, int calories, Map<String, int> byType})>{};
+    perDate =
+        <String, ({int minutes, int calories, Map<String, int> byType})>{};
     for (final r in rows) {
       final int index = _weekdayLabels.indexOf(r.dayLabel);
       if (index < 0) continue;
@@ -1141,8 +1142,7 @@ class LocalApiInterceptor extends Interceptor {
       );
       if (date.compareTo(start) < 0 || date.compareTo(end) > 0) continue;
       final ({int minutes, int calories, Map<String, int> byType}) day =
-          perDate[date] ??
-          (minutes: 0, calories: 0, byType: <String, int>{});
+          perDate[date] ?? (minutes: 0, calories: 0, byType: <String, int>{});
       final String kind = switch (r.type) {
         'cardio' || 'walking' => 'cardio',
         'strength' => 'strength',
@@ -1197,8 +1197,8 @@ class LocalApiInterceptor extends Interceptor {
   Future<Response<Object?>> _exerciseCurrentWeek(RequestOptions options) async {
     // 저장된 기록의 칼로리 근거를 되짚을 때 쓴다 — 이름이 종목표에 붙어도
     // 체중을 모르면 어림값으로 계산된 기록이다(`_demoEstimate` 와 같은 판단).
-    final double? weightKg =
-        ((await _mergedProfile())['weight_kg'] as num?)?.toDouble();
+    final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
+        ?.toDouble();
     // 파라미터가 **있으면** 그 값을 그대로 검사한다. 빈 문자열도 "잘못된 값"이다
     // — 서버(FastAPI)가 그렇게 답하므로 여기서 조용히 이번 주로 흘려보내면 두
     //   구현이 갈린다.
@@ -1424,7 +1424,8 @@ class LocalApiInterceptor extends Interceptor {
   /// 예전에는 요일 라벨만 받고 주차는 늘 이번 주로 박았다 — 지난 날짜를 골라도
   /// 기록이 이번 주로 들어왔다. (#1276)
   (String, String) _placement(Object? raw) {
-    final DateTime day = raw is String ? (DateTime.tryParse(raw) ?? nowKst())
+    final DateTime day = raw is String
+        ? (DateTime.tryParse(raw) ?? nowKst())
         : nowKst();
     return (_mondayOf(day), _weekdayLabels[day.weekday - 1]);
   }
@@ -1486,8 +1487,8 @@ class LocalApiInterceptor extends Interceptor {
     final String normalized = _normalizedExerciseType(type);
     final double factor = _intensityFactor[intensity ?? 'moderate'] ?? 1.0;
     final DemoExerciseActivity? matched = matchDemoExercise(name);
-    final double? weightKg =
-        ((await _mergedProfile())['weight_kg'] as num?)?.toDouble();
+    final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
+        ?.toDouble();
     // 체중을 모르면 참조표로 계산하지 않는다 — 기준 체중으로 낸 값은 이 회원의
     // 값이 아닌데 `db` 로 표시되면 실제보다 높은 신뢰 신호를 준다.
     if (matched == null || weightKg == null || weightKg <= 0) {
@@ -1507,19 +1508,19 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// 옛 어휘를 표준 유형으로 접는다 — 서버 `exercise_types.normalize` 와 같다.
-  static String _normalizedExerciseType(String? raw) =>
-      switch (raw?.trim()) {
-        'cardio' || 'walking' => 'cardio',
-        'strength' => 'strength',
-        'flexibility' || 'stretching' || 'yoga' => 'stretching',
-        _ => 'other',
-      };
+  static String _normalizedExerciseType(String? raw) => switch (raw?.trim()) {
+    'cardio' || 'walking' => 'cardio',
+    'strength' => 'strength',
+    'flexibility' || 'stretching' || 'yoga' => 'stretching',
+    _ => 'other',
+  };
 
   /// 요청 몸통을 Map 으로. dio 는 Map 으로도 JSON 문자열로도 준다.
   static Map<String, Object?> _payloadOf(Object? body) {
     if (body is Map) return body.cast<String, Object?>();
     if (body is String && body.isNotEmpty) {
-      return (jsonDecode(body) as Map<Object?, Object?>).cast<String, Object?>();
+      return (jsonDecode(body) as Map<Object?, Object?>)
+          .cast<String, Object?>();
     }
     return <String, Object?>{};
   }
@@ -1898,7 +1899,79 @@ class LocalApiInterceptor extends Interceptor {
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
     final (String reply, List<String> sources) = _mockCoachReply(message);
-    return _ok(options, <String, Object?>{'reply': reply, 'sources': sources});
+    // 감지 기록 창이 읽을 원문을 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
+    await _rememberAiCoachMessage(message);
+    final ChatInsight? insight = detectChatInsight(message);
+    return _ok(options, <String, Object?>{
+      'reply': reply,
+      'sources': sources,
+      'user_insight': insight == null ? null : _insightJson(insight),
+    });
+  }
+
+  static const String _aiCoachMessagesKey = 'ai_coach_user_messages';
+
+  /// 목업 대화의 회원 메시지. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  Future<List<Map<String, Object?>>> _aiCoachMessages() async {
+    final String? raw = await _db.readValue(_aiCoachMessagesKey);
+    if (raw == null || raw.isEmpty) return <Map<String, Object?>>[];
+    return <Map<String, Object?>>[
+      for (final Object? row in jsonDecode(raw) as List<Object?>)
+        if (row is Map) row.cast<String, Object?>(),
+    ];
+  }
+
+  Future<void> _rememberAiCoachMessage(String text) async {
+    final DateTime now = nowKst();
+    final List<Map<String, Object?>> rows = <Map<String, Object?>>[
+      for (final Map<String, Object?> row in await _aiCoachMessages())
+        if (isWithinInsightWindow(
+          DateTime.tryParse(row['created_at'] as String? ?? '') ?? now,
+          now,
+        ))
+          row,
+      <String, Object?>{
+        'id': 'local-ai-${now.microsecondsSinceEpoch}',
+        'text': text,
+        'created_at': now.toIso8601String(),
+      },
+    ];
+    await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+  }
+
+  static Map<String, Object?> _insightJson(ChatInsight insight) =>
+      <String, Object?>{
+        'kind': switch (insight.kind) {
+          ChatInsightKind.discomfort => 'discomfort',
+          ChatInsightKind.negativeFeedback => 'negative_feedback',
+        },
+        'body_part': insight.bodyPart,
+      };
+
+  /// GET /ai-coach/insights — 최근 30일 회원 메시지의 감지 기록, 최신순(#1824).
+  Future<Response<Object?>> _aiCoachInsights(RequestOptions options) async {
+    final DateTime now = nowKst();
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    final List<Map<String, Object?>> insights = <Map<String, Object?>>[];
+    for (final Map<String, Object?> row in rows.reversed) {
+      final DateTime? at = DateTime.tryParse(
+        row['created_at'] as String? ?? '',
+      );
+      if (at == null || !isWithinInsightWindow(at, now)) continue;
+      final String text = row['text'] as String? ?? '';
+      final ChatInsight? insight = detectChatInsight(text);
+      if (insight == null) continue;
+      insights.add(<String, Object?>{
+        'message_id': row['id'],
+        'created_at': at.toIso8601String(),
+        ..._insightJson(insight),
+        'text': text,
+      });
+    }
+    return _ok(options, <String, Object?>{
+      'window_days': kChatInsightWindowDays,
+      'insights': insights,
+    });
   }
 
   (String, List<String>) _mockCoachReply(String message) {
@@ -2196,9 +2269,7 @@ class LocalApiInterceptor extends Interceptor {
   Future<Response<Object?>> _pairingCodeIssue(RequestOptions options) async {
     return _ok(options, <String, Object?>{
       'code': _demoPairingCode,
-      'expires_at': nowKst()
-          .add(const Duration(minutes: 5))
-          .toIso8601String(),
+      'expires_at': nowKst().add(const Duration(minutes: 5)).toIso8601String(),
       'expires_in_seconds': 5 * 60,
     });
   }
