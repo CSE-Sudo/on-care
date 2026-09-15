@@ -57,13 +57,9 @@ class CoachCard extends ConsumerWidget {
                 borderRadius: OnCareRadius.mdAll,
                 child: Row(
                   children: <Widget>[
-                    Container(
+                    SizedBox(
                       width: OnCareSize.avatarMedium,
                       height: OnCareSize.avatarMedium,
-                      decoration: BoxDecoration(
-                        color: tokens.brand.surface,
-                        shape: BoxShape.circle,
-                      ),
                       child: Icon(
                         Icons.person_rounded,
                         color: tokens.brand.primary,
@@ -780,7 +776,7 @@ class _ChatButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Icon(
-                Icons.chat_bubble_outline_rounded,
+                Icons.chat_bubble_rounded,
                 size: OnCareSize.iconSmall,
                 color: tokens.brand.primary,
               ),

@@ -244,7 +244,7 @@ class _EventRow extends StatelessWidget {
             ),
             AppIconButton(
               key: Key('deleteEvent-${event.id}'),
-              icon: Icons.delete_outline_rounded,
+              icon: Icons.delete_rounded,
               tooltip: l.actionDelete,
               color: OnCareColors.danger,
               onPressed: disabled ? null : onDelete,

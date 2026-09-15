@@ -951,10 +951,6 @@ class _DemoPtLogCard extends StatelessWidget {
                       width: OnCareSize.avatarMedium,
                       height: OnCareSize.avatarMedium,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: OnCareColors.surfaceCard,
-                        shape: BoxShape.circle,
-                      ),
                       child: Icon(
                         Icons.person_rounded,
                         size: OnCareSize.iconMedium,

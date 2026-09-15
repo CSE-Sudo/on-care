@@ -329,18 +329,13 @@ class _RecordOption extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: tokens.brand.surface,
-              borderRadius: OnCareRadius.mdAll,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(OnCareSpacing.s12),
-              child: Icon(
-                icon,
-                size: OnCareSize.iconLarge,
-                color: tokens.brand.primary,
-              ),
+          // 아이콘 배경은 두지 않는다 — 안쪽 여백만 남겨 칸 크기를 지킨다(#1781).
+          Padding(
+            padding: const EdgeInsets.all(OnCareSpacing.s12),
+            child: Icon(
+              icon,
+              size: OnCareSize.iconLarge,
+              color: tokens.brand.primary,
             ),
           ),
           const SizedBox(height: OnCareSpacing.s12),

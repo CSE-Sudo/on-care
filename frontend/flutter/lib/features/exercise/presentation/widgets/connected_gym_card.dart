@@ -65,10 +65,6 @@ class ConnectedGymCard extends StatelessWidget {
                           width: _gymIconBox,
                           height: _gymIconBox,
                           alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: tokens.brand.surface,
-                            borderRadius: OnCareRadius.mdAll,
-                          ),
                           child: Icon(
                             Icons.fitness_center_rounded,
                             size: OnCareSize.iconMedium,
