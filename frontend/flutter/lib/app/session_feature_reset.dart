@@ -9,6 +9,7 @@ import 'package:oncare/features/dashboard/presentation/controllers/dashboard_con
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
@@ -60,6 +61,8 @@ Override sessionFeatureResetOverride() {
       // 앞 계정의 잔액·교환 가능 여부·쿠폰이 남는다.
       ref.invalidate(pointsShopProvider);
       ref.invalidate(myCouponsProvider);
+      // 연속 기록 보호권(#1788) — 앞 계정의 보유 수·보호한 날이 남지 않게 한다.
+      ref.invalidate(myStreakShieldsProvider);
       ref.invalidate(notificationControllerProvider);
       ref.invalidate(notificationListProvider);
       // 알림 수신 설정은 실 백엔드에서 계정 단위다. 여기 없으면 앞 계정의 토글이

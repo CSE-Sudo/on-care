@@ -1340,6 +1340,42 @@ abstract class AppLocalizations {
   /// **'Start a streak with today\'s workout.'**
   String get exStreakStart;
 
+  /// No description provided for @exStreakProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept by a shield'**
+  String get exStreakProtected;
+
+  /// No description provided for @exStreakShieldUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use shield'**
+  String get exStreakShieldUse;
+
+  /// No description provided for @exStreakShieldConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a streak shield?'**
+  String get exStreakShieldConfirmTitle;
+
+  /// No description provided for @exStreakShieldConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You didn\'t log a workout on {month}/{day}. Use 1 shield to keep your streak going. (You have {held})'**
+  String exStreakShieldConfirmMessage(int month, int day, int held);
+
+  /// No description provided for @exStreakShieldDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday is now part of your streak'**
+  String get exStreakShieldDone;
+
+  /// No description provided for @exStreakShieldFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t use the shield. Please try again.'**
+  String get exStreakShieldFailed;
+
   /// No description provided for @exToday.
   ///
   /// In en, this message translates to:
@@ -2077,6 +2113,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You already redeemed this month'**
   String get myPointsMonthlyLimit;
+
+  /// No description provided for @myPointsShieldLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You can hold up to 2 shields'**
+  String get myPointsShieldLimit;
+
+  /// No description provided for @myShopStreakShieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak shield'**
+  String get myShopStreakShieldTitle;
+
+  /// No description provided for @myShopStreakShieldDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your streak going when you missed a workout yesterday. Hold up to 2.'**
+  String get myShopStreakShieldDescription;
+
+  /// No description provided for @myBenefitsStreakShields.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak shields'**
+  String get myBenefitsStreakShields;
+
+  /// No description provided for @myBenefitsShieldHeld.
+  ///
+  /// In en, this message translates to:
+  /// **'{held}/{max} held'**
+  String myBenefitsShieldHeld(int held, int max);
+
+  /// No description provided for @myBenefitsShieldHeldCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{held} held'**
+  String myBenefitsShieldHeldCount(int held);
+
+  /// No description provided for @myBenefitsShieldGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Use one from Activity the day after a missed workout.'**
+  String get myBenefitsShieldGuide;
+
+  /// No description provided for @myBenefitsShieldUsedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected days'**
+  String get myBenefitsShieldUsedTitle;
+
+  /// No description provided for @myBenefitsShieldNoneUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'No protected days yet'**
+  String get myBenefitsShieldNoneUsed;
 
   /// No description provided for @myPointsValidDays.
   ///

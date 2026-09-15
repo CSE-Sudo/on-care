@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/utils/clock.dart';
 
 /// 목업 API 의 포인트 사용처·쿠폰. 서버 `points_coupon_service` 의 대역이다. (#1787)
@@ -13,8 +14,8 @@ import 'package:oncare/core/utils/clock.dart';
 /// - 개인 락커 1개월 무료 쿠폰(7,000P)은 헬스장이 연결돼 있어야 교환하고, 사용하지
 ///   않은 쿠폰은 한 장뿐이며, 교환은 한 달(KST)에 한 번이다. 취소돼 포인트를
 ///   돌려받은 쿠폰은 세지 않는다.
-/// - 막힌 이유는 담당 없음·헬스장 없음 → 사용하지 않은 같은 쿠폰 → 이번 달 교환 →
-///   잔액 부족 순으로 하나만 준다.
+/// - 막힌 이유는 담당 없음·헬스장 없음 → 사용하지 않은 같은 쿠폰 → 보호권 최대
+///   보유 → 이번 달 교환 → 잔액 부족 순으로 하나만 준다.
 /// - 쓸 수 있는 마지막 날은 교환일 + 30일. 지나면 만료되고 포인트는 돌려주지 않는다.
 /// - 사용 처리는 한 번뿐이고 다시 누르면 같은 응답이다.
 /// - 담당 트레이너 연결이 끊기면([endTrainerLink]) 재등록 쿠폰을, 헬스장 연결이
@@ -31,10 +32,17 @@ class DemoCouponBook {
     DateTime Function()? now,
     bool hasTrainer = true,
     bool hasGym = true,
+    DemoStreakShieldBook? shields,
   }) : _ledger = ledger,
        _now = now ?? nowKst,
        _hasTrainer = hasTrainer,
-       _hasGym = hasGym;
+       _hasGym = hasGym,
+       _shields = shields ?? DemoStreakShieldBook(ledger: ledger, now: now);
+
+  /// 연속 기록 보호권(#1788) — 사용처 목록에 함께 서고, 교환은 이 원장이 받는다.
+  /// 목업 운동 저장소가 같은 인스턴스를 봐야 교환한 보호권을 운동 현황에서 쓴다.
+  final DemoStreakShieldBook _shields;
+  DemoStreakShieldBook get shields => _shields;
 
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
@@ -85,6 +93,10 @@ class DemoCouponBook {
   DemoCouponResult exchange(String itemId, {String? clientRequestId}) {
     final DemoShopItem? item = _item(itemId);
     if (item == null) return _error(404, '없는 교환 항목이에요.');
+    if (item.id == kDemoStreakShield.id) {
+      // 쿠폰이 아니라 보호권 한 장이 생긴다 — 보유 한도와 원장이 따로다(#1788).
+      return _shields.exchange(clientRequestId: clientRequestId);
+    }
     if (clientRequestId != null) {
       final _DemoCoupon? existing = _coupons
           .where((_DemoCoupon c) => c.clientRequestId == clientRequestId)
@@ -225,6 +237,9 @@ class DemoCouponBook {
         ? 'no_gym'
         : item.oneActive && _activeOf(item.id) != null
         ? 'active_coupon'
+        : item.id == kDemoStreakShield.id &&
+              _shields.held >= DemoStreakShieldBook.maxHeld
+        ? 'shield_limit'
         : item.monthlyLimit && _exchangedThisMonth(item.id)
         ? 'monthly_limit'
         : shortfall > 0
@@ -347,7 +362,19 @@ const DemoShopItem kDemoLockerMonth = DemoShopItem(
 const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
   kDemoPtRenewal,
   kDemoLockerMonth,
+  kDemoStreakShield,
 ];
+
+/// 연속 기록 보호권(#1788) — 쿠폰이 아니다. 기한이 없어 `validDays` 는 0 이고,
+/// 교환·사용 규칙은 [DemoStreakShieldBook] 이 들고 있다.
+const DemoShopItem kDemoStreakShield = DemoShopItem(
+  id: DemoStreakShieldBook.itemId,
+  title: '연속 기록 보호권',
+  benefit: '운동을 못 한 하루를 연속 기록에 이어 붙이기',
+  description: '운동을 못 한 어제를 연속 기록에 이어 붙여요. 최대 2개까지 가질 수 있어요.',
+  cost: DemoStreakShieldBook.cost,
+  validDays: 0,
+);
 
 /// 데모 담당 트레이너와 헬스장 — `MockGymRepository` 의 김트레이너·온케어짐
 /// 신촌점과 같다.
@@ -385,7 +412,12 @@ class _DemoCoupon {
 
 /// 목업 경로가 함께 쓰는 쿠폰 원장 하나 — 목업 API 와 목업 헬스장 저장소가 같은
 /// 인스턴스를 본다. 포인트는 [demoPointsLedgerProvider] 에서 빠진다.
+///
+/// 보호권은 목업 운동 저장소와 같은 원장을 쓴다(#1788).
 final demoCouponBookProvider = Provider<DemoCouponBook>(
-  (ref) => DemoCouponBook(ledger: ref.watch(demoPointsLedgerProvider)),
+  (ref) => DemoCouponBook(
+    ledger: ref.watch(demoPointsLedgerProvider),
+    shields: ref.watch(demoStreakShieldBookProvider),
+  ),
   name: 'demoCouponBook',
 );

@@ -1,4 +1,5 @@
 import 'package:oncare/core/points/points_award.dart';
+import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 
 /// "N일 연속" — 운동한 요일 중 **가장 긴 연속 구간**의 길이. 활성 일수의 단순
 /// 합계가 아니다(월·수·금 운동은 3일이 아니라 1일 연속).
@@ -7,11 +8,16 @@ import 'package:oncare/core/points/points_award.dart';
 /// 없는 분(오늘 체크한 AI 추천 운동)이 더해진 뒤에도 같은 규칙으로 다시 셀 수
 /// 있다. 세 생산자(mock 저장소·LocalApiInterceptor·FastAPI)가 이 정의를 공유해
 /// 운동 탭의 '연속' 카드가 어느 경로에서든 같은 뜻이 된다.
-int longestActiveStreak(List<double> dailyMinutes) {
+///
+/// 연속 기록 보호권으로 이어 붙인 날([protectedDays])도 운동한 날로 센다(#1788).
+int longestActiveStreak(
+  List<double> dailyMinutes, {
+  List<bool> protectedDays = const <bool>[],
+}) {
   int best = 0;
   int run = 0;
-  for (final double m in dailyMinutes) {
-    if (m > 0) {
+  for (int i = 0; i < dailyMinutes.length; i++) {
+    if (dailyMinutes[i] > 0 || _isProtected(protectedDays, i)) {
       run += 1;
       if (run > best) best = run;
     } else {
@@ -20,6 +26,41 @@ int longestActiveStreak(List<double> dailyMinutes) {
   }
   return best;
 }
+
+/// 가장 긴 연속 구간 가운데 **보호권으로만 이어진 날**이 든 구간이 있는가.
+///
+/// 운동 현황이 `N일 연속` 옆에 `보호권으로 이어짐` 을 붙일지 가른다. 보호한 뒤
+/// 그날 운동 기록을 더했으면 그날은 운동한 날이라 여기서 세지 않는다.
+bool longestStreakKeptByShield(
+  List<double> dailyMinutes,
+  List<bool> protectedDays,
+) {
+  int best = 0;
+  bool bestKept = false;
+  int run = 0;
+  bool runKept = false;
+  for (int i = 0; i < dailyMinutes.length; i++) {
+    final bool exercised = dailyMinutes[i] > 0;
+    final bool shielded = _isProtected(protectedDays, i);
+    if (!exercised && !shielded) {
+      run = 0;
+      runKept = false;
+      continue;
+    }
+    run += 1;
+    runKept = runKept || (shielded && !exercised);
+    if (run > best) {
+      best = run;
+      bestKept = runKept;
+    } else if (run == best && runKept) {
+      bestKept = true;
+    }
+  }
+  return bestKept;
+}
+
+bool _isProtected(List<bool> protectedDays, int i) =>
+    i < protectedDays.length && protectedDays[i];
 
 enum ExerciseType { cardio, strength, yoga, walking, stretching, other }
 
@@ -214,7 +255,26 @@ class ExerciseWeek {
     this.stretchingMinutes = const <double>[],
     this.otherMinutes = const <double>[],
     this.strengthSets = const <double>[],
+    this.protectedDays = const <bool>[],
+    this.streakShield,
   });
+
+  /// 요일별로 연속 기록 보호권을 쓴 날인가(월=0 … 일=6). 보호한 날은
+  /// [streakDays] 에만 운동한 날로 들어가고 분·칼로리·[workoutCount] 에는 들어가지
+  /// 않는다. 이 필드를 모르는 응답은 빈 목록이다. (#1788)
+  final List<bool> protectedDays;
+
+  /// 이번 주 조회에만 오는 보호권 상태 — 보유 수와 지금 보호할 수 있는 날.
+  /// 지난 주 조회와 옛 응답은 null 이다. (#1788)
+  final StreakShieldWeekState? streakShield;
+
+  /// [i] 번째 요일(월=0)을 보호권으로 이어 붙였는가.
+  bool isProtectedDay(int i) =>
+      i >= 0 && i < protectedDays.length && protectedDays[i];
+
+  /// `N일 연속` 가운데 보호권으로 이어진 날이 들었는가.
+  bool get streakKeptByShield =>
+      longestStreakKeptByShield(dailyMinutes, protectedDays);
 
   final List<ExerciseSession> sessions;
   final List<double> dailyMinutes;
@@ -304,6 +364,12 @@ class ExerciseWeek {
           : parseDoubleList('flexibility_minutes'),
       otherMinutes: parseDoubleList('other_minutes'),
       strengthSets: parseDoubleList('strength_sets'),
+      protectedDays: <bool>[
+        for (final Object? v
+            in (json['protected_days'] as List<Object?>?) ?? const <Object?>[])
+          v == true,
+      ],
+      streakShield: StreakShieldWeekState.fromJson(json['streak_shield']),
     );
   }
 }

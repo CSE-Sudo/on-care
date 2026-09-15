@@ -692,6 +692,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exStreakStart => 'Start a streak with today\'s workout.';
 
   @override
+  String get exStreakProtected => 'Kept by a shield';
+
+  @override
+  String get exStreakShieldUse => 'Use shield';
+
+  @override
+  String get exStreakShieldConfirmTitle => 'Use a streak shield?';
+
+  @override
+  String exStreakShieldConfirmMessage(int month, int day, int held) {
+    return 'You didn\'t log a workout on $month/$day. Use 1 shield to keep your streak going. (You have $held)';
+  }
+
+  @override
+  String get exStreakShieldDone => 'Yesterday is now part of your streak';
+
+  @override
+  String get exStreakShieldFailed =>
+      'Couldn\'t use the shield. Please try again.';
+
+  @override
   String get exToday => 'Today';
 
   @override
@@ -1120,6 +1141,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myPointsMonthlyLimit => 'You already redeemed this month';
+
+  @override
+  String get myPointsShieldLimit => 'You can hold up to 2 shields';
+
+  @override
+  String get myShopStreakShieldTitle => 'Streak shield';
+
+  @override
+  String get myShopStreakShieldDescription =>
+      'Keep your streak going when you missed a workout yesterday. Hold up to 2.';
+
+  @override
+  String get myBenefitsStreakShields => 'Streak shields';
+
+  @override
+  String myBenefitsShieldHeld(int held, int max) {
+    return '$held/$max held';
+  }
+
+  @override
+  String myBenefitsShieldHeldCount(int held) {
+    return '$held held';
+  }
+
+  @override
+  String get myBenefitsShieldGuide =>
+      'Use one from Activity the day after a missed workout.';
+
+  @override
+  String get myBenefitsShieldUsedTitle => 'Protected days';
+
+  @override
+  String get myBenefitsShieldNoneUsed => 'No protected days yet';
 
   @override
   String myPointsValidDays(int days) {

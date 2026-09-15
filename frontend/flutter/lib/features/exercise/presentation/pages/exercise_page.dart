@@ -519,6 +519,21 @@ class _ExerciseDayDetail extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          // 보호권으로 연속 기록에 이어 붙인 날이면 그렇게 적는다 — 운동 기록은
+          // 여전히 없는 날이라 아래 빈 상태는 그대로 둔다(#1788).
+          if (week.isProtectedDay(i))
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                OnCareSpacing.s24,
+                0,
+                OnCareSpacing.s24,
+                OnCareSpacing.s8,
+              ),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: StreakProtectedTag(),
+              ),
+            ),
           _dayEmpty(context),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),

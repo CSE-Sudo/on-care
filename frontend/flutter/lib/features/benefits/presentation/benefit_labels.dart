@@ -12,9 +12,13 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 const String kPtRenewalItem = 'pt_renewal';
 const String kLockerMonthItem = 'locker_month';
 
+/// 연속 기록 보호권(#1788) — 쿠폰이 아니라 운동 현황에서 쓴다.
+const String kStreakShieldItem = 'streak_shield';
+
 String shopItemTitle(AppLocalizations l, ShopItem item) => switch (item.id) {
   kPtRenewalItem => l.myShopPtRenewalTitle,
   kLockerMonthItem => l.myShopLockerTitle,
+  kStreakShieldItem => l.myShopStreakShieldTitle,
   _ => item.title,
 };
 
@@ -22,6 +26,7 @@ String shopItemDescription(AppLocalizations l, ShopItem item) =>
     switch (item.id) {
       kPtRenewalItem => l.myShopPtRenewalDescription,
       kLockerMonthItem => l.myShopLockerDescription,
+      kStreakShieldItem => l.myShopStreakShieldDescription,
       _ => item.description,
     };
 
@@ -32,6 +37,7 @@ String? shopBlockLabel(AppLocalizations l, ShopItem item) {
     ShopBlockReason.noTrainer => l.myPointsNeedTrainer,
     ShopBlockReason.noGym => l.myPointsNeedGym,
     ShopBlockReason.activeCoupon => l.myPointsActiveCoupon,
+    ShopBlockReason.shieldLimit => l.myPointsShieldLimit,
     ShopBlockReason.monthlyLimit => l.myPointsMonthlyLimit,
     ShopBlockReason.insufficientPoints => l.myPointsShortfall(
       l.myPointsCost(item.shortfall),
@@ -50,6 +56,7 @@ String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) 
 IconData benefitIcon(String itemId) => switch (itemId) {
   kPtRenewalItem => AppIcons.ptRenewal,
   kLockerMonthItem => AppIcons.locker,
+  kStreakShieldItem => AppIcons.streakShield,
   _ => AppIcons.coupon,
 };
 

@@ -1,11 +1,13 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 
 /// In-memory stateful mock for demo mode (`useMockApi`). The week it starts
@@ -26,14 +28,19 @@ class MockExerciseRepository implements ExerciseRepository {
   /// date-relative fixture stays deterministic. [fixture] defaults to the
   /// bundled 김민수 픽스처. [points] 를 주면 직접 추가한 운동이 포인트를 받고
   /// 지우면 회수된다(#1786) — 없으면 적립 없이 기록만 남는다(테스트·단독 사용).
+  ///
+  /// [shields] 를 주면 보호권으로 이어 붙인 날이 연속 일수에 들어가고, 이번 주
+  /// 조회에 `보호권 쓰기` 상태가 실린다(#1788) — 사용처 목업 API 와 같은 원장이다.
   MockExerciseRepository({
     DateTime? today,
     DemoFixture? fixture,
     DemoPointsLedger? points,
+    DemoStreakShieldBook? shields,
   }) : _today = _dateOnly(today ?? nowKst()),
        _todayIdx = (today ?? nowKst()).weekday - 1,
        _fixture = fixture ?? DemoFixture.load(),
-       _points = points {
+       _points = points,
+       _shields = shields {
     _sessions.addAll(_sessionsForWeek(0));
     _totalCalories = _sessions.fold<int>(
       0,
@@ -50,6 +57,9 @@ class MockExerciseRepository implements ExerciseRepository {
   final DemoFixture _fixture;
 
   final DemoPointsLedger? _points;
+
+  /// 연속 기록 보호권 원장(#1788). 없으면 보호한 날도 보호권 상태도 없다.
+  final DemoStreakShieldBook? _shields;
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -248,6 +258,7 @@ class MockExerciseRepository implements ExerciseRepository {
   ExerciseWeek _pastWeek(int weeksAgo) => _weekFrom(
     _sessionsForWeek(weeksAgo),
     aiCoachMessage: '지난 기록이에요. 이번 주와 견줘 보면 흐름이 보여요.',
+    monday: _addDays(_thisMonday, -7 * weeksAgo),
   );
 
   /// 세션 카드 위의 날짜 라벨. LocalApiInterceptor·FastAPI 와 같은 규칙이라
@@ -314,6 +325,8 @@ class MockExerciseRepository implements ExerciseRepository {
     );
     _sessions.add(session);
     _totalCalories += calories;
+    // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
+    _shields?.refundFor(date);
     return session;
   }
 
@@ -349,6 +362,8 @@ class MockExerciseRepository implements ExerciseRepository {
     );
     _sessions.add(session);
     _totalCalories += calories;
+    // 루틴 완료 기록도 같다 — 보호한 날이면 보호권을 되돌린다(#1788).
+    _shields?.refundFor(date);
     return session;
   }
 
@@ -425,6 +440,8 @@ class MockExerciseRepository implements ExerciseRepository {
     if (idx >= 0 && old != null) {
       _totalCalories = _nonNeg(_totalCalories - old.calories + calories);
       _sessions[idx] = updated;
+      // 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+      _shields?.refundFor(date);
     }
     return updated;
   }
@@ -440,14 +457,34 @@ class MockExerciseRepository implements ExerciseRepository {
     // 시드 헤드라인이라 그대로 넘긴다).
     totalCalories: _totalCalories,
     aiCoachMessage: _aiCoachMessage,
+    monday: _thisMonday,
+    current: true,
   );
+
+  /// 이번 주 월요일.
+  DateTime get _thisMonday => _addDays(_today, -_todayIdx);
+
+  /// 그날 운동 기록이 있는가 — 보호권은 기록이 있는 날을 보호하지 않는다(#1788).
+  /// 보호할 수 있는 날은 이번 주의 어제뿐이라 살아 있는 이번 주 기록만 본다.
+  bool _hasExerciseOn(DateTime day) {
+    final int offset = _dateOnly(day).difference(_thisMonday).inDays;
+    if (offset < 0 || offset >= _dayLabels.length) return false;
+    return _sessions.any(
+      (ExerciseSession s) => s.dayLabel == _dayLabels[offset] && s.minutes > 0,
+    );
+  }
 
   /// [sessions] 에서 한 주의 파생값을 만든다. 이번 주와 지난 주가 같은 규칙을
   /// 쓰므로 두 화면의 수치 정의가 어긋나지 않는다.
+  ///
+  /// [monday] 주에 보호권으로 이어 붙인 날은 연속 일수에만 들어간다. [current]
+  /// (이번 주)일 때만 `보호권 쓰기` 상태를 싣는다(#1788).
   ExerciseWeek _weekFrom(
     List<ExerciseSession> sessions, {
     int? totalCalories,
     required String aiCoachMessage,
+    required DateTime monday,
+    bool current = false,
   }) {
     final int n = _dayLabels.length;
     final List<double> daily = List<double>.filled(n, 0);
@@ -473,7 +510,16 @@ class MockExerciseRepository implements ExerciseRepository {
       totalMinutes += s.minutes;
     }
 
+    // 보호한 날은 연속 일수에만 들어간다 — 분·칼로리 합은 위 세션에서만 나온다.
+    final List<bool> protectedDays =
+        _shields?.protectedDaysOf(monday) ?? const <bool>[];
     return ExerciseWeek(
+      protectedDays: protectedDays,
+      streakShield: current
+          ? StreakShieldWeekState.fromJson(
+              _shields?.weekStateJson(_hasExerciseOn),
+            )
+          : null,
       dailyMinutes: daily,
       dailyCalories: dailyCal,
       cardioMinutes: cardio,
@@ -486,7 +532,7 @@ class MockExerciseRepository implements ExerciseRepository {
       totalCalories:
           totalCalories ??
           sessions.fold<int>(0, (int a, ExerciseSession s) => a + s.calories),
-      streakDays: longestActiveStreak(daily),
+      streakDays: longestActiveStreak(daily, protectedDays: protectedDays),
       aiCoachMessage: aiCoachMessage,
       sessions: List<ExerciseSession>.of(sessions),
     );

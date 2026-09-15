@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.points_api import PointsOut
+from app.schemas.streak_shield_api import StreakShieldWeekOut
 
 #: 회원이 고를 수 있는 운동 유형. 저장 값은 이 넷뿐이다(#996).
 ExerciseTypeIn = Literal["cardio", "strength", "flexibility", "other"]
@@ -102,6 +103,12 @@ class ExerciseWeekResponse(BaseModel):
     total_minutes: int
     total_calories: int
     streak_days: int
+    #: 요일별로 연속 기록 보호권을 쓴 날인가(월=0 … 일=6). 보호한 날은 `streak_days`
+    #: 에만 운동한 날로 들어가고 분·칼로리·세션 합계에는 들어가지 않는다. (#1788)
+    protected_days: list[bool] = Field(default_factory=list)
+    #: 이번 주 조회에만 붙는 보호권 상태(보유 수·지금 보호할 수 있는 날). 지난 주와
+    #: 트레이너 조회는 null 이다. (#1788)
+    streak_shield: StreakShieldWeekOut | None = None
     #: 이 회원의 주간 운동 목표(분)와 소모 칼로리 목표. 그래프의 목표선이 두 앱
     #: 모두 같은 값을 쓰게 하려고 응답에 싣는다 — 트레이너 화면은 회원 프로필을
     #: 따로 읽지 않으므로, 이게 없으면 회원과 트레이너가 서로 다른 선을 본다.
