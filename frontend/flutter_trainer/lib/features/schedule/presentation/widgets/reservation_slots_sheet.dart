@@ -33,6 +33,11 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
   /// 만드는 일정이 이 종류를 그대로 물려받는다(#1083).
   String _type = SessionType.personalTraining;
 
+  /// `포인트 체험 허용`(#1790). 켜면 이 자리는 종류와 상관없이 20분 자세 점검
+  /// 체험 자리(`SessionType.pointsTrial`)가 되고, 끝 시간은 시작 + 20분으로
+  /// 따라간다. 담당 트레이너가 없는 회원만 포인트로 예약한다.
+  bool _pointsTrial = false;
+
   bool _sameDay(DateTime left, DateTime right) =>
       left.year == right.year &&
       left.month == right.month &&
@@ -51,6 +56,21 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
   int _duration(TimeOfDay start, TimeOfDay end) =>
       end.hour * 60 + end.minute - start.hour * 60 - start.minute;
 
+  /// 체험 자리의 끝 시간 — 시작 + 20분.
+  static TimeOfDay _trialEnd(TimeOfDay start) {
+    final int minutes =
+        (start.hour * 60 + start.minute + SessionType.pointsTrialMinutes) %
+        (24 * 60);
+    return TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60);
+  }
+
+  void _setPointsTrial(bool on) {
+    setState(() {
+      _pointsTrial = on;
+      if (on) _endTime = _trialEnd(_time);
+    });
+  }
+
   Future<void> _pickRange() async {
     final picked = await showScheduleTimeRangePicker(
       context: context,
@@ -60,7 +80,8 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
     if (picked == null || !mounted) return;
     setState(() {
       _time = picked.start;
-      _endTime = picked.end;
+      // 체험은 20분 고정이라 고른 끝 시간 대신 시작 + 20분을 쓴다.
+      _endTime = _pointsTrial ? _trialEnd(picked.start) : picked.end;
     });
   }
 
@@ -94,8 +115,10 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
           .read(reservationSlotRepositoryProvider)
           .create(
             startsAt: startsAt,
-            durationMinutes: _duration(_time, _endTime),
-            sessionType: _type,
+            durationMinutes: _pointsTrial
+                ? SessionType.pointsTrialMinutes
+                : _duration(_time, _endTime),
+            sessionType: _pointsTrial ? SessionType.pointsTrial : _type,
           );
       // 목록을 직접 무효화하지 않는다 — 리포지토리가 변경을 알리면 스트림이
       // 이어서 새 목록을 낸다(#1590). 무효화하면 구독이 처음부터 다시 서서
@@ -243,12 +266,16 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                       onSelected: () => setState(() => _type = t),
                     ),
                 ],
+                // 체험을 켜면 종류는 `포인트 체험` 하나로 정해져 메뉴를 막는다.
                 triggerBuilder: (context, toggle) => _fieldColumn(
                   key: const ValueKey<String>('slot-session-type'),
                   label: l.schedFieldType,
                   icon: Icons.badge_rounded,
-                  value: sessionTypeLabel(l, _type),
-                  onTap: _saving ? null : toggle,
+                  value: sessionTypeLabel(
+                    l,
+                    _pointsTrial ? SessionType.pointsTrial : _type,
+                  ),
+                  onTap: _saving || _pointsTrial ? null : toggle,
                 ),
               ),
             ),
@@ -281,7 +308,20 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
             ),
           ],
         ),
-        const SizedBox(height: OnCareSpacing.s24),
+        const SizedBox(height: OnCareSpacing.s8),
+        // 열 자리의 성격을 바꾸는 선택이라 폼 바로 아래에 둔다(#1790).
+        AppListRow(
+          key: const ValueKey<String>('slot-points-trial-row'),
+          title: l.slotPointsTrialToggle,
+          subtitle: l.slotPointsTrialHint,
+          onTap: _saving ? null : () => _setPointsTrial(!_pointsTrial),
+          trailing: Switch(
+            key: const ValueKey<String>('slot-points-trial'),
+            value: _pointsTrial,
+            onChanged: _saving ? null : _setPointsTrial,
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s16),
         const AppDivider(),
         const SizedBox(height: OnCareSpacing.s12),
         slots.when(
@@ -348,8 +388,9 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
       child: Row(
         children: <Widget>[
           // 종류 → 시간 순서다 — 새 일정 모달과 위 열기 폼(종류 → 날짜 →
-          // 시간)이 같은 순서로 읽힌다.
+          // 시간)이 같은 순서로 읽힌다. 체험 자리는 `포인트 체험` 으로 적힌다.
           AppTag(
+            key: ValueKey<String>('slot-type-${slot.id}'),
             label: sessionTypeLabel(l, slot.sessionType),
             tone: AppTagTone.brand,
           ),

@@ -50,6 +50,14 @@ abstract final class SessionType {
   static const String personalTraining = '1:1 PT';
   static const String consultation = '상담';
 
+  /// 포인트 체험(#1790) — 예약 슬롯에서 `포인트 체험 허용` 을 켜야만 생기는 20분
+  /// 자세 점검 자리다. 트레이너가 일정 화면에서 직접 고르는 종류가 아니라 [all] 에
+  /// 넣지 않는다. 회원이 예약하면 그 일정이 이 종류로 들어온다.
+  static const String pointsTrial = '체험';
+
+  /// 체험 자리의 시간(분). 서버가 20분으로 고정한다.
+  static const int pointsTrialMinutes = 20;
+
   /// 일정 생성·수정 화면의 선택지 순서.
   static const List<String> all = <String>[personalTraining, consultation];
 }
@@ -71,6 +79,7 @@ String scheduleStatusLabel(AppLocalizations l, String status) =>
 String sessionTypeLabel(AppLocalizations l, String type) => switch (type) {
   SessionType.personalTraining => l.sessionTypePersonalTraining,
   SessionType.consultation => l.sessionTypeConsultation,
+  SessionType.pointsTrial => l.sessionTypePointsTrial,
   _ => type,
 };
 

@@ -2611,6 +2611,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotSessionType => '종류';
 
   @override
+  String get sessionTypePointsTrial => '포인트 체험';
+
+  @override
+  String get slotPointsTrialToggle => '포인트 체험 허용';
+
+  @override
+  String get slotPointsTrialHint => '담당 트레이너가 없는 회원이 500P로 20분 자세 점검을 예약해요';
+
+  @override
   String get authErrNotTrainer => '트레이너 계정으로 로그인해 주세요.';
 
   @override

@@ -24,8 +24,12 @@ class ReservationSlot {
   final bool isClosed;
 
   /// `SessionType.personalTraining`(`1:1 PT`) 또는 `SessionType.consultation`
-  /// (`상담`) — 스케줄 탭의 세션 종류와 같은 계약값이다(#1083).
+  /// (`상담`) — 스케줄 탭의 세션 종류와 같은 계약값이다(#1083). 포인트 체험을
+  /// 허용한 자리는 `SessionType.pointsTrial`(`체험`)이다(#1790).
   final String sessionType;
+
+  /// 담당 트레이너가 없는 회원이 포인트로 예약하는 20분 체험 자리인가.
+  bool get isPointsTrial => sessionType == '체험';
 
   /// 이 자리를 잡은 회원 이름. [booked] 인 트레이너용 슬롯에서만 채워진다
   /// (#1394) — 서버가 트레이너 목록에서만 이 값을 내려준다.

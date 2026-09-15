@@ -7,6 +7,7 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 
 abstract interface class ReservationSlotRepository {
   Future<List<ReservationSlot>> list();
@@ -178,11 +179,13 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
   }) async {
     _validateFuture(startsAt);
     // 슬롯은 늘 한 사람 몫이라 새로 연 자리는 비어 있는 상태로 시작한다
-    // (#1012, #1072).
+    // (#1012, #1072). 포인트 체험 자리는 서버와 같이 20분으로 고정한다(#1790).
     final slot = ReservationSlot(
       id: 'slot-${DateTime.now().microsecondsSinceEpoch}',
       startsAt: startsAt,
-      durationMinutes: durationMinutes,
+      durationMinutes: sessionType == SessionType.pointsTrial
+          ? SessionType.pointsTrialMinutes
+          : durationMinutes,
       booked: false,
       isClosed: false,
       sessionType: sessionType,
@@ -191,6 +194,14 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
     _bump();
     return slot;
   }
+
+  /// 종류를 바꿀 때 시간을 함께 주지 않았을 때의 기본 시간 — 서버
+  /// `_SESSION_DURATION_MINUTES` 와 같다.
+  static int _defaultMinutes(String sessionType) => switch (sessionType) {
+    SessionType.consultation => 30,
+    SessionType.pointsTrial => SessionType.pointsTrialMinutes,
+    _ => 60,
+  };
 
   @override
   Future<ReservationSlot> update(
@@ -206,10 +217,19 @@ class MockReservationSlotRepository implements ReservationSlotRepository {
     if (sessionType != null && sessionType != old.sessionType && old.booked) {
       throw StateError('type_locked_by_booking');
     }
+    final String nextType = sessionType ?? old.sessionType;
+    // 서버와 같은 규칙 — 체험은 20분 고정, 체험에서 벗어나며 시간을 주지 않으면
+    // 그 종류의 기본 시간으로 돌린다(#1790).
+    final int nextMinutes = nextType == SessionType.pointsTrial
+        ? SessionType.pointsTrialMinutes
+        : durationMinutes ??
+              (old.isPointsTrial
+                  ? _defaultMinutes(nextType)
+                  : old.durationMinutes);
     final updated = ReservationSlot(
       id: old.id,
       startsAt: startsAt ?? old.startsAt,
-      durationMinutes: durationMinutes ?? old.durationMinutes,
+      durationMinutes: nextMinutes,
       booked: old.booked,
       isClosed: old.isClosed,
       sessionType: sessionType ?? old.sessionType,

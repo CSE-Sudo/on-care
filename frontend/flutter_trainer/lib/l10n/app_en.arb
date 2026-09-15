@@ -1680,6 +1680,9 @@
   "slotNotFound": "Booking slot not found.",
   "slotTypeLockedByBooking": "Can't change the type of a slot that's already booked.",
   "slotSessionType": "Type",
+  "sessionTypePointsTrial": "Points trial",
+  "slotPointsTrialToggle": "Allow points trial",
+  "slotPointsTrialHint": "Members without a trainer can book a 20-minute posture check for 500P",
   "authErrNotTrainer": "Please sign in with a trainer account.",
   "aiBasisGoalCompletion": "{goal} · based on {rate}% completion",
   "@aiBasisGoalCompletion": {

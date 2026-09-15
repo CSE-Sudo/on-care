@@ -210,5 +210,95 @@ void main() {
       expect(repository.listCalls, greaterThan(1));
       expect(find.text('김하늘'), findsOneWidget);
     });
+
+    testWidgets('포인트 체험 허용을 켜면 종류는 포인트 체험, 시간은 20분으로 고정된다 (#1790)', (
+      tester,
+    ) async {
+      await openSheet(tester);
+      expect(find.textContaining('10:00 – 11:00'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('slot-points-trial')));
+      await settle(tester);
+
+      expect(find.textContaining('10:00 – 10:20'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('slot-session-type')),
+          matching: find.text('포인트 체험'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('포인트 체험 허용'), findsOneWidget);
+
+      // 다시 끄면 고른 종류로 돌아간다.
+      await tester.tap(find.byKey(const ValueKey<String>('slot-points-trial')));
+      await settle(tester);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('slot-session-type')),
+          matching: find.text('1:1 PT'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('체험 자리는 목록에 포인트 체험 태그와 20분으로 보인다 (#1790)', (tester) async {
+      final DateTime today = todayKst();
+      final repository = _ExternalSlotRepository(<ReservationSlot>[
+        ReservationSlot(
+          id: 'slot-trial',
+          startsAt: DateTime(today.year, today.month, today.day, 15),
+          durationMinutes: SessionType.pointsTrialMinutes,
+          booked: false,
+          isClosed: false,
+          sessionType: SessionType.pointsTrial,
+        ),
+      ]);
+      addTearDown(repository.dispose);
+      await openSheet(
+        tester,
+        extraOverrides: <Override>[
+          reservationSlotRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('slot-type-slot-trial')),
+          matching: find.text('포인트 체험'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('15:00 – 15:20'), findsOneWidget);
+    });
+  });
+
+  group('MockReservationSlotRepository 포인트 체험 (#1790)', () {
+    test('체험 자리는 보낸 시간과 상관없이 20분이고, 끄면 기본 시간으로 돌아간다', () async {
+      final repository = MockReservationSlotRepository();
+      addTearDown(repository.dispose);
+      final DateTime startsAt = nowKst().add(const Duration(days: 1));
+
+      final ReservationSlot slot = await repository.create(
+        startsAt: startsAt,
+        durationMinutes: 45,
+        sessionType: SessionType.pointsTrial,
+      );
+      expect(slot.isPointsTrial, isTrue);
+      expect(slot.durationMinutes, SessionType.pointsTrialMinutes);
+
+      final ReservationSlot kept = await repository.update(
+        slot.id,
+        durationMinutes: 45,
+      );
+      expect(kept.durationMinutes, SessionType.pointsTrialMinutes);
+
+      final ReservationSlot regular = await repository.update(
+        slot.id,
+        sessionType: SessionType.personalTraining,
+      );
+      expect(regular.isPointsTrial, isFalse);
+      expect(regular.durationMinutes, 60);
+    });
   });
 }

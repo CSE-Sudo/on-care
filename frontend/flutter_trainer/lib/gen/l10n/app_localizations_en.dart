@@ -2725,6 +2725,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotSessionType => 'Type';
 
   @override
+  String get sessionTypePointsTrial => 'Points trial';
+
+  @override
+  String get slotPointsTrialToggle => 'Allow points trial';
+
+  @override
+  String get slotPointsTrialHint =>
+      'Members without a trainer can book a 20-minute posture check for 500P';
+
+  @override
   String get authErrNotTrainer => 'Please sign in with a trainer account.';
 
   @override

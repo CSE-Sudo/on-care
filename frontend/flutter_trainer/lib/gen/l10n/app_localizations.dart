@@ -4820,6 +4820,24 @@ abstract class AppLocalizations {
   /// **'Type'**
   String get slotSessionType;
 
+  /// No description provided for @sessionTypePointsTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Points trial'**
+  String get sessionTypePointsTrial;
+
+  /// No description provided for @slotPointsTrialToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow points trial'**
+  String get slotPointsTrialToggle;
+
+  /// No description provided for @slotPointsTrialHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Members without a trainer can book a 20-minute posture check for 500P'**
+  String get slotPointsTrialHint;
+
   /// No description provided for @authErrNotTrainer.
   ///
   /// In en, this message translates to:
