@@ -16,6 +16,7 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const UserProfile _saved = UserProfile(
   id: 'member',
@@ -99,6 +100,30 @@ void main() {
       expect(mergeHealthFocus('고혈압, 당뇨', <String>{}), '');
     });
 
+    test('건강 목표는 두 개까지 — 넘치면 목록 순서로 앞의 둘만 읽는다', () {
+      expect(kHealthFocusMaxSelected, 2);
+      expect(parseHealthFocus('재활, 체중 감량, 근력 향상'), <String>{
+        kHealthFocusWeightLoss,
+        kHealthFocusStrength,
+      });
+      expect(
+        normalizeHealthFocusText('고혈압, 비만, 체력 강화, 무릎 통증'),
+        '체중 감량, 체력 강화, 무릎 통증',
+      );
+    });
+
+    test('두 개를 고르면 새 칩은 못 고르고 고른 칩은 풀 수 있다', () {
+      const Set<String> two = <String>{kHealthFocusRehab, kHealthFocusPosture};
+      expect(canPickHealthFocus(two, kHealthFocusRehab), isTrue);
+      expect(canPickHealthFocus(two, kHealthFocusFitness), isFalse);
+      expect(
+        canPickHealthFocus(const <String>{
+          kHealthFocusRehab,
+        }, kHealthFocusFitness),
+        isTrue,
+      );
+    });
+
     test('서버와 같은 정리 — 옛 이름은 바꾸고 겹침은 합친다', () {
       expect(
         normalizeHealthFocusText('고혈압, 혈압 관리, 무릎 통증, 비만'),
@@ -164,6 +189,16 @@ void main() {
       '주 3회 근력 운동',
     );
     await tester.pumpAndSettle();
+
+    // 두 개를 채웠으니 다른 칩은 잠긴다.
+    expect(
+      tester
+          .widget<AppChoiceChip>(
+            find.byKey(const ValueKey<String>('goal-focus-재활')),
+          )
+          .onSelected,
+      isNull,
+    );
 
     await tester.tap(find.text(l.mySave).last);
     await tester.pumpAndSettle();

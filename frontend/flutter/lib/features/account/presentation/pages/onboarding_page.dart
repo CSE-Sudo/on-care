@@ -645,9 +645,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                     AppChoiceChip(
                       label: healthFocusLabel(l, c),
                       selected: _conditions.contains(c),
-                      onSelected: (_) => setState(() {
-                        if (!_conditions.remove(c)) _conditions.add(c);
-                      }),
+                      // 두 개를 고르면 나머지 칩은 잠긴다(#1814).
+                      onSelected: canPickHealthFocus(_conditions, c)
+                          ? (_) => setState(() {
+                              if (!_conditions.remove(c)) _conditions.add(c);
+                            })
+                          : null,
                     ),
                 ],
               ),

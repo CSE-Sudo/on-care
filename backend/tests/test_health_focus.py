@@ -33,6 +33,9 @@ def test_options_are_the_eight_member_goals_in_order():
         ("고혈압, 혈압 관리", "혈압 관리"),
         ("무릎 통증으로 러닝 자제", "무릎 통증으로 러닝 자제"),
         ("당뇨, 무릎 통증, 근력 향상", "근력 향상, 무릎 통증"),
+        # 건강 목표는 두 개까지 — 목록 순서로 앞의 둘만 남기고 다른 글은 지우지 않는다.
+        ("재활, 체중 감량, 근력 향상, 무릎 통증", "체중 감량, 근력 향상, 무릎 통증"),
+        ("고혈압, 비만, 체력 강화", "체중 감량, 체력 강화"),
     ],
 )
 def test_normalize_conditions(raw, expected):
@@ -65,3 +68,9 @@ def test_every_goal_feeds_trainer_recommendation():
 def test_blood_pressure_goal_still_softens_routine_suggestions():
     """'혈압 관리' 를 고른 회원도 운동 추천이 강도를 내리는 신호로 읽는다."""
     assert any(term in health_focus.FOCUS_BLOOD_PRESSURE for term in _BLOOD_PRESSURE_TERMS)
+
+
+def test_member_can_keep_at_most_two_goals():
+    assert health_focus.MAX_FOCUS == 2
+    saved = HealthGoalsUpdate(conditions="혈압 관리, 재활, 운동 습관").conditions
+    assert health_focus.focus_in(saved) == ["재활", "운동 습관"]

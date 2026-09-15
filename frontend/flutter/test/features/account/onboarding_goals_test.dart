@@ -373,6 +373,13 @@ void main() {
     await tester.tap(find.text('근력 향상'));
     await tester.tap(find.text('혈압 관리'));
     await tester.pumpAndSettle();
+    // 두 개를 골랐으니 세 번째는 잠긴다(#1814).
+    expect(
+      tester
+          .widget<AppChoiceChip>(find.widgetWithText(AppChoiceChip, '재활'))
+          .onSelected,
+      isNull,
+    );
 
     await _tapNext(tester);
     await _tapNext(tester);

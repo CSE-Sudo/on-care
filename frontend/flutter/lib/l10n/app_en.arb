@@ -1096,7 +1096,7 @@
   "onboardHeightHint": "Height (cm)",
   "onboardWeightHint": "Weight (kg)",
   "onboardHealthTitle": "Health goals",
-  "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (multiple allowed)",
+  "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (up to 2)",
   "onboardGoalTitle": "Exercise goal",
   "onboardGoalSubtitle": "Tell us what you want to achieve. You can change this later.",
   "onboardGoalHint": "e.g. Finish a 5K within three months",
@@ -1315,7 +1315,7 @@
     "description": "Title of the health goals sheet."
   },
   "myGoalsFocusSection": "What you want to focus on",
-  "myGoalsFocusHint": "Pick what you want to focus on in your health care. (multiple allowed)",
+  "myGoalsFocusHint": "Pick what you want to focus on in your health care. (up to 2)",
   "healthFocusWeightLoss": "Weight loss",
   "@healthFocusWeightLoss": {
     "description": "Health goal chip in onboarding and MY health goals."

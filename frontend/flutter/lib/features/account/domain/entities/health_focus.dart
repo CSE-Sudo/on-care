@@ -35,6 +35,10 @@ const List<String> kHealthFocusOptions = <String>[
   kHealthFocusBloodPressure,
 ];
 
+/// 한 회원이 고를 수 있는 건강 목표 수. 주 목표 + 보조 목표로 읽히는 선이다 — 더
+/// 고르면 목표가 흐려지고 목표별 권장치 규칙이 서로 부딪힌다. 서버 `MAX_FOCUS` 와 같다.
+const int kHealthFocusMaxSelected = 2;
+
 /// 옛 질환 선택지 → 새 목표. `null` 은 이어받을 목표가 없어 지운다.
 const Map<String, String?> kLegacyHealthFocus = <String, String?>{
   '고혈압': kHealthFocusBloodPressure,
@@ -62,8 +66,19 @@ List<String> _tokens(String raw) {
 }
 
 /// 저장 문자열 → 고른 목표. 목표가 아닌 글은 버린다 — 칩을 지어내지 않는다.
-Set<String> parseHealthFocus(String raw) =>
-    _tokens(raw).where(kHealthFocusOptions.contains).toSet();
+/// [kHealthFocusMaxSelected] 개를 넘으면 목록 순서로 앞의 것만 남긴다(서버와 같다).
+Set<String> parseHealthFocus(String raw) {
+  final List<String> tokens = _tokens(raw);
+  return kHealthFocusOptions
+      .where(tokens.contains)
+      .take(kHealthFocusMaxSelected)
+      .toSet();
+}
+
+/// 지금 [option] 칩을 누를 수 있는가. 이미 고른 칩은 늘 풀 수 있고, 새로 고르는
+/// 칩은 [kHealthFocusMaxSelected] 개를 채우기 전까지만 고를 수 있다.
+bool canPickHealthFocus(Set<String> focus, String option) =>
+    focus.contains(option) || focus.length < kHealthFocusMaxSelected;
 
 /// 고른 목표 → 저장 문자열. 순서를 고정해 같은 선택이 늘 같은 문자열이 된다.
 String formatHealthFocus(Set<String> focus) => <String>[
