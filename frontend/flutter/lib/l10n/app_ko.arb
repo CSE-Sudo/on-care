@@ -657,7 +657,7 @@
   "authNoAccountQuestion": "계정이 없으신가요?",
   "authSignUpAction": "회원가입",
   "authDemoAction": "로그인 없이 데모 둘러보기",
-  "authOrDivider": "또는",
+  "authSocialDivider": "SNS 계정으로 로그인",
   "authKakaoAction": "카카오로 시작하기",
   "authGoogleAction": "구글로 시작하기",
   "authMissingCredentials": "이메일과 비밀번호를 입력해 주세요",

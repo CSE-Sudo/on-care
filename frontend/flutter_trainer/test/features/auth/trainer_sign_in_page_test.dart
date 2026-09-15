@@ -19,6 +19,50 @@ void main() {
       expect(find.text('이메일과 비밀번호를 입력해 주세요'), findsOneWidget);
     });
 
+    testWidgets('소셜 로그인은 구분선 아래 원형 카카오·구글 버튼이다', (tester) async {
+      // 전체 폭 글자 버튼 대신 가운데에 나란히 놓인 원형 버튼이다(#1783).
+      await pumpTrainerApp(tester);
+
+      expect(find.text('SNS 계정으로 로그인'), findsOneWidget);
+      expect(find.text('또는'), findsNothing);
+      final Finder kakao = find.byKey(
+        const ValueKey<String>('trainer-login-kakao'),
+      );
+      final Finder google = find.byKey(
+        const ValueKey<String>('trainer-login-google'),
+      );
+      expect(kakao, findsOneWidget);
+      expect(google, findsOneWidget);
+      // 그림만 있는 버튼이라 이름은 화면 읽기 라벨·툴팁으로만 남는다.
+      expect(find.bySemanticsLabel('카카오로 시작하기'), findsOneWidget);
+      expect(find.bySemanticsLabel('구글로 시작하기'), findsOneWidget);
+      expect(find.byTooltip('카카오로 시작하기'), findsOneWidget);
+      expect(find.byTooltip('구글로 시작하기'), findsOneWidget);
+      expect(find.text('카카오로 시작하기'), findsNothing);
+      expect(tester.getCenter(kakao).dy, tester.getCenter(google).dy);
+      expect(
+        tester.getCenter(kakao).dy,
+        greaterThan(tester.getCenter(find.text('SNS 계정으로 로그인')).dy),
+      );
+    });
+
+    testWidgets('카카오 원형 버튼을 누르면 소셜 로그인으로 들어간다', (tester) async {
+      final container = await pumpTrainerApp(tester);
+      final Finder kakao = find.byKey(
+        const ValueKey<String>('trainer-login-kakao'),
+      );
+
+      await tester.ensureVisible(kakao);
+      await tester.pump();
+      await tester.tap(kakao);
+      await settle(tester);
+
+      expect(
+        container.read(sessionControllerProvider).status,
+        SessionStatus.authenticated,
+      );
+    });
+
     testWidgets('데모 진입은 기본 빌드에서 뜨지 않는다', (tester) async {
       // 로그인 없이 콘솔로 들어가는 경로를 화면에서 내렸다. 코드는 남아 있고
       // 노출만 SHOW_DEMO_ENTRY 로 막았다. (#1526)

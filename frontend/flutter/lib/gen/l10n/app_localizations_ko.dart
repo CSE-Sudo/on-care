@@ -1847,7 +1847,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authDemoAction => '로그인 없이 데모 둘러보기';
 
   @override
-  String get authOrDivider => '또는';
+  String get authSocialDivider => 'SNS 계정으로 로그인';
 
   @override
   String get authKakaoAction => '카카오로 시작하기';

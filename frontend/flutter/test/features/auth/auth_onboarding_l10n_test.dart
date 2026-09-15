@@ -25,7 +25,8 @@ const Map<String, String> _koBefore = <String, String>{
   'authNoAccountQuestion': '계정이 없으신가요?',
   'authSignUpAction': '회원가입',
   'authDemoAction': '로그인 없이 데모 둘러보기',
-  'authOrDivider': '또는',
+  // 소셜 로그인이 원형 버튼이 되며 구분선 문구가 "또는" 에서 바뀌었다(#1783).
+  'authSocialDivider': 'SNS 계정으로 로그인',
   'authKakaoAction': '카카오로 시작하기',
   'authGoogleAction': '구글로 시작하기',
   'authMissingCredentials': '이메일과 비밀번호를 입력해 주세요',
@@ -106,7 +107,7 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'authNoAccountQuestion' => l.authNoAccountQuestion,
   'authSignUpAction' => l.authSignUpAction,
   'authDemoAction' => l.authDemoAction,
-  'authOrDivider' => l.authOrDivider,
+  'authSocialDivider' => l.authSocialDivider,
   'authKakaoAction' => l.authKakaoAction,
   'authGoogleAction' => l.authGoogleAction,
   'authMissingCredentials' => l.authMissingCredentials,
