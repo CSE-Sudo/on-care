@@ -59,6 +59,12 @@ class ConsultationCompletePage extends StatelessWidget {
         child: Container(
           width: _completionBadgeSize,
           height: _completionBadgeSize,
+          // 아이콘 배경 투명 규칙(#1781)의 예외다 — 이 원은 아이콘 칸이 아니라
+          // 요청이 끝났음을 알리는 완료 표시라, 옅은 브랜드 원을 그대로 둔다.
+          decoration: BoxDecoration(
+            color: tokens.brand.surface,
+            shape: BoxShape.circle,
+          ),
           alignment: Alignment.center,
           child: Icon(
             Icons.check_rounded,

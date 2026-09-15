@@ -73,25 +73,16 @@ class HeaderActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget button = enabled
-        ? AppIconButton(
-            icon: icon,
-            tooltip: tooltip,
-            onPressed: onPressed,
-            color: context.oncare.brand.primary,
-          )
-        : DecoratedBox(
-            decoration: const BoxDecoration(
-              color: OnCareColors.surfaceInput,
-              borderRadius: OnCareRadius.mdAll,
-            ),
-            child: AppIconButton(
-              icon: icon,
-              tooltip: tooltip,
-              onPressed: onPressed,
-              color: OnCareColors.textDisabled,
-            ),
-          );
+    // 쓸 수 없을 때도 배경은 두지 않는다 — 회색 아이콘만으로 흐림을 알리고,
+    // 탭은 그대로 받아 이유를 알린다(#786, #1781).
+    final Widget button = AppIconButton(
+      icon: icon,
+      tooltip: tooltip,
+      onPressed: onPressed,
+      color: enabled
+          ? context.oncare.brand.primary
+          : OnCareColors.textDisabled,
+    );
     return Stack(
       clipBehavior: Clip.none,
       children: <Widget>[
