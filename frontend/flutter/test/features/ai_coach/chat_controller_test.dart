@@ -2,13 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
 
 class _FakeCoachRepo implements AiCoachRepository {
-  _FakeCoachRepo({this.stored = const <ChatMessage>[], this.historyFails = false});
+  _FakeCoachRepo({
+    this.stored = const <ChatMessage>[],
+    this.historyFails = false,
+  });
 
   /// 서버에 저장돼 있다고 가정할 이전 대화.
   final List<ChatMessage> stored;
@@ -19,6 +23,10 @@ class _FakeCoachRepo implements AiCoachRepository {
   @override
   Future<AiCoachState> fetchState() async =>
       const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]);
+
+  @override
+  Future<ChatInsightHistory> fetchInsights() async =>
+      const ChatInsightHistory();
 
   @override
   Future<List<ChatMessage>> fetchHistory() async {
@@ -65,7 +73,9 @@ void main() {
     final state = container.read(chatControllerProvider);
     expect(state.sending, isFalse);
     expect(
-      state.messages.any((ChatMessage m) => m.isUser && m.content == '나트륨 줄이는 법'),
+      state.messages.any(
+        (ChatMessage m) => m.isUser && m.content == '나트륨 줄이는 법',
+      ),
       isTrue,
     );
     expect(state.messages.last.role, ChatRole.coach);

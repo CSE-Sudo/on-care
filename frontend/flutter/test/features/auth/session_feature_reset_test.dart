@@ -9,6 +9,7 @@ import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
@@ -35,6 +36,10 @@ class _FakeAiCoachRepository implements AiCoachRepository {
   Future<AiCoachState> fetchState() async {
     return const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]);
   }
+
+  @override
+  Future<ChatInsightHistory> fetchInsights() async =>
+      const ChatInsightHistory();
 
   @override
   Future<List<ChatMessage>> fetchHistory() async => const <ChatMessage>[];

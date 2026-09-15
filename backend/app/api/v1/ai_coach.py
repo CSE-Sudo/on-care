@@ -4,6 +4,7 @@ AI 코치 라우터 — 프론트 계약 정렬.
   GET  /ai-coach/feedback  -> { greeting, suggestions[] }
   GET  /ai-coach/messages  -> 저장된 대화 복원
   POST /ai-coach/chat      -> RAG 근거 기반 답변 + 대화 저장
+  GET  /ai-coach/insights  -> 최근 30일 회원 메시지의 통증·부정적 반응 감지 기록 (#1824)
 
 도메인(식단/운동)별 코치를 각각 생성해 합친 결과.
 STEP 7에서 내부가 RAG+LLM 으로 교체되지만 응답 형식은 동일.
@@ -22,11 +23,14 @@ from app.db.session import get_db
 from app.schemas.misc_api import (
     AiCoachFeedback,
     ChatHistory,
+    ChatInsightList,
+    ChatInsightOut,
+    ChatInsightRecordOut,
     ChatMessageOut,
     ChatReply,
     ChatRequest,
 )
-from app.services.coach import conversation
+from app.services.coach import conversation, insights
 from app.services.coach.chat import answer
 from app.services.coach_service import build_feedback
 
@@ -58,6 +62,7 @@ def ai_coach_messages(
                 content=m.content,
                 sources=conversation.parse_sources(m.sources_json),
                 created_at=m.created_at,
+                insight=_insight_out(m.content) if m.role == "user" else None,
             )
             for m in rows
         ]
@@ -94,4 +99,37 @@ def ai_coach_chat(
     conversation.append_exchange(
         db, current_user.id, question=message, reply=reply, sources=sources
     )
-    return ChatReply(reply=reply, sources=sources)
+    return ChatReply(reply=reply, sources=sources, user_insight=_insight_out(message))
+
+
+def _insight_out(text: str) -> ChatInsightOut | None:
+    """회원 문장 하나의 감지 결과를 응답 모양으로. 신호가 없으면 None."""
+    found = insights.detect(text)
+    if found is None:
+        return None
+    return ChatInsightOut(kind=found.kind, body_part=found.body_part)
+
+
+@router.get("/ai-coach/insights", response_model=ChatInsightList)
+def ai_coach_insights(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> ChatInsightList:
+    """최근 30일 동안 AI 챗봇에 회원이 쓴 메시지의 통증·부정적 반응 감지 기록. (#1824)
+
+    트레이너 채팅의 감지와 같은 규칙이다. 결과는 저장하지 않고 대화에서 매번 계산한다.
+    """
+    records = insights.recent_insights(db, current_user.id)
+    return ChatInsightList(
+        window_days=insights.INSIGHT_WINDOW_DAYS,
+        insights=[
+            ChatInsightRecordOut(
+                message_id=r.message_id,
+                created_at=r.created_at,
+                kind=r.kind,
+                body_part=r.body_part,
+                text=r.text,
+            )
+            for r in records
+        ],
+    )

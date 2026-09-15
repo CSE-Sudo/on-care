@@ -1583,6 +1583,33 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicGeneratingReply => '맞춤 답변 생성 중';
 
   @override
+  String aicInsightDiscomfortPart(String part) {
+    return '$part 통증 감지';
+  }
+
+  @override
+  String get aicInsightDiscomfort => '통증 감지';
+
+  @override
+  String get aicInsightNegative => '부정적 반응 감지';
+
+  @override
+  String get aicInsightHistoryTitle => '감지 기록';
+
+  @override
+  String aicInsightHistorySubtitle(int days) {
+    return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
+  }
+
+  @override
+  String aicInsightHistoryEmpty(int days) {
+    return '최근 $days일 동안 감지된 내용이 없어요';
+  }
+
+  @override
+  String get aicInsightHistoryFailed => '감지 기록을 불러오지 못했어요';
+
+  @override
   String get aicQuickReply1 => '오늘 저녁 메뉴 추천해줘';
 
   @override
