@@ -24,6 +24,8 @@ import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
@@ -86,6 +88,7 @@ class LocalApiInterceptor extends Interceptor {
     'GET /notifications': _notifications,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
+    'GET /ai-coach/insights': _aiCoachInsights,
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
@@ -1901,7 +1904,79 @@ class LocalApiInterceptor extends Interceptor {
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
     final (String reply, List<String> sources) = _mockCoachReply(message);
-    return _ok(options, <String, Object?>{'reply': reply, 'sources': sources});
+    // 감지 기록 창이 읽을 원문을 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
+    await _rememberAiCoachMessage(message);
+    final ChatInsight? insight = detectChatInsight(message);
+    return _ok(options, <String, Object?>{
+      'reply': reply,
+      'sources': sources,
+      'user_insight': insight == null ? null : _insightJson(insight),
+    });
+  }
+
+  static const String _aiCoachMessagesKey = 'ai_coach_user_messages';
+
+  /// 목업 대화의 회원 메시지. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  Future<List<Map<String, Object?>>> _aiCoachMessages() async {
+    final String? raw = await _db.readValue(_aiCoachMessagesKey);
+    if (raw == null || raw.isEmpty) return <Map<String, Object?>>[];
+    return <Map<String, Object?>>[
+      for (final Object? row in jsonDecode(raw) as List<Object?>)
+        if (row is Map) row.cast<String, Object?>(),
+    ];
+  }
+
+  Future<void> _rememberAiCoachMessage(String text) async {
+    final DateTime now = nowKst();
+    final List<Map<String, Object?>> rows = <Map<String, Object?>>[
+      for (final Map<String, Object?> row in await _aiCoachMessages())
+        if (isWithinInsightWindow(
+          DateTime.tryParse(row['created_at'] as String? ?? '') ?? now,
+          now,
+        ))
+          row,
+      <String, Object?>{
+        'id': 'local-ai-${now.microsecondsSinceEpoch}',
+        'text': text,
+        'created_at': now.toIso8601String(),
+      },
+    ];
+    await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+  }
+
+  static Map<String, Object?> _insightJson(ChatInsight insight) =>
+      <String, Object?>{
+        'kind': switch (insight.kind) {
+          ChatInsightKind.discomfort => 'discomfort',
+          ChatInsightKind.negativeFeedback => 'negative_feedback',
+        },
+        'body_part': insight.bodyPart,
+      };
+
+  /// GET /ai-coach/insights — 최근 30일 회원 메시지의 감지 기록, 최신순(#1824).
+  Future<Response<Object?>> _aiCoachInsights(RequestOptions options) async {
+    final DateTime now = nowKst();
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    final List<Map<String, Object?>> insights = <Map<String, Object?>>[];
+    for (final Map<String, Object?> row in rows.reversed) {
+      final DateTime? at = DateTime.tryParse(
+        row['created_at'] as String? ?? '',
+      );
+      if (at == null || !isWithinInsightWindow(at, now)) continue;
+      final String text = row['text'] as String? ?? '';
+      final ChatInsight? insight = detectChatInsight(text);
+      if (insight == null) continue;
+      insights.add(<String, Object?>{
+        'message_id': row['id'],
+        'created_at': at.toIso8601String(),
+        ..._insightJson(insight),
+        'text': text,
+      });
+    }
+    return _ok(options, <String, Object?>{
+      'window_days': kChatInsightWindowDays,
+      'insights': insights,
+    });
   }
 
   (String, List<String>) _mockCoachReply(String message) {
