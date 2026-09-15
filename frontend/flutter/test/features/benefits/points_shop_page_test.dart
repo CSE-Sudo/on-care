@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
@@ -60,8 +61,8 @@ void main() {
     expect(find.text('21,000P'), findsOneWidget);
     expect(find.text('7,000P'), findsOneWidget);
     expect(find.text('교환 후 30일 동안 사용'), findsNWidgets(2));
-    expect(find.byIcon(Icons.card_membership_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.checkroom_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.ptRenewal), findsOneWidget);
+    expect(find.byIcon(AppIcons.locker), findsOneWidget);
     expect(find.text('보유 9,000P'), findsNothing);
     expect(find.text('보유 9000P'), findsOneWidget);
 

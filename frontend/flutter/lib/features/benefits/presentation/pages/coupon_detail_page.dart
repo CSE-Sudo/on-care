@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
@@ -90,7 +91,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
                 AppCard(
                   child: AppEmptyState(
                     title: l.myCouponNotFound,
-                    icon: Icons.confirmation_number_rounded,
+                    icon: AppIcons.coupon,
                     placement: AppStatePlacement.card,
                   ),
                 ),
@@ -108,7 +109,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
       if (coupon.status == CouponStatus.used) ...<Widget>[
         _Notice(
           key: const Key('couponUsedBanner'),
-          icon: Icons.check_circle_rounded,
+          icon: AppIcons.checkCircle,
           color: tokens.brand.primary,
           text: usedAt != null
               ? l.myCouponUsedBanner(formatCouponDateTime(usedAt))
@@ -182,7 +183,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
         // 누르기 전에 눈에 걸리는 안내 — 버튼 바로 위. 직원이 확인한 뒤 누른다.
         _Notice(
           key: const Key('couponStaffNote'),
-          icon: Icons.badge_rounded,
+          icon: AppIcons.badge,
           color: tokens.brand.primary,
           text: isRenewal ? l.myCouponStaffNote : l.myCouponGymStaffNote,
         ),
@@ -261,7 +262,7 @@ class _Notice extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          Icon(icon, size: OnCareSize.iconMedium, color: color),
+          AppIcon(icon, size: OnCareSize.iconMedium, color: color),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
             child: Text(

@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
@@ -105,7 +106,7 @@ void main() {
 
     expect(find.text('PT 재등록 30,000원 할인'), findsOneWidget);
     expect(find.text('개인 락커 1개월 무료'), findsNWidgets(2));
-    expect(find.byIcon(Icons.checkroom_rounded), findsNWidgets(2));
+    expect(find.byIcon(AppIcons.locker), findsNWidgets(2));
     expect(find.text('2026.10.15까지'), findsNWidgets(3));
     final AppTag renewalTag = tester.widget<AppTag>(
       find.byKey(const ValueKey<String>('coupon-status-c-renewal')),
@@ -160,7 +161,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('만료되면 포인트는 돌려받을 수 없어요.'), findsOneWidget);
-    expect(find.byIcon(Icons.info_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.info), findsNothing);
 
     // 직원에게 말하는 안내가 버튼 바로 위에 선다.
     expect(staffNote(), findsOneWidget);
@@ -263,7 +264,7 @@ void main() {
     await pumpAt(tester, repo, AppRoutes.myCouponDetailPath('c-locker'));
 
     expect(find.text('개인 락커 1개월 무료'), findsOneWidget);
-    expect(find.byIcon(Icons.checkroom_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.locker), findsOneWidget);
     // 헬스장 줄은 있고 담당 트레이너 줄은 없다.
     expect(find.text('담당 트레이너'), findsNothing);
     expect(find.text('김트레이너'), findsNothing);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -47,9 +48,9 @@ String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) 
 };
 
 IconData benefitIcon(String itemId) => switch (itemId) {
-  kPtRenewalItem => Icons.card_membership_rounded,
-  kLockerMonthItem => Icons.checkroom_rounded,
-  _ => Icons.confirmation_number_rounded,
+  kPtRenewalItem => AppIcons.ptRenewal,
+  kLockerMonthItem => AppIcons.locker,
+  _ => AppIcons.coupon,
 };
 
 /// 목록 태그의 짧은 상태 — 사용 가능이면 D-n.

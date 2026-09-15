@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
@@ -48,7 +49,7 @@ class MyBenefitsPage extends ConsumerWidget {
                     child: AppEmptyState(
                       title: l.myBenefitsEmpty,
                       message: l.myBenefitsEmptyMessage,
-                      icon: Icons.confirmation_number_rounded,
+                      icon: AppIcons.coupon,
                       actionLabel: l.myPointsBenefitsTitle,
                       onAction: () => context.push<void>(AppRoutes.myPoints),
                       placement: AppStatePlacement.card,
