@@ -2977,6 +2977,24 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load noted signals'**
   String get aicInsightHistoryFailed;
 
+  /// AI coach chat: how long the conversation is kept (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'AI chat history is kept for the last {days} days'**
+  String aicRetentionNotice(int days);
+
+  /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with your trainer'**
+  String get aicTrainerConnectedTitle;
+
+  /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected with {name}. Members with a trainer chat with their trainer instead of the AI chatbot'**
+  String aicTrainerConnectedBody(String name);
+
   /// No description provided for @aicQuickReply1.
   ///
   /// In en, this message translates to:

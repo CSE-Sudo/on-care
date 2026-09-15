@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
@@ -40,18 +43,33 @@ void main() {
     WidgetTester tester, {
     required Override coachOverride,
   }) async {
+    // AI 챗봇 입구는 라우터로 화면을 연다. 도착한 화면은 표지 글자로 확인한다.
+    final GoRouter router = GoRouter(
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/',
+          builder: (_, _) => const Scaffold(body: TrainerChatHeaderButton()),
+        ),
+        GoRoute(
+          path: AppRoutes.aiCoach,
+          builder: (_, _) => const Scaffold(body: Text('ai-coach-route')),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
           coachOverride,
           coachUnreadProvider.overrideWith((ref) async => 0),
         ],
-        child: MaterialApp(
+        child: MaterialApp.router(
           theme: AppTheme.light(),
           locale: const Locale('ko'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: const Scaffold(body: TrainerChatHeaderButton()),
+          routerConfig: router,
         ),
       ),
     );
@@ -65,32 +83,52 @@ void main() {
     );
 
     expect(_drawnEnabled(tester), isTrue);
+    // 트레이너가 있는 회원에게 AI 챗봇 입구는 없다(#1823).
+    expect(find.byKey(const Key('aiChatHeaderButton')), findsNothing);
   });
 
-  testWidgets('담당 트레이너가 없으면 흐리게 그린다', (WidgetTester tester) async {
+  testWidgets('담당 트레이너가 없으면 같은 자리가 AI 챗봇 입구로 바뀐다', (WidgetTester tester) async {
     await pump(
       tester,
       coachOverride: memberCoachProvider.overrideWith((ref) async => null),
     );
 
-    // 예전에는 색이 그대로여서 눌리는 버튼과 구별되지 않았다(#786).
-    expect(_drawnEnabled(tester), isFalse);
-  });
-
-  testWidgets('담당 트레이너가 없을 때 누르면 이유를 알린다', (WidgetTester tester) async {
-    await pump(
-      tester,
-      coachOverride: memberCoachProvider.overrideWith((ref) async => null),
-    );
-
-    await tester.tap(find.byKey(const Key('trainerChatHeaderButton')));
-    await tester.pumpAndSettle();
-
-    // 흐리게 그리되 아무 반응도 없지는 않다 — 왜 못 쓰는지 말해 준다.
+    expect(find.byKey(const Key('trainerChatHeaderButton')), findsNothing);
+    final Finder ai = find.byKey(const Key('aiChatHeaderButton'));
+    expect(ai, findsOneWidget);
     expect(
-      find.text('담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요'),
+      find.descendant(of: ai, matching: find.byIcon(AppIcons.ai)),
       findsOneWidget,
     );
+    // 흐린 비활성 버튼이 아니라 눌리는 버튼이다.
+    expect(_drawnEnabled(tester), isTrue);
+  });
+
+  testWidgets('담당 트레이너가 없을 때 누르면 AI 챗봇 화면으로 간다', (WidgetTester tester) async {
+    await pump(
+      tester,
+      coachOverride: memberCoachProvider.overrideWith((ref) async => null),
+    );
+
+    await tester.tap(find.byKey(const Key('aiChatHeaderButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ai-coach-route'), findsOneWidget);
+  });
+
+  testWidgets('담당 조회에 실패하면 AI 챗봇 입구로 단정하지 않는다', (WidgetTester tester) async {
+    await pump(
+      tester,
+      coachOverride: memberCoachProvider.overrideWith(
+        (ref) => Future<MemberCoach?>.error(Exception('offline')),
+      ),
+    );
+
+    // 담당이 있는지 모르는 채로 입구를 바꾸면, 트레이너가 있는 회원에게 AI
+    // 챗봇을 내미는 셈이다.
+    expect(find.byKey(const Key('aiChatHeaderButton')), findsNothing);
+    expect(find.byKey(const Key('trainerChatHeaderButton')), findsOneWidget);
+    expect(_drawnEnabled(tester), isFalse);
   });
 
   testWidgets('조회 중에는 없다고 단정하지 않는다', (WidgetTester tester) async {
@@ -114,6 +152,7 @@ void main() {
     );
     await tester.pump();
 
+    expect(find.byKey(const Key('aiChatHeaderButton')), findsNothing);
     await tester.tap(find.byKey(const Key('trainerChatHeaderButton')));
     await tester.pump();
 
