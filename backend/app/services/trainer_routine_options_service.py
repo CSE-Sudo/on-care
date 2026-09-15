@@ -21,6 +21,7 @@ from pydantic import ValidationError
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.services import health_focus
 from app.core import clock, metrics
 from app.models.models import (
     ChatMessage,
@@ -403,7 +404,8 @@ def build_member_analysis(
     )
 
     return RoutineOptionAnalysisOut(
-        goal=link.goal,
+        # 코칭 목표는 회원이 고른 건강 목표다(#1818).
+        goal=health_focus.focus_label(profile.conditions if profile is not None else None),
         member_goal=profile.goals if profile is not None else "",
         conditions=profile.conditions if profile is not None else "",
         gender=profile.gender if profile is not None else "",

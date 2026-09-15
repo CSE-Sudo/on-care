@@ -54,16 +54,13 @@ const Map<String, String> _koBefore = <String, String>{
   'onboardHeightHint': '키 (cm)',
   // 2단계는 진단받은 질환이 아니라 **어디에 초점을 둘지**를 묻는다(#1471).
   'onboardHealthTitle': '건강 목표',
-  'onboardHealthSubtitle': '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (복수 선택 가능)',
+  // 건강 목표는 두 개까지 고른다(#1814).
+  'onboardHealthSubtitle': '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (최대 2개)',
   'onboardGoalTitle': '운동 목표',
   'onboardGoalSubtitle': '달성하고 싶은 목표를 입력해 주세요. 나중에 바꿀 수 있어요.',
   'onboardGenderMale': '남성',
   'onboardGenderFemale': '여성',
   'onboardGenderOther': '기타',
-  'onboardConditionHypertension': '고혈압',
-  'onboardConditionDiabetes': '당뇨',
-  'onboardConditionDyslipidemia': '고지혈증',
-  'onboardConditionObesity': '비만',
 };
 
 /// 온보딩 개편에서 새로 생긴 문구. [_koBefore] 는 #642 에서 *옮기기 전* 화면을
@@ -102,6 +99,19 @@ const Map<String, String> _koAdded = <String, String>{
       '출처: 2020 한국인 영양소 섭취기준(에너지필요추정량·에너지적정비율) · WHO 나트륨·자유당 섭취 권고',
   'onboardExerciseSourceNote':
       '출처: WHO 신체활동 지침(2020) — 주 150분 중강도 유산소, 주 2회 이상 근력',
+  // 고른 건강 목표를 반영한 권장값 안내와 근거(#1816).
+  'onboardFocusAdjusted': '고른 건강 목표를 반영한 값이에요',
+  'onboardFocusSourceNote':
+      '목표 반영 기준: 감량 하루 500kcal(대한비만학회 진료지침) · 근력 단백질 체중 1kg당 1.6g(국제스포츠영양학회) · 당류 총열량 5%(WHO) · 유산소 주 150~300분(WHO)',
+  // 2단계 건강 목표 — 옛 질환 선택지(고혈압·당뇨)를 바꿨다(#1814).
+  'healthFocusWeightLoss': '체중 감량',
+  'healthFocusStrength': '근력 향상',
+  'healthFocusFitness': '체력 강화',
+  'healthFocusPosture': '자세 교정',
+  'healthFocusRehab': '재활',
+  'healthFocusEating': '식습관 개선',
+  'healthFocusExerciseHabit': '운동 습관',
+  'healthFocusBloodPressure': '혈압 관리',
 };
 
 /// 두 표를 합친 것. 로케일 검사는 새 문구까지 함께 본다.
@@ -152,10 +162,16 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'onboardGenderMale' => l.onboardGenderMale,
   'onboardGenderFemale' => l.onboardGenderFemale,
   'onboardGenderOther' => l.onboardGenderOther,
-  'onboardConditionHypertension' => l.onboardConditionHypertension,
-  'onboardConditionDiabetes' => l.onboardConditionDiabetes,
-  'onboardConditionDyslipidemia' => l.onboardConditionDyslipidemia,
-  'onboardConditionObesity' => l.onboardConditionObesity,
+  'onboardFocusAdjusted' => l.onboardFocusAdjusted,
+  'onboardFocusSourceNote' => l.onboardFocusSourceNote,
+  'healthFocusWeightLoss' => l.healthFocusWeightLoss,
+  'healthFocusStrength' => l.healthFocusStrength,
+  'healthFocusFitness' => l.healthFocusFitness,
+  'healthFocusPosture' => l.healthFocusPosture,
+  'healthFocusRehab' => l.healthFocusRehab,
+  'healthFocusEating' => l.healthFocusEating,
+  'healthFocusExerciseHabit' => l.healthFocusExerciseHabit,
+  'healthFocusBloodPressure' => l.healthFocusBloodPressure,
   'onboardOptionalTag' => l.onboardOptionalTag,
   'onboardSkipStep' => l.onboardSkipStep,
   'onboardBirthLabel' => l.onboardBirthLabel,

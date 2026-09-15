@@ -5,6 +5,7 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
@@ -133,9 +134,7 @@ Future<_RecordingRepository> _open(WidgetTester tester) async {
   final _RecordingRepository repo = _RecordingRepository();
   await tester.pumpWidget(
     ProviderScope(
-      overrides: <Override>[
-        accountRepositoryProvider.overrideWithValue(repo),
-      ],
+      overrides: <Override>[accountRepositoryProvider.overrideWithValue(repo)],
       child: MaterialApp(
         theme: AppTheme.light(),
         locale: const Locale('ko'),
@@ -331,20 +330,77 @@ void main() {
     expect(_text(tester, 'onboardCardioField'), '150');
   });
 
-  testWidgets('건강 상태는 고혈압·당뇨만 묻고, 건너뛰면 고른 것이 비워진다', (tester) async {
+  testWidgets('2단계에서 고른 건강 목표가 식단·운동 권장값에 반영된다', (tester) async {
+    await _open(tester);
+    await _tapNext(tester);
+
+    // 건강 목표는 두 개까지다(#1814).
+    await tester.tap(find.text('체중 감량'));
+    await tester.tap(find.text('식습관 개선'));
+    await tester.pumpAndSettle();
+    await _tapNext(tester);
+
+    // 기본 2,000kcal − 감량 500kcal = 1,500kcal, 당류는 5%.
+    expect(_text(tester, 'onboardKcalField'), '1500');
+    expect(_text(tester, 'onboardCarbsField'), '206'); // 1500×0.55/4
+    expect(_text(tester, 'onboardProteinField'), '75'); // 1500×0.20/4
+    expect(_text(tester, 'onboardFatField'), '42'); // 1500×0.25/9
+    expect(_text(tester, 'onboardSugarField'), '19'); // 1500×0.05/4
+    expect(find.textContaining('고른 건강 목표를 반영한 값이에요'), findsOneWidget);
+    expect(find.textContaining('목표 반영 기준'), findsOneWidget);
+
+    await _tapNext(tester);
+    expect(_text(tester, 'onboardBurnField'), '400');
+    expect(_text(tester, 'onboardCardioField'), '200');
+    expect(_text(tester, 'onboardStrengthField'), '21');
+    expect(_text(tester, 'onboardFlexibilityField'), '60');
+    expect(find.textContaining('고른 건강 목표를 반영한 값이에요'), findsOneWidget);
+  });
+
+  testWidgets('목표를 바꾸면 손대지 않은 칸만 따라가고, 건너뛰면 기준값으로 돌아간다', (tester) async {
+    await _open(tester);
+    await _tapNext(tester);
+    await tester.tap(find.text('운동 습관'));
+    await tester.pumpAndSettle();
+    await _tapNext(tester);
+    await _tapNext(tester);
+
+    expect(_text(tester, 'onboardCardioField'), '90');
+    // 근력은 직접 고쳐 둔다.
+    await tester.enterText(_field('onboardStrengthField'), '10');
+    await tester.pumpAndSettle();
+
+    // 2단계로 돌아가 목표를 비우고 건너뛴다.
+    await tester.tap(find.byKey(const Key('onboardBackButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('onboardBackButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('onboardSkipStep')));
+    await tester.pumpAndSettle();
+    await _tapNext(tester);
+
+    expect(_text(tester, 'onboardCardioField'), '150');
+    expect(_text(tester, 'onboardStrengthField'), '10');
+    expect(find.textContaining('고른 건강 목표를 반영한 값이에요'), findsNothing);
+  });
+
+  testWidgets('건강 목표는 여덟 목표를 묻고, 건너뛰면 고른 것이 비워진다', (tester) async {
     final _RecordingRepository repo = await _open(tester);
     await _tapNext(tester);
 
-    expect(find.text('고혈압'), findsOneWidget);
-    expect(find.text('당뇨'), findsOneWidget);
-    expect(find.text('고지혈증'), findsNothing);
-    expect(find.text('비만'), findsNothing);
+    // 옛 질환 선택지 대신 PT 회원의 목표를 고른다(#1814).
+    for (final String option in kHealthFocusOptions) {
+      expect(find.text(option), findsOneWidget, reason: option);
+    }
+    for (final String legacy in <String>['고혈압', '당뇨', '고지혈증', '비만']) {
+      expect(find.text(legacy), findsNothing, reason: legacy);
+    }
     // 안 채워도 되는 단계라고 제목 옆에 적혀 있다.
     expect(find.text('(선택)'), findsOneWidget);
 
-    await tester.tap(find.text('고혈압'));
+    await tester.tap(find.text('혈압 관리'));
     await tester.pumpAndSettle();
-    await tester.enterText(_field('onboardGoalTextField'), '혈압 관리');
+    await tester.enterText(_field('onboardGoalTextField'), '주 3회 걷기');
     await tester.pumpAndSettle();
 
     // 건너뛰면 그냥 넘어가는 것이 아니라 이 단계에서 적은 것을 비운다.
@@ -368,8 +424,16 @@ void main() {
     await tester.pumpAndSettle();
 
     await _tapNext(tester);
-    await tester.tap(find.text('고혈압'));
+    await tester.tap(find.text('근력 향상'));
+    await tester.tap(find.text('혈압 관리'));
     await tester.pumpAndSettle();
+    // 두 개를 골랐으니 세 번째는 잠긴다(#1814).
+    expect(
+      tester
+          .widget<AppChoiceChip>(find.widgetWithText(AppChoiceChip, '재활'))
+          .onSelected,
+      isNull,
+    );
 
     await _tapNext(tester);
     await _tapNext(tester);
@@ -380,7 +444,7 @@ void main() {
     expect(sent['gender'], 'female');
     expect(sent['height_cm'], 160);
     expect(sent['weight_kg'], 55);
-    expect(sent['conditions'], '고혈압');
+    expect(sent['conditions'], '근력 향상, 혈압 관리');
     // 목표 열 칸이 하나도 빠지지 않는다 — 빠진 칸은 목표 없는 프로필이 된다.
     for (final String key in <String>[
       'daily_calories',

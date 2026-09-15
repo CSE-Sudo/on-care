@@ -9,6 +9,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show ClientIdentity, clientDemographicsLabel;
 import 'package:oncare_ui/oncare_ui.dart';
@@ -478,7 +479,7 @@ class _Identity extends StatelessWidget {
           ),
         ),
         Text(
-          client.goal,
+          healthFocusGoalLabel(AppLocalizations.of(context), client.goal),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: tokens
