@@ -8,6 +8,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/client_invite.da
 import 'package:oncare_trainer/features/clients/presentation/widgets/pairing_code_input.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -368,7 +369,13 @@ class _PairedMemberCard extends StatelessWidget {
                 ),
                 if (paired.goal.isNotEmpty) ...<Widget>[
                   const SizedBox(height: OnCareSpacing.s4),
-                  Text(paired.goal, style: detail),
+                  Text(
+                    healthFocusGoalLabel(
+                      AppLocalizations.of(context),
+                      paired.goal,
+                    ),
+                    style: detail,
+                  ),
                 ],
               ],
             ),

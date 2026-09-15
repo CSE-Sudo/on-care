@@ -18,6 +18,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/member_health_pr
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
+import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 
@@ -314,7 +315,8 @@ class DriftClientRepository implements ClientRepository {
               // runes.first survives surrogate pairs without pulling the
               // characters package into this pure-Dart service.
               avatar: String.fromCharCode(trimmedName.runes.first),
-              goal: goal.trim().isEmpty ? '목표 설정 전' : goal.trim(),
+              // 목표는 건강 목표만 남긴다 — 고르지 않았으면 비어 있다(#1818).
+              goal: healthFocusGoal(goal),
               lastMessage: '아직 대화가 없어요',
               lastTime: '-',
               active: const Value(true),
@@ -387,7 +389,10 @@ class DriftClientRepository implements ClientRepository {
       // 성별은 로스터가 이미 말하고 있는 값을 따른다. 고정 'male' 을 두던
       // 시절에는 헤더가 '여성'인 회원의 대화상자가 '남성'으로 열렸다(#818).
       gender: saved['gender'] as String? ?? _toEntity(row).rosterGender,
-      conditions: saved['conditions'] as String? ?? '',
+      // 저장한 적이 없으면 로스터 목표에서 건강 목표를 읽는다(#1818).
+      conditions:
+          saved['conditions'] as String? ??
+          formatHealthFocus(parseHealthFocus(row.goal)),
       goals: saved['goals'] as String? ?? row.goal,
       weeklyWorkoutGoal: saved.containsKey('weekly_workout_goal')
           ? (saved['weekly_workout_goal'] as num?)?.toInt()
@@ -417,7 +422,9 @@ class DriftClientRepository implements ClientRepository {
       'height_cm': value('height_cm', current.heightCm),
       'weight_kg': value('weight_kg', current.weightKg),
       'gender': value('gender', current.gender),
-      'conditions': value('conditions', current.conditions),
+      'conditions': normalizeHealthFocusText(
+        value('conditions', current.conditions) as String? ?? '',
+      ),
       'goals': value('goals', current.goals),
       'weekly_workout_goal': value(
         'weekly_workout_goal',
@@ -430,11 +437,14 @@ class DriftClientRepository implements ClientRepository {
       'weekly_burn_goal': value('weekly_burn_goal', current.weeklyBurnGoal),
     };
     await _db.putValue('member_health_profile:$clientId', jsonEncode(saved));
-    if (values.containsKey('goals')) {
+    // 로스터의 회원 목표는 건강 목표다 — 실서버가 `conditions` 에서 읽는 것과 같다(#1818).
+    if (values.containsKey('conditions')) {
       await (_db.update(
         _db.trainerClients,
       )..where((table) => table.id.equals(clientId))).write(
-        TrainerClientsCompanion(goal: Value(values['goals'] as String? ?? '')),
+        TrainerClientsCompanion(
+          goal: Value(healthFocusGoal(saved['conditions']! as String)),
+        ),
       );
     }
     return fetchHealthProfile(clientId);

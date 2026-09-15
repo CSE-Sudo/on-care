@@ -2031,7 +2031,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardHealthSubtitle =>
-      'Pick what you want to focus on in your health care. (multiple allowed)';
+      'Pick what you want to focus on in your health care. (up to 2)';
 
   @override
   String get onboardGoalTitle => 'Exercise goal';
@@ -2145,6 +2145,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week';
 
   @override
+  String get onboardFocusAdjusted => 'Adjusted for the health goals you picked';
+
+  @override
+  String get onboardFocusSourceNote =>
+      'Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)';
+
+  @override
   String get onboardGenderMale => 'Male';
 
   @override
@@ -2152,18 +2159,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardGenderOther => 'Other';
-
-  @override
-  String get onboardConditionHypertension => 'Hypertension';
-
-  @override
-  String get onboardConditionDiabetes => 'Diabetes';
-
-  @override
-  String get onboardConditionDyslipidemia => 'Dyslipidemia';
-
-  @override
-  String get onboardConditionObesity => 'Obesity';
 
   @override
   String get aiCoachWelcome =>
@@ -2290,13 +2285,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGoalsFocusHint =>
-      'Pick what you want to focus on in your health care. (multiple allowed)';
+      'Pick what you want to focus on in your health care. (up to 2)';
 
   @override
-  String get myGoalsFocusHypertension => 'Blood pressure';
+  String get healthFocusWeightLoss => 'Weight loss';
 
   @override
-  String get myGoalsFocusDiabetes => 'Blood sugar';
+  String get healthFocusStrength => 'Build strength';
+
+  @override
+  String get healthFocusFitness => 'Improve fitness';
+
+  @override
+  String get healthFocusPosture => 'Posture correction';
+
+  @override
+  String get healthFocusRehab => 'Rehab';
+
+  @override
+  String get healthFocusEating => 'Better eating habits';
+
+  @override
+  String get healthFocusExerciseHabit => 'Exercise habit';
+
+  @override
+  String get healthFocusBloodPressure => 'Blood pressure care';
 
   @override
   String get myGoalsExerciseNote => 'Exercise goal';
@@ -2323,8 +2336,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalFlexibilityWeekly => 'Weekly stretching (min)';
 
   @override
-  String get myGoalExerciseSuggestionNote =>
-      'Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week';
+  String myGoalExerciseSuggestionNote(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return 'Suggested: $burn kcal a day · $cardio min cardio · $strength sets · $flexibility min stretching a week';
+  }
 
   @override
   String get myGoalExerciseApplySuggestion => 'Use suggested goals';
@@ -2352,8 +2371,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Calculated from your carb, protein and fat goals';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal) {
-    return 'Suggested split for $kcal kcal: 50% carbs · 30% protein · 20% fat';
+  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
+    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat';
   }
 
   @override
@@ -2531,6 +2550,90 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
+
+  @override
+  String get alertTimeJustNow => 'Just now';
+
+  @override
+  String alertTimeMinutesAgo(int minutes) {
+    return '${minutes}m ago';
+  }
+
+  @override
+  String alertTimeHoursAgo(int hours) {
+    return '${hours}h ago';
+  }
+
+  @override
+  String get alertTimeYesterday => 'Yesterday';
+
+  @override
+  String alertTimeDaysAgo(int days) {
+    return '${days}d ago';
+  }
+
+  @override
+  String get demoAlertSodiumTitle => 'Watch your sodium';
+
+  @override
+  String get demoAlertSodiumBody =>
+      'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.';
+
+  @override
+  String get demoAlertDinnerTitle => 'Log your dinner';
+
+  @override
+  String get demoAlertDinnerBody =>
+      'No dinner logged yet today. One photo is all it takes.';
+
+  @override
+  String get demoAlertRoutineTitle => 'A new workout routine arrived';
+
+  @override
+  String get demoAlertRoutineBody =>
+      'Trainer Kim adjusted it to a walking routine for your knee.';
+
+  @override
+  String get demoAlertReportTitle => 'This week\'s report is ready';
+
+  @override
+  String get demoAlertReportBody =>
+      'Trainer Kim posted your report for this week.';
+
+  @override
+  String get demoAlertPtDoneTitle => 'PT session complete';
+
+  @override
+  String get demoAlertPtDoneBody =>
+      'You finished PT session 12 with Trainer Kim at 18:00 today!';
+
+  @override
+  String get demoAlertTrainerFeedbackTitle => 'Feedback from your trainer';
+
+  @override
+  String get demoAlertTrainerFeedbackBody =>
+      'Be sure to stretch your rotator cuff to finish.';
+
+  @override
+  String get demoAlertWeeklyGoalTitle => 'Almost at this week\'s workout goal';
+
+  @override
+  String get demoAlertWeeklyGoalBody =>
+      'Start with 30 minutes of low-intensity cardio (walking).';
+
+  @override
+  String get demoAlertMealStreakTitle => 'You\'re keeping up your meal log';
+
+  @override
+  String get demoAlertMealStreakBody =>
+      'You\'ve logged your meals every day for over a month.';
+
+  @override
+  String get demoAlertMaintenanceTitle => 'Scheduled maintenance';
+
+  @override
+  String get demoAlertMaintenanceBody =>
+      'Maintenance is scheduled for tomorrow, 02:00–03:00.';
 
   @override
   String get exPtLogTitle => 'Today\'s completed PT';

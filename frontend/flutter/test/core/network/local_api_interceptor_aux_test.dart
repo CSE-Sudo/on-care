@@ -29,10 +29,7 @@ void main() {
         .cast<Map<String, Object?>>();
     expect(suggestions.length, 3);
     final tags = suggestions.map((s) => s['tag']! as String).toSet();
-    expect(
-      tags,
-      containsAll(<String>['diet', 'exercise', 'hydration']),
-    );
+    expect(tags, containsAll(<String>['diet', 'exercise', 'hydration']));
   });
 
   test('GET /users/me returns the demo profile', () async {
@@ -51,10 +48,11 @@ void main() {
     expect(body['activity_points'], 1240);
     final settings = (body['settings']! as List<Object?>)
         .cast<Map<String, Object?>>();
-    expect(
-      settings.map((s) => s['kind']).toList(),
-      <String>['my-profile', 'notification', 'support'],
-    );
+    expect(settings.map((s) => s['kind']).toList(), <String>[
+      'my-profile',
+      'notification',
+      'support',
+    ]);
   });
 
   test('GET /places/nearby returns every category when unfiltered', () async {
@@ -76,10 +74,9 @@ void main() {
     );
     final places = res.data!.cast<Map<String, Object?>>();
     expect(places, isNotEmpty);
-    expect(
-      places.map((p) => p['category']! as String).toSet(),
-      <String>{'fitness'},
-    );
+    expect(places.map((p) => p['category']! as String).toSet(), <String>{
+      'fitness',
+    });
     // 지도 핀을 찍으려면 좌표가 반드시 있어야 한다.
     expect(places.every((p) => p['lat'] != null && p['lng'] != null), isTrue);
   });
@@ -173,19 +170,22 @@ void main() {
     expect(sources, contains('나트륨 줄이기'));
   });
 
-  test('POST /ai-coach/chat answers the dinner quick reply with today\'s meal', () async {
-    // 빠른 질문 첫 줄. 일반적인 식단 안내가 아니라 오늘 점심(짬뽕) 기록과
-    // 이어지는 한 끼가 나와야 "맞춤"으로 읽힌다(#1180).
-    final res = await dio.post<Map<String, Object?>>(
-      '/ai-coach/chat',
-      data: <String, Object?>{'message': '오늘 저녁 메뉴 추천해줘'},
-    );
-    expect(res.statusCode, 200);
-    final reply = res.data!['reply']! as String;
-    expect(reply, contains('짬뽕'));
-    expect(reply, contains('닭가슴살 채소구이'));
-    expect(reply, contains('현미밥'));
-  });
+  test(
+    'POST /ai-coach/chat answers the dinner quick reply with today\'s meal',
+    () async {
+      // 빠른 질문 첫 줄. 일반적인 식단 안내가 아니라 오늘 점심(짬뽕) 기록과
+      // 이어지는 한 끼가 나와야 "맞춤"으로 읽힌다(#1180).
+      final res = await dio.post<Map<String, Object?>>(
+        '/ai-coach/chat',
+        data: <String, Object?>{'message': '오늘 저녁 메뉴 추천해줘'},
+      );
+      expect(res.statusCode, 200);
+      final reply = res.data!['reply']! as String;
+      expect(reply, contains('짬뽕'));
+      expect(reply, contains('닭가슴살 채소구이'));
+      expect(reply, contains('현미밥'));
+    },
+  );
 
   test('POST /ai-coach/chat rejects an empty message', () async {
     final res = await dio.post<Map<String, Object?>>(
@@ -196,22 +196,25 @@ void main() {
     expect(res.statusCode, 400);
   });
 
-  test('PUT /users/me persists profile; GET /users/me/profile + /users/me reflect it', () async {
-    final put = await dio.put<Map<String, Object?>>(
-      '/users/me',
-      data: <String, Object?>{'name': '이순신', 'phone': '010-9999-0000'},
-    );
-    expect(put.statusCode, 200);
-    expect(put.data!['name'], '이순신');
+  test(
+    'PUT /users/me persists profile; GET /users/me/profile + /users/me reflect it',
+    () async {
+      final put = await dio.put<Map<String, Object?>>(
+        '/users/me',
+        data: <String, Object?>{'name': '이순신', 'phone': '010-9999-0000'},
+      );
+      expect(put.statusCode, 200);
+      expect(put.data!['name'], '이순신');
 
-    final prof = await dio.get<Map<String, Object?>>('/users/me/profile');
-    expect(prof.data!['name'], '이순신');
-    expect(prof.data!['phone'], '010-9999-0000');
-    expect(prof.data!['email'], 'minsu@oncare.com'); // 안 바꾼 값은 기본 유지
+      final prof = await dio.get<Map<String, Object?>>('/users/me/profile');
+      expect(prof.data!['name'], '이순신');
+      expect(prof.data!['phone'], '010-9999-0000');
+      expect(prof.data!['email'], 'minsu@oncare.com'); // 안 바꾼 값은 기본 유지
 
-    final me = await dio.get<Map<String, Object?>>('/users/me');
-    expect(me.data!['name'], '이순신');
-  });
+      final me = await dio.get<Map<String, Object?>>('/users/me');
+      expect(me.data!['name'], '이순신');
+    },
+  );
 
   test('PUT /users/me/health-goals persists weekly exercise goals', () async {
     final initialProfile = await dio.get<Map<String, Object?>>(
@@ -296,12 +299,32 @@ void main() {
     expect(res.statusCode, 400);
   });
 
+  // MY 건강 목표가 보내는 건강 목표·자유 입력 목표도 저장한다. 빠져 있어 데모에서
+  // 고른 목표가 사라졌다(#1814).
+  test('PUT /users/me/health-goals 가 건강 목표와 운동 목표 문구를 저장한다', () async {
+    final res = await dio.put<Map<String, Object?>>(
+      '/users/me/health-goals',
+      data: <String, Object?>{
+        'conditions': '혈압 관리, 비만, 무릎 통증',
+        'goals': '주 3회 근력 운동',
+        'daily_calories': 2100,
+      },
+    );
+    expect(res.statusCode, 200);
+
+    final prof = await dio.get<Map<String, Object?>>('/users/me/profile');
+    expect(prof.data!['conditions'], '체중 감량, 혈압 관리, 무릎 통증');
+    expect(prof.data!['goals'], '주 3회 근력 운동');
+    expect(prof.data!['daily_calories'], 2100);
+  });
+
   test('POST /users/me/onboarding persists fields + onboarded flag', () async {
     final res = await dio.post<Map<String, Object?>>(
       '/users/me/onboarding',
       data: <String, Object?>{
         'birth_date': '1988-03-03',
         'gender': 'female',
+        // 옛 질환 이름으로 보내도 서버처럼 새 건강 목표로 정리한다(#1814).
         'conditions': '고혈압, 당뇨',
         'height_cm': 162,
         'daily_sodium_mg': 1500,
@@ -314,7 +337,7 @@ void main() {
     // GET /users/me/profile reflects the onboarding write.
     final prof = await dio.get<Map<String, Object?>>('/users/me/profile');
     expect(prof.data!['birth_date'], '1988-03-03');
-    expect(prof.data!['conditions'], '고혈압, 당뇨');
+    expect(prof.data!['conditions'], '혈압 관리');
     expect(prof.data!['height_cm'], 162);
     expect(prof.data!['daily_sodium_mg'], 1500);
     expect(prof.data!['onboarded'], true);
@@ -355,30 +378,33 @@ void main() {
     expect(prof.data!['name'], '김민수');
   });
 
-  test('POST /schedule/events persists; GET returns it for that date', () async {
-    final res = await dio.post<Map<String, Object?>>(
-      '/schedule/events',
-      data: <String, Object?>{
-        'date': '2026-07-04',
-        'time': '15:30',
-        'title': '치과 예약',
-        'category': 'hospital',
-      },
-    );
-    expect(res.statusCode, 201);
-    expect(res.data!['title'], '치과 예약');
-    expect(res.data!['emoji'], '🏥'); // derived from category
-    expect((res.data!['id']! as String).isNotEmpty, isTrue);
+  test(
+    'POST /schedule/events persists; GET returns it for that date',
+    () async {
+      final res = await dio.post<Map<String, Object?>>(
+        '/schedule/events',
+        data: <String, Object?>{
+          'date': '2026-07-04',
+          'time': '15:30',
+          'title': '치과 예약',
+          'category': 'hospital',
+        },
+      );
+      expect(res.statusCode, 201);
+      expect(res.data!['title'], '치과 예약');
+      expect(res.data!['emoji'], '🏥'); // derived from category
+      expect((res.data!['id']! as String).isNotEmpty, isTrue);
 
-    final list = await dio.get<List<Object?>>(
-      '/schedule/events',
-      queryParameters: <String, Object?>{'date': '2026-07-04'},
-    );
-    final titles = list.data!
-        .cast<Map<String, Object?>>()
-        .map((e) => e['title']);
-    expect(titles, contains('치과 예약'));
-  });
+      final list = await dio.get<List<Object?>>(
+        '/schedule/events',
+        queryParameters: <String, Object?>{'date': '2026-07-04'},
+      );
+      final titles = list.data!.cast<Map<String, Object?>>().map(
+        (e) => e['title'],
+      );
+      expect(titles, contains('치과 예약'));
+    },
+  );
 
   test('POST /schedule/events rejects a missing title', () async {
     final res = await dio.post<Map<String, Object?>>(
@@ -403,7 +429,9 @@ void main() {
           ),
         );
 
-    final ok = await dio.delete<Map<String, Object?>>('/diet/entries/del-diet-1');
+    final ok = await dio.delete<Map<String, Object?>>(
+      '/diet/entries/del-diet-1',
+    );
     expect(ok.statusCode, 200);
     expect(ok.data!['status'], 'deleted');
 
@@ -414,108 +442,114 @@ void main() {
     expect(gone.statusCode, 404);
   });
 
-  test('DELETE /exercise/sessions/{id} deletes a session; 404 once gone', () async {
-    await db
-        .into(db.exerciseSessions)
-        .insert(
-          ExerciseSessionsCompanion.insert(
-            id: 'del-ex-1',
-            weekStart: '2026-06-29',
-            dayLabel: '월',
-            type: 'cardio',
-            minutes: 30,
-            calories: 200,
-          ),
-        );
+  test(
+    'DELETE /exercise/sessions/{id} deletes a session; 404 once gone',
+    () async {
+      await db
+          .into(db.exerciseSessions)
+          .insert(
+            ExerciseSessionsCompanion.insert(
+              id: 'del-ex-1',
+              weekStart: '2026-06-29',
+              dayLabel: '월',
+              type: 'cardio',
+              minutes: 30,
+              calories: 200,
+            ),
+          );
 
-    final ok = await dio.delete<Map<String, Object?>>(
-      '/exercise/sessions/del-ex-1',
-    );
-    expect(ok.statusCode, 200);
-    expect(ok.data!['status'], 'deleted');
+      final ok = await dio.delete<Map<String, Object?>>(
+        '/exercise/sessions/del-ex-1',
+      );
+      expect(ok.statusCode, 200);
+      expect(ok.data!['status'], 'deleted');
 
-    final gone = await dio.delete<Map<String, Object?>>(
-      '/exercise/sessions/del-ex-1',
-      options: Options(validateStatus: (int? s) => true),
-    );
-    expect(gone.statusCode, 404);
-  });
+      final gone = await dio.delete<Map<String, Object?>>(
+        '/exercise/sessions/del-ex-1',
+        options: Options(validateStatus: (int? s) => true),
+      );
+      expect(gone.statusCode, 404);
+    },
+  );
 
-  test('PUT /diet/entries/{id} updates meal type + time; 404 when missing', () async {
-    await db
-        .into(db.dietEntries)
-        .insert(
-          DietEntriesCompanion.insert(
-            id: 'edit-diet-1',
-            date: '2026-07-04',
-            mealType: 'lunch',
-            timeLabel: '12:00',
-            foodsJson: '[]',
-            totalCalories: 100,
-          ),
-        );
+  test(
+    'PUT /diet/entries/{id} updates meal type + time; 404 when missing',
+    () async {
+      await db
+          .into(db.dietEntries)
+          .insert(
+            DietEntriesCompanion.insert(
+              id: 'edit-diet-1',
+              date: '2026-07-04',
+              mealType: 'lunch',
+              timeLabel: '12:00',
+              foodsJson: '[]',
+              totalCalories: 100,
+            ),
+          );
 
-    final r = await dio.put<Map<String, Object?>>(
-      '/diet/entries/edit-diet-1',
-      data: <String, Object?>{'meal_type': 'dinner', 'time_label': '19:30'},
-    );
-    expect(r.statusCode, 200);
-    expect(r.data!['meal_type'], 'dinner');
-    expect(r.data!['time_label'], '19:30');
+      final r = await dio.put<Map<String, Object?>>(
+        '/diet/entries/edit-diet-1',
+        data: <String, Object?>{'meal_type': 'dinner', 'time_label': '19:30'},
+      );
+      expect(r.statusCode, 200);
+      expect(r.data!['meal_type'], 'dinner');
+      expect(r.data!['time_label'], '19:30');
 
-    final gone = await dio.put<Map<String, Object?>>(
-      '/diet/entries/nope',
-      data: <String, Object?>{'meal_type': 'dinner'},
-      options: Options(validateStatus: (int? s) => true),
-    );
-    expect(gone.statusCode, 404);
-  });
+      final gone = await dio.put<Map<String, Object?>>(
+        '/diet/entries/nope',
+        data: <String, Object?>{'meal_type': 'dinner'},
+        options: Options(validateStatus: (int? s) => true),
+      );
+      expect(gone.statusCode, 404);
+    },
+  );
 
-  test('PUT /exercise/sessions/{id} updates the session; 404 when missing', () async {
-    await db
-        .into(db.exerciseSessions)
-        .insert(
-          ExerciseSessionsCompanion.insert(
-            id: 'edit-ex-1',
-            weekStart: '2026-06-29',
-            dayLabel: '월',
-            type: 'cardio',
-            minutes: 30,
-            calories: 150,
-          ),
-        );
+  test(
+    'PUT /exercise/sessions/{id} updates the session; 404 when missing',
+    () async {
+      await db
+          .into(db.exerciseSessions)
+          .insert(
+            ExerciseSessionsCompanion.insert(
+              id: 'edit-ex-1',
+              weekStart: '2026-06-29',
+              dayLabel: '월',
+              type: 'cardio',
+              minutes: 30,
+              calories: 150,
+            ),
+          );
 
-    final r = await dio.put<Map<String, Object?>>(
-      '/exercise/sessions/edit-ex-1',
-      data: <String, Object?>{
-        'type': 'strength',
-        'minutes': 50,
-        'calories': 250,
-        'day_label': '화',
-      },
-    );
-    expect(r.statusCode, 200);
-    expect(r.data!['type'], 'strength');
-    expect(r.data!['minutes'], 50);
+      final r = await dio.put<Map<String, Object?>>(
+        '/exercise/sessions/edit-ex-1',
+        data: <String, Object?>{
+          'type': 'strength',
+          'minutes': 50,
+          'calories': 250,
+          'day_label': '화',
+        },
+      );
+      expect(r.statusCode, 200);
+      expect(r.data!['type'], 'strength');
+      expect(r.data!['minutes'], 50);
 
-    final gone = await dio.put<Map<String, Object?>>(
-      '/exercise/sessions/nope',
-      data: <String, Object?>{'type': 'cardio', 'minutes': 10},
-      options: Options(validateStatus: (int? s) => true),
-    );
-    expect(gone.statusCode, 404);
-  });
+      final gone = await dio.put<Map<String, Object?>>(
+        '/exercise/sessions/nope',
+        data: <String, Object?>{'type': 'cardio', 'minutes': 10},
+        options: Options(validateStatus: (int? s) => true),
+      );
+      expect(gone.statusCode, 404);
+    },
+  );
 
   test('GET /schedule/events?month returns the whole month only', () async {
-    for (final ({String id, String date, String cat}) e in <({
-      String id,
-      String date,
-      String cat,
-    })>[
-      (id: 'm-1', date: '2029-09-03', cat: 'hospital'),
-      (id: 'm-2', date: '2029-09-21', cat: 'meal'),
-      (id: 'm-3', date: '2029-10-01', cat: 'other'),
-    ]) {
+    for (final ({String id, String date, String cat}) e
+        in <({String id, String date, String cat})>[
+          (id: 'm-1', date: '2029-09-03', cat: 'hospital'),
+          (id: 'm-2', date: '2029-09-21', cat: 'meal'),
+          (id: 'm-3', date: '2029-10-01', cat: 'other'),
+        ]) {
       await db
           .into(db.scheduleEvents)
           .insert(
