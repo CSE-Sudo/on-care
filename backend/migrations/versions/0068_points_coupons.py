@@ -4,7 +4,7 @@
 건강식·보충제 할인), 쿠폰은 트레이너(PT 재등록) 또는 회원(건강식) 이 사용 처리한다.
 
 - `points_coupons` — 교환한 쿠폰 한 장. 상태는 issued|used|expired|cancelled.
-  PT 재등록 쿠폰은 회원당 사용 가능한 것이 한 장뿐이다(partial unique index).
+  사용 가능한 쿠폰은 종류마다 회원당 한 장뿐이다(partial unique index).
 - `points_ledger` 에 반환(`refund`) 종류를 더한다. 담당 트레이너 연결이 끊겨
   PT 재등록 쿠폰이 취소되면 교환에 쓴 포인트를 돌려준다. 회수(`revoke`)가 같은
   source 의 적립을 되돌리듯, 반환은 같은 source 의 사용을 되돌린다 — 그래서 부호가
@@ -89,16 +89,16 @@ def upgrade() -> None:
         "ix_points_coupons_user_status", "points_coupons", ["user_id", "status"]
     )
     op.create_index(
-        "uq_points_coupons_active_renewal",
+        "uq_points_coupons_active_item",
         "points_coupons",
-        ["user_id"],
+        ["user_id", "item"],
         unique=True,
-        postgresql_where=sa.text("item = 'pt_renewal' AND status = 'issued'"),
+        postgresql_where=sa.text("status = 'issued'"),
     )
 
 
 def downgrade() -> None:
-    op.drop_index("uq_points_coupons_active_renewal", table_name="points_coupons")
+    op.drop_index("uq_points_coupons_active_item", table_name="points_coupons")
     op.drop_index("ix_points_coupons_user_status", table_name="points_coupons")
     op.drop_index("ix_points_coupons_user_id", table_name="points_coupons")
     op.drop_table("points_coupons")

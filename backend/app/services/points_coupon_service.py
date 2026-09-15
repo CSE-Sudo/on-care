@@ -7,7 +7,8 @@
   할인, 30일. 재등록 1회에 1장이라 사용 가능한 쿠폰은 회원당 한 장뿐이다. 사용
   처리는 **현재 담당 트레이너**만 한다.
 - **건강식·보충제 할인 쿠폰(데모)** — 샐러드 10%, 프로틴 3,000원. 각 1000P, 30일.
-  코드를 보여 주고 회원이 스스로 사용 완료를 누른다.
+  코드를 보여 주고 회원이 스스로 사용 완료를 누른다. 재등록 쿠폰처럼 종류마다
+  사용 가능한 쿠폰은 회원당 한 장이다.
 
 규칙:
 
@@ -106,6 +107,7 @@ SALAD_DISCOUNT = ShopItem(
     cost=1000,
     valid_days=30,
     redeemer=REDEEMER_MEMBER,
+    one_active=True,
 )
 PROTEIN_DISCOUNT = ShopItem(
     id="protein_discount",
@@ -115,6 +117,7 @@ PROTEIN_DISCOUNT = ShopItem(
     cost=1000,
     valid_days=30,
     redeemer=REDEEMER_MEMBER,
+    one_active=True,
 )
 
 #: 화면에 서는 순서 그대로다.

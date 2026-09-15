@@ -136,8 +136,12 @@
 | `item` | 이름 | 포인트 | 기한 | 사용 처리 | 조건 |
 |---|---|---|---|---|---|
 | `pt_renewal` | PT 재등록 할인 쿠폰(10,000원) | 5000 | 30일 | 담당 트레이너 | 활성 담당 필요, 사용 가능한 쿠폰은 회원당 1장 |
-| `salad_discount` | 샐러드 10% 할인 | 1000 | 30일 | 회원 | — |
-| `protein_discount` | 프로틴 3,000원 할인 | 1000 | 30일 | 회원 | — |
+| `salad_discount` | 샐러드 10% 할인 | 1000 | 30일 | 회원 | 사용 가능한 쿠폰은 회원당 1장 |
+| `protein_discount` | 프로틴 3,000원 할인 | 1000 | 30일 | 회원 | 사용 가능한 쿠폰은 회원당 1장 |
+
+사용 가능한(`issued`, 기한 전) 쿠폰은 **종류마다** 회원당 1장이다 — `(user_id, item) WHERE status='issued'`
+partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으로 막히고, 교환하면 409 다. 사용·만료·취소되면
+다시 교환할 수 있다.
 
 `items[]`: `{ id, title, benefit, description, cost, valid_days, redeemer(trainer|member), requires_trainer,
 available, blocked_reason, shortfall }`. `blocked_reason` 은 `no_trainer` → `active_coupon` →
@@ -152,7 +156,7 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_coupon` 
 - **기한** 쓸 수 있는 마지막 날(`expires_on`, KST)은 교환일 + 30일이다. `expires_at` 은 그 다음 날 KST 0시.
   `days_left` 는 마지막 날까지 남은 날(당일 0).
 - **코드** 8자리, 헷갈리는 0·O·1·I 를 뺀 글자. 앱은 4자리씩 끊어 보여 준다.
-- **교환** 잔액 행을 잠근 채 확인하고 `spend`(음수)를 남긴다. 없는 항목 404, 잔액 부족·담당 없음·사용 가능한 재등록
+- **교환** 잔액 행을 잠근 채 확인하고 `spend`(음수)를 남긴다. 없는 항목 404, 잔액 부족·담당 없음·같은 종류의 사용 가능한
   쿠폰 보유는 409. 같은 `client_request_id` 재전송은 새로 쓰지 않고 처음 쿠폰을 돌려준다.
 - **사용 처리** `issued` 이고 기한 전일 때만 바꾸는 조건부 UPDATE 한 번이다. 이미 사용된 쿠폰은 같은 응답 200,
   만료·취소는 409. 되돌리기는 없다. 트레이너 처리는 처리 트레이너 id·시각을 남기고, 처음 처리한 요청만 감사 로그

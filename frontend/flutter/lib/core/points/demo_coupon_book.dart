@@ -8,7 +8,8 @@ import 'package:oncare/core/utils/clock.dart';
 ///
 /// 규칙은 서버와 같다:
 /// - PT 재등록 할인 쿠폰(5000P)은 담당 트레이너가 있어야 교환하고, 사용하지 않은
-///   쿠폰은 한 장뿐이다. 건강식·보충제 쿠폰(각 1000P)은 회원이 사용 처리한다.
+///   쿠폰은 한 장뿐이다. 건강식·보충제 쿠폰(각 1000P)도 종류마다 사용하지 않은
+///   쿠폰은 한 장뿐이고, 회원이 사용 처리한다.
 /// - 쓸 수 있는 마지막 날은 교환일 + 30일. 지나면 만료되고 포인트는 돌려주지 않는다.
 /// - 사용 처리는 한 번뿐이고 다시 누르면 같은 응답이다.
 /// - 담당 트레이너 연결이 끊기면([endTrainerLink]) 사용 가능한 재등록 쿠폰을 취소하고
@@ -310,6 +311,7 @@ const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
     cost: 1000,
     validDays: 30,
     redeemer: 'member',
+    oneActive: true,
   ),
   DemoShopItem(
     id: 'protein_discount',
@@ -319,6 +321,7 @@ const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
     cost: 1000,
     validDays: 30,
     redeemer: 'member',
+    oneActive: true,
   ),
 ];
 

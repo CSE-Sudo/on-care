@@ -256,6 +256,38 @@ def test_exchange_unknown_item_is_404(client, db_session):
     assert _exchange(client, h, "recipe_pack").status_code == 404
 
 
+def test_demo_coupon_one_unused_per_kind(client, db_session):
+    member_id, h = _new_member(client, db_session, points=5000)
+
+    salad = _exchange(client, h, "salad_discount")
+    assert salad.status_code == 201, salad.text
+    # 같은 종류를 쓰지 않은 채로 또 받을 수 없다.
+    again = _exchange(client, h, "salad_discount")
+    assert again.status_code == 409
+    assert _balance(client, h) == 4000
+    blocked = _shop_item(client, h, "salad_discount")
+    assert blocked["available"] is False
+    assert blocked["blocked_reason"] == "active_coupon"
+    # 다른 종류는 따로 센다.
+    assert _shop_item(client, h, "protein_discount")["available"] is True
+    protein = _exchange(client, h, "protein_discount")
+    assert protein.status_code == 201, protein.text
+
+    # 사용하면 같은 종류를 다시 받을 수 있다.
+    salad_id = salad.json()["coupon"]["id"]
+    assert client.post(f"/v1/me/coupons/{salad_id}/use", headers=h).status_code == 200
+    assert _exchange(client, h, "salad_discount").status_code == 201
+    # 만료돼도 다시 받을 수 있다.
+    _set_expiry(
+        db_session,
+        protein.json()["coupon"]["id"],
+        clock.now() - timedelta(minutes=1),
+    )
+    assert _shop_item(client, h, "protein_discount")["available"] is True
+    assert _exchange(client, h, "protein_discount").status_code == 201
+    assert _balance(client, h) == 1000
+
+
 def test_exchange_retry_with_request_id_spends_once(client, db_session):
     _, h = _new_member(client, db_session, points=2500)
     key = f"req-{uuid4().hex}"

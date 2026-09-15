@@ -125,6 +125,49 @@ void main() {
     await drainToast(tester);
   });
 
+  testWidgets('사용하지 않은 같은 종류 쿠폰이 있으면 그 카드만 막힌다', (tester) async {
+    await pumpShop(
+      tester,
+      FakeBenefitsRepository(
+        shop: shopWith(balance: 9000, activeItems: <String>{'salad_discount'}),
+      ),
+    );
+
+    expect(buttonOf(tester, 'salad_discount').onPressed, isNull);
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('shop-blocked-salad_discount')),
+          )
+          .data,
+      '사용하지 않은 쿠폰이 있어요',
+    );
+    // 다른 종류는 따로 센다.
+    expect(buttonOf(tester, 'protein_discount').onPressed, isNotNull);
+    expect(buttonOf(tester, 'pt_renewal').onPressed, isNotNull);
+  });
+
+  testWidgets('건강식 쿠폰을 교환하면 그 카드가 사용하지 않은 쿠폰으로 막힌다', (tester) async {
+    final FakeBenefitsRepository repo = FakeBenefitsRepository(
+      shop: shopWith(balance: 3000),
+    );
+    await pumpShop(tester, repo);
+
+    await tester.tap(exchangeButton('protein_discount'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('교환하기'));
+    await tester.pumpAndSettle();
+
+    expect(repo.exchanged, <String>['protein_discount']);
+    expect(buttonOf(tester, 'protein_discount').onPressed, isNull);
+    expect(
+      find.byKey(const ValueKey<String>('shop-blocked-protein_discount')),
+      findsOneWidget,
+    );
+    expect(buttonOf(tester, 'salad_discount').onPressed, isNotNull);
+    await drainToast(tester);
+  });
+
   testWidgets('확인창에서 취소하면 교환하지 않는다', (tester) async {
     final FakeBenefitsRepository repo = FakeBenefitsRepository();
     await pumpShop(tester, repo);

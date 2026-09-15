@@ -202,7 +202,7 @@ class PointsCoupon(Base):
       어느 트레이너에게 쓴 쿠폰인지 말할 수 있게 한다.
     - `redeemed_by` 는 사용 처리한 계정(트레이너 또는 회원) id 다. 감사 로그처럼
       FK 를 두지 않는다 — 처리한 사람이 탈퇴해도 기록은 남아야 한다.
-    - PT 재등록 쿠폰은 회원당 사용 가능한 것이 한 장뿐이다(partial unique index).
+    - 사용 가능한 쿠폰은 종류마다 회원당 한 장뿐이다(partial unique index).
     """
 
     __tablename__ = "points_coupons"
@@ -254,12 +254,14 @@ class PointsCoupon(Base):
             "user_id", "client_request_id", name="uq_points_coupons_client_request"
         ),
         Index("ix_points_coupons_user_status", "user_id", "status"),
-        # 재등록 1회에 1장 — 회원당 사용 가능한 PT 재등록 쿠폰은 최대 한 장.
+        # 종류마다 사용 가능한 쿠폰은 회원당 최대 한 장 — PT 재등록은 재등록 1회에
+        # 1장, 건강식·보충제 쿠폰도 같은 규칙이다.
         Index(
-            "uq_points_coupons_active_renewal",
+            "uq_points_coupons_active_item",
             "user_id",
+            "item",
             unique=True,
-            postgresql_where=text("item = 'pt_renewal' AND status = 'issued'"),
+            postgresql_where=text("status = 'issued'"),
         ),
     )
 

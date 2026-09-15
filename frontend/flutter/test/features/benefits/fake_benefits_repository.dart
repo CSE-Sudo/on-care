@@ -14,6 +14,18 @@ class FakeBenefitsRepository implements BenefitsRepository {
   final List<String> exchanged = <String>[];
   final List<String> used = <String>[];
 
+  /// 서버처럼 사용 가능한 쿠폰의 종류를 반영해 목록을 다시 만든다.
+  void _refreshShop(int balance) {
+    shop = shopWith(
+      balance: balance,
+      hasTrainer: shop.hasTrainer,
+      activeItems: <String>{
+        for (final Coupon c in coupons)
+          if (c.usable) c.item,
+      },
+    );
+  }
+
   @override
   Future<PointsShop> fetchShop() async => shop;
 
@@ -25,12 +37,12 @@ class FakeBenefitsRepository implements BenefitsRepository {
     exchanged.add(itemId);
     final ShopItem item = shop.items.firstWhere((ShopItem i) => i.id == itemId);
     final int balance = shop.balance - item.cost;
-    shop = shopWith(balance: balance, hasTrainer: shop.hasTrainer);
     final Coupon coupon = couponOf(
       id: 'cpn-new-${exchanged.length}',
       item: itemId,
     );
     coupons = <Coupon>[coupon, ...coupons];
+    _refreshShop(balance);
     return CouponExchange(coupon: coupon, spent: item.cost, balance: balance);
   }
 
@@ -44,12 +56,20 @@ class FakeBenefitsRepository implements BenefitsRepository {
       for (final Coupon c in coupons)
         c.id == couponId ? couponOf(id: c.id, item: c.item, status: CouponStatus.used) : c,
     ];
+    _refreshShop(shop.balance);
     return coupons.firstWhere((Coupon c) => c.id == couponId);
   }
 }
 
 /// 서버 규칙대로 막힌 이유를 계산한 교환 목록.
-PointsShop shopWith({required int balance, bool hasTrainer = true}) {
+///
+/// 순서도 서버와 같다 — 담당 없음, 사용하지 않은 같은 종류 쿠폰 보유(종류마다 한 장),
+/// 잔액 부족.
+PointsShop shopWith({
+  required int balance,
+  bool hasTrainer = true,
+  Set<String> activeItems = const <String>{},
+}) {
   ShopItem item(
     String id,
     int cost,
@@ -59,6 +79,8 @@ PointsShop shopWith({required int balance, bool hasTrainer = true}) {
     final int shortfall = cost > balance ? cost - balance : 0;
     final ShopBlockReason? blocked = requiresTrainer && !hasTrainer
         ? ShopBlockReason.noTrainer
+        : activeItems.contains(id)
+        ? ShopBlockReason.activeCoupon
         : shortfall > 0
         ? ShopBlockReason.insufficientPoints
         : null;

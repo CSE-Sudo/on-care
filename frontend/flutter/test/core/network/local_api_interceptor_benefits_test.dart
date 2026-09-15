@@ -142,6 +142,34 @@ void main() {
     expect(shop.items.first.blockReason, ShopBlockReason.activeCoupon);
   });
 
+  test('건강식 쿠폰도 종류마다 사용하지 않은 것은 한 장뿐이다', () async {
+    expect((await exchange('salad_discount')).statusCode, 201);
+    expect((await exchange('salad_discount')).statusCode, 409);
+    // 다른 종류는 따로 센다.
+    expect((await exchange('protein_discount')).statusCode, 201);
+    expect(await balance(), 5300);
+
+    final PointsShop shop = await DioBenefitsRepository(dio).fetchShop();
+    final Map<String, ShopItem> items = <String, ShopItem>{
+      for (final ShopItem item in shop.items) item.id: item,
+    };
+    expect(items['salad_discount']!.available, isFalse);
+    expect(items['salad_discount']!.blockReason, ShopBlockReason.activeCoupon);
+    expect(items['protein_discount']!.blockReason, ShopBlockReason.activeCoupon);
+    expect(items['pt_renewal']!.available, isTrue);
+
+    // 사용하면 같은 종류를 다시 받을 수 있다.
+    final String salad = (await coupons())
+        .firstWhere((Map<String, Object?> c) => c['item'] == 'salad_discount')['id']!
+        as String;
+    await DioBenefitsRepository(dio).useCoupon(salad);
+    expect((await exchange('salad_discount')).statusCode, 201);
+    // 만료돼도 다시 받을 수 있다.
+    now = DateTime(2026, 10, 16, 0, 1);
+    expect((await exchange('protein_discount')).statusCode, 201);
+    expect(await balance(), 3300);
+  });
+
   test('같은 요청 id 로 다시 보내면 한 번만 쓴다', () async {
     final Response<Object?> first = await exchange('salad_discount', requestId: 'req-1');
     final Response<Object?> second = await exchange('salad_discount', requestId: 'req-1');

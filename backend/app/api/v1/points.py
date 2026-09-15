@@ -50,7 +50,7 @@ def exchange_points(
     """포인트를 써서 쿠폰을 발급한다. 내역에는 `spend` 로 남는다.
 
     없는 항목은 404, 규칙에 막히면(잔액 부족·담당 트레이너 없음·사용하지 않은
-    재등록 쿠폰 보유) 409 다.
+    같은 종류 쿠폰 보유) 409 다.
     """
     try:
         return points_coupon_service.exchange(
