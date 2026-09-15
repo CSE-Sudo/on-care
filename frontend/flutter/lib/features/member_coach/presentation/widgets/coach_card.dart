@@ -305,7 +305,9 @@ class _RecommendedExerciseRowState
       title: l.coachCardRoutineCancelTitle,
       message: l.coachRoutineCancelConfirm(routine.name),
       confirmLabel: l.coachRoutineCancel,
-      cancelLabel: l.actionCancel,
+      // 확정 버튼에 이미 '취소' 가 들어 있다 — 왼쪽까지 `취소` 면 어느 쪽이
+      // 물리는 버튼인지 헷갈린다(#1782).
+      cancelLabel: l.coachRoutineKeep,
       destructive: true,
     );
     if (!ok || !mounted) return;
@@ -348,7 +350,8 @@ class _RecommendedExerciseRowState
       title: l.coachCardRoutineUndoTitle,
       message: l.coachRoutineUndoConfirm(routine.name),
       confirmLabel: l.coachRoutineUndo,
-      cancelLabel: l.actionCancel,
+      // 확정 버튼 `완료 취소` 와 둘 다 '취소' 가 되지 않게 왼쪽은 `유지` 다(#1782).
+      cancelLabel: l.coachRoutineKeep,
       destructive: true,
     );
     if (!ok || !mounted) return;

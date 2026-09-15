@@ -686,6 +686,10 @@
   "coachInviteExplain": "Accepting lets this trainer see your meal and workout records.",
   "coachInviteAccept": "Accept",
   "coachInviteReject": "Decline",
+  "coachInviteRejectConfirmTitle": "Decline this invite?",
+  "@coachInviteRejectConfirmTitle": {
+    "description": "Title of the red dialog confirming a declined trainer invite."
+  },
   "coachInviteAccepted": "{name} is now your coach",
   "@coachInviteAccepted": {"placeholders": {"name": {"type": "String"}}},
   "coachInviteRejected": "Request declined",
@@ -1484,6 +1488,10 @@
   "coachCardRoutineCancelTitle": "Cancel this workout?",
   "@coachCardRoutineCancelTitle": {
     "description": "Title of the dialog confirming removal of a recommended workout."
+  },
+  "coachRoutineKeep": "Keep",
+  "@coachRoutineKeep": {
+    "description": "Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is."
   },
   "coachRoutineCancelled": "Workout cancelled",
   "coachRoutineCancelFailed": "Couldn't cancel the workout",

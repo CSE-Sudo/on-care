@@ -434,14 +434,16 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     final Widget sheet = AppSheet(
       key: const Key('exerciseAddSheet'),
       title: widget.isEdit ? l.exEditExercise : l.exAddExercise,
-      // 이 시트를 끝내는 동작이다 — 하단에 넓은 주요 버튼으로 둔다. 저장 중에는
-      // 비활성이 되어 두 번 눌리지 않는다.
-      footer: AppButton(
-        key: const Key('exerciseSaveButton'),
-        label: l.exSave,
-        onPressed: _saving ? null : _save,
-        size: OnCareButtonSize.large,
-        fullWidth: true,
+      // [취소] 왼쪽, [저장] 오른쪽 — 식단 수정 화면과 같은 두 버튼이다(#1782).
+      // 취소는 저장하지 않고 시트만 닫는다. 저장 중에는 둘 다 비활성이 되어
+      // 두 번 눌리거나 저장 도중 닫히지 않는다.
+      footer: AppButtonPair(
+        cancelKey: const Key('exerciseCancelButton'),
+        cancelLabel: l.actionCancel,
+        onCancel: _saving ? null : () => Navigator.of(context).pop(),
+        confirmKey: const Key('exerciseSaveButton'),
+        confirmLabel: l.exSave,
+        onConfirm: _saving ? null : _save,
       ),
       child: GestureDetector(
         // 이름 칸 밖을 누르면 키보드를 닫는다 — 포커스를 잃는 순간 칼로리를
