@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show NumberFormat;
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -78,7 +79,7 @@ class OwnExerciseRecords extends ConsumerWidget {
                 label: l.exAddExercise,
                 variant: AppButtonVariant.secondary,
                 size: OnCareButtonSize.small,
-                leadingIcon: Icons.add_rounded,
+                leadingIcon: AppIcons.add,
                 onPressed: () =>
                     showExerciseAddSheet(context, initialDate: date),
               ),
@@ -177,7 +178,7 @@ class _OwnRecordCard extends ConsumerWidget {
             key: session.id == null
                 ? null
                 : ValueKey<String>('exercise-own-record-edit-${session.id}'),
-            icon: Icons.edit_rounded,
+            icon: AppIcons.edit,
             tooltip: l.exEditExercise,
             color: OnCareColors.textTertiary,
             onPressed: () => showExerciseAddSheet(context, session: session),

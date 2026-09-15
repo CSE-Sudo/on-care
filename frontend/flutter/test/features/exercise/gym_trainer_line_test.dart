@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
@@ -119,7 +120,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const Key('gymTrainerDetailButton')),
-          matching: find.byIcon(Icons.chevron_right_rounded),
+          matching: find.byIcon(AppIcons.chevronRight),
         ),
         findsOneWidget,
       );
@@ -204,7 +205,7 @@ void main() {
       // 지도는 위에 가로로 길게 눕고, 목록이 그 아래를 잇는다.
       expect(tester.getSize(mapSlot).height, greaterThan(0));
       expect(tester.getTopLeft(sheet).dy, tester.getBottomLeft(mapSlot).dy);
-      expect(arrow(tester), Icons.keyboard_arrow_up_rounded);
+      expect(arrow(tester), AppIcons.expandLess);
     });
 
     testWidgets('화살표로 목록만 보고 다시 지도를 부른다', (WidgetTester tester) async {
@@ -219,7 +220,7 @@ void main() {
       expect(tester.getTopLeft(sheet).dy, lessThan(sheetTop));
       // 다시 부를 머리줄은 남아 있고, 화살표가 방향을 뒤집는다.
       expect(find.text('주변 헬스장'), findsOneWidget);
-      expect(arrow(tester), Icons.keyboard_arrow_down_rounded);
+      expect(arrow(tester), AppIcons.expandMore);
 
       await tester.tap(toggle);
       await tester.pumpAndSettle();

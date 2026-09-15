@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -78,7 +79,7 @@ void main() {
   testWidgets('동기화 행은 앞머리 아이콘 없이 제목·설명·화살표만 둔다 (#1785)', (tester) async {
     await pumpMyTab(tester);
 
-    expect(find.byIcon(Icons.sync_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.sync), findsNothing);
     expect(find.text('6자리 코드로 담당 트레이너와 연결해요'), findsOneWidget);
     // 아이콘 칸이 빠졌으니 제목이 프로필 아바타와 같은 왼쪽 선에서 시작한다.
     expect(
@@ -91,7 +92,7 @@ void main() {
         .first;
     final Finder icons = find.descendant(of: row, matching: find.byType(Icon));
     expect(icons, findsOneWidget);
-    expect(tester.widget<Icon>(icons).icon, Icons.chevron_right_rounded);
+    expect(tester.widget<Icon>(icons).icon, AppIcons.chevronRight);
   });
 
   testWidgets('누르면 6자리 코드와 공유 범위 안내가 뜬다', (tester) async {
@@ -115,6 +116,23 @@ void main() {
             '',
     ].join();
     expect(shown, '979030');
+    // 자리 상자는 입력칸과 같은 흰 채움 + 회색 테두리다(#1776).
+    for (int i = 0; i < 6; i++) {
+      final BoxDecoration box =
+          tester
+                  .widget<Container>(
+                    find
+                        .descendant(
+                          of: find.byKey(ValueKey<String>('sync-digit-$i')),
+                          matching: find.byType(Container),
+                        )
+                        .first,
+                  )
+                  .decoration!
+              as BoxDecoration;
+      expect(box.color, OnCareColors.surfaceCard);
+      expect((box.border! as Border).top.color, OnCareColors.lineStrong);
+    }
     // 코드보다 먼저 무엇이 공유되는지 말해야 한다 — 이 시트를 여는 것이 동의다.
     expect(find.textContaining('식단·운동·건강 기록이 공유돼요'), findsOneWidget);
   });

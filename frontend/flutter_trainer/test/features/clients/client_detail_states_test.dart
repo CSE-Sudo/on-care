@@ -7,6 +7,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_detail_view.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -78,6 +79,16 @@ void main() {
     expect(
       find.byKey(const ValueKey<String>('client-detail-sub-tabs')),
       findsOneWidget,
+    );
+    // 이식 전에도 프로그램 탭과 같은 식단·운동 스트립이었다 — 같은 흰 엄지
+    // 모양을 쓴다(#1024, #1777).
+    expect(
+      tester
+          .widget<AppSegmentedToggle<String>>(
+            find.byKey(const ValueKey<String>('client-detail-sub-tabs')),
+          )
+          .style,
+      AppSegmentedToggleStyle.thumb,
     );
     expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
     expect(find.text('운동 현황'), findsNothing);

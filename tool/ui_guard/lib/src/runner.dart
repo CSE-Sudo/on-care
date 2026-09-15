@@ -10,6 +10,24 @@ const defaultApps = ['frontend/flutter', 'frontend/flutter_trainer'];
 /// 앱 디렉터리 안의 기준선 파일 이름. 앱 안에 두어 그 앱 CI 의 paths 필터에 걸리게 한다.
 const baselineFileName = 'ui_guard_baseline.json';
 
+/// 아이콘을 목록 한 곳에서만 고르는 앱과 그 목록 파일(앱 디렉터리 기준, #1803).
+///
+/// 여기 있는 앱은 [IconPolicy.registry] 로, 없는 앱(트레이너웹)은
+/// [IconPolicy.rounded] 로 검사한다.
+const iconRegistries = <String, String>{
+  'frontend/flutter': 'lib/app/app_icons.dart',
+};
+
+/// [app] 의 아이콘 목록 파일. 목록을 쓰지 않는 앱이면 `null` 이다.
+String? iconRegistryOf(String app) =>
+    iconRegistries[app.replaceAll(r'\', '/').replaceAll(RegExp(r'/+$'), '')];
+
+/// 앱 파일 하나에 적용할 아이콘 검사.
+IconPolicy iconPolicyFor(String relativePath, String? iconRegistry) {
+  if (iconRegistry == null) return IconPolicy.rounded;
+  return relativePath == iconRegistry ? IconPolicy.none : IconPolicy.registry;
+}
+
 /// 공용 패키지·생성물·PDF 생성기는 검사하지 않는다(#1698).
 ///
 /// - `lib/gen/**`, `lib/l10n/**`, `*.g.dart`: 생성물·번역 원본
@@ -29,7 +47,9 @@ bool isExcluded(String relativePath) {
 }
 
 /// 앱 하나의 `lib/` 를 훑어 파일별 [Finding] 을 모은다. 경로는 앱 디렉터리 기준.
-Map<String, List<Finding>> scanApp(Directory app) {
+///
+/// [iconRegistry] 를 주면 그 목록 밖의 아이콘을 잡는다([iconPolicyFor]).
+Map<String, List<Finding>> scanApp(Directory app, {String? iconRegistry}) {
   final lib = Directory('${app.path}/lib');
   if (!lib.existsSync()) {
     throw FileSystemException('lib 디렉터리가 없습니다', lib.path);
@@ -44,7 +64,10 @@ Map<String, List<Finding>> scanApp(Directory app) {
         .substring(app.path.length + 1)
         .replaceAll(r'\', '/');
     if (isExcluded(relative)) continue;
-    final findings = scanSource(file.readAsStringSync());
+    final findings = scanSource(
+      file.readAsStringSync(),
+      iconPolicy: iconPolicyFor(relative, iconRegistry),
+    );
     if (findings.isNotEmpty) result[relative] = findings;
   }
   return result;
@@ -82,7 +105,7 @@ String _updateCommand(String app, {bool allowIncrease = false}) =>
 /// 기준선과 비교한다. 같으면 0, 다르면 1.
 int runCheck(Directory root, String app, StringSink out) {
   final appDir = Directory('${root.path}/$app');
-  final findings = scanApp(appDir);
+  final findings = scanApp(appDir, iconRegistry: iconRegistryOf(app));
   final actual = countFindings(findings);
   final baselineFile = File('${appDir.path}/$baselineFileName');
   if (!baselineFile.existsSync()) {
@@ -144,7 +167,9 @@ int runUpdate(
   bool allowIncrease = false,
 }) {
   final appDir = Directory('${root.path}/$app');
-  final actual = countFindings(scanApp(appDir));
+  final actual = countFindings(
+    scanApp(appDir, iconRegistry: iconRegistryOf(app)),
+  );
   final baselineFile = File('${appDir.path}/$baselineFileName');
   final exists = baselineFile.existsSync();
   final baseline = exists

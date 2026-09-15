@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
@@ -136,7 +137,7 @@ class _CoachingSheet extends ConsumerWidget {
         key: const Key('coachingSheetCta'),
         child: AppButton(
           label: l.coachCtaChat,
-          leadingIcon: Icons.chat_bubble_outline_rounded,
+          leadingIcon: AppIcons.chat,
           size: OnCareButtonSize.large,
           fullWidth: true,
           onPressed: () {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.dart';
@@ -44,7 +45,7 @@ class ConnectedGymCard extends StatelessWidget {
             AppTag(
               label: l.exConnected,
               tone: AppTagTone.brand,
-              icon: Icons.check_circle_rounded,
+              icon: AppIcons.checkCircle,
             ),
             const SizedBox(height: OnCareSpacing.s8),
             Material(
@@ -65,12 +66,8 @@ class ConnectedGymCard extends StatelessWidget {
                           width: _gymIconBox,
                           height: _gymIconBox,
                           alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: tokens.brand.surface,
-                            borderRadius: OnCareRadius.mdAll,
-                          ),
-                          child: Icon(
-                            Icons.fitness_center_rounded,
+                          child: AppIcon(
+                            AppIcons.gym,
                             size: OnCareSize.iconMedium,
                             color: tokens.brand.primary,
                           ),
@@ -103,8 +100,8 @@ class ConnectedGymCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: OnCareSpacing.s8),
-                        const Icon(
-                          Icons.chevron_right_rounded,
+                        const AppIcon(
+                          AppIcons.chevronRight,
                           size: OnCareSize.iconLarge,
                           color: OnCareColors.textTertiary,
                         ),
@@ -126,8 +123,8 @@ class ConnectedGymCard extends StatelessWidget {
               const SizedBox(height: OnCareSpacing.s12),
               Row(
                 children: <Widget>[
-                  const Icon(
-                    Icons.person_off_rounded,
+                  const AppIcon(
+                    AppIcons.personOff,
                     size: OnCareSize.iconSmall,
                     color: OnCareColors.textTertiary,
                   ),

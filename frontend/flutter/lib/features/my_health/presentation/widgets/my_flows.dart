@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -34,6 +35,64 @@ Widget _shell(
     bottomInset: MediaQuery.paddingOf(context).bottom,
     header: AppTopBar(title: title),
     children: children,
+  );
+  return PopScope(canPop: !saving, child: page);
+}
+
+/// [_shell] 과 같지만 [footer] 를 스크롤 목록 밖, 화면 하단에 붙여 둔다. (#1782)
+///
+/// 식단의 끼니 수정 화면과 같은 틀이다. 저장 줄이 스크롤 목록 맨 끝에 있으면
+/// 긴 폼을 끝까지 내려야 저장할 수 있다. 키보드가 올라오면 Scaffold 가 몸통을
+/// 줄여 버튼이 키보드 위에 서고, 홈 인디케이터는 SafeArea 가 비킨다.
+Widget _formShell(
+  BuildContext context,
+  String title,
+  Widget footer,
+  List<Widget> children, {
+  bool saving = false,
+}) {
+  final OnCareTokens tokens = context.oncare;
+  final double side = tokens.density.pagePadding;
+  final Widget page = Scaffold(
+    key: const Key('mySettingsPage'),
+    backgroundColor: tokens.pageBackground,
+    appBar: AppTopBar(title: title),
+    body: SafeArea(
+      top: false,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            maxWidth: OnCareLayout.mobileContentMaxWidth,
+          ),
+          child: Column(
+            children: <Widget>[
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.fromLTRB(
+                    side,
+                    OnCareSpacing.s8,
+                    side,
+                    OnCareSpacing.sectionGap,
+                  ),
+                  children: children,
+                ),
+              ),
+              Padding(
+                key: const Key('mySettingsSaveRow'),
+                padding: EdgeInsets.fromLTRB(
+                  side,
+                  OnCareSpacing.s8,
+                  side,
+                  OnCareSpacing.s16,
+                ),
+                child: footer,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
   );
   return PopScope(canPop: !saving, child: page);
 }
@@ -76,6 +135,10 @@ Widget _loadFailed(BuildContext context, VoidCallback onRetry) {
 
 /// The 취소 · 저장 footer shared by the profile and goal pages. The confirm
 /// button shows a spinner and cancel disables while [saving].
+///
+/// 스크롤 목록 끝이 아니라 [_formShell] 로 화면 하단에 고정한다(#1782).
+/// 크기는 식단 수정 화면·운동 시트와 같은 기본(medium)이다 — 하단 두 버튼은
+/// 모두 한 크기로 맞춘다(#1782).
 Widget _saveRow({
   required BuildContext context,
   required bool saving,
@@ -88,7 +151,6 @@ Widget _saveRow({
     confirmLabel: l.mySave,
     onConfirm: onSave,
     confirmLoading: saving,
-    size: OnCareButtonSize.large,
   );
 }
 
@@ -199,7 +261,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return _shell(context, l.myProfileTitle, <Widget>[
+    final Widget footer = _saveRow(
+      context: context,
+      saving: _saving,
+      onSave: _save,
+    );
+    return _formShell(context, l.myProfileTitle, footer, <Widget>[
       Center(
         child: AppAvatar(
           name: widget.initial.name.trim(),
@@ -268,8 +335,6 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           keyboardType: TextInputType.number,
         ),
       ]),
-      const SizedBox(height: OnCareSpacing.s16),
-      _saveRow(context: context, saving: _saving, onSave: _save),
     ], saving: _saving);
   }
 }
@@ -583,7 +648,12 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     // **권해만 준다**. 뒤쪽까지 자동으로 덮으면 회원이 적어 둔 배분이 칼로리를
     // 만질 때마다 사라진다.
     final split = _suggestedSplit;
-    return _shell(context, l.myHealthGoalsTitle, <Widget>[
+    final Widget footer = _saveRow(
+      context: context,
+      saving: _saving,
+      onSave: _save,
+    );
+    return _formShell(context, l.myHealthGoalsTitle, footer, <Widget>[
       // 순서: 관리 초점 → 자유 입력 운동 목표 → 수치형 운동 목표 → 식단 목표
       // (#1471). 온보딩 2단계가 묻는 것과 같은 순서라, 두 화면이 같은 이야기를
       // 같은 차례로 한다.
@@ -775,8 +845,6 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           ),
         ],
       ]),
-      const SizedBox(height: OnCareSpacing.s16),
-      _saveRow(context: context, saving: _saving, onSave: _save),
     ], saving: _saving);
   }
 }
@@ -966,7 +1034,7 @@ class SupportPage extends StatelessWidget {
       _listCard(<Widget>[
         _supportRow(
           context,
-          Icons.help_outline_rounded,
+          AppIcons.help,
           l.mySupportFaq,
           () => _openExternal(context, kSupportChannelUrl),
           external: true,
@@ -975,7 +1043,7 @@ class SupportPage extends StatelessWidget {
         const AppDivider(),
         _supportRow(
           context,
-          Icons.chat_bubble_outline_rounded,
+          AppIcons.chat,
           l.mySupportInquiry,
           () => _openExternal(context, kSupportChatUrl),
           external: true,
@@ -984,14 +1052,14 @@ class SupportPage extends StatelessWidget {
         const AppDivider(),
         _supportRow(
           context,
-          Icons.description_rounded,
+          AppIcons.document,
           l.myLegalTermsTitle,
           () => _openLegal(context, _LegalDoc.terms),
         ),
         const AppDivider(),
         _supportRow(
           context,
-          Icons.privacy_tip_rounded,
+          AppIcons.privacy,
           l.myLegalPrivacyTitle,
           () => _openLegal(context, _LegalDoc.privacy),
         ),
@@ -1045,7 +1113,7 @@ Widget _supportRow(
   String? hint,
 }) {
   return AppListRow(
-    leading: Icon(
+    leading: AppIcon(
       icon,
       size: OnCareSize.iconMedium,
       color: context.oncare.brand.primary,
@@ -1054,8 +1122,8 @@ Widget _supportRow(
     subtitle: hint,
     // 앱 밖으로 나가는 행은 화살표 대신 외부 링크 아이콘을 쓴다 —
     // 눌렀을 때 무엇이 일어나는지 미리 보이게.
-    trailing: Icon(
-      external ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
+    trailing: AppIcon(
+      external ? AppIcons.external : AppIcons.chevronRight,
       size: OnCareSize.iconMedium,
       color: OnCareColors.textTertiary,
     ),
