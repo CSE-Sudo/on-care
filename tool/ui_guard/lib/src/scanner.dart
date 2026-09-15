@@ -24,10 +24,13 @@ class Finding {
 ///
 /// 정규식이 아니라 구문 트리로 본다 — 주석·문자열 속 글자를 잡지 않고, 같은 `height:`
 /// 라도 `TextStyle` 줄 높이와 `SizedBox` 크기를 구분하기 위해서다. 타입 해석(resolve)은
-/// 하지 않으므로 이름으로만 판단한다.
-List<Finding> scanSource(String source) {
+/// 하지 않으므로 이름으로만 판단한다. 아이콘은 [iconPolicy] 에 따라 본다(#1803).
+List<Finding> scanSource(
+  String source, {
+  IconPolicy iconPolicy = IconPolicy.rounded,
+}) {
   final result = parseString(content: source, throwIfDiagnostics: false);
-  final visitor = _Visitor(result.lineInfo, source);
+  final visitor = _Visitor(result.lineInfo, source, iconPolicy);
   result.unit.accept(visitor);
   visitor.findings.sort((a, b) {
     final byLine = a.line.compareTo(b.line);
@@ -80,10 +83,11 @@ class _Call {
 }
 
 class _Visitor extends RecursiveAstVisitor<void> {
-  _Visitor(this._lineInfo, this._source);
+  _Visitor(this._lineInfo, this._source, this._iconPolicy);
 
   final LineInfo _lineInfo;
   final String _source;
+  final IconPolicy _iconPolicy;
   final findings = <Finding>[];
 
   void _add(Rule rule, AstNode node) {
@@ -166,6 +170,14 @@ class _Visitor extends RecursiveAstVisitor<void> {
       }
     }
 
+    // 회원앱 화면은 `Icon` 대신 `AppIcon` 으로 그린다 — 채움·굵기·광학 크기가
+    // 목록의 모양대로 실리게 하기 위해서다(#1803).
+    if (_iconPolicy == IconPolicy.registry &&
+        type == 'Icon' &&
+        call.name == null) {
+      _add(Rule.rawIcon, node);
+    }
+
     if (type != null &&
         (materialWidgetNames.contains(type) ||
             type.startsWith(materialWidgetPrefix))) {
@@ -200,8 +212,17 @@ class _Visitor extends RecursiveAstVisitor<void> {
     if (prefix == 'Colors' && name != 'transparent') {
       _add(Rule.materialColor, node);
     }
-    if (prefix == 'Icons' && !name.endsWith('_rounded')) {
-      _add(Rule.nonRoundedIcon, node);
+    switch (_iconPolicy) {
+      case IconPolicy.rounded:
+        if (prefix == 'Icons' && !name.endsWith('_rounded')) {
+          _add(Rule.nonRoundedIcon, node);
+        }
+      case IconPolicy.registry:
+        if (prefix == 'Icons' || prefix == 'Symbols') {
+          _add(Rule.iconOutsideRegistry, node);
+        }
+      case IconPolicy.none:
+        break;
     }
     super.visitPrefixedIdentifier(node);
   }

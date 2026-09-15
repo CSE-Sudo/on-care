@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/alert_navigation.dart';
 import 'package:oncare/features/notification/presentation/alert_text.dart';
@@ -19,20 +20,17 @@ import 'package:oncare_ui/oncare_ui.dart';
 ) => switch (c) {
   AlertCategory.reminder => (
     label: l.alertCategoryReminder,
-    icon: Icons.notifications_rounded,
+    icon: AppIcons.notifications,
   ),
   AlertCategory.healthCheck => (
     label: l.alertCategoryHealth,
-    icon: Icons.monitor_heart_rounded,
+    icon: AppIcons.healthCheck,
   ),
   AlertCategory.achievement => (
     label: l.alertCategoryAchievement,
-    icon: Icons.emoji_events_rounded,
+    icon: AppIcons.achievement,
   ),
-  AlertCategory.system => (
-    label: l.alertCategorySystem,
-    icon: Icons.info_rounded,
-  ),
+  AlertCategory.system => (label: l.alertCategorySystem, icon: AppIcons.info),
 };
 
 /// 목록 행 바탕 — 안 읽은 알림은 브랜드 옅은 색, 읽은 알림은 흰색(#1810).
@@ -160,7 +158,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                     child: AppBanner(
                       key: const Key('notificationRetryBanner'),
                       tone: AppBannerTone.danger,
-                      icon: Icons.cloud_off_rounded,
+                      icon: AppIcons.offline,
                       title: l.alertLoadFailed,
                       actionLabel: l.actionRetry,
                       onAction: _refresh,
@@ -176,7 +174,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                       0,
                     ),
                     child: AppEmptyState(
-                      icon: Icons.notifications_off_rounded,
+                      icon: AppIcons.notificationsOff,
                       title: l.alertEmpty,
                     ),
                   );
@@ -297,7 +295,7 @@ class _CategoryBadge extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: OnCareColors.lineSubtle),
       ),
-      child: Icon(
+      child: AppIcon(
         icon,
         size: OnCareSize.iconMedium,
         color: OnCareColors.textSecondary,

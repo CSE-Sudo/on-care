@@ -15,6 +15,11 @@ enum Rule {
   boxShadow('boxShadow', 'BoxShadow 직접 생성'),
   animationDuration('animationDuration', '숫자 Duration(milliseconds:) 애니메이션 시간'),
   nonRoundedIcon('nonRoundedIcon', '_rounded 가 아닌 Icons.*'),
+  iconOutsideRegistry(
+    'iconOutsideRegistry',
+    '아이콘 목록(AppIcons) 밖의 Icons.*·Symbols.* 직접 사용',
+  ),
+  rawIcon('rawIcon', 'Icon 직접 생성(AppIcon 을 쓴다)'),
   materialWidget('materialWidget', 'Material 원시 위젯 직접 사용');
 
   const Rule(this.id, this.description);
@@ -56,3 +61,17 @@ const materialWidgetNames = <String>{
 };
 
 const materialWidgetPrefix = 'DropdownButton';
+
+/// 앱마다 아이콘을 어떻게 검사하는지(#1803).
+enum IconPolicy {
+  /// 트레이너웹 — `_rounded` 가 아닌 `Icons.*` 만 잡는다([Rule.nonRoundedIcon]).
+  rounded,
+
+  /// 회원앱 화면 — 아이콘은 목록(`AppIcons`)에서만 고르고 [AppIcon] 으로 그린다.
+  /// `Icons.*`·`Symbols.*`([Rule.iconOutsideRegistry])와 `Icon(`([Rule.rawIcon])을
+  /// 잡는다.
+  registry,
+
+  /// 아이콘 목록 파일 자체 — `Symbols.*` 를 골라 담는 곳이라 아이콘은 보지 않는다.
+  none,
+}

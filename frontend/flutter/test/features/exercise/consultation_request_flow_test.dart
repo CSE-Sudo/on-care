@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
@@ -13,7 +14,8 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' show OnCareColors;
+import 'package:oncare_ui/oncare_ui.dart'
+    show AppButton, AppTimeRangePickerDialog, OnCareColors;
 
 import '../../support/consultation_test_support.dart';
 
@@ -105,24 +107,18 @@ Future<void> _revealInForm(
 ///
 /// "시간 협의"가 없어진 뒤(#1587) 폼을 끝까지 채우려면 이 단계가 반드시
 /// 필요하다 — 선택기 내부 조작은 `consult_time_range_picker_test.dart` 의
-/// 몫이라 여기서는 열고 확인만 누른다. 공용 선택기는 시작·종료를 차례로
-/// 묻으므로(#1701) 확인을 두 번 누른다.
+/// 몫이라 여기서는 열고 확인만 누른다. 시작·종료를 한 창에서 고르므로
+/// (#1779) 확인은 한 번이다 — 창 아래 두 버튼(취소 / 확인)의 오른쪽이다.
 Future<void> _pickPreferredTime(WidgetTester tester) async {
   await _revealInForm(tester, find.byKey(const Key('consult-time')), 180);
   await tester.tap(find.byKey(const Key('consult-time')));
   await tester.pumpAndSettle();
-  for (int step = 0; step < 2; step++) {
-    final Finder dialog = find.byType(TimePickerDialog);
-    expect(dialog, findsOneWidget);
-    final String ok = MaterialLocalizations.of(
-      tester.element(dialog),
-    ).okButtonLabel;
-    final Finder confirm = find.descendant(of: dialog, matching: find.text(ok));
-    await tester.ensureVisible(confirm);
-    await tester.pumpAndSettle();
-    await tester.tap(confirm);
-    await tester.pumpAndSettle();
-  }
+  final Finder dialog = find.byType(AppTimeRangePickerDialog);
+  expect(dialog, findsOneWidget);
+  await tester.tap(
+    find.descendant(of: dialog, matching: find.byType(AppButton)).last,
+  );
+  await tester.pumpAndSettle();
 }
 
 AppLocalizations _localizations(WidgetTester tester) {
@@ -341,43 +337,35 @@ void main() {
 
     await tester.tap(find.text(l.exGoalWeightLoss));
     await _revealInForm(tester, find.text(l.exSelectDate), 180);
-    // 날짜 칸은 입력창과 같은 채움이다 — 고르기 전후로 모양이 같다(#1701).
+    // 날짜 칸은 입력창과 같은 흰 채움이다 — 고르기 전후로 모양이 같다
+    // (#1701, #1776).
     Finder dateMaterial = find
         .ancestor(
-          of: find.byIcon(Icons.calendar_today_rounded),
+          of: find.byIcon(AppIcons.calendar),
           matching: find.byType(Material),
         )
         .first;
     expect(
       tester.widget<Material>(dateMaterial).color,
-      OnCareColors.surfaceInput,
+      OnCareColors.surfaceCard,
     );
     await tester.tap(find.text(l.exSelectDate));
     await tester.pumpAndSettle();
-    // 공용 날짜 선택기(달력)가 뜬다.
-    final Finder datePickerDialog = find.byType(DatePickerDialog);
+    // 공용 날짜 선택창(입력칸 + 달력, #1778)이 뜬다.
+    final Finder datePickerDialog = find.byKey(const Key('portraitDatePicker'));
     expect(datePickerDialog, findsOneWidget);
-    await tester.tap(
-      find.descendant(
-        of: datePickerDialog,
-        matching: find.text(
-          MaterialLocalizations.of(
-            tester.element(datePickerDialog),
-          ).okButtonLabel,
-        ),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('portraitDatePickerConfirm')));
     await tester.pumpAndSettle();
     expect(find.text(l.exSelectDate), findsNothing);
     dateMaterial = find
         .ancestor(
-          of: find.byIcon(Icons.calendar_today_rounded),
+          of: find.byIcon(AppIcons.calendar),
           matching: find.byType(Material),
         )
         .first;
     expect(
       tester.widget<Material>(dateMaterial).color,
-      OnCareColors.surfaceInput,
+      OnCareColors.surfaceCard,
     );
     // 희망 시각은 필수다(#1587). 선택기 자체의 조작(다이얼·직접 입력)은
     // `consult_time_range_picker_test.dart` 가 따로 다루므로, 여기서는 기본값

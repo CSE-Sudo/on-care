@@ -614,7 +614,7 @@
   "exTimeRangeEndMinuteStep": "종료 분",
   "exSlotAm": "오전",
   "exSlotPm": "오후",
-  "exTimeRangeInvalidEnd": "종료 시간이 시작 시간보다 빠릅니다",
+  "exTimeRangeInvalidEnd": "종료 시간은 시작 시간보다 늦어야 해요",
   "exTimeRangePrevStep": "이전 단계",
   "exTimeRangeNextStep": "다음 단계",
   "exConsultMessage": "문의 내용",
@@ -657,24 +657,27 @@
   "authNoAccountQuestion": "계정이 없으신가요?",
   "authSignUpAction": "회원가입",
   "authDemoAction": "로그인 없이 데모 둘러보기",
-  "authOrDivider": "또는",
+  "authSocialDivider": "SNS 계정으로 로그인",
   "authKakaoAction": "카카오로 시작하기",
   "authGoogleAction": "구글로 시작하기",
-  "authMissingCredentials": "이메일과 비밀번호를 입력해 주세요",
+  "authEmailEmpty": "이메일을 입력해 주세요",
+  "authEmailInvalid": "이메일 형식이 올바르지 않아요",
+  "authPasswordEmpty": "비밀번호를 입력해 주세요",
   "authSignInFailed": "로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요",
   "authSocialSignInFailed": "소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요",
   "signUpTitle": "회원가입",
   "signUpSubtitle": "On-Care 계정을 만들어 건강 관리를 시작하세요",
   "signUpNameHint": "이름",
-  "signUpPhoneHint": "전화번호",
+  "signUpNameEmpty": "이름을 입력해 주세요",
+  "signUpPhoneHint": "010-0000-0000",
   "signUpPhoneHelper": "트레이너가 회원님을 확인할 때 쓰는 연락처예요",
-  "signUpPasswordHint": "비밀번호 (8자 이상)",
+  "signUpPasswordHint": "비밀번호 (영문·숫자 포함 8자 이상)",
   "signUpPasswordConfirmHint": "비밀번호 확인",
   "signUpAction": "가입하고 시작하기",
   "signUpHaveAccountQuestion": "이미 계정이 있으신가요?",
-  "signUpPasswordTooShort": "비밀번호는 8자 이상이어야 해요",
+  "signUpPasswordWeak": "영문과 숫자를 포함해 8자 이상 입력해 주세요",
   "signUpPasswordMismatch": "비밀번호가 일치하지 않아요",
-  "signUpPhoneInvalid": "전화번호를 4자리 이상 입력해 주세요",
+  "signUpPhoneFormatInvalid": "전화번호를 000-0000-0000 형식으로 입력해 주세요",
   "trainerSyncEntryLabel": "트레이너와 데이터 동기화",
   "trainerSyncEntryHint": "6자리 코드로 담당 트레이너와 연결해요",
   "trainerSyncTitle": "트레이너와 데이터 동기화",
@@ -805,8 +808,19 @@
   "myNotificationSaveFailed": "알림 설정을 저장하지 못했어요",
   "myPointsGuideTitle": "포인트 적립 안내",
   "myPointsDietAdd": "식단 추가",
-  "myPointsAiExercise": "AI 추천 운동 완료",
+  "myPointsRoutineComplete": "추천·배정 운동 완료",
   "myPointsExerciseAdd": "운동 직접 추가",
+  "myPointsRuleWithDailyCap": "{action} (하루 {count}회)",
+  "@myPointsRuleWithDailyCap": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "coachAssignedTrainer": "담당 트레이너",
   "coachPointsTitle": "이번 코칭 포인트",
   "coachRoutineTitle": "추천 개인운동",
@@ -832,6 +846,7 @@
   },
   "coachCardRoutineUndoTitle": "완료를 취소할까요?",
   "coachCardRoutineCancelTitle": "개인 운동을 취소할까요?",
+  "coachRoutineKeep": "유지",
   "coachRoutineCancelled": "개인 운동을 취소했어요",
   "coachRoutineCancelFailed": "개인 운동을 취소하지 못했어요",
   "coachRoutineMyNote": "내 피드백: {note}",
@@ -906,5 +921,13 @@
   "exDemoPtTrainerName": "김트레이너",
   "exDemoPtFeedback": "숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!",
   "exStepperDecrease": "줄이기",
-  "exStepperIncrease": "늘리기"
+  "exStepperIncrease": "늘리기",
+  "pointsRewardBadge": "+{points}P",
+  "@pointsRewardBadge": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  }
 }

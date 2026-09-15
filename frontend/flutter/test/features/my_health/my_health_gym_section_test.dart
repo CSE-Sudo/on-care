@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -191,7 +192,7 @@ void main() {
     expect(find.byTooltip('트레이너 상세 보기'), findsOneWidget);
     expect(find.byTooltip('헬스장 연결 삭제'), findsNothing);
     expect(find.byTooltip('트레이너 연결 삭제'), findsNothing);
-    expect(find.byIcon(Icons.delete_outline_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.delete), findsNothing);
 
     // 연결은 그대로다 — 이 화면에서는 아무것도 지우지 않는다.
     expect(await connectedGym(tester), isNotNull);

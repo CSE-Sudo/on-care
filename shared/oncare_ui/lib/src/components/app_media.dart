@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/motion.dart';
@@ -183,7 +184,7 @@ class AppImageFrame extends StatelessWidget {
     this.width,
     this.height,
     this.large = false,
-    this.placeholderIcon = Icons.image_rounded,
+    this.placeholderIcon,
     this.child,
   });
 
@@ -193,7 +194,9 @@ class AppImageFrame extends StatelessWidget {
 
   /// 카드급 큰 이미지(지도 등)면 반경 20.
   final bool large;
-  final IconData placeholderIcon;
+
+  /// 비우면 아이콘 묶음의 이미지 아이콘이다.
+  final IconData? placeholderIcon;
 
   /// 지도처럼 이미지 대신 위젯을 담을 때.
   final Widget? child;
@@ -209,9 +212,9 @@ class AppImageFrame extends StatelessWidget {
         child:
             child ??
             (image == null
-                ? const Center(
-                    child: Icon(
-                      Icons.image_rounded,
+                ? Center(
+                    child: AppIcon(
+                      placeholderIcon ?? AppIcon.setOf(context).image,
                       size: OnCareSize.iconLarge,
                       color: OnCareColors.textTertiary,
                     ),

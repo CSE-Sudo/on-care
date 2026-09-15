@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/domain/repositories/schedule_repository.dart';
@@ -194,7 +195,7 @@ void main() {
     await tester.tap(find.widgetWithText(AppButton, '삭제'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.tap(find.byIcon(AppIcons.close));
     await tester.pumpAndSettle();
 
     // 부른 쪽(캘린더)이 달을 다시 읽어야 하는지 판단할 근거다.

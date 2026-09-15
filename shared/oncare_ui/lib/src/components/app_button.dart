@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
@@ -160,7 +161,7 @@ class AppButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               if (leadingIcon != null) ...<Widget>[
-                Icon(leadingIcon, size: iconSize),
+                AppIcon(leadingIcon, size: iconSize),
                 const SizedBox(width: OnCareSpacing.s8),
               ],
               Flexible(
@@ -172,7 +173,7 @@ class AppButton extends StatelessWidget {
               ),
               if (trailingIcon != null) ...<Widget>[
                 const SizedBox(width: OnCareSpacing.s4),
-                Icon(trailingIcon, size: iconSize),
+                AppIcon(trailingIcon, size: iconSize),
               ],
             ],
           );
@@ -205,6 +206,8 @@ class AppButtonPair extends StatelessWidget {
     this.destructive = false,
     this.size = OnCareButtonSize.medium,
     this.confirmLoading = false,
+    this.cancelKey,
+    this.confirmKey,
   });
 
   final String cancelLabel;
@@ -217,12 +220,18 @@ class AppButtonPair extends StatelessWidget {
   final OnCareButtonSize size;
   final bool confirmLoading;
 
+  /// 두 버튼에 붙일 키. 같은 라벨이 화면에 여럿일 때 테스트·자동화가 두 버튼을
+  /// 따로 지목한다.
+  final Key? cancelKey;
+  final Key? confirmKey;
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
         Expanded(
           child: AppButton(
+            key: cancelKey,
             label: cancelLabel,
             onPressed: onCancel,
             variant: AppButtonVariant.secondary,
@@ -233,6 +242,7 @@ class AppButtonPair extends StatelessWidget {
         const SizedBox(width: OnCareSpacing.buttonGap),
         Expanded(
           child: AppButton(
+            key: confirmKey,
             label: confirmLabel,
             onPressed: onConfirm,
             variant: destructive

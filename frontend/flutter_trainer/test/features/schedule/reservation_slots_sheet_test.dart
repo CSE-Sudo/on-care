@@ -116,7 +116,7 @@ void main() {
       await settle(tester);
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(DatePickerDialog), findsOneWidget);
+      expect(find.byKey(const Key('portraitDatePicker')), findsOneWidget);
     });
 
     testWidgets('시간 범위는 한 필드에 보이고 시 선택 뒤 단계 화살표가 나타난다', (tester) async {

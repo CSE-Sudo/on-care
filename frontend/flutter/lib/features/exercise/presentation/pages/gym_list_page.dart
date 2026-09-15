@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -164,7 +165,7 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                       // 상담 요청이 있으면 점이 켜진다(#1257).
                       HeaderActionButton(
                         key: const Key('consult-history-shortcut'),
-                        icon: Icons.assignment_rounded,
+                        icon: AppIcons.request,
                         tooltip: l.exViewConsultationRequest,
                         showDot: hasPendingConsultation,
                         onPressed: () =>
@@ -229,7 +230,7 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
           return SliverToBoxAdapter(
             child: AppEmptyState(
               title: l.exNoSearchResults,
-              icon: Icons.search_off_rounded,
+              icon: AppIcons.searchOff,
               placement: AppStatePlacement.card,
             ),
           );
@@ -438,9 +439,7 @@ class _SheetHead extends StatelessWidget {
               onPressed: onToggle,
               tooltip: label,
               color: OnCareColors.textTertiary,
-              icon: collapsed
-                  ? Icons.keyboard_arrow_up_rounded
-                  : Icons.keyboard_arrow_down_rounded,
+              icon: collapsed ? AppIcons.expandLess : AppIcons.expandMore,
             ),
           ),
         ],
@@ -494,7 +493,7 @@ class _ResultControls extends StatelessWidget {
                 onPressed: toggle,
                 variant: AppButtonVariant.secondary,
                 size: OnCareButtonSize.small,
-                trailingIcon: Icons.keyboard_arrow_down_rounded,
+                trailingIcon: AppIcons.expandMore,
               ),
         ),
       ],
@@ -535,13 +534,9 @@ class _GymListCard extends ConsumerWidget {
               Container(
                 width: _gymIconBox,
                 height: _gymIconBox,
-                decoration: BoxDecoration(
-                  color: tokens.brand.surface,
-                  borderRadius: OnCareRadius.mdAll,
-                ),
                 alignment: Alignment.center,
-                child: Icon(
-                  Icons.fitness_center_rounded,
+                child: AppIcon(
+                  AppIcons.gym,
                   size: OnCareSize.iconMedium,
                   color: tokens.brand.primary,
                 ),
@@ -571,8 +566,8 @@ class _GymListCard extends ConsumerWidget {
                           ),
                         ),
                         const SizedBox(width: OnCareSpacing.s8),
-                        const Icon(
-                          Icons.star_rounded,
+                        const AppIcon(
+                          AppIcons.star,
                           size: OnCareSize.iconSmall,
                           color: OnCareColors.cautionFill,
                         ),
@@ -617,8 +612,8 @@ class _GymListCard extends ConsumerWidget {
               ),
               if (onTap != null) ...<Widget>[
                 const SizedBox(width: OnCareSpacing.s8),
-                const Icon(
-                  Icons.chevron_right_rounded,
+                const AppIcon(
+                  AppIcons.chevronRight,
                   size: OnCareSize.iconMedium,
                   color: OnCareColors.textTertiary,
                 ),
@@ -737,8 +732,8 @@ class _MapPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Icon(
-      Icons.location_on_rounded,
+    return AppIcon(
+      AppIcons.location,
       size: _mapPinSize,
       color: context.oncare.brand.primary,
     );

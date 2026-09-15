@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
+import 'package:oncare_ui/src/tokens/elevation.dart';
 import 'package:oncare_ui/src/tokens/motion.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
@@ -62,7 +64,7 @@ class AppChoiceChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 if (icon != null) ...<Widget>[
-                  Icon(icon, size: OnCareSize.iconSmall, color: foreground),
+                  AppIcon(icon, size: OnCareSize.iconSmall, color: foreground),
                   const SizedBox(width: OnCareSpacing.s4),
                 ],
                 Flexible(
@@ -94,9 +96,25 @@ class AppSegment<T> {
   final IconData? icon;
 }
 
-/// 세그먼트 토글(#1690 확정) — 오늘/주/월 같은 보기 전환.
+/// 세그먼트 토글 모양(#1777).
+enum AppSegmentedToggleStyle {
+  /// 알약 트랙 위 선택 칸을 브랜드로 채운다 — 오늘/이번 주/전체 같은 기간 토글.
+  fill,
+
+  /// 옅은 브랜드 알약 띠(높이 44) 위에 선택 칸을 흰 알약(엄지)으로 띄운다.
+  /// 선택 칸의 아이콘·글자가 메인 색이다 — 트레이너웹 식단/운동 전환 스트립(#1024).
+  thumb,
+}
+
+/// 세그먼트 토글(#1690) — 오늘/이번 주/전체·식단/운동 같은 보기 전환.
 ///
-/// 입력 채움 알약 트랙 위에서 선택 칸만 브랜드로 꽉 채우고 흰 글자로 쓴다.
+/// 기본 [AppSegmentedToggleStyle.fill] 은 공용 토글로 옮기기 전 두 앱의 알약
+/// 토글 모양이다(#1777). [AppSegmentedToggleStyle.thumb] 은 `_thumbTrack` 참고.
+/// - 트랙: 알약, 안쪽 여백 3, 브랜드별 옅은 회색([OnCareBrand.segmentTrack]).
+/// - 선택 칸: 알약, 브랜드 채움, 흰 굵은 글자.
+/// - 선택 안 된 칸: 배경 없음, 브랜드별 회색 굵은 글자([OnCareBrand.segmentLabel]).
+/// - 높이는 고정하지 않고 글자와 여백으로 정해진다. 그래서 밀도(칩 높이)와 무관하게
+///   두 앱이 같은 크기로 선다.
 class AppSegmentedToggle<T> extends StatelessWidget {
   const AppSegmentedToggle({
     super.key,
@@ -104,6 +122,7 @@ class AppSegmentedToggle<T> extends StatelessWidget {
     required this.selected,
     required this.onChanged,
     this.expand = false,
+    this.style = AppSegmentedToggleStyle.fill,
   });
 
   final List<AppSegment<T>> segments;
@@ -113,15 +132,25 @@ class AppSegmentedToggle<T> extends StatelessWidget {
   /// 부모 폭을 칸마다 똑같이 나눠 채울지.
   final bool expand;
 
+  /// 모양. 기본은 브랜드 채움 알약이다.
+  final AppSegmentedToggleStyle style;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    final double height = tokens.density.chip;
+    if (style == AppSegmentedToggleStyle.thumb) return _thumbTrack(tokens);
+    // 글자를 키운 화면에서는 칸 폭 합이 커져 토글 전체가 그만큼 줄어드므로 좌우
+    // 여백을 좁힌다(#1058 · #1182). 앱은 배율을 상한에서 묶으므로 상한을 **넘는**
+    // 경우만 좁힌다 — 이전 토글과 같은 기준이다.
+    final double horizontalPadding =
+        MediaQuery.textScalerOf(context).scale(1) >
+            OnCareTypography.maxTextScale
+        ? OnCareSize.segmentPaddingHorizontalCompact
+        : OnCareSize.segmentPaddingHorizontal;
     return Container(
-      height: height,
-      padding: const EdgeInsets.all(OnCareSpacing.s2),
-      decoration: const BoxDecoration(
-        color: OnCareColors.surfaceInput,
+      padding: const EdgeInsets.all(OnCareSize.segmentTrackInset),
+      decoration: BoxDecoration(
+        color: tokens.brand.segmentTrack,
         borderRadius: OnCareRadius.pillAll,
       ),
       child: Row(
@@ -129,61 +158,167 @@ class AppSegmentedToggle<T> extends StatelessWidget {
         children: <Widget>[
           for (final AppSegment<T> segment in segments)
             _wrap(
-              Semantics(
-                button: true,
+              _segment(
+                tokens,
+                segment,
                 selected: segment.value == selected,
-                inMutuallyExclusiveGroup: true,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => onChanged(segment.value),
-                  child: AnimatedContainer(
-                    duration: OnCareMotion.normal,
-                    curve: OnCareMotion.curve,
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: OnCareSpacing.s12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: segment.value == selected
-                          ? tokens.brand.primary
-                          : Colors.transparent,
-                      borderRadius: OnCareRadius.mdAll,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        if (segment.icon != null) ...<Widget>[
-                          Icon(
-                            segment.icon,
-                            size: OnCareSize.iconSmall,
-                            color: segment.value == selected
-                                ? OnCareColors.textOnFill
-                                : OnCareColors.textSecondary,
-                          ),
-                          const SizedBox(width: OnCareSpacing.s4),
-                        ],
-                        Flexible(
-                          child: Text(
-                            segment.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: tokens
-                                .text(OnCareTypography.label)
-                                .copyWith(
-                                  color: segment.value == selected
-                                      ? OnCareColors.textOnFill
-                                      : OnCareColors.textSecondary,
-                                ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                horizontalPadding: horizontalPadding,
               ),
             ),
         ],
       ),
+    );
+  }
+
+  /// `thumb` 모양 — 이식 전 트레이너웹 식단/운동 전환 스트립(#1024, #1777).
+  ///
+  /// 높이 44 의 옅은 브랜드 알약 띠에 옅은 브랜드 테두리를 두르고, 칸은 띠 높이를
+  /// 위아래로 꽉 채운다. 선택 칸만 흰 알약 + 옅은 브랜드 그림자로 떠오른다.
+  /// 칸 좌우 여백은 폭을 나눠 받을 때(`expand`) 두지 않는다 — 아이콘 옆 라벨이
+  /// 줄임표로 먼저 사라지지 않게 가운데 정렬에 맡긴다.
+  Widget _thumbTrack(OnCareTokens tokens) {
+    return Container(
+      height: OnCareSize.segmentThumbTrackHeight,
+      decoration: BoxDecoration(
+        color: tokens.brand.segmentThumbTrack,
+        borderRadius: OnCareRadius.pillAll,
+      ),
+      // 테두리는 칸(흰 엄지) **위**에 그린다 — 엄지가 띠 끝까지 차도 윤곽이 남는다.
+      foregroundDecoration: BoxDecoration(
+        borderRadius: OnCareRadius.pillAll,
+        border: Border.all(color: tokens.brand.segmentThumbBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (final AppSegment<T> segment in segments)
+            _wrap(
+              _segment(
+                tokens,
+                segment,
+                selected: segment.value == selected,
+                horizontalPadding: expand
+                    ? 0
+                    : OnCareSize.segmentPaddingHorizontal,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _segment(
+    OnCareTokens tokens,
+    AppSegment<T> segment, {
+    required bool selected,
+    required double horizontalPadding,
+  }) {
+    final bool thumb = style == AppSegmentedToggleStyle.thumb;
+    final Color foreground = !selected
+        ? tokens.brand.segmentLabel
+        : thumb
+        ? tokens.brand.primary
+        : OnCareColors.textOnFill;
+    final EdgeInsets padding = EdgeInsets.symmetric(
+      horizontal: horizontalPadding,
+      // `thumb` 은 띠 높이를 꽉 채우고 안쪽 Row 가 세로 가운데에 선다.
+      vertical: thumb ? 0 : OnCareSize.segmentPaddingVertical,
+    );
+    final Color fill = thumb ? OnCareColors.surfaceCard : tokens.brand.primary;
+    final BoxDecoration decoration = BoxDecoration(
+      // 선택 안 된 칸도 같은 색의 **투명**으로 둔다. `Colors.transparent`(투명한
+      // 검정)와 섞으면 바뀌는 도중 두 칸이 회색으로 번쩍인다(#1820).
+      color: selected ? fill : fill.withValues(alpha: 0),
+      borderRadius: OnCareRadius.pillAll,
+      // 그림자도 없애지 않고 투명하게 둬, 흰 엄지와 함께 서서히 사라진다.
+      boxShadow: !thumb
+          ? null
+          : <BoxShadow>[
+              for (final BoxShadow shadow in OnCareShadows.segmentThumb(
+                tokens.brand.primary,
+              ))
+                selected
+                    ? shadow
+                    : BoxShadow(
+                        color: shadow.color.withValues(alpha: 0),
+                        offset: shadow.offset,
+                        blurRadius: shadow.blurRadius,
+                        spreadRadius: shadow.spreadRadius,
+                      ),
+            ],
+    );
+    final Widget content = Row(
+      mainAxisSize: MainAxisSize.min,
+      // 폭을 나눠 받는 칸(`expand`)에서도 아이콘·라벨이 가운데에 선다.
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        if (segment.icon != null) ...<Widget>[
+          AppIcon(segment.icon, size: OnCareSize.iconSmall, color: foreground),
+          SizedBox(width: thumb ? OnCareSpacing.s8 : OnCareSpacing.s4),
+        ],
+        // 폭을 나눠 받는 칸(`expand`)에서만 줄임표가 생긴다. 내용만큼의
+        // 토글은 부모가 폭을 묶지 않아 라벨이 온전하다(#1182).
+        Flexible(
+          child: Text(
+            segment.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: tokens
+                .text(OnCareTypography.segment)
+                .copyWith(color: foreground),
+          ),
+        ),
+      ],
+    );
+    return Semantics(
+      button: true,
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      // 트레이너웹(웹 밀도)은 `InkWell` 로 받는다 — 손가락 커서, 올림·누름
+      // 반응, Tab 포커스와 Enter 선택이 생긴다. 옮기기 전 트레이너웹 토글이
+      // 마우스 없이도 바꿀 수 있게 쓰던 방식이다(#1820). 회원앱은 이전처럼
+      // 탭만 받는다.
+      child: tokens.density.isWeb
+          ? AnimatedContainer(
+              duration: OnCareMotion.normal,
+              curve: OnCareMotion.curve,
+              decoration: decoration,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: () => onChanged(segment.value),
+                  // 기본 커서는 플랫폼마다 달라진다 — 누를 수 있는 칸임을 늘
+                  // 손가락 커서로 보인다.
+                  mouseCursor: SystemMouseCursors.click,
+                  customBorder: const StadiumBorder(),
+                  // 누름·올림은 기본 회색 대신 브랜드색으로 옅게 칠한다(#1820).
+                  splashColor: tokens.brand.primary.withValues(
+                    alpha: OnCareAlpha.medium,
+                  ),
+                  highlightColor: Colors.transparent,
+                  hoverColor: tokens.brand.primary.withValues(
+                    alpha: OnCareAlpha.subtle,
+                  ),
+                  // 여백을 물결 안쪽에 둔다 — 알약 전체가 누르는 자리다.
+                  child: Padding(padding: padding, child: content),
+                ),
+              ),
+            )
+          : GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onChanged(segment.value),
+              child: AnimatedContainer(
+                duration: OnCareMotion.normal,
+                curve: OnCareMotion.curve,
+                // `alignment` 를 주지 않는다 — 주면 칸이 부모 높이만큼 늘어나
+                // 글자에 맞춘 높이가 깨진다. 가운데 정렬은 안쪽 Row 가 맡는다.
+                padding: padding,
+                decoration: decoration,
+                child: content,
+              ),
+            ),
     );
   }
 
@@ -232,7 +367,7 @@ class AppTag extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (icon != null) ...<Widget>[
-            Icon(icon, size: OnCareSize.iconSmall, color: accent),
+            AppIcon(icon, size: OnCareSize.iconSmall, color: accent),
             const SizedBox(width: OnCareSpacing.s4),
           ],
           Text(
@@ -329,7 +464,7 @@ class AppNumberStepper extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.remove_rounded,
+          icon: AppIcon.setOf(context).remove,
           tooltip: decreaseTooltip,
           variant: AppIconButtonVariant.tonal,
           onPressed: enabled && value - step >= min
@@ -360,7 +495,7 @@ class AppNumberStepper extends StatelessWidget {
           ),
         ),
         AppIconButton(
-          icon: Icons.add_rounded,
+          icon: AppIcon.setOf(context).add,
           tooltip: increaseTooltip,
           variant: AppIconButtonVariant.tonal,
           onPressed: enabled && value + step <= max

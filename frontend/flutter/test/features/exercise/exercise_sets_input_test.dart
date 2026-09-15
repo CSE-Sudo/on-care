@@ -274,6 +274,18 @@ void main() {
     expect(repo.name, isNull, reason: '저장 요청 자체가 나가지 않아야 한다');
   });
 
+  testWidgets('취소는 저장하지 않고 시트를 닫는다 (#1782)', (WidgetTester tester) async {
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(tester, repo);
+    await _typeName(tester, '아침 러닝');
+
+    await tester.tap(find.byKey(const Key('exerciseCancelButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('exerciseAddSheet')), findsNothing);
+    expect(repo.name, isNull, reason: '취소는 저장 요청을 보내지 않는다');
+  });
+
   testWidgets('−/+ 버튼은 값을 한 칸씩 옮긴다', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);

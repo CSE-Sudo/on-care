@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 // NumberFormat 만 가져온다 — intl 의 TextDirection 이 dart:ui 것과 충돌한다.
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -17,7 +18,6 @@ import 'package:oncare/features/exercise/presentation/widgets/own_exercise_recor
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_card.dart';
-import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_card.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -176,8 +176,8 @@ class _SubTabs extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            _tab(context, 0, Icons.event_note_rounded, l.exExerciseLog),
-            _tab(context, 1, Icons.place_rounded, l.exGymTab),
+            _tab(context, 0, AppIcons.exerciseLog, l.exExerciseLog),
+            _tab(context, 1, AppIcons.location, l.exGymTab),
           ],
         ),
       ),
@@ -208,7 +208,7 @@ class _SubTabs extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(
+                AppIcon(
                   icon,
                   size: OnCareSize.iconSmall,
                   color: on ? tokens.brand.primary : OnCareColors.textTertiary,
@@ -375,10 +375,9 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
               ),
               child: OwnExerciseRecords(week: week, date: today),
             ),
+            // 받은 담당 요청 카드는 이 자리를 떠나 앱 어디서든 뜨는 창이 됐다
+            // (#1801). 운동 탭 맨 아래에서는 요청이 온 줄 모르고 지나쳤다.
             const SizedBox(height: OnCareSpacing.s20),
-            // 5) 받은 담당 요청. 담당 트레이너 카드는 뺐다 — 이 화면은 기록을
-            //    보는 자리이고, 트레이너와의 관계는 MY 탭이 말한다. (#1021)
-            const CoachInviteCard(),
           ],
         ],
       ),
@@ -433,62 +432,25 @@ class _ExerciseWeekStrip extends StatelessWidget {
     );
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              // 영어의 날짜 라벨은 한국어보다 훨씬 길다. 고정 폭으로 두면 좁은
-              // 화면에서 오늘 버튼을 밀어내며 넘친다(#766).
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: OnCareSpacing.s8,
-                  ),
-                  child: Text(
-                    weekStripLabel(
-                      context,
-                      l,
-                      selected: selected,
-                      today: today,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.oncare
-                        .text(
-                          OnCareTypography.strong(OnCareTypography.bodySmall),
-                        )
-                        .copyWith(color: OnCareColors.textTertiary),
-                  ),
-                ),
-              ),
-              if (showTodayButton)
-                AppButton(
-                  label: l.dietToday,
-                  onPressed: onToday,
-                  variant: AppButtonVariant.text,
-                  size: OnCareButtonSize.small,
-                ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          // 이전/다음 주 꺾쇠는 날짜 줄 양옆에 둔다 — 식단 탭과 같은 모양이다.
-          AppWeekStrip(
-            days: days,
-            weekdayLabels: <String>[
-              for (final DateTime d in days) _weekday(l, d.weekday),
-            ],
-            selected: selected,
-            today: today,
-            onSelected: onSelect,
-            // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다.
-            lastSelectableDay: today,
-            previousTooltip: l.a11yPrevWeek,
-            nextTooltip: l.a11yNextWeek,
-            onPrevious: onPrev,
-            onNext: onNext,
-          ),
+      // 식단 탭과 같은 모양 — 주 라벨·`오늘` 알약과 양옆 원형 꺾쇠(#1778).
+      child: AppWeekStrip(
+        // 영어의 날짜 라벨은 한국어보다 훨씬 길어 좁은 화면에서는 말줄임한다(#766).
+        label: weekStripLabel(context, l, selected: selected, today: today),
+        todayLabel: l.dietToday,
+        onToday: showTodayButton ? onToday : null,
+        days: days,
+        weekdayLabels: <String>[
+          for (final DateTime d in days) _weekday(l, d.weekday),
         ],
+        selected: selected,
+        today: today,
+        onSelected: onSelect,
+        // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다(#1765).
+        lastSelectableDay: today,
+        previousTooltip: l.a11yPrevWeek,
+        nextTooltip: l.a11yNextWeek,
+        onPrevious: onPrev,
+        onNext: onNext,
       ),
     );
   }
@@ -530,7 +492,7 @@ Widget _dayEmpty(BuildContext context) {
     padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
     child: AppEmptyState(
       title: l.otherDateEmpty(l.pageExerciseTitle),
-      icon: Icons.fitness_center_rounded,
+      icon: AppIcons.exercise,
       placement: AppStatePlacement.card,
     ),
   );
@@ -854,7 +816,7 @@ class _CompletedPtSessionCard extends StatelessWidget {
         children: <Widget>[
           AppSectionHeader(
             title: l.exCompletedPtTitle,
-            icon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           // 칩 두 개가 한 줄에 못 들어가면 다음 줄로 내린다 (#995). Row 로 두면
@@ -865,14 +827,14 @@ class _CompletedPtSessionCard extends StatelessWidget {
             children: <Widget>[
               _fitTag(
                 AppTag(
-                  icon: Icons.check_circle_rounded,
+                  icon: AppIcons.checkCircle,
                   label: l.exCompletedPtTime(session.time),
                   tone: AppTagTone.success,
                 ),
               ),
               _fitTag(
                 AppTag(
-                  icon: Icons.timer_rounded,
+                  icon: AppIcons.timer,
                   label: l.exDurationMinutes(session.durationMinutes),
                   tone: AppTagTone.brand,
                 ),
@@ -946,10 +908,7 @@ class _DemoPtLogCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppSectionHeader(
-            title: l.exPtLogTitle,
-            icon: Icons.fitness_center_rounded,
-          ),
+          AppSectionHeader(title: l.exPtLogTitle, icon: AppIcons.exercise),
           const SizedBox(height: OnCareSpacing.s12),
           // 칩 둘은 좁아지면 다음 줄로 넘긴다. 한 줄에 붙여 두면 320px 기본
           // 배율에서도 카드를 크게 넘겼다(#766).
@@ -959,14 +918,14 @@ class _DemoPtLogCard extends StatelessWidget {
             children: <Widget>[
               _fitTag(
                 AppTag(
-                  icon: Icons.check_circle_rounded,
+                  icon: AppIcons.checkCircle,
                   label: l.exCompletedPtTime('18:00'),
                   tone: AppTagTone.success,
                 ),
               ),
               _fitTag(
                 AppTag(
-                  icon: Icons.person_rounded,
+                  icon: AppIcons.person,
                   label: l.exDemoPtSessionCount,
                   tone: AppTagTone.brand,
                 ),
@@ -988,12 +947,8 @@ class _DemoPtLogCard extends StatelessWidget {
                       width: OnCareSize.avatarMedium,
                       height: OnCareSize.avatarMedium,
                       alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: OnCareColors.surfaceCard,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person_rounded,
+                      child: AppIcon(
+                        AppIcons.person,
                         size: OnCareSize.iconMedium,
                         color: tokens.brand.primary,
                       ),
@@ -1088,7 +1043,7 @@ class _NextPtBadge extends ConsumerWidget {
       alignment: AlignmentDirectional.centerStart,
       child: _fitTag(
         AppTag(
-          icon: Icons.event_available_rounded,
+          icon: AppIcons.eventAvailable,
           label: when.isEmpty ? l.exNextPtNone : l.exNextPtSchedule(when),
           tone: when.isEmpty ? AppTagTone.neutral : AppTagTone.brand,
         ),

@@ -3190,7 +3190,7 @@ abstract class AppLocalizations {
   /// No description provided for @exTimeRangeInvalidEnd.
   ///
   /// In en, this message translates to:
-  /// **'End time is earlier than start time'**
+  /// **'End time must be later than the start time.'**
   String get exTimeRangeInvalidEnd;
 
   /// No description provided for @exTimeRangePrevStep.
@@ -3445,11 +3445,11 @@ abstract class AppLocalizations {
   /// **'Explore the demo without signing in'**
   String get authDemoAction;
 
-  /// No description provided for @authOrDivider.
+  /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///
   /// In en, this message translates to:
-  /// **'or'**
-  String get authOrDivider;
+  /// **'Sign in with a social account'**
+  String get authSocialDivider;
 
   /// No description provided for @authKakaoAction.
   ///
@@ -3463,11 +3463,23 @@ abstract class AppLocalizations {
   /// **'Continue with Google'**
   String get authGoogleAction;
 
-  /// No description provided for @authMissingCredentials.
+  /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Enter your email and password'**
-  String get authMissingCredentials;
+  /// **'Enter your email'**
+  String get authEmailEmpty;
+
+  /// No description provided for @authEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address'**
+  String get authEmailInvalid;
+
+  /// No description provided for @authPasswordEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get authPasswordEmpty;
 
   /// No description provided for @authSignInFailed.
   ///
@@ -3499,10 +3511,16 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get signUpNameHint;
 
-  /// No description provided for @signUpPhoneHint.
+  /// Red text under the name field on sign-up when it is empty or whitespace only (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Phone number'**
+  /// **'Enter your name'**
+  String get signUpNameEmpty;
+
+  /// Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784).
+  ///
+  /// In en, this message translates to:
+  /// **'010-0000-0000'**
   String get signUpPhoneHint;
 
   /// No description provided for @signUpPhoneHelper.
@@ -3514,7 +3532,7 @@ abstract class AppLocalizations {
   /// No description provided for @signUpPasswordHint.
   ///
   /// In en, this message translates to:
-  /// **'Password (8+ characters)'**
+  /// **'Password (8+ characters, letters and numbers)'**
   String get signUpPasswordHint;
 
   /// No description provided for @signUpPasswordConfirmHint.
@@ -3535,11 +3553,11 @@ abstract class AppLocalizations {
   /// **'Already have an account?'**
   String get signUpHaveAccountQuestion;
 
-  /// No description provided for @signUpPasswordTooShort.
+  /// No description provided for @signUpPasswordWeak.
   ///
   /// In en, this message translates to:
-  /// **'Password must be at least 8 characters'**
-  String get signUpPasswordTooShort;
+  /// **'Use at least 8 characters, including letters and numbers'**
+  String get signUpPasswordWeak;
 
   /// No description provided for @signUpPasswordMismatch.
   ///
@@ -3547,11 +3565,11 @@ abstract class AppLocalizations {
   /// **'Passwords do not match'**
   String get signUpPasswordMismatch;
 
-  /// No description provided for @signUpPhoneInvalid.
+  /// No description provided for @signUpPhoneFormatInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Enter a phone number with at least 4 digits'**
-  String get signUpPhoneInvalid;
+  /// **'Enter your phone number as 000-0000-0000'**
+  String get signUpPhoneFormatInvalid;
 
   /// No description provided for @trainerSyncEntryLabel.
   ///
@@ -4327,17 +4345,23 @@ abstract class AppLocalizations {
   /// **'Log a meal'**
   String get myPointsDietAdd;
 
-  /// Point-earning action in the points guide.
+  /// Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer.
   ///
   /// In en, this message translates to:
-  /// **'Complete an AI-recommended workout'**
-  String get myPointsAiExercise;
+  /// **'Complete a recommended or assigned workout'**
+  String get myPointsRoutineComplete;
 
   /// Point-earning action in the points guide.
   ///
   /// In en, this message translates to:
   /// **'Log a workout yourself'**
   String get myPointsExerciseAdd;
+
+  /// Point-earning action in the points guide with its daily earning limit, e.g. 'Log a meal (up to 3 times a day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} ({count, plural, =1{once a day} other{up to {count} times a day}})'**
+  String myPointsRuleWithDailyCap(String action, int count);
 
   /// Header of the assigned trainer card.
   ///
@@ -4452,6 +4476,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel this workout?'**
   String get coachCardRoutineCancelTitle;
+
+  /// Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get coachRoutineKeep;
 
   /// No description provided for @coachRoutineCancelled.
   ///
@@ -4866,6 +4896,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Increase'**
   String get exStepperIncrease;
+
+  /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
+  ///
+  /// In en, this message translates to:
+  /// **'+{points}P'**
+  String pointsRewardBadge(int points);
 }
 
 class _AppLocalizationsDelegate
