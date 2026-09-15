@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_button.dart';
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
 import 'package:oncare_ui/src/tokens/elevation.dart';
+import 'package:oncare_ui/src/tokens/icons.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
@@ -102,7 +104,11 @@ class AppSectionHeader extends StatelessWidget {
     return Row(
       children: <Widget>[
         if (icon != null) ...<Widget>[
-          Icon(icon, size: OnCareSize.iconMedium, color: tokens.brand.primary),
+          AppIcon(
+            icon,
+            size: OnCareSize.iconMedium,
+            color: tokens.brand.primary,
+          ),
           const SizedBox(width: OnCareSpacing.s8),
         ],
         Expanded(
@@ -119,7 +125,7 @@ class AppSectionHeader extends StatelessWidget {
             onPressed: onAction,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
-            trailingIcon: Icons.chevron_right_rounded,
+            trailingIcon: AppIcon.setOf(context).disclosure,
           ),
       ],
     );
@@ -163,7 +169,7 @@ class AppStatCard extends StatelessWidget {
           Row(
             children: <Widget>[
               if (icon != null) ...<Widget>[
-                Icon(
+                AppIcon(
                   icon,
                   size: OnCareSize.iconSmall,
                   color: tone ?? tokens.brand.primary,
@@ -369,13 +375,14 @@ class AppBanner extends StatelessWidget {
     final Color border = tone == AppBannerTone.info
         ? tokens.brand.border
         : OnCareColors.onWhite(accent, OnCareAlpha.strong);
+    final OnCareIconSet icons = AppIcon.setOf(context);
     final IconData resolvedIcon =
         icon ??
         switch (tone) {
-          AppBannerTone.info => Icons.info_rounded,
-          AppBannerTone.success => Icons.check_circle_rounded,
-          AppBannerTone.caution => Icons.warning_rounded,
-          AppBannerTone.danger => Icons.error_rounded,
+          AppBannerTone.info => icons.info,
+          AppBannerTone.success => icons.success,
+          AppBannerTone.caution => icons.caution,
+          AppBannerTone.danger => icons.error,
         };
     return Container(
       padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
@@ -387,7 +394,7 @@ class AppBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(resolvedIcon, size: OnCareSize.iconMedium, color: accent),
+          AppIcon(resolvedIcon, size: OnCareSize.iconMedium, color: accent),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
             child: Column(
@@ -455,7 +462,7 @@ class AppEmptyState extends StatelessWidget {
     super.key,
     required this.title,
     this.message,
-    this.icon = Icons.inbox_rounded,
+    this.icon,
     this.actionLabel,
     this.onAction,
     this.placement = AppStatePlacement.page,
@@ -463,7 +470,9 @@ class AppEmptyState extends StatelessWidget {
 
   final String title;
   final String? message;
-  final IconData icon;
+
+  /// 비우면 아이콘 묶음의 빈 화면 아이콘이다.
+  final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
   final AppStatePlacement placement;
@@ -474,8 +483,8 @@ class AppEmptyState extends StatelessWidget {
     final Widget body = Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Icon(
-          icon,
+        AppIcon(
+          icon ?? AppIcon.setOf(context).empty,
           size: OnCareSize.iconEmptyState,
           color: OnCareColors.textTertiary,
         ),
@@ -533,7 +542,7 @@ class AppErrorState extends StatelessWidget {
     return AppEmptyState(
       title: title,
       message: message,
-      icon: Icons.cloud_off_rounded,
+      icon: AppIcon.setOf(context).offline,
       actionLabel: retryLabel,
       onAction: onRetry,
       placement: placement,

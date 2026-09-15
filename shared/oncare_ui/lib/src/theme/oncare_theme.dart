@@ -5,6 +5,7 @@ import 'package:oncare_ui/src/tokens/brand.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
 import 'package:oncare_ui/src/tokens/elevation.dart';
+import 'package:oncare_ui/src/tokens/icons.dart';
 import 'package:oncare_ui/src/tokens/layout.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
@@ -23,9 +24,13 @@ class OnCareTheme {
   OnCareTheme._();
 
   /// [brand] 와 [density] 로 테마를 만든다.
+  ///
+  /// [icons] 는 공용 컴포넌트가 그리는 아이콘 묶음이다. 비우면 Material Icons
+  /// 기본 묶음이다 — 회원앱만 자기 목록(Material Symbols)을 넣는다(#1803).
   static ThemeData light({
     required OnCareBrand brand,
     required OnCareDensity density,
+    OnCareIconSet icons = OnCareIconSet.material,
   }) {
     final ColorScheme scheme = ColorScheme(
       brightness: Brightness.light,
@@ -199,7 +204,7 @@ class OnCareTheme {
         size: OnCareSize.iconLarge,
       ),
       extensions: <ThemeExtension<dynamic>>[
-        OnCareTokens(brand: brand, density: density),
+        OnCareTokens(brand: brand, density: density, icons: icons),
       ],
 
       // --- 버튼 ---

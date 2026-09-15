@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/elevation.dart';
+import 'package:oncare_ui/src/tokens/icons.dart';
 import 'package:oncare_ui/src/tokens/layout.dart';
 import 'package:oncare_ui/src/tokens/motion.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
@@ -142,13 +144,11 @@ class _ToastViewState extends State<_ToastView>
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = widget.tokens;
+    final OnCareIconSet icons = AppIcon.setOf(context);
     final (IconData icon, Color iconColor) = switch (widget.type) {
-      AppToastType.success => (
-        Icons.check_circle_rounded,
-        OnCareColors.overlaySuccess,
-      ),
-      AppToastType.error => (Icons.error_rounded, OnCareColors.overlayError),
-      AppToastType.info => (Icons.info_rounded, OnCareColors.overlayAction),
+      AppToastType.success => (icons.success, OnCareColors.overlaySuccess),
+      AppToastType.error => (icons.error, OnCareColors.overlayError),
+      AppToastType.info => (icons.info, OnCareColors.overlayAction),
     };
     final Animation<double> curved = CurvedAnimation(
       parent: _controller,
@@ -191,7 +191,7 @@ class _ToastViewState extends State<_ToastView>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          Icon(
+                          AppIcon(
                             icon,
                             size: OnCareSize.iconMedium,
                             color: iconColor,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_ui/src/components/app_icon.dart';
 
 /// 날짜 선택(#1695) — 두 앱의 `portrait_date_picker` 복사본을 대체한다.
 ///
 /// 모양(흰 바탕·반경 20·선택일 브랜드·오늘 테두리)은 테마의 `datePickerTheme` 가
-/// 정한다. 세로 방향 달력으로 연다.
+/// 정한다. 세로 방향 달력으로 연다. 달 이동 꺾쇠·연도 펼침 화살표는 Flutter 가
+/// 아이콘을 고정해 두어 아이콘 묶음(#1803)을 따르지 않는다.
 Future<DateTime?> showAppDatePicker({
   required BuildContext context,
   required DateTime initialDate,
@@ -45,10 +47,20 @@ Future<TimeOfDay?> showAppTimePicker({
   required TimeOfDay initialTime,
   String? helpText,
 }) {
+  // 입력 방식 전환 아이콘은 앱의 아이콘 묶음을 따른다. 묶음이 비워 두면
+  // Flutter 기본 아이콘이다(#1803).
+  final IconData? timeInput = AppIcon.setOf(context).timeInput;
+  final IconData? timeDial = AppIcon.setOf(context).timeDial;
   return showTimePicker(
     context: context,
     initialTime: initialTime,
     helpText: helpText,
+    switchToInputEntryModeIcon: timeInput == null
+        ? null
+        : AppIcon.resolve(context, timeInput),
+    switchToTimerEntryModeIcon: timeDial == null
+        ? null
+        : AppIcon.resolve(context, timeDial),
   );
 }
 

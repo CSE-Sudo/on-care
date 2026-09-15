@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
@@ -39,7 +40,7 @@ class AppPeriodNav extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.chevron_left_rounded,
+          icon: AppIcon.setOf(context).previous,
           tooltip: previousTooltip,
           variant: AppIconButtonVariant.tonal,
           onPressed: onPrevious,
@@ -54,7 +55,7 @@ class AppPeriodNav extends StatelessWidget {
           ),
         ),
         AppIconButton(
-          icon: Icons.chevron_right_rounded,
+          icon: AppIcon.setOf(context).next,
           tooltip: nextTooltip,
           variant: AppIconButtonVariant.tonal,
           onPressed: onNext,
@@ -137,13 +138,13 @@ class AppWeekStrip extends StatelessWidget {
     return Row(
       children: <Widget>[
         _WeekStripArrow(
-          icon: Icons.chevron_left_rounded,
+          icon: AppIcon.setOf(context).previous,
           tooltip: previousTooltip!,
           onPressed: onPrevious,
         ),
         Expanded(child: strip),
         _WeekStripArrow(
-          icon: Icons.chevron_right_rounded,
+          icon: AppIcon.setOf(context).next,
           tooltip: nextTooltip!,
           onPressed: onNext,
         ),
@@ -266,7 +267,7 @@ class _WeekStripArrow extends StatelessWidget {
             onTap: onPressed,
             child: SizedBox.square(
               dimension: OnCareSize.avatarMedium,
-              child: Icon(
+              child: AppIcon(
                 icon,
                 size: OnCareSize.iconSmall,
                 color: tokens.brand.primary,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
@@ -133,7 +134,7 @@ class AppTextField extends StatelessWidget {
           ),
           prefixIcon: prefixIcon == null
               ? null
-              : Icon(prefixIcon, size: OnCareSize.iconMedium),
+              : AppIcon(prefixIcon, size: OnCareSize.iconMedium),
           suffixIcon: suffix,
         ),
       ),
@@ -189,14 +190,14 @@ class _AppSearchFieldState extends State<AppSearchField> {
       controller: _controller,
       hint: widget.hint,
       autofocus: widget.autofocus,
-      prefixIcon: Icons.search_rounded,
+      prefixIcon: AppIcon.setOf(context).search,
       textInputAction: TextInputAction.search,
       onChanged: widget.onChanged,
       onSubmitted: widget.onSubmitted,
       suffix: _controller.text.isEmpty
           ? null
           : AppIconButton(
-              icon: Icons.close_rounded,
+              icon: AppIcon.setOf(context).close,
               tooltip: widget.clearTooltip,
               onPressed: () {
                 _controller.clear();
@@ -236,8 +237,8 @@ class AppSelectField<T> extends StatelessWidget {
         items: items,
         onChanged: onChanged,
         isExpanded: true,
-        icon: const Icon(
-          Icons.keyboard_arrow_down_rounded,
+        icon: AppIcon(
+          AppIcon.setOf(context).dropdown,
           size: OnCareSize.iconMedium,
         ),
         borderRadius: const BorderRadius.all(Radius.circular(12)),
