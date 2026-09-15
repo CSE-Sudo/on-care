@@ -808,8 +808,19 @@
   "myNotificationSaveFailed": "알림 설정을 저장하지 못했어요",
   "myPointsGuideTitle": "포인트 적립 안내",
   "myPointsDietAdd": "식단 추가",
-  "myPointsAiExercise": "AI 추천 운동 완료",
+  "myPointsRoutineComplete": "추천·배정 운동 완료",
   "myPointsExerciseAdd": "운동 직접 추가",
+  "myPointsRuleWithDailyCap": "{action} (하루 {count}회)",
+  "@myPointsRuleWithDailyCap": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "coachAssignedTrainer": "담당 트레이너",
   "coachPointsTitle": "이번 코칭 포인트",
   "coachRoutineTitle": "추천 개인운동",
@@ -887,5 +898,13 @@
   "exDemoPtTrainerName": "김트레이너",
   "exDemoPtFeedback": "숄더프레스할 때 오른쪽 어깨가 들리는 경향이 있으니, 마무리할 때 회전근개 스트레칭을 꼭 해주세요!",
   "exStepperDecrease": "줄이기",
-  "exStepperIncrease": "늘리기"
+  "exStepperIncrease": "늘리기",
+  "pointsRewardBadge": "+{points}P",
+  "@pointsRewardBadge": {
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  }
 }

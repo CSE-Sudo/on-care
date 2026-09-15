@@ -68,6 +68,7 @@ class OnCareTokenCatalog extends StatelessWidget {
                 _Swatch('cautionFill', OnCareColors.cautionFill),
                 _Swatch('danger', OnCareColors.danger),
                 _Swatch('overlayInk', OnCareColors.overlayInk),
+                _Swatch('overlayReward', OnCareColors.overlayReward),
                 _Swatch('chartGoalLine', OnCareColors.chartGoalLine),
               ],
             ),

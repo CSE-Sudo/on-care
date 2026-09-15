@@ -2322,10 +2322,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsDietAdd => '식단 추가';
 
   @override
-  String get myPointsAiExercise => 'AI 추천 운동 완료';
+  String get myPointsRoutineComplete => '추천·배정 운동 완료';
 
   @override
   String get myPointsExerciseAdd => '운동 직접 추가';
+
+  @override
+  String myPointsRuleWithDailyCap(String action, int count) {
+    return '$action (하루 $count회)';
+  }
 
   @override
   String get coachAssignedTrainer => '담당 트레이너';
@@ -2545,4 +2550,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exStepperIncrease => '늘리기';
+
+  @override
+  String pointsRewardBadge(int points) {
+    return '+${points}P';
+  }
 }

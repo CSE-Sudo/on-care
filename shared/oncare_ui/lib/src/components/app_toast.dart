@@ -37,12 +37,24 @@ class AppToastHost {
   final OnCareTokens _tokens;
 
   /// 토스트를 띄운다.
+  ///
+  /// [rewardLabel] 을 주면 메시지 옆에 ★ 과 그 글자(`+50P`)를 붙이고 한 번
+  /// 반짝인다(#1786). 받은 것이 없으면 넘기지 않는다 — 빈 표시는 그리지 않는다.
   void show(
     String message, {
     AppToastType type = AppToastType.info,
     String? actionLabel,
     VoidCallback? onAction,
-  }) => _insertToast(_overlay, _tokens, message, type, actionLabel, onAction);
+    String? rewardLabel,
+  }) => _insertToast(
+    _overlay,
+    _tokens,
+    message,
+    type,
+    actionLabel,
+    onAction,
+    rewardLabel,
+  );
 }
 
 /// 화면 위쪽에 잠깐 떴다 사라지는 알림(#1693). 두 앱이 같은 모양이다.
@@ -52,9 +64,14 @@ void showAppToast(
   AppToastType type = AppToastType.info,
   String? actionLabel,
   VoidCallback? onAction,
-}) => AppToastHost.of(
-  context,
-).show(message, type: type, actionLabel: actionLabel, onAction: onAction);
+  String? rewardLabel,
+}) => AppToastHost.of(context).show(
+  message,
+  type: type,
+  actionLabel: actionLabel,
+  onAction: onAction,
+  rewardLabel: rewardLabel,
+);
 
 void _insertToast(
   OverlayState overlay,
@@ -63,6 +80,7 @@ void _insertToast(
   AppToastType type,
   String? actionLabel,
   VoidCallback? onAction,
+  String? rewardLabel,
 ) {
   _current?.remove();
   late final OverlayEntry entry;
@@ -73,6 +91,7 @@ void _insertToast(
       type: type,
       actionLabel: actionLabel,
       onAction: onAction,
+      rewardLabel: rewardLabel,
       visibleFor: actionLabel != null
           ? OnCareMotion.toastActionVisible
           : type == AppToastType.error
@@ -95,6 +114,7 @@ class _ToastView extends StatefulWidget {
     required this.type,
     required this.actionLabel,
     required this.onAction,
+    required this.rewardLabel,
     required this.visibleFor,
     required this.onDismissed,
   });
@@ -104,6 +124,7 @@ class _ToastView extends StatefulWidget {
   final AppToastType type;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final String? rewardLabel;
   final Duration visibleFor;
   final VoidCallback onDismissed;
 
@@ -205,6 +226,13 @@ class _ToastViewState extends State<_ToastView>
                                   .copyWith(color: OnCareColors.textOnFill),
                             ),
                           ),
+                          if (widget.rewardLabel != null) ...<Widget>[
+                            const SizedBox(width: OnCareSpacing.s8),
+                            _RewardBadge(
+                              tokens: tokens,
+                              label: widget.rewardLabel!,
+                            ),
+                          ],
                           if (widget.actionLabel != null) ...<Widget>[
                             const SizedBox(width: OnCareSpacing.s12),
                             GestureDetector(
@@ -234,4 +262,133 @@ class _ToastViewState extends State<_ToastView>
       ),
     );
   }
+}
+
+/// 토스트의 포인트 적립 표시 — ★ 과 받은 포인트(`+50P`). (#1786)
+///
+/// 토스트가 내려앉은 뒤 한 번 톡 튀고, 그 위로 반짝임이 한 번 지나간다. 기기의
+/// 움직임 줄이기가 켜져 있으면 움직이지 않고 표시만 둔다.
+class _RewardBadge extends StatefulWidget {
+  const _RewardBadge({required this.tokens, required this.label});
+
+  final OnCareTokens tokens;
+  final String label;
+
+  @override
+  State<_RewardBadge> createState() => _RewardBadgeState();
+}
+
+class _RewardBadgeState extends State<_RewardBadge>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _sparkle = AnimationController(
+    vsync: this,
+    duration: OnCareMotion.rewardSparkle,
+  );
+
+  /// 앞 30% 에 커졌다가 다음 30% 에 돌아오고, 나머지는 반짝임만 지나간다.
+  late final Animation<double> _scale =
+      TweenSequence<double>(<TweenSequenceItem<double>>[
+        TweenSequenceItem<double>(
+          tween: Tween<double>(
+            begin: 1,
+            end: OnCareMotion.rewardPopScale,
+          ).chain(CurveTween(curve: OnCareMotion.curve)),
+          weight: 30,
+        ),
+        TweenSequenceItem<double>(
+          tween: Tween<double>(
+            begin: OnCareMotion.rewardPopScale,
+            end: 1,
+          ).chain(CurveTween(curve: OnCareMotion.curve)),
+          weight: 30,
+        ),
+        TweenSequenceItem<double>(tween: ConstantTween<double>(1), weight: 40),
+      ]).animate(_sparkle);
+
+  Timer? _start;
+  bool _scheduled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_scheduled) return;
+    _scheduled = true;
+    if (MediaQuery.disableAnimationsOf(context)) return;
+    // 토스트가 미끄러져 내려오는 동안 튀면 눈에 들어오지 않는다.
+    _start = Timer(OnCareMotion.toastEnter, () {
+      if (mounted) _sparkle.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _start?.cancel();
+    _sparkle.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget badge = Container(
+      key: const ValueKey<String>('appToastReward'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: OnCareSpacing.s8,
+        vertical: OnCareSpacing.s2,
+      ),
+      decoration: const BoxDecoration(
+        color: OnCareColors.overlayReward,
+        borderRadius: OnCareRadius.pillAll,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          const Icon(
+            Icons.star_rounded,
+            size: OnCareSize.iconSmall,
+            color: OnCareColors.overlayInk,
+          ),
+          const SizedBox(width: OnCareSpacing.s2),
+          Text(
+            widget.label,
+            style: OnCareTypography.numeric(
+              widget.tokens.text(OnCareTypography.label),
+            ).copyWith(color: OnCareColors.overlayInk),
+          ),
+        ],
+      ),
+    );
+    return ScaleTransition(
+      scale: _scale,
+      child: AnimatedBuilder(
+        animation: _sparkle,
+        child: badge,
+        builder: (BuildContext context, Widget? child) => ShaderMask(
+          blendMode: BlendMode.srcATop,
+          // 반짝임 띠가 왼쪽 밖에서 오른쪽 밖으로 한 번 지나간다. 멈춰 있을 때는
+          // 띠가 표시 밖에 있어 보이지 않는다.
+          shaderCallback: (Rect bounds) => LinearGradient(
+            colors: const <Color>[
+              Colors.transparent,
+              OnCareColors.rewardShine,
+              Colors.transparent,
+            ],
+            stops: const <double>[0.35, 0.5, 0.65],
+            transform: _SweepTransform(-1 + 2 * _sparkle.value),
+          ).createShader(bounds),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// 그라데이션을 폭의 [fraction] 만큼 옆으로 민다.
+class _SweepTransform extends GradientTransform {
+  const _SweepTransform(this.fraction);
+
+  final double fraction;
+
+  @override
+  Matrix4 transform(Rect bounds, {TextDirection? textDirection}) =>
+      Matrix4.translationValues(bounds.width * fraction, 0, 0);
 }

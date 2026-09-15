@@ -1,3 +1,5 @@
+import 'package:oncare/core/points/points_award.dart';
+
 /// "N일 연속" — 운동한 요일 중 **가장 긴 연속 구간**의 길이. 활성 일수의 단순
 /// 합계가 아니다(월·수·금 운동은 3일이 아니라 1일 연속).
 ///
@@ -105,9 +107,14 @@ class ExerciseSession {
     this.name = '',
     this.weight,
     this.date,
+    this.pointsAward,
   });
 
   final String? id;
+
+  /// 이 기록을 새로 추가해 받은 포인트(#1786). 생성 응답에만 있고, 주간 목록의
+  /// 기록은 null 이다.
+  final PointsAward? pointsAward;
   final String dayLabel;
   final ExerciseType type;
   final int minutes;
@@ -188,6 +195,7 @@ class ExerciseSession {
         name: json['name'] as String? ?? '',
         weight: (json['weight'] as num?)?.toDouble(),
         date: DateTime.tryParse(json['date'] as String? ?? ''),
+        pointsAward: PointsAward.fromJson(json['points']),
       );
 }
 

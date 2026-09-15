@@ -4345,17 +4345,23 @@ abstract class AppLocalizations {
   /// **'Log a meal'**
   String get myPointsDietAdd;
 
-  /// Point-earning action in the points guide.
+  /// Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer.
   ///
   /// In en, this message translates to:
-  /// **'Complete an AI-recommended workout'**
-  String get myPointsAiExercise;
+  /// **'Complete a recommended or assigned workout'**
+  String get myPointsRoutineComplete;
 
   /// Point-earning action in the points guide.
   ///
   /// In en, this message translates to:
   /// **'Log a workout yourself'**
   String get myPointsExerciseAdd;
+
+  /// Point-earning action in the points guide with its daily earning limit, e.g. 'Log a meal (up to 3 times a day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} ({count, plural, =1{once a day} other{up to {count} times a day}})'**
+  String myPointsRuleWithDailyCap(String action, int count);
 
   /// Header of the assigned trainer card.
   ///
@@ -4752,6 +4758,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Increase'**
   String get exStepperIncrease;
+
+  /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
+  ///
+  /// In en, this message translates to:
+  /// **'+{points}P'**
+  String pointsRewardBadge(int points);
 }
 
 class _AppLocalizationsDelegate

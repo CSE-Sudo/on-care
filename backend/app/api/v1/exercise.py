@@ -21,9 +21,13 @@ from app.db.session import get_db
 from app.models.models import ExerciseSession, HealthProfile
 from app.schemas.exercise_api import (
     ExerciseAdviceResponse, ExerciseCalorieRequest, ExerciseCalorieResponse,
-    ExerciseSessionCreate, ExerciseSessionOut, ExerciseWeekResponse,
+    ExerciseSessionCreate, ExerciseSessionCreatedOut, ExerciseSessionOut,
+    ExerciseWeekResponse,
 )
-from app.services import exercise_activity, exercise_service, exercise_types
+from app.schemas.points_api import PointsOut
+from app.services import (
+    exercise_activity, exercise_service, exercise_types, points_service,
+)
 from app.services.coach import personal_ingest
 from app.services.exercise_service import (
     weekly_goals,
@@ -222,12 +226,14 @@ def preview_calories(
     )
 
 
-@router.post("/exercise/sessions", response_model=ExerciseSessionOut, status_code=201)
+@router.post(
+    "/exercise/sessions", response_model=ExerciseSessionCreatedOut, status_code=201
+)
 def add_session(
     payload: ExerciseSessionCreate,
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
-) -> ExerciseSessionOut:
+) -> ExerciseSessionCreatedOut:
     # type·intensity·date·minutes·calories 는 모두 ExerciseSessionCreate 의
     # 타입·Field 제약에서 422 로 걸린다.
     week_start, day_label, completed_at = _placement(payload.date)
@@ -252,12 +258,19 @@ def add_session(
         completed_at=completed_at,
     )
     db.add(row)
+    # 회원이 직접 추가한 운동은 포인트를 받는다(#1786). 기록과 같은 트랜잭션이라
+    # 기록만 남고 적립이 빠지거나 그 반대가 되지 않는다. 적립이 행을 참조하므로
+    # 먼저 flush 한다.
+    db.flush()
+    points = points_service.award(
+        db, current_user.id, points_service.EXERCISE_MANUAL, row.id
+    )
     db.commit()
     db.refresh(row)
 
     # 단건 응답도 프론트 표시 형식(date_label/time_label/items)을 채워 반환
     one = build_current_week([row])["sessions"][0]
-    out = ExerciseSessionOut(**one)
+    out = ExerciseSessionCreatedOut(**one, points=PointsOut.of(points))
     # 응답을 다 만든 뒤 적재한다(#586). 실패하면 personal_ingest 가 세션을 롤백하는데,
     # 그때 row 가 만료되면 적재 실패가 기록 저장 실패로 번진다. 커밋은 이미 끝났다.
     personal_ingest.record_exercise(
@@ -329,6 +342,10 @@ def delete_session(
     if row is None:
         raise HTTPException(status_code=404, detail="운동 기록을 찾을 수 없습니다.")
     _reject_if_derived(row)
+    # 이 기록으로 받은 포인트를 회수한다 — 삭제와 같은 트랜잭션이다(#1786).
+    points_service.revoke(
+        db, current_user.id, points_service.SOURCE_EXERCISE_SESSION, row.id
+    )
     db.delete(row)
     db.commit()
     personal_ingest.forget(db, current_user.id, session_id)

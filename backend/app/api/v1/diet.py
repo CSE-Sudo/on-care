@@ -4,10 +4,10 @@
   GET  /diet/days/today          -> 오늘 식단 집계(나트륨·당류·macros + 코칭 메시지)
   GET  /diet/days/{date}         -> 지정 날짜 식단 집계
   GET  /diet/recommendations     -> 홈 AI 추천 식단(카탈로그에서 개인화 선택)
-  POST /diet/analyze             -> 사진 → 인식 → diet_entries 저장(+ 사진 축소본)
+  POST /diet/analyze             -> 사진 → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
   POST /diet/analyze?engine=yolo -> 엔진 강제(비교실험)
   GET  /diet/photos/{photo_id}   -> 내 끼니 사진 원본 바이트(본인만)
-  PUT/DELETE /diet/entries/{id}  -> 끼니/영양소 수정·삭제(본인 소유만)
+  PUT/DELETE /diet/entries/{id}  -> 끼니/영양소 수정·삭제(본인 소유만, 삭제는 적립 회수)
 
 집계·코칭·저장 등 도메인 로직은 diet_service 로 이관했다(exercise_service 등과 일관).
 라우터는 HTTP 관심사(업로드 검증·인식기 디스패치·에러 매핑)만 담당한다.
@@ -19,6 +19,7 @@ from datetime import date as Date
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
@@ -32,7 +33,13 @@ from app.schemas.diet_api import (
     DietRecommendationsResponse,
     DietTodayResponse,
 )
-from app.services import diet_photo_service, diet_recommendation_service, diet_service
+from app.schemas.points_api import PointsOut
+from app.services import (
+    diet_photo_service,
+    diet_recommendation_service,
+    diet_service,
+    points_service,
+)
 from app.services.coach import personal_ingest
 from app.services.nutrition.enrich import enrich_analysis
 from app.services.recognizer.factory import get_recognizer
@@ -134,7 +141,9 @@ async def diet_analyze(
         existing = diet_service.find_by_idempotency(db, current_user.id, idempotency_key)
         if existing is not None:
             return DietAnalyzeResponse(
-                entry_id=existing.id, analysis=diet_service.entry_to_analysis(existing)
+                entry_id=existing.id,
+                analysis=diet_service.entry_to_analysis(existing),
+                points=_points_already_awarded(db, current_user.id, existing.id),
             )
 
     try:
@@ -159,21 +168,53 @@ async def diet_analyze(
     entry, is_new = diet_service.save_analyzed_entry(
         db, current_user.id, meal_type, analysis, idempotency_key
     )
+    entry_id = entry.id
     if not is_new:
         # 동시 재시도가 유니크 제약에 걸려 기존 엔트리를 받은 경우(중복 저장 방지)
         return DietAnalyzeResponse(
-            entry_id=entry.id, analysis=diet_service.entry_to_analysis(entry)
+            entry_id=entry_id,
+            analysis=diet_service.entry_to_analysis(entry),
+            points=_points_already_awarded(db, current_user.id, entry_id),
         )
 
+    points = _award_points(db, current_user.id, entry_id)
+
     # 인식이 끝난 사진을 끼니에 붙인다. 실패해도 끼니 기록은 그대로 남는다(#699).
-    photo = diet_photo_service.store_for_entry(db, current_user.id, entry.id, image_bytes)
+    photo = diet_photo_service.store_for_entry(db, current_user.id, entry_id, image_bytes)
 
     # 모델 원본 출력(raw_model_output)은 클라이언트로 내보내지 않음(디버깅 전용)
     analysis.raw_model_output = None
     return DietAnalyzeResponse(
-        entry_id=entry.id,
+        entry_id=entry_id,
         analysis=analysis,
         photo_url=diet_service.member_photo_url(photo.id) if photo else None,
+        points=points,
+    )
+
+
+def _award_points(db: Session, user_id: str, entry_id: str) -> PointsOut:
+    """새 끼니의 포인트 적립(#1786). 저장이 끝난 바로 뒤에 따로 커밋한다.
+
+    저장(`save_analyzed_entry`)은 멱등키 충돌을 제 커밋 안에서 처리하므로 그 사이에
+    끼워 넣지 않는다. 적립이 실패해도 끼니 기록은 남는다 — 사진과 같은 규칙이다(#699).
+    그때 응답은 적립 0 이라 앱은 적립 표시 없이 저장 알림만 띄운다.
+    """
+    try:
+        result = points_service.award(
+            db, user_id, points_service.DIET_ENTRY, entry_id
+        )
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        logger.exception("식단 포인트 적립 실패 — 끼니 기록은 유지")
+        return PointsOut(awarded=0, balance=points_service.balance(db, user_id))
+    return PointsOut.of(result)
+
+
+def _points_already_awarded(db: Session, user_id: str, entry_id: str) -> PointsOut:
+    """재시도로 되돌아온 끼니가 처음 저장될 때 받은 적립. 새로 적립하지 않는다."""
+    return PointsOut.of(
+        points_service.awarded_for(db, user_id, points_service.DIET_ENTRY, entry_id)
     )
 
 
@@ -224,6 +265,11 @@ def delete_entry(
     row = diet_service.get_owned_entry(db, current_user.id, entry_id)
     if row is None:
         raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없습니다.")
+    # 이 끼니로 받은 포인트를 회수한다. 기록 삭제와 같은 트랜잭션이라 기록만
+    # 사라지고 포인트가 남는 일이 없다(#1786).
+    points_service.revoke(
+        db, current_user.id, points_service.SOURCE_DIET_ENTRY, row.id
+    )
     db.delete(row)
     db.commit()
     # 근거 문서도 지운다(#603). 남겨 두면 코치가 사용자가 지운 기록으로 계속

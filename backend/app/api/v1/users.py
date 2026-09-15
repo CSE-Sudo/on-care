@@ -77,7 +77,6 @@ def get_my_health(
         risk = RiskInfo(
             title=profile.risk_title, body=profile.risk_body, level=profile.risk_level
         )
-        points = profile.activity_points
         rank = profile.activity_rank
     else:
         risk = RiskInfo(
@@ -85,8 +84,12 @@ def get_my_health(
             body="최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.",
             level="medium",
         )
-        points = 1240
         rank = 14
+
+    # 포인트는 위험도와 따로 읽는다(#1786). 예전에는 위험 문구가 없는 프로필에
+    # 데모 숫자 1240 을 돌려줘, 기록으로 적립해도 화면의 잔액이 움직이지 않았다.
+    # 데모 회원의 시작 잔액 1240 은 시드가 프로필에 넣는다.
+    points = profile.activity_points if profile is not None else 0
 
     return UserHealth(
         profile=HealthProfileBrief(

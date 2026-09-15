@@ -5,6 +5,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.points_api import PointsOut
+
 #: 회원이 고를 수 있는 운동 유형. 저장 값은 이 넷뿐이다(#996).
 ExerciseTypeIn = Literal["cardio", "strength", "flexibility", "other"]
 #: 옛 어휘. 아직 이 값을 보내는 앱이 있어 입력에서만 받아 접어 준다 — 거절하면
@@ -49,6 +51,16 @@ class ExerciseSessionOut(BaseModel):
     member_note: str = ""
     trainer_feedback: str = ""
     completed_at: datetime | None = None
+
+
+class ExerciseSessionCreatedOut(ExerciseSessionOut):
+    """POST /exercise/sessions 응답 — 저장된 기록에 이번 포인트 적립을 더한다. (#1786)
+
+    주간 목록(`sessions[]`)·수정 응답에는 붙지 않는다. 적립은 새로 추가한 순간의
+    일이라, 기록마다 달고 다니면 목록의 모든 항목에 `null` 이 실린다.
+    """
+
+    points: PointsOut
 
 
 class ExerciseAdviceResponse(BaseModel):

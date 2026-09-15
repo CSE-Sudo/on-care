@@ -1,3 +1,4 @@
+import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 
 /// `/me/coach` (MemberCoachOut) → [MemberCoach].
@@ -37,6 +38,8 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
         ? (json['session_order']! as num).toInt()
         : 0,
     exercises: _coachRoutineExercises(json['exercises']),
+    // 완료 응답(`RoutineCompleteOut`)에만 있다(#1786).
+    pointsAward: PointsAward.fromJson(json['points']),
   );
 }
 

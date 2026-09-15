@@ -1,13 +1,18 @@
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/domain/repositories/my_health_repository.dart';
 
 class MockMyHealthRepository implements MyHealthRepository {
-  const MockMyHealthRepository();
+  /// [points] 를 주면 잔액을 목업 포인트 원장에서 읽는다(#1786) — 데모에서 식단·
+  /// 운동을 기록하면 MY 잔액이 따라 오른다. 없으면 시작 잔액 그대로다.
+  const MockMyHealthRepository({this.points});
+
+  final DemoPointsLedger? points;
 
   @override
   Future<MyHealthState> fetchState() async {
     await Future<void>.delayed(const Duration(milliseconds: 150));
-    return const MyHealthState(
+    return MyHealthState(
       // 트레이너웹 데모의 김민수(`seed-client-1`)와 같은 사람이고, 여기 적힌
       // 값은 이 계정의 **실제 id** 다 — 로그인·채팅·운동 픽스처가 모두 같은
       // 값을 쓴다. 트레이너웹의 "회원 ID로 신규 고객 등록" 데모가 인식하는
@@ -19,19 +24,19 @@ class MockMyHealthRepository implements MyHealthRepository {
       // 수 없는 값인데 `user-demo` 는 그 감이 오지 않았고, 화면이 보여 주는
       // 값과 실제 계정 id 가 다르다는 사실을 아는 사람이 없으면 헷갈렸다.
       // 계정 id 자체를 그 형태로 바꾸면서 둘이 다시 하나가 됐다 (#1279).
-      profile: UserProfile(
+      profile: const UserProfile(
         name: '김민수',
         email: 'minsu@oncare.com',
         id: 'user-7d4e9a2c5f18',
       ),
-      risk: RiskAlert(
+      risk: const RiskAlert(
         title: '고혈압·당뇨 위험 주의',
         body: '최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.',
         level: RiskLevel.medium,
       ),
-      activityPoints: 1240,
+      activityPoints: points?.balance ?? kDemoOpeningPoints,
       activityRank: 14,
-      settings: <SettingsItem>[
+      settings: const <SettingsItem>[
         SettingsItem(
           label: '내 프로필',
           icon: '👤',

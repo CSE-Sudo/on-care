@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/points/points_rules.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -258,14 +259,119 @@ class _TrainerSyncRow extends StatelessWidget {
 /// 활동 포인트 — 누르면 포인트 혜택 페이지로 간다.
 ///
 /// 적립 안내 (i) 버튼은 카드가 아니라 포인트 사용처 화면 헤더에 있다(#1785).
-class _PointsCard extends StatelessWidget {
+///
+/// 잔액이 마지막으로 보인 값보다 오르면 숫자가 그 값에서 올라가고 별이 톡
+/// 튄다(#1786). 처음 읽을 때는 움직이지 않는다 — 오른 것이 아니라 처음 보는
+/// 값이다. 줄면(기록 삭제로 회수) 그대로 바꾼다.
+class _PointsCard extends StatefulWidget {
   const _PointsCard({required this.points});
 
   final int? points;
 
   @override
+  State<_PointsCard> createState() => _PointsCardState();
+}
+
+class _PointsCardState extends State<_PointsCard>
+    with TickerProviderStateMixin {
+  late final AnimationController _count = AnimationController(
+    vsync: this,
+    duration: OnCareMotion.pointsCountUp,
+  );
+  late final AnimationController _pop = AnimationController(
+    vsync: this,
+    duration: OnCareMotion.pointsPop,
+  );
+  late final Animation<double> _countCurve = CurvedAnimation(
+    parent: _count,
+    curve: OnCareMotion.curve,
+  );
+  late final Animation<double> _starScale =
+      TweenSequence<double>(<TweenSequenceItem<double>>[
+        TweenSequenceItem<double>(
+          tween: Tween<double>(
+            begin: 1,
+            end: OnCareMotion.rewardPopScale,
+          ).chain(CurveTween(curve: OnCareMotion.curve)),
+          weight: 1,
+        ),
+        TweenSequenceItem<double>(
+          tween: Tween<double>(
+            begin: OnCareMotion.rewardPopScale,
+            end: 1,
+          ).chain(CurveTween(curve: OnCareMotion.curve)),
+          weight: 1,
+        ),
+      ]).animate(_pop);
+
+  /// 올라가기 시작하는 값 — 마지막으로 화면에 보인 숫자.
+  int _from = 0;
+
+  /// 오른 값을 받았지만 아직 움직이지 않았다.
+  ///
+  /// 다른 탭에서 저장하면 가려진 MY 탭이 먼저 새 값을 받는다. 가려진 탭은
+  /// TickerMode 가 꺼져 있어 거기서 시작하면 회원이 보기 전에 끝나므로, 탭이
+  /// 보일 때까지 이전 숫자에 머문다.
+  bool _holding = false;
+  bool _startScheduled = false;
+
+  int? _shown(int? target) {
+    if (target == null) return null;
+    if (_holding) return _from;
+    if (!_count.isAnimating) return target;
+    return (_from + (target - _from) * _countCurve.value).round();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PointsCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final int? before = oldWidget.points;
+    final int? after = widget.points;
+    if (after == before) return;
+    if (before == null || after == null || after < before) {
+      _holding = false;
+      _count.stop();
+      return;
+    }
+    _from = _shown(before) ?? before;
+    _count.stop();
+    _holding = true;
+  }
+
+  void _startWhenVisible() {
+    if (!_holding ||
+        _startScheduled ||
+        !TickerMode.valuesOf(context).enabled) {
+      return;
+    }
+    _startScheduled = true;
+    final bool reduceMotion = MediaQuery.disableAnimationsOf(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startScheduled = false;
+      if (!mounted || !_holding) return;
+      if (reduceMotion) {
+        // 움직임 줄이기 — 새 숫자로 바로 바꾼다.
+        setState(() => _holding = false);
+        return;
+      }
+      _holding = false;
+      _count.forward(from: 0);
+      _pop.forward(from: 0);
+    });
+  }
+
+  @override
+  void dispose() {
+    _count.dispose();
+    _pop.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    final int? points = widget.points;
+    _startWhenVisible();
     return Semantics(
       button: true,
       child: AppCard(
@@ -273,23 +379,33 @@ class _PointsCard extends StatelessWidget {
         onTap: () => _openPointsBenefitsPage(context, points),
         child: Row(
           children: <Widget>[
-            AppIcon(
-              AppIcons.points,
-              color: tokens.brand.primary,
-              size: OnCareSize.iconLarge,
+            ScaleTransition(
+              key: const Key('pointsStar'),
+              scale: _starScale,
+              child: AppIcon(
+                AppIcons.points,
+                color: tokens.brand.primary,
+                size: OnCareSize.iconLarge,
+              ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
             // 숫자가 남는 폭을 모두 차지하게 한다. 느슨한 칸(Flexible)이면 숫자가
             // 못 쓴 몫이 화살표 오른쪽에 빈칸으로 남아, 화살표가 다른 행보다
             // 안쪽에 선다(#1744).
             Expanded(
-              child: Text(
-                points != null ? '${points}P' : '—P',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: OnCareTypography.numeric(
-                  tokens.text(OnCareTypography.titleMedium),
-                ).copyWith(color: OnCareColors.textPrimary),
+              child: AnimatedBuilder(
+                animation: _count,
+                builder: (BuildContext context, Widget? _) {
+                  final int? shown = _shown(points);
+                  return Text(
+                    shown != null ? '${shown}P' : '—P',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.titleMedium),
+                    ).copyWith(color: OnCareColors.textPrimary),
+                  );
+                },
               ),
             ),
             const AppIcon(
@@ -467,26 +583,33 @@ class _PointsInfoButton extends StatelessWidget {
           onPressed: () => Navigator.of(ctx).pop(),
           fullWidth: true,
         ),
+        // 포인트와 하루 한도는 적립 규칙([PointsRule])에서 읽는다(#1786). 안내창에
+        // 숫자를 따로 적어 두면 규칙을 바꿀 때 문구만 옛 값으로 남는다.
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _PointRule(
+            _PointRule.of(
+              l,
               icon: AppIcons.diet,
-              text: l.myPointsDietAdd,
-              points: '+50P',
+              action: l.myPointsDietAdd,
+              rule: PointsRule.dietEntry,
             ),
             const SizedBox(height: OnCareSpacing.s12),
-            _PointRule(
-              icon: AppIcons.ai,
-              text: l.myPointsAiExercise,
-              points: '+50P',
+            _PointRule.of(
+              l,
+              // AI 추천과 트레이너 배정을 한 규칙으로 묶었다 — AI 를 뜻하던 반짝이
+              // 대신 완료 표시를 쓴다.
+              icon: AppIcons.checkCircle,
+              action: l.myPointsRoutineComplete,
+              rule: PointsRule.routineComplete,
             ),
             const SizedBox(height: OnCareSpacing.s12),
-            _PointRule(
+            _PointRule.of(
+              l,
               icon: AppIcons.exercise,
-              text: l.myPointsExerciseAdd,
-              points: '+20P',
+              action: l.myPointsExerciseAdd,
+              rule: PointsRule.exerciseManual,
             ),
           ],
         ),
@@ -512,6 +635,18 @@ class _PointRule extends StatelessWidget {
     required this.text,
     required this.points,
   });
+
+  /// 적립 규칙 한 줄 — 왼쪽에 `식단 추가 (하루 3회)`, 오른쪽에 `+50P`.
+  _PointRule.of(
+    AppLocalizations l, {
+    required IconData icon,
+    required String action,
+    required PointsRule rule,
+  }) : this(
+         icon: icon,
+         text: l.myPointsRuleWithDailyCap(action, rule.dailyCap),
+         points: l.pointsRewardBadge(rule.points),
+       );
 
   final IconData icon;
   final String text;
