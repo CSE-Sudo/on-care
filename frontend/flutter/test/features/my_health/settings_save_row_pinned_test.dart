@@ -12,6 +12,7 @@ import 'package:oncare/features/account/data/repositories/mock_account_repositor
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const Key _saveRowKey = Key('mySettingsSaveRow');
 
@@ -57,6 +58,14 @@ void _expectPinnedAndTappable(WidgetTester tester) {
       findsOneWidget,
       reason: '`$label` 이 스크롤 없이 눌려야 한다',
     );
+  }
+  // 하단 두 버튼은 모두 식단 수정 화면과 같은 medium 크기다(#1782).
+  final Iterable<AppButton> buttons = tester.widgetList<AppButton>(
+    find.descendant(of: row, matching: find.byType(AppButton)),
+  );
+  expect(buttons, hasLength(2));
+  for (final AppButton button in buttons) {
+    expect(button.size, OnCareButtonSize.medium);
   }
 }
 

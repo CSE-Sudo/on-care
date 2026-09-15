@@ -136,6 +136,8 @@ Widget _loadFailed(BuildContext context, VoidCallback onRetry) {
 /// button shows a spinner and cancel disables while [saving].
 ///
 /// 스크롤 목록 끝이 아니라 [_formShell] 로 화면 하단에 고정한다(#1782).
+/// 크기는 식단 수정 화면·운동 시트와 같은 기본(medium)이다 — 하단 두 버튼은
+/// 모두 한 크기로 맞춘다(#1782).
 Widget _saveRow({
   required BuildContext context,
   required bool saving,
@@ -148,7 +150,6 @@ Widget _saveRow({
     confirmLabel: l.mySave,
     onConfirm: onSave,
     confirmLoading: saving,
-    size: OnCareButtonSize.large,
   );
 }
 
