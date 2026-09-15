@@ -240,9 +240,11 @@ class OnCareTheme {
       ),
 
       // --- 입력 ---
+      // 흰 채움 + 회색 테두리(#1776). 회색 채움은 흰 페이지·카드 위에서
+      // 비활성처럼 보인다.
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: OnCareColors.surfaceInput,
+        fillColor: OnCareColors.surfaceCard,
         isDense: true,
         constraints: BoxConstraints(minHeight: density.inputMedium),
         contentPadding: const EdgeInsets.symmetric(

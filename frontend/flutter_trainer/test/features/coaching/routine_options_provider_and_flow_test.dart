@@ -695,7 +695,8 @@ void main() {
           .decoration;
       expect(promptDecoration.hintStyle?.color, OnCareColors.textTertiary);
       expect(promptDecoration.filled, isTrue);
-      expect(promptDecoration.fillColor, OnCareColors.surfaceInput);
+      // 흰 채움 + 회색 테두리(#1776).
+      expect(promptDecoration.fillColor, OnCareColors.surfaceCard);
       expect(
         (promptDecoration.enabledBorder! as OutlineInputBorder)
             .borderSide
