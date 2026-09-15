@@ -48,7 +48,7 @@ class MyBenefitsPage extends ConsumerWidget {
                     child: AppEmptyState(
                       title: l.myBenefitsEmpty,
                       message: l.myBenefitsEmptyMessage,
-                      icon: Icons.redeem_rounded,
+                      icon: Icons.confirmation_number_rounded,
                       actionLabel: l.myPointsBenefitsTitle,
                       onAction: () => context.push<void>(AppRoutes.myPoints),
                       placement: AppStatePlacement.card,
