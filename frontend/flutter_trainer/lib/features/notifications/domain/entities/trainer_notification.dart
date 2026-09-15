@@ -5,12 +5,21 @@ library;
 ///
 /// 회원 알림의 category 집합(reminder|health_check|achievement|system)과 다르다 —
 /// 같은 테이블을 쓰지만 읽는 화면과 갈 곳이 다르다.
-enum TrainerNotificationKind { message, consultation, reservation, other }
+enum TrainerNotificationKind {
+  message,
+  consultation,
+  reservation,
+
+  /// 담당 회원이 건강 목표를 바꿨다 — 그 회원 상세로 간다(#1832).
+  healthGoal,
+  other,
+}
 
 TrainerNotificationKind _kindFrom(String? raw) => switch (raw) {
   'message' => TrainerNotificationKind.message,
   'consultation' => TrainerNotificationKind.consultation,
   'reservation' => TrainerNotificationKind.reservation,
+  'health_goal' => TrainerNotificationKind.healthGoal,
   // 서버가 새 종류를 추가했는데 앱이 모르는 경우. 목록에서 빼지 않고 이동만
   // 하지 않는다 — 안 보이는 알림보다 갈 곳 없는 알림이 낫다.
   _ => TrainerNotificationKind.other,
@@ -25,6 +34,7 @@ class TrainerNotification {
     required this.read,
     required this.createdAt,
     required this.timeAgo,
+    this.subjectId,
   });
 
   final String id;
@@ -38,6 +48,10 @@ class TrainerNotification {
   /// 서버 판단을 그대로 받는다.
   final String timeAgo;
 
+  /// 알림이 가리키는 회원 id. 종류만으로 갈 곳이 정해지지 않는 알림(건강 목표
+  /// 변경)에만 있다(#1832).
+  final String? subjectId;
+
   factory TrainerNotification.fromJson(Map<String, Object?> json) =>
       TrainerNotification(
         id: json['id']! as String,
@@ -47,5 +61,9 @@ class TrainerNotification {
         read: (json['read'] as bool?) ?? false,
         createdAt: DateTime.parse(json['created_at']! as String).toLocal(),
         timeAgo: (json['time_ago'] as String?) ?? '',
+        subjectId: switch (json['subject_id']) {
+          final String id when id.isNotEmpty => id,
+          _ => null,
+        },
       );
 }

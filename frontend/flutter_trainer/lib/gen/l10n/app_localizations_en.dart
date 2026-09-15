@@ -690,6 +690,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get memberHealthFocus => 'Health goals (up to 2)';
 
   @override
+  String memberHealthFocusLastChanged(String who, String date) {
+    return 'Last changed by $who · $date';
+  }
+
+  @override
+  String get memberHealthFocusChangedByTrainer => 'Trainer';
+
+  @override
+  String get memberHealthFocusChangedByMember => 'Member';
+
+  @override
   String get healthFocusWeightLoss => 'Weight loss';
 
   @override

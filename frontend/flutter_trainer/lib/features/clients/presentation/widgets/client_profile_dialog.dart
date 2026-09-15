@@ -9,6 +9,7 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/utils/focus_change_label.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -493,6 +494,22 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
                   ),
               ],
             ),
+            // 회원도 같은 목표를 고친다 — 누가 언제 바꿨는지 칩 아래에 남긴다(#1832).
+            if (focusLastChangedLabel(
+                  l,
+                  profile,
+                  locale: Localizations.localeOf(context).toString(),
+                )
+                case final String changed) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              Text(
+                changed,
+                key: const ValueKey<String>('client-focus-last-changed'),
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ],
             const SizedBox(height: OnCareSpacing.s8),
             AppTextField(
               controller: _conditions,

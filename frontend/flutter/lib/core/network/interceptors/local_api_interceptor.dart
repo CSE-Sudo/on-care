@@ -2223,6 +2223,19 @@ class LocalApiInterceptor extends Interceptor {
       if (body.containsKey(k)) patch[k] = body[k];
     }
     _normalizeConditions(patch);
+    // 목표 칩이 실제로 바뀐 저장만 `마지막 변경` 으로 남긴다 — 실서버와 같은
+    // 규칙이다(#1832). 목업에는 담당 트레이너 쪽 알림함이 없어 기록만 한다.
+    if (patch['conditions'] case final String next) {
+      final Map<String, Object?> current = await _mergedProfile();
+      final Set<String> before = parseHealthFocus(
+        current['conditions'] as String? ?? '',
+      ).toSet();
+      if (!before.containsAll(parseHealthFocus(next)) ||
+          before.length != parseHealthFocus(next).toSet().length) {
+        patch['focus_changed_by'] = 'member';
+        patch['focus_changed_at'] = nowKst().toIso8601String();
+      }
+    }
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
   }

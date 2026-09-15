@@ -122,6 +122,20 @@ class HealthProfile(Base):
     # 온보딩 완료 여부(프론트 온보딩 게이팅용)
     onboarded: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # 건강 목표(`conditions` 의 목표 칩)를 마지막으로 바꾼 사람·시각 (#1832).
+    # 회원과 담당 트레이너가 같은 칸을 고치므로, 승인 대신 기록과 알림으로 서로
+    # 알게 한다. 바꾼 사람 id 에는 외래키를 걸지 않는다 — 같은 `users` 를 두 번
+    # 가리키면 `User.health_profile` 관계가 모호해진다.
+    focus_changed_by: Mapped[str | None] = mapped_column(
+        String(10), nullable=True
+    )  # member|trainer
+    focus_changed_by_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+    focus_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     activity_points: Mapped[int] = mapped_column(Integer, default=0)
     activity_rank: Mapped[int | None] = mapped_column(Integer, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(
@@ -450,6 +464,9 @@ class Notification(Base):
         String(20)
     )  # reminder|health_check|achievement|system
     read: Mapped[bool] = mapped_column(Boolean, default=False)
+    # 알림이 가리키는 회원 id (#1832). `category` 만으로 갈 곳이 정해지지 않는
+    # 알림 — 트레이너의 `회원 건강 목표 변경` 은 **그 회원** 상세로 가야 한다.
+    subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

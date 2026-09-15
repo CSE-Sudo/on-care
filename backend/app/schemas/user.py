@@ -170,6 +170,10 @@ class ProfileView(BaseModel):
     weekly_strength_sets: Optional[int] = None
     weekly_flexibility_minutes: Optional[int] = None
     onboarded: bool = False
+    #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각. 바꾼 적이 없으면
+    #: 둘 다 null 이다(#1832).
+    focus_changed_by: Optional[str] = None
+    focus_changed_at: Optional[datetime] = None
 
 
 class HealthGoalsUpdate(BaseModel):

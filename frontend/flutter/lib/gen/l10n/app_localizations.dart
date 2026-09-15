@@ -4273,6 +4273,24 @@ abstract class AppLocalizations {
   /// **'Pick what you want to focus on in your health care. (up to 2)'**
   String get myGoalsFocusHint;
 
+  /// MY health goals: who last changed the goal chips and when (#1832).
+  ///
+  /// In en, this message translates to:
+  /// **'Last changed by {who} · {date}'**
+  String myGoalsFocusLastChanged(String who, String date);
+
+  /// MY health goals: the goals were last changed by the member's trainer (#1832).
+  ///
+  /// In en, this message translates to:
+  /// **'your trainer'**
+  String get myGoalsFocusChangedByTrainer;
+
+  /// MY health goals: the goals were last changed by the member (#1832).
+  ///
+  /// In en, this message translates to:
+  /// **'you'**
+  String get myGoalsFocusChangedByMe;
+
   /// Health goal chip in onboarding and MY health goals.
   ///
   /// In en, this message translates to:

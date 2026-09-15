@@ -166,6 +166,9 @@ class MemberHealthProfileOut(BaseModel):
     weekly_workout_goal: int | None = None
     weekly_exercise_minutes_goal: int | None = None
     weekly_burn_goal: int | None = None
+    #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각(#1832).
+    focus_changed_by: str | None = None
+    focus_changed_at: _datetime | None = None
 
 
 class MemberHealthProfileUpdate(PartialUpdate):
@@ -1423,6 +1426,8 @@ class TrainerNotificationOut(BaseModel):
     read: bool
     created_at: _datetime
     time_ago: str
+    #: 알림이 가리키는 회원 id — `health_goal` 알림이 그 회원 상세로 가는 데 쓴다(#1832).
+    subject_id: str | None = None
 
 
 #: 미션 키 하나(`report-<id>` 등). 서버는 내용을 해석하지 않고 길이만 막는다.

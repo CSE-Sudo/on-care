@@ -1292,6 +1292,24 @@ abstract class AppLocalizations {
   /// **'Health goals (up to 2)'**
   String get memberHealthFocus;
 
+  /// Member profile dialog: who last changed the member's goal chips and when (#1832).
+  ///
+  /// In en, this message translates to:
+  /// **'Last changed by {who} · {date}'**
+  String memberHealthFocusLastChanged(String who, String date);
+
+  /// No description provided for @memberHealthFocusChangedByTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get memberHealthFocusChangedByTrainer;
+
+  /// No description provided for @memberHealthFocusChangedByMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get memberHealthFocusChangedByMember;
+
   /// No description provided for @healthFocusWeightLoss.
   ///
   /// In en, this message translates to:

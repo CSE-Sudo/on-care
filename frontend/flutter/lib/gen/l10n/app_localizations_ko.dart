@@ -2301,6 +2301,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalsFocusHint => '건강 관리에서 더 집중하고 싶은 항목을 골라 주세요. (최대 2개)';
 
   @override
+  String myGoalsFocusLastChanged(String who, String date) {
+    return '마지막 변경: $who · $date';
+  }
+
+  @override
+  String get myGoalsFocusChangedByTrainer => '트레이너';
+
+  @override
+  String get myGoalsFocusChangedByMe => '나';
+
+  @override
   String get healthFocusWeightLoss => '체중 감량';
 
   @override

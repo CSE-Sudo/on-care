@@ -11,6 +11,7 @@ import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/account/presentation/focus_change_label.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
@@ -691,6 +692,23 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
               ),
           ],
         ),
+        // 담당 트레이너도 같은 목표를 고친다 — 누가 언제 바꿨는지 칩 아래에
+        // 남긴다(#1832).
+        if (focusLastChangedLabel(
+              l,
+              widget.initial,
+              locale: Localizations.localeOf(context).toString(),
+            )
+            case final String changed) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s12),
+          Text(
+            changed,
+            key: const Key('goalFocusLastChanged'),
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textTertiary),
+          ),
+        ],
       ]),
       const SizedBox(height: OnCareSpacing.s20),
       AppSectionHeader(title: l.myGoalsExerciseSection),
