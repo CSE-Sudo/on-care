@@ -35,7 +35,10 @@ class CoachChatNotice extends StatelessWidget {
   /// 바탕 모양.
   final CoachChatNoticeStyle style;
 
-  /// 셋째 줄 글자 링크. [onAction] 과 함께 줄 때만 그린다.
+  /// 셋째 줄 행동 버튼. [onAction] 과 함께 줄 때만 그린다.
+  ///
+  /// 흰 글씨 + 메인 파랑 채움 알약이다(#1828). 글자 링크일 때는 제목·날짜와
+  /// 구분이 약해 누를 수 있는 것으로 읽히지 않았다.
   final String? actionLabel;
 
   /// 링크를 눌렀을 때.
@@ -91,23 +94,10 @@ class CoachChatNotice extends StatelessWidget {
                   .text(OnCareTypography.caption)
                   .copyWith(color: OnCareColors.textTertiary),
             ),
-            if (label != null && action != null)
-              // 테두리 없는 글자 링크. 안내 상자 안에서 두 번째 테두리를 그리면
-              // 상자가 둘로 보인다 — 여기서 눌릴 것은 하나뿐이라 글자로 충분하다.
-              Semantics(
-                button: true,
-                child: InkWell(
-                  onTap: action,
-                  borderRadius: OnCareRadius.smAll,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: OnCareSpacing.s8,
-                      vertical: OnCareSpacing.s4,
-                    ),
-                    child: Text(label, style: strong),
-                  ),
-                ),
-              ),
+            if (label != null && action != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              CoachChatPillButton(label: label, onPressed: action),
+            ],
           ],
         ),
       ),
@@ -122,4 +112,57 @@ enum CoachChatNoticeStyle {
 
   /// 흰 바탕 + 메인 색 테두리.
   outlined,
+}
+
+/// 안내 상자 안의 행동 버튼 — 흰 글씨, 메인 파랑 채움, 양 끝이 둥근 알약. (#1828)
+///
+/// 트레이너 웹 채팅의 `리포트 탭으로 가기` 와 같은 모양이다. 공용 버튼은 반경이
+/// 12 로 고정이라, 알약 모양은 이 자리에서 그린다.
+class CoachChatPillButton extends StatelessWidget {
+  /// Creates the pill.
+  const CoachChatPillButton({
+    required this.label,
+    required this.onPressed,
+    super.key,
+  });
+
+  /// 버튼 글자.
+  final String label;
+
+  /// 눌렀을 때.
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Semantics(
+      button: true,
+      child: Material(
+        key: const Key('coachChatPillButton'),
+        color: tokens.brand.primary,
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: tokens.density.buttonSmall),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s16,
+              ),
+              child: Center(
+                widthFactor: 1,
+                child: Text(
+                  label,
+                  style: tokens
+                      .text(OnCareTypography.buttonSmall)
+                      .copyWith(color: OnCareColors.textOnFill),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
