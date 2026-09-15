@@ -6,8 +6,10 @@ import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Opens the merged 신체·목표·메모 dialog for [clientId].
@@ -124,6 +126,10 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   final _height = TextEditingController();
   final _weight = TextEditingController();
   final _conditions = TextEditingController();
+
+  /// 회원 건강 목표(최대 2개). 회원앱과 같은 칸을 고친다 — [_conditions] 에는
+  /// 목표가 아닌 건강상태·주의사항 글만 남긴다(#1818).
+  Set<String> _focus = <String>{};
   final _goals = TextEditingController();
   // 회원 앱 마이페이지와 **같은 목표 필드**다(#1449). 옛 주간 목표(횟수·
   // 시간·소모)는 회원 화면에 대응하는 자리가 없어 편집 폼에서 뺐다 — 응답에는
@@ -189,7 +195,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
     _gender = profile.gender.isEmpty ? widget.fallbackGender : profile.gender;
     _height.text = _displayNumber(profile.heightCm);
     _weight.text = _displayNumber(profile.weightKg);
-    _conditions.text = profile.conditions;
+    _focus = parseHealthFocus(profile.conditions);
+    _conditions.text = healthFocusNotes(profile.conditions);
     _goals.text = profile.goals;
     _goalCalories.text = profile.dailyCalories?.toString() ?? '';
     _goalSodium.text = profile.dailySodiumMg?.toString() ?? '';
@@ -343,7 +350,8 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             'gender': _gender,
             'height_cm': _number(_height.text, integer: false),
             'weight_kg': _number(_weight.text, integer: false),
-            'conditions': _conditions.text.trim(),
+            // 목표가 앞, 주의사항 글이 뒤인 한 칸이다 — 회원앱 저장과 같은 모양.
+            'conditions': mergeHealthFocus(_conditions.text, _focus),
             'goals': _goals.text.trim(),
             'daily_calories': _number(_goalCalories.text, integer: true),
             'daily_sodium_mg': _number(_goalSodium.text, integer: true),
@@ -464,6 +472,27 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
             ),
             const SizedBox(height: OnCareSpacing.s8),
             _fieldRow(<Widget>[number(0), number(1)]),
+            const SizedBox(height: OnCareSpacing.s8),
+            Text(l.memberHealthFocus, style: groupStyle),
+            const SizedBox(height: OnCareSpacing.s8),
+            Wrap(
+              spacing: OnCareSpacing.s8,
+              runSpacing: OnCareSpacing.s8,
+              children: <Widget>[
+                for (final String option in kHealthFocusOptions)
+                  AppChoiceChip(
+                    key: ValueKey<String>('client-focus-$option'),
+                    label: healthFocusLabel(l, option),
+                    selected: _focus.contains(option),
+                    // 두 개를 고르면 나머지 칩은 잠긴다 — 회원앱과 같다.
+                    onSelected: canPickHealthFocus(_focus, option)
+                        ? (_) => setState(() {
+                            if (!_focus.remove(option)) _focus.add(option);
+                          })
+                        : null,
+                  ),
+              ],
+            ),
             const SizedBox(height: OnCareSpacing.s8),
             AppTextField(
               controller: _conditions,

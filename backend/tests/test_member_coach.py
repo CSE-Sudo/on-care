@@ -63,7 +63,8 @@ def test_my_coach(client):
     assert body["name"] == "김트레이너"
     assert body["career"] == "7년"
     assert body["gym"]["name"] == "온케어짐 신촌점"
-    assert body["goal"] == "체력 강화 · 다이어트"
+    # 트레이너가 따로 적던 문장이 아니라 회원 건강 목표다(#1818).
+    assert body["goal"] == "체중 감량 · 체력 강화"
 
 
 def test_my_routines_and_sessions(client):
