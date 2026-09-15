@@ -515,12 +515,8 @@ class AppMonthCalendarHeader extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: tokens
-                          .text(OnCareTypography.titleMedium)
-                          .copyWith(
-                            // 옛 달 라벨은 제목보다 가벼운 500 이었다.
-                            fontWeight: FontWeight.w500,
-                            color: OnCareColors.textPrimary,
-                          ),
+                          .text(OnCareCalendar.monthLabel)
+                          .copyWith(color: OnCareColors.textPrimary),
                     ),
                   ),
                   AppIconButton(
@@ -562,12 +558,17 @@ class AppMonthWeekdayHeader extends StatelessWidget {
               padding: const EdgeInsets.symmetric(
                 vertical: OnCareCalendar.weekdayBandVerticalPadding,
               ),
-              child: Text(
-                w,
-                maxLines: 1,
-                style: tokens
-                    .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                    .copyWith(color: OnCareColors.textTertiary),
+              // 좁은 화면·큰 글자 배율에서 영어 요일(Wed)이 칸보다 넓어지면
+              // 잘리는 대신 통째로 줄인다.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  w,
+                  maxLines: 1,
+                  style: tokens
+                      .text(OnCareCalendar.monthWeekday)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
               ),
             ),
           ),
@@ -747,10 +748,10 @@ class AppMonthGrid extends StatelessWidget {
           children: <Widget>[
             Text(
               '$day',
+              maxLines: 1,
               style: tokens
-                  .text(OnCareTypography.bodySmall)
+                  .text(OnCareCalendar.monthDayNumber)
                   .copyWith(
-                    fontWeight: FontWeight.w700,
                     color: isToday
                         ? tokens.brand.primary
                         : OnCareColors.textPrimary,
@@ -822,7 +823,7 @@ class AppCalendarLegend extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final TextStyle style = context.oncare
-        .text(OnCareTypography.bodySmall)
+        .text(OnCareCalendar.legendLabel)
         .copyWith(color: OnCareColors.textTertiary);
     return Wrap(
       spacing: OnCareSpacing.s12,

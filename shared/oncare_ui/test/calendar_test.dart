@@ -77,6 +77,75 @@ void main() {
       );
     });
 
+    testWidgets('글자·날짜 칸은 옛 앱에서 보이던 크기(× 1.1)다', (WidgetTester tester) async {
+      await pumpStrip(tester, selected: DateTime(2026, 9, 15), onToday: () {});
+
+      double sizeOf(String text) =>
+          tester.widget<Text>(find.text(text)).style!.fontSize!;
+      expect(sizeOf('9월 3주차'), 15); // 옛 13.5
+      expect(sizeOf('월'), 13); // 옛 12
+      expect(sizeOf('15'), 15); // 옛 13.5
+      expect(sizeOf('오늘'), 13); // 옛 12
+      final Finder box = find
+          .ancestor(of: find.text('15'), matching: find.byType(Container))
+          .first;
+      expect(tester.getSize(box), const Size.square(33)); // 옛 30
+    });
+
+    testWidgets('좁은 화면·큰 글자 배율에서도 넘치거나 잘리지 않는다', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        host(
+          Builder(
+            builder: (BuildContext context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.3)),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: 320,
+                  child: AppWeekStrip(
+                    label: 'September, week 3 of the month',
+                    todayLabel: 'Today',
+                    onToday: () {},
+                    days: week,
+                    weekdayLabels: const <String>[
+                      'Mon',
+                      'Tue',
+                      'Wed',
+                      'Thu',
+                      'Fri',
+                      'Sat',
+                      'Sun',
+                    ],
+                    selected: DateTime(2026, 9, 20),
+                    today: DateTime(2026, 9, 20),
+                    onSelected: (_) {},
+                    previousTooltip: '지난 주',
+                    nextTooltip: '다음 주',
+                    onPrevious: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      // 칸은 한 칸 폭(양옆 화살표를 뺀 폭의 1/7)을 넘지 않는다.
+      const double cellWidth = (320 - 2 * OnCareCalendar.weekArrow) / 7;
+      final Finder box = find
+          .ancestor(of: find.text('20'), matching: find.byType(Container))
+          .first;
+      expect(tester.getSize(box).width, lessThanOrEqualTo(cellWidth));
+      // 날짜 숫자는 칸 안에 온전히 들어간다.
+      final Rect number = tester.getRect(find.text('20'));
+      final Rect boxRect = tester.getRect(box);
+      expect(number.left, greaterThanOrEqualTo(boxRect.left));
+      expect(number.right, lessThanOrEqualTo(boxRect.right));
+    });
+
     testWidgets('선택한 날은 브랜드 채움 칸에 카드 그림자다', (WidgetTester tester) async {
       await pumpStrip(tester, selected: DateTime(2026, 9, 15));
 
@@ -148,6 +217,103 @@ void main() {
         ),
       );
     }
+
+    testWidgets('날짜 숫자·일정 칩·요일 띠·범례는 옛 앱에서 보이던 크기(× 1.1)다', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          Column(
+            children: <Widget>[
+              const AppMonthWeekdayHeader(labels: labels),
+              const AppCalendarLegend(
+                entries: <(Color, String)>[(OnCareColors.success, '운동')],
+              ),
+              Expanded(
+                child: AppMonthGrid(
+                  month: DateTime(2026, 9),
+                  weekdayLabels: labels,
+                  firstWeekday: DateTime.sunday,
+                  showWeekdayHeader: false,
+                  onSelected: (_) {},
+                  dayBuilder: (BuildContext _, DateTime day) => day.day == 2
+                      ? const AppCalendarEventChip(
+                          color: OnCareColors.success,
+                          label: '10:00 PT',
+                        )
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      double sizeOf(String text) =>
+          tester.widget<Text>(find.text(text)).style!.fontSize!;
+      expect(sizeOf('월'), 17); // 요일 띠, 옛 15
+      expect(sizeOf('운동'), 17); // 범례, 옛 15
+      expect(sizeOf('1'), 17); // 날짜 숫자, 옛 15
+      expect(sizeOf('10:00 PT'), 10); // 일정 칩, 옛 9
+    });
+
+    testWidgets('좁은 화면·큰 글자 배율에서 요일 띠·날짜 칸이 넘치지 않는다', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          Builder(
+            builder: (BuildContext context) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.3)),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: SizedBox(
+                  width: 288,
+                  height: 500,
+                  child: Column(
+                    children: <Widget>[
+                      const AppMonthWeekdayHeader(
+                        labels: <String>[
+                          'Sun',
+                          'Mon',
+                          'Tue',
+                          'Wed',
+                          'Thu',
+                          'Fri',
+                          'Sat',
+                        ],
+                      ),
+                      Expanded(
+                        child: AppMonthGrid(
+                          month: DateTime(2026, 8),
+                          weekdayLabels: labels,
+                          firstWeekday: DateTime.sunday,
+                          showWeekdayHeader: false,
+                          onSelected: (_) {},
+                          dayBuilder: (BuildContext _, DateTime day) =>
+                              const AppCalendarEventChip(
+                                color: OnCareColors.success,
+                                label: '10:00 병원 정기검진',
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+      // 요일 글자는 칸 폭 안으로 줄어든다.
+      const double column = 288 / 7;
+      // 줄인 뒤 화면에 그려진 폭(FittedBox 변환 포함)을 본다.
+      expect(tester.getRect(find.text('Wed')).width, lessThanOrEqualTo(column));
+    });
 
     testWidgets('높이가 넉넉하면 주 줄이 남은 높이를 나눠 갖는다', (WidgetTester tester) async {
       await pumpGrid(tester, height: 600);

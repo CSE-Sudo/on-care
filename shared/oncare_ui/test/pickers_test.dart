@@ -289,6 +289,26 @@ void main() {
 
       expect(find.byKey(AppDateRangePickerDialog.dialogKey), findsOneWidget);
       expect(find.text('September 2026'), findsOneWidget);
+      // 옛 앱에서 보이던 크기(옛 16 × 1.1 → 18, 옛 12 × 1.1 → 13).
+      expect(
+        tester.widget<Text>(find.text('September 2026')).style!.fontSize,
+        18,
+      );
+      expect(tester.widget<Text>(find.text('15')).style!.fontSize, 18);
+      expect(
+        tester.widget<Text>(find.text('7')).style!.fontWeight,
+        FontWeight.w700,
+      );
+      final MaterialLocalizations ml = MaterialLocalizations.of(
+        tester.element(find.byKey(AppDateRangePickerDialog.dialogKey)),
+      );
+      expect(
+        tester
+            .widget<Text>(find.text(ml.narrowWeekdays[1]).first)
+            .style!
+            .fontSize,
+        13,
+      );
       expect(
         field(tester, AppDateRangePickerDialog.startInputKey).controller!.text,
         '09/07/2026',

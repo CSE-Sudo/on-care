@@ -430,7 +430,7 @@ class _AppDateRangePickerDialogState extends State<AppDateRangePickerDialog> {
                   l.formatMonthYear(_displayedMonth),
                   textAlign: TextAlign.center,
                   style: context.oncare
-                      .text(OnCareTypography.titleSmall)
+                      .text(OnCareCalendar.rangeMonthLabel)
                       .copyWith(color: OnCareColors.textPrimary),
                 ),
               ),
@@ -497,7 +497,7 @@ class _RangeMonthGrid extends StatelessWidget {
                   child: Text(
                     l.narrowWeekdays[(l.firstDayOfWeekIndex + i) % 7],
                     style: tokens
-                        .text(OnCareTypography.caption)
+                        .text(OnCareCalendar.rangeWeekday)
                         .copyWith(color: OnCareColors.textSecondary),
                   ),
                 ),
@@ -545,8 +545,9 @@ class _RangeMonthGrid extends StatelessWidget {
       right: isEnd ? OnCareRadius.pill : Radius.zero,
     );
     final TextStyle base = OnCareTypography.numeric(
-      tokens.text(OnCareTypography.bodySmall),
+      tokens.text(OnCareCalendar.rangeDay),
     );
+    final TextStyle cap = base.copyWith(fontWeight: FontWeight.w700);
 
     return Semantics(
       button: true,
@@ -564,14 +565,13 @@ class _RangeMonthGrid extends StatelessWidget {
           child: Center(
             child: Text(
               '$dayOfMonth',
-              style: (isStart || isEnd ? OnCareTypography.strong(base) : base)
-                  .copyWith(
-                    color: inBand
-                        ? OnCareColors.textOnFill
-                        : disabled
-                        ? OnCareColors.textDisabled
-                        : OnCareColors.textPrimary,
-                  ),
+              style: (isStart || isEnd ? cap : base).copyWith(
+                color: inBand
+                    ? OnCareColors.textOnFill
+                    : disabled
+                    ? OnCareColors.textDisabled
+                    : OnCareColors.textPrimary,
+              ),
             ),
           ),
         ),
