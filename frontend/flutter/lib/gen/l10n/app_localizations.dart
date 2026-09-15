@@ -2348,12 +2348,6 @@ abstract class AppLocalizations {
   /// **'Until {date}'**
   String myCouponUntil(String date);
 
-  /// No description provided for @myCouponCode.
-  ///
-  /// In en, this message translates to:
-  /// **'Coupon code'**
-  String get myCouponCode;
-
   /// No description provided for @myCouponTrainer.
   ///
   /// In en, this message translates to:
@@ -2390,12 +2384,6 @@ abstract class AppLocalizations {
   /// **'Status'**
   String get myCouponStatus;
 
-  /// No description provided for @myCouponRenewalGuide.
-  ///
-  /// In en, this message translates to:
-  /// **'When you renew PT, show this screen to your trainer or gym staff.'**
-  String get myCouponRenewalGuide;
-
   /// No description provided for @myCouponStaffNote.
   ///
   /// In en, this message translates to:
@@ -2429,7 +2417,7 @@ abstract class AppLocalizations {
   /// No description provided for @myCouponMemberGuide.
   ///
   /// In en, this message translates to:
-  /// **'Show the code at the store, then tap Mark as used.'**
+  /// **'Show this screen at the store, then tap Mark as used.'**
   String get myCouponMemberGuide;
 
   /// No description provided for @myCouponExpireNotice.

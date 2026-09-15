@@ -214,8 +214,6 @@ class PointsCoupon(Base):
     #: 카탈로그 항목 id — pt_renewal|salad_discount|protein_discount.
     item: Mapped[str] = mapped_column(String(40))
     cost: Mapped[int] = mapped_column(Integer)
-    #: 화면에 보여 주는 8자리 코드(헷갈리는 0·O·1·I 제외).
-    code: Mapped[str] = mapped_column(String(16))
     status: Mapped[str] = mapped_column(
         String(12), default="issued", server_default="issued"
     )  # issued|used|expired|cancelled
@@ -248,7 +246,6 @@ class PointsCoupon(Base):
             name="ck_points_coupons_status",
         ),
         CheckConstraint("cost > 0", name="ck_points_coupons_cost"),
-        UniqueConstraint("code", name="uq_points_coupons_code"),
         UniqueConstraint(
             "user_id", "client_request_id", name="uq_points_coupons_client_request"
         ),

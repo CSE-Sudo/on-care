@@ -1253,9 +1253,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myCouponCode => '쿠폰 코드';
-
-  @override
   String get myCouponTrainer => '담당 트레이너';
 
   @override
@@ -1276,9 +1273,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCouponStatus => '상태';
 
   @override
-  String get myCouponRenewalGuide => 'PT를 다시 등록할 때 이 화면을 트레이너·헬스장 직원에게 보여 주세요.';
-
-  @override
   String get myCouponStaffNote => '트레이너·헬스장 직원이 확인한 뒤 눌러 주세요';
 
   @override
@@ -1296,7 +1290,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myCouponMemberGuide => '매장에서 코드를 보여 준 뒤 사용 완료를 눌러 주세요.';
+  String get myCouponMemberGuide => '매장에서 이 화면을 보여 준 뒤 사용 완료를 눌러 주세요.';
 
   @override
   String get myCouponExpireNotice => '만료되면 포인트는 돌려받을 수 없어요.';

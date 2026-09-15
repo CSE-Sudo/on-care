@@ -785,7 +785,6 @@
       }
     }
   },
-  "myCouponCode": "Coupon code",
   "myCouponTrainer": "Trainer",
   "myCouponGym": "Gym",
   "myCouponIssuedOn": "Redeemed on",
@@ -802,7 +801,6 @@
     }
   },
   "myCouponStatus": "Status",
-  "myCouponRenewalGuide": "When you renew PT, show this screen to your trainer or gym staff.",
   "myCouponStaffNote": "Tap only after your trainer or gym staff has checked it",
   "myCouponStaffConfirmTitle": "Mark this coupon as used?",
   "myCouponStaffConfirmMessage": "For staff · This can't be undone once used",
@@ -815,7 +813,7 @@
       }
     }
   },
-  "myCouponMemberGuide": "Show the code at the store, then tap Mark as used.",
+  "myCouponMemberGuide": "Show this screen at the store, then tap Mark as used.",
   "myCouponExpireNotice": "Points aren't refunded once the coupon expires.",
   "myCouponUse": "Mark as used",
   "myCouponUseConfirmTitle": "Mark this coupon as used?",
