@@ -112,7 +112,10 @@
   "authNoAccount": "Don't have an account?",
   "authSignUp": "Sign up",
   "authBrowseDemo": "Explore the demo without signing in",
-  "authOr": "or",
+  "authSocialDivider": "Sign in with a social account",
+  "@authSocialDivider": {
+    "description": "Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783)."
+  },
   "authContinueKakao": "Continue with Kakao",
   "authContinueGoogle": "Continue with Google",
   "authSignUpSubtitle": "Create an On-Care account and start managing members",

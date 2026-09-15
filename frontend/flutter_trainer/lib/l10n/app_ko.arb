@@ -80,7 +80,7 @@
   "authNoAccount": "계정이 없으신가요?",
   "authSignUp": "계정 만들기",
   "authBrowseDemo": "로그인 없이 데모 둘러보기",
-  "authOr": "또는",
+  "authSocialDivider": "SNS 계정으로 로그인",
   "authContinueKakao": "카카오로 시작하기",
   "authContinueGoogle": "구글로 시작하기",
   "authSignUpSubtitle": "On-Care 계정을 만들어 회원 관리를 시작하세요",

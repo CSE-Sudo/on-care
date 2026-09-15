@@ -19,6 +19,7 @@ export 'src/components/app_media.dart';
 export 'src/components/app_menu.dart';
 export 'src/components/app_pickers.dart';
 export 'src/components/app_selection.dart';
+export 'src/components/app_social_login.dart';
 export 'src/components/app_surfaces.dart';
 export 'src/components/app_time_range_picker.dart';
 export 'src/components/app_toast.dart';

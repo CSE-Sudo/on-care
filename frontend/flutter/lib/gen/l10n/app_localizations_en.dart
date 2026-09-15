@@ -1890,7 +1890,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authDemoAction => 'Explore the demo without signing in';
 
   @override
-  String get authOrDivider => 'or';
+  String get authSocialDivider => 'Sign in with a social account';
 
   @override
   String get authKakaoAction => 'Continue with Kakao';

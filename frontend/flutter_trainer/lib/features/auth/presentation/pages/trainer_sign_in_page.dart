@@ -175,21 +175,25 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
             fullWidth: true,
           ),
           const SizedBox(height: OnCareSpacing.s16),
-          const _OrDivider(),
+          AppLabeledDivider(label: l.authSocialDivider),
           const SizedBox(height: OnCareSpacing.s16),
-          _SocialButton.kakao(
-            label: l.authContinueKakao,
-            onTap: _loading ? null : () => _social('kakao'),
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          // 회원앱 로그인과 같은 모양 — 흰 바탕 보조 버튼.
-          AppButton(
-            label: l.authContinueGoogle,
-            leadingIcon: Icons.g_mobiledata_rounded,
-            onPressed: _loading ? null : () => _social('google'),
-            variant: AppButtonVariant.secondary,
-            size: OnCareButtonSize.large,
-            fullWidth: true,
+          // 회원앱 로그인과 같은 모양 — 가운데에 나란히 놓인 원형 아이콘
+          // 버튼이다(#1783).
+          AppSocialLoginRow(
+            children: <Widget>[
+              AppSocialLoginButton(
+                key: const ValueKey<String>('trainer-login-kakao'),
+                provider: AppSocialProvider.kakao,
+                label: l.authContinueKakao,
+                onPressed: _loading ? null : () => _social('kakao'),
+              ),
+              AppSocialLoginButton(
+                key: const ValueKey<String>('trainer-login-google'),
+                provider: AppSocialProvider.google,
+                label: l.authContinueGoogle,
+                onPressed: _loading ? null : () => _social('google'),
+              ),
+            ],
           ),
           const SizedBox(height: OnCareSpacing.s12),
           if (signUpEnabled)
@@ -227,101 +231,6 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// "— 또는 —" separator between the email login and social buttons.
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        const Expanded(child: AppDivider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
-          child: Text(
-            AppLocalizations.of(context).authOr,
-            style: context.oncare
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
-        ),
-        const Expanded(child: AppDivider()),
-      ],
-    );
-  }
-}
-
-/// Provider-branded social sign-in button (kakao / google). [onTap] drives
-/// the demo-token social exchange.
-///
-/// 카카오는 외부 브랜드 색(예외 토큰)을 입어야 해서 [AppButton] 으로는 그릴 수
-/// 없다. 구글은 회원앱 로그인과 같은 보조 [AppButton] 이다(#1770).
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({
-    required this.label,
-    required this.icon,
-    required this.background,
-    required this.foreground,
-    required this.onTap,
-  });
-
-  factory _SocialButton.kakao({
-    required String label,
-    required VoidCallback? onTap,
-  }) => _SocialButton(
-    label: label,
-    icon: Icons.chat_bubble_rounded,
-    background: OnCareColors.kakaoYellow,
-    foreground: OnCareColors.kakaoLabel,
-    onTap: onTap,
-  );
-
-  final String label;
-  final IconData icon;
-  final Color background;
-  final Color foreground;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Material(
-      color: background,
-      shape: const RoundedRectangleBorder(borderRadius: OnCareRadius.mdAll),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: tokens.density.buttonLarge,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Icon(icon, color: foreground, size: OnCareSize.iconMedium),
-              const SizedBox(width: OnCareSpacing.s8),
-              // 버튼 폭은 400 으로 고정인데 라벨은 로케일·글자 배율을 따라
-              // 길어진다. `Continue with Google` 은 배율 1.3 에서 그대로 넘쳤다
-              // (#849). 잘라내지 않고 줄여서 그린다 — `Continue with Goo…` 가
-              // 되면 어느 계정으로 들어가는지가 사라진다.
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    style: tokens
-                        .text(OnCareTypography.buttonLarge)
-                        .copyWith(color: foreground),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
