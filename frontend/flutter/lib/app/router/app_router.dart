@@ -12,6 +12,8 @@ import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
+import 'package:oncare/features/benefits/presentation/pages/coupon_detail_page.dart';
+import 'package:oncare/features/benefits/presentation/pages/my_benefits_page.dart';
 import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -141,6 +143,15 @@ GoRouter buildAppRouter({
         builder: (context, state) => PointsBenefitsPage(
           points: state.extra is int ? state.extra! as int : null,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.myBenefits,
+        builder: (context, state) => const MyBenefitsPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.myCouponDetail,
+        builder: (context, state) =>
+            CouponDetailPage(couponId: state.pathParameters['couponId'] ?? ''),
       ),
       GoRoute(
         path: AppRoutes.mySettings,

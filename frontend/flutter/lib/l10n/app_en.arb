@@ -593,15 +593,111 @@
   },
   "myPointsBenefitsSubtitle": "Benefits available with points",
   "myPointsBenefitsHint": "Keep logging your activity to earn points and use the benefits above.",
-  "myPointsDiscountTitle": "Cash discount with points",
-  "myPointsDiscountDescription": "Use points like cash for up to 10% off 1:1 coaching and personal training.",
-  "myPointsDiscountCost": "Up to 10%",
-  "myPointsReportTitle": "Unlock glucose and blood pressure reports",
-  "myPointsReportDescription": "View comprehensive weekly and monthly health-data reports.",
-  "myPointsReportCost": "500P",
-  "myPointsRecipeTitle": "Personalized healthy recipe package",
-  "myPointsRecipeDescription": "Get PDF and interactive meal guides tailored to goals such as diabetes prevention or weight loss.",
-  "myPointsRecipeCost": "500P",
+  "myPointsCost": "{points}P",
+  "@myPointsCost": {
+    "description": "A point amount with thousands separators, e.g. 5,000P.",
+    "placeholders": {
+      "points": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "myPointsExchange": "Redeem",
+  "myPointsExchangeConfirmTitle": "Redeem points?",
+  "myPointsExchangeConfirmMessage": "Use {cost} for {item}. You can find the coupon in My benefits.",
+  "@myPointsExchangeConfirmMessage": {
+    "placeholders": {
+      "item": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myPointsExchangeConfirmAction": "Redeem",
+  "myPointsExchangeDone": "Redeemed",
+  "myPointsExchangeFailed": "Couldn't redeem. Please try again.",
+  "myPointsShortfall": "{points} short",
+  "@myPointsShortfall": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "myPointsNeedTrainer": "Requires an assigned trainer",
+  "myPointsActiveCoupon": "You already have an unused coupon",
+  "myPointsValidDays": "Valid for {days} days after redeeming",
+  "@myPointsValidDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myPointsShopLoadFailed": "Couldn't load rewards",
+  "myShopPtRenewalTitle": "PT renewal discount coupon",
+  "myShopPtRenewalDescription": "Get ₩10,000 off when you renew PT with your trainer.",
+  "myShopSaladTitle": "10% off salad",
+  "myShopSaladDescription": "Get 10% off a healthy salad order.",
+  "myShopProteinTitle": "₩3,000 off protein",
+  "myShopProteinDescription": "Get ₩3,000 off a protein supplement.",
+  "myCouponPtRenewalBenefit": "₩10,000 off PT renewal",
+  "myBenefitsTitle": "My benefits",
+  "myBenefitsView": "View",
+  "myBenefitsCoupons": "Coupons",
+  "myBenefitsEmpty": "No coupons yet",
+  "myBenefitsEmptyMessage": "Redeem your points for a coupon.",
+  "myBenefitsLoadFailed": "Couldn't load benefits",
+  "myCouponStatusUsable": "Available",
+  "myCouponStatusUsed": "Used",
+  "myCouponStatusExpired": "Expired",
+  "myCouponStatusCancelled": "Cancelled",
+  "myCouponDaysLeft": "D-{days}",
+  "@myCouponDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myCouponDDay": "D-day",
+  "myCouponUntil": "Until {date}",
+  "@myCouponUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "myCouponCode": "Coupon code",
+  "myCouponTrainer": "Trainer",
+  "myCouponGym": "Gym",
+  "myCouponIssuedOn": "Redeemed on",
+  "myCouponExpiry": "Expires",
+  "myCouponExpiryWithDday": "{date} ({dday})",
+  "@myCouponExpiryWithDday": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "dday": {
+        "type": "String"
+      }
+    }
+  },
+  "myCouponStatus": "Status",
+  "myCouponTrainerGuide": "Show this coupon to your trainer when you renew PT. Your trainer will mark it as used.",
+  "myCouponMemberGuide": "Show the code at the store, then tap Mark as used.",
+  "myCouponExpireNotice": "Points aren't refunded once the coupon expires.",
+  "myCouponUse": "Mark as used",
+  "myCouponUseConfirmTitle": "Mark this coupon as used?",
+  "myCouponUseConfirmMessage": "You can't undo this.",
+  "myCouponUseDone": "Marked as used",
+  "myCouponUseFailed": "Couldn't mark as used. Please try again.",
+  "myCouponNotFound": "Coupon not found",
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
   "myCancel": "Cancel",

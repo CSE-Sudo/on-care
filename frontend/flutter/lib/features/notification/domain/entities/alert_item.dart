@@ -5,7 +5,17 @@ enum AlertCategory { reminder, healthCheck, achievement, system }
 /// 앱이 모르는 target 은 [unknown] 이 되고, 그 알림은 읽음 처리만 하고 이동하지
 /// 않는다 — 서버가 새 종류를 추가했을 때 **갈 곳 없는 알림**이 되는 편이 목록에서
 /// 사라지거나 엉뚱한 화면으로 보내는 것보다 낫다.
-enum AlertTarget { dashboard, schedule, coachChat, exercise, diet, unknown }
+enum AlertTarget {
+  dashboard,
+  schedule,
+  coachChat,
+  exercise,
+  diet,
+
+  /// MY 의 내 혜택 — 쿠폰 사용 처리·취소·만료 임박 알림(#1787).
+  myBenefits,
+  unknown,
+}
 
 /// 알림 항목의 행동 유도 — 문구는 서버가, 이동은 앱이 정한다.
 class AlertAction {

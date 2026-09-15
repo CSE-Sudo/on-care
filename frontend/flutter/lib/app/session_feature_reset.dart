@@ -4,6 +4,7 @@ import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
+import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
@@ -52,6 +53,10 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(coachChatProvider);
       ref.invalidate(coachUnreadProvider);
       ref.invalidate(myHealthStateProvider);
+      // 포인트 사용처·내 쿠폰(#1787). auto-dispose 지만 화면을 연 채 전환하면
+      // 앞 계정의 잔액·교환 가능 여부·쿠폰 코드가 남는다.
+      ref.invalidate(pointsShopProvider);
+      ref.invalidate(myCouponsProvider);
       ref.invalidate(notificationControllerProvider);
       ref.invalidate(notificationListProvider);
       // 알림 수신 설정은 실 백엔드에서 계정 단위다. 여기 없으면 앞 계정의 토글이

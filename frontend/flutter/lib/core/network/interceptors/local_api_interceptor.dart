@@ -18,6 +18,7 @@ import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
+import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
@@ -46,7 +47,9 @@ class LocalApiInterceptor extends Interceptor {
     this._logger, {
     this.isRealApi,
     DemoPointsLedger? points,
-  }) : _points = points ?? DemoPointsLedger();
+    DemoCouponBook? coupons,
+  }) : _points = points ?? DemoPointsLedger(),
+       _couponsArg = coupons;
 
   final AppDatabase _db;
   final Logger _logger;
@@ -54,6 +57,12 @@ class LocalApiInterceptor extends Interceptor {
   /// 포인트 원장(#1786). 앱에서는 목업 운동·코치 저장소와 같은 원장을 받아
   /// 하루 한도와 MY 잔액이 한 숫자로 움직인다. 주지 않으면(테스트) 따로 만든다.
   final DemoPointsLedger _points;
+
+  /// 포인트 사용처·쿠폰(#1787). 앱에서는 목업 헬스장 저장소와 같은 인스턴스를 받아
+  /// 트레이너 해제가 쿠폰 취소로 이어진다. 주지 않으면 이 인터셉터의 원장으로 만든다.
+  final DemoCouponBook? _couponsArg;
+  late final DemoCouponBook _coupons =
+      _couponsArg ?? DemoCouponBook(ledger: _points);
 
   /// 이 요청을 목업이 아니라 실 백엔드로 보내야 하는지 판정한다(`AppConfig.isRealApi`).
   ///
@@ -96,6 +105,10 @@ class LocalApiInterceptor extends Interceptor {
     'POST /users/me/onboarding': _usersMeOnboarding,
     'PUT /users/me/health-goals': _usersMeHealthGoals,
     'GET /users/me/health': _usersMeHealth,
+    // 포인트 사용처·쿠폰 — 서버와 같은 규칙의 목업 원장(#1787).
+    'GET /me/points/shop': _pointsShop,
+    'POST /me/points/exchange': _pointsExchange,
+    'GET /me/coupons': _meCoupons,
     'POST /users/me/pairing-code': _pairingCodeIssue,
     'DELETE /users/me/pairing-code': _pairingCodeRevoke,
     'GET /places/nearby': _placesNearby,
@@ -241,6 +254,11 @@ class LocalApiInterceptor extends Interceptor {
     }
     if (method == 'DELETE' && path.startsWith('/diet/entries/')) {
       return _dietDelete;
+    }
+    if (method == 'POST' &&
+        path.startsWith('/me/coupons/') &&
+        path.endsWith('/use')) {
+      return _couponUse;
     }
     if (method == 'DELETE' && path.startsWith('/exercise/sessions/')) {
       return _exerciseDelete;
@@ -2231,6 +2249,46 @@ class LocalApiInterceptor extends Interceptor {
       ],
     });
   }
+
+  // ---- 포인트 사용처·쿠폰 (#1787) ----
+  //
+  // 규칙은 [DemoCouponBook] 이 서버와 같게 들고 있다. 여기서는 경로와 응답 모양만
+  // 잇는다. 409(잔액 부족 등)도 실서버처럼 상태코드로 돌려준다.
+
+  Future<Response<Object?>> _pointsShop(RequestOptions options) async =>
+      _ok(options, _coupons.shopJson());
+
+  Future<Response<Object?>> _pointsExchange(RequestOptions options) async {
+    final body = _jsonBody(options);
+    return _couponResponse(
+      options,
+      _coupons.exchange(
+        (body['item'] as String?) ?? '',
+        clientRequestId: body['client_request_id'] as String?,
+      ),
+    );
+  }
+
+  Future<Response<Object?>> _meCoupons(RequestOptions options) async =>
+      _ok(options, _coupons.couponsJson());
+
+  Future<Response<Object?>> _couponUse(RequestOptions options) async {
+    // `/me/coupons/{id}/use` — 끝에서 두 번째 조각이 쿠폰 id 다.
+    final List<String> segments = options.path.split('/');
+    final String id = segments.length >= 2
+        ? Uri.decodeComponent(segments[segments.length - 2])
+        : '';
+    return _couponResponse(options, _coupons.use(id));
+  }
+
+  Response<Object?> _couponResponse(
+    RequestOptions options,
+    DemoCouponResult result,
+  ) => Response<Object?>(
+    requestOptions: options,
+    statusCode: result.statusCode,
+    data: result.body,
+  );
 
   // ---- Places ----
 

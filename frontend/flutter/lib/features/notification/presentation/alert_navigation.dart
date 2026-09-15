@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 
@@ -62,6 +64,13 @@ Future<void> openAlertTarget(
     case AlertTarget.diet:
       if (!context.mounted) return;
       context.go(AppRoutes.diet);
+    case AlertTarget.myBenefits:
+      // 쿠폰이 방금 사용 처리·취소됐다 — 들고 있던 목록과 잔액을 다시 읽는다.
+      ref
+        ..invalidate(myCouponsProvider)
+        ..invalidate(myHealthStateProvider);
+      if (!context.mounted) return;
+      await context.push<void>(AppRoutes.myBenefits);
     case AlertTarget.unknown:
       return;
   }

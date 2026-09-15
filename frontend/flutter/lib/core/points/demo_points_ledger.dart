@@ -74,6 +74,32 @@ class DemoPointsLedger {
     return taken;
   }
 
+  /// `sourceId` → 그 쿠폰을 교환하며 쓴 포인트(#1787). 반환하면 지운다.
+  final Map<String, int> _spent = <String, int>{};
+
+  /// 반환까지 끝난 사용. 같은 쿠폰을 두 번 돌려주지 않는다.
+  final Set<String> _refunded = <String>{};
+
+  /// 쿠폰 교환에 [cost] 만큼 쓴다. 잔액이 모자라면 아무것도 바꾸지 않고 false.
+  bool spend(String sourceId, int cost) {
+    if (_balance < cost || _spent.containsKey(sourceId)) return false;
+    _spent[sourceId] = cost;
+    _balance -= cost;
+    return true;
+  }
+
+  /// [sourceId] 로 쓴 포인트를 돌려준다. 돌려준 포인트(0 이상).
+  ///
+  /// 서버의 `refund` 와 같다 — 회수가 적립의 짝이듯 반환은 사용의 짝이고, 같은
+  /// 쿠폰에는 한 번뿐이다.
+  int refund(String sourceId) {
+    final int? cost = _spent[sourceId];
+    if (cost == null || _refunded.contains(sourceId)) return 0;
+    _refunded.add(sourceId);
+    _balance += cost;
+    return cost;
+  }
+
   static String _key(String sourceType, String sourceId) =>
       '$sourceType/$sourceId';
 

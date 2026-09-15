@@ -1,3 +1,4 @@
+import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
@@ -13,7 +14,11 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 /// Stateful (not const) so the two links can be dropped for the session. The
 /// provider holds one instance, so MY 탭과 운동 탭이 같은 연결 상태를 본다.
 class MockGymRepository implements GymRepository {
-  MockGymRepository();
+  /// [coupons] 를 주면 담당 트레이너 연결이 끊길 때 목업 PT 재등록 쿠폰을 취소하고
+  /// 포인트를 돌려준다(#1787) — 서버의 해제 경로와 같은 규칙이다.
+  MockGymRepository({DemoCouponBook? coupons}) : _coupons = coupons;
+
+  final DemoCouponBook? _coupons;
 
   /// 연결 상태는 id 만 들고 있다 — 목록과 어긋날 수 없다.
   String? _myGymId = 'gym-oncare-sinchon';
@@ -270,6 +275,7 @@ class MockGymRepository implements GymRepository {
   Future<void> disconnectMyGym() async {
     await Future<void>.delayed(const Duration(milliseconds: 60));
     // 헬스장을 떠나면 그곳 소속 트레이너 연결도 함께 사라진다.
+    if (_myTrainerId != null) _coupons?.endTrainerLink();
     _myGymId = null;
     _myTrainerId = null;
   }
@@ -318,6 +324,7 @@ class MockGymRepository implements GymRepository {
   Future<void> disconnectMyTrainer() async {
     await Future<void>.delayed(const Duration(milliseconds: 60));
     // 헬스장 연결은 그대로 두고 담당 트레이너만 뗀다.
+    if (_myTrainerId != null) _coupons?.endTrainerLink();
     _myTrainerId = null;
   }
 
