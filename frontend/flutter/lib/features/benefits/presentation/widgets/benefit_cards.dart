@@ -20,11 +20,7 @@ class BenefitIconTile extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       alignment: Alignment.center,
-      child: Icon(
-        icon,
-        size: OnCareSize.iconMedium,
-        color: tokens.brand.primary,
-      ),
+      child: Icon(icon, size: OnCareSize.iconMedium, color: tokens.brand.primary),
     );
   }
 }
@@ -116,9 +112,7 @@ class ShopItemCard extends StatelessWidget {
                         blocked,
                         key: ValueKey<String>('shop-blocked-${item.id}'),
                         style: tokens
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
+                            .text(OnCareTypography.strong(OnCareTypography.caption))
                             .copyWith(color: OnCareColors.textSecondary),
                       ),
               ),
