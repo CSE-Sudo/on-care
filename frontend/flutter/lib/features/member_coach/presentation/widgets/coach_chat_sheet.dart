@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -311,7 +312,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                 // 재시도 동작은 원래 없었다 — 문구만 규격 빈 화면 틀에 담는다.
                 error: (_, _) => AppEmptyState(
                   title: l.coachChatLoadFailed,
-                  icon: Icons.error_rounded,
+                  icon: AppIcons.error,
                 ),
                 data: (messages) {
                   // 길이가 바뀐 프레임에서만 — 매 빌드마다 부르면 사용자가
@@ -374,7 +375,7 @@ class _AnalyzedBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return CoachChatNotice(
-      icon: Icons.auto_awesome_rounded,
+      icon: AppIcons.ai,
       title: l.coachChatDemoAnalyzed,
       subtitle: l.coachChatDemoReportSent(trainerName),
     );
@@ -392,7 +393,7 @@ class _ReceivedBanner extends StatelessWidget {
     // 안내다 — 위 [_AnalyzedBanner]와 같은 흐름의 다음 단계라, 초록이
     // 아니라 그 배너와 같은 안내(info) 톤으로 맞춘다(#1379).
     return CoachChatNotice(
-      icon: Icons.check_circle_rounded,
+      icon: AppIcons.checkCircle,
       title: l.coachChatDemoRoutineReceived,
       subtitle: l.coachChatDemoNotified,
     );

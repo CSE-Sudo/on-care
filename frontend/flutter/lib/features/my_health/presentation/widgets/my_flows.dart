@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
@@ -486,16 +488,15 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   static TextEditingController _ctl(int? value, int fallback) =>
       TextEditingController(text: '${value ?? fallback}');
 
-  /// 탄·단·지 1g 의 열량(kcal). 식품 영양표시가 쓰는 Atwater 계수다.
-  static const int _kcalPerCarbG = 4;
-  static const int _kcalPerProteinG = 4;
-  static const int _kcalPerFatG = 9;
-
-  /// 칼로리만 아는 회원에게 권하는 배분. 한국인 영양섭취기준의 에너지 적정
-  /// 비율(탄 55~65 · 단 7~20 · 지 15~30) 안쪽에서 고른 값이다.
-  static const double _carbShare = 0.5;
-  static const double _proteinShare = 0.3;
-  static const double _fatShare = 0.2;
+  /// 지금 고른 건강 목표로 낸 권장값(#1816). 온보딩과 **같은 계산**이다 — 전에는
+  /// 이 화면만 따로 탄 50 · 단 30 · 지 20 으로 나눠, 온보딩에서 받은 권장값과
+  /// `권장 비율로 채우기` 가 서로 다른 숫자를 말했다.
+  RecommendedGoals _recommendedFor(int kcal) => recommendedGoalsFromCalories(
+    kcal,
+    basis: RecommendationBasis.personalized,
+    focus: _focus,
+    weightKg: widget.initial.weightKg,
+  );
 
   /// 지금 칼로리 칸의 값. 숫자가 아니거나 0 이하면 null.
   int? get _kcalValue {
@@ -507,15 +508,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   ///
   /// 상태로 들고 있지 않고 그때그때 센다 — 칼로리 칸이 바뀌면 배분도 반드시
   /// 함께 바뀌어야 하는데, 따로 저장해 두면 둘이 어긋날 자리가 생긴다.
-  ({int carbs, int protein, int fat})? get _suggestedSplit {
+  ({int carbs, int protein, int fat, int sugar})? get _suggestedSplit {
     final kcal = _kcalValue;
     if (kcal == null) return null;
+    final RecommendedGoals r = _recommendedFor(kcal);
     return (
-      carbs: (kcal * _carbShare / _kcalPerCarbG).round(),
-      protein: (kcal * _proteinShare / _kcalPerProteinG).round(),
-      fat: (kcal * _fatShare / _kcalPerFatG).round(),
+      carbs: r.dailyCarbsG,
+      protein: r.dailyProteinG,
+      fat: r.dailyFatG,
+      sugar: r.dailySugarG,
     );
   }
+
+  /// 고른 건강 목표로 낸 운동 권장값. 칼로리와 무관하다.
+  RecommendedGoals get _exerciseSuggestion =>
+      _recommendedFor(UserProfile.defaultDailyCalories);
 
   /// 탄단지 → 칼로리. 세 칸이 모두 채워졌을 때만 칼로리를 다시 쓴다.
   ///
@@ -530,7 +537,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       return;
     }
     final kcal =
-        carbs * _kcalPerCarbG + protein * _kcalPerProteinG + fat * _kcalPerFatG;
+        carbs * kKcalPerCarbG + protein * kKcalPerProteinG + fat * kKcalPerFatG;
     setState(() {
       _kcal.text = '$kcal';
       _kcalFromMacros = true;
@@ -550,21 +557,23 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _carbs.text = '${split.carbs}';
     _protein.text = '${split.protein}';
     _fat.text = '${split.fat}';
+    // 당류도 같은 칼로리에서 나온다 — 식습관 개선을 골랐으면 5% 로 줄어든다.
+    _sugar.text = '${split.sugar}';
     _markTouched(_kCarbs);
     _markTouched(_kProtein);
     _markTouched(_kFat);
+    _markTouched(_kSugar);
     _syncCaloriesFromMacros();
   }
 
-  /// 권장 운동 목표를 네 칸에 채운다.
+  /// 권장 운동 목표를 네 칸에 채운다. 고른 건강 목표를 반영한 값이다(#1816).
   void _applySuggestedExerciseGoals() {
+    final RecommendedGoals r = _exerciseSuggestion;
     setState(() {
-      _burn.text = '${kDefaultExerciseLoadGoals.dailyBurnKcal.round()}';
-      _cardio.text = '${kDefaultExerciseLoadGoals.weeklyCardioMinutes.round()}';
-      _strength.text =
-          '${kDefaultExerciseLoadGoals.weeklyStrengthSets.round()}';
-      _flexibility.text =
-          '${kDefaultExerciseLoadGoals.weeklyFlexibilityMinutes.round()}';
+      _burn.text = '${r.dailyBurnKcal}';
+      _cardio.text = '${r.weeklyCardioMinutes}';
+      _strength.text = '${r.weeklyStrengthSets}';
+      _flexibility.text = '${r.weeklyFlexibilityMinutes}';
       for (final String key in <String>[
         _kBurn,
         _kCardio,
@@ -649,6 +658,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     // **권해만 준다**. 뒤쪽까지 자동으로 덮으면 회원이 적어 둔 배분이 칼로리를
     // 만질 때마다 사라진다.
     final split = _suggestedSplit;
+    final RecommendedGoals exercise = _exerciseSuggestion;
     final Widget footer = _saveRow(
       context: context,
       saving: _saving,
@@ -705,7 +715,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           controller: _burn,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hint: '${kDefaultExerciseLoadGoals.dailyBurnKcal.round()}',
+          hint: '${exercise.dailyBurnKcal}',
           onChanged: (_) => _markTouched(_kBurn),
         ),
         const SizedBox(height: OnCareSpacing.s12),
@@ -715,7 +725,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           controller: _cardio,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hint: '${kDefaultExerciseLoadGoals.weeklyCardioMinutes.round()}',
+          hint: '${exercise.weeklyCardioMinutes}',
           onChanged: (_) => _markTouched(_kCardio),
         ),
         const SizedBox(height: OnCareSpacing.s12),
@@ -725,7 +735,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           controller: _strength,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hint: '${kDefaultExerciseLoadGoals.weeklyStrengthSets.round()}',
+          hint: '${exercise.weeklyStrengthSets}',
           onChanged: (_) => _markTouched(_kStrength),
         ),
         const SizedBox(height: OnCareSpacing.s12),
@@ -735,16 +745,21 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           controller: _flexibility,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
-          hint: '${kDefaultExerciseLoadGoals.weeklyFlexibilityMinutes.round()}',
+          hint: '${exercise.weeklyFlexibilityMinutes}',
           onChanged: (_) => _markTouched(_kFlexibility),
         ),
         // 식단 목표의 `권장 비율로 채우기` 와 같은 자리·같은 모양이다 (#1139).
-        // 권장값은 WHO 권고(주 150분 중강도 유산소)를 따르는
-        // [kDefaultExerciseLoadGoals] 그대로다.
+        // 권장값은 WHO 권고(주 150분 중강도 유산소)에서 시작해 고른 건강 목표로
+        // 조정한다 — 온보딩 4단계와 같은 계산이다(#1816).
         const SizedBox(height: OnCareSpacing.s12),
         _MacroSuggestionRow(
           buttonKey: const Key('goalApplyExerciseGoals'),
-          note: l.myGoalExerciseSuggestionNote,
+          note: l.myGoalExerciseSuggestionNote(
+            exercise.dailyBurnKcal,
+            exercise.weeklyCardioMinutes,
+            exercise.weeklyStrengthSets,
+            exercise.weeklyFlexibilityMinutes,
+          ),
           actionLabel: l.myGoalExerciseApplySuggestion,
           onApply: _applySuggestedExerciseGoals,
         ),
@@ -837,7 +852,12 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           const SizedBox(height: OnCareSpacing.s12),
           _MacroSuggestionRow(
             buttonKey: const Key('goalApplyMacroSplit'),
-            note: l.myGoalMacroSuggestionNote(_kcalValue!),
+            note: l.myGoalMacroSuggestionNote(
+              _kcalValue!,
+              split.carbs,
+              split.protein,
+              split.fat,
+            ),
             actionLabel: l.myGoalMacroApplySuggestion,
             onApply: _applySuggestedSplit,
           ),
@@ -1032,7 +1052,7 @@ class SupportPage extends StatelessWidget {
       _listCard(<Widget>[
         _supportRow(
           context,
-          Icons.help_rounded,
+          AppIcons.help,
           l.mySupportFaq,
           () => _openExternal(context, kSupportChannelUrl),
           external: true,
@@ -1041,7 +1061,7 @@ class SupportPage extends StatelessWidget {
         const AppDivider(),
         _supportRow(
           context,
-          Icons.chat_bubble_rounded,
+          AppIcons.chat,
           l.mySupportInquiry,
           () => _openExternal(context, kSupportChatUrl),
           external: true,
@@ -1050,14 +1070,14 @@ class SupportPage extends StatelessWidget {
         const AppDivider(),
         _supportRow(
           context,
-          Icons.description_rounded,
+          AppIcons.document,
           l.myLegalTermsTitle,
           () => _openLegal(context, _LegalDoc.terms),
         ),
         const AppDivider(),
         _supportRow(
           context,
-          Icons.privacy_tip_rounded,
+          AppIcons.privacy,
           l.myLegalPrivacyTitle,
           () => _openLegal(context, _LegalDoc.privacy),
         ),
@@ -1111,7 +1131,7 @@ Widget _supportRow(
   String? hint,
 }) {
   return AppListRow(
-    leading: Icon(
+    leading: AppIcon(
       icon,
       size: OnCareSize.iconMedium,
       color: context.oncare.brand.primary,
@@ -1120,8 +1140,8 @@ Widget _supportRow(
     subtitle: hint,
     // 앱 밖으로 나가는 행은 화살표 대신 외부 링크 아이콘을 쓴다 —
     // 눌렀을 때 무엇이 일어나는지 미리 보이게.
-    trailing: Icon(
-      external ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
+    trailing: AppIcon(
+      external ? AppIcons.external : AppIcons.chevronRight,
       size: OnCareSize.iconMedium,
       color: OnCareColors.textTertiary,
     ),

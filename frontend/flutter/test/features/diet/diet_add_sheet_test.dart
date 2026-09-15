@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
@@ -338,7 +339,7 @@ void main() {
     await tester.pump();
 
     // OS 픽커가 떠 있는 동안 사용자가 시트를 닫는다.
-    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.tap(find.byIcon(AppIcons.close));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('dietAddSheet')), findsNothing);
 

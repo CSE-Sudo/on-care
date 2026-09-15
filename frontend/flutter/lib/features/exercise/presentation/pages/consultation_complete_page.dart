@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/utils/preferred_time_format.dart';
@@ -33,7 +34,7 @@ class ConsultationCompletePage extends StatelessWidget {
           ? <Widget>[
               AppEmptyState(
                 title: l.exConsultTargetNotFound,
-                icon: Icons.info_rounded,
+                icon: AppIcons.info,
               ),
             ]
           : _completionChildren(context, l, consultation),
@@ -66,8 +67,8 @@ class ConsultationCompletePage extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
-          child: Icon(
-            Icons.check_rounded,
+          child: AppIcon(
+            AppIcons.check,
             size: OnCareSize.iconEmptyState,
             color: tokens.brand.primary,
           ),

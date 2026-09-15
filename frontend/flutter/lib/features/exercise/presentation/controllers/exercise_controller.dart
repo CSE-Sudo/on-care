@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
@@ -26,7 +27,8 @@ final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
     // One instance per provider lifetime so in-memory CRUD (add/edit/delete)
     // persists across `exerciseWeekProvider` invalidations for the session.
-    return MockExerciseRepository();
+    // 포인트는 식단(목업 API)·MY 와 같은 원장에 쌓는다(#1786).
+    return MockExerciseRepository(points: ref.watch(demoPointsLedgerProvider));
   }
   return DioExerciseRepository(ref.watch(dioProvider));
 }, name: 'exerciseRepository');

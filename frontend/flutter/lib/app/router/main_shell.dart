@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
@@ -12,6 +13,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
@@ -139,7 +141,9 @@ class _MainShellState extends ConsumerState<MainShell>
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.
       extendBody: true,
-      body: navigationShell,
+      // 받은 담당 요청은 어느 탭에 있든 가운데 창으로 뜬다(#1801). 탭 전체를
+      // 감싸 두어 탭을 옮겨도 요청을 듣는 일이 끊기지 않는다.
+      body: CoachInvitePrompter(child: navigationShell),
       // AI 조언 진입점이 이 자리에 있을지가 아직 정해지지 않아 **노출만** 끈다
       // (#862). 기능·라우트·provider 는 그대로라, 자리가 정해지면 이 상수를
       // 되돌리는 것으로 복원된다 — 아래 [kShowCoachingFab] 주석 참고.
@@ -160,28 +164,28 @@ class _MainShellState extends ConsumerState<MainShell>
         destinations: <AppNavDestination>[
           AppNavDestination(
             key: const ValueKey<String>('nav-dashboard'),
-            icon: Icons.home_rounded,
-            selectedIcon: Icons.home_rounded,
+            icon: AppIcons.home,
+            selectedIcon: AppIcons.home,
             label: l.navDashboard,
           ),
           AppNavDestination(
             key: const ValueKey<String>('nav-diet'),
-            icon: Icons.restaurant_rounded,
-            selectedIcon: Icons.restaurant_rounded,
+            icon: AppIcons.diet,
+            selectedIcon: AppIcons.diet,
             label: l.navDiet,
           ),
           AppNavDestination(
             key: const ValueKey<String>('nav-exercise'),
-            icon: Icons.fitness_center_rounded,
-            selectedIcon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
+            selectedIcon: AppIcons.exercise,
             label: l.navExercise,
           ),
           // 운동 칸과 같이 열쇠를 준다 — 사람 아이콘은 이제 헬스장 카드의
           // 트레이너 줄에도 있어서(#1185), 아이콘만으로는 이 칸을 지목할 수 없다.
           AppNavDestination(
             key: const ValueKey<String>('nav-my'),
-            icon: Icons.person_rounded,
-            selectedIcon: Icons.person_rounded,
+            icon: AppIcons.my,
+            selectedIcon: AppIcons.my,
             label: l.navMyHealth,
           ),
         ],
@@ -283,7 +287,7 @@ class _RecordAddSheet extends StatelessWidget {
             // 고르는 자리라 색이 영역을 가르는 뜻으로 읽히지 않는다.
             Expanded(
               child: _RecordOption(
-                icon: Icons.restaurant_rounded,
+                icon: AppIcons.diet,
                 title: l.navDiet,
                 subtitle: l.navDietOptionSub,
                 onTap: onDiet,
@@ -292,7 +296,7 @@ class _RecordAddSheet extends StatelessWidget {
             const SizedBox(width: OnCareSpacing.cardGap),
             Expanded(
               child: _RecordOption(
-                icon: Icons.fitness_center_rounded,
+                icon: AppIcons.exercise,
                 title: l.navExercise,
                 subtitle: l.navExerciseOptionSub,
                 onTap: onExercise,
@@ -332,7 +336,7 @@ class _RecordOption extends StatelessWidget {
           // 아이콘 배경은 두지 않는다 — 안쪽 여백만 남겨 칸 크기를 지킨다(#1781).
           Padding(
             padding: const EdgeInsets.all(OnCareSpacing.s12),
-            child: Icon(
+            child: AppIcon(
               icon,
               size: OnCareSize.iconLarge,
               color: tokens.brand.primary,

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -141,16 +142,23 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 회원이 **칼로리 칸을 직접 고쳤으면** 그 값을 기준으로 다시 나눈다 —
   /// 각주가 말하는 비율과 탄단지 칸의 숫자가 어긋나지 않아야 한다.
   RecommendedGoals get _recommended {
+    // 2단계에서 고른 건강 목표도 함께 반영한다(#1816).
     final RecommendedGoals base = recommendedGoalsFor(
       ageYears: _age,
       gender: _gender,
       heightCm: _heightCm,
       weightKg: _weightKg,
+      focus: _conditions,
     );
     if (!_edited.contains(_GoalField.calories)) return base;
     final int? kcal = _goalValue(_GoalField.calories);
     if (kcal == null || kcal <= 0) return base;
-    return recommendedGoalsFromCalories(kcal, basis: base.basis);
+    return recommendedGoalsFromCalories(
+      kcal,
+      basis: base.basis,
+      focus: _conditions,
+      weightKg: _weightKg,
+    );
   }
 
   int _recommendedValue(_GoalField f, RecommendedGoals r) => switch (f) {
@@ -232,6 +240,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     setState(() {
       _conditions.clear();
       _goals.clear();
+      // 목표를 비웠으니 그 목표로 조정한 권장값도 기준값으로 돌린다(#1816).
+      _fillRecommended();
     });
     _next();
   }
@@ -420,7 +430,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           // 영역과 접근성 라벨은 그대로 둔다.
           AppIconButton(
             key: const Key('onboardBackButton'),
-            icon: Icons.chevron_left_rounded,
+            icon: AppIcons.back,
             tooltip: l.onboardPrevious,
             onPressed: _saving ? null : _back,
           ),
@@ -649,6 +659,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       onSelected: canPickHealthFocus(_conditions, c)
                           ? (_) => setState(() {
                               if (!_conditions.remove(c)) _conditions.add(c);
+                              // 손대지 않은 목표 칸이 고른 목표를 따라간다(#1816).
+                              _fillRecommended();
                             })
                           : null,
                     ),
@@ -700,10 +712,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ],
           ),
           note: _StepNote(
-            infoLine: _recommended.isPersonalized
-                ? l.onboardRecommendedPersonal
-                : l.onboardRecommendedFallback,
-            sourceNote: l.onboardDietSourceNote,
+            infoLine: <String>[
+              _recommended.isPersonalized
+                  ? l.onboardRecommendedPersonal
+                  : l.onboardRecommendedFallback,
+              if (_recommended.isDietAdjusted) l.onboardFocusAdjusted,
+            ].join('\n'),
+            sourceNote: _recommended.isDietAdjusted
+                ? '${l.onboardDietSourceNote}\n${l.onboardFocusSourceNote}'
+                : l.onboardDietSourceNote,
             actionKey: const Key('onboardResetDietGoals'),
             actionLabel: l.onboardResetToRecommended,
             onAction: _isEdited(_GoalGroup.diet)
@@ -747,9 +764,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ],
           ),
           note: _StepNote(
-            // 운동 권장값은 WHO 권고 그대로라 1단계 정보와 무관하다 — 나이·체중을
-            // 안 적었다고 "덜 정확한 값" 이라고 말하면 사실이 아니다.
-            sourceNote: l.onboardExerciseSourceNote,
+            // 운동 권장값은 WHO 권고에서 시작해 1단계 정보와 무관하다 — 나이·체중을
+            // 안 적었다고 "덜 정확한 값" 이라고 말하면 사실이 아니다. 고른 건강
+            // 목표로 조정했을 때만 그렇다고 적는다(#1816).
+            infoLine: _recommended.isExerciseAdjusted
+                ? l.onboardFocusAdjusted
+                : null,
+            sourceNote: _recommended.isExerciseAdjusted
+                ? '${l.onboardExerciseSourceNote}\n${l.onboardFocusSourceNote}'
+                : l.onboardExerciseSourceNote,
             actionKey: const Key('onboardResetExerciseGoals'),
             actionLabel: l.onboardResetToRecommended,
             onAction: _isEdited(_GoalGroup.exercise)

@@ -686,10 +686,6 @@
   "coachInviteExplain": "Accepting lets this trainer see your meal and workout records.",
   "coachInviteAccept": "Accept",
   "coachInviteReject": "Decline",
-  "coachInviteRejectConfirmTitle": "Decline this invite?",
-  "@coachInviteRejectConfirmTitle": {
-    "description": "Title of the red dialog confirming a declined trainer invite."
-  },
   "coachInviteAccepted": "{name} is now your coach",
   "@coachInviteAccepted": {"placeholders": {"name": {"type": "String"}}},
   "coachInviteRejected": "Request declined",
@@ -1056,24 +1052,39 @@
   "authNoAccountQuestion": "Don't have an account?",
   "authSignUpAction": "Sign up",
   "authDemoAction": "Explore the demo without signing in",
-  "authOrDivider": "or",
+  "authSocialDivider": "Sign in with a social account",
+  "@authSocialDivider": {
+    "description": "Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783)."
+  },
   "authKakaoAction": "Continue with Kakao",
   "authGoogleAction": "Continue with Google",
-  "authMissingCredentials": "Enter your email and password",
+  "authEmailEmpty": "Enter your email",
+  "@authEmailEmpty": {
+    "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
+  },
+  "authEmailInvalid": "Enter a valid email address",
+  "authPasswordEmpty": "Enter your password",
   "authSignInFailed": "Sign-in failed. Check your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",
-  "signUpPhoneHint": "Phone number",
+  "signUpNameEmpty": "Enter your name",
+  "@signUpNameEmpty": {
+    "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
+  },
+  "signUpPhoneHint": "010-0000-0000",
+  "@signUpPhoneHint": {
+    "description": "Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784)."
+  },
   "signUpPhoneHelper": "Your trainer uses this to confirm who you are.",
-  "signUpPasswordHint": "Password (8+ characters)",
+  "signUpPasswordHint": "Password (8+ characters, letters and numbers)",
   "signUpPasswordConfirmHint": "Confirm password",
   "signUpAction": "Sign up and start",
   "signUpHaveAccountQuestion": "Already have an account?",
-  "signUpPasswordTooShort": "Password must be at least 8 characters",
+  "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "signUpPasswordMismatch": "Passwords do not match",
-  "signUpPhoneInvalid": "Enter a phone number with at least 4 digits",
+  "signUpPhoneFormatInvalid": "Enter your phone number as 000-0000-0000",
   "trainerSyncEntryLabel": "Sync data with a trainer",
   "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
   "trainerSyncTitle": "Sync data with a trainer",
@@ -1153,6 +1164,14 @@
   "onboardResetToRecommended": "Reset to suggested",
   "onboardDietSourceNote": "Sources: Dietary Reference Intakes for Koreans 2020 (EER, AMDR) · WHO sodium and free-sugar guidelines",
   "onboardExerciseSourceNote": "Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week",
+  "onboardFocusAdjusted": "Adjusted for the health goals you picked",
+  "@onboardFocusAdjusted": {
+    "description": "Shown under goal fields when the picked health goals changed the suggestion."
+  },
+  "onboardFocusSourceNote": "Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)",
+  "@onboardFocusSourceNote": {
+    "description": "Sources for the goal-based adjustments."
+  },
   "onboardGenderMale": "Male",
   "onboardGenderFemale": "Female",
   "onboardGenderOther": "Other",
@@ -1359,7 +1378,16 @@
   "myGoalCardioWeekly": "Weekly cardio (min)",
   "myGoalStrengthWeekly": "Weekly strength (sets)",
   "myGoalFlexibilityWeekly": "Weekly stretching (min)",
-  "myGoalExerciseSuggestionNote": "Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week",
+  "myGoalExerciseSuggestionNote": "Suggested: {burn} kcal a day · {cardio} min cardio · {strength} sets · {flexibility} min stretching a week",
+  "@myGoalExerciseSuggestionNote": {
+    "description": "Explains the suggested exercise goals, adjusted for the picked health goals.",
+    "placeholders": {
+      "burn": { "type": "int" },
+      "cardio": { "type": "int" },
+      "strength": { "type": "int" },
+      "flexibility": { "type": "int" }
+    }
+  },
   "myGoalExerciseApplySuggestion": "Use suggested goals",
   "@myGoalsExerciseSection": {
     "description": "Section label in the health goals sheet."
@@ -1392,13 +1420,16 @@
   "@myGoalCaloriesFromMacros": {
     "description": "Helper under the calorie goal field when it was derived from the macro fields."
   },
-  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: 50% carbs · 30% protein · 20% fat",
+  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat",
   "@myGoalMacroSuggestionNote": {
     "description": "Explains the placeholder grams shown in the macro fields.",
     "placeholders": {
       "kcal": {
         "type": "int"
-      }
+      },
+      "carbs": { "type": "int" },
+      "protein": { "type": "int" },
+      "fat": { "type": "int" }
     }
   },
   "myGoalMacroApplySuggestion": "Use suggested split",
@@ -1441,13 +1472,25 @@
   "@myPointsDietAdd": {
     "description": "Point-earning action in the points guide."
   },
-  "myPointsAiExercise": "Complete an AI-recommended workout",
-  "@myPointsAiExercise": {
-    "description": "Point-earning action in the points guide."
+  "myPointsRoutineComplete": "Complete a recommended or assigned workout",
+  "@myPointsRoutineComplete": {
+    "description": "Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer."
   },
   "myPointsExerciseAdd": "Log a workout yourself",
   "@myPointsExerciseAdd": {
     "description": "Point-earning action in the points guide."
+  },
+  "myPointsRuleWithDailyCap": "{action} ({count, plural, =1{once a day} other{up to {count} times a day}})",
+  "@myPointsRuleWithDailyCap": {
+    "description": "Point-earning action in the points guide with its daily earning limit, e.g. 'Log a meal (up to 3 times a day)'.",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "coachAssignedTrainer": "My trainer",
   "@coachAssignedTrainer": {
@@ -1614,6 +1657,101 @@
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
   },
+  "alertTimeJustNow": "Just now",
+  "@alertTimeJustNow": {
+    "description": "Relative time for a notification less than a minute old."
+  },
+  "alertTimeMinutesAgo": "{minutes}m ago",
+  "@alertTimeMinutesAgo": {
+    "description": "Relative time for a notification under an hour old.",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "alertTimeHoursAgo": "{hours}h ago",
+  "@alertTimeHoursAgo": {
+    "description": "Relative time for a notification under a day old.",
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "alertTimeYesterday": "Yesterday",
+  "@alertTimeYesterday": {
+    "description": "Relative time for a notification from about a day ago."
+  },
+  "alertTimeDaysAgo": "{days}d ago",
+  "@alertTimeDaysAgo": {
+    "description": "Relative time for a notification two or more days old.",
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "demoAlertSodiumTitle": "Watch your sodium",
+  "@demoAlertSodiumTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 3,428mg. Drink plenty of water.",
+  "@demoAlertSodiumBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertDinnerTitle": "Log your dinner",
+  "@demoAlertDinnerTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertDinnerBody": "No dinner logged yet today. One photo is all it takes.",
+  "@demoAlertDinnerBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertRoutineTitle": "A new workout routine arrived",
+  "@demoAlertRoutineTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertRoutineBody": "Trainer Kim adjusted it to a walking routine for your knee.",
+  "@demoAlertRoutineBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertReportTitle": "This week's report is ready",
+  "@demoAlertReportTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertReportBody": "Trainer Kim posted your report for this week.",
+  "@demoAlertReportBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertPtDoneTitle": "PT session complete",
+  "@demoAlertPtDoneTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer Kim at 18:00 today!",
+  "@demoAlertPtDoneBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertTrainerFeedbackTitle": "Feedback from your trainer",
+  "@demoAlertTrainerFeedbackTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertTrainerFeedbackBody": "Be sure to stretch your rotator cuff to finish.",
+  "@demoAlertTrainerFeedbackBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertWeeklyGoalTitle": "Almost at this week's workout goal",
+  "@demoAlertWeeklyGoalTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertWeeklyGoalBody": "Start with 30 minutes of low-intensity cardio (walking).",
+  "@demoAlertWeeklyGoalBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertMealStreakTitle": "You're keeping up your meal log",
+  "@demoAlertMealStreakTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertMealStreakBody": "You've logged your meals every day for over a month.",
+  "@demoAlertMealStreakBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertMaintenanceTitle": "Scheduled maintenance",
+  "@demoAlertMaintenanceTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertMaintenanceBody": "Maintenance is scheduled for tomorrow, 02:00–03:00.",
+  "@demoAlertMaintenanceBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
   "exPtLogTitle": "Today's completed PT",
   "@exPtLogTitle": {
     "description": "Title of the completed PT session card."
@@ -1663,5 +1801,14 @@
   "exDemoPtTrainerName": "Trainer Kim",
   "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "exStepperDecrease": "Decrease",
-  "exStepperIncrease": "Increase"
+  "exStepperIncrease": "Increase",
+  "pointsRewardBadge": "+{points}P",
+  "@pointsRewardBadge": {
+    "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  }
 }

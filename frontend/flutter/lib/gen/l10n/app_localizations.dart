@@ -2390,12 +2390,6 @@ abstract class AppLocalizations {
   /// **'Decline'**
   String get coachInviteReject;
 
-  /// Title of the red dialog confirming a declined trainer invite.
-  ///
-  /// In en, this message translates to:
-  /// **'Decline this invite?'**
-  String get coachInviteRejectConfirmTitle;
-
   /// No description provided for @coachInviteAccepted.
   ///
   /// In en, this message translates to:
@@ -3451,11 +3445,11 @@ abstract class AppLocalizations {
   /// **'Explore the demo without signing in'**
   String get authDemoAction;
 
-  /// No description provided for @authOrDivider.
+  /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///
   /// In en, this message translates to:
-  /// **'or'**
-  String get authOrDivider;
+  /// **'Sign in with a social account'**
+  String get authSocialDivider;
 
   /// No description provided for @authKakaoAction.
   ///
@@ -3469,11 +3463,23 @@ abstract class AppLocalizations {
   /// **'Continue with Google'**
   String get authGoogleAction;
 
-  /// No description provided for @authMissingCredentials.
+  /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Enter your email and password'**
-  String get authMissingCredentials;
+  /// **'Enter your email'**
+  String get authEmailEmpty;
+
+  /// No description provided for @authEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address'**
+  String get authEmailInvalid;
+
+  /// No description provided for @authPasswordEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get authPasswordEmpty;
 
   /// No description provided for @authSignInFailed.
   ///
@@ -3505,10 +3511,16 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get signUpNameHint;
 
-  /// No description provided for @signUpPhoneHint.
+  /// Red text under the name field on sign-up when it is empty or whitespace only (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Phone number'**
+  /// **'Enter your name'**
+  String get signUpNameEmpty;
+
+  /// Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784).
+  ///
+  /// In en, this message translates to:
+  /// **'010-0000-0000'**
   String get signUpPhoneHint;
 
   /// No description provided for @signUpPhoneHelper.
@@ -3520,7 +3532,7 @@ abstract class AppLocalizations {
   /// No description provided for @signUpPasswordHint.
   ///
   /// In en, this message translates to:
-  /// **'Password (8+ characters)'**
+  /// **'Password (8+ characters, letters and numbers)'**
   String get signUpPasswordHint;
 
   /// No description provided for @signUpPasswordConfirmHint.
@@ -3541,11 +3553,11 @@ abstract class AppLocalizations {
   /// **'Already have an account?'**
   String get signUpHaveAccountQuestion;
 
-  /// No description provided for @signUpPasswordTooShort.
+  /// No description provided for @signUpPasswordWeak.
   ///
   /// In en, this message translates to:
-  /// **'Password must be at least 8 characters'**
-  String get signUpPasswordTooShort;
+  /// **'Use at least 8 characters, including letters and numbers'**
+  String get signUpPasswordWeak;
 
   /// No description provided for @signUpPasswordMismatch.
   ///
@@ -3553,11 +3565,11 @@ abstract class AppLocalizations {
   /// **'Passwords do not match'**
   String get signUpPasswordMismatch;
 
-  /// No description provided for @signUpPhoneInvalid.
+  /// No description provided for @signUpPhoneFormatInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Enter a phone number with at least 4 digits'**
-  String get signUpPhoneInvalid;
+  /// **'Enter your phone number as 000-0000-0000'**
+  String get signUpPhoneFormatInvalid;
 
   /// No description provided for @trainerSyncEntryLabel.
   ///
@@ -3876,6 +3888,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week'**
   String get onboardExerciseSourceNote;
+
+  /// Shown under goal fields when the picked health goals changed the suggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusted for the health goals you picked'**
+  String get onboardFocusAdjusted;
+
+  /// Sources for the goal-based adjustments.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)'**
+  String get onboardFocusSourceNote;
 
   /// No description provided for @onboardGenderMale.
   ///
@@ -4225,11 +4249,16 @@ abstract class AppLocalizations {
   /// **'Weekly stretching (min)'**
   String get myGoalFlexibilityWeekly;
 
-  /// No description provided for @myGoalExerciseSuggestionNote.
+  /// Explains the suggested exercise goals, adjusted for the picked health goals.
   ///
   /// In en, this message translates to:
-  /// **'Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week'**
-  String get myGoalExerciseSuggestionNote;
+  /// **'Suggested: {burn} kcal a day · {cardio} min cardio · {strength} sets · {flexibility} min stretching a week'**
+  String myGoalExerciseSuggestionNote(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  );
 
   /// No description provided for @myGoalExerciseApplySuggestion.
   ///
@@ -4282,8 +4311,8 @@ abstract class AppLocalizations {
   /// Explains the placeholder grams shown in the macro fields.
   ///
   /// In en, this message translates to:
-  /// **'Suggested split for {kcal} kcal: 50% carbs · 30% protein · 20% fat'**
-  String myGoalMacroSuggestionNote(int kcal);
+  /// **'Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat'**
+  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat);
 
   /// Button that fills the macro fields with the suggested grams.
   ///
@@ -4345,17 +4374,23 @@ abstract class AppLocalizations {
   /// **'Log a meal'**
   String get myPointsDietAdd;
 
-  /// Point-earning action in the points guide.
+  /// Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer.
   ///
   /// In en, this message translates to:
-  /// **'Complete an AI-recommended workout'**
-  String get myPointsAiExercise;
+  /// **'Complete a recommended or assigned workout'**
+  String get myPointsRoutineComplete;
 
   /// Point-earning action in the points guide.
   ///
   /// In en, this message translates to:
   /// **'Log a workout yourself'**
   String get myPointsExerciseAdd;
+
+  /// Point-earning action in the points guide with its daily earning limit, e.g. 'Log a meal (up to 3 times a day)'.
+  ///
+  /// In en, this message translates to:
+  /// **'{action} ({count, plural, =1{once a day} other{up to {count} times a day}})'**
+  String myPointsRuleWithDailyCap(String action, int count);
 
   /// Header of the assigned trainer card.
   ///
@@ -4609,6 +4644,144 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the latest notifications'**
   String get alertLoadFailed;
 
+  /// Relative time for a notification less than a minute old.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get alertTimeJustNow;
+
+  /// Relative time for a notification under an hour old.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m ago'**
+  String alertTimeMinutesAgo(int minutes);
+
+  /// Relative time for a notification under a day old.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h ago'**
+  String alertTimeHoursAgo(int hours);
+
+  /// Relative time for a notification from about a day ago.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get alertTimeYesterday;
+
+  /// Relative time for a notification two or more days old.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d ago'**
+  String alertTimeDaysAgo(int days);
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch your sodium'**
+  String get demoAlertSodiumTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.'**
+  String get demoAlertSodiumBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Log your dinner'**
+  String get demoAlertDinnerTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'No dinner logged yet today. One photo is all it takes.'**
+  String get demoAlertDinnerBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'A new workout routine arrived'**
+  String get demoAlertRoutineTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer Kim adjusted it to a walking routine for your knee.'**
+  String get demoAlertRoutineBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s report is ready'**
+  String get demoAlertReportTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer Kim posted your report for this week.'**
+  String get demoAlertReportBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session complete'**
+  String get demoAlertPtDoneTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished PT session 12 with Trainer Kim at 18:00 today!'**
+  String get demoAlertPtDoneBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback from your trainer'**
+  String get demoAlertTrainerFeedbackTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Be sure to stretch your rotator cuff to finish.'**
+  String get demoAlertTrainerFeedbackBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost at this week\'s workout goal'**
+  String get demoAlertWeeklyGoalTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with 30 minutes of low-intensity cardio (walking).'**
+  String get demoAlertWeeklyGoalBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re keeping up your meal log'**
+  String get demoAlertMealStreakTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve logged your meals every day for over a month.'**
+  String get demoAlertMealStreakBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled maintenance'**
+  String get demoAlertMaintenanceTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance is scheduled for tomorrow, 02:00–03:00.'**
+  String get demoAlertMaintenanceBody;
+
   /// Title of the completed PT session card.
   ///
   /// In en, this message translates to:
@@ -4752,6 +4925,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Increase'**
   String get exStepperIncrease;
+
+  /// Points earned badge on the save toast (shown after a star icon), e.g. +50P.
+  ///
+  /// In en, this message translates to:
+  /// **'+{points}P'**
+  String pointsRewardBadge(int points);
 }
 
 class _AppLocalizationsDelegate

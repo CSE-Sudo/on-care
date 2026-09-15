@@ -7,6 +7,7 @@ import 'package:oncare/core/network/interceptors/api_logging_interceptor.dart';
 import 'package:oncare/core/network/interceptors/auth_interceptor.dart';
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/network/interceptors/mock_api_interceptor.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 
 /// App-wide `Dio` instance, wired with logging/auth/mock interceptors
@@ -43,6 +44,8 @@ final dioProvider = Provider<Dio>((ref) {
           ref.watch(appDatabaseProvider),
           logger,
           isRealApi: config.isRealApi,
+          // 목업 운동·코치 저장소와 같은 원장 — 하루 한도와 잔액이 하나다(#1786).
+          points: ref.watch(demoPointsLedgerProvider),
         ),
       )
       ..add(MockApiInterceptor(logger, isRealApi: config.isRealApi));

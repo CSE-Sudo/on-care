@@ -168,7 +168,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authBrowseDemo => '로그인 없이 데모 둘러보기';
 
   @override
-  String get authOr => '또는';
+  String get authSocialDivider => 'SNS 계정으로 로그인';
 
   @override
   String get authContinueKakao => '카카오로 시작하기';
@@ -183,7 +183,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authName => '이름';
 
   @override
-  String get authPasswordHint => '비밀번호 (8자 이상)';
+  String get authPasswordHint => '비밀번호 (영문·숫자 포함 8자 이상)';
 
   @override
   String get authPasswordConfirm => '비밀번호 확인';
@@ -213,7 +213,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrSignInFailed => '로그인에 실패했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get authErrPasswordTooShort => '비밀번호는 8자 이상이어야 해요';
+  String get authErrNameEmpty => '이름을 입력해 주세요';
+
+  @override
+  String get authErrEmailEmpty => '이메일을 입력해 주세요';
+
+  @override
+  String get authErrEmailInvalid => '이메일 형식이 올바르지 않아요';
+
+  @override
+  String get authErrPasswordEmpty => '비밀번호를 입력해 주세요';
+
+  @override
+  String get authErrPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
+
+  @override
+  String get authErrPhoneInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get authErrPasswordMismatch => '비밀번호가 일치하지 않아요';

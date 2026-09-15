@@ -1284,9 +1284,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachInviteReject => 'Decline';
 
   @override
-  String get coachInviteRejectConfirmTitle => 'Decline this invite?';
-
-  @override
   String coachInviteAccepted(String name) {
     return '$name is now your coach';
   }
@@ -1893,7 +1890,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authDemoAction => 'Explore the demo without signing in';
 
   @override
-  String get authOrDivider => 'or';
+  String get authSocialDivider => 'Sign in with a social account';
 
   @override
   String get authKakaoAction => 'Continue with Kakao';
@@ -1902,7 +1899,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authGoogleAction => 'Continue with Google';
 
   @override
-  String get authMissingCredentials => 'Enter your email and password';
+  String get authEmailEmpty => 'Enter your email';
+
+  @override
+  String get authEmailInvalid => 'Enter a valid email address';
+
+  @override
+  String get authPasswordEmpty => 'Enter your password';
 
   @override
   String get authSignInFailed =>
@@ -1923,14 +1926,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpNameHint => 'Name';
 
   @override
-  String get signUpPhoneHint => 'Phone number';
+  String get signUpNameEmpty => 'Enter your name';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
 
   @override
   String get signUpPhoneHelper =>
       'Your trainer uses this to confirm who you are.';
 
   @override
-  String get signUpPasswordHint => 'Password (8+ characters)';
+  String get signUpPasswordHint =>
+      'Password (8+ characters, letters and numbers)';
 
   @override
   String get signUpPasswordConfirmHint => 'Confirm password';
@@ -1942,14 +1949,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpHaveAccountQuestion => 'Already have an account?';
 
   @override
-  String get signUpPasswordTooShort => 'Password must be at least 8 characters';
+  String get signUpPasswordWeak =>
+      'Use at least 8 characters, including letters and numbers';
 
   @override
   String get signUpPasswordMismatch => 'Passwords do not match';
 
   @override
-  String get signUpPhoneInvalid =>
-      'Enter a phone number with at least 4 digits';
+  String get signUpPhoneFormatInvalid =>
+      'Enter your phone number as 000-0000-0000';
 
   @override
   String get trainerSyncEntryLabel => 'Sync data with a trainer';
@@ -2137,6 +2145,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week';
 
   @override
+  String get onboardFocusAdjusted => 'Adjusted for the health goals you picked';
+
+  @override
+  String get onboardFocusSourceNote =>
+      'Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)';
+
+  @override
   String get onboardGenderMale => 'Male';
 
   @override
@@ -2321,8 +2336,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalFlexibilityWeekly => 'Weekly stretching (min)';
 
   @override
-  String get myGoalExerciseSuggestionNote =>
-      'Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week';
+  String myGoalExerciseSuggestionNote(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return 'Suggested: $burn kcal a day · $cardio min cardio · $strength sets · $flexibility min stretching a week';
+  }
 
   @override
   String get myGoalExerciseApplySuggestion => 'Use suggested goals';
@@ -2350,8 +2371,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Calculated from your carb, protein and fat goals';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal) {
-    return 'Suggested split for $kcal kcal: 50% carbs · 30% protein · 20% fat';
+  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
+    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat';
   }
 
   @override
@@ -2386,10 +2407,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsDietAdd => 'Log a meal';
 
   @override
-  String get myPointsAiExercise => 'Complete an AI-recommended workout';
+  String get myPointsRoutineComplete =>
+      'Complete a recommended or assigned workout';
 
   @override
   String get myPointsExerciseAdd => 'Log a workout yourself';
+
+  @override
+  String myPointsRuleWithDailyCap(String action, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'up to $count times a day',
+      one: 'once a day',
+    );
+    return '$action ($_temp0)';
+  }
 
   @override
   String get coachAssignedTrainer => 'My trainer';
@@ -2531,6 +2564,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
 
   @override
+  String get alertTimeJustNow => 'Just now';
+
+  @override
+  String alertTimeMinutesAgo(int minutes) {
+    return '${minutes}m ago';
+  }
+
+  @override
+  String alertTimeHoursAgo(int hours) {
+    return '${hours}h ago';
+  }
+
+  @override
+  String get alertTimeYesterday => 'Yesterday';
+
+  @override
+  String alertTimeDaysAgo(int days) {
+    return '${days}d ago';
+  }
+
+  @override
+  String get demoAlertSodiumTitle => 'Watch your sodium';
+
+  @override
+  String get demoAlertSodiumBody =>
+      'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.';
+
+  @override
+  String get demoAlertDinnerTitle => 'Log your dinner';
+
+  @override
+  String get demoAlertDinnerBody =>
+      'No dinner logged yet today. One photo is all it takes.';
+
+  @override
+  String get demoAlertRoutineTitle => 'A new workout routine arrived';
+
+  @override
+  String get demoAlertRoutineBody =>
+      'Trainer Kim adjusted it to a walking routine for your knee.';
+
+  @override
+  String get demoAlertReportTitle => 'This week\'s report is ready';
+
+  @override
+  String get demoAlertReportBody =>
+      'Trainer Kim posted your report for this week.';
+
+  @override
+  String get demoAlertPtDoneTitle => 'PT session complete';
+
+  @override
+  String get demoAlertPtDoneBody =>
+      'You finished PT session 12 with Trainer Kim at 18:00 today!';
+
+  @override
+  String get demoAlertTrainerFeedbackTitle => 'Feedback from your trainer';
+
+  @override
+  String get demoAlertTrainerFeedbackBody =>
+      'Be sure to stretch your rotator cuff to finish.';
+
+  @override
+  String get demoAlertWeeklyGoalTitle => 'Almost at this week\'s workout goal';
+
+  @override
+  String get demoAlertWeeklyGoalBody =>
+      'Start with 30 minutes of low-intensity cardio (walking).';
+
+  @override
+  String get demoAlertMealStreakTitle => 'You\'re keeping up your meal log';
+
+  @override
+  String get demoAlertMealStreakBody =>
+      'You\'ve logged your meals every day for over a month.';
+
+  @override
+  String get demoAlertMaintenanceTitle => 'Scheduled maintenance';
+
+  @override
+  String get demoAlertMaintenanceBody =>
+      'Maintenance is scheduled for tomorrow, 02:00–03:00.';
+
+  @override
   String get exPtLogTitle => 'Today\'s completed PT';
 
   @override
@@ -2613,4 +2730,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exStepperIncrease => 'Increase';
+
+  @override
+  String pointsRewardBadge(int points) {
+    return '+${points}P';
+  }
 }

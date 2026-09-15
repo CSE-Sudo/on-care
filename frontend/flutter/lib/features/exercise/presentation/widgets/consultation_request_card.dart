@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/utils/preferred_time_format.dart';
@@ -60,8 +61,8 @@ class ConsultationRequestCard extends StatelessWidget {
             width: _leadingSize,
             height: _leadingSize,
             alignment: Alignment.center,
-            child: Icon(
-              Icons.fitness_center_rounded,
+            child: AppIcon(
+              AppIcons.gym,
               size: OnCareSize.iconMedium,
               color: tokens.brand.primary,
             ),

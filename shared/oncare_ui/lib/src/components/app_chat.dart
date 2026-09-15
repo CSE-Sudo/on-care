@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
@@ -136,13 +137,15 @@ class AppChatFileCard extends StatelessWidget {
     super.key,
     required this.name,
     this.detail,
-    this.icon = Icons.picture_as_pdf_rounded,
+    this.icon,
     this.onTap,
   });
 
   final String name;
   final String? detail;
-  final IconData icon;
+
+  /// 비우면 아이콘 묶음의 파일 아이콘이다.
+  final IconData? icon;
   final VoidCallback? onTap;
 
   @override
@@ -162,8 +165,8 @@ class AppChatFileCard extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Icon(
-                icon,
+              AppIcon(
+                icon ?? AppIcon.setOf(context).file,
                 size: OnCareSize.iconLarge,
                 color: OnCareColors.danger,
               ),
@@ -241,7 +244,7 @@ class AppChatInputBar extends StatelessWidget {
             children: <Widget>[
               if (onAttach != null) ...<Widget>[
                 AppIconButton(
-                  icon: Icons.add_photo_alternate_rounded,
+                  icon: AppIcon.setOf(context).attachImage,
                   tooltip: attachTooltip ?? '',
                   onPressed: enabled ? onAttach : null,
                 ),
@@ -268,7 +271,7 @@ class AppChatInputBar extends StatelessWidget {
               ),
               const SizedBox(width: OnCareSpacing.s8),
               AppIconButton(
-                icon: Icons.arrow_upward_rounded,
+                icon: AppIcon.setOf(context).send,
                 tooltip: sendTooltip,
                 variant: AppIconButtonVariant.filled,
                 onPressed: enabled ? onSend : null,
