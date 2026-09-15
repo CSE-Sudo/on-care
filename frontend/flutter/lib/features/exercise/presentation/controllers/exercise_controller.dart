@@ -3,6 +3,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
@@ -28,8 +29,12 @@ final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
     // One instance per provider lifetime so in-memory CRUD (add/edit/delete)
     // persists across `exerciseWeekProvider` invalidations for the session.
-    // 포인트는 식단(목업 API)·MY 와 같은 원장에 쌓는다(#1786).
-    return MockExerciseRepository(points: ref.watch(demoPointsLedgerProvider));
+    // 포인트는 식단(목업 API)·MY 와 같은 원장에 쌓는다(#1786). 보호권은 사용처
+    // 목업 API 와 같은 원장이다(#1788).
+    return MockExerciseRepository(
+      points: ref.watch(demoPointsLedgerProvider),
+      shields: ref.watch(demoStreakShieldBookProvider),
+    );
   }
   return DioExerciseRepository(ref.watch(dioProvider));
 }, name: 'exerciseRepository');
@@ -272,8 +277,16 @@ ExerciseWeek applyTodayBonus(
     totalCalories: week.totalCalories + bonus.calories,
     // 휴식일이던 오늘이 보너스로 활성일이 되면 연속 일수도 늘어야 한다. 저장된
     // 값을 그대로 넘기면 '운동 일수'(dailyMinutes 기반)와 '연속' 카드가 어긋난다.
-    streakDays: longestActiveStreak(dailyMinutes),
+    // 보호권으로 이어 붙인 날도 함께 센다(#1788).
+    streakDays: longestActiveStreak(
+      dailyMinutes,
+      protectedDays: week.protectedDays,
+    ),
     aiCoachMessage: week.aiCoachMessage,
+    // 보호권 상태는 오늘 루틴과 상관없다 — 빠뜨리면 루틴을 체크한 순간
+    // `보호권 쓰기` 버튼이 사라진다.
+    protectedDays: week.protectedDays,
+    streakShield: week.streakShield,
   );
 }
 

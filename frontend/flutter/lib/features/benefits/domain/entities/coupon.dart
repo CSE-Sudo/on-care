@@ -134,14 +134,18 @@ class CouponExchange {
     required this.balance,
   });
 
-  final Coupon coupon;
+  /// 연속 기록 보호권(#1788)은 쿠폰이 아니라 null 이다 — 서버는 대신 `shield` 를
+  /// 싣는다. 받은 보호권은 내 혜택의 보호권 구역이 다시 읽는다.
+  final Coupon? coupon;
   final int spent;
   final int balance;
 
   factory CouponExchange.fromJson(Map<String, Object?> json) => CouponExchange(
-    coupon: Coupon.fromJson(
-      (json['coupon']! as Map<Object?, Object?>).cast<String, Object?>(),
-    ),
+    coupon: json['coupon'] is Map
+        ? Coupon.fromJson(
+            (json['coupon']! as Map<Object?, Object?>).cast<String, Object?>(),
+          )
+        : null,
     spent: (json['spent'] as num?)?.toInt() ?? 0,
     balance: (json['balance'] as num?)?.toInt() ?? 0,
   );

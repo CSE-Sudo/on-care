@@ -8,12 +8,21 @@ library;
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 
 /// 교환 버튼을 막는 이유. 앱이 모르는 값은 [unknown] 이고 버튼만 막는다.
-enum ShopBlockReason { noTrainer, activeCoupon, insufficientPoints, unknown }
+///
+/// [shieldLimit] 은 쓰지 않은 연속 기록 보호권을 이미 최대로 가진 경우다(#1788).
+enum ShopBlockReason {
+  noTrainer,
+  activeCoupon,
+  shieldLimit,
+  insufficientPoints,
+  unknown,
+}
 
 ShopBlockReason? _blockFrom(Object? raw) => switch (raw) {
   null => null,
   'no_trainer' => ShopBlockReason.noTrainer,
   'active_coupon' => ShopBlockReason.activeCoupon,
+  'shield_limit' => ShopBlockReason.shieldLimit,
   'insufficient_points' => ShopBlockReason.insufficientPoints,
   _ => ShopBlockReason.unknown,
 };

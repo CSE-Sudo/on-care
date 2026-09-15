@@ -234,6 +234,19 @@
     "placeholders": { "days": { "type": "int" } }
   },
   "exStreakStart": "오늘 운동으로 연속 기록을 시작해 봐요.",
+  "exStreakProtected": "보호권으로 이어짐",
+  "exStreakShieldUse": "보호권 쓰기",
+  "exStreakShieldConfirmTitle": "보호권을 쓸까요?",
+  "exStreakShieldConfirmMessage": "{month}월 {day}일에는 운동 기록이 없어요. 보호권 1개를 써서 연속 기록에 이어 붙여요. (보유 {held}개)",
+  "@exStreakShieldConfirmMessage": {
+    "placeholders": {
+      "month": { "type": "int" },
+      "day": { "type": "int" },
+      "held": { "type": "int" }
+    }
+  },
+  "exStreakShieldDone": "어제를 연속 기록에 이어 붙였어요",
+  "exStreakShieldFailed": "보호권을 쓰지 못했어요. 다시 시도해 주세요.",
   "exToday": "오늘",
   "exLoadError": "운동 정보를 불러오지 못했어요.",
   "exCompletedPtTitle": "오늘 완료한 PT",
@@ -411,6 +424,24 @@
   },
   "myPointsNeedTrainer": "담당 트레이너가 있어야 교환할 수 있어요",
   "myPointsActiveCoupon": "사용하지 않은 쿠폰이 있어요",
+  "myPointsShieldLimit": "보호권은 최대 2개까지 가질 수 있어요",
+  "myShopStreakShieldTitle": "연속 기록 보호권",
+  "myShopStreakShieldDescription": "운동을 못 한 어제를 연속 기록에 이어 붙여요. 최대 2개까지 가질 수 있어요.",
+  "myBenefitsStreakShields": "연속 기록 보호권",
+  "myBenefitsShieldHeld": "보유 {held}/{max}개",
+  "@myBenefitsShieldHeld": {
+    "placeholders": {
+      "held": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "myBenefitsShieldGuide": "운동을 못 한 다음 날 운동 현황에서 쓸 수 있어요.",
+  "myBenefitsShieldUsedTitle": "보호한 날",
+  "myBenefitsShieldNoneUsed": "아직 보호한 날이 없어요",
   "myPointsValidDays": "교환 후 {days}일 동안 사용",
   "@myPointsValidDays": {
     "placeholders": {

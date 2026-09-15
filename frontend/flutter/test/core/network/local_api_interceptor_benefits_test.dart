@@ -83,8 +83,9 @@ void main() {
       'pt_renewal',
       'salad_discount',
       'protein_discount',
+      'streak_shield',
     ]);
-    expect(shop.items.map((ShopItem i) => i.cost), <int>[5000, 1000, 1000]);
+    expect(shop.items.map((ShopItem i) => i.cost), <int>[5000, 1000, 1000, 300]);
     expect(shop.items.every((ShopItem i) => i.available), isTrue);
 
     book.endTrainerLink();
@@ -97,15 +98,16 @@ void main() {
       dio,
     ).exchange('salad_discount');
 
+    final Coupon coupon = result.coupon!;
     expect(result.spent, 1000);
     expect(result.balance, 6300);
-    expect(result.coupon.status, CouponStatus.issued);
-    expect(result.coupon.redeemer, CouponRedeemer.member);
-    expect(result.coupon.code, hasLength(8));
-    expect(result.coupon.daysLeft, 30);
-    expect(result.coupon.expiresOn, DateTime(2026, 10, 15));
+    expect(coupon.status, CouponStatus.issued);
+    expect(coupon.redeemer, CouponRedeemer.member);
+    expect(coupon.code, hasLength(8));
+    expect(coupon.daysLeft, 30);
+    expect(coupon.expiresOn, DateTime(2026, 10, 15));
     expect(await balance(), 6300);
-    expect((await coupons()).single['id'], result.coupon.id);
+    expect((await coupons()).single['id'], coupon.id);
   });
 
   test('잔액이 모자라면 409 이고 아무것도 바뀌지 않는다', () async {

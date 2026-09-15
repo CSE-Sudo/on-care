@@ -7,7 +7,9 @@ import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
+import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/exercise_goals_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -239,10 +241,50 @@ class _ExerciseActivityStatusState
     );
   }
 
+  /// `보호권 쓰기` 요청이 나가 있다 — 버튼을 진행 표시로 바꾸고 다시 받지 않는다.
+  bool _usingShield = false;
+
+  /// 어제([date])를 연속 기록에 이어 붙인다. 파란 2열 확인창을 거친다. (#1788)
+  Future<void> _useShield(StreakShieldWeekState shield, DateTime date) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.exStreakShieldConfirmTitle,
+      message: l.exStreakShieldConfirmMessage(
+        date.month,
+        date.day,
+        shield.held,
+      ),
+      confirmLabel: l.exStreakShieldUse,
+      cancelLabel: l.actionCancel,
+    );
+    if (!ok || !mounted || _usingShield) return;
+    setState(() => _usingShield = true);
+    try {
+      await ref.read(streakShieldRepositoryProvider).use(date);
+      if (!mounted) return;
+      // 연속 일수·보호한 날·버튼 여부와 내 혜택의 보유 수가 함께 바뀌었다.
+      ref
+        ..invalidate(exerciseWeekProvider)
+        ..invalidate(myStreakShieldsProvider);
+      showAppToast(context, l.exStreakShieldDone, type: AppToastType.success);
+    } on Object {
+      if (!mounted) return;
+      // 그사이 조건이 바뀌었을 수 있다(자정이 지나 어제가 바뀜 등) — 주를 다시
+      // 읽어 버튼을 지금 규칙대로 그린다.
+      ref.invalidate(exerciseWeekProvider);
+      showAppToast(context, l.exStreakShieldFailed, type: AppToastType.error);
+    } finally {
+      if (mounted) setState(() => _usingShield = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final int period = ref.watch(exerciseActivityPeriodProvider);
+    final StreakShieldWeekState? shield = widget.week.streakShield;
+    final DateTime? protectable = shield?.protectableDate;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -294,6 +336,12 @@ class _ExerciseActivityStatusState
             load: _todayLoad,
             goals: _goals,
             streakDays: widget.week.streakDays,
+            streakKeptByShield: widget.week.streakKeptByShield,
+            shieldBusy: _usingShield,
+            // 서버가 지금 보호할 수 있는 날을 줄 때만 버튼을 띄운다(#1788).
+            onUseShield: shield == null || protectable == null
+                ? null
+                : () => _useShield(shield, protectable),
           )
         else if (period == 1)
           ExerciseWeekLoadCard(loads: _loads, goals: _goals)
@@ -317,6 +365,9 @@ class ExerciseDayLoadCard extends StatelessWidget {
     this.goals = kDefaultExerciseLoadGoals,
     this.isToday = true,
     this.streakDays,
+    this.streakKeptByShield = false,
+    this.onUseShield,
+    this.shieldBusy = false,
     super.key,
   });
 
@@ -329,6 +380,17 @@ class ExerciseDayLoadCard extends StatelessWidget {
   /// 며칠 연속 운동 중인지. **오늘 카드에만** 있다. null 이면 그리지 않는다.
   final int? streakDays;
 
+  /// `N일 연속` 에 보호권으로 이어진 날이 들었는가. 참이면 옆에
+  /// `보호권으로 이어짐` 을 붙인다(#1788).
+  final bool streakKeptByShield;
+
+  /// 어제를 보호권으로 이어 붙일 수 있을 때만 준다. null 이면 `보호권 쓰기` 를
+  /// 그리지 않는다(#1788).
+  final VoidCallback? onUseShield;
+
+  /// `보호권 쓰기` 요청이 나가 있다.
+  final bool shieldBusy;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -339,7 +401,12 @@ class ExerciseDayLoadCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           if (streak != null) ...<Widget>[
-            _StreakLine(days: streak),
+            _StreakLine(
+              days: streak,
+              keptByShield: streakKeptByShield,
+              onUseShield: onUseShield,
+              busy: shieldBusy,
+            ),
             const SizedBox(height: OnCareSpacing.s4),
           ],
           // 소모 칼로리는 도넛 **안에서** 말한다 (#1127) — 링 옆에 같은 숫자를
@@ -426,30 +493,85 @@ class ExerciseDayLoadCard extends StatelessWidget {
 }
 
 /// `⚡ 5일 연속 운동 중이에요!` — 주의 톤 태그.
+///
+/// 연속에 보호권으로 이어진 날이 들었으면 옆에 `보호권으로 이어짐` 을, 어제를
+/// 이어 붙일 수 있으면 오른쪽 끝에 `보호권 쓰기` 를 둔다(#1788).
 class _StreakLine extends StatelessWidget {
-  const _StreakLine({required this.days});
+  const _StreakLine({
+    required this.days,
+    this.keptByShield = false,
+    this.onUseShield,
+    this.busy = false,
+  });
 
   final int days;
+  final bool keptByShield;
+  final VoidCallback? onUseShield;
+  final bool busy;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 카드 안의 다른 글자와 같은 자리에서 시작하지만, 이 한 줄만 주황 태그로
-    // 깔아 **응원 문구**임을 표시한다. 불꽃은 소모 칼로리 도넛이 쓰므로 연속은
-    // '기세' 쪽 기호로 갈라 둔다. 좁으면 태그째 줄인다.
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: AlignmentDirectional.centerStart,
-        child: AppTag(
-          label: days > 0 ? l.exStreakCheer(days) : l.exStreakStart,
-          tone: AppTagTone.caution,
-          icon: Icons.bolt_rounded,
+    final VoidCallback? onUse = onUseShield;
+    return Row(
+      children: <Widget>[
+        Expanded(
+          // 카드 안의 다른 글자와 같은 자리에서 시작하지만, 이 한 줄만 주황 태그로
+          // 깔아 **응원 문구**임을 표시한다. 불꽃은 소모 칼로리 도넛이 쓰므로
+          // 연속은 '기세' 쪽 기호로 갈라 둔다. 좁으면 태그째 줄인다 — 버튼은
+          // 줄이지 않는다.
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  AppTag(
+                    label: days > 0 ? l.exStreakCheer(days) : l.exStreakStart,
+                    tone: AppTagTone.caution,
+                    icon: Icons.bolt_rounded,
+                  ),
+                  if (keptByShield) ...<Widget>[
+                    const SizedBox(width: OnCareSpacing.s8),
+                    const StreakProtectedTag(),
+                  ],
+                ],
+              ),
+            ),
+          ),
         ),
-      ),
+        if (onUse != null) ...<Widget>[
+          const SizedBox(width: OnCareSpacing.s8),
+          AppButton(
+            key: const ValueKey<String>('exercise-streak-shield-use'),
+            label: l.exStreakShieldUse,
+            variant: AppButtonVariant.text,
+            size: OnCareButtonSize.small,
+            leadingIcon: Icons.shield_rounded,
+            loading: busy,
+            onPressed: busy ? null : onUse,
+          ),
+        ],
+      ],
     );
   }
+}
+
+/// `🛡 보호권으로 이어짐` — 연속 기록 보호권으로 이어 붙인 날의 표시(#1788).
+///
+/// 운동 현황의 연속 줄과 지난 날짜 상세가 같은 모양을 쓴다.
+class StreakProtectedTag extends StatelessWidget {
+  const StreakProtectedTag({super.key});
+
+  @override
+  Widget build(BuildContext context) => AppTag(
+    key: const ValueKey<String>('exercise-streak-protected'),
+    label: AppLocalizations.of(context).exStreakProtected,
+    tone: AppTagTone.brand,
+    icon: Icons.shield_rounded,
+  );
 }
 
 /// `▪ 유산소     15분` — 목표 없이 **한 값만** 적는 줄.
