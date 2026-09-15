@@ -16,17 +16,7 @@ from datetime import datetime
 from pathlib import PurePath
 from typing import Annotated, Literal
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    File,
-    Form,
-    HTTPException,
-    Query,
-    Request,
-    Response,
-    UploadFile,
-)
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
@@ -92,13 +82,10 @@ from app.schemas.trainer_api import (
     TrainerPasswordChange, WeeklyReportOut,
     TrainerTaskProgressDayOut, TrainerTaskProgressOut, TrainerTaskProgressSave,
 )
-from app.schemas.points_api import TrainerCouponOut
-from app.services.audit import client_ip, record as record_audit
 from app.services import (
     diet_service,
     exercise_service,
     chat_image_storage,
-    points_coupon_service,
     consultation_service,
     member_pairing_service,
     trainer_client_invite_service,
@@ -354,64 +341,6 @@ def trainer_remove_client(
     if not link.active:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     trainer_service.remove_client(db, link)
-
-
-@router.get(
-    "/trainer/clients/{member_id}/coupons", response_model=list[TrainerCouponOut]
-)
-def trainer_client_coupons(
-    member_id: str,
-    trainer: RequireTrainer,
-    db: Annotated[Session, Depends(get_db)],
-) -> list[TrainerCouponOut]:
-    """회원이 가진 사용 가능한 PT 재등록 쿠폰. (#1787)
-
-    회원 상세 머리줄의 `재등록 쿠폰` 배지가 이 목록으로 선다. **현재 담당**
-    트레이너만 본다 — 해제된 과거 담당·남의 회원은 404 다.
-    """
-    try:
-        return points_coupon_service.list_for_trainer(db, trainer.id, member_id)
-    except points_coupon_service.NotAssignedTrainer as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-
-@router.post(
-    "/trainer/clients/{member_id}/coupons/{coupon_id}/redeem",
-    response_model=TrainerCouponOut,
-)
-def trainer_redeem_coupon(
-    member_id: str,
-    coupon_id: str,
-    request: Request,
-    trainer: RequireTrainer,
-    db: Annotated[Session, Depends(get_db)],
-) -> TrainerCouponOut:
-    """PT 재등록 쿠폰을 사용 처리한다. 되돌리기는 없다. (#1787)
-
-    조건부 UPDATE 한 번이라 더블 클릭·재전송은 한 번만 처리되고, 이미 사용된
-    쿠폰에는 같은 응답(200)을 준다. 처음 처리한 요청만 감사 로그를 남기고, 회원
-    알림은 처리와 같은 트랜잭션에서 만든다. 만료·취소된 쿠폰은 409.
-    """
-    try:
-        out, newly = points_coupon_service.redeem_by_trainer(
-            db, trainer.id, member_id, coupon_id
-        )
-    except (
-        points_coupon_service.NotAssignedTrainer,
-        points_coupon_service.CouponNotFound,
-    ) as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except points_coupon_service.CouponNotUsable as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    if newly:
-        record_audit(
-            db,
-            event="points.coupon_redeem",
-            user_id=trainer.id,
-            ip=client_ip(request),
-            detail=f"coupon={coupon_id} member={member_id} item={out.item}",
-        )
-    return out
 
 
 @router.put("/trainer/clients/{member_id}/registration", status_code=204)

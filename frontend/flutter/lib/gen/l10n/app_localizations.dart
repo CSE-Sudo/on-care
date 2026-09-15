@@ -2240,11 +2240,41 @@ abstract class AppLocalizations {
   /// **'Status'**
   String get myCouponStatus;
 
-  /// No description provided for @myCouponTrainerGuide.
+  /// No description provided for @myCouponRenewalGuide.
   ///
   /// In en, this message translates to:
-  /// **'Show this coupon to your trainer when you renew PT. Your trainer will mark it as used.'**
-  String get myCouponTrainerGuide;
+  /// **'When you renew PT, show this screen to your trainer or gym staff.'**
+  String get myCouponRenewalGuide;
+
+  /// No description provided for @myCouponStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap only after your trainer or gym staff has checked it'**
+  String get myCouponStaffNote;
+
+  /// No description provided for @myCouponStaffConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark this coupon as used?'**
+  String get myCouponStaffConfirmTitle;
+
+  /// No description provided for @myCouponStaffConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'For staff · This can\'t be undone once used'**
+  String get myCouponStaffConfirmMessage;
+
+  /// No description provided for @myCouponUsedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Used at'**
+  String get myCouponUsedAt;
+
+  /// No description provided for @myCouponUsedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Used on {time}'**
+  String myCouponUsedBanner(String time);
 
   /// No description provided for @myCouponMemberGuide.
   ///

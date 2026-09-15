@@ -81,3 +81,9 @@ String formatCouponDate(DateTime day) =>
     '${day.year.toString().padLeft(4, '0')}.'
     '${day.month.toString().padLeft(2, '0')}.'
     '${day.day.toString().padLeft(2, '0')}';
+
+/// `2026.10.15 14:30` — [at] 은 이미 KST 벽시계 값이다([Coupon.usedAt]).
+String formatCouponDateTime(DateTime at) =>
+    '${formatCouponDate(at)} '
+    '${at.hour.toString().padLeft(2, '0')}:'
+    '${at.minute.toString().padLeft(2, '0')}';

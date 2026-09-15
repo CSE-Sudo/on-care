@@ -181,7 +181,7 @@ void main() {
     expect(await balance(), 6300);
   });
 
-  test('건강식 쿠폰은 회원이 한 번 사용 처리하고 재등록 쿠폰은 막힌다', () async {
+  test('건강식·재등록 쿠폰 모두 회원 휴대폰에서 한 번 사용 처리한다', () async {
     await exchange('salad_discount');
     final String salad = (await coupons()).single['id']! as String;
     final Coupon used = await DioBenefitsRepository(dio).useCoupon(salad);
@@ -194,10 +194,15 @@ void main() {
     final String renewal = (await coupons())
         .firstWhere((Map<String, Object?> c) => c['item'] == 'pt_renewal')['id']!
         as String;
-    final Response<Object?> res = await dio.post<Object?>(
-      '/me/coupons/$renewal/use',
-    );
-    expect(res.statusCode, 409);
+    // PT 재등록 쿠폰도 직원 확인 뒤 회원 휴대폰에서 사용 완료를 누른다.
+    final Coupon renewalUsed = await DioBenefitsRepository(
+      dio,
+    ).useCoupon(renewal);
+    expect(renewalUsed.status, CouponStatus.used);
+    expect(renewalUsed.redeemer, CouponRedeemer.member);
+    expect(renewalUsed.usedAt, isNotNull);
+    // 두 번 눌러도 처음 사용 시각 그대로다.
+    expect(again.usedAt, used.usedAt);
   });
 
   test('기한이 지나면 만료되고 포인트는 돌려주지 않는다', () async {

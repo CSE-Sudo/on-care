@@ -70,12 +70,7 @@ PointsShop shopWith({
   bool hasTrainer = true,
   Set<String> activeItems = const <String>{},
 }) {
-  ShopItem item(
-    String id,
-    int cost,
-    CouponRedeemer redeemer, {
-    bool requiresTrainer = false,
-  }) {
+  ShopItem item(String id, int cost, {bool requiresTrainer = false}) {
     final int shortfall = cost > balance ? cost - balance : 0;
     final ShopBlockReason? blocked = requiresTrainer && !hasTrainer
         ? ShopBlockReason.noTrainer
@@ -91,7 +86,7 @@ PointsShop shopWith({
       description: id,
       cost: cost,
       validDays: 30,
-      redeemer: redeemer,
+      redeemer: CouponRedeemer.member,
       requiresTrainer: requiresTrainer,
       available: blocked == null,
       blockReason: blocked,
@@ -103,12 +98,15 @@ PointsShop shopWith({
     balance: balance,
     hasTrainer: hasTrainer,
     items: <ShopItem>[
-      item('pt_renewal', 5000, CouponRedeemer.trainer, requiresTrainer: true),
-      item('salad_discount', 1000, CouponRedeemer.member),
-      item('protein_discount', 1000, CouponRedeemer.member),
+      item('pt_renewal', 5000, requiresTrainer: true),
+      item('salad_discount', 1000),
+      item('protein_discount', 1000),
     ],
   );
 }
+
+/// 사용한 쿠폰의 사용 시각(KST 벽시계).
+final DateTime kFakeUsedAt = DateTime(2026, 9, 20, 14, 30);
 
 Coupon couponOf({
   required String id,
@@ -125,11 +123,13 @@ Coupon couponOf({
     cost: renewal ? 5000 : 1000,
     code: 'ABCD2345',
     status: status,
-    redeemer: renewal ? CouponRedeemer.trainer : CouponRedeemer.member,
+    // 모든 쿠폰을 회원 휴대폰에서 사용 처리한다.
+    redeemer: CouponRedeemer.member,
     trainerName: renewal ? '김트레이너' : '',
     gymName: renewal ? '온케어짐 신촌점' : '',
     issuedOn: DateTime(2026, 9, 15),
     expiresOn: DateTime(2026, 10, 15),
     daysLeft: status == CouponStatus.issued ? daysLeft : 0,
+    usedAt: status == CouponStatus.used ? kFakeUsedAt : null,
   );
 }

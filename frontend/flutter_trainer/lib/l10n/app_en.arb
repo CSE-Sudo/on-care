@@ -2592,37 +2592,5 @@
     }
   },
   "routineFormDecrease": "Decrease",
-  "routineFormIncrease": "Increase",
-  "clientRenewalCouponTitle": "Renewal coupon",
-  "@clientRenewalCouponTitle": {
-    "description": "Badge on the client detail header, and the dialog title, for a PT renewal discount coupon the member bought with points (#1787)."
-  },
-  "clientRenewalCouponOpen": "Review renewal coupon",
-  "clientRenewalCouponBenefitLabel": "Benefit",
-  "clientRenewalCouponBenefit": "₩10,000 off PT renewal",
-  "clientRenewalCouponIssuedOn": "Redeemed on",
-  "clientRenewalCouponExpiry": "Expires",
-  "clientRenewalCouponExpiryValue": "{date} (D-{days})",
-  "@clientRenewalCouponExpiryValue": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      },
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "clientRenewalCouponExpiryToday": "{date} (D-day)",
-  "@clientRenewalCouponExpiryToday": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
-  "clientRenewalCouponWarning": "This can't be undone once used",
-  "clientRenewalCouponRedeem": "Mark as used",
-  "clientRenewalCouponRedeemed": "Renewal coupon marked as used",
-  "clientRenewalCouponRedeemFailed": "Couldn't mark the coupon as used. Please try again shortly"
+  "routineFormIncrease": "Increase"
 }

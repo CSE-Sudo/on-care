@@ -18,7 +18,8 @@ import 'package:oncare/core/utils/clock.dart';
 /// 만료 3일 전 알림은 목업에 없다 — 데모에서 교환한 쿠폰은 30일 뒤에야 그 창에
 /// 들어가고, 목업 알림함은 이 원장과 따로 논다.
 ///
-/// 트레이너웹 데모는 다른 앱이라 이 쿠폰을 보지 못한다. 그쪽 데모는 자기 목록을 둔다.
+/// 모든 쿠폰을 회원 휴대폰에서 사용 처리한다 — PT 재등록 쿠폰도 트레이너·헬스장
+/// 직원이 확인한 뒤 회원 화면의 `사용 완료` 를 누른다.
 class DemoCouponBook {
   DemoCouponBook({
     required DemoPointsLedger ledger,
@@ -296,7 +297,8 @@ const DemoShopItem kDemoPtRenewal = DemoShopItem(
   description: '담당 트레이너에게 PT를 다시 등록할 때 10,000원을 할인받아요.',
   cost: 5000,
   validDays: 30,
-  redeemer: 'trainer',
+  // 헬스장에서 직원이 확인한 뒤 회원 휴대폰에서 사용 완료를 누른다.
+  redeemer: 'member',
   requiresTrainer: true,
   oneActive: true,
 );

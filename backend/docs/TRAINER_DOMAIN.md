@@ -115,10 +115,7 @@
 | GET | `/trainer/clients` | 회원 로스터(회원 실데이터 집계) — 기본 50명, `after_id` 로 이어 받기 (#980) |
 | PUT | `/trainer/clients/{member_id}/status` | 활성/휴면 전환(담당 관계는 유지, #707) |
 | GET | `/trainer/clients/{member_id}/diet?date=` | 해당 회원의 실제 식단 기록 |
-| GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순) |
-| GET | `/trainer/clients/{member_id}/coupons` | 회원이 가진 사용 가능한 PT 재등록 쿠폰 — 회원 상세 `재등록 쿠폰` 배지. **현재 활성 담당**만(아니면 404) (#1787) |
-| POST | `/trainer/clients/{member_id}/coupons/{coupon_id}/redeem` | PT 재등록 쿠폰 사용 처리 — 조건부 UPDATE 한 번(중복 요청은 같은 응답), 처리 트레이너·시각·감사 로그·회원 알림. 되돌리기 없음. 담당이 끊기면 사용 가능한 쿠폰은 취소되고 포인트가 돌아간다 (#1787) |
-| DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505) |
+| GET | `/trainer/clients/{member_id}/history` | 해당 회원 운동 기록(최신순) || DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505) |
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
 | POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건) |
 | POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709) |

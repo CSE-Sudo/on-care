@@ -1185,8 +1185,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCouponStatus => '상태';
 
   @override
-  String get myCouponTrainerGuide =>
-      'PT를 다시 등록할 때 담당 트레이너에게 이 쿠폰을 보여 주세요. 트레이너가 사용 처리해요.';
+  String get myCouponRenewalGuide => 'PT를 다시 등록할 때 이 화면을 트레이너·헬스장 직원에게 보여 주세요.';
+
+  @override
+  String get myCouponStaffNote => '트레이너·헬스장 직원이 확인한 뒤 눌러 주세요';
+
+  @override
+  String get myCouponStaffConfirmTitle => '쿠폰을 사용 완료할까요?';
+
+  @override
+  String get myCouponStaffConfirmMessage => '직원 확인용 · 사용 후 되돌릴 수 없어요';
+
+  @override
+  String get myCouponUsedAt => '사용 시각';
+
+  @override
+  String myCouponUsedBanner(String time) {
+    return '$time에 사용 완료했어요';
+  }
 
   @override
   String get myCouponMemberGuide => '매장에서 코드를 보여 준 뒤 사용 완료를 눌러 주세요.';

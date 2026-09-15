@@ -88,21 +88,6 @@ class ExchangeOut(BaseModel):
     balance: int
 
 
-class TrainerCouponOut(BaseModel):
-    """트레이너가 보는 회원의 PT 재등록 쿠폰. 코드는 싣지 않는다 — 트레이너는 이미
-    회원을 특정한 화면에서 처리하므로 코드 확인 단계가 없다."""
-
-    id: str
-    item: str
-    benefit: str
-    status: str
-    issued_at: datetime
-    issued_on: str
-    expires_on: str
-    days_left: int
-    used_at: datetime | None = None
-
-
 class PointsOut(BaseModel):
     """이번 저장으로 받은 포인트와 그 뒤의 잔액.
 

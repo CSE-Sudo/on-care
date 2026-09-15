@@ -200,8 +200,8 @@ class PointsCoupon(Base):
       카탈로그 가격이 나중에 바뀌어도 낸 만큼 돌려받는다.
     - `trainer_name`·`gym_name` 은 교환 시점의 사본이다. 쿠폰 화면이 사용 뒤에도
       어느 트레이너에게 쓴 쿠폰인지 말할 수 있게 한다.
-    - `redeemed_by` 는 사용 처리한 계정(트레이너 또는 회원) id 다. 감사 로그처럼
-      FK 를 두지 않는다 — 처리한 사람이 탈퇴해도 기록은 남아야 한다.
+    - 사용 처리는 늘 회원 휴대폰에서 한다(PT 재등록은 직원 확인 뒤). 처리한 사람이
+      늘 이 회원이라 따로 적지 않고, 시각만 `used_at` 에 남긴다.
     - 사용 가능한 쿠폰은 종류마다 회원당 한 장뿐이다(partial unique index).
     """
 
@@ -234,7 +234,6 @@ class PointsCoupon(Base):
     used_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    redeemed_by: Mapped[str | None] = mapped_column(String(64), nullable=True)
     cancelled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

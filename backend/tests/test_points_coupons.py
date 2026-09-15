@@ -1,4 +1,4 @@
-"""포인트 사용처·쿠폰 — 교환, 재등록 쿠폰 규칙, 트레이너 사용 처리, 만료, 담당 해제 반환.
+"""포인트 사용처·쿠폰 — 교환, 종류마다 한 장, 회원 휴대폰 사용 처리, 만료, 담당 해제 반환.
 (#1787) DB 필요(로컬 skip, CI 실행).
 
 새로 가입한 회원에 포인트를 넣고 **테스트마다 만든 트레이너**를 담당으로 붙여 확인한다.
@@ -138,12 +138,28 @@ def _exchange(client, headers, item: str, request_id: str | None = None):
     return client.post("/v1/me/points/exchange", json=body, headers=headers)
 
 
+def _use(client, headers, coupon_id: str):
+    return client.post(f"/v1/me/coupons/{coupon_id}/use", headers=headers)
+
+
 def _notifications(db_session, member_id: str, title: str) -> int:
     db_session.expire_all()
     return db_session.scalar(
         select(func.count())
         .select_from(Notification)
         .where(Notification.user_id == member_id, Notification.title == title)
+    )
+
+
+def _audits(db_session, coupon_id: str) -> list[AuditLog]:
+    db_session.expire_all()
+    return list(
+        db_session.scalars(
+            select(AuditLog).where(
+                AuditLog.event == "points.coupon_redeem",
+                AuditLog.detail.contains(coupon_id),
+            )
+        ).all()
     )
 
 
@@ -181,7 +197,7 @@ def test_shop_lists_items_with_block_reasons(client, db_session, trainer_id):
     assert (renewal["cost"], renewal["valid_days"], renewal["redeemer"]) == (
         5000,
         30,
-        "trainer",
+        "member",
     )
     assert renewal["available"] is False
     assert renewal["blocked_reason"] == "no_trainer"
@@ -274,8 +290,7 @@ def test_demo_coupon_one_unused_per_kind(client, db_session):
     assert protein.status_code == 201, protein.text
 
     # 사용하면 같은 종류를 다시 받을 수 있다.
-    salad_id = salad.json()["coupon"]["id"]
-    assert client.post(f"/v1/me/coupons/{salad_id}/use", headers=h).status_code == 200
+    assert _use(client, h, salad.json()["coupon"]["id"]).status_code == 200
     assert _exchange(client, h, "salad_discount").status_code == 201
     # 만료돼도 다시 받을 수 있다.
     _set_expiry(
@@ -314,9 +329,10 @@ def test_pt_renewal_requires_active_trainer(client, db_session, trainer_id):
 
     assert r.status_code == 201, r.text
     coupon = r.json()["coupon"]
+    # 쿠폰 화면이 보여 줄 담당 트레이너·헬스장은 교환 시점의 사본이다.
     assert coupon["trainer_name"] == TRAINER_NAME
     assert coupon["gym_name"] == GYM_NAME
-    assert coupon["redeemer"] == "trainer"
+    assert coupon["redeemer"] == "member"
     assert r.json()["balance"] == 1000
 
 
@@ -331,143 +347,106 @@ def test_pt_renewal_one_unused_coupon_at_a_time(client, db_session, trainer_id):
     assert _balance(client, h) == 7000
     assert _shop_item(client, h, "pt_renewal")["blocked_reason"] == "active_coupon"
 
-    redeemed = client.post(
-        f"/v1/trainer/clients/{member_id}/coupons/{first.json()['coupon']['id']}/redeem",
-        headers=_headers(trainer_id),
-    )
-    assert redeemed.status_code == 200, redeemed.text
+    assert _use(client, h, first.json()["coupon"]["id"]).status_code == 200
 
     # 사용한 뒤에는 다음 재등록을 위해 다시 교환할 수 있다.
     assert _exchange(client, h, "pt_renewal").status_code == 201
     assert _balance(client, h) == 2000
 
 
-# ---- 트레이너 사용 처리 ----
+# ---- 사용 처리(회원 휴대폰) ----
 
 
-def test_trainer_redeems_once_with_notification_and_audit(
-    client, db_session, trainer_id
-):
+def test_member_phone_uses_pt_renewal_once_with_audit(client, db_session, trainer_id):
+    member_id, h = _new_member(client, db_session, points=5000)
+    _link(db_session, member_id, trainer_id)
+    coupon_id = _exchange(client, h, "pt_renewal").json()["coupon"]["id"]
+
+    first = _use(client, h, coupon_id)
+    second = _use(client, h, coupon_id)
+
+    assert first.status_code == 200, first.text
+    assert second.status_code == 200, second.text
+    assert first.json()["status"] == "used"
+    assert first.json()["used_at"] is not None
+    assert first.json()["days_left"] == 0
+    # 두 번 눌러도 처음 사용 시각 그대로다.
+    assert second.json()["used_at"] == first.json()["used_at"]
+
+    row = _coupon(db_session, coupon_id)
+    assert row.status == "used"
+    assert row.used_at is not None
+    audits = _audits(db_session, coupon_id)
+    assert len(audits) == 1
+    assert audits[0].user_id == member_id
+    # 본인이 누른 사용이라 알림은 없다(건강식 쿠폰 사용과 같다).
+    db_session.expire_all()
+    assert (
+        db_session.scalar(
+            select(func.count())
+            .select_from(Notification)
+            .where(
+                Notification.user_id == member_id,
+                Notification.category == "benefits",
+            )
+        )
+        == 0
+    )
+
+    member_view = client.get("/v1/me/coupons", headers=h).json()
+    assert member_view[0]["status"] == "used"
+    assert member_view[0]["used_at"] == first.json()["used_at"]
+
+
+def test_trainer_coupon_endpoints_are_gone(client, db_session, trainer_id):
     member_id, h = _new_member(client, db_session, points=5000)
     _link(db_session, member_id, trainer_id)
     coupon_id = _exchange(client, h, "pt_renewal").json()["coupon"]["id"]
     trainer = _headers(trainer_id)
 
-    listed = client.get(f"/v1/trainer/clients/{member_id}/coupons", headers=trainer)
-    assert listed.status_code == 200, listed.text
-    assert [c["id"] for c in listed.json()] == [coupon_id]
-    assert "code" not in listed.json()[0]
-    assert listed.json()[0]["days_left"] == 30
-
-    url = f"/v1/trainer/clients/{member_id}/coupons/{coupon_id}/redeem"
-    first = client.post(url, headers=trainer)
-    second = client.post(url, headers=trainer)
-
-    assert first.status_code == 200, first.text
-    assert second.status_code == 200, second.text
-    assert first.json()["status"] == "used"
-    assert second.json()["used_at"] == first.json()["used_at"]
-
-    row = _coupon(db_session, coupon_id)
-    assert row.status == "used"
-    assert row.redeemed_by == trainer_id
-    assert row.used_at is not None
-    assert _notifications(db_session, member_id, "재등록 쿠폰이 사용 처리됐어요") == 1
-    audits = db_session.scalars(
-        select(AuditLog).where(
-            AuditLog.event == "points.coupon_redeem",
-            AuditLog.detail.contains(coupon_id),
-        )
-    ).all()
-    assert len(audits) == 1
-    assert audits[0].user_id == trainer_id
-
-    # 배지가 사라진다 — 사용 가능한 쿠폰이 없다.
-    assert client.get(
-        f"/v1/trainer/clients/{member_id}/coupons", headers=trainer
-    ).json() == []
-    member_view = client.get("/v1/me/coupons", headers=h).json()
-    assert member_view[0]["status"] == "used"
-
-    notices = client.get("/v1/notifications", headers=h).json()
-    redeemed_notice = next(
-        n for n in notices if n["title"] == "재등록 쿠폰이 사용 처리됐어요"
+    assert (
+        client.get(f"/v1/trainer/clients/{member_id}/coupons", headers=trainer)
+        .status_code
+        == 404
     )
-    assert redeemed_notice["action"] == {
-        "label": "내 혜택 보기",
-        "target": "my_benefits",
-    }
-
-
-def test_only_current_trainer_can_list_or_redeem(client, db_session, trainer_id):
-    member_id, h = _new_member(client, db_session, points=5000)
-    _link(db_session, member_id, trainer_id)
-    coupon_id = _exchange(client, h, "pt_renewal").json()["coupon"]["id"]
-
-    other_id = _make_trainer(db_session, name="다른 트레이너")
-    other = _headers(other_id)
-    try:
-        assert (
-            client.get(f"/v1/trainer/clients/{member_id}/coupons", headers=other)
-            .status_code
-            == 404
-        )
-        assert (
-            client.post(
-                f"/v1/trainer/clients/{member_id}/coupons/{coupon_id}/redeem",
-                headers=other,
-            ).status_code
-            == 404
-        )
-        # 회원 계정은 트레이너 경로에 들어오지 못한다.
-        assert (
-            client.get(f"/v1/trainer/clients/{member_id}/coupons", headers=h)
-            .status_code
-            == 403
-        )
-    finally:
-        _drop_user(db_session, other_id)
+    assert (
+        client.post(
+            f"/v1/trainer/clients/{member_id}/coupons/{coupon_id}/redeem",
+            headers=trainer,
+        ).status_code
+        == 404
+    )
     assert _coupon(db_session, coupon_id).status == "issued"
 
 
-def test_redeemers_do_not_cross(client, db_session, trainer_id):
-    member_id, h = _new_member(client, db_session, points=6000)
-    _link(db_session, member_id, trainer_id)
-    renewal_id = _exchange(client, h, "pt_renewal").json()["coupon"]["id"]
-    salad_id = _exchange(client, h, "salad_discount").json()["coupon"]["id"]
-
-    # PT 재등록 쿠폰은 회원이 스스로 사용 처리하지 못한다.
-    r = client.post(f"/v1/me/coupons/{renewal_id}/use", headers=h)
-    assert r.status_code == 409
-    # 트레이너는 회원이 쓰는 쿠폰을 볼 수도 처리할 수도 없다.
-    r = client.post(
-        f"/v1/trainer/clients/{member_id}/coupons/{salad_id}/redeem",
-        headers=_headers(trainer_id),
-    )
-    assert r.status_code == 404
-    assert _coupon(db_session, renewal_id).status == "issued"
-    assert _coupon(db_session, salad_id).status == "issued"
-
-
 def test_member_uses_demo_coupon_once(client, db_session):
-    member_id, h = _new_member(client, db_session, points=1000)
+    _, h = _new_member(client, db_session, points=1000)
     coupon_id = _exchange(client, h, "protein_discount").json()["coupon"]["id"]
 
-    first = client.post(f"/v1/me/coupons/{coupon_id}/use", headers=h)
-    second = client.post(f"/v1/me/coupons/{coupon_id}/use", headers=h)
+    first = _use(client, h, coupon_id)
+    second = _use(client, h, coupon_id)
 
     assert first.status_code == 200, first.text
     assert second.status_code == 200, second.text
     assert first.json()["status"] == "used"
     assert first.json()["days_left"] == 0
     assert second.json()["used_at"] == first.json()["used_at"]
-    assert _coupon(db_session, coupon_id).redeemed_by == member_id
+    # 건강식 쿠폰 사용은 감사 로그 대상이 아니다.
+    assert _audits(db_session, coupon_id) == []
 
     _, other_h = _new_member(client, db_session)
-    assert (
-        client.post(f"/v1/me/coupons/{coupon_id}/use", headers=other_h).status_code
-        == 404
-    )
+    assert _use(client, other_h, coupon_id).status_code == 404
+
+
+def test_other_member_cannot_use_pt_renewal(client, db_session, trainer_id):
+    member_id, h = _new_member(client, db_session, points=5000)
+    _link(db_session, member_id, trainer_id)
+    coupon_id = _exchange(client, h, "pt_renewal").json()["coupon"]["id"]
+
+    _, other_h = _new_member(client, db_session)
+    assert _use(client, other_h, coupon_id).status_code == 404
+    assert _coupon(db_session, coupon_id).status == "issued"
+    assert _audits(db_session, coupon_id) == []
 
 
 # ---- 만료 ----
@@ -487,18 +466,9 @@ def test_expired_coupon_forfeits_points(client, db_session, trainer_id):
     assert listed[salad_id]["days_left"] == 0
     assert _coupon(db_session, salad_id).status == "expired"
 
-    assert client.post(f"/v1/me/coupons/{salad_id}/use", headers=h).status_code == 409
-    trainer = _headers(trainer_id)
-    assert client.get(
-        f"/v1/trainer/clients/{member_id}/coupons", headers=trainer
-    ).json() == []
-    assert (
-        client.post(
-            f"/v1/trainer/clients/{member_id}/coupons/{renewal_id}/redeem",
-            headers=trainer,
-        ).status_code
-        == 409
-    )
+    assert _use(client, h, salad_id).status_code == 409
+    assert _use(client, h, renewal_id).status_code == 409
+    assert _audits(db_session, renewal_id) == []
 
     # 만료된 쿠폰은 담당이 끊겨도 돌려주지 않는다.
     assert client.delete("/v1/me/coach/trainer", headers=h).status_code == 204
@@ -530,7 +500,7 @@ def test_expiry_reminder_created_once_within_three_days(client, db_session):
     assert _notifications(db_session, member_id, title) == 1
     reminder = next(n for n in notices if n["title"] == title)
     assert "2일 뒤" in reminder["body"]
-    assert reminder["action"]["target"] == "my_benefits"
+    assert reminder["action"] == {"label": "내 혜택 보기", "target": "my_benefits"}
     assert _coupon(db_session, soon_id).expiry_reminded_at is not None
     assert _coupon(db_session, later_id).expiry_reminded_at is None
     listed = {c["id"]: c for c in client.get("/v1/me/coupons", headers=h).json()}
@@ -576,6 +546,8 @@ def test_disconnect_cancels_renewal_coupon_and_refunds(
 
     listed = {c["id"]: c for c in client.get("/v1/me/coupons", headers=h).json()}
     assert listed[renewal_id]["status"] == "cancelled"
+    # 취소된 쿠폰은 쓸 수 없다.
+    assert _use(client, h, renewal_id).status_code == 409
 
 
 def test_trainer_account_deletion_refunds_renewal_coupon(

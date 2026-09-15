@@ -4,8 +4,9 @@
 사용처를 골랐다.
 
 - **PT 재등록 할인 쿠폰** — 담당 트레이너가 있는 회원만 교환한다. 5000P → 1만원
-  할인, 30일. 재등록 1회에 1장이라 사용 가능한 쿠폰은 회원당 한 장뿐이다. 사용
-  처리는 **현재 담당 트레이너**만 한다.
+  할인, 30일. 재등록 1회에 1장이다. 헬스장에서 회원이 휴대폰으로 쿠폰 화면을 열고,
+  트레이너·헬스장 직원이 확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다
+  (직원 확인 버튼). 트레이너웹에는 처리 화면이 없다.
 - **건강식·보충제 할인 쿠폰(데모)** — 샐러드 10%, 프로틴 3,000원. 각 1000P, 30일.
   코드를 보여 주고 회원이 스스로 사용 완료를 누른다. 재등록 쿠폰처럼 종류마다
   사용 가능한 쿠폰은 회원당 한 장이다.
@@ -24,7 +25,7 @@
   시점이다.
 - **사용 처리는 조건부 UPDATE 한 번이다.** `issued` 이고 기한 전일 때만 `used` 로
   바꾸고, 바뀐 행이 없으면 현재 상태를 읽어 이미 사용됐으면 같은 응답을 준다. 더블
-  클릭·재전송이 두 번 처리되지 않고 오류도 보지 않는다. 되돌리기는 없다.
+  탭·재전송이 두 번 처리되지 않고 오류도 보지 않는다. 되돌리기는 없다.
 - **담당 연결이 끊기면** 사용 가능한 PT 재등록 쿠폰을 취소하고 교환에 쓴 포인트를
   돌려준다(내역 `refund`). 쓸 트레이너가 없는 쿠폰을 남겨 두면 포인트만 묶인다.
 """
@@ -46,12 +47,11 @@ from app.schemas.points_api import (
     ExchangeOut,
     PointsShopOut,
     ShopItemOut,
-    TrainerCouponOut,
 )
 from app.services import notification_service, points_service
 
-#: 누가 사용 처리하나.
-REDEEMER_TRAINER = "trainer"
+#: 누가 사용 처리하나. 지금은 모든 쿠폰을 회원 휴대폰에서 처리한다 — PT 재등록
+#: 쿠폰도 직원이 확인한 뒤 회원 화면의 버튼을 누른다.
 REDEEMER_MEMBER = "member"
 
 #: 쿠폰 상태.
@@ -95,7 +95,7 @@ PT_RENEWAL = ShopItem(
     description="담당 트레이너에게 PT를 다시 등록할 때 10,000원을 할인받아요.",
     cost=5000,
     valid_days=30,
-    redeemer=REDEEMER_TRAINER,
+    redeemer=REDEEMER_MEMBER,
     requires_trainer=True,
     one_active=True,
 )
@@ -147,14 +147,6 @@ class ActiveCouponExists(CouponError):
 
 class CouponNotFound(CouponError):
     """없거나 남의 쿠폰이다."""
-
-
-class NotAssignedTrainer(CouponError):
-    """이 회원의 현재 담당 트레이너가 아니다."""
-
-
-class WrongRedeemer(CouponError):
-    """이 쿠폰은 다른 쪽이 사용 처리한다."""
 
 
 class CouponNotUsable(CouponError):
@@ -243,28 +235,6 @@ def list_coupons(db: Session, member_id: str) -> list[CouponOut]:
     return [coupon_out(row, now) for row in rows]
 
 
-def list_for_trainer(
-    db: Session, trainer_id: str, member_id: str
-) -> list[TrainerCouponOut]:
-    """이 회원이 가진 사용 가능한 PT 재등록 쿠폰. 현재 담당 트레이너만 본다.
-
-    회원 상세의 `재등록 쿠폰` 배지가 이 목록이 비어 있지 않을 때만 선다.
-    """
-    _require_current_trainer(db, trainer_id, member_id)
-    now = clock.now()
-    rows = db.scalars(
-        select(PointsCoupon)
-        .where(
-            PointsCoupon.user_id == member_id,
-            PointsCoupon.item == PT_RENEWAL.id,
-            PointsCoupon.status == ISSUED,
-            PointsCoupon.expires_at > now,
-        )
-        .order_by(PointsCoupon.issued_at.desc())
-    ).all()
-    return [trainer_coupon_out(row, now) for row in rows]
-
-
 # ---- 교환 ----
 
 
@@ -280,8 +250,8 @@ def exchange(
     [client_request_id] 로 이미 발급한 쿠폰이 있으면 새로 쓰지 않고 그 쿠폰을
     돌려준다 — 응답을 못 받고 다시 누른 교환이 포인트를 두 번 쓰지 않는다.
 
-    잔액 행을 먼저 잠근다. 같은 회원의 교환이 동시에 들어와도 "사용 가능한 재등록
-    쿠폰이 있나"·"잔액이 되나" 를 차례로 보게 된다. partial unique index 가
+    잔액 행을 먼저 잠근다. 같은 회원의 교환이 동시에 들어와도 "사용 가능한 같은
+    종류 쿠폰이 있나"·"잔액이 되나" 를 차례로 보게 된다. partial unique index 가
     마지막 방어선이다.
     """
     from app.services import trainer_service
@@ -356,11 +326,18 @@ def exchange(
 # ---- 사용 처리 ----
 
 
-def use_by_member(db: Session, member_id: str, coupon_id: str) -> CouponOut:
-    """회원이 스스로 사용 완료를 누르는 쿠폰(건강식·보충제). 커밋한다.
+def use_by_member(
+    db: Session, member_id: str, coupon_id: str
+) -> tuple[CouponOut, bool]:
+    """회원 휴대폰에서 `사용 완료` 를 누른다. 커밋한다.
 
-    이미 사용했으면 같은 응답이다. PT 재등록 쿠폰은 트레이너가 처리하므로
-    [WrongRedeemer] 다.
+    PT 재등록 쿠폰은 트레이너·헬스장 직원이 확인한 뒤, 건강식·보충제 쿠폰은 매장에서
+    코드를 보여 준 뒤 회원 화면의 같은 버튼으로 처리한다. 사용 시각은 `used_at` 에
+    남는다 — 처리한 사람은 늘 이 회원이라 따로 적지 않는다.
+
+    두 번째 값은 **이번 요청이 처리했는가**다. 이미 사용된 쿠폰의 재요청은 같은
+    응답에 거짓이라, 라우터는 참일 때만 감사 로그를 남긴다. 만료·취소는
+    [CouponNotUsable].
     """
     row = db.scalar(
         select(PointsCoupon).where(
@@ -369,47 +346,11 @@ def use_by_member(db: Session, member_id: str, coupon_id: str) -> CouponOut:
     )
     if row is None:
         raise CouponNotFound("쿠폰을 찾을 수 없어요.")
-    item = _ITEMS.get(row.item)
-    if item is None or item.redeemer != REDEEMER_MEMBER:
-        raise WrongRedeemer("담당 트레이너가 사용 처리하는 쿠폰이에요.")
-    if _claim(db, row, redeemed_by=member_id):
-        db.commit()
-        db.refresh(row)
-    return coupon_out(row)
-
-
-def redeem_by_trainer(
-    db: Session, trainer_id: str, member_id: str, coupon_id: str
-) -> tuple[TrainerCouponOut, bool]:
-    """담당 트레이너가 회원의 PT 재등록 쿠폰을 사용 처리한다. 커밋한다.
-
-    두 번째 값은 **이번 요청이 처리했는가**다. 이미 사용된 쿠폰의 재요청은 같은
-    응답에 거짓이라, 라우터는 참일 때만 감사 로그를 남긴다. 회원 알림은 처리한
-    트랜잭션에서 함께 만든다.
-    """
-    _require_current_trainer(db, trainer_id, member_id)
-    row = db.scalar(
-        select(PointsCoupon).where(
-            PointsCoupon.id == coupon_id,
-            PointsCoupon.user_id == member_id,
-            PointsCoupon.item == PT_RENEWAL.id,
-        )
-    )
-    if row is None:
-        raise CouponNotFound("쿠폰을 찾을 수 없어요.")
-    newly = _claim(db, row, redeemed_by=trainer_id)
+    newly = _claim(db, row)
     if newly:
-        notification_service.queue(
-            db,
-            member_id=member_id,
-            kind=notification_service.POINTS_COUPON,
-            category=notification_service.MEMBER_BENEFITS,
-            title="재등록 쿠폰이 사용 처리됐어요",
-            body=f"담당 트레이너가 {PT_RENEWAL.benefit} 쿠폰을 사용 처리했어요.",
-        )
         db.commit()
         db.refresh(row)
-    return trainer_coupon_out(row), newly
+    return coupon_out(row), newly
 
 
 # ---- 만료·알림·취소 ----
@@ -556,42 +497,10 @@ def coupon_out(row: PointsCoupon, now: datetime | None = None) -> CouponOut:
     )
 
 
-def trainer_coupon_out(
-    row: PointsCoupon, now: datetime | None = None
-) -> TrainerCouponOut:
-    now = now or clock.now()
-    item = _ITEMS.get(row.item)
-    status = _status(row, now)
-    last_day = _expires_on(row)
-    return TrainerCouponOut(
-        id=row.id,
-        item=row.item,
-        benefit=item.benefit if item is not None else row.item,
-        status=status,
-        issued_at=row.issued_at,
-        issued_on=clock.to_seoul(row.issued_at).date().isoformat(),
-        expires_on=last_day.isoformat(),
-        days_left=_days_left(last_day) if status == ISSUED else 0,
-        used_at=row.used_at,
-    )
-
-
 # ---- 내부 ----
 
 
-def _require_current_trainer(db: Session, trainer_id: str, member_id: str) -> None:
-    """이 회원의 **현재** 담당 트레이너인가. 아니면 404 로 옮길 예외.
-
-    담당 링크의 존재만 보는 `_require_client` 로는 부족하다 — 해제된 과거 담당도
-    링크 행이 남아 있다. 쿠폰은 지금 담당하는 트레이너에게 쓰는 것이다.
-    """
-    from app.services import trainer_service
-
-    if trainer_service.get_member_trainer_id(db, member_id) != trainer_id:
-        raise NotAssignedTrainer("담당 고객을 찾을 수 없습니다.")
-
-
-def _claim(db: Session, row: PointsCoupon, *, redeemed_by: str) -> bool:
+def _claim(db: Session, row: PointsCoupon) -> bool:
     """조건부 UPDATE 한 번으로 사용 처리한다. 이번에 바꿨으면 True.
 
     커밋하지 않는다. 바뀐 행이 없으면 현재 상태를 읽어, 이미 사용됐으면 False,
@@ -605,7 +514,7 @@ def _claim(db: Session, row: PointsCoupon, *, redeemed_by: str) -> bool:
             PointsCoupon.status == ISSUED,
             PointsCoupon.expires_at > now,
         )
-        .values(status=USED, used_at=now, redeemed_by=redeemed_by)
+        .values(status=USED, used_at=now)
         .execution_options(synchronize_session=False)
     )
     if result.rowcount == 1:

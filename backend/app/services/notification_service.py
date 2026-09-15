@@ -200,7 +200,7 @@ MEMBER_COACH_CHAT = "coach_chat"
 MEMBER_ROUTINE = "routine"
 MEMBER_SCHEDULE = "member_schedule"
 MEMBER_CONSULTATION = "consultation_result"
-#: 포인트 쿠폰(내 혜택)으로 가는 알림 — 사용 처리·취소·만료 임박. (#1787)
+#: 포인트 쿠폰(내 혜택)으로 가는 알림 — 담당 해제로 인한 취소·만료 임박. (#1787)
 MEMBER_BENEFITS = "benefits"
 
 #: 포인트 쿠폰 알림의 kind. 회원 수신 설정 키가 아니다 — 설정 화면에 스위치가

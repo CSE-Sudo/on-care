@@ -1,11 +1,14 @@
 /// 포인트로 교환한 쿠폰 한 장 — `GET /me/coupons` 의 항목. (#1787)
 library;
 
+import 'package:oncare/core/utils/clock.dart' show kstOffset;
+
 /// 쿠폰 상태. 서버가 기한이 지난 쿠폰을 아직 만료로 내리지 않았어도 응답은
 /// 만료로 온다 — 앱은 받은 값만 믿는다.
 enum CouponStatus { issued, used, expired, cancelled }
 
-/// 누가 사용 처리하나. PT 재등록 쿠폰은 담당 트레이너, 건강식·보충제 쿠폰은 회원.
+/// 누가 사용 처리하나. 지금은 모든 쿠폰을 회원 휴대폰에서 처리한다(PT 재등록
+/// 쿠폰도 직원 확인 뒤 회원 화면에서 누른다). 서버가 다른 값을 주면 [trainer] 다.
 enum CouponRedeemer { trainer, member }
 
 CouponRedeemer couponRedeemerFrom(Object? raw) =>
@@ -27,6 +30,26 @@ DateTime _dateFrom(Object? raw) {
   return DateTime(parsed.year, parsed.month, parsed.day);
 }
 
+/// 서버 시각을 KST 벽시계 값으로 읽는다 — 앱의 `nowKst()` 와 같은 모양(필드에
+/// 서울 시각을 담은 로컬 `DateTime`)이다.
+///
+/// 오프셋이 붙은 서버 값은 UTC 로 읽힌 뒤 +9 시간 한다. 오프셋 없는 값(목업이
+/// `nowKst()` 로 만든 값)은 이미 KST 벽시계라 그대로 쓴다.
+DateTime? _kstFrom(Object? raw) {
+  final DateTime? parsed = raw is String ? DateTime.tryParse(raw) : null;
+  if (parsed == null) return null;
+  if (!parsed.isUtc) return parsed;
+  final DateTime seoul = parsed.add(kstOffset);
+  return DateTime(
+    seoul.year,
+    seoul.month,
+    seoul.day,
+    seoul.hour,
+    seoul.minute,
+    seoul.second,
+  );
+}
+
 class Coupon {
   const Coupon({
     required this.id,
@@ -42,6 +65,7 @@ class Coupon {
     required this.daysLeft,
     this.trainerName = '',
     this.gymName = '',
+    this.usedAt,
   });
 
   final String id;
@@ -74,6 +98,9 @@ class Coupon {
   /// 마지막 날까지 남은 날 — 당일 0. 사용 가능이 아니면 0.
   final int daysLeft;
 
+  /// 사용 완료를 누른 시각(KST 벽시계). 사용하지 않았으면 null.
+  final DateTime? usedAt;
+
   bool get usable => status == CouponStatus.issued;
 
   /// 불러 주거나 받아 적기 쉽게 네 자리씩 끊는다(`ABCD-EFGH`).
@@ -95,6 +122,7 @@ class Coupon {
     issuedOn: _dateFrom(json['issued_on']),
     expiresOn: _dateFrom(json['expires_on']),
     daysLeft: (json['days_left'] as num?)?.toInt() ?? 0,
+    usedAt: _kstFrom(json['used_at']),
   );
 }
 

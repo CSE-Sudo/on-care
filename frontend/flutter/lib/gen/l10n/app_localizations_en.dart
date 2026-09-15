@@ -1212,8 +1212,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCouponStatus => 'Status';
 
   @override
-  String get myCouponTrainerGuide =>
-      'Show this coupon to your trainer when you renew PT. Your trainer will mark it as used.';
+  String get myCouponRenewalGuide =>
+      'When you renew PT, show this screen to your trainer or gym staff.';
+
+  @override
+  String get myCouponStaffNote =>
+      'Tap only after your trainer or gym staff has checked it';
+
+  @override
+  String get myCouponStaffConfirmTitle => 'Mark this coupon as used?';
+
+  @override
+  String get myCouponStaffConfirmMessage =>
+      'For staff · This can\'t be undone once used';
+
+  @override
+  String get myCouponUsedAt => 'Used at';
+
+  @override
+  String myCouponUsedBanner(String time) {
+    return 'Used on $time';
+  }
 
   @override
   String get myCouponMemberGuide =>

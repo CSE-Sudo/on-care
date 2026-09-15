@@ -1,13 +1,13 @@
 """
-포인트 사용처 라우터 — 교환 목록·교환·내 쿠폰·회원 사용 처리. (#1787)
+포인트 사용처 라우터 — 교환 목록·교환·내 쿠폰·사용 처리. (#1787)
 
   GET  /me/points/shop             -> { balance, has_trainer, items[] }
   POST /me/points/exchange         -> 201 { coupon, spent, balance }
   GET  /me/coupons                 -> 쿠폰 배열(사용 가능 먼저)
-  POST /me/coupons/{id}/use        -> 쿠폰(회원이 사용 처리하는 쿠폰만)
+  POST /me/coupons/{id}/use        -> 쿠폰(회원 휴대폰에서 사용 완료)
 
-트레이너의 PT 재등록 쿠폰 확인·사용 처리는 트레이너 라우터에 있다
-(`/trainer/clients/{member_id}/coupons`).
+모든 쿠폰은 회원 휴대폰에서 사용 처리한다. PT 재등록 쿠폰은 헬스장에서 트레이너·
+직원이 확인한 뒤 회원 화면의 `사용 완료` 를 누른다 — 트레이너웹 처리 경로는 없다.
 
 읽기는 CurrentUser(데모 폴백 허용), 쓰기는 RequireMember 다 — 회원 코치 미러와
 같은 규약이다.
@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
@@ -28,6 +28,7 @@ from app.schemas.points_api import (
     PointsShopOut,
 )
 from app.services import points_coupon_service, points_service
+from app.services.audit import client_ip, record as record_audit
 
 router = APIRouter(tags=["points"])
 
@@ -82,20 +83,31 @@ def my_coupons(
 @router.post("/me/coupons/{coupon_id}/use", response_model=CouponOut)
 def use_my_coupon(
     coupon_id: str,
+    request: Request,
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> CouponOut:
-    """회원이 스스로 사용 완료를 누른다(건강식·보충제 쿠폰). 되돌리기는 없다.
+    """회원 휴대폰에서 `사용 완료` 를 누른다. 되돌리기는 없다.
 
-    이미 사용했으면 같은 응답이다. 만료·취소는 409, 트레이너가 처리하는 PT 재등록
-    쿠폰도 409 다.
+    조건부 UPDATE 한 번이라 더블 탭·재전송은 한 번만 처리되고, 이미 사용된 쿠폰에는
+    같은 응답(200)을 준다. 만료·취소는 409.
+
+    PT 재등록 쿠폰은 결제 할인에 쓰이는 쿠폰이라 처음 처리한 요청에 감사 로그
+    (`points.coupon_redeem`)를 남긴다. 회원 본인이 누른 일이라 알림은 만들지 않는다 —
+    건강식 쿠폰 사용과 같다.
     """
     try:
-        return points_coupon_service.use_by_member(db, member.id, coupon_id)
+        out, newly = points_coupon_service.use_by_member(db, member.id, coupon_id)
     except points_coupon_service.CouponNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except (
-        points_coupon_service.WrongRedeemer,
-        points_coupon_service.CouponNotUsable,
-    ) as exc:
+    except points_coupon_service.CouponNotUsable as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if newly and out.item == points_coupon_service.PT_RENEWAL.id:
+        record_audit(
+            db,
+            event="points.coupon_redeem",
+            user_id=member.id,
+            ip=client_ip(request),
+            detail=f"coupon={coupon_id} item={out.item}",
+        )
+    return out

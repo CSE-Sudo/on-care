@@ -3800,45 +3800,4 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get routineFormIncrease => '늘리기';
-
-  @override
-  String get clientRenewalCouponTitle => '재등록 쿠폰';
-
-  @override
-  String get clientRenewalCouponOpen => '재등록 쿠폰 확인';
-
-  @override
-  String get clientRenewalCouponBenefitLabel => '혜택';
-
-  @override
-  String get clientRenewalCouponBenefit => 'PT 재등록 10,000원 할인';
-
-  @override
-  String get clientRenewalCouponIssuedOn => '교환일';
-
-  @override
-  String get clientRenewalCouponExpiry => '만료일';
-
-  @override
-  String clientRenewalCouponExpiryValue(String date, int days) {
-    return '$date (D-$days)';
-  }
-
-  @override
-  String clientRenewalCouponExpiryToday(String date) {
-    return '$date (D-day)';
-  }
-
-  @override
-  String get clientRenewalCouponWarning => '사용 후 되돌릴 수 없어요';
-
-  @override
-  String get clientRenewalCouponRedeem => '사용 완료';
-
-  @override
-  String get clientRenewalCouponRedeemed => '재등록 쿠폰을 사용 처리했어요';
-
-  @override
-  String get clientRenewalCouponRedeemFailed =>
-      '쿠폰을 사용 처리하지 못했어요. 잠시 후 다시 시도해 주세요';
 }
