@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
@@ -8,7 +9,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 챌린지 아이콘 — 사용처 카드·내 혜택·운동 현황이 같은 것을 쓴다.
-const IconData kChallengeIcon = Icons.emoji_events_rounded;
+const IconData kChallengeIcon = AppIcons.challenge;
 
 /// `9.14~9.20`.
 String challengeWeekRange(Challenge challenge) =>
@@ -326,7 +327,7 @@ class ExerciseChallengeProgress extends ConsumerWidget {
           key: const Key('exerciseChallengeProgress'),
           child: Row(
             children: <Widget>[
-              Icon(
+              AppIcon(
                 kChallengeIcon,
                 size: OnCareSize.iconMedium,
                 color: tokens.brand.primary,
