@@ -18,6 +18,10 @@ Future<void> _pumpNotificationPage(
   WidgetTester tester,
   Brightness platformBrightness,
 ) async {
+  // 데모 알림이 열 건이라 모든 줄이 그려지도록 화면을 길게 둔다(#1812).
+  tester.view.physicalSize = const Size(800, 2400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
   tester.platformDispatcher.platformBrightnessTestValue = platformBrightness;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(
