@@ -35,6 +35,8 @@ class OnCareTokenCatalog extends StatelessWidget {
                 _Swatch('primary', tokens.brand.primary),
                 _Swatch('strong', tokens.brand.strong),
                 _Swatch('surface', tokens.brand.surface),
+                _Swatch('surfaceSoft', tokens.brand.surfaceSoft),
+                _Swatch('surfaceAccent', tokens.brand.surfaceAccent),
                 _Swatch('border', tokens.brand.border),
                 _Swatch('macroProtein', tokens.brand.macroProtein),
                 _Swatch('macroFat', tokens.brand.macroFat),

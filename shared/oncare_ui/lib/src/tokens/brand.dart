@@ -14,6 +14,8 @@ class OnCareBrand {
     required this.primary,
     required this.strong,
     required this.surface,
+    required this.surfaceSoft,
+    required this.surfaceAccent,
     required this.exerciseCardio,
     required this.exerciseStrength,
     required this.exerciseStretching,
@@ -25,6 +27,8 @@ class OnCareBrand {
     primary: Color(0xFF3EAFDF),
     strong: Color(0xFF277DA1),
     surface: Color(0xFFEDF7FC),
+    surfaceSoft: Color(0xFFF2F9FB),
+    surfaceAccent: Color(0xFFE0F2F7),
     exerciseCardio: Color(0xFF2795C4),
     exerciseStrength: Color(0xFF66C4E8),
     exerciseStretching: Color(0xFFA8E4F7),
@@ -36,6 +40,8 @@ class OnCareBrand {
     primary: Color(0xFF2E7DAB),
     strong: Color(0xFF17435F),
     surface: Color(0xFFEAF2F9),
+    surfaceSoft: Color(0xFFF2F7FB),
+    surfaceAccent: Color(0xFFDCEAF4),
     exerciseCardio: Color(0xFF3793C9),
     exerciseStrength: Color(0xFF87BFDF),
     exerciseStretching: Color(0xFFC2DEEF),
@@ -52,6 +58,12 @@ class OnCareBrand {
 
   /// 선택 칩 배경·안쪽 타일·hover·읽지 않음.
   final Color surface;
+
+  /// [surface] 보다 한 단계 옅은 바탕 — 주간 달력 양옆 원형 화살표(#1778).
+  final Color surfaceSoft;
+
+  /// [surface] 보다 한 단계 짙은 바탕 — 월간 달력 요일 띠·원형 닫기 버튼(#1778).
+  final Color surfaceAccent;
 
   /// 운동 유형 램프 — 유산소 → 근력 → 스트레칭으로 연해진다(#1168).
   ///
