@@ -41,6 +41,29 @@ class OnCareCalendar {
     vertical: 3,
   );
 
+  // --- 날짜 선택창 달력(두 앱) — Material 달력과 같은 크기 ---
+  /// 달력 머리(달 라벨·꺾쇠) 줄 높이.
+  static const double pickerHeaderHeight = 52;
+
+  /// 요일 줄·주 줄 한 줄 높이 — 세로 화면(M3, 회원앱). 날짜 원은 이 칸에서 사방
+  /// 4 를 뺀 크기다.
+  static const double pickerRowHeightPortrait = 48;
+
+  /// 요일 줄·주 줄 한 줄 높이 — 가로 화면(M2, 데스크톱 트레이너웹). 날짜 원이 칸을
+  /// 꽉 채운다. Material 달력도 가로 화면에서는 이 크기라, 창 높이가 늘지 않아
+  /// 아래 줄이 하단 버튼 뒤로 들어가지 않는다.
+  static const double pickerRowHeightLandscape = 42;
+
+  /// 한 달이 차지할 수 있는 최대 주 수. 달이 바뀌거나 달 보기로 바꿔도 달력
+  /// 높이가 흔들리지 않게 늘 이만큼 자리를 둔다.
+  static const int pickerMaxWeeks = 6;
+
+  /// 달 보기의 열 수 — 열두 달을 3열 × 4줄로 놓는다.
+  static const int pickerMonthColumns = 3;
+
+  /// 달 보기 한 칸(알약)의 높이. 날짜 원 지름과 같다.
+  static const double pickerMonthCellHeight = 40;
+
   // --- 기간 선택창(트레이너웹) ---
   /// 날짜 칸의 가로:세로 비율.
   static const double rangeCellAspectRatio = 1.2;

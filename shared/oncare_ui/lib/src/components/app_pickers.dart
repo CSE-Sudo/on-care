@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:flutter/cupertino.dart' show CupertinoLocalizations;
+import 'package:flutter/gestures.dart' show kMinFlingVelocity;
 import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_button.dart';
@@ -9,15 +11,17 @@ import 'package:oncare_ui/src/components/app_inputs.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/calendar.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
+import 'package:oncare_ui/src/tokens/radius.dart';
+import 'package:oncare_ui/src/tokens/sizes.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
 import 'package:oncare_ui/src/tokens/typography.dart';
 
 /// 날짜 하나를 고르는 공용 달력 창(#1695, #1778).
 ///
 /// Material 기본 [showDatePicker] 는 넓은 화면(트레이너웹)에서 달력을 좌우로 나눈
-/// landscape 모양으로 바꾼다. 이 창은 그 대신 [CalendarDatePicker](Material 이
-/// 그리드에만 쓰는 하위 위젯)를 [AppDialog] 로 감싸 늘 세로 배치로 그린다 —
-/// `2db5b04` 시점의 `portrait_date_picker` 모양이다.
+/// landscape 모양으로 바꾼다. 이 창은 그 대신 세로 달력([AppCalendarDatePicker])을
+/// [AppDialog] 로 감싸 늘 세로 배치로 그린다 — `2db5b04` 시점의
+/// `portrait_date_picker` 모양이다. 달력 머리를 누르면 열두 달 격자로 바뀐다.
 ///
 /// 날짜 값 자체가 입력창이라 따로 전환할 필요 없이 타이핑도, 바로 아래 달력에서
 /// 탭으로 고르는 것도 둘 다 항상 된다. 입력창에 타이핑하면
@@ -57,6 +61,10 @@ class AppDatePickerDialog extends StatefulWidget {
   static const Key inputKey = Key('portraitDatePickerInput');
   static const Key cancelKey = Key('portraitDatePickerCancel');
   static const Key confirmKey = Key('portraitDatePickerConfirm');
+
+  /// 달력([AppCalendarDatePicker]) 키. 앱 테스트가 oncare_ui 를 들이지 않고도
+  /// 달력 안의 날짜를 지목한다.
+  static const Key calendarKey = Key('portraitDatePickerCalendar');
 
   final DateTime initialDate;
   final DateTime firstDate;
@@ -161,15 +169,487 @@ class _AppDatePickerDialogState extends State<AppDatePickerDialog> {
             onChanged: (String text) => _handleTextChanged(l, text),
           ),
           const SizedBox(height: OnCareSpacing.s8),
-          CalendarDatePicker(
-            // 입력으로 고른 날이 바뀌면 달력도 그 달로 새로 연다.
-            key: ValueKey<DateTime>(_selected),
-            initialDate: _selected,
+          // 입력으로 고른 날이 바뀌면 달력이 스스로 그 달의 날짜 보기로 옮긴다.
+          AppCalendarDatePicker(
+            key: AppDatePickerDialog.calendarKey,
+            selectedDate: _selected,
             firstDate: widget.firstDate,
             lastDate: widget.lastDate,
             onDateChanged: (DateTime date) => _handleCalendarChanged(l, date),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 날짜 선택창의 세로 달력(#1778) — 머리 + 날짜 격자, 머리를 누르면 열두 달 격자.
+///
+/// Material [CalendarDatePicker] 는 머리 `2026년 9월 ▾` 를 누르면 연도 목록만 열고,
+/// 그 머리를 바꿀 방법도, 고른 날을 건드리지 않고 보이는 달만 옮길 방법도 없다
+/// (보이는 달이 `initialDate` 에서 정해진다). 그래서 Material 달력의 모양(머리
+/// 52·줄 48, 가로 화면은 42·오늘 테두리·선택 채움)은 그대로 옮기고, 보이는 달과 고른
+/// 날을 따로 쥐는 달력을 직접 그린다.
+///
+/// - 날짜 보기: 머리 왼쪽 `2026년 9월 ▾`(누르면 달 보기), 오른쪽 이전/다음 달
+///   꺾쇠. 좌우로 밀어도 달이 넘어간다.
+/// - 달 보기: `‹ 2026년 ›`(꺾쇠로 해를 넘기고, 가운데를 누르면 날짜 보기로) 아래
+///   3열 × 4줄 달 격자. 보던 달은 브랜드 채움 알약, [firstDate]~[lastDate] 와
+///   하루도 겹치지 않는 달은 흐리고 누를 수 없다(#1765 미래 막기). 달을 누르면
+///   그 달의 날짜 보기로 돌아간다 — 고른 날은 날을 누를 때까지 그대로다.
+/// - [selectedDate] 가 바깥에서 바뀌면(입력창 타이핑) 그 달의 날짜 보기로 옮긴다.
+class AppCalendarDatePicker extends StatefulWidget {
+  const AppCalendarDatePicker({
+    super.key,
+    required this.selectedDate,
+    required this.firstDate,
+    required this.lastDate,
+    required this.onDateChanged,
+    this.currentDate,
+  });
+
+  /// 머리 라벨(날짜 보기 `2026년 9월 ▾`, 달 보기 `2026년 ▴`) 키.
+  static const Key headerKey = Key('appCalendarDatePickerHeader');
+
+  /// 고른 날. 달력은 이 날을 채운 원으로 그린다.
+  final DateTime selectedDate;
+  final DateTime firstDate;
+  final DateTime lastDate;
+  final ValueChanged<DateTime> onDateChanged;
+
+  /// 테두리로 표시할 오늘. 비우면 기기 시각의 오늘이다.
+  final DateTime? currentDate;
+
+  @override
+  State<AppCalendarDatePicker> createState() => _AppCalendarDatePickerState();
+}
+
+class _AppCalendarDatePickerState extends State<AppCalendarDatePicker> {
+  late DateTime _displayedMonth = _clampMonth(_monthOf(widget.selectedDate));
+  late int _monthsYear = _displayedMonth.year;
+  bool _showMonths = false;
+
+  static DateTime _monthOf(DateTime d) => DateTime(d.year, d.month);
+
+  DateTime get _first => DateUtils.dateOnly(widget.firstDate);
+  DateTime get _last => DateUtils.dateOnly(widget.lastDate);
+
+  DateTime _clampMonth(DateTime month) {
+    if (month.isBefore(_monthOf(_first))) return _monthOf(_first);
+    if (month.isAfter(_monthOf(_last))) return _monthOf(_last);
+    return month;
+  }
+
+  @override
+  void didUpdateWidget(AppCalendarDatePicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 바깥에서(입력창) 고른 날이 바뀌면 그 달의 날짜 보기로 옮긴다.
+    if (!DateUtils.isSameDay(oldWidget.selectedDate, widget.selectedDate)) {
+      _displayedMonth = _clampMonth(_monthOf(widget.selectedDate));
+      _showMonths = false;
+    }
+  }
+
+  bool get _canPreviousMonth => _displayedMonth.isAfter(_monthOf(_first));
+  bool get _canNextMonth => _displayedMonth.isBefore(_monthOf(_last));
+
+  void _moveMonth(int delta) {
+    setState(() {
+      _displayedMonth = DateTime(
+        _displayedMonth.year,
+        _displayedMonth.month + delta,
+      );
+    });
+  }
+
+  /// 좌우로 밀어 달을 넘긴다. 오른쪽→왼쪽 쓸기가 다음 달이다(RTL 은 반대).
+  void _handleSwipe(DragEndDetails details) {
+    final double velocity = details.primaryVelocity ?? 0;
+    if (velocity.abs() < kMinFlingVelocity) return;
+    final bool rtl = Directionality.of(context) == TextDirection.rtl;
+    final bool towardNext = (velocity < 0) != rtl;
+    if (towardNext && _canNextMonth) _moveMonth(1);
+    if (!towardNext && _canPreviousMonth) _moveMonth(-1);
+  }
+
+  void _openMonths() {
+    setState(() {
+      _monthsYear = _displayedMonth.year;
+      _showMonths = true;
+    });
+  }
+
+  void _closeMonths() => setState(() => _showMonths = false);
+
+  void _pickMonth(int month) {
+    setState(() {
+      _displayedMonth = DateTime(_monthsYear, month);
+      _showMonths = false;
+    });
+  }
+
+  /// [year]년 [month]월이 고를 수 있는 기간과 하루도 겹치지 않는지.
+  bool _monthDisabled(int year, int month) =>
+      DateTime(year, month + 1, 0).isBefore(_first) ||
+      DateTime(year, month).isAfter(_last);
+
+  /// Material 달력과 같은 규칙 — 세로 화면은 M3 크기(줄 48·옆 12·날짜 둘레 4),
+  /// 가로 화면(데스크톱 트레이너웹)은 M2 크기(줄 42·옆 8·둘레 없음)다.
+  static bool _portrait(BuildContext context) =>
+      MediaQuery.orientationOf(context) == Orientation.portrait;
+
+  static double _rowHeight(BuildContext context) => _portrait(context)
+      ? OnCareCalendar.pickerRowHeightPortrait
+      : OnCareCalendar.pickerRowHeightLandscape;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height:
+          OnCareCalendar.pickerHeaderHeight +
+          _rowHeight(context) * (OnCareCalendar.pickerMaxWeeks + 1),
+      child: _showMonths ? _buildMonths(context) : _buildDays(context),
+    );
+  }
+
+  Widget _buildDays(BuildContext context) {
+    final MaterialLocalizations l = MaterialLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final bool portrait = _portrait(context);
+    final double rowHeight = _rowHeight(context);
+    final DateTime today = DateUtils.dateOnly(
+      widget.currentDate ?? DateTime.now(),
+    );
+    final TextStyle dayStyle = tokens.text(OnCareTypography.bodyLarge);
+    final int year = _displayedMonth.year;
+    final int month = _displayedMonth.month;
+    final int daysInMonth = DateUtils.getDaysInMonth(year, month);
+    final int offset = DateUtils.firstDayOffset(year, month, l);
+    final int weeks = ((offset + daysInMonth) / DateTime.daysPerWeek).ceil();
+
+    Widget dayCell(int day) {
+      if (day < 1 || day > daysInMonth) return const SizedBox.shrink();
+      final DateTime date = DateTime(year, month, day);
+      final bool disabled = date.isBefore(_first) || date.isAfter(_last);
+      final bool selected = DateUtils.isSameDay(date, widget.selectedDate);
+      final bool isToday = DateUtils.isSameDay(date, today);
+      final Color foreground = selected
+          ? OnCareColors.textOnFill
+          : disabled
+          ? OnCareColors.textDisabled
+          : isToday
+          ? tokens.brand.primary
+          : OnCareColors.textPrimary;
+      Widget cell = Padding(
+        padding: portrait
+            ? const EdgeInsets.all(OnCareSpacing.s4)
+            : EdgeInsets.zero,
+        child: Ink(
+          decoration: ShapeDecoration(
+            color: selected ? tokens.brand.primary : null,
+            shape: CircleBorder(
+              side: isToday
+                  ? BorderSide(color: tokens.brand.primary)
+                  : BorderSide.none,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              l.formatDecimal(day),
+              style: OnCareTypography.numeric(
+                dayStyle,
+              ).copyWith(color: foreground),
+            ),
+          ),
+        ),
+      );
+      cell = Semantics(
+        // 날짜 숫자를 먼저 읽게 한다 — Material 달력과 같은 규칙이다.
+        label:
+            '${l.formatDecimal(day)}, ${l.formatFullDate(date)}'
+            '${isToday ? ', ${l.currentDateLabel}' : ''}',
+        button: true,
+        selected: selected,
+        enabled: !disabled,
+        excludeSemantics: true,
+        child: cell,
+      );
+      if (disabled) return cell;
+      return InkResponse(
+        onTap: () => widget.onDateChanged(date),
+        customBorder: const CircleBorder(),
+        containedInkWell: true,
+        child: cell,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsetsDirectional.only(
+            start: OnCareSpacing.s16,
+            end: OnCareSpacing.s4,
+          ),
+          child: SizedBox(
+            height: OnCareCalendar.pickerHeaderHeight,
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: _PickerHeaderLabel(
+                      key: AppCalendarDatePicker.headerKey,
+                      label: l.formatMonthYear(_displayedMonth),
+                      icon: Icons.arrow_drop_down_rounded,
+                      onTap: _openMonths,
+                    ),
+                  ),
+                ),
+                AppIconButton(
+                  icon: Icons.chevron_left_rounded,
+                  tooltip: l.previousMonthTooltip,
+                  color: OnCareColors.textSecondary,
+                  onPressed: _canPreviousMonth ? () => _moveMonth(-1) : null,
+                ),
+                AppIconButton(
+                  icon: Icons.chevron_right_rounded,
+                  tooltip: l.nextMonthTooltip,
+                  color: OnCareColors.textSecondary,
+                  onPressed: _canNextMonth ? () => _moveMonth(1) : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: _handleSwipe,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: portrait ? OnCareSpacing.s12 : OnCareSpacing.s8,
+              ),
+              child: Column(
+                children: <Widget>[
+                  SizedBox(
+                    height: rowHeight,
+                    child: Row(
+                      children: <Widget>[
+                        for (int i = 0; i < DateTime.daysPerWeek; i++)
+                          Expanded(
+                            child: ExcludeSemantics(
+                              child: Center(
+                                child: Text(
+                                  l.narrowWeekdays[(l.firstDayOfWeekIndex + i) %
+                                      DateTime.daysPerWeek],
+                                  style: dayStyle.copyWith(
+                                    color: OnCareColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  for (int week = 0; week < weeks; week++)
+                    SizedBox(
+                      height: rowHeight,
+                      child: Row(
+                        children: <Widget>[
+                          for (int col = 0; col < DateTime.daysPerWeek; col++)
+                            Expanded(
+                              child: dayCell(
+                                week * DateTime.daysPerWeek + col - offset + 1,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMonths(BuildContext context) {
+    final MaterialLocalizations l = MaterialLocalizations.of(context);
+    final CupertinoLocalizations months = CupertinoLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final TextStyle monthStyle = tokens.text(OnCareTypography.bodyLarge);
+    const int rows =
+        DateTime.monthsPerYear ~/ OnCareCalendar.pickerMonthColumns;
+
+    Widget monthCell(int month) {
+      final bool disabled = _monthDisabled(_monthsYear, month);
+      final bool current =
+          _monthsYear == _displayedMonth.year && month == _displayedMonth.month;
+      final Color foreground = current
+          ? OnCareColors.textOnFill
+          : disabled
+          ? OnCareColors.textDisabled
+          : OnCareColors.textPrimary;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
+        child: Center(
+          child: SizedBox(
+            width: double.infinity,
+            height: OnCareCalendar.pickerMonthCellHeight,
+            child: Semantics(
+              label: l.formatMonthYear(DateTime(_monthsYear, month)),
+              button: true,
+              selected: current,
+              enabled: !disabled,
+              excludeSemantics: true,
+              child: InkWell(
+                borderRadius: OnCareRadius.pillAll,
+                onTap: disabled ? null : () => _pickMonth(month),
+                child: Ink(
+                  // 날짜 원과 같은 채움 — 모서리는 알약으로 둥글린다.
+                  decoration: BoxDecoration(
+                    color: current ? tokens.brand.primary : null,
+                    borderRadius: OnCareRadius.pillAll,
+                  ),
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        months.datePickerStandaloneMonth(month),
+                        maxLines: 1,
+                        style: monthStyle.copyWith(color: foreground),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s4),
+          child: SizedBox(
+            height: OnCareCalendar.pickerHeaderHeight,
+            child: Row(
+              children: <Widget>[
+                // 해 이동 꺾쇠의 이름은 갈 해 자체다(예: `2025년`).
+                AppIconButton(
+                  icon: Icons.chevron_left_rounded,
+                  tooltip: l.formatYear(DateTime(_monthsYear - 1)),
+                  color: OnCareColors.textSecondary,
+                  onPressed: _monthsYear > _first.year
+                      ? () => setState(() => _monthsYear -= 1)
+                      : null,
+                ),
+                Expanded(
+                  child: Center(
+                    child: _PickerHeaderLabel(
+                      key: AppCalendarDatePicker.headerKey,
+                      label: l.formatYear(DateTime(_monthsYear)),
+                      icon: Icons.arrow_drop_up_rounded,
+                      onTap: _closeMonths,
+                    ),
+                  ),
+                ),
+                AppIconButton(
+                  icon: Icons.chevron_right_rounded,
+                  tooltip: l.formatYear(DateTime(_monthsYear + 1)),
+                  color: OnCareColors.textSecondary,
+                  onPressed: _monthsYear < _last.year
+                      ? () => setState(() => _monthsYear += 1)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
+            child: Column(
+              children: <Widget>[
+                for (int row = 0; row < rows; row++)
+                  Expanded(
+                    child: Row(
+                      children: <Widget>[
+                        for (
+                          int col = 0;
+                          col < OnCareCalendar.pickerMonthColumns;
+                          col++
+                        )
+                          Expanded(
+                            child: monthCell(
+                              row * OnCareCalendar.pickerMonthColumns + col + 1,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 달력 머리의 누르는 라벨 — `2026년 9월 ▾` / `2026년 ▴`.
+class _PickerHeaderLabel extends StatelessWidget {
+  const _PickerHeaderLabel({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle style = context.oncare
+        .text(OnCareTypography.titleSmall)
+        .copyWith(color: OnCareColors.textSecondary);
+    return Semantics(
+      button: true,
+      child: InkWell(
+        borderRadius: OnCareRadius.mdAll,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
+          child: SizedBox(
+            height: OnCareCalendar.pickerHeaderHeight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: style,
+                  ),
+                ),
+                Icon(
+                  icon,
+                  size: OnCareSize.iconLarge,
+                  color: OnCareColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

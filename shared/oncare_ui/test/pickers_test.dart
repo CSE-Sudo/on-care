@@ -38,8 +38,14 @@ void main() {
       OnCareBrand brand = OnCareBrand.member,
       OnCareDensity density = OnCareDensity.mobile,
       String? helpText,
+      DateTime? initialDate,
+      DateTime? firstDate,
+      DateTime? lastDate,
+      Size viewSize = const Size(800, 1400),
     }) async {
-      useTallView(tester);
+      tester.view.physicalSize = viewSize;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       final List<DateTime?> results = <DateTime?>[];
       await tester.pumpWidget(
         host(
@@ -52,9 +58,9 @@ void main() {
                 results.add(
                   await showAppDatePicker(
                     context: context,
-                    initialDate: DateTime(2026, 8, 24),
-                    firstDate: DateTime(2026),
-                    lastDate: DateTime(2027),
+                    initialDate: initialDate ?? DateTime(2026, 8, 24),
+                    firstDate: firstDate ?? DateTime(2026),
+                    lastDate: lastDate ?? DateTime(2027),
                     helpText: helpText,
                   ),
                 );
@@ -67,6 +73,62 @@ void main() {
       await tester.pumpAndSettle();
       return results;
     }
+
+    /// 창 안의 달력과 그 안의 [text].
+    Finder calendar() => find.byType(AppCalendarDatePicker);
+    Finder inCalendar(String text) =>
+        find.descendant(of: calendar(), matching: find.text(text));
+
+    /// 달력 머리 라벨을 눌러 달 보기 ↔ 날짜 보기를 오간다.
+    Future<void> tapHeader(WidgetTester tester) async {
+      await tester.tap(find.byKey(AppCalendarDatePicker.headerKey));
+      await tester.pumpAndSettle();
+    }
+
+    /// 달 보기 칸 [text] 의 채움.
+    BoxDecoration monthFill(WidgetTester tester, String text) =>
+        tester
+                .widget<Ink>(
+                  find.ancestor(
+                    of: inCalendar(text),
+                    matching: find.byType(Ink),
+                  ),
+                )
+                .decoration!
+            as BoxDecoration;
+
+    Color? textColor(WidgetTester tester, String text) =>
+        tester.widget<Text>(inCalendar(text)).style!.color;
+
+    IconButton arrow(WidgetTester tester, IconData icon) =>
+        tester.widget<IconButton>(
+          find.descendant(
+            of: calendar(),
+            matching: find.widgetWithIcon(IconButton, icon),
+          ),
+        );
+
+    TextField input(WidgetTester tester) => tester.widget<TextField>(
+      find.descendant(
+        of: find.byKey(AppDatePickerDialog.inputKey),
+        matching: find.byType(TextField),
+      ),
+    );
+
+    const List<String> monthNames = <String>[
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
 
     for (final (OnCareBrand brand, OnCareDensity density) in themes) {
       testWidgets('$brand · 흰 창에 닫기 X·입력창·달력·2열 취소/확인이 모두 보인다', (
@@ -100,7 +162,10 @@ void main() {
         );
         // 전환 없이 입력창과 달력이 항상 같이 보인다.
         expect(find.byKey(AppDatePickerDialog.inputKey), findsOneWidget);
-        expect(find.byType(CalendarDatePicker), findsOneWidget);
+        expect(find.byType(AppCalendarDatePicker), findsOneWidget);
+        expect(find.byKey(AppDatePickerDialog.calendarKey), findsOneWidget);
+        // Material 기본 달력(연도 목록으로만 바뀌는 머리)은 쓰지 않는다.
+        expect(find.byType(CalendarDatePicker), findsNothing);
 
         // 아래 버튼은 창 안 2열 둥근 네모 — 왼쪽 취소, 오른쪽 확인, 폭이 같다.
         final Rect cancel = tester.getRect(
@@ -126,7 +191,7 @@ void main() {
 
       await tester.tap(
         find.descendant(
-          of: find.byType(CalendarDatePicker),
+          of: find.byType(AppCalendarDatePicker),
           matching: find.text('30'),
         ),
       );
@@ -153,10 +218,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // 달력이 9월로 넘어가 30일을 고른 상태다.
-      final CalendarDatePicker calendar = tester.widget(
-        find.byType(CalendarDatePicker),
-      );
-      expect(calendar.initialDate, DateTime(2026, 9, 30));
+      final AppCalendarDatePicker picker = tester.widget(calendar());
+      expect(picker.selectedDate, DateTime(2026, 9, 30));
+      expect(inCalendar('September 2026'), findsOneWidget);
 
       await tester.tap(find.byKey(AppDatePickerDialog.confirmKey));
       await tester.pumpAndSettle();
@@ -216,6 +280,234 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(results, <DateTime?>[null]);
+    });
+
+    testWidgets('머리 달 라벨을 누르면 열두 달 격자로 바뀌고 보던 달이 브랜드 채움이다', (
+      WidgetTester tester,
+    ) async {
+      await openPicker(tester);
+      expect(inCalendar('August 2026'), findsOneWidget);
+
+      await tapHeader(tester);
+
+      for (final String month in monthNames) {
+        expect(inCalendar(month), findsOneWidget, reason: month);
+      }
+      expect(inCalendar('2026'), findsOneWidget);
+      // 날짜 격자는 사라진다(Material 연도 목록도 아니다).
+      expect(inCalendar('24'), findsNothing);
+      expect(find.byType(YearPicker), findsNothing);
+      // 보던 달(8월)은 날짜 원과 같은 브랜드 채움 알약에 흰 글자다.
+      expect(monthFill(tester, 'August').color, OnCareBrand.member.primary);
+      expect(monthFill(tester, 'August').borderRadius, OnCareRadius.pillAll);
+      expect(textColor(tester, 'August'), OnCareColors.textOnFill);
+      expect(monthFill(tester, 'July').color, isNull);
+      expect(textColor(tester, 'July'), OnCareColors.textPrimary);
+
+      // 가운데 연도를 다시 누르면 보던 달의 날짜 보기로 돌아간다.
+      await tapHeader(tester);
+      expect(inCalendar('August 2026'), findsOneWidget);
+      expect(inCalendar('24'), findsOneWidget);
+    });
+
+    testWidgets('달 보기의 꺾쇠는 해를 넘기고 고를 수 없는 해로는 가지 않는다', (
+      WidgetTester tester,
+    ) async {
+      // 2026-01-01 ~ 2027-01-01.
+      await openPicker(tester);
+      await tapHeader(tester);
+
+      expect(arrow(tester, Icons.chevron_left_rounded).onPressed, isNull);
+      await tester.tap(
+        find.descendant(
+          of: calendar(),
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(inCalendar('2027'), findsOneWidget);
+      expect(arrow(tester, Icons.chevron_right_rounded).onPressed, isNull);
+      // 보던 달(2026년 8월)은 다른 해에서는 칠하지 않는다.
+      expect(monthFill(tester, 'August').color, isNull);
+      // 2027-01-01 까지만 고를 수 있어 1월만 열리고 2월부터는 흐리다.
+      expect(textColor(tester, 'January'), OnCareColors.textPrimary);
+      expect(textColor(tester, 'February'), OnCareColors.textDisabled);
+
+      await tester.tap(
+        find.descendant(
+          of: calendar(),
+          matching: find.byIcon(Icons.chevron_left_rounded),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(inCalendar('2026'), findsOneWidget);
+      expect(monthFill(tester, 'August').color, OnCareBrand.member.primary);
+    });
+
+    testWidgets('달을 누르면 그 달 날짜로 돌아가고 고른 날은 날을 누를 때까지 그대로다', (
+      WidgetTester tester,
+    ) async {
+      final List<DateTime?> results = await openPicker(tester);
+      await tapHeader(tester);
+
+      await tester.tap(inCalendar('November'));
+      await tester.pumpAndSettle();
+
+      expect(inCalendar('November 2026'), findsOneWidget);
+      expect(
+        tester.widget<AppCalendarDatePicker>(calendar()).selectedDate,
+        DateTime(2026, 8, 24),
+      );
+      expect(input(tester).controller!.text, '08/24/2026');
+      // 11월에는 고른 날이 없으니 채운 날짜 원도 없다.
+      expect(
+        find.descendant(
+          of: calendar(),
+          matching: find.byWidgetPredicate(
+            (Widget w) =>
+                w is Ink &&
+                w.decoration is ShapeDecoration &&
+                (w.decoration! as ShapeDecoration).color ==
+                    OnCareBrand.member.primary,
+          ),
+        ),
+        findsNothing,
+      );
+
+      await tester.tap(inCalendar('5'));
+      await tester.pumpAndSettle();
+      expect(input(tester).controller!.text, '11/05/2026');
+
+      await tester.tap(find.byKey(AppDatePickerDialog.confirmKey));
+      await tester.pumpAndSettle();
+      expect(results, <DateTime?>[DateTime(2026, 11, 5)]);
+    });
+
+    testWidgets('기간과 하루도 겹치지 않는 달은 흐리고 눌러도 넘어가지 않는다(#1765)', (
+      WidgetTester tester,
+    ) async {
+      await openPicker(
+        tester,
+        initialDate: DateTime(2026, 8, 24),
+        firstDate: DateTime(2026, 3, 10),
+        // 미래 막기: 오늘까지만 고른다.
+        lastDate: DateTime(2026, 9, 15),
+      );
+      await tapHeader(tester);
+
+      for (final String month in <String>[
+        'January',
+        'February',
+        'October',
+        'November',
+        'December',
+      ]) {
+        expect(
+          textColor(tester, month),
+          OnCareColors.textDisabled,
+          reason: month,
+        );
+      }
+      // 일부라도 겹치는 3월·9월은 고를 수 있다.
+      expect(textColor(tester, 'March'), OnCareColors.textPrimary);
+      expect(textColor(tester, 'September'), OnCareColors.textPrimary);
+      // 한 해 안의 기간이라 해 꺾쇠도 둘 다 막힌다.
+      expect(arrow(tester, Icons.chevron_left_rounded).onPressed, isNull);
+      expect(arrow(tester, Icons.chevron_right_rounded).onPressed, isNull);
+
+      await tester.tap(inCalendar('October'));
+      await tester.pumpAndSettle();
+      expect(inCalendar('2026'), findsOneWidget);
+      expect(inCalendar('October 2026'), findsNothing);
+
+      await tester.tap(inCalendar('September'));
+      await tester.pumpAndSettle();
+      expect(inCalendar('September 2026'), findsOneWidget);
+      // 9월 15일 뒤는 흐리고, 다음 달로도 가지 않는다.
+      expect(textColor(tester, '20'), OnCareColors.textDisabled);
+      expect(arrow(tester, Icons.chevron_right_rounded).onPressed, isNull);
+    });
+
+    testWidgets('달 보기에서 날짜를 타이핑하면 그 달의 날짜 보기로 돌아간다', (
+      WidgetTester tester,
+    ) async {
+      await openPicker(tester);
+      await tapHeader(tester);
+
+      await tester.enterText(
+        find.byKey(AppDatePickerDialog.inputKey),
+        '10/3/2026',
+      );
+      await tester.pumpAndSettle();
+
+      expect(inCalendar('October 2026'), findsOneWidget);
+      expect(
+        tester.widget<AppCalendarDatePicker>(calendar()).selectedDate,
+        DateTime(2026, 10, 3),
+      );
+    });
+
+    testWidgets('날짜 보기의 꺾쇠·좌우 밀기로 달을 넘기고 고른 날은 그대로다', (
+      WidgetTester tester,
+    ) async {
+      await openPicker(tester);
+
+      await tester.tap(
+        find.descendant(
+          of: calendar(),
+          matching: find.byIcon(Icons.chevron_right_rounded),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(inCalendar('September 2026'), findsOneWidget);
+
+      // 오른쪽에서 왼쪽으로 쓸면 다음 달, 반대면 이전 달이다.
+      await tester.fling(inCalendar('16'), const Offset(-200, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(inCalendar('October 2026'), findsOneWidget);
+      await tester.fling(inCalendar('16'), const Offset(200, 0), 1000);
+      await tester.pumpAndSettle();
+      expect(inCalendar('September 2026'), findsOneWidget);
+
+      expect(
+        tester.widget<AppCalendarDatePicker>(calendar()).selectedDate,
+        DateTime(2026, 8, 24),
+      );
+    });
+
+    testWidgets('달력 줄 높이는 Material 달력처럼 세로 화면 48·가로 화면 42 다', (
+      WidgetTester tester,
+    ) async {
+      // 세로 화면(회원앱).
+      await openPicker(tester);
+      expect(
+        tester.getSize(calendar()).height,
+        OnCareCalendar.pickerHeaderHeight +
+            OnCareCalendar.pickerRowHeightPortrait *
+                (OnCareCalendar.pickerMaxWeeks + 1),
+      );
+      await tester.tap(find.byKey(AppDatePickerDialog.cancelKey));
+      await tester.pumpAndSettle();
+
+      // 가로 화면(데스크톱 트레이너웹) — 줄을 42 로 줄여 창이 커지지 않는다.
+      await openPicker(
+        tester,
+        brand: OnCareBrand.trainer,
+        density: OnCareDensity.web,
+        viewSize: const Size(800, 600),
+      );
+      expect(
+        tester.getSize(calendar()).height,
+        OnCareCalendar.pickerHeaderHeight +
+            OnCareCalendar.pickerRowHeightLandscape *
+                (OnCareCalendar.pickerMaxWeeks + 1),
+      );
+      // 넷째 주 날짜가 하단 버튼 뒤로 가려지지 않고 바로 눌린다.
+      expect(inCalendar('20').hitTestable(), findsOneWidget);
+      await tester.tap(inCalendar('20'));
+      await tester.pumpAndSettle();
+      expect(input(tester).controller!.text, '08/20/2026');
     });
 
     testWidgets('확인을 누르면 고른 날짜를 돌려준다', (WidgetTester tester) async {

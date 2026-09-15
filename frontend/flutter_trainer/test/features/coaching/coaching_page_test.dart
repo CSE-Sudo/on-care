@@ -571,7 +571,10 @@ Future<void> _pickDateInPicker(WidgetTester tester, DateTime date) async {
   final today = nowKst();
   if (date.year != today.year || date.month != today.month) {
     await tester.tap(
-      find.descendant(of: dialog, matching: find.byIcon(Icons.chevron_right)),
+      find.descendant(
+        of: dialog,
+        matching: find.byIcon(Icons.chevron_right_rounded),
+      ),
     );
     await tester.pumpAndSettle();
   }

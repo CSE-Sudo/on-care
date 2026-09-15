@@ -6,6 +6,7 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 프로그램 직접 만들기의 PT 등록 날짜·시각 선택 UI. (#1425)
 ///
@@ -97,7 +98,7 @@ void main() {
     await tapChip(tester, 'program-register-date');
 
     // 공용 `showAppDatePicker` 는 Material 기본 `DatePickerDialog` 대신
-    // 입력칸과 달력(`CalendarDatePicker`)을 한 창에 세로로 둔다 — 넓은 창에서도
+    // 입력칸과 달력(`AppCalendarDatePicker`)을 한 창에 세로로 둔다 — 넓은 창에서도
     // 좌우로 퍼진 landscape 달력이 되지 않는다(#1705, #1778).
     expect(find.byType(DatePickerDialog), findsNothing);
     final Finder dialog = find.byKey(const Key('portraitDatePicker'));
@@ -111,7 +112,7 @@ void main() {
     );
     final Finder calendar = find.descendant(
       of: dialog,
-      matching: find.byType(CalendarDatePicker),
+      matching: find.byKey(const Key('portraitDatePickerCalendar')),
     );
     expect(calendar, findsOneWidget);
     // 세로 배치 — 입력칸이 달력 위에 있다.
@@ -125,12 +126,12 @@ void main() {
     await pumpWorkspace(tester);
     await tapChip(tester, 'program-register-date');
 
-    final CalendarDatePicker picker = tester.widget<CalendarDatePicker>(
-      find.byType(CalendarDatePicker),
+    final AppCalendarDatePicker picker = tester.widget<AppCalendarDatePicker>(
+      find.byType(AppCalendarDatePicker),
     );
     expect(picker.firstDate, today());
     expect(picker.lastDate, today().add(const Duration(days: 365)));
-    expect(picker.initialDate, today());
+    expect(picker.selectedDate, today());
   });
 
   testWidgets('시각 선택은 스케줄 탭과 같은 범위 선택기다', (tester) async {
