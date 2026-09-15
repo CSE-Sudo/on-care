@@ -305,10 +305,11 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, capacity, remaining, is_closed }]` |
-| POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at }` |
-| GET | `/reservations/me` | `[{ id, slot_id, trainer_id, starts_at, cancellable }]` — 내 예약 (다가오는 것부터, 기본 50건·커서) |
-| DELETE | `/reservations/{id}` | 취소 → `{ status: "cancelled" }` |
+| GET | `/trainers/{trainer_id}/slots` | `[{ id, trainer_id, starts_at, duration_minutes, capacity, remaining, is_closed, session_type, points_cost, trial_blocked_reason }]` |
+| POST | `/reservations` | 입력 `{ slot_id }` → `{ id, slot_id, schedule_id, status, created_at, session_type, points_spent, points_balance }` |
+| GET | `/reservations/me` | `[{ id, slot_id, trainer_id, starts_at, cancellable, session_type, points_cost, points_refundable }]` — 내 예약 (다가오는 것부터, 기본 50건·커서) |
+| DELETE | `/reservations/{id}` | 취소 → `{ status: "cancelled", points_refunded }` |
+| POST | `/trainer/reservation-slots` | 입력 `{ starts_at, duration_minutes?, session_type(1:1 PT\|상담\|체험) }` → 슬롯 (`booked_by_name` 포함) |
 
 - **예약은 트레이너 일정을 만듭니다.** 확정 시 `trainer_schedule` 에 `1:1 PT` 세션이 생기고, 취소하면 그 일정과 좌석이 함께 돌아갑니다. 회원 탈퇴 경로와 **같은 함수**(`reservation_service._release`)를 씁니다. (#502)
 - **취소 마감**: 슬롯 시작 시각까지. 이미 시작한 수업은 **409** — 자리를 비우는 게 아니라 기록을 지우는 일이라 트레이너가 판단할 몫입니다.

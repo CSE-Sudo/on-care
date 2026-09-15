@@ -6,7 +6,8 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 #: `TrainerSchedule.type` 과 같은 계약값이다(#1083) — 번역하지 않는다.
-SessionType = Literal["1:1 PT", "상담"]
+#: `체험` 은 `포인트 체험 허용` 으로 연 20분 자세 점검 자리다(#1790).
+SessionType = Literal["1:1 PT", "상담", "체험"]
 
 
 class TrainerSlotOut(BaseModel):
@@ -22,10 +23,17 @@ class TrainerSlotOut(BaseModel):
     #: 에서만 채운다 — 회원용 목록(`GET /trainers/{id}/slots`)은 다른 회원의
     #: 이름을 알 이유가 없어 항상 null이다.
     booked_by_name: str | None = None
+    #: 이 자리를 예약하는 데 드는 포인트. 체험 자리만 500, 나머지는 0이다(#1790).
+    points_cost: int = 0
+    #: 회원용 목록의 체험 자리에서만 채운다 — 이 회원이 지금 예약할 수 없는 이유
+    #: (`trial_used`|`insufficient_points`), 가능하면 null. 담당 트레이너가 있는
+    #: 회원에게는 체험 자리 자체를 내주지 않는다.
+    trial_blocked_reason: str | None = None
 
 
 class TrainerSlotCreate(BaseModel):
     starts_at: datetime
+    #: 체험 자리(`session_type == "체험"`)는 이 값과 상관없이 20분이다.
     duration_minutes: int | None = Field(default=None, ge=5, le=600)
     session_type: SessionType = "1:1 PT"
 
@@ -67,6 +75,11 @@ class ReservationOut(BaseModel):
     schedule_id: str
     status: str
     created_at: datetime
+    session_type: SessionType = "1:1 PT"
+    #: 이 예약에 쓴 포인트. 체험 예약만 500이다(#1790).
+    points_spent: int = 0
+    #: 포인트를 쓴 뒤의 잔액. 포인트를 쓰지 않은 예약은 null이다.
+    points_balance: int | None = None
 
 
 class MyReservationOut(BaseModel):
@@ -83,3 +96,15 @@ class MyReservationOut(BaseModel):
     #: 이 시각을 지나면 취소할 수 없다. 서버 판단을 그대로 내려, 앱이 자기
     #: 시계로 다시 계산하다 서버와 어긋나는 일이 없게 한다.
     cancellable: bool
+    session_type: SessionType = "1:1 PT"
+    #: 이 예약에 쓴 포인트(체험 예약만 500).
+    points_cost: int = 0
+    #: 지금 취소하면 포인트를 돌려받는가. 체험 예약이 시작 24시간 전일 때만 true —
+    #: 취소 확인창이 이 값으로 반환·소멸 문구를 고른다(#1790).
+    points_refundable: bool = False
+
+
+class ReservationCancelOut(BaseModel):
+    status: Literal["cancelled"] = "cancelled"
+    #: 이번 취소로 돌려받은 포인트. 체험 예약을 24시간 전까지 취소했을 때만 0보다 크다.
+    points_refunded: int = 0

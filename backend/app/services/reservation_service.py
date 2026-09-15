@@ -21,7 +21,12 @@ from app.schemas.reservation_api import (
     ReservationOut,
     TrainerSlotOut,
 )
-from app.services import notification_service, trainer_service
+from app.services import (
+    notification_service,
+    points_service,
+    points_trial_service,
+    trainer_service,
+)
 
 
 class SlotNotFound(Exception):
@@ -47,12 +52,22 @@ def _aware(value: datetime) -> datetime:
 #: 슬롯 종류별 기본 소요 시간(분). 회원 예약은 시각만 고를 뿐 시간을 따로
 #: 고르지 않으므로, 슬롯을 열 때 트레이너가 고른 종류가 이 값을 정한다 —
 #: 스케줄 탭에서 상담을 짧게 잡는 관례와 같다.
-_SESSION_DURATION_MINUTES = {"1:1 PT": 60, "상담": 30}
+#: 포인트 체험(`체험`)은 20분 자세 점검으로 고정이다 — 트레이너가 고른 시간과
+#: 상관없이 이 값이다(#1790).
+_SESSION_DURATION_MINUTES = {
+    "1:1 PT": 60,
+    "상담": 30,
+    points_trial_service.TRIAL_SESSION_TYPE: points_trial_service.TRIAL_MINUTES,
+}
 
 
 def _slot_out(
-    slot: TrainerReservationSlot, *, booked_by_name: str | None = None
+    slot: TrainerReservationSlot,
+    *,
+    booked_by_name: str | None = None,
+    trial_blocked_reason: str | None = None,
 ) -> TrainerSlotOut:
+    trial = points_trial_service.is_trial(slot.session_type)
     return TrainerSlotOut(
         id=slot.id,
         trainer_id=slot.trainer_id,
@@ -63,6 +78,8 @@ def _slot_out(
         is_closed=slot.is_closed,
         session_type=slot.session_type,
         booked_by_name=booked_by_name,
+        points_cost=points_trial_service.TRIAL_COST if trial else 0,
+        trial_blocked_reason=trial_blocked_reason if trial else None,
     )
 
 
@@ -86,8 +103,18 @@ def _booked_names(db: Session, slot_ids: list[str]) -> dict[str, str]:
 
 
 def list_member_slots(
-    db: Session, trainer_id: str, *, now: datetime | None = None
+    db: Session,
+    trainer_id: str,
+    *,
+    member_id: str | None = None,
+    now: datetime | None = None,
 ) -> list[TrainerSlotOut]:
+    """회원이 보는 트레이너의 빈 시간.
+
+    포인트 체험 자리(#1790)는 **담당 트레이너가 없는 회원에게만** 내준다. 담당이
+    있는 회원에게 보이면 다른 트레이너가 기존 회원을 데려가는 통로가 된다. 받는
+    회원에게는 지금 예약할 수 없는 이유(`trial_blocked_reason`)를 함께 싣는다.
+    """
     current = now or datetime.now(timezone.utc)
     rows = db.scalars(
         select(TrainerReservationSlot)
@@ -97,7 +124,16 @@ def list_member_slots(
         )
         .order_by(TrainerReservationSlot.starts_at)
     ).all()
-    return [_slot_out(row) for row in rows]
+    has_trial = any(points_trial_service.is_trial(row.session_type) for row in rows)
+    trial_reason: str | None = None
+    if has_trial and member_id is not None:
+        trial_reason = points_trial_service.blocked_reason(db, member_id, trainer_id)
+    hide_trials = trial_reason == points_trial_service.BLOCK_HAS_TRAINER
+    return [
+        _slot_out(row, trial_blocked_reason=trial_reason)
+        for row in rows
+        if not (hide_trials and points_trial_service.is_trial(row.session_type))
+    ]
 
 
 def list_trainer_slots(
@@ -127,7 +163,10 @@ def create_slot(
     if _aware(starts_at) <= datetime.now(timezone.utc):
         raise SlotUnavailable("지난 시간에는 예약 슬롯을 만들 수 없습니다.")
     # 슬롯은 늘 한 사람 몫이다 — 1:1 PT 이거나 상담이고, 여럿이 함께 듣는
-    # 자리는 없다(#1012). 정원 대신 종류를 고른다(#1083).
+    # 자리는 없다(#1012). 정원 대신 종류를 고른다(#1083). 포인트 체험은
+    # 트레이너가 보낸 시간과 상관없이 20분이다(#1790).
+    if points_trial_service.is_trial(session_type):
+        duration_minutes = points_trial_service.TRIAL_MINUTES
     slot = TrainerReservationSlot(
         id=f"slot-{uuid.uuid4().hex[:12]}",
         trainer_id=trainer_id,
@@ -177,12 +216,23 @@ def update_slot(
             # 이미 예약이 걸린 자리는 종류를 바꾸지 않는다 — 회원은 예약할
             # 때 본 종류(1:1 PT/상담)를 그대로 믿고 그 시간을 비워 둔다.
             raise CapacityConflict("이미 예약된 자리의 종류는 바꿀 수 없습니다.")
+        was_trial = points_trial_service.is_trial(slot.session_type)
         slot.session_type = fields["session_type"]
+        # 체험은 20분 고정이다(#1790). 체험에서 다른 종류로 바꾸면서 시간을 함께
+        # 보내지 않았으면 그 종류의 기본 시간으로 돌린다 — 20분 PT 가 남지 않게.
+        if points_trial_service.is_trial(slot.session_type):
+            slot.duration_minutes = points_trial_service.TRIAL_MINUTES
+        elif was_trial and "duration_minutes" not in fields:
+            slot.duration_minutes = _SESSION_DURATION_MINUTES.get(
+                slot.session_type, 60
+            )
     if "starts_at" in fields:
         starts_at = fields["starts_at"]
         if _aware(starts_at) <= datetime.now(timezone.utc):
             raise SlotUnavailable("지난 시간으로 슬롯을 변경할 수 없습니다.")
         slot.starts_at = starts_at
+        # 체험 예약의 24시간 반환 판정도 옮긴 시각을 따른다(#1790).
+        points_trial_service.move_start(db, slot.id, _aware(starts_at))
         local = _aware(starts_at).astimezone(SEOUL)
         schedules = db.scalars(
             select(TrainerSchedule)
@@ -197,7 +247,9 @@ def update_slot(
         for schedule in schedules:
             schedule.date = local.date().isoformat()
             schedule.time = local.strftime("%H:%M")
-    if "duration_minutes" in fields:
+    if "duration_minutes" in fields and not points_trial_service.is_trial(
+        slot.session_type
+    ):
         slot.duration_minutes = fields["duration_minutes"]
         schedules = db.scalars(
             select(TrainerSchedule)
@@ -324,15 +376,20 @@ def reserve(
     if slot.is_closed or slot.remaining <= 0 or _aware(slot.starts_at) <= current:
         raise SlotUnavailable("예약할 수 없는 슬롯입니다.")
 
-    assigned = db.scalar(
-        select(TrainerClient.id).where(
-            TrainerClient.trainer_id == slot.trainer_id,
-            TrainerClient.member_id == member.id,
-            TrainerClient.active.is_(True),
+    # 포인트 체험 자리는 규칙이 반대다(#1790) — 담당 트레이너가 **없는** 회원만
+    # 잡는다. 담당·1회·잔액 판정은 포인트를 쓰는 자리(`points_trial_service.begin`)
+    # 가 잔액 행을 잠근 채 한다.
+    trial = points_trial_service.is_trial(slot.session_type)
+    if not trial:
+        assigned = db.scalar(
+            select(TrainerClient.id).where(
+                TrainerClient.trainer_id == slot.trainer_id,
+                TrainerClient.member_id == member.id,
+                TrainerClient.active.is_(True),
+            )
         )
-    )
-    if assigned is None:
-        raise SlotUnavailable("담당 트레이너의 슬롯만 예약할 수 있습니다.")
+        if assigned is None:
+            raise SlotUnavailable("담당 트레이너의 슬롯만 예약할 수 있습니다.")
     duplicate = db.scalar(
         select(TrainerReservation.id).where(
             TrainerReservation.member_id == member.id,
@@ -372,9 +429,24 @@ def reserve(
     # reservation before the schedule, which violates the schedule_id FK on
     # PostgreSQL even though both objects were added before commit (#492).
     db.add(schedule)
+    points_spent = 0
+    points_balance: int | None = None
     try:
         db.flush()
         db.add(reservation)
+        if trial:
+            # 체험 기록과 포인트 사용은 예약과 같은 트랜잭션이다 — 예약이 실패하면
+            # 포인트도 빠지지 않는다(#1790).
+            _, points_balance = points_trial_service.begin(
+                db,
+                member.id,
+                slot.trainer_id,
+                slot_id=slot.id,
+                reservation_id=reservation_id,
+                schedule_id=schedule_id,
+                starts_at=_aware(slot.starts_at),
+            )
+            points_spent = points_trial_service.TRIAL_COST
         # 트레이너는 회원이 잡은 자리를 스케줄을 다시 열어야만 안다. (#503)
         # 일정→예약 순서 불변식과 무관하므로 그 뒤에 얹는다.
         notification_service.queue_for_trainer(
@@ -382,14 +454,21 @@ def reserve(
             trainer_id=slot.trainer_id,
             kind=notification_service.TRAINER_RESERVATION_KIND,
             title="새 예약이 들어왔어요",
-            body=f"{member.name} 회원 · {local:%m월 %d일 %H:%M}",
+            body=f"{member.name} 회원 · {local:%m월 %d일 %H:%M}"
+            + (" · 포인트 체험" if trial else ""),
         )
         db.commit()
+    except (points_trial_service.TrialError, points_service.InsufficientPoints):
+        db.rollback()
+        raise
     except IntegrityError as exc:
         db.rollback()
         constraint = getattr(getattr(exc.orig, "diag", None), "constraint_name", None)
         if constraint == "uq_reservation_member_slot":
             raise DuplicateReservation("이미 예약한 슬롯입니다.") from exc
+        if constraint == points_trial_service.UNIQUE_INDEX:
+            # 같은 트레이너 체험 자리 둘을 동시에 잡은 경합 — 먼저 끝난 쪽만 남는다.
+            raise points_trial_service.TrialAlreadyUsed() from exc
         # Do not turn an unexpected schema/programming error into a misleading
         # 409. Let the global error handler report it as a server failure.
         raise
@@ -400,6 +479,9 @@ def reserve(
         schedule_id=reservation.schedule_id,
         status=reservation.status,
         created_at=_aware(reservation.created_at),
+        session_type=slot.session_type,
+        points_spent=points_spent,
+        points_balance=points_balance,
     )
 
 
@@ -448,6 +530,10 @@ def list_member_reservations(
             TrainerReservationSlot.starts_at.desc(), TrainerReservation.id.desc()
         ).limit(limit)
     ).all()
+    # 체험 예약은 쓴 포인트와 지금 취소하면 돌려받는지를 함께 싣는다(#1790).
+    trials = points_trial_service.trials_by_reservation(
+        db, [reservation.id for reservation, _ in rows]
+    )
     return [
         MyReservationOut(
             id=reservation.id,
@@ -455,6 +541,11 @@ def list_member_reservations(
             trainer_id=slot.trainer_id,
             starts_at=_aware(slot.starts_at),
             cancellable=_aware(slot.starts_at) > current,
+            session_type=slot.session_type,
+            points_cost=trials[reservation.id].cost if reservation.id in trials else 0,
+            points_refundable=points_trial_service.refundable(
+                trials.get(reservation.id), current
+            ),
         )
         for reservation, slot in rows
     ]
@@ -462,8 +553,11 @@ def list_member_reservations(
 
 def cancel(
     db: Session, member_id: str, reservation_id: str, *, now: datetime | None = None
-) -> None:
+) -> int:
     """회원이 자기 예약을 취소한다. 좌석과 트레이너 일정이 함께 돌아간다.
+
+    돌려받은 포인트(0 이상)를 돌려준다. 포인트 체험 예약을 시작 24시간 전까지
+    취소했을 때만 0보다 크다 — 그보다 늦으면 소멸이다(#1790).
 
     - 없는 예약이거나 **남의 예약** → [ReservationNotFound]. 남의 것을 403 이 아니라
       404 로 두는 이유는 상담 요청과 같다 — 존재 여부조차 드러내지 않는다.
@@ -490,6 +584,12 @@ def cancel(
     member_name = db.scalar(select(User.name).where(User.id == member_id)) or ""
     trainer_id = slot.trainer_id if slot is not None else None
 
+    # 포인트 체험 예약이면 예약 행이 지워지기 전에 포인트를 정리한다 — 24시간 전
+    # 까지는 반환, 그보다 늦으면 소멸이다(#1790).
+    refunded = points_trial_service.settle_member_cancel(
+        db, reservation.id, now=current
+    )
+
     # 회원이 스스로 취소한 예약이다 — 트레이너 일정은 지우지 않고 `취소` 기록으로
     # 남긴다(#871). 좌석 복구·예약 삭제 등 나머지 규칙은 그대로다.
     _release(db, [reservation], cancelled_by="member")
@@ -510,3 +610,4 @@ def cancel(
             ),
         )
     db.commit()
+    return refunded

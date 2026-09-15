@@ -50,6 +50,7 @@ from app.services import (
     notification_service,
     points_coupon_service,
     points_service,
+    points_trial_service,
     routine_suggestion_service,
     schedule_parse,
 )
@@ -976,6 +977,10 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
             )
         ).all()
     )
+
+    # 진행 중인 포인트 체험 예약은 트레이너 사정으로 약속이 없어지는 것이라 포인트를
+    # 돌려준다(#1790). 체험 기록은 트레이너 행과 함께 지워지므로 그 전에 반환한다.
+    points_trial_service.refund_for_trainer_deletion(db, trainer.id)
 
     # 이 트레이너의 슬롯에 걸린 예약을 먼저 치운다. 좌석을 되돌릴 필요는 없다 —
     # 슬롯 자체가 함께 사라진다.
@@ -2770,6 +2775,8 @@ def build_schedule_range(
                     TrainerClient.active.is_(True),
                 )
             ),
+            # 포인트 체험 회원은 담당이 아니어도 그 트레이너 일정에 보인다(#1790).
+            points_trial_service.trial_schedule_clause(trainer_id),
         ),
     ]
     if member_id is not None:
@@ -2807,6 +2814,8 @@ def booked_dates(db: Session, trainer_id: str) -> list[str]:
                         TrainerClient.active.is_(True),
                     )
                 ),
+                # 시간표와 같은 조건 — 포인트 체험 일정도 날짜 도트에 잡힌다(#1790).
+                points_trial_service.trial_schedule_clause(trainer_id),
             ),
         )
         .distinct()
@@ -3849,6 +3858,9 @@ def complete_session(
         db.refresh(s)
         return _schedule_out(s)  # 동시 호출이 먼저 완료 처리함 — 기록 없이 현재 상태 반환
 
+    # 포인트 체험 예약이었다면 쓴 포인트는 그대로 쓴 것으로 끝난다(#1790).
+    points_trial_service.settle_completed(db, session_id)
+
     exercise_log: ExerciseSession | None = None
     if s.member_id:
         program = _program_items(s.program_json)
@@ -3933,17 +3945,24 @@ def cancel_session(
         db.refresh(s)
         return _schedule_out(s)
 
+    # 포인트 체험 예약을 트레이너가 취소하면 포인트를 돌려준다(#1790). 취소 주체
+    # 값(member|trainer|other)과 상관없다 — 이 경로의 행위자는 트레이너다.
+    refunded = points_trial_service.settle_trainer_cancel(db, session_id)
+
     # 회원에게는 취소 사실만 간다 — 내부 사유는 트레이너가 보는 기록이다.
     # 삭제 경로와 같은 알림을 쓴다: 회원 입장에서 달라진 것은 "그 시간의 PT 가
     # 없어졌다" 하나뿐이고, 새 알림 종류를 만들 이유가 없다.
     if s.member_id is not None:
+        body = _slot_body(_member_visible_slot(s))
+        if refunded:
+            body = f"{body} · {refunded}P 반환"
         notification_service.queue(
             db,
             member_id=s.member_id,
             kind=notification_service.EXERCISE,
             category=notification_service.MEMBER_SCHEDULE,
             title="일정이 취소되었어요",
-            body=_slot_body(_member_visible_slot(s)),
+            body=body,
         )
     db.commit()
     db.refresh(s)
@@ -3986,6 +4005,9 @@ def mark_session_no_show(
         )
         .values(status=SCHEDULE_NO_SHOW, no_show_at=datetime.now(timezone.utc))
     ).rowcount
+    if changed == 1:
+        # 포인트 체험 예약이었다면 쓴 포인트는 돌려주지 않는다 — 소멸(#1790).
+        points_trial_service.settle_no_show(db, session_id)
     db.commit()
     db.refresh(s)
     if changed != 1:

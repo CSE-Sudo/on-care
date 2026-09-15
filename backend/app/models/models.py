@@ -265,6 +265,75 @@ class PointsCoupon(Base):
     )
 
 
+class PointsTrial(Base):
+    """포인트 체험 예약 한 건 — 쓴 포인트의 결말과 트레이너별 1회 판정. (#1790)
+
+    담당 트레이너가 없는 회원이 트레이너가 열어 둔 체험 자리(`session_type == "체험"`)
+    를 500P 로 예약하면 `booked` 로 생긴다. 결말은 트레이너 완료 `completed`,
+    노쇼 `no_show`(소멸), 트레이너 취소·24시간 전 회원 취소 `refunded`(반환),
+    늦은 회원 취소 `forfeited`(소멸) 다.
+
+    - 예약 행(`trainer_reservations`)과 따로 둔다. 회원이 취소하면 예약 행은 지워지지만
+      "이 트레이너 체험을 이미 했나" 와 포인트의 결말은 남아야 한다. 그래서
+      `reservation_id`·`schedule_id`·`slot_id` 는 FK 없이 id 만 적는다.
+    - 반환된 체험은 1회에 세지 않는다 — 회원당 트레이너별로 반환되지 않은 체험은
+      한 건뿐이다(partial unique index).
+    - 포인트 내역은 `source_type='points_trial'`, `source_id=id` 로 사용·반환을 남긴다.
+    """
+
+    __tablename__ = "points_trials"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    member_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    trainer_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    slot_id: Mapped[str] = mapped_column(String(64))
+    reservation_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    schedule_id: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, index=True
+    )
+    #: 예약할 때 쓴 포인트. 반환은 이 값이 아니라 내역의 사용 행을 되돌린다.
+    cost: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(12), default="booked", server_default="booked"
+    )  # booked|completed|no_show|refunded|forfeited
+    #: 체험 시작 시각. 회원 취소의 24시간 판정이 이 값을 본다.
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    settled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: 결말을 만든 주체 — ''(진행 중)|member|trainer.
+    settled_by: Mapped[str] = mapped_column(String(16), default="", server_default="")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('booked', 'completed', 'no_show', 'refunded', 'forfeited')",
+            name="ck_points_trials_status",
+        ),
+        CheckConstraint("cost > 0", name="ck_points_trials_cost"),
+        CheckConstraint(
+            "settled_by IN ('', 'member', 'trainer')",
+            name="ck_points_trials_settled_by",
+        ),
+        # 트레이너별 1인 1회 — 반환된 체험은 세지 않는다.
+        Index(
+            "uq_points_trials_member_trainer",
+            "member_id",
+            "trainer_id",
+            unique=True,
+            postgresql_where=text("status <> 'refunded'"),
+        ),
+    )
+
+
 class DietEntry(Base):
     """식단 기록 — drift DietEntries 대응. 나트륨·당류 포함."""
 
@@ -1638,8 +1707,10 @@ class TrainerReservationSlot(Base):
         # 늘 한 사람 몫이라 정원을 고를 이유가 없어졌지만, 무슨 약속인지는
         # 여전히 골라야 한다 — 회원 예약이 만드는 일정이 그 종류를 그대로
         # 물려받는다.
+        # `체험` 은 트레이너가 `포인트 체험 허용` 으로 연 20분 자세 점검 자리다
+        # (#1790). 담당 트레이너가 없는 회원만 포인트로 예약한다.
         CheckConstraint(
-            "session_type IN ('1:1 PT', '상담')",
+            "session_type IN ('1:1 PT', '상담', '체험')",
             name="ck_reservation_slot_session_type",
         ),
         Index("ix_reservation_slots_trainer_starts", "trainer_id", "starts_at"),

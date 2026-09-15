@@ -10,13 +10,14 @@ from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
 from app.db.session import get_db
 from app.schemas.reservation_api import (
     MyReservationOut,
+    ReservationCancelOut,
     ReservationCreate,
     ReservationOut,
     TrainerSlotCreate,
     TrainerSlotOut,
     TrainerSlotUpdate,
 )
-from app.services import reservation_service
+from app.services import points_trial_service, reservation_service
 
 router = APIRouter(tags=["reservations"])
 
@@ -25,6 +26,8 @@ ReservationError = (
     reservation_service.SlotUnavailable,
     reservation_service.DuplicateReservation,
     reservation_service.CapacityConflict,
+    # 포인트 체험 규칙(담당 트레이너 있음·이미 이용·포인트 부족)도 409 다(#1790).
+    points_trial_service.TrialError,
 )
 
 
@@ -37,6 +40,7 @@ def _slot_error(exc: Exception) -> HTTPException:
             reservation_service.SlotUnavailable,
             reservation_service.DuplicateReservation,
             reservation_service.CapacityConflict,
+            points_trial_service.TrialError,
         ),
     ):
         return HTTPException(status_code=409, detail=str(exc))
@@ -49,7 +53,7 @@ def member_trainer_slots(
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> list[TrainerSlotOut]:
-    return reservation_service.list_member_slots(db, trainer_id)
+    return reservation_service.list_member_slots(db, trainer_id, member_id=member.id)
 
 
 @router.post("/reservations", response_model=ReservationOut, status_code=201)
@@ -58,6 +62,7 @@ def create_reservation(
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> ReservationOut:
+    """자리를 예약한다. 체험 자리면 같은 트랜잭션에서 500P 를 쓴다(#1790)."""
     try:
         return reservation_service.reserve(db, member, payload.slot_id)
     except ReservationError as exc:
@@ -95,21 +100,28 @@ def my_reservations(
     )
 
 
-@router.delete("/reservations/{reservation_id}", status_code=200)
+@router.delete(
+    "/reservations/{reservation_id}",
+    response_model=ReservationCancelOut,
+    status_code=200,
+)
 def cancel_reservation(
     reservation_id: str,
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
-) -> dict:
-    """회원이 자기 예약을 취소한다. 좌석과 트레이너 일정이 함께 돌아간다. (#502)"""
+) -> ReservationCancelOut:
+    """회원이 자기 예약을 취소한다. 좌석과 트레이너 일정이 함께 돌아간다. (#502)
+
+    체험 예약은 시작 24시간 전까지 취소하면 포인트를 돌려준다(#1790).
+    """
     try:
-        reservation_service.cancel(db, member.id, reservation_id)
+        refunded = reservation_service.cancel(db, member.id, reservation_id)
     except reservation_service.ReservationNotFound as exc:
         # 남의 예약도 여기로 온다 — 존재조차 드러내지 않는다.
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except reservation_service.ReservationTooLate as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return {"status": "cancelled"}
+    return ReservationCancelOut(points_refunded=refunded)
 
 
 @router.get("/trainer/reservation-slots", response_model=list[TrainerSlotOut])
