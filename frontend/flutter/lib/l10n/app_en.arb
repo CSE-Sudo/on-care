@@ -1228,6 +1228,34 @@
   "@eventTimeNone": {
     "description": "Shown in the time field when no time is set."
   },
+  "eventTimePickerTitle": "Select time",
+  "@eventTimePickerTitle": {
+    "description": "Title of the event time picker dialog."
+  },
+  "eventTimePickerHourStep": "Hour",
+  "@eventTimePickerHourStep": {
+    "description": "Step label while picking the hour in the event time picker."
+  },
+  "eventTimePickerMinuteStep": "Minute",
+  "@eventTimePickerMinuteStep": {
+    "description": "Step label while picking the minute in the event time picker."
+  },
+  "eventTimePickerAm": "AM",
+  "@eventTimePickerAm": {
+    "description": "AM pill in the event time picker."
+  },
+  "eventTimePickerPm": "PM",
+  "@eventTimePickerPm": {
+    "description": "PM pill in the event time picker."
+  },
+  "eventTimePickerPrevStep": "Previous step",
+  "@eventTimePickerPrevStep": {
+    "description": "Tooltip of the previous-step arrow in the event time picker."
+  },
+  "eventTimePickerNextStep": "Next step",
+  "@eventTimePickerNextStep": {
+    "description": "Tooltip of the next-step arrow in the event time picker."
+  },
   "eventTitleRequired": "Please enter an event title",
   "@eventTitleRequired": {
     "description": "Validation message when the event title is empty."

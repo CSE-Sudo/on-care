@@ -9,6 +9,7 @@ import 'package:oncare/features/schedule/domain/schedule_format.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/modals/add_event_dialog.dart';
+import 'package:oncare_ui/oncare_ui.dart' show AppButton, AppTimePickerDialog;
 
 /// 저장된 값을 그대로 붙잡아 둔다 — 일정 추가 시트가 서버에 무엇을 보내는지가
 /// 이 테스트의 관심사다.
@@ -135,21 +136,64 @@ void main() {
     expect(find.text('일정 제목을 입력해 주세요'), findsOneWidget);
   });
 
-  testWidgets('시간을 고르면 HH:mm 으로 나가고 지울 수 있다', (WidgetTester tester) async {
+  testWidgets('시간을 고르면 HH:mm 으로 나간다', (WidgetTester tester) async {
     await openDialog(tester);
     await tester.enterText(find.byType(TextField), '운동');
 
     await tester.tap(find.byKey(const Key('addEventTime')));
     await tester.pumpAndSettle();
-    // 다이얼에서 특정 시각을 집기는 어렵고 이 테스트의 관심사도 아니다. 확인만
-    // 눌러 초기값(현재 시각)을 그대로 받고, 그 값이 계약 형식으로 나가는지를 본다.
-    await tester.tap(find.widgetWithText(TextButton, '확인'));
+    // 상담 신청과 같은 시간 선택창에 시간 칸 하나다(#1779) — 종료 칸도,
+    // Material 시간 선택기의 키보드 전환 버튼도 없다.
+    expect(find.byType(AppTimePickerDialog), findsOneWidget);
+    expect(find.byType(TimePickerDialog), findsNothing);
+    expect(_pickerKey('input'), findsOneWidget);
+    expect(_pickerKey('end-input'), findsNothing);
+
+    // 오전 → 9시 → 30분. 초기값(현재 시각)과 무관하게 값이 정해진다.
+    await tester.tap(_pickerKey('period-am'));
+    await tester.pump();
+    await tester.tap(_pickerKey('clock-value-9'));
+    await tester.pump();
+    await tester.tap(_pickerKey('clock-value-30'));
+    await tester.pump();
+    await tester.tap(_pickerConfirm());
     await tester.pumpAndSettle();
+    expect(find.byType(AppTimePickerDialog), findsNothing);
 
     await tester.tap(find.text('추가하기'));
     await tester.pumpAndSettle();
 
     expect(isScheduleTime(repo.time!), isTrue);
-    expect(repo.time, isNot(''));
+    expect(repo.time, '09:30');
+  });
+
+  testWidgets('고른 시간을 지우면 시간 없음으로 돌아가 빈 값으로 나간다', (WidgetTester tester) async {
+    await openDialog(tester);
+    await tester.enterText(find.byType(TextField), '운동');
+
+    await tester.tap(find.byKey(const Key('addEventTime')));
+    await tester.pumpAndSettle();
+    await tester.tap(_pickerConfirm());
+    await tester.pumpAndSettle();
+    expect(find.text('시간 없음'), findsNothing);
+
+    await tester.tap(find.byTooltip('시간 지우기'));
+    await tester.pumpAndSettle();
+    expect(find.text('시간 없음'), findsOneWidget);
+
+    await tester.tap(find.text('추가하기'));
+    await tester.pumpAndSettle();
+    expect(repo.time, '');
   });
 }
+
+Finder _pickerKey(String suffix) =>
+    find.byKey(ValueKey<String>('event-time-picker-$suffix'));
+
+/// 시간 선택창 아래 두 버튼(취소 / 확인) 중 오른쪽.
+Finder _pickerConfirm() => find
+    .descendant(
+      of: find.byType(AppTimePickerDialog),
+      matching: find.byType(AppButton),
+    )
+    .last;

@@ -135,12 +135,28 @@ class _EventDialogState extends ConsumerState<_EventDialog> {
 
   /// 일정은 시각 **하나**만 갖는다(서버 계약 `time`). 시작·종료를 고르는
   /// 기간 피커가 아니라 한 시각 피커를 쓴다 — 저장되는 값의 뜻이 그대로다.
+  ///
+  /// 창 모양은 상담 신청 시간 선택창과 같고 시간 칸만 하나다(#1779).
   Future<void> _pickTime() async {
+    final AppLocalizations l = AppLocalizations.of(context);
     final TimeOfDay? picked = await showAppTimePicker(
       context: context,
       initialTime: _time ?? TimeOfDay.now(),
+      labels: AppTimePickerLabels(
+        title: l.eventTimePickerTitle,
+        am: l.eventTimePickerAm,
+        pm: l.eventTimePickerPm,
+        previousStep: l.eventTimePickerPrevStep,
+        nextStep: l.eventTimePickerNextStep,
+        cancel: l.actionCancel,
+        confirm: l.actionConfirm,
+      ),
+      timeLabel: l.eventTimeLabel,
+      hourStepLabel: l.eventTimePickerHourStep,
+      minuteStepLabel: l.eventTimePickerMinuteStep,
+      keyPrefix: 'event-time-picker',
     );
-    if (picked != null) setState(() => _time = picked);
+    if (picked != null && mounted) setState(() => _time = picked);
   }
 
   Future<void> _submit() async {

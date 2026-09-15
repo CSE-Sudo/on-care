@@ -2153,6 +2153,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get eventTimeNone => '시간 없음';
 
   @override
+  String get eventTimePickerTitle => '시간 선택';
+
+  @override
+  String get eventTimePickerHourStep => '시';
+
+  @override
+  String get eventTimePickerMinuteStep => '분';
+
+  @override
+  String get eventTimePickerAm => '오전';
+
+  @override
+  String get eventTimePickerPm => '오후';
+
+  @override
+  String get eventTimePickerPrevStep => '이전 단계';
+
+  @override
+  String get eventTimePickerNextStep => '다음 단계';
+
+  @override
   String get eventTitleRequired => '일정 제목을 입력해 주세요';
 
   @override
