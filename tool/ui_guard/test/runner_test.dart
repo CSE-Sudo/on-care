@@ -140,6 +140,55 @@ Widget a() => const SizedBox(height: AppSpacing.sm, child: Text('a', style: Text
     expect(check().$1, 0);
   });
 
+  test('회원앱은 아이콘 목록 밖 아이콘을 잡고 목록 파일은 뺀다(#1803)', () {
+    expect(iconRegistryOf('frontend/flutter/'), 'lib/app/app_icons.dart');
+    expect(iconRegistryOf('frontend/flutter_trainer'), isNull);
+    write(
+      'lib/app/app_icons.dart',
+      'class AppIcons { static const home = Symbols.home_rounded; }\n',
+    );
+    write(
+      'lib/page.dart',
+      'Widget a() => Icon(Icons.close_rounded);\n'
+          'Widget b() => AppIcon(AppIcons.home);\n',
+    );
+    final counts = countFindings(
+      scanApp(
+        Directory('${root.path}/$app'),
+        iconRegistry: iconRegistryOf(app),
+      ),
+    );
+    expect(counts.containsKey('lib/app/app_icons.dart'), isFalse);
+    expect(counts['lib/page.dart'], {
+      Rule.iconOutsideRegistry: 1,
+      Rule.rawIcon: 1,
+    });
+
+    // 트레이너웹은 지금 규칙(_rounded) 그대로다.
+    const trainer = 'frontend/flutter_trainer';
+    File('${root.path}/$trainer/lib/page.dart')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        'Widget a() => Icon(Icons.close);\n'
+        'Widget b() => Icon(Icons.close_rounded);\n',
+      );
+    final trainerCounts = countFindings(
+      scanApp(
+        Directory('${root.path}/$trainer'),
+        iconRegistry: iconRegistryOf(trainer),
+      ),
+    );
+    expect(trainerCounts['lib/page.dart'], {Rule.nonRoundedIcon: 1});
+  });
+
+  test('check 는 회원앱 화면의 목록 밖 아이콘을 늘어난 것으로 본다', () {
+    update();
+    write('lib/new_page.dart', 'Widget a() => AppIcon(Icons.close_rounded);\n');
+    final (code, out) = check();
+    expect(code, 1);
+    expect(out, contains('lib/new_page.dart  iconOutsideRegistry: 0 → 1'));
+  });
+
   test('기준선의 모르는 항목 이름은 형식 오류다', () {
     expect(
       () => decodeBaseline('{"lib/a.dart": {"fontsize": 1}}'),

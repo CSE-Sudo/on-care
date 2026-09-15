@@ -36,11 +36,18 @@ dart run bin/ui_guard.dart update --allow-increase frontend/flutter  # 파일 �
 | `sizedBox` | 0 이 아닌 숫자 `SizedBox(width/height/dimension:)` · `Gap` |
 | `boxShadow` | `BoxShadow(` |
 | `animationDuration` | 숫자 `Duration(milliseconds:)` — `Future.delayed`·`Timer`·이름에 delay/debounce/timeout 등이 든 대기 시간은 제외 |
-| `nonRoundedIcon` | `_rounded` 가 아닌 `Icons.*` |
+| `nonRoundedIcon` | `_rounded` 가 아닌 `Icons.*` — 트레이너웹만 |
+| `iconOutsideRegistry` | 아이콘 목록(`AppIcons`) 밖의 `Icons.*` · `Symbols.*` — 회원앱만 |
+| `rawIcon` | `Icon(` 직접 생성(`AppIcon` 을 쓴다) — 회원앱만 |
 | `materialWidget` | `FilledButton` · `ElevatedButton` · `OutlinedButton` · `TextButton` · `IconButton` · `AlertDialog` · `Dialog` · `showDialog` · `showModalBottomSheet` · `TextField` · `TextFormField` · `DropdownButton*` · `ChoiceChip` · `FilterChip` · `SnackBar` · `CircularProgressIndicator` · `LinearProgressIndicator` · `Divider` · `PopupMenuButton` · `MenuAnchor` · `AppBar` |
 
 정규식이 아니라 구문 트리로 읽어 주석·문자열은 잡지 않습니다. 토큰으로 계산한 값에 숫자를 섞은 경우
 (`AppSpacing.md * 2`)도 숫자를 적은 것으로 봅니다.
+
+**아이콘(#1803)**: 회원앱(`frontend/flutter`)은 아이콘을 `lib/app/app_icons.dart` 한 곳(Material Symbols
+Rounded)에서만 고르고 `AppIcon` 으로 그립니다. 그래서 화면 코드의 `Icons.*` · `Symbols.*` · `Icon(` 을 잡고,
+목록 파일 자체는 아이콘을 보지 않습니다. 트레이너웹은 지금처럼 `nonRoundedIcon` 만 봅니다. 앱별 목록 파일은
+`lib/src/runner.dart` 의 `iconRegistries` 에 있습니다.
 
 **제외**: `lib/gen/**`, `lib/l10n/**`, `*.g.dart`, PDF 생성기(`member_report_pdf_generator.dart`,
 `report_pdf_generator.dart`), `shared/oncare_ui/**`.
