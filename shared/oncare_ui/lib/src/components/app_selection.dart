@@ -221,63 +221,84 @@ class AppSegmentedToggle<T> extends StatelessWidget {
         : thumb
         ? tokens.brand.primary
         : OnCareColors.textOnFill;
+    final EdgeInsets padding = EdgeInsets.symmetric(
+      horizontal: horizontalPadding,
+      // `thumb` 은 띠 높이를 꽉 채우고 안쪽 Row 가 세로 가운데에 선다.
+      vertical: thumb ? 0 : OnCareSize.segmentPaddingVertical,
+    );
+    final BoxDecoration decoration = BoxDecoration(
+      color: !selected
+          ? Colors.transparent
+          : thumb
+          ? OnCareColors.surfaceCard
+          : tokens.brand.primary,
+      borderRadius: OnCareRadius.pillAll,
+      boxShadow: thumb && selected
+          ? OnCareShadows.segmentThumb(tokens.brand.primary)
+          : null,
+    );
+    final Widget content = Row(
+      mainAxisSize: MainAxisSize.min,
+      // 폭을 나눠 받는 칸(`expand`)에서도 아이콘·라벨이 가운데에 선다.
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        if (segment.icon != null) ...<Widget>[
+          AppIcon(segment.icon, size: OnCareSize.iconSmall, color: foreground),
+          SizedBox(width: thumb ? OnCareSpacing.s8 : OnCareSpacing.s4),
+        ],
+        // 폭을 나눠 받는 칸(`expand`)에서만 줄임표가 생긴다. 내용만큼의
+        // 토글은 부모가 폭을 묶지 않아 라벨이 온전하다(#1182).
+        Flexible(
+          child: Text(
+            segment.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: tokens
+                .text(OnCareTypography.segment)
+                .copyWith(color: foreground),
+          ),
+        ),
+      ],
+    );
     return Semantics(
       button: true,
       selected: selected,
       inMutuallyExclusiveGroup: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onChanged(segment.value),
-        child: AnimatedContainer(
-          duration: OnCareMotion.normal,
-          curve: OnCareMotion.curve,
-          // `alignment` 를 주지 않는다 — 주면 칸이 부모 높이만큼 늘어나 글자에
-          // 맞춘 높이가 깨진다. 가운데 정렬은 안쪽 Row 가 맡는다.
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            // `thumb` 은 띠 높이를 꽉 채우고 안쪽 Row 가 세로 가운데에 선다.
-            vertical: thumb ? 0 : OnCareSize.segmentPaddingVertical,
-          ),
-          decoration: BoxDecoration(
-            color: !selected
-                ? Colors.transparent
-                : thumb
-                ? OnCareColors.surfaceCard
-                : tokens.brand.primary,
-            borderRadius: OnCareRadius.pillAll,
-            boxShadow: thumb && selected
-                ? OnCareShadows.segmentThumb(tokens.brand.primary)
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            // 폭을 나눠 받는 칸(`expand`)에서도 아이콘·라벨이 가운데에 선다.
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              if (segment.icon != null) ...<Widget>[
-                AppIcon(
-                  segment.icon,
-                  size: OnCareSize.iconSmall,
-                  color: foreground,
-                ),
-                SizedBox(width: thumb ? OnCareSpacing.s8 : OnCareSpacing.s4),
-              ],
-              // 폭을 나눠 받는 칸(`expand`)에서만 줄임표가 생긴다. 내용만큼의
-              // 토글은 부모가 폭을 묶지 않아 라벨이 온전하다(#1182).
-              Flexible(
-                child: Text(
-                  segment.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.segment)
-                      .copyWith(color: foreground),
+      // 트레이너웹(웹 밀도)은 `InkWell` 로 받는다 — 손가락 커서, 올림·누름
+      // 반응, Tab 포커스와 Enter 선택이 생긴다. 옮기기 전 트레이너웹 토글이
+      // 마우스 없이도 바꿀 수 있게 쓰던 방식이다(#1820). 회원앱은 이전처럼
+      // 탭만 받는다.
+      child: tokens.density.isWeb
+          ? AnimatedContainer(
+              duration: OnCareMotion.normal,
+              curve: OnCareMotion.curve,
+              decoration: decoration,
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  onTap: () => onChanged(segment.value),
+                  // 기본 커서는 플랫폼마다 달라진다 — 누를 수 있는 칸임을 늘
+                  // 손가락 커서로 보인다.
+                  mouseCursor: SystemMouseCursors.click,
+                  customBorder: const StadiumBorder(),
+                  // 여백을 물결 안쪽에 둔다 — 알약 전체가 누르는 자리다.
+                  child: Padding(padding: padding, child: content),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            )
+          : GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onChanged(segment.value),
+              child: AnimatedContainer(
+                duration: OnCareMotion.normal,
+                curve: OnCareMotion.curve,
+                // `alignment` 를 주지 않는다 — 주면 칸이 부모 높이만큼 늘어나
+                // 글자에 맞춘 높이가 깨진다. 가운데 정렬은 안쪽 Row 가 맡는다.
+                padding: padding,
+                decoration: decoration,
+                child: content,
+              ),
+            ),
     );
   }
 

@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -352,6 +354,85 @@ void main() {
           reason: '$label 아이콘이 라벨 왼쪽에 있어야 한다',
         );
       }
+    });
+  });
+
+  group('세그먼트 토글을 누르는 방식은 밀도를 따른다(#1820)', () {
+    Widget toggle(
+      ValueChanged<String> onChanged, {
+      AppSegmentedToggleStyle style = AppSegmentedToggleStyle.fill,
+    }) => AppSegmentedToggle<String>(
+      style: style,
+      selected: 'today',
+      onChanged: onChanged,
+      segments: const <AppSegment<String>>[
+        AppSegment<String>(value: 'today', label: '오늘'),
+        AppSegment<String>(value: 'week', label: '이번 주'),
+      ],
+    );
+
+    Finder wells() => find.descendant(
+      of: find.byType(AppSegmentedToggle<String>),
+      matching: find.byType(InkWell),
+    );
+
+    for (final AppSegmentedToggleStyle style
+        in AppSegmentedToggleStyle.values) {
+      testWidgets(
+        '${style.name}: 웹은 손가락 커서, Tab 포커스와 Enter 로 고른다',
+        (tester) async {
+          final List<String> picked = <String>[];
+          await _pump(
+            tester,
+            Align(
+              alignment: Alignment.topLeft,
+              child: toggle(picked.add, style: style),
+            ),
+            brand: OnCareBrand.trainer,
+            density: OnCareDensity.web,
+          );
+          expect(wells(), findsNWidgets(2));
+          // 알약 전체가 누르는 자리다 — 물결 칸이 칸 크기와 같다.
+          expect(
+            tester.getSize(wells().last),
+            tester.getSize(
+              find.ancestor(
+                of: find.text('이번 주'),
+                matching: find.byType(AnimatedContainer),
+              ),
+            ),
+          );
+
+          final TestGesture mouse = await tester.createGesture(
+            kind: PointerDeviceKind.mouse,
+            pointer: 1,
+          );
+          addTearDown(mouse.removePointer);
+          await mouse.addPointer(location: tester.getCenter(find.text('이번 주')));
+          await tester.pump();
+          expect(
+            RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
+            SystemMouseCursors.click,
+          );
+
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+          await tester.pump();
+          expect(picked, <String>['week']);
+        },
+      );
+    }
+
+    testWidgets('회원앱(모바일)은 이전처럼 탭만 받는다', (tester) async {
+      final List<String> picked = <String>[];
+      await _pump(
+        tester,
+        Align(alignment: Alignment.topLeft, child: toggle(picked.add)),
+      );
+      expect(wells(), findsNothing);
+      await tester.tap(find.text('이번 주'));
+      expect(picked, <String>['week']);
     });
   });
 
