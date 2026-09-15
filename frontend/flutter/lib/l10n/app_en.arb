@@ -1426,13 +1426,25 @@
   "@myPointsDietAdd": {
     "description": "Point-earning action in the points guide."
   },
-  "myPointsAiExercise": "Complete an AI-recommended workout",
-  "@myPointsAiExercise": {
-    "description": "Point-earning action in the points guide."
+  "myPointsRoutineComplete": "Complete a recommended or assigned workout",
+  "@myPointsRoutineComplete": {
+    "description": "Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer."
   },
   "myPointsExerciseAdd": "Log a workout yourself",
   "@myPointsExerciseAdd": {
     "description": "Point-earning action in the points guide."
+  },
+  "myPointsRuleWithDailyCap": "{action} ({count, plural, =1{once a day} other{up to {count} times a day}})",
+  "@myPointsRuleWithDailyCap": {
+    "description": "Point-earning action in the points guide with its daily earning limit, e.g. 'Log a meal (up to 3 times a day)'.",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "coachAssignedTrainer": "My trainer",
   "@coachAssignedTrainer": {
@@ -1648,5 +1660,14 @@
   "exDemoPtTrainerName": "Trainer Kim",
   "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "exStepperDecrease": "Decrease",
-  "exStepperIncrease": "Increase"
+  "exStepperIncrease": "Increase",
+  "pointsRewardBadge": "+{points}P",
+  "@pointsRewardBadge": {
+    "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  }
 }

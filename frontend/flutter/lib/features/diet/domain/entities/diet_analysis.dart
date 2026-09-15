@@ -1,3 +1,5 @@
+import 'package:oncare/core/points/points_award.dart';
+
 /// Result of POST /diet/analyze — the recognized foods + nutrition the
 /// server materialised (and already persisted as a diet entry).
 class RecognizedFood {
@@ -37,9 +39,13 @@ class DietAnalysisResult {
     this.totalCarbsG = 0,
     this.totalProteinG = 0,
     this.totalFatG = 0,
+    this.points,
   });
 
   final String entryId;
+
+  /// 이 끼니로 받은 포인트와 잔액(#1786). 이 필드를 모르는 서버면 null 이다.
+  final PointsAward? points;
   final List<RecognizedFood> foods;
   final int totalCalories;
   final int totalSodiumMg;
@@ -71,6 +77,7 @@ class DietAnalysisResult {
       totalProteinG: (analysis['total_protein_g'] as num?)?.toDouble() ?? 0,
       totalFatG: (analysis['total_fat_g'] as num?)?.toDouble() ?? 0,
       coachComment: (analysis['coach_comment'] as String?) ?? '',
+      points: PointsAward.fromJson(json['points']),
     );
   }
 }

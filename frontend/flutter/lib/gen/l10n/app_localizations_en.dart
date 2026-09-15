@@ -2388,10 +2388,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsDietAdd => 'Log a meal';
 
   @override
-  String get myPointsAiExercise => 'Complete an AI-recommended workout';
+  String get myPointsRoutineComplete =>
+      'Complete a recommended or assigned workout';
 
   @override
   String get myPointsExerciseAdd => 'Log a workout yourself';
+
+  @override
+  String myPointsRuleWithDailyCap(String action, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'up to $count times a day',
+      one: 'once a day',
+    );
+    return '$action ($_temp0)';
+  }
 
   @override
   String get coachAssignedTrainer => 'My trainer';
@@ -2615,4 +2627,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exStepperIncrease => 'Increase';
+
+  @override
+  String pointsRewardBadge(int points) {
+    return '+${points}P';
+  }
 }

@@ -46,6 +46,10 @@
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
+`activity_points`: 포인트 잔액(`health_profiles.activity_points`) 그대로다. 프로필 행이 없으면 0.
+예전에는 위험 문구(`risk_title`)가 없는 프로필에 데모 숫자 1240 을 지어 보냈다 — 이제 데모 회원의
+시작 잔액 1240 은 시드가 프로필에 넣는다. 적립 규칙은 아래 "활동 포인트" 절 참조. (#1786)
+
 `indicators[]`(체중·혈압·혈당 추이)는 **없다.** 바이탈 기능과 함께 제거됐다 — 아래
 "바이탈" 절 참조. 대시보드의 `indicators[]` 는 이름만 같고 칼로리·나트륨·당류로,
 전혀 다른 값이다.
@@ -64,7 +68,8 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
-| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis }` (분석과 동시에 diet_entries 저장) |
+| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float) }`
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
@@ -77,8 +82,9 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` |
-| POST | `/exercise/sessions` | 입력 `{ type, minutes(>0), calories, intensity(light\|moderate\|high), day_label? }` → 생성된 `sessions[]` 항목 |
-| PUT | `/exercise/sessions/{id}` | 입력 동일(부분 갱신) → 갱신된 항목 |
+| POST | `/exercise/sessions` | 입력 `{ type, minutes(>0), calories, intensity(light\|moderate\|high), day_label? }` → 생성된 `sessions[]` 항목 + `points` |
+| PUT | `/exercise/sessions/{id}` | 입력 동일(부분 갱신) → 갱신된 항목(`points` 없음) |
+| DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
 | POST | `/exercise/calories` | 입력 `{ type, name(필수), minutes(>0), intensity }` → `{ calories, source, matched_name }` |
 
 `sessions[]`: `{ id(str), day_label, type(cardio|strength|yoga|walking), minutes, calories, calorie_source, intensity(light|moderate|high), source(member|trainer_pt), date_label, time_label, items[str] }`
@@ -90,6 +96,29 @@
 `source`: 생략 시 `member`. `trainer_pt` 는 트레이너가 PT 세션을 완료 처리해 서버가 파생시킨 기록(id 는 `sched-ex-{session_id}`)으로, 근거가 트레이너에게 있어 **회원의 PUT/DELETE 는 409** 로 거절된다. 지우려면 트레이너가 그 세션을 삭제해야 하고 그러면 이 기록도 함께 사라진다. (#499)
 `day_labels`: `["월","화","수","목","금","토","일"]`
 `daily_calories`: 요일별 소모 칼로리(합 = `total_calories`). 홈 '주간 추이' 차트가 이 시리즈를 읽으며, 비어 있으면 클라이언트가 데모 상수로 폴백한다.
+
+### 활동 포인트 (#1786)
+
+잔액은 `health_profiles.activity_points`, 움직임은 `points_ledger`(적립 `earn`·사용 `spend`·회수 `revoke`)에
+한 줄씩 남는다. 둘은 같은 트랜잭션에서 함께 바뀐다. 사용처(쿠폰 등)는 아직 없다.
+
+| 규칙(`reason`) | 언제 | 포인트 | 하루 한도 |
+|---|---|---|---|
+| `diet_entry` | `POST /diet/analyze` 로 끼니가 새로 저장될 때 | +50 | 3회 |
+| `exercise_manual` | `POST /exercise/sessions` (회원이 직접 추가) | +20 | 3회 |
+| `routine_complete` | `POST /me/coach/routines/{id}/complete` — AI 추천(`source: "ai"`)·트레이너 배정(`source: "trainer"`) 모두 | +50 | 1회(두 출처 합산) |
+
+생성 응답의 `points`: `{ awarded(int), balance(int) }` — 이번에 받은 포인트와 그 뒤의 잔액.
+
+- **하루**는 KST 달력 날짜다. 한도를 넘으면 기록은 저장되고 `awarded: 0` 이다.
+- **같은 기록은 한 번만** 받는다(`(user_id, kind, source_type, source_id)` 유니크). 멱등키 재시도·완료
+  재전송은 새로 적립하지 않고 처음 받은 `awarded` 를 그대로 싣는다.
+- **기록을 지우면 회수**한다(`DELETE /diet/entries/{id}`, `DELETE /exercise/sessions/{id}`,
+  `DELETE /me/coach/routines/{id}/complete`). 잔액은 0 아래로 내려가지 않는다 — 모자라면 남은 만큼만
+  빼고 내역에 실제로 뺀 값을 적는다. 회수된 적립은 그날 한도에서 빠진다. 다시 만든 기록은 새 기록이다.
+- 배정 루틴 완료 응답은 `RoutineOut` + `points` 다. 앱의 안내 문구는 `추천·배정 운동 완료` 로, AI 추천과
+  트레이너 배정이 **하루 1회를 함께** 쓴다 — 배정 루틴으로 받은 날은 AI 루틴을 완료해도 `awarded: 0`.
+  목록·수정 응답에는 `points` 가 붙지 않는다.
 
 ### 일정 (캘린더 상세 CRUD)
 
