@@ -11,22 +11,42 @@ import 'package:oncare/features/notification/domain/repositories/notification_re
 /// 없으면 데모에서는 눌러도 읽음 처리만 되어, 구현돼 있는 이동 기능이 없는 것처럼
 /// 보인다(#667). 목록의 생김새는 달라지지 않는다: `action` 은 그려지지 않는다.
 const List<AlertItem> demoAlerts = <AlertItem>[
+  // 문구의 수치는 데모 픽스처의 오늘 식단(아침·점심 짬뽕·간식) 합계와 같다.
   AlertItem(
     id: 'a1',
     title: '나트륨 섭취 주의',
-    body: '점심 짬뽕으로 오늘 나트륨이 3,421mg까지 올랐어요. 물을 충분히 드세요.',
+    body: '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.',
     timeAgo: '10분 전',
     category: AlertCategory.reminder,
     action: AlertAction(label: '식단 보기', target: AlertTarget.diet),
   ),
-  // 트레이너가 보낸 루틴 — 회원이 알림에서 바로 운동 탭으로 이어진다(#1812).
+  // 오늘 식단에는 저녁이 없다 — 기록 독려는 오늘 저녁 알림이다.
+  AlertItem(
+    id: 'a8',
+    title: '저녁 식단을 기록해 주세요',
+    body: '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.',
+    timeAgo: '20분 전',
+    category: AlertCategory.reminder,
+    action: AlertAction(label: '식단 기록하기', target: AlertTarget.diet),
+  ),
+  // 트레이너 채팅의 `런닝 대신 걷기로 조정` 과 같은 루틴이다. 알림에서 바로 운동 탭으로 이어진다(#1812).
   AlertItem(
     id: 'a5',
     title: '새 운동 루틴이 도착했어요',
-    body: '김트레이너님이 내일 할 하체 루틴을 보냈어요.',
+    body: '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.',
     timeAgo: '30분 전',
     category: AlertCategory.reminder,
     action: AlertAction(label: '운동 보기', target: AlertTarget.exercise),
+  ),
+  // 주간 리포트는 트레이너 채팅의 리포트 카드로 온다 — 알림도 그 대화로 잇는다.
+  // 주차는 날짜에서 계산되므로 문구에 박지 않는다.
+  AlertItem(
+    id: 'a7',
+    title: '이번 주 리포트가 등록됐어요',
+    body: '김트레이너님이 이번 주 리포트를 등록했어요.',
+    timeAgo: '45분 전',
+    category: AlertCategory.achievement,
+    action: AlertAction(label: '리포트 보기', target: AlertTarget.coachChat),
   ),
   AlertItem(
     id: 'a2',
@@ -44,36 +64,19 @@ const List<AlertItem> demoAlerts = <AlertItem>[
     category: AlertCategory.reminder,
     action: AlertAction(label: '대화 보기', target: AlertTarget.coachChat),
   ),
+  // 이번 주 운동 시간은 요일마다 달라지므로 남은 분을 숫자로 박지 않는다.
   AlertItem(
     id: 'a6',
-    title: '내일 PT 일정이 있어요',
-    body: '내일 18:00 김트레이너와 13회차 PT가 예정돼 있어요.',
+    title: '이번 주 운동 목표까지 조금 남았어요',
+    body: '저강도 유산소(걷기) 30분부터 채워 봐요.',
     timeAgo: '3시간 전',
     category: AlertCategory.reminder,
-    action: AlertAction(label: '일정 보기', target: AlertTarget.schedule),
-  ),
-  // 주간 리포트는 트레이너 채팅의 리포트 카드로 온다 — 알림도 그 대화로 잇는다.
-  AlertItem(
-    id: 'a7',
-    title: '이번 주 리포트가 등록됐어요',
-    body: '김트레이너님이 9월 2주차 리포트를 보냈어요.',
-    timeAgo: '5시간 전',
-    category: AlertCategory.achievement,
-    action: AlertAction(label: '리포트 보기', target: AlertTarget.coachChat),
-  ),
-  AlertItem(
-    id: 'a8',
-    title: '저녁 식단을 기록해 주세요',
-    body: '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.',
-    timeAgo: '어제',
-    category: AlertCategory.reminder,
-    read: true,
-    action: AlertAction(label: '식단 기록하기', target: AlertTarget.diet),
+    action: AlertAction(label: '운동 보기', target: AlertTarget.exercise),
   ),
   AlertItem(
     id: 'a9',
-    title: '7일 연속 기록 달성!',
-    body: '일주일 동안 하루도 빠짐없이 식단을 기록했어요.',
+    title: '식단 기록을 꾸준히 이어가고 있어요',
+    body: '한 달 넘게 하루도 빠짐없이 식단을 기록하고 있어요.',
     timeAgo: '어제',
     category: AlertCategory.achievement,
     read: true,
@@ -88,15 +91,6 @@ const List<AlertItem> demoAlerts = <AlertItem>[
     read: true,
     // 갈 곳을 일부러 주지 않는다. **목적지 없는 알림이 목록에서 사라지거나
     // 엉뚱한 곳으로 가지 않는지**를 데모에서도 볼 수 있어야 한다.
-  ),
-  AlertItem(
-    id: 'a10',
-    title: '이번 주 운동 목표 80% 달성',
-    body: '남은 이틀 동안 유산소 40분이면 목표를 채워요.',
-    timeAgo: '2일 전',
-    category: AlertCategory.achievement,
-    read: true,
-    action: AlertAction(label: '운동 보기', target: AlertTarget.exercise),
   ),
 ];
 
