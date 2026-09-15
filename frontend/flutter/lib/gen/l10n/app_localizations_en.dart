@@ -2551,6 +2551,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertLoadFailed => 'Couldn\'t load the latest notifications';
 
   @override
+  String get alertTimeJustNow => 'Just now';
+
+  @override
+  String alertTimeMinutesAgo(int minutes) {
+    return '${minutes}m ago';
+  }
+
+  @override
+  String alertTimeHoursAgo(int hours) {
+    return '${hours}h ago';
+  }
+
+  @override
+  String get alertTimeYesterday => 'Yesterday';
+
+  @override
+  String alertTimeDaysAgo(int days) {
+    return '${days}d ago';
+  }
+
+  @override
+  String get demoAlertSodiumTitle => 'Watch your sodium';
+
+  @override
+  String get demoAlertSodiumBody =>
+      'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.';
+
+  @override
+  String get demoAlertDinnerTitle => 'Log your dinner';
+
+  @override
+  String get demoAlertDinnerBody =>
+      'No dinner logged yet today. One photo is all it takes.';
+
+  @override
+  String get demoAlertRoutineTitle => 'A new workout routine arrived';
+
+  @override
+  String get demoAlertRoutineBody =>
+      'Trainer Kim adjusted it to a walking routine for your knee.';
+
+  @override
+  String get demoAlertReportTitle => 'This week\'s report is ready';
+
+  @override
+  String get demoAlertReportBody =>
+      'Trainer Kim posted your report for this week.';
+
+  @override
+  String get demoAlertPtDoneTitle => 'PT session complete';
+
+  @override
+  String get demoAlertPtDoneBody =>
+      'You finished PT session 12 with Trainer Kim at 18:00 today!';
+
+  @override
+  String get demoAlertTrainerFeedbackTitle => 'Feedback from your trainer';
+
+  @override
+  String get demoAlertTrainerFeedbackBody =>
+      'Be sure to stretch your rotator cuff to finish.';
+
+  @override
+  String get demoAlertWeeklyGoalTitle => 'Almost at this week\'s workout goal';
+
+  @override
+  String get demoAlertWeeklyGoalBody =>
+      'Start with 30 minutes of low-intensity cardio (walking).';
+
+  @override
+  String get demoAlertMealStreakTitle => 'You\'re keeping up your meal log';
+
+  @override
+  String get demoAlertMealStreakBody =>
+      'You\'ve logged your meals every day for over a month.';
+
+  @override
+  String get demoAlertMaintenanceTitle => 'Scheduled maintenance';
+
+  @override
+  String get demoAlertMaintenanceBody =>
+      'Maintenance is scheduled for tomorrow, 02:00–03:00.';
+
+  @override
   String get exPtLogTitle => 'Today\'s completed PT';
 
   @override

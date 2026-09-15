@@ -18,7 +18,8 @@ void main() {
     addTearDown(container.dispose);
 
     final list = await container.read(notificationListProvider.future);
-    expect(list.length, 4);
+    // 데모 목록을 그대로 돌려준다 — 건수를 박지 않고 목록을 따른다(#1812).
+    expect(list.length, demoAlerts.length);
     expect(list.first.id, 'a1');
     // Mix of read/unread for the unreadCount badge logic to lean on.
     expect(list.any((e) => !e.read), isTrue);
@@ -38,10 +39,7 @@ void _demoReadStateTests() {
     await repo.markAllRead();
 
     expect(await repo.unreadCount(), 0);
-    expect(
-      (await repo.fetchPage()).every((AlertItem a) => a.read),
-      isTrue,
-    );
+    expect((await repo.fetchPage()).every((AlertItem a) => a.read), isTrue);
   });
 
   test('데모에서 한 건 읽으면 그만큼만 줄어든다', () async {

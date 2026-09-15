@@ -80,6 +80,33 @@ void main() {
   });
 
   group('fetchPage', () {
+    // 로컬 목 모드의 데모 시드만 문구 키를 준다. 없으면 null 이다(#1812).
+    test('문구 키가 있으면 옮기고 없으면 비워 둔다', () async {
+      final repo = DioNotificationRepository(
+        _dio(<Object?>[
+          <String, Object?>{
+            'id': 'seed-noti-1',
+            'title': '나트륨 섭취 주의',
+            'body': '본문',
+            'time_ago': '10분 전',
+            'category': 'reminder',
+            'message_key': 'sodium',
+          },
+          <String, Object?>{
+            'id': 'n2',
+            'title': '제목',
+            'body': '본문',
+            'time_ago': '방금',
+            'category': 'system',
+          },
+        ]),
+      );
+
+      final List<AlertItem> items = await repo.fetchPage();
+      expect(items.first.messageKey, 'sodium');
+      expect(items.last.messageKey, isNull);
+    });
+
     test('서버가 준 action 을 이동 경로로 옮긴다', () async {
       final repo = DioNotificationRepository(
         _dio(<Object?>[

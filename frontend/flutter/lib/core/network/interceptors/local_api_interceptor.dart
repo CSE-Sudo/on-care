@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         Value;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
+import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
@@ -1841,6 +1842,9 @@ class LocalApiInterceptor extends Interceptor {
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
           'time_ago': _timeAgoKorean(now.difference(r.createdAt)),
+          // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
+          // 고른다. 시드 밖의 알림은 키가 없다(#1812).
+          'message_key': ?kDemoAlertKeyBySeedId[r.id],
         },
     ];
     return _ok(options, list);
