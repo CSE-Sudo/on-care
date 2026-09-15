@@ -2234,18 +2234,6 @@ abstract class AppLocalizations {
   /// **'Member feedback'**
   String get clientFeedback;
 
-  /// No description provided for @clientFeedbackOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Member feedback on {name}'**
-  String clientFeedbackOn(String name);
-
-  /// No description provided for @clientFeedbackPersonal.
-  ///
-  /// In en, this message translates to:
-  /// **'Member feedback on this personal exercise'**
-  String get clientFeedbackPersonal;
-
   /// No description provided for @clientFeedbackSession.
   ///
   /// In en, this message translates to:

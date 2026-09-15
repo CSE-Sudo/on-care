@@ -2408,11 +2408,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineCancelFailed => '개인 운동을 취소하지 못했어요';
 
   @override
-  String coachRoutineMyNote(String note) {
-    return '내 피드백: $note';
-  }
-
-  @override
   String coachRoutineTrainerFeedback(String feedback) {
     return '트레이너 피드백: $feedback';
   }
@@ -2431,12 +2426,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachIntensityHigh => '높음';
-
-  @override
-  String get coachRoutineNoteLabel => '피드백(선택)';
-
-  @override
-  String get coachRoutineNoteHint => '힘들었던 점이나 몸 상태를 남겨 보세요';
 
   @override
   String get coachRoutineSubmit => '완료 기록';

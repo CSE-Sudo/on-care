@@ -451,8 +451,6 @@
   "programNone": "등록된 프로그램 없음",
   "legendDone": "완료",
   "clientFeedback": "회원 피드백",
-  "clientFeedbackOn": "{name}에 대한 회원 피드백",
-  "clientFeedbackPersonal": "개인 운동에 대한 회원 피드백",
   "clientFeedbackSession": "이 세션에 대한 회원 피드백",
   "workoutKindAiPersonal": "AI 개인운동",
   "trainerNote": "트레이너 메모",

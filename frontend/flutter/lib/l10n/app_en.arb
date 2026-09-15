@@ -1562,15 +1562,6 @@
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
   },
-  "coachRoutineMyNote": "My feedback: {note}",
-  "@coachRoutineMyNote": {
-    "description": "The member's own note on a completed routine.",
-    "placeholders": {
-      "note": {
-        "type": "String"
-      }
-    }
-  },
   "coachRoutineTrainerFeedback": "Trainer feedback: {feedback}",
   "@coachRoutineTrainerFeedback": {
     "description": "The trainer's feedback on a completed routine.",
@@ -1599,14 +1590,6 @@
   "coachIntensityHigh": "High",
   "@coachIntensityHigh": {
     "description": "Intensity option."
-  },
-  "coachRoutineNoteLabel": "Feedback (optional)",
-  "@coachRoutineNoteLabel": {
-    "description": "Field label in the completion dialog."
-  },
-  "coachRoutineNoteHint": "Share how it felt or how your body is doing",
-  "@coachRoutineNoteHint": {
-    "description": "Hint of the note field in the completion dialog."
   },
   "coachRoutineSubmit": "Save",
   "@coachRoutineSubmit": {

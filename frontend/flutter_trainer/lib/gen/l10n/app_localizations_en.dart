@@ -1210,15 +1210,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientFeedback => 'Member feedback';
 
   @override
-  String clientFeedbackOn(String name) {
-    return 'Member feedback on $name';
-  }
-
-  @override
-  String get clientFeedbackPersonal =>
-      'Member feedback on this personal exercise';
-
-  @override
   String get clientFeedbackSession => 'Member feedback on this session';
 
   @override

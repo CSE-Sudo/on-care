@@ -1246,7 +1246,8 @@ def _routine_out(
         completed_at=completion.completed_at if completion is not None else None,
         completed_minutes=completion.minutes if completion is not None else None,
         completed_intensity=completion.intensity if completion is not None else None,
-        member_note=completion.member_note if completion is not None else "",
+        # 개인 운동 회원 피드백은 없앴다(#1825). 응답 모양은 옛 앱을 위해 남긴다.
+        member_note="",
         trainer_feedback=(
             completion.trainer_feedback if completion is not None else ""
         ),
@@ -1465,7 +1466,6 @@ def complete_assigned_routine(
     reps: int | None = None,
     weight: float | None = None,
     intensity: str,
-    member_note: str,
 ) -> RoutineCompleteOut:
     """배정 하나를 회원 운동 기록 한 건으로 완료한다.
 
@@ -1534,7 +1534,8 @@ def complete_assigned_routine(
         assigned_routine_id=routine.id,
         assigned_trainer_id=trainer_id,
         assigned_routine_name=routine.name,
-        member_note=member_note.strip(),
+        # 개인 운동 피드백은 받지 않는다(#1825) — 불편은 채팅에서 감지한다.
+        member_note="",
         completed_at=completed_at,
     )
     db.add(row)
@@ -1681,7 +1682,8 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
             )
             + f" · {row.intensity}"
         ],
-        client_feedback=row.member_note,
+        # 개인 운동 회원 피드백은 없앴다(#1825). 옛 데이터가 있어도 내려보내지 않는다.
+        client_feedback="",
         trainer_note=row.trainer_feedback,
         assigned_routine_id=row.assigned_routine_id,
         completed_at=completed_at,

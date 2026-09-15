@@ -4494,12 +4494,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t cancel the workout'**
   String get coachRoutineCancelFailed;
 
-  /// The member's own note on a completed routine.
-  ///
-  /// In en, this message translates to:
-  /// **'My feedback: {note}'**
-  String coachRoutineMyNote(String note);
-
   /// The trainer's feedback on a completed routine.
   ///
   /// In en, this message translates to:
@@ -4535,18 +4529,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'High'**
   String get coachIntensityHigh;
-
-  /// Field label in the completion dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Feedback (optional)'**
-  String get coachRoutineNoteLabel;
-
-  /// Hint of the note field in the completion dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Share how it felt or how your body is doing'**
-  String get coachRoutineNoteHint;
 
   /// Submit button of the completion dialog.
   ///

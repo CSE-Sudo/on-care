@@ -36,7 +36,6 @@ class CoachRoutine {
     this.completedAt,
     this.completedMinutes,
     this.completedIntensity,
-    this.memberNote = '',
     this.trainerFeedback = '',
     this.programName = '',
     this.sessionName = '',
@@ -61,7 +60,6 @@ class CoachRoutine {
   final DateTime? completedAt;
   final int? completedMinutes;
   final String? completedIntensity;
-  final String memberNote;
   final String trainerFeedback;
 
   /// 여러 세션으로 짜인 프로그램의 이름. 단일 루틴은 빈 문자열이다(#709).
@@ -87,7 +85,6 @@ class CoachRoutine {
     DateTime? completedAt,
     int? completedMinutes,
     String? completedIntensity,
-    String? memberNote,
     String? trainerFeedback,
     PointsAward? pointsAward,
   }) => CoachRoutine(
@@ -101,7 +98,6 @@ class CoachRoutine {
     completedAt: completedAt ?? this.completedAt,
     completedMinutes: completedMinutes ?? this.completedMinutes,
     completedIntensity: completedIntensity ?? this.completedIntensity,
-    memberNote: memberNote ?? this.memberNote,
     trainerFeedback: trainerFeedback ?? this.trainerFeedback,
     // 완료만 표시해도 프로그램·세션·운동 구성은 그대로 남아야 한다 — 빠뜨리면
     // 완료를 누른 순간 화면에서 프로그램 제목과 운동이 사라진다(#709).
