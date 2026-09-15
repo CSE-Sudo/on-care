@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -50,7 +51,7 @@ void main() {
       find.byType(AppSectionHeader).first,
     );
     // 트레이너웹 고객 식단이 쓰는 아이콘과 같은 모양이다.
-    expect(title.icon, Icons.restaurant_rounded);
+    expect(title.icon, AppIcons.diet);
     expect(find.text(title.title), findsWidgets);
   });
 

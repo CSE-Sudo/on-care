@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
@@ -47,7 +48,7 @@ class CoachReportCard extends StatelessWidget {
     // 구조는 같고, 눌러 열 것이 있는 안내라 테두리로 한 단계 더 드러낸다.
     return CoachChatNotice(
       style: CoachChatNoticeStyle.outlined,
-      icon: Icons.description_rounded,
+      icon: AppIcons.document,
       title: l.coachChatReportRegistered,
       subtitle: range,
       actionLabel: l.coachChatReportPreviewPdf,

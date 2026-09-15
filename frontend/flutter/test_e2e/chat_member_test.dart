@@ -14,6 +14,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:oncare/app/app_icons.dart';
 
 import 'support/e2e_harness.dart';
 
@@ -40,10 +41,11 @@ void main() {
           fromMember,
         );
         // 전송 버튼은 공용 입력줄(`AppChatInputBar`) 안의 아이콘 버튼이다(#1702).
+        // 회원앱은 아이콘 세트(#1803)의 전송 아이콘으로 그린다.
         await tester.tap(
           find.descendant(
             of: find.byKey(const ValueKey<String>('member-chat-input')),
-            matching: find.byIcon(Icons.arrow_upward_rounded),
+            matching: find.byIcon(AppIcons.send),
           ),
         );
 

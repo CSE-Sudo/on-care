@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -78,7 +80,7 @@ void main() {
   testWidgets('헤더에 동작 없는 더보기 버튼을 그리지 않는다', (WidgetTester tester) async {
     await pumpPage(tester);
 
-    expect(find.byIcon(Icons.more_horiz), findsNothing);
+    expect(find.byIcon(Symbols.more_horiz_rounded), findsNothing);
   });
 
   testWidgets('입력창에 동작 없는 추가 버튼을 그리지 않는다', (WidgetTester tester) async {
@@ -86,8 +88,8 @@ void main() {
 
     // 보내기 버튼을 함께 확인한다 — 입력창이 그려지지도 않았는데 findsNothing
     // 이라 통과하는 빈 검사가 되지 않도록.
-    expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
-    expect(find.byIcon(Icons.add), findsNothing);
+    expect(find.byIcon(AppIcons.send), findsOneWidget);
+    expect(find.byIcon(AppIcons.add), findsNothing);
   });
 
   // 점 세 개만 깜빡이면 무엇을 기다리는지 알 수 없다(#1180).
@@ -131,6 +133,6 @@ void main() {
     await pumpPage(tester);
 
     // 죽은 버튼을 지우면서 뒤로 가기까지 함께 지우는 실수를 막는다.
-    expect(find.byIcon(Icons.chevron_left_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.back), findsOneWidget);
   });
 }

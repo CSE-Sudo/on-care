@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -298,7 +299,7 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
             data: (DietDay day) => !atToday && day.entries.isEmpty
                 ? AppEmptyState(
                     title: l.otherDateEmpty(l.pageDietTitle),
-                    icon: Icons.restaurant_rounded,
+                    icon: AppIcons.diet,
                     placement: AppStatePlacement.card,
                   )
                 : NutritionSummary(
@@ -364,9 +365,9 @@ class _BellButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.notifications_none_rounded,
+          icon: AppIcons.notifications,
           tooltip: AppLocalizations.of(context).pageNotificationTitle,
-          variant: AppIconButtonVariant.tonal,
+          color: context.oncare.brand.primary,
           onPressed: onTap,
         ),
         if (hasUnread)
@@ -422,7 +423,7 @@ class _NutritionSectionHeader extends StatelessWidget {
           Flexible(
             child: AppSectionHeader(
               title: l.dietNutritionSummary,
-              icon: Icons.restaurant_rounded,
+              icon: AppIcons.diet,
             ),
           ),
           // 토글 몫을 제목보다 넓게 잡는다 — 기간 라벨은 줄면 무엇을 고르는
@@ -492,60 +493,27 @@ class _DateStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            // 영어의 날짜 라벨은 한국어보다 훨씬 길다. 고정 폭으로 두면 좁은
-            // 화면에서 오늘 버튼을 밀어내며 넘친다(#743).
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: OnCareSpacing.s8,
-                ),
-                child: Text(
-                  weekLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.oncare
-                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-              ),
-            ),
-            if (showTodayButton) ...<Widget>[
-              const SizedBox(width: OnCareSpacing.s8),
-              // 기간 토글이 오늘이 아닌 날에는 사라지므로, 되돌아오는 길은 이
-              // 버튼 하나다 — 테스트가 그 길을 지목할 수 있어야 한다(#912).
-              AppButton(
-                key: const ValueKey<String>('diet-today-button'),
-                label: l.dietToday,
-                onPressed: onToday,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        // 이전/다음 주 꺾쇠는 날짜 줄 양옆에 둔다 — 날짜 숫자와 같은 높이.
-        AppWeekStrip(
-          days: days,
-          weekdayLabels: <String>[
-            for (final DateTime d in days) _weekdayLabel(l, d.weekday),
-          ],
-          selected: selected,
-          today: today,
-          onSelected: onSelect,
-          // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다.
-          lastSelectableDay: today,
-          previousTooltip: l.a11yPrevWeek,
-          nextTooltip: l.a11yNextWeek,
-          onPrevious: onPrev,
-          onNext: onNext,
-        ),
+    // 위에 주 라벨과 `오늘` 알약, 아래에 양옆 원형 꺾쇠를 둔 날짜 줄(#1778).
+    return AppWeekStrip(
+      label: weekLabel,
+      todayLabel: l.dietToday,
+      onToday: showTodayButton ? onToday : null,
+      // 기간 토글이 오늘이 아닌 날에는 사라지므로, 되돌아오는 길은 이 알약
+      // 하나다 — 테스트가 그 길을 지목할 수 있어야 한다(#912).
+      todayKey: const ValueKey<String>('diet-today-button'),
+      days: days,
+      weekdayLabels: <String>[
+        for (final DateTime d in days) _weekdayLabel(l, d.weekday),
       ],
+      selected: selected,
+      today: today,
+      onSelected: onSelect,
+      // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다(#1765).
+      lastSelectableDay: today,
+      previousTooltip: l.a11yPrevWeek,
+      nextTooltip: l.a11yNextWeek,
+      onPrevious: onPrev,
+      onNext: onNext,
     );
   }
 }
@@ -641,10 +609,7 @@ class NutritionSummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         if (showHeader) ...<Widget>[
-          AppSectionHeader(
-            title: l.dietNutritionSummary,
-            icon: Icons.restaurant_rounded,
-          ),
+          AppSectionHeader(title: l.dietNutritionSummary, icon: AppIcons.diet),
           const SizedBox(height: OnCareSpacing.s12),
         ],
         // 카드는 하나다 (#1120). 나트륨·당류를 따로 뗀 카드에 두었더니
@@ -1195,7 +1160,7 @@ class _MealLog extends StatelessWidget {
               label: l.dietAddMeal,
               onPressed: onAdd,
               size: OnCareButtonSize.small,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
             ),
           ],
         ),
@@ -1203,7 +1168,7 @@ class _MealLog extends StatelessWidget {
         if (entries.isEmpty)
           AppEmptyState(
             title: l.dietEmptyLog,
-            icon: Icons.restaurant_rounded,
+            icon: AppIcons.diet,
             placement: AppStatePlacement.card,
           )
         else
@@ -1278,8 +1243,8 @@ class _MealCard extends StatelessWidget {
               // 카드 전체가 눌린다.
               Tooltip(
                 message: l.dietEditMeal,
-                child: Icon(
-                  Icons.edit_rounded,
+                child: AppIcon(
+                  AppIcons.edit,
                   size: OnCareSize.iconSmall,
                   color: OnCareColors.textTertiary,
                   semanticLabel: l.dietEditMeal,
@@ -1441,8 +1406,8 @@ class _MealAiNote extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Icon(
-              Icons.auto_awesome_rounded,
+            AppIcon(
+              AppIcons.ai,
               size: OnCareSize.iconSmall,
               color: tokens.brand.primary,
             ),

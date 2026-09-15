@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/utils/preferred_time_format.dart';
@@ -33,7 +34,7 @@ class ConsultationCompletePage extends StatelessWidget {
           ? <Widget>[
               AppEmptyState(
                 title: l.exConsultTargetNotFound,
-                icon: Icons.info_rounded,
+                icon: AppIcons.info,
               ),
             ]
           : _completionChildren(context, l, consultation),
@@ -59,13 +60,15 @@ class ConsultationCompletePage extends StatelessWidget {
         child: Container(
           width: _completionBadgeSize,
           height: _completionBadgeSize,
+          // 아이콘 배경 투명 규칙(#1781)의 예외다 — 이 원은 아이콘 칸이 아니라
+          // 요청이 끝났음을 알리는 완료 표시라, 옅은 브랜드 원을 그대로 둔다.
           decoration: BoxDecoration(
             color: tokens.brand.surface,
             shape: BoxShape.circle,
           ),
           alignment: Alignment.center,
-          child: Icon(
-            Icons.check_rounded,
+          child: AppIcon(
+            AppIcons.check,
             size: OnCareSize.iconEmptyState,
             color: tokens.brand.primary,
           ),

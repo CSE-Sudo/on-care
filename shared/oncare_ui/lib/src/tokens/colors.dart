@@ -31,10 +31,11 @@ class OnCareColors {
   /// 페이지 배경. 두 앱 공통(#1690 확정).
   static const Color surfacePage = Color(0xFFF5F7FA);
 
-  /// 카드·다이얼로그·시트.
+  /// 카드·다이얼로그·시트·입력칸 채움(#1776).
   static const Color surfaceCard = Color(0xFFFFFFFF);
 
-  /// 입력 채움·진행 트랙·세그먼트 트랙.
+  /// 진행 트랙·비활성 채움(비활성 입력칸 포함). 활성 입력칸은 흰 채움이다(#1776).
+  /// 세그먼트 트랙은 브랜드별 값(`OnCareBrand.segmentTrack`)이다.
   static const Color surfaceInput = Color(0xFFF2F4F7);
 
   // --- 선 ---
@@ -82,11 +83,31 @@ class OnCareColors {
   static const Color chartGoalLine = Color(0xFF98A2B3);
 
   // --- 외부 브랜드(예외) ---
-  /// 카카오 로그인 버튼 바탕.
+  // 로그인 버튼의 계정 회사 색은 각 회사 가이드 값을 그대로 쓴다(#1783).
+
+  /// 카카오 로그인 버튼 바탕 — 카카오 로그인 디자인 가이드의 컨테이너 색.
   static const Color kakaoYellow = Color(0xFFFEE500);
 
-  /// 카카오 로그인 버튼 글자.
-  static const Color kakaoLabel = Color(0xFF191600);
+  /// 카카오 말풍선 심볼 색 — 카카오 로그인 디자인 가이드의 심볼 색.
+  static const Color kakaoSymbol = Color(0xFF000000);
+
+  /// 구글 로그인 버튼 바탕 — Google Identity 브랜딩 가이드 라이트 테마 채움.
+  static const Color googleButtonFill = Color(0xFFFFFFFF);
+
+  /// 구글 로그인 버튼 테두리(1px, 안쪽) — 같은 가이드의 라이트 테마 선 색.
+  static const Color googleButtonStroke = Color(0xFF747775);
+
+  /// 구글 `G` 로고 네 색 — 파랑.
+  static const Color googleBlue = Color(0xFF4285F4);
+
+  /// 구글 `G` 로고 네 색 — 빨강.
+  static const Color googleRed = Color(0xFFEA4335);
+
+  /// 구글 `G` 로고 네 색 — 노랑.
+  static const Color googleYellow = Color(0xFFFBBC05);
+
+  /// 구글 `G` 로고 네 색 — 초록.
+  static const Color googleGreen = Color(0xFF34A853);
 
   /// [color] 를 흰 바탕 위에 [alpha] 만큼 얹은 **불투명** 색.
   ///

@@ -3,14 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:oncare_ui/src/tokens/brand.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
+import 'package:oncare_ui/src/tokens/icons.dart';
 
-/// 테마에 실린 브랜드·밀도. 컴포넌트는 앱 이름으로 분기하지 않고 이것만 읽는다.
+/// 테마에 실린 브랜드·밀도·아이콘 묶음. 컴포넌트는 앱 이름으로 분기하지 않고
+/// 이것만 읽는다.
 @immutable
 class OnCareTokens extends ThemeExtension<OnCareTokens> {
-  const OnCareTokens({required this.brand, required this.density});
+  const OnCareTokens({
+    required this.brand,
+    required this.density,
+    this.icons = OnCareIconSet.material,
+  });
 
   final OnCareBrand brand;
   final OnCareDensity density;
+
+  /// 공용 컴포넌트가 그리는 아이콘 묶음(#1803). 트레이너웹은 기본 묶음이다.
+  final OnCareIconSet icons;
 
   /// 화면이 쓰는 역할 글자. 전역 글자 배율이 없어져(#1707) 역할 크기 그대로다 —
   /// 글자를 그리는 곳이 한 통로를 지나도록 남겨 둔다.
@@ -22,23 +31,30 @@ class OnCareTokens extends ThemeExtension<OnCareTokens> {
       density.isWeb ? OnCareColors.surfacePage : OnCareColors.surfaceCard;
 
   @override
-  OnCareTokens copyWith({OnCareBrand? brand, OnCareDensity? density}) =>
-      OnCareTokens(
-        brand: brand ?? this.brand,
-        density: density ?? this.density,
-      );
+  OnCareTokens copyWith({
+    OnCareBrand? brand,
+    OnCareDensity? density,
+    OnCareIconSet? icons,
+  }) => OnCareTokens(
+    brand: brand ?? this.brand,
+    density: density ?? this.density,
+    icons: icons ?? this.icons,
+  );
 
-  /// 브랜드·밀도는 연속값이 아니라 중간이 없다.
+  /// 브랜드·밀도·아이콘 묶음은 연속값이 아니라 중간이 없다.
   @override
   OnCareTokens lerp(covariant OnCareTokens? other, double t) =>
       t < 0.5 || other == null ? this : other;
 
   @override
   bool operator ==(Object other) =>
-      other is OnCareTokens && other.brand == brand && other.density == density;
+      other is OnCareTokens &&
+      other.brand == brand &&
+      other.density == density &&
+      other.icons == icons;
 
   @override
-  int get hashCode => Object.hash(brand, density);
+  int get hashCode => Object.hash(brand, density, icons);
 }
 
 extension OnCareTokensContext on BuildContext {

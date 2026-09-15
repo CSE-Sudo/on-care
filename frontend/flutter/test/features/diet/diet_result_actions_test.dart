@@ -10,6 +10,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
@@ -107,8 +108,8 @@ void main() {
     expect(find.text('취소'), findsOneWidget);
     expect(find.byKey(const Key('diet-result-edit')), findsOneWidget);
     // 체크 아이콘과 머리의 X 는 지웠다 — 닫는 자리는 `취소` 하나다.
-    expect(find.byIcon(Icons.check), findsNothing);
-    expect(find.byIcon(Icons.close_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.check), findsNothing);
+    expect(find.byIcon(AppIcons.close), findsNothing);
 
     // 두 버튼은 한 행에 서고 크기가 같다.
     final Size save = tester.getSize(

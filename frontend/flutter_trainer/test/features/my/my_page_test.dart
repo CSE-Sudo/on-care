@@ -209,6 +209,44 @@ void main() {
       expect(find.text('경력은 0~80 사이의 연수로 입력해 주세요.'), findsOneWidget);
     });
 
+    testWidgets('고칠 수 없는 이름·이메일 칸은 회색 채움·흐린 글자다(#1776)', (tester) async {
+      await openTab(tester);
+      await tester.tap(find.text('프로필 수정'));
+      await tester.pump();
+
+      // 활성 칸은 흰 채움이라, 회색이 남은 칸만 입력칸이 아니라고 읽힌다.
+      (Color, Color?) look(String text) {
+        final Finder field = find.byWidgetPredicate(
+          (widget) => widget is TextField && widget.controller?.text == text,
+        );
+        expect(tester.widget<TextField>(field).enabled, isFalse);
+        final InputDecoration decoration = tester
+            .widget<InputDecorator>(
+              find.descendant(of: field, matching: find.byType(InputDecorator)),
+            )
+            .decoration;
+        return (
+          WidgetStateProperty.resolveAs<Color>(
+            decoration.fillColor!,
+            <WidgetState>{if (!decoration.enabled) WidgetState.disabled},
+          ),
+          tester
+              .widget<EditableText>(
+                find.descendant(of: field, matching: find.byType(EditableText)),
+              )
+              .style
+              .color,
+        );
+      }
+
+      for (final String text in <String>['김트레이너', 'trainer@oncare.com']) {
+        expect(look(text), (
+          OnCareColors.surfaceInput,
+          OnCareColors.textDisabled,
+        ));
+      }
+    });
+
     testWidgets('gym selection rebuilds the manual gym fields', (tester) async {
       await openTab(tester);
       await tester.tap(find.text('프로필 수정'));

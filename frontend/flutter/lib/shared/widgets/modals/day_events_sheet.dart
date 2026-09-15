@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
@@ -132,7 +133,7 @@ class _DayEventsBodyState extends ConsumerState<_DayEventsBody> {
           key: const Key('dayEventsAdd'),
           label: l.eventAddForDay,
           variant: AppButtonVariant.secondary,
-          leadingIcon: Icons.add_rounded,
+          leadingIcon: AppIcons.add,
           fullWidth: true,
           onPressed: _deleting != null ? null : _add,
         ),
@@ -238,13 +239,13 @@ class _EventRow extends StatelessWidget {
           else ...<Widget>[
             AppIconButton(
               key: Key('editEvent-${event.id}'),
-              icon: Icons.edit_rounded,
+              icon: AppIcons.edit,
               tooltip: l.actionEdit,
               onPressed: disabled ? null : onEdit,
             ),
             AppIconButton(
               key: Key('deleteEvent-${event.id}'),
-              icon: Icons.delete_outline_rounded,
+              icon: AppIcons.delete,
               tooltip: l.actionDelete,
               color: OnCareColors.danger,
               onPressed: disabled ? null : onDelete,

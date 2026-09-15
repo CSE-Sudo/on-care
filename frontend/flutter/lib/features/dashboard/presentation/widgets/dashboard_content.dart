@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
@@ -177,8 +178,8 @@ class _CoachingBanner extends StatelessWidget {
       key: const ValueKey<String>('home-coaching-banner'),
       title: l.homeAiAdviceTitle,
       onTap: onTap,
-      trailing: Icon(
-        Icons.chevron_right_rounded,
+      trailing: AppIcon(
+        AppIcons.chevronRight,
         size: OnCareSize.iconMedium,
         color: tokens.brand.primary,
       ),
@@ -261,7 +262,7 @@ class _DietNutritionCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _CardHeader(
-            icon: Icons.restaurant_rounded,
+            icon: AppIcons.diet,
             label: l.homeDietNutritionTitle,
             onOpen: onOpen,
           ),
@@ -480,7 +481,7 @@ class _ExerciseCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _CardHeader(
-            icon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
             label: l.dashboardMetricExercise,
             onOpen: onOpen,
           ),
@@ -1219,8 +1220,8 @@ class _ScheduleItemCard extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
+            AppIcon(
+              AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: tokens.brand.primary,
             ),

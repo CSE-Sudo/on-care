@@ -62,6 +62,28 @@ void main() {
     );
   });
 
+  testWidgets('두 버튼을 각자의 키로 집을 수 있다', (tester) async {
+    await _pump(
+      tester,
+      AppButtonPair(
+        cancelKey: const Key('pair-cancel'),
+        cancelLabel: '취소',
+        onCancel: () {},
+        confirmKey: const Key('pair-confirm'),
+        confirmLabel: '저장',
+        onConfirm: () {},
+      ),
+    );
+    expect(
+      tester.widget<AppButton>(find.byKey(const Key('pair-cancel'))).label,
+      '취소',
+    );
+    expect(
+      tester.widget<AppButton>(find.byKey(const Key('pair-confirm'))).label,
+      '저장',
+    );
+  });
+
   testWidgets('버튼 아이콘은 글자와 같은 색이다', (tester) async {
     Color iconColorOf(IconData icon) {
       final BuildContext context = tester.element(find.byIcon(icon));
