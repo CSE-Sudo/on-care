@@ -780,6 +780,51 @@ void main() {
     expect(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')), findsOneWidget);
   });
 
+  testWidgets('개인 운동 취소 확인창의 왼쪽 버튼은 `유지` 다 (#1782)', (
+    WidgetTester tester,
+  ) async {
+    await pumpRecommendationCards(
+      tester,
+      <CoachRoutine>[_aiRoutine],
+      coach: null,
+    );
+
+    await tester.ensureVisible(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')));
+    await tester.tap(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')));
+    await tester.pumpAndSettle();
+
+    // 확정 버튼 `이 개인 운동 취소` 와 둘 다 '취소' 면 어느 쪽이 물리는
+    // 버튼인지 헷갈린다. 확정은 여전히 빨강이다.
+    final Finder dialog = find.byType(AppDialog);
+    expect(dialog, findsOneWidget);
+    final Finder keep = find.descendant(of: dialog, matching: find.text('유지'));
+    final Finder confirm = find.descendant(
+      of: dialog,
+      matching: find.text('이 개인 운동 취소'),
+    );
+    expect(keep, findsOneWidget);
+    expect(confirm, findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.text('취소')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<AppButtonPair>(
+            find.descendant(of: dialog, matching: find.byType(AppButtonPair)),
+          )
+          .destructive,
+      isTrue,
+    );
+    expect(tester.getCenter(keep).dx, lessThan(tester.getCenter(confirm).dx));
+
+    // 유지를 누르면 창만 닫히고 운동은 그대로다.
+    await tester.tap(keep);
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsNothing);
+    expect(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')), findsOneWidget);
+  });
+
   testWidgets('담당 트레이너가 있으면 취소는 트레이너의 일이다 (#1020)', (
     WidgetTester tester,
   ) async {

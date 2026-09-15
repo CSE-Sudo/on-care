@@ -220,7 +220,8 @@ class AppButtonPair extends StatelessWidget {
   final OnCareButtonSize size;
   final bool confirmLoading;
 
-  /// 두 버튼에 붙일 키. 같은 라벨이 화면에 여럿일 때 테스트가 이 버튼을 지목한다.
+  /// 두 버튼에 붙일 키. 같은 라벨이 화면에 여럿일 때 테스트·자동화가 두 버튼을
+  /// 따로 지목한다.
   final Key? cancelKey;
   final Key? confirmKey;
 

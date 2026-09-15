@@ -2390,6 +2390,12 @@ abstract class AppLocalizations {
   /// **'Decline'**
   String get coachInviteReject;
 
+  /// Title of the red dialog confirming a declined trainer invite.
+  ///
+  /// In en, this message translates to:
+  /// **'Decline this invite?'**
+  String get coachInviteRejectConfirmTitle;
+
   /// No description provided for @coachInviteAccepted.
   ///
   /// In en, this message translates to:
@@ -4452,6 +4458,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel this workout?'**
   String get coachCardRoutineCancelTitle;
+
+  /// Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get coachRoutineKeep;
 
   /// No description provided for @coachRoutineCancelled.
   ///

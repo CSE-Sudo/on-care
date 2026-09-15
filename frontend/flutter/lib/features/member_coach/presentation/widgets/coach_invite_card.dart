@@ -44,11 +44,29 @@ class _CoachInviteCardState extends ConsumerState<CoachInviteCard> {
     );
   }
 
+  /// 거절하기 전에 한 번 묻는다. (#1782)
+  ///
+  /// 거절하면 요청 카드가 사라지고, 앱에는 되돌릴 자리가 없다. 누르는 즉시
+  /// 처리하면 잘못 누른 거절이 그대로 굳는다. 되돌릴 수 없는 동작이라 확정
+  /// 버튼은 위험 동작 색이다.
+  Future<bool> _confirmReject() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return showAppConfirmDialog(
+      context: context,
+      title: l.coachInviteRejectConfirmTitle,
+      confirmLabel: l.coachInviteReject,
+      cancelLabel: l.actionCancel,
+      destructive: true,
+    );
+  }
+
   Future<void> _decide(CoachInvite invite, {required bool accept}) async {
     if (_busy) return;
     final AppLocalizations l = AppLocalizations.of(context);
-    // 동의는 수락에만 필요하다 — 거절은 아무것도 열지 않는다.
+    // 동의는 수락에만 필요하다 — 거절은 아무것도 열지 않는다. 대신 거절은
+    // 되돌릴 수 없어 한 번 되묻는다.
     if (accept && !await _confirmConsent(invite)) return;
+    if (!accept && !await _confirmReject()) return;
     if (!mounted) return;
     final AppToastHost toast = AppToastHost.of(context);
     setState(() => _busy = true);
