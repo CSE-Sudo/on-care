@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -56,7 +57,7 @@ class DisconnectButton extends StatelessWidget {
       label: label,
       onPressed: onTap,
       variant: AppButtonVariant.destructiveText,
-      leadingIcon: Icons.link_off_rounded,
+      leadingIcon: AppIcons.disconnect,
       fullWidth: true,
     );
   }

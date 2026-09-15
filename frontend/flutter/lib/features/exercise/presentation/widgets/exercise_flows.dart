@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -119,6 +121,8 @@ Future<bool> confirmDeleteExerciseSession(
     await ref.read(exerciseRepositoryProvider).deleteSession(id);
     // 목록·주간 통계·그래프가 한 번에 최신이 된다 — 추가 경로와 같은 무효화다.
     ref.invalidate(exerciseWeekProvider);
+    // 지운 기록의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
+    refreshPointsBalance(ref);
     toast.show(l.exDeleted, type: AppToastType.success);
     return true;
   } on Object {
@@ -381,6 +385,8 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
 
     setState(() => _saving = true);
     try {
+      // 새로 추가한 기록 — 포인트 적립 결과를 들고 온다(#1786). 수정은 적립이 없다.
+      ExerciseSession? added;
       // 서버(mock 모드는 drift)에 저장 → 주간 데이터 무효화로 통계·차트·목록 반영.
       if (editing != null) {
         await ref
@@ -398,7 +404,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
               weight: weight,
             );
       } else {
-        await ref
+        added = await ref
             .read(exerciseRepositoryProvider)
             .addSession(
               type: type,
@@ -415,10 +421,13 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       // Sheet dismissed mid-save → don't pop the page below.
       if (!mounted) return;
       ref.invalidate(exerciseWeekProvider);
+      if (added != null) refreshPointsBalance(ref);
       navigator.pop(true);
       toast.show(
         widget.isEdit ? l.exUpdated : l.exLogged,
         type: AppToastType.success,
+        // 받은 포인트가 있으면 ★ +20P 가 반짝인다. 한도를 넘었으면 저장 알림만.
+        rewardLabel: pointsRewardLabel(l, added?.pointsAward),
       );
     } catch (_) {
       if (mounted) setState(() => _saving = false);
@@ -594,7 +603,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
                 label: l.exDeleteExercise,
                 onPressed: _saving ? null : _delete,
                 variant: AppButtonVariant.destructiveText,
-                leadingIcon: Icons.delete_rounded,
+                leadingIcon: AppIcons.delete,
                 fullWidth: true,
               ),
             ],
@@ -717,7 +726,7 @@ class _NumberStepperState extends State<_NumberStepper> {
       children: <Widget>[
         AppIconButton(
           key: const Key('numberStepperDecrement'),
-          icon: Icons.remove_rounded,
+          icon: AppIcons.remove,
           tooltip: l.exStepperDecrease,
           color: tokens.brand.primary,
           onPressed: widget.value > widget.min ? () => _bump(-1) : null,
@@ -757,7 +766,7 @@ class _NumberStepperState extends State<_NumberStepper> {
         const SizedBox(width: OnCareSpacing.s12),
         AppIconButton(
           key: const Key('numberStepperIncrement'),
-          icon: Icons.add_rounded,
+          icon: AppIcons.add,
           tooltip: l.exStepperIncrease,
           color: tokens.brand.primary,
           onPressed: widget.value < widget.max ? () => _bump(1) : null,
@@ -797,8 +806,8 @@ class _CalorieBox extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(
-                Icons.local_fire_department_rounded,
+              const AppIcon(
+                AppIcons.calories,
                 color: OnCareColors.cautionFill,
                 size: OnCareSize.iconMedium,
               ),
@@ -871,8 +880,8 @@ class _DateField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
             child: Row(
               children: <Widget>[
-                Icon(
-                  Icons.calendar_today_rounded,
+                AppIcon(
+                  AppIcons.calendar,
                   size: OnCareSize.iconMedium,
                   color: tokens.brand.primary,
                 ),
@@ -887,8 +896,8 @@ class _DateField extends StatelessWidget {
                         .copyWith(color: OnCareColors.textPrimary),
                   ),
                 ),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
+                const AppIcon(
+                  AppIcons.expandMore,
                   size: OnCareSize.iconMedium,
                   color: OnCareColors.textSecondary,
                 ),

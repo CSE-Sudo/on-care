@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -10,7 +11,7 @@ import 'package:oncare/features/my_health/data/repositories/trainer_sync_reposit
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart' show OnCareColors;
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// MY 탭 프로필 카드의 "트레이너와 데이터 동기화" — 트레이너가 신규 고객
 /// 등록에서 입력하는 6자리 코드가 여기서 나온다. (#1634)
@@ -73,6 +74,25 @@ void main() {
     expect(find.text('트레이너와 데이터 동기화'), findsOneWidget);
     // 누르기 전에는 코드를 받지 않는다 — 발급이 곧 동의라서다.
     expect(sync.issued, 0);
+  });
+
+  testWidgets('동기화 행은 앞머리 아이콘 없이 제목·설명·화살표만 둔다 (#1785)', (tester) async {
+    await pumpMyTab(tester);
+
+    expect(find.byIcon(AppIcons.sync), findsNothing);
+    expect(find.text('6자리 코드로 담당 트레이너와 연결해요'), findsOneWidget);
+    // 아이콘 칸이 빠졌으니 제목이 프로필 아바타와 같은 왼쪽 선에서 시작한다.
+    expect(
+      tester.getTopLeft(find.text('트레이너와 데이터 동기화')).dx,
+      tester.getTopLeft(find.byType(AppAvatar)).dx,
+    );
+    // 행에 남는 아이콘은 오른쪽 화살표 하나뿐이다.
+    final Finder row = find
+        .ancestor(of: find.text('트레이너와 데이터 동기화'), matching: find.byType(Row))
+        .first;
+    final Finder icons = find.descendant(of: row, matching: find.byType(Icon));
+    expect(icons, findsOneWidget);
+    expect(tester.widget<Icon>(icons).icon, AppIcons.chevronRight);
   });
 
   testWidgets('누르면 6자리 코드와 공유 범위 안내가 뜬다', (tester) async {

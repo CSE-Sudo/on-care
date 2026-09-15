@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/points/points_rules.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -16,12 +18,12 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// MY tab: profile, an activity-points card, the trainer & gym section, the
-/// settings list, and logout.
 /// Stable identifiers for the settings rows, decoupled from their localized
 /// display labels so the switch never keys off a translated string.
 enum _MySetting { profile, goals, notif, support }
 
+/// MY 탭 — 프로필 카드, 내 트레이너 · 헬스장 섹션, 활동 포인트 카드, 설정 목록과
+/// 로그아웃 순서다. 포인트 카드는 트레이너 · 헬스장 아래에 둔다(#1785).
 class MyHealthPage extends ConsumerWidget {
   const MyHealthPage({super.key});
 
@@ -75,10 +77,10 @@ class MyHealthPage extends ConsumerWidget {
       ),
       children: <Widget>[
         _ProfileCard(profile: health.valueOrNull?.profile),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        _PointsCard(points: health.valueOrNull?.activityPoints),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _TrainerGymSection(onFindGym: () => context.go(AppRoutes.exerciseGym)),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        _PointsCard(points: health.valueOrNull?.activityPoints),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _Settings(
           onTap: (_MySetting id) => _openSetting(context, id),
@@ -103,7 +105,7 @@ class _BellButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.notifications_rounded,
+          icon: AppIcons.notifications,
           tooltip: l.pageNotificationTitle,
           color: context.oncare.brand.primary,
           onPressed: onPressed,
@@ -133,7 +135,7 @@ class _IconTile extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       alignment: Alignment.center,
-      child: Icon(
+      child: AppIcon(
         icon,
         size: OnCareSize.iconMedium,
         color: tokens.brand.primary,
@@ -206,6 +208,8 @@ class _ProfileCard extends StatelessWidget {
 ///
 /// 코드를 여기서 바로 띄우지 않고 한 단계 두는 이유는, 코드를 띄우는 것이 곧
 /// 데이터 공유 동의라서다 — 스스로 누른 것이어야 한다.
+///
+/// 앞머리 아이콘은 두지 않는다 — 제목이 프로필 이름과 같은 왼쪽 선에서 시작한다(#1785).
 class _TrainerSyncRow extends StatelessWidget {
   const _TrainerSyncRow();
 
@@ -220,8 +224,6 @@ class _TrainerSyncRow extends StatelessWidget {
         onTap: () => showTrainerSyncSheet(context),
         child: Row(
           children: <Widget>[
-            const _IconTile(icon: Icons.sync_rounded),
-            const SizedBox(width: OnCareSpacing.s12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,8 +244,8 @@ class _TrainerSyncRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
-            const Icon(
-              Icons.chevron_right_rounded,
+            const AppIcon(
+              AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: OnCareColors.textTertiary,
             ),
@@ -255,14 +257,121 @@ class _TrainerSyncRow extends StatelessWidget {
 }
 
 /// 활동 포인트 — 누르면 포인트 혜택 페이지로 간다.
-class _PointsCard extends StatelessWidget {
+///
+/// 적립 안내 (i) 버튼은 카드가 아니라 포인트 사용처 화면 헤더에 있다(#1785).
+///
+/// 잔액이 마지막으로 보인 값보다 오르면 숫자가 그 값에서 올라가고 별이 톡
+/// 튄다(#1786). 처음 읽을 때는 움직이지 않는다 — 오른 것이 아니라 처음 보는
+/// 값이다. 줄면(기록 삭제로 회수) 그대로 바꾼다.
+class _PointsCard extends StatefulWidget {
   const _PointsCard({required this.points});
 
   final int? points;
 
   @override
+  State<_PointsCard> createState() => _PointsCardState();
+}
+
+class _PointsCardState extends State<_PointsCard>
+    with TickerProviderStateMixin {
+  late final AnimationController _count = AnimationController(
+    vsync: this,
+    duration: OnCareMotion.pointsCountUp,
+  );
+  late final AnimationController _pop = AnimationController(
+    vsync: this,
+    duration: OnCareMotion.pointsPop,
+  );
+  late final Animation<double> _countCurve = CurvedAnimation(
+    parent: _count,
+    curve: OnCareMotion.curve,
+  );
+  late final Animation<double> _starScale =
+      TweenSequence<double>(<TweenSequenceItem<double>>[
+        TweenSequenceItem<double>(
+          tween: Tween<double>(
+            begin: 1,
+            end: OnCareMotion.rewardPopScale,
+          ).chain(CurveTween(curve: OnCareMotion.curve)),
+          weight: 1,
+        ),
+        TweenSequenceItem<double>(
+          tween: Tween<double>(
+            begin: OnCareMotion.rewardPopScale,
+            end: 1,
+          ).chain(CurveTween(curve: OnCareMotion.curve)),
+          weight: 1,
+        ),
+      ]).animate(_pop);
+
+  /// 올라가기 시작하는 값 — 마지막으로 화면에 보인 숫자.
+  int _from = 0;
+
+  /// 오른 값을 받았지만 아직 움직이지 않았다.
+  ///
+  /// 다른 탭에서 저장하면 가려진 MY 탭이 먼저 새 값을 받는다. 가려진 탭은
+  /// TickerMode 가 꺼져 있어 거기서 시작하면 회원이 보기 전에 끝나므로, 탭이
+  /// 보일 때까지 이전 숫자에 머문다.
+  bool _holding = false;
+  bool _startScheduled = false;
+
+  int? _shown(int? target) {
+    if (target == null) return null;
+    if (_holding) return _from;
+    if (!_count.isAnimating) return target;
+    return (_from + (target - _from) * _countCurve.value).round();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PointsCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final int? before = oldWidget.points;
+    final int? after = widget.points;
+    if (after == before) return;
+    if (before == null || after == null || after < before) {
+      _holding = false;
+      _count.stop();
+      return;
+    }
+    _from = _shown(before) ?? before;
+    _count.stop();
+    _holding = true;
+  }
+
+  void _startWhenVisible() {
+    if (!_holding ||
+        _startScheduled ||
+        !TickerMode.valuesOf(context).enabled) {
+      return;
+    }
+    _startScheduled = true;
+    final bool reduceMotion = MediaQuery.disableAnimationsOf(context);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startScheduled = false;
+      if (!mounted || !_holding) return;
+      if (reduceMotion) {
+        // 움직임 줄이기 — 새 숫자로 바로 바꾼다.
+        setState(() => _holding = false);
+        return;
+      }
+      _holding = false;
+      _count.forward(from: 0);
+      _pop.forward(from: 0);
+    });
+  }
+
+  @override
+  void dispose() {
+    _count.dispose();
+    _pop.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    final int? points = widget.points;
+    _startWhenVisible();
     return Semantics(
       button: true,
       child: AppCard(
@@ -270,34 +379,37 @@ class _PointsCard extends StatelessWidget {
         onTap: () => _openPointsBenefitsPage(context, points),
         child: Row(
           children: <Widget>[
-            Icon(
-              Icons.stars_rounded,
-              color: tokens.brand.primary,
-              size: OnCareSize.iconLarge,
-            ),
-            const SizedBox(width: OnCareSpacing.s8),
-            // 숫자와 (i) 를 한 칸으로 묶어 남는 폭을 모두 차지하게 한다.
-            // Flexible(loose)와 Spacer 가 flex 를 반씩 나누면 숫자가 못 쓴
-            // 몫이 화살표 오른쪽에 빈칸으로 남아, 화살표가 다른 행보다 안쪽에 선다.
-            Expanded(
-              child: Row(
-                children: <Widget>[
-                  Flexible(
-                    child: Text(
-                      points != null ? '${points}P' : '—P',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: OnCareTypography.numeric(
-                        tokens.text(OnCareTypography.titleMedium),
-                      ).copyWith(color: OnCareColors.textPrimary),
-                    ),
-                  ),
-                  const _PointsInfoButton(),
-                ],
+            ScaleTransition(
+              key: const Key('pointsStar'),
+              scale: _starScale,
+              child: AppIcon(
+                AppIcons.points,
+                color: tokens.brand.primary,
+                size: OnCareSize.iconLarge,
               ),
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
+            const SizedBox(width: OnCareSpacing.s8),
+            // 숫자가 남는 폭을 모두 차지하게 한다. 느슨한 칸(Flexible)이면 숫자가
+            // 못 쓴 몫이 화살표 오른쪽에 빈칸으로 남아, 화살표가 다른 행보다
+            // 안쪽에 선다(#1744).
+            Expanded(
+              child: AnimatedBuilder(
+                animation: _count,
+                builder: (BuildContext context, Widget? _) {
+                  final int? shown = _shown(points);
+                  return Text(
+                    shown != null ? '${shown}P' : '—P',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.titleMedium),
+                    ).copyWith(color: OnCareColors.textPrimary),
+                  );
+                },
+              ),
+            ),
+            const AppIcon(
+              AppIcons.chevronRight,
               color: OnCareColors.textTertiary,
               size: OnCareSize.iconMedium,
             ),
@@ -329,19 +441,19 @@ class _PointBenefit {
 
 List<_PointBenefit> _pointBenefitsOf(AppLocalizations l) => <_PointBenefit>[
   _PointBenefit(
-    icon: Icons.savings_rounded,
+    icon: AppIcons.savings,
     title: l.myPointsDiscountTitle,
     desc: l.myPointsDiscountDescription,
     cost: l.myPointsDiscountCost,
   ),
   _PointBenefit(
-    icon: Icons.lock_open_rounded,
+    icon: AppIcons.unlock,
     title: l.myPointsReportTitle,
     desc: l.myPointsReportDescription,
     cost: l.myPointsReportCost,
   ),
   _PointBenefit(
-    icon: Icons.menu_book_rounded,
+    icon: AppIcons.guide,
     title: l.myPointsRecipeTitle,
     desc: l.myPointsRecipeDescription,
     cost: l.myPointsRecipeCost,
@@ -361,7 +473,10 @@ class PointsBenefitsPage extends StatelessWidget {
     return AppPage(
       key: const Key('pointsBenefitsPage'),
       bottomInset: MediaQuery.paddingOf(context).bottom,
-      header: AppTopBar(title: l.myPointsBenefitsTitle),
+      header: AppTopBar(
+        title: l.myPointsBenefitsTitle,
+        actions: const <Widget>[_PointsInfoButton()],
+      ),
       children: <Widget>[
         Text(
           points != null
@@ -381,8 +496,8 @@ class PointsBenefitsPage extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Icon(
-              Icons.info_rounded,
+            const AppIcon(
+              AppIcons.info,
               size: OnCareSize.iconSmall,
               color: OnCareColors.textTertiary,
             ),
@@ -451,8 +566,8 @@ class _PointBenefitCard extends StatelessWidget {
   }
 }
 
-/// "i" button on the points card — taps open a dialog explaining how points
-/// are earned.
+/// 포인트 사용처 화면 헤더 오른쪽 끝의 (i) 버튼 — 누르면 포인트 적립 안내 창을
+/// 연다. MY 포인트 카드의 잔액 옆에 있던 것을 헤더로 옮겼다(#1785).
 class _PointsInfoButton extends StatelessWidget {
   const _PointsInfoButton();
 
@@ -468,26 +583,33 @@ class _PointsInfoButton extends StatelessWidget {
           onPressed: () => Navigator.of(ctx).pop(),
           fullWidth: true,
         ),
+        // 포인트와 하루 한도는 적립 규칙([PointsRule])에서 읽는다(#1786). 안내창에
+        // 숫자를 따로 적어 두면 규칙을 바꿀 때 문구만 옛 값으로 남는다.
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            _PointRule(
-              icon: Icons.restaurant_rounded,
-              text: l.myPointsDietAdd,
-              points: '+50P',
+            _PointRule.of(
+              l,
+              icon: AppIcons.diet,
+              action: l.myPointsDietAdd,
+              rule: PointsRule.dietEntry,
             ),
             const SizedBox(height: OnCareSpacing.s12),
-            _PointRule(
-              icon: Icons.auto_awesome_rounded,
-              text: l.myPointsAiExercise,
-              points: '+50P',
+            _PointRule.of(
+              l,
+              // AI 추천과 트레이너 배정을 한 규칙으로 묶었다 — AI 를 뜻하던 반짝이
+              // 대신 완료 표시를 쓴다.
+              icon: AppIcons.checkCircle,
+              action: l.myPointsRoutineComplete,
+              rule: PointsRule.routineComplete,
             ),
             const SizedBox(height: OnCareSpacing.s12),
-            _PointRule(
-              icon: Icons.fitness_center_rounded,
-              text: l.myPointsExerciseAdd,
-              points: '+20P',
+            _PointRule.of(
+              l,
+              icon: AppIcons.exercise,
+              action: l.myPointsExerciseAdd,
+              rule: PointsRule.exerciseManual,
             ),
           ],
         ),
@@ -497,8 +619,9 @@ class _PointsInfoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 배경 없는(plain) 버튼에 채운 글리프를 얹는다.
     return AppIconButton(
-      icon: Icons.info_rounded,
+      icon: AppIcons.info,
       tooltip: AppLocalizations.of(context).myPointsGuideTitle,
       color: OnCareColors.textTertiary,
       onPressed: () => _show(context),
@@ -512,6 +635,18 @@ class _PointRule extends StatelessWidget {
     required this.text,
     required this.points,
   });
+
+  /// 적립 규칙 한 줄 — 왼쪽에 `식단 추가 (하루 3회)`, 오른쪽에 `+50P`.
+  _PointRule.of(
+    AppLocalizations l, {
+    required IconData icon,
+    required String action,
+    required PointsRule rule,
+  }) : this(
+         icon: icon,
+         text: l.myPointsRuleWithDailyCap(action, rule.dailyCap),
+         points: l.pointsRewardBadge(rule.points),
+       );
 
   final IconData icon;
   final String text;
@@ -556,10 +691,10 @@ class _Settings extends StatelessWidget {
   final VoidCallback onLogout;
 
   static const List<_SettingItem> _items = <_SettingItem>[
-    _SettingItem(Icons.person_rounded, _MySetting.profile),
-    _SettingItem(Icons.flag_rounded, _MySetting.goals),
-    _SettingItem(Icons.notifications_rounded, _MySetting.notif),
-    _SettingItem(Icons.chat_bubble_rounded, _MySetting.support),
+    _SettingItem(AppIcons.person, _MySetting.profile),
+    _SettingItem(AppIcons.goal, _MySetting.goals),
+    _SettingItem(AppIcons.notifications, _MySetting.notif),
+    _SettingItem(AppIcons.chat, _MySetting.support),
   ];
 
   static String _label(AppLocalizations l, _MySetting id) {
@@ -592,8 +727,8 @@ class _Settings extends StatelessWidget {
                 AppListRow(
                   leading: _IconTile(icon: item.icon),
                   title: _label(l, item.id),
-                  trailing: const Icon(
-                    Icons.chevron_right_rounded,
+                  trailing: const AppIcon(
+                    AppIcons.chevronRight,
                     size: OnCareSize.iconMedium,
                     color: OnCareColors.textTertiary,
                   ),
@@ -608,7 +743,7 @@ class _Settings extends StatelessWidget {
                 child: AppButton(
                   key: const ValueKey<String>('my-logout-button'),
                   label: l.myLogout,
-                  leadingIcon: Icons.logout_rounded,
+                  leadingIcon: AppIcons.logout,
                   variant: AppButtonVariant.destructiveText,
                   size: OnCareButtonSize.large,
                   fullWidth: true,
@@ -659,7 +794,7 @@ class _TrainerGymSection extends ConsumerWidget {
               ? AppCard(
                   child: AppEmptyState(
                     title: l.myNoGymConnected,
-                    icon: Icons.fitness_center_rounded,
+                    icon: AppIcons.gym,
                     actionLabel: l.exFindGym,
                     onAction: onFindGym,
                     placement: AppStatePlacement.card,

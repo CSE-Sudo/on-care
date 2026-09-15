@@ -686,10 +686,6 @@
   "coachInviteExplain": "Accepting lets this trainer see your meal and workout records.",
   "coachInviteAccept": "Accept",
   "coachInviteReject": "Decline",
-  "coachInviteRejectConfirmTitle": "Decline this invite?",
-  "@coachInviteRejectConfirmTitle": {
-    "description": "Title of the red dialog confirming a declined trainer invite."
-  },
   "coachInviteAccepted": "{name} is now your coach",
   "@coachInviteAccepted": {"placeholders": {"name": {"type": "String"}}},
   "coachInviteRejected": "Request declined",
@@ -1056,24 +1052,39 @@
   "authNoAccountQuestion": "Don't have an account?",
   "authSignUpAction": "Sign up",
   "authDemoAction": "Explore the demo without signing in",
-  "authOrDivider": "or",
+  "authSocialDivider": "Sign in with a social account",
+  "@authSocialDivider": {
+    "description": "Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783)."
+  },
   "authKakaoAction": "Continue with Kakao",
   "authGoogleAction": "Continue with Google",
-  "authMissingCredentials": "Enter your email and password",
+  "authEmailEmpty": "Enter your email",
+  "@authEmailEmpty": {
+    "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
+  },
+  "authEmailInvalid": "Enter a valid email address",
+  "authPasswordEmpty": "Enter your password",
   "authSignInFailed": "Sign-in failed. Check your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",
-  "signUpPhoneHint": "Phone number",
+  "signUpNameEmpty": "Enter your name",
+  "@signUpNameEmpty": {
+    "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
+  },
+  "signUpPhoneHint": "010-0000-0000",
+  "@signUpPhoneHint": {
+    "description": "Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784)."
+  },
   "signUpPhoneHelper": "Your trainer uses this to confirm who you are.",
-  "signUpPasswordHint": "Password (8+ characters)",
+  "signUpPasswordHint": "Password (8+ characters, letters and numbers)",
   "signUpPasswordConfirmHint": "Confirm password",
   "signUpAction": "Sign up and start",
   "signUpHaveAccountQuestion": "Already have an account?",
-  "signUpPasswordTooShort": "Password must be at least 8 characters",
+  "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "signUpPasswordMismatch": "Passwords do not match",
-  "signUpPhoneInvalid": "Enter a phone number with at least 4 digits",
+  "signUpPhoneFormatInvalid": "Enter your phone number as 000-0000-0000",
   "trainerSyncEntryLabel": "Sync data with a trainer",
   "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
   "trainerSyncTitle": "Sync data with a trainer",
@@ -1441,13 +1452,25 @@
   "@myPointsDietAdd": {
     "description": "Point-earning action in the points guide."
   },
-  "myPointsAiExercise": "Complete an AI-recommended workout",
-  "@myPointsAiExercise": {
-    "description": "Point-earning action in the points guide."
+  "myPointsRoutineComplete": "Complete a recommended or assigned workout",
+  "@myPointsRoutineComplete": {
+    "description": "Point-earning action in the points guide: completing a workout recommended by AI or assigned by the trainer."
   },
   "myPointsExerciseAdd": "Log a workout yourself",
   "@myPointsExerciseAdd": {
     "description": "Point-earning action in the points guide."
+  },
+  "myPointsRuleWithDailyCap": "{action} ({count, plural, =1{once a day} other{up to {count} times a day}})",
+  "@myPointsRuleWithDailyCap": {
+    "description": "Point-earning action in the points guide with its daily earning limit, e.g. 'Log a meal (up to 3 times a day)'.",
+    "placeholders": {
+      "action": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "coachAssignedTrainer": "My trainer",
   "@coachAssignedTrainer": {
@@ -1663,5 +1686,14 @@
   "exDemoPtTrainerName": "Trainer Kim",
   "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "exStepperDecrease": "Decrease",
-  "exStepperIncrease": "Increase"
+  "exStepperIncrease": "Increase",
+  "pointsRewardBadge": "+{points}P",
+  "@pointsRewardBadge": {
+    "description": "Points earned badge on the save toast (shown after a star icon), e.g. +50P.",
+    "placeholders": {
+      "points": {
+        "type": "int"
+      }
+    }
+  }
 }

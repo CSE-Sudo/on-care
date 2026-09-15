@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/elevation.dart';
@@ -67,6 +68,7 @@ class OnCareTokenCatalog extends StatelessWidget {
                 _Swatch('cautionFill', OnCareColors.cautionFill),
                 _Swatch('danger', OnCareColors.danger),
                 _Swatch('overlayInk', OnCareColors.overlayInk),
+                _Swatch('overlayReward', OnCareColors.overlayReward),
                 _Swatch('chartGoalLine', OnCareColors.chartGoalLine),
               ],
             ),
@@ -167,7 +169,7 @@ class OnCareTokenCatalog extends StatelessWidget {
                 IconButton(
                   onPressed: () {},
                   tooltip: 'close',
-                  icon: const Icon(Icons.close_rounded),
+                  icon: AppIcon(AppIcon.setOf(context).close),
                 ),
                 const SizedBox(
                   width: 240,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
@@ -43,7 +44,7 @@ class TrainerChatHeaderButton extends ConsumerWidget {
           clipBehavior: Clip.none,
           children: <Widget>[
             AppIconButton(
-              icon: Icons.chat_bubble_rounded,
+              icon: AppIcons.chat,
               tooltip: l.coachChatWithTrainer,
               color: context.oncare.brand.primary,
               onPressed: ready

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 // 토스트는 아직 앱의 AppToastHost 를 쓴다 — 패키지 쪽 같은 이름은 가린다.
 import 'package:oncare_ui/oncare_ui.dart';
@@ -60,8 +62,8 @@ class CoachCard extends ConsumerWidget {
                     SizedBox(
                       width: OnCareSize.avatarMedium,
                       height: OnCareSize.avatarMedium,
-                      child: Icon(
-                        Icons.person_rounded,
+                      child: AppIcon(
+                        AppIcons.person,
                         color: tokens.brand.primary,
                         size: OnCareSize.iconMedium,
                       ),
@@ -95,8 +97,8 @@ class CoachCard extends ConsumerWidget {
                     // 경우)는 지운다 — 예전에는 화살표만 남아 눌러도 아무 일이
                     // 없었다(#786).
                     if (assignedTrainer != null)
-                      const Icon(
-                        Icons.chevron_right_rounded,
+                      const AppIcon(
+                        AppIcons.chevronRight,
                         size: OnCareSize.iconMedium,
                         color: OnCareColors.textTertiary,
                       ),
@@ -156,10 +158,7 @@ class AiCoachingCard extends ConsumerWidget {
           // 카드가 말하는 것은 `AI 코칭` 이 아니라 **추천 개인운동**이다
           // (#1130). 제목이 곧 내용이라 아이콘도 운동 쪽으로 바꿨다. 큰 글자
           // 배율에서는 제목이 줄을 바꿔 카드 안에 머문다(#766).
-          AppSectionHeader(
-            title: l.coachRoutineTitle,
-            icon: Icons.directions_run_rounded,
-          ),
+          AppSectionHeader(title: l.coachRoutineTitle, icon: AppIcons.running),
           // 카드 제목이 이미 `추천 개인운동` 이라 안에 같은 말을 또 두지
           // 않는다. `PT 와 다음 PT 사이…` 안내도 뺐다 (#1130).
           const SizedBox(height: OnCareSpacing.s12),
@@ -175,8 +174,8 @@ class AiCoachingCard extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
                 child: Row(
                   children: <Widget>[
-                    Icon(
-                      Icons.list_alt_rounded,
+                    AppIcon(
+                      AppIcons.routine,
                       size: OnCareSize.iconSmall,
                       color: tokens.brand.primary,
                     ),
@@ -359,6 +358,8 @@ class _RecommendedExerciseRowState
           .uncompleteRoutine(routine.id);
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
+      // 되돌린 완료의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
+      refreshPointsBalance(ref);
       if (mounted) {
         showAppToast(context, l.coachRoutineUndone, type: AppToastType.success);
       }
@@ -391,7 +392,7 @@ class _RecommendedExerciseRowState
 
     setState(() => _saving = true);
     try {
-      await ref
+      final CoachRoutine done = await ref
           .read(memberCoachRepositoryProvider)
           .completeRoutine(
             routine.id,
@@ -405,8 +406,16 @@ class _RecommendedExerciseRowState
           );
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
+      // 추천·배정 운동 완료는 포인트를 받는다 — MY 잔액을 다시 읽는다(#1786).
+      refreshPointsBalance(ref);
       if (mounted) {
-        showAppToast(context, l.coachRoutineLogged, type: AppToastType.success);
+        showAppToast(
+          context,
+          l.coachRoutineLogged,
+          type: AppToastType.success,
+          // 받은 포인트가 있으면 ★ +50P. 하루 한도를 넘었으면 저장 알림만.
+          rewardLabel: pointsRewardLabel(l, done.pointsAward),
+        );
       }
     } catch (error, stackTrace) {
       debugPrint('completeRoutine failed: $error\n$stackTrace');
@@ -778,8 +787,8 @@ class _ChatButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(
-                Icons.chat_bubble_rounded,
+              AppIcon(
+                AppIcons.chat,
                 size: OnCareSize.iconSmall,
                 color: tokens.brand.primary,
               ),

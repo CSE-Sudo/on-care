@@ -1284,9 +1284,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachInviteReject => 'Decline';
 
   @override
-  String get coachInviteRejectConfirmTitle => 'Decline this invite?';
-
-  @override
   String coachInviteAccepted(String name) {
     return '$name is now your coach';
   }
@@ -1893,7 +1890,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authDemoAction => 'Explore the demo without signing in';
 
   @override
-  String get authOrDivider => 'or';
+  String get authSocialDivider => 'Sign in with a social account';
 
   @override
   String get authKakaoAction => 'Continue with Kakao';
@@ -1902,7 +1899,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authGoogleAction => 'Continue with Google';
 
   @override
-  String get authMissingCredentials => 'Enter your email and password';
+  String get authEmailEmpty => 'Enter your email';
+
+  @override
+  String get authEmailInvalid => 'Enter a valid email address';
+
+  @override
+  String get authPasswordEmpty => 'Enter your password';
 
   @override
   String get authSignInFailed =>
@@ -1923,14 +1926,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpNameHint => 'Name';
 
   @override
-  String get signUpPhoneHint => 'Phone number';
+  String get signUpNameEmpty => 'Enter your name';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
 
   @override
   String get signUpPhoneHelper =>
       'Your trainer uses this to confirm who you are.';
 
   @override
-  String get signUpPasswordHint => 'Password (8+ characters)';
+  String get signUpPasswordHint =>
+      'Password (8+ characters, letters and numbers)';
 
   @override
   String get signUpPasswordConfirmHint => 'Confirm password';
@@ -1942,14 +1949,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpHaveAccountQuestion => 'Already have an account?';
 
   @override
-  String get signUpPasswordTooShort => 'Password must be at least 8 characters';
+  String get signUpPasswordWeak =>
+      'Use at least 8 characters, including letters and numbers';
 
   @override
   String get signUpPasswordMismatch => 'Passwords do not match';
 
   @override
-  String get signUpPhoneInvalid =>
-      'Enter a phone number with at least 4 digits';
+  String get signUpPhoneFormatInvalid =>
+      'Enter your phone number as 000-0000-0000';
 
   @override
   String get trainerSyncEntryLabel => 'Sync data with a trainer';
@@ -2386,10 +2394,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsDietAdd => 'Log a meal';
 
   @override
-  String get myPointsAiExercise => 'Complete an AI-recommended workout';
+  String get myPointsRoutineComplete =>
+      'Complete a recommended or assigned workout';
 
   @override
   String get myPointsExerciseAdd => 'Log a workout yourself';
+
+  @override
+  String myPointsRuleWithDailyCap(String action, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'up to $count times a day',
+      one: 'once a day',
+    );
+    return '$action ($_temp0)';
+  }
 
   @override
   String get coachAssignedTrainer => 'My trainer';
@@ -2613,4 +2633,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exStepperIncrease => 'Increase';
+
+  @override
+  String pointsRewardBadge(int points) {
+    return '+${points}P';
+  }
 }

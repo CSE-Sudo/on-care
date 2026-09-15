@@ -1,5 +1,7 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/demo/period_advice.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
@@ -22,11 +24,16 @@ import 'package:oncare/features/exercise/domain/repositories/exercise_repository
 class MockExerciseRepository implements ExerciseRepository {
   /// [today] defaults to the real date; tests inject a fixed date so the
   /// date-relative fixture stays deterministic. [fixture] defaults to the
-  /// bundled 김민수 픽스처.
-  MockExerciseRepository({DateTime? today, DemoFixture? fixture})
-    : _today = _dateOnly(today ?? nowKst()),
-      _todayIdx = (today ?? nowKst()).weekday - 1,
-      _fixture = fixture ?? DemoFixture.load() {
+  /// bundled 김민수 픽스처. [points] 를 주면 직접 추가한 운동이 포인트를 받고
+  /// 지우면 회수된다(#1786) — 없으면 적립 없이 기록만 남는다(테스트·단독 사용).
+  MockExerciseRepository({
+    DateTime? today,
+    DemoFixture? fixture,
+    DemoPointsLedger? points,
+  }) : _today = _dateOnly(today ?? nowKst()),
+       _todayIdx = (today ?? nowKst()).weekday - 1,
+       _fixture = fixture ?? DemoFixture.load(),
+       _points = points {
     _sessions.addAll(_sessionsForWeek(0));
     _totalCalories = _sessions.fold<int>(
       0,
@@ -41,6 +48,8 @@ class MockExerciseRepository implements ExerciseRepository {
   final DateTime _today;
 
   final DemoFixture _fixture;
+
+  final DemoPointsLedger? _points;
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -285,8 +294,11 @@ class MockExerciseRepository implements ExerciseRepository {
     double? weight,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
+    final String id = 'mock-ex-${++_seq}';
+    // 운동 직접 추가 +20P, 하루 3회 — 실서버와 같은 규칙이다(#1786).
+    final PointsAward? award = _points?.award(PointsRule.exerciseManual, id);
     final session = ExerciseSession(
-      id: 'mock-ex-${++_seq}',
+      id: id,
       dayLabel: _dayLabels[date.weekday - 1],
       type: type,
       minutes: minutes,
@@ -298,6 +310,7 @@ class MockExerciseRepository implements ExerciseRepository {
       name: name,
       weight: _strengthOnly(type, weight),
       date: date,
+      pointsAward: award,
     );
     _sessions.add(session);
     _totalCalories += calories;
@@ -367,6 +380,8 @@ class MockExerciseRepository implements ExerciseRepository {
     if (!_sessions[idx].isEditable) return;
     _totalCalories = _nonNeg(_totalCalories - _sessions[idx].calories);
     _sessions.removeAt(idx);
+    // 이 기록으로 받은 포인트를 회수한다(#1786).
+    _points?.revoke(PointsRule.exerciseManual.sourceType, id);
   }
 
   @override

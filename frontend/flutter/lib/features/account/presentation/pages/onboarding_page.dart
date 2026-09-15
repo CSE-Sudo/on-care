@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -420,7 +421,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           // 영역과 접근성 라벨은 그대로 둔다.
           AppIconButton(
             key: const Key('onboardBackButton'),
-            icon: Icons.chevron_left_rounded,
+            icon: AppIcons.back,
             tooltip: l.onboardPrevious,
             onPressed: _saving ? null : _back,
           ),

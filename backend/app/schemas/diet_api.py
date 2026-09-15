@@ -14,6 +14,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.core import clock
+from app.schemas.points_api import PointsOut
 
 #: 계약 날짜 표기. `2026-08-01` 만 받는다.
 _YMD = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -150,6 +151,9 @@ class DietAnalyzeResponse(BaseModel):
     # 방금 올린 사진의 조회 경로. 저장하지 못했으면 null 이며, 그때도 끼니 기록
     # 자체는 저장된다(사진은 기록의 부속이지 조건이 아니다).
     photo_url: str | None = None
+    # 이 끼니로 받은 포인트와 잔액(#1786). 한도를 넘었으면 `awarded` 가 0 이다.
+    # 멱등키로 되돌아온 재시도는 처음 저장할 때 받은 값을 그대로 싣는다.
+    points: PointsOut | None = None
 
 
 class DietRecommendationItem(BaseModel):

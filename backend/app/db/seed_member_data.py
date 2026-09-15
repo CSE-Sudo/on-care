@@ -44,7 +44,7 @@ from app.db.demo_fixture import FixtureExercise, FixtureRoutine, load_fixture
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
-from app.services import exercise_activity, exercise_types
+from app.services import exercise_activity, exercise_types, points_service
 from app.services.coach import personal_ingest
 from app.services.coach.rag import has_personal_doc
 
@@ -266,7 +266,7 @@ _HEALTH_PROFILE: dict[str, dict] = {
         "conditions": "체중 감량, 혈압 관리",
         "phone": "010-1234-5678",
         "birth_date": "1990-01-15",
-        "activity_points": 1240,
+        "activity_points": points_service.DEMO_OPENING_POINTS,
         "activity_rank": 14,
         # 일일 영양 목표(프론트 프로필 목업과 동일)
         "daily_calories": 2000,
@@ -337,6 +337,47 @@ def seed_member_health_data() -> None:
     from app.db.seed_trainer import seed_member_genders
 
     seed_member_genders()
+    # 성별 시드가 만든 프로필 행에 시작 잔액을 넣으므로 그 뒤에 돈다.
+    seed_demo_opening_points()
+
+
+def seed_demo_opening_points() -> None:
+    """데모 회원의 시작 포인트(1240P)를 프로필에 넣는다(멱등). (#1786)
+
+    예전에는 `/users/me/health` 가 위험 문구 없는 프로필에 1240 을 지어 보내,
+    이지수·박성호 같은 데모 회원도 1240P 로 보였다. 이제 잔액을 프로필에서 그대로
+    읽으므로 시작 잔액을 행에 넣어 둔다. 김민수는 건강 프로필 시드가 이미 넣는다.
+
+    잔액이 0 이고 포인트 내역이 한 줄도 없는 회원만 채운다 — 적립·회수를 한 번이라도
+    거친 잔액은 회원이 만든 값이라, 재기동마다 되돌리면 안 된다.
+    """
+    db: Session = SessionLocal()
+    try:
+        valid = _valid_member_ids(db)
+        changed = False
+        for user_id, *_ in _MEMBERS:
+            if user_id not in valid:
+                continue
+            profile = db.scalar(
+                select(models.HealthProfile).where(
+                    models.HealthProfile.user_id == user_id
+                )
+            )
+            if profile is None or (profile.activity_points or 0) != 0:
+                continue
+            has_history = db.scalar(
+                select(models.PointsLedger.id)
+                .where(models.PointsLedger.user_id == user_id)
+                .limit(1)
+            )
+            if has_history is not None:
+                continue
+            profile.activity_points = points_service.DEMO_OPENING_POINTS
+            changed = True
+        if changed:
+            _safe_commit(db)
+    finally:
+        db.close()
 
 
 def ingest_seeded_documents() -> None:

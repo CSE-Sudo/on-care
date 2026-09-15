@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
@@ -388,10 +389,7 @@ void main() {
 
     final Finder coaching = find.byType(AiCoachingCard);
     expect(
-      find.descendant(
-        of: coaching,
-        matching: find.byIcon(Icons.list_alt_rounded),
-      ),
+      find.descendant(of: coaching, matching: find.byIcon(AppIcons.routine)),
       findsNothing,
     );
     expect(
@@ -614,7 +612,7 @@ void main() {
     expect(find.text('트레이너에게 메시지 보내기...'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '운동 후 확인할게요');
-    await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+    await tester.tap(find.byIcon(AppIcons.send));
     await tester.pumpAndSettle();
 
     expect(find.text('운동 후 확인할게요'), findsOneWidget);
@@ -714,7 +712,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '다시 보낼 메시지');
-    await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+    await tester.tap(find.byIcon(AppIcons.send));
     await tester.pumpAndSettle();
 
     final TextField input = tester.widget<TextField>(find.byType(TextField));
@@ -739,7 +737,7 @@ void main() {
     expect(find.byKey(const Key('coach-pdf-pdf-file')), findsOneWidget);
     expect(find.text('김고객_2026-08-10_주간리포트.pdf'), findsOneWidget);
     expect(find.text('2.0 KB'), findsOneWidget);
-    expect(find.byIcon(Icons.picture_as_pdf_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.file), findsOneWidget);
   });
 
   // 카드를 눌렀을 때 정말 그 첨부의 경로로 내려받는지, 실패하면 회원이 이유를

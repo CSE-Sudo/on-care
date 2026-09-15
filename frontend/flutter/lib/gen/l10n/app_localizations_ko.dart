@@ -1257,9 +1257,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachInviteReject => '거절';
 
   @override
-  String get coachInviteRejectConfirmTitle => '초대를 거절할까요?';
-
-  @override
   String coachInviteAccepted(String name) {
     return '$name 트레이너가 담당으로 연결됐어요';
   }
@@ -1850,7 +1847,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authDemoAction => '로그인 없이 데모 둘러보기';
 
   @override
-  String get authOrDivider => '또는';
+  String get authSocialDivider => 'SNS 계정으로 로그인';
 
   @override
   String get authKakaoAction => '카카오로 시작하기';
@@ -1859,7 +1856,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authGoogleAction => '구글로 시작하기';
 
   @override
-  String get authMissingCredentials => '이메일과 비밀번호를 입력해 주세요';
+  String get authEmailEmpty => '이메일을 입력해 주세요';
+
+  @override
+  String get authEmailInvalid => '이메일 형식이 올바르지 않아요';
+
+  @override
+  String get authPasswordEmpty => '비밀번호를 입력해 주세요';
 
   @override
   String get authSignInFailed => '로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요';
@@ -1877,13 +1880,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpNameHint => '이름';
 
   @override
-  String get signUpPhoneHint => '전화번호';
+  String get signUpNameEmpty => '이름을 입력해 주세요';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
 
   @override
   String get signUpPhoneHelper => '트레이너가 회원님을 확인할 때 쓰는 연락처예요';
 
   @override
-  String get signUpPasswordHint => '비밀번호 (8자 이상)';
+  String get signUpPasswordHint => '비밀번호 (영문·숫자 포함 8자 이상)';
 
   @override
   String get signUpPasswordConfirmHint => '비밀번호 확인';
@@ -1895,13 +1901,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpHaveAccountQuestion => '이미 계정이 있으신가요?';
 
   @override
-  String get signUpPasswordTooShort => '비밀번호는 8자 이상이어야 해요';
+  String get signUpPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
 
   @override
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';
 
   @override
-  String get signUpPhoneInvalid => '전화번호를 4자리 이상 입력해 주세요';
+  String get signUpPhoneFormatInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get trainerSyncEntryLabel => '트레이너와 데이터 동기화';
@@ -2321,10 +2327,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsDietAdd => '식단 추가';
 
   @override
-  String get myPointsAiExercise => 'AI 추천 운동 완료';
+  String get myPointsRoutineComplete => '추천·배정 운동 완료';
 
   @override
   String get myPointsExerciseAdd => '운동 직접 추가';
+
+  @override
+  String myPointsRuleWithDailyCap(String action, int count) {
+    return '$action (하루 $count회)';
+  }
 
   @override
   String get coachAssignedTrainer => '담당 트레이너';
@@ -2544,4 +2555,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exStepperIncrease => '늘리기';
+
+  @override
+  String pointsRewardBadge(int points) {
+    return '+${points}P';
+  }
 }

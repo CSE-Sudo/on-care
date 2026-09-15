@@ -44,9 +44,15 @@ Future<void> openAlertTarget(
       if (name == null || !context.mounted) return;
       await openTrainerChatPage(context, trainerName: name);
     case AlertTarget.exercise:
+      // 담당 요청 알림도 이 목적지로 온다(서버 category `consultation_result`).
+      // 요청은 이제 운동 탭 카드가 아니라 앱 어디서든 뜨는 창이라(#1801), 요청
+      // 목록을 곧바로 다시 받게 해 아직 대기 중이면 창이 바로 뜨게 한다. 알림에는
+      // 요청 id 가 없어 어느 요청의 알림인지는 가리지 못한다 — 대기 중인 요청이
+      // 없으면 예전처럼 운동 탭으로 갈 뿐이다.
       ref
         ..invalidate(exerciseWeekProvider)
-        ..invalidate(coachRoutinesProvider);
+        ..invalidate(coachRoutinesProvider)
+        ..invalidate(coachInvitesProvider);
       if (!context.mounted) return;
       context.go(AppRoutes.exercise);
     case AlertTarget.schedule:

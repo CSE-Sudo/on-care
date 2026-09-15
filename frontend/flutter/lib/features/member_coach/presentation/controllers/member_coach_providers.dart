@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -24,6 +26,8 @@ final memberCoachRepositoryProvider = Provider<MemberCoachRepository>((ref) {
     final ExerciseRepository exercise = ref.watch(exerciseRepositoryProvider);
     return MockMemberCoachRepository(
       exercise: exercise is MockExerciseRepository ? exercise : null,
+      // 루틴 완료(추천·배정) 적립도 같은 원장이다(#1786).
+      points: ref.watch(demoPointsLedgerProvider),
     );
   }
   return DioMemberCoachRepository(ref.watch(dioProvider));
@@ -57,6 +61,25 @@ final coachUnreadProvider = FutureProvider<int>((ref) {
 });
 
 /// 트레이너가 나에게 보낸 담당 요청. 수락·거절 뒤에는 invalidate 한다. (#919)
-final coachInvitesProvider = FutureProvider<List<CoachInvite>>((ref) {
-  return ref.watch(memberCoachRepositoryProvider).fetchInvites();
+///
+/// 앱 어디서든 뜨는 담당 요청 창(`CoachInvitePrompter`, #1801)이 이 값을 듣는다.
+/// 실시간 푸시가 아직 없어(#474) 알림 배지와 같은 규칙으로 받는다 — 듣기 시작할 때
+/// (앱을 켤 때)와 앱으로 돌아올 때 바로, 켜져 있는 동안 15초마다. 데모에는 따라갈
+/// 서버가 없어 한 번만 받는다.
+///
+/// 듣는 곳(회원 셸)이 사라지면 폴링도 멈추도록 autoDispose 다. invalidate 하면
+/// 스트림이 새로 시작되며 곧바로 다시 받는다.
+final coachInvitesProvider = StreamProvider.autoDispose<List<CoachInvite>>((
+  ref,
+) {
+  final MemberCoachRepository repository = ref.watch(
+    memberCoachRepositoryProvider,
+  );
+  if (ref.watch(appConfigProvider).useMockApi) {
+    return Stream<List<CoachInvite>>.fromFuture(repository.fetchInvites());
+  }
+  return activePollingStream<List<CoachInvite>>(
+    load: repository.fetchInvites,
+    interval: const Duration(seconds: 15),
+  );
 }, name: 'coachInvites');

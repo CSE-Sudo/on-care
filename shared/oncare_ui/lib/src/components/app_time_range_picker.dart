@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_button.dart';
 import 'package:oncare_ui/src/components/app_dialog.dart';
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
@@ -297,13 +298,13 @@ class _AppTimeRangePickerDialogState extends State<AppTimeRangePickerDialog> {
                 if (_step > 0) ...<Widget>[
                   AppIconButton(
                     key: _key('back'),
-                    icon: Icons.chevron_left_rounded,
+                    icon: AppIcon.setOf(context).previous,
                     tooltip: labels.previousStep,
                     onPressed: () => setState(() => _step--),
                   ),
                   AppIconButton(
                     key: _key('next'),
-                    icon: Icons.chevron_right_rounded,
+                    icon: AppIcon.setOf(context).next,
                     tooltip: labels.nextStep,
                     onPressed: _step < _lastStep
                         ? () => setState(() => _step++)

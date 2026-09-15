@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -66,7 +67,7 @@ class GymDetailPage extends ConsumerWidget {
         },
       );
     } else {
-      body = AppEmptyState(title: l.exGymNotFound, icon: Icons.info_rounded);
+      body = AppEmptyState(title: l.exGymNotFound, icon: AppIcons.info);
     }
 
     return Scaffold(
@@ -130,8 +131,8 @@ class _GymDetails extends ConsumerWidget {
                 width: _heroIconBox,
                 height: _heroIconBox,
                 alignment: Alignment.center,
-                child: Icon(
-                  Icons.fitness_center_rounded,
+                child: AppIcon(
+                  AppIcons.gym,
                   size: OnCareSize.iconEmptyState,
                   color: tokens.brand.primary,
                 ),
@@ -152,7 +153,7 @@ class _GymDetails extends ConsumerWidget {
               children: <Widget>[
                 Expanded(
                   child: _MetricCard(
-                    icon: Icons.place_rounded,
+                    icon: AppIcons.location,
                     label: l.exDistance,
                     value: '${gym.distanceKm.toStringAsFixed(1)}km',
                   ),
@@ -160,7 +161,7 @@ class _GymDetails extends ConsumerWidget {
                 const SizedBox(width: OnCareSpacing.cardGap),
                 Expanded(
                   child: _MetricCard(
-                    icon: Icons.star_rounded,
+                    icon: AppIcons.star,
                     label: l.exRating,
                     value: gym.rating.toStringAsFixed(1),
                   ),
@@ -169,14 +170,14 @@ class _GymDetails extends ConsumerWidget {
             ),
             const SizedBox(height: OnCareSpacing.s20),
             _DetailSection(
-              icon: Icons.place_rounded,
+              icon: AppIcons.location,
               title: l.exAddress,
               child: Text(gym.address, style: bodyStyle),
             ),
             if (gym.tags.isNotEmpty) ...<Widget>[
               const SizedBox(height: OnCareSpacing.cardGap),
               _DetailSection(
-                icon: Icons.fitness_center_rounded,
+                icon: AppIcons.exercise,
                 title: l.exSpecialty,
                 child: Wrap(
                   spacing: OnCareSpacing.s8,
@@ -192,7 +193,7 @@ class _GymDetails extends ConsumerWidget {
                 gym.weekendHours != null) ...<Widget>[
               const SizedBox(height: OnCareSpacing.cardGap),
               _DetailSection(
-                icon: Icons.schedule_rounded,
+                icon: AppIcons.clock,
                 title: l.exHours,
                 child: Column(
                   children: <Widget>[
@@ -207,7 +208,7 @@ class _GymDetails extends ConsumerWidget {
             if (gym.phone != null) ...<Widget>[
               const SizedBox(height: OnCareSpacing.cardGap),
               _DetailSection(
-                icon: Icons.call_rounded,
+                icon: AppIcons.phone,
                 title: l.exPhone,
                 child: Text(
                   gym.phone!,
@@ -281,7 +282,7 @@ class _TrainerPickerSheet extends ConsumerWidget {
       child: trainers.isEmpty
           ? AppEmptyState(
               title: l.exGymConsultNoTrainers,
-              icon: Icons.person_off_rounded,
+              icon: AppIcons.personOff,
               placement: AppStatePlacement.card,
             )
           : Column(
@@ -354,7 +355,11 @@ class _MetricCard extends StatelessWidget {
     return AppTile(
       child: Row(
         children: <Widget>[
-          Icon(icon, size: OnCareSize.iconMedium, color: tokens.brand.primary),
+          AppIcon(
+            icon,
+            size: OnCareSize.iconMedium,
+            color: tokens.brand.primary,
+          ),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
             child: Column(
@@ -402,7 +407,7 @@ class _AffiliatedTrainers extends ConsumerWidget {
     if (trainers.isEmpty) return const SizedBox.shrink();
 
     return _DetailSection(
-      icon: Icons.person_rounded,
+      icon: AppIcons.person,
       title: l.exAffiliatedTrainer,
       padding: EdgeInsets.zero,
       child: Column(
@@ -453,8 +458,8 @@ class _AffiliatedTrainerRow extends StatelessWidget {
         width: OnCareSize.avatarLarge,
         height: OnCareSize.avatarLarge,
         alignment: Alignment.center,
-        child: Icon(
-          Icons.person_rounded,
+        child: AppIcon(
+          AppIcons.person,
           size: OnCareSize.iconMedium,
           color: tokens.brand.primary,
         ),
@@ -466,8 +471,8 @@ class _AffiliatedTrainerRow extends StatelessWidget {
                   .text(OnCareTypography.strong(OnCareTypography.caption))
                   .copyWith(color: OnCareColors.textSecondary),
             )
-          : const Icon(
-              Icons.chevron_right_rounded,
+          : const AppIcon(
+              AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: OnCareColors.textTertiary,
             ),

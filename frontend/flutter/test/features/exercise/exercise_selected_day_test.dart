@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -238,7 +239,7 @@ void main() {
     );
 
     // 주간 스트립의 왼쪽 화살표로 한 주 뒤로 간다.
-    await tester.tap(find.byIcon(Icons.chevron_left_rounded).first);
+    await tester.tap(find.byIcon(AppIcons.chevronLeft).first);
     await tester.pumpAndSettle();
 
     // 지난 주로 옮긴 스트립의 가운데 날짜(= 오늘 -7일)를 고른다.
@@ -281,7 +282,7 @@ void main() {
       tester.element(find.byType(ExercisePage)),
     );
 
-    await tester.tap(find.byIcon(Icons.chevron_left_rounded).first);
+    await tester.tap(find.byIcon(AppIcons.chevronLeft).first);
     await tester.pumpAndSettle();
     final DateTime now = nowKst();
     final DateTime target = DateTime(
