@@ -688,7 +688,6 @@
     }
   },
   "myCouponStatus": "Status",
-  "myCouponRenewalGuide": "When you renew PT, show this screen to your trainer or gym staff.",
   "myCouponStaffNote": "Tap only after your trainer or gym staff has checked it",
   "myCouponStaffConfirmTitle": "Mark this coupon as used?",
   "myCouponStaffConfirmMessage": "For staff · This can't be undone once used",

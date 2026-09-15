@@ -109,7 +109,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
         _Notice(
           key: const Key('couponUsedBanner'),
           icon: Icons.check_circle_rounded,
-          color: OnCareColors.success,
+          color: tokens.brand.primary,
           text: usedAt != null
               ? l.myCouponUsedBanner(formatCouponDateTime(usedAt))
               : l.myCouponStatusUsed,
@@ -168,22 +168,28 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
           ],
         ),
       ),
-      const SizedBox(height: OnCareSpacing.s16),
-      _Guide(text: isRenewal ? l.myCouponRenewalGuide : l.myCouponMemberGuide),
-      const SizedBox(height: OnCareSpacing.s4),
-      _Guide(text: l.myCouponExpireNotice),
+      // 사용했거나 만료·취소된 쿠폰에는 안내를 두지 않는다.
       if (coupon.usable) ...<Widget>[
+        const SizedBox(height: OnCareSpacing.s12),
+        // 만료 안내 — 아이콘 없이 한 줄. 직원·매장에 보여 주라는 말은 버튼 위 줄과
+        // 겹쳐 따로 두지 않는다.
+        Text(
+          l.myCouponExpireNotice,
+          key: const Key('couponExpireNotice'),
+          style: tokens
+              .text(OnCareTypography.caption)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
         const SizedBox(height: OnCareSpacing.s16),
-        // 직원에게 보여 주는 안내 — 버튼 바로 위에 둬, 누르기 전에 눈에 걸린다.
-        if (isRenewal) ...<Widget>[
-          _Notice(
-            key: const Key('couponStaffNote'),
-            icon: Icons.badge_rounded,
-            color: tokens.brand.primary,
-            text: l.myCouponStaffNote,
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-        ],
+        // 누르기 전에 눈에 걸리는 안내 — 버튼 바로 위. PT 재등록은 직원 확인,
+        // 건강식은 매장에서 보여 준 뒤 누른다.
+        _Notice(
+          key: Key(isRenewal ? 'couponStaffNote' : 'couponStoreNote'),
+          icon: isRenewal ? Icons.badge_rounded : Icons.storefront_rounded,
+          color: tokens.brand.primary,
+          text: isRenewal ? l.myCouponStaffNote : l.myCouponMemberGuide,
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
         AppButton(
           key: const Key('couponUseButton'),
           label: l.myCouponUse,
@@ -270,37 +276,6 @@ class _Notice extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// 안내 한 줄 — 작은 정보 아이콘과 설명.
-class _Guide extends StatelessWidget {
-  const _Guide({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        const Icon(
-          Icons.info_rounded,
-          size: OnCareSize.iconSmall,
-          color: OnCareColors.textTertiary,
-        ),
-        const SizedBox(width: OnCareSpacing.s4),
-        Expanded(
-          child: Text(
-            text,
-            style: tokens
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-        ),
-      ],
     );
   }
 }

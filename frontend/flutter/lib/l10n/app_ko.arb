@@ -470,7 +470,6 @@
     }
   },
   "myCouponStatus": "상태",
-  "myCouponRenewalGuide": "PT를 다시 등록할 때 이 화면을 트레이너·헬스장 직원에게 보여 주세요.",
   "myCouponStaffNote": "트레이너·헬스장 직원이 확인한 뒤 눌러 주세요",
   "myCouponStaffConfirmTitle": "쿠폰을 사용 완료할까요?",
   "myCouponStaffConfirmMessage": "직원 확인용 · 사용 후 되돌릴 수 없어요",

@@ -1209,10 +1209,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCouponStatus => 'Status';
 
   @override
-  String get myCouponRenewalGuide =>
-      'When you renew PT, show this screen to your trainer or gym staff.';
-
-  @override
   String get myCouponStaffNote =>
       'Tap only after your trainer or gym staff has checked it';
 

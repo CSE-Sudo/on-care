@@ -1182,9 +1182,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCouponStatus => '상태';
 
   @override
-  String get myCouponRenewalGuide => 'PT를 다시 등록할 때 이 화면을 트레이너·헬스장 직원에게 보여 주세요.';
-
-  @override
   String get myCouponStaffNote => '트레이너·헬스장 직원이 확인한 뒤 눌러 주세요';
 
   @override

@@ -2234,12 +2234,6 @@ abstract class AppLocalizations {
   /// **'Status'**
   String get myCouponStatus;
 
-  /// No description provided for @myCouponRenewalGuide.
-  ///
-  /// In en, this message translates to:
-  /// **'When you renew PT, show this screen to your trainer or gym staff.'**
-  String get myCouponRenewalGuide;
-
   /// No description provided for @myCouponStaffNote.
   ///
   /// In en, this message translates to:
