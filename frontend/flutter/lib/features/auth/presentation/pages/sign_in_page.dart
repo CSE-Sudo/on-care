@@ -4,12 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 로그인 화면 로고의 한 변. 인증 틀 안에서 가장 먼저 눈에 드는 그림이다.
 const double _kLogoSize = 128;
+
+/// 로그인 화면에서 형식을 검사하는 칸.
+enum _Field { email, password }
 
 /// 로그인 화면 — 이메일/비밀번호 로그인 + 소셜 로그인.
 ///
@@ -29,11 +33,28 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   bool _obscure = true;
   bool _loading = false;
 
+  /// 칸 아래 오류 문구. 첫 제출 전에는 숨기고, 오류를 보인 칸은 입력하는 대로
+  /// 다시 검사한다(#1784).
+  late final AppFieldErrors<_Field> _errors = AppFieldErrors<_Field>(_check);
+
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  /// 칸의 지금 값에 대한 오류 문구. 비밀번호는 비었는지만 본다 — 가입 규칙을
+  /// 여기서도 걸면 규칙 이전에 만든 계정이 로그인에서 막힌다(#1784).
+  String? _check(_Field field) =>
+      authInputErrorText(AppLocalizations.of(context), switch (field) {
+        _Field.email => AppInputRules.email(_email.text),
+        _Field.password => AppInputRules.signInPassword(_password.text),
+      });
+
+  /// 오류를 보인 칸이 있을 때만 입력마다 다시 그려 문구가 값을 따라가게 한다.
+  void _onEdited(String _) {
+    if (_errors.isWatching) setState(() {});
   }
 
   void _enterDemo() {
@@ -44,18 +65,18 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Future<void> _login() async {
     if (_loading) return;
     final AppLocalizations l = AppLocalizations.of(context);
-    final email = _email.text.trim();
-    final password = _password.text;
-    if (email.isEmpty || password.isEmpty) {
-      showAppToast(context, l.authMissingCredentials, type: AppToastType.error);
+    // 틀린 칸이 하나라도 있으면 요청을 보내지 않고 칸 아래에 알린다.
+    if (!_errors.validate(_Field.values)) {
+      setState(() {});
       return;
     }
+    final email = _email.text.trim();
+    final password = _password.text;
     setState(() => _loading = true);
     try {
-      await ref.read(sessionControllerProvider.notifier).login(
-        email: email,
-        password: password,
-      );
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .login(email: email, password: password);
       if (!mounted) return;
       context.go(AppRoutes.dashboard);
     } catch (_) {
@@ -83,11 +104,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
-      showAppToast(
-        context,
-        l.authSocialSignInFailed,
-        type: AppToastType.error,
-      );
+      showAppToast(context, l.authSocialSignInFailed, type: AppToastType.error);
     }
   }
 
@@ -115,20 +132,24 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             key: const ValueKey<String>('member-login-email'),
             controller: _email,
             hint: l.authEmailHint,
+            errorText: _errors.of(_Field.email),
             prefixIcon: Icons.mail_rounded,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
+            onChanged: _onEdited,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
             key: const ValueKey<String>('member-login-password'),
             controller: _password,
             hint: l.authPasswordHint,
+            errorText: _errors.of(_Field.password),
             prefixIcon: Icons.lock_rounded,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
+            onChanged: _onEdited,
             onSubmitted: (_) => _login(),
             suffix: _PasswordToggle(
               obscure: _obscure,
@@ -148,20 +169,25 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           // 소셜 버튼은 고정 데모 토큰을 보내므로 목업이 받아 주는
           // 설정에서만 보인다 — 실서버에서는 눌러도 거절된다(#1553).
           if (socialEnabled) ...<Widget>[
-            const _OrDivider(),
+            AppLabeledDivider(label: l.authSocialDivider),
             const SizedBox(height: OnCareSpacing.s16),
-            _KakaoButton(
-              label: l.authKakaoAction,
-              onTap: _loading ? null : () => _social('kakao'),
-            ),
-            const SizedBox(height: OnCareSpacing.s8),
-            AppButton(
-              label: l.authGoogleAction,
-              leadingIcon: Icons.g_mobiledata_rounded,
-              onPressed: _loading ? null : () => _social('google'),
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.large,
-              fullWidth: true,
+            // 전체 폭 버튼이면 로그인 버튼과 무게가 같고 화면이 길어진다 —
+            // 원형 아이콘 버튼으로 가운데에 나란히 둔다(#1783).
+            AppSocialLoginRow(
+              children: <Widget>[
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('member-login-kakao'),
+                  provider: AppSocialProvider.kakao,
+                  label: l.authKakaoAction,
+                  onPressed: _loading ? null : () => _social('kakao'),
+                ),
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('member-login-google'),
+                  provider: AppSocialProvider.google,
+                  label: l.authGoogleAction,
+                  onPressed: _loading ? null : () => _social('google'),
+                ),
+              ],
             ),
             const SizedBox(height: OnCareSpacing.s12),
           ],
@@ -218,82 +244,6 @@ class _PasswordToggle extends StatelessWidget {
       tooltip: obscure ? l.a11yShowPassword : l.a11yHidePassword,
       color: OnCareColors.textTertiary,
       onPressed: onPressed,
-    );
-  }
-}
-
-/// "— 또는 —" separator between the email login and social buttons.
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        const Expanded(child: AppDivider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
-          child: Text(
-            AppLocalizations.of(context).authOrDivider,
-            style: context.oncare
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
-        ),
-        const Expanded(child: AppDivider()),
-      ],
-    );
-  }
-}
-
-/// 카카오 로그인 버튼 — 카카오 노랑은 외부 브랜드색이라 예외 토큰을 쓴다(#1690).
-/// 높이·반경·라벨은 큰 버튼 규격과 같다. Real SDK token acquisition is
-/// deferred; the [onTap] currently drives a demo-token exchange.
-class _KakaoButton extends StatelessWidget {
-  const _KakaoButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Material(
-      color: OnCareColors.kakaoYellow,
-      borderRadius: OnCareRadius.mdAll,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: tokens.density.buttonLarge,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const Icon(
-                  Icons.chat_bubble_rounded,
-                  color: OnCareColors.kakaoLabel,
-                  size: OnCareSize.iconMedium,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                // 글씨가 커지거나 영어 라벨("Continue with Kakao")이 오면 아이콘과
-                // 문구가 버튼 폭을 넘는다. 줄어들 수 있게 두고 넘치면 줄인다. (#995)
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: tokens
-                        .text(OnCareTypography.buttonLarge)
-                        .copyWith(color: OnCareColors.kakaoLabel),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

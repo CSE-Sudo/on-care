@@ -1,8 +1,8 @@
-/// 로그인 화면의 소셜 로그인 버튼 노출 — #1553.
+/// 로그인 화면의 소셜 로그인 버튼 노출 — #1553, 원형 버튼 #1783.
 ///
 /// 버튼은 고정 데모 토큰을 보내므로 목업이 받아 주는 설정에서만 보여야 한다.
-/// 실서버로 나가는 설정에서는 버튼과 "또는" 구분선이 함께 사라지고, 이메일
-/// 로그인·회원가입은 그대로 남는다.
+/// 실서버로 나가는 설정에서는 원형 버튼과 "SNS 계정으로 로그인" 구분선이 함께
+/// 사라지고, 이메일 로그인·회원가입은 그대로 남는다.
 library;
 
 import 'package:flutter/material.dart';
@@ -30,9 +30,14 @@ Future<void> _pumpSignIn(WidgetTester tester, AppConfig config) async {
 }
 
 void _expectSocialButtons(Matcher matcher) {
-  expect(find.text('카카오로 시작하기'), matcher);
-  expect(find.text('구글로 시작하기'), matcher);
-  expect(find.text('또는'), matcher);
+  expect(find.byKey(const ValueKey<String>('member-login-kakao')), matcher);
+  expect(find.byKey(const ValueKey<String>('member-login-google')), matcher);
+  // 그림만 있는 원형 버튼이라 이름은 화면 읽기 라벨로 찾는다(#1783).
+  expect(find.bySemanticsLabel('카카오로 시작하기'), matcher);
+  expect(find.bySemanticsLabel('구글로 시작하기'), matcher);
+  expect(find.text('SNS 계정으로 로그인'), matcher);
+  // 옛 구분선 문구는 어느 설정에서도 남지 않는다.
+  expect(find.text('또는'), findsNothing);
 }
 
 void main() {

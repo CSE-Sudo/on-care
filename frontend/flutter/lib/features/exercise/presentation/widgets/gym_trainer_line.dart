@@ -73,10 +73,6 @@ class GymTrainerLine extends StatelessWidget {
               Container(
                 width: OnCareSize.avatarSmall,
                 height: OnCareSize.avatarSmall,
-                decoration: const BoxDecoration(
-                  color: OnCareColors.surfaceCard,
-                  shape: BoxShape.circle,
-                ),
                 alignment: Alignment.center,
                 child: Icon(
                   Icons.person_rounded,

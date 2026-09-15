@@ -81,7 +81,7 @@ class OnCareDensity {
   final double inputMedium;
   final double inputLarge;
 
-  /// 선택 칩·세그먼트 토글 높이.
+  /// 선택 칩 높이. 세그먼트 토글은 글자에 맞춘 높이라 이 값을 쓰지 않는다(#1777).
   final double chip;
 
   /// 뒤로·닫기를 뺀 아이콘 버튼의 한 변과 그 안 아이콘 크기.

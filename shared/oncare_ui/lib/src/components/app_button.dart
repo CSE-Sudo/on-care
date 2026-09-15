@@ -205,6 +205,8 @@ class AppButtonPair extends StatelessWidget {
     this.destructive = false,
     this.size = OnCareButtonSize.medium,
     this.confirmLoading = false,
+    this.cancelKey,
+    this.confirmKey,
   });
 
   final String cancelLabel;
@@ -217,12 +219,18 @@ class AppButtonPair extends StatelessWidget {
   final OnCareButtonSize size;
   final bool confirmLoading;
 
+  /// 두 버튼에 붙일 키. 같은 라벨이 화면에 여럿일 때 테스트·자동화가 두 버튼을
+  /// 따로 지목한다.
+  final Key? cancelKey;
+  final Key? confirmKey;
+
   @override
   Widget build(BuildContext context) {
     return Row(
       children: <Widget>[
         Expanded(
           child: AppButton(
+            key: cancelKey,
             label: cancelLabel,
             onPressed: onCancel,
             variant: AppButtonVariant.secondary,
@@ -233,6 +241,7 @@ class AppButtonPair extends StatelessWidget {
         const SizedBox(width: OnCareSpacing.buttonGap),
         Expanded(
           child: AppButton(
+            key: confirmKey,
             label: confirmLabel,
             onPressed: onConfirm,
             variant: destructive

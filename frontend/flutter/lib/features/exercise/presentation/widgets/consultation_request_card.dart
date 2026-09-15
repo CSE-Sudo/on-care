@@ -59,10 +59,6 @@ class ConsultationRequestCard extends StatelessWidget {
           Container(
             width: _leadingSize,
             height: _leadingSize,
-            decoration: BoxDecoration(
-              color: tokens.brand.surface,
-              borderRadius: OnCareRadius.mdAll,
-            ),
             alignment: Alignment.center,
             child: Icon(
               Icons.fitness_center_rounded,

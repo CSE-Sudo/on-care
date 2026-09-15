@@ -438,6 +438,55 @@ class AppDivider extends StatelessWidget {
   );
 }
 
+/// 가운데에 글자가 있는 구분선 — 로그인 버튼과 소셜 로그인 버튼 사이(#1783).
+///
+/// 양옆은 [AppDivider], 글자는 캡션·힌트 색이다. 글자가 폭을 넘으면 양옆 선을
+/// [_minLine] 만큼 남긴 채 가운데 정렬로 줄바꿈한다.
+class AppLabeledDivider extends StatelessWidget {
+  const AppLabeledDivider({super.key, required this.label});
+
+  final String label;
+
+  /// 글자가 길어도 양옆 선이 이만큼은 남는다.
+  static const double _minLine = OnCareSpacing.s24;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        // 영어 문구(`Sign in with a social account`)는 큰 글자 배율에서 폭 400
+        // 로그인 틀을 넘었다. 넘치게 두지 않고 줄바꿈한다(#1783).
+        final double maxLabelWidth =
+            (constraints.maxWidth - 2 * (OnCareSpacing.s12 + _minLine)).clamp(
+              0.0,
+              double.infinity,
+            );
+        return Row(
+          children: <Widget>[
+            const Expanded(child: AppDivider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s12,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxLabelWidth),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: context.oncare
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+              ),
+            ),
+            const Expanded(child: AppDivider()),
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// 빈 화면·오류·로딩이 놓이는 자리.
 enum AppStatePlacement {
   /// 페이지 가운데.

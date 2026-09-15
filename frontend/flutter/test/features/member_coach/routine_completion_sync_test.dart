@@ -156,7 +156,21 @@ void main() {
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(AiCoachingCard)),
     );
-    await tester.tap(find.text(l.actionCancel).last);
+    // 왼쪽 버튼은 `유지` 다 — 확정 버튼 `완료 취소` 와 둘 다 '취소' 면
+    // 어느 쪽이 물리는 버튼인지 헷갈린다(#1782).
+    final Finder keep = find.descendant(
+      of: find.byType(AppDialog),
+      matching: find.text(l.coachRoutineKeep),
+    );
+    expect(keep, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AppDialog),
+        matching: find.text(l.actionCancel),
+      ),
+      findsNothing,
+    );
+    await tester.tap(keep);
     await tester.pumpAndSettle();
 
     expect(await weekCalories(tester), afterCheck);

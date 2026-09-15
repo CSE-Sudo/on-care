@@ -240,9 +240,16 @@ class OnCareTheme {
       ),
 
       // --- 입력 ---
+      // 흰 채움 + 회색 테두리(#1776). 회색 채움은 흰 페이지·카드 위에서
+      // 비활성처럼 보인다 — 그래서 회색은 비활성 칸에만 남겨, 고칠 수 없는
+      // 칸(예: 트레이너 MY 이름·이메일)이 입력칸처럼 보이지 않게 한다.
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: OnCareColors.surfaceInput,
+        fillColor: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.disabled)
+              ? OnCareColors.surfaceInput
+              : OnCareColors.surfaceCard,
+        ),
         isDense: true,
         constraints: BoxConstraints(minHeight: density.inputMedium),
         contentPadding: const EdgeInsets.symmetric(

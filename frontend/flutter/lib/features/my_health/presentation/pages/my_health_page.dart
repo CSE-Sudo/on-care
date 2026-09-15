@@ -103,9 +103,9 @@ class _BellButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.notifications_none_rounded,
+          icon: Icons.notifications_rounded,
           tooltip: l.pageNotificationTitle,
-          variant: AppIconButtonVariant.tonal,
+          color: context.oncare.brand.primary,
           onPressed: onPressed,
         ),
         if (hasUnread)
@@ -119,7 +119,8 @@ class _BellButton extends StatelessWidget {
   }
 }
 
-/// 브랜드 채움 위에 아이콘을 얹은 작은 사각 표시(설정 행·혜택 카드 앞).
+/// 설정 행·혜택 카드 앞의 아이콘 자리. 배경 없이 칸 크기만 잡아 글줄 정렬을
+/// 지킨다(#1781).
 class _IconTile extends StatelessWidget {
   const _IconTile({required this.icon});
 
@@ -132,10 +133,6 @@ class _IconTile extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: tokens.brand.surface,
-        borderRadius: OnCareRadius.mdAll,
-      ),
       child: Icon(
         icon,
         size: OnCareSize.iconMedium,
@@ -383,7 +380,7 @@ class PointsBenefitsPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             const Icon(
-              Icons.info_outline_rounded,
+              Icons.info_rounded,
               size: OnCareSize.iconSmall,
               color: OnCareColors.textTertiary,
             ),
@@ -558,10 +555,10 @@ class _Settings extends StatelessWidget {
   final VoidCallback onLogout;
 
   static const List<_SettingItem> _items = <_SettingItem>[
-    _SettingItem(Icons.person_outline_rounded, _MySetting.profile),
-    _SettingItem(Icons.outlined_flag_rounded, _MySetting.goals),
-    _SettingItem(Icons.notifications_none_rounded, _MySetting.notif),
-    _SettingItem(Icons.chat_bubble_outline_rounded, _MySetting.support),
+    _SettingItem(Icons.person_rounded, _MySetting.profile),
+    _SettingItem(Icons.flag_rounded, _MySetting.goals),
+    _SettingItem(Icons.notifications_rounded, _MySetting.notif),
+    _SettingItem(Icons.chat_bubble_rounded, _MySetting.support),
   ];
 
   static String _label(AppLocalizations l, _MySetting id) {
