@@ -76,11 +76,14 @@ class OnCareColors {
   static const Color chartGoalLine = Color(0xFF98A2B3);
 
   // --- 외부 브랜드(예외) ---
-  /// 카카오 로그인 버튼 바탕.
+  /// 카카오 로그인 버튼 바탕. 말풍선 속 `TALK` 글자도 이 색이다.
   static const Color kakaoYellow = Color(0xFFFEE500);
 
-  /// 카카오 로그인 버튼 글자.
-  static const Color kakaoLabel = Color(0xFF191600);
+  /// 카카오 심볼(말풍선) 색. 카카오 로그인 디자인 가이드의 심볼 색 그대로다(#1783).
+  static const Color kakaoSymbol = Color(0xFF000000);
+
+  /// 구글 원형 로그인 버튼 바탕 — 구글 로고의 빨강(#1783).
+  static const Color googleRed = Color(0xFFEA4335);
 
   /// [color] 를 흰 바탕 위에 [alpha] 만큼 얹은 **불투명** 색.
   ///

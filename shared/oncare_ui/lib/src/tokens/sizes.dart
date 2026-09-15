@@ -53,6 +53,11 @@ class OnCareSize {
   // --- 태그 ---
   static const double tagHeight = 24;
 
+  // --- 소셜 로그인 ---
+  /// 원형 소셜 로그인 버튼 한 변(#1783). 계정 회사 표식이라 밀도와 무관하게 두 앱이
+  /// 같고, 회원앱 큰 버튼 높이와 맞춘다.
+  static const double socialLoginButton = 52;
+
   // --- 선 ---
   static const double hairline = 1;
   static const double focusBorder = 1.5;
