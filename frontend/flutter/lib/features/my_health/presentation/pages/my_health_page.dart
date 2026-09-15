@@ -16,12 +16,12 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// MY tab: profile, an activity-points card, the trainer & gym section, the
-/// settings list, and logout.
 /// Stable identifiers for the settings rows, decoupled from their localized
 /// display labels so the switch never keys off a translated string.
 enum _MySetting { profile, goals, notif, support }
 
+/// MY 탭 — 프로필 카드, 내 트레이너 · 헬스장 섹션, 활동 포인트 카드, 설정 목록과
+/// 로그아웃 순서다. 포인트 카드는 트레이너 · 헬스장 아래에 둔다(#1785).
 class MyHealthPage extends ConsumerWidget {
   const MyHealthPage({super.key});
 
@@ -75,10 +75,10 @@ class MyHealthPage extends ConsumerWidget {
       ),
       children: <Widget>[
         _ProfileCard(profile: health.valueOrNull?.profile),
-        const SizedBox(height: OnCareSpacing.cardGap),
-        _PointsCard(points: health.valueOrNull?.activityPoints),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _TrainerGymSection(onFindGym: () => context.go(AppRoutes.exerciseGym)),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        _PointsCard(points: health.valueOrNull?.activityPoints),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _Settings(
           onTap: (_MySetting id) => _openSetting(context, id),
@@ -209,6 +209,8 @@ class _ProfileCard extends StatelessWidget {
 ///
 /// 코드를 여기서 바로 띄우지 않고 한 단계 두는 이유는, 코드를 띄우는 것이 곧
 /// 데이터 공유 동의라서다 — 스스로 누른 것이어야 한다.
+///
+/// 앞머리 아이콘은 두지 않는다 — 제목이 프로필 이름과 같은 왼쪽 선에서 시작한다(#1785).
 class _TrainerSyncRow extends StatelessWidget {
   const _TrainerSyncRow();
 
@@ -223,8 +225,6 @@ class _TrainerSyncRow extends StatelessWidget {
         onTap: () => showTrainerSyncSheet(context),
         child: Row(
           children: <Widget>[
-            const _IconTile(icon: Icons.sync_rounded),
-            const SizedBox(width: OnCareSpacing.s12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -258,6 +258,8 @@ class _TrainerSyncRow extends StatelessWidget {
 }
 
 /// 활동 포인트 — 누르면 포인트 혜택 페이지로 간다.
+///
+/// 적립 안내 (i) 버튼은 카드가 아니라 포인트 사용처 화면 헤더에 있다(#1785).
 class _PointsCard extends StatelessWidget {
   const _PointsCard({required this.points});
 
@@ -279,24 +281,17 @@ class _PointsCard extends StatelessWidget {
               size: OnCareSize.iconLarge,
             ),
             const SizedBox(width: OnCareSpacing.s8),
-            // 숫자와 (i) 를 한 칸으로 묶어 남는 폭을 모두 차지하게 한다.
-            // Flexible(loose)와 Spacer 가 flex 를 반씩 나누면 숫자가 못 쓴
-            // 몫이 화살표 오른쪽에 빈칸으로 남아, 화살표가 다른 행보다 안쪽에 선다.
+            // 숫자가 남는 폭을 모두 차지하게 한다. 느슨한 칸(Flexible)이면 숫자가
+            // 못 쓴 몫이 화살표 오른쪽에 빈칸으로 남아, 화살표가 다른 행보다
+            // 안쪽에 선다(#1744).
             Expanded(
-              child: Row(
-                children: <Widget>[
-                  Flexible(
-                    child: Text(
-                      points != null ? '${points}P' : '—P',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: OnCareTypography.numeric(
-                        tokens.text(OnCareTypography.titleMedium),
-                      ).copyWith(color: OnCareColors.textPrimary),
-                    ),
-                  ),
-                  const _PointsInfoButton(),
-                ],
+              child: Text(
+                points != null ? '${points}P' : '—P',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: OnCareTypography.numeric(
+                  tokens.text(OnCareTypography.titleMedium),
+                ).copyWith(color: OnCareColors.textPrimary),
               ),
             ),
             const Icon(
@@ -364,7 +359,10 @@ class PointsBenefitsPage extends StatelessWidget {
     return AppPage(
       key: const Key('pointsBenefitsPage'),
       bottomInset: MediaQuery.paddingOf(context).bottom,
-      header: AppTopBar(title: l.myPointsBenefitsTitle),
+      header: AppTopBar(
+        title: l.myPointsBenefitsTitle,
+        actions: const <Widget>[_PointsInfoButton()],
+      ),
       children: <Widget>[
         Text(
           points != null
@@ -454,8 +452,8 @@ class _PointBenefitCard extends StatelessWidget {
   }
 }
 
-/// "i" button on the points card — taps open a dialog explaining how points
-/// are earned.
+/// 포인트 사용처 화면 헤더 오른쪽 끝의 (i) 버튼 — 누르면 포인트 적립 안내 창을
+/// 연다. MY 포인트 카드의 잔액 옆에 있던 것을 헤더로 옮겼다(#1785).
 class _PointsInfoButton extends StatelessWidget {
   const _PointsInfoButton();
 
@@ -500,8 +498,9 @@ class _PointsInfoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 배경 없는(plain) 버튼에 채운 글리프를 얹는다.
     return AppIconButton(
-      icon: Icons.info_outline_rounded,
+      icon: Icons.info_rounded,
       tooltip: AppLocalizations.of(context).myPointsGuideTitle,
       color: OnCareColors.textTertiary,
       onPressed: () => _show(context),
