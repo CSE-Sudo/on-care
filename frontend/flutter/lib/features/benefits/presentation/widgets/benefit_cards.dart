@@ -6,7 +6,8 @@ import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 브랜드 채움 위에 아이콘을 얹은 작은 사각 표시 — MY 설정 행과 같은 모양이다.
+/// 혜택 카드 앞의 아이콘 자리 — MY 설정 행과 같은 모양이다. 배경 없이 칸 크기만
+/// 잡아 글줄 정렬을 지킨다(#1781).
 class BenefitIconTile extends StatelessWidget {
   const BenefitIconTile({super.key, required this.icon});
 
@@ -19,10 +20,6 @@ class BenefitIconTile extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: tokens.brand.surface,
-        borderRadius: OnCareRadius.mdAll,
-      ),
       child: Icon(icon, size: OnCareSize.iconMedium, color: tokens.brand.primary),
     );
   }
