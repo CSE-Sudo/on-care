@@ -19,6 +19,7 @@ from pydantic import (
 
 from app.core import clock
 from app.schemas.partial_update import PartialUpdate
+from app.services import health_focus
 from app.services import exercise_types
 
 
@@ -170,6 +171,8 @@ class MemberHealthProfileUpdate(PartialUpdate):
     height_cm: float | None = Field(default=None, ge=50, le=300)
     weight_kg: float | None = Field(default=None, ge=20, le=500)
     gender: str | None = Field(default=None, pattern="^(male|female|other|)$")
+    #: 건강 목표(최대 2개)와 트레이너가 적은 건강상태·주의사항이 함께 담긴다.
+    #: 옛 질환 이름은 저장 전에 정리한다 — 회원앱 저장과 같은 규칙이다(#1818).
     conditions: str | None = Field(default=None, max_length=1000)
     goals: str | None = Field(default=None, max_length=500)
     daily_calories: int | None = Field(default=None, ge=500, le=10000)
@@ -206,6 +209,10 @@ class MemberHealthProfileUpdate(PartialUpdate):
         }
     )
 
+    @field_validator("conditions")
+    @classmethod
+    def _normalize_conditions(cls, value: str | None) -> str | None:
+        return health_focus.normalize_conditions(value)
 
 class ClientDietEntryOut(BaseModel):
     """고객 식단 서브탭 한 끼 — 프론트 ClientDietEntry 계약 정렬."""

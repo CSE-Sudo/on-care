@@ -75,3 +75,37 @@ def focus_in(raw: str | None) -> list[str]:
     """`conditions` 에 들어 있는 건강 목표만 [FOCUS_OPTIONS] 순서로."""
     tokens = {t.strip() for t in (normalize_conditions(raw) or "").split(",")}
     return [f for f in FOCUS_OPTIONS if f in tokens]
+
+
+#: 트레이너 화면이 건강 목표를 한 줄로 이을 때 쓰는 구분자. (#1818)
+FOCUS_LABEL_SEPARATOR = " · "
+
+#: 상담 신청의 운동 목표(`ConsultationRequest.exercise_goal`) → 건강 목표.
+#: `health`(건강 관리)·`other` 는 여덟 목표 중 하나로 옮길 수 없어 넣지 않는다.
+EXERCISE_GOAL_FOCUS: dict[str, str] = {
+    "weight_loss": FOCUS_WEIGHT_LOSS,
+    "strength": FOCUS_STRENGTH,
+    "fitness": FOCUS_FITNESS,
+    "posture": FOCUS_POSTURE,
+}
+
+
+def focus_label(raw: str | None) -> str:
+    """`conditions` 의 건강 목표를 트레이너 화면 한 줄로(`체중 감량 · 혈압 관리`).
+
+    트레이너 로스터·회원 코치 요약·AI 추천이 회원 목표를 말하는 자리다. 예전에는
+    트레이너가 따로 적은 자유 문장(`TrainerClient.goal`)이었는데, 회원이 고른 목표와
+    따로 놀아 같은 사람을 두 화면이 다르게 말했다(#1818). 목표가 없으면 빈 값이다.
+    """
+    return FOCUS_LABEL_SEPARATOR.join(focus_in(raw))
+
+
+def with_focus_if_missing(raw: str | None, focus: str) -> str:
+    """건강 목표가 하나도 없을 때만 [focus] 를 채운다. 이미 고른 목표는 덮지 않는다.
+
+    상담 수락·데모 시드처럼 **회원이 고르지 않은 자리에서** 목표를 채울 때 쓴다 —
+    회원이나 트레이너가 이미 고른 목표를 시스템이 바꾸면 고친 사람이 모른다.
+    """
+    if focus_in(raw):
+        return normalize_conditions(raw) or ""
+    return normalize_conditions(f"{focus}, {raw or ''}") or ""

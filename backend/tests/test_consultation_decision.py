@@ -813,3 +813,70 @@ def test_reject_after_accept_conflicts(client, db_session):
     )
 
     assert response.status_code == 409, response.text
+
+
+# --- 회원 건강 목표 (#1818) ----------------------------------------------------
+
+
+def _member_profile(client, member_token: str) -> dict:
+    response = client.get("/v1/users/me/profile", headers=_auth(member_token))
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _clear_member_profile(db_session, member_id: str) -> None:
+    from app.models.models import HealthProfile
+
+    db_session.rollback()
+    db_session.query(HealthProfile).filter(HealthProfile.user_id == member_id).delete(
+        synchronize_session=False
+    )
+    db_session.commit()
+
+
+def test_accept_fills_member_health_goal_from_consultation(client, db_session):
+    """목표를 고른 적 없는 회원은 상담에 적은 운동 목표가 건강 목표가 된다."""
+    trainer, trainer_token = _trainer(client, db_session)
+    member_id, member_token = _member(client)
+    consultation_id = _request_consultation(
+        client, member_token, trainer_id=trainer.id
+    )
+    try:
+        response = client.post(
+            f"/v1/trainer/consultations/{consultation_id}/accept",
+            headers=_auth(trainer_token),
+            json={},
+        )
+        assert response.status_code == 200, response.text
+
+        assert _member_profile(client, member_token)["conditions"] == "체중 감량"
+        roster = client.get("/v1/trainer/clients", headers=_auth(trainer_token)).json()
+        assert next(c for c in roster if c["id"] == member_id)["goal"] == "체중 감량"
+    finally:
+        _clear_member_profile(db_session, member_id)
+
+
+def test_accept_keeps_goals_the_member_already_picked(client, db_session):
+    """이미 고른 건강 목표는 상담 목표로 덮지 않는다."""
+    trainer, trainer_token = _trainer(client, db_session)
+    member_id, member_token = _member(client)
+    try:
+        saved = client.put(
+            "/v1/users/me/health-goals",
+            headers=_auth(member_token),
+            json={"conditions": "근력 향상"},
+        )
+        assert saved.status_code == 200, saved.text
+        consultation_id = _request_consultation(
+            client, member_token, trainer_id=trainer.id
+        )
+
+        response = client.post(
+            f"/v1/trainer/consultations/{consultation_id}/accept",
+            headers=_auth(trainer_token),
+            json={},
+        )
+        assert response.status_code == 200, response.text
+        assert _member_profile(client, member_token)["conditions"] == "근력 향상"
+    finally:
+        _clear_member_profile(db_session, member_id)

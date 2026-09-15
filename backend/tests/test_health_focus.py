@@ -74,3 +74,41 @@ def test_member_can_keep_at_most_two_goals():
     assert health_focus.MAX_FOCUS == 2
     saved = HealthGoalsUpdate(conditions="혈압 관리, 재활, 운동 습관").conditions
     assert health_focus.focus_in(saved) == ["재활", "운동 습관"]
+
+
+# --- 트레이너 화면 (#1818) -----------------------------------------------------
+
+
+def test_focus_label_joins_goals_for_trainer_screens():
+    assert health_focus.focus_label("혈압 관리, 체중 감량, 무릎 통증") == "체중 감량 · 혈압 관리"
+    assert health_focus.focus_label("무릎 통증") == ""
+    assert health_focus.focus_label(None) == ""
+
+
+def test_with_focus_if_missing_never_overwrites_picked_goals():
+    assert health_focus.with_focus_if_missing("", "체중 감량") == "체중 감량"
+    assert health_focus.with_focus_if_missing("무릎 통증", "체중 감량") == "체중 감량, 무릎 통증"
+    assert health_focus.with_focus_if_missing("근력 향상", "체중 감량") == "근력 향상"
+    assert health_focus.with_focus_if_missing("고혈압", "체중 감량") == "혈압 관리"
+
+
+def test_consultation_goals_map_onto_member_goals():
+    assert set(health_focus.EXERCISE_GOAL_FOCUS.values()) <= set(health_focus.FOCUS_OPTIONS)
+
+
+def test_trainer_save_cleans_conditions_like_the_member_app():
+    from app.schemas.trainer_api import MemberHealthProfileUpdate
+
+    update = MemberHealthProfileUpdate(conditions="고혈압, 재활, 근력 향상, 무릎 통증")
+    assert update.conditions == "근력 향상, 재활, 무릎 통증"
+
+
+def test_demo_roster_goals_are_member_goals():
+    from app.db.seed_trainer import _MEMBERS
+
+    goals = [focus for _id, _e, _n, focus, _a, _d, _o in _MEMBERS]
+    for focus in goals:
+        assert health_focus.normalize_conditions(focus) == focus
+        assert 1 <= len(health_focus.focus_in(focus)) <= health_focus.MAX_FOCUS
+    # 여덟 목표가 데모 로스터 어딘가에 한 번은 나온다 — 트레이너 화면에서 모두 볼 수 있다.
+    assert {f for g in goals for f in health_focus.focus_in(g)} == set(health_focus.FOCUS_OPTIONS)

@@ -123,7 +123,8 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const Key('week-detail')),
-        matching: find.text('혈압 관리 · 체중 감량'),
+        // 시드의 김민수 목표는 회원 건강 목표 순서다(#1818).
+        matching: find.text('체중 감량 · 혈압 관리'),
       ),
       findsOneWidget,
     );

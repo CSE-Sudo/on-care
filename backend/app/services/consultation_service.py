@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.core import clock
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
+    HealthProfile,
     ConsultationRequest,
     MemberGym,
     Notification,
@@ -27,6 +28,7 @@ from app.schemas.consultation_api import (
     TrainerConsultationOut,
 )
 from app.schemas.trainer_api import ScheduleSessionOut
+from app.services import health_focus
 from app.services import notification_service, trainer_service
 
 
@@ -526,6 +528,25 @@ def link_member_gym(db: Session, member_id: str, gym_id: str | None) -> None:
     db.add(MemberGym(member_id=member_id, gym_id=gym_id))
 
 
+def _fill_member_focus_from_consultation(
+    db: Session, member_id: str, exercise_goal: str | None
+) -> None:
+    """상담에서 고른 운동 목표를 회원 건강 목표로 옮긴다(커밋 없음). (#1818)
+
+    트레이너 화면의 회원 목표는 회원 건강 목표를 읽는다. 상담으로 처음 연결된
+    회원이 아직 목표를 고르지 않았으면, 방금 상담에 적은 목표가 가장 가까운 값이다.
+    이미 고른 목표가 있으면 건드리지 않는다.
+    """
+    focus = health_focus.EXERCISE_GOAL_FOCUS.get(exercise_goal or "")
+    if focus is None:
+        return
+    profile = db.scalar(select(HealthProfile).where(HealthProfile.user_id == member_id))
+    if profile is None:
+        profile = HealthProfile(user_id=member_id)
+        db.add(profile)
+    profile.conditions = health_focus.with_focus_if_missing(profile.conditions, focus)
+
+
 def attach_member_to_trainer(
     db: Session,
     trainer_id: str,
@@ -626,6 +647,7 @@ def accept(
             # 옮겨 적는다. (#1022)
             consented_at=row.data_consent_at,
         )
+        _fill_member_focus_from_consultation(db, row.member_id, row.exercise_goal)
     # 링크 생성 여부와는 별개 조건이다 — 이미 이 트레이너의 담당인 회원이 상담을
     # 새로 넣고 승인받는 경우에도 헬스장 연결은 이뤄져야 한다(리뷰).
     # 이미 연결된 회원에게는 no-op 이라 중복 호출이 무해하다.
