@@ -17,12 +17,14 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/benefits/presentation/pages/coupon_detail_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/my_benefits_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import 'fake_benefits_repository.dart';
+import 'fake_challenge_repository.dart';
 
 void main() {
   Future<void> pumpAt(
@@ -53,7 +55,13 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: <Override>[benefitsRepositoryProvider.overrideWithValue(repo)],
+        overrides: <Override>[
+          benefitsRepositoryProvider.overrideWithValue(repo),
+          // 내 혜택은 참가 챌린지 구역도 읽는다(#1789).
+          challengeRepositoryProvider.overrideWithValue(
+            FakeChallengeRepository(),
+          ),
+        ],
         child: MaterialApp.router(
           theme: AppTheme.light(),
           locale: const Locale('ko'),

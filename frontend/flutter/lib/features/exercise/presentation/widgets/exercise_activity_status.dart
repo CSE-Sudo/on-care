@@ -6,6 +6,7 @@ import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -300,6 +301,8 @@ class _ExerciseActivityStatusState
           ExerciseWeekLoadCard(loads: _loads, goals: _goals)
         else
           _AllPeriodView(goals: _goals),
+        // 이번 주 챌린지에 참가했으면 진행(예: 2 / 3회)을 덧붙인다(#1789).
+        const ExerciseChallengeProgress(),
       ],
     );
   }

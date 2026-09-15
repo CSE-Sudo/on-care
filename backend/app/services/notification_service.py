@@ -208,6 +208,10 @@ MEMBER_BENEFITS = "benefits"
 #: 포인트가 움직인 일이라 끌 수 있는 알림으로 두지 않는다.
 POINTS_COUPON = "points_coupon"
 
+#: 주간 운동 챌린지 결과 알림의 kind(#1789). 쿠폰 알림과 같은 이유로 수신 설정
+#: 스위치가 없다 — 건 포인트를 돌려받았는지·잃었는지 알려 주는 알림이다.
+WEEKLY_CHALLENGE = "weekly_challenge"
+
 #: 트레이너 알림의 종류. `Notification.category` 에 그대로 저장되고, 트레이너 앱이
 #: 이 값으로 어디로 이동할지 정한다. 회원 알림의 category 집합
 #: (reminder|health_check|achievement|system)과 겹치지 않게 둔다 — 한 컬럼을

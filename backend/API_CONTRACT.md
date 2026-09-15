@@ -180,6 +180,37 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
 - **알림** 연결 해제로 인한 취소(`재등록 쿠폰이 취소됐어요`·`락커 쿠폰이 취소됐어요`)·만료 임박 알림의 `category` 는
   `benefits`, `action` 은 `{ label: "내 혜택 보기", target: "my_benefits" }`. 수신 설정 스위치는 없다.
 
+### 주간 운동 챌린지 (#1789)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| GET | `/me/challenges/weekly` | 회원(데모 폴백) | 이번 주 `weekly_challenge` |
+| POST | `/me/challenges/weekly/join` | 회원 | 입력 `{ client_request_id? }`(본문 생략 가능) → **201** `{ challenge, spent, balance }` |
+| GET | `/me/challenges` | 회원(데모 폴백) | `challenge[]` — 최근 주 먼저(최대 20) |
+
+`weekly_challenge`: `{ week_start, week_end, join_until, stake, reward, goal, progress, balance, joinable,
+blocked_reason, shortfall, challenge? }`. `goal` 은 참가했으면 고정된 목표, 아니면 지금 참가하면 걸릴 목표.
+`progress` 는 이번 주 오늘까지 운동 기록이 있는 날 수(참가 여부와 무관). `blocked_reason` 은 `already_joined` →
+`join_closed` → `insufficient_points` 순으로 하나만, 참가할 수 있으면 null. `challenge` 는 이번 주 참가 기록(없으면 null).
+
+`challenge`: `{ id, week_start, week_end, goal, progress, stake, reward, status, achieved, rewarded, joined_at,
+settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받은 보상(성공이 아니면 0).
+
+- **한 주** KST 월요일~일요일. **참가**는 그 주 월·화요일에만, 한 주에 한 번. 그 밖의 날·두 번째 참가·잔액 부족은 409.
+  같은 `client_request_id` 재전송은 새로 걸지 않고 처음 기록을 돌려준다.
+- **건 포인트** 참가할 때 100P 를 `spend`(`reason: challenge_stake`, `source_type: weekly_challenge`)로 뺀다.
+- **목표** 참가 시점의 `weekly_workout_goal` 을 고정한다. 없거나 1 미만이면 3, 7 초과는 7(한 주에 셀 수 있는 최대 날 수).
+- **진행** 그 주에 운동 기록이 있는 날 수. 같은 날 여러 번은 1회, 출처(직접 추가·PT·배정 루틴)는 가리지 않는다.
+  날짜는 운동 화면과 같은 논리 운동일이고, 오늘 이후 날짜의 기록은 세지 않는다.
+- **판정** 주가 끝난 뒤 한 번. 일요일까지 목표를 채웠으면 200P 를 `earn`(`reason: challenge_reward`)으로 적립하고,
+  못 채웠으면 건 포인트는 사라진다. 주 중간에 목표를 채워도 보상은 주가 끝나야 받는다(`achieved: true`,
+  `status: active`). 판정 때 센 날 수를 남겨, 판정 뒤 지난 주 기록이 바뀌어도 결과는 그대로다.
+- **늦은 판정** 스케줄러가 없어 `GET /me/challenges/weekly`, `GET /me/challenges`, `POST /me/challenges/weekly/join`,
+  `GET /me/points/shop`, `GET /users/me/health`, `GET /notifications` 를 부를 때 끝난 주의 진행 중 챌린지를 판정한다.
+  조건부 UPDATE 한 번이라 보상·결과 알림은 챌린지마다 한 번뿐이다.
+- **알림** 판정마다 결과 알림 한 건. `category` 는 `benefits`, `action` 은 `{ label: "내 혜택 보기", target: "my_benefits" }`.
+  수신 설정 스위치는 없다.
+
 ### 일정 (캘린더 상세 CRUD)
 
 | Method | Path | 응답 |

@@ -1827,3 +1827,61 @@ class AiMessage(Base):
     __table_args__ = (
         UniqueConstraint("conversation_id", "seq", name="uq_ai_messages_convo_seq"),
     )
+
+
+class WeeklyChallenge(Base):
+    """주간 운동 챌린지 참가 기록 — 회원이 참가한 주 하나당 한 줄. (#1789)
+
+    포인트를 걸고(`stake`) 한 주(KST 월~일) 운동 목표를 채우면 `reward` 를 돌려받는다.
+    참가는 그 주 월·화요일에만, 한 주에 한 번이다(`(user_id, week_start)` 유니크).
+
+    - `goal` 은 참가할 때의 주간 운동 횟수 목표 사본이다. 참가 뒤 목표를 바꿔도
+      그 주 챌린지는 참가할 때 목표로 판정한다.
+    - `status` 는 active(진행 중)|succeeded|failed. 스케줄러가 없어 **주가 끝난 뒤
+      읽는 쪽이 판정한다**(`weekly_challenge_service.settle_due`).
+    - `final_days` 는 판정 때 센 운동한 날 수다. 판정 뒤 지난 주 기록이 바뀌어도
+      결과 화면이 판정과 어긋나지 않게 남긴다.
+    - 포인트 움직임은 `points_ledger` 에 `source_type='weekly_challenge'` 로 남는다 —
+      참가 `spend`, 성공 `earn`.
+    """
+
+    __tablename__ = "weekly_challenges"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 그 주의 월요일(KST, YYYY-MM-DD). `exercise_sessions.week_start` 와 같은 표기.
+    week_start: Mapped[str] = mapped_column(String(10))
+    goal: Mapped[int] = mapped_column(Integer)
+    stake: Mapped[int] = mapped_column(Integer)
+    reward: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(12), default="active", server_default="active"
+    )  # active|succeeded|failed
+    final_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    #: 참가 시도 단위 멱등키. 응답을 못 받고 다시 누른 참가가 두 번 걸지 않는다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    settled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'succeeded', 'failed')",
+            name="ck_weekly_challenges_status",
+        ),
+        CheckConstraint("goal BETWEEN 1 AND 7", name="ck_weekly_challenges_goal"),
+        CheckConstraint("stake > 0", name="ck_weekly_challenges_stake"),
+        CheckConstraint("reward > 0", name="ck_weekly_challenges_reward"),
+        UniqueConstraint(
+            "user_id", "week_start", name="uq_weekly_challenges_user_week"
+        ),
+        UniqueConstraint(
+            "user_id",
+            "client_request_id",
+            name="uq_weekly_challenges_client_request",
+        ),
+        Index("ix_weekly_challenges_user_status", "user_id", "status"),
+    )

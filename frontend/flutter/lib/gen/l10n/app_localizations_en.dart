@@ -1165,6 +1165,98 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myBenefitsLoadFailed => 'Couldn\'t load benefits';
 
   @override
+  String get myBenefitsChallenges => 'Weekly challenges';
+
+  @override
+  String get myBenefitsChallengesEmpty => 'No challenges yet';
+
+  @override
+  String get myBenefitsChallengesEmptyMessage =>
+      'Join this week\'s challenge from Rewards.';
+
+  @override
+  String get challengeTitle => 'Weekly workout challenge';
+
+  @override
+  String get challengeShort => 'Weekly challenge';
+
+  @override
+  String challengeDescription(String stake, int goal, String reward) {
+    return 'Stake $stake, work out $goal times this week, and get $reward back';
+  }
+
+  @override
+  String get challengeJoinWindow => 'You can join on Monday or Tuesday';
+
+  @override
+  String get challengeJoin => 'Join';
+
+  @override
+  String get challengeJoinConfirmTitle => 'Join this week\'s challenge?';
+
+  @override
+  String challengeJoinConfirmMessage(String stake, int goal, String reward) {
+    return 'Stake $stake and aim for $goal workouts this week. Reach it by Sunday to get $reward back, or the stake is lost.';
+  }
+
+  @override
+  String get challengeJoinConfirmAction => 'Join';
+
+  @override
+  String get challengeJoinDone => 'You joined this week\'s challenge';
+
+  @override
+  String get challengeJoinFailed => 'Couldn\'t join. Please try again.';
+
+  @override
+  String get challengeJoinClosed => 'You can join again next Monday';
+
+  @override
+  String get challengeThisWeek => 'This week';
+
+  @override
+  String challengeProgress(int progress, int goal) {
+    return '$progress / $goal workouts';
+  }
+
+  @override
+  String challengeRemaining(int count, String reward) {
+    return '$count more by Sunday to get $reward back';
+  }
+
+  @override
+  String challengeAchieved(String reward) {
+    return 'Goal reached! You get $reward when the week ends';
+  }
+
+  @override
+  String challengeWeekTitle(String range) {
+    return 'Challenge $range';
+  }
+
+  @override
+  String get challengeStatusActive => 'In progress';
+
+  @override
+  String get challengeStatusSucceeded => 'Completed';
+
+  @override
+  String get challengeStatusFailed => 'Missed';
+
+  @override
+  String challengeResultSucceeded(int goal, int progress, String reward) {
+    return '$progress of $goal workouts · $reward earned';
+  }
+
+  @override
+  String challengeResultFailed(int goal, int progress, String stake) {
+    return '$progress of $goal workouts · $stake stake lost';
+  }
+
+  @override
+  String get challengeLoadFailed => 'Couldn\'t load challenges';
+
+  @override
   String get myCouponStatusUsable => 'Available';
 
   @override

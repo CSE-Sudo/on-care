@@ -88,6 +88,9 @@ class AppIcons {
   static const IconData ptRenewal = Symbols.card_membership_rounded;
   static const IconData locker = Symbols.checkroom_rounded;
 
+  /// 주간 챌린지 — 사용처 카드·내 혜택·운동 현황(#1789). 알림의 달성과 같은 모양이다.
+  static const IconData challenge = achievement;
+
   // --- 이동·펼침 ---
   static const IconData back = Symbols.chevron_left_rounded;
   static const IconData chevronLeft = Symbols.chevron_left_rounded;

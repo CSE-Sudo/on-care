@@ -651,6 +651,119 @@
   "myBenefitsEmpty": "No coupons yet",
   "myBenefitsEmptyMessage": "Redeem your points for a coupon.",
   "myBenefitsLoadFailed": "Couldn't load benefits",
+  "myBenefitsChallenges": "Weekly challenges",
+  "myBenefitsChallengesEmpty": "No challenges yet",
+  "myBenefitsChallengesEmptyMessage": "Join this week's challenge from Rewards.",
+  "challengeTitle": "Weekly workout challenge",
+  "challengeShort": "Weekly challenge",
+  "challengeDescription": "Stake {stake}, work out {goal} times this week, and get {reward} back",
+  "@challengeDescription": {
+    "description": "Challenge card summary. stake and reward are point amounts such as 100P.",
+    "placeholders": {
+      "stake": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "int"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeJoinWindow": "You can join on Monday or Tuesday",
+  "challengeJoin": "Join",
+  "challengeJoinConfirmTitle": "Join this week's challenge?",
+  "challengeJoinConfirmMessage": "Stake {stake} and aim for {goal} workouts this week. Reach it by Sunday to get {reward} back, or the stake is lost.",
+  "@challengeJoinConfirmMessage": {
+    "placeholders": {
+      "stake": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "int"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeJoinConfirmAction": "Join",
+  "challengeJoinDone": "You joined this week's challenge",
+  "challengeJoinFailed": "Couldn't join. Please try again.",
+  "challengeJoinClosed": "You can join again next Monday",
+  "challengeThisWeek": "This week",
+  "challengeProgress": "{progress} / {goal} workouts",
+  "@challengeProgress": {
+    "description": "Challenge progress: days with a workout record out of the goal.",
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeRemaining": "{count} more by Sunday to get {reward} back",
+  "@challengeRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeAchieved": "Goal reached! You get {reward} when the week ends",
+  "@challengeAchieved": {
+    "placeholders": {
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeWeekTitle": "Challenge {range}",
+  "@challengeWeekTitle": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeStatusActive": "In progress",
+  "challengeStatusSucceeded": "Completed",
+  "challengeStatusFailed": "Missed",
+  "challengeResultSucceeded": "{progress} of {goal} workouts · {reward} earned",
+  "@challengeResultSucceeded": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "int"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeResultFailed": "{progress} of {goal} workouts · {stake} stake lost",
+  "@challengeResultFailed": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "int"
+      },
+      "stake": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeLoadFailed": "Couldn't load challenges",
   "myCouponStatusUsable": "Available",
   "myCouponStatusUsed": "Used",
   "myCouponStatusExpired": "Expired",

@@ -103,6 +103,17 @@ class DemoPointsLedger {
     return cost;
   }
 
+  /// 하루 한도 없는 적립 — 주간 챌린지 보상(#1789). 같은 [sourceId] 에는 한 번뿐이다.
+  ///
+  /// 서버의 `credit` 과 같다. 적립한 포인트(0 이상)를 돌려준다.
+  final Set<String> _credited = <String>{};
+
+  int credit(String sourceId, int amount) {
+    if (amount <= 0 || !_credited.add(sourceId)) return 0;
+    _balance += amount;
+    return amount;
+  }
+
   static String _key(String sourceType, String sourceId) =>
       '$sourceType/$sourceId';
 

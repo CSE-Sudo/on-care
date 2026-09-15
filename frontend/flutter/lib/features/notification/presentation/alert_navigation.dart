@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
@@ -72,8 +73,11 @@ Future<void> openAlertTarget(
       context.go(AppRoutes.diet);
     case AlertTarget.myBenefits:
       // 쿠폰이 방금 사용 처리·취소됐다 — 들고 있던 목록과 잔액을 다시 읽는다.
+      // 챌린지 결과 알림(#1789)도 이리로 온다 — 판정된 챌린지를 다시 읽는다.
       ref
         ..invalidate(myCouponsProvider)
+        ..invalidate(myChallengesProvider)
+        ..invalidate(weeklyChallengeProvider)
         ..invalidate(myHealthStateProvider);
       if (!context.mounted) return;
       await context.push<void>(AppRoutes.myBenefits);
