@@ -1868,7 +1868,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySupportExternalHint => 'Opens the KakaoTalk channel';
 
   @override
-  String get authTagline => 'AI healthcare for hypertension and diabetes';
+  String get authTagline => 'Diet & exercise management app';
 
   @override
   String get authEmailHint => 'Email';

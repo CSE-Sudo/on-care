@@ -1826,7 +1826,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySupportExternalHint => '카카오톡 채널로 연결돼요';
 
   @override
-  String get authTagline => '고혈압·당뇨 관리를 위한 AI 헬스케어';
+  String get authTagline => '식단·운동 관리 앱';
 
   @override
   String get authEmailHint => '이메일';
