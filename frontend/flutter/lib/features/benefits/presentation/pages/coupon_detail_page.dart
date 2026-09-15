@@ -170,7 +170,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
       // 사용했거나 만료·취소된 쿠폰에는 안내를 두지 않는다.
       if (coupon.usable) ...<Widget>[
         const SizedBox(height: OnCareSpacing.s12),
-        // 만료 안내 — 아이콘 없이 한 줄. 직원·매장에 보여 주라는 말은 버튼 위 줄과
+        // 만료 안내 — 아이콘 없이 한 줄. 직원에게 보여 주라는 말은 버튼 위 줄과
         // 겹쳐 따로 두지 않는다.
         Text(
           l.myCouponExpireNotice,

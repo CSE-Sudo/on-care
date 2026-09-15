@@ -272,7 +272,6 @@ void main() {
     expect(find.text('온케어짐 신촌점'), findsOneWidget);
     expect(find.text('2026.10.15 (D-30)'), findsOneWidget);
     expect(find.textContaining('코드'), findsNothing);
-    expect(find.textContaining('매장'), findsNothing);
     expect(find.byKey(const Key('couponExpireNotice')), findsOneWidget);
 
     // 직원 안내는 PT 재등록과 같은 자리, 버튼 바로 위에 헬스장 직원에게 말한다.

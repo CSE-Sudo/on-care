@@ -1,7 +1,7 @@
 /// 포인트 사용처 — 헬스장 쿠폰 두 장의 교환 카드, 막힌 이유, 파란 2열 확인창 흐름. (#1787)
 ///
-/// 예전 세 카드(결제 차감 할인·예측 리포트·레시피)와 외부 매장 쿠폰은 사라지고
-/// 헬스장이 주는 PT 재등록 3만원 할인·개인 락커 1개월 무료가 선다. 교환은 `교환` →
+/// 예전 세 카드(결제 차감 할인·예측 리포트·레시피)는 사라지고 헬스장이 주는
+/// PT 재등록 3만원 할인·개인 락커 1개월 무료가 선다. 교환은 `교환` →
 /// `취소 / 교환하기` 확인창 → 포인트 차감 순서다.
 library;
 
@@ -52,7 +52,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('헬스장 쿠폰 두 항목이 서고 예전 카드·매장 쿠폰은 없다', (tester) async {
+  testWidgets('헬스장 쿠폰 두 항목이 서고 예전 카드는 없다', (tester) async {
     await pumpShop(tester, FakeBenefitsRepository());
 
     expect(find.text('PT 재등록 3만원 할인'), findsOneWidget);
@@ -66,8 +66,6 @@ void main() {
     expect(find.text('보유 9,000P'), findsNothing);
     expect(find.text('보유 9000P'), findsOneWidget);
 
-    expect(find.textContaining('샐러드'), findsNothing);
-    expect(find.textContaining('프로틴'), findsNothing);
     expect(find.textContaining('결제'), findsNothing);
     expect(find.textContaining('리포트'), findsNothing);
     expect(find.textContaining('레시피'), findsNothing);

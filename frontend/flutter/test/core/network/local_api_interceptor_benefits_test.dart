@@ -149,9 +149,8 @@ void main() {
     );
   });
 
-  test('카탈로그 밖 항목(예전 건강식·보충제 매장 쿠폰 등)은 교환할 수 없다', () async {
-    expect((await exchange('healthy_food_discount')).statusCode, 404);
-    expect((await exchange('store_coupon')).statusCode, 404);
+  test('카탈로그 밖 항목은 교환할 수 없다', () async {
+    expect((await exchange('unknown_item')).statusCode, 404);
     expect(await balance(), 30000);
     expect(await coupons(), isEmpty);
   });

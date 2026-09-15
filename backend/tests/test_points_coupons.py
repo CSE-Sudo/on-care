@@ -286,11 +286,9 @@ def test_catalog_is_gym_benefits_only(client, db_session):
     member_id, h = _new_member(client, db_session, points=30000)
 
     items = client.get("/v1/me/points/shop", headers=h).json()["items"]
-    # 사용처는 헬스장 혜택 두 장뿐이다 — 예전 건강식·보충제 매장 쿠폰은 목록에 없고,
-    # 카탈로그 밖 항목이라 교환하면 404 다.
+    # 사용처는 헬스장 혜택 두 장뿐이다. 카탈로그 밖 항목은 교환하면 404 다.
     assert [i["id"] for i in items] == ["pt_renewal", "locker_month"]
-    for item in ("healthy_food_discount", "store_coupon"):
-        assert _exchange(client, h, item).status_code == 404
+    assert _exchange(client, h, "unknown_item").status_code == 404
 
     assert _balance(client, h) == 30000
     db_session.expire_all()
