@@ -69,6 +69,8 @@ class DioNotificationRepository implements NotificationRepository {
       action: _actionFrom(json['action']),
       // 다음 쪽 커서로 되돌려 줄 값이라 **문자열 그대로** 들고 간다(#965).
       createdAt: (json['created_at'] as String?) ?? '',
+      // 로컬 목 모드의 데모 시드만 준다. 실서버 알림에는 없다(#1812).
+      messageKey: json['message_key'] as String?,
     );
   }
 

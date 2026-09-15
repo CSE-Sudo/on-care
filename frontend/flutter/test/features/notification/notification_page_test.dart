@@ -16,8 +16,9 @@ const AppConfig _mockConfig = AppConfig(
 
 Future<void> _pumpNotificationPage(
   WidgetTester tester,
-  Brightness platformBrightness,
-) async {
+  Brightness platformBrightness, {
+  Locale locale = const Locale('ko'),
+}) async {
   // 데모 알림이 열 건이라 모든 줄이 그려지도록 화면을 길게 둔다(#1812).
   tester.view.physicalSize = const Size(800, 2400);
   tester.view.devicePixelRatio = 1;
@@ -31,7 +32,7 @@ Future<void> _pumpNotificationPage(
         theme: AppTheme.light(),
         // 이 파일은 한국어 문구로 화면을 찾는다. 로케일을 고정하지 않으면
         // 테스트 환경의 기본값(en)으로 떠서 찾지 못한다(#847).
-        locale: const Locale('ko'),
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: const NotificationPage(),
@@ -42,6 +43,33 @@ Future<void> _pumpNotificationPage(
 }
 
 void main() {
+  // 데모 알림은 문구 키로 로케일 문장을 고른다 — 영어 화면에 한국어가 섞이지
+  // 않는다(#1812).
+  testWidgets('영어 화면에서는 데모 알림 제목·본문·시각이 영어다', (WidgetTester tester) async {
+    await _pumpNotificationPage(
+      tester,
+      Brightness.light,
+      locale: const Locale('en'),
+    );
+
+    expect(find.text('Watch your sodium'), findsOneWidget);
+    expect(find.text('Scheduled maintenance'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('notification-time-a1')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.byKey(const ValueKey<String>('notification-time-a1')),
+          )
+          .data,
+      '10m ago',
+    );
+    expect(find.text('나트륨 섭취 주의'), findsNothing);
+    expect(find.text('10분 전'), findsNothing);
+  });
+
   for (final Brightness brightness in Brightness.values) {
     testWidgets(
       'notification page stays light in ${brightness.name} system mode',

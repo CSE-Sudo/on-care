@@ -84,7 +84,7 @@ void main() {
       );
       final AlertItem dinner = byTitle('저녁 식단을 기록해 주세요');
       expect(dinner.read, isFalse);
-      expect(dinner.timeAgo, endsWith('분 전'));
+      expect(dinner.age, lessThan(const Duration(hours: 1)));
     });
 
     test('루틴 알림은 픽스처에 있는 걷기 루틴을 말한다', () {
