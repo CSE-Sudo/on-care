@@ -983,6 +983,62 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exSlotsLoadError => '예약 시간을 불러오지 못했어요.';
 
   @override
+  String get exTrialTag => '포인트 체험';
+
+  @override
+  String get exTrialTitle => '20분 자세 점검 체험';
+
+  @override
+  String exTrialIntro(String points) {
+    return '담당 트레이너가 없을 때 트레이너마다 한 번, $points로 체험할 수 있어요';
+  }
+
+  @override
+  String exTrialBook(String points) {
+    return '$points로 체험 예약';
+  }
+
+  @override
+  String get exTrialConfirmTitle => '포인트 체험을 예약할까요?';
+
+  @override
+  String exTrialConfirmBody(String when, String points) {
+    return '$when 20분 자세 점검에 $points가 사용돼요. 시작 24시간 전까지 취소하면 돌려받아요.';
+  }
+
+  @override
+  String get exTrialConfirmAction => '예약하기';
+
+  @override
+  String exTrialBooked(String when) {
+    return '$when 포인트 체험을 예약했어요';
+  }
+
+  @override
+  String get exTrialFailed => '체험을 예약하지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get exTrialUsed => '이 트레이너의 포인트 체험은 이미 이용했어요';
+
+  @override
+  String exTrialInsufficient(String points) {
+    return '포인트가 부족해요 · $points 필요';
+  }
+
+  @override
+  String get exTrialMyBooking => '내 체험 예약';
+
+  @override
+  String exTrialCancelRefundBody(String when, String points) {
+    return '$when 체험을 취소하면 $points를 돌려받아요.';
+  }
+
+  @override
+  String exTrialCancelForfeitBody(String points) {
+    return '시작 24시간 이내라 $points는 돌려받지 못해요. 그래도 취소할까요?';
+  }
+
+  @override
   String get exReserveFailed => '예약에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override

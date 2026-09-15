@@ -1009,6 +1009,64 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exSlotsLoadError => 'Could not load available times.';
 
   @override
+  String get exTrialTag => 'Points trial';
+
+  @override
+  String get exTrialTitle => '20-minute posture check';
+
+  @override
+  String exTrialIntro(String points) {
+    return 'While you have no trainer, try each trainer once for $points';
+  }
+
+  @override
+  String exTrialBook(String points) {
+    return 'Book trial for $points';
+  }
+
+  @override
+  String get exTrialConfirmTitle => 'Book a points trial?';
+
+  @override
+  String exTrialConfirmBody(String when, String points) {
+    return '$points will be used for a 20-minute posture check on $when. Cancel at least 24 hours before it starts to get it back.';
+  }
+
+  @override
+  String get exTrialConfirmAction => 'Book';
+
+  @override
+  String exTrialBooked(String when) {
+    return 'Booked a points trial on $when';
+  }
+
+  @override
+  String get exTrialFailed =>
+      'Could not book the trial. Please try again shortly';
+
+  @override
+  String get exTrialUsed =>
+      'You have already used this trainer\'s points trial';
+
+  @override
+  String exTrialInsufficient(String points) {
+    return 'Not enough points · $points needed';
+  }
+
+  @override
+  String get exTrialMyBooking => 'My trial booking';
+
+  @override
+  String exTrialCancelRefundBody(String when, String points) {
+    return 'Cancel the $when trial and get $points back.';
+  }
+
+  @override
+  String exTrialCancelForfeitBody(String points) {
+    return 'It starts within 24 hours, so $points won\'t be returned. Cancel anyway?';
+  }
+
+  @override
   String get exReserveFailed => 'Could not book that time. Please try again.';
 
   @override

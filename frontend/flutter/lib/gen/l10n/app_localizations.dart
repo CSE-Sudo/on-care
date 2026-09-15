@@ -1886,6 +1886,90 @@ abstract class AppLocalizations {
   /// **'Could not load available times.'**
   String get exSlotsLoadError;
 
+  /// No description provided for @exTrialTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Points trial'**
+  String get exTrialTag;
+
+  /// No description provided for @exTrialTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'20-minute posture check'**
+  String get exTrialTitle;
+
+  /// No description provided for @exTrialIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'While you have no trainer, try each trainer once for {points}'**
+  String exTrialIntro(String points);
+
+  /// No description provided for @exTrialBook.
+  ///
+  /// In en, this message translates to:
+  /// **'Book trial for {points}'**
+  String exTrialBook(String points);
+
+  /// No description provided for @exTrialConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Book a points trial?'**
+  String get exTrialConfirmTitle;
+
+  /// No description provided for @exTrialConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{points} will be used for a 20-minute posture check on {when}. Cancel at least 24 hours before it starts to get it back.'**
+  String exTrialConfirmBody(String when, String points);
+
+  /// No description provided for @exTrialConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Book'**
+  String get exTrialConfirmAction;
+
+  /// No description provided for @exTrialBooked.
+  ///
+  /// In en, this message translates to:
+  /// **'Booked a points trial on {when}'**
+  String exTrialBooked(String when);
+
+  /// No description provided for @exTrialFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not book the trial. Please try again shortly'**
+  String get exTrialFailed;
+
+  /// No description provided for @exTrialUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'You have already used this trainer\'s points trial'**
+  String get exTrialUsed;
+
+  /// No description provided for @exTrialInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough points · {points} needed'**
+  String exTrialInsufficient(String points);
+
+  /// No description provided for @exTrialMyBooking.
+  ///
+  /// In en, this message translates to:
+  /// **'My trial booking'**
+  String get exTrialMyBooking;
+
+  /// No description provided for @exTrialCancelRefundBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel the {when} trial and get {points} back.'**
+  String exTrialCancelRefundBody(String when, String points);
+
+  /// No description provided for @exTrialCancelForfeitBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It starts within 24 hours, so {points} won\'t be returned. Cancel anyway?'**
+  String exTrialCancelForfeitBody(String points);
+
   /// No description provided for @exReserveFailed.
   ///
   /// In en, this message translates to:

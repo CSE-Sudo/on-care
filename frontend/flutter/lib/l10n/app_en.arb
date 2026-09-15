@@ -549,6 +549,75 @@
   "exSlotsEmpty": "No times available",
   "exSlotsAllBooked": "All available times are fully booked",
   "exSlotsLoadError": "Could not load available times.",
+  "exTrialTag": "Points trial",
+  "exTrialTitle": "20-minute posture check",
+  "exTrialIntro": "While you have no trainer, try each trainer once for {points}",
+  "@exTrialIntro": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "exTrialBook": "Book trial for {points}",
+  "@exTrialBook": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "exTrialConfirmTitle": "Book a points trial?",
+  "exTrialConfirmBody": "{points} will be used for a 20-minute posture check on {when}. Cancel at least 24 hours before it starts to get it back.",
+  "@exTrialConfirmBody": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "exTrialConfirmAction": "Book",
+  "exTrialBooked": "Booked a points trial on {when}",
+  "@exTrialBooked": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "exTrialFailed": "Could not book the trial. Please try again shortly",
+  "exTrialUsed": "You have already used this trainer's points trial",
+  "exTrialInsufficient": "Not enough points · {points} needed",
+  "@exTrialInsufficient": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "exTrialMyBooking": "My trial booking",
+  "exTrialCancelRefundBody": "Cancel the {when} trial and get {points} back.",
+  "@exTrialCancelRefundBody": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      },
+      "points": {
+        "type": "String"
+      }
+    }
+  },
+  "exTrialCancelForfeitBody": "It starts within 24 hours, so {points} won't be returned. Cancel anyway?",
+  "@exTrialCancelForfeitBody": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  },
   "exReserveFailed": "Could not book that time. Please try again.",
   "exReserveConfirmedSlotGym": "{slot} · {gym} reservation confirmed",
   "@exReserveConfirmedSlotGym": {

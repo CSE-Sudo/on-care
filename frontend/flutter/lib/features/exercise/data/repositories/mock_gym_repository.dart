@@ -1,4 +1,5 @@
 import 'package:oncare/core/points/demo_coupon_book.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
@@ -16,9 +17,15 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 class MockGymRepository implements GymRepository {
   /// [coupons] 를 주면 담당 트레이너 연결이 끊길 때 목업 PT 재등록 쿠폰을 취소하고
   /// 포인트를 돌려준다(#1787) — 서버의 해제 경로와 같은 규칙이다.
-  MockGymRepository({DemoCouponBook? coupons}) : _coupons = coupons;
+  ///
+  /// [points] 를 주면 포인트 체험 예약(#1790)이 이 원장에서 500P 를 쓰고 돌려준다.
+  /// 없으면 원장을 따로 하나 둔다 — 체험 규칙은 원장이 없어도 같게 동작해야 한다.
+  MockGymRepository({DemoCouponBook? coupons, DemoPointsLedger? points})
+    : _coupons = coupons,
+      _points = points ?? DemoPointsLedger();
 
   final DemoCouponBook? _coupons;
+  final DemoPointsLedger _points;
 
   /// 연결 상태는 id 만 들고 있다 — 목록과 어긋날 수 없다.
   String? _myGymId = 'gym-oncare-sinchon';
@@ -429,6 +436,36 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '1:1 PT',
       ),
+      // 포인트 체험 자리(#1790) — 담당 트레이너가 없는 회원에게만 보인다. 데모
+      // 회원은 김트레이너가 담당이라, 트레이너 연결을 끊어야 이 자리가 뜬다.
+      // 이틀 뒤로 잡아 어느 시각에 열어도 24시간 전 취소(반환)가 된다.
+      TrainerSlot(
+        id: 'slot-park-trial',
+        trainerId: 'trainer-park',
+        startsAt: _at(today, 2, 10, 0),
+        booked: false,
+        sessionType: kPointsTrialSessionType,
+        durationMinutes: kPointsTrialMinutes,
+        pointsCost: kPointsTrialCost,
+      ),
+      TrainerSlot(
+        id: 'slot-choi-trial',
+        trainerId: 'trainer-choi',
+        startsAt: _at(today, 3, 19, 0),
+        booked: false,
+        sessionType: kPointsTrialSessionType,
+        durationMinutes: kPointsTrialMinutes,
+        pointsCost: kPointsTrialCost,
+      ),
+      TrainerSlot(
+        id: 'slot-choi-trial-2',
+        trainerId: 'trainer-choi',
+        startsAt: _at(today, 4, 19, 0),
+        booked: false,
+        sessionType: kPointsTrialSessionType,
+        durationMinutes: kPointsTrialMinutes,
+        pointsCost: kPointsTrialCost,
+      ),
       // 윤트레이너는 슬롯이 없다 — 빈 상태를 데모에서도 볼 수 있어야 한다.
     ];
   }
@@ -439,11 +476,22 @@ class MockGymRepository implements GymRepository {
     // 이미 지난 시간은 보여주지 않는다 — 저녁에 앱을 켰을 때 오늘 아침 자리가
     // "예약 가능"으로 뜨면 안 된다.
     final DateTime now = nowKst();
+    // 포인트 체험 자리(#1790)는 담당 트레이너가 없을 때만 내주고, 지금 예약할 수
+    // 없는 이유를 함께 싣는다 — 서버 `list_member_slots` 와 같다.
+    final bool hasTrainer = _myTrainerId != null;
+    final String? trialReason = _trialBlockedReason(trainerId);
     final List<TrainerSlot> mine =
         _slots
             .where(
               (TrainerSlot slot) =>
-                  slot.trainerId == trainerId && slot.startsAt.isAfter(now),
+                  slot.trainerId == trainerId &&
+                  slot.startsAt.isAfter(now) &&
+                  !(hasTrainer && slot.isPointsTrial),
+            )
+            .map(
+              (TrainerSlot slot) => slot.isPointsTrial
+                  ? slot.copyWith(trialBlockedReason: trialReason)
+                  : slot,
             )
             .toList()
           ..sort(
@@ -466,19 +514,73 @@ class MockGymRepository implements GymRepository {
     if (!_slots[i].startsAt.isAfter(nowKst())) {
       throw StateError('slot already started: $slotId');
     }
-    _slots[i] = _slots[i].copyWith(booked: true);
+    final TrainerSlot slot = _slots[i];
+    final String reservationId = 'res-$slotId';
+    if (slot.isPointsTrial) {
+      // 서버 `points_trial_service.begin` 과 같은 순서 — 담당 → 1회 → 잔액.
+      final String? blocked = _trialBlockedReason(slot.trainerId);
+      if (blocked != null) {
+        throw StateError('trial blocked: $blocked');
+      }
+      // 원장은 같은 source 로 두 번 쓰지 않으므로 예약마다 새 id 를 쓴다.
+      final String sourceId = 'trial-$slotId-${++_trialSequence}';
+      if (!_points.spend(sourceId, slot.pointsCost)) {
+        throw StateError(
+          'trial blocked: ${TrialBlockedReason.insufficientPoints}',
+        );
+      }
+      _usedTrialTrainers.add(slot.trainerId);
+      _trials[reservationId] = (
+        trainerId: slot.trainerId,
+        sourceId: sourceId,
+        startsAt: slot.startsAt,
+      );
+    }
+    _slots[i] = slot.copyWith(booked: true);
     _reservations.add(
       MyReservation(
         // 데모는 서버가 없으니 슬롯 id 로 결정론적 id 를 만든다 — 취소가 어느
         // 예약을 가리키는지 화면과 저장소가 같은 값을 본다.
-        id: 'res-$slotId',
+        id: reservationId,
         slotId: slotId,
-        trainerId: _slots[i].trainerId,
-        startsAt: _slots[i].startsAt,
+        trainerId: slot.trainerId,
+        startsAt: slot.startsAt,
         cancellable: true,
+        sessionType: slot.sessionType,
+        pointsCost: slot.isPointsTrial ? slot.pointsCost : 0,
       ),
     );
   }
+
+  // ── 포인트 체험(#1790) ─────────────────────────────────────────────────
+  //
+  // 서버 `points_trial_service` 의 대역이다. 담당 트레이너가 없어야 하고,
+  // 트레이너별 1회(반환된 체험은 세지 않음), 500P 사용, 시작 24시간 전까지
+  // 취소하면 반환·그보다 늦으면 소멸이다. 노쇼·완료는 트레이너 쪽 일이라 데모
+  // 회원 앱에는 없다.
+
+  /// 예약 id → 체험 예약의 원장 source 와 시작 시각.
+  final Map<String, ({String trainerId, String sourceId, DateTime startsAt})>
+  _trials =
+      <String, ({String trainerId, String sourceId, DateTime startsAt})>{};
+
+  /// 1회로 센 체험의 트레이너 — 진행 중이거나 늦게 취소한 체험.
+  final Set<String> _usedTrialTrainers = <String>{};
+  int _trialSequence = 0;
+
+  String? _trialBlockedReason(String trainerId) {
+    if (_myTrainerId != null) return TrialBlockedReason.hasTrainer;
+    if (_usedTrialTrainers.contains(trainerId)) {
+      return TrialBlockedReason.trialUsed;
+    }
+    if (_points.balance < kPointsTrialCost) {
+      return TrialBlockedReason.insufficientPoints;
+    }
+    return null;
+  }
+
+  static bool _trialRefundable(DateTime startsAt) =>
+      startsAt.difference(nowKst()) >= const Duration(hours: 24);
 
   /// 데모에서 잡아 둔 예약. 인스턴스에 남으므로 화면을 나갔다 와도 유지된다.
   final List<MyReservation> _reservations = <MyReservation>[];
@@ -492,10 +594,15 @@ class MockGymRepository implements GymRepository {
     await Future<void>.delayed(const Duration(milliseconds: 40));
     // 서버와 같은 순서·상한을 흉내 낸다(#980) — 데모에서만 순서가 다르면 패널이
     // 실모드와 다르게 보인다. 데모 예약은 한 줌이라 커서가 실제로 쓰이지는 않는다.
-    final List<MyReservation> ordered = <MyReservation>[..._reservations]
-      ..sort(
-        (MyReservation a, MyReservation b) => b.startsAt.compareTo(a.startsAt),
-      );
+    // 체험 예약의 반환 여부는 지금 시각으로 다시 판단한다 — 서버가 조회할 때마다
+    // `points_refundable` 을 계산하는 것과 같다(#1790).
+    final List<MyReservation> ordered =
+        <MyReservation>[
+          for (final MyReservation r in _reservations) _withRefundable(r),
+        ]..sort(
+          (MyReservation a, MyReservation b) =>
+              b.startsAt.compareTo(a.startsAt),
+        );
     final Iterable<MyReservation> page = before == null
         ? ordered
         : ordered.where(
@@ -528,6 +635,30 @@ class MockGymRepository implements GymRepository {
     if (s >= 0) {
       _slots[s] = _slots[s].copyWith(booked: false);
     }
+    // 포인트 체험이면 서버와 같게 정리한다 — 24시간 전까지는 반환하고 1회에서
+    // 빼 주고, 그보다 늦으면 소멸이라 1회로 남는다(#1790).
+    final ({String trainerId, String sourceId, DateTime startsAt})? trial =
+        _trials.remove(reservation.id);
+    if (trial != null && _trialRefundable(trial.startsAt)) {
+      _points.refund(trial.sourceId);
+      _usedTrialTrainers.remove(trial.trainerId);
+    }
     _reservations.removeAt(i);
+  }
+
+  MyReservation _withRefundable(MyReservation r) {
+    final ({String trainerId, String sourceId, DateTime startsAt})? trial =
+        _trials[r.id];
+    if (trial == null) return r;
+    return MyReservation(
+      id: r.id,
+      slotId: r.slotId,
+      trainerId: r.trainerId,
+      startsAt: r.startsAt,
+      cancellable: r.cancellable,
+      sessionType: r.sessionType,
+      pointsCost: r.pointsCost,
+      pointsRefundable: _trialRefundable(trial.startsAt),
+    );
   }
 }

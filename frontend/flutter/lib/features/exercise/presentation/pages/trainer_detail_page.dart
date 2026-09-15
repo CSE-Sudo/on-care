@@ -10,6 +10,7 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trial_slots_panel.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -256,6 +257,9 @@ class _TrainerDetails extends ConsumerWidget {
                 child: _AffiliatedGymRow(gym: gym!),
               ),
             ],
+            // 담당 트레이너가 없는 회원에게만 이 트레이너의 포인트 체험 자리가
+            // 뜬다(#1790). 보일 자리가 없으면 상자도 자리를 차지하지 않는다.
+            if (!isMyTrainer) TrialSlotsPanel(trainer: trainer),
             if (isMyTrainer) ...<Widget>[
               const SizedBox(height: OnCareSpacing.sectionGap),
               // 목록 카드에서 삭제를 여기로 옮겼다 (#1057).

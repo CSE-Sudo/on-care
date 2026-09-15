@@ -297,7 +297,11 @@ final gymRepositoryProvider = Provider<GymRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
     // 한 인스턴스를 provider 수명 동안 유지해, 연결 해제 상태가 MY 탭과
     // 운동 탭에 함께 반영된다. 해제하면 목업 재등록 쿠폰도 취소된다(#1787).
-    return MockGymRepository(coupons: ref.watch(demoCouponBookProvider));
+    // 포인트 체험 예약(#1790)도 MY 잔액과 같은 원장에서 쓰고 돌려준다.
+    return MockGymRepository(
+      coupons: ref.watch(demoCouponBookProvider),
+      points: ref.watch(demoPointsLedgerProvider),
+    );
   }
   return DioGymRepository(ref.watch(dioProvider));
 }, name: 'gymRepository');

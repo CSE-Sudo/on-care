@@ -6,6 +6,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -404,6 +405,14 @@ class _AffiliatedTrainers extends ConsumerWidget {
     final List<Trainer> trainers =
         ref.watch(gymTrainersProvider(gymId)).valueOrNull ?? const <Trainer>[];
     if (trainers.isEmpty) return const SizedBox.shrink();
+    // 담당 트레이너가 없는 회원에게만, 포인트 체험 자리가 열린 트레이너를 표시한다
+    // (#1790). 담당 조회가 끝나기 전에는 표시하지 않는다 — 잠깐 떴다 사라지면
+    // 담당 회원에게도 체험이 열린 것처럼 보인다. 예약은 트레이너 상세에서 한다.
+    final AsyncValue<Trainer?> myTrainer = ref.watch(myTrainerProvider);
+    // 담당이 있는 것으로 확인되면 슬롯을 읽지 않는다. 읽는 중에는 함께 읽어 둔다.
+    final bool maybeNoTrainer = myTrainer.valueOrNull == null;
+    final bool showTrials =
+        myTrainer is AsyncData<Trainer?> && myTrainer.value == null;
 
     return _DetailSection(
       icon: Icons.person_rounded,
@@ -417,12 +426,23 @@ class _AffiliatedTrainers extends ConsumerWidget {
                 padding: EdgeInsets.only(left: _trainerDividerIndent),
                 child: AppDivider(),
               ),
-            _AffiliatedTrainerRow(trainer: trainers[i]),
+            _AffiliatedTrainerRow(
+              trainer: trainers[i],
+              hasPointsTrial:
+                  maybeNoTrainer &&
+                  _hasOpenTrial(ref, trainers[i].id) &&
+                  showTrials,
+            ),
           ],
         ],
       ),
     );
   }
+
+  static bool _hasOpenTrial(WidgetRef ref, String trainerId) =>
+      (ref.watch(trainerSlotsProvider(trainerId)).valueOrNull ??
+              const <TrainerSlot>[])
+          .any((TrainerSlot slot) => slot.isPointsTrial && !slot.booked);
 }
 
 class _AffiliatedTrainerRow extends StatelessWidget {
@@ -430,6 +450,7 @@ class _AffiliatedTrainerRow extends StatelessWidget {
     required this.trainer,
     this.onTap,
     this.trailingLabel,
+    this.hasPointsTrial = false,
     super.key,
   });
 
@@ -441,6 +462,10 @@ class _AffiliatedTrainerRow extends StatelessWidget {
 
   /// 오른쪽 화살표 대신 보여 줄 상태 문구(예: "상담 요청 대기 중").
   final String? trailingLabel;
+
+  /// 예약할 수 있는 포인트 체험 자리가 있다 — 화살표 앞에 `포인트 체험` 을 붙인다
+  /// (#1790).
+  final bool hasPointsTrial;
 
   @override
   Widget build(BuildContext context) {
@@ -474,10 +499,23 @@ class _AffiliatedTrainerRow extends StatelessWidget {
                   .text(OnCareTypography.strong(OnCareTypography.caption))
                   .copyWith(color: OnCareColors.textSecondary),
             )
-          : const Icon(
-              Icons.chevron_right_rounded,
-              size: OnCareSize.iconMedium,
-              color: OnCareColors.textTertiary,
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (hasPointsTrial) ...<Widget>[
+                  AppTag(
+                    key: ValueKey<String>('gym-trainer-trial-${trainer.id}'),
+                    label: AppLocalizations.of(context).exTrialTag,
+                    tone: AppTagTone.brand,
+                  ),
+                  const SizedBox(width: OnCareSpacing.s4),
+                ],
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: OnCareSize.iconMedium,
+                  color: OnCareColors.textTertiary,
+                ),
+              ],
             ),
     );
   }
