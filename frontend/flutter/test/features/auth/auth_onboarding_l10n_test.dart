@@ -99,6 +99,10 @@ const Map<String, String> _koAdded = <String, String>{
       '출처: 2020 한국인 영양소 섭취기준(에너지필요추정량·에너지적정비율) · WHO 나트륨·자유당 섭취 권고',
   'onboardExerciseSourceNote':
       '출처: WHO 신체활동 지침(2020) — 주 150분 중강도 유산소, 주 2회 이상 근력',
+  // 고른 건강 목표를 반영한 권장값 안내와 근거(#1816).
+  'onboardFocusAdjusted': '고른 건강 목표를 반영한 값이에요',
+  'onboardFocusSourceNote':
+      '목표 반영 기준: 감량 하루 500kcal(대한비만학회 진료지침) · 근력 단백질 체중 1kg당 1.6g(국제스포츠영양학회) · 당류 총열량 5%(WHO) · 유산소 주 150~300분(WHO)',
   // 2단계 건강 목표 — 옛 질환 선택지(고혈압·당뇨)를 바꿨다(#1814).
   'healthFocusWeightLoss': '체중 감량',
   'healthFocusStrength': '근력 향상',
@@ -158,6 +162,8 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'onboardGenderMale' => l.onboardGenderMale,
   'onboardGenderFemale' => l.onboardGenderFemale,
   'onboardGenderOther' => l.onboardGenderOther,
+  'onboardFocusAdjusted' => l.onboardFocusAdjusted,
+  'onboardFocusSourceNote' => l.onboardFocusSourceNote,
   'healthFocusWeightLoss' => l.healthFocusWeightLoss,
   'healthFocusStrength' => l.healthFocusStrength,
   'healthFocusFitness' => l.healthFocusFitness,

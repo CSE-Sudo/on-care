@@ -3889,6 +3889,18 @@ abstract class AppLocalizations {
   /// **'Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week'**
   String get onboardExerciseSourceNote;
 
+  /// Shown under goal fields when the picked health goals changed the suggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusted for the health goals you picked'**
+  String get onboardFocusAdjusted;
+
+  /// Sources for the goal-based adjustments.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)'**
+  String get onboardFocusSourceNote;
+
   /// No description provided for @onboardGenderMale.
   ///
   /// In en, this message translates to:
@@ -4237,11 +4249,16 @@ abstract class AppLocalizations {
   /// **'Weekly stretching (min)'**
   String get myGoalFlexibilityWeekly;
 
-  /// No description provided for @myGoalExerciseSuggestionNote.
+  /// Explains the suggested exercise goals, adjusted for the picked health goals.
   ///
   /// In en, this message translates to:
-  /// **'Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week'**
-  String get myGoalExerciseSuggestionNote;
+  /// **'Suggested: {burn} kcal a day · {cardio} min cardio · {strength} sets · {flexibility} min stretching a week'**
+  String myGoalExerciseSuggestionNote(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  );
 
   /// No description provided for @myGoalExerciseApplySuggestion.
   ///
@@ -4294,8 +4311,8 @@ abstract class AppLocalizations {
   /// Explains the placeholder grams shown in the macro fields.
   ///
   /// In en, this message translates to:
-  /// **'Suggested split for {kcal} kcal: 50% carbs · 30% protein · 20% fat'**
-  String myGoalMacroSuggestionNote(int kcal);
+  /// **'Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat'**
+  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat);
 
   /// Button that fills the macro fields with the suggested grams.
   ///

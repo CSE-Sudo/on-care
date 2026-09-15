@@ -330,6 +330,60 @@ void main() {
     expect(_text(tester, 'onboardCardioField'), '150');
   });
 
+  testWidgets('2단계에서 고른 건강 목표가 식단·운동 권장값에 반영된다', (tester) async {
+    await _open(tester);
+    await _tapNext(tester);
+
+    // 건강 목표는 두 개까지다(#1814).
+    await tester.tap(find.text('체중 감량'));
+    await tester.tap(find.text('식습관 개선'));
+    await tester.pumpAndSettle();
+    await _tapNext(tester);
+
+    // 기본 2,000kcal − 감량 500kcal = 1,500kcal, 당류는 5%.
+    expect(_text(tester, 'onboardKcalField'), '1500');
+    expect(_text(tester, 'onboardCarbsField'), '206'); // 1500×0.55/4
+    expect(_text(tester, 'onboardProteinField'), '75'); // 1500×0.20/4
+    expect(_text(tester, 'onboardFatField'), '42'); // 1500×0.25/9
+    expect(_text(tester, 'onboardSugarField'), '19'); // 1500×0.05/4
+    expect(find.textContaining('고른 건강 목표를 반영한 값이에요'), findsOneWidget);
+    expect(find.textContaining('목표 반영 기준'), findsOneWidget);
+
+    await _tapNext(tester);
+    expect(_text(tester, 'onboardBurnField'), '400');
+    expect(_text(tester, 'onboardCardioField'), '200');
+    expect(_text(tester, 'onboardStrengthField'), '21');
+    expect(_text(tester, 'onboardFlexibilityField'), '60');
+    expect(find.textContaining('고른 건강 목표를 반영한 값이에요'), findsOneWidget);
+  });
+
+  testWidgets('목표를 바꾸면 손대지 않은 칸만 따라가고, 건너뛰면 기준값으로 돌아간다', (tester) async {
+    await _open(tester);
+    await _tapNext(tester);
+    await tester.tap(find.text('운동 습관'));
+    await tester.pumpAndSettle();
+    await _tapNext(tester);
+    await _tapNext(tester);
+
+    expect(_text(tester, 'onboardCardioField'), '90');
+    // 근력은 직접 고쳐 둔다.
+    await tester.enterText(_field('onboardStrengthField'), '10');
+    await tester.pumpAndSettle();
+
+    // 2단계로 돌아가 목표를 비우고 건너뛴다.
+    await tester.tap(find.byKey(const Key('onboardBackButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('onboardBackButton')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('onboardSkipStep')));
+    await tester.pumpAndSettle();
+    await _tapNext(tester);
+
+    expect(_text(tester, 'onboardCardioField'), '150');
+    expect(_text(tester, 'onboardStrengthField'), '10');
+    expect(find.textContaining('고른 건강 목표를 반영한 값이에요'), findsNothing);
+  });
+
   testWidgets('건강 목표는 여덟 목표를 묻고, 건너뛰면 고른 것이 비워진다', (tester) async {
     final _RecordingRepository repo = await _open(tester);
     await _tapNext(tester);
