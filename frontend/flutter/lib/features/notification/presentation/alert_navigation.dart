@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 
@@ -68,6 +70,14 @@ Future<void> openAlertTarget(
     case AlertTarget.diet:
       if (!context.mounted) return;
       context.go(AppRoutes.diet);
+    case AlertTarget.healthGoals:
+      // 담당 트레이너가 건강 목표를 바꿨다(#1832). 들고 있던 프로필은 바뀌기 전
+      // 목표라, 다시 받아 온 뒤 MY 건강 목표를 연다 — 바뀐 목표와 `마지막 변경`
+      // 줄이 바로 보여야 알림이 말한 것과 화면이 같다.
+      ref.invalidate(profileProvider);
+      if (!context.mounted) return;
+      context.go(AppRoutes.myHealth);
+      await openGoalsPage(context);
     case AlertTarget.unknown:
       return;
   }

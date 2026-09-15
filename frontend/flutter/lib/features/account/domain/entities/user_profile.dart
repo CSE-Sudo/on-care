@@ -8,6 +8,10 @@ class UserProfile {
   static const int defaultDailyProteinG = 100;
   static const int defaultDailyFatG = 55;
 
+  /// [focusChangedBy] 값 — 건강 목표를 마지막으로 바꾼 사람(#1832).
+  static const String focusChangedByMember = 'member';
+  static const String focusChangedByTrainer = 'trainer';
+
   const UserProfile({
     required this.id,
     required this.name,
@@ -32,6 +36,8 @@ class UserProfile {
     this.weeklyCardioMinutes,
     this.weeklyStrengthSets,
     this.weeklyFlexibilityMinutes,
+    this.focusChangedBy,
+    this.focusChangedAt,
   });
 
   final String id;
@@ -83,6 +89,14 @@ class UserProfile {
   final int? weeklyStrengthSets;
   final int? weeklyFlexibilityMinutes;
 
+  /// 건강 목표를 마지막으로 바꾼 사람 — [focusChangedByMember] 또는
+  /// [focusChangedByTrainer]. 회원과 담당 트레이너가 같은 칸을 고치므로, 승인 대신
+  /// 누가 언제 바꿨는지를 보여 준다(#1832). 바꾼 적이 없으면 null.
+  final String? focusChangedBy;
+
+  /// 건강 목표를 마지막으로 바꾼 시각(로컬 시각). 바꾼 적이 없으면 null.
+  final DateTime? focusChangedAt;
+
   factory UserProfile.fromJson(Map<String, Object?> json) => UserProfile(
     id: (json['id'] as String?) ?? '',
     name: (json['name'] as String?) ?? '',
@@ -109,5 +123,13 @@ class UserProfile {
     weeklyStrengthSets: (json['weekly_strength_sets'] as num?)?.toInt(),
     weeklyFlexibilityMinutes: (json['weekly_flexibility_minutes'] as num?)
         ?.toInt(),
+    focusChangedBy: switch (json['focus_changed_by']) {
+      final String by when by.isNotEmpty => by,
+      _ => null,
+    },
+    focusChangedAt: switch (json['focus_changed_at']) {
+      final String at => DateTime.tryParse(at)?.toLocal(),
+      _ => null,
+    },
   );
 }

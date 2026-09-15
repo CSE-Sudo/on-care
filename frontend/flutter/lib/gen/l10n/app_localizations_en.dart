@@ -2278,6 +2278,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pick what you want to focus on in your health care. (up to 2)';
 
   @override
+  String myGoalsFocusLastChanged(String who, String date) {
+    return 'Last changed by $who · $date';
+  }
+
+  @override
+  String get myGoalsFocusChangedByTrainer => 'your trainer';
+
+  @override
+  String get myGoalsFocusChangedByMe => 'you';
+
+  @override
   String get healthFocusWeightLoss => 'Weight loss';
 
   @override

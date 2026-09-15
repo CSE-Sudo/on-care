@@ -666,6 +666,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get memberHealthFocus => '건강 목표 (최대 2개)';
 
   @override
+  String memberHealthFocusLastChanged(String who, String date) {
+    return '마지막 변경: $who · $date';
+  }
+
+  @override
+  String get memberHealthFocusChangedByTrainer => '트레이너';
+
+  @override
+  String get memberHealthFocusChangedByMember => '회원';
+
+  @override
   String get healthFocusWeightLoss => '체중 감량';
 
   @override

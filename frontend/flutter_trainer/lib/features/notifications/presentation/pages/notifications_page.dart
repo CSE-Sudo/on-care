@@ -24,19 +24,28 @@ class NotificationsPage extends ConsumerWidget {
   const NotificationsPage({super.key});
 
   /// 알림 종류별 이동할 곳. 모르는 종류는 이동하지 않는다.
-  static String? _targetOf(TrainerNotificationKind kind) => switch (kind) {
-    TrainerNotificationKind.message => AppRoutes.clients,
-    TrainerNotificationKind.consultation => AppRoutes.schedule,
-    TrainerNotificationKind.reservation => AppRoutes.schedule,
-    TrainerNotificationKind.other => null,
-  };
+  ///
+  /// 건강 목표 변경은 **그 회원** 상세로 간다(#1832). 회원 id 가 빠진 알림이면
+  /// 고객 목록으로 간다 — 누구의 목표인지는 본문에 적혀 있다.
+  @visibleForTesting
+  static String? targetOf(TrainerNotification notification) =>
+      switch (notification.kind) {
+        TrainerNotificationKind.message => AppRoutes.clients,
+        TrainerNotificationKind.consultation => AppRoutes.schedule,
+        TrainerNotificationKind.reservation => AppRoutes.schedule,
+        TrainerNotificationKind.healthGoal => switch (notification.subjectId) {
+          final String id => AppRoutes.clientDetail(id),
+          null => AppRoutes.clients,
+        },
+        TrainerNotificationKind.other => null,
+      };
 
   Future<void> _open(
     BuildContext context,
     WidgetRef ref,
     TrainerNotification notification,
   ) async {
-    final String? target = _targetOf(notification.kind);
+    final String? target = targetOf(notification);
     // 읽음 처리는 이동과 무관하게 먼저 한다 — 갈 곳이 없는 알림도 확인하면
     // 배지에서 빠져야 한다.
     if (!notification.read) {
@@ -176,6 +185,7 @@ class _NotificationTile extends StatelessWidget {
     TrainerNotificationKind.message => Icons.chat_bubble_outline_rounded,
     TrainerNotificationKind.consultation => Icons.mark_email_unread_rounded,
     TrainerNotificationKind.reservation => Icons.event_available_rounded,
+    TrainerNotificationKind.healthGoal => Icons.flag_rounded,
     TrainerNotificationKind.other => Icons.notifications_none_rounded,
   };
 

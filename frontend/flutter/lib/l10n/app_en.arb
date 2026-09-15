@@ -1332,6 +1332,12 @@
   },
   "myGoalsFocusSection": "What you want to focus on",
   "myGoalsFocusHint": "Pick what you want to focus on in your health care. (up to 2)",
+  "myGoalsFocusLastChanged": "Last changed by {who} · {date}",
+  "@myGoalsFocusLastChanged": {"description": "MY health goals: who last changed the goal chips and when (#1832).", "placeholders": {"who": {"type": "String"}, "date": {"type": "String"}}},
+  "myGoalsFocusChangedByTrainer": "your trainer",
+  "@myGoalsFocusChangedByTrainer": {"description": "MY health goals: the goals were last changed by the member's trainer (#1832)."},
+  "myGoalsFocusChangedByMe": "you",
+  "@myGoalsFocusChangedByMe": {"description": "MY health goals: the goals were last changed by the member (#1832)."},
   "healthFocusWeightLoss": "Weight loss",
   "@healthFocusWeightLoss": {
     "description": "Health goal chip in onboarding and MY health goals."
