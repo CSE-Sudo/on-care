@@ -6,8 +6,9 @@
   GET  /me/coupons                 -> 쿠폰 배열(사용 가능 먼저)
   POST /me/coupons/{id}/use        -> 쿠폰(회원 휴대폰에서 사용 완료)
 
-모든 쿠폰은 회원 휴대폰에서 사용 처리한다. PT 재등록 쿠폰은 헬스장에서 트레이너·
-직원이 확인한 뒤 회원 화면의 `사용 완료` 를 누른다 — 트레이너웹 처리 경로는 없다.
+모든 쿠폰은 헬스장이 현장에서 주는 혜택이고 회원 휴대폰에서 사용 처리한다. 직원
+(PT 재등록은 트레이너·헬스장 직원)이 확인한 뒤 회원 화면의 `사용 완료` 를 누른다 —
+트레이너웹 처리 경로는 없다.
 
 읽기는 CurrentUser(데모 폴백 허용), 쓰기는 RequireMember 다 — 회원 코치 미러와
 같은 규약이다.
@@ -50,9 +51,9 @@ def exchange_points(
 ) -> ExchangeOut:
     """포인트를 써서 쿠폰을 발급한다. 내역에는 `spend` 로 남는다.
 
-    없는 항목은 404, 규칙에 막히면(잔액 부족·담당 트레이너 없음·사용하지 않은
-    같은 종류 쿠폰 보유·연속 기록 보호권 최대 보유) 409 다. 보호권(#1788)은 쿠폰
-    대신 `shield` 에 받은 보호권이 온다.
+    없는 항목은 404, 규칙에 막히면(담당 트레이너 없음·연결한 헬스장 없음·사용하지
+    않은 같은 종류 쿠폰 보유·연속 기록 보호권 최대 보유·이번 달 교환·잔액 부족)
+    409 다. 보호권(#1788)은 쿠폰 대신 `shield` 에 받은 보호권이 온다.
     """
     try:
         return points_coupon_service.exchange(
@@ -67,8 +68,10 @@ def exchange_points(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except (
         points_coupon_service.TrainerRequired,
+        points_coupon_service.GymRequired,
         points_coupon_service.ActiveCouponExists,
         streak_shield_service.ShieldLimitReached,
+        points_coupon_service.MonthlyLimitReached,
     ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -94,9 +97,9 @@ def use_my_coupon(
     조건부 UPDATE 한 번이라 더블 탭·재전송은 한 번만 처리되고, 이미 사용된 쿠폰에는
     같은 응답(200)을 준다. 만료·취소는 409.
 
-    PT 재등록 쿠폰은 결제 할인에 쓰이는 쿠폰이라 처음 처리한 요청에 감사 로그
-    (`points.coupon_redeem`)를 남긴다. 회원 본인이 누른 일이라 알림은 만들지 않는다 —
-    건강식 쿠폰 사용과 같다.
+    모든 쿠폰이 헬스장에서 직원이 확인하고 주는 혜택이라 처음 처리한 요청에 감사
+    로그(`points.coupon_redeem`)를 남긴다. 회원 휴대폰에서 누른 일이라 알림은 만들지
+    않는다.
     """
     try:
         out, newly = points_coupon_service.use_by_member(db, member.id, coupon_id)
@@ -104,7 +107,7 @@ def use_my_coupon(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except points_coupon_service.CouponNotUsable as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    if newly and out.item == points_coupon_service.PT_RENEWAL.id:
+    if newly:
         record_audit(
             db,
             event="points.coupon_redeem",

@@ -36,7 +36,7 @@ from app.models.models import HealthProfile, PointsLedger
 
 #: 데모 회원의 시작 잔액. 회원 앱 목업(`MockMyHealthRepository`·로컬 목업 API)과
 #: 같은 값이다. 실제 가입 회원은 0 에서 시작한다.
-DEMO_OPENING_POINTS = 1240
+DEMO_OPENING_POINTS = 25000
 
 #: 내역 종류. 회수는 적립의, 반환은 사용의 짝이다.
 EARN = "earn"

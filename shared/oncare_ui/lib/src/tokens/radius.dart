@@ -12,7 +12,7 @@ class OnCareRadius {
   /// 툴팁·작은 사각 표시.
   static const Radius sm = Radius.circular(8);
 
-  /// 버튼·아이콘 버튼 배경·입력창·선택 칩·세그먼트 선택 칸·안쪽 타일·배너·메뉴·목록 행.
+  /// 버튼·아이콘 버튼 배경·입력창·선택 칩·안쪽 타일·배너·메뉴·목록 행.
   static const Radius md = Radius.circular(12);
 
   /// 토스트·채팅 말풍선.
@@ -21,7 +21,7 @@ class OnCareRadius {
   /// 카드·다이얼로그·바텀시트 위 모서리.
   static const Radius xl = Radius.circular(20);
 
-  /// 태그·배지·세그먼트 트랙.
+  /// 태그·배지·세그먼트 트랙과 선택 칸(#1777).
   static const Radius pill = Radius.circular(999);
 
   static const BorderRadius xsAll = BorderRadius.all(xs);

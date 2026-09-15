@@ -7,13 +7,6 @@ import 'package:oncare/core/utils/clock.dart' show kstOffset;
 /// 만료로 온다 — 앱은 받은 값만 믿는다.
 enum CouponStatus { issued, used, expired, cancelled }
 
-/// 누가 사용 처리하나. 지금은 모든 쿠폰을 회원 휴대폰에서 처리한다(PT 재등록
-/// 쿠폰도 직원 확인 뒤 회원 화면에서 누른다). 서버가 다른 값을 주면 [trainer] 다.
-enum CouponRedeemer { trainer, member }
-
-CouponRedeemer couponRedeemerFrom(Object? raw) =>
-    raw == 'trainer' ? CouponRedeemer.trainer : CouponRedeemer.member;
-
 /// 모르는 상태는 쓸 수 없는 쪽(만료)으로 읽는다 — 새 상태가 생겼을 때 사용
 /// 버튼이 잘못 열리는 것보다 낫다.
 CouponStatus _statusFrom(Object? raw) => switch (raw) {
@@ -50,6 +43,8 @@ DateTime? _kstFrom(Object? raw) {
   );
 }
 
+/// 모든 쿠폰은 헬스장이 현장에서 주는 혜택이고, 직원이 확인한 뒤 회원 휴대폰에서
+/// 사용 처리한다.
 class Coupon {
   const Coupon({
     required this.id,
@@ -58,7 +53,6 @@ class Coupon {
     required this.benefit,
     required this.cost,
     required this.status,
-    required this.redeemer,
     required this.issuedOn,
     required this.expiresOn,
     required this.daysLeft,
@@ -69,7 +63,7 @@ class Coupon {
 
   final String id;
 
-  /// 교환 항목 id — pt_renewal|salad_discount|protein_discount.
+  /// 교환 항목 id — pt_renewal|locker_month.
   final String item;
 
   /// 서버 문구. 앱은 아는 항목이면 현지화 문구를 쓰고, 모르는 항목에만 이 값을 쓴다.
@@ -79,10 +73,11 @@ class Coupon {
   /// 교환에 쓴 포인트.
   final int cost;
   final CouponStatus status;
-  final CouponRedeemer redeemer;
 
-  /// 교환할 때의 담당 트레이너·헬스장(PT 재등록 쿠폰만).
+  /// 교환할 때의 담당 트레이너(PT 재등록 쿠폰만).
   final String trainerName;
+
+  /// 교환할 때의 헬스장(PT 재등록·개인 락커 쿠폰).
   final String gymName;
 
   /// 교환한 날(KST).
@@ -106,7 +101,6 @@ class Coupon {
     benefit: (json['benefit'] as String?) ?? '',
     cost: (json['cost'] as num?)?.toInt() ?? 0,
     status: _statusFrom(json['status']),
-    redeemer: couponRedeemerFrom(json['redeemer']),
     trainerName: (json['trainer_name'] as String?) ?? '',
     gymName: (json['gym_name'] as String?) ?? '',
     issuedOn: _dateFrom(json['issued_on']),

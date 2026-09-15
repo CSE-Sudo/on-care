@@ -7,29 +7,36 @@ import 'package:oncare/core/utils/clock.dart';
 
 /// 목업 API 의 포인트 사용처·쿠폰. 서버 `points_coupon_service` 의 대역이다. (#1787)
 ///
+/// 사용처는 헬스장이 현장에서 주는 혜택이고, 가격은 혜택 1만원 = 7,000P 기준이다.
 /// 규칙은 서버와 같다:
-/// - PT 재등록 할인 쿠폰(5000P)은 담당 트레이너가 있어야 교환하고, 사용하지 않은
-///   쿠폰은 한 장뿐이다. 건강식·보충제 쿠폰(각 1000P)도 종류마다 사용하지 않은
-///   쿠폰은 한 장뿐이고, 회원이 사용 처리한다.
+/// - PT 재등록 3만원 할인 쿠폰(21,000P)은 담당 트레이너가 있어야 교환하고, 사용하지
+///   않은 쿠폰은 한 장뿐이다.
+/// - 개인 락커 1개월 무료 쿠폰(7,000P)은 헬스장이 연결돼 있어야 교환하고, 사용하지
+///   않은 쿠폰은 한 장뿐이며, 교환은 한 달(KST)에 한 번이다. 취소돼 포인트를
+///   돌려받은 쿠폰은 세지 않는다.
+/// - 막힌 이유는 담당 없음·헬스장 없음 → 사용하지 않은 같은 쿠폰 → 보호권 최대
+///   보유 → 이번 달 교환 → 잔액 부족 순으로 하나만 준다.
 /// - 쓸 수 있는 마지막 날은 교환일 + 30일. 지나면 만료되고 포인트는 돌려주지 않는다.
 /// - 사용 처리는 한 번뿐이고 다시 누르면 같은 응답이다.
-/// - 담당 트레이너 연결이 끊기면([endTrainerLink]) 사용 가능한 재등록 쿠폰을 취소하고
-///   포인트를 돌려준다.
+/// - 담당 트레이너 연결이 끊기면([endTrainerLink]) 재등록 쿠폰을, 헬스장 연결이
+///   끊기면([endGymLink]) 락커 쿠폰을 취소하고 포인트를 돌려준다.
 ///
 /// 만료 3일 전 알림은 목업에 없다 — 데모에서 교환한 쿠폰은 30일 뒤에야 그 창에
 /// 들어가고, 목업 알림함은 이 원장과 따로 논다.
 ///
-/// 모든 쿠폰을 회원 휴대폰에서 사용 처리한다 — PT 재등록 쿠폰도 트레이너·헬스장
-/// 직원이 확인한 뒤 회원 화면의 `사용 완료` 를 누른다.
+/// 모든 쿠폰은 헬스장 직원(PT 재등록은 트레이너·헬스장 직원)이 확인한 뒤 회원
+/// 화면의 `사용 완료` 를 누른다.
 class DemoCouponBook {
   DemoCouponBook({
     required DemoPointsLedger ledger,
     DateTime Function()? now,
     bool hasTrainer = true,
+    bool hasGym = true,
     DemoStreakShieldBook? shields,
   }) : _ledger = ledger,
        _now = now ?? nowKst,
        _hasTrainer = hasTrainer,
+       _hasGym = hasGym,
        _shields = shields ?? DemoStreakShieldBook(ledger: ledger, now: now);
 
   /// 연속 기록 보호권(#1788) — 사용처 목록에 함께 서고, 교환은 이 원장이 받는다.
@@ -40,6 +47,7 @@ class DemoCouponBook {
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
   bool _hasTrainer;
+  bool _hasGym;
   int _sequence = 0;
 
   final List<_DemoCoupon> _coupons = <_DemoCoupon>[];
@@ -47,25 +55,23 @@ class DemoCouponBook {
   /// 데모 회원(김민수)에게 담당 트레이너가 있는가. 목업 헬스장 저장소의 연결과 같다.
   bool get hasTrainer => _hasTrainer;
 
+  /// 데모 회원에게 연결한 헬스장이 있는가. 목업 헬스장 저장소의 연결과 같다.
+  bool get hasGym => _hasGym;
+
   /// 담당 트레이너 연결이 끊겼다 — 재등록 쿠폰을 취소하고 포인트를 돌려준다.
   ///
   /// 목업 헬스장 저장소가 헬스장·트레이너 해제에서 부른다.
   void endTrainerLink() {
     _hasTrainer = false;
-    final DateTime today = _today();
-    for (final _DemoCoupon coupon in _coupons) {
-      if (coupon.item != kDemoPtRenewal.id || coupon.status != 'issued') {
-        continue;
-      }
-      if (today.isAfter(coupon.lastDay)) {
-        coupon.status = 'expired';
-        continue;
-      }
-      coupon
-        ..status = 'cancelled'
-        ..cancelledAt = _now();
-      _ledger.refund(coupon.id);
-    }
+    _cancelUnused(kDemoPtRenewal.id);
+  }
+
+  /// 헬스장 연결이 끊겼다 — 락커 쿠폰을 취소하고 포인트를 돌려준다.
+  ///
+  /// 목업 헬스장 저장소가 헬스장 해제에서 부른다.
+  void endGymLink() {
+    _hasGym = false;
+    _cancelUnused(kDemoLockerMonth.id);
   }
 
   /// `GET /me/points/shop`.
@@ -75,6 +81,7 @@ class DemoCouponBook {
     return <String, Object?>{
       'balance': balance,
       'has_trainer': _hasTrainer,
+      'has_gym': _hasGym,
       'items': <Map<String, Object?>>[
         for (final DemoShopItem item in kDemoShopCatalog)
           _itemJson(item, balance),
@@ -100,8 +107,14 @@ class DemoCouponBook {
     if (item.requiresTrainer && !_hasTrainer) {
       return _error(409, '담당 트레이너가 있어야 교환할 수 있어요.');
     }
+    if (item.requiresGym && !_hasGym) {
+      return _error(409, '헬스장을 연결해야 교환할 수 있어요.');
+    }
     if (item.oneActive && _activeOf(item.id) != null) {
       return _error(409, '사용하지 않은 쿠폰이 이미 있어요.');
+    }
+    if (item.monthlyLimit && _exchangedThisMonth(item.id)) {
+      return _error(409, '이번 달에는 이미 교환했어요.');
     }
     final int shortfall = item.cost - _ledger.balance;
     if (shortfall > 0) return _error(409, '포인트가 ${shortfall}P 부족해요.');
@@ -115,7 +128,7 @@ class DemoCouponBook {
       issuedOn: today,
       lastDay: DateTime(today.year, today.month, today.day + item.validDays),
       trainerName: item.requiresTrainer ? kDemoTrainerName : '',
-      gymName: item.requiresTrainer ? kDemoTrainerGym : '',
+      gymName: item.requiresTrainer || item.requiresGym ? kDemoGymName : '',
       clientRequestId: clientRequestId,
     );
     if (!_ledger.spend(coupon.id, item.cost)) {
@@ -145,10 +158,6 @@ class DemoCouponBook {
         .where((_DemoCoupon c) => c.id == couponId)
         .firstOrNull;
     if (coupon == null) return _error(404, '쿠폰을 찾을 수 없어요.');
-    final DemoShopItem? item = _item(coupon.item);
-    if (item == null || item.redeemer != 'member') {
-      return _error(409, '담당 트레이너가 사용 처리하는 쿠폰이에요.');
-    }
     switch (coupon.status) {
       case 'issued':
         coupon
@@ -180,9 +189,41 @@ class DemoCouponBook {
     }
   }
 
+  /// [itemId] 의 사용 가능한 쿠폰을 취소하고 포인트를 돌려준다. 기한이 지난 쿠폰은
+  /// 돌려주지 않고 만료로 내린다. 이미 취소된 쿠폰은 건너뛰어 두 번 돌려주지 않는다.
+  void _cancelUnused(String itemId) {
+    final DateTime today = _today();
+    for (final _DemoCoupon coupon in _coupons) {
+      if (coupon.item != itemId || coupon.status != 'issued') {
+        continue;
+      }
+      if (today.isAfter(coupon.lastDay)) {
+        coupon.status = 'expired';
+        continue;
+      }
+      coupon
+        ..status = 'cancelled'
+        ..cancelledAt = _now();
+      _ledger.refund(coupon.id);
+    }
+  }
+
   _DemoCoupon? _activeOf(String itemId) => _coupons
       .where((_DemoCoupon c) => c.item == itemId && c.status == 'issued')
       .firstOrNull;
+
+  /// 이번 달(KST)에 [itemId] 를 교환했는가. 사용 가능·사용·만료 쿠폰은 세고, 취소돼
+  /// 포인트를 돌려받은 쿠폰은 세지 않는다.
+  bool _exchangedThisMonth(String itemId) {
+    final DateTime today = _today();
+    return _coupons.any(
+      (_DemoCoupon c) =>
+          c.item == itemId &&
+          c.status != 'cancelled' &&
+          c.issuedOn.year == today.year &&
+          c.issuedOn.month == today.month,
+    );
+  }
 
   static DemoShopItem? _item(String itemId) => kDemoShopCatalog
       .where((DemoShopItem item) => item.id == itemId)
@@ -192,11 +233,15 @@ class DemoCouponBook {
     final int shortfall = math.max(item.cost - balance, 0);
     final String? blocked = item.requiresTrainer && !_hasTrainer
         ? 'no_trainer'
+        : item.requiresGym && !_hasGym
+        ? 'no_gym'
         : item.oneActive && _activeOf(item.id) != null
         ? 'active_coupon'
         : item.id == kDemoStreakShield.id &&
               _shields.held >= DemoStreakShieldBook.maxHeld
         ? 'shield_limit'
+        : item.monthlyLimit && _exchangedThisMonth(item.id)
+        ? 'monthly_limit'
         : shortfall > 0
         ? 'insufficient_points'
         : null;
@@ -207,8 +252,8 @@ class DemoCouponBook {
       'description': item.description,
       'cost': item.cost,
       'valid_days': item.validDays,
-      'redeemer': item.redeemer,
       'requires_trainer': item.requiresTrainer,
+      'requires_gym': item.requiresGym,
       'available': blocked == null,
       'blocked_reason': blocked,
       'shortfall': shortfall,
@@ -234,7 +279,6 @@ class DemoCouponBook {
       'benefit': item?.benefit ?? coupon.item,
       'cost': coupon.cost,
       'status': coupon.status,
-      'redeemer': item?.redeemer ?? 'member',
       'trainer_name': coupon.trainerName,
       'gym_name': coupon.gymName,
       'issued_at': coupon.issuedAt.toIso8601String(),
@@ -272,9 +316,10 @@ class DemoShopItem {
     required this.description,
     required this.cost,
     required this.validDays,
-    required this.redeemer,
     this.requiresTrainer = false,
+    this.requiresGym = false,
     this.oneActive = false,
+    this.monthlyLimit = false,
   });
 
   final String id;
@@ -283,46 +328,40 @@ class DemoShopItem {
   final String description;
   final int cost;
   final int validDays;
-  final String redeemer;
   final bool requiresTrainer;
+  final bool requiresGym;
   final bool oneActive;
+
+  /// 한 달(KST)에 한 번만 교환할 수 있는가.
+  final bool monthlyLimit;
 }
 
 const DemoShopItem kDemoPtRenewal = DemoShopItem(
   id: 'pt_renewal',
-  title: 'PT 재등록 할인 쿠폰',
-  benefit: 'PT 재등록 10,000원 할인',
-  description: '담당 트레이너에게 PT를 다시 등록할 때 10,000원을 할인받아요.',
-  cost: 5000,
+  title: 'PT 재등록 3만원 할인',
+  benefit: 'PT 재등록 30,000원 할인',
+  description: '담당 트레이너에게 PT를 다시 등록할 때 30,000원을 할인받아요.',
+  cost: 21000,
   validDays: 30,
-  // 헬스장에서 직원이 확인한 뒤 회원 휴대폰에서 사용 완료를 누른다.
-  redeemer: 'member',
   requiresTrainer: true,
   oneActive: true,
 );
 
+const DemoShopItem kDemoLockerMonth = DemoShopItem(
+  id: 'locker_month',
+  title: '개인 락커 1개월 무료',
+  benefit: '개인 락커 1개월 무료',
+  description: '연결한 헬스장에서 개인 락커를 한 달 동안 무료로 써요.',
+  cost: 7000,
+  validDays: 30,
+  requiresGym: true,
+  oneActive: true,
+  monthlyLimit: true,
+);
+
 const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
   kDemoPtRenewal,
-  DemoShopItem(
-    id: 'salad_discount',
-    title: '샐러드 10% 할인',
-    benefit: '샐러드 10% 할인',
-    description: '건강식 샐러드를 주문할 때 10% 할인받아요.',
-    cost: 1000,
-    validDays: 30,
-    redeemer: 'member',
-    oneActive: true,
-  ),
-  DemoShopItem(
-    id: 'protein_discount',
-    title: '프로틴 3,000원 할인',
-    benefit: '프로틴 3,000원 할인',
-    description: '프로틴 보충제를 살 때 3,000원 할인받아요.',
-    cost: 1000,
-    validDays: 30,
-    redeemer: 'member',
-    oneActive: true,
-  ),
+  kDemoLockerMonth,
   kDemoStreakShield,
 ];
 
@@ -335,12 +374,12 @@ const DemoShopItem kDemoStreakShield = DemoShopItem(
   description: '운동을 못 한 어제를 연속 기록에 이어 붙여요. 최대 2개까지 가질 수 있어요.',
   cost: DemoStreakShieldBook.cost,
   validDays: 0,
-  redeemer: 'member',
 );
 
-/// 데모 담당 트레이너 — `MockGymRepository` 의 김트레이너·온케어짐 신촌점과 같다.
+/// 데모 담당 트레이너와 헬스장 — `MockGymRepository` 의 김트레이너·온케어짐
+/// 신촌점과 같다.
 const String kDemoTrainerName = '김트레이너';
-const String kDemoTrainerGym = '온케어짐 신촌점';
+const String kDemoGymName = '온케어짐 신촌점';
 
 class _DemoCoupon {
   _DemoCoupon({

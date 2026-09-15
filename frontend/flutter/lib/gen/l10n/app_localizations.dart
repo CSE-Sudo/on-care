@@ -2096,11 +2096,23 @@ abstract class AppLocalizations {
   /// **'Requires an assigned trainer'**
   String get myPointsNeedTrainer;
 
+  /// No description provided for @myPointsNeedGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires a connected gym'**
+  String get myPointsNeedGym;
+
   /// No description provided for @myPointsActiveCoupon.
   ///
   /// In en, this message translates to:
   /// **'You already have an unused coupon'**
   String get myPointsActiveCoupon;
+
+  /// No description provided for @myPointsMonthlyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You already redeemed this month'**
+  String get myPointsMonthlyLimit;
 
   /// No description provided for @myPointsShieldLimit.
   ///
@@ -2171,43 +2183,31 @@ abstract class AppLocalizations {
   /// No description provided for @myShopPtRenewalTitle.
   ///
   /// In en, this message translates to:
-  /// **'PT renewal discount coupon'**
+  /// **'₩30,000 off PT renewal'**
   String get myShopPtRenewalTitle;
 
   /// No description provided for @myShopPtRenewalDescription.
   ///
   /// In en, this message translates to:
-  /// **'Get ₩10,000 off when you renew PT with your trainer.'**
+  /// **'Get ₩30,000 off when you renew PT with your trainer.'**
   String get myShopPtRenewalDescription;
 
-  /// No description provided for @myShopSaladTitle.
+  /// No description provided for @myShopLockerTitle.
   ///
   /// In en, this message translates to:
-  /// **'10% off salad'**
-  String get myShopSaladTitle;
+  /// **'Free personal locker for 1 month'**
+  String get myShopLockerTitle;
 
-  /// No description provided for @myShopSaladDescription.
+  /// No description provided for @myShopLockerDescription.
   ///
   /// In en, this message translates to:
-  /// **'Get 10% off a healthy salad order.'**
-  String get myShopSaladDescription;
-
-  /// No description provided for @myShopProteinTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'₩3,000 off protein'**
-  String get myShopProteinTitle;
-
-  /// No description provided for @myShopProteinDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Get ₩3,000 off a protein supplement.'**
-  String get myShopProteinDescription;
+  /// **'Use a personal locker at your gym free for a month.'**
+  String get myShopLockerDescription;
 
   /// No description provided for @myCouponPtRenewalBenefit.
   ///
   /// In en, this message translates to:
-  /// **'₩10,000 off PT renewal'**
+  /// **'₩30,000 off PT renewal'**
   String get myCouponPtRenewalBenefit;
 
   /// No description provided for @myBenefitsTitle.
@@ -2330,6 +2330,12 @@ abstract class AppLocalizations {
   /// **'Tap only after your trainer or gym staff has checked it'**
   String get myCouponStaffNote;
 
+  /// No description provided for @myCouponGymStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap only after gym staff has checked it'**
+  String get myCouponGymStaffNote;
+
   /// No description provided for @myCouponStaffConfirmTitle.
   ///
   /// In en, this message translates to:
@@ -2354,12 +2360,6 @@ abstract class AppLocalizations {
   /// **'Used on {time}'**
   String myCouponUsedBanner(String time);
 
-  /// No description provided for @myCouponMemberGuide.
-  ///
-  /// In en, this message translates to:
-  /// **'Show this screen at the store, then tap Mark as used.'**
-  String get myCouponMemberGuide;
-
   /// No description provided for @myCouponExpireNotice.
   ///
   /// In en, this message translates to:
@@ -2371,18 +2371,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mark as used'**
   String get myCouponUse;
-
-  /// No description provided for @myCouponUseConfirmTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Mark this coupon as used?'**
-  String get myCouponUseConfirmTitle;
-
-  /// No description provided for @myCouponUseConfirmMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'You can\'t undo this.'**
-  String get myCouponUseConfirmMessage;
 
   /// No description provided for @myCouponUseDone.
   ///
@@ -3532,7 +3520,7 @@ abstract class AppLocalizations {
   /// No description provided for @exTimeRangeInvalidEnd.
   ///
   /// In en, this message translates to:
-  /// **'End time is earlier than start time'**
+  /// **'End time must be later than the start time.'**
   String get exTimeRangeInvalidEnd;
 
   /// No description provided for @exTimeRangePrevStep.
@@ -3787,11 +3775,11 @@ abstract class AppLocalizations {
   /// **'Explore the demo without signing in'**
   String get authDemoAction;
 
-  /// No description provided for @authOrDivider.
+  /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///
   /// In en, this message translates to:
-  /// **'or'**
-  String get authOrDivider;
+  /// **'Sign in with a social account'**
+  String get authSocialDivider;
 
   /// No description provided for @authKakaoAction.
   ///
@@ -3805,11 +3793,23 @@ abstract class AppLocalizations {
   /// **'Continue with Google'**
   String get authGoogleAction;
 
-  /// No description provided for @authMissingCredentials.
+  /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Enter your email and password'**
-  String get authMissingCredentials;
+  /// **'Enter your email'**
+  String get authEmailEmpty;
+
+  /// No description provided for @authEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address'**
+  String get authEmailInvalid;
+
+  /// No description provided for @authPasswordEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get authPasswordEmpty;
 
   /// No description provided for @authSignInFailed.
   ///
@@ -3841,10 +3841,16 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get signUpNameHint;
 
-  /// No description provided for @signUpPhoneHint.
+  /// Red text under the name field on sign-up when it is empty or whitespace only (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Phone number'**
+  /// **'Enter your name'**
+  String get signUpNameEmpty;
+
+  /// Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784).
+  ///
+  /// In en, this message translates to:
+  /// **'010-0000-0000'**
   String get signUpPhoneHint;
 
   /// No description provided for @signUpPhoneHelper.
@@ -3856,7 +3862,7 @@ abstract class AppLocalizations {
   /// No description provided for @signUpPasswordHint.
   ///
   /// In en, this message translates to:
-  /// **'Password (8+ characters)'**
+  /// **'Password (8+ characters, letters and numbers)'**
   String get signUpPasswordHint;
 
   /// No description provided for @signUpPasswordConfirmHint.
@@ -3877,11 +3883,11 @@ abstract class AppLocalizations {
   /// **'Already have an account?'**
   String get signUpHaveAccountQuestion;
 
-  /// No description provided for @signUpPasswordTooShort.
+  /// No description provided for @signUpPasswordWeak.
   ///
   /// In en, this message translates to:
-  /// **'Password must be at least 8 characters'**
-  String get signUpPasswordTooShort;
+  /// **'Use at least 8 characters, including letters and numbers'**
+  String get signUpPasswordWeak;
 
   /// No description provided for @signUpPasswordMismatch.
   ///
@@ -3889,11 +3895,11 @@ abstract class AppLocalizations {
   /// **'Passwords do not match'**
   String get signUpPasswordMismatch;
 
-  /// No description provided for @signUpPhoneInvalid.
+  /// No description provided for @signUpPhoneFormatInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Enter a phone number with at least 4 digits'**
-  String get signUpPhoneInvalid;
+  /// **'Enter your phone number as 000-0000-0000'**
+  String get signUpPhoneFormatInvalid;
 
   /// No description provided for @trainerSyncEntryLabel.
   ///
@@ -4800,6 +4806,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel this workout?'**
   String get coachCardRoutineCancelTitle;
+
+  /// Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep'**
+  String get coachRoutineKeep;
 
   /// No description provided for @coachRoutineCancelled.
   ///

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -63,6 +64,46 @@ void main() {
     await tester.tap(find.text('삭제'));
     await tester.pumpAndSettle();
     expect(await result, isTrue);
+  });
+
+  testWidgets('닫히지 않는 창은 바깥·뒤로가기로 닫히지 않고 버튼으로만 닫힌다', (tester) async {
+    final BuildContext context = await _pump(
+      tester,
+      density: OnCareDensity.mobile,
+    );
+    String? result;
+    showAppDialog<String>(
+      context: context,
+      dismissible: false,
+      builder: (BuildContext dialogContext) => AppDialog(
+        showClose: false,
+        footer: AppButton(
+          label: '확인',
+          onPressed: () => Navigator.pop(dialogContext, 'ok'),
+        ),
+        child: const Text('본문'),
+      ),
+    ).then((String? value) => result = value);
+    await tester.pumpAndSettle();
+
+    // 바깥(배경 막)을 누른다.
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsOneWidget);
+
+    // 기기 뒤로가기.
+    await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+      'flutter/navigation',
+      const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute')),
+      (_) {},
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsOneWidget);
+
+    await tester.tap(find.text('확인'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppDialog), findsNothing);
+    expect(result, 'ok');
   });
 
   testWidgets('토스트는 뜬 뒤 정해진 시간 뒤 사라진다', (tester) async {

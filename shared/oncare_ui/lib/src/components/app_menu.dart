@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
 
@@ -50,10 +51,13 @@ class AppMenu extends StatelessWidget {
           MenuItemButton(
             onPressed: item.onSelected,
             leadingIcon: item.selected
-                ? const Icon(Icons.check_rounded, size: OnCareSize.iconMedium)
+                ? AppIcon(
+                    AppIcon.setOf(context).check,
+                    size: OnCareSize.iconMedium,
+                  )
                 : item.icon == null
                 ? null
-                : Icon(item.icon, size: OnCareSize.iconMedium),
+                : AppIcon(item.icon, size: OnCareSize.iconMedium),
             style: item.destructive
                 ? const ButtonStyle(
                     foregroundColor: WidgetStatePropertyAll<Color>(

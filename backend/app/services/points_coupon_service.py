@@ -1,15 +1,17 @@
 """포인트 사용처 — 교환 목록·쿠폰 발급·사용 처리·만료·취소. (#1787)
 
-사용처 화면의 혜택을 실제로 교환할 수 있게 한다. 헬스장·트레이너에게 부담이 적은
-사용처를 골랐다.
+사용처의 혜택은 앱에 이미 있는 헬스장이 현장에서 주는 것이다. 가격은 혜택
+1만원 = 7,000P 기준이다.
 
-- **PT 재등록 할인 쿠폰** — 담당 트레이너가 있는 회원만 교환한다. 5000P → 1만원
-  할인, 30일. 재등록 1회에 1장이다. 헬스장에서 회원이 휴대폰으로 쿠폰 화면을 열고,
-  트레이너·헬스장 직원이 확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다
-  (직원 확인 버튼). 트레이너웹에는 처리 화면이 없다.
-- **건강식·보충제 할인 쿠폰(데모)** — 샐러드 10%, 프로틴 3,000원. 각 1000P, 30일.
-  쿠폰 화면을 보여 주고 회원이 스스로 사용 완료를 누른다. 재등록 쿠폰처럼 종류마다
-  사용 가능한 쿠폰은 회원당 한 장이다.
+- **PT 재등록 3만원 할인** — 담당 트레이너가 있는 회원만 교환한다. 21,000P →
+  3만원 할인, 30일. 재등록 1회에 1장이다.
+- **개인 락커 1개월 무료** — 헬스장을 연결한 회원만 교환한다. 7,000P, 30일.
+  사용 가능한 쿠폰은 회원당 한 장이고, 교환은 KST 달력 한 달에 한 번이다. 담당
+  해제·헬스장 해제로 취소돼 포인트를 돌려받은 쿠폰은 세지 않는다.
+
+두 쿠폰 모두 헬스장에서 회원이 휴대폰으로 쿠폰 화면을 열고, 직원(PT 재등록은
+트레이너·헬스장 직원)이 확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다
+(직원 확인 버튼). 트레이너웹에는 처리 화면이 없다.
 
 규칙:
 
@@ -26,8 +28,9 @@
 - **사용 처리는 조건부 UPDATE 한 번이다.** `issued` 이고 기한 전일 때만 `used` 로
   바꾸고, 바뀐 행이 없으면 현재 상태를 읽어 이미 사용됐으면 같은 응답을 준다. 더블
   탭·재전송이 두 번 처리되지 않고 오류도 보지 않는다. 되돌리기는 없다.
-- **담당 연결이 끊기면** 사용 가능한 PT 재등록 쿠폰을 취소하고 교환에 쓴 포인트를
-  돌려준다(내역 `refund`). 쓸 트레이너가 없는 쿠폰을 남겨 두면 포인트만 묶인다.
+- **담당 연결이 끊기면** 사용 가능한 PT 재등록 쿠폰을, **헬스장 연결이 끊기면**
+  사용 가능한 락커 쿠폰을 취소하고 교환에 쓴 포인트를 돌려준다(내역 `refund`).
+  쓸 곳이 없는 쿠폰을 남겨 두면 포인트만 묶인다.
 """
 from __future__ import annotations
 
@@ -49,10 +52,6 @@ from app.schemas.points_api import (
 )
 from app.services import notification_service, points_service, streak_shield_service
 
-#: 누가 사용 처리하나. 지금은 모든 쿠폰을 회원 휴대폰에서 처리한다 — PT 재등록
-#: 쿠폰도 직원이 확인한 뒤 회원 화면의 버튼을 누른다.
-REDEEMER_MEMBER = "member"
-
 #: 쿠폰 상태.
 ISSUED = "issued"
 USED = "used"
@@ -61,7 +60,9 @@ CANCELLED = "cancelled"
 
 #: 교환 버튼을 막는 이유 — 앱이 이 값으로 안내 문구를 고른다.
 BLOCK_NO_TRAINER = "no_trainer"
+BLOCK_NO_GYM = "no_gym"
 BLOCK_ACTIVE_COUPON = "active_coupon"
+BLOCK_MONTHLY_LIMIT = "monthly_limit"
 BLOCK_INSUFFICIENT = "insufficient_points"
 #: 쓰지 않은 연속 기록 보호권을 이미 최대로 가지고 있다(#1788).
 BLOCK_SHIELD_LIMIT = "shield_limit"
@@ -83,42 +84,35 @@ class ShopItem:
     description: str
     cost: int
     valid_days: int
-    redeemer: str
     requires_trainer: bool = False
+    #: 연결한 헬스장(`member_gyms`)이 있어야 교환할 수 있는가.
+    requires_gym: bool = False
     #: 사용 가능한 쿠폰을 한 장만 가질 수 있는가.
     one_active: bool = False
+    #: KST 달력 한 달에 한 번만 교환할 수 있는가. 취소(반환)된 쿠폰은 세지 않는다.
+    monthly_limit: bool = False
 
 
 PT_RENEWAL = ShopItem(
     id="pt_renewal",
-    title="PT 재등록 할인 쿠폰",
-    benefit="PT 재등록 10,000원 할인",
-    description="담당 트레이너에게 PT를 다시 등록할 때 10,000원을 할인받아요.",
-    cost=5000,
+    title="PT 재등록 3만원 할인",
+    benefit="PT 재등록 30,000원 할인",
+    description="담당 트레이너에게 PT를 다시 등록할 때 30,000원을 할인받아요.",
+    cost=21000,
     valid_days=30,
-    redeemer=REDEEMER_MEMBER,
     requires_trainer=True,
     one_active=True,
 )
-SALAD_DISCOUNT = ShopItem(
-    id="salad_discount",
-    title="샐러드 10% 할인",
-    benefit="샐러드 10% 할인",
-    description="건강식 샐러드를 주문할 때 10% 할인받아요.",
-    cost=1000,
+LOCKER_MONTH = ShopItem(
+    id="locker_month",
+    title="개인 락커 1개월 무료",
+    benefit="개인 락커 1개월 무료",
+    description="연결한 헬스장에서 개인 락커를 한 달 동안 무료로 써요.",
+    cost=7000,
     valid_days=30,
-    redeemer=REDEEMER_MEMBER,
+    requires_gym=True,
     one_active=True,
-)
-PROTEIN_DISCOUNT = ShopItem(
-    id="protein_discount",
-    title="프로틴 3,000원 할인",
-    benefit="프로틴 3,000원 할인",
-    description="프로틴 보충제를 살 때 3,000원 할인받아요.",
-    cost=1000,
-    valid_days=30,
-    redeemer=REDEEMER_MEMBER,
-    one_active=True,
+    monthly_limit=True,
 )
 
 #: 연속 기록 보호권(#1788) — 쿠폰이 아니다. 교환하면 `streak_shields` 에 한 장이
@@ -131,14 +125,12 @@ STREAK_SHIELD = ShopItem(
     description="운동을 못 한 어제를 연속 기록에 이어 붙여요. 최대 2개까지 가질 수 있어요.",
     cost=streak_shield_service.COST,
     valid_days=0,
-    redeemer=REDEEMER_MEMBER,
 )
 
 #: 화면에 서는 순서 그대로다.
 CATALOG: tuple[ShopItem, ...] = (
     PT_RENEWAL,
-    SALAD_DISCOUNT,
-    PROTEIN_DISCOUNT,
+    LOCKER_MONTH,
     STREAK_SHIELD,
 )
 _ITEMS: dict[str, ShopItem] = {item.id: item for item in CATALOG}
@@ -156,8 +148,16 @@ class TrainerRequired(CouponError):
     """담당 트레이너가 있어야 교환할 수 있다."""
 
 
+class GymRequired(CouponError):
+    """연결한 헬스장이 있어야 교환할 수 있다."""
+
+
 class ActiveCouponExists(CouponError):
     """사용하지 않은 같은 쿠폰이 이미 있다."""
+
+
+class MonthlyLimitReached(CouponError):
+    """이번 KST 달에 이미 교환했다."""
 
 
 class CouponNotFound(CouponError):
@@ -183,13 +183,18 @@ def item_of(item_id: str) -> ShopItem | None:
 def build_shop(db: Session, member_id: str) -> PointsShopOut:
     """교환 목록과 항목별 교환 가능 여부. 아무것도 쓰지 않는다.
 
-    가능 여부를 서버가 계산해 준다 — 앱이 담당 여부·보유 쿠폰 규칙을 따로 들고
-    있으면 규칙이 바뀔 때 화면만 옛 규칙으로 남는다.
+    가능 여부를 서버가 계산해 준다 — 앱이 담당·헬스장 여부나 보유 쿠폰·한 달 한 번
+    규칙을 따로 들고 있으면 규칙이 바뀔 때 화면만 옛 규칙으로 남는다.
+
+    막힌 이유는 하나만 준다. 순서는 교환([exchange])이 거절하는 순서와 같다 —
+    자격(담당 없음·헬스장 없음) → 사용 가능한 같은 쿠폰 → 보호권 최대 보유 → 이번 달
+    교환 → 잔액 부족.
     """
-    from app.services import trainer_service
+    from app.services import gym_service, trainer_service
 
     balance = points_service.balance(db, member_id)
     has_trainer = trainer_service.get_member_trainer_id(db, member_id) is not None
+    has_gym = gym_service.get_member_gym(db, member_id) is not None
     now = clock.now()
     active_items = set(
         db.scalars(
@@ -207,6 +212,8 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
         blocked: str | None = None
         if item.requires_trainer and not has_trainer:
             blocked = BLOCK_NO_TRAINER
+        elif item.requires_gym and not has_gym:
+            blocked = BLOCK_NO_GYM
         elif item.one_active and item.id in active_items:
             blocked = BLOCK_ACTIVE_COUPON
         elif (
@@ -214,6 +221,8 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
             and shields_held >= streak_shield_service.MAX_HELD
         ):
             blocked = BLOCK_SHIELD_LIMIT
+        elif item.monthly_limit and _exchanged_this_month(db, member_id, item.id):
+            blocked = BLOCK_MONTHLY_LIMIT
         elif shortfall > 0:
             blocked = BLOCK_INSUFFICIENT
         items.append(
@@ -224,14 +233,16 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
                 description=item.description,
                 cost=item.cost,
                 valid_days=item.valid_days,
-                redeemer=item.redeemer,
                 requires_trainer=item.requires_trainer,
+                requires_gym=item.requires_gym,
                 available=blocked is None,
                 blocked_reason=blocked,
                 shortfall=shortfall,
             )
         )
-    return PointsShopOut(balance=balance, has_trainer=has_trainer, items=items)
+    return PointsShopOut(
+        balance=balance, has_trainer=has_trainer, has_gym=has_gym, items=items
+    )
 
 
 def list_coupons(db: Session, member_id: str) -> list[CouponOut]:
@@ -272,10 +283,13 @@ def exchange(
     돌려준다 — 응답을 못 받고 다시 누른 교환이 포인트를 두 번 쓰지 않는다.
 
     잔액 행을 먼저 잠근다. 같은 회원의 교환이 동시에 들어와도 "사용 가능한 같은
-    종류 쿠폰이 있나"·"잔액이 되나" 를 차례로 보게 된다. partial unique index 가
-    마지막 방어선이다.
+    종류 쿠폰이 있나"·"이번 달에 교환했나"·"잔액이 되나" 를 차례로 보게 된다.
+    사용 가능한 쿠폰 한 장은 partial unique index 가 마지막 방어선이다.
+
+    락커 쿠폰은 회원의 헬스장(`GET /me/gym` 과 같은 `member_gyms` 링크) 이름을
+    쿠폰에 남긴다.
     """
-    from app.services import trainer_service
+    from app.services import gym_service, trainer_service
 
     item = _ITEMS.get(item_id)
     if item is None:
@@ -303,8 +317,15 @@ def exchange(
         trainer_id = coach.trainer_id
         trainer_name = coach.name
         gym_name = coach.gym.name
+    if item.requires_gym:
+        gym = gym_service.get_member_gym(db, member_id)
+        if gym is None:
+            raise GymRequired("헬스장을 연결해야 교환할 수 있어요.")
+        gym_name = gym.name
     if item.one_active and _active_coupon(db, member_id, item.id) is not None:
         raise ActiveCouponExists("사용하지 않은 쿠폰이 이미 있어요.")
+    if item.monthly_limit and _exchanged_this_month(db, member_id, item.id):
+        raise MonthlyLimitReached("이번 달에는 이미 교환했어요.")
     current = points_service.balance(db, member_id)
     if current < item.cost:
         raise points_service.InsufficientPoints(item.cost - current)
@@ -356,9 +377,9 @@ def use_by_member(
 ) -> tuple[CouponOut, bool]:
     """회원 휴대폰에서 `사용 완료` 를 누른다. 커밋한다.
 
-    PT 재등록 쿠폰은 트레이너·헬스장 직원이 확인한 뒤, 건강식·보충제 쿠폰은 매장에서
-    쿠폰 화면을 보여 준 뒤 회원 화면의 같은 버튼으로 처리한다. 사용 시각은 `used_at` 에
-    남는다 — 처리한 사람은 늘 이 회원이라 따로 적지 않는다.
+    헬스장에서 직원(PT 재등록은 트레이너·헬스장 직원)이 쿠폰 화면을 확인한 뒤 회원
+    화면의 버튼으로 처리한다. 사용 시각은 `used_at` 에 남는다 — 누른 휴대폰은 늘 이
+    회원 것이라 따로 적지 않는다.
 
     두 번째 값은 **이번 요청이 처리했는가**다. 이미 사용된 쿠폰의 재요청은 같은
     응답에 거짓이라, 라우터는 참일 때만 감사 로그를 남긴다. 만료·취소는
@@ -445,11 +466,47 @@ def cancel_renewal_coupons(db: Session, member_id: str) -> int:
     이미 기한이 지난 쿠폰은 돌려주지 않고 만료로 내린다(소멸 규칙). 잔액 행을
     쿠폰보다 먼저 잠근다 — 교환과 같은 순서라 서로 기다리다 멈추지 않는다.
     """
+    return _cancel_unused(
+        db,
+        member_id,
+        PT_RENEWAL,
+        title="재등록 쿠폰이 취소됐어요",
+        reason="담당 트레이너 연결이 해제되어",
+    )
+
+
+def cancel_locker_coupons(db: Session, member_id: str) -> int:
+    """헬스장 연결이 끊긴 회원의 개인 락커 쿠폰을 취소하고 포인트를 돌려준다.
+
+    규칙은 [cancel_renewal_coupons] 와 같다 — 취소한 장수를 돌려주고, 커밋하지
+    않으며(헬스장 해제와 같은 트랜잭션), 기한이 지난 쿠폰은 만료로 내린다.
+
+    회원의 헬스장은 한 곳뿐이고(`member_gyms` 의 PK 가 회원) 다른 헬스장으로
+    옮기려면 먼저 해제해야 한다. 그래서 사용 가능한 락커 쿠폰은 모두 지금 끊기는
+    헬스장의 쿠폰이다. 취소된 쿠폰은 한 달 한 번 규칙에서 세지 않는다.
+    """
+    return _cancel_unused(
+        db,
+        member_id,
+        LOCKER_MONTH,
+        title="락커 쿠폰이 취소됐어요",
+        reason="헬스장 연결이 해제되어",
+    )
+
+
+def _cancel_unused(
+    db: Session, member_id: str, item: ShopItem, *, title: str, reason: str
+) -> int:
+    """[item] 의 사용 가능한 쿠폰을 취소하고 포인트를 돌려준다. 커밋하지 않는다.
+
+    쿠폰마다 한 번 알림을 만든다. 같은 쿠폰의 반환은 내역의 source 유일성으로 한
+    번뿐이고, 이미 취소된 쿠폰은 다시 고르지 않으니 두 번 불러도 같다.
+    """
     has_any = db.scalar(
         select(PointsCoupon.id)
         .where(
             PointsCoupon.user_id == member_id,
-            PointsCoupon.item == PT_RENEWAL.id,
+            PointsCoupon.item == item.id,
             PointsCoupon.status == ISSUED,
         )
         .limit(1)
@@ -461,7 +518,7 @@ def cancel_renewal_coupons(db: Session, member_id: str) -> int:
         select(PointsCoupon)
         .where(
             PointsCoupon.user_id == member_id,
-            PointsCoupon.item == PT_RENEWAL.id,
+            PointsCoupon.item == item.id,
             PointsCoupon.status == ISSUED,
         )
         .with_for_update()
@@ -482,9 +539,9 @@ def cancel_renewal_coupons(db: Session, member_id: str) -> int:
             member_id=member_id,
             kind=notification_service.POINTS_COUPON,
             category=notification_service.MEMBER_BENEFITS,
-            title="재등록 쿠폰이 취소됐어요",
+            title=title,
             body=(
-                f"담당 트레이너 연결이 해제되어 {PT_RENEWAL.benefit} 쿠폰을 취소하고 "
+                f"{reason} {item.benefit} 쿠폰을 취소하고 "
                 f"{refunded:,}P를 돌려드렸어요."
             ),
         )
@@ -508,7 +565,6 @@ def coupon_out(row: PointsCoupon, now: datetime | None = None) -> CouponOut:
         benefit=item.benefit if item is not None else row.item,
         cost=row.cost,
         status=status,
-        redeemer=item.redeemer if item is not None else REDEEMER_MEMBER,
         trainer_name=row.trainer_name or "",
         gym_name=row.gym_name or "",
         issued_at=row.issued_at,
@@ -576,6 +632,38 @@ def _active_coupon(db: Session, member_id: str, item_id: str) -> PointsCoupon | 
             PointsCoupon.status == ISSUED,
             PointsCoupon.expires_at > clock.now(),
         )
+    )
+
+
+def _exchanged_this_month(db: Session, member_id: str, item_id: str) -> bool:
+    """이번 KST 달에 [item_id] 를 교환한 적이 있는가.
+
+    사용 가능·사용·만료 쿠폰은 모두 센다 — 쓰거나 기한을 넘겨도 같은 달에 다시 받을
+    수 없다. 취소된 쿠폰만 뺀다. 취소는 연결이 끊겨 포인트를 돌려준 경우라, 회원이
+    혜택을 받은 적이 없다.
+    """
+    start, end = _month_bounds(clock.today())
+    found = db.scalar(
+        select(PointsCoupon.id)
+        .where(
+            PointsCoupon.user_id == member_id,
+            PointsCoupon.item == item_id,
+            PointsCoupon.status != CANCELLED,
+            PointsCoupon.issued_at >= start,
+            PointsCoupon.issued_at < end,
+        )
+        .limit(1)
+    )
+    return found is not None
+
+
+def _month_bounds(day: date) -> tuple[datetime, datetime]:
+    """[day] 가 속한 KST 달의 1일 0시와 다음 달 1일 0시."""
+    first = day.replace(day=1)
+    following = (first + timedelta(days=32)).replace(day=1)
+    return (
+        datetime.combine(first, time.min, tzinfo=clock.SEOUL),
+        datetime.combine(following, time.min, tzinfo=clock.SEOUL),
     )
 
 

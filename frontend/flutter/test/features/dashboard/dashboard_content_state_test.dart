@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -206,8 +207,7 @@ void main() {
 
     final Finder bellFinder = find.byWidgetPredicate(
       (Widget widget) =>
-          widget is HeaderActionButton &&
-          widget.icon == Icons.notifications_none_rounded,
+          widget is HeaderActionButton && widget.icon == AppIcons.notifications,
     );
     final HeaderActionButton notificationButton = tester.widget(bellFinder);
     // 점은 이제 **서버 미읽음을 따른다.** 예전에는 항상 켜져 있어서 읽을 것이
@@ -235,7 +235,7 @@ void main() {
       find.byWidgetPredicate(
         (Widget widget) =>
             widget is HeaderActionButton &&
-            widget.icon == Icons.notifications_none_rounded,
+            widget.icon == AppIcons.notifications,
       ),
     );
     expect(bell.showDot, isFalse);

@@ -48,7 +48,7 @@
 
 `activity_points`: 포인트 잔액(`health_profiles.activity_points`) 그대로다. 프로필 행이 없으면 0.
 예전에는 위험 문구(`risk_title`)가 없는 프로필에 데모 숫자 1240 을 지어 보냈다 — 이제 데모 회원의
-시작 잔액 1240 은 시드가 프로필에 넣는다. 적립 규칙은 아래 "활동 포인트" 절 참조. (#1786)
+시작 잔액(`DEMO_OPENING_POINTS`, 25,000)은 시드가 프로필에 넣는다. 적립 규칙은 아래 "활동 포인트" 절 참조. (#1786)
 
 `indicators[]`(체중·혈압·혈당 추이)는 **없다.** 바이탈 기능과 함께 제거됐다 — 아래
 "바이탈" 절 참조. 대시보드의 `indicators[]` 는 이름만 같고 칼로리·나트륨·당류로,
@@ -124,55 +124,63 @@
 
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
-| GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, items[] }` |
+| GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, has_gym, items[] }` |
 | POST | `/me/points/exchange` | 회원 | 입력 `{ item, client_request_id? }` → **201** `{ coupon, spent, balance }` |
 | GET | `/me/coupons` | 회원(데모 폴백) | `coupon[]` — 사용 가능 먼저, 그다음 최신순(최대 100) |
 | POST | `/me/coupons/{id}/use` | 회원 | `coupon` — 회원 휴대폰에서 사용 완료 |
 
-트레이너웹에는 쿠폰 경로가 없다. PT 재등록 쿠폰도 헬스장에서 회원이 쿠폰 화면을 열고, 트레이너·헬스장 직원이
-확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다(직원 확인 버튼).
+사용처는 앱에 있는 헬스장이 현장에서 주는 혜택이다. 가격은 혜택 1만원 = 7,000P 기준이다.
+트레이너웹에는 쿠폰 경로가 없다. 모든 쿠폰은 헬스장에서 회원이 쿠폰 화면을 열고, 직원(PT 재등록은 트레이너·헬스장
+직원)이 확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다(직원 확인 버튼).
 
 교환 항목(가격·기한의 원본은 서버다):
 
-| `item` | 이름 | 포인트 | 기한 | 사용 처리 | 조건 |
-|---|---|---|---|---|---|
-| `pt_renewal` | PT 재등록 할인 쿠폰(10,000원) | 5000 | 30일 | 회원 휴대폰(직원 확인 뒤) | 활성 담당 필요, 사용 가능한 쿠폰은 회원당 1장 |
-| `salad_discount` | 샐러드 10% 할인 | 1000 | 30일 | 회원 휴대폰 | 사용 가능한 쿠폰은 회원당 1장 |
-| `protein_discount` | 프로틴 3,000원 할인 | 1000 | 30일 | 회원 휴대폰 | 사용 가능한 쿠폰은 회원당 1장 |
-| `streak_shield` | 연속 기록 보호권(#1788, 쿠폰 아님) | 300 | 없음(0) | 회원(운동 현황에서 사용) | 쓰지 않은 보호권 최대 2개 |
+| `item` | 이름 | 포인트 | 기한 | 조건 |
+|---|---|---|---|---|
+| `pt_renewal` | PT 재등록 3만원 할인(30,000원) | 21000 | 30일 | 활성 담당 필요, 사용 가능한 쿠폰은 회원당 1장 |
+| `locker_month` | 개인 락커 1개월 무료 | 7000 | 30일 | 연결한 헬스장(`GET /me/gym`) 필요, 사용 가능한 쿠폰은 회원당 1장, 교환은 KST 달마다 1회 |
+| `streak_shield` | 연속 기록 보호권(#1788, 쿠폰 아님) | 300 | 없음(0) | 쓰지 않은 보호권 최대 2개, 회원이 운동 현황에서 사용 |
 
 사용 가능한(`issued`, 기한 전) 쿠폰은 **종류마다** 회원당 1장이다 — `(user_id, item) WHERE status='issued'`
 partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으로 막히고, 교환하면 409 다. 사용·만료·취소되면
 다시 교환할 수 있다. 연속 기록 보호권은 쿠폰 표에 들지 않고 보유 한도(2개)를 따로 센다.
 
-`items[]`: `{ id, title, benefit, description, cost, valid_days, redeemer, requires_trainer,
-available, blocked_reason, shortfall }`. `redeemer` 는 지금 모두 `member` 다. `blocked_reason` 은 `no_trainer` →
-`active_coupon` → `shield_limit` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
-포인트(모자라지 않으면 0). 교환 응답은 쿠폰이면 `coupon`, 보호권이면 `coupon: null` 과 `shield` 다(아래 "연속 기록
-보호권" 절).
+`locker_month` 는 **KST 달력 한 달에 한 번**만 교환한다. 그 달(1일 0시~다음 달 1일 0시, KST)에 교환한 쿠폰이
+사용 가능·사용·만료 상태로 있으면 `monthly_limit` 으로 막히고 교환하면 409 다. 헬스장 해제로 취소돼 포인트를
+돌려받은(`cancelled`) 쿠폰은 세지 않는다.
 
-`coupon`: `{ id, item, title, benefit, cost, status, redeemer, trainer_name, gym_name, issued_at, issued_on,
-expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name`·`gym_name` 은 PT 재등록 쿠폰을 교환할
-때의 담당 트레이너·헬스장 사본이다(쿠폰 화면 표시용).
+`items[]`: `{ id, title, benefit, description, cost, valid_days, requires_trainer, requires_gym,
+available, blocked_reason, shortfall }`. `blocked_reason` 은 `no_trainer` → `no_gym` → `active_coupon` →
+`shield_limit` → `monthly_limit` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
+포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
+보호권이면 `coupon: null` 과 `shield` 다(아래 "연속 기록 보호권" 절).
+
+`coupon`: `{ id, item, title, benefit, cost, status, trainer_name, gym_name, issued_at, issued_on,
+expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당
+트레이너, `gym_name` 은 교환할 때의 헬스장 사본이다(PT 재등록은 코치 요약의 헬스장, 락커는 회원 헬스장 — 쿠폰 화면
+표시용).
 
 - **상태** `issued`(사용 가능)|`used`|`expired`|`cancelled`. 기한이 지난 쿠폰은 서버가 아직 만료로 내리지 않았어도
   `expired` 로 싣는다. 스케줄러가 없어 조회·교환·사용 경로가 만날 때 만료로 내린다.
 - **기한** 쓸 수 있는 마지막 날(`expires_on`, KST)은 교환일 + 30일이다. `expires_at` 은 그 다음 날 KST 0시.
   `days_left` 는 마지막 날까지 남은 날(당일 0).
-- **교환** 잔액 행을 잠근 채 확인하고 `spend`(음수)를 남긴다. 없는 항목 404, 잔액 부족·담당 없음·같은 종류의 사용 가능한
-  쿠폰 보유는 409. 같은 `client_request_id` 재전송은 새로 쓰지 않고 처음 쿠폰을 돌려준다.
+- **교환** 잔액 행을 잠근 채 확인하고 `spend`(음수)를 남긴다. 없는 항목 404, 담당 없음·헬스장 없음·같은 종류의
+  사용 가능한 쿠폰 보유·이번 달 교환(락커)·잔액 부족은 409. 같은 `client_request_id` 재전송은 새로 쓰지 않고
+  처음 쿠폰을 돌려준다.
 - **사용 처리** 회원 휴대폰의 `POST /me/coupons/{id}/use` 하나다. `issued` 이고 기한 전일 때만 바꾸는 조건부
   UPDATE 한 번이라 더블 탭·재전송은 한 번만 처리되고, 이미 사용된 쿠폰은 같은 응답 200(`used_at` 은 처음 값), 만료·
   취소는 409, 남의 쿠폰은 404. 되돌리기는 없다. 처리한 사람은 늘 그 회원이라 따로 적지 않고 `used_at` 만 남긴다.
-  PT 재등록 쿠폰은 처음 처리한 요청에 감사 로그(`points.coupon_redeem`, user_id = 회원)를 남긴다. 본인이 누른
-  사용이라 알림은 만들지 않는다(건강식 쿠폰과 같다).
+  처음 처리한 요청에 감사 로그(`points.coupon_redeem`, user_id = 회원)를 남긴다. 회원 휴대폰에서 누른 사용이라
+  알림은 만들지 않는다.
 - **만료** 포인트는 돌려주지 않는다(소멸). 남은 날이 3일 이하가 되면 쿠폰마다 한 번 알림을 만든다 — `GET /me/coupons`
   나 `GET /notifications` 를 부를 때 생긴다.
 - **담당 해제** (`DELETE /me/coach`, `DELETE /me/coach/trainer`, `DELETE /trainer/clients/{member_id}`, 트레이너
   탈퇴) 사용 가능한 PT 재등록 쿠폰을 `cancelled` 로 바꾸고 같은 source 로 `refund`(양수)를 남겨 포인트를 돌려준다.
-  건강식 쿠폰은 그대로다.
-- **알림** 담당 해제로 인한 취소·만료 임박 알림의 `category` 는 `benefits`, `action` 은 `{ label: "내 혜택 보기",
-  target: "my_benefits" }`. 수신 설정 스위치는 없다.
+- **헬스장 해제** (`DELETE /me/coach` — 헬스장과 담당을 함께 끊는다) 사용 가능한 락커 쿠폰도 같은 방식으로 취소하고
+  돌려준다. 회원 헬스장은 한 곳뿐이라 사용 가능한 락커 쿠폰은 모두 끊기는 헬스장의 쿠폰이다. 트레이너만 해제하면 락커
+  쿠폰은 그대로다. 기한이 지난 쿠폰은 두 해제 모두 돌려주지 않고 만료로 내리며, 다시 불러도 두 번 돌려주지 않는다.
+- **알림** 연결 해제로 인한 취소(`재등록 쿠폰이 취소됐어요`·`락커 쿠폰이 취소됐어요`)·만료 임박 알림의 `category` 는
+  `benefits`, `action` 은 `{ label: "내 혜택 보기", target: "my_benefits" }`. 수신 설정 스위치는 없다.
 
 ### 연속 기록 보호권 (#1788)
 

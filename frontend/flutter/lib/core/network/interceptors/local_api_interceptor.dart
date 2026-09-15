@@ -69,7 +69,7 @@ class LocalApiInterceptor extends Interceptor {
   final DemoPointsLedger _points;
 
   /// 포인트 사용처·쿠폰(#1787). 앱에서는 목업 헬스장 저장소와 같은 인스턴스를 받아
-  /// 트레이너 해제가 쿠폰 취소로 이어진다. 주지 않으면 이 인터셉터의 원장으로 만든다.
+  /// 헬스장·트레이너 해제가 쿠폰 취소로 이어진다. 주지 않으면 이 인터셉터의 원장으로 만든다.
   final DemoCouponBook? _couponsArg;
   late final DemoCouponBook _coupons =
       _couponsArg ?? DemoCouponBook(ledger: _points, shields: _shields);

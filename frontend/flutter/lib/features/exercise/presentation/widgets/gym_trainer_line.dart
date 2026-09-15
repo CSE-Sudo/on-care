@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -73,13 +74,9 @@ class GymTrainerLine extends StatelessWidget {
               Container(
                 width: OnCareSize.avatarSmall,
                 height: OnCareSize.avatarSmall,
-                decoration: const BoxDecoration(
-                  color: OnCareColors.surfaceCard,
-                  shape: BoxShape.circle,
-                ),
                 alignment: Alignment.center,
-                child: Icon(
-                  Icons.person_rounded,
+                child: AppIcon(
+                  AppIcons.person,
                   size: OnCareSize.iconSmall,
                   color: tokens.brand.primary,
                 ),
@@ -121,7 +118,7 @@ class GymTrainerLine extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     child: AppIconButton(
                       key: const Key('gymTrainerDetailButton'),
-                      icon: Icons.chevron_right_rounded,
+                      icon: AppIcons.chevronRight,
                       tooltip: l.myTrainerDetailTooltip,
                       onPressed: onDetail,
                       color: OnCareColors.textTertiary,

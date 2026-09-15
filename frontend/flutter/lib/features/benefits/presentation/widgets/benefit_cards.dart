@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
@@ -20,7 +21,11 @@ class BenefitIconTile extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       alignment: Alignment.center,
-      child: Icon(icon, size: OnCareSize.iconMedium, color: tokens.brand.primary),
+      child: AppIcon(
+        icon,
+        size: OnCareSize.iconMedium,
+        color: tokens.brand.primary,
+      ),
     );
   }
 }
@@ -198,8 +203,8 @@ class CouponListCard extends StatelessWidget {
             const SizedBox(width: OnCareSpacing.s8),
             CouponStatusTag(coupon: coupon),
             const SizedBox(width: OnCareSpacing.s4),
-            const Icon(
-              Icons.chevron_right_rounded,
+            const AppIcon(
+              AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: OnCareColors.textTertiary,
             ),

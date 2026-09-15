@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
@@ -246,7 +247,7 @@ class _ConsultationRequestPageState
     } else if (!hasTrainerId || widget.gymId.isEmpty || gym != null) {
       body = AppEmptyState(
         title: l.exConsultTargetNotFound,
-        icon: Icons.info_rounded,
+        icon: AppIcons.info,
       );
     } else if (nearbyAsync.isLoading || myGymAsync.isLoading) {
       body = const AppLoading();
@@ -262,7 +263,7 @@ class _ConsultationRequestPageState
     } else {
       body = AppEmptyState(
         title: l.exConsultTargetNotFound,
-        icon: Icons.info_rounded,
+        icon: AppIcons.info,
       );
     }
 
@@ -341,7 +342,7 @@ class _ConsultationRequestPageState
             const SizedBox(height: OnCareSpacing.s8),
             _PickerField(
               key: const Key('consult-date'),
-              icon: Icons.calendar_today_rounded,
+              icon: AppIcons.calendar,
               text: _preferredDate == null
                   ? l.exSelectDate
                   : MaterialLocalizations.of(
@@ -360,7 +361,7 @@ class _ConsultationRequestPageState
             // "시간 협의" 토글은 없앴다(#1587) — 값은 반드시 채워야 한다.
             _PickerField(
               key: const Key('consult-time'),
-              icon: Icons.access_time_rounded,
+              icon: AppIcons.clock,
               text: _timeText(context),
               filled: _preferredTimeOfDay != null,
               onTap: _selectTime,
@@ -526,8 +527,8 @@ class _DataSharingNotice extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Icon(
-                Icons.info_rounded,
+              const AppIcon(
+                AppIcons.info,
                 size: OnCareSize.iconSmall,
                 color: OnCareColors.textSecondary,
               ),
@@ -662,7 +663,7 @@ class _PickerField extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return Material(
-      color: OnCareColors.surfaceInput,
+      color: OnCareColors.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: OnCareRadius.mdAll,
         side: BorderSide(color: OnCareColors.lineStrong),
@@ -676,7 +677,7 @@ class _PickerField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
             child: Row(
               children: <Widget>[
-                Icon(
+                AppIcon(
                   icon,
                   size: OnCareSize.iconMedium,
                   color: tokens.brand.primary,
@@ -696,8 +697,8 @@ class _PickerField extends StatelessWidget {
                               .copyWith(color: OnCareColors.textTertiary),
                   ),
                 ),
-                const Icon(
-                  Icons.chevron_right_rounded,
+                const AppIcon(
+                  AppIcons.chevronRight,
                   size: OnCareSize.iconMedium,
                   color: OnCareColors.textTertiary,
                 ),

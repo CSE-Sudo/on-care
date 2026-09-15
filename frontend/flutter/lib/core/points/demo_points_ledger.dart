@@ -9,7 +9,10 @@ import 'package:oncare/core/utils/clock.dart';
 export 'package:oncare/core/points/points_rules.dart';
 
 /// 데모 회원(김민수)의 시작 잔액. 백엔드 시드(`DEMO_OPENING_POINTS`)와 같은 값이다.
-const int kDemoOpeningPoints = 1240;
+///
+/// 사용처의 두 쿠폰(PT 재등록 21,000P·개인 락커 7,000P)을 데모에서 바로 교환해 볼 수
+/// 있는 값이다(#1787).
+const int kDemoOpeningPoints = 25000;
 
 /// 목업 API 의 포인트 원장. 서버 `points_ledger` 의 대역이다. (#1786)
 ///

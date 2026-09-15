@@ -641,7 +641,9 @@
     }
   },
   "myPointsNeedTrainer": "Requires an assigned trainer",
+  "myPointsNeedGym": "Requires a connected gym",
   "myPointsActiveCoupon": "You already have an unused coupon",
+  "myPointsMonthlyLimit": "You already redeemed this month",
   "myPointsShieldLimit": "You can hold up to 2 shields",
   "myShopStreakShieldTitle": "Streak shield",
   "myShopStreakShieldDescription": "Keep your streak going when you missed a workout yesterday. Hold up to 2.",
@@ -677,13 +679,11 @@
     }
   },
   "myPointsShopLoadFailed": "Couldn't load rewards",
-  "myShopPtRenewalTitle": "PT renewal discount coupon",
-  "myShopPtRenewalDescription": "Get ₩10,000 off when you renew PT with your trainer.",
-  "myShopSaladTitle": "10% off salad",
-  "myShopSaladDescription": "Get 10% off a healthy salad order.",
-  "myShopProteinTitle": "₩3,000 off protein",
-  "myShopProteinDescription": "Get ₩3,000 off a protein supplement.",
-  "myCouponPtRenewalBenefit": "₩10,000 off PT renewal",
+  "myShopPtRenewalTitle": "₩30,000 off PT renewal",
+  "myShopPtRenewalDescription": "Get ₩30,000 off when you renew PT with your trainer.",
+  "myShopLockerTitle": "Free personal locker for 1 month",
+  "myShopLockerDescription": "Use a personal locker at your gym free for a month.",
+  "myCouponPtRenewalBenefit": "₩30,000 off PT renewal",
   "myBenefitsTitle": "My benefits",
   "myBenefitsView": "View",
   "myBenefitsCoupons": "Coupons",
@@ -728,6 +728,7 @@
   },
   "myCouponStatus": "Status",
   "myCouponStaffNote": "Tap only after your trainer or gym staff has checked it",
+  "myCouponGymStaffNote": "Tap only after gym staff has checked it",
   "myCouponStaffConfirmTitle": "Mark this coupon as used?",
   "myCouponStaffConfirmMessage": "For staff · This can't be undone once used",
   "myCouponUsedAt": "Used at",
@@ -739,11 +740,8 @@
       }
     }
   },
-  "myCouponMemberGuide": "Show this screen at the store, then tap Mark as used.",
   "myCouponExpireNotice": "Points aren't refunded once the coupon expires.",
   "myCouponUse": "Mark as used",
-  "myCouponUseConfirmTitle": "Mark this coupon as used?",
-  "myCouponUseConfirmMessage": "You can't undo this.",
   "myCouponUseDone": "Marked as used",
   "myCouponUseFailed": "Couldn't mark as used. Please try again.",
   "myCouponNotFound": "Coupon not found",
@@ -1137,7 +1135,7 @@
   "exTimeRangeEndMinuteStep": "End minute",
   "exSlotAm": "AM",
   "exSlotPm": "PM",
-  "exTimeRangeInvalidEnd": "End time is earlier than start time",
+  "exTimeRangeInvalidEnd": "End time must be later than the start time.",
   "exTimeRangePrevStep": "Previous step",
   "exTimeRangeNextStep": "Next step",
   "exConsultMessage": "Message",
@@ -1197,24 +1195,39 @@
   "authNoAccountQuestion": "Don't have an account?",
   "authSignUpAction": "Sign up",
   "authDemoAction": "Explore the demo without signing in",
-  "authOrDivider": "or",
+  "authSocialDivider": "Sign in with a social account",
+  "@authSocialDivider": {
+    "description": "Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783)."
+  },
   "authKakaoAction": "Continue with Kakao",
   "authGoogleAction": "Continue with Google",
-  "authMissingCredentials": "Enter your email and password",
+  "authEmailEmpty": "Enter your email",
+  "@authEmailEmpty": {
+    "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
+  },
+  "authEmailInvalid": "Enter a valid email address",
+  "authPasswordEmpty": "Enter your password",
   "authSignInFailed": "Sign-in failed. Check your email and password",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",
-  "signUpPhoneHint": "Phone number",
+  "signUpNameEmpty": "Enter your name",
+  "@signUpNameEmpty": {
+    "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
+  },
+  "signUpPhoneHint": "010-0000-0000",
+  "@signUpPhoneHint": {
+    "description": "Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784)."
+  },
   "signUpPhoneHelper": "Your trainer uses this to confirm who you are.",
-  "signUpPasswordHint": "Password (8+ characters)",
+  "signUpPasswordHint": "Password (8+ characters, letters and numbers)",
   "signUpPasswordConfirmHint": "Confirm password",
   "signUpAction": "Sign up and start",
   "signUpHaveAccountQuestion": "Already have an account?",
-  "signUpPasswordTooShort": "Password must be at least 8 characters",
+  "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "signUpPasswordMismatch": "Passwords do not match",
-  "signUpPhoneInvalid": "Enter a phone number with at least 4 digits",
+  "signUpPhoneFormatInvalid": "Enter your phone number as 000-0000-0000",
   "trainerSyncEntryLabel": "Sync data with a trainer",
   "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
   "trainerSyncTitle": "Sync data with a trainer",
@@ -1641,6 +1654,10 @@
   "coachCardRoutineCancelTitle": "Cancel this workout?",
   "@coachCardRoutineCancelTitle": {
     "description": "Title of the dialog confirming removal of a recommended workout."
+  },
+  "coachRoutineKeep": "Keep",
+  "@coachRoutineKeep": {
+    "description": "Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is."
   },
   "coachRoutineCancelled": "Workout cancelled",
   "coachRoutineCancelFailed": "Couldn't cancel the workout",

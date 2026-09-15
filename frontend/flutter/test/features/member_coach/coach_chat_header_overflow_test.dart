@@ -10,6 +10,8 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_symbols_icons/symbols.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -90,7 +92,7 @@ void main() {
     testWidgets('상태 점과 동작하지 않는 메뉴가 없다', (WidgetTester tester) async {
       await pumpChat(tester, lang: 'ko', size: const Size(430, 932));
 
-      expect(find.byIcon(Icons.more_vert), findsNothing);
+      expect(find.byIcon(Symbols.more_vert_rounded), findsNothing);
       expect(
         find.byWidgetPredicate(
           (widget) =>
@@ -148,7 +150,7 @@ void main() {
     testWidgets('새 메시지는 루틴 수신 배너 아래에 쌓인다', (WidgetTester tester) async {
       await pumpChat(tester, lang: 'ko', size: const Size(430, 932));
       await tester.enterText(find.byType(TextField), '확인했습니다');
-      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+      await tester.tap(find.byIcon(AppIcons.send));
       await tester.pumpAndSettle();
 
       final banner = find.textContaining('추천운동을 받았어요').last;

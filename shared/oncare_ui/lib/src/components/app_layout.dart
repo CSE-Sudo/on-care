@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
@@ -221,7 +222,7 @@ class AppBottomNav extends StatelessWidget {
                 Badge(
                   isLabelVisible: d.badgeCount > 0,
                   label: Text('${d.badgeCount}'),
-                  child: Icon(
+                  child: AppIcon(
                     selected ? d.selectedIcon : d.icon,
                     size: OnCareSize.iconLarge,
                     color: color,
@@ -287,12 +288,14 @@ class AppNavAddButton extends StatelessWidget {
     super.key,
     required this.tooltip,
     required this.onPressed,
-    this.icon = Icons.add_rounded,
+    this.icon,
   });
 
   final String tooltip;
   final VoidCallback onPressed;
-  final IconData icon;
+
+  /// 비우면 아이콘 묶음의 `+` 다.
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -313,8 +316,8 @@ class AppNavAddButton extends StatelessWidget {
             onTap: onPressed,
             child: SizedBox.square(
               dimension: AppBottomNav.centerActionSize,
-              child: Icon(
-                icon,
+              child: AppIcon(
+                icon ?? AppIcon.setOf(context).add,
                 size: OnCareSize.iconLarge,
                 color: OnCareColors.textOnFill,
               ),
@@ -613,7 +616,7 @@ class AppSidebarItem extends StatelessWidget {
         ? tokens.brand.primary
         : OnCareColors.textSecondary;
     final bool hasBadge = badgeCount > 0;
-    final Widget iconGlyph = Icon(
+    final Widget iconGlyph = AppIcon(
       icon,
       size: OnCareSize.iconLarge,
       color: color,

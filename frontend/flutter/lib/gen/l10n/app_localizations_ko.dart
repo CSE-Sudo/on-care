@@ -1106,7 +1106,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsNeedTrainer => '담당 트레이너가 있어야 교환할 수 있어요';
 
   @override
+  String get myPointsNeedGym => '헬스장을 연결해야 교환할 수 있어요';
+
+  @override
   String get myPointsActiveCoupon => '사용하지 않은 쿠폰이 있어요';
+
+  @override
+  String get myPointsMonthlyLimit => '이번 달에는 이미 교환했어요';
 
   @override
   String get myPointsShieldLimit => '보호권은 최대 2개까지 가질 수 있어요';
@@ -1149,26 +1155,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsShopLoadFailed => '사용처를 불러오지 못했어요';
 
   @override
-  String get myShopPtRenewalTitle => 'PT 재등록 할인 쿠폰';
+  String get myShopPtRenewalTitle => 'PT 재등록 3만원 할인';
 
   @override
   String get myShopPtRenewalDescription =>
-      '담당 트레이너에게 PT를 다시 등록할 때 10,000원을 할인받아요.';
+      '담당 트레이너에게 PT를 다시 등록할 때 30,000원을 할인받아요.';
 
   @override
-  String get myShopSaladTitle => '샐러드 10% 할인';
+  String get myShopLockerTitle => '개인 락커 1개월 무료';
 
   @override
-  String get myShopSaladDescription => '건강식 샐러드를 주문할 때 10% 할인받아요.';
+  String get myShopLockerDescription => '연결한 헬스장에서 개인 락커를 한 달 동안 무료로 써요.';
 
   @override
-  String get myShopProteinTitle => '프로틴 3,000원 할인';
-
-  @override
-  String get myShopProteinDescription => '프로틴 보충제를 살 때 3,000원 할인받아요.';
-
-  @override
-  String get myCouponPtRenewalBenefit => 'PT 재등록 10,000원 할인';
+  String get myCouponPtRenewalBenefit => 'PT 재등록 30,000원 할인';
 
   @override
   String get myBenefitsTitle => '내 혜택';
@@ -1237,6 +1237,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCouponStaffNote => '트레이너·헬스장 직원이 확인한 뒤 눌러 주세요';
 
   @override
+  String get myCouponGymStaffNote => '헬스장 직원이 확인한 뒤 눌러 주세요';
+
+  @override
   String get myCouponStaffConfirmTitle => '쿠폰을 사용 완료할까요?';
 
   @override
@@ -1251,19 +1254,10 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myCouponMemberGuide => '매장에서 이 화면을 보여 준 뒤 사용 완료를 눌러 주세요.';
-
-  @override
   String get myCouponExpireNotice => '만료되면 포인트는 돌려받을 수 없어요.';
 
   @override
   String get myCouponUse => '사용 완료';
-
-  @override
-  String get myCouponUseConfirmTitle => '쿠폰을 사용했나요?';
-
-  @override
-  String get myCouponUseConfirmMessage => '사용 완료로 바꾸면 되돌릴 수 없어요.';
 
   @override
   String get myCouponUseDone => '사용 완료로 바꿨어요';
@@ -1910,7 +1904,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exSlotPm => '오후';
 
   @override
-  String get exTimeRangeInvalidEnd => '종료 시간이 시작 시간보다 빠릅니다';
+  String get exTimeRangeInvalidEnd => '종료 시간은 시작 시간보다 늦어야 해요';
 
   @override
   String get exTimeRangePrevStep => '이전 단계';
@@ -2044,7 +2038,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authDemoAction => '로그인 없이 데모 둘러보기';
 
   @override
-  String get authOrDivider => '또는';
+  String get authSocialDivider => 'SNS 계정으로 로그인';
 
   @override
   String get authKakaoAction => '카카오로 시작하기';
@@ -2053,7 +2047,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authGoogleAction => '구글로 시작하기';
 
   @override
-  String get authMissingCredentials => '이메일과 비밀번호를 입력해 주세요';
+  String get authEmailEmpty => '이메일을 입력해 주세요';
+
+  @override
+  String get authEmailInvalid => '이메일 형식이 올바르지 않아요';
+
+  @override
+  String get authPasswordEmpty => '비밀번호를 입력해 주세요';
 
   @override
   String get authSignInFailed => '로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요';
@@ -2071,13 +2071,16 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpNameHint => '이름';
 
   @override
-  String get signUpPhoneHint => '전화번호';
+  String get signUpNameEmpty => '이름을 입력해 주세요';
+
+  @override
+  String get signUpPhoneHint => '010-0000-0000';
 
   @override
   String get signUpPhoneHelper => '트레이너가 회원님을 확인할 때 쓰는 연락처예요';
 
   @override
-  String get signUpPasswordHint => '비밀번호 (8자 이상)';
+  String get signUpPasswordHint => '비밀번호 (영문·숫자 포함 8자 이상)';
 
   @override
   String get signUpPasswordConfirmHint => '비밀번호 확인';
@@ -2089,13 +2092,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpHaveAccountQuestion => '이미 계정이 있으신가요?';
 
   @override
-  String get signUpPasswordTooShort => '비밀번호는 8자 이상이어야 해요';
+  String get signUpPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
 
   @override
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';
 
   @override
-  String get signUpPhoneInvalid => '전화번호를 4자리 이상 입력해 주세요';
+  String get signUpPhoneFormatInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get trainerSyncEntryLabel => '트레이너와 데이터 동기화';
@@ -2582,6 +2585,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachCardRoutineCancelTitle => '개인 운동을 취소할까요?';
+
+  @override
+  String get coachRoutineKeep => '유지';
 
   @override
   String get coachRoutineCancelled => '개인 운동을 취소했어요';

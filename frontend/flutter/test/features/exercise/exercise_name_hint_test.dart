@@ -190,18 +190,30 @@ void main() {
     expect(_hint(tester), l.exExerciseNameHintStrength);
   });
 
-  testWidgets('저장은 주요(브랜드 채움) 버튼이다', (WidgetTester tester) async {
+  testWidgets('저장은 취소 오른쪽의 주요(브랜드 채움) 버튼이다', (WidgetTester tester) async {
     await _openSheet(tester);
 
     // 시트를 끝내는 동작이라 보조 버튼과 위계가 달라야 한다 — 규격의 주요
-    // 버튼(브랜드 채움·흰 글자)을 넓게 쓴다(#1701).
-    final AppButton save = tester.widget<AppButton>(
-      find.byKey(const Key('exerciseSaveButton')),
-    );
+    // 버튼(브랜드 채움·흰 글자)이다(#1701).
+    final Finder saveFinder = find.byKey(const Key('exerciseSaveButton'));
+    final Finder cancelFinder = find.byKey(const Key('exerciseCancelButton'));
+    final AppButton save = tester.widget<AppButton>(saveFinder);
+    final AppButton cancel = tester.widget<AppButton>(cancelFinder);
     expect(save.variant, AppButtonVariant.primary);
-    expect(save.size, OnCareButtonSize.large);
     expect(save.fullWidth, isTrue);
     // 저장 중이 아니면 눌린다.
     expect(save.onPressed, isNotNull);
+
+    // 식단 수정 화면과 같은 두 버튼 — [취소] 왼쪽, [저장] 오른쪽, 같은 크기로
+    // 폭 반반이다(#1782).
+    expect(cancel.variant, AppButtonVariant.secondary);
+    expect(cancel.onPressed, isNotNull);
+    expect(save.size, OnCareButtonSize.medium);
+    expect(cancel.size, save.size);
+    expect(
+      tester.getCenter(cancelFinder).dx,
+      lessThan(tester.getCenter(saveFinder).dx),
+    );
+    expect(tester.getSize(cancelFinder), tester.getSize(saveFinder));
   });
 }

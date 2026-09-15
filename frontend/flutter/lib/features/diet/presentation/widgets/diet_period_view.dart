@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
@@ -172,7 +173,7 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
           data: (DietPeriod period) => period.isEmpty
               ? AppEmptyState(
                   title: l.dietPeriodEmpty,
-                  icon: Icons.restaurant_rounded,
+                  icon: AppIcons.diet,
                   placement: AppStatePlacement.card,
                 )
               : _PeriodBody(

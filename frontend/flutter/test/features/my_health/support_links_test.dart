@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 
 import 'package:oncare/features/my_health/domain/support_links.dart';
@@ -103,7 +104,7 @@ void main() {
     await _pumpSupport(tester);
 
     // 아이콘과 안내 문구 둘 다 — 누르기 전에 무엇이 일어나는지 보이게.
-    expect(find.byIcon(Icons.open_in_new_rounded), findsNWidgets(2));
+    expect(find.byIcon(AppIcons.external), findsNWidgets(2));
     expect(find.text('카카오톡 채널로 연결돼요'), findsNWidgets(2));
   });
 

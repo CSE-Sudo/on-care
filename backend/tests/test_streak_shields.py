@@ -150,7 +150,8 @@ def test_shop_lists_streak_shield(client, db_session, thursday):
     _, poor = _new_member(client, db_session, points=100)
 
     item = _shop_item(client, rich)
-    assert (item["cost"], item["valid_days"], item["redeemer"]) == (300, 0, "member")
+    assert (item["cost"], item["valid_days"]) == (300, 0)
+    assert "redeemer" not in item
     assert item["available"] is True
     assert item["blocked_reason"] is None
 

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
-import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
@@ -17,6 +16,7 @@ import 'fake_benefits_repository.dart';
 PointsShop _shop({required bool full}) => PointsShop(
   balance: 1000,
   hasTrainer: true,
+  hasGym: true,
   items: <ShopItem>[
     ShopItem(
       id: 'streak_shield',
@@ -25,7 +25,6 @@ PointsShop _shop({required bool full}) => PointsShop(
       description: '',
       cost: 300,
       validDays: 0,
-      redeemer: CouponRedeemer.member,
       available: !full,
       blockReason: full ? ShopBlockReason.shieldLimit : null,
     ),

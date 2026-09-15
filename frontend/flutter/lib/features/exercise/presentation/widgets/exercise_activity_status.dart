@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
@@ -301,7 +302,7 @@ class _ExerciseActivityStatusState
                 child: AppSectionHeader(
                   // 하단 탭의 운동 아이콘과 같은 것을 쓴다 (#1126) — 이 화면이
                   // 어느 탭의 것인지 제목 줄에서 바로 읽힌다.
-                  icon: Icons.fitness_center_rounded,
+                  icon: AppIcons.exercise,
                   title: l.exActivityTitle,
                 ),
               ),
@@ -531,7 +532,7 @@ class _StreakLine extends StatelessWidget {
                   AppTag(
                     label: days > 0 ? l.exStreakCheer(days) : l.exStreakStart,
                     tone: AppTagTone.caution,
-                    icon: Icons.bolt_rounded,
+                    icon: AppIcons.streak,
                   ),
                   if (keptByShield) ...<Widget>[
                     const SizedBox(width: OnCareSpacing.s8),
@@ -662,12 +663,12 @@ class _KindTextRow extends StatelessWidget {
 /// 이 링이 무엇인지(소모·유산소·근력·스트레칭)와 어디서 출발했는지를 말한다.
 /// 자리를 고정해 두어야 링끼리 견줄 수 있다 — 어디까지 왔는지는 원호 끝의
 /// 그림자가 짚는다.
-const IconData _kBurnStartIcon = Icons.local_fire_department_rounded;
+const IconData _kBurnStartIcon = AppIcons.calories;
 
 IconData ringStartIcon(ExerciseLoadKind kind) => switch (kind) {
-  ExerciseLoadKind.cardio => Icons.directions_run_rounded,
-  ExerciseLoadKind.strength => Icons.fitness_center_rounded,
-  ExerciseLoadKind.flexibility => Icons.self_improvement_rounded,
+  ExerciseLoadKind.cardio => AppIcons.running,
+  ExerciseLoadKind.strength => AppIcons.strength,
+  ExerciseLoadKind.flexibility => AppIcons.flexibility,
 };
 
 /// 링 위 [angle] 자리에 기호를 얹는다. 기본값은 12시(원호의 시작)다.

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
@@ -64,7 +65,8 @@ class AppIconButton extends StatelessWidget {
   }
 }
 
-/// 뒤로가기 — `chevron_left_rounded`, 아이콘 24·터치 44·배경 없음(#1690 확정).
+/// 뒤로가기 — 아이콘 묶음의 [OnCareIconSet.back](기본 `chevron_left_rounded`),
+/// 아이콘 24·터치 44·배경 없음(#1690 확정, #1803).
 ///
 /// 앱바·시트·다이얼로그·채팅 헤더가 모두 이 위젯을 쓴다. [onPressed] 를 비우면
 /// 현재 경로를 닫는다.
@@ -76,7 +78,7 @@ class AppBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SquareIconButton(
-      icon: Icons.chevron_left_rounded,
+      icon: AppIcon.setOf(context).back,
       tooltip: MaterialLocalizations.of(context).backButtonTooltip,
       onPressed: onPressed ?? () => Navigator.maybePop(context),
       dimension: OnCareSize.backCloseTouch,
@@ -87,7 +89,8 @@ class AppBackButton extends StatelessWidget {
   }
 }
 
-/// 닫기 — `close_rounded`, 아이콘 24·터치 44·배경 없음(#1690 확정).
+/// 닫기 — 아이콘 묶음의 [OnCareIconSet.close](기본 `close_rounded`), 아이콘 24·터치
+/// 44·배경 없음(#1690 확정, #1803).
 class AppCloseButton extends StatelessWidget {
   const AppCloseButton({super.key, this.onPressed});
 
@@ -96,7 +99,7 @@ class AppCloseButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SquareIconButton(
-      icon: Icons.close_rounded,
+      icon: AppIcon.setOf(context).close,
       tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
       onPressed: onPressed ?? () => Navigator.maybePop(context),
       dimension: OnCareSize.backCloseTouch,
@@ -132,7 +135,7 @@ class _SquareIconButton extends StatelessWidget {
     return IconButton(
       onPressed: onPressed,
       tooltip: tooltip,
-      icon: Icon(icon),
+      icon: AppIcon(icon),
       style: ButtonStyle(
         fixedSize: WidgetStatePropertyAll<Size>(Size.square(dimension)),
         minimumSize: WidgetStatePropertyAll<Size>(Size.square(dimension)),

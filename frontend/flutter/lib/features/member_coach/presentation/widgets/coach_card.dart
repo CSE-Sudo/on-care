@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -59,15 +60,11 @@ class CoachCard extends ConsumerWidget {
                 borderRadius: OnCareRadius.mdAll,
                 child: Row(
                   children: <Widget>[
-                    Container(
+                    SizedBox(
                       width: OnCareSize.avatarMedium,
                       height: OnCareSize.avatarMedium,
-                      decoration: BoxDecoration(
-                        color: tokens.brand.surface,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person_rounded,
+                      child: AppIcon(
+                        AppIcons.person,
                         color: tokens.brand.primary,
                         size: OnCareSize.iconMedium,
                       ),
@@ -101,8 +98,8 @@ class CoachCard extends ConsumerWidget {
                     // 경우)는 지운다 — 예전에는 화살표만 남아 눌러도 아무 일이
                     // 없었다(#786).
                     if (assignedTrainer != null)
-                      const Icon(
-                        Icons.chevron_right_rounded,
+                      const AppIcon(
+                        AppIcons.chevronRight,
                         size: OnCareSize.iconMedium,
                         color: OnCareColors.textTertiary,
                       ),
@@ -162,10 +159,7 @@ class AiCoachingCard extends ConsumerWidget {
           // 카드가 말하는 것은 `AI 코칭` 이 아니라 **추천 개인운동**이다
           // (#1130). 제목이 곧 내용이라 아이콘도 운동 쪽으로 바꿨다. 큰 글자
           // 배율에서는 제목이 줄을 바꿔 카드 안에 머문다(#766).
-          AppSectionHeader(
-            title: l.coachRoutineTitle,
-            icon: Icons.directions_run_rounded,
-          ),
+          AppSectionHeader(title: l.coachRoutineTitle, icon: AppIcons.running),
           // 카드 제목이 이미 `추천 개인운동` 이라 안에 같은 말을 또 두지
           // 않는다. `PT 와 다음 PT 사이…` 안내도 뺐다 (#1130).
           const SizedBox(height: OnCareSpacing.s12),
@@ -181,8 +175,8 @@ class AiCoachingCard extends ConsumerWidget {
                 padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
                 child: Row(
                   children: <Widget>[
-                    Icon(
-                      Icons.list_alt_rounded,
+                    AppIcon(
+                      AppIcons.routine,
                       size: OnCareSize.iconSmall,
                       color: tokens.brand.primary,
                     ),
@@ -307,7 +301,9 @@ class _RecommendedExerciseRowState
       title: l.coachCardRoutineCancelTitle,
       message: l.coachRoutineCancelConfirm(routine.name),
       confirmLabel: l.coachRoutineCancel,
-      cancelLabel: l.actionCancel,
+      // 확정 버튼에 이미 '취소' 가 들어 있다 — 왼쪽까지 `취소` 면 어느 쪽이
+      // 물리는 버튼인지 헷갈린다(#1782).
+      cancelLabel: l.coachRoutineKeep,
       destructive: true,
     );
     if (!ok || !mounted) return;
@@ -350,7 +346,8 @@ class _RecommendedExerciseRowState
       title: l.coachCardRoutineUndoTitle,
       message: l.coachRoutineUndoConfirm(routine.name),
       confirmLabel: l.coachRoutineUndo,
-      cancelLabel: l.actionCancel,
+      // 확정 버튼 `완료 취소` 와 둘 다 '취소' 가 되지 않게 왼쪽은 `유지` 다(#1782).
+      cancelLabel: l.coachRoutineKeep,
       destructive: true,
     );
     if (!ok || !mounted) return;
@@ -793,8 +790,8 @@ class _ChatButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Icon(
-                Icons.chat_bubble_outline_rounded,
+              AppIcon(
+                AppIcons.chat,
                 size: OnCareSize.iconSmall,
                 color: tokens.brand.primary,
               ),
