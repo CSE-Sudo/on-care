@@ -992,7 +992,7 @@
   "exTimeRangeEndMinuteStep": "End minute",
   "exSlotAm": "AM",
   "exSlotPm": "PM",
-  "exTimeRangeInvalidEnd": "End time is earlier than start time",
+  "exTimeRangeInvalidEnd": "End time must be later than the start time.",
   "exTimeRangePrevStep": "Previous step",
   "exTimeRangeNextStep": "Next step",
   "exConsultMessage": "Message",
@@ -1499,6 +1499,10 @@
   "coachCardRoutineCancelTitle": "Cancel this workout?",
   "@coachCardRoutineCancelTitle": {
     "description": "Title of the dialog confirming removal of a recommended workout."
+  },
+  "coachRoutineKeep": "Keep",
+  "@coachRoutineKeep": {
+    "description": "Left button of the cancel/undo confirmation dialogs for a recommended workout; closes the dialog and keeps it as is."
   },
   "coachRoutineCancelled": "Workout cancelled",
   "coachRoutineCancelFailed": "Couldn't cancel the workout",

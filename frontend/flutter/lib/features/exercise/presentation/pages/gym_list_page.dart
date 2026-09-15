@@ -535,10 +535,6 @@ class _GymListCard extends ConsumerWidget {
               Container(
                 width: _gymIconBox,
                 height: _gymIconBox,
-                decoration: BoxDecoration(
-                  color: tokens.brand.surface,
-                  borderRadius: OnCareRadius.mdAll,
-                ),
                 alignment: Alignment.center,
                 child: Icon(
                   Icons.fitness_center_rounded,

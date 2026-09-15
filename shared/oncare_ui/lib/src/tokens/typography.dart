@@ -105,6 +105,19 @@ class OnCareTypography {
     height: 1.2,
   );
 
+  /// 세그먼트 토글 칸 라벨 — `AppSegmentedToggle` 안에서만 쓴다(#1777).
+  ///
+  /// 공용 토글로 옮기기 전 알약 토글의 글자다. 그때 코드는 12.5 · 700 이었지만
+  /// 전역 글자 배율 1.10 이 얹혀 **보이는 크기는 13.75** 였고, 줄 높이는 본문
+  /// 테마의 1.5 를 물려받았다. 반 포인트를 두지 않으므로 보이는 크기에 가장 가까운
+  /// 14 로 둔다.
+  static const TextStyle segment = TextStyle(
+    fontFamily: fontFamily,
+    fontSize: 14,
+    fontWeight: FontWeight.w700,
+    height: 1.5,
+  );
+
   /// 역할 목록. 카탈로그·테스트가 순서대로 읽는다.
   static const Map<String, TextStyle> roles = <String, TextStyle>{
     'display': display,

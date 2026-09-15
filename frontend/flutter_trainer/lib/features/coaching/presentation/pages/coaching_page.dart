@@ -1031,9 +1031,12 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
         Row(
           children: <Widget>[
             Expanded(
+              // 이식 전 식단·운동 스트립 모양(옅은 띠 + 흰 엄지)이다(#1024,
+              // #1777). 기간 토글은 기본 채움 알약 그대로 둔다.
               child: AppSegmentedToggle<_ClientDataView>(
                 key: const ValueKey<String>('program-client-data-tabs'),
                 expand: true,
+                style: AppSegmentedToggleStyle.thumb,
                 selected: _view,
                 onChanged: (view) => setState(() => _view = view),
                 segments: <AppSegment<_ClientDataView>>[

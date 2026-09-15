@@ -206,10 +206,14 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
 
   /// 식단 ↔ 운동 전환 — 보기 전환 규격인 [AppSegmentedToggle] 이다(#1704).
   /// 라우트가 곧 선택 상태라, 누르면 호스트에게 섹션 이동만 부탁한다.
+  ///
+  /// 이식 전에도 프로그램 탭 식단·운동 스트립과 같은 모양이었다(#1024) — 같은
+  /// `thumb` 모양을 쓴다(#1777).
   Widget _sectionTabs(AppLocalizations l, String current) =>
       AppSegmentedToggle<String>(
         key: const ValueKey<String>('client-detail-sub-tabs'),
         expand: true,
+        style: AppSegmentedToggleStyle.thumb,
         selected: current,
         onChanged: widget.onSectionChange,
         segments: <AppSegment<String>>[
