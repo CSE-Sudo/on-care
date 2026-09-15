@@ -203,7 +203,7 @@ class _TrainerChatButton extends StatelessWidget {
           label: l.coachChatWithTrainer,
           onPressed: onTap,
           variant: AppButtonVariant.secondary,
-          leadingIcon: Icons.chat_bubble_outline_rounded,
+          leadingIcon: Icons.chat_bubble_rounded,
           fullWidth: true,
         ),
         if (unread > 0)

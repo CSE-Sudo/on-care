@@ -1033,7 +1033,7 @@ class SupportPage extends StatelessWidget {
       _listCard(<Widget>[
         _supportRow(
           context,
-          Icons.help_outline_rounded,
+          Icons.help_rounded,
           l.mySupportFaq,
           () => _openExternal(context, kSupportChannelUrl),
           external: true,
@@ -1042,7 +1042,7 @@ class SupportPage extends StatelessWidget {
         const AppDivider(),
         _supportRow(
           context,
-          Icons.chat_bubble_outline_rounded,
+          Icons.chat_bubble_rounded,
           l.mySupportInquiry,
           () => _openExternal(context, kSupportChatUrl),
           external: true,

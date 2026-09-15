@@ -350,18 +350,13 @@ class _SourceOption extends StatelessWidget {
       child: AppListRow(
         title: title,
         subtitle: subtitle,
-        leading: DecoratedBox(
-          decoration: BoxDecoration(
-            color: tokens.brand.surface,
-            borderRadius: OnCareRadius.mdAll,
-          ),
-          child: SizedBox.square(
-            dimension: tokens.density.iconButton,
-            child: Icon(
-              icon,
-              size: OnCareSize.iconLarge,
-              color: tokens.brand.primary,
-            ),
+        // 아이콘 배경은 두지 않는다 — 칸 크기만 남겨 글줄 정렬을 지킨다(#1781).
+        leading: SizedBox.square(
+          dimension: tokens.density.iconButton,
+          child: Icon(
+            icon,
+            size: OnCareSize.iconLarge,
+            color: tokens.brand.primary,
           ),
         ),
         trailing: const Icon(
@@ -1080,7 +1075,7 @@ class _MealDetailUnavailable extends StatelessWidget {
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: ''),
-      body: AppEmptyState(title: message, icon: Icons.error_outline_rounded),
+      body: AppEmptyState(title: message, icon: Icons.error_rounded),
     );
   }
 }
@@ -1388,7 +1383,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                       Center(
                         child: AppButton(
                           label: l.dietDeleteMeal,
-                          leadingIcon: Icons.delete_outline_rounded,
+                          leadingIcon: Icons.delete_rounded,
                           variant: AppButtonVariant.destructiveText,
                           onPressed: _busy ? null : _confirmDelete,
                         ),

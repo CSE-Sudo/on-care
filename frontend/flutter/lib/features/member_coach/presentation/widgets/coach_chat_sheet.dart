@@ -311,7 +311,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                 // 재시도 동작은 원래 없었다 — 문구만 규격 빈 화면 틀에 담는다.
                 error: (_, _) => AppEmptyState(
                   title: l.coachChatLoadFailed,
-                  icon: Icons.error_outline_rounded,
+                  icon: Icons.error_rounded,
                 ),
                 data: (messages) {
                   // 길이가 바뀐 프레임에서만 — 매 빌드마다 부르면 사용자가
@@ -392,7 +392,7 @@ class _ReceivedBanner extends StatelessWidget {
     // 안내다 — 위 [_AnalyzedBanner]와 같은 흐름의 다음 단계라, 초록이
     // 아니라 그 배너와 같은 안내(info) 톤으로 맞춘다(#1379).
     return CoachChatNotice(
-      icon: Icons.check_circle_outline_rounded,
+      icon: Icons.check_circle_rounded,
       title: l.coachChatDemoRoutineReceived,
       subtitle: l.coachChatDemoNotified,
     );

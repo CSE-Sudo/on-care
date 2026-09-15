@@ -1716,7 +1716,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exSlotPm => '오후';
 
   @override
-  String get exTimeRangeInvalidEnd => '종료 시간이 시작 시간보다 빠릅니다';
+  String get exTimeRangeInvalidEnd => '종료 시간은 시작 시간보다 늦어야 해요';
 
   @override
   String get exTimeRangePrevStep => '이전 단계';

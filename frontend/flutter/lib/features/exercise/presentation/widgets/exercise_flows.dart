@@ -594,7 +594,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
                 label: l.exDeleteExercise,
                 onPressed: _saving ? null : _delete,
                 variant: AppButtonVariant.destructiveText,
-                leadingIcon: Icons.delete_outline_rounded,
+                leadingIcon: Icons.delete_rounded,
                 fullWidth: true,
               ),
             ],
@@ -719,7 +719,7 @@ class _NumberStepperState extends State<_NumberStepper> {
           key: const Key('numberStepperDecrement'),
           icon: Icons.remove_rounded,
           tooltip: l.exStepperDecrease,
-          variant: AppIconButtonVariant.tonal,
+          color: tokens.brand.primary,
           onPressed: widget.value > widget.min ? () => _bump(-1) : null,
         ),
         const SizedBox(width: OnCareSpacing.s12),
@@ -759,7 +759,7 @@ class _NumberStepperState extends State<_NumberStepper> {
           key: const Key('numberStepperIncrement'),
           icon: Icons.add_rounded,
           tooltip: l.exStepperIncrease,
-          variant: AppIconButtonVariant.tonal,
+          color: tokens.brand.primary,
           onPressed: widget.value < widget.max ? () => _bump(1) : null,
         ),
       ],
@@ -857,7 +857,7 @@ class _DateField extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return Material(
-      color: OnCareColors.surfaceInput,
+      color: OnCareColors.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: OnCareRadius.mdAll,
         side: BorderSide(color: OnCareColors.lineStrong),
