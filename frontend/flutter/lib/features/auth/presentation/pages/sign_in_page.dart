@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
@@ -115,7 +116,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             key: const ValueKey<String>('member-login-email'),
             controller: _email,
             hint: l.authEmailHint,
-            prefixIcon: Icons.mail_rounded,
+            prefixIcon: AppIcons.mail,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -125,7 +126,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             key: const ValueKey<String>('member-login-password'),
             controller: _password,
             hint: l.authPasswordHint,
-            prefixIcon: Icons.lock_rounded,
+            prefixIcon: AppIcons.lock,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
@@ -157,7 +158,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             const SizedBox(height: OnCareSpacing.s8),
             AppButton(
               label: l.authGoogleAction,
-              leadingIcon: Icons.g_mobiledata_rounded,
+              leadingIcon: AppIcons.google,
               onPressed: _loading ? null : () => _social('google'),
               variant: AppButtonVariant.secondary,
               size: OnCareButtonSize.large,
@@ -214,7 +215,7 @@ class _PasswordToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppIconButton(
-      icon: obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+      icon: obscure ? AppIcons.visibilityOff : AppIcons.visibility,
       tooltip: obscure ? l.a11yShowPassword : l.a11yHidePassword,
       color: OnCareColors.textTertiary,
       onPressed: onPressed,
@@ -271,8 +272,8 @@ class _KakaoButton extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const Icon(
-                  Icons.chat_bubble_rounded,
+                const AppIcon(
+                  AppIcons.chat,
                   color: OnCareColors.kakaoLabel,
                   size: OnCareSize.iconMedium,
                 ),

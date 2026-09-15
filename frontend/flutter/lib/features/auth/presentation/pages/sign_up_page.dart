@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -115,7 +116,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           AppTextField(
             controller: _name,
             hint: l.signUpNameHint,
-            prefixIcon: Icons.person_rounded,
+            prefixIcon: AppIcons.person,
             size: AppFieldSize.large,
             textInputAction: TextInputAction.next,
           ),
@@ -123,7 +124,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           AppTextField(
             controller: _email,
             hint: l.authEmailHint,
-            prefixIcon: Icons.mail_rounded,
+            prefixIcon: AppIcons.mail,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -135,7 +136,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             controller: _phone,
             hint: l.signUpPhoneHint,
             helper: l.signUpPhoneHelper,
-            prefixIcon: Icons.phone_rounded,
+            prefixIcon: AppIcons.phone,
             size: AppFieldSize.large,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
@@ -144,15 +145,13 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           AppTextField(
             controller: _password,
             hint: l.signUpPasswordHint,
-            prefixIcon: Icons.lock_rounded,
+            prefixIcon: AppIcons.lock,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.next,
             // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할 데가 툴팁뿐이다(#972).
             suffix: AppIconButton(
-              icon: _obscure
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
+              icon: _obscure ? AppIcons.visibilityOff : AppIcons.visibility,
               tooltip: _obscure ? l.a11yShowPassword : l.a11yHidePassword,
               color: OnCareColors.textTertiary,
               onPressed: () => setState(() => _obscure = !_obscure),
@@ -162,7 +161,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           AppTextField(
             controller: _passwordConfirm,
             hint: l.signUpPasswordConfirmHint,
-            prefixIcon: Icons.lock_rounded,
+            prefixIcon: AppIcons.lock,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
@@ -229,21 +230,21 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
                 // 웹: 브라우저가 보관함·촬영·파일을 묻는 메뉴를 스스로 띄운다.
                 // 앱에 촬영을 따로 두면 그 메뉴의 `사진 찍기`와 겹친다(#1433).
                 _SourceOption(
-                  icon: Icons.image_rounded,
+                  icon: AppIcons.image,
                   title: l.dietAddPhoto,
                   subtitle: l.dietAddPhotoSub,
                   onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
                 )
               else ...<Widget>[
                 _SourceOption(
-                  icon: Icons.image_rounded,
+                  icon: AppIcons.image,
                   title: l.dietPickPhoto,
                   subtitle: l.dietPickPhotoSub,
                   onTap: () => _pickAndAnalyze(MealPhotoSource.gallery),
                 ),
                 const SizedBox(height: OnCareSpacing.s12),
                 _SourceOption(
-                  icon: Icons.photo_camera_rounded,
+                  icon: AppIcons.camera,
                   title: l.dietTakePhoto,
                   subtitle: l.dietTakePhotoSub,
                   onTap: () => _pickAndAnalyze(MealPhotoSource.camera),
@@ -353,14 +354,14 @@ class _SourceOption extends StatelessWidget {
         // 아이콘 배경은 두지 않는다 — 칸 크기만 남겨 글줄 정렬을 지킨다(#1781).
         leading: SizedBox.square(
           dimension: tokens.density.iconButton,
-          child: Icon(
+          child: AppIcon(
             icon,
             size: OnCareSize.iconLarge,
             color: tokens.brand.primary,
           ),
         ),
-        trailing: const Icon(
-          Icons.chevron_right_rounded,
+        trailing: const AppIcon(
+          AppIcons.chevronRight,
           size: OnCareSize.iconMedium,
           color: OnCareColors.textTertiary,
         ),
@@ -829,8 +830,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Icon(
-                  Icons.auto_awesome_rounded,
+                AppIcon(
+                  AppIcons.ai,
                   size: OnCareSize.iconSmall,
                   color: tokens.brand.primary,
                 ),
@@ -1075,7 +1076,7 @@ class _MealDetailUnavailable extends StatelessWidget {
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,
       appBar: AppTopBar(title: ''),
-      body: AppEmptyState(title: message, icon: Icons.error_rounded),
+      body: AppEmptyState(title: message, icon: AppIcons.error),
     );
   }
 }
@@ -1262,7 +1263,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                 _FieldLabel(l.dietEatenTime),
                                 AppTag(
                                   label: widget.meal.time,
-                                  icon: Icons.schedule_rounded,
+                                  icon: AppIcons.clock,
                                 ),
                               ],
                             ),
@@ -1279,7 +1280,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                 Expanded(child: _FieldLabel(l.dietEatenFood)),
                                 AppButton(
                                   label: l.dietAddFood,
-                                  leadingIcon: Icons.add_rounded,
+                                  leadingIcon: AppIcons.add,
                                   variant: AppButtonVariant.text,
                                   size: OnCareButtonSize.small,
                                   onPressed: () => setState(
@@ -1383,7 +1384,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                       Center(
                         child: AppButton(
                           label: l.dietDeleteMeal,
-                          leadingIcon: Icons.delete_rounded,
+                          leadingIcon: AppIcons.delete,
                           variant: AppButtonVariant.destructiveText,
                           onPressed: _busy ? null : _confirmDelete,
                         ),
@@ -1478,7 +1479,7 @@ class _FoodRow extends StatelessWidget {
             ),
           ),
           AppIconButton(
-            icon: Icons.close_rounded,
+            icon: AppIcons.close,
             tooltip: l.a11yRemoveFood,
             color: OnCareColors.textTertiary,
             onPressed: onDelete,

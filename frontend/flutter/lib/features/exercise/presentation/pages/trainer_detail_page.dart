@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -54,7 +55,7 @@ class TrainerDetailPage extends ConsumerWidget {
         ),
       AsyncData<Trainer?>() => AppEmptyState(
         title: l.exTrainerNotFound,
-        icon: Icons.info_rounded,
+        icon: AppIcons.info,
       ),
       AsyncError<Trainer?>() => AppErrorState(
         title: l.exTrainersLoadError,
@@ -170,7 +171,7 @@ class _TrainerDetails extends ConsumerWidget {
             // 상담 CTA 와의 순서가 흔들리지 않는다.
             _DetailSection(
               key: const Key('trainer-detail-reason'),
-              icon: Icons.auto_awesome_rounded,
+              icon: AppIcons.ai,
               title: l.exRecommendationReason,
               child: Text(
                 trainer.reason ?? l.exTrainerRecommendationReason,
@@ -183,7 +184,7 @@ class _TrainerDetails extends ConsumerWidget {
             // 트레이너 앱 프로필(소개·경력·자격증)과 같은 값을 보여준다.
             if (hasProfile) ...<Widget>[
               _DetailSection(
-                icon: Icons.badge_rounded,
+                icon: AppIcons.badge,
                 title: l.exTrainerIntroSection,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,8 +201,8 @@ class _TrainerDetails extends ConsumerWidget {
                         const SizedBox(height: OnCareSpacing.s12),
                       Row(
                         children: <Widget>[
-                          Icon(
-                            Icons.workspace_premium_rounded,
+                          AppIcon(
+                            AppIcons.certificate,
                             size: OnCareSize.iconSmall,
                             color: tokens.brand.primary,
                           ),
@@ -251,7 +252,7 @@ class _TrainerDetails extends ConsumerWidget {
               // 소개할 내용이 아예 없으면 합칠 박스도 없다 — 소속만은 예전처럼
               // 따로 보여준다.
               _DetailSection(
-                icon: Icons.fitness_center_rounded,
+                icon: AppIcons.gym,
                 title: l.exTrainerAffiliation,
                 child: _AffiliatedGymRow(gym: gym!),
               ),
@@ -308,8 +309,8 @@ class _AffiliatedGymRow extends StatelessWidget {
         borderRadius: OnCareRadius.mdAll,
         child: Row(
           children: <Widget>[
-            Icon(
-              Icons.fitness_center_rounded,
+            AppIcon(
+              AppIcons.gym,
               size: OnCareSize.iconSmall,
               color: tokens.brand.primary,
             ),
@@ -339,8 +340,8 @@ class _AffiliatedGymRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
-            const Icon(
-              Icons.chevron_right_rounded,
+            const AppIcon(
+              AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: OnCareColors.textTertiary,
             ),

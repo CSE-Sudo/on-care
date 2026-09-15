@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/alert_navigation.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
@@ -135,7 +136,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                   return AppBanner(
                     key: const Key('notificationRetryBanner'),
                     tone: AppBannerTone.danger,
-                    icon: Icons.cloud_off_rounded,
+                    icon: AppIcons.offline,
                     title: l.alertLoadFailed,
                     actionLabel: l.actionRetry,
                     onAction: _refresh,
@@ -145,7 +146,7 @@ class _NotificationPageState extends ConsumerState<NotificationPage>
                   return Padding(
                     padding: const EdgeInsets.only(top: OnCareSpacing.s48),
                     child: AppEmptyState(
-                      icon: Icons.notifications_off_rounded,
+                      icon: AppIcons.notificationsOff,
                       title: l.alertEmpty,
                     ),
                   );

@@ -5,6 +5,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:logger/logger.dart';
 
 import 'package:oncare/app/app.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/main_shell.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
@@ -15,6 +16,7 @@ import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/shared/services/locale_provider.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// End-to-end smoke: the app boots into sign-in, demo entry reaches the main
 /// shell, and every bottom-nav destination renders its branch page.
@@ -53,11 +55,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// Taps a bottom-nav destination by its (unselected) icon so the tap does
-  /// not depend on the localised label.
+  /// Taps a bottom-nav destination by its icon so the tap does not depend on
+  /// the localised label. The finder stays inside the nav bar — the same glyph
+  /// (e.g. the person icon) also appears on pages.
   Future<void> tapDestination(WidgetTester tester, IconData icon) async {
     await tester.tap(
-      find.ancestor(of: find.byIcon(icon), matching: find.byType(InkWell)),
+      find.ancestor(
+        of: find.descendant(
+          of: find.byType(AppBottomNav),
+          matching: find.byIcon(icon),
+        ),
+        matching: find.byType(InkWell),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -85,18 +94,18 @@ void main() {
 
     // Each destination swaps the branch page. The nav has a fifth slot (the
     // floating "+"), which is not a destination and is skipped here.
-    await tapDestination(tester, Icons.restaurant_outlined);
+    await tapDestination(tester, AppIcons.diet);
     expect(find.byType(DietRecordPage), findsOneWidget);
 
-    await tapDestination(tester, Icons.fitness_center_outlined);
+    await tapDestination(tester, AppIcons.exercise);
     expect(find.byType(ExercisePage), findsOneWidget);
 
-    await tapDestination(tester, Icons.person_outline);
+    await tapDestination(tester, AppIcons.my);
     expect(find.byType(MyHealthPage), findsOneWidget);
 
     // Back to Home — the shell keeps its branches alive, so returning must
     // still render the dashboard.
-    await tapDestination(tester, Icons.home_outlined);
+    await tapDestination(tester, AppIcons.home);
     expect(find.byType(DashboardPage), findsOneWidget);
 
     expect(tester.takeException(), isNull);

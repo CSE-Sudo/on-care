@@ -56,6 +56,9 @@ dependencies:
   # --- UI / charts / animation ---
   fl_chart: ^0.69.2
   flutter_animate: ^4.5.0
+  # 회원앱 아이콘은 Material Symbols Rounded 한 세트에서만 고른다(#1803). 목록은
+  # lib/app/app_icons.dart 한 곳이다. 가변 글꼴 축(채움·굵기)을 쓰므로 버전을 묶는다.
+  material_symbols_icons: 4.2960.0
 
   # 카카오맵 JS SDK 를 HtmlElementView 로 붙일 때 DOM 접근에 쓴다(web 전용 경로).
   web: ^1.1.0

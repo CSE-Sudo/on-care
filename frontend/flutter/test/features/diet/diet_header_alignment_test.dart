@@ -12,6 +12,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -111,7 +112,7 @@ void main() {
         final Finder header = headers.at(i);
         final Finder editIcon = find.descendant(
           of: header,
-          matching: find.byIcon(Icons.edit_rounded),
+          matching: find.byIcon(AppIcons.edit),
         );
         expect(editIcon, findsOneWidget);
         expect(

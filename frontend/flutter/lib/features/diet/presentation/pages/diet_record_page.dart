@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
@@ -298,7 +299,7 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
             data: (DietDay day) => !atToday && day.entries.isEmpty
                 ? AppEmptyState(
                     title: l.otherDateEmpty(l.pageDietTitle),
-                    icon: Icons.restaurant_rounded,
+                    icon: AppIcons.diet,
                     placement: AppStatePlacement.card,
                   )
                 : NutritionSummary(
@@ -364,7 +365,7 @@ class _BellButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.notifications_rounded,
+          icon: AppIcons.notifications,
           tooltip: AppLocalizations.of(context).pageNotificationTitle,
           color: context.oncare.brand.primary,
           onPressed: onTap,
@@ -422,7 +423,7 @@ class _NutritionSectionHeader extends StatelessWidget {
           Flexible(
             child: AppSectionHeader(
               title: l.dietNutritionSummary,
-              icon: Icons.restaurant_rounded,
+              icon: AppIcons.diet,
             ),
           ),
           // 토글 몫을 제목보다 넓게 잡는다 — 기간 라벨은 줄면 무엇을 고르는
@@ -641,10 +642,7 @@ class NutritionSummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         if (showHeader) ...<Widget>[
-          AppSectionHeader(
-            title: l.dietNutritionSummary,
-            icon: Icons.restaurant_rounded,
-          ),
+          AppSectionHeader(title: l.dietNutritionSummary, icon: AppIcons.diet),
           const SizedBox(height: OnCareSpacing.s12),
         ],
         // 카드는 하나다 (#1120). 나트륨·당류를 따로 뗀 카드에 두었더니
@@ -1195,7 +1193,7 @@ class _MealLog extends StatelessWidget {
               label: l.dietAddMeal,
               onPressed: onAdd,
               size: OnCareButtonSize.small,
-              leadingIcon: Icons.add_rounded,
+              leadingIcon: AppIcons.add,
             ),
           ],
         ),
@@ -1203,7 +1201,7 @@ class _MealLog extends StatelessWidget {
         if (entries.isEmpty)
           AppEmptyState(
             title: l.dietEmptyLog,
-            icon: Icons.restaurant_rounded,
+            icon: AppIcons.diet,
             placement: AppStatePlacement.card,
           )
         else
@@ -1278,8 +1276,8 @@ class _MealCard extends StatelessWidget {
               // 카드 전체가 눌린다.
               Tooltip(
                 message: l.dietEditMeal,
-                child: Icon(
-                  Icons.edit_rounded,
+                child: AppIcon(
+                  AppIcons.edit,
                   size: OnCareSize.iconSmall,
                   color: OnCareColors.textTertiary,
                   semanticLabel: l.dietEditMeal,
@@ -1441,8 +1439,8 @@ class _MealAiNote extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Icon(
-              Icons.auto_awesome_rounded,
+            AppIcon(
+              AppIcons.ai,
               size: OnCareSize.iconSmall,
               color: tokens.brand.primary,
             ),

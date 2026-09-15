@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
@@ -160,28 +161,28 @@ class _MainShellState extends ConsumerState<MainShell>
         destinations: <AppNavDestination>[
           AppNavDestination(
             key: const ValueKey<String>('nav-dashboard'),
-            icon: Icons.home_rounded,
-            selectedIcon: Icons.home_rounded,
+            icon: AppIcons.home,
+            selectedIcon: AppIcons.home,
             label: l.navDashboard,
           ),
           AppNavDestination(
             key: const ValueKey<String>('nav-diet'),
-            icon: Icons.restaurant_rounded,
-            selectedIcon: Icons.restaurant_rounded,
+            icon: AppIcons.diet,
+            selectedIcon: AppIcons.diet,
             label: l.navDiet,
           ),
           AppNavDestination(
             key: const ValueKey<String>('nav-exercise'),
-            icon: Icons.fitness_center_rounded,
-            selectedIcon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
+            selectedIcon: AppIcons.exercise,
             label: l.navExercise,
           ),
           // 운동 칸과 같이 열쇠를 준다 — 사람 아이콘은 이제 헬스장 카드의
           // 트레이너 줄에도 있어서(#1185), 아이콘만으로는 이 칸을 지목할 수 없다.
           AppNavDestination(
             key: const ValueKey<String>('nav-my'),
-            icon: Icons.person_rounded,
-            selectedIcon: Icons.person_rounded,
+            icon: AppIcons.my,
+            selectedIcon: AppIcons.my,
             label: l.navMyHealth,
           ),
         ],
@@ -283,7 +284,7 @@ class _RecordAddSheet extends StatelessWidget {
             // 고르는 자리라 색이 영역을 가르는 뜻으로 읽히지 않는다.
             Expanded(
               child: _RecordOption(
-                icon: Icons.restaurant_rounded,
+                icon: AppIcons.diet,
                 title: l.navDiet,
                 subtitle: l.navDietOptionSub,
                 onTap: onDiet,
@@ -292,7 +293,7 @@ class _RecordAddSheet extends StatelessWidget {
             const SizedBox(width: OnCareSpacing.cardGap),
             Expanded(
               child: _RecordOption(
-                icon: Icons.fitness_center_rounded,
+                icon: AppIcons.exercise,
                 title: l.navExercise,
                 subtitle: l.navExerciseOptionSub,
                 onTap: onExercise,
@@ -332,7 +333,7 @@ class _RecordOption extends StatelessWidget {
           // 아이콘 배경은 두지 않는다 — 안쪽 여백만 남겨 칸 크기를 지킨다(#1781).
           Padding(
             padding: const EdgeInsets.all(OnCareSpacing.s12),
-            child: Icon(
+            child: AppIcon(
               icon,
               size: OnCareSize.iconLarge,
               color: tokens.brand.primary,

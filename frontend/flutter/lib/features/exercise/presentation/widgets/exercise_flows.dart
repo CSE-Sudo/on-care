@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
@@ -592,7 +593,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
                 label: l.exDeleteExercise,
                 onPressed: _saving ? null : _delete,
                 variant: AppButtonVariant.destructiveText,
-                leadingIcon: Icons.delete_rounded,
+                leadingIcon: AppIcons.delete,
                 fullWidth: true,
               ),
             ],
@@ -715,7 +716,7 @@ class _NumberStepperState extends State<_NumberStepper> {
       children: <Widget>[
         AppIconButton(
           key: const Key('numberStepperDecrement'),
-          icon: Icons.remove_rounded,
+          icon: AppIcons.remove,
           tooltip: l.exStepperDecrease,
           color: tokens.brand.primary,
           onPressed: widget.value > widget.min ? () => _bump(-1) : null,
@@ -755,7 +756,7 @@ class _NumberStepperState extends State<_NumberStepper> {
         const SizedBox(width: OnCareSpacing.s12),
         AppIconButton(
           key: const Key('numberStepperIncrement'),
-          icon: Icons.add_rounded,
+          icon: AppIcons.add,
           tooltip: l.exStepperIncrease,
           color: tokens.brand.primary,
           onPressed: widget.value < widget.max ? () => _bump(1) : null,
@@ -795,8 +796,8 @@ class _CalorieBox extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              const Icon(
-                Icons.local_fire_department_rounded,
+              const AppIcon(
+                AppIcons.calories,
                 color: OnCareColors.cautionFill,
                 size: OnCareSize.iconMedium,
               ),
@@ -869,8 +870,8 @@ class _DateField extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
             child: Row(
               children: <Widget>[
-                Icon(
-                  Icons.calendar_today_rounded,
+                AppIcon(
+                  AppIcons.calendar,
                   size: OnCareSize.iconMedium,
                   color: tokens.brand.primary,
                 ),
@@ -885,8 +886,8 @@ class _DateField extends StatelessWidget {
                         .copyWith(color: OnCareColors.textPrimary),
                   ),
                 ),
-                const Icon(
-                  Icons.keyboard_arrow_down_rounded,
+                const AppIcon(
+                  AppIcons.expandMore,
                   size: OnCareSize.iconMedium,
                   color: OnCareColors.textSecondary,
                 ),

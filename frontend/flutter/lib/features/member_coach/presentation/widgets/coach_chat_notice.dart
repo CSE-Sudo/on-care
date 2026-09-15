@@ -72,7 +72,7 @@ class CoachChatNotice extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                Icon(icon, size: OnCareSize.iconSmall, color: brand),
+                AppIcon(icon, size: OnCareSize.iconSmall, color: brand),
                 const SizedBox(width: OnCareSpacing.s4),
                 Flexible(
                   child: Text(

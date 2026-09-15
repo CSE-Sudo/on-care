@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
@@ -344,7 +345,7 @@ void main() {
     // 날짜 칸은 입력창과 같은 채움이다 — 고르기 전후로 모양이 같다(#1701).
     Finder dateMaterial = find
         .ancestor(
-          of: find.byIcon(Icons.calendar_today_rounded),
+          of: find.byIcon(AppIcons.calendar),
           matching: find.byType(Material),
         )
         .first;
@@ -371,7 +372,7 @@ void main() {
     expect(find.text(l.exSelectDate), findsNothing);
     dateMaterial = find
         .ancestor(
-          of: find.byIcon(Icons.calendar_today_rounded),
+          of: find.byIcon(AppIcons.calendar),
           matching: find.byType(Material),
         )
         .first;
