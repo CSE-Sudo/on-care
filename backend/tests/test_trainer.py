@@ -553,6 +553,7 @@ def test_trainer_can_read_and_update_member_health_profile(client, db_session):
             headers=_auth(token),
             json={
                 "gender": "female",
+                # 옛 질환 이름은 저장할 때 건강 목표로 정리된다(#1818).
                 "conditions": "고혈압",
                 "height_cm": 164.5,
                 "weight_kg": 57.2,
@@ -566,7 +567,7 @@ def test_trainer_can_read_and_update_member_health_profile(client, db_session):
         body = response.json()
         assert body["member_id"] == "user-jisu"
         assert body["gender"] == "female"
-        assert body["conditions"] == "고혈압"
+        assert body["conditions"] == "혈압 관리"
         assert body["height_cm"] == 164.5
         assert body["weight_kg"] == 57.2
         assert body["goals"] == "근력 향상과 체지방 감량"
@@ -576,7 +577,7 @@ def test_trainer_can_read_and_update_member_health_profile(client, db_session):
         assert fetched.status_code == 200, fetched.text
         fetched_body = fetched.json()
         assert fetched_body["gender"] == "female"
-        assert fetched_body["conditions"] == "고혈압"
+        assert fetched_body["conditions"] == "혈압 관리"
         assert fetched_body["weekly_exercise_minutes_goal"] == 180
         assert fetched_body["weekly_burn_goal"] == 1600
     finally:

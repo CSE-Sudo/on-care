@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -57,27 +59,13 @@ enum _GoalGroup { diet, exercise }
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   static const int _steps = 4;
 
-  /// 만성질환 선택지 — **전송 값**이다.
+  /// 건강 목표 선택지 — **전송 값**이다(#1814).
   ///
-  /// 서버는 이 값을 자유 텍스트로 저장하고 AI 코치가 '내 건강 기록' 으로 읽는다. 화면
-  /// 로케일에 따라 저장되는 문자열이 달라지면 같은 사용자의 기록이 언어별로 갈라지므로,
-  /// 값은 한국어로 고정하고 표시 문구만 번역한다.
-  /// 이 앱이 관리 대상으로 삼는 두 질환만 묻는다. 고지혈증·비만은 뺐다 —
-  /// 가입 첫 화면에서 고를 것이 늘수록 대충 넘기고, 그렇게 들어온 값은 AI
-  /// 코치가 읽는 건강 기록을 흐린다.
-  static const List<String> _conditionOptions = <String>['고혈압', '당뇨'];
-
-  /// 전송 값 → 화면에 보일 문구.
-  ///
-  /// 선택지에서 뺀 값도 계속 옮긴다 — 예전에 고른 값이 프로필에 남아 있을 수
-  /// 있고, 그때 원문 그대로 노출되면 영어 로케일에서만 한국어가 튄다.
-  String _conditionLabel(AppLocalizations l, String value) => switch (value) {
-    '고혈압' => l.onboardConditionHypertension,
-    '당뇨' => l.onboardConditionDiabetes,
-    '고지혈증' => l.onboardConditionDyslipidemia,
-    '비만' => l.onboardConditionObesity,
-    _ => value,
-  };
+  /// 서버는 이 값을 그대로 저장하고 AI 코치·트레이너 추천이 읽는다. 화면 로케일에
+  /// 따라 저장되는 문자열이 달라지면 같은 사용자의 기록이 언어별로 갈라지므로,
+  /// 값은 한국어로 고정하고 표시 문구만 번역한다([healthFocusLabel]). MY `건강
+  /// 목표` 와 같은 목록이다.
+  static const List<String> _conditionOptions = kHealthFocusOptions;
 
   final PageController _pager = PageController();
   int _step = 0;
@@ -100,12 +88,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final TextEditingController _goals = TextEditingController();
 
   // ── 3·4단계 ── 칸 하나에 컨트롤러 하나.
-  late final Map<_GoalField, TextEditingController> _goalControllers = <
-    _GoalField,
-    TextEditingController
-  >{
-    for (final _GoalField f in _GoalField.values) f: TextEditingController(),
-  };
+  late final Map<_GoalField, TextEditingController> _goalControllers =
+      <_GoalField, TextEditingController>{
+        for (final _GoalField f in _GoalField.values)
+          f: TextEditingController(),
+      };
 
   /// 회원이 **직접 고친** 칸. 여기 든 칸은 1단계 값이 바뀌어도 다시 쓰지 않고,
   /// `권장값으로 되돌리기` 를 눌러야 비워진다.
@@ -155,16 +142,23 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 회원이 **칼로리 칸을 직접 고쳤으면** 그 값을 기준으로 다시 나눈다 —
   /// 각주가 말하는 비율과 탄단지 칸의 숫자가 어긋나지 않아야 한다.
   RecommendedGoals get _recommended {
+    // 2단계에서 고른 건강 목표도 함께 반영한다(#1816).
     final RecommendedGoals base = recommendedGoalsFor(
       ageYears: _age,
       gender: _gender,
       heightCm: _heightCm,
       weightKg: _weightKg,
+      focus: _conditions,
     );
     if (!_edited.contains(_GoalField.calories)) return base;
     final int? kcal = _goalValue(_GoalField.calories);
     if (kcal == null || kcal <= 0) return base;
-    return recommendedGoalsFromCalories(kcal, basis: base.basis);
+    return recommendedGoalsFromCalories(
+      kcal,
+      basis: base.basis,
+      focus: _conditions,
+      weightKg: _weightKg,
+    );
   }
 
   int _recommendedValue(_GoalField f, RecommendedGoals r) => switch (f) {
@@ -241,11 +235,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 건강 상태 단계를 건너뛴다 — 이 단계에서 적은 것을 **비우고** 넘어간다.
   ///
   /// 그냥 `다음` 을 누르는 것과 다르다: 골라 뒀다가 마음이 바뀌어 건너뛰었는데
-  /// 고른 질환이 그대로 저장되면, 건너뛴 것이 건너뛴 것이 아니게 된다.
+  /// 고른 목표가 그대로 저장되면, 건너뛴 것이 건너뛴 것이 아니게 된다.
   void _skipConditions() {
     setState(() {
       _conditions.clear();
       _goals.clear();
+      // 목표를 비웠으니 그 목표로 조정한 권장값도 기준값으로 돌린다(#1816).
+      _fillRecommended();
     });
     _next();
   }
@@ -315,8 +311,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   /// 고를 수 있는 날. 그 달의 마지막 날까지이고, 이번 달이면 오늘까지다.
-  List<int> get _birthDayOptions =>
-      <int>[for (int d = 1; d <= _lastSelectableBirthDay; d++) d];
+  List<int> get _birthDayOptions => <int>[
+    for (int d = 1; d <= _lastSelectableBirthDay; d++) d,
+  ];
 
   int get _lastSelectableBirthDay {
     final DateTime today = todayKst();
@@ -628,7 +625,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           // 카드 아래 각주 자리는 3·4단계의 `출처 · 되돌리기` 와 같은 자리다.
           // 여기서는 방금 적은 값을 되읽어 준다 — 권장 목표가 이 둘에서 나오니
           // 오타를 다음 단계로 넘어가기 전에 알아채야 한다.
-          note: _BodySummary(age: _age, heightCm: _heightCm, weightKg: _weightKg),
+          note: _BodySummary(
+            age: _age,
+            heightCm: _heightCm,
+            weightKg: _weightKg,
+          ),
         ),
       ],
     );
@@ -652,11 +653,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 children: <Widget>[
                   for (final String c in _conditionOptions)
                     AppChoiceChip(
-                      label: _conditionLabel(l, c),
+                      label: healthFocusLabel(l, c),
                       selected: _conditions.contains(c),
-                      onSelected: (_) => setState(() {
-                        if (!_conditions.remove(c)) _conditions.add(c);
-                      }),
+                      // 두 개를 고르면 나머지 칩은 잠긴다(#1814).
+                      onSelected: canPickHealthFocus(_conditions, c)
+                          ? (_) => setState(() {
+                              if (!_conditions.remove(c)) _conditions.add(c);
+                              // 손대지 않은 목표 칸이 고른 목표를 따라간다(#1816).
+                              _fillRecommended();
+                            })
+                          : null,
                     ),
                 ],
               ),
@@ -706,10 +712,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ],
           ),
           note: _StepNote(
-            infoLine: _recommended.isPersonalized
-                ? l.onboardRecommendedPersonal
-                : l.onboardRecommendedFallback,
-            sourceNote: l.onboardDietSourceNote,
+            infoLine: <String>[
+              _recommended.isPersonalized
+                  ? l.onboardRecommendedPersonal
+                  : l.onboardRecommendedFallback,
+              if (_recommended.isDietAdjusted) l.onboardFocusAdjusted,
+            ].join('\n'),
+            sourceNote: _recommended.isDietAdjusted
+                ? '${l.onboardDietSourceNote}\n${l.onboardFocusSourceNote}'
+                : l.onboardDietSourceNote,
             actionKey: const Key('onboardResetDietGoals'),
             actionLabel: l.onboardResetToRecommended,
             onAction: _isEdited(_GoalGroup.diet)
@@ -753,9 +764,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ],
           ),
           note: _StepNote(
-            // 운동 권장값은 WHO 권고 그대로라 1단계 정보와 무관하다 — 나이·체중을
-            // 안 적었다고 "덜 정확한 값" 이라고 말하면 사실이 아니다.
-            sourceNote: l.onboardExerciseSourceNote,
+            // 운동 권장값은 WHO 권고에서 시작해 1단계 정보와 무관하다 — 나이·체중을
+            // 안 적었다고 "덜 정확한 값" 이라고 말하면 사실이 아니다. 고른 건강
+            // 목표로 조정했을 때만 그렇다고 적는다(#1816).
+            infoLine: _recommended.isExerciseAdjusted
+                ? l.onboardFocusAdjusted
+                : null,
+            sourceNote: _recommended.isExerciseAdjusted
+                ? '${l.onboardExerciseSourceNote}\n${l.onboardFocusSourceNote}'
+                : l.onboardExerciseSourceNote,
             actionKey: const Key('onboardResetExerciseGoals'),
             actionLabel: l.onboardResetToRecommended,
             onAction: _isEdited(_GoalGroup.exercise)

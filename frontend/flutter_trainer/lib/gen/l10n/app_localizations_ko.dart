@@ -663,6 +663,33 @@ class AppLocalizationsKo extends AppLocalizations {
   String get memberHealthWeight => '체중 (kg)';
 
   @override
+  String get memberHealthFocus => '건강 목표 (최대 2개)';
+
+  @override
+  String get healthFocusWeightLoss => '체중 감량';
+
+  @override
+  String get healthFocusStrength => '근력 향상';
+
+  @override
+  String get healthFocusFitness => '체력 강화';
+
+  @override
+  String get healthFocusPosture => '자세 교정';
+
+  @override
+  String get healthFocusRehab => '재활';
+
+  @override
+  String get healthFocusEating => '식습관 개선';
+
+  @override
+  String get healthFocusExerciseHabit => '운동 습관';
+
+  @override
+  String get healthFocusBloodPressure => '혈압 관리';
+
+  @override
   String get memberHealthConditions => '건강상태·주의사항';
 
   @override
