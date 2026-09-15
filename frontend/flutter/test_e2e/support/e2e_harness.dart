@@ -854,15 +854,11 @@ Future<void> submitConsultation(
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
 
-  // 날짜는 공용 달력 다이얼로그(#1701)다 — 처음 고른 날이 오늘이라 확인만 누른다.
-  final Finder dialog = find.byType(DatePickerDialog);
+  // 날짜는 공용 날짜 선택창(#1701, #1778)이다 — 처음 고른 날이 오늘이라 확인만
+  // 누른다.
+  final Finder dialog = find.byKey(const Key('portraitDatePicker'));
   await pumpUntil(tester, dialog, step: '날짜 선택 다이얼로그');
-  final String dateOkLabel = MaterialLocalizations.of(
-    tester.element(dialog),
-  ).okButtonLabel;
-  await tester.tap(
-    find.descendant(of: dialog, matching: find.text(dateOkLabel)),
-  );
+  await tester.tap(find.byKey(const Key('portraitDatePickerConfirm')));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
 

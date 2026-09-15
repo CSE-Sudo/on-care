@@ -560,7 +560,7 @@ Future<void> _sendProgram(WidgetTester tester) async {
   );
 }
 
-/// `showAppDatePicker`(달력만 쓰는 Material [DatePickerDialog]) 에서 [date] 를
+/// `showAppDatePicker`(입력칸 + 달력 세로형 선택창, #1778) 에서 [date] 를
 /// 고르고 확인한다 (#1028, #1705).
 ///
 /// 확인 버튼은 취소 버튼과 나란히 있다 — 로케일의 확인 문구
@@ -569,12 +569,15 @@ Future<void> _sendProgram(WidgetTester tester) async {
 /// 지금 보이는 달과 [date] 의 달이 다르면(예: 오늘이 말일이라 "내일"이 다음
 /// 달인 경우) 한 달 넘긴다 — 오늘에서 하루 넘어가는 것뿐이라 한 번이면 된다.
 Future<void> _pickDateInPicker(WidgetTester tester, DateTime date) async {
-  final dialog = find.byType(DatePickerDialog);
+  final dialog = find.byKey(const Key('portraitDatePicker'));
   expect(dialog, findsOneWidget);
   final today = nowKst();
   if (date.year != today.year || date.month != today.month) {
     await tester.tap(
-      find.descendant(of: dialog, matching: find.byIcon(Icons.chevron_right)),
+      find.descendant(
+        of: dialog,
+        matching: find.byIcon(Icons.chevron_right_rounded),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -1789,7 +1792,7 @@ void main() {
       await tester.tap(dateButton);
       await tester.pumpAndSettle();
 
-      expect(find.byType(DatePickerDialog), findsOneWidget);
+      expect(find.byKey(const Key('portraitDatePicker')), findsOneWidget);
       await _pickDateInPicker(tester, nowKst().add(const Duration(days: 1)));
 
       await _sendProgram(tester);

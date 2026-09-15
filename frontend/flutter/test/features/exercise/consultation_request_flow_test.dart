@@ -355,19 +355,10 @@ void main() {
     );
     await tester.tap(find.text(l.exSelectDate));
     await tester.pumpAndSettle();
-    // 공용 날짜 선택기(달력)가 뜬다.
-    final Finder datePickerDialog = find.byType(DatePickerDialog);
+    // 공용 날짜 선택창(입력칸 + 달력, #1778)이 뜬다.
+    final Finder datePickerDialog = find.byKey(const Key('portraitDatePicker'));
     expect(datePickerDialog, findsOneWidget);
-    await tester.tap(
-      find.descendant(
-        of: datePickerDialog,
-        matching: find.text(
-          MaterialLocalizations.of(
-            tester.element(datePickerDialog),
-          ).okButtonLabel,
-        ),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('portraitDatePickerConfirm')));
     await tester.pumpAndSettle();
     expect(find.text(l.exSelectDate), findsNothing);
     dateMaterial = find
