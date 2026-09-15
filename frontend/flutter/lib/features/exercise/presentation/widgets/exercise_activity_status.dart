@@ -550,7 +550,7 @@ class _StreakLine extends StatelessWidget {
             label: l.exStreakShieldUse,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
-            leadingIcon: Icons.shield_rounded,
+            leadingIcon: AppIcons.streakShield,
             loading: busy,
             onPressed: busy ? null : onUse,
           ),
@@ -571,7 +571,7 @@ class StreakProtectedTag extends StatelessWidget {
     key: const ValueKey<String>('exercise-streak-protected'),
     label: AppLocalizations.of(context).exStreakProtected,
     tone: AppTagTone.brand,
-    icon: Icons.shield_rounded,
+    icon: AppIcons.streakShield,
   );
 }
 

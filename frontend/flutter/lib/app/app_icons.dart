@@ -88,6 +88,9 @@ class AppIcons {
   static const IconData ptRenewal = Symbols.card_membership_rounded;
   static const IconData locker = Symbols.checkroom_rounded;
 
+  /// 연속 기록 보호권 — 사용처 카드·운동 현황의 `보호권 쓰기`·`보호권으로 이어짐`(#1788).
+  static const IconData streakShield = Symbols.shield_rounded;
+
   // --- 이동·펼침 ---
   static const IconData back = Symbols.chevron_left_rounded;
   static const IconData chevronLeft = Symbols.chevron_left_rounded;

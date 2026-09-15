@@ -56,7 +56,7 @@ String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) 
 IconData benefitIcon(String itemId) => switch (itemId) {
   kPtRenewalItem => AppIcons.ptRenewal,
   kLockerMonthItem => AppIcons.locker,
-  kStreakShieldItem => Icons.shield_rounded,
+  kStreakShieldItem => AppIcons.streakShield,
   _ => AppIcons.coupon,
 };
 
