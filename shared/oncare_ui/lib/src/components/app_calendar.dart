@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
+import 'package:oncare_ui/src/tokens/calendar.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
+import 'package:oncare_ui/src/tokens/elevation.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
 import 'package:oncare_ui/src/tokens/typography.dart';
 
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 /// 이전/다음 기간 이동(#1697) — tonal 꺾쇠 버튼 두 개와 가운데 기간 라벨.
 ///
-/// 회원 `_Arrow`, 트레이너 `_ChevronButton`·`_Chevron`, 대시보드 꺾쇠를 대체한다.
+/// 트레이너 스케줄·리포트의 주 이동이 쓴다.
 class AppPeriodNav extends StatelessWidget {
   const AppPeriodNav({
     super.key,
@@ -68,11 +73,13 @@ class AppPeriodNav extends StatelessWidget {
   }
 }
 
-/// 주간 날짜 줄 — 요일 `caption` 600 + 날짜. 선택 = 브랜드 채움, 오늘 = 브랜드 글자.
+/// 주간 달력(회원앱 식단·운동, #1778) — `2db5b04` 시점 모양.
 ///
-/// [previousTooltip]·[nextTooltip] 을 둘 다 주면 줄 **양옆**에 이전/다음 주
-/// 꺾쇠 버튼을 날짜 칸과 같은 높이 가운데에 그린다(회원앱 주간 달력).
-/// 비우면 날짜 칸만 그린다 — 이동은 바깥의 [AppPeriodNav] 가 맡는다.
+/// 위에 주 라벨과 `오늘` 알약([label]·[todayLabel]), 아래에 요일 + 날짜 칸 줄을
+/// 그린다. 선택한 날은 브랜드 채움 칸에 카드 그림자, 오늘은 브랜드 글자다.
+///
+/// [previousTooltip]·[nextTooltip] 을 둘 다 주면 날짜 줄 **양옆**에 옅은 원형
+/// 꺾쇠를 그린다. [onPrevious]·[onNext] 가 `null` 이면 흐리게 비활성이다.
 class AppWeekStrip extends StatelessWidget {
   const AppWeekStrip({
     super.key,
@@ -87,6 +94,10 @@ class AppWeekStrip extends StatelessWidget {
     this.onPrevious,
     this.onNext,
     this.lastSelectableDay,
+    this.label,
+    this.todayLabel,
+    this.onToday,
+    this.todayKey,
   }) : assert(days.length == weekdayLabels.length),
        assert(
          (previousTooltip == null) == (nextTooltip == null),
@@ -102,7 +113,7 @@ class AppWeekStrip extends StatelessWidget {
   final ValueChanged<DateTime> onSelected;
   final DateTime? today;
 
-  /// 기록이 있는 날 — 날짜 아래 점.
+  /// 기록이 있는 날 — 날짜 칸 아래 점. 비우면 점 줄을 그리지 않는다.
   final Set<DateTime> markedDays;
 
   /// 양옆 꺾쇠의 접근성 이름. 둘 다 있을 때만 꺾쇠를 그린다.
@@ -117,6 +128,16 @@ class AppWeekStrip extends StatelessWidget {
   /// 않는다(아직 오지 않은 날). `null` 이면 모든 날을 고를 수 있다.
   final DateTime? lastSelectableDay;
 
+  /// 날짜 줄 위의 주 라벨. 비우면 라벨 줄 없이 날짜 줄만 그린다.
+  final String? label;
+
+  /// 라벨 오른쪽 `오늘` 알약 문구와 동작. 둘 다 있을 때만 알약을 그린다.
+  final String? todayLabel;
+  final VoidCallback? onToday;
+
+  /// `오늘` 알약 키. 오늘로 돌아오는 유일한 길이라 테스트가 지목한다.
+  final Key? todayKey;
+
   bool _selectable(DateTime day) {
     final DateTime? last = lastSelectableDay;
     if (last == null) return true;
@@ -127,119 +148,186 @@ class AppWeekStrip extends StatelessWidget {
     ).isAfter(DateTime(last.year, last.month, last.day));
   }
 
-  static bool _same(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
-
   @override
   Widget build(BuildContext context) {
-    final Widget strip = _days(context);
-    if (previousTooltip == null || nextTooltip == null) return strip;
-    return Row(
+    Widget row = Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: <Widget>[
-        _WeekStripArrow(
-          icon: Icons.chevron_left_rounded,
-          tooltip: previousTooltip!,
-          onPressed: onPrevious,
-        ),
-        Expanded(child: strip),
-        _WeekStripArrow(
-          icon: Icons.chevron_right_rounded,
-          tooltip: nextTooltip!,
-          onPressed: onNext,
-        ),
-      ],
-    );
-  }
-
-  Widget _days(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Row(
-      children: <Widget>[
+        // 칸마다 제 크기를 요구하면 일곱의 합이 화면을 넘는다 — 영어 요일
+        // 라벨(Mon/Tue)이 한글 한 글자보다 넓다(#743).
         for (int i = 0; i < days.length; i++)
           Expanded(
-            child: Semantics(
-              button: true,
-              enabled: _selectable(days[i]),
-              selected: _same(days[i], selected),
-              child: InkWell(
-                borderRadius: OnCareRadius.mdAll,
-                onTap: _selectable(days[i]) ? () => onSelected(days[i]) : null,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: OnCareSpacing.s4,
-                  ),
-                  child: Column(
-                    children: <Widget>[
-                      // 영어 요일(Mon)은 한글 한 글자보다 넓다 — 말줄임 대신
-                      // 통째로 줄여 무슨 요일인지 남긴다.
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          weekdayLabels[i],
-                          maxLines: 1,
-                          style: tokens
-                              .text(
-                                OnCareTypography.strong(
-                                  OnCareTypography.caption,
-                                ),
-                              )
-                              .copyWith(
-                                color: today != null && _same(days[i], today!)
-                                    ? tokens.brand.primary
-                                    : OnCareColors.textTertiary,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      Container(
-                        width: tokens.density.chip,
-                        height: tokens.density.chip,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: _same(days[i], selected)
-                              ? tokens.brand.primary
-                              : Colors.transparent,
-                          borderRadius: OnCareRadius.mdAll,
-                        ),
-                        child: Text(
-                          '${days[i].day}',
-                          style:
-                              OnCareTypography.numeric(
-                                tokens.text(OnCareTypography.label),
-                              ).copyWith(
-                                color: _same(days[i], selected)
-                                    ? OnCareColors.textOnFill
-                                    : today != null && _same(days[i], today!)
-                                    ? tokens.brand.primary
-                                    : OnCareColors.textPrimary,
-                              ),
-                        ),
-                      ),
-                      const SizedBox(height: OnCareSpacing.s4),
-                      SizedBox(
-                        height: OnCareSize.dot / 2,
-                        child: markedDays.any((d) => _same(d, days[i]))
-                            ? Container(
-                                width: OnCareSize.dot / 2,
-                                decoration: BoxDecoration(
-                                  color: tokens.brand.primary,
-                                  shape: BoxShape.circle,
-                                ),
-                              )
-                            : null,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            child: _WeekDayCell(
+              day: days[i],
+              weekdayLabel: weekdayLabels[i],
+              isToday: today != null && _sameDay(days[i], today!),
+              isSelected: _sameDay(days[i], selected),
+              marked: markedDays.isEmpty
+                  ? null
+                  : markedDays.any((DateTime d) => _sameDay(d, days[i])),
+              onTap: _selectable(days[i]) ? () => onSelected(days[i]) : null,
             ),
           ),
+      ],
+    );
+    if (previousTooltip != null && nextTooltip != null) {
+      row = Row(
+        children: <Widget>[
+          _WeekStripArrow(
+            icon: Icons.chevron_left_rounded,
+            tooltip: previousTooltip!,
+            onPressed: onPrevious,
+          ),
+          Expanded(child: row),
+          _WeekStripArrow(
+            icon: Icons.chevron_right_rounded,
+            tooltip: nextTooltip!,
+            onPressed: onNext,
+          ),
+        ],
+      );
+    }
+    if (label == null) return row;
+
+    final OnCareTokens tokens = context.oncare;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              // 영어의 주 라벨은 한국어보다 훨씬 길다. 고정 폭으로 두면 좁은
+              // 화면에서 오늘 알약을 밀어내며 넘친다(#743).
+              Flexible(
+                child: Text(
+                  label!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: tokens
+                      .text(OnCareCalendar.weekLabel)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+              ),
+              if (todayLabel != null && onToday != null)
+                AppTodayPill(
+                  key: todayKey,
+                  label: todayLabel!,
+                  onPressed: onToday!,
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        row,
       ],
     );
   }
 }
 
-/// [AppWeekStrip] 양옆의 작은 원형 꺾쇠 — 옅은 브랜드 채움, 비활성은 흐리게.
+/// [AppWeekStrip] 의 한 날 — 요일 글자 + 날짜 칸.
+class _WeekDayCell extends StatelessWidget {
+  const _WeekDayCell({
+    required this.day,
+    required this.weekdayLabel,
+    required this.isToday,
+    required this.isSelected,
+    required this.marked,
+    required this.onTap,
+  });
+
+  final DateTime day;
+  final String weekdayLabel;
+  final bool isToday;
+  final bool isSelected;
+
+  /// 기록 점. `null` 이면 점 줄 자체가 없다.
+  final bool? marked;
+
+  /// `null` 이면 고를 수 없는 날이다(모양은 그대로).
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final Color primary = tokens.brand.primary;
+    final Color labelColor = isSelected || isToday
+        ? primary
+        : OnCareColors.textTertiary;
+    // 칸도 글자 배율을 따라간다 — 고정하면 날짜 숫자가 칸에 눌린다(#1004).
+    final double box = MediaQuery.textScalerOf(
+      context,
+    ).scale(OnCareCalendar.weekDayBox);
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      selected: isSelected,
+      child: GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // 말줄임이 아니라 축소다. 'Mon' 이 'M…' 이 되면 무슨 요일인지가
+            // 사라진다(#743).
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                weekdayLabel,
+                maxLines: 1,
+                style: tokens
+                    .text(OnCareCalendar.weekday)
+                    .copyWith(color: labelColor),
+              ),
+            ),
+            const SizedBox(height: OnCareCalendar.weekdayGap),
+            Container(
+              width: box,
+              height: box,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: isSelected ? primary : Colors.transparent,
+                borderRadius: OnCareRadius.mdAll,
+                boxShadow: isSelected ? OnCareShadows.card : null,
+              ),
+              child: Text(
+                '${day.day}',
+                style: tokens
+                    .text(OnCareCalendar.weekDayNumber)
+                    .copyWith(
+                      color: isSelected
+                          ? OnCareColors.textOnFill
+                          : isToday
+                          ? primary
+                          : OnCareColors.textTertiary,
+                    ),
+              ),
+            ),
+            if (marked != null) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s4),
+              SizedBox(
+                height: OnCareSize.dot / 2,
+                child: marked!
+                    ? Container(
+                        width: OnCareSize.dot / 2,
+                        decoration: BoxDecoration(
+                          color: primary,
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                    : null,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// [AppWeekStrip] 양옆의 작은 원형 꺾쇠 — 옅은 브랜드 바탕, 비활성은 흐리게.
 class _WeekStripArrow extends StatelessWidget {
   const _WeekStripArrow({
     required this.icon,
@@ -248,6 +336,8 @@ class _WeekStripArrow extends StatelessWidget {
   });
 
   final IconData icon;
+
+  /// 화살표 하나뿐이라 어느 쪽으로 가는지 말할 데가 툴팁뿐이다(#972).
   final String tooltip;
   final VoidCallback? onPressed;
 
@@ -255,23 +345,64 @@ class _WeekStripArrow extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return Opacity(
-      opacity: onPressed == null ? OnCareAlpha.strong : 1,
-      child: Tooltip(
-        message: tooltip,
-        child: Material(
-          color: tokens.brand.surface,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onPressed,
+      opacity: onPressed == null ? OnCareCalendar.disabledArrowOpacity : 1,
+      child: Material(
+        color: tokens.brand.surfaceSoft,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          child: Tooltip(
+            message: tooltip,
             child: SizedBox.square(
-              dimension: OnCareSize.avatarMedium,
+              dimension: OnCareCalendar.weekArrow,
               child: Icon(
                 icon,
                 size: OnCareSize.iconSmall,
                 color: tokens.brand.primary,
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// `오늘` 알약 — 옅은 브랜드 채움·테두리의 작은 알약 버튼(#1778).
+///
+/// 주간 달력에서 오늘이 아닌 날을 골랐을 때 오늘로 돌아오는 길이다.
+class AppTodayPill extends StatelessWidget {
+  const AppTodayPill({super.key, required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final Color primary = tokens.brand.primary;
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        onTap: onPressed,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: OnCareCalendar.todayPillPadding,
+          decoration: BoxDecoration(
+            color: primary.withValues(alpha: OnCareCalendar.todayPillFillAlpha),
+            borderRadius: OnCareRadius.pillAll,
+            border: Border.all(
+              color: primary.withValues(
+                alpha: OnCareCalendar.todayPillBorderAlpha,
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            style: tokens
+                .text(OnCareCalendar.todayPill)
+                .copyWith(color: primary),
           ),
         ),
       ),
@@ -356,9 +487,8 @@ class AppMonthGrid extends StatelessWidget {
       return SizedBox(height: tokens.density.chip + OnCareSpacing.s12);
     }
     final DateTime date = DateTime(month.year, month.month, day);
-    final bool isSelected =
-        selected != null && AppWeekStrip._same(date, selected!);
-    final bool isToday = today != null && AppWeekStrip._same(date, today!);
+    final bool isSelected = selected != null && _sameDay(date, selected!);
+    final bool isToday = today != null && _sameDay(date, today!);
     final Widget? extra = dayBuilder?.call(context, date);
     return InkWell(
       borderRadius: OnCareRadius.mdAll,

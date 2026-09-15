@@ -336,7 +336,8 @@ void main() {
 
     await tester.tap(find.text(l.exGoalWeightLoss));
     await _revealInForm(tester, find.text(l.exSelectDate), 180);
-    // 날짜 칸은 입력창과 같은 채움이다 — 고르기 전후로 모양이 같다(#1701).
+    // 날짜 칸은 입력창과 같은 흰 채움이다 — 고르기 전후로 모양이 같다
+    // (#1701, #1776).
     Finder dateMaterial = find
         .ancestor(
           of: find.byIcon(Icons.calendar_today_rounded),
@@ -345,23 +346,14 @@ void main() {
         .first;
     expect(
       tester.widget<Material>(dateMaterial).color,
-      OnCareColors.surfaceInput,
+      OnCareColors.surfaceCard,
     );
     await tester.tap(find.text(l.exSelectDate));
     await tester.pumpAndSettle();
-    // 공용 날짜 선택기(달력)가 뜬다.
-    final Finder datePickerDialog = find.byType(DatePickerDialog);
+    // 공용 날짜 선택창(입력칸 + 달력, #1778)이 뜬다.
+    final Finder datePickerDialog = find.byKey(const Key('portraitDatePicker'));
     expect(datePickerDialog, findsOneWidget);
-    await tester.tap(
-      find.descendant(
-        of: datePickerDialog,
-        matching: find.text(
-          MaterialLocalizations.of(
-            tester.element(datePickerDialog),
-          ).okButtonLabel,
-        ),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('portraitDatePickerConfirm')));
     await tester.pumpAndSettle();
     expect(find.text(l.exSelectDate), findsNothing);
     dateMaterial = find
@@ -372,7 +364,7 @@ void main() {
         .first;
     expect(
       tester.widget<Material>(dateMaterial).color,
-      OnCareColors.surfaceInput,
+      OnCareColors.surfaceCard,
     );
     // 희망 시각은 필수다(#1587). 선택기 자체의 조작(다이얼·직접 입력)은
     // `consult_time_range_picker_test.dart` 가 따로 다루므로, 여기서는 기본값
