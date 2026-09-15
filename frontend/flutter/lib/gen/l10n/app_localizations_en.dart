@@ -2479,11 +2479,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineCancelFailed => 'Couldn\'t cancel the workout';
 
   @override
-  String coachRoutineMyNote(String note) {
-    return 'My feedback: $note';
-  }
-
-  @override
   String coachRoutineTrainerFeedback(String feedback) {
     return 'Trainer feedback: $feedback';
   }
@@ -2502,13 +2497,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachIntensityHigh => 'High';
-
-  @override
-  String get coachRoutineNoteLabel => 'Feedback (optional)';
-
-  @override
-  String get coachRoutineNoteHint =>
-      'Share how it felt or how your body is doing';
 
   @override
   String get coachRoutineSubmit => 'Save';

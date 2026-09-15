@@ -241,12 +241,14 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
               key: ValueKey<String>('workout-exercise-line-${entry.id}-$i'),
               line: line,
             ),
-          if (entry.clientFeedback.isNotEmpty) ...<Widget>[
+          // 개인 운동(배정 루틴)에 회원이 적는 피드백은 없앴다(#1825) — 회원의
+          // 불편·부정적 반응은 채팅에서 감지해 모은다. 옛 데이터가 남아 있어도
+          // 그리지 않는다. PT·프로그램 세션에 대한 회원 피드백은 그대로 보인다.
+          if (entry.clientFeedback.isNotEmpty &&
+              entry.assignedRoutineId == null) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
             _NoteBox(
               // 이 피드백이 **무엇에 대한 말인지** 제목이 말한다(#1453).
-              // `고객 피드백` 만 적으면 목록 아래에 붙은 그날 전체의 소감처럼
-              // 읽혔다 — 배정 개인 운동의 피드백은 그 운동 하나에 달린 것이다.
               title: clientFeedbackTitle(l, entry),
               body: entry.clientFeedback,
               color: tokens.brand.primary,

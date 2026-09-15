@@ -695,15 +695,6 @@
   "programNone": "No program recorded",
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "clientFeedbackOn": "Member feedback on {name}",
-  "@clientFeedbackOn": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "clientFeedbackPersonal": "Member feedback on this personal exercise",
   "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
   "trainerNote": "Trainer's note",

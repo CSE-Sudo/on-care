@@ -1143,14 +1143,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientFeedback => '회원 피드백';
 
   @override
-  String clientFeedbackOn(String name) {
-    return '$name에 대한 회원 피드백';
-  }
-
-  @override
-  String get clientFeedbackPersonal => '개인 운동에 대한 회원 피드백';
-
-  @override
   String get clientFeedbackSession => '이 세션에 대한 회원 피드백';
 
   @override
