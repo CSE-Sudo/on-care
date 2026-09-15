@@ -42,6 +42,8 @@ class OnCareTokenCatalog extends StatelessWidget {
                 _Swatch('exerciseCardio', tokens.brand.exerciseCardio),
                 _Swatch('exerciseStrength', tokens.brand.exerciseStrength),
                 _Swatch('exerciseStretching', tokens.brand.exerciseStretching),
+                _Swatch('segmentTrack', tokens.brand.segmentTrack),
+                _Swatch('segmentLabel', tokens.brand.segmentLabel),
               ],
             ),
           ),

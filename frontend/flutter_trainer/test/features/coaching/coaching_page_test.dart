@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -45,6 +46,8 @@ import 'package:oncare_ui/oncare_ui.dart'
         AppButton,
         AppIconButton,
         AppListRow,
+        AppSegmentedToggle,
+        AppSegmentedToggleStyle,
         OnCareLayout,
         OnCareMotion;
 
@@ -1103,6 +1106,31 @@ void main() {
         const ValueKey<String>('program-client-data-tabs'),
       );
       expect(tabs, findsOneWidget);
+      // 이식 전 식단·운동 스트립(옅은 띠 + 흰 엄지) 모양이고, 아이콘만 남지 않고
+      // 라벨이 줄임표 없이 아이콘 옆에 보인다(#1777).
+      expect(
+        tester.widget<AppSegmentedToggle<Object?>>(tabs).style,
+        AppSegmentedToggleStyle.thumb,
+      );
+      for (final (String label, IconData icon) in <(String, IconData)>[
+        ('식단', Icons.restaurant_rounded),
+        ('운동', Icons.fitness_center_rounded),
+      ]) {
+        final text = find.descendant(of: tabs, matching: find.text(label));
+        expect(text, findsOneWidget);
+        expect(
+          tester.renderObject<RenderParagraph>(text).didExceedMaxLines,
+          isFalse,
+          reason: label,
+        );
+        expect(
+          tester
+              .getRect(find.descendant(of: tabs, matching: find.byIcon(icon)))
+              .right,
+          lessThan(tester.getRect(text).left),
+          reason: label,
+        );
+      }
       expect(find.byType(ProgramNutritionSummaryCard), findsOneWidget);
 
       await tester.tap(find.descendant(of: tabs, matching: find.text('운동')));

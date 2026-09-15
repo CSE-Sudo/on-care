@@ -18,6 +18,8 @@ class OnCareBrand {
     required this.exerciseCardio,
     required this.exerciseStrength,
     required this.exerciseStretching,
+    required this.segmentTrack,
+    required this.segmentLabel,
   });
 
   /// 회원앱 — 파랑.
@@ -30,6 +32,8 @@ class OnCareBrand {
     exerciseCardio: Color(0xFF2795C4),
     exerciseStrength: Color(0xFF66C4E8),
     exerciseStretching: Color(0xFFA8E4F7),
+    segmentTrack: Color(0xFFF8FAFB),
+    segmentLabel: Color(0xFF64748B),
   );
 
   /// 트레이너웹 — 남색.
@@ -42,6 +46,8 @@ class OnCareBrand {
     exerciseCardio: Color(0xFF3793C9),
     exerciseStrength: Color(0xFF87BFDF),
     exerciseStretching: Color(0xFFC2DEEF),
+    segmentTrack: OnCareColors.surfaceInput,
+    segmentLabel: OnCareColors.textSecondary,
   );
 
   /// 디버그·카탈로그 표시용 이름.
@@ -66,6 +72,30 @@ class OnCareBrand {
   final Color exerciseCardio;
   final Color exerciseStrength;
   final Color exerciseStretching;
+
+  /// 세그먼트 토글(오늘/이번 주/전체·식단/운동) 트랙 채움(#1777).
+  ///
+  /// 공용 토글로 옮기기 전 두 앱의 알약 토글 값을 그대로 되살렸다 — 회원앱은
+  /// 입력 채움보다 옅은 `#F8FAFB`, 트레이너웹은 입력 채움과 같다.
+  final Color segmentTrack;
+
+  /// 세그먼트 토글에서 선택되지 않은 칸의 글자·아이콘(#1777).
+  ///
+  /// 이전 값을 따른다 — 회원앱 `#64748B`, 트레이너웹은 보조 글자색과 같다.
+  final Color segmentLabel;
+
+  /// 세그먼트 토글 `thumb` 모양의 띠 채움(#1777).
+  ///
+  /// 이식 전 스트립은 메인 색 10% 를 얹었다. 흰 바탕 기준 그 값이 [surface] 와
+  /// 거의 같아(트레이너 `#EAF2F7` ↔ `#EAF2F9`) 새 색을 두지 않는다.
+  Color get segmentThumbTrack => surface;
+
+  /// 세그먼트 토글 `thumb` 모양의 띠 테두리(#1777).
+  ///
+  /// 이전 스트립은 10% 채움 위에 10% 테두리를 겹쳐 약 19% 였다 — 투명도 단계
+  /// [OnCareAlpha.medium] 으로 맞춘 불투명 색이다.
+  Color get segmentThumbBorder =>
+      OnCareColors.onWhite(primary, OnCareAlpha.medium);
 
   /// 선택 칩·안내 배너 테두리. 메인 색 40% 를 불투명으로 환산한 값.
   Color get border => OnCareColors.onWhite(primary, OnCareAlpha.strong);
