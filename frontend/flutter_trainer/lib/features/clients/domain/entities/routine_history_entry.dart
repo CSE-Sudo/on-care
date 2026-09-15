@@ -112,27 +112,9 @@ String routineKindLabel(AppLocalizations l, String raw) {
   return raw.trim() == legacyAiRoutine ? l.workoutKindAiPersonal : raw;
 }
 
-/// 고객 피드백 상자의 제목. 무엇에 달린 말인지까지 적는다. (#1453)
+/// 고객 피드백 상자의 제목. (#1453)
 ///
-/// 배정된 개인 운동 기록이고 운동이 하나면 그 운동 이름을 넣는다. 여러 개가
-/// 묶인 기록(PT·프로그램)은 세션 전체에 달린 말이므로 운동 하나에 억지로
-/// 붙이지 않는다.
-String clientFeedbackTitle(AppLocalizations l, RoutineHistoryEntry entry) {
-  if (entry.assignedRoutineId == null) return l.clientFeedbackSession;
-  if (entry.exercises.length != 1) return l.clientFeedbackPersonal;
-  final String name = _exerciseName(entry.exercises.single);
-  return name.isEmpty ? l.clientFeedbackPersonal : l.clientFeedbackOn(name);
-}
-
-/// `런닝 25분 ✓` 처럼 분량·표시가 붙은 줄에서 운동 이름만 떼어 낸다.
-String _exerciseName(String line) {
-  final String cleaned = line.replaceAll('✓', '').replaceAll('✗', '').trim();
-  final RegExp trailing = RegExp(
-    r'\s+(\d+[^\s]*|\(.*\))$',
-  );
-  String name = cleaned;
-  while (trailing.hasMatch(name)) {
-    name = name.replaceFirst(trailing, '').trim();
-  }
-  return name;
-}
+/// 개인 운동(배정 루틴)의 회원 피드백은 없앴다(#1825) — 화면은 PT·프로그램 세션
+/// 기록의 피드백만 그리므로 제목도 세션 전체에 달린 말 하나다.
+String clientFeedbackTitle(AppLocalizations l, RoutineHistoryEntry entry) =>
+    l.clientFeedbackSession;

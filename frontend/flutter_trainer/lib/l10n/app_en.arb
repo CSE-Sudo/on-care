@@ -432,6 +432,15 @@
   "memberHealthGenderOther": "Other",
   "memberHealthHeight": "Height (cm)",
   "memberHealthWeight": "Weight (kg)",
+  "memberHealthFocus": "Health goals (up to 2)",
+  "healthFocusWeightLoss": "Weight loss",
+  "healthFocusStrength": "Build strength",
+  "healthFocusFitness": "Improve fitness",
+  "healthFocusPosture": "Posture correction",
+  "healthFocusRehab": "Rehab",
+  "healthFocusEating": "Better eating habits",
+  "healthFocusExerciseHabit": "Exercise habit",
+  "healthFocusBloodPressure": "Blood pressure care",
   "memberHealthConditions": "Conditions and cautions",
   "memberHealthGoals": "Member goals",
   "memberHealthDietGoal": "Nutrition goals",
@@ -695,15 +704,6 @@
   "programNone": "No program recorded",
   "legendDone": "Done",
   "clientFeedback": "Member feedback",
-  "clientFeedbackOn": "Member feedback on {name}",
-  "@clientFeedbackOn": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "clientFeedbackPersonal": "Member feedback on this personal exercise",
   "clientFeedbackSession": "Member feedback on this session",
   "workoutKindAiPersonal": "AI personal exercise",
   "trainerNote": "Trainer's note",

@@ -30,7 +30,6 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
         ? (json['completed_minutes']! as num).toInt()
         : null,
     completedIntensity: json['completed_intensity'] as String?,
-    memberNote: _str(json['member_note']),
     trainerFeedback: _str(json['trainer_feedback']),
     programName: _str(json['program_name']),
     sessionName: _str(json['session_name']),

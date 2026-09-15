@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
 
@@ -64,11 +64,13 @@ class DioNotificationRepository implements NotificationRepository {
       title: json['title']! as String,
       body: json['body']! as String,
       timeAgo: (json['time_ago'] as String?) ?? '',
-      category: _categoryFrom(json['category']! as String),
+      category: categoryFromWire(json['category']! as String),
       read: (json['read'] as bool?) ?? false,
       action: _actionFrom(json['action']),
       // 다음 쪽 커서로 되돌려 줄 값이라 **문자열 그대로** 들고 간다(#965).
       createdAt: (json['created_at'] as String?) ?? '',
+      // 로컬 목 모드의 데모 시드만 준다. 실서버 알림에는 없다(#1812).
+      messageKey: json['message_key'] as String?,
     );
   }
 
@@ -97,8 +99,18 @@ class DioNotificationRepository implements NotificationRepository {
     _ => AlertTarget.unknown,
   };
 
-  static AlertCategory _categoryFrom(String s) => switch (s) {
-    'reminder' => AlertCategory.reminder,
+  /// 서버 갈래 → 앱 갈래.
+  ///
+  /// 트레이너 활동이 만드는 회원 알림(`coach_chat`·`routine`·`member_schedule`·
+  /// `consultation_result`)은 회원이 확인하고 움직여야 하는 알림이라 리마인더다.
+  /// 예전에는 모르는 갈래로 떨어져 시스템 공지(정보 아이콘)처럼 보였다(#1812).
+  @visibleForTesting
+  static AlertCategory categoryFromWire(String s) => switch (s) {
+    'reminder' ||
+    'coach_chat' ||
+    'routine' ||
+    'member_schedule' ||
+    'consultation_result' => AlertCategory.reminder,
     'health_check' => AlertCategory.healthCheck,
     'achievement' => AlertCategory.achievement,
     _ => AlertCategory.system,

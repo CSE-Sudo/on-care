@@ -32,6 +32,7 @@ void main() {
       'completed_at': '2026-08-13T10:00:00Z',
       'completed_minutes': 25,
       'completed_intensity': 'high',
+      // 개인 운동 피드백은 없앴다(#1825) — 옛 서버가 보내도 읽지 않는다.
       'member_note': '힘들었어요',
       'trainer_feedback': '잘했어요',
     });
@@ -41,7 +42,6 @@ void main() {
     expect(r.completedAt, DateTime.utc(2026, 8, 13, 10));
     expect(r.completedMinutes, 25);
     expect(r.completedIntensity, 'high');
-    expect(r.memberNote, '힘들었어요');
     expect(r.trainerFeedback, '잘했어요');
   });
 

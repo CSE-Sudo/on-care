@@ -628,4 +628,51 @@ void main() {
       'female',
     );
   });
+  testWidgets('회원 건강 목표를 칩으로 고치고 주의사항 글과 한 칸으로 저장한다 (#1818)', (tester) async {
+    final db = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(db.close);
+    final clients = _DelayedClientRepository(db);
+
+    await _pumpDialog(
+      tester,
+      _FakeMemoRepository(),
+      clients: clients,
+      settle: false,
+    );
+    await tester.pump();
+    clients.profile.complete(
+      const MemberHealthProfile(
+        memberId: 'm1',
+        memberName: '회원',
+        conditions: '고혈압, 무릎 통증으로 러닝 자제',
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    AppChoiceChip chip(String option) => tester.widget<AppChoiceChip>(
+      find.byKey(ValueKey<String>('client-focus-$option')),
+    );
+
+    // 회원앱과 같은 여덟 목표가 있고, 옛 질환 이름은 새 목표로 읽는다.
+    expect(find.byType(AppChoiceChip), findsNWidgets(8));
+    expect(chip('혈압 관리').selected, isTrue);
+    // 목표가 아닌 글은 주의사항 칸에 그대로 남는다.
+    expect(find.text('무릎 통증으로 러닝 자제'), findsOneWidget);
+
+    final Finder strength = find.byKey(
+      const ValueKey<String>('client-focus-근력 향상'),
+    );
+    await tester.ensureVisible(strength);
+    await tester.tap(strength);
+    await tester.pumpAndSettle();
+
+    // 두 개를 골랐으니 다른 칩은 잠긴다.
+    expect(chip('재활').onSelected, isNull);
+    expect(chip('혈압 관리').onSelected, isNotNull);
+
+    await tester.tap(find.byKey(const ValueKey<String>('client-profile-save')));
+    await tester.pumpAndSettle();
+
+    expect(clients.savedProfile?['conditions'], '근력 향상, 혈압 관리, 무릎 통증으로 러닝 자제');
+  });
 }

@@ -88,7 +88,8 @@ def test_completion_feedback_and_history_share_one_record(client, assigned_routi
     )
     assert retried.status_code == 200, retried.text
     assert retried.json()["completed_at"] == completion_time
-    assert retried.json()["member_note"] == "마지막 세트가 힘들었어요."
+    # 개인 운동 피드백은 받기만 하고 저장·노출하지 않는다(#1825).
+    assert retried.json()["member_note"] == ""
 
     week = client.get("/v1/exercise/weeks/current", headers=member_headers).json()
     assert week["total_minutes"] == before + 37
@@ -98,7 +99,7 @@ def test_completion_feedback_and_history_share_one_record(client, assigned_routi
     )
     assert session["source"] == "assigned_routine"
     assert session["assigned_routine_name"] == routine["name"]
-    assert session["member_note"] == "마지막 세트가 힘들었어요."
+    assert session["member_note"] == ""
 
     history = client.get(
         f"/v1/trainer/clients/{MEMBER_ID}/history", headers=trainer_headers
@@ -107,7 +108,7 @@ def test_completion_feedback_and_history_share_one_record(client, assigned_routi
         row for row in history if row["assigned_routine_id"] == routine["id"]
     )
     assert history_row["id"] == session["id"]
-    assert history_row["client_feedback"] == "마지막 세트가 힘들었어요."
+    assert history_row["client_feedback"] == ""
 
     feedback = client.put(
         f"/v1/trainer/clients/{MEMBER_ID}/history/{history_row['id']}/feedback",
