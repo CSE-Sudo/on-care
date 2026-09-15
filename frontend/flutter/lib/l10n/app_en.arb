@@ -1107,7 +1107,7 @@
   "onboardHeightHint": "Height (cm)",
   "onboardWeightHint": "Weight (kg)",
   "onboardHealthTitle": "Health goals",
-  "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (multiple allowed)",
+  "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (up to 2)",
   "onboardGoalTitle": "Exercise goal",
   "onboardGoalSubtitle": "Tell us what you want to achieve. You can change this later.",
   "onboardGoalHint": "e.g. Finish a 5K within three months",
@@ -1167,10 +1167,6 @@
   "onboardGenderMale": "Male",
   "onboardGenderFemale": "Female",
   "onboardGenderOther": "Other",
-  "onboardConditionHypertension": "Hypertension",
-  "onboardConditionDiabetes": "Diabetes",
-  "onboardConditionDyslipidemia": "Dyslipidemia",
-  "onboardConditionObesity": "Obesity",
   "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.",
   "@aiCoachWelcome": {
     "description": "Greeting bubble the app shows when the coach conversation opens."
@@ -1330,9 +1326,39 @@
     "description": "Title of the health goals sheet."
   },
   "myGoalsFocusSection": "What you want to focus on",
-  "myGoalsFocusHint": "Pick what you want to focus on in your health care. (multiple allowed)",
-  "myGoalsFocusHypertension": "Blood pressure",
-  "myGoalsFocusDiabetes": "Blood sugar",
+  "myGoalsFocusHint": "Pick what you want to focus on in your health care. (up to 2)",
+  "healthFocusWeightLoss": "Weight loss",
+  "@healthFocusWeightLoss": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusStrength": "Build strength",
+  "@healthFocusStrength": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusFitness": "Improve fitness",
+  "@healthFocusFitness": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusPosture": "Posture correction",
+  "@healthFocusPosture": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusRehab": "Rehab",
+  "@healthFocusRehab": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusEating": "Better eating habits",
+  "@healthFocusEating": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusExerciseHabit": "Exercise habit",
+  "@healthFocusExerciseHabit": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusBloodPressure": "Blood pressure care",
+  "@healthFocusBloodPressure": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
   "myGoalsExerciseNote": "Exercise goal",
   "myGoalsExerciseNoteHint": "e.g. Finish a 5K within three months",
   "myGoalsDietSection": "Diet goals",

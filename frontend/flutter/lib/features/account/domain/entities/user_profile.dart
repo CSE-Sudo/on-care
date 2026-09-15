@@ -43,7 +43,7 @@ class UserProfile {
   final double? heightCm;
   final double? weightKg;
 
-  /// 주로 관리하고 싶은 항목(`고혈압, 당뇨`). 진단·치료 중인 질환을 단정하는
+  /// 건강 목표(`체중 감량, 혈압 관리`). 진단·치료 중인 질환을 단정하는
   /// 값이 아니라 **어디에 초점을 둘지**다(#1471). 온보딩과 MY `건강 목표` 가
   /// 같은 값을 읽고 고친다.
   final String conditions;

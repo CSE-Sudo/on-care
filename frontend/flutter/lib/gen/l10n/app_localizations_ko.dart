@@ -1975,8 +1975,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardHealthTitle => '건강 목표';
 
   @override
-  String get onboardHealthSubtitle =>
-      '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (복수 선택 가능)';
+  String get onboardHealthSubtitle => '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (최대 2개)';
 
   @override
   String get onboardGoalTitle => '운동 목표';
@@ -2093,18 +2092,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardGenderOther => '기타';
-
-  @override
-  String get onboardConditionHypertension => '고혈압';
-
-  @override
-  String get onboardConditionDiabetes => '당뇨';
-
-  @override
-  String get onboardConditionDyslipidemia => '고지혈증';
-
-  @override
-  String get onboardConditionObesity => '비만';
 
   @override
   String get aiCoachWelcome =>
@@ -2226,13 +2213,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalsFocusSection => '주로 관리하고 싶은 항목';
 
   @override
-  String get myGoalsFocusHint => '건강 관리에서 더 집중하고 싶은 항목을 골라 주세요. (복수 선택 가능)';
+  String get myGoalsFocusHint => '건강 관리에서 더 집중하고 싶은 항목을 골라 주세요. (최대 2개)';
 
   @override
-  String get myGoalsFocusHypertension => '고혈압';
+  String get healthFocusWeightLoss => '체중 감량';
 
   @override
-  String get myGoalsFocusDiabetes => '당뇨';
+  String get healthFocusStrength => '근력 향상';
+
+  @override
+  String get healthFocusFitness => '체력 강화';
+
+  @override
+  String get healthFocusPosture => '자세 교정';
+
+  @override
+  String get healthFocusRehab => '재활';
+
+  @override
+  String get healthFocusEating => '식습관 개선';
+
+  @override
+  String get healthFocusExerciseHabit => '운동 습관';
+
+  @override
+  String get healthFocusBloodPressure => '혈압 관리';
 
   @override
   String get myGoalsExerciseNote => '운동 목표';

@@ -34,6 +34,7 @@ def test_onboarding_saves_profile_and_marks_done(client):
         "gender": "male",
         "height_cm": 175.0,
         "weight_kg": 72.5,
+        # 옛 질환 이름으로 보내면 새 건강 목표로 정리해 저장한다(#1814).
         "conditions": "고혈압, 당뇨 전단계",
         "goals": "혈압 정상화",
         "daily_calories": 2000,
@@ -44,7 +45,7 @@ def test_onboarding_saves_profile_and_marks_done(client):
     p = r.json()
     assert p["onboarded"] is True
     assert p["name"] == "온보딩유저"
-    assert p["conditions"] == "고혈압, 당뇨 전단계"
+    assert p["conditions"] == "혈압 관리"
     assert p["height_cm"] == 175.0
     assert p["weight_kg"] == 72.5
     assert p["daily_calories"] == 2000
@@ -275,17 +276,17 @@ def test_health_goals_saves_focus_and_free_text_goal(client):
 
     saved = client.put(
         "/v1/users/me/health-goals",
-        json={"conditions": "고혈압, 당뇨", "goals": "3개월 안에 5km 완주"},
+        json={"conditions": "혈압 관리, 체중 감량", "goals": "3개월 안에 5km 완주"},
         headers=_auth(token),
     )
 
     assert saved.status_code == 200
-    assert saved.json()["conditions"] == "고혈압, 당뇨"
+    assert saved.json()["conditions"] == "체중 감량, 혈압 관리"
     assert saved.json()["goals"] == "3개월 안에 5km 완주"
 
     # 다시 읽어도 그대로다 — 온보딩과 MY 가 같은 값을 본다.
     again = client.get("/v1/users/me/profile", headers=_auth(token))
-    assert again.json()["conditions"] == "고혈압, 당뇨"
+    assert again.json()["conditions"] == "체중 감량, 혈압 관리"
     assert again.json()["goals"] == "3개월 안에 5km 완주"
 
 
@@ -294,7 +295,7 @@ def test_health_goals_does_not_wipe_focus_when_only_numbers_change(client):
     token, _ = _register_and_login(client)
     client.put(
         "/v1/users/me/health-goals",
-        json={"conditions": "당뇨", "goals": "주 3회 근력"},
+        json={"conditions": "근력 향상", "goals": "주 3회 근력"},
         headers=_auth(token),
     )
 
@@ -305,6 +306,20 @@ def test_health_goals_does_not_wipe_focus_when_only_numbers_change(client):
     )
 
     view = client.get("/v1/users/me/profile", headers=_auth(token))
-    assert view.json()["conditions"] == "당뇨"
+    assert view.json()["conditions"] == "근력 향상"
     assert view.json()["goals"] == "주 3회 근력"
     assert view.json()["daily_calories"] == 2100
+
+
+def test_health_goals_cleans_legacy_condition_names_but_keeps_trainer_notes(client):
+    """옛 질환 이름은 새 목표로 정리하고, 트레이너가 적은 주의사항은 남긴다. (#1814)"""
+    token, _ = _register_and_login(client)
+
+    saved = client.put(
+        "/v1/users/me/health-goals",
+        json={"conditions": "당뇨, 고혈압, 무릎 통증으로 러닝 자제, 비만"},
+        headers=_auth(token),
+    )
+
+    assert saved.status_code == 200
+    assert saved.json()["conditions"] == "체중 감량, 혈압 관리, 무릎 통증으로 러닝 자제"
