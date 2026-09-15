@@ -33,7 +33,8 @@ from app.models.models import (
 from app.schemas.trainer_api import (
     ChatAttachmentOut, ChatMessageOut, ClientDietEntryOut, MemberCoachOut, ProgramDraftExercise,
     ProgramDraftSession,
-    ProgramItem, ProgramScheduleOut, ReportFeedbackOut, RoutineHistoryOut,
+    ProgramItem, ProgramScheduleOut, ReportFeedbackOut, RoutineCompleteOut,
+    RoutineHistoryOut,
     RoutineOut, ScheduleSessionOut, TrainerClientOut, TrainerClientStatusOut,
     TrainerFollowUpTaskOut,
     TrainerGymOut, TrainerMe, TrainerMemoOut, TrainerNotificationSettings,
@@ -47,9 +48,11 @@ from app.services import (
     exercise_service,
     exercise_types,
     notification_service,
+    points_service,
     routine_suggestion_service,
     schedule_parse,
 )
+from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
 
 # 일일 나트륨 목표(mg). 프론트 `sodiumTargetMg` 와 같은 값 — 리포트의
@@ -1460,11 +1463,14 @@ def complete_assigned_routine(
     weight: float | None = None,
     intensity: str,
     member_note: str,
-) -> RoutineOut:
+) -> RoutineCompleteOut:
     """배정 하나를 회원 운동 기록 한 건으로 완료한다.
 
     `assigned_routine_id` unique 제약이 더블 탭·재전송을 같은 기록으로
     모은다. 이름은 스냅샷이라 이후 배정 수정·철회에 흔들리지 않는다.
+
+    AI 추천 루틴이면 포인트를 적립하고 그 결과를 응답에 싣는다(#1786). 재전송은
+    새로 적립하지 않고 처음 완료할 때 받은 값을 돌려준다.
     """
     routine = _owned_routine(db, trainer_id, member_id, routine_id)
     # 승인되지 않은 후보는 회원에게 보이지도 않는다. id 를 알아내 직접 호출해도
@@ -1477,7 +1483,10 @@ def complete_assigned_routine(
         )
     )
     if existing is not None:
-        return _routine_out(db, routine, existing)
+        return _completion_out(
+            db, routine, existing,
+            _completion_points(db, routine, member_id, existing.id, award=False),
+        )
 
     completed_at = clock.now()
     exercise_type = _ROUTINE_EXERCISE_TYPES(routine.type)
@@ -1527,6 +1536,10 @@ def complete_assigned_routine(
     )
     db.add(row)
     try:
+        # 적립은 기록과 같은 트랜잭션이다(#1786). 먼저 flush 해, 더블 탭이 유니크
+        # 제약에 걸리는 자리를 적립보다 앞에 둔다.
+        db.flush()
+        points = _completion_points(db, routine, member_id, row.id, award=True)
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -1537,10 +1550,50 @@ def complete_assigned_routine(
         )
         if existing is None:
             raise
-        return _routine_out(db, routine, existing)
+        return _completion_out(
+            db, routine, existing,
+            _completion_points(db, routine, member_id, existing.id, award=False),
+        )
     db.refresh(row)
     personal_ingest.refresh_exercise(db, member_id, session_id=row.id)
-    return _routine_out(db, routine, row)
+    return _completion_out(db, routine, row, points)
+
+
+def _completion_points(
+    db: Session,
+    routine: TrainerRoutine,
+    member_id: str,
+    session_id: str,
+    *,
+    award: bool,
+) -> points_service.PointsResult:
+    """배정 완료로 받는 포인트. (#1786)
+
+    적립 안내의 규칙은 `AI 추천 운동 완료` 뿐이라 AI 가 추천한 루틴만 적립한다 —
+    트레이너가 직접 배정한 루틴은 0 이다. [award] 가 거짓이면 이미 저장된 완료가
+    받은 값을 읽기만 한다(재전송 응답).
+    """
+    if routine.source != "ai":
+        return points_service.PointsResult(
+            awarded=0, balance=points_service.balance(db, member_id)
+        )
+    rule = points_service.AI_ROUTINE_COMPLETE
+    if award:
+        return points_service.award(db, member_id, rule, session_id)
+    return points_service.awarded_for(db, member_id, rule, session_id)
+
+
+def _completion_out(
+    db: Session,
+    routine: TrainerRoutine,
+    completion: ExerciseSession,
+    points: points_service.PointsResult,
+) -> RoutineCompleteOut:
+    """완료 응답 — 루틴 한 건에 이번 적립 결과를 더한다."""
+    return RoutineCompleteOut(
+        **_routine_out(db, routine, completion).model_dump(),
+        points=PointsOut.of(points),
+    )
 
 
 def uncomplete_assigned_routine(
@@ -1568,6 +1621,10 @@ def uncomplete_assigned_routine(
     if row is None:
         return _routine_out(db, routine, None)
     session_id = row.id
+    # 이 완료로 받은 포인트를 회수한다 — 기록 삭제와 같은 트랜잭션이다(#1786).
+    points_service.revoke(
+        db, member_id, points_service.SOURCE_EXERCISE_SESSION, session_id
+    )
     db.delete(row)
     db.commit()
     # 근거 문서도 함께 지운다 — 행이 사라지면 `_load` 가 None 을 돌려준다.

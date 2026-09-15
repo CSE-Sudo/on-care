@@ -21,7 +21,7 @@ from app.db.session import get_db
 from app.schemas.exercise_api import AssignedRoutineCompleteRequest
 from app.schemas.trainer_api import (
     ChatMessageOut, ChatSendRequest, MemberClientInviteOut,
-    MemberCoachOut, MemberInviteAcceptRequest, RoutineOut,
+    MemberCoachOut, MemberInviteAcceptRequest, RoutineCompleteOut, RoutineOut,
     ScheduleSessionOut,
 )
 from app.services import trainer_client_invite_service, trainer_service
@@ -89,15 +89,18 @@ def my_routines(
 
 @router.post(
     "/me/coach/routines/{routine_id}/complete",
-    response_model=RoutineOut,
+    response_model=RoutineCompleteOut,
 )
 def complete_my_routine(
     routine_id: str,
     payload: AssignedRoutineCompleteRequest,
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
-) -> RoutineOut:
-    """나에게 배정된 루틴을 회원 운동 기록으로 한 번만 완료한다."""
+) -> RoutineCompleteOut:
+    """나에게 배정된 루틴을 회원 운동 기록으로 한 번만 완료한다.
+
+    AI 추천 루틴이면 포인트 적립 결과(`points`)가 함께 온다(#1786).
+    """
     # intensity 는 AssignedRoutineCompleteRequest 의 Literal 에서 422 로 걸린다.
     # 담당 트레이너가 없는 회원도 AI 자동 추천을 수행한다(#782). 예전에는 여기서
     # 404 로 끊겨, 화면에 보이는 운동을 완료할 수 없었다.

@@ -19,6 +19,7 @@ from pydantic import (
 
 from app.core import clock
 from app.schemas.partial_update import PartialUpdate
+from app.schemas.points_api import PointsOut
 from app.services import exercise_types
 
 
@@ -471,6 +472,16 @@ class RoutineOut(BaseModel):
     completed_intensity: str | None = None
     member_note: str = ""
     trainer_feedback: str = ""
+
+
+class RoutineCompleteOut(RoutineOut):
+    """POST /me/coach/routines/{id}/complete 응답 — 이번 완료의 포인트 적립을 더한다. (#1786)
+
+    AI 추천 루틴(`source == "ai"`)만 적립 규칙이 있다. 트레이너가 직접 배정한
+    루틴은 `awarded` 가 0 이다. 목록 응답(`RoutineOut`)에는 붙지 않는다.
+    """
+
+    points: PointsOut
 
 
 class RoutineAssignRequest(BaseModel):

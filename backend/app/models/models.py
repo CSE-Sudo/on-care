@@ -131,6 +131,57 @@ class HealthProfile(Base):
     user: Mapped["User"] = relationship(back_populates="health_profile")
 
 
+class PointsLedger(Base):
+    """활동 포인트 내역 — 적립(earn)·사용(spend)·회수(revoke) 한 줄씩. (#1786)
+
+    잔액은 [HealthProfile.activity_points] 가 들고, 이 표는 그 잔액이 무엇으로
+    움직였는지를 남긴다. 둘은 같은 트랜잭션에서 함께 바뀐다(`points_service`).
+
+    `kst_date` 는 이 줄이 생긴 KST 날짜다. 하루 적립 한도를 이 값으로 센다 —
+    `created_at` 은 UTC 라 그대로 날짜를 뽑으면 아침 기록이 전날로 잡힌다.
+
+    같은 기록(source)에 적립·회수는 한 번씩이다. 사용처(쿠폰 등)가 생기면
+    `kind='spend'` 로 음수 `delta` 를 남기고, 출처가 없으면 source 를 비운다.
+    """
+
+    __tablename__ = "points_ledger"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    kind: Mapped[str] = mapped_column(String(10))  # earn|spend|revoke
+    #: 잔액 변화량. 적립은 양수, 사용·회수는 0 이하(실제로 뺀 값).
+    delta: Mapped[int] = mapped_column(Integer)
+    #: 규칙 이름 — diet_entry|exercise_manual|ai_routine_complete. 한도를 세는 단위.
+    reason: Mapped[str] = mapped_column(String(40))
+    #: 근거 기록 종류와 id — diet_entry|exercise_session.
+    source_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    source_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    kst_date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "kind IN ('earn', 'spend', 'revoke')", name="ck_points_ledger_kind"
+        ),
+        CheckConstraint(
+            "(kind = 'earn' AND delta > 0) OR (kind <> 'earn' AND delta <= 0)",
+            name="ck_points_ledger_delta_sign",
+        ),
+        UniqueConstraint(
+            "user_id",
+            "kind",
+            "source_type",
+            "source_id",
+            name="uq_points_ledger_source",
+        ),
+        Index("ix_points_ledger_user_day", "user_id", "kst_date", "reason"),
+    )
+
+
 class DietEntry(Base):
     """식단 기록 — drift DietEntries 대응. 나트륨·당류 포함."""
 
