@@ -14,7 +14,7 @@ import 'package:oncare/features/exercise/presentation/controllers/consultation_r
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart'
-    show AppButton, AppTimePickerDialog, OnCareColors;
+    show AppButton, AppTimeRangePickerDialog, OnCareColors;
 
 import '../../support/consultation_test_support.dart';
 
@@ -112,7 +112,7 @@ Future<void> _pickPreferredTime(WidgetTester tester) async {
   await _revealInForm(tester, find.byKey(const Key('consult-time')), 180);
   await tester.tap(find.byKey(const Key('consult-time')));
   await tester.pumpAndSettle();
-  final Finder dialog = find.byType(AppTimePickerDialog);
+  final Finder dialog = find.byType(AppTimeRangePickerDialog);
   expect(dialog, findsOneWidget);
   await tester.tap(
     find.descendant(of: dialog, matching: find.byType(AppButton)).last,

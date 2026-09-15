@@ -36,7 +36,8 @@ import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
-import 'package:oncare_ui/oncare_ui.dart' show AppButton, AppTimePickerDialog;
+import 'package:oncare_ui/oncare_ui.dart'
+    show AppButton, AppTimeRangePickerDialog;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String memberEmail = 'minsu@oncare.com';
@@ -813,7 +814,7 @@ Future<void> submitConsultation(
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
 
-  final Finder timeDialog = find.byType(AppTimePickerDialog);
+  final Finder timeDialog = find.byType(AppTimeRangePickerDialog);
   await pumpUntil(tester, timeDialog, step: '희망 시각 선택창');
   await tester.enterText(
     find.byKey(const ValueKey<String>('consult-time-range-start-input')),

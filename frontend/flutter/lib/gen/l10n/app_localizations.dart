@@ -4021,48 +4021,6 @@ abstract class AppLocalizations {
   /// **'No time'**
   String get eventTimeNone;
 
-  /// Title of the event time picker dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Select time'**
-  String get eventTimePickerTitle;
-
-  /// Step label while picking the hour in the event time picker.
-  ///
-  /// In en, this message translates to:
-  /// **'Hour'**
-  String get eventTimePickerHourStep;
-
-  /// Step label while picking the minute in the event time picker.
-  ///
-  /// In en, this message translates to:
-  /// **'Minute'**
-  String get eventTimePickerMinuteStep;
-
-  /// AM pill in the event time picker.
-  ///
-  /// In en, this message translates to:
-  /// **'AM'**
-  String get eventTimePickerAm;
-
-  /// PM pill in the event time picker.
-  ///
-  /// In en, this message translates to:
-  /// **'PM'**
-  String get eventTimePickerPm;
-
-  /// Tooltip of the previous-step arrow in the event time picker.
-  ///
-  /// In en, this message translates to:
-  /// **'Previous step'**
-  String get eventTimePickerPrevStep;
-
-  /// Tooltip of the next-step arrow in the event time picker.
-  ///
-  /// In en, this message translates to:
-  /// **'Next step'**
-  String get eventTimePickerNextStep;
-
   /// Validation message when the event title is empty.
   ///
   /// In en, this message translates to:

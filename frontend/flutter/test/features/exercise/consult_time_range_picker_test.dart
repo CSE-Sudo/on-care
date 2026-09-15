@@ -46,14 +46,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  AppLocalizations l10n(WidgetTester tester) =>
-      AppLocalizations.of(tester.element(find.byType(AppTimePickerDialog)));
+  AppLocalizations l10n(WidgetTester tester) => AppLocalizations.of(
+    tester.element(find.byType(AppTimeRangePickerDialog)),
+  );
 
   Finder byKey(String value) => find.byKey(ValueKey<String>(value));
 
   Finder confirmButton() => find
       .descendant(
-        of: find.byType(AppTimePickerDialog),
+        of: find.byType(AppTimeRangePickerDialog),
         matching: find.byType(AppButton),
       )
       .last;
@@ -76,7 +77,7 @@ void main() {
     // 아이콘 버튼은 닫기 X 하나뿐이다 — 키보드 전환 버튼이 없다.
     expect(
       find.descendant(
-        of: find.byType(AppTimePickerDialog),
+        of: find.byType(AppTimeRangePickerDialog),
         matching: find.byType(IconButton),
       ),
       findsOneWidget,
@@ -124,7 +125,7 @@ void main() {
     await tester.tap(confirmButton());
     await tester.pumpAndSettle();
 
-    expect(find.byType(AppTimePickerDialog), findsNothing);
+    expect(find.byType(AppTimeRangePickerDialog), findsNothing);
     expect(completed, isTrue);
     expect(result, (
       start: const TimeOfDay(hour: 10, minute: 0),
@@ -138,7 +139,7 @@ void main() {
     await tester.tap(find.byType(AppCloseButton));
     await tester.pumpAndSettle();
 
-    expect(find.byType(AppTimePickerDialog), findsNothing);
+    expect(find.byType(AppTimeRangePickerDialog), findsNothing);
     expect(completed, isTrue);
     expect(result, isNull);
   });

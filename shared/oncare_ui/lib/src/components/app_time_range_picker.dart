@@ -11,23 +11,40 @@ import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
 import 'package:oncare_ui/src/tokens/typography.dart';
 
-/// 시간 선택창에서 두 모드(시각 하나·시작~종료)가 함께 쓰는 글자.
+/// 시작·종료 시간 선택창에 보이는 글자.
 ///
 /// 패키지는 번역을 들고 있지 않다 — 앱이 자기 arb 문구를 넣는다.
 @immutable
-class AppTimePickerLabels {
-  const AppTimePickerLabels({
+class AppTimeRangePickerLabels {
+  const AppTimeRangePickerLabels({
     required this.title,
+    required this.startTime,
+    required this.endTime,
+    required this.startHourStep,
+    required this.startMinuteStep,
+    required this.endHourStep,
+    required this.endMinuteStep,
     required this.am,
     required this.pm,
     required this.previousStep,
     required this.nextStep,
+    required this.invalidEnd,
     required this.cancel,
     required this.confirm,
   });
 
   /// 창 제목(예: `시간 선택`).
   final String title;
+
+  /// 위 두 칸의 라벨.
+  final String startTime;
+  final String endTime;
+
+  /// 지금 고르는 단계 라벨 — 시작 시 · 시작 분 · 종료 시 · 종료 분.
+  final String startHourStep;
+  final String startMinuteStep;
+  final String endHourStep;
+  final String endMinuteStep;
 
   /// 오전·오후 알약.
   final String am;
@@ -37,136 +54,71 @@ class AppTimePickerLabels {
   final String previousStep;
   final String nextStep;
 
+  /// 종료가 시작보다 이르거나 같을 때의 안내.
+  final String invalidEnd;
+
   /// 하단 두 버튼.
   final String cancel;
   final String confirm;
 }
 
-/// 시각 **하나**를 고르는 시간 선택창(#1779).
-///
-/// 상담 신청 시간 선택창과 같은 모양에 시간 칸이 하나다 — 시 → 분 두 단계를
-/// 시계판으로 고르고, 칸에 `HH:mm`(24시간)을 직접 칠 수도 있다. Material 기본
-/// 시간 선택기와 달리 키보드 전환 버튼은 없다. 닫거나 취소하면 `null` 이다.
-///
-/// 테스트·호출부가 찾는 키는 `'$keyPrefix-…'` 다: `input`, `back`, `next`,
-/// `period-am`·`period-pm`, `step-<단계>`, `clock-value-<값>`, `actions`.
-Future<TimeOfDay?> showAppTimePicker({
-  required BuildContext context,
-  required TimeOfDay initialTime,
-  required AppTimePickerLabels labels,
-  required String timeLabel,
-  required String hourStepLabel,
-  required String minuteStepLabel,
-  String keyPrefix = 'app-time-picker',
-}) {
-  return showAppDialog<TimeOfDay>(
-    context: context,
-    builder: (_) => AppTimePickerDialog._(
-      initialStart: initialTime,
-      labels: labels,
-      startLabel: timeLabel,
-      startHourStepLabel: hourStepLabel,
-      startMinuteStepLabel: minuteStepLabel,
-      keyPrefix: keyPrefix,
-    ),
-  );
-}
-
 /// 시작·종료 시각을 **한 창에서** 차례로 고르는 시간 선택창(#1779).
 ///
 /// `2db5b04` 시점 회원앱 상담 신청의 전용 시간 선택창을 규격 토큰으로 옮긴
-/// 것이다. 위에 시작·종료 칸(누르면 그 값을 고르는 단계로 옮기고, `HH:mm` 을
-/// 직접 칠 수 있다), 지금 고르는 단계 라벨과 화살표, 오전/오후 알약, 시계판
-/// 순서다. 시작 시 → 시작 분 → 종료 시 → 종료 분 네 단계로 넘어간다.
+/// 것이다. 위에 시작·종료 칸(누르면 그 값을 고르는 단계로 옮기고, `HH:mm`
+/// 24시간으로 직접 칠 수 있다), 지금 고르는 단계 라벨과 화살표, 오전/오후 알약,
+/// 시계판 순서다. 시작 시 → 시작 분 → 종료 시 → 종료 분 네 단계로 넘어간다.
+/// Material 기본 시간 선택기와 달리 키보드 전환 버튼은 없고, 아래는 두 버튼
+/// (취소 / 확인)이다.
 ///
 /// 종료가 시작보다 이르거나 같으면 확인이 막히고, 종료 분 단계에서
-/// [invalidEndMessage] 를 보인다. 닫거나 취소하면 `null` 이다.
+/// [AppTimeRangePickerLabels.invalidEnd] 를 보인다. 닫거나 취소하면 `null` 이다.
 ///
-/// 키는 [showAppTimePicker] 와 같고, 칸만 `start-input`·`end-input` 둘이며
-/// 안내 문구는 `invalid-end` 다.
+/// 테스트·호출부가 찾는 키는 `'$keyPrefix-…'` 다: `start-input`·`end-input`,
+/// `back`·`next`, `period-am`·`period-pm`, `invalid-end`, `step-<단계>`,
+/// `clock-value-<값>`, `actions`.
 Future<({TimeOfDay start, TimeOfDay end})?> showAppTimeRangePicker({
   required BuildContext context,
   required TimeOfDay initialStart,
   required TimeOfDay initialEnd,
-  required AppTimePickerLabels labels,
-  required String startLabel,
-  required String endLabel,
-  required String startHourStepLabel,
-  required String startMinuteStepLabel,
-  required String endHourStepLabel,
-  required String endMinuteStepLabel,
-  required String invalidEndMessage,
+  required AppTimeRangePickerLabels labels,
   String keyPrefix = 'app-time-range-picker',
 }) {
   return showAppDialog<({TimeOfDay start, TimeOfDay end})>(
     context: context,
-    builder: (_) => AppTimePickerDialog._(
+    builder: (_) => AppTimeRangePickerDialog._(
       initialStart: initialStart,
+      initialEnd: initialEnd,
       labels: labels,
-      startLabel: startLabel,
-      startHourStepLabel: startHourStepLabel,
-      startMinuteStepLabel: startMinuteStepLabel,
       keyPrefix: keyPrefix,
-      end: _RangeEnd(
-        initial: initialEnd,
-        label: endLabel,
-        hourStepLabel: endHourStepLabel,
-        minuteStepLabel: endMinuteStepLabel,
-        invalidMessage: invalidEndMessage,
-      ),
     ),
   );
 }
 
-/// 범위 모드에만 있는 종료 시각 쪽 값·글자.
-@immutable
-class _RangeEnd {
-  const _RangeEnd({
-    required this.initial,
-    required this.label,
-    required this.hourStepLabel,
-    required this.minuteStepLabel,
-    required this.invalidMessage,
-  });
-
-  final TimeOfDay initial;
-  final String label;
-  final String hourStepLabel;
-  final String minuteStepLabel;
-  final String invalidMessage;
-}
-
-/// 시간 선택창 본체. [showAppTimePicker]·[showAppTimeRangePicker] 로만 연다.
+/// 시간 선택창 본체. [showAppTimeRangePicker] 로만 연다.
 ///
 /// 떠 있는 창을 테스트가 `find.byType` 으로 찾을 수 있게 타입만 공개한다.
-class AppTimePickerDialog extends StatefulWidget {
-  const AppTimePickerDialog._({
+class AppTimeRangePickerDialog extends StatefulWidget {
+  const AppTimeRangePickerDialog._({
     required this.initialStart,
+    required this.initialEnd,
     required this.labels,
-    required this.startLabel,
-    required this.startHourStepLabel,
-    required this.startMinuteStepLabel,
     required this.keyPrefix,
-    _RangeEnd? end,
-  }) : _end = end;
+  });
 
   final TimeOfDay initialStart;
-  final AppTimePickerLabels labels;
-  final String startLabel;
-  final String startHourStepLabel;
-  final String startMinuteStepLabel;
+  final TimeOfDay initialEnd;
+  final AppTimeRangePickerLabels labels;
   final String keyPrefix;
 
-  /// 없으면 시각 하나 모드(시 → 분), 있으면 범위 모드(네 단계)다.
-  final _RangeEnd? _end;
-
   @override
-  State<AppTimePickerDialog> createState() => _AppTimePickerDialogState();
+  State<AppTimeRangePickerDialog> createState() =>
+      _AppTimeRangePickerDialogState();
 }
 
-class _AppTimePickerDialogState extends State<AppTimePickerDialog> {
+class _AppTimeRangePickerDialogState extends State<AppTimeRangePickerDialog> {
   late TimeOfDay _start = widget.initialStart;
-  late TimeOfDay _end = widget._end?.initial ?? widget.initialStart;
+  late TimeOfDay _end = widget.initialEnd;
   late final TextEditingController _startController = TextEditingController(
     text: _clock(_start),
   );
@@ -174,17 +126,17 @@ class _AppTimePickerDialogState extends State<AppTimePickerDialog> {
     text: _clock(_end),
   );
 
-  /// 0 시작 시 · 1 시작 분 · 2 종료 시 · 3 종료 분. 시각 하나 모드는 0·1 뿐이다.
+  /// 0 시작 시 · 1 시작 분 · 2 종료 시 · 3 종료 분.
   int _step = 0;
 
-  bool get _range => widget._end != null;
-  int get _lastStep => _range ? 3 : 1;
+  static const int _lastStep = 3;
+
   bool get _isStart => _step < 2;
   bool get _isHour => _step.isEven;
   TimeOfDay get _active => _isStart ? _start : _end;
 
   /// 범위로 쓸 수 없는 값 — 종료가 시작보다 이르거나 같다.
-  bool get _endNotAfterStart => _range && _minutes(_end) <= _minutes(_start);
+  bool get _endNotAfterStart => _minutes(_end) <= _minutes(_start);
 
   static int _minutes(TimeOfDay value) => value.hour * 60 + value.minute;
 
@@ -262,30 +214,17 @@ class _AppTimePickerDialogState extends State<AppTimePickerDialog> {
     });
   }
 
-  void _confirm() {
-    if (_range) {
-      Navigator.pop<({TimeOfDay start, TimeOfDay end})>(context, (
-        start: _start,
-        end: _end,
-      ));
-    } else {
-      Navigator.pop<TimeOfDay>(context, _start);
-    }
-  }
-
-  String get _stepLabel {
-    final _RangeEnd? end = widget._end;
-    if (_isStart || end == null) {
-      return _isHour ? widget.startHourStepLabel : widget.startMinuteStepLabel;
-    }
-    return _isHour ? end.hourStepLabel : end.minuteStepLabel;
-  }
+  String _stepLabel(AppTimeRangePickerLabels labels) => switch (_step) {
+    0 => labels.startHourStep,
+    1 => labels.startMinuteStep,
+    2 => labels.endHourStep,
+    _ => labels.endMinuteStep,
+  };
 
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    final AppTimePickerLabels labels = widget.labels;
-    final _RangeEnd? end = widget._end;
+    final AppTimeRangePickerLabels labels = widget.labels;
 
     return AppDialog(
       title: labels.title,
@@ -295,58 +234,52 @@ class _AppTimePickerDialogState extends State<AppTimePickerDialog> {
         cancelLabel: labels.cancel,
         onCancel: () => Navigator.pop(context),
         confirmLabel: labels.confirm,
-        onConfirm: _endNotAfterStart ? null : _confirm,
+        onConfirm: _endNotAfterStart
+            ? null
+            : () => Navigator.pop<({TimeOfDay start, TimeOfDay end})>(context, (
+                start: _start,
+                end: _end,
+              )),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          if (end == null)
-            _TimeValueBox(
-              fieldKey: _key('input'),
-              label: widget.startLabel,
-              controller: _startController,
-              active: true,
-              onTap: () => setState(() => _step = 0),
-              onChanged: (String value) => _readField(value, start: true),
-            )
-          else
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _TimeValueBox(
-                    fieldKey: _key('start-input'),
-                    label: widget.startLabel,
-                    controller: _startController,
-                    active: _isStart,
-                    onTap: () => setState(() => _step = 0),
-                    onChanged: (String value) => _readField(value, start: true),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _TimeValueBox(
+                  fieldKey: _key('start-input'),
+                  label: labels.startTime,
+                  controller: _startController,
+                  active: _isStart,
+                  onTap: () => setState(() => _step = 0),
+                  onChanged: (String value) => _readField(value, start: true),
+                ),
+              ),
+              SizedBox(
+                width: OnCareSpacing.s24,
+                child: Center(
+                  child: Text(
+                    '–',
+                    style: tokens
+                        .text(OnCareTypography.titleMedium)
+                        .copyWith(color: OnCareColors.textSecondary),
                   ),
                 ),
-                SizedBox(
-                  width: OnCareSpacing.s24,
-                  child: Center(
-                    child: Text(
-                      '–',
-                      style: tokens
-                          .text(OnCareTypography.titleMedium)
-                          .copyWith(color: OnCareColors.textSecondary),
-                    ),
-                  ),
+              ),
+              Expanded(
+                child: _TimeValueBox(
+                  fieldKey: _key('end-input'),
+                  label: labels.endTime,
+                  controller: _endController,
+                  active: !_isStart,
+                  onTap: () => setState(() => _step = 2),
+                  onChanged: (String value) => _readField(value, start: false),
                 ),
-                Expanded(
-                  child: _TimeValueBox(
-                    fieldKey: _key('end-input'),
-                    label: end.label,
-                    controller: _endController,
-                    active: !_isStart,
-                    onTap: () => setState(() => _step = 2),
-                    onChanged: (String value) =>
-                        _readField(value, start: false),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
+          ),
           const SizedBox(height: OnCareSpacing.s16),
           SizedBox(
             height: OnCareSpacing.s48,
@@ -354,7 +287,7 @@ class _AppTimePickerDialogState extends State<AppTimePickerDialog> {
               children: <Widget>[
                 Expanded(
                   child: Text(
-                    _stepLabel,
+                    _stepLabel(labels),
                     style: tokens
                         .text(OnCareTypography.label)
                         .copyWith(color: OnCareColors.textSecondary),
@@ -412,9 +345,9 @@ class _AppTimePickerDialogState extends State<AppTimePickerDialog> {
                     ],
                   ),
                 ),
-                if (end != null && _step == 3 && _endNotAfterStart)
+                if (_step == _lastStep && _endNotAfterStart)
                   Text(
-                    end.invalidMessage,
+                    labels.invalidEnd,
                     key: _key('invalid-end'),
                     textAlign: TextAlign.center,
                     style: tokens

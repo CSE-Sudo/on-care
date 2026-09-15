@@ -38,3 +38,16 @@ Future<DateTimeRange?> showAppDateRangePicker({
     initialEntryMode: DatePickerEntryMode.calendarOnly,
   );
 }
+
+/// 시각 선택. 시계 다이얼 모양의 통합은 복합 위젯 이슈(#1697)에서 한다.
+Future<TimeOfDay?> showAppTimePicker({
+  required BuildContext context,
+  required TimeOfDay initialTime,
+  String? helpText,
+}) {
+  return showTimePicker(
+    context: context,
+    initialTime: initialTime,
+    helpText: helpText,
+  );
+}

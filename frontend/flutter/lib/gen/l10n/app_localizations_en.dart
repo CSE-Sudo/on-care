@@ -2211,27 +2211,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eventTimeNone => 'No time';
 
   @override
-  String get eventTimePickerTitle => 'Select time';
-
-  @override
-  String get eventTimePickerHourStep => 'Hour';
-
-  @override
-  String get eventTimePickerMinuteStep => 'Minute';
-
-  @override
-  String get eventTimePickerAm => 'AM';
-
-  @override
-  String get eventTimePickerPm => 'PM';
-
-  @override
-  String get eventTimePickerPrevStep => 'Previous step';
-
-  @override
-  String get eventTimePickerNextStep => 'Next step';
-
-  @override
   String get eventTitleRequired => 'Please enter an event title';
 
   @override
