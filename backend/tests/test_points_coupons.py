@@ -192,8 +192,9 @@ def test_shop_lists_items_with_block_reasons(client, db_session, trainer_id):
         "pt_renewal",
         "salad_discount",
         "protein_discount",
+        "streak_shield",
     ]
-    renewal, salad, protein = body["items"]
+    renewal, salad, protein = body["items"][:3]
     assert (renewal["cost"], renewal["valid_days"], renewal["redeemer"]) == (
         5000,
         30,

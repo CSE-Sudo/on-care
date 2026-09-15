@@ -81,7 +81,7 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` |
+| GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, protected_days[7], streak_shield?, ai_coach_message }` — 보호권은 아래 "연속 기록 보호권" 절 |
 | POST | `/exercise/sessions` | 입력 `{ type, minutes(>0), calories, intensity(light\|moderate\|high), day_label? }` → 생성된 `sessions[]` 항목 + `points` |
 | PUT | `/exercise/sessions/{id}` | 입력 동일(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
@@ -139,15 +139,17 @@
 | `pt_renewal` | PT 재등록 할인 쿠폰(10,000원) | 5000 | 30일 | 회원 휴대폰(직원 확인 뒤) | 활성 담당 필요, 사용 가능한 쿠폰은 회원당 1장 |
 | `salad_discount` | 샐러드 10% 할인 | 1000 | 30일 | 회원 휴대폰 | 사용 가능한 쿠폰은 회원당 1장 |
 | `protein_discount` | 프로틴 3,000원 할인 | 1000 | 30일 | 회원 휴대폰 | 사용 가능한 쿠폰은 회원당 1장 |
+| `streak_shield` | 연속 기록 보호권(#1788, 쿠폰 아님) | 300 | 없음(0) | 회원(운동 현황에서 사용) | 쓰지 않은 보호권 최대 2개 |
 
 사용 가능한(`issued`, 기한 전) 쿠폰은 **종류마다** 회원당 1장이다 — `(user_id, item) WHERE status='issued'`
 partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으로 막히고, 교환하면 409 다. 사용·만료·취소되면
-다시 교환할 수 있다.
+다시 교환할 수 있다. 연속 기록 보호권은 쿠폰 표에 들지 않고 보유 한도(2개)를 따로 센다.
 
 `items[]`: `{ id, title, benefit, description, cost, valid_days, redeemer, requires_trainer,
 available, blocked_reason, shortfall }`. `redeemer` 는 지금 모두 `member` 다. `blocked_reason` 은 `no_trainer` →
-`active_coupon` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란 포인트(모자라지
-않으면 0).
+`active_coupon` → `shield_limit` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
+포인트(모자라지 않으면 0). 교환 응답은 쿠폰이면 `coupon`, 보호권이면 `coupon: null` 과 `shield` 다(아래 "연속 기록
+보호권" 절).
 
 `coupon`: `{ id, item, title, benefit, cost, code, status, redeemer, trainer_name, gym_name, issued_at, issued_on,
 expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name`·`gym_name` 은 PT 재등록 쿠폰을 교환할
@@ -172,6 +174,32 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name`·`
   건강식 쿠폰은 그대로다.
 - **알림** 담당 해제로 인한 취소·만료 임박 알림의 `category` 는 `benefits`, `action` 은 `{ label: "내 혜택 보기",
   target: "my_benefits" }`. 수신 설정 스위치는 없다.
+
+### 연속 기록 보호권 (#1788)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| POST | `/me/points/exchange` | 회원 | 입력 `{ item: "streak_shield", client_request_id? }` → **201** `{ coupon: null, shield, spent, balance }` |
+| GET | `/me/streak-shields` | 회원(데모 폴백) | `{ held, max_held, cost, used[] }` |
+| POST | `/me/streak-shields/use` | 회원 | 입력 `{ date: "YYYY-MM-DD" }` → 같은 모양(사용 뒤) |
+
+`shield`: `{ id, cost, status(held|used), acquired_at, protected_on?, used_at? }`. `used[]`: `{ date, used_at }` — 보호한 날,
+최근 먼저(최대 100). 운동 주간 응답(`GET /exercise/weeks/current`, 트레이너 `GET /trainer/clients/{member_id}/exercise-week`)에는
+`protected_days[7]`(요일별 보호 여부)가 붙고, 회원의 **이번 주** 조회에만 `streak_shield: { held, protectable_date? }` 가 붙는다
+(지난 주·트레이너 조회는 null).
+
+- **교환** 사용처 항목 `streak_shield`, 300P, 기한 없음(`valid_days: 0`), 회원이 쓴다. 쓰지 않은 보호권은 **최대 2개**다 —
+  가득 차면 사용처 항목의 `blocked_reason` 이 `shield_limit`(잔액 부족보다 먼저), 교환은 409. 잔액 행을 잠근 채 보유 수와
+  잔액을 보고 `spend`(source `streak_shield`)를 남긴다. 같은 `client_request_id` 재전송은 처음 보호권을 돌려준다.
+- **사용** 회원이 직접 한다. 보호할 수 있는 날은 **어제(KST)** 하나다. 오늘·그보다 오래된 날·미래는 409, 어제가 지난주(오늘이
+  월요일)면 409 — 연속 기록은 이번 주 안에서 세므로 이어지지 않는다. 그날 운동 기록(분 > 0)이 있으면 409, 보호권이 없으면
+  409. 가장 먼저 교환한 보호권부터 쓴다. 하루에 보호는 한 번이며(회원·날짜 partial unique), 이미 보호한 날을 다시 보내면
+  보호권을 더 쓰지 않고 200 이다. 날짜 형식이 깨지면 422.
+- **`protectable_date`** 지금 보호할 수 있는 날(어제). 위 사용 규칙을 모두 통과하고 보호권이 있을 때만 값이 있다. 앱은 이 값이
+  있을 때만 운동 현황에 `보호권 쓰기` 를 띄운다.
+- **집계** 보호한 날은 `streak_days` 를 셀 때만 운동한 날로 본다 — `streak_days` 는 이번 주 안에서 운동했거나 보호한 날이
+  이어진 가장 긴 구간이다. `daily_minutes`·`daily_calories`·`total_*`·`sessions[]` 에는 들어가지 않는다.
+- 되돌리기·반환은 없다. 보호한 뒤 그날 운동 기록을 더해도 보호는 그대로 남는다.
 
 ### 일정 (캘린더 상세 CRUD)
 

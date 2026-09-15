@@ -27,7 +27,7 @@ from app.schemas.points_api import (
     ExchangeRequest,
     PointsShopOut,
 )
-from app.services import points_coupon_service, points_service
+from app.services import points_coupon_service, points_service, streak_shield_service
 from app.services.audit import client_ip, record as record_audit
 
 router = APIRouter(tags=["points"])
@@ -51,7 +51,8 @@ def exchange_points(
     """포인트를 써서 쿠폰을 발급한다. 내역에는 `spend` 로 남는다.
 
     없는 항목은 404, 규칙에 막히면(잔액 부족·담당 트레이너 없음·사용하지 않은
-    같은 종류 쿠폰 보유) 409 다.
+    같은 종류 쿠폰 보유·연속 기록 보호권 최대 보유) 409 다. 보호권(#1788)은 쿠폰
+    대신 `shield` 에 받은 보호권이 온다.
     """
     try:
         return points_coupon_service.exchange(
@@ -67,6 +68,7 @@ def exchange_points(
     except (
         points_coupon_service.TrainerRequired,
         points_coupon_service.ActiveCouponExists,
+        streak_shield_service.ShieldLimitReached,
     ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 

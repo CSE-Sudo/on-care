@@ -48,7 +48,7 @@ from app.schemas.points_api import (
     PointsShopOut,
     ShopItemOut,
 )
-from app.services import notification_service, points_service
+from app.services import notification_service, points_service, streak_shield_service
 
 #: 누가 사용 처리하나. 지금은 모든 쿠폰을 회원 휴대폰에서 처리한다 — PT 재등록
 #: 쿠폰도 직원이 확인한 뒤 회원 화면의 버튼을 누른다.
@@ -64,6 +64,8 @@ CANCELLED = "cancelled"
 BLOCK_NO_TRAINER = "no_trainer"
 BLOCK_ACTIVE_COUPON = "active_coupon"
 BLOCK_INSUFFICIENT = "insufficient_points"
+#: 쓰지 않은 연속 기록 보호권을 이미 최대로 가지고 있다(#1788).
+BLOCK_SHIELD_LIMIT = "shield_limit"
 
 #: 만료 알림을 보내기 시작하는 남은 날 수.
 REMIND_DAYS_BEFORE = 3
@@ -120,8 +122,26 @@ PROTEIN_DISCOUNT = ShopItem(
     one_active=True,
 )
 
+#: 연속 기록 보호권(#1788) — 쿠폰이 아니다. 교환하면 `streak_shields` 에 한 장이
+#: 생기고, 회원이 운동 현황에서 어제를 이어 붙일 때 쓴다. 기한이 없어 `valid_days`
+#: 는 0 이다. 규칙은 `streak_shield_service` 가 들고 있다.
+STREAK_SHIELD = ShopItem(
+    id=streak_shield_service.ITEM_ID,
+    title="연속 기록 보호권",
+    benefit="운동을 못 한 하루를 연속 기록에 이어 붙이기",
+    description="운동을 못 한 어제를 연속 기록에 이어 붙여요. 최대 2개까지 가질 수 있어요.",
+    cost=streak_shield_service.COST,
+    valid_days=0,
+    redeemer=REDEEMER_MEMBER,
+)
+
 #: 화면에 서는 순서 그대로다.
-CATALOG: tuple[ShopItem, ...] = (PT_RENEWAL, SALAD_DISCOUNT, PROTEIN_DISCOUNT)
+CATALOG: tuple[ShopItem, ...] = (
+    PT_RENEWAL,
+    SALAD_DISCOUNT,
+    PROTEIN_DISCOUNT,
+    STREAK_SHIELD,
+)
 _ITEMS: dict[str, ShopItem] = {item.id: item for item in CATALOG}
 
 #: 쿠폰 코드 글자 — 불러 주거나 받아 적을 때 헷갈리는 0·O·1·I 를 뺐다.
@@ -185,6 +205,7 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
             )
         ).all()
     )
+    shields_held = streak_shield_service.held_count(db, member_id)
     items: list[ShopItemOut] = []
     for item in CATALOG:
         shortfall = max(item.cost - balance, 0)
@@ -193,6 +214,11 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
             blocked = BLOCK_NO_TRAINER
         elif item.one_active and item.id in active_items:
             blocked = BLOCK_ACTIVE_COUPON
+        elif (
+            item.id == STREAK_SHIELD.id
+            and shields_held >= streak_shield_service.MAX_HELD
+        ):
+            blocked = BLOCK_SHIELD_LIMIT
         elif shortfall > 0:
             blocked = BLOCK_INSUFFICIENT
         items.append(
@@ -259,6 +285,11 @@ def exchange(
     item = _ITEMS.get(item_id)
     if item is None:
         raise UnknownItem("없는 교환 항목이에요.")
+    if item.id == STREAK_SHIELD.id:
+        # 쿠폰이 아니라 보호권 한 장이 생긴다 — 보유 한도와 표가 따로다(#1788).
+        return streak_shield_service.exchange(
+            db, member_id, client_request_id=client_request_id
+        )
     if client_request_id:
         existing = _by_request(db, member_id, client_request_id)
         if existing is not None:
