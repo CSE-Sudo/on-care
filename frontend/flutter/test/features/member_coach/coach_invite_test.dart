@@ -183,7 +183,7 @@ void main() {
       expect(repository.rejected, isEmpty);
     });
 
-    testWidgets('거절은 담당을 만들지 않는다', (tester) async {
+    testWidgets('거절은 빨간 확인창을 거친 뒤 담당을 만들지 않는다 (#1782)', (tester) async {
       final repository = _FakeCoachRepository(
         invites: const <CoachInvite>[_invite],
       );
@@ -194,8 +194,63 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // 누르자마자 거절하지 않고 먼저 묻는다.
+      expect(repository.rejected, isEmpty);
+      expect(find.byType(AppDialog), findsOneWidget);
+      expect(find.text('초대를 거절할까요?'), findsOneWidget);
+      final Finder dialogCancel = find.descendant(
+        of: find.byType(AppDialog),
+        matching: find.text('취소'),
+      );
+      final Finder dialogReject = find.descendant(
+        of: find.byType(AppDialog),
+        matching: find.text('거절'),
+      );
+      // [취소] 왼쪽, 빨간 [거절] 오른쪽.
+      final AppButtonPair pair = tester.widget<AppButtonPair>(
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.byType(AppButtonPair),
+        ),
+      );
+      expect(pair.destructive, isTrue);
+      expect(
+        tester.getCenter(dialogCancel).dx,
+        lessThan(tester.getCenter(dialogReject).dx),
+      );
+
+      await tester.tap(dialogReject);
+      await tester.pumpAndSettle();
+
       expect(repository.rejected, <String>['tci-1']);
       expect(repository.accepted, isEmpty);
+    });
+
+    testWidgets('거절 확인창에서 취소하면 요청이 그대로 남는다 (#1782)', (tester) async {
+      final repository = _FakeCoachRepository(
+        invites: const <CoachInvite>[_invite],
+      );
+      await _pumpCard(tester, repository);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('coach-invite-reject-tci-1')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppDialog),
+          matching: find.text('취소'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppDialog), findsNothing);
+      expect(repository.rejected, isEmpty);
+      expect(repository.accepted, isEmpty);
+      expect(
+        find.byKey(const ValueKey<String>('coach-invite-reject-tci-1')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('실패하면 안내하고 요청은 그대로 남는다', (tester) async {
