@@ -37,7 +37,9 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
     final bool isRenewal = coupon.item == kPtRenewalItem;
     final bool ok = await showAppConfirmDialog(
       context: context,
-      title: isRenewal ? l.myCouponStaffConfirmTitle : l.myCouponUseConfirmTitle,
+      title: isRenewal
+          ? l.myCouponStaffConfirmTitle
+          : l.myCouponUseConfirmTitle,
       message: isRenewal
           ? l.myCouponStaffConfirmMessage
           : l.myCouponUseConfirmMessage,
@@ -99,7 +101,11 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
     );
   }
 
-  List<Widget> _details(BuildContext context, AppLocalizations l, Coupon coupon) {
+  List<Widget> _details(
+    BuildContext context,
+    AppLocalizations l,
+    Coupon coupon,
+  ) {
     final OnCareTokens tokens = context.oncare;
     final bool isRenewal = coupon.item == kPtRenewalItem;
     final String expiry = formatCouponDate(coupon.expiresOn);
@@ -156,13 +162,14 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
                   Text(
                     coupon.displayCode,
                     key: const Key('couponCode'),
-                    style: OnCareTypography.numeric(
-                      tokens.text(OnCareTypography.titleLarge),
-                    ).copyWith(
-                      color: coupon.usable
-                          ? OnCareColors.textPrimary
-                          : OnCareColors.textDisabled,
-                    ),
+                    style:
+                        OnCareTypography.numeric(
+                          tokens.text(OnCareTypography.titleLarge),
+                        ).copyWith(
+                          color: coupon.usable
+                              ? OnCareColors.textPrimary
+                              : OnCareColors.textDisabled,
+                        ),
                   ),
                 ],
               ),
@@ -188,7 +195,10 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
                     )
                   : expiry,
             ),
-            _InfoRow(label: l.myCouponStatus, value: couponStatusLabel(l, coupon)),
+            _InfoRow(
+              label: l.myCouponStatus,
+              value: couponStatusLabel(l, coupon),
+            ),
             if (usedAt != null)
               _InfoRow(
                 key: const Key('couponUsedAt'),
@@ -317,7 +327,7 @@ class _Guide extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         const Icon(
-          Icons.info_outline_rounded,
+          Icons.info_rounded,
           size: OnCareSize.iconSmall,
           color: OnCareColors.textTertiary,
         ),

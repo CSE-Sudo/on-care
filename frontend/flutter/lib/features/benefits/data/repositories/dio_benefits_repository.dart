@@ -69,7 +69,9 @@ class DioBenefitsRepository implements BenefitsRepository {
       );
       return <Coupon>[
         for (final Object? raw in rows)
-          Coupon.fromJson((raw! as Map<Object?, Object?>).cast<String, Object?>()),
+          Coupon.fromJson(
+            (raw! as Map<Object?, Object?>).cast<String, Object?>(),
+          ),
       ];
     } on DioException catch (e) {
       throw AppError.fromDio(e);
