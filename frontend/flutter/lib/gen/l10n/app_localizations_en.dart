@@ -2037,6 +2037,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardOptionalTag => '(optional)';
 
   @override
+  String get onboardRequiredTag => '(required)';
+
+  @override
+  String get onboardBirthRequired => 'Choose your date of birth';
+
+  @override
+  String get onboardGenderRequired => 'Choose your gender';
+
+  @override
+  String get onboardHeightRequired => 'Enter your height';
+
+  @override
+  String onboardHeightRange(int min, int max) {
+    return 'Height must be between $min and $max cm';
+  }
+
+  @override
+  String get onboardWeightRequired => 'Enter your weight';
+
+  @override
+  String onboardWeightRange(int min, int max) {
+    return 'Weight must be between $min and $max kg';
+  }
+
+  @override
   String get onboardSkipStep => 'Skip this step';
 
   @override
