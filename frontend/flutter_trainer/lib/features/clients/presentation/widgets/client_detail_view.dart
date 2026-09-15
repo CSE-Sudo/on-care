@@ -4,9 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/features/clients/data/repositories/client_coupon_repository.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/renewal_coupon.dart';
 import 'package:oncare_trainer/features/clients/domain/repositories/client_data_refresher.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_profile_dialog.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/diet_view.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/renewal_coupon_dialog.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/workout_view.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
@@ -149,6 +152,12 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
         }
         final client = match.first;
         final String section = widget.resolvedSection;
+        // 회원이 포인트로 교환한 PT 재등록 쿠폰(#1787). 읽지 못하면 배지만 없다 —
+        // 쿠폰 확인은 이 화면의 주된 일이 아니라 오류 화면을 띄울 이유가 없다.
+        final RenewalCoupon? renewalCoupon = ref
+            .watch(clientRenewalCouponsProvider(client.id))
+            .valueOrNull
+            ?.firstOrNull;
 
         // 식단/운동은 라우트가 곧 선택 상태다 — 별도 `TabController` 없이
         // 현재 섹션 하나로 어느 쪽을 그릴지 결정한다(#1024). 두 뷰 모두
@@ -186,6 +195,14 @@ class _ClientDetailViewState extends ConsumerState<ClientDetailView> {
               onToggleActive: _statusSaving
                   ? null
                   : () => _setActive(client.id, !client.active),
+              renewalCoupon: renewalCoupon,
+              onOpenRenewalCoupon: renewalCoupon == null
+                  ? null
+                  : () => showRenewalCouponDialog(
+                      context,
+                      clientId: client.id,
+                      coupon: renewalCoupon,
+                    ),
             ),
             Expanded(
               child: ListView(
@@ -270,9 +287,17 @@ class _Header extends StatelessWidget {
     required this.onRefresh,
     required this.onToggleActive,
     required this.onOpenProfile,
+    this.renewalCoupon,
+    this.onOpenRenewalCoupon,
   });
 
   final TrainerClient client;
+
+  /// 회원이 가진 사용 가능한 PT 재등록 쿠폰(#1787). 없으면 배지를 그리지 않는다.
+  final RenewalCoupon? renewalCoupon;
+
+  /// 쿠폰 확인창을 연다.
+  final VoidCallback? onOpenRenewalCoupon;
 
   /// Why this client is flagged; empty when they're fine today.
   final List<ClientAlert> alerts;
@@ -476,6 +501,30 @@ class _Header extends StatelessWidget {
                             ClientAlert.sugarOver => AppTagTone.danger,
                             ClientAlert.lowCompletion => AppTagTone.caution,
                           },
+                        ),
+                      ),
+                    // 회원이 포인트로 교환한 PT 재등록 할인 쿠폰(#1787). 사용 가능한
+                    // 쿠폰을 가진 회원에게만 선다. 누르면 쿠폰 확인창이 열린다 —
+                    // 이 화면에서 이미 회원을 특정했으므로 코드 입력 단계가 없다.
+                    // 활성/휴면 배지와 같이 이 사람의 상태를 말하는 값이라 이 줄에 둔다.
+                    if (renewalCoupon != null)
+                      Semantics(
+                        button: true,
+                        label: l.clientRenewalCouponOpen,
+                        child: Material(
+                          type: MaterialType.transparency,
+                          child: InkWell(
+                            key: const ValueKey<String>(
+                              'client-renewal-coupon-badge',
+                            ),
+                            onTap: onOpenRenewalCoupon,
+                            borderRadius: OnCareRadius.pillAll,
+                            child: AppTag(
+                              label: l.clientRenewalCouponTitle,
+                              icon: Icons.confirmation_number_rounded,
+                              tone: AppTagTone.brand,
+                            ),
+                          ),
                         ),
                       ),
                   ],

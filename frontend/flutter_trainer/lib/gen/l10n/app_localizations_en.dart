@@ -3958,4 +3958,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routineFormIncrease => 'Increase';
+
+  @override
+  String get clientRenewalCouponTitle => 'Renewal coupon';
+
+  @override
+  String get clientRenewalCouponOpen => 'Review renewal coupon';
+
+  @override
+  String get clientRenewalCouponBenefitLabel => 'Benefit';
+
+  @override
+  String get clientRenewalCouponBenefit => '₩10,000 off PT renewal';
+
+  @override
+  String get clientRenewalCouponIssuedOn => 'Redeemed on';
+
+  @override
+  String get clientRenewalCouponExpiry => 'Expires';
+
+  @override
+  String clientRenewalCouponExpiryValue(String date, int days) {
+    return '$date (D-$days)';
+  }
+
+  @override
+  String clientRenewalCouponExpiryToday(String date) {
+    return '$date (D-day)';
+  }
+
+  @override
+  String get clientRenewalCouponWarning => 'This can\'t be undone once used';
+
+  @override
+  String get clientRenewalCouponRedeem => 'Mark as used';
+
+  @override
+  String get clientRenewalCouponRedeemed => 'Renewal coupon marked as used';
+
+  @override
+  String get clientRenewalCouponRedeemFailed =>
+      'Couldn\'t mark the coupon as used. Please try again shortly';
 }
