@@ -171,7 +171,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authBrowseDemo => 'Explore the demo without signing in';
 
   @override
-  String get authOr => 'or';
+  String get authSocialDivider => 'Sign in with a social account';
 
   @override
   String get authContinueKakao => 'Continue with Kakao';

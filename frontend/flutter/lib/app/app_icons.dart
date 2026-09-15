@@ -46,7 +46,6 @@ class AppIcons {
   static const IconData unlock = Symbols.lock_open_rounded;
   static const IconData visibility = Symbols.visibility_rounded;
   static const IconData visibilityOff = Symbols.visibility_off_rounded;
-  static const IconData google = Symbols.g_mobiledata_rounded;
   static const IconData logout = Symbols.logout_rounded;
   static const IconData disconnect = Symbols.link_off_rounded;
 

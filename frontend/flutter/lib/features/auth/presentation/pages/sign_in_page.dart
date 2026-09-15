@@ -149,20 +149,25 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           // 소셜 버튼은 고정 데모 토큰을 보내므로 목업이 받아 주는
           // 설정에서만 보인다 — 실서버에서는 눌러도 거절된다(#1553).
           if (socialEnabled) ...<Widget>[
-            const _OrDivider(),
+            AppLabeledDivider(label: l.authSocialDivider),
             const SizedBox(height: OnCareSpacing.s16),
-            _KakaoButton(
-              label: l.authKakaoAction,
-              onTap: _loading ? null : () => _social('kakao'),
-            ),
-            const SizedBox(height: OnCareSpacing.s8),
-            AppButton(
-              label: l.authGoogleAction,
-              leadingIcon: AppIcons.google,
-              onPressed: _loading ? null : () => _social('google'),
-              variant: AppButtonVariant.secondary,
-              size: OnCareButtonSize.large,
-              fullWidth: true,
+            // 전체 폭 버튼이면 로그인 버튼과 무게가 같고 화면이 길어진다 —
+            // 원형 아이콘 버튼으로 가운데에 나란히 둔다(#1783).
+            AppSocialLoginRow(
+              children: <Widget>[
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('member-login-kakao'),
+                  provider: AppSocialProvider.kakao,
+                  label: l.authKakaoAction,
+                  onPressed: _loading ? null : () => _social('kakao'),
+                ),
+                AppSocialLoginButton(
+                  key: const ValueKey<String>('member-login-google'),
+                  provider: AppSocialProvider.google,
+                  label: l.authGoogleAction,
+                  onPressed: _loading ? null : () => _social('google'),
+                ),
+              ],
             ),
             const SizedBox(height: OnCareSpacing.s12),
           ],
@@ -219,82 +224,6 @@ class _PasswordToggle extends StatelessWidget {
       tooltip: obscure ? l.a11yShowPassword : l.a11yHidePassword,
       color: OnCareColors.textTertiary,
       onPressed: onPressed,
-    );
-  }
-}
-
-/// "— 또는 —" separator between the email login and social buttons.
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        const Expanded(child: AppDivider()),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
-          child: Text(
-            AppLocalizations.of(context).authOrDivider,
-            style: context.oncare
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
-        ),
-        const Expanded(child: AppDivider()),
-      ],
-    );
-  }
-}
-
-/// 카카오 로그인 버튼 — 카카오 노랑은 외부 브랜드색이라 예외 토큰을 쓴다(#1690).
-/// 높이·반경·라벨은 큰 버튼 규격과 같다. Real SDK token acquisition is
-/// deferred; the [onTap] currently drives a demo-token exchange.
-class _KakaoButton extends StatelessWidget {
-  const _KakaoButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Material(
-      color: OnCareColors.kakaoYellow,
-      borderRadius: OnCareRadius.mdAll,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: tokens.density.buttonLarge,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s20),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const AppIcon(
-                  AppIcons.chat,
-                  color: OnCareColors.kakaoLabel,
-                  size: OnCareSize.iconMedium,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                // 글씨가 커지거나 영어 라벨("Continue with Kakao")이 오면 아이콘과
-                // 문구가 버튼 폭을 넘는다. 줄어들 수 있게 두고 넘치면 줄인다. (#995)
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: tokens
-                        .text(OnCareTypography.buttonLarge)
-                        .copyWith(color: OnCareColors.kakaoLabel),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

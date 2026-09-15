@@ -1052,7 +1052,10 @@
   "authNoAccountQuestion": "Don't have an account?",
   "authSignUpAction": "Sign up",
   "authDemoAction": "Explore the demo without signing in",
-  "authOrDivider": "or",
+  "authSocialDivider": "Sign in with a social account",
+  "@authSocialDivider": {
+    "description": "Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783)."
+  },
   "authKakaoAction": "Continue with Kakao",
   "authGoogleAction": "Continue with Google",
   "authMissingCredentials": "Enter your email and password",

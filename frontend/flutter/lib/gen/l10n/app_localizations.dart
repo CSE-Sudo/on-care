@@ -3445,11 +3445,11 @@ abstract class AppLocalizations {
   /// **'Explore the demo without signing in'**
   String get authDemoAction;
 
-  /// No description provided for @authOrDivider.
+  /// Label centered in the divider above the circular Kakao/Google sign-in buttons (#1783).
   ///
   /// In en, this message translates to:
-  /// **'or'**
-  String get authOrDivider;
+  /// **'Sign in with a social account'**
+  String get authSocialDivider;
 
   /// No description provided for @authKakaoAction.
   ///
