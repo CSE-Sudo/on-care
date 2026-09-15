@@ -3769,6 +3769,48 @@ abstract class AppLocalizations {
   /// **'(optional)'**
   String get onboardOptionalTag;
 
+  /// Onboarding step 1: the basic info step must be filled in (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'(required)'**
+  String get onboardRequiredTag;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your date of birth'**
+  String get onboardBirthRequired;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your gender'**
+  String get onboardGenderRequired;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your height'**
+  String get onboardHeightRequired;
+
+  /// Onboarding step 1: height outside the range the server accepts (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Height must be between {min} and {max} cm'**
+  String onboardHeightRange(int min, int max);
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your weight'**
+  String get onboardWeightRequired;
+
+  /// Onboarding step 1: weight outside the range the server accepts (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Weight must be between {min} and {max} kg'**
+  String onboardWeightRange(int min, int max);
+
   /// No description provided for @onboardSkipStep.
   ///
   /// In en, this message translates to:

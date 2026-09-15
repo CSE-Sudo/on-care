@@ -2021,6 +2021,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardOptionalTag => '(선택)';
 
   @override
+  String get onboardRequiredTag => '(필수)';
+
+  @override
+  String get onboardBirthRequired => '생년월일을 골라 주세요';
+
+  @override
+  String get onboardGenderRequired => '성별을 골라 주세요';
+
+  @override
+  String get onboardHeightRequired => '키를 입력해 주세요';
+
+  @override
+  String onboardHeightRange(int min, int max) {
+    return '키는 $min~${max}cm 사이로 입력해 주세요';
+  }
+
+  @override
+  String get onboardWeightRequired => '체중을 입력해 주세요';
+
+  @override
+  String onboardWeightRange(int min, int max) {
+    return '체중은 $min~${max}kg 사이로 입력해 주세요';
+  }
+
+  @override
   String get onboardSkipStep => '이 단계 건너뛰기';
 
   @override
