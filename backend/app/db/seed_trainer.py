@@ -24,6 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.services import health_focus
 from app.core.config import get_settings
 from app.core.security import hash_password
 from app.db.session import SessionLocal
@@ -55,7 +56,11 @@ TRAINER_ID = "trainer-demo"
 TRAINER_EMAIL = "trainer@oncare.com"
 TRAINER_NAME = "김트레이너"
 
-# 담당 회원: (user_id, email, name, goal, active, dormant, sort_order)
+# 담당 회원: (user_id, email, name, health_focus, active, dormant, sort_order)
+#
+# health_focus 는 회원 건강 목표(`HealthProfile.conditions`, 최대 2개)다(#1818). 예전에는
+# 트레이너가 적은 자유 문장(`산후 체력 회복`, `마라톤 완주 준비`)이었고, 회원앱이 고르는
+# 목표와 따로 놀았다. 트레이너 로스터는 이제 회원 건강 목표를 읽는다.
 # 김민수는 회원 앱 데모 사용자(user-7d4e9a2c5f18)와 동일 계정을 공유한다.
 #
 # `active` 와 `dormant` 는 다른 축이다(#707). 화면에는 둘 다 '휴면'으로 보이지만
@@ -65,24 +70,24 @@ TRAINER_NAME = "김트레이너"
 #   * 문가영 — 담당은 그대로인데 트레이너가 휴면으로 내린 회원(dormant=True).
 #     활성/휴면 전환을 실 API 콘솔에서 그대로 눌러 볼 수 있는 fixture 다.
 _MEMBERS: list[tuple[str, str, str, str, bool, bool, int]] = [
-    ("user-7d4e9a2c5f18", "minsu@oncare.com", "김민수", "혈압 관리 · 체중 감량", True, False, 1),
-    ("user-jisu", "jisu@oncare.com", "이지수", "체력 강화 · 다이어트", True, False, 2),
+    ("user-7d4e9a2c5f18", "minsu@oncare.com", "김민수", "체중 감량, 혈압 관리", True, False, 1),
+    ("user-jisu", "jisu@oncare.com", "이지수", "체중 감량, 체력 강화", True, False, 2),
     ("user-sungho", "sungho@oncare.com", "박성호", "근력 향상", False, False, 3),
     # 4~15: 트레이너 웹 목업 로스터와 같은 명단(#572). 주간 지표는 seed_roster 가
     # 채운다 — 화면 상태(나트륨 초과·이행률 저조·휴면·답장 대기)를 실 API 에서도
     # 재현하기 위한 fixture 다.
-    ("user-hayun", "hayun@oncare.demo", "정하윤", "산후 체력 회복", True, False, 4),
-    ("user-woojin", "woojin@oncare.demo", "최우진", "마라톤 완주 준비", True, False, 5),
-    ("user-kangseoyeon", "kangseoyeon@oncare.demo", "강서연", "체지방 감량", True, False, 6),
-    ("user-dohyun", "dohyun@oncare.demo", "임도현", "목표 설정 전", True, False, 7),
-    ("user-sera", "sera@oncare.demo", "오세라", "고혈압 관리", True, False, 8),
-    ("user-junhyuk", "junhyuk@oncare.demo", "배준혁", "수면 · 컨디션 개선", True, False, 9),
-    ("user-yuna", "yuna@oncare.demo", "신유나", "재활 후 복귀", True, False, 10),
-    ("user-jiho", "jiho@oncare.demo", "한지호", "현 체중 유지", True, False, 11),
-    ("user-gayoung", "gayoung@oncare.demo", "문가영", "체력 회복", True, True, 12),
-    ("user-taekyung", "taekyung@oncare.demo", "류태경", "벌크업", True, False, 13),
+    ("user-hayun", "hayun@oncare.demo", "정하윤", "체력 강화, 재활", True, False, 4),
+    ("user-woojin", "woojin@oncare.demo", "최우진", "체력 강화", True, False, 5),
+    ("user-kangseoyeon", "kangseoyeon@oncare.demo", "강서연", "체중 감량", True, False, 6),
+    ("user-dohyun", "dohyun@oncare.demo", "임도현", "자세 교정", True, False, 7),
+    ("user-sera", "sera@oncare.demo", "오세라", "혈압 관리", True, False, 8),
+    ("user-junhyuk", "junhyuk@oncare.demo", "배준혁", "체력 강화, 운동 습관", True, False, 9),
+    ("user-yuna", "yuna@oncare.demo", "신유나", "재활", True, False, 10),
+    ("user-jiho", "jiho@oncare.demo", "한지호", "식습관 개선, 운동 습관", True, False, 11),
+    ("user-gayoung", "gayoung@oncare.demo", "문가영", "체력 강화", True, True, 12),
+    ("user-taekyung", "taekyung@oncare.demo", "류태경", "근력 향상, 식습관 개선", True, False, 13),
     ("user-seojin", "seojin@oncare.demo", "백서진", "식습관 개선", True, False, 14),
-    ("user-eunchae", "eunchae@oncare.demo", "노은채", "운동 습관 만들기", True, False, 15),
+    ("user-eunchae", "eunchae@oncare.demo", "노은채", "운동 습관", True, False, 15),
 ]
 
 #: 담당 회원의 성별(male|female). 트레이너 로스터 카드가 이름 옆에 적는 값이다.
@@ -249,9 +254,10 @@ def seed_member_genders() -> None:
 
 
 def _seed_member_genders(db: Session) -> None:
-    """[seed_member_genders] 본문. 이미 값이 있으면 건드리지 않는다 — 트레이너나
+    """[seed_member_genders] 본문 — 성별과 건강 목표(#1818). 이미 값이 있으면 건드리지 않는다 — 트레이너나
     회원이 입력한 값이 시드로 덮이면, 화면에서 고친 것이 재기동마다 되돌아온다."""
     changed = False
+    focus_by_member = {user_id: focus for user_id, _e, _n, focus, _a, _d, _o in _MEMBERS}
     for user_id, gender in _MEMBER_GENDERS.items():
         member = db.scalar(select(models.User).where(models.User.id == user_id))
         if member is None or member.role != "member":
@@ -259,12 +265,21 @@ def _seed_member_genders(db: Session) -> None:
         profile = db.scalar(
             select(models.HealthProfile).where(models.HealthProfile.user_id == user_id)
         )
+        focus = focus_by_member.get(user_id, "")
         if profile is None:
-            db.add(models.HealthProfile(user_id=user_id, gender=gender))
+            db.add(models.HealthProfile(user_id=user_id, gender=gender, conditions=focus))
             changed = True
-        elif not profile.gender:
+            continue
+        if not profile.gender:
             profile.gender = gender
             changed = True
+        # 건강 목표도 같은 규칙이다 — 비어 있을 때만 채워, 회원·트레이너가 고른 목표를
+        # 재기동마다 덮지 않는다(#1818).
+        if focus:
+            filled = health_focus.with_focus_if_missing(profile.conditions, focus)
+            if filled != profile.conditions:
+                profile.conditions = filled
+                changed = True
     if changed:
         _safe_commit(db, "회원 성별 시드 충돌")
 
@@ -275,7 +290,7 @@ def _seed_client_links(db: Session) -> None:
     if trainer is None or trainer.role != "trainer":
         # 트레이너 계정이 없거나(시드 스킵) 역할이 트레이너가 아니면 링크를 만들지 않는다.
         return
-    for user_id, _email, _name, goal, active, dormant, order in _MEMBERS:
+    for user_id, _email, _name, focus, active, dormant, order in _MEMBERS:
         link_id = f"tc-{TRAINER_ID}-{user_id}"
         if db.scalar(select(models.TrainerClient.id).where(models.TrainerClient.id == link_id)):
             continue
@@ -293,7 +308,8 @@ def _seed_client_links(db: Session) -> None:
             id=link_id,
             trainer_id=TRAINER_ID,
             member_id=user_id,
-            goal=goal,
+            # 옛 칸이라 화면이 읽지 않지만, 같은 값을 적어 두어 두 칸이 다른 말을 하지 않게 한다.
+            goal=health_focus.focus_label(focus),
             active=active,
             dormant=dormant,
             sort_order=order,
