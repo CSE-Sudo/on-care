@@ -2935,6 +2935,66 @@ abstract class AppLocalizations {
   /// **'Writing your answer'**
   String get aicGeneratingReply;
 
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'{part} pain noted'**
+  String aicInsightDiscomfortPart(String part);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Pain noted'**
+  String get aicInsightDiscomfort;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Negative feedback noted'**
+  String get aicInsightNegative;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Noted signals'**
+  String get aicInsightHistoryTitle;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Pain and negative feedback noted in the last {days} days'**
+  String aicInsightHistorySubtitle(int days);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing noted in the last {days} days'**
+  String aicInsightHistoryEmpty(int days);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load noted signals'**
+  String get aicInsightHistoryFailed;
+
+  /// AI coach chat: how long the conversation is kept (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'AI chat history is kept for the last {days} days'**
+  String aicRetentionNotice(int days);
+
+  /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with your trainer'**
+  String get aicTrainerConnectedTitle;
+
+  /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected with {name}. Members with a trainer chat with their trainer instead of the AI chatbot'**
+  String aicTrainerConnectedBody(String name);
+
   /// No description provided for @aicQuickReply1.
   ///
   /// In en, this message translates to:
@@ -3708,6 +3768,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'(optional)'**
   String get onboardOptionalTag;
+
+  /// Points guide shown once after onboarding (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Points quests'**
+  String get pointsGuideTitle;
+
+  /// Points guide shown once after onboarding (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'The more you log each day, the more points you earn. Try these quests'**
+  String get pointsGuideSubtitle;
+
+  /// Points guide: numbered quest label (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Quest {number}'**
+  String pointsGuideQuest(int number);
+
+  /// Points guide: how many times a day the points can be earned (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Once a day} other{Up to {count} times a day}}'**
+  String pointsGuideDailyCap(int count);
+
+  /// Points guide: where the points are used (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Spend your points in MY › Points'**
+  String get pointsGuideSpendNote;
+
+  /// Points guide: button that goes to Home (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get pointsGuideStart;
+
+  /// Onboarding step 1: the basic info step must be filled in (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'(required)'**
+  String get onboardRequiredTag;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your date of birth'**
+  String get onboardBirthRequired;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your gender'**
+  String get onboardGenderRequired;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your height'**
+  String get onboardHeightRequired;
+
+  /// Onboarding step 1: height outside the range the server accepts (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Height must be between {min} and {max} cm'**
+  String onboardHeightRange(int min, int max);
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your weight'**
+  String get onboardWeightRequired;
+
+  /// Onboarding step 1: weight outside the range the server accepts (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Weight must be between {min} and {max} kg'**
+  String onboardWeightRange(int min, int max);
 
   /// No description provided for @onboardSkipStep.
   ///

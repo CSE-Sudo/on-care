@@ -7,12 +7,16 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// "AI 건강 도우미" bottom sheet — the daily coaching digest opened from the
 /// floating Oni button and the Home coaching banner. Its CTA hands off to the
-/// AI chat. Mirrors the Figma `CoachingSheet`.
+/// AI chat — or, for a member with a trainer, to that trainer's chat (#1823).
+/// Mirrors the Figma `CoachingSheet`.
 Future<void> showCoachingSheet(BuildContext context, {WidgetRef? ref}) {
   // 열어서 봤으면 배지를 내린다. 읽을 것이 없는데도 남는 숫자는 알림 벨의
   // 미읽음 점과 같은 종류의 거짓말이다(#788).
@@ -127,6 +131,10 @@ class _CoachingSheet extends ConsumerWidget {
           : live.map((AiSuggestion s) => _cardFromSuggestion(l, s)).toList();
     }
 
+    // 담당 트레이너가 있는 회원은 AI 챗봇을 쓰지 않는다(#1823). 같은 버튼이 그
+    // 트레이너 채팅으로 이어진다.
+    final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
+
     // 이전 디자인으로 되돌린다(#1831) — 시트 제목 줄 대신 **도우미가 조언을 건네는**
     // 머리: 왼쪽 Oni 아바타, 옆에 파란 `AI 건강 도우미` 와 굵은 한 줄, 오른쪽 둥근
     // 닫기. 핸들·높이·하단 여백은 [AppSheet] 가 그대로 맡는다.
@@ -138,13 +146,17 @@ class _CoachingSheet extends ConsumerWidget {
       footer: KeyedSubtree(
         key: const Key('coachingSheetCta'),
         child: AppButton(
-          label: l.coachCtaChat,
+          label: coach != null ? l.coachChatWithTrainer : l.coachCtaChat,
           leadingIcon: AppIcons.chat,
           size: OnCareButtonSize.large,
           fullWidth: true,
           onPressed: () {
             Navigator.of(context).pop();
-            context.push(AppRoutes.aiCoach);
+            if (coach != null) {
+              openTrainerChatPage(context, trainerName: coach.name);
+            } else {
+              context.push(AppRoutes.aiCoach);
+            }
           },
         ),
       ),

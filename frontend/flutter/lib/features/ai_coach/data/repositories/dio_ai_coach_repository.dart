@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
 
@@ -46,5 +47,11 @@ class DioAiCoachRepository implements AiCoachRepository {
       },
     );
     return ChatMessage.coachFromReply(res.data!);
+  }
+
+  @override
+  Future<ChatInsightHistory> fetchInsights() async {
+    final res = await _dio.get<Map<String, Object?>>('/ai-coach/insights');
+    return ChatInsightHistory.fromJson(res.data ?? const <String, Object?>{});
   }
 }

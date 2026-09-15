@@ -12,7 +12,10 @@ const ChatMessage _welcome = ChatMessage(
 );
 
 class ChatState {
-  const ChatState({this.messages = const <ChatMessage>[_welcome], this.sending = false});
+  const ChatState({
+    this.messages = const <ChatMessage>[_welcome],
+    this.sending = false,
+  });
 
   final List<ChatMessage> messages;
   final bool sending;
@@ -69,7 +72,13 @@ class ChatController extends StateNotifier<ChatState> {
 
     try {
       final reply = await _repo.sendMessage(message: message, history: history);
-      state = state.copyWith(messages: _replacePending(reply), sending: false);
+      // 답에 실려 온 감지 결과는 **방금 보낸 회원 메시지**에 붙인다(#1824).
+      final List<ChatMessage> next = _replacePending(reply);
+      final int mine = next.lastIndexWhere((ChatMessage m) => m.isUser);
+      if (mine >= 0 && reply.replyToInsight != null) {
+        next[mine] = next[mine].withInsight(reply.replyToInsight);
+      }
+      state = state.copyWith(messages: next, sending: false);
     } catch (_) {
       state = state.copyWith(
         messages: _replacePending(
@@ -90,8 +99,7 @@ class ChatController extends StateNotifier<ChatState> {
   ];
 }
 
-final chatControllerProvider =
-    StateNotifierProvider<ChatController, ChatState>(
-      (ref) => ChatController(ref.watch(aiCoachRepositoryProvider)),
-      name: 'chatController',
-    );
+final chatControllerProvider = StateNotifierProvider<ChatController, ChatState>(
+  (ref) => ChatController(ref.watch(aiCoachRepositoryProvider)),
+  name: 'chatController',
+);

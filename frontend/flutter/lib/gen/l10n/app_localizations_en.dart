@@ -1614,6 +1614,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicGeneratingReply => 'Writing your answer';
 
   @override
+  String aicInsightDiscomfortPart(String part) {
+    return '$part pain noted';
+  }
+
+  @override
+  String get aicInsightDiscomfort => 'Pain noted';
+
+  @override
+  String get aicInsightNegative => 'Negative feedback noted';
+
+  @override
+  String get aicInsightHistoryTitle => 'Noted signals';
+
+  @override
+  String aicInsightHistorySubtitle(int days) {
+    return 'Pain and negative feedback noted in the last $days days';
+  }
+
+  @override
+  String aicInsightHistoryEmpty(int days) {
+    return 'Nothing noted in the last $days days';
+  }
+
+  @override
+  String get aicInsightHistoryFailed => 'Couldn\'t load noted signals';
+
+  @override
+  String aicRetentionNotice(int days) {
+    return 'AI chat history is kept for the last $days days';
+  }
+
+  @override
+  String get aicTrainerConnectedTitle => 'Chat with your trainer';
+
+  @override
+  String aicTrainerConnectedBody(String name) {
+    return 'You\'re connected with $name. Members with a trainer chat with their trainer instead of the AI chatbot';
+  }
+
+  @override
   String get aicQuickReply1 => 'Recommend a dinner menu for today';
 
   @override
@@ -2035,6 +2075,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboardOptionalTag => '(optional)';
+
+  @override
+  String get pointsGuideTitle => 'Points quests';
+
+  @override
+  String get pointsGuideSubtitle =>
+      'The more you log each day, the more points you earn. Try these quests';
+
+  @override
+  String pointsGuideQuest(int number) {
+    return 'Quest $number';
+  }
+
+  @override
+  String pointsGuideDailyCap(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Up to $count times a day',
+      one: 'Once a day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get pointsGuideSpendNote => 'Spend your points in MY › Points';
+
+  @override
+  String get pointsGuideStart => 'Get started';
+
+  @override
+  String get onboardRequiredTag => '(required)';
+
+  @override
+  String get onboardBirthRequired => 'Choose your date of birth';
+
+  @override
+  String get onboardGenderRequired => 'Choose your gender';
+
+  @override
+  String get onboardHeightRequired => 'Enter your height';
+
+  @override
+  String onboardHeightRange(int min, int max) {
+    return 'Height must be between $min and $max cm';
+  }
+
+  @override
+  String get onboardWeightRequired => 'Enter your weight';
+
+  @override
+  String onboardWeightRange(int min, int max) {
+    return 'Weight must be between $min and $max kg';
+  }
 
   @override
   String get onboardSkipStep => 'Skip this step';

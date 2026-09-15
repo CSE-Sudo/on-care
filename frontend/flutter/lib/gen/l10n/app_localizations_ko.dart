@@ -1583,6 +1583,46 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicGeneratingReply => '맞춤 답변 생성 중';
 
   @override
+  String aicInsightDiscomfortPart(String part) {
+    return '$part 통증 감지';
+  }
+
+  @override
+  String get aicInsightDiscomfort => '통증 감지';
+
+  @override
+  String get aicInsightNegative => '부정적 반응 감지';
+
+  @override
+  String get aicInsightHistoryTitle => '감지 기록';
+
+  @override
+  String aicInsightHistorySubtitle(int days) {
+    return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
+  }
+
+  @override
+  String aicInsightHistoryEmpty(int days) {
+    return '최근 $days일 동안 감지된 내용이 없어요';
+  }
+
+  @override
+  String get aicInsightHistoryFailed => '감지 기록을 불러오지 못했어요';
+
+  @override
+  String aicRetentionNotice(int days) {
+    return 'AI 챗봇 대화는 최근 $days일 동안만 보관돼요';
+  }
+
+  @override
+  String get aicTrainerConnectedTitle => '담당 트레이너와 대화해 주세요';
+
+  @override
+  String aicTrainerConnectedBody(String name) {
+    return '$name 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 챗봇 대신 트레이너와 채팅해요';
+  }
+
+  @override
   String get aicQuickReply1 => '오늘 저녁 메뉴 추천해줘';
 
   @override
@@ -1979,6 +2019,53 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardOptionalTag => '(선택)';
+
+  @override
+  String get pointsGuideTitle => '포인트 퀘스트';
+
+  @override
+  String get pointsGuideSubtitle => '매일 기록할수록 포인트가 쌓여요. 아래 퀘스트로 모아 보세요';
+
+  @override
+  String pointsGuideQuest(int number) {
+    return '퀘스트 $number';
+  }
+
+  @override
+  String pointsGuideDailyCap(int count) {
+    return '하루 $count회까지';
+  }
+
+  @override
+  String get pointsGuideSpendNote => '모은 포인트는 MY › 포인트 사용처에서 쓸 수 있어요';
+
+  @override
+  String get pointsGuideStart => '시작하기';
+
+  @override
+  String get onboardRequiredTag => '(필수)';
+
+  @override
+  String get onboardBirthRequired => '생년월일을 골라 주세요';
+
+  @override
+  String get onboardGenderRequired => '성별을 골라 주세요';
+
+  @override
+  String get onboardHeightRequired => '키를 입력해 주세요';
+
+  @override
+  String onboardHeightRange(int min, int max) {
+    return '키는 $min~${max}cm 사이로 입력해 주세요';
+  }
+
+  @override
+  String get onboardWeightRequired => '체중을 입력해 주세요';
+
+  @override
+  String onboardWeightRange(int min, int max) {
+    return '체중은 $min~${max}kg 사이로 입력해 주세요';
+  }
 
   @override
   String get onboardSkipStep => '이 단계 건너뛰기';

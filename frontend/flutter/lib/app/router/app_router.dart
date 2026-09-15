@@ -8,6 +8,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
+import 'package:oncare/features/account/presentation/pages/points_guide_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
@@ -204,6 +205,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.pointsGuide,
+        builder: (context, state) => const PointsGuidePage(),
       ),
       if (!config.isProd)
         GoRoute(
