@@ -3895,30 +3895,6 @@ abstract class AppLocalizations {
   /// **'Other'**
   String get onboardGenderOther;
 
-  /// No description provided for @onboardConditionHypertension.
-  ///
-  /// In en, this message translates to:
-  /// **'Hypertension'**
-  String get onboardConditionHypertension;
-
-  /// No description provided for @onboardConditionDiabetes.
-  ///
-  /// In en, this message translates to:
-  /// **'Diabetes'**
-  String get onboardConditionDiabetes;
-
-  /// No description provided for @onboardConditionDyslipidemia.
-  ///
-  /// In en, this message translates to:
-  /// **'Dyslipidemia'**
-  String get onboardConditionDyslipidemia;
-
-  /// No description provided for @onboardConditionObesity.
-  ///
-  /// In en, this message translates to:
-  /// **'Obesity'**
-  String get onboardConditionObesity;
-
   /// Greeting bubble the app shows when the coach conversation opens.
   ///
   /// In en, this message translates to:
@@ -4153,17 +4129,53 @@ abstract class AppLocalizations {
   /// **'Pick what you want to focus on in your health care. (multiple allowed)'**
   String get myGoalsFocusHint;
 
-  /// No description provided for @myGoalsFocusHypertension.
+  /// Health goal chip in onboarding and MY health goals.
   ///
   /// In en, this message translates to:
-  /// **'Blood pressure'**
-  String get myGoalsFocusHypertension;
+  /// **'Weight loss'**
+  String get healthFocusWeightLoss;
 
-  /// No description provided for @myGoalsFocusDiabetes.
+  /// Health goal chip in onboarding and MY health goals.
   ///
   /// In en, this message translates to:
-  /// **'Blood sugar'**
-  String get myGoalsFocusDiabetes;
+  /// **'Build strength'**
+  String get healthFocusStrength;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Improve fitness'**
+  String get healthFocusFitness;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Posture correction'**
+  String get healthFocusPosture;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehab'**
+  String get healthFocusRehab;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Better eating habits'**
+  String get healthFocusEating;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise habit'**
+  String get healthFocusExerciseHabit;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Blood pressure care'**
+  String get healthFocusBloodPressure;
 
   /// No description provided for @myGoalsExerciseNote.
   ///

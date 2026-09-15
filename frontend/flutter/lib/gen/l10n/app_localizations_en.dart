@@ -2146,18 +2146,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardGenderOther => 'Other';
 
   @override
-  String get onboardConditionHypertension => 'Hypertension';
-
-  @override
-  String get onboardConditionDiabetes => 'Diabetes';
-
-  @override
-  String get onboardConditionDyslipidemia => 'Dyslipidemia';
-
-  @override
-  String get onboardConditionObesity => 'Obesity';
-
-  @override
   String get aiCoachWelcome =>
       'Hi, I\'m Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.';
 
@@ -2285,10 +2273,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pick what you want to focus on in your health care. (multiple allowed)';
 
   @override
-  String get myGoalsFocusHypertension => 'Blood pressure';
+  String get healthFocusWeightLoss => 'Weight loss';
 
   @override
-  String get myGoalsFocusDiabetes => 'Blood sugar';
+  String get healthFocusStrength => 'Build strength';
+
+  @override
+  String get healthFocusFitness => 'Improve fitness';
+
+  @override
+  String get healthFocusPosture => 'Posture correction';
+
+  @override
+  String get healthFocusRehab => 'Rehab';
+
+  @override
+  String get healthFocusEating => 'Better eating habits';
+
+  @override
+  String get healthFocusExerciseHabit => 'Exercise habit';
+
+  @override
+  String get healthFocusBloodPressure => 'Blood pressure care';
 
   @override
   String get myGoalsExerciseNote => 'Exercise goal';

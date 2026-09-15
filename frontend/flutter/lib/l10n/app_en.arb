@@ -1156,10 +1156,6 @@
   "onboardGenderMale": "Male",
   "onboardGenderFemale": "Female",
   "onboardGenderOther": "Other",
-  "onboardConditionHypertension": "Hypertension",
-  "onboardConditionDiabetes": "Diabetes",
-  "onboardConditionDyslipidemia": "Dyslipidemia",
-  "onboardConditionObesity": "Obesity",
   "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.",
   "@aiCoachWelcome": {
     "description": "Greeting bubble the app shows when the coach conversation opens."
@@ -1320,8 +1316,38 @@
   },
   "myGoalsFocusSection": "What you want to focus on",
   "myGoalsFocusHint": "Pick what you want to focus on in your health care. (multiple allowed)",
-  "myGoalsFocusHypertension": "Blood pressure",
-  "myGoalsFocusDiabetes": "Blood sugar",
+  "healthFocusWeightLoss": "Weight loss",
+  "@healthFocusWeightLoss": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusStrength": "Build strength",
+  "@healthFocusStrength": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusFitness": "Improve fitness",
+  "@healthFocusFitness": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusPosture": "Posture correction",
+  "@healthFocusPosture": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusRehab": "Rehab",
+  "@healthFocusRehab": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusEating": "Better eating habits",
+  "@healthFocusEating": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusExerciseHabit": "Exercise habit",
+  "@healthFocusExerciseHabit": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusBloodPressure": "Blood pressure care",
+  "@healthFocusBloodPressure": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
   "myGoalsExerciseNote": "Exercise goal",
   "myGoalsExerciseNoteHint": "e.g. Finish a 5K within three months",
   "myGoalsDietSection": "Diet goals",

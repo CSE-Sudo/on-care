@@ -37,6 +37,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.services.health_focus import normalize_conditions
 from app.core import clock
 from app.core.config import get_settings
 from app.db.demo_fixture import FixtureExercise, FixtureRoutine, load_fixture
@@ -252,13 +253,17 @@ _WEEKDAY_INDEX: dict[str, int] = {
 
 # 사용자 앱 데모 회원(김민수)의 건강 프로필 — 프론트 MockMyHealthRepository/프로필 목업과
 # 동일. 위험도·활동점수·기본정보 + 목표치는 구조화 컬럼(goal_*/daily_*)에 넣는다.
-# conditions 는 위험도 서술에서 추론(목업엔 명시 없음). 키(height_cm)·성별은 목업에 없어 비운다.
+# conditions 는 건강 목표다(#1814) — 트레이너 앱이 이 회원의 목표로 보여 주는 `혈압 관리 · 체중 감량`
+# 과 같다. 키(height_cm)·성별은 목업에 없어 비운다.
+#: 이 파일이 예전에 데모 회원에게 넣던 질환 이름. 이미 시드된 DB 를 새 목표로 옮길 때 알아본다.
+_LEGACY_DEMO_CONDITIONS = "고혈압, 당뇨 전단계"
+
 _HEALTH_PROFILE: dict[str, dict] = {
     "user-7d4e9a2c5f18": {
         "risk_title": "고혈압·당뇨 위험 주의",
         "risk_body": "최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.",
         "risk_level": "medium",
-        "conditions": "고혈압, 당뇨 전단계",
+        "conditions": "체중 감량, 혈압 관리",
         "phone": "010-1234-5678",
         "birth_date": "1990-01-15",
         "activity_points": 1240,
@@ -1121,11 +1126,21 @@ def _seed_health_profile(db: Session, member_id: str) -> None:
     fields = _HEALTH_PROFILE.get(member_id)
     if not fields:
         return
-    if db.scalar(
-        select(models.HealthProfile.id)
+    existing = db.scalar(
+        select(models.HealthProfile)
         .where(models.HealthProfile.user_id == member_id)
         .limit(1)
-    ) is not None:
+    )
+    if existing is not None:
+        # 이미 시드된 데모 DB 는 옛 질환 이름(고혈압·당뇨 전단계)을 들고 있다. 옛
+        # 시드 값 그대로면 새 목표로 바꾸고, 회원이 고친 값이면 옛 이름만 정리한다(#1814).
+        if existing.conditions == _LEGACY_DEMO_CONDITIONS:
+            updated = fields["conditions"]
+        else:
+            updated = normalize_conditions(existing.conditions) or ""
+        if updated != existing.conditions:
+            existing.conditions = updated
+            _safe_commit(db)
         return
     db.add(models.HealthProfile(user_id=member_id, **fields))
     _safe_commit(db)

@@ -9,6 +9,7 @@ import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
@@ -609,7 +610,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           // `GoalUpdate(null)` 로 나가 서버에서 목표 해제가 된다 — 회원이 지운
           // 목표는 지워져야 한다.
           .updateHealthGoals(
-            conditions: formatHealthFocus(_focus),
+            // 목표가 아닌 글(트레이너가 적은 주의사항)은 지우지 않는다(#1814).
+            conditions: mergeHealthFocus(widget.initial.conditions, _focus),
             goals: _exerciseGoal.text.trim(),
             dailyCalories: GoalUpdate(_valueToSave(_kKcal, _kcal)),
             dailySodiumMg: GoalUpdate(_valueToSave(_kSodium, _sodium)),
@@ -670,20 +672,14 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           spacing: OnCareSpacing.s8,
           runSpacing: OnCareSpacing.s8,
           children: <Widget>[
-            for (final ({String key, String label}) option
-                in <({String key, String label})>[
-                  (
-                    key: kHealthFocusHypertension,
-                    label: l.myGoalsFocusHypertension,
-                  ),
-                  (key: kHealthFocusDiabetes, label: l.myGoalsFocusDiabetes),
-                ])
+            // 온보딩 2단계와 같은 목록·같은 순서다(#1814).
+            for (final String option in kHealthFocusOptions)
               AppChoiceChip(
-                key: ValueKey<String>('goal-focus-${option.key}'),
-                label: option.label,
-                selected: _focus.contains(option.key),
+                key: ValueKey<String>('goal-focus-$option'),
+                label: healthFocusLabel(l, option),
+                selected: _focus.contains(option),
                 onSelected: (_) => setState(() {
-                  if (!_focus.remove(option.key)) _focus.add(option.key);
+                  if (!_focus.remove(option)) _focus.add(option);
                 }),
               ),
           ],

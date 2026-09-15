@@ -58,10 +58,6 @@ const Map<String, String> _koBefore = <String, String>{
   'onboardGenderMale': '남성',
   'onboardGenderFemale': '여성',
   'onboardGenderOther': '기타',
-  'onboardConditionHypertension': '고혈압',
-  'onboardConditionDiabetes': '당뇨',
-  'onboardConditionDyslipidemia': '고지혈증',
-  'onboardConditionObesity': '비만',
 };
 
 /// 온보딩 개편에서 새로 생긴 문구. [_koBefore] 는 #642 에서 *옮기기 전* 화면을
@@ -91,7 +87,17 @@ const Map<String, String> _koAdded = <String, String>{
   'onboardResetToRecommended': '권장값으로 되돌리기',
   'onboardDietSourceNote':
       '출처: 2020 한국인 영양소 섭취기준(에너지필요추정량·에너지적정비율) · WHO 나트륨·자유당 섭취 권고',
-  'onboardExerciseSourceNote': '출처: WHO 신체활동 지침(2020) — 주 150분 중강도 유산소, 주 2회 이상 근력',
+  'onboardExerciseSourceNote':
+      '출처: WHO 신체활동 지침(2020) — 주 150분 중강도 유산소, 주 2회 이상 근력',
+  // 2단계 건강 목표 — 옛 질환 선택지(고혈압·당뇨)를 바꿨다(#1814).
+  'healthFocusWeightLoss': '체중 감량',
+  'healthFocusStrength': '근력 향상',
+  'healthFocusFitness': '체력 강화',
+  'healthFocusPosture': '자세 교정',
+  'healthFocusRehab': '재활',
+  'healthFocusEating': '식습관 개선',
+  'healthFocusExerciseHabit': '운동 습관',
+  'healthFocusBloodPressure': '혈압 관리',
 };
 
 /// 두 표를 합친 것. 로케일 검사는 새 문구까지 함께 본다.
@@ -138,10 +144,14 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'onboardGenderMale' => l.onboardGenderMale,
   'onboardGenderFemale' => l.onboardGenderFemale,
   'onboardGenderOther' => l.onboardGenderOther,
-  'onboardConditionHypertension' => l.onboardConditionHypertension,
-  'onboardConditionDiabetes' => l.onboardConditionDiabetes,
-  'onboardConditionDyslipidemia' => l.onboardConditionDyslipidemia,
-  'onboardConditionObesity' => l.onboardConditionObesity,
+  'healthFocusWeightLoss' => l.healthFocusWeightLoss,
+  'healthFocusStrength' => l.healthFocusStrength,
+  'healthFocusFitness' => l.healthFocusFitness,
+  'healthFocusPosture' => l.healthFocusPosture,
+  'healthFocusRehab' => l.healthFocusRehab,
+  'healthFocusEating' => l.healthFocusEating,
+  'healthFocusExerciseHabit' => l.healthFocusExerciseHabit,
+  'healthFocusBloodPressure' => l.healthFocusBloodPressure,
   'onboardOptionalTag' => l.onboardOptionalTag,
   'onboardSkipStep' => l.onboardSkipStep,
   'onboardBirthLabel' => l.onboardBirthLabel,
