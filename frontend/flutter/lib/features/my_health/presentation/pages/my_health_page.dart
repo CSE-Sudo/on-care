@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -103,7 +104,7 @@ class _BellButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.notifications_rounded,
+          icon: AppIcons.notifications,
           tooltip: l.pageNotificationTitle,
           color: context.oncare.brand.primary,
           onPressed: onPressed,
@@ -133,7 +134,7 @@ class _IconTile extends StatelessWidget {
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
       alignment: Alignment.center,
-      child: Icon(
+      child: AppIcon(
         icon,
         size: OnCareSize.iconMedium,
         color: tokens.brand.primary,
@@ -242,8 +243,8 @@ class _TrainerSyncRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: OnCareSpacing.s8),
-            const Icon(
-              Icons.chevron_right_rounded,
+            const AppIcon(
+              AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: OnCareColors.textTertiary,
             ),
@@ -272,8 +273,8 @@ class _PointsCard extends StatelessWidget {
         onTap: () => _openPointsBenefitsPage(context, points),
         child: Row(
           children: <Widget>[
-            Icon(
-              Icons.stars_rounded,
+            AppIcon(
+              AppIcons.points,
               color: tokens.brand.primary,
               size: OnCareSize.iconLarge,
             ),
@@ -291,8 +292,8 @@ class _PointsCard extends StatelessWidget {
                 ).copyWith(color: OnCareColors.textPrimary),
               ),
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
+            const AppIcon(
+              AppIcons.chevronRight,
               color: OnCareColors.textTertiary,
               size: OnCareSize.iconMedium,
             ),
@@ -324,19 +325,19 @@ class _PointBenefit {
 
 List<_PointBenefit> _pointBenefitsOf(AppLocalizations l) => <_PointBenefit>[
   _PointBenefit(
-    icon: Icons.savings_rounded,
+    icon: AppIcons.savings,
     title: l.myPointsDiscountTitle,
     desc: l.myPointsDiscountDescription,
     cost: l.myPointsDiscountCost,
   ),
   _PointBenefit(
-    icon: Icons.lock_open_rounded,
+    icon: AppIcons.unlock,
     title: l.myPointsReportTitle,
     desc: l.myPointsReportDescription,
     cost: l.myPointsReportCost,
   ),
   _PointBenefit(
-    icon: Icons.menu_book_rounded,
+    icon: AppIcons.guide,
     title: l.myPointsRecipeTitle,
     desc: l.myPointsRecipeDescription,
     cost: l.myPointsRecipeCost,
@@ -379,8 +380,8 @@ class PointsBenefitsPage extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            const Icon(
-              Icons.info_rounded,
+            const AppIcon(
+              AppIcons.info,
               size: OnCareSize.iconSmall,
               color: OnCareColors.textTertiary,
             ),
@@ -471,19 +472,19 @@ class _PointsInfoButton extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             _PointRule(
-              icon: Icons.restaurant_rounded,
+              icon: AppIcons.diet,
               text: l.myPointsDietAdd,
               points: '+50P',
             ),
             const SizedBox(height: OnCareSpacing.s12),
             _PointRule(
-              icon: Icons.auto_awesome_rounded,
+              icon: AppIcons.ai,
               text: l.myPointsAiExercise,
               points: '+50P',
             ),
             const SizedBox(height: OnCareSpacing.s12),
             _PointRule(
-              icon: Icons.fitness_center_rounded,
+              icon: AppIcons.exercise,
               text: l.myPointsExerciseAdd,
               points: '+20P',
             ),
@@ -497,7 +498,7 @@ class _PointsInfoButton extends StatelessWidget {
   Widget build(BuildContext context) {
     // 배경 없는(plain) 버튼에 채운 글리프를 얹는다.
     return AppIconButton(
-      icon: Icons.info_rounded,
+      icon: AppIcons.info,
       tooltip: AppLocalizations.of(context).myPointsGuideTitle,
       color: OnCareColors.textTertiary,
       onPressed: () => _show(context),
@@ -555,10 +556,10 @@ class _Settings extends StatelessWidget {
   final VoidCallback onLogout;
 
   static const List<_SettingItem> _items = <_SettingItem>[
-    _SettingItem(Icons.person_rounded, _MySetting.profile),
-    _SettingItem(Icons.flag_rounded, _MySetting.goals),
-    _SettingItem(Icons.notifications_rounded, _MySetting.notif),
-    _SettingItem(Icons.chat_bubble_rounded, _MySetting.support),
+    _SettingItem(AppIcons.person, _MySetting.profile),
+    _SettingItem(AppIcons.goal, _MySetting.goals),
+    _SettingItem(AppIcons.notifications, _MySetting.notif),
+    _SettingItem(AppIcons.chat, _MySetting.support),
   ];
 
   static String _label(AppLocalizations l, _MySetting id) {
@@ -591,8 +592,8 @@ class _Settings extends StatelessWidget {
                 AppListRow(
                   leading: _IconTile(icon: item.icon),
                   title: _label(l, item.id),
-                  trailing: const Icon(
-                    Icons.chevron_right_rounded,
+                  trailing: const AppIcon(
+                    AppIcons.chevronRight,
                     size: OnCareSize.iconMedium,
                     color: OnCareColors.textTertiary,
                   ),
@@ -607,7 +608,7 @@ class _Settings extends StatelessWidget {
                 child: AppButton(
                   key: const ValueKey<String>('my-logout-button'),
                   label: l.myLogout,
-                  leadingIcon: Icons.logout_rounded,
+                  leadingIcon: AppIcons.logout,
                   variant: AppButtonVariant.destructiveText,
                   size: OnCareButtonSize.large,
                   fullWidth: true,
@@ -658,7 +659,7 @@ class _TrainerGymSection extends ConsumerWidget {
               ? AppCard(
                   child: AppEmptyState(
                     title: l.myNoGymConnected,
-                    icon: Icons.fitness_center_rounded,
+                    icon: AppIcons.gym,
                     actionLabel: l.exFindGym,
                     onAction: onFindGym,
                     placement: AppStatePlacement.card,

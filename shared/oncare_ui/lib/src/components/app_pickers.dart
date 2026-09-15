@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_button.dart';
 import 'package:oncare_ui/src/components/app_dialog.dart';
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/components/app_inputs.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
@@ -27,7 +28,8 @@ import 'package:oncare_ui/src/tokens/typography.dart';
 /// 탭으로 고르는 것도 둘 다 항상 된다. 입력창에 타이핑하면
 /// [MaterialLocalizations.parseCompactDate] 로 즉시 해석해 달력도 같이 움직이고,
 /// 달력에서 고르면 입력창 글자도 같이 바뀐다. 오른쪽 위 X 와 아래 2열
-/// `취소 / 확인` 을 모두 둔다.
+/// `취소 / 확인` 을 모두 둔다. 달 이동 꺾쇠·달 보기 삼각형은 앱의 아이콘
+/// 묶음(#1803)으로 그린다.
 Future<DateTime?> showAppDatePicker({
   required BuildContext context,
   required DateTime initialDate,
@@ -401,19 +403,19 @@ class _AppCalendarDatePickerState extends State<AppCalendarDatePicker> {
                     child: _PickerHeaderLabel(
                       key: AppCalendarDatePicker.headerKey,
                       label: l.formatMonthYear(_displayedMonth),
-                      icon: Icons.arrow_drop_down_rounded,
+                      icon: AppIcon.setOf(context).calendarExpand,
                       onTap: _openMonths,
                     ),
                   ),
                 ),
                 AppIconButton(
-                  icon: Icons.chevron_left_rounded,
+                  icon: AppIcon.setOf(context).previous,
                   tooltip: l.previousMonthTooltip,
                   color: OnCareColors.textSecondary,
                   onPressed: _canPreviousMonth ? () => _moveMonth(-1) : null,
                 ),
                 AppIconButton(
-                  icon: Icons.chevron_right_rounded,
+                  icon: AppIcon.setOf(context).next,
                   tooltip: l.nextMonthTooltip,
                   color: OnCareColors.textSecondary,
                   onPressed: _canNextMonth ? () => _moveMonth(1) : null,
@@ -543,7 +545,7 @@ class _AppCalendarDatePickerState extends State<AppCalendarDatePicker> {
               children: <Widget>[
                 // 해 이동 꺾쇠의 이름은 갈 해 자체다(예: `2025년`).
                 AppIconButton(
-                  icon: Icons.chevron_left_rounded,
+                  icon: AppIcon.setOf(context).previous,
                   tooltip: l.formatYear(DateTime(_monthsYear - 1)),
                   color: OnCareColors.textSecondary,
                   onPressed: _monthsYear > _first.year
@@ -555,13 +557,13 @@ class _AppCalendarDatePickerState extends State<AppCalendarDatePicker> {
                     child: _PickerHeaderLabel(
                       key: AppCalendarDatePicker.headerKey,
                       label: l.formatYear(DateTime(_monthsYear)),
-                      icon: Icons.arrow_drop_up_rounded,
+                      icon: AppIcon.setOf(context).calendarCollapse,
                       onTap: _closeMonths,
                     ),
                   ),
                 ),
                 AppIconButton(
-                  icon: Icons.chevron_right_rounded,
+                  icon: AppIcon.setOf(context).next,
                   tooltip: l.formatYear(DateTime(_monthsYear + 1)),
                   color: OnCareColors.textSecondary,
                   onPressed: _monthsYear < _last.year
@@ -641,7 +643,7 @@ class _PickerHeaderLabel extends StatelessWidget {
                     style: style,
                   ),
                 ),
-                Icon(
+                AppIcon(
                   icon,
                   size: OnCareSize.iconLarge,
                   color: OnCareColors.textSecondary,
@@ -903,7 +905,7 @@ class _AppDateRangePickerDialogState extends State<AppDateRangePickerDialog> {
           Row(
             children: <Widget>[
               AppIconButton(
-                icon: Icons.chevron_left_rounded,
+                icon: AppIcon.setOf(context).previous,
                 tooltip: l.previousMonthTooltip,
                 onPressed: _canGoPrevious ? () => _goToMonth(-1) : null,
               ),
@@ -917,7 +919,7 @@ class _AppDateRangePickerDialogState extends State<AppDateRangePickerDialog> {
                 ),
               ),
               AppIconButton(
-                icon: Icons.chevron_right_rounded,
+                icon: AppIcon.setOf(context).next,
                 tooltip: l.nextMonthTooltip,
                 onPressed: _canGoNext ? () => _goToMonth(1) : null,
               ),
@@ -1097,9 +1099,19 @@ Future<TimeOfDay?> showAppTimePicker({
   required TimeOfDay initialTime,
   String? helpText,
 }) {
+  // 입력 방식 전환 아이콘은 앱의 아이콘 묶음을 따른다. 묶음이 비워 두면
+  // Flutter 기본 아이콘이다(#1803).
+  final IconData? timeInput = AppIcon.setOf(context).timeInput;
+  final IconData? timeDial = AppIcon.setOf(context).timeDial;
   return showTimePicker(
     context: context,
     initialTime: initialTime,
     helpText: helpText,
+    switchToInputEntryModeIcon: timeInput == null
+        ? null
+        : AppIcon.resolve(context, timeInput),
+    switchToTimerEntryModeIcon: timeDial == null
+        ? null
+        : AppIcon.resolve(context, timeDial),
   );
 }

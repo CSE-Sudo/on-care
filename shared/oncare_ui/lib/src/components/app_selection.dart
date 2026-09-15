@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
@@ -63,7 +64,7 @@ class AppChoiceChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 if (icon != null) ...<Widget>[
-                  Icon(icon, size: OnCareSize.iconSmall, color: foreground),
+                  AppIcon(icon, size: OnCareSize.iconSmall, color: foreground),
                   const SizedBox(width: OnCareSpacing.s4),
                 ],
                 Flexible(
@@ -254,7 +255,7 @@ class AppSegmentedToggle<T> extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               if (segment.icon != null) ...<Widget>[
-                Icon(
+                AppIcon(
                   segment.icon,
                   size: OnCareSize.iconSmall,
                   color: foreground,
@@ -325,7 +326,7 @@ class AppTag extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           if (icon != null) ...<Widget>[
-            Icon(icon, size: OnCareSize.iconSmall, color: accent),
+            AppIcon(icon, size: OnCareSize.iconSmall, color: accent),
             const SizedBox(width: OnCareSpacing.s4),
           ],
           Text(
@@ -422,7 +423,7 @@ class AppNumberStepper extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         AppIconButton(
-          icon: Icons.remove_rounded,
+          icon: AppIcon.setOf(context).remove,
           tooltip: decreaseTooltip,
           variant: AppIconButtonVariant.tonal,
           onPressed: enabled && value - step >= min
@@ -453,7 +454,7 @@ class AppNumberStepper extends StatelessWidget {
           ),
         ),
         AppIconButton(
-          icon: Icons.add_rounded,
+          icon: AppIcon.setOf(context).add,
           tooltip: increaseTooltip,
           variant: AppIconButtonVariant.tonal,
           onPressed: enabled && value + step <= max

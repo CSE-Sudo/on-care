@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
@@ -133,7 +134,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             controller: _email,
             hint: l.authEmailHint,
             errorText: _errors.of(_Field.email),
-            prefixIcon: Icons.mail_rounded,
+            prefixIcon: AppIcons.mail,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
@@ -145,7 +146,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             controller: _password,
             hint: l.authPasswordHint,
             errorText: _errors.of(_Field.password),
-            prefixIcon: Icons.lock_rounded,
+            prefixIcon: AppIcons.lock,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
@@ -240,7 +241,7 @@ class _PasswordToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppIconButton(
-      icon: obscure ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+      icon: obscure ? AppIcons.visibilityOff : AppIcons.visibility,
       tooltip: obscure ? l.a11yShowPassword : l.a11yHidePassword,
       color: OnCareColors.textTertiary,
       onPressed: onPressed,

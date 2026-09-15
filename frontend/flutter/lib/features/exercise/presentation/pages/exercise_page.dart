@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 // NumberFormat 만 가져온다 — intl 의 TextDirection 이 dart:ui 것과 충돌한다.
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -175,8 +176,8 @@ class _SubTabs extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            _tab(context, 0, Icons.event_note_rounded, l.exExerciseLog),
-            _tab(context, 1, Icons.place_rounded, l.exGymTab),
+            _tab(context, 0, AppIcons.exerciseLog, l.exExerciseLog),
+            _tab(context, 1, AppIcons.location, l.exGymTab),
           ],
         ),
       ),
@@ -207,7 +208,7 @@ class _SubTabs extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Icon(
+                AppIcon(
                   icon,
                   size: OnCareSize.iconSmall,
                   color: on ? tokens.brand.primary : OnCareColors.textTertiary,
@@ -491,7 +492,7 @@ Widget _dayEmpty(BuildContext context) {
     padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
     child: AppEmptyState(
       title: l.otherDateEmpty(l.pageExerciseTitle),
-      icon: Icons.fitness_center_rounded,
+      icon: AppIcons.exercise,
       placement: AppStatePlacement.card,
     ),
   );
@@ -815,7 +816,7 @@ class _CompletedPtSessionCard extends StatelessWidget {
         children: <Widget>[
           AppSectionHeader(
             title: l.exCompletedPtTitle,
-            icon: Icons.fitness_center_rounded,
+            icon: AppIcons.exercise,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           // 칩 두 개가 한 줄에 못 들어가면 다음 줄로 내린다 (#995). Row 로 두면
@@ -826,14 +827,14 @@ class _CompletedPtSessionCard extends StatelessWidget {
             children: <Widget>[
               _fitTag(
                 AppTag(
-                  icon: Icons.check_circle_rounded,
+                  icon: AppIcons.checkCircle,
                   label: l.exCompletedPtTime(session.time),
                   tone: AppTagTone.success,
                 ),
               ),
               _fitTag(
                 AppTag(
-                  icon: Icons.timer_rounded,
+                  icon: AppIcons.timer,
                   label: l.exDurationMinutes(session.durationMinutes),
                   tone: AppTagTone.brand,
                 ),
@@ -907,10 +908,7 @@ class _DemoPtLogCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppSectionHeader(
-            title: l.exPtLogTitle,
-            icon: Icons.fitness_center_rounded,
-          ),
+          AppSectionHeader(title: l.exPtLogTitle, icon: AppIcons.exercise),
           const SizedBox(height: OnCareSpacing.s12),
           // 칩 둘은 좁아지면 다음 줄로 넘긴다. 한 줄에 붙여 두면 320px 기본
           // 배율에서도 카드를 크게 넘겼다(#766).
@@ -920,14 +918,14 @@ class _DemoPtLogCard extends StatelessWidget {
             children: <Widget>[
               _fitTag(
                 AppTag(
-                  icon: Icons.check_circle_rounded,
+                  icon: AppIcons.checkCircle,
                   label: l.exCompletedPtTime('18:00'),
                   tone: AppTagTone.success,
                 ),
               ),
               _fitTag(
                 AppTag(
-                  icon: Icons.person_rounded,
+                  icon: AppIcons.person,
                   label: l.exDemoPtSessionCount,
                   tone: AppTagTone.brand,
                 ),
@@ -949,8 +947,8 @@ class _DemoPtLogCard extends StatelessWidget {
                       width: OnCareSize.avatarMedium,
                       height: OnCareSize.avatarMedium,
                       alignment: Alignment.center,
-                      child: Icon(
-                        Icons.person_rounded,
+                      child: AppIcon(
+                        AppIcons.person,
                         size: OnCareSize.iconMedium,
                         color: tokens.brand.primary,
                       ),
@@ -1045,7 +1043,7 @@ class _NextPtBadge extends ConsumerWidget {
       alignment: AlignmentDirectional.centerStart,
       child: _fitTag(
         AppTag(
-          icon: Icons.event_available_rounded,
+          icon: AppIcons.eventAvailable,
           label: when.isEmpty ? l.exNextPtNone : l.exNextPtSchedule(when),
           tone: when.isEmpty ? AppTagTone.neutral : AppTagTone.brand,
         ),

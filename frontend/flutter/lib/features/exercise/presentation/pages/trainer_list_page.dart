@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -126,7 +127,7 @@ class _TrainerListPageState extends ConsumerState<TrainerListPage> {
                               child: visible.isEmpty
                                   ? AppEmptyState(
                                       title: l.exNoSearchResults,
-                                      icon: Icons.search_off_rounded,
+                                      icon: AppIcons.searchOff,
                                     )
                                   : ListView.separated(
                                       itemCount: visible.length,
@@ -279,8 +280,8 @@ class _TrainerListCard extends StatelessWidget {
           ),
           if (onTap != null) ...<Widget>[
             const SizedBox(width: OnCareSpacing.s8),
-            const Icon(
-              Icons.chevron_right_rounded,
+            const AppIcon(
+              AppIcons.chevronRight,
               size: OnCareSize.iconMedium,
               color: OnCareColors.textTertiary,
             ),

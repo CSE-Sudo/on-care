@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -50,7 +51,7 @@ void main() {
     expect(logout(), findsOneWidget);
     final AppButton button = tester.widget<AppButton>(logout());
     expect(button.variant, AppButtonVariant.destructiveText);
-    expect(button.leadingIcon, Icons.logout_rounded);
+    expect(button.leadingIcon, AppIcons.logout);
 
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(MyHealthPage)),

@@ -5,9 +5,14 @@ On-Care 두 앱(회원앱 `frontend/flutter`, 트레이너웹 `frontend/flutter_
 ## 원칙
 
 - 화면 코드는 크기·색·모서리·간격·그림자 숫자를 직접 적지 않고, 이 패키지의 토큰·테마·컴포넌트만 씁니다.
-- 앱마다 다른 것은 두 가지뿐입니다.
+- 앱마다 다른 것은 브랜드·밀도, 그리고 아이콘 묶음입니다.
   - `OnCareBrand` — 브랜드 색(회원 파랑 `#3EAFDF` / 트레이너 남색 `#2E7DAB`)
   - `OnCareDensity` — 플랫폼 밀도(모바일 / 웹): 버튼·입력·칩 높이, 페이지 여백 등
+  - `OnCareIconSet` — 공용 컴포넌트가 그리는 아이콘(뒤로·닫기·꺾쇠·빈 화면·배너·토스트 …)과 글꼴 변형(#1803).
+    기본값은 Material Icons `_rounded`(트레이너웹)이고, 회원앱은 `AppIcons.oncare`(Material Symbols Rounded,
+    채움·굵기 400)를 넣습니다. 패키지는 아이콘 글꼴 패키지에 기대지 않습니다.
+- 아이콘은 `Icon` 대신 `AppIcon` 으로 그립니다. 묶음의 채움·굵기·등급을 싣고 광학 크기를 그리는 크기에 맞춥니다.
+  기본 묶음은 변형이 없어 `Icon` 과 똑같이 그려집니다.
 - 상태색(완료 초록·주의 주황·위험 빨강)은 두 앱이 같은 값을 씁니다.
 - 라이트 테마만 제공합니다.
 
@@ -18,6 +23,7 @@ MaterialApp(
   theme: OnCareTheme.light(
     brand: OnCareBrand.member,
     density: OnCareDensity.mobile,
+    icons: AppIcons.oncare, // 생략하면 Material Icons 기본 묶음
   ),
 );
 
@@ -36,7 +42,7 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 | 모서리 | 4 · 8 · 12(조작 요소) · 16 · 20(카드·창) · 알약 |
 | 세그먼트 토글 | 트랙·선택 칸 알약, 라벨 14(700), 높이는 글자 맞춤(칩 높이 아님), 트랙·비선택 글자색은 브랜드별(#1777). `thumb` 모양은 옅은 브랜드 띠 44 + 흰 엄지·브랜드 그림자(트레이너웹 식단/운동 전환) |
 | 간격 | 4의 배수(2는 선·점 사이만) |
-| 아이콘 | `_rounded` 계열, 16 / 20 / 24 (빈 화면 40) |
+| 아이콘 | 16 / 20 / 24 (빈 화면 40). 트레이너웹 Material Icons `_rounded` · 회원앱 Material Symbols Rounded(채움, 굵기 400 · 운동만 300) |
 | 창 폭 | 웹 400 / 560 / 800, 모바일 확인창 400 · 시트 최대 높이 90% |
 | 텍스트 색 | `#1A1A1A` · `#465568` · `#667585` · `#768596` |
 | 표면 | 페이지 회원앱 `#FFFFFF` · 트레이너웹 `#F5F7FA`(`OnCareTokens.pageBackground`) · 카드 `#FFFFFF` · 입력 `#FFFFFF` + 테두리 `#D8E0E8`(비활성 입력은 `#F2F4F7` 채움) · 트랙 `#F2F4F7` |

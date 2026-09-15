@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
@@ -28,13 +29,13 @@ void main() {
                   children: <Widget>[
                     HeaderActionButton(
                       key: const Key('enabledHeaderButton'),
-                      icon: Icons.notifications_rounded,
+                      icon: AppIcons.notifications,
                       tooltip: 'enabled',
                       onPressed: () {},
                     ),
                     HeaderActionButton(
                       key: const Key('disabledHeaderButton'),
-                      icon: Icons.chat_bubble_rounded,
+                      icon: AppIcons.chat,
                       tooltip: 'disabled',
                       enabled: false,
                       onPressed: () => taps++,

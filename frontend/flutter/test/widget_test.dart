@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
 import 'package:oncare/app/app.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/app/session_feature_reset.dart';
@@ -192,8 +193,8 @@ void main() {
     // 이 시트는 "무엇을 기록할까" 를 고르는 자리라 색이 영역을 가르는 뜻으로
     // 읽히지 않는다 — 초록 하나만 남으면 그 카드가 다른 성격처럼 보인다.
     // (예전에는 식단 초록·운동 파랑이었다, #1060 → #1154)
-    expect(iconColorOf(Icons.restaurant_rounded), OnCareBrand.member.primary);
-    expect(iconColorOf(Icons.fitness_center_rounded), OnCareBrand.member.primary);
+    expect(iconColorOf(AppIcons.diet), OnCareBrand.member.primary);
+    expect(iconColorOf(AppIcons.exercise), OnCareBrand.member.primary);
   });
 
   testWidgets('Enters the Home tab in English after demo', (tester) async {
@@ -414,7 +415,7 @@ void main() {
   ) async {
     await pumpApp(tester, locale: const Locale('ko'));
 
-    await tester.tap(find.byIcon(Icons.notifications_rounded).first);
+    await tester.tap(find.byIcon(AppIcons.notifications).first);
     await tester.pumpAndSettle();
 
     final page = find.byKey(const Key('notificationPage'));
@@ -436,7 +437,7 @@ void main() {
     // 포인트 카드 화살표는 카드 안쪽 여백만큼 떨어진 오른쪽 끝에 선다.
     final chevron = find.descendant(
       of: banner,
-      matching: find.byIcon(Icons.chevron_right_rounded),
+      matching: find.byIcon(AppIcons.chevronRight),
     );
     expect(
       tester.getTopRight(chevron).dx,

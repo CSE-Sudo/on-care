@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -1033,7 +1034,7 @@ class SupportPage extends StatelessWidget {
       _listCard(<Widget>[
         _supportRow(
           context,
-          Icons.help_rounded,
+          AppIcons.help,
           l.mySupportFaq,
           () => _openExternal(context, kSupportChannelUrl),
           external: true,
@@ -1042,7 +1043,7 @@ class SupportPage extends StatelessWidget {
         const AppDivider(),
         _supportRow(
           context,
-          Icons.chat_bubble_rounded,
+          AppIcons.chat,
           l.mySupportInquiry,
           () => _openExternal(context, kSupportChatUrl),
           external: true,
@@ -1051,14 +1052,14 @@ class SupportPage extends StatelessWidget {
         const AppDivider(),
         _supportRow(
           context,
-          Icons.description_rounded,
+          AppIcons.document,
           l.myLegalTermsTitle,
           () => _openLegal(context, _LegalDoc.terms),
         ),
         const AppDivider(),
         _supportRow(
           context,
-          Icons.privacy_tip_rounded,
+          AppIcons.privacy,
           l.myLegalPrivacyTitle,
           () => _openLegal(context, _LegalDoc.privacy),
         ),
@@ -1112,7 +1113,7 @@ Widget _supportRow(
   String? hint,
 }) {
   return AppListRow(
-    leading: Icon(
+    leading: AppIcon(
       icon,
       size: OnCareSize.iconMedium,
       color: context.oncare.brand.primary,
@@ -1121,8 +1122,8 @@ Widget _supportRow(
     subtitle: hint,
     // 앱 밖으로 나가는 행은 화살표 대신 외부 링크 아이콘을 쓴다 —
     // 눌렀을 때 무엇이 일어나는지 미리 보이게.
-    trailing: Icon(
-      external ? Icons.open_in_new_rounded : Icons.chevron_right_rounded,
+    trailing: AppIcon(
+      external ? AppIcons.external : AppIcons.chevronRight,
       size: OnCareSize.iconMedium,
       color: OnCareColors.textTertiary,
     ),
