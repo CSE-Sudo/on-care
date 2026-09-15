@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:oncare_ui/src/components/app_icon_button.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
+import 'package:oncare_ui/src/tokens/elevation.dart';
 import 'package:oncare_ui/src/tokens/motion.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
@@ -94,9 +95,20 @@ class AppSegment<T> {
   final IconData? icon;
 }
 
+/// 세그먼트 토글 모양(#1777).
+enum AppSegmentedToggleStyle {
+  /// 알약 트랙 위 선택 칸을 브랜드로 채운다 — 오늘/이번 주/전체 같은 기간 토글.
+  fill,
+
+  /// 옅은 브랜드 알약 띠(높이 44) 위에 선택 칸을 흰 알약(엄지)으로 띄운다.
+  /// 선택 칸의 아이콘·글자가 메인 색이다 — 트레이너웹 식단/운동 전환 스트립(#1024).
+  thumb,
+}
+
 /// 세그먼트 토글(#1690) — 오늘/이번 주/전체·식단/운동 같은 보기 전환.
 ///
-/// 공용 토글로 옮기기 전 두 앱의 알약 토글 모양이다(#1777).
+/// 기본 [AppSegmentedToggleStyle.fill] 은 공용 토글로 옮기기 전 두 앱의 알약
+/// 토글 모양이다(#1777). [AppSegmentedToggleStyle.thumb] 은 `_thumbTrack` 참고.
 /// - 트랙: 알약, 안쪽 여백 3, 브랜드별 옅은 회색([OnCareBrand.segmentTrack]).
 /// - 선택 칸: 알약, 브랜드 채움, 흰 굵은 글자.
 /// - 선택 안 된 칸: 배경 없음, 브랜드별 회색 굵은 글자([OnCareBrand.segmentLabel]).
@@ -109,6 +121,7 @@ class AppSegmentedToggle<T> extends StatelessWidget {
     required this.selected,
     required this.onChanged,
     this.expand = false,
+    this.style = AppSegmentedToggleStyle.fill,
   });
 
   final List<AppSegment<T>> segments;
@@ -118,9 +131,13 @@ class AppSegmentedToggle<T> extends StatelessWidget {
   /// 부모 폭을 칸마다 똑같이 나눠 채울지.
   final bool expand;
 
+  /// 모양. 기본은 브랜드 채움 알약이다.
+  final AppSegmentedToggleStyle style;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    if (style == AppSegmentedToggleStyle.thumb) return _thumbTrack(tokens);
     // 글자를 키운 화면에서는 칸 폭 합이 커져 토글 전체가 그만큼 줄어드므로 좌우
     // 여백을 좁힌다(#1058 · #1182). 앱은 배율을 상한에서 묶으므로 상한을 **넘는**
     // 경우만 좁힌다 — 이전 토글과 같은 기준이다.
@@ -152,15 +169,57 @@ class AppSegmentedToggle<T> extends StatelessWidget {
     );
   }
 
+  /// `thumb` 모양 — 이식 전 트레이너웹 식단/운동 전환 스트립(#1024, #1777).
+  ///
+  /// 높이 44 의 옅은 브랜드 알약 띠에 옅은 브랜드 테두리를 두르고, 칸은 띠 높이를
+  /// 위아래로 꽉 채운다. 선택 칸만 흰 알약 + 옅은 브랜드 그림자로 떠오른다.
+  /// 칸 좌우 여백은 폭을 나눠 받을 때(`expand`) 두지 않는다 — 아이콘 옆 라벨이
+  /// 줄임표로 먼저 사라지지 않게 가운데 정렬에 맡긴다.
+  Widget _thumbTrack(OnCareTokens tokens) {
+    return Container(
+      height: OnCareSize.segmentThumbTrackHeight,
+      decoration: BoxDecoration(
+        color: tokens.brand.segmentThumbTrack,
+        borderRadius: OnCareRadius.pillAll,
+      ),
+      // 테두리는 칸(흰 엄지) **위**에 그린다 — 엄지가 띠 끝까지 차도 윤곽이 남는다.
+      foregroundDecoration: BoxDecoration(
+        borderRadius: OnCareRadius.pillAll,
+        border: Border.all(color: tokens.brand.segmentThumbBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Row(
+        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (final AppSegment<T> segment in segments)
+            _wrap(
+              _segment(
+                tokens,
+                segment,
+                selected: segment.value == selected,
+                horizontalPadding: expand
+                    ? 0
+                    : OnCareSize.segmentPaddingHorizontal,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _segment(
     OnCareTokens tokens,
     AppSegment<T> segment, {
     required bool selected,
     required double horizontalPadding,
   }) {
-    final Color foreground = selected
-        ? OnCareColors.textOnFill
-        : tokens.brand.segmentLabel;
+    final bool thumb = style == AppSegmentedToggleStyle.thumb;
+    final Color foreground = !selected
+        ? tokens.brand.segmentLabel
+        : thumb
+        ? tokens.brand.primary
+        : OnCareColors.textOnFill;
     return Semantics(
       button: true,
       selected: selected,
@@ -175,11 +234,19 @@ class AppSegmentedToggle<T> extends StatelessWidget {
           // 맞춘 높이가 깨진다. 가운데 정렬은 안쪽 Row 가 맡는다.
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
-            vertical: OnCareSize.segmentPaddingVertical,
+            // `thumb` 은 띠 높이를 꽉 채우고 안쪽 Row 가 세로 가운데에 선다.
+            vertical: thumb ? 0 : OnCareSize.segmentPaddingVertical,
           ),
           decoration: BoxDecoration(
-            color: selected ? tokens.brand.primary : Colors.transparent,
+            color: !selected
+                ? Colors.transparent
+                : thumb
+                ? OnCareColors.surfaceCard
+                : tokens.brand.primary,
             borderRadius: OnCareRadius.pillAll,
+            boxShadow: thumb && selected
+                ? OnCareShadows.segmentThumb(tokens.brand.primary)
+                : null,
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -192,7 +259,7 @@ class AppSegmentedToggle<T> extends StatelessWidget {
                   size: OnCareSize.iconSmall,
                   color: foreground,
                 ),
-                const SizedBox(width: OnCareSpacing.s4),
+                SizedBox(width: thumb ? OnCareSpacing.s8 : OnCareSpacing.s4),
               ],
               // 폭을 나눠 받는 칸(`expand`)에서만 줄임표가 생긴다. 내용만큼의
               // 토글은 부모가 폭을 묶지 않아 라벨이 온전하다(#1182).

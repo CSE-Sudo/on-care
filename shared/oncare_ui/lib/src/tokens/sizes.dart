@@ -70,6 +70,10 @@ class OnCareSize {
   /// 칸 위아래 여백.
   static const double segmentPaddingVertical = 6;
 
+  /// `thumb` 모양(흰 엄지 스트립) 띠 높이. 이식 전 트레이너웹 식단/운동 전환
+  /// 스트립의 높이다 — 이 모양은 글자가 아니라 이 높이에 맞춰 칸이 위아래로 찬다.
+  static const double segmentThumbTrackHeight = 44;
+
   // --- 선 ---
   static const double hairline = 1;
   static const double focusBorder = 1.5;

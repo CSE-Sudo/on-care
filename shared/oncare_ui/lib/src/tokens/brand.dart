@@ -78,6 +78,19 @@ class OnCareBrand {
   /// 이전 값을 따른다 — 회원앱 `#64748B`, 트레이너웹은 보조 글자색과 같다.
   final Color segmentLabel;
 
+  /// 세그먼트 토글 `thumb` 모양의 띠 채움(#1777).
+  ///
+  /// 이식 전 스트립은 메인 색 10% 를 얹었다. 흰 바탕 기준 그 값이 [surface] 와
+  /// 거의 같아(트레이너 `#EAF2F7` ↔ `#EAF2F9`) 새 색을 두지 않는다.
+  Color get segmentThumbTrack => surface;
+
+  /// 세그먼트 토글 `thumb` 모양의 띠 테두리(#1777).
+  ///
+  /// 이전 스트립은 10% 채움 위에 10% 테두리를 겹쳐 약 19% 였다 — 투명도 단계
+  /// [OnCareAlpha.medium] 으로 맞춘 불투명 색이다.
+  Color get segmentThumbBorder =>
+      OnCareColors.onWhite(primary, OnCareAlpha.medium);
+
   /// 선택 칩·안내 배너 테두리. 메인 색 40% 를 불투명으로 환산한 값.
   Color get border => OnCareColors.onWhite(primary, OnCareAlpha.strong);
 

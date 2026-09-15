@@ -242,6 +242,119 @@ void main() {
     });
   });
 
+  group('세그먼트 토글 thumb 모양은 이전 식단·운동 스트립이다(#1777)', () {
+    Widget strip({double width = 320}) => SizedBox(
+      width: width,
+      child: AppSegmentedToggle<String>(
+        expand: true,
+        style: AppSegmentedToggleStyle.thumb,
+        selected: 'diet',
+        onChanged: (_) {},
+        segments: const <AppSegment<String>>[
+          AppSegment<String>(
+            value: 'diet',
+            label: '식단',
+            icon: Icons.restaurant_rounded,
+          ),
+          AppSegment<String>(
+            value: 'workout',
+            label: '운동',
+            icon: Icons.fitness_center_rounded,
+          ),
+        ],
+      ),
+    );
+
+    Finder segmentOf(String label) => find.ancestor(
+      of: find.text(label),
+      matching: find.byType(AnimatedContainer),
+    );
+
+    testWidgets('옅은 띠 44 위 흰 엄지 + 브랜드 그림자, 선택 글자·아이콘은 메인 색', (tester) async {
+      const OnCareBrand brand = OnCareBrand.trainer;
+      await _pump(
+        tester,
+        Align(alignment: Alignment.topLeft, child: strip()),
+        brand: brand,
+        density: OnCareDensity.web,
+      );
+      final Finder toggle = find.byType(AppSegmentedToggle<String>);
+      expect(
+        tester.getSize(toggle),
+        const Size(320, OnCareSize.segmentThumbTrackHeight),
+      );
+
+      final Container track = tester.widget<Container>(
+        find.descendant(of: toggle, matching: find.byType(Container)).first,
+      );
+      final BoxDecoration trackDecoration = track.decoration! as BoxDecoration;
+      expect(trackDecoration.color, brand.segmentThumbTrack);
+      expect(trackDecoration.borderRadius, OnCareRadius.pillAll);
+      final Border border =
+          (track.foregroundDecoration! as BoxDecoration).border! as Border;
+      expect(border.top.color, brand.segmentThumbBorder);
+
+      final BoxDecoration on =
+          tester.widget<AnimatedContainer>(segmentOf('식단')).decoration!
+              as BoxDecoration;
+      expect(on.color, OnCareColors.surfaceCard);
+      expect(on.borderRadius, OnCareRadius.pillAll);
+      expect(on.boxShadow, OnCareShadows.segmentThumb(brand.primary));
+      final BoxDecoration off =
+          tester.widget<AnimatedContainer>(segmentOf('운동')).decoration!
+              as BoxDecoration;
+      expect(off.color, Colors.transparent);
+      expect(off.boxShadow, isNull);
+
+      expect(tester.widget<Text>(find.text('식단')).style!.color, brand.primary);
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.restaurant_rounded)).color,
+        brand.primary,
+      );
+      expect(
+        tester.widget<Text>(find.text('운동')).style!.color,
+        brand.segmentLabel,
+      );
+      expect(
+        tester.widget<Icon>(find.byIcon(Icons.fitness_center_rounded)).color,
+        brand.segmentLabel,
+      );
+
+      // 칸은 띠를 반씩 똑같이 나누고 위아래로 꽉 찬다.
+      final Size diet = tester.getSize(segmentOf('식단'));
+      expect(diet, tester.getSize(segmentOf('운동')));
+      expect(diet.height, OnCareSize.segmentThumbTrackHeight);
+    });
+
+    testWidgets('폭을 반씩 나눠 받아도 아이콘 옆 라벨이 줄임표 없이 보인다', (tester) async {
+      // 트레이너웹 오른쪽 열(380)에서 기간 토글과 한 줄을 나눠 받는 폭쯤이다.
+      await _pump(
+        tester,
+        Align(alignment: Alignment.topLeft, child: strip(width: 180)),
+        brand: OnCareBrand.trainer,
+        density: OnCareDensity.web,
+      );
+      expect(tester.takeException(), isNull);
+      for (final (String label, IconData icon) in <(String, IconData)>[
+        ('식단', Icons.restaurant_rounded),
+        ('운동', Icons.fitness_center_rounded),
+      ]) {
+        expect(
+          tester
+              .renderObject<RenderParagraph>(find.text(label))
+              .didExceedMaxLines,
+          isFalse,
+          reason: label,
+        );
+        expect(
+          tester.getRect(find.byIcon(icon)).right,
+          lessThan(tester.getRect(find.text(label)).left),
+          reason: '$label 아이콘이 라벨 왼쪽에 있어야 한다',
+        );
+      }
+    });
+  });
+
   testWidgets('입력창 기본 높이가 밀도를 따른다', (tester) async {
     await _pump(
       tester,

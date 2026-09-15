@@ -136,7 +136,8 @@ void main() {
         find.descendant(
           of: find.byKey(const ValueKey<String>('client-diet-period-card')),
           matching: find.byWidgetPredicate(
-            (Widget w) => w is ColoredBox && w.color == OnCareBrand.trainer.primary,
+            (Widget w) =>
+                w is ColoredBox && w.color == OnCareBrand.trainer.primary,
           ),
         ),
         findsNothing,
@@ -221,6 +222,16 @@ void main() {
             )
             .selected,
         ClientPeriod.today,
+      );
+      // 기간 토글은 기본 채움 알약 그대로다 — 흰 엄지 모양은 식단·운동 전환만
+      // 쓴다(#1777).
+      expect(
+        tester
+            .widget<AppSegmentedToggle<ClientPeriod>>(
+              find.byKey(const ValueKey<String>('client-period-toggle')),
+            )
+            .style,
+        AppSegmentedToggleStyle.fill,
       );
       expect(_periodSegment('오늘'), findsOneWidget);
       expect(

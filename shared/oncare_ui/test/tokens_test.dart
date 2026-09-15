@@ -48,6 +48,29 @@ void main() {
     });
   });
 
+  group('세그먼트 thumb 모양(#1777)', () {
+    test('띠·테두리·엄지 그림자는 투명도 단계를 따른다', () {
+      for (final OnCareBrand brand in <OnCareBrand>[
+        OnCareBrand.member,
+        OnCareBrand.trainer,
+      ]) {
+        expect(brand.segmentThumbTrack, brand.surface);
+        expect(
+          brand.segmentThumbBorder,
+          OnCareColors.onWhite(brand.primary, OnCareAlpha.medium),
+        );
+        final List<BoxShadow> shadow = OnCareShadows.segmentThumb(
+          brand.primary,
+        );
+        expect(shadow, hasLength(1));
+        expect(shadow.single.color.a, closeTo(OnCareAlpha.medium, 0.01));
+        expect(shadow.single.blurRadius, 10);
+        expect(shadow.single.offset, const Offset(0, 2));
+      }
+      expect(OnCareSize.segmentThumbTrackHeight, 44);
+    });
+  });
+
   group('상태색은 두 앱이 같다', () {
     test('위험 동작·초과 빨강은 하나다', () {
       expect(OnCareColors.danger, const Color(0xFFF04438));
