@@ -424,11 +424,6 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   /// **어디에 초점을 둘지**다(#1471). 온보딩이 저장한 값을 그대로 이어받는다.
   late final Set<String> _focus = parseHealthFocus(widget.initial.conditions);
 
-  /// 자유 입력 운동 목표 — 내 프로필 수정에 있던 칸을 여기로 옮겼다(#1471).
-  late final TextEditingController _exerciseGoal = TextEditingController(
-    text: widget.initial.goals,
-  );
-
   // 목표 칸을 가리키는 이름. 어느 칸이 '아직 회원이 세운 적 없는 칸' 인지
   // 기억하는 열쇠다.
   static const String _kKcal = 'kcal';
@@ -621,7 +616,6 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           .updateHealthGoals(
             // 목표가 아닌 글(트레이너가 적은 주의사항)은 지우지 않는다(#1814).
             conditions: mergeHealthFocus(widget.initial.conditions, _focus),
-            goals: _exerciseGoal.text.trim(),
             dailyCalories: GoalUpdate(_valueToSave(_kKcal, _kcal)),
             dailySodiumMg: GoalUpdate(_valueToSave(_kSodium, _sodium)),
             dailySugarG: GoalUpdate(_valueToSave(_kSugar, _sugar)),
@@ -696,13 +690,6 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
                     : null,
               ),
           ],
-        ),
-        const SizedBox(height: OnCareSpacing.s16),
-        AppTextField(
-          key: const Key('goalExerciseNoteField'),
-          label: l.myGoalsExerciseNote,
-          controller: _exerciseGoal,
-          hint: l.myGoalsExerciseNoteHint,
         ),
       ]),
       const SizedBox(height: OnCareSpacing.s20),

@@ -400,8 +400,8 @@ void main() {
 
     await tester.tap(find.text('혈압 관리'));
     await tester.pumpAndSettle();
-    await tester.enterText(_field('onboardGoalTextField'), '주 3회 걷기');
-    await tester.pumpAndSettle();
+    // 자유 입력 `운동 목표` 칸은 없다 — 목표는 칩만 고른다(#1829).
+    expect(find.byKey(const Key('onboardGoalTextField')), findsNothing);
 
     // 건너뛰면 그냥 넘어가는 것이 아니라 이 단계에서 적은 것을 비운다.
     await tester.tap(find.byKey(const Key('onboardSkipStep')));

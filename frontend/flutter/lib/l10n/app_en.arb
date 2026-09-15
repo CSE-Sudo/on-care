@@ -1108,9 +1108,6 @@
   "onboardWeightHint": "Weight (kg)",
   "onboardHealthTitle": "Health goals",
   "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (up to 2)",
-  "onboardGoalTitle": "Exercise goal",
-  "onboardGoalSubtitle": "Tell us what you want to achieve. You can change this later.",
-  "onboardGoalHint": "e.g. Finish a 5K within three months",
   "onboardOptionalTag": "(optional)",
   "onboardSkipStep": "Skip this step",
   "onboardBirthLabel": "Date of birth",
@@ -1367,8 +1364,6 @@
   "@healthFocusBloodPressure": {
     "description": "Health goal chip in onboarding and MY health goals."
   },
-  "myGoalsExerciseNote": "Exercise goal",
-  "myGoalsExerciseNoteHint": "e.g. Finish a 5K within three months",
   "myGoalsDietSection": "Diet goals",
   "@myGoalsDietSection": {
     "description": "Section label in the health goals sheet."

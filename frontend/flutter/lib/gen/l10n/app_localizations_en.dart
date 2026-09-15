@@ -2034,16 +2034,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Pick what you want to focus on in your health care. (up to 2)';
 
   @override
-  String get onboardGoalTitle => 'Exercise goal';
-
-  @override
-  String get onboardGoalSubtitle =>
-      'Tell us what you want to achieve. You can change this later.';
-
-  @override
-  String get onboardGoalHint => 'e.g. Finish a 5K within three months';
-
-  @override
   String get onboardOptionalTag => '(optional)';
 
   @override
@@ -2310,12 +2300,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get healthFocusBloodPressure => 'Blood pressure care';
-
-  @override
-  String get myGoalsExerciseNote => 'Exercise goal';
-
-  @override
-  String get myGoalsExerciseNoteHint => 'e.g. Finish a 5K within three months';
 
   @override
   String get myGoalsDietSection => 'Diet goals';

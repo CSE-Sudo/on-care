@@ -56,8 +56,6 @@ const Map<String, String> _koBefore = <String, String>{
   'onboardHealthTitle': '건강 목표',
   // 건강 목표는 두 개까지 고른다(#1814).
   'onboardHealthSubtitle': '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (최대 2개)',
-  'onboardGoalTitle': '운동 목표',
-  'onboardGoalSubtitle': '달성하고 싶은 목표를 입력해 주세요. 나중에 바꿀 수 있어요.',
   'onboardGenderMale': '남성',
   'onboardGenderFemale': '여성',
   'onboardGenderOther': '기타',
@@ -157,8 +155,6 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'onboardHeightHint' => l.onboardHeightHint,
   'onboardHealthTitle' => l.onboardHealthTitle,
   'onboardHealthSubtitle' => l.onboardHealthSubtitle,
-  'onboardGoalTitle' => l.onboardGoalTitle,
-  'onboardGoalSubtitle' => l.onboardGoalSubtitle,
   'onboardGenderMale' => l.onboardGenderMale,
   'onboardGenderFemale' => l.onboardGenderFemale,
   'onboardGenderOther' => l.onboardGenderOther,
