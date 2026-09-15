@@ -5,12 +5,16 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 로그인 화면 로고의 한 변. 인증 틀 안에서 가장 먼저 눈에 드는 그림이다.
 const double _kLogoSize = 128;
+
+/// 로그인 화면에서 형식을 검사하는 칸.
+enum _Field { email, password }
 
 /// 로그인 화면 — 이메일/비밀번호 로그인 + 소셜 로그인.
 ///
@@ -30,11 +34,28 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   bool _obscure = true;
   bool _loading = false;
 
+  /// 칸 아래 오류 문구. 첫 제출 전에는 숨기고, 오류를 보인 칸은 입력하는 대로
+  /// 다시 검사한다(#1784).
+  late final AppFieldErrors<_Field> _errors = AppFieldErrors<_Field>(_check);
+
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  /// 칸의 지금 값에 대한 오류 문구. 비밀번호는 비었는지만 본다 — 가입 규칙을
+  /// 여기서도 걸면 규칙 이전에 만든 계정이 로그인에서 막힌다(#1784).
+  String? _check(_Field field) =>
+      authInputErrorText(AppLocalizations.of(context), switch (field) {
+        _Field.email => AppInputRules.email(_email.text),
+        _Field.password => AppInputRules.signInPassword(_password.text),
+      });
+
+  /// 오류를 보인 칸이 있을 때만 입력마다 다시 그려 문구가 값을 따라가게 한다.
+  void _onEdited(String _) {
+    if (_errors.isWatching) setState(() {});
   }
 
   void _enterDemo() {
@@ -45,18 +66,18 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Future<void> _login() async {
     if (_loading) return;
     final AppLocalizations l = AppLocalizations.of(context);
-    final email = _email.text.trim();
-    final password = _password.text;
-    if (email.isEmpty || password.isEmpty) {
-      showAppToast(context, l.authMissingCredentials, type: AppToastType.error);
+    // 틀린 칸이 하나라도 있으면 요청을 보내지 않고 칸 아래에 알린다.
+    if (!_errors.validate(_Field.values)) {
+      setState(() {});
       return;
     }
+    final email = _email.text.trim();
+    final password = _password.text;
     setState(() => _loading = true);
     try {
-      await ref.read(sessionControllerProvider.notifier).login(
-        email: email,
-        password: password,
-      );
+      await ref
+          .read(sessionControllerProvider.notifier)
+          .login(email: email, password: password);
       if (!mounted) return;
       context.go(AppRoutes.dashboard);
     } catch (_) {
@@ -84,11 +105,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
-      showAppToast(
-        context,
-        l.authSocialSignInFailed,
-        type: AppToastType.error,
-      );
+      showAppToast(context, l.authSocialSignInFailed, type: AppToastType.error);
     }
   }
 
@@ -116,20 +133,24 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             key: const ValueKey<String>('member-login-email'),
             controller: _email,
             hint: l.authEmailHint,
+            errorText: _errors.of(_Field.email),
             prefixIcon: AppIcons.mail,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
+            onChanged: _onEdited,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
             key: const ValueKey<String>('member-login-password'),
             controller: _password,
             hint: l.authPasswordHint,
+            errorText: _errors.of(_Field.password),
             prefixIcon: AppIcons.lock,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
+            onChanged: _onEdited,
             onSubmitted: (_) => _login(),
             suffix: _PasswordToggle(
               obscure: _obscure,

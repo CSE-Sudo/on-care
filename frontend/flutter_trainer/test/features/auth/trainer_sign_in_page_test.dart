@@ -1,22 +1,207 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
+import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 
 import '../../helpers/pump_app.dart';
 
+/// 로그인 호출을 세는 페이크. [failure] 를 주면 서버가 거절한 것처럼 던진다.
+class _RecordingAuthRepository implements TrainerAuthRepository {
+  _RecordingAuthRepository({this.failure});
+
+  final AuthFailure? failure;
+  int loginCalls = 0;
+  String? password;
+
+  static const TrainerAuthTokens _tokens = TrainerAuthTokens(
+    access: 'a',
+    refresh: 'r',
+  );
+
+  @override
+  Future<TrainerAuthTokens> login({
+    required String email,
+    required String password,
+  }) async {
+    loginCalls++;
+    this.password = password;
+    if (failure != null) throw AuthException(failure!);
+    return _tokens;
+  }
+
+  @override
+  Future<TrainerAuthTokens> register({
+    required String email,
+    required String password,
+    required String name,
+    required String inviteCode,
+  }) async => _tokens;
+
+  @override
+  Future<TrainerAuthTokens> socialLogin({
+    required String provider,
+    required String token,
+  }) async => _tokens;
+
+  @override
+  Future<TrainerAuthTokens> refresh(String refreshToken) async => _tokens;
+
+  @override
+  Future<void> logout(String refreshToken) async {}
+
+  @override
+  Future<TrainerProfile> fetchProfile(String accessToken) async =>
+      const TrainerProfile(
+        name: '트레이너',
+        email: 'trainer@oncare.com',
+        phone: '',
+        specialty: '',
+        career: '',
+        intro: '',
+        certifications: <String>[],
+        gym: TrainerGym(name: '', address: '', hours: '', phone: ''),
+      );
+}
+
+const ValueKey<String> _emailKey = ValueKey<String>('trainer-login-email');
+const ValueKey<String> _passwordKey = ValueKey<String>(
+  'trainer-login-password',
+);
+
+Future<_RecordingAuthRepository> _pumpWithRepo(
+  WidgetTester tester, {
+  AuthFailure? failure,
+}) async {
+  final repo = _RecordingAuthRepository(failure: failure);
+  await pumpTrainerApp(
+    tester,
+    extraOverrides: <Override>[
+      trainerAuthRepositoryProvider.overrideWithValue(repo),
+    ],
+  );
+  return repo;
+}
+
+Future<void> _type(
+  WidgetTester tester,
+  ValueKey<String> key,
+  String text,
+) async {
+  await tester.enterText(
+    find.descendant(of: find.byKey(key), matching: find.byType(TextField)),
+    text,
+  );
+  await tester.pump();
+  // 사라지는 오류 문구는 서서히 빠진다(Material 167ms) — 전환을 끝까지 돌린다.
+  await tester.pump(const Duration(milliseconds: 200));
+}
+
+Future<void> _submit(WidgetTester tester) async {
+  final Finder submit = find.byKey(
+    const ValueKey<String>('trainer-login-submit'),
+  );
+  await tester.ensureVisible(submit);
+  await tester.pump();
+  await tester.tap(submit);
+  await tester.pump();
+}
+
+/// [key] 칸 **안에**(입력창 아래 오류 자리) [message] 가 그려졌는가.
+Finder _errorUnder(ValueKey<String> key, String message) =>
+    find.descendant(of: find.byKey(key), matching: find.text(message));
+
 void main() {
   group('TrainerSignInPage', () {
-    testWidgets('shows a validation snackbar when fields are empty', (
-      tester,
-    ) async {
-      await pumpTrainerApp(tester);
+    testWidgets('빈칸으로 로그인하면 칸 아래에 빨간 문구를 보이고 요청하지 않는다', (tester) async {
+      final repo = await _pumpWithRepo(tester);
 
-      await tester.tap(find.widgetWithText(InkWell, '로그인'));
-      await tester.pump(); // let the snackbar appear
+      // 제출하기 전에는 아무 칸에도 오류가 없다.
+      expect(find.text('이메일을 입력해 주세요'), findsNothing);
 
-      expect(find.text('이메일과 비밀번호를 입력해 주세요'), findsOneWidget);
+      await _submit(tester);
+
+      expect(_errorUnder(_emailKey, '이메일을 입력해 주세요'), findsOneWidget);
+      expect(_errorUnder(_passwordKey, '비밀번호를 입력해 주세요'), findsOneWidget);
+      // 예전 토스트 문구는 더 이상 뜨지 않는다.
+      expect(find.text('이메일과 비밀번호를 입력해 주세요'), findsNothing);
+      expect(repo.loginCalls, 0);
+
+      final BuildContext context = tester.element(find.byKey(_emailKey));
+      final Text error = tester.widget<Text>(find.text('이메일을 입력해 주세요'));
+      expect(error.style?.color, Theme.of(context).colorScheme.error);
+    });
+
+    testWidgets('이메일 형식이 틀리면 형식 문구를 보이고 요청하지 않는다', (tester) async {
+      final repo = await _pumpWithRepo(tester);
+
+      await _type(tester, _emailKey, 'trainer@oncare');
+      await _type(tester, _passwordKey, 'oncare123');
+      await tester.pump();
+      // 입력만으로는 오류를 보이지 않는다 — 첫 제출 전이다.
+      expect(find.text('이메일 형식이 올바르지 않아요'), findsNothing);
+
+      await _submit(tester);
+
+      expect(_errorUnder(_emailKey, '이메일 형식이 올바르지 않아요'), findsOneWidget);
+      expect(find.text('비밀번호를 입력해 주세요'), findsNothing);
+      expect(repo.loginCalls, 0);
+    });
+
+    testWidgets('오류를 보인 칸은 고치는 대로 문구가 사라진다', (tester) async {
+      final repo = await _pumpWithRepo(tester);
+
+      await _type(tester, _emailKey, 'trainer');
+      await _submit(tester);
+      expect(find.text('이메일 형식이 올바르지 않아요'), findsOneWidget);
+      expect(find.text('비밀번호를 입력해 주세요'), findsOneWidget);
+
+      // 다시 제출하지 않아도 칸마다 지금 값으로 다시 검사한다.
+      await _type(tester, _emailKey, 'trainer@oncare.com');
+      await tester.pump();
+      expect(find.text('이메일 형식이 올바르지 않아요'), findsNothing);
+      expect(find.text('비밀번호를 입력해 주세요'), findsOneWidget);
+
+      await _type(tester, _passwordKey, 'pw');
+      await tester.pump();
+      expect(find.text('비밀번호를 입력해 주세요'), findsNothing);
+      expect(repo.loginCalls, 0);
+    });
+
+    testWidgets('로그인은 가입 비밀번호 규칙을 걸지 않는다', (tester) async {
+      // 규칙 이전에 만든 계정이 막히지 않아야 한다(#1784).
+      final repo = await _pumpWithRepo(tester);
+
+      await _type(tester, _emailKey, 'trainer@oncare.com');
+      await _type(tester, _passwordKey, 'pw');
+      await _submit(tester);
+      await settle(tester);
+
+      expect(repo.loginCalls, 1);
+      expect(repo.password, 'pw');
+      expect(find.text('영문과 숫자를 포함해 8자 이상 입력해 주세요'), findsNothing);
+    });
+
+    testWidgets('서버가 거절한 로그인은 칸 오류가 아니라 토스트로 알린다', (tester) async {
+      final repo = await _pumpWithRepo(
+        tester,
+        failure: AuthFailure.invalidCredentials,
+      );
+
+      await _type(tester, _emailKey, 'trainer@oncare.com');
+      await _type(tester, _passwordKey, 'wrong-password');
+      await _submit(tester);
+      await settle(tester);
+
+      expect(repo.loginCalls, 1);
+      expect(find.text('이메일 또는 비밀번호가 올바르지 않습니다.'), findsOneWidget);
+      expect(find.text('이메일 형식이 올바르지 않아요'), findsNothing);
+      expect(find.text('비밀번호를 입력해 주세요'), findsNothing);
     });
 
     testWidgets('소셜 로그인은 구분선 아래 원형 카카오·구글 버튼이다', (tester) async {

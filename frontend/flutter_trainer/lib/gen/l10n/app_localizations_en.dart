@@ -187,7 +187,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authName => 'Name';
 
   @override
-  String get authPasswordHint => 'Password (8+ characters)';
+  String get authPasswordHint =>
+      'Password (8+ characters, letters and numbers)';
 
   @override
   String get authPasswordConfirm => 'Confirm password';
@@ -220,8 +221,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign-in failed. Please try again in a moment.';
 
   @override
-  String get authErrPasswordTooShort =>
-      'Password must be at least 8 characters';
+  String get authErrNameEmpty => 'Enter your name';
+
+  @override
+  String get authErrEmailEmpty => 'Enter your email';
+
+  @override
+  String get authErrEmailInvalid => 'Enter a valid email address';
+
+  @override
+  String get authErrPasswordEmpty => 'Enter your password';
+
+  @override
+  String get authErrPasswordWeak =>
+      'Use at least 8 characters, including letters and numbers';
+
+  @override
+  String get authErrPhoneInvalid => 'Enter your phone number as 000-0000-0000';
 
   @override
   String get authErrPasswordMismatch => 'Passwords don\'t match';
