@@ -8,7 +8,7 @@
   트레이너·헬스장 직원이 확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다
   (직원 확인 버튼). 트레이너웹에는 처리 화면이 없다.
 - **건강식·보충제 할인 쿠폰(데모)** — 샐러드 10%, 프로틴 3,000원. 각 1000P, 30일.
-  코드를 보여 주고 회원이 스스로 사용 완료를 누른다. 재등록 쿠폰처럼 종류마다
+  쿠폰 화면을 보여 주고 회원이 스스로 사용 완료를 누른다. 재등록 쿠폰처럼 종류마다
   사용 가능한 쿠폰은 회원당 한 장이다.
 
 규칙:
@@ -31,7 +31,6 @@
 """
 from __future__ import annotations
 
-import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
@@ -143,10 +142,6 @@ CATALOG: tuple[ShopItem, ...] = (
     STREAK_SHIELD,
 )
 _ITEMS: dict[str, ShopItem] = {item.id: item for item in CATALOG}
-
-#: 쿠폰 코드 글자 — 불러 주거나 받아 적을 때 헷갈리는 0·O·1·I 를 뺐다.
-_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
-_CODE_LENGTH = 8
 
 
 class CouponError(Exception):
@@ -320,7 +315,6 @@ def exchange(
         user_id=member_id,
         item=item.id,
         cost=item.cost,
-        code=_new_code(db),
         status=ISSUED,
         trainer_id=trainer_id,
         trainer_name=trainer_name,
@@ -363,7 +357,7 @@ def use_by_member(
     """회원 휴대폰에서 `사용 완료` 를 누른다. 커밋한다.
 
     PT 재등록 쿠폰은 트레이너·헬스장 직원이 확인한 뒤, 건강식·보충제 쿠폰은 매장에서
-    코드를 보여 준 뒤 회원 화면의 같은 버튼으로 처리한다. 사용 시각은 `used_at` 에
+    쿠폰 화면을 보여 준 뒤 회원 화면의 같은 버튼으로 처리한다. 사용 시각은 `used_at` 에
     남는다 — 처리한 사람은 늘 이 회원이라 따로 적지 않는다.
 
     두 번째 값은 **이번 요청이 처리했는가**다. 이미 사용된 쿠폰의 재요청은 같은
@@ -513,7 +507,6 @@ def coupon_out(row: PointsCoupon, now: datetime | None = None) -> CouponOut:
         title=item.title if item is not None else row.item,
         benefit=item.benefit if item is not None else row.item,
         cost=row.cost,
-        code=row.code,
         status=status,
         redeemer=item.redeemer if item is not None else REDEEMER_MEMBER,
         trainer_name=row.trainer_name or "",
@@ -603,15 +596,6 @@ def _exchange_out(db: Session, member_id: str, row: PointsCoupon) -> ExchangeOut
         spent=row.cost,
         balance=points_service.balance(db, member_id),
     )
-
-
-def _new_code(db: Session) -> str:
-    for _ in range(8):
-        code = "".join(secrets.choice(_CODE_ALPHABET) for _ in range(_CODE_LENGTH))
-        taken = db.scalar(select(PointsCoupon.id).where(PointsCoupon.code == code))
-        if taken is None:
-            return code
-    raise RuntimeError("쿠폰 코드를 만들지 못했습니다.")
 
 
 def _expires_at(issued_at: datetime, valid_days: int) -> datetime:

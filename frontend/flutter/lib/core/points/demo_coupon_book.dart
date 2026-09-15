@@ -25,12 +25,10 @@ class DemoCouponBook {
   DemoCouponBook({
     required DemoPointsLedger ledger,
     DateTime Function()? now,
-    math.Random? random,
     bool hasTrainer = true,
     DemoStreakShieldBook? shields,
   }) : _ledger = ledger,
        _now = now ?? nowKst,
-       _random = random ?? math.Random(),
        _hasTrainer = hasTrainer,
        _shields = shields ?? DemoStreakShieldBook(ledger: ledger, now: now);
 
@@ -41,7 +39,6 @@ class DemoCouponBook {
 
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
-  final math.Random _random;
   bool _hasTrainer;
   int _sequence = 0;
 
@@ -114,7 +111,6 @@ class DemoCouponBook {
       id: 'cpn-demo-${++_sequence}',
       item: item.id,
       cost: item.cost,
-      code: _newCode(),
       issuedAt: _now(),
       issuedOn: today,
       lastDay: DateTime(today.year, today.month, today.day + item.validDays),
@@ -237,7 +233,6 @@ class DemoCouponBook {
       'title': item?.title ?? coupon.item,
       'benefit': item?.benefit ?? coupon.item,
       'cost': coupon.cost,
-      'code': coupon.code,
       'status': coupon.status,
       'redeemer': item?.redeemer ?? 'member',
       'trainer_name': coupon.trainerName,
@@ -249,18 +244,6 @@ class DemoCouponBook {
       'used_at': coupon.usedAt?.toIso8601String(),
       'cancelled_at': coupon.cancelledAt?.toIso8601String(),
     };
-  }
-
-  String _newCode() {
-    while (true) {
-      final String code = String.fromCharCodes(
-        List<int>.generate(
-          8,
-          (_) => _kCodeAlphabet.codeUnitAt(_random.nextInt(_kCodeAlphabet.length)),
-        ),
-      );
-      if (_coupons.every((_DemoCoupon c) => c.code != code)) return code;
-    }
   }
 
   static DemoCouponResult _error(int status, String detail) =>
@@ -359,15 +342,11 @@ const DemoShopItem kDemoStreakShield = DemoShopItem(
 const String kDemoTrainerName = '김트레이너';
 const String kDemoTrainerGym = '온케어짐 신촌점';
 
-/// 코드 글자 — 헷갈리는 0·O·1·I 를 뺐다(서버와 같다).
-const String _kCodeAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-
 class _DemoCoupon {
   _DemoCoupon({
     required this.id,
     required this.item,
     required this.cost,
-    required this.code,
     required this.issuedAt,
     required this.issuedOn,
     required this.lastDay,
@@ -379,7 +358,6 @@ class _DemoCoupon {
   final String id;
   final String item;
   final int cost;
-  final String code;
   final DateTime issuedAt;
   final DateTime issuedOn;
 

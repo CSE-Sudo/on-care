@@ -6,8 +6,6 @@
 /// 취소하고 돌려준다.
 library;
 
-import 'dart:math' as math;
-
 import 'package:dio/dio.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -32,7 +30,7 @@ void main() {
     now = DateTime(2026, 9, 15, 10);
     db = AppDatabase.forTesting(NativeDatabase.memory());
     ledger = DemoPointsLedger(openingBalance: 7300);
-    book = DemoCouponBook(ledger: ledger, now: () => now, random: math.Random(7));
+    book = DemoCouponBook(ledger: ledger, now: () => now);
     dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
     dio.interceptors.add(
       LocalApiInterceptor(
@@ -103,7 +101,6 @@ void main() {
     expect(result.balance, 6300);
     expect(coupon.status, CouponStatus.issued);
     expect(coupon.redeemer, CouponRedeemer.member);
-    expect(coupon.code, hasLength(8));
     expect(coupon.daysLeft, 30);
     expect(coupon.expiresOn, DateTime(2026, 10, 15));
     expect(await balance(), 6300);

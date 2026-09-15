@@ -1,9 +1,10 @@
 /// 내 혜택 목록과 쿠폰 화면. (#1787)
 ///
 /// 모든 쿠폰은 회원 휴대폰에서 `사용 완료` 를 누른다. PT 재등록 쿠폰은 혜택·담당
-/// 트레이너·헬스장·코드·만료일(D-n)을 보여 주고, 트레이너·헬스장 직원이 확인한 뒤
-/// 누르라는 안내가 버튼 위에 선다(직원 확인 버튼). 건강식 쿠폰은 회원이 매장에서
-/// 코드를 보여 준 뒤 누른다. 사용하면 사용 완료와 사용 시각을 보여 준다.
+/// 트레이너·헬스장·만료일(D-n)을 보여 주고, 트레이너·헬스장 직원이 확인한 뒤
+/// 누르라는 안내가 버튼 위에 선다(직원 확인 버튼). 건강식 쿠폰은 같은 자리에 매장에서
+/// 이 화면을 보여 준 뒤 누르라는 안내가 선다. 카드 아래 만료 안내는 아이콘 없는 한
+/// 줄이다. 사용하면 연하늘 사용 완료 줄과 사용 시각을 보여 주고 안내는 숨긴다.
 library;
 
 import 'package:flutter/material.dart';
@@ -190,7 +191,7 @@ void main() {
     expect(usedTag.tone, AppTagTone.neutral);
   });
 
-  testWidgets('PT 재등록 쿠폰 화면은 트레이너·헬스장·코드·D-n 과 직원 확인 안내·사용 완료 버튼을 보여 준다', (
+  testWidgets('PT 재등록 쿠폰 화면은 트레이너·헬스장·D-n 과 직원 확인 안내·사용 완료 버튼을 보여 준다', (
     tester,
   ) async {
     await pumpAt(
@@ -206,14 +207,26 @@ void main() {
 
     expect(find.byKey(const Key('couponDetailPage')), findsOneWidget);
     expect(find.text('PT 재등록 10,000원 할인'), findsOneWidget);
-    expect(find.text('ABCD-2345'), findsOneWidget);
+    // 쿠폰 코드는 없다 — 코드 상자·이름표를 그리지 않는다.
+    expect(find.textContaining('코드'), findsNothing);
     expect(find.text('김트레이너'), findsOneWidget);
     expect(find.text('온케어짐 신촌점'), findsOneWidget);
     expect(find.text('2026.09.15'), findsOneWidget);
     expect(find.text('2026.10.15 (D-30)'), findsOneWidget);
     expect(find.text('사용 가능'), findsOneWidget);
-    expect(find.textContaining('트레이너·헬스장 직원에게 보여 주세요'), findsOneWidget);
+    // 제목이 한 줄에 들어가도록 제목 옆 상태 태그는 두지 않는다.
+    expect(
+      find.byKey(const ValueKey<String>('coupon-status-c-renewal')),
+      findsNothing,
+    );
+    // 직원에게 보여 주라는 안내는 버튼 위 직원 안내 줄과 겹쳐 따로 두지 않는다.
+    expect(find.textContaining('직원에게 보여 주세요'), findsNothing);
+    expect(
+      find.byKey(const Key('couponExpireNotice')),
+      findsOneWidget,
+    );
     expect(find.text('만료되면 포인트는 돌려받을 수 없어요.'), findsOneWidget);
+    expect(find.byIcon(Icons.info_rounded), findsNothing);
 
     // 직원에게 말하는 안내가 버튼 바로 위에 선다.
     expect(staffNote(), findsOneWidget);
@@ -286,16 +299,24 @@ void main() {
       ),
       findsOneWidget,
     );
+    // 제목 옆 상태 태그는 없다 — 상태 줄이 사용 완료를 말한다.
     expect(
-      tester
-          .widget<AppTag>(
-            find.byKey(const ValueKey<String>('coupon-status-c-renewal')),
-          )
-          .label,
-      '사용 완료',
+      find.byKey(const ValueKey<String>('coupon-status-c-renewal')),
+      findsNothing,
     );
+    expect(find.text('사용 완료'), findsOneWidget);
     expect(useButton(), findsNothing);
     expect(staffNote(), findsNothing);
+    // 사용한 쿠폰에는 만료 안내를 두지 않는다.
+    expect(find.byKey(const Key('couponExpireNotice')), findsNothing);
+    // 사용 완료 줄은 초록이 아니라 브랜드 연하늘이다.
+    final Icon bannerIcon = tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(const Key('couponUsedBanner')),
+        matching: find.byType(Icon),
+      ),
+    );
+    expect(bannerIcon.color, isNot(OnCareColors.success));
     await drainToast(tester);
   });
 
@@ -307,7 +328,20 @@ void main() {
 
     expect(find.text('담당 트레이너'), findsNothing);
     expect(staffNote(), findsNothing);
-    expect(find.textContaining('매장에서 코드를 보여 준 뒤'), findsOneWidget);
+    // 매장 안내는 직원 안내와 같은 자리, 버튼 바로 위에 선다.
+    final Finder storeNote = find.byKey(const Key('couponStoreNote'));
+    expect(
+      find.descendant(
+        of: storeNote,
+        matching: find.textContaining('매장에서 이 화면을 보여 준 뒤'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester.getBottomLeft(storeNote).dy,
+      lessThan(tester.getTopLeft(useButton()).dy),
+    );
+    expect(find.textContaining('코드'), findsNothing);
     await tester.tap(useButton());
     await tester.pumpAndSettle();
 
@@ -331,11 +365,10 @@ void main() {
     expect(repo.used, <String>['c-salad']);
     expect(useButton(), findsNothing);
     expect(
-      tester
-          .widget<AppTag>(find.byKey(const ValueKey<String>('coupon-status-c-salad')))
-          .label,
-      '사용 완료',
+      find.byKey(const ValueKey<String>('coupon-status-c-salad')),
+      findsNothing,
     );
+    expect(find.text('사용 완료'), findsOneWidget);
     expect(find.byKey(const Key('couponUsedAt')), findsOneWidget);
     await drainToast(tester);
   });
