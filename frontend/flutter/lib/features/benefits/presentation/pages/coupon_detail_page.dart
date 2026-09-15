@@ -91,7 +91,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
                 AppCard(
                   child: AppEmptyState(
                     title: l.myCouponNotFound,
-                    icon: Icons.redeem_rounded,
+                    icon: Icons.confirmation_number_rounded,
                     placement: AppStatePlacement.card,
                   ),
                 ),

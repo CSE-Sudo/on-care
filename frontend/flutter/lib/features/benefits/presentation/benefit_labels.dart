@@ -59,7 +59,7 @@ IconData benefitIcon(String itemId) => switch (itemId) {
   kSaladDiscountItem => Icons.eco_rounded,
   kProteinDiscountItem => Icons.local_drink_rounded,
   kStreakShieldItem => Icons.shield_rounded,
-  _ => Icons.redeem_rounded,
+  _ => Icons.confirmation_number_rounded,
 };
 
 /// 목록 태그의 짧은 상태 — 사용 가능이면 D-n.
