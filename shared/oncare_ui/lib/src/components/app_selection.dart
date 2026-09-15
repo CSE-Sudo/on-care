@@ -226,16 +226,28 @@ class AppSegmentedToggle<T> extends StatelessWidget {
       // `thumb` 은 띠 높이를 꽉 채우고 안쪽 Row 가 세로 가운데에 선다.
       vertical: thumb ? 0 : OnCareSize.segmentPaddingVertical,
     );
+    final Color fill = thumb ? OnCareColors.surfaceCard : tokens.brand.primary;
     final BoxDecoration decoration = BoxDecoration(
-      color: !selected
-          ? Colors.transparent
-          : thumb
-          ? OnCareColors.surfaceCard
-          : tokens.brand.primary,
+      // 선택 안 된 칸도 같은 색의 **투명**으로 둔다. `Colors.transparent`(투명한
+      // 검정)와 섞으면 바뀌는 도중 두 칸이 회색으로 번쩍인다(#1820).
+      color: selected ? fill : fill.withValues(alpha: 0),
       borderRadius: OnCareRadius.pillAll,
-      boxShadow: thumb && selected
-          ? OnCareShadows.segmentThumb(tokens.brand.primary)
-          : null,
+      // 그림자도 없애지 않고 투명하게 둬, 흰 엄지와 함께 서서히 사라진다.
+      boxShadow: !thumb
+          ? null
+          : <BoxShadow>[
+              for (final BoxShadow shadow in OnCareShadows.segmentThumb(
+                tokens.brand.primary,
+              ))
+                selected
+                    ? shadow
+                    : BoxShadow(
+                        color: shadow.color.withValues(alpha: 0),
+                        offset: shadow.offset,
+                        blurRadius: shadow.blurRadius,
+                        spreadRadius: shadow.spreadRadius,
+                      ),
+            ],
     );
     final Widget content = Row(
       mainAxisSize: MainAxisSize.min,
@@ -281,6 +293,14 @@ class AppSegmentedToggle<T> extends StatelessWidget {
                   // 손가락 커서로 보인다.
                   mouseCursor: SystemMouseCursors.click,
                   customBorder: const StadiumBorder(),
+                  // 누름·올림은 기본 회색 대신 브랜드색으로 옅게 칠한다(#1820).
+                  splashColor: tokens.brand.primary.withValues(
+                    alpha: OnCareAlpha.medium,
+                  ),
+                  highlightColor: Colors.transparent,
+                  hoverColor: tokens.brand.primary.withValues(
+                    alpha: OnCareAlpha.subtle,
+                  ),
                   // 여백을 물결 안쪽에 둔다 — 알약 전체가 누르는 자리다.
                   child: Padding(padding: padding, child: content),
                 ),

@@ -161,7 +161,8 @@ void main() {
         expect(labelColor(tester, '오늘'), OnCareColors.textOnFill);
 
         final BoxDecoration off = segmentDecoration(tester, '이번 주');
-        expect(off.color, Colors.transparent);
+        // 투명한 브랜드색이다 — 투명한 검정과 섞이면 바뀌는 도중 어둡게 번쩍인다(#1820).
+        expect(off.color, brand.primary.withValues(alpha: 0));
         expect(labelColor(tester, '이번 주'), brand.segmentLabel);
         expect(
           tester.widget<Text>(find.text('오늘')).style!.fontWeight,
@@ -305,8 +306,10 @@ void main() {
       final BoxDecoration off =
           tester.widget<AnimatedContainer>(segmentOf('운동')).decoration!
               as BoxDecoration;
-      expect(off.color, Colors.transparent);
-      expect(off.boxShadow, isNull);
+      expect(off.color, OnCareColors.surfaceCard.withValues(alpha: 0));
+      expect(<double>[
+        for (final BoxShadow shadow in off.boxShadow!) shadow.color.a,
+      ], everyElement(0));
 
       expect(tester.widget<Text>(find.text('식단')).style!.color, brand.primary);
       expect(
@@ -422,6 +425,77 @@ void main() {
           expect(picked, <String>['week']);
         },
       );
+    }
+
+    testWidgets('웹 누름·올림 효과는 브랜드색이다', (tester) async {
+      const OnCareBrand brand = OnCareBrand.trainer;
+      await _pump(
+        tester,
+        Align(alignment: Alignment.topLeft, child: toggle((_) {})),
+        brand: brand,
+        density: OnCareDensity.web,
+      );
+      final InkWell well = tester.widget<InkWell>(wells().first);
+      expect(well.splashColor, brand.primary.withValues(alpha: OnCareAlpha.medium));
+      expect(well.hoverColor, brand.primary.withValues(alpha: OnCareAlpha.subtle));
+      expect(well.highlightColor!.a, 0);
+    });
+
+    for (final OnCareDensity density in <OnCareDensity>[
+      OnCareDensity.mobile,
+      OnCareDensity.web,
+    ]) {
+      for (final AppSegmentedToggleStyle style
+          in AppSegmentedToggleStyle.values) {
+        testWidgets(
+          '${density.isWeb ? 'web' : 'mobile'}·${style.name}: 바뀌는 도중 칸이 어둡게 번쩍이지 않는다',
+          (tester) async {
+            const OnCareBrand brand = OnCareBrand.trainer;
+            String selected = 'today';
+            await _pump(
+              tester,
+              Align(
+                alignment: Alignment.topLeft,
+                child: StatefulBuilder(
+                  builder: (context, setState) => AppSegmentedToggle<String>(
+                    style: style,
+                    selected: selected,
+                    onChanged: (v) => setState(() => selected = v),
+                    segments: const <AppSegment<String>>[
+                      AppSegment<String>(value: 'today', label: '오늘'),
+                      AppSegment<String>(value: 'week', label: '이번 주'),
+                    ],
+                  ),
+                ),
+              ),
+              brand: brand,
+              density: density,
+            );
+            await tester.tap(find.text('이번 주'));
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 60));
+            final Color fill = style == AppSegmentedToggleStyle.thumb
+                ? OnCareColors.surfaceCard
+                : brand.primary;
+            for (final String label in <String>['오늘', '이번 주']) {
+              final DecoratedBox box = tester.widget<DecoratedBox>(
+                find
+                    .ancestor(
+                      of: find.text(label),
+                      matching: find.byType(DecoratedBox),
+                    )
+                    .first,
+              );
+              final Color mid = (box.decoration as BoxDecoration).color!;
+              // 투명도만 바뀌고 색은 칸 채움색 그대로다.
+              expect(mid.r, closeTo(fill.r, 0.01), reason: label);
+              expect(mid.g, closeTo(fill.g, 0.01), reason: label);
+              expect(mid.b, closeTo(fill.b, 0.01), reason: label);
+              expect(mid.a, inExclusiveRange(0, 1), reason: '$label 은 전환 중이다');
+            }
+          },
+        );
+      }
     }
 
     testWidgets('회원앱(모바일)은 이전처럼 탭만 받는다', (tester) async {
