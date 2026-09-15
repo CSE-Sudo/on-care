@@ -14,6 +14,11 @@
   그날 한도를 잃지 않게 하려는 것이다. 지웠다 다시 올려도 잔액은 한 번 적립한
   것과 같으므로 한도를 우회하는 이득은 없다.
 
+사용(#1787)은 쿠폰 교환이다. 잔액 행을 잠근 채 잔액을 확인하고 빼므로, 같은 회원의
+교환이 동시에 들어와도 잔액이 음수가 되지 않는다. 교환이 취소되면(담당 해제로 PT
+재등록 쿠폰 취소) 같은 source 로 반환(`refund`)을 남긴다 — 회수가 적립을 되돌리는
+짝이듯, 반환은 사용을 되돌리는 짝이다. 쿠폰이 만료되면 반환하지 않는다(소멸).
+
 이 모듈의 함수는 **커밋하지 않는다.** 부르는 쪽이 기록 저장·삭제와 같은
 트랜잭션에서 커밋해야 잔액·내역·기록이 함께 움직인다.
 """
@@ -33,14 +38,25 @@ from app.models.models import HealthProfile, PointsLedger
 #: 같은 값이다. 실제 가입 회원은 0 에서 시작한다.
 DEMO_OPENING_POINTS = 1240
 
-#: 내역 종류. 사용(`spend`)은 사용처가 붙을 때 쓴다.
+#: 내역 종류. 회수는 적립의, 반환은 사용의 짝이다.
 EARN = "earn"
 SPEND = "spend"
 REVOKE = "revoke"
+REFUND = "refund"
 
 #: 적립의 근거가 된 기록 종류 — 내역의 `source_type`.
 SOURCE_DIET_ENTRY = "diet_entry"
 SOURCE_EXERCISE_SESSION = "exercise_session"
+#: 사용·반환의 근거 — 교환한 쿠폰(#1787).
+SOURCE_POINTS_COUPON = "points_coupon"
+
+
+class InsufficientPoints(Exception):
+    """잔액이 모자라 사용할 수 없다. [shortfall] 은 모자란 포인트다."""
+
+    def __init__(self, shortfall: int) -> None:
+        super().__init__(f"포인트가 {shortfall}P 부족해요.")
+        self.shortfall = shortfall
 
 
 @dataclass(frozen=True)
@@ -160,6 +176,84 @@ def revoke(db: Session, user_id: str, source_type: str, source_id: str) -> int:
     profile.activity_points = current - taken
     db.flush()
     return taken
+
+
+def lock_balance(db: Session, user_id: str) -> HealthProfile:
+    """잔액 행을 잠가 가져온다(없으면 만든다). 커밋하지 않는다. (#1787)
+
+    쿠폰 교환은 잔액만이 아니라 "사용 가능한 쿠폰이 이미 있는가" 도 함께 본다.
+    그 확인까지 한 회원의 교환을 차례로 세우려고 먼저 잠근다. 담당 해제의 쿠폰
+    취소도 쿠폰보다 이 행을 먼저 잠가, 교환과 잠금 순서가 엇갈리지 않게 한다.
+    """
+    return _locked_profile(db, user_id)
+
+
+def spend(
+    db: Session,
+    user_id: str,
+    *,
+    reason: str,
+    source_type: str,
+    source_id: str,
+    cost: int,
+) -> int:
+    """[cost] 만큼 사용하고 그 뒤의 잔액을 돌려준다. 커밋하지 않는다. (#1787)
+
+    잔액 행을 잠근 채 확인하고 빼므로 동시에 두 번 써도 음수가 되지 않는다.
+    모자라면 [InsufficientPoints] 이고 아무것도 쓰지 않는다.
+    """
+    profile = _locked_profile(db, user_id)
+    current = profile.activity_points or 0
+    if current < cost:
+        raise InsufficientPoints(cost - current)
+    db.add(
+        PointsLedger(
+            id=_new_id(),
+            user_id=user_id,
+            kind=SPEND,
+            delta=-cost,
+            reason=reason,
+            source_type=source_type,
+            source_id=source_id,
+            kst_date=clock.today_iso(),
+        )
+    )
+    profile.activity_points = current - cost
+    db.flush()
+    return profile.activity_points
+
+
+def refund(db: Session, user_id: str, source_type: str, source_id: str) -> int:
+    """[source_id] 로 쓴 포인트를 돌려준다. 돌려준 포인트(0 이상)를 돌려준다. (#1787)
+
+    회수(`revoke`)가 적립을 되돌리듯 반환은 사용을 되돌린다. 같은 source 에 한
+    번뿐이라(내역 유니크 제약) 취소가 겹쳐 들어와도 두 번 돌려주지 않는다. 사용한
+    적이 없는 source 면 아무 일도 하지 않는다. 커밋하지 않는다.
+    """
+    spent = _row(db, user_id, SPEND, source_type, source_id)
+    if spent is None:
+        return 0
+    profile = _locked_profile(db, user_id)
+    if _row(db, user_id, REFUND, source_type, source_id) is not None:
+        return 0
+    amount = -spent.delta
+    if amount <= 0:
+        return 0
+    db.add(
+        PointsLedger(
+            id=_new_id(),
+            user_id=user_id,
+            kind=REFUND,
+            delta=amount,
+            reason=spent.reason,
+            source_type=source_type,
+            source_id=source_id,
+            kst_date=clock.today_iso(),
+        )
+    )
+    profile.activity_points = (profile.activity_points or 0) + amount
+    db.flush()
+    return amount
 
 
 def _new_id() -> str:

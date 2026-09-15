@@ -99,8 +99,8 @@
 
 ### 활동 포인트 (#1786)
 
-잔액은 `health_profiles.activity_points`, 움직임은 `points_ledger`(적립 `earn`·사용 `spend`·회수 `revoke`)에
-한 줄씩 남는다. 둘은 같은 트랜잭션에서 함께 바뀐다. 사용처(쿠폰 등)는 아직 없다.
+잔액은 `health_profiles.activity_points`, 움직임은 `points_ledger`(적립 `earn`·사용 `spend`·회수 `revoke`·
+반환 `refund`)에 한 줄씩 남는다. 둘은 같은 트랜잭션에서 함께 바뀐다. 사용처는 아래 "포인트 사용처·쿠폰" 절 참조.
 
 | 규칙(`reason`) | 언제 | 포인트 | 하루 한도 |
 |---|---|---|---|
@@ -119,6 +119,53 @@
 - 배정 루틴 완료 응답은 `RoutineOut` + `points` 다. 앱의 안내 문구는 `추천·배정 운동 완료` 로, AI 추천과
   트레이너 배정이 **하루 1회를 함께** 쓴다 — 배정 루틴으로 받은 날은 AI 루틴을 완료해도 `awarded: 0`.
   목록·수정 응답에는 `points` 가 붙지 않는다.
+
+### 포인트 사용처·쿠폰 (#1787)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, items[] }` |
+| POST | `/me/points/exchange` | 회원 | 입력 `{ item, client_request_id? }` → **201** `{ coupon, spent, balance }` |
+| GET | `/me/coupons` | 회원(데모 폴백) | `coupon[]` — 사용 가능 먼저, 그다음 최신순(최대 100) |
+| POST | `/me/coupons/{id}/use` | 회원 | `coupon` — 회원이 사용 처리하는 쿠폰만 |
+| GET | `/trainer/clients/{member_id}/coupons` | 현재 담당 트레이너 | 사용 가능한 PT 재등록 쿠폰 `trainer_coupon[]` |
+| POST | `/trainer/clients/{member_id}/coupons/{id}/redeem` | 현재 담당 트레이너 | `trainer_coupon` |
+
+교환 항목(가격·기한의 원본은 서버다):
+
+| `item` | 이름 | 포인트 | 기한 | 사용 처리 | 조건 |
+|---|---|---|---|---|---|
+| `pt_renewal` | PT 재등록 할인 쿠폰(10,000원) | 5000 | 30일 | 담당 트레이너 | 활성 담당 필요, 사용 가능한 쿠폰은 회원당 1장 |
+| `salad_discount` | 샐러드 10% 할인 | 1000 | 30일 | 회원 | — |
+| `protein_discount` | 프로틴 3,000원 할인 | 1000 | 30일 | 회원 | — |
+
+`items[]`: `{ id, title, benefit, description, cost, valid_days, redeemer(trainer|member), requires_trainer,
+available, blocked_reason, shortfall }`. `blocked_reason` 은 `no_trainer` → `active_coupon` →
+`insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란 포인트(모자라지 않으면 0).
+
+`coupon`: `{ id, item, title, benefit, cost, code, status, redeemer, trainer_name, gym_name, issued_at, issued_on,
+expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_coupon` 은 코드·트레이너 이름을 빼고
+`{ id, item, benefit, status, issued_at, issued_on, expires_on, days_left, used_at? }` 다.
+
+- **상태** `issued`(사용 가능)|`used`|`expired`|`cancelled`. 기한이 지난 쿠폰은 서버가 아직 만료로 내리지 않았어도
+  `expired` 로 싣는다. 스케줄러가 없어 조회·교환·사용 경로가 만날 때 만료로 내린다.
+- **기한** 쓸 수 있는 마지막 날(`expires_on`, KST)은 교환일 + 30일이다. `expires_at` 은 그 다음 날 KST 0시.
+  `days_left` 는 마지막 날까지 남은 날(당일 0).
+- **코드** 8자리, 헷갈리는 0·O·1·I 를 뺀 글자. 앱은 4자리씩 끊어 보여 준다.
+- **교환** 잔액 행을 잠근 채 확인하고 `spend`(음수)를 남긴다. 없는 항목 404, 잔액 부족·담당 없음·사용 가능한 재등록
+  쿠폰 보유는 409. 같은 `client_request_id` 재전송은 새로 쓰지 않고 처음 쿠폰을 돌려준다.
+- **사용 처리** `issued` 이고 기한 전일 때만 바꾸는 조건부 UPDATE 한 번이다. 이미 사용된 쿠폰은 같은 응답 200,
+  만료·취소는 409. 되돌리기는 없다. 트레이너 처리는 처리 트레이너 id·시각을 남기고, 처음 처리한 요청만 감사 로그
+  (`points.coupon_redeem`)를 쓰며 회원에게 알림을 만든다. PT 재등록 쿠폰을 회원이 쓰려 하면 409, 회원 쿠폰에
+  트레이너가 접근하면 404.
+- **권한** 트레이너 경로는 **현재 활성 담당**만 통과한다. 해제된 과거 담당·남의 회원은 404.
+- **만료** 포인트는 돌려주지 않는다(소멸). 남은 날이 3일 이하가 되면 쿠폰마다 한 번 알림을 만든다 — `GET /me/coupons`
+  나 `GET /notifications` 를 부를 때 생긴다.
+- **담당 해제** (`DELETE /me/coach`, `DELETE /me/coach/trainer`, `DELETE /trainer/clients/{member_id}`, 트레이너
+  탈퇴) 사용 가능한 PT 재등록 쿠폰을 `cancelled` 로 바꾸고 같은 source 로 `refund`(양수)를 남겨 포인트를 돌려준다.
+  건강식 쿠폰은 그대로다.
+- **알림** 사용 처리·취소·만료 임박 알림의 `category` 는 `benefits`, `action` 은 `{ label: "내 혜택 보기",
+  target: "my_benefits" }`. 수신 설정 스위치는 없다.
 
 ### 일정 (캘린더 상세 CRUD)
 
