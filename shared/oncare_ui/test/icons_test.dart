@@ -26,6 +26,8 @@ const IconData _send = IconData(0xe013, fontFamily: 'TestSymbols');
 const IconData _file = IconData(0xe014, fontFamily: 'TestSymbols');
 const IconData _glyph = IconData(0xe015, fontFamily: 'TestSymbols');
 const IconData _thin = IconData(0xe016, fontFamily: 'TestSymbols');
+const IconData _calendarExpand = IconData(0xe017, fontFamily: 'TestSymbols');
+const IconData _calendarCollapse = IconData(0xe018, fontFamily: 'TestSymbols');
 
 const OnCareIconSet _symbols = OnCareIconSet(
   name: 'test',
@@ -35,6 +37,8 @@ const OnCareIconSet _symbols = OnCareIconSet(
   next: _next,
   disclosure: _disclosure,
   dropdown: _dropdown,
+  calendarExpand: _calendarExpand,
+  calendarCollapse: _calendarCollapse,
   search: _search,
   add: _add,
   remove: _remove,

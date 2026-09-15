@@ -53,6 +53,10 @@ class AppIcons {
   // --- 알림·소통 ---
   static const IconData notifications = Symbols.notifications_rounded;
   static const IconData notificationsOff = Symbols.notifications_off_rounded;
+
+  /// 알림 갈래 — 건강 확인·달성.
+  static const IconData healthCheck = Symbols.monitor_heart_rounded;
+  static const IconData achievement = Symbols.emoji_events_rounded;
   static const IconData chat = Symbols.chat_bubble_rounded;
   static const IconData help = Symbols.help_rounded;
   static const IconData privacy = Symbols.privacy_tip_rounded;
@@ -83,6 +87,10 @@ class AppIcons {
   static const IconData chevronRight = Symbols.chevron_right_rounded;
   static const IconData expandMore = Symbols.keyboard_arrow_down_rounded;
   static const IconData expandLess = Symbols.keyboard_arrow_up_rounded;
+
+  /// 날짜 선택창 머리의 삼각형 — 달 보기 열기(▾)·닫기(▴).
+  static const IconData calendarExpand = Symbols.arrow_drop_down_rounded;
+  static const IconData calendarCollapse = Symbols.arrow_drop_up_rounded;
   static const IconData external = Symbols.open_in_new_rounded;
   static const IconData close = Symbols.close_rounded;
 
@@ -121,6 +129,8 @@ class AppIcons {
     next: chevronRight,
     disclosure: chevronRight,
     dropdown: expandMore,
+    calendarExpand: calendarExpand,
+    calendarCollapse: calendarCollapse,
     search: search,
     add: add,
     remove: remove,

@@ -30,6 +30,8 @@ class OnCareIconSet {
     required this.next,
     required this.disclosure,
     required this.dropdown,
+    required this.calendarExpand,
+    required this.calendarCollapse,
     required this.search,
     required this.add,
     required this.remove,
@@ -64,6 +66,8 @@ class OnCareIconSet {
     next: Icons.chevron_right_rounded,
     disclosure: Icons.chevron_right_rounded,
     dropdown: Icons.keyboard_arrow_down_rounded,
+    calendarExpand: Icons.arrow_drop_down_rounded,
+    calendarCollapse: Icons.arrow_drop_up_rounded,
     search: Icons.search_rounded,
     add: Icons.add_rounded,
     remove: Icons.remove_rounded,
@@ -98,6 +102,10 @@ class OnCareIconSet {
 
   /// 선택 입력의 펼침 화살표.
   final IconData dropdown;
+
+  /// 날짜 선택창 머리의 삼각형 — 달 보기 열기(▾)·닫기(▴).
+  final IconData calendarExpand;
+  final IconData calendarCollapse;
 
   final IconData search;
 

@@ -493,60 +493,27 @@ class _DateStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            // 영어의 날짜 라벨은 한국어보다 훨씬 길다. 고정 폭으로 두면 좁은
-            // 화면에서 오늘 버튼을 밀어내며 넘친다(#743).
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: OnCareSpacing.s8,
-                ),
-                child: Text(
-                  weekLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.oncare
-                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-              ),
-            ),
-            if (showTodayButton) ...<Widget>[
-              const SizedBox(width: OnCareSpacing.s8),
-              // 기간 토글이 오늘이 아닌 날에는 사라지므로, 되돌아오는 길은 이
-              // 버튼 하나다 — 테스트가 그 길을 지목할 수 있어야 한다(#912).
-              AppButton(
-                key: const ValueKey<String>('diet-today-button'),
-                label: l.dietToday,
-                onPressed: onToday,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        // 이전/다음 주 꺾쇠는 날짜 줄 양옆에 둔다 — 날짜 숫자와 같은 높이.
-        AppWeekStrip(
-          days: days,
-          weekdayLabels: <String>[
-            for (final DateTime d in days) _weekdayLabel(l, d.weekday),
-          ],
-          selected: selected,
-          today: today,
-          onSelected: onSelect,
-          // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다.
-          lastSelectableDay: today,
-          previousTooltip: l.a11yPrevWeek,
-          nextTooltip: l.a11yNextWeek,
-          onPrevious: onPrev,
-          onNext: onNext,
-        ),
+    // 위에 주 라벨과 `오늘` 알약, 아래에 양옆 원형 꺾쇠를 둔 날짜 줄(#1778).
+    return AppWeekStrip(
+      label: weekLabel,
+      todayLabel: l.dietToday,
+      onToday: showTodayButton ? onToday : null,
+      // 기간 토글이 오늘이 아닌 날에는 사라지므로, 되돌아오는 길은 이 알약
+      // 하나다 — 테스트가 그 길을 지목할 수 있어야 한다(#912).
+      todayKey: const ValueKey<String>('diet-today-button'),
+      days: days,
+      weekdayLabels: <String>[
+        for (final DateTime d in days) _weekdayLabel(l, d.weekday),
       ],
+      selected: selected,
+      today: today,
+      onSelected: onSelect,
+      // 아직 오지 않은 날은 모양은 그대로 두고 누르지 못하게 한다(#1765).
+      lastSelectableDay: today,
+      previousTooltip: l.a11yPrevWeek,
+      nextTooltip: l.a11yNextWeek,
+      onPrevious: onPrev,
+      onNext: onNext,
     );
   }
 }

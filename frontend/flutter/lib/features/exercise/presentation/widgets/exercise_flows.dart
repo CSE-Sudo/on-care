@@ -856,7 +856,7 @@ class _DateField extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return Material(
-      color: OnCareColors.surfaceInput,
+      color: OnCareColors.surfaceCard,
       shape: const RoundedRectangleBorder(
         borderRadius: OnCareRadius.mdAll,
         side: BorderSide(color: OnCareColors.lineStrong),
