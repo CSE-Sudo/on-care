@@ -366,4 +366,43 @@ void main() {
       greaterThanOrEqualTo(OnCareDensity.web.inputMedium),
     );
   });
+
+  testWidgets('활성 입력창은 흰 채움·진한 글자, 비활성은 회색 채움·흐린 글자다(#1776)', (tester) async {
+    await _pump(
+      tester,
+      const Column(
+        children: <Widget>[
+          AppTextField(key: ValueKey<String>('on'), hint: '입력'),
+          AppTextField(
+            key: ValueKey<String>('off'),
+            hint: '입력',
+            enabled: false,
+          ),
+        ],
+      ),
+    );
+    // 테마 기본값이 합쳐진 실제 장식을, 그 칸의 상태로 풀어 본다.
+    (Color, Color?) look(String key) {
+      final Finder field = find.byKey(ValueKey<String>(key));
+      final InputDecoration decoration = tester
+          .widget<InputDecorator>(
+            find.descendant(of: field, matching: find.byType(InputDecorator)),
+          )
+          .decoration;
+      final Color fill = WidgetStateProperty.resolveAs<Color>(
+        decoration.fillColor!,
+        <WidgetState>{if (!decoration.enabled) WidgetState.disabled},
+      );
+      final Color? text = tester
+          .widget<EditableText>(
+            find.descendant(of: field, matching: find.byType(EditableText)),
+          )
+          .style
+          .color;
+      return (fill, text);
+    }
+
+    expect(look('on'), (OnCareColors.surfaceCard, OnCareColors.textPrimary));
+    expect(look('off'), (OnCareColors.surfaceInput, OnCareColors.textDisabled));
+  });
 }
