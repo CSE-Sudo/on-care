@@ -3463,11 +3463,23 @@ abstract class AppLocalizations {
   /// **'Continue with Google'**
   String get authGoogleAction;
 
-  /// No description provided for @authMissingCredentials.
+  /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Enter your email and password'**
-  String get authMissingCredentials;
+  /// **'Enter your email'**
+  String get authEmailEmpty;
+
+  /// No description provided for @authEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address'**
+  String get authEmailInvalid;
+
+  /// No description provided for @authPasswordEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get authPasswordEmpty;
 
   /// No description provided for @authSignInFailed.
   ///
@@ -3499,10 +3511,10 @@ abstract class AppLocalizations {
   /// **'Name'**
   String get signUpNameHint;
 
-  /// No description provided for @signUpPhoneHint.
+  /// Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Phone number'**
+  /// **'010-0000-0000'**
   String get signUpPhoneHint;
 
   /// No description provided for @signUpPhoneHelper.
@@ -3514,7 +3526,7 @@ abstract class AppLocalizations {
   /// No description provided for @signUpPasswordHint.
   ///
   /// In en, this message translates to:
-  /// **'Password (8+ characters)'**
+  /// **'Password (8+ characters, letters and numbers)'**
   String get signUpPasswordHint;
 
   /// No description provided for @signUpPasswordConfirmHint.
@@ -3535,11 +3547,11 @@ abstract class AppLocalizations {
   /// **'Already have an account?'**
   String get signUpHaveAccountQuestion;
 
-  /// No description provided for @signUpPasswordTooShort.
+  /// No description provided for @signUpPasswordWeak.
   ///
   /// In en, this message translates to:
-  /// **'Password must be at least 8 characters'**
-  String get signUpPasswordTooShort;
+  /// **'Use at least 8 characters, including letters and numbers'**
+  String get signUpPasswordWeak;
 
   /// No description provided for @signUpPasswordMismatch.
   ///
@@ -3547,11 +3559,11 @@ abstract class AppLocalizations {
   /// **'Passwords do not match'**
   String get signUpPasswordMismatch;
 
-  /// No description provided for @signUpPhoneInvalid.
+  /// No description provided for @signUpPhoneFormatInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Enter a phone number with at least 4 digits'**
-  String get signUpPhoneInvalid;
+  /// **'Enter your phone number as 000-0000-0000'**
+  String get signUpPhoneFormatInvalid;
 
   /// No description provided for @trainerSyncEntryLabel.
   ///

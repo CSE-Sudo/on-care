@@ -1898,7 +1898,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authGoogleAction => 'Continue with Google';
 
   @override
-  String get authMissingCredentials => 'Enter your email and password';
+  String get authEmailEmpty => 'Enter your email';
+
+  @override
+  String get authEmailInvalid => 'Enter a valid email address';
+
+  @override
+  String get authPasswordEmpty => 'Enter your password';
 
   @override
   String get authSignInFailed =>
@@ -1919,14 +1925,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpNameHint => 'Name';
 
   @override
-  String get signUpPhoneHint => 'Phone number';
+  String get signUpPhoneHint => '010-0000-0000';
 
   @override
   String get signUpPhoneHelper =>
       'Your trainer uses this to confirm who you are.';
 
   @override
-  String get signUpPasswordHint => 'Password (8+ characters)';
+  String get signUpPasswordHint =>
+      'Password (8+ characters, letters and numbers)';
 
   @override
   String get signUpPasswordConfirmHint => 'Confirm password';
@@ -1938,14 +1945,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpHaveAccountQuestion => 'Already have an account?';
 
   @override
-  String get signUpPasswordTooShort => 'Password must be at least 8 characters';
+  String get signUpPasswordWeak =>
+      'Use at least 8 characters, including letters and numbers';
 
   @override
   String get signUpPasswordMismatch => 'Passwords do not match';
 
   @override
-  String get signUpPhoneInvalid =>
-      'Enter a phone number with at least 4 digits';
+  String get signUpPhoneFormatInvalid =>
+      'Enter your phone number as 000-0000-0000';
 
   @override
   String get trainerSyncEntryLabel => 'Sync data with a trainer';

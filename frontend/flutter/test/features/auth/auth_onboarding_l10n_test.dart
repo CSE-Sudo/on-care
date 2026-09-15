@@ -29,17 +29,18 @@ const Map<String, String> _koBefore = <String, String>{
   'authSocialDivider': 'SNS 계정으로 로그인',
   'authKakaoAction': '카카오로 시작하기',
   'authGoogleAction': '구글로 시작하기',
-  'authMissingCredentials': '이메일과 비밀번호를 입력해 주세요',
+  // 빈칸 토스트(authMissingCredentials)는 칸 아래 오류 문구로 바뀌어 지웠다(#1784).
   'authSignInFailed': '로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요',
   'authSocialSignInFailed': '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요',
   'signUpTitle': '회원가입',
   'signUpSubtitle': 'On-Care 계정을 만들어 건강 관리를 시작하세요',
   'signUpNameHint': '이름',
-  'signUpPasswordHint': '비밀번호 (8자 이상)',
+  // 가입 비밀번호 규칙이 영문·숫자 포함 8자 이상이 되며 안내도 바뀌었다(#1784).
+  'signUpPasswordHint': '비밀번호 (영문·숫자 포함 8자 이상)',
   'signUpPasswordConfirmHint': '비밀번호 확인',
   'signUpAction': '가입하고 시작하기',
   'signUpHaveAccountQuestion': '이미 계정이 있으신가요?',
-  'signUpPasswordTooShort': '비밀번호는 8자 이상이어야 해요',
+  // 8자 토스트(signUpPasswordTooShort)는 signUpPasswordWeak 로 바뀌었다(#1784).
   'signUpPasswordMismatch': '비밀번호가 일치하지 않아요',
   'signUpEmailTaken': '이미 가입된 이메일이에요. 로그인해 주세요.',
   'signUpFailed': '회원가입에 실패했어요. 잠시 후 다시 시도해 주세요.',
@@ -69,6 +70,12 @@ const Map<String, String> _koBefore = <String, String>{
 /// 못 박아 둔 표라 여기에 섞지 않고 따로 둔다 — 아래 en/차이 검사는 두 표를
 /// 함께 돈다.
 const Map<String, String> _koAdded = <String, String>{
+  // 로그인·가입 칸 아래 오류 문구(#1784).
+  'authEmailEmpty': '이메일을 입력해 주세요',
+  'authEmailInvalid': '이메일 형식이 올바르지 않아요',
+  'authPasswordEmpty': '비밀번호를 입력해 주세요',
+  'signUpPhoneFormatInvalid': '전화번호를 000-0000-0000 형식으로 입력해 주세요',
+  'signUpPasswordWeak': '영문과 숫자를 포함해 8자 이상 입력해 주세요',
   'onboardOptionalTag': '(선택)',
   'onboardSkipStep': '이 단계 건너뛰기',
   'onboardBirthLabel': '생년월일',
@@ -92,7 +99,8 @@ const Map<String, String> _koAdded = <String, String>{
   'onboardResetToRecommended': '권장값으로 되돌리기',
   'onboardDietSourceNote':
       '출처: 2020 한국인 영양소 섭취기준(에너지필요추정량·에너지적정비율) · WHO 나트륨·자유당 섭취 권고',
-  'onboardExerciseSourceNote': '출처: WHO 신체활동 지침(2020) — 주 150분 중강도 유산소, 주 2회 이상 근력',
+  'onboardExerciseSourceNote':
+      '출처: WHO 신체활동 지침(2020) — 주 150분 중강도 유산소, 주 2회 이상 근력',
 };
 
 /// 두 표를 합친 것. 로케일 검사는 새 문구까지 함께 본다.
@@ -110,7 +118,9 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'authSocialDivider' => l.authSocialDivider,
   'authKakaoAction' => l.authKakaoAction,
   'authGoogleAction' => l.authGoogleAction,
-  'authMissingCredentials' => l.authMissingCredentials,
+  'authEmailEmpty' => l.authEmailEmpty,
+  'authEmailInvalid' => l.authEmailInvalid,
+  'authPasswordEmpty' => l.authPasswordEmpty,
   'authSignInFailed' => l.authSignInFailed,
   'authSocialSignInFailed' => l.authSocialSignInFailed,
   'signUpTitle' => l.signUpTitle,
@@ -120,7 +130,8 @@ String _read(AppLocalizations l, String key) => switch (key) {
   'signUpPasswordConfirmHint' => l.signUpPasswordConfirmHint,
   'signUpAction' => l.signUpAction,
   'signUpHaveAccountQuestion' => l.signUpHaveAccountQuestion,
-  'signUpPasswordTooShort' => l.signUpPasswordTooShort,
+  'signUpPasswordWeak' => l.signUpPasswordWeak,
+  'signUpPhoneFormatInvalid' => l.signUpPhoneFormatInvalid,
   'signUpPasswordMismatch' => l.signUpPasswordMismatch,
   'signUpEmailTaken' => l.signUpEmailTaken,
   'signUpFailed' => l.signUpFailed,
