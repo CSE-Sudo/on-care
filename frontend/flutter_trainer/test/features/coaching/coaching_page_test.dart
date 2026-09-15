@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -45,6 +46,8 @@ import 'package:oncare_ui/oncare_ui.dart'
         AppButton,
         AppIconButton,
         AppListRow,
+        AppSegmentedToggle,
+        AppSegmentedToggleStyle,
         OnCareLayout,
         OnCareMotion;
 
@@ -557,7 +560,7 @@ Future<void> _sendProgram(WidgetTester tester) async {
   );
 }
 
-/// `showAppDatePicker`(달력만 쓰는 Material [DatePickerDialog]) 에서 [date] 를
+/// `showAppDatePicker`(입력칸 + 달력 세로형 선택창, #1778) 에서 [date] 를
 /// 고르고 확인한다 (#1028, #1705).
 ///
 /// 확인 버튼은 취소 버튼과 나란히 있다 — 로케일의 확인 문구
@@ -566,12 +569,15 @@ Future<void> _sendProgram(WidgetTester tester) async {
 /// 지금 보이는 달과 [date] 의 달이 다르면(예: 오늘이 말일이라 "내일"이 다음
 /// 달인 경우) 한 달 넘긴다 — 오늘에서 하루 넘어가는 것뿐이라 한 번이면 된다.
 Future<void> _pickDateInPicker(WidgetTester tester, DateTime date) async {
-  final dialog = find.byType(DatePickerDialog);
+  final dialog = find.byKey(const Key('portraitDatePicker'));
   expect(dialog, findsOneWidget);
   final today = nowKst();
   if (date.year != today.year || date.month != today.month) {
     await tester.tap(
-      find.descendant(of: dialog, matching: find.byIcon(Icons.chevron_right)),
+      find.descendant(
+        of: dialog,
+        matching: find.byIcon(Icons.chevron_right_rounded),
+      ),
     );
     await tester.pumpAndSettle();
   }
@@ -1100,6 +1106,31 @@ void main() {
         const ValueKey<String>('program-client-data-tabs'),
       );
       expect(tabs, findsOneWidget);
+      // 이식 전 식단·운동 스트립(옅은 띠 + 흰 엄지) 모양이고, 아이콘만 남지 않고
+      // 라벨이 줄임표 없이 아이콘 옆에 보인다(#1777).
+      expect(
+        tester.widget<AppSegmentedToggle<Object?>>(tabs).style,
+        AppSegmentedToggleStyle.thumb,
+      );
+      for (final (String label, IconData icon) in <(String, IconData)>[
+        ('식단', Icons.restaurant_rounded),
+        ('운동', Icons.fitness_center_rounded),
+      ]) {
+        final text = find.descendant(of: tabs, matching: find.text(label));
+        expect(text, findsOneWidget);
+        expect(
+          tester.renderObject<RenderParagraph>(text).didExceedMaxLines,
+          isFalse,
+          reason: label,
+        );
+        expect(
+          tester
+              .getRect(find.descendant(of: tabs, matching: find.byIcon(icon)))
+              .right,
+          lessThan(tester.getRect(text).left),
+          reason: label,
+        );
+      }
       expect(find.byType(ProgramNutritionSummaryCard), findsOneWidget);
 
       await tester.tap(find.descendant(of: tabs, matching: find.text('운동')));
@@ -1761,7 +1792,7 @@ void main() {
       await tester.tap(dateButton);
       await tester.pumpAndSettle();
 
-      expect(find.byType(DatePickerDialog), findsOneWidget);
+      expect(find.byKey(const Key('portraitDatePicker')), findsOneWidget);
       await _pickDateInPicker(tester, nowKst().add(const Duration(days: 1)));
 
       await _sendProgram(tester);

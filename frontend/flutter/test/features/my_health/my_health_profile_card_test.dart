@@ -10,6 +10,7 @@ import 'package:oncare/features/my_health/data/repositories/trainer_sync_reposit
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart' show OnCareColors;
 
 /// MY 탭 프로필 카드의 "트레이너와 데이터 동기화" — 트레이너가 신규 고객
 /// 등록에서 입력하는 6자리 코드가 여기서 나온다. (#1634)
@@ -95,6 +96,23 @@ void main() {
             '',
     ].join();
     expect(shown, '979030');
+    // 자리 상자는 입력칸과 같은 흰 채움 + 회색 테두리다(#1776).
+    for (int i = 0; i < 6; i++) {
+      final BoxDecoration box =
+          tester
+                  .widget<Container>(
+                    find
+                        .descendant(
+                          of: find.byKey(ValueKey<String>('sync-digit-$i')),
+                          matching: find.byType(Container),
+                        )
+                        .first,
+                  )
+                  .decoration!
+              as BoxDecoration;
+      expect(box.color, OnCareColors.surfaceCard);
+      expect((box.border! as Border).top.color, OnCareColors.lineStrong);
+    }
     // 코드보다 먼저 무엇이 공유되는지 말해야 한다 — 이 시트를 여는 것이 동의다.
     expect(find.textContaining('식단·운동·건강 기록이 공유돼요'), findsOneWidget);
   });

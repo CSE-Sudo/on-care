@@ -992,7 +992,7 @@
   "exTimeRangeEndMinuteStep": "End minute",
   "exSlotAm": "AM",
   "exSlotPm": "PM",
-  "exTimeRangeInvalidEnd": "End time is earlier than start time",
+  "exTimeRangeInvalidEnd": "End time must be later than the start time.",
   "exTimeRangePrevStep": "Previous step",
   "exTimeRangeNextStep": "Next step",
   "exConsultMessage": "Message",

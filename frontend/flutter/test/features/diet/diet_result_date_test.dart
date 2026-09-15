@@ -160,7 +160,7 @@ void main() {
     // 있는 결과 시트의 탄·단·지도 단위 없는 숫자를 쓴다(#1564).
     await tester.tap(
       find.descendant(
-        of: find.byType(CalendarDatePicker),
+        of: find.byKey(const Key('portraitDatePickerCalendar')),
         matching: find.text('21'),
       ),
     );
