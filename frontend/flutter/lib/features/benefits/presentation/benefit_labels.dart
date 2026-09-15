@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -9,21 +10,18 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 /// 서버는 한국어 문구만 준다. 아는 항목은 현지화 문구로 그리고, 앱이 모르는 새
 /// 항목만 서버 문구를 그대로 쓴다 — 새 항목이 생겨도 빈 카드가 되지 않는다.
 const String kPtRenewalItem = 'pt_renewal';
-const String kSaladDiscountItem = 'salad_discount';
-const String kProteinDiscountItem = 'protein_discount';
+const String kLockerMonthItem = 'locker_month';
 
 String shopItemTitle(AppLocalizations l, ShopItem item) => switch (item.id) {
   kPtRenewalItem => l.myShopPtRenewalTitle,
-  kSaladDiscountItem => l.myShopSaladTitle,
-  kProteinDiscountItem => l.myShopProteinTitle,
+  kLockerMonthItem => l.myShopLockerTitle,
   _ => item.title,
 };
 
 String shopItemDescription(AppLocalizations l, ShopItem item) =>
     switch (item.id) {
       kPtRenewalItem => l.myShopPtRenewalDescription,
-      kSaladDiscountItem => l.myShopSaladDescription,
-      kProteinDiscountItem => l.myShopProteinDescription,
+      kLockerMonthItem => l.myShopLockerDescription,
       _ => item.description,
     };
 
@@ -32,7 +30,9 @@ String? shopBlockLabel(AppLocalizations l, ShopItem item) {
   if (item.available) return null;
   return switch (item.blockReason) {
     ShopBlockReason.noTrainer => l.myPointsNeedTrainer,
+    ShopBlockReason.noGym => l.myPointsNeedGym,
     ShopBlockReason.activeCoupon => l.myPointsActiveCoupon,
+    ShopBlockReason.monthlyLimit => l.myPointsMonthlyLimit,
     ShopBlockReason.insufficientPoints => l.myPointsShortfall(
       l.myPointsCost(item.shortfall),
     ),
@@ -43,16 +43,14 @@ String? shopBlockLabel(AppLocalizations l, ShopItem item) {
 /// 쿠폰의 혜택 한 줄.
 String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) {
   kPtRenewalItem => l.myCouponPtRenewalBenefit,
-  kSaladDiscountItem => l.myShopSaladTitle,
-  kProteinDiscountItem => l.myShopProteinTitle,
+  kLockerMonthItem => l.myShopLockerTitle,
   _ => coupon.benefit.isNotEmpty ? coupon.benefit : coupon.title,
 };
 
 IconData benefitIcon(String itemId) => switch (itemId) {
-  kPtRenewalItem => Icons.card_membership_rounded,
-  kSaladDiscountItem => Icons.eco_rounded,
-  kProteinDiscountItem => Icons.local_drink_rounded,
-  _ => Icons.confirmation_number_rounded,
+  kPtRenewalItem => AppIcons.ptRenewal,
+  kLockerMonthItem => AppIcons.locker,
+  _ => AppIcons.coupon,
 };
 
 /// 목록 태그의 짧은 상태 — 사용 가능이면 D-n.

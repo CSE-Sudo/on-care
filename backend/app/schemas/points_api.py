@@ -14,8 +14,10 @@ class ShopItemOut(BaseModel):
     """사용처 화면의 교환 항목 하나와 지금 교환할 수 있는지.
 
     `blocked_reason`: 교환 버튼을 막는 이유 — `no_trainer`(담당 트레이너 없음)·
-    `active_coupon`(사용하지 않은 같은 쿠폰 보유)·`insufficient_points`(잔액 부족).
-    교환할 수 있으면 null. `shortfall` 은 모자란 포인트로, 모자라지 않으면 0 이다.
+    `no_gym`(연결한 헬스장 없음)·`active_coupon`(사용하지 않은 같은 쿠폰 보유)·
+    `monthly_limit`(이번 달에 이미 교환)·`insufficient_points`(잔액 부족) 순으로
+    하나만. 교환할 수 있으면 null. `shortfall` 은 모자란 포인트로, 모자라지 않으면
+    0 이다.
     """
 
     id: str
@@ -24,9 +26,8 @@ class ShopItemOut(BaseModel):
     description: str
     cost: int
     valid_days: int
-    #: 누가 사용 처리하나 — trainer|member.
-    redeemer: str
     requires_trainer: bool
+    requires_gym: bool
     available: bool
     blocked_reason: str | None = None
     shortfall: int = 0
@@ -37,6 +38,7 @@ class PointsShopOut(BaseModel):
 
     balance: int
     has_trainer: bool
+    has_gym: bool
     items: list[ShopItemOut]
 
 
@@ -58,7 +60,8 @@ class CouponOut(BaseModel):
     아직 만료로 내리지 않았어도 expired 로 싣는다.
     `expires_on` 은 쓸 수 있는 마지막 날(KST), `days_left` 는 그날까지 남은 날
     (당일 0, 사용 가능이 아니면 0).
-    `trainer_name`·`gym_name` 은 교환할 때의 담당 트레이너·헬스장(PT 재등록만).
+    `trainer_name` 은 교환할 때의 담당 트레이너(PT 재등록만), `gym_name` 은 교환할
+    때의 헬스장(PT 재등록·개인 락커)이다.
     """
 
     id: str
@@ -67,7 +70,6 @@ class CouponOut(BaseModel):
     benefit: str
     cost: int
     status: str
-    redeemer: str
     trainer_name: str = ""
     gym_name: str = ""
     issued_at: datetime

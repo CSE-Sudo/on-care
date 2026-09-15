@@ -7,7 +7,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
@@ -33,8 +35,11 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           gymRepositoryProvider.overrideWithValue(MockGymRepository()),
+          // 잔액 문구를 데모 시작 잔액과 떼어 둔다.
           myHealthRepositoryProvider.overrideWithValue(
-            const MockMyHealthRepository(),
+            MockMyHealthRepository(
+              points: DemoPointsLedger(openingBalance: 1240),
+            ),
           ),
           // 사용처 화면은 교환 목록을 읽는다(#1787) — 가짜 저장소로 채운다.
           benefitsRepositoryProvider.overrideWithValue(FakeBenefitsRepository()),
@@ -99,11 +104,10 @@ void main() {
       findsNothing,
     );
     expect(find.byTooltip('포인트 적립 안내'), findsNothing);
-    expect(find.byIcon(Icons.info_rounded), findsNothing);
-    expect(find.byIcon(Icons.info_outline_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.info), findsNothing);
     // 카드 구성은 별 아이콘·잔액·화살표다.
     expect(
-      find.descendant(of: banner(), matching: find.byIcon(Icons.stars_rounded)),
+      find.descendant(of: banner(), matching: find.byIcon(AppIcons.points)),
       findsOneWidget,
     );
     expect(
@@ -113,7 +117,7 @@ void main() {
     expect(
       find.descendant(
         of: banner(),
-        matching: find.byIcon(Icons.chevron_right_rounded),
+        matching: find.byIcon(AppIcons.chevronRight),
       ),
       findsOneWidget,
     );
@@ -131,7 +135,7 @@ void main() {
     expect(info, findsOneWidget);
     final AppIconButton button = tester.widget<AppIconButton>(info);
     // 채운 글리프, 배경 없는 버튼, 접근성 이름은 창 제목과 같다.
-    expect(button.icon, Icons.info_rounded);
+    expect(button.icon, AppIcons.info);
     expect(button.variant, AppIconButtonVariant.plain);
     expect(button.tooltip, '포인트 적립 안내');
     // 헤더 제목보다 오른쪽, 앱바 끝 여백만큼 떨어진 오른쪽 끝에 선다.

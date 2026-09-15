@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -203,7 +204,7 @@ class _TrainerChatButton extends StatelessWidget {
           label: l.coachChatWithTrainer,
           onPressed: onTap,
           variant: AppButtonVariant.secondary,
-          leadingIcon: Icons.chat_bubble_outline_rounded,
+          leadingIcon: AppIcons.chat,
           fullWidth: true,
         ),
         if (unread > 0)
@@ -409,8 +410,8 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
           if (!hasUpcoming) ...<Widget>[
             Row(
               children: <Widget>[
-                Icon(
-                  Icons.event_available_rounded,
+                AppIcon(
+                  AppIcons.eventAvailable,
                   size: OnCareSize.iconSmall,
                   color: tokens.brand.primary,
                 ),
@@ -534,8 +535,8 @@ class _SlotNotice extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     return Row(
       children: <Widget>[
-        const Icon(
-          Icons.event_busy_rounded,
+        const AppIcon(
+          AppIcons.eventBusy,
           size: OnCareSize.iconSmall,
           color: OnCareColors.textTertiary,
         ),

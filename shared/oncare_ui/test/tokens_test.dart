@@ -28,6 +28,47 @@ void main() {
     test('탄단지는 메인 색을 흰 바탕에 65·35% 로 얹은 불투명 색이다(#953)', () {
       expect(OnCareBrand.trainer.macroProtein.a, 1.0);
     });
+
+    test('세그먼트 트랙·비선택 글자는 이전 앱별 값이다(#1777)', () {
+      expect(OnCareBrand.member.segmentTrack, const Color(0xFFF8FAFB));
+      expect(OnCareBrand.member.segmentLabel, const Color(0xFF64748B));
+      expect(OnCareBrand.trainer.segmentTrack, OnCareColors.surfaceInput);
+      expect(OnCareBrand.trainer.segmentLabel, OnCareColors.textSecondary);
+      for (final OnCareBrand brand in <OnCareBrand>[
+        OnCareBrand.member,
+        OnCareBrand.trainer,
+      ]) {
+        // 트랙 위 비선택 라벨도 본문 대비(4.5:1)를 지킨다.
+        expect(
+          _contrast(brand.segmentLabel, brand.segmentTrack),
+          greaterThanOrEqualTo(4.5),
+          reason: brand.name,
+        );
+      }
+    });
+  });
+
+  group('세그먼트 thumb 모양(#1777)', () {
+    test('띠·테두리·엄지 그림자는 투명도 단계를 따른다', () {
+      for (final OnCareBrand brand in <OnCareBrand>[
+        OnCareBrand.member,
+        OnCareBrand.trainer,
+      ]) {
+        expect(brand.segmentThumbTrack, brand.surface);
+        expect(
+          brand.segmentThumbBorder,
+          OnCareColors.onWhite(brand.primary, OnCareAlpha.medium),
+        );
+        final List<BoxShadow> shadow = OnCareShadows.segmentThumb(
+          brand.primary,
+        );
+        expect(shadow, hasLength(1));
+        expect(shadow.single.color.a, closeTo(OnCareAlpha.medium, 0.01));
+        expect(shadow.single.blurRadius, 10);
+        expect(shadow.single.offset, const Offset(0, 2));
+      }
+      expect(OnCareSize.segmentThumbTrackHeight, 44);
+    });
   });
 
   group('상태색은 두 앱이 같다', () {
@@ -108,6 +149,7 @@ void main() {
         OnCareTypography.buttonLarge,
         OnCareTypography.buttonMedium,
         OnCareTypography.buttonSmall,
+        OnCareTypography.segment,
       ]) {
         expect(style.fontSize! % 1, 0);
         expect(style.fontWeight!.value, lessThanOrEqualTo(700));

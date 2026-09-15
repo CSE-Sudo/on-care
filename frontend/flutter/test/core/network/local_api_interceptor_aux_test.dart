@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
 
 import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 
 void main() {
@@ -48,7 +49,7 @@ void main() {
     expect((body['profile']! as Map)['name'], '김민수');
     expect((body['risk']! as Map)['level'], 'medium');
     expect(body.containsKey('indicators'), isFalse);
-    expect(body['activity_points'], 1240);
+    expect(body['activity_points'], kDemoOpeningPoints);
     final settings = (body['settings']! as List<Object?>)
         .cast<Map<String, Object?>>();
     expect(

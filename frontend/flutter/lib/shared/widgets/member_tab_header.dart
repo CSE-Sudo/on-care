@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -40,7 +41,7 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
       leading: leading,
       actions: <Widget>[
         HeaderActionButton(
-          icon: Icons.notifications_none_rounded,
+          icon: AppIcons.notifications,
           tooltip: l.pageNotificationTitle,
           showDot: bellHasUnread,
           onPressed: onBell,
@@ -51,7 +52,7 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
   }
 }
 
-/// 헤더 오른쪽의 옅은 채움 아이콘 버튼 + 새 소식 점.
+/// 헤더 오른쪽의 배경 없는 브랜드색 아이콘 버튼 + 새 소식 점(#1781).
 ///
 /// [enabled] 를 [onPressed] 와 따로 둔다. 쓸 수 없다는 것과 눌러도 소용없다는
 /// 것은 다르다 — 왜 쓸 수 없는지 알려 주려면 흐린 채로도 탭을 받아야 한다(#786).
@@ -73,25 +74,16 @@ class HeaderActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget button = enabled
-        ? AppIconButton(
-            icon: icon,
-            tooltip: tooltip,
-            onPressed: onPressed,
-            variant: AppIconButtonVariant.tonal,
-          )
-        : DecoratedBox(
-            decoration: const BoxDecoration(
-              color: OnCareColors.surfaceInput,
-              borderRadius: OnCareRadius.mdAll,
-            ),
-            child: AppIconButton(
-              icon: icon,
-              tooltip: tooltip,
-              onPressed: onPressed,
-              color: OnCareColors.textDisabled,
-            ),
-          );
+    // 쓸 수 없을 때도 배경은 두지 않는다 — 회색 아이콘만으로 흐림을 알리고,
+    // 탭은 그대로 받아 이유를 알린다(#786, #1781).
+    final Widget button = AppIconButton(
+      icon: icon,
+      tooltip: tooltip,
+      onPressed: onPressed,
+      color: enabled
+          ? context.oncare.brand.primary
+          : OnCareColors.textDisabled,
+    );
     return Stack(
       clipBehavior: Clip.none,
       children: <Widget>[
@@ -122,8 +114,8 @@ class MemberLogo extends StatelessWidget {
       height: size,
       fit: BoxFit.contain,
       // 자산이 빠져도 머리는 그려야 한다.
-      errorBuilder: (BuildContext _, Object _, StackTrace? _) => Icon(
-        Icons.favorite_rounded,
+      errorBuilder: (BuildContext _, Object _, StackTrace? _) => AppIcon(
+        AppIcons.favorite,
         size: size,
         color: context.oncare.brand.primary,
       ),

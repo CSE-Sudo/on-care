@@ -1,16 +1,18 @@
 /// 내 혜택 목록과 쿠폰 화면. (#1787)
 ///
-/// 모든 쿠폰은 회원 휴대폰에서 `사용 완료` 를 누른다. PT 재등록 쿠폰은 혜택·담당
-/// 트레이너·헬스장·만료일(D-n)을 보여 주고, 트레이너·헬스장 직원이 확인한 뒤
-/// 누르라는 안내가 버튼 위에 선다(직원 확인 버튼). 건강식 쿠폰은 같은 자리에 매장에서
-/// 이 화면을 보여 준 뒤 누르라는 안내가 선다. 카드 아래 만료 안내는 아이콘 없는 한
-/// 줄이다. 사용하면 연하늘 사용 완료 줄과 사용 시각을 보여 주고 안내는 숨긴다.
+/// 모든 쿠폰은 헬스장이 주는 혜택이고, 직원이 확인한 뒤 회원 휴대폰에서 `사용 완료` 를
+/// 누른다. PT 재등록 쿠폰은 혜택·담당 트레이너·헬스장·만료일(D-n)을, 개인 락커 쿠폰은
+/// 혜택·헬스장·만료일을 보여 준다. 버튼 바로 위에 직원 확인 안내(PT 는 트레이너·헬스장
+/// 직원, 락커는 헬스장 직원)가 서고, 확인창도 직원 확인용이다. 카드 아래 만료 안내는
+/// 아이콘 없는 한 줄이다. 사용하면 연하늘 사용 완료 줄과 사용 시각을 보여 주고 안내는
+/// 숨긴다.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
@@ -99,10 +101,10 @@ void main() {
       FakeBenefitsRepository(
         coupons: <Coupon>[
           couponOf(id: 'c-renewal', item: 'pt_renewal', daysLeft: 27),
-          couponOf(id: 'c-salad', item: 'salad_discount', daysLeft: 0),
+          couponOf(id: 'c-locker', item: 'locker_month', daysLeft: 0),
           couponOf(
-            id: 'c-protein',
-            item: 'protein_discount',
+            id: 'c-locker-old',
+            item: 'locker_month',
             status: CouponStatus.used,
           ),
         ],
@@ -110,7 +112,9 @@ void main() {
       AppRoutes.myBenefits,
     );
 
-    expect(find.text('PT 재등록 10,000원 할인'), findsOneWidget);
+    expect(find.text('PT 재등록 30,000원 할인'), findsOneWidget);
+    expect(find.text('개인 락커 1개월 무료'), findsNWidgets(2));
+    expect(find.byIcon(AppIcons.locker), findsNWidgets(2));
     expect(find.text('2026.10.15까지'), findsNWidgets(3));
     final AppTag renewalTag = tester.widget<AppTag>(
       find.byKey(const ValueKey<String>('coupon-status-c-renewal')),
@@ -119,12 +123,12 @@ void main() {
     expect(renewalTag.tone, AppTagTone.brand);
     expect(
       tester
-          .widget<AppTag>(find.byKey(const ValueKey<String>('coupon-status-c-salad')))
+          .widget<AppTag>(find.byKey(const ValueKey<String>('coupon-status-c-locker')))
           .label,
       'D-day',
     );
     final AppTag usedTag = tester.widget<AppTag>(
-      find.byKey(const ValueKey<String>('coupon-status-c-protein')),
+      find.byKey(const ValueKey<String>('coupon-status-c-locker-old')),
     );
     expect(usedTag.label, '사용 완료');
     expect(usedTag.tone, AppTagTone.neutral);
@@ -145,7 +149,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('couponDetailPage')), findsOneWidget);
-    expect(find.text('PT 재등록 10,000원 할인'), findsOneWidget);
+    expect(find.text('PT 재등록 30,000원 할인'), findsOneWidget);
     // 쿠폰 코드는 없다 — 코드 상자·이름표를 그리지 않는다.
     expect(find.textContaining('코드'), findsNothing);
     expect(find.text('김트레이너'), findsOneWidget);
@@ -165,7 +169,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('만료되면 포인트는 돌려받을 수 없어요.'), findsOneWidget);
-    expect(find.byIcon(Icons.info_rounded), findsNothing);
+    expect(find.byIcon(AppIcons.info), findsNothing);
 
     // 직원에게 말하는 안내가 버튼 바로 위에 선다.
     expect(staffNote(), findsOneWidget);
@@ -259,28 +263,39 @@ void main() {
     await drainToast(tester);
   });
 
-  testWidgets('건강식 쿠폰은 회원이 파란 확인창을 거쳐 사용 완료를 누른다', (tester) async {
+  testWidgets('개인 락커 쿠폰은 헬스장만 보여 주고 헬스장 직원 확인 뒤 사용 완료를 누른다', (
+    tester,
+  ) async {
     final FakeBenefitsRepository repo = FakeBenefitsRepository(
-      coupons: <Coupon>[couponOf(id: 'c-salad', item: 'salad_discount')],
+      coupons: <Coupon>[couponOf(id: 'c-locker', item: 'locker_month')],
     );
-    await pumpAt(tester, repo, AppRoutes.myCouponDetailPath('c-salad'));
+    await pumpAt(tester, repo, AppRoutes.myCouponDetailPath('c-locker'));
 
+    expect(find.text('개인 락커 1개월 무료'), findsOneWidget);
+    expect(find.byIcon(AppIcons.locker), findsOneWidget);
+    // 헬스장 줄은 있고 담당 트레이너 줄은 없다.
     expect(find.text('담당 트레이너'), findsNothing);
-    expect(staffNote(), findsNothing);
-    // 매장 안내는 직원 안내와 같은 자리, 버튼 바로 위에 선다.
-    final Finder storeNote = find.byKey(const Key('couponStoreNote'));
+    expect(find.text('김트레이너'), findsNothing);
+    expect(find.text('헬스장'), findsOneWidget);
+    expect(find.text('온케어짐 신촌점'), findsOneWidget);
+    expect(find.text('2026.10.15 (D-30)'), findsOneWidget);
+    expect(find.textContaining('코드'), findsNothing);
+    expect(find.byKey(const Key('couponExpireNotice')), findsOneWidget);
+
+    // 직원 안내는 PT 재등록과 같은 자리, 버튼 바로 위에 헬스장 직원에게 말한다.
     expect(
       find.descendant(
-        of: storeNote,
-        matching: find.textContaining('매장에서 이 화면을 보여 준 뒤'),
+        of: staffNote(),
+        matching: find.text('헬스장 직원이 확인한 뒤 눌러 주세요'),
       ),
       findsOneWidget,
     );
+    expect(find.text('트레이너·헬스장 직원이 확인한 뒤 눌러 주세요'), findsNothing);
     expect(
-      tester.getBottomLeft(storeNote).dy,
+      tester.getBottomLeft(staffNote()).dy,
       lessThan(tester.getTopLeft(useButton()).dy),
     );
-    expect(find.textContaining('코드'), findsNothing);
+
     await tester.tap(useButton());
     await tester.pumpAndSettle();
 
@@ -290,8 +305,8 @@ void main() {
     expect(pair.cancelLabel, '취소');
     expect(pair.confirmLabel, '사용 완료');
     expect(pair.destructive, isFalse);
-    expect(find.text('쿠폰을 사용했나요?'), findsOneWidget);
-    expect(find.text('사용 완료로 바꾸면 되돌릴 수 없어요.'), findsOneWidget);
+    expect(find.text('쿠폰을 사용 완료할까요?'), findsOneWidget);
+    expect(find.text('직원 확인용 · 사용 후 되돌릴 수 없어요'), findsOneWidget);
 
     await tester.tap(
       find.descendant(
@@ -301,13 +316,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(repo.used, <String>['c-salad']);
+    expect(repo.used, <String>['c-locker']);
     expect(useButton(), findsNothing);
+    expect(staffNote(), findsNothing);
     expect(
-      find.byKey(const ValueKey<String>('coupon-status-c-salad')),
+      find.byKey(const ValueKey<String>('coupon-status-c-locker')),
       findsNothing,
     );
     expect(find.text('사용 완료'), findsOneWidget);
+    expect(find.byKey(const Key('couponUsedBanner')), findsOneWidget);
     expect(find.byKey(const Key('couponUsedAt')), findsOneWidget);
     await drainToast(tester);
   });

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
@@ -71,16 +72,13 @@ void main() {
     await pumpDiet(tester);
 
     expect(
-      find.descendant(
-        of: _anyMealCard,
-        matching: find.byIcon(Icons.edit_rounded),
-      ),
+      find.descendant(of: _anyMealCard, matching: find.byIcon(AppIcons.edit)),
       findsOneWidget,
     );
     expect(
       find.descendant(
         of: _anyMealCard,
-        matching: find.byIcon(Icons.chevron_right_rounded),
+        matching: find.byIcon(AppIcons.chevronRight),
       ),
       findsNothing,
     );
@@ -91,10 +89,7 @@ void main() {
 
     final Icon icon = tester.widget<Icon>(
       find
-          .descendant(
-            of: _anyMealCard,
-            matching: find.byIcon(Icons.edit_rounded),
-          )
+          .descendant(of: _anyMealCard, matching: find.byIcon(AppIcons.edit))
           .first,
     );
     expect(icon.semanticLabel, '식사 수정');
@@ -109,10 +104,7 @@ void main() {
 
     await tester.tap(
       find
-          .descendant(
-            of: _anyMealCard,
-            matching: find.byIcon(Icons.edit_rounded),
-          )
+          .descendant(of: _anyMealCard, matching: find.byIcon(AppIcons.edit))
           .first,
     );
     await tester.pumpAndSettle();

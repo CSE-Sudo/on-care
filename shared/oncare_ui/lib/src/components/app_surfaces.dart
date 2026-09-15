@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare_ui/src/components/app_button.dart';
+import 'package:oncare_ui/src/components/app_icon.dart';
 import 'package:oncare_ui/src/theme/oncare_tokens.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
 import 'package:oncare_ui/src/tokens/elevation.dart';
+import 'package:oncare_ui/src/tokens/icons.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
 import 'package:oncare_ui/src/tokens/spacing.dart';
@@ -102,7 +104,11 @@ class AppSectionHeader extends StatelessWidget {
     return Row(
       children: <Widget>[
         if (icon != null) ...<Widget>[
-          Icon(icon, size: OnCareSize.iconMedium, color: tokens.brand.primary),
+          AppIcon(
+            icon,
+            size: OnCareSize.iconMedium,
+            color: tokens.brand.primary,
+          ),
           const SizedBox(width: OnCareSpacing.s8),
         ],
         Expanded(
@@ -119,7 +125,7 @@ class AppSectionHeader extends StatelessWidget {
             onPressed: onAction,
             variant: AppButtonVariant.text,
             size: OnCareButtonSize.small,
-            trailingIcon: Icons.chevron_right_rounded,
+            trailingIcon: AppIcon.setOf(context).disclosure,
           ),
       ],
     );
@@ -163,7 +169,7 @@ class AppStatCard extends StatelessWidget {
           Row(
             children: <Widget>[
               if (icon != null) ...<Widget>[
-                Icon(
+                AppIcon(
                   icon,
                   size: OnCareSize.iconSmall,
                   color: tone ?? tokens.brand.primary,
@@ -369,13 +375,14 @@ class AppBanner extends StatelessWidget {
     final Color border = tone == AppBannerTone.info
         ? tokens.brand.border
         : OnCareColors.onWhite(accent, OnCareAlpha.strong);
+    final OnCareIconSet icons = AppIcon.setOf(context);
     final IconData resolvedIcon =
         icon ??
         switch (tone) {
-          AppBannerTone.info => Icons.info_rounded,
-          AppBannerTone.success => Icons.check_circle_rounded,
-          AppBannerTone.caution => Icons.warning_rounded,
-          AppBannerTone.danger => Icons.error_rounded,
+          AppBannerTone.info => icons.info,
+          AppBannerTone.success => icons.success,
+          AppBannerTone.caution => icons.caution,
+          AppBannerTone.danger => icons.error,
         };
     return Container(
       padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
@@ -387,7 +394,7 @@ class AppBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Icon(resolvedIcon, size: OnCareSize.iconMedium, color: accent),
+          AppIcon(resolvedIcon, size: OnCareSize.iconMedium, color: accent),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
             child: Column(
@@ -438,6 +445,55 @@ class AppDivider extends StatelessWidget {
   );
 }
 
+/// 가운데에 글자가 있는 구분선 — 로그인 버튼과 소셜 로그인 버튼 사이(#1783).
+///
+/// 양옆은 [AppDivider], 글자는 캡션·힌트 색이다. 글자가 폭을 넘으면 양옆 선을
+/// [_minLine] 만큼 남긴 채 가운데 정렬로 줄바꿈한다.
+class AppLabeledDivider extends StatelessWidget {
+  const AppLabeledDivider({super.key, required this.label});
+
+  final String label;
+
+  /// 글자가 길어도 양옆 선이 이만큼은 남는다.
+  static const double _minLine = OnCareSpacing.s24;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        // 영어 문구(`Sign in with a social account`)는 큰 글자 배율에서 폭 400
+        // 로그인 틀을 넘었다. 넘치게 두지 않고 줄바꿈한다(#1783).
+        final double maxLabelWidth =
+            (constraints.maxWidth - 2 * (OnCareSpacing.s12 + _minLine)).clamp(
+              0.0,
+              double.infinity,
+            );
+        return Row(
+          children: <Widget>[
+            const Expanded(child: AppDivider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: OnCareSpacing.s12,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxLabelWidth),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: context.oncare
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+              ),
+            ),
+            const Expanded(child: AppDivider()),
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// 빈 화면·오류·로딩이 놓이는 자리.
 enum AppStatePlacement {
   /// 페이지 가운데.
@@ -455,7 +511,7 @@ class AppEmptyState extends StatelessWidget {
     super.key,
     required this.title,
     this.message,
-    this.icon = Icons.inbox_rounded,
+    this.icon,
     this.actionLabel,
     this.onAction,
     this.placement = AppStatePlacement.page,
@@ -463,7 +519,9 @@ class AppEmptyState extends StatelessWidget {
 
   final String title;
   final String? message;
-  final IconData icon;
+
+  /// 비우면 아이콘 묶음의 빈 화면 아이콘이다.
+  final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
   final AppStatePlacement placement;
@@ -474,8 +532,8 @@ class AppEmptyState extends StatelessWidget {
     final Widget body = Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Icon(
-          icon,
+        AppIcon(
+          icon ?? AppIcon.setOf(context).empty,
           size: OnCareSize.iconEmptyState,
           color: OnCareColors.textTertiary,
         ),
@@ -533,7 +591,7 @@ class AppErrorState extends StatelessWidget {
     return AppEmptyState(
       title: title,
       message: message,
-      icon: Icons.cloud_off_rounded,
+      icon: AppIcon.setOf(context).offline,
       actionLabel: retryLabel,
       onAction: onRetry,
       placement: placement,

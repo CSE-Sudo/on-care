@@ -53,6 +53,32 @@ class OnCareSize {
   // --- 태그 ---
   static const double tagHeight = 24;
 
+  // --- 세그먼트 토글(#1777) ---
+  // 공용 토글로 옮기기 전 알약 토글의 치수를 되살린 값이다. 높이는 고정하지 않고
+  // 글자 + 이 여백으로 정해진다. 간격 척도(4의 배수) 밖의 값이라 이 컴포넌트만 쓴다.
+
+  /// 트랙 안쪽 여백 — 선택 칸 알약이 트랙 테두리에서 떨어지는 폭.
+  static const double segmentTrackInset = 3;
+
+  /// 칸 좌우 여백. 누를 자리가 글자에 딱 붙지 않게 넓게 둔다(#1058).
+  static const double segmentPaddingHorizontal = 18;
+
+  /// 글자 배율이 `OnCareTypography.maxTextScale` 을 넘을 때의 칸 좌우 여백 —
+  /// 세 칸 폭 합이 커져 토글이 통째로 줄어드는 것을 덜어 준다(#1182).
+  static const double segmentPaddingHorizontalCompact = 12;
+
+  /// 칸 위아래 여백.
+  static const double segmentPaddingVertical = 6;
+
+  /// `thumb` 모양(흰 엄지 스트립) 띠 높이. 이식 전 트레이너웹 식단/운동 전환
+  /// 스트립의 높이다 — 이 모양은 글자가 아니라 이 높이에 맞춰 칸이 위아래로 찬다.
+  static const double segmentThumbTrackHeight = 44;
+
+  // --- 소셜 로그인 ---
+  /// 원형 소셜 로그인 버튼 한 변(#1783). 계정 회사 표식이라 밀도와 무관하게 두 앱이
+  /// 같고, 회원앱 큰 버튼 높이와 맞춘다.
+  static const double socialLoginButton = 52;
+
   // --- 선 ---
   static const double hairline = 1;
   static const double focusBorder = 1.5;

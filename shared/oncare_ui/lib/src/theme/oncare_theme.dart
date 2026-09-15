@@ -5,6 +5,7 @@ import 'package:oncare_ui/src/tokens/brand.dart';
 import 'package:oncare_ui/src/tokens/colors.dart';
 import 'package:oncare_ui/src/tokens/density.dart';
 import 'package:oncare_ui/src/tokens/elevation.dart';
+import 'package:oncare_ui/src/tokens/icons.dart';
 import 'package:oncare_ui/src/tokens/layout.dart';
 import 'package:oncare_ui/src/tokens/radius.dart';
 import 'package:oncare_ui/src/tokens/sizes.dart';
@@ -23,9 +24,13 @@ class OnCareTheme {
   OnCareTheme._();
 
   /// [brand] 와 [density] 로 테마를 만든다.
+  ///
+  /// [icons] 는 공용 컴포넌트가 그리는 아이콘 묶음이다. 비우면 Material Icons
+  /// 기본 묶음이다 — 회원앱만 자기 목록(Material Symbols)을 넣는다(#1803).
   static ThemeData light({
     required OnCareBrand brand,
     required OnCareDensity density,
+    OnCareIconSet icons = OnCareIconSet.material,
   }) {
     final ColorScheme scheme = ColorScheme(
       brightness: Brightness.light,
@@ -199,7 +204,7 @@ class OnCareTheme {
         size: OnCareSize.iconLarge,
       ),
       extensions: <ThemeExtension<dynamic>>[
-        OnCareTokens(brand: brand, density: density),
+        OnCareTokens(brand: brand, density: density, icons: icons),
       ],
 
       // --- 버튼 ---
@@ -240,9 +245,16 @@ class OnCareTheme {
       ),
 
       // --- 입력 ---
+      // 흰 채움 + 회색 테두리(#1776). 회색 채움은 흰 페이지·카드 위에서
+      // 비활성처럼 보인다 — 그래서 회색은 비활성 칸에만 남겨, 고칠 수 없는
+      // 칸(예: 트레이너 MY 이름·이메일)이 입력칸처럼 보이지 않게 한다.
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: OnCareColors.surfaceInput,
+        fillColor: WidgetStateColor.resolveWith(
+          (states) => states.contains(WidgetState.disabled)
+              ? OnCareColors.surfaceInput
+              : OnCareColors.surfaceCard,
+        ),
         isDense: true,
         constraints: BoxConstraints(minHeight: density.inputMedium),
         contentPadding: const EdgeInsets.symmetric(
