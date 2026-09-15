@@ -120,7 +120,7 @@
   "authContinueGoogle": "Continue with Google",
   "authSignUpSubtitle": "Create an On-Care account and start managing members",
   "authName": "Name",
-  "authPasswordHint": "Password (8+ characters)",
+  "authPasswordHint": "Password (8+ characters, letters and numbers)",
   "authPasswordConfirm": "Confirm password",
   "authInviteCode": "Gym invite code",
   "authInviteCodeHelp": "Enter the code issued by the gym you work at.",
@@ -130,7 +130,17 @@
   "authErrEmptyCredentials": "Enter your email and password",
   "authErrSocialFailed": "Social sign-in failed. Please try again in a moment.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
-  "authErrPasswordTooShort": "Password must be at least 8 characters",
+  "authErrEmailEmpty": "Enter your email",
+  "@authErrEmailEmpty": {
+    "description": "Red text under the email field on sign-in/sign-up when it is empty (#1784)."
+  },
+  "authErrEmailInvalid": "Enter a valid email address",
+  "authErrPasswordEmpty": "Enter your password",
+  "authErrPasswordWeak": "Use at least 8 characters, including letters and numbers",
+  "authErrPhoneInvalid": "Enter your phone number as 000-0000-0000",
+  "@authErrPhoneInvalid": {
+    "description": "Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive."
+  },
   "authErrPasswordMismatch": "Passwords don't match",
   "authErrInviteCodeRequired": "Enter the invite code you received from your gym",
   "authErrSignUpFailed": "Sign-up failed. Please try again in a moment.",

@@ -100,6 +100,17 @@ Future<_RecordingAuthRepository> _pumpSignUp(
   return repo;
 }
 
+const ValueKey<String> _emailKey = ValueKey<String>('trainer-signup-email');
+const ValueKey<String> _passwordKey = ValueKey<String>(
+  'trainer-signup-password',
+);
+const ValueKey<String> _confirmKey = ValueKey<String>(
+  'trainer-signup-password-confirm',
+);
+const ValueKey<String> _codeKey = ValueKey<String>(
+  'trainer-signup-invite-code',
+);
+
 Future<void> _fill(
   WidgetTester tester, {
   String name = '김신규',
@@ -110,8 +121,9 @@ Future<void> _fill(
 }) async {
   await tester.enterText(find.widgetWithText(TextField, '이름'), name);
   await tester.enterText(find.widgetWithText(TextField, '이메일'), email);
+  // 비밀번호 안내가 새 규칙을 말한다(#1784).
   await tester.enterText(
-    find.widgetWithText(TextField, '비밀번호 (8자 이상)'),
+    find.widgetWithText(TextField, '비밀번호 (영문·숫자 포함 8자 이상)'),
     password,
   );
   await tester.enterText(find.widgetWithText(TextField, '비밀번호 확인'), confirm);
@@ -120,6 +132,36 @@ Future<void> _fill(
   }
   await tester.pump();
 }
+
+Future<void> _type(
+  WidgetTester tester,
+  ValueKey<String> key,
+  String text,
+) async {
+  await tester.enterText(
+    find.descendant(of: find.byKey(key), matching: find.byType(TextField)),
+    text,
+  );
+  await tester.pump();
+  // 도움말이 있는 칸(초대 코드)은 오류 문구가 도움말로 서서히 바뀐다
+  // (Material 167ms). 전환이 끝나야 사라진 문구가 트리에서도 빠진다.
+  await tester.pump(const Duration(milliseconds: 200));
+}
+
+/// 오류 문구가 늘어 버튼이 화면 밖으로 밀려도 누를 수 있게 끌어온다.
+Future<void> _submit(WidgetTester tester) async {
+  final Finder submit = find.byKey(
+    const ValueKey<String>('trainer-signup-submit'),
+  );
+  await tester.ensureVisible(submit);
+  await tester.pump();
+  await tester.tap(submit);
+  await settle(tester);
+}
+
+/// [key] 칸 **안에**(입력창 아래 오류 자리) [message] 가 그려졌는가.
+Finder _errorUnder(ValueKey<String> key, String message) =>
+    find.descendant(of: find.byKey(key), matching: find.text(message));
 
 void main() {
   testWidgets('가입 화면에 초대 코드 입력이 있다', (WidgetTester tester) async {
@@ -133,8 +175,7 @@ void main() {
     final repo = await _pumpSignUp(tester);
     await _fill(tester, code: 'ONCARE1');
 
-    await tester.tap(find.text('가입하고 시작하기'));
-    await settle(tester);
+    await _submit(tester);
 
     expect(repo.registerCalls, 1);
     expect(repo.inviteCode, 'ONCARE1');
@@ -145,8 +186,7 @@ void main() {
     final repo = await _pumpSignUp(tester);
     await _fill(tester, code: '  ONCARE1  ');
 
-    await tester.tap(find.text('가입하고 시작하기'));
-    await settle(tester);
+    await _submit(tester);
 
     expect(repo.inviteCode, 'ONCARE1');
   });
@@ -156,21 +196,101 @@ void main() {
     final repo = await _pumpSignUp(tester);
     await _fill(tester);
 
-    await tester.tap(find.text('가입하고 시작하기'));
-    await settle(tester);
+    await _submit(tester);
 
     expect(repo.registerCalls, 0);
-    expect(find.text('헬스장에서 받은 초대 코드를 입력해 주세요'), findsOneWidget);
+    // 코드 칸 아래에서 안내 대신 오류 문구가 뜬다(#1784).
+    expect(_errorUnder(_codeKey, '헬스장에서 받은 초대 코드를 입력해 주세요'), findsOneWidget);
+    expect(find.text('소속 헬스장에서 발급받은 코드를 입력해 주세요.'), findsNothing);
+
+    // 코드를 넣으면 오류가 사라지고 안내가 돌아온다.
+    await _type(tester, _codeKey, 'ONCARE1');
+    await tester.pump();
+    expect(find.text('헬스장에서 받은 초대 코드를 입력해 주세요'), findsNothing);
+    expect(find.text('소속 헬스장에서 발급받은 코드를 입력해 주세요.'), findsOneWidget);
   });
 
   testWidgets('비밀번호가 다르면 코드가 있어도 보내지 않는다', (WidgetTester tester) async {
     final repo = await _pumpSignUp(tester);
-    await _fill(tester, confirm: 'different-pw', code: 'ONCARE1');
+    await _fill(tester, confirm: 'different-pw1', code: 'ONCARE1');
 
-    await tester.tap(find.text('가입하고 시작하기'));
-    await settle(tester);
+    await _submit(tester);
 
     expect(repo.registerCalls, 0);
+    expect(_errorUnder(_confirmKey, '비밀번호가 일치하지 않아요'), findsOneWidget);
+  });
+
+  // --- 입력 형식 검사 (#1784) ----------------------------------------------
+
+  testWidgets('빈칸으로 제출하면 칸마다 아래에 문구를 보이고 보내지 않는다', (WidgetTester tester) async {
+    final repo = await _pumpSignUp(tester);
+
+    // 제출하기 전에는 아무 칸에도 오류가 없다.
+    expect(find.text('이메일을 입력해 주세요'), findsNothing);
+
+    await _submit(tester);
+
+    expect(_errorUnder(_emailKey, '이메일을 입력해 주세요'), findsOneWidget);
+    expect(_errorUnder(_passwordKey, '비밀번호를 입력해 주세요'), findsOneWidget);
+    expect(_errorUnder(_codeKey, '헬스장에서 받은 초대 코드를 입력해 주세요'), findsOneWidget);
+    // 둘 다 비어 있으면 서로 같다 — 확인 칸은 조용하다.
+    expect(find.text('비밀번호가 일치하지 않아요'), findsNothing);
+    // 예전 토스트 문구는 더 이상 뜨지 않는다.
+    expect(find.text('이메일과 비밀번호를 입력해 주세요'), findsNothing);
+    expect(repo.registerCalls, 0);
+  });
+
+  testWidgets('이메일 형식·비밀번호 규칙이 틀리면 보내지 않는다', (WidgetTester tester) async {
+    final repo = await _pumpSignUp(tester);
+
+    for (final String weak in <String>['abc123', 'abcdefgh', '12345678']) {
+      await _fill(
+        tester,
+        email: 'new@oncare',
+        password: weak,
+        confirm: weak,
+        code: 'ONCARE1',
+      );
+      await _submit(tester);
+
+      expect(_errorUnder(_emailKey, '이메일 형식이 올바르지 않아요'), findsOneWidget);
+      expect(
+        _errorUnder(_passwordKey, '영문과 숫자를 포함해 8자 이상 입력해 주세요'),
+        findsOneWidget,
+        reason: weak,
+      );
+      expect(repo.registerCalls, 0, reason: weak);
+    }
+  });
+
+  testWidgets('오류를 보인 칸은 고치는 대로 문구가 사라지고, 다 고치면 보낸다', (
+    WidgetTester tester,
+  ) async {
+    final repo = await _pumpSignUp(tester);
+    await _fill(tester, password: 'abcdefgh', confirm: 'abcdefgh', code: 'C1');
+
+    await _submit(tester);
+    expect(find.text('영문과 숫자를 포함해 8자 이상 입력해 주세요'), findsOneWidget);
+    // 제출 때 확인 칸은 맞았다.
+    expect(find.text('비밀번호가 일치하지 않아요'), findsNothing);
+
+    // 다시 제출하지 않아도 고친 칸의 문구가 사라진다.
+    await _type(tester, _passwordKey, 'abcdefg1');
+    await tester.pump();
+    expect(find.text('영문과 숫자를 포함해 8자 이상 입력해 주세요'), findsNothing);
+    // 제출 때 맞았던 확인 칸은 다음 제출까지 오류를 보이지 않는다.
+    expect(find.text('비밀번호가 일치하지 않아요'), findsNothing);
+
+    await _submit(tester);
+    expect(_errorUnder(_confirmKey, '비밀번호가 일치하지 않아요'), findsOneWidget);
+    expect(repo.registerCalls, 0);
+
+    await _type(tester, _confirmKey, 'abcdefg1');
+    await tester.pump();
+    expect(find.text('비밀번호가 일치하지 않아요'), findsNothing);
+
+    await _submit(tester);
+    expect(repo.registerCalls, 1);
   });
 
   // --- 데모 불변 -----------------------------------------------------------

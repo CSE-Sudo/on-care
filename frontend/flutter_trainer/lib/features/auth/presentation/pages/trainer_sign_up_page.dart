@@ -5,9 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 가입 화면에서 검사하는 칸. 이름은 비워도 가입되므로 검사하지 않는다.
+enum _Field { email, password, passwordConfirm, inviteCode }
 
 /// 트레이너 회원가입 화면 — 공용 [AppAuthLayout]. 이름/이메일/
 /// 비밀번호와 **헬스장 초대 코드**로 계정을 만들고, 성공 시 자동 로그인해 고객
@@ -35,6 +39,10 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
   bool _obscure = true;
   bool _loading = false;
 
+  /// 칸 아래 오류 문구. 첫 제출 전에는 숨기고, 오류를 보인 칸은 입력하는 대로
+  /// 다시 검사한다(#1784).
+  late final AppFieldErrors<_Field> _errors = AppFieldErrors<_Field>(_check);
+
   @override
   void dispose() {
     _name.dispose();
@@ -43,6 +51,32 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
     _passwordConfirm.dispose();
     _inviteCode.dispose();
     super.dispose();
+  }
+
+  /// 칸의 지금 값에 대한 오류 문구.
+  String? _check(_Field field) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return switch (field) {
+      _Field.email => authInputErrorText(l, AppInputRules.email(_email.text)),
+      _Field.password => authInputErrorText(
+        l,
+        AppInputRules.signUpPassword(_password.text),
+      ),
+      _Field.passwordConfirm => authInputErrorText(
+        l,
+        AppInputRules.passwordConfirm(_password.text, _passwordConfirm.text),
+      ),
+      // 초대 코드는 형식이 정해져 있지 않다 — 비었는지만 보고, 유효한지는 서버가
+      // 가린다(#475).
+      _Field.inviteCode =>
+        _inviteCode.text.trim().isEmpty ? l.authErrInviteCodeRequired : null,
+    };
+  }
+
+  /// 오류를 보인 칸이 있을 때만 입력마다 다시 그린다. 비밀번호를 고치면
+  /// 확인 칸의 일치 여부도 바뀌므로 칸을 가리지 않고 다시 그린다.
+  void _onEdited(String _) {
+    if (_errors.isWatching) setState(() {});
   }
 
   void _backToSignIn() {
@@ -55,41 +89,24 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
 
   Future<void> _register() async {
     if (_loading) return;
+    // 데모에는 코드를 검증할 백엔드가 없어 입력 자체를 그리지 않는다.
+    final requiresInviteCode = !ref.read(appConfigProvider).useMockApi;
+    // 틀린 칸이 하나라도 있으면 요청을 보내지 않고 칸 아래에 알린다. 서버가
+    // 돌려준 실패(이메일 중복·초대 코드 무효 등)만 아래에서 토스트로 알린다.
+    final bool valid = _errors.validate(<_Field>[
+      _Field.email,
+      _Field.password,
+      _Field.passwordConfirm,
+      if (requiresInviteCode) _Field.inviteCode,
+    ]);
+    if (!valid) {
+      setState(() {});
+      return;
+    }
     final name = _name.text.trim();
     final email = _email.text.trim();
     final password = _password.text;
-    final confirm = _passwordConfirm.text;
-    // 데모에는 코드를 검증할 백엔드가 없어 입력 자체를 그리지 않는다.
-    final requiresInviteCode = !ref.read(appConfigProvider).useMockApi;
     final inviteCode = _inviteCode.text.trim();
-    if (email.isEmpty || password.isEmpty) {
-      showAppToast(
-        context,
-        AppLocalizations.of(context).authErrEmptyCredentials,
-      );
-      return;
-    }
-    if (password.length < 8) {
-      showAppToast(
-        context,
-        AppLocalizations.of(context).authErrPasswordTooShort,
-      );
-      return;
-    }
-    if (password != confirm) {
-      showAppToast(
-        context,
-        AppLocalizations.of(context).authErrPasswordMismatch,
-      );
-      return;
-    }
-    if (requiresInviteCode && inviteCode.isEmpty) {
-      showAppToast(
-        context,
-        AppLocalizations.of(context).authErrInviteCodeRequired,
-      );
-      return;
-    }
     setState(() => _loading = true);
     try {
       await ref
@@ -146,21 +163,27 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
+            key: const ValueKey<String>('trainer-signup-email'),
             controller: _email,
             hint: l.authEmail,
+            errorText: _errors.of(_Field.email),
             prefixIcon: Icons.mail_outline_rounded,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
+            onChanged: _onEdited,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
+            key: const ValueKey<String>('trainer-signup-password'),
             controller: _password,
             hint: l.authPasswordHint,
+            errorText: _errors.of(_Field.password),
             prefixIcon: Icons.lock_outline_rounded,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.next,
+            onChanged: _onEdited,
             suffix: AppIconButton(
               // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할
               // 데가 툴팁뿐이다(#972).
@@ -174,8 +197,10 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
+            key: const ValueKey<String>('trainer-signup-password-confirm'),
             controller: _passwordConfirm,
             hint: l.authPasswordConfirm,
+            errorText: _errors.of(_Field.passwordConfirm),
             prefixIcon: Icons.lock_outline_rounded,
             size: AppFieldSize.large,
             obscureText: _obscure,
@@ -183,23 +208,29 @@ class _TrainerSignUpPageState extends ConsumerState<TrainerSignUpPage> {
             textInputAction: showInviteCode
                 ? TextInputAction.next
                 : TextInputAction.done,
+            onChanged: _onEdited,
             onSubmitted: showInviteCode ? null : (_) => _register(),
           ),
           if (showInviteCode) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
+            // 안내는 칸의 도움말로 둔다 — 코드를 비우고 제출하면 같은 자리를
+            // 오류 문구가 대신해, 안내와 오류가 두 줄로 겹쳐 뜨지 않는다(#1784).
             AppTextField(
+              key: const ValueKey<String>('trainer-signup-invite-code'),
               controller: _inviteCode,
               hint: l.authInviteCode,
+              helper: l.authInviteCodeHelp,
+              errorText: _errors.of(_Field.inviteCode),
               prefixIcon: Icons.confirmation_number_rounded,
               size: AppFieldSize.large,
               textInputAction: TextInputAction.done,
+              onChanged: _onEdited,
               onSubmitted: (_) => _register(),
             ),
-            const SizedBox(height: OnCareSpacing.s4),
-            Text(l.authInviteCodeHelp, style: mutedStyle),
           ],
           const SizedBox(height: OnCareSpacing.s24),
           AppButton(
+            key: const ValueKey<String>('trainer-signup-submit'),
             label: l.authSignUpAndStart,
             onPressed: _register,
             size: OnCareButtonSize.large,

@@ -431,7 +431,7 @@ abstract class AppLocalizations {
   /// No description provided for @authPasswordHint.
   ///
   /// In en, this message translates to:
-  /// **'Password (8+ characters)'**
+  /// **'Password (8+ characters, letters and numbers)'**
   String get authPasswordHint;
 
   /// No description provided for @authPasswordConfirm.
@@ -488,11 +488,35 @@ abstract class AppLocalizations {
   /// **'Sign-in failed. Please try again in a moment.'**
   String get authErrSignInFailed;
 
-  /// No description provided for @authErrPasswordTooShort.
+  /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In en, this message translates to:
-  /// **'Password must be at least 8 characters'**
-  String get authErrPasswordTooShort;
+  /// **'Enter your email'**
+  String get authErrEmailEmpty;
+
+  /// No description provided for @authErrEmailInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address'**
+  String get authErrEmailInvalid;
+
+  /// No description provided for @authErrPasswordEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your password'**
+  String get authErrPasswordEmpty;
+
+  /// No description provided for @authErrPasswordWeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Use at least 8 characters, including letters and numbers'**
+  String get authErrPasswordWeak;
+
+  /// Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your phone number as 000-0000-0000'**
+  String get authErrPhoneInvalid;
 
   /// No description provided for @authErrPasswordMismatch.
   ///

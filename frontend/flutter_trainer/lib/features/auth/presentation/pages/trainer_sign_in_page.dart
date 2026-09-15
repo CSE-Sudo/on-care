@@ -5,9 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
+import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 로그인 화면에서 형식을 검사하는 칸.
+enum _Field { email, password }
 
 /// Trainer login screen — email/password login. Layout follows the shared
 /// [AppAuthLayout]. Wired to [SessionController].
@@ -32,11 +36,28 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
   bool _obscure = true;
   bool _loading = false;
 
+  /// 칸 아래 오류 문구. 첫 제출 전에는 숨기고, 오류를 보인 칸은 입력하는 대로
+  /// 다시 검사한다(#1784).
+  late final AppFieldErrors<_Field> _errors = AppFieldErrors<_Field>(_check);
+
   @override
   void dispose() {
     _email.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  /// 칸의 지금 값에 대한 오류 문구. 비밀번호는 비었는지만 본다 — 가입 규칙을
+  /// 여기서도 걸면 규칙 이전에 만든 계정이 로그인에서 막힌다(#1784).
+  String? _check(_Field field) =>
+      authInputErrorText(AppLocalizations.of(context), switch (field) {
+        _Field.email => AppInputRules.email(_email.text),
+        _Field.password => AppInputRules.signInPassword(_password.text),
+      });
+
+  /// 오류를 보인 칸이 있을 때만 입력마다 다시 그려 문구가 값을 따라가게 한다.
+  void _onEdited(String _) {
+    if (_errors.isWatching) setState(() {});
   }
 
   /// 로그인 뒤에 갈 자리. 딥링크로 들어와 로그인 화면을 거친 경우 인증 게이트가
@@ -79,16 +100,15 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
 
   Future<void> _login() async {
     if (_loading) return;
+    // 틀린 칸이 하나라도 있으면 요청을 보내지 않고 칸 아래에 알린다. 서버가
+    // 돌려준 실패(인증 실패·네트워크)만 아래에서 토스트로 알린다.
+    if (!_errors.validate(_Field.values)) {
+      setState(() {});
+      return;
+    }
     final destination = _destination;
     final email = _email.text.trim();
     final password = _password.text;
-    if (email.isEmpty || password.isEmpty) {
-      showAppToast(
-        context,
-        AppLocalizations.of(context).authErrEmptyCredentials,
-      );
-      return;
-    }
     setState(() => _loading = true);
     try {
       await ref
@@ -139,20 +159,24 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
             key: const ValueKey<String>('trainer-login-email'),
             controller: _email,
             hint: l.authEmail,
+            errorText: _errors.of(_Field.email),
             prefixIcon: Icons.mail_rounded,
             size: AppFieldSize.large,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
+            onChanged: _onEdited,
           ),
           const SizedBox(height: OnCareSpacing.s12),
           AppTextField(
             key: const ValueKey<String>('trainer-login-password'),
             controller: _password,
             hint: l.authPassword,
+            errorText: _errors.of(_Field.password),
             prefixIcon: Icons.lock_rounded,
             size: AppFieldSize.large,
             obscureText: _obscure,
             textInputAction: TextInputAction.done,
+            onChanged: _onEdited,
             onSubmitted: (_) => _login(),
             suffix: AppIconButton(
               // 아이콘만 있는 버튼이라 무엇을 켜고 끄는지 말할 데가
