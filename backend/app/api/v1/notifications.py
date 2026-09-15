@@ -24,7 +24,11 @@ from app.schemas.user import (
     MemberNotificationSettings,
     MemberNotificationSettingsUpdate,
 )
-from app.services import notification_service, points_coupon_service
+from app.services import (
+    notification_service,
+    points_coupon_service,
+    weekly_challenge_service,
+)
 
 router = APIRouter(tags=["notifications"])
 
@@ -97,6 +101,8 @@ def list_notifications(
             db.commit()
     except Exception:  # noqa: BLE001 — 만료 알림 실패가 알림함을 막지 않는다
         db.rollback()
+    # 끝난 주의 챌린지 결과 알림도 같은 이유로 여기서 생긴다(#1789).
+    weekly_challenge_service.settle_quietly(db, current_user.id)
     query = select(Notification).where(Notification.user_id == current_user.id)
     cursor = parse_before(before)
     if cursor is not None:
