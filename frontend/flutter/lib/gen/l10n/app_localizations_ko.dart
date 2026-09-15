@@ -1127,6 +1127,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String myBenefitsShieldHeldCount(int held) {
+    return '보유 $held개';
+  }
+
+  @override
   String get myBenefitsShieldGuide => '운동을 못 한 다음 날 운동 현황에서 쓸 수 있어요.';
 
   @override

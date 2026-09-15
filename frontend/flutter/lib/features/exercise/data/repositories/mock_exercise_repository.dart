@@ -325,6 +325,8 @@ class MockExerciseRepository implements ExerciseRepository {
     );
     _sessions.add(session);
     _totalCalories += calories;
+    // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
+    _shields?.refundFor(date);
     return session;
   }
 
@@ -360,6 +362,8 @@ class MockExerciseRepository implements ExerciseRepository {
     );
     _sessions.add(session);
     _totalCalories += calories;
+    // 루틴 완료 기록도 같다 — 보호한 날이면 보호권을 되돌린다(#1788).
+    _shields?.refundFor(date);
     return session;
   }
 
@@ -436,6 +440,8 @@ class MockExerciseRepository implements ExerciseRepository {
     if (idx >= 0 && old != null) {
       _totalCalories = _nonNeg(_totalCalories - old.calories + calories);
       _sessions[idx] = updated;
+      // 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+      _shields?.refundFor(date);
     }
     return updated;
   }

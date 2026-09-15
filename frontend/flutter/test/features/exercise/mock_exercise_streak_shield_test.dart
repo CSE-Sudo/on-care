@@ -64,6 +64,61 @@ void main() {
     expect(past.streakShield, isNull);
   });
 
+  test('보호한 날에 직접 추가·수정·루틴 완료로 기록이 생기면 보호권이 돌아온다', () async {
+    expect(book.exchange().statusCode, 201);
+    // 기록 여부와 상관없이 되돌리기만 재려고 어제를 보호해 둔다.
+    expect(book.use(_yesterday, hasExerciseOn: (_) => false).statusCode, 200);
+    expect(book.held, 0);
+
+    await exercise.addSession(
+      type: ExerciseType.cardio,
+      minutes: 20,
+      calories: 100,
+      date: _yesterday,
+      name: '걷기',
+    );
+    expect(book.held, 1);
+    expect(book.isProtected(_yesterday), isFalse);
+    // 한 번 더 기록해도 더 돌려주지 않는다.
+    await exercise.addSession(
+      type: ExerciseType.cardio,
+      minutes: 10,
+      calories: 50,
+      date: _yesterday,
+    );
+    expect(book.held, 1);
+
+    // 수정으로 그날로 옮긴 경우.
+    expect(book.use(_yesterday, hasExerciseOn: (_) => false).statusCode, 200);
+    expect(book.held, 0);
+    final ExerciseSession monday = await exercise.addSession(
+      type: ExerciseType.cardio,
+      minutes: 15,
+      calories: 60,
+      date: DateTime(2026, 8, 17),
+    );
+    await exercise.updateSession(
+      id: monday.id!,
+      type: ExerciseType.cardio,
+      minutes: 15,
+      calories: 60,
+      date: _yesterday,
+    );
+    expect(book.held, 1);
+
+    // 루틴 완료 기록도 같다.
+    expect(book.use(_yesterday, hasExerciseOn: (_) => false).statusCode, 200);
+    await exercise.addAssignedRoutineSession(
+      type: ExerciseType.cardio,
+      minutes: 20,
+      calories: 100,
+      date: _yesterday,
+      routineId: 'routine-1',
+      name: '걷기',
+    );
+    expect(book.held, 1);
+  });
+
   test('목업 보호권 저장소는 그날 기록이 있으면 쓰지 않고, 없으면 한 장을 쓴다', () async {
     expect(book.exchange().statusCode, 201);
     final MockStreakShieldRepository repo = MockStreakShieldRepository(

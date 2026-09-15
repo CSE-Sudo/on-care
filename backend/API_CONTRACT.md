@@ -199,7 +199,12 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name`·`
   있을 때만 운동 현황에 `보호권 쓰기` 를 띄운다.
 - **집계** 보호한 날은 `streak_days` 를 셀 때만 운동한 날로 본다 — `streak_days` 는 이번 주 안에서 운동했거나 보호한 날이
   이어진 가장 긴 구간이다. `daily_minutes`·`daily_calories`·`total_*`·`sessions[]` 에는 들어가지 않는다.
-- 되돌리기·반환은 없다. 보호한 뒤 그날 운동 기록을 더해도 보호는 그대로 남는다.
+- **운동한 날의 보호권 되돌리기** 보호한 날에 운동 기록이 생기면(`POST /exercise/sessions`, `PUT /exercise/sessions/{id}` 로
+  그날로 옮김, `POST /me/coach/routines/{id}/complete`(AI 추천·트레이너 배정), 트레이너 PT 완료
+  `POST /trainer/schedule/{id}/complete`) 같은 트랜잭션에서 보호를 풀고 그 보호권을 `held` 로 돌린다. 포인트는 오가지 않는다.
+  멱등이며, 되돌린 뒤 그 기록을 지워도 보호는 다시 걸리지 않는다. 최대 보유 수는 **교환**의 규칙이라 되돌리기는 보지 않는다 —
+  이미 2개를 가진 회원은 3개가 될 수 있고(`held` > `max_held`), 그동안 사용처 항목은 `shield_limit` 으로 막힌다.
+- 트레이너 화면은 보호한 날을 세지도 보여 주지도 않는다(`protected_days` 는 응답에만 있다).
 
 ### 일정 (캘린더 상세 CRUD)
 

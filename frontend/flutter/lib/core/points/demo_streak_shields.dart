@@ -125,6 +125,23 @@ class DemoStreakShieldBook {
     return DemoCouponResult(200, statusJson());
   }
 
+  /// [day] 에 운동 기록이 생겼다 — 그날 쓴 보호권을 되돌린다. 되돌렸으면 true.
+  ///
+  /// 서버 `refund_for_exercise` 와 같다. 멱등이고, 보유 한도(2개)는 교환의 규칙이라
+  /// 여기서는 보지 않는다 — 되돌려 받아 3개가 될 수 있고, 그동안은 교환이 막힌다.
+  /// 되돌린 뒤 그 기록을 지워도 보호는 다시 걸리지 않는다.
+  bool refundFor(DateTime day) {
+    final DateTime d = _dateOnly(day);
+    final _DemoShield? shield = _shields
+        .where((_DemoShield s) => s.protectedOn == d)
+        .firstOrNull;
+    if (shield == null) return false;
+    shield
+      ..protectedOn = null
+      ..usedAt = null;
+    return true;
+  }
+
   // ---- 내부 ----
 
   /// 보호할 수 없는 이유(문구). 보유 수는 보지 않는다.

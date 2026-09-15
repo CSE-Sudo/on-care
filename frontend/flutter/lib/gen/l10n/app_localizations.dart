@@ -2132,6 +2132,12 @@ abstract class AppLocalizations {
   /// **'{held}/{max} held'**
   String myBenefitsShieldHeld(int held, int max);
 
+  /// No description provided for @myBenefitsShieldHeldCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{held} held'**
+  String myBenefitsShieldHeldCount(int held);
+
   /// No description provided for @myBenefitsShieldGuide.
   ///
   /// In en, this message translates to:

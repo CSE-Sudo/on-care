@@ -197,6 +197,71 @@ void main() {
     expect((await use(_yesterday)).statusCode, 409);
   });
 
+  Future<String> addExercise(String day) async {
+    final Response<Map<String, Object?>> res = await dio
+        .post<Map<String, Object?>>(
+          '/exercise/sessions',
+          data: <String, Object?>{
+            'type': 'cardio',
+            'name': '걷기',
+            'minutes': 20,
+            'date': day,
+          },
+        );
+    return res.data!['id']! as String;
+  }
+
+  test('보호한 날에 운동을 기록하면 보호권이 돌아오고, 지워도 다시 보호되지 않는다', () async {
+    await exchange();
+    expect((await use(_yesterday)).statusCode, 200);
+    // 보호한 뒤 두 장을 더 사 쓰지 않은 보호권이 가득 찼다.
+    await exchange();
+    await exchange();
+    expect(shields.held, 2);
+
+    final String first = await addExercise(_yesterday);
+
+    // 되돌리기는 최대 보유 수를 보지 않는다 — 3개가 되고 교환은 막힌다.
+    expect(shields.held, 3);
+    final Map<String, Object?> after = await week();
+    expect((after['protected_days']! as List<Object?>)[2], isFalse);
+    expect(after['streak_shield'], <String, Object?>{
+      'held': 3,
+      'protectable_date': null,
+    });
+    expect((await shieldItem()).blockReason, ShopBlockReason.shieldLimit);
+    expect((await exchange()).statusCode, 409);
+    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    expect(status.held, 3);
+    expect(status.used, isEmpty);
+
+    // 같은 날 기록을 더해도 더 돌려주지 않는다.
+    final String second = await addExercise(_yesterday);
+    expect(shields.held, 3);
+
+    // 기록을 지워도 보호는 다시 걸리지 않는다.
+    await dio.delete<Object?>('/exercise/sessions/$first');
+    await dio.delete<Object?>('/exercise/sessions/$second');
+    final Map<String, Object?> deleted = await week();
+    expect((deleted['protected_days']! as List<Object?>)[2], isFalse);
+    expect(shields.held, 3);
+  });
+
+  test('기록을 보호한 날로 옮겨도 보호권이 돌아온다', () async {
+    await exchange();
+    expect((await use(_yesterday)).statusCode, 200);
+    expect(shields.held, 0);
+
+    final Response<Object?> moved = await dio.put<Object?>(
+      '/exercise/sessions/ex-thu',
+      data: <String, Object?>{'type': 'cardio', 'minutes': 20, 'date': _yesterday},
+    );
+
+    expect(moved.statusCode, 200);
+    expect(shields.held, 1);
+    expect(shields.isProtected(DateTime(2026, 9, 16)), isFalse);
+  });
+
   test('월요일에는 지난 일요일을 보호하지 않는다', () async {
     now = DateTime(2026, 9, 21, 10);
     await exchange();

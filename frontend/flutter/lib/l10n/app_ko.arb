@@ -439,6 +439,14 @@
       }
     }
   },
+  "myBenefitsShieldHeldCount": "보유 {held}개",
+  "@myBenefitsShieldHeldCount": {
+    "placeholders": {
+      "held": {
+        "type": "int"
+      }
+    }
+  },
   "myBenefitsShieldGuide": "운동을 못 한 다음 날 운동 현황에서 쓸 수 있어요.",
   "myBenefitsShieldUsedTitle": "보호한 날",
   "myBenefitsShieldNoneUsed": "아직 보호한 날이 없어요",

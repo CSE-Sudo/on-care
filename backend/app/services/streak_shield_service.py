@@ -17,13 +17,18 @@
   합계에는 넣지 않는다(`exercise_service.build_current_week`).
 - 같은 날을 다시 보호하려는 요청(더블 클릭·재전송)은 보호권을 더 쓰지 않고 같은
   응답을 준다.
+- **되돌리기** 보호한 날에 운동 기록이 생기면(직접 추가·수정, 루틴 완료, 트레이너
+  PT 완료) 보호를 풀고 그 보호권을 `held` 로 돌린다. 최대 보유 수는 교환에만 걸려
+  3개가 될 수 있다. 되돌린 뒤 기록을 지워도 보호는 다시 걸리지 않는다
+  ([refund_for_exercise]).
+- 트레이너 화면은 보호한 날을 세지도 보여 주지도 않는다.
 """
 from __future__ import annotations
 
 import uuid
 from datetime import date, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -248,6 +253,42 @@ def use(db: Session, member_id: str, day: date) -> StreakShieldsOut:
             return status(db, member_id)
         raise
     return status(db, member_id)
+
+
+# ---- 되돌리기 ----
+
+
+def refund_for_exercise(db: Session, member_id: str, day: date | None) -> bool:
+    """[day] 에 운동 기록이 생기면 그날 쓴 보호권을 되돌린다. 커밋하지 않는다.
+
+    운동한 날은 보호가 필요 없다 — 보호를 풀고 그 보호권을 다시 `held` 로 돌린다.
+    기록을 만들거나 그날로 옮기는 모든 경로(회원 직접 추가·수정, AI 추천·배정 루틴
+    완료, 트레이너 PT 완료)가 기록과 같은 트랜잭션에서 부른다. 되돌린 뒤 그 기록을
+    지워도 보호는 다시 걸리지 않는다. 되돌렸으면 True.
+
+    - 멱등이다. 보호한 날이 아니거나 이미 되돌렸으면 아무것도 하지 않는다.
+    - 최대 보유 수(2개)는 **교환**의 규칙이라 여기서는 보지 않는다. 쓰지 않은
+      보호권이 이미 2개인 회원도 되돌려 받아 3개가 될 수 있다 — 포인트를 내고 산
+      것을 한도 때문에 없애면 안 되고, 2개를 넘는 동안은 사용처에서 더 교환하지
+      못한다.
+    - 잔액 행을 먼저 잠근다. 보호권 사용이 같은 행을 잠근 채 "그날 기록이 있나" 를
+      보므로, 사용과 기록 저장이 겹쳐도 뒤에 온 쪽이 앞선 쪽의 커밋을 보고 판단한다
+      (자정 무렵 완료 시각이 어제로 찍힌 루틴 완료가 보호보다 늦게 커밋되는 경우).
+    """
+    if day is None:
+        return False
+    points_service.lock_balance(db, member_id)
+    result = db.execute(
+        update(StreakShield)
+        .where(
+            StreakShield.user_id == member_id,
+            StreakShield.protected_on == day.isoformat(),
+            StreakShield.status == USED,
+        )
+        .values(status=HELD, protected_on=None, used_at=None)
+        .execution_options(synchronize_session=False)
+    )
+    return result.rowcount > 0
 
 
 # ---- 내부 ----

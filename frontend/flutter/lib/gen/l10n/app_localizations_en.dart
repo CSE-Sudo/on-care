@@ -1155,6 +1155,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String myBenefitsShieldHeldCount(int held) {
+    return '$held held';
+  }
+
+  @override
   String get myBenefitsShieldGuide =>
       'Use one from Activity the day after a missed workout.';
 

@@ -278,6 +278,10 @@ def add_session(
     points = points_service.award(
         db, current_user.id, points_service.EXERCISE_MANUAL, row.id
     )
+    # 보호권으로 이어 붙인 날에 운동 기록이 생기면 그 보호권을 되돌린다(#1788).
+    streak_shield_service.refund_for_exercise(
+        db, current_user.id, exercise_activity.activity_date_of(row)
+    )
     db.commit()
     db.refresh(row)
 
@@ -328,6 +332,10 @@ def update_session(
     row.calories = estimated.calories
     row.calorie_source = estimated.source
     row.intensity = payload.intensity
+    # 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+    streak_shield_service.refund_for_exercise(
+        db, current_user.id, exercise_activity.activity_date_of(row)
+    )
     db.commit()
     db.refresh(row)
 

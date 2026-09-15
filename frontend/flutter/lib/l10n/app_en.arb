@@ -657,6 +657,14 @@
       }
     }
   },
+  "myBenefitsShieldHeldCount": "{held} held",
+  "@myBenefitsShieldHeldCount": {
+    "placeholders": {
+      "held": {
+        "type": "int"
+      }
+    }
+  },
   "myBenefitsShieldGuide": "Use one from Activity the day after a missed workout.",
   "myBenefitsShieldUsedTitle": "Protected days",
   "myBenefitsShieldNoneUsed": "No protected days yet",

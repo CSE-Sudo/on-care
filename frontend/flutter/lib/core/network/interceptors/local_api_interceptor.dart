@@ -373,6 +373,8 @@ class LocalApiInterceptor extends Interceptor {
         weight: Value(weight),
       ),
     );
+    // 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
     return _ok(
       options,
       _sessionJson(
@@ -1614,6 +1616,8 @@ class LocalApiInterceptor extends Interceptor {
             weight: Value(weight),
           ),
         );
+    // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
 
     return _ok(options, <String, Object?>{
       ..._sessionJson(
@@ -2330,6 +2334,17 @@ class LocalApiInterceptor extends Interceptor {
 
   Future<Response<Object?>> _streakShields(RequestOptions options) async =>
       _ok(options, _shields.statusJson());
+
+  /// (주 시작, 요일) 자리에 운동 기록이 생겼다 — 그날 쓴 보호권을 되돌린다.
+  /// 서버처럼 기록을 추가·수정하는 경로가 저장 뒤에 부른다.
+  void _refundShieldOn(String weekStart, String dayLabel) {
+    final int index = _weekdayLabels.indexOf(dayLabel);
+    if (index < 0) return;
+    final DateTime monday = DateTime.parse(weekStart);
+    _shields.refundFor(
+      DateTime(monday.year, monday.month, monday.day + index),
+    );
+  }
 
   Future<Response<Object?>> _streakShieldUse(RequestOptions options) async {
     final body = _jsonBody(options);

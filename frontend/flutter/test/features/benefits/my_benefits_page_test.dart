@@ -111,6 +111,25 @@ void main() {
     expect(find.text('보호권으로 이어짐'), findsNWidgets(2));
   });
 
+  testWidgets('운동한 날의 보호권을 돌려받아 최대를 넘으면 개수만 적는다 (#1788)', (
+    tester,
+  ) async {
+    await pumpAt(
+      tester,
+      FakeBenefitsRepository(),
+      AppRoutes.myBenefits,
+      shields: FakeStreakShieldRepository(
+        shields: const StreakShields(held: 3, maxHeld: 2, cost: 300),
+      ),
+    );
+
+    final AppTag held = tester.widget<AppTag>(
+      find.byKey(const ValueKey<String>('streak-shield-held')),
+    );
+    expect(held.label, '보유 3개');
+    expect(held.tone, AppTagTone.brand);
+  });
+
   testWidgets('보호권이 없고 보호한 날도 없으면 그렇게 말한다 (#1788)', (tester) async {
     await pumpAt(tester, FakeBenefitsRepository(), AppRoutes.myBenefits);
 

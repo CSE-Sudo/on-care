@@ -298,6 +298,196 @@ def test_monday_does_not_protect_last_sunday(client, db_session, monkeypatch):
     assert _shields(client, h)["held"] == 1
 
 
+def _make_linked_trainer(db_session, member_id: str) -> str:
+    """이 테스트만 쓰는 트레이너를 만들어 회원을 담당으로 붙인다."""
+    trainer_id = f"trainer-{uuid4().hex[:10]}"
+    db_session.add(
+        User(
+            id=trainer_id,
+            email=f"{trainer_id}@oncare.com",
+            name="보호권 트레이너",
+            hashed_password="unused",
+            role="trainer",
+        )
+    )
+    db_session.commit()
+    db_session.add(TrainerProfile(trainer_id=trainer_id, gym_name="보호권짐"))
+    db_session.add(
+        TrainerClient(
+            id=f"tc-{uuid4().hex[:12]}",
+            trainer_id=trainer_id,
+            member_id=member_id,
+            active=True,
+        )
+    )
+    db_session.commit()
+    return trainer_id
+
+
+def _drop_user(db_session, user_id: str) -> None:
+    db_session.rollback()
+    db_session.expire_all()
+    user = db_session.get(User, user_id)
+    if user is not None:
+        db_session.delete(user)
+        db_session.commit()
+
+
+def _sessions_on(client, headers, day: str) -> list[str]:
+    return [s["id"] for s in _week(client, headers)["sessions"] if s["date"] == day]
+
+
+# ---- 운동한 날의 보호권 되돌리기 ----
+
+
+def test_exercise_on_protected_day_refunds_shield(client, db_session, thursday):
+    _, h = _new_member(client, db_session, points=300)
+    assert _exchange(client, h).status_code == 201
+    _add_exercise(client, h, TUESDAY)
+    assert _use(client, h, YESTERDAY).status_code == 200
+    assert _shields(client, h)["held"] == 0
+
+    _add_exercise(client, h, YESTERDAY)
+
+    status = _shields(client, h)
+    assert (status["held"], status["used"]) == (1, [])
+    week = _week(client, h)
+    assert week["protected_days"] == [False] * 7
+    assert week["streak_days"] == 2  # 화·수 — 수요일은 이제 실제로 운동한 날이다.
+
+    # 같은 날을 더 기록해도 더 돌려주지 않는다.
+    _add_exercise(client, h, YESTERDAY, minutes=10)
+    assert _shields(client, h)["held"] == 1
+
+    # 기록을 지워도 보호는 다시 걸리지 않는다.
+    for session_id in _sessions_on(client, h, YESTERDAY):
+        assert client.delete(
+            f"/v1/exercise/sessions/{session_id}", headers=h
+        ).status_code == 200
+    week = _week(client, h)
+    assert week["protected_days"] == [False] * 7
+    assert week["streak_days"] == 1
+    assert _shields(client, h)["held"] == 1
+
+
+def test_refund_may_exceed_hold_limit(client, db_session, thursday):
+    _, h = _new_member(client, db_session, points=1000)
+    assert _exchange(client, h).status_code == 201
+    assert _use(client, h, YESTERDAY).status_code == 200
+    assert _exchange(client, h).status_code == 201
+    assert _exchange(client, h).status_code == 201
+    assert _shields(client, h)["held"] == 2
+
+    _add_exercise(client, h, YESTERDAY)
+
+    # 최대 보유 수는 교환의 규칙이다 — 돌려받아 3개가 되고, 그동안 교환은 막힌다.
+    assert _shields(client, h)["held"] == 3
+    assert _week(client, h)["streak_shield"] == {"held": 3, "protectable_date": None}
+    item = _shop_item(client, h)
+    assert (item["available"], item["blocked_reason"]) == (False, "shield_limit")
+    assert _exchange(client, h).status_code == 409
+
+
+def test_moving_record_onto_protected_day_refunds_shield(client, db_session, thursday):
+    _, h = _new_member(client, db_session, points=300)
+    assert _exchange(client, h).status_code == 201
+    _add_exercise(client, h, TUESDAY)
+    assert _use(client, h, YESTERDAY).status_code == 200
+    (session_id,) = _sessions_on(client, h, TUESDAY)
+
+    r = client.put(
+        f"/v1/exercise/sessions/{session_id}",
+        json={"type": "cardio", "name": "걷기", "minutes": 30, "date": YESTERDAY},
+        headers=h,
+    )
+
+    assert r.status_code == 200, r.text
+    assert _shields(client, h)["held"] == 1
+    assert _week(client, h)["protected_days"][2] is False
+
+
+def test_routine_completion_on_protected_day_refunds_shield(
+    client, db_session, monkeypatch
+):
+    from app.models.models import TrainerRoutine
+
+    monkeypatch.setattr(clock, "now", lambda: THURSDAY)
+    member_id, h = _new_member(client, db_session, points=300)
+    assert _exchange(client, h).status_code == 201
+    assert _use(client, h, YESTERDAY).status_code == 200
+    routine_id = f"rt-shd-{uuid4().hex[:10]}"
+    db_session.add(
+        TrainerRoutine(
+            id=routine_id,
+            trainer_id=None,
+            member_id=member_id,
+            name="걷기",
+            minutes=20,
+            type="유산소",
+            source="ai",
+            status="approved",
+        )
+    )
+    db_session.commit()
+
+    # 자정 직전에 시작한 완료 요청이 보호보다 늦게 커밋된 경우 — 완료 시각이 보호한
+    # 날로 찍힌다. 시계를 되돌려 흉내 낸다.
+    monkeypatch.setattr(
+        clock, "now", lambda: datetime(2026, 9, 16, 23, 59, tzinfo=clock.SEOUL)
+    )
+    r = client.post(
+        f"/v1/me/coach/routines/{routine_id}/complete",
+        json={"minutes": 20, "intensity": "moderate", "member_note": ""},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+
+    monkeypatch.setattr(clock, "now", lambda: THURSDAY)
+    assert _shields(client, h)["held"] == 1
+    assert _week(client, h)["protected_days"][2] is False
+
+
+def test_trainer_pt_completion_on_protected_day_refunds_shield(
+    client, db_session, thursday
+):
+    member_id, h = _new_member(client, db_session, points=300)
+    assert _exchange(client, h).status_code == 201
+    assert _use(client, h, YESTERDAY).status_code == 200
+    trainer_id = _make_linked_trainer(db_session, member_id)
+    th = {"Authorization": f"Bearer {create_access_token(trainer_id)}"}
+    try:
+        created = client.post(
+            "/v1/trainer/schedule",
+            json={
+                "date": YESTERDAY,
+                "time": "20:00",
+                "client_name": "u",
+                "member_id": member_id,
+                "type": "1:1 PT",
+                "duration_minutes": 45,
+            },
+            headers=th,
+        )
+        assert created.status_code == 201, created.text
+        session_id = created.json()["id"]
+        done = client.post(
+            f"/v1/trainer/schedule/{session_id}/complete", json={}, headers=th
+        )
+        assert done.status_code == 200, done.text
+
+        assert _shields(client, h)["held"] == 1
+        week = _week(client, h)
+        assert week["protected_days"][2] is False
+        assert f"sched-ex-{session_id}" in [s["id"] for s in week["sessions"]]
+
+        # 트레이너가 세션을 지워 파생 기록이 사라져도 보호는 다시 걸리지 않는다.
+        client.delete(f"/v1/trainer/schedule/{session_id}", headers=th)
+        assert _week(client, h)["protected_days"][2] is False
+        assert _shields(client, h)["held"] == 1
+    finally:
+        _drop_user(db_session, trainer_id)
+
+
 def test_trainer_week_counts_protected_day(client, db_session, thursday):
     member_id, h = _new_member(client, db_session, points=300)
     trainer_id = f"trainer-{uuid4().hex[:10]}"
