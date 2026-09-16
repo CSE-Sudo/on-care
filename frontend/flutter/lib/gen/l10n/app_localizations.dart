@@ -1001,7 +1001,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAddFood.
   ///
   /// In en, this message translates to:
-  /// **'+ Add Food'**
+  /// **'Add Food'**
   String get dietAddFood;
 
   /// No description provided for @dietEditFoodHint.
