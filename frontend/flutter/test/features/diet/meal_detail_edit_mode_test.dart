@@ -170,6 +170,24 @@ void main() {
     expect(find.text('99'), findsOneWidget, reason: '고친 합계가 그대로 보인다');
   });
 
+  testWidgets('음식 칼로리를 고치면 총 칼로리가 곧바로 따라온다', (WidgetTester tester) async {
+    await _openDetail(tester, FakeDietRepository());
+
+    await tester.tap(_editButton);
+    await tester.pumpAndSettle();
+    expect(find.text('217 kcal'), findsOneWidget, reason: '185 + 32');
+
+    // 스크램블 에그 185 → 900. 딸기 32 와 합쳐 932 가 되어야 한다.
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('diet-food-kcal-1')),
+      '900',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('932 kcal'), findsOneWidget);
+    expect(find.text('217 kcal'), findsNothing);
+  });
+
   testWidgets('음식별 나트륨·당류를 고치면 끼니 합계도 따라 저장된다', (WidgetTester tester) async {
     final FakeDietRepository repo = FakeDietRepository();
     await _openDetail(tester, repo);
