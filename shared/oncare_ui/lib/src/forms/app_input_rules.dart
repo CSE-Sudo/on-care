@@ -36,6 +36,9 @@ enum AppInputError {
 abstract final class AppInputRules {
   /// 로컬 부분@도메인.최상위 — 흔히 쓰는 주소는 통과시키고 빈칸·골뱅이 누락·
   /// 최상위 도메인 누락 같은 오타를 잡는 정도로만 엄격하다.
+  ///
+  /// 서버(`contact_format._EMAIL`)가 **같은 식**을 쓴다. 한쪽만 고치면 화면은
+  /// 괜찮다는데 가입이 422 로 떨어지는 자리가 생긴다 — 함께 고쳐야 한다.
   static final RegExp _email = RegExp(
     r'^[A-Za-z0-9._%+\-]+@[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?'
     r'(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$',
