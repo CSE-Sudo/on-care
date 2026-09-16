@@ -210,6 +210,53 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 1단계 값이 바뀌면 손대지 않은 목표 칸을 다시 계산한다.
   void _onBasicChanged() => setState(_fillRecommended);
 
+  // ───────────────────────────────────────────────── 목표 범위 ──
+  //
+  // 서버가 받는 범위(#1888)를 그대로 본다. 범위 밖 값을 그대로 넘기면 완료
+  // 저장이 422 로 거절되어, **마지막 단계에서야** 실패를 보게 된다 — 어느 칸이
+  // 문제인지도 알 수 없다. 키·체중을 1단계에서 미리 보는 것과 같은 이유다.
+
+  /// 목표 안내를 띄울지. 3·4단계에서 한 번 막힌 뒤부터 켠다.
+  bool _showGoalErrors = false;
+
+  /// 그 칸이 받는 범위. `oncare_ui` 한 곳에서 읽는다 — 서버 모듈과 같은 값이다.
+  AppGoalRange _goalRange(_GoalField f) => switch (f) {
+    _GoalField.calories => AppGoalRanges.dailyCalories,
+    _GoalField.sodium => AppGoalRanges.dailySodiumMg,
+    _GoalField.sugar => AppGoalRanges.dailySugarG,
+    _GoalField.carbs => AppGoalRanges.dailyCarbsG,
+    _GoalField.protein => AppGoalRanges.dailyProteinG,
+    _GoalField.fat => AppGoalRanges.dailyFatG,
+    _GoalField.burn => AppGoalRanges.dailyBurnKcal,
+    _GoalField.cardio => AppGoalRanges.weeklyCardioMinutes,
+    _GoalField.strength => AppGoalRanges.weeklyStrengthSets,
+    _GoalField.flexibility => AppGoalRanges.weeklyFlexibilityMinutes,
+  };
+
+  /// 범위를 벗어난 칸의 안내. 빈 칸은 오류가 아니다 — 목표를 세우지 않는 것은
+  /// 할 수 있는 일이고, 비우면 `목표 없음` 으로 나간다.
+  String? _goalError(AppLocalizations l, _GoalField f) {
+    final AppGoalRange range = _goalRange(f);
+    return range.rejects(_ctl(f).text)
+        ? l.myGoalRange(range.min, range.max)
+        : null;
+  }
+
+  /// 그 묶음의 칸이 모두 범위 안인가.
+  bool _goalsInRange(AppLocalizations l, _GoalGroup group) => _GoalField.values
+      .where((_GoalField f) => f.group == group)
+      .every((_GoalField f) => _goalError(l, f) == null);
+
+  /// 안내를 띄우는 중일 때만 그 칸의 문구를 준다.
+  String? _shownGoal(String? error) => _showGoalErrors ? error : null;
+
+  /// 지금 단계가 다루는 목표 묶음. 1·2단계는 목표 칸이 없다.
+  _GoalGroup? get _goalGroupOfStep => switch (_step) {
+    2 => _GoalGroup.diet,
+    3 => _GoalGroup.exercise,
+    _ => null,
+  };
+
   // ───────────────────────────────────────────────── 필수 기본 정보 ──
   //
   // 기본 정보(생년월일·성별·키·체중)는 식단·운동 권장치를 계산하는 근거다(#1830).
@@ -260,9 +307,17 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   // ───────────────────────────────────────────────── 이동·저장 ──
 
   void _next() {
+    final AppLocalizations l = AppLocalizations.of(context);
     // 기본 정보를 다 채우지 않았으면 빠진 칸 아래에 안내를 띄우고 머문다(#1830).
-    if (_step == 0 && !_basicComplete(AppLocalizations.of(context))) {
+    if (_step == 0 && !_basicComplete(l)) {
       setState(() => _showBasicErrors = true);
+      return;
+    }
+    // 목표가 범위를 벗어났으면 그 단계에 머문다(#1888) — 넘어가 버리면 마지막
+    // 단계에서 저장이 거절되고, 어느 칸이 문제인지 알 수 없다.
+    if (_goalGroupOfStep case final _GoalGroup group
+        when !_goalsInRange(l, group)) {
+      setState(() => _showGoalErrors = true);
       return;
     }
     if (_step < _steps - 1) {
@@ -299,6 +354,11 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Future<void> _finish() async {
     if (_saving) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 마지막 단계의 목표도 범위 안이어야 한다(#1888).
+    if (!_goalsInRange(l, _GoalGroup.exercise)) {
+      setState(() => _showGoalErrors = true);
+      return;
+    }
     setState(() => _saving = true);
     try {
       await ref
@@ -845,6 +905,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
         key: Key('${keyName}Field'),
         label: label,
         controller: _ctl(field),
+        errorText: _shownGoal(
+          _goalError(AppLocalizations.of(context), field),
+        ),
         onChanged: (_) => _onGoalEdited(field),
       );
 }

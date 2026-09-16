@@ -494,6 +494,12 @@ abstract class AppLocalizations {
   /// **'Enter your name'**
   String get authErrNameEmpty;
 
+  /// Shared name-length message (#1887). Trainer sign-up sends a name too; the limit matches the users.name column.
+  ///
+  /// In en, this message translates to:
+  /// **'Names can be up to 100 characters'**
+  String get authErrNameTooLong;
+
   /// Red text under the email field on sign-in/sign-up when it is empty (#1784).
   ///
   /// In en, this message translates to:
@@ -523,6 +529,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter your phone number as 000-0000-0000'**
   String get authErrPhoneInvalid;
+
+  /// Shared birth-date message (#1887). The trainer app has no birth-date field today; kept so the shared AppInputError mapping stays exhaustive.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the date of birth as 1996-03-21'**
+  String get authErrBirthDateInvalid;
 
   /// No description provided for @authErrPasswordMismatch.
   ///

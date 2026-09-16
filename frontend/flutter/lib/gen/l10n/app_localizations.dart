@@ -2351,13 +2351,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachCardExerciseTitle.
   ///
   /// In en, this message translates to:
-  /// **'PT session 12 done'**
+  /// **'3 workouts this week'**
   String get coachCardExerciseTitle;
 
   /// No description provided for @coachCardExerciseBody.
   ///
   /// In en, this message translates to:
-  /// **'Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.'**
+  /// **'You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.'**
   String get coachCardExerciseBody;
 
   /// No description provided for @coachCardWaterTag.
@@ -3028,7 +3028,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicQuickReply3.
   ///
   /// In en, this message translates to:
-  /// **'How are my blood sugar readings?'**
+  /// **'How much sodium have I had today?'**
   String get aicQuickReply3;
 
   /// No description provided for @exConsultRequestTitle.
@@ -3595,6 +3595,12 @@ abstract class AppLocalizations {
   /// **'Enter your name'**
   String get signUpNameEmpty;
 
+  /// Shared name-length message (#1887). The limit matches the users.name column and the server rule in profile_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Names can be up to 100 characters'**
+  String get signUpNameTooLong;
+
   /// Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784).
   ///
   /// In en, this message translates to:
@@ -3648,6 +3654,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter your phone number as 000-0000-0000'**
   String get signUpPhoneFormatInvalid;
+
+  /// Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your date of birth as 1996-03-21'**
+  String get myFieldBirthInvalid;
 
   /// No description provided for @trainerSyncEntryLabel.
   ///
@@ -4180,7 +4192,7 @@ abstract class AppLocalizations {
   /// Greeting bubble the app shows when the coach conversation opens.
   ///
   /// In en, this message translates to:
-  /// **'Hi, I\'m Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.'**
+  /// **'Hi, I\'m Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.'**
   String get aiCoachWelcome;
 
   /// Bubble shown when the coach reply could not be fetched.
@@ -4607,6 +4619,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Health goals saved'**
   String get myGoalsSaved;
+
+  /// Health-goal field outside the range the server accepts (#1888). Shared by the MY goals sheet and onboarding steps 3-4.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value between {min} and {max}'**
+  String myGoalRange(int min, int max);
 
   /// Title of the banner shown when settings fail to load.
   ///

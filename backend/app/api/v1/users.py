@@ -57,6 +57,7 @@ from app.services import (
     trainer_signup_service,
 )
 from app.services.health_service import DEMO_SETTINGS
+from app.services.profile_format import name_from_email
 
 router = APIRouter(tags=["users"])
 
@@ -336,7 +337,11 @@ def register(
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}",
         email=payload.email,
-        name=payload.name or payload.email.split("@")[0],
+        # 이름을 보내지 않으면 이메일 로컬 파트로 채운다. 컬럼 길이(100)에
+        # 맞춰 자르는 것이 `name_from_email` 의 몫이다 — 이메일은 255자까지
+        # 받으므로(#1780), 자르지 않으면 이름을 안 보냈을 뿐인데 가입이 500 으로
+        # 떨어졌다(#1887).
+        name=payload.name or name_from_email(payload.email),
         hashed_password=hash_password(payload.password),
     )
     db.add(user)

@@ -1258,11 +1258,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardExerciseTag => 'Exercise';
 
   @override
-  String get coachCardExerciseTitle => 'PT session 12 done';
+  String get coachCardExerciseTitle => '3 workouts this week';
 
   @override
   String get coachCardExerciseBody =>
-      'Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.';
+      'You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.';
 
   @override
   String get coachCardWaterTag => 'Hydration';
@@ -1670,7 +1670,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicQuickReply2 => 'How much should I exercise today?';
 
   @override
-  String get aicQuickReply3 => 'How are my blood sugar readings?';
+  String get aicQuickReply3 => 'How much sodium have I had today?';
 
   @override
   String get exConsultRequestTitle => 'Consultation Request';
@@ -1979,6 +1979,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpNameEmpty => 'Enter your name';
 
   @override
+  String get signUpNameTooLong => 'Names can be up to 100 characters';
+
+  @override
   String get signUpPhoneHint => '010-0000-0000';
 
   @override
@@ -2008,6 +2011,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get signUpPhoneFormatInvalid =>
       'Enter your phone number as 000-0000-0000';
+
+  @override
+  String get myFieldBirthInvalid => 'Enter your date of birth as 1996-03-21';
 
   @override
   String get trainerSyncEntryLabel => 'Sync data with a trainer';
@@ -2326,7 +2332,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiCoachWelcome =>
-      'Hi, I\'m Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.';
+      'Hi, I\'m Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.';
 
   @override
   String get aiCoachFailure =>
@@ -2558,6 +2564,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGoalsSaved => 'Health goals saved';
+
+  @override
+  String myGoalRange(int min, int max) {
+    return 'Enter a value between $min and $max';
+  }
 
   @override
   String get mySettingsLoadFailed => 'Couldn\'t load your settings';

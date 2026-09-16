@@ -147,7 +147,17 @@ class _CoachingSheet extends ConsumerWidget {
         key: const Key('coachingSheetCta'),
         child: AppButton(
           label: coach != null ? l.coachChatWithTrainer : l.coachCtaChat,
+          // 담당이 없으면 이 버튼이 여는 곳은 AI 챗봇이다 — 머리의 입구와 같은
+          // 마크를 써서 같은 곳으로 간다는 것을 보인다(#1918). 채운 버튼이라
+          // 말풍선이 흰색이고 별은 버튼 색으로 뚫린다.
           leadingIcon: AppIcons.chat,
+          leadingGlyph: coach != null
+              ? null
+              : AppAiChatGlyph(
+                  bubble: AppIcons.chat,
+                  color: OnCareColors.textOnFill,
+                  holeColor: context.oncare.brand.primary,
+                ),
           size: OnCareButtonSize.large,
           fullWidth: true,
           onPressed: () {
