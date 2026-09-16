@@ -342,8 +342,10 @@ class _RewardBadgeState extends State<_RewardBadge>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          const Icon(
-            Icons.star_rounded,
+          // 별도 앱의 아이콘 묶음에서 고른다 — 회원앱 별만 Material Icons 에서
+          // 와 혼자 다른 세트로 그려지고 있었다(#1866).
+          AppIcon(
+            AppIcon.setOf(context).reward,
             size: OnCareSize.iconSmall,
             color: OnCareColors.overlayInk,
           ),

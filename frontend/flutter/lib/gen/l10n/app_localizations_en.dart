@@ -479,6 +479,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietDeleteConfirm => 'Delete this meal record?';
 
   @override
+  String get dietDeleteWhenEmpty => 'No food is left. Delete this meal record?';
+
+  @override
   String get dietCancel => 'Cancel';
 
   @override
@@ -520,13 +523,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietEditNutritionHint =>
-      'You can edit the analyzed values directly';
-
-  @override
-  String get dietSodiumHint => 'Recommended under 2,000mg/day';
-
-  @override
-  String get dietSugarHint => 'Recommended under 50g/day';
+      'Edit each food\'s nutrition and it adds up here';
 
   @override
   String get dietDeleteMeal => 'Delete Meal';
