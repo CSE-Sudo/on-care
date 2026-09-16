@@ -24,13 +24,28 @@ import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A single logged food item, with the per-food nutrition shown on the meal
-/// card ([sodiumMg] / [sugarG] default to 0 for draft rows in the edit sheet).
+/// card (all nutrition defaults to 0 for draft rows in the edit sheet).
+///
+/// 끼니 단위 탄단지는 이 값들의 합계로 만들어진다(`local_api_interceptor` 의
+/// `_sumMacro`). 그래서 수정 화면이 이 필드를 하나라도 흘리면 저장한 순간
+/// 그 끼니의 영양 정보가 통째로 0 이 된다(#1853).
 class DietFood {
-  const DietFood(this.name, this.kcal, {this.sodiumMg = 0, this.sugarG = 0});
+  const DietFood(
+    this.name,
+    this.kcal, {
+    this.sodiumMg = 0,
+    this.sugarG = 0,
+    this.carbsG = 0,
+    this.proteinG = 0,
+    this.fatG = 0,
+  });
   final String name;
   final int kcal;
   final int sodiumMg;
   final double sugarG;
+  final double carbsG;
+  final double proteinG;
+  final double fatG;
 }
 
 /// A nutrient chip on a meal card (`over` = above the daily target → red).
@@ -1032,6 +1047,8 @@ class DietMealDetailPage extends ConsumerWidget {
     photoAsset: entry.photoAsset,
     photoUrl: entry.photoUrl,
     aiComment: entry.aiComment,
+    // 웹에서 새로고침해 들어오면 `initialMeal` 없이 이 경로로 복원된다 —
+    // 여기서도 영양을 하나도 흘리지 않아야 저장 뒤에 합계가 남는다(#1853).
     items: <DietFood>[
       for (final FoodItem food in entry.foods)
         DietFood(
@@ -1039,6 +1056,9 @@ class DietMealDetailPage extends ConsumerWidget {
           food.calories,
           sodiumMg: food.sodiumMg,
           sugarG: food.sugarG,
+          carbsG: food.carbsG,
+          proteinG: food.proteinG,
+          fatG: food.fatG,
         ),
     ],
     tags: const <DietTag>[],
@@ -1139,6 +1159,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
           kcal ?? old.kcal,
           sodiumMg: old.sodiumMg,
           sugarG: old.sugarG,
+          carbsG: old.carbsG,
+          proteinG: old.proteinG,
+          fatG: old.fatG,
         );
     });
   }
@@ -1175,10 +1198,21 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     try {
       // Drop empty draft rows (see `dietNewFood` placeholder) so a
       // translation string never lands in stored food names.
+      // 영양은 이름·칼로리와 함께 되돌려 보낸다. 빠뜨리면 이 저장 한 번으로
+      // 그 끼니의 탄단지·나트륨·당류가 0 이 된다 — 합계가 음식별 값에서
+      // 계산되기 때문이다(#1853).
       final List<FoodItem> foods = <FoodItem>[
         for (final DietFood f in _foods)
           if (f.name.trim().isNotEmpty)
-            FoodItem(name: f.name.trim(), calories: f.kcal),
+            FoodItem(
+              name: f.name.trim(),
+              calories: f.kcal,
+              sodiumMg: f.sodiumMg,
+              sugarG: f.sugarG,
+              carbsG: f.carbsG,
+              proteinG: f.proteinG,
+              fatG: f.fatG,
+            ),
       ];
       await ref
           .read(dietRepositoryProvider)
