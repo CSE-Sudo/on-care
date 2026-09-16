@@ -2046,21 +2046,24 @@ class AppLocalizationsKo extends AppLocalizations {
   String get guideBadge => '앱 사용 가이드';
 
   @override
-  String get guideSampleBadge => '예시 화면';
+  String guideBadgeWithStep(int current, int total) {
+    return '앱 사용 가이드 $current/$total';
+  }
 
   @override
-  String guideStepCount(int current, int total) {
-    return '$current/$total';
-  }
+  String get guideSampleBadge => '예시 화면';
 
   @override
   String get guideSkip => '건너뛰기';
 
   @override
+  String get guidePrev => '이전';
+
+  @override
   String get guideNext => '다음';
 
   @override
-  String get guideDone => '시작하기';
+  String get guideDone => '완료';
 
   @override
   String get guideHomeTitle => '오늘 기록이 한눈에';

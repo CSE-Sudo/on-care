@@ -95,9 +95,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('appGuideOverlay')), findsOneWidget);
-    // 갑자기 어두워진 이유를 먼저 말한다.
-    expect(find.text(l.guideBadge), findsOneWidget);
-    expect(find.text(l.guideStepCount(1, kGuideSteps.length)), findsOneWidget);
+    // 갑자기 어두워진 이유와 남은 길이를 먼저 말한다.
+    expect(
+      find.text(l.guideBadgeWithStep(1, kGuideSteps.length)),
+      findsOneWidget,
+    );
     expect(find.text(l.guideHomeTitle), findsOneWidget);
 
     // 뚫린 자리는 짚는 요소를 감싼다.
@@ -107,10 +109,9 @@ void main() {
     final Rect anchor = tester.getRect(
       find.byKey(container.read(guideAnchorsProvider).homeSummary),
     );
-    expect(spotlight.hole, isNotNull);
-    expect(spotlight.hole!.contains(anchor.center), isTrue);
-    expect(spotlight.hole!.top, lessThanOrEqualTo(anchor.top));
-    expect(spotlight.hole!.bottom, greaterThanOrEqualTo(anchor.bottom));
+    // 짚는 요소의 자리와 **같은 사각형**이어야 한다. 덮개와 요소는 형제라
+    // 좌표계를 잘못 맞추면 구멍이 밀리거나 사라진다.
+    expect(spotlight.hole, anchor);
   });
 
   testWidgets('다음으로 끝까지 가면 가이드가 끝나고, 마지막은 포인트다', (WidgetTester tester) async {
@@ -146,6 +147,31 @@ void main() {
 
     expect(find.byKey(const Key('appGuideOverlay')), findsNothing);
     expect(container.read(appGuideControllerProvider).active, isFalse);
+  });
+
+  testWidgets('첫 자리에는 이전이 없고, 둘째 자리부터 앞으로 돌아갈 수 있다', (
+    WidgetTester tester,
+  ) async {
+    final ProviderContainer container = await pumpGuide(tester);
+    final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
+
+    container.read(appGuideControllerProvider.notifier).start();
+    await tester.pumpAndSettle();
+    // 첫 자리에서 `이전` 은 갈 곳이 없다.
+    expect(find.byKey(const Key('appGuidePrev')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('appGuideNext')));
+    await tester.pumpAndSettle();
+    expect(find.text(l.guideAlertsTitle), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('appGuidePrev')));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l.guideHomeTitle), findsOneWidget);
+    expect(
+      find.text(l.guideBadgeWithStep(1, kGuideSteps.length)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('건너뛰기는 언제나 있고, 누르면 바로 끝난다', (WidgetTester tester) async {

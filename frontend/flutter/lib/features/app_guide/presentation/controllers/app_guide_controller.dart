@@ -54,6 +54,8 @@ class AppGuideState {
 
   int get totalSteps => kGuideSteps.length;
 
+  bool get isFirst => index == 0;
+
   bool get isLast => index == kGuideSteps.length - 1;
 
   AppGuideState copyWith({bool? active, int? index}) =>
@@ -83,6 +85,13 @@ class AppGuideController extends Notifier<AppGuideState> {
       return;
     }
     state = state.copyWith(index: state.index + 1);
+  }
+
+  /// 방금 지나친 자리를 다시 본다. 첫 자리에서는 할 일이 없다 — 가이드를 여기서
+  /// 끝내 버리면 `이전` 이 `건너뛰기` 처럼 동작하게 된다.
+  void previous() {
+    if (!state.active || state.isFirst) return;
+    state = state.copyWith(index: state.index - 1);
   }
 
   /// 작은 `건너뛰기` — 남은 자리를 보지 않고 끝낸다. 끝까지 본 것과 같이

@@ -2109,21 +2109,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideBadge => 'App guide';
 
   @override
-  String get guideSampleBadge => 'Sample screen';
+  String guideBadgeWithStep(int current, int total) {
+    return 'App guide $current/$total';
+  }
 
   @override
-  String guideStepCount(int current, int total) {
-    return '$current/$total';
-  }
+  String get guideSampleBadge => 'Sample screen';
 
   @override
   String get guideSkip => 'Skip';
 
   @override
+  String get guidePrev => 'Back';
+
+  @override
   String get guideNext => 'Next';
 
   @override
-  String get guideDone => 'Start';
+  String get guideDone => 'Done';
 
   @override
   String get guideHomeTitle => 'Your day at a glance';

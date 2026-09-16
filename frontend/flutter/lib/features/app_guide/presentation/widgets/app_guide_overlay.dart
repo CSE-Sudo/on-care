@@ -8,11 +8,11 @@ import 'package:oncare/features/app_guide/presentation/controllers/app_guide_con
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 첫 홈 진입 가이드의 덮개 — 화면을 어둡게 덮고 지금 짚는 자리만 밝게 뚫는다.
-/// (#1857)
+/// 사용 가이드의 덮개 — 화면을 어둡게 덮고 지금 짚는 자리만 밝게 뚫는다. (#1857)
 ///
-/// 셸(하단 내비까지 포함한 화면 전체) 위에 얹혀야 한다 — 짚는 자리의 절반이
-/// 하단 내비이기 때문이다.
+/// 짚는 자리에는 꼬리 달린 작은 말풍선이 붙고, 화면 위쪽에 `앱 사용 가이드 n/N`
+/// 과 `건너뛰기`, 아래쪽에 `이전`·`다음` 이 선다. 말풍선을 크게 만들지 않는 이유는
+/// 단순하다 — 설명이 크면 정작 짚은 자리를 가린다.
 class AppGuideOverlay extends ConsumerStatefulWidget {
   const AppGuideOverlay({super.key});
 
@@ -43,13 +43,20 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
   Rect? _measure(GuideStepId? step) {
     if (step == null) return null;
     final GlobalKey key = ref.read(guideAnchorsProvider).keyOf(step);
-    final BuildContext? anchor = key.currentContext;
-    final RenderObject? render = anchor?.findRenderObject();
-    final RenderBox? self = context.findRenderObject() as RenderBox?;
-    if (render is! RenderBox || !render.hasSize) return null;
-    if (self == null || !self.hasSize) return null;
-    final Offset topLeft = render.localToGlobal(Offset.zero, ancestor: self);
-    return topLeft & render.size;
+    final RenderObject? anchor = key.currentContext?.findRenderObject();
+    final RenderObject? self = context.findRenderObject();
+    if (anchor is! RenderBox || !anchor.hasSize) return null;
+    if (self is! RenderBox || !self.hasSize) return null;
+    // 짚는 요소는 이 덮개의 **형제**다(같은 Stack 아래 예시 화면 쪽에 있다).
+    // 덮개를 기준으로 바로 변환할 수 없으므로 둘 다 화면 좌표로 읽어 뺀다 —
+    // 예전에는 덮개를 조상으로 넘겨, 구멍이 엉뚱한 자리에 생기거나 아예 생기지
+    // 않았다.
+    final Offset delta =
+        anchor.localToGlobal(Offset.zero) - self.localToGlobal(Offset.zero);
+    final Rect rect = delta & anchor.size;
+    // 화면 밖으로 밀린 자리는 짚지 않는다 — 덮기만 한다.
+    if (!rect.isFinite || !rect.overlaps(Offset.zero & self.size)) return null;
+    return rect;
   }
 
   @override
@@ -60,58 +67,43 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
     // 단계가 바뀌면 새 자리를 잰다.
     if (step != _measuredStep) _scheduleMeasure(step);
 
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final AppGuideController controller = ref.read(
+      appGuideControllerProvider.notifier,
+    );
+
     return AppSpotlight(
       key: const Key('appGuideOverlay'),
       hole: _hole,
       holeRadius: step == GuideStepId.homeSummary
           ? OnCareRadius.xl
           : OnCareRadius.lg,
-      caption: _GuideCard(guide: guide, step: step),
-    );
-  }
-}
-
-/// 구멍 옆 설명 카드 — 가이드라는 표시와 `n/N`, 제목·한 줄 설명, 건너뛰기와 다음.
-class _GuideCard extends ConsumerWidget {
-  const _GuideCard({required this.guide, required this.step});
-
-  final AppGuideState guide;
-  final GuideStepId step;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final AppGuideController controller = ref.read(
-      appGuideControllerProvider.notifier,
-    );
-    return AppCard(
-      key: const Key('appGuideCard'),
-      child: Column(
+      // 갑자기 어두워진 이유와 남은 길이를 화면 맨 위에서 먼저 말한다.
+      topBar: Row(
+        children: <Widget>[
+          AppTag(
+            key: const Key('appGuideBadge'),
+            label: l.guideBadgeWithStep(guide.stepNumber, guide.totalSteps),
+            tone: AppTagTone.brand,
+            icon: AppIcons.info,
+          ),
+          const Spacer(),
+          // 건너뛰기는 작게, 그러나 어느 단계에서나 열려 있다.
+          AppSpotlightAction(
+            key: const Key('appGuideSkip'),
+            label: l.guideSkip,
+            onPressed: controller.skip,
+          ),
+        ],
+      ),
+      caption: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              // 이것이 무엇인지부터 말한다 — 갑자기 화면이 어두워진 이유다.
-              AppTag(
-                key: const Key('appGuideBadge'),
-                label: l.guideBadge,
-                tone: AppTagTone.brand,
-                icon: AppIcons.info,
-              ),
-              const Spacer(),
-              Text(
-                l.guideStepCount(guide.stepNumber, guide.totalSteps),
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
           Text(
             _title(l, step),
+            key: const Key('appGuideCard'),
             style: tokens
                 .text(OnCareTypography.titleSmall)
                 .copyWith(color: OnCareColors.textPrimary),
@@ -123,26 +115,23 @@ class _GuideCard extends ConsumerWidget {
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),
           ),
-          const SizedBox(height: OnCareSpacing.s12),
-          Row(
-            children: <Widget>[
-              // 건너뛰기는 작게 — 보고 싶은 사람을 막지 않으면서, 그만 보고
-              // 싶은 사람에게는 늘 열려 있어야 한다.
-              AppButton(
-                key: const Key('appGuideSkip'),
-                label: l.guideSkip,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
-                onPressed: controller.skip,
-              ),
-              const Spacer(),
-              AppButton(
-                key: const Key('appGuideNext'),
-                label: guide.isLast ? l.guideDone : l.guideNext,
-                size: OnCareButtonSize.small,
-                onPressed: controller.next,
-              ),
-            ],
+        ],
+      ),
+      bottomBar: Row(
+        children: <Widget>[
+          if (!guide.isFirst)
+            AppSpotlightAction(
+              key: const Key('appGuidePrev'),
+              label: l.guidePrev,
+              leadingIcon: AppIcons.back,
+              onPressed: controller.previous,
+            ),
+          const Spacer(),
+          AppSpotlightAction(
+            key: const Key('appGuideNext'),
+            label: guide.isLast ? l.guideDone : l.guideNext,
+            trailingIcon: AppIcons.chevronRight,
+            onPressed: controller.next,
           ),
         ],
       ),

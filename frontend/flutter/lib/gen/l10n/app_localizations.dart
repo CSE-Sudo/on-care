@@ -3811,23 +3811,29 @@ abstract class AppLocalizations {
   /// **'App guide'**
   String get guideBadge;
 
+  /// Spotlight guide: the guide label with the current step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'App guide {current}/{total}'**
+  String guideBadgeWithStep(int current, int total);
+
   /// Spotlight guide: the screen under the guide is filled with sample data, not the member's own (#1857).
   ///
   /// In en, this message translates to:
   /// **'Sample screen'**
   String get guideSampleBadge;
 
-  /// Spotlight guide: which step of the guide this is (#1857).
-  ///
-  /// In en, this message translates to:
-  /// **'{current}/{total}'**
-  String guideStepCount(int current, int total);
-
   /// Spotlight guide: ends the guide without seeing the rest (#1857).
   ///
   /// In en, this message translates to:
   /// **'Skip'**
   String get guideSkip;
+
+  /// Spotlight guide: goes back one step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get guidePrev;
 
   /// Spotlight guide: goes to the next step (#1857).
   ///
@@ -3838,7 +3844,7 @@ abstract class AppLocalizations {
   /// Spotlight guide: ends the guide on the last step (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Start'**
+  /// **'Done'**
   String get guideDone;
 
   /// Spotlight guide step: the home summary card (#1857).

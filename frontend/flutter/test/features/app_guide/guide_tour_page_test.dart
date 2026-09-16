@@ -69,9 +69,11 @@ void main() {
     // 하단 내비도 같이 그려져 있어야 탭을 짚을 수 있다.
     expect(find.text(ko.navMyHealth), findsOneWidget);
 
-    // 가이드라는 표시와 첫 단계.
-    expect(find.text(ko.guideBadge), findsOneWidget);
-    expect(find.text(ko.guideStepCount(1, kGuideSteps.length)), findsOneWidget);
+    // 가이드라는 표시와 첫 단계를 한 줄로 말한다.
+    expect(
+      find.text(ko.guideBadgeWithStep(1, kGuideSteps.length)),
+      findsOneWidget,
+    );
     expect(find.text(ko.guideHomeTitle), findsOneWidget);
   });
 
