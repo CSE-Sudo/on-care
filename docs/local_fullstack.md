@@ -56,6 +56,91 @@ flutter run -d chrome \
   --dart-define=API_BASE_URL=http://localhost:8000/v1
 ```
 
+### 안드로이드 실기기에서 실행 (#1882)
+
+카메라·사진 권한 다이얼로그와 촬영 흐름은 Chrome 에서 확인할 수 없습니다. 안드로이드는 USB
+디버깅만 켜면 바로 됩니다 — 스토어 등록도, 개발자 계정 결제도 필요 없습니다.
+
+**1. 폰에서 USB 디버깅 켜기** (삼성 기준)
+
+설정 → 휴대전화 정보 → 소프트웨어 정보 → **빌드번호를 7번 탭** → 잠금 해제 수단을 입력하면
+설정 맨 아래에 **개발자 옵션** 이 생깁니다. 거기서 **USB 디버깅** 을 켭니다.
+
+USB 로 PC 에 연결하면 폰에 `USB 디버깅을 허용하시겠습니까?` 가 뜹니다. 허용해야 잡힙니다.
+
+**2. 잡히는지 확인**
+
+```bash
+flutter devices
+```
+
+`SM-S911N (mobile) • RFCT80XXXXX • android-arm64 • Android 15 (API 35)` 처럼 나오면 됩니다.
+안 나오면 폰의 USB 연결 모드를 `충전만` 이 아닌 **파일 전송(MTP)** 으로 바꿔 보세요.
+
+**3. 실행**
+
+```bash
+cd frontend/flutter
+flutter run -d RFCT80XXXXX
+```
+
+`USE_MOCK_API` 기본값이 `true` 라 **백엔드 없이도 돕니다.** 권한 다이얼로그·촬영·사진 선택·
+끼니 카드 표시까지는 목 데이터로 확인됩니다. 인증·multipart 전송·`diet_entries` 실제 저장을
+보려면 아래 4단계가 필요합니다. 핫 리로드는 웹과 똑같이 됩니다.
+
+**4. 실 API 를 붙일 때**
+
+실기기는 `localhost` 로 개발 PC 를 보지 못합니다. 같은 Wi-Fi 에 붙여 PC 의 IP 를 줘야 합니다.
+
+```bash
+ipconfig | grep IPv4              # 예: 192.168.0.12
+cd frontend/flutter
+flutter run -d RFCT80XXXXX \
+  --dart-define=USE_MOCK_API=false \
+  --dart-define=API_BASE_URL=http://192.168.0.12:8000/v1
+```
+
+> **안드로이드는 평문 HTTP 를 기본으로 차단합니다**(targetSdk 28 이상, 이 앱은 36). 그래서
+> `android/app/src/debug/AndroidManifest.xml` 에 `android:usesCleartextTraffic="true"` 를 넣어
+> 두었습니다 — 위처럼 `http://` 로 붙는 것은 **디버그·프로파일 빌드에서만** 됩니다. 릴리스
+> 빌드는 여전히 평문을 막습니다. HTTPS 스테이징이 있으면 그쪽이 더 간단합니다.
+
+백엔드 컨테이너는 `0.0.0.0:8000` 으로 열려 있어 그대로 보이지만, 윈도우 방화벽이 처음 한 번
+물어보면 허용해야 합니다. 폰 브라우저에서 `http://<PC IP>:8000/docs` 가 열리는지 먼저 보면
+앱 문제인지 네트워크 문제인지 바로 갈립니다.
+
+**5. 케이블 없이 APK 로 넘길 때**
+
+팀원 폰에 설치만 해 보려면 디버그 APK 를 만들어 보내도 됩니다.
+
+```bash
+cd frontend/flutter
+flutter build apk --debug
+# → build/app/outputs/flutter-apk/app-debug.apk
+```
+
+받는 폰에서 **알 수 없는 앱 설치** 를 허용해야 합니다(설정 → 보안 및 개인 정보 보호 → 알 수
+없는 앱 설치 → APK 를 여는 앱에 허용). 디버그 키로 서명된 물건이라 스토어 배포에는 쓸 수
+없습니다.
+
+**선언된 권한**
+
+`image_picker` 가 여는 두 경로 모두 안드로이드에서는 **런타임 권한이 필요 없습니다.** 사진
+선택은 시스템 사진 선택기(Android 13+)나 `ACTION_GET_CONTENT` 로 열리고, 촬영은
+`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 `INTERNET` 만
+있습니다.
+
+> `CAMERA` 를 매니페스트에 넣으면 **오히려 한 단계가 늘어납니다.** `image_picker` 는
+> 매니페스트에 `CAMERA` 가 있으면 — 쓰지 않더라도 — 촬영 전에 런타임 권한을 요구하도록
+> 되어 있습니다(`ImagePickerUtils.needRequestCameraPermission`). 넣지 마세요.
+>
+> `READ_MEDIA_IMAGES` 도 지금은 필요 없습니다. 앱 안에서 최근 사진 썸네일을 직접 읽는
+> #1845(카카오톡식 최근 사진 시트)를 착수할 때 `photo_manager` 도입과 함께 결정할 항목입니다.
+
+iOS 는 `ios/Runner/Info.plist` 에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`
+문구가 이미 들어 있습니다(#526). 실기기 설치는 Mac 을 쓰는 팀원이 무료 Apple ID 로 진행하며,
+절차는 #1882 에 있습니다.
+
 ## 3. 트레이너 웹
 
 ```bash
