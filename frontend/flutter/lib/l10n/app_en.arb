@@ -685,8 +685,8 @@
   "coachCardDietTitle": "Great breakfast — watch lunch sodium",
   "coachCardDietBody": "Breakfast was nicely balanced. The jjamppong you had for lunch can be heavy on sodium and sugar, so drink plenty of water today. For the rest of the day, pair vegetables with protein to keep things balanced.",
   "coachCardExerciseTag": "Exercise",
-  "coachCardExerciseTitle": "PT session 12 done",
-  "coachCardExerciseBody": "Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
+  "coachCardExerciseTitle": "3 workouts this week",
+  "coachCardExerciseBody": "You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
   "coachCardWaterTag": "Hydration",
   "coachInviteTitle": "A trainer wants to coach you",
   "coachInviteFrom": "Trainer {name}",
@@ -981,7 +981,7 @@
   },
   "aicQuickReply1": "Recommend a dinner menu for today",
   "aicQuickReply2": "How much should I exercise today?",
-  "aicQuickReply3": "How are my blood sugar readings?",
+  "aicQuickReply3": "How much sodium have I had today?",
   "exConsultRequestTitle": "Consultation Request",
   "exGymConsultRequest": "Request a Consultation",
   "exGymConsultPickTrainer": "Choose a trainer",
@@ -1278,7 +1278,7 @@
   "onboardGenderMale": "Male",
   "onboardGenderFemale": "Female",
   "onboardGenderOther": "Other",
-  "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.",
+  "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.",
   "@aiCoachWelcome": {
     "description": "Greeting bubble the app shows when the coach conversation opens."
   },
