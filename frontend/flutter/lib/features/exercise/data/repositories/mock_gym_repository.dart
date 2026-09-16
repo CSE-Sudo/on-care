@@ -69,7 +69,7 @@ class MockGymRepository implements GymRepository {
     gymId: 'gym-oncare-sinchon',
     name: '김트레이너',
     role: '퍼스널 트레이너',
-    reason: '혈압·체중',
+    reason: '혈압 관리',
     career: '7년',
     intro:
         '혈압 관리와 체중 감량을 함께 다루는 퍼스널 트레이너입니다. 회원 상태에 맞춘 '
@@ -85,7 +85,7 @@ class MockGymRepository implements GymRepository {
       gymId: 'gym-oncare-sinchon',
       name: '박트레이너',
       role: '재활 트레이너',
-      reason: '무릎·허리 통증',
+      reason: '무릎·허리 재활',
       career: '11년',
       intro:
           '수술 후 회복과 만성 통증 관리를 주로 맡습니다. 무리하지 않는 범위에서 '
@@ -172,7 +172,7 @@ class MockGymRepository implements GymRepository {
       gymId: '11621774',
       name: '하트레이너',
       role: '체형 교정 트레이너',
-      reason: '목·어깨',
+      reason: '목·어깨 교정',
       career: '4년',
       intro:
           '오래 앉아 생긴 목과 어깨 불편을 주로 다룹니다. 스트레칭과 가벼운 근력 '
@@ -220,7 +220,7 @@ class MockGymRepository implements GymRepository {
       gymId: '328969863',
       name: '남트레이너',
       role: '퍼스널 트레이너',
-      reason: '스쿼트 자세',
+      reason: '스쿼트 자세 교정',
       career: '7년',
       intro:
           '스쿼트와 데드리프트 자세 교정을 주로 합니다. 수행 장면을 영상으로 남겨 '
@@ -244,7 +244,7 @@ class MockGymRepository implements GymRepository {
       gymId: '696444256',
       name: '배트레이너',
       role: '러닝 코치',
-      reason: '러닝 자세',
+      reason: '러닝 자세 교정',
       career: '5년',
       intro:
           '달리기 자세와 호흡을 함께 점검합니다. 무릎에 부담이 덜 가는 보폭을 찾는 '
