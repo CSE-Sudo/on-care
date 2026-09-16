@@ -11,8 +11,8 @@
 않는다. 되돌리면 표를 지운다(내역·잔액은 되돌리지 않는다 — 개발 DB 에서만 쓰는
 경로다).
 
-Revision ID: 0069_streak_shields
-Revises: 0068_points_coupons
+Revision ID: 0070_streak_shields
+Revises: 0069_points_coupons
 """
 from __future__ import annotations
 
@@ -21,8 +21,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0069_streak_shields"
-down_revision: str | Sequence[str] | None = "0068_points_coupons"
+revision: str = "0070_streak_shields"
+down_revision: str | Sequence[str] | None = "0069_points_coupons"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
