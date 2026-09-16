@@ -81,14 +81,34 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
           : OnCareRadius.lg,
       // 갑자기 어두워진 이유와 남은 길이를 화면 맨 위에서 먼저 말한다.
       topBar: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppTag(
-            key: const Key('appGuideBadge'),
-            label: l.guideBadgeWithStep(guide.stepNumber, guide.totalSteps),
-            tone: AppTagTone.brand,
-            icon: AppIcons.info,
+          // 좁은 화면이나 말이 긴 언어에서는 두 배지가 아래위로 놓인다 —
+          // 한 줄로 밀어붙이면 `건너뛰기` 가 화면 밖으로 밀린다.
+          Expanded(
+            child: Wrap(
+              spacing: OnCareSpacing.s4,
+              runSpacing: OnCareSpacing.s4,
+              children: <Widget>[
+                AppTag(
+                  key: const Key('appGuideBadge'),
+                  label: l.guideBadgeWithStep(
+                    guide.stepNumber,
+                    guide.totalSteps,
+                  ),
+                  tone: AppTagTone.brand,
+                  icon: AppIcons.info,
+                ),
+                // 아래 화면은 진짜 홈이지만 값은 예시다 — 내 기록으로 읽지 않게
+                // 밝힌다.
+                AppTag(
+                  key: const Key('guideSampleBadge'),
+                  label: l.guideSampleBadge,
+                ),
+              ],
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: OnCareSpacing.s8),
           // 건너뛰기는 작게, 그러나 어느 단계에서나 열려 있다.
           AppSpotlightAction(
             key: const Key('appGuideSkip'),
