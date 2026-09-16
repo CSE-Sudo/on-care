@@ -497,7 +497,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietNewFood => '새 음식';
 
   @override
-  String get dietAddFood => '+ 음식 추가';
+  String get dietAddFood => '음식 추가';
 
   @override
   String get dietEditFoodHint => '음식명과 칼로리를 수정할 수 있어요';
