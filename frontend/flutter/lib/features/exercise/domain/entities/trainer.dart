@@ -25,9 +25,9 @@ class Trainer {
   final String? role;
 
   /// 이 트레이너를 추천하는 근거 키워드. 한 사람을 고를 이유가 하나뿐인 경우는
-  /// 드물어 목록으로 든다 — 헬스장 찾기 줄은 이걸 배지로 하나씩 그린다(#1881).
-  /// 비어 있으면 근거가 없는 것이라, 화면은 아무것도 적지 않거나 기본 문구로
-  /// 갈음한다.
+  /// 드물어 목록으로 든다 — 헬스장 찾기 줄·트레이너 목록 카드·트레이너 상세가
+  /// 이걸 같은 알약으로 하나씩 그린다(#1881). 비어 있으면 근거가 없는 것이라,
+  /// 화면은 아무것도 적지 않거나 기본 문구로 갈음한다.
   final List<String> reasons;
 
   /// Years of experience as free text (e.g. "7년"). Null hides the row.
@@ -38,10 +38,6 @@ class Trainer {
 
   /// Licences and certifications. Empty hides the section.
   final List<String> certifications;
-
-  /// 배지를 여러 개 놓을 자리가 없는 화면(트레이너 목록 카드·상세 박스)이 한 줄로
-  /// 적을 때 쓴다. 근거가 없으면 null — 부르는 쪽이 기본 문구로 갈음한다.
-  String? get reasonLine => reasons.isEmpty ? null : reasons.join(', ');
 
   /// True when there is anything to render in the 트레이너 소개 section.
   bool get hasProfile =>

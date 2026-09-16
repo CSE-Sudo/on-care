@@ -7,6 +7,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -41,7 +42,7 @@ class _TrainerListPageState extends ConsumerState<TrainerListPage> {
             name: trainer.name,
             role: trainer.role,
             gymName: gymNames[trainer.gymId] ?? '',
-            reasonLine: trainer.reasonLine,
+            reasons: trainer.reasons,
           ),
         )
         .where((_TrainerListItem trainer) {
@@ -169,7 +170,7 @@ class _TrainerListItem {
     required this.name,
     required this.role,
     required this.gymName,
-    required this.reasonLine,
+    required this.reasons,
   });
 
   final String trainerId;
@@ -177,8 +178,7 @@ class _TrainerListItem {
   final String? role;
   final String gymName;
 
-  /// 카드 한 칸에 배지를 줄지어 세울 자리가 없어, 사유를 한 줄로 이어 적는다(#1881).
-  final String? reasonLine;
+  final List<String> reasons;
 }
 
 class _ResultControls extends StatelessWidget {
@@ -269,14 +269,25 @@ class _TrainerListCard extends StatelessWidget {
                       .copyWith(color: OnCareColors.textSecondary),
                 ),
                 const SizedBox(height: OnCareSpacing.s8),
-                Text(
-                  trainer.reasonLine ?? l.exTrainerRecommendationReason,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                      .copyWith(color: tokens.brand.primary),
-                ),
+                // 근거는 찾기 줄·상세와 같은 알약으로 적는다 (#1881). 근거가
+                // 없을 때만 기본 문구를 문장으로 둔다 — 한 문장을 알약에 넣으면
+                // 카드 끝까지 늘어져 배지로 읽히지 않는다.
+                if (trainer.reasons.isEmpty)
+                  Text(
+                    l.exTrainerRecommendationReason,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(
+                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                        )
+                        .copyWith(color: tokens.brand.primary),
+                  )
+                else
+                  TrainerReasonBadges(
+                    reasons: trainer.reasons,
+                    keyPrefix: 'trainer-list',
+                  ),
               ],
             ),
           ),

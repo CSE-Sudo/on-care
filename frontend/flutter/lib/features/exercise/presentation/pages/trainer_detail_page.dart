@@ -11,6 +11,7 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -173,12 +174,19 @@ class _TrainerDetails extends ConsumerWidget {
               key: const Key('trainer-detail-reason'),
               icon: AppIcons.ai,
               title: l.exRecommendationReason,
-              child: Text(
-                trainer.reasonLine ?? l.exTrainerRecommendationReason,
-                style: tokens
-                    .text(OnCareTypography.strong(OnCareTypography.body))
-                    .copyWith(color: tokens.brand.primary),
-              ),
+              // 근거는 찾기 줄·목록 카드와 같은 알약으로 적는다 (#1881).
+              // 근거가 없을 때만 기본 문구를 문장으로 둔다.
+              child: trainer.reasons.isEmpty
+                  ? Text(
+                      l.exTrainerRecommendationReason,
+                      style: tokens
+                          .text(OnCareTypography.strong(OnCareTypography.body))
+                          .copyWith(color: tokens.brand.primary),
+                    )
+                  : TrainerReasonBadges(
+                      reasons: trainer.reasons,
+                      keyPrefix: 'trainer-detail',
+                    ),
             ),
             const SizedBox(height: OnCareSpacing.cardGap),
             // 트레이너 앱 프로필(소개·경력·자격증)과 같은 값을 보여준다.

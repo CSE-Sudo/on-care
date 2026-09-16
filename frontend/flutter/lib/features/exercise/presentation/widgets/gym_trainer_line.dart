@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -132,64 +133,9 @@ class GymTrainerLine extends StatelessWidget {
           // 카드 밖으로 밀려 나가지 않는다.
           if (showReason && reasons.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
-            Wrap(
-              key: const ValueKey<String>('gym-trainer-reasons'),
-              spacing: OnCareSpacing.s4,
-              runSpacing: OnCareSpacing.s4,
-              children: <Widget>[
-                for (final (int i, String reason) in reasons.indexed)
-                  _ReasonBadge(
-                    // 형제끼리 같은 키를 쓸 수 없어 순번을 붙인다. 사유 문구를
-                    // 키로 쓰면 같은 키워드를 두 번 단 순간 같은 키가 된다.
-                    key: ValueKey<String>('gym-trainer-reason-$i'),
-                    reason: reason,
-                  ),
-              ],
-            ),
+            TrainerReasonBadges(reasons: reasons, keyPrefix: 'gym-trainer'),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// 추천 이유 하나를 담는 알약.
-///
-/// 추천 이유는 고를 근거다 — 흰 배경에 회색 글씨면 옆의 일반 설명과 위계가
-/// 같아진다. 트레이너 목록·상세가 이미 쓰는 브랜드 파랑으로 윤곽선과 글자를
-/// 맞춘다(#1445). 배경은 흰색 그대로다 — 줄 자체가 옅은 파랑이라 배지까지
-/// 파래지면 배지가 사라진다.
-class _ReasonBadge extends StatelessWidget {
-  const _ReasonBadge({required this.reason, super.key});
-
-  final String reason;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s8,
-        vertical: OnCareSpacing.s4,
-      ),
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        border: Border.all(color: tokens.brand.border),
-        borderRadius: OnCareRadius.pillAll,
-      ),
-      child: Text(
-        // 사유만 적는다 — 앞에 `추천 이유:` 를 붙이면 읽는 사람은 매번 라벨을
-        // 먼저 지나치고 나서야 정작 볼 것을 만나고, 길어진 글자가 알약을 줄
-        // 끝까지 늘려 배지가 아니라 한 문장처럼 읽힌다 (#1847). 무엇을 적은
-        // 자리인지는 알약 모양이 이미 말하고 있다.
-        reason,
-        maxLines: 2,
-        // 두 줄을 넘기면 줄여 적는다 — 큰 배율에서 배지가 카드 밖으로 밀려
-        // 나가지 않게.
-        overflow: TextOverflow.ellipsis,
-        style: tokens
-            .text(OnCareTypography.strong(OnCareTypography.caption))
-            .copyWith(color: tokens.brand.primary),
       ),
     );
   }
