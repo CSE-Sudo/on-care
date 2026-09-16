@@ -203,11 +203,10 @@ class _TrainerChatButton extends StatelessWidget {
         AppButton(
           label: l.coachChatWithTrainer,
           onPressed: onTap,
-          // 헤더의 채팅 아이콘과 같은 대화로 들어가는 자리다 — 헤더가
-          // `brand.primary` 로 그려지므로 이 버튼도 같은 브랜드 채움이어야
-          // 한다 (#1849). 흰 바탕 보조 버튼으로 두면 같은 채팅인데도 둘이
-          // 다른 동작처럼 읽혔다.
-          variant: AppButtonVariant.primary,
+          // variant 를 적지 않아 기본값(브랜드 채움)을 쓴다 — 헤더의 채팅
+          // 아이콘과 같은 대화로 들어가는 자리라 헤더가 쓰는 `brand.primary`
+          // 와 같은 색이어야 한다 (#1849). 흰 바탕 보조 버튼으로 두었을 때는
+          // 같은 채팅인데도 둘이 다른 동작처럼 읽혔다. 색은 테스트가 고정한다.
           leadingIcon: AppIcons.chat,
           fullWidth: true,
         ),
@@ -523,11 +522,11 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
                           _when(context, l, picked.startsAt),
                         ),
                         onPressed: busy ? null : () => _reserve(l, picked),
-                        // 같은 탭의 `트레이너와 채팅` 과 같은 높이로 맞춘다 —
-                        // 36 짜리 자리 칩들 사이에서 52 는 혼자 너무 크게 서
-                        // 있었다. 폭이 이미 전체라 크기로 더 강조하지 않아도
-                        // 다음 걸음인 것이 읽힌다.
-                        size: OnCareButtonSize.medium,
+                        // size 를 적지 않아 기본값(medium)을 쓴다 — 같은 탭의
+                        // `트레이너와 채팅` 과 같은 높이다. 36 짜리 자리 칩들
+                        // 사이에서 large(52)는 혼자 너무 크게 서 있었고, 폭이
+                        // 이미 전체라 크기로 더 강조하지 않아도 다음 걸음인
+                        // 것이 읽힌다. 높이는 테스트가 고정한다.
                         fullWidth: true,
                       ),
                     ],
