@@ -1604,6 +1604,24 @@ abstract class AppLocalizations {
   /// **'Self-logged'**
   String get exOwnRecordSource;
 
+  /// No description provided for @exCompletedPtDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed PT'**
+  String get exCompletedPtDayTitle;
+
+  /// No description provided for @exCompletedRoutineDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed solo workout'**
+  String get exCompletedRoutineDayTitle;
+
+  /// No description provided for @exPtDayFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'{coachName} · Feedback'**
+  String exPtDayFeedback(String coachName);
+
   /// No description provided for @exDeleteExercise.
   ///
   /// In en, this message translates to:

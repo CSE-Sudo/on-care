@@ -431,6 +431,16 @@
   "exOwnRecords": "Workouts you logged",
   "exOwnRecordsEmpty": "No workouts logged yet",
   "exOwnRecordSource": "Self-logged",
+  "exCompletedPtDayTitle": "Completed PT",
+  "exCompletedRoutineDayTitle": "Completed solo workout",
+  "exPtDayFeedback": "{coachName} · Feedback",
+  "@exPtDayFeedback": {
+    "placeholders": {
+      "coachName": {
+        "type": "String"
+      }
+    }
+  },
   "exDeleteExercise": "Delete workout",
   "exDeleteExerciseBody": "Deleting this record cannot be undone.",
   "exDeleted": "Workout deleted",
