@@ -1032,6 +1032,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifTitle => '알림 설정';
 
   @override
+  String get myGuideTitle => '앱 사용 가이드 다시 보기';
+
+  @override
   String get mySupportTitle => '고객 지원';
 
   @override

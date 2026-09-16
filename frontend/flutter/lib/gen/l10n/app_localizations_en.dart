@@ -1058,6 +1058,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotifTitle => 'Notification Settings';
 
   @override
+  String get myGuideTitle => 'Replay the app guide';
+
+  @override
   String get mySupportTitle => 'Customer Support';
 
   @override

@@ -1976,6 +1976,12 @@ abstract class AppLocalizations {
   /// **'Notification Settings'**
   String get myNotifTitle;
 
+  /// MY tab: opens the spotlight app guide again (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Replay the app guide'**
+  String get myGuideTitle;
+
   /// No description provided for @mySupportTitle.
   ///
   /// In en, this message translates to:
