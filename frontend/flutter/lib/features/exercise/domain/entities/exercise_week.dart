@@ -140,7 +140,6 @@ class ExerciseSession {
     this.source = ExerciseSource.member,
     this.assignedRoutineId,
     this.assignedRoutineName = '',
-    this.memberNote = '',
     this.trainerFeedback = '',
     this.completedAt,
     this.sets,
@@ -201,7 +200,6 @@ class ExerciseSession {
 
   final String? assignedRoutineId;
   final String assignedRoutineName;
-  final String memberNote;
   final String trainerFeedback;
   final DateTime? completedAt;
 
@@ -228,7 +226,6 @@ class ExerciseSession {
         source: _exerciseSourceFromString(json['source'] as String?),
         assignedRoutineId: json['assigned_routine_id'] as String?,
         assignedRoutineName: json['assigned_routine_name'] as String? ?? '',
-        memberNote: json['member_note'] as String? ?? '',
         trainerFeedback: json['trainer_feedback'] as String? ?? '',
         completedAt: DateTime.tryParse(json['completed_at'] as String? ?? ''),
         sets: (json['sets'] as num?)?.toInt(),

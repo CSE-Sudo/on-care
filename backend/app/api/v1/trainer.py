@@ -87,6 +87,7 @@ from app.services import (
     exercise_service,
     chat_image_storage,
     consultation_service,
+    health_goal_change,
     member_pairing_service,
     trainer_client_invite_service,
     trainer_program_template_service,
@@ -430,6 +431,8 @@ def _member_health_out(db: Session, member_id: str) -> MemberHealthProfileOut:
         gender=profile.gender if profile is not None else "",
         conditions=profile.conditions if profile is not None else "",
         goals=profile.goals if profile is not None else "",
+        focus_changed_by=profile.focus_changed_by if profile is not None else None,
+        focus_changed_at=profile.focus_changed_at if profile is not None else None,
         **values,
     )
 
@@ -464,8 +467,13 @@ def trainer_update_member_health_profile(
     if profile is None:
         profile = HealthProfile(user_id=member_id)
         db.add(profile)
+    before = profile.conditions
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(profile, field, value)
+    # 승인 없이 바로 적용하되, 목표가 바뀌었으면 기록하고 회원에게 알린다(#1832).
+    health_goal_change.record_trainer_change(
+        db, profile, before=before, trainer=trainer, member_id=member_id
+    )
     db.commit()
     return _member_health_out(db, member_id)
 
@@ -2445,6 +2453,7 @@ def _notification_out(row: Notification) -> TrainerNotificationOut:
         read=row.read,
         created_at=row.created_at,
         time_ago=notification_service.time_ago(row.created_at),
+        subject_id=row.subject_id,
     )
 
 

@@ -230,6 +230,23 @@ class AppChatInputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    // 입력칸 한 줄 높이를 전송 버튼과 같은 값으로 맞춘다(#1827). 테마의 입력칸 여백
+    // (위아래 8)을 그대로 쓰면 글꼴의 줄 높이만큼 칸이 버튼보다 커져 — 회원앱
+    // 실제 글꼴·트레이너 웹 밀도에서 입력칸이 전송 버튼보다 몇 픽셀 높았다.
+    // 위아래 여백을 `버튼 높이 − 줄 높이` 의 절반으로 잡아, 어떤 글꼴·밀도에서도
+    // 한 줄일 때 둘이 같은 높이가 된다. 여러 줄이면 칸만 자라고 버튼은 아래에 붙는다.
+    final double rowHeight = tokens.density.iconButton;
+    final TextStyle inputStyle = tokens
+        .text(OnCareTypography.body)
+        .copyWith(color: OnCareColors.textPrimary);
+    final double lineHeight =
+        (inputStyle.fontSize ?? OnCareTypography.body.fontSize ?? 0) *
+        (inputStyle.height ?? 1);
+    // 픽셀 반 칸이 남으면 입력칸이 버튼보다 0.5 커진다 — 여백은 내림으로 잡고
+    // 남는 몫은 최소 높이가 채운다.
+    final double verticalPadding = ((rowHeight - lineHeight) / 2)
+        .floorToDouble()
+        .clamp(0, OnCareSpacing.s8);
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: OnCareColors.surfaceCard,
@@ -258,14 +275,15 @@ class AppChatInputBar extends StatelessWidget {
                   minLines: 1,
                   maxLines: 4,
                   textInputAction: TextInputAction.newline,
-                  style: tokens
-                      .text(OnCareTypography.body)
-                      .copyWith(color: OnCareColors.textPrimary),
+                  textAlignVertical: TextAlignVertical.center,
+                  style: inputStyle,
                   decoration: InputDecoration(
                     hintText: hint,
-                    constraints: BoxConstraints(
-                      minHeight: tokens.density.iconButton,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: OnCareSpacing.s12,
+                      vertical: verticalPadding,
                     ),
+                    constraints: BoxConstraints(minHeight: rowHeight),
                   ),
                 ),
               ),

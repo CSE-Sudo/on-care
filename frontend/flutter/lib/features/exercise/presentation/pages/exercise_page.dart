@@ -655,15 +655,6 @@ class _ExerciseDayDetail extends StatelessWidget {
                               ),
                             ),
                         ],
-                        if (s.memberNote.isNotEmpty) ...<Widget>[
-                          const SizedBox(height: OnCareSpacing.s4),
-                          Text(
-                            s.memberNote,
-                            style: tokens
-                                .text(OnCareTypography.bodySmall)
-                                .copyWith(color: OnCareColors.textSecondary),
-                          ),
-                        ],
                       ],
                     ),
                   ),

@@ -186,4 +186,6 @@ class AssignedRoutineCompleteRequest(BaseModel):
     reps: int | None = Field(None, gt=0, le=999)
     weight: float | None = Field(None, ge=0, le=1000)
     intensity: ExerciseIntensityIn = "moderate"
+    #: 개인 운동 피드백은 없앴다(#1825). 옛 앱이 보내도 422 가 나지 않게 받기만 하고
+    #: 저장하지 않는다.
     member_note: str = Field(default="", max_length=1000)

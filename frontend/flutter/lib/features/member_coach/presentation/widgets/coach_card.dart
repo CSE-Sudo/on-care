@@ -403,7 +403,6 @@ class _RecommendedExerciseRowState
             // 한 적 없는 운동과 구분되지 않는다.
             minutes: routine.minutes > 0 ? routine.minutes : 1,
             intensity: input.intensity,
-            memberNote: input.note,
           );
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
@@ -594,32 +593,6 @@ class _RecommendedExerciseRowState
               ),
             ],
           ),
-          // 내가 남긴 피드백도 트레이너 피드백과 **같은 모양의 상자**로 놓는다.
-          // 예전에는 맨 텍스트라 본문 기본 크기(카드 제목보다 크다)로 찍혀,
-          // 카드에서 그 줄만 혼자 커 보였다. 색만 달리해 누가 쓴 글인지
-          // 구분한다 — 내 피드백은 흰 바탕, 트레이너 피드백은 파란 바탕.
-          if (routine.memberNote.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            Container(
-              key: Key('routineMemberNote-${routine.id}'),
-              width: double.infinity,
-              margin: const EdgeInsets.only(left: OnCareSpacing.tilePadding),
-              padding: const EdgeInsets.all(OnCareSpacing.tilePadding),
-              decoration: const BoxDecoration(
-                color: OnCareColors.surfaceCard,
-                borderRadius: OnCareRadius.mdAll,
-                border: Border.fromBorderSide(
-                  BorderSide(color: OnCareColors.lineSubtle),
-                ),
-              ),
-              child: Text(
-                l.coachRoutineMyNote(routine.memberNote),
-                style: tokens
-                    .text(OnCareTypography.bodySmall)
-                    .copyWith(color: OnCareColors.textSecondary),
-              ),
-            ),
-          ],
           if (routine.trainerFeedback.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
             Container(
@@ -646,10 +619,9 @@ class _RecommendedExerciseRowState
 }
 
 class _RoutineCompletionInput {
-  const _RoutineCompletionInput({required this.intensity, required this.note});
+  const _RoutineCompletionInput({required this.intensity});
 
   final String intensity;
-  final String note;
 }
 
 /// 체크했을 때 뜨는 완료 입력. 회원이 정하는 것은 **얼마나 힘들었는지와
@@ -666,14 +638,11 @@ class _RoutineCompletionSheet extends StatefulWidget {
 class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
   /// 피드백 길이 상한. 카드에 그대로 펼쳐 보여 주는 글이라 몇 줄 안에서
   /// 끝나야 한다 (#1360).
-  static const int _noteMaxLength = 100;
 
-  final TextEditingController _noteController = TextEditingController();
   String _intensity = 'moderate';
 
   @override
   void dispose() {
-    _noteController.dispose();
     super.dispose();
   }
 
@@ -701,12 +670,9 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
               key: const Key('confirmRoutineCompletion'),
               label: l.coachRoutineSubmit,
               fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(
-                _RoutineCompletionInput(
-                  intensity: _intensity,
-                  note: _noteController.text,
-                ),
-              ),
+              onPressed: () => Navigator.of(
+                context,
+              ).pop(_RoutineCompletionInput(intensity: _intensity)),
             ),
           ),
         ],
@@ -748,15 +714,6 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
                 ),
               ],
             ],
-          ),
-          const SizedBox(height: OnCareSpacing.s16),
-          AppTextField(
-            key: const Key('routineCompletionNote'),
-            controller: _noteController,
-            maxLength: _noteMaxLength,
-            maxLines: 3,
-            label: l.coachRoutineNoteLabel,
-            hint: l.coachRoutineNoteHint,
           ),
         ],
       ),

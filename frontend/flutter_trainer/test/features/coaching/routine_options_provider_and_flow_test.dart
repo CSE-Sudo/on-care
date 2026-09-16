@@ -695,13 +695,14 @@ void main() {
           .decoration;
       expect(promptDecoration.hintStyle?.color, OnCareColors.textTertiary);
       expect(promptDecoration.filled, isTrue);
-      // 흰 채움 + 회색 테두리(#1776). 채움은 상태별 색이라 활성 상태로 푼다.
+      // 여러 줄로 쓰는 칸이라 트레이너웹에서는 회색 채움이다(#1836). 테두리는
+      // 한 줄 칸과 같은 회색 그대로다(#1776).
       expect(
         WidgetStateProperty.resolveAs<Color>(
           promptDecoration.fillColor!,
           <WidgetState>{},
         ),
-        OnCareColors.surfaceCard,
+        OnCareColors.surfaceInput,
       );
       expect(
         (promptDecoration.enabledBorder! as OutlineInputBorder)

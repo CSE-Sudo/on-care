@@ -1,4 +1,5 @@
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 
 abstract class AiCoachRepository {
@@ -18,4 +19,8 @@ abstract class AiCoachRepository {
     required String message,
     required List<ChatMessage> history,
   });
+
+  /// GET /ai-coach/insights — 최근 30일 동안 회원이 AI 챗봇에 쓴 메시지의
+  /// 통증·부정적 반응 감지 기록(최신순). 트레이너 채팅 감지와 같은 규칙이다(#1824).
+  Future<ChatInsightHistory> fetchInsights();
 }

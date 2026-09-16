@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show clientDemographicsLabel;
 import 'package:oncare_ui/oncare_ui.dart';
@@ -163,8 +164,9 @@ class _Identity extends StatelessWidget {
             ),
           ],
         ),
+        // 회원 건강 목표를 로케일 문구로(#1818).
         Text(
-          client.goal,
+          healthFocusGoalLabel(AppLocalizations.of(context), client.goal),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: tokens

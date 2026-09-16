@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         Value;
 import 'package:logger/logger.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
+import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
@@ -24,6 +25,9 @@ import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
     show MealImageFormat;
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
@@ -103,6 +107,7 @@ class LocalApiInterceptor extends Interceptor {
     'GET /notifications': _notifications,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
+    'GET /ai-coach/insights': _aiCoachInsights,
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
@@ -913,11 +918,9 @@ class LocalApiInterceptor extends Interceptor {
         // 채운다. 이미 있으면 그대로 둔다 — 같은 끼니의 사진이다.
         if (photoBytes != null &&
             (existing.photoBytes == null || existing.photoBytes!.isEmpty)) {
-          await (_db.update(
-            _db.dietEntries,
-          )..where((t) => t.id.equals(existing.id))).write(
-            DietEntriesCompanion(photoBytes: Value(photoBytes)),
-          );
+          await (_db.update(_db.dietEntries)
+                ..where((t) => t.id.equals(existing.id)))
+              .write(DietEntriesCompanion(photoBytes: Value(photoBytes)));
         }
         final storedFoods = (jsonDecode(existing.foodsJson) as List<Object?>)
             .cast<Map<String, Object?>>();
@@ -1158,13 +1161,13 @@ class LocalApiInterceptor extends Interceptor {
     }
     final (String start, String end) = _periodBounds(period);
     final List<String> weeks = _weekStartsCovering(start, end);
-    final rows =
-        await (_db.select(
-          _db.exerciseSessions,
-        )..where((t) => t.weekStart.isIn(weeks))).get();
+    final rows = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.weekStart.isIn(weeks))).get();
 
     final Map<String, ({int minutes, int calories, Map<String, int> byType})>
-    perDate = <String, ({int minutes, int calories, Map<String, int> byType})>{};
+    perDate =
+        <String, ({int minutes, int calories, Map<String, int> byType})>{};
     for (final r in rows) {
       final int index = _weekdayLabels.indexOf(r.dayLabel);
       if (index < 0) continue;
@@ -1174,8 +1177,7 @@ class LocalApiInterceptor extends Interceptor {
       );
       if (date.compareTo(start) < 0 || date.compareTo(end) > 0) continue;
       final ({int minutes, int calories, Map<String, int> byType}) day =
-          perDate[date] ??
-          (minutes: 0, calories: 0, byType: <String, int>{});
+          perDate[date] ?? (minutes: 0, calories: 0, byType: <String, int>{});
       final String kind = switch (r.type) {
         'cardio' || 'walking' => 'cardio',
         'strength' => 'strength',
@@ -1230,8 +1232,8 @@ class LocalApiInterceptor extends Interceptor {
   Future<Response<Object?>> _exerciseCurrentWeek(RequestOptions options) async {
     // 저장된 기록의 칼로리 근거를 되짚을 때 쓴다 — 이름이 종목표에 붙어도
     // 체중을 모르면 어림값으로 계산된 기록이다(`_demoEstimate` 와 같은 판단).
-    final double? weightKg =
-        ((await _mergedProfile())['weight_kg'] as num?)?.toDouble();
+    final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
+        ?.toDouble();
     // 파라미터가 **있으면** 그 값을 그대로 검사한다. 빈 문자열도 "잘못된 값"이다
     // — 서버(FastAPI)가 그렇게 답하므로 여기서 조용히 이번 주로 흘려보내면 두
     //   구현이 갈린다.
@@ -1476,7 +1478,8 @@ class LocalApiInterceptor extends Interceptor {
   /// 예전에는 요일 라벨만 받고 주차는 늘 이번 주로 박았다 — 지난 날짜를 골라도
   /// 기록이 이번 주로 들어왔다. (#1276)
   (String, String) _placement(Object? raw) {
-    final DateTime day = raw is String ? (DateTime.tryParse(raw) ?? nowKst())
+    final DateTime day = raw is String
+        ? (DateTime.tryParse(raw) ?? nowKst())
         : nowKst();
     return (_mondayOf(day), _weekdayLabels[day.weekday - 1]);
   }
@@ -1538,8 +1541,8 @@ class LocalApiInterceptor extends Interceptor {
     final String normalized = _normalizedExerciseType(type);
     final double factor = _intensityFactor[intensity ?? 'moderate'] ?? 1.0;
     final DemoExerciseActivity? matched = matchDemoExercise(name);
-    final double? weightKg =
-        ((await _mergedProfile())['weight_kg'] as num?)?.toDouble();
+    final double? weightKg = ((await _mergedProfile())['weight_kg'] as num?)
+        ?.toDouble();
     // 체중을 모르면 참조표로 계산하지 않는다 — 기준 체중으로 낸 값은 이 회원의
     // 값이 아닌데 `db` 로 표시되면 실제보다 높은 신뢰 신호를 준다.
     if (matched == null || weightKg == null || weightKg <= 0) {
@@ -1559,19 +1562,19 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// 옛 어휘를 표준 유형으로 접는다 — 서버 `exercise_types.normalize` 와 같다.
-  static String _normalizedExerciseType(String? raw) =>
-      switch (raw?.trim()) {
-        'cardio' || 'walking' => 'cardio',
-        'strength' => 'strength',
-        'flexibility' || 'stretching' || 'yoga' => 'stretching',
-        _ => 'other',
-      };
+  static String _normalizedExerciseType(String? raw) => switch (raw?.trim()) {
+    'cardio' || 'walking' => 'cardio',
+    'strength' => 'strength',
+    'flexibility' || 'stretching' || 'yoga' => 'stretching',
+    _ => 'other',
+  };
 
   /// 요청 몸통을 Map 으로. dio 는 Map 으로도 JSON 문자열로도 준다.
   static Map<String, Object?> _payloadOf(Object? body) {
     if (body is Map) return body.cast<String, Object?>();
     if (body is String && body.isNotEmpty) {
-      return (jsonDecode(body) as Map<Object?, Object?>).cast<String, Object?>();
+      return (jsonDecode(body) as Map<Object?, Object?>)
+          .cast<String, Object?>();
     }
     return <String, Object?>{};
   }
@@ -1896,6 +1899,9 @@ class LocalApiInterceptor extends Interceptor {
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
           'time_ago': _timeAgoKorean(now.difference(r.createdAt)),
+          // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
+          // 고른다. 시드 밖의 알림은 키가 없다(#1812).
+          'message_key': ?kDemoAlertKeyBySeedId[r.id],
         },
     ];
     return _ok(options, list);
@@ -1952,7 +1958,79 @@ class LocalApiInterceptor extends Interceptor {
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
     final (String reply, List<String> sources) = _mockCoachReply(message);
-    return _ok(options, <String, Object?>{'reply': reply, 'sources': sources});
+    // 감지 기록 창이 읽을 원문을 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
+    await _rememberAiCoachMessage(message);
+    final ChatInsight? insight = detectChatInsight(message);
+    return _ok(options, <String, Object?>{
+      'reply': reply,
+      'sources': sources,
+      'user_insight': insight == null ? null : _insightJson(insight),
+    });
+  }
+
+  static const String _aiCoachMessagesKey = 'ai_coach_user_messages';
+
+  /// 목업 대화의 회원 메시지. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  Future<List<Map<String, Object?>>> _aiCoachMessages() async {
+    final String? raw = await _db.readValue(_aiCoachMessagesKey);
+    if (raw == null || raw.isEmpty) return <Map<String, Object?>>[];
+    return <Map<String, Object?>>[
+      for (final Object? row in jsonDecode(raw) as List<Object?>)
+        if (row is Map) row.cast<String, Object?>(),
+    ];
+  }
+
+  Future<void> _rememberAiCoachMessage(String text) async {
+    final DateTime now = nowKst();
+    final List<Map<String, Object?>> rows = <Map<String, Object?>>[
+      for (final Map<String, Object?> row in await _aiCoachMessages())
+        if (isWithinInsightWindow(
+          DateTime.tryParse(row['created_at'] as String? ?? '') ?? now,
+          now,
+        ))
+          row,
+      <String, Object?>{
+        'id': 'local-ai-${now.microsecondsSinceEpoch}',
+        'text': text,
+        'created_at': now.toIso8601String(),
+      },
+    ];
+    await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+  }
+
+  static Map<String, Object?> _insightJson(ChatInsight insight) =>
+      <String, Object?>{
+        'kind': switch (insight.kind) {
+          ChatInsightKind.discomfort => 'discomfort',
+          ChatInsightKind.negativeFeedback => 'negative_feedback',
+        },
+        'body_part': insight.bodyPart,
+      };
+
+  /// GET /ai-coach/insights — 최근 30일 회원 메시지의 감지 기록, 최신순(#1824).
+  Future<Response<Object?>> _aiCoachInsights(RequestOptions options) async {
+    final DateTime now = nowKst();
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    final List<Map<String, Object?>> insights = <Map<String, Object?>>[];
+    for (final Map<String, Object?> row in rows.reversed) {
+      final DateTime? at = DateTime.tryParse(
+        row['created_at'] as String? ?? '',
+      );
+      if (at == null || !isWithinInsightWindow(at, now)) continue;
+      final String text = row['text'] as String? ?? '';
+      final ChatInsight? insight = detectChatInsight(text);
+      if (insight == null) continue;
+      insights.add(<String, Object?>{
+        'message_id': row['id'],
+        'created_at': at.toIso8601String(),
+        ..._insightJson(insight),
+        'text': text,
+      });
+    }
+    return _ok(options, <String, Object?>{
+      'window_days': kChatInsightWindowDays,
+      'insights': insights,
+    });
   }
 
   (String, List<String>) _mockCoachReply(String message) {
@@ -2098,7 +2176,8 @@ class LocalApiInterceptor extends Interceptor {
     'gender': 'male',
     'height_cm': 175.0,
     'weight_kg': 72.0,
-    'conditions': '',
+    // 건강 목표(#1814) — 트레이너 앱이 이 회원의 목표로 보여 주는 값과 같다.
+    'conditions': '체중 감량, 혈압 관리',
     // 트레이너 앱이 이 회원의 목표로 보여 주는 값과 같다 (#1140).
     'goals': '혈압 관리 · 체중 감량',
     'daily_calories': 2000,
@@ -2175,6 +2254,10 @@ class LocalApiInterceptor extends Interceptor {
     final body = _jsonBody(options);
     final patch = <String, Object?>{};
     for (final String k in <String>[
+      // MY 건강 목표가 목표 칸과 함께 보내는 건강 목표·자유 입력 목표. 빠져 있어
+      // 데모에서 고른 목표가 저장되지 않았다(#1814).
+      'conditions',
+      'goals',
       'daily_calories',
       'daily_sodium_mg',
       'daily_sugar_g',
@@ -2193,8 +2276,30 @@ class LocalApiInterceptor extends Interceptor {
       // 오버레이에도 null 로 남아야 한다 — 건너뛰면 지운 목표가 되살아난다.
       if (body.containsKey(k)) patch[k] = body[k];
     }
+    _normalizeConditions(patch);
+    // 목표 칩이 실제로 바뀐 저장만 `마지막 변경` 으로 남긴다 — 실서버와 같은
+    // 규칙이다(#1832). 목업에는 담당 트레이너 쪽 알림함이 없어 기록만 한다.
+    if (patch['conditions'] case final String next) {
+      final Map<String, Object?> current = await _mergedProfile();
+      final Set<String> before = parseHealthFocus(
+        current['conditions'] as String? ?? '',
+      ).toSet();
+      if (!before.containsAll(parseHealthFocus(next)) ||
+          before.length != parseHealthFocus(next).toSet().length) {
+        patch['focus_changed_by'] = 'member';
+        patch['focus_changed_at'] = nowKst().toIso8601String();
+      }
+    }
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
+  }
+
+  /// 옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다 — 서버 스키마가
+  /// 저장 전에 하는 정리와 같다(#1814).
+  static void _normalizeConditions(Map<String, Object?> patch) {
+    if (patch['conditions'] case final String raw) {
+      patch['conditions'] = normalizeHealthFocusText(raw);
+    }
   }
 
   /// DELETE /users/me — withdraw. The demo wipes the profile overlay so a
@@ -2233,6 +2338,7 @@ class LocalApiInterceptor extends Interceptor {
       if (body[k] != null) patch[k] = body[k];
     }
     patch['onboarded'] = true;
+    _normalizeConditions(patch);
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
   }
@@ -2250,9 +2356,7 @@ class LocalApiInterceptor extends Interceptor {
   Future<Response<Object?>> _pairingCodeIssue(RequestOptions options) async {
     return _ok(options, <String, Object?>{
       'code': _demoPairingCode,
-      'expires_at': nowKst()
-          .add(const Duration(minutes: 5))
-          .toIso8601String(),
+      'expires_at': nowKst().add(const Duration(minutes: 5)).toIso8601String(),
       'expires_in_seconds': 5 * 60,
     });
   }

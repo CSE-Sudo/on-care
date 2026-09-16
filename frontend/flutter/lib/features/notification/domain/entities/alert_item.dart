@@ -14,6 +14,9 @@ enum AlertTarget {
 
   /// MY 의 내 혜택 — 쿠폰 사용 처리·취소·만료 임박 알림(#1787).
   myBenefits,
+
+  /// MY 건강 목표 — 담당 트레이너가 목표를 바꿨을 때(#1832).
+  healthGoals,
   unknown,
 }
 
@@ -41,6 +44,8 @@ class AlertItem {
     this.read = false,
     this.action,
     this.createdAt = '',
+    this.messageKey,
+    this.age,
   });
 
   final String id;
@@ -62,6 +67,14 @@ class AlertItem {
   /// 서버가 지정한 이동 경로. 없으면 읽음 처리만 한다.
   final AlertAction? action;
 
+  /// 데모 알림 문구의 키(`demo_alert_keys.dart`). 있으면 화면이 [title]·[body]
+  /// 대신 로케일에 맞는 문장을 쓴다. 서버가 만든 알림은 번역본이 없어 비어 있다. (#1812)
+  final String? messageKey;
+
+  /// 데모 알림이 만들어진 지 얼마나 됐는가. 서버 시각([createdAt])이 없는 데모
+  /// 알림도 화면이 로케일에 맞는 상대 시각을 그리게 한다. (#1812)
+  final Duration? age;
+
   AlertItem copyWith({bool? read}) => AlertItem(
     id: id,
     title: title,
@@ -71,6 +84,8 @@ class AlertItem {
     read: read ?? this.read,
     action: action,
     createdAt: createdAt,
+    messageKey: messageKey,
+    age: age,
   );
 }
 

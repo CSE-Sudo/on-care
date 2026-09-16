@@ -99,7 +99,6 @@ class _FakeCoachRepository implements MemberCoachRepository {
     String routineId, {
     required int minutes,
     String intensity = 'moderate',
-    String memberNote = '',
   }) async => throw UnimplementedError();
 
   @override

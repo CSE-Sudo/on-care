@@ -161,7 +161,8 @@ void main() {
 
         expect(await repo.addClient(name: '박도윤', goal: '  '), isTrue);
         final clients = await repo.watchClients().first;
-        expect(clients.last.goal, '목표 설정 전');
+        // 목표는 회원 건강 목표만 남는다 — 고르지 않았으면 비어 있다(#1818).
+        expect(clients.last.goal, isEmpty);
       },
     );
 

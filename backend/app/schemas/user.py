@@ -11,6 +11,7 @@ from typing import Any, ClassVar, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.partial_update import PartialUpdate
+from app.services.health_focus import normalize_conditions
 
 
 # ---- GET /users/me ----
@@ -169,6 +170,10 @@ class ProfileView(BaseModel):
     weekly_strength_sets: Optional[int] = None
     weekly_flexibility_minutes: Optional[int] = None
     onboarded: bool = False
+    #: 건강 목표를 마지막으로 바꾼 사람(`member`|`trainer`)과 시각. 바꾼 적이 없으면
+    #: 둘 다 null 이다(#1832).
+    focus_changed_by: Optional[str] = None
+    focus_changed_at: Optional[datetime] = None
 
 
 class HealthGoalsUpdate(BaseModel):
@@ -182,9 +187,10 @@ class HealthGoalsUpdate(BaseModel):
     해당하지 않고, 적용하면 목표를 지울 방법이 사라진다.
     """
 
-    #: 주로 관리하고 싶은 항목(`고혈압, 당뇨`)과 자유 입력 운동 목표. 온보딩이
+    #: 건강 목표(`체중 감량, 혈압 관리`)와 자유 입력 운동 목표. 온보딩이
     #: 저장하던 두 값을 MY `건강 목표` 화면도 같은 열로 읽고 고친다(#1471) —
     #: 두 화면이 다른 열을 쓰면 온보딩에서 고른 값이 MY 에서 보이지 않는다.
+    #: 옛 질환 이름은 저장할 때 새 목표로 정리한다(#1814).
     conditions: Optional[str] = None
     goals: Optional[str] = None
     daily_calories: Optional[int] = None
@@ -202,6 +208,12 @@ class HealthGoalsUpdate(BaseModel):
     weekly_strength_sets: Optional[int] = None
     weekly_flexibility_minutes: Optional[int] = None
 
+    @field_validator("conditions")
+    @classmethod
+    def _normalize_conditions(cls, value: Optional[str]) -> Optional[str]:
+        """옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다(#1814)."""
+        return normalize_conditions(value)
+
 
 class OnboardingRequest(BaseModel):
     """POST /users/me/onboarding — 최초 온보딩(모두 선택, 부분 저장 허용).
@@ -214,7 +226,7 @@ class OnboardingRequest(BaseModel):
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
-    conditions: Optional[str] = None  # "고혈압, 당뇨 전단계"
+    conditions: Optional[str] = None  # "체중 감량, 혈압 관리" — 옛 질환 이름은 정리(#1814)
     goals: Optional[str] = None
     # 목표 칸은 `HealthGoalsUpdate` 와 **같은 열**이다 — 온보딩이 권장값으로
     # 채워 둔 목표를 MY 건강 목표가 그대로 이어 고친다. 두 스키마가 서로 다른
@@ -229,6 +241,12 @@ class OnboardingRequest(BaseModel):
     weekly_cardio_minutes: Optional[int] = None
     weekly_strength_sets: Optional[int] = None
     weekly_flexibility_minutes: Optional[int] = None
+
+    @field_validator("conditions")
+    @classmethod
+    def _normalize_conditions(cls, value: Optional[str]) -> Optional[str]:
+        """옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다(#1814)."""
+        return normalize_conditions(value)
 
 
 class ProfileUpdate(PartialUpdate):
