@@ -526,6 +526,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Edit each food\'s nutrition and it adds up here';
 
   @override
+  String get dietSugarOverCarbs => 'Sugar can\'t be more than carbs';
+
+  @override
   String get dietDeleteMeal => 'Delete Meal';
 
   @override
@@ -893,10 +896,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exGymSearchPlaceholder => 'Search by area or gym name';
 
   @override
-  String get exTrainerSearchPlaceholder =>
-      'Search by specialty or trainer name';
-
-  @override
   String get exSortRecommended => 'Recommended';
 
   @override
@@ -904,9 +903,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exSortRating => 'Rating';
-
-  @override
-  String get exSortName => 'Name';
 
   @override
   String exResultCount(int count) {
@@ -1115,7 +1111,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCancel => 'Cancel';
 
   @override
-  String get myTrainerGymTitle => 'My Trainer & Gym';
+  String get myGymTrainerTitle => 'My Gym & Trainer';
 
   @override
   String get myConnectionDeleteTitle => 'Remove Connection';

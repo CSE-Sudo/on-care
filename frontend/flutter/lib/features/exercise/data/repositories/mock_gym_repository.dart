@@ -76,7 +76,7 @@ class MockGymRepository implements GymRepository {
     gymId: 'gym-oncare-sinchon',
     name: '김트레이너',
     role: '퍼스널 트레이너',
-    reason: '혈압 관리',
+    reasons: <String>['혈압 관리', '체중 감량', '식습관 개선'],
     career: '7년',
     intro:
         '혈압 관리와 체중 감량을 함께 다루는 퍼스널 트레이너입니다. 회원 상태에 맞춘 '
@@ -92,7 +92,7 @@ class MockGymRepository implements GymRepository {
       gymId: 'gym-oncare-sinchon',
       name: '박트레이너',
       role: '재활 트레이너',
-      reason: '무릎·허리 재활',
+      reasons: <String>['무릎·허리 재활', '수술 후 회복'],
       career: '11년',
       intro:
           '수술 후 회복과 만성 통증 관리를 주로 맡습니다. 무리하지 않는 범위에서 '
@@ -104,7 +104,7 @@ class MockGymRepository implements GymRepository {
       gymId: 'gym-oncare-sinchon',
       name: '최트레이너',
       role: '그룹 PT 트레이너',
-      reason: '2~4인 소그룹',
+      reasons: <String>['2~4인 소그룹', '운동 습관'],
       career: '4년',
       intro:
           '2~4인 소그룹 수업을 진행합니다. 혼자서는 운동을 이어 가기 어려운 회원에게 '
@@ -116,7 +116,7 @@ class MockGymRepository implements GymRepository {
       gymId: 'gym-healthmate',
       name: '강트레이너',
       role: '퍼스널 트레이너',
-      reason: '교대근무',
+      reasons: <String>['교대근무', '근력 향상'],
       career: '5년',
       intro:
           '불규칙한 근무 일정에 맞춘 운동 설계를 주로 합니다. 짧은 시간에 집중도를 '
@@ -128,7 +128,7 @@ class MockGymRepository implements GymRepository {
       gymId: 'gym-healthmate',
       name: '윤트레이너',
       role: '근력 전문 트레이너',
-      reason: '기초 근력',
+      reasons: <String>['기초 근력', '파워리프팅'],
       career: '8년',
       intro:
           '기초 근력부터 파워리프팅까지 단계를 나눠 지도합니다. 현재 들 수 있는 '
@@ -140,7 +140,7 @@ class MockGymRepository implements GymRepository {
       gymId: 'gym-bodyandsoul',
       name: '이트레이너',
       role: '퍼스널 트레이너',
-      reason: '운동 초심자',
+      reasons: <String>['운동 초심자', '식습관 개선', '운동 습관'],
       career: '9년',
       intro:
           '운동을 처음 시작하는 회원을 오래 지도했습니다. 식단 상담을 함께 진행해 '
@@ -152,7 +152,7 @@ class MockGymRepository implements GymRepository {
       gymId: 'gym-bodyandsoul',
       name: '조트레이너',
       role: '시니어 운동 트레이너',
-      reason: '낙상 예방',
+      reasons: <String>['낙상 예방', '균형 잡기', '체력 강화'],
       career: '12년',
       intro:
           '60대 이상 회원 수업을 오래 맡았습니다. 균형 잡기와 낙상 예방 동작부터 '
@@ -167,7 +167,7 @@ class MockGymRepository implements GymRepository {
       gymId: '11621774', // 휘트니스에이든
       name: '정트레이너',
       role: '퍼스널 트레이너',
-      reason: '감량 정체기',
+      reasons: <String>['감량 정체기', '체성분 관리'],
       career: '6년',
       intro:
           '체중이 멈춘 시점에 식사량과 운동량을 다시 맞추는 일을 자주 합니다. '
@@ -179,7 +179,7 @@ class MockGymRepository implements GymRepository {
       gymId: '11621774',
       name: '하트레이너',
       role: '체형 교정 트레이너',
-      reason: '목·어깨 교정',
+      reasons: <String>['목·어깨 교정', '사무직 자세'],
       career: '4년',
       intro:
           '오래 앉아 생긴 목과 어깨 불편을 주로 다룹니다. 스트레칭과 가벼운 근력 '
@@ -191,7 +191,7 @@ class MockGymRepository implements GymRepository {
       gymId: '1558845892', // 하이핏
       name: '한트레이너',
       role: '퍼스널 트레이너',
-      reason: '기구 입문',
+      reasons: <String>['기구 입문'],
       career: '3년',
       intro:
           '기구 사용법부터 하나씩 익히는 수업입니다. 무게를 올리기 전에 자세가 '
@@ -203,7 +203,7 @@ class MockGymRepository implements GymRepository {
       gymId: '1558845892',
       name: '오트레이너',
       role: '그룹 PT 트레이너',
-      reason: '3~5인 그룹',
+      reasons: <String>['3~5인 그룹'],
       career: '5년',
       intro:
           '3~5인 그룹 수업을 맡습니다. 서로 속도를 맞추는 구성이라 혼자 할 때보다 '
@@ -215,7 +215,7 @@ class MockGymRepository implements GymRepository {
       gymId: '328969863', // 빌드업짐 PT 신촌점
       name: '서트레이너',
       role: '재활 전문 트레이너',
-      reason: '재활 후 복귀',
+      reasons: <String>['재활 후 복귀', '통증 관리'],
       career: '10년',
       intro:
           '병원 재활이 끝난 뒤 일상 운동으로 넘어가는 구간을 담당합니다. 통증 기록을 '
@@ -227,7 +227,7 @@ class MockGymRepository implements GymRepository {
       gymId: '328969863',
       name: '남트레이너',
       role: '퍼스널 트레이너',
-      reason: '스쿼트 자세 교정',
+      reasons: <String>['스쿼트 자세 교정', '근력 향상', '영상 피드백'],
       career: '7년',
       intro:
           '스쿼트와 데드리프트 자세 교정을 주로 합니다. 수행 장면을 영상으로 남겨 '
@@ -239,7 +239,7 @@ class MockGymRepository implements GymRepository {
       gymId: '696444256', // 신인규피티스튜디오
       name: '문트레이너',
       role: '퍼스널 트레이너',
-      reason: '주간 식단',
+      reasons: <String>['주간 식단', '식습관 개선', '1:1 전담'],
       career: '7년',
       intro:
           '1:1 수업만 진행합니다. 매주 식사 기록을 함께 보고 다음 주에 바꿀 항목을 '
@@ -251,7 +251,7 @@ class MockGymRepository implements GymRepository {
       gymId: '696444256',
       name: '배트레이너',
       role: '러닝 코치',
-      reason: '러닝 자세 교정',
+      reasons: <String>['러닝 자세 교정'],
       career: '5년',
       intro:
           '달리기 자세와 호흡을 함께 점검합니다. 무릎에 부담이 덜 가는 보폭을 찾는 '
@@ -317,7 +317,7 @@ class MockGymRepository implements GymRepository {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     // 추천 사유가 붙은 트레이너만 레일에 올린다.
     return _trainers
-        .where((Trainer trainer) => trainer.reason?.isNotEmpty ?? false)
+        .where((Trainer trainer) => trainer.reasons.isNotEmpty)
         .toList(growable: false);
   }
 
