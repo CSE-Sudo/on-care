@@ -20,7 +20,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 /// 시드의 짜장면 1인분 — 650g 에 700kcal.
-final FoodNutritionSuggestion _jjajang = const FoodNutritionSuggestion(
+const FoodNutritionSuggestion _jjajang = FoodNutritionSuggestion(
   matchedName: '짜장면',
   food: FoodItem(
     name: '짜장면',
