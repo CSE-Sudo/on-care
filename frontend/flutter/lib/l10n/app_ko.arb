@@ -853,6 +853,7 @@
   "myGoalWorkoutMinutes": "주간 운동 시간 목표 (분)",
   "myGoalWorkoutCalories": "주간 소모 칼로리 목표 (kcal)",
   "myGoalsSaved": "건강 목표가 저장되었어요",
+  "myGoalRange": "{min}~{max} 사이로 입력해 주세요",
   "mySettingsLoadFailed": "설정을 불러오지 못했어요",
   "mySettingsLoadFailedBody": "지금 저장하면 기존 설정이 지워질 수 있어 편집을 잠갔어요.",
   "myNotificationSaveFailed": "알림 설정을 저장하지 못했어요",

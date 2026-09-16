@@ -2491,6 +2491,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalsSaved => '건강 목표가 저장되었어요';
 
   @override
+  String myGoalRange(int min, int max) {
+    return '$min~$max 사이로 입력해 주세요';
+  }
+
+  @override
   String get mySettingsLoadFailed => '설정을 불러오지 못했어요';
 
   @override

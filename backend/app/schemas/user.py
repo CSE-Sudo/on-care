@@ -10,6 +10,23 @@ from datetime import datetime
 from typing import Any, ClassVar, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.schemas.health_goal_ranges import (
+    ConditionsText,
+    DailyBurnKcal,
+    DailyCalories,
+    DailyCarbsG,
+    DailyFatG,
+    DailyProteinG,
+    DailySodiumMg,
+    DailySugarG,
+    GoalsText,
+    WeeklyBurnGoal,
+    WeeklyCardioMinutes,
+    WeeklyExerciseMinutesGoal,
+    WeeklyFlexibilityMinutes,
+    WeeklyStrengthSets,
+    WeeklyWorkoutGoal,
+)
 from app.schemas.partial_update import PartialUpdate
 from app.services.contact_format import clean_email, normalize_phone
 from app.services.profile_format import clean_birth_date, clean_name
@@ -226,22 +243,28 @@ class HealthGoalsUpdate(BaseModel):
     #: 저장하던 두 값을 MY `건강 목표` 화면도 같은 열로 읽고 고친다(#1471) —
     #: 두 화면이 다른 열을 쓰면 온보딩에서 고른 값이 MY 에서 보이지 않는다.
     #: 옛 질환 이름은 저장할 때 새 목표로 정리한다(#1814).
-    conditions: Optional[str] = None
-    goals: Optional[str] = None
-    daily_calories: Optional[int] = None
-    daily_sodium_mg: Optional[int] = None
-    daily_sugar_g: Optional[int] = None
-    daily_carbs_g: Optional[int] = None
-    daily_protein_g: Optional[int] = None
-    daily_fat_g: Optional[int] = None
-    weekly_workout_goal: Optional[int] = None
-    weekly_exercise_minutes_goal: Optional[int] = None
-    weekly_burn_goal: Optional[int] = None
+    #:
+    #: 목표 숫자의 범위는 트레이너 경로(`MemberHealthProfileUpdate`)와 **같은
+    #: 것**을 쓴다(#1888) — `health_goal_ranges` 한 곳에 있다. 전에는 이쪽만
+    #: 제약이 없어 `daily_calories: 99999999999` 가 500 이고 `-3000` 은 그대로
+    #: 저장됐는데, 그 값을 트레이너가 화면에서 고치려 하면 트레이너 스키마의
+    #: 하한에 걸려 422 가 났다 — 넣은 문과 고치는 문이 달랐다.
+    conditions: Optional[ConditionsText] = None
+    goals: Optional[GoalsText] = None
+    daily_calories: Optional[DailyCalories] = None
+    daily_sodium_mg: Optional[DailySodiumMg] = None
+    daily_sugar_g: Optional[DailySugarG] = None
+    daily_carbs_g: Optional[DailyCarbsG] = None
+    daily_protein_g: Optional[DailyProteinG] = None
+    daily_fat_g: Optional[DailyFatG] = None
+    weekly_workout_goal: Optional[WeeklyWorkoutGoal] = None
+    weekly_exercise_minutes_goal: Optional[WeeklyExerciseMinutesGoal] = None
+    weekly_burn_goal: Optional[WeeklyBurnGoal] = None
     # 운동 탭이 견주는 목표 (#1139). 소모는 하루, 유형별은 한 주다.
-    daily_burn_kcal: Optional[int] = None
-    weekly_cardio_minutes: Optional[int] = None
-    weekly_strength_sets: Optional[int] = None
-    weekly_flexibility_minutes: Optional[int] = None
+    daily_burn_kcal: Optional[DailyBurnKcal] = None
+    weekly_cardio_minutes: Optional[WeeklyCardioMinutes] = None
+    weekly_strength_sets: Optional[WeeklyStrengthSets] = None
+    weekly_flexibility_minutes: Optional[WeeklyFlexibilityMinutes] = None
 
     @field_validator("conditions")
     @classmethod
@@ -265,21 +288,24 @@ class OnboardingRequest(BaseModel):
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
-    conditions: Optional[str] = None  # "체중 감량, 혈압 관리" — 옛 질환 이름은 정리(#1814)
-    goals: Optional[str] = None
+    conditions: Optional[ConditionsText] = None  # "체중 감량, 혈압 관리" — 옛 질환 이름은 정리(#1814)
+    goals: Optional[GoalsText] = None
     # 목표 칸은 `HealthGoalsUpdate` 와 **같은 열**이다 — 온보딩이 권장값으로
     # 채워 둔 목표를 MY 건강 목표가 그대로 이어 고친다. 두 스키마가 서로 다른
     # 열을 다루면 온보딩에서 정한 목표가 MY 에서 보이지 않는다.
-    daily_calories: Optional[int] = None
-    daily_sodium_mg: Optional[int] = None
-    daily_sugar_g: Optional[int] = None
-    daily_carbs_g: Optional[int] = None
-    daily_protein_g: Optional[int] = None
-    daily_fat_g: Optional[int] = None
-    daily_burn_kcal: Optional[int] = None
-    weekly_cardio_minutes: Optional[int] = None
-    weekly_strength_sets: Optional[int] = None
-    weekly_flexibility_minutes: Optional[int] = None
+    #
+    # 같은 열이므로 **범위도 같다**(#1888). 여기만 열어 두면 온보딩으로 들어온
+    # 값을 MY 화면과 트레이너 화면이 고칠 수 없는 자리가 생긴다.
+    daily_calories: Optional[DailyCalories] = None
+    daily_sodium_mg: Optional[DailySodiumMg] = None
+    daily_sugar_g: Optional[DailySugarG] = None
+    daily_carbs_g: Optional[DailyCarbsG] = None
+    daily_protein_g: Optional[DailyProteinG] = None
+    daily_fat_g: Optional[DailyFatG] = None
+    daily_burn_kcal: Optional[DailyBurnKcal] = None
+    weekly_cardio_minutes: Optional[WeeklyCardioMinutes] = None
+    weekly_strength_sets: Optional[WeeklyStrengthSets] = None
+    weekly_flexibility_minutes: Optional[WeeklyFlexibilityMinutes] = None
 
     @field_validator("conditions")
     @classmethod
@@ -339,7 +365,7 @@ class ProfileUpdate(PartialUpdate):
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
-    goals: Optional[str] = Field(default=None, max_length=500)
+    goals: Optional[GoalsText] = None
 
     # 가입(`UserRegister`)과 같은 함수를 부른다. 두 경로가 다른 기준을 쓰면
     # 한쪽이 정리한 값을 다른 쪽이 되돌린다.
