@@ -776,7 +776,7 @@ class _TrainerGymSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        AppSectionHeader(title: l.myTrainerGymTitle),
+        AppSectionHeader(title: l.myGymTrainerTitle),
         const SizedBox(height: OnCareSpacing.s12),
         gymAsync.when(
           loading: () => const AppCard(

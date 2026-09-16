@@ -1115,7 +1115,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCancel => 'Cancel';
 
   @override
-  String get myTrainerGymTitle => 'My Trainer & Gym';
+  String get myGymTrainerTitle => 'My Gym & Trainer';
 
   @override
   String get myConnectionDeleteTitle => 'Remove Connection';

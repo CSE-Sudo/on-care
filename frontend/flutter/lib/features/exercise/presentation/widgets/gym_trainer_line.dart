@@ -64,10 +64,13 @@ class GymTrainerLine extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final List<String> reasons = trainer.reasons;
-    return Container(
+    final Widget line = Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: OnCareSpacing.s8,
+      padding: EdgeInsets.symmetric(
+        // 테두리를 두른 줄만 안쪽 여백을 갖는다. 두르지 않은 줄(내 헬스장
+        // 카드·MY)은 카드가 이미 여백을 주고 있어, 여기서 또 밀면 위의 헬스장
+        // 줄보다 안쪽으로 들어가 두 줄의 왼쪽 끝과 화살표가 어긋난다 (#1881).
+        horizontal: bordered ? OnCareSpacing.s8 : 0,
         vertical: OnCareSpacing.s8,
       ),
       // 줄 바탕은 흰색이다 (#1881). 예전에는 옅은 브랜드 파랑이었는데, 그 색은
@@ -100,7 +103,6 @@ class GymTrainerLine extends StatelessWidget {
               // (#1187) — 한 줄에 넷을 밀어 넣으면 직함부터 `퍼스널 트…` 로
               // 잘려, 이 사람이 무엇을 하는 사람인지가 사라진다.
               Expanded(
-                flex: 3,
                 child: stacked
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,25 +122,23 @@ class GymTrainerLine extends StatelessWidget {
                       ),
               ),
               // 상세로 가는 길은 줄 **오른쪽 끝**에 선다 — 다른 화면의 동작
-              // 버튼과 같은 자리다 (#1267). 오른쪽 칸은 제 몫을 다 차지하고
-              // 그 안에서 오른쪽 정렬한다: 내용 크기로만 잡으면 남는 자리가
-              // 버튼 오른쪽에 빈 칸으로 남아 버튼이 줄 가운데에서 끝난다.
-              // 좁은 폭에서는 FittedBox 가 버튼부터 줄인다.
-              if (onDetail != null)
-                Expanded(
-                  flex: 2,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerRight,
-                    child: AppIconButton(
-                      key: const Key('gymTrainerDetailButton'),
-                      icon: AppIcons.chevronRight,
-                      tooltip: l.myTrainerDetailTooltip,
-                      onPressed: onDetail,
-                      color: OnCareColors.textTertiary,
-                    ),
+              // 버튼과 같은 자리다 (#1267). 같은 카드 위 헬스장 줄과 똑같이
+              // **민 아이콘**이다 (#1881): 아이콘 버튼은 44 칸 안에 24 글리프를
+              // 가운데 두므로, 그것만 버튼으로 두면 화살표가 헬스장 줄 화살표
+              // 보다 10 만큼 안으로 들어가 두 줄이 어긋난다. 누르는 자리는
+              // 줄 전체가 받는다.
+              if (onDetail != null) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                Container(
+                  key: const Key('gymTrainerDetailButton'),
+                  alignment: Alignment.centerRight,
+                  child: const AppIcon(
+                    AppIcons.chevronRight,
+                    size: OnCareSize.iconLarge,
+                    color: OnCareColors.textTertiary,
                   ),
                 ),
+              ],
             ],
           ),
           // 고를 근거는 한 사람에게 하나뿐인 경우가 드물다 — 있는 만큼 배지를
@@ -149,6 +149,20 @@ class GymTrainerLine extends StatelessWidget {
             TrainerReasonBadges(reasons: reasons, keyPrefix: 'gym-trainer'),
           ],
         ],
+      ),
+    );
+    if (onDetail == null) return line;
+    // 줄 전체가 상세로 가는 자리다 — 위의 헬스장 줄이 그렇고, 헬스장 상세의
+    // 트레이너 행(`AppListRow`)도 그렇다. 화살표는 그 길을 가리킬 뿐이다.
+    return Material(
+      color: Colors.transparent,
+      child: Tooltip(
+        message: l.myTrainerDetailTooltip,
+        child: InkWell(
+          onTap: onDetail,
+          borderRadius: OnCareRadius.mdAll,
+          child: line,
+        ),
       ),
     );
   }

@@ -175,6 +175,24 @@ void main() {
       expect(find.byType(TrainerDetailPage), findsOneWidget);
     });
 
+    testWidgets('헬스장 줄과 트레이너 줄의 화살표가 같은 자리에 선다 (#1881)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester);
+
+      // 한 카드 안에서 같은 뜻의 화살표가 서로 다른 자리에 서면 카드가
+      // 삐뚤어 보인다. 위가 헬스장 줄, 아래가 트레이너 줄이다.
+      final Finder arrows = find.descendant(
+        of: find.byKey(const Key('my-gym-info-card')),
+        matching: find.byIcon(AppIcons.chevronRight),
+      );
+      expect(arrows, findsNWidgets(2));
+      expect(
+        tester.getBottomRight(arrows.at(1)).dx,
+        tester.getBottomRight(arrows.at(0)).dx,
+      );
+    });
+
     testWidgets('한 명뿐이라 줄을 두르지 않는다 (#1881)', (WidgetTester tester) async {
       await pumpGymTab(tester);
 
