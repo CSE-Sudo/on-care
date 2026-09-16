@@ -239,11 +239,12 @@ class AppSpotlightAction extends StatelessWidget {
     final TextStyle style = tokens
         .text(OnCareTypography.strong(OnCareTypography.label))
         .copyWith(color: OnCareColors.textOnFill);
-    // 어두운 알약을 깔아 둔다. 글씨만 희게 두면 **밝게 뚫린 자리와 겹칠 때**
-    // 그 위에서 사라진다 — 알림 벨(위)이나 MY 탭(아래)을 짚을 때가 그렇다.
+    // 진한 알약을 깔아 둔다. 글씨만 희게 두면 **밝게 뚫린 자리와 겹칠 때** 그
+    // 위에서 사라진다 — 알림 벨(위)이나 MY 탭(아래)을 짚을 때가 그렇다. 덮개는
+    // 화면이 비치도록 옅게 두므로, 버튼 바탕은 덮개와 따로 둔다.
     return DecoratedBox(
       decoration: const BoxDecoration(
-        color: OnCareColors.spotlightScrim,
+        color: OnCareColors.spotlightActionFill,
         borderRadius: OnCareRadius.pillAll,
       ),
       child: InkWell(

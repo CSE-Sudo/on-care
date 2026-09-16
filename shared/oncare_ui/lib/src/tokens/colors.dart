@@ -78,9 +78,15 @@ class OnCareColors {
   /// 모달 뒤 배경 막.
   static const Color scrim = Color(0x8008121C);
 
-  /// 스포트라이트 안내의 덮개(#1857) — 시트 뒤 스크림보다 짙다. 뚫린 자리
-  /// 하나만 읽히게 하려면 나머지가 충분히 어두워야 한다.
-  static const Color spotlightScrim = Color(0xD908121C);
+  /// 스포트라이트 안내의 덮개(#1857) — **덮인 화면이 비치는** 회색이다.
+  ///
+  /// 짙게 덮으면 뚫린 자리는 잘 보이지만 나머지가 통째로 사라져, 지금 어느
+  /// 화면을 보고 있는지 알 수 없다. 가려진 부분도 무엇인지 알아볼 만큼만 낮춘다.
+  static const Color spotlightScrim = Color(0x4D2F3640);
+
+  /// 덮개 위 글자 버튼의 바탕(#1857). 덮개가 옅어진 만큼 버튼은 스스로 진해야
+  /// 한다 — 밝게 뚫린 자리와 겹쳐도 흰 글씨가 읽혀야 하기 때문이다.
+  static const Color spotlightActionFill = Color(0xE61A1A1A);
 
   // --- 차트 ---
   /// 그래프 목표선(파선). 데이터 선과 섞이지 않는 중립 회색.

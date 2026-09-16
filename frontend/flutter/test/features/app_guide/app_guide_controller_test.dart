@@ -72,6 +72,23 @@ void main() {
     expect(container.read(appPrefsProvider).homeGuideDone, isTrue);
   });
 
+  test('새로 가입하면 다시 보여 준다', () async {
+    // 본 기억은 계정이 아니라 기기에 남는다 — 한 기기에서 두 번째 계정을 만들면
+    // 가입했는데도 가이드가 없는 일이 생겼다.
+    final ProviderContainer container = await containerWith(
+      const <String, Object>{'home_guide_done': true},
+    );
+    final AppGuideController controller = container.read(
+      appGuideControllerProvider.notifier,
+    );
+
+    controller.resetSeen();
+    controller.start();
+
+    expect(container.read(appGuideControllerProvider).active, isTrue);
+    expect(container.read(appPrefsProvider).homeGuideDone, isFalse);
+  });
+
   test('이미 본 회원에게는 다시 뜨지 않는다', () async {
     final ProviderContainer container = await containerWith(
       const <String, Object>{'home_guide_done': true},

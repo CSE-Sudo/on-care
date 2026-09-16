@@ -103,6 +103,16 @@ class AppGuideController extends Notifier<AppGuideState> {
     _prefs?.setHomeGuideDone(true);
   }
 
+  /// 새 계정으로 가입했으니 가이드를 다시 보여 준다(#1857).
+  ///
+  /// 본 기억은 기기에 남는다 — 계정이 아니라. 한 기기에서 두 번째 계정을 만들면
+  /// 첫 계정이 본 기억 때문에 **가입했는데 가이드가 없는** 일이 생긴다. 가입은
+  /// 언제나 처음 쓰는 사람이므로, 그 자리에서 기억을 지운다.
+  void resetSeen() {
+    state = const AppGuideState();
+    _prefs?.setHomeGuideDone(false);
+  }
+
   /// 설정 저장소가 없는 자리(일부 테스트)에서도 가이드는 떠야 한다 — 그때는
   /// "아직 안 봤다" 로 보고, 본 기억만 남기지 않는다.
   AppPrefs? get _prefs {
