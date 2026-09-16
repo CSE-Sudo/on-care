@@ -470,6 +470,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietDeleteConfirm => '이 식단 기록을 삭제할까요?';
 
   @override
+  String get dietDeleteWhenEmpty => '음식이 하나도 남지 않았어요. 이 식단 기록을 삭제할까요?';
+
+  @override
   String get dietCancel => '취소';
 
   @override
@@ -509,13 +512,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietNutritionInfo => '영양 정보';
 
   @override
-  String get dietEditNutritionHint => '분석된 값을 직접 수정할 수 있어요';
-
-  @override
-  String get dietSodiumHint => '하루 권장 2,000mg 이하';
-
-  @override
-  String get dietSugarHint => '하루 권장 50g 이하';
+  String get dietEditNutritionHint => '음식별 영양을 고치면 여기에 합쳐져요';
 
   @override
   String get dietDeleteMeal => '식단 삭제';
@@ -1030,6 +1027,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myNotifTitle => '알림 설정';
+
+  @override
+  String get myGuideTitle => '앱 사용 가이드 다시 보기';
 
   @override
   String get mySupportTitle => '고객 지원';
@@ -2041,6 +2041,72 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get pointsGuideStart => '시작하기';
+
+  @override
+  String guideBadgeWithStep(int current, int total) {
+    return '앱 사용 가이드 $current/$total';
+  }
+
+  @override
+  String get guideSampleBadge => '예시 화면';
+
+  @override
+  String get guideSkip => '건너뛰기';
+
+  @override
+  String get guidePrev => '이전';
+
+  @override
+  String get guideNext => '다음';
+
+  @override
+  String get guideDone => '완료';
+
+  @override
+  String get guideHomeAdviceTitle => '오늘의 AI 통합 조언';
+
+  @override
+  String get guideHomeAdviceBody => '식단과 운동을 함께 읽고, 오늘 무엇을 하면 좋을지 짚어 줘요';
+
+  @override
+  String get guideQuickAddTitle => '빠른 기록';
+
+  @override
+  String get guideQuickAddBody => '가운데 + 로 식단과 운동을 어느 화면에서든 바로 추가해요';
+
+  @override
+  String get guideDietNutritionTitle => '영양 요약';
+
+  @override
+  String get guideDietNutritionBody =>
+      '오늘 먹은 것의 칼로리와 탄단지, 나트륨·당류가 목표까지 얼마나 남았는지 봐요';
+
+  @override
+  String get guideExerciseStatusTitle => '운동 현황';
+
+  @override
+  String get guideExerciseStatusBody => '오늘과 이번 주에 얼마나 움직였는지, 목표까지 얼마나 남았는지 봐요';
+
+  @override
+  String get guideGymTitle => '내 헬스장과 트레이너';
+
+  @override
+  String get guideGymBody => '연결한 헬스장과 담당 트레이너예요. 트레이너가 짠 운동과 피드백이 앱으로 와요';
+
+  @override
+  String get guideMySettingsTitle => '설정';
+
+  @override
+  String get guideMySettingsBody =>
+      '프로필과 건강 목표, 알림을 여기서 바꿔요. 이 안내도 여기서 다시 볼 수 있어요';
+
+  @override
+  String get guidePointsTitle => '포인트';
+
+  @override
+  String guidePointsBody(int diet, int exercise, int routine) {
+    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P';
+  }
 
   @override
   String get onboardRequiredTag => '(필수)';

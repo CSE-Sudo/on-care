@@ -159,6 +159,7 @@ class AppNavDestination {
     required this.label,
     this.badgeCount = 0,
     this.key,
+    this.anchorKey,
   });
 
   final IconData icon;
@@ -169,6 +170,12 @@ class AppNavDestination {
   /// 이 목적지 칸을 가리키는 열쇠. 아이콘·라벨이 화면의 다른 곳과 겹칠 때
   /// 테스트·자동화가 칸을 지목하는 데 쓴다.
   final Key? key;
+
+  /// 이 칸이 화면 **어디에 그려졌는지**를 읽기 위한 열쇠(#1857).
+  ///
+  /// [key] 와 나누어 둔다: [key] 는 위젯을 찾는 이름이고, 이쪽은 자리를 재는
+  /// 손잡이다. 스포트라이트 안내가 이 칸만 밝게 뚫을 때 쓴다.
+  final GlobalKey? anchorKey;
 }
 
 /// 모바일 하단 내비(#1696, #1664) — 바 높이 64, 아이콘 24, 라벨 `caption` 600.
@@ -210,34 +217,38 @@ class AppBottomNav extends StatelessWidget {
           : OnCareColors.textTertiary;
       return Expanded(
         key: d.key,
-        child: Semantics(
-          button: true,
-          selected: selected,
-          label: d.label,
-          child: InkResponse(
-            onTap: () => onSelected(index),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Badge(
-                  isLabelVisible: d.badgeCount > 0,
-                  label: Text('${d.badgeCount}'),
-                  child: AppIcon(
-                    selected ? d.selectedIcon : d.icon,
-                    size: OnCareSize.iconLarge,
-                    color: color,
+        // 스포트라이트 안내가 이 칸의 자리를 재기 위한 열쇠다(#1857).
+        child: KeyedSubtree(
+          key: d.anchorKey,
+          child: Semantics(
+            button: true,
+            selected: selected,
+            label: d.label,
+            child: InkResponse(
+              onTap: () => onSelected(index),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Badge(
+                    isLabelVisible: d.badgeCount > 0,
+                    label: Text('${d.badgeCount}'),
+                    child: AppIcon(
+                      selected ? d.selectedIcon : d.icon,
+                      size: OnCareSize.iconLarge,
+                      color: color,
+                    ),
                   ),
-                ),
-                const SizedBox(height: OnCareSpacing.s4),
-                Text(
-                  d.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.caption))
-                      .copyWith(color: color),
-                ),
-              ],
+                  const SizedBox(height: OnCareSpacing.s4),
+                  Text(
+                    d.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.strong(OnCareTypography.caption))
+                        .copyWith(color: color),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

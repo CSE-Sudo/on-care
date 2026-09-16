@@ -5,7 +5,9 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -24,10 +26,14 @@ final memberCoachRepositoryProvider = Provider<MemberCoachRepository>((ref) {
     // 할 수 있다. 테스트가 운동 저장소를 다른 대역으로 갈아 끼우면 루틴 상태만
     // 바뀌는 예전 동작으로 떨어진다 — 화면이 죽는 것보다 낫다.
     final ExerciseRepository exercise = ref.watch(exerciseRepositoryProvider);
+    final GymRepository gym = ref.watch(gymRepositoryProvider);
     return MockMemberCoachRepository(
       exercise: exercise is MockExerciseRepository ? exercise : null,
       // 루틴 완료(추천·배정) 적립도 같은 원장이다(#1786).
       points: ref.watch(demoPointsLedgerProvider),
+      // 담당 트레이너 연결은 헬스장 저장소가 들고 있다 — 트레이너를 끊으면
+      // 담당 코치도 없어야 헤더가 AI 챗봇 입구로 바뀐다(#1840, #1865).
+      linked: gym is MockGymRepository ? () => gym.hasTrainer : null,
     );
   }
   return DioMemberCoachRepository(ref.watch(dioProvider));
