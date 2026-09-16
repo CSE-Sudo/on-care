@@ -21,7 +21,7 @@ _YMD = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 from app.schemas.partial_update import PartialUpdate
 
-from app.schemas.diet import DietAnalysis
+from app.schemas.diet import DietAnalysis, RecognizedFood
 
 
 class Macros(BaseModel):
@@ -90,6 +90,14 @@ class DietEntryUpdate(PartialUpdate):
     date: str | None = None
     meal_type: str | None = None
     time_label: str | None = None
+    #: 고친 음식 목록(#1892). 오면 저장된 음식을 이 값으로 갈아 끼우고, 끼니
+    #: 합계도 이 목록에서 다시 낸다 — 함께 온 합계 값보다 음식이 우선이다.
+    #: 원본을 하나로 두지 않으면 음식을 고칠 때마다 합계와 내역이 갈린다.
+    #:
+    #: 빈 목록은 받지 않는다. 음식이 하나도 없는 끼니는 수정이 아니라 삭제이고
+    #: (앱도 그때 삭제할지 묻는다), 실수로 빈 배열이 오면 그 기록의 영양이
+    #: 소리 없이 0 이 된다.
+    foods: list[RecognizedFood] | None = Field(None, min_length=1)
     total_calories: int | None = Field(None, ge=0)
     carbs_g: float | None = Field(None, ge=0, allow_inf_nan=False)
     protein_g: float | None = Field(None, ge=0, allow_inf_nan=False)
