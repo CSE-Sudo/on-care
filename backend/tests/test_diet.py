@@ -734,6 +734,26 @@ def test_update_entry_compares_sugar_against_stored_carbs(client):
     assert r.json()["sugar_g"] == 4.0
 
 
+def test_update_entry_allows_sugar_when_carbs_is_zero(client):
+    """탄수화물 0 은 "없다" 가 아니라 "아직 안 적혔다" 로 본다. (#1863)
+
+    컬럼이 NOT NULL 기본 0 이라 둘을 구분할 수 없다. 여기서 막으면 탄수화물을
+    건드리지 않는 정상적인 부분 수정까지 거절된다.
+    """
+    entry_id = _analyzed_entry_id(client)
+    assert (
+        client.put(
+            f"/v1/diet/entries/{entry_id}",
+            json={"carbs_g": 0, "protein_g": 0, "fat_g": 0},
+        ).status_code
+        == 200
+    )
+
+    r = client.put(f"/v1/diet/entries/{entry_id}", json={"sugar_g": 5.0})
+    assert r.status_code == 200
+    assert r.json()["sugar_g"] == 5.0
+
+
 def test_analyze_is_not_blocked_by_inconsistent_nutrition(client):
     """인식 엔진 출력에는 걸지 않는다 — 막으면 사진 분석 자체가 실패한다."""
     r = client.post(

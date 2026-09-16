@@ -403,10 +403,16 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
     # 부분 수정이라 한쪽만 오는 일이 있어, 바꾸기 전에 **저장된 값과 합친 결과**로
     # 견준다. 인식 엔진 출력(`RecognizedFood`)에는 걸지 않는다 — 모델이 어긋난
     # 값을 낼 수 있는데 거기서 막으면 사진 분석 자체가 실패한다(#1863).
+    #
+    # 탄수화물이 0 이면 견주지 않는다. 컬럼이 NOT NULL 기본 0 이라 "탄수화물이
+    # 없다" 와 "아직 안 적혔다" 를 구분할 수 없는데, 당류만 있고 탄수화물이 0 인
+    # 기록은 거의 언제나 후자다(인식기가 그 값을 못 준 경우). 여기서 막으면
+    # 탄수화물을 건드리지 않는 정상적인 부분 수정까지 거절된다.
     merged_carbs = payload.carbs_g if payload.carbs_g is not None else entry.carbs_g
     merged_sugar = payload.sugar_g if payload.sugar_g is not None else entry.sugar_g
     if (
         merged_carbs is not None
+        and merged_carbs > 0
         and merged_sugar is not None
         and merged_sugar > merged_carbs
     ):
