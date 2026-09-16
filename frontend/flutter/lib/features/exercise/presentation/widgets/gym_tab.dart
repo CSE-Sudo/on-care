@@ -523,7 +523,11 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
                           _when(context, l, picked.startsAt),
                         ),
                         onPressed: busy ? null : () => _reserve(l, picked),
-                        size: OnCareButtonSize.large,
+                        // 같은 탭의 `트레이너와 채팅` 과 같은 높이로 맞춘다 —
+                        // 36 짜리 자리 칩들 사이에서 52 는 혼자 너무 크게 서
+                        // 있었다. 폭이 이미 전체라 크기로 더 강조하지 않아도
+                        // 다음 걸음인 것이 읽힌다.
+                        size: OnCareButtonSize.medium,
                         fullWidth: true,
                       ),
                     ],

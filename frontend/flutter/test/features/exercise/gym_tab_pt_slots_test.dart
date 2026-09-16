@@ -21,6 +21,7 @@ import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/gym_tab.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../support/consultation_test_support.dart';
 
@@ -85,6 +86,7 @@ void main() {
     WidgetTester tester, {
     bool hasMyGym = true,
     List<MyReservation> reservations = const <MyReservation>[],
+    String? selectedSlot,
   }) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -123,7 +125,7 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: Scaffold(
             body: SingleChildScrollView(
-              child: GymTab(selectedSlot: null, onSlot: (String _) {}),
+              child: GymTab(selectedSlot: selectedSlot, onSlot: (String _) {}),
             ),
           ),
         ),
@@ -273,6 +275,19 @@ void main() {
       find.byKey(const ValueKey<String>('slot-chip-slot-open')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('예약 확정 버튼은 자리 칩과 채팅 버튼 사이에서 혼자 커지지 않는다', (
+    WidgetTester tester,
+  ) async {
+    await pumpTab(tester, selectedSlot: 'slot-open');
+
+    final AppButton confirm = tester.widget<AppButton>(
+      find.byKey(const ValueKey<String>('reserve-confirm')),
+    );
+    // 같은 탭의 `트레이너와 채팅`(기본 medium)과 같은 높이다. large(52)는 36짜리
+    // 자리 칩들 사이에서 혼자 크게 섰다.
+    expect(confirm.size, OnCareButtonSize.medium);
   });
 
   testWidgets('1:1 PT 가 아닌 자리는 종류가 무엇이든 내주지 않는다 (#1849)', (
