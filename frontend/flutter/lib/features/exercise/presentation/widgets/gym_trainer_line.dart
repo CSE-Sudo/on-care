@@ -131,31 +131,21 @@ class GymTrainerLine extends StatelessWidget {
             const SizedBox(height: OnCareSpacing.s8),
             Align(
               alignment: Alignment.centerLeft,
-              child: Container(
-                key: const ValueKey<String>('gym-trainer-reason'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: OnCareSpacing.s8,
-                  vertical: OnCareSpacing.s4,
-                ),
-                decoration: BoxDecoration(
-                  // 추천 이유는 고를 근거다 — 흰 배경에 회색 글씨면 옆의 일반
-                  // 설명과 위계가 같아진다. 트레이너 목록·상세가 이미 쓰는
-                  // 브랜드 파랑으로 윤곽선과 글자를 맞춘다(#1445). 배경은
-                  // 흰색 그대로다 — 줄 자체가 옅은 파랑이라 배지까지 파래지면
-                  // 배지가 사라진다.
-                  color: OnCareColors.surfaceCard,
-                  border: Border.all(color: tokens.brand.border),
-                  borderRadius: OnCareRadius.pillAll,
-                ),
-                child: Text(
-                  '${l.exRecommendationReason}: $reason',
-                  maxLines: 2,
-                  // 두 줄을 넘기면 줄여 적는다 — 큰 배율에서 배지가 카드 밖으로
-                  // 밀려 나가지 않게.
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.caption))
-                      .copyWith(color: tokens.brand.primary),
+              // 추천 이유는 고를 근거다 — 앞에 `추천 이유:` 를 붙이면 읽는 사람은
+              // 매번 라벨을 먼저 지나치고나서야 정작 볼 것을 만난다. 라벨을 걷어내고
+              // 모양으로 대신한다 (#1847) — 알약 모양이 여기가 설명이 아니라
+              // 꼬리표라고 말한다. 같은 알약을 식단 탭이 이미 쓰고 있어 새로 만들지
+              // 않고 공용 [AppTag] 를 그대로 가져다 쓴다.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                // [AppTag] 의 글자는 한 줄이다. 긴 사유는 말줄임 대신 배지를
+                // 줄여 담는다 — 사유가 잘리면 고를 근거가 사라진다. 식단 탭의
+                // 영양 배지가 쓰는 것과 같은 방법이다.
+                child: AppTag(
+                  key: const ValueKey<String>('gym-trainer-reason'),
+                  label: reason,
+                  tone: AppTagTone.brand,
                 ),
               ),
             ),
