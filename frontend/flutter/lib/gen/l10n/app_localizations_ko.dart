@@ -2043,6 +2043,64 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pointsGuideStart => '시작하기';
 
   @override
+  String get guideBadge => '앱 사용 가이드';
+
+  @override
+  String get guideSampleBadge => '예시 화면';
+
+  @override
+  String guideStepCount(int current, int total) {
+    return '$current/$total';
+  }
+
+  @override
+  String get guideSkip => '건너뛰기';
+
+  @override
+  String get guideNext => '다음';
+
+  @override
+  String get guideDone => '시작하기';
+
+  @override
+  String get guideHomeTitle => '오늘 기록이 한눈에';
+
+  @override
+  String get guideHomeBody => '먹은 것과 운동이 홈에 모여요. 목표까지 얼마나 남았는지 여기서 봐요';
+
+  @override
+  String get guideAlertsTitle => '알림';
+
+  @override
+  String get guideAlertsBody => '트레이너 메시지와 기록 알림이 여기로 와요';
+
+  @override
+  String get guideDietTitle => '식단 기록';
+
+  @override
+  String get guideDietBody => '사진 한 장이면 AI가 영양을 분석해 기록해요';
+
+  @override
+  String get guideQuickAddTitle => '빠른 기록';
+
+  @override
+  String get guideQuickAddBody => '가운데 + 로 식단과 운동을 어느 화면에서든 바로 추가해요';
+
+  @override
+  String get guideExerciseTitle => '운동';
+
+  @override
+  String get guideExerciseBody => '추천 운동과 트레이너가 배정한 운동을 여기서 하고 기록해요';
+
+  @override
+  String get guidePointsTitle => 'MY와 포인트';
+
+  @override
+  String guidePointsBody(int diet, int exercise, int routine) {
+    return '건강 목표와 포인트가 여기 있어요. 식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P';
+  }
+
+  @override
   String get onboardRequiredTag => '(필수)';
 
   @override

@@ -120,7 +120,10 @@ class PointsGuidePage extends StatelessWidget {
                     label: l.pointsGuideStart,
                     size: OnCareButtonSize.large,
                     fullWidth: true,
-                    onPressed: () => context.go(AppRoutes.dashboard),
+                    // 곧바로 홈이 아니라, 예시 자료로 채운 화면 위에서 주요
+                    // 기능을 짚어 주는 가이드로 이어진다(#1857). 가이드를 이미
+                    // 본 회원은 그 화면이 스스로 홈으로 보낸다.
+                    onPressed: () => context.go(AppRoutes.guideTour),
                   ),
                 ),
               ],

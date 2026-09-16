@@ -2106,6 +2106,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pointsGuideStart => 'Get started';
 
   @override
+  String get guideBadge => 'App guide';
+
+  @override
+  String get guideSampleBadge => 'Sample screen';
+
+  @override
+  String guideStepCount(int current, int total) {
+    return '$current/$total';
+  }
+
+  @override
+  String get guideSkip => 'Skip';
+
+  @override
+  String get guideNext => 'Next';
+
+  @override
+  String get guideDone => 'Start';
+
+  @override
+  String get guideHomeTitle => 'Your day at a glance';
+
+  @override
+  String get guideHomeBody =>
+      'Meals and workouts gather on Home, with how far you are from today\'s goals';
+
+  @override
+  String get guideAlertsTitle => 'Alerts';
+
+  @override
+  String get guideAlertsBody => 'Trainer messages and reminders arrive here';
+
+  @override
+  String get guideDietTitle => 'Log a meal';
+
+  @override
+  String get guideDietBody =>
+      'One photo is enough — AI reads the nutrition and logs it';
+
+  @override
+  String get guideQuickAddTitle => 'Quick add';
+
+  @override
+  String get guideQuickAddBody =>
+      'The + in the middle adds a meal or a workout from any screen';
+
+  @override
+  String get guideExerciseTitle => 'Exercise';
+
+  @override
+  String get guideExerciseBody =>
+      'Do and log the workouts your AI coach recommends and your trainer assigns';
+
+  @override
+  String get guidePointsTitle => 'MY and points';
+
+  @override
+  String guidePointsBody(int diet, int exercise, int routine) {
+    return 'Health goals and points live here. Log a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P';
+  }
+
+  @override
   String get onboardRequiredTag => '(required)';
 
   @override

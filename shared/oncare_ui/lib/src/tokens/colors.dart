@@ -78,6 +78,10 @@ class OnCareColors {
   /// 모달 뒤 배경 막.
   static const Color scrim = Color(0x8008121C);
 
+  /// 스포트라이트 안내의 덮개(#1857) — 시트 뒤 스크림보다 짙다. 뚫린 자리
+  /// 하나만 읽히게 하려면 나머지가 충분히 어두워야 한다.
+  static const Color spotlightScrim = Color(0xD908121C);
+
   // --- 차트 ---
   /// 그래프 목표선(파선). 데이터 선과 섞이지 않는 중립 회색.
   static const Color chartGoalLine = Color(0xFF98A2B3);

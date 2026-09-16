@@ -61,6 +61,10 @@ class AppRoutes {
   /// 온보딩을 마치거나 건너뛴 뒤 홈으로 가기 전에 보는 포인트 안내(#1826).
   static const String pointsGuide = '/onboarding/points';
 
+  /// 포인트 안내의 `시작하기` 뒤에 보는 사용 가이드(#1857) — 예시 자료로 채운
+  /// 화면 위에서 주요 기능을 하나씩 밝게 짚는다.
+  static const String guideTour = '/onboarding/guide';
+
   // Dev-only routes (registered only in non-prod builds).
   static const String uiCatalog = '/dev/ui-catalog';
 }

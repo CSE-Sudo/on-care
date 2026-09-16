@@ -3805,6 +3805,114 @@ abstract class AppLocalizations {
   /// **'Get started'**
   String get pointsGuideStart;
 
+  /// Spotlight guide: tells the member the dimmed screen is a guide (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'App guide'**
+  String get guideBadge;
+
+  /// Spotlight guide: the screen under the guide is filled with sample data, not the member's own (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Sample screen'**
+  String get guideSampleBadge;
+
+  /// Spotlight guide: which step of the guide this is (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'{current}/{total}'**
+  String guideStepCount(int current, int total);
+
+  /// Spotlight guide: ends the guide without seeing the rest (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get guideSkip;
+
+  /// Spotlight guide: goes to the next step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get guideNext;
+
+  /// Spotlight guide: ends the guide on the last step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get guideDone;
+
+  /// Spotlight guide step: the home summary card (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Your day at a glance'**
+  String get guideHomeTitle;
+
+  /// Spotlight guide step: the home summary card (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Meals and workouts gather on Home, with how far you are from today\'s goals'**
+  String get guideHomeBody;
+
+  /// Spotlight guide step: the header bell (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Alerts'**
+  String get guideAlertsTitle;
+
+  /// Spotlight guide step: the header bell (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer messages and reminders arrive here'**
+  String get guideAlertsBody;
+
+  /// Spotlight guide step: the diet tab (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Log a meal'**
+  String get guideDietTitle;
+
+  /// Spotlight guide step: the diet tab (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'One photo is enough — AI reads the nutrition and logs it'**
+  String get guideDietBody;
+
+  /// Spotlight guide step: the center add button (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Quick add'**
+  String get guideQuickAddTitle;
+
+  /// Spotlight guide step: the center add button (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'The + in the middle adds a meal or a workout from any screen'**
+  String get guideQuickAddBody;
+
+  /// Spotlight guide step: the exercise tab (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get guideExerciseTitle;
+
+  /// Spotlight guide step: the exercise tab (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Do and log the workouts your AI coach recommends and your trainer assigns'**
+  String get guideExerciseBody;
+
+  /// Spotlight guide step: the MY tab, including points (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'MY and points'**
+  String get guidePointsTitle;
+
+  /// Spotlight guide step: the MY tab; numbers come from the points rules (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Health goals and points live here. Log a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P'**
+  String guidePointsBody(int diet, int exercise, int routine);
+
   /// Onboarding step 1: the basic info step must be filled in (#1830).
   ///
   /// In en, this message translates to:
