@@ -29,7 +29,13 @@ from app.services.coach.personal_ingest import record_diet, refresh_diet
 logger = logging.getLogger(__name__)
 
 # 끼니 macros/nutrient 는 DietEntry 를 단일 원본으로 삼는다. 저장 시 유지하는 음식 필드.
-_FOOD_STORAGE_FIELDS = ("name", "calories", "sodium_mg", "sugar_g", "source")
+#
+# `amount_g` 는 나머지 영양의 **기준점**이라 함께 남긴다(#1876). 공공 DB 값은 100g
+# 기준이고 보정(`nutrition/enrich`)이 이 양으로 환산하므로, 양을 버리면 "그 숫자가
+# 무엇을 재고 나온 값인가" 가 사라진다. 그러면 회원이 양을 고쳐도 영양을 다시 셀
+# 근거가 없다 — 비례 환산에 필요한 건 DB 재조회가 아니라 이 한 값이다.
+# 없을 수 있다(양을 못 얻은 인식·이 필드 이전 기록) — 읽는 쪽이 null 을 견딘다.
+_FOOD_STORAGE_FIELDS = ("name", "amount_g", "calories", "sodium_mg", "sugar_g", "source")
 # DASH 권고 나트륨 상한(고혈압 특화 코칭 기준).
 DASH_SODIUM_LIMIT_MG = 2000
 
@@ -333,9 +339,11 @@ def save_analyzed_entry(
     동시 재시도가 유니크 제약(user_id, idempotency_key)에 걸리면 이미 저장된 엔트리를
     반환한다(is_new=False, 중복 저장·재적재 방지). 신규 저장 시 개인 RAG 문서로도 적재.
     """
+    # 저장 형태는 [_FOOD_STORAGE_FIELDS] 하나로 정한다. 여기에 목록을 한 번 더
+    # 손으로 적으면 필드를 늘릴 때 한쪽만 고쳐져, 저장은 되는데 읽을 때 걸러지는
+    # (또는 그 반대) 값이 생긴다 — `amount_g` 를 더하며 실제로 겪은 갈래다.
     foods_for_storage = [
-        {"name": f.name, "calories": f.calories,
-         "sodium_mg": f.sodium_mg, "sugar_g": f.sugar_g, "source": f.source}
+        {field: getattr(f, field) for field in _FOOD_STORAGE_FIELDS}
         for f in analysis.foods
     ]
     # 날짜와 시각은 같은 시계 스냅샷에서 뽑는다. 따로 읽으면 KST 자정 사이에

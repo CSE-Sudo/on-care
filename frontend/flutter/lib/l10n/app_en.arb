@@ -123,6 +123,10 @@
   "dietWeekdaySat": "Sat",
   "dietWeekdaySun": "Sun",
   "dietNutritionSummary": "Nutrition",
+  "dietAmount": "Serving size",
+  "@dietAmount": {
+    "description": "Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)"
+  },
   "dietCalories": "Calories",
   "dietSodium": "Sodium",
   "dietSugar": "Sugar",
@@ -247,7 +251,7 @@
   "dietEatenFood": "Food Eaten",
   "dietNewFood": "New food",
   "dietAddFood": "Add Food",
-  "dietEditFoodHint": "You can edit the food name and calories",
+  "dietEditFoodHint": "Change the serving size and the nutrition follows",
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
   "dietEditNutritionHint": "Edit each food's nutrition and it adds up here",

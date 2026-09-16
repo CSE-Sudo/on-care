@@ -73,7 +73,8 @@
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float) }`
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
-`foods[]`: `[{ name, calories }]` (drift 주석 기준)
+`foods[]`: `[{ name, amount_g(float|null), calories(int), sodium_mg(int), sugar_g(float), source(db|estimate|mixed) }]` — 저장하는 음식 필드(`_FOOD_STORAGE_FIELDS`)와 같다.
+`amount_g`: 그 영양이 **무엇을 재고 나온 값인가**. 공공 DB 는 100g 기준이라 보정이 이 양으로 환산하며, 환산에 실제로 쓴 값(인식기 추정 또는 알려진 1회 섭취량)이 그대로 실린다. 양을 못 얻어 추정치를 그대로 둔 음식과 이 필드 이전 기록은 `null` 이다 — 읽는 쪽이 null 을 견뎌야 한다. 앱은 이 값으로 영양을 비례 환산한다(#1876).
 `macros`: `{ carbs_pct, protein_pct, fat_pct }`
 `idempotency_key`(선택): 재시도 중복 저장 방지. 클라 요청당 1회 생성해 재시도 시 재사용하면, 서버는 (user_id, key) 유니크 제약으로 같은 키의 재요청에 대해 **인식·저장을 건너뛰고 기존 entry 를 반환**한다(중복 기록·RAG 재적재 없음).
 

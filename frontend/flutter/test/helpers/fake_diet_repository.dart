@@ -39,9 +39,12 @@ class FakeDietRepository implements DietRepository {
       photoAsset: 'assets/images/breakfast-scrambled-egg-strawberry.jpg',
       aiComment: '단백질과 식이섬유의 깔끔한 조합으로, 소금 간과 기름만 조절하면 혈당과 혈압 모두 잡는 우수한 식단입니다.',
       foods: <FoodItem>[
+        // 섭취량을 아는 음식과 모르는 음식을 한 끼니에 함께 둔다 — 서버가
+        // 양을 얻지 못한 인식과 이 필드 이전 기록이 실제로 섞여 들어온다(#1876).
         FoodItem(
           name: '스크램블 에그',
           calories: 185,
+          amountG: 100,
           sodiumMg: 220,
           sugarG: 0.8,
           carbsG: 2,
@@ -248,7 +251,9 @@ class FakeDietRepository implements DietRepository {
     final DateTime today = DateTime(now.year, now.month, now.day);
     final int daysAgo = today.difference(selectedDate).inDays;
     final List<DietEntry> moved = movedEntries.values
-        .where((({String date, DietEntry entry}) m) => m.date == _wire(selectedDate))
+        .where(
+          (({String date, DietEntry entry}) m) => m.date == _wire(selectedDate),
+        )
         .map((({String date, DietEntry entry}) m) => m.entry)
         .toList();
     if (daysAgo == 0) return fetchToday();
@@ -372,7 +377,6 @@ class FakeDietRepository implements DietRepository {
     final String mm = now.minute.toString().padLeft(2, '0');
     return '$hh:$mm';
   }
-
 }
 
 const List<DietEntry> _yesterdayEntries = <DietEntry>[

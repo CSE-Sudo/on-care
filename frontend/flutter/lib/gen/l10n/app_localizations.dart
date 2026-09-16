@@ -542,6 +542,12 @@ abstract class AppLocalizations {
   /// **'Nutrition'**
   String get dietNutritionSummary;
 
+  /// Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)
+  ///
+  /// In en, this message translates to:
+  /// **'Serving size'**
+  String get dietAmount;
+
   /// No description provided for @dietCalories.
   ///
   /// In en, this message translates to:
@@ -1013,7 +1019,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietEditFoodHint.
   ///
   /// In en, this message translates to:
-  /// **'You can edit the food name and calories'**
+  /// **'Change the serving size and the nutrition follows'**
   String get dietEditFoodHint;
 
   /// No description provided for @dietTotalCalories.

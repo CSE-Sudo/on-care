@@ -342,6 +342,88 @@ def test_analyze_offline_saves_and_reflects_macros_in_today(client, db_session):
     )
 
 
+def test_analyze_stores_the_amount_each_food_was_scaled_from(client, db_session):
+    """영양을 낸 **양**을 함께 남긴다 — 앱이 그 값으로 비례 환산한다(#1876).
+
+    양을 버리면 "이 숫자가 무엇을 재고 나온 값인가" 가 사라져, 회원이 양을
+    고쳐도 영양을 다시 셀 근거가 없다. 스텁 인식기는 양을 주지 않으므로 보정이
+    알려진 1회 섭취량으로 환산하는데, **그 값이 실제 기준**이라 그대로 실린다.
+    """
+    from app.services.diet_service import today_str as _today_str
+    from app.db.init_db import DEMO_USER_ID
+    from app.models.models import DietEntry
+
+    db_session.execute(
+        delete(DietEntry).where(
+            DietEntry.user_id == DEMO_USER_ID,
+            DietEntry.date == _today_str(),
+        )
+    )
+    db_session.commit()
+
+    body = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    ).json()
+    foods = body["analysis"]["foods"]
+    # 시드에 적힌 1회 섭취량(요거트 110g · 과일 90g · 그래놀라 50g).
+    assert [f["amount_g"] for f in foods] == [110, 90, 50]
+    # 영양은 그 양을 재고 나온 값이다 — 100g 기준값 × (양 / 100).
+    assert foods[0]["calories"] == 135
+    assert foods[2]["calories"] == 205
+
+    stored_foods = json.loads(db_session.get(DietEntry, body["entry_id"]).foods_json)
+    assert [f["amount_g"] for f in stored_foods] == [110, 90, 50], (
+        "응답에만 있고 저장되지 않으면 다음에 열었을 때 기준이 사라진다"
+    )
+
+    today_foods = [
+        food
+        for entry in client.get("/v1/diet/days/today").json()["entries"]
+        for food in entry["foods"]
+    ]
+    assert [f["amount_g"] for f in today_foods] == [110, 90, 50]
+
+
+def test_foods_saved_before_amount_existed_still_load(client, db_session):
+    """이 필드 이전 기록은 양이 없다 — 그래도 그대로 열려야 한다(#1876)."""
+    from app.services.diet_service import today_str as _today_str
+    from app.db.init_db import DEMO_USER_ID
+    from app.models.models import DietEntry
+
+    db_session.execute(
+        delete(DietEntry).where(
+            DietEntry.user_id == DEMO_USER_ID,
+            DietEntry.date == _today_str(),
+        )
+    )
+    db_session.commit()
+    entry_id = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    ).json()["entry_id"]
+
+    row = db_session.get(DietEntry, entry_id)
+    row.foods_json = json.dumps([
+        {"name": "옛 기록", "calories": 100, "sodium_mg": 10, "sugar_g": 2,
+         "source": "estimate"},
+    ])
+    db_session.commit()
+
+    entry = client.get("/v1/diet/days/today").json()["entries"][0]
+    assert entry["foods"][0]["name"] == "옛 기록"
+    # 없는 값을 0 으로 지어내지 않는다 — 앱이 칸을 비워 두고 회원이 적는 값을
+    # 기준으로 삼는다. 0 을 내려보내면 "0g 먹었다" 는 기록이 되어 버린다.
+    assert entry["foods"][0].get("amount_g") is None
+
+    # 이 기록을 수정하는 길도 막히지 않는다.
+    r = client.put(f"/v1/diet/entries/{entry_id}", json={"total_calories": 100})
+    assert r.status_code == 200, r.text
+    assert r.json()["foods"][0].get("amount_g") is None
+
+
 def test_analyze_succeeds_when_personal_rag_ingest_fails(
     client, db_session, monkeypatch
 ):

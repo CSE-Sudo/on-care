@@ -123,6 +123,10 @@ class DioDietRepository implements DietRepository {
                 (FoodItem food) => <String, Object?>{
                   'name': food.name,
                   'calories': food.calories,
+                  // 섭취량은 나머지 값의 기준이라 함께 싣는다. 빠뜨리면 다음에
+                  // 이 끼니를 열었을 때 양을 모르는 기록이 되어, 양으로 영양을
+                  // 움직이는 길이 저장 한 번에 끊긴다(#1876).
+                  'amount_g': food.amountG,
                   'sodium_mg': food.sodiumMg,
                   'sugar_g': food.sugarG,
                   'carbs_g': food.carbsG,

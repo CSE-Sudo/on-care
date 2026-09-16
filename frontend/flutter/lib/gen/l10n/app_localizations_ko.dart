@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -248,6 +249,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietNutritionSummary => '영양 요약';
+
+  @override
+  String get dietAmount => '내용량';
 
   @override
   String get dietCalories => '칼로리';
@@ -503,7 +507,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddFood => '음식 추가';
 
   @override
-  String get dietEditFoodHint => '음식명과 칼로리를 수정할 수 있어요';
+  String get dietEditFoodHint => '내용량을 고치면 영양이 비례해 따라와요';
 
   @override
   String get dietTotalCalories => '총 칼로리';

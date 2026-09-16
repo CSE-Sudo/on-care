@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -250,6 +251,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietNutritionSummary => 'Nutrition';
+
+  @override
+  String get dietAmount => 'Serving size';
 
   @override
   String get dietCalories => 'Calories';
@@ -513,7 +517,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietAddFood => 'Add Food';
 
   @override
-  String get dietEditFoodHint => 'You can edit the food name and calories';
+  String get dietEditFoodHint =>
+      'Change the serving size and the nutrition follows';
 
   @override
   String get dietTotalCalories => 'Total Calories';

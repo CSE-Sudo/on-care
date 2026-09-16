@@ -91,12 +91,14 @@ DietMeal _mealFromEntry(DietEntry e) {
     photoUrl: e.photoUrl,
     aiComment: e.aiComment,
     // 음식별 영양을 하나도 빠짐없이 옮긴다. 수정 화면이 이 값을 그대로 되돌려
-    // 보내야 저장 뒤에도 끼니 합계가 남는다(#1853).
+    // 보내야 저장 뒤에도 끼니 합계가 남는다(#1853). 섭취량도 같이 온다 —
+    // 그 값이 나머지 여섯 값의 기준이라 흘리면 비례 환산이 근거를 잃는다(#1876).
     items: <DietFood>[
       for (final FoodItem f in e.foods)
         DietFood(
           f.name,
           f.calories,
+          amountG: f.amountG,
           sodiumMg: f.sodiumMg,
           sugarG: f.sugarG,
           carbsG: f.carbsG,

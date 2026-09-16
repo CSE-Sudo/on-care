@@ -57,6 +57,11 @@ def enrich_analysis(db: Session, analysis: DietAnalysis, enabled: bool = True) -
             continue
 
         scale = grams / 100.0
+        # 환산에 실제로 쓴 양을 그 음식에 남긴다(#1876). 인식기가 양을 못 준
+        # 자리에서는 `serving_size_g` 로 환산하는데, 그 값을 적어 두지 않으면
+        # "영양은 210g 기준인데 섭취량은 비어 있는" 기록이 되어 회원이 양을
+        # 고쳐도 무엇에서 무엇으로 바뀌는 것인지 셀 수 없다.
+        food.amount_g = grams
         # 칼로리·나트륨은 계약상 정수라 반올림이 맞다. 당류만 소수다(#296) —
         # 여기서 int 로 깎으면 컬럼·스키마·클라이언트까지 소수로 통일해 둔
         # 것이 이 한 줄에서 되돌려진다.

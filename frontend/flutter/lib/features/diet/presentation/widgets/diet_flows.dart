@@ -33,6 +33,7 @@ class DietFood {
   const DietFood(
     this.name,
     this.kcal, {
+    this.amountG,
     this.sodiumMg = 0,
     this.sugarG = 0,
     this.carbsG = 0,
@@ -41,6 +42,11 @@ class DietFood {
   });
   final String name;
   final int kcal;
+
+  /// 먹은 양(g). 나머지 영양이 이 양을 재고 나온 값이라, 수정 화면은 이 칸
+  /// 하나로 여섯 값을 함께 움직인다(#1876). 모르면 null 이다 — [FoodItem.amountG]
+  /// 에 적어 둔 것과 같은 이유로 0 이 아니다.
+  final double? amountG;
   final int sodiumMg;
   final double sugarG;
   final double carbsG;
@@ -133,6 +139,18 @@ TextStyle _text(BuildContext context, TextStyle role, Color color) =>
 String _gramsText(double grams) => grams == grams.roundToDouble()
     ? NumberFormat('#,###').format(grams)
     : NumberFormat('#,##0.#').format(grams);
+
+/// 입력 칸에 적는 g — 읽기용 [_gramsText] 와 달리 **자릿점을 넣지 않는다.**
+///
+/// 칸에 `1,640` 이 적히면 `double.tryParse` 가 null 을 돌려주어, 눈에는 보이는데
+/// 읽을 수는 없는 값이 된다(숫자만 받는 입력기는 이미 적힌 글자를 걸러 주지
+/// 않는다). 큰 1회 섭취량과 비례 환산으로 커진 값이 실제로 네 자리에 닿는다.
+String _gramsFieldText(double grams) {
+  final double rounded = (grams * 10).roundToDouble() / 10;
+  return rounded == rounded.roundToDouble()
+      ? rounded.toStringAsFixed(0)
+      : rounded.toStringAsFixed(1);
+}
 
 /// 하단 내비·`+` 버튼 위에 뜨도록 루트 내비게이터에서 연다(#791). 탭 페이지는
 /// 자기 내비게이터를 따로 갖고 있어, 그 안에서 열면 하단 바가 시트 위로 올라온다.
@@ -1057,6 +1075,7 @@ class DietMealDetailPage extends ConsumerWidget {
         DietFood(
           food.name,
           food.calories,
+          amountG: food.amountG,
           sodiumMg: food.sodiumMg,
           sugarG: food.sugarG,
           carbsG: food.carbsG,
@@ -1178,17 +1197,52 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   static double _asDouble(TextEditingController c) =>
       double.tryParse(c.text.trim()) ?? 0;
 
+  /// 섭취량 칸의 값. 여기서만 빈 칸이 0 이 아니라 **null** 이다 — 0g 을 먹었다는
+  /// 기록은 없고, 0 은 비례 환산의 분모가 될 수도 없다.
+  static double? _asAmount(TextEditingController c) {
+    final double? grams = double.tryParse(c.text.trim());
+    return (grams != null && grams > 0) ? grams : null;
+  }
+
+  /// 지금 그 음식 칸에 적힌 값을 비례 환산의 기준으로 세운다.
+  ///
+  /// 회원이 영양 칸을 직접 고쳤다는 것은 "이 양에서는 이 값이 맞다" 고 말한
+  /// 것이다. 그러니 다음 섭취량 변경은 분석이 준 값이 아니라 회원이 고친 값에서
+  /// 비례해야 한다. 섭취량 칸이 비어 있으면 기준 없이 둔다.
+  void _captureBasis(int index) {
+    final _FoodEditors e = _editors[index];
+    final double? amount = _asAmount(e.amount);
+    e.basis = amount == null
+        ? null
+        : _FoodBasis(
+            amountG: amount,
+            kcal: _asInt(e.kcal),
+            carbsG: _asDouble(e.carbs),
+            sugarG: _asDouble(e.sugar),
+            proteinG: _asDouble(e.protein),
+            fatG: _asDouble(e.fat),
+            sodiumMg: _asInt(e.sodium),
+          );
+  }
+
   /// 그 음식의 입력 칸을 모두 읽어 `_foods` 에 반영한다. 한 칸만 바뀌어도
   /// 전부 다시 읽는 편이 칸마다 따로 갈래를 두는 것보다 흘릴 값이 없다.
   /// 매 글자마다 부르는 이유는 아래 총 칼로리와 영양 정보 합계가 입력을
   /// 곧바로 따라와야 하기 때문이다.
-  void _syncFood(int index) {
+  ///
+  /// [rebase] 는 지금 값을 비례 환산의 새 기준으로 삼을지다. 영양 칸을 직접
+  /// 고쳤을 때는 그래야 하고, 섭취량이 움직여 값이 따라온 직후에는 안 된다 —
+  /// 거기서 기준을 다시 세우면 원본 대신 방금 반올림된 값에서 다음 곱셈이
+  /// 시작된다([_FoodBasis]).
+  void _syncFood(int index, {bool rebase = true}) {
     final _FoodEditors e = _editors[index];
+    if (rebase) _captureBasis(index);
     setState(() {
       _foods = <DietFood>[..._foods]
         ..[index] = DietFood(
           e.name.text,
           _asInt(e.kcal),
+          amountG: _asAmount(e.amount),
           sodiumMg: _asInt(e.sodium),
           sugarG: _asDouble(e.sugar),
           carbsG: _asDouble(e.carbs),
@@ -1196,6 +1250,36 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
           fatG: _asDouble(e.fat),
         );
     });
+  }
+
+  /// 섭취량 칸이 바뀌었을 때 — 영양 여섯 값이 같은 비율로 따라온다. (#1876)
+  ///
+  /// 공공 영양 DB 는 100g 기준이고 서버 보정이 그 양으로 환산해 둔 값이 지금
+  /// 칸에 적혀 있다. 그러니 양이 바뀌었을 때 필요한 것은 DB 재조회가 아니라
+  /// 곱셈 한 번이다 — `새 값 = 기준 값 × (새 양 / 기준 양)`.
+  void _syncAmount(int index) {
+    final _FoodEditors e = _editors[index];
+    final _FoodBasis? basis = e.basis;
+    if (basis == null) {
+      // 양을 모르던 음식이다. 지금 적어 넣은 값이 기준이 될 뿐, 영양은
+      // 그대로 둔다 — 모르던 양을 적었다고 영양이 튀면 적기가 무서워진다.
+      _syncFood(index);
+      return;
+    }
+    final double? amount = _asAmount(e.amount);
+    if (amount != null) {
+      final double factor = amount / basis.amountG;
+      e.kcal.text = _FoodEditors.intText((basis.kcal * factor).round());
+      e.carbs.text = _FoodEditors.gramText(basis.carbsG * factor);
+      e.sugar.text = _FoodEditors.gramText(basis.sugarG * factor);
+      e.protein.text = _FoodEditors.gramText(basis.proteinG * factor);
+      e.fat.text = _FoodEditors.gramText(basis.fatG * factor);
+      e.sodium.text = _FoodEditors.intText((basis.sodiumMg * factor).round());
+    }
+    // 칸을 비웠을 때는 영양을 건드리지 않는다. 양을 적지 않겠다는 뜻이지 아무
+    // 것도 안 먹었다는 뜻이 아니다. 기준도 그대로 두어, 다시 적으면 처음 그
+    // 한 벌에서 비례한다 — 지우고 고쳐 쓰는 동안 값이 조금씩 어긋나지 않는다.
+    _syncFood(index, rebase: false);
   }
 
   void _beginEdit() => setState(() => _editing = true);
@@ -1260,6 +1344,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
           FoodItem(
             name: f.name.trim(),
             calories: f.kcal,
+            amountG: f.amountG,
             sodiumMg: f.sodiumMg,
             sugarG: f.sugarG,
             carbsG: f.carbsG,
@@ -1504,6 +1589,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                   index: i + 1,
                                   editors: _editors[i],
                                   onChanged: () => _syncFood(i),
+                                  onAmountChanged: () => _syncAmount(i),
                                   onDelete: () => _removeFood(i),
                                 )
                               else
@@ -1649,11 +1735,40 @@ class _FieldLabel extends StatelessWidget {
   );
 }
 
-/// 음식 한 줄이 쓰는 입력 컨트롤러 한 쌍. [_MealEditSheetState] 가 목록으로
+/// 섭취량을 고칠 때 비례 환산이 출발하는 자리 — **그 양일 때의 영양 한 벌**.
+///
+/// 화면에 적힌 값에서 곱해 나가지 않는 이유가 여기 있다. `300` 은 한 번에
+/// 들어오지 않고 `3` → `30` → `300` 으로 들어오는데, 그때마다 칸의 값을
+/// 곱하면 칼로리·나트륨의 정수 반올림이 단계마다 쌓여 같은 300g 인데
+/// 555kcal 이 아니라 600kcal 이 남는다. 곱셈은 늘 이 원본 한 벌에서 한 번만
+/// 한다. (#1876)
+class _FoodBasis {
+  const _FoodBasis({
+    required this.amountG,
+    required this.kcal,
+    required this.carbsG,
+    required this.sugarG,
+    required this.proteinG,
+    required this.fatG,
+    required this.sodiumMg,
+  });
+
+  /// 이 한 벌이 잰 양. 늘 0 보다 크다 — 0 은 나눌 수도, 기준이 될 수도 없다.
+  final double amountG;
+  final int kcal;
+  final double carbsG;
+  final double sugarG;
+  final double proteinG;
+  final double fatG;
+  final int sodiumMg;
+}
+
+/// 음식 한 줄이 쓰는 입력 컨트롤러 한 벌. [_MealEditSheetState] 가 목록으로
 /// 들고 다닌다.
 class _FoodEditors {
   _FoodEditors({
     required this.name,
+    required this.amount,
     required this.kcal,
     required this.carbs,
     required this.sugar,
@@ -1663,24 +1778,49 @@ class _FoodEditors {
   });
 
   /// 0 은 빈 칸으로 연다 — 새로 추가한 줄에 `0` 이 적혀 있으면 지우고 쓰는
-  /// 일이 한 번 더 늘어난다.
-  factory _FoodEditors.of(DietFood food) => _FoodEditors(
-    name: TextEditingController(text: food.name),
-    kcal: _intField(food.kcal),
-    carbs: _gramField(food.carbsG),
-    sugar: _gramField(food.sugarG),
-    protein: _gramField(food.proteinG),
-    fat: _gramField(food.fatG),
-    sodium: _intField(food.sodiumMg),
-  );
+  /// 일이 한 번 더 늘어난다. 섭취량은 **모르는 것**이라 더욱 그렇다(null).
+  factory _FoodEditors.of(DietFood food) {
+    final _FoodEditors editors = _FoodEditors(
+      name: TextEditingController(text: food.name),
+      amount: _gramField(food.amountG ?? 0),
+      kcal: _intField(food.kcal),
+      carbs: _gramField(food.carbsG),
+      sugar: _gramField(food.sugarG),
+      protein: _gramField(food.proteinG),
+      fat: _gramField(food.fatG),
+      sodium: _intField(food.sodiumMg),
+    );
+    // 양을 아는 음식은 열자마자 기준이 선다. 모르는 음식은 회원이 처음 적어
+    // 넣는 양이 기준이 된다 — 그때까지는 비례 환산할 근거가 없다.
+    final double? amountG = food.amountG;
+    if (amountG != null && amountG > 0) {
+      editors.basis = _FoodBasis(
+        amountG: amountG,
+        kcal: food.kcal,
+        carbsG: food.carbsG,
+        sugarG: food.sugarG,
+        proteinG: food.proteinG,
+        fatG: food.fatG,
+        sodiumMg: food.sodiumMg,
+      );
+    }
+    return editors;
+  }
+
+  static String intText(int v) => v == 0 ? '' : '$v';
+
+  static String gramText(double v) => v == 0 ? '' : _gramsFieldText(v);
 
   static TextEditingController _intField(int v) =>
-      TextEditingController(text: v == 0 ? '' : '$v');
+      TextEditingController(text: intText(v));
 
   static TextEditingController _gramField(double v) =>
-      TextEditingController(text: v == 0 ? '' : _gramsText(v));
+      TextEditingController(text: gramText(v));
 
   final TextEditingController name;
+
+  /// 먹은 양(g). 이 칸 하나가 아래 여섯 값을 함께 움직인다.
+  final TextEditingController amount;
   final TextEditingController kcal;
   final TextEditingController carbs;
   final TextEditingController sugar;
@@ -1688,9 +1828,14 @@ class _FoodEditors {
   final TextEditingController fat;
   final TextEditingController sodium;
 
+  /// 지금 적힌 영양이 **어느 양에서 나온 값인가.** 섭취량을 모르는 음식은
+  /// null 이고, 회원이 양을 적어 넣거나 영양 칸을 직접 고칠 때 다시 선다.
+  _FoodBasis? basis;
+
   void dispose() {
     for (final TextEditingController c in <TextEditingController>[
       name,
+      amount,
       kcal,
       carbs,
       sugar,
@@ -1754,16 +1899,22 @@ class _FoodViewRow extends StatelessWidget {
   }
 }
 
-/// 수정 모드의 음식 한 덩이 — 이름·칼로리와 그 음식의 영양을 한자리에서
-/// 고친다(#1856).
+/// 수정 모드의 음식 한 덩이 — 이름·섭취량과 그 음식의 영양을 한자리에서
+/// 고친다(#1856, #1876).
 ///
 /// 끼니 단위 탄단지는 음식별 값의 합계라 영양 정보 카드에서는 고칠 자리가
 /// 없다. 값이 실제로 사는 곳이 여기다.
+///
+/// 맨 위는 **내용량**이다. 아래 여섯 값이 전부 그 양을 재고 나온 값이라,
+/// 양을 고치면 함께 움직인다. 그 아래 개별 칸을 그대로 남겨 둔 것은 분석이
+/// 틀렸을 때 손으로 바로잡을 자리가 필요하기 때문이다 — 양은 맞는데 값만
+/// 틀린 경우가 있다.
 class _FoodEditBlock extends StatelessWidget {
   const _FoodEditBlock({
     required this.index,
     required this.editors,
     required this.onChanged,
+    required this.onAmountChanged,
     required this.onDelete,
   });
 
@@ -1774,6 +1925,10 @@ class _FoodEditBlock extends StatelessWidget {
   final int index;
   final _FoodEditors editors;
   final VoidCallback onChanged;
+
+  /// 내용량 칸 전용. 나머지 칸과 갈래가 다르다 — 이 칸은 자기 값만 바꾸는
+  /// 것이 아니라 아래 여섯 값을 함께 다시 적는다.
+  final VoidCallback onAmountChanged;
   final VoidCallback onDelete;
 
   @override
@@ -1806,6 +1961,24 @@ class _FoodEditBlock extends StatelessWidget {
                 onPressed: onDelete,
               ),
             ],
+          ),
+          _field(
+            context,
+            fieldKey: 'diet-food-amount-$index',
+            label: l.dietAmount,
+            unit: l.dietUnitG,
+            controller: editors.amount,
+            // 다른 칸과 달리 `0` 을 흐린 글씨로 세워 두지 않는다. 양은 모를 수
+            // 있는 값이고, 빈 칸에 `0` 이 비쳐 있으면 "0g 먹었다" 로 읽힌다 —
+            // 모른다와 안 먹었다는 다른 말이다.
+            hint: '',
+            onChanged: onAmountChanged,
+          ),
+          // 내용량과 나머지를 선으로 가른다 — 위의 한 칸이 아래 여섯 칸을
+          // 움직인다는 관계가 보이지 않으면, 값이 저절로 바뀌는 것처럼 읽힌다.
+          const Padding(
+            padding: EdgeInsets.only(top: OnCareSpacing.s8),
+            child: AppDivider(),
           ),
           _field(
             context,
@@ -1865,6 +2038,8 @@ class _FoodEditBlock extends StatelessWidget {
     required TextEditingController controller,
     bool decimal = true,
     bool sub = false,
+    String hint = '0',
+    VoidCallback? onChanged,
   }) {
     return Padding(
       padding: const EdgeInsets.only(top: OnCareSpacing.s8),
@@ -1897,7 +2072,7 @@ class _FoodEditBlock extends StatelessWidget {
             child: AppTextField(
               key: ValueKey<String>(fieldKey),
               controller: controller,
-              hint: '0',
+              hint: hint,
               keyboardType: TextInputType.numberWithOptions(decimal: decimal),
               // 숫자만 받는다 — 빈 칸은 0 으로 읽힌다.
               inputFormatters: <TextInputFormatter>[
@@ -1908,7 +2083,7 @@ class _FoodEditBlock extends StatelessWidget {
                 LengthLimitingTextInputFormatter(6),
               ],
               textAlign: TextAlign.end,
-              onChanged: (_) => onChanged(),
+              onChanged: (_) => (onChanged ?? this.onChanged)(),
             ),
           ),
           const SizedBox(width: OnCareSpacing.s4),
