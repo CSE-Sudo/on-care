@@ -507,7 +507,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietNewFood => 'New food';
 
   @override
-  String get dietAddFood => '+ Add Food';
+  String get dietAddFood => 'Add Food';
 
   @override
   String get dietEditFoodHint => 'You can edit the food name and calories';

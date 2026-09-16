@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat, NumberFormat;
@@ -1105,11 +1106,60 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   late List<DietFood> _foods = List<DietFood>.of(widget.meal.items);
   bool _busy = false;
 
+  /// 음식 줄마다 하나씩. 컨트롤러를 줄 위젯이 아니라 시트가 들고 있어야
+  /// 한 자 칠 때마다 새로 만들어지지 않는다 — 새로 만들면 커서가 맨 앞으로
+  /// 튄다. 목록 순서와 1:1 로 붙어 다닌다(#1844).
+  late final List<_FoodEditors> _editors = <_FoodEditors>[
+    for (final DietFood f in _foods) _FoodEditors.of(f),
+  ];
+
   /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
   /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
   static const double _photoHeight = 300;
 
   int get _total => _foods.fold(0, (int a, DietFood f) => a + f.kcal);
+
+  @override
+  void dispose() {
+    for (final _FoodEditors e in _editors) {
+      e.dispose();
+    }
+    super.dispose();
+  }
+
+  /// 한 줄의 이름·칼로리를 고친다. 나트륨·당류는 이 화면에서 손대지 않으므로
+  /// 원래 값을 그대로 옮긴다. `setState` 로 감싸는 이유는 아래 총 칼로리
+  /// 합계가 같이 따라와야 하기 때문이다.
+  void _editFood(int index, {String? name, int? kcal}) {
+    final DietFood old = _foods[index];
+    setState(() {
+      _foods = <DietFood>[..._foods]
+        ..[index] = DietFood(
+          name ?? old.name,
+          kcal ?? old.kcal,
+          sodiumMg: old.sodiumMg,
+          sugarG: old.sugarG,
+        );
+    });
+  }
+
+  void _addFood() {
+    // Empty draft name; the localized label is shown only as a placeholder
+    // and is validated out on save.
+    const DietFood draft = DietFood('', 0);
+    setState(() {
+      _foods = <DietFood>[..._foods, draft];
+      _editors.add(_FoodEditors.of(draft));
+    });
+  }
+
+  void _removeFood(int index) {
+    final _FoodEditors removed = _editors.removeAt(index);
+    setState(() => _foods = <DietFood>[..._foods]..removeAt(index));
+    // 이번 프레임에는 아직 지워진 줄이 트리에 남아 있다 — 그 줄이 물러난
+    // 뒤에 버린다.
+    WidgetsBinding.instance.addPostFrameCallback((_) => removed.dispose());
+  }
 
   Future<void> _save() async {
     final String? id = widget.meal.id;
@@ -1295,15 +1345,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                   leadingIcon: AppIcons.add,
                                   variant: AppButtonVariant.text,
                                   size: OnCareButtonSize.small,
-                                  onPressed: () => setState(
-                                    () => _foods = <DietFood>[
-                                      ..._foods,
-                                      // Empty draft name; the localized label is
-                                      // shown only as a placeholder and is
-                                      // validated out on save.
-                                      const DietFood('', 0),
-                                    ],
-                                  ),
+                                  onPressed: _addFood,
                                 ),
                               ],
                             ),
@@ -1319,12 +1361,13 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                             for (int i = 0; i < _foods.length; i++) ...<Widget>[
                               _FoodRow(
                                 index: i + 1,
-                                food: _foods[i],
-                                onDelete: () => setState(
-                                  () =>
-                                      _foods = <DietFood>[..._foods]
-                                        ..removeAt(i),
-                                ),
+                                nameController: _editors[i].name,
+                                kcalController: _editors[i].kcal,
+                                onNameChanged: (String v) =>
+                                    _editFood(i, name: v),
+                                onKcalChanged: (String v) =>
+                                    _editFood(i, kcal: int.tryParse(v) ?? 0),
+                                onDelete: () => _removeFood(i),
                               ),
                               const SizedBox(height: OnCareSpacing.s8),
                             ],
@@ -1443,14 +1486,51 @@ class _FieldLabel extends StatelessWidget {
   );
 }
 
+/// 음식 한 줄이 쓰는 입력 컨트롤러 한 쌍. [_MealEditSheetState] 가 목록으로
+/// 들고 다닌다.
+class _FoodEditors {
+  _FoodEditors({required this.name, required this.kcal});
+
+  /// 칼로리 0 은 빈 칸으로 연다 — 새로 추가한 줄에 `0` 이 적혀 있으면 지우고
+  /// 쓰는 일이 한 번 더 늘어난다.
+  factory _FoodEditors.of(DietFood food) => _FoodEditors(
+    name: TextEditingController(text: food.name),
+    kcal: TextEditingController(text: food.kcal == 0 ? '' : '${food.kcal}'),
+  );
+
+  final TextEditingController name;
+  final TextEditingController kcal;
+
+  void dispose() {
+    name.dispose();
+    kcal.dispose();
+  }
+}
+
+/// 먹은 음식 한 줄 — 이름과 칼로리를 그 자리에서 고친다(#1844).
+///
+/// 예전에는 이름·칼로리를 글자로만 그려서, 잘못 인식된 음식을 고치려면 줄을
+/// 지우고 다시 넣는 수밖에 없었다. 바로 위 안내(`dietEditFoodHint`)가 이미
+/// "수정할 수 있어요" 라고 말하고 있었는데도 그랬다.
 class _FoodRow extends StatelessWidget {
   const _FoodRow({
     required this.index,
-    required this.food,
+    required this.nameController,
+    required this.kcalController,
+    required this.onNameChanged,
+    required this.onKcalChanged,
     required this.onDelete,
   });
+
+  /// 칼로리 칸은 네 자리(`9999`)면 한 끼니로 충분하다. 폭을 못 박아 두어야
+  /// 이름 칸이 칼로리 자릿수에 따라 늘었다 줄었다 하지 않는다.
+  static const double _kcalWidth = 76;
+
   final int index;
-  final DietFood food;
+  final TextEditingController nameController;
+  final TextEditingController kcalController;
+  final ValueChanged<String> onNameChanged;
+  final ValueChanged<String> onKcalChanged;
   final VoidCallback onDelete;
 
   @override
@@ -1462,23 +1542,29 @@ class _FoodRow extends StatelessWidget {
           AppTag(label: '$index', tone: AppTagTone.brand),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
-            child: Text(
-              food.name.trim().isEmpty ? l.dietNewFood : food.name,
-              style: _text(
-                context,
-                OnCareTypography.strong(OnCareTypography.body),
-                OnCareColors.textPrimary,
-              ),
+            child: AppTextField(
+              key: ValueKey<String>('diet-food-name-$index'),
+              controller: nameController,
+              hint: l.dietNewFood,
+              textInputAction: TextInputAction.next,
+              onChanged: onNameChanged,
             ),
           ),
-          Text(
-            '${food.kcal}',
-            style: OnCareTypography.numeric(
-              _text(
-                context,
-                OnCareTypography.strong(OnCareTypography.body),
-                OnCareColors.textPrimary,
-              ),
+          const SizedBox(width: OnCareSpacing.s8),
+          SizedBox(
+            width: _kcalWidth,
+            child: AppTextField(
+              key: ValueKey<String>('diet-food-kcal-$index'),
+              controller: kcalController,
+              hint: '0',
+              keyboardType: TextInputType.number,
+              // 숫자만 받는다 — 빈 칸과 `-` 는 아래에서 0 으로 읽힌다.
+              inputFormatters: <TextInputFormatter>[
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(4),
+              ],
+              textAlign: TextAlign.end,
+              onChanged: onKcalChanged,
             ),
           ),
           const SizedBox(width: OnCareSpacing.s4),
