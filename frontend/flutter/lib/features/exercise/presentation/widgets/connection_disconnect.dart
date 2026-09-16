@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -36,6 +37,15 @@ Future<bool> confirmDisconnect(
   // 헬스장 해제는 트레이너까지 끊으므로 두 provider 를 함께 새로 읽는다.
   ref.invalidate(myGymProvider);
   ref.invalidate(myTrainerProvider);
+  // 담당 코치도 더는 내 코치가 아니다(#1865). 다시 읽지 않으면 헤더의 대화
+  // 버튼이 여전히 트레이너 채팅으로 가고, AI 챗봇 입구로 바뀌지 않는다(#1840).
+  // 그 코치에 딸린 화면(배정 운동·PT 일정·대화·미읽음)도 함께 비워야 한다.
+  ref
+    ..invalidate(memberCoachProvider)
+    ..invalidate(coachRoutinesProvider)
+    ..invalidate(coachSessionsProvider)
+    ..invalidate(coachChatProvider)
+    ..invalidate(coachUnreadProvider);
   return true;
 }
 

@@ -19,6 +19,13 @@ class MockGymRepository implements GymRepository {
   String? _myGymId = 'gym-oncare-sinchon';
   String? _myTrainerId = 'trainer-kim';
 
+  /// 담당 트레이너 연결이 살아 있는가(#1865).
+  ///
+  /// 조회([fetchMyTrainer])와 달리 **기다리지 않는다**. 데모 조회는 실제 요청처럼
+  /// 잠깐 지연을 두는데, 위젯 테스트는 시간을 스스로 진행시키지 않으면 그 대기가
+  /// 끝나지 않는다 — 연결 여부만 묻는 자리까지 지연을 타면 멀쩡하던 테스트가 멈춘다.
+  bool get hasTrainer => _myTrainerId != null;
+
   static const Gym _sinchon = Gym(
     id: 'gym-oncare-sinchon',
     name: '온케어짐 신촌점',
