@@ -11,6 +11,7 @@ from typing import Any, ClassVar, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.partial_update import PartialUpdate
+from app.services.contact_format import clean_email, normalize_phone
 from app.services.health_focus import normalize_conditions
 
 
@@ -111,6 +112,8 @@ class SocialLoginRequest(BaseModel):
 
 
 class UserRegister(BaseModel):
+    #: 형식은 `contact_format.clean_email` 이 본다(#1780). 앞뒤 공백만 잘라내고
+    #: 값 자체는 바꾸지 않는다 — 소문자로 고치면 로그인 조회가 어긋난다.
     email: str
     password: str
     name: str = ""
@@ -120,7 +123,23 @@ class UserRegister(BaseModel):
     #: 회원 앱 가입 화면은 필수로 받지만 스키마에서는 선택이다 — 트레이너 가입
     #: (`TrainerRegister`)은 이 값을 쓰지 않고, 없어도 회원은 MY 탭에서 언제든
     #: 넣을 수 있다.
+    #:
+    #: 들어온 표기가 무엇이든 `000-0000-0000` 하나로 정리해 저장한다(#1780).
     phone: str = ""
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _check_email(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_email(value)
+        return value
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return normalize_phone(value)
+        return value
 
 
 class TrainerRegister(UserRegister):

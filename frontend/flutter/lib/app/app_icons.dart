@@ -26,7 +26,12 @@ class AppIcons {
   // --- 운동 ---
   /// 헬스장·소속. 운동 아이콘과 같은 모양이라 굵기도 같다.
   static const IconData gym = exercise;
-  static const IconData strength = exercise;
+
+  /// 운동 유형 `근력`. 운동 그래프 링 12시에 **작게(≈14px)** 얹히는 자리라,
+  /// 획이 겹친 [exercise](덤벨 두 개)를 채우면 틈이 사라져 덩어리로 뭉친다.
+  /// 획이 단순한 덤벨 한 개로 둔다 — #1803 전 회원앱과 지금 트레이너웹이 같은
+  /// 링에서 쓰는 그림이다. (#1866)
+  static const IconData strength = Symbols.fitness_center_rounded;
   static const IconData running = Symbols.directions_run_rounded;
   static const IconData flexibility = Symbols.self_improvement_rounded;
   static const IconData calories = Symbols.local_fire_department_rounded;
@@ -144,6 +149,7 @@ class AppIcons {
     attachImage: attachImage,
     send: send,
     file: file,
+    reward: star,
     timeInput: keyboard,
     timeDial: clock,
     fill: 1,

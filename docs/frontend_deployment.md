@@ -2,7 +2,20 @@
 
 ## 현재 운영 환경
 
-프론트엔드의 공식 배포 대상은 **GitHub Pages 한 곳**입니다. 루트 랜딩페이지와 두 Flutter Web 앱을 하나의 Pages artifact로 묶어 같은 도메인에서 제공합니다.
+프론트엔드 배포 경로는 **두 개**이고, 둘 다 `main` 브랜치 push 에 걸려 있습니다.
+
+| 배포 경로 | 워크플로 | 주소 | 비용 | 실행 조건 |
+| --- | --- | --- | --- | --- |
+| GitHub Pages | [`deploy.yml`](../.github/workflows/deploy.yml) | `ewhasudo.zapto.org` | 무료 | 조건 없음 — 항상 실행 |
+| AWS S3 · CloudFront | [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) | CloudFront 기본 도메인 | **발생** | `AWS_FRONTEND_DEPLOY_ENABLED` 가 `true` 일 때만 |
+
+사용자에게 제공하는 **커스텀 도메인은 여전히 GitHub Pages** 를 가리킵니다. AWS 경로는 도메인 전환 전 병행 검증용이며, 전환 절차는 [`aws-frontend-deployment.md`](aws-frontend-deployment.md) 를 따릅니다.
+
+> **현재 AWS 배포는 꺼져 있습니다.** 이유와 다시 켜는 기준은 아래 [AWS 배포 스위치](#aws-배포-스위치) 를 참고합니다.
+
+### GitHub Pages 서비스 경로
+
+루트 랜딩페이지와 두 Flutter Web 앱을 하나의 Pages artifact로 묶어 같은 도메인에서 제공합니다.
 
 | 경로 | 서비스 | 배포 산출물 |
 | --- | --- | --- |
@@ -23,6 +36,38 @@
 4. 루트 `index.html`과 두 앱의 빌드 결과를 `public/` 아래에 모읍니다.
 5. Pages artifact를 업로드하고 `github-pages` 환경에 배포합니다.
 6. 배포 action이 제한 시간 안에 완료를 확인하지 못하면 `version.txt`로 실제 반영 여부를 추가 검증합니다.
+
+## AWS 배포 스위치
+
+AWS 배포는 워크플로 파일이 아니라 **저장소 Actions 변수 하나로** 켜고 끕니다.
+
+- 변수: `AWS_FRONTEND_DEPLOY_ENABLED`
+- 위치: 저장소 `Settings` → `Secrets and variables` → `Actions` → `Variables`
+- 값이 정확히 `true` 일 때만 [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) 의 job 이 실행되고, 그 밖의 값이면 job 이 건너뛰어집니다.
+
+```bash
+gh api repos/CSE-Sudo/on-care/actions/variables --jq '.variables[] | "\(.name)=\(.value)"'
+```
+
+워크플로 YAML 의 실행 조건을 지우거나 주석 처리하지 않습니다. **변수 하나만 되돌리면 원래대로 켜지는 구조**를 유지해야 다시 켤 때 코드 변경과 리뷰 없이 끝납니다. 나머지 세 변수(`AWS_FRONTEND_DEPLOY_ROLE_ARN`, `AWS_FRONTEND_BUCKET`, `AWS_FRONTEND_DISTRIBUTION_ID`)는 꺼 둔 동안에도 그대로 둡니다.
+
+### 현재 상태: 꺼 둠 (`false`)
+
+회원 앱 UI 정리를 여러 명이 나눠 진행하는 중이라 하루에도 여러 번 `main` 에 머지되고, 트레이너 웹 수정도 남아 있습니다. 어느 시점에 배포해도 절반만 정리된 화면이 올라가는데 S3·CloudFront 는 그때마다 비용이 발생합니다. **작업 중 불필요한 배포 비용을 줄이려고 잠시 꺼 두었습니다.**
+
+GitHub Pages 배포는 무료이므로 그대로 두고, 작업 중 확인은 `ewhasudo.zapto.org` 에서 합니다.
+
+AWS 배포 자체에 문제가 생겼을 때도 같은 방법으로 추가 배포를 즉시 중단할 수 있습니다. Pages 와 커스텀 도메인은 영향을 받지 않습니다.
+
+### 다시 켜는 기준
+
+아래를 모두 만족한 뒤에 `AWS_FRONTEND_DEPLOY_ENABLED` 를 `true` 로 되돌립니다.
+
+1. 나눠 진행 중인 회원 앱 UI 정리가 모두 머지되었다.
+2. 남아 있는 트레이너 웹 수정이 머지되었다.
+3. GitHub Pages 에서 랜딩페이지·회원 앱·트레이너 웹 전체를 아래 [배포 확인](#배포-확인) 절차로 확인했다.
+
+되돌린 뒤에는 `Deploy Frontend to AWS` 를 `main` 에서 한 번 실행해 CloudFront 기본 도메인의 세 경로와 `version.txt` 가 정상인지 확인합니다.
 
 ## Vercel 자동 배포 정리
 
@@ -64,3 +109,5 @@ AWS 이전은 Vercel 정리와 별도 이슈 및 PR로 진행합니다.
 4. 전환과 롤백 가능 여부를 확인한 다음 GitHub Pages 배포를 중단합니다.
 
 이 순서를 따르면 AWS 준비 중에도 현재 서비스 주소를 계속 사용할 수 있습니다.
+
+현재는 1번이 끝나고 2번 검증 단계에 있습니다. 회원 앱 UI 정리와 트레이너 웹 수정이 끝날 때까지 [AWS 배포 스위치](#aws-배포-스위치)를 꺼 둔 상태로 멈춰 있고, 3번 이후는 아직 시작하지 않았습니다.
