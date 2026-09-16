@@ -24,8 +24,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// `직접 추가한 운동이 없어요` 아래로 카드가 그대로 흘러나왔다 — 없다고 해 놓고
 /// 보여 주는 꼴이라 저 카드가 무엇인지 알 수 없었다. 오늘 화면이 PT 일지를
 /// `오늘 완료한 PT` 아래 두는 것과 같은 짜임 — 아이콘 달린 제목을 인 흰 카드 —
-/// 으로 갈라 세운다. 지난 날짜는 이제 **직접 기록한 운동** 과 **완료한 PT** 두
-/// 갈래로만 읽힌다.
+/// 으로 갈라 세운다.
+///
+/// PT 와 배정 개인운동은 **따로** 센다. 한 카드에 몰면 수업을 하지 않은 날의
+/// 개인운동까지 `완료한 PT` 라고 적히는데, 그 카드에는 수업 시각도 피드백도
+/// 없어 제목만 혼자 PT 라고 우긴다.
 const List<String> _dayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
 String _labelOf(DateTime date) => _dayLabels[date.weekday - 1];
@@ -223,7 +226,7 @@ void main() {
     ]);
 
     final Finder card = find.byKey(
-      const ValueKey<String>('exercise-pt-records'),
+      const ValueKey<String>('exercise-routine-records'),
     );
     expect(card, findsOneWidget);
     // 배정 개인운동은 언제 했는지를 남기지 않는다 — 완료 시각 태그가 서지 않는다.
@@ -274,9 +277,9 @@ void main() {
     expect(titleTop - emptyBottom, greaterThanOrEqualTo(OnCareSpacing.s20));
   });
 
-  testWidgets('트레이너가 배정한 개인운동도 같은 카드 안에 남는다', (tester) async {
+  testWidgets('배정 개인운동은 PT 카드에 섞이지 않고 제 카드로 선다', (tester) async {
     final DateTime target = otherDay();
-    await pumpDay(tester, <ExerciseSession>[
+    final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
       trainerSession(
         id: 'pt-1',
         date: target,
@@ -293,23 +296,85 @@ void main() {
       ),
     ]);
 
-    // 개인운동을 따로 어떻게 보여 줄지는 아직 정해지지 않았다. 그 결정 전까지
-    // 회원이 직접 적지 않은 기록은 한자리에 모아 둔다 — 어디에도 없는 것보다
-    // 낫다.
-    final Finder card = find.byKey(
+    final Finder ptCard = find.byKey(
       const ValueKey<String>('exercise-pt-records'),
     );
-    expect(card, findsOneWidget);
-    for (final String line in <String>['벤치프레스 4세트 · 10회 · 40kg', '코어 강화 10분']) {
-      expect(
-        find.descendant(of: card, matching: find.text(line)),
-        findsOneWidget,
-        reason: line,
-      );
-    }
+    final Finder routineCard = find.byKey(
+      const ValueKey<String>('exercise-routine-records'),
+    );
+    expect(ptCard, findsOneWidget);
+    expect(routineCard, findsOneWidget);
+    expect(
+      find.descendant(of: ptCard, matching: find.text(l.exCompletedPtDayTitle)),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: routineCard,
+        matching: find.text(l.exCompletedRoutineDayTitle),
+      ),
+      findsOneWidget,
+    );
+
+    // 각자의 종목은 제 카드 안에만 있다.
+    expect(
+      find.descendant(
+        of: ptCard,
+        matching: find.text('벤치프레스 4세트 · 10회 · 40kg'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: ptCard, matching: find.text('코어 강화 10분')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: routineCard, matching: find.text('코어 강화 10분')),
+      findsOneWidget,
+    );
+
+    // 수업 시각은 PT 카드에만 붙는다 — 개인운동은 수업이 아니다.
+    expect(
+      find.descendant(
+        of: ptCard,
+        matching: find.text(l.exCompletedPtTime('18:00')),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: routineCard,
+        matching: find.byIcon(AppIcons.checkCircle),
+      ),
+      findsNothing,
+    );
   });
 
-  testWidgets('회원이 직접 적은 기록은 이 카드에 오지 않는다', (tester) async {
+  testWidgets('배정 개인운동만 있는 날에는 PT 카드가 서지 않는다', (tester) async {
+    final DateTime target = otherDay();
+    final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
+      trainerSession(
+        id: 'routine-1',
+        date: target,
+        source: ExerciseSource.assignedRoutine,
+        name: '코어 루틴',
+        items: const <String>['코어 강화 10분'],
+      ),
+    ]);
+
+    // 수업을 하지 않은 날이다. `완료한 PT` 라는 제목이 뜨면 안 된다.
+    expect(
+      find.byKey(const ValueKey<String>('exercise-pt-records')),
+      findsNothing,
+    );
+    expect(find.text(l.exCompletedPtDayTitle), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('exercise-routine-records')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('회원이 직접 적은 기록은 두 카드 어디에도 오지 않는다', (tester) async {
     final DateTime target = otherDay();
     await pumpDay(tester, <ExerciseSession>[
       ExerciseSession(
@@ -323,9 +388,13 @@ void main() {
       ),
     ]);
 
-    // 회원 기록뿐인 날에는 이 카드가 아예 서지 않는다(#1428 — 두 번 그리지 않는다).
+    // 회원 기록뿐인 날에는 두 카드 다 서지 않는다(#1428 — 두 번 그리지 않는다).
     expect(
       find.byKey(const ValueKey<String>('exercise-pt-records')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('exercise-routine-records')),
       findsNothing,
     );
     // 직접 기록은 제자리에 그대로 남는다.

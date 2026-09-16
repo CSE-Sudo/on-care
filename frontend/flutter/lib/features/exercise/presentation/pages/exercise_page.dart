@@ -546,14 +546,21 @@ class _ExerciseDayDetail extends StatelessWidget {
 
     final String dayLabel = i < week.dayLabels.length ? week.dayLabels[i] : '';
     // 회원이 직접 적은 기록은 위 `직접 기록한 운동` 이 맡는다 — 여기서는
-    // PT 일지와 배정 루틴만 남긴다. 같은 기록을 한 화면에 두 번 그리지
+    // 트레이너 쪽 기록만 남긴다. 같은 기록을 한 화면에 두 번 그리지
     // 않는다(#1428).
-    final List<ExerciseSession> sessions = week.sessions
+    //
+    // PT 와 배정 개인운동은 **갈라서** 센다. 한 카드에 몰면 수업을 하지 않은
+    // 날의 개인운동까지 `완료한 PT` 라고 적히고, 그 카드에는 수업 시각도
+    // 트레이너 피드백도 없어 제목만 혼자 PT 라고 우긴다(#1884).
+    List<ExerciseSession> sourced(ExerciseSource source) => week.sessions
         .where(
-          (ExerciseSession s) =>
-              s.dayLabel == dayLabel && s.source != ExerciseSource.member,
+          (ExerciseSession s) => s.dayLabel == dayLabel && s.source == source,
         )
-        .toList();
+        .toList(growable: false);
+    final List<ExerciseSession> ptSessions = sourced(ExerciseSource.trainerPt);
+    final List<ExerciseSession> routineSessions = sourced(
+      ExerciseSource.assignedRoutine,
+    );
     // 유형별 값은 `운동 현황 > 오늘` 과 **같은 카드**로 그린다 — 유산소·스트레칭은
     // 분, 근력은 세트로. 같은 데이터를 두 가지 모양으로 그리지 않는다(#682).
     final ExerciseDayLoad load = ExerciseDayLoad.fromMinutes(
@@ -582,11 +589,27 @@ class _ExerciseDayDetail extends StatelessWidget {
           const SizedBox(height: OnCareSpacing.s20),
           // 직접 적은 기록은 따로 모아 그 자리에서 고치고 지운다(#1428).
           OwnExerciseRecords(week: week, date: date),
-          if (sessions.isNotEmpty) ...<Widget>[
-            // 제목 없이 이어 붙이면 바로 위 `직접 추가한 운동이 없어요` 아래로
-            // 카드가 흘러나와, 없다고 해 놓고 보여 주는 꼴이 된다(#1884).
+          // 제목 없이 이어 붙이면 바로 위 `직접 추가한 운동이 없어요` 아래로
+          // 카드가 흘러나와, 없다고 해 놓고 보여 주는 꼴이 된다(#1884).
+          if (ptSessions.isNotEmpty || routineSessions.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s20),
-            _DayPtCard(sessions: sessions),
+            if (ptSessions.isNotEmpty)
+              _DayRecordCard(
+                key: const ValueKey<String>('exercise-pt-records'),
+                title: l.exCompletedPtDayTitle,
+                icon: AppIcons.exercise,
+                sessions: ptSessions,
+              ),
+            if (ptSessions.isNotEmpty && routineSessions.isNotEmpty)
+              const SizedBox(height: OnCareSpacing.s12),
+            if (routineSessions.isNotEmpty)
+              _DayRecordCard(
+                key: const ValueKey<String>('exercise-routine-records'),
+                // 오늘 화면의 `추천 개인운동` 과 같은 어휘·같은 아이콘이다.
+                title: l.exCompletedRoutineDayTitle,
+                icon: AppIcons.running,
+                sessions: routineSessions,
+              ),
           ],
         ],
       ),
@@ -606,24 +629,37 @@ Widget _fitTag(Widget tag) => FittedBox(
   child: tag,
 );
 
-/// 지난 날짜의 `완료한 PT` — 오늘 화면의 `오늘 완료한 PT` 와 같은 짜임이다.
-/// (#1884)
+/// 지난 날짜의 트레이너 쪽 기록 한 묶음 — 오늘 화면의 `오늘 완료한 PT` 와 같은
+/// 짜임이다. (#1884)
 ///
-/// 회원이 직접 적지 않은 그날의 기록을 한 카드에 모은다. 예전에는 제목 없이
-/// `AppTile` 줄로 흘러나와, 바로 위 `직접 추가한 운동이 없어요` 에 딸린 것처럼
-/// 읽혔다. 같은 기록이 두 화면에서 다른 모양이면 회원은 다른 것으로 본다 —
-/// 오늘과 같은 순서로 적는다: 완료 시각·운동 시간 태그 → 구분선 → 종목 줄 →
-/// 트레이너 피드백.
+/// 예전에는 제목 없이 `AppTile` 줄로 흘러나와, 바로 위 `직접 추가한 운동이
+/// 없어요` 에 딸린 것처럼 읽혔다. 같은 기록이 두 화면에서 다른 모양이면 회원은
+/// 다른 것으로 본다 — 오늘과 같은 순서로 적는다: 완료 시각·운동 시간 태그 →
+/// 구분선 → 종목 줄 → 트레이너 피드백.
+///
+/// **출처마다 따로 세운다.** PT 와 배정 개인운동은 한 카드에 몰지 않는다 —
+/// 수업을 하지 않은 날의 개인운동에 `완료한 PT` 라고 적히면, 그 카드에는 수업
+/// 시각도 피드백도 없어 제목만 혼자 PT 라고 우긴다.
+///
+/// 없는 값은 비운다. 배정 개인운동은 언제 했는지를 남기지 않으므로 완료 시각
+/// 태그가 서지 않고, 피드백이 없으면 그 자리도 뜨지 않는다.
 ///
 /// 수정·삭제는 열지 않는다. 회원이 고칠 수 있는 기록이 아니다(#499, #638).
-///
-/// 트레이너가 배정한 개인운동도 여기 함께 둔다. 개인운동을 따로 어떻게 보여
-/// 줄지는 아직 정해지지 않았다 — 결정 전까지는 어디에도 없는 것보다 한자리에
-/// 모여 있는 편이 낫다.
-class _DayPtCard extends ConsumerWidget {
-  const _DayPtCard({required this.sessions});
+class _DayRecordCard extends ConsumerWidget {
+  const _DayRecordCard({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.sessions,
+  });
 
-  /// 그날의 기록 중 회원이 적지 않은 것. 비어 있으면 이 카드를 세우지 않는다.
+  /// 카드 제목 — `완료한 PT` 또는 `완료한 개인운동`.
+  final String title;
+
+  /// 제목 앞 아이콘. 오늘 화면의 같은 묶음과 같은 것을 쓴다.
+  final IconData icon;
+
+  /// 이 묶음의 기록. 한 출처의 것만 들어온다.
   final List<ExerciseSession> sessions;
 
   /// 카드에 적을 종목 줄. 세션이 종목을 들고 있으면 그대로, 없으면 이름과
@@ -661,14 +697,10 @@ class _DayPtCard extends ConsumerWidget {
     final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
 
     return AppCard(
-      key: const ValueKey<String>('exercise-pt-records'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          AppSectionHeader(
-            title: l.exCompletedPtDayTitle,
-            icon: AppIcons.exercise,
-          ),
+          AppSectionHeader(title: title, icon: icon),
           const SizedBox(height: OnCareSpacing.s12),
           // 칩이 한 줄에 못 들어가면 다음 줄로 내린다 — 오늘 카드와 같다(#995).
           Wrap(

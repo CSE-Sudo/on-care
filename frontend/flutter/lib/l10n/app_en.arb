@@ -431,6 +431,7 @@
   "exOwnRecordsEmpty": "No workouts logged yet",
   "exOwnRecordSource": "Self-logged",
   "exCompletedPtDayTitle": "Completed PT",
+  "exCompletedRoutineDayTitle": "Completed solo workout",
   "exPtDayFeedback": "{coachName} · Feedback",
   "@exPtDayFeedback": {
     "placeholders": {

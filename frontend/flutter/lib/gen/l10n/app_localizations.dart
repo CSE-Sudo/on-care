@@ -1604,6 +1604,12 @@ abstract class AppLocalizations {
   /// **'Completed PT'**
   String get exCompletedPtDayTitle;
 
+  /// No description provided for @exCompletedRoutineDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed solo workout'**
+  String get exCompletedRoutineDayTitle;
+
   /// No description provided for @exPtDayFeedback.
   ///
   /// In en, this message translates to:
