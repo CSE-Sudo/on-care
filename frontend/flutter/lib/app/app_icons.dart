@@ -107,7 +107,7 @@ class AppIcons {
   static const IconData delete = Symbols.delete_rounded;
   static const IconData check = Symbols.check_rounded;
   static const IconData search = Symbols.search_rounded;
-  static const IconData send = Symbols.arrow_upward_rounded;
+  static const IconData send = Symbols.send_rounded;
 
   // --- 상태 ---
   static const IconData info = Symbols.info_rounded;

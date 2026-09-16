@@ -97,7 +97,7 @@ void main() {
         await tester.tap(
           find.descendant(
             of: find.byKey(const ValueKey<String>('client-chat-input')),
-            matching: find.byIcon(Icons.arrow_upward_rounded),
+            matching: find.byIcon(Icons.send_rounded),
           ),
         );
         await pumpUntil(tester, find.text(fromTrainer), step: '보낸 답장 표시');
