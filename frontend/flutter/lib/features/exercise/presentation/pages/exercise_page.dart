@@ -56,9 +56,21 @@ void resetExerciseTransientUiState(WidgetRef ref) {
 /// sub-tab switcher over a weekly summary, stacked activity chart, AI routine,
 /// today's logs, and the gym card.
 class ExercisePage extends ConsumerStatefulWidget {
-  const ExercisePage({this.initialSubTab = 0, super.key});
+  const ExercisePage({
+    this.initialSubTab = 0,
+    this.statusAnchorKey,
+    this.gymAnchorKey,
+    super.key,
+  });
 
   final int initialSubTab;
+
+  /// 사용 가이드가 `운동 현황` 카드의 자리를 재는 열쇠(#1857). 운동 탭은 이
+  /// 값을 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? statusAnchorKey;
+
+  /// 사용 가이드가 `내 헬스장` 카드의 자리를 재는 열쇠(#1857).
+  final GlobalKey? gymAnchorKey;
 
   @override
   ConsumerState<ExercisePage> createState() => _ExercisePageState();
@@ -100,7 +112,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
                       _header(context, l),
                       _subTabs(l),
                       const SizedBox(height: OnCareSpacing.s16),
-                      const _RecordTab(),
+                      _RecordTab(statusAnchorKey: widget.statusAnchorKey),
                     ],
                   )
                 : Padding(
@@ -140,6 +152,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
   );
 
   Widget _gymTab() => GymTab(
+    gymAnchorKey: widget.gymAnchorKey,
     selectedSlot: ref.watch(exerciseSelectedReservationSlotProvider),
     onSlot: (String s) {
       final StateController<String?> notifier = ref.read(
@@ -243,7 +256,10 @@ class _SubTabs extends StatelessWidget {
 // ───────────────────────────────────────────────────────── 운동 기록 ──
 
 class _RecordTab extends ConsumerStatefulWidget {
-  const _RecordTab();
+  const _RecordTab({this.statusAnchorKey});
+
+  /// 사용 가이드가 `운동 현황` 카드의 자리를 재는 열쇠(#1857).
+  final GlobalKey? statusAnchorKey;
 
   @override
   ConsumerState<_RecordTab> createState() => _RecordTabState();
@@ -315,7 +331,10 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
               padding: const EdgeInsets.symmetric(
                 horizontal: OnCareSpacing.s24,
               ),
-              child: ExerciseActivityStatus(week: week),
+              child: KeyedSubtree(
+                key: widget.statusAnchorKey,
+                child: ExerciseActivityStatus(week: week),
+              ),
             ),
             const SizedBox(height: OnCareSpacing.s20),
             // 2) AI 맞춤 조언 — "얼마나 했나" 다음은 "그래서 오늘 뭘 할까" 다.
