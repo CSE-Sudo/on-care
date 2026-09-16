@@ -2069,7 +2069,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get guideHomeAdviceTitle => '오늘의 AI 통합 조언';
 
   @override
-  String get guideHomeAdviceBody => '식단과 운동을 함께 읽고, 오늘 무엇을 하면 좋을지 한 줄로 알려줘요';
+  String get guideHomeAdviceBody => '식단과 운동을 함께 읽고, 오늘 무엇을 하면 좋을지 짚어 줘요';
 
   @override
   String get guideQuickAddTitle => '빠른 기록';
@@ -2082,26 +2082,26 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get guideDietNutritionBody =>
-      '사진 한 장이면 AI가 칼로리와 영양소를 계산해요. 오늘 얼마나 먹었는지 여기서 봐요';
+      '오늘 먹은 것의 칼로리와 탄단지, 나트륨·당류가 목표까지 얼마나 남았는지 봐요';
 
   @override
   String get guideExerciseStatusTitle => '운동 현황';
 
   @override
-  String get guideExerciseStatusBody =>
-      '이번 주 운동량과 남은 목표를 봐요. 추천 운동도 여기서 바로 기록해요';
+  String get guideExerciseStatusBody => '오늘과 이번 주에 얼마나 움직였는지, 목표까지 얼마나 남았는지 봐요';
 
   @override
   String get guideGymTitle => '내 헬스장과 트레이너';
 
   @override
-  String get guideGymBody => '다니는 헬스장을 연결하면 트레이너가 짠 운동과 피드백이 앱으로 와요';
+  String get guideGymBody => '연결한 헬스장과 담당 트레이너예요. 트레이너가 짠 운동과 피드백이 앱으로 와요';
 
   @override
-  String get guideMySettingsTitle => '내 정보와 설정';
+  String get guideMySettingsTitle => '설정';
 
   @override
-  String get guideMySettingsBody => '건강 목표와 알림, 프로필을 MY 탭에서 바꿔요';
+  String get guideMySettingsBody =>
+      '프로필과 건강 목표, 알림을 여기서 바꿔요. 이 안내도 여기서 다시 볼 수 있어요';
 
   @override
   String get guidePointsTitle => '포인트';

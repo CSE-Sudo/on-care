@@ -2133,7 +2133,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guideHomeAdviceBody =>
-      'It reads your meals and workouts together and says what to do today, in one line';
+      'It reads your meals and workouts together and points to what to do today';
 
   @override
   String get guideQuickAddTitle => 'Quick add';
@@ -2147,28 +2147,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get guideDietNutritionBody =>
-      'One photo is enough — AI works out the calories and nutrients. See today\'s total here';
+      'Today\'s calories, macros, sodium and sugar, and how far each is from your goal';
 
   @override
   String get guideExerciseStatusTitle => 'Workout status';
 
   @override
   String get guideExerciseStatusBody =>
-      'See this week\'s workload and what\'s left of your goal, and log recommended workouts right here';
+      'How much you moved today and this week, and how far the goal still is';
 
   @override
   String get guideGymTitle => 'Your gym and trainer';
 
   @override
   String get guideGymBody =>
-      'Connect the gym you go to, and your trainer\'s plans and feedback arrive in the app';
+      'The gym and trainer you are connected to — their plans and feedback arrive in the app';
 
   @override
-  String get guideMySettingsTitle => 'Your info and settings';
+  String get guideMySettingsTitle => 'Settings';
 
   @override
   String get guideMySettingsBody =>
-      'Change health goals, alerts and your profile in the MY tab';
+      'Change your profile, health goals and alerts here — and replay this guide';
 
   @override
   String get guidePointsTitle => 'Points';

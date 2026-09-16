@@ -36,6 +36,9 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
   /// 걸리면 그 화면에 그 카드가 없는 것으로 보고 구멍 없이 덮는다.
   static const int _maxWaitFrames = 60;
 
+  /// 같은 자리가 이만큼 이어서 나오면 자리가 멈춘 것으로 본다.
+  static const int _settledFrames = 3;
+
   /// 짚을 자리를 찾아 구멍을 낸다. (#1857)
   ///
   /// 세 가지를 차례로 기다려야 한다.
@@ -43,7 +46,8 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
   ///    카드는 자기 자료를 받아 온 뒤에야 나타난다.
   /// 2. **보이는 자리로 오기** — MY 의 포인트처럼 접힌 화면 아래에 있는 카드는
   ///    화면 안으로 굴려 와야 짚을 수 있다.
-  /// 3. **자리가 확정되기** — 자리(Rect)는 그 프레임이 끝나야 정해진다.
+  /// 3. **자리가 멈추기** — 값이 차오르는 동안 카드 높이가 달라진다. 자리가
+  ///    이어서 같아질 때까지 다시 잰다.
   Future<void> _findAndMeasure(GuideStepId? step) async {
     _pending = step;
     if (step == null) {
@@ -66,10 +70,28 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
         curve: Curves.easeOut,
       );
       if (!mounted || _pending != step) return;
+    }
+    // 3. 자리가 **멈출** 때까지. 카드는 값이 차오르는 동안 높이가 조금씩 달라져,
+    //    첫 프레임에 잰 자리는 몇 px 어긋난 채로 굳는다. 같은 자리가 이어서
+    //    나올 때까지 다시 잰다.
+    Rect? last;
+    int stable = 0;
+    for (
+      int frame = 0;
+      frame < _maxWaitFrames && stable < _settledFrames;
+      frame++
+    ) {
+      final Rect? now = _measure(step);
+      if (now == last) {
+        stable++;
+      } else {
+        stable = 1;
+        last = now;
+        _apply(step, now);
+      }
       await WidgetsBinding.instance.endOfFrame;
       if (!mounted || _pending != step) return;
     }
-    _apply(step, _measure(step));
   }
 
   void _apply(GuideStepId? step, Rect? hole) {

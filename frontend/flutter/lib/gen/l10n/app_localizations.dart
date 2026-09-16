@@ -3856,7 +3856,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the home AI advice card (#1857).
   ///
   /// In en, this message translates to:
-  /// **'It reads your meals and workouts together and says what to do today, in one line'**
+  /// **'It reads your meals and workouts together and points to what to do today'**
   String get guideHomeAdviceBody;
 
   /// Spotlight guide step: the center add button (#1857).
@@ -3880,7 +3880,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the diet tab nutrition summary (#1857).
   ///
   /// In en, this message translates to:
-  /// **'One photo is enough — AI works out the calories and nutrients. See today\'s total here'**
+  /// **'Today\'s calories, macros, sodium and sugar, and how far each is from your goal'**
   String get guideDietNutritionBody;
 
   /// Spotlight guide step: the exercise tab weekly status (#1857).
@@ -3892,7 +3892,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the exercise tab weekly status (#1857).
   ///
   /// In en, this message translates to:
-  /// **'See this week\'s workload and what\'s left of your goal, and log recommended workouts right here'**
+  /// **'How much you moved today and this week, and how far the goal still is'**
   String get guideExerciseStatusBody;
 
   /// Spotlight guide step: the exercise tab gym section (#1857).
@@ -3904,19 +3904,19 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the exercise tab gym section (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Connect the gym you go to, and your trainer\'s plans and feedback arrive in the app'**
+  /// **'The gym and trainer you are connected to — their plans and feedback arrive in the app'**
   String get guideGymBody;
 
   /// Spotlight guide step: the MY tab profile and settings (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Your info and settings'**
+  /// **'Settings'**
   String get guideMySettingsTitle;
 
   /// Spotlight guide step: the MY tab profile and settings (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Change health goals, alerts and your profile in the MY tab'**
+  /// **'Change your profile, health goals and alerts here — and replay this guide'**
   String get guideMySettingsBody;
 
   /// Spotlight guide step: the MY tab points card (#1857).

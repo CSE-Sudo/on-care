@@ -9,6 +9,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/features/app_guide/domain/guide_step.dart';
+import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
@@ -31,7 +32,7 @@ void main() {
   String calloutTitle(WidgetTester tester) =>
       tester.widget<Text>(find.byKey(const Key('appGuideCard'))).data!;
 
-  Future<void> pumpTour(
+  Future<ProviderContainer> pumpTour(
     WidgetTester tester, {
     Map<String, Object> stored = const <String, Object>{},
   }) async {
@@ -54,21 +55,26 @@ void main() {
     );
     addTearDown(router.dispose);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: <Override>[
-          sharedPreferencesProvider.overrideWithValue(prefs),
-          // 예시 화면은 진짜 홈이라, 가이드가 덮지 않은 값은 데모 저장소에서
-          // 온다(AI 추천 식단 등).
-          appConfigProvider.overrideWithValue(
-            const AppConfig(
-              environment: Environment.dev,
-              apiBaseUrl: 'https://dev.api.test',
-              useMockApi: true,
-            ),
+    final ProviderContainer container = ProviderContainer(
+      overrides: <Override>[
+        sharedPreferencesProvider.overrideWithValue(prefs),
+        // 예시 화면은 진짜 탭 화면이라, 가이드가 덮지 않은 값은 데모 저장소에서
+        // 온다(AI 추천 식단 등).
+        appConfigProvider.overrideWithValue(
+          const AppConfig(
+            environment: Environment.dev,
+            apiBaseUrl: 'https://dev.api.test',
+            useMockApi: true,
           ),
-          appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
-        ],
+        ),
+        appLoggerProvider.overrideWithValue(Logger(level: Level.off)),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
         child: MaterialApp.router(
           theme: AppTheme.light(),
           locale: const Locale('ko'),
@@ -79,6 +85,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    return container;
   }
 
   testWidgets('진짜 홈 화면 위에서 가이드가 시작된다', (WidgetTester tester) async {
@@ -145,21 +152,60 @@ void main() {
     expect(find.text(ko.guideDone), findsOneWidget);
   });
 
-  testWidgets('짚는 자리는 그 탭 화면 안에 실제로 뚫린다', (WidgetTester tester) async {
-    await pumpTour(tester);
+  testWidgets('단계마다 설명이 가리키는 바로 그 자리가 밝아진다', (WidgetTester tester) async {
+    final ProviderContainer container = await pumpTour(tester);
+    final GuideAnchors anchors = container.read(guideAnchorsProvider);
 
-    // 화면 아래에 접혀 있는 카드(MY 포인트)까지 굴려 와 짚는다 — 안 보이는
+    // 화면 아래에 접혀 있는 카드(MY 설정·포인트)까지 굴려 와 짚는다 — 안 보이는
     // 자리를 짚으면 덮개만 깔리고 아무것도 밝아지지 않는다.
-    for (int step = 1; step < kGuideSteps.length; step++) {
+    for (int i = 0; i < kGuideSteps.length; i++) {
+      final GuideStepId step = kGuideSteps[i];
+      final AppSpotlight spotlight = tester.widget<AppSpotlight>(
+        find.byType(AppSpotlight),
+      );
+      // 뚫린 자리가 **그 단계의 요소와 같은 사각형**이어야 한다. 설명만 바꾸고
+      // 열쇠를 옮기지 않으면 엉뚱한 카드를 짚은 채로 남는다.
+      expect(
+        spotlight.hole,
+        tester.getRect(find.byKey(anchors.keyOf(step))),
+        reason: '$step 의 구멍이 짚는 요소와 다르다',
+      );
+      if (i < kGuideSteps.length - 1) {
+        await tester.tap(find.byKey(const Key('appGuideNext')));
+        await tester.pumpAndSettle();
+      }
+    }
+  });
+
+  testWidgets('설정 단계가 짚는 묶음 안에 안내가 말한 항목들이 있다', (
+    WidgetTester tester,
+  ) async {
+    final ProviderContainer container = await pumpTour(tester);
+    final GuideAnchors anchors = container.read(guideAnchorsProvider);
+
+    for (int i = 1; i <= kGuideSteps.indexOf(GuideStepId.mySettings); i++) {
       await tester.tap(find.byKey(const Key('appGuideNext')));
       await tester.pumpAndSettle();
     }
+    expect(calloutTitle(tester), ko.guideMySettingsTitle);
 
-    final AppSpotlight spotlight = tester.widget<AppSpotlight>(
-      find.byType(AppSpotlight),
-    );
-    expect(spotlight.hole, isNotNull);
-    expect(find.byKey(const Key('pointsBanner')), findsOneWidget);
+    // 말풍선이 약속한 것(프로필·건강 목표·알림·이 안내 다시 보기)이 모두 밝아진
+    // 묶음 **안에** 있어야 한다. 밖에 있는 것을 말하면 짚어 놓고 딴 데를
+    // 설명하는 꼴이 된다.
+    final Finder lit = find.byKey(anchors.mySettings);
+    for (final String label in <String>[
+      ko.mySettingsTitle,
+      ko.myProfileTitle,
+      ko.myHealthGoalsTitle,
+      ko.myNotifTitle,
+      ko.myGuideTitle,
+    ]) {
+      expect(
+        find.descendant(of: lit, matching: find.text(label)),
+        findsOneWidget,
+        reason: '$label 이 짚은 묶음 밖에 있다',
+      );
+    }
   });
 
   testWidgets('끝까지 보면 홈으로 가고, 다시 열지 않는다', (WidgetTester tester) async {
