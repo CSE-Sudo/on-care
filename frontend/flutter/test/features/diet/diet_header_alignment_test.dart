@@ -99,8 +99,8 @@ void main() {
       );
     });
 
-    // 아이콘은 `>` 에서 연필로 바뀌었다(#1431) — 붙는 자리는 그대로다.
-    testWidgets('끼니 카드 수정 아이콘은 카드 오른쪽 끝에 붙는다', (WidgetTester tester) async {
+    // 아이콘은 연필에서 `>` 로 되돌아갔다(#1848) — 붙는 자리는 그대로다.
+    testWidgets('끼니 카드 화살표는 카드 오른쪽 끝에 붙는다', (WidgetTester tester) async {
       await pumpPage(tester);
 
       final Finder headers = find.byKey(
@@ -110,15 +110,15 @@ void main() {
 
       for (int i = 0; i < headers.evaluate().length; i++) {
         final Finder header = headers.at(i);
-        final Finder editIcon = find.descendant(
+        final Finder arrow = find.descendant(
           of: header,
-          matching: find.byIcon(AppIcons.edit),
+          matching: find.byIcon(AppIcons.chevronRight),
         );
-        expect(editIcon, findsOneWidget);
+        expect(arrow, findsOneWidget);
         expect(
-          tester.getRect(editIcon).right,
+          tester.getRect(arrow).right,
           moreOrLessEquals(tester.getRect(header).right, epsilon: 0.5),
-          reason: '$i 번째 끼니 카드의 수정 아이콘이 카드 오른쪽 끝에 붙지 않았다',
+          reason: '$i 번째 끼니 카드의 화살표가 카드 오른쪽 끝에 붙지 않았다',
         );
       }
     });
@@ -126,8 +126,8 @@ void main() {
     testWidgets('끼니 카드 제목 줄은 합계 칼로리를 되풀이하지 않는다', (WidgetTester tester) async {
       await pumpPage(tester);
 
-      // 대역의 아침 끼니는 217 kcal 이다. 이 값은 카드 안에서 **배지 줄에만**
-      // 나온다 — 제목 줄에도 있으면 같은 숫자가 두 번 읽힌다.
+      // 대역의 아침 끼니는 217 kcal 이다. 이 값은 카드 안에서 **총량 배지
+      // 한 곳에만** 나온다 — 제목 줄에도 있으면 같은 숫자가 두 번 읽힌다.
       // 배지는 `Text.rich` 라 `findRichText` 를 켜야 잡힌다.
       expect(find.textContaining('217 kcal', findRichText: true), findsWidgets);
       expect(
