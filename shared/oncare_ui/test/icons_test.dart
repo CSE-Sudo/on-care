@@ -28,6 +28,7 @@ const IconData _glyph = IconData(0xe015, fontFamily: 'TestSymbols');
 const IconData _thin = IconData(0xe016, fontFamily: 'TestSymbols');
 const IconData _calendarExpand = IconData(0xe017, fontFamily: 'TestSymbols');
 const IconData _calendarCollapse = IconData(0xe018, fontFamily: 'TestSymbols');
+const IconData _reward = IconData(0xe019, fontFamily: 'TestSymbols');
 
 const OnCareIconSet _symbols = OnCareIconSet(
   name: 'test',
@@ -53,6 +54,7 @@ const OnCareIconSet _symbols = OnCareIconSet(
   attachImage: _attachImage,
   send: _send,
   file: _file,
+  reward: _reward,
   fill: 1,
   weight: 400,
   grade: 0,
@@ -180,6 +182,81 @@ void main() {
         _iconOf(tester, _search).opticalSize,
         OnCareDensity.mobile.iconButtonIcon.clamp(20, 48),
       );
+    });
+
+    testWidgets('토스트 적립 표시의 별을 묶음에서 고른다', (tester) async {
+      late BuildContext captured;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: OnCareTheme.light(
+            brand: OnCareBrand.member,
+            density: OnCareDensity.mobile,
+            icons: _symbols,
+          ),
+          home: Scaffold(
+            body: Builder(
+              builder: (BuildContext context) {
+                captured = context;
+                return const SizedBox.expand();
+              },
+            ),
+          ),
+        ),
+      );
+      showAppToast(captured, '저장했어요', rewardLabel: '+50P');
+      await tester.pump(OnCareMotion.toastEnter);
+
+      final Finder badge = find.byKey(const ValueKey<String>('appToastReward'));
+      expect(
+        find.descendant(of: badge, matching: find.byIcon(_reward)),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.star_rounded), findsNothing);
+    });
+  });
+
+  group('캔버스에 직접 찍는 아이콘(#1866)', () {
+    test('묶음이 정한 축을 [Icon] 과 같은 값으로 싣는다', () {
+      expect(_symbols.fontVariationsFor(_glyph, 24), <FontVariation>[
+        const FontVariation('FILL', 1),
+        const FontVariation('wght', 400),
+        const FontVariation('GRAD', 0),
+        const FontVariation('opsz', 24),
+      ]);
+      // 굵기 예외와 광학 크기 자르기도 위젯과 똑같이 따른다.
+      expect(
+        _symbols.fontVariationsFor(_thin, 56),
+        contains(const FontVariation('wght', 300)),
+      );
+      expect(
+        _symbols.fontVariationsFor(_glyph, 56),
+        contains(const FontVariation('opsz', 48)),
+      );
+      // 축이 없는 기본 묶음(Material Icons)은 아무것도 싣지 않는다.
+      expect(
+        OnCareIconSet.material.fontVariationsFor(Icons.star_rounded, 24),
+        isEmpty,
+      );
+    });
+
+    test('글자로 찍어도 위젯으로 그린 것과 같은 모양이다', () {
+      final TextPainter tp = AppIcon.glyphPainter(
+        _symbols,
+        _glyph,
+        size: 24,
+        color: const Color(0xFF123456),
+      );
+      final TextStyle style = (tp.text! as TextSpan).style!;
+      expect(
+        (tp.text! as TextSpan).text,
+        String.fromCharCode(_glyph.codePoint),
+      );
+      expect(style.fontFamily, _glyph.fontFamily);
+      expect(style.fontSize, 24);
+      expect(style.color, const Color(0xFF123456));
+      expect(style.fontVariations, _symbols.fontVariationsFor(_glyph, 24));
+      // 재어 둔 상태로 돌려준다 — 받는 쪽이 바로 자리를 잡을 수 있다.
+      expect(tp.width, greaterThan(0));
     });
   });
 }
