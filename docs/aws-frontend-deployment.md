@@ -4,6 +4,8 @@ Flutter 회원 앱과 트레이너 웹을 하나의 private S3 버킷에 올리�
 
 이 변경을 `main`에 병합해도 AWS 배포는 즉시 시작되지 않습니다. `AWS_FRONTEND_DEPLOY_ENABLED` 저장소 변수가 정확히 `true`일 때만 별도 AWS 워크플로가 실행되며, 전환 검증이 끝날 때까지 기존 GitHub Pages 배포와 커스텀 도메인을 유지합니다.
 
+> **현재 상태(2026-09-16): AWS 배포는 꺼져 있습니다.** 아래 1~3단계(인프라 생성·변수 등록)와 4단계(첫 활성화)는 이미 끝냈습니다. 지금은 회원 앱 UI 정리와 트레이너 웹 수정이 진행 중이라 작업 기간의 배포 비용을 줄이려고 `AWS_FRONTEND_DEPLOY_ENABLED` 를 `false` 로 되돌려 둔 상태입니다. 다시 켜는 기준은 [`frontend_deployment.md`](frontend_deployment.md#aws-배포-스위치) 에 정리했습니다.
+
 ## 사전 조건
 
 - AWS 계정 MFA 설정
@@ -157,6 +159,8 @@ CloudFormation 스택과 세 변수를 확인하고 배포할 `main` 커밋이 �
 
 OIDC 역할은 `main` 브랜치만 신뢰하므로 AWS 워크플로의 첫 실행도 `main`에서 진행합니다.
 
+이 단계는 이미 완료했습니다. 이후 작업 기간의 비용을 줄이려고 변수를 다시 `false`로 두었으므로, 아래 확인 절차는 **꺼 둔 배포를 다시 켤 때의 점검 절차**로도 그대로 사용합니다.
+
 1. GitHub Actions에서 `Deploy Frontend to AWS`를 엽니다.
 2. `Run workflow`에서 `main`을 선택합니다.
 3. 워크플로가 출력한 CloudFront 기본 도메인을 확인합니다.
@@ -175,11 +179,11 @@ https://<DistributionDomainName>/version.txt
 초기 AWS 검증 중에는 다음 상태를 유지합니다.
 
 - `.github/workflows/deploy.yml`: 기존 GitHub Pages 배포 계속 실행
-- `.github/workflows/aws-frontend-deploy.yml`: 활성화 변수 설정 시 AWS에도 병행 배포
+- `.github/workflows/aws-frontend-deploy.yml`: 활성화 변수가 `true`일 때만 AWS에도 병행 배포(두 워크플로 모두 `main` push 에 걸려 있음)
 - `ewhasudo.zapto.org`: 계속 GitHub Pages를 가리킴
 - CloudFront 기본 도메인: AWS 배포 검증에만 사용
 
-AWS 배포에 문제가 생기면 `AWS_FRONTEND_DEPLOY_ENABLED=false`로 변경해 추가 배포를 즉시 중단할 수 있습니다. Pages와 현재 커스텀 도메인은 영향을 받지 않습니다.
+AWS 배포에 문제가 생기거나 작업 기간 동안 배포 비용을 멈추고 싶으면 `AWS_FRONTEND_DEPLOY_ENABLED=false`로 변경해 추가 배포를 즉시 중단할 수 있습니다. Pages와 현재 커스텀 도메인은 영향을 받지 않습니다. **현재가 이 상태이며**, 다시 켜는 기준은 [`frontend_deployment.md`](frontend_deployment.md#aws-배포-스위치)에 있습니다.
 
 ## 6. 커스텀 도메인 전환
 
