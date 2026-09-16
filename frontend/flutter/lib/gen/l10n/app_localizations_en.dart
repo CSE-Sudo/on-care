@@ -523,12 +523,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Edit each food\'s nutrition and it adds up here';
 
   @override
-  String get dietSodiumHint => 'Recommended under 2,000mg/day';
-
-  @override
-  String get dietSugarHint => 'Recommended under 50g/day';
-
-  @override
   String get dietDeleteMeal => 'Delete Meal';
 
   @override

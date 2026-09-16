@@ -512,12 +512,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietEditNutritionHint => '음식별 영양을 고치면 여기에 합쳐져요';
 
   @override
-  String get dietSodiumHint => '하루 권장 2,000mg 이하';
-
-  @override
-  String get dietSugarHint => '하루 권장 50g 이하';
-
-  @override
   String get dietDeleteMeal => '식단 삭제';
 
   @override

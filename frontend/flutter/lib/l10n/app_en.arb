@@ -250,8 +250,6 @@
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
   "dietEditNutritionHint": "Edit each food's nutrition and it adds up here",
-  "dietSodiumHint": "Recommended under 2,000mg/day",
-  "dietSugarHint": "Recommended under 50g/day",
   "dietDeleteMeal": "Delete Meal",
   "dietEditMeal": "Edit meal",
   "exTypeCardio": "Cardio",

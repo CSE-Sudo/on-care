@@ -738,6 +738,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         AppTile(
+          tone: AppTileTone.none,
           child: Row(
             children: <Widget>[
               Expanded(
@@ -911,6 +912,7 @@ class _MacroRow extends StatelessWidget {
           (label: l.homeMacroFat, grams: fatG),
         ];
     return AppTile(
+      tone: AppTileTone.none,
       child: Row(
         children: <Widget>[
           for (final part in parts)
@@ -981,6 +983,7 @@ class _ResultRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return AppTile(
+      tone: AppTileTone.none,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
@@ -1533,7 +1536,6 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                             const SizedBox(height: OnCareSpacing.s8),
                             _NutrientRow(
                               label: l.dietSugar,
-                              hint: l.dietSugarHint,
                               value: _gramsText(_sugar),
                               unit: l.dietUnitG,
                               sub: true,
@@ -1553,7 +1555,6 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                             const SizedBox(height: OnCareSpacing.s8),
                             _NutrientRow(
                               label: l.dietSodium,
-                              hint: l.dietSodiumHint,
                               value: '$_sodium',
                               unit: l.dietUnitMg,
                             ),
@@ -1680,6 +1681,7 @@ class _FoodViewRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppTile(
+      tone: AppTileTone.none,
       child: Row(
         children: <Widget>[
           AppTag(label: '$index', tone: AppTagTone.brand),
@@ -1745,6 +1747,7 @@ class _FoodEditBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppTile(
+      tone: AppTileTone.neutral,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -1893,7 +1896,6 @@ class _NutrientRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.unit,
-    this.hint,
     this.sub = false,
   });
 
@@ -1905,16 +1907,13 @@ class _NutrientRow extends StatelessWidget {
   final String value;
   final String unit;
 
-  /// 권장량 안내. 탄수화물·단백질·지방에는 기준이 없어 비운다.
-  final String? hint;
-
   /// 바로 위 항목의 하위 값인가 — 들여쓰고 앞에 `↳` 를 붙인다.
   final bool sub;
 
   @override
   Widget build(BuildContext context) {
-    final String? hint = this.hint;
     return AppTile(
+      tone: AppTileTone.none,
       child: Row(
         children: <Widget>[
           if (sub) ...<Widget>[
@@ -1930,27 +1929,13 @@ class _NutrientRow extends StatelessWidget {
             const SizedBox(width: OnCareSpacing.s4),
           ],
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  label,
-                  style: _text(
-                    context,
-                    OnCareTypography.strong(OnCareTypography.bodySmall),
-                    OnCareColors.textPrimary,
-                  ),
-                ),
-                if (hint != null)
-                  Text(
-                    hint,
-                    style: _text(
-                      context,
-                      OnCareTypography.caption,
-                      OnCareColors.textSecondary,
-                    ),
-                  ),
-              ],
+            child: Text(
+              label,
+              style: _text(
+                context,
+                OnCareTypography.strong(OnCareTypography.bodySmall),
+                OnCareColors.textPrimary,
+              ),
             ),
           ),
           Text(
