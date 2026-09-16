@@ -43,10 +43,15 @@ class DashboardContent extends StatelessWidget {
     super.key,
     this.onNotificationTap,
     this.onCalendarTap,
+    this.adviceAnchorKey,
   });
 
   final VoidCallback? onNotificationTap;
   final VoidCallback? onCalendarTap;
+
+  /// 사용 가이드가 `오늘의 AI 통합 조언` 카드의 자리를 재는 열쇠(#1857). 홈은 이
+  /// 값을 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? adviceAnchorKey;
 
   @override
   Widget build(BuildContext context) {
@@ -64,15 +69,13 @@ class DashboardContent extends StatelessWidget {
                 .watch(dashboardSummaryProvider)
                 .when(
                   loading: () => const AppLoading(),
-                  error: (Object error, StackTrace stackTrace) =>
-                      AppErrorState(
-                        title: AppLocalizations.of(
-                          context,
-                        ).homeDashboardLoadError,
-                        retryLabel: AppLocalizations.of(context).actionRetry,
-                        onRetry: () => ref.invalidate(dashboardSummaryProvider),
-                      ),
+                  error: (Object error, StackTrace stackTrace) => AppErrorState(
+                    title: AppLocalizations.of(context).homeDashboardLoadError,
+                    retryLabel: AppLocalizations.of(context).actionRetry,
+                    onRetry: () => ref.invalidate(dashboardSummaryProvider),
+                  ),
                   data: (DashboardSummary summary) => _DashboardData(
+                    adviceAnchorKey: adviceAnchorKey,
                     summary: summary,
                     // 홈 배너로 열어도 같은 시트다 — 배지도 같이 내려간다.
                     onCoachingTap: () => showCoachingSheet(context, ref: ref),
@@ -95,9 +98,10 @@ class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
   final VoidCallback? onCalendarTap;
 
   @override
-  Size get preferredSize =>
-      const MemberTabHeader(title: '', trailingAction: SizedBox.shrink())
-          .preferredSize;
+  Size get preferredSize => const MemberTabHeader(
+    title: '',
+    trailingAction: SizedBox.shrink(),
+  ).preferredSize;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -116,12 +120,14 @@ class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
 class _DashboardData extends StatelessWidget {
   const _DashboardData({
     required this.summary,
+    this.adviceAnchorKey,
     required this.onCoachingTap,
     required this.onDietTap,
     required this.onExerciseTap,
   });
 
   final DashboardSummary summary;
+  final GlobalKey? adviceAnchorKey;
   final VoidCallback onCoachingTap;
   final VoidCallback onDietTap;
   final VoidCallback onExerciseTap;
@@ -141,7 +147,10 @@ class _DashboardData extends StatelessWidget {
           ),
           const SizedBox(height: OnCareSpacing.cardGap),
         ],
-        _CoachingBanner(summary: summary, onTap: onCoachingTap),
+        KeyedSubtree(
+          key: adviceAnchorKey,
+          child: _CoachingBanner(summary: summary, onTap: onCoachingTap),
+        ),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _DietNutritionCard(
           summary: summary,
@@ -407,13 +416,14 @@ class _MetricStatCard extends StatelessWidget {
                   child: Text(
                     _metricNumber(indicator.current),
                     maxLines: 1,
-                    style: OnCareTypography.numeric(
-                      tokens.text(OnCareTypography.display),
-                    ).copyWith(
-                      color: over
-                          ? OnCareColors.danger
-                          : OnCareColors.textPrimary,
-                    ),
+                    style:
+                        OnCareTypography.numeric(
+                          tokens.text(OnCareTypography.display),
+                        ).copyWith(
+                          color: over
+                              ? OnCareColors.danger
+                              : OnCareColors.textPrimary,
+                        ),
                   ),
                 ),
                 const SizedBox(height: OnCareSpacing.s4),
@@ -611,14 +621,8 @@ const Map<_NutTabKind, _NutStyle> _nutStyles = <_NutTabKind, _NutStyle>{
     // 포인트 상태색으로만 표현) 2000 을 빼도 잃는 정보가 없다.
     ticks: <double>[0, 1500, 2500],
   ),
-  _NutTabKind.sodium: _NutStyle(
-    unit: 'mg',
-    ticks: <double>[0, 1750, 3500],
-  ),
-  _NutTabKind.sugar: _NutStyle(
-    unit: 'g',
-    ticks: <double>[0, 25, 50],
-  ),
+  _NutTabKind.sodium: _NutStyle(unit: 'mg', ticks: <double>[0, 1750, 3500]),
+  _NutTabKind.sugar: _NutStyle(unit: 'g', ticks: <double>[0, 25, 50]),
 };
 
 class _NutStyle {
@@ -1023,8 +1027,9 @@ class _RecMealCard extends StatelessWidget {
                   width: double.infinity,
                   fit: BoxFit.cover,
                   // Fall back to the emoji tile if the bundled photo is missing.
-                  errorBuilder: (BuildContext context, Object _, StackTrace? _) =>
-                      _emojiHeader(context),
+                  errorBuilder:
+                      (BuildContext context, Object _, StackTrace? _) =>
+                          _emojiHeader(context),
                 ),
                 // 누가 고른 추천인지 사진 위에 얹는다 — 카드가 좁아 아래 글자
                 // 자리를 더 쓰면 이름이나 이유가 밀린다. (#1056)
@@ -1052,7 +1057,9 @@ class _RecMealCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+                        .text(
+                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                        )
                         .copyWith(color: OnCareColors.textPrimary),
                   ),
                   const SizedBox(height: OnCareSpacing.s2),
@@ -1089,7 +1096,10 @@ class _RecMealCard extends StatelessWidget {
     width: double.infinity,
     color: context.oncare.brand.surface,
     alignment: Alignment.center,
-    child: Text(meal.emoji, style: context.oncare.text(OnCareTypography.display)),
+    child: Text(
+      meal.emoji,
+      style: context.oncare.text(OnCareTypography.display),
+    ),
   );
 }
 

@@ -40,12 +40,15 @@ final dietTodayProvider = FutureProvider<DietDay>((ref) {
   return ref.watch(dietRepositoryProvider).fetchToday();
 }, name: 'dietToday');
 
-final _dietByDateFamily = FutureProvider.family<DietDay, DateTime>((ref, date) {
+/// 날짜별 식단 캐시의 원본. 화면은 [dietByDateProvider] 로 읽는다 — 이 이름은
+/// **덮어쓰기용**이다(사용 가이드가 예시 하루로 갈아 끼운다, #1857). 함수는
+/// override 의 대상이 될 수 없어 family 자체가 공개돼 있어야 한다.
+final dietByDateFamily = FutureProvider.family<DietDay, DateTime>((ref, date) {
   return ref.watch(dietRepositoryProvider).fetchByDate(date);
 }, name: 'dietByDate');
 
 FutureProvider<DietDay> dietByDateProvider(DateTime date) {
-  return _dietByDateFamily(DateTime(date.year, date.month, date.day));
+  return dietByDateFamily(DateTime(date.year, date.month, date.day));
 }
 
 /// 기간 조회의 키. 양끝을 포함한다(from ≤ 날짜 ≤ to).
