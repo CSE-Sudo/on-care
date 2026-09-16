@@ -35,7 +35,7 @@ const Trainer _kim = Trainer(
   gymId: 'gym-reason',
   name: '김트레이너',
   role: '퍼스널 트레이너',
-  reason: '혈압 관리와 운동 병행 지도 경험이 많아요',
+  reasons: <String>['혈압 관리', '체중 감량', '식습관 개선'],
   intro: '만성질환 회원과 함께 운동해 왔어요.',
   career: '8년',
   certifications: <String>['생활스포츠지도사 2급'],
@@ -47,7 +47,15 @@ const Trainer _bare = Trainer(
   gymId: 'gym-reason',
   name: '박트레이너',
   role: '재활 트레이너',
-  reason: '무릎 통증 관리 경험',
+  reasons: <String>['무릎·허리 재활'],
+);
+
+/// 추천 사유가 아예 없는 트레이너 — 배지 자리가 통째로 비어야 한다.
+const Trainer _noReason = Trainer(
+  id: 'trainer-no-reason',
+  gymId: 'gym-reason',
+  name: '정트레이너',
+  role: '퍼스널 트레이너',
 );
 
 const AppConfig _config = AppConfig(
@@ -110,33 +118,73 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// 사유 배지 하나. 순번은 [_kim.reasons] 순서다.
+  Finder badgeAt(int index) =>
+      find.byKey(ValueKey<String>('gym-trainer-reason-$index'));
+
+  BoxDecoration decorationOf(WidgetTester tester, Finder badge) =>
+      tester
+              .widget<Container>(
+                find.descendant(of: badge, matching: find.byType(Container)),
+              )
+              .decoration!
+          as BoxDecoration;
+
   testWidgets('헬스장 찾기 카드의 추천 이유 배지가 파란 윤곽선·글씨다', (tester) async {
     await pumpAt(tester, AppRoutes.exerciseGym);
 
-    final Finder badge = find.byKey(
-      const ValueKey<String>('gym-trainer-reason'),
+    // 근거가 있는 만큼 배지가 선다 (#1881).
+    expect(
+      find.byKey(const ValueKey<String>('gym-trainer-reasons')),
+      findsOneWidget,
     );
-    expect(badge, findsOneWidget);
+    for (int i = 0; i < _kim.reasons.length; i++) {
+      expect(badgeAt(i), findsOneWidget, reason: '${i + 1}번째 배지가 없다');
+    }
+    expect(badgeAt(_kim.reasons.length), findsNothing, reason: '없는 사유까지 그렸다');
 
-    final BoxDecoration decoration =
-        tester.widget<Container>(badge).decoration! as BoxDecoration;
-    expect(decoration.border, isNotNull, reason: '파란 윤곽선으로 강조한다');
-    expect((decoration.border! as Border).top.color, OnCareBrand.member.border);
-    // 줄 자체가 옅은 파랑이라 배지 배경은 흰색 그대로다 — 같은 색이면 배지가
-    // 사라진다.
-    expect(decoration.color, OnCareColors.surfaceCard);
+    // 강조는 배지마다 같다 — 첫 배지만 파랗고 나머지가 흐리면 위계가 갈린다.
+    for (int i = 0; i < _kim.reasons.length; i++) {
+      final BoxDecoration decoration = decorationOf(tester, badgeAt(i));
+      expect(decoration.border, isNotNull, reason: '파란 윤곽선으로 강조한다');
+      expect(
+        (decoration.border! as Border).top.color,
+        OnCareBrand.member.border,
+      );
+      // 줄 자체가 옅은 파랑이라 배지 배경은 흰색 그대로다 — 같은 색이면 배지가
+      // 사라진다.
+      expect(decoration.color, OnCareColors.surfaceCard);
 
-    final Text text = tester.widget<Text>(
-      find.descendant(of: badge, matching: find.byType(Text)),
-    );
-    expect(text.style!.color, OnCareBrand.member.primary);
-    // 두 줄 제한은 그대로다 — 긴 이유가 카드를 밀지 않는다.
-    expect(text.maxLines, 2);
+      final Text text = tester.widget<Text>(
+        find.descendant(of: badgeAt(i), matching: find.byType(Text)),
+      );
+      expect(text.style!.color, OnCareBrand.member.primary);
+      // 두 줄 제한은 그대로다 — 긴 이유가 카드를 밀지 않는다.
+      expect(text.maxLines, 2);
 
-    // 배지 안에는 사유만 서있다 — `추천 이유:` 접두어를 떼어내야
-    // 알약이 줄 끝까지 늘어지지 않고 배지로 읽힌다 (#1847).
-    expect(text.data, _kim.reason);
+      // 배지 안에는 사유만 서있다 — `추천 이유:` 접두어를 떼어내야
+      // 알약이 줄 끝까지 늘어지지 않고 배지로 읽힌다 (#1847).
+      expect(text.data, _kim.reasons[i]);
+    }
     expect(find.textContaining('추천 이유:'), findsNothing);
+  });
+
+  testWidgets('사유가 하나뿐인 트레이너는 배지도 하나다', (tester) async {
+    await pumpAt(tester, AppRoutes.exerciseGym, trainer: _bare);
+
+    expect(badgeAt(0), findsOneWidget);
+    expect(badgeAt(1), findsNothing);
+    expect(find.text(_bare.reasons.single), findsOneWidget);
+  });
+
+  testWidgets('사유가 없는 트레이너는 배지 자리가 통째로 없다', (tester) async {
+    await pumpAt(tester, AppRoutes.exerciseGym, trainer: _noReason);
+
+    expect(
+      find.byKey(const ValueKey<String>('gym-trainer-reasons')),
+      findsNothing,
+    );
+    expect(badgeAt(0), findsNothing);
   });
 
   testWidgets('좁은 화면·큰 배율에서도 배지가 화면 안에 있다', (tester) async {
@@ -147,13 +195,17 @@ void main() {
       textScale: 1.3,
     );
 
-    final Finder badge = find.byKey(
-      const ValueKey<String>('gym-trainer-reason'),
-    );
-    expect(badge, findsOneWidget);
-    // 배지 자체가 화면 밖으로 나가지 않는다. 카드의 다른 줄이 좁은 화면에서
-    // 넘치는 것은 이 이슈의 범위가 아니라 전체 예외로 판정하지 않는다.
-    expect(tester.getBottomRight(badge).dx, lessThanOrEqualTo(320));
+    final List<double> tops = <double>[];
+    for (int i = 0; i < _kim.reasons.length; i++) {
+      expect(badgeAt(i), findsOneWidget);
+      // 배지 자체가 화면 밖으로 나가지 않는다. 카드의 다른 줄이 좁은 화면에서
+      // 넘치는 것은 이 이슈의 범위가 아니라 전체 예외로 판정하지 않는다.
+      expect(tester.getBottomRight(badgeAt(i)).dx, lessThanOrEqualTo(320));
+      tops.add(tester.getTopLeft(badgeAt(i)).dy);
+    }
+    // 한 줄에 다 못 서면 다음 줄로 흘러 내려간다 — 옆으로 밀려 잘리지 않는다.
+    expect(tops.toSet().length, greaterThan(1), reason: '배지가 줄바꿈되지 않았다');
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('상세 화면에서 추천 이유가 트레이너 소개보다 위에 선다', (tester) async {

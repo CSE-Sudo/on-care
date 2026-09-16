@@ -55,7 +55,7 @@ class GymTrainerLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final String? reason = trainer.reason;
+    final List<String> reasons = trainer.reasons;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
@@ -127,44 +127,69 @@ class GymTrainerLine extends StatelessWidget {
                 ),
             ],
           ),
-          if (showReason && reason != null) ...<Widget>[
+          // 고를 근거는 한 사람에게 하나뿐인 경우가 드물다 — 있는 만큼 배지를
+          // 나란히 세운다(#1881). 좁은 폭에서는 Wrap 이 다음 줄로 흘려, 줄이
+          // 카드 밖으로 밀려 나가지 않는다.
+          if (showReason && reasons.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                key: const ValueKey<String>('gym-trainer-reason'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: OnCareSpacing.s8,
-                  vertical: OnCareSpacing.s4,
-                ),
-                decoration: BoxDecoration(
-                  // 추천 이유는 고를 근거다 — 흰 배경에 회색 글씨면 옆의 일반
-                  // 설명과 위계가 같아진다. 트레이너 목록·상세가 이미 쓰는
-                  // 브랜드 파랑으로 윤곽선과 글자를 맞춘다(#1445). 배경은
-                  // 흰색 그대로다 — 줄 자체가 옅은 파랑이라 배지까지 파래지면
-                  // 배지가 사라진다.
-                  color: OnCareColors.surfaceCard,
-                  border: Border.all(color: tokens.brand.border),
-                  borderRadius: OnCareRadius.pillAll,
-                ),
-                child: Text(
-                  // 사유만 적는다 — 앞에 `추천 이유:` 를 붙이면 읽는 사람은 매번
-                  // 라벨을 먼저 지나치고 나서야 정작 볼 것을 만나고, 길어진 글자가 알약을
-                  // 줄 끝까지 늘려 배지가 아니라 한 문장처럼 읽힌다 (#1847). 무엇을
-                  // 적은 자리인지는 알약 모양이 이미 말하고 있다.
-                  reason,
-                  maxLines: 2,
-                  // 두 줄을 넘기면 줄여 적는다 — 큰 배율에서 배지가 카드 밖으로
-                  // 밀려 나가지 않게.
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.caption))
-                      .copyWith(color: tokens.brand.primary),
-                ),
-              ),
+            Wrap(
+              key: const ValueKey<String>('gym-trainer-reasons'),
+              spacing: OnCareSpacing.s4,
+              runSpacing: OnCareSpacing.s4,
+              children: <Widget>[
+                for (final (int i, String reason) in reasons.indexed)
+                  _ReasonBadge(
+                    // 형제끼리 같은 키를 쓸 수 없어 순번을 붙인다. 사유 문구를
+                    // 키로 쓰면 같은 키워드를 두 번 단 순간 같은 키가 된다.
+                    key: ValueKey<String>('gym-trainer-reason-$i'),
+                    reason: reason,
+                  ),
+              ],
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// 추천 이유 하나를 담는 알약.
+///
+/// 추천 이유는 고를 근거다 — 흰 배경에 회색 글씨면 옆의 일반 설명과 위계가
+/// 같아진다. 트레이너 목록·상세가 이미 쓰는 브랜드 파랑으로 윤곽선과 글자를
+/// 맞춘다(#1445). 배경은 흰색 그대로다 — 줄 자체가 옅은 파랑이라 배지까지
+/// 파래지면 배지가 사라진다.
+class _ReasonBadge extends StatelessWidget {
+  const _ReasonBadge({required this.reason, super.key});
+
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: OnCareSpacing.s8,
+        vertical: OnCareSpacing.s4,
+      ),
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        border: Border.all(color: tokens.brand.border),
+        borderRadius: OnCareRadius.pillAll,
+      ),
+      child: Text(
+        // 사유만 적는다 — 앞에 `추천 이유:` 를 붙이면 읽는 사람은 매번 라벨을
+        // 먼저 지나치고 나서야 정작 볼 것을 만나고, 길어진 글자가 알약을 줄
+        // 끝까지 늘려 배지가 아니라 한 문장처럼 읽힌다 (#1847). 무엇을 적은
+        // 자리인지는 알약 모양이 이미 말하고 있다.
+        reason,
+        maxLines: 2,
+        // 두 줄을 넘기면 줄여 적는다 — 큰 배율에서 배지가 카드 밖으로 밀려
+        // 나가지 않게.
+        overflow: TextOverflow.ellipsis,
+        style: tokens
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(color: tokens.brand.primary),
       ),
     );
   }

@@ -39,7 +39,7 @@ const Trainer _kim = Trainer(
   gymId: 'gym-trainer-line',
   name: '김트레이너',
   role: '퍼스널 트레이너',
-  reason: '혈압 관리와 운동 병행 지도',
+  reasons: <String>['혈압 관리', '체중 감량', '식습관 개선'],
 );
 
 const Trainer _park = Trainer(
@@ -47,7 +47,7 @@ const Trainer _park = Trainer(
   gymId: 'gym-trainer-line',
   name: '박트레이너',
   role: '재활 트레이너',
-  reason: '무릎·허리 통증 관리 다수 경험',
+  reasons: <String>['무릎·허리 재활'],
 );
 
 const AppConfig _config = AppConfig(
@@ -176,8 +176,12 @@ void main() {
       expect(find.byKey(const Key('gym-trainer-trainer-park')), findsOneWidget);
       expect(find.text('퍼스널 트레이너'), findsOneWidget);
       expect(find.text('재활 트레이너'), findsOneWidget);
-      // 사유만 적는다 — `추천 이유:` 접두어는 붙지 않는다 (#1847).
-      expect(find.text('혈압 관리와 운동 병행 지도'), findsOneWidget);
+      // 사유만 적는다 — `추천 이유:` 접두어는 붙지 않는다 (#1847). 근거가 여럿인
+      // 트레이너는 있는 만큼 배지가 서고, 하나뿐인 트레이너는 하나만 선다 (#1881).
+      for (final String reason in _kim.reasons) {
+        expect(find.text(reason), findsOneWidget);
+      }
+      expect(find.text(_park.reasons.single), findsOneWidget);
       expect(find.textContaining('추천 이유:'), findsNothing);
       // 아직 아무와도 연결되지 않았다 — 배지는 뜨지 않는다.
       expect(find.text('연결됨'), findsNothing);

@@ -174,7 +174,7 @@ class _TrainerDetails extends ConsumerWidget {
               icon: AppIcons.ai,
               title: l.exRecommendationReason,
               child: Text(
-                trainer.reason ?? l.exTrainerRecommendationReason,
+                trainer.reasonLine ?? l.exTrainerRecommendationReason,
                 style: tokens
                     .text(OnCareTypography.strong(OnCareTypography.body))
                     .copyWith(color: tokens.brand.primary),

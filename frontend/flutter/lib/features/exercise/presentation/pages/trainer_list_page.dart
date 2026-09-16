@@ -41,7 +41,7 @@ class _TrainerListPageState extends ConsumerState<TrainerListPage> {
             name: trainer.name,
             role: trainer.role,
             gymName: gymNames[trainer.gymId] ?? '',
-            reason: trainer.reason,
+            reasonLine: trainer.reasonLine,
           ),
         )
         .where((_TrainerListItem trainer) {
@@ -169,14 +169,16 @@ class _TrainerListItem {
     required this.name,
     required this.role,
     required this.gymName,
-    required this.reason,
+    required this.reasonLine,
   });
 
   final String trainerId;
   final String name;
   final String? role;
   final String gymName;
-  final String? reason;
+
+  /// 카드 한 칸에 배지를 줄지어 세울 자리가 없어, 사유를 한 줄로 이어 적는다(#1881).
+  final String? reasonLine;
 }
 
 class _ResultControls extends StatelessWidget {
@@ -268,7 +270,7 @@ class _TrainerListCard extends StatelessWidget {
                 ),
                 const SizedBox(height: OnCareSpacing.s8),
                 Text(
-                  trainer.reason ?? l.exTrainerRecommendationReason,
+                  trainer.reasonLine ?? l.exTrainerRecommendationReason,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: tokens
