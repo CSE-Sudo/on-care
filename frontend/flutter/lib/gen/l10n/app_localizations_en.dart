@@ -526,6 +526,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Edit each food\'s nutrition and it adds up here';
 
   @override
+  String get dietSugarOverCarbs => 'Sugar can\'t be more than carbs';
+
+  @override
   String get dietDeleteMeal => 'Delete Meal';
 
   @override

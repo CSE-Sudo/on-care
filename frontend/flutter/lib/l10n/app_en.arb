@@ -251,6 +251,7 @@
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
   "dietEditNutritionHint": "Edit each food's nutrition and it adds up here",
+  "dietSugarOverCarbs": "Sugar can't be more than carbs",
   "dietDeleteMeal": "Delete Meal",
   "dietEditMeal": "Edit meal",
   "exTypeCardio": "Cardio",
