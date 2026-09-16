@@ -1,4 +1,4 @@
-/// 내 프로필의 이메일·전화번호 형식 검사 (#1883).
+/// 내 프로필의 이름·이메일·전화번호·생년월일 형식 검사 (#1883·#1887).
 ///
 /// 이 화면은 **로그인하는 이메일**을 고치는 자리다. 전에는 칸 검사가 없어
 /// `asdf` 도 그대로 저장됐고, 그러면 그 회원은 원래 주소로 다시 로그인할 수
@@ -19,6 +19,7 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 저장이 실제로 불렸는지 세는 저장소.
 class _CountingAccountRepository extends MockAccountRepository {
@@ -51,8 +52,10 @@ class _CountingAccountRepository extends MockAccountRepository {
   }
 }
 
+const Key _name = ValueKey<String>('my-profile-name');
 const Key _email = ValueKey<String>('my-profile-email');
 const Key _phone = ValueKey<String>('my-profile-phone');
+const Key _birth = ValueKey<String>('my-profile-birth');
 
 Future<(AppLocalizations, _CountingAccountRepository)> _openProfile(
   WidgetTester tester, {
@@ -187,5 +190,60 @@ void main() {
     await tester.enterText(find.byKey(_email), 'minsu@oncare.com');
     await tester.pump();
     expect(find.text(l.authEmailInvalid), findsNothing);
+  });
+
+  // ---- 이름·생년월일 (#1887) ----
+
+  testWidgets('이름을 비우면 저장을 보내지 않는다', (WidgetTester tester) async {
+    // 가입이 필수로 받은 값이다. 비운 채 저장되면 그 회원은 트레이너
+    // 로스터·채팅·상담 카드에 공백으로 뜬다.
+    final (AppLocalizations l, _CountingAccountRepository repo) =
+        await _openProfile(tester);
+
+    await tester.enterText(find.byKey(_name), '   ');
+    await _save(tester, l);
+
+    expect(find.text(l.signUpNameEmpty), findsOneWidget);
+    expect(repo.saves, 0);
+  });
+
+  testWidgets('이름이 상한을 넘으면 저장을 보내지 않는다', (WidgetTester tester) async {
+    // 서버는 422 로 되돌린다 — 전에는 컬럼 길이를 넘겨 500 이었다.
+    final (AppLocalizations l, _CountingAccountRepository repo) =
+        await _openProfile(tester);
+
+    await tester.enterText(
+      find.byKey(_name),
+      '가' * (AppInputRules.nameMaxLength + 1),
+    );
+    await _save(tester, l);
+
+    expect(find.text(l.signUpNameTooLong), findsOneWidget);
+    expect(repo.saves, 0);
+  });
+
+  testWidgets('생년월일이 날짜가 아니면 저장을 보내지 않는다', (WidgetTester tester) async {
+    // 저장되면 트레이너의 담당 요청 확인 화면에서 나이가 조용히 비어 보인다.
+    final (AppLocalizations l, _CountingAccountRepository repo) =
+        await _openProfile(tester);
+
+    await tester.enterText(find.byKey(_birth), '1990-13-45');
+    await _save(tester, l);
+
+    expect(find.text(l.myFieldBirthInvalid), findsOneWidget);
+    expect(repo.saves, 0);
+  });
+
+  testWidgets('생년월일은 비워 둘 수 있다', (WidgetTester tester) async {
+    // 넣을 자리가 없던 시절에 가입한 회원과 소셜 로그인 가입자에게는 처음부터
+    // 없는 값이다. 서버도 빈 값은 받는다(#1887).
+    final (AppLocalizations l, _CountingAccountRepository repo) =
+        await _openProfile(tester);
+
+    await tester.enterText(find.byKey(_birth), '');
+    await _save(tester, l);
+
+    expect(find.text(l.myFieldBirthInvalid), findsNothing);
+    expect(repo.saves, 1);
   });
 }

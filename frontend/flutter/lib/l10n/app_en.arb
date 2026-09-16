@@ -1102,6 +1102,10 @@
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",
   "signUpNameEmpty": "Enter your name",
+  "signUpNameTooLong": "Names can be up to 100 characters",
+  "@signUpNameTooLong": {
+    "description": "Shared name-length message (#1887). The limit matches the users.name column and the server rule in profile_format.py."
+  },
   "@signUpNameEmpty": {
     "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
   },
@@ -1117,6 +1121,10 @@
   "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "signUpPasswordMismatch": "Passwords do not match",
   "signUpPhoneFormatInvalid": "Enter your phone number as 000-0000-0000",
+  "myFieldBirthInvalid": "Enter your date of birth as 1996-03-21",
+  "@myFieldBirthInvalid": {
+    "description": "Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py."
+  },
   "trainerSyncEntryLabel": "Sync data with a trainer",
   "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
   "trainerSyncTitle": "Sync data with a trainer",

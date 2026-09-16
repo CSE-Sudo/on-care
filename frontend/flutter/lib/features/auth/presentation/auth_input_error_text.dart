@@ -10,10 +10,12 @@ String? authInputErrorText(AppLocalizations l, AppInputError? error) =>
     switch (error) {
       null => null,
       AppInputError.nameEmpty => l.signUpNameEmpty,
+      AppInputError.nameTooLong => l.signUpNameTooLong,
       AppInputError.emailEmpty => l.authEmailEmpty,
       AppInputError.emailInvalid => l.authEmailInvalid,
       AppInputError.phoneInvalid => l.signUpPhoneFormatInvalid,
       AppInputError.passwordEmpty => l.authPasswordEmpty,
       AppInputError.passwordWeak => l.signUpPasswordWeak,
       AppInputError.passwordMismatch => l.signUpPasswordMismatch,
+      AppInputError.birthDateInvalid => l.myFieldBirthInvalid,
     };
