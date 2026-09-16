@@ -1284,18 +1284,17 @@ class _MealCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: OnCareSpacing.s8),
-              // 카드가 말하는 수치는 총 칼로리 하나다(#1848). 색은 같은 탭의
-              // 기간 그래프·나트륨 막대와 같은 규칙이다(#1053, #1070). 좁은
-              // 폭·큰 글자에서는 말줄임 대신 배지를 줄인다 — 수치가 잘리면
-              // 다른 값으로 읽힌다(#743).
+              // 카드가 말하는 수치는 총 칼로리 하나다(#1848). 카드에 배지가
+              // 이것뿐이라 `칼로리` 라는 말은 붙이지 않는다 — 단위가 이미
+              // 무엇인지 말한다. 색은 같은 탭의 기간 그래프·나트륨 막대와 같은
+              // 규칙이다(#1053, #1070). 좁은 폭·큰 글자에서는 말줄임 대신
+              // 배지를 줄인다 — 수치가 잘리면 다른 값으로 읽힌다(#743).
               Expanded(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
                   child: AppTag(
-                    label:
-                        '${l.dietCalories} ${_formatInt(meal.total)} '
-                        '${l.unitKcal}',
+                    label: '${_formatInt(meal.total)} ${l.unitKcal}',
                     tone: AppTagTone.brand,
                   ),
                 ),

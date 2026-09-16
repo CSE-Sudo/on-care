@@ -70,26 +70,31 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// 배지 안에서 **값** 에 칠해진 색. 라벨은 같은 색을 옅게 쓰므로 마지막으로
-  /// 색이 지정된 조각이 값이다. `Text.rich` 가 스팬을 한 겹 감싸 두어 곧장
-  /// `children.last` 를 보면 색이 없는 껍데기가 잡힌다.
-  Color? badgeColorOf(WidgetTester tester, String text) {
-    // 끼니 카드 안으로 범위를 좁힌다. 같은 화면 위쪽의 나트륨·당류 카드도
-    // "나트륨 …" 으로 시작하는 리치 텍스트를 갖고 있어, 좁히지 않으면 그쪽이
-    // 먼저 잡힌다.
-    final RichText rich = tester
+  /// 끼니 카드의 총량 배지 — 카드 안에서 `kcal` 로 끝나는 유일한 글이다.
+  /// 배지에 `칼로리` 라는 말은 붙지 않는다(#1848). 화면 위쪽 요약 카드도
+  /// 칼로리를 말하므로 반드시 카드 안으로 범위를 좁혀 찾는다.
+  RichText totalBadgeOf(WidgetTester tester) {
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(DietRecordPage)),
+    );
+    return tester
         .widgetList<RichText>(
           find.descendant(
             of: _anyMealCard,
             matching: find.byWidgetPredicate(
               (Widget w) =>
-                  w is RichText && w.text.toPlainText().startsWith('$text '),
+                  w is RichText && w.text.toPlainText().endsWith(l.unitKcal),
             ),
           ),
         )
         .first;
+  }
+
+  /// 배지 안에서 **값** 에 칠해진 색. `Text.rich` 가 스팬을 한 겹 감싸 두어
+  /// 곧장 `children.last` 를 보면 색이 없는 껍데기가 잡힌다.
+  Color? badgeColorOf(WidgetTester tester) {
     Color? color;
-    rich.text.visitChildren((InlineSpan span) {
+    totalBadgeOf(tester).text.visitChildren((InlineSpan span) {
       if (span.style?.color != null) color = span.style!.color;
       return true;
     });
@@ -99,14 +104,19 @@ void main() {
   testWidgets('끼니 카드의 총량 배지는 기간 그래프와 같은 파랑이다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
+    // 대역의 아침은 217kcal — 목표 안쪽이다.
+    expect(badgeColorOf(tester), OnCareBrand.member.statusWithinGoal);
+  });
+
+  testWidgets('총량 배지는 숫자와 단위만 적는다', (WidgetTester tester) async {
+    await pumpDiet(tester);
+
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(DietRecordPage)),
     );
-    // 대역의 아침은 217kcal — 목표 안쪽이다.
-    expect(
-      badgeColorOf(tester, l.dietCalories),
-      OnCareBrand.member.statusWithinGoal,
-    );
+    // `칼로리 217 kcal` 처럼 이름표를 달면 배지 하나뿐인 카드에서 같은 말이
+    // 두 번 읽힌다(#1848).
+    expect(totalBadgeOf(tester).text.toPlainText(), '217 ${l.unitKcal}');
   });
 
   testWidgets('끼니 카드에 남는 수치는 총 칼로리뿐이다', (WidgetTester tester) async {
@@ -116,7 +126,9 @@ void main() {
       tester.element(find.byType(DietRecordPage)),
     );
     // 나트륨·당류 배지와 탄단지 줄은 상세 화면 몫으로 옮겼다(#1848).
+    // `칼로리` 는 총량 배지의 이름표였다 — 배지가 숫자만 적으면서 함께 빠졌다.
     for (final String label in <String>[
+      l.dietCalories,
       l.dietSodium,
       l.dietSugar,
       l.homeMacroCarbs,
