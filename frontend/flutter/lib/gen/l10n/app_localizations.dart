@@ -2351,13 +2351,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachCardExerciseTitle.
   ///
   /// In en, this message translates to:
-  /// **'PT session 12 done'**
+  /// **'3 workouts this week'**
   String get coachCardExerciseTitle;
 
   /// No description provided for @coachCardExerciseBody.
   ///
   /// In en, this message translates to:
-  /// **'Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.'**
+  /// **'You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.'**
   String get coachCardExerciseBody;
 
   /// No description provided for @coachCardWaterTag.
@@ -3028,7 +3028,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicQuickReply3.
   ///
   /// In en, this message translates to:
-  /// **'How are my blood sugar readings?'**
+  /// **'How much sodium have I had today?'**
   String get aicQuickReply3;
 
   /// No description provided for @exConsultRequestTitle.
@@ -4192,7 +4192,7 @@ abstract class AppLocalizations {
   /// Greeting bubble the app shows when the coach conversation opens.
   ///
   /// In en, this message translates to:
-  /// **'Hi, I\'m Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.'**
+  /// **'Hi, I\'m Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.'**
   String get aiCoachWelcome;
 
   /// Bubble shown when the coach reply could not be fetched.

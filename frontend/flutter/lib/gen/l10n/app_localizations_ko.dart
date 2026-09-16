@@ -1233,11 +1233,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachCardExerciseTag => '운동';
 
   @override
-  String get coachCardExerciseTitle => '12회차 PT 완료';
+  String get coachCardExerciseTitle => '이번 주 운동 3회 완료';
 
   @override
   String get coachCardExerciseBody =>
-      '12회차 PT를 잘 마쳤어요. 꾸준히 운동을 이어가고 있는 점이 좋습니다. 코치님 피드백대로 어깨 회전근개 스트레칭을 충분히 진행하고, 가벼운 유산소 운동으로 마무리해 주세요. 운동 후에는 무리한 활동보다 충분한 휴식과 수분 섭취로 회복을 도와주세요.';
+      '이번 주 운동을 세 번 마쳤어요. 꾸준히 이어가고 있는 점이 좋습니다. 어깨 회전근개 스트레칭을 충분히 진행하고, 가벼운 유산소 운동으로 마무리해 주세요. 운동 후에는 무리한 활동보다 충분한 휴식과 수분 섭취로 회복을 도와주세요.';
 
   @override
   String get coachCardWaterTag => '수분';
@@ -1640,7 +1640,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicQuickReply2 => '오늘 운동은 얼마나 하면 좋을까?';
 
   @override
-  String get aicQuickReply3 => '내 혈당 기록은 괜찮아?';
+  String get aicQuickReply3 => '오늘 나트륨 얼마나 먹었어?';
 
   @override
   String get exConsultRequestTitle => '상담 요청';
@@ -2263,7 +2263,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiCoachWelcome =>
-      '안녕하세요, AI 건강 코치 온이예요 🙂\n고혈압·당뇨 관리를 위한 식단·운동·혈압·혈당 무엇이든 편하게 물어보세요.';
+      '안녕하세요, AI 건강 코치 온이예요 🙂\n식단·운동 기록을 보고 도와드릴게요. 무엇이든 편하게 물어보세요.';
 
   @override
   String get aiCoachFailure => '앗, 잠시 문제가 생겼어요. 잠시 후 다시 시도해 주세요.';

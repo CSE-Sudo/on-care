@@ -32,7 +32,7 @@ class MockAiCoachRepository implements AiCoachRepository {
     ));
     return ChatMessage(
       role: ChatRole.coach,
-      content: '식단·운동·혈압·혈당 관리에 대해 무엇이든 물어봐 주세요. 온이가 도와드릴게요! 😊',
+      content: '기록을 보고 도와드릴게요. 식단·운동에 대해 더 구체적으로 물어봐 주세요.',
       replyToInsight: detectChatInsight(message),
     );
   }

@@ -344,6 +344,69 @@ void main() {
       }
     });
 
+    test('대화에 주고받은 때가 실려 온다 (#1918)', () async {
+      final List<Map<String, Object?>> messages =
+          ((await dio.get<Map<String, Object?>>(
+                    '/ai-coach/messages',
+                  )).data!['messages']!
+                  as List<Object?>)
+              .cast<Map<String, Object?>>();
+
+      // 감지 기록에는 날짜가 있는데 대화에는 없어, 같은 일을 두 화면이 다르게
+      // 말하고 있었다.
+      final List<DateTime> at = <DateTime>[
+        for (final Map<String, Object?> m in messages)
+          DateTime.parse(m['created_at']! as String),
+      ];
+      expect(at.length, messages.length);
+      // 오래된 것부터 온다 — 화면이 그리는 차례 그대로다.
+      for (int i = 1; i < at.length; i++) {
+        expect(at[i].isBefore(at[i - 1]), isFalse);
+      }
+      // 하루치가 아니라 여러 날에 걸쳐 있어야 날짜 구분선이 뜻을 갖는다.
+      expect(at.map((DateTime t) => t.day).toSet().length, greaterThan(1));
+      // 시각도 서로 다르다 — 전부 같은 시각이면 한 번에 찍어 넣은 티가 난다.
+      expect(at.map((DateTime t) => t.hour).toSet().length, greaterThan(1));
+      // 모두 감지 기간(30일) 안이라 기록 화면과 짝이 맞는다.
+      final DateTime now = nowKst();
+      for (final DateTime t in at) {
+        expect(isWithinInsightWindow(t, now), isTrue);
+      }
+    });
+
+    test('데모 답변이 없는 트레이너를 가리키지 않는다 (#1918)', () async {
+      // 이 화면은 담당 트레이너가 **없을 때만** 열린다(#1823). 답변이 트레이너
+      // 에게 알리라고 하면 갈 곳이 없는 안내가 된다.
+      final List<Map<String, Object?>> messages =
+          ((await dio.get<Map<String, Object?>>(
+                    '/ai-coach/messages',
+                  )).data!['messages']!
+                  as List<Object?>)
+              .cast<Map<String, Object?>>();
+      for (final Map<String, Object?> m in messages) {
+        final String text = m['content']! as String;
+        for (final String banned in <String>['트레이너', '코치님', 'PT']) {
+          expect(text.contains(banned), isFalse, reason: text);
+        }
+      }
+    });
+
+    test('아픈 곳 이야기에 영양 답변이 끼어들지 않는다 (#1918)', () async {
+      // `당` 한 글자가 `당기다` 에 걸려, 통증 감지 표시를 달아 놓고 디저트
+      // 이야기를 답하고 있었다.
+      final chat = await dio.post<Map<String, Object?>>(
+        '/ai-coach/chat',
+        data: <String, Object?>{'message': '허리가 당겨요', 'history': <Object?>[]},
+      );
+      expect(chat.data!['user_insight'], <String, Object?>{
+        'kind': 'discomfort',
+        'body_part': '허리',
+      });
+      final String reply = chat.data!['reply']! as String;
+      expect(reply.contains('디저트'), isFalse, reason: reply);
+      expect(reply.contains('불편한 곳'), isTrue, reason: reply);
+    });
+
     test('보낸 말과 받은 답이 다시 열었을 때 대화에 남는다 (#1900)', () async {
       final int before =
           ((await dio.get<Map<String, Object?>>(
@@ -378,7 +441,7 @@ void main() {
     test('채팅 답에 감지를 싣고, 기록은 30일 안의 감지된 메시지만 최신순이다', () async {
       // 31일 전 메시지를 미리 둔다 — 기록에서 빠져야 한다.
       await db.putValue(
-        'ai_coach_user_messages',
+        'ai_coach_user_messages_v2',
         jsonEncode(<Map<String, Object?>>[
           <String, Object?>{
             'id': 'old',
