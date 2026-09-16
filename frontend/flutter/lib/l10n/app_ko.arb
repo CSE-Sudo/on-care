@@ -292,6 +292,7 @@
   "exOwnRecordsEmpty": "직접 추가한 운동이 없어요",
   "exOwnRecordSource": "직접 기록",
   "exCompletedPtDayTitle": "완료한 PT",
+  "exPtDayFeedback": "{coachName} · 피드백",
   "exDeleteExercise": "운동 기록 삭제",
   "exDeleteExerciseBody": "이 기록을 삭제하면 되돌릴 수 없어요.",
   "exDeleted": "운동 기록을 삭제했어요",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -145,6 +146,9 @@ void main() {
     required DateTime date,
     required ExerciseSource source,
     required String name,
+    String? timeLabel,
+    String trainerFeedback = '',
+    List<String> items = const <String>['벤치프레스 4세트 · 10회 · 40kg'],
   }) => ExerciseSession(
     id: id,
     dayLabel: _labelOf(date),
@@ -152,9 +156,12 @@ void main() {
     type: ExerciseType.strength,
     minutes: 50,
     calories: 300,
+    sets: 4,
     source: source,
     assignedRoutineName: name,
-    items: const <String>['벤치프레스 4세트'],
+    timeLabel: timeLabel,
+    trainerFeedback: trainerFeedback,
+    items: items,
   );
 
   Future<AppLocalizations> pumpDay(
@@ -171,7 +178,7 @@ void main() {
     return AppLocalizations.of(tester.element(find.byType(ExercisePage)));
   }
 
-  testWidgets('지난 날짜의 PT 기록이 제목 아래 선다', (tester) async {
+  testWidgets('지난 날짜의 PT 기록이 오늘 카드와 같은 차림으로 선다', (tester) async {
     final DateTime target = otherDay();
     final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
       trainerSession(
@@ -179,6 +186,8 @@ void main() {
         date: target,
         source: ExerciseSource.trainerPt,
         name: 'PT 세션',
+        timeLabel: '18:00',
+        trainerFeedback: '어깨 힘 빼고 가슴으로 미세요.',
       ),
     ]);
 
@@ -186,13 +195,46 @@ void main() {
       const ValueKey<String>('exercise-pt-records'),
     );
     expect(card, findsOneWidget);
-    // 제목은 카드 **안**에 있다 — 오늘 화면의 `오늘 완료한 PT` 와 같은 짜임이다.
+
+    Finder inCard(Finder f) => find.descendant(of: card, matching: f);
+    // 제목·완료 시각·운동 시간·구분선·종목 줄·피드백 — 오늘 화면과 같은 순서다.
+    expect(inCard(find.text(l.exCompletedPtDayTitle)), findsOneWidget);
+    expect(inCard(find.text(l.exCompletedPtTime('18:00'))), findsOneWidget);
+    expect(inCard(find.text(l.exDurationMinutes(50))), findsOneWidget);
+    expect(inCard(find.byType(AppDivider)), findsOneWidget);
     expect(
-      find.descendant(of: card, matching: find.text(l.exCompletedPtDayTitle)),
+      inCard(find.text('벤치프레스 4세트 · 10회 · 40kg')),
+      findsOneWidget,
+      reason: '무슨 운동을 했는지가 종목 줄로 남는다',
+    );
+    expect(inCard(find.text('어깨 힘 빼고 가슴으로 미세요.')), findsOneWidget);
+  });
+
+  testWidgets('시각·피드백이 없는 기록에는 없는 값을 지어내지 않는다', (tester) async {
+    final DateTime target = otherDay();
+    final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
+      trainerSession(
+        id: 'routine-1',
+        date: target,
+        source: ExerciseSource.assignedRoutine,
+        name: '코어 루틴',
+        items: const <String>['코어 강화 10분'],
+      ),
+    ]);
+
+    final Finder card = find.byKey(
+      const ValueKey<String>('exercise-pt-records'),
+    );
+    expect(card, findsOneWidget);
+    // 배정 개인운동은 언제 했는지를 남기지 않는다 — 완료 시각 태그가 서지 않는다.
+    expect(find.byIcon(AppIcons.checkCircle), findsNothing);
+    // 운동 시간은 기록에 있으므로 그대로 적는다.
+    expect(
+      find.descendant(of: card, matching: find.text(l.exDurationMinutes(50))),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: card, matching: find.text('PT 세션')),
+      find.descendant(of: card, matching: find.text('코어 강화 10분')),
       findsOneWidget,
     );
   });
@@ -207,6 +249,7 @@ void main() {
         date: target,
         source: ExerciseSource.trainerPt,
         name: 'PT 세션',
+        timeLabel: '18:00',
       ),
     ]);
 
@@ -219,7 +262,9 @@ void main() {
     final double titleTop = tester
         .getRect(find.text(l.exCompletedPtDayTitle))
         .top;
-    final double itemTop = tester.getRect(find.text('PT 세션')).top;
+    final double itemTop = tester
+        .getRect(find.text('벤치프레스 4세트 · 10회 · 40kg'))
+        .top;
 
     // 제목이 빈 안내와 기록 **사이**에 선다. 기록이 안내 바로 밑에 붙으면
     // 없다고 해 놓고 보여 주는 꼴이 된다.
@@ -237,35 +282,31 @@ void main() {
         date: target,
         source: ExerciseSource.trainerPt,
         name: 'PT 세션',
+        timeLabel: '18:00',
       ),
       trainerSession(
         id: 'routine-1',
         date: target,
         source: ExerciseSource.assignedRoutine,
         name: '코어 루틴',
+        items: const <String>['코어 강화 10분'],
       ),
     ]);
 
     // 개인운동을 따로 어떻게 보여 줄지는 아직 정해지지 않았다. 그 결정 전까지
-    // 회원이 직접 적지 않은 기록은 한 자리에 모아 둔다 — 어디에도 없는 것보다
+    // 회원이 직접 적지 않은 기록은 한자리에 모아 둔다 — 어디에도 없는 것보다
     // 낫다.
     final Finder card = find.byKey(
       const ValueKey<String>('exercise-pt-records'),
     );
-    for (final String id in <String>['pt-1', 'routine-1']) {
+    expect(card, findsOneWidget);
+    for (final String line in <String>['벤치프레스 4세트 · 10회 · 40kg', '코어 강화 10분']) {
       expect(
-        find.descendant(
-          of: card,
-          matching: find.byKey(ValueKey<String>('exercise-pt-record-$id')),
-        ),
+        find.descendant(of: card, matching: find.text(line)),
         findsOneWidget,
-        reason: id,
+        reason: line,
       );
     }
-    expect(
-      find.descendant(of: card, matching: find.text('코어 루틴')),
-      findsOneWidget,
-    );
   });
 
   testWidgets('회원이 직접 적은 기록은 이 카드에 오지 않는다', (tester) async {

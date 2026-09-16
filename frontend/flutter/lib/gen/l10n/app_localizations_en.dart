@@ -845,6 +845,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exCompletedPtDayTitle => 'Completed PT';
 
   @override
+  String exPtDayFeedback(String coachName) {
+    return '$coachName · Feedback';
+  }
+
+  @override
   String get exDeleteExercise => 'Delete workout';
 
   @override

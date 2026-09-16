@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-// NumberFormat 만 가져온다 — intl 의 TextDirection 이 dart:ui 것과 충돌한다.
-import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+// DateFormat 만 가져온다 — intl 의 TextDirection 이 dart:ui 것과 충돌한다.
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
@@ -31,9 +31,6 @@ const double _bottomNavInset = 108;
 
 /// PT 일지의 종목 줄 앞 점.
 const double _programBulletSize = 6;
-
-/// 지난 날짜 세션 카드의 운동 항목 앞 점.
-const double _itemBulletSize = 4;
 
 /// 헬스장 서브탭에서 고른 예약 카드 — 탭을 벗어났다가 운동 탭에 다시 들어오면
 /// 선택이 풀려야 하는 임시 UI 상태라 Riverpod 에 둔다(#861). 실제 예약
@@ -530,7 +527,6 @@ class _ExerciseDayDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     final int i = date.weekday - 1; // 0 = 월
     final double minutes = _at(week.dailyMinutes, i);
     if (minutes <= 0) {
@@ -588,110 +584,9 @@ class _ExerciseDayDetail extends StatelessWidget {
           OwnExerciseRecords(week: week, date: date),
           if (sessions.isNotEmpty) ...<Widget>[
             // 제목 없이 이어 붙이면 바로 위 `직접 추가한 운동이 없어요` 아래로
-            // 카드가 흘러나와, 없다고 해 놓고 보여 주는 꼴이 된다. 오늘 화면의
-            // `오늘 완료한 PT` 와 같은 짜임 — 아이콘 달린 제목을 인 흰 카드 —
-            // 으로 갈라 세운다(#1884).
+            // 카드가 흘러나와, 없다고 해 놓고 보여 주는 꼴이 된다(#1884).
             const SizedBox(height: OnCareSpacing.s20),
-            AppCard(
-              key: const ValueKey<String>('exercise-pt-records'),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  AppSectionHeader(
-                    title: l.exCompletedPtDayTitle,
-                    icon: AppIcons.exercise,
-                  ),
-                  const SizedBox(height: OnCareSpacing.s12),
-                  for (final ExerciseSession s in sessions)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: AppTile(
-                          key: s.id == null
-                              ? null
-                              : ValueKey<String>('exercise-pt-record-${s.id}'),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Row(
-                                children: <Widget>[
-                                  Expanded(
-                                    child: Text(
-                                      s.assignedRoutineName.isNotEmpty
-                                          ? s.assignedRoutineName
-                                          : exerciseTypeLabel(l, s.type),
-                                      style: tokens
-                                          .text(OnCareTypography.label)
-                                          .copyWith(
-                                            color: OnCareColors.textPrimary,
-                                          ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${exerciseAmountLabel(l, s)} · '
-                                    '${NumberFormat('#,###').format(s.calories)} ${l.unitKcal}',
-                                    style: tokens
-                                        .text(OnCareTypography.bodySmall)
-                                        .copyWith(
-                                          color: OnCareColors.textSecondary,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                              // 무슨 운동을 했는지 — 유형만 적으면 `유산소 30분` 이
-                              // 러닝인지 자전거인지 알 수 없다. (#1021)
-                              if (s.items.isNotEmpty) ...<Widget>[
-                                const SizedBox(height: OnCareSpacing.s4),
-                                for (final String item in s.items)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: OnCareSpacing.s2,
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: <Widget>[
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: OnCareSpacing.s8,
-                                            right: OnCareSpacing.s8,
-                                          ),
-                                          child: SizedBox.square(
-                                            dimension: _itemBulletSize,
-                                            child: DecoratedBox(
-                                              decoration: BoxDecoration(
-                                                color: tokens.brand.primary,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Text(
-                                            item,
-                                            style: tokens
-                                                .text(
-                                                  OnCareTypography.bodySmall,
-                                                )
-                                                .copyWith(
-                                                  color:
-                                                      OnCareColors.textPrimary,
-                                                ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            _DayPtCard(sessions: sessions),
           ],
         ],
       ),
@@ -710,6 +605,132 @@ Widget _fitTag(Widget tag) => FittedBox(
   alignment: AlignmentDirectional.centerStart,
   child: tag,
 );
+
+/// 지난 날짜의 `완료한 PT` — 오늘 화면의 `오늘 완료한 PT` 와 같은 짜임이다.
+/// (#1884)
+///
+/// 회원이 직접 적지 않은 그날의 기록을 한 카드에 모은다. 예전에는 제목 없이
+/// `AppTile` 줄로 흘러나와, 바로 위 `직접 추가한 운동이 없어요` 에 딸린 것처럼
+/// 읽혔다. 같은 기록이 두 화면에서 다른 모양이면 회원은 다른 것으로 본다 —
+/// 오늘과 같은 순서로 적는다: 완료 시각·운동 시간 태그 → 구분선 → 종목 줄 →
+/// 트레이너 피드백.
+///
+/// 수정·삭제는 열지 않는다. 회원이 고칠 수 있는 기록이 아니다(#499, #638).
+///
+/// 트레이너가 배정한 개인운동도 여기 함께 둔다. 개인운동을 따로 어떻게 보여
+/// 줄지는 아직 정해지지 않았다 — 결정 전까지는 어디에도 없는 것보다 한자리에
+/// 모여 있는 편이 낫다.
+class _DayPtCard extends ConsumerWidget {
+  const _DayPtCard({required this.sessions});
+
+  /// 그날의 기록 중 회원이 적지 않은 것. 비어 있으면 이 카드를 세우지 않는다.
+  final List<ExerciseSession> sessions;
+
+  /// 카드에 적을 종목 줄. 세션이 종목을 들고 있으면 그대로, 없으면 이름과
+  /// 운동량으로 한 줄을 만든다 — 줄이 하나도 없는 빈 카드를 세우지 않는다.
+  List<String> _lines(AppLocalizations l) => <String>[
+    for (final ExerciseSession s in sessions)
+      if (s.items.isNotEmpty) ...s.items else _summaryLine(l, s),
+  ];
+
+  /// 종목을 들지 않은 세션의 한 줄 — `코어 강화 루틴 · 3세트` 처럼 이름과
+  /// 운동량을 붙인다.
+  static String _summaryLine(AppLocalizations l, ExerciseSession s) {
+    final String name = s.assignedRoutineName.isNotEmpty
+        ? s.assignedRoutineName
+        : exerciseTypeLabel(l, s.type);
+    return '$name · ${exerciseAmountLabel(l, s)}';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    // 시각은 PT 를 받은 날에만 있다 — 배정 개인운동은 언제 했는지를 남기지
+    // 않으므로 그 태그를 세우지 않는다. 없는 값을 지어내지 않는다.
+    final String time = sessions
+        .map((ExerciseSession s) => s.timeLabel ?? '')
+        .firstWhere((String t) => t.isNotEmpty, orElse: () => '');
+    final int minutes = sessions.fold<int>(
+      0,
+      (int sum, ExerciseSession s) => sum + s.minutes,
+    );
+    final String feedback = sessions
+        .map((ExerciseSession s) => s.trainerFeedback)
+        .firstWhere((String f) => f.isNotEmpty, orElse: () => '');
+    final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
+
+    return AppCard(
+      key: const ValueKey<String>('exercise-pt-records'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AppSectionHeader(
+            title: l.exCompletedPtDayTitle,
+            icon: AppIcons.exercise,
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 칩이 한 줄에 못 들어가면 다음 줄로 내린다 — 오늘 카드와 같다(#995).
+          Wrap(
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[
+              if (time.isNotEmpty)
+                _fitTag(
+                  AppTag(
+                    icon: AppIcons.checkCircle,
+                    label: l.exCompletedPtTime(time),
+                    tone: AppTagTone.success,
+                  ),
+                ),
+              if (minutes > 0)
+                _fitTag(
+                  AppTag(
+                    icon: AppIcons.timer,
+                    label: l.exDurationMinutes(minutes),
+                    tone: AppTagTone.brand,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          const AppDivider(),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 무슨 운동을 했는지 — 유형만 적으면 `유산소 30분` 이 러닝인지
+          // 자전거인지 알 수 없다. (#1021) 유형별 합계는 바로 위 도넛 카드가
+          // 이미 말하므로 여기서 되풀이하지 않는다(#682).
+          for (final String line in _lines(l)) _ProgramLine(line),
+          if (feedback.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            SizedBox(
+              width: double.infinity,
+              child: AppTile(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l.exPtDayFeedback(coach?.name ?? l.exAssignedTrainer),
+                      style: tokens
+                          .text(OnCareTypography.label)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s4),
+                    Text(
+                      feedback,
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 /// PT 일지의 종목 한 줄 — 앞 점 + 줄바꿈되는 본문.
 class _ProgramLine extends StatelessWidget {

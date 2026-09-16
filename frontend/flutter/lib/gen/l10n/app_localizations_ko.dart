@@ -826,6 +826,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exCompletedPtDayTitle => '완료한 PT';
 
   @override
+  String exPtDayFeedback(String coachName) {
+    return '$coachName · 피드백';
+  }
+
+  @override
   String get exDeleteExercise => '운동 기록 삭제';
 
   @override
