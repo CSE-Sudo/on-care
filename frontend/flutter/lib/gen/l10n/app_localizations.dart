@@ -3928,7 +3928,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points. Log a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P'**
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// Onboarding step 1: the basic info step must be filled in (#1830).

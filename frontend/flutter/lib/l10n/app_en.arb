@@ -1181,7 +1181,7 @@
   "@guideMySettingsBody": {"description": "Spotlight guide step: the MY tab profile and settings (#1857)."},
   "guidePointsTitle": "Points",
   "@guidePointsTitle": {"description": "Spotlight guide step: the MY tab points card (#1857)."},
-  "guidePointsBody": "Every log earns points. Log a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P",
+  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P",
   "@guidePointsBody": {"description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).", "placeholders": {"diet": {"type": "int"}, "exercise": {"type": "int"}, "routine": {"type": "int"}}},
   "onboardRequiredTag": "(required)",
   "@onboardRequiredTag": {"description": "Onboarding step 1: the basic info step must be filled in (#1830)."},

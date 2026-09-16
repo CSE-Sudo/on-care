@@ -738,7 +738,7 @@
   "guideMySettingsTitle": "내 정보와 설정",
   "guideMySettingsBody": "건강 목표와 알림, 프로필을 MY 탭에서 바꿔요",
   "guidePointsTitle": "포인트",
-  "guidePointsBody": "기록할 때마다 포인트가 쌓여요. 식단 기록 +{diet}P, 운동 추가 +{exercise}P, 추천 운동 완료 +{routine}P",
+  "guidePointsBody": "기록할 때마다 포인트가 쌓여요.\n식단 기록 +{diet}P, 운동 추가 +{exercise}P, 추천 운동 완료 +{routine}P",
   "onboardRequiredTag": "(필수)",
   "onboardBirthRequired": "생년월일을 골라 주세요",
   "onboardGenderRequired": "성별을 골라 주세요",

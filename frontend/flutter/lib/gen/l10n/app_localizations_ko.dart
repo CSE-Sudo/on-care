@@ -2108,7 +2108,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '기록할 때마다 포인트가 쌓여요. 식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P';
+    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P';
   }
 
   @override

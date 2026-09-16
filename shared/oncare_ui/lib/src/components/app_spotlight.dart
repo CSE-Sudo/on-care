@@ -351,7 +351,7 @@ class _TailPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final double center = size.width * alignment;
-    final double half = AppSpotlightCallout.tailWidth / 2;
+    const double half = AppSpotlightCallout.tailWidth / 2;
     final double left = center - half;
     final double right = center + half;
     final Path path = Path();
