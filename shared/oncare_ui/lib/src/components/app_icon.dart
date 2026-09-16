@@ -52,6 +52,31 @@ class AppIcon extends StatelessWidget {
     );
   }
 
+  /// 캔버스에 **글자로 직접 찍는** 아이콘 하나. [Icon] 을 얹을 수 없는 그림
+  /// (도넛·링 위 …)에서 쓴다.
+  ///
+  /// 캔버스에 직접 그리는 것은 테마를 타지 않으므로, 묶음이 정한 채움·굵기·
+  /// 등급·광학 크기를 손으로 붙여 준다 — 붙이지 않으면 같은 아이콘이 화면
+  /// 다른 곳에서는 채워지고 그림 위에서만 빈 외곽선으로 나온다(#1866).
+  static TextPainter glyphPainter(
+    OnCareIconSet set,
+    IconData icon, {
+    required double size,
+    required Color color,
+  }) => TextPainter(
+    text: TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontSize: size,
+        fontFamily: icon.fontFamily,
+        package: icon.fontPackage,
+        color: color,
+        fontVariations: set.fontVariationsFor(icon, size),
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  )..layout();
+
   @override
   Widget build(BuildContext context) => AppIcon.resolve(
     context,

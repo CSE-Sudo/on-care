@@ -341,6 +341,33 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 `auth_interceptor.dart`). 발급은 `POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`
 이고, 이후 요청은 `Authorization: Bearer <access>` 를 단다.
 
+### 가입 연락처 형식 (#1780)
+
+`POST /auth/register` 와 `POST /auth/trainer/register` 는 `email`·`phone` 의 **형식을 서버가
+본다**. 두 앱의 가입 화면(`oncare_ui` 의 `AppInputRules`)이 같은 것을 미리 걸러 주지만, 앱을
+거치지 않은 요청까지 막는 것은 여기다. 어긋나면 **422** 이고, 중복 이메일(409)·초대 코드
+오류보다 먼저 걸린다.
+
+| 필드 | 기준 | 저장 |
+|---|---|---|
+| `email` | `AppInputRules.email` 과 **같은 규칙**(로컬@도메인.최상위, 최대 255자) | 앞뒤 공백만 잘라낸 **입력 그대로** |
+| `phone` | 숫자 11자리. 하이픈·공백은 세지 않는다. 빈 값 허용(선택) | `010-1234-5678` 한 가지 표기 |
+
+`email-validator`(`EmailStr`)를 쓰지 않는다. 그쪽은 RFC 2606 이 시험용으로 비워 둔 최상위
+도메인(`.test`·`.invalid`·`localhost`)을 막는데, 앱은 통과시키므로 기준이 갈라진다 — 실 API
+E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은 **함께 고쳐야 한다.**
+
+이메일을 소문자로 고치지 않는 이유는 로그인 조회와 중복 확인이 `users.email` 을 그대로
+비교하기 때문이다 — 저장만 정규화하면 대문자 도메인으로 가입한 사람이 자기가 친 주소로
+로그인하지 못한다(정규화는 그 조회까지 함께 옮겨야 하는 별개의 일, #1551).
+
+전화번호는 `01012345678` 처럼 하이픈 없이 보내도 받는다. 앱보다 느슨한 쪽이라 앱을 통과한
+값이 서버에서 막히는 일은 생기지 않는다. 시드와 기존 프로필이 이미 하이픈 표기라 정리할
+데이터는 없다.
+
+`PUT /users/me`(프로필 수정)와 `PUT /trainer/me` 는 아직 이 기준을 적용하지 않는다 — 그 화면들은
+칸 아래 오류 문구가 없어, 서버만 조이면 422 가 안내 없이 떨어진다.
+
 ### 세션 폐기 (#966)
 
 refresh 토큰은 **일회용**이다. `POST /auth/refresh` 는 회전할 때 쓰인 토큰을 그 자리에서

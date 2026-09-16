@@ -45,7 +45,7 @@ Text('제목', style: Theme.of(context).textTheme.titleMedium);
 | 아이콘 | 16 / 20 / 24 (빈 화면 40). 트레이너웹 Material Icons `_rounded` · 회원앱 Material Symbols Rounded(채움, 굵기 400 · 운동만 300) |
 | 창 폭 | 웹 400 / 560 / 800, 모바일 확인창 400 · 시트 최대 높이 90% |
 | 텍스트 색 | `#1A1A1A` · `#465568` · `#667585` · `#768596` |
-| 표면 | 페이지 회원앱 `#FFFFFF` · 트레이너웹 `#F5F7FA`(`OnCareTokens.pageBackground`) · 카드 `#FFFFFF` · 입력 `#FFFFFF` + 테두리 `#D8E0E8`(비활성 입력은 `#F2F4F7` 채움) · 트랙 `#F2F4F7` |
+| 표면 | 페이지 회원앱 `#FFFFFF` · 트레이너웹 `#F5F7FA`(`OnCareTokens.pageBackground`) · 카드 `#FFFFFF` · 입력 `#FFFFFF` + 테두리 `#D8E0E8`(비활성 입력과 트레이너웹 여러 줄 입력은 `#F2F4F7` 채움) · 트랙 `#F2F4F7` |
 | 상태 | 완료 `#34C759` · 주의 `#E8760A`/`#FF953C` · 위험 `#F04438` |
 
 `OnCareTokenCatalog` 위젯으로 현재 앱의 토큰을 한 화면에서 볼 수 있습니다.

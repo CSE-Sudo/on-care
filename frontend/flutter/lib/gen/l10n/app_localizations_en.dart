@@ -531,6 +531,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Edit each food\'s nutrition and it adds up here';
 
   @override
+  String get dietSugarOverCarbs => 'Sugar can\'t be more than carbs';
+
+  @override
   String get dietDeleteMeal => 'Delete Meal';
 
   @override
@@ -898,10 +901,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exGymSearchPlaceholder => 'Search by area or gym name';
 
   @override
-  String get exTrainerSearchPlaceholder =>
-      'Search by specialty or trainer name';
-
-  @override
   String get exSortRecommended => 'Recommended';
 
   @override
@@ -909,9 +908,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exSortRating => 'Rating';
-
-  @override
-  String get exSortName => 'Name';
 
   @override
   String exResultCount(int count) {
@@ -1060,6 +1056,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotifTitle => 'Notification Settings';
 
   @override
+  String get myGuideTitle => 'Replay the app guide';
+
+  @override
   String get mySupportTitle => 'Customer Support';
 
   @override
@@ -1117,7 +1116,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCancel => 'Cancel';
 
   @override
-  String get myTrainerGymTitle => 'My Trainer & Gym';
+  String get myGymTrainerTitle => 'My Gym & Trainer';
 
   @override
   String get myConnectionDeleteTitle => 'Remove Connection';
@@ -2106,6 +2105,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pointsGuideStart => 'Get started';
+
+  @override
+  String guideBadgeWithStep(int current, int total) {
+    return 'App guide $current/$total';
+  }
+
+  @override
+  String get guideSampleBadge => 'Sample screen';
+
+  @override
+  String get guideSkip => 'Skip';
+
+  @override
+  String get guidePrev => 'Back';
+
+  @override
+  String get guideNext => 'Next';
+
+  @override
+  String get guideDone => 'Done';
+
+  @override
+  String get guideHomeAdviceTitle => 'Today\'s AI summary';
+
+  @override
+  String get guideHomeAdviceBody =>
+      'It reads your meals and workouts together and points to what to do today';
+
+  @override
+  String get guideQuickAddTitle => 'Quick add';
+
+  @override
+  String get guideQuickAddBody =>
+      'The + in the middle adds a meal or a workout from any screen';
+
+  @override
+  String get guideDietNutritionTitle => 'Nutrition summary';
+
+  @override
+  String get guideDietNutritionBody =>
+      'Today\'s calories, macros, sodium and sugar, and how far each is from your goal';
+
+  @override
+  String get guideExerciseStatusTitle => 'Workout status';
+
+  @override
+  String get guideExerciseStatusBody =>
+      'How much you moved today and this week, and how far the goal still is';
+
+  @override
+  String get guideGymTitle => 'Your gym and trainer';
+
+  @override
+  String get guideGymBody =>
+      'The gym and trainer you are connected to — their plans and feedback arrive in the app';
+
+  @override
+  String get guideMySettingsTitle => 'Settings';
+
+  @override
+  String get guideMySettingsBody =>
+      'Change your profile, health goals and alerts here — and replay this guide';
+
+  @override
+  String get guidePointsTitle => 'Points';
+
+  @override
+  String guidePointsBody(int diet, int exercise, int routine) {
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P';
+  }
 
   @override
   String get onboardRequiredTag => '(required)';

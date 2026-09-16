@@ -20,10 +20,19 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 class GymTab extends ConsumerWidget {
-  const GymTab({required this.selectedSlot, required this.onSlot, super.key});
+  const GymTab({
+    required this.selectedSlot,
+    required this.onSlot,
+    this.gymAnchorKey,
+    super.key,
+  });
 
   final String? selectedSlot;
   final ValueChanged<String> onSlot;
+
+  /// 사용 가이드가 `내 헬스장` 카드의 자리를 재는 열쇠(#1857). 운동 탭은 이
+  /// 값을 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? gymAnchorKey;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -87,19 +96,22 @@ class GymTab extends ConsumerWidget {
             onAction: () => context.push(AppRoutes.gyms),
           ),
           const SizedBox(height: OnCareSpacing.s8),
-          _MyGymSection(
-            gymAsync: myGymAsync,
-            trainer: ref.watch(myTrainerProvider).valueOrNull,
-            selectedSlot: selectedSlot,
-            onSlot: onSlot,
-            onRetry: () => ref.invalidate(myGymProvider),
-            onTrainerChatTap: showTrainerChat
-                ? () => openTrainerChatPage(
-                    context,
-                    trainerName: assignedCoach.name,
-                  )
-                : null,
-            unreadCoachMessages: unreadCoachMessages,
+          KeyedSubtree(
+            key: gymAnchorKey,
+            child: _MyGymSection(
+              gymAsync: myGymAsync,
+              trainer: ref.watch(myTrainerProvider).valueOrNull,
+              selectedSlot: selectedSlot,
+              onSlot: onSlot,
+              onRetry: () => ref.invalidate(myGymProvider),
+              onTrainerChatTap: showTrainerChat
+                  ? () => openTrainerChatPage(
+                      context,
+                      trainerName: assignedCoach.name,
+                    )
+                  : null,
+              unreadCoachMessages: unreadCoachMessages,
+            ),
           ),
         ],
       ),

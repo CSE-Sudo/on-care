@@ -16,8 +16,9 @@ class AppRoutes {
   static const String myPoints = '/my-health/points';
   static const String mySettings = '/my-health/settings/:section';
   static const String gyms = '/gyms';
-  static const String trainers = '/trainers';
   static const String gymDetail = '/gyms/:gymId';
+  /// 트레이너 **상세**. 목록 화면은 없다 — 트레이너는 헬스장을 거쳐 만난다
+  /// (헬스장 찾기 카드 → 헬스장 상세 → 트레이너 상세). #1885
   static const String trainerDetail = '/trainers/:trainerId';
   static const String consultationRequest = '/consultations/request';
   static const String consultationComplete = '/consultations/complete';
@@ -31,7 +32,7 @@ class AppRoutes {
       '$gyms/${Uri.encodeComponent(gymId)}';
 
   static String trainerDetailPath(String trainerId) =>
-      '$trainers/${Uri.encodeComponent(trainerId)}';
+      '/trainers/${Uri.encodeComponent(trainerId)}';
 
   static String dietEntryDetailPath(String entryId) =>
       '$diet/entries/${Uri.encodeComponent(entryId)}';
@@ -60,6 +61,10 @@ class AppRoutes {
 
   /// 온보딩을 마치거나 건너뛴 뒤 홈으로 가기 전에 보는 포인트 안내(#1826).
   static const String pointsGuide = '/onboarding/points';
+
+  /// 포인트 안내의 `시작하기` 뒤에 보는 사용 가이드(#1857) — 예시 자료로 채운
+  /// 화면 위에서 주요 기능을 하나씩 밝게 짚는다.
+  static const String guideTour = '/onboarding/guide';
 
   // Dev-only routes (registered only in non-prod builds).
   static const String uiCatalog = '/dev/ui-catalog';
