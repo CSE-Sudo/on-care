@@ -944,6 +944,12 @@ abstract class AppLocalizations {
   /// **'Delete this meal record?'**
   String get dietDeleteConfirm;
 
+  /// No description provided for @dietDeleteWhenEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No food is left. Delete this meal record?'**
+  String get dietDeleteWhenEmpty;
+
   /// No description provided for @dietCancel.
   ///
   /// In en, this message translates to:

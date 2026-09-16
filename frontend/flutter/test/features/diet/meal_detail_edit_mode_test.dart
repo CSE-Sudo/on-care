@@ -149,4 +149,25 @@ void main() {
     expect(find.text('99'), findsNothing);
     expect(find.text('10'), findsWidgets, reason: '원래 합계 2 + 8');
   });
+
+  testWidgets('음식을 모두 지우고 저장하면 식단을 지울지 묻는다', (WidgetTester tester) async {
+    await _openDetail(tester, FakeDietRepository());
+
+    await tester.tap(_editButton);
+    await tester.pumpAndSettle();
+
+    // 뒤에서부터 지운다 — 앞에서 지우면 남은 줄의 번호가 밀린다.
+    await tester.tap(find.byKey(const ValueKey<String>('diet-food-remove-2')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('diet-food-remove-1')));
+    await tester.pumpAndSettle();
+
+    // 지우는 도중에는 아무것도 묻지 않는다.
+    expect(find.text('음식이 하나도 남지 않았어요. 이 식단 기록을 삭제할까요?'), findsNothing);
+
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('음식이 하나도 남지 않았어요. 이 식단 기록을 삭제할까요?'), findsOneWidget);
+  });
 }

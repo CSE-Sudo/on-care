@@ -236,6 +236,7 @@
   "dietSaveFailed": "Couldn't save. Please try again in a moment.",
   "dietDeleteTitle": "Delete Meal Record",
   "dietDeleteConfirm": "Delete this meal record?",
+  "dietDeleteWhenEmpty": "No food is left. Delete this meal record?",
   "dietCancel": "Cancel",
   "dietDelete": "Delete",
   "dietDeleted": "Meal deleted",

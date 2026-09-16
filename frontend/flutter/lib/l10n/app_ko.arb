@@ -157,6 +157,7 @@
   "dietSaveFailed": "저장에 실패했어요. 잠시 후 다시 시도해 주세요",
   "dietDeleteTitle": "식단 기록 삭제",
   "dietDeleteConfirm": "이 식단 기록을 삭제할까요?",
+  "dietDeleteWhenEmpty": "음식이 하나도 남지 않았어요. 이 식단 기록을 삭제할까요?",
   "dietCancel": "취소",
   "dietDelete": "삭제",
   "dietDeleted": "식단이 삭제되었어요",

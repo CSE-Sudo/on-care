@@ -479,6 +479,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietDeleteConfirm => 'Delete this meal record?';
 
   @override
+  String get dietDeleteWhenEmpty => 'No food is left. Delete this meal record?';
+
+  @override
   String get dietCancel => 'Cancel';
 
   @override

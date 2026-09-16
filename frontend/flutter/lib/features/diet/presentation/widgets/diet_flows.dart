@@ -1244,26 +1244,33 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       navigator.pop();
       return;
     }
+    // Drop empty draft rows (see `dietNewFood` placeholder) so a
+    // translation string never lands in stored food names.
+    // 영양은 이름·칼로리와 함께 되돌려 보낸다. 빠뜨리면 이 저장 한 번으로
+    // 그 끼니의 탄단지·나트륨·당류가 0 이 된다 — 합계가 음식별 값에서
+    // 계산되기 때문이다(#1853).
+    final List<FoodItem> foods = <FoodItem>[
+      for (final DietFood f in _foods)
+        if (f.name.trim().isNotEmpty)
+          FoodItem(
+            name: f.name.trim(),
+            calories: f.kcal,
+            sodiumMg: f.sodiumMg,
+            sugarG: f.sugarG,
+            carbsG: f.carbsG,
+            proteinG: f.proteinG,
+            fatG: f.fatG,
+          ),
+    ];
+    // 음식을 모두 지우고 저장했다면 빈 끼니를 남기는 대신 기록을 지울지
+    // 묻는다. 지우는 도중이 아니라 저장할 때 묻는 이유는, 한 줄씩 갈아 끼우는
+    // 동안 끼어들면 고치던 흐름이 끊기기 때문이다.
+    if (foods.isEmpty) {
+      await _confirmDelete(emptied: true);
+      return;
+    }
     setState(() => _busy = true);
     try {
-      // Drop empty draft rows (see `dietNewFood` placeholder) so a
-      // translation string never lands in stored food names.
-      // 영양은 이름·칼로리와 함께 되돌려 보낸다. 빠뜨리면 이 저장 한 번으로
-      // 그 끼니의 탄단지·나트륨·당류가 0 이 된다 — 합계가 음식별 값에서
-      // 계산되기 때문이다(#1853).
-      final List<FoodItem> foods = <FoodItem>[
-        for (final DietFood f in _foods)
-          if (f.name.trim().isNotEmpty)
-            FoodItem(
-              name: f.name.trim(),
-              calories: f.kcal,
-              sodiumMg: f.sodiumMg,
-              sugarG: f.sugarG,
-              carbsG: f.carbsG,
-              proteinG: f.proteinG,
-              fatG: f.fatG,
-            ),
-      ];
       await ref
           .read(dietRepositoryProvider)
           .updateEntry(
@@ -1292,7 +1299,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     }
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> _confirmDelete({bool emptied = false}) async {
     final String? id = widget.meal.id;
     if (id == null) {
       Navigator.of(context).pop();
@@ -1302,7 +1309,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.dietDeleteTitle,
-      message: l.dietDeleteConfirm,
+      message: emptied ? l.dietDeleteWhenEmpty : l.dietDeleteConfirm,
       confirmLabel: l.dietDelete,
       cancelLabel: l.dietCancel,
       destructive: true,
@@ -1355,18 +1362,10 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       key: const Key('mealDetailPage'),
       backgroundColor: OnCareColors.surfaceCard,
       // 뒤로는 앱바 한 곳, 저장은 하단 한 곳이다 — 머리의 글자 저장은 없다(#1700).
-      // 머리의 연필은 저장이 아니라 보기↔수정 전환이라 그 규칙과 어긋나지 않는다.
+      // 연필은 앱바가 아니라 `먹은 음식` 카드 머리에 둔다 — 고칠 것 바로 옆에
+      // 있어야 무엇을 여는 버튼인지 알아본다.
       appBar: AppTopBar(
         title: l.dietMealSheetTitle(mealBadge(l, widget.meal.mealType)),
-        actions: <Widget>[
-          if (!_editing)
-            AppIconButton(
-              key: const Key('mealDetailEditButton'),
-              icon: AppIcons.edit,
-              tooltip: l.dietEditMeal,
-              onPressed: _beginEdit,
-            ),
-        ],
       ),
       body: SafeArea(
         top: false,
@@ -1397,7 +1396,21 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            _FieldLabel(l.dietMealInfo),
+                            // 연필은 첫 카드에 둔다 — 수정 모드는 끼니 종류·
+                            // 시간·음식·영양을 한꺼번에 바꾸므로, 음식 카드에
+                            // 붙이면 음식만 고치는 것으로 읽힌다.
+                            Row(
+                              children: <Widget>[
+                                Expanded(child: _FieldLabel(l.dietMealInfo)),
+                                if (!_editing)
+                                  AppIconButton(
+                                    key: const Key('mealDetailEditButton'),
+                                    icon: AppIcons.edit,
+                                    tooltip: l.dietEditMeal,
+                                    onPressed: _beginEdit,
+                                  ),
+                              ],
+                            ),
                             const SizedBox(height: OnCareSpacing.s12),
                             // 보기 모드에서는 고른 끼니 하나만 보인다. 고를 수
                             // 없는 칩 넷을 늘어놓으면 누를 수 있는 것처럼 읽힌다.
@@ -1765,7 +1778,8 @@ class _FoodEditBlock extends StatelessWidget {
                 ),
               ),
               AppIconButton(
-                icon: AppIcons.close,
+                key: ValueKey<String>('diet-food-remove-$index'),
+                icon: AppIcons.delete,
                 tooltip: l.a11yRemoveFood,
                 color: OnCareColors.textTertiary,
                 onPressed: onDelete,

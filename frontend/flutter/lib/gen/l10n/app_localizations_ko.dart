@@ -470,6 +470,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietDeleteConfirm => '이 식단 기록을 삭제할까요?';
 
   @override
+  String get dietDeleteWhenEmpty => '음식이 하나도 남지 않았어요. 이 식단 기록을 삭제할까요?';
+
+  @override
   String get dietCancel => '취소';
 
   @override
