@@ -109,7 +109,7 @@ void main() {
     await _openResultSheet(tester, FakeDietRepository());
 
     expect(find.text('분석 완료!'), findsOneWidget);
-    expect(_shownDate(tester), _label(DateTime(2026, 8, 20)));
+    expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 20))));
   });
 
   testWidgets('날짜를 고치면 그 날의 식단으로 옮겨진다', (WidgetTester tester) async {
@@ -131,7 +131,7 @@ void main() {
     await tester.tap(find.text('확인'));
     await tester.pumpAndSettle();
 
-    expect(_shownDate(tester), _label(DateTime(2026, 8, 18)));
+    expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 18))));
     expect(repo.movedEntries.values.single.date, '2026-08-18');
 
     // 오늘에서 빠지고 고른 날짜에서 보인다 — 한쪽만 바뀌면 하루 합계가 두 날에
@@ -168,7 +168,7 @@ void main() {
     await tester.tap(find.text('확인'));
     await tester.pumpAndSettle();
 
-    expect(_shownDate(tester), _label(DateTime(2026, 8, 20)));
+    expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 20))));
     expect(repo.movedEntries, isEmpty);
   });
 
@@ -185,7 +185,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.attempts, 1);
-    expect(_shownDate(tester), _label(DateTime(2026, 8, 20)));
+    expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 20))));
     expect(find.textContaining('날짜를 바꾸지 못했어요'), findsOneWidget);
+  });
+
+  // 날짜만 적으면 같은 날 세 끼가 구분되지 않아 어느 끼니로 들어가는지 알 수
+  // 없다. 끼니는 사진을 고른 시각으로 정해지므로(`_currentMealType`) 시계를
+  // 옮기면 함께 바뀐다(#1897).
+  testWidgets('기록 날짜에 끼니가 함께 보인다', (WidgetTester tester) async {
+    useFixedKstDate(DateTime(2026, 8, 20, 9));
+    await _openResultSheet(tester, FakeDietRepository());
+
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 아침');
+  });
+
+  testWidgets('끼니는 사진을 고른 시각을 따른다', (WidgetTester tester) async {
+    useFixedKstDate(DateTime(2026, 8, 20, 19));
+    await _openResultSheet(tester, FakeDietRepository());
+
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 저녁');
   });
 }
