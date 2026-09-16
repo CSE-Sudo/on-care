@@ -22,6 +22,8 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 
 /// 저장이 실제로 불렸는지 세는 저장소.
 class _CountingAccountRepository extends MockAccountRepository {
+  _CountingAccountRepository({super.profile});
+
   int saves = 0;
 
   @override
@@ -53,13 +55,16 @@ const Key _email = ValueKey<String>('my-profile-email');
 const Key _phone = ValueKey<String>('my-profile-phone');
 
 Future<(AppLocalizations, _CountingAccountRepository)> _openProfile(
-  WidgetTester tester,
-) async {
+  WidgetTester tester, {
+  UserProfile? profile,
+}) async {
   tester.view.physicalSize = const Size(420, 1400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  final _CountingAccountRepository repository = _CountingAccountRepository();
+  final _CountingAccountRepository repository = profile == null
+      ? _CountingAccountRepository()
+      : _CountingAccountRepository(profile: profile);
   await tester.pumpWidget(
     ProviderScope(
       overrides: <Override>[
@@ -135,15 +140,41 @@ void main() {
     expect(repo.saves, 0);
   });
 
-  testWidgets('전화번호는 비워 둘 수 있다 — 가입과 다른 점이다', (WidgetTester tester) async {
+  testWidgets('있던 전화번호는 지울 수 없다', (WidgetTester tester) async {
     final (AppLocalizations l, _CountingAccountRepository repo) =
         await _openProfile(tester);
 
     await tester.enterText(find.byKey(_phone), '');
     await _save(tester, l);
 
+    expect(find.text(l.signUpPhoneFormatInvalid), findsOneWidget);
+    expect(
+      repo.saves,
+      0,
+      reason: '가입이 필수로 받은 값을 여기서 비우면 트레이너가 연락할 방법이 사라진다',
+    );
+  });
+
+  testWidgets('처음부터 전화번호가 없던 회원은 빈 칸으로 저장할 수 있다', (
+    WidgetTester tester,
+  ) async {
+    // 소셜 로그인 가입자와 #1634 이전 가입자가 이 상태다 — 연락처를 넣을
+    // 자리가 없었다. 이름만 고치려는데 전화번호로 막으면 안 된다.
+    final (AppLocalizations l, _CountingAccountRepository repo) =
+        await _openProfile(
+          tester,
+          profile: const UserProfile(
+            id: 'no-phone',
+            name: '연락처없음',
+            email: 'nophone@oncare.com',
+          ),
+        );
+
     expect(find.text(l.signUpPhoneFormatInvalid), findsNothing);
-    expect(repo.saves, 1, reason: '연락처를 지우는 것은 할 수 있는 일이다');
+    await _save(tester, l);
+
+    expect(find.text(l.signUpPhoneFormatInvalid), findsNothing);
+    expect(repo.saves, 1);
   });
 
   testWidgets('오류를 보인 뒤 칸을 고치면 문구가 사라진다', (WidgetTester tester) async {

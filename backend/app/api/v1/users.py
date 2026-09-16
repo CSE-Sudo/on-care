@@ -221,6 +221,17 @@ def update_me(
         user.name = data["name"]
 
     profile = _get_or_create_profile(db, user)
+
+    # 있던 연락처는 지울 수 없다(#1883). 회원 가입 화면은 전화번호를 **필수**로
+    # 받는데(#1634) 이 화면에서 비울 수 있으면 그 필수가 무의미해지고, 트레이너가
+    # 담당 회원에게 연락할 방법이 사라진다.
+    #
+    # 반대로 처음부터 없던 회원(소셜 로그인 가입자와 #1634 이전 가입자는
+    # 연락처를 넣을 자리가 없었다)에게는 요구하지 않는다 — 이름만 고치려는
+    # 사람에게 전화번호를 내놓으라고 막는 화면이 된다.
+    if data.get("phone") == "" and profile.phone:
+        raise HTTPException(status_code=422, detail="전화번호는 비울 수 없습니다.")
+
     for field in (
         "phone",
         "birth_date",

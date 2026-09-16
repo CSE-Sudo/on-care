@@ -362,8 +362,12 @@ def test_update_me_normalizes_phone_like_signup(client):
     assert profile.json()["phone"] == "010-1234-5678"
 
 
-def test_update_me_allows_clearing_phone(client):
-    """연락처를 지우는 것은 할 수 있는 일이다. 이메일과 다르다."""
+def test_update_me_rejects_clearing_an_existing_phone(client):
+    """있던 연락처는 지울 수 없다.
+
+    가입 화면이 전화번호를 필수로 받는데(#1634) 이 화면에서 비울 수 있으면 그
+    필수가 무의미해지고, 트레이너가 담당 회원에게 연락할 방법이 사라진다.
+    """
     token, _ = _register_and_login(client)
     assert (
         client.put(
@@ -372,7 +376,27 @@ def test_update_me_allows_clearing_phone(client):
         == 200
     )
     r = client.put("/v1/users/me", json={"phone": ""}, headers=_auth(token))
+    assert r.status_code == 422, r.text
+
+    # 지워지지 않았다.
+    profile = client.get("/v1/users/me/profile", headers=_auth(token))
+    assert profile.json()["phone"] == "010-1234-5678"
+
+
+def test_update_me_allows_empty_phone_when_there_was_none(client):
+    """처음부터 없던 회원에게는 요구하지 않는다.
+
+    소셜 로그인 가입자와 #1634 이전 가입자는 연락처를 넣을 자리가 없었다. 그
+    사람들까지 막으면 이름만 고치려는데 전화번호를 내놓으라고 막는 화면이 된다.
+    """
+    token, _ = _register_and_login(client)  # 가입 시 phone 을 보내지 않는다
+    assert client.get("/v1/users/me/profile", headers=_auth(token)).json()["phone"] == ""
+
+    r = client.put(
+        "/v1/users/me", json={"name": "이름만", "phone": ""}, headers=_auth(token)
+    )
     assert r.status_code == 200, r.text
+    assert r.json()["name"] == "이름만"
     assert r.json()["phone"] == ""
 
 

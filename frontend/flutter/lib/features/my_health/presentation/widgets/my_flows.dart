@@ -247,14 +247,21 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   /// 칸의 지금 값에 대한 오류 문구. 규칙도 문구도 가입 화면과 같은 것을 쓴다 —
   /// 여기만 다른 기준을 두면 같은 값이 화면마다 다르게 판정된다.
   ///
-  /// 전화번호는 비워 둘 수 있다. 가입과 달리 이 화면은 이미 있는 값을 고치는
-  /// 자리고, 연락처를 지우는 것은 할 수 있는 일이다. 서버도 빈 값을 받는다.
+  /// **있던 연락처는 지울 수 없다.** 가입 화면이 전화번호를 필수로 받는데
+  /// (#1634) 여기서 비울 수 있으면 그 필수가 무의미해지고, 트레이너가 담당
+  /// 회원에게 연락할 방법이 사라진다.
+  ///
+  /// 처음부터 없던 회원에게만 빈 칸을 허용한다 — 소셜 로그인 가입자와 #1634
+  /// 이전 가입자는 연락처를 넣을 자리가 없었다. 그 사람들에게까지 요구하면
+  /// 이름만 고치려는데 전화번호를 내놓으라고 막는 화면이 된다. 서버도 같은
+  /// 판정이다(#1883).
   String? _check(_ProfileField field) =>
       authInputErrorText(AppLocalizations.of(context), switch (field) {
         _ProfileField.email => AppInputRules.email(_email.text),
-        _ProfileField.phone => _phone.text.trim().isEmpty
-            ? null
-            : AppInputRules.phone(_phone.text),
+        _ProfileField.phone =>
+          _phone.text.trim().isEmpty && widget.initial.phone.trim().isEmpty
+              ? null
+              : AppInputRules.phone(_phone.text),
       });
 
   /// 오류를 보인 칸이 있을 때만 입력마다 다시 그린다.
