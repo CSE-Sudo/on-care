@@ -45,6 +45,7 @@ const Trainer _trainer = Trainer(
 final DateTime _openAt = DateTime(2026, 9, 1, 10);
 final DateTime _bookedAt = DateTime(2026, 9, 2, 10);
 final DateTime _consultAt = DateTime(2026, 9, 3, 10);
+final DateTime _groupAt = DateTime(2026, 9, 4, 10);
 
 List<TrainerSlot> get _slots => <TrainerSlot>[
   TrainerSlot(
@@ -67,6 +68,15 @@ List<TrainerSlot> get _slots => <TrainerSlot>[
     startsAt: _consultAt,
     booked: false,
     sessionType: '상담',
+  ),
+  // 계약에 없던 종류가 섞여 오는 경우. 화면은 상담을 빼는 것이 아니라 1:1 PT 만
+  // 남기므로 이 자리도 나오지 않는다 (#1849).
+  TrainerSlot(
+    id: 'slot-group',
+    trainerId: _trainer.id,
+    startsAt: _groupAt,
+    booked: false,
+    sessionType: '그룹',
   ),
 ];
 
@@ -261,6 +271,27 @@ void main() {
     expect(find.text(l.exSlotTypeConsultation), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('slot-chip-slot-open')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('1:1 PT 가 아닌 자리는 종류가 무엇이든 내주지 않는다 (#1849)', (
+    WidgetTester tester,
+  ) async {
+    final AppLocalizations l = await pumpTab(tester);
+
+    // 제목 줄이 종류를 `1:1 PT` 로 못 박으므로, 상담 말고 다른 종류가 섞여 와도
+    // 칩으로 나와서는 안 된다.
+    expect(
+      find.byKey(const ValueKey<String>('slot-chip-slot-group')),
+      findsNothing,
+    );
+    expect(find.text('그룹'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('my-gym-reservation-panel')),
+        matching: find.text(l.exSlotTypePersonalTraining),
+      ),
       findsOneWidget,
     );
   });

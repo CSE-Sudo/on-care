@@ -203,7 +203,11 @@ class _TrainerChatButton extends StatelessWidget {
         AppButton(
           label: l.coachChatWithTrainer,
           onPressed: onTap,
-          variant: AppButtonVariant.secondary,
+          // 헤더의 채팅 아이콘과 같은 대화로 들어가는 자리다 — 헤더가
+          // `brand.primary` 로 그려지므로 이 버튼도 같은 브랜드 채움이어야
+          // 한다 (#1849). 흰 바탕 보조 버튼으로 두면 같은 채팅인데도 둘이
+          // 다른 동작처럼 읽혔다.
+          variant: AppButtonVariant.primary,
           leadingIcon: AppIcons.chat,
           fullWidth: true,
         ),
@@ -246,6 +250,11 @@ class _TrainerChatButton extends StatelessWidget {
     );
   }
 }
+
+/// 이 화면이 내주는 단 하나의 자리 종류. [TrainerSlot.sessionType] 의 계약값을
+/// 그대로 쓴다 — 도메인·저장소는 상담 자리까지 그대로 들고 있고, 회원에게 무엇을
+/// 열어 줄지 좁히는 일은 화면 몫이다 (#1849).
+const String _kPersonalTrainingSessionType = '1:1 PT';
 
 /// 담당 트레이너의 실제 예약 가능 시간.
 ///
@@ -448,9 +457,15 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
               ),
               data: (List<TrainerSlot> all) {
                 // 이미 연결된 헬스장이라 상담은 지난 걸음이다 — 상담으로 열린
-                // 자리는 여기서 보여 주지 않는다 (#1136). 남는 것은 1:1 PT 뿐.
+                // 자리는 여기서 보여 주지 않는다 (#1136). 제목 줄이 종류를
+                // `1:1 PT` 로 한 번만 못 박으므로(#1701), 거르는 기준도 상담을
+                // 빼는 쪽이 아니라 **1:1 PT 만 남기는 쪽**이어야 한다 — 상담
+                // 아닌 다른 종류가 섞여 들어오면 제목과 칩이 어긋난다 (#1849).
                 final List<TrainerSlot> slots = all
-                    .where((TrainerSlot slot) => slot.sessionType != '상담')
+                    .where(
+                      (TrainerSlot slot) =>
+                          slot.sessionType == _kPersonalTrainingSessionType,
+                    )
                     .toList(growable: false);
                 if (slots.isEmpty) {
                   return _SlotNotice(message: l.exSlotsEmpty);
