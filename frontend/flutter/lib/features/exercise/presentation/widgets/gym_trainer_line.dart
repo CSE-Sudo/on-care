@@ -148,7 +148,11 @@ class GymTrainerLine extends StatelessWidget {
                   borderRadius: OnCareRadius.pillAll,
                 ),
                 child: Text(
-                  '${l.exRecommendationReason}: $reason',
+                  // 사유만 적는다 — 앞에 `추천 이유:` 를 붙이면 읽는 사람은 매번
+                  // 라벨을 먼저 지나치고 나서야 정작 볼 것을 만나고, 길어진 글자가 알약을
+                  // 줄 끝까지 늘려 배지가 아니라 한 문장처럼 읽힌다 (#1847). 무엇을
+                  // 적은 자리인지는 알약 모양이 이미 말하고 있다.
+                  reason,
                   maxLines: 2,
                   // 두 줄을 넘기면 줄여 적는다 — 큰 배율에서 배지가 카드 밖으로
                   // 밀려 나가지 않게.
