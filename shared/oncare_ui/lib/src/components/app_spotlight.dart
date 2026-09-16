@@ -239,35 +239,43 @@ class AppSpotlightAction extends StatelessWidget {
     final TextStyle style = tokens
         .text(OnCareTypography.strong(OnCareTypography.label))
         .copyWith(color: OnCareColors.textOnFill);
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: OnCareRadius.smAll,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: OnCareSpacing.s8,
-          vertical: OnCareSpacing.s8,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            if (leadingIcon != null) ...<Widget>[
-              AppIcon(
-                leadingIcon!,
-                size: OnCareSize.iconSmall,
-                color: OnCareColors.textOnFill,
-              ),
-              const SizedBox(width: OnCareSpacing.s4),
+    // 어두운 알약을 깔아 둔다. 글씨만 희게 두면 **밝게 뚫린 자리와 겹칠 때**
+    // 그 위에서 사라진다 — 알림 벨(위)이나 MY 탭(아래)을 짚을 때가 그렇다.
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: OnCareColors.spotlightScrim,
+        borderRadius: OnCareRadius.pillAll,
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: OnCareRadius.pillAll,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: OnCareSpacing.s8,
+            vertical: OnCareSpacing.s8,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (leadingIcon != null) ...<Widget>[
+                AppIcon(
+                  leadingIcon!,
+                  size: OnCareSize.iconSmall,
+                  color: OnCareColors.textOnFill,
+                ),
+                const SizedBox(width: OnCareSpacing.s4),
+              ],
+              Text(label, style: style),
+              if (trailingIcon != null) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s4),
+                AppIcon(
+                  trailingIcon!,
+                  size: OnCareSize.iconSmall,
+                  color: OnCareColors.textOnFill,
+                ),
+              ],
             ],
-            Text(label, style: style),
-            if (trailingIcon != null) ...<Widget>[
-              const SizedBox(width: OnCareSpacing.s4),
-              AppIcon(
-                trailingIcon!,
-                size: OnCareSize.iconSmall,
-                color: OnCareColors.textOnFill,
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -284,14 +292,47 @@ class _SpotlightPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final Paint paint = Paint()..color = OnCareColors.spotlightScrim;
-    final Path screen = Path()..addRect(Offset.zero & size);
     final Rect? cut = hole;
     if (cut == null) {
-      canvas.drawPath(screen, paint);
+      canvas.drawRect(Offset.zero & size, paint);
       return;
     }
-    final Path lit = Path()..addRRect(RRect.fromRectAndRadius(cut, radius));
-    canvas.drawPath(Path.combine(PathOperation.difference, screen, lit), paint);
+    // 구멍 **둘레를 네 조각으로** 덮는다. 화면 경로에서 구멍 경로를 빼는 방법
+    // (`Path.combine`)은 웹 렌더러에서 그대로 통하지 않아, 덮개만 칠해지고
+    // 구멍이 뚫리지 않았다. 사각형 넷과 모서리 네 조각은 어디서나 같게 그려진다.
+    canvas
+      ..drawRect(Rect.fromLTRB(0, 0, size.width, cut.top), paint)
+      ..drawRect(Rect.fromLTRB(0, cut.bottom, size.width, size.height), paint)
+      ..drawRect(Rect.fromLTRB(0, cut.top, cut.left, cut.bottom), paint)
+      ..drawRect(
+        Rect.fromLTRB(cut.right, cut.top, size.width, cut.bottom),
+        paint,
+      );
+
+    // 각진 구멍의 귀퉁이를 둥글게 깎는다 — 짚는 카드·버튼의 모서리를 따른다.
+    final double r = math.min(radius.x, math.min(cut.width, cut.height) / 2);
+    if (r <= 0) return;
+    canvas
+      ..drawPath(_corner(cut.topLeft, r, dx: 1, dy: 1), paint)
+      ..drawPath(_corner(cut.topRight, r, dx: -1, dy: 1), paint)
+      ..drawPath(_corner(cut.bottomRight, r, dx: -1, dy: -1), paint)
+      ..drawPath(_corner(cut.bottomLeft, r, dx: 1, dy: -1), paint);
+  }
+
+  /// 구멍 귀퉁이 하나를 덮는 조각 — 직각에서 원호만큼을 남긴 부분.
+  static Path _corner(
+    Offset corner,
+    double r, {
+    required int dx,
+    required int dy,
+  }) {
+    final Offset alongX = corner + Offset(r * dx, 0);
+    final Offset alongY = corner + Offset(0, r * dy);
+    return Path()
+      ..moveTo(corner.dx, corner.dy)
+      ..lineTo(alongX.dx, alongX.dy)
+      ..arcToPoint(alongY, radius: Radius.circular(r), clockwise: dx * dy < 0)
+      ..close();
   }
 
   @override
