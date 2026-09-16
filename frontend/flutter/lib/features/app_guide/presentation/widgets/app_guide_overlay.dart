@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,17 +28,56 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
   Rect? _hole;
   GuideStepId? _measuredStep;
 
-  /// 한 프레임 뒤에 잰다 — 덮개가 그려지는 시점에는 짚을 요소가 이미 배치돼
-  /// 있지만, 자리(Rect)는 그 프레임이 끝나야 확정된다.
-  void _scheduleMeasure(GuideStepId? step) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final Rect? next = _measure(step);
-      if (_measuredStep == step && next == _hole) return;
-      setState(() {
-        _measuredStep = step;
-        _hole = next;
-      });
+  /// 지금 자리를 찾는 중인 단계. 단계가 바뀌면 진행 중이던 탐색은 스스로
+  /// 물러난다 — 두 단계가 같은 `_hole` 을 두고 다투지 않게.
+  GuideStepId? _pending;
+
+  /// 자리를 찾을 때까지 기다리는 한계. 60fps 기준 1초쯤이다 — 이보다 오래
+  /// 걸리면 그 화면에 그 카드가 없는 것으로 보고 구멍 없이 덮는다.
+  static const int _maxWaitFrames = 60;
+
+  /// 짚을 자리를 찾아 구멍을 낸다. (#1857)
+  ///
+  /// 세 가지를 차례로 기다려야 한다.
+  /// 1. **그려지기** — 탭을 옮기는 단계에서는 한 프레임으로 모자란다. 새 탭의
+  ///    카드는 자기 자료를 받아 온 뒤에야 나타난다.
+  /// 2. **보이는 자리로 오기** — MY 의 포인트처럼 접힌 화면 아래에 있는 카드는
+  ///    화면 안으로 굴려 와야 짚을 수 있다.
+  /// 3. **자리가 확정되기** — 자리(Rect)는 그 프레임이 끝나야 정해진다.
+  Future<void> _findAndMeasure(GuideStepId? step) async {
+    _pending = step;
+    if (step == null) {
+      _apply(step, null);
+      return;
+    }
+    final GlobalKey key = ref.read(guideAnchorsProvider).keyOf(step);
+    for (int frame = 0; frame < _maxWaitFrames; frame++) {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || _pending != step) return;
+      if (key.currentContext != null) break;
+    }
+    final BuildContext? anchor = key.currentContext;
+    if (anchor != null && anchor.mounted && Scrollable.maybeOf(anchor) != null) {
+      // 카드가 말풍선에 가리지 않도록 화면 위쪽에 놓는다.
+      await Scrollable.ensureVisible(
+        anchor,
+        alignment: 0.3,
+        duration: OnCareMotion.normal,
+        curve: Curves.easeOut,
+      );
+      if (!mounted || _pending != step) return;
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || _pending != step) return;
+    }
+    _apply(step, _measure(step));
+  }
+
+  void _apply(GuideStepId? step, Rect? hole) {
+    if (!mounted) return;
+    if (_measuredStep == step && hole == _hole) return;
+    setState(() {
+      _measuredStep = step;
+      _hole = hole;
     });
   }
 
@@ -64,8 +105,8 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
     final AppGuideState guide = ref.watch(appGuideControllerProvider);
     final GuideStepId? step = guide.step;
     if (step == null) return const SizedBox.shrink();
-    // 단계가 바뀌면 새 자리를 잰다.
-    if (step != _measuredStep) _scheduleMeasure(step);
+    // 단계가 바뀌면 새 자리를 찾는다.
+    if (step != _pending) unawaited(_findAndMeasure(step));
 
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
@@ -75,10 +116,9 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
 
     return AppSpotlight(
       key: const Key('appGuideOverlay'),
-      hole: _hole,
-      holeRadius: step == GuideStepId.homeSummary
-          ? OnCareRadius.xl
-          : OnCareRadius.lg,
+      // 아직 이 단계의 자리를 재지 못했으면 구멍 없이 덮는다 — 지난 단계의
+      // 구멍이 새 탭 위에 엉뚱하게 밝은 자리로 남지 않게.
+      hole: _measuredStep == step ? _hole : null,
       // 갑자기 어두워진 이유와 남은 길이를 화면 맨 위에서 먼저 말한다.
       topBar: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +139,7 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
                   tone: AppTagTone.brand,
                   icon: AppIcons.info,
                 ),
-                // 아래 화면은 진짜 홈이지만 값은 예시다 — 내 기록으로 읽지 않게
+                // 아래는 진짜 화면이지만 값은 예시다 — 내 기록으로 읽지 않게
                 // 밝힌다.
                 AppTag(
                   key: const Key('guideSampleBadge'),
@@ -159,22 +199,24 @@ class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
   }
 
   static String _title(AppLocalizations l, GuideStepId step) => switch (step) {
-    GuideStepId.homeSummary => l.guideHomeTitle,
-    GuideStepId.alerts => l.guideAlertsTitle,
-    GuideStepId.diet => l.guideDietTitle,
+    GuideStepId.homeAdvice => l.guideHomeAdviceTitle,
     GuideStepId.quickAdd => l.guideQuickAddTitle,
-    GuideStepId.exercise => l.guideExerciseTitle,
+    GuideStepId.dietNutrition => l.guideDietNutritionTitle,
+    GuideStepId.exerciseStatus => l.guideExerciseStatusTitle,
+    GuideStepId.gym => l.guideGymTitle,
+    GuideStepId.mySettings => l.guideMySettingsTitle,
     GuideStepId.points => l.guidePointsTitle,
   };
 
   /// 포인트 단계의 숫자는 적립 규칙([PointsRule]) 한 곳에서 읽는다 — 안내가
   /// 규칙보다 오래 살아남아 옛 숫자를 말하는 일이 없게(#1826 과 같은 규칙).
   static String _body(AppLocalizations l, GuideStepId step) => switch (step) {
-    GuideStepId.homeSummary => l.guideHomeBody,
-    GuideStepId.alerts => l.guideAlertsBody,
-    GuideStepId.diet => l.guideDietBody,
+    GuideStepId.homeAdvice => l.guideHomeAdviceBody,
     GuideStepId.quickAdd => l.guideQuickAddBody,
-    GuideStepId.exercise => l.guideExerciseBody,
+    GuideStepId.dietNutrition => l.guideDietNutritionBody,
+    GuideStepId.exerciseStatus => l.guideExerciseStatusBody,
+    GuideStepId.gym => l.guideGymBody,
+    GuideStepId.mySettings => l.guideMySettingsBody,
     GuideStepId.points => l.guidePointsBody(
       PointsRule.dietEntry.points,
       PointsRule.exerciseManual.points,

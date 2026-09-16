@@ -43,19 +43,15 @@ class DashboardContent extends StatelessWidget {
     super.key,
     this.onNotificationTap,
     this.onCalendarTap,
-    this.summaryAnchorKey,
-    this.bellAnchorKey,
+    this.adviceAnchorKey,
   });
 
   final VoidCallback? onNotificationTap;
   final VoidCallback? onCalendarTap;
 
-  /// 사용 가이드가 오늘 기록 요약 카드의 자리를 재는 열쇠(#1857). 홈은 이 값을
-  /// 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
-  final GlobalKey? summaryAnchorKey;
-
-  /// 사용 가이드가 알림 벨의 자리를 재는 열쇠(#1857).
-  final GlobalKey? bellAnchorKey;
+  /// 사용 가이드가 `오늘의 AI 통합 조언` 카드의 자리를 재는 열쇠(#1857). 홈은 이
+  /// 값을 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? adviceAnchorKey;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +59,6 @@ class DashboardContent extends StatelessWidget {
       header: _HomeHeader(
         onNotificationTap: onNotificationTap,
         onCalendarTap: onCalendarTap,
-        bellAnchorKey: bellAnchorKey,
       ),
       // 셸이 하단 바 뒤까지 본문을 늘리므로 바가 가린 만큼 아래를 비운다.
       bottomInset: MediaQuery.paddingOf(context).bottom,
@@ -80,7 +75,7 @@ class DashboardContent extends StatelessWidget {
                     onRetry: () => ref.invalidate(dashboardSummaryProvider),
                   ),
                   data: (DashboardSummary summary) => _DashboardData(
-                    summaryAnchorKey: summaryAnchorKey,
+                    adviceAnchorKey: adviceAnchorKey,
                     summary: summary,
                     // 홈 배너로 열어도 같은 시트다 — 배지도 같이 내려간다.
                     onCoachingTap: () => showCoachingSheet(context, ref: ref),
@@ -97,15 +92,10 @@ class DashboardContent extends StatelessWidget {
 
 /// 홈 탭 머리. 벨 점은 서버 미읽음을 본다 — 이 머리만 다시 그린다.
 class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
-  const _HomeHeader({
-    this.onNotificationTap,
-    this.onCalendarTap,
-    this.bellAnchorKey,
-  });
+  const _HomeHeader({this.onNotificationTap, this.onCalendarTap});
 
   final VoidCallback? onNotificationTap;
   final VoidCallback? onCalendarTap;
-  final GlobalKey? bellAnchorKey;
 
   @override
   Size get preferredSize => const MemberTabHeader(
@@ -120,7 +110,6 @@ class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
       leading: const MemberLogo(),
       trailingAction: const TrainerChatHeaderButton(),
       onBell: onNotificationTap,
-      bellAnchorKey: bellAnchorKey,
       bellHasUnread:
           (ref.watch(notificationUnreadProvider).valueOrNull ?? 0) > 0,
       onCalendar: onCalendarTap,
@@ -131,14 +120,14 @@ class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
 class _DashboardData extends StatelessWidget {
   const _DashboardData({
     required this.summary,
-    this.summaryAnchorKey,
+    this.adviceAnchorKey,
     required this.onCoachingTap,
     required this.onDietTap,
     required this.onExerciseTap,
   });
 
   final DashboardSummary summary;
-  final GlobalKey? summaryAnchorKey;
+  final GlobalKey? adviceAnchorKey;
   final VoidCallback onCoachingTap;
   final VoidCallback onDietTap;
   final VoidCallback onExerciseTap;
@@ -158,15 +147,15 @@ class _DashboardData extends StatelessWidget {
           ),
           const SizedBox(height: OnCareSpacing.cardGap),
         ],
-        _CoachingBanner(summary: summary, onTap: onCoachingTap),
-        const SizedBox(height: OnCareSpacing.sectionGap),
         KeyedSubtree(
-          key: summaryAnchorKey,
-          child: _DietNutritionCard(
-            summary: summary,
-            showCharts: !summary.isEmpty,
-            onOpen: onDietTap,
-          ),
+          key: adviceAnchorKey,
+          child: _CoachingBanner(summary: summary, onTap: onCoachingTap),
+        ),
+        const SizedBox(height: OnCareSpacing.sectionGap),
+        _DietNutritionCard(
+          summary: summary,
+          showCharts: !summary.isEmpty,
+          onOpen: onDietTap,
         ),
         const SizedBox(height: OnCareSpacing.cardGap),
         _ExerciseCard(onOpen: onExerciseTap),

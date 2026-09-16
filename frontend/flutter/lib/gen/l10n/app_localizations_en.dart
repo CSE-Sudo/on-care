@@ -2109,9 +2109,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get pointsGuideStart => 'Get started';
 
   @override
-  String get guideBadge => 'App guide';
-
-  @override
   String guideBadgeWithStep(int current, int total) {
     return 'App guide $current/$total';
   }
@@ -2132,24 +2129,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get guideDone => 'Done';
 
   @override
-  String get guideHomeTitle => 'Your day at a glance';
+  String get guideHomeAdviceTitle => 'Today\'s AI summary';
 
   @override
-  String get guideHomeBody =>
-      'Meals and workouts gather on Home, with how far you are from today\'s goals';
-
-  @override
-  String get guideAlertsTitle => 'Alerts';
-
-  @override
-  String get guideAlertsBody => 'Trainer messages and reminders arrive here';
-
-  @override
-  String get guideDietTitle => 'Log a meal';
-
-  @override
-  String get guideDietBody =>
-      'One photo is enough — AI reads the nutrition and logs it';
+  String get guideHomeAdviceBody =>
+      'It reads your meals and workouts together and says what to do today, in one line';
 
   @override
   String get guideQuickAddTitle => 'Quick add';
@@ -2159,18 +2143,39 @@ class AppLocalizationsEn extends AppLocalizations {
       'The + in the middle adds a meal or a workout from any screen';
 
   @override
-  String get guideExerciseTitle => 'Exercise';
+  String get guideDietNutritionTitle => 'Nutrition summary';
 
   @override
-  String get guideExerciseBody =>
-      'Do and log the workouts your AI coach recommends and your trainer assigns';
+  String get guideDietNutritionBody =>
+      'One photo is enough — AI works out the calories and nutrients. See today\'s total here';
 
   @override
-  String get guidePointsTitle => 'MY and points';
+  String get guideExerciseStatusTitle => 'Workout status';
+
+  @override
+  String get guideExerciseStatusBody =>
+      'See this week\'s workload and what\'s left of your goal, and log recommended workouts right here';
+
+  @override
+  String get guideGymTitle => 'Your gym and trainer';
+
+  @override
+  String get guideGymBody =>
+      'Connect the gym you go to, and your trainer\'s plans and feedback arrive in the app';
+
+  @override
+  String get guideMySettingsTitle => 'Your info and settings';
+
+  @override
+  String get guideMySettingsBody =>
+      'Change health goals, alerts and your profile in the MY tab';
+
+  @override
+  String get guidePointsTitle => 'Points';
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Health goals and points live here. Log a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P';
+    return 'Every log earns points. Log a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P';
   }
 
   @override

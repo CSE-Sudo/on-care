@@ -11,8 +11,12 @@ import 'package:oncare/core/storage/prefs_store.dart';
 import 'package:oncare/features/app_guide/domain/guide_step.dart';
 import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
+import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
+import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
+import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/member_bottom_nav.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 사용 가이드 화면(#1857) — **진짜 홈 화면**을 예시 자료로 채워 그 위에서 주요
@@ -21,6 +25,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+
+  /// 지금 말풍선이 말하는 제목. 안내 제목은 짚는 카드의 이름과 같아서, 화면
+  /// 전체에서 글자를 찾으면 카드와 말풍선 둘 다 걸린다.
+  String calloutTitle(WidgetTester tester) =>
+      tester.widget<Text>(find.byKey(const Key('appGuideCard'))).data!;
 
   Future<void> pumpTour(
     WidgetTester tester, {
@@ -79,7 +88,7 @@ void main() {
     // 바뀐다.
     expect(find.byType(DashboardContent), findsOneWidget);
     expect(find.byType(MemberBottomNav), findsOneWidget);
-    expect(find.text(ko.homeDietNutritionTitle), findsOneWidget);
+    expect(find.text(ko.homeAiAdviceTitle), findsWidgets);
     // 값만 예시다 — 가입 직후의 빈 홈이 아니라 기록이 쌓인 모습이라야 짚을 것이
     // 실제로 보인다(예시 칼로리 1,480kcal).
     expect(find.text('1,480'), findsWidgets);
@@ -94,7 +103,63 @@ void main() {
       find.text(ko.guideBadgeWithStep(1, kGuideSteps.length)),
       findsOneWidget,
     );
-    expect(find.text(ko.guideHomeTitle), findsOneWidget);
+    expect(calloutTitle(tester), ko.guideHomeAdviceTitle);
+  });
+
+  testWidgets('단계를 넘기면 그 기능이 있는 탭으로 화면이 바뀐다', (WidgetTester tester) async {
+    await pumpTour(tester);
+
+    Future<void> next() async {
+      await tester.tap(find.byKey(const Key('appGuideNext')));
+      await tester.pumpAndSettle();
+    }
+
+    // 1·2단계는 홈 — AI 조언과 가운데 `+`.
+    expect(find.byType(DashboardContent), findsOneWidget);
+    await next();
+    expect(calloutTitle(tester), ko.guideQuickAddTitle);
+    expect(find.byType(DashboardContent), findsOneWidget);
+
+    // 3단계는 식단 탭으로 옮겨 간다.
+    await next();
+    expect(calloutTitle(tester), ko.guideDietNutritionTitle);
+    expect(find.byType(DietRecordPage), findsOneWidget);
+    expect(find.byType(DashboardContent), findsNothing);
+
+    // 4·5단계는 운동 탭 — 운동 현황과 헬스장.
+    await next();
+    expect(calloutTitle(tester), ko.guideExerciseStatusTitle);
+    expect(find.byType(ExercisePage), findsOneWidget);
+    await next();
+    expect(calloutTitle(tester), ko.guideGymTitle);
+    expect(find.byType(ExercisePage), findsOneWidget);
+
+    // 6·7단계는 MY 탭 — 설정과 포인트.
+    await next();
+    expect(calloutTitle(tester), ko.guideMySettingsTitle);
+    expect(find.byType(MyHealthPage), findsOneWidget);
+    await next();
+    expect(calloutTitle(tester), ko.guidePointsTitle);
+    expect(find.byType(MyHealthPage), findsOneWidget);
+    // 마지막 단계에서는 `다음` 대신 `완료` 다.
+    expect(find.text(ko.guideDone), findsOneWidget);
+  });
+
+  testWidgets('짚는 자리는 그 탭 화면 안에 실제로 뚫린다', (WidgetTester tester) async {
+    await pumpTour(tester);
+
+    // 화면 아래에 접혀 있는 카드(MY 포인트)까지 굴려 와 짚는다 — 안 보이는
+    // 자리를 짚으면 덮개만 깔리고 아무것도 밝아지지 않는다.
+    for (int step = 1; step < kGuideSteps.length; step++) {
+      await tester.tap(find.byKey(const Key('appGuideNext')));
+      await tester.pumpAndSettle();
+    }
+
+    final AppSpotlight spotlight = tester.widget<AppSpotlight>(
+      find.byType(AppSpotlight),
+    );
+    expect(spotlight.hole, isNotNull);
+    expect(find.byKey(const Key('pointsBanner')), findsOneWidget);
   });
 
   testWidgets('끝까지 보면 홈으로 가고, 다시 열지 않는다', (WidgetTester tester) async {

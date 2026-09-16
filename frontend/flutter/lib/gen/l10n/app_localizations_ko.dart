@@ -2046,9 +2046,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get pointsGuideStart => '시작하기';
 
   @override
-  String get guideBadge => '앱 사용 가이드';
-
-  @override
   String guideBadgeWithStep(int current, int total) {
     return '앱 사용 가이드 $current/$total';
   }
@@ -2069,22 +2066,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get guideDone => '완료';
 
   @override
-  String get guideHomeTitle => '오늘 기록이 한눈에';
+  String get guideHomeAdviceTitle => '오늘의 AI 통합 조언';
 
   @override
-  String get guideHomeBody => '먹은 것과 운동이 홈에 모여요. 목표까지 얼마나 남았는지 여기서 봐요';
-
-  @override
-  String get guideAlertsTitle => '알림';
-
-  @override
-  String get guideAlertsBody => '트레이너 메시지와 기록 알림이 여기로 와요';
-
-  @override
-  String get guideDietTitle => '식단 기록';
-
-  @override
-  String get guideDietBody => '사진 한 장이면 AI가 영양을 분석해 기록해요';
+  String get guideHomeAdviceBody => '식단과 운동을 함께 읽고, 오늘 무엇을 하면 좋을지 한 줄로 알려줘요';
 
   @override
   String get guideQuickAddTitle => '빠른 기록';
@@ -2093,17 +2078,37 @@ class AppLocalizationsKo extends AppLocalizations {
   String get guideQuickAddBody => '가운데 + 로 식단과 운동을 어느 화면에서든 바로 추가해요';
 
   @override
-  String get guideExerciseTitle => '운동';
+  String get guideDietNutritionTitle => '영양 요약';
 
   @override
-  String get guideExerciseBody => '추천 운동과 트레이너가 배정한 운동을 여기서 하고 기록해요';
+  String get guideDietNutritionBody =>
+      '사진 한 장이면 AI가 칼로리와 영양소를 계산해요. 오늘 얼마나 먹었는지 여기서 봐요';
 
   @override
-  String get guidePointsTitle => 'MY와 포인트';
+  String get guideExerciseStatusTitle => '운동 현황';
+
+  @override
+  String get guideExerciseStatusBody =>
+      '이번 주 운동량과 남은 목표를 봐요. 추천 운동도 여기서 바로 기록해요';
+
+  @override
+  String get guideGymTitle => '내 헬스장과 트레이너';
+
+  @override
+  String get guideGymBody => '다니는 헬스장을 연결하면 트레이너가 짠 운동과 피드백이 앱으로 와요';
+
+  @override
+  String get guideMySettingsTitle => '내 정보와 설정';
+
+  @override
+  String get guideMySettingsBody => '건강 목표와 알림, 프로필을 MY 탭에서 바꿔요';
+
+  @override
+  String get guidePointsTitle => '포인트';
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '건강 목표와 포인트가 여기 있어요. 식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P';
+    return '기록할 때마다 포인트가 쌓여요. 식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P';
   }
 
   @override

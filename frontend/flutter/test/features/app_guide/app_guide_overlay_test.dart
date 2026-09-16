@@ -32,25 +32,16 @@ void main() {
           home: Scaffold(
             body: Stack(
               children: <Widget>[
-                // 짚을 자리들 — 실제 화면에서 홈 카드와 하단 내비가 있는 자리.
+                // 짚을 자리들 — 탭마다 다른 화면이지만, 덮개가 보기에는 모두
+                // "이 화면 어딘가의 네모" 다.
                 Positioned(
                   top: 100,
                   left: 16,
                   child: SizedBox(
-                    key: anchors.homeSummary,
+                    key: anchors.homeAdvice,
                     width: 360,
                     height: 140,
                   ),
-                ),
-                Positioned(
-                  top: 20,
-                  right: 16,
-                  child: SizedBox(key: anchors.alerts, width: 44, height: 44),
-                ),
-                Positioned(
-                  bottom: 0,
-                  left: 90,
-                  child: SizedBox(key: anchors.diet, width: 90, height: 64),
                 ),
                 Positioned(
                   bottom: 24,
@@ -58,14 +49,41 @@ void main() {
                   child: SizedBox(key: anchors.quickAdd, width: 56, height: 56),
                 ),
                 Positioned(
-                  bottom: 0,
-                  left: 230,
-                  child: SizedBox(key: anchors.exercise, width: 90, height: 64),
+                  top: 260,
+                  left: 16,
+                  child: SizedBox(
+                    key: anchors.dietNutrition,
+                    width: 360,
+                    height: 180,
+                  ),
                 ),
                 Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: SizedBox(key: anchors.points, width: 90, height: 64),
+                  top: 100,
+                  left: 16,
+                  child: SizedBox(
+                    key: anchors.exerciseStatus,
+                    width: 360,
+                    height: 200,
+                  ),
+                ),
+                Positioned(
+                  top: 320,
+                  left: 16,
+                  child: SizedBox(key: anchors.gym, width: 360, height: 120),
+                ),
+                Positioned(
+                  top: 120,
+                  left: 16,
+                  child: SizedBox(
+                    key: anchors.mySettings,
+                    width: 360,
+                    height: 160,
+                  ),
+                ),
+                Positioned(
+                  top: 300,
+                  left: 16,
+                  child: SizedBox(key: anchors.points, width: 360, height: 120),
                 ),
                 const Positioned.fill(child: AppGuideOverlay()),
               ],
@@ -100,14 +118,14 @@ void main() {
       find.text(l.guideBadgeWithStep(1, kGuideSteps.length)),
       findsOneWidget,
     );
-    expect(find.text(l.guideHomeTitle), findsOneWidget);
+    expect(find.text(l.guideHomeAdviceTitle), findsOneWidget);
 
     // 뚫린 자리는 짚는 요소를 감싼다.
     final AppSpotlight spotlight = tester.widget<AppSpotlight>(
       find.byType(AppSpotlight),
     );
     final Rect anchor = tester.getRect(
-      find.byKey(container.read(guideAnchorsProvider).homeSummary),
+      find.byKey(container.read(guideAnchorsProvider).homeAdvice),
     );
     // 짚는 요소의 자리와 **같은 사각형**이어야 한다. 덮개와 요소는 형제라
     // 좌표계를 잘못 맞추면 구멍이 밀리거나 사라진다.
@@ -127,7 +145,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    // 마지막은 MY·포인트 — 숫자는 적립 규칙에서 읽는다.
+    // 마지막은 포인트 — 숫자는 적립 규칙에서 읽는다.
     expect(find.text(l.guidePointsTitle), findsOneWidget);
     expect(
       find.text(
@@ -162,12 +180,12 @@ void main() {
 
     await tester.tap(find.byKey(const Key('appGuideNext')));
     await tester.pumpAndSettle();
-    expect(find.text(l.guideAlertsTitle), findsOneWidget);
+    expect(find.text(l.guideQuickAddTitle), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('appGuidePrev')));
     await tester.pumpAndSettle();
 
-    expect(find.text(l.guideHomeTitle), findsOneWidget);
+    expect(find.text(l.guideHomeAdviceTitle), findsOneWidget);
     expect(
       find.text(l.guideBadgeWithStep(1, kGuideSteps.length)),
       findsOneWidget,

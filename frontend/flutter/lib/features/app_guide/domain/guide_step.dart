@@ -1,34 +1,49 @@
-/// 처음 홈에 들어온 회원에게 짚어 주는 자리. (#1857)
+/// 가이드가 머무는 탭. 하단 내비의 차례와 같다. (#1857)
+enum GuideTab { home, diet, exercise, my }
+
+/// 처음 들어온 회원에게 짚어 주는 자리. (#1857)
 ///
-/// 순서는 회원이 실제로 하게 되는 차례를 따른다 — 오늘 기록을 보고, 알림을 받고,
-/// 끼니를 남기고, 빠르게 추가하고, 운동을 하고, 그 결과로 포인트가 쌓인다.
+/// **탭을 옮겨 가며** 그 탭의 화면 위에서 짚는다. 홈의 식단 카드 하나만 띄워 놓고
+/// 운동과 포인트까지 말하면, 정작 그 화면에 갔을 때 무엇을 봐야 할지 모른다.
 enum GuideStepId {
-  /// 홈의 오늘 식단·영양 카드.
-  homeSummary,
+  /// 홈 — 오늘의 AI 통합 조언.
+  homeAdvice,
 
-  /// 머리의 알림 벨.
-  alerts,
-
-  /// 하단 내비 `식단` 칸.
-  diet,
-
-  /// 하단 내비 가운데 `+`.
+  /// 홈 — 하단 가운데 `+`.
   quickAdd,
 
-  /// 하단 내비 `운동` 칸.
-  exercise,
+  /// 식단 탭 — 영양 요약.
+  dietNutrition,
 
-  /// 하단 내비 `MY` 칸 — 건강 목표와 포인트.
+  /// 운동 탭 — 운동 현황.
+  exerciseStatus,
+
+  /// 운동 탭 — 내 헬스장·트레이너.
+  gym,
+
+  /// MY 탭 — 내 정보와 기본 설정.
+  mySettings,
+
+  /// MY 탭 — 포인트.
   points,
 }
 
-/// 가이드가 짚는 차례. 마지막은 포인트다 — 앞의 기록들이 무엇으로 돌아오는지가
-/// 마지막에 남아야 기억된다.
+/// 가이드가 짚는 차례. 탭 순서(홈 → 식단 → 운동 → MY)를 따르고, 마지막은
+/// 포인트다 — 앞의 기록들이 무엇으로 돌아오는지가 마지막에 남아야 기억된다.
 const List<GuideStepId> kGuideSteps = <GuideStepId>[
-  GuideStepId.homeSummary,
-  GuideStepId.alerts,
-  GuideStepId.diet,
+  GuideStepId.homeAdvice,
   GuideStepId.quickAdd,
-  GuideStepId.exercise,
+  GuideStepId.dietNutrition,
+  GuideStepId.exerciseStatus,
+  GuideStepId.gym,
+  GuideStepId.mySettings,
   GuideStepId.points,
 ];
+
+/// 그 단계를 어느 탭에서 짚는가.
+GuideTab guideTabOf(GuideStepId step) => switch (step) {
+  GuideStepId.homeAdvice || GuideStepId.quickAdd => GuideTab.home,
+  GuideStepId.dietNutrition => GuideTab.diet,
+  GuideStepId.exerciseStatus || GuideStepId.gym => GuideTab.exercise,
+  GuideStepId.mySettings || GuideStepId.points => GuideTab.my,
+};

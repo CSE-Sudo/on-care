@@ -15,19 +15,23 @@ import 'package:oncare/features/app_guide/domain/guide_step.dart';
 class GuideAnchors {
   GuideAnchors();
 
-  final GlobalKey homeSummary = GlobalKey(debugLabel: 'guide-home-summary');
-  final GlobalKey alerts = GlobalKey(debugLabel: 'guide-alerts');
-  final GlobalKey diet = GlobalKey(debugLabel: 'guide-diet');
+  final GlobalKey homeAdvice = GlobalKey(debugLabel: 'guide-home-advice');
   final GlobalKey quickAdd = GlobalKey(debugLabel: 'guide-quick-add');
-  final GlobalKey exercise = GlobalKey(debugLabel: 'guide-exercise');
+  final GlobalKey dietNutrition = GlobalKey(debugLabel: 'guide-diet-nutrition');
+  final GlobalKey exerciseStatus = GlobalKey(
+    debugLabel: 'guide-exercise-status',
+  );
+  final GlobalKey gym = GlobalKey(debugLabel: 'guide-gym');
+  final GlobalKey mySettings = GlobalKey(debugLabel: 'guide-my-settings');
   final GlobalKey points = GlobalKey(debugLabel: 'guide-points');
 
   GlobalKey keyOf(GuideStepId id) => switch (id) {
-    GuideStepId.homeSummary => homeSummary,
-    GuideStepId.alerts => alerts,
-    GuideStepId.diet => diet,
+    GuideStepId.homeAdvice => homeAdvice,
     GuideStepId.quickAdd => quickAdd,
-    GuideStepId.exercise => exercise,
+    GuideStepId.dietNutrition => dietNutrition,
+    GuideStepId.exerciseStatus => exerciseStatus,
+    GuideStepId.gym => gym,
+    GuideStepId.mySettings => mySettings,
     GuideStepId.points => points,
   };
 }
@@ -48,6 +52,12 @@ class AppGuideState {
   /// 지금 짚는 자리. 꺼져 있으면 null.
   GuideStepId? get step =>
       active && index < kGuideSteps.length ? kGuideSteps[index] : null;
+
+  /// 지금 머무는 탭. 가이드는 탭을 옮겨 가며 그 화면 위에서 짚는다.
+  GuideTab get tab {
+    final GuideStepId? current = step;
+    return current == null ? GuideTab.home : guideTabOf(current);
+  }
 
   /// 사람에게 보여 주는 번호(1부터).
   int get stepNumber => index + 1;

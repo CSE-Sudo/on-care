@@ -17,7 +17,6 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
     this.onBell,
     this.onCalendar,
     this.bellHasUnread = false,
-    this.bellAnchorKey,
   });
 
   final String title;
@@ -31,9 +30,6 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
   /// 벨에 새 알림 점을 띄울지.
   final bool bellHasUnread;
 
-  /// 사용 가이드가 벨의 자리를 재는 열쇠(#1857). 없으면 아무 일도 하지 않는다.
-  final GlobalKey? bellAnchorKey;
-
   @override
   Size get preferredSize => AppTabHeader(title: title).preferredSize;
 
@@ -44,14 +40,11 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
       title: title,
       leading: leading,
       actions: <Widget>[
-        KeyedSubtree(
-          key: bellAnchorKey,
-          child: HeaderActionButton(
-            icon: AppIcons.notifications,
-            tooltip: l.pageNotificationTitle,
-            showDot: bellHasUnread,
-            onPressed: onBell,
-          ),
+        HeaderActionButton(
+          icon: AppIcons.notifications,
+          tooltip: l.pageNotificationTitle,
+          showDot: bellHasUnread,
+          onPressed: onBell,
         ),
         trailingAction,
       ],
