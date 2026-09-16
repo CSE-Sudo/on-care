@@ -230,23 +230,33 @@ class AppChatInputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    // 입력칸 한 줄 높이를 전송 버튼과 같은 값으로 맞춘다(#1827). 테마의 입력칸 여백
-    // (위아래 8)을 그대로 쓰면 글꼴의 줄 높이만큼 칸이 버튼보다 커져 — 회원앱
-    // 실제 글꼴·트레이너 웹 밀도에서 입력칸이 전송 버튼보다 몇 픽셀 높았다.
-    // 위아래 여백을 `버튼 높이 − 줄 높이` 의 절반으로 잡아, 어떤 글꼴·밀도에서도
-    // 한 줄일 때 둘이 같은 높이가 된다. 여러 줄이면 칸만 자라고 버튼은 아래에 붙는다.
+    // 입력칸 한 줄 높이를 전송 버튼과 같은 값으로 맞춘다(#1827, #1911).
+    //
+    // 최소 높이만 주는 것으로는 모자랐다. 그것은 입력칸의 **자리**만 넓히고,
+    // 눈에 보이는 테두리·채움은 글 높이에 맞춰 그려져 버튼보다 낮게 남는다 —
+    // 화면에서는 두 개가 다른 크기로 보였다.
+    //
+    // 그래서 여백으로 채운다. `버튼 높이 − 줄 높이` 의 절반을 위아래에 두면
+    // 그려지는 상자가 정확히 버튼 높이가 된다. 여러 줄이면 칸만 자라고 버튼은
+    // 아래에 붙는다.
     final double rowHeight = tokens.density.iconButton;
     final TextStyle inputStyle = tokens
         .text(OnCareTypography.body)
         .copyWith(color: OnCareColors.textPrimary);
-    final double lineHeight =
-        (inputStyle.fontSize ?? OnCareTypography.body.fontSize ?? 0) *
-        (inputStyle.height ?? 1);
-    // 픽셀 반 칸이 남으면 입력칸이 버튼보다 0.5 커진다 — 여백은 내림으로 잡고
-    // 남는 몫은 최소 높이가 채운다.
-    final double verticalPadding = ((rowHeight - lineHeight) / 2)
-        .floorToDouble()
-        .clamp(0, OnCareSpacing.s8);
+    // 줄 높이는 **실제로 그려 보고** 잰다. `글자 크기 × 배수` 로 셈하면 글꼴마다
+    // 반 픽셀씩 어긋나고, 큰 글자 설정을 켠 기기에서는 더 벌어진다.
+    final TextPainter probe = TextPainter(
+      text: TextSpan(text: ' ', style: inputStyle),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    final double lineHeight = probe.height;
+    probe.dispose();
+    final double verticalPadding = ((rowHeight - lineHeight) / 2).clamp(
+      0,
+      double.infinity,
+    );
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: OnCareColors.surfaceCard,
