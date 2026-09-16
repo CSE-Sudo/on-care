@@ -11,7 +11,7 @@
 /// 위젯을 띄워 **앱이 쓴 문구만** 남긴다.
 ///
 /// 의도적으로 한국어인 값(여기서 걸리지 않는 것):
-///  * 계약값 — `onboarding_page` 의 `고혈압`·`당뇨`, `exercise_flows` 의
+///  * 계약값 — `health_focus` 의 건강 목표 저장 값(`체중 감량` 등), `exercise_flows` 의
 ///    `_weekdayLabels`(서버로 나가는 `dayLabel`), `ScheduleCategory`·수행 강도의
 ///    enum 값. 화면에는 표시 문구가 대신 그려진다.
 ///  * 개발자용 문구 — `session_controller` 의 `Exception`, 카카오맵 로더의

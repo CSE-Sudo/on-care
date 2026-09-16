@@ -470,6 +470,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietDeleteConfirm => '이 식단 기록을 삭제할까요?';
 
   @override
+  String get dietDeleteWhenEmpty => '음식이 하나도 남지 않았어요. 이 식단 기록을 삭제할까요?';
+
+  @override
   String get dietCancel => '취소';
 
   @override
@@ -497,7 +500,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietNewFood => '새 음식';
 
   @override
-  String get dietAddFood => '+ 음식 추가';
+  String get dietAddFood => '음식 추가';
 
   @override
   String get dietEditFoodHint => '음식명과 칼로리를 수정할 수 있어요';
@@ -509,13 +512,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietNutritionInfo => '영양 정보';
 
   @override
-  String get dietEditNutritionHint => '분석된 값을 직접 수정할 수 있어요';
-
-  @override
-  String get dietSodiumHint => '하루 권장 2,000mg 이하';
-
-  @override
-  String get dietSugarHint => '하루 권장 50g 이하';
+  String get dietEditNutritionHint => '음식별 영양을 고치면 여기에 합쳐져요';
 
   @override
   String get dietDeleteMeal => '식단 삭제';
@@ -1722,6 +1719,46 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicGeneratingReply => '맞춤 답변 생성 중';
 
   @override
+  String aicInsightDiscomfortPart(String part) {
+    return '$part 통증 감지';
+  }
+
+  @override
+  String get aicInsightDiscomfort => '통증 감지';
+
+  @override
+  String get aicInsightNegative => '부정적 반응 감지';
+
+  @override
+  String get aicInsightHistoryTitle => '감지 기록';
+
+  @override
+  String aicInsightHistorySubtitle(int days) {
+    return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
+  }
+
+  @override
+  String aicInsightHistoryEmpty(int days) {
+    return '최근 $days일 동안 감지된 내용이 없어요';
+  }
+
+  @override
+  String get aicInsightHistoryFailed => '감지 기록을 불러오지 못했어요';
+
+  @override
+  String aicRetentionNotice(int days) {
+    return 'AI 챗봇 대화는 최근 $days일 동안만 보관돼요';
+  }
+
+  @override
+  String get aicTrainerConnectedTitle => '담당 트레이너와 대화해 주세요';
+
+  @override
+  String aicTrainerConnectedBody(String name) {
+    return '$name 트레이너와 연결되어 있어요. 담당 트레이너가 있는 회원은 AI 챗봇 대신 트레이너와 채팅해요';
+  }
+
+  @override
   String get aicQuickReply1 => '오늘 저녁 메뉴 추천해줘';
 
   @override
@@ -2114,20 +2151,57 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardHealthTitle => '건강 목표';
 
   @override
-  String get onboardHealthSubtitle =>
-      '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (복수 선택 가능)';
-
-  @override
-  String get onboardGoalTitle => '운동 목표';
-
-  @override
-  String get onboardGoalSubtitle => '달성하고 싶은 목표를 입력해 주세요. 나중에 바꿀 수 있어요.';
-
-  @override
-  String get onboardGoalHint => '예) 3개월 안에 5km 완주';
+  String get onboardHealthSubtitle => '건강 관리에서 더 집중하고 싶은 항목을 선택해 주세요. (최대 2개)';
 
   @override
   String get onboardOptionalTag => '(선택)';
+
+  @override
+  String get pointsGuideTitle => '포인트 퀘스트';
+
+  @override
+  String get pointsGuideSubtitle => '매일 기록할수록 포인트가 쌓여요. 아래 퀘스트로 모아 보세요';
+
+  @override
+  String pointsGuideQuest(int number) {
+    return '퀘스트 $number';
+  }
+
+  @override
+  String pointsGuideDailyCap(int count) {
+    return '하루 $count회까지';
+  }
+
+  @override
+  String get pointsGuideSpendNote => '모은 포인트는 MY › 포인트 사용처에서 쓸 수 있어요';
+
+  @override
+  String get pointsGuideStart => '시작하기';
+
+  @override
+  String get onboardRequiredTag => '(필수)';
+
+  @override
+  String get onboardBirthRequired => '생년월일을 골라 주세요';
+
+  @override
+  String get onboardGenderRequired => '성별을 골라 주세요';
+
+  @override
+  String get onboardHeightRequired => '키를 입력해 주세요';
+
+  @override
+  String onboardHeightRange(int min, int max) {
+    return '키는 $min~${max}cm 사이로 입력해 주세요';
+  }
+
+  @override
+  String get onboardWeightRequired => '체중을 입력해 주세요';
+
+  @override
+  String onboardWeightRange(int min, int max) {
+    return '체중은 $min~${max}kg 사이로 입력해 주세요';
+  }
 
   @override
   String get onboardSkipStep => '이 단계 건너뛰기';
@@ -2225,6 +2299,13 @@ class AppLocalizationsKo extends AppLocalizations {
       '출처: WHO 신체활동 지침(2020) — 주 150분 중강도 유산소, 주 2회 이상 근력';
 
   @override
+  String get onboardFocusAdjusted => '고른 건강 목표를 반영한 값이에요';
+
+  @override
+  String get onboardFocusSourceNote =>
+      '목표 반영 기준: 감량 하루 500kcal(대한비만학회 진료지침) · 근력 단백질 체중 1kg당 1.6g(국제스포츠영양학회) · 당류 총열량 5%(WHO) · 유산소 주 150~300분(WHO)';
+
+  @override
   String get onboardGenderMale => '남성';
 
   @override
@@ -2232,18 +2313,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get onboardGenderOther => '기타';
-
-  @override
-  String get onboardConditionHypertension => '고혈압';
-
-  @override
-  String get onboardConditionDiabetes => '당뇨';
-
-  @override
-  String get onboardConditionDyslipidemia => '고지혈증';
-
-  @override
-  String get onboardConditionObesity => '비만';
 
   @override
   String get aiCoachWelcome =>
@@ -2365,19 +2434,42 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalsFocusSection => '주로 관리하고 싶은 항목';
 
   @override
-  String get myGoalsFocusHint => '건강 관리에서 더 집중하고 싶은 항목을 골라 주세요. (복수 선택 가능)';
+  String get myGoalsFocusHint => '건강 관리에서 더 집중하고 싶은 항목을 골라 주세요. (최대 2개)';
 
   @override
-  String get myGoalsFocusHypertension => '고혈압';
+  String myGoalsFocusLastChanged(String who, String date) {
+    return '마지막 변경: $who · $date';
+  }
 
   @override
-  String get myGoalsFocusDiabetes => '당뇨';
+  String get myGoalsFocusChangedByTrainer => '트레이너';
 
   @override
-  String get myGoalsExerciseNote => '운동 목표';
+  String get myGoalsFocusChangedByMe => '나';
 
   @override
-  String get myGoalsExerciseNoteHint => '예) 3개월 안에 5km 완주';
+  String get healthFocusWeightLoss => '체중 감량';
+
+  @override
+  String get healthFocusStrength => '근력 향상';
+
+  @override
+  String get healthFocusFitness => '체력 강화';
+
+  @override
+  String get healthFocusPosture => '자세 교정';
+
+  @override
+  String get healthFocusRehab => '재활';
+
+  @override
+  String get healthFocusEating => '식습관 개선';
+
+  @override
+  String get healthFocusExerciseHabit => '운동 습관';
+
+  @override
+  String get healthFocusBloodPressure => '혈압 관리';
 
   @override
   String get myGoalsDietSection => '식단 목표';
@@ -2398,8 +2490,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalFlexibilityWeekly => '주간 스트레칭 (분)';
 
   @override
-  String get myGoalExerciseSuggestionNote =>
-      '권장: 하루 300kcal · 주 유산소 150분 · 근력 21세트 · 스트레칭 60분';
+  String myGoalExerciseSuggestionNote(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  ) {
+    return '권장: 하루 ${burn}kcal · 주 유산소 $cardio분 · 근력 $strength세트 · 스트레칭 $flexibility분';
+  }
 
   @override
   String get myGoalExerciseApplySuggestion => '권장 비율로 채우기';
@@ -2426,8 +2524,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalCaloriesFromMacros => '탄·단·지 목표로 계산한 값이에요';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal) {
-    return '${kcal}kcal 기준 권장 배분: 탄수화물 50% · 단백질 30% · 지방 20%';
+  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
+    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g';
   }
 
   @override
@@ -2544,11 +2642,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineCancelFailed => '개인 운동을 취소하지 못했어요';
 
   @override
-  String coachRoutineMyNote(String note) {
-    return '내 피드백: $note';
-  }
-
-  @override
   String coachRoutineTrainerFeedback(String feedback) {
     return '트레이너 피드백: $feedback';
   }
@@ -2567,12 +2660,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachIntensityHigh => '높음';
-
-  @override
-  String get coachRoutineNoteLabel => '피드백(선택)';
-
-  @override
-  String get coachRoutineNoteHint => '힘들었던 점이나 몸 상태를 남겨 보세요';
 
   @override
   String get coachRoutineSubmit => '완료 기록';
@@ -2606,6 +2693,82 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get alertLoadFailed => '최신 알림을 불러오지 못했어요';
+
+  @override
+  String get alertTimeJustNow => '방금';
+
+  @override
+  String alertTimeMinutesAgo(int minutes) {
+    return '$minutes분 전';
+  }
+
+  @override
+  String alertTimeHoursAgo(int hours) {
+    return '$hours시간 전';
+  }
+
+  @override
+  String get alertTimeYesterday => '어제';
+
+  @override
+  String alertTimeDaysAgo(int days) {
+    return '$days일 전';
+  }
+
+  @override
+  String get demoAlertSodiumTitle => '나트륨 섭취 주의';
+
+  @override
+  String get demoAlertSodiumBody =>
+      '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.';
+
+  @override
+  String get demoAlertDinnerTitle => '저녁 식단을 기록해 주세요';
+
+  @override
+  String get demoAlertDinnerBody => '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.';
+
+  @override
+  String get demoAlertRoutineTitle => '새 운동 루틴이 도착했어요';
+
+  @override
+  String get demoAlertRoutineBody => '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+
+  @override
+  String get demoAlertReportTitle => '이번 주 리포트가 등록됐어요';
+
+  @override
+  String get demoAlertReportBody => '김트레이너님이 이번 주 리포트를 등록했어요.';
+
+  @override
+  String get demoAlertPtDoneTitle => 'PT 수업 완료';
+
+  @override
+  String get demoAlertPtDoneBody => '오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!';
+
+  @override
+  String get demoAlertTrainerFeedbackTitle => '트레이너 피드백 도착';
+
+  @override
+  String get demoAlertTrainerFeedbackBody => '마무리로 어깨 회전근개 스트레칭을 꼭 해주세요.';
+
+  @override
+  String get demoAlertWeeklyGoalTitle => '이번 주 운동 목표까지 조금 남았어요';
+
+  @override
+  String get demoAlertWeeklyGoalBody => '저강도 유산소(걷기) 30분부터 채워 봐요.';
+
+  @override
+  String get demoAlertMealStreakTitle => '식단 기록을 꾸준히 이어가고 있어요';
+
+  @override
+  String get demoAlertMealStreakBody => '한 달 넘게 하루도 빠짐없이 식단을 기록하고 있어요.';
+
+  @override
+  String get demoAlertMaintenanceTitle => '서비스 점검 안내';
+
+  @override
+  String get demoAlertMaintenanceBody => '내일 02:00~03:00 점검 예정입니다.';
 
   @override
   String get exPtLogTitle => '오늘 완료한 PT';

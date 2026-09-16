@@ -208,6 +208,9 @@ MEMBER_BENEFITS = "benefits"
 #: 포인트가 움직인 일이라 끌 수 있는 알림으로 두지 않는다.
 POINTS_COUPON = "points_coupon"
 
+#: 담당 트레이너가 회원 건강 목표를 바꿨다 → MY 건강 목표(#1832).
+MEMBER_HEALTH_GOALS = "health_goals"
+
 #: 트레이너 알림의 종류. `Notification.category` 에 그대로 저장되고, 트레이너 앱이
 #: 이 값으로 어디로 이동할지 정한다. 회원 알림의 category 집합
 #: (reminder|health_check|achievement|system)과 겹치지 않게 둔다 — 한 컬럼을
@@ -215,6 +218,8 @@ POINTS_COUPON = "points_coupon"
 TRAINER_MESSAGE_KIND = "message"
 TRAINER_CONSULTATION_KIND = "consultation"
 TRAINER_RESERVATION_KIND = "reservation"
+#: 담당 회원이 건강 목표를 바꿨다 → 그 회원 상세(`subject_id`). (#1832)
+TRAINER_HEALTH_GOAL_KIND = "health_goal"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.
@@ -250,8 +255,12 @@ def queue_for_trainer(
     kind: str,
     title: str,
     body: str = "",
+    subject_id: str | None = None,
 ) -> Notification | None:
     """트레이너에게 남기는 알림. 꺼져 있으면 None. **커밋하지 않는다**.
+
+    [subject_id] 는 알림이 가리키는 회원이다 — 종류만으로 갈 곳이 정해지지 않는
+    알림(건강 목표 변경 → 그 회원 상세)에만 준다(#1832).
 
     커밋하지 않는 이유는 [queue] 와 같다 — 호출부의 트랜잭션에 얹는다.
 
@@ -268,6 +277,7 @@ def queue_for_trainer(
         body=body,
         category=kind,
         read=False,
+        subject_id=subject_id,
     )
     db.add(notification)
     return notification

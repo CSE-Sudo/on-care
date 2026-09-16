@@ -153,10 +153,7 @@ void main() {
             body: SingleChildScrollView(
               child: Column(
                 children: <Widget>[
-                  Padding(
-                    padding: EdgeInsets.all(24),
-                    child: AiCoachingCard(),
-                  ),
+                  Padding(padding: EdgeInsets.all(24), child: AiCoachingCard()),
                   CoachCard(),
                 ],
               ),
@@ -277,9 +274,7 @@ void main() {
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
-            body: SingleChildScrollView(
-              child: AiCoachingCard(),
-            ),
+            body: SingleChildScrollView(child: AiCoachingCard()),
           ),
         ),
       ),
@@ -417,38 +412,36 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('completeRoutine-seed-routine-user-7d4e9a2c5f18-1')));
+    await tester.tap(
+      find.byKey(const Key('completeRoutine-seed-routine-user-7d4e9a2c5f18-1')),
+    );
     await tester.pumpAndSettle();
     // 화면에서 부르는 이름을 `개인운동` 으로 통일했다(#1457).
     expect(find.text('개인운동 수행 완료'), findsOneWidget);
     // 회원이 운동의 세부 내용을 지정하는 자리는 없다 — 실제 수행 시간 입력은
-    // 내려갔고, 남긴 값은 강도와 피드백뿐이다 (#1360).
+    // 내려갔고(#1360), 피드백 칸도 없앴다 — 불편은 채팅에서 감지한다(#1825).
+    // 남은 값은 강도뿐이다.
     expect(find.byKey(const Key('routineCompletionMinutes')), findsNothing);
-    final TextField feedback = tester.widget<TextField>(
-      find.descendant(
-        of: find.byKey(const Key('routineCompletionNote')),
-        matching: find.byType(TextField),
-      ),
-    );
-    expect(feedback.maxLength, 100);
-    await tester.enterText(
-      find.byKey(const Key('routineCompletionNote')),
-      '허리는 편안했어요',
-    );
+    expect(find.byKey(const Key('routineCompletionNote')), findsNothing);
     await tester.tap(find.text('높음'));
     await tester.tap(find.byKey(const Key('confirmRoutineCompletion')));
     await tester.pumpAndSettle();
 
     final CoachRoutine completed = (await repository.fetchRoutines())
-        .firstWhere((CoachRoutine routine) => routine.id == 'seed-routine-user-7d4e9a2c5f18-1');
+        .firstWhere(
+          (CoachRoutine routine) =>
+              routine.id == 'seed-routine-user-7d4e9a2c5f18-1',
+        );
     expect(find.text('운동 기록에 반영했어요'), findsOneWidget);
-    expect(find.text('내 피드백: 허리는 편안했어요'), findsOneWidget);
+    expect(find.textContaining('내 피드백'), findsNothing);
     // 체크 박스는 그대로 있고 체크된 채로 남는다 — 한 일이 화면에서 사라지면
     // 무엇을 했는지 다시 확인할 데가 없다. (#1021) 다시 누르면 되묻고 되돌릴
     // 수 있으므로 잠기지 않는다 (#1131).
     final Checkbox box = tester.widget<Checkbox>(
       find.descendant(
-        of: find.byKey(const Key('completeRoutine-seed-routine-user-7d4e9a2c5f18-1')),
+        of: find.byKey(
+          const Key('completeRoutine-seed-routine-user-7d4e9a2c5f18-1'),
+        ),
         matching: find.byType(Checkbox),
       ),
     );
@@ -771,11 +764,9 @@ void main() {
   testWidgets('담당 트레이너가 없으면 개인 운동을 스스로 취소할 수 있다 (#1020)', (
     WidgetTester tester,
   ) async {
-    await pumpRecommendationCards(
-      tester,
-      <CoachRoutine>[_aiRoutine],
-      coach: null,
-    );
+    await pumpRecommendationCards(tester, <CoachRoutine>[
+      _aiRoutine,
+    ], coach: null);
 
     expect(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')), findsOneWidget);
   });
@@ -783,13 +774,13 @@ void main() {
   testWidgets('개인 운동 취소 확인창의 왼쪽 버튼은 `유지` 다 (#1782)', (
     WidgetTester tester,
   ) async {
-    await pumpRecommendationCards(
-      tester,
-      <CoachRoutine>[_aiRoutine],
-      coach: null,
-    );
+    await pumpRecommendationCards(tester, <CoachRoutine>[
+      _aiRoutine,
+    ], coach: null);
 
-    await tester.ensureVisible(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')));
+    await tester.ensureVisible(
+      find.byKey(Key('cancelRoutine-${_aiRoutine.id}')),
+    );
     await tester.tap(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')));
     await tester.pumpAndSettle();
 
@@ -834,7 +825,6 @@ void main() {
     // 기록을 본다 — 버튼 자체를 그리지 않는다(서버도 403 으로 막는다).
     expect(find.byKey(Key('cancelRoutine-${_aiRoutine.id}')), findsNothing);
   });
-
 }
 
 /// 내려받기가 항상 실패하는 저장소. 요청된 경로를 기록해 둔다.

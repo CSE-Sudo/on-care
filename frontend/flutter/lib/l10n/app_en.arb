@@ -236,6 +236,7 @@
   "dietSaveFailed": "Couldn't save. Please try again in a moment.",
   "dietDeleteTitle": "Delete Meal Record",
   "dietDeleteConfirm": "Delete this meal record?",
+  "dietDeleteWhenEmpty": "No food is left. Delete this meal record?",
   "dietCancel": "Cancel",
   "dietDelete": "Delete",
   "dietDeleted": "Meal deleted",
@@ -245,13 +246,11 @@
   "dietEatenTime": "Time Eaten",
   "dietEatenFood": "Food Eaten",
   "dietNewFood": "New food",
-  "dietAddFood": "+ Add Food",
+  "dietAddFood": "Add Food",
   "dietEditFoodHint": "You can edit the food name and calories",
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
-  "dietEditNutritionHint": "You can edit the analyzed values directly",
-  "dietSodiumHint": "Recommended under 2,000mg/day",
-  "dietSugarHint": "Recommended under 50g/day",
+  "dietEditNutritionHint": "Edit each food's nutrition and it adds up here",
   "dietDeleteMeal": "Delete Meal",
   "dietEditMeal": "Edit meal",
   "exTypeCardio": "Cardio",
@@ -1048,6 +1047,26 @@
   "aicInputHint": "Ask the AI anything",
   "aicQuickRepliesLabel": "Try asking",
   "aicGeneratingReply": "Writing your answer",
+  "aicInsightDiscomfortPart": "{part} pain noted",
+  "@aicInsightDiscomfortPart": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"part": {"type": "String"}}},
+  "aicInsightDiscomfort": "Pain noted",
+  "@aicInsightDiscomfort": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "aicInsightNegative": "Negative feedback noted",
+  "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "aicInsightHistoryTitle": "Noted signals",
+  "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "aicInsightHistorySubtitle": "Pain and negative feedback noted in the last {days} days",
+  "@aicInsightHistorySubtitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"days": {"type": "int"}}},
+  "aicInsightHistoryEmpty": "Nothing noted in the last {days} days",
+  "@aicInsightHistoryEmpty": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"days": {"type": "int"}}},
+  "aicInsightHistoryFailed": "Couldn't load noted signals",
+  "@aicInsightHistoryFailed": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "aicRetentionNotice": "AI chat history is kept for the last {days} days",
+  "@aicRetentionNotice": {"description": "AI coach chat: how long the conversation is kept (#1823).", "placeholders": {"days": {"type": "int"}}},
+  "aicTrainerConnectedTitle": "Chat with your trainer",
+  "@aicTrainerConnectedTitle": {"description": "AI coach chat: shown instead of the chat when the member has a trainer (#1823)."},
+  "aicTrainerConnectedBody": "You're connected with {name}. Members with a trainer chat with their trainer instead of the AI chatbot",
+  "@aicTrainerConnectedBody": {"description": "AI coach chat: shown instead of the chat when the member has a trainer (#1823).", "placeholders": {"name": {"type": "String"}}},
   "@aicGeneratingReply": {
     "description": "Shown in the coach bubble while a tailored reply is being generated"
   },
@@ -1211,11 +1230,34 @@
   "onboardHeightHint": "Height (cm)",
   "onboardWeightHint": "Weight (kg)",
   "onboardHealthTitle": "Health goals",
-  "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (multiple allowed)",
-  "onboardGoalTitle": "Exercise goal",
-  "onboardGoalSubtitle": "Tell us what you want to achieve. You can change this later.",
-  "onboardGoalHint": "e.g. Finish a 5K within three months",
+  "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (up to 2)",
   "onboardOptionalTag": "(optional)",
+  "pointsGuideTitle": "Points quests",
+  "@pointsGuideTitle": {"description": "Points guide shown once after onboarding (#1826)."},
+  "pointsGuideSubtitle": "The more you log each day, the more points you earn. Try these quests",
+  "@pointsGuideSubtitle": {"description": "Points guide shown once after onboarding (#1826)."},
+  "pointsGuideQuest": "Quest {number}",
+  "@pointsGuideQuest": {"description": "Points guide: numbered quest label (#1826).", "placeholders": {"number": {"type": "int"}}},
+  "pointsGuideDailyCap": "{count, plural, =1{Once a day} other{Up to {count} times a day}}",
+  "@pointsGuideDailyCap": {"description": "Points guide: how many times a day the points can be earned (#1826).", "placeholders": {"count": {"type": "int"}}},
+  "pointsGuideSpendNote": "Spend your points in MY › Points",
+  "@pointsGuideSpendNote": {"description": "Points guide: where the points are used (#1826)."},
+  "pointsGuideStart": "Get started",
+  "@pointsGuideStart": {"description": "Points guide: button that goes to Home (#1826)."},
+  "onboardRequiredTag": "(required)",
+  "@onboardRequiredTag": {"description": "Onboarding step 1: the basic info step must be filled in (#1830)."},
+  "onboardBirthRequired": "Choose your date of birth",
+  "@onboardBirthRequired": {"description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."},
+  "onboardGenderRequired": "Choose your gender",
+  "@onboardGenderRequired": {"description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."},
+  "onboardHeightRequired": "Enter your height",
+  "@onboardHeightRequired": {"description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."},
+  "onboardHeightRange": "Height must be between {min} and {max} cm",
+  "@onboardHeightRange": {"description": "Onboarding step 1: height outside the range the server accepts (#1830).", "placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
+  "onboardWeightRequired": "Enter your weight",
+  "@onboardWeightRequired": {"description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."},
+  "onboardWeightRange": "Weight must be between {min} and {max} kg",
+  "@onboardWeightRange": {"description": "Onboarding step 1: weight outside the range the server accepts (#1830).", "placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
   "onboardSkipStep": "Skip this step",
   "onboardBirthLabel": "Date of birth",
   "onboardBirthYearHint": "Year",
@@ -1268,13 +1310,17 @@
   "onboardResetToRecommended": "Reset to suggested",
   "onboardDietSourceNote": "Sources: Dietary Reference Intakes for Koreans 2020 (EER, AMDR) · WHO sodium and free-sugar guidelines",
   "onboardExerciseSourceNote": "Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week",
+  "onboardFocusAdjusted": "Adjusted for the health goals you picked",
+  "@onboardFocusAdjusted": {
+    "description": "Shown under goal fields when the picked health goals changed the suggestion."
+  },
+  "onboardFocusSourceNote": "Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)",
+  "@onboardFocusSourceNote": {
+    "description": "Sources for the goal-based adjustments."
+  },
   "onboardGenderMale": "Male",
   "onboardGenderFemale": "Female",
   "onboardGenderOther": "Other",
-  "onboardConditionHypertension": "Hypertension",
-  "onboardConditionDiabetes": "Diabetes",
-  "onboardConditionDyslipidemia": "Dyslipidemia",
-  "onboardConditionObesity": "Obesity",
   "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.",
   "@aiCoachWelcome": {
     "description": "Greeting bubble the app shows when the coach conversation opens."
@@ -1434,11 +1480,45 @@
     "description": "Title of the health goals sheet."
   },
   "myGoalsFocusSection": "What you want to focus on",
-  "myGoalsFocusHint": "Pick what you want to focus on in your health care. (multiple allowed)",
-  "myGoalsFocusHypertension": "Blood pressure",
-  "myGoalsFocusDiabetes": "Blood sugar",
-  "myGoalsExerciseNote": "Exercise goal",
-  "myGoalsExerciseNoteHint": "e.g. Finish a 5K within three months",
+  "myGoalsFocusHint": "Pick what you want to focus on in your health care. (up to 2)",
+  "myGoalsFocusLastChanged": "Last changed by {who} · {date}",
+  "@myGoalsFocusLastChanged": {"description": "MY health goals: who last changed the goal chips and when (#1832).", "placeholders": {"who": {"type": "String"}, "date": {"type": "String"}}},
+  "myGoalsFocusChangedByTrainer": "your trainer",
+  "@myGoalsFocusChangedByTrainer": {"description": "MY health goals: the goals were last changed by the member's trainer (#1832)."},
+  "myGoalsFocusChangedByMe": "you",
+  "@myGoalsFocusChangedByMe": {"description": "MY health goals: the goals were last changed by the member (#1832)."},
+  "healthFocusWeightLoss": "Weight loss",
+  "@healthFocusWeightLoss": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusStrength": "Build strength",
+  "@healthFocusStrength": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusFitness": "Improve fitness",
+  "@healthFocusFitness": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusPosture": "Posture correction",
+  "@healthFocusPosture": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusRehab": "Rehab",
+  "@healthFocusRehab": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusEating": "Better eating habits",
+  "@healthFocusEating": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusExerciseHabit": "Exercise habit",
+  "@healthFocusExerciseHabit": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
+  "healthFocusBloodPressure": "Blood pressure care",
+  "@healthFocusBloodPressure": {
+    "description": "Health goal chip in onboarding and MY health goals."
+  },
   "myGoalsDietSection": "Diet goals",
   "@myGoalsDietSection": {
     "description": "Section label in the health goals sheet."
@@ -1448,7 +1528,16 @@
   "myGoalCardioWeekly": "Weekly cardio (min)",
   "myGoalStrengthWeekly": "Weekly strength (sets)",
   "myGoalFlexibilityWeekly": "Weekly stretching (min)",
-  "myGoalExerciseSuggestionNote": "Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week",
+  "myGoalExerciseSuggestionNote": "Suggested: {burn} kcal a day · {cardio} min cardio · {strength} sets · {flexibility} min stretching a week",
+  "@myGoalExerciseSuggestionNote": {
+    "description": "Explains the suggested exercise goals, adjusted for the picked health goals.",
+    "placeholders": {
+      "burn": { "type": "int" },
+      "cardio": { "type": "int" },
+      "strength": { "type": "int" },
+      "flexibility": { "type": "int" }
+    }
+  },
   "myGoalExerciseApplySuggestion": "Use suggested goals",
   "@myGoalsExerciseSection": {
     "description": "Section label in the health goals sheet."
@@ -1481,13 +1570,16 @@
   "@myGoalCaloriesFromMacros": {
     "description": "Helper under the calorie goal field when it was derived from the macro fields."
   },
-  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: 50% carbs · 30% protein · 20% fat",
+  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat",
   "@myGoalMacroSuggestionNote": {
     "description": "Explains the placeholder grams shown in the macro fields.",
     "placeholders": {
       "kcal": {
         "type": "int"
-      }
+      },
+      "carbs": { "type": "int" },
+      "protein": { "type": "int" },
+      "fat": { "type": "int" }
     }
   },
   "myGoalMacroApplySuggestion": "Use suggested split",
@@ -1625,15 +1717,6 @@
   "@coachRoutineDone": {
     "description": "Marks a routine as completed."
   },
-  "coachRoutineMyNote": "My feedback: {note}",
-  "@coachRoutineMyNote": {
-    "description": "The member's own note on a completed routine.",
-    "placeholders": {
-      "note": {
-        "type": "String"
-      }
-    }
-  },
   "coachRoutineTrainerFeedback": "Trainer feedback: {feedback}",
   "@coachRoutineTrainerFeedback": {
     "description": "The trainer's feedback on a completed routine.",
@@ -1662,14 +1745,6 @@
   "coachIntensityHigh": "High",
   "@coachIntensityHigh": {
     "description": "Intensity option."
-  },
-  "coachRoutineNoteLabel": "Feedback (optional)",
-  "@coachRoutineNoteLabel": {
-    "description": "Field label in the completion dialog."
-  },
-  "coachRoutineNoteHint": "Share how it felt or how your body is doing",
-  "@coachRoutineNoteHint": {
-    "description": "Hint of the note field in the completion dialog."
   },
   "coachRoutineSubmit": "Save",
   "@coachRoutineSubmit": {
@@ -1714,6 +1789,101 @@
   "alertLoadFailed": "Couldn't load the latest notifications",
   "@alertLoadFailed": {
     "description": "Shown when the notification list fails to refresh."
+  },
+  "alertTimeJustNow": "Just now",
+  "@alertTimeJustNow": {
+    "description": "Relative time for a notification less than a minute old."
+  },
+  "alertTimeMinutesAgo": "{minutes}m ago",
+  "@alertTimeMinutesAgo": {
+    "description": "Relative time for a notification under an hour old.",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "alertTimeHoursAgo": "{hours}h ago",
+  "@alertTimeHoursAgo": {
+    "description": "Relative time for a notification under a day old.",
+    "placeholders": { "hours": { "type": "int" } }
+  },
+  "alertTimeYesterday": "Yesterday",
+  "@alertTimeYesterday": {
+    "description": "Relative time for a notification from about a day ago."
+  },
+  "alertTimeDaysAgo": "{days}d ago",
+  "@alertTimeDaysAgo": {
+    "description": "Relative time for a notification two or more days old.",
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "demoAlertSodiumTitle": "Watch your sodium",
+  "@demoAlertSodiumTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 3,428mg. Drink plenty of water.",
+  "@demoAlertSodiumBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertDinnerTitle": "Log your dinner",
+  "@demoAlertDinnerTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertDinnerBody": "No dinner logged yet today. One photo is all it takes.",
+  "@demoAlertDinnerBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertRoutineTitle": "A new workout routine arrived",
+  "@demoAlertRoutineTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertRoutineBody": "Trainer Kim adjusted it to a walking routine for your knee.",
+  "@demoAlertRoutineBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertReportTitle": "This week's report is ready",
+  "@demoAlertReportTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertReportBody": "Trainer Kim posted your report for this week.",
+  "@demoAlertReportBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertPtDoneTitle": "PT session complete",
+  "@demoAlertPtDoneTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer Kim at 18:00 today!",
+  "@demoAlertPtDoneBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertTrainerFeedbackTitle": "Feedback from your trainer",
+  "@demoAlertTrainerFeedbackTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertTrainerFeedbackBody": "Be sure to stretch your rotator cuff to finish.",
+  "@demoAlertTrainerFeedbackBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertWeeklyGoalTitle": "Almost at this week's workout goal",
+  "@demoAlertWeeklyGoalTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertWeeklyGoalBody": "Start with 30 minutes of low-intensity cardio (walking).",
+  "@demoAlertWeeklyGoalBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertMealStreakTitle": "You're keeping up your meal log",
+  "@demoAlertMealStreakTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertMealStreakBody": "You've logged your meals every day for over a month.",
+  "@demoAlertMealStreakBody": {
+    "description": "Body of a demo notification shown in tour mode."
+  },
+  "demoAlertMaintenanceTitle": "Scheduled maintenance",
+  "@demoAlertMaintenanceTitle": {
+    "description": "Title of a demo notification shown in tour mode."
+  },
+  "demoAlertMaintenanceBody": "Maintenance is scheduled for tomorrow, 02:00–03:00.",
+  "@demoAlertMaintenanceBody": {
+    "description": "Body of a demo notification shown in tour mode."
   },
   "exPtLogTitle": "Today's completed PT",
   "@exPtLogTitle": {

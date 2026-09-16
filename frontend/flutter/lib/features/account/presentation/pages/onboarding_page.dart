@@ -3,11 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -57,27 +58,13 @@ enum _GoalGroup { diet, exercise }
 class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   static const int _steps = 4;
 
-  /// 만성질환 선택지 — **전송 값**이다.
+  /// 건강 목표 선택지 — **전송 값**이다(#1814).
   ///
-  /// 서버는 이 값을 자유 텍스트로 저장하고 AI 코치가 '내 건강 기록' 으로 읽는다. 화면
-  /// 로케일에 따라 저장되는 문자열이 달라지면 같은 사용자의 기록이 언어별로 갈라지므로,
-  /// 값은 한국어로 고정하고 표시 문구만 번역한다.
-  /// 이 앱이 관리 대상으로 삼는 두 질환만 묻는다. 고지혈증·비만은 뺐다 —
-  /// 가입 첫 화면에서 고를 것이 늘수록 대충 넘기고, 그렇게 들어온 값은 AI
-  /// 코치가 읽는 건강 기록을 흐린다.
-  static const List<String> _conditionOptions = <String>['고혈압', '당뇨'];
-
-  /// 전송 값 → 화면에 보일 문구.
-  ///
-  /// 선택지에서 뺀 값도 계속 옮긴다 — 예전에 고른 값이 프로필에 남아 있을 수
-  /// 있고, 그때 원문 그대로 노출되면 영어 로케일에서만 한국어가 튄다.
-  String _conditionLabel(AppLocalizations l, String value) => switch (value) {
-    '고혈압' => l.onboardConditionHypertension,
-    '당뇨' => l.onboardConditionDiabetes,
-    '고지혈증' => l.onboardConditionDyslipidemia,
-    '비만' => l.onboardConditionObesity,
-    _ => value,
-  };
+  /// 서버는 이 값을 그대로 저장하고 AI 코치·트레이너 추천이 읽는다. 화면 로케일에
+  /// 따라 저장되는 문자열이 달라지면 같은 사용자의 기록이 언어별로 갈라지므로,
+  /// 값은 한국어로 고정하고 표시 문구만 번역한다([healthFocusLabel]). MY `건강
+  /// 목표` 와 같은 목록이다.
+  static const List<String> _conditionOptions = kHealthFocusOptions;
 
   final PageController _pager = PageController();
   int _step = 0;
@@ -97,15 +84,13 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   // ── 2단계 ──
   final Set<String> _conditions = <String>{};
-  final TextEditingController _goals = TextEditingController();
 
   // ── 3·4단계 ── 칸 하나에 컨트롤러 하나.
-  late final Map<_GoalField, TextEditingController> _goalControllers = <
-    _GoalField,
-    TextEditingController
-  >{
-    for (final _GoalField f in _GoalField.values) f: TextEditingController(),
-  };
+  late final Map<_GoalField, TextEditingController> _goalControllers =
+      <_GoalField, TextEditingController>{
+        for (final _GoalField f in _GoalField.values)
+          f: TextEditingController(),
+      };
 
   /// 회원이 **직접 고친** 칸. 여기 든 칸은 1단계 값이 바뀌어도 다시 쓰지 않고,
   /// `권장값으로 되돌리기` 를 눌러야 비워진다.
@@ -124,7 +109,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     _pager.dispose();
     _height.dispose();
     _weight.dispose();
-    _goals.dispose();
     for (final TextEditingController c in _goalControllers.values) {
       c.dispose();
     }
@@ -155,16 +139,23 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 회원이 **칼로리 칸을 직접 고쳤으면** 그 값을 기준으로 다시 나눈다 —
   /// 각주가 말하는 비율과 탄단지 칸의 숫자가 어긋나지 않아야 한다.
   RecommendedGoals get _recommended {
+    // 2단계에서 고른 건강 목표도 함께 반영한다(#1816).
     final RecommendedGoals base = recommendedGoalsFor(
       ageYears: _age,
       gender: _gender,
       heightCm: _heightCm,
       weightKg: _weightKg,
+      focus: _conditions,
     );
     if (!_edited.contains(_GoalField.calories)) return base;
     final int? kcal = _goalValue(_GoalField.calories);
     if (kcal == null || kcal <= 0) return base;
-    return recommendedGoalsFromCalories(kcal, basis: base.basis);
+    return recommendedGoalsFromCalories(
+      kcal,
+      basis: base.basis,
+      focus: _conditions,
+      weightKg: _weightKg,
+    );
   }
 
   int _recommendedValue(_GoalField f, RecommendedGoals r) => switch (f) {
@@ -219,9 +210,61 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 1단계 값이 바뀌면 손대지 않은 목표 칸을 다시 계산한다.
   void _onBasicChanged() => setState(_fillRecommended);
 
+  // ───────────────────────────────────────────────── 필수 기본 정보 ──
+  //
+  // 기본 정보(생년월일·성별·키·체중)는 식단·운동 권장치를 계산하는 근거다(#1830).
+  // 비워 둔 채 넘어가면 3·4단계가 앱 기본값으로 채워지고, 회원은 자기 몸에 맞춘
+  // 값이라고 믿은 채 시작한다. 그래서 네 칸이 모두 차야 `다음` 으로 넘어간다.
+
+  /// 1단계에서 빠진 칸 안내를 띄울지. `다음` 을 눌러 한 번 막힌 뒤부터 켠다 —
+  /// 화면을 열자마자 안내가 줄지어 있으면 입력하기도 전에 틀린 사람이 된다.
+  bool _showBasicErrors = false;
+
+  String? _birthError(AppLocalizations l) =>
+      _birthDateText == null ? l.onboardBirthRequired : null;
+
+  String? _genderError(AppLocalizations l) =>
+      _gender == null ? l.onboardGenderRequired : null;
+
+  /// 키는 서버가 받는 범위(`height_cm` 50~300) 안이어야 한다 — 범위 밖 값을 그대로
+  /// 넘기면 완료 저장이 거절되어, 마지막 단계에서야 실패를 보게 된다.
+  String? _heightError(AppLocalizations l) {
+    final double? h = _heightCm;
+    if (h == null) return l.onboardHeightRequired;
+    if (h < _kMinHeightCm || h > _kMaxHeightCm) {
+      return l.onboardHeightRange(_kMinHeightCm, _kMaxHeightCm);
+    }
+    return null;
+  }
+
+  /// 체중도 서버 범위(`weight_kg` 20~500)를 따른다.
+  String? _weightError(AppLocalizations l) {
+    final double? w = _weightKg;
+    if (w == null) return l.onboardWeightRequired;
+    if (w < _kMinWeightKg || w > _kMaxWeightKg) {
+      return l.onboardWeightRange(_kMinWeightKg, _kMaxWeightKg);
+    }
+    return null;
+  }
+
+  /// 기본 정보 네 칸이 모두 찼고 키·체중이 범위 안인가.
+  bool _basicComplete(AppLocalizations l) =>
+      _birthError(l) == null &&
+      _genderError(l) == null &&
+      _heightError(l) == null &&
+      _weightError(l) == null;
+
+  /// 안내를 띄우는 중일 때만 그 칸의 문구를 준다.
+  String? _shown(String? error) => _showBasicErrors ? error : null;
+
   // ───────────────────────────────────────────────── 이동·저장 ──
 
   void _next() {
+    // 기본 정보를 다 채우지 않았으면 빠진 칸 아래에 안내를 띄우고 머문다(#1830).
+    if (_step == 0 && !_basicComplete(AppLocalizations.of(context))) {
+      setState(() => _showBasicErrors = true);
+      return;
+    }
     if (_step < _steps - 1) {
       _pager.nextPage(duration: OnCareMotion.normal, curve: OnCareMotion.curve);
     }
@@ -236,16 +279,19 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     }
   }
 
-  void _skip() => context.go(AppRoutes.dashboard);
+  /// 온보딩을 건너뛰어도 홈으로 가기 전에 포인트 안내를 한 번 본다(#1826) —
+  /// 포인트를 어디서 얻는지는 목표를 정했는지와 상관없이 처음부터 알아야 한다.
+  void _skip() => context.go(AppRoutes.pointsGuide);
 
   /// 건강 상태 단계를 건너뛴다 — 이 단계에서 적은 것을 **비우고** 넘어간다.
   ///
   /// 그냥 `다음` 을 누르는 것과 다르다: 골라 뒀다가 마음이 바뀌어 건너뛰었는데
-  /// 고른 질환이 그대로 저장되면, 건너뛴 것이 건너뛴 것이 아니게 된다.
+  /// 고른 목표가 그대로 저장되면, 건너뛴 것이 건너뛴 것이 아니게 된다.
   void _skipConditions() {
     setState(() {
       _conditions.clear();
-      _goals.clear();
+      // 목표를 비웠으니 그 목표로 조정한 권장값도 기준값으로 돌린다(#1816).
+      _fillRecommended();
     });
     _next();
   }
@@ -263,7 +309,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             heightCm: _num(_height),
             weightKg: _num(_weight),
             conditions: _conditions.isEmpty ? null : _conditions.join(', '),
-            goals: _goals.text.trim().isEmpty ? null : _goals.text.trim(),
             dailyCalories: _goalValue(_GoalField.calories),
             dailySodiumMg: _goalValue(_GoalField.sodium),
             dailySugarG: _goalValue(_GoalField.sugar),
@@ -277,7 +322,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           );
       if (!mounted) return;
       ref.invalidate(profileProvider);
-      context.go(AppRoutes.dashboard);
+      // 홈으로 가기 전에 포인트를 어디서 얻는지 한 장으로 본다(#1826).
+      context.go(AppRoutes.pointsGuide);
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -315,8 +361,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   /// 고를 수 있는 날. 그 달의 마지막 날까지이고, 이번 달이면 오늘까지다.
-  List<int> get _birthDayOptions =>
-      <int>[for (int d = 1; d <= _lastSelectableBirthDay; d++) d];
+  List<int> get _birthDayOptions => <int>[
+    for (int d = 1; d <= _lastSelectableBirthDay; d++) d,
+  ];
 
   int get _lastSelectableBirthDay {
     final DateTime today = todayKst();
@@ -425,31 +472,28 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       _side,
       OnCareSpacing.s16,
     ),
-    child: Row(
-      children: <Widget>[
-        if (_step > 0) ...<Widget>[
-          // 되돌아가기는 보조 동작이다 — 글자를 단 큰 외곽선 버튼이면 옆의
-          // 주 동작과 무게가 비슷해진다(#1471). 뒤로 표시 하나로 줄이되 터치
-          // 영역과 접근성 라벨은 그대로 둔다.
-          AppIconButton(
-            key: const Key('onboardBackButton'),
-            icon: AppIcons.back,
-            tooltip: l.onboardPrevious,
-            onPressed: _saving ? null : _back,
-          ),
-          const SizedBox(width: OnCareSpacing.s12),
-        ],
-        Expanded(
-          child: AppButton(
-            label: isLast ? l.onboardDone : l.onboardNext,
-            onPressed: isLast ? _finish : _next,
-            loading: _saving,
+    // 1단계는 돌아갈 곳이 없어 `다음` 하나다. 2~4단계는 확인창·시트와 같은 공용
+    // 2분할 버튼이다(#1830) — 왼쪽 `이전`(흰 바탕), 오른쪽 `다음`/`완료`(파란 바탕).
+    // 예전에는 `다음` 옆에 뒤로 표시 하나만 있어, 이전 단계로 돌아갈 수 있다는
+    // 것이 잘 보이지 않았다.
+    child: _step == 0
+        ? AppButton(
+            key: const Key('onboardNextButton'),
+            label: l.onboardNext,
+            onPressed: _next,
             size: OnCareButtonSize.large,
             fullWidth: true,
+          )
+        : AppButtonPair(
+            cancelKey: const Key('onboardBackButton'),
+            cancelLabel: l.onboardPrevious,
+            onCancel: _saving ? null : _back,
+            confirmKey: const Key('onboardNextButton'),
+            confirmLabel: isLast ? l.onboardDone : l.onboardNext,
+            onConfirm: isLast ? _finish : _next,
+            confirmLoading: _saving,
+            size: OnCareButtonSize.large,
           ),
-        ),
-      ],
-    ),
   );
 
   /// 네 단계가 **모두** 이 뼈대를 쓴다 — 제목 · 한 줄 설명 · [_StepSection] 들.
@@ -458,10 +502,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   /// 놓여 있고 3·4단계만 회색 카드였다 — 같은 마법사를 네 번 넘기는 동안 화면이
   /// 세 번 바뀌는 셈이었다. 이제 모든 내용은 [AppCard] 안에 들어가고,
   /// 카드 아래 각주 자리도 [_StepNote] 하나로 같다.
+  ///
+  /// [required] 는 채워야 넘어가는 단계, [optional] 은 건너뛰어도 되는 단계다.
+  /// 둘 다 제목 옆 태그로 말한다.
   Widget _stepBody({
     required String title,
     required String subtitle,
     required List<_StepSection> sections,
+    bool required = false,
     bool optional = false,
     VoidCallback? onSkipStep,
   }) {
@@ -489,9 +537,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
               ),
               // 안 채워도 되는 단계라는 말은 제목 옆에 붙어야 읽힌다 — 아래
               // 설명 줄에 섞으면 다음 버튼을 먼저 누른 뒤에나 눈에 들어온다.
-              if (optional) ...<Widget>[
+              if (required || optional) ...<Widget>[
                 const SizedBox(width: OnCareSpacing.s8),
-                AppTag(label: l.onboardOptionalTag),
+                AppTag(
+                  key: Key(
+                    required ? 'onboardRequiredTag' : 'onboardOptionalTag',
+                  ),
+                  label: required ? l.onboardRequiredTag : l.onboardOptionalTag,
+                  tone: required ? AppTagTone.brand : AppTagTone.neutral,
+                ),
               ],
             ],
           ),
@@ -530,6 +584,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     return _stepBody(
       title: l.onboardBasicTitle,
       subtitle: l.onboardBasicSubtitle,
+      required: true,
       sections: <_StepSection>[
         _StepSection(
           card: _OnboardCard(
@@ -590,6 +645,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   ),
                 ],
               ),
+              _FieldError(
+                key: const Key('onboardBirthError'),
+                text: _shown(_birthError(l)),
+              ),
               const SizedBox(height: _kFieldGap),
               _FieldLabel(l.onboardGenderLabel),
               const SizedBox(height: OnCareSpacing.s8),
@@ -600,6 +659,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   _onBasicChanged();
                 },
               ),
+              _FieldError(
+                key: const Key('onboardGenderError'),
+                text: _shown(_genderError(l)),
+              ),
               const SizedBox(height: _kFieldGap),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -609,6 +672,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       key: const Key('onboardHeightField'),
                       label: l.onboardHeightHint,
                       controller: _height,
+                      errorText: _shown(_heightError(l)),
                       onChanged: (_) => _onBasicChanged(),
                     ),
                   ),
@@ -618,6 +682,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                       key: const Key('onboardWeightField'),
                       label: l.onboardWeightHint,
                       controller: _weight,
+                      errorText: _shown(_weightError(l)),
                       onChanged: (_) => _onBasicChanged(),
                     ),
                   ),
@@ -628,13 +693,20 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
           // 카드 아래 각주 자리는 3·4단계의 `출처 · 되돌리기` 와 같은 자리다.
           // 여기서는 방금 적은 값을 되읽어 준다 — 권장 목표가 이 둘에서 나오니
           // 오타를 다음 단계로 넘어가기 전에 알아채야 한다.
-          note: _BodySummary(age: _age, heightCm: _heightCm, weightKg: _weightKg),
+          note: _BodySummary(
+            age: _age,
+            heightCm: _heightCm,
+            weightKg: _weightKg,
+          ),
         ),
       ],
     );
   }
 
-  // ── 2단계: 건강 상태 ──
+  // ── 2단계: 건강 목표 ──
+  //
+  // 목표는 건강 목표 칩(최대 2개)만 고른다. 자유 입력 `운동 목표` 칸은 없앴다(#1829) —
+  // 목표를 두 곳에서 말하면 무엇이 목표인지 흐려지고, 권장치·트레이너 화면은 칩을 읽는다.
 
   Widget _stepConditions(AppLocalizations l) {
     return _stepBody(
@@ -652,28 +724,18 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 children: <Widget>[
                   for (final String c in _conditionOptions)
                     AppChoiceChip(
-                      label: _conditionLabel(l, c),
+                      label: healthFocusLabel(l, c),
                       selected: _conditions.contains(c),
-                      onSelected: (_) => setState(() {
-                        if (!_conditions.remove(c)) _conditions.add(c);
-                      }),
+                      // 두 개를 고르면 나머지 칩은 잠긴다(#1814).
+                      onSelected: canPickHealthFocus(_conditions, c)
+                          ? (_) => setState(() {
+                              if (!_conditions.remove(c)) _conditions.add(c);
+                              // 손대지 않은 목표 칸이 고른 목표를 따라간다(#1816).
+                              _fillRecommended();
+                            })
+                          : null,
                     ),
                 ],
-              ),
-            ],
-          ),
-        ),
-        _StepSection(
-          label: l.onboardGoalTitle,
-          description: l.onboardGoalSubtitle,
-          card: _OnboardCard(
-            children: <Widget>[
-              _OnboardField(
-                key: const Key('onboardGoalTextField'),
-                label: l.onboardGoalHint,
-                controller: _goals,
-                keyboardType: TextInputType.text,
-                digitsOnly: false,
               ),
             ],
           ),
@@ -706,10 +768,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ],
           ),
           note: _StepNote(
-            infoLine: _recommended.isPersonalized
-                ? l.onboardRecommendedPersonal
-                : l.onboardRecommendedFallback,
-            sourceNote: l.onboardDietSourceNote,
+            infoLine: <String>[
+              _recommended.isPersonalized
+                  ? l.onboardRecommendedPersonal
+                  : l.onboardRecommendedFallback,
+              if (_recommended.isDietAdjusted) l.onboardFocusAdjusted,
+            ].join('\n'),
+            sourceNote: _recommended.isDietAdjusted
+                ? '${l.onboardDietSourceNote}\n${l.onboardFocusSourceNote}'
+                : l.onboardDietSourceNote,
             actionKey: const Key('onboardResetDietGoals'),
             actionLabel: l.onboardResetToRecommended,
             onAction: _isEdited(_GoalGroup.diet)
@@ -753,9 +820,15 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             ],
           ),
           note: _StepNote(
-            // 운동 권장값은 WHO 권고 그대로라 1단계 정보와 무관하다 — 나이·체중을
-            // 안 적었다고 "덜 정확한 값" 이라고 말하면 사실이 아니다.
-            sourceNote: l.onboardExerciseSourceNote,
+            // 운동 권장값은 WHO 권고에서 시작해 1단계 정보와 무관하다 — 나이·체중을
+            // 안 적었다고 "덜 정확한 값" 이라고 말하면 사실이 아니다. 고른 건강
+            // 목표로 조정했을 때만 그렇다고 적는다(#1816).
+            infoLine: _recommended.isExerciseAdjusted
+                ? l.onboardFocusAdjusted
+                : null,
+            sourceNote: _recommended.isExerciseAdjusted
+                ? '${l.onboardExerciseSourceNote}\n${l.onboardFocusSourceNote}'
+                : l.onboardExerciseSourceNote,
             actionKey: const Key('onboardResetExerciseGoals'),
             actionLabel: l.onboardResetToRecommended,
             onAction: _isEdited(_GoalGroup.exercise)
@@ -779,52 +852,30 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 /// 카드 안 칸과 칸 사이. 네 단계가 같은 간격을 쓴다.
 const double _kFieldGap = OnCareSpacing.s12;
 
+/// 키·체중으로 받는 범위 — 서버 `height_cm`(50~300)·`weight_kg`(20~500) 검사와 같다.
+/// 필수 안내(#1830)와 체질량지수 되읽기가 같은 범위를 쓴다.
+const int _kMinHeightCm = 50;
+const int _kMaxHeightCm = 300;
+const int _kMinWeightKg = 20;
+const int _kMaxWeightKg = 500;
+
 /// 한 단계 안의 묶음 하나 — 제목(선택) · 한 줄 설명(선택) · 카드 · 각주(선택).
 ///
 /// 단계마다 담기는 내용은 달라도 **쌓는 순서와 간격은 하나**다. 마법사를 네 번
 /// 넘기는 동안 눈이 같은 자리에서 같은 것을 찾게 하려는 것이다.
 class _StepSection extends StatelessWidget {
-  const _StepSection({
-    required this.card,
-    this.label,
-    this.description,
-    this.note,
-  });
+  const _StepSection({required this.card, this.note});
 
   final Widget card;
-
-  /// 한 단계에 묶음이 둘 이상일 때만 준다. 하나뿐이면 단계 제목이 곧 이름이라
-  /// 같은 말을 두 번 적게 된다.
-  final String? label;
-  final String? description;
 
   /// 카드 아래 작은 글씨 자리 — 출처·되돌리기·요약이 모두 여기 온다.
   final Widget? note;
 
   @override
   Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        if (label != null) ...<Widget>[
-          Text(
-            label!,
-            style: tokens
-                .text(OnCareTypography.titleSmall)
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-        ],
-        if (description != null) ...<Widget>[
-          Text(
-            description!,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-        ],
         card,
         if (note != null) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
@@ -870,30 +921,52 @@ class _OnboardField extends StatelessWidget {
     super.key,
     required this.label,
     required this.controller,
-    this.keyboardType = TextInputType.number,
-    this.digitsOnly = true,
     this.onChanged,
+    this.errorText,
   });
 
   final String label;
   final TextEditingController controller;
-  final TextInputType keyboardType;
-
-  /// 숫자 칸은 붙여넣기로도 문자가 들어오지 못하게 막는다 — 저장 때 int 파싱이
-  /// null 로 날아가면 목표가 조용히 비어 버린다.
-  final bool digitsOnly;
   final ValueChanged<String>? onChanged;
+
+  /// 빠졌거나 범위를 벗어난 칸의 안내. null 이면 안내가 없다(#1830).
+  final String? errorText;
 
   @override
   Widget build(BuildContext context) {
     return AppTextField(
       label: label,
       controller: controller,
-      keyboardType: keyboardType,
-      inputFormatters: digitsOnly
-          ? <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly]
-          : null,
+      errorText: errorText,
+      keyboardType: TextInputType.number,
+      // 숫자 칸은 붙여넣기로도 문자가 들어오지 못하게 막는다 — 저장 때 int 파싱이
+      // null 로 날아가면 목표가 조용히 비어 버린다. 온보딩의 입력칸은 모두 숫자다(#1829).
+      inputFormatters: <TextInputFormatter>[
+        FilteringTextInputFormatter.digitsOnly,
+      ],
       onChanged: onChanged,
+    );
+  }
+}
+
+/// 입력칸이 아닌 선택 칸(생년월일·성별) 아래의 안내 한 줄 — 입력칸의 오류 문구와
+/// 같은 자리·같은 색이다. [text] 가 null 이면 자리를 차지하지 않는다(#1830).
+class _FieldError extends StatelessWidget {
+  const _FieldError({super.key, required this.text});
+  final String? text;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? message = text;
+    if (message == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: OnCareSpacing.s4),
+      child: Text(
+        message,
+        style: context.oncare
+            .text(OnCareTypography.caption)
+            .copyWith(color: OnCareColors.danger),
+      ),
     );
   }
 }
@@ -975,7 +1048,12 @@ class _BodySummary extends StatelessWidget {
     final double? h = heightCm;
     final double? w = weightKg;
     final bool canBmi =
-        h != null && w != null && h >= 50 && h <= 300 && w >= 20 && w <= 500;
+        h != null &&
+        w != null &&
+        h >= _kMinHeightCm &&
+        h <= _kMaxHeightCm &&
+        w >= _kMinWeightKg &&
+        w <= _kMaxWeightKg;
     final double? bmi = canBmi ? w / ((h / 100) * (h / 100)) : null;
     if (age == null && bmi == null) return const SizedBox.shrink();
 

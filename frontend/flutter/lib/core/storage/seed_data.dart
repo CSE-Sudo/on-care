@@ -148,8 +148,9 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     await db.batch((Batch b) {
       b.insertAll(db.exerciseSessions, <ExerciseSessionsCompanion>[
         for (final FixtureDay day in days)
-          for (final MapEntry<String, _TypeTotals> entry
-              in _byType(day.doneExercises).entries)
+          for (final MapEntry<String, _TypeTotals> entry in _byType(
+            day.doneExercises,
+          ).entries)
             ExerciseSessionsCompanion.insert(
               id: 'seed-ex-${day.date}-${entry.key}',
               weekStart: day.weekStart,
@@ -227,24 +228,68 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
 
     // ---- Notifications ----
     await db.batch((Batch b) {
+      // 앱 데모 알림(`demoAlerts`)·백엔드 데모 계정 시드와 같은 목록이다(#1812).
       b.insertAll(db.notificationItems, <NotificationItemsCompanion>[
         NotificationItemsCompanion.insert(
           id: 'seed-noti-1',
           createdAt: now.subtract(const Duration(minutes: 10)),
-          title: '식단 입력 알림',
-          body: '오늘 점심 입력이 비어있어요.',
+          title: '나트륨 섭취 주의',
+          body: '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.',
           category: 'reminder',
+        ),
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-8',
+          createdAt: now.subtract(const Duration(minutes: 20)),
+          title: '저녁 식단을 기록해 주세요',
+          body: '오늘 저녁 식단이 아직 없어요. 사진 한 장이면 돼요.',
+          category: 'reminder',
+        ),
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-5',
+          createdAt: now.subtract(const Duration(minutes: 30)),
+          title: '새 운동 루틴이 도착했어요',
+          body: '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.',
+          category: 'routine',
+        ),
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-7',
+          createdAt: now.subtract(const Duration(minutes: 45)),
+          title: '이번 주 리포트가 등록됐어요',
+          body: '김트레이너님이 이번 주 리포트를 등록했어요.',
+          category: 'coach_chat',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-2',
           createdAt: now.subtract(const Duration(hours: 1)),
-          title: '운동 목표 달성',
-          body: '주간 운동 240분 달성!',
+          title: 'PT 수업 완료',
+          body: '오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!',
           category: 'achievement',
         ),
         NotificationItemsCompanion.insert(
+          id: 'seed-noti-3',
+          createdAt: now.subtract(const Duration(hours: 2)),
+          title: '트레이너 피드백 도착',
+          body: '마무리로 어깨 회전근개 스트레칭을 꼭 해주세요.',
+          category: 'coach_chat',
+        ),
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-6',
+          createdAt: now.subtract(const Duration(hours: 3)),
+          title: '이번 주 운동 목표까지 조금 남았어요',
+          body: '저강도 유산소(걷기) 30분부터 채워 봐요.',
+          category: 'reminder',
+        ),
+        NotificationItemsCompanion.insert(
+          id: 'seed-noti-9',
+          createdAt: now.subtract(const Duration(hours: 26)),
+          title: '식단 기록을 꾸준히 이어가고 있어요',
+          body: '한 달 넘게 하루도 빠짐없이 식단을 기록하고 있어요.',
+          category: 'achievement',
+          read: const Value(true),
+        ),
+        NotificationItemsCompanion.insert(
           id: 'seed-noti-4',
-          createdAt: now.subtract(const Duration(days: 1)),
+          createdAt: now.subtract(const Duration(hours: 28)),
           title: '서비스 점검 안내',
           body: '내일 02:00~03:00 점검 예정입니다.',
           category: 'system',

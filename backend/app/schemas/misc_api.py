@@ -139,9 +139,17 @@ class ChatRequest(BaseModel):
     history: list[ChatTurn] = []
 
 
+class ChatInsightOut(BaseModel):
+    """회원 메시지 한 줄에서 찾은 통증·부정적 반응 표시. (#1824)"""
+    kind: str                      # discomfort | negative_feedback
+    body_part: str | None = None   # 통증일 때 찾은 부위(무릎·허리…)
+
+
 class ChatReply(BaseModel):
     reply: str
     sources: list[str] = []        # 답변 근거로 쓰인 공공 가이드라인 제목
+    #: 방금 보낸 회원 메시지의 감지 결과. 없으면 null (#1824).
+    user_insight: ChatInsightOut | None = None
 
 
 class ChatMessageOut(BaseModel):
@@ -150,7 +158,24 @@ class ChatMessageOut(BaseModel):
     content: str
     sources: list[str] = []
     created_at: datetime
+    #: 회원 메시지의 통증·부정적 반응 감지. 코치 답변이나 신호가 없으면 null (#1824).
+    insight: ChatInsightOut | None = None
 
 
 class ChatHistory(BaseModel):
     messages: list[ChatMessageOut] = []
+
+
+class ChatInsightRecordOut(BaseModel):
+    """감지 기록 한 줄 — AI 챗봇 오른쪽 위 감지 기록 창의 항목. (#1824)"""
+    message_id: str
+    created_at: datetime
+    kind: str
+    body_part: str | None = None
+    text: str
+
+
+class ChatInsightList(BaseModel):
+    """최근 30일 감지 기록(최신순)과 기록 기간(일)."""
+    window_days: int
+    insights: list[ChatInsightRecordOut] = []

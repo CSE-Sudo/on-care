@@ -95,7 +95,7 @@ class TrainerClient {
   /// Optional international age supplied by the API.
   final int? age;
 
-  /// Goal label (e.g. 혈압 관리 · 체중 감량).
+  /// 회원 건강 목표를 ` · ` 로 이은 값(e.g. 체중 감량 · 혈압 관리, #1818).
   final String goal;
 
   /// Preview of the most recent chat message.

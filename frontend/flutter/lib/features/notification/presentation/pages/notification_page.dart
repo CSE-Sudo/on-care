@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/alert_navigation.dart';
+import 'package:oncare/features/notification/presentation/alert_text.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -214,6 +215,7 @@ class _AlertTile extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final display = _categoryDisplay(l, item.category);
+    final text = alertText(l, item);
     final double side = tokens.density.pagePadding;
     return Semantics(
       key: ValueKey<String>('notification-row-${item.id}'),
@@ -238,17 +240,17 @@ class _AlertTile extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        item.title,
+                        text.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: tokens
                             .text(OnCareTypography.titleSmall)
                             .copyWith(color: OnCareColors.textPrimary),
                       ),
-                      if (item.body.trim().isNotEmpty) ...<Widget>[
+                      if (text.body.trim().isNotEmpty) ...<Widget>[
                         const SizedBox(height: OnCareSpacing.s4),
                         Text(
-                          item.body,
+                          text.body,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: tokens
@@ -258,7 +260,7 @@ class _AlertTile extends StatelessWidget {
                       ],
                       const SizedBox(height: OnCareSpacing.s4),
                       Text(
-                        item.timeAgo,
+                        alertTimeAgo(l, item),
                         key: ValueKey<String>('notification-time-${item.id}'),
                         style: OnCareTypography.numeric(
                           tokens.text(OnCareTypography.caption),

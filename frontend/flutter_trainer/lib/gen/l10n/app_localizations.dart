@@ -1286,6 +1286,78 @@ abstract class AppLocalizations {
   /// **'Weight (kg)'**
   String get memberHealthWeight;
 
+  /// No description provided for @memberHealthFocus.
+  ///
+  /// In en, this message translates to:
+  /// **'Health goals (up to 2)'**
+  String get memberHealthFocus;
+
+  /// Member profile dialog: who last changed the member's goal chips and when (#1832).
+  ///
+  /// In en, this message translates to:
+  /// **'Last changed by {who} · {date}'**
+  String memberHealthFocusLastChanged(String who, String date);
+
+  /// No description provided for @memberHealthFocusChangedByTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get memberHealthFocusChangedByTrainer;
+
+  /// No description provided for @memberHealthFocusChangedByMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Member'**
+  String get memberHealthFocusChangedByMember;
+
+  /// No description provided for @healthFocusWeightLoss.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight loss'**
+  String get healthFocusWeightLoss;
+
+  /// No description provided for @healthFocusStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Build strength'**
+  String get healthFocusStrength;
+
+  /// No description provided for @healthFocusFitness.
+  ///
+  /// In en, this message translates to:
+  /// **'Improve fitness'**
+  String get healthFocusFitness;
+
+  /// No description provided for @healthFocusPosture.
+  ///
+  /// In en, this message translates to:
+  /// **'Posture correction'**
+  String get healthFocusPosture;
+
+  /// No description provided for @healthFocusRehab.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehab'**
+  String get healthFocusRehab;
+
+  /// No description provided for @healthFocusEating.
+  ///
+  /// In en, this message translates to:
+  /// **'Better eating habits'**
+  String get healthFocusEating;
+
+  /// No description provided for @healthFocusExerciseHabit.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise habit'**
+  String get healthFocusExerciseHabit;
+
+  /// No description provided for @healthFocusBloodPressure.
+  ///
+  /// In en, this message translates to:
+  /// **'Blood pressure care'**
+  String get healthFocusBloodPressure;
+
   /// No description provided for @memberHealthConditions.
   ///
   /// In en, this message translates to:
@@ -2179,18 +2251,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Member feedback'**
   String get clientFeedback;
-
-  /// No description provided for @clientFeedbackOn.
-  ///
-  /// In en, this message translates to:
-  /// **'Member feedback on {name}'**
-  String clientFeedbackOn(String name);
-
-  /// No description provided for @clientFeedbackPersonal.
-  ///
-  /// In en, this message translates to:
-  /// **'Member feedback on this personal exercise'**
-  String get clientFeedbackPersonal;
 
   /// No description provided for @clientFeedbackSession.
   ///

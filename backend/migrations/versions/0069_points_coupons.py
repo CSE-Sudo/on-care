@@ -15,8 +15,8 @@
 되돌리면 반환 내역 행을 지운다. 옛 CHECK 제약이 양수 반환을 받아 주지 않기 때문이다
 (잔액은 되돌리지 않는다 — 개발 DB 에서만 쓰는 경로다).
 
-Revision ID: 0068_points_coupons
-Revises: 0067_points_ledger
+Revision ID: 0069_points_coupons
+Revises: 0068_health_goal_change
 """
 from __future__ import annotations
 
@@ -25,8 +25,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0068_points_coupons"
-down_revision: str | Sequence[str] | None = "0067_points_ledger"
+revision: str = "0069_points_coupons"
+down_revision: str | Sequence[str] | None = "0068_health_goal_change"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
