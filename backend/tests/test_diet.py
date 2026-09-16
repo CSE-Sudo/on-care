@@ -299,7 +299,10 @@ def test_analyze_offline_saves_and_reflects_macros_in_today(client, db_session):
     assert stored.protein_g == pytest.approx(9.0, abs=0.05)
     assert stored.fat_g == pytest.approx(14.0, abs=0.05)
     stored_foods = json.loads(stored.foods_json)
-    assert all(not {"carbs_g", "protein_g", "fat_g"} & food.keys() for food in stored_foods)
+    # 음식별 탄단지도 같이 저장한다(#1892). 응답에는 담으면서 저장에서 버리면
+    # 다시 읽는 순간 사라져, 수정 화면이 음식마다 0 을 보여 준다.
+    assert all({"carbs_g", "protein_g", "fat_g"} <= food.keys() for food in stored_foods)
+    assert [food["carbs_g"] for food in stored_foods] == [f["carbs_g"] for f in foods]
 
     second = client.post(
         "/v1/diet/analyze",
@@ -325,10 +328,18 @@ def test_analyze_offline_saves_and_reflects_macros_in_today(client, db_session):
         entry["fat_g"] == pytest.approx(14.0, abs=0.05)
         for entry in today_body["entries"]
     )
+    # 하루 조회에도 음식별 탄단지가 함께 온다 — 수정 화면이 이 값을 연다(#1892).
     assert all(
-        not {"carbs_g", "protein_g", "fat_g"} & food.keys()
+        {"carbs_g", "protein_g", "fat_g"} <= food.keys()
         for entry in today_body["entries"]
         for food in entry["foods"]
+    )
+    # 끼니 합계는 그 끼니 음식들의 합이다.
+    assert all(
+        entry["carbs_g"] == pytest.approx(
+            sum(food["carbs_g"] or 0 for food in entry["foods"]), abs=0.05
+        )
+        for entry in today_body["entries"]
     )
     macros = today_body["macros"]
     # 같은 끼니를 두 번 저장했으므로 하루 합계는 한 끼의 두 배다.
@@ -602,7 +613,8 @@ def test_update_entry_changes_nutrition_and_today_totals(client, db_session):
         data={"meal_type": "lunch"},
     ).json()["entry_id"]
 
-    # Legacy per-food macro keys are ignored; meal-level DietEntry macros stay authoritative.
+    # 음식 목록을 보내지 않은 부분 수정은 음식을 건드리지 않는다 — 끼니 합계만
+    # 바뀐다(#1892). 음식별 값과 합계가 갈리는 목록을 일부러 심어 확인한다.
     row = db_session.get(DietEntry, entry_id)
     assert row is not None
     row.foods_json = json.dumps([{
@@ -629,7 +641,8 @@ def test_update_entry_changes_nutrition_and_today_totals(client, db_session):
     assert (r.json()["carbs_g"], r.json()["protein_g"], r.json()["fat_g"]) == (
         25.0, 12.5, 5.0,
     )
-    assert not {"carbs_g", "protein_g", "fat_g"} & r.json()["foods"][0].keys()
+    assert r.json()["foods"][0]["carbs_g"] == 99, "음식을 보내지 않았으니 그대로다"
+    assert r.json()["foods"][0]["name"] == "legacy food"
 
     today = client.get("/v1/diet/days/today").json()
     assert today["total_calories"] == 333
@@ -687,6 +700,123 @@ def _analyzed_entry_id(client) -> str:
         files={"image": ("food.jpg", _JPEG, "image/jpeg")},
         data={"meal_type": "lunch"},
     ).json()["entry_id"]
+
+
+# 회원이 음식마다 고친 영양이 실제로 남는가 (#1892). 이 검사들이 없던 동안
+# `foods` 는 스키마에 자리가 없어 통째로 버려졌고, 응답은 200 이라 앱은 저장에
+# 성공한 줄 알았다. 화면에서 고친 값이 보인 것은 앱이 응답을 로컬에서 덮어썼기
+# 때문이고, 앱을 다시 켜면 옛 음식이 돌아왔다.
+_EDITED_FOODS = [
+    {
+        "name": "회원이 고친 현미밥", "calories": 220, "sodium_mg": 3,
+        "sugar_g": 0.5, "carbs_g": 46.0, "protein_g": 5.0, "fat_g": 1.8,
+    },
+    {
+        "name": "회원이 고친 닭가슴살", "calories": 165, "sodium_mg": 74,
+        "sugar_g": 0.0, "carbs_g": 0.0, "protein_g": 31.0, "fat_g": 3.6,
+    },
+]
+
+
+def test_update_entry_stores_edited_foods(client):
+    """보낸 음식 목록이 저장되고, 다시 읽어도 그대로다."""
+    entry_id = _analyzed_entry_id(client)
+
+    r = client.put(f"/v1/diet/entries/{entry_id}", json={"foods": _EDITED_FOODS})
+    assert r.status_code == 200, r.text
+    assert [f["name"] for f in r.json()["foods"]] == [
+        "회원이 고친 현미밥", "회원이 고친 닭가슴살",
+    ]
+
+    # 다시 읽어도 살아 있어야 한다 — 응답만 맞고 저장이 안 되면 앱을 다시 켤 때
+    # 옛 음식이 돌아온다.
+    entry = next(
+        e for e in client.get("/v1/diet/days/today").json()["entries"]
+        if e["id"] == entry_id
+    )
+    assert [f["name"] for f in entry["foods"]] == [
+        "회원이 고친 현미밥", "회원이 고친 닭가슴살",
+    ]
+
+
+def test_update_entry_keeps_per_food_macros(client):
+    """음식별 탄단지가 저장되고 다시 읽힌다 — 수정 화면이 고칠 값이다(#1856)."""
+    entry_id = _analyzed_entry_id(client)
+
+    client.put(f"/v1/diet/entries/{entry_id}", json={"foods": _EDITED_FOODS})
+
+    entry = next(
+        e for e in client.get("/v1/diet/days/today").json()["entries"]
+        if e["id"] == entry_id
+    )
+    first = entry["foods"][0]
+    assert (first["carbs_g"], first["protein_g"], first["fat_g"]) == (46.0, 5.0, 1.8)
+    assert (first["calories"], first["sodium_mg"], first["sugar_g"]) == (220, 3, 0.5)
+
+
+def test_update_entry_recomputes_totals_from_foods(client):
+    """끼니 합계는 음식에서 다시 낸다 — 합계와 내역이 갈리면 안 된다."""
+    entry_id = _analyzed_entry_id(client)
+
+    body = client.put(
+        f"/v1/diet/entries/{entry_id}", json={"foods": _EDITED_FOODS}
+    ).json()
+
+    assert body["total_calories"] == 385
+    assert body["carbs_g"] == pytest.approx(46.0)
+    assert body["protein_g"] == pytest.approx(36.0)
+    assert body["fat_g"] == pytest.approx(5.4)
+    assert body["sodium_mg"] == 77
+    assert body["sugar_g"] == pytest.approx(0.5)
+
+
+def test_update_entry_prefers_foods_over_sent_totals(client):
+    """음식과 합계가 함께 오면 음식이 이긴다 — 원본은 하나여야 한다."""
+    entry_id = _analyzed_entry_id(client)
+
+    body = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={"foods": _EDITED_FOODS, "total_calories": 1, "sodium_mg": 1, "sugar_g": 0.0},
+    ).json()
+
+    assert body["total_calories"] == 385, "보낸 합계가 아니라 음식에서 낸 값이다"
+    assert body["sodium_mg"] == 77
+
+
+def test_update_entry_rejects_sugar_over_carbs_in_sent_foods(client):
+    """어긋난 음식이 오면 저장된 옛 합계로 통과시키지 않는다(#1863)."""
+    entry_id = _analyzed_entry_id(client)
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={"foods": [dict(_EDITED_FOODS[0], carbs_g=2.0, sugar_g=9.0)]},
+    )
+    assert r.status_code == 422
+    assert "당류" in r.json()["detail"]
+
+
+def test_update_entry_without_foods_keeps_stored_foods(client):
+    """음식을 보내지 않은 부분 수정은 음식 목록을 건드리지 않는다."""
+    entry_id = _analyzed_entry_id(client)
+    before = client.put(
+        f"/v1/diet/entries/{entry_id}", json={"foods": _EDITED_FOODS}
+    ).json()["foods"]
+
+    after = client.put(
+        f"/v1/diet/entries/{entry_id}", json={"meal_type": "dinner"}
+    ).json()
+
+    assert after["meal_type"] == "dinner"
+    assert after["foods"] == before
+
+
+def test_update_entry_rejects_empty_foods(client):
+    """음식이 하나도 없는 끼니는 수정이 아니라 삭제다 — 영양이 소리 없이 0 이 되면 안 된다."""
+    entry_id = _analyzed_entry_id(client)
+
+    assert client.put(
+        f"/v1/diet/entries/{entry_id}", json={"foods": []}
+    ).status_code == 422
 
 
 def test_update_entry_rejects_sugar_over_carbs(client):
