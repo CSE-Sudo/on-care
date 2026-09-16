@@ -277,10 +277,14 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
               maintainSize: true,
               maintainAnimation: true,
               maintainState: true,
-              child: AppIconButton(
+              // 아이콘만으로는 전할 수 없는 기능이라 글자를 함께 쓴다(#1900).
+              // 예전의 심전도 모니터는 심박을 재는 자리로 읽혔다.
+              child: AppButton(
                 key: const Key('aiCoachInsightHistoryButton'),
-                icon: AppIcons.healthCheck,
-                tooltip: l.aicInsightHistoryTitle,
+                label: l.aicInsightHistoryAction,
+                variant: AppButtonVariant.text,
+                size: OnCareButtonSize.small,
+                leadingIcon: AppIcons.note,
                 onPressed: () => _showInsightHistory(context),
               ),
             ),

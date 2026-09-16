@@ -12,6 +12,7 @@ import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/data/repositories/dio_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
+import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -293,6 +294,85 @@ void main() {
     tearDown(() async {
       await db.close();
       dio.close();
+    });
+
+    test('처음 열어도 지난 대화가 있고, 감지 기록이 그 문장을 가리킨다 (#1900)', () async {
+      final chat = await dio.get<Map<String, Object?>>('/ai-coach/messages');
+      final List<Map<String, Object?>> messages =
+          (chat.data!['messages']! as List<Object?>)
+              .cast<Map<String, Object?>>();
+      // 인사말 하나로 시작하던 화면에 지난 대화가 깔린다.
+      expect(messages, isNotEmpty);
+      expect(messages.first['role'], 'user');
+
+      final listed = await dio.get<Map<String, Object?>>('/ai-coach/insights');
+      final List<Map<String, Object?>> rows =
+          (listed.data!['insights']! as List<Object?>)
+              .cast<Map<String, Object?>>();
+      expect(rows, isNotEmpty);
+
+      // 기록의 문장은 전부 대화 안에 회원이 한 말로 있다. 둘을 따로 적어 두면
+      // 기록에만 있는 문장이 생겨 앞뒤가 맞지 않는다.
+      final Set<String> saidByMember = <String>{
+        for (final Map<String, Object?> m in messages)
+          if (m['role'] == 'user') m['content']! as String,
+      };
+      for (final Map<String, Object?> row in rows) {
+        expect(saidByMember, contains(row['text']));
+      }
+
+      // 코치 답변은 감지 대상이 아니다.
+      final Set<String> saidByCoach = <String>{
+        for (final Map<String, Object?> m in messages)
+          if (m['role'] != 'user') m['content']! as String,
+      };
+      for (final Map<String, Object?> row in rows) {
+        expect(saidByCoach, isNot(contains(row['text'])));
+      }
+
+      // 최근 것이 위, 모두 감지 기간 안이다.
+      final List<DateTime> at = <DateTime>[
+        for (final Map<String, Object?> row in rows)
+          DateTime.parse(row['created_at']! as String),
+      ];
+      final DateTime now = nowKst();
+      for (int i = 1; i < at.length; i++) {
+        expect(at[i].isAfter(at[i - 1]), isFalse);
+      }
+      for (final DateTime t in at) {
+        expect(isWithinInsightWindow(t, now), isTrue);
+      }
+    });
+
+    test('보낸 말과 받은 답이 다시 열었을 때 대화에 남는다 (#1900)', () async {
+      final int before =
+          ((await dio.get<Map<String, Object?>>(
+                    '/ai-coach/messages',
+                  )).data!['messages']!
+                  as List<Object?>)
+              .length;
+
+      await dio.post<Map<String, Object?>>(
+        '/ai-coach/chat',
+        data: <String, Object?>{'message': '허리가 뻐근해요', 'history': <Object?>[]},
+      );
+
+      final List<Map<String, Object?>> after =
+          ((await dio.get<Map<String, Object?>>(
+                    '/ai-coach/messages',
+                  )).data!['messages']!
+                  as List<Object?>)
+              .cast<Map<String, Object?>>();
+      // 회원 한 줄 + 코치 한 줄.
+      expect(after.length, before + 2);
+      expect(after[after.length - 2]['content'], '허리가 뻐근해요');
+      expect(after[after.length - 2]['insight'], <String, Object?>{
+        'kind': 'discomfort',
+        'body_part': '허리',
+      });
+      expect(after.last['role'], 'coach');
+      // 코치 답에는 감지가 붙지 않는다.
+      expect(after.last['insight'], isNull);
     });
 
     test('채팅 답에 감지를 싣고, 기록은 30일 안의 감지된 메시지만 최신순이다', () async {
