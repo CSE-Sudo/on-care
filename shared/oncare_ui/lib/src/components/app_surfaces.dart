@@ -59,17 +59,40 @@ class AppCard extends StatelessWidget {
   }
 }
 
-/// 카드 안 구획 — 옅은 브랜드 채움·반경 12·안쪽 12.
+/// [AppTile] 의 채움.
+enum AppTileTone {
+  /// 옅은 브랜드 채움 — 기본값.
+  brand,
+
+  /// 옅은 회색 채움. 입력 칸이 놓인 구획에 쓴다 — 채움이 "여기에 적는다"는
+  /// 신호가 된다.
+  neutral,
+
+  /// 채우지 않는다. 읽기만 하는 줄은 굳이 바탕을 깔 이유가 없다.
+  none,
+}
+
+/// 카드 안 구획 — 반경 12·안쪽 12. 채움은 [tone] 을 따른다.
 class AppTile extends StatelessWidget {
-  const AppTile({super.key, required this.child, this.onTap});
+  const AppTile({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.tone = AppTileTone.brand,
+  });
 
   final Widget child;
   final VoidCallback? onTap;
+  final AppTileTone tone;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: context.oncare.brand.surface,
+      color: switch (tone) {
+        AppTileTone.brand => context.oncare.brand.surface,
+        AppTileTone.neutral => OnCareColors.surfaceInput,
+        AppTileTone.none => Colors.transparent,
+      },
       borderRadius: OnCareRadius.mdAll,
       clipBehavior: Clip.antiAlias,
       child: InkWell(

@@ -132,6 +132,11 @@ void main() {
     expect(text.style!.color, OnCareBrand.member.primary);
     // 두 줄 제한은 그대로다 — 긴 이유가 카드를 밀지 않는다.
     expect(text.maxLines, 2);
+
+    // 배지 안에는 사유만 서있다 — `추천 이유:` 접두어를 떼어내야
+    // 알약이 줄 끝까지 늘어지지 않고 배지로 읽힌다 (#1847).
+    expect(text.data, _kim.reason);
+    expect(find.textContaining('추천 이유:'), findsNothing);
   });
 
   testWidgets('좁은 화면·큰 배율에서도 배지가 화면 안에 있다', (tester) async {

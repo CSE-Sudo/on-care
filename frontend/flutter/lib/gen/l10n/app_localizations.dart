@@ -944,6 +944,12 @@ abstract class AppLocalizations {
   /// **'Delete this meal record?'**
   String get dietDeleteConfirm;
 
+  /// No description provided for @dietDeleteWhenEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No food is left. Delete this meal record?'**
+  String get dietDeleteWhenEmpty;
+
   /// No description provided for @dietCancel.
   ///
   /// In en, this message translates to:
@@ -1025,20 +1031,8 @@ abstract class AppLocalizations {
   /// No description provided for @dietEditNutritionHint.
   ///
   /// In en, this message translates to:
-  /// **'You can edit the analyzed values directly'**
+  /// **'Edit each food\'s nutrition and it adds up here'**
   String get dietEditNutritionHint;
-
-  /// No description provided for @dietSodiumHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended under 2,000mg/day'**
-  String get dietSodiumHint;
-
-  /// No description provided for @dietSugarHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended under 50g/day'**
-  String get dietSugarHint;
 
   /// No description provided for @dietDeleteMeal.
   ///

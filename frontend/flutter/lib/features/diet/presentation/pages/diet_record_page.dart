@@ -94,9 +94,19 @@ DietMeal _mealFromEntry(DietEntry e) {
     photoAsset: e.photoAsset,
     photoUrl: e.photoUrl,
     aiComment: e.aiComment,
+    // 음식별 영양을 하나도 빠짐없이 옮긴다. 수정 화면이 이 값을 그대로 되돌려
+    // 보내야 저장 뒤에도 끼니 합계가 남는다(#1853).
     items: <DietFood>[
       for (final FoodItem f in e.foods)
-        DietFood(f.name, f.calories, sodiumMg: f.sodiumMg, sugarG: f.sugarG),
+        DietFood(
+          f.name,
+          f.calories,
+          sodiumMg: f.sodiumMg,
+          sugarG: f.sugarG,
+          carbsG: f.carbsG,
+          proteinG: f.proteinG,
+          fatG: f.fatG,
+        ),
     ],
     tags: const <DietTag>[],
     sodium: sodium,

@@ -381,50 +381,49 @@ void main() {
 
     for (final AppSegmentedToggleStyle style
         in AppSegmentedToggleStyle.values) {
-      testWidgets(
-        '${style.name}: 웹은 손가락 커서, Tab 포커스와 Enter 로 고른다',
-        (tester) async {
-          final List<String> picked = <String>[];
-          await _pump(
-            tester,
-            Align(
-              alignment: Alignment.topLeft,
-              child: toggle(picked.add, style: style),
+      testWidgets('${style.name}: 웹은 손가락 커서, Tab 포커스와 Enter 로 고른다', (
+        tester,
+      ) async {
+        final List<String> picked = <String>[];
+        await _pump(
+          tester,
+          Align(
+            alignment: Alignment.topLeft,
+            child: toggle(picked.add, style: style),
+          ),
+          brand: OnCareBrand.trainer,
+          density: OnCareDensity.web,
+        );
+        expect(wells(), findsNWidgets(2));
+        // 알약 전체가 누르는 자리다 — 물결 칸이 칸 크기와 같다.
+        expect(
+          tester.getSize(wells().last),
+          tester.getSize(
+            find.ancestor(
+              of: find.text('이번 주'),
+              matching: find.byType(AnimatedContainer),
             ),
-            brand: OnCareBrand.trainer,
-            density: OnCareDensity.web,
-          );
-          expect(wells(), findsNWidgets(2));
-          // 알약 전체가 누르는 자리다 — 물결 칸이 칸 크기와 같다.
-          expect(
-            tester.getSize(wells().last),
-            tester.getSize(
-              find.ancestor(
-                of: find.text('이번 주'),
-                matching: find.byType(AnimatedContainer),
-              ),
-            ),
-          );
+          ),
+        );
 
-          final TestGesture mouse = await tester.createGesture(
-            kind: PointerDeviceKind.mouse,
-            pointer: 1,
-          );
-          addTearDown(mouse.removePointer);
-          await mouse.addPointer(location: tester.getCenter(find.text('이번 주')));
-          await tester.pump();
-          expect(
-            RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
-            SystemMouseCursors.click,
-          );
+        final TestGesture mouse = await tester.createGesture(
+          kind: PointerDeviceKind.mouse,
+          pointer: 1,
+        );
+        addTearDown(mouse.removePointer);
+        await mouse.addPointer(location: tester.getCenter(find.text('이번 주')));
+        await tester.pump();
+        expect(
+          RendererBinding.instance.mouseTracker.debugDeviceActiveCursor(1),
+          SystemMouseCursors.click,
+        );
 
-          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-          await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-          await tester.pump();
-          expect(picked, <String>['week']);
-        },
-      );
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+        await tester.pump();
+        expect(picked, <String>['week']);
+      });
     }
 
     testWidgets('웹 누름·올림 효과는 브랜드색이다', (tester) async {
@@ -436,8 +435,14 @@ void main() {
         density: OnCareDensity.web,
       );
       final InkWell well = tester.widget<InkWell>(wells().first);
-      expect(well.splashColor, brand.primary.withValues(alpha: OnCareAlpha.medium));
-      expect(well.hoverColor, brand.primary.withValues(alpha: OnCareAlpha.subtle));
+      expect(
+        well.splashColor,
+        brand.primary.withValues(alpha: OnCareAlpha.medium),
+      );
+      expect(
+        well.hoverColor,
+        brand.primary.withValues(alpha: OnCareAlpha.subtle),
+      );
       expect(well.highlightColor!.a, 0);
     });
 
@@ -559,5 +564,49 @@ void main() {
 
     expect(look('on'), (OnCareColors.surfaceCard, OnCareColors.textPrimary));
     expect(look('off'), (OnCareColors.surfaceInput, OnCareColors.textDisabled));
+  });
+
+  testWidgets('여러 줄 입력창은 트레이너웹에서만 회색 채움이다(#1836)', (tester) async {
+    Color fill(String key) {
+      final Finder field = find.byKey(ValueKey<String>(key));
+      final InputDecoration decoration = tester
+          .widget<InputDecorator>(
+            find.descendant(of: field, matching: find.byType(InputDecorator)),
+          )
+          .decoration;
+      return WidgetStateProperty.resolveAs<Color>(
+        decoration.fillColor!,
+        <WidgetState>{if (!decoration.enabled) WidgetState.disabled},
+      );
+    }
+
+    const Widget fields = Column(
+      children: <Widget>[
+        AppTextField(key: ValueKey<String>('one'), hint: '입력'),
+        AppTextField(key: ValueKey<String>('area'), hint: '메모', maxLines: 3),
+        AppTextField(
+          key: ValueKey<String>('area-off'),
+          hint: '메모',
+          maxLines: 3,
+          enabled: false,
+        ),
+      ],
+    );
+
+    await _pump(
+      tester,
+      fields,
+      brand: OnCareBrand.trainer,
+      density: OnCareDensity.web,
+    );
+    // 한 줄 칸은 #1776 대로 흰 채움이고, 장문 칸만 회색으로 돌아온다.
+    expect(fill('one'), OnCareColors.surfaceCard);
+    expect(fill('area'), OnCareColors.surfaceInput);
+    // 비활성 장문 칸도 같은 회색이다 — 활성과는 테두리·글자색으로 갈린다.
+    expect(fill('area-off'), OnCareColors.surfaceInput);
+
+    await _pump(tester, fields);
+    // 회원앱(모바일)은 장문 칸도 흰 채움 그대로다.
+    expect(fill('area'), OnCareColors.surfaceCard);
   });
 }

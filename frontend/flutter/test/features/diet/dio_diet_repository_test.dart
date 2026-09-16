@@ -47,6 +47,40 @@ void main() {
     expect(day.entries.single.id, 'diet-edit');
   });
 
+  test('수정해도 사진과 코멘트는 그대로 남는다', () async {
+    // 수정 결과는 로컬 오버라이드가 되어 원본 항목을 통째로 갈아 끼운다.
+    // 여기서 사진을 빠뜨리면 이름만 고쳐도 끼니 카드가 이모지로 떨어진다.
+    final Dio photoDio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    addTearDown(photoDio.close);
+    photoDio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
+          handler.resolve(
+            Response<Map<String, Object?>>(
+              requestOptions: options,
+              statusCode: 200,
+              data: <String, Object?>{
+                ..._staleResponse,
+                'photo_url': '/diet/photos/photo-1',
+                'photo_asset': 'assets/images/breakfast.jpg',
+                'ai_comment': '단백질이 넉넉해요',
+              },
+            ),
+          );
+        },
+      ),
+    );
+
+    final DietEntry updated = await DioDietRepository(photoDio).updateEntry(
+      id: 'diet-edit',
+      foods: const <FoodItem>[FoodItem(name: '고친 이름', calories: 100)],
+    );
+
+    expect(updated.photoUrl, '/diet/photos/photo-1');
+    expect(updated.photoAsset, 'assets/images/breakfast.jpg');
+    expect(updated.aiComment, '단백질이 넉넉해요');
+  });
+
   test(
     'edited foods determine override macros when response is stale',
     () async {
