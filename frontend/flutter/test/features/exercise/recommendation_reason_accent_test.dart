@@ -110,7 +110,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('헬스장 찾기 카드의 추천 이유가 접두어 없는 알약 배지다', (tester) async {
+  testWidgets('헬스장 찾기 카드의 추천 이유 배지가 파란 윤곽선·글씨다', (tester) async {
     await pumpAt(tester, AppRoutes.exerciseGym);
 
     final Finder badge = find.byKey(
@@ -118,28 +118,25 @@ void main() {
     );
     expect(badge, findsOneWidget);
 
-    // 공용 태그를 그대로 쓴다 — 같은 모양을 또 만들지 않는다 (#1847).
-    final AppTag tag = tester.widget<AppTag>(badge);
-    expect(tag.tone, AppTagTone.brand);
-    // `추천 이유:` 라벨은 모양이 대신한다 — 사유만 적는다.
-    expect(tag.label, _kim.reason);
-    expect(find.textContaining('추천 이유:'), findsNothing);
+    final BoxDecoration decoration =
+        tester.widget<Container>(badge).decoration! as BoxDecoration;
+    expect(decoration.border, isNotNull, reason: '파란 윤곽선으로 강조한다');
+    expect((decoration.border! as Border).top.color, OnCareBrand.member.border);
+    // 줄 자체가 옅은 파랑이라 배지 배경은 흰색 그대로다 — 같은 색이면 배지가
+    // 사라진다.
+    expect(decoration.color, OnCareColors.surfaceCard);
 
-    // 글자는 여전히 브랜드 파랑이다 — 옆의 일반 설명과 위계가 같아지지 않게
-    // 한다(#1445).
     final Text text = tester.widget<Text>(
       find.descendant(of: badge, matching: find.byType(Text)),
     );
     expect(text.style!.color, OnCareBrand.member.primary);
+    // 두 줄 제한은 그대로다 — 긴 이유가 카드를 밀지 않는다.
+    expect(text.maxLines, 2);
 
-    // 알약 모양이다.
-    final Container box = tester.widget<Container>(
-      find.descendant(of: badge, matching: find.byType(Container)),
-    );
-    expect(
-      (box.decoration! as BoxDecoration).borderRadius,
-      OnCareRadius.pillAll,
-    );
+    // 배지 안에는 사유만 서있다 — `추천 이유:` 접두어를 떼어내야
+    // 알약이 줄 끝까지 늘어지지 않고 배지로 읽힌다 (#1847).
+    expect(text.data, _kim.reason);
+    expect(find.textContaining('추천 이유:'), findsNothing);
   });
 
   testWidgets('좁은 화면·큰 배율에서도 배지가 화면 안에 있다', (tester) async {

@@ -176,8 +176,9 @@ void main() {
       expect(find.byKey(const Key('gym-trainer-trainer-park')), findsOneWidget);
       expect(find.text('퍼스널 트레이너'), findsOneWidget);
       expect(find.text('재활 트레이너'), findsOneWidget);
-      // 추천 이유는 접두어 없이 배지로만 적는다 (#1847).
+      // 사유만 적는다 — `추천 이유:` 접두어는 붙지 않는다 (#1847).
       expect(find.text('혈압 관리와 운동 병행 지도'), findsOneWidget);
+      expect(find.textContaining('추천 이유:'), findsNothing);
       // 아직 아무와도 연결되지 않았다 — 배지는 뜨지 않는다.
       expect(find.text('연결됨'), findsNothing);
     });
