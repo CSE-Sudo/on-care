@@ -515,6 +515,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietEditNutritionHint => '음식별 영양을 고치면 여기에 합쳐져요';
 
   @override
+  String get dietSugarOverCarbs => '당류는 탄수화물보다 클 수 없어요';
+
+  @override
   String get dietDeleteMeal => '식단 삭제';
 
   @override

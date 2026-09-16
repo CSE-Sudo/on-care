@@ -1034,6 +1034,12 @@ abstract class AppLocalizations {
   /// **'Edit each food\'s nutrition and it adds up here'**
   String get dietEditNutritionHint;
 
+  /// No description provided for @dietSugarOverCarbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar can\'t be more than carbs'**
+  String get dietSugarOverCarbs;
+
   /// No description provided for @dietDeleteMeal.
   ///
   /// In en, this message translates to:
