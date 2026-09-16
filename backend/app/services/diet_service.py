@@ -28,14 +28,31 @@ from app.services.coach.personal_ingest import record_diet, refresh_diet
 
 logger = logging.getLogger(__name__)
 
-# 끼니 macros/nutrient 는 DietEntry 를 단일 원본으로 삼는다. 저장 시 유지하는 음식 필드.
+# foods_json 에 남기는 음식 필드. 음식별 탄단지도 여기 들어간다(#1892) — 인식기와
+# 공공 DB 가 음식마다 내는 값이고(`nutrition/enrich.py`), 회원이 수정 모드에서 고치는
+# 값도 이것이다(#1856). 버리면 끼니 합계만 남아 수정 화면이 음식마다 0 을 보여 주고,
+# 회원이 고친 음식별 값도 저장되지 않는다.
 #
-# `amount_g` 는 나머지 영양의 **기준점**이라 함께 남긴다(#1876). 공공 DB 값은 100g
-# 기준이고 보정(`nutrition/enrich`)이 이 양으로 환산하므로, 양을 버리면 "그 숫자가
-# 무엇을 재고 나온 값인가" 가 사라진다. 그러면 회원이 양을 고쳐도 영양을 다시 셀
-# 근거가 없다 — 비례 환산에 필요한 건 DB 재조회가 아니라 이 한 값이다.
-# 없을 수 있다(양을 못 얻은 인식·이 필드 이전 기록) — 읽는 쪽이 null 을 견딘다.
-_FOOD_STORAGE_FIELDS = ("name", "amount_g", "calories", "sodium_mg", "sugar_g", "source")
+# `amount_g` 도 함께 남긴다(#1876). 나머지 영양의 **기준점**이라서다 — 공공 DB 값은
+# 100g 기준이고 보정(`nutrition/enrich`)이 이 양으로 환산하므로, 양을 버리면 "그
+# 숫자가 무엇을 재고 나온 값인가" 가 사라져 회원이 양을 고쳐도 다시 셀 근거가 없다.
+# 비례 환산에 필요한 건 DB 재조회가 아니라 이 한 값이다. 없을 수 있다(양을 못 얻은
+# 인식·이 필드 이전 기록) — 읽는 쪽이 null 을 견딘다.
+_FOOD_STORAGE_FIELDS = (
+    "name", "amount_g", "calories", "sodium_mg", "sugar_g",
+    "carbs_g", "protein_g", "fat_g", "source",
+)
+# 음식에서 끼니 합계를 낼 때 쓰는 짝: 합계 컬럼 ← 음식 필드.
+_TOTAL_FROM_FOOD = {
+    "total_calories": "calories",
+    "carbs_g": "carbs_g",
+    "protein_g": "protein_g",
+    "fat_g": "fat_g",
+    "sodium_mg": "sodium_mg",
+    "sugar_g": "sugar_g",
+}
+# 정수로 저장하는 합계 — 나머지는 소수다(#296).
+_INTEGER_TOTALS = frozenset({"total_calories", "sodium_mg"})
 # DASH 권고 나트륨 상한(고혈압 특화 코칭 기준).
 DASH_SODIUM_LIMIT_MG = 2000
 
@@ -45,12 +62,38 @@ def today_str() -> str:
 
 
 def load_foods(foods_json: str) -> list[dict]:
-    """저장된 foods_json → 표시용 음식 목록. 레거시 per-food macro 키는 무시."""
+    """저장된 foods_json → 표시용 음식 목록. 저장 대상 밖의 키는 버린다."""
     foods = json.loads(foods_json) if foods_json else []
     return [
         {field: food[field] for field in _FOOD_STORAGE_FIELDS if field in food}
         for food in foods
     ]
+
+
+def store_foods(foods: list[RecognizedFood]) -> list[dict]:
+    """RecognizedFood → foods_json 에 넣을 표현.
+
+    사진 분석 저장과 회원의 수정이 **같은 표현**을 써야 한다. 한쪽만 필드를
+    더하면 고친 뒤에 화면이 달라진다.
+    """
+    return [
+        {field: getattr(food, field) for field in _FOOD_STORAGE_FIELDS}
+        for food in foods
+    ]
+
+
+def totals_from_foods(foods: list[RecognizedFood]) -> dict[str, float | int]:
+    """음식 목록 → 끼니 합계. 적히지 않은 값(None)은 0 으로 센다.
+
+    끼니 합계는 음식별 값의 합이다 — 앱도 같은 규칙으로 화면에 더한다(#1853).
+    음식이 오면 이 값이 함께 온 합계보다 우선한다: 원본을 하나로 두지 않으면
+    음식을 고칠 때마다 합계와 내역이 갈린다.
+    """
+    totals: dict[str, float | int] = {}
+    for column, field in _TOTAL_FROM_FOOD.items():
+        total = sum(float(getattr(food, field) or 0) for food in foods)
+        totals[column] = int(round(total)) if column in _INTEGER_TOTALS else total
+    return totals
 
 
 def entry_to_analysis(entry: DietEntry) -> DietAnalysis:
@@ -339,13 +382,7 @@ def save_analyzed_entry(
     동시 재시도가 유니크 제약(user_id, idempotency_key)에 걸리면 이미 저장된 엔트리를
     반환한다(is_new=False, 중복 저장·재적재 방지). 신규 저장 시 개인 RAG 문서로도 적재.
     """
-    # 저장 형태는 [_FOOD_STORAGE_FIELDS] 하나로 정한다. 여기에 목록을 한 번 더
-    # 손으로 적으면 필드를 늘릴 때 한쪽만 고쳐져, 저장은 되는데 읽을 때 걸러지는
-    # (또는 그 반대) 값이 생긴다 — `amount_g` 를 더하며 실제로 겪은 갈래다.
-    foods_for_storage = [
-        {field: getattr(f, field) for field in _FOOD_STORAGE_FIELDS}
-        for f in analysis.foods
-    ]
+    foods_for_storage = store_foods(analysis.foods)
     # 날짜와 시각은 같은 시계 스냅샷에서 뽑는다. 따로 읽으면 KST 자정 사이에
     # date 는 어제, time_label 은 오늘이 되어 한 행 안에서 어긋난다.
     recorded_at = clock.now()
@@ -416,8 +453,21 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
     # 없다" 와 "아직 안 적혔다" 를 구분할 수 없는데, 당류만 있고 탄수화물이 0 인
     # 기록은 거의 언제나 후자다(인식기가 그 값을 못 준 경우). 여기서 막으면
     # 탄수화물을 건드리지 않는 정상적인 부분 수정까지 거절된다.
-    merged_carbs = payload.carbs_g if payload.carbs_g is not None else entry.carbs_g
-    merged_sugar = payload.sugar_g if payload.sugar_g is not None else entry.sugar_g
+    #
+    # 음식 목록이 함께 오면 합계는 그 목록에서 다시 낸다(#1892). 견주는 값도
+    # 저장된 합계가 아니라 이 값이어야 한다 — 아니면 방금 보낸 음식이 어긋나
+    # 있어도 옛 합계로 통과한다.
+    totals = totals_from_foods(payload.foods) if payload.foods is not None else None
+    merged_carbs = (
+        totals["carbs_g"] if totals is not None
+        else payload.carbs_g if payload.carbs_g is not None
+        else entry.carbs_g
+    )
+    merged_sugar = (
+        totals["sugar_g"] if totals is not None
+        else payload.sugar_g if payload.sugar_g is not None
+        else entry.sugar_g
+    )
     if (
         merged_carbs is not None
         and merged_carbs > 0
@@ -436,8 +486,13 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
         entry.meal_type = payload.meal_type
     if payload.time_label is not None:
         entry.time_label = payload.time_label
+    # 회원이 음식 하나하나를 고친 결과다(#1856). 이 자리에서 갈아 끼우지 않으면
+    # 끼니 합계만 바뀌고 음식 내역은 옛것으로 남아, 한 기록 안에서 합계와
+    # 내역이 어긋난다(#1892).
+    if payload.foods is not None:
+        entry.foods_json = json.dumps(store_foods(payload.foods), ensure_ascii=False)
     for field in ("total_calories", "carbs_g", "protein_g", "fat_g", "sodium_mg", "sugar_g"):
-        value = getattr(payload, field)
+        value = totals[field] if totals is not None else getattr(payload, field)
         if value is not None:
             setattr(entry, field, value)
     db.commit()

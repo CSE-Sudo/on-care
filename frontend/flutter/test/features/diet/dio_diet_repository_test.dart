@@ -12,21 +12,24 @@ void main() {
   late Dio dio;
   late DioDietRepository repository;
   late List<String> requestedPaths;
+  late List<Object?> sentBodies;
 
   setUp(() {
     requestedPaths = <String>[];
+    sentBodies = <Object?>[];
     dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
           requestedPaths.add(options.path);
+          sentBodies.add(options.data);
           handler.resolve(
             Response<Map<String, Object?>>(
               requestOptions: options,
               statusCode: 200,
               data: options.path.startsWith('/diet/days/')
-                  ? _staleDayResponse
-                  : _staleResponse,
+                  ? _serverDayResponse
+                  : _serverResponse,
             ),
           );
         },
@@ -48,8 +51,8 @@ void main() {
   });
 
   test('수정해도 사진과 코멘트는 그대로 남는다', () async {
-    // 수정 결과는 로컬 오버라이드가 되어 원본 항목을 통째로 갈아 끼운다.
-    // 여기서 사진을 빠뜨리면 이름만 고쳐도 끼니 카드가 이모지로 떨어진다.
+    // 수정은 끼니 내용만 바꾼다 — 사진과 코멘트는 서버가 그대로 돌려준다.
+    // 여기서 빠지면 이름만 고쳐도 끼니 카드가 이모지로 떨어진다(#1871).
     final Dio photoDio = Dio(BaseOptions(baseUrl: 'https://example.test'));
     addTearDown(photoDio.close);
     photoDio.interceptors.add(
@@ -60,7 +63,7 @@ void main() {
               requestOptions: options,
               statusCode: 200,
               data: <String, Object?>{
-                ..._staleResponse,
+                ..._serverResponse,
                 'photo_url': '/diet/photos/photo-1',
                 'photo_asset': 'assets/images/breakfast.jpg',
                 'ai_comment': '단백질이 넉넉해요',
@@ -81,6 +84,64 @@ void main() {
     expect(updated.aiComment, '단백질이 넉넉해요');
   });
 
+  // 서버가 보낸 음식을 저장하고 끼니 합계도 그 음식에서 다시 낸다(#1892).
+  // 그래서 앱은 응답을 그대로 쓴다 — 예전에는 서버가 `foods` 를 버리면서도
+  // 200 을 줘서, 앱이 보낸 값으로 응답을 덮어쓰고 있었다.
+  test('수정 응답을 그대로 쓴다 — 앱이 보낸 값으로 덮어쓰지 않는다', () async {
+    const editedFoods = <FoodItem>[
+      FoodItem(name: '현미밥', calories: 220, carbsG: 46, proteinG: 5, fatG: 1.8),
+      FoodItem(name: '닭가슴살', calories: 165, proteinG: 31, fatG: 3.6),
+    ];
+
+    final updated = await repository.updateEntry(
+      id: 'diet-edit',
+      foods: editedFoods,
+      totalCalories: 385,
+      sodiumMg: 79,
+      sugarG: 2.5,
+    );
+
+    // 서버가 돌려준 값이다. 보낸 값을 그대로 되비추면 저장이 안 돼도 성공한
+    // 것처럼 보인다 — 그게 이 우회가 감추고 있던 것이다.
+    expect(updated.foods.single.name, '기존 음식');
+    expect(updated.carbsG, 90);
+    expect(updated.proteinG, 8);
+    expect(updated.fatG, 7);
+    expect(updated.sodiumMg, 100);
+    expect(updated.sugarG, 1);
+  });
+
+  test('수정한 음식은 요청 본문에 실려 나간다', () async {
+    const editedFoods = <FoodItem>[
+      FoodItem(
+        name: '현미밥',
+        calories: 220,
+        sodiumMg: 3,
+        sugarG: 0.5,
+        carbsG: 46,
+        proteinG: 5,
+        fatG: 1.8,
+      ),
+    ];
+
+    await repository.updateEntry(id: 'diet-edit', foods: editedFoods);
+
+    final Map<String, Object?> body = sentBodies.single as Map<String, Object?>;
+    final List<Object?> foods = body['foods']! as List<Object?>;
+    expect(foods.single, <String, Object?>{
+      'name': '현미밥',
+      // 섭취량을 모르는 음식은 null 로 나간다 — 0 으로 지어내면 "0g 먹었다" 가
+      // 되어 서버가 그 값을 기준 삼는다(#1876).
+      'amount_g': null,
+      'calories': 220,
+      'sodium_mg': 3,
+      'sugar_g': 0.5,
+      'carbs_g': 46.0,
+      'protein_g': 5.0,
+      'fat_g': 1.8,
+    });
+  });
+
   test('섭취량은 저장 요청에 실리고 응답에서 다시 읽힌다', () async {
     // 섭취량은 나머지 여섯 값의 기준이다. 요청에서 빠지면 다음에 이 끼니를
     // 열었을 때 양을 모르는 기록이 되어, 양으로 영양을 움직이는 길이 저장
@@ -97,7 +158,7 @@ void main() {
               requestOptions: options,
               statusCode: 200,
               data: <String, Object?>{
-                ..._staleResponse,
+                ..._serverResponse,
                 'foods': <Object?>[
                   <String, Object?>{
                     'name': '현미밥',
@@ -125,15 +186,23 @@ void main() {
     final List<Object?> sentFoods = sentBody['foods']! as List<Object?>;
     expect((sentFoods.first as Map<String, Object?>)['amount_g'], 210);
     expect((sentFoods.last as Map<String, Object?>)['amount_g'], isNull);
-    // 응답도 같은 값을 돌려준다 — 서버가 실은 값을 앱이 읽을 수 있어야 한다.
+    // 서버가 실은 값을 앱이 되읽을 수 있어야 한다.
     expect(updated.foods.first.amountG, 210);
     expect(updated.foods.last.amountG, isNull, reason: '없는 양을 0 으로 지어내지 않는다');
   });
 
-  test(
-    'edited foods determine override macros when response is stale',
-    () async {
-      const editedFoods = <FoodItem>[
+  test('음식을 보내지 않으면 요청에 foods 가 실리지 않는다', () async {
+    await repository.updateEntry(id: 'diet-edit', mealType: 'dinner');
+
+    final Map<String, Object?> body = sentBodies.single as Map<String, Object?>;
+    expect(body.containsKey('foods'), isFalse);
+    expect(body['meal_type'], 'dinner');
+  });
+
+  test('하루 조회도 서버가 준 합계를 그대로 쓴다', () async {
+    await repository.updateEntry(
+      id: 'diet-edit',
+      foods: const <FoodItem>[
         FoodItem(
           name: '현미밥',
           calories: 220,
@@ -141,95 +210,17 @@ void main() {
           proteinG: 5,
           fatG: 1.8,
         ),
-        FoodItem(name: '닭가슴살', calories: 165, proteinG: 31, fatG: 3.6),
-      ];
-
-      final updated = await repository.updateEntry(
-        id: 'diet-edit',
-        foods: editedFoods,
-        totalCalories: 385,
-        sodiumMg: 79,
-        sugarG: 2.5,
-      );
-
-      expect(updated.foods, same(editedFoods));
-      expect(updated.carbsG, 46);
-      expect(updated.proteinG, 36);
-      expect(updated.fatG, closeTo(5.4, 0.001));
-      expect(updated.carbsG, isNot(_staleResponse['carbs_g']));
-      expect(updated.proteinG, isNot(_staleResponse['protein_g']));
-      expect(updated.fatG, isNot(_staleResponse['fat_g']));
-      expect(updated.sodiumMg, 79);
-      expect(updated.sugarG, 2.5);
-    },
-  );
-
-  test('fetchToday derives day macros from overridden entries', () async {
-    const editedFoods = <FoodItem>[
-      FoodItem(name: '현미밥', calories: 220, carbsG: 46, proteinG: 5, fatG: 1.8),
-      FoodItem(name: '닭가슴살', calories: 165, proteinG: 31, fatG: 3.6),
-    ];
-    await repository.updateEntry(
-      id: 'diet-edit',
-      foods: editedFoods,
-      totalCalories: 385,
-      sodiumMg: 79,
-      sugarG: 2.5,
+      ],
+      totalCalories: 220,
     );
 
     final DietDay day = await repository.fetchToday();
 
-    expect(day.entries.single.foods, same(editedFoods));
-    expect(day.macros.carbsG, 46);
-    expect(day.macros.proteinG, 36);
-    expect(day.macros.fatG, closeTo(5.4, 0.001));
-    expect(
-      <int>[day.macros.carbsPct, day.macros.proteinPct, day.macros.fatPct],
-      <int>[49, 38, 13],
-    );
-    expect(
-      day.macros.carbsPct + day.macros.proteinPct + day.macros.fatPct,
-      100,
-    );
+    expect(day.macros.carbsG, 90, reason: '앱이 기억한 값이 아니라 응답의 값이다');
+    expect(day.macros.proteinG, 8);
+    expect(day.macros.fatG, 7);
+    expect(day.entries.single.foods.single.name, '기존 음식');
   });
-
-  test('zero override macros return safe zero percentages', () async {
-    await repository.updateEntry(
-      id: 'diet-edit',
-      foods: const <FoodItem>[FoodItem(name: '물', calories: 0)],
-      totalCalories: 0,
-      sodiumMg: 0,
-      sugarG: 0,
-    );
-
-    final DietMacros macros = (await repository.fetchToday()).macros;
-
-    expect(macros.carbsG, 0);
-    expect(macros.proteinG, 0);
-    expect(macros.fatG, 0);
-    expect(macros.carbsPct, 0);
-    expect(macros.proteinPct, 0);
-    expect(macros.fatPct, 0);
-  });
-
-  test(
-    'update without foods keeps returned macros and local nutrition',
-    () async {
-      final updated = await repository.updateEntry(
-        id: 'diet-edit',
-        mealType: 'dinner',
-        sodiumMg: 444,
-        sugarG: 5.5,
-      );
-
-      expect(updated.foods.single.name, '기존 음식');
-      expect(updated.carbsG, 90);
-      expect(updated.proteinG, 8);
-      expect(updated.fatG, 7);
-      expect(updated.sodiumMg, 444);
-      expect(updated.sugarG, 5.5);
-    },
-  );
 
   group('analyze uploads a part that matches the picked photo', () {
     late Dio uploadDio;
@@ -349,7 +340,8 @@ void main() {
   });
 }
 
-const Map<String, Object?> _staleResponse = <String, Object?>{
+/// 서버가 돌려주는 끼니 하나. 앱은 이 값을 그대로 쓴다(#1892).
+const Map<String, Object?> _serverResponse = <String, Object?>{
   'id': 'diet-edit',
   'meal_type': 'lunch',
   'time_label': '12:00',
@@ -372,8 +364,8 @@ const Map<String, Object?> _staleResponse = <String, Object?>{
   'fat_g': 7,
 };
 
-const Map<String, Object?> _staleDayResponse = <String, Object?>{
-  'entries': <Object?>[_staleResponse],
+const Map<String, Object?> _serverDayResponse = <String, Object?>{
+  'entries': <Object?>[_serverResponse],
   'total_calories': 100,
   'total_sodium_mg': 100,
   'total_sugar_g': 1,

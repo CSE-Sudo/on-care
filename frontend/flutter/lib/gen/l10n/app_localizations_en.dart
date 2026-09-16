@@ -850,6 +850,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exOwnRecordSource => 'Self-logged';
 
   @override
+  String get exCompletedPtDayTitle => 'Completed PT';
+
+  @override
+  String get exCompletedRoutineDayTitle => 'Completed solo workout';
+
+  @override
+  String exPtDayFeedback(String coachName) {
+    return '$coachName · Feedback';
+  }
+
+  @override
   String get exDeleteExercise => 'Delete workout';
 
   @override
