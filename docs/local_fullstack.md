@@ -74,19 +74,26 @@ USB 로 PC 에 연결하면 폰에 `USB 디버깅을 허용하시겠습니까?` 
 flutter devices
 ```
 
-`SM-S911N (mobile) • RFCT80XXXXX • android-arm64 • Android 15 (API 35)` 처럼 나오면 됩니다.
+`SM F731N (mobile) • R3CW802RRJW • android-arm64 • Android 16 (API 36)` 처럼 나오면 됩니다
+(Z Flip 5 에서 확인한 실제 출력). 가운데가 기기 시리얼이고, 아래에서 `-d` 에 줄 값입니다.
 안 나오면 폰의 USB 연결 모드를 `충전만` 이 아닌 **파일 전송(MTP)** 으로 바꿔 보세요.
+`USB 테더링` 과 헷갈리기 쉽지만 그건 폰의 데이터를 PC 에 빌려주는 기능이라 상관없습니다 —
+필요한 것은 개발자 옵션 안의 **USB 디버깅** 입니다.
 
 **3. 실행**
 
 ```bash
 cd frontend/flutter
-flutter run -d RFCT80XXXXX
+flutter run -d R3CW802RRJW
 ```
 
-`USE_MOCK_API` 기본값이 `true` 라 **백엔드 없이도 돕니다.** 권한 다이얼로그·촬영·사진 선택·
-끼니 카드 표시까지는 목 데이터로 확인됩니다. 인증·multipart 전송·`diet_entries` 실제 저장을
-보려면 아래 4단계가 필요합니다. 핫 리로드는 웹과 똑같이 됩니다.
+`USE_MOCK_API` 기본값이 `true` 라 **백엔드 없이도 돕니다.** 촬영·사진 선택·취소 처리·끼니 카드
+표시까지는 목 데이터로 확인됩니다. 인증·multipart 전송·`diet_entries` 실제 저장을 보려면 아래
+4단계가 필요합니다. 핫 리로드는 웹과 똑같이 됩니다.
+
+> **폰 화면이 꺼지면 `flutter run` 세션이 끊깁니다**(`Lost connection to device`). 앱 프로세스는
+> 살아 있으니 빌드가 실패한 것이 아니고, 화면을 켜고 다시 붙으면 됩니다. 매번 끊기는 것이
+> 불편하면 개발자 옵션의 **충전 중 화면 켜짐 유지** 를 켜 두세요.
 
 **4. 실 API 를 붙일 때**
 
@@ -95,7 +102,7 @@ flutter run -d RFCT80XXXXX
 ```bash
 ipconfig | grep IPv4              # 예: 192.168.0.12
 cd frontend/flutter
-flutter run -d RFCT80XXXXX \
+flutter run -d R3CW802RRJW \
   --dart-define=USE_MOCK_API=false \
   --dart-define=API_BASE_URL=http://192.168.0.12:8000/v1
 ```
@@ -129,6 +136,11 @@ flutter build apk --debug
 선택은 시스템 사진 선택기(Android 13+)나 `ACTION_GET_CONTENT` 로 열리고, 촬영은
 `ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 `INTERNET` 만
 있습니다.
+
+**그래서 Android 13 이상에서는 권한 다이얼로그가 아예 뜨지 않습니다.** 안 뜨는 것이 정상이고
+앱이 깨진 것이 아닙니다. 확인할 것은 다이얼로그가 아니라 **취소했을 때 시트로 조용히
+돌아오는지**와 **고른 사진이 끼니 카드에 그대로 보이는지** 입니다. 권한 거부 경로
+(`camera_access_denied` 등)는 안드로이드에서 정상 사용으로 띄울 수 없어 iOS 전용으로 남습니다.
 
 > `CAMERA` 를 매니페스트에 넣으면 **오히려 한 단계가 늘어납니다.** `image_picker` 는
 > 매니페스트에 `CAMERA` 가 있으면 — 쓰지 않더라도 — 촬영 전에 런타임 권한을 요구하도록
