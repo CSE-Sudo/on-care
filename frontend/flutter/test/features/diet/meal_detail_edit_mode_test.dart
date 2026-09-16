@@ -360,18 +360,58 @@ void main() {
       expect((await _savedFirstFood(tester, repo)).sugarG, 2);
     });
 
-    testWidgets('탄수화물이 0 이면 막지 않는다 — 서버와 같은 판단', (WidgetTester tester) async {
+    testWidgets('탄수화물을 지워 검사를 피할 수는 없다', (WidgetTester tester) async {
       final FakeDietRepository repo = FakeDietRepository();
       await _openDetail(tester, repo);
 
       await tester.tap(_editButton);
       await tester.pumpAndSettle();
-      // 탄수화물 없이 저장된 옛 기록이 있다. 앱만 막으면 서버가 받아 주는
-      // 기록을 고칠 길이 없다(#1877).
+      // 이 끼니에는 탄수화물이 적혀 있었다(스크램블 에그 2 + 딸기 8). 그것을
+      // 방금 지운 0 은 "아직 안 적혔다" 가 아니라 회원이 적은 값이다(#1893).
       await tester.enterText(_firstFoodCarbs, '');
       await tester.enterText(_foodSugar(1), '9');
       await tester.pumpAndSettle();
 
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(_sugarError(1), findsOneWidget);
+      expect(
+        (await _savedFirstFood(tester, repo)).sugarG,
+        0.8,
+        reason: '요청이 나가지 않았으므로 저장된 값은 그대로다',
+      );
+    });
+
+    testWidgets('탄수화물이 처음부터 없던 끼니는 당류만 고쳐도 막지 않는다', (
+      WidgetTester tester,
+    ) async {
+      final FakeDietRepository repo = FakeDietRepository();
+      await _openDetail(tester, repo);
+
+      // 인식기가 탄수화물을 못 준 옛 기록과 같은 상태를 화면에서 만든다 —
+      // 두 음식의 탄수화물과 당류를 함께 비우고 저장한다.
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      for (final Finder field in <Finder>[
+        _firstFoodCarbs,
+        _foodSugar(1),
+        find.byKey(const ValueKey<String>('diet-food-carbs-2')),
+        _foodSugar(2),
+      ]) {
+        await tester.enterText(field, '');
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+      expect(_sugarError(1), findsNothing, reason: '당류도 함께 비웠으니 어긋나지 않는다');
+
+      // 이제 저장된 끼니에 탄수화물이 없다. 여기서 당류만 적는 것은 막히면
+      // 안 된다 — 막으면 그 기록을 영영 고칠 수 없다(#1877).
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      await tester.enterText(_foodSugar(1), '9');
+      await tester.pumpAndSettle();
       await tester.tap(find.text('저장'));
       await tester.pumpAndSettle();
 
