@@ -24,13 +24,28 @@ import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// A single logged food item, with the per-food nutrition shown on the meal
-/// card ([sodiumMg] / [sugarG] default to 0 for draft rows in the edit sheet).
+/// card (all nutrition defaults to 0 for draft rows in the edit sheet).
+///
+/// 끼니 단위 탄단지는 이 값들의 합계로 만들어진다(`local_api_interceptor` 의
+/// `_sumMacro`). 그래서 수정 화면이 이 필드를 하나라도 흘리면 저장한 순간
+/// 그 끼니의 영양 정보가 통째로 0 이 된다(#1853).
 class DietFood {
-  const DietFood(this.name, this.kcal, {this.sodiumMg = 0, this.sugarG = 0});
+  const DietFood(
+    this.name,
+    this.kcal, {
+    this.sodiumMg = 0,
+    this.sugarG = 0,
+    this.carbsG = 0,
+    this.proteinG = 0,
+    this.fatG = 0,
+  });
   final String name;
   final int kcal;
   final int sodiumMg;
   final double sugarG;
+  final double carbsG;
+  final double proteinG;
+  final double fatG;
 }
 
 /// A nutrient chip on a meal card (`over` = above the daily target → red).
@@ -1032,6 +1047,8 @@ class DietMealDetailPage extends ConsumerWidget {
     photoAsset: entry.photoAsset,
     photoUrl: entry.photoUrl,
     aiComment: entry.aiComment,
+    // 웹에서 새로고침해 들어오면 `initialMeal` 없이 이 경로로 복원된다 —
+    // 여기서도 영양을 하나도 흘리지 않아야 저장 뒤에 합계가 남는다(#1853).
     items: <DietFood>[
       for (final FoodItem food in entry.foods)
         DietFood(
@@ -1039,6 +1056,9 @@ class DietMealDetailPage extends ConsumerWidget {
           food.calories,
           sodiumMg: food.sodiumMg,
           sugarG: food.sugarG,
+          carbsG: food.carbsG,
+          proteinG: food.proteinG,
+          fatG: food.fatG,
         ),
     ],
     tags: const <DietTag>[],
@@ -1139,6 +1159,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
           kcal ?? old.kcal,
           sodiumMg: old.sodiumMg,
           sugarG: old.sugarG,
+          carbsG: old.carbsG,
+          proteinG: old.proteinG,
+          fatG: old.fatG,
         );
     });
   }
@@ -1175,10 +1198,21 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     try {
       // Drop empty draft rows (see `dietNewFood` placeholder) so a
       // translation string never lands in stored food names.
+      // 영양은 이름·칼로리와 함께 되돌려 보낸다. 빠뜨리면 이 저장 한 번으로
+      // 그 끼니의 탄단지·나트륨·당류가 0 이 된다 — 합계가 음식별 값에서
+      // 계산되기 때문이다(#1853).
       final List<FoodItem> foods = <FoodItem>[
         for (final DietFood f in _foods)
           if (f.name.trim().isNotEmpty)
-            FoodItem(name: f.name.trim(), calories: f.kcal),
+            FoodItem(
+              name: f.name.trim(),
+              calories: f.kcal,
+              sodiumMg: f.sodiumMg,
+              sugarG: f.sugarG,
+              carbsG: f.carbsG,
+              proteinG: f.proteinG,
+              fatG: f.fatG,
+            ),
       ];
       await ref
           .read(dietRepositoryProvider)
@@ -1418,18 +1452,41 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                               ),
                             ),
                             const SizedBox(height: OnCareSpacing.s12),
+                            // 탄단지가 기준이다. 당류는 탄수화물의 일부라
+                            // 바로 아래에 들여 붙이고, 나트륨은 탄단지가
+                            // 아니라 맨 끝에 둔다. 지방은 포화·트랜스까지
+                            // 나누지 않는다 — 분석이 그만큼 재지 못한다.
                             _NutrientRow(
-                              label: l.dietSodium,
-                              hint: l.dietSodiumHint,
-                              value: '${widget.meal.sodium}',
-                              unit: l.dietUnitMg,
+                              label: l.homeMacroCarbs,
+                              value: _gramsText(widget.meal.carbsG),
+                              unit: l.dietUnitG,
                             ),
                             const SizedBox(height: OnCareSpacing.s8),
                             _NutrientRow(
                               label: l.dietSugar,
                               hint: l.dietSugarHint,
-                              value: '${widget.meal.sugar}',
+                              value: _gramsText(widget.meal.sugar),
                               unit: l.dietUnitG,
+                              sub: true,
+                            ),
+                            const SizedBox(height: OnCareSpacing.s8),
+                            _NutrientRow(
+                              label: l.homeMacroProtein,
+                              value: _gramsText(widget.meal.proteinG),
+                              unit: l.dietUnitG,
+                            ),
+                            const SizedBox(height: OnCareSpacing.s8),
+                            _NutrientRow(
+                              label: l.homeMacroFat,
+                              value: _gramsText(widget.meal.fatG),
+                              unit: l.dietUnitG,
+                            ),
+                            const SizedBox(height: OnCareSpacing.s8),
+                            _NutrientRow(
+                              label: l.dietSodium,
+                              hint: l.dietSodiumHint,
+                              value: '${widget.meal.sodium}',
+                              unit: l.dietUnitMg,
                             ),
                           ],
                         ),
@@ -1591,20 +1648,44 @@ class _FoodRow extends StatelessWidget {
 class _NutrientRow extends StatelessWidget {
   const _NutrientRow({
     required this.label,
-    required this.hint,
     required this.value,
     required this.unit,
+    this.hint,
+    this.sub = false,
   });
+
+  /// 한 칸 들여쓰는 폭. 하위 항목이 상위 항목 라벨보다 안쪽에서 시작해야
+  /// `당류` 가 `탄수화물` 에 딸린 값으로 읽힌다.
+  static const double _subIndent = 16;
+
   final String label;
-  final String hint;
   final String value;
   final String unit;
 
+  /// 권장량 안내. 탄수화물·단백질·지방에는 기준이 없어 비운다.
+  final String? hint;
+
+  /// 바로 위 항목의 하위 값인가 — 들여쓰고 앞에 `↳` 를 붙인다.
+  final bool sub;
+
   @override
   Widget build(BuildContext context) {
+    final String? hint = this.hint;
     return AppTile(
       child: Row(
         children: <Widget>[
+          if (sub) ...<Widget>[
+            const SizedBox(width: _subIndent),
+            Text(
+              '↳',
+              style: _text(
+                context,
+                OnCareTypography.bodySmall,
+                OnCareColors.textTertiary,
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s4),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1617,14 +1698,15 @@ class _NutrientRow extends StatelessWidget {
                     OnCareColors.textPrimary,
                   ),
                 ),
-                Text(
-                  hint,
-                  style: _text(
-                    context,
-                    OnCareTypography.caption,
-                    OnCareColors.textSecondary,
+                if (hint != null)
+                  Text(
+                    hint,
+                    style: _text(
+                      context,
+                      OnCareTypography.caption,
+                      OnCareColors.textSecondary,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
