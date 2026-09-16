@@ -1,8 +1,13 @@
-/// 추천 이유의 강조와 자리. (#1445)
+/// 추천 이유의 강조와 자리. (#1445 · #1881)
 ///
 /// 추천 이유는 트레이너를 고르는 근거다. 헬스장 찾기 카드에서만 흰 배경·회색
 /// 글씨라 옆의 일반 설명과 위계가 같았고, 상세 화면에서는 `트레이너 소개`
 /// 아래에 있어 추천 목록에서 들어온 흐름이 근거를 뒤늦게 만났다.
+///
+/// 지금은 세 화면(헬스장 찾기 줄·트레이너 목록 카드·트레이너 상세)이 근거를
+/// **헬스장 키워드와 같은 부품**(`AppTag`, 브랜드 톤)으로 적는다. 강조가 어떤
+/// 색인지는 `oncare_ui` 가 정하므로 여기서는 색을 다시 세지 않고, 세 화면이
+/// 같은 부품·같은 톤을 쓰는지와 줄 바탕이 그 태그를 삼키지 않는지를 본다.
 library;
 
 import 'package:flutter/material.dart';
@@ -123,15 +128,7 @@ void main() {
   Finder badgeAt(String prefix, int index) =>
       find.byKey(ValueKey<String>('$prefix-reason-$index'));
 
-  BoxDecoration decorationOf(WidgetTester tester, Finder badge) =>
-      tester
-              .widget<Container>(
-                find.descendant(of: badge, matching: find.byType(Container)),
-              )
-              .decoration!
-          as BoxDecoration;
-
-  /// 한 화면이 [trainer] 의 근거를 **흰 배경·파란 테두리 알약**으로 있는 만큼
+  /// 한 화면이 [trainer] 의 근거를 **헬스장 키워드와 같은 태그**로 있는 만큼
   /// 적었는지. 세 화면이 같은 값을 같은 모양으로 말해야 목록에서 본 것을 상세
   /// 에서 다시 찾지 않는다 (#1881).
   void expectBrandPills(
@@ -150,36 +147,39 @@ void main() {
       final Finder badge = badgeAt(prefix, i);
       expect(badge, findsOneWidget, reason: '${i + 1}번째 배지가 없다');
 
-      // 강조는 배지마다 같다 — 첫 배지만 파랗고 나머지가 흐리면 위계가 갈린다.
-      final BoxDecoration decoration = decorationOf(tester, badge);
-      expect(decoration.border, isNotNull, reason: '파란 윤곽선으로 강조한다');
-      expect(
-        (decoration.border! as Border).top.color,
-        OnCareBrand.member.border,
-      );
-      // 헬스장 찾기 줄 자체가 옅은 파랑이라 배지 배경은 흰색 그대로다 — 같은
-      // 색이면 배지가 사라진다.
-      expect(decoration.color, OnCareColors.surfaceCard);
-
-      final Text text = tester.widget<Text>(
-        find.descendant(of: badge, matching: find.byType(Text)),
-      );
-      expect(text.style!.color, OnCareBrand.member.primary);
-      // 두 줄 제한은 그대로다 — 긴 이유가 카드를 밀지 않는다.
-      expect(text.maxLines, 2);
-
-      // 배지 안에는 사유만 서있다 — `추천 이유:` 접두어를 떼어내야
-      // 알약이 줄 끝까지 늘어지지 않고 배지로 읽힌다 (#1847).
-      expect(text.data, trainer.reasons[i]);
+      final AppTag tag = tester.widget<AppTag>(badge);
+      // 강조는 배지마다 같다 — 첫 배지만 브랜드 톤이고 나머지가 회색이면
+      // 위계가 갈린다.
+      expect(tag.tone, AppTagTone.brand, reason: '$prefix ${i + 1}번째 톤');
+      // 태그 안에는 사유만 서있다 — `추천 이유:` 접두어를 떼어내야 알약이 줄
+      // 끝까지 늘어지지 않고 배지로 읽힌다 (#1847).
+      expect(tag.label, trainer.reasons[i]);
     }
     expect(find.textContaining('추천 이유:'), findsNothing);
   }
 
-  testWidgets('헬스장 찾기 카드의 추천 이유 배지가 파란 윤곽선·글씨다', (tester) async {
+  testWidgets('헬스장 찾기 카드의 추천 이유가 헬스장 키워드와 같은 태그다', (tester) async {
     await pumpAt(tester, AppRoutes.exerciseGym);
 
     // 근거가 있는 만큼 배지가 선다 (#1881).
     expectBrandPills(tester, 'gym-trainer');
+
+    // 줄 바탕이 태그 채움색과 같으면 태그가 바탕에 묻힌다 — #1445 가 배지를
+    // 따로 만들게 했던 그 문제다. 바탕을 비워 뒀는지 여기서 지킨다.
+    final BoxDecoration line =
+        tester
+                .widget<Container>(
+                  find
+                      .ancestor(
+                        of: badgeAt('gym-trainer', 0),
+                        matching: find.byType(Container),
+                      )
+                      .last,
+                )
+                .decoration!
+            as BoxDecoration;
+    expect(line.color, isNot(OnCareBrand.member.surface));
+    expect(line.color, OnCareColors.surfaceCard);
   });
 
   testWidgets('트레이너 목록 카드도 같은 알약으로 근거를 적는다', (tester) async {
@@ -192,6 +192,31 @@ void main() {
     await pumpAt(tester, AppRoutes.trainerDetailPath(_kim.id));
 
     expectBrandPills(tester, 'trainer-detail');
+  });
+
+  testWidgets('헬스장 상세의 소속 트레이너 줄에도 근거가 붙는다', (tester) async {
+    await pumpAt(tester, AppRoutes.gymDetailPath(_gym.id));
+
+    // 여기가 상담할 트레이너를 고르는 자리다 — 찾기에서 본 근거가 사라지면
+    // 정작 고를 때 다시 찾아야 한다 (#1881).
+    expectBrandPills(tester, 'gym-detail-trainer-${_kim.id}');
+    // 이름·직함 아래에 선다.
+    expect(
+      tester.getTopLeft(badgeAt('gym-detail-trainer-${_kim.id}', 0)).dy,
+      greaterThan(tester.getTopLeft(find.text(_kim.name)).dy),
+    );
+  });
+
+  testWidgets('근거가 없는 트레이너는 헬스장 상세에서도 줄만 선다', (tester) async {
+    await pumpAt(tester, AppRoutes.gymDetailPath(_gym.id), trainer: _noReason);
+
+    expect(find.text(_noReason.name), findsWidgets);
+    expect(
+      find.byKey(
+        ValueKey<String>('gym-detail-trainer-${_noReason.id}-reasons'),
+      ),
+      findsNothing,
+    );
   });
 
   testWidgets('사유가 하나뿐인 트레이너는 세 화면 모두 배지도 하나다', (tester) async {

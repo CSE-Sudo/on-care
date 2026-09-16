@@ -17,11 +17,18 @@ class GymTrainerLine extends StatelessWidget {
   const GymTrainerLine({
     required this.trainer,
     this.showReason = true,
+    this.bordered = false,
     this.onDetail,
     super.key,
   });
 
   final Trainer trainer;
+
+  /// 줄을 회색 실선으로 두를지. 한 헬스장의 트레이너가 **잇달아 설 때**(헬스장
+  /// 찾기 카드) 켠다 — 바탕이 카드와 같은 흰색이라 테두리가 없으면 어디까지가
+  /// 한 사람인지 흐려진다. 한 명뿐인 자리(내 헬스장 카드·MY)에서는 끈다:
+  /// 가를 상대가 없는데 두르면 카드 안에 상자를 하나 더 만드는 셈이다.
+  final bool bordered;
 
   /// 추천 이유를 배지로 적을지. 이미 연결된 트레이너에게는 고를 이유를 다시
   /// 말할 자리가 아니라 끈다.
@@ -63,8 +70,14 @@ class GymTrainerLine extends StatelessWidget {
         horizontal: OnCareSpacing.s8,
         vertical: OnCareSpacing.s8,
       ),
+      // 줄 바탕은 흰색이다 (#1881). 예전에는 옅은 브랜드 파랑이었는데, 그 색은
+      // 헬스장 키워드 태그(`AppTag`)의 채움색과 같아서 근거 태그를 그 위에
+      // 올릴 수 없었다 — #1445 가 배지를 흰 바탕·파란 테두리로 따로 만든 것도
+      // 그래서였다. 바탕을 비우면 파랑은 근거 태그 몫으로 남고, 헬스장 카드가
+      // 키워드를 보여 주는 방식과 같아진다.
       decoration: BoxDecoration(
-        color: tokens.brand.surface,
+        color: OnCareColors.surfaceCard,
+        border: bordered ? Border.all(color: OnCareColors.lineSubtle) : null,
         borderRadius: OnCareRadius.mdAll,
       ),
       child: Column(

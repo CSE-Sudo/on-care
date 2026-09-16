@@ -627,6 +627,8 @@ class _GymListCard extends ConsumerWidget {
             GymTrainerLine(
               key: Key('gym-trainer-${trainer.id}'),
               trainer: trainer,
+              // 한 카드에 여러 명이 잇달아 선다 — 실선으로 서로를 가른다.
+              bordered: true,
             ),
           ],
         ],
