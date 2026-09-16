@@ -190,19 +190,19 @@ void main() {
   });
 
   // 날짜만 적으면 같은 날 세 끼가 구분되지 않아 어느 끼니로 들어가는지 알 수
-  // 없다. 끼니는 사진을 고른 시각으로 정해지므로(`_currentMealType`) 시계를
-  // 옮기면 함께 바뀐다(#1897).
-  testWidgets('기록 날짜에 끼니가 함께 보인다', (WidgetTester tester) async {
+  // 없었다. 시각은 서버가 저장한 값(`time_label`)을 그대로 쓰고, 끼니는 사진을
+  // 고른 시각이 정한다(`_currentMealType`) — 시계를 옮기면 둘 다 바뀐다(#1897).
+  testWidgets('기록 날짜에 시각과 끼니가 함께 보인다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 아침');
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 09:00 · 아침');
   });
 
-  testWidgets('끼니는 사진을 고른 시각을 따른다', (WidgetTester tester) async {
+  testWidgets('시각과 끼니는 사진을 고른 시각을 따른다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 19));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 저녁');
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 19:00 · 저녁');
   });
 }
