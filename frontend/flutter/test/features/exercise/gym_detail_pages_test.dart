@@ -69,7 +69,6 @@ void main() {
           gymFinderResultsProvider.overrideWith((ref) async => gyms),
           myGymProvider.overrideWith((ref) async => myGym),
           myTrainerProvider.overrideWith((ref) async => null),
-          allTrainersProvider.overrideWith((ref) async => trainers),
           recommendedTrainersProvider.overrideWith((ref) async => trainers),
           for (final Gym gym in gyms)
             gymTrainersProvider(gym.id).overrideWith(
@@ -93,20 +92,16 @@ void main() {
     return router;
   }
 
-  testWidgets('gym and trainer list rows open their detail routes', (
+  // 트레이너로 가는 길은 헬스장을 거친다 — 트레이너만 따로 세우는 목록은 없다
+  // (#1885). 헬스장 상세에서 트레이너 상세로 넘어가는 길은 아래 테스트가 본다.
+  testWidgets('gym list rows open the gym detail route', (
     WidgetTester tester,
   ) async {
-    final GoRouter router = await pumpRoute(tester, location: AppRoutes.gyms);
+    await pumpRoute(tester, location: AppRoutes.gyms);
 
     await tester.tap(find.text(_gymWithTrainer.name));
     await tester.pumpAndSettle();
     expect(find.text('헬스장 상세'), findsOneWidget);
-
-    router.go(AppRoutes.trainers);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(_trainer.name));
-    await tester.pumpAndSettle();
-    expect(find.text('트레이너 상세'), findsOneWidget);
   });
 
   testWidgets('detail pages link between the gym and its trainer', (

@@ -896,10 +896,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exGymSearchPlaceholder => 'Search by area or gym name';
 
   @override
-  String get exTrainerSearchPlaceholder =>
-      'Search by specialty or trainer name';
-
-  @override
   String get exSortRecommended => 'Recommended';
 
   @override
@@ -907,9 +903,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exSortRating => 'Rating';
-
-  @override
-  String get exSortName => 'Name';
 
   @override
   String exResultCount(int count) {

@@ -877,9 +877,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exGymSearchPlaceholder => '지역이나 헬스장 이름 검색';
 
   @override
-  String get exTrainerSearchPlaceholder => '전문 분야나 트레이너 이름 검색';
-
-  @override
   String get exSortRecommended => '추천순';
 
   @override
@@ -887,9 +884,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exSortRating => '평점순';
-
-  @override
-  String get exSortName => '이름순';
 
   @override
   String exResultCount(int count) {

@@ -99,7 +99,6 @@ void main() {
           ),
           myTrainerProvider.overrideWith((ref) async => null),
           trainerProvider(trainer.id).overrideWith((ref) async => trainer),
-          allTrainersProvider.overrideWith((ref) async => <Trainer>[trainer]),
           gymTrainersProvider(
             _gym.id,
           ).overrideWith((ref) async => <Trainer>[trainer]),
@@ -182,12 +181,6 @@ void main() {
     expect(line.color, OnCareColors.surfaceCard);
   });
 
-  testWidgets('트레이너 목록 카드도 같은 알약으로 근거를 적는다', (tester) async {
-    await pumpAt(tester, AppRoutes.trainers);
-
-    expectBrandPills(tester, 'trainer-list');
-  });
-
   testWidgets('트레이너 상세도 같은 알약으로 근거를 적는다', (tester) async {
     await pumpAt(tester, AppRoutes.trainerDetailPath(_kim.id));
 
@@ -222,7 +215,7 @@ void main() {
   testWidgets('사유가 하나뿐인 트레이너는 세 화면 모두 배지도 하나다', (tester) async {
     for (final (String location, String prefix) in <(String, String)>[
       (AppRoutes.exerciseGym, 'gym-trainer'),
-      (AppRoutes.trainers, 'trainer-list'),
+      (AppRoutes.gymDetailPath(_gym.id), 'gym-detail-trainer-${_bare.id}'),
       (AppRoutes.trainerDetailPath(_bare.id), 'trainer-detail'),
     ]) {
       await pumpAt(tester, location, trainer: _bare);
@@ -242,7 +235,7 @@ void main() {
     expect(badgeAt('gym-trainer', 0), findsNothing);
   });
 
-  testWidgets('사유가 없으면 목록·상세는 기본 문구를 문장으로 둔다', (tester) async {
+  testWidgets('사유가 없으면 상세는 기본 문구를 문장으로 둔다', (tester) async {
     await pumpAt(
       tester,
       AppRoutes.trainerDetailPath(_noReason.id),

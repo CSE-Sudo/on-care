@@ -158,7 +158,9 @@ void main() {
     // gymId 가 목록에 없으면 화면의 헬스장 이름이 `?? ''` 로 빈칸이 된다.
     final container = _containerWith(const _KakaoFixtureRepository());
     final gyms = await container.read(gymFinderResultsProvider.future);
-    final trainers = await container.read(allTrainersProvider.future);
+    final trainers = await container
+        .read(gymRepositoryProvider)
+        .fetchAllTrainers();
     final Set<String> gymIds = gyms.map((Gym g) => g.id).toSet();
 
     final orphans = trainers
@@ -190,7 +192,9 @@ void main() {
     // 추천 레일은 사유가 있는 트레이너만 올리므로, 사유가 없으면 그 트레이너는
     // 레일에서 조용히 빠진다.
     final container = _containerWith(const _KakaoFixtureRepository());
-    final trainers = await container.read(allTrainersProvider.future);
+    final trainers = await container
+        .read(gymRepositoryProvider)
+        .fetchAllTrainers();
     final recommended = await container.read(
       recommendedTrainersProvider.future,
     );
