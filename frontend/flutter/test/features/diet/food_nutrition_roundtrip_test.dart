@@ -85,6 +85,10 @@ void main() {
     await tester.tap(_anyMealCard);
     await tester.pumpAndSettle();
 
+    // 상세는 보기로 열린다 — 머리의 연필을 눌러야 입력 칸이 된다(#1856).
+    await tester.tap(find.byKey(const Key('mealDetailEditButton')));
+    await tester.pumpAndSettle();
+
     // 이름만 고친다. 영양 칸은 건드리지 않는다.
     await tester.enterText(
       find.byKey(const ValueKey<String>('diet-food-name-1')),

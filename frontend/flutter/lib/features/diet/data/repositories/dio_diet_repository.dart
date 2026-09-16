@@ -167,6 +167,12 @@ class DioDietRepository implements DietRepository {
       carbsG: editedMacros?.carbsG ?? returned.carbsG,
       proteinG: editedMacros?.proteinG ?? returned.proteinG,
       fatG: editedMacros?.fatG ?? returned.fatG,
+      // 수정은 끼니 내용만 바꾼다. 이 오버라이드가 원본 항목을 통째로 갈아
+      // 끼우므로, 여기 빠뜨린 값은 화면에서 사라진다 — 사진을 빠뜨리면 이름만
+      // 고쳐도 끼니 카드가 이모지로 떨어졌다.
+      photoAsset: returned.photoAsset,
+      photoUrl: returned.photoUrl,
+      aiComment: returned.aiComment,
     );
     _entryOverrides[id] = updated;
     _entryOverrideUpdatedAt[id] = nowKst();

@@ -18,6 +18,16 @@ enum AppIconButtonVariant {
   filled,
 }
 
+/// 아이콘 버튼 크기.
+enum AppIconButtonSize {
+  /// 밀도를 따른다(모바일 44, 웹 36) — 기본값. 화면의 주 동작에 쓴다.
+  medium,
+
+  /// 한 단계 작다. 라벨 한 줄이나 입력 칸 옆처럼, 기본 크기가 주변보다 커
+  /// 보이고 줄 높이까지 밀어 올리는 자리에 쓴다.
+  small,
+}
+
 /// 두 앱의 아이콘 버튼(#1692). 원형 버튼은 없다 — 배경이 있으면 반경 12 다.
 ///
 /// 한 변은 밀도를 따른다(모바일 44, 웹 36). 아이콘 하나뿐이라 [tooltip] 이
@@ -29,11 +39,17 @@ class AppIconButton extends StatelessWidget {
     required this.tooltip,
     required this.onPressed,
     this.variant = AppIconButtonVariant.plain,
+    this.size = AppIconButtonSize.medium,
     this.color,
   });
 
+  /// 작은 버튼의 한 변과 아이콘. 웹 밀도와 같은 값이라 새 치수를 만들지 않는다.
+  static const double _smallDimension = 36;
+  static const double _smallIcon = 20;
+
   final IconData icon;
   final String tooltip;
+  final AppIconButtonSize size;
 
   /// `null` 이면 비활성이다.
   final VoidCallback? onPressed;
@@ -49,8 +65,14 @@ class AppIconButton extends StatelessWidget {
       icon: icon,
       tooltip: tooltip,
       onPressed: onPressed,
-      dimension: tokens.density.iconButton,
-      iconSize: tokens.density.iconButtonIcon,
+      dimension: switch (size) {
+        AppIconButtonSize.medium => tokens.density.iconButton,
+        AppIconButtonSize.small => _smallDimension,
+      },
+      iconSize: switch (size) {
+        AppIconButtonSize.medium => tokens.density.iconButtonIcon,
+        AppIconButtonSize.small => _smallIcon,
+      },
       background: switch (variant) {
         AppIconButtonVariant.plain => Colors.transparent,
         AppIconButtonVariant.tonal => tokens.brand.surface,
