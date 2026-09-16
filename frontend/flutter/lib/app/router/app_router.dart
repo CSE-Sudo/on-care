@@ -24,7 +24,6 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
-import 'package:oncare/features/exercise/presentation/pages/trainer_list_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
@@ -162,10 +161,6 @@ GoRouter buildAppRouter({
         path: AppRoutes.gymDetail,
         builder: (context, state) =>
             GymDetailPage(gymId: state.pathParameters['gymId'] ?? ''),
-      ),
-      GoRoute(
-        path: AppRoutes.trainers,
-        builder: (context, state) => const TrainerListPage(),
       ),
       GoRoute(
         path: AppRoutes.trainerDetail,

@@ -448,11 +448,9 @@
   "exGymNotFound": "Couldn't find this gym.",
   "exTrainerNotFound": "Couldn't find this trainer.",
   "exGymSearchPlaceholder": "Search by area or gym name",
-  "exTrainerSearchPlaceholder": "Search by specialty or trainer name",
   "exSortRecommended": "Recommended",
   "exSortDistance": "Distance",
   "exSortRating": "Rating",
-  "exSortName": "Name",
   "exResultCount": "{count, plural, =1{1 result} other{{count} results}}",
   "@exResultCount": {
     "placeholders": {

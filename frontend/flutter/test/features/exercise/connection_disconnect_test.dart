@@ -79,9 +79,6 @@ void main() {
           ),
           myGymProvider.overrideWith((ref) async => myGym),
           myTrainerProvider.overrideWith((ref) async => myTrainer),
-          allTrainersProvider.overrideWith(
-            (ref) async => const <Trainer>[_myTrainer],
-          ),
           recommendedTrainersProvider.overrideWith(
             (ref) async => const <Trainer>[_myTrainer],
           ),

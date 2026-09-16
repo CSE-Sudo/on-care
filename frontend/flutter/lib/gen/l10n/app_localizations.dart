@@ -1706,12 +1706,6 @@ abstract class AppLocalizations {
   /// **'Search by area or gym name'**
   String get exGymSearchPlaceholder;
 
-  /// No description provided for @exTrainerSearchPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'Search by specialty or trainer name'**
-  String get exTrainerSearchPlaceholder;
-
   /// No description provided for @exSortRecommended.
   ///
   /// In en, this message translates to:
@@ -1729,12 +1723,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rating'**
   String get exSortRating;
-
-  /// No description provided for @exSortName.
-  ///
-  /// In en, this message translates to:
-  /// **'Name'**
-  String get exSortName;
 
   /// No description provided for @exResultCount.
   ///
