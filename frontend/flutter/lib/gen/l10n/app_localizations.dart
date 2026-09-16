@@ -2078,11 +2078,11 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get myCancel;
 
-  /// No description provided for @myTrainerGymTitle.
+  /// No description provided for @myGymTrainerTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Trainer & Gym'**
-  String get myTrainerGymTitle;
+  /// **'My Gym & Trainer'**
+  String get myGymTrainerTitle;
 
   /// No description provided for @myConnectionDeleteTitle.
   ///

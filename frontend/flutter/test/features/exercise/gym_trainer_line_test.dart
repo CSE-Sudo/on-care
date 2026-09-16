@@ -24,6 +24,7 @@ import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_ma
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const Gym _gym = Gym(
   id: 'gym-trainer-line',
@@ -39,7 +40,7 @@ const Trainer _kim = Trainer(
   gymId: 'gym-trainer-line',
   name: '김트레이너',
   role: '퍼스널 트레이너',
-  reason: '혈압 관리와 운동 병행 지도',
+  reasons: <String>['혈압 관리', '체중 감량', '식습관 개선'],
 );
 
 const Trainer _park = Trainer(
@@ -47,7 +48,7 @@ const Trainer _park = Trainer(
   gymId: 'gym-trainer-line',
   name: '박트레이너',
   role: '재활 트레이너',
-  reason: '무릎·허리 통증 관리 다수 경험',
+  reasons: <String>['무릎·허리 재활'],
 );
 
 const AppConfig _config = AppConfig(
@@ -107,6 +108,20 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// 트레이너 줄 바깥 상자의 꾸밈 — 줄의 뿌리가 그 Container 다.
+  BoxDecoration lineOf(WidgetTester tester, Key key) =>
+      tester
+              .widget<Container>(
+                find
+                    .descendant(
+                      of: find.byKey(key),
+                      matching: find.byType(Container),
+                    )
+                    .first,
+              )
+              .decoration!
+          as BoxDecoration;
+
   group('내 헬스장 카드의 담당 트레이너 줄 (#1187)', () {
     testWidgets('이름·직함과 함께 상세 이동 화살표가 붙는다', (WidgetTester tester) async {
       await pumpGymTab(tester);
@@ -160,6 +175,36 @@ void main() {
       expect(find.byType(TrainerDetailPage), findsOneWidget);
     });
 
+    testWidgets('헬스장 줄과 트레이너 줄의 화살표가 같은 자리에 선다 (#1881)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester);
+
+      // 한 카드 안에서 같은 뜻의 화살표가 서로 다른 자리에 서면 카드가
+      // 삐뚤어 보인다. 위가 헬스장 줄, 아래가 트레이너 줄이다.
+      final Finder arrows = find.descendant(
+        of: find.byKey(const Key('my-gym-info-card')),
+        matching: find.byIcon(AppIcons.chevronRight),
+      );
+      expect(arrows, findsNWidgets(2));
+      expect(
+        tester.getBottomRight(arrows.at(1)).dx,
+        tester.getBottomRight(arrows.at(0)).dx,
+      );
+    });
+
+    testWidgets('한 명뿐이라 줄을 두르지 않는다 (#1881)', (WidgetTester tester) async {
+      await pumpGymTab(tester);
+
+      // 가를 상대가 없는데 두르면 카드 안에 상자가 하나 더 생긴다.
+      final BoxDecoration mine = lineOf(
+        tester,
+        const Key('gym-trainer-line-mine'),
+      );
+      expect(mine.color, OnCareColors.surfaceCard);
+      expect(mine.border, isNull);
+    });
+
     testWidgets('담당 트레이너가 없으면 줄 자체가 없다', (WidgetTester tester) async {
       await pumpGymTab(tester, myTrainer: null);
 
@@ -176,11 +221,30 @@ void main() {
       expect(find.byKey(const Key('gym-trainer-trainer-park')), findsOneWidget);
       expect(find.text('퍼스널 트레이너'), findsOneWidget);
       expect(find.text('재활 트레이너'), findsOneWidget);
-      // 사유만 적는다 — `추천 이유:` 접두어는 붙지 않는다 (#1847).
-      expect(find.text('혈압 관리와 운동 병행 지도'), findsOneWidget);
+      // 사유만 적는다 — `추천 이유:` 접두어는 붙지 않는다 (#1847). 근거가 여럿인
+      // 트레이너는 있는 만큼 배지가 서고, 하나뿐인 트레이너는 하나만 선다 (#1881).
+      for (final String reason in _kim.reasons) {
+        expect(find.text(reason), findsOneWidget);
+      }
+      expect(find.text(_park.reasons.single), findsOneWidget);
       expect(find.textContaining('추천 이유:'), findsNothing);
       // 아직 아무와도 연결되지 않았다 — 배지는 뜨지 않는다.
       expect(find.text('연결됨'), findsNothing);
+    });
+
+    testWidgets('잇달아 서는 줄은 회색 실선으로 서로를 가른다 (#1881)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester, hasMyGym: false);
+
+      // 바탕이 카드와 같은 흰색이라, 실선이 없으면 한 카드에 쌓인 여러 명이
+      // 어디서 갈리는지 흐려진다.
+      final BoxDecoration listed = lineOf(
+        tester,
+        const Key('gym-trainer-trainer-kim'),
+      );
+      expect(listed.color, OnCareColors.surfaceCard);
+      expect((listed.border! as Border).top.color, OnCareColors.lineSubtle);
     });
   });
 

@@ -606,7 +606,7 @@
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
   "myCancel": "Cancel",
-  "myTrainerGymTitle": "My Trainer & Gym",
+  "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
   "myDelete": "Remove",
   "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.",
