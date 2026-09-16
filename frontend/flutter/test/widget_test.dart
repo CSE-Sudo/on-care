@@ -428,7 +428,7 @@ void main() {
     await tester.tap(find.text('MY').first);
     await tester.pumpAndSettle();
 
-    // 포인트 카드는 내 트레이너 · 헬스장 섹션 아래라(#1785) 첫 화면에서 내려가
+    // 포인트 카드는 내 헬스장 · 트레이너 섹션 아래라(#1785) 첫 화면에서 내려가
     // 있다. 스크롤한 뒤 한 번 그려야 누를 좌표가 새 자리를 따른다.
     final banner = find.byKey(const Key('pointsBanner'));
     await tester.ensureVisible(banner);
@@ -568,7 +568,7 @@ void main() {
       // 코드에 하드코딩돼 있던 문구들이 이제 로케일별 ARB 로 분리됐다.
       expect(en.coachCardDietTitle, 'Great breakfast — watch lunch sodium');
       expect(ko.coachCardDietTitle, '아침 식단 훌륭, 점심 나트륨 주의');
-      expect(en.coachCardExerciseTitle, 'PT session 12 done');
+      expect(en.coachCardExerciseTitle, '3 workouts this week');
       expect(en.homeAiAdviceTitle, "Today's combined AI advice");
       expect(ko.homeAiAdviceTitle, '오늘의 AI 통합 조언');
       expect(en.homeSodiumExceededBadge, 'Sodium over');

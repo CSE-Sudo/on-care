@@ -158,7 +158,9 @@ void main() {
     // gymId 가 목록에 없으면 화면의 헬스장 이름이 `?? ''` 로 빈칸이 된다.
     final container = _containerWith(const _KakaoFixtureRepository());
     final gyms = await container.read(gymFinderResultsProvider.future);
-    final trainers = await container.read(allTrainersProvider.future);
+    final trainers = await container
+        .read(gymRepositoryProvider)
+        .fetchAllTrainers();
     final Set<String> gymIds = gyms.map((Gym g) => g.id).toSet();
 
     final orphans = trainers
@@ -186,17 +188,19 @@ void main() {
     expect(names.toSet().length, names.length, reason: '추천 트레이너 이름 중복');
   });
 
-  test('모든 트레이너가 추천 사유를 갖고, 사유가 서로 겹치지 않는다', () async {
+  test('모든 트레이너가 추천 사유를 갖고, 사유 조합이 서로 겹치지 않는다', () async {
     // 추천 레일은 사유가 있는 트레이너만 올리므로, 사유가 없으면 그 트레이너는
     // 레일에서 조용히 빠진다.
     final container = _containerWith(const _KakaoFixtureRepository());
-    final trainers = await container.read(allTrainersProvider.future);
+    final trainers = await container
+        .read(gymRepositoryProvider)
+        .fetchAllTrainers();
     final recommended = await container.read(
       recommendedTrainersProvider.future,
     );
 
     final missing = trainers
-        .where((Trainer t) => !(t.reason?.isNotEmpty ?? false))
+        .where((Trainer t) => t.reasons.isEmpty)
         .map((Trainer t) => t.name);
     expect(missing, isEmpty, reason: '추천 사유가 없는 트레이너');
 
@@ -215,8 +219,22 @@ void main() {
       );
     }
 
-    final reasons = trainers.map((Trainer t) => t.reason!).toList();
-    expect(reasons.toSet().length, reasons.length, reason: '추천 사유 문구 중복');
+    // 키워드 하나하나는 트레이너끼리 겹쳐도 된다 — `체중 감량` 을 다루는 사람이
+    // 여럿인 게 자연스럽다(#1881). 겹치면 안 되는 것은 **조합**이다: 조합까지
+    // 같으면 두 사람이 같은 이유로 추천된 것처럼 읽혀 고를 근거가 사라진다.
+    final combos = trainers.map((Trainer t) => t.reasons.join('|')).toList();
+    expect(combos.toSet().length, combos.length, reason: '추천 사유 조합 중복');
+
+    // 배지는 1~3개다 — 하나뿐이면 얇고, 넷을 넘으면 줄을 밀어낸다.
+    for (final Trainer t in trainers) {
+      expect(
+        t.reasons.length,
+        inInclusiveRange(1, 3),
+        reason: '${t.name} 사유 ${t.reasons.length}개',
+      );
+      // 같은 사람 안에서 같은 키워드를 두 번 달지 않는다.
+      expect(t.reasons.toSet().length, t.reasons.length, reason: t.name);
+    }
   });
 
   test('헬스장마다 트레이너가 2명 이상 있다', () async {

@@ -46,6 +46,7 @@ class OnCareIconSet {
     required this.attachImage,
     required this.send,
     required this.file,
+    required this.reward,
     this.timeInput,
     this.timeDial,
     this.fill,
@@ -80,8 +81,9 @@ class OnCareIconSet {
     offline: Icons.cloud_off_rounded,
     image: Icons.image_rounded,
     attachImage: Icons.add_photo_alternate_rounded,
-    send: Icons.arrow_upward_rounded,
+    send: Icons.send_rounded,
     file: Icons.picture_as_pdf_rounded,
+    reward: Icons.star_rounded,
   );
 
   /// 디버그·카탈로그 표시용 이름.
@@ -142,6 +144,9 @@ class OnCareIconSet {
   /// 채팅 첨부 파일 카드.
   final IconData file;
 
+  /// 토스트에 붙는 적립 표시(`+50P`)의 별.
+  final IconData reward;
+
   /// 시각 선택기의 입력 모드 전환(키보드·시계). 비우면 Flutter 기본 아이콘이다.
   final IconData? timeInput;
   final IconData? timeDial;
@@ -172,6 +177,20 @@ class OnCareIconSet {
     final double? max = maxOpticalSize;
     if (size == null || min == null || max == null) return null;
     return size.clamp(min, max);
+  }
+
+  /// [size] 로 그릴 [icon] 의 가변 글꼴 축 값. [Icon] 이 스스로 만드는 것과 같은
+  /// 목록이라, 캔버스에 글자로 직접 찍어도 위젯으로 그린 것과 모양이 같다.
+  /// 축을 비워 둔 묶음(Material Icons)에서는 빈 목록이다.
+  List<FontVariation> fontVariationsFor(IconData? icon, double? size) {
+    final double? weight = weightOf(icon);
+    final double? opticalSize = opticalSizeFor(size);
+    return <FontVariation>[
+      if (fill != null) FontVariation('FILL', fill!),
+      if (weight != null) FontVariation('wght', weight),
+      if (grade != null) FontVariation('GRAD', grade!),
+      if (opticalSize != null) FontVariation('opsz', opticalSize),
+    ];
   }
 
   @override

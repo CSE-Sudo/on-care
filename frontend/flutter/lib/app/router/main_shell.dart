@@ -15,6 +15,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
+import 'package:oncare/shared/widgets/member_bottom_nav.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -135,7 +136,6 @@ class _MainShellState extends ConsumerState<MainShell>
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     return Scaffold(
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.
@@ -155,48 +155,12 @@ class _MainShellState extends ConsumerState<MainShell>
               onTap: () => showCoachingSheet(context, ref: ref),
             )
           : null,
-      // 바 높이·라벨 아래 여백은 공용 하단 내비가 정한다. 안전영역이 0 인 웹에서도
-      // 라벨 아래 여백이 남는다(#1664, #840).
-      bottomNavigationBar: AppBottomNav(
+      // 하단 내비는 사용 가이드 화면과 **같은 위젯**이다(#1857) — 탭 이름·순서를
+      // 고칠 때 한쪽만 바뀌지 않는다.
+      bottomNavigationBar: MemberBottomNav(
         selectedIndex: navigationShell.currentIndex,
         onSelected: _onTap,
-        destinations: <AppNavDestination>[
-          AppNavDestination(
-            key: const ValueKey<String>('nav-dashboard'),
-            icon: AppIcons.home,
-            selectedIcon: AppIcons.home,
-            label: l.navDashboard,
-          ),
-          AppNavDestination(
-            key: const ValueKey<String>('nav-diet'),
-            icon: AppIcons.diet,
-            selectedIcon: AppIcons.diet,
-            label: l.navDiet,
-          ),
-          AppNavDestination(
-            key: const ValueKey<String>('nav-exercise'),
-            icon: AppIcons.exercise,
-            selectedIcon: AppIcons.exercise,
-            label: l.navExercise,
-          ),
-          // 운동 칸과 같이 열쇠를 준다 — 사람 아이콘은 이제 헬스장 카드의
-          // 트레이너 줄에도 있어서(#1185), 아이콘만으로는 이 칸을 지목할 수 없다.
-          AppNavDestination(
-            key: const ValueKey<String>('nav-my'),
-            icon: AppIcons.my,
-            selectedIcon: AppIcons.my,
-            label: l.navMyHealth,
-          ),
-        ],
-        // 식단과 운동 사이의 `+` — "새 기록 추가" 시트를 연다.
-        // 바 위로 튀어나온 원형 버튼이다(#1742).
-        centerAction: AppNavAddButton(
-          key: const Key('recordAddButton'),
-          // 아이콘 하나뿐이라 무엇을 여는 자리인지 툴팁이 말한다(#972).
-          tooltip: l.navAddRecordTitle,
-          onPressed: () =>
-              _showRecordAddSheet(context, onSaved: _goToRecordBranch),
-        ),
+        onAdd: () => _showRecordAddSheet(context, onSaved: _goToRecordBranch),
       ),
     );
   }

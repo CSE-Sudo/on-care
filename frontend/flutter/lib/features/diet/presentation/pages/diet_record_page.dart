@@ -26,7 +26,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 모양은 `oncare_ui` 컴포넌트와 토큰만 쓴다(#1700).
 class DietRecordPage extends ConsumerStatefulWidget {
-  const DietRecordPage({super.key});
+  const DietRecordPage({super.key, this.nutritionAnchorKey});
+
+  /// 사용 가이드가 영양 요약 카드의 자리를 재는 열쇠(#1857). 식단 탭은 이 값을
+  /// 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? nutritionAnchorKey;
 
   @override
   ConsumerState<DietRecordPage> createState() => _DietRecordPageState();
@@ -312,10 +316,13 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
                     icon: AppIcons.diet,
                     placement: AppStatePlacement.card,
                   )
-                : NutritionSummary(
-                    day: day,
-                    profile: profile,
-                    showHeader: false,
+                : KeyedSubtree(
+                    key: widget.nutritionAnchorKey,
+                    child: NutritionSummary(
+                      day: day,
+                      profile: profile,
+                      showHeader: false,
+                    ),
                   ),
           ),
         // 아래는 선택한 날짜 기준이라 기간과 무관하다.

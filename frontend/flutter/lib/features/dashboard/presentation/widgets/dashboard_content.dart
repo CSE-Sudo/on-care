@@ -45,10 +45,15 @@ class DashboardContent extends StatelessWidget {
     super.key,
     this.onNotificationTap,
     this.onCalendarTap,
+    this.adviceAnchorKey,
   });
 
   final VoidCallback? onNotificationTap;
   final VoidCallback? onCalendarTap;
+
+  /// 사용 가이드가 `오늘의 AI 통합 조언` 카드의 자리를 재는 열쇠(#1857). 홈은 이
+  /// 값을 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? adviceAnchorKey;
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +77,7 @@ class DashboardContent extends StatelessWidget {
                     onRetry: () => ref.invalidate(dashboardSummaryProvider),
                   ),
                   data: (DashboardSummary summary) => _DashboardData(
+                    adviceAnchorKey: adviceAnchorKey,
                     summary: summary,
                     // 홈 배너로 열어도 같은 시트다 — 배지도 같이 내려간다.
                     onCoachingTap: () => showCoachingSheet(context, ref: ref),
@@ -116,12 +122,14 @@ class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
 class _DashboardData extends StatelessWidget {
   const _DashboardData({
     required this.summary,
+    this.adviceAnchorKey,
     required this.onCoachingTap,
     required this.onDietTap,
     required this.onExerciseTap,
   });
 
   final DashboardSummary summary;
+  final GlobalKey? adviceAnchorKey;
   final VoidCallback onCoachingTap;
   final VoidCallback onDietTap;
   final VoidCallback onExerciseTap;
@@ -141,7 +149,10 @@ class _DashboardData extends StatelessWidget {
           ),
           const SizedBox(height: OnCareSpacing.cardGap),
         ],
-        _CoachingBanner(summary: summary, onTap: onCoachingTap),
+        KeyedSubtree(
+          key: adviceAnchorKey,
+          child: _CoachingBanner(summary: summary, onTap: onCoachingTap),
+        ),
         const SizedBox(height: OnCareSpacing.sectionGap),
         _DietNutritionCard(
           summary: summary,

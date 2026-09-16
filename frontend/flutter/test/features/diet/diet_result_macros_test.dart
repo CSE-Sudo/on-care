@@ -1,8 +1,11 @@
-/// 사진 분석 결과의 탄·단·지 표시와 AI 메시지 구분. (#1432)
+/// 사진 분석 결과의 영양 줄 구성과 AI 메시지 구분. (#1432, #1864)
 ///
 /// 서버는 이미 `total_carbs_g`·`total_protein_g`·`total_fat_g` 를 함께 주는데
 /// 앱이 읽지 않아, 분석 결과가 칼로리·나트륨·당류만 말했다. AI 가 쓴
 /// `coach_comment` 도 수치 카드와 같은 회색이라 서버가 잰 값처럼 보였다.
+///
+/// #1864 에서 줄 구성을 식단 상세와 같은 탄단지 기준으로 다시 맞췄다 — 탄·단·지를
+/// 작은 세 칸으로 따로 두던 묶음은 없어지고 칼로리와 같은 줄 모양이 되었다.
 library;
 
 import 'dart:typed_data';
@@ -10,6 +13,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
@@ -111,41 +115,105 @@ void main() {
     expect(result.totalFatG, 0);
   });
 
-  testWidgets('결과 화면이 칼로리와 함께 탄·단·지를 적는다', (WidgetTester tester) async {
+  testWidgets('영양 줄이 칼로리·탄수화물·당류·단백질·지방·나트륨 순으로 선다', (
+    WidgetTester tester,
+  ) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _openResultSheet(tester, FakeDietRepository());
 
-    final AppLocalizations l = AppLocalizations.of(
-      tester.element(find.byKey(const Key('diet-result-macros'))),
-    );
-    final Finder macros = find.byKey(const Key('diet-result-macros'));
-    expect(macros, findsOneWidget);
-    for (final String label in <String>[
+    final Finder block = find.byKey(const Key('diet-result-nutrition'));
+    expect(block, findsOneWidget);
+    final AppLocalizations l = AppLocalizations.of(tester.element(block));
+
+    // 식단 상세와 같은 순서다 — 당류는 탄수화물에 딸리고 나트륨이 맨 끝이다.
+    final List<String> order = <String>[
+      l.dietCalories,
       l.homeMacroCarbs,
+      l.dietSugar,
       l.homeMacroProtein,
       l.homeMacroFat,
+      l.dietSodium,
+    ];
+    double previous = double.negativeInfinity;
+    for (final String label in order) {
+      final Finder row = find.descendant(of: block, matching: find.text(label));
+      expect(row, findsOneWidget, reason: '$label 줄이 없다');
+      final double top = tester.getTopLeft(row).dy;
+      expect(top, greaterThan(previous), reason: '$label 이 순서에서 벗어났다');
+      previous = top;
+    }
+
+    // 대역이 준 값 그대로 — 화면에서 다시 계산하지 않는다.
+    for (final String value in <String>[
+      '615',
+      '92.5',
+      '9',
+      '21',
+      '14',
+      '1200',
     ]) {
       expect(
-        find.descendant(of: macros, matching: find.text(label)),
+        find.descendant(of: block, matching: find.text(value)),
         findsOneWidget,
       );
     }
-    // 대역이 준 값 그대로 — 화면에서 다시 계산하지 않는다. 숫자와 단위는
-    // 칼로리·나트륨·당류 행처럼 따로 선다(#1564).
-    for (final String grams in <String>['92.5', '21', '14']) {
-      expect(
-        find.descendant(of: macros, matching: find.text(grams)),
-        findsOneWidget,
-      );
-    }
+
+    // 당류만 한 칸 들어가 탄수화물에 딸린 값으로 읽힌다.
     expect(
-      find.descendant(of: macros, matching: find.text(l.dietUnitG)),
-      findsNWidgets(3),
+      find.descendant(of: block, matching: find.text('↳')),
+      findsOneWidget,
     );
-    // 나트륨·당류와 날짜 수정은 그대로다.
-    expect(find.text(l.dietSodium), findsOneWidget);
-    expect(find.text(l.dietSugar), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(
+            find.descendant(of: block, matching: find.text(l.dietSugar)),
+          )
+          .dx,
+      greaterThan(
+        tester
+            .getTopLeft(
+              find.descendant(of: block, matching: find.text(l.homeMacroCarbs)),
+            )
+            .dx,
+      ),
+    );
+
+    // 탄·단·지를 따로 묶던 작은 세 칸은 없어졌다.
+    expect(find.byKey(const Key('diet-result-macros')), findsNothing);
     expect(find.byKey(const Key('diet-result-date-change')), findsOneWidget);
+  });
+
+  testWidgets('인식된 음식을 고치는 자리는 연필 아이콘이다', (WidgetTester tester) async {
+    useFixedKstDate(DateTime(2026, 8, 20, 9));
+    await _openResultSheet(tester, FakeDietRepository());
+
+    final Finder edit = find.byKey(const Key('diet-result-edit'));
+    expect(edit, findsOneWidget);
+    expect(tester.widget<AppIconButton>(edit).icon, AppIcons.edit);
+    // 아이콘 하나뿐이라 tooltip 이 접근성 이름이다 — 글자 `수정` 을 대신한다.
+    final AppLocalizations l = AppLocalizations.of(tester.element(edit));
+    expect(tester.widget<AppIconButton>(edit).tooltip, l.actionEdit);
+    expect(find.widgetWithText(AppButton, l.actionEdit), findsNothing);
+  });
+
+  testWidgets('기록 날짜 줄은 라벨·값·버튼이 한 줄에서 가운데로 선다', (WidgetTester tester) async {
+    useFixedKstDate(DateTime(2026, 8, 20, 9));
+    await _openResultSheet(tester, FakeDietRepository());
+
+    final Finder value = find.byKey(const Key('diet-result-date'));
+    final AppLocalizations l = AppLocalizations.of(tester.element(value));
+    final Rect label = tester.getRect(find.text(l.dietRecordDate));
+    final Rect date = tester.getRect(value);
+    final Rect button = tester.getRect(
+      find.byKey(const Key('diet-result-date-change')),
+    );
+
+    expect(date.center.dy, label.center.dy);
+    expect(button.center.dy, label.center.dy);
+
+    // 위아래가 모두 구획이라 라벨도 같은 자리에서 시작해야 한 줄로 읽힌다.
+    expect(label.left, tester.getRect(find.text(l.dietCalories)).left);
+    expect(label.left, tester.getRect(find.text(l.dietRecognizedFood)).left);
   });
 
   testWidgets('AI 메시지는 수치 카드와 다른 파란 배경으로 구분된다', (WidgetTester tester) async {

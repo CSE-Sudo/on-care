@@ -738,6 +738,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         AppTile(
+          tone: AppTileTone.none,
           child: Row(
             children: <Widget>[
               Expanded(
@@ -764,52 +765,68 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
                   ],
                 ),
               ),
-              // 잘못 읽은 메뉴를 그 자리에서 고치러 간다(#1564).
-              AppButton(
+              // 잘못 읽은 메뉴를 그 자리에서 고치러 간다(#1564). 식단 상세가
+              // 연필을 쓰므로 여기서도 연필이다 — 같은 곳으로 가는 문이
+              // 화면마다 다른 모양이면 다른 동작으로 읽힌다(#1864).
+              AppIconButton(
                 key: const Key('diet-result-edit'),
-                label: l.actionEdit,
+                icon: AppIcons.edit,
+                tooltip: l.actionEdit,
+                size: AppIconButtonSize.small,
                 onPressed: r.entryId.isEmpty ? null : _openEdit,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
               ),
             ],
           ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         // 기록 날짜 — 기본은 오늘이고, 지난 식사의 사진이면 그 날로 옮긴다(#1241).
-        Row(
-          children: <Widget>[
-            Text(
-              l.dietRecordDate,
-              style: _text(
-                context,
-                OnCareTypography.label,
-                OnCareColors.textSecondary,
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s12),
-            Expanded(
-              child: Text(
-                _dateLabel(context, _date),
-                key: const Key('diet-result-date'),
+        //
+        // 위아래가 모두 구획이라 이 줄만 맨바닥이면 라벨이 `인식된 음식`·
+        // `칼로리` 보다 한 칸 왼쪽에서 시작한다. 같은 구획에 넣어 시작하는
+        // 자리를 맞춘다(#1864).
+        AppTile(
+          tone: AppTileTone.none,
+          child: Row(
+            children: <Widget>[
+              Text(
+                l.dietRecordDate,
                 style: _text(
                   context,
-                  OnCareTypography.strong(OnCareTypography.bodySmall),
-                  OnCareColors.textPrimary,
+                  OnCareTypography.label,
+                  OnCareColors.textSecondary,
                 ),
               ),
-            ),
-            if (_movingDate)
-              const AppLoading.inline()
-            else
-              AppButton(
-                key: const Key('diet-result-date-change'),
-                label: l.dietRecordDateChange,
-                onPressed: () => unawaited(_pickDate()),
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
+              const SizedBox(width: OnCareSpacing.s12),
+              Expanded(
+                child: Text(
+                  _dateLabel(context, _date),
+                  key: const Key('diet-result-date'),
+                  style: _text(
+                    context,
+                    OnCareTypography.strong(OnCareTypography.bodySmall),
+                    OnCareColors.textPrimary,
+                  ),
+                ),
               ),
-          ],
+              // 날짜를 옮기는 동안 버튼이 16 짜리 spinner 로 바뀐다. 자리를
+              // 잡아 두지 않으면 줄 높이가 32 에서 내려앉아 라벨과 값이
+              // 함께 튄다 — 두 상태가 같은 높이를 쓴다(#1864).
+              SizedBox(
+                height: tokens.density.buttonHeight(OnCareButtonSize.small),
+                child: Center(
+                  child: _movingDate
+                      ? const AppLoading.inline()
+                      : AppButton(
+                          key: const Key('diet-result-date-change'),
+                          label: l.dietRecordDateChange,
+                          onPressed: () => unawaited(_pickDate()),
+                          variant: AppButtonVariant.text,
+                          size: OnCareButtonSize.small,
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         Text(
@@ -821,32 +838,52 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           ),
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        _ResultRow(
-          label: l.dietCalories,
-          value: '${r.totalCalories}',
-          unit: l.unitKcal,
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        _ResultRow(
-          label: l.dietSodium,
-          value: '${r.totalSodiumMg}',
-          unit: l.dietUnitMg,
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        _ResultRow(
-          label: l.dietSugar,
-          // 서버가 준 double 을 그대로 문자열로 만들면 29.497999999999998 이
-          // 찍힌다 — 칼로리·나트륨과 같은 서식으로 맞춘다(#1564).
-          value: _gramsText(r.totalSugarG),
-          unit: l.dietUnitG,
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        // 탄·단·지는 칼로리를 나눈 것이라 한 줄에 묶는다(#1432).
-        _MacroRow(
-          key: const Key('diet-result-macros'),
-          carbsG: r.totalCarbsG,
-          proteinG: r.totalProteinG,
-          fatG: r.totalFatG,
+        // 탄단지가 기준이다 — 식단 상세의 영양 정보와 같은 순서로 읽힌다.
+        // 당류는 탄수화물의 일부라 바로 아래에 들여 붙이고, 나트륨은
+        // 탄단지가 아니라 맨 끝이다(#1864).
+        Column(
+          key: const Key('diet-result-nutrition'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _ResultRow(
+              label: l.dietCalories,
+              value: '${r.totalCalories}',
+              unit: l.unitKcal,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.homeMacroCarbs,
+              value: _gramsText(r.totalCarbsG),
+              unit: l.dietUnitG,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.dietSugar,
+              // 서버가 준 double 을 그대로 문자열로 만들면 29.497999999999998
+              // 이 찍힌다 — 칼로리·나트륨과 같은 서식으로 맞춘다(#1564).
+              value: _gramsText(r.totalSugarG),
+              unit: l.dietUnitG,
+              sub: true,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.homeMacroProtein,
+              value: _gramsText(r.totalProteinG),
+              unit: l.dietUnitG,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.homeMacroFat,
+              value: _gramsText(r.totalFatG),
+              unit: l.dietUnitG,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.dietSodium,
+              value: '${r.totalSodiumMg}',
+              unit: l.dietUnitMg,
+            ),
+          ],
         ),
         if (r.coachComment.isNotEmpty) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
@@ -881,110 +918,48 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   }
 }
 
-/// 탄·단·지 한 줄. 값 셋이 한 칼로리를 나눈 것이라 한 타일 안에 나란히 선다.
-///
-/// 색 견본은 두지 않는다 — 이 줄에는 대응하는 그래프가 없다(#1564). 수치는
-/// 칼로리·나트륨·당류 행과 같은 규칙이다: 숫자는 브랜드 색, 단위는 보조 색.
-///
-/// 서버가 0 을 주면 0 을 적는다: 값을 감추면 분석이 그 영양소를 재지 못한
-/// 것인지 정말 0 인지 알 수 없다.
-class _MacroRow extends StatelessWidget {
-  const _MacroRow({
-    super.key,
-    required this.carbsG,
-    required this.proteinG,
-    required this.fatG,
-  });
-
-  final double carbsG;
-  final double proteinG;
-  final double fatG;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final List<({String label, double grams})> parts =
-        <({String label, double grams})>[
-          (label: l.homeMacroCarbs, grams: carbsG),
-          (label: l.homeMacroProtein, grams: proteinG),
-          (label: l.homeMacroFat, grams: fatG),
-        ];
-    return AppTile(
-      child: Row(
-        children: <Widget>[
-          for (final part in parts)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    part.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _text(
-                      context,
-                      OnCareTypography.strong(OnCareTypography.caption),
-                      OnCareColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: OnCareSpacing.s2),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: <Widget>[
-                      Flexible(
-                        child: Text(
-                          _gramsText(part.grams),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: OnCareTypography.numeric(
-                            _text(
-                              context,
-                              OnCareTypography.titleSmall,
-                              tokens.brand.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: OnCareSpacing.s4),
-                      Text(
-                        l.dietUnitG,
-                        style: _text(
-                          context,
-                          OnCareTypography.bodySmall,
-                          OnCareColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
+/// 분석 결과의 영양 한 줄. 식단 상세의 [_NutrientRow] 와 같은 구성이고,
+/// 숫자만 브랜드 색이다 — 여기 값은 아직 저장 전이라 고친 값이 아니다.
 class _ResultRow extends StatelessWidget {
   const _ResultRow({
     required this.label,
     required this.value,
     required this.unit,
+    this.sub = false,
   });
+
+  /// 한 칸 들여쓰는 폭. 하위 항목이 상위 항목 라벨보다 안쪽에서 시작해야
+  /// `당류` 가 `탄수화물` 에 딸린 값으로 읽힌다 — 식단 상세와 같은 값이다.
+  static const double _subIndent = 16;
+
   final String label;
   final String value;
   final String unit;
+
+  /// 바로 위 항목의 하위 값인가 — 들여쓰고 앞에 `↳` 를 붙인다.
+  final bool sub;
 
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return AppTile(
+      tone: AppTileTone.none,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
+          if (sub) ...<Widget>[
+            const SizedBox(width: _subIndent),
+            Text(
+              '↳',
+              style: _text(
+                context,
+                OnCareTypography.bodySmall,
+                OnCareColors.textTertiary,
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s4),
+          ],
           Expanded(
             child: Text(
               label,
@@ -1126,6 +1101,15 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   late List<DietFood> _foods = List<DietFood>.of(widget.meal.items);
   bool _busy = false;
 
+  /// 이 화면은 보기로 열리고, 머리의 연필을 눌러야 입력 칸이 된다(#1856).
+  /// 대부분은 무엇을 먹었는지 다시 보려고 들어오지 고치려고 들어오지 않는다.
+  bool _editing = false;
+
+  /// 취소가 되돌아갈 자리. 저장에 성공하면 여기로 옮겨 온다 — 저장한 뒤에 다시
+  /// 고치다 취소했을 때 저장 이전 값으로 되돌아가면 안 된다.
+  late MealType _savedType = widget.meal.mealType;
+  late List<DietFood> _savedFoods = List<DietFood>.of(widget.meal.items);
+
   /// 음식 줄마다 하나씩. 컨트롤러를 줄 위젯이 아니라 시트가 들고 있어야
   /// 한 자 칠 때마다 새로 만들어지지 않는다 — 새로 만들면 커서가 맨 앞으로
   /// 튄다. 목록 순서와 1:1 로 붙어 다닌다(#1844).
@@ -1133,11 +1117,34 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     for (final DietFood f in _foods) _FoodEditors.of(f),
   ];
 
+  /// 음식마다 당류가 그 음식의 탄수화물을 넘지 않는지 본다(#1869). 당류는
+  /// 탄수화물의 일부라 그보다 클 수 없고, 서버도 같은 값을 422 로 거절한다
+  /// (#1863) — 앱이 먼저 막지 않으면 다 적고 저장을 누른 뒤에야 어느 칸이
+  /// 문제인지 모르는 실패 토스트만 뜬다.
+  ///
+  /// 줄 번호가 아니라 [_FoodEditors] 를 키로 쓴다. 음식을 지우면 아래 줄의
+  /// 번호가 당겨지므로, 번호로 기억해 두면 엉뚱한 줄에 빨간 글씨가 남는다.
+  late AppFieldErrors<_FoodEditors> _sugarErrors = AppFieldErrors<_FoodEditors>(
+    _checkSugar,
+  );
+
   /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
   /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
   static const double _photoHeight = 300;
 
   int get _total => _foods.fold(0, (int a, DietFood f) => a + f.kcal);
+
+  // 영양 합계는 저장된 끼니가 아니라 지금 화면의 음식에서 낸다. 서버도 같은
+  // 규칙으로 합치므로(`_sumMacro`), 음식을 고치면 저장 전에도 합계가 따라와야
+  // 한 화면에 서로 다른 숫자가 남지 않는다(#1856).
+  double _sumOf(double Function(DietFood) pick) =>
+      _foods.fold<double>(0, (double a, DietFood f) => a + pick(f));
+
+  double get _carbs => _sumOf((DietFood f) => f.carbsG);
+  double get _protein => _sumOf((DietFood f) => f.proteinG);
+  double get _fat => _sumOf((DietFood f) => f.fatG);
+  double get _sugar => _sumOf((DietFood f) => f.sugarG);
+  int get _sodium => _foods.fold(0, (int a, DietFood f) => a + f.sodiumMg);
 
   @override
   void dispose() {
@@ -1147,22 +1154,68 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     super.dispose();
   }
 
-  /// 한 줄의 이름·칼로리를 고친다. 나트륨·당류는 이 화면에서 손대지 않으므로
-  /// 원래 값을 그대로 옮긴다. `setState` 로 감싸는 이유는 아래 총 칼로리
-  /// 합계가 같이 따라와야 하기 때문이다.
-  void _editFood(int index, {String? name, int? kcal}) {
-    final DietFood old = _foods[index];
+  /// 빈 칸과 알아볼 수 없는 글자는 0 으로 읽는다 — 칸을 비워 지우는 것이
+  /// 0 을 적는 것과 같은 뜻이 되게.
+  static int _asInt(TextEditingController c) =>
+      int.tryParse(c.text.trim()) ?? 0;
+  static double _asDouble(TextEditingController c) =>
+      double.tryParse(c.text.trim()) ?? 0;
+
+  /// 당류 칸에 보일 오류 문구. 맞으면 null 이다.
+  String? _checkSugar(_FoodEditors e) {
+    final double carbs = _asDouble(e.carbs);
+    // 탄수화물이 0 이면 적지 않은 것으로 본다 — 서버도 그때는 검사하지
+    // 않으므로(#1877), 앱만 막으면 서버가 받아 주는 기록을 고칠 길이 없다.
+    // 실제로 탄수화물 없이 저장된 옛 기록이 있다.
+    if (carbs <= 0) return null;
+    // 같은 값은 통과한다 — 전부 당인 음식이 있다.
+    if (_asDouble(e.sugar) <= carbs) return null;
+    return AppLocalizations.of(context).dietSugarOverCarbs;
+  }
+
+  /// 그 음식의 입력 칸을 모두 읽어 `_foods` 에 반영한다. 한 칸만 바뀌어도
+  /// 전부 다시 읽는 편이 칸마다 따로 갈래를 두는 것보다 흘릴 값이 없다.
+  /// 매 글자마다 부르는 이유는 아래 총 칼로리와 영양 정보 합계가 입력을
+  /// 곧바로 따라와야 하기 때문이다.
+  void _syncFood(int index) {
+    final _FoodEditors e = _editors[index];
     setState(() {
       _foods = <DietFood>[..._foods]
         ..[index] = DietFood(
-          name ?? old.name,
-          kcal ?? old.kcal,
-          sodiumMg: old.sodiumMg,
-          sugarG: old.sugarG,
-          carbsG: old.carbsG,
-          proteinG: old.proteinG,
-          fatG: old.fatG,
+          e.name.text,
+          _asInt(e.kcal),
+          sodiumMg: _asInt(e.sodium),
+          sugarG: _asDouble(e.sugar),
+          carbsG: _asDouble(e.carbs),
+          proteinG: _asDouble(e.protein),
+          fatG: _asDouble(e.fat),
         );
+    });
+  }
+
+  void _beginEdit() => setState(() => _editing = true);
+
+  /// 수정을 접고 처음 값으로 되돌린다. 화면을 나가지는 않는다 — 보기 모드로만
+  /// 돌아간다. 컨트롤러는 그 줄이 트리에서 물러난 다음 프레임에 버린다.
+  void _cancelEdit() {
+    final List<_FoodEditors> stale = List<_FoodEditors>.of(_editors);
+    setState(() {
+      _editing = false;
+      _type = _savedType;
+      _foods = List<DietFood>.of(_savedFoods);
+      _editors
+        ..clear()
+        ..addAll(<_FoodEditors>[
+          for (final DietFood f in _foods) _FoodEditors.of(f),
+        ]);
+      // 접었다 다시 펴면 오류도 처음부터다 — 저장을 누른 적 없는 화면에
+      // 빨간 글씨가 먼저 서 있으면 안 된다(#1784).
+      _sugarErrors = AppFieldErrors<_FoodEditors>(_checkSugar);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final _FoodEditors e in stale) {
+        e.dispose();
+      }
     });
   }
 
@@ -1194,26 +1247,44 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       navigator.pop();
       return;
     }
+    // Drop empty draft rows (see `dietNewFood` placeholder) so a
+    // translation string never lands in stored food names.
+    // 영양은 이름·칼로리와 함께 되돌려 보낸다. 빠뜨리면 이 저장 한 번으로
+    // 그 끼니의 탄단지·나트륨·당류가 0 이 된다 — 합계가 음식별 값에서
+    // 계산되기 때문이다(#1853).
+    final List<FoodItem> foods = <FoodItem>[
+      for (final DietFood f in _foods)
+        if (f.name.trim().isNotEmpty)
+          FoodItem(
+            name: f.name.trim(),
+            calories: f.kcal,
+            sodiumMg: f.sodiumMg,
+            sugarG: f.sugarG,
+            carbsG: f.carbsG,
+            proteinG: f.proteinG,
+            fatG: f.fatG,
+          ),
+    ];
+    // 음식을 모두 지우고 저장했다면 빈 끼니를 남기는 대신 기록을 지울지
+    // 묻는다. 지우는 도중이 아니라 저장할 때 묻는 이유는, 한 줄씩 갈아 끼우는
+    // 동안 끼어들면 고치던 흐름이 끊기기 때문이다.
+    if (foods.isEmpty) {
+      await _confirmDelete(emptied: true);
+      return;
+    }
+    // 보낼 줄만 검사한다 — 이름이 빈 줄은 위에서 버려지므로, 거기 남은
+    // 숫자 때문에 저장이 막히면 어디를 고쳐야 하는지 알 수 없다.
+    final List<_FoodEditors> filled = <_FoodEditors>[
+      for (int i = 0; i < _foods.length; i++)
+        if (_foods[i].name.trim().isNotEmpty) _editors[i],
+    ];
+    // 틀린 칸 아래에 이유를 보이고 요청은 보내지 않는다(#1869).
+    if (!_sugarErrors.validate(filled)) {
+      setState(() {});
+      return;
+    }
     setState(() => _busy = true);
     try {
-      // Drop empty draft rows (see `dietNewFood` placeholder) so a
-      // translation string never lands in stored food names.
-      // 영양은 이름·칼로리와 함께 되돌려 보낸다. 빠뜨리면 이 저장 한 번으로
-      // 그 끼니의 탄단지·나트륨·당류가 0 이 된다 — 합계가 음식별 값에서
-      // 계산되기 때문이다(#1853).
-      final List<FoodItem> foods = <FoodItem>[
-        for (final DietFood f in _foods)
-          if (f.name.trim().isNotEmpty)
-            FoodItem(
-              name: f.name.trim(),
-              calories: f.kcal,
-              sodiumMg: f.sodiumMg,
-              sugarG: f.sugarG,
-              carbsG: f.carbsG,
-              proteinG: f.proteinG,
-              fatG: f.fatG,
-            ),
-      ];
       await ref
           .read(dietRepositoryProvider)
           .updateEntry(
@@ -1224,14 +1295,28 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
               0,
               (int a, FoodItem f) => a + f.calories,
             ),
+            // 나트륨·당류는 끼니 행에도 따로 저장된다 — 음식에서 다시 합쳐
+            // 보내지 않으면 음식별 값만 바뀌고 끼니 합계는 옛 숫자에 머문다.
+            sodiumMg: foods.fold<int>(0, (int a, FoodItem f) => a + f.sodiumMg),
+            sugarG: foods.fold<double>(
+              0,
+              (double a, FoodItem f) => a + f.sugarG,
+            ),
           );
-      // Page dismissed mid-save → don't pop the page below.
       if (!mounted) return;
       ref.invalidate(dietTodayProvider);
       // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
       // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
       ref.invalidate(dietByDateProvider(nowKst()));
-      navigator.pop();
+      // 화면을 닫지 않고 보기 모드로 돌아간다. 닫아 버리면 목록으로 나가는데
+      // 그 카드는 총 칼로리만 말하므로 방금 고친 값이 어떻게 됐는지 확인할
+      // 자리가 없다. 취소가 이 화면에 남는 것과도 짝이 맞는다.
+      setState(() {
+        _busy = false;
+        _editing = false;
+        _savedType = _type;
+        _savedFoods = List<DietFood>.of(_foods);
+      });
       if (!toastContext.mounted) return;
       showAppToast(toastContext, l.dietSaved, type: AppToastType.success);
     } catch (_) {
@@ -1242,7 +1327,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     }
   }
 
-  Future<void> _confirmDelete() async {
+  Future<void> _confirmDelete({bool emptied = false}) async {
     final String? id = widget.meal.id;
     if (id == null) {
       Navigator.of(context).pop();
@@ -1252,7 +1337,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.dietDeleteTitle,
-      message: l.dietDeleteConfirm,
+      message: emptied ? l.dietDeleteWhenEmpty : l.dietDeleteConfirm,
       confirmLabel: l.dietDelete,
       cancelLabel: l.dietCancel,
       destructive: true,
@@ -1305,6 +1390,8 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       key: const Key('mealDetailPage'),
       backgroundColor: OnCareColors.surfaceCard,
       // 뒤로는 앱바 한 곳, 저장은 하단 한 곳이다 — 머리의 글자 저장은 없다(#1700).
+      // 연필은 앱바가 아니라 `먹은 음식` 카드 머리에 둔다 — 고칠 것 바로 옆에
+      // 있어야 무엇을 여는 버튼인지 알아본다.
       appBar: AppTopBar(
         title: l.dietMealSheetTitle(mealBadge(l, widget.meal.mealType)),
       ),
@@ -1337,21 +1424,47 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            _FieldLabel(l.dietMealInfo),
-                            const SizedBox(height: OnCareSpacing.s12),
-                            Wrap(
-                              spacing: OnCareSpacing.s8,
-                              runSpacing: OnCareSpacing.s8,
+                            // 연필은 첫 카드에 둔다 — 수정 모드는 끼니 종류·
+                            // 시간·음식·영양을 한꺼번에 바꾸므로, 음식 카드에
+                            // 붙이면 음식만 고치는 것으로 읽힌다.
+                            Row(
                               children: <Widget>[
-                                for (final MealType t in _types)
-                                  AppChoiceChip(
-                                    label: mealBadge(l, t),
-                                    selected: _type == t,
-                                    onSelected: (_) =>
-                                        setState(() => _type = t),
+                                Expanded(child: _FieldLabel(l.dietMealInfo)),
+                                if (!_editing)
+                                  AppIconButton(
+                                    key: const Key('mealDetailEditButton'),
+                                    icon: AppIcons.edit,
+                                    tooltip: l.dietEditMeal,
+                                    size: AppIconButtonSize.small,
+                                    onPressed: _beginEdit,
                                   ),
                               ],
                             ),
+                            const SizedBox(height: OnCareSpacing.s12),
+                            // 보기 모드에서는 고른 끼니 하나만 보인다. 고를 수
+                            // 없는 칩 넷을 늘어놓으면 누를 수 있는 것처럼 읽힌다.
+                            if (_editing)
+                              Wrap(
+                                spacing: OnCareSpacing.s8,
+                                runSpacing: OnCareSpacing.s8,
+                                children: <Widget>[
+                                  for (final MealType t in _types)
+                                    AppChoiceChip(
+                                      label: mealBadge(l, t),
+                                      selected: _type == t,
+                                      onSelected: (_) =>
+                                          setState(() => _type = t),
+                                    ),
+                                ],
+                              )
+                            else
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: AppTag(
+                                  label: mealBadge(l, _type),
+                                  tone: AppTagTone.brand,
+                                ),
+                              ),
                             const SizedBox(height: OnCareSpacing.s16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1374,35 +1487,37 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                             Row(
                               children: <Widget>[
                                 Expanded(child: _FieldLabel(l.dietEatenFood)),
-                                AppButton(
-                                  label: l.dietAddFood,
-                                  leadingIcon: AppIcons.add,
-                                  variant: AppButtonVariant.text,
-                                  size: OnCareButtonSize.small,
-                                  onPressed: _addFood,
-                                ),
+                                if (_editing)
+                                  AppButton(
+                                    label: l.dietAddFood,
+                                    leadingIcon: AppIcons.add,
+                                    variant: AppButtonVariant.text,
+                                    size: OnCareButtonSize.small,
+                                    onPressed: _addFood,
+                                  ),
                               ],
                             ),
-                            Text(
-                              l.dietEditFoodHint,
-                              style: _text(
-                                context,
-                                OnCareTypography.caption,
-                                OnCareColors.textSecondary,
+                            if (_editing)
+                              Text(
+                                l.dietEditFoodHint,
+                                style: _text(
+                                  context,
+                                  OnCareTypography.caption,
+                                  OnCareColors.textSecondary,
+                                ),
                               ),
-                            ),
                             const SizedBox(height: OnCareSpacing.s12),
                             for (int i = 0; i < _foods.length; i++) ...<Widget>[
-                              _FoodRow(
-                                index: i + 1,
-                                nameController: _editors[i].name,
-                                kcalController: _editors[i].kcal,
-                                onNameChanged: (String v) =>
-                                    _editFood(i, name: v),
-                                onKcalChanged: (String v) =>
-                                    _editFood(i, kcal: int.tryParse(v) ?? 0),
-                                onDelete: () => _removeFood(i),
-                              ),
+                              if (_editing)
+                                _FoodEditBlock(
+                                  index: i + 1,
+                                  editors: _editors[i],
+                                  sugarError: _sugarErrors.of(_editors[i]),
+                                  onChanged: () => _syncFood(i),
+                                  onDelete: () => _removeFood(i),
+                                )
+                              else
+                                _FoodViewRow(index: i + 1, food: _foods[i]),
                               const SizedBox(height: OnCareSpacing.s8),
                             ],
                             const AppDivider(),
@@ -1458,34 +1573,32 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                             // 나누지 않는다 — 분석이 그만큼 재지 못한다.
                             _NutrientRow(
                               label: l.homeMacroCarbs,
-                              value: _gramsText(widget.meal.carbsG),
+                              value: _gramsText(_carbs),
                               unit: l.dietUnitG,
                             ),
                             const SizedBox(height: OnCareSpacing.s8),
                             _NutrientRow(
                               label: l.dietSugar,
-                              hint: l.dietSugarHint,
-                              value: _gramsText(widget.meal.sugar),
+                              value: _gramsText(_sugar),
                               unit: l.dietUnitG,
                               sub: true,
                             ),
                             const SizedBox(height: OnCareSpacing.s8),
                             _NutrientRow(
                               label: l.homeMacroProtein,
-                              value: _gramsText(widget.meal.proteinG),
+                              value: _gramsText(_protein),
                               unit: l.dietUnitG,
                             ),
                             const SizedBox(height: OnCareSpacing.s8),
                             _NutrientRow(
                               label: l.homeMacroFat,
-                              value: _gramsText(widget.meal.fatG),
+                              value: _gramsText(_fat),
                               unit: l.dietUnitG,
                             ),
                             const SizedBox(height: OnCareSpacing.s8),
                             _NutrientRow(
                               label: l.dietSodium,
-                              hint: l.dietSodiumHint,
-                              value: '${widget.meal.sodium}',
+                              value: '$_sodium',
                               unit: l.dietUnitMg,
                             ),
                           ],
@@ -1504,20 +1617,23 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    side,
-                    OnCareSpacing.s8,
-                    side,
-                    OnCareSpacing.s16,
+                // 취소·저장은 수정 중일 때만 있다. 보기로 들어왔을 뿐인데
+                // 저장 버튼이 서 있으면 무엇이 바뀌었는지 묻게 된다.
+                if (_editing)
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      side,
+                      OnCareSpacing.s8,
+                      side,
+                      OnCareSpacing.s16,
+                    ),
+                    child: AppButtonPair(
+                      cancelLabel: l.dietCancel,
+                      onCancel: _busy ? null : _cancelEdit,
+                      confirmLabel: l.dietSave,
+                      onConfirm: _busy ? null : _save,
+                    ),
                   ),
-                  child: AppButtonPair(
-                    cancelLabel: l.dietCancel,
-                    onCancel: _busy ? null : () => Navigator.of(context).pop(),
-                    confirmLabel: l.dietSave,
-                    onConfirm: _busy ? null : _save,
-                  ),
-                ),
               ],
             ),
           ),
@@ -1546,82 +1662,91 @@ class _FieldLabel extends StatelessWidget {
 /// 음식 한 줄이 쓰는 입력 컨트롤러 한 쌍. [_MealEditSheetState] 가 목록으로
 /// 들고 다닌다.
 class _FoodEditors {
-  _FoodEditors({required this.name, required this.kcal});
+  _FoodEditors({
+    required this.name,
+    required this.kcal,
+    required this.carbs,
+    required this.sugar,
+    required this.protein,
+    required this.fat,
+    required this.sodium,
+  });
 
-  /// 칼로리 0 은 빈 칸으로 연다 — 새로 추가한 줄에 `0` 이 적혀 있으면 지우고
-  /// 쓰는 일이 한 번 더 늘어난다.
+  /// 0 은 빈 칸으로 연다 — 새로 추가한 줄에 `0` 이 적혀 있으면 지우고 쓰는
+  /// 일이 한 번 더 늘어난다.
   factory _FoodEditors.of(DietFood food) => _FoodEditors(
     name: TextEditingController(text: food.name),
-    kcal: TextEditingController(text: food.kcal == 0 ? '' : '${food.kcal}'),
+    kcal: _intField(food.kcal),
+    carbs: _gramField(food.carbsG),
+    sugar: _gramField(food.sugarG),
+    protein: _gramField(food.proteinG),
+    fat: _gramField(food.fatG),
+    sodium: _intField(food.sodiumMg),
   );
+
+  static TextEditingController _intField(int v) =>
+      TextEditingController(text: v == 0 ? '' : '$v');
+
+  static TextEditingController _gramField(double v) =>
+      TextEditingController(text: v == 0 ? '' : _gramsText(v));
 
   final TextEditingController name;
   final TextEditingController kcal;
+  final TextEditingController carbs;
+  final TextEditingController sugar;
+  final TextEditingController protein;
+  final TextEditingController fat;
+  final TextEditingController sodium;
 
   void dispose() {
-    name.dispose();
-    kcal.dispose();
+    for (final TextEditingController c in <TextEditingController>[
+      name,
+      kcal,
+      carbs,
+      sugar,
+      protein,
+      fat,
+      sodium,
+    ]) {
+      c.dispose();
+    }
   }
 }
 
-/// 먹은 음식 한 줄 — 이름과 칼로리를 그 자리에서 고친다(#1844).
-///
-/// 예전에는 이름·칼로리를 글자로만 그려서, 잘못 인식된 음식을 고치려면 줄을
-/// 지우고 다시 넣는 수밖에 없었다. 바로 위 안내(`dietEditFoodHint`)가 이미
-/// "수정할 수 있어요" 라고 말하고 있었는데도 그랬다.
-class _FoodRow extends StatelessWidget {
-  const _FoodRow({
-    required this.index,
-    required this.nameController,
-    required this.kcalController,
-    required this.onNameChanged,
-    required this.onKcalChanged,
-    required this.onDelete,
-  });
-
-  /// 칼로리 칸은 네 자리(`9999`)면 한 끼니로 충분하다. 폭을 못 박아 두어야
-  /// 이름 칸이 칼로리 자릿수에 따라 늘었다 줄었다 하지 않는다.
-  static const double _kcalWidth = 76;
+/// 먹은 음식 한 줄 — 보기 모드의 읽기 전용 표시.
+class _FoodViewRow extends StatelessWidget {
+  const _FoodViewRow({required this.index, required this.food});
 
   final int index;
-  final TextEditingController nameController;
-  final TextEditingController kcalController;
-  final ValueChanged<String> onNameChanged;
-  final ValueChanged<String> onKcalChanged;
-  final VoidCallback onDelete;
+  final DietFood food;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppTile(
+      tone: AppTileTone.none,
       child: Row(
         children: <Widget>[
           AppTag(label: '$index', tone: AppTagTone.brand),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
-            child: AppTextField(
-              key: ValueKey<String>('diet-food-name-$index'),
-              controller: nameController,
-              hint: l.dietNewFood,
-              textInputAction: TextInputAction.next,
-              onChanged: onNameChanged,
+            child: Text(
+              food.name.trim().isEmpty ? l.dietNewFood : food.name,
+              style: _text(
+                context,
+                OnCareTypography.strong(OnCareTypography.body),
+                OnCareColors.textPrimary,
+              ),
             ),
           ),
-          const SizedBox(width: OnCareSpacing.s8),
-          SizedBox(
-            width: _kcalWidth,
-            child: AppTextField(
-              key: ValueKey<String>('diet-food-kcal-$index'),
-              controller: kcalController,
-              hint: '0',
-              keyboardType: TextInputType.number,
-              // 숫자만 받는다 — 빈 칸과 `-` 는 아래에서 0 으로 읽힌다.
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(4),
-              ],
-              textAlign: TextAlign.end,
-              onChanged: onKcalChanged,
+          Text(
+            '${food.kcal}',
+            style: OnCareTypography.numeric(
+              _text(
+                context,
+                OnCareTypography.strong(OnCareTypography.body),
+                OnCareColors.textPrimary,
+              ),
             ),
           ),
           const SizedBox(width: OnCareSpacing.s4),
@@ -1633,12 +1758,207 @@ class _FoodRow extends StatelessWidget {
               OnCareColors.textSecondary,
             ),
           ),
-          AppIconButton(
-            icon: AppIcons.close,
-            tooltip: l.a11yRemoveFood,
-            color: OnCareColors.textTertiary,
-            onPressed: onDelete,
+        ],
+      ),
+    );
+  }
+}
+
+/// 수정 모드의 음식 한 덩이 — 이름·칼로리와 그 음식의 영양을 한자리에서
+/// 고친다(#1856).
+///
+/// 끼니 단위 탄단지는 음식별 값의 합계라 영양 정보 카드에서는 고칠 자리가
+/// 없다. 값이 실제로 사는 곳이 여기다.
+class _FoodEditBlock extends StatelessWidget {
+  const _FoodEditBlock({
+    required this.index,
+    required this.editors,
+    required this.onChanged,
+    required this.onDelete,
+    this.sugarError,
+  });
+
+  /// 숫자 칸 폭. 못 박아 두어야 라벨 칸이 자릿수에 따라 늘었다 줄었다 하지
+  /// 않는다.
+  static const double _valueWidth = 88;
+
+  final int index;
+  final _FoodEditors editors;
+  final VoidCallback onChanged;
+  final VoidCallback onDelete;
+
+  /// 당류 칸 아래에 보일 오류 문구. null 이면 아무것도 그리지 않는다(#1869).
+  final String? sugarError;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppTile(
+      tone: AppTileTone.neutral,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              AppTag(label: '$index', tone: AppTagTone.brand),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                child: AppTextField(
+                  key: ValueKey<String>('diet-food-name-$index'),
+                  controller: editors.name,
+                  hint: l.dietNewFood,
+                  textInputAction: TextInputAction.next,
+                  onChanged: (_) => onChanged(),
+                ),
+              ),
+              AppIconButton(
+                key: ValueKey<String>('diet-food-remove-$index'),
+                icon: AppIcons.delete,
+                tooltip: l.a11yRemoveFood,
+                size: AppIconButtonSize.small,
+                color: OnCareColors.textTertiary,
+                onPressed: onDelete,
+              ),
+            ],
           ),
+          _field(
+            context,
+            fieldKey: 'diet-food-kcal-$index',
+            label: l.dietCalories,
+            unit: l.unitKcal,
+            controller: editors.kcal,
+            decimal: false,
+          ),
+          _field(
+            context,
+            fieldKey: 'diet-food-carbs-$index',
+            label: l.homeMacroCarbs,
+            unit: l.dietUnitG,
+            controller: editors.carbs,
+          ),
+          _field(
+            context,
+            fieldKey: 'diet-food-sugar-$index',
+            label: l.dietSugar,
+            unit: l.dietUnitG,
+            controller: editors.sugar,
+            sub: true,
+            error: sugarError,
+          ),
+          _field(
+            context,
+            fieldKey: 'diet-food-protein-$index',
+            label: l.homeMacroProtein,
+            unit: l.dietUnitG,
+            controller: editors.protein,
+          ),
+          _field(
+            context,
+            fieldKey: 'diet-food-fat-$index',
+            label: l.homeMacroFat,
+            unit: l.dietUnitG,
+            controller: editors.fat,
+          ),
+          _field(
+            context,
+            fieldKey: 'diet-food-sodium-$index',
+            label: l.dietSodium,
+            unit: l.dietUnitMg,
+            controller: editors.sodium,
+            decimal: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field(
+    BuildContext context, {
+    required String fieldKey,
+    required String label,
+    required String unit,
+    required TextEditingController controller,
+    bool decimal = true,
+    bool sub = false,
+    String? error,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              if (sub) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s16),
+                Text(
+                  '↳',
+                  style: _text(
+                    context,
+                    OnCareTypography.bodySmall,
+                    OnCareColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(width: OnCareSpacing.s4),
+              ],
+              Expanded(
+                child: Text(
+                  label,
+                  style: _text(
+                    context,
+                    OnCareTypography.bodySmall,
+                    OnCareColors.textSecondary,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: _valueWidth,
+                child: AppTextField(
+                  key: ValueKey<String>(fieldKey),
+                  controller: controller,
+                  hint: '0',
+                  keyboardType: TextInputType.numberWithOptions(
+                    decimal: decimal,
+                  ),
+                  // 숫자만 받는다 — 빈 칸은 0 으로 읽힌다.
+                  inputFormatters: <TextInputFormatter>[
+                    if (decimal)
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
+                    else
+                      FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  textAlign: TextAlign.end,
+                  onChanged: (_) => onChanged(),
+                ),
+              ),
+              const SizedBox(width: OnCareSpacing.s4),
+              Text(
+                unit,
+                style: _text(
+                  context,
+                  OnCareTypography.caption,
+                  OnCareColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          // 값 칸이 좁아(88) 그 안에 문구를 넣으면 한 자씩 끊겨 읽힌다.
+          // 줄 아래에 한 줄로 편다 — 색과 크기는 입력 칸 오류와 같다.
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: OnCareSpacing.s4),
+              child: Text(
+                error,
+                key: ValueKey<String>('$fieldKey-error'),
+                textAlign: TextAlign.end,
+                style: _text(
+                  context,
+                  OnCareTypography.caption,
+                  OnCareColors.danger,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1650,7 +1970,6 @@ class _NutrientRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.unit,
-    this.hint,
     this.sub = false,
   });
 
@@ -1662,16 +1981,13 @@ class _NutrientRow extends StatelessWidget {
   final String value;
   final String unit;
 
-  /// 권장량 안내. 탄수화물·단백질·지방에는 기준이 없어 비운다.
-  final String? hint;
-
   /// 바로 위 항목의 하위 값인가 — 들여쓰고 앞에 `↳` 를 붙인다.
   final bool sub;
 
   @override
   Widget build(BuildContext context) {
-    final String? hint = this.hint;
     return AppTile(
+      tone: AppTileTone.none,
       child: Row(
         children: <Widget>[
           if (sub) ...<Widget>[
@@ -1687,27 +2003,13 @@ class _NutrientRow extends StatelessWidget {
             const SizedBox(width: OnCareSpacing.s4),
           ],
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  label,
-                  style: _text(
-                    context,
-                    OnCareTypography.strong(OnCareTypography.bodySmall),
-                    OnCareColors.textPrimary,
-                  ),
-                ),
-                if (hint != null)
-                  Text(
-                    hint,
-                    style: _text(
-                      context,
-                      OnCareTypography.caption,
-                      OnCareColors.textSecondary,
-                    ),
-                  ),
-              ],
+            child: Text(
+              label,
+              style: _text(
+                context,
+                OnCareTypography.strong(OnCareTypography.bodySmall),
+                OnCareColors.textPrimary,
+              ),
             ),
           ),
           Text(
