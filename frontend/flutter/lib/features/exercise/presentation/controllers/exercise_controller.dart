@@ -459,11 +459,6 @@ final recommendedTrainersProvider = FutureProvider<List<Trainer>>((ref) async {
       .toList(growable: false);
 }, name: 'recommendedTrainers');
 
-/// "트레이너 찾기" 목록이 읽는 전체 디렉터리.
-final allTrainersProvider = FutureProvider<List<Trainer>>((ref) {
-  return ref.watch(gymRepositoryProvider).fetchAllTrainers();
-}, name: 'allTrainers');
-
 /// 한 트레이너의 예약 가능 시간. 트레이너별로 다르므로 family 로 둔다.
 /// 예약이 성사되면 이 provider 를 invalidate 해서 잔여 자리를 다시 읽는다.
 final trainerSlotsProvider = FutureProvider.family<List<TrainerSlot>, String>((

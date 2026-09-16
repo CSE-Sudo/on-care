@@ -1034,6 +1034,12 @@ abstract class AppLocalizations {
   /// **'Edit each food\'s nutrition and it adds up here'**
   String get dietEditNutritionHint;
 
+  /// No description provided for @dietSugarOverCarbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar can\'t be more than carbs'**
+  String get dietSugarOverCarbs;
+
   /// No description provided for @dietDeleteMeal.
   ///
   /// In en, this message translates to:
@@ -1718,12 +1724,6 @@ abstract class AppLocalizations {
   /// **'Search by area or gym name'**
   String get exGymSearchPlaceholder;
 
-  /// No description provided for @exTrainerSearchPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'Search by specialty or trainer name'**
-  String get exTrainerSearchPlaceholder;
-
   /// No description provided for @exSortRecommended.
   ///
   /// In en, this message translates to:
@@ -1741,12 +1741,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rating'**
   String get exSortRating;
-
-  /// No description provided for @exSortName.
-  ///
-  /// In en, this message translates to:
-  /// **'Name'**
-  String get exSortName;
 
   /// No description provided for @exResultCount.
   ///
@@ -2096,11 +2090,11 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get myCancel;
 
-  /// No description provided for @myTrainerGymTitle.
+  /// No description provided for @myGymTrainerTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Trainer & Gym'**
-  String get myTrainerGymTitle;
+  /// **'My Gym & Trainer'**
+  String get myGymTrainerTitle;
 
   /// No description provided for @myConnectionDeleteTitle.
   ///

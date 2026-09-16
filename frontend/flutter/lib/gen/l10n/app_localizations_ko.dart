@@ -515,6 +515,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietEditNutritionHint => '음식별 영양을 고치면 여기에 합쳐져요';
 
   @override
+  String get dietSugarOverCarbs => '당류는 탄수화물보다 클 수 없어요';
+
+  @override
   String get dietDeleteMeal => '식단 삭제';
 
   @override
@@ -885,9 +888,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exGymSearchPlaceholder => '지역이나 헬스장 이름 검색';
 
   @override
-  String get exTrainerSearchPlaceholder => '전문 분야나 트레이너 이름 검색';
-
-  @override
   String get exSortRecommended => '추천순';
 
   @override
@@ -895,9 +895,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exSortRating => '평점순';
-
-  @override
-  String get exSortName => '이름순';
 
   @override
   String exResultCount(int count) {
@@ -1098,7 +1095,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCancel => '취소';
 
   @override
-  String get myTrainerGymTitle => '내 트레이너 · 헬스장';
+  String get myGymTrainerTitle => '내 헬스장 · 트레이너';
 
   @override
   String get myConnectionDeleteTitle => '연결 삭제';

@@ -251,6 +251,7 @@
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
   "dietEditNutritionHint": "Edit each food's nutrition and it adds up here",
+  "dietSugarOverCarbs": "Sugar can't be more than carbs",
   "dietDeleteMeal": "Delete Meal",
   "dietEditMeal": "Edit meal",
   "exTypeCardio": "Cardio",
@@ -457,11 +458,9 @@
   "exGymNotFound": "Couldn't find this gym.",
   "exTrainerNotFound": "Couldn't find this trainer.",
   "exGymSearchPlaceholder": "Search by area or gym name",
-  "exTrainerSearchPlaceholder": "Search by specialty or trainer name",
   "exSortRecommended": "Recommended",
   "exSortDistance": "Distance",
   "exSortRating": "Rating",
-  "exSortName": "Name",
   "exResultCount": "{count, plural, =1{1 result} other{{count} results}}",
   "@exResultCount": {
     "placeholders": {
@@ -616,7 +615,7 @@
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
   "myCancel": "Cancel",
-  "myTrainerGymTitle": "My Trainer & Gym",
+  "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
   "myDelete": "Remove",
   "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.",

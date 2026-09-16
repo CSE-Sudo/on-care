@@ -9,7 +9,7 @@ class Trainer {
     required this.gymId,
     required this.name,
     this.role,
-    this.reason,
+    this.reasons = const <String>[],
     this.career,
     this.intro,
     this.certifications = const <String>[],
@@ -24,9 +24,11 @@ class Trainer {
   /// Job title (e.g. "퍼스널 트레이너"). Null falls back to a localized default.
   final String? role;
 
-  /// Why this trainer is recommended, shown on the 추천 트레이너 card/detail.
-  /// Null falls back to the generic localized reason.
-  final String? reason;
+  /// 이 트레이너를 추천하는 근거 키워드. 한 사람을 고를 이유가 하나뿐인 경우는
+  /// 드물어 목록으로 든다 — 헬스장 찾기 줄·트레이너 목록 카드·트레이너 상세가
+  /// 이걸 같은 알약으로 하나씩 그린다(#1881). 비어 있으면 근거가 없는 것이라,
+  /// 화면은 아무것도 적지 않거나 기본 문구로 갈음한다.
+  final List<String> reasons;
 
   /// Years of experience as free text (e.g. "7년"). Null hides the row.
   final String? career;
