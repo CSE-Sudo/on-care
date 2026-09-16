@@ -88,6 +88,63 @@ Vercel 프로젝트가 이 Git 저장소와 연결되어 있으면 저장소 안
 
 > `vercel.json`은 자동 배포를 코드 수준에서 막는 안전장치입니다. Git 연결 해제와 프로젝트 삭제는 외부 서비스 설정이므로 저장소 변경만으로 실행되지 않습니다.
 
+## 배포된 앱은 목 데이터로 돕니다
+
+지금 배포되는 회원 앱과 트레이너 웹은 **백엔드를 보지 않습니다.** 두 앱 모두 `USE_MOCK_API` 기본값이 `true` 인데, [`aws-frontend-deploy.yml`](../.github/workflows/aws-frontend-deploy.yml) 의 빌드 스텝이 그 값을 넘기지 않습니다.
+
+```yaml
+flutter build web --release --base-href "/frontend/"
+--dart-define=KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }}
+```
+
+`API_BASE_URL` 기본값도 `https://dev.api.oncare.example.com` 이라는 자리표시자입니다. 그래서 [`backend-deploy.yml`](../.github/workflows/backend-deploy.yml) 이 App Runner 에 백엔드를 올려 두어도 배포된 프론트는 그것을 쓰지 않고, 각 브라우저의 drift DB 안에서만 돕니다.
+
+**의도된 상태입니다** — 백엔드 없이도 화면을 보여 줄 수 있습니다. 대신 회원↔트레이너 연동은 배포 주소에서 확인되지 않습니다. 브라우저마다 자기 DB 를 보기 때문에, 트레이너 화면에서 회원이 올린 식단을 보려면 실 API 로 넘겨야 합니다.
+
+### 실 API 로 넘길 때 — 데모 데이터는 옮기지 않습니다
+
+김민수 계정의 데모 데이터는 **옮길 일이 없습니다.** 회원 앱의 목 데이터와 백엔드 시드가 이미 같은 픽스처를 읽습니다(#757).
+
+| 역할 | 경로 |
+| --- | --- |
+| 단일 원본 | `shared/demo_fixture/assets/kim_minsu.json` |
+| 백엔드 사본 | `backend/app/db/demo_fixture_data.json` — 내용이 같고 `tool/gen_demo_fixture.py` 가 두 곳에 함께 씁니다(백엔드 이미지가 `backend/` 만 담기 때문) |
+| 회원 앱 | `demo_fixture` 패키지로 읽습니다 (`lib/core/storage/seed_data.dart`) |
+| 백엔드 | 같은 픽스처를 김민수(`user-7d4e9a2c5f18`) 계정의 DB 행으로 심습니다 |
+
+`USE_MOCK_API=false` 로 넘겨도 김민수로 로그인하면 목 모드에서 보던 값이 그대로 보입니다. 두 가지만 다릅니다.
+
+- **김민수만 픽스처입니다.** 이지수·박성호와 4~15번 회원은 `backend/app/db/seed_member_data.py` 의 상수가 만들어서, 목 모드 값과 반드시 일치하지 않습니다.
+- **목 모드에서 직접 만든 데이터는 따라오지 않습니다.** 브라우저나 폰에서 저장한 식단은 그 기기의 drift DB 에만 남습니다.
+
+넘기려면 빌드 스텝에 dart-define 두 개를 더합니다.
+
+```yaml
+flutter build web --release --base-href "/frontend/"
+--dart-define=KAKAO_JS_KEY=${{ secrets.KAKAO_JS_KEY }}
+--dart-define=USE_MOCK_API=false
+--dart-define=API_BASE_URL=https://<App Runner 도메인>/v1
+```
+
+트레이너 웹 빌드 스텝에는 dart-define 이 하나도 없으므로, 거기에도 위 두 값을 새로 줘야 합니다.
+
+실기기에 설치한 APK 는 **다시 빌드해야 합니다.** `String.fromEnvironment` 는 컴파일 타임 상수라서 dart-define 값이 APK 안에 박히고, 이미 설치된 앱의 서버 주소는 나중에 바꿀 수 없습니다. 절차는 [`local_fullstack.md`](local_fullstack.md) 의 안드로이드 실기기 절에 있습니다.
+
+### `ENV=prod` 로 띄울 때 걸리는 것
+
+`backend/app/core/config.py` 는 `env=prod` 에서 아래를 만족하지 않으면 **기동을 거부합니다.** `.env.example` 기본값을 그대로 가져가면 둘이 바로 걸립니다.
+
+| 항목 | `.env.example` | prod 요구 |
+| --- | --- | --- |
+| `CORS_ALLOW_ORIGINS` | `*` | 와일드카드 금지 — 배포 도메인을 명시 |
+| `DEMO_LOGIN_PASSWORD` | `oncare123` | `SEED_DEMO_DATA=true` 면 기본값이 아닌 12자 이상 |
+| `JWT_SECRET` | 기본값 | 안전한 값 필수 |
+| `AUTO_CREATE_TABLES` | — | `false` — Alembic 을 스키마의 유일한 경로로 둡니다 |
+
+시연용으로 `SEED_DEMO_DATA=true` 를 켜면 `DEMO_LOGIN_PASSWORD` 를 바꿔야 하고, 그러면 [`local_fullstack.md`](local_fullstack.md) 의 데모 계정 표(`oncare123`)와 갈리므로 그쪽도 함께 손봅니다.
+
+`ENV` 를 `dev`·`staging` 으로 두면 이 가드가 걸리지 않는 대신 **CORS 가 `*` 로 열린 채 배포됩니다.**
+
 ## 배포 확인
 
 배포 완료 후 다음 항목을 확인합니다.
