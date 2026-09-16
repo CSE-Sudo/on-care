@@ -6,6 +6,8 @@
 ///
 /// 수정 화면은 무엇을 고치는 끼니인지부터 보여 준다 — 사진을 먼저 확인하고
 /// 숫자를 고치는 순서다.
+///
+/// 카드가 총 칼로리만 남긴 뒤로(#1848) 배지는 하나다. 색 규칙은 그대로다.
 library;
 
 import 'package:flutter/material.dart';
@@ -36,6 +38,15 @@ const DietMeal _breakfast = DietMeal(
   sodium: 221,
   sugar: 6.3,
 );
+
+/// 끼니 카드 하나로 범위를 좁히는 검색자.
+Finder get _anyMealCard => find
+    .byWidgetPredicate(
+      (Widget w) =>
+          w.key is ValueKey<String> &&
+          (w.key! as ValueKey<String>).value.startsWith('mealCard-'),
+    )
+    .first;
 
 void main() {
   Future<void> pumpDiet(WidgetTester tester) async {
@@ -69,15 +80,7 @@ void main() {
     final RichText rich = tester
         .widgetList<RichText>(
           find.descendant(
-            of: find
-                .byWidgetPredicate(
-                  (Widget w) =>
-                      w.key is ValueKey<String> &&
-                      (w.key! as ValueKey<String>).value.startsWith(
-                        'mealCard-',
-                      ),
-                )
-                .first,
+            of: _anyMealCard,
             matching: find.byWidgetPredicate(
               (Widget w) =>
                   w is RichText && w.text.toPlainText().startsWith('$text '),
@@ -99,10 +102,34 @@ void main() {
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(DietRecordPage)),
     );
-    // 대역의 아침은 217kcal · 나트륨 320mg — 세 지표 모두 목표 안쪽이다.
-    expect(badgeColorOf(tester, l.dietCalories), OnCareBrand.member.statusWithinGoal);
-    expect(badgeColorOf(tester, l.dietSugar), OnCareBrand.member.statusWithinGoal);
-    expect(badgeColorOf(tester, l.dietSodium), OnCareBrand.member.statusWithinGoal);
+    // 대역의 아침은 217kcal — 목표 안쪽이다.
+    expect(
+      badgeColorOf(tester, l.dietCalories),
+      OnCareBrand.member.statusWithinGoal,
+    );
+  });
+
+  testWidgets('끼니 카드에 남는 수치는 총 칼로리뿐이다', (WidgetTester tester) async {
+    await pumpDiet(tester);
+
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(DietRecordPage)),
+    );
+    // 나트륨·당류 배지와 탄단지 줄은 상세 화면 몫으로 옮겼다(#1848).
+    for (final String label in <String>[
+      l.dietSodium,
+      l.dietSugar,
+      l.homeMacroCarbs,
+    ]) {
+      expect(
+        find.descendant(
+          of: _anyMealCard,
+          matching: find.textContaining(label, findRichText: true),
+        ),
+        findsNothing,
+        reason: '끼니 카드에 `$label` 이 남아 있다',
+      );
+    }
   });
 
   testWidgets('목록 썸네일은 정사각 56 이다', (WidgetTester tester) async {
