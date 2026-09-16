@@ -2953,6 +2953,12 @@ abstract class AppLocalizations {
   /// **'Noted signals'**
   String get aicInsightHistoryTitle;
 
+  /// AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900).
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get aicInsightHistoryAction;
+
   /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
   ///
   /// In en, this message translates to:

@@ -65,9 +65,17 @@ class AppIcons {
   static const IconData help = Symbols.help_rounded;
   static const IconData privacy = Symbols.privacy_tip_rounded;
   static const IconData document = Symbols.description_rounded;
+  static const IconData note = Symbols.note_alt_rounded;
   static const IconData guide = Symbols.menu_book_rounded;
   static const IconData request = Symbols.assignment_rounded;
   static const IconData ai = Symbols.auto_awesome_rounded;
+
+  /// AI 챗봇으로 들어가는 자리 — 말풍선 안에 별. (#1900)
+  ///
+  /// [ai](반짝이)와 나눠 둔다. 반짝이는 "이 값은 AI 가 만들었다" 는 표시이고,
+  /// 이것은 "여기서 AI 와 이야기한다" 는 입구다. 옆자리의 트레이너 채팅([chat])과
+  /// 같은 말풍선 계열이라, 담당이 있고 없고에 따라 바뀌는 한 자리로 읽힌다.
+  static const IconData aiChat = Symbols.assistant_rounded;
 
   // --- 날짜·시간·장소 ---
   static const IconData calendar = Symbols.calendar_today_rounded;

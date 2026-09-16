@@ -89,6 +89,7 @@ class LocalApiInterceptor extends Interceptor {
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
     'GET /ai-coach/insights': _aiCoachInsights,
+    'GET /ai-coach/messages': _aiCoachHistory,
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
@@ -1904,8 +1905,10 @@ class LocalApiInterceptor extends Interceptor {
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
     final (String reply, List<String> sources) = _mockCoachReply(message);
-    // 감지 기록 창이 읽을 원문을 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
-    await _rememberAiCoachMessage(message);
+    // 주고받은 것을 그대로 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
+    // 감지 기록 창과 다시 열었을 때의 대화가 모두 여기서 나온다(#1900).
+    await _rememberAiCoachMessage(message, fromMember: true);
+    await _rememberAiCoachMessage(reply, fromMember: false, sources: sources);
     final ChatInsight? insight = detectChatInsight(message);
     return _ok(options, <String, Object?>{
       'reply': reply,
@@ -1916,17 +1919,120 @@ class LocalApiInterceptor extends Interceptor {
 
   static const String _aiCoachMessagesKey = 'ai_coach_user_messages';
 
-  /// 목업 대화의 회원 메시지. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  /// 데모 AI 코치가 처음부터 들고 있는 대화. (#1900)
+  ///
+  /// 예전에는 이 화면이 인사말 하나로 시작하고 감지 기록도 비어 있어, 처음 열어
+  /// 본 사람은 두 기능이 무엇을 하는지 알 수 없었다.
+  ///
+  /// **대화와 감지 기록은 이 한 곳에서 나온다.** 둘을 따로 적어 두면 기록에만
+  /// 있는 문장이 생겨 앞뒤가 맞지 않는다. 감지도 손으로 달지 않고 실제 규칙
+  /// ([detectChatInsight])에 태워, 데모가 실서버와 같은 것을 짚는다.
+  ///
+  /// `daysAgo` 로 적는 이유는 고정 날짜를 박아 두면 데모가 하루만 지나도 감지
+  /// 기간(30일) 밖으로 밀려나 기록이 비어 버리기 때문이다.
+  static const List<({int daysAgo, bool fromMember, String text, List<String> sources})>
+  _aiCoachSeed =
+      <({int daysAgo, bool fromMember, String text, List<String> sources})>[
+        (
+          daysAgo: 12,
+          fromMember: true,
+          text: '어제 스쿼트하고 나서 무릎이 좀 아파요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 12,
+          fromMember: false,
+          text:
+              '무릎이 불편하시군요. 오늘은 스쿼트 대신 자전거나 걷기처럼 무릎에 체중이 덜 실리는 운동으로 '
+              '바꿔 보세요. 통증이 사흘 넘게 이어지면 트레이너님께 꼭 알려 주세요.',
+          sources: <String>['무릎 관절 건강 수칙'],
+        ),
+        (
+          daysAgo: 5,
+          fromMember: true,
+          text: '오늘은 야근해서 운동 못 했어요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 5,
+          fromMember: false,
+          text:
+              '하루 쉬어도 괜찮아요. 이번 주에 이미 두 번 하셨으니 흐름은 살아 있어요. '
+              '내일 10분만 걸어도 다시 이어집니다. 🚶',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 2,
+          fromMember: true,
+          text: '단백질은 하루에 얼마나 먹어야 하나요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 2,
+          fromMember: false,
+          text:
+              '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 68kg이시니 하루 82~109g, '
+              '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+          sources: <String>['한국인 영양소 섭취기준'],
+        ),
+        (
+          daysAgo: 1,
+          fromMember: true,
+          text: '어깨가 뻐근해요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 1,
+          fromMember: false,
+          text:
+              '어깨는 굳기 쉬운 곳이라 운동 앞뒤로 풀어 주는 게 좋아요. 벽에 손을 대고 가슴을 여는 '
+              '스트레칭을 30초씩 세 번 해 보세요.',
+          sources: <String>[],
+        ),
+      ];
+
+  /// 목업 대화. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  ///
+  /// 아직 아무것도 없으면 [_aiCoachSeed] 를 깔아 둔다 — 데모를 처음 켠 사람도
+  /// 지난 대화와 감지 기록을 함께 본다.
   Future<List<Map<String, Object?>>> _aiCoachMessages() async {
     final String? raw = await _db.readValue(_aiCoachMessagesKey);
-    if (raw == null || raw.isEmpty) return <Map<String, Object?>>[];
+    if (raw == null || raw.isEmpty) {
+      final List<Map<String, Object?>> seeded = _seedAiCoachRows();
+      await _db.putValue(_aiCoachMessagesKey, jsonEncode(seeded));
+      return seeded;
+    }
     return <Map<String, Object?>>[
       for (final Object? row in jsonDecode(raw) as List<Object?>)
         if (row is Map) row.cast<String, Object?>(),
     ];
   }
 
-  Future<void> _rememberAiCoachMessage(String text) async {
+  static List<Map<String, Object?>> _seedAiCoachRows() {
+    final DateTime now = nowKst();
+    return <Map<String, Object?>>[
+      for (final turn in _aiCoachSeed)
+        <String, Object?>{
+          'id': 'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
+          'role': turn.fromMember ? 'user' : 'coach',
+          'text': turn.text,
+          'sources': turn.sources,
+          'created_at': now
+              .subtract(Duration(days: turn.daysAgo))
+              .toIso8601String(),
+        },
+    ];
+  }
+
+  /// 예전 저장분에는 역할이 없다 — 그때는 회원 메시지만 적었다.
+  static bool _isMemberRow(Map<String, Object?> row) =>
+      (row['role'] as String? ?? 'user') == 'user';
+
+  Future<void> _rememberAiCoachMessage(
+    String text, {
+    required bool fromMember,
+    List<String> sources = const <String>[],
+  }) async {
     final DateTime now = nowKst();
     final List<Map<String, Object?>> rows = <Map<String, Object?>>[
       for (final Map<String, Object?> row in await _aiCoachMessages())
@@ -1937,11 +2043,38 @@ class LocalApiInterceptor extends Interceptor {
           row,
       <String, Object?>{
         'id': 'local-ai-${now.microsecondsSinceEpoch}',
+        'role': fromMember ? 'user' : 'coach',
         'text': text,
+        'sources': sources,
         'created_at': now.toIso8601String(),
       },
     ];
     await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+  }
+
+  /// GET /ai-coach/messages — 저장된 대화, 오래된 것부터. (#1900)
+  ///
+  /// 실서버가 저장해 둔 대화를 돌려주는 자리다. 데모도 같은 모양으로 답해야
+  /// 화면이 이어 하는 대화로 열린다.
+  Future<Response<Object?>> _aiCoachHistory(RequestOptions options) async {
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    return _ok(options, <String, Object?>{
+      'messages': <Map<String, Object?>>[
+        for (final Map<String, Object?> row in rows)
+          <String, Object?>{
+            'role': _isMemberRow(row) ? 'user' : 'coach',
+            'content': row['text'],
+            'sources': row['sources'] ?? const <String>[],
+            if (_isMemberRow(row))
+              'insight': switch (detectChatInsight(
+                row['text'] as String? ?? '',
+              )) {
+                final ChatInsight insight => _insightJson(insight),
+                _ => null,
+              },
+          },
+      ],
+    });
   }
 
   static Map<String, Object?> _insightJson(ChatInsight insight) =>
@@ -1963,6 +2096,8 @@ class LocalApiInterceptor extends Interceptor {
         row['created_at'] as String? ?? '',
       );
       if (at == null || !isWithinInsightWindow(at, now)) continue;
+      // 코치 답변은 감지 대상이 아니다 — 감지는 회원이 한 말에서만 찾는다.
+      if (!_isMemberRow(row)) continue;
       final String text = row['text'] as String? ?? '';
       final ChatInsight? insight = detectChatInsight(text);
       if (insight == null) continue;

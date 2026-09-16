@@ -952,6 +952,8 @@
   "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
   "aicInsightHistoryTitle": "Noted signals",
   "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "aicInsightHistoryAction": "Notes",
+  "@aicInsightHistoryAction": {"description": "AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900)."},
   "aicInsightHistorySubtitle": "Pain and negative feedback noted in the last {days} days",
   "@aicInsightHistorySubtitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"days": {"type": "int"}}},
   "aicInsightHistoryEmpty": "Nothing noted in the last {days} days",

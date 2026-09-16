@@ -1594,6 +1594,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightHistoryTitle => '감지 기록';
 
   @override
+  String get aicInsightHistoryAction => '기록';
+
+  @override
   String aicInsightHistorySubtitle(int days) {
     return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
   }

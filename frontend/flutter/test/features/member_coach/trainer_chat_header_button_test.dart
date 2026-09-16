@@ -96,8 +96,9 @@ void main() {
     expect(find.byKey(const Key('trainerChatHeaderButton')), findsNothing);
     final Finder ai = find.byKey(const Key('aiChatHeaderButton'));
     expect(ai, findsOneWidget);
+    // 말풍선 안에 별 — 대화 입구라는 것이 아이콘만으로 읽혀야 한다(#1900).
     expect(
-      find.descendant(of: ai, matching: find.byIcon(AppIcons.ai)),
+      find.descendant(of: ai, matching: find.byIcon(AppIcons.aiChat)),
       findsOneWidget,
     );
     // 흐린 비활성 버튼이 아니라 눌리는 버튼이다.

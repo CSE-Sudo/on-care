@@ -32,7 +32,10 @@ class TrainerChatHeaderButton extends ConsumerWidget {
     if (coachAsync.hasValue && !coachAsync.hasError && coach == null) {
       return AppIconButton(
         key: const Key('aiChatHeaderButton'),
-        icon: AppIcons.ai,
+        // 말풍선 안에 별 — 대화 입구라는 것과 AI 라는 것을 함께 말한다(#1900).
+        // 반짝이 하나만 있을 때는 "AI 가 만든 값" 표시로 읽혀 눌러 볼 자리로
+        // 보이지 않았다.
+        icon: AppIcons.aiChat,
         tooltip: l.coachCtaChat,
         color: context.oncare.brand.primary,
         onPressed: () => context.push(AppRoutes.aiCoach),

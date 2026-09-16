@@ -1624,6 +1624,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightHistoryTitle => 'Noted signals';
 
   @override
+  String get aicInsightHistoryAction => 'Notes';
+
+  @override
   String aicInsightHistorySubtitle(int days) {
     return 'Pain and negative feedback noted in the last $days days';
   }
