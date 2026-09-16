@@ -1,9 +1,9 @@
-/// 끼니 카드의 오른쪽 위 아이콘은 '수정'을 뜻해야 한다 (#1431).
+/// 끼니 카드의 오른쪽 끝 아이콘은 '들어간다'를 뜻해야 한다 (#1848).
 ///
-/// 카드를 누르면 하위 상세 화면이 아니라 그 끼니의 **수정** 화면이 열린다.
-/// `>` 는 더 볼 것이 남았다는 뜻으로 읽혀 데모에서 카드 밖에 더 많은 정보가
-/// 있는 것처럼 보였다. 연필로 바꾸고, 아이콘을 눌러도 카드 본문과 똑같이
-/// 수정 화면으로 가는지까지 확인한다.
+/// 카드는 그 끼니의 상세 화면을 여는 자리다. 연필은 "이 자리에서 고친다"로
+/// 읽혀, 카드가 총 칼로리만 남기고 세부를 상세로 옮긴 뒤로는 뜻이 어긋난다
+/// (#1431 에서 `>` → 연필, 여기서 되돌린다). 화살표로 바꾸고, 아이콘을 눌러도
+/// 카드 본문과 똑같이 그 화면으로 가는지까지 확인한다.
 library;
 
 import 'package:flutter/material.dart';
@@ -34,7 +34,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(900, 2400));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    // 수정 화면으로 실제로 이동하는지 보려면 라우터가 필요하다. 앱 전체
+    // 상세 화면으로 실제로 이동하는지 보려면 라우터가 필요하다. 앱 전체
     // 라우터 대신 이 흐름에 쓰이는 두 경로만 세운다.
     final GoRouter router = GoRouter(
       routes: <RouteBase>[
@@ -68,28 +68,31 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('끼니 카드에는 `>` 대신 연필 아이콘이 있다', (WidgetTester tester) async {
+  testWidgets('끼니 카드에는 연필 대신 오른쪽 화살표가 있다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
-    expect(
-      find.descendant(of: _anyMealCard, matching: find.byIcon(AppIcons.edit)),
-      findsOneWidget,
-    );
     expect(
       find.descendant(
         of: _anyMealCard,
         matching: find.byIcon(AppIcons.chevronRight),
       ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: _anyMealCard, matching: find.byIcon(AppIcons.edit)),
       findsNothing,
     );
   });
 
-  testWidgets('연필 아이콘은 `식사 수정`으로 안내된다', (WidgetTester tester) async {
+  testWidgets('화살표는 `식사 수정`으로 안내된다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
     final Icon icon = tester.widget<Icon>(
       find
-          .descendant(of: _anyMealCard, matching: find.byIcon(AppIcons.edit))
+          .descendant(
+            of: _anyMealCard,
+            matching: find.byIcon(AppIcons.chevronRight),
+          )
           .first,
     );
     expect(icon.semanticLabel, '식사 수정');
@@ -99,12 +102,15 @@ void main() {
     );
   });
 
-  testWidgets('아이콘을 눌러도 카드 본문과 같은 수정 화면이 열린다', (WidgetTester tester) async {
+  testWidgets('아이콘을 눌러도 카드 본문과 같은 화면이 열린다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
     await tester.tap(
       find
-          .descendant(of: _anyMealCard, matching: find.byIcon(AppIcons.edit))
+          .descendant(
+            of: _anyMealCard,
+            matching: find.byIcon(AppIcons.chevronRight),
+          )
           .first,
     );
     await tester.pumpAndSettle();

@@ -1212,11 +1212,11 @@ class _MealCard extends StatelessWidget {
         children: <Widget>[
           Row(
             key: const ValueKey<String>('meal-card-header'),
-            // 연필은 늘 카드 오른쪽 끝이다(#761).
+            // 화살표는 늘 카드 오른쪽 끝이다(#761).
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               // 배지·시각은 한 덩이로 묶어 왼쪽에 붙이고, 남는 폭 안으로
-              // 접힌다(#739). 연필만 접지 않는다.
+              // 접힌다(#739). 화살표만 접지 않는다.
               Flexible(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1247,14 +1247,14 @@ class _MealCard extends StatelessWidget {
                   ],
                 ),
               ),
-              // 끼니 합계는 여기 적지 않는다 — 바로 아래 태그 줄의 칼로리와
-              // 같은 값이다(#761). 이 카드가 여는 것은 같은 끼니의 **수정**
-              // 화면이라 연필이다(#1431). 아이콘 자체는 탭을 먹지 않는다 —
-              // 카드 전체가 눌린다.
+              // 카드는 그 끼니의 상세 화면을 여는 자리다 — 세부 수치는 여기가
+              // 아니라 들어가서 본다(#1848). 연필은 "이 자리에서 고친다"로
+              // 읽혀 화살표로 되돌렸다. 아이콘 자체는 탭을 먹지 않는다 — 카드
+              // 전체가 눌린다.
               Tooltip(
                 message: l.dietEditMeal,
                 child: AppIcon(
-                  AppIcons.edit,
+                  AppIcons.chevronRight,
                   size: OnCareSize.iconSmall,
                   color: OnCareColors.textTertiary,
                   semanticLabel: l.dietEditMeal,
@@ -1269,112 +1269,48 @@ class _MealCard extends StatelessWidget {
               const SizedBox(width: OnCareSpacing.s12),
               Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
+                    // 카드에는 음식 이름만 남긴다 — kcal·나트륨·당류 세부는
+                    // 상세 화면 몫이다(#1848).
                     for (final DietFood f in meal.items)
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           vertical: OnCareSpacing.s2,
                         ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: <Widget>[
-                            Flexible(
-                              child: Text(
-                                f.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: _text(
-                                  context,
-                                  OnCareTypography.strong(
-                                    OnCareTypography.bodySmall,
-                                  ),
-                                  OnCareColors.textPrimary,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: OnCareSpacing.s8),
-                            // 영양 문자열도 접힌다(#739). 다만 말줄임이 아니라
-                            // 축소다 — `1,200mg` 이 `1,2…` 가 되면 다른 값으로
-                            // 읽힌다(#743).
-                            Flexible(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  '${f.kcal}${l.unitKcal} · '
-                                  '${_formatInt(f.sodiumMg)}${l.dietUnitMg} · '
-                                  '${_formatG(f.sugarG)}${l.dietUnitG}',
-                                  maxLines: 1,
-                                  style: OnCareTypography.numeric(
-                                    _text(
-                                      context,
-                                      OnCareTypography.caption,
-                                      OnCareColors.textSecondary,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          f.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: _text(
+                            context,
+                            OnCareTypography.strong(OnCareTypography.bodySmall),
+                            OnCareColors.textPrimary,
+                          ),
                         ),
                       ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          Wrap(
-            spacing: OnCareSpacing.s8,
-            runSpacing: OnCareSpacing.s8,
-            children: <Widget>[
-              // 같은 탭의 기간 그래프·나트륨 막대와 같은 색 규칙이다. (#1053,
-              // #1070) 좁은 폭·큰 글자에서는 말줄임 대신 태그를 줄인다 — 수치가
-              // 잘리면 다른 값으로 읽힌다(#743).
-              for (final (String label, AppTagTone tone) in <(String, AppTagTone)>[
-                (
-                  '${l.dietCalories} ${_formatInt(meal.total)} ${l.unitKcal}',
-                  AppTagTone.brand,
-                ),
-                (
-                  '${l.dietSodium} ${_formatInt(meal.sodium)} ${l.dietUnitMg}',
-                  // 나트륨이 과다하면 빨강, 그 외는 브랜드 색.
-                  meal.sodium > 1000 ? AppTagTone.danger : AppTagTone.brand,
-                ),
-                (
-                  '${l.dietSugar} ${_formatG(meal.sugar)} ${l.dietUnitG}',
-                  AppTagTone.brand,
-                ),
-              ])
-                FittedBox(
+              const SizedBox(width: OnCareSpacing.s8),
+              // 카드가 말하는 수치는 총 칼로리 하나다(#1848). 카드에 배지가
+              // 이것뿐이라 `칼로리` 라는 말은 붙이지 않는다 — 단위가 이미
+              // 무엇인지 말한다. 색은 같은 탭의 기간 그래프·나트륨 막대와 같은
+              // 규칙이다(#1053, #1070). 좁은 폭·큰 글자에서는 말줄임 대신
+              // 배지를 줄인다 — 수치가 잘리면 다른 값으로 읽힌다(#743).
+              Expanded(
+                child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: AppTag(label: label, tone: tone),
+                  alignment: Alignment.centerRight,
+                  child: AppTag(
+                    label: '${_formatInt(meal.total)} ${l.unitKcal}',
+                    tone: AppTagTone.brand,
+                  ),
                 ),
+              ),
             ],
           ),
-          // 탄단지는 태그 아래 한 줄로 작게 (#1170). 어느 끼니가 하루 합계를
-          // 만들었는지는 끼니 단위로 봐야 알 수 있다.
-          if (meal.carbsG > 0 || meal.proteinG > 0 || meal.fatG > 0) ...[
-            const SizedBox(height: OnCareSpacing.s8),
-            Text(
-              '${l.homeMacroCarbs} ${_formatG(meal.carbsG)}g · '
-              '${l.homeMacroProtein} ${_formatG(meal.proteinG)}g · '
-              '${l.homeMacroFat} ${_formatG(meal.fatG)}g',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: _text(
-                context,
-                OnCareTypography.strong(OnCareTypography.caption),
-                OnCareColors.textSecondary,
-              ),
-            ),
-          ],
-          if (meal.aiComment.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            _MealAiNote(text: meal.aiComment),
-          ],
         ],
       ),
     );
@@ -1400,41 +1336,4 @@ class _MealThumb extends StatelessWidget {
     width: _size,
     height: _size,
   );
-}
-
-/// Compact per-meal AI feedback line shown under the food breakdown.
-class _MealAiNote extends StatelessWidget {
-  const _MealAiNote({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return SizedBox(
-      width: double.infinity,
-      child: AppTile(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            AppIcon(
-              AppIcons.ai,
-              size: OnCareSize.iconSmall,
-              color: tokens.brand.primary,
-            ),
-            const SizedBox(width: OnCareSpacing.s8),
-            Expanded(
-              child: Text(
-                text,
-                style: _text(
-                  context,
-                  OnCareTypography.bodySmall,
-                  OnCareColors.textPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

@@ -18,6 +18,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../support/consultation_test_support.dart';
 
@@ -365,6 +366,23 @@ void main() {
     expect(find.byKey(const Key('gymTrainerChatButton')), findsNothing);
     expect(find.text(l.exConsultPendingStatus), findsNothing);
     expect(find.text('박최근'), findsNothing);
+  });
+
+  testWidgets('트레이너와 채팅 버튼은 헤더 채팅 아이콘과 같은 브랜드 색을 쓴다 (#1849)', (
+    WidgetTester tester,
+  ) async {
+    await pumpGymTab(tester, coach: _coach);
+    await scrollToCard(tester);
+
+    final AppButton chat = tester.widget<AppButton>(
+      find.descendant(
+        of: find.byKey(const Key('gymTrainerChatButton')),
+        matching: find.byType(AppButton),
+      ),
+    );
+    // 헤더 아이콘은 `context.oncare.brand.primary` 로 그려진다 — 같은 대화로
+    // 들어가는 버튼이니 브랜드 채움이어야 한다. 색 값은 적지 않는다.
+    expect(chat.variant, AppButtonVariant.primary);
   });
 
   testWidgets('connected trainer shows unread count and caps it at 99+', (
