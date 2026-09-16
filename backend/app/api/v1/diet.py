@@ -252,7 +252,11 @@ def update_entry(
     row = diet_service.get_owned_entry(db, current_user.id, entry_id)
     if row is None:
         raise HTTPException(status_code=404, detail="식단 기록을 찾을 수 없습니다.")
-    return diet_service.apply_entry_update(db, row, payload)
+    try:
+        return diet_service.apply_entry_update(db, row, payload)
+    except diet_service.NutritionInconsistentError as e:
+        # 형식은 맞지만 값끼리 어긋난다 — 422 로 돌려준다(#1863).
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @router.delete("/diet/entries/{entry_id}")

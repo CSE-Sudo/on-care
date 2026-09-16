@@ -681,6 +681,69 @@ def test_update_entry_rejects_negative_nutrition(client, field, value):
     assert r.status_code == 422
 
 
+def _analyzed_entry_id(client) -> str:
+    return client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    ).json()["entry_id"]
+
+
+def test_update_entry_rejects_sugar_over_carbs(client):
+    """당류는 탄수화물의 일부라 그보다 클 수 없다. (#1863)"""
+    entry_id = _analyzed_entry_id(client)
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={"carbs_g": 10.0, "sugar_g": 12.0},
+    )
+    assert r.status_code == 422
+    assert "당류" in r.json()["detail"]
+
+
+def test_update_entry_allows_sugar_equal_to_carbs(client):
+    """전부 당인 음식이 있으므로 같은 값은 통과한다."""
+    entry_id = _analyzed_entry_id(client)
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={"carbs_g": 10.0, "sugar_g": 10.0},
+    )
+    assert r.status_code == 200
+    assert r.json()["sugar_g"] == 10.0
+
+
+def test_update_entry_compares_sugar_against_stored_carbs(client):
+    """부분 수정이라 한쪽만 와도 저장된 값과 견준다."""
+    entry_id = _analyzed_entry_id(client)
+    assert (
+        client.put(
+            f"/v1/diet/entries/{entry_id}",
+            json={"carbs_g": 10.0, "sugar_g": 0.0},
+        ).status_code
+        == 200
+    )
+
+    # 당류만 보내도 저장해 둔 탄수화물 10g 과 견줘 막는다.
+    r = client.put(f"/v1/diet/entries/{entry_id}", json={"sugar_g": 12.0})
+    assert r.status_code == 422
+
+    # 탄수화물 안쪽이면 통과한다.
+    r = client.put(f"/v1/diet/entries/{entry_id}", json={"sugar_g": 4.0})
+    assert r.status_code == 200
+    assert r.json()["sugar_g"] == 4.0
+
+
+def test_analyze_is_not_blocked_by_inconsistent_nutrition(client):
+    """인식 엔진 출력에는 걸지 않는다 — 막으면 사진 분석 자체가 실패한다."""
+    r = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    )
+    assert r.status_code == 200
+
+
 def test_update_entry_moves_record_to_the_chosen_day(client, db_session):
     """지난 식사의 사진을 오늘 올려도 실제로 먹은 날에 남는다. (#1241)"""
     from datetime import timedelta
