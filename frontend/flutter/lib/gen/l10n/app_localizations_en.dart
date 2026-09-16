@@ -2560,6 +2560,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalsSaved => 'Health goals saved';
 
   @override
+  String myGoalRange(int min, int max) {
+    return 'Enter a value between $min and $max';
+  }
+
+  @override
   String get mySettingsLoadFailed => 'Couldn\'t load your settings';
 
   @override

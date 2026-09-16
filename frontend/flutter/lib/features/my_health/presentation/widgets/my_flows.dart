@@ -513,8 +513,58 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     if (widget.initial.weeklyFlexibilityMinutes == null) _kFlexibility,
   };
 
+  /// 칸마다 서버가 받는 범위(#1888). 서버 `health_goal_ranges` 와 같은 값을
+  /// `oncare_ui` 한 곳에서 읽는다 — 화면과 서버가 다른 기준을 말하면, 회원은
+  /// 이유를 알 수 없는 "저장에 실패했어요" 토스트만 보게 된다.
+  static const Map<String, AppGoalRange> _ranges = <String, AppGoalRange>{
+    _kKcal: AppGoalRanges.dailyCalories,
+    _kSodium: AppGoalRanges.dailySodiumMg,
+    _kSugar: AppGoalRanges.dailySugarG,
+    _kCarbs: AppGoalRanges.dailyCarbsG,
+    _kProtein: AppGoalRanges.dailyProteinG,
+    _kFat: AppGoalRanges.dailyFatG,
+    _kBurn: AppGoalRanges.dailyBurnKcal,
+    _kCardio: AppGoalRanges.weeklyCardioMinutes,
+    _kStrength: AppGoalRanges.weeklyStrengthSets,
+    _kFlexibility: AppGoalRanges.weeklyFlexibilityMinutes,
+  };
+
+  /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
+  /// 대로 다시 검사한다 — 프로필 모달과 같은 방식이다(#1883).
+  late final AppFieldErrors<String> _errors = AppFieldErrors<String>(_rangeError);
+
+  /// 그 칸의 지금 값이 범위를 벗어났는가.
+  ///
+  /// 빈 칸은 오류가 아니다 — 목표를 세우지 않는 것은 할 수 있는 일이고,
+  /// 빈 칸은 `목표 해제`로 나간다.
+  String? _rangeError(String key) {
+    final AppGoalRange range = _ranges[key]!;
+    if (!range.rejects(_controllerFor(key).text)) return null;
+    return AppLocalizations.of(context).myGoalRange(range.min, range.max);
+  }
+
+  TextEditingController _controllerFor(String key) => switch (key) {
+    _kKcal => _kcal,
+    _kSodium => _sodium,
+    _kSugar => _sugar,
+    _kCarbs => _carbs,
+    _kProtein => _protein,
+    _kFat => _fat,
+    _kBurn => _burn,
+    _kCardio => _cardio,
+    _kStrength => _strength,
+    _kFlexibility => _flexibility,
+    _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
+  };
+
   /// 그 칸은 이제 회원이 정한 값이다.
   void _markTouched(String key) => _prefilled.remove(key);
+
+  /// 칸을 고쳤다 — 손댄 것으로 표시하고, 오류를 보인 칸이 있으면 다시 그린다.
+  void _onGoalEdited(String key) {
+    _markTouched(key);
+    if (_errors.isWatching) setState(() {});
+  }
 
   /// 저장할 값. 아직 손대지 않은 권장값 칸은 `null` — 곧 '목표 없음' 이다.
   int? _valueToSave(String key, TextEditingController c) =>
@@ -661,6 +711,13 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   Future<void> _save() async {
     if (_saving) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 범위 밖 값이 있으면 보내지 않고 칸 아래에 알린다. 서버도 같은 기준으로
+    // 막지만(#1888), 거기서 걸리면 이유를 알 수 없는 "저장에 실패했어요"
+    // 토스트만 남는다 — 어느 칸이 문제인지는 여기서만 말해 줄 수 있다.
+    if (!_errors.validate(_ranges.keys)) {
+      setState(() {});
+      return;
+    }
     final NavigatorState navigator = Navigator.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     setState(() => _saving = true);
@@ -777,7 +834,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${exercise.dailyBurnKcal}',
-          onChanged: (_) => _markTouched(_kBurn),
+          errorText: _errors.of(_kBurn),
+          onChanged: (_) => _onGoalEdited(_kBurn),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
@@ -787,7 +845,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${exercise.weeklyCardioMinutes}',
-          onChanged: (_) => _markTouched(_kCardio),
+          errorText: _errors.of(_kCardio),
+          onChanged: (_) => _onGoalEdited(_kCardio),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
@@ -797,7 +856,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${exercise.weeklyStrengthSets}',
-          onChanged: (_) => _markTouched(_kStrength),
+          errorText: _errors.of(_kStrength),
+          onChanged: (_) => _onGoalEdited(_kStrength),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
@@ -807,7 +867,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${exercise.weeklyFlexibilityMinutes}',
-          onChanged: (_) => _markTouched(_kFlexibility),
+          errorText: _errors.of(_kFlexibility),
+          onChanged: (_) => _onGoalEdited(_kFlexibility),
         ),
         // 식단 목표의 `권장 비율로 채우기` 와 같은 자리·같은 모양이다 (#1139).
         // 권장값은 WHO 권고(주 150분 중강도 유산소)에서 시작해 고른 건강 목표로
@@ -830,12 +891,14 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       const SizedBox(height: OnCareSpacing.s8),
       _card(<Widget>[
         AppTextField(
+          key: const Key('goalCaloriesField'),
           label: l.myGoalCalories,
           controller: _kcal,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${UserProfile.defaultDailyCalories}',
           helper: _kcalFromMacros ? l.myGoalCaloriesFromMacros : null,
+          errorText: _errors.of(_kKcal),
           // 회원이 직접 고친 순간부터는 계산된 값이 아니다.
           onChanged: (_) => setState(() {
             _kcalFromMacros = false;
@@ -844,21 +907,25 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const Key('goalSodiumField'),
           label: l.myGoalSodium,
           controller: _sodium,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${UserProfile.defaultDailySodiumMg}',
-          onChanged: (_) => _markTouched(_kSodium),
+          errorText: _errors.of(_kSodium),
+          onChanged: (_) => _onGoalEdited(_kSodium),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const Key('goalSugarField'),
           label: l.myGoalSugar,
           controller: _sugar,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${UserProfile.defaultDailySugarG}',
-          onChanged: (_) => _markTouched(_kSugar),
+          errorText: _errors.of(_kSugar),
+          onChanged: (_) => _onGoalEdited(_kSugar),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
@@ -870,8 +937,11 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           hint: split == null
               ? '${UserProfile.defaultDailyCarbsG}'
               : '${split.carbs}',
+          errorText: _errors.of(_kCarbs),
           onChanged: (_) {
             _markTouched(_kCarbs);
+            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+            // 칸이 있으면 그 문구도 이때 다시 그려진다.
             _syncCaloriesFromMacros();
           },
         ),
@@ -885,8 +955,11 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           hint: split == null
               ? '${UserProfile.defaultDailyProteinG}'
               : '${split.protein}',
+          errorText: _errors.of(_kProtein),
           onChanged: (_) {
             _markTouched(_kProtein);
+            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+            // 칸이 있으면 그 문구도 이때 다시 그려진다.
             _syncCaloriesFromMacros();
           },
         ),
@@ -900,8 +973,11 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           hint: split == null
               ? '${UserProfile.defaultDailyFatG}'
               : '${split.fat}',
+          errorText: _errors.of(_kFat),
           onChanged: (_) {
             _markTouched(_kFat);
+            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+            // 칸이 있으면 그 문구도 이때 다시 그려진다.
             _syncCaloriesFromMacros();
           },
         ),

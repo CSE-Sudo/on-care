@@ -1548,6 +1548,8 @@
     "description": "Health goal field label."
   },
   "myGoalsSaved": "Health goals saved",
+  "myGoalRange": "Enter a value between {min} and {max}",
+  "@myGoalRange": {"description": "Health-goal field outside the range the server accepts (#1888). Shared by the MY goals sheet and onboarding steps 3-4.", "placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
   "@myGoalsSaved": {
     "description": "Shown after health goals are saved."
   },

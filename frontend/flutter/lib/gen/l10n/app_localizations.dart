@@ -4608,6 +4608,12 @@ abstract class AppLocalizations {
   /// **'Health goals saved'**
   String get myGoalsSaved;
 
+  /// Health-goal field outside the range the server accepts (#1888). Shared by the MY goals sheet and onboarding steps 3-4.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value between {min} and {max}'**
+  String myGoalRange(int min, int max);
+
   /// Title of the banner shown when settings fail to load.
   ///
   /// In en, this message translates to:
