@@ -575,6 +575,7 @@
   "aicInsightDiscomfort": "통증 감지",
   "aicInsightNegative": "부정적 반응 감지",
   "aicInsightHistoryTitle": "감지 기록",
+  "aicInsightHistoryAction": "기록",
   "aicInsightHistorySubtitle": "최근 {days}일 동안 대화에서 감지한 통증·부정적 반응이에요",
   "aicInsightHistoryEmpty": "최근 {days}일 동안 감지된 내용이 없어요",
   "aicInsightHistoryFailed": "감지 기록을 불러오지 못했어요",

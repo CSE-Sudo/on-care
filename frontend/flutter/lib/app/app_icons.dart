@@ -65,9 +65,11 @@ class AppIcons {
   static const IconData help = Symbols.help_rounded;
   static const IconData privacy = Symbols.privacy_tip_rounded;
   static const IconData document = Symbols.description_rounded;
+  static const IconData note = Symbols.note_alt_rounded;
   static const IconData guide = Symbols.menu_book_rounded;
   static const IconData request = Symbols.assignment_rounded;
   static const IconData ai = Symbols.auto_awesome_rounded;
+
 
   // --- 날짜·시간·장소 ---
   static const IconData calendar = Symbols.calendar_today_rounded;

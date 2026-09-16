@@ -255,7 +255,16 @@ class AppChatInputBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.all(OnCareSpacing.s12),
+          // 둥근 모서리의 기기에서는 화면 밑동의 양 끝이 곡면에 잘린다. 입력줄을
+          // 좌우로 들이고 아래로 띄워, 첨부·전송 버튼이 그 곡면에 닿지 않게
+          // 한다(#1900). 위쪽보다 아래쪽을 더 두는 것은 안전영역이 0 인 기기
+          // (구형 안드로이드·웹)에서도 같은 여백이 남아야 하기 때문이다.
+          padding: const EdgeInsets.fromLTRB(
+            OnCareSpacing.s16,
+            OnCareSpacing.s12,
+            OnCareSpacing.s16,
+            OnCareSpacing.s16,
+          ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[

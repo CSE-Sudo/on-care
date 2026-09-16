@@ -41,6 +41,7 @@ class AppIconButton extends StatelessWidget {
     this.variant = AppIconButtonVariant.plain,
     this.size = AppIconButtonSize.medium,
     this.color,
+    this.glyph,
   });
 
   /// 작은 버튼의 한 변과 아이콘. 웹 밀도와 같은 값이라 새 치수를 만들지 않는다.
@@ -58,11 +59,18 @@ class AppIconButton extends StatelessWidget {
   /// [AppIconButtonVariant.plain] 의 아이콘 색. 비우면 본문 색이다.
   final Color? color;
 
+  /// 글꼴 하나로 그릴 수 없는 마크를 대신 그린다(예: [AppAiChatGlyph]). 주면
+  /// [icon] 대신 이것이 그려지고, 크기·색은 버튼이 정한 값이 [IconTheme] 으로
+  /// 내려간다. [icon] 은 그대로 받아 둔다 — 마크가 무엇의 자리인지 코드에서
+  /// 읽히고, 테스트와 하드코딩 가드가 등록부의 아이콘을 따라갈 수 있다.
+  final Widget? glyph;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     return _SquareIconButton(
       icon: icon,
+      glyph: glyph,
       tooltip: tooltip,
       onPressed: onPressed,
       dimension: switch (size) {
@@ -141,9 +149,11 @@ class _SquareIconButton extends StatelessWidget {
     required this.iconSize,
     required this.background,
     required this.foreground,
+    this.glyph,
   });
 
   final IconData icon;
+  final Widget? glyph;
   final String tooltip;
   final VoidCallback? onPressed;
   final double dimension;
@@ -157,7 +167,7 @@ class _SquareIconButton extends StatelessWidget {
     return IconButton(
       onPressed: onPressed,
       tooltip: tooltip,
-      icon: AppIcon(icon),
+      icon: glyph ?? AppIcon(icon),
       style: ButtonStyle(
         fixedSize: WidgetStatePropertyAll<Size>(Size.square(dimension)),
         minimumSize: WidgetStatePropertyAll<Size>(Size.square(dimension)),
