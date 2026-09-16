@@ -323,3 +323,68 @@ def test_health_goals_cleans_legacy_condition_names_but_keeps_trainer_notes(clie
 
     assert saved.status_code == 200
     assert saved.json()["conditions"] == "체중 감량, 혈압 관리, 무릎 통증으로 러닝 자제"
+
+
+# ---- 연락처 형식 (#1883) ----
+#
+# 가입은 #1780 이 막았지만 이 화면은 같은 값을 다른 문으로 쓴다. 이메일은
+# **로그인하는 값**이라, 형식을 보지 않으면 오타 한 번이 계정 잠김이 된다.
+
+
+@pytest.mark.parametrize("email", ["asdf", "member@oncare", "", "  "])
+def test_update_me_rejects_malformed_email(client, email):
+    token, original = _register_and_login(client)
+    r = client.put("/v1/users/me", json={"email": email}, headers=_auth(token))
+    assert r.status_code == 422, r.text
+
+    # 계정은 그대로다 — 원래 주소로 계속 로그인할 수 있다.
+    again = client.post(
+        "/v1/auth/login", data={"username": original, "password": "pw-12345!"}
+    )
+    assert again.status_code == 200, again.text
+
+
+@pytest.mark.parametrize("phone", ["없음", "010-1234-567", "0101234"])
+def test_update_me_rejects_malformed_phone(client, phone):
+    token, _ = _register_and_login(client)
+    r = client.put("/v1/users/me", json={"phone": phone}, headers=_auth(token))
+    assert r.status_code == 422, r.text
+
+
+def test_update_me_normalizes_phone_like_signup(client):
+    """가입과 같은 표기로 정리한다 — 여기서 되돌려지면 정규화가 무의미하다."""
+    token, _ = _register_and_login(client)
+    r = client.put("/v1/users/me", json={"phone": "01012345678"}, headers=_auth(token))
+    assert r.status_code == 200, r.text
+    assert r.json()["phone"] == "010-1234-5678"
+
+    profile = client.get("/v1/users/me/profile", headers=_auth(token))
+    assert profile.json()["phone"] == "010-1234-5678"
+
+
+def test_update_me_allows_clearing_phone(client):
+    """연락처를 지우는 것은 할 수 있는 일이다. 이메일과 다르다."""
+    token, _ = _register_and_login(client)
+    assert (
+        client.put(
+            "/v1/users/me", json={"phone": "010-1234-5678"}, headers=_auth(token)
+        ).status_code
+        == 200
+    )
+    r = client.put("/v1/users/me", json={"phone": ""}, headers=_auth(token))
+    assert r.status_code == 200, r.text
+    assert r.json()["phone"] == ""
+
+
+def test_update_me_accepts_a_valid_email_change(client):
+    """막는 것은 형식이 틀린 값뿐이다 — 제대로 된 주소로는 바꿀 수 있다."""
+    token, _ = _register_and_login(client)
+    new_email = f"prof-moved-{uuid4().hex[:8]}@oncare.com"
+    r = client.put("/v1/users/me", json={"email": new_email}, headers=_auth(token))
+    assert r.status_code == 200, r.text
+    assert r.json()["email"] == new_email
+
+    moved = client.post(
+        "/v1/auth/login", data={"username": new_email, "password": "pw-12345!"}
+    )
+    assert moved.status_code == 200, moved.text
