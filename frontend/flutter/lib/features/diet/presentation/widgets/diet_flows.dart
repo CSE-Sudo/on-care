@@ -1418,18 +1418,41 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                               ),
                             ),
                             const SizedBox(height: OnCareSpacing.s12),
+                            // 탄단지가 기준이다. 당류는 탄수화물의 일부라
+                            // 바로 아래에 들여 붙이고, 나트륨은 탄단지가
+                            // 아니라 맨 끝에 둔다. 지방은 포화·트랜스까지
+                            // 나누지 않는다 — 분석이 그만큼 재지 못한다.
                             _NutrientRow(
-                              label: l.dietSodium,
-                              hint: l.dietSodiumHint,
-                              value: '${widget.meal.sodium}',
-                              unit: l.dietUnitMg,
+                              label: l.homeMacroCarbs,
+                              value: _gramsText(widget.meal.carbsG),
+                              unit: l.dietUnitG,
                             ),
                             const SizedBox(height: OnCareSpacing.s8),
                             _NutrientRow(
                               label: l.dietSugar,
                               hint: l.dietSugarHint,
-                              value: '${widget.meal.sugar}',
+                              value: _gramsText(widget.meal.sugar),
                               unit: l.dietUnitG,
+                              sub: true,
+                            ),
+                            const SizedBox(height: OnCareSpacing.s8),
+                            _NutrientRow(
+                              label: l.homeMacroProtein,
+                              value: _gramsText(widget.meal.proteinG),
+                              unit: l.dietUnitG,
+                            ),
+                            const SizedBox(height: OnCareSpacing.s8),
+                            _NutrientRow(
+                              label: l.homeMacroFat,
+                              value: _gramsText(widget.meal.fatG),
+                              unit: l.dietUnitG,
+                            ),
+                            const SizedBox(height: OnCareSpacing.s8),
+                            _NutrientRow(
+                              label: l.dietSodium,
+                              hint: l.dietSodiumHint,
+                              value: '${widget.meal.sodium}',
+                              unit: l.dietUnitMg,
                             ),
                           ],
                         ),
@@ -1591,20 +1614,44 @@ class _FoodRow extends StatelessWidget {
 class _NutrientRow extends StatelessWidget {
   const _NutrientRow({
     required this.label,
-    required this.hint,
     required this.value,
     required this.unit,
+    this.hint,
+    this.sub = false,
   });
+
+  /// 한 칸 들여쓰는 폭. 하위 항목이 상위 항목 라벨보다 안쪽에서 시작해야
+  /// `당류` 가 `탄수화물` 에 딸린 값으로 읽힌다.
+  static const double _subIndent = 16;
+
   final String label;
-  final String hint;
   final String value;
   final String unit;
 
+  /// 권장량 안내. 탄수화물·단백질·지방에는 기준이 없어 비운다.
+  final String? hint;
+
+  /// 바로 위 항목의 하위 값인가 — 들여쓰고 앞에 `↳` 를 붙인다.
+  final bool sub;
+
   @override
   Widget build(BuildContext context) {
+    final String? hint = this.hint;
     return AppTile(
       child: Row(
         children: <Widget>[
+          if (sub) ...<Widget>[
+            const SizedBox(width: _subIndent),
+            Text(
+              '↳',
+              style: _text(
+                context,
+                OnCareTypography.bodySmall,
+                OnCareColors.textTertiary,
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s4),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1617,14 +1664,15 @@ class _NutrientRow extends StatelessWidget {
                     OnCareColors.textPrimary,
                   ),
                 ),
-                Text(
-                  hint,
-                  style: _text(
-                    context,
-                    OnCareTypography.caption,
-                    OnCareColors.textSecondary,
+                if (hint != null)
+                  Text(
+                    hint,
+                    style: _text(
+                      context,
+                      OnCareTypography.caption,
+                      OnCareColors.textSecondary,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
