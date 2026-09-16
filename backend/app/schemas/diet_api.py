@@ -129,6 +129,35 @@ class DietEntryUpdate(PartialUpdate):
         return parsed.isoformat()
 
 
+class FoodNutritionRequest(BaseModel):
+    """이름으로 공공 영양 DB 를 찾는 요청. (#1896)
+
+    `amount_g` 를 주면 그 양으로 환산하고, 안 주면 DB 가 아는 1회 섭취량을 쓴다.
+    둘 다 없으면 찾은 셈 치지 않는다 — 확정할 수 없는 숫자를 "공공 DB 근거" 로
+    내주지 않는 것이 보정(`nutrition/enrich`)과 같은 원칙이다.
+    """
+    name: str
+    amount_g: float | None = Field(None, gt=0, allow_inf_nan=False)
+
+
+class FoodNutritionOut(BaseModel):
+    """그 이름으로 찾은 영양 한 벌. 못 찾았으면 `matched_name` 이 null 이다.
+
+    `matched_name` 은 회원이 적은 말이 아니라 **DB 의 대표 이름**이다. 매칭이
+    포함 관계로도 붙기 때문에(`match_in_rows`) 무엇에 붙었는지 화면이 보여 줄
+    수 있어야 한다 — 운동이 `matched_name` 을 그렇게 쓴다(#1312).
+    """
+    matched_name: str | None = None
+    source: str = "estimate"
+    amount_g: float | None = None
+    calories: int | None = None
+    carbs_g: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
+    sodium_mg: int | None = None
+    sugar_g: float | None = None
+
+
 class DietAdviceResponse(BaseModel):
     """기간에 맞는 식단 조언. (#1017)
 

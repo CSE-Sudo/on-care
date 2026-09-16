@@ -3,6 +3,7 @@ import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -90,6 +91,18 @@ class DioDietRepository implements DietRepository {
   @override
   Future<void> deleteEntry(String id) async {
     await _dio.delete<Map<String, Object?>>('/diet/entries/$id');
+  }
+
+  @override
+  Future<FoodNutritionSuggestion?> lookupFoodNutrition({
+    required String name,
+    double? amountG,
+  }) async {
+    final res = await _dio.post<Map<String, Object?>>(
+      '/diet/nutrition',
+      data: <String, Object?>{'name': name, 'amount_g': ?amountG},
+    );
+    return FoodNutritionSuggestion.fromJson(res.data!);
   }
 
   @override

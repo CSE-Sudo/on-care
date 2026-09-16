@@ -656,6 +656,214 @@ def test_delete_entry_404_when_missing(client):
     assert r.status_code == 404
 
 
+def test_food_nutrition_lookup_finds_a_known_name(client):
+    """이름으로 공공 DB 값을 찾는다 — 수정 화면이 제안에 쓴다. (#1896)
+
+    양을 주지 않으면 DB 가 아는 1회 섭취량으로 환산한다(보정과 같은 폴백).
+    """
+    r = client.post("/v1/diet/nutrition", json={"name": "짜장면"})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["matched_name"] == "짜장면"
+    assert body["source"] == "db"
+    # 시드가 1인분으로 적어 둔 값이 100g 환산을 왕복해 돌아온다.
+    assert body["amount_g"] == 650
+    assert body["calories"] == pytest.approx(700, abs=2)
+    assert body["sodium_mg"] == pytest.approx(2400, abs=5)
+
+
+def test_food_nutrition_lookup_scales_to_the_amount_it_is_given(client):
+    """양을 주면 그 양으로 환산한다 — 지금 먹은 양의 값을 제안해야 한다."""
+    whole = client.post("/v1/diet/nutrition", json={"name": "짜장면"}).json()
+    half = client.post(
+        "/v1/diet/nutrition", json={"name": "짜장면", "amount_g": 325}
+    ).json()
+    assert half["amount_g"] == 325
+    assert half["calories"] == pytest.approx(whole["calories"] / 2, abs=2)
+    assert half["sodium_mg"] == pytest.approx(whole["sodium_mg"] / 2, abs=2)
+
+
+def test_food_nutrition_lookup_says_nothing_when_it_cannot_be_sure(client):
+    """못 찾으면 조용하다 — 앱은 그때 아무것도 제안하지 않는다.
+
+    확정할 수 없는 숫자를 "공공 DB 근거" 로 내주는 것이 여기서 제일 나쁘다.
+    """
+    r = client.post("/v1/diet/nutrition", json={"name": "듣도보도못한음식"})
+    assert r.status_code == 200, r.text
+    assert r.json()["matched_name"] is None
+    assert r.json()["calories"] is None
+
+
+@pytest.mark.parametrize("name", ["", "   "])
+def test_food_nutrition_lookup_rejects_an_empty_name(client, name):
+    """이름 없이 확정된 숫자를 내주지 않는다(운동 칼로리와 같은 규약, #1312)."""
+    r = client.post("/v1/diet/nutrition", json={"name": name})
+    assert r.status_code == 400
+
+
+def test_food_nutrition_lookup_matches_what_analysis_would_have_said(client, db_session):
+    """이름 조회와 분석 보정이 **같은 값**을 말한다. (#1896)
+
+    계산이 두 곳이면 같은 음식인데 화면 어디서 왔느냐에 따라 숫자가 갈린다.
+    """
+    from app.schemas.diet import DietAnalysis, RecognizedFood
+    from app.services.nutrition.enrich import enrich_analysis
+
+    looked_up = client.post(
+        "/v1/diet/nutrition", json={"name": "비빔밥", "amount_g": 400}
+    ).json()
+
+    analysis = DietAnalysis(
+        engine="test", foods=[RecognizedFood(name="비빔밥", amount_g=400)]
+    )
+    enrich_analysis(db_session, analysis)
+    from_analysis = analysis.foods[0]
+
+    assert looked_up["calories"] == from_analysis.calories
+    assert looked_up["sodium_mg"] == from_analysis.sodium_mg
+    assert looked_up["sugar_g"] == pytest.approx(from_analysis.sugar_g)
+    assert looked_up["amount_g"] == from_analysis.amount_g
+    assert looked_up["source"] == from_analysis.source
+
+
+def test_update_entry_saves_edited_foods(client, db_session):
+    """고친 음식이 실제로 남는다 (#1895).
+
+    이 경로가 없을 때는 `foods` 가 스키마에 없어 pydantic 이 말없이 버렸고,
+    200 이 돌아오니 앱은 저장된 줄 알았다. 5분짜리 로컬 캐시가 만료되면
+    분석 당시 값으로 되돌아갔다.
+    """
+    from app.services.diet_service import today_str as _today_str
+    from app.db.init_db import DEMO_USER_ID
+    from app.models.models import DietEntry
+
+    db_session.execute(
+        delete(DietEntry).where(
+            DietEntry.user_id == DEMO_USER_ID,
+            DietEntry.date == _today_str(),
+        )
+    )
+    db_session.commit()
+    entry_id = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    ).json()["entry_id"]
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={
+            "foods": [
+                {"name": "현미밥", "amount_g": 210, "calories": 310,
+                 "sodium_mg": 3, "sugar_g": 0.5, "carbs_g": 68,
+                 "protein_g": 6, "fat_g": 1.5},
+                {"name": "김", "calories": 5, "sodium_mg": 40, "sugar_g": 0},
+            ],
+        },
+    )
+    assert r.status_code == 200, r.text
+    foods = r.json()["foods"]
+    assert [f["name"] for f in foods] == ["현미밥", "김"]
+    assert foods[0]["amount_g"] == 210
+    # 양을 모르는 음식은 null 로 남는다 — 0 으로 지어내지 않는다(#1876).
+    assert foods[1]["amount_g"] is None
+
+    # 응답에만 있고 DB 에 없으면 다음 조회에서 되돌아간다.
+    stored = json.loads(db_session.get(DietEntry, entry_id).foods_json)
+    assert [f["name"] for f in stored] == ["현미밥", "김"]
+    assert stored[0]["amount_g"] == 210
+
+    today_foods = client.get("/v1/diet/days/today").json()["entries"][0]["foods"]
+    assert [f["name"] for f in today_foods] == ["현미밥", "김"]
+    assert today_foods[0]["amount_g"] == 210
+
+
+def test_update_entry_recomputes_totals_from_the_foods_it_was_given(client, db_session):
+    """끼니 합계는 앱이 보낸 값이 아니라 **서버가 foods 에서 다시 센 값**이다.
+
+    운동이 클라이언트의 `calories` 를 버리고 다시 계산하는 것과 같은 규칙(#1312).
+    앱이 한 필드를 빠뜨려도(실제로 탄단지가 그랬다) 그 값만 옛 숫자에 머물지
+    않는다. (#1895)
+    """
+    from app.services.diet_service import today_str as _today_str
+    from app.db.init_db import DEMO_USER_ID
+    from app.models.models import DietEntry
+
+    db_session.execute(
+        delete(DietEntry).where(
+            DietEntry.user_id == DEMO_USER_ID,
+            DietEntry.date == _today_str(),
+        )
+    )
+    db_session.commit()
+    entry_id = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    ).json()["entry_id"]
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={
+            "foods": [
+                {"name": "현미밥", "calories": 310, "sodium_mg": 3, "sugar_g": 0.5,
+                 "carbs_g": 68, "protein_g": 6, "fat_g": 1.5},
+                {"name": "닭가슴살", "calories": 165, "sodium_mg": 70, "sugar_g": 0,
+                 "carbs_g": 0, "protein_g": 31, "fat_g": 3.6},
+            ],
+            # 앱이 틀린 합계를 보내도 서버가 쓰지 않는다.
+            "total_calories": 9999,
+            "sodium_mg": 9999,
+            "sugar_g": 99.9,
+        },
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["total_calories"] == 475
+    assert body["sodium_mg"] == 73
+    assert body["sugar_g"] == pytest.approx(0.5)
+    # 앱이 아예 보내지도 않는 값들 — 그래서 옛날에는 수정해도 옛 숫자에 머물렀다.
+    assert body["carbs_g"] == pytest.approx(68.0)
+    assert body["protein_g"] == pytest.approx(37.0)
+    assert body["fat_g"] == pytest.approx(5.1)
+
+    row = db_session.get(DietEntry, entry_id)
+    db_session.refresh(row)
+    assert row.total_calories == 475
+    assert row.protein_g == pytest.approx(37.0)
+
+
+def test_update_entry_without_foods_still_sets_meal_values(client, db_session):
+    """음식을 건드리지 않는 수정은 지금까지대로 끼니 값을 직접 반영한다(#495)."""
+    from app.services.diet_service import today_str as _today_str
+    from app.db.init_db import DEMO_USER_ID
+    from app.models.models import DietEntry
+
+    db_session.execute(
+        delete(DietEntry).where(
+            DietEntry.user_id == DEMO_USER_ID,
+            DietEntry.date == _today_str(),
+        )
+    )
+    db_session.commit()
+    entry_id = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    ).json()["entry_id"]
+    before = json.loads(db_session.get(DietEntry, entry_id).foods_json)
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={"total_calories": 333, "sodium_mg": 444},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["total_calories"] == 333
+    assert r.json()["sodium_mg"] == 444
+    # 음식 목록은 그대로다 — 합계만 정정한 수정이다.
+    assert json.loads(db_session.get(DietEntry, entry_id).foods_json) == before
+
+
 def test_update_entry_changes_meal_type(client):
     entry_id = client.post(
         "/v1/diet/analyze",

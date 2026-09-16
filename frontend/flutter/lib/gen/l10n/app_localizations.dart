@@ -692,6 +692,18 @@ abstract class AppLocalizations {
   /// **'{meal}'**
   String dietMealSheetTitle(String meal);
 
+  /// Representative name shown on the suggestion row when a food name matches the public nutrition DB (#1896)
+  ///
+  /// In en, this message translates to:
+  /// **'Public DB · {name}'**
+  String dietFoodDbMatch(String name);
+
+  /// Button that fills a food's fields with the suggested public-DB nutrition (#1896)
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in'**
+  String get dietFillFromDb;
+
   /// No description provided for @dietAddSheetTitle.
   ///
   /// In en, this message translates to:
