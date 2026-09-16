@@ -520,7 +520,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietEditNutritionHint =>
-      'You can edit the analyzed values directly';
+      'Edit each food\'s nutrition and it adds up here';
 
   @override
   String get dietSodiumHint => 'Recommended under 2,000mg/day';

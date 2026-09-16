@@ -1025,7 +1025,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietEditNutritionHint.
   ///
   /// In en, this message translates to:
-  /// **'You can edit the analyzed values directly'**
+  /// **'Edit each food\'s nutrition and it adds up here'**
   String get dietEditNutritionHint;
 
   /// No description provided for @dietSodiumHint.

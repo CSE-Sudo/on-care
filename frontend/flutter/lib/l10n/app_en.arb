@@ -249,7 +249,7 @@
   "dietEditFoodHint": "You can edit the food name and calories",
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
-  "dietEditNutritionHint": "You can edit the analyzed values directly",
+  "dietEditNutritionHint": "Edit each food's nutrition and it adds up here",
   "dietSodiumHint": "Recommended under 2,000mg/day",
   "dietSugarHint": "Recommended under 50g/day",
   "dietDeleteMeal": "Delete Meal",
