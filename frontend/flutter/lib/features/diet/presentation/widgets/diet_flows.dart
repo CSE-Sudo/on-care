@@ -765,52 +765,68 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
                   ],
                 ),
               ),
-              // 잘못 읽은 메뉴를 그 자리에서 고치러 간다(#1564).
-              AppButton(
+              // 잘못 읽은 메뉴를 그 자리에서 고치러 간다(#1564). 식단 상세가
+              // 연필을 쓰므로 여기서도 연필이다 — 같은 곳으로 가는 문이
+              // 화면마다 다른 모양이면 다른 동작으로 읽힌다(#1864).
+              AppIconButton(
                 key: const Key('diet-result-edit'),
-                label: l.actionEdit,
+                icon: AppIcons.edit,
+                tooltip: l.actionEdit,
+                size: AppIconButtonSize.small,
                 onPressed: r.entryId.isEmpty ? null : _openEdit,
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
               ),
             ],
           ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         // 기록 날짜 — 기본은 오늘이고, 지난 식사의 사진이면 그 날로 옮긴다(#1241).
-        Row(
-          children: <Widget>[
-            Text(
-              l.dietRecordDate,
-              style: _text(
-                context,
-                OnCareTypography.label,
-                OnCareColors.textSecondary,
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s12),
-            Expanded(
-              child: Text(
-                _dateLabel(context, _date),
-                key: const Key('diet-result-date'),
+        //
+        // 위아래가 모두 구획이라 이 줄만 맨바닥이면 라벨이 `인식된 음식`·
+        // `칼로리` 보다 한 칸 왼쪽에서 시작한다. 같은 구획에 넣어 시작하는
+        // 자리를 맞춘다(#1864).
+        AppTile(
+          tone: AppTileTone.none,
+          child: Row(
+            children: <Widget>[
+              Text(
+                l.dietRecordDate,
                 style: _text(
                   context,
-                  OnCareTypography.strong(OnCareTypography.bodySmall),
-                  OnCareColors.textPrimary,
+                  OnCareTypography.label,
+                  OnCareColors.textSecondary,
                 ),
               ),
-            ),
-            if (_movingDate)
-              const AppLoading.inline()
-            else
-              AppButton(
-                key: const Key('diet-result-date-change'),
-                label: l.dietRecordDateChange,
-                onPressed: () => unawaited(_pickDate()),
-                variant: AppButtonVariant.text,
-                size: OnCareButtonSize.small,
+              const SizedBox(width: OnCareSpacing.s12),
+              Expanded(
+                child: Text(
+                  _dateLabel(context, _date),
+                  key: const Key('diet-result-date'),
+                  style: _text(
+                    context,
+                    OnCareTypography.strong(OnCareTypography.bodySmall),
+                    OnCareColors.textPrimary,
+                  ),
+                ),
               ),
-          ],
+              // 날짜를 옮기는 동안 버튼이 16 짜리 spinner 로 바뀐다. 자리를
+              // 잡아 두지 않으면 줄 높이가 32 에서 내려앉아 라벨과 값이
+              // 함께 튄다 — 두 상태가 같은 높이를 쓴다(#1864).
+              SizedBox(
+                height: tokens.density.buttonHeight(OnCareButtonSize.small),
+                child: Center(
+                  child: _movingDate
+                      ? const AppLoading.inline()
+                      : AppButton(
+                          key: const Key('diet-result-date-change'),
+                          label: l.dietRecordDateChange,
+                          onPressed: () => unawaited(_pickDate()),
+                          variant: AppButtonVariant.text,
+                          size: OnCareButtonSize.small,
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         Text(
@@ -822,32 +838,52 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           ),
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        _ResultRow(
-          label: l.dietCalories,
-          value: '${r.totalCalories}',
-          unit: l.unitKcal,
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        _ResultRow(
-          label: l.dietSodium,
-          value: '${r.totalSodiumMg}',
-          unit: l.dietUnitMg,
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        _ResultRow(
-          label: l.dietSugar,
-          // 서버가 준 double 을 그대로 문자열로 만들면 29.497999999999998 이
-          // 찍힌다 — 칼로리·나트륨과 같은 서식으로 맞춘다(#1564).
-          value: _gramsText(r.totalSugarG),
-          unit: l.dietUnitG,
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        // 탄·단·지는 칼로리를 나눈 것이라 한 줄에 묶는다(#1432).
-        _MacroRow(
-          key: const Key('diet-result-macros'),
-          carbsG: r.totalCarbsG,
-          proteinG: r.totalProteinG,
-          fatG: r.totalFatG,
+        // 탄단지가 기준이다 — 식단 상세의 영양 정보와 같은 순서로 읽힌다.
+        // 당류는 탄수화물의 일부라 바로 아래에 들여 붙이고, 나트륨은
+        // 탄단지가 아니라 맨 끝이다(#1864).
+        Column(
+          key: const Key('diet-result-nutrition'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _ResultRow(
+              label: l.dietCalories,
+              value: '${r.totalCalories}',
+              unit: l.unitKcal,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.homeMacroCarbs,
+              value: _gramsText(r.totalCarbsG),
+              unit: l.dietUnitG,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.dietSugar,
+              // 서버가 준 double 을 그대로 문자열로 만들면 29.497999999999998
+              // 이 찍힌다 — 칼로리·나트륨과 같은 서식으로 맞춘다(#1564).
+              value: _gramsText(r.totalSugarG),
+              unit: l.dietUnitG,
+              sub: true,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.homeMacroProtein,
+              value: _gramsText(r.totalProteinG),
+              unit: l.dietUnitG,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.homeMacroFat,
+              value: _gramsText(r.totalFatG),
+              unit: l.dietUnitG,
+            ),
+            const SizedBox(height: OnCareSpacing.s8),
+            _ResultRow(
+              label: l.dietSodium,
+              value: '${r.totalSodiumMg}',
+              unit: l.dietUnitMg,
+            ),
+          ],
         ),
         if (r.coachComment.isNotEmpty) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s12),
@@ -882,102 +918,26 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   }
 }
 
-/// 탄·단·지 한 줄. 값 셋이 한 칼로리를 나눈 것이라 한 타일 안에 나란히 선다.
-///
-/// 색 견본은 두지 않는다 — 이 줄에는 대응하는 그래프가 없다(#1564). 수치는
-/// 칼로리·나트륨·당류 행과 같은 규칙이다: 숫자는 브랜드 색, 단위는 보조 색.
-///
-/// 서버가 0 을 주면 0 을 적는다: 값을 감추면 분석이 그 영양소를 재지 못한
-/// 것인지 정말 0 인지 알 수 없다.
-class _MacroRow extends StatelessWidget {
-  const _MacroRow({
-    super.key,
-    required this.carbsG,
-    required this.proteinG,
-    required this.fatG,
-  });
-
-  final double carbsG;
-  final double proteinG;
-  final double fatG;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final List<({String label, double grams})> parts =
-        <({String label, double grams})>[
-          (label: l.homeMacroCarbs, grams: carbsG),
-          (label: l.homeMacroProtein, grams: proteinG),
-          (label: l.homeMacroFat, grams: fatG),
-        ];
-    return AppTile(
-      tone: AppTileTone.none,
-      child: Row(
-        children: <Widget>[
-          for (final part in parts)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    part.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: _text(
-                      context,
-                      OnCareTypography.strong(OnCareTypography.caption),
-                      OnCareColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: OnCareSpacing.s2),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: <Widget>[
-                      Flexible(
-                        child: Text(
-                          _gramsText(part.grams),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: OnCareTypography.numeric(
-                            _text(
-                              context,
-                              OnCareTypography.titleSmall,
-                              tokens.brand.primary,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: OnCareSpacing.s4),
-                      Text(
-                        l.dietUnitG,
-                        style: _text(
-                          context,
-                          OnCareTypography.bodySmall,
-                          OnCareColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
+/// 분석 결과의 영양 한 줄. 식단 상세의 [_NutrientRow] 와 같은 구성이고,
+/// 숫자만 브랜드 색이다 — 여기 값은 아직 저장 전이라 고친 값이 아니다.
 class _ResultRow extends StatelessWidget {
   const _ResultRow({
     required this.label,
     required this.value,
     required this.unit,
+    this.sub = false,
   });
+
+  /// 한 칸 들여쓰는 폭. 하위 항목이 상위 항목 라벨보다 안쪽에서 시작해야
+  /// `당류` 가 `탄수화물` 에 딸린 값으로 읽힌다 — 식단 상세와 같은 값이다.
+  static const double _subIndent = 16;
+
   final String label;
   final String value;
   final String unit;
+
+  /// 바로 위 항목의 하위 값인가 — 들여쓰고 앞에 `↳` 를 붙인다.
+  final bool sub;
 
   @override
   Widget build(BuildContext context) {
@@ -988,6 +948,18 @@ class _ResultRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
+          if (sub) ...<Widget>[
+            const SizedBox(width: _subIndent),
+            Text(
+              '↳',
+              style: _text(
+                context,
+                OnCareTypography.bodySmall,
+                OnCareColors.textTertiary,
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s4),
+          ],
           Expanded(
             child: Text(
               label,
