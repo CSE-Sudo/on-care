@@ -1034,6 +1034,12 @@ abstract class AppLocalizations {
   /// **'Edit each food\'s nutrition and it adds up here'**
   String get dietEditNutritionHint;
 
+  /// No description provided for @dietSugarOverCarbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar can\'t be more than carbs'**
+  String get dietSugarOverCarbs;
+
   /// No description provided for @dietDeleteMeal.
   ///
   /// In en, this message translates to:
@@ -1598,6 +1604,24 @@ abstract class AppLocalizations {
   /// **'Self-logged'**
   String get exOwnRecordSource;
 
+  /// No description provided for @exCompletedPtDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed PT'**
+  String get exCompletedPtDayTitle;
+
+  /// No description provided for @exCompletedRoutineDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed solo workout'**
+  String get exCompletedRoutineDayTitle;
+
+  /// No description provided for @exPtDayFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'{coachName} · Feedback'**
+  String exPtDayFeedback(String coachName);
+
   /// No description provided for @exDeleteExercise.
   ///
   /// In en, this message translates to:
@@ -1700,12 +1724,6 @@ abstract class AppLocalizations {
   /// **'Search by area or gym name'**
   String get exGymSearchPlaceholder;
 
-  /// No description provided for @exTrainerSearchPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'Search by specialty or trainer name'**
-  String get exTrainerSearchPlaceholder;
-
   /// No description provided for @exSortRecommended.
   ///
   /// In en, this message translates to:
@@ -1723,12 +1741,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rating'**
   String get exSortRating;
-
-  /// No description provided for @exSortName.
-  ///
-  /// In en, this message translates to:
-  /// **'Name'**
-  String get exSortName;
 
   /// No description provided for @exResultCount.
   ///
@@ -1970,6 +1982,12 @@ abstract class AppLocalizations {
   /// **'Notification Settings'**
   String get myNotifTitle;
 
+  /// MY tab: opens the spotlight app guide again (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Replay the app guide'**
+  String get myGuideTitle;
+
   /// No description provided for @mySupportTitle.
   ///
   /// In en, this message translates to:
@@ -2072,11 +2090,11 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get myCancel;
 
-  /// No description provided for @myTrainerGymTitle.
+  /// No description provided for @myGymTrainerTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Trainer & Gym'**
-  String get myTrainerGymTitle;
+  /// **'My Gym & Trainer'**
+  String get myGymTrainerTitle;
 
   /// No description provided for @myConnectionDeleteTitle.
   ///
@@ -3798,6 +3816,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get started'**
   String get pointsGuideStart;
+
+  /// Spotlight guide: the guide label with the current step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'App guide {current}/{total}'**
+  String guideBadgeWithStep(int current, int total);
+
+  /// Spotlight guide: the screen under the guide is filled with sample data, not the member's own (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Sample screen'**
+  String get guideSampleBadge;
+
+  /// Spotlight guide: ends the guide without seeing the rest (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get guideSkip;
+
+  /// Spotlight guide: goes back one step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get guidePrev;
+
+  /// Spotlight guide: goes to the next step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get guideNext;
+
+  /// Spotlight guide: ends the guide on the last step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get guideDone;
+
+  /// Spotlight guide step: the home AI advice card (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s AI summary'**
+  String get guideHomeAdviceTitle;
+
+  /// Spotlight guide step: the home AI advice card (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'It reads your meals and workouts together and points to what to do today'**
+  String get guideHomeAdviceBody;
+
+  /// Spotlight guide step: the center add button (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Quick add'**
+  String get guideQuickAddTitle;
+
+  /// Spotlight guide step: the center add button (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'The + in the middle adds a meal or a workout from any screen'**
+  String get guideQuickAddBody;
+
+  /// Spotlight guide step: the diet tab nutrition summary (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Nutrition summary'**
+  String get guideDietNutritionTitle;
+
+  /// Spotlight guide step: the diet tab nutrition summary (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s calories, macros, sodium and sugar, and how far each is from your goal'**
+  String get guideDietNutritionBody;
+
+  /// Spotlight guide step: the exercise tab weekly status (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Workout status'**
+  String get guideExerciseStatusTitle;
+
+  /// Spotlight guide step: the exercise tab weekly status (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'How much you moved today and this week, and how far the goal still is'**
+  String get guideExerciseStatusBody;
+
+  /// Spotlight guide step: the exercise tab gym section (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Your gym and trainer'**
+  String get guideGymTitle;
+
+  /// Spotlight guide step: the exercise tab gym section (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'The gym and trainer you are connected to — their plans and feedback arrive in the app'**
+  String get guideGymBody;
+
+  /// Spotlight guide step: the MY tab profile and settings (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get guideMySettingsTitle;
+
+  /// Spotlight guide step: the MY tab profile and settings (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Change your profile, health goals and alerts here — and replay this guide'**
+  String get guideMySettingsBody;
+
+  /// Spotlight guide step: the MY tab points card (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get guidePointsTitle;
+
+  /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P'**
+  String guidePointsBody(int diet, int exercise, int routine);
 
   /// Onboarding step 1: the basic info step must be filled in (#1830).
   ///

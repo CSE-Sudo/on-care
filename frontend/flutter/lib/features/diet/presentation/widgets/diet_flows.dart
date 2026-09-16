@@ -1117,6 +1117,17 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     for (final DietFood f in _foods) _FoodEditors.of(f),
   ];
 
+  /// 음식마다 당류가 그 음식의 탄수화물을 넘지 않는지 본다(#1869). 당류는
+  /// 탄수화물의 일부라 그보다 클 수 없고, 서버도 같은 값을 422 로 거절한다
+  /// (#1863) — 앱이 먼저 막지 않으면 다 적고 저장을 누른 뒤에야 어느 칸이
+  /// 문제인지 모르는 실패 토스트만 뜬다.
+  ///
+  /// 줄 번호가 아니라 [_FoodEditors] 를 키로 쓴다. 음식을 지우면 아래 줄의
+  /// 번호가 당겨지므로, 번호로 기억해 두면 엉뚱한 줄에 빨간 글씨가 남는다.
+  late AppFieldErrors<_FoodEditors> _sugarErrors = AppFieldErrors<_FoodEditors>(
+    _checkSugar,
+  );
+
   /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
   /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
   static const double _photoHeight = 300;
@@ -1149,6 +1160,18 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       int.tryParse(c.text.trim()) ?? 0;
   static double _asDouble(TextEditingController c) =>
       double.tryParse(c.text.trim()) ?? 0;
+
+  /// 당류 칸에 보일 오류 문구. 맞으면 null 이다.
+  String? _checkSugar(_FoodEditors e) {
+    final double carbs = _asDouble(e.carbs);
+    // 탄수화물이 0 이면 적지 않은 것으로 본다 — 서버도 그때는 검사하지
+    // 않으므로(#1877), 앱만 막으면 서버가 받아 주는 기록을 고칠 길이 없다.
+    // 실제로 탄수화물 없이 저장된 옛 기록이 있다.
+    if (carbs <= 0) return null;
+    // 같은 값은 통과한다 — 전부 당인 음식이 있다.
+    if (_asDouble(e.sugar) <= carbs) return null;
+    return AppLocalizations.of(context).dietSugarOverCarbs;
+  }
 
   /// 그 음식의 입력 칸을 모두 읽어 `_foods` 에 반영한다. 한 칸만 바뀌어도
   /// 전부 다시 읽는 편이 칸마다 따로 갈래를 두는 것보다 흘릴 값이 없다.
@@ -1185,6 +1208,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
         ..addAll(<_FoodEditors>[
           for (final DietFood f in _foods) _FoodEditors.of(f),
         ]);
+      // 접었다 다시 펴면 오류도 처음부터다 — 저장을 누른 적 없는 화면에
+      // 빨간 글씨가 먼저 서 있으면 안 된다(#1784).
+      _sugarErrors = AppFieldErrors<_FoodEditors>(_checkSugar);
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final _FoodEditors e in stale) {
@@ -1244,6 +1270,17 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     // 동안 끼어들면 고치던 흐름이 끊기기 때문이다.
     if (foods.isEmpty) {
       await _confirmDelete(emptied: true);
+      return;
+    }
+    // 보낼 줄만 검사한다 — 이름이 빈 줄은 위에서 버려지므로, 거기 남은
+    // 숫자 때문에 저장이 막히면 어디를 고쳐야 하는지 알 수 없다.
+    final List<_FoodEditors> filled = <_FoodEditors>[
+      for (int i = 0; i < _foods.length; i++)
+        if (_foods[i].name.trim().isNotEmpty) _editors[i],
+    ];
+    // 틀린 칸 아래에 이유를 보이고 요청은 보내지 않는다(#1869).
+    if (!_sugarErrors.validate(filled)) {
+      setState(() {});
       return;
     }
     setState(() => _busy = true);
@@ -1475,6 +1512,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                 _FoodEditBlock(
                                   index: i + 1,
                                   editors: _editors[i],
+                                  sugarError: _sugarErrors.of(_editors[i]),
                                   onChanged: () => _syncFood(i),
                                   onDelete: () => _removeFood(i),
                                 )
@@ -1737,6 +1775,7 @@ class _FoodEditBlock extends StatelessWidget {
     required this.editors,
     required this.onChanged,
     required this.onDelete,
+    this.sugarError,
   });
 
   /// 숫자 칸 폭. 못 박아 두어야 라벨 칸이 자릿수에 따라 늘었다 줄었다 하지
@@ -1747,6 +1786,9 @@ class _FoodEditBlock extends StatelessWidget {
   final _FoodEditors editors;
   final VoidCallback onChanged;
   final VoidCallback onDelete;
+
+  /// 당류 칸 아래에 보일 오류 문구. null 이면 아무것도 그리지 않는다(#1869).
+  final String? sugarError;
 
   @override
   Widget build(BuildContext context) {
@@ -1801,6 +1843,7 @@ class _FoodEditBlock extends StatelessWidget {
             unit: l.dietUnitG,
             controller: editors.sugar,
             sub: true,
+            error: sugarError,
           ),
           _field(
             context,
@@ -1837,61 +1880,85 @@ class _FoodEditBlock extends StatelessWidget {
     required TextEditingController controller,
     bool decimal = true,
     bool sub = false,
+    String? error,
   }) {
     return Padding(
       padding: const EdgeInsets.only(top: OnCareSpacing.s8),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
-          if (sub) ...<Widget>[
-            const SizedBox(width: OnCareSpacing.s16),
-            Text(
-              '↳',
-              style: _text(
-                context,
-                OnCareTypography.bodySmall,
-                OnCareColors.textTertiary,
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s4),
-          ],
-          Expanded(
-            child: Text(
-              label,
-              style: _text(
-                context,
-                OnCareTypography.bodySmall,
-                OnCareColors.textSecondary,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: _valueWidth,
-            child: AppTextField(
-              key: ValueKey<String>(fieldKey),
-              controller: controller,
-              hint: '0',
-              keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-              // 숫자만 받는다 — 빈 칸은 0 으로 읽힌다.
-              inputFormatters: <TextInputFormatter>[
-                if (decimal)
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
-                else
-                  FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(6),
+          Row(
+            children: <Widget>[
+              if (sub) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s16),
+                Text(
+                  '↳',
+                  style: _text(
+                    context,
+                    OnCareTypography.bodySmall,
+                    OnCareColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(width: OnCareSpacing.s4),
               ],
-              textAlign: TextAlign.end,
-              onChanged: (_) => onChanged(),
-            ),
+              Expanded(
+                child: Text(
+                  label,
+                  style: _text(
+                    context,
+                    OnCareTypography.bodySmall,
+                    OnCareColors.textSecondary,
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: _valueWidth,
+                child: AppTextField(
+                  key: ValueKey<String>(fieldKey),
+                  controller: controller,
+                  hint: '0',
+                  keyboardType: TextInputType.numberWithOptions(
+                    decimal: decimal,
+                  ),
+                  // 숫자만 받는다 — 빈 칸은 0 으로 읽힌다.
+                  inputFormatters: <TextInputFormatter>[
+                    if (decimal)
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))
+                    else
+                      FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(6),
+                  ],
+                  textAlign: TextAlign.end,
+                  onChanged: (_) => onChanged(),
+                ),
+              ),
+              const SizedBox(width: OnCareSpacing.s4),
+              Text(
+                unit,
+                style: _text(
+                  context,
+                  OnCareTypography.caption,
+                  OnCareColors.textSecondary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: OnCareSpacing.s4),
-          Text(
-            unit,
-            style: _text(
-              context,
-              OnCareTypography.caption,
-              OnCareColors.textSecondary,
+          // 값 칸이 좁아(88) 그 안에 문구를 넣으면 한 자씩 끊겨 읽힌다.
+          // 줄 아래에 한 줄로 편다 — 색과 크기는 입력 칸 오류와 같다.
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: OnCareSpacing.s4),
+              child: Text(
+                error,
+                key: ValueKey<String>('$fieldKey-error'),
+                textAlign: TextAlign.end,
+                style: _text(
+                  context,
+                  OnCareTypography.caption,
+                  OnCareColors.danger,
+                ),
+              ),
             ),
-          ),
         ],
       ),
     );

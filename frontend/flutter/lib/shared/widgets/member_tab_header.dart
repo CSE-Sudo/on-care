@@ -80,9 +80,7 @@ class HeaderActionButton extends StatelessWidget {
       icon: icon,
       tooltip: tooltip,
       onPressed: onPressed,
-      color: enabled
-          ? context.oncare.brand.primary
-          : OnCareColors.textDisabled,
+      color: enabled ? context.oncare.brand.primary : OnCareColors.textDisabled,
     );
     return Stack(
       clipBehavior: Clip.none,

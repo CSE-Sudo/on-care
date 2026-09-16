@@ -10,6 +10,7 @@ import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
 import 'package:oncare/features/account/presentation/pages/points_guide_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
+import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
@@ -24,7 +25,6 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
-import 'package:oncare/features/exercise/presentation/pages/trainer_list_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
@@ -164,10 +164,6 @@ GoRouter buildAppRouter({
             GymDetailPage(gymId: state.pathParameters['gymId'] ?? ''),
       ),
       GoRoute(
-        path: AppRoutes.trainers,
-        builder: (context, state) => const TrainerListPage(),
-      ),
-      GoRoute(
         path: AppRoutes.trainerDetail,
         builder: (context, state) => TrainerDetailPage(
           trainerId: state.pathParameters['trainerId'] ?? '',
@@ -209,6 +205,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.pointsGuide,
         builder: (context, state) => const PointsGuidePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.guideTour,
+        builder: (context, state) => const GuideTourPage(),
       ),
       if (!config.isProd)
         GoRoute(

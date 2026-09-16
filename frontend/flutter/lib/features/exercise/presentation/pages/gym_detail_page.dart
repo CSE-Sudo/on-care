@@ -11,6 +11,7 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
+import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -322,6 +323,7 @@ class _TrainerPickerSheet extends ConsumerWidget {
     return _AffiliatedTrainerRow(
       key: Key('gym-consult-trainer-${trainer.id}'),
       trainer: trainer,
+      reasonKeyPrefix: 'gym-consult-trainer-${trainer.id}',
       trailingLabel: pending ? l.exConsultPendingCta : null,
       onTap: pending
           ? null
@@ -418,7 +420,10 @@ class _AffiliatedTrainers extends ConsumerWidget {
                 padding: EdgeInsets.only(left: _trainerDividerIndent),
                 child: AppDivider(),
               ),
-            _AffiliatedTrainerRow(trainer: trainers[i]),
+            _AffiliatedTrainerRow(
+              trainer: trainers[i],
+              reasonKeyPrefix: 'gym-detail-trainer-${trainers[i].id}',
+            ),
           ],
         ],
       ),
@@ -429,12 +434,17 @@ class _AffiliatedTrainers extends ConsumerWidget {
 class _AffiliatedTrainerRow extends StatelessWidget {
   const _AffiliatedTrainerRow({
     required this.trainer,
+    required this.reasonKeyPrefix,
     this.onTap,
     this.trailingLabel,
     super.key,
   });
 
   final Trainer trainer;
+
+  /// 추천 이유 태그의 키 접두어. 소속 트레이너 섹션과 상담 트레이너 시트가 한
+  /// 트리에 함께 서므로(시트는 상세 위에 뜬다) 부르는 쪽이 제 이름을 준다.
+  final String reasonKeyPrefix;
 
   /// 기본 동작은 트레이너 상세로 가기다. 상담 트레이너 선택 시트는 여기에 자기
   /// 동작을 넣고, 이미 대기 중이면 null 을 줘 행을 잠근다.
@@ -464,6 +474,14 @@ class _AffiliatedTrainerRow extends StatelessWidget {
           color: tokens.brand.primary,
         ),
       ),
+      // 여기가 상담할 트레이너를 고르는 자리다 — 헬스장 찾기에서 봤던 근거를
+      // 정작 고르는 화면에서 다시 찾게 두지 않는다 (#1881).
+      below: trainer.reasons.isEmpty
+          ? null
+          : TrainerReasonBadges(
+              reasons: trainer.reasons,
+              keyPrefix: reasonKeyPrefix,
+            ),
       trailing: trailingLabel != null
           ? Text(
               trailingLabel!,
