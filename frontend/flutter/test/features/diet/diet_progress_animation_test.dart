@@ -48,7 +48,7 @@ void main() {
     for (int i = 0; i < 20; i++) {
       await tester.pump(const Duration(milliseconds: 50));
       if (find
-          .byKey(const Key('nutrition-macro-progress-나트륨'))
+          .byKey(const Key('nutrition-macro-progress-탄수화물'))
           .evaluate()
           .isNotEmpty) {
         return;
@@ -72,9 +72,9 @@ void main() {
   testWidgets('영양 진행 바는 붙는 순간부터 목표 비율로 그려진다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
-    final double atStart = filledValue(tester, '나트륨');
+    final double atStart = filledValue(tester, '탄수화물');
     await tester.pumpAndSettle();
-    final double settled = filledValue(tester, '나트륨');
+    final double settled = filledValue(tester, '탄수화물');
 
     expect(atStart, greaterThan(0), reason: '막대가 비어 있다');
     expect(settled, atStart, reason: '값이 그대로인데 막대가 움직였다');
@@ -83,10 +83,10 @@ void main() {
   testWidgets('애니메이션이 꺼진 환경에서는 첫 프레임부터 다 채워져 있다', (WidgetTester tester) async {
     await pumpDiet(tester, disableAnimations: true);
 
-    final double atStart = filledValue(tester, '나트륨');
+    final double atStart = filledValue(tester, '탄수화물');
     expect(atStart, greaterThan(0));
 
     await tester.pump(const Duration(milliseconds: 250));
-    expect(filledValue(tester, '나트륨'), atStart);
+    expect(filledValue(tester, '탄수화물'), atStart);
   });
 }

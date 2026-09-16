@@ -9,6 +9,7 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
+import 'package:oncare/features/diet/presentation/widgets/diet_period_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -181,44 +182,55 @@ void main() {
       return AppLocalizations.of(tester.element(find.byType(DietRecordPage)));
     }
 
-    testWidgets('지표 버튼 셋이 모두 같은 색이다', (WidgetTester tester) async {
-      // 지표마다 색이 다르면 고르기 전부터 셋이 서로 다른 뜻을 가진 것처럼
-      // 보인다. 버튼은 '무엇을 고르는가' 만 말해야 한다.
+    testWidgets('지표는 칼로리·나트륨 둘이다 (#1879)', (WidgetTester tester) async {
+      // 탄단지는 그래프로 고르지 않는다 — 기간이 묻는 값은 칼로리(와 그 옆의
+      // 나트륨)고, 탄단지는 그 칼로리를 무엇이 채웠는지로 따로 나타난다.
       final AppLocalizations l = await pumpWeek(tester);
 
-      // 고른 것과 안 고른 것의 색이 다른 건 정상이다. 비교할 것은 **각 버튼을
-      // 골랐을 때의 색** 이 셋 다 같은가다.
-      final Set<Color?> activeColors = <Color?>{};
-      for (final String label in <String>[
-        l.dietCalories,
-        l.dietSodium,
-        l.dietSugar,
-      ]) {
-        await tester.tap(find.text(label));
-        await tester.pumpAndSettle();
-        activeColors.add(tester.widget<Text>(find.text(label)).style?.color);
-      }
-
+      final Finder chips = find.descendant(
+        of: find.byType(DietPeriodView),
+        matching: find.byType(AppChoiceChip),
+      );
+      expect(chips, findsNWidgets(2));
       expect(
-        activeColors,
-        hasLength(1),
-        reason: '지표 버튼 색이 서로 다릅니다: $activeColors',
+        tester
+            .widgetList<AppChoiceChip>(chips)
+            .map((AppChoiceChip c) => c.label),
+        <String>[l.dietCalories, l.dietSodium],
+      );
+      // 범위는 버튼과 같은 줄에 남는다 — 따로 한 줄을 쓰면 제목·범위·버튼 세
+      // 줄이 되어 정작 그래프가 아래로 밀린다.
+      expect(
+        find.descendant(
+          of: find.ancestor(
+            of: find.text(l.dietCalories),
+            matching: find.byType(Row),
+          ),
+          matching: find.textContaining(RegExp(r'~|–|-')),
+        ),
+        findsWidgets,
+        reason: '날짜 범위가 지표 버튼과 다른 줄에 있습니다.',
       );
     });
 
-    testWidgets('날짜 범위가 지표 버튼과 같은 줄에 있다', (WidgetTester tester) async {
-      // 범위가 따로 한 줄을 쓰면 제목·범위·버튼 세 줄이 되어 그래프가 밀린다.
+    testWidgets('전체도 같은 두 지표를 고른다 (#1879)', (WidgetTester tester) async {
+      // 기간에 따라 그림(꺾은선 ↔ 막대)만 다르고 고르는 지표는 같다 — 이번 주와
+      // 전체가 서로 다른 지표를 내놓으면 토글을 누를 때마다 기준이 바뀐다.
       final AppLocalizations l = await pumpWeek(tester);
-      final Finder range = find.textContaining(RegExp(r'~|–|-'));
+      await tester.tap(dietPeriodTab(DietPeriodTab.month));
+      await tester.pumpAndSettle();
 
-      final Finder rangeInRow = find.descendant(
-        of: find.ancestor(
-          of: find.text(l.dietCalories),
-          matching: find.byType(Row),
-        ),
-        matching: range,
+      final Finder chips = find.descendant(
+        of: find.byType(DietPeriodView),
+        matching: find.byType(AppChoiceChip),
       );
-      expect(rangeInRow, findsWidgets, reason: '날짜 범위가 지표 버튼과 다른 줄에 있습니다.');
+      expect(chips, findsNWidgets(2));
+      expect(
+        tester
+            .widgetList<AppChoiceChip>(chips)
+            .map((AppChoiceChip c) => c.label),
+        <String>[l.dietCalories, l.dietSodium],
+      );
     });
   });
 

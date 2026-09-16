@@ -492,7 +492,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Diet'), findsAtLeastNWidgets(1));
 
-    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
+    final exerciseDestination = find.byKey(
+      const ValueKey<String>('nav-exercise'),
+    );
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
     expect(find.text('Exercise'), findsAtLeastNWidgets(1));
@@ -505,7 +507,9 @@ void main() {
   testWidgets('전체 기간 운동 현황은 스크롤 막대 그래프다 (#1018)', (tester) async {
     await pumpApp(tester, locale: const Locale('en'));
 
-    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
+    final exerciseDestination = find.byKey(
+      const ValueKey<String>('nav-exercise'),
+    );
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
     final monthlyToggle = find.text('All');
@@ -748,7 +752,9 @@ void main() {
   testWidgets('운동 탭 재진입 시 운동 현황 기간 토글이 기본값으로 복원된다 (#861)', (tester) async {
     await pumpApp(tester, locale: const Locale('ko'));
 
-    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
+    final exerciseDestination = find.byKey(
+      const ValueKey<String>('nav-exercise'),
+    );
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
 
@@ -779,7 +785,9 @@ void main() {
       tester.element(find.byType(OncareApp)),
     );
 
-    final exerciseDestination = find.byKey(const ValueKey<String>('nav-exercise'));
+    final exerciseDestination = find.byKey(
+      const ValueKey<String>('nav-exercise'),
+    );
     await tester.tap(exerciseDestination);
     await tester.pumpAndSettle();
 
@@ -800,29 +808,6 @@ void main() {
     expect(
       afterRoutines.map((CoachRoutine r) => r.id),
       beforeRoutines.map((CoachRoutine r) => r.id),
-    );
-  });
-
-  testWidgets('홈 탭 재진입 시 식단·영양 카드 선택 지표가 기본값(칼로리)으로 복원된다 (#861)', (
-    tester,
-  ) async {
-    await pumpApp(tester, locale: const Locale('ko'));
-    final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-
-    // 홈이 첫 화면이다 — 나트륨 카드를 선택한다.
-    await tester.tap(find.text(ko.dietSodium).first);
-    await tester.pumpAndSettle();
-    expect(find.text(ko.homeWeeklyMetricTrend(ko.dietSodium)), findsOneWidget);
-
-    await tester.tap(find.text('식단').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('홈').first);
-    await tester.pumpAndSettle();
-
-    // 기본값(칼로리)으로 복원된다.
-    expect(
-      find.text(ko.homeWeeklyMetricTrend(ko.dashboardMetricCalories)),
-      findsOneWidget,
     );
   });
 

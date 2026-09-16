@@ -188,28 +188,32 @@ void main() {
     expect(painterIn(tester, exerciseRings).shouldRepaint(settled), isFalse);
   });
 
-  testWidgets('영양 지표를 바꾸면 추이 그래프 애니메이션이 다시 재생된다', (WidgetTester tester) async {
+  testWidgets('영양 추이 그래프는 한 번 그려지고 멈춘다 (#1879)', (
+    WidgetTester tester,
+  ) async {
     await pumpHome(tester);
     await tester.pumpAndSettle();
 
-    ChartReveal revealIn(Finder scope) => tester.widget<ChartReveal>(
-      find.descendant(of: scope, matching: find.byType(ChartReveal)).first,
+    // 그래프가 칼로리 하나로 고정되면서 다시 재생할 지표 전환이 없다 —
+    // 지표 칸은 읽는 것이지 누르는 것이 아니다.
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(DashboardContent)),
+    );
+    final String title = l.homeWeeklyMetricTrend(l.dashboardMetricCalories);
+    expect(find.text(title), findsOneWidget);
+
+    await tester.tap(find.text(l.homeMacroProtein));
+    await tester.pumpAndSettle();
+    expect(
+      find.text(title),
+      findsOneWidget,
+      reason: '지표 칸을 눌렀더니 그래프가 그 지표로 바뀌었다',
     );
 
-    final Object? beforeKey = revealIn(nutritionChart).replayKey;
-    expect(beforeKey, isNotNull, reason: '지표 전환을 재생 키로 넘기지 않고 있다');
-
-    await tester.tap(find.text('나트륨').first);
-    await tester.pump();
-
-    expect(revealIn(nutritionChart).replayKey, isNot(beforeKey));
-
-    // 새 지표의 선이 다시 그려지는 동안 painter 가 갱신된다.
-    final CustomPainter atStart = painterIn(tester, nutritionChart);
+    // 다 그린 뒤에는 더 이상 움직이지 않는다.
+    final CustomPainter settled = painterIn(tester, nutritionChart);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(painterIn(tester, nutritionChart).shouldRepaint(atStart), isTrue);
-
-    await tester.pumpAndSettle();
+    expect(painterIn(tester, nutritionChart).shouldRepaint(settled), isFalse);
   });
 
   testWidgets('애니메이션이 꺼진 환경에서는 첫 프레임부터 최종 상태로 그린다', (
