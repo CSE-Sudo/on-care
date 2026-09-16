@@ -150,6 +150,49 @@ void main() {
     expect(find.text('10'), findsWidgets, reason: '원래 합계 2 + 8');
   });
 
+  testWidgets('저장하면 화면에 남아 보기 모드로 돌아가고 고친 값이 그대로 보인다', (
+    WidgetTester tester,
+  ) async {
+    await _openDetail(tester, FakeDietRepository());
+
+    await tester.tap(_editButton);
+    await tester.pumpAndSettle();
+    await tester.enterText(_firstFoodCarbs, '91');
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    // 목록으로 나가 버리면 방금 고친 값이 어떻게 됐는지 확인할 자리가 없다.
+    expect(find.byKey(const Key('mealDetailPage')), findsOneWidget);
+    expect(_editButton, findsOneWidget, reason: '보기 모드로 돌아온다');
+    expect(_firstFoodCarbs, findsNothing);
+    expect(find.text('99'), findsOneWidget, reason: '고친 합계가 그대로 보인다');
+  });
+
+  testWidgets('음식별 나트륨·당류를 고치면 끼니 합계도 따라 저장된다', (WidgetTester tester) async {
+    final FakeDietRepository repo = FakeDietRepository();
+    await _openDetail(tester, repo);
+
+    await tester.tap(_editButton);
+    await tester.pumpAndSettle();
+    // 스크램블 에그 당류 0.8 → 10. 딸기 5.5 와 합쳐 15.5 가 되어야 한다.
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('diet-food-sugar-1')),
+      '10',
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    final DietEntry saved = (await tester.runAsync(
+      () => repo.fetchToday(),
+    ))!.entries.firstWhere((DietEntry e) => e.id == 'mock-breakfast');
+    expect(saved.foods.first.sugarG, 10);
+    expect(saved.sugarG, 15.5, reason: '끼니 행에도 따로 저장되므로 음식에서 다시 합쳐 보내야 한다');
+  });
+
   testWidgets('음식을 모두 지우고 저장하면 식단을 지울지 묻는다', (WidgetTester tester) async {
     await _openDetail(tester, FakeDietRepository());
 

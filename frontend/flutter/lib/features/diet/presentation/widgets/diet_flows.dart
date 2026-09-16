@@ -1133,6 +1133,11 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   /// 대부분은 무엇을 먹었는지 다시 보려고 들어오지 고치려고 들어오지 않는다.
   bool _editing = false;
 
+  /// 취소가 되돌아갈 자리. 저장에 성공하면 여기로 옮겨 온다 — 저장한 뒤에 다시
+  /// 고치다 취소했을 때 저장 이전 값으로 되돌아가면 안 된다.
+  late MealType _savedType = widget.meal.mealType;
+  late List<DietFood> _savedFoods = List<DietFood>.of(widget.meal.items);
+
   /// 음식 줄마다 하나씩. 컨트롤러를 줄 위젯이 아니라 시트가 들고 있어야
   /// 한 자 칠 때마다 새로 만들어지지 않는다 — 새로 만들면 커서가 맨 앞으로
   /// 튄다. 목록 순서와 1:1 로 붙어 다닌다(#1844).
@@ -1201,8 +1206,8 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     final List<_FoodEditors> stale = List<_FoodEditors>.of(_editors);
     setState(() {
       _editing = false;
-      _type = widget.meal.mealType;
-      _foods = List<DietFood>.of(widget.meal.items);
+      _type = _savedType;
+      _foods = List<DietFood>.of(_savedFoods);
       _editors
         ..clear()
         ..addAll(<_FoodEditors>[
@@ -1281,14 +1286,28 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
               0,
               (int a, FoodItem f) => a + f.calories,
             ),
+            // 나트륨·당류는 끼니 행에도 따로 저장된다 — 음식에서 다시 합쳐
+            // 보내지 않으면 음식별 값만 바뀌고 끼니 합계는 옛 숫자에 머문다.
+            sodiumMg: foods.fold<int>(0, (int a, FoodItem f) => a + f.sodiumMg),
+            sugarG: foods.fold<double>(
+              0,
+              (double a, FoodItem f) => a + f.sugarG,
+            ),
           );
-      // Page dismissed mid-save → don't pop the page below.
       if (!mounted) return;
       ref.invalidate(dietTodayProvider);
       // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
       // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
       ref.invalidate(dietByDateProvider(nowKst()));
-      navigator.pop();
+      // 화면을 닫지 않고 보기 모드로 돌아간다. 닫아 버리면 목록으로 나가는데
+      // 그 카드는 총 칼로리만 말하므로 방금 고친 값이 어떻게 됐는지 확인할
+      // 자리가 없다. 취소가 이 화면에 남는 것과도 짝이 맞는다.
+      setState(() {
+        _busy = false;
+        _editing = false;
+        _savedType = _type;
+        _savedFoods = List<DietFood>.of(_foods);
+      });
       if (!toastContext.mounted) return;
       showAppToast(toastContext, l.dietSaved, type: AppToastType.success);
     } catch (_) {
