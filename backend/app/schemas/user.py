@@ -278,10 +278,39 @@ class ProfileUpdate(PartialUpdate):
     nullable_fields: ClassVar[frozenset[str]] = frozenset({"height_cm", "weight_kg"})
 
     name: Optional[str] = None
+    #: 가입과 **같은 기준**으로 본다(#1883). 로그인이 이메일로 이뤄지므로, 여기서
+    #: 형식을 보지 않으면 오타 한 번이 계정 잠김이 된다 — 전에는 `asdf` 가 200 으로
+    #: 저장되고 그 회원은 원래 주소로 다시 로그인할 수 없었다. 비밀번호 찾기
+    #: 경로가 없어 스스로 되돌릴 방법도 없다.
+    #:
+    #: 빈 문자열도 막힌다. 이메일은 비울 수 있는 값이 아니다.
     email: Optional[str] = None
+    #: 가입과 같이 `000-0000-0000` 한 표기로 정리해 저장한다(#1883). 가입만
+    #: 정리하면 이 화면이 그 정리를 그대로 되돌린다.
+    #:
+    #: 빈 문자열은 그대로 둔다 — 연락처를 지우는 것은 할 수 있는 일이다.
     phone: Optional[str] = None
     birth_date: Optional[str] = None
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
     goals: Optional[str] = Field(default=None, max_length=500)
+
+    # 가입(`UserRegister`)과 같은 함수를 부른다. 두 경로가 다른 기준을 쓰면
+    # 한쪽이 정리한 값을 다른 쪽이 되돌린다.
+    #
+    # `None` 을 그냥 통과시키는 것은 여기서 판단할 일이 아니기 때문이다 —
+    # 누락인지 명시적 null 인지는 `PartialUpdate` 가 뒤에서 가른다.
+    @field_validator("email", mode="before")
+    @classmethod
+    def _check_email(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_email(value)
+        return value
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return normalize_phone(value)
+        return value

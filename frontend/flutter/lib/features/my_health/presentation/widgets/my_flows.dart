@@ -13,6 +13,7 @@ import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/focus_change_label.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
+import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
@@ -185,6 +186,14 @@ class ProfileSettingsPage extends ConsumerWidget {
   }
 }
 
+/// 프로필 편집에서 형식을 보는 칸. (#1883)
+///
+/// 이름·생년월일·키·몸무게는 여기 없다 — 서버가 형식을 보지 않고, 잘못 넣어도
+/// 되돌릴 수 있다. 이메일과 전화번호만 다르다: 이메일은 **로그인하는 값**이라
+/// 잘못 저장하면 그 계정에 다시 들어올 수 없고, 전화번호는 트레이너가 회원에게
+/// 연락하는 값이다.
+enum _ProfileField { email, phone }
+
 class _ProfileForm extends ConsumerStatefulWidget {
   const _ProfileForm({required this.initial});
   final UserProfile initial;
@@ -219,6 +228,11 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   );
   bool _saving = false;
 
+  /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
+  /// 대로 다시 검사한다 — 가입 화면과 같은 방식이다(#1883).
+  late final AppFieldErrors<_ProfileField> _errors =
+      AppFieldErrors<_ProfileField>(_check);
+
   @override
   void dispose() {
     _name.dispose();
@@ -230,9 +244,41 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     super.dispose();
   }
 
+  /// 칸의 지금 값에 대한 오류 문구. 규칙도 문구도 가입 화면과 같은 것을 쓴다 —
+  /// 여기만 다른 기준을 두면 같은 값이 화면마다 다르게 판정된다.
+  ///
+  /// **있던 연락처는 지울 수 없다.** 가입 화면이 전화번호를 필수로 받는데
+  /// (#1634) 여기서 비울 수 있으면 그 필수가 무의미해지고, 트레이너가 담당
+  /// 회원에게 연락할 방법이 사라진다.
+  ///
+  /// 처음부터 없던 회원에게만 빈 칸을 허용한다 — 소셜 로그인 가입자와 #1634
+  /// 이전 가입자는 연락처를 넣을 자리가 없었다. 그 사람들에게까지 요구하면
+  /// 이름만 고치려는데 전화번호를 내놓으라고 막는 화면이 된다. 서버도 같은
+  /// 판정이다(#1883).
+  String? _check(_ProfileField field) =>
+      authInputErrorText(AppLocalizations.of(context), switch (field) {
+        _ProfileField.email => AppInputRules.email(_email.text),
+        _ProfileField.phone =>
+          _phone.text.trim().isEmpty && widget.initial.phone.trim().isEmpty
+              ? null
+              : AppInputRules.phone(_phone.text),
+      });
+
+  /// 오류를 보인 칸이 있을 때만 입력마다 다시 그린다.
+  void _onEdited(String _) {
+    if (_errors.isWatching) setState(() {});
+  }
+
   Future<void> _save() async {
     if (_saving) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 틀린 칸이 있으면 보내지 않고 칸 아래에 알린다. 서버도 같은 기준으로
+    // 막지만(#1883), 거기서 걸리면 이유를 알 수 없는 "저장에 실패했어요"
+    // 토스트만 남는다 — 어느 칸이 문제인지는 여기서만 말해 줄 수 있다.
+    if (!_errors.validate(_ProfileField.values)) {
+      setState(() {});
+      return;
+    }
     final NavigatorState navigator = Navigator.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     setState(() => _saving = true);
@@ -281,15 +327,25 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         AppTextField(label: l.myFieldName, controller: _name),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-email'),
           label: l.myFieldEmail,
           controller: _email,
           keyboardType: TextInputType.emailAddress,
+          errorText: _errors.of(_ProfileField.email),
+          onChanged: _onEdited,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-phone'),
           label: l.myFieldPhone,
           controller: _phone,
           keyboardType: TextInputType.phone,
+          // 숫자만 쳐도 하이픈을 넣어 준다 — 가입 화면과 같은 서식이다.
+          inputFormatters: const <TextInputFormatter>[
+            AppPhoneNumberFormatter(),
+          ],
+          errorText: _errors.of(_ProfileField.phone),
+          onChanged: _onEdited,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
