@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
@@ -207,7 +208,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: _badge, matching: find.byIcon(Icons.star_rounded)),
+      find.descendant(of: _badge, matching: find.byIcon(AppIcons.star)),
       findsOneWidget,
     );
     await tester.pumpAndSettle();
