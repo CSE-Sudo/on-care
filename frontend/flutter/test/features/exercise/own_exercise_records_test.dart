@@ -363,10 +363,17 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: section, matching: find.text('PT 세션')),
+      find.descendant(of: section, matching: find.textContaining('PT 세션')),
       findsNothing,
     );
-    // PT 일지는 자기 자리에 그대로 남는다.
-    expect(find.text('PT 세션'), findsOneWidget);
+    // PT 일지는 자기 자리 — `완료한 PT` 카드 — 에 그대로 남는다(#1884). 종목을
+    // 들지 않은 세션은 이름과 운동량을 한 줄로 붙여 적는다.
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('exercise-pt-records')),
+        matching: find.textContaining('PT 세션'),
+      ),
+      findsOneWidget,
+    );
   });
 }
