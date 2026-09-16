@@ -389,7 +389,7 @@
   "myLogout": "로그아웃",
   "myLogoutConfirm": "로그아웃 하시겠어요?",
   "myCancel": "취소",
-  "myTrainerGymTitle": "내 트레이너 · 헬스장",
+  "myGymTrainerTitle": "내 헬스장 · 트레이너",
   "myConnectionDeleteTitle": "연결 삭제",
   "myDelete": "삭제",
   "myGymDisconnectWithTrainerConfirm": "{gym} 연결을 삭제하시겠습니까?\n담당 트레이너 {trainer} 연결도 함께 해제됩니다.",

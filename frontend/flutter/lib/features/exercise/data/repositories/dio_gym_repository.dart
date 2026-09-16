@@ -42,12 +42,24 @@ class DioGymRepository implements GymRepository {
     durationMinutes: (j['duration_minutes'] as num?)?.toInt() ?? 60,
   );
 
+  /// 추천 사유. 서버는 아직 `reason` 한 칸에 문자열 하나를 담아 보내지만,
+  /// 앱은 여러 개를 그린다(#1881). 계약이 배열로 넓어지기 전까지 양쪽을 다
+  /// 읽는다 — 문자열이면 한 칸짜리 목록으로, 배열이면 그대로.
+  static List<String> _reasons(Object? raw) => switch (raw) {
+    final List<Object?> many => <String>[
+      for (final Object? one in many)
+        if (one is String && one.isNotEmpty) one,
+    ],
+    final String one when one.isNotEmpty => <String>[one],
+    _ => const <String>[],
+  };
+
   static Trainer _trainer(Map<String, Object?> j) => Trainer(
     id: j['id']! as String,
     gymId: (j['gym_id'] as String?) ?? '',
     name: j['name']! as String,
     role: j['role'] as String?,
-    reason: j['reason'] as String?,
+    reasons: _reasons(j['reason']),
     career: j['career'] as String?,
     intro: j['intro'] as String?,
     certifications: <String>[

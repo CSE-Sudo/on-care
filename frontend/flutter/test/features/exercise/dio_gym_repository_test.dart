@@ -67,11 +67,19 @@ const String _gymDetailJson = '''
  "phone":"02-1234-5678","lat":37.5559,"lng":126.9368,"is_partner":true}
 ''';
 
+/// 서버가 아직 보내는 모양 — `reason` 한 칸에 문자열 하나.
 const String _trainersJson = '''
 [{"id":"trainer-demo","gym_id":"gym-oncare-sinchon","name":"김트레이너",
-  "role":"퍼스널 트레이너","reason":"혈압 관리와 운동 병행 지도","career":"7년",
+  "role":"퍼스널 트레이너","reason":"혈압 관리","career":"7년",
   "intro":"혈압 관리와 체중 감량을 함께 다루는 퍼스널 트레이너입니다.",
   "certifications":["생활스포츠지도사 2급","퍼스널트레이닝 CPT"]}]
+''';
+
+/// 계약이 넓어졌을 때의 모양 — 같은 칸에 배열이 온다(#1881).
+const String _trainersManyReasonsJson = '''
+[{"id":"trainer-demo","gym_id":"gym-oncare-sinchon","name":"김트레이너",
+  "role":"퍼스널 트레이너","reason":["혈압 관리","체중 감량"],"career":"7년"},
+ {"id":"trainer-bare","gym_id":"gym-oncare-sinchon","name":"박트레이너"}]
 ''';
 
 /// `GET /v1/reservations/me` 실응답 — 늦은 예약부터(#980).
@@ -121,9 +129,21 @@ void main() {
     expect(t.id, 'trainer-demo');
     expect(t.gymId, 'gym-oncare-sinchon');
     expect(t.role, '퍼스널 트레이너');
-    expect(t.reason, '혈압 관리와 운동 병행 지도');
+    // 단수 문자열은 한 칸짜리 목록으로 읽는다 — 화면은 배지를 여럿 그린다.
+    expect(t.reasons, <String>['혈압 관리']);
     expect(t.career, '7년');
     expect(t.certifications, hasLength(2));
+  });
+
+  test('추천 사유가 배열로 와도, 아예 없어도 읽는다 (#1881)', () async {
+    final adapter = _StubAdapter(<String, Object?>{
+      '/trainers': _trainersManyReasonsJson,
+    });
+    final trainers = await DioGymRepository(_dio(adapter)).fetchAllTrainers();
+
+    expect(trainers.first.reasons, <String>['혈압 관리', '체중 감량']);
+    // 사유 칸이 없으면 빈 목록이다 — 화면이 배지 자리를 통째로 접는다.
+    expect(trainers.last.reasons, isEmpty);
   });
 
   test('담당이 없으면 404 를 null 로 바꾼다', () async {

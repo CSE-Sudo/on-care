@@ -1090,7 +1090,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myCancel => '취소';
 
   @override
-  String get myTrainerGymTitle => '내 트레이너 · 헬스장';
+  String get myGymTrainerTitle => '내 헬스장 · 트레이너';
 
   @override
   String get myConnectionDeleteTitle => '연결 삭제';

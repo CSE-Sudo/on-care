@@ -178,10 +178,7 @@ void main() {
       final List<Trainer> recommended = await repo.fetchRecommendedTrainers();
 
       expect(recommended, isNotEmpty);
-      expect(
-        recommended.every((Trainer t) => t.reason?.isNotEmpty ?? false),
-        isTrue,
-      );
+      expect(recommended.every((Trainer t) => t.reasons.isNotEmpty), isTrue);
     });
   });
 
