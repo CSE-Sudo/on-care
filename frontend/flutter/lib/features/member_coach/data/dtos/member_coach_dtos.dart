@@ -37,6 +37,11 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
         ? (json['session_order']! as num).toInt()
         : 0,
     exercises: _coachRoutineExercises(json['exercises']),
+    // 근력 루틴의 세트·횟수·중량. 다른 유형과, 이 필드를 모르는 옛 응답은
+    // null 이라 화면이 예전처럼 분으로 떨어진다(#1901).
+    sets: json['sets'] is num ? (json['sets']! as num).toInt() : null,
+    reps: json['reps'] is num ? (json['reps']! as num).toInt() : null,
+    weight: json['weight'] is num ? (json['weight']! as num).toDouble() : null,
     // 완료 응답(`RoutineCompleteOut`)에만 있다(#1786).
     pointsAward: PointsAward.fromJson(json['points']),
   );
