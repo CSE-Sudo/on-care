@@ -133,6 +133,14 @@ class AppTextField extends StatelessWidget {
           helperText: helper,
           errorText: errorText,
           counterText: maxLength == null ? null : '',
+          // 여러 줄로 글을 쓰는 칸은 트레이너웹에서만 회색 채움으로 되돌린다
+          // (#1836). 흰 카드·창 위의 흰 칸은 본문과 구분이 약해 글을 쓰는
+          // 영역으로 읽히지 않았다 — 특히 초안이 미리 채워진 리포트 피드백
+          // 칸이 그랬다. 한 줄 칸은 폼의 칸이라 #1776 대로 흰 채움이다.
+          // null 이면 테마의 상태별 채움(활성 흰색·비활성 회색)을 그대로 쓴다.
+          fillColor: multiline && tokens.density.isWeb
+              ? OnCareColors.surfaceInput
+              : null,
           constraints: multiline ? null : BoxConstraints(minHeight: height),
           contentPadding: EdgeInsets.symmetric(
             horizontal: OnCareSpacing.s12,
