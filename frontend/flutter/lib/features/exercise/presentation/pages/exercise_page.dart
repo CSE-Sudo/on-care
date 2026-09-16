@@ -587,83 +587,111 @@ class _ExerciseDayDetail extends StatelessWidget {
           // 직접 적은 기록은 따로 모아 그 자리에서 고치고 지운다(#1428).
           OwnExerciseRecords(week: week, date: date),
           if (sessions.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s12),
-            for (final ExerciseSession s in sessions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: AppTile(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Text(
-                                s.assignedRoutineName.isNotEmpty
-                                    ? s.assignedRoutineName
-                                    : exerciseTypeLabel(l, s.type),
-                                style: tokens
-                                    .text(OnCareTypography.label)
-                                    .copyWith(color: OnCareColors.textPrimary),
-                              ),
-                            ),
-                            Text(
-                              '${exerciseAmountLabel(l, s)} · '
-                              '${NumberFormat('#,###').format(s.calories)} ${l.unitKcal}',
-                              style: tokens
-                                  .text(OnCareTypography.bodySmall)
-                                  .copyWith(color: OnCareColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                        // 무슨 운동을 했는지 — 유형만 적으면 `유산소 30분` 이
-                        // 러닝인지 자전거인지 알 수 없다. (#1021)
-                        if (s.items.isNotEmpty) ...<Widget>[
-                          const SizedBox(height: OnCareSpacing.s4),
-                          for (final String item in s.items)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: OnCareSpacing.s2,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+            // 제목 없이 이어 붙이면 바로 위 `직접 추가한 운동이 없어요` 아래로
+            // 카드가 흘러나와, 없다고 해 놓고 보여 주는 꼴이 된다. 오늘 화면의
+            // `오늘 완료한 PT` 와 같은 짜임 — 아이콘 달린 제목을 인 흰 카드 —
+            // 으로 갈라 세운다(#1884).
+            const SizedBox(height: OnCareSpacing.s20),
+            AppCard(
+              key: const ValueKey<String>('exercise-pt-records'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  AppSectionHeader(
+                    title: l.exCompletedPtDayTitle,
+                    icon: AppIcons.exercise,
+                  ),
+                  const SizedBox(height: OnCareSpacing.s12),
+                  for (final ExerciseSession s in sessions)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: AppTile(
+                          key: s.id == null
+                              ? null
+                              : ValueKey<String>('exercise-pt-record-${s.id}'),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Row(
                                 children: <Widget>[
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: OnCareSpacing.s8,
-                                      right: OnCareSpacing.s8,
-                                    ),
-                                    child: SizedBox.square(
-                                      dimension: _itemBulletSize,
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: tokens.brand.primary,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
                                   Expanded(
                                     child: Text(
-                                      item,
+                                      s.assignedRoutineName.isNotEmpty
+                                          ? s.assignedRoutineName
+                                          : exerciseTypeLabel(l, s.type),
                                       style: tokens
-                                          .text(OnCareTypography.bodySmall)
+                                          .text(OnCareTypography.label)
                                           .copyWith(
                                             color: OnCareColors.textPrimary,
                                           ),
                                     ),
                                   ),
+                                  Text(
+                                    '${exerciseAmountLabel(l, s)} · '
+                                    '${NumberFormat('#,###').format(s.calories)} ${l.unitKcal}',
+                                    style: tokens
+                                        .text(OnCareTypography.bodySmall)
+                                        .copyWith(
+                                          color: OnCareColors.textSecondary,
+                                        ),
+                                  ),
                                 ],
                               ),
-                            ),
-                        ],
-                      ],
+                              // 무슨 운동을 했는지 — 유형만 적으면 `유산소 30분` 이
+                              // 러닝인지 자전거인지 알 수 없다. (#1021)
+                              if (s.items.isNotEmpty) ...<Widget>[
+                                const SizedBox(height: OnCareSpacing.s4),
+                                for (final String item in s.items)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: OnCareSpacing.s2,
+                                    ),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: OnCareSpacing.s8,
+                                            right: OnCareSpacing.s8,
+                                          ),
+                                          child: SizedBox.square(
+                                            dimension: _itemBulletSize,
+                                            child: DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color: tokens.brand.primary,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Text(
+                                            item,
+                                            style: tokens
+                                                .text(
+                                                  OnCareTypography.bodySmall,
+                                                )
+                                                .copyWith(
+                                                  color:
+                                                      OnCareColors.textPrimary,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                ],
               ),
+            ),
           ],
         ],
       ),

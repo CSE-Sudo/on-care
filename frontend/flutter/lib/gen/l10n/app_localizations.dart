@@ -1598,6 +1598,12 @@ abstract class AppLocalizations {
   /// **'Self-logged'**
   String get exOwnRecordSource;
 
+  /// No description provided for @exCompletedPtDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed PT'**
+  String get exCompletedPtDayTitle;
+
   /// No description provided for @exDeleteExercise.
   ///
   /// In en, this message translates to:

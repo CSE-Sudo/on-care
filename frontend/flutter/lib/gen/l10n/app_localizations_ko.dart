@@ -823,6 +823,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exOwnRecordSource => '직접 기록';
 
   @override
+  String get exCompletedPtDayTitle => '완료한 PT';
+
+  @override
   String get exDeleteExercise => '운동 기록 삭제';
 
   @override
