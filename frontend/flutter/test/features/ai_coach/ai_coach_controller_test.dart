@@ -11,9 +11,7 @@ void main() {
       overrides: <Override>[
         // Default repo is DioAiCoachRepository (Stage 9.9); use the
         // in-memory mock for the unit test.
-        aiCoachRepositoryProvider.overrideWithValue(
-          const MockAiCoachRepository(),
-        ),
+        aiCoachRepositoryProvider.overrideWithValue(MockAiCoachRepository()),
       ],
     );
     addTearDown(container.dispose);

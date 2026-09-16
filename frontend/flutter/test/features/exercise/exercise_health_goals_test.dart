@@ -80,7 +80,6 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
     String routineId, {
     required int minutes,
     String intensity = 'moderate',
-    String memberNote = '',
   }) async => throw UnsupportedError('not used');
 
   @override

@@ -65,6 +65,29 @@ void main() {
     expect(list[2]['time_ago'], '어제');
   });
 
+  // 데모 시드 알림은 문구 키를 함께 준다. 화면이 로케일 문장을 고른다(#1812).
+  test('데모 시드 알림에만 문구 키가 붙는다', () async {
+    await db
+        .into(db.notificationItems)
+        .insert(
+          NotificationItemsCompanion.insert(
+            id: 'seed-noti-1',
+            createdAt: nowKst().subtract(const Duration(minutes: 5)),
+            title: '나트륨 섭취 주의',
+            body: '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요.',
+            category: 'reminder',
+          ),
+        );
+
+    final res = await dio.get<List<Object?>>('/notifications');
+    final byId = <String, Map<String, Object?>>{
+      for (final e in res.data!.cast<Map<String, Object?>>())
+        e['id']! as String: e,
+    };
+    expect(byId['seed-noti-1']!['message_key'], 'sodium');
+    expect(byId['n-1']!.containsKey('message_key'), isFalse);
+  });
+
   test('Read flag round-trips through the response', () async {
     final res = await dio.get<List<Object?>>('/notifications');
     final list = res.data!.cast<Map<String, Object?>>();

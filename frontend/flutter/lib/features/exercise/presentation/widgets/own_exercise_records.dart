@@ -77,7 +77,6 @@ class OwnExerciseRecords extends ConsumerWidget {
               child: AppButton(
                 key: const ValueKey<String>('exercise-add-button'),
                 label: l.exAddExercise,
-                variant: AppButtonVariant.secondary,
                 size: OnCareButtonSize.small,
                 leadingIcon: AppIcons.add,
                 onPressed: () =>

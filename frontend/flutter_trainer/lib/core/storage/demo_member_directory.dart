@@ -59,7 +59,7 @@ final List<DemoProspectiveMember> demoProspectiveMembers =
         name: '이수아',
         gender: 'female',
         birthDate: DateTime(1996, 4, 12),
-        goal: '체지방 감량',
+        goal: '체중 감량',
       ),
       DemoProspectiveMember(
         id: 'user-1c7b93f04a58',

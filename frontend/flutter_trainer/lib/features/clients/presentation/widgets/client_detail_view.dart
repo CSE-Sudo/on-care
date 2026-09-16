@@ -13,6 +13,7 @@ import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/chat_repository.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// The trainer-only client detail: identity and actions stay above the diet and
@@ -486,7 +487,7 @@ class _Header extends StatelessWidget {
                 ),
               ),
               Text(
-                client.goal,
+                healthFocusGoalLabel(AppLocalizations.of(context), client.goal),
                 overflow: TextOverflow.ellipsis,
                 style: context.oncare
                     .text(OnCareTypography.caption)

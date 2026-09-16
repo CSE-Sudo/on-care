@@ -553,8 +553,13 @@ IconData ringStartIcon(ExerciseLoadKind kind) => switch (kind) {
 };
 
 /// 링 위 [angle] 자리에 기호를 얹는다. 기본값은 12시(원호의 시작)다.
+///
+/// 캔버스에 직접 찍는 글자라 테마를 타지 않는다 — 아이콘 묶음([icons])이 정한
+/// 채움·굵기를 [AppIcon.glyphPainter] 로 실어 준다. 싣지 않으면 같은 아이콘이
+/// 화면 다른 곳에서는 채워지고 링 위에서만 빈 외곽선으로 나온다(#1866).
 void paintRingCapIcon(
   Canvas canvas, {
+  required OnCareIconSet icons,
   required Offset center,
   required double radius,
   required double stroke,
@@ -563,18 +568,12 @@ void paintRingCapIcon(
 }) {
   final double glyph = stroke * 0.78;
   if (glyph < 6) return;
-  final TextPainter tp = TextPainter(
-    text: TextSpan(
-      text: String.fromCharCode(icon.codePoint),
-      style: TextStyle(
-        fontSize: glyph,
-        fontFamily: icon.fontFamily,
-        package: icon.fontPackage,
-        color: OnCareColors.textOnFill,
-      ),
-    ),
-    textDirection: TextDirection.ltr,
-  )..layout();
+  final TextPainter tp = AppIcon.glyphPainter(
+    icons,
+    icon,
+    size: glyph,
+    color: OnCareColors.textOnFill,
+  );
   final Offset at = center + Offset(math.cos(angle), math.sin(angle)) * radius;
   tp.paint(canvas, Offset(at.dx - tp.width / 2, at.dy - tp.height / 2));
 }
@@ -680,6 +679,7 @@ class _BurnDonut extends StatelessWidget {
                     '/${NumberFormat.decimalPattern(locale).format(goal.round())}'
                     '${l.unitKcal}',
                 startIcon: _kBurnStartIcon,
+                icons: context.oncare.icons,
               ),
             ),
           ),
@@ -696,9 +696,13 @@ class _DonutPainter extends CustomPainter {
     required this.color,
     required this.center,
     required this.unit,
+    required this.icons,
     this.caption = '',
     this.startIcon,
   });
+
+  /// 12시 기호를 화면과 같은 채움·굵기로 찍기 위한 아이콘 묶음(#1866).
+  final OnCareIconSet icons;
 
   final double ratio;
   final double t;
@@ -804,6 +808,7 @@ class _DonutPainter extends CustomPainter {
     if (icon != null) {
       paintRingCapIcon(
         canvas,
+        icons: icons,
         center: c,
         radius: r,
         stroke: stroke,
@@ -862,7 +867,8 @@ class _DonutPainter extends CustomPainter {
       old.color != color ||
       old.center != center ||
       old.unit != unit ||
-      old.caption != caption;
+      old.caption != caption ||
+      old.icons != icons;
 }
 
 // ── 이번 주 ────────────────────────────────────────────────────────────
@@ -999,6 +1005,7 @@ class _GoalRings extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareBrand brand = context.oncare.brand;
+    final OnCareIconSet icons = context.oncare.icons;
     final List<double> ratios = <double>[
       for (final ExerciseLoadKind k in ExerciseLoadKind.values)
         () {
@@ -1031,6 +1038,7 @@ class _GoalRings extends StatelessWidget {
                   for (final ExerciseLoadKind k in ExerciseLoadKind.values)
                     kindColor(k, brand),
                 ],
+                icons: icons,
               ),
             ),
           ),
@@ -1041,7 +1049,15 @@ class _GoalRings extends StatelessWidget {
 }
 
 class _RingsPainter extends CustomPainter {
-  _RingsPainter({required this.ratios, required this.t, required this.colors});
+  _RingsPainter({
+    required this.ratios,
+    required this.t,
+    required this.colors,
+    required this.icons,
+  });
+
+  /// 링 12시 기호를 화면과 같은 채움·굵기로 찍기 위한 아이콘 묶음(#1866).
+  final OnCareIconSet icons;
 
   final List<double> ratios;
   final double t;
@@ -1114,6 +1130,7 @@ class _RingsPainter extends CustomPainter {
       // 유형 기호는 링마다 12시에 고정한다.
       paintRingCapIcon(
         canvas,
+        icons: icons,
         center: c,
         radius: r,
         stroke: stroke,
@@ -1125,7 +1142,10 @@ class _RingsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RingsPainter old) =>
-      old.t != t || old.ratios != ratios || old.colors != colors;
+      old.t != t ||
+      old.ratios != ratios ||
+      old.colors != colors ||
+      old.icons != icons;
 }
 
 /// 막대 하나. 기록이 없는 칸은 0 짜리 막대가 아니라 **그루터기**로 그린다 —

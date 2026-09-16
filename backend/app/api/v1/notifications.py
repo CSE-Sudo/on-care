@@ -55,6 +55,10 @@ _ACTION_BY_CATEGORY: dict[str, NotificationAction] = {
     notification_service.MEMBER_BENEFITS: NotificationAction(
         label="내 혜택 보기", target="my_benefits"
     ),
+    # 담당 트레이너가 건강 목표를 바꿨다 — 바뀐 목표를 확인하는 MY 건강 목표(#1832).
+    notification_service.MEMBER_HEALTH_GOALS: NotificationAction(
+        label="목표 보기", target="health_goals"
+    ),
 }
 
 

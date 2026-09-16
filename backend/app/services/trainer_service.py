@@ -41,6 +41,7 @@ from app.schemas.trainer_api import (
     TrainerProgramDraftOut, TrainerProgramDraftSummary, WeeklyReportDayOut,
     WeeklyReportOut,
 )
+from app.services import health_focus
 from app.services import (
     auto_routine_service,
     diet_photo_service,
@@ -366,14 +367,16 @@ def build_roster(
     # 성별은 로스터 카드가 이름 옆에 적는 값이다. 내려 주지 않던 시절에는 앱이
     # 회원 id 로 값을 지어내 화면마다·모드마다 다른 성별이 떴다(#960). 한 번의
     # 배치 조회로 읽고, 저장된 적이 없는 회원은 빈 문자열로 둔다.
-    gender_by_member = {
-        member_id: gender
-        for member_id, gender in db.execute(
-            select(HealthProfile.user_id, HealthProfile.gender).where(
-                HealthProfile.user_id.in_(member_ids)
-            )
-        ).all()
-    }
+    # 이름 아래 목표는 회원이 고른 건강 목표다(#1818) — 같은 행에서 함께 읽는다.
+    gender_by_member: dict[str, str] = {}
+    goal_by_member: dict[str, str] = {}
+    for member_id, gender, conditions in db.execute(
+        select(
+            HealthProfile.user_id, HealthProfile.gender, HealthProfile.conditions
+        ).where(HealthProfile.user_id.in_(member_ids))
+    ).all():
+        gender_by_member[member_id] = gender
+        goal_by_member[member_id] = health_focus.focus_label(conditions)
 
     out: list[TrainerClientOut] = []
     for link in links:
@@ -394,7 +397,7 @@ def build_roster(
             name=member.name,
             avatar=member.name[:1] if member.name else "?",
             gender=gender_by_member.get(link.member_id, ""),
-            goal=link.goal,
+            goal=goal_by_member.get(link.member_id, ""),
             last_message=last_msg.body if last_msg else "",
             last_time=relative_time_label(last_msg.created_at) if last_msg else "-",
             last_message_at=last_msg.created_at if last_msg else None,
@@ -1258,7 +1261,8 @@ def _routine_out(
         completed_at=completion.completed_at if completion is not None else None,
         completed_minutes=completion.minutes if completion is not None else None,
         completed_intensity=completion.intensity if completion is not None else None,
-        member_note=completion.member_note if completion is not None else "",
+        # 개인 운동 회원 피드백은 없앴다(#1825). 응답 모양은 옛 앱을 위해 남긴다.
+        member_note="",
         trainer_feedback=(
             completion.trainer_feedback if completion is not None else ""
         ),
@@ -1477,7 +1481,6 @@ def complete_assigned_routine(
     reps: int | None = None,
     weight: float | None = None,
     intensity: str,
-    member_note: str,
 ) -> RoutineCompleteOut:
     """배정 하나를 회원 운동 기록 한 건으로 완료한다.
 
@@ -1546,7 +1549,8 @@ def complete_assigned_routine(
         assigned_routine_id=routine.id,
         assigned_trainer_id=trainer_id,
         assigned_routine_name=routine.name,
-        member_note=member_note.strip(),
+        # 개인 운동 피드백은 받지 않는다(#1825) — 불편은 채팅에서 감지한다.
+        member_note="",
         completed_at=completed_at,
     )
     db.add(row)
@@ -1693,7 +1697,8 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
             )
             + f" · {row.intensity}"
         ],
-        client_feedback=row.member_note,
+        # 개인 운동 회원 피드백은 없앴다(#1825). 옛 데이터가 있어도 내려보내지 않는다.
+        client_feedback="",
         trainer_note=row.trainer_feedback,
         assigned_routine_id=row.assigned_routine_id,
         completed_at=completed_at,
@@ -4124,7 +4129,14 @@ def build_member_coach(db: Session, member_id: str) -> MemberCoachOut | None:
         career=f"{profile.career_years}년",
         intro=profile.intro,
         gym=_member_gym_out(db, member_id, profile),
-        goal=link.goal,
+        # 트레이너가 따로 적던 문장이 아니라 회원이 고른 건강 목표다(#1818).
+        goal=health_focus.focus_label(
+            db.scalar(
+                select(HealthProfile.conditions).where(
+                    HealthProfile.user_id == member_id
+                )
+            )
+        ),
     )
 
 

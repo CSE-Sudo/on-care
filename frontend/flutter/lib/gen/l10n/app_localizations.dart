@@ -944,6 +944,12 @@ abstract class AppLocalizations {
   /// **'Delete this meal record?'**
   String get dietDeleteConfirm;
 
+  /// No description provided for @dietDeleteWhenEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No food is left. Delete this meal record?'**
+  String get dietDeleteWhenEmpty;
+
   /// No description provided for @dietCancel.
   ///
   /// In en, this message translates to:
@@ -1001,7 +1007,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietAddFood.
   ///
   /// In en, this message translates to:
-  /// **'+ Add Food'**
+  /// **'Add Food'**
   String get dietAddFood;
 
   /// No description provided for @dietEditFoodHint.
@@ -1025,20 +1031,8 @@ abstract class AppLocalizations {
   /// No description provided for @dietEditNutritionHint.
   ///
   /// In en, this message translates to:
-  /// **'You can edit the analyzed values directly'**
+  /// **'Edit each food\'s nutrition and it adds up here'**
   String get dietEditNutritionHint;
-
-  /// No description provided for @dietSodiumHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended under 2,000mg/day'**
-  String get dietSodiumHint;
-
-  /// No description provided for @dietSugarHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended under 50g/day'**
-  String get dietSugarHint;
 
   /// No description provided for @dietDeleteMeal.
   ///
@@ -3325,6 +3319,66 @@ abstract class AppLocalizations {
   /// **'Writing your answer'**
   String get aicGeneratingReply;
 
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'{part} pain noted'**
+  String aicInsightDiscomfortPart(String part);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Pain noted'**
+  String get aicInsightDiscomfort;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Negative feedback noted'**
+  String get aicInsightNegative;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Noted signals'**
+  String get aicInsightHistoryTitle;
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Pain and negative feedback noted in the last {days} days'**
+  String aicInsightHistorySubtitle(int days);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing noted in the last {days} days'**
+  String aicInsightHistoryEmpty(int days);
+
+  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load noted signals'**
+  String get aicInsightHistoryFailed;
+
+  /// AI coach chat: how long the conversation is kept (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'AI chat history is kept for the last {days} days'**
+  String aicRetentionNotice(int days);
+
+  /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'Chat with your trainer'**
+  String get aicTrainerConnectedTitle;
+
+  /// AI coach chat: shown instead of the chat when the member has a trainer (#1823).
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re connected with {name}. Members with a trainer chat with their trainer instead of the AI chatbot'**
+  String aicTrainerConnectedBody(String name);
+
   /// No description provided for @aicQuickReply1.
   ///
   /// In en, this message translates to:
@@ -4090,32 +4144,92 @@ abstract class AppLocalizations {
   /// No description provided for @onboardHealthSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Pick what you want to focus on in your health care. (multiple allowed)'**
+  /// **'Pick what you want to focus on in your health care. (up to 2)'**
   String get onboardHealthSubtitle;
-
-  /// No description provided for @onboardGoalTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Exercise goal'**
-  String get onboardGoalTitle;
-
-  /// No description provided for @onboardGoalSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Tell us what you want to achieve. You can change this later.'**
-  String get onboardGoalSubtitle;
-
-  /// No description provided for @onboardGoalHint.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Finish a 5K within three months'**
-  String get onboardGoalHint;
 
   /// No description provided for @onboardOptionalTag.
   ///
   /// In en, this message translates to:
   /// **'(optional)'**
   String get onboardOptionalTag;
+
+  /// Points guide shown once after onboarding (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Points quests'**
+  String get pointsGuideTitle;
+
+  /// Points guide shown once after onboarding (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'The more you log each day, the more points you earn. Try these quests'**
+  String get pointsGuideSubtitle;
+
+  /// Points guide: numbered quest label (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Quest {number}'**
+  String pointsGuideQuest(int number);
+
+  /// Points guide: how many times a day the points can be earned (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Once a day} other{Up to {count} times a day}}'**
+  String pointsGuideDailyCap(int count);
+
+  /// Points guide: where the points are used (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Spend your points in MY › Points'**
+  String get pointsGuideSpendNote;
+
+  /// Points guide: button that goes to Home (#1826).
+  ///
+  /// In en, this message translates to:
+  /// **'Get started'**
+  String get pointsGuideStart;
+
+  /// Onboarding step 1: the basic info step must be filled in (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'(required)'**
+  String get onboardRequiredTag;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your date of birth'**
+  String get onboardBirthRequired;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your gender'**
+  String get onboardGenderRequired;
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your height'**
+  String get onboardHeightRequired;
+
+  /// Onboarding step 1: height outside the range the server accepts (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Height must be between {min} and {max} cm'**
+  String onboardHeightRange(int min, int max);
+
+  /// Onboarding step 1: shown under an empty field after tapping Next (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your weight'**
+  String get onboardWeightRequired;
+
+  /// Onboarding step 1: weight outside the range the server accepts (#1830).
+  ///
+  /// In en, this message translates to:
+  /// **'Weight must be between {min} and {max} kg'**
+  String onboardWeightRange(int min, int max);
 
   /// No description provided for @onboardSkipStep.
   ///
@@ -4279,6 +4393,18 @@ abstract class AppLocalizations {
   /// **'Source: WHO guidelines on physical activity (2020) — 150 min of moderate cardio and 2+ strength days a week'**
   String get onboardExerciseSourceNote;
 
+  /// Shown under goal fields when the picked health goals changed the suggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusted for the health goals you picked'**
+  String get onboardFocusAdjusted;
+
+  /// Sources for the goal-based adjustments.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal adjustments: 500 kcal a day for weight loss (Korean Society for the Study of Obesity) · 1.6 g protein per kg for strength (ISSN) · sugar 5% of energy (WHO) · 150–300 min cardio a week (WHO)'**
+  String get onboardFocusSourceNote;
+
   /// No description provided for @onboardGenderMale.
   ///
   /// In en, this message translates to:
@@ -4296,30 +4422,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get onboardGenderOther;
-
-  /// No description provided for @onboardConditionHypertension.
-  ///
-  /// In en, this message translates to:
-  /// **'Hypertension'**
-  String get onboardConditionHypertension;
-
-  /// No description provided for @onboardConditionDiabetes.
-  ///
-  /// In en, this message translates to:
-  /// **'Diabetes'**
-  String get onboardConditionDiabetes;
-
-  /// No description provided for @onboardConditionDyslipidemia.
-  ///
-  /// In en, this message translates to:
-  /// **'Dyslipidemia'**
-  String get onboardConditionDyslipidemia;
-
-  /// No description provided for @onboardConditionObesity.
-  ///
-  /// In en, this message translates to:
-  /// **'Obesity'**
-  String get onboardConditionObesity;
 
   /// Greeting bubble the app shows when the coach conversation opens.
   ///
@@ -4552,32 +4654,74 @@ abstract class AppLocalizations {
   /// No description provided for @myGoalsFocusHint.
   ///
   /// In en, this message translates to:
-  /// **'Pick what you want to focus on in your health care. (multiple allowed)'**
+  /// **'Pick what you want to focus on in your health care. (up to 2)'**
   String get myGoalsFocusHint;
 
-  /// No description provided for @myGoalsFocusHypertension.
+  /// MY health goals: who last changed the goal chips and when (#1832).
   ///
   /// In en, this message translates to:
-  /// **'Blood pressure'**
-  String get myGoalsFocusHypertension;
+  /// **'Last changed by {who} · {date}'**
+  String myGoalsFocusLastChanged(String who, String date);
 
-  /// No description provided for @myGoalsFocusDiabetes.
+  /// MY health goals: the goals were last changed by the member's trainer (#1832).
   ///
   /// In en, this message translates to:
-  /// **'Blood sugar'**
-  String get myGoalsFocusDiabetes;
+  /// **'your trainer'**
+  String get myGoalsFocusChangedByTrainer;
 
-  /// No description provided for @myGoalsExerciseNote.
+  /// MY health goals: the goals were last changed by the member (#1832).
   ///
   /// In en, this message translates to:
-  /// **'Exercise goal'**
-  String get myGoalsExerciseNote;
+  /// **'you'**
+  String get myGoalsFocusChangedByMe;
 
-  /// No description provided for @myGoalsExerciseNoteHint.
+  /// Health goal chip in onboarding and MY health goals.
   ///
   /// In en, this message translates to:
-  /// **'e.g. Finish a 5K within three months'**
-  String get myGoalsExerciseNoteHint;
+  /// **'Weight loss'**
+  String get healthFocusWeightLoss;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Build strength'**
+  String get healthFocusStrength;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Improve fitness'**
+  String get healthFocusFitness;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Posture correction'**
+  String get healthFocusPosture;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Rehab'**
+  String get healthFocusRehab;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Better eating habits'**
+  String get healthFocusEating;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise habit'**
+  String get healthFocusExerciseHabit;
+
+  /// Health goal chip in onboarding and MY health goals.
+  ///
+  /// In en, this message translates to:
+  /// **'Blood pressure care'**
+  String get healthFocusBloodPressure;
 
   /// Section label in the health goals sheet.
   ///
@@ -4615,11 +4759,16 @@ abstract class AppLocalizations {
   /// **'Weekly stretching (min)'**
   String get myGoalFlexibilityWeekly;
 
-  /// No description provided for @myGoalExerciseSuggestionNote.
+  /// Explains the suggested exercise goals, adjusted for the picked health goals.
   ///
   /// In en, this message translates to:
-  /// **'Suggested: 300 kcal a day · 150 min cardio · 21 sets · 60 min stretching a week'**
-  String get myGoalExerciseSuggestionNote;
+  /// **'Suggested: {burn} kcal a day · {cardio} min cardio · {strength} sets · {flexibility} min stretching a week'**
+  String myGoalExerciseSuggestionNote(
+    int burn,
+    int cardio,
+    int strength,
+    int flexibility,
+  );
 
   /// No description provided for @myGoalExerciseApplySuggestion.
   ///
@@ -4672,8 +4821,8 @@ abstract class AppLocalizations {
   /// Explains the placeholder grams shown in the macro fields.
   ///
   /// In en, this message translates to:
-  /// **'Suggested split for {kcal} kcal: 50% carbs · 30% protein · 20% fat'**
-  String myGoalMacroSuggestionNote(int kcal);
+  /// **'Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat'**
+  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat);
 
   /// Button that fills the macro fields with the suggested grams.
   ///
@@ -4885,12 +5034,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t cancel the workout'**
   String get coachRoutineCancelFailed;
 
-  /// The member's own note on a completed routine.
-  ///
-  /// In en, this message translates to:
-  /// **'My feedback: {note}'**
-  String coachRoutineMyNote(String note);
-
   /// The trainer's feedback on a completed routine.
   ///
   /// In en, this message translates to:
@@ -4926,18 +5069,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'High'**
   String get coachIntensityHigh;
-
-  /// Field label in the completion dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Feedback (optional)'**
-  String get coachRoutineNoteLabel;
-
-  /// Hint of the note field in the completion dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Share how it felt or how your body is doing'**
-  String get coachRoutineNoteHint;
 
   /// Submit button of the completion dialog.
   ///
@@ -5004,6 +5135,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load the latest notifications'**
   String get alertLoadFailed;
+
+  /// Relative time for a notification less than a minute old.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get alertTimeJustNow;
+
+  /// Relative time for a notification under an hour old.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m ago'**
+  String alertTimeMinutesAgo(int minutes);
+
+  /// Relative time for a notification under a day old.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h ago'**
+  String alertTimeHoursAgo(int hours);
+
+  /// Relative time for a notification from about a day ago.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get alertTimeYesterday;
+
+  /// Relative time for a notification two or more days old.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d ago'**
+  String alertTimeDaysAgo(int days);
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch your sodium'**
+  String get demoAlertSodiumTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.'**
+  String get demoAlertSodiumBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Log your dinner'**
+  String get demoAlertDinnerTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'No dinner logged yet today. One photo is all it takes.'**
+  String get demoAlertDinnerBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'A new workout routine arrived'**
+  String get demoAlertRoutineTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer Kim adjusted it to a walking routine for your knee.'**
+  String get demoAlertRoutineBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s report is ready'**
+  String get demoAlertReportTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer Kim posted your report for this week.'**
+  String get demoAlertReportBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'PT session complete'**
+  String get demoAlertPtDoneTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished PT session 12 with Trainer Kim at 18:00 today!'**
+  String get demoAlertPtDoneBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Feedback from your trainer'**
+  String get demoAlertTrainerFeedbackTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Be sure to stretch your rotator cuff to finish.'**
+  String get demoAlertTrainerFeedbackBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost at this week\'s workout goal'**
+  String get demoAlertWeeklyGoalTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Start with 30 minutes of low-intensity cardio (walking).'**
+  String get demoAlertWeeklyGoalBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re keeping up your meal log'**
+  String get demoAlertMealStreakTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve logged your meals every day for over a month.'**
+  String get demoAlertMealStreakBody;
+
+  /// Title of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled maintenance'**
+  String get demoAlertMaintenanceTitle;
+
+  /// Body of a demo notification shown in tour mode.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance is scheduled for tomorrow, 02:00–03:00.'**
+  String get demoAlertMaintenanceBody;
 
   /// Title of the completed PT session card.
   ///

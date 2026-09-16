@@ -7,7 +7,7 @@
 
 여기서 쓰는 신호는 전부 이미 DB 에 있다 — 새로 수집하는 것이 없다.
 
-  회원   `HealthProfile.conditions`(온보딩 만성질환) · `goals` ·
+  회원   `HealthProfile.conditions`(온보딩 건강 목표) · `goals` ·
          가장 최근 `ConsultationRequest.exercise_goal` · `MemberGym`(내 헬스장)
   트레이너 `TrainerProfile.specialty` · `intro` · `career_years` ·
          `gym_id` → `places.lat/lng`
@@ -29,6 +29,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.services import health_focus
 from app.models.models import (
     ConsultationRequest,
     HealthProfile,
@@ -69,12 +70,19 @@ class _Need:
     keywords: tuple[str, ...]
 
 
-#: 온보딩 만성질환(`_conditionOptions`) → needs.
+#: 건강 목표(`health_focus.FOCUS_OPTIONS`) → needs. (#1814)
+#:
+#: 옛 질환 이름(고혈압·비만)으로 저장된 값은 [normalize_conditions] 가 새 목표로
+#: 바꾼 뒤 찾는다. 상담 신청의 운동 목표와 라벨이 같아 [_dedup] 가 하나로 합친다.
 _CONDITION_NEEDS: dict[str, _Need] = {
-    "고혈압": _Need("혈압 관리", ("혈압", "고혈압")),
-    "당뇨": _Need("혈당 관리", ("혈당", "당뇨")),
-    "고지혈증": _Need("대사 관리", ("콜레스테롤", "고지혈", "대사")),
-    "비만": _Need("체중 감량", ("체중", "감량", "다이어트")),
+    health_focus.FOCUS_WEIGHT_LOSS: _Need("체중 감량", ("체중", "감량", "다이어트")),
+    health_focus.FOCUS_STRENGTH: _Need("근력 향상", ("근력", "근육", "웨이트")),
+    health_focus.FOCUS_FITNESS: _Need("체력 강화", ("체력", "컨디셔닝")),
+    health_focus.FOCUS_POSTURE: _Need("자세 교정", ("자세", "체형", "교정")),
+    health_focus.FOCUS_REHAB: _Need("재활", ("재활", "통증", "부상")),
+    health_focus.FOCUS_EATING: _Need("식습관 개선", ("식단", "식습관", "영양")),
+    health_focus.FOCUS_EXERCISE_HABIT: _Need("운동 습관", ("입문", "초보", "습관")),
+    health_focus.FOCUS_BLOOD_PRESSURE: _Need("혈압 관리", ("혈압", "고혈압")),
 }
 
 #: 상담 요청의 `exercise_goal`(Literal) → needs.
@@ -101,7 +109,7 @@ class MemberSignals:
     def is_empty(self) -> bool:
         """점수를 낼 근거가 하나도 없는가.
 
-        온보딩 전이거나 만성질환·상담 이력·내 헬스장이 모두 없는 회원이다. 이때는
+        온보딩 전이거나 건강 목표·상담 이력·내 헬스장이 모두 없는 회원이다. 이때는
         무엇을 기준으로 줄 세워도 근거가 없으므로 기존 동작으로 되돌린다.
         """
         return self.gym_id is None and self.lat is None and not self.needs
@@ -118,7 +126,7 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 
 
 def _dedup(needs: list[_Need]) -> list[_Need]:
-    """같은 라벨의 needs 를 하나로. 비만(온보딩)과 weight_loss(상담)는 같은 것이다."""
+    """같은 라벨의 needs 를 하나로. 체중 감량(온보딩)과 weight_loss(상담)는 같은 것이다."""
     seen: set[str] = set()
     out: list[_Need] = []
     for need in needs:
@@ -138,9 +146,10 @@ def collect_member_signals(db: Session, member_id: str) -> MemberSignals:
     )
     needs: list[_Need] = []
     if profile is not None:
-        # conditions 는 앱이 ', ' 로 이어 보낸 만성질환 목록이다.
-        for token in (profile.conditions or "").split(","):
-            need = _CONDITION_NEEDS.get(token.strip())
+        # conditions 는 앱이 ', ' 로 이어 보낸 건강 목표다. 옛 질환 이름은 새
+        # 목표로 읽는다(#1814).
+        for focus in health_focus.focus_in(profile.conditions):
+            need = _CONDITION_NEEDS.get(focus)
             if need is not None:
                 needs.append(need)
         # goals 는 자유 서술이라 키워드가 그대로 들어 있으면 그 needs 로 본다.

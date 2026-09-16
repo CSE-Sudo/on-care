@@ -8,6 +8,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
@@ -23,6 +24,10 @@ class _SlowRepository implements AiCoachRepository {
   @override
   Future<AiCoachState> fetchState() async =>
       const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]);
+
+  @override
+  Future<ChatInsightHistory> fetchInsights() async =>
+      const ChatInsightHistory();
 
   @override
   Future<List<ChatMessage>> fetchHistory() async => const <ChatMessage>[];
@@ -41,6 +46,10 @@ class _QuietRepository implements AiCoachRepository {
   @override
   Future<AiCoachState> fetchState() async =>
       const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]);
+
+  @override
+  Future<ChatInsightHistory> fetchInsights() async =>
+      const ChatInsightHistory();
 
   @override
   Future<List<ChatMessage>> fetchHistory() async => const <ChatMessage>[];

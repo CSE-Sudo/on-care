@@ -19,7 +19,6 @@ abstract interface class MemberCoachRepository {
     String routineId, {
     required int minutes,
     String intensity = 'moderate',
-    String memberNote = '',
   });
 
   /// 완료 표시를 되돌린다 — 그 배정으로 남은 운동 기록을 지운다. (#1131)

@@ -1,4 +1,8 @@
 class MemberHealthProfile {
+  /// [focusChangedBy] 값 — 건강 목표를 마지막으로 바꾼 사람(#1832).
+  static const String focusChangedByMember = 'member';
+  static const String focusChangedByTrainer = 'trainer';
+
   const MemberHealthProfile({
     required this.memberId,
     required this.memberName,
@@ -20,6 +24,8 @@ class MemberHealthProfile {
     this.weeklyWorkoutGoal,
     this.weeklyExerciseMinutesGoal,
     this.weeklyBurnGoal,
+    this.focusChangedBy,
+    this.focusChangedAt,
   });
 
   final String memberId;
@@ -51,6 +57,13 @@ class MemberHealthProfile {
   final int? weeklyExerciseMinutesGoal;
   final int? weeklyBurnGoal;
 
+  /// 건강 목표를 마지막으로 바꾼 사람 — 회원(`member`)인지 트레이너(`trainer`)인지.
+  /// 회원과 트레이너가 같은 칸을 고치므로 승인 대신 기록을 보여 준다(#1832).
+  final String? focusChangedBy;
+
+  /// 건강 목표를 마지막으로 바꾼 시각(로컬 시각).
+  final DateTime? focusChangedAt;
+
   factory MemberHealthProfile.fromJson(Map<String, Object?> json) =>
       MemberHealthProfile(
         memberId: json['member_id'] as String? ?? '',
@@ -75,5 +88,13 @@ class MemberHealthProfile {
         weeklyExerciseMinutesGoal:
             (json['weekly_exercise_minutes_goal'] as num?)?.toInt(),
         weeklyBurnGoal: (json['weekly_burn_goal'] as num?)?.toInt(),
+        focusChangedBy: switch (json['focus_changed_by']) {
+          final String by when by.isNotEmpty => by,
+          _ => null,
+        },
+        focusChangedAt: switch (json['focus_changed_at']) {
+          final String at => DateTime.tryParse(at)?.toLocal(),
+          _ => null,
+        },
       );
 }

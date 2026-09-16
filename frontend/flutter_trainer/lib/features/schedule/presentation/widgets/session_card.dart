@@ -10,6 +10,7 @@ import 'package:oncare_trainer/features/schedule/presentation/widgets/session_pr
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
 import 'package:oncare_trainer/shared/widgets/client_identity.dart'
     show clientDemographicsLabel, findClientIdentity;
 import 'package:oncare_ui/oncare_ui.dart';
@@ -190,7 +191,10 @@ class SessionCard extends ConsumerWidget {
                       // 빈 줄로 행 높이를 먹지 않는다.
                       if (client.goal.trim().isNotEmpty)
                         Text(
-                          client.goal,
+                          healthFocusGoalLabel(
+                            AppLocalizations.of(context),
+                            client.goal,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: tokens

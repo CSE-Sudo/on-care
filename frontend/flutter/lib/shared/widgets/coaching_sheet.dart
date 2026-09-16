@@ -7,12 +7,16 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// "AI 건강 도우미" bottom sheet — the daily coaching digest opened from the
 /// floating Oni button and the Home coaching banner. Its CTA hands off to the
-/// AI chat. Mirrors the Figma `CoachingSheet`.
+/// AI chat — or, for a member with a trainer, to that trainer's chat (#1823).
+/// Mirrors the Figma `CoachingSheet`.
 Future<void> showCoachingSheet(BuildContext context, {WidgetRef? ref}) {
   // 열어서 봤으면 배지를 내린다. 읽을 것이 없는데도 남는 숫자는 알림 벨의
   // 미읽음 점과 같은 종류의 거짓말이다(#788).
@@ -98,11 +102,12 @@ String _suggestionTagLabel(AppLocalizations l, AiSuggestionTag tag) =>
       AiSuggestionTag.hydration => l.coachCardWaterTag,
     };
 
-_CoachCard _cardFromSuggestion(AppLocalizations l, AiSuggestion s) => _CoachCard(
-  tag: _suggestionTagLabel(l, s.tag),
-  title: s.title,
-  body: s.body,
-);
+_CoachCard _cardFromSuggestion(AppLocalizations l, AiSuggestion s) =>
+    _CoachCard(
+      tag: _suggestionTagLabel(l, s.tag),
+      title: s.title,
+      body: s.body,
+    );
 
 class _CoachingSheet extends ConsumerWidget {
   const _CoachingSheet();
@@ -126,39 +131,117 @@ class _CoachingSheet extends ConsumerWidget {
           : live.map((AiSuggestion s) => _cardFromSuggestion(l, s)).toList();
     }
 
-    // 폭 상한(콘텐츠 최대 폭)·높이 90%·핸들·닫기 X 는 [AppSheet] 와 테마가 정한다.
+    // 담당 트레이너가 있는 회원은 AI 챗봇을 쓰지 않는다(#1823). 같은 버튼이 그
+    // 트레이너 채팅으로 이어진다.
+    final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
+
+    // 이전 디자인으로 되돌린다(#1831) — 시트 제목 줄 대신 **도우미가 조언을 건네는**
+    // 머리: 왼쪽 Oni 아바타, 옆에 파란 `AI 건강 도우미` 와 굵은 한 줄, 오른쪽 둥근
+    // 닫기. 핸들·높이·하단 여백은 [AppSheet] 가 그대로 맡는다.
     return AppSheet(
       key: const Key('coachingSheet'),
-      title: l.coachHeaderPill,
-      subtitle: l.coachHeaderSubtitle,
+      showClose: false,
       // 하단 여백·홈 인디케이터는 AppSheet 의 footer 가 맡는다 — 예전에는 여백
       // 0 이라 SafeArea 가 없는 기기에서 버튼이 시트 끝에 붙어 잘렸다(#1180).
       footer: KeyedSubtree(
         key: const Key('coachingSheetCta'),
         child: AppButton(
-          label: l.coachCtaChat,
+          label: coach != null ? l.coachChatWithTrainer : l.coachCtaChat,
           leadingIcon: AppIcons.chat,
           size: OnCareButtonSize.large,
           fullWidth: true,
           onPressed: () {
             Navigator.of(context).pop();
-            context.push(AppRoutes.aiCoach);
+            if (coach != null) {
+              openTrainerChatPage(context, trainerName: coach.name);
+            } else {
+              context.push(AppRoutes.aiCoach);
+            }
           },
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const Align(
-            alignment: Alignment.centerLeft,
-            child: OniAvatar(),
-          ),
-          const SizedBox(height: OnCareSpacing.cardGap),
+          const _CoachingSheetHeader(),
+          const SizedBox(height: OnCareSpacing.s16),
           for (final (int i, _CoachCard card) in cards.indexed) ...<Widget>[
             if (i > 0) const SizedBox(height: OnCareSpacing.cardGap),
             _CoachCardTile(card: card),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// 도우미 창 머리 — Oni 아바타 · `AI 건강 도우미` · 오늘의 한 줄 · 닫기. (#1831)
+class _CoachingSheetHeader extends StatelessWidget {
+  const _CoachingSheetHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return Row(
+      key: const Key('coachingSheetHeader'),
+      children: <Widget>[
+        const OniAvatar(size: OnCareSize.avatarXLarge),
+        const SizedBox(width: OnCareSpacing.s12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text(
+                l.coachHeaderPill,
+                style: tokens
+                    .text(OnCareTypography.strong(OnCareTypography.label))
+                    .copyWith(color: tokens.brand.primary),
+              ),
+              const SizedBox(height: OnCareSpacing.s2),
+              Text(
+                l.coachHeaderSubtitle,
+                style: tokens
+                    .text(OnCareTypography.titleSmall)
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
+            ],
+          ),
+        ),
+        const _RoundCloseButton(),
+      ],
+    );
+  }
+}
+
+/// 옅은 회색 원 안의 닫기 — 이전 도우미 창의 닫기 모양이다. (#1831)
+class _RoundCloseButton extends StatelessWidget {
+  const _RoundCloseButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      // 아이콘만 있는 버튼이라 무엇을 하는지 말할 데가 없다(#972). 닫기는
+      // 플랫폼이 이미 제 언어로 부르는 이름이 있다.
+      label: MaterialLocalizations.of(context).closeButtonTooltip,
+      child: Material(
+        key: const Key('coachingSheetClose'),
+        color: OnCareColors.surfaceInput,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context).pop(),
+          child: SizedBox.square(
+            dimension: OnCareSize.backCloseTouch,
+            child: AppIcon(
+              AppIcon.setOf(context).close,
+              size: OnCareSize.iconMedium,
+              color: OnCareColors.textSecondary,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -171,7 +254,17 @@ class _CoachCardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    return AppTile(
+    // 흰 둥근 카드 + 옅은 테두리·그림자, 왼쪽 옅은 파랑 알약 태그(#1831).
+    return Container(
+      padding: const EdgeInsets.all(OnCareSpacing.s16),
+      decoration: const BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.xlAll,
+        border: Border.fromBorderSide(
+          BorderSide(color: OnCareColors.lineSubtle),
+        ),
+        boxShadow: OnCareShadows.card,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[

@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:intl/intl.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+/// 회원 AI 챗봇 대화를 보관하는 기간(일). 서버 `HISTORY_RETENTION_DAYS` 와 같다(#1823).
+const int kAiChatRetentionDays = 30;
 
 /// The AI 코치 chat screen (#1702 규격). Opened from the coaching sheet's
 /// "AI와 대화하기" CTA. Replies are served by [chatControllerProvider] (the
@@ -59,16 +68,35 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final ChatState chat = ref.watch(chatControllerProvider);
-    // Auto-scroll whenever the conversation grows / the typing bubble toggles.
-    ref.listen<ChatState>(chatControllerProvider, (_, _) => _scrollToBottom());
+    // 담당 트레이너가 있는 회원은 AI 챗봇을 쓰지 않는다(#1823). 그 판단이 서기
+    // 전에는 대화를 불러오지도 않는다 — 실서버는 이 회원의 대화 조회를 거절한다.
+    // 조회에 실패하면 담당 여부를 모르므로 대화를 열어 두고, 판단은 서버에 맡긴다.
+    final AsyncValue<MemberCoach?> coachAsync = ref.watch(memberCoachProvider);
+    final MemberCoach? coach = coachAsync.valueOrNull;
+    if (coach != null) {
+      return _frame(
+        context,
+        showInsights: false,
+        children: <Widget>[Expanded(child: _trainerConnected(context, coach))],
+      );
+    }
+    if (!coachAsync.hasValue && !coachAsync.hasError) {
+      return _frame(
+        context,
+        showInsights: false,
+        children: const <Widget>[Expanded(child: AppLoading())],
+      );
+    }
+    return _chat(context);
+  }
 
-    // The starter prompts only make sense before the user has said anything.
-    final bool showQuickReplies =
-        !chat.messages.any((ChatMessage m) => m.isUser) && !chat.sending;
-
+  /// 머리·구분선 아래에 [children] 을 쌓는 화면 틀. 대화·트레이너 안내·로딩이
+  /// 같은 틀을 쓴다.
+  Widget _frame(
+    BuildContext context, {
+    required bool showInsights,
+    required List<Widget> children,
+  }) {
     return Scaffold(
       backgroundColor: OnCareColors.surfaceCard,
       body: SafeArea(
@@ -79,55 +107,9 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
             ),
             child: Column(
               children: <Widget>[
-                _header(context),
+                _header(context, showInsights: showInsights),
                 const AppDivider(),
-                Expanded(
-                  child: ListView(
-                    controller: _scroll,
-                    padding: const EdgeInsets.fromLTRB(
-                      OnCareSpacing.s16,
-                      OnCareSpacing.s24,
-                      OnCareSpacing.s16,
-                      OnCareSpacing.s16,
-                    ),
-                    children: <Widget>[
-                      Center(child: AppTag(label: l.aicDatePillToday)),
-                      const SizedBox(height: OnCareSpacing.s12),
-                      // 의료 조언 면책 — 코치는 식단·운동 코칭이지 진료가 아니다.
-                      // 시스템 프롬프트에도 진단 금지 지시가 있지만, 사용자가
-                      // 그걸 볼 수는 없으므로 화면에도 한 줄 남긴다.
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: OnCareSpacing.s24,
-                          ),
-                          child: Text(
-                            l.aicMedicalDisclaimer,
-                            textAlign: TextAlign.center,
-                            style: tokens
-                                .text(OnCareTypography.caption)
-                                .copyWith(color: OnCareColors.textTertiary),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: OnCareSpacing.s20),
-                      for (final ChatMessage m in chat.messages) ...<Widget>[
-                        _bubble(context, m),
-                        const SizedBox(height: OnCareSpacing.s16),
-                      ],
-                      if (showQuickReplies) _quickReplySection(),
-                    ],
-                  ),
-                ),
-                // 입력줄은 여러 줄 입력(줄바꿈)을 받으므로 키보드의 완료로는 보내지
-                // 않는다 — 보내기는 전송 버튼 하나다.
-                AppChatInputBar(
-                  controller: _controller,
-                  hint: l.aicInputHint,
-                  sendTooltip: l.a11ySendMessage,
-                  enabled: !chat.sending,
-                  onSend: () => _send(),
-                ),
+                ...children,
               ],
             ),
           ),
@@ -136,7 +118,106 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     );
   }
 
-  Widget _header(BuildContext context) {
+  /// 담당 트레이너가 있는 회원이 이 화면에 들어왔을 때 — 대화 대신 트레이너
+  /// 채팅으로 안내한다(#1823).
+  Widget _trainerConnected(BuildContext context, MemberCoach coach) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return AppEmptyState(
+      key: const Key('aiCoachTrainerConnected'),
+      icon: AppIcons.chat,
+      title: l.aicTrainerConnectedTitle,
+      message: l.aicTrainerConnectedBody(coach.name),
+      actionLabel: l.coachChatWithTrainer,
+      onAction: () => openTrainerChatPage(context, trainerName: coach.name),
+    );
+  }
+
+  Widget _chat(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final ChatState chat = ref.watch(chatControllerProvider);
+    // Auto-scroll whenever the conversation grows / the typing bubble toggles.
+    ref.listen<ChatState>(chatControllerProvider, (_, _) => _scrollToBottom());
+
+    // The starter prompts only make sense before the user has said anything.
+    final bool showQuickReplies =
+        !chat.messages.any((ChatMessage m) => m.isUser) && !chat.sending;
+    final TextStyle captionStyle = tokens
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textTertiary);
+
+    return _frame(
+      context,
+      showInsights: true,
+      children: <Widget>[
+        Expanded(
+          child: ListView(
+            controller: _scroll,
+            padding: const EdgeInsets.fromLTRB(
+              OnCareSpacing.s16,
+              OnCareSpacing.s24,
+              OnCareSpacing.s16,
+              OnCareSpacing.s16,
+            ),
+            children: <Widget>[
+              Center(child: AppTag(label: l.aicDatePillToday)),
+              const SizedBox(height: OnCareSpacing.s12),
+              // 의료 조언 면책 — 코치는 식단·운동 코칭이지 진료가 아니다.
+              // 시스템 프롬프트에도 진단 금지 지시가 있지만, 사용자가
+              // 그걸 볼 수는 없으므로 화면에도 한 줄 남긴다.
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: OnCareSpacing.s24,
+                  ),
+                  child: Text(
+                    l.aicMedicalDisclaimer,
+                    textAlign: TextAlign.center,
+                    style: captionStyle,
+                  ),
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              // 대화는 한 달만 남는다(#1823). 지난 대화가 사라진 것을 고장으로
+              // 읽지 않게 미리 말해 둔다.
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: OnCareSpacing.s24,
+                  ),
+                  child: Text(
+                    l.aicRetentionNotice(kAiChatRetentionDays),
+                    key: const Key('aiCoachRetentionNotice'),
+                    textAlign: TextAlign.center,
+                    style: captionStyle,
+                  ),
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s20),
+              for (final ChatMessage m in chat.messages) ...<Widget>[
+                _bubble(context, m),
+                const SizedBox(height: OnCareSpacing.s16),
+              ],
+              if (showQuickReplies) _quickReplySection(),
+            ],
+          ),
+        ),
+        // 입력줄은 여러 줄 입력(줄바꿈)을 받으므로 키보드의 완료로는 보내지
+        // 않는다 — 보내기는 전송 버튼 하나다.
+        AppChatInputBar(
+          controller: _controller,
+          hint: l.aicInputHint,
+          sendTooltip: l.a11ySendMessage,
+          enabled: !chat.sending,
+          onSend: () => _send(),
+        ),
+      ],
+    );
+  }
+
+  /// [showInsights] 가 거짓이면 감지 기록 버튼을 숨기되 자리는 남겨, 제목이
+  /// 가운데에서 밀리지 않게 한다.
+  Widget _header(BuildContext context, {required bool showInsights}) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     return ColoredBox(
@@ -157,29 +238,9 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  Stack(
-                    clipBehavior: Clip.none,
-                    children: <Widget>[
-                      const OniAvatar(),
-                      // `지금 연결됨` 은 트레이너 온라인 점과 같은 초록이다(#1239).
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: OnCareColors.surfaceCard,
-                              width: OnCareSize.focusBorder,
-                            ),
-                          ),
-                          child: const AppStatusDot(
-                            color: OnCareColors.success,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // 초록 `지금 연결됨` 점은 두지 않는다(#1823) — 트레이너 온라인
+                  // 점과 같은 모양이라 AI 가 사람처럼 접속해 있다는 뜻으로 읽혔다.
+                  const OniAvatar(),
                   const SizedBox(width: OnCareSpacing.s8),
                   Flexible(
                     child: Column(
@@ -208,12 +269,21 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                 ],
               ),
             ),
-            // 뒤로 버튼과 같은 폭의 빈 자리. 오른쪽에 놓을 동작이 아직 없어서
-            // 두는 것이지, 누를 것이 있는 자리가 아니다 — 예전에는 여기 '⋯'
-            // 버튼이 있었는데 콜백이 비어 있어 눌러도 아무 일이 없었다(#783).
-            // 대화 초기화 같은 메뉴를 붙이려면 서버에 저장된 대화를 지우는
-            // 경로(`GET /ai-coach/messages` 의 짝)가 먼저 필요하다.
-            const SizedBox(width: OnCareSize.backCloseTouch),
+            // 최근 30일 대화에서 감지한 통증·부정적 반응을 모아 보는 자리(#1824).
+            // 트레이너 채팅의 감지와 같은 규칙이다.
+            // 트레이너 안내·로딩 화면에서는 기록이 없으므로 자리만 남긴다(#1823).
+            Visibility(
+              visible: showInsights,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: AppIconButton(
+                key: const Key('aiCoachInsightHistoryButton'),
+                icon: AppIcons.healthCheck,
+                tooltip: l.aicInsightHistoryTitle,
+                onPressed: () => _showInsightHistory(context),
+              ),
+            ),
           ],
         ),
       ),
@@ -231,7 +301,24 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
       null => m.content,
     };
     if (m.isUser) {
-      return AppChatBubble(mine: true, child: Text(text));
+      final ChatInsight? insight = m.insight;
+      if (insight == null) {
+        return AppChatBubble(mine: true, child: Text(text));
+      }
+      // 트레이너 채팅처럼 감지한 신호를 말풍선 바로 아래 짧게 짚는다(#1824).
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: <Widget>[
+          AppChatBubble(mine: true, child: Text(text)),
+          const SizedBox(height: OnCareSpacing.s4),
+          AppTag(
+            key: const Key('aiCoachInsightTag'),
+            label: insightLabel(l, insight),
+            tone: AppTagTone.caution,
+            icon: AppIcons.healthCheck,
+          ),
+        ],
+      );
     }
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -326,6 +413,117 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
           const SizedBox(height: OnCareSpacing.s8),
         ],
       ],
+    );
+  }
+
+  void _showInsightHistory(BuildContext context) {
+    ref.invalidate(aiCoachInsightsProvider);
+    showAppSheet<void>(
+      context: context,
+      builder: (BuildContext _) => const _InsightHistorySheet(),
+    );
+  }
+}
+
+/// 감지 한 줄의 이름 — `무릎 통증 감지` / `통증 감지` / `부정적 반응 감지`.
+String insightLabel(AppLocalizations l, ChatInsight insight) =>
+    switch (insight.kind) {
+      ChatInsightKind.discomfort => switch (insight.bodyPart) {
+        final String part => l.aicInsightDiscomfortPart(part),
+        null => l.aicInsightDiscomfort,
+      },
+      ChatInsightKind.negativeFeedback => l.aicInsightNegative,
+    };
+
+/// 최근 30일 감지 기록 창(#1824).
+class _InsightHistorySheet extends ConsumerWidget {
+  const _InsightHistorySheet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final AsyncValue<ChatInsightHistory> history = ref.watch(
+      aiCoachInsightsProvider,
+    );
+    final int days = history.valueOrNull?.windowDays ?? kChatInsightWindowDays;
+    return AppSheet(
+      key: const Key('aiCoachInsightHistorySheet'),
+      title: l.aicInsightHistoryTitle,
+      subtitle: l.aicInsightHistorySubtitle(days),
+      child: history.when(
+        loading: () => const AppLoading(),
+        error: (_, _) => Text(
+          l.aicInsightHistoryFailed,
+          style: tokens
+              .text(OnCareTypography.bodySmall)
+              .copyWith(color: OnCareColors.textSecondary),
+        ),
+        data: (ChatInsightHistory value) => value.records.isEmpty
+            ? Text(
+                l.aicInsightHistoryEmpty(value.windowDays),
+                key: const Key('aiCoachInsightHistoryEmpty'),
+                style: tokens
+                    .text(OnCareTypography.bodySmall)
+                    .copyWith(color: OnCareColors.textSecondary),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (final (int i, ChatInsightRecord record)
+                      in value.records.indexed) ...<Widget>[
+                    if (i > 0) const AppDivider(),
+                    _InsightRow(record: record),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _InsightRow extends StatelessWidget {
+  const _InsightRow({required this.record});
+
+  final ChatInsightRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final String date = DateFormat.MMMd(
+      Localizations.localeOf(context).toLanguageTag(),
+    ).format(record.createdAt);
+    return Padding(
+      key: ValueKey<String>('aiCoachInsightRow-${record.messageId}'),
+      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              AppTag(
+                label: insightLabel(l, record.insight),
+                tone: AppTagTone.caution,
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Text(
+                date,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textTertiary),
+              ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            record.text,
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textPrimary),
+          ),
+        ],
+      ),
     );
   }
 }

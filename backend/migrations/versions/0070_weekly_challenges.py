@@ -13,8 +13,8 @@
 
 되돌리면 표만 지운다. 내역의 챌린지 행은 잔액과 맞춰 두려고 남긴다.
 
-Revision ID: 0069_weekly_challenges
-Revises: 0068_points_coupons
+Revision ID: 0070_weekly_challenges
+Revises: 0069_points_coupons
 """
 from __future__ import annotations
 
@@ -23,8 +23,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0069_weekly_challenges"
-down_revision: str | Sequence[str] | None = "0068_points_coupons"
+revision: str = "0070_weekly_challenges"
+down_revision: str | Sequence[str] | None = "0069_points_coupons"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

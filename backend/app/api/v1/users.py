@@ -50,6 +50,7 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    health_goal_change,
     member_pairing_service,
     reservation_service,
     token_revocation,
@@ -145,6 +146,8 @@ def _profile_view(user: User) -> ProfileView:
         weekly_strength_sets=p.weekly_strength_sets if p else None,
         weekly_flexibility_minutes=(p.weekly_flexibility_minutes if p else None),
         onboarded=p.onboarded if p else False,
+        focus_changed_by=p.focus_changed_by if p else None,
+        focus_changed_at=p.focus_changed_at if p else None,
     )
 
 
@@ -168,9 +171,12 @@ def submit_onboarding(
         data.pop("name", None)
 
     profile = _get_or_create_profile(db, user)
+    before = profile.conditions
     for field, value in data.items():
         setattr(profile, field, value)
     profile.onboarded = True
+    # 처음 고른 목표도 회원이 정한 목표다 — 담당 트레이너가 이미 있으면 알린다(#1832).
+    health_goal_change.record_member_change(db, profile, before=before, member=user)
 
     db.commit()
     db.refresh(user)
@@ -189,8 +195,11 @@ def update_health_goals(
     유산소·근력·스트레칭은 한 주다.
     """
     profile = _get_or_create_profile(db, user)
+    before = profile.conditions
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(profile, field, value)
+    # 목표 칩이 바뀐 저장이면 기록하고 담당 트레이너에게 알린다(#1832).
+    health_goal_change.record_member_change(db, profile, before=before, member=user)
     db.commit()
     db.refresh(user)
     return _profile_view(user)

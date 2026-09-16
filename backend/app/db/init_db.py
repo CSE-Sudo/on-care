@@ -362,19 +362,11 @@ def _seed_demo_places() -> None:
 
 
 def _seed_demo_notifications() -> None:
+    # 목록과 멱등 규칙은 `seed_notifications` 에 있다 — 회원앱 데모 알림과 같은 목록(#1812).
+    from app.db.seed_notifications import seed_demo_notifications
+
     db: Session = SessionLocal()
     try:
-        if db.scalar(select(models.Notification).where(models.Notification.user_id == DEMO_USER_ID).limit(1)):
-            return
-        demo = [
-            ("noti-1", "오늘의 혈압을 기록해 주세요", "정기 측정 시간이에요.", "reminder"),
-            ("noti-2", "이번 주 운동 목표 80% 달성!", "조금만 더 힘내세요!", "achievement"),
-            ("noti-3", "건강검진 예약 안내", "다음 주 화요일 검진 일정이 있어요.", "health_check"),
-        ]
-        for nid, title, body, cat in demo:
-            db.add(models.Notification(
-                id=nid, user_id=DEMO_USER_ID, title=title, body=body, category=cat, read=False,
-            ))
-        db.commit()
+        seed_demo_notifications(db, DEMO_USER_ID)
     finally:
         db.close()
