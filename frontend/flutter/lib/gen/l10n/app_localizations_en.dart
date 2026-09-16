@@ -1979,6 +1979,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpNameEmpty => 'Enter your name';
 
   @override
+  String get signUpNameTooLong => 'Names can be up to 100 characters';
+
+  @override
   String get signUpPhoneHint => '010-0000-0000';
 
   @override
@@ -2008,6 +2011,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get signUpPhoneFormatInvalid =>
       'Enter your phone number as 000-0000-0000';
+
+  @override
+  String get myFieldBirthInvalid => 'Enter your date of birth as 1996-03-21';
 
   @override
   String get trainerSyncEntryLabel => 'Sync data with a trainer';

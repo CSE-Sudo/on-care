@@ -1,4 +1,4 @@
-/// 로그인·가입 입력 형식 규칙과 전화번호 하이픈 서식 — #1784.
+/// 로그인·가입 입력 형식 규칙과 전화번호 하이픈 서식 — #1784·#1887.
 library;
 
 import 'package:flutter/services.dart';
@@ -52,6 +52,61 @@ void main() {
       expect(AppInputRules.name('김'), isNull);
       expect(AppInputRules.name(' 김신규 '), isNull);
       expect(AppInputRules.name('Jisu Lee'), isNull);
+    });
+
+    // 상한은 서버 `profile_format.NAME_MAX_LENGTH` 와 같은 값이다 — 넘기면
+    // 저장이 422 로 되돌아온다(#1887).
+    test('상한 바로 안까지만 통과한다', () {
+      expect(AppInputRules.name('가' * AppInputRules.nameMaxLength), isNull);
+      expect(
+        AppInputRules.name('가' * (AppInputRules.nameMaxLength + 1)),
+        AppInputError.nameTooLong,
+      );
+    });
+
+    test('앞뒤 공백은 길이에 세지 않는다 — 보낼 때 잘라내는 값이다', () {
+      final String atLimit = '가' * AppInputRules.nameMaxLength;
+      expect(AppInputRules.name('  $atLimit  '), isNull);
+    });
+  });
+
+  group('생년월일', () {
+    test('YYYY-MM-DD 는 통과한다', () {
+      expect(AppInputRules.birthDate('1996-03-21'), isNull);
+      expect(AppInputRules.birthDate('  1996-03-21  '), isNull);
+      expect(AppInputRules.birthDate('2024-02-29'), isNull);  // 윤년
+    });
+
+    test('비어 있으면 통과한다 — 처음부터 없는 회원이 있다', () {
+      expect(AppInputRules.birthDate(''), isNull);
+      expect(AppInputRules.birthDate('   '), isNull);
+    });
+
+    test('날짜가 아니면 형식 오류다', () {
+      for (final String value in <String>[
+        'asdfghjkl',
+        '1990-01-01T00:00:00Z',  // 컬럼 길이(10)를 넘긴다
+        '19900101',
+        '90-01-01',
+        '1990-1-1',
+      ]) {
+        expect(AppInputRules.birthDate(value), AppInputError.birthDateInvalid,
+            reason: value);
+      }
+    });
+
+    // DateTime.tryParse 는 범위를 넘는 값을 되돌려 주지 않고 다음 달로 굴린다 —
+    // 그대로 두면 회원이 친 날짜가 아닌 날짜가 통과한다.
+    test('표기는 맞지만 실제 날짜가 아니면 형식 오류다', () {
+      for (final String value in <String>[
+        '1990-13-45',
+        '1990-02-30',
+        '1990-00-01',
+        '2023-02-29',  // 평년
+      ]) {
+        expect(AppInputRules.birthDate(value), AppInputError.birthDateInvalid,
+            reason: value);
+      }
     });
   });
 

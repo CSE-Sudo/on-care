@@ -131,6 +131,10 @@
   "authErrSocialFailed": "Social sign-in failed. Please try again in a moment.",
   "authErrSignInFailed": "Sign-in failed. Please try again in a moment.",
   "authErrNameEmpty": "Enter your name",
+  "authErrNameTooLong": "Names can be up to 100 characters",
+  "@authErrNameTooLong": {
+    "description": "Shared name-length message (#1887). Trainer sign-up sends a name too; the limit matches the users.name column."
+  },
   "@authErrNameEmpty": {
     "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
   },
@@ -144,6 +148,10 @@
   "authErrPhoneInvalid": "Enter your phone number as 000-0000-0000",
   "@authErrPhoneInvalid": {
     "description": "Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive."
+  },
+  "authErrBirthDateInvalid": "Enter the date of birth as 1996-03-21",
+  "@authErrBirthDateInvalid": {
+    "description": "Shared birth-date message (#1887). The trainer app has no birth-date field today; kept so the shared AppInputError mapping stays exhaustive."
   },
   "authErrPasswordMismatch": "Passwords don't match",
   "authErrInviteCodeRequired": "Enter the invite code you received from your gym",

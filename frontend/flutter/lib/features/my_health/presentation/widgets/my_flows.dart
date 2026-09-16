@@ -186,13 +186,14 @@ class ProfileSettingsPage extends ConsumerWidget {
   }
 }
 
-/// 프로필 편집에서 형식을 보는 칸. (#1883)
+/// 프로필 편집에서 형식을 보는 칸. (#1883·#1887)
 ///
-/// 이름·생년월일·키·몸무게는 여기 없다 — 서버가 형식을 보지 않고, 잘못 넣어도
-/// 되돌릴 수 있다. 이메일과 전화번호만 다르다: 이메일은 **로그인하는 값**이라
-/// 잘못 저장하면 그 계정에 다시 들어올 수 없고, 전화번호는 트레이너가 회원에게
-/// 연락하는 값이다.
-enum _ProfileField { email, phone }
+/// 키·몸무게는 여기 없다 — 숫자 범위는 서버 스키마가 보고, 잘못 넣어도 되돌릴
+/// 수 있다. 나머지 네 칸은 다르다: 이메일은 **로그인하는 값**이라 잘못 저장하면
+/// 그 계정에 다시 들어올 수 없고, 전화번호는 트레이너가 회원에게 연락하는
+/// 값이다. 이름과 생년월일은 컬럼 길이를 넘기면 저장 자체가 실패하고(#1887),
+/// 날짜가 아닌 생년월일은 트레이너 화면에서 나이를 조용히 지운다.
+enum _ProfileField { name, email, phone, birth }
 
 class _ProfileForm extends ConsumerStatefulWidget {
   const _ProfileForm({required this.initial});
@@ -257,11 +258,15 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   /// 판정이다(#1883).
   String? _check(_ProfileField field) =>
       authInputErrorText(AppLocalizations.of(context), switch (field) {
+        _ProfileField.name => AppInputRules.name(_name.text),
         _ProfileField.email => AppInputRules.email(_email.text),
         _ProfileField.phone =>
           _phone.text.trim().isEmpty && widget.initial.phone.trim().isEmpty
               ? null
               : AppInputRules.phone(_phone.text),
+        // 생년월일은 비어 있어도 된다 — 넣을 자리가 없던 시절에 가입한 회원과
+        // 소셜 로그인 가입자에게는 처음부터 없는 값이다. 서버도 같다(#1887).
+        _ProfileField.birth => AppInputRules.birthDate(_birth.text),
       });
 
   /// 오류를 보인 칸이 있을 때만 입력마다 다시 그린다.
@@ -324,7 +329,13 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       ),
       const SizedBox(height: OnCareSpacing.s16),
       _card(<Widget>[
-        AppTextField(label: l.myFieldName, controller: _name),
+        AppTextField(
+          key: const ValueKey<String>('my-profile-name'),
+          label: l.myFieldName,
+          controller: _name,
+          errorText: _errors.of(_ProfileField.name),
+          onChanged: _onEdited,
+        ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
           key: const ValueKey<String>('my-profile-email'),
@@ -349,9 +360,12 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-birth'),
           label: l.myFieldBirth,
           controller: _birth,
           hint: '1996-03-21',
+          errorText: _errors.of(_ProfileField.birth),
+          onChanged: _onEdited,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         // 세 값 중 하나를 고르는 칸이라 펼침 메뉴 대신 칩을 늘어놓는다 — 고른 값과

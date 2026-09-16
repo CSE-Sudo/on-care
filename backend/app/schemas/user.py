@@ -29,6 +29,7 @@ from app.schemas.health_goal_ranges import (
 )
 from app.schemas.partial_update import PartialUpdate
 from app.services.contact_format import clean_email, normalize_phone
+from app.services.profile_format import clean_birth_date, clean_name
 from app.services.health_focus import normalize_conditions
 
 
@@ -133,6 +134,13 @@ class UserRegister(BaseModel):
     #: 값 자체는 바꾸지 않는다 — 소문자로 고치면 로그인 조회가 어긋난다.
     email: str
     password: str
+    #: 보내지 않으면 핸들러가 이메일 로컬 파트로 채운다
+    #: (`profile_format.name_from_email`). 빈 문자열도 같이 본다 — 회원 앱은
+    #: 이름을 필수로 받지만 스키마에서 빈 값을 422 로 되돌리면, 이름을 아예
+    #: 넣을 자리가 없는 경로(트레이너 가입·옛 빌드)가 가입에서 막힌다.
+    #:
+    #: 값을 보냈으면 저장 가능한 길이인지는 본다(#1887). 전에는 101자가
+    #: `value too long` 500 이 됐다.
     name: str = ""
     #: 가입 시점에 프로필을 채우기 위해 받는다 (#1634). 예전에는 MY 탭 프로필
     #: 편집에서만 넣을 수 있어 가입 직후에는 연락처가 비어 있었다.
@@ -149,6 +157,14 @@ class UserRegister(BaseModel):
     def _check_email(cls, value: Any) -> Any:
         if isinstance(value, str):
             return clean_email(value)
+        return value
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _check_name(cls, value: Any) -> Any:
+        # 빈 값은 '안 보냈다' 와 같이 둔다 — 위 주석대로 핸들러가 채운다.
+        if isinstance(value, str) and value.strip():
+            return clean_name(value)
         return value
 
     @field_validator("phone", mode="before")
@@ -263,8 +279,12 @@ class OnboardingRequest(BaseModel):
     name 은 User, 나머지는 HealthProfile 컬럼과 1:1 로 매핑된다.
     """
 
+    #: 이름은 비울 수 없다(#1887). 가입에서 필수로 받은 값을 온보딩이 빈
+    #: 문자열로 덮으면, 이름이 빈 회원이 트레이너 로스터와 채팅에 공백으로 뜬다.
     name: Optional[str] = None
-    birth_date: Optional[str] = None  # YYYY-MM-DD
+    #: `YYYY-MM-DD` 만 받는다(#1887). 날짜가 아닌 값이 저장되면 트레이너의 담당
+    #: 요청 확인 화면에서 나이가 조용히 비어 보인다.
+    birth_date: Optional[str] = None
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
@@ -293,6 +313,23 @@ class OnboardingRequest(BaseModel):
         """옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다(#1814)."""
         return normalize_conditions(value)
 
+    # 프로필 수정(`ProfileUpdate`)과 같은 함수를 부른다(#1887). 같은 두 칸을
+    # 고치는 두 경로가 다른 기준을 쓰면, 한쪽으로 들어온 값이 다른 쪽에서
+    # 고칠 수 없는 값이 된다.
+    @field_validator("name", mode="before")
+    @classmethod
+    def _check_name(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_name(value)
+        return value
+
+    @field_validator("birth_date", mode="before")
+    @classmethod
+    def _check_birth_date(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_birth_date(value)
+        return value
+
 
 class ProfileUpdate(PartialUpdate):
     """PUT /users/me — 내 프로필 모달(이름/이메일/전화/생년월일).
@@ -303,6 +340,9 @@ class ProfileUpdate(PartialUpdate):
 
     nullable_fields: ClassVar[frozenset[str]] = frozenset({"height_cm", "weight_kg"})
 
+    #: 가입과 같은 기준으로 본다(#1887) — 비울 수 없고, 컬럼에 들어가는
+    #: 길이여야 한다. 전에는 `{"name": ""}` 가 200 으로 저장돼, 가입에서 필수로
+    #: 받은 이름을 이 화면에서 지울 수 있었다.
     name: Optional[str] = None
     #: 가입과 **같은 기준**으로 본다(#1883). 로그인이 이메일로 이뤄지므로, 여기서
     #: 형식을 보지 않으면 오타 한 번이 계정 잠김이 된다 — 전에는 `asdf` 가 200 으로
@@ -316,6 +356,11 @@ class ProfileUpdate(PartialUpdate):
     #:
     #: 빈 문자열은 그대로 둔다 — 연락처를 지우는 것은 할 수 있는 일이다.
     phone: Optional[str] = None
+    #: `YYYY-MM-DD` 만 받는다(#1887). 전에는 `asdfghjkl` 이 그대로 저장되고
+    #: `1990-01-01T00:00:00Z` 는 컬럼 길이를 넘겨 500 이 됐다.
+    #:
+    #: 빈 문자열은 그대로 둔다 — 넣을 자리가 없던 시절에 가입한 회원과 소셜
+    #: 로그인 가입자에게는 처음부터 없는 값이다.
     birth_date: Optional[str] = None
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
@@ -339,4 +384,18 @@ class ProfileUpdate(PartialUpdate):
     def _normalize_phone(cls, value: Any) -> Any:
         if isinstance(value, str):
             return normalize_phone(value)
+        return value
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _check_name(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_name(value)
+        return value
+
+    @field_validator("birth_date", mode="before")
+    @classmethod
+    def _check_birth_date(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_birth_date(value)
         return value

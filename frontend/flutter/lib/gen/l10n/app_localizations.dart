@@ -3595,6 +3595,12 @@ abstract class AppLocalizations {
   /// **'Enter your name'**
   String get signUpNameEmpty;
 
+  /// Shared name-length message (#1887). The limit matches the users.name column and the server rule in profile_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Names can be up to 100 characters'**
+  String get signUpNameTooLong;
+
   /// Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784).
   ///
   /// In en, this message translates to:
@@ -3648,6 +3654,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter your phone number as 000-0000-0000'**
   String get signUpPhoneFormatInvalid;
+
+  /// Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your date of birth as 1996-03-21'**
+  String get myFieldBirthInvalid;
 
   /// No description provided for @trainerSyncEntryLabel.
   ///

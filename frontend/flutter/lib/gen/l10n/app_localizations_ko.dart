@@ -1934,6 +1934,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpNameEmpty => '이름을 입력해 주세요';
 
   @override
+  String get signUpNameTooLong => '이름은 100자까지 입력할 수 있어요';
+
+  @override
   String get signUpPhoneHint => '010-0000-0000';
 
   @override
@@ -1959,6 +1962,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get signUpPhoneFormatInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
+
+  @override
+  String get myFieldBirthInvalid => '생년월일을 1996-03-21 형식으로 입력해 주세요';
 
   @override
   String get trainerSyncEntryLabel => '트레이너와 데이터 동기화';
