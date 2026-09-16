@@ -34,6 +34,10 @@ Future<void> _pump(
         builder: (_, _) => const PointsGuidePage(),
       ),
       GoRoute(
+        path: AppRoutes.guideTour,
+        builder: (_, _) => const Scaffold(body: Text('guide-route')),
+      ),
+      GoRoute(
         path: AppRoutes.dashboard,
         builder: (_, _) => const Scaffold(body: Text('dashboard-route')),
       ),
@@ -98,29 +102,30 @@ void main() {
     expect(find.text(ko.pointsGuideSpendNote), findsOneWidget);
   });
 
-  testWidgets('시작하기를 누르면 홈으로 간다', (tester) async {
+  testWidgets('시작하기를 누르면 사용 가이드로 간다', (tester) async {
     await _pump(tester, initial: AppRoutes.pointsGuide);
 
     await tester.tap(find.byKey(const Key('pointsGuideStart')));
     await tester.pumpAndSettle();
 
-    expect(find.text('dashboard-route'), findsOneWidget);
+    // 곧바로 홈이 아니라 예시 화면 위 사용 가이드를 거친다(#1857).
+    expect(find.text('guide-route'), findsOneWidget);
   });
 
-  testWidgets('온보딩을 건너뛰어도 포인트 안내를 거쳐 홈으로 간다', (tester) async {
+  testWidgets('온보딩을 건너뛰어도 포인트 안내를 거쳐 사용 가이드로 간다', (tester) async {
     await _pump(tester, initial: AppRoutes.onboarding);
 
     await tester.tap(find.text(ko.onboardSkip));
     await tester.pumpAndSettle();
     expect(find.byType(PointsGuidePage), findsOneWidget);
-    expect(find.text('dashboard-route'), findsNothing);
+    expect(find.text('guide-route'), findsNothing);
 
     await tester.tap(find.byKey(const Key('pointsGuideStart')));
     await tester.pumpAndSettle();
-    expect(find.text('dashboard-route'), findsOneWidget);
+    expect(find.text('guide-route'), findsOneWidget);
   });
 
-  testWidgets('온보딩을 마치면 포인트 안내를 거쳐 홈으로 간다', (tester) async {
+  testWidgets('온보딩을 마치면 포인트 안내를 거쳐 사용 가이드로 간다', (tester) async {
     await _pump(tester, initial: AppRoutes.onboarding);
 
     await _selectBirthPart(tester, 'onboardBirthYear', '1995년');
@@ -142,7 +147,7 @@ void main() {
     expect(find.byType(PointsGuidePage), findsOneWidget);
     await tester.tap(find.byKey(const Key('pointsGuideStart')));
     await tester.pumpAndSettle();
-    expect(find.text('dashboard-route'), findsOneWidget);
+    expect(find.text('guide-route'), findsOneWidget);
   });
 
   testWidgets('영어 화면에는 한글이 남지 않는다', (tester) async {
