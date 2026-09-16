@@ -8,6 +8,9 @@ enum AppInputError {
   /// 이름 칸이 비었다(공백뿐인 경우 포함).
   nameEmpty,
 
+  /// 이름이 저장 가능한 길이를 넘는다(#1887).
+  nameTooLong,
+
   /// 이메일 칸이 비었다.
   emailEmpty,
 
@@ -25,13 +28,17 @@ enum AppInputError {
 
   /// 비밀번호 확인이 비밀번호와 다르다.
   passwordMismatch,
+
+  /// 생년월일이 `YYYY-MM-DD` 로 읽히지 않는다(#1887).
+  birthDateInvalid,
 }
 
 /// 로그인·가입 입력의 형식 규칙(#1784). 두 앱이 같은 정규식을 쓰도록 한곳에 둔다.
 ///
 /// 여기 규칙은 요청을 보내기 전에 사용자가 바로 고칠 수 있게 알려 주는 용도다.
 /// 저장되는 값의 기준은 서버에 있다 — 가입 이메일·전화번호는
-/// `backend/app/services/contact_format.py` 가 같은 것을 다시 본다(#1780).
+/// `backend/app/services/contact_format.py` 가, 이름·생년월일은
+/// `backend/app/services/profile_format.py` 가 같은 것을 다시 본다(#1780·#1887).
 /// 비밀번호는 아직 서버 기준이 없다(#1555).
 abstract final class AppInputRules {
   /// 로컬 부분@도메인.최상위 — 흔히 쓰는 주소는 통과시키고 빈칸·골뱅이 누락·
@@ -47,6 +54,9 @@ abstract final class AppInputRules {
   /// 휴대전화 표기 3-4-4.
   static final RegExp _phone = RegExp(r'^\d{3}-\d{4}-\d{4}$');
 
+  /// 생년월일 표기 `YYYY-MM-DD`. 실제 날짜인지는 [DateTime.tryParse] 가 본다.
+  static final RegExp _birthDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
   static final RegExp _letter = RegExp('[A-Za-z]');
   static final RegExp _digit = RegExp(r'\d');
 
@@ -56,9 +66,50 @@ abstract final class AppInputRules {
   /// 전화번호 숫자 개수(3 + 4 + 4).
   static const int phoneDigits = 11;
 
+  /// 저장 가능한 이름 길이. 서버 `profile_format.NAME_MAX_LENGTH` 와 같다 —
+  /// `users.name` 컬럼(`String(100)`)이 그 기준이다(#1887).
+  static const int nameMaxLength = 100;
+
   /// 이름 — 가입에 꼭 필요하다. 공백만 친 값은 잘라내면 비므로 빈칸으로 본다.
-  static AppInputError? name(String value) =>
-      value.trim().isEmpty ? AppInputError.nameEmpty : null;
+  ///
+  /// 상한을 함께 보는 이유는, 넘기면 서버가 422 로 되돌리기 때문이다. 전에는
+  /// 컬럼 길이를 넘긴 값이 저장 단계에서 500 으로 터졌다(#1887).
+  static AppInputError? name(String value) {
+    final String name = value.trim();
+    if (name.isEmpty) return AppInputError.nameEmpty;
+    if (name.length > nameMaxLength) return AppInputError.nameTooLong;
+    return null;
+  }
+
+  /// 생년월일 — `YYYY-MM-DD` 이거나 비어 있어야 한다.
+  ///
+  /// **빈 값을 통과시킨다.** 넣을 자리가 없던 시절에 가입한 회원과 소셜 로그인
+  /// 가입자에게는 처음부터 없는 값이라, 이름만 고치려는 사람을 생년월일로 막는
+  /// 화면이 되면 안 된다. 서버도 같은 판정이다(#1887).
+  ///
+  /// 표기만 보지 않고 실제 날짜인지까지 본다 — `1990-13-45` 는 저장된 뒤에
+  /// 나이를 세는 쪽에서 조용히 실패한다.
+  ///
+  /// 읽은 날짜를 **다시 적어 견준다.** [DateTime.tryParse] 만으로는 모자라다 —
+  /// 범위를 넘는 값을 되돌려 주지 않고 다음 달로 굴려 버려서(`1990-13-45` 는
+  /// 1991-02-14 로 읽힌다), 회원이 친 날짜가 아닌 날짜가 통과한다.
+  static AppInputError? birthDate(String value) {
+    final String birthDate = value.trim();
+    if (birthDate.isEmpty) return null;
+    final DateTime? parsed = _birthDate.hasMatch(birthDate)
+        ? DateTime.tryParse(birthDate)
+        : null;
+    if (parsed == null || _asYmd(parsed) != birthDate) {
+      return AppInputError.birthDateInvalid;
+    }
+    return null;
+  }
+
+  /// `YYYY-MM-DD`. 위에서 읽은 날짜를 다시 적을 때만 쓴다.
+  static String _asYmd(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
   /// 이메일 — 앞뒤 공백은 보내기 전에 잘라내므로 잘라낸 값으로 본다.
   static AppInputError? email(String value) {

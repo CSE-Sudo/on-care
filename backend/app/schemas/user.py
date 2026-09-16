@@ -10,8 +10,26 @@ from datetime import datetime
 from typing import Any, ClassVar, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.schemas.health_goal_ranges import (
+    ConditionsText,
+    DailyBurnKcal,
+    DailyCalories,
+    DailyCarbsG,
+    DailyFatG,
+    DailyProteinG,
+    DailySodiumMg,
+    DailySugarG,
+    GoalsText,
+    WeeklyBurnGoal,
+    WeeklyCardioMinutes,
+    WeeklyExerciseMinutesGoal,
+    WeeklyFlexibilityMinutes,
+    WeeklyStrengthSets,
+    WeeklyWorkoutGoal,
+)
 from app.schemas.partial_update import PartialUpdate
 from app.services.contact_format import clean_email, normalize_phone
+from app.services.profile_format import clean_birth_date, clean_name
 from app.services.health_focus import normalize_conditions
 
 
@@ -116,6 +134,13 @@ class UserRegister(BaseModel):
     #: 값 자체는 바꾸지 않는다 — 소문자로 고치면 로그인 조회가 어긋난다.
     email: str
     password: str
+    #: 보내지 않으면 핸들러가 이메일 로컬 파트로 채운다
+    #: (`profile_format.name_from_email`). 빈 문자열도 같이 본다 — 회원 앱은
+    #: 이름을 필수로 받지만 스키마에서 빈 값을 422 로 되돌리면, 이름을 아예
+    #: 넣을 자리가 없는 경로(트레이너 가입·옛 빌드)가 가입에서 막힌다.
+    #:
+    #: 값을 보냈으면 저장 가능한 길이인지는 본다(#1887). 전에는 101자가
+    #: `value too long` 500 이 됐다.
     name: str = ""
     #: 가입 시점에 프로필을 채우기 위해 받는다 (#1634). 예전에는 MY 탭 프로필
     #: 편집에서만 넣을 수 있어 가입 직후에는 연락처가 비어 있었다.
@@ -132,6 +157,14 @@ class UserRegister(BaseModel):
     def _check_email(cls, value: Any) -> Any:
         if isinstance(value, str):
             return clean_email(value)
+        return value
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _check_name(cls, value: Any) -> Any:
+        # 빈 값은 '안 보냈다' 와 같이 둔다 — 위 주석대로 핸들러가 채운다.
+        if isinstance(value, str) and value.strip():
+            return clean_name(value)
         return value
 
     @field_validator("phone", mode="before")
@@ -210,22 +243,28 @@ class HealthGoalsUpdate(BaseModel):
     #: 저장하던 두 값을 MY `건강 목표` 화면도 같은 열로 읽고 고친다(#1471) —
     #: 두 화면이 다른 열을 쓰면 온보딩에서 고른 값이 MY 에서 보이지 않는다.
     #: 옛 질환 이름은 저장할 때 새 목표로 정리한다(#1814).
-    conditions: Optional[str] = None
-    goals: Optional[str] = None
-    daily_calories: Optional[int] = None
-    daily_sodium_mg: Optional[int] = None
-    daily_sugar_g: Optional[int] = None
-    daily_carbs_g: Optional[int] = None
-    daily_protein_g: Optional[int] = None
-    daily_fat_g: Optional[int] = None
-    weekly_workout_goal: Optional[int] = None
-    weekly_exercise_minutes_goal: Optional[int] = None
-    weekly_burn_goal: Optional[int] = None
+    #:
+    #: 목표 숫자의 범위는 트레이너 경로(`MemberHealthProfileUpdate`)와 **같은
+    #: 것**을 쓴다(#1888) — `health_goal_ranges` 한 곳에 있다. 전에는 이쪽만
+    #: 제약이 없어 `daily_calories: 99999999999` 가 500 이고 `-3000` 은 그대로
+    #: 저장됐는데, 그 값을 트레이너가 화면에서 고치려 하면 트레이너 스키마의
+    #: 하한에 걸려 422 가 났다 — 넣은 문과 고치는 문이 달랐다.
+    conditions: Optional[ConditionsText] = None
+    goals: Optional[GoalsText] = None
+    daily_calories: Optional[DailyCalories] = None
+    daily_sodium_mg: Optional[DailySodiumMg] = None
+    daily_sugar_g: Optional[DailySugarG] = None
+    daily_carbs_g: Optional[DailyCarbsG] = None
+    daily_protein_g: Optional[DailyProteinG] = None
+    daily_fat_g: Optional[DailyFatG] = None
+    weekly_workout_goal: Optional[WeeklyWorkoutGoal] = None
+    weekly_exercise_minutes_goal: Optional[WeeklyExerciseMinutesGoal] = None
+    weekly_burn_goal: Optional[WeeklyBurnGoal] = None
     # 운동 탭이 견주는 목표 (#1139). 소모는 하루, 유형별은 한 주다.
-    daily_burn_kcal: Optional[int] = None
-    weekly_cardio_minutes: Optional[int] = None
-    weekly_strength_sets: Optional[int] = None
-    weekly_flexibility_minutes: Optional[int] = None
+    daily_burn_kcal: Optional[DailyBurnKcal] = None
+    weekly_cardio_minutes: Optional[WeeklyCardioMinutes] = None
+    weekly_strength_sets: Optional[WeeklyStrengthSets] = None
+    weekly_flexibility_minutes: Optional[WeeklyFlexibilityMinutes] = None
 
     @field_validator("conditions")
     @classmethod
@@ -240,32 +279,56 @@ class OnboardingRequest(BaseModel):
     name 은 User, 나머지는 HealthProfile 컬럼과 1:1 로 매핑된다.
     """
 
+    #: 이름은 비울 수 없다(#1887). 가입에서 필수로 받은 값을 온보딩이 빈
+    #: 문자열로 덮으면, 이름이 빈 회원이 트레이너 로스터와 채팅에 공백으로 뜬다.
     name: Optional[str] = None
-    birth_date: Optional[str] = None  # YYYY-MM-DD
+    #: `YYYY-MM-DD` 만 받는다(#1887). 날짜가 아닌 값이 저장되면 트레이너의 담당
+    #: 요청 확인 화면에서 나이가 조용히 비어 보인다.
+    birth_date: Optional[str] = None
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
-    conditions: Optional[str] = None  # "체중 감량, 혈압 관리" — 옛 질환 이름은 정리(#1814)
-    goals: Optional[str] = None
+    conditions: Optional[ConditionsText] = None  # "체중 감량, 혈압 관리" — 옛 질환 이름은 정리(#1814)
+    goals: Optional[GoalsText] = None
     # 목표 칸은 `HealthGoalsUpdate` 와 **같은 열**이다 — 온보딩이 권장값으로
     # 채워 둔 목표를 MY 건강 목표가 그대로 이어 고친다. 두 스키마가 서로 다른
     # 열을 다루면 온보딩에서 정한 목표가 MY 에서 보이지 않는다.
-    daily_calories: Optional[int] = None
-    daily_sodium_mg: Optional[int] = None
-    daily_sugar_g: Optional[int] = None
-    daily_carbs_g: Optional[int] = None
-    daily_protein_g: Optional[int] = None
-    daily_fat_g: Optional[int] = None
-    daily_burn_kcal: Optional[int] = None
-    weekly_cardio_minutes: Optional[int] = None
-    weekly_strength_sets: Optional[int] = None
-    weekly_flexibility_minutes: Optional[int] = None
+    #
+    # 같은 열이므로 **범위도 같다**(#1888). 여기만 열어 두면 온보딩으로 들어온
+    # 값을 MY 화면과 트레이너 화면이 고칠 수 없는 자리가 생긴다.
+    daily_calories: Optional[DailyCalories] = None
+    daily_sodium_mg: Optional[DailySodiumMg] = None
+    daily_sugar_g: Optional[DailySugarG] = None
+    daily_carbs_g: Optional[DailyCarbsG] = None
+    daily_protein_g: Optional[DailyProteinG] = None
+    daily_fat_g: Optional[DailyFatG] = None
+    daily_burn_kcal: Optional[DailyBurnKcal] = None
+    weekly_cardio_minutes: Optional[WeeklyCardioMinutes] = None
+    weekly_strength_sets: Optional[WeeklyStrengthSets] = None
+    weekly_flexibility_minutes: Optional[WeeklyFlexibilityMinutes] = None
 
     @field_validator("conditions")
     @classmethod
     def _normalize_conditions(cls, value: Optional[str]) -> Optional[str]:
         """옛 질환 이름(고혈압·당뇨 등)을 새 건강 목표로 정리한다(#1814)."""
         return normalize_conditions(value)
+
+    # 프로필 수정(`ProfileUpdate`)과 같은 함수를 부른다(#1887). 같은 두 칸을
+    # 고치는 두 경로가 다른 기준을 쓰면, 한쪽으로 들어온 값이 다른 쪽에서
+    # 고칠 수 없는 값이 된다.
+    @field_validator("name", mode="before")
+    @classmethod
+    def _check_name(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_name(value)
+        return value
+
+    @field_validator("birth_date", mode="before")
+    @classmethod
+    def _check_birth_date(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_birth_date(value)
+        return value
 
 
 class ProfileUpdate(PartialUpdate):
@@ -277,11 +340,62 @@ class ProfileUpdate(PartialUpdate):
 
     nullable_fields: ClassVar[frozenset[str]] = frozenset({"height_cm", "weight_kg"})
 
+    #: 가입과 같은 기준으로 본다(#1887) — 비울 수 없고, 컬럼에 들어가는
+    #: 길이여야 한다. 전에는 `{"name": ""}` 가 200 으로 저장돼, 가입에서 필수로
+    #: 받은 이름을 이 화면에서 지울 수 있었다.
     name: Optional[str] = None
+    #: 가입과 **같은 기준**으로 본다(#1883). 로그인이 이메일로 이뤄지므로, 여기서
+    #: 형식을 보지 않으면 오타 한 번이 계정 잠김이 된다 — 전에는 `asdf` 가 200 으로
+    #: 저장되고 그 회원은 원래 주소로 다시 로그인할 수 없었다. 비밀번호 찾기
+    #: 경로가 없어 스스로 되돌릴 방법도 없다.
+    #:
+    #: 빈 문자열도 막힌다. 이메일은 비울 수 있는 값이 아니다.
     email: Optional[str] = None
+    #: 가입과 같이 `000-0000-0000` 한 표기로 정리해 저장한다(#1883). 가입만
+    #: 정리하면 이 화면이 그 정리를 그대로 되돌린다.
+    #:
+    #: 빈 문자열은 그대로 둔다 — 연락처를 지우는 것은 할 수 있는 일이다.
     phone: Optional[str] = None
+    #: `YYYY-MM-DD` 만 받는다(#1887). 전에는 `asdfghjkl` 이 그대로 저장되고
+    #: `1990-01-01T00:00:00Z` 는 컬럼 길이를 넘겨 500 이 됐다.
+    #:
+    #: 빈 문자열은 그대로 둔다 — 넣을 자리가 없던 시절에 가입한 회원과 소셜
+    #: 로그인 가입자에게는 처음부터 없는 값이다.
     birth_date: Optional[str] = None
     gender: Optional[str] = Field(default=None, pattern="^(male|female|other|)$")
     height_cm: Optional[float] = Field(default=None, ge=50, le=300)
     weight_kg: Optional[float] = Field(default=None, ge=20, le=500)
-    goals: Optional[str] = Field(default=None, max_length=500)
+    goals: Optional[GoalsText] = None
+
+    # 가입(`UserRegister`)과 같은 함수를 부른다. 두 경로가 다른 기준을 쓰면
+    # 한쪽이 정리한 값을 다른 쪽이 되돌린다.
+    #
+    # `None` 을 그냥 통과시키는 것은 여기서 판단할 일이 아니기 때문이다 —
+    # 누락인지 명시적 null 인지는 `PartialUpdate` 가 뒤에서 가른다.
+    @field_validator("email", mode="before")
+    @classmethod
+    def _check_email(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_email(value)
+        return value
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return normalize_phone(value)
+        return value
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def _check_name(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_name(value)
+        return value
+
+    @field_validator("birth_date", mode="before")
+    @classmethod
+    def _check_birth_date(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return clean_birth_date(value)
+        return value

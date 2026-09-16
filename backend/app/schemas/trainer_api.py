@@ -18,6 +18,23 @@ from pydantic import (
 )
 
 from app.core import clock
+from app.schemas.health_goal_ranges import (
+    ConditionsText,
+    DailyBurnKcal,
+    DailyCalories,
+    DailyCarbsG,
+    DailyFatG,
+    DailyProteinG,
+    DailySodiumMg,
+    DailySugarG,
+    GoalsText,
+    WeeklyBurnGoal,
+    WeeklyCardioMinutes,
+    WeeklyExerciseMinutesGoal,
+    WeeklyFlexibilityMinutes,
+    WeeklyStrengthSets,
+    WeeklyWorkoutGoal,
+)
 from app.schemas.partial_update import PartialUpdate
 from app.schemas.points_api import PointsOut
 from app.services import health_focus
@@ -177,21 +194,25 @@ class MemberHealthProfileUpdate(PartialUpdate):
     gender: str | None = Field(default=None, pattern="^(male|female|other|)$")
     #: 건강 목표(최대 2개)와 트레이너가 적은 건강상태·주의사항이 함께 담긴다.
     #: 옛 질환 이름은 저장 전에 정리한다 — 회원앱 저장과 같은 규칙이다(#1818).
-    conditions: str | None = Field(default=None, max_length=1000)
-    goals: str | None = Field(default=None, max_length=500)
-    daily_calories: int | None = Field(default=None, ge=500, le=10000)
-    daily_sodium_mg: int | None = Field(default=None, ge=0, le=50000)
-    daily_sugar_g: int | None = Field(default=None, ge=0, le=1000)
-    daily_carbs_g: int | None = Field(default=None, ge=0, le=2000)
-    daily_protein_g: int | None = Field(default=None, ge=0, le=1000)
-    daily_fat_g: int | None = Field(default=None, ge=0, le=1000)
-    daily_burn_kcal: int | None = Field(default=None, ge=0, le=20000)
-    weekly_cardio_minutes: int | None = Field(default=None, ge=0, le=10080)
-    weekly_strength_sets: int | None = Field(default=None, ge=0, le=1000)
-    weekly_flexibility_minutes: int | None = Field(default=None, ge=0, le=10080)
-    weekly_workout_goal: int | None = Field(default=None, ge=0, le=21)
-    weekly_exercise_minutes_goal: int | None = Field(default=None, ge=0, le=10080)
-    weekly_burn_goal: int | None = Field(default=None, ge=0, le=100000)
+    #:
+    #: 아래 범위는 회원 경로(`HealthGoalsUpdate`·`OnboardingRequest`)와 **같은
+    #: 것**이다(#1888). 같은 컬럼을 고치는 두 문이 다른 기준을 쓰면, 한쪽으로
+    #: 들어온 값이 다른 쪽에서 고칠 수 없는 값이 된다.
+    conditions: ConditionsText | None = None
+    goals: GoalsText | None = None
+    daily_calories: DailyCalories | None = None
+    daily_sodium_mg: DailySodiumMg | None = None
+    daily_sugar_g: DailySugarG | None = None
+    daily_carbs_g: DailyCarbsG | None = None
+    daily_protein_g: DailyProteinG | None = None
+    daily_fat_g: DailyFatG | None = None
+    daily_burn_kcal: DailyBurnKcal | None = None
+    weekly_cardio_minutes: WeeklyCardioMinutes | None = None
+    weekly_strength_sets: WeeklyStrengthSets | None = None
+    weekly_flexibility_minutes: WeeklyFlexibilityMinutes | None = None
+    weekly_workout_goal: WeeklyWorkoutGoal | None = None
+    weekly_exercise_minutes_goal: WeeklyExerciseMinutesGoal | None = None
+    weekly_burn_goal: WeeklyBurnGoal | None = None
 
     nullable_fields: ClassVar[frozenset[str]] = frozenset(
         {

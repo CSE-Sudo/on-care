@@ -39,6 +39,7 @@ class AppButton extends StatelessWidget {
     this.variant = AppButtonVariant.primary,
     this.size = OnCareButtonSize.medium,
     this.leadingIcon,
+    this.leadingGlyph,
     this.trailingIcon,
     this.loading = false,
     this.fullWidth = false,
@@ -51,6 +52,10 @@ class AppButton extends StatelessWidget {
   final AppButtonVariant variant;
   final OnCareButtonSize size;
   final IconData? leadingIcon;
+
+  /// 글꼴 하나로 그릴 수 없는 마크를 앞자리에 대신 그린다(예: [AppAiChatGlyph]).
+  /// 주면 [leadingIcon] 대신 이것이 그려진다.
+  final Widget? leadingGlyph;
   final IconData? trailingIcon;
 
   /// 처리 중이면 라벨 자리에 스피너를 두고 탭을 막는다. 모양은 활성 그대로다.
@@ -160,7 +165,10 @@ class AppButton extends StatelessWidget {
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              if (leadingIcon != null) ...<Widget>[
+              if (leadingGlyph != null) ...<Widget>[
+                SizedBox.square(dimension: iconSize, child: leadingGlyph),
+                const SizedBox(width: OnCareSpacing.s8),
+              ] else if (leadingIcon != null) ...<Widget>[
                 AppIcon(leadingIcon, size: iconSize),
                 const SizedBox(width: OnCareSpacing.s8),
               ],

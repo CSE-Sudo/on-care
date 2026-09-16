@@ -81,7 +81,7 @@ class OnCareIconSet {
     offline: Icons.cloud_off_rounded,
     image: Icons.image_rounded,
     attachImage: Icons.add_photo_alternate_rounded,
-    send: Icons.arrow_upward_rounded,
+    send: Icons.send_rounded,
     file: Icons.picture_as_pdf_rounded,
     reward: Icons.star_rounded,
   );

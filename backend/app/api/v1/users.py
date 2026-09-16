@@ -57,6 +57,7 @@ from app.services import (
     trainer_signup_service,
 )
 from app.services.health_service import DEMO_SETTINGS
+from app.services.profile_format import name_from_email
 
 router = APIRouter(tags=["users"])
 
@@ -221,6 +222,17 @@ def update_me(
         user.name = data["name"]
 
     profile = _get_or_create_profile(db, user)
+
+    # 있던 연락처는 지울 수 없다(#1883). 회원 가입 화면은 전화번호를 **필수**로
+    # 받는데(#1634) 이 화면에서 비울 수 있으면 그 필수가 무의미해지고, 트레이너가
+    # 담당 회원에게 연락할 방법이 사라진다.
+    #
+    # 반대로 처음부터 없던 회원(소셜 로그인 가입자와 #1634 이전 가입자는
+    # 연락처를 넣을 자리가 없었다)에게는 요구하지 않는다 — 이름만 고치려는
+    # 사람에게 전화번호를 내놓으라고 막는 화면이 된다.
+    if data.get("phone") == "" and profile.phone:
+        raise HTTPException(status_code=422, detail="전화번호는 비울 수 없습니다.")
+
     for field in (
         "phone",
         "birth_date",
@@ -325,7 +337,11 @@ def register(
     user = User(
         id=f"user-{uuid.uuid4().hex[:12]}",
         email=payload.email,
-        name=payload.name or payload.email.split("@")[0],
+        # 이름을 보내지 않으면 이메일 로컬 파트로 채운다. 컬럼 길이(100)에
+        # 맞춰 자르는 것이 `name_from_email` 의 몫이다 — 이메일은 255자까지
+        # 받으므로(#1780), 자르지 않으면 이름을 안 보냈을 뿐인데 가입이 500 으로
+        # 떨어졌다(#1887).
+        name=payload.name or name_from_email(payload.email),
         hashed_password=hash_password(payload.password),
     )
     db.add(user)
