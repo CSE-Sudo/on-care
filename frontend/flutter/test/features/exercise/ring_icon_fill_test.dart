@@ -1,14 +1,13 @@
-/// 운동 그래프 링 위 기호도 회원앱 아이콘 규칙(채움)을 따른다 (#1866).
+/// 운동 그래프 링 위 기호도 회원앱 아이콘 규칙을 따른다 (#1866).
 ///
-/// 링 12시의 기호는 위젯이 아니라 캔버스에 **글자로 직접** 찍는다 — 테마를
-/// 타지 않으므로 아이콘 묶음이 정한 축(FILL·wght)을 손으로 실어 주어야 한다.
-/// 싣지 않으면 같은 아이콘이 화면 다른 곳에서는 채워지고 그래프 위에서만 빈
-/// 외곽선으로 나온다.
+/// 링 12시의 기호는 위젯이 아니라 캔버스에 **글자로 직접** 찍는다 — 캔버스에
+/// 직접 그리는 글자는 테마를 타지 않으므로, 아이콘 묶음이 정한 축(채움·굵기)을
+/// 손으로 실어 주어야 한다. 싣지 않으면 같은 아이콘이 화면 다른 곳에서는
+/// 채워지고 그래프 위에서만 빈 외곽선으로 나온다.
 ///
-/// 채워졌는지는 픽셀로만 알 수 있다. 시험 화면에는 글꼴 자산이 없어 글자가
+/// 축이 실렸는지는 픽셀로만 알 수 있다. 시험 화면에는 글꼴 자산이 없어 글자가
 /// 모두 네모로 그려지므로 진짜 가변 글꼴을 싣고([loadMaterialSymbolsRounded]),
-/// **같은 화면을 두 테마로** 그려 링 위에 남은 흰 잉크를 견준다. 회원앱 묶음
-/// (FILL 1)과 축이 없는 기본 묶음의 차이가 곧 채움이다.
+/// **축만 다른 두 묶음**으로 같은 화면을 그려 링 위 흰 잉크를 견준다.
 library;
 
 import 'dart:math' as math;
@@ -18,6 +17,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
@@ -32,9 +32,47 @@ const double _kDonutStrokeFactor = 0.13;
 const double _kRingGap = 3;
 const double _kRingHoleFactor = 0.22;
 
-/// 축을 하나도 싣지 않는 테마 — 고치기 전의 링 기호와 같은 모양이 된다.
-ThemeData _plainIcons() =>
-    OnCareTheme.light(brand: OnCareBrand.member, density: OnCareDensity.mobile);
+/// 축만 다른 시험용 묶음. 링 기호의 **그림**은 화면 코드가 고르고 묶음에서는
+/// 축만 가져다 쓰므로, 그림 자리는 아무 아이콘이나 채운다.
+const IconData _any = AppIcons.info;
+
+OnCareIconSet _axes({double? fill, double weight = 400}) => OnCareIconSet(
+  name: 'axes',
+  back: _any,
+  close: _any,
+  previous: _any,
+  next: _any,
+  disclosure: _any,
+  dropdown: _any,
+  calendarExpand: _any,
+  calendarCollapse: _any,
+  search: _any,
+  add: _any,
+  remove: _any,
+  check: _any,
+  info: _any,
+  success: _any,
+  caution: _any,
+  error: _any,
+  empty: _any,
+  offline: _any,
+  image: _any,
+  attachImage: _any,
+  send: _any,
+  file: _any,
+  reward: _any,
+  fill: fill,
+  weight: weight,
+  grade: 0,
+  minOpticalSize: 20,
+  maxOpticalSize: 48,
+);
+
+ThemeData _themeOf(OnCareIconSet icons) => OnCareTheme.light(
+  brand: OnCareBrand.member,
+  density: OnCareDensity.mobile,
+  icons: icons,
+);
 
 /// [painter] 를 그려 12시 언저리 **링 띠 안**의 픽셀을 훑어 온다.
 ///
@@ -149,6 +187,13 @@ void main() {
   );
 
   group('링 위 기호의 채움', () {
+    test('회원앱 테마가 회원앱 아이콘 묶음을 싣는다', () {
+      expect(
+        AppTheme.light().extension<OnCareTokens>()!.icons,
+        AppIcons.oncare,
+      );
+    });
+
     testWidgets('소모 칼로리 도넛의 불꽃이 채워진다', (WidgetTester tester) async {
       Future<List<int>> sectorWith(ThemeData theme) async {
         final (CustomPainter painter, Size size) = await pumpChart(
@@ -167,15 +212,15 @@ void main() {
         ))!;
       }
 
-      final List<int> filled = await sectorWith(AppTheme.light());
-      final List<int> plain = await sectorWith(_plainIcons());
-      expect(_white(plain), greaterThan(0), reason: '기호 자체는 두 테마 모두 그린다');
-      expect(_diff(filled, plain), greaterThan(0), reason: '묶음이 모양을 바꾼다');
+      final List<int> filled = await sectorWith(_themeOf(_axes(fill: 1)));
+      final List<int> outline = await sectorWith(_themeOf(_axes()));
+      expect(_white(outline), greaterThan(0), reason: '기호 자체는 두 묶음 모두 그린다');
+      expect(_diff(filled, outline), greaterThan(0), reason: '묶음이 모양을 바꾼다');
       // 불꽃은 속이 트인 외곽선에서 꽉 찬 덩어리가 된다.
-      expect(_white(filled), greaterThan((_white(plain) * 1.3).round()));
+      expect(_white(filled), greaterThan((_white(outline) * 1.3).round()));
     });
 
-    testWidgets('근력 링의 덤벨도 같은 규칙을 따른다', (WidgetTester tester) async {
+    testWidgets('세 링의 기호도 묶음이 정한 굵기로 그려진다', (WidgetTester tester) async {
       Future<List<int>> sectorWith(ThemeData theme) async {
         final (CustomPainter painter, Size size) = await pumpChart(
           tester,
@@ -196,13 +241,15 @@ void main() {
         ))!;
       }
 
-      final List<int> filled = await sectorWith(AppTheme.light());
-      final List<int> plain = await sectorWith(_plainIcons());
-      expect(_white(plain), greaterThan(0), reason: '기호 자체는 두 테마 모두 그린다');
-      expect(_diff(filled, plain), greaterThan(0), reason: '묶음이 모양을 바꾼다');
-      // 덤벨은 채우면서 굵기도 한 단계 얇아진다(운동 아이콘 예외) — 넓어지되
-      // 불꽃만큼 크게 벌어지지는 않는다.
-      expect(_white(filled), greaterThan(_white(plain)));
+      // 근력 덤벨은 채움 축이 모양을 바꾸지 않는 선 기호다(달리기·스트레칭도
+      // 같다) — 이 링에서는 묶음의 **굵기**가 실리는지로 본다.
+      final List<int> regular = await sectorWith(_themeOf(_axes(fill: 1)));
+      final List<int> heavy = await sectorWith(
+        _themeOf(_axes(fill: 1, weight: 700)),
+      );
+      expect(_white(regular), greaterThan(0), reason: '기호 자체는 두 묶음 모두 그린다');
+      expect(_diff(regular, heavy), greaterThan(0), reason: '묶음이 모양을 바꾼다');
+      expect(_white(heavy), greaterThan(_white(regular)));
     });
   });
 }
