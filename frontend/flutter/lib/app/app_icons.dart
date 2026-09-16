@@ -144,6 +144,7 @@ class AppIcons {
     attachImage: attachImage,
     send: send,
     file: file,
+    reward: star,
     timeInput: keyboard,
     timeDial: clock,
     fill: 1,
