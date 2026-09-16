@@ -166,7 +166,7 @@
   "dietEatenTime": "먹은 시간",
   "dietEatenFood": "먹은 음식",
   "dietNewFood": "새 음식",
-  "dietAddFood": "+ 음식 추가",
+  "dietAddFood": "음식 추가",
   "dietEditFoodHint": "음식명과 칼로리를 수정할 수 있어요",
   "dietTotalCalories": "총 칼로리",
   "dietNutritionInfo": "영양 정보",

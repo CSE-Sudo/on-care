@@ -245,7 +245,7 @@
   "dietEatenTime": "Time Eaten",
   "dietEatenFood": "Food Eaten",
   "dietNewFood": "New food",
-  "dietAddFood": "+ Add Food",
+  "dietAddFood": "Add Food",
   "dietEditFoodHint": "You can edit the food name and calories",
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
