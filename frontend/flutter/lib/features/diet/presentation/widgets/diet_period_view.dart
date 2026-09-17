@@ -316,7 +316,12 @@ class _PeriodBody extends StatelessWidget {
         ),
         child: AppCard(
           child: Column(
+            key: const Key('diet-period-card-content'),
             crossAxisAlignment: CrossAxisAlignment.start,
+            // 내용은 오늘 카드보다 짧다(머리 숫자 + 그래프뿐이다). 위에서부터
+            // 채우면 남는 자리가 전부 카드 아래로 몰려 그래프가 위로 쏠려
+            // 보였다 — 남는 자리를 위아래로 나눠 가운데에 놓는다(#1956).
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               ListenableBuilder(
                 listenable: selection,
