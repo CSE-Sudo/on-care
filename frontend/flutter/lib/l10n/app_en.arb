@@ -42,7 +42,7 @@
   "@homeAdviceExerciseStart": {
     "description": "Home AI advice when nothing was logged this week (#1943)."
   },
-  "homeAiAdviceBody": "Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
+  "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
   "homeSodiumExceededBadge": "Sodium over",
   "homeMacroCarbs": "Carbs",
   "homeMacroProtein": "Protein",
