@@ -10,19 +10,29 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 /// 운동 목표 코드 → 화면 문구. The backend stores the code so the label can
 /// change without a migration; the mapping has to live on one side and the
 /// trainer console is the only place it is read.
+///
+/// 여덟 목표는 회원이 온보딩에서 고르는 건강 목표와 같은 값이라 `healthFocus*`
+/// 문구를 그대로 쓴다(#1992) — 따로 든 표에서 `fitness` 하나가 `체력 증진` 으로
+/// 남아, 회원 화면의 `체력 강화` 와 같은 것인지 트레이너가 알 수 없었다.
+/// `health`·`other` 는 건강 목표에 대응이 없어 이 화면만 부르는 이름이다.
 Map<String, String> exerciseGoalLabels(AppLocalizations l) => <String, String>{
-  'weight_loss': l.goalWeightLoss,
-  'strength': l.goalStrength,
-  'fitness': l.goalFitness,
-  'posture': l.goalPosture,
-  'health': l.goalHealth,
+  'weight_loss': l.healthFocusWeightLoss,
+  'strength': l.healthFocusStrength,
+  'fitness': l.healthFocusFitness,
+  'posture': l.healthFocusPosture,
+  'rehab': l.healthFocusRehab,
+  'eating': l.healthFocusEating,
+  'exercise_habit': l.healthFocusExerciseHabit,
+  'blood_pressure': l.healthFocusBloodPressure,
   'other': l.goalOther,
+  // 없앤 선택지지만 이미 접수된 요청에 남아 있다 — 저장된 그대로 보여준다.
+  'health': l.goalHealth,
 };
 
 Map<String, String> healthPurposeLabels(AppLocalizations l) => <String, String>{
   'weight': l.goalWeightLoss,
   'chronic': l.memberHealthConditions,
-  'rehab': l.goalPosture,
+  'rehab': l.healthFocusRehab,
   'general': l.goalHealth,
   'none': '-',
   'other': l.goalOther,
