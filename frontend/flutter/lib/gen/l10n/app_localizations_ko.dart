@@ -657,6 +657,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exRest => '휴식';
 
   @override
+  String exRestSeconds(int seconds) {
+    return '휴식 $seconds초';
+  }
+
+  @override
   String get exAiRecommendedExercise => 'AI 추천 운동';
 
   @override
