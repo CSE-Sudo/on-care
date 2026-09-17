@@ -18,7 +18,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.schemas.exercise_api import MAX_EXERCISE_MINUTES
+from app.schemas.exercise_limits import MAX_EXERCISE_MINUTES
 
 #: 상한을 넘는 값. 예전에는 이 값이 그대로 저장돼 주간 합계로 번졌다.
 OVER_CAP = MAX_EXERCISE_MINUTES + 1
