@@ -24,7 +24,10 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 /// 그 뒤를 읽을 수 없다.
 Future<String> firstRouteAfterSignIn(ProviderContainer ref) async {
   try {
-    final UserProfile profile = await ref.refresh(profileProvider.future);
+    // 되짚지(`refresh`) 않는다 — 로그인이 끝나면서 세션 리셋이 이미 이 provider
+    // 를 비웠다(`session_feature_reset`). 여기서 한 번 더 비우면 방금 대시보드가
+    // 시작한 조회를 버리고 같은 요청을 다시 보낸다.
+    final UserProfile profile = await ref.read(profileProvider.future);
     if (profile.onboarded) {
       await rememberFirstRunDone(ref);
       return AppRoutes.dashboard;

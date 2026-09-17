@@ -88,8 +88,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       await ref
           .read(sessionControllerProvider.notifier)
           .login(email: email, password: password);
-      // 첫 설정을 아직 안 한 회원은 그 화면으로 보낸다(#1927).
-      router?.go(await firstRouteAfterSignIn(container));
+      // 첫 설정을 아직 안 한 회원**만** 옮긴다(#1927). 로그인에 성공하면 라우터의
+      // 세션 가드가 이미 홈으로 보내 두었으므로, 홈으로 한 번 더 `go` 하면
+      // 탭 껍데기(`StatefulShellRoute`)가 다시 세워지며 열려 있던 탭이 초기화된다.
+      final String next = await firstRouteAfterSignIn(container);
+      if (next != AppRoutes.dashboard) router?.go(next);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -117,7 +120,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       await ref
           .read(sessionControllerProvider.notifier)
           .socialLogin(provider: provider, token: 'demo-$provider-token');
-      router?.go(await firstRouteAfterSignIn(container));
+      final String next = await firstRouteAfterSignIn(container);
+      if (next != AppRoutes.dashboard) router?.go(next);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
