@@ -1081,6 +1081,19 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLogoutConfirm => '로그아웃 하시겠어요?';
 
   @override
+  String get myWithdrawTitle => '회원 탈퇴';
+
+  @override
+  String get myWithdrawConfirm =>
+      '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화도 사라집니다. 되돌릴 수 없어요.';
+
+  @override
+  String get myWithdrawAction => '탈퇴하기';
+
+  @override
+  String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
   String get myCancel => '취소';
 
   @override
