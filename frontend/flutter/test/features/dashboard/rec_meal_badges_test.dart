@@ -17,6 +17,8 @@ import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -64,7 +66,11 @@ const DashboardSummary _summary = DashboardSummary(
   exerciseFeedback: '',
 );
 
-Future<void> _pump(WidgetTester tester, {MemberCoach? coach}) async {
+Future<void> _pump(
+  WidgetTester tester, {
+  MemberCoach? coach,
+  MealRecommendations? recs,
+}) async {
   await tester.binding.setSurfaceSize(const Size(900, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -73,6 +79,8 @@ Future<void> _pump(WidgetTester tester, {MemberCoach? coach}) async {
       overrides: <Override>[
         memberCoachProvider.overrideWith((Ref ref) async => coach),
         dashboardSummaryProvider.overrideWith((Ref ref) async => _summary),
+        if (recs != null)
+          dietRecommendationsProvider.overrideWith((Ref ref) async => recs),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
@@ -109,6 +117,64 @@ void main() {
         .toList();
     expect(colors, isNotEmpty);
     expect(colors.every((Color? c) => c == OnCareBrand.member.primary), isTrue);
+  });
+
+  /// 설명이 한 줄인 카드와 두 줄인 카드를 섞어 놓고 배지 높이를 견준다.
+  ///
+  /// 배지가 설명 **아래**에 있으면 이 둘의 세로 위치가 어긋난다. 카드 높이는
+  /// `IntrinsicHeight` 가 가장 높은 것에 맞춰 주므로 카드 테두리는 가지런한데
+  /// 안의 배지만 제각각이었다.
+  testWidgets('설명 줄 수가 달라도 배지는 같은 높이에 놓인다', (WidgetTester tester) async {
+    await _pump(
+      tester,
+      recs: const MealRecommendations(
+        items: <MealRecommendation>[
+          MealRecommendation(
+            key: 'chicken_salad',
+            reasonKey: 'sodium',
+            reasonText: '짧은 이유',
+          ),
+          MealRecommendation(
+            key: 'brown_rice_box',
+            reasonKey: 'glucose',
+            reasonText: '두 줄을 채울 만큼 긴 개인화 문구를 서버가 보내 온 경우입니다',
+          ),
+          MealRecommendation(
+            key: 'salmon',
+            reasonKey: 'omega',
+            reasonText: '짧은 이유',
+          ),
+        ],
+      ),
+    );
+
+    final List<double> tops = tester
+        .widgetList<Text>(find.byKey(const Key('rec-meal-tag')))
+        .map((Text t) => tester.getTopLeft(find.byWidget(t)).dy)
+        .toList();
+    expect(tops.length, greaterThan(1));
+    for (final double top in tops) {
+      expect(top, moreOrLessEquals(tops.first, epsilon: 0.5));
+    }
+  });
+
+  /// 배지는 요리 이름보다 위다 — 사진 바로 아래 자리라는 뜻이다.
+  testWidgets('배지가 요리 이름보다 위에 있다', (WidgetTester tester) async {
+    await _pump(tester, coach: _coach);
+
+    final double badge = tester
+        .getTopLeft(find.byKey(const Key('rec-meal-tag')).first)
+        .dy;
+    final double name = tester
+        .getTopLeft(
+          find.text(
+            AppLocalizations.of(
+              tester.element(find.byType(DashboardContent)),
+            ).homeMealChickenSalad,
+          ),
+        )
+        .dy;
+    expect(badge, lessThan(name));
   });
 
   testWidgets('담당이 있으면 첫 장만 트레이너 추천이다', (WidgetTester tester) async {
