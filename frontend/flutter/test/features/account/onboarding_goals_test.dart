@@ -572,4 +572,71 @@ void main() {
     }
     expect(sent['weekly_cardio_minutes'], 150);
   });
+
+  // ---- 목표 범위 (#1888) ----
+  //
+  // 서버가 받는 범위 밖 값을 그대로 넘기면 완료 저장이 422 로 거절되어,
+  // **마지막 단계에서야** 실패를 보게 된다 — 어느 칸이 문제인지도 알 수 없다.
+  // 키·체중을 1단계에서 미리 보는 것과 같은 이유다.
+
+  testWidgets('범위 밖 식단 목표를 넣으면 3단계에 머물고 그 칸에 알려 준다', (tester) async {
+    await _open(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);  // 2단계
+    await _tapNext(tester);  // 3단계 식단 목표
+
+    await tester.enterText(_field('onboardKcalField'), '99999');
+    await _tapNext(tester);
+
+    expect(_stepLabel(tester), '3 / 4');
+    expect(
+      find.text(
+        '${AppGoalRanges.dailyCalories.min}~'
+        '${AppGoalRanges.dailyCalories.max} 사이로 입력해 주세요',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('범위 밖 운동 목표면 완료가 저장을 보내지 않는다', (tester) async {
+    final _RecordingRepository repo = await _open(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);  // 4단계 운동 목표
+
+    // 한 주는 10,080분이다.
+    await tester.enterText(_field('onboardCardioField'), '100000');
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+
+    expect(repo.submitted, isNull, reason: '서버에서 422 가 될 값은 보내지 않는다');
+    expect(
+      find.text(
+        '${AppGoalRanges.weeklyCardioMinutes.min}~'
+        '${AppGoalRanges.weeklyCardioMinutes.max} 사이로 입력해 주세요',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('고치면 안내가 사라지고 완료가 지나간다', (tester) async {
+    final _RecordingRepository repo = await _open(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+
+    await tester.enterText(_field('onboardCardioField'), '100000');
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+    expect(repo.submitted, isNull);
+
+    await tester.enterText(_field('onboardCardioField'), '150');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+
+    expect(repo.submitted!['weekly_cardio_minutes'], 150);
+  });
 }

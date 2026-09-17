@@ -139,9 +139,12 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     // Auto-scroll whenever the conversation grows / the typing bubble toggles.
     ref.listen<ChatState>(chatControllerProvider, (_, _) => _scrollToBottom());
 
-    // The starter prompts only make sense before the user has said anything.
+    // 빠른 질문은 **마지막 말 아래**에 붙는다. 내 차례일 때만 띄워, 답을 기다리는
+    // 동안 끼어들지 않는다(#1918).
     final bool showQuickReplies =
-        !chat.messages.any((ChatMessage m) => m.isUser) && !chat.sending;
+        !chat.sending &&
+        chat.messages.isNotEmpty &&
+        !chat.messages.last.isUser;
     final TextStyle captionStyle = tokens
         .text(OnCareTypography.caption)
         .copyWith(color: OnCareColors.textTertiary);
@@ -160,8 +163,6 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
               OnCareSpacing.s16,
             ),
             children: <Widget>[
-              Center(child: AppTag(label: l.aicDatePillToday)),
-              const SizedBox(height: OnCareSpacing.s12),
               // 의료 조언 면책 — 코치는 식단·운동 코칭이지 진료가 아니다.
               // 시스템 프롬프트에도 진단 금지 지시가 있지만, 사용자가
               // 그걸 볼 수는 없으므로 화면에도 한 줄 남긴다.
@@ -194,10 +195,7 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                 ),
               ),
               const SizedBox(height: OnCareSpacing.s20),
-              for (final ChatMessage m in chat.messages) ...<Widget>[
-                _bubble(context, m),
-                const SizedBox(height: OnCareSpacing.s16),
-              ],
+              ..._thread(context, chat.messages),
               if (showQuickReplies) _quickReplySection(),
             ],
           ),
@@ -277,10 +275,13 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
               maintainSize: true,
               maintainAnimation: true,
               maintainState: true,
-              child: AppIconButton(
+              // 아이콘만으로는 전할 수 없는 기능이라 글자를 함께 쓴다(#1900).
+              // 예전의 심전도 모니터는 심박을 재는 자리로 읽혔다.
+              child: AppButton(
                 key: const Key('aiCoachInsightHistoryButton'),
-                icon: AppIcons.healthCheck,
-                tooltip: l.aicInsightHistoryTitle,
+                label: l.aicInsightHistoryAction,
+                size: OnCareButtonSize.small,
+                leadingIcon: AppIcons.note,
                 onPressed: () => _showInsightHistory(context),
               ),
             ),
@@ -288,6 +289,48 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
         ),
       ),
     );
+  }
+
+  /// 대화 한 줄씩 — 날짜가 바뀌는 자리에 구분선을 끼운다. (#1918)
+  ///
+  /// 감지 기록 창에는 날짜가 있는데 대화에는 없어, 같은 일을 두 화면이 다르게
+  /// 말하고 있었다. 트레이너 채팅과 같은 구분선을 쓴다.
+  List<Widget> _thread(BuildContext context, List<ChatMessage> messages) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final List<Widget> out = <Widget>[];
+    DateTime? shown;
+    for (final ChatMessage m in messages) {
+      final DateTime? at = m.at?.toLocal();
+      if (at != null && (shown == null || !_sameDay(shown, at))) {
+        shown = at;
+        out
+          ..add(
+            AppChatDateDivider(
+              l.coachChatDateDivider(at),
+              key: ValueKey<String>(
+                'aiCoachDate-${at.year}-${at.month}-${at.day}',
+              ),
+            ),
+          )
+          ..add(const SizedBox(height: OnCareSpacing.s8));
+      }
+      out
+        ..add(_bubble(context, m))
+        ..add(const SizedBox(height: OnCareSpacing.s16));
+    }
+    return out;
+  }
+
+  static bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  /// 말풍선 옆 시각(`18:13`). 주고받은 때를 모르는 말풍선(인사·실패 안내·기다리는
+  /// 중)에는 붙이지 않는다.
+  static String? _clock(ChatMessage m) {
+    final DateTime? at = m.at?.toLocal();
+    if (at == null || m.pending) return null;
+    return '${at.hour.toString().padLeft(2, '0')}:'
+        '${at.minute.toString().padLeft(2, '0')}';
   }
 
   Widget _bubble(BuildContext context, ChatMessage m) {
@@ -300,22 +343,25 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
       ChatNotice.failure => l.aiCoachFailure,
       null => m.content,
     };
+    final String? time = _clock(m);
     if (m.isUser) {
       final ChatInsight? insight = m.insight;
       if (insight == null) {
-        return AppChatBubble(mine: true, child: Text(text));
+        return AppChatBubble(mine: true, time: time, child: Text(text));
       }
       // 트레이너 채팅처럼 감지한 신호를 말풍선 바로 아래 짧게 짚는다(#1824).
       return Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: <Widget>[
-          AppChatBubble(mine: true, child: Text(text)),
+          AppChatBubble(mine: true, time: time, child: Text(text)),
           const SizedBox(height: OnCareSpacing.s4),
           AppTag(
             key: const Key('aiCoachInsightTag'),
             label: insightLabel(l, insight),
             tone: AppTagTone.caution,
-            icon: AppIcons.healthCheck,
+            // 머리의 `기록` 버튼과 같은 아이콘이다 — 그 버튼이 모아 보여 주는
+            // 것이 바로 이 표시라는 것을 아이콘이 잇는다(#1918).
+            icon: AppIcons.note,
           ),
         ],
       );
@@ -331,6 +377,7 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
             children: <Widget>[
               AppChatBubble(
                 mine: false,
+                time: time,
                 child: m.pending
                     // 점 세 개만 깜빡이면 무엇을 기다리는지 알 수 없다. 답이
                     // 그 사람의 기록을 읽고 만들어지는 중이라는 것을 한 줄로

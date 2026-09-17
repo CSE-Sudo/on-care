@@ -89,6 +89,7 @@ class LocalApiInterceptor extends Interceptor {
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
     'GET /ai-coach/insights': _aiCoachInsights,
+    'GET /ai-coach/messages': _aiCoachHistory,
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
@@ -1910,8 +1911,10 @@ class LocalApiInterceptor extends Interceptor {
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
     final (String reply, List<String> sources) = _mockCoachReply(message);
-    // 감지 기록 창이 읽을 원문을 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
-    await _rememberAiCoachMessage(message);
+    // 주고받은 것을 그대로 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
+    // 감지 기록 창과 다시 열었을 때의 대화가 모두 여기서 나온다(#1900).
+    await _rememberAiCoachMessage(message, fromMember: true);
+    await _rememberAiCoachMessage(reply, fromMember: false, sources: sources);
     final ChatInsight? insight = detectChatInsight(message);
     return _ok(options, <String, Object?>{
       'reply': reply,
@@ -1920,19 +1923,254 @@ class LocalApiInterceptor extends Interceptor {
     });
   }
 
-  static const String _aiCoachMessagesKey = 'ai_coach_user_messages';
+  /// 데모 대화가 담긴 자리. 시드를 고치면 **이름을 올린다** — 이미 데모를 켜 본
+  /// 기기에는 예전 대화가 남아 있어, 같은 이름을 그대로 쓰면 새 자료가 보이지
+  /// 않는다(#1918).
+  static const String _aiCoachMessagesKey = 'ai_coach_user_messages_v2';
 
-  /// 목업 대화의 회원 메시지. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  /// 데모 AI 코치가 처음부터 들고 있는 대화. (#1900)
+  ///
+  /// 예전에는 이 화면이 인사말 하나로 시작하고 감지 기록도 비어 있어, 처음 열어
+  /// 본 사람은 두 기능이 무엇을 하는지 알 수 없었다.
+  ///
+  /// **대화와 감지 기록은 이 한 곳에서 나온다.** 둘을 따로 적어 두면 기록에만
+  /// 있는 문장이 생겨 앞뒤가 맞지 않는다. 감지도 손으로 달지 않고 실제 규칙
+  /// ([detectChatInsight])에 태워, 데모가 실서버와 같은 것을 짚는다.
+  ///
+  /// `daysAgo` 로 적는 이유는 고정 날짜를 박아 두면 데모가 하루만 지나도 감지
+  /// 기간(30일) 밖으로 밀려나 기록이 비어 버리기 때문이다.
+  static const List<
+    ({
+      int daysAgo,
+      int hour,
+      int minute,
+      bool fromMember,
+      String text,
+      List<String> sources,
+    })
+  >
+  _aiCoachSeed =
+      <
+        ({
+          int daysAgo,
+          int hour,
+          int minute,
+          bool fromMember,
+          String text,
+          List<String> sources,
+        })
+      >[
+        (
+          daysAgo: 26,
+          hour: 21,
+          minute: 8,
+          fromMember: true,
+          text: '식단은 사진만 찍으면 되나요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 26,
+          hour: 21,
+          minute: 9,
+          fromMember: false,
+          text:
+              '네, 사진 한 장이면 AI가 음식을 알아보고 칼로리와 영양소를 계산해 기록해요. '
+              '가운데 + 버튼으로 운동도 바로 추가할 수 있어요. 기록이 쌓이면 제가 그걸 보고 더 '
+              '구체적으로 도와드릴 수 있습니다. 📷',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 19,
+          hour: 12,
+          minute: 40,
+          fromMember: true,
+          text: '점심에 라면 먹었는데 나트륨 줄이려면 어떻게 해요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 19,
+          hour: 12,
+          minute: 43,
+          fromMember: false,
+          text:
+              '국물을 남기는 것만으로도 절반 가까이 줄어요. 다음부터는 스프를 조금만 넣고, '
+              '달걀이나 두부를 올려 단백질을 더해 보세요. 하루 목표는 2000mg 이하예요. 🌿',
+          sources: <String>['나트륨 줄이기'],
+        ),
+        (
+          daysAgo: 12,
+          hour: 20,
+          minute: 12,
+          fromMember: true,
+          text: '어제 스쿼트하고 나서 무릎이 좀 아파요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 12,
+          hour: 20,
+          minute: 15,
+          fromMember: false,
+          text:
+              '무릎이 불편하시군요. 오늘은 스쿼트 대신 자전거나 걷기처럼 무릎에 체중이 덜 실리는 운동으로 '
+              '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+          sources: <String>['운동 중 통증 대처'],
+        ),
+        (
+          daysAgo: 9,
+          hour: 18,
+          minute: 5,
+          fromMember: true,
+          text: '회식 있는 날은 어떻게 먹는 게 좋아요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 9,
+          hour: 18,
+          minute: 7,
+          fromMember: false,
+          text:
+              '가기 전에 가볍게 요기를 해 두면 과식이 줄어요. 자리에서는 구이·찜 위주로 먹고 국물은 '
+              '남기고, 물을 자주 마셔 주세요. 다음 날 한 끼를 담백하게 맞추면 한 주 균형은 유지됩니다. 🥗',
+          sources: <String>['DASH 식단 개요'],
+        ),
+        (
+          daysAgo: 5,
+          hour: 23,
+          minute: 30,
+          fromMember: true,
+          text: '오늘은 야근해서 운동 못 했어요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 5,
+          hour: 23,
+          minute: 32,
+          fromMember: false,
+          text:
+              '하루 쉬어도 괜찮아요. 이번 주에 이미 두 번 하셨으니 흐름은 살아 있어요. '
+              '내일 10분만 걸어도 다시 이어집니다. 🚶',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 4,
+          hour: 7,
+          minute: 20,
+          fromMember: true,
+          text: '아침에 시간이 없는데 뭘 먹으면 좋을까요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 4,
+          hour: 7,
+          minute: 22,
+          fromMember: false,
+          text:
+              '준비가 짧은 조합으로 가 보세요. 그릭요거트에 견과류, 삶은 달걀과 통밀빵, 두유와 바나나 '
+              '같은 것들이요. 단백질이 들어가야 점심까지 덜 허기집니다.',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 2,
+          hour: 13,
+          minute: 10,
+          fromMember: true,
+          text: '단백질은 하루에 얼마나 먹어야 하나요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 2,
+          hour: 13,
+          minute: 12,
+          fromMember: false,
+          text:
+              '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
+              '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+          sources: <String>['한국인 영양소 섭취기준'],
+        ),
+        (
+          daysAgo: 1,
+          hour: 9,
+          minute: 5,
+          fromMember: true,
+          text: '어깨가 뻐근해요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 1,
+          hour: 9,
+          minute: 7,
+          fromMember: false,
+          text:
+              '어깨는 굳기 쉬운 곳이라 운동 앞뒤로 풀어 주는 게 좋아요. 벽에 손을 대고 가슴을 여는 '
+              '스트레칭을 30초씩 세 번 해 보세요. 오늘은 어깨에 힘이 실리는 동작은 덜어 두시고요.',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 1,
+          hour: 15,
+          minute: 40,
+          fromMember: true,
+          text: '물은 얼마나 마셔야 해요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 1,
+          hour: 15,
+          minute: 42,
+          fromMember: false,
+          text:
+              '하루 6~8잔을 나눠 마시는 것을 권해요. 한 번에 많이 마시기보다 끼니와 운동 앞뒤로 '
+              '나눠 드시면 좋습니다. 💧',
+          sources: <String>['수분 섭취'],
+        ),
+      ];
+
+  /// 목업 대화. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  ///
+  /// 아직 아무것도 없으면 [_aiCoachSeed] 를 깔아 둔다 — 데모를 처음 켠 사람도
+  /// 지난 대화와 감지 기록을 함께 본다.
   Future<List<Map<String, Object?>>> _aiCoachMessages() async {
     final String? raw = await _db.readValue(_aiCoachMessagesKey);
-    if (raw == null || raw.isEmpty) return <Map<String, Object?>>[];
+    if (raw == null || raw.isEmpty) {
+      final List<Map<String, Object?>> seeded = _seedAiCoachRows();
+      await _db.putValue(_aiCoachMessagesKey, jsonEncode(seeded));
+      return seeded;
+    }
     return <Map<String, Object?>>[
       for (final Object? row in jsonDecode(raw) as List<Object?>)
         if (row is Map) row.cast<String, Object?>(),
     ];
   }
 
-  Future<void> _rememberAiCoachMessage(String text) async {
+  static List<Map<String, Object?>> _seedAiCoachRows() {
+    final DateTime now = nowKst();
+    return <Map<String, Object?>>[
+      for (final turn in _aiCoachSeed)
+        <String, Object?>{
+          'id': 'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
+          'role': turn.fromMember ? 'user' : 'coach',
+          'text': turn.text,
+          'sources': turn.sources,
+          'created_at': DateTime(
+            now.year,
+            now.month,
+            now.day - turn.daysAgo,
+            turn.hour,
+            turn.minute,
+          ).toIso8601String(),
+        },
+    ];
+  }
+
+  /// 예전 저장분에는 역할이 없다 — 그때는 회원 메시지만 적었다.
+  static bool _isMemberRow(Map<String, Object?> row) =>
+      (row['role'] as String? ?? 'user') == 'user';
+
+  Future<void> _rememberAiCoachMessage(
+    String text, {
+    required bool fromMember,
+    List<String> sources = const <String>[],
+  }) async {
     final DateTime now = nowKst();
     final List<Map<String, Object?>> rows = <Map<String, Object?>>[
       for (final Map<String, Object?> row in await _aiCoachMessages())
@@ -1943,11 +2181,40 @@ class LocalApiInterceptor extends Interceptor {
           row,
       <String, Object?>{
         'id': 'local-ai-${now.microsecondsSinceEpoch}',
+        'role': fromMember ? 'user' : 'coach',
         'text': text,
+        'sources': sources,
         'created_at': now.toIso8601String(),
       },
     ];
     await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+  }
+
+  /// GET /ai-coach/messages — 저장된 대화, 오래된 것부터. (#1900)
+  ///
+  /// 실서버가 저장해 둔 대화를 돌려주는 자리다. 데모도 같은 모양으로 답해야
+  /// 화면이 이어 하는 대화로 열린다.
+  Future<Response<Object?>> _aiCoachHistory(RequestOptions options) async {
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    return _ok(options, <String, Object?>{
+      'messages': <Map<String, Object?>>[
+        for (final Map<String, Object?> row in rows)
+          <String, Object?>{
+            'role': _isMemberRow(row) ? 'user' : 'coach',
+            'content': row['text'],
+            'sources': row['sources'] ?? const <String>[],
+            // 화면이 날짜 구분선과 말풍선 옆 시각을 이것으로 그린다(#1918).
+            'created_at': row['created_at'],
+            if (_isMemberRow(row))
+              'insight': switch (detectChatInsight(
+                row['text'] as String? ?? '',
+              )) {
+                final ChatInsight insight => _insightJson(insight),
+                _ => null,
+              },
+          },
+      ],
+    });
   }
 
   static Map<String, Object?> _insightJson(ChatInsight insight) =>
@@ -1969,6 +2236,8 @@ class LocalApiInterceptor extends Interceptor {
         row['created_at'] as String? ?? '',
       );
       if (at == null || !isWithinInsightWindow(at, now)) continue;
+      // 코치 답변은 감지 대상이 아니다 — 감지는 회원이 한 말에서만 찾는다.
+      if (!_isMemberRow(row)) continue;
       final String text = row['text'] as String? ?? '';
       final ChatInsight? insight = detectChatInsight(text);
       if (insight == null) continue;
@@ -1988,32 +2257,43 @@ class LocalApiInterceptor extends Interceptor {
   (String, List<String>) _mockCoachReply(String message) {
     bool has(List<String> keys) => keys.any(message.contains);
 
-    if (has(<String>['나트륨', '혈압', '짜', '소금', '국물'])) {
+    // 아픈 곳 이야기가 먼저다. 영양 갈래를 앞에 두면 "허리가 당겨요" 가 `당` 에
+    // 걸려 디저트 이야기를 답한다 — 화면에는 `허리 통증 감지` 표시가 붙은 채로
+    // 엉뚱한 답이 달렸다(#1918).
+    if (detectChatInsight(message)?.kind == ChatInsightKind.discomfort) {
+      return (
+        '불편한 곳이 있으시군요. 오늘은 그 부위에 힘이 실리는 동작을 빼고, 걷기나 가벼운 스트레칭으로 '
+            '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+        <String>['운동 중 통증 대처'],
+      );
+    }
+    if (has(<String>['나트륨', '짜', '소금', '국물'])) {
       return (
         '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
-            '간을 해보세요. 하루 나트륨을 2000mg 이하로 맞추면 혈압 관리에 큰 도움이 돼요. 🌿',
+            '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
         <String>['나트륨 줄이기', 'DASH 식단 개요'],
       );
     }
-    if (has(<String>['당', '혈당', '설탕', '단 것', '디저트'])) {
+    // `당` 한 글자는 쓰지 않는다 — `당기다`·`당근`·`담당` 까지 걸린다.
+    if (has(<String>['혈당', '설탕', '단 것', '단맛', '디저트'])) {
       return (
-        '혈당 관리를 위해 가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 '
-            '늘려보세요. 음료는 물이나 무가당 차로 바꾸는 것만으로도 효과가 좋아요. 🍵',
+        '가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 늘려보세요. '
+            '음료를 물이나 무가당 차로 바꾸는 것만으로도 하루 당류가 꽤 줄어요. 🍵',
         <String>['당류 관리'],
       );
     }
     if (has(<String>['운동', '걷', '헬스', '유산소', '근력'])) {
       return (
-        '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 여기에 주 2회 가벼운 근력 '
-            '운동을 더하면 혈압·혈당 관리에 특히 좋아요. 식후 10분 걷기도 큰 도움이 됩니다. 🚶',
-        <String>['고혈압과 운동', '유산소와 근력 균형'],
+        '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
+            '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
+        <String>['유산소와 근력 균형'],
       );
     }
     // 저녁 메뉴 추천은 빠른 질문 버튼의 첫 줄이다 — 일반론 대신 오늘 기록(점심
     // 짬뽕)과 이어지는 한 끼를 답해야 "맞춤"으로 읽힌다(#1180).
     if (has(<String>['저녁']) && has(<String>['메뉴', '먹', '추천'])) {
       return (
-        '오늘은 점심에 짬뽕으로 나트륨과 당류를 많이 섭취했으니, 저녁은 싱겁고 단백질과 채소가 '
+        '오늘 점심에 드신 짬뽕으로 나트륨과 당류가 많았어요. 저녁은 싱겁고 단백질과 채소가 '
             '풍부한 메뉴를 추천해요.\n'
             '🍽️ 추천 메뉴: 닭가슴살 채소구이 + 현미밥\n\n'
             '• 닭가슴살로 운동 후 단백질을 보충하고\n'
@@ -2023,29 +2303,42 @@ class LocalApiInterceptor extends Interceptor {
         <String>['DASH 식단 개요', '나트륨 줄이기'],
       );
     }
+    if (has(<String>['단백질'])) {
+      return (
+        '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
+            '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+        <String>['한국인 영양소 섭취기준'],
+      );
+    }
     if (has(<String>['뭐 먹', '식단', '점심', '저녁', '아침', '메뉴'])) {
       return (
-        '채소·통곡물·저지방 단백질 위주의 DASH 식단을 추천해요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
-            '드시면 좋아요. 혹시 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
+        '채소·통곡물·저지방 단백질 위주로 담아 보세요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
+            '드시면 좋아요. 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
         <String>['DASH 식단 개요'],
       );
     }
     if (has(<String>['물', '수분'])) {
       return (
-        '하루 6~8잔의 물을 나눠 마시는 것이 혈압과 신진대사에 도움이 돼요. 카페인·가당 음료는 줄이고 '
-            '물로 대체해보세요. 💧',
+        '하루 6~8잔의 물을 나눠 마시면 좋아요. 카페인·가당 음료를 줄이고 물로 바꿔 보세요. 💧',
         <String>['수분 섭취'],
       );
     }
     if (has(<String>['체중', '살', '다이어트', '몸무게'])) {
       return (
-        '급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전해요. 체중을 5~10%만 줄여도 혈압·혈당 '
-            '지표가 눈에 띄게 좋아질 수 있어요. 함께 천천히 가봐요! 💪',
+        '급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전해요. 한 주에 체중의 0.5~1% 정도가 '
+            '무리 없는 속도예요. 함께 천천히 가봐요! 💪',
         <String>['체중 관리'],
       );
     }
+    if (has(<String>['기록', '어떻게', '사용', '방법'])) {
+      return (
+        '식단은 사진 한 장이면 AI가 칼로리와 영양소를 계산해 기록해요. 운동은 가운데 + 버튼으로 바로 '
+            '추가할 수 있고요. 기록이 쌓이면 제가 그걸 보고 더 구체적으로 도와드릴 수 있어요. 📷',
+        <String>[],
+      );
+    }
     return (
-      '좋은 질문이에요! 식단·운동·혈압·혈당·수분 관리에 대해 더 구체적으로 물어봐 주시면 온이가 '
+      '좋은 질문이에요! 식단·운동·수분 관리에 대해 더 구체적으로 물어봐 주시면 온이가 '
           '맞춤으로 도와드릴게요. 예를 들어 "나트륨 줄이는 법"이나 "오늘 뭐 먹을까?"처럼요. 😊',
       <String>[],
     );

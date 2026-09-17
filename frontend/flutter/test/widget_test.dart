@@ -568,7 +568,7 @@ void main() {
       // 코드에 하드코딩돼 있던 문구들이 이제 로케일별 ARB 로 분리됐다.
       expect(en.coachCardDietTitle, 'Great breakfast — watch lunch sodium');
       expect(ko.coachCardDietTitle, '아침 식단 훌륭, 점심 나트륨 주의');
-      expect(en.coachCardExerciseTitle, 'PT session 12 done');
+      expect(en.coachCardExerciseTitle, '3 workouts this week');
       expect(en.homeAiAdviceTitle, "Today's combined AI advice");
       expect(ko.homeAiAdviceTitle, '오늘의 AI 통합 조언');
       expect(en.homeSodiumExceededBadge, 'Sodium over');

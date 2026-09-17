@@ -96,9 +96,21 @@ void main() {
     expect(find.byKey(const Key('trainerChatHeaderButton')), findsNothing);
     final Finder ai = find.byKey(const Key('aiChatHeaderButton'));
     expect(ai, findsOneWidget);
+    // 꽉 찬 말풍선 안에 크기가 다른 별들 — 대화 입구라는 것과 AI 라는 것이
+    // 아이콘만으로 함께 읽혀야 한다(#1900).
+    final Finder glyph = find.descendant(
+      of: ai,
+      matching: find.byType(AppAiChatGlyph),
+    );
+    expect(glyph, findsOneWidget);
+    // 말풍선은 등록부의 아이콘이고, 별은 그 위에 그려 넣는다.
     expect(
-      find.descendant(of: ai, matching: find.byIcon(AppIcons.ai)),
+      find.descendant(of: glyph, matching: find.byIcon(AppIcons.chat)),
       findsOneWidget,
+    );
+    expect(
+      find.descendant(of: glyph, matching: find.byType(CustomPaint)),
+      findsWidgets,
     );
     // 흐린 비활성 버튼이 아니라 눌리는 버튼이다.
     expect(_drawnEnabled(tester), isTrue);

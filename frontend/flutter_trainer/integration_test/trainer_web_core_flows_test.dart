@@ -333,7 +333,7 @@ void main() {
     await tester.tap(
       find.descendant(
         of: _chatComposer,
-        matching: find.byIcon(Icons.arrow_upward_rounded),
+        matching: find.byIcon(Icons.send_rounded),
       ),
     );
     // 입력창은 **서버 저장이 끝난 뒤에만** 비워진다(`ChatView._send`) — 실패하면 초안이

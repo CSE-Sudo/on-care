@@ -431,6 +431,16 @@
   "exOwnRecords": "Workouts you logged",
   "exOwnRecordsEmpty": "No workouts logged yet",
   "exOwnRecordSource": "Self-logged",
+  "exCompletedPtDayTitle": "Completed PT",
+  "exCompletedRoutineDayTitle": "Completed solo workout",
+  "exPtDayFeedback": "{coachName} · Feedback",
+  "@exPtDayFeedback": {
+    "placeholders": {
+      "coachName": {
+        "type": "String"
+      }
+    }
+  },
   "exDeleteExercise": "Delete workout",
   "exDeleteExerciseBody": "Deleting this record cannot be undone.",
   "exDeleted": "Workout deleted",
@@ -675,8 +685,8 @@
   "coachCardDietTitle": "Great breakfast — watch lunch sodium",
   "coachCardDietBody": "Breakfast was nicely balanced. The jjamppong you had for lunch can be heavy on sodium and sugar, so drink plenty of water today. For the rest of the day, pair vegetables with protein to keep things balanced.",
   "coachCardExerciseTag": "Exercise",
-  "coachCardExerciseTitle": "PT session 12 done",
-  "coachCardExerciseBody": "Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
+  "coachCardExerciseTitle": "3 workouts this week",
+  "coachCardExerciseBody": "You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
   "coachCardWaterTag": "Hydration",
   "coachInviteTitle": "A trainer wants to coach you",
   "coachInviteFrom": "Trainer {name}",
@@ -952,6 +962,8 @@
   "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
   "aicInsightHistoryTitle": "Noted signals",
   "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "aicInsightHistoryAction": "Notes",
+  "@aicInsightHistoryAction": {"description": "AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900)."},
   "aicInsightHistorySubtitle": "Pain and negative feedback noted in the last {days} days",
   "@aicInsightHistorySubtitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"days": {"type": "int"}}},
   "aicInsightHistoryEmpty": "Nothing noted in the last {days} days",
@@ -969,7 +981,7 @@
   },
   "aicQuickReply1": "Recommend a dinner menu for today",
   "aicQuickReply2": "How much should I exercise today?",
-  "aicQuickReply3": "How are my blood sugar readings?",
+  "aicQuickReply3": "How much sodium have I had today?",
   "exConsultRequestTitle": "Consultation Request",
   "exGymConsultRequest": "Request a Consultation",
   "exGymConsultPickTrainer": "Choose a trainer",
@@ -1090,6 +1102,10 @@
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",
   "signUpNameEmpty": "Enter your name",
+  "signUpNameTooLong": "Names can be up to 100 characters",
+  "@signUpNameTooLong": {
+    "description": "Shared name-length message (#1887). The limit matches the users.name column and the server rule in profile_format.py."
+  },
   "@signUpNameEmpty": {
     "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
   },
@@ -1105,6 +1121,10 @@
   "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "signUpPasswordMismatch": "Passwords do not match",
   "signUpPhoneFormatInvalid": "Enter your phone number as 000-0000-0000",
+  "myFieldBirthInvalid": "Enter your date of birth as 1996-03-21",
+  "@myFieldBirthInvalid": {
+    "description": "Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py."
+  },
   "trainerSyncEntryLabel": "Sync data with a trainer",
   "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
   "trainerSyncTitle": "Sync data with a trainer",
@@ -1258,7 +1278,7 @@
   "onboardGenderMale": "Male",
   "onboardGenderFemale": "Female",
   "onboardGenderOther": "Other",
-  "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.",
+  "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.",
   "@aiCoachWelcome": {
     "description": "Greeting bubble the app shows when the coach conversation opens."
   },
@@ -1536,6 +1556,8 @@
     "description": "Health goal field label."
   },
   "myGoalsSaved": "Health goals saved",
+  "myGoalRange": "Enter a value between {min} and {max}",
+  "@myGoalRange": {"description": "Health-goal field outside the range the server accepts (#1888). Shared by the MY goals sheet and onboarding steps 3-4.", "placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
   "@myGoalsSaved": {
     "description": "Shown after health goals are saved."
   },
