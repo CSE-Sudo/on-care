@@ -81,6 +81,10 @@
   "dietWeekdaySat": "토",
   "dietWeekdaySun": "일",
   "dietNutritionSummary": "영양 요약",
+  "dietAmount": "내용량",
+  "@dietAmount": {
+    "description": "음식 수정 칸 맨 위의 섭취량(g) 라벨. 이 값이 나머지 영양의 기준이다 (#1876)"
+  },
   "dietCalories": "칼로리",
   "dietSodium": "나트륨",
   "dietSugar": "당류",
@@ -111,6 +115,15 @@
   "dietMealDinner": "저녁",
   "dietMealSnack": "간식",
   "dietMealSheetTitle": "{meal} 식단",
+  "dietFoodDbMatch": "공공 DB · {name}",
+  "@dietFoodDbMatch": {
+    "description": "음식 이름이 공공 영양 DB 에 붙었을 때 제안 줄에 적는 대표 이름 (#1896)",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "dietFillFromDb": "값 채우기",
+  "@dietFillFromDb": {
+    "description": "제안한 공공 DB 영양으로 그 음식의 칸을 채우는 버튼 (#1896)"
+  },
   "dietAddSheetTitle": "식단 추가",
   "dietAddSheetSubtitle": "사진으로 음식을 분석해요",
   "dietPickPhoto": "사진 선택",
@@ -165,7 +178,7 @@
   "dietEatenFood": "먹은 음식",
   "dietNewFood": "새 음식",
   "dietAddFood": "음식 추가",
-  "dietEditFoodHint": "음식명과 칼로리를 수정할 수 있어요",
+  "dietEditFoodHint": "내용량을 고치면 영양이 비례해 따라와요",
   "dietTotalCalories": "총 칼로리",
   "dietNutritionInfo": "영양 정보",
   "dietEditNutritionHint": "음식별 영양을 고치면 여기에 합쳐져요",
@@ -221,6 +234,7 @@
   "exWeekNumber": "{n}주",
   "exTodayTotalTime": "오늘 총 운동 시간",
   "exRest": "휴식",
+  "exRestSeconds": "휴식 {seconds}초",
   "exAiRecommendedExercise": "AI 추천 운동",
   "exStatTime": "시간",
   "exStatCalories": "칼로리",

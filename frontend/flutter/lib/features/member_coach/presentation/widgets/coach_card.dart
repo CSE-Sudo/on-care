@@ -11,6 +11,7 @@ import 'package:oncare/features/exercise/presentation/controllers/exercise_contr
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
     show exerciseAmountLabelOf;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
@@ -510,9 +511,7 @@ class _RecommendedExerciseRowState
                             in routine.exercises) ...<Widget>[
                           const SizedBox(height: OnCareSpacing.s2),
                           Text(
-                            exercise.detail.isEmpty
-                                ? exercise.name
-                                : '${exercise.name} · ${exercise.detail}',
+                            coachRoutineExerciseLabel(l, exercise),
                             style: detailStyle,
                           ),
                         ]
