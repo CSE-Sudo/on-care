@@ -7,6 +7,10 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 /// [memberCoachRepositoryProvider] via `AppConfig.useMockApi`):
 ///  * `MockMemberCoachRepository` — demo / `USE_MOCK_API=true`;
 ///  * `DioMemberCoachRepository` — the real FastAPI backend.
+/// 대화 한 쪽의 크기. 서버 기본값(`GET /me/coach/chat` 의 `limit`)과 같다 —
+/// 받아 온 건수가 이 값과 같으면 그 앞에 더 있을 수 있다(#1943).
+const int chatPageSize = 50;
+
 abstract interface class MemberCoachRepository {
   /// The assigned coach, or `null` when the member has none yet (404).
   Future<MemberCoach?> fetchCoach();
@@ -40,7 +44,12 @@ abstract interface class MemberCoachRepository {
   Future<List<CoachSession>> fetchSessions();
 
   /// The chat thread (oldest → newest).
-  Future<List<CoachMessage>> fetchChat();
+  /// 담당 트레이너와의 대화(오래된→최신).
+  ///
+  /// 서버는 한 번에 최신 [chatPageSize] 건만 준다. 그 앞을 더 받으려면 지금까지
+  /// 받은 것 중 **가장 오래된 메시지**를 커서로 넘긴다(#1943) — 전에는 앱이
+  /// 커서 없이 부르기만 해서 51번째 이전 메시지는 위로 올려도 나오지 않았다.
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before});
 
   /// Watches the chat while its screen is active. Real API implementations
   /// poll the shared thread; demo implementations emit their in-memory state.

@@ -24,6 +24,24 @@
   "homeDashboardLoadError": "Could not load the dashboard.",
   "homeDashboardEmpty": "No records yet today. Add a meal or workout to get started.",
   "homeAiAdviceTitle": "Today's combined AI advice",
+  "homeAdviceSodiumOver": "You went over the sodium target today. Try keeping the rest of your meals light.",
+  "@homeAdviceSodiumOver": {
+    "description": "Home AI advice when today's sodium is over the goal (#1943)."
+  },
+  "homeAdviceExerciseOnTrack": "You worked out {minutes} minutes this week. You are on track!",
+  "@homeAdviceExerciseOnTrack": {
+    "description": "Home AI advice when the weekly exercise goal is met (#1943).",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "homeAdviceExerciseMore": "You worked out {minutes} minutes this week. A little more to go!",
+  "@homeAdviceExerciseMore": {
+    "description": "Home AI advice when there is some exercise but not enough (#1943).",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "homeAdviceExerciseStart": "Start moving this week — an easy walk is a good beginning.",
+  "@homeAdviceExerciseStart": {
+    "description": "Home AI advice when nothing was logged this week (#1943)."
+  },
   "homeAiAdviceBody": "Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
   "homeSodiumExceededBadge": "Sodium over",
   "homeMacroCarbs": "Carbs",
@@ -721,6 +739,10 @@
   "coachImageUnavailable": "Couldn't load the photo",
   "coachChatSubtitle": "Personal trainer · Available",
   "coachChatBack": "Back",
+  "coachChatLoadOlder": "Load older messages",
+  "@coachChatLoadOlder": {
+    "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
+  },
   "coachChatLoadFailed": "Couldn't load the conversation",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",

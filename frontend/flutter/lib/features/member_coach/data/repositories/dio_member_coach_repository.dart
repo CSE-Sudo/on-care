@@ -90,10 +90,18 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       _getList('/me/coach/sessions', coachSessionFromJson);
 
   @override
-  Future<List<CoachMessage>> fetchChat() async {
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async {
     final List<CoachMessage> messages = await _getList(
       '/me/coach/chat',
       coachMessageFromJson,
+      // 커서는 시각과 id 를 함께 넘긴다 — 같은 초에 들어온 메시지가 둘이면
+      // 시각만으로는 경계가 갈리지 않는다(서버도 같은 짝으로 본다).
+      query: before == null
+          ? null
+          : <String, Object?>{
+              'before': before.createdAt.toUtc().toIso8601String(),
+              'before_id': before.id,
+            },
     );
     messages.sort((CoachMessage first, CoachMessage second) {
       final int createdAtOrder = first.createdAt.compareTo(second.createdAt);
@@ -193,10 +201,14 @@ class DioMemberCoachRepository implements MemberCoachRepository {
 
   Future<List<T>> _getList<T>(
     String path,
-    T Function(Map<String, Object?>) fromJson,
-  ) async {
+    T Function(Map<String, Object?>) fromJson, {
+    Map<String, Object?>? query,
+  }) async {
     try {
-      final res = await _dio.get<List<dynamic>>(path);
+      final res = await _dio.get<List<dynamic>>(
+        path,
+        queryParameters: query,
+      );
       final data = res.data ?? const <dynamic>[];
       return data
           .map((dynamic item) {

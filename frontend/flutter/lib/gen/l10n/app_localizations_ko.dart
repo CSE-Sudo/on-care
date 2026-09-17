@@ -72,6 +72,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeAiAdviceTitle => '오늘의 AI 통합 조언';
 
   @override
+  String get homeAdviceSodiumOver => '오늘 나트륨이 권장량을 넘었어요. 남은 끼니는 담백하게 드셔 보세요.';
+
+  @override
+  String homeAdviceExerciseOnTrack(int minutes) {
+    return '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!';
+  }
+
+  @override
+  String homeAdviceExerciseMore(int minutes) {
+    return '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!';
+  }
+
+  @override
+  String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
+
+  @override
   String get homeAiAdviceBody =>
       '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 높아진 나트륨과 혈당을 낮추기 위해 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
 
@@ -1288,6 +1304,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachChatBack => '뒤로가기';
+
+  @override
+  String get coachChatLoadOlder => '이전 메시지 더 보기';
 
   @override
   String get coachChatLoadFailed => '대화를 불러오지 못했어요';
