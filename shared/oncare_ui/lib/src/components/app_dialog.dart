@@ -279,7 +279,7 @@ class AppSheet extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (trailing != null) trailing!,
+                    ?trailing,
                     if (showClose) const AppCloseButton(),
                   ],
                 ),
