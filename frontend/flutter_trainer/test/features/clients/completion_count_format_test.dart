@@ -6,10 +6,11 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 
 RoutineHistoryEntry _entry({
-  required List<String> exercises,
+  required List<ClientExerciseItem> exercises,
   int completionRate = 0,
 }) => RoutineHistoryEntry(
   id: 'h-1',
@@ -24,10 +25,18 @@ RoutineHistoryEntry _entry({
 void main() {
   test('완료 개수는 완료/전체로 줄여 적는다', () {
     final RoutineHistoryEntry all = _entry(
-      exercises: <String>['런닝 ✓', '스쿼트 ✓', '플랭크 ✓'],
+      exercises: <ClientExerciseItem>[
+        ClientExerciseItem.nameOnly('런닝 ✓'),
+        ClientExerciseItem.nameOnly('스쿼트 ✓'),
+        ClientExerciseItem.nameOnly('플랭크 ✓'),
+      ],
     );
     final RoutineHistoryEntry some = _entry(
-      exercises: <String>['런닝 ✓', '스쿼트 ✓', '플랭크 ✗'],
+      exercises: <ClientExerciseItem>[
+        ClientExerciseItem.nameOnly('런닝 ✓'),
+        ClientExerciseItem.nameOnly('스쿼트 ✓'),
+        ClientExerciseItem.nameOnly('플랭크 ✗'),
+      ],
     );
 
     expect(all.completionCountLabel, '3/3');
@@ -36,7 +45,11 @@ void main() {
 
   test('하나도 못 한 날은 0/3 이다', () {
     final RoutineHistoryEntry none = _entry(
-      exercises: <String>['런닝 ✗', '스쿼트 ✗', '플랭크 ✗'],
+      exercises: <ClientExerciseItem>[
+        ClientExerciseItem.nameOnly('런닝 ✗'),
+        ClientExerciseItem.nameOnly('스쿼트 ✗'),
+        ClientExerciseItem.nameOnly('플랭크 ✗'),
+      ],
     );
 
     expect(none.completionCountLabel, '0/3');
@@ -46,7 +59,10 @@ void main() {
   test('퍼센트는 개수와 같은 사실을 말한다', () {
     // 서버 값이 100 이어도 줄이 둘 중 하나만 마쳤다면 화면은 50% 다.
     final RoutineHistoryEntry mismatched = _entry(
-      exercises: <String>['런닝 ✓', '스쿼트 ✗'],
+      exercises: <ClientExerciseItem>[
+        ClientExerciseItem.nameOnly('런닝 ✓'),
+        ClientExerciseItem.nameOnly('스쿼트 ✗'),
+      ],
       completionRate: 100,
     );
 
@@ -56,7 +72,7 @@ void main() {
 
   test('운동 줄이 없는 옛 기록은 서버 이행률을 그대로 쓴다', () {
     final RoutineHistoryEntry legacy = _entry(
-      exercises: const <String>[],
+      exercises: <ClientExerciseItem>[],
       completionRate: 67,
     );
 
