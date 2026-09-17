@@ -815,7 +815,7 @@
   "myGoalProtein": "일일 단백질 제한 (g)",
   "myGoalFat": "일일 지방 제한 (g)",
   "myGoalCaloriesFromMacros": "탄·단·지 목표로 계산한 값이에요",
-  "myGoalMacroSuggestionNote": "{kcal}kcal 기준 권장 배분: 탄수화물 {carbs}g · 단백질 {protein}g · 지방 {fat}g",
+  "myGoalMacroSuggestionNote": "{kcal}kcal 기준 권장 배분: 탄수화물 {carbs}g · 단백질 {protein}g · 지방 {fat}g · 당류 {sugar}g",
   "myGoalMacroApplySuggestion": "권장 비율로 채우기",
   "myGoalWorkoutCount": "주간 운동 횟수 목표 (회)",
   "myGoalWorkoutMinutes": "주간 운동 시간 목표 (분)",

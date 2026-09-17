@@ -2441,8 +2441,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Calculated from your carb, protein and fat goals';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat · $sugar g sugar';
   }
 
   @override

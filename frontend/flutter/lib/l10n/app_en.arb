@@ -1414,7 +1414,7 @@
   "@myGoalCaloriesFromMacros": {
     "description": "Helper under the calorie goal field when it was derived from the macro fields."
   },
-  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat",
+  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat · {sugar} g sugar",
   "@myGoalMacroSuggestionNote": {
     "description": "Explains the placeholder grams shown in the macro fields.",
     "placeholders": {
@@ -1423,7 +1423,8 @@
       },
       "carbs": { "type": "int" },
       "protein": { "type": "int" },
-      "fat": { "type": "int" }
+      "fat": { "type": "int" },
+      "sugar": { "type": "int" }
     }
   },
   "myGoalMacroApplySuggestion": "Use suggested split",

@@ -1,4 +1,5 @@
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 
@@ -65,8 +66,9 @@ class MockAccountRepository implements AccountRepository {
     _profile = _replaceProfile(
       birthDate: birthDate,
       gender: gender,
-      heightCm: heightCm,
-      weightKg: weightKg,
+      // 온보딩은 첫 저장이라 '지움'이 없다 — 비운 칸은 손대지 않는다.
+      heightCm: heightCm == null ? null : MeasureUpdate(heightCm),
+      weightKg: weightKg == null ? null : MeasureUpdate(weightKg),
       goals: goals,
       dailyCalories: dailyCalories,
       dailySodiumMg: dailySodiumMg,
@@ -89,8 +91,8 @@ class MockAccountRepository implements AccountRepository {
     String? phone,
     String? birthDate,
     String? gender,
-    num? heightCm,
-    num? weightKg,
+    MeasureUpdate? heightCm,
+    MeasureUpdate? weightKg,
     String? goals,
   }) async {
     _profile = _replaceProfile(
@@ -117,8 +119,8 @@ class MockAccountRepository implements AccountRepository {
     String? phone,
     String? birthDate,
     String? gender,
-    num? heightCm,
-    num? weightKg,
+    MeasureUpdate? heightCm,
+    MeasureUpdate? weightKg,
     String? goals,
     int? dailyCalories,
     int? dailySodiumMg,
@@ -137,8 +139,13 @@ class MockAccountRepository implements AccountRepository {
     phone: phone ?? _profile.phone,
     birthDate: birthDate ?? _profile.birthDate,
     gender: gender ?? _profile.gender,
-    heightCm: heightCm?.toDouble() ?? _profile.heightCm,
-    weightKg: weightKg?.toDouble() ?? _profile.weightKg,
+    // 인자를 주지 않으면 손대지 않고, 값이 null 이면 지운다(#1941).
+    heightCm: heightCm == null
+        ? _profile.heightCm
+        : heightCm.value?.toDouble(),
+    weightKg: weightKg == null
+        ? _profile.weightKg
+        : weightKg.value?.toDouble(),
     goals: goals ?? _profile.goals,
     dailyCalories: dailyCalories ?? _profile.dailyCalories,
     dailySodiumMg: dailySodiumMg ?? _profile.dailySodiumMg,
