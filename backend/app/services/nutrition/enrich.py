@@ -38,6 +38,55 @@ def _grams(food: RecognizedFood, match: NutrientRow) -> float | None:
     return float(serving) if serving and serving > 0 else None
 
 
+def apply_match(food: RecognizedFood, match: NutrientRow, grams: float) -> None:
+    """DB 행 × 양 → 그 음식의 영양. 보정과 이름 조회가 **같은 계산**을 쓴다.
+
+    이름으로 찾는 `POST /diet/nutrition` 은 음식 하나짜리 보정과 같은 일이라,
+    여기 말고 따로 곱셈을 두면 분석이 준 값과 이름으로 찾은 값이 갈린다 —
+    같은 음식인데 화면 어디서 왔느냐에 따라 숫자가 달라진다. (#1896)
+    """
+    scale = grams / 100.0
+    # 환산에 실제로 쓴 양을 그 음식에 남긴다(#1876). 인식기가 양을 못 준
+    # 자리에서는 `serving_size_g` 로 환산하는데, 그 값을 적어 두지 않으면
+    # "영양은 210g 기준인데 섭취량은 비어 있는" 기록이 되어 회원이 양을
+    # 고쳐도 무엇에서 무엇으로 바뀌는 것인지 셀 수 없다.
+    food.amount_g = grams
+    # 칼로리·나트륨은 계약상 정수라 반올림이 맞다. 당류만 소수다(#296) —
+    # 여기서 int 로 깎으면 컬럼·스키마·클라이언트까지 소수로 통일해 둔
+    # 것이 이 한 줄에서 되돌려진다.
+    food.calories = int(round((match.calories or 0) * scale))
+    food.sodium_mg = int(round((match.sodium_mg or 0) * scale))
+    food.sugar_g = float((match.sugar_g or 0) * scale)
+    kept_recognizer_value = False
+    for field in ("carbs_g", "protein_g", "fat_g"):
+        db_value = getattr(match, field)
+        if db_value is not None:
+            setattr(food, field, float(db_value) * scale)
+        elif getattr(food, field) is not None:
+            kept_recognizer_value = True
+    food.source = "mixed" if kept_recognizer_value else "db"
+
+
+def lookup_by_name(
+    db: Session, name: str, amount_g: float | None = None
+) -> tuple[NutrientRow, RecognizedFood] | None:
+    """이름으로 공공 DB 를 찾아 그 영양 한 벌을 만든다. 못 찾으면 None. (#1896)
+
+    양을 정할 수 없으면(인식기 추정도 없고 `serving_size_g` 도 모르면) 찾은
+    셈 치지 않는다 — 임의로 1인분을 가정하지 않는 것은 위 폴백 원칙과 같다.
+    확정할 수 없는 숫자를 "공공 DB 근거" 로 내주는 것이 여기서 제일 나쁘다.
+    """
+    match = match_in_rows(load_rows(db), name)
+    if match is None:
+        return None
+    food = RecognizedFood(name=name, amount_g=amount_g)
+    grams = _grams(food, match)
+    if grams is None:
+        return None
+    apply_match(food, match, grams)
+    return match, food
+
+
 def enrich_analysis(db: Session, analysis: DietAnalysis, enabled: bool = True) -> DietAnalysis:
     if not analysis.foods:
         return analysis
@@ -56,20 +105,6 @@ def enrich_analysis(db: Session, analysis: DietAnalysis, enabled: bool = True) -
             food.source = "estimate"
             continue
 
-        scale = grams / 100.0
-        # 칼로리·나트륨은 계약상 정수라 반올림이 맞다. 당류만 소수다(#296) —
-        # 여기서 int 로 깎으면 컬럼·스키마·클라이언트까지 소수로 통일해 둔
-        # 것이 이 한 줄에서 되돌려진다.
-        food.calories = int(round((match.calories or 0) * scale))
-        food.sodium_mg = int(round((match.sodium_mg or 0) * scale))
-        food.sugar_g = float((match.sugar_g or 0) * scale)
-        kept_recognizer_value = False
-        for field in ("carbs_g", "protein_g", "fat_g"):
-            db_value = getattr(match, field)
-            if db_value is not None:
-                setattr(food, field, float(db_value) * scale)
-            elif getattr(food, field) is not None:
-                kept_recognizer_value = True
-        food.source = "mixed" if kept_recognizer_value else "db"
+        apply_match(food, match, grams)
 
     return analysis.compute_totals()

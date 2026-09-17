@@ -241,6 +241,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietNutritionSummary => 'Nutrition';
 
   @override
+  String get dietAmount => 'Serving size';
+
+  @override
   String get dietCalories => 'Calories';
 
   @override
@@ -319,6 +322,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String dietMealSheetTitle(String meal) {
     return '$meal';
   }
+
+  @override
+  String dietFoodDbMatch(String name) {
+    return 'Public DB · $name';
+  }
+
+  @override
+  String get dietFillFromDb => 'Fill in';
 
   @override
   String get dietAddSheetTitle => 'Add a Meal';
@@ -502,7 +513,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietAddFood => 'Add Food';
 
   @override
-  String get dietEditFoodHint => 'You can edit the food name and calories';
+  String get dietEditFoodHint =>
+      'Change the serving size and the nutrition follows';
 
   @override
   String get dietTotalCalories => 'Total Calories';
@@ -656,6 +668,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exRest => 'Rest';
+
+  @override
+  String exRestSeconds(int seconds) {
+    return 'Rest ${seconds}s';
+  }
 
   @override
   String get exAiRecommendedExercise => 'AI recommended exercise';
