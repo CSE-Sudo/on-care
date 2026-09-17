@@ -11,8 +11,20 @@ import 'package:oncare/core/storage/secure_token_store.dart';
 enum SessionStatus { unknown, signedOut, demo, authenticated }
 
 class SessionState {
-  const SessionState({this.status = SessionStatus.unknown});
+  const SessionState({
+    this.status = SessionStatus.unknown,
+    this.restoreFailed = false,
+  });
   final SessionStatus status;
+
+  /// 저장된 세션을 되살리려다 **일시적인 이유로** 끝내지 못했다. (#1944)
+  ///
+  /// 오프라인·500·타임아웃이 여기 해당한다. 토큰은 그대로 남아 있으므로 세션이
+  /// 끝난 것이 아니고, 그래서 로그인 화면으로 보내지 않는다 — 전에는 아무
+  /// 안내 없이 로그인 폼에 세워, 멀쩡한 세션을 두고 재시도할 방법이 "다음
+  /// 실행" 뿐이었다. 상태가 [SessionStatus.unknown] 에 머무는 동안 시작 화면이
+  /// 다시 시도를 준다.
+  final bool restoreFailed;
 
   bool get isAuthenticated => status == SessionStatus.authenticated;
   bool get canEnterApp =>
@@ -195,8 +207,30 @@ class SessionController extends StateNotifier<SessionState> {
   }
 
   /// 이번에는 못 들어갔지만 세션이 끝난 것은 아니다 — 저장된 토큰을 남긴 채
-  /// 로그인 화면으로 보낸다. 다음 실행에서 다시 시도한다.
+  /// 시작 화면에 재시도를 띄운다. (#1944)
+  ///
+  /// 예전에는 곧장 로그아웃 상태로 두어 로그인 폼이 떴다. 저장된 세션은 멀쩡한데
+  /// 화면은 그 사실을 말하지 않았고, 다시 시도할 길은 앱을 껐다 켜는 것뿐이었다.
   void _keepTokensAndSignOut() {
+    _setToken(null);
+    // 상태는 `unknown` 그대로다 — 세션이 끝난 것이 아니라 아직 모른다.
+    state = const SessionState(restoreFailed: true);
+  }
+
+  /// 실패한 복구를 다시 시도한다. 시작 화면의 `다시 시도` 가 부른다. (#1944)
+  Future<void> retryRestore() async {
+    if (_userActionStarted) return;
+    // 다시 `unknown` 으로 두면 시작 화면이 기다리는 모양으로 돌아간다.
+    state = const SessionState();
+    await _restore();
+  }
+
+  /// 복구를 접고 로그인 화면으로 간다. 시작 화면의 탈출구다. (#1944)
+  ///
+  /// 저장된 토큰은 지우지 않는다 — 망이 돌아온 다음 실행에서 다시 되살아나야
+  /// 한다. 이번 실행에서만 복구를 멈춘다.
+  void dismissRestore() {
+    _userActionStarted = true;
     _setToken(null);
     state = const SessionState(status: SessionStatus.signedOut);
   }

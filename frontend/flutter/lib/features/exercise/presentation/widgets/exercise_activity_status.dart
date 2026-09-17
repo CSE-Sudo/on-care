@@ -116,7 +116,7 @@ String kindValueText(AppLocalizations l, ExerciseLoadKind kind, double v) =>
     switch (kind) {
       ExerciseLoadKind.cardio ||
       ExerciseLoadKind.flexibility => l.unitMinutesValue(v.round()),
-      ExerciseLoadKind.strength => l.exProgramSets(v.round()),
+      ExerciseLoadKind.strength => l.exSetsCount(v.round()),
     };
 
 /// 소모 칼로리 색. 유산소·근력·스트레칭 세 유형과 **다른 색**이어야 한다

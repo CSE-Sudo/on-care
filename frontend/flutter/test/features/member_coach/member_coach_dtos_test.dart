@@ -167,12 +167,43 @@ void main() {
     expect(r.sessionOrder, 2);
     expect(r.isProgramSession, isTrue);
     expect(r.exercises.single.name, '레그프레스');
-    // 한 줄 요약은 로케일을 타므로 presentation 이 만든다(#1933). 매퍼가
-    // 확인할 것은 값이 그대로 실려 오는지다.
-    expect(r.exercises.single.sets, '4');
-    expect(r.exercises.single.reps, '12회');
-    expect(r.exercises.single.weight, '60kg');
-    expect(r.exercises.single.rest, '90');
+    // 값은 수로 든다(#1904). 여기 픽스처는 단위가 섞인 **옛** 응답이라, 숫자만
+    // 떼어 읽는지까지 함께 본다 — 예전 응답 한 줄 때문에 세션 구성이 통째로
+    // 비면 안 된다.
+    expect(r.exercises.single.sets, 4);
+    expect(r.exercises.single.reps, 12);
+    expect(r.exercises.single.weight, 60);
+    expect(r.exercises.single.duration, isNull);
+    expect(r.exercises.single.rest, 90);
+  });
+
+  test('coachRoutineFromJson reads numeric exercise values as they come', () {
+    // 지금 서버(`ProgramDraftExercise`)가 내려보내는 모양 — 전부 수다.
+    final r = coachRoutineFromJson(<String, Object?>{
+      'id': 'r-num',
+      'name': '하체',
+      'minutes': 40,
+      'type': '근력',
+      'reason': '',
+      'source': 'trainer',
+      'exercises': <Object?>[
+        <String, Object?>{
+          'name': '레그프레스',
+          'sets': 4,
+          'reps': 12,
+          'weight': 62.5,
+          'duration': null,
+          'memo': '',
+        },
+      ],
+    });
+
+    expect(r.exercises.single.sets, 4);
+    expect(r.exercises.single.reps, 12);
+    expect(r.exercises.single.weight, 62.5);
+    expect(r.exercises.single.duration, isNull);
+    // 지금 계약에 없는 칸은 비어 온다.
+    expect(r.exercises.single.rest, isNull);
   });
 
   test('coachRoutineFromJson keeps working without the session keys', () {

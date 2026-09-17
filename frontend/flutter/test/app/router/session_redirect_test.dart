@@ -21,12 +21,19 @@ void main() {
       );
     });
 
-    test('still-restoring (unknown) is guarded exactly like signed-out', () {
+    test('복구 중(unknown)에는 시작 화면에 머문다 (#1944)', () {
+      // 전에는 로그아웃과 같이 묶여 완전히 눌리는 로그인 폼이 떴다 — 복구가
+      // 끝나면 입력하던 화면이 홈으로 튀고, 먼저 로그인을 누르면 진행 중이던
+      // 복구가 버려졌다.
       expect(
         sessionRedirect(SessionStatus.unknown, AppRoutes.dashboard),
-        AppRoutes.signIn,
+        AppRoutes.splash,
       );
-      expect(sessionRedirect(SessionStatus.unknown, AppRoutes.signIn), isNull);
+      expect(
+        sessionRedirect(SessionStatus.unknown, AppRoutes.signIn),
+        AppRoutes.splash,
+      );
+      expect(sessionRedirect(SessionStatus.unknown, AppRoutes.splash), isNull);
     });
 
     test('signed-out already on sign-in → stays put (null)', () {
@@ -56,9 +63,13 @@ void main() {
     });
 
     test('sign-up route is public like sign-in', () {
-      // signed-out / restoring may reach it; already-in-app is bounced out.
+      // signed-out may reach it; already-in-app is bounced out. 복구 중에는
+      // 시작 화면이 먼저다(#1944) — 복구가 끝난 뒤에 가입으로 갈 수 있다.
       expect(sessionRedirect(SessionStatus.signedOut, AppRoutes.signUp), isNull);
-      expect(sessionRedirect(SessionStatus.unknown, AppRoutes.signUp), isNull);
+      expect(
+        sessionRedirect(SessionStatus.unknown, AppRoutes.signUp),
+        AppRoutes.splash,
+      );
       expect(
         sessionRedirect(SessionStatus.demo, AppRoutes.signUp),
         AppRoutes.dashboard,

@@ -134,6 +134,10 @@ def recent_insights(
 
     감지 결과는 따로 저장하지 않고 대화에서 매번 계산한다 — 규칙이 바뀌면 지난
     기록에도 같은 규칙이 적용되고, 대화 보관 기간과 기록 기간이 어긋나지 않는다.
+
+    회원이 치운 줄(`insight_dismissed`)은 건너뛴다(#1975). 규칙이 완벽할 수 없어
+    `목요일`·`목표` 같은 말이 부위로 잡히는 일이 남는데, 그 오탐을 회원이 치울 수
+    있어야 한다. 치우는 것은 감지뿐이고 메시지는 그대로 둔다.
     """
     cutoff = (now or clock.now()) - timedelta(days=INSIGHT_WINDOW_DAYS)
     rows = db.execute(
@@ -143,6 +147,7 @@ def recent_insights(
             AiConversation.user_id == user_id,
             AiMessage.role == "user",
             AiMessage.created_at >= cutoff,
+            AiMessage.insight_dismissed.is_(False),
         )
         .order_by(AiMessage.created_at.desc(), AiMessage.seq.desc())
     ).all()

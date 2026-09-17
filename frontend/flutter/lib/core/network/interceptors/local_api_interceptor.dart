@@ -91,6 +91,7 @@ class LocalApiInterceptor extends Interceptor {
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
+    'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,
     'POST /auth/social/google': _authSocial,
     'GET /users/me': _usersMe,
@@ -254,6 +255,9 @@ class LocalApiInterceptor extends Interceptor {
     }
     if (method == 'PUT' && path.startsWith('/exercise/sessions/')) {
       return _exerciseUpdate;
+    }
+    if (method == 'DELETE' && path.startsWith('/ai-coach/insights/')) {
+      return _aiCoachInsightDismiss;
     }
     return null;
   }
@@ -2150,6 +2154,9 @@ class LocalApiInterceptor extends Interceptor {
       if (at == null || !isWithinInsightWindow(at, now)) continue;
       // 코치 답변은 감지 대상이 아니다 — 감지는 회원이 한 말에서만 찾는다.
       if (!_isMemberRow(row)) continue;
+      // 회원이 치운 줄은 건너뛴다(#1975). 실서버도 `insight_dismissed` 로 같은
+      // 것을 한다 — 데모에서만 되는 자리를 새로 만들지 않는다.
+      if (row['insight_dismissed'] == true) continue;
       final String text = row['text'] as String? ?? '';
       final ChatInsight? insight = detectChatInsight(text);
       if (insight == null) continue;
@@ -2164,6 +2171,24 @@ class LocalApiInterceptor extends Interceptor {
       'window_days': kChatInsightWindowDays,
       'insights': insights,
     });
+  }
+
+  /// DELETE /ai-coach/insights/{message_id} — 그 줄의 감지를 기록에서 치운다(#1975).
+  ///
+  /// **메시지는 지우지 않는다.** 실서버와 같이 `더 보지 않음` 표시만 남기므로,
+  /// 회원이 쓴 말은 대화에 그대로 남는다.
+  ///
+  /// 이미 치운 줄을 다시 눌러도 200 이다 — 누른 쪽이 바라는 상태가 이미 참이다.
+  Future<Response<Object?>> _aiCoachInsightDismiss(RequestOptions options) async {
+    final String messageId = options.path.split('/').last;
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    final int index = rows.indexWhere(
+      (Map<String, Object?> row) => row['id'] == messageId,
+    );
+    if (index < 0) return _notFound(options, '감지 기록을 찾을 수 없습니다.');
+    rows[index] = <String, Object?>{...rows[index], 'insight_dismissed': true};
+    await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+    return _ok(options, <String, Object?>{'status': 'dismissed'});
   }
 
   (String, List<String>) _mockCoachReply(String message) {
@@ -2304,6 +2329,27 @@ class LocalApiInterceptor extends Interceptor {
     return Response<Object?>(requestOptions: options, statusCode: 204);
   }
 
+  /// POST /auth/refresh — 데모도 접근 토큰을 회전해 준다. (#1944)
+  ///
+  /// 데모 라우트 표에 이것이 빠져 있어, 목 빌드의 갱신 요청이 두 인터셉터를 모두
+  /// 지나쳐 **실제 `apiBaseUrl` 로 나갔다** — #966 이 `/auth/logout` 에 대해
+  /// 막았던 그 누출이 갱신 경로에 남아 있었다.
+  ///
+  /// 갱신 토큰은 쓰던 것을 그대로 돌려준다. 실서버도 회전 토큰을 항상 새로 주는
+  /// 것은 아니라, 앱이 둘 다 다룰 수 있어야 한다.
+  Future<Response<Object?>> _authRefresh(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final refresh = (body['refresh_token'] as String? ?? '').trim();
+    if (refresh.isEmpty) {
+      return _badRequest(options, 'refresh_token is required');
+    }
+    return _ok(options, <String, Object?>{
+      'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
+      'refresh_token': refresh,
+      'token_type': 'bearer',
+    });
+  }
+
   /// POST /auth/social/{provider} — the demo exchanges any non-empty
   /// provider token for a session. Real provider-token verification is
   /// done by FastAPI (+ provider SDK) when USE_MOCK_API=false.
@@ -2395,11 +2441,15 @@ class LocalApiInterceptor extends Interceptor {
       'phone',
       'birth_date',
       'gender',
-      'height_cm',
-      'weight_kg',
       'goals',
     ]) {
       if (body[k] != null) patch[k] = body[k];
+    }
+    // 키·몸무게만 **키가 있는지**를 본다. 비울 수 있는 두 칸이라 명시적 null 은
+    // 지움이고, 값으로 거르면 지운 값이 되살아난다 — 서버도 이 둘만
+    // `nullable_fields` 로 둔다(#1941).
+    for (final String k in <String>['height_cm', 'weight_kg']) {
+      if (body.containsKey(k)) patch[k] = body[k];
     }
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());

@@ -404,7 +404,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<List<CoachSession>> fetchSessions() async => const <CoachSession>[];
 
   @override
-  Future<List<CoachMessage>> fetchChat() async => _hasCoach()
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      _hasCoach()
       ? List<CoachMessage>.unmodifiable(_chat)
       : const <CoachMessage>[];
 
