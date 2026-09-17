@@ -882,17 +882,12 @@ class _CompletedPtSessionCard extends StatelessWidget {
     // 세트 → 횟수 → 중량. 입력 화면이 묻는 순서 그대로다 (#1310) — 트레이너가
     // 적은 순서와 회원이 읽는 순서가 다르면 같은 한 줄이 두 앱에서 달라 보인다.
     final String details = <String>[
-      if (item.sets > 0) l.exProgramSets(item.sets),
+      if (item.sets > 0) l.exSetsCount(item.sets),
       if (item.reps > 0) l.exRepsCount(item.reps),
-      if (item.weight > 0) '${_trimZero(item.weight)}${l.exUnitKg}',
+      if (item.weight > 0) exerciseWeightLabel(l, item.weight),
     ].join(' · ');
     return details.isEmpty ? item.name : '${item.name} · $details';
   }
-
-  /// 20.0 → `20`, 62.5 → `62.5`. 정수 무게에 소수점이 붙으면 원판 단위가
-  /// 아닌 값을 적은 것처럼 읽힌다.
-  static String _trimZero(double value) =>
-      value == value.roundToDouble() ? '${value.round()}' : '$value';
 
   @override
   Widget build(BuildContext context) {

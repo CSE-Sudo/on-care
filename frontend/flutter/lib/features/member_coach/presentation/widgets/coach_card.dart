@@ -783,6 +783,7 @@ class _ChatButton extends StatelessWidget {
   }
 }
 
+
 /// 루틴 한 줄이 말하는 **양**. 근력은 세트·횟수(·중량)로, 나머지는 분으로
 /// 읽는다 — 회원이 직접 적은 기록과 **같은 규칙**(`exerciseAmountLabelOf`)이다.
 ///

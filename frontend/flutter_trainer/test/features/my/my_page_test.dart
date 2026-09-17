@@ -209,6 +209,108 @@ void main() {
       expect(find.text('경력은 0~80 사이의 연수로 입력해 주세요.'), findsOneWidget);
     });
 
+    // ---- 연락처 형식 (#1914) ----
+    //
+    // 서버가 회원 경로와 같은 기준으로 보므로, 화면이 보내기 전에 알려 준다.
+    // 거기서 걸리면 이유를 알 수 없는 오류 토스트만 남는다.
+
+    testWidgets('형식이 틀린 전화번호는 저장을 보내지 않고 칸 아래에 알린다', (tester) async {
+      final container = await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.my,
+      );
+      final String? before = container
+          .read(sessionControllerProvider)
+          .profile
+          ?.phone;
+
+      await tester.tap(find.text('프로필 수정'));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('profile-phone')),
+        '0101234',
+      );
+      await tester.tap(find.text('저장'));
+      await tester.pump();
+
+      expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsOneWidget);
+      expect(find.text('변경사항이 저장됐어요'), findsNothing);
+      expect(container.read(sessionControllerProvider).profile?.phone, before);
+    });
+
+    testWidgets('숫자만 쳐도 하이픈이 붙는다 — 가입 화면과 같은 서식이다', (tester) async {
+      await openTab(tester);
+      await tester.tap(find.text('프로필 수정'));
+      await tester.pump();
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('profile-phone')),
+        '01098765432',
+      );
+      await tester.pump();
+
+      // 키는 `AppTextField` 에 붙어 있으므로 그 안의 `TextField` 를 찾아 읽는다.
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(
+                of: find.byKey(const ValueKey<String>('profile-phone')),
+                matching: find.byType(TextField),
+              ),
+            )
+            .controller!
+            .text,
+        '010-9876-5432',
+      );
+    });
+
+    testWidgets('오류를 보인 뒤 고치면 문구가 사라진다', (tester) async {
+      await openTab(tester);
+      await tester.tap(find.text('프로필 수정'));
+      await tester.pump();
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('profile-phone')),
+        '0101234',
+      );
+      await tester.tap(find.text('저장'));
+      await tester.pump();
+      expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('profile-phone')),
+        '01012345678',
+      );
+      await tester.pump();
+      expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsNothing);
+    });
+
+    testWidgets('전화번호를 비워도 저장된다 — 트레이너 가입은 이 값을 받지 않는다', (
+      tester,
+    ) async {
+      final container = await pumpTrainerApp(
+        tester,
+        token: 'demo-trainer-token',
+        at: AppRoutes.my,
+      );
+
+      await tester.tap(find.text('프로필 수정'));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('profile-phone')),
+        '',
+      );
+      await tester.tap(find.text('저장'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsNothing);
+      expect(container.read(sessionControllerProvider).profile?.phone, '');
+
+      await tester.pump(const Duration(seconds: 3));
+    });
+
     testWidgets('고칠 수 없는 이름·이메일 칸은 회색 채움·흐린 글자다(#1776)', (tester) async {
       await openTab(tester);
       await tester.tap(find.text('프로필 수정'));

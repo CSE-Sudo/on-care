@@ -237,11 +237,17 @@ String exerciseAmountLabelOf(
   // 비울 수 없어(최솟값 0) 근력이면 언제나 값을 하나 든다. 트레이너 앱도 같은
   // 규칙이라, 같은 기록이 두 앱에서 같은 줄로 읽힌다.
   if (reps != null && reps > 0) buffer.write(' · ${l.exRepsCount(reps)}');
-  if (weight != null) {
-    buffer.write(' · ${NumberFormat('#,##0.#').format(weight)}${l.exUnitKg}');
-  }
+  if (weight != null) buffer.write(' · ${exerciseWeightLabel(l, weight)}');
   return buffer.toString();
 }
+
+/// 중량 한 값의 표기 — `20kg`, `62.5kg`. (#1904)
+///
+/// 정수 무게에 소수점이 붙으면 원판 단위가 아닌 값을 적은 것처럼 읽힌다. 예전에는
+/// 같은 값을 화면마다 다른 포맷터로 적어, 세 자리를 넘는 무게에서 `1,000kg` 과
+/// `1000kg` 으로 갈렸다.
+String exerciseWeightLabel(AppLocalizations l, double weight) =>
+    '${NumberFormat('0.#').format(weight)}${l.exUnitKg}';
 
 /// 운동 유형 → 화면 라벨. 유형별 분해 카드와 같은 문구를 쓴다.
 String exerciseTypeLabel(AppLocalizations l, ExerciseType type) =>

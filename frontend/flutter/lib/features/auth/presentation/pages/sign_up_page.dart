@@ -51,7 +51,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     super.dispose();
   }
 
-  /// 칸의 지금 값에 대한 오류 문구. 전화번호는 `000-0000-0000` 만 받는다 —
+  /// 칸의 지금 값에 대한 오류 문구. 전화번호는 `010-0000-0000` 만 받는다 —
   /// 숫자만 쳐도 [AppPhoneNumberFormatter] 가 하이픈을 넣어 준다(#1784).
   String? _check(_Field field) =>
       authInputErrorText(AppLocalizations.of(context), switch (field) {

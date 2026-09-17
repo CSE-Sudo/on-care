@@ -723,11 +723,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String exProgramSets(int count) {
-    return '$count세트';
-  }
-
-  @override
   String get exAddExercise => '운동 추가';
 
   @override
@@ -2030,7 +2025,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';
 
   @override
-  String get signUpPhoneFormatInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
+  String get signUpPhoneFormatInvalid => '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get myFieldBirthInvalid => '생년월일을 1996-03-21 형식으로 입력해 주세요';

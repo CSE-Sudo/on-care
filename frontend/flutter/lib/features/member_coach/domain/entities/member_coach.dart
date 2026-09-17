@@ -283,26 +283,38 @@ class CoachAttachment {
 ///
 /// 세트·횟수·중량은 문자열이다. 트레이너가 "10회"·"자체중량" 처럼 적을 수 있고,
 /// 숫자로 바꾸면 그 표현이 사라진다(#709).
+/// 배정 세션에 담긴 운동 한 항목. (#709)
 ///
-/// 한 줄 요약은 `coachRoutineExerciseDetail` 이 만든다 — 세트·분·초의 단위는
+/// 값은 **수**로 든다(#1904). 서버(`ProgramDraftExercise`)가 `_loose_int` 로
+/// 이미 숫자만 남겨 내려보내는데(`"자체중량"` → null, `"10회"` → 10) 이 클래스만
+/// 문자열로 받아, 화면이 그 문자열을 다시 `int.tryParse` 로 되짚고 있었다.
+///
+/// 한 줄 요약은 `coachRoutineExerciseLabel` 이 만든다 — 세트·분·초의 단위는
 /// 로케일을 타는데 엔티티는 `AppLocalizations` 에 닿을 수 없다(#1933).
 class CoachRoutineExercise {
   const CoachRoutineExercise({
     required this.name,
-    this.sets = '',
-    this.reps = '',
-    this.weight = '',
-    this.duration = '',
-    this.rest = '',
+    this.sets,
+    this.reps,
+    this.weight,
+    this.duration,
+    this.rest,
     this.memo = '',
   });
 
   final String name;
-  final String sets;
-  final String reps;
-  final String weight;
-  final String duration;
-  final String rest;
+
+  /// 근력의 세트 수·한 세트당 횟수·중량(kg).
+  final int? sets;
+  final int? reps;
+  final double? weight;
+
+  /// 유산소·스트레칭의 운동 시간(분).
+  final int? duration;
+
+  /// 세트 사이 휴식(초). 지금 서버 계약에는 없고, 이 값을 싣던 옛 응답에서만 온다.
+  final int? rest;
+
   final String memo;
 }
 
