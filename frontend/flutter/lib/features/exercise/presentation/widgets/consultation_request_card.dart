@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare/app/app_icons.dart';
-import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
+import 'package:oncare/features/exercise/presentation/utils/exercise_goal_label.dart';
 import 'package:oncare/features/exercise/presentation/utils/preferred_time_format.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -167,14 +167,8 @@ class ConsultationRequestCard extends StatelessWidget {
     }
   }
 
-  String _goalLabel(AppLocalizations l) => switch (request.exerciseGoal) {
-    ExerciseGoal.weightLoss => l.exGoalWeightLoss,
-    ExerciseGoal.strength => l.exGoalStrength,
-    ExerciseGoal.fitness => l.exGoalFitness,
-    ExerciseGoal.posture => l.exGoalPosture,
-    ExerciseGoal.health => l.exGoalHealth,
-    ExerciseGoal.other => l.exOptionOther,
-  };
+  String _goalLabel(AppLocalizations l) =>
+      exerciseGoalLabel(l, request.exerciseGoal);
 }
 
 class _DetailLine extends StatelessWidget {

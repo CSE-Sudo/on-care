@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 
@@ -8,7 +9,7 @@ RoutineHistoryEntry _entry(String id, DateTime? completedAt) =>
       dateLabel: id,
       label: 'PT 세션 · 트레이너 지도',
       completionRate: 100,
-      exercises: const <String>[],
+      exercises: <ClientExerciseItem>[],
       clientFeedback: '',
       trainerNote: '',
       completedAt: completedAt,

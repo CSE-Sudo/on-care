@@ -1612,7 +1612,7 @@ class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
         onCancel: _saving ? null : () => Navigator.of(context).pop(false),
-        confirmLabel: _saving ? l.myPwChanging : l.myPwChangeAction,
+        confirmLabel: _saving ? l.myPwChanging : l.actionChange,
         confirmLoading: _saving,
         onConfirm: _submit,
       ),

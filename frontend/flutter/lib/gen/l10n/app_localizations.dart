@@ -692,6 +692,12 @@ abstract class AppLocalizations {
   /// **'Snack'**
   String get dietMealSnack;
 
+  /// No description provided for @dietMealLateNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Late-night'**
+  String get dietMealLateNight;
+
   /// No description provided for @dietMealSheetTitle.
   ///
   /// In en, this message translates to:
@@ -943,12 +949,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Meal saved'**
   String get dietSaved;
-
-  /// No description provided for @dietSaveEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get dietSaveEntry;
 
   /// No description provided for @dietSaveFailed.
   ///
@@ -3228,30 +3228,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Exercise Goal'**
   String get exExerciseGoal;
-
-  /// No description provided for @exGoalWeightLoss.
-  ///
-  /// In en, this message translates to:
-  /// **'Weight Loss'**
-  String get exGoalWeightLoss;
-
-  /// No description provided for @exGoalStrength.
-  ///
-  /// In en, this message translates to:
-  /// **'Build Strength'**
-  String get exGoalStrength;
-
-  /// No description provided for @exGoalFitness.
-  ///
-  /// In en, this message translates to:
-  /// **'Improve Fitness'**
-  String get exGoalFitness;
-
-  /// No description provided for @exGoalPosture.
-  ///
-  /// In en, this message translates to:
-  /// **'Improve Posture'**
-  String get exGoalPosture;
 
   /// No description provided for @exGoalHealth.
   ///

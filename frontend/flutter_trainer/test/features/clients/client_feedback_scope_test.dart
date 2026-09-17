@@ -6,13 +6,14 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 final AppLocalizationsKo _ko = AppLocalizationsKo();
 
 RoutineHistoryEntry _entry({
-  required List<String> exercises,
+  required List<ClientExerciseItem> exercises,
   String? assignedRoutineId,
   String label = 'AI 개인운동',
 }) => RoutineHistoryEntry(
@@ -33,7 +34,10 @@ void main() {
       final String title = clientFeedbackTitle(
         _ko,
         _entry(
-          exercises: <String>['벤치프레스 ✓', '데드리프트 ✓'],
+          exercises: <ClientExerciseItem>[
+            ClientExerciseItem.nameOnly('벤치프레스 ✓'),
+            ClientExerciseItem.nameOnly('데드리프트 ✓'),
+          ],
           label: 'PT 세션 · 트레이너 지도',
         ),
       );

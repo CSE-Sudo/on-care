@@ -5,8 +5,53 @@
 library;
 
 import 'package:flutter/material.dart' show TimeOfDay;
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
 
-enum ExerciseGoal { weightLoss, strength, fitness, posture, health, other }
+/// 상담 신청의 운동 목표. 온보딩·MY 의 건강 목표 8종(`kHealthFocusOptions`)과 같은
+/// 목록·같은 순서이고, 그 여덟 중 어디에도 넣기 어려운 경우를 위한
+/// [ExerciseGoal.other] 하나가 더 있다. (#1992)
+///
+/// [ExerciseGoal.health] 는 **복원 전용**이다 — 예전 `건강 관리` 선택지로 이미
+/// 저장된 요청을 화면에 그릴 때만 쓴다. 새 신청에서는 고를 수 없고, 서버도 더는
+/// 받지 않는다.
+enum ExerciseGoal {
+  weightLoss,
+  strength,
+  fitness,
+  posture,
+  rehab,
+  eating,
+  exerciseHabit,
+  bloodPressure,
+  other,
+  health,
+}
+
+/// 건강 목표 저장 값 → 운동 목표. 상담 폼은 선택지를 `kHealthFocusOptions` 에서
+/// 그대로 읽고, 고른 값을 여기서 전송 enum 으로 바꾼다 — 두 화면이 목록을 따로
+/// 들면 지금처럼 갈라진다(#1992).
+const Map<String, ExerciseGoal> kHealthFocusExerciseGoals =
+    <String, ExerciseGoal>{
+      kHealthFocusWeightLoss: ExerciseGoal.weightLoss,
+      kHealthFocusStrength: ExerciseGoal.strength,
+      kHealthFocusFitness: ExerciseGoal.fitness,
+      kHealthFocusPosture: ExerciseGoal.posture,
+      kHealthFocusRehab: ExerciseGoal.rehab,
+      kHealthFocusEating: ExerciseGoal.eating,
+      kHealthFocusExerciseHabit: ExerciseGoal.exerciseHabit,
+      kHealthFocusBloodPressure: ExerciseGoal.bloodPressure,
+    };
+
+/// 운동 목표 → 건강 목표 저장 값. 화면 문구를 `healthFocusLabel` 로 만들 때 쓴다.
+/// 여덟 목표 밖인 [ExerciseGoal.other]·[ExerciseGoal.health] 는 `null` 이다 —
+/// 이 둘은 부르는 이름을 화면이 따로 들고 있다.
+String? exerciseGoalHealthFocus(ExerciseGoal goal) {
+  for (final MapEntry<String, ExerciseGoal> entry
+      in kHealthFocusExerciseGoals.entries) {
+    if (entry.value == goal) return entry.key;
+  }
+  return null;
+}
 
 enum HealthPurposeType { weight, chronic, rehab, general, none, other }
 
@@ -44,8 +89,12 @@ String exerciseGoalToWire(ExerciseGoal g) => switch (g) {
   ExerciseGoal.strength => 'strength',
   ExerciseGoal.fitness => 'fitness',
   ExerciseGoal.posture => 'posture',
-  ExerciseGoal.health => 'health',
+  ExerciseGoal.rehab => 'rehab',
+  ExerciseGoal.eating => 'eating',
+  ExerciseGoal.exerciseHabit => 'exercise_habit',
+  ExerciseGoal.bloodPressure => 'blood_pressure',
   ExerciseGoal.other => 'other',
+  ExerciseGoal.health => 'health',
 };
 
 String healthPurposeToWire(HealthPurposeType p) => switch (p) {
@@ -67,8 +116,14 @@ HealthPurposeType healthPurposeFromExerciseGoal(ExerciseGoal goal) =>
       ExerciseGoal.strength => HealthPurposeType.general,
       ExerciseGoal.fitness => HealthPurposeType.general,
       ExerciseGoal.posture => HealthPurposeType.rehab,
-      ExerciseGoal.health => HealthPurposeType.general,
+      ExerciseGoal.rehab => HealthPurposeType.rehab,
+      ExerciseGoal.eating => HealthPurposeType.general,
+      ExerciseGoal.exerciseHabit => HealthPurposeType.general,
+      // 혈압은 꾸준히 관리하는 축이라 `chronic` 이다 — 트레이너 카드가 이 값을
+      // `건강상태·주의사항` 으로 읽어, 주의해서 볼 회원임이 드러난다.
+      ExerciseGoal.bloodPressure => HealthPurposeType.chronic,
       ExerciseGoal.other => HealthPurposeType.other,
+      ExerciseGoal.health => HealthPurposeType.general,
     };
 
 /// `HH:MM` 또는 `HH:MM-HH:MM`. 시각이 없는 값은 서버가 더는 받지 않으므로
@@ -162,8 +217,15 @@ class ConsultationDraft {
 ExerciseGoal exerciseGoalFromWire(String? s) => switch (s) {
   'weight_loss' => ExerciseGoal.weightLoss,
   'strength' => ExerciseGoal.strength,
+  // 예전 `체력 향상` 으로 저장된 값이다 — 이름만 `체력 강화` 로 바뀌었고 뜻은
+  // 같아 그대로 읽는다(#1992).
   'fitness' => ExerciseGoal.fitness,
   'posture' => ExerciseGoal.posture,
+  'rehab' => ExerciseGoal.rehab,
+  'eating' => ExerciseGoal.eating,
+  'exercise_habit' => ExerciseGoal.exerciseHabit,
+  'blood_pressure' => ExerciseGoal.bloodPressure,
+  // 없앤 선택지지만 이미 저장된 요청에 남아 있다. 건강 목표로는 잇지 않는다.
   'health' => ExerciseGoal.health,
   _ => ExerciseGoal.other,
 };
