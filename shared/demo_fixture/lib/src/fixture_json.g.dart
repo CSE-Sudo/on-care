@@ -337,39 +337,43 @@ const String kimMinsuFixtureJson = r'''
       "dayMessage": "점심 짬뽕으로 오늘 나트륨 섭취가 많았어요. 저녁은 양념을 줄인 채소와 단백질 위주로 구성해 보세요.",
       "exercises": [
         {
-          "name": "벤치프레스 4세트 · 10회 · 40kg",
+          "name": "벤치프레스",
           "type": "strength",
           "minutes": 12,
           "calories": 72,
           "done": true,
           "sets": 4,
-          "reps": 10
+          "reps": 10,
+          "weight": 40
         },
         {
-          "name": "덤벨 숄더프레스 4세트 · 12회 · 10kg",
+          "name": "덤벨 숄더프레스",
           "type": "strength",
           "minutes": 10,
           "calories": 60,
           "done": true,
           "sets": 4,
-          "reps": 12
+          "reps": 12,
+          "weight": 10
         },
         {
-          "name": "랫풀다운 4세트 · 12회 · 45kg",
+          "name": "랫풀다운",
           "type": "strength",
           "minutes": 12,
           "calories": 72,
           "done": true,
           "sets": 4,
-          "reps": 12
+          "reps": 12,
+          "weight": 45
         },
         {
-          "name": "플랭크 3세트 · 60초",
+          "name": "플랭크 60초",
           "type": "strength",
           "minutes": 6,
           "calories": 36,
           "done": true,
-          "sets": 3
+          "sets": 3,
+          "weight": 0
         }
       ],
       "meals": [
@@ -402,14 +406,14 @@ const String kimMinsuFixtureJson = r'''
       "dayMessage": "약속이 있어 칼로리와 당류가 목표를 넘은 하루예요. 오늘은 가볍게 시작해 보세요.",
       "exercises": [
         {
-          "name": "저강도 유산소 (걷기) 30분",
+          "name": "저강도 유산소 (걷기)",
           "type": "cardio",
           "minutes": 30,
           "calories": 270,
           "done": true
         },
         {
-          "name": "코어 강화 10분",
+          "name": "코어 강화",
           "type": "strength",
           "minutes": 10,
           "calories": 60,
@@ -418,14 +422,14 @@ const String kimMinsuFixtureJson = r'''
           "reps": 15
         },
         {
-          "name": "어깨 관절 보호 스트레칭 8분",
+          "name": "어깨 관절 보호 스트레칭",
           "type": "stretching",
           "minutes": 8,
           "calories": 24,
           "done": true
         },
         {
-          "name": "하체 스트레칭 15분",
+          "name": "하체 스트레칭",
           "type": "stretching",
           "minutes": 15,
           "calories": 45,
@@ -464,14 +468,14 @@ const String kimMinsuFixtureJson = r'''
       "dayMessage": "연어와 현미밥으로 탄단지 균형을 잘 맞췄어요.",
       "exercises": [
         {
-          "name": "저강도 유산소 (걷기) 30분",
+          "name": "저강도 유산소 (걷기)",
           "type": "cardio",
           "minutes": 30,
           "calories": 270,
           "done": true
         },
         {
-          "name": "코어 강화 10분",
+          "name": "코어 강화",
           "type": "strength",
           "minutes": 10,
           "calories": 60,
@@ -480,7 +484,7 @@ const String kimMinsuFixtureJson = r'''
           "reps": 15
         },
         {
-          "name": "하체 스트레칭 15분",
+          "name": "하체 스트레칭",
           "type": "stretching",
           "minutes": 15,
           "calories": 45,
@@ -520,14 +524,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -536,7 +540,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -561,14 +565,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -613,14 +617,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -629,7 +633,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -657,14 +661,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -689,14 +693,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -705,7 +709,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -733,14 +737,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -771,14 +775,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -787,7 +791,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -812,14 +816,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -864,14 +868,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -880,7 +884,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -908,14 +912,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -940,14 +944,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -956,7 +960,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -981,14 +985,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1022,14 +1026,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -1038,7 +1042,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -1066,14 +1070,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1118,14 +1122,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -1134,7 +1138,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -1162,14 +1166,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1197,14 +1201,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -1213,7 +1217,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -1241,14 +1245,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1279,14 +1283,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -1295,7 +1299,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -1320,14 +1324,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1372,14 +1376,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -1388,7 +1392,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -1416,14 +1420,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1448,14 +1452,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -1464,14 +1468,14 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
               "done": false
             },
             {
-              "name": "북한산 등산 90분",
+              "name": "북한산 등산",
               "type": "other",
               "minutes": 90,
               "calories": 450,
@@ -1499,14 +1503,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1537,14 +1541,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -1553,7 +1557,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -1578,14 +1582,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1630,14 +1634,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -1646,7 +1650,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -1674,14 +1678,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1706,14 +1710,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -1722,7 +1726,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -1750,14 +1754,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1788,14 +1792,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -1804,7 +1808,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -1829,14 +1833,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1863,41 +1867,44 @@ const String kimMinsuFixtureJson = r'''
           "trainerNote": "하체 근력 향상 확인. 다음 세션 레그프레스 5kg 증량.",
           "exercises": [
             {
-              "name": "레그프레스 70kg · 4세트",
+              "name": "레그프레스",
               "type": "strength",
               "minutes": 12,
               "calories": 72,
               "done": true,
               "sets": 4,
-              "reps": 12
+              "reps": 12,
+              "weight": 70
             },
             {
-              "name": "레그컬 35kg · 3세트",
+              "name": "레그컬",
               "type": "strength",
               "minutes": 9,
               "calories": 54,
               "done": true,
               "sets": 3,
-              "reps": 12
+              "reps": 12,
+              "weight": 35
             },
             {
-              "name": "카프레이즈 자체중량 · 3세트",
+              "name": "카프레이즈",
               "type": "strength",
               "minutes": 6,
               "calories": 36,
               "done": true,
               "sets": 3,
-              "reps": 20
+              "reps": 20,
+              "weight": 0
             },
             {
-              "name": "마무리 러닝머신 15분",
+              "name": "마무리 러닝머신",
               "type": "cardio",
               "minutes": 15,
               "calories": 135,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1922,14 +1929,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -1938,7 +1945,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -1963,14 +1970,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -1995,14 +2002,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -2011,7 +2018,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -2036,14 +2043,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2077,14 +2084,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -2093,7 +2100,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -2140,14 +2147,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -2156,7 +2163,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -2183,14 +2190,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -2199,7 +2206,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -2227,14 +2234,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2265,14 +2272,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -2281,7 +2288,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -2306,14 +2313,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2358,14 +2365,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -2374,7 +2381,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -2402,14 +2409,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2434,14 +2441,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -2450,7 +2457,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -2478,14 +2485,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2516,14 +2523,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -2532,7 +2539,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -2557,14 +2564,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2609,14 +2616,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -2625,7 +2632,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -2653,14 +2660,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2685,14 +2692,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -2701,7 +2708,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -2726,21 +2733,21 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
               "done": true
             },
             {
-              "name": "탁구 40분",
+              "name": "탁구",
               "type": "other",
               "minutes": 40,
               "calories": 200,
@@ -2774,14 +2781,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -2790,7 +2797,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -2818,14 +2825,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2870,14 +2877,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -2886,7 +2893,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -2914,14 +2921,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -2949,14 +2956,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -2965,7 +2972,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -2993,14 +3000,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3031,14 +3038,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -3047,7 +3054,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -3072,14 +3079,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3124,14 +3131,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -3140,7 +3147,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -3168,14 +3175,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3200,14 +3207,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -3216,7 +3223,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -3244,14 +3251,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3282,14 +3289,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -3298,7 +3305,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -3323,14 +3330,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3360,41 +3367,43 @@ const String kimMinsuFixtureJson = r'''
           "trainerNote": "데드리프트 힙힌지 안정적. 중량 55kg 유지 후 다음 달 60kg.",
           "exercises": [
             {
-              "name": "데드리프트 55kg · 4세트",
+              "name": "데드리프트",
               "type": "strength",
               "minutes": 12,
               "calories": 72,
               "done": true,
               "sets": 4,
-              "reps": 8
+              "reps": 8,
+              "weight": 55
             },
             {
-              "name": "루마니안 데드리프트 40kg · 3세트",
+              "name": "루마니안 데드리프트",
               "type": "strength",
               "minutes": 9,
               "calories": 54,
               "done": true,
               "sets": 3,
-              "reps": 10
+              "reps": 10,
+              "weight": 40
             },
             {
-              "name": "플랭크 45초 · 3세트",
+              "name": "플랭크 45초",
               "type": "strength",
               "minutes": 6,
               "calories": 36,
               "done": true,
               "sets": 3,
-              "reps": 3
+              "weight": 0
             },
             {
-              "name": "마무리 러닝머신 12분",
+              "name": "마무리 러닝머신",
               "type": "cardio",
               "minutes": 12,
               "calories": 108,
               "done": true
             },
             {
-              "name": "허리 스트레칭 10분",
+              "name": "허리 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3419,14 +3428,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -3435,7 +3444,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -3463,14 +3472,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3495,14 +3504,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -3511,7 +3520,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -3539,14 +3548,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3577,14 +3586,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -3593,7 +3602,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -3618,14 +3627,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3667,14 +3676,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -3683,7 +3692,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -3708,14 +3717,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3740,14 +3749,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -3756,7 +3765,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -3781,14 +3790,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -3822,14 +3831,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -3838,7 +3847,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -3885,14 +3894,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -3901,7 +3910,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -3928,14 +3937,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -3944,7 +3953,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -3972,14 +3981,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4010,14 +4019,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -4026,7 +4035,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -4051,14 +4060,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4103,14 +4112,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -4119,7 +4128,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -4147,14 +4156,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4179,14 +4188,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -4195,14 +4204,14 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
               "done": true
             },
             {
-              "name": "자전거 라이딩 60분",
+              "name": "자전거 라이딩",
               "type": "other",
               "minutes": 60,
               "calories": 300,
@@ -4230,14 +4239,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4268,14 +4277,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -4284,7 +4293,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -4309,14 +4318,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4361,14 +4370,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -4377,7 +4386,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -4405,14 +4414,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4437,14 +4446,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -4453,7 +4462,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -4478,14 +4487,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4519,14 +4528,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -4535,7 +4544,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -4563,14 +4572,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4615,14 +4624,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -4631,7 +4640,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -4659,14 +4668,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4694,14 +4703,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -4710,7 +4719,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -4738,14 +4747,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4776,14 +4785,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -4792,7 +4801,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -4817,14 +4826,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4854,41 +4863,44 @@ const String kimMinsuFixtureJson = r'''
           "trainerNote": "오른쪽 어깨 가동범위 제한. 숄더프레스 중량 낮추고 밴드 보강 병행.",
           "exercises": [
             {
-              "name": "숄더프레스 10kg · 4세트",
+              "name": "숄더프레스",
               "type": "strength",
               "minutes": 12,
               "calories": 72,
               "done": true,
               "sets": 4,
-              "reps": 12
+              "reps": 12,
+              "weight": 10
             },
             {
-              "name": "밴드 외전 · 3세트",
+              "name": "밴드 외전",
               "type": "strength",
               "minutes": 6,
               "calories": 36,
               "done": true,
               "sets": 3,
-              "reps": 20
+              "reps": 20,
+              "weight": 0
             },
             {
-              "name": "인클라인 푸시업 · 3세트",
+              "name": "인클라인 푸시업",
               "type": "strength",
               "minutes": 9,
               "calories": 54,
               "done": true,
               "sets": 3,
-              "reps": 12
+              "reps": 12,
+              "weight": 0
             },
             {
-              "name": "마무리 러닝머신 10분",
+              "name": "마무리 러닝머신",
               "type": "cardio",
               "minutes": 10,
               "calories": 90,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 12분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 12,
               "calories": 36,
@@ -4913,14 +4925,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -4929,7 +4941,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -4957,14 +4969,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -4989,14 +5001,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -5005,7 +5017,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -5033,14 +5045,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5071,14 +5083,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -5087,7 +5099,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -5112,14 +5124,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5164,14 +5176,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -5180,7 +5192,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -5208,14 +5220,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5240,14 +5252,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -5256,7 +5268,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -5284,14 +5296,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5322,14 +5334,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -5338,7 +5350,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -5363,14 +5375,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5412,14 +5424,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -5428,7 +5440,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -5453,14 +5465,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5485,14 +5497,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -5501,7 +5513,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -5526,14 +5538,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5567,14 +5579,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -5583,7 +5595,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -5630,14 +5642,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -5646,7 +5658,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -5673,14 +5685,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -5689,7 +5701,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -5717,14 +5729,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5755,14 +5767,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -5771,7 +5783,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -5796,14 +5808,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5848,14 +5860,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -5864,7 +5876,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -5892,14 +5904,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -5924,14 +5936,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -5940,7 +5952,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -5968,14 +5980,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6006,14 +6018,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -6022,7 +6034,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -6047,14 +6059,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6099,14 +6111,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -6115,7 +6127,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -6143,14 +6155,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6175,14 +6187,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -6191,7 +6203,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -6216,14 +6228,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6257,14 +6269,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -6273,7 +6285,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -6301,14 +6313,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6338,41 +6350,44 @@ const String kimMinsuFixtureJson = r'''
           "trainerNote": "상체 근력 기초 확인. 벤치프레스 35kg 로 시작해 자세 우선.",
           "exercises": [
             {
-              "name": "벤치프레스 35kg · 4세트",
+              "name": "벤치프레스",
               "type": "strength",
               "minutes": 12,
               "calories": 72,
               "done": true,
               "sets": 4,
-              "reps": 10
+              "reps": 10,
+              "weight": 35
             },
             {
-              "name": "체스트프레스 25kg · 3세트",
+              "name": "체스트프레스",
               "type": "strength",
               "minutes": 9,
               "calories": 54,
               "done": true,
               "sets": 3,
-              "reps": 12
+              "reps": 12,
+              "weight": 25
             },
             {
-              "name": "랫풀다운 30kg · 3세트",
+              "name": "랫풀다운",
               "type": "strength",
               "minutes": 9,
               "calories": 54,
               "done": true,
               "sets": 3,
-              "reps": 12
+              "reps": 12,
+              "weight": 30
             },
             {
-              "name": "마무리 러닝머신 15분",
+              "name": "마무리 러닝머신",
               "type": "cardio",
               "minutes": 15,
               "calories": 135,
               "done": true
             },
             {
-              "name": "상체 스트레칭 10분",
+              "name": "상체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6397,14 +6412,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -6413,7 +6428,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -6441,14 +6456,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6476,14 +6491,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -6492,7 +6507,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -6520,14 +6535,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6558,14 +6573,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -6574,7 +6589,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -6599,14 +6614,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6651,14 +6666,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -6667,7 +6682,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -6695,14 +6710,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6727,14 +6742,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -6743,7 +6758,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -6771,14 +6786,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6809,14 +6824,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -6825,7 +6840,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -6850,14 +6865,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6902,14 +6917,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -6918,7 +6933,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -6946,14 +6961,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -6978,14 +6993,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -6994,7 +7009,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -7022,14 +7037,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7060,14 +7075,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -7076,7 +7091,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -7101,14 +7116,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7150,14 +7165,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -7166,7 +7181,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -7191,14 +7206,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7223,14 +7238,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -7239,7 +7254,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -7264,14 +7279,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7305,14 +7320,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -7321,7 +7336,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -7368,14 +7383,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -7384,7 +7399,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -7411,14 +7426,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -7427,7 +7442,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -7455,14 +7470,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7493,14 +7508,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -7509,7 +7524,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -7534,14 +7549,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7586,14 +7601,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -7602,7 +7617,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -7630,14 +7645,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7662,14 +7677,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -7678,7 +7693,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -7706,14 +7721,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7744,14 +7759,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -7760,7 +7775,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -7785,14 +7800,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7822,41 +7837,44 @@ const String kimMinsuFixtureJson = r'''
           "trainerNote": "첫 세션. 체력 수준 점검 위주로 가볍게 진행.",
           "exercises": [
             {
-              "name": "고블릿 스쿼트 12kg · 3세트",
+              "name": "고블릿 스쿼트",
               "type": "strength",
               "minutes": 9,
               "calories": 54,
               "done": true,
               "sets": 3,
-              "reps": 12
+              "reps": 12,
+              "weight": 12
             },
             {
-              "name": "케틀벨 스윙 12kg · 3세트",
+              "name": "케틀벨 스윙",
               "type": "strength",
               "minutes": 9,
               "calories": 54,
               "done": true,
               "sets": 3,
-              "reps": 15
+              "reps": 15,
+              "weight": 12
             },
             {
-              "name": "코어 서킷 · 2세트",
+              "name": "코어 서킷",
               "type": "strength",
               "minutes": 6,
               "calories": 36,
               "done": true,
               "sets": 2,
-              "reps": 12
+              "reps": 12,
+              "weight": 0
             },
             {
-              "name": "마무리 러닝머신 10분",
+              "name": "마무리 러닝머신",
               "type": "cardio",
               "minutes": 10,
               "calories": 90,
               "done": true
             },
             {
-              "name": "전신 스트레칭 12분",
+              "name": "전신 스트레칭",
               "type": "stretching",
               "minutes": 12,
               "calories": 36,
@@ -7881,14 +7899,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -7897,7 +7915,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -7925,14 +7943,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -7957,14 +7975,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -7973,7 +7991,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -7998,14 +8016,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8039,14 +8057,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -8055,7 +8073,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -8083,14 +8101,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8135,14 +8153,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -8151,7 +8169,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -8179,14 +8197,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8214,14 +8232,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -8230,7 +8248,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -8258,14 +8276,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8296,14 +8314,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -8312,7 +8330,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -8337,14 +8355,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8389,14 +8407,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -8405,7 +8423,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -8433,14 +8451,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8465,14 +8483,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -8481,7 +8499,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -8509,14 +8527,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8547,14 +8565,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -8563,7 +8581,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -8588,14 +8606,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8640,14 +8658,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -8656,7 +8674,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -8684,14 +8702,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8716,14 +8734,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -8732,7 +8750,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -8760,14 +8778,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8798,14 +8816,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -8814,7 +8832,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -8839,14 +8857,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 40분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 40,
               "calories": 360,
               "done": false
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8888,14 +8906,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -8904,7 +8922,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -8929,14 +8947,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 45분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 45,
               "calories": 405,
               "done": true
             },
             {
-              "name": "어깨 관절 보호 스트레칭 10분",
+              "name": "어깨 관절 보호 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -8961,14 +8979,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -8977,7 +8995,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -9002,14 +9020,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,
@@ -9043,14 +9061,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 30분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 30,
               "calories": 270,
               "done": true
             },
             {
-              "name": "코어 강화 10분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 10,
               "calories": 60,
@@ -9059,7 +9077,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -9106,14 +9124,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 35분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 35,
               "calories": 315,
               "done": true
             },
             {
-              "name": "코어 강화 20분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 20,
               "calories": 120,
@@ -9122,7 +9140,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 15
             },
             {
-              "name": "하체 스트레칭 5분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 5,
               "calories": 15,
@@ -9149,14 +9167,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 25분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 25,
               "calories": 225,
               "done": true
             },
             {
-              "name": "코어 강화 30분",
+              "name": "코어 강화",
               "type": "strength",
               "minutes": 30,
               "calories": 180,
@@ -9165,7 +9183,7 @@ const String kimMinsuFixtureJson = r'''
               "reps": 12
             },
             {
-              "name": "하체 스트레칭 15분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 15,
               "calories": 45,
@@ -9193,14 +9211,14 @@ const String kimMinsuFixtureJson = r'''
           "pt": false,
           "exercises": [
             {
-              "name": "저강도 유산소 (걷기) 20분",
+              "name": "저강도 유산소 (걷기)",
               "type": "cardio",
               "minutes": 20,
               "calories": 180,
               "done": true
             },
             {
-              "name": "하체 스트레칭 10분",
+              "name": "하체 스트레칭",
               "type": "stretching",
               "minutes": 10,
               "calories": 30,

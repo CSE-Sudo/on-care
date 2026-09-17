@@ -25,6 +25,18 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 카드(오늘)** 를 따라가야 나머지 둘이 거기에 맞춰진다.
 const double kDietSummaryCardHeight = 284;
 
+/// `전체` 그래프가 한 화면에 보여주는 날 수.
+///
+/// 처음에는 30(≈한 달)이었다. 막대 사이를 띄우려면(양옆 [OnCareSpacing.s2])
+/// 그 여유가 어딘가에서 나와야 하는데, 칸 수를 30으로 둔 채 벌리면 전부 막대
+/// 두께에서 깎인다 — 기준 폭(375)에서 6.5 → 4.5 가 된다. 칸 수를 줄여 자리를
+/// 만들면 막대는 그대로(6.6)이고 벌린 만큼이 전부 사이로 간다.
+///
+/// 폭에서 칸 수를 구하지 않고 **상수로 못박는 이유**는 카드 머리의 `하루 평균`
+/// 이 지금 보이는 구간만 세기 때문이다(#1018). 칸 수가 폭을 따라가면 같은
+/// 기록도 기기마다 다른 구간의 평균이 된다.
+const int _kAllDaysPerScreen = 24;
+
 /// 식단 탭의 기간 뷰(이번 주 / 전체).
 ///
 /// 탭의 `운동 현황` 과 같은 기간 토글 아래에서 **하루 평균**을 머리 숫자로
@@ -55,7 +67,7 @@ class DietPeriodView extends ConsumerStatefulWidget {
 
   final DietDateRange range;
 
-  /// 이번 주인가. 주간은 한 화면에 일곱 칸을 요일 라벨로, 전체는 30칸을 옆으로
+  /// 이번 주인가. 주간은 한 화면에 일곱 칸을 요일 라벨로, 전체는 칸을 옆으로
   /// 밀어 보는 막대로 그린다 — 두 기간이 같은 패키지 그래프를 쓴다(#1700).
   final bool weekly;
 
@@ -74,6 +86,21 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
   /// 그래프의 스크롤 위치와 고른 날. 머리의 숫자와 막대가 같은 상태를
   /// 봐야 해서 여기서 들고 둘에게 건넨다. (#1018)
   final PeriodChartSelection _selection = PeriodChartSelection();
+
+  @override
+  void didUpdateWidget(DietPeriodView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 기간 토글을 눌러도 이 위젯은 트리의 같은 자리에 같은 타입으로 남아
+    // `State` 가 재사용된다 — 바뀌는 것은 `range` 와 `weekly` 뿐이고 고른
+    // **인덱스**는 그대로 살아남아 다음 기간의 배열에 쓰인다. `전체`(84칸)의
+    // 78 이 `이번 주`(7칸)로 넘어오면 `values[picked]` 가 범위를 벗어나 카드가
+    // 통째로 죽고, 반대 방향은 터지지 않는 대신 회원이 고른 적 없는 날을
+    // 가리킨다. 보이는 구간도 같이 남아 `하루 평균` 이 앞 기간의 창으로
+    // 계산된다. 배열이 바뀌면 둘을 함께 푼다. (#1984)
+    if (widget.range != oldWidget.range || widget.weekly != oldWidget.weekly) {
+      _selection.reset(includeVisible: true);
+    }
+  }
 
   @override
   void dispose() {
@@ -800,7 +827,7 @@ class _PeriodBars extends StatelessWidget {
             count: values.length,
             height: _chartHeight,
             // 이번 주는 일곱 칸이 한 화면이라 밀리지 않는다.
-            daysPerScreen: weekly ? values.length : 30,
+            daysPerScreen: weekly ? values.length : _kAllDaysPerScreen,
             boldSelectedLabel: weekly,
             selectedIndex: selection.selected,
             onSelected: selection.select,
@@ -822,9 +849,11 @@ class _PeriodBars extends StatelessWidget {
                 : i % labelStep == 0
                 ? '${dates[i].month}/${dates[i].day}'
                 : '',
+            // 막대 사이를 띄운다 — 붙어 있으면 하루하루가 한 덩어리로 읽힌다.
+            // 그 자리는 [_kAllDaysPerScreen] 이 내주므로 막대는 얇아지지 않는다.
             barBuilder: (BuildContext context, int i) => Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: OnCareSize.hairline,
+                horizontal: OnCareSpacing.s2,
               ),
               child: Semantics(
                 label: _tipText(context, l, dayFormat, i, hasGoal),

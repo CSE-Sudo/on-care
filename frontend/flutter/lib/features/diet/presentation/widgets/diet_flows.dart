@@ -938,34 +938,6 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
             ),
           ],
         ),
-        if (r.coachComment.isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s12),
-          // AI 가 쓴 말은 AI 조언 카드와 같은 옅은 브랜드 채움이다(#1432).
-          AppTile(
-            key: const Key('diet-result-coach-comment'),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                AppIcon(
-                  AppIcons.ai,
-                  size: OnCareSize.iconSmall,
-                  color: tokens.brand.primary,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                Expanded(
-                  child: Text(
-                    r.coachComment,
-                    style: _text(
-                      context,
-                      OnCareTypography.bodySmall,
-                      OnCareColors.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

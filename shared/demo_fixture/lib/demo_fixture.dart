@@ -113,6 +113,7 @@ class FixtureExercise {
     required this.done,
     this.sets,
     this.reps,
+    this.weight,
   });
 
   factory FixtureExercise.fromJson(Map<String, Object?> json) =>
@@ -124,6 +125,7 @@ class FixtureExercise {
         done: json['done']! as bool,
         sets: (json['sets'] as num?)?.toInt(),
         reps: (json['reps'] as num?)?.toInt(),
+        weight: (json['weight'] as num?)?.toDouble(),
       );
 
   final String name;
@@ -142,6 +144,11 @@ class FixtureExercise {
   /// 근력 항목의 **한 세트당 횟수**. 세트·중량과 한 벌이다(#1310) — 셋이 다
   /// 있어야 지난주에 무엇을 했는지 그대로 되짚는다.
   final int? reps;
+
+  /// 근력 항목의 **중량**(kg). 맨몸 운동은 `0` 이다 — 근력이면 언제나 값을
+  /// 하나 든다(#1902). 예전에는 이 값이 이름 문자열에만 있어(`레그프레스 70kg`)
+  /// 이름을 쓰는 화면과 필드를 읽는 화면이 같은 기록을 다르게 말했다.
+  final double? weight;
 
   /// 트레이너 화면이 쓰는 표기. 이행률과 이 목록이 같은 자리에서 나오므로
   /// "67%" 옆에 "3개 중 3개 완료" 가 놓이는 일이 없다(#754).

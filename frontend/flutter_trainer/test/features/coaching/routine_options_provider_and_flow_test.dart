@@ -5,6 +5,7 @@ import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
@@ -349,12 +350,16 @@ void main() {
       await pumpFlow(
         tester,
         history: <RoutineHistoryEntry>[
-          const RoutineHistoryEntry(
+          RoutineHistoryEntry(
             id: 'h1',
             dateLabel: '9/1 (오늘)',
             label: 'PT 세션',
             completionRate: 80,
-            exercises: <String>['런지 ✗', '스쿼트 ✓', '레그프레스 ✓'],
+            exercises: <ClientExerciseItem>[
+              ClientExerciseItem.nameOnly('런지 ✗'),
+              ClientExerciseItem.nameOnly('스쿼트 ✓'),
+              ClientExerciseItem.nameOnly('레그프레스 ✓'),
+            ],
             clientFeedback: '',
             trainerNote: '',
           ),

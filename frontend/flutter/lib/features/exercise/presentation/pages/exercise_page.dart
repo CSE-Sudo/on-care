@@ -660,17 +660,20 @@ class _DayRecordCard extends ConsumerWidget {
   /// 이 묶음의 기록. 한 출처의 것만 들어온다.
   final List<ExerciseSession> sessions;
 
-  /// 카드에 적을 종목 줄. 세션이 종목을 들고 있으면 그대로, 없으면 이름과
-  /// 운동량으로 한 줄을 만든다 — 줄이 하나도 없는 빈 카드를 세우지 않는다.
+  /// 카드에 적을 종목 줄 — `벤치프레스 · 4세트 · 10회 · 40kg`.
+  ///
+  /// 이름과 운동량을 **필드에서** 붙인다. 예전에는 `items`(이름 문자열)를 그대로
+  /// 썼는데, 그러려면 픽스처가 세트·중량을 이름에 적어 넣어야 했다(#1902).
+  /// 이제 기록 한 행이 운동 하나이므로 그 행의 값이 곧 그 종목의 값이다.
   List<String> _lines(AppLocalizations l) => <String>[
-    for (final ExerciseSession s in sessions)
-      if (s.items.isNotEmpty) ...s.items else _summaryLine(l, s),
+    for (final ExerciseSession s in sessions) _line(l, s),
   ];
 
-  /// 종목을 들지 않은 세션의 한 줄 — `코어 강화 루틴 · 3세트` 처럼 이름과
-  /// 운동량을 붙인다.
-  static String _summaryLine(AppLocalizations l, ExerciseSession s) {
-    final String name = s.assignedRoutineName.isNotEmpty
+  /// 세션 한 줄. 이름은 회원이 적은 것 → 배정 루틴 이름 → 유형 순으로 고른다.
+  static String _line(AppLocalizations l, ExerciseSession s) {
+    final String name = s.name.isNotEmpty
+        ? s.name
+        : s.assignedRoutineName.isNotEmpty
         ? s.assignedRoutineName
         : exerciseTypeLabel(l, s.type);
     return '$name · ${exerciseAmountLabel(l, s)}';

@@ -9,9 +9,10 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart'
-    show prioritizeClients, sortByLatestMessage;
+    show prioritizeClients, sortByLatestMessage, clientExerciseItems;
 import 'package:oncare_trainer/features/clients/data/repositories/dio_client_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
@@ -60,7 +61,10 @@ abstract interface class ClientRepository {
 
   /// [clientId] 가 [date] 에 한 운동 이름들. 끝의 `✓`/`✗` 가 수행 여부다 —
   /// 운동 기록 카드가 쓰는 것과 같은 문자열이다(#1025).
-  Future<List<String>> fetchExercisesOn(String clientId, DateTime date);
+  Future<List<ClientExerciseItem>> fetchExercisesOn(
+    String clientId,
+    DateTime date,
+  );
   Stream<List<RoutineHistoryEntry>> watchHistory(String clientId);
   Future<RoutineHistoryEntry> updateHistoryFeedback(
     String clientId,
@@ -930,18 +934,28 @@ class DriftClientRepository implements ClientRepository {
   }
 
   @override
-  Future<List<String>> fetchExercisesOn(String clientId, DateTime date) async {
-    // 데모는 하루 지표에 그날 한 운동 이름을 함께 담아 둔다 — 기간 그래프가
-    // 읽는 것과 같은 표라, 그래프의 분 수와 여기 이름이 같은 날을 말한다.
+  Future<List<ClientExerciseItem>> fetchExercisesOn(
+    String clientId,
+    DateTime date,
+  ) async {
+    // 데모는 하루 지표에 그날 한 운동을 함께 담아 둔다 — 기간 그래프가 읽는
+    // 것과 같은 표라, 그래프의 분 수와 여기 종목이 같은 날을 말한다.
     final ClientDailyMetricRow? row =
         await (_db.select(_db.clientDailyMetrics)
               ..where((t) => t.clientId.equals(clientId))
               ..where((t) => t.date.equals(ymd(date))))
             .getSingleOrNull();
-    if (row == null) return const <String>[];
+    if (row == null) return const <ClientExerciseItem>[];
     final Object? decoded = jsonDecode(row.exercisesJson);
-    if (decoded is! List<Object?>) return const <String>[];
-    return decoded.whereType<String>().toList(growable: false);
+    if (decoded is! List<Object?>) return const <ClientExerciseItem>[];
+    return <ClientExerciseItem>[
+      for (final Object? item in decoded)
+        // 이름만 싣던 옛 시드도 읽는다 — 그때는 적힌 그대로 보여 준다.
+        if (item is Map<String, Object?>)
+          ClientExerciseItem.fromJson(item)
+        else if (item is String)
+          ClientExerciseItem.nameOnly(item),
+    ];
   }
 
   ClientDietEntry _toDietEntry(ClientDietEntryRow row) => ClientDietEntry(
@@ -987,9 +1001,7 @@ class DriftClientRepository implements ClientRepository {
               dateLabel: row.dateLabel,
               label: row.label,
               completionRate: row.completionRate,
-              exercises: (jsonDecode(row.exercisesJson) as List<Object?>)
-                  .map((e) => e! as String)
-                  .toList(),
+              exercises: clientExerciseItems(jsonDecode(row.exercisesJson)),
               clientFeedback: row.clientFeedback,
               trainerNote: row.trainerNote,
               completedAt: row.completedAt,
@@ -1188,9 +1200,12 @@ final clientDietOnProvider = FutureProvider.autoDispose
           .fetchDietOn(key.clientId, key.date);
     });
 
-/// 한 고객이 [date] 에 한 운동 이름들. 펼친 날에만 읽는다(#1025).
+/// 한 고객이 [date] 에 한 운동들. 펼친 날에만 읽는다(#1025).
 final clientExercisesOnProvider = FutureProvider.autoDispose
-    .family<List<String>, ({String clientId, DateTime date})>((ref, key) async {
+    .family<List<ClientExerciseItem>, ({String clientId, DateTime date})>((
+      ref,
+      key,
+    ) async {
       return ref
           .watch(clientRepositoryProvider)
           .fetchExercisesOn(key.clientId, key.date);
