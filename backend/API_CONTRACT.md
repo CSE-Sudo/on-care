@@ -266,7 +266,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·목표(`goals`)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
-- **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818).
+- **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
 - **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
 - **`reason`**: 운영자가 쓴 `recommend_reason` 이 우선이고, 비어 있을 때만 점수 근거에서 만든 문구가 채워진다(예: `회원님이 다니는 헬스장 소속 · 체중 감량 지도 경험`).
@@ -317,6 +317,16 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 같은 트레이너에게 **대기 중인 요청은 한 건**입니다(`uq_consultation_requests_pending_trainer`,
   중복은 409). 그래서 목록이 자라는 쪽은 처리된 지난 요청입니다 — 상태 필터가 없어
   그대로 함께 쌓이고, 그 때문에 상한이 필요합니다. (#980)
+- `exercise_goal` 입력은 회원앱 온보딩·MY 의 **건강 목표 여덟 종과 1:1** 입니다 —
+  `weight_loss`·`strength`·`fitness`·`posture`·`rehab`·`eating`·`exercise_habit`·`blood_pressure`,
+  그리고 여덟 중 어디에도 넣기 어려운 회원을 위한 `other` 입니다. 상담이 수락되면
+  여덟 목표는 회원 건강 목표(`HealthProfile.conditions`)로 그대로 이어집니다
+  (`health_focus.EXERCISE_GOAL_FOCUS`). `other` 는 무엇을 원하는지 알려주는 바가 없어
+  잇지 않습니다. (#1992)
+  없앤 `health`(건강 관리)는 **입력에서 받지 않습니다**(422) — 여덟 목표 중 하나로 옮길
+  수 없어 그 회원만 건강 목표가 비어 있었고, 그게 이 통일의 이유입니다. 이미 저장된
+  `health` 행은 백필하지 않고 **응답에서 그대로 내려줍니다**(응답 타입이 `str` 입니다).
+  `fitness` 는 부르는 이름만 `체력 향상` → `체력 강화` 로 바뀌었고 뜻은 같아 그대로 읽습니다.
 - `preferred_time_slot` 입력은 단일 `"HH:MM"` 또는 `"HH:MM-HH:MM"` 시작–종료 범위만 허용합니다.
   시각 없는 `"flexible"` 은 더 이상 받지 않습니다(422) — 승인해도 잡을 시각이 없어 상담이
   승인만 되고 일정은 만들어지지 않았습니다. (#1587)
