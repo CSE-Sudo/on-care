@@ -39,14 +39,17 @@ Finder _field(String key) =>
     find.descendant(of: find.byKey(Key(key)), matching: find.byType(TextField));
 
 /// 라벨로 필드를 찾는다 — 칼로리 칸에는 키가 없다.
-TextField _fieldByLabel(WidgetTester tester, String label) {
+TextField _fieldByLabel(WidgetTester tester, String label) =>
+    tester.widget<TextField>(_fieldByLabelFinder(label));
+
+Finder _fieldByLabelFinder(String label) {
   final Finder column = find.ancestor(
     of: find.text(label),
     matching: find.byType(Column),
   );
-  return tester.widget<TextField>(
-    find.descendant(of: column.first, matching: find.byType(TextField)),
-  );
+  return find
+      .descendant(of: column.first, matching: find.byType(TextField))
+      .first;
 }
 
 String _text(WidgetTester tester, String key) =>
@@ -144,5 +147,24 @@ void main() {
     // 배분으로 되돌릴 길이 이 버튼 하나뿐이라, 조건에 따라 사라지면 되돌릴
     // 방법이 없어진다.
     expect(find.byKey(const Key('goalApplyMacroSplit')), findsOneWidget);
+  });
+
+  testWidgets('안내 줄이 버튼으로 바뀌는 칸을 모두 말한다 (#1941)', (tester) async {
+    await _openHealthGoals(tester);
+    await tester.enterText(_fieldByLabelFinder('일일 칼로리 제한 (kcal)'), '1600');
+    await tester.pump();
+
+    // 버튼은 탄단지에 더해 당류 칸도 덮는다. 안내 줄이 셋만 말하면, 당류를
+    // 낮춰 둔 회원이 탄단지만 맞추려다 말한 적 없는 값을 바꾸게 된다.
+    final String note = tester.widget<Text>(find.textContaining('권장 배분')).data!;
+    final RegExpMatch? sugar = RegExp(r'당류 (\d+)g').firstMatch(note);
+    expect(sugar, isNotNull, reason: '안내 줄이 당류를 말하지 않는다: $note');
+
+    final Finder apply = find.byKey(const Key('goalApplyMacroSplit'));
+    await tester.ensureVisible(apply);
+    await tester.tap(apply);
+    await tester.pump();
+
+    expect(_text(tester, 'goalSugarField'), sugar!.group(1));
   });
 }

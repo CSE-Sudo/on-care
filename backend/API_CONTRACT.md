@@ -74,7 +74,9 @@
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float) }`
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
-`foods[]`: `[{ name, calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+`foods[]`: `[{ name, amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+
+`amount_g` 는 **그 영양이 무엇을 재고 나온 값인가** 다. 공공 DB 는 100g 기준이라 보정이 이 양으로 환산하며, 환산에 실제로 쓴 값(인식기 추정 또는 알려진 1회 섭취량)이 그대로 실린다. 양을 못 얻어 추정치를 그대로 둔 음식과 이 필드 이전 기록은 `null` 이다 — 읽는 쪽이 null 을 견뎌야 한다. 앱은 이 값으로 나머지 여섯 값을 비례 환산한다(#1876).
 
 **`PUT` 에 `foods` 를 실으면 그 끼니의 음식 목록이 통째로 갈리고, 끼니 합계(`total_calories`·`carbs_g`·`protein_g`·`fat_g`·`sodium_mg`·`sugar_g`)도 그 목록에서 다시 계산된다** — 같은 요청에 합계를 함께 보내도 음식 쪽이 이긴다. 원본을 하나로 두지 않으면 음식을 고칠 때마다 합계와 내역이 갈린다. `foods` 를 보내지 않으면 음식 목록은 그대로고 보낸 합계만 바뀐다. 빈 배열(`[]`)은 422 다 — 음식이 하나도 없는 끼니는 수정이 아니라 삭제다.
 
