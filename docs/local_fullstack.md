@@ -7,6 +7,22 @@
 > **자기 로컬 drift DB** 를 보기 때문에, 둘 다 잘 도는 것처럼 보여도 서로의
 > 데이터는 절대 보이지 않습니다. 상호작용을 확인하려면 아래 3단계를 모두 거쳐야 합니다.
 
+## Flutter 버전 — 3.44.9
+
+CI 가 이 버전으로 고정돼 있습니다(`.github/workflows/user-app-ci.yml` 의 `flutter-version`).
+**로컬도 같은 버전에 맞추십시오.** 버전이 다르면 린트 집합과 포맷 규칙이 달라, 로컬에서
+통과한 코드가 CI 에서 떨어집니다. 로컬이 더 새로우면 `flutter analyze` 가
+`analysis_options.yaml` 을, `pub` 이 `pubspec.lock` 을 건드려 의도하지 않은 변경이
+커밋에 섞이기도 합니다.
+
+```bash
+flutter --version                     # 3.44.9 인지 확인
+git -C "$(dirname "$(dirname "$(which flutter)")")" checkout 3.44.9   # 아니면 맞춘다
+```
+
+Flutter SDK 는 git 체크아웃이라 태그로 오갈 수 있습니다. 올리는 방향은 안드로이드
+툴체인(AGP·Kotlin)이 함께 걸리므로 혼자 정하지 마십시오 — #1898 을 보십시오.
+
 ## 1. 백엔드
 
 ```bash
