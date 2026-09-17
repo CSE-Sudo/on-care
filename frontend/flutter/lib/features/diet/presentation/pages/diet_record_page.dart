@@ -55,6 +55,7 @@ const Map<MealType, String> _mealEmoji = <MealType, String>{
   MealType.lunch: '🥗',
   MealType.dinner: '🐟',
   MealType.snack: '🍎',
+  MealType.lateNight: '🌙',
 };
 
 /// 역할 글자 + 색. 크기·굵기 숫자는 적지 않는다(#1690).
