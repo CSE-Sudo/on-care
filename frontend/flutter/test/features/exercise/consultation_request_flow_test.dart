@@ -7,6 +7,8 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -290,6 +292,37 @@ void main() {
     },
   );
 
+  testWidgets('운동 목표 선택지가 온보딩 건강 목표와 같다 (#1992)', (WidgetTester tester) async {
+    await pumpRoute(
+      tester,
+      AppRoutes.consultationRequestPath(gymId: _gym.id, trainerId: _trainer.id),
+    );
+    final AppLocalizations l = _localizations(tester);
+
+    // 온보딩·MY 가 고르는 건강 목표 여덟 종이 같은 문구·같은 순서로 서고, 그
+    // 뒤에 `기타` 가 붙는다. 두 화면이 선택지를 한 곳에서 읽는지 보는 자리다.
+    final List<String> expected = <String>[
+      for (final String focus in kHealthFocusOptions)
+        healthFocusLabel(l, focus),
+      l.exOptionOther,
+    ];
+    for (final (int i, String label) in expected.indexed) {
+      final Finder chip = find.byKey(ValueKey<String>('consult-goal-$i'));
+      await _revealInForm(tester, chip, 100);
+      expect(
+        find.descendant(of: chip, matching: find.text(label)),
+        findsOneWidget,
+        reason: '$i 번째 칩은 "$label" 이어야 한다',
+      );
+    }
+    // 목록이 더 길지 않다 — 없앤 `건강 관리` 가 남아 있으면 여기서 걸린다.
+    expect(
+      find.byKey(ValueKey<String>('consult-goal-${expected.length}')),
+      findsNothing,
+    );
+    expect(find.text(l.exGoalHealth), findsNothing);
+  });
+
   testWidgets('time is always required and no enum text leaks (#1256, #1587)', (
     WidgetTester tester,
   ) async {
@@ -335,7 +368,7 @@ void main() {
     await tester.tap(find.byKey(const Key('consultDataSharingConsent')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(l.exGoalWeightLoss));
+    await tester.tap(find.text(l.healthFocusWeightLoss));
     await _revealInForm(tester, find.text(l.exSelectDate), 180);
     // 날짜 칸은 입력창과 같은 흰 채움이다 — 고르기 전후로 모양이 같다
     // (#1701, #1776).

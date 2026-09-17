@@ -80,13 +80,25 @@ def focus_in(raw: str | None) -> list[str]:
 #: 트레이너 화면이 건강 목표를 한 줄로 이을 때 쓰는 구분자. (#1818)
 FOCUS_LABEL_SEPARATOR = " · "
 
-#: 상담 신청의 운동 목표(`ConsultationRequest.exercise_goal`) → 건강 목표.
-#: `health`(건강 관리)·`other` 는 여덟 목표 중 하나로 옮길 수 없어 넣지 않는다.
+#: 상담 신청의 운동 목표(`ConsultationRequest.exercise_goal`) → 건강 목표. (#1992)
+#:
+#: 상담 폼이 [FOCUS_OPTIONS] 를 그대로 선택지로 쓰게 되면서 여덟 목표와 **1:1** 이
+#: 됐다 — 예전에는 `체력 향상`·`건강 관리` 처럼 옮길 곳이 없는 값이 있어 넷만 이었고,
+#: 그 회원은 상담이 수락돼도 건강 목표가 비어 있었다.
+#:
+#: 남은 예외는 `other`(기타)뿐이다. 여덟 중 무엇인지 알려주는 바가 없어 옮길 곳이
+#: 없고, 없앤 선택지로 이미 저장된 `health`(건강 관리)도 같은 이유로 잇지 않는다.
 EXERCISE_GOAL_FOCUS: dict[str, str] = {
     "weight_loss": FOCUS_WEIGHT_LOSS,
     "strength": FOCUS_STRENGTH,
+    # 예전 `체력 향상` 으로 저장된 값이다 — 이름만 `체력 강화` 로 바뀌었고 뜻은
+    # 같아 백필 없이 그대로 읽는다.
     "fitness": FOCUS_FITNESS,
     "posture": FOCUS_POSTURE,
+    "rehab": FOCUS_REHAB,
+    "eating": FOCUS_EATING,
+    "exercise_habit": FOCUS_EXERCISE_HABIT,
+    "blood_pressure": FOCUS_BLOOD_PRESSURE,
 }
 
 
