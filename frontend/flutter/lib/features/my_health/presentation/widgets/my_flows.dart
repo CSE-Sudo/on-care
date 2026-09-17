@@ -17,6 +17,7 @@ import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
+import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -303,7 +304,11 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           );
       // Sheet dismissed mid-save → don't touch ref/pop the page below.
       if (!mounted) return;
-      ref.invalidate(profileProvider);
+      // MY 카드의 이름·이메일은 `/users/me/health` 에서 온다. 프로필만 되짚으면
+      // "저장되었어요" 를 보고 돌아온 화면이 옛 이름 그대로다(#1930).
+      ref
+        ..invalidate(profileProvider)
+        ..invalidate(myHealthStateProvider);
       navigator.pop();
       toast.show(l.myProfileSaved, type: AppToastType.success);
     } catch (_) {
