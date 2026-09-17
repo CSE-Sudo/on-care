@@ -76,6 +76,21 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
   final PeriodChartSelection _selection = PeriodChartSelection();
 
   @override
+  void didUpdateWidget(DietPeriodView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 기간 토글을 눌러도 이 위젯은 트리의 같은 자리에 같은 타입으로 남아
+    // `State` 가 재사용된다 — 바뀌는 것은 `range` 와 `weekly` 뿐이고 고른
+    // **인덱스**는 그대로 살아남아 다음 기간의 배열에 쓰인다. `전체`(84칸)의
+    // 78 이 `이번 주`(7칸)로 넘어오면 `values[picked]` 가 범위를 벗어나 카드가
+    // 통째로 죽고, 반대 방향은 터지지 않는 대신 회원이 고른 적 없는 날을
+    // 가리킨다. 보이는 구간도 같이 남아 `하루 평균` 이 앞 기간의 창으로
+    // 계산된다. 배열이 바뀌면 둘을 함께 푼다. (#1984)
+    if (widget.range != oldWidget.range || widget.weekly != oldWidget.weekly) {
+      _selection.reset(includeVisible: true);
+    }
+  }
+
+  @override
   void dispose() {
     _selection.dispose();
     super.dispose();
