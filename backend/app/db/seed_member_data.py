@@ -430,49 +430,78 @@ _SEED_ID_PREFIX = "seed-"
 
 
 def _ingest_member_documents(db: Session, member_id: str) -> int:
-    """한 회원의 시드 식단·운동·대화를 적재하고 적재한 건수를 돌려준다."""
+    """한 회원의 시드 식단·운동·대화를 적재하고 적재한 건수를 돌려준다.
+
+    적재는 한 건마다 커밋한다. 커밋은 세션에 실린 ORM 객체를 만료시키므로
+    **미리 읽어 둔 행을 들고 반복하면 안 된다** — 다음 속성 접근이 행을 다시
+    가져오는데, 그 사이 **다른 세션이** 지운 행이면 `ObjectDeletedError` 가
+    나고 적재가 아니라 **기동이** 죽는다(#1919).
+
+    남의 삭제여야 한다는 것이 요점이다. 같은 세션이 지우면 그 객체는 식별
+    맵에서 밀려나 조용히 옛 값을 쓰지만, 다른 세션의 삭제는 이 세션이 모르는
+    채 남아 있다가 만료 뒤 되읽을 때 터진다.
+
+    그래서 적재에 쓸 값을 **먼저 평범한 값으로 뽑아 두고** 반복한다. 만료될
+    객체가 없으면 그 사이 행이 사라져도 이미 뽑아 둔 값으로 적재가 끝난다 —
+    시드가 기동을 막지 않는다는 원칙은 `_entry_foods` 도 같다.
+    """
+    diets = [
+        {
+            "date": entry.date,
+            "foods": _entry_foods(entry),
+            "total_calories": entry.total_calories,
+            "sodium_mg": entry.sodium_mg,
+            "sugar_g": entry.sugar_g,
+            "source_ref": entry.id,
+        }
+        for entry in db.scalars(
+            select(models.DietEntry).where(
+                models.DietEntry.user_id == member_id,
+                models.DietEntry.id.like(f"{_SEED_ID_PREFIX}%"),
+            )
+        ).all()
+    ]
+
+    exercises = [
+        {
+            "date": _session_date(session),
+            "exercise_type": session.type,
+            "minutes": session.minutes,
+            "calories": session.calories,
+            "intensity": session.intensity,
+            "source_ref": session.id,
+        }
+        for session in db.scalars(
+            select(models.ExerciseSession).where(
+                models.ExerciseSession.user_id == member_id,
+                models.ExerciseSession.id.like(f"{_SEED_ID_PREFIX}%"),
+            )
+        ).all()
+    ]
+
+    chats = [
+        {
+            "sender": msg.sender,
+            "text": msg.body,
+            "date": clock.to_seoul(msg.created_at).date().isoformat(),
+            "source_ref": msg.id,
+        }
+        for msg in db.scalars(
+            select(models.ChatMessage).where(
+                models.ChatMessage.member_id == member_id,
+                models.ChatMessage.id.like(f"{_SEED_ID_PREFIX}%"),
+            )
+        ).all()
+    ]
+
     count = 0
-
-    for entry in db.scalars(
-        select(models.DietEntry).where(
-            models.DietEntry.user_id == member_id,
-            models.DietEntry.id.like(f"{_SEED_ID_PREFIX}%"),
-        )
-    ).all():
-        count += _ingested(
-            personal_ingest.record_diet,
-            db, member_id, date=entry.date, foods=_entry_foods(entry),
-            total_calories=entry.total_calories, sodium_mg=entry.sodium_mg,
-            sugar_g=entry.sugar_g, source_ref=entry.id,
-        )
-
-    for session in db.scalars(
-        select(models.ExerciseSession).where(
-            models.ExerciseSession.user_id == member_id,
-            models.ExerciseSession.id.like(f"{_SEED_ID_PREFIX}%"),
-        )
-    ).all():
-        count += _ingested(
-            personal_ingest.record_exercise,
-            db, member_id, date=_session_date(session),
-            exercise_type=session.type, minutes=session.minutes,
-            calories=session.calories, intensity=session.intensity,
-            source_ref=session.id,
-        )
-
-    for msg in db.scalars(
-        select(models.ChatMessage).where(
-            models.ChatMessage.member_id == member_id,
-            models.ChatMessage.id.like(f"{_SEED_ID_PREFIX}%"),
-        )
-    ).all():
-        count += _ingested(
-            personal_ingest.record_chat,
-            db, member_id, sender=msg.sender, text=msg.body,
-            date=clock.to_seoul(msg.created_at).date().isoformat(),
-            source_ref=msg.id,
-        )
-
+    for record, rows in (
+        (personal_ingest.record_diet, diets),
+        (personal_ingest.record_exercise, exercises),
+        (personal_ingest.record_chat, chats),
+    ):
+        for fields in rows:
+            count += _ingested(record, db, member_id, **fields)
     return count
 
 

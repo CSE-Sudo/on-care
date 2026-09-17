@@ -234,7 +234,7 @@ void main() {
       await tester.tap(find.text('저장'));
       await tester.pump();
 
-      expect(find.text('전화번호를 000-0000-0000 형식으로 입력해 주세요'), findsOneWidget);
+      expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsOneWidget);
       expect(find.text('변경사항이 저장됐어요'), findsNothing);
       expect(container.read(sessionControllerProvider).profile?.phone, before);
     });
@@ -276,14 +276,14 @@ void main() {
       );
       await tester.tap(find.text('저장'));
       await tester.pump();
-      expect(find.text('전화번호를 000-0000-0000 형식으로 입력해 주세요'), findsOneWidget);
+      expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const ValueKey<String>('profile-phone')),
         '01012345678',
       );
       await tester.pump();
-      expect(find.text('전화번호를 000-0000-0000 형식으로 입력해 주세요'), findsNothing);
+      expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsNothing);
     });
 
     testWidgets('전화번호를 비워도 저장된다 — 트레이너 가입은 이 값을 받지 않는다', (
@@ -305,7 +305,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.text('전화번호를 000-0000-0000 형식으로 입력해 주세요'), findsNothing);
+      expect(find.text('전화번호를 010-0000-0000 형식으로 입력해 주세요'), findsNothing);
       expect(container.read(sessionControllerProvider).profile?.phone, '');
 
       await tester.pump(const Duration(seconds: 3));

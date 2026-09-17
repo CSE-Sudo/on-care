@@ -1185,7 +1185,7 @@
   "signUpHaveAccountQuestion": "Already have an account?",
   "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "signUpPasswordMismatch": "Passwords do not match",
-  "signUpPhoneFormatInvalid": "Enter your phone number as 000-0000-0000",
+  "signUpPhoneFormatInvalid": "Enter your phone number as 010-0000-0000",
   "myFieldBirthInvalid": "Enter your date of birth as 1996-03-21",
   "@myFieldBirthInvalid": {
     "description": "Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py."

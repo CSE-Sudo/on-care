@@ -70,7 +70,7 @@ const Map<String, String> _koAdded = <String, String>{
   'authEmailEmpty': '이메일을 입력해 주세요',
   'authEmailInvalid': '이메일 형식이 올바르지 않아요',
   'authPasswordEmpty': '비밀번호를 입력해 주세요',
-  'signUpPhoneFormatInvalid': '전화번호를 000-0000-0000 형식으로 입력해 주세요',
+  'signUpPhoneFormatInvalid': '전화번호를 010-0000-0000 형식으로 입력해 주세요',
   'signUpPasswordWeak': '영문과 숫자를 포함해 8자 이상 입력해 주세요',
   'onboardOptionalTag': '(선택)',
   'onboardSkipStep': '이 단계 건너뛰기',

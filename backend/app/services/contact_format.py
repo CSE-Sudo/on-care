@@ -19,6 +19,11 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 앱이 보여
 **전화번호는 한 가지 표기로 정리해 저장한다** — 숫자만 추려 `010-1234-5678`
 꼴로 되돌린다. 시드와 기존 프로필이 이미 이 표기라 따로 정리할 데이터가 없고,
 트레이너 앱이 회원 연락처를 그대로 그리므로 표기가 섞이면 화면에서 보인다.
+
+**앞자리도 함께 본다.** 숫자 개수만 세던 때는 `123-4567-8901` 처럼 걸 수 없는
+번호가 그대로 저장됐다 — 트레이너가 담당 회원에게 연락하려고 보는 값이라,
+자릿수만 맞는 값을 받아 두면 연락할 방법이 없는 것과 같다. 앱
+(`AppInputRules._phone`)이 **같은 앞자리**를 미리 본다.
 """
 
 from __future__ import annotations
@@ -34,6 +39,11 @@ PHONE_DIGITS = 11
 
 #: 숫자를 끊는 자리. `010-1234-5678`.
 _PHONE_GROUPS = (3, 4, 4)
+
+#: 휴대전화 앞자리. 01X 번호는 2021-06-30 에 서비스가 끝나 지금 쓰이는 휴대전화는
+#: 전부 010 이다 — 앞자리를 넓혀도 막히던 사람이 풀리지 않는다. 회원앱
+#: `AppInputRules._phone` 이 같은 앞자리를 본다.
+PHONE_PREFIX = "010"
 
 #: 로컬 부분@도메인.최상위. `AppInputRules._email` 과 같은 식이다 — 흔히 쓰는
 #: 주소는 통과시키고 빈칸·골뱅이 누락·최상위 도메인 누락 같은 오타를 잡는
@@ -51,7 +61,7 @@ class InvalidEmail(ValueError):
 
 
 class InvalidPhone(ValueError):
-    """전화번호가 숫자 11자리로 읽히지 않는다."""
+    """전화번호가 `010` 으로 시작하는 숫자 11자리로 읽히지 않는다."""
 
 
 def clean_email(value: str) -> str:
@@ -80,15 +90,15 @@ def normalize_phone(value: str) -> str:
     빈 값을 통과시키는 것은 전화번호가 선택이기 때문이다 — 트레이너 가입은 이
     값을 쓰지 않고, 회원도 MY 탭에서 나중에 넣을 수 있다.
 
-    숫자만 세므로 `01012345678` 처럼 하이픈 없이 보내도 받는다. 앱보다 느슨한
-    쪽이라 앱을 통과한 값이 서버에서 막히는 일은 생기지 않는다.
+    하이픈 위치는 세지 않으므로 `01012345678` 처럼 붙여 보내도 받는다. 표기에
+    대해서만 앱보다 느슨한 쪽이라, 앱을 통과한 값이 서버에서 막히지 않는다.
     """
     phone = value.strip()
     if not phone:
         return ""
     digits = _NON_DIGIT.sub("", phone)
-    if len(digits) != PHONE_DIGITS:
-        raise InvalidPhone("전화번호를 000-0000-0000 형식으로 입력해 주세요.")
+    if len(digits) != PHONE_DIGITS or not digits.startswith(PHONE_PREFIX):
+        raise InvalidPhone("전화번호를 010-0000-0000 형식으로 입력해 주세요.")
     parts: list[str] = []
     start = 0
     for size in _PHONE_GROUPS:

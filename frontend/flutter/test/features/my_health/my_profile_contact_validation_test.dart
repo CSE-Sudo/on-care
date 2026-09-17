@@ -133,6 +133,31 @@ void main() {
     expect(repo.saves, 1);
   });
 
+  testWidgets('자릿수가 맞아도 010 으로 시작하지 않으면 저장을 보내지 않는다', (
+    WidgetTester tester,
+  ) async {
+    // 끊어 주기만 하던 때는 아무 숫자 11자리나 그대로 저장됐다 — 트레이너가
+    // 담당 회원에게 연락할 때 보는 값이라 걸 수 없으면 없는 것과 같다.
+    final (AppLocalizations l, _CountingAccountRepository repo) =
+        await _openProfile(tester);
+
+    await tester.enterText(find.byKey(_phone), '12345678901');
+    await tester.pump();
+    expect(find.text('123-4567-8901'), findsOneWidget);
+
+    await _save(tester, l);
+
+    expect(find.text(l.signUpPhoneFormatInvalid), findsOneWidget);
+    expect(repo.saves, 0);
+
+    await tester.enterText(find.byKey(_phone), '01012345678');
+    await tester.pump();
+    expect(find.text(l.signUpPhoneFormatInvalid), findsNothing);
+
+    await _save(tester, l);
+    expect(repo.saves, 1);
+  });
+
   testWidgets('전화번호가 모자라면 저장을 보내지 않는다', (WidgetTester tester) async {
     final (AppLocalizations l, _CountingAccountRepository repo) =
         await _openProfile(tester);
