@@ -40,7 +40,6 @@ void main() {
     // 혈당 row was dropped from the home summary; expect 3 rows
     // (칼로리 / 나트륨 / 당류).
     expect(summary.indicators.length, 3);
-    expect(summary.todaySchedule.length, 2);
     expect(summary.weekScore, 85);
     expect(summary.exerciseMinutes, 45);
     expect(summary.exerciseCalories, 520);

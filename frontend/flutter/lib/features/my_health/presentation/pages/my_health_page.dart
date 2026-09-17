@@ -10,6 +10,7 @@ import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connected_gym_card.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
@@ -229,18 +230,27 @@ class _ProfileCard extends StatelessWidget {
 /// 데이터 공유 동의라서다 — 스스로 누른 것이어야 한다.
 ///
 /// 앞머리 아이콘은 두지 않는다 — 제목이 프로필 이름과 같은 왼쪽 선에서 시작한다(#1785).
-class _TrainerSyncRow extends StatelessWidget {
+class _TrainerSyncRow extends ConsumerWidget {
   const _TrainerSyncRow();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
     return Semantics(
       button: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => showTrainerSyncSheet(context),
+        onTap: () async {
+          await showTrainerSyncSheet(context);
+          // 시트를 여는 동안 트레이너가 코드를 쓰면 서버에는 담당·헬스장 연결이
+          // 생긴다. 셋 다 폴링 없는 provider 라 다시 읽지 않으면, 벨 알림은
+          // 연결됐다고 하는데 바로 아래 섹션은 `없음` 으로 남는다(#1931).
+          ref
+            ..invalidate(myGymProvider)
+            ..invalidate(myTrainerProvider)
+            ..invalidate(memberCoachProvider);
+        },
         child: Row(
           children: <Widget>[
             Expanded(

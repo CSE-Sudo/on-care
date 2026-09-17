@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.exercise_limits import (
+    MAX_EXERCISE_MINUTES,
     MAX_EXERCISE_REPS,
     MAX_EXERCISE_SETS,
     MAX_EXERCISE_WEIGHT_KG,
@@ -127,7 +128,9 @@ class ExerciseSessionCreate(BaseModel):
     type: ExerciseTypeIn | LegacyExerciseTypeIn
     #: 회원이 적은 운동 이름. 유형만으로는 무슨 운동인지 남지 않는다.
     name: str = Field(default="", max_length=100)
-    minutes: int = Field(..., gt=0)
+    #: 이 운동에 쓴 시간(분). 상한은 [MAX_EXERCISE_MINUTES] — 예전에는 상한이
+    #: 없어 앱을 거치지 않으면 하루 10만 분짜리 기록도 그대로 저장됐다(#1903).
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력이면 회원이 적은 세트 수. 다른 유형에서 와도 저장하지 않는다 —
     #: 유산소를 세트로 세는 화면은 없다. (#1262)
     sets: int | None = Field(None, gt=0, le=MAX_EXERCISE_SETS)
@@ -159,7 +162,7 @@ class ExerciseCalorieRequest(BaseModel):
     #: 운동 이름. 비어 있으면 400 이다 — 이름 없이 확정된 숫자를 내주지 않는 것이
     #: 이 계산의 요점이라, 빈 이름으로 부르는 것은 호출하는 쪽의 실수다.
     name: str = Field(..., max_length=100)
-    minutes: int = Field(..., gt=0, le=600)
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     intensity: ExerciseIntensityIn = "moderate"
 
 
@@ -177,7 +180,7 @@ class ExerciseCalorieResponse(BaseModel):
 class AssignedRoutineCompleteRequest(BaseModel):
     """회원이 배정 루틴을 실제 수행한 결과."""
 
-    minutes: int = Field(..., gt=0, le=600)
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력 루틴이면 실제로 한 세트 수·횟수·중량. 수기 기록과 같은 값을 남겨야
     #: 그래프가 두 기록을 같은 축으로 읽는다. (#1276, #1310)
     sets: int | None = Field(None, gt=0, le=MAX_EXERCISE_SETS)

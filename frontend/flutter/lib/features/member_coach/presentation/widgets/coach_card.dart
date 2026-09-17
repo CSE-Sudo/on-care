@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
+    show exerciseTypeFromLabel;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
-    show exerciseWeightLabel;
+    show exerciseAmountLabelOf, exerciseWeightLabel;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
@@ -560,8 +562,7 @@ class _RecommendedExerciseRowState
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerRight,
                         child: Text(
-                          '${routine.type} · '
-                          '${l.unitMinutesValue(routine.completedMinutes ?? routine.minutes)}',
+                          '${routine.type} · ${_routineAmountLabel(l, routine)}',
                           maxLines: 1,
                           textAlign: TextAlign.end,
                           style: tokens
@@ -805,3 +806,27 @@ String _routineExerciseLine(AppLocalizations l, CoachRoutineExercise exercise) {
   ];
   return parts.join(' · ');
 }
+
+/// 루틴 한 줄이 말하는 **양**. 근력은 세트·횟수(·중량)로, 나머지는 분으로
+/// 읽는다 — 회원이 직접 적은 기록과 **같은 규칙**(`exerciseAmountLabelOf`)이다.
+///
+/// 예전에는 유형과 상관없이 분만 적었다. 그래서 세트를 들고 온 근력 루틴이
+/// `근력 · 10분` 으로 보였고, 같은 루틴을 세트로 세는 운동 현황 링·주간 목표와
+/// 수가 갈렸다(#1262, #1901).
+///
+/// 회원이 실제로 한 시간(`completedMinutes`)이 있으면 그것을 쓴다. 세트·횟수·
+/// 중량은 트레이너가 정한 배정 값이라 완료해도 바뀌지 않는다 — 완료 시트가
+/// 묻는 것은 강도와 피드백뿐이다(#1360).
+///
+/// 세트를 들지 않은 루틴은 분으로 둔다. 기록은 분에서 세트를 되짚지만(#1262)
+/// 배정은 적힌 수가 곧 값이라, 없는 세트를 지어내 적지 않는다.
+String _routineAmountLabel(AppLocalizations l, CoachRoutine routine) =>
+    exerciseAmountLabelOf(
+      l,
+      type: exerciseTypeFromLabel(routine.type),
+      minutes: routine.completedMinutes ?? routine.minutes,
+      sets: routine.sets,
+      reps: routine.reps,
+      weight: routine.weight,
+      setsFromMinutesWhenUnknown: false,
+    );

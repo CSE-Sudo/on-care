@@ -50,6 +50,12 @@ class MockDashboardRepository implements DashboardRepository {
           calories: day.totalCalories,
           sodiumMg: day.totalSodiumMg,
           sugarG: day.totalSugarG,
+          // 실서버가 싣는 것을 데모도 똑같이 싣는다(#1879). 합산 규칙은
+          // 식단 탭과 공유한다([DietDayTotals]) — 따로 더하면 같은 날이 두
+          // 화면에서 다른 값으로 나온다.
+          carbsG: day.effectiveCarbsG,
+          proteinG: day.effectiveProteinG,
+          fatG: day.effectiveFatG,
         ),
       );
     }
@@ -84,10 +90,6 @@ class MockDashboardRepository implements DashboardRepository {
       exerciseCalories: 520,
       exerciseCount: 4,
       nutritionWeek: nutritionWeek,
-      todaySchedule: const <ScheduleItem>[
-        ScheduleItem(time: '10:00', title: '병원 정기검진', emoji: '🏥'),
-        ScheduleItem(time: '18:00', title: '헬스장 운동', emoji: '💪'),
-      ],
       weekScore: 85,
       weekScoreDelta: 12,
       // 홈 '오늘의 AI 통합 조언' 자리. 문구가 아니라 키만 싣는다 — 문장은

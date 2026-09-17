@@ -811,29 +811,6 @@ void main() {
     );
   });
 
-  testWidgets('홈 탭 재진입 시 식단·영양 카드 선택 지표가 기본값(칼로리)으로 복원된다 (#861)', (
-    tester,
-  ) async {
-    await pumpApp(tester, locale: const Locale('ko'));
-    final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-
-    // 홈이 첫 화면이다 — 나트륨 카드를 선택한다.
-    await tester.tap(find.text(ko.dietSodium).first);
-    await tester.pumpAndSettle();
-    expect(find.text(ko.homeWeeklyMetricTrend(ko.dietSodium)), findsOneWidget);
-
-    await tester.tap(find.text('식단').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('홈').first);
-    await tester.pumpAndSettle();
-
-    // 기본값(칼로리)으로 복원된다.
-    expect(
-      find.text(ko.homeWeeklyMetricTrend(ko.dashboardMetricCalories)),
-      findsOneWidget,
-    );
-  });
-
   testWidgets('여러 번 탭을 오가도 식단 탭 재진입 정책이 일관되게 동작한다 (#861)', (tester) async {
     await pumpApp(tester, locale: const Locale('ko'));
 

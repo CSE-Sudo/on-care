@@ -35,7 +35,7 @@ Future<void> _pump(WidgetTester tester, int unread) async {
       overrides: <Override>[
         memberCoachProvider.overrideWith((ref) async => _coach),
         myTrainerProvider.overrideWith((ref) async => null),
-        coachUnreadProvider.overrideWith((ref) async => unread),
+        coachUnreadProvider.overrideWith((ref) => Stream<int>.value(unread)),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),

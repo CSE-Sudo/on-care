@@ -116,7 +116,7 @@ void main() {
             (ref) => newTestConsultationController(),
           ),
           memberCoachProvider.overrideWith((ref) async => null),
-          coachUnreadProvider.overrideWith((ref) async => 0),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
