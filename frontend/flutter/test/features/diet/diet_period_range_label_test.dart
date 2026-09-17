@@ -1,15 +1,19 @@
-/// `전체` 카드 머리의 날짜 기간은 **지금 보이는 막대의 구간**을 가리킨다
-/// (#1985).
+/// 날짜 기간 줄 — 어디에, 무엇을, 어떤 형식으로 적는가.
 ///
-/// 같은 줄의 `하루 평균` 은 이미 보이는 구간만 센다(#1018). 날짜만 12주 전체에
-/// 머물면 한 화면의 두 글이 서로 다른 기간을 말한다 — 운동 탭 `전체` 가 이미
-/// `_selection.visible` 로 구간을 적는 방식과 맞춘다.
+/// **무엇을**: `전체` 는 지금 보이는 막대의 구간이다(#1985). 바로 아래의
+/// `하루 평균` 이 이미 보이는 구간만 세므로(#1018), 날짜만 12주 전체에 머물면
+/// 한 카드의 두 글이 서로 다른 기간을 말한다.
+///
+/// **어디에**: 카드 **안** 오른쪽 위다(#2009). 카드 밖에 두면 카드가 제
+/// 기간을 스스로 말하지 않는다.
+///
+/// **어떤 형식으로**: 운동 탭과 같은 `periodRangeText` 로 적는다 — 같은 성격의
+/// 카드가 탭마다 다른 말투로 말하지 않도록.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -17,6 +21,8 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare/shared/widgets/period_range_label.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
@@ -37,9 +43,15 @@ Widget _app() => ProviderScope(
 );
 
 void main() {
-  /// 카드 머리 오른쪽의 날짜 기간 한 줄.
-  String rangeLabel(WidgetTester tester) =>
-      tester.widget<Text>(find.byKey(const Key('diet-period-range'))).data!;
+  /// 카드 안 오른쪽 위의 날짜 기간 한 줄.
+  String rangeLabel(WidgetTester tester) => tester
+      .widget<Text>(
+        find.descendant(
+          of: find.byKey(const Key('diet-period-range')),
+          matching: find.byType(Text),
+        ),
+      )
+      .data!;
 
   Future<void> open(WidgetTester tester, DietPeriodTab tab) async {
     // 기간의 양끝이 오늘에 매여 있다 — 고정하지 않으면 기대값이 달력을 탄다.
@@ -58,18 +70,14 @@ void main() {
   testWidgets('전체를 밀면 상단 날짜가 보이는 구간을 따라간다', (WidgetTester tester) async {
     await open(tester, DietPeriodTab.month);
 
-    final DateFormat fmt = DateFormat.MMMd('ko');
     final DietDateRange whole = dietRangeForTab(DietPeriodTab.month, nowKst());
+    final String wholeText = periodRangeText('ko', whole.from, whole.to);
 
     // 오른쪽 끝(오늘)에서 시작한다 — 끝 날짜는 기간의 끝이지만 시작 날짜는
     // 12주 전이 아니라 한 화면 앞이다.
     final String atEnd = rangeLabel(tester);
-    expect(atEnd, endsWith(fmt.format(whole.to)));
-    expect(
-      atEnd,
-      isNot(startsWith(fmt.format(whole.from))),
-      reason: '오른쪽 끝에 붙어 있는데 상단이 12주 전체를 가리킨다',
-    );
+    expect(atEnd, endsWith(wholeText.split(' ~ ').last));
+    expect(atEnd, isNot(wholeText), reason: '오른쪽 끝에 붙어 있는데 날짜 줄이 12주 전체를 가리킨다');
 
     // 왼쪽(과거)으로 민다.
     final Finder horizontal = find
@@ -84,38 +92,45 @@ void main() {
     expect(rangeLabel(tester), isNot(atEnd), reason: '그래프를 밀었는데 상단 날짜가 그대로다');
   });
 
-  testWidgets('날짜 줄은 오른쪽에 붙는다', (WidgetTester tester) async {
-    // 칩과 한 줄을 쓰던 시절에는 `Expanded` 가 남는 자리를 줘서 오른쪽에
-    // 붙었다. 칩이 빠지며(#1986) 그 `Expanded` 도 사라져 글자 폭만큼만
-    // 차지하고 왼쪽으로 갔다 — `textAlign` 은 제 폭 안에서만 도는 규칙이라
-    // 그것만으로는 오른쪽에 붙지 않는다.
+  testWidgets('날짜 줄은 카드 안 오른쪽 위에 있다', (WidgetTester tester) async {
     await open(tester, DietPeriodTab.week);
 
     final Rect label = tester.getRect(
       find.byKey(const Key('diet-period-range')),
     );
     final Rect card = tester.getRect(find.byKey(const Key('diet-period-card')));
+
+    // 카드 **안**이다 — 카드 위에 뜬 줄이 아니다.
+    expect(card.contains(label.topLeft), isTrue, reason: '날짜 줄이 카드 밖에 있다');
+    expect(card.contains(label.bottomRight), isTrue);
+    // 오른쪽 — 카드 안쪽 여백까지 폭을 쓴다.
     expect(
       label.right,
-      moreOrLessEquals(card.right, epsilon: 1),
-      reason: '날짜 줄의 오른쪽 끝이 카드의 오른쪽 끝과 맞지 않는다',
+      moreOrLessEquals(card.right - OnCareSpacing.cardPadding, epsilon: 1),
+      reason: '날짜 줄이 카드 오른쪽 끝에 붙지 않았다',
     );
+    // 위 — 머리 숫자보다 위다.
     expect(
-      label.left,
-      lessThan(card.left + 1),
-      reason: '날짜 줄이 폭을 끝까지 쓰지 않아 textAlign 이 돌 자리가 없다',
+      label.bottom,
+      lessThanOrEqualTo(tester.getRect(find.byType(PeriodChartHeadline)).top),
+      reason: '날짜 줄이 머리 숫자 아래로 내려갔다',
     );
+  });
+
+  testWidgets('운동 탭과 같은 형식으로 적는다', (WidgetTester tester) async {
+    // 같은 성격의 카드가 탭마다 다른 말투로 말하지 않도록 두 탭이
+    // `periodRangeText` 하나를 함께 쓴다.
+    await open(tester, DietPeriodTab.week);
+
+    final DietDateRange whole = dietRangeForTab(DietPeriodTab.week, nowKst());
+    expect(rangeLabel(tester), periodRangeText('ko', whole.from, whole.to));
   });
 
   testWidgets('이번 주는 한 화면에 다 들어가므로 월~일 그대로다', (WidgetTester tester) async {
     await open(tester, DietPeriodTab.week);
 
-    final DateFormat fmt = DateFormat.MMMd('ko');
     final DietDateRange whole = dietRangeForTab(DietPeriodTab.week, nowKst());
 
-    expect(
-      rangeLabel(tester),
-      '${fmt.format(whole.from)} ~ ${fmt.format(whole.to)}',
-    );
+    expect(rangeLabel(tester), periodRangeText('ko', whole.from, whole.to));
   });
 }

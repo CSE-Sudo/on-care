@@ -17,6 +17,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/diet_period_tabs.dart';
 import '../../helpers/fake_diet_repository.dart';
@@ -89,10 +90,12 @@ void main() {
   }
 
   /// 카드 머리에 적힌 첫 줄(`하루 평균 · 칼로리` 또는 `2026. 8. 17. · 칼로리`).
+  // 날짜 기간이 카드 안으로 들어오며(#2009) 카드의 첫 `Text` 가 됐다 —
+  // 머리줄은 `PeriodChartHeadline` 안에서 집는다.
   String headline(WidgetTester tester) => tester
       .widgetList<Text>(
         find.descendant(
-          of: find.byKey(const Key('diet-period-card')),
+          of: find.byType(PeriodChartHeadline),
           matching: find.byType(Text),
         ),
       )
