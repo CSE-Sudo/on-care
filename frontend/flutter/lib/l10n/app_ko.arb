@@ -718,7 +718,7 @@
   "signUpHaveAccountQuestion": "이미 계정이 있으신가요?",
   "signUpPasswordWeak": "영문과 숫자를 포함해 8자 이상 입력해 주세요",
   "signUpPasswordMismatch": "비밀번호가 일치하지 않아요",
-  "signUpPhoneFormatInvalid": "전화번호를 000-0000-0000 형식으로 입력해 주세요",
+  "signUpPhoneFormatInvalid": "전화번호를 010-0000-0000 형식으로 입력해 주세요",
   "myFieldBirthInvalid": "생년월일을 1996-03-21 형식으로 입력해 주세요",
   "trainerSyncEntryLabel": "트레이너와 데이터 동기화",
   "trainerSyncEntryHint": "6자리 코드로 담당 트레이너와 연결해요",

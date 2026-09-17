@@ -145,7 +145,7 @@
   "authErrEmailInvalid": "Enter a valid email address",
   "authErrPasswordEmpty": "Enter your password",
   "authErrPasswordWeak": "Use at least 8 characters, including letters and numbers",
-  "authErrPhoneInvalid": "Enter your phone number as 000-0000-0000",
+  "authErrPhoneInvalid": "Enter your phone number as 010-0000-0000",
   "@authErrPhoneInvalid": {
     "description": "Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive."
   },

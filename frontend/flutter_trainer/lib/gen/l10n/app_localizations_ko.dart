@@ -231,7 +231,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
 
   @override
-  String get authErrPhoneInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
+  String get authErrPhoneInvalid => '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get authErrBirthDateInvalid => '생년월일을 1996-03-21 형식으로 입력해 주세요';

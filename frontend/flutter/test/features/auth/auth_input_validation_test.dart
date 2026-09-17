@@ -116,7 +116,7 @@ const String _nameEmpty = '이름을 입력해 주세요';
 const String _emailEmpty = '이메일을 입력해 주세요';
 const String _emailInvalid = '이메일 형식이 올바르지 않아요';
 const String _passwordEmpty = '비밀번호를 입력해 주세요';
-const String _phoneInvalid = '전화번호를 000-0000-0000 형식으로 입력해 주세요';
+const String _phoneInvalid = '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 const String _passwordWeak = '영문과 숫자를 포함해 8자 이상 입력해 주세요';
 const String _mismatch = '비밀번호가 일치하지 않아요';
 
@@ -293,7 +293,7 @@ void main() {
       expect(data['name'], '김민수');
     });
 
-    testWidgets('전화번호는 숫자만 쳐도 000-0000-0000 으로 끊긴다', (
+    testWidgets('전화번호는 숫자만 쳐도 010-0000-0000 으로 끊긴다', (
       WidgetTester tester,
     ) async {
       await _pump(tester, const SignUpPage());
@@ -309,6 +309,28 @@ void main() {
       // 11자리를 넘는 숫자와 숫자가 아닌 글자는 받지 않는다.
       await _type(tester, phone, '010 1234 56789');
       expect(_valueOf(tester, phone), '010-1234-5678');
+    });
+
+    testWidgets('자릿수가 맞아도 010 으로 시작하지 않으면 보내지 않는다', (
+      WidgetTester tester,
+    ) async {
+      // 끊어 주기만 하던 때는 이런 값이 그대로 가입에 실렸다 — 트레이너가
+      // 회원에게 연락할 때 보는 값이라 걸 수 없으면 없는 것과 같다.
+      final _FakeServer server = await _pump(tester, const SignUpPage());
+
+      await _type(tester, name, '김민수');
+      await _type(tester, email, 'minsu@oncare.com');
+      await _type(tester, phone, '12345678901');
+      await _type(tester, password, '1234567a');
+      await _type(tester, confirm, '1234567a');
+      await _submit(tester, submit);
+
+      expect(_valueOf(tester, phone), '123-4567-8901');
+      expect(_errorUnder(phone, _phoneInvalid), findsOneWidget);
+      expect(server.requests, isEmpty);
+
+      await _type(tester, phone, '01012345678');
+      expect(find.text(_phoneInvalid), findsNothing);
     });
 
     testWidgets('형식이 틀린 칸마다 문구를 보이고 요청하지 않는다', (WidgetTester tester) async {
