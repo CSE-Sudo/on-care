@@ -474,9 +474,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietSaved => '식단이 저장되었어요';
 
   @override
-  String get dietSaveEntry => '저장하기';
-
-  @override
   String get dietSaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override
@@ -1131,7 +1128,7 @@ class AppLocalizationsKo extends AppLocalizations {
       '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화도 사라집니다. 되돌릴 수 없어요.';
 
   @override
-  String get myWithdrawAction => '탈퇴하기';
+  String get myWithdrawAction => '탈퇴';
 
   @override
   String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';

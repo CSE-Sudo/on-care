@@ -133,9 +133,9 @@ void main() {
     await tester.tap(find.text('사진 찍기'));
     await tester.pumpAndSettle();
     // 시트가 길어 버튼이 접힌 화면에서는 스크롤해야 닿는다.
-    await tester.ensureVisible(find.text('저장하기'));
+    await tester.ensureVisible(find.text('저장'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('저장하기'));
+    await tester.tap(find.text('저장'));
     await tester.pump();
     await tester.pump(OnCareMotion.toastEnter);
   }

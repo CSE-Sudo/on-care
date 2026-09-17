@@ -944,12 +944,6 @@ abstract class AppLocalizations {
   /// **'Meal saved'**
   String get dietSaved;
 
-  /// No description provided for @dietSaveEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get dietSaveEntry;
-
   /// No description provided for @dietSaveFailed.
   ///
   /// In en, this message translates to:
