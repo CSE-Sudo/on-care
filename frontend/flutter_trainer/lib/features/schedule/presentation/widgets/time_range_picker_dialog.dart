@@ -189,32 +189,17 @@ class _ScheduleTimePickerDialogState extends State<_ScheduleTimePickerDialog> {
     return AppDialog(
       // 작은 창(400) — 시계 지름 280 이 안쪽 여백 안에 들어간다.
       title: l.schedTimeRangeTitle,
-      // AppButtonPair 와 같은 배치 — 버튼마다 키를 달아야 해서 직접 둔다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              key: _keyOf(keys.cancel),
-              label: l.actionCancel,
-              onPressed: () => Navigator.pop(context),
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: _keyOf(keys.confirm),
-              label: l.schedTimeRangeConfirm,
-              onPressed: invalidEnd
-                  ? null
-                  : () => _range
-                        ? Navigator.pop(context, (start: _start, end: _end))
-                        : Navigator.pop(context, _start),
-              fullWidth: true,
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelKey: _keyOf(keys.cancel),
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.pop(context),
+        confirmKey: _keyOf(keys.confirm),
+        confirmLabel: l.schedTimeRangeConfirm,
+        onConfirm: invalidEnd
+            ? null
+            : () => _range
+                  ? Navigator.pop(context, (start: _start, end: _end))
+                  : Navigator.pop(context, _start),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
