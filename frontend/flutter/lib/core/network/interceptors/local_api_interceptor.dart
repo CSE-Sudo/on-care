@@ -937,6 +937,9 @@ class LocalApiInterceptor extends Interceptor {
             // 사용자만 코멘트 없는 결과를 보게 된다.
             'coach_comment': existing.aiComment,
           },
+          // 끼니 카드가 쓰는 것과 같은 저장된 시각. 결과 시트가 제 시계로
+          // 다시 계산하면 카드와 어긋난다(#1897).
+          'time_label': existing.timeLabel,
           // 재시도는 새로 적립하지 않고 처음 받은 값을 싣는다(#1786).
           'points': _points
               .awardedFor(PointsRule.dietEntry, existing.id)
@@ -992,6 +995,9 @@ class LocalApiInterceptor extends Interceptor {
 
     final now = nowKst();
     final id = 'diet-${now.microsecondsSinceEpoch}';
+    // 행에 넣는 값과 응답에 싣는 값이 갈리지 않게 한 번만 만든다.
+    final String timeLabel =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     await _db
         .into(_db.dietEntries)
         .insert(
@@ -999,8 +1005,7 @@ class LocalApiInterceptor extends Interceptor {
             id: id,
             date: _todayDateString(),
             mealType: mealType,
-            timeLabel:
-                '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+            timeLabel: timeLabel,
             foodsJson: jsonEncode(foods),
             totalCalories: totalCal,
             sodiumMg: const Value(totalNa),
@@ -1032,6 +1037,7 @@ class LocalApiInterceptor extends Interceptor {
         'total_fat_g': _sumMacro(foods, 'fat_g'),
         'coach_comment': coach,
       },
+      'time_label': timeLabel,
       // 식단 기록 +50P, 하루 3회(#1786).
       'points': _points.award(PointsRule.dietEntry, id).toJson(),
     });
