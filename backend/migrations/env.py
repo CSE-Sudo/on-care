@@ -2,6 +2,17 @@
 
 DB URL 과 메타데이터를 app 코드에서 가져와, 마이그레이션과 앱이
 같은 스키마 정의를 공유하게 합니다. (URL 은 .env 의 DATABASE_URL)
+그래서 `alembic.ini` 에는 DB URL 을 적지 않습니다.
+
+리비전 파일명은 `0001_slug` 형태입니다(`alembic.ini` 의 `file_template`).
+
+**`alembic.ini` 는 ASCII 로만 유지합니다.** Alembic 이 그 파일을 로케일
+인코딩으로 읽어서(`ConfigParser.read(..., encoding="locale")`), 한국어
+Windows 의 cp949 에서는 한글 한 글자만 있어도 `alembic` 명령이 전부
+`UnicodeDecodeError` 로 죽습니다. 리눅스 CI 는 UTF-8 로케일이라 통과해서
+드러나지 않고, `PYTHONUTF8=1` 로도 잡히지 않습니다 — PEP 686 상
+`encoding="locale"` 은 UTF-8 모드를 무시합니다. 설명이 필요하면 한글로
+적을 수 있는 이 파일이나 `README.md` 에 씁니다. (#2004)
 """
 from __future__ import annotations
 
