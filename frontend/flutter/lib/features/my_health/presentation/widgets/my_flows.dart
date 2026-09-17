@@ -8,6 +8,7 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
@@ -27,6 +28,18 @@ import 'package:url_launcher/url_launcher.dart';
 /// 파싱이 null 로 날아가는 것을 막는다.
 final List<TextInputFormatter> _digitsOnly = <TextInputFormatter>[
   FilteringTextInputFormatter.digitsOnly,
+];
+
+/// 키·몸무게처럼 소수로 적는 칸. 숫자와 소수점 하나만 남긴다 — `70kg` 을
+/// 붙여넣으면 단위가 함께 들어와 숫자로 읽히지 않는다(#1941).
+final List<TextInputFormatter> _decimal = <TextInputFormatter>[
+  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+  TextInputFormatter.withFunction((
+    TextEditingValue previous,
+    TextEditingValue next,
+  ) {
+    return '.'.allMatches(next.text).length > 1 ? previous : next;
+  }),
 ];
 
 Widget _shell(
@@ -194,7 +207,7 @@ class ProfileSettingsPage extends ConsumerWidget {
 /// 그 계정에 다시 들어올 수 없고, 전화번호는 트레이너가 회원에게 연락하는
 /// 값이다. 이름과 생년월일은 컬럼 길이를 넘기면 저장 자체가 실패하고(#1887),
 /// 날짜가 아닌 생년월일은 트레이너 화면에서 나이를 조용히 지운다.
-enum _ProfileField { name, email, phone, birth }
+enum _ProfileField { name, email, phone, birth, height, weight }
 
 class _ProfileForm extends ConsumerStatefulWidget {
   const _ProfileForm({required this.initial});
@@ -222,6 +235,14 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   late String _gender = widget.initial.gender.isEmpty
       ? 'male'
       : widget.initial.gender;
+
+  /// 이 회원이 성별을 고른 적이 있는가 — 화면에 보이는 값과 별개다.
+  ///
+  /// 칩은 늘 하나가 선택돼 보이지만, 그것이 곧 회원의 선택은 아니다. 온보딩을
+  /// 건너뛴 회원에게는 화면을 채우려고 세운 기본값이라, 전화번호 한 줄만 고쳐
+  /// 저장해도 고른 적 없는 `male` 이 서버에 굳었다(#1941). 회원이 칩을 누른
+  /// 뒤부터만 성별을 함께 보낸다.
+  late bool _genderChosen = widget.initial.gender.isNotEmpty;
   late final TextEditingController _height = TextEditingController(
     text: widget.initial.heightCm?.toString() ?? '',
   );
@@ -257,23 +278,50 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   /// 이전 가입자는 연락처를 넣을 자리가 없었다. 그 사람들에게까지 요구하면
   /// 이름만 고치려는데 전화번호를 내놓으라고 막는 화면이 된다. 서버도 같은
   /// 판정이다(#1883).
-  String? _check(_ProfileField field) =>
-      authInputErrorText(AppLocalizations.of(context), switch (field) {
-        _ProfileField.name => AppInputRules.name(_name.text),
-        _ProfileField.email => AppInputRules.email(_email.text),
-        _ProfileField.phone =>
-          _phone.text.trim().isEmpty && widget.initial.phone.trim().isEmpty
-              ? null
-              : AppInputRules.phone(_phone.text),
-        // 생년월일은 비어 있어도 된다 — 넣을 자리가 없던 시절에 가입한 회원과
-        // 소셜 로그인 가입자에게는 처음부터 없는 값이다. 서버도 같다(#1887).
-        _ProfileField.birth => AppInputRules.birthDate(_birth.text),
-      });
+  String? _check(_ProfileField field) => switch (field) {
+    // 키·몸무게는 서버와 같은 범위로 본다. 여기서 보지 않으면 `70kg` 같은
+    // 붙여넣기가 숫자로 읽히지 않은 채 "저장되었어요" 로 넘어간다(#1941).
+    _ProfileField.height => _measureError(AppGoalRanges.heightCm, _height.text),
+    _ProfileField.weight => _measureError(AppGoalRanges.weightKg, _weight.text),
+    _ => authInputErrorText(AppLocalizations.of(context), switch (field) {
+      _ProfileField.name => AppInputRules.name(_name.text),
+      _ProfileField.email => AppInputRules.email(_email.text),
+      _ProfileField.phone =>
+        _phone.text.trim().isEmpty && widget.initial.phone.trim().isEmpty
+            ? null
+            : AppInputRules.phone(_phone.text),
+      // 생년월일은 비어 있어도 된다 — 넣을 자리가 없던 시절에 가입한 회원과
+      // 소셜 로그인 가입자에게는 처음부터 없는 값이다. 서버도 같다(#1887).
+      _ProfileField.birth => AppInputRules.birthDate(_birth.text),
+      _ => null,
+    }),
+  };
+
+  /// 키·몸무게 칸의 오류 문구. 목표 칸과 같은 범위 문구를 쓴다.
+  ///
+  /// **빈 칸은 오류가 아니다** — 지우는 것은 할 수 있는 일이고, 비운 칸은
+  /// `값 지움`으로 나간다. 정수만 보는 [AppGoalRange.rejects] 대신 직접 보는
+  /// 것은 `170.5` 처럼 소수로 적는 값이기 때문이다.
+  String? _measureError(AppGoalRange range, String text) {
+    final String value = text.trim();
+    if (value.isEmpty) return null;
+    final num? parsed = num.tryParse(value);
+    if (parsed != null && parsed >= range.min && parsed <= range.max) {
+      return null;
+    }
+    return AppLocalizations.of(context).myGoalRange(range.min, range.max);
+  }
 
   /// 오류를 보인 칸이 있을 때만 입력마다 다시 그린다.
   void _onEdited(String _) {
     if (_errors.isWatching) setState(() {});
   }
+
+  /// 칸에 적힌 키·몸무게를 저장소가 읽는 형태로. 빈 칸은 [MeasureUpdate.clear].
+  ///
+  /// 저장 직전에만 부른다 — 여기까지 왔다면 [_check] 가 이미 숫자임을 봤다.
+  MeasureUpdate _measureUpdate(TextEditingController controller) =>
+      MeasureUpdate(num.tryParse(controller.text.trim()));
 
   Future<void> _save() async {
     if (_saving) return;
@@ -296,9 +344,14 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             email: _email.text.trim(),
             phone: _phone.text.trim(),
             birthDate: _birth.text.trim(),
-            gender: _gender,
-            heightCm: num.tryParse(_height.text.trim()),
-            weightKg: num.tryParse(_weight.text.trim()),
+            // 고른 적이 없으면 보내지 않는다 — 화면을 채우려고 세운 기본값을
+            // 회원의 선택으로 굳히지 않는다(#1941).
+            gender: _genderChosen ? _gender : null,
+            // 비운 칸은 `값 지움`으로 보낸다. 예전에는 null 을 넘겨 저장소가
+            // 키를 통째로 빼는 바람에, 서버가 "손대지 않음"으로 읽어 지운
+            // 값이 되살아났다(#1941).
+            heightCm: _measureUpdate(_height),
+            weightKg: _measureUpdate(_weight),
             // 자유 입력 운동 목표는 `건강 목표` 화면으로 옮겼다(#1471) —
             // 여기서 보내지 않으므로 그 화면에서 정한 값이 덮이지 않는다.
           );
@@ -396,21 +449,32 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
                 key: ValueKey<String>('profile-gender-${option.value}'),
                 label: option.label,
                 selected: _gender == option.value,
-                onSelected: (_) => setState(() => _gender = option.value),
+                onSelected: (_) => setState(() {
+                  _gender = option.value;
+                  _genderChosen = true;
+                }),
               ),
           ],
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-height'),
           label: l.myFieldHeight,
           controller: _height,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: _decimal,
+          errorText: _errors.of(_ProfileField.height),
+          onChanged: _onEdited,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-weight'),
           label: l.myFieldWeight,
           controller: _weight,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: _decimal,
+          errorText: _errors.of(_ProfileField.weight),
+          onChanged: _onEdited,
         ),
       ]),
     ], saving: _saving);
@@ -667,7 +731,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     });
   }
 
-  /// 권장 배분을 세 칸에 채운다.
+  /// 권장 배분을 네 칸에 채운다.
   ///
   /// 채운 뒤 칼로리를 다시 계산한다 — 반올림 때문에 배분의 합이 입력한
   /// 칼로리와 몇 kcal 어긋나는데, 화면에 남은 두 값이 서로 맞지 않으면
@@ -679,6 +743,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _protein.text = '${split.protein}';
     _fat.text = '${split.fat}';
     // 당류도 같은 칼로리에서 나온다 — 식습관 개선을 골랐으면 5% 로 줄어든다.
+    // 안내 줄도 이 칸을 함께 말한다: 버튼이 덮는 칸과 문구가 어긋나면, 당류를
+    // 낮춰 둔 회원이 탄단지만 맞추려다 말한 적 없는 값까지 바꾸게 된다(#1941).
     _sugar.text = '${split.sugar}';
     _markTouched(_kCarbs);
     _markTouched(_kProtein);
@@ -1013,6 +1079,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
               split.carbs,
               split.protein,
               split.fat,
+              split.sugar,
             ),
             actionLabel: l.myGoalMacroApplySuggestion,
             onApply: _applySuggestedSplit,
