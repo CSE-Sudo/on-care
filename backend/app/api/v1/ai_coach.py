@@ -5,6 +5,7 @@ AI 코치 라우터 — 프론트 계약 정렬.
   GET  /ai-coach/messages  -> 저장된 대화 복원
   POST /ai-coach/chat      -> RAG 근거 기반 답변 + 대화 저장
   GET  /ai-coach/insights  -> 최근 30일 회원 메시지의 통증·부정적 반응 감지 기록 (#1824)
+  DELETE /ai-coach/insights/{message_id} -> 그 줄의 감지를 기록에서 치움 (#1975)
 
 도메인(식단/운동)별 코치를 각각 생성해 합친 결과.
 STEP 7에서 내부가 RAG+LLM 으로 교체되지만 응답 형식은 동일.
@@ -14,12 +15,14 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser
 from app.core.config import get_settings
 from app.core.rate_limit import rate_limit
 from app.db.session import get_db
+from app.models.models import AiConversation, AiMessage
 from app.schemas.misc_api import (
     AiCoachFeedback,
     ChatHistory,
@@ -153,3 +156,39 @@ def ai_coach_insights(
             for r in records
         ],
     )
+
+
+@router.delete("/ai-coach/insights/{message_id}")
+def dismiss_ai_coach_insight(
+    message_id: str,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    """그 줄에서 찾은 감지를 기록에서 치운다. (#1975)
+
+    **메시지는 지우지 않는다.** 감지 규칙이 완벽할 수 없어 `목요일`·`목표` 같은
+    말이 부위로 잡히는 일이 남는데, 그 오탐 하나 때문에 회원이 쓴 말까지 대화에서
+    사라져서는 안 된다. 치우는 것은 감지뿐이고, AI 가 맥락으로 읽는 대화는 그대로다.
+
+    감지를 따로 저장하지 않으므로(매번 계산) 지울 행이 없다 — 대신 그 메시지에
+    `더 보지 않음` 표시를 남기고 `recent_insights` 가 건너뛴다.
+
+    이미 치운 줄을 다시 눌러도 200 이다. 누른 쪽이 바라는 상태가 이미 참이라,
+    지금 상태를 알려 주는 것 말고 할 일이 없다.
+    """
+    _ensure_ai_chat_allowed(db, current_user.id)
+    message = db.scalar(
+        select(AiMessage)
+        .join(AiConversation, AiConversation.id == AiMessage.conversation_id)
+        .where(
+            AiMessage.id == message_id,
+            AiConversation.user_id == current_user.id,
+            AiMessage.role == "user",
+        )
+    )
+    # 남의 대화는 물론이고 없는 id 도 404 다 — 있는지 없는지를 알려 주지 않는다.
+    if message is None:
+        raise HTTPException(status_code=404, detail="감지 기록을 찾을 수 없습니다.")
+    message.insight_dismissed = True
+    db.commit()
+    return {"status": "dismissed"}

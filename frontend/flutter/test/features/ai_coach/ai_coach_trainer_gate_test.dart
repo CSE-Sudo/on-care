@@ -40,6 +40,9 @@ class _CountingRepository implements AiCoachRepository {
       const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]);
 
   @override
+  Future<void> dismissInsight(String messageId) async {}
+
+  @override
   Future<ChatInsightHistory> fetchInsights() async {
     insightCalls += 1;
     return const ChatInsightHistory();
