@@ -11,6 +11,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/prefs_provider.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
@@ -262,8 +263,10 @@ class _StillClientRepository implements ClientRepository {
       throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
-  Future<List<String>> fetchExercisesOn(String clientId, DateTime date) =>
-      throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
+  Future<List<ClientExerciseItem>> fetchExercisesOn(
+    String clientId,
+    DateTime date,
+  ) => throw UnsupportedError('명단을 멈춰 둔 테스트용 저장소다.');
 
   @override
   Future<ClientDietPeriod> fetchDietPeriod(

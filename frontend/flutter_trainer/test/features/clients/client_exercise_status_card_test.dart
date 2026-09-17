@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/app_theme.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
@@ -339,12 +340,14 @@ void main() {
   group('상세 내역 펼치기/접기', () {
     // 이력은 이미 최신순으로 온다(`clientHistoryProvider` 계약) — 접힌
     // 상태에서 보이는 첫 항목이 곧 가장 최근 기록이어야 한다.
-    List<RoutineHistoryEntry> history() => const <RoutineHistoryEntry>[
+    List<RoutineHistoryEntry> history() => <RoutineHistoryEntry>[
       RoutineHistoryEntry(
         dateLabel: '오늘 기록',
         label: 'PT 세션',
         completionRate: 100,
-        exercises: <String>['레그프레스 3세트 × 12회 · 80kg ✓'],
+        exercises: <ClientExerciseItem>[
+          ClientExerciseItem.nameOnly('레그프레스 3세트 × 12회 · 80kg ✓'),
+        ],
         clientFeedback: '',
         trainerNote: '',
       ),
@@ -352,7 +355,9 @@ void main() {
         dateLabel: '어제 기록',
         label: 'PT 세션',
         completionRate: 80,
-        exercises: <String>['데드리프트 4세트 × 8회 · 55kg ✓'],
+        exercises: <ClientExerciseItem>[
+          ClientExerciseItem.nameOnly('데드리프트 4세트 × 8회 · 55kg ✓'),
+        ],
         clientFeedback: '',
         trainerNote: '',
       ),
@@ -399,7 +404,9 @@ void main() {
           dateLabel: '$i일 전 기록',
           label: 'PT 세션',
           completionRate: 100,
-          exercises: const <String>['레그프레스 3세트 × 12회 · 80kg ✓'],
+          exercises: <ClientExerciseItem>[
+            ClientExerciseItem.nameOnly('레그프레스 3세트 × 12회 · 80kg ✓'),
+          ],
           clientFeedback: '',
           trainerNote: '',
         ),

@@ -12,6 +12,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/dio_client_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
@@ -104,8 +105,10 @@ class _StreamingClientRepository implements ClientRepository {
   ) async => const <ClientDietEntry>[];
 
   @override
-  Future<List<String>> fetchExercisesOn(String clientId, DateTime date) async =>
-      const <String>[];
+  Future<List<ClientExerciseItem>> fetchExercisesOn(
+    String clientId,
+    DateTime date,
+  ) async => <ClientExerciseItem>[];
 
   @override
   Future<ClientDietPeriod> fetchDietPeriod(

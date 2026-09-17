@@ -419,7 +419,7 @@ class _SourceOption extends StatelessWidget {
 /// Runs the real `POST /diet/analyze` on the picked [photo] and shows the
 /// recognised foods + nutrition. The backend persists the entry as part of
 /// analysis, so a successful result refreshes [dietTodayProvider].
-/// 결과 시트. `저장하기` 까지 마치면 true — 저장된 기록을 확인할 준비가 됐다는
+/// 결과 시트. `저장` 까지 마치면 true — 저장된 기록을 확인할 준비가 됐다는
 /// 뜻이다(#1434).
 Future<bool> showDietResultSheet(
   BuildContext context,
@@ -757,12 +757,12 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
         fullWidth: true,
       );
     }
-    // [취소] 왼쪽, [저장하기] 오른쪽 — 앱의 모든 하단 두 버튼과 같은 순서다(#1690).
+    // [취소] 왼쪽, [저장] 오른쪽 — 앱의 모든 하단 두 버튼과 같은 순서다(#1690).
     return AppButtonPair(
       cancelLabel: l.dietCancel,
       // 저장은 이미 끝났고, 이 버튼은 시트를 닫기만 한다.
       onCancel: () => Navigator.of(context).pop(),
-      confirmLabel: l.dietSaveEntry,
+      confirmLabel: l.dietSave,
       onConfirm: _finish,
     );
   }
@@ -946,34 +946,6 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
             ),
           ],
         ),
-        if (r.coachComment.isNotEmpty) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s12),
-          // AI 가 쓴 말은 AI 조언 카드와 같은 옅은 브랜드 채움이다(#1432).
-          AppTile(
-            key: const Key('diet-result-coach-comment'),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                AppIcon(
-                  AppIcons.ai,
-                  size: OnCareSize.iconSmall,
-                  color: tokens.brand.primary,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                Expanded(
-                  child: Text(
-                    r.coachComment,
-                    style: _text(
-                      context,
-                      OnCareTypography.bodySmall,
-                      OnCareColors.textPrimary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ],
     );
   }

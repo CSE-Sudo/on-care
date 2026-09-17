@@ -42,6 +42,8 @@ alembic downgrade -1          # 한 단계 롤백
 > 개발 편의를 위해 앱 기동 시 `create_all()` 로도 테이블을 만들지만(멱등), **운영은 `alembic upgrade head`** 를 정답으로 삼습니다.
 > (운영에서 `create_all` 을 끄려면 `AUTO_CREATE_TABLES=false` — 설정 항목은 이후 커밋에서 추가)
 
+> **`alembic.ini` 에는 한글을 넣지 마십시오(ASCII 전용).** Alembic 이 그 파일을 로케일 인코딩으로 읽어서, 한국어 Windows(cp949)에서는 한글 한 글자만 있어도 위 세 명령이 전부 `UnicodeDecodeError` 로 죽습니다. 리눅스 CI 는 UTF-8 로케일이라 통과하므로 드러나지 않고, `PYTHONUTF8=1` 로도 잡히지 않습니다. 설명은 `migrations/env.py` 나 이 문서에 적습니다. (#2004)
+
 ## RAG (pgvector + Gemini)
 공공문서 적재 → pgvector 검색 → 근거 코칭까지의 로컬 셋업·재현 절차는 **[docs/rag_gemini_setup.md](docs/rag_gemini_setup.md)** 참고.
 임베딩 `gemini-embedding-001`(768) · 코치/인식 `gemini-flash-latest` · `.env`: `EMBEDDER=gemini`, `EMBED_DIM=768`.

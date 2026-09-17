@@ -488,9 +488,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietSaved => 'Meal saved';
 
   @override
-  String get dietSaveEntry => 'Save';
-
-  @override
   String get dietSaveFailed => 'Couldn\'t save. Please try again in a moment.';
 
   @override
@@ -1799,18 +1796,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exExerciseGoal => 'Exercise Goal';
-
-  @override
-  String get exGoalWeightLoss => 'Weight Loss';
-
-  @override
-  String get exGoalStrength => 'Build Strength';
-
-  @override
-  String get exGoalFitness => 'Improve Fitness';
-
-  @override
-  String get exGoalPosture => 'Improve Posture';
 
   @override
   String get exGoalHealth => 'Health Management';
