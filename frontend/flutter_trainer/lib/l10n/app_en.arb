@@ -678,7 +678,6 @@
   "consultRejectTitle": "Decline request",
   "consultRejectNotice": "The reason you write is sent to the member as a notification.",
   "consultRejectHint": "e.g. I have another appointment at your requested time.",
-  "consultRejectAction": "Decline",
   "consultStatusPending": "Pending",
   "consultStatusAccepted": "Approved",
   "workoutRecords": "Workout log",
@@ -1355,7 +1354,6 @@
   },
   "myPwConfirm": "Confirm new password",
   "myPwChanging": "Changing…",
-  "myPwChangeAction": "Change",
   "mySettingsSaveFailed": "Couldn't save your settings. Please try again in a moment",
   "routineTypeWalking": "Walking",
   "@routineTypeWalking": {

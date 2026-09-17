@@ -1120,9 +1120,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consultRejectHint => '예) 요청하신 시간에 다른 일정이 있어요.';
 
   @override
-  String get consultRejectAction => '거절하기';
-
-  @override
   String get consultStatusPending => '대기중';
 
   @override
@@ -2093,9 +2090,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myPwChanging => '변경 중…';
-
-  @override
-  String get myPwChangeAction => '변경하기';
 
   @override
   String get mySettingsSaveFailed => '설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
