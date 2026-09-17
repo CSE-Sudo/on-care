@@ -45,6 +45,17 @@ class AppPrefs {
 
   bool get installed => _prefs.getBool(_kInstalled) ?? false;
   Future<void> markInstalled() => _prefs.setBool(_kInstalled, true);
+
+  /// 계정에 매인 기기 기록을 지운다 — 탈퇴한 계정의 흔적이 다음 회원에게
+  /// 넘어가지 않게 한다(#1935). 같은 기기에 다른 계정으로 로그인했을 때
+  /// 첫 설정과 가이드를 처음처럼 만나야 한다.
+  ///
+  /// **언어와 설치 표식은 남긴다.** 둘 다 기기의 것이지 계정의 것이 아니다 —
+  /// 설치 표식을 지우면 다음 실행이 새 설치로 보여 키체인을 또 비운다(#1944).
+  Future<void> clearAccountScoped() async {
+    await _prefs.remove(_kOnboardingDone);
+    await _prefs.remove(_kHomeGuideDone);
+  }
 }
 
 final appPrefsProvider = Provider<AppPrefs>(

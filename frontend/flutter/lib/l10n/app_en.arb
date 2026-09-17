@@ -632,6 +632,13 @@
   "myPointsRecipeCost": "500P",
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
+  "myWithdrawTitle": "Delete account",
+  "@myWithdrawTitle": {
+    "description": "Account deletion entry at the end of the MY settings list (#1935)."
+  },
+  "myWithdrawConfirm": "Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.",
+  "myWithdrawAction": "Delete account",
+  "myWithdrawFailed": "We could not delete your account. Please try again in a moment.",
   "myCancel": "Cancel",
   "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
