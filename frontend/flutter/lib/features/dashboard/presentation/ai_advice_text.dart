@@ -12,7 +12,7 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 ///    서버가 만든 문장. 번역본이 없어 받은 그대로 쓴다.
 /// 3. ARB 기본 문구.
 String aiAdviceBody(AppLocalizations l, DashboardSummary summary) {
-  final String? fromKey = _localized(l, summary.aiAdviceKey);
+  final String? fromKey = _localized(l, summary);
   return fromKey ??
       summary.sodiumWarning ??
       summary.exerciseFeedback ??
@@ -21,7 +21,17 @@ String aiAdviceBody(AppLocalizations l, DashboardSummary summary) {
 
 /// 모르는 키는 null 을 돌려 서버 문장·ARB 기본값으로 넘긴다 — 서버가 새 키를
 /// 먼저 내려도 화면이 비지 않게.
-String? _localized(AppLocalizations l, String? key) => switch (key) {
-  kDailyCombinedAdviceKey => l.homeAiAdviceBody,
-  _ => null,
-};
+///
+/// 운동 되먹임의 분 수는 요약이 이미 들고 있는 값을 쓴다(#1943) — 서버가 같은
+/// 응답에서 센 값이라, 문장과 카드가 서로 다른 숫자를 말할 일이 없다.
+String? _localized(AppLocalizations l, DashboardSummary summary) =>
+    switch (summary.aiAdviceKey) {
+      kDailyCombinedAdviceKey => l.homeAiAdviceBody,
+      'sodium_over' => l.homeAdviceSodiumOver,
+      'exercise_on_track' => l.homeAdviceExerciseOnTrack(
+        summary.exerciseMinutes,
+      ),
+      'exercise_more' => l.homeAdviceExerciseMore(summary.exerciseMinutes),
+      'exercise_start' => l.homeAdviceExerciseStart,
+      _ => null,
+    };

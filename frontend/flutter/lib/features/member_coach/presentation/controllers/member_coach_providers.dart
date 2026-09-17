@@ -61,6 +61,72 @@ final coachChatProvider = StreamProvider.autoDispose<List<CoachMessage>>((ref) {
   return ref.watch(memberCoachRepositoryProvider).watchChat();
 });
 
+/// 폴링이 주는 최신 쪽 **앞**에 붙는, 손으로 더 받아 온 옛 메시지들. (#1943)
+///
+/// 서버는 한 번에 최신 [chatPageSize] 건만 주고 그 앞은 커서로 준다. 앱은
+/// 커서 없이 부르기만 해서 51번째 이전 메시지는 위로 올려도 나오지 않았다.
+///
+/// 폴링 쪽(`coachChatProvider`)과 따로 두는 이유는, 15초마다 새로 받는 최신
+/// 쪽이 손으로 받아 둔 옛 쪽을 지우면 안 되기 때문이다. 화면이 둘을 합쳐 그린다.
+class CoachChatHistory extends AutoDisposeNotifier<CoachChatHistoryState> {
+  @override
+  CoachChatHistoryState build() {
+    // 대화 자체가 새로 열리면(담당이 바뀌면) 받아 둔 옛 쪽도 버린다.
+    ref.watch(memberCoachRepositoryProvider);
+    return const CoachChatHistoryState();
+  }
+
+  /// [oldest] 앞의 한 쪽을 더 받는다. [oldest] 는 지금 화면에 있는 가장 오래된
+  /// 메시지다 — 화면이 합쳐 그리므로 커서는 화면이 안다.
+  Future<void> loadOlder(CoachMessage oldest) async {
+    if (state.loading || state.exhausted) return;
+    state = state.copyWith(loading: true);
+    try {
+      final List<CoachMessage> older = await ref
+          .read(memberCoachRepositoryProvider)
+          .fetchChat(before: oldest);
+      state = CoachChatHistoryState(
+        messages: <CoachMessage>[...older, ...state.messages],
+        // 한 쪽이 다 차지 않았으면 그 앞에는 없다.
+        exhausted: older.length < chatPageSize,
+      );
+    } on Object {
+      // 못 받아 왔다고 받아 둔 것을 버리지 않는다 — 다시 누르면 된다.
+      state = state.copyWith(loading: false);
+    }
+  }
+}
+
+/// [CoachChatHistory] 가 들고 있는 것.
+class CoachChatHistoryState {
+  const CoachChatHistoryState({
+    this.messages = const <CoachMessage>[],
+    this.loading = false,
+    this.exhausted = false,
+  });
+
+  /// 손으로 더 받아 온 옛 메시지(오래된→최신).
+  final List<CoachMessage> messages;
+
+  /// 지금 한 쪽을 받고 있는가.
+  final bool loading;
+
+  /// 더 받을 것이 없다 — 마지막 쪽이 다 차지 않았다.
+  final bool exhausted;
+
+  CoachChatHistoryState copyWith({bool? loading}) => CoachChatHistoryState(
+    messages: messages,
+    loading: loading ?? this.loading,
+    exhausted: exhausted,
+  );
+}
+
+final coachChatHistoryProvider =
+    NotifierProvider.autoDispose<CoachChatHistory, CoachChatHistoryState>(
+      CoachChatHistory.new,
+      name: 'coachChatHistory',
+    );
+
 /// 헤더 배지에 뜨는 트레이너 대화 미읽음 수.
 ///
 /// 아래 [coachInvitesProvider] 와 **같은 규칙**으로 받는다 — 앱을 켤 때와 돌아올
