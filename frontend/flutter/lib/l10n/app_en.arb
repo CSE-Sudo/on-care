@@ -177,6 +177,15 @@
   "dietMealDinner": "Dinner",
   "dietMealSnack": "Snack",
   "dietMealSheetTitle": "{meal}",
+  "dietFoodDbMatch": "Public DB · {name}",
+  "@dietFoodDbMatch": {
+    "description": "Representative name shown on the suggestion row when a food name matches the public nutrition DB (#1896)",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "dietFillFromDb": "Fill in",
+  "@dietFillFromDb": {
+    "description": "Button that fills a food's fields with the suggested public-DB nutrition (#1896)"
+  },
   "@dietMealSheetTitle": {
     "placeholders": {
       "meal": {

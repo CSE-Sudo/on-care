@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -332,6 +331,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String dietMealSheetTitle(String meal) {
     return '$meal 식단';
   }
+
+  @override
+  String dietFoodDbMatch(String name) {
+    return '공공 DB · $name';
+  }
+
+  @override
+  String get dietFillFromDb => '값 채우기';
 
   @override
   String get dietAddSheetTitle => '식단 추가';

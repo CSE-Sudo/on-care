@@ -13,6 +13,7 @@ import 'package:oncare/features/auth/presentation/controllers/session_controller
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
@@ -1133,7 +1134,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   /// 한 자 칠 때마다 새로 만들어지지 않는다 — 새로 만들면 커서가 맨 앞으로
   /// 튄다. 목록 순서와 1:1 로 붙어 다닌다(#1844).
   late final List<_FoodEditors> _editors = <_FoodEditors>[
-    for (final DietFood f in _foods) _FoodEditors.of(f),
+    for (final DietFood f in _foods) _watchName(_FoodEditors.of(f)),
   ];
 
   /// 음식마다 당류가 그 음식의 탄수화물을 넘지 않는지 본다(#1869). 당류는
@@ -1146,6 +1147,15 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   late AppFieldErrors<_FoodEditors> _sugarErrors = AppFieldErrors<_FoodEditors>(
     _checkSugar,
   );
+
+  /// 이름 칸을 벗어나면 공공 DB 를 찾는다(#1896). 줄이 지워지거나 순서가 밀려도
+  /// 어긋나지 않도록 **자리(index)가 아니라 그 줄 자체**를 붙잡는다.
+  _FoodEditors _watchName(_FoodEditors e) {
+    e.nameFocus.addListener(() {
+      if (!e.nameFocus.hasFocus) unawaited(_lookupNutrition(e));
+    });
+    return e;
+  }
 
   /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
   /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
@@ -1277,6 +1287,101 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     _syncFood(index, rebase: false);
   }
 
+  /// 이름 칸을 벗어났을 때 공공 영양 DB 를 찾는다. (#1896)
+  ///
+  /// 찾아도 **덮어쓰지 않는다.** 이름 변경은 "다른 음식이다" 일 수도 "오타를
+  /// 고쳤다" 일 수도 있어 앱이 구분할 수 없고, 자동으로 갈아 끼우면 회원이
+  /// 개별 칸에서 손으로 바로잡아 둔 값이 소리 없이 사라진다. 제안만 띄우고
+  /// 누를 때만 채운다.
+  ///
+  /// 지금 적힌 양을 함께 보낸다 — 그 양의 값을 제안해야 회원이 "내가 먹은 만큼"
+  /// 을 보게 된다. 양이 없으면 서버가 그 음식의 1회 섭취량으로 답한다.
+  Future<void> _lookupNutrition(_FoodEditors e) async {
+    final String name = e.name.text.trim();
+    if (name.isEmpty) {
+      // 이름을 지웠는데 아까 제안이 남아 있으면 그게 무엇의 제안인지 알 수 없다.
+      if (e.suggestion != null || e.lookedUpName != null) {
+        setState(() {
+          e.suggestion = null;
+          e.lookedUpName = null;
+        });
+      }
+      return;
+    }
+    if (name == e.lookedUpName) return;
+    e.lookedUpName = name;
+    try {
+      final FoodNutritionSuggestion? found = await ref
+          .read(dietRepositoryProvider)
+          .lookupFoodNutrition(name: name, amountG: _asAmount(e.amount));
+      // 그 사이 이름이 또 바뀌었으면 이 응답은 낡은 값이다.
+      if (!mounted || e.lookedUpName != name) return;
+      setState(() => e.suggestion = found);
+    } on Object {
+      // 조회가 실패해도 수정과 저장은 그대로 된다. 제안은 거들 뿐이라
+      // 여기서 막을 이유가 없다.
+      if (!mounted || e.lookedUpName != name) return;
+      setState(() => e.suggestion = null);
+    }
+  }
+
+  /// 제안을 적용하면 달라지는 값이 있나. 없으면 제안을 띄우지 않는다 —
+  /// 이미 그 값인데 `값 채우기` 가 서 있으면 누를 이유를 찾게 된다.
+  bool _suggestionWouldChange(_FoodEditors e) {
+    final _FoodBasis? filled = _suggestionAt(e);
+    if (filled == null) return false;
+    bool sameGram(double a, double b) => (a - b).abs() < 0.05;
+    return !(filled.kcal == _asInt(e.kcal) &&
+        filled.sodiumMg == _asInt(e.sodium) &&
+        sameGram(filled.carbsG, _asDouble(e.carbs)) &&
+        sameGram(filled.sugarG, _asDouble(e.sugar)) &&
+        sameGram(filled.proteinG, _asDouble(e.protein)) &&
+        sameGram(filled.fatG, _asDouble(e.fat)) &&
+        sameGram(filled.amountG, _asAmount(e.amount) ?? 0));
+  }
+
+  /// 제안을 **지금 적힌 양에 맞춰** 환산한 한 벌.
+  ///
+  /// 회원이 이미 양을 적어 두었으면 그 양이 이긴다 — 제안을 받았다고 내가 적은
+  /// 양이 뒤집히면 안 된다. 양이 없을 때만 제안이 들고 온 1회 섭취량을 쓴다.
+  /// 곱셈은 #1876 의 비례 환산과 같은 계산이다.
+  _FoodBasis? _suggestionAt(_FoodEditors e) {
+    final FoodNutritionSuggestion? s = e.suggestion;
+    final double? base = s?.food.amountG;
+    if (s == null || base == null || base <= 0) return null;
+    final double target = _asAmount(e.amount) ?? base;
+    final double factor = target / base;
+    return _FoodBasis(
+      amountG: target,
+      kcal: (s.food.calories * factor).round(),
+      carbsG: s.food.carbsG * factor,
+      sugarG: s.food.sugarG * factor,
+      proteinG: s.food.proteinG * factor,
+      fatG: s.food.fatG * factor,
+      sodiumMg: (s.food.sodiumMg * factor).round(),
+    );
+  }
+
+  /// `값 채우기` — 제안한 값으로 그 음식의 칸을 채운다.
+  ///
+  /// 채운 값이 곧 새 기준이 되어, 이어서 내용량을 고치면 #1876 의 비례 환산이
+  /// 그대로 이어진다.
+  void _applySuggestion(int index) {
+    final _FoodEditors e = _editors[index];
+    final _FoodBasis? filled = _suggestionAt(e);
+    if (filled == null) return;
+    e.amount.text = _FoodEditors.gramText(filled.amountG);
+    e.kcal.text = _FoodEditors.intText(filled.kcal);
+    e.carbs.text = _FoodEditors.gramText(filled.carbsG);
+    e.sugar.text = _FoodEditors.gramText(filled.sugarG);
+    e.protein.text = _FoodEditors.gramText(filled.proteinG);
+    e.fat.text = _FoodEditors.gramText(filled.fatG);
+    e.sodium.text = _FoodEditors.intText(filled.sodiumMg);
+    // 제안을 거둔다 — 방금 그 값으로 채웠으니 더 제안할 것이 없다.
+    setState(() => e.suggestion = null);
+    _syncFood(index);
+  }
+
   void _beginEdit() => setState(() => _editing = true);
 
   /// 수정을 접고 처음 값으로 되돌린다. 화면을 나가지는 않는다 — 보기 모드로만
@@ -1290,7 +1395,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       _editors
         ..clear()
         ..addAll(<_FoodEditors>[
-          for (final DietFood f in _foods) _FoodEditors.of(f),
+          for (final DietFood f in _foods) _watchName(_FoodEditors.of(f)),
         ]);
       // 접었다 다시 펴면 오류도 처음부터다 — 저장을 누른 적 없는 화면에
       // 빨간 글씨가 먼저 서 있으면 안 된다(#1784).
@@ -1309,7 +1414,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     const DietFood draft = DietFood('', 0);
     setState(() {
       _foods = <DietFood>[..._foods, draft];
-      _editors.add(_FoodEditors.of(draft));
+      // 새 줄에서도 이름만 적으면 공공 DB 값을 제안받는다 — 오히려 이쪽이 더
+      // 요긴하다. 일곱 칸을 손으로 채우지 않아도 된다(#1896).
+      _editors.add(_watchName(_FoodEditors.of(draft)));
     });
   }
 
@@ -1601,6 +1708,11 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                   onChanged: () => _syncFood(i),
                                   onAmountChanged: () => _syncAmount(i),
                                   onDelete: () => _removeFood(i),
+                                  suggestion:
+                                      _suggestionWouldChange(_editors[i])
+                                      ? _editors[i].suggestion
+                                      : null,
+                                  onApplySuggestion: () => _applySuggestion(i),
                                 )
                               else
                                 _FoodViewRow(index: i + 1, food: _foods[i]),
@@ -1829,6 +1941,18 @@ class _FoodEditors {
 
   final TextEditingController name;
 
+  /// 이름 칸을 **벗어났을 때** 공공 DB 를 찾기 위한 것(#1896). 타이핑 중간값
+  /// (`짜`, `짜장`)으로 부르면 요청만 늘고 쓸모없는 제안이 깜빡인다 — 운동의
+  /// 칼로리 미리보기가 같은 방식이다(#1312).
+  final FocusNode nameFocus = FocusNode();
+
+  /// 지금 이름으로 찾은 공공 DB 값. 없으면 제안할 것이 없다는 뜻이다.
+  FoodNutritionSuggestion? suggestion;
+
+  /// 마지막으로 조회를 건 이름. 같은 이름을 두 번 묻지 않고, 늦게 도착한
+  /// 응답이 그 사이 바뀐 이름을 덮지 않게 막는 표식이기도 하다.
+  String? lookedUpName;
+
   /// 먹은 양(g). 이 칸 하나가 아래 여섯 값을 함께 움직인다.
   final TextEditingController amount;
   final TextEditingController kcal;
@@ -1843,6 +1967,7 @@ class _FoodEditors {
   _FoodBasis? basis;
 
   void dispose() {
+    nameFocus.dispose();
     for (final TextEditingController c in <TextEditingController>[
       name,
       amount,
@@ -1927,6 +2052,8 @@ class _FoodEditBlock extends StatelessWidget {
     required this.onAmountChanged,
     required this.onDelete,
     this.sugarError,
+    this.suggestion,
+    required this.onApplySuggestion,
   });
 
   /// 숫자 칸 폭. 못 박아 두어야 라벨 칸이 자릿수에 따라 늘었다 줄었다 하지
@@ -1945,6 +2072,11 @@ class _FoodEditBlock extends StatelessWidget {
   /// 당류 칸 아래에 보일 오류 문구. null 이면 아무것도 그리지 않는다(#1869).
   final String? sugarError;
 
+  /// 이 이름으로 공공 DB 에서 찾은 값. **적용하면 달라지는 것이 있을 때만**
+  /// 넘어온다 — 이미 그 값이면 제안할 것이 없다. null 이면 줄을 그리지 않는다.
+  final FoodNutritionSuggestion? suggestion;
+  final VoidCallback onApplySuggestion;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -1961,6 +2093,9 @@ class _FoodEditBlock extends StatelessWidget {
                 child: AppTextField(
                   key: ValueKey<String>('diet-food-name-$index'),
                   controller: editors.name,
+                  // 이 칸을 벗어날 때 공공 DB 를 찾는다(#1896). 타이핑 중간값으로
+                  // 부르지 않으려고 `onChanged` 가 아니라 포커스를 본다.
+                  focusNode: editors.nameFocus,
                   hint: l.dietNewFood,
                   textInputAction: TextInputAction.next,
                   onChanged: (_) => onChanged(),
@@ -1976,6 +2111,32 @@ class _FoodEditBlock extends StatelessWidget {
               ),
             ],
           ),
+          if (suggestion case final FoodNutritionSuggestion found)
+            Padding(
+              padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Text(
+                      l.dietFoodDbMatch(found.matchedName),
+                      key: ValueKey<String>('diet-food-db-match-$index'),
+                      style: _text(
+                        context,
+                        OnCareTypography.caption,
+                        OnCareColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  AppButton(
+                    key: ValueKey<String>('diet-food-db-apply-$index'),
+                    label: l.dietFillFromDb,
+                    variant: AppButtonVariant.text,
+                    size: OnCareButtonSize.small,
+                    onPressed: onApplySuggestion,
+                  ),
+                ],
+              ),
+            ),
           _field(
             context,
             fieldKey: 'diet-food-amount-$index',
