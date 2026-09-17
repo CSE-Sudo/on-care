@@ -2669,15 +2669,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goalWeightLoss => 'Weight loss';
 
   @override
-  String get goalStrength => 'Strength';
-
-  @override
-  String get goalFitness => 'Fitness';
-
-  @override
-  String get goalPosture => 'Posture';
-
-  @override
   String get goalHealth => 'General health';
 
   @override

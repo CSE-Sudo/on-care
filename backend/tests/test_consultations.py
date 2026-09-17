@@ -116,7 +116,8 @@ def _payload(*, trainer_id: str | None = None) -> dict:
     """
     return {
         "trainer_id": trainer_id,
-        "exercise_goal": "health",
+        # 건강 목표 여덟 종 중 하나. 없앤 `health` 는 더 이상 받지 않는다(#1992).
+        "exercise_goal": "fitness",
         "health_purpose_type": "general",
         "health_purpose_detail": "  건강 습관 개선  ",
         "preferred_date": (clock.today() + timedelta(days=1)).isoformat(),
@@ -233,6 +234,9 @@ def test_past_preferred_date_is_rejected(client, db_session):
     [
         ("target_type", "hospital"),
         ("exercise_goal", "bulk"),
+        # 없앤 `건강 관리`. 여덟 목표 중 하나로 옮길 수 없어 그 회원만 건강
+        # 목표가 비어 있었다 — 새 신청으로 다시 들어오지 않게 막는다(#1992).
+        ("exercise_goal", "health"),
         ("health_purpose_type", "sleep"),
         ("preferred_time_slot", "night"),
         # 시각 없는 요청은 승인해도 잡을 시간이 없다 — 입력에서 막는다(#1587).
@@ -252,6 +256,41 @@ def test_invalid_limited_value_is_rejected(
     )
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "goal",
+    [
+        "weight_loss",
+        "strength",
+        "fitness",
+        "posture",
+        "rehab",
+        "eating",
+        "exercise_habit",
+        "blood_pressure",
+        "other",
+    ],
+)
+def test_every_member_goal_is_accepted(client, db_session, goal: str):
+    """상담 운동 목표가 온보딩 건강 목표 여덟 종과 1:1 이다. (#1992)
+
+    폼이 `kHealthFocusOptions` 를 그대로 선택지로 쓰므로, 여덟 중 하나라도
+    서버가 422 로 막으면 회원이 고를 수 있는 값으로 신청이 실패한다.
+    """
+    _, token = _register_member(client)
+    trainer = _create_trainer(db_session)
+    payload = _payload(trainer_id=trainer.id)
+    payload["exercise_goal"] = goal
+    # `other` 만 상세가 필요하다.
+    payload["health_purpose_type"] = "general"
+
+    response = client.post(
+        "/v1/consultations", headers=_auth(token), json=payload
+    )
+
+    assert response.status_code == 201, response.text
+    assert response.json()["exercise_goal"] == goal
 
 
 @pytest.mark.parametrize("detail", [None, "", "   "])
@@ -630,3 +669,6 @@ def test_legacy_preferred_time_slot_values_still_read(client, db_session):
     assert response.status_code == 200, response.text
     body = response.json()
     assert body[0]["preferred_time_slot"] == "morning"
+    # 없앤 `건강 관리` 도 같은 이유로 응답에 그대로 실린다 — 백필하지 않으므로
+    # 응답에서까지 좁히면 이 행에서 목록이 500 으로 죽는다(#1992).
+    assert body[0]["exercise_goal"] == "health"
