@@ -1125,6 +1125,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLogoutConfirm => 'Log out of your account?';
 
   @override
+  String get myWithdrawTitle => 'Delete account';
+
+  @override
+  String get myWithdrawConfirm =>
+      'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.';
+
+  @override
+  String get myWithdrawAction => 'Delete account';
+
+  @override
+  String get myWithdrawFailed =>
+      'We could not delete your account. Please try again in a moment.';
+
+  @override
   String get myCancel => 'Cancel';
 
   @override

@@ -35,6 +35,16 @@ class AppPrefs {
   bool get homeGuideDone => _prefs.getBool(_kHomeGuideDone) ?? false;
   Future<void> setHomeGuideDone(bool value) =>
       _prefs.setBool(_kHomeGuideDone, value);
+
+  /// 계정에 매인 기기 기록을 지운다 — 탈퇴한 계정의 흔적이 다음 회원에게
+  /// 넘어가지 않게 한다(#1935). 같은 기기에 다른 계정으로 로그인했을 때
+  /// 첫 설정과 가이드를 처음처럼 만나야 한다.
+  ///
+  /// **언어는 남긴다.** 기기 설정이지 계정의 것이 아니다.
+  Future<void> clearAccountScoped() async {
+    await _prefs.remove(_kOnboardingDone);
+    await _prefs.remove(_kHomeGuideDone);
+  }
 }
 
 final appPrefsProvider = Provider<AppPrefs>(
