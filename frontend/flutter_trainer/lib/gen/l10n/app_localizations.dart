@@ -2138,12 +2138,6 @@ abstract class AppLocalizations {
   /// **'e.g. I have another appointment at your requested time.'**
   String get consultRejectHint;
 
-  /// No description provided for @consultRejectAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Decline'**
-  String get consultRejectAction;
-
   /// No description provided for @consultStatusPending.
   ///
   /// In en, this message translates to:
@@ -3889,12 +3883,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Changing…'**
   String get myPwChanging;
-
-  /// No description provided for @myPwChangeAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Change'**
-  String get myPwChangeAction;
 
   /// No description provided for @mySettingsSaveFailed.
   ///

@@ -1,3 +1,5 @@
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
+
 class ClientExerciseWeek {
   const ClientExerciseWeek({
     required this.dayLabels,
@@ -17,7 +19,7 @@ class ClientExerciseWeek {
     this.sessionCount,
     this.weeklyGoalMinutes = 0,
     this.weeklyGoalCalories = 0,
-    this.itemsByDayLabel = const <String, List<String>>{},
+    this.itemsByDayLabel = const <String, List<ClientExerciseItem>>{},
   });
 
   final List<String> dayLabels;
@@ -65,11 +67,13 @@ class ClientExerciseWeek {
   /// 눈금 끝이 늘 100 이라 목표가 필요 없었기 때문이다(#1289).
   final int weeklyGoalCalories;
 
-  /// 요일 라벨 → 그날 한 운동 이름들. 서버 응답의 `sessions` 에서 모은다.
+  /// 요일 라벨 → 그날 한 운동들. 서버 응답의 `sessions` 에서 모은다.
   ///
   /// 날짜별 기록을 펼쳤을 때 "그날 무엇을 했는지" 를 말하는 재료다(#1025).
-  /// 예전에는 `sessions` 에서 개수만 세고 버렸다.
-  final Map<String, List<String>> itemsByDayLabel;
+  ///
+  /// 이름만이 아니라 **값까지** 든다(#1902). 예전에는 이름 문자열만 모아서,
+  /// 세트·중량을 보여 주려면 픽스처가 그 수를 이름에 적어 넣어야 했다.
+  final Map<String, List<ClientExerciseItem>> itemsByDayLabel;
 
   /// 유형 분해가 실려 왔는가. 길이가 어긋난 응답은 없는 것으로 본다 — 반쪽만
   /// 쌓으면 막대가 실제보다 낮아 보인다.
@@ -84,20 +88,43 @@ class ClientExerciseWeek {
   int get workoutCount =>
       sessionCount ?? dailyMinutes.where((minutes) => minutes > 0).length;
 
-  /// `sessions` → 요일별 운동 이름. 같은 요일에 두 번 했으면 이어 붙인다.
-  static Map<String, List<String>> _itemsByDayLabel(Object? sessions) {
-    final Map<String, List<String>> out = <String, List<String>>{};
+  /// `sessions` → 요일별 운동. 같은 요일에 두 번 했으면 이어 붙인다.
+  ///
+  /// 기록 한 행이 운동 하나다 — 그 행의 `sets`·`reps`·`weight` 가 곧 그 종목의
+  /// 값이다(#1902). 이름은 `name` 을 쓰고, 그 칸이 없던 옛 응답만 `items` 에서
+  /// 가져온다.
+  static Map<String, List<ClientExerciseItem>> _itemsByDayLabel(
+    Object? sessions,
+  ) {
+    final Map<String, List<ClientExerciseItem>> out =
+        <String, List<ClientExerciseItem>>{};
     for (final Object? row
         in (sessions as List<Object?>?) ?? const <Object?>[]) {
       if (row is! Map<String, Object?>) continue;
       final String day = (row['day_label'] as String?) ?? '';
       if (day.isEmpty) continue;
-      final List<String> items =
+      final String name = (row['name'] as String?) ?? '';
+      final List<String> legacy =
           ((row['items'] as List<Object?>?) ?? const <Object?>[])
               .whereType<String>()
               .toList();
-      if (items.isEmpty) continue;
-      (out[day] ??= <String>[]).addAll(items);
+      final List<String> names = name.isNotEmpty ? <String>[name] : legacy;
+      if (names.isEmpty) continue;
+      // 이름이 여럿인 옛 응답은 합계 행이라 값을 나눠 줄 수 없다 — 그때는 이름만
+      // 든다. 지어낸 수를 종목에 붙이지 않는다.
+      final bool single = names.length == 1;
+      for (final String each in names) {
+        (out[day] ??= <ClientExerciseItem>[]).add(
+          ClientExerciseItem(
+            name: each,
+            type: _kindOf(row['type'] as String?),
+            minutes: single ? ((row['minutes'] as num?)?.toInt() ?? 0) : 0,
+            sets: single ? (row['sets'] as num?)?.toInt() : null,
+            reps: single ? (row['reps'] as num?)?.toInt() : null,
+            weight: single ? (row['weight'] as num?)?.toDouble() : null,
+          ),
+        );
+      }
     }
     return out;
   }

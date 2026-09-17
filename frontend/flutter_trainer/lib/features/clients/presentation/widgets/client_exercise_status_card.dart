@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/workout_view.dart'
+    show clientExerciseLine;
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
@@ -239,9 +242,7 @@ class _WorkoutDetailState extends ConsumerState<_WorkoutDetail> {
               children: <Widget>[
                 if (_expanded && scrollsInside)
                   ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxHeight: _allMaxHeight,
-                    ),
+                    constraints: const BoxConstraints(maxHeight: _allMaxHeight),
                     // 스크롤바는 테마 기본(스크롤할 때 나타남)을 따른다 — 늘
                     // 보이게 강제하지 않는다.
                     child: ListView(
@@ -306,6 +307,7 @@ class _DetailEntry extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     return Padding(
       padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
@@ -344,7 +346,8 @@ class _DetailEntry extends StatelessWidget {
             ],
           ),
           const SizedBox(height: OnCareSpacing.s4),
-          for (final String line in entry.exercises) _ExerciseLine(line: line),
+          for (final ClientExerciseItem item in entry.exercises)
+            _ExerciseLine(line: clientExerciseLine(l, item), done: item.done),
         ],
       ),
     );
@@ -358,10 +361,13 @@ class _DetailEntry extends StatelessWidget {
 /// 두부 상자로 그려진다. 표시를 읽어 아이콘과 취소선으로 바꿔 그린다 — 앱의
 /// 운동 기록 탭(`ExerciseLine`)과 같은 규칙이다.
 class _ExerciseLine extends StatelessWidget {
-  const _ExerciseLine({required this.line});
+  const _ExerciseLine({required this.line, this.done = true});
 
-  /// 저장된 문자열. 끝의 '✓'/'✗' 가 수행 여부를 나타낸다.
+  /// 이미 조립된 한 줄 — `벤치프레스 · 4세트 · 10회 · 40kg`.
   final String line;
+
+  /// 실제로 했는가. 예전에는 줄 끝의 `✓`/`✗` 로 알았다(#1902).
+  final bool done;
 
   @override
   Widget build(BuildContext context) {

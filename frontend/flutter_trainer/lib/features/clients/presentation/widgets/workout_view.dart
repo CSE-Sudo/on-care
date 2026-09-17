@@ -5,6 +5,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/number_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_ai_analysis_card.dart';
@@ -236,10 +237,12 @@ class _HistoryCardState extends ConsumerState<_HistoryCard> {
             ],
           ),
           const SizedBox(height: OnCareSpacing.s8),
-          for (final (int i, String line) in entry.exercises.indexed)
+          for (final (int i, ClientExerciseItem item)
+              in entry.exercises.indexed)
             _ExerciseLine(
               key: ValueKey<String>('workout-exercise-line-${entry.id}-$i'),
-              line: line,
+              line: clientExerciseLine(l, item),
+              done: item.done,
             ),
           // 개인 운동(배정 루틴)에 회원이 적는 피드백은 없앴다(#1825) — 회원의
           // 불편·부정적 반응은 채팅에서 감지해 모은다. 옛 데이터가 남아 있어도
@@ -435,14 +438,19 @@ class _NoteBox extends StatelessWidget {
 /// 이지 화면에 찍을 것이 아니다: Flutter web 의 폰트 스택에 글리프가 없어
 /// 두부 상자로 그려진다. 표시를 읽어 아이콘과 취소선으로 바꿔 그린다.
 class _ExerciseLine extends StatelessWidget {
-  const _ExerciseLine({super.key, required this.line});
+  const _ExerciseLine({super.key, required this.line, this.done = true});
 
+  /// 이미 조립된 한 줄 — `벤치프레스 · 4세트 · 10회 · 40kg`.
   final String line;
+
+  /// 실제로 했는가. 예전에는 줄 끝의 `✓`/`✗` 로 알았는데, 이제 값이 따로 온다
+  /// (#1902).
+  final bool done;
 
   @override
   Widget build(BuildContext context) {
-    final bool skipped = line.contains('✗');
-    final String text = line.replaceAll(RegExp(r'\s*[✓✗]\s*'), ' ').trim();
+    final bool skipped = !done;
+    final String text = line;
     final Color color = skipped
         ? OnCareColors.textDisabled
         : OnCareColors.textSecondary;
@@ -722,23 +730,26 @@ class _DayDetail extends ConsumerWidget {
         ),
       );
     }
-    final AsyncValue<List<String>> async = ref.watch(
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AsyncValue<List<ClientExerciseItem>> async = ref.watch(
       clientExercisesOnProvider((clientId: clientId, date: date)),
     );
     return async.maybeWhen(
-      data: (List<String> lines) {
+      data: (List<ClientExerciseItem> items) {
         // 분 수는 있는데 이름이 없는 날이 있다 — 합계만 들어온 기록이다.
         // 그럴 때는 아무 말도 하지 않는다: 위 알약이 이미 그날을 말했다.
-        if (lines.isEmpty) return const SizedBox.shrink();
+        if (items.isEmpty) return const SizedBox.shrink();
         return Padding(
           padding: const EdgeInsets.only(top: OnCareSpacing.s12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              for (final (int i, String line) in lines.indexed)
+              for (final (int i, ClientExerciseItem item) in items.indexed)
                 _ExerciseLine(
-                  key: ValueKey<String>('workout-exercise-line-${ymd(date)}-$i'),
-                  line: line,
+                  key: ValueKey<String>(
+                    'workout-exercise-line-${ymd(date)}-$i',
+                  ),
+                  line: clientExerciseLine(l, item),
                 ),
             ],
           ),
@@ -958,3 +969,30 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
     );
   }
 }
+
+/// 고객이 그날 한 운동 한 줄 — `벤치프레스 · 4세트 · 10회 · 40kg`. (#1902)
+///
+/// 단위는 로케일을 타는 문구라 여기서 붙인다. 예전에는 이 수가 이름 문자열
+/// 안에 있어서(`레그프레스 70kg · 4세트`), 값을 필드로 옮기면 화면에서 사라졌다.
+///
+/// 근력은 세트·횟수·중량으로, 나머지는 분으로 읽는다 — 회원 앱과 같은 규칙이다
+/// (#1262). 적히지 않은 칸은 건너뛴다.
+String clientExerciseLine(AppLocalizations l, ClientExerciseItem item) {
+  final int? sets = item.sets;
+  final int? reps = item.reps;
+  final double? weight = item.weight;
+  final List<String> parts = <String>[
+    item.name,
+    if (sets != null && sets > 0) l.progSetsValue(sets),
+    if (reps != null && reps > 0) l.progRepsValue(reps),
+    if (weight != null && weight > 0)
+      '${_trimZeroKg(weight)}${l.routineUnitKg}',
+    if (sets == null && item.minutes > 0) l.minutesShort(item.minutes),
+  ];
+  return parts.join(' · ');
+}
+
+/// 20.0 → `20`, 62.5 → `62.5`. 정수 무게에 소수점이 붙으면 원판 단위가 아닌
+/// 값을 적은 것처럼 읽힌다.
+String _trimZeroKg(double value) =>
+    value == value.roundToDouble() ? '${value.round()}' : '$value';

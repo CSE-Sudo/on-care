@@ -1,4 +1,5 @@
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
@@ -58,6 +59,20 @@ ClientDietEntry clientDietEntryFromJson(Map<String, Object?> json) {
   );
 }
 
+/// `exercisesJson` / 서버 `exercises` → 운동 목록.
+///
+/// 값까지 실린 객체를 읽되(#1902), 이름만 싣던 옛 자료(`벤치프레스 ✓`)도 받는다.
+List<ClientExerciseItem> clientExerciseItems(Object? raw) {
+  if (raw is! List) return const <ClientExerciseItem>[];
+  return <ClientExerciseItem>[
+    for (final Object? item in raw)
+      if (item is Map<String, Object?>)
+        ClientExerciseItem.fromJson(item)
+      else if (item is String)
+        ClientExerciseItem.nameOnly(item),
+  ];
+}
+
 /// `GET /v1/trainer/clients/{id}/history` element → [RoutineHistoryEntry].
 RoutineHistoryEntry routineHistoryEntryFromJson(Map<String, Object?> json) {
   return RoutineHistoryEntry(
@@ -65,7 +80,7 @@ RoutineHistoryEntry routineHistoryEntryFromJson(Map<String, Object?> json) {
     dateLabel: _str(json['date_label']),
     label: _str(json['label']),
     completionRate: _int(json['completion_rate']),
-    exercises: _strList(json['exercises']),
+    exercises: clientExerciseItems(json['exercises']),
     clientFeedback: _str(json['client_feedback']),
     trainerNote: _str(json['trainer_note']),
     assignedRoutineId: _nullableStr(json['assigned_routine_id']),
@@ -156,7 +171,3 @@ List<int> _intList(Object? v) => v is List
 List<double> _doubleList(Object? v) => v is List
     ? v.whereType<num>().map((n) => n.toDouble()).toList(growable: false)
     : const <double>[];
-
-List<String> _strList(Object? v) => v is List
-    ? v.whereType<String>().toList(growable: false)
-    : const <String>[];

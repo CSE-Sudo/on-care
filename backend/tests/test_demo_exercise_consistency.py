@@ -148,4 +148,6 @@ def test_seeded_strength_keeps_the_sets_the_fixture_wrote(client):
         if s["type"] == "strength" and s["date"] == day.iso
     ]
     assert strength, f"{day.iso} 근력 기록이 없다"
-    assert strength[0]["sets"] == expected
+    # 기록 한 행이 운동 하나다(#1902) — 그날 근력 세트의 **합**을 견준다. 예전에는
+    # 하루·유형으로 묶여 한 행에 합계가 들어 있었다.
+    assert sum(s["sets"] or 0 for s in strength) == expected
