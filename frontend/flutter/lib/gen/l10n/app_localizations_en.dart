@@ -337,6 +337,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietMealSnack => 'Snack';
 
   @override
+  String get dietMealLateNight => 'Late-night';
+
+  @override
   String dietMealSheetTitle(String meal) {
     return '$meal';
   }
@@ -1793,18 +1796,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exExerciseGoal => 'Exercise Goal';
-
-  @override
-  String get exGoalWeightLoss => 'Weight Loss';
-
-  @override
-  String get exGoalStrength => 'Build Strength';
-
-  @override
-  String get exGoalFitness => 'Improve Fitness';
-
-  @override
-  String get exGoalPosture => 'Improve Posture';
 
   @override
   String get exGoalHealth => 'Health Management';

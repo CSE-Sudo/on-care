@@ -206,7 +206,7 @@ class DietEntry(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     date: Mapped[str] = mapped_column(String(10), index=True)  # YYYY-MM-DD
-    meal_type: Mapped[str] = mapped_column(String(20))  # breakfast|lunch|dinner|snack
+    meal_type: Mapped[str] = mapped_column(String(20))  # breakfast|lunch|dinner|snack|lateNight
     time_label: Mapped[str] = mapped_column(String(10), default="")
     foods_json: Mapped[str] = mapped_column(Text, default="[]")  # [{name, calories}]
     total_calories: Mapped[int] = mapped_column(Integer, default=0)
