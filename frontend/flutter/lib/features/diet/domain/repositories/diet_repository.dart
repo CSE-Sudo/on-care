@@ -1,5 +1,6 @@
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 
@@ -56,5 +57,18 @@ abstract class DietRepository {
     int? totalCalories,
     int? sodiumMg,
     double? sugarG,
+  });
+
+  /// POST /diet/nutrition — 음식 이름으로 공공 영양 DB 값을 찾는다. (#1896)
+  ///
+  /// 수정 화면이 이름을 고쳤을 때 **제안**에 쓴다. 계산은 분석 보정과 같은
+  /// 것이라, 이름으로 찾은 값과 사진 분석이 준 값이 갈리지 않는다.
+  ///
+  /// [amountG] 를 주면 그 양으로 환산하고, 안 주면 DB 가 아는 1회 섭취량을 쓴다.
+  /// 찾지 못했거나 양을 정할 수 없으면 **null** — 그때 화면은 아무것도 제안하지
+  /// 않는다. [name] 은 비어 있으면 안 된다(서버가 400).
+  Future<FoodNutritionSuggestion?> lookupFoodNutrition({
+    required String name,
+    double? amountG,
   });
 }
