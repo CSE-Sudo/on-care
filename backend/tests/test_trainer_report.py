@@ -34,6 +34,36 @@ def test_week_start_of_normalises_any_day_to_monday():
         assert week_start_of(date(2026, 8, 3 + offset)) == monday
 
 
+def test_meal_kr_labels_all_five_meal_types():
+    """다섯 끼니가 모두 제 라벨로 간다 (#1988).
+
+    키는 회원 앱 `MealType.name` 이다 — `lateNight` 만 camelCase 인 것은 그
+    이름이 곧 전송값이기 때문이다.
+    """
+    from app.services.trainer_service import _meal_kr
+
+    assert _meal_kr("breakfast") == "아침"
+    assert _meal_kr("lunch") == "점심"
+    assert _meal_kr("dinner") == "저녁"
+    assert _meal_kr("snack") == "간식"
+    assert _meal_kr("lateNight") == "야식"
+
+
+def test_meal_kr_does_not_fold_late_night_into_snack():
+    """야식이 간식으로 접히면 밤늦게 먹은 것을 낮의 간식과 갈라 볼 수 없다."""
+    from app.services.trainer_service import _meal_kr
+
+    assert _meal_kr("lateNight") != _meal_kr("snack")
+
+
+def test_meal_kr_passes_through_unknown_meal_types():
+    """모르는 값은 간식으로 접지 않고 그대로 둔다 — 새 끼니가 조용히 섞이면
+    트레이너가 틀린 근거로 코칭한다."""
+    from app.services.trainer_service import _meal_kr
+
+    assert _meal_kr("brunch") == "brunch"
+
+
 def test_report_message_omits_figures_without_data():
     """기록이 없는 항목은 빈 값을 적지 않고 아예 뺀다 — '이행률 0%'는 거짓말."""
     from app.schemas.trainer_api import WeeklyReportOut

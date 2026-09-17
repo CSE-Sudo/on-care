@@ -1,7 +1,18 @@
-enum MealType { breakfast, lunch, dinner, snack }
+/// 끼니 종류. 이름이 곧 API `meal_type` 문자열이다 — 보내는 쪽도 읽는 쪽도
+/// [MealType.name] 을 그대로 쓴다. 서버는 이 값을 검증하지 않는 자유 문자열
+/// (`String(20)`)로 받으므로, 이름과 전송값이 갈리면 틀린 값이 조용히 저장되고
+/// 트레이너 웹에서 간식으로 접힌다. 새 값을 더할 때도 이 규칙을 지킨다.
+enum MealType { breakfast, lunch, dinner, snack, lateNight }
 
-MealType _mealFromString(String s) =>
-    MealType.values.firstWhere((m) => m.name == s);
+/// 서버가 준 `meal_type` → [MealType]. 모르는 값은 [MealType.snack] 으로 접는다.
+///
+/// 끼니는 늘어날 수 있고(#1988 의 `lateNight`), 앱은 저보다 새 서버를 만날 수
+/// 있다. 그때 하루치 식단 전체가 파싱에서 죽는 것보다, 모르는 한 끼가 간식으로
+/// 보이는 편이 낫다.
+MealType _mealFromString(String s) => MealType.values.firstWhere(
+  (m) => m.name == s,
+  orElse: () => MealType.snack,
+);
 
 class FoodItem {
   const FoodItem({
