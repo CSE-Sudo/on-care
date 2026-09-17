@@ -14,6 +14,7 @@ class UserProfile {
 
   const UserProfile({
     required this.id,
+    this.onboarded = false,
     required this.name,
     required this.email,
     this.phone = '',
@@ -41,6 +42,11 @@ class UserProfile {
   });
 
   final String id;
+
+  /// 첫 설정(온보딩)을 끝냈는가. 서버가 첫 저장 때 참으로 표시한다(#1927).
+  /// 기기가 아니라 계정에 붙는 값이라, 기기를 바꿔도 다시 묻지 않는다.
+  final bool onboarded;
+
   final String name;
   final String email;
   final String phone;
@@ -98,6 +104,7 @@ class UserProfile {
   final DateTime? focusChangedAt;
 
   factory UserProfile.fromJson(Map<String, Object?> json) => UserProfile(
+    onboarded: (json['onboarded'] as bool?) ?? false,
     id: (json['id'] as String?) ?? '',
     name: (json['name'] as String?) ?? '',
     email: (json['email'] as String?) ?? '',

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -73,13 +74,25 @@ class _SignInPageState extends ConsumerState<SignInPage> {
     }
     final email = _email.text.trim();
     final password = _password.text;
+    // 로그인에 성공하면 라우터의 세션 가드가 이 화면을 그 자리에서 대시보드로
+    // 갈아 치운다. 그 뒤에도 갈 곳을 정하고 옮길 수 있도록, 위젯에 매인 것이
+    // 아닌 라우터·컨테이너를 먼저 붙들어 둔다(#1927).
+    // 라우터가 없는 자리(위젯 하나만 띄우는 테스트)에서는 옮길 곳도 없다.
+    final GoRouter? router = GoRouter.maybeOf(context);
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() => _loading = true);
     try {
       await ref
           .read(sessionControllerProvider.notifier)
           .login(email: email, password: password);
-      if (!mounted) return;
-      context.go(AppRoutes.dashboard);
+      // 첫 설정을 아직 안 한 회원**만** 옮긴다(#1927). 로그인에 성공하면 라우터의
+      // 세션 가드가 이미 홈으로 보내 두었으므로, 홈으로 한 번 더 `go` 하면
+      // 탭 껍데기(`StatefulShellRoute`)가 다시 세워지며 열려 있던 탭이 초기화된다.
+      final String next = await firstRouteAfterSignIn(container);
+      if (next != AppRoutes.dashboard) router?.go(next);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -90,6 +103,13 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   Future<void> _social(String provider) async {
     final AppLocalizations l = AppLocalizations.of(context);
     if (_loading) return;
+    // 이메일 로그인과 같은 이유로 먼저 붙들어 둔다(#1927).
+    // 라우터가 없는 자리(위젯 하나만 띄우는 테스트)에서는 옮길 곳도 없다.
+    final GoRouter? router = GoRouter.maybeOf(context);
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     // 목업이 받아 주지 않는 설정에서는 고정 토큰을 내보내지 않는다. 버튼을
     // 감추는 것과 별개로 이 경로 자체를 한 번 더 막는다(#1553).
     if (!ref.read(appConfigProvider).socialDemoLoginEnabled) return;
@@ -100,8 +120,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       await ref
           .read(sessionControllerProvider.notifier)
           .socialLogin(provider: provider, token: 'demo-$provider-token');
-      if (!mounted) return;
-      context.go(AppRoutes.dashboard);
+      final String next = await firstRouteAfterSignIn(container);
+      if (next != AppRoutes.dashboard) router?.go(next);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);

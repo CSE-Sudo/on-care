@@ -260,3 +260,48 @@ def test_dashboard_summary_falls_back_per_missing_goal(client, db_session):
     assert indicators["칼로리"]["max"] == 1800
     assert indicators["나트륨"]["max"] == 2000
     assert indicators["당류"]["max"] == 35
+
+
+def test_dashboard_names_the_advice_it_chose(client, db_session):
+    """홈 조언에 로케일 독립 식별자를 함께 싣는가. (#1943)
+
+    앱은 이 키를 먼저 보고 자기 문장을 그린다. 키가 없으면 서버가 만든 한국어
+    고정 문장으로 떨어져 **영어 회원이 한국어 조언을 읽는다.** 데모 서버만 이
+    키를 내려주고 있었다.
+    """
+    from app.api.v1.dashboard import _advice_key
+
+    # 나트륨 경고가 있으면 그것이 조언이다 — 앱이 고르는 순서와 같다.
+    assert (
+        _advice_key(
+            sodium_warning="오늘 나트륨이 3000mg 으로 권장량(2000mg)을 넘었어요.",
+            sodium_source_names=[],
+            exercise_advice_key="exercise_start",
+        )
+        == "sodium_over"
+    )
+    # 음식 이름이 든 경고는 키를 주지 않는다 — 그 이름은 번역 대상이 아니라
+    # 회원이 적은 데이터라, 문장을 통째로 보내는 편이 맞다.
+    assert (
+        _advice_key(
+            sodium_warning="라면·김치 섭취로 나트륨이 높아요.",
+            sodium_source_names=["라면", "김치"],
+            exercise_advice_key="exercise_start",
+        )
+        is None
+    )
+    # 경고가 없으면 운동 되먹임이 조언이다.
+    for key in ("exercise_on_track", "exercise_more", "exercise_start"):
+        assert (
+            _advice_key(
+                sodium_warning=None,
+                sodium_source_names=[],
+                exercise_advice_key=key,
+            )
+            == key
+        )
+
+    # 응답에도 실려야 한다 — 계산만 하고 내보내지 않으면 화면은 예전 그대로다.
+    r = client.get("/v1/dashboard/summary")
+    assert r.status_code == 200, r.text
+    assert "ai_advice_key" in r.json()

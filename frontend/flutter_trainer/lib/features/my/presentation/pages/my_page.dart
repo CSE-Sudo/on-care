@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
@@ -10,6 +11,7 @@ import 'package:oncare_trainer/app/shell/page_scroll_reset.dart';
 // 도입 시 세션 계층을 core/session 으로 승격해 이 의존을 정리한다.
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
+import 'package:oncare_trainer/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/client_card.dart';
 import 'package:oncare_trainer/features/my/data/trainer_account_repository.dart';
@@ -98,9 +100,26 @@ class _MyPageState extends ConsumerState<MyPage> {
     return _fields.putIfAbsent(key, () => TextEditingController(text: initial));
   }
 
+  /// 전화번호 안내를 띄울지. `저장` 을 눌러 한 번 막힌 뒤부터 켠다(#1914) —
+  /// 치기도 전에 빨간 글씨가 뜨면 입력하기 전에 틀린 사람이 된다.
+  bool _showPhoneError = false;
+
+  /// 전화번호 칸의 안내. 서버가 회원 경로와 같은 기준으로 보므로(#1914) 여기서
+  /// 같은 규칙을 미리 보여 준다 — 서버에서 걸리면 이유를 알 수 없는 오류
+  /// 토스트만 남는다.
+  ///
+  /// **빈 칸은 오류가 아니다.** 트레이너 가입은 전화번호를 받지 않으므로
+  /// 처음부터 없는 값이고, 경력만 고치려는 사람을 연락처로 막으면 안 된다.
+  String? _phoneError(AppLocalizations l) {
+    final String phone = _fields['phone']?.text.trim() ?? '';
+    if (phone.isEmpty) return null;
+    return authInputErrorText(l, AppInputRules.phone(phone));
+  }
+
   void _startEdit() {
     setState(() {
       _editing = true;
+      _showPhoneError = false;
       _draftCerts = List<String>.of(_certs);
       _draftGymId = _gym.id ?? '';
       _field('name', _profile.name).text = _profile.name;
@@ -127,6 +146,12 @@ class _MyPageState extends ConsumerState<MyPage> {
     if (careerYears == null || careerYears < 0 || careerYears > 80) {
       final AppLocalizations l = AppLocalizations.of(context);
       showAppToast(context, l.myCareerInvalid);
+      return;
+    }
+    // 형식이 틀린 전화번호는 보내지 않고 칸 아래에 알린다(#1914). 서버도 같은
+    // 기준으로 막지만, 거기서 걸리면 어느 칸이 문제인지 말해 줄 수 없다.
+    if (_phoneError(AppLocalizations.of(context)) != null) {
+      setState(() => _showPhoneError = true);
       return;
     }
 
@@ -406,7 +431,13 @@ class _MyPageState extends ConsumerState<MyPage> {
           AppBanner(title: l.mySaved, tone: AppBannerTone.success),
           const SizedBox(height: OnCareSpacing.s12),
         ],
-        _ProfileCard(profile: _profile, editing: _editing, field: _field),
+        _ProfileCard(
+          profile: _profile,
+          editing: _editing,
+          field: _field,
+          phoneError: _showPhoneError ? _phoneError(l) : null,
+          onPhoneChanged: _showPhoneError ? (_) => setState(() {}) : null,
+        ),
         const SizedBox(height: OnCareSpacing.sectionGap),
         AppSectionHeader(title: l.myCertifications),
         const SizedBox(height: OnCareSpacing.s8),
@@ -776,11 +807,20 @@ class _ProfileCard extends StatelessWidget {
     required this.profile,
     required this.editing,
     required this.field,
+    this.phoneError,
+    this.onPhoneChanged,
   });
 
   final TrainerProfile profile;
   final bool editing;
   final TextEditingController Function(String, String) field;
+
+  /// 전화번호 칸 아래 안내(#1914). 저장을 눌러 한 번 막히기 전에는 null 이다.
+  final String? phoneError;
+
+  /// 오류를 보인 뒤 다시 검사하려고 페이지에 알린다. 보인 적 없으면 null 이라
+  /// 입력마다 다시 그리지 않는다.
+  final ValueChanged<String>? onPhoneChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -847,6 +887,15 @@ class _ProfileCard extends StatelessWidget {
               label: l.myFieldPhone,
               controller: field('phone', profile.phone),
               inputKey: const ValueKey<String>('profile-phone'),
+              keyboardType: TextInputType.phone,
+              // 숫자만 쳐도 하이픈을 넣어 준다 — 회원 앱 가입 화면과 같은
+              // 서식이다(#1914).
+              inputFormatters: const <TextInputFormatter>[
+                AppPhoneNumberFormatter(),
+              ],
+              errorText: phoneError,
+              // 오류를 보인 뒤에는 고치는 대로 다시 검사한다.
+              onChanged: onPhoneChanged,
             ),
             _EditField(
               label: l.myFieldSpecialty,
@@ -877,6 +926,10 @@ class _EditField extends StatelessWidget {
     this.maxLines = 1,
     this.enabled = true,
     this.inputKey,
+    this.keyboardType,
+    this.inputFormatters,
+    this.errorText,
+    this.onChanged,
   });
 
   final String label;
@@ -884,6 +937,12 @@ class _EditField extends StatelessWidget {
   final int maxLines;
   final bool enabled;
   final Key? inputKey;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+
+  /// 형식이 틀린 칸의 안내. null 이면 안내가 없다(#1914).
+  final String? errorText;
+  final ValueChanged<String>? onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -895,6 +954,10 @@ class _EditField extends StatelessWidget {
         controller: controller,
         enabled: enabled,
         maxLines: maxLines,
+        keyboardType: keyboardType,
+        inputFormatters: inputFormatters,
+        errorText: errorText,
+        onChanged: onChanged,
       ),
     );
   }

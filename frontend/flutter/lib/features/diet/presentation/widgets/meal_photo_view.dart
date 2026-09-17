@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oncare/features/diet/presentation/widgets/stored_meal_photo.dart';
+import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 끼니 사진 — 회원이 올린 사진, 없으면 번들 자산, 그것도 없으면 끼니 이모지.
@@ -52,19 +53,22 @@ class MealPhotoView extends StatelessWidget {
               path: url,
               width: width,
               height: height,
-              fallback: _assetOrEmoji(),
+              fallback: _assetOrEmoji(context),
             )
-          : _assetOrEmoji(),
+          : _assetOrEmoji(context),
     );
   }
 
-  Widget _assetOrEmoji() {
+  Widget _assetOrEmoji(BuildContext context) {
     final String? asset = photoAsset;
     if (asset != null) {
       return Image.asset(
         asset,
         width: width,
         height: height,
+        // 번들 자산도 회원이 올린 사진과 같게 읽힌다 — 어느 쪽이 그려졌는지는
+        // 음성 안내로 읽는 회원에게 차이가 없다(#1942).
+        semanticLabel: AppLocalizations.of(context).a11yMealPhoto,
         fit: BoxFit.cover,
         // 번들 자산이 빠져 있어도 카드는 그려야 한다.
         errorBuilder: (BuildContext _, Object _, StackTrace? _) => _emoji(),

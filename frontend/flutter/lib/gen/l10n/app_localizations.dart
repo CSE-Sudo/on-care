@@ -224,6 +224,30 @@ abstract class AppLocalizations {
   /// **'Today\'s combined AI advice'**
   String get homeAiAdviceTitle;
 
+  /// Home AI advice when today's sodium is over the goal (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You went over the sodium target today. Try keeping the rest of your meals light.'**
+  String get homeAdviceSodiumOver;
+
+  /// Home AI advice when the weekly exercise goal is met (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You worked out {minutes} minutes this week. You are on track!'**
+  String homeAdviceExerciseOnTrack(int minutes);
+
+  /// Home AI advice when there is some exercise but not enough (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You worked out {minutes} minutes this week. A little more to go!'**
+  String homeAdviceExerciseMore(int minutes);
+
+  /// Home AI advice when nothing was logged this week (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'Start moving this week — an easy walk is a good beginning.'**
+  String get homeAdviceExerciseStart;
+
   /// No description provided for @homeAiAdviceBody.
   ///
   /// In en, this message translates to:
@@ -1298,6 +1322,12 @@ abstract class AppLocalizations {
   /// **'Rest'**
   String get exRest;
 
+  /// No description provided for @exRestSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest {seconds}s'**
+  String exRestSeconds(int seconds);
+
   /// No description provided for @exAiRecommendedExercise.
   ///
   /// In en, this message translates to:
@@ -2072,6 +2102,24 @@ abstract class AppLocalizations {
   /// **'500P'**
   String get myPointsRecipeCost;
 
+  /// Screen reader label for an image a trainer sent in chat (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo from your trainer'**
+  String get a11yCoachPhoto;
+
+  /// Screen reader label for a saved meal photo (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Meal photo'**
+  String get a11yMealPhoto;
+
+  /// Screen reader label for a recommended meal photo (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo of {name}'**
+  String a11yMealPhotoOf(String name);
+
   /// No description provided for @myLogout.
   ///
   /// In en, this message translates to:
@@ -2083,6 +2131,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Log out of your account?'**
   String get myLogoutConfirm;
+
+  /// Account deletion entry at the end of the MY settings list (#1935).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get myWithdrawTitle;
+
+  /// No description provided for @myWithdrawConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.'**
+  String get myWithdrawConfirm;
+
+  /// No description provided for @myWithdrawAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get myWithdrawAction;
+
+  /// No description provided for @myWithdrawFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not delete your account. Please try again in a moment.'**
+  String get myWithdrawFailed;
 
   /// No description provided for @myCancel.
   ///
@@ -2291,13 +2363,13 @@ abstract class AppLocalizations {
   /// No description provided for @myLegalTermsBody.
   ///
   /// In en, this message translates to:
-  /// **'Terms of Service (Korean original governs).'**
+  /// **'Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member\'s health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company\'s policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 January 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
   String get myLegalTermsBody;
 
   /// No description provided for @myLegalPrivacyBody.
   ///
   /// In en, this message translates to:
-  /// **'Privacy Policy (Korean original governs).'**
+  /// **'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n6. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.'**
   String get myLegalPrivacyBody;
 
   /// No description provided for @myLegalEffectiveDate.
@@ -2437,6 +2509,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get coachChatBack;
+
+  /// Button above the trainer chat thread that fetches the previous page (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'Load older messages'**
+  String get coachChatLoadOlder;
 
   /// No description provided for @coachChatLoadFailed.
   ///
@@ -2947,25 +3025,43 @@ abstract class AppLocalizations {
   /// **'Writing your answer'**
   String get aicGeneratingReply;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'{part} pain noted'**
   String aicInsightDiscomfortPart(String part);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Pain noted'**
   String get aicInsightDiscomfort;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Negative feedback noted'**
   String get aicInsightNegative;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// Removes one detection from the AI coach insight log (#1975).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get aicInsightDelete;
+
+  /// No description provided for @aicInsightDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this detection from the log? What you wrote stays in the conversation.'**
+  String get aicInsightDeleteConfirm;
+
+  /// No description provided for @aicInsightDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not remove it. Please try again in a moment.'**
+  String get aicInsightDeleteFailed;
+
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Noted signals'**
@@ -2977,19 +3073,19 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get aicInsightHistoryAction;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
-  /// **'Pain and negative feedback noted in the last {days} days'**
+  /// **'Pain and negative feedback noted in the last {days} days. The AI uses these when it answers'**
   String aicInsightHistorySubtitle(int days);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Nothing noted in the last {days} days'**
   String aicInsightHistoryEmpty(int days);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load noted signals'**
@@ -3480,6 +3576,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Opens the KakaoTalk channel'**
   String get mySupportExternalHint;
+
+  /// Splash message while the saved session is being restored (#1944).
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring your session'**
+  String get authRestoring;
+
+  /// No description provided for @authRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not restore your session — the connection looks unstable.'**
+  String get authRestoreFailed;
+
+  /// No description provided for @authRestoreRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get authRestoreRetry;
+
+  /// No description provided for @authRestoreSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get authRestoreSignIn;
 
   /// No description provided for @authTagline.
   ///
@@ -4419,8 +4539,14 @@ abstract class AppLocalizations {
   /// Explains the placeholder grams shown in the macro fields.
   ///
   /// In en, this message translates to:
-  /// **'Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat'**
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat);
+  /// **'Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat · {sugar} g sugar'**
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  );
 
   /// Button that fills the macro fields with the suggested grams.
   ///

@@ -72,6 +72,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeAiAdviceTitle => '오늘의 AI 통합 조언';
 
   @override
+  String get homeAdviceSodiumOver => '오늘 나트륨이 권장량을 넘었어요. 남은 끼니는 담백하게 드셔 보세요.';
+
+  @override
+  String homeAdviceExerciseOnTrack(int minutes) {
+    return '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!';
+  }
+
+  @override
+  String homeAdviceExerciseMore(int minutes) {
+    return '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!';
+  }
+
+  @override
+  String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
+
+  @override
   String get homeAiAdviceBody =>
       '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 높아진 나트륨과 혈당을 낮추기 위해 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
 
@@ -657,6 +673,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exRest => '휴식';
 
   @override
+  String exRestSeconds(int seconds) {
+    return '휴식 $seconds초';
+  }
+
+  @override
   String get exAiRecommendedExercise => 'AI 추천 운동';
 
   @override
@@ -1086,10 +1107,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => '트레이너가 보낸 사진';
+
+  @override
+  String get a11yMealPhoto => '끼니 사진';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return '$name 사진';
+  }
+
+  @override
   String get myLogout => '로그아웃';
 
   @override
   String get myLogoutConfirm => '로그아웃 하시겠어요?';
+
+  @override
+  String get myWithdrawTitle => '회원 탈퇴';
+
+  @override
+  String get myWithdrawConfirm =>
+      '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화도 사라집니다. 되돌릴 수 없어요.';
+
+  @override
+  String get myWithdrawAction => '탈퇴하기';
+
+  @override
+  String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get myCancel => '취소';
@@ -1283,6 +1328,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachChatBack => '뒤로가기';
+
+  @override
+  String get coachChatLoadOlder => '이전 메시지 더 보기';
 
   @override
   String get coachChatLoadFailed => '대화를 불러오지 못했어요';
@@ -1602,6 +1650,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightNegative => '부정적 반응 감지';
 
   @override
+  String get aicInsightDelete => '삭제';
+
+  @override
+  String get aicInsightDeleteConfirm => '이 감지를 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
+
+  @override
+  String get aicInsightDeleteFailed => '지우지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
   String get aicInsightHistoryTitle => '감지 기록';
 
   @override
@@ -1609,7 +1666,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
+    return '최근 $days일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요';
   }
 
   @override
@@ -1875,6 +1932,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mySupportExternalHint => '카카오톡 채널로 연결돼요';
+
+  @override
+  String get authRestoring => '로그인 정보를 불러오는 중이에요';
+
+  @override
+  String get authRestoreFailed => '연결이 불안정해 로그인 정보를 불러오지 못했어요.';
+
+  @override
+  String get authRestoreRetry => '다시 시도';
+
+  @override
+  String get authRestoreSignIn => '로그인 화면으로';
 
   @override
   String get authTagline => '식단·운동 관리 앱';
@@ -2383,8 +2452,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalCaloriesFromMacros => '탄·단·지 목표로 계산한 값이에요';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g · 당류 ${sugar}g';
   }
 
   @override

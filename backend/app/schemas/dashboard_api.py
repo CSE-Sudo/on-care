@@ -48,3 +48,12 @@ class DashboardSummary(BaseModel):
     week_score_delta: int
     sodium_warning: Optional[str]
     exercise_feedback: str
+    #: 홈 `오늘의 AI 통합 조언` 이 고른 문장의 **로케일 독립 식별자**. (#1943)
+    #:
+    #: 앱은 이 키를 먼저 보고 자기 문장을 그린다. 키가 없으면 위 두 문장을 받은
+    #: 그대로 쓰는데, 그것은 서버가 만든 한국어라 **영어 회원이 한국어 조언을
+    #: 읽었다.** 데모 서버만 이 키를 내려주고 있었다.
+    #:
+    #: 나트륨 경고에 음식 이름이 들어가는 경우는 키를 주지 않는다 — 그 이름은
+    #: 번역 대상이 아니라 회원이 적은 데이터라, 문장을 통째로 보내는 편이 맞다.
+    ai_advice_key: Optional[str] = None

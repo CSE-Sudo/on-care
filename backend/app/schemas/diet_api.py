@@ -77,6 +77,9 @@ class DietEntryOut(BaseModel):
     # 회원이 올린 끼니 사진의 조회 경로(API base 기준 상대 경로). 사진이 없으면
     # null — 사진 저장(#699) 이전 기록과 인식만 하고 사진을 못 남긴 기록이 있다.
     photo_url: str | None = None
+    # 사진 분석이 만든 식단평(#1932). 손으로 적은 끼니와 컬럼 이전 기록은 빈
+    # 문자열이다 — 앱은 비어 있으면 그 줄을 그리지 않는다.
+    ai_comment: str = ""
 
 
 class DietEntryUpdate(PartialUpdate):

@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
@@ -34,8 +35,8 @@ class _CountingAccountRepository extends MockAccountRepository {
     String? phone,
     String? birthDate,
     String? gender,
-    num? heightCm,
-    num? weightKg,
+    MeasureUpdate? heightCm,
+    MeasureUpdate? weightKg,
     String? goals,
   }) {
     saves++;

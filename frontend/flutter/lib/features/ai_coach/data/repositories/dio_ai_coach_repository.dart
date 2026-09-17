@@ -54,4 +54,9 @@ class DioAiCoachRepository implements AiCoachRepository {
     final res = await _dio.get<Map<String, Object?>>('/ai-coach/insights');
     return ChatInsightHistory.fromJson(res.data ?? const <String, Object?>{});
   }
+
+  @override
+  Future<void> dismissInsight(String messageId) async {
+    await _dio.delete<Map<String, Object?>>('/ai-coach/insights/$messageId');
+  }
 }

@@ -167,7 +167,12 @@ void main() {
     expect(r.sessionOrder, 2);
     expect(r.isProgramSession, isTrue);
     expect(r.exercises.single.name, '레그프레스');
-    expect(r.exercises.single.detail, '4세트 × 12회 · 60kg · 휴식 90초');
+    // 한 줄 요약은 로케일을 타므로 presentation 이 만든다(#1933). 매퍼가
+    // 확인할 것은 값이 그대로 실려 오는지다.
+    expect(r.exercises.single.sets, '4');
+    expect(r.exercises.single.reps, '12회');
+    expect(r.exercises.single.weight, '60kg');
+    expect(r.exercises.single.rest, '90');
   });
 
   test('coachRoutineFromJson keeps working without the session keys', () {
