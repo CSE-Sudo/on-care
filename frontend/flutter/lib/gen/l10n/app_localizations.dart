@@ -2090,6 +2090,30 @@ abstract class AppLocalizations {
   /// **'Log out of your account?'**
   String get myLogoutConfirm;
 
+  /// Account deletion entry at the end of the MY settings list (#1935).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get myWithdrawTitle;
+
+  /// No description provided for @myWithdrawConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.'**
+  String get myWithdrawConfirm;
+
+  /// No description provided for @myWithdrawAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get myWithdrawAction;
+
+  /// No description provided for @myWithdrawFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not delete your account. Please try again in a moment.'**
+  String get myWithdrawFailed;
+
   /// No description provided for @myCancel.
   ///
   /// In en, this message translates to:
@@ -4425,8 +4449,14 @@ abstract class AppLocalizations {
   /// Explains the placeholder grams shown in the macro fields.
   ///
   /// In en, this message translates to:
-  /// **'Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat'**
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat);
+  /// **'Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat · {sugar} g sugar'**
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  );
 
   /// Button that fills the macro fields with the suggested grams.
   ///

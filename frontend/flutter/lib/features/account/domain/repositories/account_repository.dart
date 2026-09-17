@@ -1,4 +1,5 @@
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 
 abstract class AccountRepository {
@@ -59,14 +60,18 @@ abstract class AccountRepository {
   });
 
   /// PUT /users/me — update basic profile (name/email/phone/birth).
+  ///
+  /// 키·몸무게는 [MeasureUpdate] 로 받는다 — 인자를 주지 않으면 손대지 않고,
+  /// [MeasureUpdate.clear] 는 값을 지운다. `num?` 하나로는 그 둘을 표현할 수
+  /// 없어 비운 칸이 "손대지 않음"으로 나갔다(#1941).
   Future<UserProfile> updateProfile({
     String? name,
     String? email,
     String? phone,
     String? birthDate,
     String? gender,
-    num? heightCm,
-    num? weightKg,
+    MeasureUpdate? heightCm,
+    MeasureUpdate? weightKg,
     String? goals,
   });
 }

@@ -87,7 +87,8 @@ def totals_from_foods(foods: list[RecognizedFood]) -> DietAnalysis:
 def entry_to_analysis(entry: DietEntry) -> DietAnalysis:
     """저장된 DietEntry → 분석 응답용 DietAnalysis(멱등 재시도 응답용).
 
-    coach_comment 는 저장하지 않으므로 재시도 응답에선 비운다(엔트리는 이미 존재).
+    coach_comment 도 저장된 값을 그대로 돌려준다(#1932) — 재시도가 같은 응답을
+    받아야 화면이 처음 저장 때와 다른 것을 보여 주지 않는다.
     끼니 macros/nutrient 합계는 DietEntry 를 단일 원본으로 그대로 반영한다.
     """
     foods_raw = json.loads(entry.foods_json) if entry.foods_json else []
@@ -100,7 +101,7 @@ def entry_to_analysis(entry: DietEntry) -> DietAnalysis:
         total_fat_g=entry.fat_g,
         total_sodium_mg=entry.sodium_mg,
         total_sugar_g=entry.sugar_g,
-        coach_comment="",
+        coach_comment=entry.ai_comment or "",
     )
 
 
@@ -115,6 +116,7 @@ def _entry_out(entry: DietEntry, photo_id: str | None = None) -> DietEntryOut:
         foods=load_foods(entry.foods_json), total_calories=entry.total_calories,
         carbs_g=entry.carbs_g, protein_g=entry.protein_g, fat_g=entry.fat_g,
         sodium_mg=entry.sodium_mg, sugar_g=entry.sugar_g,
+        ai_comment=entry.ai_comment or "",
         photo_url=member_photo_url(photo_id) if photo_id else None,
     )
 
@@ -388,6 +390,9 @@ def save_analyzed_entry(
         sodium_mg=analysis.total_sodium_mg,
         sugar_g=analysis.total_sugar_g,
         engine=analysis.engine,
+        # 분석이 만든 식단평을 함께 남긴다(#1932). 저장하지 않으면 응답 한 번으로
+        # 사라져, 방금 찍어 저장한 끼니도 화면을 다시 열면 코멘트가 없다.
+        ai_comment=analysis.coach_comment or "",
         idempotency_key=idempotency_key,
     )
     db.add(entry)
