@@ -2089,7 +2089,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signUpPhoneFormatInvalid =>
-      'Enter your phone number as 000-0000-0000';
+      'Enter your phone number as 010-0000-0000';
 
   @override
   String get myFieldBirthInvalid => 'Enter your date of birth as 1996-03-21';

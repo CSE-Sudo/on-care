@@ -17,7 +17,7 @@ enum AppInputError {
   /// 이메일 형식이 아니다.
   emailInvalid,
 
-  /// 전화번호가 `000-0000-0000` 형식이 아니다(비어 있는 경우 포함).
+  /// 전화번호가 `010-0000-0000` 형식이 아니다(비어 있는 경우 포함).
   phoneInvalid,
 
   /// 비밀번호 칸이 비었다.
@@ -51,8 +51,19 @@ abstract final class AppInputRules {
     r'(?:\.[A-Za-z0-9](?:[A-Za-z0-9\-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$',
   );
 
-  /// 휴대전화 표기 3-4-4.
-  static final RegExp _phone = RegExp(r'^\d{3}-\d{4}-\d{4}$');
+  /// 휴대전화 표기 `010-0000-0000`.
+  ///
+  /// **앞자리를 `010` 으로 못박는다.** 3자리를 아무 숫자나 받던 때는
+  /// `123-4567-8901` 처럼 걸 수 없는 번호가 그대로 통과해, 트레이너가 담당
+  /// 회원에게 연락하려고 보는 자리에 남았다. 자릿수만 맞으면 되니 화면은
+  /// 아무 말도 하지 않았다.
+  ///
+  /// 01X 번호는 2021-06-30 에 서비스가 끝나 지금 쓰이는 휴대전화는 전부 010
+  /// 이다 — 앞자리를 넓혀도 막히던 사람이 풀리지 않고, 011 은 3-3-4 라
+  /// [AppPhoneNumberFormatter] 의 끊는 자리까지 갈라진다.
+  ///
+  /// 서버(`contact_format.normalize_phone`)가 **같은 앞자리**를 다시 본다.
+  static final RegExp _phone = RegExp(r'^010-\d{4}-\d{4}$');
 
   /// 생년월일 표기 `YYYY-MM-DD`. 실제 날짜인지는 [DateTime.tryParse] 가 본다.
   static final RegExp _birthDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
@@ -127,8 +138,8 @@ abstract final class AppInputRules {
     return null;
   }
 
-  /// 전화번호 — 정확히 `000-0000-0000`. [AppPhoneNumberFormatter] 가 하이픈을
-  /// 넣어 주므로 숫자 11자리를 채우면 맞는다.
+  /// 전화번호 — 정확히 `010-0000-0000`. [AppPhoneNumberFormatter] 가 하이픈을
+  /// 넣어 주므로 `010` 으로 시작하는 숫자 11자리를 채우면 맞는다.
   static AppInputError? phone(String value) =>
       _phone.hasMatch(value.trim()) ? null : AppInputError.phoneInvalid;
 

@@ -527,7 +527,7 @@ abstract class AppLocalizations {
   /// Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive.
   ///
   /// In en, this message translates to:
-  /// **'Enter your phone number as 000-0000-0000'**
+  /// **'Enter your phone number as 010-0000-0000'**
   String get authErrPhoneInvalid;
 
   /// Shared birth-date message (#1887). The trainer app has no birth-date field today; kept so the shared AppInputError mapping stays exhaustive.
