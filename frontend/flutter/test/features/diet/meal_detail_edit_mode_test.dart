@@ -15,6 +15,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 
@@ -114,6 +115,54 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('저장'), findsOneWidget);
+  });
+
+  testWidgets('끼니 칩은 아침·점심·저녁·간식·야식 다섯이다', (WidgetTester tester) async {
+    await _openDetail(tester, FakeDietRepository());
+
+    await tester.tap(_editButton);
+    await tester.pumpAndSettle();
+
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(_firstFoodName),
+    );
+    expect(
+      tester
+          .widgetList<AppChoiceChip>(find.byType(AppChoiceChip))
+          .map((AppChoiceChip c) => c.label),
+      <String>[
+        l.dietMealBreakfast,
+        l.dietMealLunch,
+        l.dietMealDinner,
+        l.dietMealSnack,
+        l.dietMealLateNight,
+      ],
+      reason: '야식이 빠지면 밤늦게 먹은 것을 고를 자리가 없다(#1988)',
+    );
+  });
+
+  testWidgets('야식으로 고치면 lateNight 로 저장된다', (WidgetTester tester) async {
+    final FakeDietRepository repo = FakeDietRepository();
+    await _openDetail(tester, repo);
+
+    await tester.tap(_editButton);
+    await tester.pumpAndSettle();
+
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(_firstFoodName),
+    );
+    await tester.tap(find.widgetWithText(AppChoiceChip, l.dietMealLateNight));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    // 전송값은 enum 이름 그대로다 — 이름과 갈리면 서버가 검증 없이 받아
+    // 트레이너 웹에서 간식으로 접힌다.
+    final DietEntry saved = (await tester.runAsync(
+      () => repo.fetchToday(),
+    ))!.entries.firstWhere((DietEntry e) => e.id == 'mock-breakfast');
+    expect(saved.mealType, MealType.lateNight);
+    expect(saved.mealType.name, 'lateNight');
   });
 
   testWidgets('음식의 탄수화물을 고치면 합계가 따라오고 저장 뒤에도 남는다', (WidgetTester tester) async {

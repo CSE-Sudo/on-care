@@ -191,6 +191,7 @@
   "dietMealLunch": "Lunch",
   "dietMealDinner": "Dinner",
   "dietMealSnack": "Snack",
+  "dietMealLateNight": "Late-night",
   "dietMealSheetTitle": "{meal}",
   "dietFoodDbMatch": "Public DB · {name}",
   "@dietFoodDbMatch": {

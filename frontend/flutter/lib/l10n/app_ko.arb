@@ -118,6 +118,7 @@
   "dietMealLunch": "점심",
   "dietMealDinner": "저녁",
   "dietMealSnack": "간식",
+  "dietMealLateNight": "야식",
   "dietMealSheetTitle": "{meal} 식단",
   "dietFoodDbMatch": "공공 DB · {name}",
   "@dietFoodDbMatch": {

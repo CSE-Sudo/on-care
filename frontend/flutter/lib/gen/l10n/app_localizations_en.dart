@@ -337,6 +337,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietMealSnack => 'Snack';
 
   @override
+  String get dietMealLateNight => 'Late-night';
+
+  @override
   String dietMealSheetTitle(String meal) {
     return '$meal';
   }

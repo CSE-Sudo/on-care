@@ -119,15 +119,23 @@ String mealBadge(AppLocalizations l, MealType t) => switch (t) {
   MealType.lunch => l.dietMealLunch,
   MealType.dinner => l.dietMealDinner,
   MealType.snack => l.dietMealSnack,
+  MealType.lateNight => l.dietMealLateNight,
 };
 
 /// Best-guess meal type for a new entry, based on the current time of day.
+///
+/// 21시 이후는 야식이다(#1988). 그전에는 그 자리가 간식이었는데, 밤늦게 먹은
+/// 것과 낮의 간식이 한 칸에 섞여 코칭에서 갈라 보이지 않았다.
+///
+/// 간식에는 시간대를 주지 않는다. 어느 시간대를 떼어 주더라도 그 시간에 먹은
+/// 끼니가 매번 간식으로 찍혀 회원이 고쳐야 한다 — 간식은 끼니 사이에 먹는
+/// 것이지 특정 시각에 먹는 것이 아니다. 회원이 상세에서 직접 고른다.
 String _currentMealType() {
   final int h = nowKst().hour;
-  if (h < 11) return 'breakfast';
-  if (h < 15) return 'lunch';
-  if (h < 21) return 'dinner';
-  return 'snack';
+  if (h < 11) return MealType.breakfast.name;
+  if (h < 15) return MealType.lunch.name;
+  if (h < 21) return MealType.dinner.name;
+  return MealType.lateNight.name;
 }
 
 /// 역할 글자 + 색. 크기·굵기 숫자는 적지 않는다(#1690).
@@ -589,7 +597,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date);
 
   /// 이 기록이 들어갈 끼니. `widget.mealType` 은 사진을 고른 시각으로 추측한
-  /// 값이다(`_currentMealType`). 저장한 뒤 끼니 카드가 아침·점심·저녁·간식
+  /// 값이다(`_currentMealType`). 저장한 뒤 끼니 카드가 아침·점심·저녁·간식·야식
   /// 중 어디에 붙을지가 여기서 정해지므로, 저장 전에 보여 준다(#1897).
   MealType get _meal => MealType.values.firstWhere(
     (MealType m) => m.name == widget.mealType,
