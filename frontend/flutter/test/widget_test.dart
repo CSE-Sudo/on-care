@@ -539,8 +539,8 @@ void main() {
   test('English PT set count uses the correct singular and plural forms', () {
     final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
-    expect(en.exProgramSets(1), '1 set');
-    expect(en.exProgramSets(2), '2 sets');
+    expect(en.exSetsCount(1), '1 set');
+    expect(en.exSetsCount(2), '2 sets');
   });
 
   testWidgets('English locale localises the Home AI advice (리뷰 #292)', (

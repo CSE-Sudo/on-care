@@ -669,6 +669,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exRest => 'Rest';
 
   @override
+  String exRestSeconds(int seconds) {
+    return 'Rest ${seconds}s';
+  }
+
+  @override
   String get exAiRecommendedExercise => 'AI recommended exercise';
 
   @override
@@ -711,17 +716,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String exCompletedPtFeedback(String coachName) {
     return '$coachName · Today\'s feedback';
-  }
-
-  @override
-  String exProgramSets(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sets',
-      one: '1 set',
-    );
-    return '$_temp0';
   }
 
   @override
@@ -791,12 +785,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exSetsCount(int sets) {
-    return '$sets sets';
+    String _temp0 = intl.Intl.pluralLogic(
+      sets,
+      locale: localeName,
+      other: '$sets sets',
+      one: '1 set',
+    );
+    return '$_temp0';
   }
 
   @override
   String exRepsCount(int reps) {
-    return '$reps reps';
+    String _temp0 = intl.Intl.pluralLogic(
+      reps,
+      locale: localeName,
+      other: '$reps reps',
+      one: '1 rep',
+    );
+    return '$_temp0';
   }
 
   @override

@@ -328,6 +328,14 @@
   },
   "exTodayTotalTime": "Today's total time",
   "exRest": "Rest",
+  "exRestSeconds": "Rest {seconds}s",
+  "@exRestSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "exAiRecommendedExercise": "AI recommended exercise",
   "exStatTime": "Time",
   "exStatCalories": "Calories",
@@ -355,14 +363,6 @@
     "placeholders": {
       "coachName": {
         "type": "String"
-      }
-    }
-  },
-  "exProgramSets": "{count, plural, =1{1 set} other{{count} sets}}",
-  "@exProgramSets": {
-    "placeholders": {
-      "count": {
-        "type": "int"
       }
     }
   },
@@ -394,7 +394,7 @@
   "exEnterName": "Please enter an exercise name",
   "exExerciseDuration": "Duration",
   "exExerciseSets": "Sets",
-  "exSetsCount": "{sets} sets",
+  "exSetsCount": "{sets, plural, =1{1 set} other{{sets} sets}}",
   "@exSetsCount": {
     "placeholders": {
       "sets": {
@@ -402,7 +402,7 @@
       }
     }
   },
-  "exRepsCount": "{reps} reps",
+  "exRepsCount": "{reps, plural, =1{1 rep} other{{reps} reps}}",
   "@exRepsCount": {
     "placeholders": {
       "reps": {

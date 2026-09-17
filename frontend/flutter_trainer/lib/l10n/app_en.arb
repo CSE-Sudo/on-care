@@ -870,14 +870,6 @@
   },
   "exStreakStart": "No streak yet",
   "exTypeOther": "Other",
-  "exSetsValue": "{count, plural, =1{1 set} other{{count} sets}}",
-  "@exSetsValue": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "clientPeriodLoggedDays": "{days, plural, =1{1 day logged} other{{days} days logged}}",
   "@clientPeriodLoggedDays": {
     "placeholders": {
@@ -1206,7 +1198,7 @@
   "progType": "Type",
   "progDuration": "Duration (min)",
   "progOptional": "Optional",
-  "progSetsValue": "{sets} sets",
+  "progSetsValue": "{sets, plural, =1{1 set} other{{sets} sets}}",
   "@progSetsValue": {
     "placeholders": {
       "sets": {
@@ -1214,7 +1206,7 @@
       }
     }
   },
-  "progRepsValue": "{reps} reps",
+  "progRepsValue": "{reps, plural, =1{1 rep} other{{reps} reps}}",
   "@progRepsValue": {
     "placeholders": {
       "reps": {
@@ -2606,7 +2598,7 @@
     }
   },
   "coachTemplateMenu": "Template menu",
-  "aiStrengthSummary": "{sets} sets × {reps} reps · {weight}kg",
+  "aiStrengthSummary": "{sets} sets · {reps} reps · {weight}kg",
   "@aiStrengthSummary": {
     "placeholders": {
       "sets": {

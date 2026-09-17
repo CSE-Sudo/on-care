@@ -1298,6 +1298,12 @@ abstract class AppLocalizations {
   /// **'Rest'**
   String get exRest;
 
+  /// No description provided for @exRestSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest {seconds}s'**
+  String exRestSeconds(int seconds);
+
   /// No description provided for @exAiRecommendedExercise.
   ///
   /// In en, this message translates to:
@@ -1375,12 +1381,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{coachName} · Today\'s feedback'**
   String exCompletedPtFeedback(String coachName);
-
-  /// No description provided for @exProgramSets.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 set} other{{count} sets}}'**
-  String exProgramSets(int count);
 
   /// No description provided for @exAddExercise.
   ///
@@ -1511,13 +1511,13 @@ abstract class AppLocalizations {
   /// No description provided for @exSetsCount.
   ///
   /// In en, this message translates to:
-  /// **'{sets} sets'**
+  /// **'{sets, plural, =1{1 set} other{{sets} sets}}'**
   String exSetsCount(int sets);
 
   /// No description provided for @exRepsCount.
   ///
   /// In en, this message translates to:
-  /// **'{reps} reps'**
+  /// **'{reps, plural, =1{1 rep} other{{reps} reps}}'**
   String exRepsCount(int reps);
 
   /// No description provided for @exEnterSets.

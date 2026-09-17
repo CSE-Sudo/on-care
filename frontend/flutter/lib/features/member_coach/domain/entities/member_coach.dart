@@ -265,37 +265,40 @@ class CoachAttachment {
 ///
 /// 세트·횟수·중량은 문자열이다. 트레이너가 "10회"·"자체중량" 처럼 적을 수 있고,
 /// 숫자로 바꾸면 그 표현이 사라진다(#709).
+/// 배정 세션에 담긴 운동 한 항목. (#709)
+///
+/// 값은 **수**로 든다(#1904). 서버(`ProgramDraftExercise`)가 진작부터 수로
+/// 내려보내는데 이 클래스만 문자열로 받아, `12회`·`60kg` 처럼 단위가 섞인 글이
+/// 그대로 화면에 실렸다 — 단위를 붙이는 곳이 앱의 다른 기록들과 갈렸고, 회차만
+/// 있는 항목은 단위 없이 숫자만 뜨기도 했다.
+///
+/// 한 줄로 읽히는 요약은 화면 층이 만든다. 단위와 구분자는 문구(l10n)라
+/// 엔티티가 한국어를 들고 있으면 영어에서 한국어가 새어 나온다.
 class CoachRoutineExercise {
   const CoachRoutineExercise({
     required this.name,
-    this.sets = '',
-    this.reps = '',
-    this.weight = '',
-    this.duration = '',
-    this.rest = '',
+    this.sets,
+    this.reps,
+    this.weight,
+    this.duration,
+    this.rest,
     this.memo = '',
   });
 
   final String name;
-  final String sets;
-  final String reps;
-  final String weight;
-  final String duration;
-  final String rest;
-  final String memo;
 
-  /// "4세트 × 12회 · 60kg" 처럼 한 줄로 읽히는 요약. 비어 있는 값은 건너뛴다.
-  String get detail => <String>[
-    if (sets.isNotEmpty && reps.isNotEmpty)
-      '$sets세트 × $reps'
-    else if (sets.isNotEmpty)
-      '$sets세트'
-    else if (reps.isNotEmpty)
-      reps,
-    if (duration.isNotEmpty) '$duration분',
-    if (weight.isNotEmpty && weight != '-') weight,
-    if (rest.isNotEmpty) '휴식 $rest초',
-  ].join(' · ');
+  /// 근력의 세트 수·한 세트당 횟수·중량(kg).
+  final int? sets;
+  final int? reps;
+  final double? weight;
+
+  /// 유산소·스트레칭의 운동 시간(분).
+  final int? duration;
+
+  /// 세트 사이 휴식(초). 지금 서버 계약에는 없고, 이 값을 싣던 옛 응답에서만 온다.
+  final int? rest;
+
+  final String memo;
 }
 
 /// 트레이너가 나에게 보낸 담당 요청. (#919)

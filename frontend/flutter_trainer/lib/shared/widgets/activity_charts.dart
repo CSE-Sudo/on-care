@@ -59,7 +59,7 @@ String kindValueText(AppLocalizations l, ExerciseKind kind, num value) =>
     switch (kind) {
       ExerciseKind.cardio ||
       ExerciseKind.stretching => l.minutesShort(value.round()),
-      ExerciseKind.strength => l.exSetsValue(value.round()),
+      ExerciseKind.strength => l.progSetsValue(value.round()),
     };
 
 /// 링 12시에 얹는 유형 기호 (회원 앱 #1128).
