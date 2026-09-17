@@ -25,6 +25,18 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 카드(오늘)** 를 따라가야 나머지 둘이 거기에 맞춰진다.
 const double kDietSummaryCardHeight = 284;
 
+/// `전체` 그래프가 한 화면에 보여주는 날 수.
+///
+/// 처음에는 30(≈한 달)이었다. 막대 사이를 띄우려면(양옆 [OnCareSpacing.s2])
+/// 그 여유가 어딘가에서 나와야 하는데, 칸 수를 30으로 둔 채 벌리면 전부 막대
+/// 두께에서 깎인다 — 기준 폭(375)에서 6.5 → 4.5 가 된다. 칸 수를 줄여 자리를
+/// 만들면 막대는 그대로(6.6)이고 벌린 만큼이 전부 사이로 간다.
+///
+/// 폭에서 칸 수를 구하지 않고 **상수로 못박는 이유**는 카드 머리의 `하루 평균`
+/// 이 지금 보이는 구간만 세기 때문이다(#1018). 칸 수가 폭을 따라가면 같은
+/// 기록도 기기마다 다른 구간의 평균이 된다.
+const int _kAllDaysPerScreen = 24;
+
 /// 식단 탭의 기간 뷰(이번 주 / 전체).
 ///
 /// 탭의 `운동 현황` 과 같은 기간 토글 아래에서 **하루 평균**을 머리 숫자로
@@ -55,7 +67,7 @@ class DietPeriodView extends ConsumerStatefulWidget {
 
   final DietDateRange range;
 
-  /// 이번 주인가. 주간은 한 화면에 일곱 칸을 요일 라벨로, 전체는 30칸을 옆으로
+  /// 이번 주인가. 주간은 한 화면에 일곱 칸을 요일 라벨로, 전체는 칸을 옆으로
   /// 밀어 보는 막대로 그린다 — 두 기간이 같은 패키지 그래프를 쓴다(#1700).
   final bool weekly;
 
@@ -815,7 +827,7 @@ class _PeriodBars extends StatelessWidget {
             count: values.length,
             height: _chartHeight,
             // 이번 주는 일곱 칸이 한 화면이라 밀리지 않는다.
-            daysPerScreen: weekly ? values.length : 30,
+            daysPerScreen: weekly ? values.length : _kAllDaysPerScreen,
             boldSelectedLabel: weekly,
             selectedIndex: selection.selected,
             onSelected: selection.select,
@@ -837,9 +849,11 @@ class _PeriodBars extends StatelessWidget {
                 : i % labelStep == 0
                 ? '${dates[i].month}/${dates[i].day}'
                 : '',
+            // 막대 사이를 띄운다 — 붙어 있으면 하루하루가 한 덩어리로 읽힌다.
+            // 그 자리는 [_kAllDaysPerScreen] 이 내주므로 막대는 얇아지지 않는다.
             barBuilder: (BuildContext context, int i) => Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: OnCareSize.hairline,
+                horizontal: OnCareSpacing.s2,
               ),
               child: Semantics(
                 label: _tipText(context, l, dayFormat, i, hasGoal),

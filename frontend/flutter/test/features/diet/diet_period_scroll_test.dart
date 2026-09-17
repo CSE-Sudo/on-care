@@ -79,8 +79,8 @@ Widget _app() => ProviderScope(
 
 void main() {
   Future<void> openAll(WidgetTester tester) async {
-    // 오늘을 고정한다. 대역이 날짜(`date.day`)로 칼로리를 만들어, 보이는 30일
-    // 창이 달의 어디에 걸리느냐로 평균이 달라진다 — 고정하지 않으면 이 테스트는
+    // 오늘을 고정한다. 대역이 날짜(`date.day`)로 칼로리를 만들어, 보이는 창이
+    // 달의 어디에 걸리느냐로 평균이 달라진다 — 고정하지 않으면 이 테스트는
     // 달력에 매인다. 실제로 8월 말에 두 구간의 평균이 같아져 깨졌다.
     useFixedKstDate();
 
@@ -94,7 +94,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('전체 그래프는 가로로 스크롤된다 — 한 화면에 30일', (WidgetTester tester) async {
+  testWidgets('전체 그래프는 가로로 스크롤된다 — 한 화면에 한 구간씩', (WidgetTester tester) async {
     await openAll(tester);
 
     final Finder chart = find.descendant(
@@ -110,7 +110,7 @@ void main() {
       reason: '전체 그래프가 옆으로 밀리지 않는다',
     );
 
-    // 12주치가 다 들어 있다 — 화면에 30일만 보일 뿐 잘라내지 않는다.
+    // 12주치가 다 들어 있다 — 한 화면에 한 구간만 보일 뿐 잘라내지 않는다.
     final List<DateTime> dates = dietRangeDates(
       dietRangeForTab(DietPeriodTab.month, nowKst()),
     );
