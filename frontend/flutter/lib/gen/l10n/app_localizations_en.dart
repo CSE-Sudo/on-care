@@ -1686,6 +1686,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightNegative => 'Negative feedback noted';
 
   @override
+  String get aicInsightDelete => 'Delete';
+
+  @override
+  String get aicInsightDeleteConfirm =>
+      'Remove this detection from the log? What you wrote stays in the conversation.';
+
+  @override
+  String get aicInsightDeleteFailed =>
+      'We could not remove it. Please try again in a moment.';
+
+  @override
   String get aicInsightHistoryTitle => 'Noted signals';
 
   @override
@@ -1693,7 +1704,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return 'Pain and negative feedback noted in the last $days days';
+    return 'Pain and negative feedback noted in the last $days days. The AI uses these when it answers';
   }
 
   @override

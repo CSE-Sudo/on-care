@@ -1739,6 +1739,15 @@ class AiMessage(Base):
     role: Mapped[str] = mapped_column(String(10))  # user|coach
     content: Mapped[str] = mapped_column(Text)
     sources_json: Mapped[str] = mapped_column(Text, default="[]")
+    #: 이 줄에서 찾은 통증·부정적 반응을 회원이 기록에서 치웠는가. (#1975)
+    #:
+    #: 감지는 저장하지 않고 대화에서 매번 계산하므로(`coach/insights.py`), 지울
+    #: 대상이 따로 없다. 대신 **그 감지를 더 보지 않겠다**는 표시를 메시지에
+    #: 남긴다 — 메시지 자체는 지우지 않는다. 회원이 쓴 말은 대화에 그대로 남고,
+    #: 규칙이 바뀌어 다른 감지가 나와도 이 표시는 그 줄 전체에 걸린다.
+    insight_dismissed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
