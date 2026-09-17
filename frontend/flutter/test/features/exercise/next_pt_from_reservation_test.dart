@@ -71,7 +71,7 @@ Future<AppLocalizations> _pump(
         coachSessionsProvider.overrideWith(
           (ref) async => const <CoachSession>[],
         ),
-        coachUnreadProvider.overrideWith((ref) async => 0),
+        coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),

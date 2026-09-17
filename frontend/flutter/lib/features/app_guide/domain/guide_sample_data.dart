@@ -57,7 +57,7 @@ List<Override> guideSampleOverrides() {
     memberCoachProvider.overrideWith((ref) => coach.fetchCoach()),
     coachRoutinesProvider.overrideWith((ref) => coach.fetchRoutines()),
     coachSessionsProvider.overrideWith((ref) => coach.fetchSessions()),
-    coachUnreadProvider.overrideWith((ref) async => 0),
+    coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
     // MY
     myHealthStateProvider.overrideWith((ref) => myHealth.fetchState()),
   ];
