@@ -69,9 +69,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeDashboardEmpty => '아직 오늘 기록이 없어요. 식단이나 운동을 기록해 보세요.';
 
   @override
-  String get homeScheduleEmpty => '오늘 예정된 일정이 없어요.';
-
-  @override
   String get homeAiAdviceTitle => '오늘의 AI 통합 조언';
 
   @override
@@ -183,14 +180,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeViewAll => '전체 보기';
-
-  @override
-  String homeScheduleDate(String weekday, int month, int day) {
-    return '$month월 $day일 $weekday요일';
-  }
-
-  @override
-  String get homeScheduleTitle => '오늘의 일정';
 
   @override
   String get unitKcal => 'kcal';
@@ -2279,97 +2268,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get actionConfirm => '확인';
-
-  @override
-  String get scheduleCategoryHospital => '병원';
-
-  @override
-  String get scheduleCategoryExercise => '운동';
-
-  @override
-  String get scheduleCategoryMeal => '식사';
-
-  @override
-  String get scheduleCategoryMedication => '약 복용';
-
-  @override
-  String get scheduleCategoryOther => '기타';
-
-  @override
-  String get eventAddTitle => '일정 추가';
-
-  @override
-  String get eventEditTitle => '일정 수정';
-
-  @override
-  String get eventTitleLabel => '일정 제목';
-
-  @override
-  String get eventTitleHint => '예: 병원 정기검진';
-
-  @override
-  String get eventDateLabel => '날짜';
-
-  @override
-  String get eventTimeLabel => '시간';
-
-  @override
-  String get eventTimeNone => '시간 없음';
-
-  @override
-  String get eventTitleRequired => '일정 제목을 입력해 주세요';
-
-  @override
-  String get eventAddFailed => '일정 추가에 실패했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get eventEditFailed => '일정 수정에 실패했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get eventSaving => '저장 중...';
-
-  @override
-  String get eventAdding => '추가 중...';
-
-  @override
-  String get eventSave => '저장하기';
-
-  @override
-  String get eventAdd => '추가하기';
-
-  @override
-  String eventClearField(String label) {
-    return '$label 지우기';
-  }
-
-  @override
-  String get eventDeleteTitle => '일정 삭제';
-
-  @override
-  String eventDeleteConfirm(String title) {
-    return '‘$title’ 일정을 삭제할까요? 되돌릴 수 없어요.';
-  }
-
-  @override
-  String get eventDeleteFailed => '일정 삭제에 실패했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get eventDeleted => '일정을 삭제했어요';
-
-  @override
-  String get eventsEmptyForDay => '이 날에는 일정이 없어요';
-
-  @override
-  String get eventAddForDay => '이 날에 일정 추가';
-
-  @override
-  String get eventTimeUnset => '시간 미정';
-
-  @override
-  String get scheduleSheetTitle => '일정 관리';
-
-  @override
-  String get eventsLoadFailed => '일정을 불러오지 못했어요';
 
   @override
   String get coachCardSleepTag => '수면';

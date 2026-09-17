@@ -4,7 +4,7 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 핵심 정렬 사항:
 - 사용자 id 는 문자열(예: 'user-7d4e9a2c5f18')
 - 식단은 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 (고혈압·당뇨 특화)
-- drift 테이블(diet_entries, exercise_sessions, schedule_events, notifications)과 1:1 대응
+- drift 테이블(diet_entries, exercise_sessions, notifications)과 1:1 대응
 
 이번 STEP 1 에서는 테이블 생성만 검증하고, 살은 이후 STEP 에서 채웁니다.
 """
@@ -428,25 +428,6 @@ class ExerciseSession(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-
-
-class ScheduleEvent(Base):
-    """일정 — drift ScheduleEvents 대응."""
-
-    __tablename__ = "schedule_events"
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
-    date: Mapped[str] = mapped_column(String(10), index=True)
-    time: Mapped[str] = mapped_column(String(10), default="")
-    title: Mapped[str] = mapped_column(String(200))
-    category: Mapped[str] = mapped_column(
-        String(20)
-    )  # hospital|exercise|meal|medication|other
-    emoji: Mapped[str] = mapped_column(String(10), default="")
-    color_hex: Mapped[str] = mapped_column(String(10), default="#E0F2F7")
 
 
 class Notification(Base):

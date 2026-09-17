@@ -58,7 +58,6 @@ const DashboardSummary _summary = DashboardSummary(
   exerciseMinutes: 30,
   exerciseCalories: 300,
   exerciseCount: 1,
-  todaySchedule: <ScheduleItem>[],
   weekScore: 80,
   weekScoreDelta: 5,
   sodiumWarning: '',

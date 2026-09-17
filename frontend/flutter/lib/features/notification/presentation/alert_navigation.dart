@@ -9,7 +9,6 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
-import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 
 /// 알림을 눌렀을 때 관련 화면으로 보내고, **그 화면이 읽는 값을 다시 받게 한다.**
 ///
@@ -57,13 +56,6 @@ Future<void> openAlertTarget(
         ..invalidate(coachInvitesProvider);
       if (!context.mounted) return;
       context.go(AppRoutes.exercise);
-    case AlertTarget.schedule:
-      ref
-        ..invalidate(scheduleEventsProvider)
-        ..invalidate(scheduleMonthProvider)
-        ..invalidate(coachSessionsProvider);
-      if (!context.mounted) return;
-      context.go(AppRoutes.dashboard);
     case AlertTarget.dashboard:
       if (!context.mounted) return;
       context.go(AppRoutes.dashboard);

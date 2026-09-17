@@ -92,7 +92,6 @@ class DioNotificationRepository implements NotificationRepository {
   /// 하지 않는다 — 안 보이는 알림보다 갈 곳 없는 알림이 낫다(트레이너 웹과 같은 규칙).
   static AlertTarget _targetFrom(String s) => switch (s) {
     'dashboard' => AlertTarget.dashboard,
-    'schedule' => AlertTarget.schedule,
     'coach_chat' => AlertTarget.coachChat,
     'exercise' => AlertTarget.exercise,
     'diet' => AlertTarget.diet,
