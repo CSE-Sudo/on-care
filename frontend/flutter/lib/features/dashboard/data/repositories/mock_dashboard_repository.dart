@@ -90,10 +90,6 @@ class MockDashboardRepository implements DashboardRepository {
       exerciseCalories: 520,
       exerciseCount: 4,
       nutritionWeek: nutritionWeek,
-      todaySchedule: const <ScheduleItem>[
-        ScheduleItem(time: '10:00', title: '병원 정기검진', emoji: '🏥'),
-        ScheduleItem(time: '18:00', title: '헬스장 운동', emoji: '💪'),
-      ],
       weekScore: 85,
       weekScoreDelta: 12,
       // 홈 '오늘의 AI 통합 조언' 자리. 문구가 아니라 키만 싣는다 — 문장은

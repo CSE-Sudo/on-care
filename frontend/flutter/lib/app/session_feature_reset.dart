@@ -12,7 +12,6 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
-import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 
 /// Connects session transitions to account-specific feature state.
 ///
@@ -66,8 +65,6 @@ Override sessionFeatureResetOverride() {
       // 벨의 빨간 점. 목 모드는 한 번 내보내고 끝이라, 되짚지 않으면 앞 계정의
       // 점이 앱을 다시 켤 때까지 남는다(#1936).
       ref.invalidate(notificationUnreadProvider);
-      ref.invalidate(scheduleEventsProvider);
-      ref.invalidate(scheduleMonthProvider);
     };
   });
 }

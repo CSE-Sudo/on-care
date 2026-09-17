@@ -34,12 +34,7 @@ import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
-import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
-import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/modals/add_event_dialog.dart';
-import 'package:oncare/shared/widgets/modals/day_events_sheet.dart';
-import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 
 const AppConfig _mockConfig = AppConfig(
   environment: Environment.dev,
@@ -101,85 +96,6 @@ void main() {
       reason: '영어 로케일인데 $surface 에 한국어가 남았어요: $leftovers',
     );
   }
-
-  // ── 일정 계열 — 이번에 문구 계층을 손댄 자리 ─────────────────────────────
-
-  testWidgets('일정 추가 대화상자에 한글이 남지 않는다', (WidgetTester tester) async {
-    await pump(
-      tester,
-      Builder(
-        builder: (BuildContext context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              onPressed: () => showAddEventDialog(context),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      ),
-      lang: 'en',
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-
-    expectNoHangul(tester, '일정 추가 대화상자');
-  });
-
-  testWidgets('그 날의 일정 시트에 한글이 남지 않는다', (WidgetTester tester) async {
-    await pump(
-      tester,
-      Builder(
-        builder: (BuildContext context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              // 일정이 없는 날 — 남는 것은 앱이 쓴 문구뿐이다.
-              onPressed: () => showDayEventsSheet(
-                context,
-                date: DateTime(2026, 8, 12),
-                events: const <ScheduleEvent>[],
-              ),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      ),
-      lang: 'en',
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-
-    expectNoHangul(tester, '그 날의 일정 시트');
-  });
-
-  testWidgets('일정 관리 시트에 한글이 남지 않는다', (WidgetTester tester) async {
-    await pump(
-      tester,
-      Builder(
-        builder: (BuildContext context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              onPressed: () => showScheduleCalendarSheet(
-                context,
-                initialDate: DateTime(2026, 8, 12),
-              ),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      ),
-      lang: 'en',
-      overrides: <Override>[
-        // 카테고리 범례와 요일 머리만 남기고 데모 일정은 비운다.
-        scheduleMonthProvider.overrideWith(
-          (Ref ref, String month) async => const <ScheduleEvent>[],
-        ),
-      ],
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-
-    expectNoHangul(tester, '일정 관리 시트');
-  });
 
   // ── MY · 알림 · 코칭 ────────────────────────────────────────────────────
 

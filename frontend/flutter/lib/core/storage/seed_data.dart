@@ -37,7 +37,7 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 ///   day without re-running on every boot.
 ///
 /// **Why this matters.** `LocalApiInterceptor._dashboardSummary`
-/// aggregates `dietEntries` / `exerciseSessions` / `scheduleEvents`
+/// aggregates `dietEntries` / `exerciseSessions`
 /// in real time with `WHERE date = today`. The legacy `seeded_v2`
 /// boolean flag would lock seed rows to the *first boot date* and
 /// produce an all-zero dashboard for every visitor on subsequent days.
@@ -68,9 +68,6 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     await (db.delete(db.dietEntries)..where((t) => t.id.like('seed-%'))).go();
     await (db.delete(
       db.exerciseSessions,
-    )..where((t) => t.id.like('seed-%'))).go();
-    await (db.delete(
-      db.scheduleEvents,
     )..where((t) => t.id.like('seed-%'))).go();
     await (db.delete(
       db.notificationItems,
@@ -170,60 +167,6 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
 
     // ---- Today's schedule (2 events) ----
     await db.batch((Batch b) {
-      b.insertAll(db.scheduleEvents, <ScheduleEventsCompanion>[
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-hospital',
-          date: today,
-          time: '10:00',
-          title: '병원 정기검진',
-          category: 'hospital',
-          emoji: const Value('🏥'),
-          colorHex: const Value('#FEE2E2'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-gym',
-          date: today,
-          time: '18:00',
-          title: '헬스장 운동',
-          category: 'exercise',
-          emoji: const Value('💪'),
-          colorHex: const Value('#DCFCE7'),
-        ),
-        // 월 전반에 흩뿌린 데모 일정(카테고리별) — 캘린더 색상 구분이
-        // 보이도록. colorHex 는 생략(프론트가 category 로 색칠).
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-nutrition',
-          date: '${today.substring(0, 7)}-05',
-          time: '14:00',
-          title: '영양 상담',
-          category: 'meal',
-          emoji: const Value('🍽️'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-med',
-          date: '${today.substring(0, 7)}-12',
-          time: '09:00',
-          title: '혈압약 처방',
-          category: 'medication',
-          emoji: const Value('💊'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-family',
-          date: '${today.substring(0, 7)}-22',
-          time: '12:00',
-          title: '가족 모임',
-          category: 'other',
-          emoji: const Value('📌'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-pt',
-          date: '${today.substring(0, 7)}-26',
-          time: '19:00',
-          title: 'PT 세션',
-          category: 'exercise',
-          emoji: const Value('💪'),
-        ),
-      ]);
     });
 
     // ---- Notifications ----
