@@ -32,8 +32,14 @@ logger = logging.getLogger(__name__)
 # 공공 DB 가 음식마다 내는 값이고(`nutrition/enrich.py`), 회원이 수정 모드에서 고치는
 # 값도 이것이다(#1856). 버리면 끼니 합계만 남아 수정 화면이 음식마다 0 을 보여 주고,
 # 회원이 고친 음식별 값도 저장되지 않는다.
+#
+# `amount_g` 도 함께 남긴다(#1876). 나머지 영양의 **기준점**이라서다 — 공공 DB 값은
+# 100g 기준이고 보정(`nutrition/enrich`)이 이 양으로 환산하므로, 양을 버리면 "그
+# 숫자가 무엇을 재고 나온 값인가" 가 사라져 회원이 양을 고쳐도 다시 셀 근거가 없다.
+# 비례 환산에 필요한 건 DB 재조회가 아니라 이 한 값이다. 없을 수 있다(양을 못 얻은
+# 인식·이 필드 이전 기록) — 읽는 쪽이 null 을 견딘다.
 _FOOD_STORAGE_FIELDS = (
-    "name", "calories", "sodium_mg", "sugar_g",
+    "name", "amount_g", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
 )
 # DASH 권고 나트륨 상한(고혈압 특화 코칭 기준).
