@@ -198,14 +198,40 @@ String _intensityLabel(AppLocalizations l, ExerciseIntensity intensity) =>
 /// 기록 한 줄이 말하는 **양**. 근력은 세트·횟수(·중량)로, 나머지는 분으로
 /// 읽는다 — 홈 운동 카드·운동 현황 링·주간 목표가 이미 근력을 세트로 세므로,
 /// 목록만 분으로 적으면 같은 기록이 화면마다 다른 수로 보인다. (#1262, #1310)
-String exerciseAmountLabel(AppLocalizations l, ExerciseSession s) {
-  if (s.type != ExerciseType.strength) {
-    return '${s.minutes}${l.unitMinutes}';
+String exerciseAmountLabel(AppLocalizations l, ExerciseSession s) =>
+    exerciseAmountLabelOf(
+      l,
+      type: s.type,
+      minutes: s.minutes,
+      sets: s.sets,
+      reps: s.reps,
+      weight: s.weight,
+    );
+
+/// [exerciseAmountLabel] 과 **같은 규칙**을 기록이 아닌 값으로도 쓰게 연 것.
+///
+/// 배정 개인운동(`CoachRoutine`)은 [ExerciseSession] 이 아니지만 같은 축으로
+/// 읽혀야 한다. 목록마다 따로 세면 같은 근력 운동이 추천 카드에서는 분, 운동
+/// 현황에서는 세트로 보인다(#1901).
+String exerciseAmountLabelOf(
+  AppLocalizations l, {
+  required ExerciseType type,
+  required int minutes,
+  int? sets,
+  int? reps,
+  double? weight,
+  bool setsFromMinutesWhenUnknown = true,
+}) {
+  // 세트를 모르는 근력을 분에서 되짚는 것은 **기록**의 규칙이다(#1262) — 이
+  // 필드가 생기기 전 기록을 읽기 위한 다리다. 트레이너가 정해 보낸 배정에는
+  // 쓰지 않는다: 그쪽은 적힌 수가 곧 값이라, 없는 세트를 만들어 적으면 회원이
+  // 받지도 않은 지시를 읽는다.
+  if (type != ExerciseType.strength ||
+      (sets == null && !setsFromMinutesWhenUnknown)) {
+    return '$minutes${l.unitMinutes}';
   }
-  final int sets = s.sets ?? setsFromStrengthMinutes(s.minutes.toDouble());
-  final int? reps = s.reps;
-  final double? weight = s.weight;
-  final StringBuffer buffer = StringBuffer(l.exSetsCount(sets));
+  final int setCount = sets ?? setsFromStrengthMinutes(minutes.toDouble());
+  final StringBuffer buffer = StringBuffer(l.exSetsCount(setCount));
   // 횟수·중량은 적었을 때만 붙인다 — 이 칸이 생기기 전 기록에 아무도 적지
   // 않은 수가 뜨면 안 된다. 다만 맨몸 운동의 `0kg` 은 적은 값이다: 중량 칸은
   // 비울 수 없어(최솟값 0) 근력이면 언제나 값을 하나 든다. 트레이너 앱도 같은
