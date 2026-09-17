@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -78,8 +79,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       await ref
           .read(sessionControllerProvider.notifier)
           .login(email: email, password: password);
+      // 첫 설정을 아직 안 한 회원은 그 화면으로 보낸다(#1927).
+      final String next = await firstRouteAfterSignIn(ref);
       if (!mounted) return;
-      context.go(AppRoutes.dashboard);
+      context.go(next);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -100,8 +103,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       await ref
           .read(sessionControllerProvider.notifier)
           .socialLogin(provider: provider, token: 'demo-$provider-token');
+      final String next = await firstRouteAfterSignIn(ref);
       if (!mounted) return;
-      context.go(AppRoutes.dashboard);
+      context.go(next);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
