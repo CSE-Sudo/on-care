@@ -495,7 +495,7 @@ class _RejectDialogState extends State<_RejectDialog> {
           Expanded(
             child: AppButton(
               key: const ValueKey<String>('consultation-reject-confirm'),
-              label: l.consultRejectAction,
+              label: l.consultReject,
               variant: AppButtonVariant.destructive,
               fullWidth: true,
               // Returns '' rather than null when left blank: null is the
