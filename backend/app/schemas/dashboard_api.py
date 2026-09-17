@@ -17,14 +17,6 @@ class DashboardIndicator(BaseModel):
     over_budget: bool = False
 
 
-class DashboardScheduleItem(BaseModel):
-    id: str
-    time: str
-    title: str
-    category: str
-    emoji: str
-
-
 class DashboardNutritionDay(BaseModel):
     """홈 식단 카드의 주간 추이 차트 한 점 — 하루치 영양 집계."""
     date: str        # YYYY-MM-DD
@@ -46,7 +38,6 @@ class DashboardSummary(BaseModel):
     # 식단 카드 주간 추이(최근 7일 일별 영양) + 지난 주 같은 요일(비교선)
     nutrition_week: list[DashboardNutritionDay] = []
     nutrition_week_prev: list[DashboardNutritionDay] = []
-    today_schedule: list[DashboardScheduleItem]
     week_score: int
     week_score_delta: int
     sodium_warning: Optional[str]

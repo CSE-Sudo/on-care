@@ -35,7 +35,6 @@ DashboardSummary _summary({String? adviceKey, String? sodiumWarning}) =>
       macros: const DietMacros.zero(),
       dietEntries: 0,
       exerciseMinutes: 0,
-      todaySchedule: const <ScheduleItem>[],
       weekScore: 0,
       weekScoreDelta: 0,
       sodiumWarning: sodiumWarning,

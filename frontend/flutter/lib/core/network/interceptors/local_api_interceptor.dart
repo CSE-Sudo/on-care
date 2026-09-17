@@ -31,7 +31,6 @@ import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
-import 'package:oncare/features/schedule/domain/schedule_format.dart';
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
 /// them out of the local SQLite database so the app can run as a
@@ -83,8 +82,6 @@ class LocalApiInterceptor extends Interceptor {
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
     'POST /exercise/calories': _exerciseCalories,
-    'GET /schedule/events': _scheduleEvents,
-    'POST /schedule/events': _scheduleCreate,
     'GET /notifications': _notifications,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
@@ -256,12 +253,6 @@ class LocalApiInterceptor extends Interceptor {
     }
     if (method == 'PUT' && path.startsWith('/exercise/sessions/')) {
       return _exerciseUpdate;
-    }
-    if (method == 'PUT' && path.startsWith('/schedule/events/')) {
-      return _scheduleUpdate;
-    }
-    if (method == 'DELETE' && path.startsWith('/schedule/events/')) {
-      return _scheduleDelete;
     }
     return null;
   }
@@ -542,15 +533,6 @@ class LocalApiInterceptor extends Interceptor {
     // (혈당 row removed from the home summary per the latest design ref —
     // the indicator list now ends at 당류.)
 
-    // Today's schedule items.
-    final schedRows = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.date.equals(today))).get();
-    final schedJson = <Map<String, Object?>>[
-      for (final r in schedRows)
-        <String, Object?>{'time': r.time, 'title': r.title, 'emoji': r.emoji},
-    ];
-
     final now = nowKst();
     final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
     final nutritionByDate = <String, Map<String, num>>{
@@ -627,7 +609,6 @@ class LocalApiInterceptor extends Interceptor {
       'exercise_count': exerciseRows.map((r) => r.dayLabel).toSet().length,
       'nutrition_week': nutritionWeek,
       'nutrition_week_prev': <Object?>[],
-      'today_schedule': schedJson,
       'week_score': score,
       // Delta is a static demo number for now — full week-over-week
       // diff lands in a later phase.
@@ -1636,167 +1617,10 @@ class LocalApiInterceptor extends Interceptor {
 
   // ---- Schedule ----
 
-  Future<Response<Object?>> _scheduleEvents(RequestOptions options) async {
-    // `?month=YYYY-MM` → whole month (calendar grid); otherwise
-    // `?date=YYYY-MM-DD` (defaults to today). Filtered in Dart to keep the
-    // drift import minimal (no LIKE extension needed); the demo table is
-    // tiny.
-    final month = options.queryParameters['month'] as String?;
-    final all = await _db.select(_db.scheduleEvents).get();
-    final rows = (month != null && month.isNotEmpty)
-        ? all.where((r) => r.date.startsWith('$month-')).toList()
-        : () {
-            final date =
-                (options.queryParameters['date'] as String?) ??
-                _todayDateString();
-            return all.where((r) => r.date == date).toList();
-          }();
 
-    final list = <Map<String, Object?>>[
-      for (final r in rows)
-        <String, Object?>{
-          'id': r.id,
-          'date': r.date,
-          'time': r.time,
-          'title': r.title,
-          'category': r.category,
-          'emoji': r.emoji,
-          'color_hex': r.colorHex,
-        },
-    ];
-    return _ok(options, list);
-  }
 
-  /// Category → (emoji, color) so created events look consistent with the
-  /// seeded ones. Mirrors what a FastAPI build would fill server-side.
-  (String, String) _scheduleStyle(String category) => switch (category) {
-    'hospital' => ('🏥', '#DBEAFE'),
-    'exercise' => ('💪', '#DCFCE7'),
-    'meal' => ('🍽️', '#FFEDD5'),
-    'medication' => ('💊', '#EDE9FE'),
-    _ => ('📌', '#E0F2F7'),
-  };
 
-  /// POST /schedule/events — persist a new event to drift so it shows up in
-  /// GET /schedule/events and the dashboard's "오늘의 일정" for that date.
-  ///
-  /// 형식 검사는 [isScheduleDate]·[isScheduleTime] 이 맡는다 — FastAPI
-  /// (`app/api/v1/schedule.py`) 와 같은 계약이라 데모와 실서버의 답이 갈리지
-  /// 않는다.
-  Future<Response<Object?>> _scheduleCreate(RequestOptions options) async {
-    final body = _jsonBody(options);
-    final date = (body['date'] as String? ?? '').trim();
-    final title = (body['title'] as String? ?? '').trim();
-    if (date.isEmpty || title.isEmpty) {
-      return _badRequest(options, 'date and title are required');
-    }
-    // 형식을 여기서도 막는다. 조회는 `YYYY-MM-DD` 를 전제해 거르므로, 계약을
-    // 벗어난 값을 받아 두면 저장은 성공했는데 어디에도 보이지 않는 일정이
-    // 남는다(#785). FastAPI 는 이미 같은 검사를 한다 — 데모도 같게 답한다.
-    if (!isScheduleDate(date)) {
-      return _badRequest(options, 'date must be YYYY-MM-DD');
-    }
-    final time = (body['time'] as String? ?? '').trim();
-    if (!isScheduleTime(time)) {
-      return _badRequest(options, 'time must be HH:mm or empty');
-    }
-    final category = (body['category'] as String? ?? 'other').trim();
-    final (emoji, colorHex) = _scheduleStyle(category);
-    final id = 'evt-${DateTime.now().microsecondsSinceEpoch}';
-    await _db
-        .into(_db.scheduleEvents)
-        .insert(
-          ScheduleEventsCompanion.insert(
-            id: id,
-            date: date,
-            time: time,
-            title: title,
-            category: category,
-            emoji: Value(emoji),
-            colorHex: Value(colorHex),
-          ),
-        );
-    return Response<Object?>(
-      requestOptions: options,
-      statusCode: 201,
-      data: <String, Object?>{
-        'id': id,
-        'date': date,
-        'time': time,
-        'title': title,
-        'category': category,
-        'emoji': emoji,
-        'color_hex': colorHex,
-      },
-    );
-  }
 
-  /// PUT /schedule/events/{id} — 준 필드만 바꾼다(FastAPI 의 `exclude_unset`).
-  ///
-  /// 시간을 지우는 것은 `''` 를 넘기는 것이지 생략이 아니다. 그래서 키가 있는지
-  /// 로 판단하고, 값이 빈 문자열이어도 그대로 반영한다.
-  Future<Response<Object?>> _scheduleUpdate(RequestOptions options) async {
-    final id = options.path.split('/').last;
-    final existing = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (existing == null) return _notFound(options, '일정을 찾을 수 없습니다.');
-
-    final body = _jsonBody(options);
-    final date = (body['date'] as String?)?.trim();
-    final time = (body['time'] as String?)?.trim();
-    final title = (body['title'] as String?)?.trim();
-    final category = (body['category'] as String?)?.trim();
-
-    // 생성과 같은 계약을 건다 — 수정으로 형식을 무너뜨릴 수 있으면 검증한 의미가
-    // 없다(#785 에서 저장·조회가 어긋나 일정이 사라졌던 것과 같은 경로).
-    if (date != null && !isScheduleDate(date)) {
-      return _badRequest(options, 'date must be YYYY-MM-DD');
-    }
-    if (time != null && !isScheduleTime(time)) {
-      return _badRequest(options, 'time must be HH:mm or empty');
-    }
-    if (title != null && title.isEmpty) {
-      return _badRequest(options, 'title must not be empty');
-    }
-
-    final String nextCategory = category ?? existing.category;
-    final (emoji, colorHex) = _scheduleStyle(nextCategory);
-    await (_db.update(_db.scheduleEvents)..where((t) => t.id.equals(id))).write(
-      ScheduleEventsCompanion(
-        date: date == null ? const Value.absent() : Value(date),
-        time: time == null ? const Value.absent() : Value(time),
-        title: title == null ? const Value.absent() : Value(title),
-        category: category == null ? const Value.absent() : Value(category),
-        // 카테고리가 바뀌면 이모지·색도 따라간다. 생성 때와 같은 규칙이라
-        // 수정한 일정만 다른 색으로 남지 않는다.
-        emoji: category == null ? const Value.absent() : Value(emoji),
-        colorHex: category == null ? const Value.absent() : Value(colorHex),
-      ),
-    );
-
-    final updated = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).getSingle();
-    return _ok(options, <String, Object?>{
-      'id': updated.id,
-      'date': updated.date,
-      'time': updated.time,
-      'title': updated.title,
-      'category': updated.category,
-      'emoji': updated.emoji,
-      'color_hex': updated.colorHex,
-    });
-  }
-
-  Future<Response<Object?>> _scheduleDelete(RequestOptions options) async {
-    final id = options.path.split('/').last;
-    final n = await (_db.delete(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).go();
-    if (n == 0) return _notFound(options, '일정을 찾을 수 없습니다.');
-    return _ok(options, <String, Object?>{'status': 'deleted'});
-  }
 
   // ---- Notifications ----
 

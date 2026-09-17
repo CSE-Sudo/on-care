@@ -378,42 +378,7 @@ void main() {
     expect(prof.data!['name'], '김민수');
   });
 
-  test(
-    'POST /schedule/events persists; GET returns it for that date',
-    () async {
-      final res = await dio.post<Map<String, Object?>>(
-        '/schedule/events',
-        data: <String, Object?>{
-          'date': '2026-07-04',
-          'time': '15:30',
-          'title': '치과 예약',
-          'category': 'hospital',
-        },
-      );
-      expect(res.statusCode, 201);
-      expect(res.data!['title'], '치과 예약');
-      expect(res.data!['emoji'], '🏥'); // derived from category
-      expect((res.data!['id']! as String).isNotEmpty, isTrue);
 
-      final list = await dio.get<List<Object?>>(
-        '/schedule/events',
-        queryParameters: <String, Object?>{'date': '2026-07-04'},
-      );
-      final titles = list.data!.cast<Map<String, Object?>>().map(
-        (e) => e['title'],
-      );
-      expect(titles, contains('치과 예약'));
-    },
-  );
-
-  test('POST /schedule/events rejects a missing title', () async {
-    final res = await dio.post<Map<String, Object?>>(
-      '/schedule/events',
-      data: <String, Object?>{'date': '2026-07-04', 'title': ''},
-      options: Options(validateStatus: (int? s) => true),
-    );
-    expect(res.statusCode, 400);
-  });
 
   test('DELETE /diet/entries/{id} deletes an entry; 404 once gone', () async {
     await db
@@ -543,33 +508,4 @@ void main() {
     },
   );
 
-  test('GET /schedule/events?month returns the whole month only', () async {
-    for (final ({String id, String date, String cat}) e
-        in <({String id, String date, String cat})>[
-          (id: 'm-1', date: '2029-09-03', cat: 'hospital'),
-          (id: 'm-2', date: '2029-09-21', cat: 'meal'),
-          (id: 'm-3', date: '2029-10-01', cat: 'other'),
-        ]) {
-      await db
-          .into(db.scheduleEvents)
-          .insert(
-            ScheduleEventsCompanion.insert(
-              id: e.id,
-              date: e.date,
-              time: '10:00',
-              title: e.id,
-              category: e.cat,
-            ),
-          );
-    }
-
-    final res = await dio.get<List<Object?>>(
-      '/schedule/events',
-      queryParameters: <String, Object?>{'month': '2029-09'},
-    );
-    expect(res.statusCode, 200);
-    final ids = res.data!.cast<Map<String, Object?>>().map((e) => e['id']);
-    expect(ids, containsAll(<String>['m-1', 'm-2']));
-    expect(ids, isNot(contains('m-3'))); // 다른 달 제외
-  });
 }

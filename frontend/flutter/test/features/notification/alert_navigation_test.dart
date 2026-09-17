@@ -219,7 +219,6 @@ void main() {
         (AlertTarget.diet, '식단'),
         (AlertTarget.exercise, '운동'),
         // 일정은 아직 전용 화면이 없어 대시보드로 보낸다.
-        (AlertTarget.schedule, '대시보드'),
       ]) {
         await pumpApp(tester, _FakeCoachRepository());
         await tap(tester, target);
@@ -286,7 +285,6 @@ void main() {
         AlertTarget.values.toSet(),
         containsAll(<AlertTarget>[
           AlertTarget.dashboard,
-          AlertTarget.schedule,
           AlertTarget.coachChat,
           AlertTarget.exercise,
           AlertTarget.diet,
