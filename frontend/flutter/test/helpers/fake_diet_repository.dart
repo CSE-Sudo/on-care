@@ -1,6 +1,7 @@
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -39,9 +40,12 @@ class FakeDietRepository implements DietRepository {
       photoAsset: 'assets/images/breakfast-scrambled-egg-strawberry.jpg',
       aiComment: '단백질과 식이섬유의 깔끔한 조합으로, 소금 간과 기름만 조절하면 혈당과 혈압 모두 잡는 우수한 식단입니다.',
       foods: <FoodItem>[
+        // 섭취량을 아는 음식과 모르는 음식을 한 끼니에 함께 둔다 — 서버가
+        // 양을 얻지 못한 인식과 이 필드 이전 기록이 실제로 섞여 들어온다(#1876).
         FoodItem(
           name: '스크램블 에그',
           calories: 185,
+          amountG: 100,
           sodiumMg: 220,
           sugarG: 0.8,
           carbsG: 2,
@@ -291,6 +295,28 @@ class FakeDietRepository implements DietRepository {
     // idempotencyKey 로 재요청할 때 이미 사라진 항목의 낡은 결과만 반환되고
     // 목록에는 다시 추가되지 않는다(같은 키를 재기록 가능 상태로 되돌린다).
     _analyzed.removeWhere((String _, DietAnalysisResult r) => r.entryId == id);
+  }
+
+  /// 테스트가 이름 조회를 흉내 낼 자리. 기본은 "공공 DB 에 없는 이름" 이라
+  /// 아무것도 제안하지 않는다 — 제안을 보고 싶은 테스트가 채워 넣는다. (#1896)
+  final Map<String, FoodNutritionSuggestion> nutritionByName =
+      <String, FoodNutritionSuggestion>{};
+
+  /// 이름 조회가 실패하는 상황(서버 오류·오프라인)을 만드는 스위치.
+  bool nutritionLookupFails = false;
+
+  /// 실제로 조회를 부른 이름들 — 타이핑 중간값으로 부르지 않는지 확인한다.
+  final List<String> nutritionLookups = <String>[];
+
+  @override
+  Future<FoodNutritionSuggestion?> lookupFoodNutrition({
+    required String name,
+    double? amountG,
+  }) async {
+    nutritionLookups.add(name);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    if (nutritionLookupFails) throw Exception('lookup failed');
+    return nutritionByName[name.trim()];
   }
 
   @override

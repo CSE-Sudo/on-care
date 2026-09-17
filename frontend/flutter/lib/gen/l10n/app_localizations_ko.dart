@@ -239,6 +239,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietNutritionSummary => '영양 요약';
 
   @override
+  String get dietAmount => '내용량';
+
+  @override
   String get dietCalories => '칼로리';
 
   @override
@@ -317,6 +320,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String dietMealSheetTitle(String meal) {
     return '$meal 식단';
   }
+
+  @override
+  String dietFoodDbMatch(String name) {
+    return '공공 DB · $name';
+  }
+
+  @override
+  String get dietFillFromDb => '값 채우기';
 
   @override
   String get dietAddSheetTitle => '식단 추가';
@@ -492,7 +503,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddFood => '음식 추가';
 
   @override
-  String get dietEditFoodHint => '음식명과 칼로리를 수정할 수 있어요';
+  String get dietEditFoodHint => '내용량을 고치면 영양이 비례해 따라와요';
 
   @override
   String get dietTotalCalories => '총 칼로리';
@@ -2372,8 +2383,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalCaloriesFromMacros => '탄·단·지 목표로 계산한 값이에요';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g · 당류 ${sugar}g';
   }
 
   @override

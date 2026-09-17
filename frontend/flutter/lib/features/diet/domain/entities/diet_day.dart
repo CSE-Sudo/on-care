@@ -7,6 +7,7 @@ class FoodItem {
   const FoodItem({
     required this.name,
     required this.calories,
+    this.amountG,
     this.sodiumMg = 0,
     this.sugarG = 0,
     this.carbsG = 0,
@@ -15,6 +16,15 @@ class FoodItem {
   });
   final String name;
   final int calories;
+
+  /// 그 음식을 얼마나 먹었나(g) — 아래 영양이 **무엇을 재고 나온 값인가** 다.
+  ///
+  /// 공공 영양 DB 는 100g 기준이라 서버 보정이 이 양으로 환산한다. 그래서 양이
+  /// 바뀌면 나머지 여섯 값도 같은 비율로 움직여야 한다(#1876). 0 이 아니라
+  /// **null** 인 것은 "안 먹었다" 와 "모른다" 가 다른 말이기 때문이다 — 양을
+  /// 못 얻은 인식과 이 필드 이전 기록이 null 이고, 그때 수정 화면은 칸을 비워
+  /// 두었다가 회원이 적어 넣는 값을 기준으로 삼는다.
+  final double? amountG;
 
   /// Per-food nutrition, used by the diet-tab meal card to break a meal down
   /// food-by-food. Optional so backend payloads that omit them still parse.
@@ -27,6 +37,11 @@ class FoodItem {
   factory FoodItem.fromJson(Map<String, Object?> json) => FoodItem(
     name: json['name']! as String,
     calories: (json['calories']! as num).toInt(),
+    // 0 이나 음수는 기준이 될 수 없다 — 없는 것과 같이 null 로 접는다.
+    amountG: switch ((json['amount_g'] as num?)?.toDouble()) {
+      final double g when g > 0 => g,
+      _ => null,
+    },
     sodiumMg: (json['sodium_mg'] as num?)?.toInt() ?? 0,
     sugarG: (json['sugar_g'] as num?)?.toDouble() ?? 0,
     carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,

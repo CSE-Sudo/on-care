@@ -9,8 +9,9 @@ import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
-    show exerciseAmountLabelOf, exerciseWeightLabel;
+    show exerciseAmountLabelOf;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
@@ -510,7 +511,7 @@ class _RecommendedExerciseRowState
                             in routine.exercises) ...<Widget>[
                           const SizedBox(height: OnCareSpacing.s2),
                           Text(
-                            _routineExerciseLine(l, exercise),
+                            coachRoutineExerciseLabel(l, exercise),
                             style: detailStyle,
                           ),
                         ]
@@ -782,30 +783,6 @@ class _ChatButton extends StatelessWidget {
   }
 }
 
-/// 배정 세션의 운동 한 줄 — `레그프레스 · 4세트 · 12회 · 60kg`. (#1904)
-///
-/// 단위와 구분자는 문구다. 예전에는 엔티티의 `detail` 이 `세트`·`분`·`휴식 초`
-/// 를 Dart 문자열에 박아 두어 영어에서도 한국어가 나왔고, 세트와 횟수 사이만
-/// `×` 를 써 앱의 나머지 표기(` · `)와 갈렸다.
-///
-/// 비어 있는 값은 건너뛴다 — 적히지 않은 칸에 0 이 뜨면 트레이너가 정한 값처럼
-/// 읽힌다.
-String _routineExerciseLine(AppLocalizations l, CoachRoutineExercise exercise) {
-  final int? sets = exercise.sets;
-  final int? reps = exercise.reps;
-  final double? weight = exercise.weight;
-  final int? duration = exercise.duration;
-  final int? rest = exercise.rest;
-  final List<String> parts = <String>[
-    exercise.name,
-    if (sets != null && sets > 0) l.exSetsCount(sets),
-    if (reps != null && reps > 0) l.exRepsCount(reps),
-    if (weight != null && weight > 0) exerciseWeightLabel(l, weight),
-    if (duration != null && duration > 0) l.exDurationMinutes(duration),
-    if (rest != null && rest > 0) l.exRestSeconds(rest),
-  ];
-  return parts.join(' · ');
-}
 
 /// 루틴 한 줄이 말하는 **양**. 근력은 세트·횟수(·중량)로, 나머지는 분으로
 /// 읽는다 — 회원이 직접 적은 기록과 **같은 규칙**(`exerciseAmountLabelOf`)이다.

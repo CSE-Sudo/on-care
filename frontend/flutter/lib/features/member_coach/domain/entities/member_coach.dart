@@ -285,13 +285,12 @@ class CoachAttachment {
 /// 숫자로 바꾸면 그 표현이 사라진다(#709).
 /// 배정 세션에 담긴 운동 한 항목. (#709)
 ///
-/// 값은 **수**로 든다(#1904). 서버(`ProgramDraftExercise`)가 진작부터 수로
-/// 내려보내는데 이 클래스만 문자열로 받아, `12회`·`60kg` 처럼 단위가 섞인 글이
-/// 그대로 화면에 실렸다 — 단위를 붙이는 곳이 앱의 다른 기록들과 갈렸고, 회차만
-/// 있는 항목은 단위 없이 숫자만 뜨기도 했다.
+/// 값은 **수**로 든다(#1904). 서버(`ProgramDraftExercise`)가 `_loose_int` 로
+/// 이미 숫자만 남겨 내려보내는데(`"자체중량"` → null, `"10회"` → 10) 이 클래스만
+/// 문자열로 받아, 화면이 그 문자열을 다시 `int.tryParse` 로 되짚고 있었다.
 ///
-/// 한 줄로 읽히는 요약은 화면 층이 만든다. 단위와 구분자는 문구(l10n)라
-/// 엔티티가 한국어를 들고 있으면 영어에서 한국어가 새어 나온다.
+/// 한 줄 요약은 `coachRoutineExerciseLabel` 이 만든다 — 세트·분·초의 단위는
+/// 로케일을 타는데 엔티티는 `AppLocalizations` 에 닿을 수 없다(#1933).
 class CoachRoutineExercise {
   const CoachRoutineExercise({
     required this.name,
