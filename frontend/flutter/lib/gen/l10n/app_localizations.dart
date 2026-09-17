@@ -1298,6 +1298,12 @@ abstract class AppLocalizations {
   /// **'Rest'**
   String get exRest;
 
+  /// No description provided for @exRestSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest {seconds}s'**
+  String exRestSeconds(int seconds);
+
   /// No description provided for @exAiRecommendedExercise.
   ///
   /// In en, this message translates to:

@@ -670,6 +670,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exRest => 'Rest';
 
   @override
+  String exRestSeconds(int seconds) {
+    return 'Rest ${seconds}s';
+  }
+
+  @override
   String get exAiRecommendedExercise => 'AI recommended exercise';
 
   @override

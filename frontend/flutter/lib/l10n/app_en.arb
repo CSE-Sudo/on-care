@@ -338,6 +338,14 @@
   },
   "exTodayTotalTime": "Today's total time",
   "exRest": "Rest",
+  "exRestSeconds": "Rest {seconds}s",
+  "@exRestSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "exAiRecommendedExercise": "AI recommended exercise",
   "exStatTime": "Time",
   "exStatCalories": "Calories",
