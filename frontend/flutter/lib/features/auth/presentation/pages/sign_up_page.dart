@@ -107,6 +107,12 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       // New accounts land in first-run onboarding; the guard keeps the
       // (now authenticated) user on this protected route.
       context.go(AppRoutes.onboarding);
+    } on AccountCreatedSignInFailed {
+      // 계정은 만들어졌다. 다시 가입하라고 하면 409 를 만나므로 로그인으로 보낸다.
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _error(l.signUpCreatedSignInNeeded);
+      context.go(AppRoutes.signIn);
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);

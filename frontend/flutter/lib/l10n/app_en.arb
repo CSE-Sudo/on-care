@@ -120,6 +120,10 @@
   "dietWeekdaySat": "Sat",
   "dietWeekdaySun": "Sun",
   "dietNutritionSummary": "Nutrition",
+  "dietAmount": "Serving size",
+  "@dietAmount": {
+    "description": "Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)"
+  },
   "dietCalories": "Calories",
   "dietSodium": "Sodium",
   "dietSugar": "Sugar",
@@ -170,6 +174,15 @@
   "dietMealDinner": "Dinner",
   "dietMealSnack": "Snack",
   "dietMealSheetTitle": "{meal}",
+  "dietFoodDbMatch": "Public DB · {name}",
+  "@dietFoodDbMatch": {
+    "description": "Representative name shown on the suggestion row when a food name matches the public nutrition DB (#1896)",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "dietFillFromDb": "Fill in",
+  "@dietFillFromDb": {
+    "description": "Button that fills a food's fields with the suggested public-DB nutrition (#1896)"
+  },
   "@dietMealSheetTitle": {
     "placeholders": {
       "meal": {
@@ -244,7 +257,7 @@
   "dietEatenFood": "Food Eaten",
   "dietNewFood": "New food",
   "dietAddFood": "Add Food",
-  "dietEditFoodHint": "You can edit the food name and calories",
+  "dietEditFoodHint": "Change the serving size and the nutrition follows",
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
   "dietEditNutritionHint": "Edit each food's nutrition and it adds up here",
@@ -325,6 +338,14 @@
   },
   "exTodayTotalTime": "Today's total time",
   "exRest": "Rest",
+  "exRestSeconds": "Rest {seconds}s",
+  "@exRestSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "exAiRecommendedExercise": "AI recommended exercise",
   "exStatTime": "Time",
   "exStatCalories": "Calories",
@@ -1132,6 +1153,8 @@
   "trainerSyncExpired": "This code has expired.",
   "trainerSyncFailed": "Could not get a code.",
   "trainerSyncRetry": "Get a new code",
+  "signUpCreatedSignInNeeded": "Your account was created. Please sign in.",
+  "@signUpCreatedSignInNeeded": {"description": "Sign-up: the account was created but the follow-up sign-in failed (#1926)."},
   "signUpEmailTaken": "That email is already registered. Please sign in.",
   "signUpFailed": "Sign-up failed. Please try again in a moment.",
   "onboardSkip": "Do this later",

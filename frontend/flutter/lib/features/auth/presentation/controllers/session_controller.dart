@@ -19,6 +19,20 @@ class SessionState {
       status == SessionStatus.authenticated || status == SessionStatus.demo;
 }
 
+/// 계정은 만들어졌는데 이어지는 로그인만 실패했다. (#1926)
+///
+/// 가입 실패와 갈라 두는 이유는 회원이 다음에 할 일이 다르기 때문이다 — 다시
+/// 가입하는 것이 아니라 로그인하면 된다.
+class AccountCreatedSignInFailed implements Exception {
+  const AccountCreatedSignInFailed(this.cause);
+
+  /// 로그인을 막은 원인(타임아웃·429·서버 오류 등).
+  final Object cause;
+
+  @override
+  String toString() => 'AccountCreatedSignInFailed($cause)';
+}
+
 class SessionController extends StateNotifier<SessionState> {
   SessionController(this._ref) : super(const SessionState()) {
     _restore();
@@ -273,7 +287,14 @@ class SessionController extends StateNotifier<SessionState> {
         'phone': phone,
       },
     );
-    await login(email: email, password: password);
+    // 여기부터는 **계정이 이미 만들어진 뒤**다. 로그인만 실패한 것을 가입 실패로
+    // 알리면, 회원은 다시 가입을 눌러 "이미 사용 중인 이메일" 을 보게 된다 —
+    // 방금 실패했다던 계정이 있다는 뜻이라 무엇이 맞는지 알 수 없다(#1926).
+    try {
+      await login(email: email, password: password);
+    } on Object catch (error, stack) {
+      Error.throwWithStackTrace(AccountCreatedSignInFailed(error), stack);
+    }
   }
 
   /// Skip auth — demo mode. No token; the backend demo-fallback serves data.

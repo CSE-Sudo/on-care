@@ -239,6 +239,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietNutritionSummary => '영양 요약';
 
   @override
+  String get dietAmount => '내용량';
+
+  @override
   String get dietCalories => '칼로리';
 
   @override
@@ -317,6 +320,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String dietMealSheetTitle(String meal) {
     return '$meal 식단';
   }
+
+  @override
+  String dietFoodDbMatch(String name) {
+    return '공공 DB · $name';
+  }
+
+  @override
+  String get dietFillFromDb => '값 채우기';
 
   @override
   String get dietAddSheetTitle => '식단 추가';
@@ -492,7 +503,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddFood => '음식 추가';
 
   @override
-  String get dietEditFoodHint => '음식명과 칼로리를 수정할 수 있어요';
+  String get dietEditFoodHint => '내용량을 고치면 영양이 비례해 따라와요';
 
   @override
   String get dietTotalCalories => '총 칼로리';
@@ -644,6 +655,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exRest => '휴식';
+
+  @override
+  String exRestSeconds(int seconds) {
+    return '휴식 $seconds초';
+  }
 
   @override
   String get exAiRecommendedExercise => 'AI 추천 운동';
@@ -1983,6 +1999,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => '새 코드 받기';
+
+  @override
+  String get signUpCreatedSignInNeeded => '계정이 만들어졌어요. 로그인해 주세요';
 
   @override
   String get signUpEmailTaken => '이미 가입된 이메일이에요. 로그인해 주세요.';

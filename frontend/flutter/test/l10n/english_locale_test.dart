@@ -140,7 +140,7 @@ void main() {
         coachRoutinesProvider.overrideWith(
           (Ref ref) async => const <CoachRoutine>[],
         ),
-        coachUnreadProvider.overrideWith((Ref ref) async => 0),
+        coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
       ],
     );
 
