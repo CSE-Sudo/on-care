@@ -36,17 +36,6 @@ _FOOD_STORAGE_FIELDS = (
     "name", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
 )
-# 음식에서 끼니 합계를 낼 때 쓰는 짝: 합계 컬럼 ← 음식 필드.
-_TOTAL_FROM_FOOD = {
-    "total_calories": "calories",
-    "carbs_g": "carbs_g",
-    "protein_g": "protein_g",
-    "fat_g": "fat_g",
-    "sodium_mg": "sodium_mg",
-    "sugar_g": "sugar_g",
-}
-# 정수로 저장하는 합계 — 나머지는 소수다(#296).
-_INTEGER_TOTALS = frozenset({"total_calories", "sodium_mg"})
 # DASH 권고 나트륨 상한(고혈압 특화 코칭 기준).
 DASH_SODIUM_LIMIT_MG = 2000
 
@@ -76,18 +65,17 @@ def store_foods(foods: list[RecognizedFood]) -> list[dict]:
     ]
 
 
-def totals_from_foods(foods: list[RecognizedFood]) -> dict[str, float | int]:
+def totals_from_foods(foods: list[RecognizedFood]) -> DietAnalysis:
     """음식 목록 → 끼니 합계. 적히지 않은 값(None)은 0 으로 센다.
 
     끼니 합계는 음식별 값의 합이다 — 앱도 같은 규칙으로 화면에 더한다(#1853).
-    음식이 오면 이 값이 함께 온 합계보다 우선한다: 원본을 하나로 두지 않으면
-    음식을 고칠 때마다 합계와 내역이 갈린다.
+    사진 분석이 쓰는 [DietAnalysis.compute_totals] 를 그대로 빌린다: 합치는
+    자리가 둘이면 분석으로 들어온 끼니와 회원이 고친 끼니의 합계가 갈린다.
+
+    음식이 오면 이 값이 함께 온 합계보다 우선한다. 원본을 하나로 두지 않으면
+    앱이 한 필드를 빠뜨린 순간 그 값만 옛날에 머문 채 200 이 돌아간다.
     """
-    totals: dict[str, float | int] = {}
-    for column, field in _TOTAL_FROM_FOOD.items():
-        total = sum(float(getattr(food, field) or 0) for food in foods)
-        totals[column] = int(round(total)) if column in _INTEGER_TOTALS else total
-    return totals
+    return DietAnalysis(engine="", foods=foods).compute_totals()
 
 
 def entry_to_analysis(entry: DietEntry) -> DietAnalysis:
@@ -434,44 +422,66 @@ class NutritionInconsistentError(ValueError):
     """영양 수치가 서로 어긋난다 — 당류가 탄수화물을 넘는 경우 등."""
 
 
+def _sugar_exceeds_carbs(
+    carbs: float | None, sugar: float | None, *, carbs_recorded: bool
+) -> bool:
+    """당류가 탄수화물을 넘는가. 넘어도 탄수화물이 미기록이면 견주지 않는다.
+
+    당류는 탄수화물의 일부다(총 탄수화물 = 당류 + 식이섬유 + 전분). 회원 화면도
+    당류를 탄수화물 아래 들여 그 관계를 말하므로 서버도 같은 말을 해야 한다.
+    같은 값(전부 당인 음식)은 통과한다.
+
+    탄수화물 0 을 어떻게 볼지는 [carbs_recorded] 가 정한다. 컬럼이 NOT NULL
+    기본 0 이라 "탄수화물이 없다" 와 "아직 안 적혔다" 가 같은 0 으로 보이는데,
+    **회원이 방금 0 으로 바꾼 0 은 적은 값이다.** 둘을 갈라 보지 않으면 둘 중
+    하나는 반드시 틀린다 — 전부 막으면 탄수화물 없이 저장된 옛 기록을 고칠
+    길이 사라지고(#1877), 전부 봐주면 회원이 탄수화물을 지워 검사를 피할 수
+    있다(#1893).
+    """
+    if carbs is None or sugar is None or sugar <= carbs:
+        return False
+    # 여기부터는 당류 > 탄수화물이다.
+    return carbs > 0 or carbs_recorded
+
+
 def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) -> DietEntryOut:
     """식단 기록의 날짜·끼니 분류/시간 + 영양소 부분 수정."""
-    # 당류는 탄수화물의 일부다(총 탄수화물 = 당류 + 식이섬유 + 전분). 회원 화면도
-    # 당류를 탄수화물 아래 들여 그 관계를 말하므로 서버도 같은 말을 해야 한다.
-    #
-    # 부분 수정이라 한쪽만 오는 일이 있어, 바꾸기 전에 **저장된 값과 합친 결과**로
-    # 견준다. 인식 엔진 출력(`RecognizedFood`)에는 걸지 않는다 — 모델이 어긋난
+    # 인식 엔진 출력(`RecognizedFood`)에는 이 검사를 걸지 않는다 — 모델이 어긋난
     # 값을 낼 수 있는데 거기서 막으면 사진 분석 자체가 실패한다(#1863).
     #
-    # 탄수화물이 0 이면 견주지 않는다. 컬럼이 NOT NULL 기본 0 이라 "탄수화물이
-    # 없다" 와 "아직 안 적혔다" 를 구분할 수 없는데, 당류만 있고 탄수화물이 0 인
-    # 기록은 거의 언제나 후자다(인식기가 그 값을 못 준 경우). 여기서 막으면
-    # 탄수화물을 건드리지 않는 정상적인 부분 수정까지 거절된다.
-    #
-    # 음식 목록이 함께 오면 합계는 그 목록에서 다시 낸다(#1892). 견주는 값도
-    # 저장된 합계가 아니라 이 값이어야 한다 — 아니면 방금 보낸 음식이 어긋나
-    # 있어도 옛 합계로 통과한다.
+    # 이 끼니에 탄수화물이 적혀 있었나. 저장된 합계가 0 이면 인식기가 그 값을 못
+    # 준 기록이고(#1877), 그 0 은 봐준다. 회원이 방금 0 으로 바꾼 0 은 적은 값으로
+    # 본다 — 앱도 수정 모드를 열었을 때의 값으로 같은 판단을 한다(#1893).
+    carbs_recorded = entry.carbs_g is not None and entry.carbs_g > 0
+    # 음식 목록이 함께 오면 합계는 그 목록에서 다시 낸다(#1892).
     totals = totals_from_foods(payload.foods) if payload.foods is not None else None
-    merged_carbs = (
-        totals["carbs_g"] if totals is not None
-        else payload.carbs_g if payload.carbs_g is not None
-        else entry.carbs_g
-    )
-    merged_sugar = (
-        totals["sugar_g"] if totals is not None
-        else payload.sugar_g if payload.sugar_g is not None
-        else entry.sugar_g
-    )
-    if (
-        merged_carbs is not None
-        and merged_carbs > 0
-        and merged_sugar is not None
-        and merged_sugar > merged_carbs
-    ):
-        raise NutritionInconsistentError(
-            "당류는 탄수화물보다 클 수 없습니다. "
-            f"당류 {merged_sugar}g, 탄수화물 {merged_carbs}g"
-        )
+    if payload.foods is not None:
+        # 음식 단위로 견준다(#1893). 합계로만 보면 탄수화물이 넉넉한 다른 음식이
+        # 어긋난 음식을 가려 준다. 회원이 고치는 자리도 음식이라, 어느 줄이
+        # 문제인지 말해 줄 수 있어야 한다.
+        for number, food in enumerate(payload.foods, start=1):
+            if _sugar_exceeds_carbs(
+                food.carbs_g, food.sugar_g, carbs_recorded=carbs_recorded
+            ):
+                raise NutritionInconsistentError(
+                    f"{number}번째 음식({food.name})의 당류는 탄수화물보다 "
+                    f"클 수 없습니다. 당류 {food.sugar_g}g, 탄수화물 {food.carbs_g}g"
+                )
+    else:
+        # 부분 수정이라 한쪽만 오는 일이 있어, 바꾸기 전에 저장된 값과 합친
+        # 결과로 견준다. 탄수화물을 **실어 보냈다면** 그 값이 0 이어도 회원이
+        # 적은 값이다.
+        merged_carbs = payload.carbs_g if payload.carbs_g is not None else entry.carbs_g
+        merged_sugar = payload.sugar_g if payload.sugar_g is not None else entry.sugar_g
+        if _sugar_exceeds_carbs(
+            merged_carbs,
+            merged_sugar,
+            carbs_recorded=payload.carbs_g is not None or carbs_recorded,
+        ):
+            raise NutritionInconsistentError(
+                "당류는 탄수화물보다 클 수 없습니다. "
+                f"당류 {merged_sugar}g, 탄수화물 {merged_carbs}g"
+            )
     if payload.date is not None:
         # 날짜가 바뀌면 그 하루의 합계도 함께 옮겨진다 — 화면은 날짜별로 조회하므로
         # 이 값이 곧 "어느 날 먹은 것인가" 다(#1241).
@@ -485,10 +495,18 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
     # 내역이 어긋난다(#1892).
     if payload.foods is not None:
         entry.foods_json = json.dumps(store_foods(payload.foods), ensure_ascii=False)
-    for field in ("total_calories", "carbs_g", "protein_g", "fat_g", "sodium_mg", "sugar_g"):
-        value = totals[field] if totals is not None else getattr(payload, field)
-        if value is not None:
-            setattr(entry, field, value)
+    if totals is not None:
+        entry.total_calories = totals.total_calories
+        entry.carbs_g = totals.total_carbs_g
+        entry.protein_g = totals.total_protein_g
+        entry.fat_g = totals.total_fat_g
+        entry.sodium_mg = totals.total_sodium_mg
+        entry.sugar_g = totals.total_sugar_g
+    else:
+        for field in ("total_calories", "carbs_g", "protein_g", "fat_g", "sodium_mg", "sugar_g"):
+            value = getattr(payload, field)
+            if value is not None:
+                setattr(entry, field, value)
     db.commit()
     db.refresh(entry)
     out = _entry_out(entry)
