@@ -1927,6 +1927,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySupportExternalHint => 'Opens the KakaoTalk channel';
 
   @override
+  String get authRestoring => 'Restoring your session';
+
+  @override
+  String get authRestoreFailed =>
+      'We could not restore your session — the connection looks unstable.';
+
+  @override
+  String get authRestoreRetry => 'Try again';
+
+  @override
+  String get authRestoreSignIn => 'Go to sign in';
+
+  @override
   String get authTagline => 'Diet & exercise management app';
 
   @override

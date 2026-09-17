@@ -53,6 +53,9 @@ class AppRoutes {
   }
 
   // Auth
+  /// 저장된 세션을 되살리는 동안 머무는 시작 화면(#1944). 복구가 끝나면
+  /// 라우터가 홈이나 로그인으로 옮긴다.
+  static const String splash = '/auth/splash';
   static const String signIn = '/auth/sign-in';
   static const String signUp = '/auth/sign-up';
 
