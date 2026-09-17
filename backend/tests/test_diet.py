@@ -1592,3 +1592,119 @@ def test_analyze_retry_returns_same_time_label(client):
     )
     assert second.status_code == 200, second.text
     assert second.json()["time_label"] == first.json()["time_label"]
+
+
+def test_analyze_keeps_the_ai_comment_on_the_saved_entry(client, db_session):
+    """사진 분석이 만든 식단평이 저장돼 다시 읽을 때도 남는가. (#1932)
+
+    앱은 끼니 카드 아래 한 줄로 `ai_comment` 를 보여 준다. 전에는 저장할 자리가
+    없어 분석 응답 한 번으로 사라졌고, **방금 찍어 저장한 끼니도 화면을 다시
+    열면 코멘트가 없었다.** 데모 서버는 내려주므로 시연으로는 드러나지 않았다.
+    """
+    from app.db.init_db import DEMO_USER_ID
+    from app.models.models import DietEntry
+    from app.services.diet_service import today_str as _today_str
+
+    db_session.execute(
+        delete(DietEntry).where(
+            DietEntry.user_id == DEMO_USER_ID,
+            DietEntry.date == _today_str(),
+        )
+    )
+    db_session.commit()
+
+    r = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    comment = body["analysis"]["coach_comment"]
+    assert comment, "인식기가 식단평을 냈는데 응답에 없다"
+
+    stored = db_session.get(DietEntry, body["entry_id"])
+    assert stored is not None
+    assert stored.ai_comment == comment
+
+    # 조회 응답에도 같은 값이 실려야 한다 — 저장만 하고 내보내지 않으면 화면은
+    # 예전처럼 빈 줄을 본다.
+    today = client.get("/v1/diet/days/today")
+    assert today.status_code == 200
+    entries = today.json()["entries"]
+    assert [e["id"] for e in entries] == [body["entry_id"]]
+    assert entries[0]["ai_comment"] == comment
+
+
+def test_analyze_retry_returns_the_stored_ai_comment(client, db_session):
+    """같은 멱등키로 다시 부르면 저장된 식단평을 그대로 돌려준다. (#1932)
+
+    재시도 응답이 빈 코멘트를 주면, 망이 한 번 끊긴 것만으로 화면에 보이는
+    내용이 처음 저장 때와 달라진다.
+    """
+    from app.db.init_db import DEMO_USER_ID
+    from app.models.models import DietEntry
+    from app.services.diet_service import today_str as _today_str
+
+    db_session.execute(
+        delete(DietEntry).where(
+            DietEntry.user_id == DEMO_USER_ID,
+            DietEntry.date == _today_str(),
+        )
+    )
+    db_session.commit()
+
+    key = f"idem-{uuid4().hex[:12]}"
+    first = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch", "idempotency_key": key},
+    )
+    assert first.status_code == 200, first.text
+    comment = first.json()["analysis"]["coach_comment"]
+    assert comment
+
+    retry = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch", "idempotency_key": key},
+    )
+    assert retry.status_code == 200, retry.text
+    assert retry.json()["entry_id"] == first.json()["entry_id"]
+    assert retry.json()["analysis"]["coach_comment"] == comment
+
+
+def test_editing_a_meal_keeps_its_ai_comment(client, db_session):
+    """끼니를 고쳐도 식단평은 그대로 실려 온다. (#1932)
+
+    수정은 숫자를 고치는 일이고 식단평은 사진 분석이 남긴 글이라, 부분 수정이
+    닿지 않는 열이다. 응답에서 빠지면 고치자마자 그 줄이 사라진다.
+    """
+    from app.db.init_db import DEMO_USER_ID
+    from app.models.models import DietEntry
+    from app.services.diet_service import today_str as _today_str
+
+    db_session.execute(
+        delete(DietEntry).where(
+            DietEntry.user_id == DEMO_USER_ID,
+            DietEntry.date == _today_str(),
+        )
+    )
+    db_session.commit()
+
+    created = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    )
+    assert created.status_code == 200, created.text
+    entry_id = created.json()["entry_id"]
+    comment = created.json()["analysis"]["coach_comment"]
+    assert comment
+
+    edited = client.put(
+        f"/v1/diet/entries/{entry_id}", json={"meal_type": "dinner"}
+    )
+    assert edited.status_code == 200, edited.text
+    assert edited.json()["meal_type"] == "dinner"
+    assert edited.json()["ai_comment"] == comment

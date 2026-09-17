@@ -220,6 +220,9 @@ class DietEntry(Base):
     engine: Mapped[str] = mapped_column(
         String(20), default=""
     )  # 인식 엔진(gemini|yolo)
+    # 사진 분석이 만든 식단평(#1932). 앱이 끼니 카드 아래 한 줄로 보여 준다.
+    # 손으로 적은 끼니와 이 컬럼 이전 기록은 빈 문자열이다.
+    ai_comment: Mapped[str] = mapped_column(Text, default="", server_default="")
     # 재시도 중복 저장 방지용 멱등키(클라 요청당 1회 생성). NULL 허용 → 기존/무키 요청은 제약 밖.
     idempotency_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
