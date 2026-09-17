@@ -73,21 +73,6 @@ class ExerciseSessions extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
 }
 
-@DataClassName('ScheduleEventRow')
-class ScheduleEvents extends Table {
-  TextColumn get id => text()();
-  TextColumn get date => text()(); // YYYY-MM-DD
-  TextColumn get time => text()(); // "10:00"
-  TextColumn get title => text()();
-  TextColumn get category =>
-      text()(); // hospital|exercise|meal|medication|other
-  TextColumn get emoji => text().withDefault(const Constant(''))();
-  TextColumn get colorHex => text().withDefault(const Constant('#E0F2F7'))();
-
-  @override
-  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
-}
-
 @DataClassName('NotificationRow')
 class NotificationItems extends Table {
   TextColumn get id => text()();
@@ -107,7 +92,6 @@ class NotificationItems extends Table {
     AppKeyValues,
     DietEntries,
     ExerciseSessions,
-    ScheduleEvents,
     NotificationItems,
   ],
 )
@@ -131,7 +115,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -142,7 +126,6 @@ class AppDatabase extends _$AppDatabase {
       if (from < 2) {
         await m.createTable(dietEntries);
         await m.createTable(exerciseSessions);
-        await m.createTable(scheduleEvents);
         await m.createTable(notificationItems);
       }
       if (from < 3) {
@@ -192,6 +175,11 @@ class AppDatabase extends _$AppDatabase {
         // 끼니 사진 원본 컬럼 추가 — 기존 기록은 null 이라 예전처럼 번들
         // 에셋이나 이모지로 그려진다.
         await m.addColumn(dietEntries, dietEntries.photoBytes);
+      }
+      if (from < 12) {
+        // 회원앱 일정 기능 제거(#1928) — 읽고 쓰는 곳이 없어진 표를 지운다.
+        // 바이탈 때(v5)와 같은 방식으로, 없는 표를 지우다 실패하지 않게 한다.
+        await customStatement('DROP TABLE IF EXISTS schedule_events');
       }
     },
   );

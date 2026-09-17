@@ -12,7 +12,6 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
-import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 
 /// Connects session transitions to account-specific feature state.
 ///
@@ -60,8 +59,6 @@ Override sessionFeatureResetOverride() {
       // 알림 수신 설정은 실 백엔드에서 계정 단위다. 여기 없으면 앞 계정의 토글이
       // 앱을 다시 켤 때까지 남는다.
       ref.invalidate(notificationSettingsProvider);
-      ref.invalidate(scheduleEventsProvider);
-      ref.invalidate(scheduleMonthProvider);
     };
   });
 }

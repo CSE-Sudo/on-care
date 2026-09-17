@@ -19,7 +19,6 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.diet_api import DietEntryUpdate
-from app.schemas.misc_api import ScheduleEventUpdate
 from app.schemas.trainer_api import (
     ScheduleUpdateRequest,
     TrainerMeUpdate,
@@ -34,7 +33,6 @@ from app.schemas.user import (
 #: (스키마, null 을 보낼 필드, 정상값). 규약이 적용된 전부.
 _REJECTING = [
     (DietEntryUpdate, "meal_type", "lunch"),
-    (ScheduleEventUpdate, "title", "검진"),
     (ScheduleUpdateRequest, "client_name", "김민수"),
     (TrainerMeUpdate, "phone", "010-0000-0000"),
     (TrainerNotificationSettingsUpdate, "notify_new_message", False),

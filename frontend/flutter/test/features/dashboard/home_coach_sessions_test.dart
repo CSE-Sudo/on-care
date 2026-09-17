@@ -32,9 +32,6 @@ const DashboardSummary _summary = DashboardSummary(
   exerciseMinutes: 30,
   exerciseCalories: 300,
   exerciseCount: 1,
-  todaySchedule: <ScheduleItem>[
-    ScheduleItem(time: '18:00', title: '병원 정기검진', emoji: '🏥'),
-  ],
   weekScore: 80,
   weekScoreDelta: 5,
   sodiumWarning: '',

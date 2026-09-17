@@ -70,9 +70,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'No records yet today. Add a meal or workout to get started.';
 
   @override
-  String get homeScheduleEmpty => 'No events scheduled for today.';
-
-  @override
   String get homeAiAdviceTitle => 'Today\'s combined AI advice';
 
   @override
@@ -185,14 +182,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeViewAll => 'View all';
-
-  @override
-  String homeScheduleDate(String weekday, int month, int day) {
-    return '$weekday, $month/$day';
-  }
-
-  @override
-  String get homeScheduleTitle => 'Today\'s schedule';
 
   @override
   String get unitKcal => 'kcal';
@@ -2353,100 +2342,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionConfirm => 'OK';
-
-  @override
-  String get scheduleCategoryHospital => 'Hospital';
-
-  @override
-  String get scheduleCategoryExercise => 'Exercise';
-
-  @override
-  String get scheduleCategoryMeal => 'Meal';
-
-  @override
-  String get scheduleCategoryMedication => 'Medication';
-
-  @override
-  String get scheduleCategoryOther => 'Other';
-
-  @override
-  String get eventAddTitle => 'Add event';
-
-  @override
-  String get eventEditTitle => 'Edit event';
-
-  @override
-  String get eventTitleLabel => 'Event title';
-
-  @override
-  String get eventTitleHint => 'e.g. Regular checkup';
-
-  @override
-  String get eventDateLabel => 'Date';
-
-  @override
-  String get eventTimeLabel => 'Time';
-
-  @override
-  String get eventTimeNone => 'No time';
-
-  @override
-  String get eventTitleRequired => 'Please enter an event title';
-
-  @override
-  String get eventAddFailed =>
-      'Couldn\'t add the event. Please try again in a moment';
-
-  @override
-  String get eventEditFailed =>
-      'Couldn\'t save the event. Please try again in a moment';
-
-  @override
-  String get eventSaving => 'Saving…';
-
-  @override
-  String get eventAdding => 'Adding…';
-
-  @override
-  String get eventSave => 'Save';
-
-  @override
-  String get eventAdd => 'Add';
-
-  @override
-  String eventClearField(String label) {
-    return 'Clear $label';
-  }
-
-  @override
-  String get eventDeleteTitle => 'Delete event';
-
-  @override
-  String eventDeleteConfirm(String title) {
-    return 'Delete “$title”? This can\'t be undone.';
-  }
-
-  @override
-  String get eventDeleteFailed =>
-      'Couldn\'t delete the event. Please try again in a moment';
-
-  @override
-  String get eventDeleted => 'Event deleted';
-
-  @override
-  String get eventsEmptyForDay => 'No events on this day';
-
-  @override
-  String get eventAddForDay => 'Add an event on this day';
-
-  @override
-  String get eventTimeUnset => 'Time TBD';
-
-  @override
-  String get scheduleSheetTitle => 'Schedule';
-
-  @override
-  String get eventsLoadFailed => 'Couldn\'t load events';
 
   @override
   String get coachCardSleepTag => 'Sleep';

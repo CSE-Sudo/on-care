@@ -33,24 +33,6 @@ class HealthIndicator {
       );
 }
 
-class ScheduleItem {
-  const ScheduleItem({
-    required this.time,
-    required this.title,
-    required this.emoji,
-  });
-
-  final String time;
-  final String title;
-  final String emoji;
-
-  factory ScheduleItem.fromJson(Map<String, Object?> json) => ScheduleItem(
-    time: json['time']! as String,
-    title: json['title']! as String,
-    emoji: (json['emoji'] as String?) ?? '',
-  );
-}
-
 /// One day of the 식단 카드 weekly-trend chart.
 ///
 /// 홈 카드가 그리는 것은 [calories] 하나다(#1879). [sodiumMg] 는 주간 건강
@@ -92,7 +74,7 @@ class NutritionDay {
 }
 
 /// Snapshot displayed on the home dashboard. Mirrors the data the
-/// React `Dashboard.tsx` mounts in `healthData` / `todaySchedule` /
+/// React `Dashboard.tsx` mounts in `healthData` /
 /// `quickStats` / weekly score.
 class DashboardSummary {
   const DashboardSummary({
@@ -105,8 +87,7 @@ class DashboardSummary {
     this.exerciseBurnGoal = defaultExerciseBurnGoal,
     this.nutritionWeek = const <NutritionDay>[],
     this.nutritionWeekPrev = const <NutritionDay>[],
-    required this.todaySchedule,
-    required this.weekScore,
+      required this.weekScore,
     required this.weekScoreDelta,
     required this.sodiumWarning,
     this.exerciseFeedback,
@@ -143,8 +124,6 @@ class DashboardSummary {
   final List<NutritionDay> nutritionWeek;
   final List<NutritionDay> nutritionWeekPrev;
 
-  /// Today's schedule list (병원 정기검진 / 헬스장 운동 …).
-  final List<ScheduleItem> todaySchedule;
 
   /// "이번 주 건강 점수" card.
   final int weekScore;
@@ -192,7 +171,6 @@ class DashboardSummary {
   bool get isEmpty =>
       dietEntries == 0 &&
       exerciseMinutes == 0 &&
-      todaySchedule.isEmpty &&
       calorieIndicator.current == 0 &&
       // 오늘 기록이 없어도 이번 주(과거 요일)에 실제 식단 기록이 있으면 홈은
       // 비어 있지 않다 — 주간 추이 차트가 표시돼야 한다.
@@ -227,10 +205,6 @@ class DashboardSummary {
             .cast<Map<String, Object?>>()
             .map(NutritionDay.fromJson)
             .toList(),
-    todaySchedule: (json['today_schedule']! as List<Object?>)
-        .cast<Map<String, Object?>>()
-        .map(ScheduleItem.fromJson)
-        .toList(),
     weekScore: (json['week_score']! as num).toInt(),
     weekScoreDelta: (json['week_score_delta']! as num).toInt(),
     sodiumWarning: json['sodium_warning'] as String?,

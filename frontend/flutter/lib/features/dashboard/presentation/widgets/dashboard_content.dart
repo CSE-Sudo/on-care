@@ -16,7 +16,6 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
-import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
@@ -27,7 +26,6 @@ import 'package:oncare/shared/widgets/chart_semantics.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
-import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// The Home tab, rebuilt to match the On-Care Figma redesign.
@@ -44,12 +42,10 @@ class DashboardContent extends StatelessWidget {
   const DashboardContent({
     super.key,
     this.onNotificationTap,
-    this.onCalendarTap,
     this.adviceAnchorKey,
   });
 
   final VoidCallback? onNotificationTap;
-  final VoidCallback? onCalendarTap;
 
   /// 사용 가이드가 `오늘의 AI 통합 조언` 카드의 자리를 재는 열쇠(#1857). 홈은 이
   /// 값을 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
@@ -60,7 +56,6 @@ class DashboardContent extends StatelessWidget {
     return AppPage(
       header: _HomeHeader(
         onNotificationTap: onNotificationTap,
-        onCalendarTap: onCalendarTap,
       ),
       // 셸이 하단 바 뒤까지 본문을 늘리므로 바가 가린 만큼 아래를 비운다.
       bottomInset: MediaQuery.paddingOf(context).bottom,
@@ -94,10 +89,9 @@ class DashboardContent extends StatelessWidget {
 
 /// 홈 탭 머리. 벨 점은 서버 미읽음을 본다 — 이 머리만 다시 그린다.
 class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
-  const _HomeHeader({this.onNotificationTap, this.onCalendarTap});
+  const _HomeHeader({this.onNotificationTap});
 
   final VoidCallback? onNotificationTap;
-  final VoidCallback? onCalendarTap;
 
   @override
   Size get preferredSize => const MemberTabHeader(
@@ -114,7 +108,6 @@ class _HomeHeader extends ConsumerWidget implements PreferredSizeWidget {
       onBell: onNotificationTap,
       bellHasUnread:
           (ref.watch(notificationUnreadProvider).valueOrNull ?? 0) > 0,
-      onCalendar: onCalendarTap,
     );
   }
 }
@@ -163,9 +156,6 @@ class _DashboardData extends StatelessWidget {
         _ExerciseCard(onOpen: onExerciseTap),
         const SizedBox(height: OnCareSpacing.sectionGap),
         const _RecommendedMeals(),
-        // 오늘의 일정은 지금 쓰지 않는다. 되살릴 수 있어 지우지 않고 남겨
-        // 둔다. (#1055)
-        // _ScheduleCard(items: summary.todaySchedule),
       ],
     );
   }
@@ -1085,143 +1075,6 @@ class _RecMealCard extends StatelessWidget {
 }
 
 // ───────────────────────────────────────────────────────── schedule ──
-
-/// 홈 하단의 오늘 일정 카드. 지금은 화면에 걸지 않았다 (#1055) — 지우지 않고
-/// 남겨 둔 것이라 쓰이지 않는다는 경고를 여기서 끈다.
-// ignore: unused_element
-class _ScheduleCard extends ConsumerWidget {
-  const _ScheduleCard({required this.items});
-
-  final List<ScheduleItem> items;
-
-  /// 트레이너가 잡아 준 오늘의 PT 를 일정 항목으로 바꾼다. (#490)
-  ///
-  /// 별도 카드를 만들지 않고 여기 합치는 이유: 회원 입장에서 '오늘 뭐 하지'는
-  /// 하나의 질문이다. PT 만 따로 떼면 같은 시간대를 두 곳에서 봐야 한다.
-  ///
-  /// 데모는 담당 일정이 없어(`MockMemberCoachRepository.fetchSessions`) 빈
-  /// 목록이 오므로 카드가 지금과 똑같이 그려진다.
-  static List<ScheduleItem> _todaysSessions(List<CoachSession> sessions) {
-    final DateTime now = nowKst();
-    final DateTime today = DateTime(now.year, now.month, now.day);
-    return <ScheduleItem>[
-      for (final CoachSession session in sessions)
-        if (session.isUpcoming && session.date != null)
-          if (DateTime(
-                session.date!.year,
-                session.date!.month,
-                session.date!.day,
-              ) ==
-              today)
-            ScheduleItem(time: session.time, title: session.type, emoji: '🏋️'),
-    ];
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final DateTime now = nowKst();
-    final String weekday = weekDayLabels(l)[now.weekday - 1];
-    final String todayLabel = l.homeScheduleDate(weekday, now.month, now.day);
-    // 트레이너 일정과 내가 만든 일정을 한 목록으로 보여 준다. 시간순으로 섞어야
-    // '다음에 뭐가 있는지'를 한 번에 읽을 수 있다.
-    final List<ScheduleItem> merged =
-        <ScheduleItem>[
-          ...items,
-          ..._todaysSessions(
-            ref.watch(coachSessionsProvider).valueOrNull ??
-                const <CoachSession>[],
-          ),
-        ]..sort(
-          (ScheduleItem first, ScheduleItem second) =>
-              first.time.compareTo(second.time),
-        );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        AppSectionHeader(
-          title: l.homeScheduleTitle,
-          actionLabel: l.homeViewAll,
-          onAction: () => showScheduleCalendarSheet(context),
-        ),
-        Text(
-          todayLabel,
-          style: tokens
-              .text(OnCareTypography.bodySmall)
-              .copyWith(color: OnCareColors.textSecondary),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        if (merged.isEmpty)
-          AppTile(
-            child: Text(
-              l.homeScheduleEmpty,
-              style: tokens
-                  .text(OnCareTypography.body)
-                  .copyWith(color: OnCareColors.textPrimary),
-            ),
-          )
-        else
-          for (int index = 0; index < merged.length; index++) ...<Widget>[
-            _ScheduleItemCard(item: merged[index]),
-            if (index != merged.length - 1)
-              const SizedBox(height: OnCareSpacing.s8),
-          ],
-      ],
-    );
-  }
-}
-
-class _ScheduleItemCard extends StatelessWidget {
-  const _ScheduleItemCard({required this.item});
-
-  final ScheduleItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Semantics(
-      button: true,
-      child: AppTile(
-        onTap: () => showScheduleCalendarSheet(context),
-        child: Row(
-          children: <Widget>[
-            Text(
-              item.time,
-              style: OnCareTypography.numeric(
-                tokens.text(OnCareTypography.titleSmall),
-              ).copyWith(color: tokens.brand.primary),
-            ),
-            const SizedBox(width: OnCareSpacing.s16),
-            Expanded(
-              child: Row(
-                children: <Widget>[
-                  if (item.emoji.isNotEmpty) ...<Widget>[
-                    Text(item.emoji),
-                    const SizedBox(width: OnCareSpacing.s8),
-                  ],
-                  Expanded(
-                    child: Text(
-                      item.title,
-                      style: tokens
-                          .text(OnCareTypography.titleSmall)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            AppIcon(
-              AppIcons.chevronRight,
-              size: OnCareSize.iconMedium,
-              color: tokens.brand.primary,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _ChartLegend extends StatelessWidget {
   const _ChartLegend({required this.title});

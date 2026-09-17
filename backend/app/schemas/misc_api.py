@@ -40,52 +40,6 @@ def _valid_hhmm_or_empty(v: str) -> str:
 
 
 # ---- 일정 ----
-class ScheduleEventOut(BaseModel):
-    id: str
-    date: str          # YYYY-MM-DD
-    time: str
-    title: str
-    category: str      # hospital|exercise|meal|medication|other
-    emoji: str
-    color_hex: str
-
-
-class ScheduleEventCreate(BaseModel):
-    date: str = Field(max_length=10)
-    time: str = Field(default="", max_length=10)
-    title: str = Field(min_length=1, max_length=200)
-    category: ScheduleCategory = "other"
-    emoji: str = Field(default="", max_length=10)
-    color_hex: str = Field(default="#E0F2F7", max_length=10, pattern=_HEX_COLOR)
-
-    _v_date = field_validator("date")(_valid_ymd)
-    _v_time = field_validator("time")(_valid_hhmm_or_empty)
-
-
-class ScheduleEventUpdate(PartialUpdate):
-    """일정 상세 수정(부분). 제공된 필드만 반영. 잘못된 값은 422.
-
-    모든 항목이 DB NOT NULL 이라 null 로 바꿀 수 있는 값이 아니다(#495).
-    """
-    date: str | None = Field(default=None, max_length=10)
-    time: str | None = Field(default=None, max_length=10)
-    title: str | None = Field(default=None, min_length=1, max_length=200)
-    category: ScheduleCategory | None = None
-    emoji: str | None = Field(default=None, max_length=10)
-    color_hex: str | None = Field(default=None, max_length=10, pattern=_HEX_COLOR)
-
-    @field_validator("date")
-    @classmethod
-    def _vd(cls, v: str | None) -> str | None:
-        return _valid_ymd(v) if v is not None else v
-
-    @field_validator("time")
-    @classmethod
-    def _vt(cls, v: str | None) -> str | None:
-        return _valid_hhmm_or_empty(v) if v is not None else v
-
-
-# ---- 알림 ----
 class NotificationAction(BaseModel):
     """알림에서 바로 갈 수 있는 액션(카테고리에서 파생). 프론트가 target 으로 이동."""
     label: str         # "기록하러 가기"
