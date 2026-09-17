@@ -394,14 +394,6 @@
       }
     }
   },
-  "exProgramSets": "{count, plural, =1{1 set} other{{count} sets}}",
-  "@exProgramSets": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "exAddExercise": "Add Exercise",
   "exDurationMinutes": "{minutes} min",
   "@exDurationMinutes": {
@@ -430,7 +422,7 @@
   "exEnterName": "Please enter an exercise name",
   "exExerciseDuration": "Duration",
   "exExerciseSets": "Sets",
-  "exSetsCount": "{sets} sets",
+  "exSetsCount": "{sets, plural, =1{1 set} other{{sets} sets}}",
   "@exSetsCount": {
     "placeholders": {
       "sets": {
@@ -438,7 +430,7 @@
       }
     }
   },
-  "exRepsCount": "{reps} reps",
+  "exRepsCount": "{reps, plural, =1{1 rep} other{{reps} reps}}",
   "@exRepsCount": {
     "placeholders": {
       "reps": {

@@ -255,7 +255,6 @@
   "exCompletedPtTime": "{time} 수업 완료",
   "exCompletedPtNoProgram": "등록된 운동 프로그램이 없습니다.",
   "exCompletedPtFeedback": "{coachName} · 오늘의 피드백",
-  "exProgramSets": "{count}세트",
   "exAddExercise": "운동 추가",
   "exDurationMinutes": "{minutes}분",
   "exEditExercise": "운동 기록 수정",
