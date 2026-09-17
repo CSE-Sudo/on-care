@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
@@ -104,7 +105,9 @@ class _DatedHistoryRepository extends DriftClientRepository {
         completionRate: 100,
         // 표식을 종목 이름에 둔다 — 기록 카드는 더 이상 `dateLabel` 을 그리지
         // 않는다(그 날은 카드를 펼친 줄이 말한다, #1025).
-        exercises: <String>['$label ✓'],
+        exercises: <ClientExerciseItem>[
+          ClientExerciseItem.nameOnly('$label ✓'),
+        ],
         clientFeedback: '',
         trainerNote: '',
         completedAt: completedAt,
@@ -193,7 +196,9 @@ class _FeedbackRepository extends DriftClientRepository {
         completedAt: nowKst(),
         label: '코어 운동',
         completionRate: 100,
-        exercises: <String>['코어 운동 · 30분'],
+        exercises: <ClientExerciseItem>[
+          ClientExerciseItem.nameOnly('코어 운동 · 30분'),
+        ],
         clientFeedback: '마지막 세트가 힘들었어요',
         trainerNote: '',
         assignedRoutineId: 'r1',
@@ -266,10 +271,13 @@ void main() {
         final DateTime now = nowKst();
         expect(history.first.dateLabel, '${now.month}/${now.day} (오늘)');
         expect(history.first.completionRate, 100);
-        // 종목 이름은 픽스처가 정한다 — 여기 적으면 두 벌이 된다.
+        // 종목 이름은 픽스처가 정한다 — 여기 적으면 두 벌이 된다. 수행 표시는
+        // 이름이 아니라 `done` 이 든다(#1902).
         expect(
-          history.first.exercises,
-          contains('${_fixture.daysFor(nowKst()).last.exercises.first.name} ✓'),
+          history.first.exercises
+              .where((ClientExerciseItem e) => e.done)
+              .map((ClientExerciseItem e) => e.name),
+          contains(_fixture.daysFor(nowKst()).last.exercises.first.name),
         );
         expect(history.first.trainerNote, isNotEmpty);
         // Later entries have no trainer note (box hidden).
@@ -487,11 +495,12 @@ void main() {
       await settle(tester);
       final Finder skippedRow = find.text(_rowLabel(skipped.day));
       expect(skippedRow, findsOneWidget);
-      if (find.text(skipped.name).evaluate().isEmpty) {
+      // 줄은 이름 뒤에 값이 붙는다 — `하체 스트레칭 · 15분`(#1902).
+      if (find.textContaining(skipped.name).evaluate().isEmpty) {
         await tester.tap(skippedRow);
         await settle(tester);
       }
-      expect(find.text(skipped.name), findsWidgets);
+      expect(find.textContaining(skipped.name), findsWidgets);
     });
 
     testWidgets('아직 하지 않은 개인 운동을 이 화면에서 취소한다 (#1020)', (tester) async {
