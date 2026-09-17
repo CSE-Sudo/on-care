@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/account/domain/entities/user_profile.dart';
+import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/dashboard/domain/entities/dashboard_summary.dart';
 import 'package:oncare/features/dashboard/presentation/ai_advice_text.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -31,7 +33,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// The Home tab, rebuilt to match the On-Care Figma redesign.
 ///
 /// Sections (top → bottom): header, AI coaching banner, a 식단·영양 card
-/// (칼로리·나트륨·당류 지표 카드 + 탄단지 + 선택한 지표의 주간 추이) and a
+/// (탄수화물·단백질·지방 지표 카드 + 이번 주 칼로리 추이) and a
 /// 운동 card (좌측 지표 3종 + 우측 주간 추이), 이번 주 AI 추천 식단 carousel,
 /// 오늘의 일정. Per the product decision the 건강 지표 (심박수·수면) cards and
 /// the sleep AI-coaching banner are omitted.
@@ -227,24 +229,13 @@ class _CardHeader extends StatelessWidget {
   }
 }
 
-/// 홈 식단·영양 카드에서 고른 지표(칼로리/나트륨/당류) — 탭을 벗어났다가 홈에
-/// 다시 들어오면 기본값으로 되돌아가야 하는 임시 UI 상태라 Riverpod 에
-/// 둔다(#861). 실제 요약 데이터(`dashboardSummaryProvider`)와는 분리된 값이다.
-final _dashboardNutritionTabProvider = StateProvider<_NutTabKind>(
-  (ref) => _NutTabKind.calories,
-  name: 'dashboardNutritionTab',
-);
-
-/// 홈 탭 재진입 시 초기화할 임시 UI 상태 — 식단·영양 카드가 보여 주는 지표를
-/// 기본값(칼로리)으로 되돌린다(#861).
-void resetDashboardTransientUiState(WidgetRef ref) {
-  ref.read(_dashboardNutritionTabProvider.notifier).state =
-      _NutTabKind.calories;
-}
-
 // ───────────────────────────────────────────── diet + nutrition card ──
-/// The merged 식단·영양 card: calorie ring + achievement, macro grams/goals,
-/// and the weekly nutrition trend chart (legend + Y axis + point labels).
+/// 홈 식단·영양 카드 — 오늘의 탄단지 세 칸과 **이번 주 칼로리 추이** 꺾은선.
+///
+/// 예전에는 세 칸이 곧 지표 전환 버튼이어서, 누르면 아래 그래프가 그 지표의
+/// 주간 추이로 바뀌었다(#861 의 임시 UI 상태가 그 선택이었다). 지금은 그래프가
+/// 칼로리 하나로 고정이다(#1879) — 그래서 이 카드에는 되돌릴 선택 자체가 없고,
+/// 세 칸은 누르는 것이 아니라 **읽는 것**이다.
 class _DietNutritionCard extends ConsumerWidget {
   const _DietNutritionCard({
     required this.summary,
@@ -257,14 +248,17 @@ class _DietNutritionCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final _NutTabKind tab = ref.watch(_dashboardNutritionTabProvider);
     final AppLocalizations l = AppLocalizations.of(context);
-    final Map<_NutTabKind, _NutData> nutrition = _nutritionFor(summary);
-    final _NutData cfg = nutrition[tab]!;
+    // 탄단지 목표는 식단 탭 하루 요약과 **같은 값**을 쓴다. 홈만 따로 기본값을
+    // 들고 있으면 회원이 목표를 고쳤을 때 두 화면이 다른 목표를 말한다.
+    final UserProfile? profile = ref.watch(profileProvider).asData?.value;
+    final _NutData cfg = _calorieWeek(summary);
     final List<String> days = weekDayLabels(l);
     final int todayIdx = _todayIndex();
     final NumberFormat nf = NumberFormat('#,###');
-    final String chartTitle = l.homeWeeklyMetricTrend(_nutLabel(l, tab));
+    final String chartTitle = l.homeWeeklyMetricTrend(
+      l.dashboardMetricCalories,
+    );
 
     return AppCard(
       child: Column(
@@ -276,23 +270,16 @@ class _DietNutritionCard extends ConsumerWidget {
             onOpen: onOpen,
           ),
           const SizedBox(height: OnCareSpacing.s12),
-          // 상단: 칼로리·나트륨·당류를 큰 숫자 칸으로 나란히. 누르면 아래
-          // 그래프가 그 지표의 주간 추이로 바뀐다.
+          // 상단: 오늘의 탄수화물·단백질·지방을 큰 숫자 칸으로 나란히.
           Row(
             children: <Widget>[
-              for (final _NutTabKind kind in nutrition.keys) ...<Widget>[
-                if (kind != nutrition.keys.first)
+              for (final _NutTabKind kind in _NutTabKind.values) ...<Widget>[
+                if (kind != _NutTabKind.values.first)
                   const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
                   child: _MetricStatCard(
                     label: _nutLabel(l, kind),
-                    indicator: _indicatorFor(summary, kind),
-                    selected: tab == kind,
-                    onTap: () =>
-                        ref
-                                .read(_dashboardNutritionTabProvider.notifier)
-                                .state =
-                            kind,
+                    indicator: _indicatorFor(summary, profile, kind),
                   ),
                 ),
               ],
@@ -319,9 +306,9 @@ class _DietNutritionCard extends ConsumerWidget {
                         goal: cfg.goal,
                         ticks: cfg.ticks,
                         todayIndex: todayIdx,
-                        // 지표를 바꾸면 선을 처음부터 다시 그려 값이 바뀐 것을
-                        // 눈으로 따라가게 한다.
-                        replayKey: tab,
+                        // 그래프가 칼로리 하나라(#1879) 다시 재생할 전환이
+                        // 없다 — 카드가 붙을 때 한 번 그려지고 멈춘다.
+                        replayKey: chartTitle,
                         // 화면 위 제목과 같은 문구로 시작한다 — 음성 안내에서도
                         // 이 그래프가 어느 지표의 것인지가 먼저 들린다.
                         semanticsLabel: chartSemanticsLabel(
@@ -352,23 +339,16 @@ class _DietNutritionCard extends ConsumerWidget {
   }
 }
 
-/// 식단 카드 상단의 지표 칸 하나 — "칼로리" 라벨 + 큰 숫자 + "/2,000kcal"
-/// 목표치. 누르면 아래 주간 추이 그래프가 이 지표로 바뀐다.
+/// 식단 카드 상단의 지표 칸 하나 — "탄수화물" 라벨 + 큰 숫자 + "/275g" 목표치.
 ///
-/// 카드 안 칸이라 안쪽 타일 모양(반경 12)이고, 선택은 옅은 브랜드 채움 +
-/// 브랜드 테두리다(#1690 선택 상태).
+/// 카드 안 칸이라 안쪽 타일 모양(반경 12)이다. 예전에는 눌러서 아래 그래프의
+/// 지표를 고르는 버튼이었지만, 그래프가 칼로리 하나로 고정된 뒤로는(#1879)
+/// 누를 곳이 아니다 — 선택 상태도, 그것을 알리던 브랜드 채움·테두리도 없다.
 class _MetricStatCard extends StatelessWidget {
-  const _MetricStatCard({
-    required this.label,
-    required this.indicator,
-    required this.selected,
-    required this.onTap,
-  });
+  const _MetricStatCard({required this.label, required this.indicator});
 
   final String label;
   final HealthIndicator indicator;
-  final bool selected;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -379,71 +359,68 @@ class _MetricStatCard extends StatelessWidget {
     final TextStyle subStyle = tokens
         .text(OnCareTypography.strong(OnCareTypography.caption))
         .copyWith(color: OnCareColors.textSecondary);
-    // 선택 상태를 색으로만 알리면 스크린리더 사용자는 어떤 지표가 켜져 있는지도,
-    // 이 칸이 누를 수 있는 요소인지도 알 수 없다.
+    // 라벨·수치·목표가 따로 읽히면 "탄수화물", "203.6", "/275g" 세 토막이 된다.
+    // 한 칸을 한 번에 읽히게 묶고 단위를 라벨에 붙여 준다.
     return Semantics(
-      button: true,
-      selected: selected,
+      container: true,
       label: '$label (${indicator.unit})',
       child: Material(
-        color: selected ? tokens.brand.surface : OnCareColors.surfaceInput,
-        shape: RoundedRectangleBorder(
+        // 카드와 같은 흰 바탕이다. 칸을 회색으로 채우면 누를 수 있는 것처럼
+        // 보이는데, 지표 전환이 사라진 뒤로는(#1879) 누를 곳이 아니다 —
+        // 칸의 경계는 채움이 아니라 얇은 선이 말한다.
+        color: OnCareColors.surfaceCard,
+        shape: const RoundedRectangleBorder(
           borderRadius: OnCareRadius.mdAll,
-          side: BorderSide(
-            color: selected ? tokens.brand.primary : Colors.transparent,
-          ),
+          side: BorderSide(color: OnCareColors.lineSubtle),
         ),
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: OnCareSpacing.s8,
-              vertical: OnCareSpacing.s12,
-            ),
-            child: Column(
-              children: <Widget>[
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(label, maxLines: 1, style: subStyle),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: OnCareSpacing.s8,
+            vertical: OnCareSpacing.s12,
+          ),
+          child: Column(
+            children: <Widget>[
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label, maxLines: 1, style: subStyle),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              // 초과는 배지가 아니라 수치 자체를 빨갛게 해서 말한다. 배지는
+              // 카드마다 있고 없고가 갈려 카드 높이를 들쭉날쭉하게 만들었다
+              // (#1070). 색은 어느 카드에도 자리를 더 먹지 않는다.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _metricNumber(indicator.current),
+                  maxLines: 1,
+                  style:
+                      OnCareTypography.numeric(
+                        tokens.text(OnCareTypography.display),
+                      ).copyWith(
+                        color: over
+                            ? OnCareColors.danger
+                            : OnCareColors.textPrimary,
+                      ),
                 ),
-                const SizedBox(height: OnCareSpacing.s4),
-                // 초과는 배지가 아니라 수치 자체를 빨갛게 해서 말한다. 배지는
-                // 카드마다 있고 없고가 갈려 카드 높이를 들쭉날쭉하게 만들었다
-                // (#1070). 색은 어느 카드에도 자리를 더 먹지 않는다.
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    _metricNumber(indicator.current),
-                    maxLines: 1,
-                    style:
-                        OnCareTypography.numeric(
-                          tokens.text(OnCareTypography.display),
-                        ).copyWith(
-                          color: over
-                              ? OnCareColors.danger
-                              : OnCareColors.textPrimary,
-                        ),
-                  ),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
+              // 목표치는 작은 글씨로 현재 수치 바로 아래. 단위는 라벨이
+              // 아니라 목표치 오른쪽에 붙인다("/275g") — 라벨에 두면
+              // "탄수화물 (g)" 처럼 길어져 좁은 칸에서 먼저 줄어들었다.
+              // 목표가 없는 지표(max=0)면 단위만 남겨 큰 숫자가 단위를 잃지
+              // 않게 한다.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  indicator.max > 0
+                      ? '/${_metricNumber(indicator.max)}${indicator.unit}'
+                      : indicator.unit,
+                  maxLines: 1,
+                  style: subStyle,
                 ),
-                const SizedBox(height: OnCareSpacing.s4),
-                // 목표치는 작은 글씨로 현재 수치 바로 아래. 단위는 라벨이
-                // 아니라 목표치 오른쪽에 붙인다("/2,000kcal") — 라벨에 두면
-                // "칼로리 (kcal)" 처럼 길어져 좁은 칸에서 먼저 줄어들었다.
-                // 목표가 없는 지표(max=0)면 단위만 남겨 큰 숫자가 단위를 잃지
-                // 않게 한다.
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    indicator.max > 0
-                        ? '/${_metricNumber(indicator.max)}${indicator.unit}'
-                        : indicator.unit,
-                    maxLines: 1,
-                    style: subStyle,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -600,71 +577,48 @@ class _NutData {
 
 /// Stable identity for a nutrition tab, decoupled from its displayed label
 /// so the shown language never becomes an internal key.
-enum _NutTabKind { calories, sodium, sugar }
+enum _NutTabKind { carbs, protein, fat }
 
-/// 지표마다 고정된 표시 규칙 — 단위·눈금. 값은 여기 없다.
+/// 탄단지 지표 칸의 단위. 셋 다 그램이다.
+const String _kMacroUnit = 'g';
+
+/// 주간 추이 꺾은선의 세로 눈금. **식단 탭과 같은 값**이라(`diet_period_view`
+/// 의 `_kCalorieTicks`) 두 화면이 같은 한 주를 다른 축으로 그리지 않는다.
 ///
-/// 예전에는 이 자리에 주간 이력 예시 숫자까지 함께 들어 있었고, 응답이 7일을
-/// 채우지 않으면 그 숫자가 그대로 그려졌다. 화면에 뜬 한 주가 회원의 것이
-/// 아닐 수 있다는 뜻이라, 표시 규칙만 남기고 값은 응답에서만 온다(#962).
+/// 맨 아래 0 눈금은 축의 바닥을 고정한다(#548). 그 위 눈금은 2개만 둔다 —
+/// 라벨 칸은 16px 이라 촘촘히(1000·1500·2000·2500) 놓으면 칸 간격이 16px 을
+/// 밑돌아 아래쪽 라벨끼리 겹쳐 숫자를 읽을 수 없었다. 목표선은 따로 그리므로
+/// 2000 을 빼도 잃는 정보가 없다.
+const List<double> _kCalorieTicks = <double>[0, 1500, 2500];
+
+/// 이번 주 칼로리 추이 — 그래프가 그리는 값·목표·눈금 한 덩어리.
 ///
-/// 그래프 색은 지표와 무관하게 식단 그래프 색 하나다(`OnCareBrand.dietChart`) —
-/// 여기 두던 지표별 색은 그리는 곳이 없어 뺐다.
-const Map<_NutTabKind, _NutStyle> _nutStyles = <_NutTabKind, _NutStyle>{
-  _NutTabKind.calories: _NutStyle(
-    unit: 'kcal',
-    // 맨 아래 0 눈금은 당류 그래프와 같은 기준선 역할이라 항상 넣는다 —
-    // 세 지표가 한 카드에서 탭으로 바뀌는데 축의 바닥이 서로 달랐다 (#548).
-    // 그 위 눈금은 2개만 둔다. 라벨 칸은 16px 인데 촘촘히(1000·1500·2000·2500)
-    // 놓으면 칸 간격이 16px 을 밑돌아 아래쪽 라벨끼리 겹쳐 숫자를 읽을 수
-    // 없었다. 목표선은 따로 그리지 않으므로(상단 '목표 N' 라벨과 데이터
-    // 포인트 상태색으로만 표현) 2000 을 빼도 잃는 정보가 없다.
-    ticks: <double>[0, 1500, 2500],
-  ),
-  _NutTabKind.sodium: _NutStyle(unit: 'mg', ticks: <double>[0, 1750, 3500]),
-  _NutTabKind.sugar: _NutStyle(unit: 'g', ticks: <double>[0, 25, 50]),
-};
-
-class _NutStyle {
-  const _NutStyle({required this.unit, required this.ticks});
-  final String unit;
-  final List<double> ticks;
-}
-
-Map<_NutTabKind, _NutData> _nutritionFor(DashboardSummary summary) {
-  final liveValues = <_NutTabKind, HealthIndicator>{
-    _NutTabKind.calories: summary.calorieIndicator,
-    _NutTabKind.sodium: summary.sodiumIndicator,
-    _NutTabKind.sugar: summary.sugarIndicator,
-  };
+/// 예전에는 지표(칼로리/나트륨/당류)마다 같은 것을 만들어 지도로 들고 다녔다.
+/// 그래프가 칼로리 하나로 고정된 뒤로는(#1879) 하나면 된다.
+///
+/// 값은 응답에서만 온다 — 예전에는 주간 이력 예시 숫자를 코드가 들고 있다가
+/// 응답이 7일을 채우지 않으면 그 숫자를 그대로 그렸다. 화면에 뜬 한 주가
+/// 회원의 것이 아닐 수 있다는 뜻이었다(#962).
+_NutData _calorieWeek(DashboardSummary summary) {
+  final HealthIndicator today = summary.calorieIndicator;
   final List<NutritionDay>? week = summary.nutritionWeek.length == 7
       ? summary.nutritionWeek
       : null;
   // 주간 이력이 없으면 오늘 값만 제 요일 자리에 놓고 나머지는 비운다 —
   // 없는 기록을 지어내지 않는다.
   final int todayIdx = _todayIndex();
-  return <_NutTabKind, _NutData>{
-    for (final entry in _nutStyles.entries)
-      entry.key: _NutData(
-        cur: week != null
-            ? <double>[
-                for (final day in week)
-                  switch (entry.key) {
-                    _NutTabKind.calories => day.calories.toDouble(),
-                    _NutTabKind.sodium => day.sodiumMg.toDouble(),
-                    _NutTabKind.sugar => day.sugarG,
-                  },
-              ]
-            : <double>[
-                for (int i = 0; i < 7; i++)
-                  i == todayIdx ? liveValues[entry.key]!.current.toDouble() : 0,
-              ],
-        unit: entry.value.unit,
-        goal: liveValues[entry.key]!.max.toDouble(),
-        ticks: entry.value.ticks,
-        warn: liveValues[entry.key]!.overBudget,
-      ),
-  };
+  return _NutData(
+    cur: week != null
+        ? <double>[for (final day in week) day.calories.toDouble()]
+        : <double>[
+            for (int i = 0; i < 7; i++)
+              i == todayIdx ? today.current.toDouble() : 0,
+          ],
+    unit: today.unit,
+    goal: today.max.toDouble(),
+    ticks: _kCalorieTicks,
+    warn: today.overBudget,
+  );
 }
 
 /// 오늘 요일 인덱스(0=월 … 6=일). 고정 라벨 배열 `_weekDayLabels` 와 함께 써서
@@ -673,11 +627,11 @@ Map<_NutTabKind, _NutData> _nutritionFor(DashboardSummary summary) {
 /// 홈 카드 전체가 이 하나만 쓴다(지표 카드·차트 기준이 어긋나지 않도록).
 int _todayIndex() => nowKst().weekday - 1;
 
-/// 지표 키 → 화면 라벨(칼로리/나트륨/당류).
+/// 지표 키 → 화면 라벨(탄수화물/단백질/지방). 식단 탭과 같은 문구를 쓴다.
 String _nutLabel(AppLocalizations l, _NutTabKind key) => switch (key) {
-  _NutTabKind.calories => l.dashboardMetricCalories,
-  _NutTabKind.sodium => l.dietSodium,
-  _NutTabKind.sugar => l.dietSugar,
+  _NutTabKind.carbs => l.homeMacroCarbs,
+  _NutTabKind.protein => l.homeMacroProtein,
+  _NutTabKind.fat => l.homeMacroFat,
 };
 
 /// 지표 수치 표기. 정수는 천단위 콤마만 붙이고, 소수가 있으면 한 자리까지
@@ -688,12 +642,39 @@ String _metricNumber(num v) => v == v.roundToDouble()
     : NumberFormat('#,##0.#').format(v);
 
 /// 지표 키 → 오늘 수치(현재값·목표·초과 여부).
-HealthIndicator _indicatorFor(DashboardSummary s, _NutTabKind key) =>
-    switch (key) {
-      _NutTabKind.calories => s.calorieIndicator,
-      _NutTabKind.sodium => s.sodiumIndicator,
-      _NutTabKind.sugar => s.sugarIndicator,
-    };
+///
+/// 탄단지는 서버 `indicators`(칼로리·나트륨·당류) 밖에 있다 — 오늘 합계는
+/// `macros`, 목표는 회원 프로필에서 온다. 목표를 못 읽으면 식단 탭과 같은
+/// 기본값으로 떨어진다.
+HealthIndicator _indicatorFor(
+  DashboardSummary s,
+  UserProfile? p,
+  _NutTabKind key,
+) {
+  final (double current, int goal) = switch (key) {
+    _NutTabKind.carbs => (
+      s.macros.carbsG,
+      p?.effectiveDailyCarbsG ?? UserProfile.defaultDailyCarbsG,
+    ),
+    _NutTabKind.protein => (
+      s.macros.proteinG,
+      p?.effectiveDailyProteinG ?? UserProfile.defaultDailyProteinG,
+    ),
+    _NutTabKind.fat => (
+      s.macros.fatG,
+      p?.effectiveDailyFatG ?? UserProfile.defaultDailyFatG,
+    ),
+  };
+  return HealthIndicator(
+    // 라벨은 화면이 [_nutLabel] 로 따로 붙인다 — 이 값은 서버 `indicators` 의
+    // 표시 문구를 담는 자리이고, 탄단지는 그 목록 밖이라 채울 것이 없다.
+    label: '',
+    current: current,
+    max: goal,
+    unit: _kMacroUnit,
+    overBudget: current > goal,
+  );
+}
 
 // ───────────────────────────────────────────────────── recommended meals ──
 

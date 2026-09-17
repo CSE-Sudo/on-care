@@ -397,6 +397,12 @@ class LocalApiInterceptor extends Interceptor {
     final List<Object?>? requestFoods = foodsValue is List
         ? List<Object?>.from(foodsValue)
         : null;
+    // 합계를 다시 셀 때 쓸 음식 목록. `foods` 를 보내지 않은 수정이면 null 이라
+    // 아래에서 본문의 합계를 그대로 반영한다(부분 수정 규약 유지).
+    final List<Map<String, Object?>>? storedFoods = requestFoods
+        ?.whereType<Map<Object?, Object?>>()
+        .map((Map<Object?, Object?> f) => f.cast<String, Object?>())
+        .toList();
     final Object? totalCaloriesValue = body['total_calories'];
     final Object? sodiumMgValue = body['sodium_mg'];
     final Object? sugarGValue = body['sugar_g'];
@@ -410,16 +416,26 @@ class LocalApiInterceptor extends Interceptor {
         foodsJson: requestFoods == null
             ? const Value.absent()
             : Value(jsonEncode(requestFoods)),
-        totalCalories:
-            body.containsKey('total_calories') && totalCaloriesValue is num
-            ? Value(totalCaloriesValue.toInt())
-            : const Value.absent(),
-        sodiumMg: body.containsKey('sodium_mg') && sodiumMgValue is num
-            ? Value(sodiumMgValue.toInt())
-            : const Value.absent(),
-        sugarG: body.containsKey('sugar_g') && sugarGValue is num
-            ? Value(sugarGValue.toDouble())
-            : const Value.absent(),
+        // 음식 목록이 왔으면 그것이 이 끼니의 사실이다 — 합계는 본문 값이 아니라
+        // **그 목록에서 다시 센다.** 실서버가 같은 규칙이라(`totals_from_foods`,
+        // #1892), 여기만 본문을 믿으면 앱이 합계를 잘못 보냈을 때 데모에서는 그대로
+        // 저장돼 맞아 보이고 실연동에서는 다른 값이 남는다 — 같은 조작이 두 환경에서
+        // 다른 결과를 낸다. 탄단지는 이미 음식에서 되짚고 있다. (#1922)
+        totalCalories: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'calories').round())
+            : (body.containsKey('total_calories') && totalCaloriesValue is num
+                  ? Value(totalCaloriesValue.toInt())
+                  : const Value.absent()),
+        sodiumMg: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'sodium_mg').round())
+            : (body.containsKey('sodium_mg') && sodiumMgValue is num
+                  ? Value(sodiumMgValue.toInt())
+                  : const Value.absent()),
+        sugarG: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'sugar_g'))
+            : (body.containsKey('sugar_g') && sugarGValue is num
+                  ? Value(sugarGValue.toDouble())
+                  : const Value.absent()),
       ),
     );
     final row = await (_db.select(
@@ -559,6 +575,9 @@ class LocalApiInterceptor extends Interceptor {
           'calories': 0,
           'sodium_mg': 0,
           'sugar_g': 0.0,
+          'carbs_g': 0.0,
+          'protein_g': 0.0,
+          'fat_g': 0.0,
         },
     };
     final allDietRows = await _db.select(_db.dietEntries).get();
@@ -568,6 +587,15 @@ class LocalApiInterceptor extends Interceptor {
       totals['calories'] = totals['calories']! + row.totalCalories;
       totals['sodium_mg'] = totals['sodium_mg']! + row.sodiumMg;
       totals['sugar_g'] = totals['sugar_g']! + row.sugarG;
+      // 실서버가 싣는 것을 데모도 똑같이 싣는다(#1879). 행에는 탄단지
+      // 칸이 없으므로 끼니의 음식에서 접는다 — `/diet/days/{date}` 가 하루
+      // 합계를 만드는 방법과 같다.
+      final rowMacros = _foodMacroTotals(
+        jsonDecode(row.foodsJson) as List<Object?>,
+      );
+      totals['carbs_g'] = totals['carbs_g']! + rowMacros.carbsG;
+      totals['protein_g'] = totals['protein_g']! + rowMacros.proteinG;
+      totals['fat_g'] = totals['fat_g']! + rowMacros.fatG;
     }
     final nutritionWeek = <Map<String, Object?>>[
       for (var index = 0; index < 7; index++)
@@ -2147,7 +2175,8 @@ class LocalApiInterceptor extends Interceptor {
     return <Map<String, Object?>>[
       for (final turn in _aiCoachSeed)
         <String, Object?>{
-          'id': 'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
+          'id':
+              'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
           'role': turn.fromMember ? 'user' : 'coach',
           'text': turn.text,
           'sources': turn.sources,

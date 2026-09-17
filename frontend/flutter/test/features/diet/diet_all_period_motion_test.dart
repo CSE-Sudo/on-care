@@ -1,7 +1,9 @@
-/// `전체` 막대가 바닥에서 자라고, 지표를 바꾸면 다시 자란다. (#1148)
+/// `전체` 막대가 바닥에서 자란다. (#1148, #1200)
 ///
-/// 칸 수만 보고 되감으면 칼로리 → 나트륨처럼 개수가 같은 전환에서는 그림만
-/// 슬쩍 바뀌어, 무엇이 달라졌는지 눈으로 따라갈 수가 없다.
+/// 지표를 바꾸면 다시 자라는지도 여기서 봤다 — 칸 수만 보고 되감으면 개수가
+/// 같은 전환에서 그림만 슬쩍 바뀌어, 무엇이 달라졌는지 눈으로 따라갈 수가
+/// 없었다. 그 경우는 이제 없다(#1879): 그래프가 칼로리 하나라 바꿀 지표가
+/// 없고, 기간을 바꾸면 그림(꺾은선 ↔ 막대)이 통째로 바뀐다.
 library;
 
 import 'package:flutter/material.dart';
@@ -116,28 +118,6 @@ void main() {
 
     expect(atStart, lessThan(settled), reason: '막대가 처음부터 다 자라 있다');
     expect(settled, greaterThan(0));
-  });
-
-  testWidgets('지표를 바꾸면 다시 자란다', (WidgetTester tester) async {
-    await openAll(tester);
-    await tester.pumpAndSettle();
-    final double settled = _lastBarHeight(tester);
-
-    final AppLocalizations l = AppLocalizations.of(
-      tester.element(find.byType(DietRecordPage)),
-    );
-    await tester.tap(find.text(l.dietSodium).last);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
-
-    expect(
-      _lastBarHeight(tester),
-      lessThan(settled),
-      reason: '지표를 바꿨는데 막대가 다시 자라지 않는다',
-    );
-
-    await tester.pumpAndSettle();
-    expect(_lastBarHeight(tester), greaterThan(0));
   });
 
   testWidgets('막대의 바닥은 자라는 동안 제자리다 (#1200)', (WidgetTester tester) async {

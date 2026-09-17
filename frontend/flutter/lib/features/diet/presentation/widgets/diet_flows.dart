@@ -1163,6 +1163,17 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     _checkSugar,
   );
 
+  /// 이 끼니에 탄수화물이 적혀 있었나 — 저장된 값 기준이다(#1893).
+  ///
+  /// 탄수화물 0 은 두 가지다. 인식기가 그 값을 못 준 옛 기록의 0 과, 회원이
+  /// 방금 지운 0. 앞은 봐주지 않으면 그 기록을 영영 고칠 수 없고, 뒤는
+  /// 봐주면 탄수화물을 지워 검사를 피할 수 있다. 서버도 `entry.carbs_g` 로
+  /// 같은 판단을 하므로, 저장에 성공할 때마다 함께 갱신한다.
+  late bool _carbsRecorded = _carbsOf(widget.meal.items) > 0;
+
+  static double _carbsOf(List<DietFood> foods) =>
+      foods.fold<double>(0, (double a, DietFood f) => a + f.carbsG);
+
   /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
   /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
   static const double _photoHeight = 300;
@@ -1197,14 +1208,18 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       double.tryParse(c.text.trim()) ?? 0;
 
   /// 당류 칸에 보일 오류 문구. 맞으면 null 이다.
+  ///
+  /// 서버의 `_sugar_exceeds_carbs` 와 같은 규칙이다(#1893). 앱이 더 엄격하면
+  /// 서버가 받아 주는 값을 저장할 수 없고, 더 느슨하면 다 적고 저장을 누른
+  /// 뒤에야 어느 칸이 문제인지 모르는 실패 토스트만 뜬다.
   String? _checkSugar(_FoodEditors e) {
     final double carbs = _asDouble(e.carbs);
-    // 탄수화물이 0 이면 적지 않은 것으로 본다 — 서버도 그때는 검사하지
-    // 않으므로(#1877), 앱만 막으면 서버가 받아 주는 기록을 고칠 길이 없다.
-    // 실제로 탄수화물 없이 저장된 옛 기록이 있다.
-    if (carbs <= 0) return null;
     // 같은 값은 통과한다 — 전부 당인 음식이 있다.
     if (_asDouble(e.sugar) <= carbs) return null;
+    // 탄수화물 0 을 어떻게 볼지는 [_carbsRecorded] 가 정한다. 이 끼니에
+    // 탄수화물이 처음부터 없었다면 인식기가 그 값을 못 준 기록이라 봐주고
+    // (#1877), 회원이 방금 0 으로 바꾼 0 은 적은 값으로 본다.
+    if (carbs <= 0 && !_carbsRecorded) return null;
     return AppLocalizations.of(context).dietSugarOverCarbs;
   }
 
@@ -1351,6 +1366,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
         _editing = false;
         _savedType = _type;
         _savedFoods = List<DietFood>.of(_foods);
+        // 저장된 끼니가 바뀌었으니 "탄수화물이 적혀 있었나" 의 답도 바뀐다.
+        // 서버가 다음 요청에서 보는 값과 같은 값이어야 한다(#1893).
+        _carbsRecorded = _carbsOf(_foods) > 0;
       });
       if (!toastContext.mounted) return;
       showAppToast(toastContext, l.dietSaved, type: AppToastType.success);
