@@ -2,7 +2,7 @@
 ///
 /// 시연은 `사진 찍기` → 분석 중 → 분석 완료 순으로 흐른다. 데모 응답이 즉시
 /// 오더라도 분석 중 화면이 보여야 하고, 완료 시트의 닫기는 머리의 X 가 아니라
-/// `저장하기` 옆 `취소` 하나로 모인다.
+/// `저장` 옆 `취소` 하나로 모인다.
 library;
 
 import 'dart:typed_data';
@@ -88,23 +88,23 @@ void main() {
     // 촬영 직후 결과가 튀어나와 AI 가 무엇을 했는지 보이지 않는다.
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const Key('diet-result-analyzing')), findsOneWidget);
-    expect(find.text('저장하기'), findsNothing);
+    expect(find.text('저장'), findsNothing);
 
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('diet-result-analyzing')), findsNothing);
-    expect(find.text('저장하기'), findsOneWidget);
+    expect(find.text('저장'), findsOneWidget);
   });
 
-  testWidgets('완료 시트는 저장하기·취소·수정을 갖고 X 는 없다', (WidgetTester tester) async {
+  testWidgets('완료 시트는 저장·취소·수정을 갖고 X 는 없다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _pumpApp(tester, FakeDietRepository());
     await _startAnalyze(tester);
     await tester.pumpAndSettle();
 
     final AppLocalizations l = AppLocalizations.of(
-      tester.element(find.text('저장하기')),
+      tester.element(find.text('저장')),
     );
-    expect(find.text(l.dietSaveEntry), findsOneWidget);
+    expect(find.text(l.dietSave), findsOneWidget);
     expect(find.text('취소'), findsOneWidget);
     expect(find.byKey(const Key('diet-result-edit')), findsOneWidget);
     // 체크 아이콘과 머리의 X 는 지웠다 — 닫는 자리는 `취소` 하나다.
@@ -113,7 +113,7 @@ void main() {
 
     // 두 버튼은 한 행에 서고 크기가 같다.
     final Size save = tester.getSize(
-      find.ancestor(of: find.text('저장하기'), matching: find.byType(AppButton)),
+      find.ancestor(of: find.text('저장'), matching: find.byType(AppButton)),
     );
     final Size cancel = tester.getSize(
       find.ancestor(of: find.text('취소'), matching: find.byType(AppButton)),
@@ -156,7 +156,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byType(SingleChildScrollView),
-        matching: find.text('저장하기'),
+        matching: find.text('저장'),
       ),
       findsOneWidget,
     );
@@ -174,7 +174,7 @@ void main() {
     await tester.tap(find.text('취소'));
     await tester.pumpAndSettle();
 
-    expect(find.text('저장하기'), findsNothing);
+    expect(find.text('저장'), findsNothing);
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.text('open')),
     );
