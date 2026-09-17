@@ -323,12 +323,7 @@ void main() {
         programName: '주 2회 분할',
         sessionName: '세션 A · 하체',
         exercises: <CoachRoutineExercise>[
-          CoachRoutineExercise(
-            name: '레그프레스',
-            sets: '4',
-            reps: '12회',
-            weight: '60kg',
-          ),
+          CoachRoutineExercise(name: '레그프레스', sets: 4, reps: 12, weight: 60),
         ],
       ),
       CoachRoutine(
@@ -342,7 +337,7 @@ void main() {
         sessionName: '세션 B · 유산소',
         sessionOrder: 1,
         exercises: <CoachRoutineExercise>[
-          CoachRoutineExercise(name: '인터벌 러닝', duration: '20'),
+          CoachRoutineExercise(name: '인터벌 러닝', duration: 20),
         ],
       ),
     ]);
@@ -361,11 +356,12 @@ void main() {
       find.descendant(of: trainerCard, matching: find.text('세션 B · 유산소')),
       findsOneWidget,
     );
-    // 운동 구성이 세트·횟수·중량까지 그대로 보인다.
+    // 운동 구성이 세트·횟수·중량까지 그대로 보인다. 구분자는 앱의 나머지
+    // 표기와 같은 ` · ` 다 — 예전에는 세트와 횟수 사이만 `×` 였다(#1904).
     expect(
       find.descendant(
         of: trainerCard,
-        matching: find.text('레그프레스 · 4세트 × 12회 · 60kg'),
+        matching: find.text('레그프레스 · 4세트 · 12회 · 60kg'),
       ),
       findsOneWidget,
     );

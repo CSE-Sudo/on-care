@@ -21,6 +21,7 @@ import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_contr
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// AI 챗봇 통증·부정적 반응 감지 — 응답 파싱, 메시지 표시, 감지 기록 창(#1824).
 
@@ -88,6 +89,14 @@ class _InsightRepo implements AiCoachRepository {
       bodyPart: '무릎',
     ),
   );
+
+  /// 치운 줄. 화면이 정말 지웠는지 여기로 확인한다(#1975).
+  final List<String> dismissed = <String>[];
+
+  @override
+  Future<void> dismissInsight(String messageId) async {
+    dismissed.add(messageId);
+  }
 
   @override
   Future<ChatInsightHistory> fetchInsights() async {
@@ -476,5 +485,92 @@ void main() {
       expect(rows.map((r) => r['text']), <String>['너무 힘들어서 못 했어요', '무릎이 아파요']);
       expect(rows.last['body_part'], '무릎');
     });
+  });
+
+  group('감지 기록 지우기 (#1975)', () {
+    _InsightRepo repoWithOneRecord() => _InsightRepo(
+      history: ChatInsightHistory(
+        records: <ChatInsightRecord>[
+          ChatInsightRecord(
+            messageId: 'm1',
+            createdAt: DateTime(2026, 9, 16, 9),
+            insight: const ChatInsight(
+              kind: ChatInsightKind.discomfort,
+              bodyPart: '어깨',
+            ),
+            text: '어깨가 아파요',
+          ),
+        ],
+      ),
+    );
+
+    Future<void> openSheet(WidgetTester tester, _InsightRepo repo) async {
+      await _pumpPage(tester, repo);
+      await tester.tap(find.byKey(const Key('aiCoachInsightHistoryButton')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('누르자마자 지우지 않고 무엇이 남는지 먼저 말한다', (tester) async {
+      final _InsightRepo repo = repoWithOneRecord();
+      await openSheet(tester, repo);
+
+      await tester.tap(find.byKey(const Key('aiCoachInsightDelete-m1')));
+      await tester.pumpAndSettle();
+
+      // 되돌릴 수 없으므로 확인창이 먼저다. 문구는 대화에 쓴 말이 남는다고
+      // 말해야 한다 — 그것까지 지워지는 줄 알면 누르지 못한다.
+      expect(find.byType(AppDialog), findsOneWidget);
+      expect(find.textContaining('대화에 쓴 말은 그대로 남아요'), findsOneWidget);
+      expect(repo.dismissed, isEmpty);
+    });
+
+    testWidgets('취소하면 아무것도 지우지 않는다', (tester) async {
+      final _InsightRepo repo = repoWithOneRecord();
+      await openSheet(tester, repo);
+
+      await tester.tap(find.byKey(const Key('aiCoachInsightDelete-m1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+
+      expect(repo.dismissed, isEmpty);
+    });
+
+    testWidgets('확인하면 그 줄만 지운다', (tester) async {
+      final _InsightRepo repo = repoWithOneRecord();
+      await openSheet(tester, repo);
+
+      await tester.tap(find.byKey(const Key('aiCoachInsightDelete-m1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(AppButton, '삭제').last);
+      await tester.pumpAndSettle();
+
+      expect(repo.dismissed, <String>['m1']);
+    });
+  });
+
+  testWidgets('기록 창이 이 목록을 어디에 쓰는지 말한다 (#1973)', (tester) async {
+    // 무엇을 모았는지만 말하면 "내가 아프다고 말한 횟수" 목록으로 읽힌다.
+    // 이 값이 AI 답변에 쓰인다는 것을 말해야 회원이 왜 보는지 안다.
+    await _pumpPage(tester, _InsightRepo());
+    await tester.tap(find.byKey(const Key('aiCoachInsightHistoryButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('AI가 답할 때 참고해요'), findsOneWidget);
+  });
+
+  testWidgets('머리의 제목이 화면 가운데에 선다 (#1975)', (tester) async {
+    await _pumpPage(tester, _InsightRepo());
+
+    // 왼쪽 뒤로 버튼과 오른쪽 기록 버튼은 폭이 다르다. 양쪽을 맞추지 않으면
+    // 가운데 정렬한 아바타·제목 묶음이 왼쪽으로 밀린다.
+    //
+    // 재는 것은 **묶음 전체**다 — 아바타가 왼쪽에 붙어 있어 제목 글자 하나만
+    // 재면 그것이 가운데여도 묶음은 치우쳐 보인다.
+    // 대화의 코치 아바타와 같은 위젯이다 — 머리의 것은 트리에서 먼저 온다.
+    final double left = tester.getTopLeft(find.byType(OniAvatar).first).dx;
+    final double right = tester.getBottomRight(find.text('언제든 물어보세요')).dx;
+    final double screen = tester.getSize(find.byType(AICoachPage)).width;
+    expect((left + right) / 2, closeTo(screen / 2, 1));
   });
 }

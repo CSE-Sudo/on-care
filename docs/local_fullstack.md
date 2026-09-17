@@ -7,6 +7,41 @@
 > **자기 로컬 drift DB** 를 보기 때문에, 둘 다 잘 도는 것처럼 보여도 서로의
 > 데이터는 절대 보이지 않습니다. 상호작용을 확인하려면 아래 3단계를 모두 거쳐야 합니다.
 
+## Flutter 버전 — 3.44.9
+
+CI 가 이 버전으로 고정돼 있습니다(`.github/workflows/user-app-ci.yml` 의 `flutter-version`).
+**로컬도 같은 버전에 맞추십시오.** 버전이 다르면 린트 집합과 포맷 규칙이 달라, 로컬에서
+통과한 코드가 CI 에서 떨어집니다. 로컬이 더 새로우면 `flutter analyze` 가
+`analysis_options.yaml` 을, `pub` 이 `pubspec.lock` 을 건드려 의도하지 않은 변경이
+커밋에 섞이기도 합니다.
+
+```bash
+flutter --version                     # 3.44.9 인지 확인
+git -C "$(dirname "$(dirname "$(which flutter)")")" checkout 3.44.9   # 아니면 맞춘다
+```
+
+Flutter SDK 는 git 체크아웃이라 태그로 오갈 수 있습니다. 올리는 방향은 안드로이드
+툴체인(AGP·Kotlin)이 함께 걸리므로 혼자 정하지 마십시오 — #1898 을 보십시오.
+
+**iOS 를 맡은 Mac 팀원도 같습니다.** Flutter 버전은 플랫폼별이 아니라 SDK 하나라서,
+같은 `flutter` 로 iOS 를 빌드합니다. 다만 **CI 가 잡아 주지 않습니다** — 모든
+워크플로가 `ubuntu-latest` 라 iOS 잡이 아예 없고, 안드로이드도 빌드하지 않습니다.
+웹만 CI 가 지킵니다.
+
+| 플랫폼 | 버전이 어긋나면 CI 가 알려 주나 |
+| --- | --- |
+| 웹 (회원 앱·트레이너 웹) | 예 — analyze·test·build 를 돌립니다 |
+| 안드로이드 | 아니오 |
+| iOS | 아니오 — 잡 자체가 없습니다 |
+
+그래서 iOS 쪽은 어긋난 채로 한참 가다가, 그 사람이 웹 코드를 건드릴 때 처음
+드러납니다. 실기기 검증(#1882)을 시작하기 전에 `flutter --version` 부터 맞추십시오 —
+버전이 다르면 다른 팀원의 결과와 비교할 수 없습니다.
+
+iOS 에는 축이 하나 더 있습니다. `ios/Podfile` 이 `platform :ios, '14.0'` 을 잡고
+있고 실기기 설치에는 Xcode 버전도 걸립니다. 3.44.9 로 **내리는** 방향이라 대체로
+문제가 없지만, 최신 Xcode 와의 조합은 실제로 빌드해 봐야 압니다.
+
 ## 1. 백엔드
 
 ```bash
@@ -55,6 +90,103 @@ flutter run -d chrome \
   --dart-define=USE_MOCK_API=false \
   --dart-define=API_BASE_URL=http://localhost:8000/v1
 ```
+
+### 안드로이드 실기기에서 실행 (#1882)
+
+카메라·사진 권한 다이얼로그와 촬영 흐름은 Chrome 에서 확인할 수 없습니다. 안드로이드는 USB
+디버깅만 켜면 바로 됩니다 — 스토어 등록도, 개발자 계정 결제도 필요 없습니다.
+
+**1. 폰에서 USB 디버깅 켜기** (삼성 기준)
+
+설정 → 휴대전화 정보 → 소프트웨어 정보 → **빌드번호를 7번 탭** → 잠금 해제 수단을 입력하면
+설정 맨 아래에 **개발자 옵션** 이 생깁니다. 거기서 **USB 디버깅** 을 켭니다.
+
+USB 로 PC 에 연결하면 폰에 `USB 디버깅을 허용하시겠습니까?` 가 뜹니다. 허용해야 잡힙니다.
+
+**2. 잡히는지 확인**
+
+```bash
+flutter devices
+```
+
+`SM F731N (mobile) • R3CW802RRJW • android-arm64 • Android 16 (API 36)` 처럼 나오면 됩니다
+(Z Flip 5 에서 확인한 실제 출력). 가운데가 기기 시리얼이고, 아래에서 `-d` 에 줄 값입니다.
+안 나오면 폰의 USB 연결 모드를 `충전만` 이 아닌 **파일 전송(MTP)** 으로 바꿔 보세요.
+`USB 테더링` 과 헷갈리기 쉽지만 그건 폰의 데이터를 PC 에 빌려주는 기능이라 상관없습니다 —
+필요한 것은 개발자 옵션 안의 **USB 디버깅** 입니다.
+
+**3. 실행**
+
+```bash
+cd frontend/flutter
+flutter run -d R3CW802RRJW
+```
+
+`USE_MOCK_API` 기본값이 `true` 라 **백엔드 없이도 돕니다.** 촬영·사진 선택·취소 처리·끼니 카드
+표시까지는 목 데이터로 확인됩니다. 인증·multipart 전송·`diet_entries` 실제 저장을 보려면 아래
+4단계가 필요합니다. 핫 리로드는 웹과 똑같이 됩니다.
+
+> **폰 화면이 꺼지면 `flutter run` 세션이 끊깁니다**(`Lost connection to device`). 앱 프로세스는
+> 살아 있으니 빌드가 실패한 것이 아니고, 화면을 켜고 다시 붙으면 됩니다. 매번 끊기는 것이
+> 불편하면 개발자 옵션의 **충전 중 화면 켜짐 유지** 를 켜 두세요.
+
+**4. 실 API 를 붙일 때**
+
+실기기는 `localhost` 로 개발 PC 를 보지 못합니다. 같은 Wi-Fi 에 붙여 PC 의 IP 를 줘야 합니다.
+
+```bash
+ipconfig | grep IPv4              # 예: 192.168.0.12
+cd frontend/flutter
+flutter run -d R3CW802RRJW \
+  --dart-define=USE_MOCK_API=false \
+  --dart-define=API_BASE_URL=http://192.168.0.12:8000/v1
+```
+
+> **안드로이드는 평문 HTTP 를 기본으로 차단합니다**(targetSdk 28 이상, 이 앱은 36). 그래서
+> `android/app/src/debug/AndroidManifest.xml` 에 `android:usesCleartextTraffic="true"` 를 넣어
+> 두었습니다 — 위처럼 `http://` 로 붙는 것은 **디버그·프로파일 빌드에서만** 됩니다. 릴리스
+> 빌드는 여전히 평문을 막습니다. HTTPS 스테이징이 있으면 그쪽이 더 간단합니다.
+
+백엔드 컨테이너는 `0.0.0.0:8000` 으로 열려 있어 그대로 보이지만, 윈도우 방화벽이 처음 한 번
+물어보면 허용해야 합니다. 폰 브라우저에서 `http://<PC IP>:8000/docs` 가 열리는지 먼저 보면
+앱 문제인지 네트워크 문제인지 바로 갈립니다.
+
+**5. 케이블 없이 APK 로 넘길 때**
+
+팀원 폰에 설치만 해 보려면 디버그 APK 를 만들어 보내도 됩니다.
+
+```bash
+cd frontend/flutter
+flutter build apk --debug
+# → build/app/outputs/flutter-apk/app-debug.apk
+```
+
+받는 폰에서 **알 수 없는 앱 설치** 를 허용해야 합니다(설정 → 보안 및 개인 정보 보호 → 알 수
+없는 앱 설치 → APK 를 여는 앱에 허용). 디버그 키로 서명된 물건이라 스토어 배포에는 쓸 수
+없습니다.
+
+**선언된 권한**
+
+`image_picker` 가 여는 두 경로 모두 안드로이드에서는 **런타임 권한이 필요 없습니다.** 사진
+선택은 시스템 사진 선택기(Android 13+)나 `ACTION_GET_CONTENT` 로 열리고, 촬영은
+`ACTION_IMAGE_CAPTURE` 로 기본 카메라 앱에 넘깁니다. 그래서 매니페스트에는 `INTERNET` 만
+있습니다.
+
+**그래서 Android 13 이상에서는 권한 다이얼로그가 아예 뜨지 않습니다.** 안 뜨는 것이 정상이고
+앱이 깨진 것이 아닙니다. 확인할 것은 다이얼로그가 아니라 **취소했을 때 시트로 조용히
+돌아오는지**와 **고른 사진이 끼니 카드에 그대로 보이는지** 입니다. 권한 거부 경로
+(`camera_access_denied` 등)는 안드로이드에서 정상 사용으로 띄울 수 없어 iOS 전용으로 남습니다.
+
+> `CAMERA` 를 매니페스트에 넣으면 **오히려 한 단계가 늘어납니다.** `image_picker` 는
+> 매니페스트에 `CAMERA` 가 있으면 — 쓰지 않더라도 — 촬영 전에 런타임 권한을 요구하도록
+> 되어 있습니다(`ImagePickerUtils.needRequestCameraPermission`). 넣지 마세요.
+>
+> `READ_MEDIA_IMAGES` 도 지금은 필요 없습니다. 앱 안에서 최근 사진 썸네일을 직접 읽는
+> #1845(카카오톡식 최근 사진 시트)를 착수할 때 `photo_manager` 도입과 함께 결정할 항목입니다.
+
+iOS 는 `ios/Runner/Info.plist` 에 `NSCameraUsageDescription`·`NSPhotoLibraryUsageDescription`
+문구가 이미 들어 있습니다(#526). 실기기 설치는 Mac 을 쓰는 팀원이 무료 Apple ID 로 진행하며,
+절차는 #1882 에 있습니다.
 
 ## 3. 트레이너 웹
 

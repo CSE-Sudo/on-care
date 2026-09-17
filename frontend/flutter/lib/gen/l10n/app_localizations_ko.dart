@@ -720,11 +720,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String exProgramSets(int count) {
-    return '$count세트';
-  }
-
-  @override
   String get exAddExercise => '운동 추가';
 
   @override
@@ -1647,6 +1642,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightNegative => '부정적 반응 감지';
 
   @override
+  String get aicInsightDelete => '삭제';
+
+  @override
+  String get aicInsightDeleteConfirm => '이 감지를 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
+
+  @override
+  String get aicInsightDeleteFailed => '지우지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
   String get aicInsightHistoryTitle => '감지 기록';
 
   @override
@@ -1654,7 +1658,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
+    return '최근 $days일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요';
   }
 
   @override
@@ -2018,7 +2022,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';
 
   @override
-  String get signUpPhoneFormatInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
+  String get signUpPhoneFormatInvalid => '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get myFieldBirthInvalid => '생년월일을 1996-03-21 형식으로 입력해 주세요';

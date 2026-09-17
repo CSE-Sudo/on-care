@@ -101,7 +101,7 @@
   "authErrEmailInvalid": "이메일 형식이 올바르지 않아요",
   "authErrPasswordEmpty": "비밀번호를 입력해 주세요",
   "authErrPasswordWeak": "영문과 숫자를 포함해 8자 이상 입력해 주세요",
-  "authErrPhoneInvalid": "전화번호를 000-0000-0000 형식으로 입력해 주세요",
+  "authErrPhoneInvalid": "전화번호를 010-0000-0000 형식으로 입력해 주세요",
   "authErrBirthDateInvalid": "생년월일을 1996-03-21 형식으로 입력해 주세요",
   "authErrPasswordMismatch": "비밀번호가 일치하지 않아요",
   "authErrInviteCodeRequired": "헬스장에서 받은 초대 코드를 입력해 주세요",
@@ -538,7 +538,6 @@
   },
   "exStreakStart": "아직 연속 기록이 없어요",
   "exTypeOther": "기타",
-  "exSetsValue": "{count}세트",
   "clientPeriodLoggedDays": "{days}일 기록",
   "clientPeriodEmpty": "이 기간에 기록이 없어요",
   "clientDietTrendTitle": "영양 추이",
@@ -1710,7 +1709,7 @@
     }
   },
   "coachTemplateMenu": "템플릿 메뉴",
-  "aiStrengthSummary": "{sets}세트 × {reps}회 · {weight}kg",
+  "aiStrengthSummary": "{sets}세트 · {reps}회 · {weight}kg",
   "@aiStrengthSummary": {
     "placeholders": {
       "sets": {

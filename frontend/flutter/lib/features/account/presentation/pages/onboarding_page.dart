@@ -8,6 +8,7 @@ import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -359,6 +360,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       setState(() => _showGoalErrors = true);
       return;
     }
+    final ProviderContainer container = ProviderScope.containerOf(
+      context,
+      listen: false,
+    );
     setState(() => _saving = true);
     try {
       await ref
@@ -380,6 +385,9 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
             weeklyStrengthSets: _goalValue(_GoalField.strength),
             weeklyFlexibilityMinutes: _goalValue(_GoalField.flexibility),
           );
+      // 이 기기에도 남긴다 — 다음 로그인에서 프로필을 못 받아 왔을 때 이미
+      // 끝낸 회원을 다시 폼에 세우지 않기 위해서다(#1927).
+      await rememberFirstRunDone(container);
       if (!mounted) return;
       ref.invalidate(profileProvider);
       // 홈으로 가기 전에 포인트를 어디서 얻는지 한 장으로 본다(#1826).

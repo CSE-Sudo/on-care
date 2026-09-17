@@ -240,7 +240,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use at least 8 characters, including letters and numbers';
 
   @override
-  String get authErrPhoneInvalid => 'Enter your phone number as 000-0000-0000';
+  String get authErrPhoneInvalid => 'Enter your phone number as 010-0000-0000';
 
   @override
   String get authErrBirthDateInvalid => 'Enter the date of birth as 1996-03-21';
@@ -1420,17 +1420,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exTypeOther => 'Other';
 
   @override
-  String exSetsValue(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sets',
-      one: '1 set',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String clientPeriodLoggedDays(int days) {
     String _temp0 = intl.Intl.pluralLogic(
       days,
@@ -1880,12 +1869,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String progSetsValue(int sets) {
-    return '$sets sets';
+    String _temp0 = intl.Intl.pluralLogic(
+      sets,
+      locale: localeName,
+      other: '$sets sets',
+      one: '1 set',
+    );
+    return '$_temp0';
   }
 
   @override
   String progRepsValue(int reps) {
-    return '$reps reps';
+    String _temp0 = intl.Intl.pluralLogic(
+      reps,
+      locale: localeName,
+      other: '$reps reps',
+      one: '1 rep',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -3995,7 +3996,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets sets × $reps reps · ${weight}kg';
+    return '$sets sets · $reps reps · ${weight}kg';
   }
 
   @override

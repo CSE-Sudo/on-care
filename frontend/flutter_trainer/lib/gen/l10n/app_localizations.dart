@@ -527,7 +527,7 @@ abstract class AppLocalizations {
   /// Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive.
   ///
   /// In en, this message translates to:
-  /// **'Enter your phone number as 000-0000-0000'**
+  /// **'Enter your phone number as 010-0000-0000'**
   String get authErrPhoneInvalid;
 
   /// Shared birth-date message (#1887). The trainer app has no birth-date field today; kept so the shared AppInputError mapping stays exhaustive.
@@ -2570,12 +2570,6 @@ abstract class AppLocalizations {
   /// **'Other'**
   String get exTypeOther;
 
-  /// No description provided for @exSetsValue.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 set} other{{count} sets}}'**
-  String exSetsValue(int count);
-
   /// No description provided for @clientPeriodLoggedDays.
   ///
   /// In en, this message translates to:
@@ -3347,13 +3341,13 @@ abstract class AppLocalizations {
   /// No description provided for @progSetsValue.
   ///
   /// In en, this message translates to:
-  /// **'{sets} sets'**
+  /// **'{sets, plural, =1{1 set} other{{sets} sets}}'**
   String progSetsValue(int sets);
 
   /// No description provided for @progRepsValue.
   ///
   /// In en, this message translates to:
-  /// **'{reps} reps'**
+  /// **'{reps, plural, =1{1 rep} other{{reps} reps}}'**
   String progRepsValue(int reps);
 
   /// No description provided for @progEmpty.
@@ -6937,7 +6931,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiStrengthSummary.
   ///
   /// In en, this message translates to:
-  /// **'{sets} sets × {reps} reps · {weight}kg'**
+  /// **'{sets} sets · {reps} reps · {weight}kg'**
   String aiStrengthSummary(int sets, int reps, String weight);
 
   /// No description provided for @routineFormDecrease.

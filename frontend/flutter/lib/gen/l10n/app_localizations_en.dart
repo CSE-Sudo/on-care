@@ -735,17 +735,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String exProgramSets(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sets',
-      one: '1 set',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get exAddExercise => 'Add Exercise';
 
   @override
@@ -812,12 +801,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exSetsCount(int sets) {
-    return '$sets sets';
+    String _temp0 = intl.Intl.pluralLogic(
+      sets,
+      locale: localeName,
+      other: '$sets sets',
+      one: '1 set',
+    );
+    return '$_temp0';
   }
 
   @override
   String exRepsCount(int reps) {
-    return '$reps reps';
+    String _temp0 = intl.Intl.pluralLogic(
+      reps,
+      locale: localeName,
+      other: '$reps reps',
+      one: '1 rep',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1683,6 +1684,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightNegative => 'Negative feedback noted';
 
   @override
+  String get aicInsightDelete => 'Delete';
+
+  @override
+  String get aicInsightDeleteConfirm =>
+      'Remove this detection from the log? What you wrote stays in the conversation.';
+
+  @override
+  String get aicInsightDeleteFailed =>
+      'We could not remove it. Please try again in a moment.';
+
+  @override
   String get aicInsightHistoryTitle => 'Noted signals';
 
   @override
@@ -1690,7 +1702,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return 'Pain and negative feedback noted in the last $days days';
+    return 'Pain and negative feedback noted in the last $days days. The AI uses these when it answers';
   }
 
   @override
@@ -2074,7 +2086,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signUpPhoneFormatInvalid =>
-      'Enter your phone number as 000-0000-0000';
+      'Enter your phone number as 010-0000-0000';
 
   @override
   String get myFieldBirthInvalid => 'Enter your date of birth as 1996-03-21';

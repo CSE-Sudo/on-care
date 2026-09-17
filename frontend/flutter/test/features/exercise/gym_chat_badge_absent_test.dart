@@ -1,6 +1,10 @@
-/// 트레이너와 채팅 버튼의 읽지 않음 배지는 정원이다. (#1138)
+/// 헬스장 탭 `트레이너와 채팅` 버튼에는 읽지 않음 배지가 없다.
 ///
-/// 좌우 여백만 주면 글자 높이만큼 세로로 길어져 알약처럼 보였다.
+/// 같은 숫자를 헤더의 채팅 아이콘이 이미 말한다. 그쪽은 어느 탭에 있든 보이는
+/// 자리라 알림의 몫을 거기서 하고, 이 버튼은 같은 대화로 들어가는 두 번째
+/// 입구일 뿐이다 — 배지를 함께 달면 한 화면이 같은 말을 두 번 한다.
+///
+/// 예전에는 여기에도 배지가 있었고 그 원형을 재는 테스트였다 (#1138).
 library;
 
 import 'package:flutter/material.dart';
@@ -100,33 +104,38 @@ Future<void> _pump(WidgetTester tester, int unread) async {
 
 void _noop(String _) {}
 
-/// 배지 = 빨간 원. 버튼 안에서 그 색으로 칠해진 상자를 찾는다.
-Size _badgeSize(WidgetTester tester) {
-  final Finder badge = find
-      .descendant(
-        of: find.byKey(const Key('gymTrainerChatButton')),
-        matching: find.byWidgetPredicate(
-          (Widget w) =>
-              w is Container &&
-              w.decoration is BoxDecoration &&
-              (w.decoration! as BoxDecoration).color == OnCareColors.danger,
-        ),
-      )
-      .first;
-  return tester.getSize(badge);
-}
+/// 버튼 안에 경고색으로 칠해진 상자(=배지)가 있는가.
+Finder _badge() => find.descendant(
+  of: find.byKey(const Key('gymTrainerChatButton')),
+  matching: find.byWidgetPredicate(
+    (Widget w) =>
+        w is Container &&
+        w.decoration is BoxDecoration &&
+        (w.decoration! as BoxDecoration).color == OnCareColors.danger,
+  ),
+);
 
 void main() {
-  testWidgets('한 자리 수 배지는 정원이다', (WidgetTester tester) async {
-    await _pump(tester, 1);
-    final Size size = _badgeSize(tester);
-    expect(size.width, size.height);
-  });
+  for (final int unread in <int>[1, 7, 120]) {
+    testWidgets('읽지 않은 메시지가 $unread 건이어도 배지를 그리지 않는다', (
+      WidgetTester tester,
+    ) async {
+      await _pump(tester, unread);
 
-  testWidgets('99+ 도 같은 원 안에 들어간다', (WidgetTester tester) async {
+      expect(find.byKey(const Key('gymTrainerChatButton')), findsOneWidget);
+      expect(_badge(), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('gymTrainerChatButton')),
+          matching: find.text('$unread'),
+        ),
+        findsNothing,
+      );
+    });
+  }
+
+  testWidgets('99 를 넘겨도 `99+` 가 붙지 않는다', (WidgetTester tester) async {
     await _pump(tester, 120);
-    final Size size = _badgeSize(tester);
-    expect(size.width, size.height);
-    expect(find.text('99+'), findsOneWidget);
+    expect(find.text('99+'), findsNothing);
   });
 }
