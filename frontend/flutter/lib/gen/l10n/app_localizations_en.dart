@@ -1119,6 +1119,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => 'Photo from your trainer';
+
+  @override
+  String get a11yMealPhoto => 'Meal photo';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return 'Photo of $name';
+  }
+
+  @override
   String get myLogout => 'Log out';
 
   @override
