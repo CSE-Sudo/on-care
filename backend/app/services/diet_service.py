@@ -36,17 +36,6 @@ _FOOD_STORAGE_FIELDS = (
     "name", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
 )
-# 음식에서 끼니 합계를 낼 때 쓰는 짝: 합계 컬럼 ← 음식 필드.
-_TOTAL_FROM_FOOD = {
-    "total_calories": "calories",
-    "carbs_g": "carbs_g",
-    "protein_g": "protein_g",
-    "fat_g": "fat_g",
-    "sodium_mg": "sodium_mg",
-    "sugar_g": "sugar_g",
-}
-# 정수로 저장하는 합계 — 나머지는 소수다(#296).
-_INTEGER_TOTALS = frozenset({"total_calories", "sodium_mg"})
 # DASH 권고 나트륨 상한(고혈압 특화 코칭 기준).
 DASH_SODIUM_LIMIT_MG = 2000
 
@@ -76,18 +65,17 @@ def store_foods(foods: list[RecognizedFood]) -> list[dict]:
     ]
 
 
-def totals_from_foods(foods: list[RecognizedFood]) -> dict[str, float | int]:
+def totals_from_foods(foods: list[RecognizedFood]) -> DietAnalysis:
     """음식 목록 → 끼니 합계. 적히지 않은 값(None)은 0 으로 센다.
 
     끼니 합계는 음식별 값의 합이다 — 앱도 같은 규칙으로 화면에 더한다(#1853).
-    음식이 오면 이 값이 함께 온 합계보다 우선한다: 원본을 하나로 두지 않으면
-    음식을 고칠 때마다 합계와 내역이 갈린다.
+    사진 분석이 쓰는 [DietAnalysis.compute_totals] 를 그대로 빌린다: 합치는
+    자리가 둘이면 분석으로 들어온 끼니와 회원이 고친 끼니의 합계가 갈린다.
+
+    음식이 오면 이 값이 함께 온 합계보다 우선한다. 원본을 하나로 두지 않으면
+    앱이 한 필드를 빠뜨린 순간 그 값만 옛날에 머문 채 200 이 돌아간다.
     """
-    totals: dict[str, float | int] = {}
-    for column, field in _TOTAL_FROM_FOOD.items():
-        total = sum(float(getattr(food, field) or 0) for food in foods)
-        totals[column] = int(round(total)) if column in _INTEGER_TOTALS else total
-    return totals
+    return DietAnalysis(engine="", foods=foods).compute_totals()
 
 
 def entry_to_analysis(entry: DietEntry) -> DietAnalysis:
@@ -453,12 +441,12 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
     # 있어도 옛 합계로 통과한다.
     totals = totals_from_foods(payload.foods) if payload.foods is not None else None
     merged_carbs = (
-        totals["carbs_g"] if totals is not None
+        totals.total_carbs_g if totals is not None
         else payload.carbs_g if payload.carbs_g is not None
         else entry.carbs_g
     )
     merged_sugar = (
-        totals["sugar_g"] if totals is not None
+        totals.total_sugar_g if totals is not None
         else payload.sugar_g if payload.sugar_g is not None
         else entry.sugar_g
     )
@@ -485,10 +473,18 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
     # 내역이 어긋난다(#1892).
     if payload.foods is not None:
         entry.foods_json = json.dumps(store_foods(payload.foods), ensure_ascii=False)
-    for field in ("total_calories", "carbs_g", "protein_g", "fat_g", "sodium_mg", "sugar_g"):
-        value = totals[field] if totals is not None else getattr(payload, field)
-        if value is not None:
-            setattr(entry, field, value)
+    if totals is not None:
+        entry.total_calories = totals.total_calories
+        entry.carbs_g = totals.total_carbs_g
+        entry.protein_g = totals.total_protein_g
+        entry.fat_g = totals.total_fat_g
+        entry.sodium_mg = totals.total_sodium_mg
+        entry.sugar_g = totals.total_sugar_g
+    else:
+        for field in ("total_calories", "carbs_g", "protein_g", "fat_g", "sodium_mg", "sugar_g"):
+            value = getattr(payload, field)
+            if value is not None:
+                setattr(entry, field, value)
     db.commit()
     db.refresh(entry)
     out = _entry_out(entry)
