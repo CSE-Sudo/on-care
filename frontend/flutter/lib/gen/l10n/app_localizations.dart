@@ -224,6 +224,30 @@ abstract class AppLocalizations {
   /// **'Today\'s combined AI advice'**
   String get homeAiAdviceTitle;
 
+  /// Home AI advice when today's sodium is over the goal (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You went over the sodium target today. Try keeping the rest of your meals light.'**
+  String get homeAdviceSodiumOver;
+
+  /// Home AI advice when the weekly exercise goal is met (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You worked out {minutes} minutes this week. You are on track!'**
+  String homeAdviceExerciseOnTrack(int minutes);
+
+  /// Home AI advice when there is some exercise but not enough (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You worked out {minutes} minutes this week. A little more to go!'**
+  String homeAdviceExerciseMore(int minutes);
+
+  /// Home AI advice when nothing was logged this week (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'Start moving this week — an easy walk is a good beginning.'**
+  String get homeAdviceExerciseStart;
+
   /// No description provided for @homeAiAdviceBody.
   ///
   /// In en, this message translates to:
@@ -2485,6 +2509,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get coachChatBack;
+
+  /// Button above the trainer chat thread that fetches the previous page (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'Load older messages'**
+  String get coachChatLoadOlder;
 
   /// No description provided for @coachChatLoadFailed.
   ///

@@ -108,7 +108,7 @@ class _PdfMemberCoachRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat() async => _messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => _messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() => Stream.value(_messages);
