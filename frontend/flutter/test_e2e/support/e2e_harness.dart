@@ -171,7 +171,31 @@ class E2eApi {
           },
         );
     expect(res.statusCode, 201, reason: '$email 가입 실패: ${res.data}');
+    // 첫 설정을 끝낸 계정으로 만들어 둔다(#1927). 앱은 이제 로그인 뒤 이 값을
+    // 보고 첫 설정 화면으로 보내는데, E2E 가 확인하려는 것은 그 뒤의 화면들이다.
+    // 첫 설정 흐름 자체는 위젯 테스트가 따로 본다.
+    final E2eApi api = await login(email);
+    await api.completeOnboarding();
     return res.data!['id']! as String;
+  }
+
+  /// 첫 설정을 마친 것으로 표시한다 — 서버가 `onboarded` 를 참으로 올린다.
+  Future<void> completeOnboarding() async {
+    final Response<Object?> res = await _dio.post<Object?>(
+      '/users/me/onboarding',
+      data: <String, Object?>{
+        'birth_date': '1990-01-01',
+        'gender': 'male',
+        'height_cm': 175,
+        'weight_kg': 70,
+      },
+      options: _auth,
+    );
+    expect(
+      res.statusCode,
+      anyOf(200, 201),
+      reason: '첫 설정 저장 실패: ${res.data}',
+    );
   }
 
   /// 계정을 지운다. 상담·담당 연결은 회원 행을 따라 함께 사라진다(FK CASCADE).
