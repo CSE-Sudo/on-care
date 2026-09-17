@@ -39,10 +39,16 @@ class DietAnalysisResult {
     this.totalCarbsG = 0,
     this.totalProteinG = 0,
     this.totalFatG = 0,
+    this.timeLabel = '',
     this.points,
   });
 
   final String entryId;
+
+  /// 저장된 기록의 시각(`HH:MM`). 끼니 카드가 쓰는 것과 같은 서버 값이다 —
+  /// 앱이 제 시계로 다시 계산하면 저장된 값과 어긋날 수 있어 서버가 내려주는
+  /// 것을 그대로 쓴다. 이 필드를 모르는 서버면 빈 문자열이다(#1897).
+  final String timeLabel;
 
   /// 이 끼니로 받은 포인트와 잔액(#1786). 이 필드를 모르는 서버면 null 이다.
   final PointsAward? points;
@@ -77,6 +83,7 @@ class DietAnalysisResult {
       totalProteinG: (analysis['total_protein_g'] as num?)?.toDouble() ?? 0,
       totalFatG: (analysis['total_fat_g'] as num?)?.toDouble() ?? 0,
       coachComment: (analysis['coach_comment'] as String?) ?? '',
+      timeLabel: (json['time_label'] as String?) ?? '',
       points: PointsAward.fromJson(json['points']),
     );
   }

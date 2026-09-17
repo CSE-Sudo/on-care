@@ -235,7 +235,9 @@ def add_session(
     db: Annotated[Session, Depends(get_db)],
 ) -> ExerciseSessionCreatedOut:
     # type·intensity·date·minutes·calories 는 모두 ExerciseSessionCreate 의
-    # 타입·Field 제약에서 422 로 걸린다.
+    # 타입·Field 제약에서 422 로 걸린다 — minutes 의 상한도 그 안에 있다(#1903).
+    # 예전에는 이 주석이 말하는 것과 달리 minutes 만 상한이 없어, 앱을 거치지
+    # 않은 호출이 넣은 값이 주간 집계로 그대로 번졌다.
     week_start, day_label, completed_at = _placement(payload.date)
     normalized = exercise_types.normalize(payload.type)
     estimated = _calories_for(db, current_user.id, payload, normalized)

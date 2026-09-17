@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
-import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -116,9 +115,9 @@ class _MainShellState extends ConsumerState<MainShell>
   /// 정의한 `resetXxxTransientUiState` 가 안다.
   void _resetTransientUiState(int index) {
     switch (index) {
-      case 0:
-        resetDashboardTransientUiState(ref);
-        break;
+      // 0(홈)도 일부러 아무 것도 하지 않는다. 예전에는 식단·영양 카드에서 고른
+      // 지표(칼로리/나트륨/당류)를 기본값으로 되돌렸는데, 그래프가 칼로리
+      // 하나로 고정된 뒤로는(#1879) 홈에 되돌릴 임시 선택이 없다.
       case 1:
         resetDietTransientUiState(ref);
         break;
