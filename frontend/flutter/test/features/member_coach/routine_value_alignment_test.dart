@@ -56,7 +56,7 @@ void main() {
         overrides: <Override>[
           memberCoachProvider.overrideWith((ref) async => _coach),
           coachRoutinesProvider.overrideWith((ref) async => _routines),
-          coachUnreadProvider.overrideWith((ref) async => 0),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),

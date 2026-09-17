@@ -80,7 +80,7 @@ Future<void> _pump(WidgetTester tester, int unread) async {
           (ref) => newTestConsultationController(),
         ),
         memberCoachProvider.overrideWith((ref) async => _coach),
-        coachUnreadProvider.overrideWith((ref) async => unread),
+        coachUnreadProvider.overrideWith((ref) => Stream<int>.value(unread)),
       ],
       child: MaterialApp(
         theme: AppTheme.light(),
