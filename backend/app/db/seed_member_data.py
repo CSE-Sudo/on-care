@@ -40,7 +40,7 @@ from sqlalchemy.orm import Session
 from app.services.health_focus import normalize_conditions
 from app.core import clock
 from app.core.config import get_settings
-from app.db.demo_fixture import FixtureExercise, FixtureRoutine, load_fixture
+from app.db.demo_fixture import FixtureRoutine, load_fixture
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
@@ -753,65 +753,6 @@ def _seed_routines(db: Session, member_id: str) -> None:
 _FIXTURE_ID_PREFIX = "seed-fix-"
 
 
-@dataclass(frozen=True)
-class _TypeTotals:
-    """하루·한 종류로 접은 값. 운동 기록 한 행이 되는 그대로다."""
-
-    minutes: int
-    calories: int
-    name: str
-    #: 근력이면 그날 한 세트 수의 **합**. 다른 유형은 None 이다.
-    sets: int | None = None
-    #: 근력이면 그날 한 횟수 중 가장 많은 수. 세트와 달리 더하지 않는다 — 한
-    #: 세트당 수라 합계는 아무도 한 적 없는 값이 된다(#1310 의 PT 파생 기록과
-    #: 같은 규칙).
-    reps: int | None = None
-
-
-def _by_type(
-    exercises: tuple[FixtureExercise, ...],
-) -> dict[str, _TypeTotals]:
-    """운동을 종류별로 합친다. 픽스처 순서를 유지한다.
-
-    종류는 표준 어휘로 접어서 센다 (#996). 픽스처가 아직 옛 이름을 쓰더라도
-    DB 에는 표준 값만 들어가야 앱이 유형을 다시 매핑하지 않는다.
-
-    이름도 함께 잇는다 — 리포트의 요일 칸이 그날 무엇을 했는지를 운동 기록의
-    이름으로 적기 때문이다(#1288). 종류로 합치면서 이름까지 버리면 데모의 요일
-    칸이 "유산소 · 근력" 두 줄로만 남는다. PT 완료가 만드는 기록도 여러 운동을
-    쉼표로 잇는 같은 규칙을 쓴다.
-
-    세트·횟수도 함께 접는다 (#1265). 예전에는 픽스처가 적어 둔 세트를 버려서,
-    화면이 분에서 세트를 되짚었다 — 같은 회원의 같은 날 근력이 앱마다 다른 수로
-    보였다.
-    """
-    totals: dict[str, _TypeTotals] = {}
-    for exercise in exercises:
-        kind = exercise_types.normalize(exercise.type)
-        prev = totals.get(kind)
-        strength = kind == exercise_types.STRENGTH
-        totals[kind] = _TypeTotals(
-            minutes=(prev.minutes if prev else 0) + exercise.minutes,
-            calories=(prev.calories if prev else 0) + exercise.calories,
-            name=(
-                f"{prev.name}, {exercise.name}"
-                if prev and prev.name
-                else exercise.name
-            ),
-            sets=(
-                _add(prev.sets if prev else None, exercise.sets)
-                if strength
-                else None
-            ),
-            reps=(
-                _peak(prev.reps if prev else None, exercise.reps)
-                if strength
-                else None
-            ),
-        )
-    return totals
-
-
 def _add(left: int | None, right: int | None) -> int | None:
     """둘 다 없으면 None. 하나만 있으면 그 값 — 0 으로 채우지 않는다.
 
@@ -963,8 +904,8 @@ def _fixture_row_ids(member_id: str, days: list) -> set[str]:
     for day in days:
         for index in range(len(day.meals)):
             ids.add(f"{_FIXTURE_ID_PREFIX}diet-{member_id}-{day.iso}-{index}")
-        for kind in _by_type(day.done_exercises):
-            ids.add(f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{kind}")
+        for index in range(len(day.done_exercises)):
+            ids.add(f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{index}")
     return ids
 
 
