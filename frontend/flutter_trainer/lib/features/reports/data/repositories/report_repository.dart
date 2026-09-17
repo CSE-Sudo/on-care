@@ -139,12 +139,23 @@ class LocalReportRepository implements ReportRepository {
   }
 
   /// 저장된 운동 목록을 방어적으로 디코드. 깨진 값은 빈 목록으로.
+  /// 요일 칸에 적을 운동 **이름**들.
+  ///
+  /// 값은 이름과 함께 객체로 실려 온다(#1902) — 예전에는 이름 문자열만 넣어서,
+  /// 세트·중량을 보여 주려면 그 수를 이름에 적어 넣어야 했다. 리포트의 요일
+  /// 칸은 좁아 이름만 쓰므로 여기서는 이름만 꺼낸다. 이름만 싣던 옛 행도 읽는다.
   static List<String> _exercises(String? encoded) {
     if (encoded == null || encoded.isEmpty) return const <String>[];
     try {
       final decoded = jsonDecode(encoded);
       if (decoded is! List) return const <String>[];
-      return decoded.whereType<String>().toList(growable: false);
+      return <String>[
+        for (final Object? item in decoded)
+          if (item is String)
+            item
+          else if (item is Map<String, Object?> && item['name'] is String)
+            item['name']! as String,
+      ];
     } on FormatException {
       return const <String>[];
     }

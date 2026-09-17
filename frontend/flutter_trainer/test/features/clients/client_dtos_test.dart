@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 
 TrainerClient _client(String id, {required int sodiumMg, double sugarG = 0}) =>
@@ -151,7 +152,16 @@ void main() {
       });
       expect(h.dateLabel, '7/12 (오늘)');
       expect(h.completionRate, 80);
-      expect(h.exercises, <String>['스쿼트 3세트', '✗ 런지']);
+      // 이름만 싣던 옛 응답도 읽는다 — 수행 표시(`✗`)는 이름에서 떼어 값으로
+      // 든다(#1902).
+      expect(
+        h.exercises.map((ClientExerciseItem e) => e.name).toList(),
+        <String>['스쿼트 3세트', '런지'],
+      );
+      expect(h.exercises.map((ClientExerciseItem e) => e.done).toList(), <bool>[
+        true,
+        false,
+      ]);
       expect(h.trainerNote, '강도 조절');
       expect(h.id, 'assigned-ex-r1');
       expect(h.assignedRoutineId, 'r1');
