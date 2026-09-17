@@ -224,6 +224,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authErrNameEmpty => 'Enter your name';
 
   @override
+  String get authErrNameTooLong => 'Names can be up to 100 characters';
+
+  @override
   String get authErrEmailEmpty => 'Enter your email';
 
   @override
@@ -238,6 +241,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get authErrPhoneInvalid => 'Enter your phone number as 000-0000-0000';
+
+  @override
+  String get authErrBirthDateInvalid => 'Enter the date of birth as 1996-03-21';
 
   @override
   String get authErrPasswordMismatch => 'Passwords don\'t match';
