@@ -55,11 +55,17 @@ Override sessionFeatureResetOverride() {
       // 앞 세션의 목록이 남는다(#1801).
       ref.invalidate(coachInvitesProvider);
       ref.invalidate(myHealthStateProvider);
+      // 목 저장소는 읽음 처리를 세션 동안 기억한다 — 다시 만들지 않으면 앞
+      // 계정의 읽음 상태로 시작한다(#1936).
+      ref.invalidate(notificationRepositoryProvider);
       ref.invalidate(notificationControllerProvider);
       ref.invalidate(notificationListProvider);
       // 알림 수신 설정은 실 백엔드에서 계정 단위다. 여기 없으면 앞 계정의 토글이
       // 앱을 다시 켤 때까지 남는다.
       ref.invalidate(notificationSettingsProvider);
+      // 벨의 빨간 점. 목 모드는 한 번 내보내고 끝이라, 되짚지 않으면 앞 계정의
+      // 점이 앱을 다시 켤 때까지 남는다(#1936).
+      ref.invalidate(notificationUnreadProvider);
       ref.invalidate(scheduleEventsProvider);
       ref.invalidate(scheduleMonthProvider);
     };
