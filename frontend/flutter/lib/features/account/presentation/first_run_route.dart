@@ -17,7 +17,12 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 /// 프로필을 못 받아 왔을 때는 기기에 남은 기록([AppPrefs.onboardingDone])을 본다.
 /// 이미 끝낸 회원을 망이 나빴다는 이유로 다시 폼에 세우지 않기 위해서다 — 그
 /// 기록이 없을 때만 첫 설정으로 보낸다.
-Future<String> firstRouteAfterSignIn(WidgetRef ref) async {
+///
+/// **[WidgetRef] 가 아니라 [ProviderContainer] 를 받는다.** 로그인에 성공하면
+/// 라우터의 세션 가드가 그 자리에서 로그인 화면을 대시보드로 갈아 치우므로,
+/// 여기까지 오는 동안 부르는 쪽 위젯은 이미 사라져 있다. 위젯의 `ref` 로는
+/// 그 뒤를 읽을 수 없다.
+Future<String> firstRouteAfterSignIn(ProviderContainer ref) async {
   try {
     final UserProfile profile = await ref.refresh(profileProvider.future);
     if (profile.onboarded) {
@@ -30,7 +35,7 @@ Future<String> firstRouteAfterSignIn(WidgetRef ref) async {
   }
 }
 
-bool _seenOnThisDevice(WidgetRef ref) {
+bool _seenOnThisDevice(ProviderContainer ref) {
   try {
     return ref.read(appPrefsProvider).onboardingDone;
   } on Object {
@@ -41,7 +46,7 @@ bool _seenOnThisDevice(WidgetRef ref) {
 
 /// 첫 설정을 끝냈다고 이 기기에 남긴다. 서버 값이 참이 되는 것과 별개로, 다음
 /// 로그인에서 프로필을 못 받아 왔을 때의 보조 기록이다.
-Future<void> rememberFirstRunDone(WidgetRef ref) async {
+Future<void> rememberFirstRunDone(ProviderContainer ref) async {
   try {
     await ref.read(appPrefsProvider).setOnboardingDone(true);
   } on Object {

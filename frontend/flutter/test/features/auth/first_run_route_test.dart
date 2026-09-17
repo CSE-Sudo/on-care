@@ -5,7 +5,6 @@
 /// 길이 없었다.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -35,24 +34,12 @@ const UserProfile _notDone = UserProfile(
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  /// 헬퍼는 `WidgetRef` 를 받으므로 위젯 하나를 세워 그 ref 를 빌려 쓴다.
-  Future<String> routeFor(
-    WidgetTester tester, {
-    required List<Override> overrides,
-  }) async {
-    late WidgetRef ref;
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: overrides,
-        child: Consumer(
-          builder: (BuildContext context, WidgetRef r, _) {
-            ref = r;
-            return const SizedBox.shrink();
-          },
-        ),
-      ),
-    );
-    return firstRouteAfterSignIn(ref);
+  /// 헬퍼는 위젯이 아니라 컨테이너를 받는다 — 로그인에 성공하면 라우터가 그
+  /// 자리에서 로그인 화면을 갈아 치우기 때문이다.
+  Future<String> routeFor({required List<Override> overrides}) async {
+    final ProviderContainer container = ProviderContainer(overrides: overrides);
+    addTearDown(container.dispose);
+    return firstRouteAfterSignIn(container);
   }
 
   Future<Override> prefs({required bool seen}) async {
@@ -64,9 +51,8 @@ void main() {
     );
   }
 
-  testWidgets('첫 설정을 끝낸 회원은 홈으로 간다', (WidgetTester tester) async {
+  test('첫 설정을 끝낸 회원은 홈으로 간다', () async {
     final String route = await routeFor(
-      tester,
       overrides: <Override>[
         await prefs(seen: false),
         profileProvider.overrideWith(() => _StubProfile(_done)),
@@ -75,9 +61,8 @@ void main() {
     expect(route, AppRoutes.dashboard);
   });
 
-  testWidgets('첫 설정을 안 한 회원은 첫 설정으로 간다', (WidgetTester tester) async {
+  test('첫 설정을 안 한 회원은 첫 설정으로 간다', () async {
     final String route = await routeFor(
-      tester,
       overrides: <Override>[
         await prefs(seen: false),
         profileProvider.overrideWith(() => _StubProfile(_notDone)),
@@ -86,10 +71,9 @@ void main() {
     expect(route, AppRoutes.onboarding);
   });
 
-  testWidgets('프로필을 못 받아 와도 이미 끝낸 기기면 홈으로 간다', (WidgetTester tester) async {
+  test('프로필을 못 받아 와도 이미 끝낸 기기면 홈으로 간다', () async {
     // 망이 나빴다는 이유로 이미 끝낸 회원을 다시 폼에 세우지 않는다.
     final String route = await routeFor(
-      tester,
       overrides: <Override>[
         await prefs(seen: true),
         profileProvider.overrideWith(_FailingProfile.new),
@@ -98,11 +82,8 @@ void main() {
     expect(route, AppRoutes.dashboard);
   });
 
-  testWidgets('프로필을 못 받아 왔고 기기 기록도 없으면 첫 설정으로 간다', (
-    WidgetTester tester,
-  ) async {
+  test('프로필을 못 받아 왔고 기기 기록도 없으면 첫 설정으로 간다', () async {
     final String route = await routeFor(
-      tester,
       overrides: <Override>[
         await prefs(seen: false),
         profileProvider.overrideWith(_FailingProfile.new),
