@@ -240,7 +240,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use at least 8 characters, including letters and numbers';
 
   @override
-  String get authErrPhoneInvalid => 'Enter your phone number as 000-0000-0000';
+  String get authErrPhoneInvalid => 'Enter your phone number as 010-0000-0000';
 
   @override
   String get authErrBirthDateInvalid => 'Enter the date of birth as 1996-03-21';

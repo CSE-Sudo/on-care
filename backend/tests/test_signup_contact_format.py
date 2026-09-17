@@ -107,6 +107,27 @@ def test_normalize_phone_rejects_wrong_digit_count(value):
         normalize_phone(value)
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        "123-4567-8901",  # 자릿수는 맞지만 걸 수 없는 번호
+        "999-9999-9999",
+        "000-0000-0000",
+        "02-1234-56789",  # 지역번호 — 헬스장 대표번호는 이 규칙을 타지 않는다
+        "011-1234-5678",  # 01X 는 2021-06-30 에 서비스가 끝났다
+        "017-1234-5678",
+    ],
+)
+def test_normalize_phone_rejects_non_mobile_prefix(value):
+    """숫자 개수만 세던 때는 이 값들이 그대로 저장됐다.
+
+    트레이너가 담당 회원에게 연락하려고 보는 값이라, 자릿수만 맞는 값을 받아
+    두면 연락할 방법이 없는 것과 같다. 앱도 같은 앞자리를 미리 본다.
+    """
+    with pytest.raises(InvalidPhone):
+        normalize_phone(value)
+
+
 # ---- 가입 엔드포인트 (DB 필요) ----
 
 
@@ -153,7 +174,7 @@ def test_register_rejects_malformed_phone(client, phone, _cleanup):
 
 
 def test_register_stores_phone_in_one_shape(client, _cleanup):
-    """하이픈 없이 보내도 저장·조회는 `000-0000-0000` 이다."""
+    """하이픈 없이 보내도 저장·조회는 `010-0000-0000` 이다."""
     payload = _payload(phone="01012345678")
     r = client.post("/v1/auth/register", json=payload)
     assert r.status_code == 201, r.text

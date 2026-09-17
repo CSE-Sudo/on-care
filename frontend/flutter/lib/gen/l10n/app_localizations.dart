@@ -3766,7 +3766,7 @@ abstract class AppLocalizations {
   /// No description provided for @signUpPhoneFormatInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Enter your phone number as 000-0000-0000'**
+  /// **'Enter your phone number as 010-0000-0000'**
   String get signUpPhoneFormatInvalid;
 
   /// Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py.
