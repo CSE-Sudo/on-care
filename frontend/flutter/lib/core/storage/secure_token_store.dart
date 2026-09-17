@@ -4,8 +4,24 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// `FlutterSecureStorage` is platform-backed (Keychain / Keystore /
 /// localStorage on web) — wrap it so call sites don't depend on
 /// the package directly and we can swap implementations in tests.
+/// 키체인 항목을 이 기기가 잠금 해제된 뒤에만 읽고, **기기 밖으로 백업되지
+/// 않게** 둔다(#1944). 기본값(`unlocked`)은 iCloud 키체인을 타고 다른 기기로
+/// 넘어갈 수 있는데, 여기 담기는 것은 이 기기의 세션이다.
+const IOSOptions _iosOptions = IOSOptions(
+  accessibility: KeychainAccessibility.first_unlock_this_device,
+);
+
+/// 안드로이드는 암호화된 저장소를 쓴다 — 평문 SharedPreferences 에 토큰을
+/// 남기지 않는다(#1944).
+const AndroidOptions _androidOptions = AndroidOptions(
+  encryptedSharedPreferences: true,
+);
+
 final secureStorageProvider = Provider<FlutterSecureStorage>(
-  (ref) => const FlutterSecureStorage(),
+  (ref) => const FlutterSecureStorage(
+    iOptions: _iosOptions,
+    aOptions: _androidOptions,
+  ),
   name: 'secureStorage',
 );
 

@@ -91,7 +91,7 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<List<CoachSession>> fetchSessions() async => sessions;
   @override
-  Future<List<CoachMessage>> fetchChat() async => const <CoachMessage>[];
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => const <CoachMessage>[];
   @override
   Stream<List<CoachMessage>> watchChat() =>
       const Stream<List<CoachMessage>>.empty();

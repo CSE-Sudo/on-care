@@ -1232,20 +1232,29 @@ class _NotificationSettingsPageState
           if (i > 0) const AppDivider(),
           AppListRow(
             title: _notifLabel(l, kNotificationSettingItems[i].key),
-            trailing: Switch(
-              value: _valueOf(
-                kNotificationSettingItems[i].key,
-                saved,
-                kNotificationSettingItems[i].fallback,
-              ),
-              onChanged: (bool v) => _persist(
-                kNotificationSettingItems[i].key,
-                v,
-                // 실패했을 때 돌아갈 곳 — 지금 화면에 보이는 값.
-                _valueOf(
+            // 스위치에 **이름을 붙인다**(#1942). 제목과 스위치가 따로 읽히면
+            // 음성 안내에는 정체 불명의 `switch, on` 이 다섯 개 이어져, 순서를
+            // 외운 사람만 어느 알림을 끄는지 안다.
+            trailing: Semantics(
+              label: _notifLabel(l, kNotificationSettingItems[i].key),
+              // 이름은 이 하나로 둔다 — 제목 노드까지 함께 읽히면 같은 말이
+              // 두 번 나온다.
+              excludeSemantics: true,
+              child: Switch(
+                value: _valueOf(
                   kNotificationSettingItems[i].key,
                   saved,
                   kNotificationSettingItems[i].fallback,
+                ),
+                onChanged: (bool v) => _persist(
+                  kNotificationSettingItems[i].key,
+                  v,
+                  // 실패했을 때 돌아갈 곳 — 지금 화면에 보이는 값.
+                  _valueOf(
+                    kNotificationSettingItems[i].key,
+                    saved,
+                    kNotificationSettingItems[i].fallback,
+                  ),
                 ),
               ),
             ),

@@ -42,6 +42,7 @@ from app.schemas.health_goal_ranges import (
 )
 from app.schemas.partial_update import PartialUpdate
 from app.schemas.points_api import PointsOut
+from app.services import contact_format
 from app.services import health_focus
 from app.services import exercise_types
 
@@ -1263,6 +1264,14 @@ class TrainerMeUpdate(PartialUpdate):
 
     모든 항목이 DB NOT NULL 이라 null 로 바꿀 수 있는 값이 아니다(#495).
     """
+    #: 트레이너 본인의 휴대전화. 회원 경로(`UserRegister`·`ProfileUpdate`)와
+    #: **같은 함수**로 정리한다(#1914) — 전에는 길이만 봐서 `없음`·`0101234` 가
+    #: 200 으로 저장됐다. 두 앱이 같은 종류의 값을 다른 기준으로 받으면, 나중에
+    #: 이 번호를 회원 화면에 보일 때 그 자리에서 정리부터 해야 한다.
+    #:
+    #: 빈 문자열은 그대로 둔다. 트레이너 가입은 전화번호를 받지 않으므로
+    #: (`TrainerRegister` 는 초대 코드만 더한다) 처음부터 없는 값이고, 회원 쪽의
+    #: "있던 번호는 못 지운다"(#1883)는 여기 해당하지 않는다.
     phone: str | None = Field(default=None, max_length=20)
     specialty: str | None = Field(default=None, max_length=50)
     career_years: int | None = Field(default=None, ge=0, le=80)
@@ -1271,7 +1280,26 @@ class TrainerMeUpdate(PartialUpdate):
     gym_name: str | None = Field(default=None, max_length=100)
     gym_address: str | None = Field(default=None, max_length=300)
     gym_hours: str | None = Field(default=None, max_length=50)
+    #: 헬스장 대표번호. **여기에는 위 규칙을 걸지 않는다**(#1914).
+    #:
+    #: `normalize_phone` 은 휴대전화 3-4-4(숫자 11자리)만 받는데, 헬스장 번호는
+    #: 그 모양이 아니다 — 시드에만도 `02-1234-5678`(10자리) · `02-332-1720`(9자리)
+    #: · `0502-5552-4212`(12자리)가 섞여 있다. 그 규칙을 걸면 **정상 번호가 422**
+    #: 로 막히고, 더 나쁘게는 소속을 설정할 때 `Place.phone` 이 이 칸에 그대로
+    #: 들어오므로(`set_trainer_gym`) 그 뒤로 이 폼을 저장할 수 없게 된다.
+    #:
+    #: 대표번호 표기를 통일하려면 지역번호·안심번호까지 읽는 별도 규칙이
+    #: 필요하다. 그건 이 이슈에서 다루지 않는다.
     gym_phone: str | None = Field(default=None, max_length=20)
+
+    # `None` 을 그냥 통과시키는 것은 여기서 판단할 일이 아니기 때문이다 —
+    # 누락인지 명시적 null 인지는 아래 `_reject_explicit_null` 이 가른다.
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return contact_format.normalize_phone(value)
+        return value
 
     @model_validator(mode="after")
     def _reject_explicit_null(self) -> TrainerMeUpdate:

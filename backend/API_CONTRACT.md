@@ -58,7 +58,9 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/dashboard/summary` | `{ indicators[], diet_entries(int), exercise_minutes, today_schedule[], week_score, week_score_delta, sodium_warning(nullable), exercise_feedback }` |
+| GET | `/dashboard/summary` | `{ indicators[], diet_entries(int), exercise_minutes, week_score, week_score_delta, sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable) }` |
+
+`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 음식 이름이 들어간 나트륨 경고처럼 번역할 수 없는 문장에는 키를 주지 않는다.
 
 `indicators[]`: `{ label, current(float), max(int), unit, over_budget?(bool) }` — 칼로리/나트륨/당류 3종.
 `current` 는 당류가 소수(17.8g)라 float. 칼로리·나트륨은 정수 값이 그대로 실린다. 목표치(`max`)는 셋 다 정수.
@@ -72,7 +74,8 @@
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 
-`entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float) }`
+`entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
+`ai_comment` 는 사진 분석이 만든 식단평이다(#1932). 손으로 고쳐 만든 끼니와 분석이 식단평을 내지 못한 끼니는 빈 문자열이고, 앱은 비어 있으면 그 줄을 그리지 않는다.
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
 `foods[]`: `[{ name, amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
 
@@ -200,8 +203,12 @@ category: reminder|health_check|achievement|system
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` |
+| GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
+| DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
 
 tag: diet|exercise|hydration|...
+
+`DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
 
 ### 바이탈 (체중/혈압/혈당) — 제거됨
 
@@ -389,8 +396,17 @@ E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은
 연락처를 넣을 자리가 없었다)에게는 요구하지 않는다 — 이름만 고치려는 사람을 전화번호로 막는
 화면이 된다. 이메일은 어느 쪽이든 비울 수 없다.
 
-`PUT /trainer/me` 는 아직 이 기준을 적용하지 않는다. 그쪽은 이메일을 바꿀 수 없어 잠김이 없고,
-전화번호 표기만 자유롭다.
+`PUT /trainer/me` 의 `phone` 도 **같은 기준**이다(#1914). 트레이너는 이메일을 바꿀 수 없어
+계정 잠김 위험은 원래 없었지만, 같은 종류의 값을 두 앱이 다른 기준으로 받으면 나중에 이 번호를
+회원 화면에 보일 때 그 자리에서 정리부터 해야 한다. 회원 쪽과 달리 **빈 값은 언제든 허용한다** —
+트레이너 가입은 전화번호를 받지 않으므로(`TrainerRegister` 는 초대 코드만 더한다) 처음부터
+없는 값이다.
+
+같은 요청의 `gym_phone` 에는 **이 기준을 걸지 않는다.** 헬스장 대표번호는 휴대전화 3-4-4 가
+아니다 — 시드에만도 `02-1234-5678`(10자리) · `02-332-1720`(9자리) · `0502-5552-4212`(12자리)가
+섞여 있고, 소속을 설정하면 `Place.phone` 이 이 칸에 그대로 들어온다(`set_trainer_gym`).
+휴대전화 규칙을 걸면 정상 번호가 422 가 되고, 그 뒤로는 프로필 저장 자체가 막힌다. 대표번호
+표기를 통일하려면 지역번호·안심번호까지 읽는 별도 규칙이 필요하다.
 
 ### 이름·생년월일 형식 (#1887)
 

@@ -73,6 +73,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeAiAdviceTitle => 'Today\'s combined AI advice';
 
   @override
+  String get homeAdviceSodiumOver =>
+      'You went over the sodium target today. Try keeping the rest of your meals light.';
+
+  @override
+  String homeAdviceExerciseOnTrack(int minutes) {
+    return 'You worked out $minutes minutes this week. You are on track!';
+  }
+
+  @override
+  String homeAdviceExerciseMore(int minutes) {
+    return 'You worked out $minutes minutes this week. A little more to go!';
+  }
+
+  @override
+  String get homeAdviceExerciseStart =>
+      'Start moving this week — an easy walk is a good beginning.';
+
+  @override
   String get homeAiAdviceBody =>
       'Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
 
@@ -1120,10 +1138,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => 'Photo from your trainer';
+
+  @override
+  String get a11yMealPhoto => 'Meal photo';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return 'Photo of $name';
+  }
+
+  @override
   String get myLogout => 'Log out';
 
   @override
   String get myLogoutConfirm => 'Log out of your account?';
+
+  @override
+  String get myWithdrawTitle => 'Delete account';
+
+  @override
+  String get myWithdrawConfirm =>
+      'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.';
+
+  @override
+  String get myWithdrawAction => 'Delete account';
+
+  @override
+  String get myWithdrawFailed =>
+      'We could not delete your account. Please try again in a moment.';
 
   @override
   String get myCancel => 'Cancel';
@@ -1318,6 +1361,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachChatBack => 'Back';
+
+  @override
+  String get coachChatLoadOlder => 'Load older messages';
 
   @override
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
@@ -1641,6 +1687,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightNegative => 'Negative feedback noted';
 
   @override
+  String get aicInsightDelete => 'Delete';
+
+  @override
+  String get aicInsightDeleteConfirm =>
+      'Remove this detection from the log? What you wrote stays in the conversation.';
+
+  @override
+  String get aicInsightDeleteFailed =>
+      'We could not remove it. Please try again in a moment.';
+
+  @override
   String get aicInsightHistoryTitle => 'Noted signals';
 
   @override
@@ -1648,7 +1705,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return 'Pain and negative feedback noted in the last $days days';
+    return 'Pain and negative feedback noted in the last $days days. The AI uses these when it answers';
   }
 
   @override
@@ -1926,6 +1983,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mySupportExternalHint => 'Opens the KakaoTalk channel';
+
+  @override
+  String get authRestoring => 'Restoring your session';
+
+  @override
+  String get authRestoreFailed =>
+      'We could not restore your session — the connection looks unstable.';
+
+  @override
+  String get authRestoreRetry => 'Try again';
+
+  @override
+  String get authRestoreSignIn => 'Go to sign in';
 
   @override
   String get authTagline => 'Diet & exercise management app';

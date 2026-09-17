@@ -24,6 +24,24 @@
   "homeDashboardLoadError": "Could not load the dashboard.",
   "homeDashboardEmpty": "No records yet today. Add a meal or workout to get started.",
   "homeAiAdviceTitle": "Today's combined AI advice",
+  "homeAdviceSodiumOver": "You went over the sodium target today. Try keeping the rest of your meals light.",
+  "@homeAdviceSodiumOver": {
+    "description": "Home AI advice when today's sodium is over the goal (#1943)."
+  },
+  "homeAdviceExerciseOnTrack": "You worked out {minutes} minutes this week. You are on track!",
+  "@homeAdviceExerciseOnTrack": {
+    "description": "Home AI advice when the weekly exercise goal is met (#1943).",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "homeAdviceExerciseMore": "You worked out {minutes} minutes this week. A little more to go!",
+  "@homeAdviceExerciseMore": {
+    "description": "Home AI advice when there is some exercise but not enough (#1943).",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "homeAdviceExerciseStart": "Start moving this week — an easy walk is a good beginning.",
+  "@homeAdviceExerciseStart": {
+    "description": "Home AI advice when nothing was logged this week (#1943)."
+  },
   "homeAiAdviceBody": "Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
   "homeSodiumExceededBadge": "Sodium over",
   "homeMacroCarbs": "Carbs",
@@ -622,8 +640,28 @@
   "myPointsRecipeTitle": "Personalized healthy recipe package",
   "myPointsRecipeDescription": "Get PDF and interactive meal guides tailored to goals such as diabetes prevention or weight loss.",
   "myPointsRecipeCost": "500P",
+  "a11yCoachPhoto": "Photo from your trainer",
+  "@a11yCoachPhoto": {
+    "description": "Screen reader label for an image a trainer sent in chat (#1942)."
+  },
+  "a11yMealPhoto": "Meal photo",
+  "@a11yMealPhoto": {
+    "description": "Screen reader label for a saved meal photo (#1942)."
+  },
+  "a11yMealPhotoOf": "Photo of {name}",
+  "@a11yMealPhotoOf": {
+    "description": "Screen reader label for a recommended meal photo (#1942).",
+    "placeholders": { "name": { "type": "String" } }
+  },
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
+  "myWithdrawTitle": "Delete account",
+  "@myWithdrawTitle": {
+    "description": "Account deletion entry at the end of the MY settings list (#1935)."
+  },
+  "myWithdrawConfirm": "Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.",
+  "myWithdrawAction": "Delete account",
+  "myWithdrawFailed": "We could not delete your account. Please try again in a moment.",
   "myCancel": "Cancel",
   "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
@@ -713,6 +751,10 @@
   "coachImageUnavailable": "Couldn't load the photo",
   "coachChatSubtitle": "Personal trainer · Available",
   "coachChatBack": "Back",
+  "coachChatLoadOlder": "Load older messages",
+  "@coachChatLoadOlder": {
+    "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
+  },
   "coachChatLoadFailed": "Couldn't load the conversation",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
@@ -965,21 +1007,27 @@
   "aicQuickRepliesLabel": "Try asking",
   "aicGeneratingReply": "Writing your answer",
   "aicInsightDiscomfortPart": "{part} pain noted",
-  "@aicInsightDiscomfortPart": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"part": {"type": "String"}}},
+  "@aicInsightDiscomfortPart": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"part": {"type": "String"}}},
   "aicInsightDiscomfort": "Pain noted",
-  "@aicInsightDiscomfort": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "@aicInsightDiscomfort": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
   "aicInsightNegative": "Negative feedback noted",
-  "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
+  "aicInsightDelete": "Delete",
+  "@aicInsightDelete": {
+    "description": "Removes one detection from the AI coach insight log (#1975)."
+  },
+  "aicInsightDeleteConfirm": "Remove this detection from the log? What you wrote stays in the conversation.",
+  "aicInsightDeleteFailed": "We could not remove it. Please try again in a moment.",
   "aicInsightHistoryTitle": "Noted signals",
-  "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
   "aicInsightHistoryAction": "Notes",
   "@aicInsightHistoryAction": {"description": "AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900)."},
-  "aicInsightHistorySubtitle": "Pain and negative feedback noted in the last {days} days",
-  "@aicInsightHistorySubtitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"days": {"type": "int"}}},
+  "aicInsightHistorySubtitle": "Pain and negative feedback noted in the last {days} days. The AI uses these when it answers",
+  "@aicInsightHistorySubtitle": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"days": {"type": "int"}}},
   "aicInsightHistoryEmpty": "Nothing noted in the last {days} days",
-  "@aicInsightHistoryEmpty": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"days": {"type": "int"}}},
+  "@aicInsightHistoryEmpty": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"days": {"type": "int"}}},
   "aicInsightHistoryFailed": "Couldn't load noted signals",
-  "@aicInsightHistoryFailed": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "@aicInsightHistoryFailed": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
   "aicRetentionNotice": "AI chat history is kept for the last {days} days",
   "@aicRetentionNotice": {"description": "AI coach chat: how long the conversation is kept (#1823).", "placeholders": {"days": {"type": "int"}}},
   "aicTrainerConnectedTitle": "Chat with your trainer",
@@ -1087,6 +1135,13 @@
   "@mySupportExternalHint": {
     "description": "Shown under the FAQ / 1:1 inquiry rows so it is clear the tap leaves the app."
   },
+  "authRestoring": "Restoring your session",
+  "@authRestoring": {
+    "description": "Splash message while the saved session is being restored (#1944)."
+  },
+  "authRestoreFailed": "We could not restore your session — the connection looks unstable.",
+  "authRestoreRetry": "Try again",
+  "authRestoreSignIn": "Go to sign in",
   "authTagline": "Diet & exercise management app",
   "authEmailHint": "Email",
   "authPasswordHint": "Password",

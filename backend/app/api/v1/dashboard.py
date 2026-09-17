@@ -114,6 +114,26 @@ def _build_sodium_warning(
     return f"{top_source_names} 섭취로 나트륨이 높아요."
 
 
+def _advice_key(
+    *,
+    sodium_warning: str | None,
+    sodium_source_names: list[str],
+    exercise_advice_key: str,
+) -> str | None:
+    """홈 조언으로 고른 문장의 로케일 독립 식별자. (#1943)
+
+    앱이 고르는 순서와 **같은 순서**로 고른다(`ai_advice_text.dart`) — 나트륨
+    경고가 있으면 그것이고, 없으면 운동 되먹임이다. 순서가 갈리면 키가 가리키는
+    문장과 화면이 어긋난다.
+
+    음식 이름이 들어간 나트륨 경고는 키를 주지 않는다. 그 이름은 회원이 적은
+    데이터라 번역 대상이 아니고, 문장을 통째로 보내는 편이 맞다.
+    """
+    if sodium_warning is not None:
+        return None if sodium_source_names else "sodium_over"
+    return exercise_advice_key
+
+
 def _rank_sodium_sources(foods_json_values: Iterable[str]) -> list[str]:
     sodium_by_food_name: dict[str, int] = {}
     for foods_json in foods_json_values:
@@ -204,10 +224,13 @@ def dashboard_summary(
     exercise_count = len(ex_rows)
     if exercise_minutes >= 150:
         exercise_feedback = f"이번 주 {exercise_minutes}분 운동했어요. 목표 달성 중이에요!"
+        exercise_advice_key = "exercise_on_track"
     elif exercise_minutes > 0:
         exercise_feedback = f"이번 주 {exercise_minutes}분 운동했어요. 조금만 더 힘내요!"
+        exercise_advice_key = "exercise_more"
     else:
         exercise_feedback = "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요."
+        exercise_advice_key = "exercise_start"
 
     # --- 주간 점수 + 지난주 대비 변화량(동일 공식으로 실제 차이 집계) ---
     # 이번 주 점수도 지난주와 같은 방식(기록된 날짜들의 평균 나트륨)으로 계산한다.
@@ -242,4 +265,9 @@ def dashboard_summary(
         week_score_delta=week_score_delta,
         sodium_warning=sodium_warning,
         exercise_feedback=exercise_feedback,
+        ai_advice_key=_advice_key(
+            sodium_warning=sodium_warning,
+            sodium_source_names=source_names,
+            exercise_advice_key=exercise_advice_key,
+        ),
     )

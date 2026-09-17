@@ -71,6 +71,9 @@ class CoachImageAttachment extends ConsumerWidget {
               : Image.memory(
                   data,
                   key: ValueKey<String>('coach-image-${attachment.fileId}'),
+                  // 대체 텍스트가 없으면 노드 자체가 생기지 않아, 음성 안내로
+                  // 읽는 회원은 사진이 온 사실조차 모른다(#1942).
+                  semanticLabel: l.a11yCoachPhoto,
                   fit: BoxFit.contain,
                   errorBuilder: (_, _, _) =>
                       _Unavailable(label: l.coachImageUnavailable),

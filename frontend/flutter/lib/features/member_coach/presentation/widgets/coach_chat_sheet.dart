@@ -8,6 +8,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_weekly_report.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_report_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
@@ -314,7 +315,17 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                   title: l.coachChatLoadFailed,
                   icon: AppIcons.error,
                 ),
-                data: (messages) {
+                data: (latest) {
+                  // 폴링이 주는 최신 쪽 앞에, 손으로 더 받아 온 옛 쪽을 붙여
+                  // 그린다(#1943). 둘을 한 provider 에 두면 15초마다 새로 받는
+                  // 최신 쪽이 받아 둔 옛 쪽을 지운다.
+                  final CoachChatHistoryState history = ref.watch(
+                    coachChatHistoryProvider,
+                  );
+                  final List<CoachMessage> messages = <CoachMessage>[
+                    ...history.messages,
+                    ...latest,
+                  ];
                   // 길이가 바뀐 프레임에서만 — 매 빌드마다 부르면 사용자가
                   // 위로 올려 읽는 중에도 아래로 끌어내린다.
                   if (messages.length != _lastCount) {
@@ -332,10 +343,40 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                       OnCareSpacing.s16,
                       OnCareSpacing.s12,
                     ),
-                    children: _chatChildren(
-                      messages,
-                      showDemoBanners: showDemoBanners,
-                    ),
+                    children: <Widget>[
+                      // 서버는 한 번에 최신 50건만 준다 — 그 앞을 받을 자리가
+                      // 없어 51번째 이전 메시지는 위로 올려도 나오지 않았다.
+                      // 한 쪽이 다 찼을 때만 보여 준다: 덜 찼다면 그 앞에 없다.
+                      if (!history.exhausted &&
+                          latest.length >= chatPageSize &&
+                          messages.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: OnCareSpacing.s12,
+                          ),
+                          child: Center(
+                            child: history.loading
+                                ? const AppLoading.inline()
+                                : AppButton(
+                                    key: const ValueKey<String>(
+                                      'coach-chat-load-older',
+                                    ),
+                                    label: l.coachChatLoadOlder,
+                                    variant: AppButtonVariant.text,
+                                    size: OnCareButtonSize.small,
+                                    onPressed: () => ref
+                                        .read(
+                                          coachChatHistoryProvider.notifier,
+                                        )
+                                        .loadOlder(messages.first),
+                                  ),
+                          ),
+                        ),
+                      ..._chatChildren(
+                        messages,
+                        showDemoBanners: showDemoBanners,
+                      ),
+                    ],
                   );
                 },
               ),

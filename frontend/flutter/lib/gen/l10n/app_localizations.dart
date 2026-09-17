@@ -224,6 +224,30 @@ abstract class AppLocalizations {
   /// **'Today\'s combined AI advice'**
   String get homeAiAdviceTitle;
 
+  /// Home AI advice when today's sodium is over the goal (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You went over the sodium target today. Try keeping the rest of your meals light.'**
+  String get homeAdviceSodiumOver;
+
+  /// Home AI advice when the weekly exercise goal is met (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You worked out {minutes} minutes this week. You are on track!'**
+  String homeAdviceExerciseOnTrack(int minutes);
+
+  /// Home AI advice when there is some exercise but not enough (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'You worked out {minutes} minutes this week. A little more to go!'**
+  String homeAdviceExerciseMore(int minutes);
+
+  /// Home AI advice when nothing was logged this week (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'Start moving this week — an easy walk is a good beginning.'**
+  String get homeAdviceExerciseStart;
+
   /// No description provided for @homeAiAdviceBody.
   ///
   /// In en, this message translates to:
@@ -2072,6 +2096,24 @@ abstract class AppLocalizations {
   /// **'500P'**
   String get myPointsRecipeCost;
 
+  /// Screen reader label for an image a trainer sent in chat (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo from your trainer'**
+  String get a11yCoachPhoto;
+
+  /// Screen reader label for a saved meal photo (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Meal photo'**
+  String get a11yMealPhoto;
+
+  /// Screen reader label for a recommended meal photo (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo of {name}'**
+  String a11yMealPhotoOf(String name);
+
   /// No description provided for @myLogout.
   ///
   /// In en, this message translates to:
@@ -2083,6 +2125,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Log out of your account?'**
   String get myLogoutConfirm;
+
+  /// Account deletion entry at the end of the MY settings list (#1935).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get myWithdrawTitle;
+
+  /// No description provided for @myWithdrawConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.'**
+  String get myWithdrawConfirm;
+
+  /// No description provided for @myWithdrawAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete account'**
+  String get myWithdrawAction;
+
+  /// No description provided for @myWithdrawFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not delete your account. Please try again in a moment.'**
+  String get myWithdrawFailed;
 
   /// No description provided for @myCancel.
   ///
@@ -2437,6 +2503,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back'**
   String get coachChatBack;
+
+  /// Button above the trainer chat thread that fetches the previous page (#1943).
+  ///
+  /// In en, this message translates to:
+  /// **'Load older messages'**
+  String get coachChatLoadOlder;
 
   /// No description provided for @coachChatLoadFailed.
   ///
@@ -2947,25 +3019,43 @@ abstract class AppLocalizations {
   /// **'Writing your answer'**
   String get aicGeneratingReply;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'{part} pain noted'**
   String aicInsightDiscomfortPart(String part);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Pain noted'**
   String get aicInsightDiscomfort;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Negative feedback noted'**
   String get aicInsightNegative;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// Removes one detection from the AI coach insight log (#1975).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get aicInsightDelete;
+
+  /// No description provided for @aicInsightDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this detection from the log? What you wrote stays in the conversation.'**
+  String get aicInsightDeleteConfirm;
+
+  /// No description provided for @aicInsightDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not remove it. Please try again in a moment.'**
+  String get aicInsightDeleteFailed;
+
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Noted signals'**
@@ -2977,19 +3067,19 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get aicInsightHistoryAction;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
-  /// **'Pain and negative feedback noted in the last {days} days'**
+  /// **'Pain and negative feedback noted in the last {days} days. The AI uses these when it answers'**
   String aicInsightHistorySubtitle(int days);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Nothing noted in the last {days} days'**
   String aicInsightHistoryEmpty(int days);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load noted signals'**
@@ -3480,6 +3570,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Opens the KakaoTalk channel'**
   String get mySupportExternalHint;
+
+  /// Splash message while the saved session is being restored (#1944).
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring your session'**
+  String get authRestoring;
+
+  /// No description provided for @authRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not restore your session — the connection looks unstable.'**
+  String get authRestoreFailed;
+
+  /// No description provided for @authRestoreRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get authRestoreRetry;
+
+  /// No description provided for @authRestoreSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get authRestoreSignIn;
 
   /// No description provided for @authTagline.
   ///

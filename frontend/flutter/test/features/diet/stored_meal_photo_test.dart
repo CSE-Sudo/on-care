@@ -14,6 +14,7 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/presentation/widgets/stored_meal_photo.dart';
+import 'package:oncare/gen/l10n/app_localizations.dart';
 
 class _MockDio extends Mock implements Dio {}
 
@@ -43,6 +44,10 @@ Future<void> _pump(WidgetTester tester, Dio dio) async {
       container: container,
       child: MaterialApp(
         theme: AppTheme.light(),
+        // 사진의 대체 텍스트를 로케일에서 읽는다(#1942).
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: const Scaffold(
           body: StoredMealPhoto(
             path: _path,
@@ -152,6 +157,9 @@ void main() {
           container: container,
           child: MaterialApp(
             theme: AppTheme.light(),
+            locale: const Locale('ko'),
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: const Scaffold(
               body: StoredMealPhoto(
                 path: _path,
