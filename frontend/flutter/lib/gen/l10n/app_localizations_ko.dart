@@ -1985,6 +1985,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get trainerSyncRetry => '새 코드 받기';
 
   @override
+  String get signUpCreatedSignInNeeded => '계정이 만들어졌어요. 로그인해 주세요';
+
+  @override
   String get signUpEmailTaken => '이미 가입된 이메일이에요. 로그인해 주세요.';
 
   @override

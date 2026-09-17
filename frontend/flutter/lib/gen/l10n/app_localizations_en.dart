@@ -2036,6 +2036,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get trainerSyncRetry => 'Get a new code';
 
   @override
+  String get signUpCreatedSignInNeeded =>
+      'Your account was created. Please sign in.';
+
+  @override
   String get signUpEmailTaken =>
       'That email is already registered. Please sign in.';
 

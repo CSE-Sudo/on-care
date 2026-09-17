@@ -3697,6 +3697,12 @@ abstract class AppLocalizations {
   /// **'Get a new code'**
   String get trainerSyncRetry;
 
+  /// Sign-up: the account was created but the follow-up sign-in failed (#1926).
+  ///
+  /// In en, this message translates to:
+  /// **'Your account was created. Please sign in.'**
+  String get signUpCreatedSignInNeeded;
+
   /// No description provided for @signUpEmailTaken.
   ///
   /// In en, this message translates to:
