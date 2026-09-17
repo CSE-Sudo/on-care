@@ -14,6 +14,20 @@ ExerciseTypeIn = Literal["cardio", "strength", "flexibility", "other"]
 LegacyExerciseTypeIn = Literal["walking", "yoga", "stretching"]
 ExerciseIntensityIn = Literal["light", "moderate", "high"]
 
+#: 운동 한 건의 시간 상한(분). 열 시간이다.
+#:
+#: 기록 한 건이 이보다 길 수는 없다고 본다 — 하루치 기록이 아니라 **한 운동**이
+#: 차지한 시간이기 때문이다. 상한이 없으면 저장된 값이 그대로 주간 합계·유형별
+#: 분해·소모 칼로리·목표 달성률로 번지고, 근력이면 `sets_of()` 가 분에서 세트를
+#: 환산하므로 세트 수까지 함께 망가진다. 한 번 들어가면 그 행을 지우기 전까지
+#: 회원 앱의 그래프와 트레이너 앱의 고객 현황이 같이 잘못된 수를 말한다. (#1903)
+#:
+#: 세 입력이 같은 값을 쓴다 — 미리보기로 받은 칼로리를 그대로 저장할 수 있어야
+#: 하고(`ExerciseCalorieRequest`), 배정 루틴 완료도 같은 기록으로 남는다
+#: (`AssignedRoutineCompleteRequest`). 곳마다 다르면 미리보기는 되는데 저장은
+#: 422 로 떨어지는 값이 생긴다.
+MAX_EXERCISE_MINUTES = 600
+
 
 class ExerciseSessionOut(BaseModel):
     id: str
@@ -122,7 +136,9 @@ class ExerciseSessionCreate(BaseModel):
     type: ExerciseTypeIn | LegacyExerciseTypeIn
     #: 회원이 적은 운동 이름. 유형만으로는 무슨 운동인지 남지 않는다.
     name: str = Field(default="", max_length=100)
-    minutes: int = Field(..., gt=0)
+    #: 이 운동에 쓴 시간(분). 상한은 [MAX_EXERCISE_MINUTES] — 예전에는 상한이
+    #: 없어 앱을 거치지 않으면 하루 10만 분짜리 기록도 그대로 저장됐다(#1903).
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력이면 회원이 적은 세트 수. 다른 유형에서 와도 저장하지 않는다 —
     #: 유산소를 세트로 세는 화면은 없다. (#1262)
     sets: int | None = Field(None, gt=0, le=100)
@@ -154,7 +170,7 @@ class ExerciseCalorieRequest(BaseModel):
     #: 운동 이름. 비어 있으면 400 이다 — 이름 없이 확정된 숫자를 내주지 않는 것이
     #: 이 계산의 요점이라, 빈 이름으로 부르는 것은 호출하는 쪽의 실수다.
     name: str = Field(..., max_length=100)
-    minutes: int = Field(..., gt=0, le=600)
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     intensity: ExerciseIntensityIn = "moderate"
 
 
@@ -172,7 +188,7 @@ class ExerciseCalorieResponse(BaseModel):
 class AssignedRoutineCompleteRequest(BaseModel):
     """회원이 배정 루틴을 실제 수행한 결과."""
 
-    minutes: int = Field(..., gt=0, le=600)
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력 루틴이면 실제로 한 세트 수·횟수·중량. 수기 기록과 같은 값을 남겨야
     #: 그래프가 두 기록을 같은 축으로 읽는다. (#1276, #1310)
     sets: int | None = Field(None, gt=0, le=100)
