@@ -147,6 +147,51 @@ void main() {
     expectNoHangul(tester, 'AI 코칭 카드');
   });
 
+  testWidgets('추천 운동의 세트·횟수·중량 줄에 한글이 남지 않는다', (WidgetTester tester) async {
+    // 위 시험은 루틴 목록을 **비워** 두므로 운동 한 줄을 한 번도 그리지 않는다.
+    // 그래서 엔티티가 `세트`·`분`·`휴식 초` 를 직접 조립하던 것이 오래 남아
+    // 있었다(#1933). 값을 채워 그 줄까지 그린다.
+    //
+    // 이름은 서버가 주는 데이터라 번역 대상이 아니다 — 여기서는 앱이 쓴 문구만
+    // 남도록 영어 이름을 준다.
+    await pump(
+      tester,
+      const Scaffold(body: SingleChildScrollView(child: AiCoachingCard())),
+      lang: 'en',
+      overrides: <Override>[
+        memberCoachProvider.overrideWith((Ref ref) async => null),
+        coachRoutinesProvider.overrideWith(
+          (Ref ref) async => const <CoachRoutine>[
+            CoachRoutine(
+              id: 'r-en',
+              name: 'Lower body',
+              minutes: 40,
+              type: 'strength',
+              reason: '',
+              source: 'trainer',
+              sets: 4,
+              reps: 12,
+              weight: 60,
+              exercises: <CoachRoutineExercise>[
+                CoachRoutineExercise(
+                  name: 'Squat',
+                  sets: 4,
+                  reps: 12,
+                  weight: 60,
+                  rest: 60,
+                ),
+                CoachRoutineExercise(name: 'Treadmill', duration: 15),
+              ],
+            ),
+          ],
+        ),
+        coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
+      ],
+    );
+
+    expectNoHangul(tester, '추천 운동 상세');
+  });
+
   // ── 반대 방향 ───────────────────────────────────────────────────────────
 
   testWidgets('한국어 로케일은 그대로 한국어로 그려진다', (WidgetTester tester) async {

@@ -1,4 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 실 API 호출과 식단 사진 업로드에 필수. 여태 debug/profile 매니페스트에만 있어서
+         릴리스 빌드에서는 dio 요청이 전부 막혔다.
+
+         카메라·사진 권한은 일부러 선언하지 않는다. image_picker 는 사진 선택을 시스템
+         사진 선택기(Android 13+)나 ACTION_GET_CONTENT 로, 촬영을 ACTION_IMAGE_CAPTURE 로
+         넘기기 때문에 런타임 권한이 필요 없다. 특히 CAMERA 를 선언하면 쓰지 않더라도
+         플러그인이 촬영 전에 권한을 요구한다(ImagePickerUtils.needRequestCameraPermission).
+         앱 안에서 최근 사진 썸네일을 직접 읽는 #1845 를 착수할 때 다시 볼 항목이다. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="oncare"
         android:name="${applicationName}"

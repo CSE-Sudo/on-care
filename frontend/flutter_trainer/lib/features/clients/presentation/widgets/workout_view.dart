@@ -662,7 +662,7 @@ class _DailyExerciseRecordsState extends ConsumerState<_DailyExerciseRecords> {
                     if (day.strengthSets > 0)
                       (
                         label: l.routineTypeStrength,
-                        value: l.exSetsValue(day.strengthSets),
+                        value: l.progSetsValue(day.strengthSets),
                       ),
                     if (day.stretchingMinutes > 0)
                       (

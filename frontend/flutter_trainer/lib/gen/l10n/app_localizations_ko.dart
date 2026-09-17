@@ -1367,11 +1367,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exTypeOther => '기타';
 
   @override
-  String exSetsValue(int count) {
-    return '$count세트';
-  }
-
-  @override
   String clientPeriodLoggedDays(int days) {
     return '$days일 기록';
   }
@@ -3843,7 +3838,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets세트 × $reps회 · ${weight}kg';
+    return '$sets세트 · $reps회 · ${weight}kg';
   }
 
   @override

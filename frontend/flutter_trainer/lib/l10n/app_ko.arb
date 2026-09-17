@@ -539,7 +539,6 @@
   },
   "exStreakStart": "아직 연속 기록이 없어요",
   "exTypeOther": "기타",
-  "exSetsValue": "{count}세트",
   "clientPeriodLoggedDays": "{days}일 기록",
   "clientPeriodEmpty": "이 기간에 기록이 없어요",
   "clientDietTrendTitle": "영양 추이",
@@ -1712,7 +1711,7 @@
     }
   },
   "coachTemplateMenu": "템플릿 메뉴",
-  "aiStrengthSummary": "{sets}세트 × {reps}회 · {weight}kg",
+  "aiStrengthSummary": "{sets}세트 · {reps}회 · {weight}kg",
   "@aiStrengthSummary": {
     "placeholders": {
       "sets": {

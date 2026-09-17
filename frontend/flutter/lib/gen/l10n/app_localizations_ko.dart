@@ -723,11 +723,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String exProgramSets(int count) {
-    return '$count세트';
-  }
-
-  @override
   String get exAddExercise => '운동 추가';
 
   @override
