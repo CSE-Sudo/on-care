@@ -26,7 +26,6 @@ from app.api.v1 import (
     notifications,
     places,
     reservations,
-    schedule,
     social,
     system,
     trainer,
@@ -112,7 +111,6 @@ app.include_router(social.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 app.include_router(diet.router, prefix=settings.api_v1_prefix)
 app.include_router(exercise.router, prefix=settings.api_v1_prefix)
-app.include_router(schedule.router, prefix=settings.api_v1_prefix)
 app.include_router(notifications.router, prefix=settings.api_v1_prefix)
 app.include_router(places.router, prefix=settings.api_v1_prefix)
 app.include_router(ai_coach.router, prefix=settings.api_v1_prefix)

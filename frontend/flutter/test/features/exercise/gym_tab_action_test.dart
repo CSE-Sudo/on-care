@@ -140,7 +140,7 @@ void main() {
             MockMemberCoachRepository(),
           ),
           memberCoachProvider.overrideWith((ref) async => coach),
-          coachUnreadProvider.overrideWith((ref) async => unread),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(unread)),
           myReservationsProvider.overrideWith((ref) async => reservations),
         ],
         child: MaterialApp.router(

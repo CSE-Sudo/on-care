@@ -45,12 +45,11 @@ void main() {
   });
 
   group('seedIfEmpty', () {
-    test('first run seeds diet/exercise/schedule with today\'s date', () async {
+    test('first run seeds diet/exercise with today\'s date', () async {
       await seedIfEmpty(db, fixture: _fixture);
 
       final today = _todayString();
       final diet = await db.select(db.dietEntries).get();
-      final sched = await db.select(db.scheduleEvents).get();
       final exercise = await db.select(db.exerciseSessions).get();
 
       expect(diet, isNotEmpty);
@@ -118,22 +117,6 @@ void main() {
             )
             .length,
         2,
-      );
-      // Schedule seeds a couple of events on today (for the dashboard's
-      // "오늘의 일정") plus a few spread across the current month (for the
-      // calendar). All stay within the current month so the date-slide
-      // keeps them visible.
-      final ym = today.substring(0, 7);
-      expect(sched, isNotEmpty);
-      expect(
-        sched.every((r) => r.date.startsWith('$ym-')),
-        isTrue,
-        reason: 'all seeded schedule rows must be in the current month',
-      );
-      expect(
-        sched.any((r) => r.date == today),
-        isTrue,
-        reason: 'at least one schedule row must be on today',
       );
       expect(
         exercise,

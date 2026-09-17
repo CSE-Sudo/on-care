@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
+import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
-import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 
 /// 알림을 눌렀을 때 관련 화면으로 보내고, **그 화면이 읽는 값을 다시 받게 한다.**
 ///
@@ -57,17 +59,19 @@ Future<void> openAlertTarget(
         ..invalidate(coachInvitesProvider);
       if (!context.mounted) return;
       context.go(AppRoutes.exercise);
-    case AlertTarget.schedule:
-      ref
-        ..invalidate(scheduleEventsProvider)
-        ..invalidate(scheduleMonthProvider)
-        ..invalidate(coachSessionsProvider);
-      if (!context.mounted) return;
-      context.go(AppRoutes.dashboard);
     case AlertTarget.dashboard:
+      // 이미 홈에 있을 때 홈 알림을 누르는 것이 가장 흔한 경로다(기본 알림이
+      // 전부 이 목적지다). 그때는 셸의 브랜치 전환 갱신이 걸리지 않으므로
+      // — `_lastIndex == nextIndex` 면 곧바로 반환한다 — 여기서 직접 다시
+      // 읽지 않으면 알림이 말한 변화가 홈에 없는 채로 돌아온다(#1939).
+      ref.invalidate(dashboardSummaryProvider);
       if (!context.mounted) return;
       context.go(AppRoutes.dashboard);
     case AlertTarget.diet:
+      // 식단 탭에서 식단 알림을 누르는 경우도 같다.
+      ref
+        ..invalidate(dietTodayProvider)
+        ..invalidate(dietByDateProvider(nowKst()));
       if (!context.mounted) return;
       context.go(AppRoutes.diet);
     case AlertTarget.healthGoals:
