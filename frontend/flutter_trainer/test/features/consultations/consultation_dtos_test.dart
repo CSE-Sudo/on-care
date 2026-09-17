@@ -63,6 +63,31 @@ void main() {
     expect(label(exerciseGoalLabels(_ko), request.goalCode), 'sports_rehab');
   });
 
+  test('운동 목표를 회원 앱과 같은 문구로 읽는다 (#1992)', () {
+    // 회원이 온보딩에서 고르는 건강 목표와 상담 운동 목표가 같은 목록이 됐다.
+    // 트레이너가 보는 문구도 같아야 같은 것인지 알 수 있다.
+    final Map<String, String> labels = exerciseGoalLabels(_ko);
+    expect(labels['weight_loss'], '체중 감량');
+    expect(labels['strength'], '근력 향상');
+    // 예전에는 이 표만 `체력 증진` 이라 세 화면이 세 이름으로 불렀다.
+    expect(labels['fitness'], '체력 강화');
+    expect(labels['posture'], '자세 교정');
+    expect(labels['rehab'], '재활');
+    expect(labels['eating'], '식습관 개선');
+    expect(labels['exercise_habit'], '운동 습관');
+    expect(labels['blood_pressure'], '혈압 관리');
+    expect(labels['other'], '기타');
+  });
+
+  test('없앤 건강 관리 선택지도 저장된 그대로 보여준다 (#1992)', () {
+    // 이미 접수된 요청은 백필하지 않는다 — `기타` 로 뭉개면 트레이너가 보던
+    // 목표가 다른 말로 바뀐다.
+    final request = consultationRequestFromJson(_json(goal: 'health'));
+
+    expect(request.goalCode, 'health');
+    expect(label(exerciseGoalLabels(_ko), request.goalCode), '건강 관리');
+  });
+
   test('a missing member name comes through empty, not as Korean text', () {
     final request = consultationRequestFromJson(_json(memberName: null));
 

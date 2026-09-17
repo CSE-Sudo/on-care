@@ -6,23 +6,29 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/utils/exercise_goal_label.dart';
 import 'package:oncare/features/exercise/presentation/widgets/consult_time_range_picker.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-enum _ExerciseGoal { weightLoss, strength, fitness, posture, health, other }
-
-// 화면 선택지 → 서버 계약 enum. 순서가 같으므로 index 로 잇되, 길이가 어긋나면
-// 조용히 틀린 값이 나가므로 아래 assert 로 막는다.
-extension on _ExerciseGoal {
-  ExerciseGoal get wire => ExerciseGoal.values[index];
-}
+/// 화면에 그릴 운동 목표 선택지. 온보딩·MY 의 건강 목표 8종을 `kHealthFocusOptions`
+/// 에서 **그대로 읽고**, 그 뒤에 `기타` 를 붙인다 — 목록을 여기서 따로 들면 두
+/// 화면이 다시 갈라진다(#1992).
+///
+/// 여덟 목표는 [ExerciseGoal.other] 와 달리 건강 목표로 1:1 로 이어져, 상담이
+/// 수락되면 회원의 건강 목표가 빠짐없이 채워진다.
+final List<ExerciseGoal> _kGoalChoices = <ExerciseGoal>[
+  for (final String focus in kHealthFocusOptions)
+    kHealthFocusExerciseGoals[focus]!,
+  ExerciseGoal.other,
+];
 
 /// 필드 위 제목 — 섹션 제목 역할 글자.
 TextStyle _fieldTitleStyle(BuildContext context) => context.oncare
@@ -51,7 +57,7 @@ class _ConsultationRequestPageState
     extends ConsumerState<ConsultationRequestPage> {
   final TextEditingController _messageController = TextEditingController();
 
-  _ExerciseGoal? _exerciseGoal;
+  ExerciseGoal? _exerciseGoal;
   DateTime? _preferredDate;
 
   /// 희망 시각은 시작·종료가 모두 있어야 한다 — "시간 협의"는 없앴다(#1587).
@@ -112,7 +118,7 @@ class _ConsultationRequestPageState
   /// 서버로는 `health_purpose_detail`도 겸해서 나간다(#1112). 목표 선택
   /// 하나로 줄었으니 상세를 받을 자리도 문의 내용 하나여야 한다.
   bool get _otherGoalDetailMissing =>
-      _exerciseGoal == _ExerciseGoal.other &&
+      _exerciseGoal == ExerciseGoal.other &&
       _messageController.text.trim().isEmpty;
 
   /// 데이터 공유에 동의했는가. 신청은 회원이 하고 연결은 나중에 트레이너가
@@ -128,11 +134,7 @@ class _ConsultationRequestPageState
       _preferredEndTimeOfDay != null &&
       _dataSharingConsent;
 
-  Future<void> _submit({
-    required Gym gym,
-    required Trainer trainer,
-    required Map<_ExerciseGoal, String> goalLabels,
-  }) async {
+  Future<void> _submit({required Gym gym, required Trainer trainer}) async {
     if (_submitting) return;
     setState(() => _attempted = true);
     if (!_isValid) return;
@@ -145,7 +147,7 @@ class _ConsultationRequestPageState
     setState(() => _submitting = true);
     final DateTime now = nowKst();
     final String message = _messageController.text.trim();
-    final ExerciseGoal exerciseGoal = _exerciseGoal!.wire;
+    final ExerciseGoal exerciseGoal = _exerciseGoal!;
     final HealthPurposeType healthPurposeType = healthPurposeFromExerciseGoal(
       exerciseGoal,
     );
@@ -281,13 +283,9 @@ class _ConsultationRequestPageState
   }) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final Map<_ExerciseGoal, String> goalLabels = <_ExerciseGoal, String>{
-      _ExerciseGoal.weightLoss: l.exGoalWeightLoss,
-      _ExerciseGoal.strength: l.exGoalStrength,
-      _ExerciseGoal.fitness: l.exGoalFitness,
-      _ExerciseGoal.posture: l.exGoalPosture,
-      _ExerciseGoal.health: l.exGoalHealth,
-      _ExerciseGoal.other: l.exOptionOther,
+    final Map<ExerciseGoal, String> goalLabels = <ExerciseGoal, String>{
+      for (final ExerciseGoal goal in _kGoalChoices)
+        goal: exerciseGoalLabel(l, goal),
     };
 
     return Center(
@@ -316,19 +314,19 @@ class _ConsultationRequestPageState
               showRequired: _attempted && !_dataSharingConsent,
             ),
             const SizedBox(height: OnCareSpacing.s20),
-            _ChoiceField<_ExerciseGoal>(
+            _ChoiceField<ExerciseGoal>(
               chipKeyPrefix: 'consult-goal',
               title: l.exExerciseGoal,
-              values: _ExerciseGoal.values,
+              values: _kGoalChoices,
               labels: goalLabels,
               selected: _exerciseGoal,
-              onSelected: (_ExerciseGoal value) =>
+              onSelected: (ExerciseGoal value) =>
                   setState(() => _exerciseGoal = value),
               errorText: _attempted && _exerciseGoal == null
                   ? l.exGoalRequired
                   : null,
             ),
-            if (_exerciseGoal == _ExerciseGoal.other) ...<Widget>[
+            if (_exerciseGoal == ExerciseGoal.other) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s8),
               Text(
                 l.exOtherGoalHint,
@@ -396,13 +394,7 @@ class _ConsultationRequestPageState
               // 보내는 중에는 스피너를 띄우고 탭을 막는다(loading).
               onPressed: hasPending
                   ? null
-                  : () => unawaited(
-                      _submit(
-                        gym: gym,
-                        trainer: trainer,
-                        goalLabels: goalLabels,
-                      ),
-                    ),
+                  : () => unawaited(_submit(gym: gym, trainer: trainer)),
               loading: _submitting,
               size: OnCareButtonSize.large,
               fullWidth: true,

@@ -2562,15 +2562,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get goalWeightLoss => '체중 감량';
 
   @override
-  String get goalStrength => '근력 향상';
-
-  @override
-  String get goalFitness => '체력 증진';
-
-  @override
-  String get goalPosture => '자세 교정';
-
-  @override
   String get goalHealth => '건강 관리';
 
   @override

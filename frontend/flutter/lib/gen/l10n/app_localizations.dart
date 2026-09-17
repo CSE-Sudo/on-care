@@ -3229,30 +3229,6 @@ abstract class AppLocalizations {
   /// **'Exercise Goal'**
   String get exExerciseGoal;
 
-  /// No description provided for @exGoalWeightLoss.
-  ///
-  /// In en, this message translates to:
-  /// **'Weight Loss'**
-  String get exGoalWeightLoss;
-
-  /// No description provided for @exGoalStrength.
-  ///
-  /// In en, this message translates to:
-  /// **'Build Strength'**
-  String get exGoalStrength;
-
-  /// No description provided for @exGoalFitness.
-  ///
-  /// In en, this message translates to:
-  /// **'Improve Fitness'**
-  String get exGoalFitness;
-
-  /// No description provided for @exGoalPosture.
-  ///
-  /// In en, this message translates to:
-  /// **'Improve Posture'**
-  String get exGoalPosture;
-
   /// No description provided for @exGoalHealth.
   ///
   /// In en, this message translates to:
