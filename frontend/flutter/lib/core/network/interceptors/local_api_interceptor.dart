@@ -31,7 +31,6 @@ import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
-import 'package:oncare/features/schedule/domain/schedule_format.dart';
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
 /// them out of the local SQLite database so the app can run as a
@@ -79,12 +78,11 @@ class LocalApiInterceptor extends Interceptor {
     'GET /diet/advice': _dietAdvice,
     'GET /diet/recommendations': _dietRecommendations,
     'POST /diet/analyze': _dietAnalyze,
+    'POST /diet/nutrition': _dietNutrition,
     'GET /exercise/weeks/current': _exerciseCurrentWeek,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
     'POST /exercise/calories': _exerciseCalories,
-    'GET /schedule/events': _scheduleEvents,
-    'POST /schedule/events': _scheduleCreate,
     'GET /notifications': _notifications,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
@@ -93,6 +91,7 @@ class LocalApiInterceptor extends Interceptor {
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
+    'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,
     'POST /auth/social/google': _authSocial,
     'GET /users/me': _usersMe,
@@ -257,11 +256,8 @@ class LocalApiInterceptor extends Interceptor {
     if (method == 'PUT' && path.startsWith('/exercise/sessions/')) {
       return _exerciseUpdate;
     }
-    if (method == 'PUT' && path.startsWith('/schedule/events/')) {
-      return _scheduleUpdate;
-    }
-    if (method == 'DELETE' && path.startsWith('/schedule/events/')) {
-      return _scheduleDelete;
+    if (method == 'DELETE' && path.startsWith('/ai-coach/insights/')) {
+      return _aiCoachInsightDismiss;
     }
     return null;
   }
@@ -397,6 +393,12 @@ class LocalApiInterceptor extends Interceptor {
     final List<Object?>? requestFoods = foodsValue is List
         ? List<Object?>.from(foodsValue)
         : null;
+    // 합계를 다시 셀 때 쓸 음식 목록. `foods` 를 보내지 않은 수정이면 null 이라
+    // 아래에서 본문의 합계를 그대로 반영한다(부분 수정 규약 유지).
+    final List<Map<String, Object?>>? storedFoods = requestFoods
+        ?.whereType<Map<Object?, Object?>>()
+        .map((Map<Object?, Object?> f) => f.cast<String, Object?>())
+        .toList();
     final Object? totalCaloriesValue = body['total_calories'];
     final Object? sodiumMgValue = body['sodium_mg'];
     final Object? sugarGValue = body['sugar_g'];
@@ -410,16 +412,26 @@ class LocalApiInterceptor extends Interceptor {
         foodsJson: requestFoods == null
             ? const Value.absent()
             : Value(jsonEncode(requestFoods)),
-        totalCalories:
-            body.containsKey('total_calories') && totalCaloriesValue is num
-            ? Value(totalCaloriesValue.toInt())
-            : const Value.absent(),
-        sodiumMg: body.containsKey('sodium_mg') && sodiumMgValue is num
-            ? Value(sodiumMgValue.toInt())
-            : const Value.absent(),
-        sugarG: body.containsKey('sugar_g') && sugarGValue is num
-            ? Value(sugarGValue.toDouble())
-            : const Value.absent(),
+        // 음식 목록이 왔으면 그것이 이 끼니의 사실이다 — 합계는 본문 값이 아니라
+        // **그 목록에서 다시 센다.** 실서버가 같은 규칙이라(`totals_from_foods`,
+        // #1892), 여기만 본문을 믿으면 앱이 합계를 잘못 보냈을 때 데모에서는 그대로
+        // 저장돼 맞아 보이고 실연동에서는 다른 값이 남는다 — 같은 조작이 두 환경에서
+        // 다른 결과를 낸다. 탄단지는 이미 음식에서 되짚고 있다. (#1922)
+        totalCalories: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'calories').round())
+            : (body.containsKey('total_calories') && totalCaloriesValue is num
+                  ? Value(totalCaloriesValue.toInt())
+                  : const Value.absent()),
+        sodiumMg: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'sodium_mg').round())
+            : (body.containsKey('sodium_mg') && sodiumMgValue is num
+                  ? Value(sodiumMgValue.toInt())
+                  : const Value.absent()),
+        sugarG: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'sugar_g'))
+            : (body.containsKey('sugar_g') && sugarGValue is num
+                  ? Value(sugarGValue.toDouble())
+                  : const Value.absent()),
       ),
     );
     final row = await (_db.select(
@@ -542,15 +554,6 @@ class LocalApiInterceptor extends Interceptor {
     // (혈당 row removed from the home summary per the latest design ref —
     // the indicator list now ends at 당류.)
 
-    // Today's schedule items.
-    final schedRows = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.date.equals(today))).get();
-    final schedJson = <Map<String, Object?>>[
-      for (final r in schedRows)
-        <String, Object?>{'time': r.time, 'title': r.title, 'emoji': r.emoji},
-    ];
-
     final now = nowKst();
     final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
     final nutritionByDate = <String, Map<String, num>>{
@@ -559,6 +562,9 @@ class LocalApiInterceptor extends Interceptor {
           'calories': 0,
           'sodium_mg': 0,
           'sugar_g': 0.0,
+          'carbs_g': 0.0,
+          'protein_g': 0.0,
+          'fat_g': 0.0,
         },
     };
     final allDietRows = await _db.select(_db.dietEntries).get();
@@ -568,6 +574,15 @@ class LocalApiInterceptor extends Interceptor {
       totals['calories'] = totals['calories']! + row.totalCalories;
       totals['sodium_mg'] = totals['sodium_mg']! + row.sodiumMg;
       totals['sugar_g'] = totals['sugar_g']! + row.sugarG;
+      // 실서버가 싣는 것을 데모도 똑같이 싣는다(#1879). 행에는 탄단지
+      // 칸이 없으므로 끼니의 음식에서 접는다 — `/diet/days/{date}` 가 하루
+      // 합계를 만드는 방법과 같다.
+      final rowMacros = _foodMacroTotals(
+        jsonDecode(row.foodsJson) as List<Object?>,
+      );
+      totals['carbs_g'] = totals['carbs_g']! + rowMacros.carbsG;
+      totals['protein_g'] = totals['protein_g']! + rowMacros.proteinG;
+      totals['fat_g'] = totals['fat_g']! + rowMacros.fatG;
     }
     final nutritionWeek = <Map<String, Object?>>[
       for (var index = 0; index < 7; index++)
@@ -627,7 +642,6 @@ class LocalApiInterceptor extends Interceptor {
       'exercise_count': exerciseRows.map((r) => r.dayLabel).toSet().length,
       'nutrition_week': nutritionWeek,
       'nutrition_week_prev': <Object?>[],
-      'today_schedule': schedJson,
       'week_score': score,
       // Delta is a static demo number for now — full week-over-week
       // diff lands in a later phase.
@@ -909,6 +923,9 @@ class LocalApiInterceptor extends Interceptor {
             // 사용자만 코멘트 없는 결과를 보게 된다.
             'coach_comment': existing.aiComment,
           },
+          // 끼니 카드가 쓰는 것과 같은 저장된 시각. 결과 시트가 제 시계로
+          // 다시 계산하면 카드와 어긋난다(#1897).
+          'time_label': existing.timeLabel,
           // 재시도는 새로 적립하지 않고 처음 받은 값을 싣는다(#1786).
           'points': _points
               .awardedFor(PointsRule.dietEntry, existing.id)
@@ -964,6 +981,9 @@ class LocalApiInterceptor extends Interceptor {
 
     final now = nowKst();
     final id = 'diet-${now.microsecondsSinceEpoch}';
+    // 행에 넣는 값과 응답에 싣는 값이 갈리지 않게 한 번만 만든다.
+    final String timeLabel =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     await _db
         .into(_db.dietEntries)
         .insert(
@@ -971,8 +991,7 @@ class LocalApiInterceptor extends Interceptor {
             id: id,
             date: _todayDateString(),
             mealType: mealType,
-            timeLabel:
-                '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+            timeLabel: timeLabel,
             foodsJson: jsonEncode(foods),
             totalCalories: totalCal,
             sodiumMg: const Value(totalNa),
@@ -1004,6 +1023,7 @@ class LocalApiInterceptor extends Interceptor {
         'total_fat_g': _sumMacro(foods, 'fat_g'),
         'coach_comment': coach,
       },
+      'time_label': timeLabel,
       // 식단 기록 +50P, 하루 3회(#1786).
       'points': _points.award(PointsRule.dietEntry, id).toJson(),
     });
@@ -1449,6 +1469,64 @@ class LocalApiInterceptor extends Interceptor {
     'other': 5.0,
   };
 
+  /// POST /diet/nutrition — 음식 이름으로 공공 영양 DB 값. (#1896)
+  ///
+  /// 서버와 같은 순서다: 이름을 표에 붙이고, 붙었으면 **양으로 환산**해 돌려준다.
+  /// 양은 부르는 쪽이 준 값이 우선이고 없으면 그 음식의 1회 섭취량이다. 둘 다
+  /// 없으면 찾은 셈 치지 않는다 — 임의로 1인분을 가정해 확정할 수 없는 숫자를
+  /// "공공 DB 근거" 로 내밀지 않는 것이 서버 보정과 같은 원칙이다.
+  Future<Response<Object?>> _dietNutrition(RequestOptions options) async {
+    final Map<String, Object?> payload = _payloadOf(options.data);
+    final String name = ((payload['name'] as String?) ?? '').trim();
+    if (name.isEmpty) {
+      return _badRequest(options, '음식 이름을 입력해 주세요.');
+    }
+    final _DemoFood? match = _matchDemoFood(name);
+    final double? amountG =
+        (payload['amount_g'] as num?)?.toDouble() ?? match?.servingG;
+    if (match == null || amountG == null || amountG <= 0) {
+      // 못 찾았다 — 앱은 이때 아무것도 제안하지 않는다.
+      return _ok(options, <String, Object?>{
+        'matched_name': null,
+        'source': 'estimate',
+      });
+    }
+    // 표는 1인분 기준이라 `양 / 1인분` 이 그대로 배율이다(서버는 100g 기준값을
+    // 들고 `양 / 100` 을 곱한다 — 같은 값에 닿는 두 표기다).
+    final double scale = amountG / match.servingG;
+    return _ok(options, <String, Object?>{
+      'matched_name': match.name,
+      'source': 'db',
+      'amount_g': amountG,
+      'calories': (match.calories * scale).round(),
+      'sodium_mg': (match.sodiumMg * scale).round(),
+      'sugar_g': match.sugarG * scale,
+      'carbs_g': match.carbsG * scale,
+      'protein_g': match.proteinG * scale,
+      'fat_g': match.fatG * scale,
+    });
+  }
+
+  /// 이름 → 데모 영양표. 서버 `match_in_rows` 를 줄여 옮긴 것이다 —
+  /// 정확히 같은 이름 먼저, 그다음 표의 이름이 질의에 들어 있는 것 중 가장 긴 것.
+  _DemoFood? _matchDemoFood(String query) {
+    String norm(String v) => v.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    final String q = norm(query);
+    if (q.isEmpty) return null;
+    for (final _DemoFood f in _demoFoods) {
+      if (norm(f.name) == q) return f;
+    }
+    final List<_DemoFood> contained = <_DemoFood>[
+      for (final _DemoFood f in _demoFoods)
+        if (q.contains(norm(f.name))) f,
+    ];
+    if (contained.isEmpty) return null;
+    contained.sort(
+      (_DemoFood a, _DemoFood b) => norm(b.name).length - norm(a.name).length,
+    );
+    return contained.first;
+  }
+
   /// POST /exercise/calories — 운동 이름·시간·강도로 예상 소모 칼로리. (#1312)
   ///
   /// 서버와 같은 순서다: 이름을 종목표에 붙이고, 붙었으면 계수 × 데모 회원 체중
@@ -1636,167 +1714,10 @@ class LocalApiInterceptor extends Interceptor {
 
   // ---- Schedule ----
 
-  Future<Response<Object?>> _scheduleEvents(RequestOptions options) async {
-    // `?month=YYYY-MM` → whole month (calendar grid); otherwise
-    // `?date=YYYY-MM-DD` (defaults to today). Filtered in Dart to keep the
-    // drift import minimal (no LIKE extension needed); the demo table is
-    // tiny.
-    final month = options.queryParameters['month'] as String?;
-    final all = await _db.select(_db.scheduleEvents).get();
-    final rows = (month != null && month.isNotEmpty)
-        ? all.where((r) => r.date.startsWith('$month-')).toList()
-        : () {
-            final date =
-                (options.queryParameters['date'] as String?) ??
-                _todayDateString();
-            return all.where((r) => r.date == date).toList();
-          }();
 
-    final list = <Map<String, Object?>>[
-      for (final r in rows)
-        <String, Object?>{
-          'id': r.id,
-          'date': r.date,
-          'time': r.time,
-          'title': r.title,
-          'category': r.category,
-          'emoji': r.emoji,
-          'color_hex': r.colorHex,
-        },
-    ];
-    return _ok(options, list);
-  }
 
-  /// Category → (emoji, color) so created events look consistent with the
-  /// seeded ones. Mirrors what a FastAPI build would fill server-side.
-  (String, String) _scheduleStyle(String category) => switch (category) {
-    'hospital' => ('🏥', '#DBEAFE'),
-    'exercise' => ('💪', '#DCFCE7'),
-    'meal' => ('🍽️', '#FFEDD5'),
-    'medication' => ('💊', '#EDE9FE'),
-    _ => ('📌', '#E0F2F7'),
-  };
 
-  /// POST /schedule/events — persist a new event to drift so it shows up in
-  /// GET /schedule/events and the dashboard's "오늘의 일정" for that date.
-  ///
-  /// 형식 검사는 [isScheduleDate]·[isScheduleTime] 이 맡는다 — FastAPI
-  /// (`app/api/v1/schedule.py`) 와 같은 계약이라 데모와 실서버의 답이 갈리지
-  /// 않는다.
-  Future<Response<Object?>> _scheduleCreate(RequestOptions options) async {
-    final body = _jsonBody(options);
-    final date = (body['date'] as String? ?? '').trim();
-    final title = (body['title'] as String? ?? '').trim();
-    if (date.isEmpty || title.isEmpty) {
-      return _badRequest(options, 'date and title are required');
-    }
-    // 형식을 여기서도 막는다. 조회는 `YYYY-MM-DD` 를 전제해 거르므로, 계약을
-    // 벗어난 값을 받아 두면 저장은 성공했는데 어디에도 보이지 않는 일정이
-    // 남는다(#785). FastAPI 는 이미 같은 검사를 한다 — 데모도 같게 답한다.
-    if (!isScheduleDate(date)) {
-      return _badRequest(options, 'date must be YYYY-MM-DD');
-    }
-    final time = (body['time'] as String? ?? '').trim();
-    if (!isScheduleTime(time)) {
-      return _badRequest(options, 'time must be HH:mm or empty');
-    }
-    final category = (body['category'] as String? ?? 'other').trim();
-    final (emoji, colorHex) = _scheduleStyle(category);
-    final id = 'evt-${DateTime.now().microsecondsSinceEpoch}';
-    await _db
-        .into(_db.scheduleEvents)
-        .insert(
-          ScheduleEventsCompanion.insert(
-            id: id,
-            date: date,
-            time: time,
-            title: title,
-            category: category,
-            emoji: Value(emoji),
-            colorHex: Value(colorHex),
-          ),
-        );
-    return Response<Object?>(
-      requestOptions: options,
-      statusCode: 201,
-      data: <String, Object?>{
-        'id': id,
-        'date': date,
-        'time': time,
-        'title': title,
-        'category': category,
-        'emoji': emoji,
-        'color_hex': colorHex,
-      },
-    );
-  }
 
-  /// PUT /schedule/events/{id} — 준 필드만 바꾼다(FastAPI 의 `exclude_unset`).
-  ///
-  /// 시간을 지우는 것은 `''` 를 넘기는 것이지 생략이 아니다. 그래서 키가 있는지
-  /// 로 판단하고, 값이 빈 문자열이어도 그대로 반영한다.
-  Future<Response<Object?>> _scheduleUpdate(RequestOptions options) async {
-    final id = options.path.split('/').last;
-    final existing = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (existing == null) return _notFound(options, '일정을 찾을 수 없습니다.');
-
-    final body = _jsonBody(options);
-    final date = (body['date'] as String?)?.trim();
-    final time = (body['time'] as String?)?.trim();
-    final title = (body['title'] as String?)?.trim();
-    final category = (body['category'] as String?)?.trim();
-
-    // 생성과 같은 계약을 건다 — 수정으로 형식을 무너뜨릴 수 있으면 검증한 의미가
-    // 없다(#785 에서 저장·조회가 어긋나 일정이 사라졌던 것과 같은 경로).
-    if (date != null && !isScheduleDate(date)) {
-      return _badRequest(options, 'date must be YYYY-MM-DD');
-    }
-    if (time != null && !isScheduleTime(time)) {
-      return _badRequest(options, 'time must be HH:mm or empty');
-    }
-    if (title != null && title.isEmpty) {
-      return _badRequest(options, 'title must not be empty');
-    }
-
-    final String nextCategory = category ?? existing.category;
-    final (emoji, colorHex) = _scheduleStyle(nextCategory);
-    await (_db.update(_db.scheduleEvents)..where((t) => t.id.equals(id))).write(
-      ScheduleEventsCompanion(
-        date: date == null ? const Value.absent() : Value(date),
-        time: time == null ? const Value.absent() : Value(time),
-        title: title == null ? const Value.absent() : Value(title),
-        category: category == null ? const Value.absent() : Value(category),
-        // 카테고리가 바뀌면 이모지·색도 따라간다. 생성 때와 같은 규칙이라
-        // 수정한 일정만 다른 색으로 남지 않는다.
-        emoji: category == null ? const Value.absent() : Value(emoji),
-        colorHex: category == null ? const Value.absent() : Value(colorHex),
-      ),
-    );
-
-    final updated = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).getSingle();
-    return _ok(options, <String, Object?>{
-      'id': updated.id,
-      'date': updated.date,
-      'time': updated.time,
-      'title': updated.title,
-      'category': updated.category,
-      'emoji': updated.emoji,
-      'color_hex': updated.colorHex,
-    });
-  }
-
-  Future<Response<Object?>> _scheduleDelete(RequestOptions options) async {
-    final id = options.path.split('/').last;
-    final n = await (_db.delete(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).go();
-    if (n == 0) return _notFound(options, '일정을 찾을 수 없습니다.');
-    return _ok(options, <String, Object?>{'status': 'deleted'});
-  }
 
   // ---- Notifications ----
 
@@ -2141,7 +2062,8 @@ class LocalApiInterceptor extends Interceptor {
     return <Map<String, Object?>>[
       for (final turn in _aiCoachSeed)
         <String, Object?>{
-          'id': 'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
+          'id':
+              'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
           'role': turn.fromMember ? 'user' : 'coach',
           'text': turn.text,
           'sources': turn.sources,
@@ -2232,6 +2154,9 @@ class LocalApiInterceptor extends Interceptor {
       if (at == null || !isWithinInsightWindow(at, now)) continue;
       // 코치 답변은 감지 대상이 아니다 — 감지는 회원이 한 말에서만 찾는다.
       if (!_isMemberRow(row)) continue;
+      // 회원이 치운 줄은 건너뛴다(#1975). 실서버도 `insight_dismissed` 로 같은
+      // 것을 한다 — 데모에서만 되는 자리를 새로 만들지 않는다.
+      if (row['insight_dismissed'] == true) continue;
       final String text = row['text'] as String? ?? '';
       final ChatInsight? insight = detectChatInsight(text);
       if (insight == null) continue;
@@ -2246,6 +2171,24 @@ class LocalApiInterceptor extends Interceptor {
       'window_days': kChatInsightWindowDays,
       'insights': insights,
     });
+  }
+
+  /// DELETE /ai-coach/insights/{message_id} — 그 줄의 감지를 기록에서 치운다(#1975).
+  ///
+  /// **메시지는 지우지 않는다.** 실서버와 같이 `더 보지 않음` 표시만 남기므로,
+  /// 회원이 쓴 말은 대화에 그대로 남는다.
+  ///
+  /// 이미 치운 줄을 다시 눌러도 200 이다 — 누른 쪽이 바라는 상태가 이미 참이다.
+  Future<Response<Object?>> _aiCoachInsightDismiss(RequestOptions options) async {
+    final String messageId = options.path.split('/').last;
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    final int index = rows.indexWhere(
+      (Map<String, Object?> row) => row['id'] == messageId,
+    );
+    if (index < 0) return _notFound(options, '감지 기록을 찾을 수 없습니다.');
+    rows[index] = <String, Object?>{...rows[index], 'insight_dismissed': true};
+    await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+    return _ok(options, <String, Object?>{'status': 'dismissed'});
   }
 
   (String, List<String>) _mockCoachReply(String message) {
@@ -2386,6 +2329,27 @@ class LocalApiInterceptor extends Interceptor {
     return Response<Object?>(requestOptions: options, statusCode: 204);
   }
 
+  /// POST /auth/refresh — 데모도 접근 토큰을 회전해 준다. (#1944)
+  ///
+  /// 데모 라우트 표에 이것이 빠져 있어, 목 빌드의 갱신 요청이 두 인터셉터를 모두
+  /// 지나쳐 **실제 `apiBaseUrl` 로 나갔다** — #966 이 `/auth/logout` 에 대해
+  /// 막았던 그 누출이 갱신 경로에 남아 있었다.
+  ///
+  /// 갱신 토큰은 쓰던 것을 그대로 돌려준다. 실서버도 회전 토큰을 항상 새로 주는
+  /// 것은 아니라, 앱이 둘 다 다룰 수 있어야 한다.
+  Future<Response<Object?>> _authRefresh(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final refresh = (body['refresh_token'] as String? ?? '').trim();
+    if (refresh.isEmpty) {
+      return _badRequest(options, 'refresh_token is required');
+    }
+    return _ok(options, <String, Object?>{
+      'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
+      'refresh_token': refresh,
+      'token_type': 'bearer',
+    });
+  }
+
   /// POST /auth/social/{provider} — the demo exchanges any non-empty
   /// provider token for a session. Real provider-token verification is
   /// done by FastAPI (+ provider SDK) when USE_MOCK_API=false.
@@ -2477,11 +2441,15 @@ class LocalApiInterceptor extends Interceptor {
       'phone',
       'birth_date',
       'gender',
-      'height_cm',
-      'weight_kg',
       'goals',
     ]) {
       if (body[k] != null) patch[k] = body[k];
+    }
+    // 키·몸무게만 **키가 있는지**를 본다. 비울 수 있는 두 칸이라 명시적 null 은
+    // 지움이고, 값으로 거르면 지운 값이 되살아난다 — 서버도 이 둘만
+    // `nullable_fields` 로 둔다(#1941).
+    for (final String k in <String>['height_cm', 'weight_kg']) {
+      if (body.containsKey(k)) patch[k] = body[k];
     }
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
@@ -2900,3 +2868,51 @@ Map<String, Object?> _macroPayload(
     'fat_pct': percentages[2],
   };
 }
+
+/// 데모 영양표 한 줄 — **1인분 기준**이다. (#1896)
+class _DemoFood {
+  const _DemoFood(
+    this.name,
+    this.servingG,
+    this.calories,
+    this.sodiumMg,
+    this.sugarG,
+    this.carbsG,
+    this.proteinG,
+    this.fatG,
+  );
+
+  final String name;
+
+  /// 1회 섭취량(g). 위 값들이 이 양을 재고 나온 값이라 환산의 분모가 된다.
+  final double servingG;
+  final double calories;
+  final double sodiumMg;
+  final double sugarG;
+  final double carbsG;
+  final double proteinG;
+  final double fatG;
+}
+
+/// 이름으로 찾는 데모 영양표. 백엔드 큐레이션 시드(`food_nutrients_seed.py`)의
+/// 같은 이름·같은 1인분 값을 옮긴 것이다 — 한쪽만 고치면 로컬 데모와 서버 데모가
+/// 같은 음식에 다른 수치를 말한다(`_dietAnalyze` 의 세 줄과 같은 규약).
+///
+/// 전부가 아니라 시연에서 실제로 쳐 볼 만한 것만 둔다. 없는 이름은 제안이 뜨지
+/// 않을 뿐 수정과 저장은 그대로 된다.
+const List<_DemoFood> _demoFoods = <_DemoFood>[
+  _DemoFood('공기밥', 210, 310, 3, 0, 68, 6, 1),
+  _DemoFood('비빔밥', 500, 600, 900, 8, 90, 20, 15),
+  _DemoFood('김밥', 200, 480, 700, 6, 75, 12, 12),
+  _DemoFood('김치찌개', 400, 250, 1200, 3, 12, 15, 14),
+  _DemoFood('된장찌개', 400, 180, 1300, 4, 10, 12, 9),
+  _DemoFood('짜장면', 650, 700, 2400, 12, 104, 16, 20),
+  _DemoFood('짬뽕', 700, 660, 4000, 8, 90, 25, 18),
+  _DemoFood('라면', 550, 500, 1800, 5, 70, 10, 16),
+  _DemoFood('삼계탕', 1000, 900, 1400, 1, 40, 70, 45),
+  _DemoFood('떡볶이', 300, 550, 1600, 20, 100, 10, 12),
+  // 분석 데모가 돌려주는 세 줄 — 그 끼니를 수정하며 이름을 고쳐도 붙게 둔다.
+  _DemoFood('요거트 아이스크림', 110, 135, 55, 14.5, 26, 3, 2),
+  _DemoFood('과일 토핑', 90, 55, 5, 9, 13, 1, 0.5),
+  _DemoFood('그래놀라 토핑', 50, 205, 125, 6, 20, 5, 11.5),
+];

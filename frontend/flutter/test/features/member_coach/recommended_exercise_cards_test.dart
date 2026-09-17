@@ -108,7 +108,7 @@ class _PdfMemberCoachRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat() async => _messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => _messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() => Stream.value(_messages);
@@ -142,7 +142,7 @@ void main() {
         overrides: <Override>[
           memberCoachProvider.overrideWith((ref) async => coach),
           coachRoutinesProvider.overrideWith((ref) async => routines),
-          coachUnreadProvider.overrideWith((ref) async => 0),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -266,7 +266,7 @@ void main() {
           coachRoutinesProvider.overrideWith(
             (ref) async => const <CoachRoutine>[_aiRoutine],
           ),
-          coachUnreadProvider.overrideWith((ref) async => 0),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -494,7 +494,7 @@ void main() {
           coachRoutinesProvider.overrideWith(
             (ref) async => const <CoachRoutine>[],
           ),
-          coachUnreadProvider.overrideWith((ref) async => 0),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
           myTrainerProvider.overrideWith((ref) async => _assignedTrainer),
         ],
         child: MaterialApp.router(

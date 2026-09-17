@@ -79,6 +79,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         type: r.type,
         reason: r.reason,
         source: r.source,
+        sets: r.sets,
+        reps: r.reps,
+        weight: r.weight,
       ),
   ];
 
@@ -339,6 +342,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       sessionOrder: current.sessionOrder,
       exercises: current.exercises,
       trainerFeedback: current.trainerFeedback,
+      // 배정 값이라 완료를 물려도 그대로 남는다.
+      sets: current.sets,
+      reps: current.reps,
+      weight: current.weight,
     );
     _routines[index] = reverted;
     // 이 완료로 받은 포인트를 회수한다(#1786).
@@ -397,7 +404,8 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<List<CoachSession>> fetchSessions() async => const <CoachSession>[];
 
   @override
-  Future<List<CoachMessage>> fetchChat() async => _hasCoach()
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      _hasCoach()
       ? List<CoachMessage>.unmodifiable(_chat)
       : const <CoachMessage>[];
 

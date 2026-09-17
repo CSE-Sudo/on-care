@@ -121,28 +121,6 @@ void main() {
             calories: 320,
           ),
         );
-
-    // Today's schedule (matches the React mock).
-    await db.batch((b) {
-      b.insertAll(db.scheduleEvents, <ScheduleEventsCompanion>[
-        ScheduleEventsCompanion.insert(
-          id: 'evt-1',
-          date: today,
-          time: '10:00',
-          title: '병원 정기검진',
-          category: 'hospital',
-          emoji: const Value('🏥'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'evt-2',
-          date: today,
-          time: '18:00',
-          title: '헬스장 운동',
-          category: 'exercise',
-          emoji: const Value('💪'),
-        ),
-      ]);
-    });
   });
 
   tearDown(() async {
@@ -151,7 +129,7 @@ void main() {
   });
 
   test(
-    'GET /dashboard/summary aggregates diet + exercise + vital + schedule',
+    'GET /dashboard/summary aggregates diet + exercise',
     () async {
       final res = await dio.get<Map<String, Object?>>('/dashboard/summary');
       expect(res.statusCode, 200);
@@ -191,12 +169,6 @@ void main() {
       expect(todayTrend['calories'], 1420);
       expect(todayTrend['sodium_mg'], 2100);
       expect(todayTrend['sugar_g'], 45.0);
-
-      // Schedule.
-      final schedule = (body['today_schedule']! as List<Object?>)
-          .cast<Map<String, Object?>>();
-      expect(schedule.length, 2);
-      expect(schedule.first['title'], '병원 정기검진');
 
       // Sodium warning is set when total > 2000.
       expect(body['sodium_warning'], '김치찌개·배추김치 섭취로 나트륨이 높아요.');

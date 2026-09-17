@@ -10,6 +10,7 @@ import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/chart_semantics.dart';
+import 'package:oncare/shared/widgets/metric_trend_chart.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 영양 요약 카드의 기준 높이. 오늘·이번 주·전체 세 화면이 함께 쓴다 — 기간
@@ -18,13 +19,32 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 공용 테마의 역할 글자로 그리면 `오늘` 카드 내용이 240 을 조금 넘어 세 카드
 /// 높이가 어긋났다 — 4 격자의 다음 값으로 올려 셋을 다시 맞춘다(#1699).
-const double kDietSummaryCardHeight = 248;
+///
+/// `오늘` 카드에 나트륨 진행바 한 줄이 더 붙으면서(#1879) 그 내용이 248 을
+/// 넘었다. 같은 규칙으로 4 격자의 다음 값까지 올린다 — 이 값은 **가장 키가 큰
+/// 카드(오늘)** 를 따라가야 나머지 둘이 거기에 맞춰진다.
+const double kDietSummaryCardHeight = 284;
 
 /// 식단 탭의 기간 뷰(이번 주 / 전체).
 ///
-/// 탭의 `운동 현황` 과 같은 기간 토글 아래에서, 고른 지표(칼로리·나트륨·당류)의
-/// 일별 막대와 **하루 평균**을 보여준다. 합계가 아니라 평균을 머리 숫자로 두는
-/// 이유는 주(7일)와 달(30일)의 길이가 달라 합계끼리는 견줄 수 없기 때문이다.
+/// 탭의 `운동 현황` 과 같은 기간 토글 아래에서 **하루 평균**을 머리 숫자로
+/// 보여준다. 합계가 아니라 평균인 이유는 주(7일)와 달(30일)의 길이가 달라
+/// 합계끼리는 견줄 수 없기 때문이다.
+///
+/// 두 기간 모두 **칼로리·나트륨**을 오가며 본다(#1879). 그램이 아니라 칼로리가
+/// 기간이 묻는 값이고, 그 옆에 "짜게 먹었나"가 같이 필요하다. 탄단지는 고르는
+/// 지표가 아니라 그 칼로리를 무엇이 채웠는지로 따로 나타난다 — 머리 숫자 옆의
+/// 세 줄과 막대의 누적 구간이다.
+///
+/// 기간에 따라 그림만 다르다.
+///
+///  * **이번 주** — 일곱 칸의 꺾은선. 홈 식단·영양 카드와 **같은 그림**이다
+///    ([MetricTrendChart]) — 한 주를 두 화면이 다른 모양으로 말하면 본 것을
+///    머릿속에서 다시 맞춰야 한다.
+///  * **전체** — 옆으로 미는 막대. 칼로리를 볼 때는 하루하루가 탄단지 색
+///    구간으로 쌓인다.
+///
+/// 홈은 칼로리 하나로 고정이다 — 한눈에 스치는 화면에 고를 것을 두지 않는다.
 class DietPeriodView extends ConsumerStatefulWidget {
   const DietPeriodView({
     required this.range,
@@ -45,7 +65,8 @@ class DietPeriodView extends ConsumerStatefulWidget {
   ConsumerState<DietPeriodView> createState() => _DietPeriodViewState();
 }
 
-enum _Metric { calories, sodium, sugar }
+/// 기간 뷰가 그릴 수 있는 지표. 이번 주·전체 모두 이 둘을 오간다(#1879).
+enum _Metric { calories, sodium }
 
 class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
   _Metric _metric = _Metric.calories;
@@ -63,26 +84,24 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
   String _label(AppLocalizations l, _Metric m) => switch (m) {
     _Metric.calories => l.dietCalories,
     _Metric.sodium => l.dietSodium,
-    _Metric.sugar => l.dietSugar,
   };
 
   String _unit(AppLocalizations l, _Metric m) => switch (m) {
     _Metric.calories => l.unitKcal,
     _Metric.sodium => l.dietUnitMg,
-    _Metric.sugar => l.dietUnitG,
   };
 
   double _valueOf(DietPeriodDay d, _Metric m) => switch (m) {
     _Metric.calories => d.calories.toDouble(),
     _Metric.sodium => d.sodiumMg.toDouble(),
-    _Metric.sugar => d.sugarG,
   };
 
-  void _selectMetric(_Metric m) {
-    // 지표를 바꾸면 고른 날의 숫자는 뜻을 잃는다 — 같이 푼다.
-    _selection.reset();
-    setState(() => _metric = m);
-  }
+  /// 꺾은선의 세로 눈금. 칼로리는 **홈 탭과 같은 값**이라 두 화면의 축이
+  /// 어긋나지 않는다(`dashboard_content.dart` 의 `_kCalorieTicks` 와 짝).
+  List<double> _ticks(_Metric m) => switch (m) {
+    _Metric.calories => const <double>[0, 1500, 2500],
+    _Metric.sodium => const <double>[0, 1750, 3500],
+  };
 
   int _goalOf(_Metric m) {
     final UserProfile? p = widget.profile;
@@ -91,9 +110,13 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
         p?.effectiveDailyCalories ?? UserProfile.defaultDailyCalories,
       _Metric.sodium =>
         p?.effectiveDailySodiumMg ?? UserProfile.defaultDailySodiumMg,
-      _Metric.sugar =>
-        p?.effectiveDailySugarG ?? UserProfile.defaultDailySugarG,
     };
+  }
+
+  void _selectMetric(_Metric m) {
+    // 지표를 바꾸면 고른 날의 숫자는 뜻을 잃는다 — 같이 푼다.
+    _selection.reset();
+    setState(() => _metric = m);
   }
 
   /// 소수 첫째 자리까지만 남기고 정수는 콤마만 붙인다(당류 17.8 이 18 로
@@ -121,7 +144,6 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
     final DateFormat fmt = DateFormat.MMMd(
       Localizations.localeOf(context).toString(),
     );
-
     // 바깥 섹션(영양 요약)이 이미 제목과 좌우 여백을 갖는다 — 여기서 또 두면
     // 제목이 두 줄로 겹치고 여백이 이중으로 들어간다(#681).
     return Column(
@@ -133,7 +155,7 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
           children: <Widget>[
             for (final _Metric m in _Metric.values) ...<Widget>[
               // 버튼은 **무엇을 고르는가**만 말한다. 지표마다 색이 다르면
-              // 고르기 전부터 셋이 서로 다른 뜻을 가진 것처럼 보인다.
+              // 고르기 전부터 둘이 서로 다른 뜻을 가진 것처럼 보인다.
               AppChoiceChip(
                 label: _label(l, m),
                 selected: _metric == m,
@@ -181,6 +203,7 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
                   metricLabel: _label(l, _metric),
                   unit: _unit(l, _metric),
                   goal: _goalOf(_metric).toDouble(),
+                  ticks: _ticks(_metric),
                   values: <double>[
                     for (final DietPeriodDay d in period.days)
                       _valueOf(d, _metric),
@@ -188,13 +211,13 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
                   dates: <DateTime>[
                     for (final DietPeriodDay d in period.days) d.date,
                   ],
-                  // 칼로리 막대는 탄단지로 쌓아 그린다. 나트륨·당류는 쌓을
-                  // 성분이 없으므로 한 색이다.
+                  // 칼로리 막대는 탄단지로 쌓아 그린다. 나트륨은 쌓을 성분이
+                  // 없으므로 한 색이고, 머리 숫자 옆에도 탄단지를 붙이지
+                  // 않는다 — 나트륨 옆의 탄단지는 서로 무관한 두 말이다.
                   days: _metric == _Metric.calories ? period.days : null,
                   format: _number,
                   // 지표를 바꾸면 그래프가 처음부터 다시 그려진다.
                   replayKey: _metric,
-                  metric: _metric,
                   weekly: widget.weekly,
                   selection: _selection,
                 ),
@@ -210,12 +233,12 @@ class _PeriodBody extends StatelessWidget {
     required this.metricLabel,
     required this.unit,
     required this.goal,
+    required this.ticks,
     required this.values,
     required this.dates,
     required this.format,
     required this.replayKey,
     required this.weekly,
-    required this.metric,
     required this.selection,
     this.days,
   });
@@ -224,16 +247,18 @@ class _PeriodBody extends StatelessWidget {
   final String metricLabel;
   final String unit;
   final double goal;
+
+  /// 이번 주 꺾은선의 세로 축을 잡는 값들. 홈과 같은 눈금이라 두 화면이 같은
+  /// 기준으로 읽힌다. 전체(막대)는 쓰지 않는다.
+  final List<double> ticks;
+
   final List<double> values;
   final List<DateTime> dates;
   final String Function(num) format;
   final Object replayKey;
 
-  /// 칼로리 막대를 탄단지로 쌓기 위한 원본. 나트륨·당류를 볼 때는 null 이다.
+  /// 칼로리 막대를 탄단지로 쌓기 위한 원본.
   final List<DietPeriodDay>? days;
-
-  /// 지금 고른 지표. 툴팁이 탄단지를 덧붙일지 판단한다.
-  final _Metric metric;
 
   /// 이번 주면 일곱 칸 한 화면, 전체면 옆으로 미는 막대.
   final bool weekly;
@@ -247,11 +272,11 @@ class _PeriodBody extends StatelessWidget {
       DateFormat.yMd(Localizations.localeOf(context).toString()).format(date);
 
   /// 머리 숫자 옆에 붙일 탄단지. [picked] 이 있으면 그날 값, 없으면 기록이
-  /// 있는 날의 하루 평균이다. 칼로리를 보고 있지 않거나(나트륨·당류) 서버가
-  /// 영양을 주지 않은 기간이면 null 이라 아무것도 붙지 않는다.
+  /// 있는 날의 하루 평균이다. 서버가 영양을 주지 않은 기간이면 null 이라
+  /// 아무것도 붙지 않는다.
   _Macros? _macrosFor(int? picked) {
     final List<DietPeriodDay>? all = days;
-    if (metric != _Metric.calories || all == null) return null;
+    if (all == null) return null;
     if (picked != null) {
       final DietPeriodDay d = all[picked];
       return d.hasMacros
@@ -291,7 +316,12 @@ class _PeriodBody extends StatelessWidget {
         ),
         child: AppCard(
           child: Column(
+            key: const Key('diet-period-card-content'),
             crossAxisAlignment: CrossAxisAlignment.start,
+            // 내용은 오늘 카드보다 짧다(머리 숫자 + 그래프뿐이다). 위에서부터
+            // 채우면 남는 자리가 전부 카드 아래로 몰려 그래프가 위로 쏠려
+            // 보였다 — 남는 자리를 위아래로 나눠 가운데에 놓는다(#1956).
+            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               ListenableBuilder(
                 listenable: selection,
@@ -379,27 +409,131 @@ class _PeriodBody extends StatelessWidget {
               // 기간 합계는 뺐다 (#1121). 머리와 그래프 사이의 구분선도 뺐다
               // (#1123) — 그 빈 칸을 그래프가 들고 있어(topGap) 고른 막대의
               // 세로선이 머리 카드까지 닿는다.
-              _PeriodBars(
-                values: values,
-                dates: dates,
-                goal: goal,
-                color: tokens.brand.dietChart,
-                replayKey: replayKey,
-                weekly: weekly,
-                // 막대 툴팁이 "무슨 값을 얼마나" 라고 말하려면 지표 이름·단위와
-                // 숫자 서식이 카드 머리 숫자와 같아야 한다.
-                metricLabel: metricLabel,
-                unit: unit,
-                format: format,
-                selection: selection,
-                days: days,
-              ),
+              if (weekly) ...<Widget>[
+                const SizedBox(height: OnCareSpacing.s12),
+                _WeekTrend(
+                  values: values,
+                  dates: dates,
+                  goal: goal,
+                  ticks: ticks,
+                  metricLabel: metricLabel,
+                  unit: unit,
+                  format: format,
+                  replayKey: replayKey,
+                  selection: selection,
+                ),
+              ] else
+                _PeriodBars(
+                  values: values,
+                  dates: dates,
+                  goal: goal,
+                  color: tokens.brand.dietChart,
+                  replayKey: replayKey,
+                  weekly: weekly,
+                  // 막대 툴팁이 "무슨 값을 얼마나" 라고 말하려면 지표 이름·단위와
+                  // 숫자 서식이 카드 머리 숫자와 같아야 한다.
+                  metricLabel: metricLabel,
+                  unit: unit,
+                  format: format,
+                  selection: selection,
+                  days: days,
+                ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+/// 이번 주의 꺾은선 — 홈 식단·영양 카드와 **같은 위젯**이다(#1879).
+///
+/// 같은 한 주를 홈은 꺾은선, 식단 탭은 막대로 그리고 있었다. 둘을 견주려면 본
+/// 것을 머릿속에서 다시 맞춰야 해서 한 그림으로 되돌린다. 점을 눌러 그날 값을
+/// 보는 것(#1122)은 그대로다 — 카드 머리 숫자가 [selection] 을 같이 본다.
+class _WeekTrend extends StatelessWidget {
+  const _WeekTrend({
+    required this.values,
+    required this.dates,
+    required this.goal,
+    required this.ticks,
+    required this.metricLabel,
+    required this.unit,
+    required this.format,
+    required this.replayKey,
+    required this.selection,
+  });
+
+  final List<double> values;
+  final List<DateTime> dates;
+  final double goal;
+  final List<double> ticks;
+  final String metricLabel;
+  final String unit;
+  final String Function(num) format;
+  final Object replayKey;
+  final PeriodChartSelection selection;
+
+  /// 오늘·이번 주·전체 카드 높이를 같게 두면서(#1124) 남는 자리를 그래프가
+  /// 쓴다 — 카드 높이에서 그래프가 아닌 것들(카드 안쪽 여백 32, 머리 숫자
+  /// 한 덩어리, 그 아래 간격, 요일 라벨 줄)이 쓰는 자리를 뺀 나머지다.
+  ///
+  /// **고정값으로 두지 않는다**(#1956). 105 로 박아 둔 사이 카드 높이만
+  /// 240 → 248 → 284 로 올라(#1699, #1879) 그 차이가 전부 카드 아래 빈 칸으로
+  /// 남았다. 빼는 값은 실제로 재서 얻었고, 글자 지표가 조금 달라도 카드가
+  /// 늘어나지 않도록 몇 dp 여유를 남긴다 — 남는 자리는 카드의 가운데 정렬이
+  /// 위아래로 나눈다.
+  static const double _chartHeight = kDietSummaryCardHeight - 128;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final List<String> weekdays = _weekdayLabels(l);
+    final List<String> days = <String>[
+      for (final DateTime d in dates) weekdays[d.weekday - 1],
+    ];
+    final int today = _todayIndexIn(dates);
+    return ListenableBuilder(
+      listenable: selection,
+      builder: (BuildContext context, Widget? _) => MetricTrendChart(
+        values: values,
+        dayLabels: days,
+        goal: goal,
+        ticks: ticks,
+        selectedIndex: selection.selected,
+        onSelected: selection.select,
+        // 선은 오늘까지만 잇는다. 오늘이 이 범위 밖이면(지난 주를 보고 있으면)
+        // 마지막 칸까지 전부 그린다.
+        todayIndex: today,
+        replayKey: replayKey,
+        // 카드 머리의 `하루 평균 · 탄수화물` 과 같은 지표 이름으로 시작한다.
+        semanticsLabel: chartSemanticsLabel(
+          l,
+          title: metricLabel,
+          points: chartSeriesPoints(
+            l,
+            values: values,
+            dayLabels: days,
+            format: (double v) => '${format(v)} $unit',
+            upTo: today,
+          ),
+        ),
+        goalLabel: '${l.homeGoal}\n${format(goal)}',
+        formatTick: format,
+        height: _chartHeight,
+      ),
+    );
+  }
+}
+
+/// 오늘이 이 범위의 몇 번째 칸인가. 범위 밖이면 마지막 칸 — 지난 주를 보고
+/// 있을 때 선이 중간에서 끊기지 않게 한다.
+int _todayIndexIn(List<DateTime> dates) {
+  final DateTime today = DateUtils.dateOnly(nowKst());
+  for (int i = 0; i < dates.length; i++) {
+    if (DateUtils.dateOnly(dates[i]) == today) return i;
+  }
+  return dates.length - 1;
 }
 
 /// 머리 숫자 옆의 탄단지 한 덩어리. 막대를 쌓은 색을 그대로 써서, 예전 그래프
@@ -514,8 +648,11 @@ class _PeriodBars extends StatelessWidget {
   final String unit;
   final String Function(num) format;
 
-  /// 카드 높이를 오늘과 같게 맞추기 위한 그래프 높이다 (#1124).
-  static const double _chartHeight = 108;
+  /// 카드 높이를 오늘과 같게 맞추기 위한 그래프 높이다 (#1124). 꺾은선과 같은
+  /// 규칙으로 카드 높이에서 나머지가 쓰는 자리를 뺀다 — 고정값 108 은 카드가
+  /// 240 이던 시절 값이라 그 뒤 늘어난 만큼이 카드 아래 빈 칸이 됐다(#1956).
+  /// 막대 쪽이 4dp 더 높은 것은 날짜 라벨 줄이 요일 라벨보다 낮아서다.
+  static const double _chartHeight = kDietSummaryCardHeight - 124;
 
   /// [i] 번째 칸의 원본. 칼로리를 보고 있지 않으면 null 이다.
   DietPeriodDay? _dayAt(int i) {

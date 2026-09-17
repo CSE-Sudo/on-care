@@ -70,10 +70,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'No records yet today. Add a meal or workout to get started.';
 
   @override
-  String get homeScheduleEmpty => 'No events scheduled for today.';
+  String get homeAiAdviceTitle => 'Today\'s combined AI advice';
 
   @override
-  String get homeAiAdviceTitle => 'Today\'s combined AI advice';
+  String get homeAdviceSodiumOver =>
+      'You went over the sodium target today. Try keeping the rest of your meals light.';
+
+  @override
+  String homeAdviceExerciseOnTrack(int minutes) {
+    return 'You worked out $minutes minutes this week. You are on track!';
+  }
+
+  @override
+  String homeAdviceExerciseMore(int minutes) {
+    return 'You worked out $minutes minutes this week. A little more to go!';
+  }
+
+  @override
+  String get homeAdviceExerciseStart =>
+      'Start moving this week — an easy walk is a good beginning.';
 
   @override
   String get homeAiAdviceBody =>
@@ -187,14 +202,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeViewAll => 'View all';
 
   @override
-  String homeScheduleDate(String weekday, int month, int day) {
-    return '$weekday, $month/$day';
-  }
-
-  @override
-  String get homeScheduleTitle => 'Today\'s schedule';
-
-  @override
   String get unitKcal => 'kcal';
 
   @override
@@ -250,6 +257,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietNutritionSummary => 'Nutrition';
+
+  @override
+  String get dietAmount => 'Serving size';
 
   @override
   String get dietCalories => 'Calories';
@@ -330,6 +340,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String dietMealSheetTitle(String meal) {
     return '$meal';
   }
+
+  @override
+  String dietFoodDbMatch(String name) {
+    return 'Public DB · $name';
+  }
+
+  @override
+  String get dietFillFromDb => 'Fill in';
 
   @override
   String get dietAddSheetTitle => 'Add a Meal';
@@ -513,7 +531,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietAddFood => 'Add Food';
 
   @override
-  String get dietEditFoodHint => 'You can edit the food name and calories';
+  String get dietEditFoodHint =>
+      'Change the serving size and the nutrition follows';
 
   @override
   String get dietTotalCalories => 'Total Calories';
@@ -667,6 +686,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exRest => 'Rest';
+
+  @override
+  String exRestSeconds(int seconds) {
+    return 'Rest ${seconds}s';
+  }
 
   @override
   String get exAiRecommendedExercise => 'AI recommended exercise';
@@ -1113,10 +1137,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => 'Photo from your trainer';
+
+  @override
+  String get a11yMealPhoto => 'Meal photo';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return 'Photo of $name';
+  }
+
+  @override
   String get myLogout => 'Log out';
 
   @override
   String get myLogoutConfirm => 'Log out of your account?';
+
+  @override
+  String get myWithdrawTitle => 'Delete account';
+
+  @override
+  String get myWithdrawConfirm =>
+      'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.';
+
+  @override
+  String get myWithdrawAction => 'Delete account';
+
+  @override
+  String get myWithdrawFailed =>
+      'We could not delete your account. Please try again in a moment.';
 
   @override
   String get myCancel => 'Cancel';
@@ -1227,10 +1276,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegalPrivacyTitle => 'Privacy Policy';
 
   @override
-  String get myLegalTermsBody => 'Terms of Service (Korean original governs).';
+  String get myLegalTermsBody =>
+      'Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member\'s health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company\'s policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 January 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
-  String get myLegalPrivacyBody => 'Privacy Policy (Korean original governs).';
+  String get myLegalPrivacyBody =>
+      'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n6. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
   String get myLegalEffectiveDate => 'Effective Jan 1, 2026';
@@ -1309,6 +1360,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachChatBack => 'Back';
+
+  @override
+  String get coachChatLoadOlder => 'Load older messages';
 
   @override
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
@@ -1632,6 +1686,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightNegative => 'Negative feedback noted';
 
   @override
+  String get aicInsightDelete => 'Delete';
+
+  @override
+  String get aicInsightDeleteConfirm =>
+      'Remove this detection from the log? What you wrote stays in the conversation.';
+
+  @override
+  String get aicInsightDeleteFailed =>
+      'We could not remove it. Please try again in a moment.';
+
+  @override
   String get aicInsightHistoryTitle => 'Noted signals';
 
   @override
@@ -1639,7 +1704,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return 'Pain and negative feedback noted in the last $days days';
+    return 'Pain and negative feedback noted in the last $days days. The AI uses these when it answers';
   }
 
   @override
@@ -1919,6 +1984,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySupportExternalHint => 'Opens the KakaoTalk channel';
 
   @override
+  String get authRestoring => 'Restoring your session';
+
+  @override
+  String get authRestoreFailed =>
+      'We could not restore your session — the connection looks unstable.';
+
+  @override
+  String get authRestoreRetry => 'Try again';
+
+  @override
+  String get authRestoreSignIn => 'Go to sign in';
+
+  @override
   String get authTagline => 'Diet & exercise management app';
 
   @override
@@ -2045,6 +2123,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => 'Get a new code';
+
+  @override
+  String get signUpCreatedSignInNeeded =>
+      'Your account was created. Please sign in.';
 
   @override
   String get signUpEmailTaken =>
@@ -2351,100 +2433,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionConfirm => 'OK';
 
   @override
-  String get scheduleCategoryHospital => 'Hospital';
-
-  @override
-  String get scheduleCategoryExercise => 'Exercise';
-
-  @override
-  String get scheduleCategoryMeal => 'Meal';
-
-  @override
-  String get scheduleCategoryMedication => 'Medication';
-
-  @override
-  String get scheduleCategoryOther => 'Other';
-
-  @override
-  String get eventAddTitle => 'Add event';
-
-  @override
-  String get eventEditTitle => 'Edit event';
-
-  @override
-  String get eventTitleLabel => 'Event title';
-
-  @override
-  String get eventTitleHint => 'e.g. Regular checkup';
-
-  @override
-  String get eventDateLabel => 'Date';
-
-  @override
-  String get eventTimeLabel => 'Time';
-
-  @override
-  String get eventTimeNone => 'No time';
-
-  @override
-  String get eventTitleRequired => 'Please enter an event title';
-
-  @override
-  String get eventAddFailed =>
-      'Couldn\'t add the event. Please try again in a moment';
-
-  @override
-  String get eventEditFailed =>
-      'Couldn\'t save the event. Please try again in a moment';
-
-  @override
-  String get eventSaving => 'Saving…';
-
-  @override
-  String get eventAdding => 'Adding…';
-
-  @override
-  String get eventSave => 'Save';
-
-  @override
-  String get eventAdd => 'Add';
-
-  @override
-  String eventClearField(String label) {
-    return 'Clear $label';
-  }
-
-  @override
-  String get eventDeleteTitle => 'Delete event';
-
-  @override
-  String eventDeleteConfirm(String title) {
-    return 'Delete “$title”? This can\'t be undone.';
-  }
-
-  @override
-  String get eventDeleteFailed =>
-      'Couldn\'t delete the event. Please try again in a moment';
-
-  @override
-  String get eventDeleted => 'Event deleted';
-
-  @override
-  String get eventsEmptyForDay => 'No events on this day';
-
-  @override
-  String get eventAddForDay => 'Add an event on this day';
-
-  @override
-  String get eventTimeUnset => 'Time TBD';
-
-  @override
-  String get scheduleSheetTitle => 'Schedule';
-
-  @override
-  String get eventsLoadFailed => 'Couldn\'t load events';
-
-  @override
   String get coachCardSleepTag => 'Sleep';
 
   @override
@@ -2546,8 +2534,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Calculated from your carb, protein and fat goals';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat · $sugar g sugar';
   }
 
   @override

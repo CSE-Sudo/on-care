@@ -163,14 +163,6 @@ void main() {
     // 아니라 키로 내려와야 화면이 로케일에 맞게 고를 수 있다(#435).
     expect(summary.aiAdviceKey, kDailyCombinedAdviceKey);
     expect(summary.sodiumWarning, isNull);
-    // Two baseline events always fall on today. One of the monthly demo
-    // events can also land on today (5th/12th/22nd/26th), so keep this
-    // assertion stable across the calendar while still checking the baseline.
-    expect(
-      summary.todaySchedule.map((item) => item.title),
-      containsAll(<String>['병원 정기검진', '헬스장 운동']),
-    );
-    expect(summary.todaySchedule.length, inInclusiveRange(2, 3));
   });
 }
 

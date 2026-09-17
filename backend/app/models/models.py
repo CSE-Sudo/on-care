@@ -4,7 +4,7 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 핵심 정렬 사항:
 - 사용자 id 는 문자열(예: 'user-7d4e9a2c5f18')
 - 식단은 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 (고혈압·당뇨 특화)
-- drift 테이블(diet_entries, exercise_sessions, schedule_events, notifications)과 1:1 대응
+- drift 테이블(diet_entries, exercise_sessions, notifications)과 1:1 대응
 
 이번 STEP 1 에서는 테이블 생성만 검증하고, 살은 이후 STEP 에서 채웁니다.
 """
@@ -220,6 +220,9 @@ class DietEntry(Base):
     engine: Mapped[str] = mapped_column(
         String(20), default=""
     )  # 인식 엔진(gemini|yolo)
+    # 사진 분석이 만든 식단평(#1932). 앱이 끼니 카드 아래 한 줄로 보여 준다.
+    # 손으로 적은 끼니와 이 컬럼 이전 기록은 빈 문자열이다.
+    ai_comment: Mapped[str] = mapped_column(Text, default="", server_default="")
     # 재시도 중복 저장 방지용 멱등키(클라 요청당 1회 생성). NULL 허용 → 기존/무키 요청은 제약 밖.
     idempotency_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -428,25 +431,6 @@ class ExerciseSession(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-
-
-class ScheduleEvent(Base):
-    """일정 — drift ScheduleEvents 대응."""
-
-    __tablename__ = "schedule_events"
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
-    date: Mapped[str] = mapped_column(String(10), index=True)
-    time: Mapped[str] = mapped_column(String(10), default="")
-    title: Mapped[str] = mapped_column(String(200))
-    category: Mapped[str] = mapped_column(
-        String(20)
-    )  # hospital|exercise|meal|medication|other
-    emoji: Mapped[str] = mapped_column(String(10), default="")
-    color_hex: Mapped[str] = mapped_column(String(10), default="#E0F2F7")
 
 
 class Notification(Base):
@@ -1755,6 +1739,15 @@ class AiMessage(Base):
     role: Mapped[str] = mapped_column(String(10))  # user|coach
     content: Mapped[str] = mapped_column(Text)
     sources_json: Mapped[str] = mapped_column(Text, default="[]")
+    #: 이 줄에서 찾은 통증·부정적 반응을 회원이 기록에서 치웠는가. (#1975)
+    #:
+    #: 감지는 저장하지 않고 대화에서 매번 계산하므로(`coach/insights.py`), 지울
+    #: 대상이 따로 없다. 대신 **그 감지를 더 보지 않겠다**는 표시를 메시지에
+    #: 남긴다 — 메시지 자체는 지우지 않는다. 회원이 쓴 말은 대화에 그대로 남고,
+    #: 규칙이 바뀌어 다른 감지가 나와도 이 표시는 그 줄 전체에 걸린다.
+    insight_dismissed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

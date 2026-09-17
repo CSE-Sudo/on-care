@@ -77,6 +77,9 @@ class DietEntryOut(BaseModel):
     # 회원이 올린 끼니 사진의 조회 경로(API base 기준 상대 경로). 사진이 없으면
     # null — 사진 저장(#699) 이전 기록과 인식만 하고 사진을 못 남긴 기록이 있다.
     photo_url: str | None = None
+    # 사진 분석이 만든 식단평(#1932). 손으로 적은 끼니와 컬럼 이전 기록은 빈
+    # 문자열이다 — 앱은 비어 있으면 그 줄을 그리지 않는다.
+    ai_comment: str = ""
 
 
 class DietEntryUpdate(PartialUpdate):
@@ -129,6 +132,35 @@ class DietEntryUpdate(PartialUpdate):
         return parsed.isoformat()
 
 
+class FoodNutritionRequest(BaseModel):
+    """이름으로 공공 영양 DB 를 찾는 요청. (#1896)
+
+    `amount_g` 를 주면 그 양으로 환산하고, 안 주면 DB 가 아는 1회 섭취량을 쓴다.
+    둘 다 없으면 찾은 셈 치지 않는다 — 확정할 수 없는 숫자를 "공공 DB 근거" 로
+    내주지 않는 것이 보정(`nutrition/enrich`)과 같은 원칙이다.
+    """
+    name: str
+    amount_g: float | None = Field(None, gt=0, allow_inf_nan=False)
+
+
+class FoodNutritionOut(BaseModel):
+    """그 이름으로 찾은 영양 한 벌. 못 찾았으면 `matched_name` 이 null 이다.
+
+    `matched_name` 은 회원이 적은 말이 아니라 **DB 의 대표 이름**이다. 매칭이
+    포함 관계로도 붙기 때문에(`match_in_rows`) 무엇에 붙었는지 화면이 보여 줄
+    수 있어야 한다 — 운동이 `matched_name` 을 그렇게 쓴다(#1312).
+    """
+    matched_name: str | None = None
+    source: str = "estimate"
+    amount_g: float | None = None
+    calories: int | None = None
+    carbs_g: float | None = None
+    protein_g: float | None = None
+    fat_g: float | None = None
+    sodium_mg: int | None = None
+    sugar_g: float | None = None
+
+
 class DietAdviceResponse(BaseModel):
     """기간에 맞는 식단 조언. (#1017)
 
@@ -156,6 +188,11 @@ class DietAnalyzeResponse(BaseModel):
     """POST /diet/analyze 응답: 저장된 entry id + 분석 결과 (+ 사진 경로)."""
     entry_id: str
     analysis: DietAnalysis
+    # 저장된 기록의 시각(`HH:MM`). `entries[]` 가 내려주는 것과 같은 값이며,
+    # 저장한 시계 스냅샷에서 뽑은 서버 값이다(`save_analyzed_entry`). 앱이 제
+    # 시계로 다시 계산하면 끼니 카드가 보여 주는 시각과 어긋날 수 있어 여기서
+    # 내려준다(#1897).
+    time_label: str = ""
     # 방금 올린 사진의 조회 경로. 저장하지 못했으면 null 이며, 그때도 끼니 기록
     # 자체는 저장된다(사진은 기록의 부속이지 조건이 아니다).
     photo_url: str | None = None

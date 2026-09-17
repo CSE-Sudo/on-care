@@ -69,10 +69,23 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeDashboardEmpty => '아직 오늘 기록이 없어요. 식단이나 운동을 기록해 보세요.';
 
   @override
-  String get homeScheduleEmpty => '오늘 예정된 일정이 없어요.';
+  String get homeAiAdviceTitle => '오늘의 AI 통합 조언';
 
   @override
-  String get homeAiAdviceTitle => '오늘의 AI 통합 조언';
+  String get homeAdviceSodiumOver => '오늘 나트륨이 권장량을 넘었어요. 남은 끼니는 담백하게 드셔 보세요.';
+
+  @override
+  String homeAdviceExerciseOnTrack(int minutes) {
+    return '이번 주 $minutes분 운동했어요. 목표 달성 중이에요!';
+  }
+
+  @override
+  String homeAdviceExerciseMore(int minutes) {
+    return '이번 주 $minutes분 운동했어요. 조금만 더 힘내요!';
+  }
+
+  @override
+  String get homeAdviceExerciseStart => '이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요.';
 
   @override
   String get homeAiAdviceBody =>
@@ -185,14 +198,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get homeViewAll => '전체 보기';
 
   @override
-  String homeScheduleDate(String weekday, int month, int day) {
-    return '$month월 $day일 $weekday요일';
-  }
-
-  @override
-  String get homeScheduleTitle => '오늘의 일정';
-
-  @override
   String get unitKcal => 'kcal';
 
   @override
@@ -248,6 +253,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietNutritionSummary => '영양 요약';
+
+  @override
+  String get dietAmount => '내용량';
 
   @override
   String get dietCalories => '칼로리';
@@ -328,6 +336,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String dietMealSheetTitle(String meal) {
     return '$meal 식단';
   }
+
+  @override
+  String dietFoodDbMatch(String name) {
+    return '공공 DB · $name';
+  }
+
+  @override
+  String get dietFillFromDb => '값 채우기';
 
   @override
   String get dietAddSheetTitle => '식단 추가';
@@ -503,7 +519,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddFood => '음식 추가';
 
   @override
-  String get dietEditFoodHint => '음식명과 칼로리를 수정할 수 있어요';
+  String get dietEditFoodHint => '내용량을 고치면 영양이 비례해 따라와요';
 
   @override
   String get dietTotalCalories => '총 칼로리';
@@ -655,6 +671,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exRest => '휴식';
+
+  @override
+  String exRestSeconds(int seconds) {
+    return '휴식 $seconds초';
+  }
 
   @override
   String get exAiRecommendedExercise => 'AI 추천 운동';
@@ -1086,10 +1107,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => '트레이너가 보낸 사진';
+
+  @override
+  String get a11yMealPhoto => '끼니 사진';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return '$name 사진';
+  }
+
+  @override
   String get myLogout => '로그아웃';
 
   @override
   String get myLogoutConfirm => '로그아웃 하시겠어요?';
+
+  @override
+  String get myWithdrawTitle => '회원 탈퇴';
+
+  @override
+  String get myWithdrawConfirm =>
+      '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화도 사라집니다. 되돌릴 수 없어요.';
+
+  @override
+  String get myWithdrawAction => '탈퇴하기';
+
+  @override
+  String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get myCancel => '취소';
@@ -1283,6 +1328,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachChatBack => '뒤로가기';
+
+  @override
+  String get coachChatLoadOlder => '이전 메시지 더 보기';
 
   @override
   String get coachChatLoadFailed => '대화를 불러오지 못했어요';
@@ -1602,6 +1650,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightNegative => '부정적 반응 감지';
 
   @override
+  String get aicInsightDelete => '삭제';
+
+  @override
+  String get aicInsightDeleteConfirm => '이 감지를 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
+
+  @override
+  String get aicInsightDeleteFailed => '지우지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
   String get aicInsightHistoryTitle => '감지 기록';
 
   @override
@@ -1609,7 +1666,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
+    return '최근 $days일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요';
   }
 
   @override
@@ -1877,6 +1934,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySupportExternalHint => '카카오톡 채널로 연결돼요';
 
   @override
+  String get authRestoring => '로그인 정보를 불러오는 중이에요';
+
+  @override
+  String get authRestoreFailed => '연결이 불안정해 로그인 정보를 불러오지 못했어요.';
+
+  @override
+  String get authRestoreRetry => '다시 시도';
+
+  @override
+  String get authRestoreSignIn => '로그인 화면으로';
+
+  @override
   String get authTagline => '식단·운동 관리 앱';
 
   @override
@@ -1994,6 +2063,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => '새 코드 받기';
+
+  @override
+  String get signUpCreatedSignInNeeded => '계정이 만들어졌어요. 로그인해 주세요';
 
   @override
   String get signUpEmailTaken => '이미 가입된 이메일이에요. 로그인해 주세요.';
@@ -2281,97 +2353,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get actionConfirm => '확인';
 
   @override
-  String get scheduleCategoryHospital => '병원';
-
-  @override
-  String get scheduleCategoryExercise => '운동';
-
-  @override
-  String get scheduleCategoryMeal => '식사';
-
-  @override
-  String get scheduleCategoryMedication => '약 복용';
-
-  @override
-  String get scheduleCategoryOther => '기타';
-
-  @override
-  String get eventAddTitle => '일정 추가';
-
-  @override
-  String get eventEditTitle => '일정 수정';
-
-  @override
-  String get eventTitleLabel => '일정 제목';
-
-  @override
-  String get eventTitleHint => '예: 병원 정기검진';
-
-  @override
-  String get eventDateLabel => '날짜';
-
-  @override
-  String get eventTimeLabel => '시간';
-
-  @override
-  String get eventTimeNone => '시간 없음';
-
-  @override
-  String get eventTitleRequired => '일정 제목을 입력해 주세요';
-
-  @override
-  String get eventAddFailed => '일정 추가에 실패했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get eventEditFailed => '일정 수정에 실패했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get eventSaving => '저장 중...';
-
-  @override
-  String get eventAdding => '추가 중...';
-
-  @override
-  String get eventSave => '저장하기';
-
-  @override
-  String get eventAdd => '추가하기';
-
-  @override
-  String eventClearField(String label) {
-    return '$label 지우기';
-  }
-
-  @override
-  String get eventDeleteTitle => '일정 삭제';
-
-  @override
-  String eventDeleteConfirm(String title) {
-    return '‘$title’ 일정을 삭제할까요? 되돌릴 수 없어요.';
-  }
-
-  @override
-  String get eventDeleteFailed => '일정 삭제에 실패했어요. 잠시 후 다시 시도해 주세요';
-
-  @override
-  String get eventDeleted => '일정을 삭제했어요';
-
-  @override
-  String get eventsEmptyForDay => '이 날에는 일정이 없어요';
-
-  @override
-  String get eventAddForDay => '이 날에 일정 추가';
-
-  @override
-  String get eventTimeUnset => '시간 미정';
-
-  @override
-  String get scheduleSheetTitle => '일정 관리';
-
-  @override
-  String get eventsLoadFailed => '일정을 불러오지 못했어요';
-
-  @override
   String get coachCardSleepTag => '수면';
 
   @override
@@ -2471,8 +2452,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalCaloriesFromMacros => '탄·단·지 목표로 계산한 값이에요';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g · 당류 ${sugar}g';
   }
 
   @override

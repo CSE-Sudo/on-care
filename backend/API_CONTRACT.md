@@ -58,7 +58,9 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/dashboard/summary` | `{ indicators[], diet_entries(int), exercise_minutes, today_schedule[], week_score, week_score_delta, sodium_warning(nullable), exercise_feedback }` |
+| GET | `/dashboard/summary` | `{ indicators[], diet_entries(int), exercise_minutes, week_score, week_score_delta, sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable) }` |
+
+`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 음식 이름이 들어간 나트륨 경고처럼 번역할 수 없는 문장에는 키를 주지 않는다.
 
 `indicators[]`: `{ label, current(float), max(int), unit, over_budget?(bool) }` — 칼로리/나트륨/당류 3종.
 `current` 는 당류가 소수(17.8g)라 float. 칼로리·나트륨은 정수 값이 그대로 실린다. 목표치(`max`)는 셋 다 정수.
@@ -68,17 +70,27 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
-| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 
-`entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float) }`
+`entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
+`ai_comment` 는 사진 분석이 만든 식단평이다(#1932). 손으로 고쳐 만든 끼니와 분석이 식단평을 내지 못한 끼니는 빈 문자열이고, 앱은 비어 있으면 그 줄을 그리지 않는다.
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
-`foods[]`: `[{ name, calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+`foods[]`: `[{ name, amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+
+`amount_g` 는 **그 영양이 무엇을 재고 나온 값인가** 다. 공공 DB 는 100g 기준이라 보정이 이 양으로 환산하며, 환산에 실제로 쓴 값(인식기 추정 또는 알려진 1회 섭취량)이 그대로 실린다. 양을 못 얻어 추정치를 그대로 둔 음식과 이 필드 이전 기록은 `null` 이다 — 읽는 쪽이 null 을 견뎌야 한다. 앱은 이 값으로 나머지 여섯 값을 비례 환산한다(#1876).
 
 **`PUT` 에 `foods` 를 실으면 그 끼니의 음식 목록이 통째로 갈리고, 끼니 합계(`total_calories`·`carbs_g`·`protein_g`·`fat_g`·`sodium_mg`·`sugar_g`)도 그 목록에서 다시 계산된다** — 같은 요청에 합계를 함께 보내도 음식 쪽이 이긴다. 원본을 하나로 두지 않으면 음식을 고칠 때마다 합계와 내역이 갈린다. `foods` 를 보내지 않으면 음식 목록은 그대로고 보낸 합계만 바뀐다. 빈 배열(`[]`)은 422 다 — 음식이 하나도 없는 끼니는 수정이 아니라 삭제다.
 
-당류가 그 끼니의 탄수화물보다 크면 422 다(#1863). 탄수화물이 0 이면 견주지 않는다 — 컬럼이 `NOT NULL` 기본 0 이라 "없다" 와 "아직 안 적혔다" 를 구분할 수 없고, 후자인 옛 기록을 막으면 고칠 길이 사라진다(#1877).
+당류가 탄수화물보다 크면 422 다(#1863). 당류는 탄수화물의 일부라 그보다 클 수 없고, 같은 값(전부 당인 음식)은 통과한다. **`foods` 를 보내면 음식 하나하나를 견준다**(#1893) — 합계로만 보면 탄수화물이 넉넉한 다른 음식이 어긋난 음식을 가려 준다. 응답 `detail` 이 몇 번째 음식인지 말해 준다. `foods` 없이 합계만 보내면 저장된 값과 합친 결과로 견준다.
+
+탄수화물 0 을 어떻게 볼지는 **그 0 이 어디서 왔는지**가 정한다. 컬럼이 `NOT NULL` 기본 0 이라 "탄수화물이 없다" 와 "아직 안 적혔다" 가 같은 0 으로 보이기 때문이다.
+
+- 저장된 끼니의 `carbs_g` 가 0 이고 이번 요청이 탄수화물을 **보내지 않았다면** 견주지 않는다 — 인식기가 그 값을 못 준 옛 기록이고, 여기서 막으면 그 기록의 당류를 영영 고칠 수 없다(#1877).
+- 탄수화물을 **실어 보냈다면** 그 값이 0 이어도 회원이 적은 값으로 보고 견준다. 탄수화물을 지워 검사를 피할 수 없다(#1893). 그래서 합계를 0 으로 초기화할 때는 `sugar_g` 도 함께 0 으로 보내야 한다.
+
+회원 앱도 수정 모드를 열었을 때의 값으로 **같은 판단**을 해서, 저장을 누르기 전에 그 음식의 당류 칸 아래에 이유를 보인다(#1869). 앱이 서버보다 엄격하지도, 느슨하지도 않다.
 `macros`: `{ carbs_pct, protein_pct, fat_pct }`
 `idempotency_key`(선택): 재시도 중복 저장 방지. 클라 요청당 1회 생성해 재시도 시 재사용하면, 서버는 (user_id, key) 유니크 제약으로 같은 키의 재요청에 대해 **인식·저장을 건너뛰고 기존 entry 를 반환**한다(중복 기록·RAG 재적재 없음).
 
@@ -191,8 +203,12 @@ category: reminder|health_check|achievement|system
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` |
+| GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
+| DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
 
 tag: diet|exercise|hydration|...
+
+`DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
 
 ### 바이탈 (체중/혈압/혈당) — 제거됨
 

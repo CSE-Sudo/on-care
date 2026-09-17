@@ -42,6 +42,9 @@ class CoachRoutine {
     this.sessionOrder = 0,
     this.exercises = const <CoachRoutineExercise>[],
     this.pointsAward,
+    this.sets,
+    this.reps,
+    this.weight,
   });
 
   final String id;
@@ -74,6 +77,17 @@ class CoachRoutine {
   /// 이 세션에 담긴 운동 구성. 예전에는 이름만 [reason] 에 이어 붙어 왔다.
   final List<CoachRoutineExercise> exercises;
 
+  /// 근력 루틴의 세트 수·한 세트당 횟수·중량(kg). 다른 유형은 null 이다.
+  /// (#1276, #1310)
+  ///
+  /// 서버(`RoutineOut`)와 데모 픽스처가 진작부터 이 셋을 내려보내고 있었는데
+  /// 엔티티에 받을 칸이 없어 화면 직전에 버려졌다. 그래서 근력 루틴이 `근력 ·
+  /// 10분` 으로만 보였다 — 운동 현황 링·주간 목표는 같은 루틴을 세트로 세는데
+  /// 목록만 분으로 적어, 같은 기록이 화면마다 다른 수가 됐다(#1262, #1901).
+  final int? sets;
+  final int? reps;
+  final double? weight;
+
   /// 이 루틴이 여러 세션짜리 프로그램의 한 세션인가.
   bool get isProgramSession => sessionName.isNotEmpty;
 
@@ -105,6 +119,10 @@ class CoachRoutine {
     sessionName: sessionName,
     sessionOrder: sessionOrder,
     exercises: exercises,
+    // 세트·횟수·중량은 트레이너가 정한 배정 값이라 완료 표시에 흔들리지 않는다.
+    sets: sets,
+    reps: reps,
+    weight: weight,
     // 적립은 그 응답 한 번의 일이라 복사본에 따라가지 않는다 — 넘길 때만 싣는다.
     pointsAward: pointsAward,
   );
@@ -265,6 +283,9 @@ class CoachAttachment {
 ///
 /// 세트·횟수·중량은 문자열이다. 트레이너가 "10회"·"자체중량" 처럼 적을 수 있고,
 /// 숫자로 바꾸면 그 표현이 사라진다(#709).
+///
+/// 한 줄 요약은 `coachRoutineExerciseDetail` 이 만든다 — 세트·분·초의 단위는
+/// 로케일을 타는데 엔티티는 `AppLocalizations` 에 닿을 수 없다(#1933).
 class CoachRoutineExercise {
   const CoachRoutineExercise({
     required this.name,
@@ -283,19 +304,6 @@ class CoachRoutineExercise {
   final String duration;
   final String rest;
   final String memo;
-
-  /// "4세트 × 12회 · 60kg" 처럼 한 줄로 읽히는 요약. 비어 있는 값은 건너뛴다.
-  String get detail => <String>[
-    if (sets.isNotEmpty && reps.isNotEmpty)
-      '$sets세트 × $reps'
-    else if (sets.isNotEmpty)
-      '$sets세트'
-    else if (reps.isNotEmpty)
-      reps,
-    if (duration.isNotEmpty) '$duration분',
-    if (weight.isNotEmpty && weight != '-') weight,
-    if (rest.isNotEmpty) '휴식 $rest초',
-  ].join(' · ');
 }
 
 /// 트레이너가 나에게 보낸 담당 요청. (#919)

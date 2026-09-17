@@ -7,7 +7,6 @@ enum AlertCategory { reminder, healthCheck, achievement, system }
 /// 사라지거나 엉뚱한 화면으로 보내는 것보다 낫다.
 enum AlertTarget {
   dashboard,
-  schedule,
   coachChat,
   exercise,
   diet,

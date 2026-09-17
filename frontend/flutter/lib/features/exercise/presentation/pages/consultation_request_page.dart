@@ -552,12 +552,18 @@ class _DataSharingNotice extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Checkbox(
-                  value: consented,
-                  onChanged: (bool? next) => onChanged(next ?? false),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  activeColor: tokens.brand.primary,
+                // 넘어가는 것이 회원의 건강 기록이라, 무엇에 동의하는지 이름
+                // 없이 `checkbox, not checked` 만 들려서는 안 된다(#1942).
+                Semantics(
+                  checked: consented,
+                  label: l.exConsultDataSharingAgree,
+                  child: Checkbox(
+                    value: consented,
+                    onChanged: (bool? next) => onChanged(next ?? false),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    activeColor: tokens.brand.primary,
+                  ),
                 ),
                 const SizedBox(width: OnCareSpacing.s4),
                 Expanded(

@@ -97,8 +97,9 @@ void main() {
     expect(find.byType(MemberBottomNav), findsOneWidget);
     expect(find.text(ko.homeAiAdviceTitle), findsWidgets);
     // 값만 예시다 — 가입 직후의 빈 홈이 아니라 기록이 쌓인 모습이라야 짚을 것이
-    // 실제로 보인다(예시 칼로리 1,480kcal).
-    expect(find.text('1,480'), findsWidgets);
+    // 실제로 보인다. 홈 지표 칸이 탄단지로 바뀐 뒤로(#1879) 그 자리에 뜨는 것은
+    // 예시 탄수화물 192g 이다.
+    expect(find.text('192'), findsWidgets);
     // 하단 내비도 같이 그려져 있어야 탭을 짚을 수 있다.
     expect(find.text(ko.navMyHealth), findsOneWidget);
     // 내 기록이 아니라 예시라는 것을 화면에서 밝힌다.

@@ -4,12 +4,15 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/points/points_rules.dart';
+import 'package:oncare/core/storage/prefs_store.dart';
+import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connected_gym_card.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
@@ -68,6 +71,47 @@ class MyHealthPage extends ConsumerWidget {
     if (context.mounted) context.go(AppRoutes.signIn);
   }
 
+  /// 회원 탈퇴. (#1935)
+  ///
+  /// 계정을 지우는 길이 화면에 없어 떠나려는 회원은 로그아웃밖에 못 했고,
+  /// 계정과 건강 기록은 그대로 남았다 — 계정 기반 앱의 앱스토어 심사 요건이기도
+  /// 하다. 서버·저장소는 이미 준비돼 있었고 부르는 곳만 없었다.
+  ///
+  /// 확인창에서 **무엇이 사라지는지**를 말한다. "탈퇴하시겠어요?" 만으로는
+  /// 식단·운동 기록과 트레이너와 주고받은 대화까지 함께 지워진다는 것을 알 수
+  /// 없고, 되돌릴 방법이 없는 동작이다.
+  Future<void> _confirmWithdraw(BuildContext context, WidgetRef ref) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AppToastHost toast = AppToastHost.of(context);
+    // 세션을 비우면 이 화면은 그 자리에서 사라진다 — 옮길 곳을 먼저 붙들어 둔다.
+    final GoRouter? router = GoRouter.maybeOf(context);
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.myWithdrawTitle,
+      message: l.myWithdrawConfirm,
+      confirmLabel: l.myWithdrawAction,
+      cancelLabel: l.myCancel,
+      destructive: true,
+    );
+    if (!ok) return;
+    try {
+      await ref.read(accountRepositoryProvider).deleteAccount();
+    } on Object {
+      toast.show(l.myWithdrawFailed, type: AppToastType.error);
+      return;
+    }
+    // 계정이 사라졌으니 계정에 매인 기기 기록도 남기지 않는다. 언어 설정은
+    // 기기의 것이라 그대로 둔다.
+    try {
+      await ref.read(appPrefsProvider).clearAccountScoped();
+    } on Object {
+      // 기록을 못 지워도 탈퇴 자체는 끝났다 — 로그인 화면으로는 나가야 한다.
+    }
+    // 토큰·기기 저장값·기능 상태를 비우는 일은 로그아웃과 같다.
+    await ref.read(sessionControllerProvider.notifier).signOut();
+    router?.go(AppRoutes.signIn);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -103,6 +147,7 @@ class MyHealthPage extends ConsumerWidget {
           child: _Settings(
             onTap: (_MySetting id) => _openSetting(context, ref, id),
             onLogout: () => _confirmLogout(context, ref),
+            onWithdraw: () => _confirmWithdraw(context, ref),
           ),
         ),
       ],
@@ -229,18 +274,27 @@ class _ProfileCard extends StatelessWidget {
 /// 데이터 공유 동의라서다 — 스스로 누른 것이어야 한다.
 ///
 /// 앞머리 아이콘은 두지 않는다 — 제목이 프로필 이름과 같은 왼쪽 선에서 시작한다(#1785).
-class _TrainerSyncRow extends StatelessWidget {
+class _TrainerSyncRow extends ConsumerWidget {
   const _TrainerSyncRow();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
     return Semantics(
       button: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => showTrainerSyncSheet(context),
+        onTap: () async {
+          await showTrainerSyncSheet(context);
+          // 시트를 여는 동안 트레이너가 코드를 쓰면 서버에는 담당·헬스장 연결이
+          // 생긴다. 셋 다 폴링 없는 provider 라 다시 읽지 않으면, 벨 알림은
+          // 연결됐다고 하는데 바로 아래 섹션은 `없음` 으로 남는다(#1931).
+          ref
+            ..invalidate(myGymProvider)
+            ..invalidate(myTrainerProvider)
+            ..invalidate(memberCoachProvider);
+        },
         child: Row(
           children: <Widget>[
             Expanded(
@@ -703,9 +757,16 @@ class _SettingItem {
 }
 
 class _Settings extends StatelessWidget {
-  const _Settings({required this.onTap, required this.onLogout});
+  const _Settings({
+    required this.onTap,
+    required this.onLogout,
+    required this.onWithdraw,
+  });
   final ValueChanged<_MySetting> onTap;
   final VoidCallback onLogout;
+
+  /// 회원 탈퇴 — 로그아웃 아래, 목록의 맨 끝이다(#1935).
+  final VoidCallback onWithdraw;
 
   static const List<_SettingItem> _items = <_SettingItem>[
     _SettingItem(AppIcons.person, _MySetting.profile),
@@ -768,6 +829,18 @@ class _Settings extends StatelessWidget {
                   size: OnCareButtonSize.large,
                   fullWidth: true,
                   onPressed: onLogout,
+                ),
+              ),
+              // 탈퇴는 로그아웃보다 한 단계 아래다 — 같은 빨간 버튼 둘을 나란히
+              // 두면 어느 쪽이 되돌릴 수 없는 동작인지 흐려진다. 자리는 목록의
+              // 맨 끝으로 두되 찾을 수 없게 숨기지는 않는다(#1935).
+              Center(
+                child: AppButton(
+                  key: const ValueKey<String>('my-withdraw-button'),
+                  label: l.myWithdrawTitle,
+                  variant: AppButtonVariant.text,
+                  size: OnCareButtonSize.small,
+                  onPressed: onWithdraw,
                 ),
               ),
             ],
