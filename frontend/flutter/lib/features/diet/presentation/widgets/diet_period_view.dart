@@ -169,21 +169,29 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
         // 지표 칩 줄이 있던 자리다. 칩이 `칼로리` 하나만 남아 줄째로 걷어냈고
         // (#1986) 그 줄에 함께 있던 날짜 기간만 남는다 — 그래프를 밀면 이 줄도
         // 따라 바뀐다 ([_shownRange], #1985).
-        ListenableBuilder(
-          listenable: _selection,
-          builder: (BuildContext context, Widget? _) {
-            final DietDateRange shown = _shownRange();
-            return Text(
-              key: const Key('diet-period-range'),
-              l.dietPeriodRange(fmt.format(shown.from), fmt.format(shown.to)),
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: tokens
-                  .text(OnCareTypography.caption)
-                  .copyWith(color: OnCareColors.textSecondary),
-            );
-          },
+        //
+        // 폭을 끝까지 늘려 둔다. 칩과 한 줄을 쓰던 시절에는 `Expanded` 가 남는
+        // 자리를 줘서 오른쪽에 붙었는데, 칩이 빠지며 그 `Expanded` 도 함께
+        // 사라져 글자 폭만큼만 차지하고 왼쪽으로 갔다 — `textAlign` 은 제 폭
+        // 안에서만 도는 규칙이라 그것만으로는 오른쪽에 붙지 않는다.
+        SizedBox(
+          width: double.infinity,
+          child: ListenableBuilder(
+            listenable: _selection,
+            builder: (BuildContext context, Widget? _) {
+              final DietDateRange shown = _shownRange();
+              return Text(
+                key: const Key('diet-period-range'),
+                l.dietPeriodRange(fmt.format(shown.from), fmt.format(shown.to)),
+                textAlign: TextAlign.right,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: tokens
+                    .text(OnCareTypography.caption)
+                    .copyWith(color: OnCareColors.textSecondary),
+              );
+            },
+          ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         async.when(
