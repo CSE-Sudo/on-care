@@ -76,17 +76,22 @@ def _nutrition_week(
     rows = db.scalars(
         select(DietEntry).where(DietEntry.user_id == uid).where(DietEntry.date.in_(dates))
     ).all()
-    acc: dict[str, list[float]] = {d: [0, 0, 0] for d in dates}  # [cal, na, sugar]
+    # [cal, na, sugar, carbs, protein, fat]
+    acc: dict[str, list[float]] = {d: [0, 0, 0, 0, 0, 0] for d in dates}
     for r in rows:
         a = acc.get(r.date)
         if a is not None:
             a[0] += r.total_calories
             a[1] += r.sodium_mg
             a[2] += r.sugar_g
+            a[3] += r.carbs_g
+            a[4] += r.protein_g
+            a[5] += r.fat_g
     return [
         DashboardNutritionDay(
             date=d, label=_DAY_LABELS[i],
             calories=acc[d][0], sodium_mg=acc[d][1], sugar_g=acc[d][2],
+            carbs_g=acc[d][3], protein_g=acc[d][4], fat_g=acc[d][5],
         )
         for i, d in enumerate(dates)
     ]

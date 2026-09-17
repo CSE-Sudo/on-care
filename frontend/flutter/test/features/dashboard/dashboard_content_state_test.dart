@@ -50,13 +50,69 @@ void main() {
     exerciseCalories: 520,
     exerciseCount: 4,
     nutritionWeek: <NutritionDay>[
-      NutritionDay(label: '월', calories: 1100, sodiumMg: 110, sugarG: 11),
-      NutritionDay(label: '화', calories: 1200, sodiumMg: 120, sugarG: 12),
-      NutritionDay(label: '수', calories: 1300, sodiumMg: 130, sugarG: 13),
-      NutritionDay(label: '목', calories: 1400, sodiumMg: 140, sugarG: 14),
-      NutritionDay(label: '금', calories: 1500, sodiumMg: 150, sugarG: 15),
-      NutritionDay(label: '토', calories: 1600, sodiumMg: 160, sugarG: 16),
-      NutritionDay(label: '일', calories: 1700, sodiumMg: 170, sugarG: 17),
+      NutritionDay(
+        label: '월',
+        calories: 1100,
+        sodiumMg: 110,
+        sugarG: 11,
+        carbsG: 110,
+        proteinG: 51,
+        fatG: 31,
+      ),
+      NutritionDay(
+        label: '화',
+        calories: 1200,
+        sodiumMg: 120,
+        sugarG: 12,
+        carbsG: 120,
+        proteinG: 52,
+        fatG: 32,
+      ),
+      NutritionDay(
+        label: '수',
+        calories: 1300,
+        sodiumMg: 130,
+        sugarG: 13,
+        carbsG: 130,
+        proteinG: 53,
+        fatG: 33,
+      ),
+      NutritionDay(
+        label: '목',
+        calories: 1400,
+        sodiumMg: 140,
+        sugarG: 14,
+        carbsG: 140,
+        proteinG: 54,
+        fatG: 34,
+      ),
+      NutritionDay(
+        label: '금',
+        calories: 1500,
+        sodiumMg: 150,
+        sugarG: 15,
+        carbsG: 150,
+        proteinG: 55,
+        fatG: 35,
+      ),
+      NutritionDay(
+        label: '토',
+        calories: 1600,
+        sodiumMg: 160,
+        sugarG: 16,
+        carbsG: 160,
+        proteinG: 56,
+        fatG: 36,
+      ),
+      NutritionDay(
+        label: '일',
+        calories: 1700,
+        sodiumMg: 170,
+        sugarG: 17,
+        carbsG: 170,
+        proteinG: 57,
+        fatG: 37,
+      ),
     ],
     weekScore: 85,
     weekScoreDelta: 12,
@@ -176,6 +232,7 @@ void main() {
     final MetricTrendPainter trendPainter =
         trendPaint.painter! as MetricTrendPainter;
 
+    // 그래프는 칼로리 하나다 (#1879).
     expect(trendPainter.cur, <double>[
       1100,
       1200,
@@ -275,9 +332,13 @@ void main() {
     expect(find.text('아직 오늘 기록이 없어요. 식단이나 운동을 기록해 보세요.'), findsOneWidget);
     // 오늘의 일정 카드는 화면에서 내려 뒀다 (#1055) — 빈 상태 문구도 함께 없다.
     expect(find.text('오늘 예정된 일정이 없어요.'), findsNothing);
-    // 탄단지는 홈 식단 카드에서 뺐다 (#1117) — 식단 탭이 말한다.
+    // 지표 칸은 기록이 없어도 남는다 — 오늘 0g 이라는 것도 하나의 사실이고,
+    // 칸이 사라지면 기록을 시작할 자리까지 함께 사라진다. 대신 목표는 있어야
+    // 0 이 무엇에 견준 0 인지가 읽힌다 (#1879).
+    expect(find.text('탄수화물'), findsOneWidget);
+    expect(find.text('/275g'), findsOneWidget);
+    // 수치와 단위를 한 글자 덩어리로 붙이지 않는다.
     expect(find.text('0g'), findsNothing);
-    expect(find.text('탄수화물'), findsNothing);
     expect(
       find.byKey(const ValueKey<String>('dashboard-nutrition-chart')),
       findsNothing,
@@ -291,7 +352,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('지표 카드는 소수 수치를 반올림하지 않는다 (당류 17.8)', (WidgetTester tester) async {
+  testWidgets('지표 카드는 소수 수치를 반올림하지 않는다 (탄수화물 217.8)', (
+    WidgetTester tester,
+  ) async {
     await pumpDashboard(
       tester,
       load: () async => const DashboardSummary(
@@ -301,7 +364,7 @@ void main() {
           HealthIndicator(label: '당류', current: 17.8, max: 50, unit: 'g'),
         ],
         macros: DietMacros(
-          carbsG: 120,
+          carbsG: 217.8,
           proteinG: 45,
           fatG: 45,
           carbsPct: 45,
@@ -317,12 +380,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 식단 탭·그래프 라벨과 같은 표기(17.8)여야 한다 — 18 로 반올림되면 회귀.
-    expect(find.text('17.8'), findsOneWidget);
-    expect(find.text('18'), findsNothing);
-    // 정수 수치는 천단위 콤마 표기를 유지한다.
-    expect(find.text('1,067'), findsOneWidget);
-    expect(find.text('3,428'), findsOneWidget);
+    // 식단 탭·그래프 라벨과 같은 표기(217.8)여야 한다 — 218 로 반올림되면 회귀.
+    expect(find.text('217.8'), findsOneWidget);
+    expect(find.text('218'), findsNothing);
+    // 정수로 떨어지는 수치는 소수점을 달지 않는다.
+    expect(find.text('45'), findsWidgets);
+    expect(find.text('45.0'), findsNothing);
   });
 
   testWidgets('지표 카드 단위는 라벨이 아니라 목표치 오른쪽에 붙는다', (WidgetTester tester) async {
@@ -333,47 +396,37 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // "칼로리" - "1,860" - "/2,000kcal" 순으로 읽혀야 한다.
-    expect(find.text('/2,000kcal'), findsOneWidget);
-    expect(find.text('/2,000mg'), findsOneWidget);
-    expect(find.text('/50g'), findsOneWidget);
+    // "탄수화물" - "203.6" - "/275g" 순으로 읽혀야 한다.
+    expect(find.text('/275g'), findsOneWidget);
+    expect(find.text('/100g'), findsOneWidget);
+    expect(find.text('/55g'), findsOneWidget);
 
     // 라벨에는 단위를 달지 않는다 — 좁은 카드에서 라벨이 먼저 축소되던 문제.
-    expect(find.text('칼로리'), findsOneWidget);
-    expect(find.text('칼로리 (kcal)'), findsNothing);
-    expect(find.text('나트륨 (mg)'), findsNothing);
-    expect(find.text('당류 (g)'), findsNothing);
+    expect(find.text('탄수화물'), findsOneWidget);
+    expect(find.text('탄수화물 (g)'), findsNothing);
+    expect(find.text('단백질 (g)'), findsNothing);
+    expect(find.text('지방 (g)'), findsNothing);
 
     // 단위 없는 예전 목표치 표기가 남아 있으면 회귀.
-    expect(find.text('/2,000'), findsNothing);
-    expect(find.text('/50'), findsNothing);
+    expect(find.text('/275'), findsNothing);
+    expect(find.text('/55'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('목표가 없는 지표(max=0)는 목표치 대신 단위만 남긴다', (WidgetTester tester) async {
     // 단위가 목표치 줄로 옮겨간 뒤로는, 목표치 줄이 통째로 빠지면 큰 숫자가
     // 단위를 잃는다. 그래서 max=0 이면 같은 자리에 단위만 적는다.
+    //
+    // 탄단지 목표는 프로필에서 온다(#1879) — 회원이 지방 목표를 0 으로 둔
+    // 경우가 이 자리다.
     await pumpDashboard(
       tester,
-      load: () async => const DashboardSummary(
-        indicators: <HealthIndicator>[
-          HealthIndicator(label: '칼로리', current: 1860, max: 2000, unit: 'kcal'),
-          HealthIndicator(label: '나트륨', current: 900, max: 2000, unit: 'mg'),
-          HealthIndicator(label: '당류', current: 43, max: 0, unit: 'g'),
-        ],
-        macros: DietMacros(
-          carbsG: 203.6,
-          proteinG: 109.3,
-          fatG: 66.5,
-          carbsPct: 44,
-          proteinPct: 24,
-          fatPct: 32,
-        ),
-        dietEntries: 4,
-        exerciseMinutes: 45,
-        weekScore: 85,
-        weekScoreDelta: 12,
-        sodiumWarning: null,
+      load: () async => liveSummary,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+        dailyFatG: 0,
       ),
       size: const Size(390, 2200),
     );
@@ -382,7 +435,7 @@ void main() {
     expect(find.text('g'), findsOneWidget);
     expect(find.text('/0g'), findsNothing);
     // 목표가 있는 지표는 그대로 "/목표+단위".
-    expect(find.text('/2,000kcal'), findsOneWidget);
+    expect(find.text('/275g'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -441,8 +494,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('식단 · 영양'), findsOneWidget);
-      expect(find.text('1,860'), findsWidgets);
-      // 탄단지는 홈에서 뺐다 (#1117).
+      // 지표 3칸은 탄단지다 (#1879).
+      expect(find.text('203.6'), findsWidgets);
+      // 수치와 단위를 한 글자 덩어리로 붙이지 않는다 — 좁은 카드에서 라벨이
+      // 먼저 줄어들던 문제라, 단위는 목표치 오른쪽에만 둔다.
       expect(find.text('203.6g'), findsNothing);
       expect(find.text('109.3g'), findsNothing);
       expect(find.text('66.5g'), findsNothing);

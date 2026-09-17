@@ -33,12 +33,23 @@ class HealthIndicator {
       );
 }
 
+/// One day of the 식단 카드 weekly-trend chart.
+///
+/// 홈 카드가 그리는 것은 [calories] 하나다(#1879). [sodiumMg] 는 주간 건강
+/// 점수와 코칭 문구가 읽고, [sugarG] 는 응답 계약을 지키느라 남는다.
+///
+/// [carbsG]·[proteinG]·[fatG] 는 서버가 실어 보내지만 **아직 그리는 화면이
+/// 없다** — 홈 지표 3칸은 오늘 합계(`DashboardSummary.macros`)를 쓰고, 주간
+/// 추이는 칼로리로 고정이다. 주간 탄단지 추이를 되살릴 때 바로 쓸 자리다.
 class NutritionDay {
   const NutritionDay({
     required this.label,
     required this.calories,
     required this.sodiumMg,
     required this.sugarG,
+    this.carbsG = 0,
+    this.proteinG = 0,
+    this.fatG = 0,
   });
 
   final String label; // 요일(월/화/…)
@@ -46,11 +57,19 @@ class NutritionDay {
   final int sodiumMg;
   final double sugarG;
 
+  /// 그날의 탄단지(g). 서버가 주지 않던 시절의 응답은 0 으로 떨어진다.
+  final double carbsG;
+  final double proteinG;
+  final double fatG;
+
   factory NutritionDay.fromJson(Map<String, Object?> json) => NutritionDay(
     label: (json['label'] as String?) ?? '',
     calories: (json['calories'] as num?)?.toInt() ?? 0,
     sodiumMg: (json['sodium_mg'] as num?)?.toInt() ?? 0,
     sugarG: (json['sugar_g'] as num?)?.toDouble() ?? 0,
+    carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,
+    proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
+    fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,
   );
 }
 

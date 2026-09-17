@@ -1252,3 +1252,53 @@ def test_diet_advice_says_nothing_when_there_is_nothing(client):
         assert response.status_code == 200, response.text
         assert response.json()["days_logged"] == 0
         assert response.json()["message"]
+
+
+def test_analyze_returns_stored_time_label(client):
+    """분석 응답의 `time_label` 이 저장된 값이고 끼니 목록과 같다(#1897).
+
+    결과 시트가 `날짜 시각 · 끼니` 를 적는데, 앱이 제 시계로 시각을 다시 만들면
+    나중에 끼니 카드가 보여 주는 값과 어긋난다. 서버가 저장한 값을 그대로 내려
+    주는지 본다.
+    """
+    r = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    time_label = body["time_label"]
+    # `HH:MM` 이다 — 끼니 카드가 그대로 그린다.
+    hh, _, mm = time_label.partition(":")
+    assert len(hh) == 2 and hh.isdigit(), time_label
+    assert len(mm) == 2 and mm.isdigit(), time_label
+
+    entry = next(
+        e
+        for e in client.get("/v1/diet/days/today").json()["entries"]
+        if e["id"] == body["entry_id"]
+    )
+    assert entry["time_label"] == time_label
+
+
+def test_analyze_retry_returns_same_time_label(client):
+    """멱등 재시도도 처음 저장한 시각을 그대로 싣는다(#1897).
+
+    재시도가 빈 문자열을 주면 재시도한 사용자만 시각 없는 결과를 보게 된다.
+    """
+    key = f"idem-{uuid4().hex}"
+    first = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch", "idempotency_key": key},
+    )
+    assert first.status_code == 200, first.text
+
+    second = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch", "idempotency_key": key},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["time_label"] == first.json()["time_label"]

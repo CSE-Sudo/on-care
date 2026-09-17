@@ -107,13 +107,17 @@ void main() {
     return <({String text, Rect rect})>[
       for (final Element e in slots.evaluate())
         (
-          text: (find
-                      .descendant(of: find.byWidget(e.widget), matching: find.byType(Text))
-                      .evaluate()
-                      .single
-                      .widget
-                  as Text)
-              .data!,
+          text:
+              (find
+                          .descendant(
+                            of: find.byWidget(e.widget),
+                            matching: find.byType(Text),
+                          )
+                          .evaluate()
+                          .single
+                          .widget
+                      as Text)
+                  .data!,
           rect: tester.getRect(find.byWidget(e.widget)),
         ),
     ]..sort((a, b) => a.rect.top.compareTo(b.rect.top));
@@ -124,37 +128,27 @@ void main() {
 
     // 눈금 라벨(2,500 · 1,500 · 0)이 있던 자리다. 이제 목표 하나뿐이다.
     // 칸 폭(38)을 지키려고 두 줄로 접는다.
-    expect(<String>[for (final label in axisLabels(tester)) label.text], <String>[
-      '목표\n2,000',
-    ]);
+    expect(
+      <String>[for (final label in axisLabels(tester)) label.text],
+      <String>['목표\n2,000'],
+    );
   });
 
-  testWidgets('지표를 바꾸면 목표선 라벨의 수치가 따라간다', (WidgetTester tester) async {
-    await pumpHome(tester);
-
-    for (final (String tab, String goal) in <(String, String)>[
-      ('칼로리', '목표\n2,000'),
-      ('나트륨', '목표\n2,000'),
-      ('당류', '목표\n50'),
-    ]) {
-      await tester.tap(find.text(tab).first);
-      await tester.pumpAndSettle();
-
-      final List<({String text, Rect rect})> labels = axisLabels(tester);
-      expect(labels.length, 1, reason: '$tab 축에 글자가 하나가 아니다');
-      expect(labels.single.text, goal);
-    }
-  });
-
-  test('세 지표 모두 축 바닥이 0 이다 (#548)', () {
+  test('두 지표 모두 축 바닥이 0 이다 (#548)', () {
     // 눈금을 그리지 않게 된 뒤에도 `ticks` 는 스케일 입력으로 남는다. 지우면
-    // 세 지표의 축이 서로 다르게 움직인다.
-    for (final (String name, List<double> values, List<double> ticks, double goal)
+    // 두 지표의 축이 서로 다르게 움직인다. 홈은 칼로리 하나지만, 식단 탭
+    // 이번 주는 여기에 나트륨을 더해 오간다(#1879) — 둘의 눈금이 같은 파일에
+    // 짝으로 적혀 있으니 성질도 함께 지킨다.
+    for (final (
+          String name,
+          List<double> values,
+          List<double> ticks,
+          double goal,
+        )
         in <(String, List<double>, List<double>, double)>[
-      ('칼로리', <double>[1860, 1700, 1990], <double>[0, 1500, 2500], 2000),
-      ('나트륨', <double>[2329, 1800, 2100], <double>[0, 1750, 3500], 2000),
-      ('당류', <double>[43, 31, 47], <double>[0, 25, 50], 50),
-    ]) {
+          ('칼로리', <double>[1860, 1700, 1990], <double>[0, 1500, 2500], 2000),
+          ('나트륨', <double>[2329, 1800, 2100], <double>[0, 1750, 3500], 2000),
+        ]) {
       final (double lo, _) = metricTrendScale(
         values: values,
         ticks: ticks,
