@@ -205,4 +205,38 @@ void main() {
 
     expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 19:00 · 저녁');
   });
+
+  // 21시 이후는 야식이다(#1988). 그전에는 이 자리가 간식이라, 밤늦게 먹은 것과
+  // 낮의 간식이 한 칸에 섞여 코칭에서 갈라 보이지 않았다.
+  testWidgets('21시 이후에 올린 기록은 야식으로 추측한다', (WidgetTester tester) async {
+    useFixedKstDate(DateTime(2026, 8, 20, 22));
+    await _openResultSheet(tester, FakeDietRepository());
+
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 22:00 · 야식');
+  });
+
+  testWidgets('21시 직전은 아직 저녁이다', (WidgetTester tester) async {
+    useFixedKstDate(DateTime(2026, 8, 20, 20, 59));
+    await _openResultSheet(tester, FakeDietRepository());
+
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 20:59 · 저녁');
+  });
+
+  testWidgets('간식은 어느 시각에서도 추측하지 않는다', (WidgetTester tester) async {
+    // 간식은 끼니 사이에 먹는 것이지 특정 시각에 먹는 것이 아니다. 시간대를
+    // 떼어 주면 그 시간의 끼니가 매번 간식으로 찍혀 회원이 고쳐야 한다.
+    for (final int hour in <int>[0, 7, 10, 11, 14, 15, 17, 20, 21, 23]) {
+      // 같은 위젯 종류로 다시 pump 하면 Navigator 가 살아남아 앞 시트가 그대로
+      // 남는다. 빈 트리를 한 번 끼워 라우트까지 걷어낸다.
+      await tester.pumpWidget(const SizedBox.shrink());
+      useFixedKstDate(DateTime(2026, 8, 20, hour));
+      await _openResultSheet(tester, FakeDietRepository());
+
+      expect(
+        _shownDate(tester),
+        isNot(contains('간식')),
+        reason: '$hour 시에 간식으로 추측했다',
+      );
+    }
+  });
 }

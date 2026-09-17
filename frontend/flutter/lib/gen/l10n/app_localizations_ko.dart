@@ -333,6 +333,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietMealSnack => '간식';
 
   @override
+  String get dietMealLateNight => '야식';
+
+  @override
   String dietMealSheetTitle(String meal) {
     return '$meal 식단';
   }

@@ -101,4 +101,42 @@ void main() {
     expect(day.macros.carbsG, 0);
     expect(day.macros.carbsPct, 0);
   });
+
+  test('야식 meal_type 을 다섯 번째 끼니로 읽는다', () {
+    final DietDay day = DietDay.fromJson(_dayWithMealType('lateNight'));
+
+    expect(day.entries.single.mealType, MealType.lateNight);
+  });
+
+  test('이미 저장된 snack 은 그대로 간식으로 읽힌다', () {
+    // 야식이 생겨도 백필하지 않는다(#1988) — 지난 기록이 옮겨 가면 안 된다.
+    final DietDay day = DietDay.fromJson(_dayWithMealType('snack'));
+
+    expect(day.entries.single.mealType, MealType.snack);
+  });
+
+  test('앱이 모르는 meal_type 이 와도 죽지 않고 간식으로 접는다', () {
+    // 앱은 저보다 새 서버를 만날 수 있다. 하루치가 통째로 파싱에서 죽는 것보다
+    // 모르는 한 끼가 간식으로 보이는 편이 낫다.
+    final DietDay day = DietDay.fromJson(_dayWithMealType('brunch'));
+
+    expect(day.entries.single.mealType, MealType.snack);
+  });
 }
+
+Map<String, Object?> _dayWithMealType(String mealType) => <String, Object?>{
+  'entries': <Object?>[
+    <String, Object?>{
+      'meal_type': mealType,
+      'time_label': '22:30',
+      'foods': <Object?>[
+        <String, Object?>{'name': '치킨', 'calories': 480},
+      ],
+      'total_calories': 480,
+    },
+  ],
+  'total_calories': 480,
+  'total_sodium_mg': 0,
+  'total_sugar_g': 0,
+  'ai_coach_message': '',
+};

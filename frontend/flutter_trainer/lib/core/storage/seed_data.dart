@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -792,7 +793,7 @@ class _FixtureClient {
     for (final FixtureDay day in days)
       for (final FixtureMeal meal in day.meals)
         _Meal(
-          _mealLabel(meal.mealType),
+          mealLabel(meal.mealType),
           meal.foods.map((FixtureFood f) => f.name).join(', '),
           meal.calories,
           meal.sodiumMg,
@@ -889,10 +890,16 @@ class _FixtureClient {
 }
 
 /// 끼니 종류 → 화면에 쓰는 한국어 라벨.
-String _mealLabel(String mealType) => switch (mealType) {
+///
+/// 키는 회원 앱 `MealType.name` 이다 — `lateNight`(야식, #1988)만 camelCase 인
+/// 것은 그 이름이 곧 전송값이기 때문이다. 야식을 적어 두지 않으면 아래 폴백이
+/// 낮의 간식으로 접어, 트레이너가 밤늦게 먹은 것을 갈라 볼 수 없다.
+@visibleForTesting
+String mealLabel(String mealType) => switch (mealType) {
   'breakfast' => '아침',
   'lunch' => '점심',
   'dinner' => '저녁',
+  'lateNight' => '야식',
   _ => '간식',
 };
 

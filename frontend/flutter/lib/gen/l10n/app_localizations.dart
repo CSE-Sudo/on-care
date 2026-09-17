@@ -692,6 +692,12 @@ abstract class AppLocalizations {
   /// **'Snack'**
   String get dietMealSnack;
 
+  /// No description provided for @dietMealLateNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Late-night'**
+  String get dietMealLateNight;
+
   /// No description provided for @dietMealSheetTitle.
   ///
   /// In en, this message translates to:
