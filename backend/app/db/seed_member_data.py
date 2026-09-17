@@ -918,23 +918,31 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
         # 세션은 **실제로 한** 운동만 쌓는다. 못 한 항목까지 넣으면 이행률은 67% 인데
         # 주간 운동 시간은 100% 인 날이 나온다.
         #
-        # 하루에 같은 종류가 둘일 수 있어(PT 날의 레그프레스·레그컬은 둘 다 근력)
-        # 종류로 합친다. 주간 활동 그래프가 하루·종류당 한 칸을 그리므로 나눠 넣을
-        # 자리도 없다.
-        for kind, totals in _by_type(day.done_exercises).items():
+        # **운동 하나가 세션 하나**다 — 회원이 직접 적은 기록과 같은 모양이다
+        # (#1902). 예전에는 종류로 합쳐 한 행에 여러 종목을 담았는데, 그러면
+        # 종목별 세트·횟수·중량을 담을 칸이 없어 픽스처가 그 수를 **이름
+        # 문자열에** 적어 넣어야 했다(`레그프레스 70kg · 4세트`). 그래서 이름을
+        # 쓰는 화면과 필드를 읽는 화면이 같은 기록을 다르게 말했다.
+        #
+        # 유형별 합계는 주간 응답이 따로 세므로(`exercise_service`) 나눠 넣어도
+        # 그래프는 그대로다.
+        for index, exercise in enumerate(day.done_exercises):
+            kind = exercise_types.normalize(exercise.type)
+            strength = kind == exercise_types.STRENGTH
             db.add(models.ExerciseSession(
-                id=f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{kind}",
+                id=f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{index}",
                 user_id=member_id,
                 week_start=day.week_start,
                 day_label=day.day_label,
                 type=kind,
-                name=totals.name,
-                minutes=totals.minutes,
-                calories=totals.calories,
-                # 픽스처가 적어 둔 세트·횟수를 그대로 남긴다 — 없으면 화면이
+                name=exercise.name,
+                minutes=exercise.minutes,
+                calories=exercise.calories,
+                # 픽스처가 적어 둔 세트·횟수·중량을 그대로 남긴다 — 없으면 화면이
                 # 분에서 세트를 되짚어 아무도 적은 적 없는 수를 그린다. (#1265)
-                sets=totals.sets,
-                reps=totals.reps,
+                sets=exercise.sets if strength else None,
+                reps=exercise.reps if strength else None,
+                weight=exercise.weight if strength else None,
                 intensity="moderate",
                 # 실제로 운동한 날의 시각을 함께 적는다 (#1264). `created_at` 은
                 # 재시드 시각이라, 이것이 없으면 35주 전 운동도 방금 만든 행으로

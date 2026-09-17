@@ -69,8 +69,17 @@ class MockExerciseRepository implements ExerciseRepository {
   /// 항목은 여기에 없다 — 이행률 67% 인 날의 주간 시간이 100% 로 잡히지 않는다.
   ///
   /// 하루에 같은 종류가 둘일 수 있어(PT 날의 레그프레스·레그컬은 둘 다 근력)
-  /// 종류로 합친다. 주간 활동 그래프가 하루·종류당 한 칸을 그리는 규칙이고,
-  /// 사용자앱의 drift 시드(`seed_data.dart`)도 같은 규칙으로 쌓는다.
+  /// 운동 **하나가 세션 하나**다 — 실서버와 같은 모양이다. (#1902)
+  ///
+  /// 예전에는 하루·유형으로 묶어 한 세션에 종목 여러 개를 담았다. 그러면
+  /// 종목별 세트·횟수·중량을 담을 칸이 없어, 픽스처가 그 수를 **이름 문자열에**
+  /// 적어 넣어야 했다(`레그프레스 70kg · 4세트`). 그래서 이름을 쓰는 화면과
+  /// 필드를 읽는 화면이 같은 기록을 다르게 말했다.
+  ///
+  /// 서버(`exercise_service`)는 기록 한 행을 그대로 한 세션으로 내려보내고
+  /// `items` 에 이름 하나만 담는다. 여기도 같은 모양으로 맞춘다 — 유형별 합계는
+  /// `cardioMinutes`·`strengthMinutes` 같은 별도 배열이 들고 있어 묶음이 없어도
+  /// 주간 그래프는 그대로다.
   List<ExerciseSession> _sessionsForWeek(int weeksAgo) {
     final String weekStart = _ymd(
       _addDays(_today, -(_todayIdx + 7 * weeksAgo)),
@@ -80,16 +89,11 @@ class MockExerciseRepository implements ExerciseRepository {
         in _fixture
             .daysFor(_today)
             .where((FixtureDay d) => d.weekStart == weekStart)) {
-      final Map<ExerciseType, List<FixtureExercise>> byType =
-          <ExerciseType, List<FixtureExercise>>{};
+      int index = 0;
       for (final FixtureExercise e in day.doneExercises) {
-        byType.putIfAbsent(_typeOf(e), () => <FixtureExercise>[]).add(e);
-      }
-      for (final MapEntry<ExerciseType, List<FixtureExercise>> entry
-          in byType.entries) {
         out.add(
           ExerciseSession(
-            id: 'seed-ex-${day.date}-${entry.key.name}',
+            id: 'seed-ex-${day.date}-${index++}',
             dayLabel: day.dayLabel,
             dateLabel: _dateLabel(day.date),
             // PT 날만 시각이 있다. 자율 운동은 픽스처가 시각을 갖지 않는다.
@@ -103,26 +107,16 @@ class MockExerciseRepository implements ExerciseRepository {
             source: day.isPt
                 ? ExerciseSource.trainerPt
                 : ExerciseSource.assignedRoutine,
-            type: entry.key,
-            minutes: entry.value.fold<int>(
-              0,
-              (int sum, FixtureExercise e) => sum + e.minutes,
-            ),
-            calories: entry.value.fold<int>(
-              0,
-              (int sum, FixtureExercise e) => sum + e.calories,
-            ),
-            items: <String>[
-              for (final FixtureExercise e in entry.value) e.name,
-            ],
-            // 근력은 세트가 값이다. 이름에 적힌 `4세트` 를 화면이 다시 세지
-            // 않도록 픽스처의 수를 그대로 옮긴다.
-            sets: entry.value.any((FixtureExercise e) => e.sets != null)
-                ? entry.value.fold<int>(
-                    0,
-                    (int sum, FixtureExercise e) => sum + (e.sets ?? 0),
-                  )
-                : null,
+            type: _typeOf(e),
+            minutes: e.minutes,
+            calories: e.calories,
+            name: e.name,
+            items: <String>[e.name],
+            // 세트·횟수·중량은 픽스처가 든 값을 그대로 옮긴다. 이름에서 다시
+            // 세거나 분에서 환산하면 화면마다 다른 수가 된다(#1262, #1310).
+            sets: e.sets,
+            reps: e.reps,
+            weight: e.weight,
           ),
         );
       }

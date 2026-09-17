@@ -106,6 +106,10 @@ class FixtureExercise:
     #: 보였다(분에서 되짚은 수와 픽스처가 적어 둔 수가 달랐다). (#1265)
     sets: int | None = None
     reps: int | None = None
+    #: 근력 항목의 중량(kg). 맨몸 운동은 0 이다 — 근력이면 언제나 값을 하나
+    #: 든다(#1902). 예전에는 이 값이 이름 문자열에만 있어(`레그프레스 70kg`),
+    #: 이름을 쓰는 화면과 필드를 읽는 화면이 같은 기록을 다르게 말했다.
+    weight: float | None = None
 
     @property
     def label(self) -> str:
