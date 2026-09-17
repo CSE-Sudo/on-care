@@ -2401,8 +2401,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalCaloriesFromMacros => '탄·단·지 목표로 계산한 값이에요';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g · 당류 ${sugar}g';
   }
 
   @override
