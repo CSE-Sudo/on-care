@@ -1107,6 +1107,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => '트레이너가 보낸 사진';
+
+  @override
+  String get a11yMealPhoto => '끼니 사진';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return '$name 사진';
+  }
+
+  @override
   String get myLogout => '로그아웃';
 
   @override
@@ -1912,6 +1923,18 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get mySupportExternalHint => '카카오톡 채널로 연결돼요';
+
+  @override
+  String get authRestoring => '로그인 정보를 불러오는 중이에요';
+
+  @override
+  String get authRestoreFailed => '연결이 불안정해 로그인 정보를 불러오지 못했어요.';
+
+  @override
+  String get authRestoreRetry => '다시 시도';
+
+  @override
+  String get authRestoreSignIn => '로그인 화면으로';
 
   @override
   String get authTagline => '식단·운동 관리 앱';

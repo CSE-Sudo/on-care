@@ -2102,6 +2102,24 @@ abstract class AppLocalizations {
   /// **'500P'**
   String get myPointsRecipeCost;
 
+  /// Screen reader label for an image a trainer sent in chat (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo from your trainer'**
+  String get a11yCoachPhoto;
+
+  /// Screen reader label for a saved meal photo (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Meal photo'**
+  String get a11yMealPhoto;
+
+  /// Screen reader label for a recommended meal photo (#1942).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo of {name}'**
+  String a11yMealPhotoOf(String name);
+
   /// No description provided for @myLogout.
   ///
   /// In en, this message translates to:
@@ -3540,6 +3558,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Opens the KakaoTalk channel'**
   String get mySupportExternalHint;
+
+  /// Splash message while the saved session is being restored (#1944).
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring your session'**
+  String get authRestoring;
+
+  /// No description provided for @authRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not restore your session — the connection looks unstable.'**
+  String get authRestoreFailed;
+
+  /// No description provided for @authRestoreRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get authRestoreRetry;
+
+  /// No description provided for @authRestoreSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get authRestoreSignIn;
 
   /// No description provided for @authTagline.
   ///

@@ -91,6 +91,7 @@ class LocalApiInterceptor extends Interceptor {
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
+    'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,
     'POST /auth/social/google': _authSocial,
     'GET /users/me': _usersMe,
@@ -2302,6 +2303,27 @@ class LocalApiInterceptor extends Interceptor {
   /// 목업 모드의 로그아웃이 실 네트워크로 새어 나가 타임아웃까지 멎는다(#966).
   Future<Response<Object?>> _authLogout(RequestOptions options) async {
     return Response<Object?>(requestOptions: options, statusCode: 204);
+  }
+
+  /// POST /auth/refresh — 데모도 접근 토큰을 회전해 준다. (#1944)
+  ///
+  /// 데모 라우트 표에 이것이 빠져 있어, 목 빌드의 갱신 요청이 두 인터셉터를 모두
+  /// 지나쳐 **실제 `apiBaseUrl` 로 나갔다** — #966 이 `/auth/logout` 에 대해
+  /// 막았던 그 누출이 갱신 경로에 남아 있었다.
+  ///
+  /// 갱신 토큰은 쓰던 것을 그대로 돌려준다. 실서버도 회전 토큰을 항상 새로 주는
+  /// 것은 아니라, 앱이 둘 다 다룰 수 있어야 한다.
+  Future<Response<Object?>> _authRefresh(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final refresh = (body['refresh_token'] as String? ?? '').trim();
+    if (refresh.isEmpty) {
+      return _badRequest(options, 'refresh_token is required');
+    }
+    return _ok(options, <String, Object?>{
+      'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
+      'refresh_token': refresh,
+      'token_type': 'bearer',
+    });
   }
 
   /// POST /auth/social/{provider} — the demo exchanges any non-empty

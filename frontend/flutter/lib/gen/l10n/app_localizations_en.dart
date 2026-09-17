@@ -1137,6 +1137,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => 'Photo from your trainer';
+
+  @override
+  String get a11yMealPhoto => 'Meal photo';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return 'Photo of $name';
+  }
+
+  @override
   String get myLogout => 'Log out';
 
   @override
@@ -1960,6 +1971,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mySupportExternalHint => 'Opens the KakaoTalk channel';
+
+  @override
+  String get authRestoring => 'Restoring your session';
+
+  @override
+  String get authRestoreFailed =>
+      'We could not restore your session — the connection looks unstable.';
+
+  @override
+  String get authRestoreRetry => 'Try again';
+
+  @override
+  String get authRestoreSignIn => 'Go to sign in';
 
   @override
   String get authTagline => 'Diet & exercise management app';
