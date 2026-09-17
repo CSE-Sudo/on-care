@@ -510,9 +510,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietMealInfo => '식사 정보';
 
   @override
-  String get dietEatenTime => '먹은 시간';
-
-  @override
   String get dietEatenFood => '먹은 음식';
 
   @override

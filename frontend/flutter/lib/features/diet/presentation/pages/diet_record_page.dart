@@ -120,6 +120,31 @@ DietMeal _mealFromEntry(DietEntry e) {
   );
 }
 
+/// `식단 기록` 목록의 순서 — 아침 → 점심 → 저녁 → 간식 → 야식. (#1989)
+///
+/// 시각 표시가 빠지면서 카드를 줄 세우는 기준이 사라졌다. 서버는 저장 순서
+/// (`created_at`)로 내려주므로, 어제 저녁 사진을 오늘 아침에 올리면 아침 카드
+/// 아래에 저녁 카드가 붙는다 — 시각이 보이던 동안에는 그 순서가 읽혔지만 이제는
+/// 읽을 것이 없다.
+///
+/// **앱에서 정렬한다.** 서버 `diet_service` 의 `order_by(created_at.asc())` 는
+/// 트레이너 웹도 함께 읽으므로 건드리지 않는다.
+///
+/// 순서는 [MealType] 의 선언 순서를 그대로 쓴다 — 끼니가 늘어도 enum 에 제자리로
+/// 넣기만 하면 여기가 따라온다. 같은 끼니가 둘 이상이면(간식 두 번) 그 안에서는
+/// 지금처럼 저장 순서를 따른다: [List.sort] 는 안정 정렬이 아니므로 순번을 함께
+/// 비교해 묶는다.
+List<DietEntry> sortedByMealType(List<DietEntry> entries) {
+  final List<(int, DietEntry)> indexed = <(int, DietEntry)>[
+    for (final (int i, DietEntry e) in entries.indexed) (i, e),
+  ];
+  indexed.sort(((int, DietEntry) a, (int, DietEntry) b) {
+    final int byMeal = a.$2.mealType.index.compareTo(b.$2.mealType.index);
+    return byMeal != 0 ? byMeal : a.$1.compareTo(b.$1);
+  });
+  return <DietEntry>[for (final (int, DietEntry) p in indexed) p.$2];
+}
+
 /// Formats grams dropping a trailing `.0` (6.0 → "6", 8.5 → "8.5").
 String _formatG(double v) =>
     v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
@@ -1083,7 +1108,7 @@ class _MealLog extends StatelessWidget {
             placement: AppStatePlacement.card,
           )
         else
-          for (final DietEntry e in entries) ...<Widget>[
+          for (final DietEntry e in sortedByMealType(entries)) ...<Widget>[
             Builder(
               builder: (BuildContext context) {
                 final DietMeal m = _mealFromEntry(e);
@@ -1116,36 +1141,17 @@ class _MealCard extends StatelessWidget {
             // 화살표는 늘 카드 오른쪽 끝이다(#761).
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              // 배지·시각은 한 덩이로 묶어 왼쪽에 붙이고, 남는 폭 안으로
-              // 접힌다(#739). 화살표만 접지 않는다.
+              // 배지는 왼쪽에 붙이고 남는 폭 안으로 접힌다(#739). 화살표만
+              // 접지 않는다. 시각은 #1989 에서 빠졌다 — 카드를 줄 세우는
+              // 기준이 저장 순서가 아니라 끼니 순서가 되면서 읽을 것이 없다.
               Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Flexible(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: AppTag(
-                          label: mealBadge(l, meal.mealType),
-                          tone: AppTagTone.brand,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: OnCareSpacing.s8),
-                    Flexible(
-                      child: Text(
-                        meal.time,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: _text(
-                          context,
-                          OnCareTypography.caption,
-                          OnCareColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: AppTag(
+                    label: mealBadge(l, meal.mealType),
+                    tone: AppTagTone.brand,
+                  ),
                 ),
               ),
               // 카드는 그 끼니의 상세 화면을 여는 자리다 — 세부 수치는 여기가

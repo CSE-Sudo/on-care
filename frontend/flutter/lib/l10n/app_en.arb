@@ -272,7 +272,6 @@
   "dietDeleteFailed": "Couldn't delete. Please try again in a moment.",
   "dietSave": "Save",
   "dietMealInfo": "Meal Info",
-  "dietEatenTime": "Time Eaten",
   "dietEatenFood": "Food Eaten",
   "dietNewFood": "New food",
   "dietAddFood": "Add Food",

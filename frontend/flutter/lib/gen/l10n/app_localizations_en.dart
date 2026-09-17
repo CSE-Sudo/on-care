@@ -522,9 +522,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietMealInfo => 'Meal Info';
 
   @override
-  String get dietEatenTime => 'Time Eaten';
-
-  @override
   String get dietEatenFood => 'Food Eaten';
 
   @override

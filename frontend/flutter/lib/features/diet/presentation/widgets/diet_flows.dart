@@ -604,18 +604,13 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     orElse: () => MealType.snack,
   );
 
-  /// `2026년 9월 16일 12:30 · 점심` — 날짜만 적으면 같은 날 세 끼가 구분되지
-  /// 않아 어느 끼니로 들어가는지 알 수 없었다(#1897).
+  /// `2026년 9월 16일 · 점심` — 날짜만 적으면 같은 날 세 끼가 구분되지 않아
+  /// 어느 끼니로 들어가는지 알 수 없었다(#1897). 그 몫은 끼니 이름이 한다.
   ///
-  /// 시각은 서버가 저장한 값(`time_label`)을 그대로 쓴다. 앱이 제 시계로 다시
-  /// 계산하면 나중에 끼니 카드가 보여 주는 시각과 어긋날 수 있다. 그 값을
-  /// 모르는 서버면 날짜와 끼니만 적는다.
-  String _dateAndMealLabel(BuildContext context, AppLocalizations l) {
-    final String date = _dateLabel(context, _date);
-    final String time = _result?.timeLabel ?? '';
-    final String when = time.isEmpty ? date : '$date $time';
-    return '$when · ${mealBadge(l, _meal)}';
-  }
+  /// 시각은 #1989 에서 빠졌다. `time_label` 은 계속 저장되고 서버 계약도 그대로
+  /// 다 — 화면에서 내리는 것과 값을 버리는 것은 다르다.
+  String _dateAndMealLabel(BuildContext context, AppLocalizations l) =>
+      '${_dateLabel(context, _date)} · ${mealBadge(l, _meal)}';
 
   /// Sends the user back to the source picker. The photo they have can't be
   /// analysed, so "다시 시도" would just fail again — the useful next step is
@@ -1717,17 +1712,6 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                   tone: AppTagTone.brand,
                                 ),
                               ),
-                            const SizedBox(height: OnCareSpacing.s16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: <Widget>[
-                                _FieldLabel(l.dietEatenTime),
-                                AppTag(
-                                  label: widget.meal.time,
-                                  icon: AppIcons.clock,
-                                ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
