@@ -203,8 +203,12 @@ category: reminder|health_check|achievement|system
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` |
+| GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
+| DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
 
 tag: diet|exercise|hydration|...
+
+`DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
 
 ### 바이탈 (체중/혈압/혈당) — 제거됨
 

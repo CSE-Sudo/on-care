@@ -114,3 +114,86 @@ def test_history_and_insight_list_cover_the_last_30_days(client, db_session):
     assert [i["text"] for i in body["insights"]] == ["무릎이 아파요"]
     assert body["insights"][0]["kind"] == "discomfort"
     assert body["insights"][0]["body_part"] == "무릎"
+
+
+def test_dismissing_an_insight_keeps_the_message(client, db_session):
+    """감지를 치워도 회원이 쓴 메시지는 대화에 남는다. (#1975)
+
+    감지 규칙이 완벽할 수 없어 `목요일`·`목표` 같은 말이 부위로 잡히는 일이
+    남는다. 그 오탐 하나 때문에 회원이 쓴 말까지 대화에서 사라져서는 안 된다 —
+    AI 가 맥락으로 읽는 것도 그대로여야 한다.
+    """
+    from app.services.coach import conversation
+
+    member_id, token = _member_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    conversation.append_exchange(
+        db_session, member_id, question="무릎이 아파요", reply="쉬어 가세요", sources=[]
+    )
+    conversation.append_exchange(
+        db_session, member_id, question="어깨가 아파요", reply="풀어 주세요", sources=[]
+    )
+    db_session.commit()
+
+    listed = client.get("/v1/ai-coach/insights", headers=headers).json()["insights"]
+    assert {i["text"] for i in listed} == {"무릎이 아파요", "어깨가 아파요"}
+    target = next(i for i in listed if i["text"] == "무릎이 아파요")
+
+    gone = client.delete(
+        f"/v1/ai-coach/insights/{target['message_id']}", headers=headers
+    )
+    assert gone.status_code == 200, gone.text
+
+    after = client.get("/v1/ai-coach/insights", headers=headers).json()["insights"]
+    assert [i["text"] for i in after] == ["어깨가 아파요"]
+
+    # 대화는 그대로다 — 치운 것은 감지뿐이다.
+    messages = client.get("/v1/ai-coach/messages", headers=headers).json()["messages"]
+    assert "무릎이 아파요" in {m["content"] for m in messages}
+
+
+def test_dismissing_twice_is_not_an_error(client, db_session):
+    """이미 치운 줄을 다시 눌러도 200 이다. (#1975)
+
+    누른 쪽이 바라는 상태가 이미 참이라, 지금 상태를 알려 주는 것 말고 할 일이 없다.
+    """
+    from app.services.coach import conversation
+
+    member_id, token = _member_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    conversation.append_exchange(
+        db_session, member_id, question="발목이 아파요", reply="무리 마세요", sources=[]
+    )
+    db_session.commit()
+
+    listed = client.get("/v1/ai-coach/insights", headers=headers).json()["insights"]
+    message_id = listed[0]["message_id"]
+    assert client.delete(f"/v1/ai-coach/insights/{message_id}", headers=headers).status_code == 200
+    assert client.delete(f"/v1/ai-coach/insights/{message_id}", headers=headers).status_code == 200
+
+
+def test_cannot_dismiss_someone_elses_insight(client, db_session):
+    """남의 대화는 없는 것과 같다 — 404. (#1975)"""
+    from app.services.coach import conversation
+
+    owner_id, _ = _member_token(client)
+    _, other_token = _member_token(client)
+    conversation.append_exchange(
+        db_session, owner_id, question="손목이 아파요", reply="쉬세요", sources=[]
+    )
+    db_session.commit()
+
+    from sqlalchemy import select
+
+    from app.models.models import AiConversation, AiMessage
+
+    message_id = db_session.scalar(
+        select(AiMessage.id)
+        .join(AiConversation, AiConversation.id == AiMessage.conversation_id)
+        .where(AiConversation.user_id == owner_id, AiMessage.role == "user")
+    )
+    denied = client.delete(
+        f"/v1/ai-coach/insights/{message_id}",
+        headers={"Authorization": f"Bearer {other_token}"},
+    )
+    assert denied.status_code == 404, denied.text

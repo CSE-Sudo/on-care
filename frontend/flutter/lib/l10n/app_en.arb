@@ -1020,6 +1020,12 @@
   "@aicInsightDiscomfort": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
   "aicInsightNegative": "Negative feedback noted",
   "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "aicInsightDelete": "Delete",
+  "@aicInsightDelete": {
+    "description": "Removes one detection from the AI coach insight log (#1975)."
+  },
+  "aicInsightDeleteConfirm": "Remove this detection from the log? What you wrote stays in the conversation.",
+  "aicInsightDeleteFailed": "We could not remove it. Please try again in a moment.",
   "aicInsightHistoryTitle": "Noted signals",
   "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
   "aicInsightHistoryAction": "Notes",

@@ -17,6 +17,13 @@ enum AppButtonVariant {
   /// 흰 바탕 + 테두리 — 취소·보조 동작.
   secondary,
 
+  /// 흰 바탕 + 브랜드 테두리·글자 — 화면 머리에 놓이는 보조 동작. (#1975)
+  ///
+  /// [primary] 와 [secondary] 사이다. 브랜드 색을 띠어 무엇을 하는 자리인지
+  /// 보이되, 채우지 않아 그 화면의 본문보다 앞서지 않는다. AI 코치 머리의
+  /// `기록` 이 채움이던 동안에는 대화보다 먼저 눈에 들었다.
+  brandOutline,
+
   /// 브랜드 글자 — 링크·가벼운 동작.
   text,
 
@@ -78,6 +85,11 @@ class AppButton extends StatelessWidget {
         OnCareColors.surfaceCard,
         OnCareColors.textPrimary,
         const BorderSide(color: OnCareColors.lineStrong),
+      ),
+      AppButtonVariant.brandOutline => (
+        OnCareColors.surfaceCard,
+        tokens.brand.primary,
+        BorderSide(color: tokens.brand.primary),
       ),
       AppButtonVariant.text => (
         Colors.transparent,

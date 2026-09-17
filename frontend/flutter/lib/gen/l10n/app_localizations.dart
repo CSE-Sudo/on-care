@@ -3043,6 +3043,24 @@ abstract class AppLocalizations {
   /// **'Negative feedback noted'**
   String get aicInsightNegative;
 
+  /// Removes one detection from the AI coach insight log (#1975).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get aicInsightDelete;
+
+  /// No description provided for @aicInsightDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this detection from the log? What you wrote stays in the conversation.'**
+  String get aicInsightDeleteConfirm;
+
+  /// No description provided for @aicInsightDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not remove it. Please try again in a moment.'**
+  String get aicInsightDeleteFailed;
+
   /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
   ///
   /// In en, this message translates to:

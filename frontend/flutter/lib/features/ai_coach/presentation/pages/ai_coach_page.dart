@@ -215,9 +215,27 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
 
   /// [showInsights] 가 거짓이면 감지 기록 버튼을 숨기되 자리는 남겨, 제목이
   /// 가운데에서 밀리지 않게 한다.
+  ///
+  /// **양쪽 폭을 맞춰 제목을 화면 가운데에 세운다**(#1975). 왼쪽 뒤로 버튼은
+  /// 고정 폭이고 오른쪽 `기록` 은 글자 길이만큼이라, 그대로 두면 가운데 정렬한
+  /// 묶음이 왼쪽으로 밀린다 — 영어처럼 버튼이 길어지는 로케일에서 더 밀린다.
+  /// 그래서 왼쪽에 `기록` 과 같은 폭을, 오른쪽에 뒤로 버튼과 같은 폭을 둔다.
+  /// 폭을 숫자로 적지 않고 같은 위젯을 숨겨 두는 것은, 로케일이 바뀌어도
+  /// 저절로 따라가게 하기 위해서다.
   Widget _header(BuildContext context, {required bool showInsights}) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    // 오른쪽에 그릴 버튼과 왼쪽에 자리만 잡을 복제본. 키는 진짜 하나에만 둔다 —
+    // 둘 다 달면 테스트가 어느 쪽을 누를지 가릴 수 없다.
+    AppButton insightButton({Key? key}) => AppButton(
+      key: key,
+      label: l.aicInsightHistoryAction,
+      size: OnCareButtonSize.small,
+      leadingIcon: AppIcons.note,
+      // 채움이던 동안에는 머리에서 대화보다 먼저 눈에 들었다(#1975).
+      variant: AppButtonVariant.brandOutline,
+      onPressed: () => _showInsightHistory(context),
+    );
     return ColoredBox(
       color: OnCareColors.surfaceCard,
       child: Padding(
@@ -231,6 +249,16 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
               onPressed: () => context.canPop()
                   ? context.pop()
                   : context.go(AppRoutes.dashboard),
+            ),
+            // 오른쪽 `기록` 과 같은 폭을 왼쪽에도 둔다 — 그리지 않고 자리만 쓴다.
+            Visibility(
+              visible: false,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: IgnorePointer(
+                child: ExcludeSemantics(child: insightButton()),
+              ),
             ),
             Expanded(
               child: Row(
@@ -277,14 +305,12 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
               maintainState: true,
               // 아이콘만으로는 전할 수 없는 기능이라 글자를 함께 쓴다(#1900).
               // 예전의 심전도 모니터는 심박을 재는 자리로 읽혔다.
-              child: AppButton(
+              child: insightButton(
                 key: const Key('aiCoachInsightHistoryButton'),
-                label: l.aicInsightHistoryAction,
-                size: OnCareButtonSize.small,
-                leadingIcon: AppIcons.note,
-                onPressed: () => _showInsightHistory(context),
               ),
             ),
+            // 왼쪽 뒤로 버튼과 같은 폭 — 이것이 있어야 제목이 가운데에 선다.
+            const SizedBox(width: OnCareSize.backCloseTouch),
           ],
         ),
       ),
@@ -358,7 +384,8 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
           AppTag(
             key: const Key('aiCoachInsightTag'),
             label: insightLabel(l, insight),
-            tone: AppTagTone.caution,
+            // 통증·부정적 반응은 주의가 아니라 짚고 넘어갈 신호다(#1975).
+            tone: AppTagTone.danger,
             // 머리의 `기록` 버튼과 같은 아이콘이다 — 그 버튼이 모아 보여 주는
             // 것이 바로 이 표시라는 것을 아이콘이 잇는다(#1918).
             icon: AppIcons.note,
@@ -529,13 +556,38 @@ class _InsightHistorySheet extends ConsumerWidget {
   }
 }
 
-class _InsightRow extends StatelessWidget {
+class _InsightRow extends ConsumerWidget {
   const _InsightRow({required this.record});
 
   final ChatInsightRecord record;
 
+  /// 이 줄의 감지를 기록에서 치운다. (#1975)
+  ///
+  /// 되돌릴 수 없으므로 **확인창을 먼저 거친다.** 문구는 무엇이 사라지고 무엇이
+  /// 남는지 말한다 — 회원이 쓴 말까지 지워지는 줄 알면 누르지 못한다.
+  Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AppToastHost toast = AppToastHost.of(context);
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.aicInsightDelete,
+      message: l.aicInsightDeleteConfirm,
+      confirmLabel: l.aicInsightDelete,
+      cancelLabel: l.myCancel,
+      destructive: true,
+    );
+    if (!ok) return;
+    try {
+      await ref.read(aiCoachRepositoryProvider).dismissInsight(record.messageId);
+    } on Object {
+      toast.show(l.aicInsightDeleteFailed, type: AppToastType.error);
+      return;
+    }
+    ref.invalidate(aiCoachInsightsProvider);
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final String date = DateFormat.MMMd(
@@ -551,14 +603,28 @@ class _InsightRow extends StatelessWidget {
             children: <Widget>[
               AppTag(
                 label: insightLabel(l, record.insight),
-                tone: AppTagTone.caution,
+                // 말풍선 아래 배지와 같은 것을 가리킨다 — 톤도 같다(#1975).
+                tone: AppTagTone.danger,
               ),
               const SizedBox(width: OnCareSpacing.s8),
-              Text(
-                date,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
+              Expanded(
+                child: Text(
+                  date,
+                  style: tokens
+                      .text(OnCareTypography.caption)
+                      .copyWith(color: OnCareColors.textTertiary),
+                ),
+              ),
+              // 잘못 잡힌 감지를 치우는 자리(#1975). 줄의 오른쪽 끝에 둔다 —
+              // 어느 줄을 지우는지는 같은 줄에 있어야 분명하다.
+              AppButton(
+                key: ValueKey<String>(
+                  'aiCoachInsightDelete-${record.messageId}',
+                ),
+                label: l.aicInsightDelete,
+                variant: AppButtonVariant.destructiveText,
+                size: OnCareButtonSize.small,
+                onPressed: () => _confirmDelete(context, ref),
               ),
             ],
           ),
