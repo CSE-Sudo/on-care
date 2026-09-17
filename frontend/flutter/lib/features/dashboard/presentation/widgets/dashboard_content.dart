@@ -996,6 +996,11 @@ class _RecMealCard extends StatelessWidget {
                   meal.photo,
                   height: _kRecMealPhotoHeight,
                   width: double.infinity,
+                  // 카드에서 이름은 사진 아래 따로 읽히지만, 사진 자체에
+                  // 이름이 없으면 무엇의 사진인지 알 수 없다(#1942).
+                  semanticLabel: AppLocalizations.of(
+                    context,
+                  ).a11yMealPhotoOf(meal.name),
                   fit: BoxFit.cover,
                   // Fall back to the emoji tile if the bundled photo is missing.
                   errorBuilder:

@@ -1091,6 +1091,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => '트레이너가 보낸 사진';
+
+  @override
+  String get a11yMealPhoto => '끼니 사진';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return '$name 사진';
+  }
+
+  @override
   String get myLogout => '로그아웃';
 
   @override

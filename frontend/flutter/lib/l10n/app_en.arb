@@ -630,6 +630,19 @@
   "myPointsRecipeTitle": "Personalized healthy recipe package",
   "myPointsRecipeDescription": "Get PDF and interactive meal guides tailored to goals such as diabetes prevention or weight loss.",
   "myPointsRecipeCost": "500P",
+  "a11yCoachPhoto": "Photo from your trainer",
+  "@a11yCoachPhoto": {
+    "description": "Screen reader label for an image a trainer sent in chat (#1942)."
+  },
+  "a11yMealPhoto": "Meal photo",
+  "@a11yMealPhoto": {
+    "description": "Screen reader label for a saved meal photo (#1942)."
+  },
+  "a11yMealPhotoOf": "Photo of {name}",
+  "@a11yMealPhotoOf": {
+    "description": "Screen reader label for a recommended meal photo (#1942).",
+    "placeholders": { "name": { "type": "String" } }
+  },
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
   "myWithdrawTitle": "Delete account",
