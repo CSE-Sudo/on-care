@@ -144,14 +144,19 @@ void main() {
     }
   });
 
-  testWidgets('목록 썸네일은 정사각 56 이다', (WidgetTester tester) async {
+  // 56 → 88 (#1990). 오른쪽 열이 배지·메뉴명·칼로리 세 줄을 쓰므로 그 높이에
+  // 맞춘다 — 56 은 무엇을 먹었는지 알아보기 어려웠다.
+  testWidgets('목록 썸네일은 정사각 88 이다', (WidgetTester tester) async {
     await pumpDiet(tester);
 
     final List<MealPhotoView> thumbs = tester
         .widgetList<MealPhotoView>(find.byType(MealPhotoView))
         .toList();
     expect(thumbs, isNotEmpty);
-    expect(thumbs.every((MealPhotoView p) => p.height == 56), isTrue);
+    expect(
+      thumbs.every((MealPhotoView p) => p.width == 88 && p.height == 88),
+      isTrue,
+    );
   });
 
   testWidgets('끼니를 열면 상단에 사진이 크게 뜬다', (WidgetTester tester) async {

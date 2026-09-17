@@ -346,6 +346,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String dietMoreFoods(String name, int count) {
+    return '$name 외 $count';
+  }
+
+  @override
   String get dietFillFromDb => '값 채우기';
 
   @override

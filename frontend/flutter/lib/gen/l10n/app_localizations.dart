@@ -710,6 +710,12 @@ abstract class AppLocalizations {
   /// **'Public DB · {name}'**
   String dietFoodDbMatch(String name);
 
+  /// Appended to the last food name on a meal card when more foods are hidden (#1990)
+  ///
+  /// In en, this message translates to:
+  /// **'{name} +{count}'**
+  String dietMoreFoods(String name, int count);
+
   /// Button that fills a food's fields with the suggested public-DB nutrition (#1896)
   ///
   /// In en, this message translates to:
