@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
@@ -51,6 +52,10 @@ class _CountingMemberCoachRepository extends MockMemberCoachRepository {
 }
 
 void main() {
+  // 저장된 세션이 없다고 답해 준다 — 없으면 복구가 끝나지 않아 시작
+  // 화면(#1944)에 머문다.
+  setUp(() => FlutterSecureStorage.setMockInitialValues(<String, String>{}));
+
   Future<void> pumpApp(
     WidgetTester tester, {
     Locale? locale,

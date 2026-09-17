@@ -22,6 +22,13 @@ class AppPrefs {
   /// 같은 값이다 — 건너뛴 사람에게 같은 덮개를 다시 내밀지 않는다.
   static const String _kHomeGuideDone = 'home_guide_done';
 
+  /// 이 설치본이 한 번이라도 실행됐는가(#1944).
+  ///
+  /// **앱을 지우면 함께 지워진다** — 그것이 이 값을 쓰는 이유다. iOS 키체인
+  /// 항목은 앱을 지워도 남아서, 재설치하고 열면 이전 계정 대시보드로 바로
+  /// 들어갔다. 이 표식이 없는 실행은 새 설치이므로 그때 키체인을 비운다.
+  static const String _kInstalled = 'installed';
+
   String? get localeCode => _prefs.getString(_kLocaleCode);
   Future<void> setLocaleCode(String? value) {
     if (value == null) return _prefs.remove(_kLocaleCode);
@@ -36,11 +43,15 @@ class AppPrefs {
   Future<void> setHomeGuideDone(bool value) =>
       _prefs.setBool(_kHomeGuideDone, value);
 
+  bool get installed => _prefs.getBool(_kInstalled) ?? false;
+  Future<void> markInstalled() => _prefs.setBool(_kInstalled, true);
+
   /// 계정에 매인 기기 기록을 지운다 — 탈퇴한 계정의 흔적이 다음 회원에게
   /// 넘어가지 않게 한다(#1935). 같은 기기에 다른 계정으로 로그인했을 때
   /// 첫 설정과 가이드를 처음처럼 만나야 한다.
   ///
-  /// **언어는 남긴다.** 기기 설정이지 계정의 것이 아니다.
+  /// **언어와 설치 표식은 남긴다.** 둘 다 기기의 것이지 계정의 것이 아니다 —
+  /// 설치 표식을 지우면 다음 실행이 새 설치로 보여 키체인을 또 비운다(#1944).
   Future<void> clearAccountScoped() async {
     await _prefs.remove(_kOnboardingDone);
     await _prefs.remove(_kHomeGuideDone);

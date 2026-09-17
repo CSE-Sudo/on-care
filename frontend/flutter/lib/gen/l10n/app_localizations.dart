@@ -3529,6 +3529,30 @@ abstract class AppLocalizations {
   /// **'Opens the KakaoTalk channel'**
   String get mySupportExternalHint;
 
+  /// Splash message while the saved session is being restored (#1944).
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring your session'**
+  String get authRestoring;
+
+  /// No description provided for @authRestoreFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not restore your session — the connection looks unstable.'**
+  String get authRestoreFailed;
+
+  /// No description provided for @authRestoreRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get authRestoreRetry;
+
+  /// No description provided for @authRestoreSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to sign in'**
+  String get authRestoreSignIn;
+
   /// No description provided for @authTagline.
   ///
   /// In en, this message translates to:
