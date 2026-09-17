@@ -3025,19 +3025,19 @@ abstract class AppLocalizations {
   /// **'Writing your answer'**
   String get aicGeneratingReply;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'{part} pain noted'**
   String aicInsightDiscomfortPart(String part);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Pain noted'**
   String get aicInsightDiscomfort;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Negative feedback noted'**
@@ -3061,7 +3061,7 @@ abstract class AppLocalizations {
   /// **'We could not remove it. Please try again in a moment.'**
   String get aicInsightDeleteFailed;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Noted signals'**
@@ -3073,19 +3073,19 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get aicInsightHistoryAction;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
-  /// **'Pain and negative feedback noted in the last {days} days'**
+  /// **'Pain and negative feedback noted in the last {days} days. The AI uses these when it answers'**
   String aicInsightHistorySubtitle(int days);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Nothing noted in the last {days} days'**
   String aicInsightHistoryEmpty(int days);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load noted signals'**

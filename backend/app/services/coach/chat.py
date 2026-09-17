@@ -9,12 +9,13 @@ LLM 키가 없거나 실패하면 검색 기반(추출형) 답변으로 폴백�
 from __future__ import annotations
 
 import logging
+from collections import Counter
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.models import HealthProfile
-from app.services.coach import grounding, prompt_safety
+from app.services.coach import grounding, insights, prompt_safety
 from app.services.coach.llm import get_coach_llm
 from app.services.coach.rag import retrieve
 from app.services.coach_service import diet_period_context
@@ -25,6 +26,11 @@ _SYSTEM = (
     f"{grounding.GROUNDED_TOPIC_PHRASE} 관리를 "
     "중심으로 친근하고 구체적으로 한국어로 답하세요. 2~4문장으로 간결하게, 근거 없는 단정이나 의학적 "
     "진단은 피하고, 증상이 심각해 보이면 전문의 상담을 권하세요. "
+    # 감지 요약을 어떻게 쓸지 적어 둔다(#1973). 없으면 요약을 넣어도 모델이
+    # 그냥 지나친다 — 통증을 알고도 그 부위 운동을 그대로 권하게 된다.
+    "'최근 이야기한 불편'이 있으면 그 부위에 힘이 실리는 동작은 권하지 말고 대안을 "
+    "제시하세요. 같은 부위가 되풀이되면 전문가 확인을 권하되, 진단하거나 원인을 "
+    "단정하지는 마세요. "
     # 안 재는 지표를 근거 있는 것처럼 말하지 않게 한다(#602).
     + grounding.UNTRACKED_METRIC_NOTICE + " "
     # '내 건강 기록'에는 트레이너와 주고받은 대화도 섞여 들어온다(#580).
@@ -78,6 +84,39 @@ def _profile_context(db: Session, user_id: str) -> str:
         f"주간 소모 칼로리 목표: {profile.weekly_burn_goal if profile.weekly_burn_goal is not None else '미입력'}kcal",
     ]
     return "[현재 회원 프로필과 목표]\n- " + "\n- ".join(values)
+
+
+def _insight_context(db: Session, user_id: str) -> str:
+    """최근 30일 대화에서 찾은 통증·부정적 반응 요약. (#1973)
+
+    감지는 여태 **화면에만** 쓰였다. 답변 컨텍스트에는 최근 대화 몇 건만 들어가,
+    그 창을 넘어가면 지난주에 무릎이 아프다고 한 회원에게 오늘 무릎에 부담이 가는
+    운동을 그대로 권할 수 있었다.
+
+    회원이 치운 줄은 `recent_insights` 가 이미 건너뛴다(#1975) — 기록 창에서
+    지운 오탐이 답변에 남지 않는다.
+
+    문장이 아니라 **부위와 횟수**만 준다. 회원이 쓴 원문은 개인 RAG 가 이미
+    싣고 있고, 여기서 또 넣으면 같은 말이 프롬프트에 두 번 들어간다.
+    """
+    records = insights.recent_insights(db, user_id)
+    if not records:
+        return ""
+    discomfort: Counter[str] = Counter()
+    negative = 0
+    for record in records:
+        if record.kind == insights.KIND_DISCOMFORT:
+            discomfort[record.body_part or "부위 미상"] += 1
+        else:
+            negative += 1
+    lines = [
+        f"- {part}: {count}회"
+        for part, count in discomfort.most_common()
+    ]
+    if negative:
+        lines.append(f"- 운동이 힘들다고 말한 적: {negative}회")
+    window = insights.INSIGHT_WINDOW_DAYS
+    return f"[최근 {window}일 이야기한 불편]\n" + "\n".join(lines)
 
 
 def _fallback_reply(hits: dict) -> str:
@@ -142,6 +181,9 @@ def answer(
             part
             for part in (
                 _profile_context(db, user_id),
+                # 프로필 바로 뒤다 — 오늘 무엇을 권할지 정하기 전에 알아야 하는
+                # 값이라, 검색 결과보다 앞에 둔다(#1973).
+                _insight_context(db, user_id),
                 diet_period_context(db, user_id),
                 _format_context(hits),
             )

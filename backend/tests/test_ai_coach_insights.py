@@ -197,3 +197,73 @@ def test_cannot_dismiss_someone_elses_insight(client, db_session):
         headers={"Authorization": f"Bearer {other_token}"},
     )
     assert denied.status_code == 404, denied.text
+
+
+def test_answer_context_carries_the_recent_discomfort(client, db_session):
+    """감지 요약이 답변 컨텍스트에 실리는가. (#1973)
+
+    여태 감지는 화면에만 쓰였다. 컨텍스트에는 최근 대화 몇 건만 들어가 그 창을
+    넘어가면, 지난주에 무릎이 아프다고 한 회원에게 오늘 무릎에 부담이 가는 운동을
+    그대로 권할 수 있었다.
+    """
+    from app.services.coach import conversation
+    from app.services.coach.chat import _insight_context
+
+    member_id, _ = _member_token(client)
+    for _ in range(2):
+        conversation.append_exchange(
+            db_session, member_id, question="무릎이 아파요", reply="쉬어 가세요", sources=[]
+        )
+    conversation.append_exchange(
+        db_session, member_id, question="너무 힘들어서 못 했어요", reply="괜찮아요", sources=[]
+    )
+    db_session.commit()
+
+    context = _insight_context(db_session, member_id)
+    assert "무릎: 2회" in context
+    assert "운동이 힘들다고 말한 적: 1회" in context
+    # 회원이 쓴 원문은 개인 RAG 가 이미 싣는다 — 여기서 또 넣으면 두 번 들어간다.
+    assert "무릎이 아파요" not in context
+
+
+def test_answer_context_is_empty_without_insights(client, db_session):
+    """감지가 없으면 그 자리를 비운다 — 빈 제목만 넣지 않는다. (#1973)"""
+    from app.services.coach import conversation
+    from app.services.coach.chat import _insight_context
+
+    member_id, _ = _member_token(client)
+    conversation.append_exchange(
+        db_session, member_id, question="오늘 샐러드 먹었어요", reply="좋아요", sources=[]
+    )
+    db_session.commit()
+
+    assert _insight_context(db_session, member_id) == ""
+
+
+def test_dismissed_insight_leaves_the_answer_context(client, db_session):
+    """기록 창에서 치운 오탐은 AI 도 참고하지 않는다. (#1973 · #1975)"""
+    from app.services.coach import conversation
+    from app.services.coach.chat import _insight_context
+
+    member_id, token = _member_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    conversation.append_exchange(
+        db_session, member_id, question="손목이 아파요", reply="쉬세요", sources=[]
+    )
+    db_session.commit()
+    assert "손목" in _insight_context(db_session, member_id)
+
+    listed = client.get("/v1/ai-coach/insights", headers=headers).json()["insights"]
+    client.delete(f"/v1/ai-coach/insights/{listed[0]['message_id']}", headers=headers)
+    db_session.expire_all()
+
+    assert _insight_context(db_session, member_id) == ""
+
+
+def test_system_prompt_says_how_to_use_the_discomfort(client):
+    """요약만 넣으면 모델이 지나친다 — 쓰는 법을 프롬프트가 적어야 한다. (#1973)"""
+    from app.services.coach.chat import _SYSTEM
+
+    assert "최근 이야기한 불편" in _SYSTEM
+    # 진단하지 말라는 기존 지시는 그대로다.
+    assert "진단" in _SYSTEM

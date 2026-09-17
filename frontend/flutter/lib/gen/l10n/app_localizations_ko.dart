@@ -1666,7 +1666,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
+    return '최근 $days일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요';
   }
 
   @override
