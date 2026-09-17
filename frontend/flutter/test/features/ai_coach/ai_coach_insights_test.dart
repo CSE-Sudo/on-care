@@ -549,6 +549,16 @@ void main() {
     });
   });
 
+  testWidgets('기록 창이 이 목록을 어디에 쓰는지 말한다 (#1973)', (tester) async {
+    // 무엇을 모았는지만 말하면 "내가 아프다고 말한 횟수" 목록으로 읽힌다.
+    // 이 값이 AI 답변에 쓰인다는 것을 말해야 회원이 왜 보는지 안다.
+    await _pumpPage(tester, _InsightRepo());
+    await tester.tap(find.byKey(const Key('aiCoachInsightHistoryButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('AI가 답할 때 참고해요'), findsOneWidget);
+  });
+
   testWidgets('머리의 제목이 화면 가운데에 선다 (#1975)', (tester) async {
     await _pumpPage(tester, _InsightRepo());
 

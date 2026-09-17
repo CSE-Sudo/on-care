@@ -602,7 +602,7 @@
   "aicInsightDeleteFailed": "지우지 못했어요. 잠시 후 다시 시도해 주세요.",
   "aicInsightHistoryTitle": "감지 기록",
   "aicInsightHistoryAction": "기록",
-  "aicInsightHistorySubtitle": "최근 {days}일 동안 대화에서 감지한 통증·부정적 반응이에요",
+  "aicInsightHistorySubtitle": "최근 {days}일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요",
   "aicInsightHistoryEmpty": "최근 {days}일 동안 감지된 내용이 없어요",
   "aicInsightHistoryFailed": "감지 기록을 불러오지 못했어요",
   "aicRetentionNotice": "AI 챗봇 대화는 최근 {days}일 동안만 보관돼요",
