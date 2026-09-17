@@ -18,6 +18,11 @@ from pydantic import (
 )
 
 from app.core import clock
+from app.schemas.exercise_limits import (
+    MAX_EXERCISE_REPS,
+    MAX_EXERCISE_SETS,
+    MAX_EXERCISE_WEIGHT_KG,
+)
 from app.schemas.health_goal_ranges import (
     ConditionsText,
     DailyBurnKcal,
@@ -443,9 +448,9 @@ class ProgramDraftExercise(BaseModel):
     #: 유산소·스트레칭·기타의 운동 시간(분). 근력은 세트로 재므로 비어 있다.
     duration: LooseInt = Field(default=None, ge=0, le=600)
     #: 근력의 세트 수·한 세트당 횟수·중량(kg). 다른 유형에서는 비어 있다.
-    sets: LooseInt = Field(default=None, ge=0, le=99)
-    reps: LooseInt = Field(default=None, ge=0, le=999)
-    weight: LooseFloat = Field(default=None, ge=0, le=1000)
+    sets: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SETS)
+    reps: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_REPS)
+    weight: LooseFloat = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     intensity: RoutineIntensity = "moderate"
     memo: str = Field(default="", max_length=300)
     source: ProgramExerciseSource = "trainer"
@@ -528,9 +533,9 @@ class RoutineAssignRequest(BaseModel):
     intensity: RoutineIntensity = "moderate"
     #: 근력이면 세트 수·한 세트당 횟수·중량(kg). 다른 유형에서 와도 저장하지
     #: 않는다.
-    sets: int | None = Field(default=None, gt=0, le=99)
-    reps: int | None = Field(default=None, gt=0, le=999)
-    weight: float | None = Field(default=None, ge=0, le=1000)
+    sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
     source: RoutineSource = "trainer"
     #: 전송 시도당 클라이언트가 만드는 멱등키. 재시도 시 **같은 키를 다시 보내야**
@@ -551,9 +556,9 @@ class RoutineSuggestionCreateRequest(BaseModel):
     #: 같은 계약이다 — 승인하는 순간 이 행이 그대로 배정이 되므로, 여기서 받지
     #: 않으면 근력 제안은 세트가 빈 채로 회원에게 간다(#1321). 다른 유형에서
     #: 와도 저장하지 않는다.
-    sets: int | None = Field(default=None, gt=0, le=99)
-    reps: int | None = Field(default=None, gt=0, le=999)
-    weight: float | None = Field(default=None, ge=0, le=1000)
+    sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
     #: 이 후보의 근거 문구. 트레이너가 승인 판단에 쓰는 재료이고 회원에게는
     #: 전달되지 않는다. 개수·길이를 묶는 이유는 카드 한 장이 읽히는 분량을
@@ -579,9 +584,9 @@ class RoutineSuggestionApproveRequest(PartialUpdate):
     #: 근력이면 세트 수·한 세트당 횟수·중량(kg). 트레이너가 승인 직전에 고치는
     #: 자리라, 유형을 근력으로 바꾸며 이 셋을 함께 채우는 것이 이 화면의 흔한
     #: 흐름이다(#1321).
-    sets: int | None = Field(default=None, gt=0, le=99)
-    reps: int | None = Field(default=None, gt=0, le=999)
-    weight: float | None = Field(default=None, ge=0, le=1000)
+    sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str | None = Field(default=None, max_length=200)
 
 
@@ -1003,11 +1008,11 @@ class ProgramItem(BaseModel):
     type: RoutineType = "근력"
     date: _date | None = None
     duration: LooseInt = Field(default=None, ge=0, le=600)
-    sets: LooseInt = Field(default=None, ge=0, le=99)
+    sets: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SETS)
     #: 근력의 한 세트당 횟수. 세트·중량과 한 벌이다(#1310) — 셋이 다 있어야
     #: 트레이너가 짠 근력 한 줄이 회원 화면에서 그대로 재현된다.
-    reps: LooseInt = Field(default=None, ge=0, le=999)
-    weight: LooseFloat = Field(default=None, ge=0, le=1000)
+    reps: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_REPS)
+    weight: LooseFloat = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     intensity: RoutineIntensity = "moderate"
     session: str = Field(default="", max_length=100)
 
@@ -1641,9 +1646,9 @@ class ProgramTemplateExercise(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     minutes: int = Field(ge=1, le=300)
     type: RoutineType = "근력"
-    sets: LooseIntZero = Field(default=0, ge=0, le=99)
-    reps: LooseIntZero = Field(default=0, ge=0, le=999)
-    weight: LooseFloatZero = Field(default=0, ge=0, le=1000)
+    sets: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_SETS)
+    reps: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_REPS)
+    weight: LooseFloatZero = Field(default=0, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
 
     @model_validator(mode="after")
     def _drop_fields_not_in_type(self) -> ProgramTemplateExercise:
