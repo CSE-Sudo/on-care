@@ -152,6 +152,29 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
       ? NumberFormat('#,###').format(v)
       : NumberFormat('#,##0.#').format(v);
 
+  /// 카드 머리에 적을 날짜 기간.
+  ///
+  /// `전체` 는 열두 주가 한 화면에 들어가지 않아 옆으로 밀어 본다 — 그때 적어야
+  /// 할 것은 기간 전체가 아니라 **지금 보이는 막대의 구간**이다. 같은 줄의
+  /// `하루 평균` 이 이미 보이는 구간만 세므로(#1018), 날짜만 12주에 머물면 한
+  /// 화면의 두 글이 서로 다른 기간을 말한다(#1985). 운동 탭 `전체` 가 이미
+  /// `_selection.visible` 로 구간을 적는 방식과 맞춘다.
+  ///
+  /// `이번 주` 는 일곱 칸이 한 화면에 다 들어가 밀리지 않으므로 늘 월~일이다.
+  /// 보이는 구간을 아직 모르는 첫 프레임도 기간 전체를 적는다 — 날짜 줄이
+  /// 비었다 채워지며 깜빡이지 않게. 그래프가 자리를 잡으면 곧 따라온다.
+  DietDateRange _shownRange() {
+    final (int, int)? visible = _selection.visible;
+    if (widget.weekly || visible == null) return widget.range;
+    // 그래프가 그리는 칸과 **같은 날짜 배열**이다 — 기간 집계도 이 목록으로
+    // 만들어지므로(`dietPeriodProvider`) 인덱스가 어긋나지 않는다.
+    final List<DateTime> dates = dietRangeDates(widget.range);
+    if (dates.isEmpty) return widget.range;
+    final int from = visible.$1.clamp(0, dates.length - 1);
+    final int to = visible.$2.clamp(from, dates.length - 1);
+    return (from: dates[from], to: dates[to]);
+  }
+
   void _retry() {
     // 실패는 날짜별 provider 에 남아 있다. 집계만 무효화하면 같은 에러를 다시
     // 읽어 와 아무 일도 일어나지 않는다.
@@ -195,17 +218,25 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
             // 좁은 화면에서 먼저 줄어드는 쪽은 범위다 — 버튼은 눌러야 하는
             // 것이라 잘리면 안 된다.
             Expanded(
-              child: Text(
-                l.dietPeriodRange(
-                  fmt.format(widget.range.from),
-                  fmt.format(widget.range.to),
-                ),
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textSecondary),
+              // 그래프를 밀면 이 줄도 따라 바뀐다 ([_shownRange], #1985).
+              child: ListenableBuilder(
+                listenable: _selection,
+                builder: (BuildContext context, Widget? _) {
+                  final DietDateRange shown = _shownRange();
+                  return Text(
+                    key: const Key('diet-period-range'),
+                    l.dietPeriodRange(
+                      fmt.format(shown.from),
+                      fmt.format(shown.to),
+                    ),
+                    textAlign: TextAlign.right,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tokens
+                        .text(OnCareTypography.caption)
+                        .copyWith(color: OnCareColors.textSecondary),
+                  );
+                },
               ),
             ),
           ],
