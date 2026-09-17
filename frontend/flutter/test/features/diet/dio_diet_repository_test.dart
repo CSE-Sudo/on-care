@@ -130,6 +130,9 @@ void main() {
     final List<Object?> foods = body['foods']! as List<Object?>;
     expect(foods.single, <String, Object?>{
       'name': '현미밥',
+      // 섭취량을 모르는 음식은 null 로 나간다 — 0 으로 지어내면 "0g 먹었다" 가
+      // 되어 서버가 그 값을 기준 삼는다(#1876).
+      'amount_g': null,
       'calories': 220,
       'sodium_mg': 3,
       'sugar_g': 0.5,
@@ -137,6 +140,55 @@ void main() {
       'protein_g': 5.0,
       'fat_g': 1.8,
     });
+  });
+
+  test('섭취량은 저장 요청에 실리고 응답에서 다시 읽힌다', () async {
+    // 섭취량은 나머지 여섯 값의 기준이다. 요청에서 빠지면 다음에 이 끼니를
+    // 열었을 때 양을 모르는 기록이 되어, 양으로 영양을 움직이는 길이 저장
+    // 한 번에 끊긴다(#1876).
+    final Dio amountDio = Dio(BaseOptions(baseUrl: 'https://example.test'));
+    addTearDown(amountDio.close);
+    late Map<String, Object?> sentBody;
+    amountDio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (RequestOptions options, RequestInterceptorHandler handler) {
+          sentBody = (options.data as Map<String, Object?>?) ?? const {};
+          handler.resolve(
+            Response<Map<String, Object?>>(
+              requestOptions: options,
+              statusCode: 200,
+              data: <String, Object?>{
+                ..._serverResponse,
+                'foods': <Object?>[
+                  <String, Object?>{
+                    'name': '현미밥',
+                    'amount_g': 210,
+                    'calories': 310,
+                  },
+                  // 양을 못 얻은 음식과 이 필드 이전 기록이 실제로 섞여 온다.
+                  <String, Object?>{'name': '김', 'calories': 5},
+                ],
+              },
+            ),
+          );
+        },
+      ),
+    );
+
+    final DietEntry updated = await DioDietRepository(amountDio).updateEntry(
+      id: 'diet-edit',
+      foods: const <FoodItem>[
+        FoodItem(name: '현미밥', calories: 310, amountG: 210),
+        FoodItem(name: '김', calories: 5),
+      ],
+    );
+
+    final List<Object?> sentFoods = sentBody['foods']! as List<Object?>;
+    expect((sentFoods.first as Map<String, Object?>)['amount_g'], 210);
+    expect((sentFoods.last as Map<String, Object?>)['amount_g'], isNull);
+    // 서버가 실은 값을 앱이 되읽을 수 있어야 한다.
+    expect(updated.foods.first.amountG, 210);
+    expect(updated.foods.last.amountG, isNull, reason: '없는 양을 0 으로 지어내지 않는다');
   });
 
   test('음식을 보내지 않으면 요청에 foods 가 실리지 않는다', () async {

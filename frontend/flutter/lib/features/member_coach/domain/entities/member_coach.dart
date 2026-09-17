@@ -283,6 +283,9 @@ class CoachAttachment {
 ///
 /// 세트·횟수·중량은 문자열이다. 트레이너가 "10회"·"자체중량" 처럼 적을 수 있고,
 /// 숫자로 바꾸면 그 표현이 사라진다(#709).
+///
+/// 한 줄 요약은 `coachRoutineExerciseDetail` 이 만든다 — 세트·분·초의 단위는
+/// 로케일을 타는데 엔티티는 `AppLocalizations` 에 닿을 수 없다(#1933).
 class CoachRoutineExercise {
   const CoachRoutineExercise({
     required this.name,
@@ -301,19 +304,6 @@ class CoachRoutineExercise {
   final String duration;
   final String rest;
   final String memo;
-
-  /// "4세트 × 12회 · 60kg" 처럼 한 줄로 읽히는 요약. 비어 있는 값은 건너뛴다.
-  String get detail => <String>[
-    if (sets.isNotEmpty && reps.isNotEmpty)
-      '$sets세트 × $reps'
-    else if (sets.isNotEmpty)
-      '$sets세트'
-    else if (reps.isNotEmpty)
-      reps,
-    if (duration.isNotEmpty) '$duration분',
-    if (weight.isNotEmpty && weight != '-') weight,
-    if (rest.isNotEmpty) '휴식 $rest초',
-  ].join(' · ');
 }
 
 /// 트레이너가 나에게 보낸 담당 요청. (#919)

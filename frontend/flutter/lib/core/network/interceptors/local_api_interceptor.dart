@@ -78,6 +78,7 @@ class LocalApiInterceptor extends Interceptor {
     'GET /diet/advice': _dietAdvice,
     'GET /diet/recommendations': _dietRecommendations,
     'POST /diet/analyze': _dietAnalyze,
+    'POST /diet/nutrition': _dietNutrition,
     'GET /exercise/weeks/current': _exerciseCurrentWeek,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
@@ -90,6 +91,7 @@ class LocalApiInterceptor extends Interceptor {
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
+    'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,
     'POST /auth/social/google': _authSocial,
     'GET /users/me': _usersMe,
@@ -1464,6 +1466,64 @@ class LocalApiInterceptor extends Interceptor {
     'other': 5.0,
   };
 
+  /// POST /diet/nutrition — 음식 이름으로 공공 영양 DB 값. (#1896)
+  ///
+  /// 서버와 같은 순서다: 이름을 표에 붙이고, 붙었으면 **양으로 환산**해 돌려준다.
+  /// 양은 부르는 쪽이 준 값이 우선이고 없으면 그 음식의 1회 섭취량이다. 둘 다
+  /// 없으면 찾은 셈 치지 않는다 — 임의로 1인분을 가정해 확정할 수 없는 숫자를
+  /// "공공 DB 근거" 로 내밀지 않는 것이 서버 보정과 같은 원칙이다.
+  Future<Response<Object?>> _dietNutrition(RequestOptions options) async {
+    final Map<String, Object?> payload = _payloadOf(options.data);
+    final String name = ((payload['name'] as String?) ?? '').trim();
+    if (name.isEmpty) {
+      return _badRequest(options, '음식 이름을 입력해 주세요.');
+    }
+    final _DemoFood? match = _matchDemoFood(name);
+    final double? amountG =
+        (payload['amount_g'] as num?)?.toDouble() ?? match?.servingG;
+    if (match == null || amountG == null || amountG <= 0) {
+      // 못 찾았다 — 앱은 이때 아무것도 제안하지 않는다.
+      return _ok(options, <String, Object?>{
+        'matched_name': null,
+        'source': 'estimate',
+      });
+    }
+    // 표는 1인분 기준이라 `양 / 1인분` 이 그대로 배율이다(서버는 100g 기준값을
+    // 들고 `양 / 100` 을 곱한다 — 같은 값에 닿는 두 표기다).
+    final double scale = amountG / match.servingG;
+    return _ok(options, <String, Object?>{
+      'matched_name': match.name,
+      'source': 'db',
+      'amount_g': amountG,
+      'calories': (match.calories * scale).round(),
+      'sodium_mg': (match.sodiumMg * scale).round(),
+      'sugar_g': match.sugarG * scale,
+      'carbs_g': match.carbsG * scale,
+      'protein_g': match.proteinG * scale,
+      'fat_g': match.fatG * scale,
+    });
+  }
+
+  /// 이름 → 데모 영양표. 서버 `match_in_rows` 를 줄여 옮긴 것이다 —
+  /// 정확히 같은 이름 먼저, 그다음 표의 이름이 질의에 들어 있는 것 중 가장 긴 것.
+  _DemoFood? _matchDemoFood(String query) {
+    String norm(String v) => v.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    final String q = norm(query);
+    if (q.isEmpty) return null;
+    for (final _DemoFood f in _demoFoods) {
+      if (norm(f.name) == q) return f;
+    }
+    final List<_DemoFood> contained = <_DemoFood>[
+      for (final _DemoFood f in _demoFoods)
+        if (q.contains(norm(f.name))) f,
+    ];
+    if (contained.isEmpty) return null;
+    contained.sort(
+      (_DemoFood a, _DemoFood b) => norm(b.name).length - norm(a.name).length,
+    );
+    return contained.first;
+  }
+
   /// POST /exercise/calories — 운동 이름·시간·강도로 예상 소모 칼로리. (#1312)
   ///
   /// 서버와 같은 순서다: 이름을 종목표에 붙이고, 붙었으면 계수 × 데모 회원 체중
@@ -2245,6 +2305,27 @@ class LocalApiInterceptor extends Interceptor {
     return Response<Object?>(requestOptions: options, statusCode: 204);
   }
 
+  /// POST /auth/refresh — 데모도 접근 토큰을 회전해 준다. (#1944)
+  ///
+  /// 데모 라우트 표에 이것이 빠져 있어, 목 빌드의 갱신 요청이 두 인터셉터를 모두
+  /// 지나쳐 **실제 `apiBaseUrl` 로 나갔다** — #966 이 `/auth/logout` 에 대해
+  /// 막았던 그 누출이 갱신 경로에 남아 있었다.
+  ///
+  /// 갱신 토큰은 쓰던 것을 그대로 돌려준다. 실서버도 회전 토큰을 항상 새로 주는
+  /// 것은 아니라, 앱이 둘 다 다룰 수 있어야 한다.
+  Future<Response<Object?>> _authRefresh(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final refresh = (body['refresh_token'] as String? ?? '').trim();
+    if (refresh.isEmpty) {
+      return _badRequest(options, 'refresh_token is required');
+    }
+    return _ok(options, <String, Object?>{
+      'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
+      'refresh_token': refresh,
+      'token_type': 'bearer',
+    });
+  }
+
   /// POST /auth/social/{provider} — the demo exchanges any non-empty
   /// provider token for a session. Real provider-token verification is
   /// done by FastAPI (+ provider SDK) when USE_MOCK_API=false.
@@ -2336,11 +2417,15 @@ class LocalApiInterceptor extends Interceptor {
       'phone',
       'birth_date',
       'gender',
-      'height_cm',
-      'weight_kg',
       'goals',
     ]) {
       if (body[k] != null) patch[k] = body[k];
+    }
+    // 키·몸무게만 **키가 있는지**를 본다. 비울 수 있는 두 칸이라 명시적 null 은
+    // 지움이고, 값으로 거르면 지운 값이 되살아난다 — 서버도 이 둘만
+    // `nullable_fields` 로 둔다(#1941).
+    for (final String k in <String>['height_cm', 'weight_kg']) {
+      if (body.containsKey(k)) patch[k] = body[k];
     }
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
@@ -2759,3 +2844,51 @@ Map<String, Object?> _macroPayload(
     'fat_pct': percentages[2],
   };
 }
+
+/// 데모 영양표 한 줄 — **1인분 기준**이다. (#1896)
+class _DemoFood {
+  const _DemoFood(
+    this.name,
+    this.servingG,
+    this.calories,
+    this.sodiumMg,
+    this.sugarG,
+    this.carbsG,
+    this.proteinG,
+    this.fatG,
+  );
+
+  final String name;
+
+  /// 1회 섭취량(g). 위 값들이 이 양을 재고 나온 값이라 환산의 분모가 된다.
+  final double servingG;
+  final double calories;
+  final double sodiumMg;
+  final double sugarG;
+  final double carbsG;
+  final double proteinG;
+  final double fatG;
+}
+
+/// 이름으로 찾는 데모 영양표. 백엔드 큐레이션 시드(`food_nutrients_seed.py`)의
+/// 같은 이름·같은 1인분 값을 옮긴 것이다 — 한쪽만 고치면 로컬 데모와 서버 데모가
+/// 같은 음식에 다른 수치를 말한다(`_dietAnalyze` 의 세 줄과 같은 규약).
+///
+/// 전부가 아니라 시연에서 실제로 쳐 볼 만한 것만 둔다. 없는 이름은 제안이 뜨지
+/// 않을 뿐 수정과 저장은 그대로 된다.
+const List<_DemoFood> _demoFoods = <_DemoFood>[
+  _DemoFood('공기밥', 210, 310, 3, 0, 68, 6, 1),
+  _DemoFood('비빔밥', 500, 600, 900, 8, 90, 20, 15),
+  _DemoFood('김밥', 200, 480, 700, 6, 75, 12, 12),
+  _DemoFood('김치찌개', 400, 250, 1200, 3, 12, 15, 14),
+  _DemoFood('된장찌개', 400, 180, 1300, 4, 10, 12, 9),
+  _DemoFood('짜장면', 650, 700, 2400, 12, 104, 16, 20),
+  _DemoFood('짬뽕', 700, 660, 4000, 8, 90, 25, 18),
+  _DemoFood('라면', 550, 500, 1800, 5, 70, 10, 16),
+  _DemoFood('삼계탕', 1000, 900, 1400, 1, 40, 70, 45),
+  _DemoFood('떡볶이', 300, 550, 1600, 20, 100, 10, 12),
+  // 분석 데모가 돌려주는 세 줄 — 그 끼니를 수정하며 이름을 고쳐도 붙게 둔다.
+  _DemoFood('요거트 아이스크림', 110, 135, 55, 14.5, 26, 3, 2),
+  _DemoFood('과일 토핑', 90, 55, 5, 9, 13, 1, 0.5),
+  _DemoFood('그래놀라 토핑', 50, 205, 125, 6, 20, 5, 11.5),
+];

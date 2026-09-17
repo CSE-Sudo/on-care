@@ -239,6 +239,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietNutritionSummary => '영양 요약';
 
   @override
+  String get dietAmount => '내용량';
+
+  @override
   String get dietCalories => '칼로리';
 
   @override
@@ -317,6 +320,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String dietMealSheetTitle(String meal) {
     return '$meal 식단';
   }
+
+  @override
+  String dietFoodDbMatch(String name) {
+    return '공공 DB · $name';
+  }
+
+  @override
+  String get dietFillFromDb => '값 채우기';
 
   @override
   String get dietAddSheetTitle => '식단 추가';
@@ -492,7 +503,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddFood => '음식 추가';
 
   @override
-  String get dietEditFoodHint => '음식명과 칼로리를 수정할 수 있어요';
+  String get dietEditFoodHint => '내용량을 고치면 영양이 비례해 따라와요';
 
   @override
   String get dietTotalCalories => '총 칼로리';
@@ -644,6 +655,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exRest => '휴식';
+
+  @override
+  String exRestSeconds(int seconds) {
+    return '휴식 $seconds초';
+  }
 
   @override
   String get exAiRecommendedExercise => 'AI 추천 운동';
@@ -1075,10 +1091,34 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsRecipeCost => '500P';
 
   @override
+  String get a11yCoachPhoto => '트레이너가 보낸 사진';
+
+  @override
+  String get a11yMealPhoto => '끼니 사진';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return '$name 사진';
+  }
+
+  @override
   String get myLogout => '로그아웃';
 
   @override
   String get myLogoutConfirm => '로그아웃 하시겠어요?';
+
+  @override
+  String get myWithdrawTitle => '회원 탈퇴';
+
+  @override
+  String get myWithdrawConfirm =>
+      '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화도 사라집니다. 되돌릴 수 없어요.';
+
+  @override
+  String get myWithdrawAction => '탈퇴하기';
+
+  @override
+  String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
   String get myCancel => '취소';
@@ -1866,6 +1906,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySupportExternalHint => '카카오톡 채널로 연결돼요';
 
   @override
+  String get authRestoring => '로그인 정보를 불러오는 중이에요';
+
+  @override
+  String get authRestoreFailed => '연결이 불안정해 로그인 정보를 불러오지 못했어요.';
+
+  @override
+  String get authRestoreRetry => '다시 시도';
+
+  @override
+  String get authRestoreSignIn => '로그인 화면으로';
+
+  @override
   String get authTagline => '식단·운동 관리 앱';
 
   @override
@@ -2372,8 +2424,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalCaloriesFromMacros => '탄·단·지 목표로 계산한 값이에요';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return '${kcal}kcal 기준 권장 배분: 탄수화물 ${carbs}g · 단백질 ${protein}g · 지방 ${fat}g · 당류 ${sugar}g';
   }
 
   @override
