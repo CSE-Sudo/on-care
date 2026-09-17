@@ -62,7 +62,7 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           coachOverride,
-          coachUnreadProvider.overrideWith((ref) async => 0),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
         ],
         child: MaterialApp.router(
           theme: AppTheme.light(),
@@ -151,7 +151,7 @@ void main() {
           memberCoachProvider.overrideWith(
             (ref) => Completer<MemberCoach?>().future,
           ),
-          coachUnreadProvider.overrideWith((ref) async => 0),
+          coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),

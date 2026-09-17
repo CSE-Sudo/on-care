@@ -1140,6 +1140,8 @@
   "trainerSyncExpired": "This code has expired.",
   "trainerSyncFailed": "Could not get a code.",
   "trainerSyncRetry": "Get a new code",
+  "signUpCreatedSignInNeeded": "Your account was created. Please sign in.",
+  "@signUpCreatedSignInNeeded": {"description": "Sign-up: the account was created but the follow-up sign-in failed (#1926)."},
   "signUpEmailTaken": "That email is already registered. Please sign in.",
   "signUpFailed": "Sign-up failed. Please try again in a moment.",
   "onboardSkip": "Do this later",

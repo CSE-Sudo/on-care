@@ -82,6 +82,10 @@ class _MainShellState extends ConsumerState<MainShell>
 
   void _refreshMemberData() {
     ref.invalidate(dashboardSummaryProvider);
+    // 홈의 AI 추천 식단도 함께 되짚는다. 무효화되는 곳이 세션 초기화 하나뿐이라,
+    // 앱을 켠 순간의 추천이 하루 종일 고정되고 첫 조회가 실패하면 기본 추천이
+    // 앱 수명 내내 남았다(#1938).
+    ref.invalidate(dietRecommendationsProvider);
     ref.invalidate(exerciseWeekProvider);
     ref.invalidate(coachRoutinesProvider);
     ref.invalidate(coachSessionsProvider);
@@ -91,6 +95,7 @@ class _MainShellState extends ConsumerState<MainShell>
     switch (index) {
       case 0:
         ref.invalidate(dashboardSummaryProvider);
+        ref.invalidate(dietRecommendationsProvider);
         ref.invalidate(coachSessionsProvider);
         break;
       case 1:
