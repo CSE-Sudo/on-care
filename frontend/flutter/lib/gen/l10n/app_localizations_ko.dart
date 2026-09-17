@@ -2501,6 +2501,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineTitle => '추천 개인운동';
 
   @override
+  String get coachRoutineAiTitle => 'AI 추천 개인운동';
+
+  @override
   String get coachRoutineByTrainer => '트레이너 직접 추천';
 
   @override

@@ -2597,6 +2597,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineTitle => 'Recommended solo workouts';
 
   @override
+  String get coachRoutineAiTitle => 'AI recommended solo workouts';
+
+  @override
   String get coachRoutineByTrainer => 'Recommended by your trainer';
 
   @override
