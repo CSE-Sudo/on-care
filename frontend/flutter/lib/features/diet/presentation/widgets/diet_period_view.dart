@@ -475,8 +475,15 @@ class _WeekTrend extends StatelessWidget {
   final PeriodChartSelection selection;
 
   /// 오늘·이번 주·전체 카드 높이를 같게 두면서(#1124) 남는 자리를 그래프가
-  /// 쓴다 — 막대가 쓰던 높이(108)보다 조금 낮다. 축 라벨 칸이 따로 없어서다.
-  static const double _chartHeight = 105;
+  /// 쓴다 — 카드 높이에서 그래프가 아닌 것들(카드 안쪽 여백 32, 머리 숫자
+  /// 한 덩어리, 그 아래 간격, 요일 라벨 줄)이 쓰는 자리를 뺀 나머지다.
+  ///
+  /// **고정값으로 두지 않는다**(#1956). 105 로 박아 둔 사이 카드 높이만
+  /// 240 → 248 → 284 로 올라(#1699, #1879) 그 차이가 전부 카드 아래 빈 칸으로
+  /// 남았다. 빼는 값은 실제로 재서 얻었고, 글자 지표가 조금 달라도 카드가
+  /// 늘어나지 않도록 몇 dp 여유를 남긴다 — 남는 자리는 카드의 가운데 정렬이
+  /// 위아래로 나눈다.
+  static const double _chartHeight = kDietSummaryCardHeight - 128;
 
   @override
   Widget build(BuildContext context) {
@@ -641,8 +648,11 @@ class _PeriodBars extends StatelessWidget {
   final String unit;
   final String Function(num) format;
 
-  /// 카드 높이를 오늘과 같게 맞추기 위한 그래프 높이다 (#1124).
-  static const double _chartHeight = 108;
+  /// 카드 높이를 오늘과 같게 맞추기 위한 그래프 높이다 (#1124). 꺾은선과 같은
+  /// 규칙으로 카드 높이에서 나머지가 쓰는 자리를 뺀다 — 고정값 108 은 카드가
+  /// 240 이던 시절 값이라 그 뒤 늘어난 만큼이 카드 아래 빈 칸이 됐다(#1956).
+  /// 막대 쪽이 4dp 더 높은 것은 날짜 라벨 줄이 요일 라벨보다 낮아서다.
+  static const double _chartHeight = kDietSummaryCardHeight - 124;
 
   /// [i] 번째 칸의 원본. 칼로리를 보고 있지 않으면 null 이다.
   DietPeriodDay? _dayAt(int i) {
