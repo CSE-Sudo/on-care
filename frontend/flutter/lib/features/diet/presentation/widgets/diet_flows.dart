@@ -9,6 +9,7 @@ import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis_failure.dart';
@@ -19,8 +20,6 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/features/diet/presentation/widgets/meal_photo_view.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/modals/add_event_dialog.dart'
-    show wireDate;
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -589,6 +588,27 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   String _dateLabel(BuildContext context, DateTime date) =>
       DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date);
 
+  /// 이 기록이 들어갈 끼니. `widget.mealType` 은 사진을 고른 시각으로 추측한
+  /// 값이다(`_currentMealType`). 저장한 뒤 끼니 카드가 아침·점심·저녁·간식
+  /// 중 어디에 붙을지가 여기서 정해지므로, 저장 전에 보여 준다(#1897).
+  MealType get _meal => MealType.values.firstWhere(
+    (MealType m) => m.name == widget.mealType,
+    orElse: () => MealType.snack,
+  );
+
+  /// `2026년 9월 16일 12:30 · 점심` — 날짜만 적으면 같은 날 세 끼가 구분되지
+  /// 않아 어느 끼니로 들어가는지 알 수 없었다(#1897).
+  ///
+  /// 시각은 서버가 저장한 값(`time_label`)을 그대로 쓴다. 앱이 제 시계로 다시
+  /// 계산하면 나중에 끼니 카드가 보여 주는 시각과 어긋날 수 있다. 그 값을
+  /// 모르는 서버면 날짜와 끼니만 적는다.
+  String _dateAndMealLabel(BuildContext context, AppLocalizations l) {
+    final String date = _dateLabel(context, _date);
+    final String time = _result?.timeLabel ?? '';
+    final String when = time.isEmpty ? date : '$date $time';
+    return '$when · ${mealBadge(l, _meal)}';
+  }
+
   /// Sends the user back to the source picker. The photo they have can't be
   /// analysed, so "다시 시도" would just fail again — the useful next step is
   /// choosing a different one.
@@ -686,9 +706,35 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       // 닫기는 아래 `취소` 버튼 하나로 모은다 — 머리의 X 와 둘이 있으면 같은
       // 일을 하는 자리가 화면에 둘이다(#1564).
       showClose: false,
-      // 결과가 길어지면 시트 안에서만 스크롤하고 버튼은 바닥에 붙어 있다(#1432).
+      // 이 시트는 AI 가 읽은 결과를 말한다 — 홈의 `오늘의 AI 통합 조언` 과
+      // 같은 아바타를 써서 두 화면이 같은 목소리로 읽히게 한다(#1897).
+      leading: const OniAvatar(size: OnCareSize.avatarMedium),
+      // 연필은 닫기 X 가 비워 둔 헤더 우측에 둔다. 인식된 음식 줄에 있던 것을
+      // 올렸다 — 시트 전체가 "AI 가 읽은 것"이고 연필은 그것을 고치는 문이라,
+      // 음식 한 줄보다 머리 쪽이 걸린 범위와 맞는다(#1897).
+      trailing: _editButton(l),
+      // 버튼을 바닥에 고정하면 코멘트 마지막 줄을 덮는다(#1897). 스크롤 끝으로
+      // 보내 다 읽은 뒤에 나오게 한다 — #1432 의 "시트 안에서만 스크롤"은
+      // 그대로다.
+      pinFooter: false,
       footer: _footer(l),
       child: _body(),
+    );
+  }
+
+  /// 인식된 데이터를 고치러 가는 문. 헤더 우측에 놓이므로 결과가 있을 때만
+  /// 만든다 — 분석 중이거나 실패한 시트에는 고칠 것이 없다.
+  Widget? _editButton(AppLocalizations l) {
+    final DietAnalysisResult? r = _result;
+    if (_loading || _failed || r == null || r.entryId.isEmpty) return null;
+    // 식단 상세가 연필을 쓰므로 여기서도 연필이다 — 같은 곳으로 가는 문이
+    // 화면마다 다른 모양이면 다른 동작으로 읽힌다(#1864).
+    return AppIconButton(
+      key: const Key('diet-result-edit'),
+      icon: AppIcons.edit,
+      tooltip: l.actionEdit,
+      size: AppIconButtonSize.small,
+      onPressed: _openEdit,
     );
   }
 
@@ -756,43 +802,31 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        // 이 시트에서 강조할 것은 AI 가 무엇으로 읽었는지 하나다 — 거기에만
+        // 옅은 브랜드 채움을 준다. `0389e572` 가 걷어낸 것은 구획을 여럿
+        // 쌓아 카드가 온통 옅은 파랑이 되는 것이고, 그 커밋이 남긴 규칙은
+        // "바탕은 강조인 것만"이다. 그래서 박스는 여기 하나뿐이다(#1897).
         AppTile(
-          tone: AppTileTone.none,
-          child: Row(
+          key: const Key('diet-result-recognized'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      l.dietRecognizedFood,
-                      style: _text(
-                        context,
-                        OnCareTypography.strong(OnCareTypography.caption),
-                        tokens.brand.primary,
-                      ),
-                    ),
-                    const SizedBox(height: OnCareSpacing.s4),
-                    Text(
-                      recognized.isEmpty ? l.dietNoRecognizedFood : recognized,
-                      style: _text(
-                        context,
-                        OnCareTypography.titleSmall,
-                        OnCareColors.textPrimary,
-                      ),
-                    ),
-                  ],
+              Text(
+                l.dietRecognizedFood,
+                style: _text(
+                  context,
+                  OnCareTypography.strong(OnCareTypography.caption),
+                  tokens.brand.primary,
                 ),
               ),
-              // 잘못 읽은 메뉴를 그 자리에서 고치러 간다(#1564). 식단 상세가
-              // 연필을 쓰므로 여기서도 연필이다 — 같은 곳으로 가는 문이
-              // 화면마다 다른 모양이면 다른 동작으로 읽힌다(#1864).
-              AppIconButton(
-                key: const Key('diet-result-edit'),
-                icon: AppIcons.edit,
-                tooltip: l.actionEdit,
-                size: AppIconButtonSize.small,
-                onPressed: r.entryId.isEmpty ? null : _openEdit,
+              const SizedBox(height: OnCareSpacing.s4),
+              Text(
+                recognized.isEmpty ? l.dietNoRecognizedFood : recognized,
+                style: _text(
+                  context,
+                  OnCareTypography.titleSmall,
+                  OnCareColors.textPrimary,
+                ),
               ),
             ],
           ),
@@ -818,7 +852,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
               const SizedBox(width: OnCareSpacing.s12),
               Expanded(
                 child: Text(
-                  _dateLabel(context, _date),
+                  _dateAndMealLabel(context, l),
                   key: const Key('diet-result-date'),
                   style: _text(
                     context,
@@ -1157,6 +1191,17 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     return e;
   }
 
+  /// 이 끼니에 탄수화물이 적혀 있었나 — 저장된 값 기준이다(#1893).
+  ///
+  /// 탄수화물 0 은 두 가지다. 인식기가 그 값을 못 준 옛 기록의 0 과, 회원이
+  /// 방금 지운 0. 앞은 봐주지 않으면 그 기록을 영영 고칠 수 없고, 뒤는
+  /// 봐주면 탄수화물을 지워 검사를 피할 수 있다. 서버도 `entry.carbs_g` 로
+  /// 같은 판단을 하므로, 저장에 성공할 때마다 함께 갱신한다.
+  late bool _carbsRecorded = _carbsOf(widget.meal.items) > 0;
+
+  static double _carbsOf(List<DietFood> foods) =>
+      foods.fold<double>(0, (double a, DietFood f) => a + f.carbsG);
+
   /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
   /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
   static const double _photoHeight = 300;
@@ -1219,14 +1264,18 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   }
 
   /// 당류 칸에 보일 오류 문구. 맞으면 null 이다.
+  ///
+  /// 서버의 `_sugar_exceeds_carbs` 와 같은 규칙이다(#1893). 앱이 더 엄격하면
+  /// 서버가 받아 주는 값을 저장할 수 없고, 더 느슨하면 다 적고 저장을 누른
+  /// 뒤에야 어느 칸이 문제인지 모르는 실패 토스트만 뜬다.
   String? _checkSugar(_FoodEditors e) {
     final double carbs = _asDouble(e.carbs);
-    // 탄수화물이 0 이면 적지 않은 것으로 본다 — 서버도 그때는 검사하지
-    // 않으므로(#1877), 앱만 막으면 서버가 받아 주는 기록을 고칠 길이 없다.
-    // 실제로 탄수화물 없이 저장된 옛 기록이 있다.
-    if (carbs <= 0) return null;
     // 같은 값은 통과한다 — 전부 당인 음식이 있다.
     if (_asDouble(e.sugar) <= carbs) return null;
+    // 탄수화물 0 을 어떻게 볼지는 [_carbsRecorded] 가 정한다. 이 끼니에
+    // 탄수화물이 처음부터 없었다면 인식기가 그 값을 못 준 기록이라 봐주고
+    // (#1877), 회원이 방금 0 으로 바꾼 0 은 적은 값으로 본다.
+    if (carbs <= 0 && !_carbsRecorded) return null;
     return AppLocalizations.of(context).dietSugarOverCarbs;
   }
 
@@ -1508,6 +1557,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
         _editing = false;
         _savedType = _type;
         _savedFoods = List<DietFood>.of(_foods);
+        // 저장된 끼니가 바뀌었으니 "탄수화물이 적혀 있었나" 의 답도 바뀐다.
+        // 서버가 다음 요청에서 보는 값과 같은 값이어야 한다(#1893).
+        _carbsRecorded = _carbsOf(_foods) > 0;
       });
       if (!toastContext.mounted) return;
       showAppToast(toastContext, l.dietSaved, type: AppToastType.success);

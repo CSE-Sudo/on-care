@@ -947,9 +947,11 @@ def test_update_entry_changes_nutrition_and_today_totals(client, db_session):
         "fat_pct": 23,
     }
 
+    # 탄수화물을 0 으로 실어 보내므로 당류도 함께 비운다 — 보낸 0 은 적은
+    # 값이라, 당류 7 을 남겨 두면 어긋난 요청이 된다(#1893).
     zeroed = client.put(
         f"/v1/diet/entries/{entry_id}",
-        json={"carbs_g": 0, "protein_g": 0, "fat_g": 0},
+        json={"carbs_g": 0, "protein_g": 0, "fat_g": 0, "sugar_g": 0},
     )
     assert zeroed.status_code == 200
     assert client.get("/v1/diet/days/today").json()["macros"] == {
@@ -1085,6 +1087,108 @@ def test_update_entry_rejects_sugar_over_carbs_in_sent_foods(client):
     assert "당류" in r.json()["detail"]
 
 
+def _entry_with_carbs(client, carbs: float, sugar: float = 0.0) -> str:
+    """탄수화물이 `carbs` 로 저장된 끼니. 0 이면 인식기가 값을 못 준 옛 기록이다."""
+    entry_id = _analyzed_entry_id(client)
+    client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={"carbs_g": carbs, "protein_g": 0.0, "fat_g": 0.0, "sugar_g": sugar},
+    )
+    return entry_id
+
+
+def test_update_entry_checks_sugar_per_food(client):
+    """합계가 아니라 음식 하나하나를 견준다(#1893).
+
+    합계로만 보면 탄수화물이 넉넉한 다른 음식이 어긋난 음식을 가려 준다.
+    """
+    entry_id = _entry_with_carbs(client, 50.0)
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={
+            "foods": [
+                # 이 음식 하나가 어긋난다 — 당류 9 > 탄수화물 2.
+                {"name": "어긋난 음식", "calories": 50, "carbs_g": 2.0, "sugar_g": 9.0},
+                # 합계로 보면 탄수화물 82 > 당류 9 라 통과해 버린다.
+                {"name": "멀쩡한 음식", "calories": 300, "carbs_g": 80.0, "sugar_g": 0.0},
+            ]
+        },
+    )
+
+    assert r.status_code == 422, r.text
+    assert "어긋난 음식" in r.json()["detail"], "어느 줄이 문제인지 말해 줘야 한다"
+    assert "1번째" in r.json()["detail"]
+
+
+def test_update_entry_allows_each_food_within_its_own_carbs(client):
+    entry_id = _entry_with_carbs(client, 50.0)
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={
+            "foods": [
+                {"name": "딸기", "calories": 32, "carbs_g": 8.0, "sugar_g": 5.5},
+                # 전부 당인 음식 — 같은 값은 통과한다.
+                {"name": "각설탕", "calories": 20, "carbs_g": 5.0, "sugar_g": 5.0},
+            ]
+        },
+    )
+
+    assert r.status_code == 200, r.text
+    assert r.json()["sugar_g"] == pytest.approx(10.5)
+
+
+def test_update_entry_rejects_carbs_cleared_by_the_member(client):
+    """회원이 탄수화물을 0 으로 바꿨으면 그 0 은 적은 값이다(#1893)."""
+    entry_id = _entry_with_carbs(client, 50.0)
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={
+            "foods": [
+                {"name": "지운 음식", "calories": 50, "carbs_g": 0.0, "sugar_g": 9.0}
+            ]
+        },
+    )
+
+    assert r.status_code == 422, "탄수화물을 지워 검사를 피할 수 없어야 한다"
+
+
+def test_update_entry_still_allows_records_that_never_had_carbs(client):
+    """탄수화물 없이 저장된 옛 기록은 지금처럼 고칠 수 있다(#1877).
+
+    이걸 막으면 그 기록의 당류를 영영 고칠 수 없다.
+    """
+    entry_id = _entry_with_carbs(client, 0.0)
+
+    r = client.put(
+        f"/v1/diet/entries/{entry_id}",
+        json={
+            "foods": [
+                {"name": "옛 기록 음식", "calories": 50, "carbs_g": 0.0, "sugar_g": 9.0}
+            ]
+        },
+    )
+
+    assert r.status_code == 200, r.text
+    assert r.json()["sugar_g"] == pytest.approx(9.0)
+
+
+def test_update_entry_rejects_zero_carbs_sent_without_foods(client):
+    """음식 없이 합계만 고칠 때도 보낸 0 은 적은 값이다."""
+    entry_id = _entry_with_carbs(client, 0.0)
+
+    sent = client.put(
+        f"/v1/diet/entries/{entry_id}", json={"carbs_g": 0.0, "sugar_g": 9.0}
+    )
+    assert sent.status_code == 422, "탄수화물 0 을 실어 보냈으면 그 값으로 견준다"
+
+    # 같은 기록이라도 탄수화물을 안 보내면 저장된 0 이라 봐준다(#1877).
+    omitted = client.put(f"/v1/diet/entries/{entry_id}", json={"sugar_g": 9.0})
+    assert omitted.status_code == 200, omitted.text
+
+
 def test_update_entry_without_foods_keeps_stored_foods(client):
     """음식을 보내지 않은 부분 수정은 음식 목록을 건드리지 않는다."""
     entry_id = _analyzed_entry_id(client)
@@ -1161,14 +1265,18 @@ def test_update_entry_allows_sugar_when_carbs_is_zero(client):
     건드리지 않는 정상적인 부분 수정까지 거절된다.
     """
     entry_id = _analyzed_entry_id(client)
+    # 탄수화물을 0 으로 **실어 보내는** 요청이라 당류도 함께 비운다 — 보낸 0 은
+    # 적은 값으로 보므로(#1893), 당류를 남겨 두면 그 요청 자체가 어긋난다.
     assert (
         client.put(
             f"/v1/diet/entries/{entry_id}",
-            json={"carbs_g": 0, "protein_g": 0, "fat_g": 0},
+            json={"carbs_g": 0, "protein_g": 0, "fat_g": 0, "sugar_g": 0},
         ).status_code
         == 200
     )
 
+    # 여기가 이 검사의 요점이다 — 탄수화물을 건드리지 않는 부분 수정은 저장된
+    # 0 을 미기록으로 보고 통과시킨다.
     r = client.put(f"/v1/diet/entries/{entry_id}", json={"sugar_g": 5.0})
     assert r.status_code == 200
     assert r.json()["sugar_g"] == 5.0
@@ -1434,3 +1542,53 @@ def test_diet_advice_says_nothing_when_there_is_nothing(client):
         assert response.status_code == 200, response.text
         assert response.json()["days_logged"] == 0
         assert response.json()["message"]
+
+
+def test_analyze_returns_stored_time_label(client):
+    """분석 응답의 `time_label` 이 저장된 값이고 끼니 목록과 같다(#1897).
+
+    결과 시트가 `날짜 시각 · 끼니` 를 적는데, 앱이 제 시계로 시각을 다시 만들면
+    나중에 끼니 카드가 보여 주는 값과 어긋난다. 서버가 저장한 값을 그대로 내려
+    주는지 본다.
+    """
+    r = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    time_label = body["time_label"]
+    # `HH:MM` 이다 — 끼니 카드가 그대로 그린다.
+    hh, _, mm = time_label.partition(":")
+    assert len(hh) == 2 and hh.isdigit(), time_label
+    assert len(mm) == 2 and mm.isdigit(), time_label
+
+    entry = next(
+        e
+        for e in client.get("/v1/diet/days/today").json()["entries"]
+        if e["id"] == body["entry_id"]
+    )
+    assert entry["time_label"] == time_label
+
+
+def test_analyze_retry_returns_same_time_label(client):
+    """멱등 재시도도 처음 저장한 시각을 그대로 싣는다(#1897).
+
+    재시도가 빈 문자열을 주면 재시도한 사용자만 시각 없는 결과를 보게 된다.
+    """
+    key = f"idem-{uuid4().hex}"
+    first = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch", "idempotency_key": key},
+    )
+    assert first.status_code == 200, first.text
+
+    second = client.post(
+        "/v1/diet/analyze",
+        files={"image": ("food.jpg", _JPEG, "image/jpeg")},
+        data={"meal_type": "lunch", "idempotency_key": key},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["time_label"] == first.json()["time_label"]

@@ -99,7 +99,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), '방금 보낸 메시지');
-      await tester.tap(find.byIcon(Icons.arrow_upward_rounded));
+      await tester.tap(find.byIcon(Icons.send_rounded));
       // Let the send future, the provider invalidation, the refetch, and
       // the resulting scroll animation all settle.
       await tester.pumpAndSettle();

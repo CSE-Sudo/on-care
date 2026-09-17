@@ -7,6 +7,7 @@ import 'package:oncare/features/account/data/repositories/mock_account_repositor
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
+import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -64,6 +65,32 @@ class _MacroRepository extends FakeDietRepository {
   );
 }
 
+/// 칼로리만 있고 탄단지는 모르는 날 — 실서버가 영양을 내려주지 않은 기록이다.
+class _NoMacroRepository extends FakeDietRepository {
+  @override
+  Future<DietDay> fetchByDate(DateTime date) async => _day;
+
+  @override
+  Future<DietDay> fetchToday() async => _day;
+
+  static const DietDay _day = DietDay(
+    entries: <DietEntry>[
+      DietEntry(
+        id: 'e',
+        mealType: MealType.lunch,
+        timeLabel: '12:00',
+        foods: <FoodItem>[FoodItem(name: '한 끼', calories: 1200)],
+        totalCalories: 1200,
+      ),
+    ],
+    totalCalories: 1200,
+    totalSodiumMg: 900,
+    totalSugarG: 8,
+    macros: DietMacros(carbsPct: 0, proteinPct: 0, fatPct: 0),
+    aiCoachMessage: '',
+  );
+}
+
 Widget _app({required List<Override> overrides}) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
@@ -107,7 +134,10 @@ void main() {
   });
 
   group('이번 달 칼로리 막대 (#7)', () {
-    Future<void> openMonth(WidgetTester tester) async {
+    Future<void> openMonthWith(
+      WidgetTester tester,
+      DietRepository repository,
+    ) async {
       tester.view.physicalSize = const Size(500, 1600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
@@ -115,7 +145,7 @@ void main() {
       await tester.pumpWidget(
         _app(
           overrides: <Override>[
-            dietRepositoryProvider.overrideWithValue(_MacroRepository()),
+            dietRepositoryProvider.overrideWithValue(repository),
             accountRepositoryProvider.overrideWithValue(
               MockAccountRepository(),
             ),
@@ -126,6 +156,9 @@ void main() {
       await tester.tap(dietPeriodTab(DietPeriodTab.month));
       await tester.pumpAndSettle();
     }
+
+    Future<void> openMonth(WidgetTester tester) =>
+        openMonthWith(tester, _MacroRepository());
 
     List<Color> segmentColorsOf(WidgetTester tester, int index) => tester
         .widgetList<ColoredBox>(
@@ -140,7 +173,7 @@ void main() {
     Color labelColor(WidgetTester tester, String label) =>
         tester.widget<Text>(find.text(label).last).style!.color!;
 
-    testWidgets('이번 주 탄단지 라벨만 보조 회색을 사용한다 (#1479)', (
+    testWidgets('전체의 탄단지 라벨은 막대를 쌓은 색 그대로다 (#1479)', (
       WidgetTester tester,
     ) async {
       await openMonth(tester);
@@ -148,6 +181,10 @@ void main() {
         tester.element(find.byType(DietRecordPage)),
       );
 
+      // 머리 숫자 옆의 탄단지는 막대의 색 구간이 무엇인지도 함께 말한다 —
+      // 그래서 라벨 색이 막대 구간 색과 같아야 한다. 이번 주에서 이 셋을
+      // 보조 회색으로 죽이던 규칙은 사라졌다(#1879): 이번 주는 탄단지를
+      // 지표로 직접 그려, 머리 숫자 옆에 곁들이는 자리 자체가 없다.
       expect(
         labelColor(tester, l.homeMacroCarbs),
         OnCareBrand.member.macroCarbs,
@@ -157,10 +194,21 @@ void main() {
         OnCareBrand.member.macroProtein,
       );
       expect(labelColor(tester, l.homeMacroFat), OnCareBrand.member.macroFat);
+    });
+
+    testWidgets('이번 주의 탄단지 라벨만 보조 회색을 사용한다 (#1479)', (
+      WidgetTester tester,
+    ) async {
+      await openMonth(tester);
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(DietRecordPage)),
+      );
 
       await tester.tap(dietPeriodTab(DietPeriodTab.week));
       await tester.pumpAndSettle();
 
+      // 이번 주는 꺾은선이라 쌓은 색 구간이 없다 — 세 라벨을 막대 색으로
+      // 칠하면 어디에도 없는 색의 범례가 된다.
       expect(labelColor(tester, l.homeMacroCarbs), OnCareColors.textSecondary);
       expect(
         labelColor(tester, l.homeMacroProtein),
@@ -242,16 +290,15 @@ void main() {
       expect(text, contains('40'));
     });
 
-    testWidgets('나트륨 막대는 지금까지 쓰던 브랜드 색 그대로다', (WidgetTester tester) async {
-      await openMonth(tester);
+    testWidgets('영양을 모르는 날의 막대는 브랜드 색 한 칸이다', (WidgetTester tester) async {
+      // 누적 구간은 탄단지를 아는 날만의 규칙이다. 실서버가 영양을 주지 않은
+      // 날은 쌓을 것이 없어 브랜드 색 한 칸으로 그린다.
+      //
+      // 예전에는 나트륨 지표로 바꿔 이 규칙을 확인했는데, 전체는 칼로리 하나로
+      // 고정되어(#1879) 바꿀 지표가 없다. 규칙 자체는 그대로라 대역을 바꿔
+      // 같은 것을 본다.
+      await openMonthWith(tester, _NoMacroRepository());
 
-      final AppLocalizations l = AppLocalizations.of(
-        tester.element(find.byType(DietRecordPage)),
-      );
-      await tester.tap(find.text(l.dietSodium));
-      await tester.pumpAndSettle();
-
-      // 누적 구간은 칼로리만의 규칙이다. 나트륨·당류는 브랜드 색을 유지한다.
       final Container bar = tester.widget<Container>(
         find
             .descendant(

@@ -568,7 +568,7 @@ void main() {
       // 코드에 하드코딩돼 있던 문구들이 이제 로케일별 ARB 로 분리됐다.
       expect(en.coachCardDietTitle, 'Great breakfast — watch lunch sodium');
       expect(ko.coachCardDietTitle, '아침 식단 훌륭, 점심 나트륨 주의');
-      expect(en.coachCardExerciseTitle, 'PT session 12 done');
+      expect(en.coachCardExerciseTitle, '3 workouts this week');
       expect(en.homeAiAdviceTitle, "Today's combined AI advice");
       expect(ko.homeAiAdviceTitle, '오늘의 AI 통합 조언');
       expect(en.homeSodiumExceededBadge, 'Sodium over');
@@ -808,29 +808,6 @@ void main() {
     expect(
       afterRoutines.map((CoachRoutine r) => r.id),
       beforeRoutines.map((CoachRoutine r) => r.id),
-    );
-  });
-
-  testWidgets('홈 탭 재진입 시 식단·영양 카드 선택 지표가 기본값(칼로리)으로 복원된다 (#861)', (
-    tester,
-  ) async {
-    await pumpApp(tester, locale: const Locale('ko'));
-    final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
-
-    // 홈이 첫 화면이다 — 나트륨 카드를 선택한다.
-    await tester.tap(find.text(ko.dietSodium).first);
-    await tester.pumpAndSettle();
-    expect(find.text(ko.homeWeeklyMetricTrend(ko.dietSodium)), findsOneWidget);
-
-    await tester.tap(find.text('식단').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('홈').first);
-    await tester.pumpAndSettle();
-
-    // 기본값(칼로리)으로 복원된다.
-    expect(
-      find.text(ko.homeWeeklyMetricTrend(ko.dashboardMetricCalories)),
-      findsOneWidget,
     );
   });
 

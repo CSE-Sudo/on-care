@@ -185,6 +185,7 @@ async def diet_analyze(
             return DietAnalyzeResponse(
                 entry_id=existing.id,
                 analysis=diet_service.entry_to_analysis(existing),
+                time_label=existing.time_label,
                 points=_points_already_awarded(db, current_user.id, existing.id),
             )
 
@@ -211,11 +212,15 @@ async def diet_analyze(
         db, current_user.id, meal_type, analysis, idempotency_key
     )
     entry_id = entry.id
+    # 아래에서 적립·사진 저장이 각각 커밋하므로 그때 이 인스턴스의 속성이
+    # 만료된다. 응답에 실을 값은 여기서 함께 잡아 둔다(`entry_id` 와 같은 이유).
+    entry_time_label = entry.time_label
     if not is_new:
         # 동시 재시도가 유니크 제약에 걸려 기존 엔트리를 받은 경우(중복 저장 방지)
         return DietAnalyzeResponse(
             entry_id=entry_id,
             analysis=diet_service.entry_to_analysis(entry),
+            time_label=entry_time_label,
             points=_points_already_awarded(db, current_user.id, entry_id),
         )
 
@@ -229,6 +234,7 @@ async def diet_analyze(
     return DietAnalyzeResponse(
         entry_id=entry_id,
         analysis=analysis,
+        time_label=entry_time_label,
         photo_url=diet_service.member_photo_url(photo.id) if photo else None,
         points=points,
     )

@@ -26,6 +26,7 @@ class ChatMessage {
     this.notice,
     this.insight,
     this.replyToInsight,
+    this.at,
   });
 
   final ChatRole role;
@@ -44,7 +45,24 @@ class ChatMessage {
   /// 메시지로 옮겨 붙인다(#1824). 저장된 대화에서는 늘 null 이다.
   final ChatInsight? replyToInsight;
 
+  /// 주고받은 때. 저장된 대화는 서버가 준 값이고, 방금 보낸 것은 컨트롤러가
+  /// 찍는다. 화면이 날짜 구분선과 말풍선 옆 시각을 이것으로 그린다(#1918).
+  /// 앱이 스스로 띄운 말풍선(인사·실패 안내)에는 없다 — 주고받은 것이 아니다.
+  final DateTime? at;
+
   bool get isUser => role == ChatRole.user;
+
+  /// 주고받은 때만 채운 사본.
+  ChatMessage withTime(DateTime value) => ChatMessage(
+    role: role,
+    content: content,
+    sources: sources,
+    pending: pending,
+    notice: notice,
+    insight: insight,
+    replyToInsight: replyToInsight,
+    at: value,
+  );
 
   /// 감지 결과만 바꾼 사본.
   ChatMessage withInsight(ChatInsight? value) => ChatMessage(
@@ -54,6 +72,7 @@ class ChatMessage {
     pending: pending,
     notice: notice,
     insight: value,
+    at: at,
   );
 
   /// Request shape sent as chat history to the server (snake_case-safe).
@@ -72,6 +91,7 @@ class ChatMessage {
         s.toString(),
     ],
     insight: ChatInsight.fromJson(json['insight']),
+    at: DateTime.tryParse((json['created_at'] as String?) ?? '')?.toLocal(),
   );
 
   /// Parse a coach reply from `POST /ai-coach/chat` → `{ reply, sources }`.

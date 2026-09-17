@@ -216,6 +216,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrNameEmpty => '이름을 입력해 주세요';
 
   @override
+  String get authErrNameTooLong => '이름은 100자까지 입력할 수 있어요';
+
+  @override
   String get authErrEmailEmpty => '이메일을 입력해 주세요';
 
   @override
@@ -229,6 +232,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authErrPhoneInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
+
+  @override
+  String get authErrBirthDateInvalid => '생년월일을 1996-03-21 형식으로 입력해 주세요';
 
   @override
   String get authErrPasswordMismatch => '비밀번호가 일치하지 않아요';

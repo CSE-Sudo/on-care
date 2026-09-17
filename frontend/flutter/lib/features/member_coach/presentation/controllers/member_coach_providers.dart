@@ -61,10 +61,24 @@ final coachChatProvider = StreamProvider.autoDispose<List<CoachMessage>>((ref) {
   return ref.watch(memberCoachRepositoryProvider).watchChat();
 });
 
-/// Unread coach-sent message count for the entry badge.
-final coachUnreadProvider = FutureProvider<int>((ref) {
-  return ref.watch(memberCoachRepositoryProvider).unreadCount();
-});
+/// 헤더 배지에 뜨는 트레이너 대화 미읽음 수.
+///
+/// 아래 [coachInvitesProvider] 와 **같은 규칙**으로 받는다 — 앱을 켤 때와 돌아올
+/// 때 바로, 켜져 있는 동안 15초마다. 예전에는 한 번만 조회해서, 앱을 켜 둔 채
+/// 트레이너가 메시지를 보내도 배지가 켤 때의 수(대개 0)로 남았다(#1929).
+/// 데모에는 따라갈 서버가 없어 한 번만 받는다.
+final coachUnreadProvider = StreamProvider.autoDispose<int>((ref) {
+  final MemberCoachRepository repository = ref.watch(
+    memberCoachRepositoryProvider,
+  );
+  if (ref.watch(appConfigProvider).useMockApi) {
+    return Stream<int>.fromFuture(repository.unreadCount());
+  }
+  return activePollingStream<int>(
+    load: repository.unreadCount,
+    interval: const Duration(seconds: 15),
+  );
+}, name: 'coachUnread');
 
 /// 트레이너가 나에게 보낸 담당 요청. 수락·거절 뒤에는 invalidate 한다. (#919)
 ///

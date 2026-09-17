@@ -57,7 +57,7 @@ List<Override> guideSampleOverrides() {
     memberCoachProvider.overrideWith((ref) => coach.fetchCoach()),
     coachRoutinesProvider.overrideWith((ref) => coach.fetchRoutines()),
     coachSessionsProvider.overrideWith((ref) => coach.fetchSessions()),
-    coachUnreadProvider.overrideWith((ref) async => 0),
+    coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
     // MY
     myHealthStateProvider.overrideWith((ref) => myHealth.fetchState()),
   ];
@@ -91,7 +91,6 @@ const DashboardSummary kGuideSampleSummary = DashboardSummary(
     NutritionDay(label: '토', calories: 2050, sodiumMg: 2380, sugarG: 58),
     NutritionDay(label: '일', calories: 1480, sodiumMg: 1720, sugarG: 32),
   ],
-  todaySchedule: <ScheduleItem>[],
   weekScore: 82,
   weekScoreDelta: 4,
   // 오늘 따로 짚을 식단 피드백은 없다 — 홈은 기본 AI 조언 문구를 그린다.

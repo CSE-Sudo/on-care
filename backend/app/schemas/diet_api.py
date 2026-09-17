@@ -185,6 +185,11 @@ class DietAnalyzeResponse(BaseModel):
     """POST /diet/analyze 응답: 저장된 entry id + 분석 결과 (+ 사진 경로)."""
     entry_id: str
     analysis: DietAnalysis
+    # 저장된 기록의 시각(`HH:MM`). `entries[]` 가 내려주는 것과 같은 값이며,
+    # 저장한 시계 스냅샷에서 뽑은 서버 값이다(`save_analyzed_entry`). 앱이 제
+    # 시계로 다시 계산하면 끼니 카드가 보여 주는 시각과 어긋날 수 있어 여기서
+    # 내려준다(#1897).
+    time_label: str = ""
     # 방금 올린 사진의 조회 경로. 저장하지 못했으면 null 이며, 그때도 끼니 기록
     # 자체는 저장된다(사진은 기록의 부속이지 조건이 아니다).
     photo_url: str | None = None

@@ -176,11 +176,14 @@ class FakeDietRepository implements DietRepository {
     const String coach = '비빔밥은 채소가 풍부해 좋아요. 나트륨이 다소 높으니 장을 줄여보세요.';
 
     final String id = 'mock-diet-${++_seq}';
+    // 행과 분석 결과가 같은 시각을 봐야 한다 — 서버도 한 시계 스냅샷에서
+    // 뽑는다(`save_analyzed_entry`).
+    final String timeLabel = _nowLabel();
     _entries.add(
       DietEntry(
         id: id,
         mealType: _mealTypeOf(mealType),
-        timeLabel: _nowLabel(),
+        timeLabel: timeLabel,
         totalCalories: cals,
         sodiumMg: sodium,
         sugarG: sugar,
@@ -210,6 +213,7 @@ class FakeDietRepository implements DietRepository {
       totalProteinG: protein,
       totalFatG: fat,
       coachComment: coach,
+      timeLabel: timeLabel,
     );
     if (idempotencyKey != null) _analyzed[idempotencyKey] = result;
     return result;

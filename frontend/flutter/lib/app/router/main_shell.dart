@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
-import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -83,6 +82,10 @@ class _MainShellState extends ConsumerState<MainShell>
 
   void _refreshMemberData() {
     ref.invalidate(dashboardSummaryProvider);
+    // 홈의 AI 추천 식단도 함께 되짚는다. 무효화되는 곳이 세션 초기화 하나뿐이라,
+    // 앱을 켠 순간의 추천이 하루 종일 고정되고 첫 조회가 실패하면 기본 추천이
+    // 앱 수명 내내 남았다(#1938).
+    ref.invalidate(dietRecommendationsProvider);
     ref.invalidate(exerciseWeekProvider);
     ref.invalidate(coachRoutinesProvider);
     ref.invalidate(coachSessionsProvider);
@@ -92,6 +95,7 @@ class _MainShellState extends ConsumerState<MainShell>
     switch (index) {
       case 0:
         ref.invalidate(dashboardSummaryProvider);
+        ref.invalidate(dietRecommendationsProvider);
         ref.invalidate(coachSessionsProvider);
         break;
       case 1:
@@ -116,9 +120,9 @@ class _MainShellState extends ConsumerState<MainShell>
   /// 정의한 `resetXxxTransientUiState` 가 안다.
   void _resetTransientUiState(int index) {
     switch (index) {
-      case 0:
-        resetDashboardTransientUiState(ref);
-        break;
+      // 0(홈)도 일부러 아무 것도 하지 않는다. 예전에는 식단·영양 카드에서 고른
+      // 지표(칼로리/나트륨/당류)를 기본값으로 되돌렸는데, 그래프가 칼로리
+      // 하나로 고정된 뒤로는(#1879) 홈에 되돌릴 임시 선택이 없다.
       case 1:
         resetDietTransientUiState(ref);
         break;

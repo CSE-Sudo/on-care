@@ -70,9 +70,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'No records yet today. Add a meal or workout to get started.';
 
   @override
-  String get homeScheduleEmpty => 'No events scheduled for today.';
-
-  @override
   String get homeAiAdviceTitle => 'Today\'s combined AI advice';
 
   @override
@@ -185,14 +182,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeViewAll => 'View all';
-
-  @override
-  String homeScheduleDate(String weekday, int month, int day) {
-    return '$weekday, $month/$day';
-  }
-
-  @override
-  String get homeScheduleTitle => 'Today\'s schedule';
 
   @override
   String get unitKcal => 'kcal';
@@ -1270,11 +1259,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardExerciseTag => 'Exercise';
 
   @override
-  String get coachCardExerciseTitle => 'PT session 12 done';
+  String get coachCardExerciseTitle => '3 workouts this week';
 
   @override
   String get coachCardExerciseBody =>
-      'Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.';
+      'You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.';
 
   @override
   String get coachCardWaterTag => 'Hydration';
@@ -1647,6 +1636,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightHistoryTitle => 'Noted signals';
 
   @override
+  String get aicInsightHistoryAction => 'Notes';
+
+  @override
   String aicInsightHistorySubtitle(int days) {
     return 'Pain and negative feedback noted in the last $days days';
   }
@@ -1679,7 +1671,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicQuickReply2 => 'How much should I exercise today?';
 
   @override
-  String get aicQuickReply3 => 'How are my blood sugar readings?';
+  String get aicQuickReply3 => 'How much sodium have I had today?';
 
   @override
   String get exConsultRequestTitle => 'Consultation Request';
@@ -1988,6 +1980,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpNameEmpty => 'Enter your name';
 
   @override
+  String get signUpNameTooLong => 'Names can be up to 100 characters';
+
+  @override
   String get signUpPhoneHint => '010-0000-0000';
 
   @override
@@ -2019,6 +2014,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Enter your phone number as 000-0000-0000';
 
   @override
+  String get myFieldBirthInvalid => 'Enter your date of birth as 1996-03-21';
+
+  @override
   String get trainerSyncEntryLabel => 'Sync data with a trainer';
 
   @override
@@ -2048,6 +2046,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => 'Get a new code';
+
+  @override
+  String get signUpCreatedSignInNeeded =>
+      'Your account was created. Please sign in.';
 
   @override
   String get signUpEmailTaken =>
@@ -2335,7 +2337,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiCoachWelcome =>
-      'Hi, I\'m Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.';
+      'Hi, I\'m Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.';
 
   @override
   String get aiCoachFailure =>
@@ -2352,100 +2354,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionConfirm => 'OK';
-
-  @override
-  String get scheduleCategoryHospital => 'Hospital';
-
-  @override
-  String get scheduleCategoryExercise => 'Exercise';
-
-  @override
-  String get scheduleCategoryMeal => 'Meal';
-
-  @override
-  String get scheduleCategoryMedication => 'Medication';
-
-  @override
-  String get scheduleCategoryOther => 'Other';
-
-  @override
-  String get eventAddTitle => 'Add event';
-
-  @override
-  String get eventEditTitle => 'Edit event';
-
-  @override
-  String get eventTitleLabel => 'Event title';
-
-  @override
-  String get eventTitleHint => 'e.g. Regular checkup';
-
-  @override
-  String get eventDateLabel => 'Date';
-
-  @override
-  String get eventTimeLabel => 'Time';
-
-  @override
-  String get eventTimeNone => 'No time';
-
-  @override
-  String get eventTitleRequired => 'Please enter an event title';
-
-  @override
-  String get eventAddFailed =>
-      'Couldn\'t add the event. Please try again in a moment';
-
-  @override
-  String get eventEditFailed =>
-      'Couldn\'t save the event. Please try again in a moment';
-
-  @override
-  String get eventSaving => 'Saving…';
-
-  @override
-  String get eventAdding => 'Adding…';
-
-  @override
-  String get eventSave => 'Save';
-
-  @override
-  String get eventAdd => 'Add';
-
-  @override
-  String eventClearField(String label) {
-    return 'Clear $label';
-  }
-
-  @override
-  String get eventDeleteTitle => 'Delete event';
-
-  @override
-  String eventDeleteConfirm(String title) {
-    return 'Delete “$title”? This can\'t be undone.';
-  }
-
-  @override
-  String get eventDeleteFailed =>
-      'Couldn\'t delete the event. Please try again in a moment';
-
-  @override
-  String get eventDeleted => 'Event deleted';
-
-  @override
-  String get eventsEmptyForDay => 'No events on this day';
-
-  @override
-  String get eventAddForDay => 'Add an event on this day';
-
-  @override
-  String get eventTimeUnset => 'Time TBD';
-
-  @override
-  String get scheduleSheetTitle => 'Schedule';
-
-  @override
-  String get eventsLoadFailed => 'Couldn\'t load events';
 
   @override
   String get coachCardSleepTag => 'Sleep';
@@ -2567,6 +2475,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGoalsSaved => 'Health goals saved';
+
+  @override
+  String myGoalRange(int min, int max) {
+    return 'Enter a value between $min and $max';
+  }
 
   @override
   String get mySettingsLoadFailed => 'Couldn\'t load your settings';
