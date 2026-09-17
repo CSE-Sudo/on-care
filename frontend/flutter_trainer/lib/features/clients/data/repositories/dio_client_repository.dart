@@ -6,6 +6,7 @@ import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/clients/data/dtos/client_dtos.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
@@ -257,16 +258,22 @@ class DioClientRepository implements ClientRepository, ClientDataRefresher {
   );
 
   @override
-  Future<List<String>> fetchExercisesOn(String clientId, DateTime date) async {
-    // 주 단위 응답의 `sessions` 에 그날 한 운동 이름이 실려 온다. 그 주를 한 번
-    // 읽어 해당 요일만 고른다 — 날짜별 엔드포인트를 따로 두지 않아도 된다.
+  Future<List<ClientExerciseItem>> fetchExercisesOn(
+    String clientId,
+    DateTime date,
+  ) async {
+    // 주 단위 응답의 `sessions` 에 그날 한 운동이 실려 온다. 그 주를 한 번 읽어
+    // 해당 요일만 고른다 — 날짜별 엔드포인트를 따로 두지 않아도 된다.
     final ClientExerciseWeek week = await fetchExerciseWeek(
       clientId,
       weekStart: clientMondayOf(date),
     );
     final int index = date.weekday - 1;
-    if (index < 0 || index >= week.dayLabels.length) return const <String>[];
-    return week.itemsByDayLabel[week.dayLabels[index]] ?? const <String>[];
+    if (index < 0 || index >= week.dayLabels.length) {
+      return const <ClientExerciseItem>[];
+    }
+    return week.itemsByDayLabel[week.dayLabels[index]] ??
+        const <ClientExerciseItem>[];
   }
 
   @override
