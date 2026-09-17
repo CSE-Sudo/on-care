@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 로고 원의 파랑과 같은 값이다(shared/oncare_ui 의 OnCareBrand.primary = 0xFF3EAFDF). -->
+<resources>
+    <color name="ic_launcher_background">#3EAFDF</color>
+</resources>
