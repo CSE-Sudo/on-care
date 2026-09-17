@@ -221,6 +221,7 @@
   "exWeekNumber": "{n}주",
   "exTodayTotalTime": "오늘 총 운동 시간",
   "exRest": "휴식",
+  "exRestSeconds": "휴식 {seconds}초",
   "exAiRecommendedExercise": "AI 추천 운동",
   "exStatTime": "시간",
   "exStatCalories": "칼로리",
