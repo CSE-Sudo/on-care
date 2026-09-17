@@ -1125,6 +1125,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLogoutConfirm => 'Log out of your account?';
 
   @override
+  String get myWithdrawTitle => 'Delete account';
+
+  @override
+  String get myWithdrawConfirm =>
+      'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.';
+
+  @override
+  String get myWithdrawAction => 'Delete account';
+
+  @override
+  String get myWithdrawFailed =>
+      'We could not delete your account. Please try again in a moment.';
+
+  @override
   String get myCancel => 'Cancel';
 
   @override
@@ -2464,8 +2478,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Calculated from your carb, protein and fat goals';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat · $sugar g sugar';
   }
 
   @override
