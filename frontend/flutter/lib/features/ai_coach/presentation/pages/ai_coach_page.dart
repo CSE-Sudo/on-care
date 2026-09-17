@@ -219,7 +219,9 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
   /// **양쪽 폭을 맞춰 제목을 화면 가운데에 세운다**(#1975). 왼쪽 뒤로 버튼은
   /// 고정 폭이고 오른쪽 `기록` 은 글자 길이만큼이라, 그대로 두면 가운데 정렬한
   /// 묶음이 왼쪽으로 밀린다 — 영어처럼 버튼이 길어지는 로케일에서 더 밀린다.
-  /// 그래서 왼쪽에 `기록` 과 같은 폭을, 오른쪽에 뒤로 버튼과 같은 폭을 둔다.
+  ///
+  /// 그래서 뒤로 버튼을 `기록` 과 같은 폭의 빈 자리 **위에 겹쳐** 둔다. 두 자리를
+  /// 나란히 두면 좌우는 맞지만 제목이 쓸 폭이 그만큼 줄어 부제가 말줄임된다.
   /// 폭을 숫자로 적지 않고 같은 위젯을 숨겨 두는 것은, 로케일이 바뀌어도
   /// 저절로 따라가게 하기 위해서다.
   Widget _header(BuildContext context, {required bool showInsights}) {
@@ -245,20 +247,26 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
         ),
         child: Row(
           children: <Widget>[
-            AppBackButton(
-              onPressed: () => context.canPop()
-                  ? context.pop()
-                  : context.go(AppRoutes.dashboard),
-            ),
-            // 오른쪽 `기록` 과 같은 폭을 왼쪽에도 둔다 — 그리지 않고 자리만 쓴다.
-            Visibility(
-              visible: false,
-              maintainSize: true,
-              maintainAnimation: true,
-              maintainState: true,
-              child: IgnorePointer(
-                child: ExcludeSemantics(child: insightButton()),
-              ),
+            // 뒤로 버튼을 `기록` 과 같은 폭의 자리 **위에** 겹쳐 둔다. 두 자리를
+            // 나란히 두면 그만큼 제목이 쓸 폭이 줄어 부제가 말줄임된다.
+            Stack(
+              alignment: AlignmentDirectional.centerStart,
+              children: <Widget>[
+                Visibility(
+                  visible: false,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: IgnorePointer(
+                    child: ExcludeSemantics(child: insightButton()),
+                  ),
+                ),
+                AppBackButton(
+                  onPressed: () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.dashboard),
+                ),
+              ],
             ),
             Expanded(
               child: Row(
@@ -309,8 +317,6 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                 key: const Key('aiCoachInsightHistoryButton'),
               ),
             ),
-            // 왼쪽 뒤로 버튼과 같은 폭 — 이것이 있어야 제목이 가운데에 선다.
-            const SizedBox(width: OnCareSize.backCloseTouch),
           ],
         ),
       ),
