@@ -2395,11 +2395,15 @@ class LocalApiInterceptor extends Interceptor {
       'phone',
       'birth_date',
       'gender',
-      'height_cm',
-      'weight_kg',
       'goals',
     ]) {
       if (body[k] != null) patch[k] = body[k];
+    }
+    // 키·몸무게만 **키가 있는지**를 본다. 비울 수 있는 두 칸이라 명시적 null 은
+    // 지움이고, 값으로 거르면 지운 값이 되살아난다 — 서버도 이 둘만
+    // `nullable_fields` 로 둔다(#1941).
+    for (final String k in <String>['height_cm', 'weight_kg']) {
+      if (body.containsKey(k)) patch[k] = body[k];
     }
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
