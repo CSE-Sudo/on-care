@@ -263,6 +263,28 @@ void main() {
     expect(res.statusCode, 400);
   });
 
+  test('POST /auth/refresh 는 데모에서도 받아 준다 (#1944)', () async {
+    // 라우트 표에 없으면 갱신 요청이 두 인터셉터를 모두 지나쳐 **실제
+    // apiBaseUrl 로 나간다** — #966 이 /auth/logout 에 대해 막았던 그 누출이다.
+    final res = await dio.post<Map<String, Object?>>(
+      '/auth/refresh',
+      data: <String, Object?>{'refresh_token': 'demo-refresh'},
+    );
+    expect(res.statusCode, 200);
+    expect((res.data!['access_token']! as String).isNotEmpty, isTrue);
+    // 회전 토큰을 새로 주지 않는 서버도 있다 — 쓰던 것을 그대로 돌려준다.
+    expect(res.data!['refresh_token'], 'demo-refresh');
+  });
+
+  test('POST /auth/refresh 는 갱신 토큰이 없으면 400 이다', () async {
+    final res = await dio.post<Map<String, Object?>>(
+      '/auth/refresh',
+      data: <String, Object?>{'refresh_token': ''},
+      options: Options(validateStatus: (int? s) => true),
+    );
+    expect(res.statusCode, 400);
+  });
+
   test('POST /auth/register creates a user (201) for valid input', () async {
     final res = await dio.post<Map<String, Object?>>(
       '/auth/register',

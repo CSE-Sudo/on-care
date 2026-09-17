@@ -14,6 +14,7 @@ import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dar
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
+import 'package:oncare/features/auth/presentation/pages/splash_page.dart';
 import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -43,12 +44,19 @@ String? sessionRedirect(SessionStatus status, String location) {
   final onAuthRoute =
       location == AppRoutes.signIn || location == AppRoutes.signUp;
   switch (status) {
+    // 복구 중에는 시작 화면에 머문다(#1944). 전에는 로그아웃과 같이 묶여
+    // **완전히 눌리는 로그인 폼**이 떴다 — 느린 망에서 이메일을 치던 중에
+    // 복구가 끝나면 화면이 홈으로 튀고, 먼저 로그인 버튼을 누르면 진행 중이던
+    // 복구가 버려졌다.
     case SessionStatus.unknown:
+      return location == AppRoutes.splash ? null : AppRoutes.splash;
     case SessionStatus.signedOut:
       return onAuthRoute ? null : AppRoutes.signIn;
     case SessionStatus.demo:
     case SessionStatus.authenticated:
-      return onAuthRoute ? AppRoutes.dashboard : null;
+      return onAuthRoute || location == AppRoutes.splash
+          ? AppRoutes.dashboard
+          : null;
   }
 }
 
@@ -67,7 +75,7 @@ GoRouter buildAppRouter({
 }) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
   return GoRouter(
-    initialLocation: AppRoutes.signIn,
+    initialLocation: AppRoutes.splash,
     debugLogDiagnostics: !config.isProd,
     observers: observer == null
         ? const <NavigatorObserver>[]
@@ -205,6 +213,10 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.pointsGuide,
         builder: (context, state) => const PointsGuidePage(),
+      ),
+      GoRoute(
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashPage(),
       ),
       GoRoute(
         path: AppRoutes.guideTour,

@@ -129,8 +129,10 @@ ProviderContainer _container(Dio dio) {
 
 Future<void> _settle(ProviderContainer container) async {
   for (var attempt = 0; attempt < 40; attempt++) {
-    if (container.read(sessionControllerProvider).status !=
-        SessionStatus.unknown) {
+    // 일시적 실패는 상태를 `unknown` 에 남겨 둔 채 끝난다(#1944) — 시작 화면이
+    // 그 자리에서 다시 시도를 준다. 그것도 복구가 끝난 것이다.
+    final SessionState session = container.read(sessionControllerProvider);
+    if (session.status != SessionStatus.unknown || session.restoreFailed) {
       // 상태가 정해진 뒤에도 저장소 정리 같은 후속 작업이 남아 있을 수 있다.
       //
       // 한 틱만 기다리면 지금은 통과한다 — 만료가 지우기를 먼저, 상태 변경을 나중에
@@ -292,7 +294,7 @@ void main() {
     expect(refreshCalls, 1);
   });
 
-  test('네트워크가 안 되면 로그아웃 상태로 두되 토큰은 지킨다', () async {
+  test('네트워크가 안 되면 시작 화면에 재시도를 띄우고 토큰은 지킨다', () async {
     final script = _ScriptedDio(<String, List<_Reply>>{
       'GET /users/me': <_Reply>[const _Reply.connectionError()],
     });
@@ -301,10 +303,12 @@ void main() {
     container.read(sessionControllerProvider.notifier);
     await _settle(container);
 
+    // 세션이 끝난 것이 아니라 아직 모른다 — 시작 화면이 다시 시도를 준다(#1944).
     expect(
       container.read(sessionControllerProvider).status,
-      SessionStatus.signedOut,
+      SessionStatus.unknown,
     );
+    expect(container.read(sessionControllerProvider).restoreFailed, isTrue);
     // 지하철에서 앱을 켰다고 세션을 잃으면 안 된다 — 다음 실행에서 되살아나야 한다.
     final store = container.read(secureTokenStoreProvider);
     expect(await store.readAccessToken(), 'stored-access');
@@ -320,10 +324,12 @@ void main() {
     container.read(sessionControllerProvider.notifier);
     await _settle(container);
 
+    // 세션이 끝난 것이 아니라 아직 모른다 — 시작 화면이 다시 시도를 준다(#1944).
     expect(
       container.read(sessionControllerProvider).status,
-      SessionStatus.signedOut,
+      SessionStatus.unknown,
     );
+    expect(container.read(sessionControllerProvider).restoreFailed, isTrue);
     final store = container.read(secureTokenStoreProvider);
     expect(await store.readAccessToken(), 'stored-access');
   });
@@ -338,10 +344,12 @@ void main() {
     container.read(sessionControllerProvider.notifier);
     await _settle(container);
 
+    // 세션이 끝난 것이 아니라 아직 모른다 — 시작 화면이 다시 시도를 준다(#1944).
     expect(
       container.read(sessionControllerProvider).status,
-      SessionStatus.signedOut,
+      SessionStatus.unknown,
     );
+    expect(container.read(sessionControllerProvider).restoreFailed, isTrue);
     // 접근 토큰이 만료됐어도 갱신이 **거부된 것은 아니다.** 네트워크가 잠깐 끊긴
     // 것을 만료로 처리하면 재로그인을 강요하게 된다(리뷰).
     final store = container.read(secureTokenStoreProvider);
@@ -359,10 +367,12 @@ void main() {
     container.read(sessionControllerProvider.notifier);
     await _settle(container);
 
+    // 세션이 끝난 것이 아니라 아직 모른다 — 시작 화면이 다시 시도를 준다(#1944).
     expect(
       container.read(sessionControllerProvider).status,
-      SessionStatus.signedOut,
+      SessionStatus.unknown,
     );
+    expect(container.read(sessionControllerProvider).restoreFailed, isTrue);
     final store = container.read(secureTokenStoreProvider);
     expect(await store.readAccessToken(), 'stored-access');
     expect(await store.readRefreshToken(), 'stored-refresh');
@@ -379,10 +389,12 @@ void main() {
     container.read(sessionControllerProvider.notifier);
     await _settle(container);
 
+    // 세션이 끝난 것이 아니라 아직 모른다 — 시작 화면이 다시 시도를 준다(#1944).
     expect(
       container.read(sessionControllerProvider).status,
-      SessionStatus.signedOut,
+      SessionStatus.unknown,
     );
+    expect(container.read(sessionControllerProvider).restoreFailed, isTrue);
     final store = container.read(secureTokenStoreProvider);
     expect(await store.readAccessToken(), 'stored-access');
     // 갱신 토큰만 지우는 회귀는 접근 토큰 확인만으로는 잡히지 않는다 — 그 상태로는

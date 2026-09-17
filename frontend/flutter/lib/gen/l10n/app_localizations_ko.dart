@@ -1895,6 +1895,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mySupportExternalHint => '카카오톡 채널로 연결돼요';
 
   @override
+  String get authRestoring => '로그인 정보를 불러오는 중이에요';
+
+  @override
+  String get authRestoreFailed => '연결이 불안정해 로그인 정보를 불러오지 못했어요.';
+
+  @override
+  String get authRestoreRetry => '다시 시도';
+
+  @override
+  String get authRestoreSignIn => '로그인 화면으로';
+
+  @override
   String get authTagline => '식단·운동 관리 앱';
 
   @override

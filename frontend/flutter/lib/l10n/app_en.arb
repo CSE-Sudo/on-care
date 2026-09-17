@@ -1102,6 +1102,13 @@
   "@mySupportExternalHint": {
     "description": "Shown under the FAQ / 1:1 inquiry rows so it is clear the tap leaves the app."
   },
+  "authRestoring": "Restoring your session",
+  "@authRestoring": {
+    "description": "Splash message while the saved session is being restored (#1944)."
+  },
+  "authRestoreFailed": "We could not restore your session — the connection looks unstable.",
+  "authRestoreRetry": "Try again",
+  "authRestoreSignIn": "Go to sign in",
   "authTagline": "Diet & exercise management app",
   "authEmailHint": "Email",
   "authPasswordHint": "Password",
