@@ -218,12 +218,6 @@ abstract class AppLocalizations {
   /// **'No records yet today. Add a meal or workout to get started.'**
   String get homeDashboardEmpty;
 
-  /// No description provided for @homeScheduleEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No events scheduled for today.'**
-  String get homeScheduleEmpty;
-
   /// No description provided for @homeAiAdviceTitle.
   ///
   /// In en, this message translates to:
@@ -440,18 +434,6 @@ abstract class AppLocalizations {
   /// **'View all'**
   String get homeViewAll;
 
-  /// No description provided for @homeScheduleDate.
-  ///
-  /// In en, this message translates to:
-  /// **'{weekday}, {month}/{day}'**
-  String homeScheduleDate(String weekday, int month, int day);
-
-  /// No description provided for @homeScheduleTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Today\'s schedule'**
-  String get homeScheduleTitle;
-
   /// No description provided for @unitKcal.
   ///
   /// In en, this message translates to:
@@ -541,6 +523,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nutrition'**
   String get dietNutritionSummary;
+
+  /// Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)
+  ///
+  /// In en, this message translates to:
+  /// **'Serving size'**
+  String get dietAmount;
 
   /// No description provided for @dietCalories.
   ///
@@ -685,6 +673,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{meal}'**
   String dietMealSheetTitle(String meal);
+
+  /// Representative name shown on the suggestion row when a food name matches the public nutrition DB (#1896)
+  ///
+  /// In en, this message translates to:
+  /// **'Public DB · {name}'**
+  String dietFoodDbMatch(String name);
+
+  /// Button that fills a food's fields with the suggested public-DB nutrition (#1896)
+  ///
+  /// In en, this message translates to:
+  /// **'Fill in'**
+  String get dietFillFromDb;
 
   /// No description provided for @dietAddSheetTitle.
   ///
@@ -1013,7 +1013,7 @@ abstract class AppLocalizations {
   /// No description provided for @dietEditFoodHint.
   ///
   /// In en, this message translates to:
-  /// **'You can edit the food name and calories'**
+  /// **'Change the serving size and the nutrition follows'**
   String get dietEditFoodHint;
 
   /// No description provided for @dietTotalCalories.
@@ -1033,6 +1033,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit each food\'s nutrition and it adds up here'**
   String get dietEditNutritionHint;
+
+  /// No description provided for @dietSugarOverCarbs.
+  ///
+  /// In en, this message translates to:
+  /// **'Sugar can\'t be more than carbs'**
+  String get dietSugarOverCarbs;
 
   /// No description provided for @dietDeleteMeal.
   ///
@@ -1598,6 +1604,24 @@ abstract class AppLocalizations {
   /// **'Self-logged'**
   String get exOwnRecordSource;
 
+  /// No description provided for @exCompletedPtDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed PT'**
+  String get exCompletedPtDayTitle;
+
+  /// No description provided for @exCompletedRoutineDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed solo workout'**
+  String get exCompletedRoutineDayTitle;
+
+  /// No description provided for @exPtDayFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'{coachName} · Feedback'**
+  String exPtDayFeedback(String coachName);
+
   /// No description provided for @exDeleteExercise.
   ///
   /// In en, this message translates to:
@@ -1700,12 +1724,6 @@ abstract class AppLocalizations {
   /// **'Search by area or gym name'**
   String get exGymSearchPlaceholder;
 
-  /// No description provided for @exTrainerSearchPlaceholder.
-  ///
-  /// In en, this message translates to:
-  /// **'Search by specialty or trainer name'**
-  String get exTrainerSearchPlaceholder;
-
   /// No description provided for @exSortRecommended.
   ///
   /// In en, this message translates to:
@@ -1723,12 +1741,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rating'**
   String get exSortRating;
-
-  /// No description provided for @exSortName.
-  ///
-  /// In en, this message translates to:
-  /// **'Name'**
-  String get exSortName;
 
   /// No description provided for @exResultCount.
   ///
@@ -1970,6 +1982,12 @@ abstract class AppLocalizations {
   /// **'Notification Settings'**
   String get myNotifTitle;
 
+  /// MY tab: opens the spotlight app guide again (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Replay the app guide'**
+  String get myGuideTitle;
+
   /// No description provided for @mySupportTitle.
   ///
   /// In en, this message translates to:
@@ -2072,11 +2090,11 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get myCancel;
 
-  /// No description provided for @myTrainerGymTitle.
+  /// No description provided for @myGymTrainerTitle.
   ///
   /// In en, this message translates to:
-  /// **'My Trainer & Gym'**
-  String get myTrainerGymTitle;
+  /// **'My Gym & Trainer'**
+  String get myGymTrainerTitle;
 
   /// No description provided for @myConnectionDeleteTitle.
   ///
@@ -2333,13 +2351,13 @@ abstract class AppLocalizations {
   /// No description provided for @coachCardExerciseTitle.
   ///
   /// In en, this message translates to:
-  /// **'PT session 12 done'**
+  /// **'3 workouts this week'**
   String get coachCardExerciseTitle;
 
   /// No description provided for @coachCardExerciseBody.
   ///
   /// In en, this message translates to:
-  /// **'Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.'**
+  /// **'You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.'**
   String get coachCardExerciseBody;
 
   /// No description provided for @coachCardWaterTag.
@@ -2953,6 +2971,12 @@ abstract class AppLocalizations {
   /// **'Noted signals'**
   String get aicInsightHistoryTitle;
 
+  /// AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900).
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get aicInsightHistoryAction;
+
   /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
   ///
   /// In en, this message translates to:
@@ -3004,7 +3028,7 @@ abstract class AppLocalizations {
   /// No description provided for @aicQuickReply3.
   ///
   /// In en, this message translates to:
-  /// **'How are my blood sugar readings?'**
+  /// **'How much sodium have I had today?'**
   String get aicQuickReply3;
 
   /// No description provided for @exConsultRequestTitle.
@@ -3571,6 +3595,12 @@ abstract class AppLocalizations {
   /// **'Enter your name'**
   String get signUpNameEmpty;
 
+  /// Shared name-length message (#1887). The limit matches the users.name column and the server rule in profile_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Names can be up to 100 characters'**
+  String get signUpNameTooLong;
+
   /// Placeholder showing the required 3-4-4 phone format; hyphens are inserted automatically (#1784).
   ///
   /// In en, this message translates to:
@@ -3625,6 +3655,12 @@ abstract class AppLocalizations {
   /// **'Enter your phone number as 000-0000-0000'**
   String get signUpPhoneFormatInvalid;
 
+  /// Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your date of birth as 1996-03-21'**
+  String get myFieldBirthInvalid;
+
   /// No description provided for @trainerSyncEntryLabel.
   ///
   /// In en, this message translates to:
@@ -3678,6 +3714,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get a new code'**
   String get trainerSyncRetry;
+
+  /// Sign-up: the account was created but the follow-up sign-in failed (#1926).
+  ///
+  /// In en, this message translates to:
+  /// **'Your account was created. Please sign in.'**
+  String get signUpCreatedSignInNeeded;
 
   /// No description provided for @signUpEmailTaken.
   ///
@@ -3798,6 +3840,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Get started'**
   String get pointsGuideStart;
+
+  /// Spotlight guide: the guide label with the current step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'App guide {current}/{total}'**
+  String guideBadgeWithStep(int current, int total);
+
+  /// Spotlight guide: the screen under the guide is filled with sample data, not the member's own (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Sample screen'**
+  String get guideSampleBadge;
+
+  /// Spotlight guide: ends the guide without seeing the rest (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get guideSkip;
+
+  /// Spotlight guide: goes back one step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get guidePrev;
+
+  /// Spotlight guide: goes to the next step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get guideNext;
+
+  /// Spotlight guide: ends the guide on the last step (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get guideDone;
+
+  /// Spotlight guide step: the home AI advice card (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s AI summary'**
+  String get guideHomeAdviceTitle;
+
+  /// Spotlight guide step: the home AI advice card (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'It reads your meals and workouts together and points to what to do today'**
+  String get guideHomeAdviceBody;
+
+  /// Spotlight guide step: the center add button (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Quick add'**
+  String get guideQuickAddTitle;
+
+  /// Spotlight guide step: the center add button (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'The + in the middle adds a meal or a workout from any screen'**
+  String get guideQuickAddBody;
+
+  /// Spotlight guide step: the diet tab nutrition summary (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Nutrition summary'**
+  String get guideDietNutritionTitle;
+
+  /// Spotlight guide step: the diet tab nutrition summary (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s calories, macros, sodium and sugar, and how far each is from your goal'**
+  String get guideDietNutritionBody;
+
+  /// Spotlight guide step: the exercise tab weekly status (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Workout status'**
+  String get guideExerciseStatusTitle;
+
+  /// Spotlight guide step: the exercise tab weekly status (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'How much you moved today and this week, and how far the goal still is'**
+  String get guideExerciseStatusBody;
+
+  /// Spotlight guide step: the exercise tab gym section (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Your gym and trainer'**
+  String get guideGymTitle;
+
+  /// Spotlight guide step: the exercise tab gym section (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'The gym and trainer you are connected to — their plans and feedback arrive in the app'**
+  String get guideGymBody;
+
+  /// Spotlight guide step: the MY tab profile and settings (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get guideMySettingsTitle;
+
+  /// Spotlight guide step: the MY tab profile and settings (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Change your profile, health goals and alerts here — and replay this guide'**
+  String get guideMySettingsBody;
+
+  /// Spotlight guide step: the MY tab points card (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get guidePointsTitle;
+
+  /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
+  ///
+  /// In en, this message translates to:
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P'**
+  String guidePointsBody(int diet, int exercise, int routine);
 
   /// Onboarding step 1: the basic info step must be filled in (#1830).
   ///
@@ -4036,7 +4198,7 @@ abstract class AppLocalizations {
   /// Greeting bubble the app shows when the coach conversation opens.
   ///
   /// In en, this message translates to:
-  /// **'Hi, I\'m Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.'**
+  /// **'Hi, I\'m Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.'**
   String get aiCoachWelcome;
 
   /// Bubble shown when the coach reply could not be fetched.
@@ -4068,180 +4230,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OK'**
   String get actionConfirm;
-
-  /// Schedule category label.
-  ///
-  /// In en, this message translates to:
-  /// **'Hospital'**
-  String get scheduleCategoryHospital;
-
-  /// Schedule category label.
-  ///
-  /// In en, this message translates to:
-  /// **'Exercise'**
-  String get scheduleCategoryExercise;
-
-  /// Schedule category label.
-  ///
-  /// In en, this message translates to:
-  /// **'Meal'**
-  String get scheduleCategoryMeal;
-
-  /// Schedule category label.
-  ///
-  /// In en, this message translates to:
-  /// **'Medication'**
-  String get scheduleCategoryMedication;
-
-  /// Schedule category label.
-  ///
-  /// In en, this message translates to:
-  /// **'Other'**
-  String get scheduleCategoryOther;
-
-  /// Title of the add-event dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Add event'**
-  String get eventAddTitle;
-
-  /// Title of the edit-event dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit event'**
-  String get eventEditTitle;
-
-  /// Label of the event title field.
-  ///
-  /// In en, this message translates to:
-  /// **'Event title'**
-  String get eventTitleLabel;
-
-  /// Hint of the event title field.
-  ///
-  /// In en, this message translates to:
-  /// **'e.g. Regular checkup'**
-  String get eventTitleHint;
-
-  /// Label of the event date picker field.
-  ///
-  /// In en, this message translates to:
-  /// **'Date'**
-  String get eventDateLabel;
-
-  /// Label of the event time picker field.
-  ///
-  /// In en, this message translates to:
-  /// **'Time'**
-  String get eventTimeLabel;
-
-  /// Shown in the time field when no time is set.
-  ///
-  /// In en, this message translates to:
-  /// **'No time'**
-  String get eventTimeNone;
-
-  /// Validation message when the event title is empty.
-  ///
-  /// In en, this message translates to:
-  /// **'Please enter an event title'**
-  String get eventTitleRequired;
-
-  /// Shown when creating an event fails.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t add the event. Please try again in a moment'**
-  String get eventAddFailed;
-
-  /// Shown when updating an event fails.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t save the event. Please try again in a moment'**
-  String get eventEditFailed;
-
-  /// Submit button label while an edit is saving.
-  ///
-  /// In en, this message translates to:
-  /// **'Saving…'**
-  String get eventSaving;
-
-  /// Submit button label while a new event is saving.
-  ///
-  /// In en, this message translates to:
-  /// **'Adding…'**
-  String get eventAdding;
-
-  /// Submit button label of the edit-event dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get eventSave;
-
-  /// Submit button label of the add-event dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Add'**
-  String get eventAdd;
-
-  /// Tooltip of the clear button on a picker field.
-  ///
-  /// In en, this message translates to:
-  /// **'Clear {label}'**
-  String eventClearField(String label);
-
-  /// Title of the delete confirmation dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete event'**
-  String get eventDeleteTitle;
-
-  /// Body of the delete confirmation dialog.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete “{title}”? This can\'t be undone.'**
-  String eventDeleteConfirm(String title);
-
-  /// Shown when deleting an event fails.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t delete the event. Please try again in a moment'**
-  String get eventDeleteFailed;
-
-  /// Shown after an event is deleted.
-  ///
-  /// In en, this message translates to:
-  /// **'Event deleted'**
-  String get eventDeleted;
-
-  /// Empty state of the day events sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'No events on this day'**
-  String get eventsEmptyForDay;
-
-  /// Button that opens the add-event dialog for the selected day.
-  ///
-  /// In en, this message translates to:
-  /// **'Add an event on this day'**
-  String get eventAddForDay;
-
-  /// Shown for an event saved without a time.
-  ///
-  /// In en, this message translates to:
-  /// **'Time TBD'**
-  String get eventTimeUnset;
-
-  /// Title of the schedule calendar sheet.
-  ///
-  /// In en, this message translates to:
-  /// **'Schedule'**
-  String get scheduleSheetTitle;
-
-  /// Shown when the calendar fails to load its events.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load events'**
-  String get eventsLoadFailed;
 
   /// Tag of a sleep-related AI suggestion.
   ///
@@ -4463,6 +4451,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Health goals saved'**
   String get myGoalsSaved;
+
+  /// Health-goal field outside the range the server accepts (#1888). Shared by the MY goals sheet and onboarding steps 3-4.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a value between {min} and {max}'**
+  String myGoalRange(int min, int max);
 
   /// Title of the banner shown when settings fail to load.
   ///

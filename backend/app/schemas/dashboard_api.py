@@ -17,14 +17,6 @@ class DashboardIndicator(BaseModel):
     over_budget: bool = False
 
 
-class DashboardScheduleItem(BaseModel):
-    id: str
-    time: str
-    title: str
-    category: str
-    emoji: str
-
-
 class DashboardNutritionDay(BaseModel):
     """홈 식단 카드의 주간 추이 차트 한 점 — 하루치 영양 집계."""
     date: str        # YYYY-MM-DD
@@ -32,6 +24,12 @@ class DashboardNutritionDay(BaseModel):
     calories: int
     sodium_mg: int
     sugar_g: float
+    # 탄단지를 날짜별로 같이 싣는다(#1879). 지금 이 셋을 그리는 화면은 없고
+    # (홈 주간 추이는 칼로리 고정), 주간 탄단지 추이를 되살릴 때 쓸 자리다.
+    # 기본값 0 이라 예전 앱과도 호환된다.
+    carbs_g: float = 0
+    protein_g: float = 0
+    fat_g: float = 0
 
 
 class DashboardSummary(BaseModel):
@@ -46,7 +44,6 @@ class DashboardSummary(BaseModel):
     # 식단 카드 주간 추이(최근 7일 일별 영양) + 지난 주 같은 요일(비교선)
     nutrition_week: list[DashboardNutritionDay] = []
     nutrition_week_prev: list[DashboardNutritionDay] = []
-    today_schedule: list[DashboardScheduleItem]
     week_score: int
     week_score_delta: int
     sodium_warning: Optional[str]

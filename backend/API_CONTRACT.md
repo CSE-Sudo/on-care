@@ -68,12 +68,26 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
-| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 
 `entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float) }`
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
-`foods[]`: `[{ name, calories }]` (drift 주석 기준)
+`foods[]`: `[{ name, amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+
+`amount_g` 는 **그 영양이 무엇을 재고 나온 값인가** 다. 공공 DB 는 100g 기준이라 보정이 이 양으로 환산하며, 환산에 실제로 쓴 값(인식기 추정 또는 알려진 1회 섭취량)이 그대로 실린다. 양을 못 얻어 추정치를 그대로 둔 음식과 이 필드 이전 기록은 `null` 이다 — 읽는 쪽이 null 을 견뎌야 한다. 앱은 이 값으로 나머지 여섯 값을 비례 환산한다(#1876).
+
+**`PUT` 에 `foods` 를 실으면 그 끼니의 음식 목록이 통째로 갈리고, 끼니 합계(`total_calories`·`carbs_g`·`protein_g`·`fat_g`·`sodium_mg`·`sugar_g`)도 그 목록에서 다시 계산된다** — 같은 요청에 합계를 함께 보내도 음식 쪽이 이긴다. 원본을 하나로 두지 않으면 음식을 고칠 때마다 합계와 내역이 갈린다. `foods` 를 보내지 않으면 음식 목록은 그대로고 보낸 합계만 바뀐다. 빈 배열(`[]`)은 422 다 — 음식이 하나도 없는 끼니는 수정이 아니라 삭제다.
+
+당류가 탄수화물보다 크면 422 다(#1863). 당류는 탄수화물의 일부라 그보다 클 수 없고, 같은 값(전부 당인 음식)은 통과한다. **`foods` 를 보내면 음식 하나하나를 견준다**(#1893) — 합계로만 보면 탄수화물이 넉넉한 다른 음식이 어긋난 음식을 가려 준다. 응답 `detail` 이 몇 번째 음식인지 말해 준다. `foods` 없이 합계만 보내면 저장된 값과 합친 결과로 견준다.
+
+탄수화물 0 을 어떻게 볼지는 **그 0 이 어디서 왔는지**가 정한다. 컬럼이 `NOT NULL` 기본 0 이라 "탄수화물이 없다" 와 "아직 안 적혔다" 가 같은 0 으로 보이기 때문이다.
+
+- 저장된 끼니의 `carbs_g` 가 0 이고 이번 요청이 탄수화물을 **보내지 않았다면** 견주지 않는다 — 인식기가 그 값을 못 준 옛 기록이고, 여기서 막으면 그 기록의 당류를 영영 고칠 수 없다(#1877).
+- 탄수화물을 **실어 보냈다면** 그 값이 0 이어도 회원이 적은 값으로 보고 견준다. 탄수화물을 지워 검사를 피할 수 없다(#1893). 그래서 합계를 0 으로 초기화할 때는 `sugar_g` 도 함께 0 으로 보내야 한다.
+
+회원 앱도 수정 모드를 열었을 때의 값으로 **같은 판단**을 해서, 저장을 누르기 전에 그 음식의 당류 칸 아래에 이유를 보인다(#1869). 앱이 서버보다 엄격하지도, 느슨하지도 않다.
 `macros`: `{ carbs_pct, protein_pct, fat_pct }`
 `idempotency_key`(선택): 재시도 중복 저장 방지. 클라 요청당 1회 생성해 재시도 시 재사용하면, 서버는 (user_id, key) 유니크 제약으로 같은 키의 재요청에 대해 **인식·저장을 건너뛰고 기존 entry 를 반환**한다(중복 기록·RAG 재적재 없음).
 
@@ -246,6 +260,7 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·목표(`goals`)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
 - **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818).
+- **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
 - **`reason`**: 운영자가 쓴 `recommend_reason` 이 우선이고, 비어 있을 때만 점수 근거에서 만든 문구가 채워진다(예: `회원님이 다니는 헬스장 소속 · 체중 감량 지도 경험`).
 
@@ -339,6 +354,72 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 두 앱 모두 로그인과 토큰 저장이 붙어 있다(`session_controller.dart`, `secure_token_store.dart`,
 `auth_interceptor.dart`). 발급은 `POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`
 이고, 이후 요청은 `Authorization: Bearer <access>` 를 단다.
+
+### 가입 연락처 형식 (#1780)
+
+`POST /auth/register` 와 `POST /auth/trainer/register` 는 `email`·`phone` 의 **형식을 서버가
+본다**. 두 앱의 가입 화면(`oncare_ui` 의 `AppInputRules`)이 같은 것을 미리 걸러 주지만, 앱을
+거치지 않은 요청까지 막는 것은 여기다. 어긋나면 **422** 이고, 중복 이메일(409)·초대 코드
+오류보다 먼저 걸린다.
+
+| 필드 | 기준 | 저장 |
+|---|---|---|
+| `email` | `AppInputRules.email` 과 **같은 규칙**(로컬@도메인.최상위, 최대 255자) | 앞뒤 공백만 잘라낸 **입력 그대로** |
+| `phone` | 숫자 11자리. 하이픈·공백은 세지 않는다. 빈 값 허용(선택) | `010-1234-5678` 한 가지 표기 |
+
+`email-validator`(`EmailStr`)를 쓰지 않는다. 그쪽은 RFC 2606 이 시험용으로 비워 둔 최상위
+도메인(`.test`·`.invalid`·`localhost`)을 막는데, 앱은 통과시키므로 기준이 갈라진다 — 실 API
+E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은 **함께 고쳐야 한다.**
+
+이메일을 소문자로 고치지 않는 이유는 로그인 조회와 중복 확인이 `users.email` 을 그대로
+비교하기 때문이다 — 저장만 정규화하면 대문자 도메인으로 가입한 사람이 자기가 친 주소로
+로그인하지 못한다(정규화는 그 조회까지 함께 옮겨야 하는 별개의 일, #1551).
+
+전화번호는 `01012345678` 처럼 하이픈 없이 보내도 받는다. 앱보다 느슨한 쪽이라 앱을 통과한
+값이 서버에서 막히는 일은 생기지 않는다. 시드와 기존 프로필이 이미 하이픈 표기라 정리할
+데이터는 없다.
+
+`PUT /users/me`(프로필 수정)도 **같은 기준**이다(#1883). 전에는 이 경로만 비어 있어, 이메일을
+`asdf` 로 고친 회원이 원래 주소로 다시 로그인할 수 없었다(비밀번호 찾기 경로가 없어 스스로
+되돌릴 수도 없다). 전화번호도 여기서 정리가 되돌려졌다.
+
+여기에 한 가지가 더 붙는다: **있던 전화번호는 지울 수 없다**(422). 회원 가입 화면이 전화번호를
+필수로 받는데(#1634) 이 화면에서 비울 수 있으면 그 필수가 무의미해지고, 트레이너가 담당 회원에게
+연락할 방법이 사라진다. 반대로 **처음부터 없던 회원**(소셜 로그인 가입자와 #1634 이전 가입자는
+연락처를 넣을 자리가 없었다)에게는 요구하지 않는다 — 이름만 고치려는 사람을 전화번호로 막는
+화면이 된다. 이메일은 어느 쪽이든 비울 수 없다.
+
+`PUT /trainer/me` 는 아직 이 기준을 적용하지 않는다. 그쪽은 이메일을 바꿀 수 없어 잠김이 없고,
+전화번호 표기만 자유롭다.
+
+### 이름·생년월일 형식 (#1887)
+
+같은 이야기가 `name` 과 `birth_date` 에도 적용된다. 전에는 두 칸에만 기준이 없어, 컬럼 길이를
+넘기면 **500**(`value too long`)이고 들어가는 길이면 아무 값이나 **200** 이었다. 기준을 두는
+곳은 `backend/app/services/profile_format.py` 이고, 회원 앱은 `AppInputRules` 로 같은 것을 미리
+보여 준다.
+
+| 필드 | 기준 | 적용 경로 |
+|---|---|---|
+| `name` | 앞뒤 공백을 자른 뒤 **1~100자**(`users.name` 컬럼과 같다) | `POST /auth/register`(보낸 경우) · `POST /users/me/onboarding` · `PUT /users/me` |
+| `birth_date` | `YYYY-MM-DD` 이거나 **빈 값**. 표기뿐 아니라 실제 날짜인지도 본다 | `POST /users/me/onboarding` · `PUT /users/me` |
+
+**이름은 비울 수 없다**(422). 가입 화면이 필수로 받는 값인데 프로필 수정에서 빈 값이 통과하면
+그 필수가 무의미해지고, 이름이 빈 회원이 트레이너 로스터·채팅·상담 카드에 공백으로 뜬다.
+
+**가입에서 `name` 을 생략하면** 서버가 이메일 로컬 파트로 채우는데, 이때 100자로 **자른다**.
+이메일은 255자까지 받으므로(#1780) 자르지 않으면 긴 주소로 가입하는 사람이 *이름을 안 보냈을
+뿐인데* 500 을 받았다 — 무엇을 잘못했는지 알 방법이 없는 실패다. 빈 문자열도 생략과 같이 본다:
+여기서 422 를 내면 이름을 넣을 자리가 없는 경로(옛 빌드)가 가입에서 막힌다.
+
+**생년월일은 비울 수 있다.** 넣을 자리가 없던 시절에 가입한 회원과 소셜 로그인 가입자에게는
+처음부터 없는 값이라, 이름만 고치려는 사람을 생년월일로 막는 화면이 되면 안 된다. 대신 날짜가
+아닌 값은 받지 않는다 — 저장되면 트레이너의 담당 요청 확인 화면에서 나이가 조용히 비어 보이고
+(`trainer_client_invite_service._age_on` 이 파싱에 실패한다), 6자리 코드로 연결할 때 "이 사람이
+맞나" 를 확인하는 근거 하나가 사라진다.
+
+표기(`YYYY-MM-DD`)와 실제 날짜를 **둘 다** 본다. 표기만 보면 `1990-13-45` 가 통과하고, 파서에만
+맡기면 `19900101`·`1990-01-01T00:00:00Z` 처럼 컬럼 길이(10)를 넘는 값이 지나간다.
 
 ### 세션 폐기 (#966)
 

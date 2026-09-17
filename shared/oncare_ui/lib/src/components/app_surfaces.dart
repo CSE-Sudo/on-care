@@ -244,7 +244,8 @@ class AppStatCard extends StatelessWidget {
   }
 }
 
-/// 목록 행 — 앞(아바타·아이콘) / 제목 `bodyLarge` / 부제 `bodySmall` / 뒤 슬롯.
+/// 목록 행 — 앞(아바타·아이콘) / 제목 `bodyLarge` / 부제 `bodySmall` / 뒤 슬롯,
+/// 그리고 부제 아래 [below] 슬롯.
 ///
 /// 최소 높이는 밀도를 따른다(56/48). 선택은 옅은 브랜드 채움 + 브랜드 테두리,
 /// 읽지 않음은 빨간 점 + 제목 600 이다.
@@ -255,6 +256,7 @@ class AppListRow extends StatelessWidget {
     this.subtitle,
     this.leading,
     this.trailing,
+    this.below,
     this.onTap,
     this.selected = false,
     this.unread = false,
@@ -264,6 +266,12 @@ class AppListRow extends StatelessWidget {
   final String? subtitle;
   final Widget? leading;
   final Widget? trailing;
+
+  /// 부제 아래에 붙는 것 — 태그 묶음처럼 한 줄 글로는 안 되는 내용을 놓는다.
+  /// 제목·부제와 같은 칸에 들어가므로 앞 칸(leading)에 맞춰 들여쓰기되고,
+  /// 뒤 슬롯(trailing)에 가리지 않는다. 행 높이는 내용만큼 늘어난다.
+  final Widget? below;
+
   final VoidCallback? onTap;
   final bool selected;
   final bool unread;
@@ -323,6 +331,10 @@ class AppListRow extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
+                      if (below != null) ...<Widget>[
+                        const SizedBox(height: OnCareSpacing.s8),
+                        below!,
+                      ],
                     ],
                   ),
                 ),

@@ -20,9 +20,9 @@ from sqlalchemy.orm import Session
 from app.api.deps import CurrentUser
 from app.core import clock
 from app.db.session import get_db
-from app.models.models import DietEntry, ExerciseSession, ScheduleEvent
+from app.models.models import DietEntry, ExerciseSession
 from app.schemas.dashboard_api import (
-    DashboardIndicator, DashboardNutritionDay, DashboardScheduleItem,
+    DashboardIndicator, DashboardNutritionDay,
     DashboardSummary,
 )
 from app.schemas.diet_api import calculate_macros
@@ -76,17 +76,22 @@ def _nutrition_week(
     rows = db.scalars(
         select(DietEntry).where(DietEntry.user_id == uid).where(DietEntry.date.in_(dates))
     ).all()
-    acc: dict[str, list[float]] = {d: [0, 0, 0] for d in dates}  # [cal, na, sugar]
+    # [cal, na, sugar, carbs, protein, fat]
+    acc: dict[str, list[float]] = {d: [0, 0, 0, 0, 0, 0] for d in dates}
     for r in rows:
         a = acc.get(r.date)
         if a is not None:
             a[0] += r.total_calories
             a[1] += r.sodium_mg
             a[2] += r.sugar_g
+            a[3] += r.carbs_g
+            a[4] += r.protein_g
+            a[5] += r.fat_g
     return [
         DashboardNutritionDay(
             date=d, label=_DAY_LABELS[i],
             calories=acc[d][0], sodium_mg=acc[d][1], sugar_g=acc[d][2],
+            carbs_g=acc[d][3], protein_g=acc[d][4], fat_g=acc[d][5],
         )
         for i, d in enumerate(dates)
     ]
@@ -204,17 +209,6 @@ def dashboard_summary(
     else:
         exercise_feedback = "이번 주 운동을 시작해 보세요. 가벼운 걷기부터 좋아요."
 
-    # --- 오늘 일정 ---
-    sched_rows = db.scalars(
-        select(ScheduleEvent).where(ScheduleEvent.user_id == uid)
-        .where(ScheduleEvent.date == today).order_by(ScheduleEvent.time.asc())
-    ).all()
-    today_schedule = [
-        DashboardScheduleItem(id=s.id, time=s.time, title=s.title,
-                              category=s.category, emoji=s.emoji)
-        for s in sched_rows
-    ]
-
     # --- 주간 점수 + 지난주 대비 변화량(동일 공식으로 실제 차이 집계) ---
     # 이번 주 점수도 지난주와 같은 방식(기록된 날짜들의 평균 나트륨)으로 계산한다.
     # 하루치(total_na)를 주간 평균과 비교하면 왜곡되고, 오늘 아직 식사를 기록하지
@@ -244,7 +238,6 @@ def dashboard_summary(
         exercise_count=exercise_count,
         nutrition_week=nutrition_week,
         nutrition_week_prev=nutrition_week_prev,
-        today_schedule=today_schedule,
         week_score=score,
         week_score_delta=week_score_delta,
         sodium_warning=sodium_warning,

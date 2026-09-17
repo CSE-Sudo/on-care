@@ -123,6 +123,45 @@ void main() {
     expect(save.width, cancel.width);
   });
 
+  testWidgets('완료 시트는 머리에 아바타·연필을 두고 버튼을 스크롤 안에 둔다', (
+    WidgetTester tester,
+  ) async {
+    useFixedKstDate(DateTime(2026, 8, 20, 9));
+    await _pumpApp(tester, FakeDietRepository());
+    await _startAnalyze(tester);
+    await tester.pumpAndSettle();
+
+    // AI 가 읽은 결과를 말하는 시트라, 홈의 AI 조언 카드와 같은 아바타를 쓴다.
+    expect(find.byType(OniAvatar), findsOneWidget);
+
+    // 연필은 인식된 음식 줄이 아니라 머리에 선다 — 걸린 범위가 음식 한 줄이
+    // 아니라 시트 전체다.
+    final double pencil = tester
+        .getCenter(find.byKey(const Key('diet-result-edit')))
+        .dy;
+    final double recognized = tester
+        .getTopLeft(find.byKey(const Key('diet-result-recognized')))
+        .dy;
+    expect(pencil, lessThan(recognized));
+
+    // 강조는 인식된 음식 하나뿐이라 거기에만 옅은 브랜드 채움이 남는다.
+    // 구획을 여럿 쌓으면 카드가 온통 옅은 파랑이 된다(`0389e572`).
+    final AppTile tile = tester.widget<AppTile>(
+      find.byKey(const Key('diet-result-recognized')),
+    );
+    expect(tile.tone, AppTileTone.brand);
+
+    // 버튼이 스크롤 영역 안에 있어야 코멘트 마지막 줄을 덮지 않는다. 바닥에
+    // 고정하면 글자 중간에서 잘린다.
+    expect(
+      find.descendant(
+        of: find.byType(SingleChildScrollView),
+        matching: find.text('저장하기'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('취소는 저장 없이 시트를 닫는다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _pumpApp(tester, FakeDietRepository());

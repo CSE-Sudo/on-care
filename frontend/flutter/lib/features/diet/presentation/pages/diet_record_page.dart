@@ -26,7 +26,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 모양은 `oncare_ui` 컴포넌트와 토큰만 쓴다(#1700).
 class DietRecordPage extends ConsumerStatefulWidget {
-  const DietRecordPage({super.key});
+  const DietRecordPage({super.key, this.nutritionAnchorKey});
+
+  /// 사용 가이드가 영양 요약 카드의 자리를 재는 열쇠(#1857). 식단 탭은 이 값을
+  /// 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? nutritionAnchorKey;
 
   @override
   ConsumerState<DietRecordPage> createState() => _DietRecordPageState();
@@ -91,12 +95,14 @@ DietMeal _mealFromEntry(DietEntry e) {
     photoUrl: e.photoUrl,
     aiComment: e.aiComment,
     // 음식별 영양을 하나도 빠짐없이 옮긴다. 수정 화면이 이 값을 그대로 되돌려
-    // 보내야 저장 뒤에도 끼니 합계가 남는다(#1853).
+    // 보내야 저장 뒤에도 끼니 합계가 남는다(#1853). 섭취량도 같이 온다 —
+    // 그 값이 나머지 여섯 값의 기준이라 흘리면 비례 환산이 근거를 잃는다(#1876).
     items: <DietFood>[
       for (final FoodItem f in e.foods)
         DietFood(
           f.name,
           f.calories,
+          amountG: f.amountG,
           sodiumMg: f.sodiumMg,
           sugarG: f.sugarG,
           carbsG: f.carbsG,
@@ -312,10 +318,13 @@ class _DietRecordPageState extends ConsumerState<DietRecordPage> {
                     icon: AppIcons.diet,
                     placement: AppStatePlacement.card,
                   )
-                : NutritionSummary(
-                    day: day,
-                    profile: profile,
-                    showHeader: false,
+                : KeyedSubtree(
+                    key: widget.nutritionAnchorKey,
+                    child: NutritionSummary(
+                      day: day,
+                      profile: profile,
+                      showHeader: false,
+                    ),
                   ),
           ),
         // 아래는 선택한 날짜 기준이라 기간과 무관하다.
@@ -548,12 +557,11 @@ class NutritionSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
     final int calorieGoal =
         profile?.effectiveDailyCalories ?? UserProfile.defaultDailyCalories;
     final int sodiumGoal =
         profile?.effectiveDailySodiumMg ?? UserProfile.defaultDailySodiumMg;
-    final int sugarGoal =
-        profile?.effectiveDailySugarG ?? UserProfile.defaultDailySugarG;
     final int carbsGoal =
         profile?.effectiveDailyCarbsG ?? UserProfile.defaultDailyCarbsG;
     final int proteinGoal =
@@ -564,57 +572,42 @@ class NutritionSummary extends StatelessWidget {
     // 기간 뷰와 공유한다([DietDayTotals]) — 두 화면의 숫자가 갈리지 않도록.
     final int kcal = day.effectiveCalories;
     final int sodium = day.effectiveSodiumMg;
-    final double sugar = day.effectiveSugarG;
-    final List<_NutritionSummaryItem> items = <_NutritionSummaryItem>[
-      _NutritionSummaryItem(
-        label: l.dietCalories,
-        value: _formatInt(kcal),
-        goal: _formatInt(calorieGoal),
-        unit: l.unitKcal,
-        ratio: _nutritionRatio(kcal, calorieGoal),
-        isOverGoal: kcal > calorieGoal,
-      ),
-      _NutritionSummaryItem(
-        label: l.dietSodium,
-        value: _formatInt(sodium),
-        goal: _formatInt(sodiumGoal),
-        unit: l.dietUnitMg,
-        ratio: _nutritionRatio(sodium, sodiumGoal),
-        isOverGoal: sodium > sodiumGoal,
-      ),
-      _NutritionSummaryItem(
-        label: l.dietSugar,
-        value: _formatG(sugar),
-        goal: _formatG(sugarGoal.toDouble()),
+    final _NutritionSummaryItem calories = _NutritionSummaryItem(
+      label: l.dietCalories,
+      value: _formatInt(kcal),
+      goal: _formatInt(calorieGoal),
+      unit: l.unitKcal,
+      ratio: _nutritionRatio(kcal, calorieGoal),
+      isOverGoal: kcal > calorieGoal,
+    );
+    final _NutritionSummaryItem sodiumItem = _NutritionSummaryItem(
+      label: l.dietSodium,
+      value: _formatInt(sodium),
+      goal: _formatInt(sodiumGoal),
+      unit: l.dietUnitMg,
+      ratio: _nutritionRatio(sodium, sodiumGoal),
+      isOverGoal: sodium > sodiumGoal,
+    );
+    _MacroProgressData macro(String label, double value, int goal) {
+      final _NutritionSummaryItem item = _NutritionSummaryItem(
+        label: label,
+        value: _grams(value),
+        goal: _formatG(goal.toDouble()),
         unit: l.dietUnitG,
-        ratio: _nutritionRatio(sugar, sugarGoal),
-        isOverGoal: sugar > sugarGoal,
-      ),
-      _NutritionSummaryItem(
-        label: l.homeMacroProtein,
-        value: _grams(day.macros.proteinG),
-        goal: _formatG(proteinGoal.toDouble()),
-        unit: l.dietUnitG,
-        ratio: _nutritionRatio(day.macros.proteinG, proteinGoal),
-        isOverGoal: day.macros.proteinG > proteinGoal,
-      ),
-      _NutritionSummaryItem(
-        label: l.homeMacroFat,
-        value: _grams(day.macros.fatG),
-        goal: _formatG(fatGoal.toDouble()),
-        unit: l.dietUnitG,
-        ratio: _nutritionRatio(day.macros.fatG, fatGoal),
-        isOverGoal: day.macros.fatG > fatGoal,
-      ),
-      _NutritionSummaryItem(
-        label: l.homeMacroCarbs,
-        value: _grams(day.macros.carbsG),
-        goal: _formatG(carbsGoal.toDouble()),
-        unit: l.dietUnitG,
-        ratio: _nutritionRatio(day.macros.carbsG, carbsGoal),
-        isOverGoal: day.macros.carbsG > carbsGoal,
-      ),
-    ];
+        ratio: _nutritionRatio(value, goal),
+        isOverGoal: value > goal,
+      );
+      return _MacroProgressData(
+        item: item,
+        // 넘긴 항목은 빨강 (#890). 초과가 아닌 쪽은 브랜드 색이다 (#1070) —
+        // 초록은 "정상"으로 읽혀서 목표에 한참 못 미친 날까지 괜찮다고 말했다.
+        color: item.isOverGoal
+            ? OnCareColors.danger
+            : tokens.brand.statusWithinGoal,
+        difference: _formatG((value - goal).abs()),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -622,17 +615,26 @@ class NutritionSummary extends StatelessWidget {
           AppSectionHeader(title: l.dietNutritionSummary, icon: AppIcons.diet),
           const SizedBox(height: OnCareSpacing.s12),
         ],
-        // 카드는 하나다 (#1120). 나트륨·당류를 따로 뗀 카드에 두었더니
-        // 같은 하루를 세 장이 나눠 말했고, 탄단지 자리가 그만큼 비었다.
+        // 카드는 하나다 (#1120). 칼로리와 그 칼로리를 채운 탄단지가 한 장에서
+        // 이어 읽힌다.
+        //
+        // 구분선 아래 세 줄은 한동안 나트륨·당류였다. 제품이 보는 지표가
+        // 탄단지로 바뀌면서(#1879) 그 자리를 예전처럼 탄단지 진행바로 되돌린다
+        // — 목표 대비 얼마인지는 숫자 세 개보다 막대 세 줄이 먼저 읽힌다.
         _NutritionSummaryCard(
-          calories: items[0],
-          carbs: items[5],
-          protein: items[3],
-          fat: items[4],
-          sodium: items[1],
-          sodiumDifference: _formatInt((sodium - sodiumGoal).abs()),
-          sugar: items[2],
-          sugarDifference: _formatG((sugar - sugarGoal).abs()),
+          calories: calories,
+          macros: <_MacroProgressData>[
+            macro(l.homeMacroCarbs, day.macros.carbsG, carbsGoal),
+            macro(l.homeMacroProtein, day.macros.proteinG, proteinGoal),
+            macro(l.homeMacroFat, day.macros.fatG, fatGoal),
+          ],
+          sodium: _MacroProgressData(
+            item: sodiumItem,
+            color: sodiumItem.isOverGoal
+                ? OnCareColors.danger
+                : tokens.brand.statusWithinGoal,
+            difference: _formatInt((sodium - sodiumGoal).abs()),
+          ),
         ),
       ],
     );
@@ -677,62 +679,35 @@ class _NutritionSummaryItem {
 class _NutritionSummaryCard extends StatelessWidget {
   const _NutritionSummaryCard({
     required this.calories,
-    required this.carbs,
-    required this.protein,
-    required this.fat,
+    required this.macros,
     required this.sodium,
-    required this.sodiumDifference,
-    required this.sugar,
-    required this.sugarDifference,
   });
 
   final _NutritionSummaryItem calories;
-  final _NutritionSummaryItem carbs;
-  final _NutritionSummaryItem protein;
-  final _NutritionSummaryItem fat;
-  final _NutritionSummaryItem sodium;
 
-  /// 목표를 넘긴 만큼(절대값). 라벨 오른쪽에 `+1,429mg` 로 붙는다.
-  final String sodiumDifference;
-  final _NutritionSummaryItem sugar;
-  final String sugarDifference;
+  /// 구분선 아래 첫 줄의 진행바 — 탄수화물·단백질·지방. 목표를 넘긴 만큼은
+  /// 라벨 오른쪽에 `+25g` 로 붙는다.
+  final List<_MacroProgressData> macros;
 
-  /// 이 폭보다 좁으면 나트륨·당류를 위아래로 쌓는다.
-  static const double _stackMineralsBelow = 280;
+  /// 탄단지 **아래** 한 줄로 놓이는 나트륨(#1879).
+  ///
+  /// 지표 전환에서만 빠졌지 화면에서 사라진 것은 아니다 — 홈과 식단 탭의 코칭
+  /// 문구가 나트륨 기준으로 나가므로 그 근거가 같은 카드에 남아야 한다. 탄단지
+  /// 셋과 칸을 나누지 않고 제 줄을 써서, 먼저 읽히는 것은 탄단지다.
+  final _MacroProgressData sodium;
+
+  /// 이 폭보다 좁으면 탄단지를 위아래로 쌓는다.
+  static const double _stackMacrosBelow = 280;
 
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    // 넘긴 항목은 빨강 (#890). 초과가 아닌 쪽은 브랜드 색이다 (#1070) — 초록은
-    // "정상"으로 읽혀서 목표에 한참 못 미친 날까지 괜찮다고 말했다. 탄단지는
-    // 한 브랜드 색의 농담(#953) 중 가운데 값, 나트륨·당류는 그 자체가 경고
-    // 지표라 또렷한 브랜드 색이다.
-    final Color withinGoal = tokens.brand.statusWithinGoal;
-    Color macroColor(_NutritionSummaryItem item) =>
-        item.isOverGoal ? OnCareColors.danger : tokens.brand.macroProtein;
-    final List<_NutritionSummaryItem> macros = <_NutritionSummaryItem>[
-      carbs,
-      protein,
-      fat,
-    ];
-    Color mineralColor(_NutritionSummaryItem item) =>
-        item.isOverGoal ? OnCareColors.danger : withinGoal;
-    final List<_MacroProgressData> minerals = <_MacroProgressData>[
-      _MacroProgressData(
-        item: sodium,
-        color: mineralColor(sodium),
-        difference: sodiumDifference,
-      ),
-      _MacroProgressData(
-        item: sugar,
-        color: mineralColor(sugar),
-        difference: sugarDifference,
-      ),
-    ];
     final AppLocalizations l = AppLocalizations.of(context);
+    // 넘긴 항목은 빨강 (#890). 초과가 아닌 쪽은 브랜드 색이다 (#1070) — 초록은
+    // "정상"으로 읽혀서 목표에 한참 못 미친 날까지 괜찮다고 말했다.
     final Color calorieColor = calories.isOverGoal
         ? OnCareColors.danger
-        : withinGoal;
+        : tokens.brand.statusWithinGoal;
     // 오늘·이번 주·전체가 같은 크기여야 토글을 눌러도 화면이 튀지 않는다
     // (#1124). 최소 높이라 글자 배율이 커지면 셋 다 함께 커진다.
     return ConstrainedBox(
@@ -789,14 +764,6 @@ class _NutritionSummaryCard extends StatelessWidget {
                           maxLines: 1,
                         ),
                       ),
-                      // 탄단지는 칼로리 숫자와 링 사이에 놓는다 (#1120) — 칼로리가
-                      // 무엇으로 채워졌는지가 그 숫자 바로 아래에서 읽혀야 한다.
-                      const SizedBox(height: OnCareSpacing.s8),
-                      for (final _NutritionSummaryItem m in macros) ...<Widget>[
-                        _MacroTextLine(item: m, color: macroColor(m)),
-                        if (m != macros.last)
-                          const SizedBox(height: OnCareSpacing.s4),
-                      ],
                     ],
                   ),
                 ),
@@ -809,12 +776,12 @@ class _NutritionSummaryCard extends StatelessWidget {
             const SizedBox(height: OnCareSpacing.s12),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints constraints) {
-                if (constraints.maxWidth < _stackMineralsBelow) {
+                if (constraints.maxWidth < _stackMacrosBelow) {
                   return Column(
                     children: <Widget>[
-                      for (final _MacroProgressData m in minerals) ...<Widget>[
+                      for (final _MacroProgressData m in macros) ...<Widget>[
                         _MacroProgressItem(macro: m),
-                        if (m != minerals.last)
+                        if (m != macros.last)
                           const SizedBox(height: OnCareSpacing.s12),
                       ],
                     ],
@@ -825,19 +792,21 @@ class _NutritionSummaryCard extends StatelessWidget {
                   children: <Widget>[
                     for (
                       int index = 0;
-                      index < minerals.length;
+                      index < macros.length;
                       index++
                     ) ...<Widget>[
-                      Expanded(
-                        child: _MacroProgressItem(macro: minerals[index]),
-                      ),
-                      if (index < minerals.length - 1)
+                      Expanded(child: _MacroProgressItem(macro: macros[index])),
+                      if (index < macros.length - 1)
                         const SizedBox(width: OnCareSpacing.s12),
                     ],
                   ],
                 );
               },
             ),
+            // 나트륨은 탄단지 아래 제 줄을 쓴다 — 셋과 칸을 나누면 넷이
+            // 같은 무게로 읽히고, 좁은 화면에서는 넷 다 글자가 뭉개진다.
+            const SizedBox(height: OnCareSpacing.s12),
+            _MacroProgressItem(macro: sodium),
           ],
         ),
       ),
@@ -956,75 +925,6 @@ class _MacroProgressData {
 
   /// 목표를 넘긴 만큼. 있으면 라벨 오른쪽에 `+1,429mg` 로 붙는다 (#1070).
   final String? difference;
-}
-
-/// 카드 머리의 탄단지 한 줄 — `탄수화물 204 /275g`. 바 없이 글자만 쓴다.
-class _MacroTextLine extends StatelessWidget {
-  const _MacroTextLine({required this.item, required this.color});
-
-  final _NutritionSummaryItem item;
-  final Color color;
-
-  /// 라벨이 차지하는 폭. `탄수화물`(네 글자)이 들어갈 만큼만 잡는다 — 세 줄의
-  /// 숫자가 세로로 가지런하다 (#1149). 글자 배율을 따라간다.
-  static const double _labelWidth = 56;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      key: Key('nutrition-macro-${item.label}'),
-      children: <Widget>[
-        SizedBox(
-          width: MediaQuery.textScalerOf(context).scale(_labelWidth),
-          child: Text(
-            item.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _text(
-              context,
-              OnCareTypography.caption,
-              OnCareColors.textSecondary,
-            ),
-          ),
-        ),
-        const SizedBox(width: OnCareSpacing.s4),
-        // 값은 라벨 바로 옆에서 시작한다. 글자 배율이 커지면 값부터 줄인다 —
-        // 이 줄이 넘치면 카드 오른쪽의 링을 밀어낸다.
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text.rich(
-              TextSpan(
-                children: <InlineSpan>[
-                  TextSpan(
-                    text: item.value,
-                    // 초과면 빨강 — 바가 없으니 색이 그 말을 대신한다 (#890).
-                    style: OnCareTypography.numeric(
-                      _text(
-                        context,
-                        OnCareTypography.strong(OnCareTypography.bodySmall),
-                        color,
-                      ),
-                    ),
-                  ),
-                  TextSpan(
-                    text: ' / ${item.goal}${item.unit}',
-                    style: _text(
-                      context,
-                      OnCareTypography.caption,
-                      OnCareColors.textTertiary,
-                    ),
-                  ),
-                ],
-              ),
-              maxLines: 1,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 }
 
 class _MacroProgressItem extends StatelessWidget {

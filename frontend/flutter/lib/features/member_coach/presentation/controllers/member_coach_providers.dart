@@ -5,7 +5,9 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
+import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -24,10 +26,14 @@ final memberCoachRepositoryProvider = Provider<MemberCoachRepository>((ref) {
     // 할 수 있다. 테스트가 운동 저장소를 다른 대역으로 갈아 끼우면 루틴 상태만
     // 바뀌는 예전 동작으로 떨어진다 — 화면이 죽는 것보다 낫다.
     final ExerciseRepository exercise = ref.watch(exerciseRepositoryProvider);
+    final GymRepository gym = ref.watch(gymRepositoryProvider);
     return MockMemberCoachRepository(
       exercise: exercise is MockExerciseRepository ? exercise : null,
       // 루틴 완료(추천·배정) 적립도 같은 원장이다(#1786).
       points: ref.watch(demoPointsLedgerProvider),
+      // 담당 트레이너 연결은 헬스장 저장소가 들고 있다 — 트레이너를 끊으면
+      // 담당 코치도 없어야 헤더가 AI 챗봇 입구로 바뀐다(#1840, #1865).
+      linked: gym is MockGymRepository ? () => gym.hasTrainer : null,
     );
   }
   return DioMemberCoachRepository(ref.watch(dioProvider));
@@ -55,10 +61,24 @@ final coachChatProvider = StreamProvider.autoDispose<List<CoachMessage>>((ref) {
   return ref.watch(memberCoachRepositoryProvider).watchChat();
 });
 
-/// Unread coach-sent message count for the entry badge.
-final coachUnreadProvider = FutureProvider<int>((ref) {
-  return ref.watch(memberCoachRepositoryProvider).unreadCount();
-});
+/// 헤더 배지에 뜨는 트레이너 대화 미읽음 수.
+///
+/// 아래 [coachInvitesProvider] 와 **같은 규칙**으로 받는다 — 앱을 켤 때와 돌아올
+/// 때 바로, 켜져 있는 동안 15초마다. 예전에는 한 번만 조회해서, 앱을 켜 둔 채
+/// 트레이너가 메시지를 보내도 배지가 켤 때의 수(대개 0)로 남았다(#1929).
+/// 데모에는 따라갈 서버가 없어 한 번만 받는다.
+final coachUnreadProvider = StreamProvider.autoDispose<int>((ref) {
+  final MemberCoachRepository repository = ref.watch(
+    memberCoachRepositoryProvider,
+  );
+  if (ref.watch(appConfigProvider).useMockApi) {
+    return Stream<int>.fromFuture(repository.unreadCount());
+  }
+  return activePollingStream<int>(
+    load: repository.unreadCount,
+    interval: const Duration(seconds: 15),
+  );
+}, name: 'coachUnread');
 
 /// 트레이너가 나에게 보낸 담당 요청. 수락·거절 뒤에는 invalidate 한다. (#919)
 ///

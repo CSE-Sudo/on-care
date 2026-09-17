@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/network/request_extras.dart';
-import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -14,18 +14,13 @@ import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 /// `USE_MOCK_API=false`.
 class DioDietRepository implements DietRepository {
   DioDietRepository(this._dio);
-  static const Duration _entryOverrideTtl = Duration(minutes: 5);
 
   final Dio _dio;
-  final Map<String, DietEntry> _entryOverrides = <String, DietEntry>{};
-  final Map<String, DateTime> _entryOverrideUpdatedAt = <String, DateTime>{};
 
   @override
   Future<DietDay> fetchToday() async {
     final res = await _dio.get<Map<String, Object?>>('/diet/days/today');
-    final day = DietDay.fromJson(res.data!);
-    _pruneStaleOverrides(day);
-    return _applyOverrides(day);
+    return DietDay.fromJson(res.data!);
   }
 
   @override
@@ -96,8 +91,18 @@ class DioDietRepository implements DietRepository {
   @override
   Future<void> deleteEntry(String id) async {
     await _dio.delete<Map<String, Object?>>('/diet/entries/$id');
-    _entryOverrides.remove(id);
-    _entryOverrideUpdatedAt.remove(id);
+  }
+
+  @override
+  Future<FoodNutritionSuggestion?> lookupFoodNutrition({
+    required String name,
+    double? amountG,
+  }) async {
+    final res = await _dio.post<Map<String, Object?>>(
+      '/diet/nutrition',
+      data: <String, Object?>{'name': name, 'amount_g': ?amountG},
+    );
+    return FoodNutritionSuggestion.fromJson(res.data!);
   }
 
   @override
@@ -123,6 +128,10 @@ class DioDietRepository implements DietRepository {
                 (FoodItem food) => <String, Object?>{
                   'name': food.name,
                   'calories': food.calories,
+                  // 섭취량은 나머지 값의 기준이라 함께 싣는다. 빠뜨리면 다음에
+                  // 이 끼니를 열었을 때 양을 모르는 기록이 되어, 양으로 영양을
+                  // 움직이는 길이 저장 한 번에 끊긴다(#1876).
+                  'amount_g': food.amountG,
                   'sodium_mg': food.sodiumMg,
                   'sugar_g': food.sugarG,
                   'carbs_g': food.carbsG,
@@ -136,155 +145,14 @@ class DioDietRepository implements DietRepository {
         'sugar_g': ?sugarG,
       },
     );
-    final returned = DietEntry.fromJson(res.data!);
-    final updatedFoods = foods ?? returned.foods;
-    final editedMacros = foods == null
-        ? null
-        : (
-            carbsG: updatedFoods.fold<double>(
-              0,
-              (double sum, FoodItem food) => sum + food.carbsG,
-            ),
-            proteinG: updatedFoods.fold<double>(
-              0,
-              (double sum, FoodItem food) => sum + food.proteinG,
-            ),
-            fatG: updatedFoods.fold<double>(
-              0,
-              (double sum, FoodItem food) => sum + food.fatG,
-            ),
-          );
-    final updated = DietEntry(
-      id: returned.id,
-      mealType: mealType == null
-          ? returned.mealType
-          : MealType.values.byName(mealType),
-      timeLabel: timeLabel ?? returned.timeLabel,
-      foods: updatedFoods,
-      totalCalories: totalCalories ?? returned.totalCalories,
-      sodiumMg: sodiumMg ?? returned.sodiumMg,
-      sugarG: sugarG ?? returned.sugarG,
-      carbsG: editedMacros?.carbsG ?? returned.carbsG,
-      proteinG: editedMacros?.proteinG ?? returned.proteinG,
-      fatG: editedMacros?.fatG ?? returned.fatG,
-      // 수정은 끼니 내용만 바꾼다. 이 오버라이드가 원본 항목을 통째로 갈아
-      // 끼우므로, 여기 빠뜨린 값은 화면에서 사라진다 — 사진을 빠뜨리면 이름만
-      // 고쳐도 끼니 카드가 이모지로 떨어졌다.
-      photoAsset: returned.photoAsset,
-      photoUrl: returned.photoUrl,
-      aiComment: returned.aiComment,
-    );
-    _entryOverrides[id] = updated;
-    _entryOverrideUpdatedAt[id] = nowKst();
-    return updated;
+    // 응답을 그대로 쓴다. 서버가 보낸 음식을 저장하고 끼니 합계도 그 음식에서
+    // 다시 내므로(#1892), 앱이 보낸 값으로 응답을 덮어쓸 이유가 없다.
+    //
+    // 예전에는 덮어썼다 — 서버가 `foods` 를 통째로 버리는데도 200 을 줘서,
+    // 화면을 맞추려면 앱이 기억하고 있는 수밖에 없었다. 그 우회는 고친 값이
+    // 앱 메모리에만 남게 했고(다시 켜면 옛 음식), 오늘 화면에만 걸려 지난
+    // 날짜는 여전히 옛 값을 보여 줬으며, 항목을 통째로 갈아 끼우느라 거기
+    // 빠뜨린 사진과 코멘트를 화면에서 지우기도 했다(#1871).
+    return DietEntry.fromJson(res.data!);
   }
-
-  void _pruneStaleOverrides(DietDay day) {
-    if (_entryOverrides.isEmpty) return;
-
-    final now = nowKst();
-    final serverIds = day.entries
-        .map((DietEntry entry) => entry.id)
-        .whereType<String>()
-        .toSet();
-    final staleIds = <String>[];
-
-    for (final id in _entryOverrides.keys) {
-      final updatedAt = _entryOverrideUpdatedAt[id];
-      final isExpired =
-          updatedAt == null || now.difference(updatedAt) > _entryOverrideTtl;
-      if (isExpired || !serverIds.contains(id)) {
-        staleIds.add(id);
-      }
-    }
-
-    for (final id in staleIds) {
-      _entryOverrides.remove(id);
-      _entryOverrideUpdatedAt.remove(id);
-    }
-  }
-
-  DietDay _applyOverrides(DietDay day) {
-    if (_entryOverrides.isEmpty) return day;
-    final entries = day.entries
-        .map((DietEntry entry) => _entryOverrides[entry.id] ?? entry)
-        .toList();
-    return DietDay(
-      entries: entries,
-      totalCalories: entries.fold<int>(
-        0,
-        (int total, DietEntry entry) => total + entry.totalCalories,
-      ),
-      macros: _toDietMacros(_sumMacroGrams(entries)),
-      totalSodiumMg: entries.fold<int>(
-        0,
-        (int total, DietEntry entry) => total + entry.sodiumMg,
-      ),
-      totalSugarG: entries.fold<double>(
-        0,
-        (double total, DietEntry entry) => total + entry.sugarG,
-      ),
-      aiCoachMessage: day.aiCoachMessage,
-    );
-  }
-}
-
-typedef _MacroGrams = ({double carbsG, double proteinG, double fatG});
-
-_MacroGrams _sumMacroGrams(Iterable<DietEntry> entries) => (
-  carbsG: entries.fold<double>(
-    0,
-    (double sum, DietEntry entry) => sum + entry.carbsG,
-  ),
-  proteinG: entries.fold<double>(
-    0,
-    (double sum, DietEntry entry) => sum + entry.proteinG,
-  ),
-  fatG: entries.fold<double>(
-    0,
-    (double sum, DietEntry entry) => sum + entry.fatG,
-  ),
-);
-
-// Keep this 4/4/9 largest-remainder calculation in sync with
-// the backend calculate_macros implementation.
-DietMacros _toDietMacros(_MacroGrams grams) {
-  final energies = <double>[
-    grams.carbsG * 4,
-    grams.proteinG * 4,
-    grams.fatG * 9,
-  ];
-  final totalEnergy = energies.fold<double>(
-    0,
-    (double sum, double energy) => sum + energy,
-  );
-  final percentages = <int>[0, 0, 0];
-  if (totalEnergy > 0) {
-    final raw = energies
-        .map((double energy) => energy / totalEnergy * 100)
-        .toList();
-    for (var index = 0; index < percentages.length; index++) {
-      percentages[index] = raw[index].floor();
-    }
-    final ranked = <int>[0, 1, 2]
-      ..sort((int a, int b) {
-        final fraction = (raw[b] - percentages[b]).compareTo(
-          raw[a] - percentages[a],
-        );
-        return fraction == 0 ? b.compareTo(a) : fraction;
-      });
-    final remaining =
-        100 - percentages.fold<int>(0, (int sum, int value) => sum + value);
-    for (final index in ranked.take(remaining)) {
-      percentages[index]++;
-    }
-  }
-  return DietMacros(
-    carbsG: grams.carbsG,
-    proteinG: grams.proteinG,
-    fatG: grams.fatG,
-    carbsPct: percentages[0],
-    proteinPct: percentages[1],
-    fatPct: percentages[2],
-  );
 }

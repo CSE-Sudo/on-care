@@ -31,6 +31,18 @@ Finder get _firstFoodName =>
     find.byKey(const ValueKey<String>('diet-food-name-1'));
 Finder get _firstFoodCarbs =>
     find.byKey(const ValueKey<String>('diet-food-carbs-1'));
+Finder _foodSugar(int index) =>
+    find.byKey(ValueKey<String>('diet-food-sugar-$index'));
+Finder _sugarError(int index) =>
+    find.byKey(ValueKey<String>('diet-food-sugar-$index-error'));
+
+/// `mock-breakfast` 의 첫 음식(스크램블 에그)을 지금 저장된 대로 읽는다.
+Future<FoodItem> _savedFirstFood(
+  WidgetTester tester,
+  FakeDietRepository repo,
+) async => (await tester.runAsync(
+  () => repo.fetchToday(),
+))!.entries.firstWhere((DietEntry e) => e.id == 'mock-breakfast').foods.first;
 
 Future<void> _openDetail(WidgetTester tester, FakeDietRepository repo) async {
   // 수정 모드에서는 음식마다 영양 칸이 여섯 줄씩 붙어 화면이 길어진다.
@@ -194,11 +206,10 @@ void main() {
 
     await tester.tap(_editButton);
     await tester.pumpAndSettle();
-    // 스크램블 에그 당류 0.8 → 10. 딸기 5.5 와 합쳐 15.5 가 되어야 한다.
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('diet-food-sugar-1')),
-      '10',
-    );
+    // 스크램블 에그 당류 0.8 → 2. 딸기 5.5 와 합쳐 7.5 가 되어야 한다.
+    // 그 음식의 탄수화물(2g)을 넘는 값은 이제 저장이 막히므로(#1869), 합계가
+    // 따라오는지 보는 이 검사는 넘지 않는 값으로 확인한다.
+    await tester.enterText(_foodSugar(1), '2');
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('저장'));
@@ -207,8 +218,8 @@ void main() {
     final DietEntry saved = (await tester.runAsync(
       () => repo.fetchToday(),
     ))!.entries.firstWhere((DietEntry e) => e.id == 'mock-breakfast');
-    expect(saved.foods.first.sugarG, 10);
-    expect(saved.sugarG, 15.5, reason: '끼니 행에도 따로 저장되므로 음식에서 다시 합쳐 보내야 한다');
+    expect(saved.foods.first.sugarG, 2);
+    expect(saved.sugarG, 7.5, reason: '끼니 행에도 따로 저장되므로 음식에서 다시 합쳐 보내야 한다');
   });
 
   testWidgets('음식을 모두 지우고 저장하면 식단을 지울지 묻는다', (WidgetTester tester) async {
@@ -230,5 +241,202 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('음식이 하나도 남지 않았어요. 이 식단 기록을 삭제할까요?'), findsOneWidget);
+  });
+
+  // 당류는 탄수화물의 일부라 그보다 클 수 없다. 서버도 같은 값을 422 로
+  // 거절하므로(#1863), 앱이 먼저 막지 않으면 다 적고 저장을 누른 뒤에야
+  // 어느 칸이 문제인지 모르는 실패 토스트만 뜬다 (#1869).
+  group('당류는 탄수화물보다 클 수 없다', () {
+    testWidgets('저장을 누르기 전에는 오류가 뜨지 않는다', (WidgetTester tester) async {
+      await _openDetail(tester, FakeDietRepository());
+
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+
+      // 스크램블 에그는 탄수화물 2g 이다 — 9 는 이미 어긋난 값이다.
+      await tester.enterText(_foodSugar(1), '9');
+      await tester.pumpAndSettle();
+
+      // 치는 도중에 빨간 글씨가 먼저 뜨면 틀린 것처럼 보인다(#1784).
+      expect(_sugarError(1), findsNothing);
+    });
+
+    testWidgets('저장을 누르면 그 음식의 당류 칸 아래에 이유가 뜨고 저장이 나가지 않는다', (
+      WidgetTester tester,
+    ) async {
+      final FakeDietRepository repo = FakeDietRepository();
+      await _openDetail(tester, repo);
+
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      await tester.enterText(_foodSugar(1), '9');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(_sugarError(1), findsOneWidget);
+      expect(find.text('당류는 탄수화물보다 클 수 없어요'), findsOneWidget);
+      expect(find.text('저장'), findsOneWidget, reason: '수정 모드에 머문다');
+      expect(
+        (await _savedFirstFood(tester, repo)).sugarG,
+        0.8,
+        reason: '요청이 나가지 않았으므로 저장된 값은 그대로다',
+      );
+    });
+
+    testWidgets('오류는 틀린 음식에만 붙는다', (WidgetTester tester) async {
+      await _openDetail(tester, FakeDietRepository());
+
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      // 딸기는 탄수화물 8g 이다.
+      await tester.enterText(_foodSugar(2), '9');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(_sugarError(2), findsOneWidget);
+      expect(_sugarError(1), findsNothing, reason: '스크램블 에그는 멀쩡하다');
+    });
+
+    testWidgets('고치면 문구가 사라지고 저장이 나간다', (WidgetTester tester) async {
+      final FakeDietRepository repo = FakeDietRepository();
+      await _openDetail(tester, repo);
+
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      await tester.enterText(_foodSugar(1), '9');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+      expect(_sugarError(1), findsOneWidget);
+
+      // 한 번 보인 칸은 그 뒤로 고치는 대로 다시 검사한다 — 저장을 다시
+      // 누르지 않아도 문구가 사라져야 고친 것이 맞는지 알 수 있다.
+      await tester.enterText(_foodSugar(1), '1.5');
+      await tester.pumpAndSettle();
+      expect(_sugarError(1), findsNothing);
+
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect((await _savedFirstFood(tester, repo)).sugarG, 1.5);
+    });
+
+    testWidgets('당류를 그대로 두고 탄수화물을 올려도 문구가 사라진다', (WidgetTester tester) async {
+      await _openDetail(tester, FakeDietRepository());
+
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      await tester.enterText(_foodSugar(1), '9');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+      expect(_sugarError(1), findsOneWidget);
+
+      // 고칠 칸이 당류라고 정해져 있지 않다 — 탄수화물을 덜 적었을 수도 있다.
+      await tester.enterText(_firstFoodCarbs, '20');
+      await tester.pumpAndSettle();
+
+      expect(_sugarError(1), findsNothing);
+    });
+
+    testWidgets('당류와 탄수화물이 같으면 통과한다', (WidgetTester tester) async {
+      final FakeDietRepository repo = FakeDietRepository();
+      await _openDetail(tester, repo);
+
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      // 전부 당인 음식이 있다 — 같은 값은 막지 않는다.
+      await tester.enterText(_foodSugar(1), '2');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(_sugarError(1), findsNothing);
+      expect((await _savedFirstFood(tester, repo)).sugarG, 2);
+    });
+
+    testWidgets('탄수화물을 지워 검사를 피할 수는 없다', (WidgetTester tester) async {
+      final FakeDietRepository repo = FakeDietRepository();
+      await _openDetail(tester, repo);
+
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      // 이 끼니에는 탄수화물이 적혀 있었다(스크램블 에그 2 + 딸기 8). 그것을
+      // 방금 지운 0 은 "아직 안 적혔다" 가 아니라 회원이 적은 값이다(#1893).
+      await tester.enterText(_firstFoodCarbs, '');
+      await tester.enterText(_foodSugar(1), '9');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(_sugarError(1), findsOneWidget);
+      expect(
+        (await _savedFirstFood(tester, repo)).sugarG,
+        0.8,
+        reason: '요청이 나가지 않았으므로 저장된 값은 그대로다',
+      );
+    });
+
+    testWidgets('탄수화물이 처음부터 없던 끼니는 당류만 고쳐도 막지 않는다', (
+      WidgetTester tester,
+    ) async {
+      final FakeDietRepository repo = FakeDietRepository();
+      await _openDetail(tester, repo);
+
+      // 인식기가 탄수화물을 못 준 옛 기록과 같은 상태를 화면에서 만든다 —
+      // 두 음식의 탄수화물과 당류를 함께 비우고 저장한다.
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      for (final Finder field in <Finder>[
+        _firstFoodCarbs,
+        _foodSugar(1),
+        find.byKey(const ValueKey<String>('diet-food-carbs-2')),
+        _foodSugar(2),
+      ]) {
+        await tester.enterText(field, '');
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+      expect(_sugarError(1), findsNothing, reason: '당류도 함께 비웠으니 어긋나지 않는다');
+
+      // 이제 저장된 끼니에 탄수화물이 없다. 여기서 당류만 적는 것은 막히면
+      // 안 된다 — 막으면 그 기록을 영영 고칠 수 없다(#1877).
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      await tester.enterText(_foodSugar(1), '9');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(_sugarError(1), findsNothing);
+      expect((await _savedFirstFood(tester, repo)).sugarG, 9);
+    });
+
+    testWidgets('취소하고 다시 펴면 빨간 글씨가 남아 있지 않다', (WidgetTester tester) async {
+      await _openDetail(tester, FakeDietRepository());
+
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+      await tester.enterText(_foodSugar(1), '9');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+      expect(_sugarError(1), findsOneWidget);
+
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+
+      // 저장을 누른 적 없는 화면에 오류가 먼저 서 있으면 안 된다.
+      expect(_sugarError(1), findsNothing);
+    });
   });
 }

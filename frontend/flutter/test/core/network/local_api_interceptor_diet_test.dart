@@ -256,6 +256,128 @@ void main() {
     expect(mealOnly.data!['fat_g'], closeTo(5.4, 0.001));
   });
 
+  test('POST /diet/nutrition 은 이름으로 공공 DB 값을 찾는다 (#1896)', () async {
+    // 양을 주지 않으면 그 음식의 1회 섭취량으로 답한다.
+    final whole = await dio.post<Map<String, Object?>>(
+      '/diet/nutrition',
+      data: <String, Object?>{'name': '짜장면'},
+    );
+    expect(whole.data!['matched_name'], '짜장면');
+    expect(whole.data!['source'], 'db');
+    expect(whole.data!['amount_g'], 650);
+    expect(whole.data!['calories'], 700);
+    expect(whole.data!['sodium_mg'], 2400);
+
+    // 양을 주면 그 양으로 환산한다.
+    final half = await dio.post<Map<String, Object?>>(
+      '/diet/nutrition',
+      data: <String, Object?>{'name': '짜장면', 'amount_g': 325},
+    );
+    expect(half.data!['amount_g'], 325);
+    expect(half.data!['calories'], 350);
+    expect(half.data!['sodium_mg'], 1200);
+  });
+
+  test('POST /diet/nutrition 은 못 찾으면 조용하다 — 이름이 비면 400', () async {
+    final unknown = await dio.post<Map<String, Object?>>(
+      '/diet/nutrition',
+      data: <String, Object?>{'name': '할머니표 비법 반찬'},
+    );
+    // 임의로 1인분을 지어내지 않는다 — 앱은 이때 아무것도 제안하지 않는다.
+    expect(unknown.data!['matched_name'], isNull);
+    expect(unknown.data!['calories'], isNull);
+
+    final empty = await dio.post<Map<String, Object?>>(
+      '/diet/nutrition',
+      data: <String, Object?>{'name': '   '},
+      options: Options(validateStatus: (int? s) => s == 400),
+    );
+    expect(empty.statusCode, 400);
+  });
+
+  test('PUT /diet/entries 의 끼니 합계는 보낸 값이 아니라 foods 에서 다시 센다 (#1922)', () async {
+    // 실서버가 같은 규칙이다(`totals_from_foods`, #1892) — 여기만 본문을 믿으면
+    // 데모에서는 맞는데 실연동에서 어긋나는 숫자가 생긴다.
+    await db
+        .into(db.dietEntries)
+        .insert(
+          DietEntriesCompanion.insert(
+            id: 'diet-recount',
+            date: nowKst().toIso8601String().substring(0, 10),
+            mealType: 'lunch',
+            timeLabel: '12:00',
+            foodsJson: jsonEncode(<Map<String, Object?>>[
+              <String, Object?>{'name': '기존 음식', 'calories': 100},
+            ]),
+            totalCalories: 100,
+            sodiumMg: const Value(100),
+            sugarG: const Value(1),
+          ),
+        );
+
+    final updated = await dio.put<Map<String, Object?>>(
+      '/diet/entries/diet-recount',
+      data: <String, Object?>{
+        'foods': <Map<String, Object?>>[
+          <String, Object?>{
+            'name': '현미밥',
+            'calories': 310,
+            'sodium_mg': 3,
+            'sugar_g': 0.5,
+          },
+          <String, Object?>{'name': '김', 'calories': 5, 'sodium_mg': 40},
+        ],
+        // 앱이 틀린 합계를 보내도 쓰이지 않는다.
+        'total_calories': 9999,
+        'sodium_mg': 9999,
+        'sugar_g': 99.9,
+      },
+    );
+
+    expect(updated.data!['total_calories'], 315, reason: '310 + 5');
+    expect(updated.data!['sodium_mg'], 43, reason: '3 + 40');
+    expect(updated.data!['sugar_g'], closeTo(0.5, 0.001));
+
+    // 다시 조회해도 같은 값이어야 한다 — 응답만 맞고 행이 9999 면 소용없다.
+    final today = await dio.get<Map<String, Object?>>('/diet/days/today');
+    final persisted = (today.data!['entries']! as List<Object?>)
+        .cast<Map<String, Object?>>()
+        .singleWhere((Map<String, Object?> e) => e['id'] == 'diet-recount');
+    expect(persisted['total_calories'], 315);
+    expect(persisted['sodium_mg'], 43);
+  });
+
+  test('foods 없이 합계만 보내는 수정은 그대로 반영된다 (#1922)', () async {
+    // 부분 수정 규약은 그대로다 — 음식을 건드리지 않는 정정까지 막으면 안 된다.
+    await db
+        .into(db.dietEntries)
+        .insert(
+          DietEntriesCompanion.insert(
+            id: 'diet-totals-only',
+            date: nowKst().toIso8601String().substring(0, 10),
+            mealType: 'lunch',
+            timeLabel: '12:00',
+            foodsJson: jsonEncode(<Map<String, Object?>>[
+              <String, Object?>{'name': '기존 음식', 'calories': 100},
+            ]),
+            totalCalories: 100,
+            sodiumMg: const Value(100),
+            sugarG: const Value(1),
+          ),
+        );
+
+    final updated = await dio.put<Map<String, Object?>>(
+      '/diet/entries/diet-totals-only',
+      data: <String, Object?>{'total_calories': 333, 'sodium_mg': 444},
+    );
+
+    expect(updated.data!['total_calories'], 333);
+    expect(updated.data!['sodium_mg'], 444);
+    final foods = (updated.data!['foods']! as List<Object?>)
+        .cast<Map<String, Object?>>();
+    expect(foods.single['name'], '기존 음식', reason: '음식 목록은 그대로다');
+  });
+
   test('PUT /diet/entries rejects an invalid foods value', () async {
     await db
         .into(db.dietEntries)
@@ -349,7 +471,11 @@ void main() {
         '${tomorrow.month.toString().padLeft(2, '0')}-'
         '${tomorrow.day.toString().padLeft(2, '0')}';
 
-    for (final String value in <String>['20260801', '2026-13-01', tomorrowWire]) {
+    for (final String value in <String>[
+      '20260801',
+      '2026-13-01',
+      tomorrowWire,
+    ]) {
       final response = await dio.put<Map<String, Object?>>(
         '/diet/entries/diet-bad-date',
         data: <String, Object?>{'date': value},
