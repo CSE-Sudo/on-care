@@ -206,7 +206,7 @@ class DietEntry(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     date: Mapped[str] = mapped_column(String(10), index=True)  # YYYY-MM-DD
-    meal_type: Mapped[str] = mapped_column(String(20))  # breakfast|lunch|dinner|snack
+    meal_type: Mapped[str] = mapped_column(String(20))  # breakfast|lunch|dinner|snack|lateNight
     time_label: Mapped[str] = mapped_column(String(10), default="")
     foods_json: Mapped[str] = mapped_column(Text, default="[]")  # [{name, calories}]
     total_calories: Mapped[int] = mapped_column(Integer, default=0)
@@ -233,6 +233,23 @@ class DietEntry(Base):
         UniqueConstraint(
             "user_id", "idempotency_key", name="uq_diet_entries_user_idem"
         ),
+    )
+
+
+class AccountDeletionReason(Base):
+    """회원이 탈퇴하며 고른 사유 한 줄. (#2019)
+
+    **회원 행과 잇지 않는다.** 회원은 이 행을 쓰는 바로 그 순간 지워지므로 FK 를
+    걸면 남길 수가 없다. 남기는 것도 사유 코드와 시각뿐이다 — 누가 썼는지는
+    모으지 않는다. 여러 개를 고를 수 있어 한 번의 탈퇴가 여러 행이 된다.
+    """
+
+    __tablename__ = "account_deletion_reasons"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    reason: Mapped[str] = mapped_column(String(40), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )
 
 

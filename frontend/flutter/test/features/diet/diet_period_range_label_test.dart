@@ -84,6 +84,29 @@ void main() {
     expect(rangeLabel(tester), isNot(atEnd), reason: '그래프를 밀었는데 상단 날짜가 그대로다');
   });
 
+  testWidgets('날짜 줄은 오른쪽에 붙는다', (WidgetTester tester) async {
+    // 칩과 한 줄을 쓰던 시절에는 `Expanded` 가 남는 자리를 줘서 오른쪽에
+    // 붙었다. 칩이 빠지며(#1986) 그 `Expanded` 도 사라져 글자 폭만큼만
+    // 차지하고 왼쪽으로 갔다 — `textAlign` 은 제 폭 안에서만 도는 규칙이라
+    // 그것만으로는 오른쪽에 붙지 않는다.
+    await open(tester, DietPeriodTab.week);
+
+    final Rect label = tester.getRect(
+      find.byKey(const Key('diet-period-range')),
+    );
+    final Rect card = tester.getRect(find.byKey(const Key('diet-period-card')));
+    expect(
+      label.right,
+      moreOrLessEquals(card.right, epsilon: 1),
+      reason: '날짜 줄의 오른쪽 끝이 카드의 오른쪽 끝과 맞지 않는다',
+    );
+    expect(
+      label.left,
+      lessThan(card.left + 1),
+      reason: '날짜 줄이 폭을 끝까지 쓰지 않아 textAlign 이 돌 자리가 없다',
+    );
+  });
+
   testWidgets('이번 주는 한 화면에 다 들어가므로 월~일 그대로다', (WidgetTester tester) async {
     await open(tester, DietPeriodTab.week);
 

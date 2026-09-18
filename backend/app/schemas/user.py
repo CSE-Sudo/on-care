@@ -331,6 +331,16 @@ class OnboardingRequest(BaseModel):
         return value
 
 
+class AccountDeleteRequest(BaseModel):
+    """DELETE /users/me 본문 — 회원이 고른 탈퇴 사유. (#2019)
+
+    본문 없이 불러도 된다. 사유는 탈퇴를 막는 조건이 아니라 물어보는 자리다.
+    고른 것 중 서버가 아는 값만 남는다.
+    """
+
+    reasons: list[str] = Field(default_factory=list, max_length=10)
+
+
 class ProfileUpdate(PartialUpdate):
     """PUT /users/me — 내 프로필 모달(이름/이메일/전화/생년월일).
 

@@ -8,7 +8,9 @@ abstract class AccountRepository {
   /// DELETE /users/me — withdraw the account. The server cascade-deletes
   /// the profile, diet/exercise, schedule, notifications and linked
   /// social accounts.
-  Future<void> deleteAccount();
+  /// 고른 탈퇴 사유를 함께 보낸다(#2019). 사유는 탈퇴를 막는 조건이 아니라
+  /// 물어보는 자리라, 비어 있어도 탈퇴는 그대로 진행된다.
+  Future<void> deleteAccount({List<String> reasons = const <String>[]});
 
   /// PUT /users/me/health-goals — 건강 목표(식단 일일 6종 + 주간 운동 3종).
   ///

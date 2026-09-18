@@ -314,34 +314,19 @@ class _FeedbackDialogState extends State<_FeedbackDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 입력 폼이라 중간 폭이다. 하단 버튼은 [AppButtonPair] 와 같은 반반
-    // 배치이되, 테스트와 자동화가 저장 버튼을 키로 찾으므로 직접 세운다.
+    // 입력 폼이라 중간 폭이다.
     return AppDialog(
       title: l.routineFeedbackTitle,
       size: AppDialogSize.medium,
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              label: l.actionCancel,
-              onPressed: () => Navigator.of(context).pop(),
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('routine-feedback-save'),
-              label: l.actionSave,
-              onPressed: () {
-                final String text = _controller.text.trim();
-                if (text.isNotEmpty) Navigator.of(context).pop(text);
-              },
-              fullWidth: true,
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const ValueKey<String>('routine-feedback-save'),
+        confirmLabel: l.actionSave,
+        onConfirm: () {
+          final String text = _controller.text.trim();
+          if (text.isNotEmpty) Navigator.of(context).pop(text);
+        },
       ),
       child: AppTextField(
         key: const ValueKey<String>('routine-feedback-input'),
