@@ -454,12 +454,10 @@ class _NutritionSectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     return Padding(
-      // 기간 탭에서는 바로 아래가 지표 버튼 줄이라 간격을 좁힌다.
-      padding: EdgeInsets.only(
-        bottom: period == DietPeriodTab.day
-            ? OnCareSpacing.s12
-            : OnCareSpacing.s8,
-      ),
+      // 세 기간이 같은 간격이다 — 카드가 토글을 오갈 때 제자리에 있어야 한다.
+      // 예전에는 기간 탭 바로 아래가 지표 버튼 줄이라 8 로 좁혔는데, 그 줄이
+      // 사라진(#1986, #2009) 뒤에도 차이만 남아 카드가 4dp 오르내렸다.
+      padding: const EdgeInsets.only(bottom: OnCareSpacing.s12),
       child: Row(
         // 줄 자체를 지목할 수 있어야 토글이 줄 오른쪽 끝에 붙었는지를 테스트가
         // 잴 수 있다(#761).

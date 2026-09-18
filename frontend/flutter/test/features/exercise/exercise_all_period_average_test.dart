@@ -193,6 +193,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(_average(), findsNothing);
     expect(find.byKey(const Key('exercise-all-range')), findsNothing);
+    // 머리 문구가 그 주와 함께 **무엇의 값인지**를 말한다 — 평소의 `평균 소모`
+    // 와 같게 `소모` 를 붙인다. 없으면 숫자가 소모 칼로리인지 알 수 없었다.
+    // 오늘(2026-08-20)이 든 주는 8월 17일 월요일에 시작하는 8월 3주차다.
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(ExercisePage)),
+    );
+    expect(find.text(l.exBurnWeekOfMonthTitle(8, 3)), findsOneWidget);
+    expect(l.exBurnWeekOfMonthTitle(8, 3), endsWith('소모'));
     expect(find.textContaining('유산소', findRichText: true), findsWidgets);
     // 머리줄은 고정 높이라(#1194) 그래프가 같은 자리·같은 크기다.
     expect(tester.getRect(_chart()), chart);

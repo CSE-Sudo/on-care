@@ -326,8 +326,8 @@
   "exNearbyGymsMapLabel": "Gyms near me",
   "exWeekSummary": "This Week's Summary",
   "exActivityTitle": "Activity",
-  "exWeekOfMonthLabel": "Week {week}, {month}/",
-  "@exWeekOfMonthLabel": {
+  "exBurnWeekOfMonthTitle": "Burned in week {week}, {month}/",
+  "@exBurnWeekOfMonthTitle": {
     "placeholders": {
       "month": { "type": "int" },
       "week": { "type": "int" }

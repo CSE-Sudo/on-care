@@ -1452,7 +1452,7 @@ class _AllPeriodBodyState extends State<_AllPeriodBody> {
                       stacked: true,
                       caption: picked == null
                           ? l.exBurnAllTitle
-                          : l.exWeekOfMonthLabel(
+                          : l.exBurnWeekOfMonthTitle(
                               picked.monday.month,
                               _weekOfMonth(picked.monday),
                             ),

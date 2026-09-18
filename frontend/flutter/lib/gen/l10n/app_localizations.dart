@@ -1232,11 +1232,11 @@ abstract class AppLocalizations {
   /// **'Activity'**
   String get exActivityTitle;
 
-  /// No description provided for @exWeekOfMonthLabel.
+  /// No description provided for @exBurnWeekOfMonthTitle.
   ///
   /// In en, this message translates to:
-  /// **'Week {week}, {month}/'**
-  String exWeekOfMonthLabel(int month, int week);
+  /// **'Burned in week {week}, {month}/'**
+  String exBurnWeekOfMonthTitle(int month, int week);
 
   /// No description provided for @exBurnTodayTitle.
   ///
