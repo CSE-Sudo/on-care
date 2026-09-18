@@ -178,7 +178,6 @@
   "dietDeleteFailed": "삭제에 실패했어요. 잠시 후 다시 시도해 주세요",
   "dietSave": "저장",
   "dietMealInfo": "식사 정보",
-  "dietEatenTime": "먹은 시간",
   "dietEatenFood": "먹은 음식",
   "dietNewFood": "새 음식",
   "dietAddFood": "음식 추가",

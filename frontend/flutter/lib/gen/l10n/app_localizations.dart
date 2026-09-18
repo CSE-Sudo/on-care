@@ -1010,12 +1010,6 @@ abstract class AppLocalizations {
   /// **'Meal Info'**
   String get dietMealInfo;
 
-  /// No description provided for @dietEatenTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Time Eaten'**
-  String get dietEatenTime;
-
   /// No description provided for @dietEatenFood.
   ///
   /// In en, this message translates to:
