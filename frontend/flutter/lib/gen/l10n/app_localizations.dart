@@ -2213,25 +2213,25 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepPrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — the gym and trainer card on the MY tab does that.'**
+  /// **'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — you can do that from My Gym & Trainer on the MY tab.'**
   String get myWithdrawKeepPrivacy;
 
   /// No description provided for @myWithdrawKeepRarelyUsed.
   ///
   /// In en, this message translates to:
-  /// **'The AI coach still lines up something worth doing on the days you record nothing. Tapping a single suggestion on the Exercise tab is enough to pick it back up.'**
+  /// **'You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.'**
   String get myWithdrawKeepRarelyUsed;
 
   /// No description provided for @myWithdrawKeepHardToUse.
   ///
   /// In en, this message translates to:
-  /// **'Tell us what got in the way and we will fix it. The 1:1 enquiry under MY > Customer support reaches us directly.'**
+  /// **'Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.'**
   String get myWithdrawKeepHardToUse;
 
   /// No description provided for @myWithdrawKeepNotifications.
   ///
   /// In en, this message translates to:
-  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.'**
+  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.'**
   String get myWithdrawKeepNotifications;
 
   /// No description provided for @myWithdrawKeepAlternative.
@@ -2243,7 +2243,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepOther.
   ///
   /// In en, this message translates to:
-  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 enquiry under MY > Customer support.'**
+  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.'**
   String get myWithdrawKeepOther;
 
   /// No description provided for @myWithdrawKeepDefault.
