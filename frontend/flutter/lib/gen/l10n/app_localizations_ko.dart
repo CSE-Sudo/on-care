@@ -89,7 +89,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeAiAdviceBody =>
-      '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 높아진 나트륨과 혈당을 낮추기 위해 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
+      '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 나트륨이 높았으니 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
 
   @override
   String get homeSodiumExceededBadge => '나트륨 초과';
@@ -480,9 +480,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietSaved => '식단이 저장되었어요';
-
-  @override
-  String get dietSaveEntry => '저장하기';
 
   @override
   String get dietSaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
@@ -1058,7 +1055,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifTitle => '알림 설정';
 
   @override
-  String get myGuideTitle => '앱 사용 가이드 다시 보기';
+  String get myGuideTitle => '앱 사용 가이드';
 
   @override
   String get mySupportTitle => '고객 지원';
@@ -1131,10 +1128,77 @@ class AppLocalizationsKo extends AppLocalizations {
       '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화도 사라집니다. 되돌릴 수 없어요.';
 
   @override
-  String get myWithdrawAction => '탈퇴하기';
+  String get myWithdrawAction => '탈퇴';
 
   @override
   String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get myWithdrawReasonTitle => '정말 탈퇴를 원하시나요?';
+
+  @override
+  String get myWithdrawReasonQuestion => '어떤 부분이 불편하셨나요?';
+
+  @override
+  String get myWithdrawReasonHint => '복수 선택 가능';
+
+  @override
+  String get myWithdrawReasonPrivacy => '개인정보가 걱정돼요';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => '잘 쓰지 않게 됐어요';
+
+  @override
+  String get myWithdrawReasonHardToUse => '쓰기가 불편해요';
+
+  @override
+  String get myWithdrawReasonNotifications => '알림이 너무 많아요';
+
+  @override
+  String get myWithdrawReasonAlternative => '다른 앱을 쓰고 있어요';
+
+  @override
+  String get myWithdrawReasonOther => '그 밖의 이유';
+
+  @override
+  String get myWithdrawNext => '다음';
+
+  @override
+  String get myWithdrawKeepTitle => '탈퇴하기 전에';
+
+  @override
+  String get myWithdrawKeepPrivacy =>
+      '기록은 회원님과 담당 트레이너만 봅니다. 트레이너 연결만 끊으면 기록은 회원님만 볼 수 있어요 — MY 탭의 헬스장·트레이너 칸에서 바로 끊을 수 있습니다.';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'AI 코치는 기록이 없는 날에도 오늘 할 만한 것을 골라 둡니다. 운동 탭에서 추천 하나만 눌러 봐도 이어집니다.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      '어디가 불편했는지 알려주시면 고칩니다. MY > 고객 지원의 1:1 문의로 바로 닿아요.';
+
+  @override
+  String get myWithdrawKeepNotifications =>
+      '알림은 종류별로 끌 수 있어요. MY > 알림 설정에서 받고 싶은 것만 남겨 보세요.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      '앱을 지워도 기록은 그대로 남습니다. 탈퇴하면 그때 사라지고 되살릴 수 없어요.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      '무엇이든 알려주시면 반영합니다. MY > 고객 지원의 1:1 문의로 남겨 주세요.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      '지금까지 쌓은 식단·운동 기록은 탈퇴와 함께 사라지고 되살릴 수 없어요.';
+
+  @override
+  String get myWithdrawStay => '계속 사용하기';
+
+  @override
+  String get myWithdrawContinue => '탈퇴 계속';
 
   @override
   String get myCancel => '취소';
@@ -1758,18 +1822,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exExerciseGoal => '운동 목표';
 
   @override
-  String get exGoalWeightLoss => '체중 감량';
-
-  @override
-  String get exGoalStrength => '근력 향상';
-
-  @override
-  String get exGoalFitness => '체력 향상';
-
-  @override
-  String get exGoalPosture => '자세 교정';
-
-  @override
   String get exGoalHealth => '건강 관리';
 
   @override
@@ -2110,28 +2162,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardOptionalTag => '(선택)';
 
   @override
-  String get pointsGuideTitle => '포인트 퀘스트';
-
-  @override
-  String get pointsGuideSubtitle => '매일 기록할수록 포인트가 쌓여요. 아래 퀘스트로 모아 보세요';
-
-  @override
-  String pointsGuideQuest(int number) {
-    return '퀘스트 $number';
-  }
-
-  @override
-  String pointsGuideDailyCap(int count) {
-    return '하루 $count회까지';
-  }
-
-  @override
-  String get pointsGuideSpendNote => '모은 포인트는 MY › 포인트 사용처에서 쓸 수 있어요';
-
-  @override
-  String get pointsGuideStart => '시작하기';
-
-  @override
   String guideBadgeWithStep(int current, int total) {
     return '앱 사용 가이드 $current/$total';
   }
@@ -2194,7 +2224,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P';
+    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
   }
 
   @override
@@ -2516,6 +2546,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get coachRoutineTitle => '추천 개인운동';
+
+  @override
+  String get coachRoutineAiTitle => 'AI 추천 개인운동';
 
   @override
   String get coachRoutineByTrainer => '트레이너 직접 추천';

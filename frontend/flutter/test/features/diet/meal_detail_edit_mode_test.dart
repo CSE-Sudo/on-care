@@ -177,7 +177,7 @@ void main() {
     await tester.enterText(_firstFoodCarbs, '91');
     await tester.pumpAndSettle();
 
-    // 저장하기 전에 이미 영양 정보 카드의 합계가 따라와 있다.
+    // 저장 전에 이미 영양 정보 카드의 합계가 따라와 있다.
     expect(find.text('99'), findsOneWidget);
 
     await tester.tap(find.text('저장'));

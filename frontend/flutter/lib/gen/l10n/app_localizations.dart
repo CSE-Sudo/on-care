@@ -251,7 +251,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeAiAdviceBody.
   ///
   /// In en, this message translates to:
-  /// **'Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
+  /// **'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
   String get homeAiAdviceBody;
 
   /// No description provided for @homeSodiumExceededBadge.
@@ -955,12 +955,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Meal saved'**
   String get dietSaved;
-
-  /// No description provided for @dietSaveEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get dietSaveEntry;
 
   /// No description provided for @dietSaveFailed.
   ///
@@ -2015,7 +2009,7 @@ abstract class AppLocalizations {
   /// MY tab: opens the spotlight app guide again (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Replay the app guide'**
+  /// **'App guide'**
   String get myGuideTitle;
 
   /// No description provided for @mySupportTitle.
@@ -2155,6 +2149,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We could not delete your account. Please try again in a moment.'**
   String get myWithdrawFailed;
+
+  /// First step of the two-step account deletion flow under customer support (#2019).
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account?'**
+  String get myWithdrawReasonTitle;
+
+  /// No description provided for @myWithdrawReasonQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What did not work for you?'**
+  String get myWithdrawReasonQuestion;
+
+  /// No description provided for @myWithdrawReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can pick more than one'**
+  String get myWithdrawReasonHint;
+
+  /// No description provided for @myWithdrawReasonPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'I am worried about my privacy'**
+  String get myWithdrawReasonPrivacy;
+
+  /// No description provided for @myWithdrawReasonRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'I hardly use it any more'**
+  String get myWithdrawReasonRarelyUsed;
+
+  /// No description provided for @myWithdrawReasonHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'It is awkward to use'**
+  String get myWithdrawReasonHardToUse;
+
+  /// No description provided for @myWithdrawReasonNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many notifications'**
+  String get myWithdrawReasonNotifications;
+
+  /// No description provided for @myWithdrawReasonAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'I am using another app'**
+  String get myWithdrawReasonAlternative;
+
+  /// No description provided for @myWithdrawReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get myWithdrawReasonOther;
+
+  /// No description provided for @myWithdrawNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get myWithdrawNext;
+
+  /// Second step: what can be changed instead of leaving, chosen from the reasons picked (#2019).
+  ///
+  /// In en, this message translates to:
+  /// **'Before you go'**
+  String get myWithdrawKeepTitle;
+
+  /// No description provided for @myWithdrawKeepPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you and your trainer can see your records. Disconnect the trainer and they are yours alone — the gym and trainer card on the MY tab does that.'**
+  String get myWithdrawKeepPrivacy;
+
+  /// No description provided for @myWithdrawKeepRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI coach still lines up something worth doing on the days you record nothing. Tapping a single suggestion on the Exercise tab is enough to pick it back up.'**
+  String get myWithdrawKeepRarelyUsed;
+
+  /// No description provided for @myWithdrawKeepHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what got in the way and we will fix it. The 1:1 enquiry under MY > Customer support reaches us directly.'**
+  String get myWithdrawKeepHardToUse;
+
+  /// No description provided for @myWithdrawKeepNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.'**
+  String get myWithdrawKeepNotifications;
+
+  /// No description provided for @myWithdrawKeepAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.'**
+  String get myWithdrawKeepAlternative;
+
+  /// No description provided for @myWithdrawKeepOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 enquiry under MY > Customer support.'**
+  String get myWithdrawKeepOther;
+
+  /// No description provided for @myWithdrawKeepDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'The diet and exercise records you have built up go with the account, and they cannot be restored.'**
+  String get myWithdrawKeepDefault;
+
+  /// No description provided for @myWithdrawStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep using On-Care'**
+  String get myWithdrawStay;
+
+  /// No description provided for @myWithdrawContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue deleting'**
+  String get myWithdrawContinue;
 
   /// No description provided for @myCancel.
   ///
@@ -3235,30 +3349,6 @@ abstract class AppLocalizations {
   /// **'Exercise Goal'**
   String get exExerciseGoal;
 
-  /// No description provided for @exGoalWeightLoss.
-  ///
-  /// In en, this message translates to:
-  /// **'Weight Loss'**
-  String get exGoalWeightLoss;
-
-  /// No description provided for @exGoalStrength.
-  ///
-  /// In en, this message translates to:
-  /// **'Build Strength'**
-  String get exGoalStrength;
-
-  /// No description provided for @exGoalFitness.
-  ///
-  /// In en, this message translates to:
-  /// **'Improve Fitness'**
-  String get exGoalFitness;
-
-  /// No description provided for @exGoalPosture.
-  ///
-  /// In en, this message translates to:
-  /// **'Improve Posture'**
-  String get exGoalPosture;
-
   /// No description provided for @exGoalHealth.
   ///
   /// In en, this message translates to:
@@ -3925,42 +4015,6 @@ abstract class AppLocalizations {
   /// **'(optional)'**
   String get onboardOptionalTag;
 
-  /// Points guide shown once after onboarding (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'Points quests'**
-  String get pointsGuideTitle;
-
-  /// Points guide shown once after onboarding (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'The more you log each day, the more points you earn. Try these quests'**
-  String get pointsGuideSubtitle;
-
-  /// Points guide: numbered quest label (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'Quest {number}'**
-  String pointsGuideQuest(int number);
-
-  /// Points guide: how many times a day the points can be earned (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{Once a day} other{Up to {count} times a day}}'**
-  String pointsGuideDailyCap(int count);
-
-  /// Points guide: where the points are used (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'Spend your points in MY › Points'**
-  String get pointsGuideSpendNote;
-
-  /// Points guide: button that goes to Home (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'Get started'**
-  String get pointsGuideStart;
-
   /// Spotlight guide: the guide label with the current step (#1857).
   ///
   /// In en, this message translates to:
@@ -4078,7 +4132,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P'**
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// Onboarding step 1: the basic info step must be filled in (#1830).
@@ -4649,6 +4703,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recommended solo workouts'**
   String get coachRoutineTitle;
+
+  /// Card title when the member has no trainer — every line is AI recommended (#2015).
+  ///
+  /// In en, this message translates to:
+  /// **'AI recommended solo workouts'**
+  String get coachRoutineAiTitle;
 
   /// Origin of a routine.
   ///

@@ -1160,9 +1160,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'e.g. I have another appointment at your requested time.';
 
   @override
-  String get consultRejectAction => 'Decline';
-
-  @override
   String get consultStatusPending => 'Pending';
 
   @override
@@ -2188,9 +2185,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPwChanging => 'Changing…';
 
   @override
-  String get myPwChangeAction => 'Change';
-
-  @override
   String get mySettingsSaveFailed =>
       'Couldn\'t save your settings. Please try again in a moment';
 
@@ -2673,15 +2667,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goalWeightLoss => 'Weight loss';
-
-  @override
-  String get goalStrength => 'Strength';
-
-  @override
-  String get goalFitness => 'Fitness';
-
-  @override
-  String get goalPosture => 'Posture';
 
   @override
   String get goalHealth => 'General health';

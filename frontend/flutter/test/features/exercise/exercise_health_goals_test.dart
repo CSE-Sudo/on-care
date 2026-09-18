@@ -91,7 +91,8 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<List<CoachSession>> fetchSessions() async => sessions;
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => const <CoachMessage>[];
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      const <CoachMessage>[];
   @override
   Stream<List<CoachMessage>> watchChat() =>
       const Stream<List<CoachMessage>>.empty();
@@ -291,6 +292,35 @@ void main() {
     expect(find.text('숄더 프레스 · 4세트 · 12회 · 10kg'), findsOneWidget);
     expect(find.text('김트레이너 · 오늘의 피드백'), findsOneWidget);
     expect(find.text('오른쪽 어깨 가동 범위를 확인해 주세요.'), findsOneWidget);
+  });
+
+  testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (
+    WidgetTester tester,
+  ) async {
+    // 연결을 끊었는데 이 칸이 남으면 트레이너가 있던 흔적만 화면에 서 있게
+    // 된다. 세션 기록은 그대로 두고 담당만 없앤 상태로 확인한다 — 데모는
+    // 픽스처 세션을 연결과 무관하게 읽어 카드를 세우고 있었다.
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(<CoachSession>[
+        CoachSession(
+          id: 'completed-pt',
+          date: nowKst(),
+          time: '18:00',
+          type: '1:1 PT',
+          durationMinutes: 50,
+          status: '완료',
+        ),
+      ]),
+    );
+
+    expect(find.byKey(const Key('completedPtSessionCard')), findsNothing);
+    expect(find.text('18:00 수업 완료'), findsNothing);
   });
 
   testWidgets('MY 에서 저장한 운동 목표가 열려 있던 홈·운동 탭에 반영된다 (#1139)', (

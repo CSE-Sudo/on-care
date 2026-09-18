@@ -562,9 +562,6 @@ class LocalApiInterceptor extends Interceptor {
           'calories': 0,
           'sodium_mg': 0,
           'sugar_g': 0.0,
-          'carbs_g': 0.0,
-          'protein_g': 0.0,
-          'fat_g': 0.0,
         },
     };
     final allDietRows = await _db.select(_db.dietEntries).get();
@@ -574,15 +571,6 @@ class LocalApiInterceptor extends Interceptor {
       totals['calories'] = totals['calories']! + row.totalCalories;
       totals['sodium_mg'] = totals['sodium_mg']! + row.sodiumMg;
       totals['sugar_g'] = totals['sugar_g']! + row.sugarG;
-      // 실서버가 싣는 것을 데모도 똑같이 싣는다(#1879). 행에는 탄단지
-      // 칸이 없으므로 끼니의 음식에서 접는다 — `/diet/days/{date}` 가 하루
-      // 합계를 만드는 방법과 같다.
-      final rowMacros = _foodMacroTotals(
-        jsonDecode(row.foodsJson) as List<Object?>,
-      );
-      totals['carbs_g'] = totals['carbs_g']! + rowMacros.carbsG;
-      totals['protein_g'] = totals['protein_g']! + rowMacros.proteinG;
-      totals['fat_g'] = totals['fat_g']! + rowMacros.fatG;
     }
     final nutritionWeek = <Map<String, Object?>>[
       for (var index = 0; index < 7; index++)
@@ -2511,6 +2499,10 @@ class LocalApiInterceptor extends Interceptor {
 
   /// DELETE /users/me — withdraw. The demo wipes the profile overlay so a
   /// subsequent session starts clean, mirroring FastAPI's cascade delete.
+  ///
+  /// The body's `reasons` (#2019) are dropped here on purpose: the server keeps
+  /// them in a table nobody reads back, and the demo has no such table. The
+  /// withdrawal itself is what the demo has to reproduce.
   Future<Response<Object?>> _usersMeDelete(RequestOptions options) async {
     await _db.putValue('profile_overlay', '');
     return _ok(options, <String, Object?>{'status': 'deleted'});

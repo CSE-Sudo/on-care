@@ -53,10 +53,6 @@ class GymTab extends ConsumerWidget {
     }
     final bool showTrainerChat =
         assignedCoach != null && pendingRequest == null;
-    final int unreadCoachMessages = showTrainerChat
-        ? ref.watch(coachUnreadProvider).valueOrNull ?? 0
-        : 0;
-
     // 연결된 헬스장이 없으면 이 탭에서 할 일은 헬스장을 찾는 것뿐이다 —
     // 지도만 든 빈 카드와 `헬스장 찾기` 버튼 대신 찾기 화면을 그대로 보여
     // 준다 (#1133). 추천 헬스장·추천 트레이너 섹션도 그 화면의 목록과 같은
@@ -110,7 +106,6 @@ class GymTab extends ConsumerWidget {
                       trainerName: assignedCoach.name,
                     )
                   : null,
-              unreadCoachMessages: unreadCoachMessages,
             ),
           ),
         ],
@@ -127,7 +122,6 @@ class _MyGymSection extends StatelessWidget {
     required this.onSlot,
     required this.onRetry,
     required this.onTrainerChatTap,
-    required this.unreadCoachMessages,
   });
 
   final AsyncValue<Gym?> gymAsync;
@@ -138,7 +132,6 @@ class _MyGymSection extends StatelessWidget {
   final ValueChanged<String> onSlot;
   final VoidCallback onRetry;
   final VoidCallback? onTrainerChatTap;
-  final int unreadCoachMessages;
 
   Widget _error(AppLocalizations l) => AppCard(
     child: AppErrorState(
@@ -174,10 +167,7 @@ class _MyGymSection extends StatelessWidget {
                         ),
                   footer: onTrainerChatTap == null
                       ? null
-                      : _TrainerChatButton(
-                          unread: unreadCoachMessages,
-                          onTap: onTrainerChatTap!,
-                        ),
+                      : _TrainerChatButton(onTap: onTrainerChatTap!),
                 ),
                 if (trainer != null) ...<Widget>[
                   const SizedBox(height: OnCareSpacing.s12),
@@ -195,69 +185,30 @@ class _MyGymSection extends StatelessWidget {
   }
 }
 
-/// 읽지 않음 배지의 지름. 원을 유지하려면 가로·세로가 같아야 한다 (#1138).
-const double _kUnreadBadgeSize = 18;
-
+/// 담당 트레이너와의 대화로 들어가는 버튼.
+///
+/// **읽지 않음 배지를 달지 않는다.** 같은 숫자를 헤더의 채팅 아이콘이 이미
+/// 말하고 있고, 그쪽은 어느 탭에 있든 보이는 자리라 알림의 몫을 거기서 한다.
+/// 이 버튼은 같은 대화로 들어가는 두 번째 입구일 뿐이어서, 배지를 함께 달면
+/// 한 화면이 같은 말을 두 번 한다.
 class _TrainerChatButton extends StatelessWidget {
-  const _TrainerChatButton({required this.unread, required this.onTap});
+  const _TrainerChatButton({required this.onTap});
 
-  final int unread;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final String unreadLabel = unread > 99 ? '99+' : '$unread';
     final AppLocalizations l = AppLocalizations.of(context);
-    return Stack(
+    return AppButton(
       key: const Key('gymTrainerChatButton'),
-      alignment: Alignment.centerRight,
-      children: <Widget>[
-        AppButton(
-          label: l.coachChatWithTrainer,
-          onPressed: onTap,
-          // variant 를 적지 않아 기본값(브랜드 채움)을 쓴다 — 헤더의 채팅
-          // 아이콘과 같은 대화로 들어가는 자리라 헤더가 쓰는 `brand.primary`
-          // 와 같은 색이어야 한다 (#1849). 흰 바탕 보조 버튼으로 두었을 때는
-          // 같은 채팅인데도 둘이 다른 동작처럼 읽혔다. 색은 테스트가 고정한다.
-          leadingIcon: AppIcons.chat,
-          fullWidth: true,
-        ),
-        if (unread > 0)
-          // 배지는 버튼 오른쪽 끝에 얹는다 — 라벨 옆에 붙이면 문구가 줄어든다
-          // (#995). 한 자리 수는 **정원**이어야 한다 (#1138). 최소 지름을
-          // 정해 두고 숫자는 그 안에서 줄인다 — `99+` 도 같은 원 안에 들어간다.
-          Padding(
-            padding: const EdgeInsets.only(right: OnCareSpacing.s16),
-            child: IgnorePointer(
-              child: Container(
-                width: _kUnreadBadgeSize,
-                height: _kUnreadBadgeSize,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: OnCareColors.danger,
-                  shape: BoxShape.circle,
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: OnCareSpacing.s2,
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      unreadLabel,
-                      maxLines: 1,
-                      style: context.oncare
-                          .text(
-                            OnCareTypography.strong(OnCareTypography.caption),
-                          )
-                          .copyWith(color: OnCareColors.textOnFill),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-      ],
+      label: l.coachChatWithTrainer,
+      onPressed: onTap,
+      // variant 를 적지 않아 기본값(브랜드 채움)을 쓴다 — 헤더의 채팅
+      // 아이콘과 같은 대화로 들어가는 자리라 헤더가 쓰는 `brand.primary`
+      // 와 같은 색이어야 한다 (#1849). 흰 바탕 보조 버튼으로 두었을 때는
+      // 같은 채팅인데도 둘이 다른 동작처럼 읽혔다. 색은 테스트가 고정한다.
+      leadingIcon: AppIcons.chat,
+      fullWidth: true,
     );
   }
 }

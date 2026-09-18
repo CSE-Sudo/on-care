@@ -586,8 +586,6 @@ class NutritionSummary extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     final int calorieGoal =
         profile?.effectiveDailyCalories ?? UserProfile.defaultDailyCalories;
-    final int sodiumGoal =
-        profile?.effectiveDailySodiumMg ?? UserProfile.defaultDailySodiumMg;
     final int carbsGoal =
         profile?.effectiveDailyCarbsG ?? UserProfile.defaultDailyCarbsG;
     final int proteinGoal =
@@ -597,7 +595,6 @@ class NutritionSummary extends StatelessWidget {
     // 끼니 음식의 합을 먼저 쓰고 0이면 서버 하루 합계로 떨어진다. 규칙은
     // 기간 뷰와 공유한다([DietDayTotals]) — 두 화면의 숫자가 갈리지 않도록.
     final int kcal = day.effectiveCalories;
-    final int sodium = day.effectiveSodiumMg;
     final _NutritionSummaryItem calories = _NutritionSummaryItem(
       label: l.dietCalories,
       value: _formatInt(kcal),
@@ -605,14 +602,6 @@ class NutritionSummary extends StatelessWidget {
       unit: l.unitKcal,
       ratio: _nutritionRatio(kcal, calorieGoal),
       isOverGoal: kcal > calorieGoal,
-    );
-    final _NutritionSummaryItem sodiumItem = _NutritionSummaryItem(
-      label: l.dietSodium,
-      value: _formatInt(sodium),
-      goal: _formatInt(sodiumGoal),
-      unit: l.dietUnitMg,
-      ratio: _nutritionRatio(sodium, sodiumGoal),
-      isOverGoal: sodium > sodiumGoal,
     );
     _MacroProgressData macro(String label, double value, int goal) {
       final _NutritionSummaryItem item = _NutritionSummaryItem(
@@ -644,9 +633,11 @@ class NutritionSummary extends StatelessWidget {
         // 카드는 하나다 (#1120). 칼로리와 그 칼로리를 채운 탄단지가 한 장에서
         // 이어 읽힌다.
         //
-        // 구분선 아래 세 줄은 한동안 나트륨·당류였다. 제품이 보는 지표가
-        // 탄단지로 바뀌면서(#1879) 그 자리를 예전처럼 탄단지 진행바로 되돌린다
-        // — 목표 대비 얼마인지는 숫자 세 개보다 막대 세 줄이 먼저 읽힌다.
+        // 구분선 아래는 탄단지 세 줄이다. 한동안 나트륨·당류였다가 제품이 보는
+        // 지표가 탄단지로 바뀌며 되돌아왔고(#1879), 그때 한 줄로 남겨 둔
+        // 나트륨도 이제 당류와 같은 자리로 내려갔다(#1986) — 그래프로 그리지
+        // 않고 AI 맞춤 조언이 말로 알려 준다. 숫자는 식단 상세와 분석 완료
+        // 시트의 영양 행에 그대로 있다.
         _NutritionSummaryCard(
           calories: calories,
           macros: <_MacroProgressData>[
@@ -654,13 +645,6 @@ class NutritionSummary extends StatelessWidget {
             macro(l.homeMacroProtein, day.macros.proteinG, proteinGoal),
             macro(l.homeMacroFat, day.macros.fatG, fatGoal),
           ],
-          sodium: _MacroProgressData(
-            item: sodiumItem,
-            color: sodiumItem.isOverGoal
-                ? OnCareColors.danger
-                : tokens.brand.statusWithinGoal,
-            difference: _formatInt((sodium - sodiumGoal).abs()),
-          ),
         ),
       ],
     );
@@ -703,24 +687,13 @@ class _NutritionSummaryItem {
 }
 
 class _NutritionSummaryCard extends StatelessWidget {
-  const _NutritionSummaryCard({
-    required this.calories,
-    required this.macros,
-    required this.sodium,
-  });
+  const _NutritionSummaryCard({required this.calories, required this.macros});
 
   final _NutritionSummaryItem calories;
 
   /// 구분선 아래 첫 줄의 진행바 — 탄수화물·단백질·지방. 목표를 넘긴 만큼은
   /// 라벨 오른쪽에 `+25g` 로 붙는다.
   final List<_MacroProgressData> macros;
-
-  /// 탄단지 **아래** 한 줄로 놓이는 나트륨(#1879).
-  ///
-  /// 지표 전환에서만 빠졌지 화면에서 사라진 것은 아니다 — 홈과 식단 탭의 코칭
-  /// 문구가 나트륨 기준으로 나가므로 그 근거가 같은 카드에 남아야 한다. 탄단지
-  /// 셋과 칸을 나누지 않고 제 줄을 써서, 먼저 읽히는 것은 탄단지다.
-  final _MacroProgressData sodium;
 
   /// 이 폭보다 좁으면 탄단지를 위아래로 쌓는다.
   static const double _stackMacrosBelow = 280;
@@ -829,10 +802,6 @@ class _NutritionSummaryCard extends StatelessWidget {
                 );
               },
             ),
-            // 나트륨은 탄단지 아래 제 줄을 쓴다 — 셋과 칸을 나누면 넷이
-            // 같은 무게로 읽히고, 좁은 화면에서는 넷 다 글자가 뭉개진다.
-            const SizedBox(height: OnCareSpacing.s12),
-            _MacroProgressItem(macro: sodium),
           ],
         ),
       ),
