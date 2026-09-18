@@ -69,7 +69,7 @@ void main() {
   });
 
   test('슬롯이 없는 트레이너는 빈 목록이다', () async {
-    // 윤트레이너는 빈 상태 화면을 데모에서 보려고 일부러 비워 뒀다.
+    // 윤재희는 빈 상태 화면을 데모에서 보려고 일부러 비워 뒀다.
     expect(await MockGymRepository().fetchSlots('trainer-yoon'), isEmpty);
     expect(await MockGymRepository().fetchSlots('trainer-nope'), isEmpty);
   });
