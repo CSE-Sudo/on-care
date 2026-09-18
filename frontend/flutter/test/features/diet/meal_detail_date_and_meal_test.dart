@@ -85,9 +85,13 @@ class _DateMoveFailsRepository extends FakeDietRepository {
 
 /// 식단 탭과 상세 라우트를 띄운다. [router] 를 돌려주어 목록을 거치지 않고
 /// 상세를 여는 길(분석 완료 시트의 연필)도 흉내 낼 수 있게 한다.
-Future<GoRouter> _pumpApp(WidgetTester tester, FakeDietRepository repo) async {
+Future<GoRouter> _pumpApp(
+  WidgetTester tester,
+  FakeDietRepository repo, {
+  Size size = const Size(900, 3000),
+}) async {
   useFixedKstDate(DateTime(2026, 8, 20, 9));
-  await tester.binding.setSurfaceSize(const Size(900, 3000));
+  await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final GoRouter router = GoRouter(
@@ -397,6 +401,40 @@ void main() {
       expect(saved.mealType, MealType.snack);
       expect(find.text('식단이 저장되었어요'), findsOneWidget);
       expect(find.textContaining('옮겼어요'), findsNothing);
+    });
+  });
+
+  // 칩 다섯이 한 줄에 다 들어가지 않으면 `간식·야식` 이 함께 아랫줄로 간다.
+  // `야식` 하나만 떨어지면 따로 떨어진 선택지처럼 읽힌다 (#2080).
+  group('끼니 칩 줄바꿈', () {
+    double chipTop(WidgetTester tester, String label) =>
+        tester.getTopLeft(find.widgetWithText(AppChoiceChip, label)).dy;
+
+    Future<void> openEdit(WidgetTester tester, Size size) async {
+      await _pumpApp(tester, FakeDietRepository(), size: size);
+      await _openFromList(tester);
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('폰 폭에서는 아침·점심·저녁 / 간식·야식 두 줄이다', (WidgetTester tester) async {
+      await openEdit(tester, const Size(390, 3000));
+
+      final double first = chipTop(tester, '아침');
+      expect(chipTop(tester, '점심'), first);
+      expect(chipTop(tester, '저녁'), first);
+      final double second = chipTop(tester, '간식');
+      expect(second, greaterThan(first), reason: '간식이 윗줄에 남으면 야식만 떨어진다');
+      expect(chipTop(tester, '야식'), second);
+    });
+
+    testWidgets('다섯이 한 줄에 들어가는 폭에서는 한 줄이다', (WidgetTester tester) async {
+      await openEdit(tester, const Size(900, 3000));
+
+      final double first = chipTop(tester, '아침');
+      for (final String label in <String>['점심', '저녁', '간식', '야식']) {
+        expect(chipTop(tester, label), first, reason: label);
+      }
     });
   });
 }
