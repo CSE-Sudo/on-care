@@ -285,6 +285,11 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                                         color: OnCareColors.textPrimary,
                                       ),
                                 ),
+                                // 관계만 적는다 — 트레이너가 지금 답할 수
+                                // 있는지는 앱이 모른다. `상담 가능` 처럼
+                                // 지킬 수 없는 약속은 하지 않는다(#2089).
+                                // #1235 가 초록 상태 점을 걷어낸 것과 같은
+                                // 까닭이다.
                                 Text(
                                   l.coachChatSubtitle,
                                   maxLines: 1,
