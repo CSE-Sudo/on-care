@@ -2618,10 +2618,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the photo'**
   String get coachImageUnavailable;
 
-  /// No description provided for @coachChatSubtitle.
+  /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In en, this message translates to:
-  /// **'Personal trainer · Available'**
+  /// **'Personal trainer'**
   String get coachChatSubtitle;
 
   /// No description provided for @coachChatBack.
@@ -3390,6 +3390,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Another member just took that time. Please choose another.'**
   String get exConsultSlotTaken;
+
+  /// No description provided for @exConsultTooManyPending.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have {count} consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.'**
+  String exConsultTooManyPending(int count);
+
+  /// No description provided for @exConsultRateLimitedHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again in {hours} hours.'**
+  String exConsultRateLimitedHours(int hours);
+
+  /// No description provided for @exConsultRateLimitedMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again in {minutes} minutes.'**
+  String exConsultRateLimitedMinutes(int minutes);
+
+  /// No description provided for @exConsultRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again later.'**
+  String get exConsultRateLimited;
+
+  /// No description provided for @exConsultTooManyPendingNoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'You have too many consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.'**
+  String get exConsultTooManyPendingNoCount;
 
   /// No description provided for @exGymCall.
   ///

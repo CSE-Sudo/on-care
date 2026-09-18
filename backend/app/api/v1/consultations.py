@@ -16,6 +16,10 @@ router = APIRouter(tags=["consultations"])
 
 #: 고른 자리를 잡을 수 없을 때 409 본문의 `detail.code`. 대기 중복 409 와 가른다.
 SLOT_UNAVAILABLE_CODE = "slot_unavailable"
+#: 답을 기다리는 요청이 상한에 닿았을 때 409 본문의 `detail.code`. (#1628)
+TOO_MANY_PENDING_CODE = "too_many_pending"
+#: 24시간 신청 한도를 넘었을 때 429 본문의 `detail.code`. (#1628)
+RATE_LIMITED_CODE = "consultation_rate_limited"
 
 
 @router.post(
@@ -36,6 +40,27 @@ def create_consultation(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except consultation_service.DuplicatePendingConsultation as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except consultation_service.TooManyPendingConsultations as exc:
+        # 대기 중복 409 와 **구분되는 코드**를 싣는다. 앱이 둘을 섞으면 신청하지 않은
+        # 트레이너를 "이미 대기 중" 으로 표시한다. (#1628)
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": TOO_MANY_PENDING_CODE,
+                "message": str(exc),
+                "limit": exc.limit,
+            },
+        ) from exc
+    except consultation_service.ConsultationRateLimited as exc:
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "code": RATE_LIMITED_CODE,
+                "message": str(exc),
+                "limit": exc.limit,
+            },
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        ) from exc
     except reservation_service.SlotNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except reservation_service.SlotUnavailable as exc:

@@ -153,6 +153,15 @@ class Settings(BaseSettings):
     # UI 라 연타가 그대로 비용이 된다. 생성 왕복이 실측 3~6초라(#579) 사람이
     # 결과를 보고 조정하는 속도로는 분당 10회에 닿지 않는다.
     routine_options_per_minute: int = 10
+    # 상담 요청 생성 한도(#1628). 트래픽이 아니라 **남에게 주는 피해**를 막는 정책이다
+    # — 답을 기다리는 요청 하나가 트레이너 자리 하나를 최대 24시간 잠그고(#1873),
+    # 신청·취소를 되풀이하면 트레이너 알림함이 찬다. 둘 다 DB 에서 세므로 재기동이나
+    # 여러 인스턴스에도 값이 같다. 0 이면 그 한도를 끈다.
+    # 동시에 답을 기다릴 수 있는 요청 수. 넘으면 409 `too_many_pending`.
+    consultation_max_pending: int = 3
+    # 24시간에 만들 수 있는 요청 수(취소·거절·만료 포함). 넘으면 429 + Retry-After.
+    # 다른 한도와 같이 RATE_LIMIT_ENABLED=false 면 끈다.
+    consultation_create_per_day: int = 10
 
     @property
     def admin_email_set(self) -> set[str]:
