@@ -98,7 +98,27 @@ flutter analyze
 flutter test
 ```
 
-UI 변경 시 golden 테스트 결과 (`test/golden/failures/`) 도 함께 확인합니다.
+### 골든 테스트 (#2054)
+
+공용 버튼(`AppButton` · `AppButtonPair`)의 생김새는 `shared/oncare_ui/test/button_goldens_test.dart` 가 기준 이미지(`shared/oncare_ui/test/goldens/*.png`)와 픽셀 단위로 비교합니다. 다른 위젯 테스트는 동작만 보므로, 색·크기·간격·변형이 조용히 바뀌는 것은 여기서만 잡힙니다. 회원 앱 CI 의 공용 패키지 단계에서 돕니다.
+
+**골든은 Linux(CI)에서만 비교합니다.** 같은 Flutter 3.44.9 라도 Windows·macOS 는 글자 가장자리를 조금 다르게 그려 기준과 1% 남짓 어긋납니다. 그래서 기준 이미지는 CI 가 그린 것이고, 다른 OS 에서 `flutter test` 를 돌리면 골든만 `Skip` 으로 건너뜁니다(나머지 테스트는 그대로 돕니다). 글자가 네모 블록으로 나오는 것도 정상입니다 — 글자 모양이 아니라 크기·색·간격을 지키는 테스트입니다.
+
+**CI 에서 골든이 깨지면** 실행 화면의 **Artifacts → `oncare-ui-golden-failures`** 에 이미지가 올라옵니다. 기준(`_masterImage`)·실제(`_testImage`)·차이(`_isolatedDiff`)를 열어 봅니다.
+
+- 의도하지 않은 변화면 코드를 고칩니다.
+- **의도한 변화면 CI 가 그린 실제 이미지를 새 기준으로 받습니다.** 저장소 루트에서, `<run-id>` 는 실패한 실행 주소의 숫자입니다.
+
+```bash
+gh run download <run-id> -n oncare-ui-golden-failures -D /tmp/goldens
+for f in /tmp/goldens/*_testImage.png; do
+  cp "$f" "shared/oncare_ui/test/goldens/$(basename "$f" _testImage.png).png"
+done
+```
+
+  바뀐 PNG 를 커밋하고, PR 본문에 무엇이 왜 바뀌었는지 적습니다. 리뷰어는 GitHub 의 이미지 diff 로 전후를 비교합니다.
+
+Linux 에서 작업한다면 `cd shared/oncare_ui && flutter test --update-goldens test/button_goldens_test.dart` 로 바로 뽑아도 같은 결과가 나옵니다.
 
 ---
 

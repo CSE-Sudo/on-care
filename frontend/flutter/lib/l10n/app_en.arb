@@ -198,6 +198,14 @@
     "description": "Representative name shown on the suggestion row when a food name matches the public nutrition DB (#1896)",
     "placeholders": { "name": { "type": "String" } }
   },
+  "dietMoreFoods": "{name} +{count}",
+  "@dietMoreFoods": {
+    "description": "Appended to the last food name on a meal card when more foods are hidden (#1990)",
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
   "dietFillFromDb": "Fill in",
   "@dietFillFromDb": {
     "description": "Button that fills a food's fields with the suggested public-DB nutrition (#1896)"
@@ -678,12 +686,12 @@
   "@myWithdrawKeepTitle": {
     "description": "Second step: what can be changed instead of leaving, chosen from the reasons picked (#2019)."
   },
-  "myWithdrawKeepPrivacy": "Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone \u2014 the gym and trainer card on the MY tab does that.",
-  "myWithdrawKeepRarelyUsed": "The AI coach still lines up something worth doing on the days you record nothing. Tapping a single suggestion on the Exercise tab is enough to pick it back up.",
-  "myWithdrawKeepHardToUse": "Tell us what got in the way and we will fix it. The 1:1 enquiry under MY > Customer support reaches us directly.",
-  "myWithdrawKeepNotifications": "Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.",
+  "myWithdrawKeepPrivacy": "Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone \u2014 you can do that from My Gym & Trainer on the MY tab.",
+  "myWithdrawKeepRarelyUsed": "You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.",
+  "myWithdrawKeepHardToUse": "Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.",
+  "myWithdrawKeepNotifications": "Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.",
   "myWithdrawKeepAlternative": "Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.",
-  "myWithdrawKeepOther": "Whatever it is, tell us and we will act on it. Leave it in the 1:1 enquiry under MY > Customer support.",
+  "myWithdrawKeepOther": "Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.",
   "myWithdrawKeepDefault": "The diet and exercise records you have built up go with the account, and they cannot be restored.",
   "myWithdrawStay": "Keep using On-Care",
   "myWithdrawContinue": "Continue deleting",
