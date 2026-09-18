@@ -33,16 +33,40 @@ class ConsultationRequestController
 
   final ConsultationRepository _repository;
 
+  /// 이 기기에서 목록을 바꾼 횟수(신청·취소). [restore] 가 받는 사이에 바뀌었는지
+  /// 가린다.
+  int _localEdits = 0;
+
   /// 서버에 남은 내 신청으로 목록을 채운다. 실패는 삼킨다 — 복원이 안 됐다고
   /// 화면을 오류로 덮을 이유가 없고, 중복은 서버가 409 로 막는다.
+  ///
+  /// 받는 사이에 이 기기에서 신청·취소가 있었으면 받은 목록을 버린다. 그 목록은
+  /// 방금 한 일을 모르므로, 덮어쓰면 방금 낸 신청이 사라진다. 다음 갱신이 맞춘다.
+  ///
+  /// 빈 목록으로는 덮지 않는다 — 데모 저장소는 서버가 없어 늘 빈 목록을 주므로,
+  /// 덮으면 데모에서 낸 신청이 갱신할 때마다 사라진다. 서버는 낸 신청을 지우지
+  /// 않으므로(탈퇴 제외) 실 API 에서 잃는 것은 없다.
   Future<void> restore() async {
+    final int edits = _localEdits;
     try {
       final List<ConsultationRequest> mine = await _repository.fetchMine();
+      // 받는 사이에 세션이 바뀌어 이 컨트롤러가 버려졌을 수 있다.
+      if (!mounted || edits != _localEdits) return;
       if (mine.isNotEmpty) state = mine;
     } on Object {
       // 무시
     }
   }
+
+  /// 트레이너의 결정을 따라온다(#2067).
+  ///
+  /// 승인·거절·만료는 서버에서 일어난다. 처음 한 번만 받아 두면 알림은 "반려되었어요"
+  /// 인데 화면은 계속 "확인 대기" 이고, 그 옛 대기 표시([hasPending])가 같은
+  /// 트레이너에게 다시 신청하는 것까지 막는다 — 서버는 이미 자리를 풀었는데도.
+  ///
+  /// 부르는 곳: 미읽음 알림 수가 늘 때(하단 탭 틀), 내 상담 요청·상담 신청 화면을
+  /// 열 때, 상담 결과 알림을 눌렀을 때.
+  Future<void> refresh() => restore();
 
   /// 대기 중인 요청은 **트레이너별**로 본다 — 한 헬스장에 트레이너가 여럿이라,
   /// 한 명에게 낸 요청이 다른 트레이너까지 막으면 안 된다.
@@ -76,6 +100,7 @@ class ConsultationRequestController
       // hasPending 이 계속 false 이고, 사용자는 같은 대상에 다시 눌러 409 를 반복해서
       // 받는다. 서버가 알려 준 '대기 중' 사실을 목록에 반영해 화면이 안내를 띄우게
       // 한다(리뷰 지적).
+      _localEdits++;
       state = <ConsultationRequest>[display, ...state];
       return null;
     }
@@ -85,12 +110,20 @@ class ConsultationRequestController
     final ConsultationRequest saved = id.isEmpty
         ? display
         : display.copyWith(id: id);
-    state = <ConsultationRequest>[saved, ...state];
+    _localEdits++;
+    // 접수 응답을 기다리는 사이 [refresh] 가 서버에서 이 요청을 이미 받아 왔을 수
+    // 있다 — 같은 요청이 두 줄로 서지 않게 먼저 뺀다.
+    state = <ConsultationRequest>[
+      saved,
+      for (final ConsultationRequest request in state)
+        if (saved.id.isEmpty || request.id != saved.id) request,
+    ];
     return saved;
   }
 
   Future<void> cancel(String id) async {
     await _repository.cancel(id);
+    _localEdits++;
     state = <ConsultationRequest>[
       for (final request in state)
         request.id == id

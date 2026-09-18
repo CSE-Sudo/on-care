@@ -171,7 +171,27 @@ category: hospital|exercise|meal|medication|other
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
-category: reminder|health_check|achievement|system
+category: reminder|health_check|achievement|system|coach_chat|routine|member_schedule|consultation_result|consult_decision|health_goals
+
+#### 갈래와 이동할 곳
+
+각 알림에는 누르면 갈 곳 `action: { label, target }` 이 실립니다(없으면 `null` — 읽음 처리만 하고
+제자리에 둡니다). 앱은 모르는 `target` 을 받으면 목록에는 싣고 이동만 하지 않습니다.
+
+| category | 무엇 | action.target |
+|---|---|---|
+| `reminder`·`health_check`·`achievement` | 기록·점검·성취 | `dashboard` |
+| `coach_chat` | 트레이너 메시지·리포트 | `coach_chat` |
+| `routine` | 루틴 배정 | `exercise` |
+| `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
+| `consultation_result` | 담당 연결 — 담당 요청 도착·연결됨·연결 해제 | `exercise` |
+| `consult_decision` | **내 상담 요청의 승인·거절·만료**(#2067) | `consultations`(내 상담 요청) |
+| `health_goals` | 담당 트레이너의 건강 목표 변경 | `health_goals` |
+| `system` | 공지 | 없음 |
+
+`consult_decision` 은 #2067 에서 `consultation_result` 에서 떼어 냈습니다. 같은 갈래였을 때는 거절
+알림을 눌러도 운동 탭으로 가서, 사유를 보려면 내 상담 요청을 따로 찾아가야 했습니다. 이미 저장된
+옛 결과 알림은 `consultation_result` 그대로라 운동 탭으로 갑니다(백필하지 않음).
 
 #### 목록 페이지네이션 (#965)
 
@@ -358,6 +378,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   (`GET /trainer/reservation-slots`)·상담 인박스(`GET /trainer/consultations`)·미처리 배지·
   상담 신청 생성·`GET /consultations/slots` 가 해당 트레이너의 지난 `pending` 을 먼저
   만료 처리한 뒤 결과를 돌려줍니다. 범위를 그 트레이너의 행으로 한정합니다.
+- **데모 트레이너의 자리** (#2067) — `SEED_DEMO_DATA` 가 켜진 서버는 기동할 때 데모
+  트레이너(윤재희 `trainer-yoon` 제외)마다 `1:1 PT` 60분 자리를 둘씩 깝니다(내일 13:00,
+  모레 19:30). `GET /consultations/slots` 와 `GET /trainers/{id}/slots` 는 그 트레이너에게
+  고를 자리가 하나도 없으면 같은 규칙으로 다시 깐 뒤 결과를 돌려줍니다 — 기동할 때만 깔면
+  재기동 없이 오래 켜 둔 서버에서 날짜가 지나 다시 빕니다. 고를 자리가 하나라도 있으면
+  (트레이너가 연 자리 포함) 아무것도 하지 않고, 잡혔거나 닫힌 시각은 다시 열지 않고 그 뒤
+  날짜로 밉니다. 데모 트레이너가 아닌 계정에는 깔지 않습니다. 윤재희는 빈 상태(헬스장 전화
+  안내)를 보여 주려고 비워 둡니다.
 - **거절·회원 취소·만료·회원 탈퇴는 자리를 되돌려 줍니다.** 탈퇴하면 요청 행은 회원과 함께 CASCADE 로 사라지므로, 그 전에 자리부터 풉니다 — 아니면 `remaining = 0` 으로 영영 잠깁니다. 예약(`TrainerReservation`)과 달리 상담이
   잡은 자리에는 예약 행도 일정도 없어, 좌석만 되돌리는 별도 경로(`release_consultation_hold`)를
   씁니다.

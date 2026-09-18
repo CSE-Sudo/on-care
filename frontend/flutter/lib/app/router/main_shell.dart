@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,11 +10,13 @@ import 'package:oncare/features/dashboard/presentation/controllers/dashboard_con
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
+import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
+import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare/shared/widgets/member_bottom_nav.dart';
@@ -139,8 +143,28 @@ class _MainShellState extends ConsumerState<MainShell>
     }
   }
 
+  /// 미읽음 알림 수가 늘면 내 상담 요청을 다시 받는다(#2067).
+  ///
+  /// 트레이너의 승인·거절과 요청 만료는 알림으로 먼저 온다. 상담 목록은 처음 한
+  /// 번만 받아 와서, 이걸 듣지 않으면 알림은 "반려되었어요" 인데 화면은 "확인
+  /// 대기" 로 남고 그 옛 표시가 같은 트레이너에게 다시 신청하는 것까지 막는다.
+  /// 첫 값과 줄어들 때(읽음 처리)는 건너뛴다 — 새로 온 것이 없다.
+  ///
+  /// 상담 컨트롤러 provider 안이 아니라 여기서 듣는 이유: 세션 초기화
+  /// (`session_feature_reset.dart`)가 두 provider 를 함께 무효화하는데, 한쪽이
+  /// 다른 쪽을 들으면 riverpod 의존 검사에 걸린다.
+  void _onUnreadChanged(AsyncValue<int>? previous, AsyncValue<int> next) {
+    final int? before = previous?.valueOrNull;
+    final int? after = next.valueOrNull;
+    if (before == null || after == null || after <= before) return;
+    unawaited(
+      ref.read(consultationRequestControllerProvider.notifier).refresh(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<int>>(notificationUnreadProvider, _onUnreadChanged);
     return Scaffold(
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.

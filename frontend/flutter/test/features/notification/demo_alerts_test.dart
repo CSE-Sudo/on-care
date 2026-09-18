@@ -134,6 +134,8 @@ void main() {
         'routine',
         'member_schedule',
         'consultation_result',
+        // 상담 요청의 승인·거절·만료(#2067).
+        'consult_decision',
       ]) {
         expect(
           DioNotificationRepository.categoryFromWire(wire),
