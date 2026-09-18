@@ -617,7 +617,7 @@
   "mySettingsTitle": "Settings",
   "myProfileTitle": "My Profile",
   "myNotifTitle": "Notification Settings",
-  "myGuideTitle": "Replay the app guide",
+  "myGuideTitle": "App guide",
   "@myGuideTitle": {"description": "MY tab: opens the spotlight app guide again (#1857)."},
   "mySupportTitle": "Customer Support",
   "myPointsBenefitsTitle": "Use Points",

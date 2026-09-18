@@ -2009,7 +2009,7 @@ abstract class AppLocalizations {
   /// MY tab: opens the spotlight app guide again (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Replay the app guide'**
+  /// **'App guide'**
   String get myGuideTitle;
 
   /// No description provided for @mySupportTitle.
