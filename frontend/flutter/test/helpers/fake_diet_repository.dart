@@ -156,6 +156,10 @@ class FakeDietRepository implements DietRepository {
         sodiumMg: 900,
         sugarG: 8,
         source: 'db',
+        carbsG: 90,
+        proteinG: 20,
+        fatG: 13.5,
+        amountG: 400,
       ),
       RecognizedFood(
         name: '김치',
@@ -163,6 +167,10 @@ class FakeDietRepository implements DietRepository {
         sodiumMg: 300,
         sugarG: 1,
         source: 'db',
+        carbsG: 2.5,
+        proteinG: 1,
+        fatG: 0.5,
+        amountG: 40,
       ),
     ];
     const int cals = 615;
@@ -198,6 +206,10 @@ class FakeDietRepository implements DietRepository {
                 calories: f.calories,
                 sodiumMg: f.sodiumMg,
                 sugarG: f.sugarG.toDouble(),
+                carbsG: f.carbsG,
+                proteinG: f.proteinG,
+                fatG: f.fatG,
+                amountG: f.amountG,
               ),
             )
             .toList(),
