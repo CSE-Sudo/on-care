@@ -435,12 +435,14 @@ class _SlotField extends StatelessWidget {
             spacing: OnCareSpacing.s8,
             runSpacing: OnCareSpacing.s8,
             children: <Widget>[
-              for (final (int i, TrainerSlot slot)
-                  in (value ?? const <TrainerSlot>[]).indexed)
+              for (final TrainerSlot slot in value ?? const <TrainerSlot>[])
                 SizedBox(
                   width: itemWidth,
                   child: AppChoiceChip(
-                    key: ValueKey<String>('consult-slot-$i'),
+                    // 자리 id 로 짚는다 — 헬스장 탭의 `slot-chip-<id>` 와 같다.
+                    // 순번으로 짚으면 다른 자리가 앞에 끼는 순간 엉뚱한 자리를
+                    // 고른다(실 API E2E 는 시드·다른 스위트의 자리와 함께 본다).
+                    key: ValueKey<String>('consult-slot-${slot.id}'),
                     label: trainerSlotChipLabel(slot),
                     selected: slot.id == selectedId,
                     onSelected: (bool _) => onSelected(slot.id),

@@ -143,8 +143,12 @@ Future<void> _revealInForm(
 /// 희망 날짜·시각을 입력하던 두 칸은 없어졌다 — 트레이너가 열어 둔 자리 중
 /// 하나를 누르는 것이 시각을 정하는 유일한 길이다.
 Future<void> _pickSlot(WidgetTester tester) async {
-  await _revealInForm(tester, find.byKey(const Key('consult-slot-0')), 180);
-  await tester.tap(find.byKey(const Key('consult-slot-0')));
+  await _revealInForm(
+    tester,
+    find.byKey(const Key('consult-slot-slot-evening')),
+    180,
+  );
+  await tester.tap(find.byKey(const Key('consult-slot-slot-evening')));
   await tester.pumpAndSettle();
 }
 
@@ -387,7 +391,11 @@ void main() {
     );
 
     await _pickSlot(tester);
-    await _revealInForm(tester, find.byKey(const Key('consult-slot-0')), -100);
+    await _revealInForm(
+      tester,
+      find.byKey(const Key('consult-slot-slot-evening')),
+      -100,
+    );
     expect(find.text(l.exConsultSlotRequired), findsNothing);
   });
 
