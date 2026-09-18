@@ -146,7 +146,13 @@ class AiCoachingCard extends ConsumerWidget {
     // 하면 되는가" 라는 한 가지 질문이고, 누가 정했는지는 각 줄의 출처가 말한다.
     final List<CoachRoutine> routines =
         ref.watch(coachRoutinesProvider).valueOrNull ?? const <CoachRoutine>[];
-    final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
+    final AsyncValue<MemberCoach?> coachState = ref.watch(memberCoachProvider);
+    final MemberCoach? coach = coachState.valueOrNull;
+    // **담당이 없다고 확인됐을 때만** 담당 없는 회원의 모양을 쓴다. 조회가 오는
+    // 중이거나 실패했을 때 `coach == null` 로 가르면, 담당이 있는 회원에게
+    // `AI 추천 개인운동` 제목과 서버가 403 으로 막는 `기록` 버튼이 뜨고,
+    // 트레이너가 배정한 운동에 `취소` 까지 붙는다.
+    final bool unassigned = coachState.hasValue && coach == null;
 
     // 추천이 없으면 카드 자체를 그리지 않는다. 빈 카드는 자리만 차지하고
     // 아무것도 알려 주지 않는다.
@@ -174,7 +180,7 @@ class AiCoachingCard extends ConsumerWidget {
                   //
                   // 담당이 있을 때는 트레이너 배정과 트레이너가 확인한 AI 추천이
                   // 한 목록에 섞이므로 일반 제목이 맞다.
-                  title: coach == null
+                  title: unassigned
                       ? l.coachRoutineAiTitle
                       : l.coachRoutineTitle,
                   icon: AppIcons.running,
@@ -186,7 +192,7 @@ class AiCoachingCard extends ConsumerWidget {
               //
               // 담당이 있으면 이 카드는 트레이너 배정을 싣고, 감지 기록 자체가
               // 그 회원의 것이 아니다 — 서버도 403 으로 막는다(#1823).
-              if (coach == null)
+              if (unassigned)
                 AppButton(
                   key: const Key('routineInsightHistoryButton'),
                   label: l.aicInsightHistoryAction,
@@ -237,7 +243,7 @@ class AiCoachingCard extends ConsumerWidget {
               sourceLabel: routineSourceLabel(l, routine, coach),
               // 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이
               // 서로 다른 기록을 본다. 담당이 없을 때만 스스로 물린다. (#1020)
-              cancellable: coach == null,
+              cancellable: unassigned,
             ),
             const SizedBox(height: OnCareSpacing.s8),
           ],

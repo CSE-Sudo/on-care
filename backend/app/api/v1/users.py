@@ -75,7 +75,10 @@ def get_my_health(
 ) -> UserHealth:
     profile = current_user.health_profile
 
-    # risk: 저장된 프로필 있으면 사용, 없으면 데모 기본값(프론트 mock 과 동일)
+    # risk: 저장된 프로필 있으면 사용, 없으면 기본 문구(프론트 mock 과 동일).
+    # 기본 문구는 질환을 말하지 않는다 — 예전에는 프로필이 없는 모든 회원에게
+    # "고혈압·당뇨 위험 주의" 를 지어 보냈다. 폐기된 이전 타깃의 흔적이고,
+    # 회원의 기록과 무관한 건강 경고다.
     if profile and profile.risk_title:
         risk = RiskInfo(
             title=profile.risk_title, body=profile.risk_body, level=profile.risk_level
@@ -83,8 +86,8 @@ def get_my_health(
         rank = profile.activity_rank
     else:
         risk = RiskInfo(
-            title="고혈압·당뇨 위험 주의",
-            body="최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.",
+            title="이번 주 관리 포인트",
+            body="식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.",
             level="medium",
         )
         rank = 14
