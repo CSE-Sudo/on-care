@@ -60,6 +60,20 @@ void main() {
       expect(NotificationsPage.targetOf(notice), AppRoutes.clients);
     });
 
+    test('회원 이름 변경 알림도 그 회원 상세로 간다 (#2065)', () {
+      final TrainerNotification notice = _notice(<String, Object?>{
+        'title': '회원 이름 변경',
+        'body': '지수 회원이 이름을 바꿨어요: 이수진',
+        'category': 'member_name',
+        'subject_id': 'user-jisu',
+      });
+      expect(notice.kind, TrainerNotificationKind.memberName);
+      expect(
+        NotificationsPage.targetOf(notice),
+        AppRoutes.clientDetail('user-jisu'),
+      );
+    });
+
     test('기존 알림 종류의 이동은 그대로다', () {
       expect(
         NotificationsPage.targetOf(

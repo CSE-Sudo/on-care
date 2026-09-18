@@ -1262,6 +1262,10 @@ class TrainerMeUpdate(PartialUpdate):
     이름/이메일은 계정(User)에 속하므로 여기서 바꾸지 않는다. 프로필 화면에서
     바꿀 수 있는 값만 노출한다.
 
+    **트레이너 이름 수정을 열 때** 담당 회원에게 이름이 바뀌었다고 알림 하나를 함께
+    보낸다(#2065). 이미 받은 알림은 옛 이름으로 남으므로 그 알림이 둘을 잇는다 —
+    회원 쪽은 `name_change.record_member_rename` 이 같은 일을 한다.
+
     모든 항목이 DB NOT NULL 이라 null 로 바꿀 수 있는 값이 아니다(#495).
     """
     #: 트레이너 본인의 휴대전화. 회원 경로(`UserRegister`·`ProfileUpdate`)와
