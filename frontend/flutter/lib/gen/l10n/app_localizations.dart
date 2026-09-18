@@ -848,23 +848,29 @@ abstract class AppLocalizations {
   /// **'Record date'**
   String get dietRecordDate;
 
-  /// Button that opens the date picker on the analysis result sheet.
+  /// Button on the record-date row of the analysis result sheet and the meal detail. Moves the meal to the picked day on its own (#1241, #1947).
   ///
   /// In en, this message translates to:
   /// **'Change date'**
   String get dietRecordDateChange;
 
-  /// Confirmation after moving an analysed meal to another day.
+  /// Confirmation after moving a meal to another day.
   ///
   /// In en, this message translates to:
   /// **'Moved to {date}'**
   String dietRecordDateMoved(String date);
 
-  /// Error shown when moving an analysed meal to another day fails.
+  /// Error shown when moving a meal to another day fails.
   ///
   /// In en, this message translates to:
   /// **'Could not change the date. Please try again shortly.'**
   String get dietRecordDateFailed;
+
+  /// Label of the meal-type row next to the record date in the meal detail (#1947).
+  ///
+  /// In en, this message translates to:
+  /// **'Meal'**
+  String get dietMealKind;
 
   /// No description provided for @dietAnalysisDone.
   ///

@@ -70,7 +70,10 @@ String _grams(double value) {
 
 /// Maps a backend [DietEntry] onto the meal-card view model. The meal type is
 /// carried as a [MealType] so the badge text is resolved at render time.
-DietMeal _mealFromEntry(DietEntry e) {
+///
+/// [date] is the day this list was loaded for — entries carry no date of their
+/// own, so the detail page learns which day it is editing from here (#1947).
+DietMeal _mealFromEntry(DietEntry e, DateTime date) {
   // Totals are summed from the per-food nutrition so the tags on the card and
   // the 영양 요약 numbers stay consistent. Real-server payloads carry
   // nutrition only at the entry level (foods = [{name, calories}]), so fall back
@@ -88,6 +91,7 @@ DietMeal _mealFromEntry(DietEntry e) {
   return DietMeal(
     id: e.id,
     mealType: e.mealType,
+    date: DateTime(date.year, date.month, date.day),
     time: e.timeLabel,
     total: e.totalCalories,
     emoji: _mealEmoji[e.mealType] ?? _mealEmoji[MealType.snack]!,
@@ -1080,7 +1084,7 @@ class _MealLog extends StatelessWidget {
           for (final DietEntry e in sortedByMealType(entries)) ...<Widget>[
             Builder(
               builder: (BuildContext context) {
-                final DietMeal m = _mealFromEntry(e);
+                final DietMeal m = _mealFromEntry(e, date);
                 return _MealCard(meal: m, onTap: () => onEditMeal(m));
               },
             ),

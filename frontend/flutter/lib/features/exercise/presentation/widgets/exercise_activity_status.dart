@@ -84,7 +84,12 @@ const double _kGridDash = 3;
 const double _kGridDashStep = 6;
 
 /// `전체` 카드 머리줄의 글자 배율 1 기준 높이.
-const double _kAllPeriodHeaderHeight = 44;
+///
+/// 오른쪽 칸이 날짜 기간 + 유형별 주 평균 세 줄을 담는다(#2061). 그 실측 높이가
+/// 72 라, 44 에 두면 세 줄이 0.61 배로 줄어 글자가 7px 대가 됐다. 식단 탭 `전체`
+/// 머리줄(날짜 기간 + 탄단지 세 줄)과 같은 높이다. 카드 높이는 고정이라 그만큼
+/// 그래프가 낮아진다.
+const double _kAllPeriodHeaderHeight = 72;
 
 // ── 유형별 색·라벨·단위 ────────────────────────────────────────────────
 
@@ -1406,6 +1411,22 @@ class _AllPeriodBodyState extends State<_AllPeriodBody> {
         ? 0
         : visible.fold<double>(0, (double a, _WeekBucket w) => a + w.calories) /
               visible.length;
+    // 유형별 값도 **같은 규칙**으로 평균 낸다 — 머리 숫자가 보이는 구간의 주
+    // 평균이므로 그 옆의 내역도 같은 기준이어야 한 줄로 읽힌다(#2061).
+    double visibleAverageOf(ExerciseLoadKind k) => visible.isEmpty
+        ? 0
+        : visible.fold<double>(
+                0,
+                (double a, _WeekBucket w) => a + w.valueOf(k),
+              ) /
+              visible.length;
+    final double visibleOtherAverage = visible.isEmpty
+        ? 0
+        : visible.fold<double>(
+                0,
+                (double a, _WeekBucket w) => a + w.otherMinutes,
+              ) /
+              visible.length;
     return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1413,14 +1434,22 @@ class _AllPeriodBodyState extends State<_AllPeriodBody> {
           // 머리줄은 **고른 주가 있든 없든 같은 높이**를 쓴다 (#1194).
           SizedBox(
             height: _kAllPeriodHeaderHeight * _layoutScale(context),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Expanded(
-                  flex: 6,
-                  child: PeriodChartHeadline(
-                    selected: picked != null,
+            // 주를 고르면 깔리는 회색 바탕은 머리 숫자와 그 옆의 내역을
+            // **함께** 감싼다 — 식단 탭 `전체` 와 같다(#2061). 숫자만 감싸면
+            // 바로 옆의 `유산소 90분` 이 같은 주의 값인지가 한눈에 묶이지
+            // 않는다.
+            child: PeriodChartHeadline(
+              selected: picked != null,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    flex: 6,
                     child: _HeadlineLine(
+                      // 식단 탭 `전체` 처럼 이름을 위에, 숫자를 아래에 쌓는다
+                      // (#2061). 오른쪽 칸이 날짜 + 세 줄로 72 를 쓰는데 한
+                      // 줄로 두면 숫자 아래가 통째로 비었다.
+                      stacked: true,
                       caption: picked == null
                           ? l.exBurnAllTitle
                           : l.exWeekOfMonthLabel(
@@ -1436,57 +1465,97 @@ class _AllPeriodBodyState extends State<_AllPeriodBody> {
                       unit: l.unitKcal,
                     ),
                   ),
-                ),
-                // 고른 주의 내역은 kcal **오른쪽**에 붙는다 (#1129).
-                if (picked != null) ...<Widget>[
-                  const SizedBox(width: OnCareSpacing.s8),
-                  Expanded(
-                    flex: 5,
-                    // `기타` 까지 네 줄이 되는 주도 있다 — 그때는 목록 전체가
-                    // 한 번에 줄어 같은 높이 안에 들어간다.
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.topRight,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          for (final ExerciseLoadKind k
-                              in ExerciseLoadKind.values)
-                            _AllPeriodDetailLine(
-                              label: kindLabel(l, k),
-                              value: kindValueText(l, k, picked.valueOf(k)),
-                              color: kindColor(k, brand),
-                            ),
-                          // `기타` 는 유형이 아니다 — 회색으로 둔다.
-                          if (picked.otherMinutes > 0)
-                            _AllPeriodDetailLine(
-                              label: l.exTypeOtherChip,
-                              value: l.unitMinutesValue(
-                                picked.otherMinutes.round(),
+                  // 고른 주의 내역은 kcal **오른쪽**에 붙는다 (#1129).
+                  if (picked != null) ...<Widget>[
+                    const SizedBox(width: OnCareSpacing.s8),
+                    Expanded(
+                      flex: 5,
+                      // `기타` 까지 네 줄이 되는 주도 있다 — 그때는 목록 전체가
+                      // 한 번에 줄어 같은 높이 안에 들어간다.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.topRight,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            for (final ExerciseLoadKind k
+                                in ExerciseLoadKind.values)
+                              _AllPeriodDetailLine(
+                                label: kindLabel(l, k),
+                                value: kindValueText(l, k, picked.valueOf(k)),
+                                color: kindColor(k, brand),
+                              ),
+                            // `기타` 는 유형이 아니다 — 회색으로 둔다.
+                            if (picked.otherMinutes > 0)
+                              _AllPeriodDetailLine(
+                                label: l.exTypeOtherChip,
+                                value: l.unitMinutesValue(
+                                  picked.otherMinutes.round(),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (picked == null && visible.isNotEmpty) ...<Widget>[
+                    const SizedBox(width: OnCareSpacing.s8),
+                    Expanded(
+                      flex: 5,
+                      // 고른 주의 내역과 같은 자리·같은 방식으로 줄어든다 — 두
+                      // 상태가 같은 칸을 번갈아 쓴다.
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.topRight,
+                        child: Column(
+                          key: const Key('exercise-all-average'),
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            // 평균이 어느 구간의 것인지 기간을 옆에 붙여 둔다.
+                            PeriodRangeLabel(
+                              key: const Key('exercise-all-range'),
+                              text: periodRangeText(
+                                locale,
+                                visible.first.monday,
+                                visible.last.monday.add(
+                                  const Duration(days: 6),
+                                ),
                               ),
                             ),
-                        ],
+                            const SizedBox(height: OnCareSpacing.s4),
+                            // 그 아래는 보이는 구간의 유형별 **주 평균**이다
+                            // (#2061). 식단 `전체` 가 머리 숫자 옆에 탄단지 하루
+                            // 평균을 늘 붙여 두는 것과 같다. 표기는 고른 주의
+                            // 내역과 같아(이름을 그 색으로 칠한 글자) 막대 색의
+                            // 범례를 겸한다 — 고르면 이 줄들이 그 주의 값으로
+                            // 바뀐다.
+                            for (final ExerciseLoadKind k
+                                in ExerciseLoadKind.values)
+                              _AllPeriodDetailLine(
+                                label: kindLabel(l, k),
+                                value: kindValueText(l, k, visibleAverageOf(k)),
+                                color: kindColor(k, brand),
+                              ),
+                            // `기타` 도 적는다 — 고른 주의 내역과 같은 규칙이다.
+                            // 머리 숫자(소모 칼로리)가 기타 운동의 칼로리까지
+                            // 세므로 여기서 빠지면 숫자의 일부가 설명되지 않는다.
+                            // 유형이 아니라 회색이고, 없으면 줄째로 빠진다.
+                            if (visibleOtherAverage.round() > 0)
+                              _AllPeriodDetailLine(
+                                label: l.exTypeOtherChip,
+                                value: l.unitMinutesValue(
+                                  visibleOtherAverage.round(),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-                if (picked == null && visible.isNotEmpty) ...<Widget>[
-                  const SizedBox(width: OnCareSpacing.s8),
-                  // 평균이 어느 구간의 것인지 기간을 옆에 붙여 둔다.
-                  Expanded(
-                    flex: 4,
-                    child: PeriodRangeLabel(
-                      key: const Key('exercise-all-range'),
-                      text: periodRangeText(
-                        locale,
-                        visible.first.monday,
-                        visible.last.monday.add(const Duration(days: 6)),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+              ),
             ),
           ),
           const SizedBox(height: OnCareSpacing.s8),
@@ -1714,15 +1783,64 @@ class _HeadlineLine extends StatelessWidget {
     required this.caption,
     required this.value,
     required this.unit,
+    this.stacked = false,
   });
 
   final String caption;
   final String value;
   final String unit;
 
+  /// 이름을 위 한 줄, 숫자를 그 아래 한 줄로 쌓을지. `전체` 가 쓴다 —
+  /// 오른쪽 칸이 여러 줄이라 한 줄 머리는 아래가 빈다(#2061).
+  final bool stacked;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    final Widget captionText = Text(
+      caption,
+      style: tokens
+          .text(OnCareTypography.strong(OnCareTypography.bodySmall))
+          .copyWith(color: OnCareColors.textSecondary),
+    );
+    final List<Widget> number = <Widget>[
+      Text(
+        value,
+        style: tokens
+            .text(OnCareTypography.numeric(OnCareTypography.display))
+            .copyWith(color: OnCareColors.textPrimary),
+      ),
+      const SizedBox(width: OnCareSpacing.s4),
+      Text(
+        unit,
+        style: tokens
+            .text(OnCareTypography.strong(OnCareTypography.caption))
+            .copyWith(color: OnCareColors.textTertiary),
+      ),
+    ];
+    if (stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: captionText,
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: number,
+            ),
+          ),
+        ],
+      );
+    }
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
@@ -1730,26 +1848,9 @@ class _HeadlineLine extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
-          Text(
-            caption,
-            style: tokens
-                .text(OnCareTypography.strong(OnCareTypography.bodySmall))
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
+          captionText,
           const SizedBox(width: OnCareSpacing.s8),
-          Text(
-            value,
-            style: tokens
-                .text(OnCareTypography.numeric(OnCareTypography.display))
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-          const SizedBox(width: OnCareSpacing.s4),
-          Text(
-            unit,
-            style: tokens
-                .text(OnCareTypography.strong(OnCareTypography.caption))
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
+          ...number,
         ],
       ),
     );
