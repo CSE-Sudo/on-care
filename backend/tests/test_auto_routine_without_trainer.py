@@ -226,3 +226,96 @@ def test_a_dismissed_insight_no_longer_narrows_the_routines(client, lone_member)
     db.close()
 
     assert "저강도 걷기" in names
+
+
+def _auto_rows(member_id: str) -> dict[str, int]:
+    db = SessionLocal()
+    rows = {
+        row.name: row.minutes
+        for row in db.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.member_id == member_id,
+                TrainerRoutine.trainer_id.is_(None),
+            )
+        ).all()
+    }
+    db.close()
+    return rows
+
+
+def test_pain_mentioned_later_the_same_day_updates_todays_routines(
+    client, lone_member
+):
+    """아침에 추천을 본 뒤 통증을 말하면 그날 추천부터 바뀐다. (#2016)
+
+    한 번 만들고 끝내면, 무릎이 아프다고 말한 회원에게 그날 하루 걷기가 그대로
+    권해진다 — 대화를 참고한다는 약속이 다음 날에야 지켜진다.
+    """
+    token = _token(client, "jisu@oncare.com")
+    morning = client.get("/v1/me/coach/routines", headers=_h(token)).json()
+    assert "저강도 걷기" in {r["name"] for r in morning}
+
+    db = SessionLocal()
+    _say(db, lone_member, "무릎이 아파요")
+    db.close()
+
+    later = client.get("/v1/me/coach/routines", headers=_h(token)).json()
+    names = {r["name"] for r in later}
+    assert "저강도 걷기" not in names
+    assert "전신 스트레칭" in names
+    # 다시 열어도 늘지 않는다 — 고친 뒤에도 같은 날 한 벌이다.
+    again = client.get("/v1/me/coach/routines", headers=_h(token)).json()
+    assert [r["id"] for r in again] == [r["id"] for r in later]
+
+
+def test_a_finished_routine_stays_even_if_pain_is_mentioned_after(
+    client, lone_member
+):
+    """이미 끝낸 운동은 목록에서 빠지지 않는다 — 회원이 한 일이 지워진다."""
+    token = _token(client, "jisu@oncare.com")
+    walk = next(
+        r
+        for r in client.get("/v1/me/coach/routines", headers=_h(token)).json()
+        if r["name"] == "저강도 걷기"
+    )
+    done = client.post(
+        f"/v1/me/coach/routines/{walk['id']}/complete",
+        headers=_h(token),
+        json={"minutes": 20, "intensity": "light", "member_note": ""},
+    )
+    assert done.status_code == 200, done.text
+
+    db = SessionLocal()
+    _say(db, lone_member, "무릎이 아파요")
+    db.close()
+
+    after = client.get("/v1/me/coach/routines", headers=_h(token)).json()
+    by_name = {r["name"]: r for r in after}
+    assert by_name["저강도 걷기"]["id"] == walk["id"]
+    assert by_name["저강도 걷기"]["completed"] is True
+
+
+def test_dismissing_the_insight_brings_the_routine_back_the_same_day(
+    client, lone_member
+):
+    """오탐을 치우면 그날 안에 좁혔던 추천이 돌아온다. (#1975 · #2016)"""
+    from app.models.models import AiMessage
+
+    db = SessionLocal()
+    _say(db, lone_member, "무릎이 아파요")
+    db.close()
+    auto_routine_service.ensure_auto_routines(SessionLocal(), lone_member)
+    assert "저강도 걷기" not in _auto_rows(lone_member)
+
+    db = SessionLocal()
+    message_id = db.scalar(
+        select(AiMessage.id)
+        .join(AiConversation, AiConversation.id == AiMessage.conversation_id)
+        .where(AiConversation.user_id == lone_member, AiMessage.role == "user")
+    )
+    db.get(AiMessage, message_id).insight_dismissed = True
+    db.commit()
+    db.close()
+
+    auto_routine_service.ensure_auto_routines(SessionLocal(), lone_member)
+    assert "저강도 걷기" in _auto_rows(lone_member)
