@@ -3337,6 +3337,90 @@ abstract class AppLocalizations {
   /// **'Agree and connect'**
   String get coachInviteConsentAgree;
 
+  /// No description provided for @exConsultSlotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Available times'**
+  String get exConsultSlotTitle;
+
+  /// No description provided for @exConsultSlotRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose an available time.'**
+  String get exConsultSlotRequired;
+
+  /// No description provided for @exConsultSlotsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No consultation times are open right now.'**
+  String get exConsultSlotsEmptyTitle;
+
+  /// No description provided for @exConsultSlotsEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Call {gym} at {phone} to ask for a consultation time.'**
+  String exConsultSlotsEmptyBody(String gym, String phone);
+
+  /// No description provided for @exConsultSlotsEmptyNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the {gym} details for its address and hours.'**
+  String exConsultSlotsEmptyNoPhone(String gym);
+
+  /// No description provided for @exConsultSlotsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the available times.'**
+  String get exConsultSlotsError;
+
+  /// No description provided for @exConsultSlotTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Another member just took that time. Please choose another.'**
+  String get exConsultSlotTaken;
+
+  /// No description provided for @exGymCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get exGymCall;
+
+  /// No description provided for @exGymCallFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the phone app.'**
+  String get exGymCallFailed;
+
+  /// No description provided for @exGymDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'View gym details'**
+  String get exGymDetail;
+
+  /// No description provided for @exConsultChosenSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested time'**
+  String get exConsultChosenSlot;
+
+  /// No description provided for @exConsultConfirmedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed time'**
+  String get exConsultConfirmedAt;
+
+  /// No description provided for @exConsultExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get exConsultExpired;
+
+  /// No description provided for @exConsultExpiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer did not respond in time. Try requesting another time.'**
+  String get exConsultExpiredBody;
+
   /// No description provided for @exExerciseGoal.
   ///
   /// In en, this message translates to:
@@ -3366,24 +3450,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preferred Date'**
   String get exPreferredDate;
-
-  /// No description provided for @exSelectDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a date'**
-  String get exSelectDate;
-
-  /// No description provided for @exSelectTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a time'**
-  String get exSelectTime;
-
-  /// No description provided for @exPreferredTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Preferred Time'**
-  String get exPreferredTime;
 
   /// No description provided for @exTimeFlexible.
   ///
@@ -3492,18 +3558,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please describe your specific exercise goal in the message.'**
   String get exOtherGoalDetailRequired;
-
-  /// No description provided for @exDateRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please select a preferred date.'**
-  String get exDateRequired;
-
-  /// No description provided for @exTimeRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please select a preferred time.'**
-  String get exTimeRequired;
 
   /// No description provided for @exConsultTargetNotFound.
   ///

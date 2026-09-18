@@ -30,17 +30,7 @@ class DioGymRepository implements GymRepository {
     lng: (j['lng'] as num?)?.toDouble(),
   );
 
-  static TrainerSlot _slot(Map<String, Object?> j) => TrainerSlot(
-    id: j['id']! as String,
-    trainerId: (j['trainer_id'] as String?) ?? '',
-    startsAt: DateTime.parse(j['starts_at']! as String).toLocal(),
-    // 서버는 아직 좌석 수로 자리를 센다. 한 사람 몫뿐인 자리라 남은 좌석이
-    // 0인지만 의미가 있으므로 여기서 예약 여부로 접고, 좌석 수는 앱 안으로
-    // 들이지 않는다(#1072).
-    booked: ((j['remaining'] as num?) ?? 0).toInt() <= 0,
-    sessionType: (j['session_type'] as String?) ?? '1:1 PT',
-    durationMinutes: (j['duration_minutes'] as num?)?.toInt() ?? 60,
-  );
+  static TrainerSlot _slot(Map<String, Object?> j) => trainerSlotFromJson(j);
 
   /// 추천 사유. 서버는 아직 `reason` 한 칸에 문자열 하나를 담아 보내지만,
   /// 앱은 여러 개를 그린다(#1881). 계약이 배열로 넓어지기 전까지 양쪽을 다

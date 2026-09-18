@@ -169,7 +169,7 @@ def test_seeded_trainers_cover_every_gym(client):
 
 
 def test_consultation_works_for_a_trainer_at_a_discovered_gym(
-    client, directory_trainer
+    client, db_session, directory_trainer
 ):
     """카카오 발견 헬스장 소속 트레이너도 상담 대상이어야 한다.
 
@@ -180,7 +180,7 @@ def test_consultation_works_for_a_trainer_at_a_discovered_gym(
 
     trainer_id = directory_trainer(gym_id="328969863")  # 빌드업짐 PT 신촌점
     _member_id, token = _register_member(client)
-    payload = _payload(trainer_id=trainer_id)
+    payload = _payload(db_session, trainer_id=trainer_id)
     r = client.post("/v1/consultations", headers=_auth(token), json=payload)
 
     assert r.status_code == 201, r.text
@@ -398,7 +398,9 @@ def test_listed_trainers_all_have_a_fitness_gym(client):
         assert client.get(f"/v1/gyms/{gym_id}").status_code == 200, gym_id
 
 
-def test_hidden_trainer_is_also_rejected_by_consultation(client, directory_trainer):
+def test_hidden_trainer_is_also_rejected_by_consultation(
+    client, db_session, directory_trainer
+):
     """디렉터리에서 뺀 트레이너는 상담 대상도 아니다 — 두 조건이 같아야 한다(#443).
 
     반대로 목록에 남겨 두면 회원은 고를 수 있는데 상담 요청에서만 404 를 받는다.
@@ -411,7 +413,7 @@ def test_hidden_trainer_is_also_rejected_by_consultation(client, directory_train
     r = client.post(
         "/v1/consultations",
         headers=_auth(token),
-        json=_payload(trainer_id=trainer_id),
+        json=_payload(db_session, trainer_id=trainer_id),
     )
     assert r.status_code == 404, r.text
 

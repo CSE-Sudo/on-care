@@ -12,6 +12,7 @@ import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
+import 'package:oncare/features/exercise/presentation/utils/slot_label.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connected_gym_card.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -268,17 +269,6 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
     );
   }
 
-  /// 칩 한 줄에 들어가는 "8/8 19:00–20:00" 형태. 고르기 칩은 한 줄이라
-  /// 날짜를 짧은 숫자 표기로 줄인다(#1701).
-  String _slotWhen(TrainerSlot slot) {
-    final DateTime end = slot.startsAt.add(
-      Duration(minutes: slot.durationMinutes),
-    );
-    final String start = _hhmm(TimeOfDay.fromDateTime(slot.startsAt));
-    final String finish = _hhmm(TimeOfDay.fromDateTime(end));
-    return '${slot.startsAt.month}/${slot.startsAt.day} $start–$finish';
-  }
-
   Future<void> _reserve(AppLocalizations l, TrainerSlot slot) async {
     if (_reserving != null) return;
     final AppToastHost toast = AppToastHost.of(context);
@@ -464,7 +454,7 @@ class _ReservationPanelState extends ConsumerState<_ReservationPanel> {
                                       key: ValueKey<String>(
                                         'slot-chip-${slot.id}',
                                       ),
-                                      label: _slotWhen(slot),
+                                      label: trainerSlotChipLabel(slot),
                                       selected: picked?.id == slot.id,
                                       // 마감된 자리는 고를 수 없고, 예약이 오가는 중에는
                                       // 선택도 잠근다.

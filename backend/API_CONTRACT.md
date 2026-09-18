@@ -318,7 +318,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| POST | `/consultations` | 입력 `{ trainer_id, exercise_goal, health_purpose_type, preferred_date, preferred_time_slot, message? }` |
+| POST | `/consultations` | 입력 `{ trainer_id, slot_id, exercise_goal, health_purpose_type, message? }` |
+| GET | `/consultations/slots?trainer_id=` | 상담 신청 폼이 고를 수 있는 그 트레이너의 빈 자리 |
 | GET | `/consultations/me` | 내가 보낸 요청 (최신순, 기본 50건·커서) |
 | DELETE | `/consultations/{consultation_id}` | 내가 보낸 대기 중 상담 요청 취소 |
 | GET | `/consultations/{id}` | 단건(남의 것·없는 것 404) |
@@ -336,17 +337,47 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
   수 없어 그 회원만 건강 목표가 비어 있었고, 그게 이 통일의 이유입니다. 이미 저장된
   `health` 행은 백필하지 않고 **응답에서 그대로 내려줍니다**(응답 타입이 `str` 입니다).
   `fitness` 는 부르는 이름만 `체력 향상` → `체력 강화` 로 바뀌었고 뜻은 같아 그대로 읽습니다.
-- `preferred_time_slot` 입력은 단일 `"HH:MM"` 또는 `"HH:MM-HH:MM"` 시작–종료 범위만 허용합니다.
-  시각 없는 `"flexible"` 은 더 이상 받지 않습니다(422) — 승인해도 잡을 시각이 없어 상담이
-  승인만 되고 일정은 만들어지지 않았습니다. (#1587)
-  과거 `flexible`·`morning`/`afternoon`/`evening` 값은 이미 저장된 행에 남아 있을 수 있어
-  **응답**에서는 그대로 내려줍니다 — 컬럼이 `String(20)` 이라 마이그레이션 없이 값 형식만
-  바뀐 것입니다.
+- **시각은 회원이 적어 보내지 않고 트레이너가 열어 둔 자리에서 고릅니다.** (#1873)
+  `preferred_date`+`preferred_time_slot` 입력은 `slot_id` 하나로 바뀌었습니다. 자리가
+  시작·길이·종류를 모두 들고 있어 승인이 시각을 다시 정하지 않습니다 — 예전에는 회원이
+  고른 종료 시각이 쓰이지 않고 승인이 늘 시작+30분으로 일정을 만들었습니다.
+- `GET /consultations/slots` 는 그 트레이너의 **`1:1 PT`** 자리 중 닫히지 않았고 비어 있고
+  **시작까지 4시간 이상** 남은 것만 줍니다(`CONSULT_SLOT_MIN_LEAD_HOURS`). 헬스장 탭의
+  예약 가능 시간 목록(`GET /trainers/{id}/slots`)과 종류 기준은 같고(#1849 유지) 하한과
+  잠김 여부만 다릅니다. 비면 앱은 신청 버튼을 잠그고 헬스장 전화를 안내합니다.
+- **신청하는 순간 자리가 잠깁니다**(`remaining` 감소). 승인할 때 잠그면 두 회원이 같은
+  자리를 신청할 수 있고, 둘 중 하나는 트레이너가 수락한 뒤에야 거절당합니다. 이미 잠긴
+  자리를 보내면 **409** 이고, 없는 자리는 **404** 입니다.
+- **만료** — 신청 후 **24시간**과 **자리 시작 2시간 전** 중 **먼저 오는 쪽**에 요청이
+  `expired` 가 되고 자리가 다시 열리며 회원에게 알림이 갑니다. `rejected`(트레이너의 판단)와
+  구분해 회원 화면 문구가 다릅니다. 목록 하한(4시간)을 만료 기준(2시간)보다 크게 둔 이유는
+  경계에서 트레이너의 확인 시간이 0 이 되지 않게 하기 위해서입니다 — 둘이 같으면 19:30 자리가
+  17:29 에 보이는데 만료는 17:30 이라 신청 1분 뒤에 만료됩니다. 차이(2시간)가 트레이너가
+  보장받는 최소 확인 시간입니다.
+- **정리 시점** — 스케줄러가 없어 **읽는 시점에** 정리합니다. 트레이너 자리 목록
+  (`GET /trainer/reservation-slots`)·상담 인박스(`GET /trainer/consultations`)·미처리 배지·
+  상담 신청 생성·`GET /consultations/slots` 가 해당 트레이너의 지난 `pending` 을 먼저
+  만료 처리한 뒤 결과를 돌려줍니다. 범위를 그 트레이너의 행으로 한정합니다.
+- **거절·회원 취소·만료·회원 탈퇴는 자리를 되돌려 줍니다.** 탈퇴하면 요청 행은 회원과 함께 CASCADE 로 사라지므로, 그 전에 자리부터 풉니다 — 아니면 `remaining = 0` 으로 영영 잠깁니다. 예약(`TrainerReservation`)과 달리 상담이
+  잡은 자리에는 예약 행도 일정도 없어, 좌석만 되돌리는 별도 경로(`release_consultation_hold`)를
+  씁니다.
+- 응답에 `slot_id`·`slot_starts_at`·`slot_duration_minutes` 가 실립니다 — 회원 화면이 **확정된
+  일시**를 그리는 값입니다. 승인 알림 본문에도 확정 일시가 들어갑니다.
+- `preferred_date`·`preferred_time_slot` 은 **응답에 남습니다.** 새 요청에서는 고른 자리의
+  시각 사본이고, 자리 선택 이전 요청에는 회원이 적어 보낸 희망 시각이 그대로 있습니다.
+  과거 `flexible`·`morning`/`afternoon`/`evening` 값도 저장된 그대로 내려갑니다.
+- 자리 없이 접수돼 있던 `pending` 요청은 배포 마이그레이션(`0073_consultation_slot`)이
+  `expired` 로 정리하고 회원에게 알립니다 — 새 흐름으로는 트레이너가 수락해도 잡을 자리가
+  없기 때문입니다. `accepted`·`rejected`·`cancelled` 인 지난 요청은 건드리지 않습니다.
 - 커서는 `(created_at, id)` 로 알림과 같은 모양입니다(`before`·`before_id`).
 - 트레이너 인박스(`GET /trainer/consultations`)도 같은 파라미터를 받습니다. 기본값인
   `status=pending` 은 처리하는 만큼 줄지만 `status=all` 은 그 트레이너에게 들어온 요청
   전체입니다. 미처리 배지(`/trainer/consultations/pending-count`)는 **쪽 나눔과 무관하게**
-  전체를 셉니다.
+  전체를 셉니다. 상태 필터에 `expired` 가 있습니다(#1873).
+- **승인은 시각을 받지 않습니다.** `POST /trainer/consultations/{id}/accept` 본문은 `note`
+  하나뿐이고, 날짜·시각·종류·소요 시간 인자와 겹침 검사는 없앴습니다 — 자리를 연 사람이
+  트레이너 자신이고 한 자리는 한 사람 몫이라 겹침이 구조적으로 나지 않습니다. 회원이 고른
+  자리가 사라진 뒤 승인하면 **409** 입니다.
 
 ### 트레이너 알림함
 
