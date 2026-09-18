@@ -95,3 +95,28 @@ def test_fallback_replies_only_offer_what_can_be_answered():
 
     for reply in (empty, with_personal):
         assert not grounding.mentions_untracked_metric(reply)
+
+
+@pytest.mark.parametrize("name", sorted(_GROUNDED_PROMPTS))
+def test_prompts_do_not_claim_a_discarded_audience(name):
+    """코치가 폐기된 타깃을 대상 집단으로 소개하지 않는다. (#2026)
+
+    `고혈압·당뇨 위험군` 은 캡스톤 스타트 단계의 타깃이고 지금은 폐기됐다 —
+    현재 타깃은 PT를 이용하는 회원과 트레이너다. 프롬프트가 그렇게 시작하면
+    모델이 그 틀로 답하는데, 혈압·혈당은 제품에서 뺀 항목이라 앱이 재지도 않는다.
+
+    안 재는 지표를 **물었을 때** 답하는 지침(`UNTRACKED_METRIC_NOTICE`)은 그대로
+    둔다 — 막을 것은 대상 집단을 그렇게 못 박는 쪽이다.
+    """
+    prompt = _GROUNDED_PROMPTS[name]().replace(
+        grounding.UNTRACKED_METRIC_NOTICE, ""
+    )
+    for term in ("고혈압", "당뇨", "만성질환"):
+        assert term not in prompt, f"{name} 프롬프트가 폐기된 타깃을 쓴다: {term}"
+
+
+def test_fallback_reply_offers_what_the_app_actually_records():
+    """LLM 없이 내려가는 안내도 답할 수 있는 것만 권한다. (#602 · #2026)"""
+    reply = coach_chat._fallback_reply({"public": [], "personal": []})
+    assert "고혈압" not in reply and "당뇨" not in reply
+    assert "식단" in reply and "운동" in reply
