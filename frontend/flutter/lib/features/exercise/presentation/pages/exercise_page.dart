@@ -826,6 +826,13 @@ class _PtLogCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 담당 트레이너가 없으면 PT 일지 자리 자체가 없다(#2014). 연결을 끊었는데
+    // 이 카드가 남으면, 트레이너가 있던 흔적만 화면에 서 있게 된다. 실서버는
+    // 담당이 없을 때 세션 목록이 비어 자연히 사라졌지만, 데모는 픽스처 세션을
+    // 그대로 읽어 연결과 무관하게 카드를 세웠다.
+    if (ref.watch(memberCoachProvider).valueOrNull == null) {
+      return const SizedBox.shrink();
+    }
     if (ref.watch(appConfigProvider).useMockApi) {
       // 종목·세트는 픽스처가 정한다 — 카드가 제 목록을 따로 들면 같은 세션을
       // 운동 현황과 다르게 말한다.
