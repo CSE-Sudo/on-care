@@ -10,10 +10,15 @@ import 'package:oncare/features/exercise/domain/repositories/consultation_reposi
 
 /// 한 경로에 정해 둔 상태 코드·본문을 돌려주는 어댑터.
 class _StubAdapter implements HttpClientAdapter {
-  _StubAdapter({required this.status, required this.body});
+  _StubAdapter({
+    required this.status,
+    required this.body,
+    this.headers = const <String, List<String>>{},
+  });
 
   final int status;
   final Object? body;
+  final Map<String, List<String>> headers;
   final Map<String, Map<String, dynamic>> queries =
       <String, Map<String, dynamic>>{};
 
@@ -25,6 +30,7 @@ class _StubAdapter implements HttpClientAdapter {
       status,
       headers: <String, List<String>>{
         Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+        ...headers,
       },
     );
   }
@@ -72,6 +78,34 @@ void main() {
       );
     });
 
+    test('대기 상한 409 는 TooManyPendingConsultations 다 (#1628)', () async {
+      // 이 트레이너에게는 신청한 적이 없다. "이미 대기 중" 으로 읽으면 한도가 풀린
+      // 뒤에도 그 트레이너에게 신청하지 못한다.
+      final repository = _repo(
+        _StubAdapter(
+          status: 409,
+          body: <String, Object?>{
+            'detail': <String, Object?>{
+              'code': 'too_many_pending',
+              'message': '답을 기다리는 상담 요청이 이미 3건 있어요.',
+              'limit': 3,
+            },
+          },
+        ),
+      );
+
+      await expectLater(
+        repository.create(_draft),
+        throwsA(
+          isA<TooManyPendingConsultations>().having(
+            (TooManyPendingConsultations e) => e.limit,
+            'limit',
+            3,
+          ),
+        ),
+      );
+    });
+
     test('문자열 detail 409 는 예전처럼 이미 대기 중이다', () async {
       final repository = _repo(
         _StubAdapter(
@@ -85,6 +119,35 @@ void main() {
         throwsA(isA<DuplicatePendingConsultation>()),
       );
     });
+  });
+
+  test('429 는 Retry-After 를 들고 ConsultationRateLimited 가 된다 (#1628)', () async {
+    final repository = _repo(
+      _StubAdapter(
+        status: 429,
+        body: <String, Object?>{
+          'detail': <String, Object?>{
+            'code': 'consultation_rate_limited',
+            'message': '상담 신청이 너무 잦아요.',
+            'limit': 10,
+          },
+        },
+        headers: <String, List<String>>{
+          'retry-after': <String>['3600'],
+        },
+      ),
+    );
+
+    await expectLater(
+      repository.create(_draft),
+      throwsA(
+        isA<ConsultationRateLimited>().having(
+          (ConsultationRateLimited e) => e.retryAfter,
+          'retryAfter',
+          const Duration(hours: 1),
+        ),
+      ),
+    );
   });
 
   test('자리 목록은 그 트레이너로 걸러 읽는다 (#1873)', () async {

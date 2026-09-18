@@ -15,6 +15,7 @@ import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/utils/consultation_limit_message.dart';
 import 'package:oncare/features/exercise/presentation/utils/exercise_goal_label.dart';
 import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/utils/slot_label.dart';
@@ -186,6 +187,33 @@ class _ConsultationRequestPageState
       showAppToast(
         context,
         AppLocalizations.of(context).exConsultSlotTaken,
+        type: AppToastType.error,
+      );
+      return;
+    } on TooManyPendingConsultations catch (e) {
+      // 답을 기다리는 요청이 상한에 닿았다(#1628). 이 트레이너에게 낸 요청은 없으니
+      // 대기 중으로 표시하지 않는다. 취소하거나 답을 받으면 다시 낼 수 있다.
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      showAppToast(
+        context,
+        consultationTooManyPendingMessage(
+          AppLocalizations.of(context),
+          e.limit,
+        ),
+        type: AppToastType.error,
+      );
+      return;
+    } on ConsultationRateLimited catch (e) {
+      // 24시간 신청 한도(#1628). 언제 다시 낼 수 있는지 함께 알린다.
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      showAppToast(
+        context,
+        consultationRateLimitedMessage(
+          AppLocalizations.of(context),
+          e.retryAfter,
+        ),
         type: AppToastType.error,
       );
       return;
