@@ -554,22 +554,28 @@ class _TargetCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: OnCareSpacing.s8),
-          Text(
-            trainer.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: tokens
-                .text(OnCareTypography.titleSmall)
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            trainer.role ?? l.exTrainerDedicated,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          // 이름과 직함은 한 줄에 읽힌다(#2038 · #2082). 한 문단에 적어
+          // 말줄임이 줄 끝인 직함부터 먹게 한다 — `AppListRow.titleMeta` 와
+          // 같은 방식이다.
+          Text.rich(
+            TextSpan(
+              children: <InlineSpan>[
+                TextSpan(
+                  text: trainer.name,
+                  style: tokens
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
+                ),
+                const WidgetSpan(child: SizedBox(width: OnCareSpacing.s8)),
+                TextSpan(text: trainer.role ?? l.exTrainerDedicated),
+              ],
+            ),
             style: tokens
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            key: const Key('consult-target-name-role'),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           Text(
