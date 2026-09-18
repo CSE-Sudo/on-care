@@ -350,6 +350,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dietMoreFoods(String name, int count) {
+    return '$name +$count';
+  }
+
+  @override
   String get dietFillFromDb => 'Fill in';
 
   @override
@@ -1202,19 +1207,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepPrivacy =>
-      'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — the gym and trainer card on the MY tab does that.';
+      'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — you can do that from My Gym & Trainer on the MY tab.';
 
   @override
   String get myWithdrawKeepRarelyUsed =>
-      'The AI coach still lines up something worth doing on the days you record nothing. Tapping a single suggestion on the Exercise tab is enough to pick it back up.';
+      'You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.';
 
   @override
   String get myWithdrawKeepHardToUse =>
-      'Tell us what got in the way and we will fix it. The 1:1 enquiry under MY > Customer support reaches us directly.';
+      'Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.';
 
   @override
   String get myWithdrawKeepNotifications =>
-      'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.';
+      'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.';
 
   @override
   String get myWithdrawKeepAlternative =>
@@ -1222,7 +1227,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepOther =>
-      'Whatever it is, tell us and we will act on it. Leave it in the 1:1 enquiry under MY > Customer support.';
+      'Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.';
 
   @override
   String get myWithdrawKeepDefault =>
