@@ -2165,13 +2165,13 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawReasonPrivacy.
   ///
   /// In en, this message translates to:
-  /// **'I am worried about my privacy'**
+  /// **'I am worried my personal data could be exposed'**
   String get myWithdrawReasonPrivacy;
 
   /// No description provided for @myWithdrawReasonRarelyUsed.
   ///
   /// In en, this message translates to:
-  /// **'I hardly use it any more'**
+  /// **'I do not use it often'**
   String get myWithdrawReasonRarelyUsed;
 
   /// No description provided for @myWithdrawReasonHardToUse.
@@ -2213,7 +2213,7 @@ abstract class AppLocalizations {
   /// No description provided for @myWithdrawKeepPrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Only you and your trainer can see your records. Disconnect the trainer and they are yours alone — the gym and trainer card on the MY tab does that.'**
+  /// **'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — the gym and trainer card on the MY tab does that.'**
   String get myWithdrawKeepPrivacy;
 
   /// No description provided for @myWithdrawKeepRarelyUsed.
