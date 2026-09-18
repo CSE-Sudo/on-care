@@ -35,7 +35,7 @@ class StubFoodRecognizer(FoodRecognizer):
         return DietAnalysis(
             engine=self.name,
             foods=foods,
-            coach_comment="나트륨이 185mg으로 낮아 혈압 부담이 적어요. 당류는 하루 목표(50g)의 "
+            coach_comment="나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 "
             "절반 남짓인데, 그 절반이 요거트 아이스크림 자체에서 나옵니다. "
             "토핑은 지금처럼 과일·견과 위주로 담아 보세요.",
         ).compute_totals()

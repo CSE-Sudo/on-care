@@ -1100,98 +1100,153 @@ class _MealCard extends StatelessWidget {
   final DietMeal meal;
   final VoidCallback onTap;
 
+  /// 카드에 이름을 적는 음식 수 상한. 넘치면 마지막 줄에 `외 N` 이 붙는다.
+  ///
+  /// 음식이 넷인 끼니에서 카드가 한없이 길어지면 목록을 훑을 수 없다. 두 줄로
+  /// 끊되 몇 개가 숨었는지는 적는다 — 그냥 자르면 회원이 덜 적었다고 읽는다.
+  static const int _maxNameLines = 2;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final List<DietFood> shown = meal.items.take(_maxNameLines).toList();
+    final int hidden = meal.items.length - shown.length;
     return AppCard(
       key: meal.id == null ? null : Key('mealCard-${meal.id}'),
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            key: const ValueKey<String>('meal-card-header'),
-            // 화살표는 늘 카드 오른쪽 끝이다(#761).
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: <Widget>[
-              // 배지는 왼쪽에 붙이고 남는 폭 안으로 접힌다(#739). 화살표만
-              // 접지 않는다. 시각은 #1989 에서 빠졌다 — 카드를 줄 세우는
-              // 기준이 저장 순서가 아니라 끼니 순서가 되면서 읽을 것이 없다.
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: AppTag(
-                    label: mealBadge(l, meal.mealType),
-                    tone: AppTagTone.brand,
-                  ),
-                ),
-              ),
-              // 카드는 그 끼니의 상세 화면을 여는 자리다 — 세부 수치는 여기가
-              // 아니라 들어가서 본다(#1848). 연필은 "이 자리에서 고친다"로
-              // 읽혀 화살표로 되돌렸다. 아이콘 자체는 탭을 먹지 않는다 — 카드
-              // 전체가 눌린다.
-              Tooltip(
-                message: l.dietEditMeal,
-                child: AppIcon(
-                  AppIcons.chevronRight,
-                  size: OnCareSize.iconSmall,
-                  color: OnCareColors.textTertiary,
-                  semanticLabel: l.dietEditMeal,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s12),
-          Row(
-            children: <Widget>[
-              _MealThumb(meal: meal),
-              const SizedBox(width: OnCareSpacing.s12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    // 카드에는 음식 이름만 남긴다 — kcal·나트륨·당류 세부는
-                    // 상세 화면 몫이다(#1848).
-                    for (final DietFood f in meal.items)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: OnCareSpacing.s2,
-                        ),
-                        child: Text(
-                          f.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: _text(
-                            context,
-                            OnCareTypography.strong(OnCareTypography.bodySmall),
-                            OnCareColors.textPrimary,
+      // 사진 → 끼니 → 메뉴명 → 칼로리 한 흐름으로 읽힌다(#1990). 예전에는
+      // 끼니 배지와 사진이 서로 다른 층에 있어 카드를 훑을 때 눈이 위아래로
+      // 한 번 꺾였다.
+      //
+      // 오른쪽 열은 사진 높이만큼 늘어난다 — 그래야 아래의 `메뉴명 ⋯ 칼로리`
+      // 줄을 남는 자리의 세로 가운데에 세울 수 있다. 음식이 하나뿐인 끼니에서
+      // 그 줄이 배지 밑에 붙으면 사진 옆 아래가 비어 카드가 위로 쏠려 보였다.
+      // 글자가 커져 오른쪽이 사진보다 길어지면 카드가 그만큼 늘고, 사진은
+      // 늘리지 않고 위에 붙여 둔다.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Align(
+              alignment: Alignment.topLeft,
+              child: _MealThumb(meal: meal),
+            ),
+            const SizedBox(width: OnCareSpacing.s12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    key: const ValueKey<String>('meal-card-header'),
+                    // 화살표는 늘 카드 오른쪽 끝이다(#761).
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      // 배지는 왼쪽에 붙이고 남는 폭 안으로 접힌다(#739).
+                      // 화살표만 접지 않는다. 시각은 #1989 에서 빠졌다.
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: AppTag(
+                            label: mealBadge(l, meal.mealType),
+                            tone: AppTagTone.brand,
                           ),
                         ),
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: OnCareSpacing.s8),
-              // 카드가 말하는 수치는 총 칼로리 하나다(#1848). 카드에 배지가
-              // 이것뿐이라 `칼로리` 라는 말은 붙이지 않는다 — 단위가 이미
-              // 무엇인지 말한다. 색은 같은 탭의 기간 그래프·나트륨 막대와 같은
-              // 규칙이다(#1053, #1070). 좁은 폭·큰 글자에서는 말줄임 대신
-              // 배지를 줄인다 — 수치가 잘리면 다른 값으로 읽힌다(#743).
-              Expanded(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerRight,
-                  child: AppTag(
-                    label: '${_formatInt(meal.total)} ${l.unitKcal}',
-                    tone: AppTagTone.brand,
+                      // 카드는 그 끼니의 상세 화면을 여는 자리다 — 세부 수치는
+                      // 여기가 아니라 들어가서 본다(#1848). 연필은 "이 자리에서
+                      // 고친다"로 읽혀 화살표로 되돌렸다. 아이콘 자체는 탭을
+                      // 먹지 않는다 — 카드 전체가 눌린다.
+                      Tooltip(
+                        message: l.dietEditMeal,
+                        child: AppIcon(
+                          AppIcons.chevronRight,
+                          size: OnCareSize.iconSmall,
+                          color: OnCareColors.textTertiary,
+                          semanticLabel: l.dietEditMeal,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: OnCareSpacing.s4),
+                  // 메뉴명과 칼로리는 한 층이다 — 칼로리는 메뉴명 블록의 세로
+                  // 가운데, 오른쪽 끝에 서서 위의 화살표와 같은 세로선에 놓인다.
+                  // 메뉴명 아래 네 번째 줄로 두면 카드 오른쪽이 비고 수치가 왼쪽
+                  // 끝에 묻혀, 목록을 훑을 때 칼로리가 한 선에 모이지 않았다.
+                  // 이 층은 배지 아래 남는 자리의 세로 가운데에 선다.
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Row(
+                        key: const ValueKey<String>('meal-card-foods'),
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: <Widget>[
+                          // 이름은 폭의 3/5 안에서 말줄임한다.
+                          Expanded(
+                            flex: 3,
+                            // 이름 높이만 쓴다 — 늘어나면 이름은 위에 붙고
+                            // 칼로리만 가운데에 서서 서로 어긋난다.
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                // 카드에는 음식 이름만 남긴다 — kcal·나트륨·당류
+                                // 세부는 상세 화면 몫이다(#1848).
+                                for (int i = 0; i < shown.length; i++)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: OnCareSpacing.s2,
+                                    ),
+                                    child: Text(
+                                      i == shown.length - 1 && hidden > 0
+                                          ? l.dietMoreFoods(
+                                              shown[i].name,
+                                              hidden,
+                                            )
+                                          : shown[i].name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: _text(
+                                        context,
+                                        OnCareTypography.strong(
+                                          OnCareTypography.bodySmall,
+                                        ),
+                                        OnCareColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: OnCareSpacing.s8),
+                          // 카드가 말하는 수치는 총 칼로리 하나다(#1848). 카드에
+                          // 배지가 이것뿐이라 `칼로리` 라는 말은 붙이지 않는다 —
+                          // 단위가 이미 무엇인지 말한다. 색은 같은 탭의 기간
+                          // 그래프·나트륨 막대와 같은 규칙이다(#1053, #1070). 좁은
+                          // 폭·큰 글자에서는 말줄임 대신 배지를 줄인다 — 수치가
+                          // 잘리면 다른 값으로 읽힌다(#743). 폭의 2/5 까지만 쓰고,
+                          // 남는 자리는 `spaceBetween` 이 이름과의 사이로 돌린다.
+                          Flexible(
+                            flex: 2,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: AppTag(
+                                label:
+                                    '${_formatInt(meal.total)} ${l.unitKcal}',
+                                tone: AppTagTone.brand,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1206,7 +1261,9 @@ class _MealThumb extends StatelessWidget {
   const _MealThumb({required this.meal});
   final DietMeal meal;
 
-  static const double _size = 56;
+  /// 56 → 88 (#1990). 오른쪽 열이 배지 한 줄과 메뉴명 두 줄을 쓰므로 그 높이에
+  /// 맞춘다 — 56 은 무엇을 먹었는지 알아보기 어려웠다.
+  static const double _size = 88;
 
   @override
   Widget build(BuildContext context) => MealPhotoView(

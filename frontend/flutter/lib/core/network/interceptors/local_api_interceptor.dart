@@ -964,7 +964,7 @@ class LocalApiInterceptor extends Interceptor {
     const int totalNa = 185;
     const double totalSugar = 29.5;
     const String coach =
-        '나트륨이 185mg으로 낮아 혈압 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
+        '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
         '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
 
     final now = nowKst();
@@ -2570,8 +2570,8 @@ class LocalApiInterceptor extends Interceptor {
     return _ok(options, <String, Object?>{
       'profile': <String, Object?>{'name': '김민수', 'email': 'minsu@oncare.com'},
       'risk': <String, Object?>{
-        'title': '고혈압·당뇨 위험 주의',
-        'body': '최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.',
+        'title': '이번 주 관리 포인트',
+        'body': '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
         'level': 'medium',
       },
       // 원장의 잔액 — 적립·회수가 그대로 보인다(#1786).

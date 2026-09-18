@@ -5,7 +5,7 @@ Claude 비전 모델에 음식 사진을 주고 JSON 으로 분석받습니다.
 LiteLLM 이 OpenAI 호환이므로, OpenAI SDK 의 vision 형식(base64 image_url)을 사용합니다.
 결과는 Gemini 인식기와 동일한 DietAnalysis 로 변환 → 프론트 계약 동일.
 
-기존 PoC 방향(전문 영양사 + 고혈압 DASH 관점 + 나트륨·당류) 계승.
+Gemini 인식기와 같은 방향(전문 영양사 + 회원의 식단 목표 관점 + 나트륨·당류).
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ _PROMPT = """당신은 전문 영양사입니다. 이 음식 사진을 분석해
   "foods": [
     {"name":"음식명(한국어)","amount_g":추정섭취량g,"calories":정수kcal,"carbs_g":탄수화물g,"protein_g":단백질g,"fat_g":지방g,"sodium_mg":정수mg,"sugar_g":정수g,"confidence":0.0~1.0}
   ],
-  "coach_comment": "고혈압(DASH) 관점 식단평. 나트륨 높은 음식을 짚고 개선 제안을 2~3문장 한국어로."
+  "coach_comment": "운동하는 회원의 식단 목표(칼로리·단백질·나트륨·당류) 관점 식단평. 넘치거나 모자란 영양을 짚고 개선 제안을 2~3문장 한국어로. 질환 이름을 꺼내거나 진단하지 마세요."
 }
 음식이 여러 개면 foods 에 모두. 모르는 값은 null.
 

@@ -11,6 +11,7 @@ import 'package:oncare/features/diet/presentation/controllers/diet_controller.da
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/chart_semantics.dart';
 import 'package:oncare/shared/widgets/metric_trend_chart.dart';
+import 'package:oncare/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 영양 요약 카드의 기준 높이. 오늘·이번 주·전체 세 화면이 함께 쓴다 — 기간
@@ -37,6 +38,26 @@ const double kDietSummaryCardHeight = 216;
 /// 이 지금 보이는 구간만 세기 때문이다(#1018). 칸 수가 폭을 따라가면 같은
 /// 기록도 기기마다 다른 구간의 평균이 된다.
 const int _kAllDaysPerScreen = 24;
+
+/// 머리줄 오른쪽 칸 맨 위에 날짜 기간이 얹히며 머리줄이 키가 커진 만큼 (#2009).
+///
+/// 재서 얻은 값이다. 날짜에 제 줄을 따로 주면 24(한 줄 + 간격)가 들고 그 줄
+/// 왼쪽이 통째로 비었다 — 탄단지 위에 얹으면 16 으로 줄고 빈 줄도 없다.
+///
+/// 카드 높이([kDietSummaryCardHeight])는 **`오늘` 카드**를 따라가고 그 카드는
+/// 이 날짜를 갖지 않으므로 상수 자체는 그대로다. 대신 기간 카드의 그래프가
+/// 이만큼 자리를 내준다 — 그러지 않으면 기간 카드만 키가 커져 토글을 누를 때
+/// 아래 내용이 뛴다(#1124). 글자 지표가 바뀌어 이 값이 어긋나면
+/// `diet_summary_card_height_test.dart` 가 세 카드 높이로 알려 준다.
+const double _kHeadlineRangeExtent = 16;
+
+/// 머리줄(숫자 + 오른쪽 칸)이 늘 차지하는 최소 높이 (#2009).
+///
+/// 재서 얻은 값이다 — 날을 고르지 않았을 때(날짜 기간 + 탄단지) 72, 고른 뒤
+/// (회색 바탕 + 탄단지) 67~71. 둘 중 큰 쪽에 맞춰 두 상태가 같은 자리를
+/// 쓰게 한다. 글자 배율을 따라 함께 커진다 — 운동 탭 `전체` 의 머리줄과 같은
+/// 규칙이다(#1194).
+const double _kHeadlineMinHeight = 72;
 
 /// 식단 탭의 기간 뷰(이번 주 / 전체).
 ///
@@ -119,29 +140,6 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
       ? NumberFormat('#,###').format(v)
       : NumberFormat('#,##0.#').format(v);
 
-  /// 카드 머리에 적을 날짜 기간.
-  ///
-  /// `전체` 는 열두 주가 한 화면에 들어가지 않아 옆으로 밀어 본다 — 그때 적어야
-  /// 할 것은 기간 전체가 아니라 **지금 보이는 막대의 구간**이다. 같은 줄의
-  /// `하루 평균` 이 이미 보이는 구간만 세므로(#1018), 날짜만 12주에 머물면 한
-  /// 화면의 두 글이 서로 다른 기간을 말한다(#1985). 운동 탭 `전체` 가 이미
-  /// `_selection.visible` 로 구간을 적는 방식과 맞춘다.
-  ///
-  /// `이번 주` 는 일곱 칸이 한 화면에 다 들어가 밀리지 않으므로 늘 월~일이다.
-  /// 보이는 구간을 아직 모르는 첫 프레임도 기간 전체를 적는다 — 날짜 줄이
-  /// 비었다 채워지며 깜빡이지 않게. 그래프가 자리를 잡으면 곧 따라온다.
-  DietDateRange _shownRange() {
-    final (int, int)? visible = _selection.visible;
-    if (widget.weekly || visible == null) return widget.range;
-    // 그래프가 그리는 칸과 **같은 날짜 배열**이다 — 기간 집계도 이 목록으로
-    // 만들어지므로(`dietPeriodProvider`) 인덱스가 어긋나지 않는다.
-    final List<DateTime> dates = dietRangeDates(widget.range);
-    if (dates.isEmpty) return widget.range;
-    final int from = visible.$1.clamp(0, dates.length - 1);
-    final int to = visible.$2.clamp(from, dates.length - 1);
-    return (from: dates[from], to: dates[to]);
-  }
-
   void _retry() {
     // 실패는 날짜별 provider 에 남아 있다. 집계만 무효화하면 같은 에러를 다시
     // 읽어 와 아무 일도 일어나지 않는다.
@@ -154,46 +152,16 @@ class _DietPeriodViewState extends ConsumerState<DietPeriodView> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     final AsyncValue<DietPeriod> async = ref.watch(
       dietPeriodProvider(widget.range),
-    );
-    final DateFormat fmt = DateFormat.MMMd(
-      Localizations.localeOf(context).toString(),
     );
     // 바깥 섹션(영양 요약)이 이미 제목과 좌우 여백을 갖는다 — 여기서 또 두면
     // 제목이 두 줄로 겹치고 여백이 이중으로 들어간다(#681).
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        // 지표 칩 줄이 있던 자리다. 칩이 `칼로리` 하나만 남아 줄째로 걷어냈고
-        // (#1986) 그 줄에 함께 있던 날짜 기간만 남는다 — 그래프를 밀면 이 줄도
-        // 따라 바뀐다 ([_shownRange], #1985).
-        //
-        // 폭을 끝까지 늘려 둔다. 칩과 한 줄을 쓰던 시절에는 `Expanded` 가 남는
-        // 자리를 줘서 오른쪽에 붙었는데, 칩이 빠지며 그 `Expanded` 도 함께
-        // 사라져 글자 폭만큼만 차지하고 왼쪽으로 갔다 — `textAlign` 은 제 폭
-        // 안에서만 도는 규칙이라 그것만으로는 오른쪽에 붙지 않는다.
-        SizedBox(
-          width: double.infinity,
-          child: ListenableBuilder(
-            listenable: _selection,
-            builder: (BuildContext context, Widget? _) {
-              final DietDateRange shown = _shownRange();
-              return Text(
-                key: const Key('diet-period-range'),
-                l.dietPeriodRange(fmt.format(shown.from), fmt.format(shown.to)),
-                textAlign: TextAlign.right,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textSecondary),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
+        // 날짜 기간은 **카드 안** 오른쪽 위에 있다 (#2009) — 운동 탭과 같은
+        // 자리다. 카드 밖에 두면 카드가 제 기간을 스스로 말하지 않는다.
         async.when(
           loading: () => const AppLoading(placement: AppStatePlacement.card),
           error: (Object e, StackTrace _) => AppErrorState(
@@ -275,6 +243,24 @@ class _PeriodBody extends StatelessWidget {
   String _dayHeadline(BuildContext context, DateTime date) =>
       DateFormat.yMd(Localizations.localeOf(context).toString()).format(date);
 
+  /// 카드 머리 위에 적을 날짜 기간의 양끝.
+  ///
+  /// `전체` 는 열두 주가 한 화면에 들어가지 않아 옆으로 밀어 본다 — 그때 적어야
+  /// 할 것은 기간 전체가 아니라 **지금 보이는 막대의 구간**이다. 바로 아래의
+  /// `하루 평균` 이 이미 보이는 구간만 세므로(#1018), 날짜만 12주에 머물면 한
+  /// 카드의 두 글이 서로 다른 기간을 말한다(#1985).
+  ///
+  /// `이번 주` 는 일곱 칸이 한 화면에 다 들어가 밀리지 않으므로 늘 월~일이다.
+  /// 보이는 구간을 아직 모르는 첫 프레임도 기간 전체를 적는다 — 날짜 줄이
+  /// 비었다 채워지며 깜빡이지 않게. 그래프가 자리를 잡으면 곧 따라온다.
+  (DateTime, DateTime) _shownRange() {
+    final (int, int)? visible = selection.visible;
+    if (weekly || visible == null) return (dates.first, dates.last);
+    final int from = visible.$1.clamp(0, dates.length - 1);
+    final int to = visible.$2.clamp(from, dates.length - 1);
+    return (dates[from], dates[to]);
+  }
+
   /// 머리 숫자 옆에 붙일 탄단지. [picked] 이 있으면 그날 값, 없으면 기록이
   /// 있는 날의 하루 평균이다. 서버가 영양을 주지 않은 기간이면 null 이라
   /// 아무것도 붙지 않는다.
@@ -327,88 +313,133 @@ class _PeriodBody extends StatelessWidget {
             // 보였다 — 남는 자리를 위아래로 나눠 가운데에 놓는다(#1956).
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              ListenableBuilder(
-                listenable: selection,
-                builder: (BuildContext context, Widget? _) {
-                  // 점을 골라 그날 값을 볼 수 있다 (#1122). 평소에는 **보이는
-                  // 구간의** 평균, 날을 고르면 그날의 값. (#1018)
-                  final int? picked = selection.selected;
-                  final double value = picked == null
-                      ? selection.averageOf(values)
-                      : values[picked];
-                  final bool over = goal > 0 && value > goal;
-                  // 칼로리를 볼 때만 탄단지를 곁들인다. (#1121)
-                  final _Macros? macros = _macrosFor(picked);
-                  return PeriodChartHeadline(
-                    selected: picked != null,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                picked == null
-                                    ? '${l.dietPeriodAverage} · $metricLabel'
-                                    : '${_dayHeadline(context, dates[picked])} · '
-                                          '$metricLabel',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: tokens
-                                    .text(
-                                      OnCareTypography.strong(
-                                        OnCareTypography.caption,
-                                      ),
-                                    )
-                                    .copyWith(
-                                      color: OnCareColors.textSecondary,
-                                    ),
-                              ),
-                              const SizedBox(height: OnCareSpacing.s4),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Text.rich(
-                                  TextSpan(
-                                    children: <InlineSpan>[
-                                      TextSpan(
-                                        text: format(value),
-                                        style:
-                                            OnCareTypography.numeric(
-                                              tokens.text(
-                                                OnCareTypography.display,
-                                              ),
-                                            ).copyWith(
-                                              color: over
-                                                  ? OnCareColors.danger
-                                                  : OnCareColors.textPrimary,
-                                            ),
-                                      ),
-                                      TextSpan(
-                                        text: ' / ${format(goal)} $unit',
-                                        style: tokens
-                                            .text(OnCareTypography.bodySmall)
-                                            .copyWith(
-                                              color: OnCareColors.textSecondary,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
+              // 머리줄은 **날을 고르든 말든 같은 높이**를 쓴다 — 운동 탭 `전체` 와
+              // 같다(#1194). 고르면 날짜 기간이 빠지고 회색 바탕의 여백이 붙어,
+              // 두 상태의 높이가 몇 dp 씩 어긋났다(72 ↔ 67~71). 카드 내용이
+              // 가운데 정렬이라 그 차이의 절반만큼 그래프가 위아래로 튀었다.
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      _kHeadlineMinHeight *
+                      MediaQuery.textScalerOf(context).scale(1),
+                ),
+                child: ListenableBuilder(
+                  listenable: selection,
+                  builder: (BuildContext context, Widget? _) {
+                    // 점을 골라 그날 값을 볼 수 있다 (#1122). 평소에는 **보이는
+                    // 구간의** 평균, 날을 고르면 그날의 값. (#1018)
+                    final int? picked = selection.selected;
+                    final double value = picked == null
+                        ? selection.averageOf(values)
+                        : values[picked];
+                    final bool over = goal > 0 && value > goal;
+                    // 칼로리를 볼 때만 탄단지를 곁들인다. (#1121)
+                    final _Macros? macros = _macrosFor(picked);
+                    final (DateTime from, DateTime to) = _shownRange();
+                    return PeriodChartHeadline(
+                      selected: picked != null,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  picked == null
+                                      ? '${l.dietPeriodAverage} · $metricLabel'
+                                      : '${_dayHeadline(context, dates[picked])} · '
+                                            '$metricLabel',
                                   maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: tokens
+                                      .text(
+                                        OnCareTypography.strong(
+                                          OnCareTypography.caption,
+                                        ),
+                                      )
+                                      .copyWith(
+                                        color: OnCareColors.textSecondary,
+                                      ),
                                 ),
-                              ),
+                                const SizedBox(height: OnCareSpacing.s4),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text.rich(
+                                    TextSpan(
+                                      children: <InlineSpan>[
+                                        TextSpan(
+                                          text: format(value),
+                                          style:
+                                              OnCareTypography.numeric(
+                                                tokens.text(
+                                                  OnCareTypography.display,
+                                                ),
+                                              ).copyWith(
+                                                color: over
+                                                    ? OnCareColors.danger
+                                                    : OnCareColors.textPrimary,
+                                              ),
+                                        ),
+                                        TextSpan(
+                                          text: ' / ${format(goal)} $unit',
+                                          style: tokens
+                                              .text(OnCareTypography.bodySmall)
+                                              .copyWith(
+                                                color:
+                                                    OnCareColors.textSecondary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: OnCareSpacing.s12),
+                          // 오른쪽 칸 — 맨 위가 날짜 기간, 그 아래가 탄단지다
+                          // (#2009). 날짜에 제 줄을 따로 주면 그 줄 왼쪽이 통째로
+                          // 비어 카드 한 줄을 버린다. 탄단지 위에 얹으면 빈 줄
+                          // 없이 운동 탭처럼 **카드 오른쪽 위**에 놓인다.
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              // 날을 고르면 날짜 기간은 빠진다 — 운동 탭 `전체`
+                              // 와 같다. 머리 문구가 이미 `2026. 9. 17. · 칼로리`
+                              // 로 그날을 말하므로, 보이는 구간까지 함께 적으면
+                              // 한 카드에 날짜가 둘 떠 서로 다른 말을 한다.
+                              //
+                              // 빠진 자리는 회색 바탕([PeriodChartHeadline])의
+                              // 위아래 여백이 메운다. 둘이 거의 같은 높이라, 날을
+                              // 고르고 풀 때 카드가 커졌다 작아지며 그래프가
+                              // 밀리던 것도 함께 잦아든다.
+                              if (picked == null) ...<Widget>[
+                                // 형식은 운동과 같은 함수로 적는다 — 두 탭이
+                                // 서로 다른 말투로 말하지 않도록.
+                                PeriodRangeLabel(
+                                  key: const Key('diet-period-range'),
+                                  text: periodRangeText(
+                                    Localizations.localeOf(context).toString(),
+                                    from,
+                                    to,
+                                  ),
+                                ),
+                                if (macros != null)
+                                  const SizedBox(height: OnCareSpacing.s4),
+                              ],
+                              if (macros != null)
+                                _MacroDetail(macros: macros, muted: weekly),
                             ],
                           ),
-                        ),
-                        if (macros != null) ...<Widget>[
-                          const SizedBox(width: OnCareSpacing.s12),
-                          _MacroDetail(macros: macros, muted: weekly),
                         ],
-                      ],
-                    ),
-                  );
-                },
+                      ),
+                    );
+                  },
+                ),
               ),
               // 기간 합계는 뺐다 (#1121). 머리와 그래프 사이의 구분선도 뺐다
               // (#1123) — 그 빈 칸을 그래프가 들고 있어(topGap) 고른 막대의
@@ -483,7 +514,8 @@ class _WeekTrend extends StatelessWidget {
   /// 남았다. 빼는 값은 실제로 재서 얻었고, 글자 지표가 조금 달라도 카드가
   /// 늘어나지 않도록 몇 dp 여유를 남긴다 — 남는 자리는 카드의 가운데 정렬이
   /// 위아래로 나눈다.
-  static const double _chartHeight = kDietSummaryCardHeight - 128;
+  static const double _chartHeight =
+      kDietSummaryCardHeight - 128 - _kHeadlineRangeExtent;
 
   @override
   Widget build(BuildContext context) {
@@ -651,7 +683,8 @@ class _PeriodBars extends StatelessWidget {
   /// 규칙으로 카드 높이에서 나머지가 쓰는 자리를 뺀다 — 고정값 108 은 카드가
   /// 240 이던 시절 값이라 그 뒤 늘어난 만큼이 카드 아래 빈 칸이 됐다(#1956).
   /// 막대 쪽이 4dp 더 높은 것은 날짜 라벨 줄이 요일 라벨보다 낮아서다.
-  static const double _chartHeight = kDietSummaryCardHeight - 124;
+  static const double _chartHeight =
+      kDietSummaryCardHeight - 124 - _kHeadlineRangeExtent;
 
   /// [i] 번째 칸의 원본. 칼로리를 보고 있지 않으면 null 이다.
   DietPeriodDay? _dayAt(int i) {
