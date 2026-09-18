@@ -101,7 +101,7 @@ void main() {
   AppLocalizations l10n(WidgetTester tester) =>
       AppLocalizations.of(tester.element(find.byType(DietRecordPage)));
 
-  /// 카드 머리에 적힌 첫 줄 — `하루 평균 · 칼로리` 또는 `2026. 8. 17. · 칼로리`.
+  /// 카드 머리에 적힌 첫 줄 — `하루 평균` 또는 `8. 17.`.
   // 날짜 기간이 카드 안으로 들어오며(#2009) 카드의 첫 `Text` 가 됐다 —
   // 머리줄은 `PeriodChartHeadline` 안에서 집는다.
   String headline(WidgetTester tester) => tester

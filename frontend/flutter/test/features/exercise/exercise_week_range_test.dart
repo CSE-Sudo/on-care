@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
@@ -119,10 +120,24 @@ void main() {
       ' ~ '
       '${DateFormat.Md('ko').format(DateTime(2026, 9, 20))}',
     );
-    // 연도는 적지 않는다 — 한 줄에 들어가야 하고, 카드가 보는 것은 올해다.
+    // 연도는 적지 않는다 — 한 줄에 들어가야 한다.
     expect(
       periodRangeText('ko', DateTime(2026, 4, 20), DateTime(2026, 9, 20)),
       isNot(contains('2026')),
+    );
+  });
+
+  test('연도를 빼도 되는 전제 — 두 탭의 전체 기간이 1년이 안 된다', () {
+    // 기간이 1년을 넘기면 같은 월·일이 두 번 나와 `8. 20.` 이 어느 해인지
+    // 갈리지 않는다. 그때는 연도를 적어야 한다 — 이 테스트가 먼저 알린다.
+    expect(kDietAllPeriodDays, lessThan(365));
+    expect(kExerciseAllPeriodWeeks * 7, lessThan(365));
+    // 해가 바뀌는 구간도 월·일만으로 읽힌다.
+    expect(
+      periodRangeText('ko', DateTime(2026, 12, 16), DateTime(2027, 1, 5)),
+      '${DateFormat.Md('ko').format(DateTime(2026, 12, 16))}'
+      ' ~ '
+      '${DateFormat.Md('ko').format(DateTime(2027, 1, 5))}',
     );
   });
 

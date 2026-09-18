@@ -8,6 +8,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
@@ -89,7 +90,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  /// 카드 머리에 적힌 첫 줄(`하루 평균 · 칼로리` 또는 `2026. 8. 17. · 칼로리`).
+  /// 카드 머리에 적힌 첫 줄(`하루 평균` 또는 `8. 17.`).
   // 날짜 기간이 카드 안으로 들어오며(#2009) 카드의 첫 `Text` 가 됐다 —
   // 머리줄은 `PeriodChartHeadline` 안에서 집는다.
   String headline(WidgetTester tester) => tester
@@ -136,7 +137,10 @@ void main() {
       isNot(contains(l.dietPeriodAverage)),
       reason: '점을 골랐는데 머리 문구가 하루 평균 그대로다',
     );
-    expect(headline(tester), contains(l.dietCalories));
+    // 그날 날짜만 적는다 — 지표가 칼로리 하나뿐이라 `· 칼로리` 를 붙이지 않는다.
+    final DateTime monday = dietRangeForTab(DietPeriodTab.week, nowKst()).from;
+    // 연도 없이 월·일만 — 날짜 기간과 같은 형식이다.
+    expect(headline(tester), DateFormat.Md('ko').format(monday));
 
     // 같은 점을 다시 누르면 선택이 풀린다.
     await tester.tapAt(pointAt(tester, 0, 7));
