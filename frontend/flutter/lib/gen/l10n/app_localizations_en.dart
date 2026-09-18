@@ -2835,22 +2835,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get demoAlertRoutineTitle => 'A new workout routine arrived';
 
   @override
-  String get demoAlertRoutineBody =>
-      'Trainer Kim adjusted it to a walking routine for your knee.';
+  String demoAlertRoutineBody(String trainerName) {
+    return 'Trainer $trainerName adjusted it to a walking routine for your knee.';
+  }
 
   @override
   String get demoAlertReportTitle => 'This week\'s report is ready';
 
   @override
-  String get demoAlertReportBody =>
-      'Trainer Kim posted your report for this week.';
+  String demoAlertReportBody(String trainerName) {
+    return 'Trainer $trainerName posted your report for this week.';
+  }
 
   @override
   String get demoAlertPtDoneTitle => 'PT session complete';
 
   @override
-  String get demoAlertPtDoneBody =>
-      'You finished PT session 12 with Trainer Kim at 18:00 today!';
+  String demoAlertPtDoneBody(String trainerName) {
+    return 'You finished PT session 12 with Trainer $trainerName at 18:00 today!';
+  }
 
   @override
   String get demoAlertTrainerFeedbackTitle => 'Feedback from your trainer';
@@ -2949,10 +2952,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A cancelled request can\'t be restored.';
 
   @override
-  String get exDemoPtSessionCount => 'Session 12 with Trainer Kim';
-
-  @override
-  String get exDemoPtTrainerName => 'Trainer Kim';
+  String exDemoPtSessionCount(String trainerName) {
+    return 'Session 12 with Trainer $trainerName';
+  }
 
   @override
   String get exDemoPtFeedback =>

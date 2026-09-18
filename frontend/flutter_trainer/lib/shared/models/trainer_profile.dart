@@ -1,3 +1,5 @@
+import 'package:demo_fixture/demo_fixture.dart';
+
 /// The trainer's gym / workplace details.
 class TrainerGym {
   /// Creates gym details.
@@ -46,7 +48,7 @@ class TrainerProfile {
     required this.gym,
   });
 
-  /// Display name (e.g. "김트레이너").
+  /// Display name (e.g. "김태오").
   final String name;
 
   /// Login / contact email.
@@ -98,7 +100,7 @@ class TrainerProfile {
 /// The single fixed trainer profile attached on a successful (mock)
 /// login. Sourced from the On-Care Figma trainer mock (TrainerMyTab).
 const TrainerProfile seedTrainerProfile = TrainerProfile(
-  name: '김트레이너',
+  name: kDemoTrainerName,
   email: 'trainer@oncare.com',
   phone: '010-1234-5678',
   specialty: '퍼스널 트레이너',

@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -136,7 +137,7 @@ void main() {
       expect(gym.weekdayHours, '06:00 – 23:00');
 
       expect(trainer, isNotNull);
-      expect(trainer!.name, '김트레이너');
+      expect(trainer!.name, kDemoTrainerName);
       expect(trainer.role, '퍼스널 트레이너');
       expect(trainer.gymId, gym.id);
       expect(trainer.career, '7년');
@@ -169,7 +170,7 @@ void main() {
     test('트레이너를 id 로 조회하고, 없으면 null 이다', () async {
       final MockGymRepository repo = MockGymRepository();
 
-      expect((await repo.fetchTrainer('trainer-kim'))?.name, '김트레이너');
+      expect((await repo.fetchTrainer('trainer-kim'))?.name, kDemoTrainerName);
       expect(await repo.fetchTrainer('trainer-nope'), isNull);
     });
 

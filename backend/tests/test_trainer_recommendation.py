@@ -46,11 +46,11 @@ def test_goals_change_the_order(client):
 
     assert slimming_ids != strength_ids, "회원이 달라도 순서가 같으면 추천이 아니다"
 
-    # 감량 정체기를 다루는 정트레이너는 '비만' 회원 쪽에서 더 앞이어야 한다.
+    # 감량 정체기를 다루는 정수빈은 '비만' 회원 쪽에서 더 앞이어야 한다.
     assert _rank_of(slimming_ids, "trainer-demo-jung") < _rank_of(
         strength_ids, "trainer-demo-jung"
     )
-    # 근력 전문 윤트레이너는 반대로 '근력' 회원 쪽에서 더 앞이다.
+    # 근력 전문 윤재희는 반대로 '근력' 회원 쪽에서 더 앞이다.
     assert _rank_of(strength_ids, "trainer-yoon") < _rank_of(
         slimming_ids, "trainer-yoon"
     )
@@ -61,7 +61,7 @@ def test_matched_trainer_outranks_unmatched(client):
     headers = _register(client, conditions="비만")
     ids = _ids(client, headers)
 
-    # 감량을 다루는 정트레이너 vs 시니어 균형 운동을 다루는 조트레이너.
+    # 감량을 다루는 정수빈 vs 시니어 균형 운동을 다루는 조민혁.
     assert _rank_of(ids, "trainer-demo-jung") < _rank_of(ids, "trainer-cho")
 
 
@@ -126,7 +126,7 @@ def test_joining_a_gym_lifts_its_trainers(client, db_session):
     headers = _register(client, conditions="비만")
     me = client.get("/v1/users/me", headers=headers).json()["id"]
 
-    # 감량과 무관하고 경력도 짧아 원래 하위인 한트레이너로 확인한다. 이미 상위인
+    # 감량과 무관하고 경력도 짧아 원래 하위인 한서준으로 확인한다. 이미 상위인
     # 트레이너를 쓰면 가점을 받아도 순위가 그대로일 수 있어(위쪽이 더 높음) 신호가
     # 살아 있는지 구분되지 않는다.
     target = "trainer-demo-han"

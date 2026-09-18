@@ -1784,25 +1784,40 @@
   "@demoAlertRoutineTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertRoutineBody": "Trainer Kim adjusted it to a walking routine for your knee.",
+  "demoAlertRoutineBody": "Trainer {trainerName} adjusted it to a walking routine for your knee.",
   "@demoAlertRoutineBody": {
-    "description": "Body of a demo notification shown in tour mode."
+    "description": "Body of a demo notification shown in tour mode.",
+    "placeholders": {
+      "trainerName": {
+        "type": "String"
+      }
+    }
   },
   "demoAlertReportTitle": "This week's report is ready",
   "@demoAlertReportTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertReportBody": "Trainer Kim posted your report for this week.",
+  "demoAlertReportBody": "Trainer {trainerName} posted your report for this week.",
   "@demoAlertReportBody": {
-    "description": "Body of a demo notification shown in tour mode."
+    "description": "Body of a demo notification shown in tour mode.",
+    "placeholders": {
+      "trainerName": {
+        "type": "String"
+      }
+    }
   },
   "demoAlertPtDoneTitle": "PT session complete",
   "@demoAlertPtDoneTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer Kim at 18:00 today!",
+  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer {trainerName} at 18:00 today!",
   "@demoAlertPtDoneBody": {
-    "description": "Body of a demo notification shown in tour mode."
+    "description": "Body of a demo notification shown in tour mode.",
+    "placeholders": {
+      "trainerName": {
+        "type": "String"
+      }
+    }
   },
   "demoAlertTrainerFeedbackTitle": "Feedback from your trainer",
   "@demoAlertTrainerFeedbackTitle": {
@@ -1881,8 +1896,14 @@
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
-  "exDemoPtSessionCount": "Session 12 with Trainer Kim",
-  "exDemoPtTrainerName": "Trainer Kim",
+  "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
+  "@exDemoPtSessionCount": {
+    "placeholders": {
+      "trainerName": {
+        "type": "String"
+      }
+    }
+  },
   "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "exStepperDecrease": "Decrease",
   "exStepperIncrease": "Increase",

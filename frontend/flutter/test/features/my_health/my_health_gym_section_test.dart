@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -146,7 +147,7 @@ void main() {
     );
 
     expect(find.text('온케어짐 신촌점'), findsOneWidget);
-    expect(find.text('김트레이너'), findsOneWidget);
+    expect(find.text(kDemoTrainerName), findsOneWidget);
     expect(find.text('퍼스널 트레이너'), findsOneWidget);
     expect(find.textContaining('상세보기'), findsNothing);
     expect(find.byKey(const Key('gymTrainerDetailButton')), findsOneWidget);

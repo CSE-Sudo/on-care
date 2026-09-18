@@ -5049,8 +5049,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Trainer Kim adjusted it to a walking routine for your knee.'**
-  String get demoAlertRoutineBody;
+  /// **'Trainer {trainerName} adjusted it to a walking routine for your knee.'**
+  String demoAlertRoutineBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -5061,8 +5061,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Trainer Kim posted your report for this week.'**
-  String get demoAlertReportBody;
+  /// **'Trainer {trainerName} posted your report for this week.'**
+  String demoAlertReportBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -5073,8 +5073,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'You finished PT session 12 with Trainer Kim at 18:00 today!'**
-  String get demoAlertPtDoneBody;
+  /// **'You finished PT session 12 with Trainer {trainerName} at 18:00 today!'**
+  String demoAlertPtDoneBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -5241,14 +5241,8 @@ abstract class AppLocalizations {
   /// No description provided for @exDemoPtSessionCount.
   ///
   /// In en, this message translates to:
-  /// **'Session 12 with Trainer Kim'**
-  String get exDemoPtSessionCount;
-
-  /// No description provided for @exDemoPtTrainerName.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer Kim'**
-  String get exDemoPtTrainerName;
+  /// **'Session 12 with Trainer {trainerName}'**
+  String exDemoPtSessionCount(String trainerName);
 
   /// No description provided for @exDemoPtFeedback.
   ///
