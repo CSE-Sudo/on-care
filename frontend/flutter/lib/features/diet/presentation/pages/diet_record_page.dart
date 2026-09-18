@@ -1184,38 +1184,48 @@ class _MealCard extends StatelessWidget {
                           // 이름은 폭의 3/5 안에서 말줄임한다.
                           Expanded(
                             flex: 3,
-                            // 이름 높이만 쓴다 — 늘어나면 이름은 위에 붙고
-                            // 칼로리만 가운데에 서서 서로 어긋난다.
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                // 카드에는 음식 이름만 남긴다 — kcal·나트륨·당류
-                                // 세부는 상세 화면 몫이다(#1848).
-                                for (int i = 0; i < shown.length; i++)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: OnCareSpacing.s2,
-                                    ),
-                                    child: Text(
-                                      i == shown.length - 1 && hidden > 0
-                                          ? l.dietMoreFoods(
-                                              shown[i].name,
-                                              hidden,
-                                            )
-                                          : shown[i].name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: _text(
-                                        context,
-                                        OnCareTypography.strong(
-                                          OnCareTypography.bodySmall,
+                            // 이름은 끼니 배지 **안의 글자**와 같은 자리에서
+                            // 시작한다 — 배지 테두리에 맞추면 배지의 안쪽
+                            // 여백만큼 이름이 사진 쪽으로 튀어나와 분류보다
+                            // 앞서 보였다. 들여쓰는 폭은 `AppTag` 의 가로
+                            // 여백과 같은 토큰이다.
+                            child: Padding(
+                              padding: const EdgeInsetsDirectional.only(
+                                start: OnCareSpacing.s8,
+                              ),
+                              // 이름 높이만 쓴다 — 늘어나면 이름은 위에 붙고
+                              // 칼로리만 가운데에 서서 서로 어긋난다.
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  // 카드에는 음식 이름만 남긴다 — kcal·나트륨·당류
+                                  // 세부는 상세 화면 몫이다(#1848).
+                                  for (int i = 0; i < shown.length; i++)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: OnCareSpacing.s2,
+                                      ),
+                                      child: Text(
+                                        i == shown.length - 1 && hidden > 0
+                                            ? l.dietMoreFoods(
+                                                shown[i].name,
+                                                hidden,
+                                              )
+                                            : shown[i].name,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: _text(
+                                          context,
+                                          OnCareTypography.strong(
+                                            OnCareTypography.bodySmall,
+                                          ),
+                                          OnCareColors.textPrimary,
                                         ),
-                                        OnCareColors.textPrimary,
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(width: OnCareSpacing.s8),
