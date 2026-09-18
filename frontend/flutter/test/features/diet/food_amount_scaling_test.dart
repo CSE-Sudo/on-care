@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -42,10 +43,14 @@ String _textOf(WidgetTester tester, String key) => tester
     .text;
 
 /// 끼니 하나를 **보기 모드**로 연다 — 연필은 누르지 않는다.
-Future<void> _openView(WidgetTester tester, FakeDietRepository repo) async {
+Future<void> _openView(
+  WidgetTester tester,
+  FakeDietRepository repo, {
+  Size size = const Size(900, 6000),
+}) async {
   // 음식마다 영양 칸이 일곱 줄씩 붙어 화면이 길어진다 — `ListView` 가 영양
   // 정보 카드까지 실제로 짓도록 넉넉히 잡는다.
-  await tester.binding.setSurfaceSize(const Size(900, 6000));
+  await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final GoRouter router = GoRouter(
@@ -85,8 +90,12 @@ Future<void> _openView(WidgetTester tester, FakeDietRepository repo) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _openEdit(WidgetTester tester, FakeDietRepository repo) async {
-  await _openView(tester, repo);
+Future<void> _openEdit(
+  WidgetTester tester,
+  FakeDietRepository repo, {
+  Size size = const Size(900, 6000),
+}) async {
+  await _openView(tester, repo, size: size);
   await tester.tap(find.byKey(const Key('mealDetailEditButton')));
   await tester.pumpAndSettle();
 }
@@ -268,16 +277,22 @@ void main() {
 
   // 식단 탭 끼니 카드도 이름 옆에 양을 적는다 — 상세 보기 모드와 같은 자리다.
   group('식단 탭 끼니 카드의 내용량', () {
-    /// 아침 카드의 음식 한 줄이 실제로 읽히는 글자.
-    String line(WidgetTester tester, int i) => tester
-        .widget<Text>(
-          find.descendant(
-            of: find.byKey(const Key('mealCard-mock-breakfast')),
-            matching: find.byKey(ValueKey<String>('meal-card-food-$i')),
-          ),
+    Finder lineOf(int i) => find.descendant(
+      of: find.byKey(const Key('mealCard-mock-breakfast')),
+      matching: find.byKey(ValueKey<String>('meal-card-food-$i')),
+    );
+
+    /// 아침 카드의 음식 한 줄이 실제로 읽히는 글자 — 이름과 양은 따로 된 글자라
+    /// 이어 읽는다.
+    String line(WidgetTester tester, int i) => find
+        .descendant(
+          of: lineOf(i),
+          matching: find.byType(RichText),
+          matchRoot: true,
         )
-        .textSpan!
-        .toPlainText();
+        .evaluate()
+        .map((Element e) => (e.widget as RichText).text.toPlainText())
+        .join(' ');
 
     Future<void> backToTab(WidgetTester tester) async {
       GoRouter.of(tester.element(find.byType(DietMealDetailPage))).pop();
@@ -323,6 +338,41 @@ void main() {
 
       // 카드는 두 줄까지만 적고 나머지는 `외 N` 으로 센다.
       expect(line(tester, 1), '딸기 150g 외 1');
+    });
+
+    testWidgets('이름이 길면 이름부터 줄이고 양은 지킨다', (WidgetTester tester) async {
+      // 폰 폭에서 한 줄에 다 안 들어가는 이름 — 끝에서 자르면 양이 통째로 가려진다.
+      await _openEdit(
+        tester,
+        FakeDietRepository(),
+        size: const Size(390, 3000),
+      );
+      await tester.enterText(_field('diet-food-name-1'), '아이스 아메리카노 라지 사이즈');
+      await tester.enterText(_field('diet-food-amount-1'), '350');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+      await backToTab(tester);
+
+      final List<Element> parts = find
+          .descendant(of: lineOf(0), matching: find.byType(RichText))
+          .evaluate()
+          .toList();
+      expect(parts, hasLength(2));
+      final RenderParagraph name = parts.first.renderObject! as RenderParagraph;
+      final RenderParagraph amount =
+          parts.last.renderObject! as RenderParagraph;
+      expect(name.didExceedMaxLines, isTrue, reason: '이름이 말줄임된다');
+      expect(amount.text.toPlainText(), '350g');
+      expect(amount.didExceedMaxLines, isFalse, reason: '양은 잘리지 않는다');
+      // 양은 이름 바로 뒤에 서고, 줄 안에 다 들어간다.
+      final Rect nameBox = tester.getRect(find.byWidget(parts.first.widget));
+      final Rect amountBox = tester.getRect(find.byWidget(parts.last.widget));
+      expect(amountBox.left - nameBox.right, inInclusiveRange(0, 8));
+      expect(
+        amountBox.right,
+        lessThanOrEqualTo(tester.getRect(lineOf(0)).right + 0.5),
+      );
     });
   });
 }

@@ -121,11 +121,15 @@ Future<void> _openResult(WidgetTester tester, FakeDietRepository repo) async {
   await tester.pumpAndSettle();
 }
 
-/// `인식된 음식` 줄이 실제로 읽히는 글자.
-String _recognized(WidgetTester tester) => tester
+/// `인식된 음식` 줄의 글자 그대로 — 붙는 공백(U+00A0)을 포함한다.
+String _recognizedRaw(WidgetTester tester) => tester
     .widget<Text>(find.byKey(const Key('diet-result-recognized-foods')))
     .textSpan!
     .toPlainText();
+
+/// `인식된 음식` 줄이 읽히는 글자. 붙는 공백은 보통 공백으로 읽는다.
+String _recognized(WidgetTester tester) =>
+    _recognizedRaw(tester).replaceAll(' ', ' ');
 
 void main() {
   group('RecognizedFood.amountG', () {
@@ -156,6 +160,25 @@ void main() {
       );
 
       expect(_recognized(tester), '스크램블 에그 100g · 딸기 150g');
+    });
+
+    testWidgets('한 음식의 이름과 양은 붙어 있고, 줄은 음식 사이에서만 바뀐다', (
+      WidgetTester tester,
+    ) async {
+      await _openResult(
+        tester,
+        _AnalyzeWith(<Map<String, Object?>>[
+          _food('그래놀라 토핑', 205, amountG: 50),
+          _food('과일 토핑', 55, amountG: 90),
+        ]),
+      );
+
+      // `그래놀라` / `토핑 50g` 처럼 한 음식이 두 줄로 갈리면 다른 음식처럼 읽힌다.
+      final List<String> foods = _recognizedRaw(tester).split(' · ');
+      expect(foods, <String>['그래놀라 토핑 50g', '과일 토핑 90g']);
+      for (final String food in foods) {
+        expect(food.contains(' '), isFalse, reason: '줄이 바뀔 수 있는 공백이 없다');
+      }
     });
 
     testWidgets('양을 모르는 음식은 이름만 적는다', (WidgetTester tester) async {

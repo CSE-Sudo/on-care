@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
@@ -70,51 +71,215 @@ String _grams(double value) {
 
 /// 끼니 카드 음식 한 줄 — 이름과 그 **양**(보조색). (#1964)
 ///
-/// 한 덩어리 글자로 짓는다. 이름과 양을 따로 된 위젯으로 나란히 두면 좁은 폭·
-/// 큰 글자 배율에서 이름을 다 줄여도 양이 들어갈 자리가 모자라 줄이 넘친다
-/// (#739). 한 줄 말줄임이면 어떤 폭에서도 넘치지 않고, 두 글자가 같은 기준선에
-/// 선다.
-///
-/// 마지막 줄이 `외 N` 을 달 때도 양은 그 음식 이름 바로 뒤다 — `딸기 150g 외 2`.
-/// 양을 모르는 음식은 이름만 적는다: `0g` 은 안 먹었다는 말이 된다.
-InlineSpan _mealCardFoodSpan(
-  BuildContext context,
-  AppLocalizations l,
-  DietFood food, {
-  int hidden = 0,
-}) {
-  final double? grams = food.amountG;
-  final InlineSpan? amount = grams != null && grams > 0
-      ? TextSpan(
-          text: ' ${_grams(grams)}${l.dietUnitG}',
-          style: OnCareTypography.numeric(
-            _text(
-              context,
-              OnCareTypography.caption,
-              OnCareColors.textSecondary,
-            ),
+/// 자리가 모자라면 **이름**부터 말줄임하고 양은 지킨다 — `아이스 아메리… 350g`.
+/// 양은 먹은 것의 일부라 모든 음식에 보여야 하는데, 한 덩어리 글자로 끝에서
+/// 자르면 긴 이름에서 양이 통째로 가려졌다. 마지막 줄이 `외 N` 을 달 때도 양은
+/// 그 음식 이름 바로 뒤다(`딸기 150g 외 2`). 양을 모르는 음식은 이름만 적는다:
+/// `0g` 은 안 먹었다는 말이 된다.
+class _MealCardFoodLine extends StatelessWidget {
+  const _MealCardFoodLine({super.key, required this.food, this.hidden = 0});
+
+  final DietFood food;
+
+  /// 이 줄 뒤로 숨은 음식 수. 0 보다 크면 `외 N` 을 단다.
+  final int hidden;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final TextStyle nameStyle = _text(
+      context,
+      OnCareTypography.strong(OnCareTypography.bodySmall),
+      OnCareColors.textPrimary,
+    );
+    // `외 N` 은 번역문이 이름을 품고 있다 — 이름까지를 앞, 나머지를 뒤로 가른다.
+    String head = food.name;
+    String tail = '';
+    if (hidden > 0) {
+      final String line = l.dietMoreFoods(food.name, hidden);
+      final int at = line.indexOf(food.name);
+      if (at < 0) {
+        head = line;
+      } else {
+        head = line.substring(0, at + food.name.length);
+        tail = line.substring(at + food.name.length);
+      }
+    }
+    final double? grams = food.amountG;
+    final String? amount = grams != null && grams > 0
+        ? '${_grams(grams)}${l.dietUnitG}'
+        : null;
+    // 양을 모르면 지금까지처럼 한 줄 글자다(`딸기`, `된장국 외 2`).
+    if (amount == null) {
+      return Text(
+        head + tail,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: nameStyle,
+      );
+    }
+    return _NameAmountLine(
+      name: Text(
+        head,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: nameStyle,
+      ),
+      amount: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: AlignmentDirectional.centerStart,
+        child: Text.rich(
+          TextSpan(
+            children: <InlineSpan>[
+              TextSpan(
+                text: amount,
+                style: OnCareTypography.numeric(
+                  _text(
+                    context,
+                    OnCareTypography.caption,
+                    OnCareColors.textSecondary,
+                  ),
+                ),
+              ),
+              if (tail.isNotEmpty) TextSpan(text: tail),
+            ],
           ),
-        )
-      : null;
-  if (hidden <= 0) {
-    return TextSpan(
-      children: <InlineSpan>[
-        TextSpan(text: food.name),
-        ?amount,
-      ],
+          maxLines: 1,
+          softWrap: false,
+          style: nameStyle,
+        ),
+      ),
     );
   }
-  final String line = l.dietMoreFoods(food.name, hidden);
-  final int at = line.indexOf(food.name);
-  if (amount == null || at < 0) return TextSpan(text: line);
-  final int end = at + food.name.length;
-  return TextSpan(
-    children: <InlineSpan>[
-      TextSpan(text: line.substring(0, end)),
-      amount,
-      TextSpan(text: line.substring(end)),
-    ],
-  );
+}
+
+/// 이름과 양을 한 줄에 — 양이 먼저 제 폭을 잡고, 이름은 남는 폭 안에서 줄어든다.
+///
+/// `Row` 로는 이 우선순위를 만들 수 없다. 늘어나지 않는 자식(양)은 폭 제한 없이
+/// 재어져 폭 320 · 글자 배율 2.0 같은 자리에서 줄을 넘치고(#739), 둘 다
+/// `Flexible` 이면 남는 폭을 비율로 나눠 넉넉할 때도 이름이 잘린다. 카드가
+/// `IntrinsicHeight` 안이라 `LayoutBuilder` 도 쓸 수 없다. 양조차 들어가지 않을
+/// 만큼 좁으면 양은 잘리지 않고 줄어든다([FittedBox]) — 숫자가 잘리면 다른 값으로
+/// 읽힌다(#743). 두 글자는 같은 기준선에 선다.
+class _NameAmountLine extends MultiChildRenderObjectWidget {
+  _NameAmountLine({required Widget name, required Widget amount})
+    : super(children: <Widget>[name, amount]);
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderNameAmountLine(gap: OnCareSpacing.s4);
+}
+
+class _NameAmountParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderNameAmountLine extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _NameAmountParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _NameAmountParentData> {
+  _RenderNameAmountLine({required this.gap});
+
+  /// 이름과 양 사이.
+  final double gap;
+
+  RenderBox get _name => firstChild!;
+  RenderBox get _amount => lastChild!;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _NameAmountParentData) {
+      child.parentData = _NameAmountParentData();
+    }
+  }
+
+  /// 양 → 이름 순으로 잰다. [dry] 면 자식을 실제로 배치하지 않고 크기만 묻는다
+  /// — 끼니 카드의 `IntrinsicHeight` 가 이 줄의 높이를 미리 물어 온다.
+  ({Size size, double nameTop, double amountTop, double nameWidth}) _measure(
+    BoxConstraints constraints, {
+    required bool dry,
+  }) {
+    final BoxConstraints amountBox = BoxConstraints(
+      maxWidth: constraints.maxWidth,
+    );
+    final Size amount = dry
+        ? _amount.getDryLayout(amountBox)
+        : (_amount..layout(amountBox, parentUsesSize: true)).size;
+    final BoxConstraints nameBox = BoxConstraints(
+      maxWidth: math.max(0, constraints.maxWidth - amount.width - gap),
+    );
+    final Size name = dry
+        ? _name.getDryLayout(nameBox)
+        : (_name..layout(nameBox, parentUsesSize: true)).size;
+    const TextBaseline alphabetic = TextBaseline.alphabetic;
+    final double nameBase =
+        (dry
+            ? _name.getDryBaseline(nameBox, alphabetic)
+            : _name.getDistanceToBaseline(alphabetic)) ??
+        name.height;
+    final double amountBase =
+        (dry
+            ? _amount.getDryBaseline(amountBox, alphabetic)
+            : _amount.getDistanceToBaseline(alphabetic)) ??
+        amount.height;
+    final double ascent = math.max(nameBase, amountBase);
+    final double descent = math.max(
+      name.height - nameBase,
+      amount.height - amountBase,
+    );
+    return (
+      size: constraints.constrain(
+        Size(name.width + gap + amount.width, ascent + descent),
+      ),
+      nameTop: ascent - nameBase,
+      amountTop: ascent - amountBase,
+      nameWidth: name.width,
+    );
+  }
+
+  @override
+  Size computeDryLayout(covariant BoxConstraints constraints) =>
+      _measure(constraints, dry: true).size;
+
+  @override
+  void performLayout() {
+    final ({Size size, double nameTop, double amountTop, double nameWidth}) m =
+        _measure(constraints, dry: false);
+    size = m.size;
+    (_name.parentData! as _NameAmountParentData).offset = Offset(0, m.nameTop);
+    (_amount.parentData! as _NameAmountParentData).offset = Offset(
+      m.nameWidth + gap,
+      m.amountTop,
+    );
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      _amount.getMinIntrinsicWidth(height);
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      _name.getMaxIntrinsicWidth(height) +
+      gap +
+      _amount.getMaxIntrinsicWidth(height);
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      getDryLayout(BoxConstraints(maxWidth: width)).height;
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      getDryLayout(BoxConstraints(maxWidth: width)).height;
+
+  @override
+  double? computeDistanceToActualBaseline(TextBaseline baseline) =>
+      defaultComputeDistanceToHighestActualBaseline(baseline);
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }
 
 /// Maps a backend [DietEntry] onto the meal-card view model. The meal type is
@@ -1258,27 +1423,14 @@ class _MealCard extends StatelessWidget {
                                       padding: const EdgeInsets.symmetric(
                                         vertical: OnCareSpacing.s2,
                                       ),
-                                      child: Text.rich(
-                                        _mealCardFoodSpan(
-                                          context,
-                                          l,
-                                          shown[i],
-                                          hidden: i == shown.length - 1
-                                              ? hidden
-                                              : 0,
-                                        ),
+                                      child: _MealCardFoodLine(
                                         key: ValueKey<String>(
                                           'meal-card-food-$i',
                                         ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: _text(
-                                          context,
-                                          OnCareTypography.strong(
-                                            OnCareTypography.bodySmall,
-                                          ),
-                                          OnCareColors.textPrimary,
-                                        ),
+                                        food: shown[i],
+                                        hidden: i == shown.length - 1
+                                            ? hidden
+                                            : 0,
                                       ),
                                     ),
                                 ],
