@@ -119,10 +119,13 @@ class _MealCardFoodLine extends StatelessWidget {
       );
     }
     return _NameAmountLine(
+      // 글자 상자를 실제로 그려진 줄 폭에 맞춘다. 말줄임된 이름은 글자가
+      // 짧아져도 상자는 받은 폭을 다 차지해, 양이 이름 끝에서 멀리 떨어졌다.
       name: Text(
         head,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+        textWidthBasis: TextWidthBasis.longestLine,
         style: nameStyle,
       ),
       amount: FittedBox(

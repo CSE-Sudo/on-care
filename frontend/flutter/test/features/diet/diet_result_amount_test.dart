@@ -127,9 +127,10 @@ String _recognizedRaw(WidgetTester tester) => tester
     .textSpan!
     .toPlainText();
 
-/// `인식된 음식` 줄이 읽히는 글자. 붙는 공백은 보통 공백으로 읽는다.
+/// `인식된 음식` 줄이 읽히는 글자. 폭 없는 줄바꿈 금지 문자는 지우고, 붙는
+/// 공백은 보통 공백으로 읽는다.
 String _recognized(WidgetTester tester) =>
-    _recognizedRaw(tester).replaceAll(' ', ' ');
+    _recognizedRaw(tester).replaceAll('\u2060', '').replaceAll('\u00A0', ' ');
 
 void main() {
   group('RecognizedFood.amountG', () {
@@ -173,11 +174,24 @@ void main() {
         ]),
       );
 
-      // `그래놀라` / `토핑 50g` 처럼 한 음식이 두 줄로 갈리면 다른 음식처럼 읽힌다.
+      // `그래놀라` / `토핑 50g`, `그래놀` / `라 토핑` 처럼 한 음식이 두 줄로 갈리면
+      // 다른 음식처럼 읽힌다. 줄은 음식 사이(` · `)에서만 바뀐다.
       final List<String> foods = _recognizedRaw(tester).split(' · ');
-      expect(foods, <String>['그래놀라 토핑 50g', '과일 토핑 90g']);
+      expect(
+        foods.map((String f) => f.replaceAll('\u2060', '')).toList(),
+        <String>['그래놀라\u00A0토핑\u00A050g', '과일\u00A0토핑\u00A090g'],
+      );
+      const Set<String> glue = <String>{'\u2060', '\u00A0'};
       for (final String food in foods) {
-        expect(food.contains(' '), isFalse, reason: '줄이 바뀔 수 있는 공백이 없다');
+        final List<String> chars = food.runes.map(String.fromCharCode).toList();
+        for (int i = 0; i + 1 < chars.length; i++) {
+          // 이웃한 두 글자 사이에 붙이는 문자가 있어야 그 자리에서 줄이 안 바뀐다.
+          expect(
+            glue.contains(chars[i]) || glue.contains(chars[i + 1]),
+            isTrue,
+            reason: '$food 의 ${chars[i]}${chars[i + 1]} 사이에서 줄이 바뀔 수 있다',
+          );
+        }
       }
     });
 

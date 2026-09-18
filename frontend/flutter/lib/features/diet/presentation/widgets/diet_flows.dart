@@ -165,8 +165,19 @@ TextStyle _text(BuildContext context, TextStyle role, Color color) =>
 /// 줄이 바뀌지 않는 공백(U+00A0).
 const String _nbsp = '\u00A0';
 
-/// 공백에서 줄이 바뀌지 않게 잇는다 — 한 덩어리로 읽혀야 하는 글자에.
-String _keepTogether(String text) => text.replaceAll(' ', _nbsp);
+/// 폭 없는 줄바꿈 금지 문자(U+2060 WORD JOINER).
+const String _wordJoiner = '\u2060';
+
+/// 한 덩어리로 읽혀야 하는 글자를 줄이 바뀌지 않게 잇는다.
+///
+/// 공백만 붙는 공백으로 바꾸면 모자라다 — 한국어는 음절 사이 어디서든 줄이
+/// 바뀌어 `그래놀` / `라 토핑` 처럼 갈렸다. 글자 사이마다 폭 없는 줄바꿈 금지
+/// 문자를 끼운다.
+String _keepTogether(String text) => text
+    .replaceAll(' ', _nbsp)
+    .runes
+    .map(String.fromCharCode)
+    .join(_wordJoiner);
 
 /// 그램 수치 한 줄. 소수 첫째 자리까지만, 정수는 콤마만 — 칼로리·나트륨 행과
 /// 같은 서식이다. 당류와 탄·단·지가 이 함수를 같이 쓴다(#1564).
@@ -861,8 +872,9 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
                             TextSpan(text: _keepTogether(r.foods[i].name)),
                             if (r.foods[i].amountG case final double grams)
                               TextSpan(
-                                text:
-                                    '$_nbsp${_gramsText(grams)}${l.dietUnitG}',
+                                text: _keepTogether(
+                                  '$_nbsp${_gramsText(grams)}${l.dietUnitG}',
+                                ),
                                 style: OnCareTypography.numeric(
                                   _text(
                                     context,
