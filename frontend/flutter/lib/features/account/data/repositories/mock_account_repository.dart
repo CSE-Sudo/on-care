@@ -41,8 +41,13 @@ class MockAccountRepository implements AccountRepository {
   @override
   Future<UserProfile> fetchProfile() async => _profile;
 
+  /// 목업이 받아 둔 탈퇴 사유. 대역이 무엇을 받았는지 테스트가 확인한다.
+  List<String> deletedWithReasons = const <String>[];
+
   @override
-  Future<void> deleteAccount() async {}
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
+    deletedWithReasons = reasons;
+  }
 
   @override
   Future<UserProfile> submitOnboarding({

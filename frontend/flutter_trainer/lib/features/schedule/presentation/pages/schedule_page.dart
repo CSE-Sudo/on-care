@@ -212,29 +212,13 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
       builder: (dialogContext) => AppDialog(
         title: title,
         showClose: false,
-        footer: Row(
-          children: <Widget>[
-            Expanded(
-              child: AppButton(
-                label: l.actionCancel,
-                variant: AppButtonVariant.secondary,
-                fullWidth: true,
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.buttonGap),
-            Expanded(
-              child: AppButton(
-                key: confirmKey,
-                label: confirmLabel,
-                variant: destructive
-                    ? AppButtonVariant.destructive
-                    : AppButtonVariant.primary,
-                fullWidth: true,
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-              ),
-            ),
-          ],
+        footer: AppButtonPair(
+          cancelLabel: l.actionCancel,
+          onCancel: () => Navigator.of(dialogContext).pop(false),
+          confirmKey: confirmKey,
+          confirmLabel: confirmLabel,
+          destructive: destructive,
+          onConfirm: () => Navigator.of(dialogContext).pop(true),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

@@ -43,6 +43,13 @@
 |---|---|---|
 | GET | `/users/me` | `{ id(str), name, email }` |
 | GET | `/users/me/health` | `{ profile, risk, activity_points, activity_rank, settings[] }` |
+| DELETE | `/users/me` | `{ status: "deleted" }` |
+
+`DELETE /users/me` 는 본문으로 `{ reasons: [코드] }` 를 받는다(#2019). 본문은 없어도 되고,
+사유는 탈퇴의 조건이 아니다 — 아는 코드만 `account_deletion_reasons` 에 사유와 시각으로만
+남고(누가 골랐는지는 남기지 않는다), 모르는 코드는 조용히 버린다. 아는 코드는
+`privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
+`other`. 계정과 그에 매인 기록은 예전처럼 그대로 지워진다.
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
