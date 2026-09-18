@@ -786,7 +786,10 @@
   "coachInviteRejected": "Request declined",
   "coachInviteFailed": "Couldn't complete that. Please try again",
   "coachImageUnavailable": "Couldn't load the photo",
-  "coachChatSubtitle": "Personal trainer · Available",
+  "coachChatSubtitle": "Personal trainer",
+  "@coachChatSubtitle": {
+    "description": "Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089)."
+  },
   "coachChatBack": "Back",
   "coachChatLoadOlder": "Load older messages",
   "@coachChatLoadOlder": {
