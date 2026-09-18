@@ -28,6 +28,10 @@ Finder get _anyMealCard => find
 
 Finder _field(String key) => find.byKey(ValueKey<String>(key));
 
+/// 보기 모드 음식 줄의 내용량 (#1964).
+Finder _viewAmount(int index) =>
+    find.byKey(ValueKey<String>('diet-food-view-amount-$index'));
+
 /// 칸에 실제로 적혀 있는 글자. 비례 환산이 값을 다시 적으므로, `_foods` 가
 /// 아니라 회원이 보는 칸을 확인해야 한다.
 String _textOf(WidgetTester tester, String key) => tester
@@ -37,7 +41,8 @@ String _textOf(WidgetTester tester, String key) => tester
     .controller
     .text;
 
-Future<void> _openEdit(WidgetTester tester, FakeDietRepository repo) async {
+/// 끼니 하나를 **보기 모드**로 연다 — 연필은 누르지 않는다.
+Future<void> _openView(WidgetTester tester, FakeDietRepository repo) async {
   // 음식마다 영양 칸이 일곱 줄씩 붙어 화면이 길어진다 — `ListView` 가 영양
   // 정보 카드까지 실제로 짓도록 넉넉히 잡는다.
   await tester.binding.setSurfaceSize(const Size(900, 6000));
@@ -78,6 +83,10 @@ Future<void> _openEdit(WidgetTester tester, FakeDietRepository repo) async {
   await tester.pumpAndSettle();
   await tester.tap(_anyMealCard);
   await tester.pumpAndSettle();
+}
+
+Future<void> _openEdit(WidgetTester tester, FakeDietRepository repo) async {
+  await _openView(tester, repo);
   await tester.tap(find.byKey(const Key('mealDetailEditButton')));
   await tester.pumpAndSettle();
 }
@@ -215,5 +224,34 @@ void main() {
     await tester.enterText(_field('diet-food-amount-1'), '200');
     await tester.pumpAndSettle();
     expect(_textOf(tester, 'diet-food-kcal-1'), '370');
+  });
+
+  // 고칠 자리를 열어야만 기준이 드러나면 순서가 뒤집힌 것이다 — 옆의 칼로리가
+  // 그 양을 재고 나온 값이라, 보기만 해도 함께 읽혀야 한다 (#1964).
+  group('보기 모드에서도 내용량이 보인다', () {
+    testWidgets('양을 아는 음식은 이름 옆에 적히고, 모르는 음식은 아무것도 적지 않는다', (
+      WidgetTester tester,
+    ) async {
+      await _openView(tester, FakeDietRepository());
+
+      expect(_viewAmount(1), findsOneWidget);
+      expect(find.text('100g'), findsOneWidget, reason: '스크램블 에그');
+      // 딸기는 서버가 양을 얻지 못한 음식이다. `0g` 이 뜨면 안 먹었다로 읽힌다.
+      expect(_viewAmount(2), findsNothing);
+      expect(find.text('0g'), findsNothing);
+    });
+
+    testWidgets('수정 모드에서 고친 양이 저장 뒤 보기 모드에도 이어진다', (WidgetTester tester) async {
+      await _openEdit(tester, FakeDietRepository());
+
+      await tester.enterText(_field('diet-food-amount-1'), '200');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('mealDetailEditButton')), findsOneWidget);
+      expect(find.text('200g'), findsOneWidget);
+      expect(find.text('100g'), findsNothing);
+    });
   });
 }

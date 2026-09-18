@@ -2225,6 +2225,12 @@ class _FoodEditors {
 }
 
 /// 먹은 음식 한 줄 — 보기 모드의 읽기 전용 표시.
+///
+/// 이름 다음에 **내용량**이 온다. 옆의 칼로리는 그 양을 재고 나온 값이라,
+/// 기준이 보이지 않으면 230kcal 이 한 공기인지 반 공기인지 알 수 없다 —
+/// 수정 모드를 열어야만 기준이 드러나는 것은 순서가 뒤집힌 것이다(#1964).
+/// 양을 모르는 음식과 이 필드 이전 기록은 null 이라 아무것도 적지 않는다:
+/// `0g` 은 안 먹었다는 말이 된다.
 class _FoodViewRow extends StatelessWidget {
   const _FoodViewRow({required this.index, required this.food});
 
@@ -2234,6 +2240,7 @@ class _FoodViewRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final double? amount = food.amountG;
     return AppTile(
       tone: AppTileTone.none,
       child: Row(
@@ -2250,6 +2257,20 @@ class _FoodViewRow extends StatelessWidget {
               ),
             ),
           ),
+          if (amount != null && amount > 0) ...<Widget>[
+            Text(
+              '${_gramsText(amount)}${l.dietUnitG}',
+              key: ValueKey<String>('diet-food-view-amount-$index'),
+              style: OnCareTypography.numeric(
+                _text(
+                  context,
+                  OnCareTypography.caption,
+                  OnCareColors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
+          ],
           Text(
             '${food.kcal}',
             style: OnCareTypography.numeric(
