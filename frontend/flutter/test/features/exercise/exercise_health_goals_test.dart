@@ -65,6 +65,14 @@ class _GoalSyncHostState extends State<_GoalSyncHost> {
   }
 }
 
+/// 세션은 돌려주지만 담당 조회는 실패하는 저장소 — 망이 흔들린 순간이다.
+class _CoachFailingRepository extends _SessionMemberCoachRepository {
+  const _CoachFailingRepository(super.sessions);
+
+  @override
+  Future<MemberCoach?> fetchCoach() async => throw Exception('offline');
+}
+
 class _SessionMemberCoachRepository implements MemberCoachRepository {
   const _SessionMemberCoachRepository(this.sessions, {this.coach});
 
@@ -321,6 +329,38 @@ void main() {
 
     expect(find.byKey(const Key('completedPtSessionCard')), findsNothing);
     expect(find.text('18:00 수업 완료'), findsNothing);
+  });
+
+  testWidgets('담당 조회가 실패해도 오늘 한 PT 기록은 사라지지 않는다 (#2014)', (
+    WidgetTester tester,
+  ) async {
+    // 칸을 걷는 조건은 "담당이 없다고 확인됐을 때" 다. 조회 실패는 담당이
+    // 없다는 뜻이 아니다 — 여기서 숨기면 담당이 있는 회원이 망이 한 번
+    // 흔들린 것만으로 오늘 PT 기록을 잃는다.
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _CoachFailingRepository(<CoachSession>[
+        CoachSession(
+          id: 'completed-pt',
+          date: nowKst(),
+          time: '18:00',
+          type: '1:1 PT',
+          durationMinutes: 50,
+          status: '완료',
+        ),
+      ]),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+    expect(find.text('18:00 수업 완료'), findsOneWidget);
   });
 
   testWidgets('MY 에서 저장한 운동 목표가 열려 있던 홈·운동 탭에 반영된다 (#1139)', (
