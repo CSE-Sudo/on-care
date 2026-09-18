@@ -54,6 +54,7 @@ from app.services import (
     consultation_service,
     health_goal_change,
     member_pairing_service,
+    name_change,
     reservation_service,
     token_revocation,
     trainer_signup_service,
@@ -168,8 +169,11 @@ def submit_onboarding(
 ) -> ProfileView:
     """최초 온보딩 저장. 제공된 필드만 반영하고 onboarded=True 로 표시."""
     data = payload.model_dump(exclude_unset=True)
+    name_before = user.name
     if "name" in data and data["name"] is not None:
         user.name = data.pop("name")
+        # 담당 트레이너가 있는데 첫 설정에서 이름을 고쳤다면 알린다(#2065).
+        name_change.record_member_rename(db, user, before=name_before)
     else:
         data.pop("name", None)
 
@@ -224,7 +228,11 @@ def update_me(
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
         user.email = new_email
     if data.get("name") is not None:
+        name_before = user.name
         user.name = data["name"]
+        # 트레이너 알림함에는 옛 이름의 알림이 그대로 남는다 — 바뀐 사실을 한 번
+        # 알려 목록의 새 이름과 잇는다(#2065).
+        name_change.record_member_rename(db, user, before=name_before)
 
     profile = _get_or_create_profile(db, user)
 

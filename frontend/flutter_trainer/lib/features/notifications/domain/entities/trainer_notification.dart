@@ -12,6 +12,10 @@ enum TrainerNotificationKind {
 
   /// 담당 회원이 건강 목표를 바꿨다 — 그 회원 상세로 간다(#1832).
   healthGoal,
+
+  /// 담당 회원이 이름을 바꿨다 — 그 회원 상세로 간다(#2065). 이미 받은 알림은
+  /// 옛 이름으로 남아, 이 알림이 옛 이름과 목록의 새 이름을 잇는다.
+  memberName,
   other,
 }
 
@@ -20,6 +24,7 @@ TrainerNotificationKind _kindFrom(String? raw) => switch (raw) {
   'consultation' => TrainerNotificationKind.consultation,
   'reservation' => TrainerNotificationKind.reservation,
   'health_goal' => TrainerNotificationKind.healthGoal,
+  'member_name' => TrainerNotificationKind.memberName,
   // 서버가 새 종류를 추가했는데 앱이 모르는 경우. 목록에서 빼지 않고 이동만
   // 하지 않는다 — 안 보이는 알림보다 갈 곳 없는 알림이 낫다.
   _ => TrainerNotificationKind.other,

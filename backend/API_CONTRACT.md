@@ -347,6 +347,26 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 같은 트레이너에게 **대기 중인 요청은 한 건**입니다(`uq_consultation_requests_pending_trainer`,
   중복은 409). 그래서 목록이 자라는 쪽은 처리된 지난 요청입니다 — 상태 필터가 없어
   그대로 함께 쌓이고, 그 때문에 상한이 필요합니다. (#980)
+- **신청 한도** (#1628) — 트래픽이 아니라 남에게 주는 피해를 막습니다. 답을 기다리는 요청
+  하나가 트레이너 자리 하나를 최대 24시간 잠그고, 신청·취소를 되풀이하면 트레이너 알림함이
+  찹니다. 둘 다 **DB 에서 셉니다** — 재기동하면 비워지는 메모리 창으로는 반복을 막지 못합니다.
+
+  | 한도 | 기본값(설정) | 넘으면 |
+  |---|---|---|
+  | 동시에 답을 기다리는 요청 수(모든 트레이너 합) | 3 (`CONSULTATION_MAX_PENDING`) | **409** `detail = { code: "too_many_pending", message, limit }` |
+  | 24시간에 만든 요청 수(취소·거절·만료 포함) | 10 (`CONSULTATION_CREATE_PER_DAY`) | **429** `detail = { code: "consultation_rate_limited", message, limit }` + `Retry-After` |
+
+  - 판정 순서는 같은 트레이너 대기 중복(409, 문자열 detail) → 동시 대기 상한 → 24시간 한도입니다.
+    중복은 "이미 신청함" 상태라 앱이 기존 신청을 보여 줘야 하므로 한도 코드로 바꾸지 않습니다.
+  - 동시 대기 상한을 세기 전에, 이 회원의 대기 요청이 걸린 트레이너들의 지난 `pending` 을
+    만료 처리합니다 — 아무도 그 트레이너 화면을 열지 않아 아직 `pending` 인 요청이 회원을
+    막지 않게 합니다.
+  - `Retry-After` 는 한 건 여유가 생기는 시각까지의 초입니다(가장 먼저 창을 벗어나야 하는
+    신청 기준). 앱은 한 시간 이상이면 시간, 미만이면 분으로 올려 안내합니다.
+  - 값이 0 이면 그 한도를 끕니다. 24시간 한도는 다른 한도처럼 `RATE_LIMIT_ENABLED=false`
+    에서도 꺼집니다(실 API E2E 가 그렇게 돕니다).
+  - 거절·만료된 트레이너에게 곧바로 다시 신청하는 길은 막지 않습니다(#2067). 같은 트레이너
+    재신청 쿨다운은 두지 않습니다.
 - `exercise_goal` 입력은 회원앱 온보딩·MY 의 **건강 목표 여덟 종과 1:1** 입니다 —
   `weight_loss`·`strength`·`fitness`·`posture`·`rehab`·`eating`·`exercise_habit`·`blood_pressure`,
   그리고 여덟 중 어디에도 넣기 어려운 회원을 위한 `other` 입니다. 상담이 수락되면
@@ -417,8 +437,9 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다.
-- **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소.
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다.
+- **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
+- **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
 - 남의 알림 읽음 처리는 **404** 입니다.
 

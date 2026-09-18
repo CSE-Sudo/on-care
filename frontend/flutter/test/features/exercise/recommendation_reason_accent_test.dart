@@ -196,14 +196,14 @@ void main() {
     // 이름·직함 아래에 선다.
     expect(
       tester.getTopLeft(badgeAt('gym-detail-trainer-${_kim.id}', 0)).dy,
-      greaterThan(tester.getTopLeft(find.text(_kim.name)).dy),
+      greaterThan(tester.getTopLeft(find.textContaining(_kim.name)).dy),
     );
   });
 
   testWidgets('근거가 없는 트레이너는 헬스장 상세에서도 줄만 선다', (tester) async {
     await pumpAt(tester, AppRoutes.gymDetailPath(_gym.id), trainer: _noReason);
 
-    expect(find.text(_noReason.name), findsWidgets);
+    expect(find.textContaining(_noReason.name), findsWidgets);
     expect(
       find.byKey(
         ValueKey<String>('gym-detail-trainer-${_noReason.id}-reasons'),

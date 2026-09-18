@@ -1431,7 +1431,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
-  String get coachChatSubtitle => 'Personal trainer · Available';
+  String get coachChatSubtitle => 'Personal trainer';
 
   @override
   String get coachChatBack => 'Back';
@@ -1894,6 +1894,29 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exConsultSlotTaken =>
       'Another member just took that time. Please choose another.';
+
+  @override
+  String exConsultTooManyPending(int count) {
+    return 'You already have $count consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.';
+  }
+
+  @override
+  String exConsultRateLimitedHours(int hours) {
+    return 'Too many consultation requests. Please try again in $hours hours.';
+  }
+
+  @override
+  String exConsultRateLimitedMinutes(int minutes) {
+    return 'Too many consultation requests. Please try again in $minutes minutes.';
+  }
+
+  @override
+  String get exConsultRateLimited =>
+      'Too many consultation requests. Please try again later.';
+
+  @override
+  String get exConsultTooManyPendingNoCount =>
+      'You have too many consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.';
 
   @override
   String get exGymCall => 'Call';

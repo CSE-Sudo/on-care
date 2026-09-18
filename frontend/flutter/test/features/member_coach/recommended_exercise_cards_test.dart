@@ -681,7 +681,7 @@ void main() {
     expect(find.byType(TrainerChatPage), findsOneWidget);
     expect(find.byKey(const Key('underlyingFloatingButton')), findsNothing);
     expect(find.text('김트레이너'), findsOneWidget);
-    expect(find.text('담당 트레이너 · 상담 가능'), findsOneWidget);
+    expect(find.text('담당 트레이너'), findsOneWidget);
     // 말풍선 검사는 **마지막** 트레이너 메시지로 한다. 대화가 3일치로 늘면서
     // 화면은 맨 아래에서 열리므로, 첫 메시지는 뷰포트 밖이라 좌표를 잴 수 없다.
     expect(find.text('김트레이너 · 18:18'), findsNothing);
