@@ -1138,10 +1138,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myWithdrawReasonHint => '복수 선택 가능';
 
   @override
-  String get myWithdrawReasonPrivacy => '개인정보가 걱정돼요';
+  String get myWithdrawReasonPrivacy => '개인정보 노출이 걱정돼요';
 
   @override
-  String get myWithdrawReasonRarelyUsed => '잘 쓰지 않게 됐어요';
+  String get myWithdrawReasonRarelyUsed => '자주 사용하지 않아요';
 
   @override
   String get myWithdrawReasonHardToUse => '쓰기가 불편해요';
@@ -1163,7 +1163,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myWithdrawKeepPrivacy =>
-      '기록은 회원님과 담당 트레이너만 봅니다. 트레이너 연결만 끊으면 기록은 회원님만 볼 수 있어요 — MY 탭의 헬스장·트레이너 칸에서 바로 끊을 수 있습니다.';
+      '회원님의 기록은 절대 불특정 타인에게 공개하지 않아요. 볼 수 있는 사람은 회원님과 연결된 담당 트레이너뿐이고, 트레이너 연결을 끊으면 회원님만 볼 수 있어요 — MY 탭의 헬스장·트레이너 칸에서 바로 끊을 수 있습니다.';
 
   @override
   String get myWithdrawKeepRarelyUsed =>
