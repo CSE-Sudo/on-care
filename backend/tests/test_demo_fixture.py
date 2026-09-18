@@ -45,11 +45,11 @@ def test_curated_days_keep_the_numbers_the_demo_says_out_loud():
     days = load_fixture().days_for(date(2026, 8, 16))
     today, yesterday = days[-1], days[-2]
 
-    assert (today.calories, today.sodium_mg, today.sugar_g) == (1067, 3428, 17.8)
+    assert (today.calories, today.sodium_mg, today.sugar_g) == (1054, 4657, 16.7)
     assert (yesterday.calories, yesterday.sodium_mg, yesterday.sugar_g) == (
-        2380,
-        2261,
-        63.0,
+        3231,
+        1338,
+        64.2,
     )
 
 

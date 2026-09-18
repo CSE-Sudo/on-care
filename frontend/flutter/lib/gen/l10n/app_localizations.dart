@@ -5055,7 +5055,7 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.'**
+  /// **'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.'**
   String get demoAlertSodiumBody;
 
   /// Title of a demo notification shown in tour mode.

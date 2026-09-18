@@ -27,13 +27,13 @@ void main() {
     final FixtureDay today = days.last;
     final FixtureDay yesterday = days[days.length - 2];
 
-    expect(today.calories, 1067);
-    expect(today.sodiumMg, 3428);
-    expect(today.sugarG, 17.8);
+    expect(today.calories, 1054);
+    expect(today.sodiumMg, 4657);
+    expect(today.sugarG, 16.7);
 
-    expect(yesterday.calories, 2380);
-    expect(yesterday.sodiumMg, 2261);
-    expect(yesterday.sugarG, 63.0);
+    expect(yesterday.calories, 3231);
+    expect(yesterday.sodiumMg, 1338);
+    expect(yesterday.sugarG, 64.2);
   });
 
   test('아직 오지 않은 날은 없다', () {
