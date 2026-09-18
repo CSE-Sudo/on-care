@@ -36,9 +36,26 @@ class DioConsultationRepository implements ConsultationRepository {
         if (detail is Map && detail['code'] == 'slot_unavailable') {
           throw const ConsultationSlotTaken();
         }
+        // 답을 기다리는 요청이 상한에 닿았다(#1628). 이 트레이너에게는 신청한 적이
+        // 없으므로 "이미 대기 중" 으로 읽으면 안 된다.
+        if (detail is Map && detail['code'] == 'too_many_pending') {
+          final Object? limit = detail['limit'];
+          throw TooManyPendingConsultations(
+            limit: limit is int && limit > 0 ? limit : null,
+          );
+        }
         // 나머지 409 는 오류가 아니라 "이미 신청함" 상태다 — 화면이 오류 대신
         // 기존 신청을 보여줘야 한다.
         throw const DuplicatePendingConsultation();
+      }
+      if (e.response?.statusCode == 429) {
+        // 24시간 신청 한도(#1628). 다시 신청할 수 있는 시점은 헤더가 알려 준다.
+        final int? seconds = int.tryParse(
+          e.response?.headers.value('retry-after') ?? '',
+        );
+        throw ConsultationRateLimited(
+          retryAfter: seconds == null ? null : Duration(seconds: seconds),
+        );
       }
       rethrow;
     }

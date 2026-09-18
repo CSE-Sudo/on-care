@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -8,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.clock import SEOUL
+from app.core.config import get_settings
 from app.core.pagination import DEFAULT_PAGE
 from app.db import seed_slots
 from app.models.models import (
@@ -44,6 +46,34 @@ class ConsultationTargetNotFound(Exception):
 
 class DuplicatePendingConsultation(Exception):
     pass
+
+
+class TooManyPendingConsultations(Exception):
+    """답을 기다리는 요청이 상한에 닿았음 — 409 `too_many_pending`. (#1628)
+
+    대기 요청 하나가 트레이너 자리 하나를 잠근다(#1873). 상한이 없으면 한 회원이
+    여러 트레이너의 자리를 한꺼번에 묶어 두어 다른 회원 화면에서 자리가 사라진다.
+    """
+
+    def __init__(self, limit: int) -> None:
+        super().__init__(
+            f"답을 기다리는 상담 요청이 이미 {limit}건 있어요. "
+            "답을 받거나 요청을 취소한 뒤 다시 신청해 주세요."
+        )
+        self.limit = limit
+
+
+class ConsultationRateLimited(Exception):
+    """24시간 신청 한도를 넘었음 — 429 + Retry-After. (#1628)
+
+    신청·취소를 되풀이하면 신청마다 트레이너 알림이 쌓인다. 대기 상한만으로는
+    취소한 요청이 세어지지 않아 이 반복을 막지 못한다.
+    """
+
+    def __init__(self, limit: int, retry_after_seconds: int) -> None:
+        super().__init__("상담 신청이 너무 잦아요. 잠시 후 다시 신청해 주세요.")
+        self.limit = limit
+        self.retry_after_seconds = retry_after_seconds
 
 
 class ConsultationNotFound(Exception):
@@ -172,6 +202,11 @@ def expire_stale_requests(
             body="트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.",
         )
         expired += 1
+    if expired:
+        # 세션이 autoflush 를 끄고 있어(`SessionLocal`), 내보내지 않으면 같은
+        # 트랜잭션의 다음 조회가 방금 만료한 요청을 아직 `pending` 으로 읽는다 —
+        # 대기 중복 검사와 대기 상한(#1628)이 이미 풀린 요청에 걸린다.
+        db.flush()
     return expired
 
 
@@ -212,6 +247,67 @@ def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
     ).all()
     for slot_id in slot_ids:
         reservation_service.release_consultation_hold(db, slot_id)
+
+
+#: 신청 한도([ConsultationRateLimited])를 세는 창. (#1628)
+CONSULT_CREATE_WINDOW_HOURS = 24
+
+
+def _enforce_request_limits(db: Session, member_id: str, *, now: datetime) -> None:
+    """회원 한 사람의 상담 요청 한도를 본다. 넘으면 예외를 던진다. (#1628)
+
+    트래픽이 아니라 남에게 주는 피해를 막는다 — 요청 한 건은 DB 행 하나라 서버
+    부담은 거의 없다. 그래서 메모리 rate limiter 가 아니라 DB 에서 센다: 재기동하면
+    비워지는 1분 창으로는 신청·취소 반복을 막지 못한다.
+
+    같은 트레이너에게 거절·만료 뒤 곧바로 다시 신청하는 길은 막지 않는다(#2067).
+    """
+    settings = get_settings()
+
+    max_pending = settings.consultation_max_pending
+    if max_pending > 0:
+        # 다른 트레이너에게 낸 요청도 이미 만료 시각을 지났을 수 있다 — 만료 정리는
+        # 트레이너 단위로 읽는 시점에만 돌아, 그 트레이너의 화면을 아무도 열지 않았으면
+        # 아직 `pending` 이다. 세기 전에 이 회원의 대기 요청이 걸린 트레이너만 정리한다.
+        trainer_ids = db.scalars(
+            select(ConsultationRequest.trainer_id)
+            .where(
+                ConsultationRequest.member_id == member_id,
+                ConsultationRequest.status == "pending",
+                ConsultationRequest.trainer_id.is_not(None),
+            )
+            .distinct()
+        ).all()
+        for trainer_id in trainer_ids:
+            expire_stale_requests(db, trainer_id, now=now)
+        pending = db.scalar(
+            select(func.count())
+            .select_from(ConsultationRequest)
+            .where(
+                ConsultationRequest.member_id == member_id,
+                ConsultationRequest.status == "pending",
+            )
+        ) or 0
+        if pending >= max_pending:
+            raise TooManyPendingConsultations(max_pending)
+
+    per_day = settings.consultation_create_per_day
+    if settings.rate_limit_enabled and per_day > 0:
+        window = timedelta(hours=CONSULT_CREATE_WINDOW_HOURS)
+        created = db.scalars(
+            select(ConsultationRequest.created_at)
+            .where(
+                ConsultationRequest.member_id == member_id,
+                ConsultationRequest.created_at > now - window,
+            )
+            .order_by(ConsultationRequest.created_at)
+        ).all()
+        if len(created) >= per_day:
+            # 이 신청이 들어갈 자리는 창 안의 신청이 `per_day - 1` 건으로 줄 때 난다
+            # — 그때까지 빠져야 하는 것 중 마지막으로 빠지는 신청의 시각이 기준이다.
+            freed_at = _aware(created[len(created) - per_day]) + window
+            retry_after = math.ceil((freed_at - now).total_seconds())
+            raise ConsultationRateLimited(per_day, max(1, retry_after))
 
 
 def _pending_query(member_id: str, payload: ConsultationCreate):
@@ -268,6 +364,9 @@ def create_consultation(
     expire_stale_requests(db, payload.trainer_id, now=now)
     if db.scalar(_pending_query(member_id, payload)) is not None:
         raise DuplicatePendingConsultation("이미 대기 중인 상담 요청이 있습니다.")
+    # 같은 트레이너 중복을 먼저 본다 — 그쪽은 "이미 신청함" 상태라 앱이 기존 신청을
+    # 보여 준다. 한도는 그다음이다. (#1628)
+    _enforce_request_limits(db, member_id, now=now)
 
     # 신청하는 순간 자리를 잠근다. 승인할 때 잠그면 두 회원이 같은 자리를 신청할
     # 수 있고, 둘 중 하나는 트레이너가 수락한 뒤에야 거절당한다. (#1873)
