@@ -1132,6 +1132,73 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get myWithdrawReasonTitle => '정말 탈퇴를 원하시나요?';
+
+  @override
+  String get myWithdrawReasonQuestion => '어떤 부분이 불편하셨나요?';
+
+  @override
+  String get myWithdrawReasonHint => '복수 선택 가능';
+
+  @override
+  String get myWithdrawReasonPrivacy => '개인정보가 걱정돼요';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => '잘 쓰지 않게 됐어요';
+
+  @override
+  String get myWithdrawReasonHardToUse => '쓰기가 불편해요';
+
+  @override
+  String get myWithdrawReasonNotifications => '알림이 너무 많아요';
+
+  @override
+  String get myWithdrawReasonAlternative => '다른 앱을 쓰고 있어요';
+
+  @override
+  String get myWithdrawReasonOther => '그 밖의 이유';
+
+  @override
+  String get myWithdrawNext => '다음';
+
+  @override
+  String get myWithdrawKeepTitle => '탈퇴하기 전에';
+
+  @override
+  String get myWithdrawKeepPrivacy =>
+      '기록은 회원님과 담당 트레이너만 봅니다. 트레이너 연결만 끊으면 기록은 회원님만 볼 수 있어요 — MY 탭의 헬스장·트레이너 칸에서 바로 끊을 수 있습니다.';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'AI 코치는 기록이 없는 날에도 오늘 할 만한 것을 골라 둡니다. 운동 탭에서 추천 하나만 눌러 봐도 이어집니다.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      '어디가 불편했는지 알려주시면 고칩니다. MY > 고객 지원의 1:1 문의로 바로 닿아요.';
+
+  @override
+  String get myWithdrawKeepNotifications =>
+      '알림은 종류별로 끌 수 있어요. MY > 알림 설정에서 받고 싶은 것만 남겨 보세요.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      '앱을 지워도 기록은 그대로 남습니다. 탈퇴하면 그때 사라지고 되살릴 수 없어요.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      '무엇이든 알려주시면 반영합니다. MY > 고객 지원의 1:1 문의로 남겨 주세요.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      '지금까지 쌓은 식단·운동 기록은 탈퇴와 함께 사라지고 되살릴 수 없어요.';
+
+  @override
+  String get myWithdrawStay => '계속 사용하기';
+
+  @override
+  String get myWithdrawContinue => '탈퇴 계속';
+
+  @override
   String get myCancel => '취소';
 
   @override
