@@ -239,9 +239,13 @@ class _PeriodBody extends StatelessWidget {
   /// 오간다. (#1018)
   final PeriodChartSelection selection;
 
-  /// 고른 날의 머리 문구 — `2026. 8. 17.` 처럼 로케일 형식의 날짜.
+  /// 고른 날의 머리 문구 — `8. 17.` 처럼 월·일만 적는다.
+  ///
+  /// 날을 고르면 사라지는 날짜 기간(`8. 17. ~ 8. 23.`, [periodRangeText])과
+  /// 같은 형식이다. 연도를 붙이면 같은 카드 안에서 날짜 말투가 둘로 갈린다.
+  /// 기간이 1년이 안 돼 월·일만으로 가리키는 날이 하나뿐이다.
   String _dayHeadline(BuildContext context, DateTime date) =>
-      DateFormat.yMd(Localizations.localeOf(context).toString()).format(date);
+      DateFormat.Md(Localizations.localeOf(context).toString()).format(date);
 
   /// 카드 머리 위에 적을 날짜 기간의 양끝.
   ///
@@ -346,10 +350,12 @@ class _PeriodBody extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: <Widget>[
                                 Text(
+                                  // 지표가 칼로리 하나뿐이라(#1986) `· 칼로리` 를 붙이지 않는다 —
+                                  // 칼로리·나트륨 칩이 있던 시절 둘을 가르던 말이라 지금은 바로
+                                  // 아래 숫자의 `kcal` 과 겹친다.
                                   picked == null
-                                      ? '${l.dietPeriodAverage} · $metricLabel'
-                                      : '${_dayHeadline(context, dates[picked])} · '
-                                            '$metricLabel',
+                                      ? l.dietPeriodAverage
+                                      : _dayHeadline(context, dates[picked]),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: tokens
@@ -409,7 +415,7 @@ class _PeriodBody extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
                               // 날을 고르면 날짜 기간은 빠진다 — 운동 탭 `전체`
-                              // 와 같다. 머리 문구가 이미 `2026. 9. 17. · 칼로리`
+                              // 와 같다. 머리 문구가 이미 `9. 17.`
                               // 로 그날을 말하므로, 보이는 구간까지 함께 적으면
                               // 한 카드에 날짜가 둘 떠 서로 다른 말을 한다.
                               //

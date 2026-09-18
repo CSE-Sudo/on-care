@@ -230,7 +230,7 @@
   "exNearbyGymsMapLabel": "내 주변 헬스장",
   "exWeekSummary": "이번 주 운동 요약",
   "exActivityTitle": "운동 현황",
-  "exWeekOfMonthLabel": "{month}월 {week}주차",
+  "exBurnWeekOfMonthTitle": "{month}월 {week}주차 소모",
   "exBurnTodayTitle": "오늘 소모",
   "exBurnWeekTitle": "이번 주 소모",
   "exBurnAllTitle": "평균 소모",

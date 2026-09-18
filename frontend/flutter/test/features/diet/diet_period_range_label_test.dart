@@ -126,7 +126,7 @@ void main() {
       lessThanOrEqualTo(macros.top),
       reason: '날짜 줄이 탄단지 아래로 내려갔다',
     );
-    // 왼쪽 머리 문구(`하루 평균 · 칼로리`)와 **같은 높이**에서 시작한다 —
+    // 왼쪽 머리 문구(`하루 평균`)와 **같은 높이**에서 시작한다 —
     // 날짜에 제 줄을 따로 주면 그 줄 왼쪽이 통째로 빈다(#2009).
     expect(
       label.top,
@@ -139,8 +139,8 @@ void main() {
     WidgetTester tester,
   ) async {
     // 운동 탭 `전체` 와 같다 — 막대를 고르면 머리 문구가 `평균 소모` 에서
-    // `9월 3주차` 로 바뀌어 그 기간을 말하므로 날짜 기간 줄은 빠진다. 식단은
-    // 머리 문구가 `2026. 9. 17. · 칼로리` 로 그날을 말하는데, 보이는 구간까지
+    // `9월 3주차 소모` 로 바뀌어 그 기간을 말하므로 날짜 기간 줄은 빠진다.
+    // 식단은 머리 문구가 `9. 17.` 로 그날을 말하는데, 보이는 구간까지
     // 함께 적으면 한 카드에 날짜가 둘 떠 서로 다른 말을 한다.
     await open(tester, DietPeriodTab.month);
     final Finder range = find.byKey(const Key('diet-period-range'));
