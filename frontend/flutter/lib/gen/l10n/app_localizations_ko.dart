@@ -1163,11 +1163,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myWithdrawKeepPrivacy =>
-      '회원님의 기록은 절대 불특정 타인에게 공개하지 않아요. 볼 수 있는 사람은 회원님과 연결된 담당 트레이너뿐이고, 트레이너 연결을 끊으면 회원님만 볼 수 있어요 — MY 탭의 헬스장·트레이너 칸에서 바로 끊을 수 있습니다.';
+      '회원님의 기록은 절대 불특정 타인에게 공개하지 않아요. 볼 수 있는 사람은 회원님과 연결된 담당 트레이너뿐이고, 트레이너 연결을 끊으면 회원님만 볼 수 있어요 — MY 탭의 내 헬스장 · 트레이너에서 바로 끊을 수 있습니다.';
 
   @override
   String get myWithdrawKeepRarelyUsed =>
-      'AI 코치는 기록이 없는 날에도 오늘 할 만한 것을 골라 둡니다. 운동 탭에서 추천 하나만 눌러 봐도 이어집니다.';
+      '매일 다 적지 않아도 괜찮아요. 가운데 + 를 누르면 어느 화면에서든 끼니 하나, 운동 하나를 바로 남길 수 있어요.';
 
   @override
   String get myWithdrawKeepHardToUse =>
