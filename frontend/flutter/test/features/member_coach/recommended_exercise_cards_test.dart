@@ -9,6 +9,9 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
@@ -132,6 +135,32 @@ Widget _chatApp(Widget home) => MaterialApp(
   home: home,
 );
 
+/// 감지 한 줄을 들고 있다가 치우면 비우는 AI 코치 저장소.
+class _OneInsightAiRepository extends MockAiCoachRepository {
+  final List<String> dismissed = <String>[];
+
+  @override
+  Future<ChatInsightHistory> fetchInsights() async => ChatInsightHistory(
+    records: dismissed.isNotEmpty
+        ? const <ChatInsightRecord>[]
+        : <ChatInsightRecord>[
+            ChatInsightRecord(
+              messageId: 'msg-knee',
+              createdAt: DateTime(2026, 9, 18, 9),
+              insight: const ChatInsight(
+                kind: ChatInsightKind.discomfort,
+                bodyPart: '무릎',
+              ),
+              text: '무릎이 아파요',
+            ),
+          ],
+  );
+
+  @override
+  Future<void> dismissInsight(String messageId) async =>
+      dismissed.add(messageId);
+}
+
 void main() {
   Future<void> pumpRecommendationCards(
     WidgetTester tester,
@@ -199,6 +228,55 @@ void main() {
         find.byKey(const Key('routineInsightHistoryButton')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('감지를 치우면 그 자리에서 추천을 다시 받는다 (#2016)', (
+      WidgetTester tester,
+    ) async {
+      // 서버는 감지가 바뀌면 그날 추천을 고친다. 이 창은 운동 탭 안에서 열려
+      // 탭 이동이 없으니, 여기서 다시 받지 않으면 치운 감지로 뺐던 걷기가
+      // 돌아오지 않은 채로 남는다.
+      final _OneInsightAiRepository ai = _OneInsightAiRepository();
+      int fetches = 0;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            memberCoachProvider.overrideWith((ref) async => null),
+            coachRoutinesProvider.overrideWith((ref) async {
+              fetches++;
+              return <CoachRoutine>[aiRoutine];
+            }),
+            coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
+            aiCoachRepositoryProvider.overrideWithValue(ai),
+          ],
+          child: _chatApp(
+            const Scaffold(
+              body: SingleChildScrollView(child: AiCoachingCard()),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(AiCoachingCard)),
+      );
+      final int before = fetches;
+
+      await tester.tap(find.byKey(const Key('routineInsightHistoryButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l.aicInsightDelete).first);
+      await tester.pumpAndSettle();
+      // 확인창의 빨간 버튼으로 확정한다.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppButtonPair),
+          matching: find.text(l.aicInsightDelete),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(ai.dismissed, <String>['msg-knee']);
+      expect(fetches, greaterThan(before));
     });
 
     testWidgets('담당이 있으면 제목도 버튼도 예전 그대로다', (WidgetTester tester) async {
