@@ -350,6 +350,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dietMoreFoods(String name, int count) {
+    return '$name +$count';
+  }
+
+  @override
   String get dietFillFromDb => 'Fill in';
 
   @override
