@@ -1020,49 +1020,54 @@ class _RecMealCard extends StatelessWidget {
                 ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(OnCareSpacing.s8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // 영양 특성 배지는 **사진 바로 아래**다. 설명 아래에 두면
-                  // 그 문구가 한 줄이냐 두 줄이냐에 따라 카드마다 다른 높이에
-                  // 놓인다 — 가로로 흘러가는 목록이라 서넛이 한 화면에 함께
-                  // 보이는데 같은 종류의 정보가 제각각 다른 자리에서 읽혔다.
-                  // 사진 높이가 고정이라 여기서는 모든 카드가 같은 높이다.
-                  //
-                  // 배지 색은 하나다 (#1056). 요리마다 색이 달라지면 색이
-                  // 영양 특성을 뜻하는지 요리 종류를 뜻하는지 알 수 없다.
-                  _Badge(
-                    label: meal.tag,
-                    textKey: const Key('rec-meal-tag'),
-                    fill: tokens.brand.surface,
-                    foreground: tokens.brand.primary,
-                  ),
-                  const SizedBox(height: OnCareSpacing.s8),
-                  Text(
-                    meal.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: tokens
-                        .text(
-                          OnCareTypography.strong(OnCareTypography.bodySmall),
-                        )
-                        .copyWith(color: OnCareColors.textPrimary),
-                  ),
-                  const SizedBox(height: OnCareSpacing.s2),
-                  // 카드 폭이 좁아 설명은 가장 작은 역할 글자로 둔다 — 제목이
-                  // 진한 글씨라 부제는 작은 회색이어야 위계도 산다.
-                  Text(
-                    meal.reason,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: tokens
-                        .text(OnCareTypography.caption)
-                        .copyWith(color: OnCareColors.textTertiary),
-                  ),
-                ],
+            // 카드 높이는 목록의 IntrinsicHeight 가 가장 높은 카드에 맞춰
+            // 정해 주므로(#1118), 사진 아래 남은 높이를 글자 칸이 다 쓴다.
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(OnCareSpacing.s8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      meal.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: tokens
+                          .text(
+                            OnCareTypography.strong(OnCareTypography.bodySmall),
+                          )
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s2),
+                    // 카드 폭이 좁아 설명은 가장 작은 역할 글자로 둔다 — 제목이
+                    // 진한 글씨라 부제는 작은 회색이어야 위계도 산다.
+                    Text(
+                      meal.reason,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: tokens
+                          .text(OnCareTypography.caption)
+                          .copyWith(color: OnCareColors.textTertiary),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s8),
+                    // 영양 특성 배지는 설명 **아래**, 카드 바닥에 붙인다.
+                    // 사진 바로 아래로 올렸던 것(#1996)을 되돌린 자리다.
+                    //
+                    // 설명 뒤에 바로 이어 붙이면 그 문구가 한 줄이냐 두 줄이냐에
+                    // 따라 카드마다 다른 높이에 놓인다(#1983) — 가로로 흘러가는
+                    // 목록이라 서넛이 한 화면에 함께 보인다. 남는 높이를 이
+                    // Spacer 가 먹으므로 배지는 모든 카드에서 같은 높이다.
+                    const Spacer(),
+                    // 배지 색은 하나다 (#1056). 요리마다 색이 달라지면 색이
+                    // 영양 특성을 뜻하는지 요리 종류를 뜻하는지 알 수 없다.
+                    _Badge(
+                      label: meal.tag,
+                      textKey: const Key('rec-meal-tag'),
+                      fill: tokens.brand.surface,
+                      foreground: tokens.brand.primary,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

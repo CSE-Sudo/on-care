@@ -66,6 +66,24 @@ const DashboardSummary _summary = DashboardSummary(
   exerciseFeedback: '',
 );
 
+/// 설명이 한 줄인 카드와 두 줄인 카드를 한 목록에 섞은 추천.
+/// `reasonText` 를 직접 정해 기본 문구 길이에 기대지 않는다.
+const MealRecommendations _mixedReasons = MealRecommendations(
+  items: <MealRecommendation>[
+    MealRecommendation(
+      key: 'chicken_salad',
+      reasonKey: 'sodium',
+      reasonText: '짧은 이유',
+    ),
+    MealRecommendation(
+      key: 'brown_rice_box',
+      reasonKey: 'glucose',
+      reasonText: '두 줄을 채울 만큼 긴 개인화 문구를 서버가 보내 온 경우입니다',
+    ),
+    MealRecommendation(key: 'salmon', reasonKey: 'omega', reasonText: '짧은 이유'),
+  ],
+);
+
 Future<void> _pump(
   WidgetTester tester, {
   MemberCoach? coach,
@@ -121,32 +139,11 @@ void main() {
 
   /// 설명이 한 줄인 카드와 두 줄인 카드를 섞어 놓고 배지 높이를 견준다.
   ///
-  /// 배지가 설명 **아래**에 있으면 이 둘의 세로 위치가 어긋난다. 카드 높이는
-  /// `IntrinsicHeight` 가 가장 높은 것에 맞춰 주므로 카드 테두리는 가지런한데
-  /// 안의 배지만 제각각이었다.
+  /// 배지를 설명 뒤에 바로 이어 붙이면 이 둘의 세로 위치가 어긋난다. 카드
+  /// 높이는 `IntrinsicHeight` 가 가장 높은 것에 맞춰 주므로 카드 테두리는
+  /// 가지런한데 안의 배지만 제각각이었다(#1983).
   testWidgets('설명 줄 수가 달라도 배지는 같은 높이에 놓인다', (WidgetTester tester) async {
-    await _pump(
-      tester,
-      recs: const MealRecommendations(
-        items: <MealRecommendation>[
-          MealRecommendation(
-            key: 'chicken_salad',
-            reasonKey: 'sodium',
-            reasonText: '짧은 이유',
-          ),
-          MealRecommendation(
-            key: 'brown_rice_box',
-            reasonKey: 'glucose',
-            reasonText: '두 줄을 채울 만큼 긴 개인화 문구를 서버가 보내 온 경우입니다',
-          ),
-          MealRecommendation(
-            key: 'salmon',
-            reasonKey: 'omega',
-            reasonText: '짧은 이유',
-          ),
-        ],
-      ),
-    );
+    await _pump(tester, recs: _mixedReasons);
 
     final List<double> tops = tester
         .widgetList<Text>(find.byKey(const Key('rec-meal-tag')))
@@ -158,23 +155,39 @@ void main() {
     }
   });
 
-  /// 배지는 요리 이름보다 위다 — 사진 바로 아래 자리라는 뜻이다.
-  testWidgets('배지가 요리 이름보다 위에 있다', (WidgetTester tester) async {
-    await _pump(tester, coach: _coach);
+  /// 배지는 카드의 맨 아래 글자다 — 요리 이름과 설명을 모두 지난 자리다.
+  ///
+  /// 사진 바로 아래(이름 위)로 올라가면 이 테스트가 깨진다. 같은 높이만 재는
+  /// 앞의 테스트는 사진 아래 자리에서도 통과하므로 자리는 따로 본다.
+  /// 설명이 두 줄인 카드가 섞여 있어야 가장 긴 설명 아래까지 확인된다.
+  testWidgets('배지는 설명 아래, 카드의 맨 아래에 있다', (WidgetTester tester) async {
+    await _pump(tester, coach: _coach, recs: _mixedReasons);
 
-    final double badge = tester
-        .getTopLeft(find.byKey(const Key('rec-meal-tag')).first)
-        .dy;
-    final double name = tester
-        .getTopLeft(
-          find.text(
-            AppLocalizations.of(
-              tester.element(find.byType(DashboardContent)),
-            ).homeMealChickenSalad,
-          ),
-        )
-        .dy;
-    expect(badge, lessThan(name));
+    final Finder tags = find.byKey(const Key('rec-meal-tag'));
+    expect(tags, findsWidgets);
+    for (final Element tag in tags.evaluate()) {
+      final Finder self = find.byElementPredicate((Element e) => e == tag);
+      final double badgeTop = tester.getTopLeft(self).dy;
+      final Finder card = find.ancestor(
+        of: self,
+        matching: find.byType(AppCard),
+      );
+      final Iterable<Element> others = find
+          .descendant(of: card.first, matching: find.byType(Text))
+          .evaluate()
+          .where((Element e) => e != tag);
+      expect(others, isNotEmpty);
+      for (final Element other in others) {
+        final double otherBottom = tester
+            .getBottomLeft(find.byElementPredicate((Element e) => e == other))
+            .dy;
+        expect(
+          badgeTop,
+          greaterThanOrEqualTo(otherBottom),
+          reason: '"${(other.widget as Text).data}" 가 배지보다 아래에 있다',
+        );
+      }
+    }
   });
 
   testWidgets('담당이 있으면 첫 장만 트레이너 추천이다', (WidgetTester tester) async {
