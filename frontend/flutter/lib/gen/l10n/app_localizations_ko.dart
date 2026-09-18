@@ -2739,19 +2739,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get demoAlertRoutineTitle => '새 운동 루틴이 도착했어요';
 
   @override
-  String get demoAlertRoutineBody => '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+  String demoAlertRoutineBody(String trainerName) {
+    return '$trainerName 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+  }
 
   @override
   String get demoAlertReportTitle => '이번 주 리포트가 등록됐어요';
 
   @override
-  String get demoAlertReportBody => '김트레이너님이 이번 주 리포트를 등록했어요.';
+  String demoAlertReportBody(String trainerName) {
+    return '$trainerName 트레이너님이 이번 주 리포트를 등록했어요.';
+  }
 
   @override
   String get demoAlertPtDoneTitle => 'PT 수업 완료';
 
   @override
-  String get demoAlertPtDoneBody => '오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!';
+  String demoAlertPtDoneBody(String trainerName) {
+    return '오늘 18:00 $trainerName 트레이너와 12회차 PT를 마쳤어요!';
+  }
 
   @override
   String get demoAlertTrainerFeedbackTitle => '트레이너 피드백 도착';
@@ -2845,10 +2851,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
 
   @override
-  String get exDemoPtSessionCount => '김트레이너와 12회차';
-
-  @override
-  String get exDemoPtTrainerName => '김트레이너';
+  String exDemoPtSessionCount(String trainerName) {
+    return '$trainerName 트레이너와 12회차';
+  }
 
   @override
   String get exDemoPtFeedback =>

@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -77,7 +78,7 @@ void main() {
     ) async {
       await openTab(tester);
 
-      expect(find.text('김트레이너'), findsWidgets);
+      expect(find.text(kDemoTrainerName), findsWidgets);
       expect(find.text('trainer@oncare.com'), findsOneWidget);
       expect(find.text('퍼스널 트레이너'), findsOneWidget);
       expect(find.text('경력 7년'), findsOneWidget);
@@ -341,7 +342,10 @@ void main() {
         );
       }
 
-      for (final String text in <String>['김트레이너', 'trainer@oncare.com']) {
+      for (final String text in <String>[
+        kDemoTrainerName,
+        'trainer@oncare.com',
+      ]) {
         expect(look(text), (
           OnCareColors.surfaceInput,
           OnCareColors.textDisabled,

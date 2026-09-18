@@ -1,7 +1,7 @@
 """
 트레이너 도메인 데모 시드.
 
-트레이너 앱의 데모/데이터 공유 데모를 위해 트레이너 계정 1명(김트레이너)과
+트레이너 앱의 데모/데이터 공유 데모를 위해 트레이너 계정 1명(김태오)과
 담당 회원 15명(#572), 그리고 담당 링크를 시드한다. 상세 기록(끼니별 음식·
 피드백·채팅·스케줄)은 앞의 3명만 가지고, 나머지는 로스터·차트가 동작할 만큼의
 주간 지표만 가진다(seed_roster).
@@ -54,7 +54,10 @@ def _safe_commit(db: Session, context: str) -> None:
 # 트레이너 데모 계정
 TRAINER_ID = "trainer-demo"
 TRAINER_EMAIL = "trainer@oncare.com"
-TRAINER_NAME = "김트레이너"
+#: 데모 트레이너의 이름 — 백엔드 시드의 **원본**이다. 알림 시드가 이 값을 끼워
+#: 문장을 만든다(`seed_notifications.py`). 두 앱의 같은 사람은
+#: `shared/demo_fixture` 의 `kDemoTrainerName` 이며 둘은 같아야 한다(#2062).
+TRAINER_NAME = "김태오"
 
 # 담당 회원: (user_id, email, name, health_focus, active, dormant, sort_order)
 #

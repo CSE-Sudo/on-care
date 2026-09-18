@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -1029,7 +1030,7 @@ class _DemoPtLogCard extends StatelessWidget {
               _fitTag(
                 AppTag(
                   icon: AppIcons.person,
-                  label: l.exDemoPtSessionCount,
+                  label: l.exDemoPtSessionCount(kDemoTrainerName),
                   tone: AppTagTone.brand,
                 ),
               ),
@@ -1064,7 +1065,7 @@ class _DemoPtLogCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            l.exDemoPtTrainerName,
+                            kDemoTrainerName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: tokens

@@ -9,6 +9,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 from app.core import clock
+from app.db.seed_trainer import TRAINER_NAME
 
 
 def test_user_role_defaults_to_member():
@@ -41,7 +42,8 @@ def test_trainer_me_returns_profile(client):
     r = client.get("/v1/trainer/me", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["name"] == "김트레이너"
+    # 이름을 글자로 박지 않는다 — 시드의 원본을 읽는다(#2062).
+    assert body["name"] == TRAINER_NAME
     assert body["email"] == "trainer@oncare.com"
     assert body["career"] == "7년"
     assert body["gym"]["name"] == "온케어짐 신촌점"

@@ -14,6 +14,17 @@ import 'dart:convert';
 
 import 'package:demo_fixture/src/fixture_json.g.dart';
 
+/// 김민수의 담당 트레이너 — 데모 트레이너 계정의 이름. (#2062)
+///
+/// 회원 앱의 목 코치·목 헬스장·데모 알림 문구와 트레이너 웹의 데모 프로필이 모두
+/// 이 값을 읽는다. 문구에 이름을 글자로 박지 않고 이 값을 끼워 넣어, 이름을 바꿀
+/// 때 한 곳만 고치면 되게 한다. 백엔드 시드의 같은 사람은
+/// `backend/app/db/seed_trainer.py` 의 `TRAINER_NAME` 이다 — 둘은 같아야 한다.
+///
+/// 예전에는 `김트레이너` 라는 자리표시자였다. 이름과 직함을 한 줄에 두면
+/// `김트레이너 퍼스널 트레이너` 처럼 `트레이너` 가 두 번 읽혀 실제 이름으로 바꿨다.
+const String kDemoTrainerName = '김태오';
+
 /// 음식 한 가지.
 class FixtureFood {
   const FixtureFood({
