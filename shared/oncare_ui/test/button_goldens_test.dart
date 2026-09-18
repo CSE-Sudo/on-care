@@ -9,10 +9,16 @@
 /// Pretendard 파일을 들고 있지 않고(두 앱 pubspec 이 선언한다), 블록 글꼴이
 /// 플랫폼마다 가장 덜 흔들린다. 크기·색·간격을 보는 데에는 이것으로 충분하다.
 ///
-/// 기준 이미지는 CI(Ubuntu · Flutter 3.44.9)가 그린 것이다. 의도해서 생김새를
-/// 바꿨으면 `flutter test --update-goldens test/button_goldens_test.dart` 로 다시
-/// 뽑는다 — 자세한 절차는 docs/team_workflow.md 6절.
+/// **Linux 에서만 비교한다.** 같은 Flutter 3.44.9 라도 Windows 와 Linux 는 글자
+/// 가장자리를 서브픽셀만큼 다르게 그려 1.2~1.5% 가 어긋난다. 모양·색·테두리·
+/// 스피너는 두 OS 가 똑같다. 허용 오차로 덮을 수는 없다 — 버튼 간격을 2 만
+/// 늘린 진짜 회귀가 1.7~2.2% 라 둘이 너무 가깝다. 그래서 기준 이미지는 CI
+/// (Ubuntu)가 그린 것이고, 다른 OS 에서는 이 파일만 건너뛴다.
+///
+/// 의도해서 생김새를 바꿨을 때 기준을 새로 받는 절차는 docs/team_workflow.md 6절.
 library;
+
+import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -75,6 +81,17 @@ Future<void> _pump(
 Widget _gap() => const SizedBox(height: OnCareSpacing.s12);
 
 void main() {
+  group(
+    '골든',
+    _goldens,
+    skip: Platform.isLinux
+        ? false
+        : '골든은 CI 와 같은 Linux 에서만 비교한다(글자 렌더링이 OS 마다 다르다). '
+              'docs/team_workflow.md 6절 참고.',
+  );
+}
+
+void _goldens() {
   for (final app in _apps) {
     testWidgets('AppButton 여섯 변형과 비활성 — ${app.name}', (tester) async {
       await _pump(
