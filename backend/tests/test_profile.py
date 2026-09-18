@@ -260,6 +260,56 @@ def test_delete_me_removes_account(client):
     assert again.status_code == 401
 
 
+def test_delete_me_keeps_only_known_reasons(client, db_session):
+    """탈퇴 사유는 아는 코드만, 사유와 시각으로만 남는다. (#2019)
+
+    사유는 탈퇴의 조건이 아니다 — 모르는 코드가 섞여 와도 422 로 막지 않고
+    조용히 버린다. 화면의 글은 번역되고 바뀌지만 집계는 코드로 이어진다.
+    누가 골랐는지는 남기지 않는다: 그 회원 행은 같은 요청에서 지워진다.
+    """
+    from app.models.models import AccountDeletionReason
+
+    before = {r.id for r in db_session.query(AccountDeletionReason).all()}
+    token, email = _register_and_login(client)
+    # TestClient.delete() 는 본문을 받지 않는다 — request() 로 보낸다.
+    r = client.request(
+        "DELETE",
+        "/v1/users/me",
+        json={"reasons": ["privacy", "hard_to_use", "privacy", "made-up"]},
+        headers=_auth(token),
+    )
+    assert r.status_code == 200, r.text
+
+    db_session.expire_all()
+    added = [
+        row
+        for row in db_session.query(AccountDeletionReason).all()
+        if row.id not in before
+    ]
+    # 같은 사유를 두 번 보내도 한 번만 센다.
+    assert sorted(row.reason for row in added) == ["hard_to_use", "privacy"]
+    assert all(row.created_at is not None for row in added)
+
+    again = client.post(
+        "/v1/auth/login", data={"username": email, "password": "pw-12345!"}
+    )
+    assert again.status_code == 401
+
+
+def test_delete_me_without_reasons_still_deletes(client):
+    """사유 칸을 건너뛴 탈퇴도 예전처럼 그대로 지운다. (#1935·#2019)"""
+    token, email = _register_and_login(client)
+    r = client.request(
+        "DELETE", "/v1/users/me", json={"reasons": []}, headers=_auth(token)
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "deleted"
+    again = client.post(
+        "/v1/auth/login", data={"username": email, "password": "pw-12345!"}
+    )
+    assert again.status_code == 401
+
+
 def test_profile_writes_require_auth(client):
     # require_auth 는 데모 폴백을 쓰지 않으므로 토큰 없으면 401
     assert client.post("/v1/users/me/onboarding", json={}).status_code == 401

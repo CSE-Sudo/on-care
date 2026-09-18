@@ -32,8 +32,9 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
-from app.models.models import HealthProfile, User
+from app.models.models import AccountDeletionReason, HealthProfile, User
 from app.schemas.user import (
+    AccountDeleteRequest,
     HealthGoalsUpdate,
     HealthProfileBrief,
     OnboardingRequest,
@@ -297,13 +298,42 @@ def revoke_pairing_code(
     member_pairing_service.revoke(db, user.id)
 
 
+#: 탈퇴 화면이 보여 주는 사유. 앱과 같은 목록이고, 모르는 값은 버린다 —
+#: 자유 입력을 받지 않는 이유는 그 칸에 무엇이 적힐지 알 수 없기 때문이다(#2019).
+DELETION_REASONS: frozenset[str] = frozenset(
+    {
+        "privacy",
+        "rarely_used",
+        "hard_to_use",
+        "too_many_notifications",
+        "found_alternative",
+        "other",
+    }
+)
+
+
 @router.delete("/users/me")
 def delete_me(
     user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """회원 탈퇴. 예약 좌석을 복구한 뒤 프로필·식단·운동·일정·알림·
-    소셜계정·개인 코치문서를 함께 삭제한다."""
+    소셜계정·개인 코치문서를 함께 삭제한다.
+
+    고른 사유가 있으면 **회원 행과 잇지 않고** 따로 남긴다(#2019). 회원은 이
+    요청으로 사라지므로 FK 를 걸면 남길 수가 없고, 남기는 것도 사유 코드와
+    시각뿐이다.
+
+    사유는 없어도 된다. 탈퇴를 막는 조건이 아니라 물어보는 자리일 뿐이다.
+    """
+    for reason in sorted(set(payload.reasons if payload else []) & DELETION_REASONS):
+        db.add(
+            AccountDeletionReason(
+                id=f"del-{uuid.uuid4().hex[:12]}",
+                reason=reason,
+            )
+        )
     reservation_service.cancel_member_reservations_for_account_deletion(db, user.id)
     db.delete(user)
     db.commit()

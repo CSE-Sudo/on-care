@@ -1151,30 +1151,14 @@ class _SessionEditorState extends State<_SessionEditor> {
         title: l.programEditorSessionResetTitle,
         showClose: false,
         // 초기화는 되돌릴 수 없는 동작이라 확정 버튼을 빨간 채움으로 둔다.
-        // 버튼마다 테스트가 찾는 Key 가 있어 AppButtonPair 대신 같은 모양의
-        // Row 로 둔다.
-        footer: Row(
-          children: <Widget>[
-            Expanded(
-              child: AppButton(
-                key: const ValueKey<String>('session-reset-cancel'),
-                label: l.actionCancel,
-                variant: AppButtonVariant.secondary,
-                fullWidth: true,
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.buttonGap),
-            Expanded(
-              child: AppButton(
-                key: const ValueKey<String>('session-reset-submit'),
-                label: l.programEditorSessionReset,
-                variant: AppButtonVariant.destructive,
-                fullWidth: true,
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-              ),
-            ),
-          ],
+        footer: AppButtonPair(
+          cancelKey: const ValueKey<String>('session-reset-cancel'),
+          cancelLabel: l.actionCancel,
+          onCancel: () => Navigator.of(dialogContext).pop(false),
+          confirmKey: const ValueKey<String>('session-reset-submit'),
+          confirmLabel: l.programEditorSessionReset,
+          destructive: true,
+          onConfirm: () => Navigator.of(dialogContext).pop(true),
         ),
         child: Text(
           l.programEditorSessionResetBody(widget.session.name),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -163,7 +164,40 @@ class AiCoachingCard extends ConsumerWidget {
           // 카드가 말하는 것은 `AI 코칭` 이 아니라 **추천 개인운동**이다
           // (#1130). 제목이 곧 내용이라 아이콘도 운동 쪽으로 바꿨다. 큰 글자
           // 배율에서는 제목이 줄을 바꿔 카드 안에 머문다(#766).
-          AppSectionHeader(title: l.coachRoutineTitle, icon: AppIcons.running),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSectionHeader(
+                  // 담당이 없으면 이 목록은 **전부 AI 가 낸 것**이다. 트레이너
+                  // 배정과 생김새가 같아서, 제목이 그 말을 하지 않으면 누가 정한
+                  // 운동인지 각 줄의 출처를 읽어야 안다(#2015).
+                  //
+                  // 담당이 있을 때는 트레이너 배정과 트레이너가 확인한 AI 추천이
+                  // 한 목록에 섞이므로 일반 제목이 맞다.
+                  title: coach == null
+                      ? l.coachRoutineAiTitle
+                      : l.coachRoutineTitle,
+                  icon: AppIcons.running,
+                ),
+              ),
+              // 담당이 없는 회원은 이 추천이 대화에서 찾은 통증·부정적 반응을
+              // 반영해 내려온다(#1973). 무엇이 반영됐는지 여기서 보고, 잘못
+              // 잡힌 것은 치울 수 있어야 한다(#2015).
+              //
+              // 담당이 있으면 이 카드는 트레이너 배정을 싣고, 감지 기록 자체가
+              // 그 회원의 것이 아니다 — 서버도 403 으로 막는다(#1823).
+              if (coach == null)
+                AppButton(
+                  key: const Key('routineInsightHistoryButton'),
+                  label: l.aicInsightHistoryAction,
+                  size: OnCareButtonSize.small,
+                  leadingIcon: AppIcons.note,
+                  // AI 코치 머리의 같은 버튼과 같은 모양이다(#1975).
+                  variant: AppButtonVariant.brandOutline,
+                  onPressed: () => showInsightHistorySheet(context, ref),
+                ),
+            ],
+          ),
           // 카드 제목이 이미 `추천 개인운동` 이라 안에 같은 말을 또 두지
           // 않는다. `PT 와 다음 PT 사이…` 안내도 뺐다 (#1130).
           const SizedBox(height: OnCareSpacing.s12),
@@ -651,30 +685,14 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
     final OnCareTokens tokens = context.oncare;
     return AppSheet(
       title: l.coachRoutineCompleteTitle,
-      // [AppButtonPair] 와 같은 배치(취소 왼쪽 보조, 확정 오른쪽 주요)다. 확정
-      // 버튼에 테스트·자동화가 잡는 키가 있어 두 버튼을 직접 놓는다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              label: l.actionCancel,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const Key('confirmRoutineCompletion'),
-              label: l.coachRoutineSubmit,
-              fullWidth: true,
-              onPressed: () => Navigator.of(
-                context,
-              ).pop(_RoutineCompletionInput(intensity: _intensity)),
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const Key('confirmRoutineCompletion'),
+        confirmLabel: l.coachRoutineSubmit,
+        onConfirm: () => Navigator.of(
+          context,
+        ).pop(_RoutineCompletionInput(intensity: _intensity)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

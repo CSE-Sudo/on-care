@@ -190,20 +190,23 @@ void main() {
   });
 
   // 날짜만 적으면 같은 날 세 끼가 구분되지 않아 어느 끼니로 들어가는지 알 수
-  // 없었다. 시각은 서버가 저장한 값(`time_label`)을 그대로 쓰고, 끼니는 사진을
-  // 고른 시각이 정한다(`_currentMealType`) — 시계를 옮기면 둘 다 바뀐다(#1897).
-  testWidgets('기록 날짜에 시각과 끼니가 함께 보인다', (WidgetTester tester) async {
+  // 없었다(#1897). 그 몫은 끼니 이름이 한다 — 시각은 #1989 에서 빠졌다.
+  // 끼니는 사진을 고른 시각이 정한다(`_currentMealType`).
+  testWidgets('기록 날짜에 날짜와 끼니만 보인다 — 시각은 없다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 09:00 · 아침');
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 아침');
+    // 대역은 `09:00` 을 `time_label` 로 계속 준다 — 값이 없어서가 아니라
+    // 화면이 그리지 않는 것이다.
+    expect(_shownDate(tester), isNot(contains(':')));
   });
 
-  testWidgets('시각과 끼니는 사진을 고른 시각을 따른다', (WidgetTester tester) async {
+  testWidgets('끼니는 사진을 고른 시각을 따른다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 19));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 19:00 · 저녁');
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 저녁');
   });
 
   // 21시 이후는 야식이다(#1988). 그전에는 이 자리가 간식이라, 밤늦게 먹은 것과
@@ -212,14 +215,14 @@ void main() {
     useFixedKstDate(DateTime(2026, 8, 20, 22));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 22:00 · 야식');
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 야식');
   });
 
   testWidgets('21시 직전은 아직 저녁이다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 20, 59));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} 20:59 · 저녁');
+    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 저녁');
   });
 
   testWidgets('간식은 어느 시각에서도 추측하지 않는다', (WidgetTester tester) async {
