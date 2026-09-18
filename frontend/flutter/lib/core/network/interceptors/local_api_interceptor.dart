@@ -2499,6 +2499,10 @@ class LocalApiInterceptor extends Interceptor {
 
   /// DELETE /users/me — withdraw. The demo wipes the profile overlay so a
   /// subsequent session starts clean, mirroring FastAPI's cascade delete.
+  ///
+  /// The body's `reasons` (#2019) are dropped here on purpose: the server keeps
+  /// them in a table nobody reads back, and the demo has no such table. The
+  /// withdrawal itself is what the demo has to reproduce.
   Future<Response<Object?>> _usersMeDelete(RequestOptions options) async {
     await _db.putValue('profile_overlay', '');
     return _ok(options, <String, Object?>{'status': 'deleted'});

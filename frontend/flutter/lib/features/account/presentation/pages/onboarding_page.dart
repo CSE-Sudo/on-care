@@ -335,9 +335,12 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     }
   }
 
-  /// 온보딩을 건너뛰어도 홈으로 가기 전에 포인트 안내를 한 번 본다(#1826) —
-  /// 포인트를 어디서 얻는지는 목표를 정했는지와 상관없이 처음부터 알아야 한다.
-  void _skip() => context.go(AppRoutes.pointsGuide);
+  /// 건너뛰면 바로 홈이다.
+  ///
+  /// 예전에는 홈에 닿기 전에 포인트 안내 화면을 한 장 지나갔는데(#1826), 같은
+  /// 내용을 앱 사용 가이드의 툴팁이 이미 짚어 준다. 두 곳에 두면 문구를 고칠
+  /// 때마다 둘을 맞춰야 해서 툴팁 쪽으로 모았다(#2012).
+  void _skip() => context.go(AppRoutes.dashboard);
 
   /// 건강 상태 단계를 건너뛴다 — 이 단계에서 적은 것을 **비우고** 넘어간다.
   ///
@@ -390,8 +393,8 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
       await rememberFirstRunDone(container);
       if (!mounted) return;
       ref.invalidate(profileProvider);
-      // 홈으로 가기 전에 포인트를 어디서 얻는지 한 장으로 본다(#1826).
-      context.go(AppRoutes.pointsGuide);
+      // 포인트 안내는 앱 사용 가이드의 툴팁이 맡는다(#2012).
+      context.go(AppRoutes.dashboard);
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);

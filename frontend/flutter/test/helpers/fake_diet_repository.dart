@@ -337,8 +337,10 @@ class FakeDietRepository implements DietRepository {
         foods ?? old?.foods ?? const <FoodItem>[];
     final DietEntry updated = DietEntry(
       id: id,
+      // `byName` 은 모르는 값에 던진다. 실서버·목 인터셉터는 자유 문자열을
+      // 그대로 받아 두므로, 대역도 같은 자리에서 간식으로 접는다.
       mealType: mealType != null
-          ? MealType.values.byName(mealType)
+          ? _mealTypeOf(mealType)
           : (old?.mealType ?? MealType.lunch),
       timeLabel: timeLabel ?? old?.timeLabel ?? '',
       totalCalories:
