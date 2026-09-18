@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy import select
 
 from app.db.session import SessionLocal
-from app.models.models import TrainerClient, TrainerRoutine
+from app.models.models import AiConversation, TrainerClient, TrainerRoutine
 from app.services import auto_routine_service
 
 
@@ -64,6 +64,12 @@ def lone_member(client):
         )
     ).all():
         db.delete(row)
+    # AI 코치 대화도 함께 지운다 — 감지는 대화에서 매번 계산되므로(#2016), 앞
+    # 테스트가 적어 둔 `무릎이 아파요` 가 남으면 다음 테스트의 추천까지 좁힌다.
+    for convo in db.scalars(
+        select(AiConversation).where(AiConversation.user_id == member_id)
+    ).all():
+        db.delete(convo)
     db.commit()
     db.close()
 
@@ -126,3 +132,97 @@ def test_a_member_with_a_trainer_gets_no_auto_recommendation(client):
 
     safe_names = {name for name, _, _, _ in auto_routine_service.SAFE_ROUTINES}
     assert not (safe_names & {r["name"] for r in mine})
+
+
+def _say(db, member_id: str, text: str) -> None:
+    """회원이 AI 코치에 한 줄 적는다 — 감지는 대화에서 매번 계산된다."""
+    from app.services.coach import conversation
+
+    conversation.append_exchange(
+        db, member_id, question=text, reply="알겠어요", sources=[]
+    )
+    db.commit()
+
+
+def test_sore_knee_drops_the_weight_bearing_routine(client, lone_member):
+    """무릎이 아프다고 말한 회원에게 걷기를 그대로 권하지 않는다. (#2016)
+
+    이 모듈은 건강 정보를 **내리는 쪽으로만** 쓴다 — 빼기만 하고 다른 운동을
+    끼워 넣지 않는다. 대신 무엇을 하라고 정하는 것은 처방이다.
+    """
+    db = SessionLocal()
+    _say(db, lone_member, "무릎이 아파요")
+    db.close()
+
+    auto_routine_service.ensure_auto_routines(SessionLocal(), lone_member)
+    db = SessionLocal()
+    names = {
+        row.name
+        for row in db.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.member_id == lone_member,
+                TrainerRoutine.trainer_id.is_(None),
+            )
+        ).all()
+    }
+    db.close()
+
+    assert "저강도 걷기" not in names
+    assert "전신 스트레칭" in names
+
+
+def test_saying_it_was_hard_shortens_the_routines(client, lone_member):
+    """힘들다고 말한 적이 있으면 시간을 줄인다 — 올리지는 않는다. (#2016)"""
+    db = SessionLocal()
+    _say(db, lone_member, "너무 힘들어서 못 했어요")
+    db.close()
+
+    auto_routine_service.ensure_auto_routines(SessionLocal(), lone_member)
+    db = SessionLocal()
+    rows = {
+        row.name: row.minutes
+        for row in db.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.member_id == lone_member,
+                TrainerRoutine.trainer_id.is_(None),
+            )
+        ).all()
+    }
+    db.close()
+
+    base = {name: minutes for name, minutes, _, _ in auto_routine_service.SAFE_ROUTINES}
+    assert rows
+    for name, minutes in rows.items():
+        assert minutes < base[name]
+        assert minutes >= auto_routine_service._MIN_MINUTES
+
+
+def test_a_dismissed_insight_no_longer_narrows_the_routines(client, lone_member):
+    """기록 창에서 치운 오탐은 추천도 좁히지 않는다. (#1975 · #2016)"""
+    from app.models.models import AiMessage
+
+    db = SessionLocal()
+    _say(db, lone_member, "무릎이 아파요")
+    message_id = db.scalar(
+        select(AiMessage.id)
+        .join(AiConversation, AiConversation.id == AiMessage.conversation_id)
+        .where(AiConversation.user_id == lone_member, AiMessage.role == "user")
+    )
+    db.get(AiMessage, message_id).insight_dismissed = True
+    db.commit()
+    db.close()
+
+    auto_routine_service.ensure_auto_routines(SessionLocal(), lone_member)
+    db = SessionLocal()
+    names = {
+        row.name
+        for row in db.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.member_id == lone_member,
+                TrainerRoutine.trainer_id.is_(None),
+            )
+        ).all()
+    }
+    db.close()
+
+    assert "저강도 걷기" in names

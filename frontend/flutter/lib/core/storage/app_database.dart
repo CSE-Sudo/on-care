@@ -19,7 +19,7 @@ class AppKeyValues extends Table {
 class DietEntries extends Table {
   TextColumn get id => text()();
   TextColumn get date => text()(); // YYYY-MM-DD
-  TextColumn get mealType => text()(); // breakfast|lunch|dinner|snack
+  TextColumn get mealType => text()(); // breakfast|lunch|dinner|snack|lateNight
   TextColumn get timeLabel => text()(); // "08:20"
   TextColumn get foodsJson => text()(); // [{ "name": "...", "calories": ... }]
   IntColumn get totalCalories => integer()();
