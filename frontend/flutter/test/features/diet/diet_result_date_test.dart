@@ -85,13 +85,23 @@ Future<ProviderContainer> _openResultSheet(
 String _shownDate(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(const Key('diet-result-date'))).data!;
 
+/// `끼니` 줄의 값. 식단 상세와 같은 배지다.
+String _shownMeal(WidgetTester tester) => tester
+    .widget<Text>(
+      find.descendant(
+        of: find.byKey(const Key('diet-result-meal')),
+        matching: find.byType(Text),
+      ),
+    )
+    .data!;
+
 void main() {
   testWidgets('분석이 끝나면 기록 날짜가 오늘로 보인다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _openResultSheet(tester, FakeDietRepository());
 
     expect(find.text('분석 완료!'), findsOneWidget);
-    expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 20))));
+    expect(_shownDate(tester), _label(DateTime(2026, 8, 20)));
   });
 
   testWidgets('시트의 날짜 줄은 값만 보인다 — 고치는 자리는 헤더 연필 하나다', (
@@ -107,23 +117,31 @@ void main() {
   });
 
   // 날짜만 적으면 같은 날 세 끼가 구분되지 않아 어느 끼니로 들어가는지 알 수
-  // 없었다(#1897). 그 몫은 끼니 이름이 한다 — 시각은 #1989 에서 빠졌다.
+  // 없었다(#1897). 그 몫은 끼니 줄이 한다 — 시각은 #1989 에서 빠졌다.
   // 끼니는 사진을 고른 시각이 정한다(`_currentMealType`).
-  testWidgets('기록 날짜에 날짜와 끼니만 보인다 — 시각은 없다', (WidgetTester tester) async {
+  testWidgets('기록 날짜와 끼니가 따로 두 줄이다 — 시각은 없다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 아침');
+    expect(_shownDate(tester), _label(DateTime(2026, 8, 20)));
+    expect(_shownMeal(tester), '아침');
     // 대역은 `09:00` 을 `time_label` 로 계속 준다 — 값이 없어서가 아니라
     // 화면이 그리지 않는 것이다.
     expect(_shownDate(tester), isNot(contains(':')));
+
+    // 끼니가 날짜의 꼬리가 아니라 제 줄에 있다 — 식단 상세와 같은 모양이다.
+    final Rect date = tester.getRect(find.byKey(const Key('diet-result-date')));
+    final Rect meal = tester.getRect(find.byKey(const Key('diet-result-meal')));
+    expect(meal.top, greaterThanOrEqualTo(date.bottom));
+    expect(meal.left, moreOrLessEquals(date.left, epsilon: 0.5));
+    expect(find.text('끼니'), findsOneWidget);
   });
 
   testWidgets('끼니는 사진을 고른 시각을 따른다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 19));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 저녁');
+    expect(_shownMeal(tester), '저녁');
   });
 
   // 21시 이후는 야식이다(#1988). 그전에는 이 자리가 간식이라, 밤늦게 먹은 것과
@@ -132,14 +150,14 @@ void main() {
     useFixedKstDate(DateTime(2026, 8, 20, 22));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 야식');
+    expect(_shownMeal(tester), '야식');
   });
 
   testWidgets('21시 직전은 아직 저녁이다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 20, 59));
     await _openResultSheet(tester, FakeDietRepository());
 
-    expect(_shownDate(tester), '${_label(DateTime(2026, 8, 20))} · 저녁');
+    expect(_shownMeal(tester), '저녁');
   });
 
   testWidgets('간식은 어느 시각에서도 추측하지 않는다', (WidgetTester tester) async {
@@ -152,11 +170,7 @@ void main() {
       useFixedKstDate(DateTime(2026, 8, 20, hour));
       await _openResultSheet(tester, FakeDietRepository());
 
-      expect(
-        _shownDate(tester),
-        isNot(contains('간식')),
-        reason: '$hour 시에 간식으로 추측했다',
-      );
+      expect(_shownMeal(tester), isNot('간식'), reason: '$hour 시에 간식으로 추측했다');
     }
   });
 }

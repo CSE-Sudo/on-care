@@ -5,7 +5,9 @@
 /// `날짜 변경` 으로 옮길 수 있었지만 끼니는 그 화면에서 못 고쳐, `어제 · 아침`
 /// 이라는 실제와 다른 기록이 남았다.
 ///
-/// 이제 연필 하나를 문으로 삼아 날짜·끼니·음식을 함께 고친다. 시각 입력 칸은
+/// 이제 식단 상세의 `식사 정보` 카드가 날짜와 끼니를 한자리에 둔다. 날짜는
+/// **따로** 옮긴다 — 연필 없이 `날짜 변경` 을 누르면 고른 즉시 그 날로 간다.
+/// 끼니·음식은 연필(수정 모드)에서 고쳐 `저장` 으로 보낸다. 시각 입력 칸은
 /// 두지 않는다 — 식단 화면에서 시각 표시를 걷어냈다(#1989).
 library;
 
@@ -49,6 +51,37 @@ Finder get _anyMealCard => find
     .first;
 
 String _shownDate(WidgetTester tester) => tester.widget<Text>(_dateValue).data!;
+
+/// 날짜 옮기기만 실패하는 저장소 — 끼니·음식 저장은 그대로 된다.
+class _DateMoveFailsRepository extends FakeDietRepository {
+  int moveAttempts = 0;
+
+  @override
+  Future<DietEntry> updateEntry({
+    required String id,
+    String? date,
+    String? mealType,
+    String? timeLabel,
+    List<FoodItem>? foods,
+    int? totalCalories,
+    int? sodiumMg,
+    double? sugarG,
+  }) {
+    if (date != null) {
+      moveAttempts += 1;
+      throw Exception('boom');
+    }
+    return super.updateEntry(
+      id: id,
+      mealType: mealType,
+      timeLabel: timeLabel,
+      foods: foods,
+      totalCalories: totalCalories,
+      sodiumMg: sodiumMg,
+      sugarG: sugarG,
+    );
+  }
+}
 
 /// 식단 탭과 상세 라우트를 띄운다. [router] 를 돌려주어 목록을 거치지 않고
 /// 상세를 여는 길(분석 완료 시트의 연필)도 흉내 낼 수 있게 한다.
@@ -135,8 +168,9 @@ void main() {
         find.descendant(of: _mealRow, matching: find.text('아침')),
         findsOneWidget,
       );
-      // 보기 모드에서는 고칠 자리가 없다 — 연필을 눌러야 열린다(#1856).
-      expect(_dateChange, findsNothing);
+      // 끼니·음식은 연필을 눌러야 고친다(#1856). 날짜만은 따로 옮기는
+      // 자리가 늘 있다.
+      expect(_dateChange, findsOneWidget);
       expect(find.byType(AppChoiceChip), findsNothing);
     });
 
@@ -193,58 +227,44 @@ void main() {
     });
   });
 
-  group('수정 모드', () {
-    testWidgets('연필 하나로 날짜 변경과 끼니 칩 다섯이 함께 열린다', (WidgetTester tester) async {
-      await _pumpApp(tester, FakeDietRepository());
-      await _openFromList(tester);
-      await tester.tap(_editButton);
-      await tester.pumpAndSettle();
-
-      expect(_dateChange, findsOneWidget);
-      expect(
-        find.descendant(of: _mealRow, matching: find.byType(AppChoiceChip)),
-        findsNWidgets(5),
-      );
-    });
-
-    testWidgets('어제 저녁으로 고쳐 저장하면 날짜와 끼니가 함께 저장된다', (WidgetTester tester) async {
+  group('날짜만 따로 옮긴다', () {
+    testWidgets('연필 없이 날짜를 고르면 그 즉시 그 날로 옮겨진다', (WidgetTester tester) async {
       final FakeDietRepository repo = FakeDietRepository();
       await _pumpApp(tester, repo);
       await _openFromList(tester);
-      await tester.tap(_editButton);
-      await tester.pumpAndSettle();
 
       await _pickDay(tester, _yesterday.day);
-      await _pickMeal(tester, '저녁');
-      // 저장 전에는 화면에만 있다 — 고르는 즉시 옮기지 않는다.
-      expect(repo.movedEntries, isEmpty);
-      await _save(tester);
 
       final ({String date, DietEntry entry}) moved =
           repo.movedEntries['mock-breakfast']!;
       expect(moved.date, '2026-08-19');
-      expect(moved.entry.mealType, MealType.dinner);
-
-      // 화면에 남아 보기 모드로 돌아가고, 고친 값이 그대로 보인다.
+      // 날짜만 옮겼다 — 끼니는 그대로다.
+      expect(moved.entry.mealType, MealType.breakfast);
       expect(_detailPage, findsOneWidget);
       expect(_shownDate(tester), _label(_yesterday));
-      expect(
-        find.descendant(of: _mealRow, matching: find.text('저녁')),
-        findsOneWidget,
-      );
+      // 수정 모드로 들어가지 않았다.
+      expect(_editButton, findsOneWidget);
       // 목록으로 돌아가면 이 카드가 오늘에서 사라진다 — 어디로 갔는지 말한다.
       expect(find.text('${_label(_yesterday)} 식단으로 옮겼어요'), findsOneWidget);
     });
 
-    testWidgets('옮긴 기록을 그 날의 목록에서 다시 열어도 그 값이다', (WidgetTester tester) async {
+    testWidgets('날짜를 옮긴 뒤 끼니를 저녁으로 고치면 그 날의 목록에서도 어제 · 저녁이다', (
+      WidgetTester tester,
+    ) async {
       final FakeDietRepository repo = FakeDietRepository();
       final GoRouter router = await _pumpApp(tester, repo);
       await _openFromList(tester);
+
+      await _pickDay(tester, _yesterday.day);
       await tester.tap(_editButton);
       await tester.pumpAndSettle();
-      await _pickDay(tester, _yesterday.day);
       await _pickMeal(tester, '저녁');
       await _save(tester);
+
+      expect(
+        repo.movedEntries['mock-breakfast']!.entry.mealType,
+        MealType.dinner,
+      );
 
       router.pop();
       await tester.pumpAndSettle();
@@ -261,9 +281,106 @@ void main() {
       );
     });
 
-    testWidgets('날짜를 바꾸지 않으면 날짜는 보내지 않는다', (WidgetTester tester) async {
-      // 같은 날을 다시 보내도 서버에서는 달라지는 것이 없지만, 보내지 않으면
-      // 화면이 날짜를 잘못 알고 있어도 기록이 엉뚱한 날로 옮겨 가지 않는다.
+    testWidgets('앞날은 고를 수 없다', (WidgetTester tester) async {
+      final FakeDietRepository repo = FakeDietRepository();
+      await _pumpApp(tester, repo);
+      await _openFromList(tester);
+
+      // 달력은 오늘(20일)까지만 열려 있다 — 먹지 않은 식사는 적을 수 없다.
+      await _pickDay(tester, 21);
+
+      expect(_shownDate(tester), _label(_today));
+      expect(repo.movedEntries, isEmpty);
+    });
+
+    testWidgets('옮기지 못하면 날짜는 그대로 남고 사정을 알린다', (WidgetTester tester) async {
+      final _DateMoveFailsRepository repo = _DateMoveFailsRepository();
+      await _pumpApp(tester, repo);
+      await _openFromList(tester);
+
+      await _pickDay(tester, _yesterday.day);
+
+      expect(repo.moveAttempts, 1);
+      expect(_shownDate(tester), _label(_today));
+      expect(find.textContaining('날짜를 바꾸지 못했어요'), findsOneWidget);
+      // 다시 누를 수 있다 — 버튼이 spinner 에 머물지 않는다.
+      expect(_dateChange, findsOneWidget);
+    });
+
+    testWidgets('수정 중에 날짜를 옮겨도 고치던 끼니는 남고, 취소는 날짜를 되돌리지 않는다', (
+      WidgetTester tester,
+    ) async {
+      final FakeDietRepository repo = FakeDietRepository();
+      await _pumpApp(tester, repo);
+      await _openFromList(tester);
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+
+      await _pickMeal(tester, '저녁');
+      await _pickDay(tester, _yesterday.day);
+      // 고치던 끼니는 날짜 옮기기와 섞이지 않는다 — 아직 화면에만 있다.
+      expect(
+        tester
+            .widget<AppChoiceChip>(find.widgetWithText(AppChoiceChip, '저녁'))
+            .selected,
+        isTrue,
+      );
+      expect(
+        repo.movedEntries['mock-breakfast']!.entry.mealType,
+        MealType.breakfast,
+      );
+
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+
+      // 끼니는 되돌아가고, 따로 옮긴 날짜는 남는다.
+      expect(
+        find.descendant(of: _mealRow, matching: find.text('아침')),
+        findsOneWidget,
+      );
+      expect(_shownDate(tester), _label(_yesterday));
+      expect(repo.movedEntries['mock-breakfast']!.date, '2026-08-19');
+    });
+
+    testWidgets('분석 완료 시트의 연필로 들어가 날짜를 옮겨도 화면이 남는다', (
+      WidgetTester tester,
+    ) async {
+      // 그 연필은 끼니를 넘기지 않고 id 로만 상세를 연다 — 상세가 오늘 목록에서
+      // 기록을 찾는다. 날짜를 옮기면 오늘 목록에서 그 기록이 빠지므로, 목록을
+      // 계속 따라가면 방금 옮긴 화면이 `불러오지 못했어요` 로 바뀐다.
+      final FakeDietRepository repo = FakeDietRepository();
+      final GoRouter router = await _pumpApp(tester, repo);
+      unawaited(
+        router.push<void>(AppRoutes.dietEntryDetailPath('mock-breakfast')),
+      );
+      await tester.pumpAndSettle();
+
+      await _pickDay(tester, _yesterday.day);
+
+      expect(repo.movedEntries['mock-breakfast']!.date, '2026-08-19');
+      expect(_detailPage, findsOneWidget);
+      expect(_shownDate(tester), _label(_yesterday));
+      expect(find.text('식단 정보를 불러오지 못했어요.'), findsNothing);
+    });
+  });
+
+  group('끼니·음식 저장', () {
+    testWidgets('연필을 누르면 끼니 칩 다섯이 열린다', (WidgetTester tester) async {
+      await _pumpApp(tester, FakeDietRepository());
+      await _openFromList(tester);
+      await tester.tap(_editButton);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: _mealRow, matching: find.byType(AppChoiceChip)),
+        findsNWidgets(5),
+      );
+      // 날짜 변경은 수정 모드에서도 같은 자리에 있다.
+      expect(_dateChange, findsOneWidget);
+    });
+
+    testWidgets('끼니만 고쳐 저장하면 날짜는 보내지 않는다', (WidgetTester tester) async {
+      // 끼니·음식 저장이 기록을 다른 날로 옮길 일이 없다 — 날짜는 따로 옮긴다.
       final FakeDietRepository repo = FakeDietRepository();
       await _pumpApp(tester, repo);
       await _openFromList(tester);
@@ -278,69 +395,8 @@ void main() {
         () => repo.fetchToday(),
       ))!.entries.firstWhere((DietEntry e) => e.id == 'mock-breakfast');
       expect(saved.mealType, MealType.snack);
-      // 옮기지 않았으니 `옮겼어요` 가 아니라 평소의 저장 알림이다.
       expect(find.text('식단이 저장되었어요'), findsOneWidget);
       expect(find.textContaining('옮겼어요'), findsNothing);
-    });
-
-    testWidgets('앞날은 고를 수 없다', (WidgetTester tester) async {
-      final FakeDietRepository repo = FakeDietRepository();
-      await _pumpApp(tester, repo);
-      await _openFromList(tester);
-      await tester.tap(_editButton);
-      await tester.pumpAndSettle();
-
-      // 달력은 오늘(20일)까지만 열려 있다 — 먹지 않은 식사는 적을 수 없다.
-      await _pickDay(tester, 21);
-      expect(_shownDate(tester), _label(_today));
-
-      await _save(tester);
-      expect(repo.movedEntries, isEmpty);
-    });
-
-    testWidgets('취소하면 날짜와 끼니가 함께 되돌아간다', (WidgetTester tester) async {
-      final FakeDietRepository repo = FakeDietRepository();
-      await _pumpApp(tester, repo);
-      await _openFromList(tester);
-      await tester.tap(_editButton);
-      await tester.pumpAndSettle();
-
-      await _pickDay(tester, _yesterday.day);
-      await _pickMeal(tester, '저녁');
-      await tester.tap(find.text('취소'));
-      await tester.pumpAndSettle();
-
-      expect(_shownDate(tester), _label(_today));
-      expect(
-        find.descendant(of: _mealRow, matching: find.text('아침')),
-        findsOneWidget,
-      );
-      expect(repo.movedEntries, isEmpty);
-    });
-
-    testWidgets('분석 완료 시트의 연필로 들어가 날짜를 옮겨도 화면이 남는다', (
-      WidgetTester tester,
-    ) async {
-      // 그 연필은 끼니를 넘기지 않고 id 로만 상세를 연다 — 상세가 오늘 목록에서
-      // 기록을 찾는다. 날짜를 옮겨 저장하면 오늘 목록에서 그 기록이 빠지므로,
-      // 목록을 계속 따라가면 방금 저장한 화면이 `불러오지 못했어요` 로 바뀐다.
-      final FakeDietRepository repo = FakeDietRepository();
-      final GoRouter router = await _pumpApp(tester, repo);
-      unawaited(
-        router.push<void>(AppRoutes.dietEntryDetailPath('mock-breakfast')),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(_editButton);
-      await tester.pumpAndSettle();
-      await _pickDay(tester, _yesterday.day);
-      await _pickMeal(tester, '저녁');
-      await _save(tester);
-
-      expect(repo.movedEntries['mock-breakfast']!.date, '2026-08-19');
-      expect(_detailPage, findsOneWidget);
-      expect(_shownDate(tester), _label(_yesterday));
-      expect(find.text('식단 정보를 불러오지 못했어요.'), findsNothing);
     });
   });
 }

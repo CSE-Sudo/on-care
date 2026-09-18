@@ -235,12 +235,16 @@
   },
   "dietRecordDateChange": "Change date",
   "@dietRecordDateChange": {
-    "description": "Button that opens the date picker in the meal detail edit mode (#1947)."
+    "description": "Button on the meal detail's record-date row. Moves the meal to the picked day on its own (#1947)."
   },
   "dietRecordDateMoved": "Moved to {date}",
   "@dietRecordDateMoved": {
-    "description": "Confirmation after saving a meal under another day.",
+    "description": "Confirmation after moving a meal to another day.",
     "placeholders": { "date": { "type": "String" } }
+  },
+  "dietRecordDateFailed": "Could not change the date. Please try again shortly.",
+  "@dietRecordDateFailed": {
+    "description": "Error shown when moving a meal to another day fails."
   },
   "dietMealKind": "Meal",
   "@dietMealKind": {

@@ -152,6 +152,7 @@
   "dietRecordDate": "기록 날짜",
   "dietRecordDateChange": "날짜 변경",
   "dietRecordDateMoved": "{date} 식단으로 옮겼어요",
+  "dietRecordDateFailed": "날짜를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.",
   "dietMealKind": "끼니",
   "dietAnalysisDone": "분석 완료!",
   "dietAiNutritionResult": "AI 영양 분석 결과",

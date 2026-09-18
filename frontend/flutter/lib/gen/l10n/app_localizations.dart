@@ -842,17 +842,23 @@ abstract class AppLocalizations {
   /// **'Record date'**
   String get dietRecordDate;
 
-  /// Button that opens the date picker in the meal detail edit mode (#1947).
+  /// Button on the meal detail's record-date row. Moves the meal to the picked day on its own (#1947).
   ///
   /// In en, this message translates to:
   /// **'Change date'**
   String get dietRecordDateChange;
 
-  /// Confirmation after saving a meal under another day.
+  /// Confirmation after moving a meal to another day.
   ///
   /// In en, this message translates to:
   /// **'Moved to {date}'**
   String dietRecordDateMoved(String date);
+
+  /// Error shown when moving a meal to another day fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not change the date. Please try again shortly.'**
+  String get dietRecordDateFailed;
 
   /// Label of the meal-type row next to the record date in the meal detail (#1947).
   ///

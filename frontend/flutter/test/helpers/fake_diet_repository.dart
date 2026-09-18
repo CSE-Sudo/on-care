@@ -332,7 +332,11 @@ class FakeDietRepository implements DietRepository {
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final int idx = _entries.indexWhere((DietEntry e) => e.id == id);
-    final DietEntry? old = idx >= 0 ? _entries[idx] : null;
+    // 다른 날로 옮겨 둔 기록도 id 로 찾는다 — 실서버·목 인터셉터는 날짜와
+    // 상관없이 id 로 고친다. 오늘 목록만 뒤지면 옮긴 뒤 끼니를 고친 저장이
+    // 대역에서만 사라진다(#1947).
+    final ({String date, DietEntry entry})? movedOld = movedEntries[id];
+    final DietEntry? old = idx >= 0 ? _entries[idx] : movedOld?.entry;
     final List<FoodItem> updatedFoods =
         foods ?? old?.foods ?? const <FoodItem>[];
     final DietEntry updated = DietEntry(
@@ -364,7 +368,7 @@ class FakeDietRepository implements DietRepository {
       photoAsset: old?.photoAsset,
       foods: updatedFoods,
     );
-    if (old != null) {
+    if (idx >= 0) {
       _entries[idx] = updated;
     }
     // 날짜를 옮기면 오늘 목록에서 빠지고 그 날짜에서 보인다 — 실서버가 하는
@@ -373,13 +377,15 @@ class FakeDietRepository implements DietRepository {
     if (date != null) {
       final DateTime now = nowKst();
       final String todayWire = _wire(DateTime(now.year, now.month, now.day));
-      if (old != null) _entries.removeAt(idx);
+      if (idx >= 0) _entries.removeAt(idx);
       movedEntries.remove(id);
       if (date == todayWire) {
         _entries.add(updated);
       } else {
         movedEntries[id] = (date: date, entry: updated);
       }
+    } else if (movedOld != null) {
+      movedEntries[id] = (date: movedOld.date, entry: updated);
     }
     return updated;
   }

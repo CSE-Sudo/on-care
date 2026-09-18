@@ -427,6 +427,9 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String get dietRecordDateFailed => '날짜를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
   String get dietMealKind => '끼니';
 
   @override

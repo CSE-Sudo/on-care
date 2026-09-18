@@ -434,6 +434,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get dietRecordDateFailed =>
+      'Could not change the date. Please try again shortly.';
+
+  @override
   String get dietMealKind => 'Meal';
 
   @override
