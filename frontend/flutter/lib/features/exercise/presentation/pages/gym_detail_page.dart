@@ -475,8 +475,10 @@ class _AffiliatedTrainerRow extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     final bool locked = onTap == null && trailingLabel != null;
     return AppListRow(
+      // 이름과 직함은 한 줄에 읽힌다 — 헬스장 찾기·내 헬스장 카드의 트레이너
+      // 줄과 같은 규칙이다(#2038 · #2082). 폭이 모자라면 직함이 먼저 준다.
       title: trainer.name,
-      subtitle: trainer.role,
+      titleMeta: trainer.role,
       onTap: locked
           ? null
           : (onTap ??

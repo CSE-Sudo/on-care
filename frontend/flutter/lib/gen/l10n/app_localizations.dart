@@ -2618,10 +2618,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the photo'**
   String get coachImageUnavailable;
 
-  /// No description provided for @coachChatSubtitle.
+  /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In en, this message translates to:
-  /// **'Personal trainer · Available'**
+  /// **'Personal trainer'**
   String get coachChatSubtitle;
 
   /// No description provided for @coachChatBack.

@@ -179,6 +179,13 @@ AppLocalizations _localizations(WidgetTester tester) {
   return AppLocalizations.of(tester.element(find.byType(Scaffold).first));
 }
 
+/// 상담 대상 카드의 `이름 직함` 한 글줄. 두 글씨가 한 문단이라(#2082) 이름만
+/// 따로 `find.text` 로 잡히지 않는다.
+String _targetNameRole(WidgetTester tester) => tester
+    .widget<Text>(find.byKey(const Key('consult-target-name-role')))
+    .textSpan!
+    .toPlainText();
+
 void main() {
   late ProviderContainer container;
   late GoRouter router;
@@ -270,13 +277,13 @@ void main() {
     await tester.tap(
       find.descendant(
         of: find.byKey(const Key('gym-consult-trainer-picker')),
-        matching: find.text(_trainer.name),
+        matching: find.textContaining(_trainer.name),
       ),
     );
     await tester.pumpAndSettle();
 
     expect(find.text(l.exConsultRequestTitle), findsOneWidget);
-    expect(find.text(_trainer.name), findsOneWidget);
+    expect(_targetNameRole(tester), contains(_trainer.name));
     expect(find.textContaining(_gym.name), findsOneWidget);
   });
 
@@ -293,9 +300,23 @@ void main() {
     await tester.tap(find.text(l.exTrainerConsultRequest));
     await tester.pumpAndSettle();
 
-    expect(find.text(_trainer.name), findsOneWidget);
-    expect(find.text(_trainer.role!), findsOneWidget);
-    expect(find.textContaining(_gym.name), findsOneWidget);
+    // 이름과 직함은 한 글줄이다 — 직함이 이름 아래 줄로 내려가지 않는다
+    // (#2082). 소속 헬스장은 그 아래 제 줄에 따로 선다.
+    final Finder nameRole = find.byKey(const Key('consult-target-name-role'));
+    expect(nameRole, findsOneWidget);
+    expect(tester.widget<Text>(nameRole).maxLines, 1);
+    expect(
+      _targetNameRole(tester),
+      allOf(contains(_trainer.name), contains(_trainer.role!)),
+    );
+    expect(find.text(_trainer.role!), findsNothing);
+    final Finder gymLine = find.textContaining(_gym.name);
+    expect(gymLine, findsOneWidget);
+    expect(
+      tester.getTopLeft(gymLine).dy,
+      greaterThan(tester.getBottomLeft(nameRole).dy),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(

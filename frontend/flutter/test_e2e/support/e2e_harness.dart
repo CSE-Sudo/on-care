@@ -704,7 +704,13 @@ Future<void> openConsultationForm(WidgetTester tester, String targetId) async {
   }
   await tester.ensureVisible(card);
   await tester.pump();
-  await tester.tap(card);
+  // 카드 **한가운데**가 아니라 헬스장 이름을 누른다. 소속 트레이너 줄은
+  // 트레이너 상세로 가는데(#2038), 트레이너 목록이 먼저 도착해 카드가 길어지면
+  // 한가운데가 그 줄에 걸려 헬스장 상세 대신 트레이너 상세가 열린다. 이름은
+  // 카드의 첫 글줄이다.
+  await tester.tap(
+    find.descendant(of: card, matching: find.byType(Text)).first,
+  );
 
   final Finder start = find.byKey(const Key('gym-consult-start'));
   await pumpUntil(tester, start, step: '헬스장 상담 신청 버튼');
