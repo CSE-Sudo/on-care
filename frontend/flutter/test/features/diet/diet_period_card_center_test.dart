@@ -36,11 +36,14 @@ Widget _app() => ProviderScope(
   ),
 );
 
-/// 카드 위쪽에 머리 숫자까지 남은 자리와, 그래프 아래에서 카드 끝까지 남은
+/// 카드 위쪽에 **첫 내용**까지 남은 자리와, 그래프 아래에서 카드 끝까지 남은
 /// 자리. 카드 안쪽 여백(16)이 기본이고 그 위에 얹히는 것이 빈 칸이다.
+///
+/// 첫 내용은 날짜 기간 줄이다 — 카드 안으로 들어오면서(#2009) 머리 숫자보다
+/// 위에 놓였다.
 (double, double) _gaps(WidgetTester tester, Finder chart) {
   final Rect card = tester.getRect(find.byKey(const Key('diet-period-card')));
-  final Rect head = tester.getRect(find.byType(PeriodChartHeadline));
+  final Rect head = tester.getRect(find.byKey(const Key('diet-period-range')));
   final Rect graph = tester.getRect(chart);
   return (head.top - card.top, card.bottom - graph.bottom);
 }

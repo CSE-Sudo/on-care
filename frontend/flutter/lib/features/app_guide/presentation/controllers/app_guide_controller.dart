@@ -81,8 +81,8 @@ class AppGuideController extends Notifier<AppGuideState> {
   @override
   AppGuideState build() => const AppGuideState();
 
-  /// 온보딩 포인트 안내에서 `시작하기` 를 누른 뒤 부른다. 이미 본 회원이면
-  /// 아무 일도 하지 않는다.
+  /// 가이드 화면이 열리면 부른다 — 온보딩을 마치거나 건너뛴 뒤, 또는 MY 의
+  /// `앱 사용 가이드` 에서. 이미 본 회원이면 아무 일도 하지 않는다.
   void start() {
     if (_prefs?.homeGuideDone ?? false) return;
     state = const AppGuideState(active: true);
