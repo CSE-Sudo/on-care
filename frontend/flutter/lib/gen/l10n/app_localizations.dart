@@ -2150,6 +2150,126 @@ abstract class AppLocalizations {
   /// **'We could not delete your account. Please try again in a moment.'**
   String get myWithdrawFailed;
 
+  /// First step of the two-step account deletion flow under customer support (#2019).
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account?'**
+  String get myWithdrawReasonTitle;
+
+  /// No description provided for @myWithdrawReasonQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What did not work for you?'**
+  String get myWithdrawReasonQuestion;
+
+  /// No description provided for @myWithdrawReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can pick more than one'**
+  String get myWithdrawReasonHint;
+
+  /// No description provided for @myWithdrawReasonPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'I am worried about my privacy'**
+  String get myWithdrawReasonPrivacy;
+
+  /// No description provided for @myWithdrawReasonRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'I hardly use it any more'**
+  String get myWithdrawReasonRarelyUsed;
+
+  /// No description provided for @myWithdrawReasonHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'It is awkward to use'**
+  String get myWithdrawReasonHardToUse;
+
+  /// No description provided for @myWithdrawReasonNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many notifications'**
+  String get myWithdrawReasonNotifications;
+
+  /// No description provided for @myWithdrawReasonAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'I am using another app'**
+  String get myWithdrawReasonAlternative;
+
+  /// No description provided for @myWithdrawReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get myWithdrawReasonOther;
+
+  /// No description provided for @myWithdrawNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get myWithdrawNext;
+
+  /// Second step: what can be changed instead of leaving, chosen from the reasons picked (#2019).
+  ///
+  /// In en, this message translates to:
+  /// **'Before you go'**
+  String get myWithdrawKeepTitle;
+
+  /// No description provided for @myWithdrawKeepPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Only you and your trainer can see your records. Disconnect the trainer and they are yours alone — the gym and trainer card on the MY tab does that.'**
+  String get myWithdrawKeepPrivacy;
+
+  /// No description provided for @myWithdrawKeepRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'The AI coach still lines up something worth doing on the days you record nothing. Tapping a single suggestion on the Exercise tab is enough to pick it back up.'**
+  String get myWithdrawKeepRarelyUsed;
+
+  /// No description provided for @myWithdrawKeepHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what got in the way and we will fix it. The 1:1 enquiry under MY > Customer support reaches us directly.'**
+  String get myWithdrawKeepHardToUse;
+
+  /// No description provided for @myWithdrawKeepNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.'**
+  String get myWithdrawKeepNotifications;
+
+  /// No description provided for @myWithdrawKeepAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.'**
+  String get myWithdrawKeepAlternative;
+
+  /// No description provided for @myWithdrawKeepOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 enquiry under MY > Customer support.'**
+  String get myWithdrawKeepOther;
+
+  /// No description provided for @myWithdrawKeepDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'The diet and exercise records you have built up go with the account, and they cannot be restored.'**
+  String get myWithdrawKeepDefault;
+
+  /// No description provided for @myWithdrawStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep using On-Care'**
+  String get myWithdrawStay;
+
+  /// No description provided for @myWithdrawContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue deleting'**
+  String get myWithdrawContinue;
+
   /// No description provided for @myCancel.
   ///
   /// In en, this message translates to:

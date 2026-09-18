@@ -651,30 +651,14 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
     final OnCareTokens tokens = context.oncare;
     return AppSheet(
       title: l.coachRoutineCompleteTitle,
-      // [AppButtonPair] 와 같은 배치(취소 왼쪽 보조, 확정 오른쪽 주요)다. 확정
-      // 버튼에 테스트·자동화가 잡는 키가 있어 두 버튼을 직접 놓는다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              label: l.actionCancel,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const Key('confirmRoutineCompletion'),
-              label: l.coachRoutineSubmit,
-              fullWidth: true,
-              onPressed: () => Navigator.of(
-                context,
-              ).pop(_RoutineCompletionInput(intensity: _intensity)),
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const Key('confirmRoutineCompletion'),
+        confirmLabel: l.coachRoutineSubmit,
+        onConfirm: () => Navigator.of(
+          context,
+        ).pop(_RoutineCompletionInput(intensity: _intensity)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

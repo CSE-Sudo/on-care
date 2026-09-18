@@ -11,6 +11,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/services/exercise_goals_provider.dart';
+import 'package:oncare/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// `운동 현황` 의 기본 기간 — 0 = 오늘, 1 = 이번 주, 2 = 전체.
@@ -297,7 +298,7 @@ class _ExerciseActivityStatusState
             streakDays: widget.week.streakDays,
           )
         else if (period == 1)
-          ExerciseWeekLoadCard(loads: _loads, goals: _goals)
+          ExerciseWeekLoadCard(loads: _loads, goals: _goals, showRange: true)
         else
           _AllPeriodView(goals: _goals),
       ],
@@ -880,6 +881,7 @@ class ExerciseWeekLoadCard extends StatelessWidget {
     required this.loads,
     this.goals = kDefaultExerciseLoadGoals,
     this.surface = true,
+    this.showRange = false,
     super.key,
   });
 
@@ -888,6 +890,14 @@ class ExerciseWeekLoadCard extends StatelessWidget {
 
   /// 흰 카드 바탕을 직접 그릴지. 홈처럼 **이미 카드 안**에 놓일 때는 끈다.
   final bool surface;
+
+  /// 머리줄 오른쪽에 이 카드가 집계한 주(월~일)를 적을지. (#2007)
+  ///
+  /// 운동 탭에서 켠다 — 같은 토글 안의 `전체` 가 제 기간을 스스로 적는데
+  /// `이번 주` 만 비어 있으면, 이 숫자가 어느 주의 것인지 카드가 말하지
+  /// 않는다. 홈은 늘 이번 주 하나라 켜지 않는다 — 한눈에 스치는 화면에
+  /// 더 읽을 것을 두지 않는다.
+  final bool showRange;
 
   @override
   Widget build(BuildContext context) {
@@ -910,10 +920,34 @@ class ExerciseWeekLoadCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _HeadlineLine(
-            caption: l.exBurnWeekTitle,
-            value: _valueOfGoal(locale, weekKcal, g.weeklyBurnKcal),
-            unit: l.unitKcal,
+          // 기간은 머리줄과 **같은 줄** 오른쪽에 붙는다 — 제 줄을 쓰면 고정
+          // 높이(kActivityCardHeight) 안에서 링과 목록이 그만큼 깎인다.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Expanded(
+                flex: 6,
+                child: _HeadlineLine(
+                  caption: l.exBurnWeekTitle,
+                  value: _valueOfGoal(locale, weekKcal, g.weeklyBurnKcal),
+                  unit: l.unitKcal,
+                ),
+              ),
+              if (showRange) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                Expanded(
+                  flex: 4,
+                  child: PeriodRangeLabel(
+                    key: const Key('exercise-week-range'),
+                    text: periodRangeText(
+                      locale,
+                      loads.first.date,
+                      loads.last.date,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
           Expanded(
             child: LayoutBuilder(
@@ -1442,19 +1476,12 @@ class _AllPeriodBodyState extends State<_AllPeriodBody> {
                   // 평균이 어느 구간의 것인지 기간을 옆에 붙여 둔다.
                   Expanded(
                     flex: 4,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        '${DateFormat.Md(locale).format(visible.first.monday)}'
-                        ' ~ '
-                        '${DateFormat.Md(locale).format(visible.last.monday.add(const Duration(days: 6)))}',
-                        maxLines: 1,
-                        style: context.oncare
-                            .text(
-                              OnCareTypography.strong(OnCareTypography.caption),
-                            )
-                            .copyWith(color: OnCareColors.textSecondary),
+                    child: PeriodRangeLabel(
+                      key: const Key('exercise-all-range'),
+                      text: periodRangeText(
+                        locale,
+                        visible.first.monday,
+                        visible.last.monday.add(const Duration(days: 6)),
                       ),
                     ),
                   ),

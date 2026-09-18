@@ -97,37 +97,19 @@ Future<ProgramAssignConfirmation?> showProgramAssignConfirmDialog(
             key: const ValueKey<String>('program-assign-confirm'),
             title: l.programAssignConfirmTitle,
             showClose: false,
-            // 버튼마다 테스트가 찾는 Key 가 있어 AppButtonPair 대신 같은 모양의
-            // Row 로 둔다.
-            footer: Row(
-              children: <Widget>[
-                Expanded(
-                  child: AppButton(
-                    key: const ValueKey<String>(
-                      'program-assign-confirm-cancel',
-                    ),
-                    label: l.actionCancel,
-                    variant: AppButtonVariant.secondary,
-                    fullWidth: true,
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                  ),
-                ),
-                const SizedBox(width: OnCareSpacing.buttonGap),
-                Expanded(
-                  child: AppButton(
-                    key: const ValueKey<String>(
-                      'program-assign-confirm-submit',
-                    ),
-                    label: l.programEditorAddSchedule,
-                    fullWidth: true,
-                    onPressed: candidates.length > 1 && chosen == null
-                        ? null
-                        : () => Navigator.of(
-                            dialogContext,
-                          ).pop((sessionId: chosen)),
-                  ),
-                ),
-              ],
+            footer: AppButtonPair(
+              cancelKey: const ValueKey<String>(
+                'program-assign-confirm-cancel',
+              ),
+              cancelLabel: l.actionCancel,
+              onCancel: () => Navigator.of(dialogContext).pop(),
+              confirmKey: const ValueKey<String>(
+                'program-assign-confirm-submit',
+              ),
+              confirmLabel: l.programEditorAddSchedule,
+              onConfirm: candidates.length > 1 && chosen == null
+                  ? null
+                  : () => Navigator.of(dialogContext).pop((sessionId: chosen)),
             ),
             child: body,
           );
