@@ -70,6 +70,17 @@ class _ConsultationRequestPageState
   bool _submitting = false;
 
   @override
+  void initState() {
+    super.initState();
+    // 이 트레이너에게 낸 요청이 대기 중이면 폼을 잠근다. 그 판단이 옛 목록에 기대면
+    // 거절·만료돼 자리가 풀린 트레이너에게 다시 신청하지 못한다 — 열 때 다시
+    // 받는다(#2067).
+    unawaited(
+      ref.read(consultationRequestControllerProvider.notifier).refresh(),
+    );
+  }
+
+  @override
   void dispose() {
     _messageController.dispose();
     super.dispose();

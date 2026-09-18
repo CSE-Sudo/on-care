@@ -514,8 +514,14 @@ def test_accept_notifies_the_member(client, db_session):
 
     alerts = client.get("/v1/notifications", headers=_auth(member_token))
     assert alerts.status_code == 200, alerts.text
-    titles = [a["title"] for a in alerts.json()]
-    assert "상담 요청이 승인되었어요" in titles
+    accepted = [
+        a for a in alerts.json() if a["title"] == "상담 요청이 승인되었어요"
+    ]
+    assert accepted
+    # 결과는 내 상담 요청으로 간다(#2067). 담당 연결 알림과 같은 갈래였을 때는
+    # 운동 탭으로 가서 결과를 따로 찾아야 했다.
+    assert accepted[0]["category"] == "consult_decision"
+    assert accepted[0]["action"]["target"] == "consultations"
 
 
 def test_accept_links_member_to_the_trainers_gym(client, db_session):
@@ -773,6 +779,8 @@ def test_reject_records_the_reason_and_creates_no_link(client, db_session):
     alerts = client.get("/v1/notifications", headers=_auth(member_token)).json()
     rejected = [a for a in alerts if a["title"] == "상담 요청이 반려되었어요"]
     assert rejected and rejected[0]["body"] == "이번 달은 정원이 찼어요"
+    # 사유를 보여 주는 곳이 내 상담 요청이다(#2067).
+    assert rejected[0]["action"]["target"] == "consultations"
 
 
 def test_member_sees_the_reason_but_never_the_deciding_trainer(

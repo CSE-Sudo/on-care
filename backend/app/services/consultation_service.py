@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.clock import SEOUL
 from app.core.pagination import DEFAULT_PAGE
+from app.db import seed_slots
 from app.models.models import (
     HealthProfile,
     ConsultationRequest,
@@ -181,13 +182,17 @@ def available_slots(
 
     읽기 전에 지난 대기 요청을 만료 처리한다 — 그래야 풀린 자리가 이 목록에 다시
     나타난다. 커밋은 여기서 한다(정리 결과를 남기지 않으면 다음 조회가 또 센다).
+
+    데모 트레이너는 고를 자리가 떨어지면 여기서 다시 깐다(#2067). 기동할 때 깐
+    자리만으로는 오래 켜 둔 서버에서 날짜가 지나 다시 빈다.
     """
     current = now or _now()
-    if expire_stale_requests(db, trainer_id, now=current):
+    cutoff = slot_visibility_cutoff(current)
+    changed = expire_stale_requests(db, trainer_id, now=current)
+    changed += seed_slots.top_up_demo_slots(db, trainer_id, after=cutoff, now=current)
+    if changed:
         db.commit()
-    return reservation_service.consultation_slot_options(
-        db, trainer_id, after=slot_visibility_cutoff(current)
-    )
+    return reservation_service.consultation_slot_options(db, trainer_id, after=cutoff)
 
 
 def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
@@ -669,7 +674,8 @@ def _notify(db: Session, *, user_id: str, title: str, body: str) -> None:
 
     category 를 `system` 이 아니라 상담 결과로 밝히는 이유: 앱이 이 값으로 갈 곳을
     정한다. `system` 은 목적지가 없어, 승인 알림을 눌러도 담당 트레이너 화면으로
-    갈 수 없었다(#636).
+    갈 수 없었다(#636). 담당 연결 알림과도 갈래를 나눈다(#2067) — 결과와 사유가
+    있는 곳은 운동 탭이 아니라 내 상담 요청이다.
 
     수신 설정을 보지 않는 것은 의도다 — 내가 보낸 요청의 처리 결과는 끌 수 있는
     알림이 아니다. 그래서 `notification_service.queue` 가 아니라 여기서 직접 만든다.
@@ -680,7 +686,7 @@ def _notify(db: Session, *, user_id: str, title: str, body: str) -> None:
             user_id=user_id,
             title=title,
             body=body,
-            category=notification_service.MEMBER_CONSULTATION,
+            category=notification_service.MEMBER_CONSULTATION_DECISION,
             read=False,
         )
     )

@@ -340,9 +340,12 @@ class MockGymRepository implements GymRepository {
     return DateTime(day.year, day.month, day.day + addDays, hour, minute);
   }
 
+  /// 자리를 비워 두는 트레이너. 빈 상태(헬스장 전화 안내)도 데모에서 보여야 한다.
+  static const String _emptyTrainerId = 'trainer-yoon';
+
   static List<TrainerSlot> _seedSlots() {
     final DateTime today = nowKst();
-    return <TrainerSlot>[
+    final List<TrainerSlot> handWritten = <TrainerSlot>[
       // 오늘 자리는 데모에서 "가까운 시간"을 보여주려고 둔다. 저녁에 앱을 켜면
       // 이미 지나 목록에서 빠지므로, 트레이너마다 내일 이후 자리를 함께 둬서
       // 어느 시각에 열어도 예약할 수 있는 자리가 남는다.
@@ -430,7 +433,34 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '1:1 PT',
       ),
-      // 윤재희는 슬롯이 없다 — 빈 상태를 데모에서도 볼 수 있어야 한다.
+    ];
+    // 자리를 손으로 적지 않은 트레이너(조민혁·발견 헬스장 트레이너)에게는 서버 데모
+    // 시드(`backend/app/db/seed_slots.py`)와 같은 규칙으로 둘씩 둔다 — 내일 13:00,
+    // 모레 19:30, `1:1 PT` (#2067). 없으면 그 트레이너로 상담 신청을 열었을 때
+    // 헬스장 전화 안내만 떠서 신청 흐름을 볼 수 없다. 윤재희는 비워 둔다.
+    final Set<String> covered = <String>{
+      for (final TrainerSlot slot in handWritten) slot.trainerId,
+    };
+    return <TrainerSlot>[
+      ...handWritten,
+      for (final Trainer trainer in _trainers)
+        if (!covered.contains(trainer.id) &&
+            trainer.id != _emptyTrainerId) ...<TrainerSlot>[
+          TrainerSlot(
+            id: 'slot-${trainer.id}-1',
+            trainerId: trainer.id,
+            startsAt: _at(today, 1, 13, 0),
+            booked: false,
+            sessionType: '1:1 PT',
+          ),
+          TrainerSlot(
+            id: 'slot-${trainer.id}-2',
+            trainerId: trainer.id,
+            startsAt: _at(today, 2, 19, 30),
+            booked: false,
+            sessionType: '1:1 PT',
+          ),
+        ],
     ];
   }
 
