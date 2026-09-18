@@ -842,7 +842,7 @@ abstract class AppLocalizations {
   /// **'Record date'**
   String get dietRecordDate;
 
-  /// Button on the meal detail's record-date row. Moves the meal to the picked day on its own (#1947).
+  /// Button on the record-date row of the analysis result sheet and the meal detail. Moves the meal to the picked day on its own (#1241, #1947).
   ///
   /// In en, this message translates to:
   /// **'Change date'**

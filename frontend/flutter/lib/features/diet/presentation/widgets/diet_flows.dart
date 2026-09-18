@@ -470,13 +470,16 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   bool _loading = true;
   DietAnalysisFailure? _failure;
 
-  /// 이 기록이 놓인 날. 분석은 저장한 시각의 날짜로 남기므로 늘 오늘이다.
+  /// 이 기록이 놓인 날. 분석은 저장한 시각의 날짜로 남기므로 처음은 늘 오늘이고,
+  /// 지난 식사의 사진이면 `날짜 변경` 으로 실제로 먹은 날로 옮긴다(#1241).
   ///
-  /// 지난 식사의 사진이면 날짜를 고쳐야 하는데, 그 자리는 여기가 아니라 헤더
-  /// 연필이 여는 식단 상세다(#1947). 날짜는 이 시트에서 고칠 수 있는데 끼니는
-  /// 고칠 수 없어 `어제 · 아침` 같은 기록이 남았다 — 날짜·끼니·음식을 한
-  /// 자리에서 고치도록 문을 연필 하나로 모았다.
-  final DateTime _date = _todayKst();
+  /// 날짜는 식단 상세처럼 따로 옮긴다(#1947) — 사진을 올린 자리에서 가장 흔히
+  /// 고치는 것이 날짜라, 연필로 상세까지 들어가게 하지 않는다. 끼니·음식은
+  /// 헤더 연필이 여는 식단 상세에서 고친다.
+  late DateTime _date = _todayKst();
+
+  /// 날짜를 옮기는 중. 두 번 눌러 같은 기록을 두 날짜로 보내지 않게 막는다.
+  bool _movingDate = false;
 
   bool get _failed => _failure != null;
 
@@ -558,6 +561,55 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     final GoRouter router = GoRouter.of(context);
     Navigator.of(context).pop(false);
     unawaited(router.push<void>(AppRoutes.dietEntryDetailPath(result.entryId)));
+  }
+
+  /// 기록 날짜만 따로 옮긴다. (#1241, #1947)
+  ///
+  /// 분석이 끝난 시점에 기록은 이미 서버에 남아 있다. 그래서 고른 즉시 옮긴다 —
+  /// 시트를 닫는 방법이 여럿인데, 저장을 한 버튼에만 걸어 두면 화면에 보이는
+  /// 날짜와 실제로 남은 날짜가 갈린다. 식단 상세의 `날짜 변경` 과 같은 동작이다.
+  Future<void> _pickDate() async {
+    final DietAnalysisResult? result = _result;
+    if (result == null || result.entryId.isEmpty || _movingDate) return;
+    final DateTime today = _todayKst();
+    final DateTime? picked = await showAppDatePicker(
+      context: context,
+      initialDate: _date,
+      // 지난 식사는 얼마든지 올릴 수 있지만, 앞날의 식사는 아직 먹지 않았다.
+      firstDate: DateTime(today.year - 1),
+      lastDate: today,
+    );
+    if (picked == null || !mounted) return;
+    final DateTime chosen = DateTime(picked.year, picked.month, picked.day);
+    if (chosen == _date) return;
+
+    final AppLocalizations l = AppLocalizations.of(context);
+    final DateTime previous = _date;
+    setState(() => _movingDate = true);
+    try {
+      await ref
+          .read(dietRepositoryProvider)
+          .updateEntry(id: result.entryId, date: wireDate(chosen));
+      if (!mounted) return;
+      setState(() {
+        _date = chosen;
+        _movingDate = false;
+      });
+      // 떠난 날과 도착한 날을 모두 비운다 — 한쪽만 비우면 합계가 두 날에
+      // 겹쳐 보이거나 어느 쪽에서도 보이지 않는다.
+      ref.invalidate(dietTodayProvider);
+      ref.invalidate(dietByDateProvider(previous));
+      ref.invalidate(dietByDateProvider(chosen));
+      showAppToast(
+        context,
+        l.dietRecordDateMoved(_recordDateLabel(context, chosen)),
+        type: AppToastType.success,
+      );
+    } on Object catch (_) {
+      if (!mounted) return;
+      setState(() => _movingDate = false);
+      showAppToast(context, l.dietRecordDateFailed, type: AppToastType.error);
+    }
   }
 
   /// 이 기록이 들어갈 끼니. `widget.mealType` 은 사진을 고른 시각으로 추측한
@@ -791,9 +843,9 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
-        // 기록 날짜와 끼니 — 값만 보여 준다. 고치는 자리는 헤더 연필이 여는
-        // 식단 상세 한 곳이다(#1947). 이 시트에 편집 자리가 둘이면 같은
-        // 화면에서 고치는 방법이 갈린다.
+        // 기록 날짜와 끼니. 날짜는 `날짜 변경` 으로 여기서 바로 따로 옮기고
+        // (#1241, #1947), 끼니·음식은 헤더 연필이 여는 식단 상세에서 고친다 —
+        // 식단 상세의 `식사 정보` 카드와 같은 나눔이다.
         //
         // 식단 상세의 `식사 정보` 카드와 같은 두 줄이다 — 한 줄에 `날짜 · 끼니`
         // 로 붙여 두면 끼니가 날짜의 꼬리처럼 읽혀, 이 기록이 어느 끼니로
@@ -816,14 +868,39 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
               TableRow(
                 children: <Widget>[
                   _InfoLabel(l.dietRecordDate),
-                  Text(
-                    _recordDateLabel(context, _date),
-                    key: const Key('diet-result-date'),
-                    style: _text(
-                      context,
-                      OnCareTypography.strong(OnCareTypography.bodySmall),
-                      OnCareColors.textPrimary,
-                    ),
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          _recordDateLabel(context, _date),
+                          key: const Key('diet-result-date'),
+                          style: _text(
+                            context,
+                            OnCareTypography.strong(OnCareTypography.bodySmall),
+                            OnCareColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      // 날짜를 옮기는 동안 버튼이 spinner 로 바뀐다. 자리를
+                      // 잡아 두지 않으면 줄 높이가 내려앉아 라벨과 값이 함께
+                      // 튄다 — 두 상태가 같은 높이를 쓴다(#1864).
+                      SizedBox(
+                        height: tokens.density.buttonHeight(
+                          OnCareButtonSize.small,
+                        ),
+                        child: Center(
+                          child: _movingDate
+                              ? const AppLoading.inline()
+                              : AppButton(
+                                  key: const Key('diet-result-date-change'),
+                                  label: l.dietRecordDateChange,
+                                  onPressed: () => unawaited(_pickDate()),
+                                  variant: AppButtonVariant.text,
+                                  size: OnCareButtonSize.small,
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
