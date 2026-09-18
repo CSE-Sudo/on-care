@@ -39,6 +39,12 @@ _ROSTER_TOTAL = 60
 
 _BASE = datetime(2026, 3, 1, 9, 0, tzinfo=timezone.utc)
 
+#: 상담 요청의 기준 시각. 예약(`_BASE`)과 달리 **지금 가까이**여야 한다 — 대기 요청은
+#: 신청 후 24시간이 지나면 읽는 시점에 만료된다(#1873). 반년 전 시각으로 쌓으면
+#: 배지·인박스를 읽는 순간 전부 `expired` 가 된다. 오프셋이 같아 정렬·동시각 경계는
+#: 그대로다.
+_CONSULT_BASE = datetime.now(timezone.utc) - timedelta(hours=3)
+
 
 def _auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
@@ -228,7 +234,7 @@ def _consultation(member_id: str, trainer_id: str, i: int, count: int, status: s
         preferred_date="2026-04-01",
         preferred_time_slot="morning",
         status=status,
-        created_at=_BASE + timedelta(minutes=min(i, count - 2)),
+        created_at=_CONSULT_BASE + timedelta(minutes=min(i, count - 2)),
     )
 
 

@@ -241,6 +241,59 @@ Future<Options> _memberAuth() async {
   );
 }
 
+/// 트레이너 토큰 — 회원 토큰과 같은 이유로 한 번만 받는다(인증 한도).
+///
+/// 상담은 트레이너가 연 자리를 골라 신청하므로(#1873), 픽스처가 자리를 열 때 쓴다.
+String? _cachedTrainerToken;
+
+Future<Options> _trainerAuth() async {
+  final cached = _cachedTrainerToken;
+  if (cached == null) {
+    final login = await _fixtureApi.post<Map<String, dynamic>>(
+      '/auth/login',
+      data: <String, String>{'username': _trainerEmail, 'password': _password},
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+    _cachedTrainerToken = login.data!['access_token'] as String;
+  }
+  return Options(
+    headers: <String, String>{'Authorization': 'Bearer $_cachedTrainerToken'},
+  );
+}
+
+/// 상담을 신청할 빈 자리 하나의 id. (#1873)
+///
+/// 이미 열린 자리가 있으면 그것을 쓴다 — 이 스위트는 상담을 거절로 끝내고 거절은
+/// 자리를 되돌려 주므로, 다음 실행이 같은 자리를 다시 고른다. 매번 새로 열면 로컬
+/// DB 에 자리가 한없이 쌓인다. 없을 때만 모레 저녁에 연다(폼 하한 4시간을 넘긴다).
+Future<String> _openConsultationSlot() async {
+  final open = await _fixtureApi.get<List<dynamic>>(
+    '/consultations/slots',
+    queryParameters: <String, String>{'trainer_id': 'trainer-demo'},
+    options: await _memberAuth(),
+  );
+  final slots = open.data ?? const <dynamic>[];
+  if (slots.isNotEmpty) {
+    return (slots.first as Map<String, dynamic>)['id'] as String;
+  }
+  final twoDays = DateTime.now().add(const Duration(days: 2));
+  final created = await _fixtureApi.post<Map<String, dynamic>>(
+    '/trainer/reservation-slots',
+    options: await _trainerAuth(),
+    data: <String, Object?>{
+      'starts_at': DateTime(
+        twoDays.year,
+        twoDays.month,
+        twoDays.day,
+        19,
+      ).toUtc().toIso8601String(),
+      'duration_minutes': 30,
+      'session_type': '1:1 PT',
+    },
+  );
+  return created.data!['id'] as String;
+}
+
 /// 회원 계정으로 본 상담 요청 목록. 픽스처 준비와 결과 확인이 같은 창구를 쓴다.
 Future<List<Map<String, dynamic>>> _memberConsultations() async {
   final mine = await _fixtureApi.get<List<dynamic>>(
@@ -269,7 +322,6 @@ Future<String> _ensurePendingConsultation() async {
     }
   }
 
-  final preferredDate = DateTime.now().add(const Duration(days: 2));
   final created = await _fixtureApi.post<Map<String, dynamic>>(
     '/consultations',
     options: await _memberAuth(),
@@ -279,9 +331,11 @@ Future<String> _ensurePendingConsultation() async {
       'exercise_goal': 'fitness',
       'health_purpose_type': 'general',
       'health_purpose_detail': null,
-      'preferred_date': _ymd(preferredDate),
-      'preferred_time_slot': 'evening',
+      // 희망 날짜·시각 대신 트레이너가 연 자리를 고른다(#1873).
+      'slot_id': await _openConsultationSlot(),
       'message': '#624 브라우저 E2E 상담 요청',
+      // 동의 없이는 서버가 받지 않는다(#1022).
+      'data_sharing_consent': true,
     },
   );
   return created.data!['id'] as String;

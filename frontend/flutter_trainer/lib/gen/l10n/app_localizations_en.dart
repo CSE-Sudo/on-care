@@ -1137,6 +1137,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get consultHealthPurpose => 'Health management purpose';
 
   @override
+  String get consultChosenSlot => 'Chosen time';
+
+  @override
+  String consultSlotDuration(int minutes) {
+    return '$minutes min';
+  }
+
+  @override
+  String get consultStatusExpired => 'Expired';
+
+  @override
   String get consultPreferredTime => 'Preferred time';
 
   @override

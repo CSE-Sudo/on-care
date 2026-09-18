@@ -47,10 +47,10 @@ class ConsultationRequestCard extends StatelessWidget {
         AppTagTone.danger,
       ),
       ConsultationStatus.cancelled => (l.errorCancelled, AppTagTone.neutral),
+      // 트레이너가 시간 안에 확인하지 않아 자리가 풀린 요청 — 거절과 구분한다.
+      // 회원이 할 일이 다르다: 다른 시간으로 다시 신청하면 된다. (#1873)
+      ConsultationStatus.expired => (l.exConsultExpired, AppTagTone.neutral),
     };
-    final String date = MaterialLocalizations.of(
-      context,
-    ).formatMediumDate(request.preferredDate);
     final Widget? outcome = _outcomeNote(context, l);
 
     return AppCard(
@@ -99,8 +99,15 @@ class ConsultationRequestCard extends StatelessWidget {
                 ),
                 const SizedBox(height: OnCareSpacing.s8),
                 Text(
-                  '$date · '
-                  '${preferredTimeLabel(context, l, request.preferredTimeSlot)}',
+                  // 자리를 고른 요청은 그 자리의 시작–종료를 그리고, 승인되면
+                  // **확정 일시**로 밝힌다 — 승인 뒤에도 회원이 언제로 잡혔는지
+                  // 여기서 확인한다(#1873). 자리 선택 이전 요청은 적어 보낸 희망
+                  // 시각이 그대로 보인다.
+                  request.status == ConsultationStatus.accepted &&
+                          request.slotStartsAt != null
+                      ? '${l.exConsultConfirmedAt} · '
+                            '${consultationTimeLabel(context, l, request)}'
+                      : consultationTimeLabel(context, l, request),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: tokens
@@ -164,6 +171,12 @@ class ConsultationRequestCard extends StatelessWidget {
         );
       case ConsultationStatus.cancelled:
         return null;
+      case ConsultationStatus.expired:
+        return _OutcomeNote(
+          key: const Key('consult-outcome-expired'),
+          tone: OnCareColors.textTertiary,
+          text: l.exConsultExpiredBody,
+        );
     }
   }
 

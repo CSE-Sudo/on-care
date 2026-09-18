@@ -49,19 +49,13 @@ const String apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 const String e2ePhase = String.fromEnvironment('E2E_PHASE');
 const String e2eStateFile = String.fromEnvironment('E2E_STATE_FILE');
 
-/// 회원 단계가 상담 신청에 넣는 희망 시각의 시작(`HH:mm`).
+/// 회원 단계가 상담에 고르는 자리의 시작 시각(서울, `HH:mm`). (#1873)
 ///
-/// 승인이 이 시각에 상담 일정을 만든다. 회원 앱 하네스
+/// 서버는 고른 자리의 시각을 `preferred_time_slot` 에 이 모양으로 옮겨 적고,
+/// 승인이 이 시각에 일정을 만든다. 회원 앱 하네스
 /// (`frontend/flutter/test_e2e/support/e2e_harness.dart`)의 같은 이름 상수와
 /// **값이 같아야 한다** — 두 앱은 서로 다른 패키지라 공유할 수 없다.
 const String consultStartTime = '21:00';
-
-/// [consultStartTime] 의 종료 시각.
-const String consultEndTime = '22:00';
-
-/// 회원이 신청에 남긴 `preferred_time_slot`. 희망 시각은 필수라(#1587)
-/// `시간 협의` 같은 값은 더 이상 오지 않는다.
-const String consultPreferredTimeSlot = '$consultStartTime-$consultEndTime';
 
 /// 단계 사이로 넘기는 값. **화면에서 읽을 수 없는 id 만** 여기 담는다.
 ///
@@ -195,32 +189,6 @@ class E2eApi {
       for (final Object? row in res.data ?? const <Object?>[])
         row! as Map<String, dynamic>,
     ];
-  }
-
-  /// [date] [time] 자리에 남아 있는 일정을 모두 지운다.
-  ///
-  /// 상담 승인은 그 자리에 이미 일정이 있으면 409 로 막힌다(겹침 판정이
-  /// (날짜, 시각)이 정확히 같은 자리를 본다). 앞선 실행이 승인까지 하고
-  /// 정리 전에 죽으면 그날 안에는 다시 승인할 수 없게 되므로, 승인 전에
-  /// 이 자리를 비워 둔다. 시드 타임라인과 다른 스위트가 쓰지 않는 시각
-  /// ([consultStartTime])에만 쓴다.
-  Future<void> clearSessionsAt({
-    required String date,
-    required String time,
-  }) async {
-    final Response<List<dynamic>> res = await _dio.get<List<dynamic>>(
-      '/trainer/schedule',
-      queryParameters: <String, String>{'date': date},
-      options: _auth,
-    );
-    for (final Object? row in res.data ?? const <Object?>[]) {
-      final Map<String, dynamic> session = row! as Map<String, dynamic>;
-      if (session['time'] != time) continue;
-      await _dio.delete<Object?>(
-        '/trainer/schedule/${session['id']}',
-        options: _auth,
-      );
-    }
   }
 
   Future<List<Map<String, dynamic>>> trainerSlots() async {

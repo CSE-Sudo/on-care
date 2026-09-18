@@ -147,8 +147,7 @@ class ConsultationDraft {
     required this.exerciseGoal,
     required this.healthPurposeType,
     required this.healthPurposeDetail,
-    required this.preferredDate,
-    required this.preferredTimeSlot,
+    required this.slotId,
     required this.message,
     this.dataSharingConsent = false,
   });
@@ -161,8 +160,11 @@ class ConsultationDraft {
 
   /// `healthPurposeType` 이 other 면 필수 — 서버가 422 로 강제한다.
   final String? healthPurposeDetail;
-  final DateTime preferredDate;
-  final PreferredTime preferredTimeSlot;
+
+  /// 회원이 고른 트레이너의 빈 자리. 희망 시각을 적어 보내던 방식을 대신한다
+  /// (#1873) — 자리가 시작·길이·종류를 모두 들고 있어 상담 시간을 아무도 다시
+  /// 정하지 않는다.
+  final String slotId;
   final String? message;
 
   /// 식단·운동·신체 정보를 이 트레이너에게 보여 주는 데 동의했는가. (#1022)
@@ -181,11 +183,10 @@ class ConsultationDraft {
         (healthPurposeDetail == null || healthPurposeDetail!.trim().isEmpty)) {
       throw ArgumentError('기타 건강관리 목적에는 상세 내용이 필요합니다.');
     }
-    if (preferredTimeSlot.isFlexible) {
-      // 서버도 막지만(422) 여기서 먼저 막는다 — 시각 없는 요청은 트레이너가
-      // 승인해도 잡을 시간이 없어, 승인만 되고 상담 일정은 만들어지지 않는다.
-      // (#1587)
-      throw ArgumentError('상담 희망 시각을 골라야 신청할 수 있습니다.');
+    if (slotId.trim().isEmpty) {
+      // 서버도 막지만(422) 여기서 먼저 막는다 — 자리를 고르지 않은 요청은
+      // 트레이너가 승인해도 잡을 시간이 없다. (#1873)
+      throw ArgumentError('예약 가능한 시간을 골라야 신청할 수 있습니다.');
     }
     if (!dataSharingConsent) {
       // 서버도 막지만(400) 여기서 먼저 막는다 — 동의 없이 보낸 요청이 트레이너
@@ -201,12 +202,9 @@ class ConsultationDraft {
     'exercise_goal': exerciseGoalToWire(exerciseGoal),
     'health_purpose_type': healthPurposeToWire(healthPurposeType),
     'health_purpose_detail': healthPurposeDetail,
-    // 날짜만 보낸다(YYYY-MM-DD) — 서버 계약이 date 다.
-    'preferred_date':
-        '${preferredDate.year.toString().padLeft(4, '0')}-'
-        '${preferredDate.month.toString().padLeft(2, '0')}-'
-        '${preferredDate.day.toString().padLeft(2, '0')}',
-    'preferred_time_slot': preferredTimeSlotToWire(preferredTimeSlot),
+    // 희망 날짜·시각 대신 고른 자리 하나를 보낸다(#1873). 서버가 이 자리를
+    // 잠그고, 수락하면 그대로 첫 일정이 된다.
+    'slot_id': slotId,
     'message': message,
     'data_sharing_consent': dataSharingConsent,
   };

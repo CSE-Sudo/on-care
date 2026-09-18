@@ -2096,6 +2096,24 @@ abstract class AppLocalizations {
   /// **'Health management purpose'**
   String get consultHealthPurpose;
 
+  /// No description provided for @consultChosenSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Chosen time'**
+  String get consultChosenSlot;
+
+  /// No description provided for @consultSlotDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String consultSlotDuration(int minutes);
+
+  /// No description provided for @consultStatusExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get consultStatusExpired;
+
   /// No description provided for @consultPreferredTime.
   ///
   /// In en, this message translates to:

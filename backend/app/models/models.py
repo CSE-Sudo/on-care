@@ -685,6 +685,20 @@ class ConsultationRequest(Base):
     exercise_goal: Mapped[str] = mapped_column(String(30))
     health_purpose_type: Mapped[str] = mapped_column(String(30))
     health_purpose_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 회원이 고른 트레이너의 빈 자리. 신청하는 순간 이 자리를 잠그고, 수락하면
+    #: 그대로 첫 일정이 된다. 거절·취소·만료에서 되돌려 준다. (#1873)
+    #:
+    #: nullable 인 이유는 둘이다 — 자리 선택 이전에 접수된 요청에는 고른 자리가
+    #: 없고(그 요청들은 배포 때 `expired` 로 정리된다), 트레이너가 자리를 지우면
+    #: `SET NULL` 로 끊긴다. 끊겨도 아래 두 칸에 시각 사본이 남아 조회는 된다.
+    slot_id: Mapped[str | None] = mapped_column(
+        ForeignKey("trainer_reservation_slots.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    #: 고른 자리의 시각 사본. 자리를 보고 적는 값이라 새 요청에서는 자리와 늘
+    #: 같고, 자리가 끊겨도 화면이 "언제로 신청했는지"를 그릴 수 있다. 자리 선택
+    #: 이전 요청에는 회원이 직접 적어 보낸 희망 시각이 그대로 남아 있다.
     preferred_date: Mapped[str] = mapped_column(String(10))
     preferred_time_slot: Mapped[str] = mapped_column(String(20))
     #: 회원이 데이터 공유에 동의한 시각. 트레이너가 수락해 담당이 생기면 이
