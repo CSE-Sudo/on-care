@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -109,6 +110,10 @@ class _InsightRow extends ConsumerWidget {
       return;
     }
     ref.invalidate(aiCoachInsightsProvider);
+    // 담당이 없는 회원의 AI 추천은 이 감지로 좁혀져 있다(#2016). 이 창은 운동
+    // 탭의 추천 칸에서도 열린다 — 탭을 옮기지 않으니 목록을 여기서 다시 받아야
+    // 치운 감지로 뺐던 운동이 그 자리에서 돌아온다.
+    ref.invalidate(coachRoutinesProvider);
   }
 
   @override
