@@ -219,6 +219,9 @@ TRAINER_CONSULTATION_KIND = "consultation"
 TRAINER_RESERVATION_KIND = "reservation"
 #: 담당 회원이 건강 목표를 바꿨다 → 그 회원 상세(`subject_id`). (#1832)
 TRAINER_HEALTH_GOAL_KIND = "health_goal"
+#: 담당 회원이 이름을 바꿨다 → 그 회원 상세(`subject_id`). 이미 받은 알림은 옛
+#: 이름으로 남으므로 둘을 잇는다. (#2065)
+TRAINER_MEMBER_NAME_KIND = "member_name"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.
