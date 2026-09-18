@@ -1822,6 +1822,53 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachInviteConsentAgree => '동의하고 연결';
 
   @override
+  String get exConsultSlotTitle => '예약 가능한 시간';
+
+  @override
+  String get exConsultSlotRequired => '예약 가능한 시간을 선택해주세요.';
+
+  @override
+  String get exConsultSlotsEmptyTitle => '지금은 예약 가능한 상담 시간이 없어요.';
+
+  @override
+  String exConsultSlotsEmptyBody(String gym, String phone) {
+    return '$gym $phone 로 문의해 상담 시간을 요청해 주세요.';
+  }
+
+  @override
+  String exConsultSlotsEmptyNoPhone(String gym) {
+    return '$gym 상세에서 위치와 영업시간을 확인해 문의해 주세요.';
+  }
+
+  @override
+  String get exConsultSlotsError => '예약 가능한 시간을 불러오지 못했어요.';
+
+  @override
+  String get exConsultSlotTaken => '방금 다른 회원이 그 시간을 예약했어요. 다른 시간을 선택해주세요.';
+
+  @override
+  String get exGymCall => '전화 걸기';
+
+  @override
+  String get exGymCallFailed => '전화 앱을 열 수 없어요.';
+
+  @override
+  String get exGymDetail => '헬스장 상세 보기';
+
+  @override
+  String get exConsultChosenSlot => '신청한 시간';
+
+  @override
+  String get exConsultConfirmedAt => '확정 일시';
+
+  @override
+  String get exConsultExpired => '만료됨';
+
+  @override
+  String get exConsultExpiredBody =>
+      '트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.';
+
+  @override
   String get exExerciseGoal => '운동 목표';
 
   @override
@@ -1835,15 +1882,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exPreferredDate => '희망 날짜';
-
-  @override
-  String get exSelectDate => '날짜를 선택해주세요';
-
-  @override
-  String get exSelectTime => '시간을 선택해주세요';
-
-  @override
-  String get exPreferredTime => '희망 시간대';
 
   @override
   String get exTimeFlexible => '시간 협의';
@@ -1898,12 +1936,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exOtherGoalDetailRequired => '구체적인 운동 목표를 문의 내용에 입력해주세요.';
-
-  @override
-  String get exDateRequired => '희망 날짜를 선택해주세요.';
-
-  @override
-  String get exTimeRequired => '희망 시간대를 선택해주세요.';
 
   @override
   String get exConsultTargetNotFound => '상담 대상 정보를 찾을 수 없어요.';
@@ -2707,19 +2739,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get demoAlertRoutineTitle => '새 운동 루틴이 도착했어요';
 
   @override
-  String get demoAlertRoutineBody => '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+  String demoAlertRoutineBody(String trainerName) {
+    return '$trainerName 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+  }
 
   @override
   String get demoAlertReportTitle => '이번 주 리포트가 등록됐어요';
 
   @override
-  String get demoAlertReportBody => '김트레이너님이 이번 주 리포트를 등록했어요.';
+  String demoAlertReportBody(String trainerName) {
+    return '$trainerName 트레이너님이 이번 주 리포트를 등록했어요.';
+  }
 
   @override
   String get demoAlertPtDoneTitle => 'PT 수업 완료';
 
   @override
-  String get demoAlertPtDoneBody => '오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!';
+  String demoAlertPtDoneBody(String trainerName) {
+    return '오늘 18:00 $trainerName 트레이너와 12회차 PT를 마쳤어요!';
+  }
 
   @override
   String get demoAlertTrainerFeedbackTitle => '트레이너 피드백 도착';
@@ -2813,10 +2851,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
 
   @override
-  String get exDemoPtSessionCount => '김트레이너와 12회차';
-
-  @override
-  String get exDemoPtTrainerName => '김트레이너';
+  String exDemoPtSessionCount(String trainerName) {
+    return '$trainerName 트레이너와 12회차';
+  }
 
   @override
   String get exDemoPtFeedback =>

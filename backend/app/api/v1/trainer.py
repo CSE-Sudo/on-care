@@ -2386,35 +2386,23 @@ def trainer_accept_consultation(
     trainer: RequireTrainer,
     db: Annotated[Session, Depends(get_db)],
 ) -> ConsultationAcceptOut:
-    """상담을 승인하고 회원을 담당 고객으로 편입한다."""
+    """상담을 승인하고 회원을 담당 고객으로 편입한다.
+
+    시각을 받지 않는다 — 회원이 신청할 때 고른 자리가 날짜·시각·길이를 이미 들고
+    있다(#1873).
+    """
     try:
         return consultation_service.accept(
-            db,
-            trainer.id,
-            consultation_id,
-            note=payload.note,
-            schedule_date=payload.date,
-            schedule_time=payload.time,
-            schedule_type=payload.type,
-            duration_minutes=payload.duration_minutes,
+            db, trainer.id, consultation_id, note=payload.note
         )
     except consultation_service.ConsultationNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except (
         consultation_service.ConsultationAlreadyDecided,
         consultation_service.MemberAlreadyCoached,
+        consultation_service.ConsultationSlotGone,
     ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except consultation_service.ConsultationScheduleConflict as exc:
-        raise HTTPException(
-            status_code=409,
-            detail={
-                "message": str(exc),
-                "conflicts": [
-                    conflict.model_dump(mode="json") for conflict in exc.conflicts
-                ],
-            },
-        ) from exc
 
 
 @router.post(

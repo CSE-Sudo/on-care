@@ -181,6 +181,37 @@ void main() {
       }
     });
 
+    testWidgets('음식 이름은 끼니 배지 안의 글자와 같은 자리에서 시작한다', (
+      WidgetTester tester,
+    ) async {
+      // 배지 테두리에 맞추면 배지의 안쪽 여백만큼 이름이 사진 쪽으로 튀어나와
+      // 분류(아침·점심)보다 앞서 보인다.
+      await _pump(
+        tester,
+        _MealsRepository(<DietEntry>[
+          _meal('one', MealType.lunch, <String>['짬뽕']),
+          _meal('two', MealType.breakfast, <String>['스크램블 에그', '딸기']),
+        ]),
+      );
+
+      for (final (String id, String badge, List<String> names)
+          in <(String, String, List<String>)>[
+            ('one', '점심', <String>['짬뽕']),
+            ('two', '아침', <String>['스크램블 에그', '딸기']),
+          ]) {
+        final double badgeText = tester
+            .getRect(_inCard(id, find.text(badge)))
+            .left;
+        for (final String name in names) {
+          expect(
+            tester.getRect(_inCard(id, find.text(name))).left,
+            moreOrLessEquals(badgeText, epsilon: 0.5),
+            reason: '$id 끼니의 `$name` 이 배지 글자와 다른 자리에서 시작한다',
+          );
+        }
+      }
+    });
+
     testWidgets('사진은 정사각 88 이다', (WidgetTester tester) async {
       await _pump(tester, FakeDietRepository());
 

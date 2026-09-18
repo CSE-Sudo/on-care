@@ -1099,6 +1099,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consultHealthPurpose => '건강관리 목적';
 
   @override
+  String get consultChosenSlot => '고른 시간';
+
+  @override
+  String consultSlotDuration(int minutes) {
+    return '$minutes분';
+  }
+
+  @override
+  String get consultStatusExpired => '만료됨';
+
+  @override
   String get consultPreferredTime => '희망 일시';
 
   @override

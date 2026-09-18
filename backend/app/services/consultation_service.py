@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select, tuple_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core import clock
+from app.core.clock import SEOUL
 from app.core.pagination import DEFAULT_PAGE
 from app.models.models import (
     HealthProfile,
@@ -17,9 +17,11 @@ from app.models.models import (
     Place,
     TrainerClient,
     TrainerProfile,
+    TrainerReservationSlot,
     TrainerSchedule,
     User,
 )
+from app.schemas.reservation_api import TrainerSlotOut
 from app.schemas.consultation_api import (
     ConsultationAcceptOut,
     ConsultationCreate,
@@ -27,9 +29,8 @@ from app.schemas.consultation_api import (
     ConsultationStatusFilter,
     TrainerConsultationOut,
 )
-from app.schemas.trainer_api import ScheduleSessionOut
 from app.services import health_focus
-from app.services import notification_service, trainer_service
+from app.services import notification_service, reservation_service, trainer_service
 
 
 class InvalidConsultationRequest(Exception):
@@ -69,16 +70,143 @@ class MemberAlreadyCoached(Exception):
     """
 
 
-class ConsultationScheduleConflict(Exception):
-    """승인하며 잡으려는 시간에 이미 다른 일정이 있음 — 409.
+class ConsultationSlotGone(Exception):
+    """승인하려는데 회원이 고른 자리가 사라졌음 — 409. (#1873)
 
-    `trainer_service.ScheduleSeriesConflict` 와 같은 모양이다 — 겹치는 세션을 들고
-    다녀야 화면이 "OO님 일정과 겹쳐요" 를 그릴 수 있다.
+    트레이너가 자리를 지우면 `slot_id` 가 `SET NULL` 로 끊긴다. 그때 승인하면 잡아
+    줄 시각이 없다 — 임의의 시각을 지어내면 회원이 모르는 일정에 묶인다.
+
+    예전의 `ConsultationScheduleConflict` 를 대신한다. 승인이 시각을 정하지 않게
+    되면서 겹침은 구조적으로 나지 않는다 — 자리를 연 사람이 트레이너 자신이고
+    한 자리는 한 사람 몫이다.
     """
 
-    def __init__(self, conflicts: list[ScheduleSessionOut]) -> None:
-        super().__init__("겹치는 일정이 있습니다.")
-        self.conflicts = conflicts
+
+#: 신청이 자리를 잡고 있을 수 있는 시간. 트레이너가 확인하지 않으면 그 자리는
+#: 아무도 쓰지 못하므로, 아래 둘 중 **먼저 오는 쪽**에서 요청을 만료시킨다. (#1873)
+#:
+#: 24시간은 회원을 하루 넘게 기다리게 하지 않기 위한 것이고, 2시간 전은 오늘 저녁
+#: 자리처럼 24시간 규칙이 자리 시각보다 늦게 오는 경우를 위한 것이다.
+CONSULT_HOLD_HOURS = 24
+CONSULT_EXPIRE_BEFORE_START_HOURS = 2
+
+#: 상담 신청 폼에 보여 줄 자리의 하한(지금부터 이만큼 뒤에 시작하는 자리만).
+#:
+#: 만료 기준([CONSULT_EXPIRE_BEFORE_START_HOURS])보다 **크게** 둔다. 같게 두면
+#: 경계에서 트레이너의 확인 시간이 0 이 된다 — 19:30 자리가 17:29 에 목록에 보이는데
+#: 만료는 17:30 이라, 신청 1분 뒤에 만료된다. 둘의 차이가 트레이너가 보장받는 최소
+#: 확인 시간이다(4h - 2h = 2시간).
+CONSULT_SLOT_MIN_LEAD_HOURS = 4
+
+
+def _aware(value: datetime) -> datetime:
+    """naive 로 돌아온 시각을 UTC 로 읽는다. SQLite 경로가 tzinfo 를 잃는다."""
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
+
+def slot_visibility_cutoff(now: datetime) -> datetime:
+    """상담 폼이 보여 줄 자리의 시작 하한."""
+    return now + timedelta(hours=CONSULT_SLOT_MIN_LEAD_HOURS)
+
+
+def _expires_at(row: ConsultationRequest, slot_starts_at: datetime | None) -> datetime:
+    """이 신청이 만료되는 시각 — 신청 후 24시간과 자리 시작 2시간 전 중 이른 쪽."""
+    held_until = _aware(row.created_at) + timedelta(hours=CONSULT_HOLD_HOURS)
+    if slot_starts_at is None:
+        return held_until
+    before_start = _aware(slot_starts_at) - timedelta(
+        hours=CONSULT_EXPIRE_BEFORE_START_HOURS
+    )
+    return min(held_until, before_start)
+
+
+def expire_stale_requests(
+    db: Session, trainer_id: str, *, now: datetime | None = None
+) -> int:
+    """지난 대기 요청을 만료 처리하고 자리를 되돌린다. 처리한 건수를 준다. (#1873)
+
+    백엔드에 스케줄러가 없어 **읽는 시점에 정리한다** — 트레이너 자리 목록 조회·상담
+    인박스 조회·상담 신청 생성이 부른다. 정리 범위를 그 트레이너의 행으로 한정해
+    한 번의 조회가 무거워지지 않게 한다.
+
+    `rejected`(트레이너의 판단)와 구분해 `expired` 로 남긴다 — 회원 화면 문구가
+    다르고, 트레이너 인박스 대기 건수에서도 빠진다.
+
+    커밋하지 않는다. 부르는 쪽이 자기 트랜잭션에 함께 담는다.
+    """
+    current = now or _now()
+    rows = db.scalars(
+        select(ConsultationRequest).where(
+            _inbox_scope(trainer_id),
+            ConsultationRequest.status == "pending",
+        )
+    ).all()
+    if not rows:
+        return 0
+
+    slot_ids = [row.slot_id for row in rows if row.slot_id]
+    starts: dict[str, datetime] = {}
+    if slot_ids:
+        starts = {
+            slot_id: starts_at
+            for slot_id, starts_at in db.execute(
+                select(
+                    TrainerReservationSlot.id, TrainerReservationSlot.starts_at
+                ).where(TrainerReservationSlot.id.in_(slot_ids))
+            ).all()
+        }
+
+    expired = 0
+    for row in rows:
+        slot_starts_at = starts.get(row.slot_id or "")
+        if _expires_at(row, slot_starts_at) > current:
+            continue
+        row.status = "expired"
+        row.decided_at = current
+        reservation_service.release_consultation_hold(db, row.slot_id)
+        _notify(
+            db,
+            user_id=row.member_id,
+            title="상담 신청이 만료되었어요",
+            body="트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.",
+        )
+        expired += 1
+    return expired
+
+
+def available_slots(
+    db: Session, trainer_id: str, *, now: datetime | None = None
+) -> list[TrainerSlotOut]:
+    """상담 신청 폼이 보여 줄 빈 자리. (#1873)
+
+    읽기 전에 지난 대기 요청을 만료 처리한다 — 그래야 풀린 자리가 이 목록에 다시
+    나타난다. 커밋은 여기서 한다(정리 결과를 남기지 않으면 다음 조회가 또 센다).
+    """
+    current = now or _now()
+    if expire_stale_requests(db, trainer_id, now=current):
+        db.commit()
+    return reservation_service.consultation_slot_options(
+        db, trainer_id, after=slot_visibility_cutoff(current)
+    )
+
+
+def release_holds_for_account_deletion(db: Session, member_id: str) -> None:
+    """탈퇴하는 회원의 대기 신청이 잡고 있던 자리를 되돌린다(커밋 없음). (#1873)
+
+    회원 행을 지우면 상담 요청은 CASCADE 로 함께 사라지지만 자리는 남는다 — 되돌리지
+    않으면 `remaining = 0` 인 채로 **영영 잠긴다**. 예약 좌석을 탈퇴 전에 복구하는
+    `reservation_service.cancel_member_reservations_for_account_deletion` 과 같은
+    자리에서 부른다. 트레이너에게 알리지 않는다 — 요청 자체가 사라진다.
+    """
+    slot_ids = db.scalars(
+        select(ConsultationRequest.slot_id).where(
+            ConsultationRequest.member_id == member_id,
+            ConsultationRequest.status == "pending",
+            ConsultationRequest.slot_id.is_not(None),
+        )
+    ).all()
+    for slot_id in slot_ids:
+        reservation_service.release_consultation_hold(db, slot_id)
 
 
 def _pending_query(member_id: str, payload: ConsultationCreate):
@@ -121,8 +249,6 @@ def _validate_target(db: Session, payload: ConsultationCreate) -> None:
 def create_consultation(
     db: Session, member_id: str, payload: ConsultationCreate
 ) -> ConsultationOut:
-    if payload.preferred_date < clock.today():
-        raise InvalidConsultationRequest("상담 희망일은 오늘 이후여야 합니다.")
     if not payload.data_sharing_consent:
         # 동의 없이 신청을 받아 두면, 트레이너가 수락하는 순간 회원이 동의한 적
         # 없는 기록이 넘어간다. (#1022)
@@ -131,8 +257,22 @@ def create_consultation(
         )
 
     _validate_target(db, payload)
+    now = _now()
+    # 지난 대기 요청을 먼저 정리한다 — 그래야 만료된 요청이 잡고 있던 자리를 이
+    # 신청이 고를 수 있고, 아래 대기 중복 검사도 살아 있는 요청만 본다. (#1873)
+    expire_stale_requests(db, payload.trainer_id, now=now)
     if db.scalar(_pending_query(member_id, payload)) is not None:
         raise DuplicatePendingConsultation("이미 대기 중인 상담 요청이 있습니다.")
+
+    # 신청하는 순간 자리를 잠근다. 승인할 때 잠그면 두 회원이 같은 자리를 신청할
+    # 수 있고, 둘 중 하나는 트레이너가 수락한 뒤에야 거절당한다. (#1873)
+    slot = reservation_service.hold_slot_for_consultation(
+        db,
+        payload.trainer_id,
+        payload.slot_id,
+        after=slot_visibility_cutoff(now),
+    )
+    local = _aware(slot.starts_at).astimezone(SEOUL)
 
     consultation = ConsultationRequest(
         id=f"consult-{uuid.uuid4().hex[:12]}",
@@ -144,11 +284,14 @@ def create_consultation(
         exercise_goal=payload.exercise_goal,
         health_purpose_type=payload.health_purpose_type,
         health_purpose_detail=payload.health_purpose_detail,
-        preferred_date=payload.preferred_date.isoformat(),
-        preferred_time_slot=payload.preferred_time_slot,
+        slot_id=slot.id,
+        # 고른 자리의 시각을 옮겨 적는다 — 자리가 지워져도(`SET NULL`) 화면이
+        # "언제로 신청했는지"를 그릴 수 있고, 자리 선택 이전 요청과 같은 칸을 쓴다.
+        preferred_date=local.date().isoformat(),
+        preferred_time_slot=local.strftime("%H:%M"),
         message=payload.message,
         status="pending",
-        data_consent_at=_now(),
+        data_consent_at=now,
     )
     db.add(consultation)
     _notify_trainer_of_new_request(db, consultation, member_id)
@@ -233,12 +376,31 @@ def attach_target_names(db: Session, rows: list[ConsultationRequest]) -> list[Co
             ).all()
         }
 
+    # 고른 자리의 시각·길이. 화면이 확정된 일시를 그리는 값이다(#1873). 이름과
+    # 같은 이유로 한 번에 모아 읽는다.
+    slot_ids = {r.slot_id for r in rows if r.slot_id}
+    slots: dict[str, tuple[datetime, int]] = {}
+    if slot_ids:
+        slots = {
+            slot_id: (_aware(starts_at), duration)
+            for slot_id, starts_at, duration in db.execute(
+                select(
+                    TrainerReservationSlot.id,
+                    TrainerReservationSlot.starts_at,
+                    TrainerReservationSlot.duration_minutes,
+                ).where(TrainerReservationSlot.id.in_(slot_ids))
+            ).all()
+        }
+
     out: list[ConsultationOut] = []
     for row in rows:
         item = ConsultationOut.model_validate(row)
         # 트레이너가 지워졌으면 이름은 None 으로 남는다 — 앱이 폴백 문구를 쓴다.
         item.trainer_name = trainer_names.get(row.trainer_id or "")
         item.trainer_gym_name = trainer_gyms.get(row.trainer_id or "") or None
+        slot = slots.get(row.slot_id or "")
+        if slot is not None:
+            item.slot_starts_at, item.slot_duration_minutes = slot
         out.append(item)
     return out
 
@@ -259,6 +421,8 @@ def cancel_my_consultation(
     row.status = "cancelled"
     row.decided_at = _now()
     row.decision_note = None
+    # 취소도 거절과 같다 — 잡고 있던 자리를 놓아 준다. (#1873)
+    reservation_service.release_consultation_hold(db, row.slot_id)
     _notify_trainer_of_cancel(db, row, member_id)
     db.commit()
     db.refresh(row)
@@ -412,7 +576,12 @@ def list_for_trainer(
     기본값인 `pending` 은 처리하는 만큼 줄어 실무상 짧지만, `status=all` 은 그
     트레이너에게 들어온 요청 **전체**라 담당 기간에 비례해 자란다. 목록 쪽 나눔과
     무관하게 배지 수는 [pending_count_for_trainer] 가 DB 에서 따로 센다. (#980)
+
+    읽기 전에 지난 대기 요청을 만료 처리한다 — 스케줄러가 없어 정리할 자리가 여기다
+    (#1873). 그래서 인박스를 여는 것만으로 풀린 자리가 다시 열린다.
     """
+    if expire_stale_requests(db, trainer_id):
+        db.commit()
     query = _apply_cursor(
         select(ConsultationRequest).where(_inbox_scope(trainer_id)),
         before,
@@ -437,7 +606,12 @@ def pending_count_for_trainer(db: Session, trainer_id: str) -> int:
     배지는 페이지네이션과 무관하게 전체를 세므로 행을 가져와 파이썬에서 세면 곧
     전체 행 로드가 된다. 화면이 주기적으로 다시 읽는 경로라 DB 집계로 받는다 —
     트레이너 알림 미읽음 수(`app/api/v1/trainer.py`)와 같은 형태다. (#1629)
+
+    목록과 같은 이유로 세기 전에 만료를 정리한다 — 그러지 않으면 배지가 이미 지난
+    요청을 계속 세고, 트레이너는 인박스를 열어야만 그 수가 줄어든다. (#1873)
     """
+    if expire_stale_requests(db, trainer_id):
+        db.commit()
     return (
         db.scalar(
             select(func.count())
@@ -597,21 +771,17 @@ def attach_member_to_trainer(
 
 
 def accept(
-    db: Session,
-    trainer_id: str,
-    consultation_id: str,
-    note: str | None = None,
-    *,
-    schedule_date: date | None = None,
-    schedule_time: str | None = None,
-    schedule_type: str | None = None,
-    duration_minutes: int | None = None,
+    db: Session, trainer_id: str, consultation_id: str, note: str | None = None
 ) -> ConsultationAcceptOut:
-    """상담을 승인하고 담당 링크를 만든다.
+    """상담을 승인하고 담당 링크를 만든다. 회원이 고른 자리가 첫 일정이 된다.
 
     `pending` 에서만 진행한다. 회원에게 이미 다른 트레이너의 활성 담당이 있으면
     [MemberAlreadyCoached] — 회원당 활성 담당은 1명이라는 불변식
     (`uq_trainer_client_active_member`)을 IntegrityError 로 만나기 전에 막는다.
+
+    **승인은 시각을 정하지 않는다.** 날짜·시각·종류·소요 시간은 회원이 신청할 때
+    고른 자리가 이미 들고 있다(#1873). 겹침 검사도 없앴다 — 자리는 트레이너 자신이
+    연 것이고 한 자리는 한 사람 몫이라 구조적으로 겹치지 않는다.
 
     상태 전이·링크 생성·헬스장 연결·알림을 **한 트랜잭션**으로 커밋한다. 나눠 커밋하면
     승인 표시만 남고 담당은 안 생긴 반쪽 상태가 생긴다.
@@ -619,6 +789,22 @@ def accept(
     row = _require_inbox_row(db, trainer_id, consultation_id, lock=True)
     if row.status != "pending":
         raise ConsultationAlreadyDecided("이미 처리된 상담 요청입니다.")
+
+    slot = (
+        db.scalar(
+            select(TrainerReservationSlot).where(
+                TrainerReservationSlot.id == row.slot_id
+            )
+        )
+        if row.slot_id
+        else None
+    )
+    if slot is None:
+        # 자리를 지운 뒤에 승인을 누른 경우다. 잡아 줄 시각이 없으므로 승인하지
+        # 않는다 — 여기서 임의의 시각을 지어내면 회원이 모르는 일정에 묶인다.
+        raise ConsultationSlotGone(
+            "회원이 고른 시간이 사라졌습니다. 요청을 거절하고 다시 받아 주세요."
+        )
 
     existing = db.scalar(
         select(TrainerClient).where(
@@ -628,16 +814,6 @@ def accept(
     )
     if existing is not None and existing.trainer_id != trainer_id:
         raise MemberAlreadyCoached("이미 다른 트레이너가 담당 중인 회원입니다.")
-
-    # 담당 링크를 만들기 전에 겹침부터 본다 — 겹치면 아무것도 만들지 않는다
-    # (링크도, 헬스장 연결도, 스케줄도). 화면이 승인 버튼 옆에 짚어 줄 수 있도록
-    # 겹친 세션을 들고 다닌다.
-    if schedule_date is not None:
-        conflicts = trainer_service.conflicting_sessions(
-            db, trainer_id, [(schedule_date.isoformat(), schedule_time or "00:00")]
-        )
-        if conflicts:
-            raise ConsultationScheduleConflict(conflicts)
 
     if existing is None:
         attach_member_to_trainer(
@@ -660,43 +836,43 @@ def accept(
     row.decided_at = _now()
     row.decision_note = note
 
-    # The schedule inbox sends all four values together (validated by the
-    # request schema).  Keep this in the same transaction as the decision:
-    # a request must never disappear from the inbox without its promised
-    # calendar entry being created.
-    schedule_id: str | None = None
-    if schedule_date is not None:
-        schedule_id = f"sched-{uuid.uuid4().hex[:12]}"
-        db.add(
-            TrainerSchedule(
-                id=schedule_id,
-                trainer_id=trainer_id,
-                member_id=row.member_id,
-                date=schedule_date.isoformat(),
-                time=schedule_time or "00:00",
-                client_name=db.scalar(
-                    select(User.name).where(User.id == row.member_id)
-                )
-                or "신규 회원",
-                type=schedule_type or "상담",
-                duration_minutes=duration_minutes or 30,
-                status="예정",
-                note=row.message or "",
-                program_json="[]",
-                sort_order=0,
-            )
+    # 자리가 정해 둔 시각 그대로 첫 일정을 만든다. 결정과 같은 트랜잭션에 둔다 —
+    # 요청이 인박스에서 사라졌는데 약속된 일정은 없는 상태가 나오면 안 된다.
+    local = _aware(slot.starts_at).astimezone(SEOUL)
+    schedule_id = f"sched-{uuid.uuid4().hex[:12]}"
+    db.add(
+        TrainerSchedule(
+            id=schedule_id,
+            trainer_id=trainer_id,
+            member_id=row.member_id,
+            date=local.date().isoformat(),
+            time=local.strftime("%H:%M"),
+            client_name=db.scalar(select(User.name).where(User.id == row.member_id))
+            or "신규 회원",
+            # 자리의 종류를 그대로 물려받는다 — 회원에게 열리는 자리는 `1:1 PT`
+            # 뿐이다(#1849). 코드 상수 30분은 더 쓰지 않는다.
+            type=slot.session_type,
+            duration_minutes=slot.duration_minutes,
+            status="예정",
+            note=row.message or "",
+            program_json="[]",
+            sort_order=0,
         )
+    )
 
     trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
+    confirmed = f"{local:%m월 %d일 %H:%M}"
+    body = (
+        f"{trainer_name or '트레이너'} 트레이너가 담당으로 연결되었어요. "
+        f"첫 상담은 {confirmed} 입니다."
+    )
     _notify(
         db,
         user_id=row.member_id,
         title="상담 요청이 승인되었어요",
-        body=(
-            f"{trainer_name or '트레이너'} 트레이너가 담당으로 연결되었어요."
-            if note is None
-            else f"{trainer_name or '트레이너'} 트레이너가 담당으로 연결되었어요. {note}"
-        ),
+        # 확정된 일시를 본문에 싣는다 — 예전에는 "담당으로 연결되었어요" 뿐이라
+        # 회원이 자기가 언제 잡혔는지 알 길이 없었다. (#1873)
+        body=body if note is None else f"{body} {note}",
     )
     _commit_decision(db)
     db.refresh(row)
@@ -721,6 +897,8 @@ def reject(
     row.decided_by = trainer_id
     row.decided_at = _now()
     row.decision_note = note
+    # 거절하면 자리가 다시 열린다 — 다른 회원이 고를 수 있어야 한다. (#1873)
+    reservation_service.release_consultation_hold(db, row.slot_id)
 
     _notify(
         db,

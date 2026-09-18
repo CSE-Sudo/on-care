@@ -9,14 +9,14 @@ DB 가 필요하므로 로컬에서는 skip 되고 CI(Postgres) 에서 실행된
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
 
 from sqlalchemy.exc import IntegrityError
 
-from app.core import clock
+from app.core.clock import SEOUL
 from app.core.security import hash_password
 from app.models.models import (
     ConsultationRequest,
@@ -25,6 +25,7 @@ from app.models.models import (
     Place,
     TrainerClient,
     TrainerProfile,
+    TrainerReservationSlot,
     TrainerSchedule,
     User,
 )
@@ -32,6 +33,7 @@ from app.services import consultation_service
 
 EMAIL_PREFIX = "decide-test-"
 PLACE_PREFIX = "decide-place-"
+SLOT_PREFIX = "decide-slot-"
 PASSWORD = "decide-pw-1234"
 
 
@@ -54,6 +56,9 @@ def _cleanup(db_session):
             (ConsultationRequest.member_id.in_(user_ids))
             | (ConsultationRequest.trainer_id.in_(user_ids))
             | (ConsultationRequest.decided_by.in_(user_ids))
+        ).delete(synchronize_session=False)
+        db_session.query(TrainerReservationSlot).filter(
+            TrainerReservationSlot.trainer_id.in_(user_ids)
         ).delete(synchronize_session=False)
         db_session.query(TrainerClient).filter(
             (TrainerClient.trainer_id.in_(user_ids))
@@ -148,14 +153,48 @@ def _gym_id_of(db_session, trainer: User) -> str:
     )
 
 
-def _request_consultation(client, token: str, *, trainer_id: str) -> str:
+def _open_slot(trainer_id: str, *, hours_ahead: float = 48) -> TrainerReservationSlot:
+    """그 트레이너가 연 `1:1 PT` 빈 자리 하나. (#1873)
+
+    테스트의 `db_session` 이 아니라 자체 세션을 쓴다 — 상담을 거는 28곳에 세션을
+    흘려보내지 않기 위해서다. 커밋한 행은 API 세션에서도 그대로 보인다.
+
+    기본값 48시간 뒤는 상담 폼 하한(`CONSULT_SLOT_MIN_LEAD_HOURS`, 4시간)을 넉넉히
+    넘긴 값이다.
+    """
+    from app.db.session import SessionLocal
+
+    slot = TrainerReservationSlot(
+        id=f"{SLOT_PREFIX}{uuid4().hex[:10]}",
+        trainer_id=trainer_id,
+        starts_at=datetime.now(timezone.utc) + timedelta(hours=hours_ahead),
+        duration_minutes=30,
+        capacity=1,
+        remaining=1,
+        session_type="1:1 PT",
+    )
+    with SessionLocal() as session:
+        session.add(slot)
+        session.commit()
+        session.refresh(slot)
+        session.expunge(slot)
+    return slot
+
+
+def _request_consultation(
+    client, token: str, *, trainer_id: str, hours_ahead: float = 48
+) -> str:
+    """회원이 그 트레이너의 빈 자리를 하나 골라 상담을 신청한다. (#1873)
+
+    희망 시각을 적어 보내던 방식은 없어졌다 — 자리를 먼저 열고 그 자리를 고른다.
+    """
+    slot = _open_slot(trainer_id, hours_ahead=hours_ahead)
     payload = {
         "trainer_id": trainer_id,
         "exercise_goal": "weight_loss",
         "health_purpose_type": "general",
         "health_purpose_detail": None,
-        "preferred_date": (clock.today() + timedelta(days=1)).isoformat(),
-        "preferred_time_slot": "19:00",
+        "slot_id": slot.id,
         "message": "상담 부탁드립니다.",
         "data_sharing_consent": True,
     }
@@ -296,7 +335,7 @@ def test_cancel_without_target_trainer_creates_no_notification(client, db_sessio
             trainer_id=None,
             exercise_goal="weight_loss",
             health_purpose_type="general",
-            preferred_date=(clock.today() + timedelta(days=1)).isoformat(),
+            preferred_date=(date.today() + timedelta(days=1)).isoformat(),
             preferred_time_slot="19:00",
             status="pending",
         )
@@ -340,8 +379,9 @@ def test_accept_links_member_into_roster(client, db_session):
     body = response.json()
     assert body["status"] == "accepted"
     assert body["client_connected"] is True
-    assert body["schedule_created"] is False
-    assert body["schedule_id"] is None
+    # 회원이 고른 자리가 그대로 첫 일정이 된다 — 승인이 시각을 정하지 않는다(#1873).
+    assert body["schedule_created"] is True
+    assert body["schedule_id"]
     assert body["decided_by"] == trainer.id
     assert body["decided_at"]
 
@@ -362,23 +402,34 @@ def test_accept_links_member_into_roster(client, db_session):
     assert link.goal == "체중 감량"
 
 
-def test_accept_with_schedule_books_consultation_atomically(client, db_session):
+def test_accept_books_the_slot_the_member_picked(client, db_session):
+    """승인하면 회원이 고른 자리 그대로 첫 일정이 만들어진다. (#1873)
+
+    예전에는 트레이너가 승인하며 시각을 따로 정했고, 회원이 고른 종료 시각은 쓰이지
+    않은 채 늘 시작+30분으로 잡혔다. 지금은 자리가 시작·길이·종류를 모두 들고 있다.
+    """
     trainer, trainer_token = _trainer(client, db_session)
     member_id, member_token = _member(client)
-    consultation_id = _request_consultation(
-        client, member_token, trainer_id=trainer.id
+    slot = _open_slot(trainer.id)
+    payload = {
+        "trainer_id": trainer.id,
+        "exercise_goal": "weight_loss",
+        "health_purpose_type": "general",
+        "health_purpose_detail": None,
+        "slot_id": slot.id,
+        "message": "상담 부탁드립니다.",
+        "data_sharing_consent": True,
+    }
+    created = client.post(
+        "/v1/consultations", headers=_auth(member_token), json=payload
     )
-    session_date = (date.today() + timedelta(days=2)).isoformat()
+    assert created.status_code == 201, created.text
+    consultation_id = created.json()["id"]
 
     response = client.post(
         f"/v1/trainer/consultations/{consultation_id}/accept",
         headers=_auth(trainer_token),
-        json={
-            "date": session_date,
-            "time": "19:30",
-            "type": "상담",
-            "duration_minutes": 30,
-        },
+        json={},
     )
 
     assert response.status_code == 200, response.text
@@ -386,83 +437,66 @@ def test_accept_with_schedule_books_consultation_atomically(client, db_session):
     assert body["client_connected"] is True
     assert body["schedule_created"] is True
     assert body["schedule_id"]
-    session = db_session.query(TrainerSchedule).filter_by(
-        trainer_id=trainer.id,
-        member_id=member_id,
-        date=session_date,
-    ).one()
-    assert session.time == "19:30"
-    assert session.type == "상담"
-    assert session.status == "예정"
+
+    local = slot.starts_at.astimezone(SEOUL)
+    session = (
+        db_session.query(TrainerSchedule)
+        .filter_by(trainer_id=trainer.id, member_id=member_id)
+        .one()
+    )
     assert session.id == body["schedule_id"]
+    assert session.date == local.date().isoformat()
+    assert session.time == local.strftime("%H:%M")
+    # 종류·길이도 자리에서 온다 — 코드 상수 30분은 더 쓰지 않는다.
+    assert session.type == "1:1 PT"
+    assert session.duration_minutes == slot.duration_minutes
+    assert session.status == "예정"
 
 
-def test_accept_rejects_conflicting_schedule(client, db_session):
-    """승인하려는 시간에 이미 다른 세션이 있으면 아무것도 만들지 않는다.
+def test_accept_ignores_a_schedule_the_client_tries_to_dictate(client, db_session):
+    """옛 클라이언트가 날짜·시각을 함께 보내도 자리가 정한 시각이 이긴다. (#1873)
 
-    링크·헬스장 연결·스케줄이 모두 한 트랜잭션이라, 겹침으로 막히면 담당 편입도
-    함께 없던 일이 되어야 한다 — 스케줄만 빠진 반쪽짜리 담당 고객이 생기면 안 된다.
+    승인 본문에서 그 인자들을 걷어냈으므로 서버는 조용히 무시한다 — 시각을 정하는
+    사람이 둘이면 회원이 모르는 일정에 묶인다.
     """
     trainer, trainer_token = _trainer(client, db_session)
     member_id, member_token = _member(client)
-    consultation_id = _request_consultation(
-        client, member_token, trainer_id=trainer.id
+    slot = _open_slot(trainer.id)
+    created = client.post(
+        "/v1/consultations",
+        headers=_auth(member_token),
+        json={
+            "trainer_id": trainer.id,
+            "exercise_goal": "weight_loss",
+            "health_purpose_type": "general",
+            "health_purpose_detail": None,
+            "slot_id": slot.id,
+            "message": None,
+            "data_sharing_consent": True,
+        },
     )
-    session_date = (date.today() + timedelta(days=2)).isoformat()
-    db_session.add(
-        TrainerSchedule(
-            id=f"decide-test-existing-{uuid4().hex[:10]}",
-            trainer_id=trainer.id,
-            member_id=None,
-            date=session_date,
-            time="19:30",
-            client_name="선점 회원",
-            type="1:1 PT",
-            duration_minutes=60,
-            status="예정",
-            note="",
-            program_json="[]",
-            sort_order=0,
-        )
-    )
-    db_session.commit()
+    assert created.status_code == 201, created.text
 
     response = client.post(
-        f"/v1/trainer/consultations/{consultation_id}/accept",
+        f"/v1/trainer/consultations/{created.json()['id']}/accept",
         headers=_auth(trainer_token),
         json={
-            "date": session_date,
-            "time": "19:30",
+            "date": (date.today() + timedelta(days=9)).isoformat(),
+            "time": "05:00",
             "type": "상담",
             "duration_minutes": 30,
         },
     )
 
-    assert response.status_code == 409, response.text
-    detail = response.json()["detail"]
-    assert detail["conflicts"][0]["client_name"] == "선점 회원"
-    assert (
-        db_session.query(TrainerClient)
-        .filter(TrainerClient.member_id == member_id)
-        .count()
-        == 0
+    assert response.status_code == 200, response.text
+    session = (
+        db_session.query(TrainerSchedule)
+        .filter_by(trainer_id=trainer.id, member_id=member_id)
+        .one()
     )
-
-
-def test_accept_rejects_partial_schedule(client, db_session):
-    trainer, trainer_token = _trainer(client, db_session)
-    _, member_token = _member(client)
-    consultation_id = _request_consultation(
-        client, member_token, trainer_id=trainer.id
-    )
-
-    response = client.post(
-        f"/v1/trainer/consultations/{consultation_id}/accept",
-        headers=_auth(trainer_token),
-        json={"date": (date.today() + timedelta(days=2)).isoformat()},
-    )
-
-    assert response.status_code == 422
+    local = slot.starts_at.astimezone(SEOUL)
+    assert session.time == local.strftime("%H:%M")
+    assert session.time != "05:00"
 
 
 def test_accept_notifies_the_member(client, db_session):

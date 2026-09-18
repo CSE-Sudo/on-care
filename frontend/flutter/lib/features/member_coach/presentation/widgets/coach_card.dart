@@ -318,7 +318,7 @@ class _RecommendedExerciseRow extends ConsumerStatefulWidget {
     required this.cancellable,
   });
 
-  /// 회원이 읽는 출처 한 줄 — `AI 추천 · 김트레이너 확인` 처럼.
+  /// 회원이 읽는 출처 한 줄 — `AI 추천 · 김태오 확인` 처럼.
   final String sourceLabel;
 
   final CoachRoutine routine;

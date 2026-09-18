@@ -83,6 +83,8 @@ ConsultationRequest consultationRequestFromJson(Map<String, Object?> json) {
     purposeDetail: _nullable(json['health_purpose_detail']),
     preferredDate: _date(json['preferred_date']),
     preferredTimeCode: _str(json['preferred_time_slot']),
+    slotStartsAt: DateTime.tryParse(_str(json['slot_starts_at']))?.toLocal(),
+    slotDurationMinutes: (json['slot_duration_minutes'] as num?)?.toInt(),
     message: _nullable(json['message']),
     status: _str(json['status']),
     decisionNote: _nullable(json['decision_note']),

@@ -17,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from app.db.seed_trainer import TRAINER_NAME
 from app.models import models
 from app.services import notification_service
 
@@ -52,21 +53,21 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     DemoNotification(
         "noti-demo-3",
         "새 운동 루틴이 도착했어요",
-        "김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.",
+        f"{TRAINER_NAME} 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.",
         notification_service.MEMBER_ROUTINE,
         timedelta(minutes=30),
     ),
     DemoNotification(
         "noti-demo-4",
         "이번 주 리포트가 등록됐어요",
-        "김트레이너님이 이번 주 리포트를 등록했어요.",
+        f"{TRAINER_NAME} 트레이너님이 이번 주 리포트를 등록했어요.",
         notification_service.MEMBER_COACH_CHAT,
         timedelta(minutes=45),
     ),
     DemoNotification(
         "noti-demo-5",
         "PT 수업 완료",
-        "오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!",
+        f"오늘 18:00 {TRAINER_NAME} 트레이너와 12회차 PT를 마쳤어요!",
         "achievement",
         timedelta(hours=1),
     ),

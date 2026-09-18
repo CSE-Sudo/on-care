@@ -3349,6 +3349,90 @@ abstract class AppLocalizations {
   /// **'Agree and connect'**
   String get coachInviteConsentAgree;
 
+  /// No description provided for @exConsultSlotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Available times'**
+  String get exConsultSlotTitle;
+
+  /// No description provided for @exConsultSlotRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose an available time.'**
+  String get exConsultSlotRequired;
+
+  /// No description provided for @exConsultSlotsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No consultation times are open right now.'**
+  String get exConsultSlotsEmptyTitle;
+
+  /// No description provided for @exConsultSlotsEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Call {gym} at {phone} to ask for a consultation time.'**
+  String exConsultSlotsEmptyBody(String gym, String phone);
+
+  /// No description provided for @exConsultSlotsEmptyNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the {gym} details for its address and hours.'**
+  String exConsultSlotsEmptyNoPhone(String gym);
+
+  /// No description provided for @exConsultSlotsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the available times.'**
+  String get exConsultSlotsError;
+
+  /// No description provided for @exConsultSlotTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Another member just took that time. Please choose another.'**
+  String get exConsultSlotTaken;
+
+  /// No description provided for @exGymCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get exGymCall;
+
+  /// No description provided for @exGymCallFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the phone app.'**
+  String get exGymCallFailed;
+
+  /// No description provided for @exGymDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'View gym details'**
+  String get exGymDetail;
+
+  /// No description provided for @exConsultChosenSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested time'**
+  String get exConsultChosenSlot;
+
+  /// No description provided for @exConsultConfirmedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed time'**
+  String get exConsultConfirmedAt;
+
+  /// No description provided for @exConsultExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get exConsultExpired;
+
+  /// No description provided for @exConsultExpiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer did not respond in time. Try requesting another time.'**
+  String get exConsultExpiredBody;
+
   /// No description provided for @exExerciseGoal.
   ///
   /// In en, this message translates to:
@@ -3378,24 +3462,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preferred Date'**
   String get exPreferredDate;
-
-  /// No description provided for @exSelectDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a date'**
-  String get exSelectDate;
-
-  /// No description provided for @exSelectTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a time'**
-  String get exSelectTime;
-
-  /// No description provided for @exPreferredTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Preferred Time'**
-  String get exPreferredTime;
 
   /// No description provided for @exTimeFlexible.
   ///
@@ -3504,18 +3570,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please describe your specific exercise goal in the message.'**
   String get exOtherGoalDetailRequired;
-
-  /// No description provided for @exDateRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please select a preferred date.'**
-  String get exDateRequired;
-
-  /// No description provided for @exTimeRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please select a preferred time.'**
-  String get exTimeRequired;
 
   /// No description provided for @exConsultTargetNotFound.
   ///
@@ -4995,8 +5049,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Trainer Kim adjusted it to a walking routine for your knee.'**
-  String get demoAlertRoutineBody;
+  /// **'Trainer {trainerName} adjusted it to a walking routine for your knee.'**
+  String demoAlertRoutineBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -5007,8 +5061,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Trainer Kim posted your report for this week.'**
-  String get demoAlertReportBody;
+  /// **'Trainer {trainerName} posted your report for this week.'**
+  String demoAlertReportBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -5019,8 +5073,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'You finished PT session 12 with Trainer Kim at 18:00 today!'**
-  String get demoAlertPtDoneBody;
+  /// **'You finished PT session 12 with Trainer {trainerName} at 18:00 today!'**
+  String demoAlertPtDoneBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -5187,14 +5241,8 @@ abstract class AppLocalizations {
   /// No description provided for @exDemoPtSessionCount.
   ///
   /// In en, this message translates to:
-  /// **'Session 12 with Trainer Kim'**
-  String get exDemoPtSessionCount;
-
-  /// No description provided for @exDemoPtTrainerName.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer Kim'**
-  String get exDemoPtTrainerName;
+  /// **'Session 12 with Trainer {trainerName}'**
+  String exDemoPtSessionCount(String trainerName);
 
   /// No description provided for @exDemoPtFeedback.
   ///

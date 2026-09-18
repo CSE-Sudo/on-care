@@ -51,6 +51,7 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    consultation_service,
     health_goal_change,
     member_pairing_service,
     reservation_service,
@@ -338,6 +339,9 @@ def delete_me(
             )
         )
     reservation_service.cancel_member_reservations_for_account_deletion(db, user.id)
+    # 대기 중인 상담이 잡고 있던 자리도 풀어 준다 — 요청 행은 CASCADE 로 사라져도
+    # 자리는 남아 잠긴 채가 된다(#1873).
+    consultation_service.release_holds_for_account_deletion(db, user.id)
     db.delete(user)
     db.commit()
     return {"status": "deleted"}

@@ -404,7 +404,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 
 ## 7. 데모 시드 (`seed_trainer.py`, `seed_member_data.py`)
 
-- 트레이너 계정 "김트레이너"(`trainer@oncare.com`) + 담당 회원 3명(김민수/이지수/박성호).
+- 트레이너 계정 "김태오"(`trainer@oncare.com`) + 담당 회원 3명(김민수/이지수/박성호).
   회원 실데이터(식단·운동기록·채팅·루틴·스케줄)를 함께 시드해 **시드 단계부터 공유가 성립**.
 - **멱등**: 결정론적 id + 존재 검사로 재기동에도 중복 없음. 날짜가 넘어가면 '오늘'이 새로
   시드되어 과거 데이터가 누적된다.
@@ -445,6 +445,7 @@ chain이다. `0020`의 `down_revision`은 `0019_trainer_noti_settings`다.
 | 예약(`trainer_reservations`) | 먼저 삭제(좌석 복구 불필요 — 슬롯도 함께 사라진다) |
 | 프로필·담당 링크·채팅·루틴·일정·슬롯·이력·알림 | `users.id` CASCADE |
 | 상담 요청의 `trainer_id`·`decided_by` | SET NULL — 요청 이력은 남는다 |
+| 상담 요청의 `slot_id`(회원이 고른 자리, #1873) | SET NULL — 슬롯이 CASCADE 로 지워져도 요청과 그 시각 사본(`preferred_date`·`preferred_time_slot`)은 남아 조회된다 |
 | 회원↔헬스장 링크(`member_gyms`) | 그대로 — 트레이너와 별개다(#444) |
 
 알림은 담당 회원과 **예약만 있는 회원** 모두에게 간다(문구는 다르다).

@@ -16,7 +16,7 @@ from app.schemas.reservation_api import (
     TrainerSlotOut,
     TrainerSlotUpdate,
 )
-from app.services import reservation_service
+from app.services import consultation_service, reservation_service
 
 router = APIRouter(tags=["reservations"])
 
@@ -118,6 +118,14 @@ def trainer_slots(
     db: Annotated[Session, Depends(get_db)],
     include_past: bool = Query(False),
 ) -> list[TrainerSlotOut]:
+    """트레이너가 연 자리 목록.
+
+    주기 전에 지난 상담 대기 요청을 만료 처리한다 — 스케줄러가 없어 읽는 시점에
+    정리한다(#1873). 만료된 요청이 잡고 있던 자리는 여기서 다시 `remaining > 0` 이
+    되어, 트레이너가 자기 화면에서 풀린 자리를 바로 본다.
+    """
+    if consultation_service.expire_stale_requests(db, trainer.id):
+        db.commit()
     return reservation_service.list_trainer_slots(
         db, trainer.id, include_past=include_past
     )

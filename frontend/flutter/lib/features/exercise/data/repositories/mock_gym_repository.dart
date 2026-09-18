@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
@@ -7,7 +8,7 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 
 /// In-memory gym + trainer data matching the prototype's `GymCard` /
 /// `GymFinder` mocks. The user starts connected to 온케어짐 신촌점 and to
-/// 김트레이너 — the same gym and person the trainer app's
+/// [kDemoTrainerName] — the same gym and person the trainer app's
 /// `seedTrainerProfile` describes, so both apps show one relationship.
 ///
 /// Stateful (not const) so the two links can be dropped for the session. The
@@ -74,7 +75,7 @@ class MockGymRepository implements GymRepository {
   static const Trainer _kim = Trainer(
     id: 'trainer-kim',
     gymId: 'gym-oncare-sinchon',
-    name: '김트레이너',
+    name: kDemoTrainerName,
     role: '퍼스널 트레이너',
     reasons: <String>['혈압 관리', '체중 감량', '식습관 개선'],
     career: '7년',
@@ -90,7 +91,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-park',
       gymId: 'gym-oncare-sinchon',
-      name: '박트레이너',
+      name: '박소율',
       role: '재활 트레이너',
       reasons: <String>['무릎·허리 재활', '수술 후 회복'],
       career: '11년',
@@ -102,7 +103,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-choi',
       gymId: 'gym-oncare-sinchon',
-      name: '최트레이너',
+      name: '최건우',
       role: '그룹 PT 트레이너',
       reasons: <String>['2~4인 소그룹', '운동 습관'],
       career: '4년',
@@ -114,7 +115,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-kang',
       gymId: 'gym-healthmate',
-      name: '강트레이너',
+      name: '강다인',
       role: '퍼스널 트레이너',
       reasons: <String>['교대근무', '근력 향상'],
       career: '5년',
@@ -126,7 +127,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-yoon',
       gymId: 'gym-healthmate',
-      name: '윤트레이너',
+      name: '윤재희',
       role: '근력 전문 트레이너',
       reasons: <String>['기초 근력', '파워리프팅'],
       career: '8년',
@@ -138,7 +139,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-lee',
       gymId: 'gym-bodyandsoul',
-      name: '이트레이너',
+      name: '이도경',
       role: '퍼스널 트레이너',
       reasons: <String>['운동 초심자', '식습관 개선', '운동 습관'],
       career: '9년',
@@ -150,7 +151,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-cho',
       gymId: 'gym-bodyandsoul',
-      name: '조트레이너',
+      name: '조민혁',
       role: '시니어 운동 트레이너',
       reasons: <String>['낙상 예방', '균형 잡기', '체력 강화'],
       career: '12년',
@@ -165,7 +166,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-jung',
       gymId: '11621774', // 휘트니스에이든
-      name: '정트레이너',
+      name: '정수빈',
       role: '퍼스널 트레이너',
       reasons: <String>['감량 정체기', '체성분 관리'],
       career: '6년',
@@ -177,7 +178,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-ha',
       gymId: '11621774',
-      name: '하트레이너',
+      name: '하윤슬',
       role: '체형 교정 트레이너',
       reasons: <String>['목·어깨 교정', '사무직 자세'],
       career: '4년',
@@ -189,7 +190,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-han',
       gymId: '1558845892', // 하이핏
-      name: '한트레이너',
+      name: '한서준',
       role: '퍼스널 트레이너',
       reasons: <String>['기구 입문'],
       career: '3년',
@@ -201,7 +202,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-oh',
       gymId: '1558845892',
-      name: '오트레이너',
+      name: '오태린',
       role: '그룹 PT 트레이너',
       reasons: <String>['3~5인 그룹'],
       career: '5년',
@@ -213,7 +214,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-seo',
       gymId: '328969863', // 빌드업짐 PT 신촌점
-      name: '서트레이너',
+      name: '서지안',
       role: '재활 전문 트레이너',
       reasons: <String>['재활 후 복귀', '통증 관리'],
       career: '10년',
@@ -225,7 +226,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-nam',
       gymId: '328969863',
-      name: '남트레이너',
+      name: '남도윤',
       role: '퍼스널 트레이너',
       reasons: <String>['스쿼트 자세 교정', '근력 향상', '영상 피드백'],
       career: '7년',
@@ -237,7 +238,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-moon',
       gymId: '696444256', // 신인규피티스튜디오
-      name: '문트레이너',
+      name: '문하람',
       role: '퍼스널 트레이너',
       reasons: <String>['주간 식단', '식습관 개선', '1:1 전담'],
       career: '7년',
@@ -249,7 +250,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-bae',
       gymId: '696444256',
-      name: '배트레이너',
+      name: '배시우',
       role: '러닝 코치',
       reasons: <String>['러닝 자세 교정'],
       career: '5년',
@@ -378,7 +379,7 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '상담',
       ),
-      // 박트레이너 — 재활 세션이라 1:1, 낮 시간대.
+      // 박소율 — 재활 세션이라 1:1, 낮 시간대.
       TrainerSlot(
         id: 'slot-park-today',
         trainerId: 'trainer-park',
@@ -407,7 +408,7 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '1:1 PT',
       ),
-      // 강트레이너 — 교대근무 대응이라 이른 아침·늦은 밤.
+      // 강다인 — 교대근무 대응이라 이른 아침·늦은 밤.
       TrainerSlot(
         id: 'slot-kang-today',
         trainerId: 'trainer-kang',
@@ -429,7 +430,7 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '1:1 PT',
       ),
-      // 윤트레이너는 슬롯이 없다 — 빈 상태를 데모에서도 볼 수 있어야 한다.
+      // 윤재희는 슬롯이 없다 — 빈 상태를 데모에서도 볼 수 있어야 한다.
     ];
   }
 

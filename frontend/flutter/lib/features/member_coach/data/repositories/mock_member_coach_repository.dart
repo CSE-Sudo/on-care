@@ -17,7 +17,7 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 typedef DemoCoachLinkCheck = bool Function();
 
 /// In-memory demo coach for `USE_MOCK_API=true`. Mirrors the trainer app's
-/// seed identity (김트레이너) so the two demo apps tell one story. Chat is
+/// seed identity ([kDemoTrainerName]) so the two demo apps tell one story. Chat is
 /// stateful for the session so a sent message appears in the thread.
 class MockMemberCoachRepository implements MemberCoachRepository {
   /// [exercise] 를 주면 루틴 완료가 **운동 기록으로도 남는다** — 실서버가 하는
@@ -55,7 +55,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   static const _coach = MemberCoach(
     trainerId: 'seed-trainer',
-    name: '김트레이너',
+    name: kDemoTrainerName,
     specialty: '퍼스널 트레이너',
     career: '7년',
     intro: '혈압 관리와 체중 감량 전문 트레이너입니다.',

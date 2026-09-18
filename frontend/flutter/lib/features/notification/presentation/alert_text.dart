@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -11,9 +12,18 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
   final (String, String)? demo = switch (item.messageKey) {
     kDemoAlertSodium => (l.demoAlertSodiumTitle, l.demoAlertSodiumBody),
     kDemoAlertDinner => (l.demoAlertDinnerTitle, l.demoAlertDinnerBody),
-    kDemoAlertRoutine => (l.demoAlertRoutineTitle, l.demoAlertRoutineBody),
-    kDemoAlertReport => (l.demoAlertReportTitle, l.demoAlertReportBody),
-    kDemoAlertPtDone => (l.demoAlertPtDoneTitle, l.demoAlertPtDoneBody),
+    kDemoAlertRoutine => (
+      l.demoAlertRoutineTitle,
+      l.demoAlertRoutineBody(kDemoTrainerName),
+    ),
+    kDemoAlertReport => (
+      l.demoAlertReportTitle,
+      l.demoAlertReportBody(kDemoTrainerName),
+    ),
+    kDemoAlertPtDone => (
+      l.demoAlertPtDoneTitle,
+      l.demoAlertPtDoneBody(kDemoTrainerName),
+    ),
     kDemoAlertTrainerFeedback => (
       l.demoAlertTrainerFeedbackTitle,
       l.demoAlertTrainerFeedbackBody,
