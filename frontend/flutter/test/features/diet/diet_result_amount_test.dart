@@ -1,8 +1,12 @@
-/// 사진 분석 완료 시트의 끼니 내용량 (#1964).
+/// 사진 분석 완료 시트의 음식별 내용량 (#1964).
 ///
-/// 영양 분석 결과의 여섯 값은 모두 음식별 양을 재고 나온 값이다(#1876). 식단
-/// 수정의 음식 칸이 `내용량` 을 칼로리 위에 두는 것처럼, 분석 결과도 그 기준을
-/// 칼로리보다 먼저 보인다. 양을 모르는 음식이 섞이면 합을 낼 수 없어 적지 않는다.
+/// 영양 분석 결과는 모두 음식별 양을 재고 나온 값이다(#1876). 양이 틀리면
+/// 칼로리·탄단지가 함께 틀리므로, 저장 전 이 시트의 `인식된 음식` 에서 음식마다
+/// AI 가 읽은 양이 보여야 머리의 연필로 바로 고칠 수 있다. 식단 탭 끼니 카드·
+/// 식단 상세와 같은 자리(이름 옆)·같은 모양(보조색)이다.
+///
+/// 끼니 **총** 내용량은 두지 않는다. 종류가 다른 음식의 그램을 더한 값은 판단할
+/// 근거가 되지 못하고(음료·국물이 부풀린다), 끼니 칼로리도 그 값에서 나오지 않는다.
 library;
 
 import 'dart:typed_data';
@@ -117,7 +121,11 @@ Future<void> _openResult(WidgetTester tester, FakeDietRepository repo) async {
   await tester.pumpAndSettle();
 }
 
-Finder get _amountRow => find.byKey(const Key('diet-result-amount'));
+/// `인식된 음식` 줄이 실제로 읽히는 글자.
+String _recognized(WidgetTester tester) => tester
+    .widget<Text>(find.byKey(const Key('diet-result-recognized-foods')))
+    .textSpan!
+    .toPlainText();
 
 void main() {
   group('RecognizedFood.amountG', () {
@@ -137,40 +145,8 @@ void main() {
     });
   });
 
-  group('DietAnalysisResult.totalAmountG', () {
-    DietAnalysisResult resultOf(List<Map<String, Object?>> foods) =>
-        DietAnalysisResult(
-          entryId: 'e',
-          foods: foods.map(RecognizedFood.fromJson).toList(),
-          totalCalories: 0,
-          totalSodiumMg: 0,
-          totalSugarG: 0,
-          coachComment: '',
-        );
-
-    test('모든 음식의 양을 알면 그 합이다', () {
-      expect(
-        resultOf(<Map<String, Object?>>[
-          _food('스크램블 에그', 185, amountG: 100),
-          _food('딸기', 32, amountG: 150),
-        ]).totalAmountG,
-        250,
-      );
-    });
-
-    test('하나라도 모르면 null 이다 — 아는 것만 더하면 덜 먹은 것처럼 읽힌다', () {
-      expect(
-        resultOf(<Map<String, Object?>>[
-          _food('스크램블 에그', 185, amountG: 100),
-          _food('딸기', 32),
-        ]).totalAmountG,
-        isNull,
-      );
-    });
-  });
-
   group('분석 완료 시트', () {
-    testWidgets('내용량이 칼로리 위에 끼니 합으로 적힌다', (WidgetTester tester) async {
+    testWidgets('인식된 음식마다 이름 옆에 양이 붙는다', (WidgetTester tester) async {
       await _openResult(
         tester,
         _AnalyzeWith(<Map<String, Object?>>[
@@ -179,23 +155,10 @@ void main() {
         ]),
       );
 
-      expect(_amountRow, findsOneWidget);
-      expect(
-        find.descendant(of: _amountRow, matching: find.text('내용량')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: _amountRow, matching: find.text('250')),
-        findsOneWidget,
-      );
-      // 아래 값들의 기준이므로 칼로리보다 위에 선다 — 식단 수정의 음식 칸과 같다.
-      expect(
-        tester.getTopLeft(_amountRow).dy,
-        lessThan(tester.getTopLeft(find.text('칼로리')).dy),
-      );
+      expect(_recognized(tester), '스크램블 에그 100g · 딸기 150g');
     });
 
-    testWidgets('양을 모르는 음식이 섞이면 내용량을 적지 않는다', (WidgetTester tester) async {
+    testWidgets('양을 모르는 음식은 이름만 적는다', (WidgetTester tester) async {
       await _openResult(
         tester,
         _AnalyzeWith(<Map<String, Object?>>[
@@ -204,8 +167,22 @@ void main() {
         ]),
       );
 
-      expect(_amountRow, findsNothing);
-      expect(find.text('칼로리'), findsOneWidget, reason: '나머지 값은 그대로 보인다');
+      // `0g` 이 뜨면 안 먹었다로 읽힌다.
+      expect(_recognized(tester), '스크램블 에그 100g · 딸기');
+    });
+
+    testWidgets('끼니 총 내용량 줄은 두지 않는다', (WidgetTester tester) async {
+      await _openResult(
+        tester,
+        _AnalyzeWith(<Map<String, Object?>>[
+          _food('스크램블 에그', 185, amountG: 100),
+          _food('딸기', 32, amountG: 150),
+        ]),
+      );
+
+      expect(find.text('내용량'), findsNothing);
+      expect(find.text('250'), findsNothing, reason: '100g + 150g 을 더한 값');
+      expect(find.text('칼로리'), findsOneWidget, reason: '영양 분석 결과는 칼로리부터');
     });
   });
 }

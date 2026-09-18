@@ -831,8 +831,38 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
                 ),
               ),
               const SizedBox(height: OnCareSpacing.s4),
-              Text(
-                recognized.isEmpty ? l.dietNoRecognizedFood : recognized,
+              // 음식마다 이름 옆에 AI 가 읽은 **양**을 보조색으로 붙인다(#1964).
+              // 영양은 모두 이 양으로 환산되므로, 양이 틀리면 칼로리·탄단지가
+              // 함께 틀린다 — 저장 전 이 자리에서 보여야 머리의 연필로 바로
+              // 고칠 수 있다. 식단 탭 끼니 카드·식단 상세와 같은 자리·같은
+              // 모양이다. 양을 모르는 음식은 이름만 적는다(0g 은 안 먹었다).
+              Text.rich(
+                key: const Key('diet-result-recognized-foods'),
+                TextSpan(
+                  children: recognized.isEmpty
+                      ? <InlineSpan>[TextSpan(text: l.dietNoRecognizedFood)]
+                      : <InlineSpan>[
+                          for (
+                            int i = 0;
+                            i < r.foods.length;
+                            i++
+                          ) ...<InlineSpan>[
+                            if (i > 0) const TextSpan(text: ' · '),
+                            TextSpan(text: r.foods[i].name),
+                            if (r.foods[i].amountG case final double grams)
+                              TextSpan(
+                                text: ' ${_gramsText(grams)}${l.dietUnitG}',
+                                style: OnCareTypography.numeric(
+                                  _text(
+                                    context,
+                                    OnCareTypography.caption,
+                                    OnCareColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ],
+                ),
                 style: _text(
                   context,
                   OnCareTypography.titleSmall,
@@ -943,20 +973,6 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           key: const Key('diet-result-nutrition'),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // 내용량이 맨 위다 — 아래 값들이 모두 이 양을 재고 나온 값이라, 식단
-            // 수정의 음식 칸처럼 기준이 칼로리보다 먼저 읽혀야 한다(#1964).
-            // 양을 모르는 음식이 섞이면 합을 낼 수 없어 줄을 두지 않는다.
-            if (r.totalAmountG case final double amount) ...<Widget>[
-              KeyedSubtree(
-                key: const Key('diet-result-amount'),
-                child: _ResultRow(
-                  label: l.dietAmount,
-                  value: _gramsText(amount),
-                  unit: l.dietUnitG,
-                ),
-              ),
-              const SizedBox(height: OnCareSpacing.s8),
-            ],
             _ResultRow(
               label: l.dietCalories,
               value: '${r.totalCalories}',

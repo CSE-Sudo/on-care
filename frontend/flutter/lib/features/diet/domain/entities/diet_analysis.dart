@@ -76,22 +76,6 @@ class DietAnalysisResult {
 
   final String coachComment;
 
-  /// 끼니 전체의 내용량(g). **모든 음식의 양을 알 때만** 그 합이다.
-  ///
-  /// 하나라도 모르면 null 이다 — 아는 것만 더하면 그 끼니를 덜 먹은 것처럼
-  /// 읽히고, 옆의 칼로리는 모든 음식을 더한 값이라 둘이 서로 다른 양을 말하게
-  /// 된다(#1964).
-  double? get totalAmountG {
-    if (foods.isEmpty) return null;
-    double sum = 0;
-    for (final RecognizedFood food in foods) {
-      final double? grams = food.amountG;
-      if (grams == null) return null;
-      sum += grams;
-    }
-    return sum;
-  }
-
   factory DietAnalysisResult.fromResponse(Map<String, Object?> json) {
     final analysis =
         (json['analysis'] as Map<String, Object?>?) ??
