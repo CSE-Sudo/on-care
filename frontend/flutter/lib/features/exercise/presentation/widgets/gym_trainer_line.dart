@@ -20,7 +20,6 @@ class GymTrainerLine extends StatelessWidget {
     this.showReason = true,
     this.bordered = false,
     this.onDetail,
-    this.stacked = false,
     super.key,
   });
 
@@ -43,14 +42,6 @@ class GymTrainerLine extends StatelessWidget {
   /// 눌러도 헬스장 상세가 열려 누른 것과 다른 곳에 도착했다. 줄이 탭을 먼저
   /// 받으므로 헬스장 상세는 줄 **밖**(이름·주소·태그 쪽)을 누를 때 열린다.
   final VoidCallback? onDetail;
-
-  /// 이름 아래로 직함을 내려 **두 줄로 쌓을지**.
-  ///
-  /// 상세로 가는 길([onDetail])과는 따로 정한다(#2038). 예전에는 길을 열면
-  /// 저절로 쌓였는데, 헬스장 찾기 목록에 길을 열자 트레이너가 여럿인 카드가
-  /// 사람마다 한 줄씩 길어졌다. 찾기 목록은 이름·직함을 한 줄로 둔 채 화살표만
-  /// 붙이고, 담당 한 명만 서는 내 헬스장 카드는 지금처럼 쌓는다(#1187).
-  final bool stacked;
 
   Widget _name(BuildContext context) => Text(
     trainer.name,
@@ -110,27 +101,20 @@ class GymTrainerLine extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: OnCareSpacing.s8),
-              // 오른쪽에 배지·버튼이 붙는 줄에서는 이름 아래로 직함을 내린다
-              // (#1187) — 한 줄에 넷을 밀어 넣으면 직함부터 `퍼스널 트…` 로
-              // 잘려, 이 사람이 무엇을 하는 사람인지가 사라진다.
+              // 이름·직함은 **언제나 한 줄**이다(#2038). 이름과 짧은 속성은 한
+              // 줄에 읽혀야 하고, 두 줄은 `제목 + 설명` 처럼 기능을 풀어 쓰는
+              // 줄의 몫이다. 예전에는 오른쪽에 `연결됨` 배지와 `상세보기` 버튼이
+              // 함께 서서 직함이 `퍼스널 트…` 로 잘려 쌓았는데(#1187), 배지는
+              // 카드 머리로 올라가고 버튼은 화살표로 바뀌어(#1881) 그 까닭이
+              // 없어졌다.
               Expanded(
-                child: stacked
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          _name(context),
-                          const SizedBox(height: OnCareSpacing.s2),
-                          _role(context, l),
-                        ],
-                      )
-                    : Row(
-                        children: <Widget>[
-                          Flexible(child: _name(context)),
-                          const SizedBox(width: OnCareSpacing.s8),
-                          Flexible(child: _role(context, l)),
-                        ],
-                      ),
+                child: Row(
+                  children: <Widget>[
+                    Flexible(child: _name(context)),
+                    const SizedBox(width: OnCareSpacing.s8),
+                    Flexible(child: _role(context, l)),
+                  ],
+                ),
               ),
               // 상세로 가는 길은 줄 **오른쪽 끝**에 선다 — 다른 화면의 동작
               // 버튼과 같은 자리다 (#1267). 같은 카드 위 헬스장 줄과 똑같이

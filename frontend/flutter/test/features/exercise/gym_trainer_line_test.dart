@@ -338,13 +338,15 @@ void main() {
       }
     });
 
-    testWidgets('내 헬스장 카드의 트레이너 줄은 지금처럼 두 줄로 쌓는다 (#2038)', (
+    testWidgets('내 헬스장 카드도 이름·직함을 한 줄에 둔다 (#2038)', (
       WidgetTester tester,
     ) async {
       await pumpGymTab(tester);
 
-      // 쌓기를 길과 떼어 냈을 뿐, 담당 한 명만 서는 이 카드의 모양은 그대로다
-      // (#1187).
+      // 이름과 짧은 속성은 한 줄에 읽힌다 — 두 줄은 기능을 풀어 쓰는 `제목 +
+      // 설명` 줄의 몫이다. 예전에 쌓았던 까닭(`연결됨` 배지·`상세보기` 버튼이
+      // 함께 서서 직함이 잘렸다, #1187)은 둘이 카드 머리와 화살표로 옮겨
+      // 없어졌다. 찾기 목록과 같은 한 줄이다.
       final Finder line = find.byKey(const Key('gym-trainer-line-mine'));
       final Finder name = find.descendant(
         of: line,
@@ -355,8 +357,12 @@ void main() {
         matching: find.text('퍼스널 트레이너'),
       );
       expect(
-        tester.getTopLeft(role).dy,
-        greaterThanOrEqualTo(tester.getBottomLeft(name).dy),
+        tester.getCenter(role).dy,
+        moreOrLessEquals(tester.getCenter(name).dy, epsilon: 2),
+      );
+      expect(
+        tester.getTopLeft(role).dx,
+        greaterThan(tester.getTopRight(name).dx),
       );
     });
 

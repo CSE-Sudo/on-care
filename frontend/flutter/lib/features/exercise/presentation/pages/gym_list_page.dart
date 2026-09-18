@@ -635,9 +635,7 @@ class _GymListCard extends ConsumerWidget {
               // 트레이너 상세로 가므로(#1187) 두 화면이 같은 동작이 된다. 이
               // 목록을 보는 회원은 헬스장이 아직 없어, 트레이너를 누르는 까닭이
               // 곧 `상담 신청` 이다 — 그 입구가 트레이너 상세다.
-              //
-              // 이름·직함은 **한 줄 그대로** 두고 화살표만 붙인다(`stacked`
-              // 기본값). 쌓으면 트레이너가 여럿인 카드가 사람마다 길어진다.
+              // 이름·직함은 한 줄 그대로 두고 화살표만 붙는다.
               onDetail: () =>
                   context.push(AppRoutes.trainerDetailPath(trainer.id)),
             ),

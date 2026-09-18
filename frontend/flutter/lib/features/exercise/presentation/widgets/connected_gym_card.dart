@@ -118,9 +118,6 @@ class ConnectedGymCard extends StatelessWidget {
                 trainer: trainer!,
                 showReason: false,
                 onDetail: onTrainerDetail,
-                // 길이 열린 줄만 쌓는다 — 예전에 `stacked` 가 `onDetail` 을
-                // 따라가던 것과 똑같다(#2038 이 둘을 떼어 냈다).
-                stacked: onTrainerDetail != null,
               ),
             ] else if (onFindTrainer != null) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s12),
