@@ -39,14 +39,17 @@ const double kDietSummaryCardHeight = 216;
 /// 기록도 기기마다 다른 구간의 평균이 된다.
 const int _kAllDaysPerScreen = 24;
 
-/// 카드 안 날짜 기간 한 줄과 그 아래 간격이 쓰는 자리 (#2009).
+/// 머리줄 오른쪽 칸 맨 위에 날짜 기간이 얹히며 머리줄이 키가 커진 만큼 (#2009).
+///
+/// 재서 얻은 값이다. 날짜에 제 줄을 따로 주면 24(한 줄 + 간격)가 들고 그 줄
+/// 왼쪽이 통째로 비었다 — 탄단지 위에 얹으면 16 으로 줄고 빈 줄도 없다.
 ///
 /// 카드 높이([kDietSummaryCardHeight])는 **`오늘` 카드**를 따라가고 그 카드는
-/// 이 줄을 갖지 않으므로 상수 자체는 그대로다. 대신 기간 카드의 그래프가 이
-/// 만큼 자리를 내준다 — 그러지 않으면 기간 카드만 그만큼 키가 커져 토글을
-/// 누를 때 아래 내용이 뛴다(#1124).
-const double _kRangeLineGap = OnCareSpacing.s8;
-const double _kRangeLineExtent = 16 + _kRangeLineGap;
+/// 이 날짜를 갖지 않으므로 상수 자체는 그대로다. 대신 기간 카드의 그래프가
+/// 이만큼 자리를 내준다 — 그러지 않으면 기간 카드만 키가 커져 토글을 누를 때
+/// 아래 내용이 뛴다(#1124). 글자 지표가 바뀌어 이 값이 어긋나면
+/// `diet_summary_card_height_test.dart` 가 세 카드 높이로 알려 준다.
+const double _kHeadlineRangeExtent = 16;
 
 /// 식단 탭의 기간 뷰(이번 주 / 전체).
 ///
@@ -302,28 +305,6 @@ class _PeriodBody extends StatelessWidget {
             // 보였다 — 남는 자리를 위아래로 나눠 가운데에 놓는다(#1956).
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              // 날짜 기간은 카드 안 **오른쪽 위** 한 줄이다 (#2009). 운동 탭은
-              // 머리줄과 같은 줄 오른쪽에 두지만, 여기는 그 자리를 탄단지 세
-              // 줄이 이미 쓰고 있어 제 줄을 준다. 형식은 운동과 같은 함수로
-              // 적는다 — 두 탭이 서로 다른 말투로 말하지 않도록.
-              SizedBox(
-                width: double.infinity,
-                child: ListenableBuilder(
-                  listenable: selection,
-                  builder: (BuildContext context, Widget? _) {
-                    final (DateTime from, DateTime to) = _shownRange();
-                    return PeriodRangeLabel(
-                      key: const Key('diet-period-range'),
-                      text: periodRangeText(
-                        Localizations.localeOf(context).toString(),
-                        from,
-                        to,
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: _kRangeLineGap),
               ListenableBuilder(
                 listenable: selection,
                 builder: (BuildContext context, Widget? _) {
@@ -336,6 +317,7 @@ class _PeriodBody extends StatelessWidget {
                   final bool over = goal > 0 && value > goal;
                   // 칼로리를 볼 때만 탄단지를 곁들인다. (#1121)
                   final _Macros? macros = _macrosFor(picked);
+                  final (DateTime from, DateTime to) = _shownRange();
                   return PeriodChartHeadline(
                     selected: picked != null,
                     child: Row(
@@ -398,10 +380,31 @@ class _PeriodBody extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (macros != null) ...<Widget>[
-                          const SizedBox(width: OnCareSpacing.s12),
-                          _MacroDetail(macros: macros, muted: weekly),
-                        ],
+                        const SizedBox(width: OnCareSpacing.s12),
+                        // 오른쪽 칸 — 맨 위가 날짜 기간, 그 아래가 탄단지다
+                        // (#2009). 날짜에 제 줄을 따로 주면 그 줄 왼쪽이 통째로
+                        // 비어 카드 한 줄을 버린다. 탄단지 위에 얹으면 빈 줄
+                        // 없이 운동 탭처럼 **카드 오른쪽 위**에 놓인다.
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            // 형식은 운동과 같은 함수로 적는다 — 두 탭이 서로
+                            // 다른 말투로 말하지 않도록.
+                            PeriodRangeLabel(
+                              key: const Key('diet-period-range'),
+                              text: periodRangeText(
+                                Localizations.localeOf(context).toString(),
+                                from,
+                                to,
+                              ),
+                            ),
+                            if (macros != null) ...<Widget>[
+                              const SizedBox(height: OnCareSpacing.s4),
+                              _MacroDetail(macros: macros, muted: weekly),
+                            ],
+                          ],
+                        ),
                       ],
                     ),
                   );
@@ -481,7 +484,7 @@ class _WeekTrend extends StatelessWidget {
   /// 늘어나지 않도록 몇 dp 여유를 남긴다 — 남는 자리는 카드의 가운데 정렬이
   /// 위아래로 나눈다.
   static const double _chartHeight =
-      kDietSummaryCardHeight - 128 - _kRangeLineExtent;
+      kDietSummaryCardHeight - 128 - _kHeadlineRangeExtent;
 
   @override
   Widget build(BuildContext context) {
@@ -650,7 +653,7 @@ class _PeriodBars extends StatelessWidget {
   /// 240 이던 시절 값이라 그 뒤 늘어난 만큼이 카드 아래 빈 칸이 됐다(#1956).
   /// 막대 쪽이 4dp 더 높은 것은 날짜 라벨 줄이 요일 라벨보다 낮아서다.
   static const double _chartHeight =
-      kDietSummaryCardHeight - 124 - _kRangeLineExtent;
+      kDietSummaryCardHeight - 124 - _kHeadlineRangeExtent;
 
   /// [i] 번째 칸의 원본. 칼로리를 보고 있지 않으면 null 이다.
   DietPeriodDay? _dayAt(int i) {

@@ -92,13 +92,23 @@ void main() {
     expect(rangeLabel(tester), isNot(atEnd), reason: '그래프를 밀었는데 상단 날짜가 그대로다');
   });
 
-  testWidgets('날짜 줄은 카드 안 오른쪽 위에 있다', (WidgetTester tester) async {
+  testWidgets('날짜 줄은 카드 안 오른쪽 위, 탄단지 바로 위에 있다', (WidgetTester tester) async {
     await open(tester, DietPeriodTab.week);
 
     final Rect label = tester.getRect(
       find.byKey(const Key('diet-period-range')),
     );
     final Rect card = tester.getRect(find.byKey(const Key('diet-period-card')));
+    final Rect macros = tester.getRect(
+      find.byKey(const Key('diet-period-macros')),
+    );
+    final Rect caption = tester.getRect(
+      find.textContaining(
+        AppLocalizations.of(
+          tester.element(find.byType(DietRecordPage)),
+        ).dietPeriodAverage,
+      ),
+    );
 
     // 카드 **안**이다 — 카드 위에 뜬 줄이 아니다.
     expect(card.contains(label.topLeft), isTrue, reason: '날짜 줄이 카드 밖에 있다');
@@ -109,11 +119,18 @@ void main() {
       moreOrLessEquals(card.right - OnCareSpacing.cardPadding, epsilon: 1),
       reason: '날짜 줄이 카드 오른쪽 끝에 붙지 않았다',
     );
-    // 위 — 머리 숫자보다 위다.
+    // 탄단지 **바로 위**다 — 오른쪽 칸의 맨 위.
     expect(
       label.bottom,
-      lessThanOrEqualTo(tester.getRect(find.byType(PeriodChartHeadline)).top),
-      reason: '날짜 줄이 머리 숫자 아래로 내려갔다',
+      lessThanOrEqualTo(macros.top),
+      reason: '날짜 줄이 탄단지 아래로 내려갔다',
+    );
+    // 왼쪽 머리 문구(`하루 평균 · 칼로리`)와 **같은 높이**에서 시작한다 —
+    // 날짜에 제 줄을 따로 주면 그 줄 왼쪽이 통째로 빈다(#2009).
+    expect(
+      label.top,
+      moreOrLessEquals(caption.top, epsilon: 2),
+      reason: '날짜 줄이 제 줄을 따로 써서 왼쪽에 빈 줄이 생겼다',
     );
   });
 
