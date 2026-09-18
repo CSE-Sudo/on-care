@@ -12,7 +12,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 있었다. 이름과 직함을 한 줄로 적고, 왜 추천하는지는 그 아래 배지로 붙인다.
 ///
 /// 같은 줄을 두 곳이 쓴다 — 헬스장 찾기 목록(소속 트레이너 전원)과 연결된 내
-/// 헬스장 카드(담당 한 명). 뒤쪽은 [onDetail]로 상세로 가는 길을 준다.
+/// 헬스장 카드(담당 한 명). 두 곳 모두 [onDetail]로 트레이너 상세로 가는 길을
+/// 준다(#2038).
 class GymTrainerLine extends StatelessWidget {
   const GymTrainerLine({
     required this.trainer,
@@ -34,8 +35,12 @@ class GymTrainerLine extends StatelessWidget {
   /// 말할 자리가 아니라 끈다.
   final bool showReason;
 
-  /// 트레이너 상세로 가는 길. null 이면 읽기만 하는 줄이다 — 목록 카드는
-  /// 카드 전체가 헬스장 상세로 가므로 그 안에서 또 다른 길을 열지 않는다.
+  /// 트레이너 상세로 가는 길. null 이면 읽기만 하는 줄이다.
+  ///
+  /// 헬스장 찾기 목록도 이 길을 연다(#2038). 예전에는 카드 전체가 헬스장
+  /// 상세로 가니 그 안에서 또 다른 길을 열지 않았는데, 그러자 트레이너 줄을
+  /// 눌러도 헬스장 상세가 열려 누른 것과 다른 곳에 도착했다. 줄이 탭을 먼저
+  /// 받으므로 헬스장 상세는 줄 **밖**(이름·주소·태그 쪽)을 누를 때 열린다.
   final VoidCallback? onDetail;
 
   /// 오른쪽에 배지나 버튼이 서는가. 그때는 이름·직함을 두 줄로 쌓는다.

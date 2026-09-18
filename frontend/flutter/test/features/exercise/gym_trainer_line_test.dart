@@ -19,6 +19,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
@@ -245,6 +246,61 @@ void main() {
       );
       expect(listed.color, OnCareColors.surfaceCard);
       expect((listed.border! as Border).top.color, OnCareColors.lineSubtle);
+    });
+
+    testWidgets('트레이너 줄을 누르면 그 트레이너 상세로 간다 (#2038)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester, hasMyGym: false);
+
+      // 예전에는 읽기만 하는 줄이라 탭이 바깥 카드로 흘러 헬스장 상세가
+      // 열렸다 — 트레이너를 눌렀는데 헬스장에 도착했다.
+      await tester.tap(find.byKey(const Key('gym-trainer-trainer-kim')));
+      await tester.pumpAndSettle();
+
+      // `context.push` 는 경로를 쌓는다 — 라우터의 기준 위치는 그대로라
+      // 도착한 화면으로 본다(위 `상세 이동 화살표` 테스트와 같은 방식).
+      expect(find.byType(TrainerDetailPage), findsOneWidget);
+      expect(find.byType(GymDetailPage), findsNothing);
+    });
+
+    testWidgets('트레이너 줄 밖을 누르면 지금처럼 헬스장 상세로 간다 (#2038)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester, hasMyGym: false);
+
+      // 헬스장 이름은 지도 핀에도 적혀 있어 여럿이 잡힌다 — 목록 카드 안의
+      // 것을 누른다.
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byKey(const Key('gym-result-sheet')),
+              matching: find.text(_gym.name),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(GymDetailPage), findsOneWidget);
+      expect(find.byType(TrainerDetailPage), findsNothing);
+    });
+
+    testWidgets('트레이너 줄이 내 헬스장 카드와 같은 화살표를 단다 (#2038)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester, hasMyGym: false);
+
+      // 같은 줄이 화면마다 다른 곳으로 가지 않는다 — 누를 수 있다는 표시도
+      // 같아야 한다.
+      for (final Trainer trainer in <Trainer>[_kim, _park]) {
+        expect(
+          find.descendant(
+            of: find.byKey(Key('gym-trainer-${trainer.id}')),
+            matching: find.byKey(const Key('gymTrainerDetailButton')),
+          ),
+          findsOneWidget,
+        );
+      }
     });
   });
 
