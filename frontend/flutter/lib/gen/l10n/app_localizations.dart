@@ -3391,6 +3391,36 @@ abstract class AppLocalizations {
   /// **'Another member just took that time. Please choose another.'**
   String get exConsultSlotTaken;
 
+  /// No description provided for @exConsultTooManyPending.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have {count} consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.'**
+  String exConsultTooManyPending(int count);
+
+  /// No description provided for @exConsultRateLimitedHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again in {hours} hours.'**
+  String exConsultRateLimitedHours(int hours);
+
+  /// No description provided for @exConsultRateLimitedMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again in {minutes} minutes.'**
+  String exConsultRateLimitedMinutes(int minutes);
+
+  /// No description provided for @exConsultRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again later.'**
+  String get exConsultRateLimited;
+
+  /// No description provided for @exConsultTooManyPendingNoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'You have too many consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.'**
+  String get exConsultTooManyPendingNoCount;
+
   /// No description provided for @exGymCall.
   ///
   /// In en, this message translates to:

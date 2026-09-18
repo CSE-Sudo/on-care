@@ -14,6 +14,7 @@ import 'package:oncare/features/exercise/domain/entities/consultation_request.da
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
+import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -152,6 +153,28 @@ Future<void> _pickSlot(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// 접수를 서버 한도로 거절하는 저장소. (#1628)
+class _LimitedRepository implements ConsultationRepository {
+  _LimitedRepository(this.error);
+
+  final Exception error;
+
+  @override
+  Future<String> create(ConsultationDraft draft) async => throw error;
+
+  @override
+  Future<List<ConsultationRequest>> fetchMine({
+    int limit = consultationPageSize,
+  }) async => const <ConsultationRequest>[];
+
+  @override
+  Future<void> cancel(String consultationId) async {}
+
+  @override
+  Future<List<TrainerSlot>> fetchSlots(String trainerId) async =>
+      const <TrainerSlot>[];
+}
+
 AppLocalizations _localizations(WidgetTester tester) {
   return AppLocalizations.of(tester.element(find.byType(Scaffold).first));
 }
@@ -165,6 +188,7 @@ void main() {
     String location, {
     bool hasMyGym = true,
     List<TrainerSlot>? slots,
+    ConsultationRepository? repository,
   }) async {
     await tester.binding.setSurfaceSize(const Size(360, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -188,6 +212,8 @@ void main() {
         consultationSlotsProvider(
           _trainer.id,
         ).overrideWith((ref) async => slots ?? _openSlots()),
+        if (repository != null)
+          consultationRepositoryProvider.overrideWithValue(repository),
       ],
     );
     addTearDown(container.dispose);
@@ -475,6 +501,53 @@ void main() {
     expect(find.text(l.exConsultPendingCta), findsNothing);
     expect(find.text(l.exGymConsultRequest), findsNothing);
   });
+
+  for (final (
+        String name,
+        Exception error,
+        String Function(AppLocalizations) message,
+      )
+      in <(String, Exception, String Function(AppLocalizations))>[
+        (
+          '대기 상한',
+          const TooManyPendingConsultations(limit: 3),
+          (AppLocalizations l) => l.exConsultTooManyPending(3),
+        ),
+        (
+          '24시간 한도',
+          const ConsultationRateLimited(retryAfter: Duration(hours: 5)),
+          (AppLocalizations l) => l.exConsultRateLimitedHours(5),
+        ),
+      ]) {
+    testWidgets('$name에 걸리면 안내하고 대기 중으로 표시하지 않는다 (#1628)', (
+      WidgetTester tester,
+    ) async {
+      await pumpRoute(
+        tester,
+        AppRoutes.consultationRequestPath(
+          gymId: _gym.id,
+          trainerId: _trainer.id,
+        ),
+        repository: _LimitedRepository(error),
+      );
+      final AppLocalizations l = _localizations(tester);
+      await tester.tap(find.byKey(const Key('consultDataSharingConsent')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l.healthFocusWeightLoss));
+      await _pickSlot(tester);
+
+      await _revealInForm(tester, find.text(l.exSendConsultRequest), 220);
+      await tester.tap(find.text(l.exSendConsultRequest));
+      await tester.pump();
+
+      expect(find.text(message(l)), findsOneWidget);
+      // 이 트레이너에게는 신청한 적이 없다 — "이미 대기 중" 으로 잠그면 한도가
+      // 풀린 뒤에도 신청하지 못한다.
+      expect(container.read(consultationRequestControllerProvider), isEmpty);
+      expect(find.text(l.exConsultReceived), findsNothing);
+      await tester.pumpAndSettle(const Duration(seconds: 5));
+    });
+  }
 
   testWidgets('invalid target type and gym id show a safe state', (
     WidgetTester tester,

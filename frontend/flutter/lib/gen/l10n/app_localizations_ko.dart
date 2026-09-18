@@ -1847,6 +1847,28 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultSlotTaken => '방금 다른 회원이 그 시간을 예약했어요. 다른 시간을 선택해주세요.';
 
   @override
+  String exConsultTooManyPending(int count) {
+    return '답을 기다리는 상담 요청이 이미 $count건 있어요. 답을 받거나 요청을 취소한 뒤 다시 신청해 주세요.';
+  }
+
+  @override
+  String exConsultRateLimitedHours(int hours) {
+    return '상담 신청이 너무 잦아요. $hours시간 뒤에 다시 신청해 주세요.';
+  }
+
+  @override
+  String exConsultRateLimitedMinutes(int minutes) {
+    return '상담 신청이 너무 잦아요. $minutes분 뒤에 다시 신청해 주세요.';
+  }
+
+  @override
+  String get exConsultRateLimited => '상담 신청이 너무 잦아요. 잠시 후 다시 신청해 주세요.';
+
+  @override
+  String get exConsultTooManyPendingNoCount =>
+      '답을 기다리는 상담 요청이 너무 많아요. 답을 받거나 요청을 취소한 뒤 다시 신청해 주세요.';
+
+  @override
   String get exGymCall => '전화 걸기';
 
   @override

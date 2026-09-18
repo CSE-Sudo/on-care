@@ -54,3 +54,23 @@ class DuplicatePendingConsultation implements Exception {
 class ConsultationSlotTaken implements Exception {
   const ConsultationSlotTaken();
 }
+
+/// 서버가 409 로 거절했는데 **답을 기다리는 요청이 상한에 닿아서**인 경우. (#1628)
+///
+/// 대기 요청 하나가 트레이너 자리 하나를 잠가서, 한 회원이 여러 트레이너의 자리를
+/// 한꺼번에 묶지 못하게 서버가 막는다. [DuplicatePendingConsultation] 과 같은 409
+/// 지만 이 트레이너에게는 신청한 적이 없다 — 섞으면 "이미 대기 중" 으로 잘못 표시한다.
+class TooManyPendingConsultations implements Exception {
+  const TooManyPendingConsultations({this.limit});
+
+  /// 동시에 둘 수 있는 대기 요청 수(서버 설정). 서버가 싣지 않았으면 null.
+  final int? limit;
+}
+
+/// 서버가 429 로 거절한 경우 — 24시간 신청 한도를 넘었다. (#1628)
+class ConsultationRateLimited implements Exception {
+  const ConsultationRateLimited({this.retryAfter});
+
+  /// 다시 신청할 수 있기까지(서버 `Retry-After`). 모르면 null.
+  final Duration? retryAfter;
+}
