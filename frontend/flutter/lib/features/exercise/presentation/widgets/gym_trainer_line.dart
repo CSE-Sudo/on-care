@@ -12,13 +12,16 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 있었다. 이름과 직함을 한 줄로 적고, 왜 추천하는지는 그 아래 배지로 붙인다.
 ///
 /// 같은 줄을 두 곳이 쓴다 — 헬스장 찾기 목록(소속 트레이너 전원)과 연결된 내
-/// 헬스장 카드(담당 한 명). 뒤쪽은 [onDetail]로 상세로 가는 길을 준다.
+/// 헬스장 카드(담당 한 명). 두 곳 모두 [onDetail]로 트레이너 상세로 가는 길을
+/// 준다(#2038).
 class GymTrainerLine extends StatelessWidget {
   const GymTrainerLine({
     required this.trainer,
     this.showReason = true,
     this.bordered = false,
     this.onDetail,
+    this.leadingWidth = OnCareSize.avatarSmall,
+    this.leadingGap = OnCareSpacing.s8,
     super.key,
   });
 
@@ -34,12 +37,23 @@ class GymTrainerLine extends StatelessWidget {
   /// 말할 자리가 아니라 끈다.
   final bool showReason;
 
-  /// 트레이너 상세로 가는 길. null 이면 읽기만 하는 줄이다 — 목록 카드는
-  /// 카드 전체가 헬스장 상세로 가므로 그 안에서 또 다른 길을 열지 않는다.
+  /// 트레이너 상세로 가는 길. null 이면 읽기만 하는 줄이다.
+  ///
+  /// 헬스장 찾기 목록도 이 길을 연다(#2038). 예전에는 카드 전체가 헬스장
+  /// 상세로 가니 그 안에서 또 다른 길을 열지 않았는데, 그러자 트레이너 줄을
+  /// 눌러도 헬스장 상세가 열려 누른 것과 다른 곳에 도착했다. 줄이 탭을 먼저
+  /// 받으므로 헬스장 상세는 줄 **밖**(이름·주소·태그 쪽)을 누를 때 열린다.
   final VoidCallback? onDetail;
 
-  /// 오른쪽에 배지나 버튼이 서는가. 그때는 이름·직함을 두 줄로 쌓는다.
-  bool get stacked => onDetail != null;
+  /// 사람 아이콘이 서는 앞 칸의 폭과, 그 뒤 이름까지의 간격.
+  ///
+  /// 같은 카드 위 **헬스장 줄과 한 격자에 서야 할 때** 그 줄의 값을 넘긴다
+  /// (#2038). 내 헬스장 카드는 헬스장 아이콘 칸(40)과 간격(12)을 넘겨, 사람
+  /// 아이콘이 덤벨 아이콘과 같은 세로 중심에, 이름이 헬스장 이름과 같은
+  /// 세로선에 선다. 테두리를 두른 찾기 목록 줄은 제 상자 안의 격자라 기본값을
+  /// 쓴다. 추천 이유 배지도 이 두 값만큼 들어가 이름과 맞는다.
+  final double leadingWidth;
+  final double leadingGap;
 
   Widget _name(BuildContext context) => Text(
     trainer.name,
@@ -88,8 +102,9 @@ class GymTrainerLine extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
+              // 칸 폭만 넓히고 높이는 그대로 둔다 — 줄이 높아지지 않는다.
               Container(
-                width: OnCareSize.avatarSmall,
+                width: leadingWidth,
                 height: OnCareSize.avatarSmall,
                 alignment: Alignment.center,
                 child: AppIcon(
@@ -98,28 +113,21 @@ class GymTrainerLine extends StatelessWidget {
                   color: tokens.brand.primary,
                 ),
               ),
-              const SizedBox(width: OnCareSpacing.s8),
-              // 오른쪽에 배지·버튼이 붙는 줄에서는 이름 아래로 직함을 내린다
-              // (#1187) — 한 줄에 넷을 밀어 넣으면 직함부터 `퍼스널 트…` 로
-              // 잘려, 이 사람이 무엇을 하는 사람인지가 사라진다.
+              SizedBox(width: leadingGap),
+              // 이름·직함은 **언제나 한 줄**이다(#2038). 이름과 짧은 속성은 한
+              // 줄에 읽혀야 하고, 두 줄은 `제목 + 설명` 처럼 기능을 풀어 쓰는
+              // 줄의 몫이다. 예전에는 오른쪽에 `연결됨` 배지와 `상세보기` 버튼이
+              // 함께 서서 직함이 `퍼스널 트…` 로 잘려 쌓았는데(#1187), 배지는
+              // 카드 머리로 올라가고 버튼은 화살표로 바뀌어(#1881) 그 까닭이
+              // 없어졌다.
               Expanded(
-                child: stacked
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          _name(context),
-                          const SizedBox(height: OnCareSpacing.s2),
-                          _role(context, l),
-                        ],
-                      )
-                    : Row(
-                        children: <Widget>[
-                          Flexible(child: _name(context)),
-                          const SizedBox(width: OnCareSpacing.s8),
-                          Flexible(child: _role(context, l)),
-                        ],
-                      ),
+                child: Row(
+                  children: <Widget>[
+                    Flexible(child: _name(context)),
+                    const SizedBox(width: OnCareSpacing.s8),
+                    Flexible(child: _role(context, l)),
+                  ],
+                ),
               ),
               // 상세로 가는 길은 줄 **오른쪽 끝**에 선다 — 다른 화면의 동작
               // 버튼과 같은 자리다 (#1267). 같은 카드 위 헬스장 줄과 똑같이
@@ -146,7 +154,20 @@ class GymTrainerLine extends StatelessWidget {
           // 카드 밖으로 밀려 나가지 않는다.
           if (showReason && reasons.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
-            TrainerReasonBadges(reasons: reasons, keyPrefix: 'gym-trainer'),
+            // 배지는 **이름과 같은 세로선**에서 시작한다 — 앞 아이콘 칸과
+            // 그 뒤 간격만큼 민다. 같은 카드 위 헬스장 블록이 태그를 아이콘
+            // 오른쪽 글자 칸에 두는 것과 같은 정렬이다. 들이지 않으면 배지가
+            // 아이콘보다도 왼쪽에서 시작해, 누구의 근거인지 흐려진다.
+            Padding(
+              key: const Key('gym-trainer-reasons-indent'),
+              padding: EdgeInsetsDirectional.only(
+                start: leadingWidth + leadingGap,
+              ),
+              child: TrainerReasonBadges(
+                reasons: reasons,
+                keyPrefix: 'gym-trainer',
+              ),
+            ),
           ],
         ],
       ),
