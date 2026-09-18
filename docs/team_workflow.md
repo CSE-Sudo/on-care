@@ -98,7 +98,32 @@ flutter analyze
 flutter test
 ```
 
-UI 변경 시 golden 테스트 결과 (`test/golden/failures/`) 도 함께 확인합니다.
+### 골든 테스트 (#2054)
+
+공용 버튼(`AppButton` · `AppButtonPair`)의 생김새는 `shared/oncare_ui/test/button_goldens_test.dart` 가 기준 이미지(`shared/oncare_ui/test/goldens/*.png`)와 픽셀 단위로 비교합니다. 다른 위젯 테스트는 동작만 보므로, 색·크기·간격·변형이 조용히 바뀌는 것은 여기서만 잡힙니다. 회원 앱 CI 의 공용 패키지 단계에서 돕니다.
+
+`shared/oncare_ui` 를 고쳤다면 로컬에서도 돌립니다.
+
+```bash
+cd shared/oncare_ui
+flutter test
+```
+
+**깨졌을 때** — `shared/oncare_ui/test/failures/` 에 기준(`_masterImage`)·실제(`_testImage`)·차이(`_isolatedDiff`) PNG 가 생깁니다. CI 에서 깨지면 같은 파일이 실행 화면의 **Artifacts → `oncare-ui-golden-failures`** 로 올라옵니다.
+
+- 의도하지 않은 변화면 코드를 고칩니다.
+- **의도한 변화면 기준을 새로 뽑습니다.** 기준 이미지는 CI 와 같은 Flutter 3.44.9 로 만듭니다.
+
+```bash
+cd shared/oncare_ui
+flutter test --update-goldens test/button_goldens_test.dart
+```
+
+  바뀐 PNG 를 커밋하고, PR 본문에 무엇이 왜 바뀌었는지 적습니다. 리뷰어는 GitHub 의 이미지 diff 로 전후를 비교합니다.
+
+- **로컬에서는 통과하는데 CI 에서만 깨지면** 운영체제 간 렌더링 차이입니다. 위 아티팩트의 `_testImage.png`(CI 가 그린 실제 이미지)를 `goldens/` 의 같은 이름 파일로 바꿔 커밋합니다 — 기준은 CI 쪽이 정답입니다.
+
+글자는 테스트 기본 글꼴로 그려져 네모 블록으로 나옵니다. 정상입니다 — 글자 모양이 아니라 크기·색·간격을 지키는 테스트입니다.
 
 ---
 
