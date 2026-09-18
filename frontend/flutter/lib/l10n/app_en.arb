@@ -235,16 +235,16 @@
   },
   "dietRecordDateChange": "Change date",
   "@dietRecordDateChange": {
-    "description": "Button that opens the date picker on the analysis result sheet."
+    "description": "Button that opens the date picker in the meal detail edit mode (#1947)."
   },
   "dietRecordDateMoved": "Moved to {date}",
   "@dietRecordDateMoved": {
-    "description": "Confirmation after moving an analysed meal to another day.",
+    "description": "Confirmation after saving a meal under another day.",
     "placeholders": { "date": { "type": "String" } }
   },
-  "dietRecordDateFailed": "Could not change the date. Please try again shortly.",
-  "@dietRecordDateFailed": {
-    "description": "Error shown when moving an analysed meal to another day fails."
+  "dietMealKind": "Meal",
+  "@dietMealKind": {
+    "description": "Label of the meal-type row next to the record date in the meal detail (#1947)."
   },
   "dietAnalysisDone": "Analysis complete!",
   "dietAiNutritionResult": "AI Nutrition Result",

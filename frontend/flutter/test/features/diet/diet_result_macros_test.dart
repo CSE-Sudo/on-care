@@ -182,7 +182,6 @@ void main() {
 
     // 탄·단·지를 따로 묶던 작은 세 칸은 없어졌다.
     expect(find.byKey(const Key('diet-result-macros')), findsNothing);
-    expect(find.byKey(const Key('diet-result-date-change')), findsOneWidget);
   });
 
   testWidgets('인식된 음식을 고치는 자리는 연필 아이콘이다', (WidgetTester tester) async {
@@ -198,7 +197,9 @@ void main() {
     expect(find.widgetWithText(AppButton, l.actionEdit), findsNothing);
   });
 
-  testWidgets('기록 날짜 줄은 라벨·값·버튼이 한 줄에서 가운데로 선다', (WidgetTester tester) async {
+  // `날짜 변경` 버튼은 #1947 에서 빠졌다 — 고치는 자리는 헤더 연필이 여는
+  // 식단 상세 한 곳이다. 라벨과 값만 남는다.
+  testWidgets('기록 날짜 줄은 라벨·값이 한 줄에서 가운데로 선다', (WidgetTester tester) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
     await _openResultSheet(tester, FakeDietRepository());
 
@@ -206,12 +207,9 @@ void main() {
     final AppLocalizations l = AppLocalizations.of(tester.element(value));
     final Rect label = tester.getRect(find.text(l.dietRecordDate));
     final Rect date = tester.getRect(value);
-    final Rect button = tester.getRect(
-      find.byKey(const Key('diet-result-date-change')),
-    );
 
     expect(date.center.dy, label.center.dy);
-    expect(button.center.dy, label.center.dy);
+    expect(find.byKey(const Key('diet-result-date-change')), findsNothing);
 
     // 위아래가 모두 구획이라 라벨도 같은 자리에서 시작해야 한 줄로 읽힌다.
     expect(label.left, tester.getRect(find.text(l.dietCalories)).left);

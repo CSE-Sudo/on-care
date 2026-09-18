@@ -25,16 +25,17 @@ import 'package:oncare_ui/oncare_ui.dart';
 import '../../helpers/fake_diet_repository.dart';
 
 /// 대역의 아침 — 사진 자산이 붙어 있는 끼니다.
-const DietMeal _breakfast = DietMeal(
+final DietMeal _breakfast = DietMeal(
   id: 'entry-breakfast',
   mealType: MealType.breakfast,
+  date: DateTime(2026, 8, 20),
   time: '08:20',
   total: 217,
   emoji: '🥣',
-  thumbBg: Color(0xFFFFF3E0),
+  thumbBg: const Color(0xFFFFF3E0),
   photoAsset: 'assets/images/breakfast-scrambled-egg-strawberry.jpg',
-  items: <DietFood>[DietFood('스크램블 에그', 185), DietFood('딸기', 32)],
-  tags: <DietTag>[],
+  items: const <DietFood>[DietFood('스크램블 에그', 185), DietFood('딸기', 32)],
+  tags: const <DietTag>[],
   sodium: 221,
   sugar: 6.3,
 );

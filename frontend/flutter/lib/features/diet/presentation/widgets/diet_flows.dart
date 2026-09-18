@@ -66,6 +66,7 @@ class DietTag {
 class DietMeal {
   const DietMeal({
     required this.mealType,
+    required this.date,
     required this.time,
     required this.total,
     required this.emoji,
@@ -84,6 +85,15 @@ class DietMeal {
   });
 
   final MealType mealType;
+
+  /// 이 기록이 놓인 날(시각 없는 날짜). 식단 상세에서 날짜를 고치는 기준이다
+  /// (#1947).
+  ///
+  /// `DietEntry` 에는 날짜가 없다 — 서버가 날짜별로 묶어 내려주므로 날짜는 그
+  /// 목록을 **어느 날로 불렀는가** 에서 온다. 그래서 끼니를 옮기는 매퍼가
+  /// 반드시 받아 오도록 필수로 둔다 — 빠뜨린 자리를 오늘로 채우면 지난 날의
+  /// 기록이 상세에서 오늘로 보인다.
+  final DateTime date;
   final String time;
   final int total;
   final String emoji;
@@ -137,6 +147,16 @@ String _currentMealType() {
   if (h < 21) return MealType.dinner.name;
   return MealType.lateNight.name;
 }
+
+/// 오늘(KST)의 날짜. 시각은 버린다.
+DateTime _todayKst() {
+  final DateTime now = nowKst();
+  return DateTime(now.year, now.month, now.day);
+}
+
+/// 기록 날짜를 화면 언어로 — `2026년 9월 16일`.
+String _recordDateLabel(BuildContext context, DateTime date) =>
+    DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date);
 
 /// 역할 글자 + 색. 크기·굵기 숫자는 적지 않는다(#1690).
 TextStyle _text(BuildContext context, TextStyle role, Color color) =>
@@ -450,19 +470,15 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   bool _loading = true;
   DietAnalysisFailure? _failure;
 
-  /// 이 기록이 놓인 날. 분석은 저장한 시각의 날짜로 남기므로 처음은 늘 오늘이고,
-  /// 지난 식사의 사진을 올린 경우 여기서 실제로 먹은 날로 옮긴다(#1241).
-  late DateTime _date = _todayKst();
-
-  /// 날짜를 옮기는 중. 두 번 눌러 같은 기록을 두 날짜로 보내지 않게 막는다.
-  bool _movingDate = false;
+  /// 이 기록이 놓인 날. 분석은 저장한 시각의 날짜로 남기므로 늘 오늘이다.
+  ///
+  /// 지난 식사의 사진이면 날짜를 고쳐야 하는데, 그 자리는 여기가 아니라 헤더
+  /// 연필이 여는 식단 상세다(#1947). 날짜는 이 시트에서 고칠 수 있는데 끼니는
+  /// 고칠 수 없어 `어제 · 아침` 같은 기록이 남았다 — 날짜·끼니·음식을 한
+  /// 자리에서 고치도록 문을 연필 하나로 모았다.
+  final DateTime _date = _todayKst();
 
   bool get _failed => _failure != null;
-
-  static DateTime _todayKst() {
-    final DateTime now = nowKst();
-    return DateTime(now.year, now.month, now.day);
-  }
 
   // One key per capture, reused across retries so a lost response followed by
   // 「다시 시도」 doesn't record the same meal twice (server dedupes on it).
@@ -544,58 +560,6 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     unawaited(router.push<void>(AppRoutes.dietEntryDetailPath(result.entryId)));
   }
 
-  /// 기록 날짜를 고쳐 그 날의 식단으로 옮긴다. (#1241)
-  ///
-  /// 분석이 끝난 시점에 기록은 이미 서버에 남아 있다. 그래서 고른 즉시 옮긴다 —
-  /// 시트를 닫는 방법이 여럿인데, 저장을 한 버튼에만 걸어 두면 화면에 보이는
-  /// 날짜와 실제로 남은 날짜가 갈린다.
-  Future<void> _pickDate() async {
-    final DietAnalysisResult? result = _result;
-    if (result == null || result.entryId.isEmpty || _movingDate) return;
-    final DateTime today = _todayKst();
-    final DateTime? picked = await showAppDatePicker(
-      context: context,
-      initialDate: _date,
-      // 지난 식사는 얼마든지 올릴 수 있지만, 앞날의 식사는 아직 먹지 않았다.
-      firstDate: DateTime(today.year - 1),
-      lastDate: today,
-    );
-    if (picked == null || !mounted) return;
-    final DateTime chosen = DateTime(picked.year, picked.month, picked.day);
-    if (chosen == _date) return;
-
-    final AppLocalizations l = AppLocalizations.of(context);
-    final DateTime previous = _date;
-    setState(() => _movingDate = true);
-    try {
-      await ref
-          .read(dietRepositoryProvider)
-          .updateEntry(id: result.entryId, date: wireDate(chosen));
-      if (!mounted) return;
-      setState(() {
-        _date = chosen;
-        _movingDate = false;
-      });
-      // 떠난 날과 도착한 날을 모두 비운다 — 한쪽만 비우면 합계가 두 날에
-      // 겹쳐 보이거나 어느 쪽에서도 보이지 않는다.
-      ref.invalidate(dietTodayProvider);
-      ref.invalidate(dietByDateProvider(previous));
-      ref.invalidate(dietByDateProvider(chosen));
-      showAppToast(
-        context,
-        l.dietRecordDateMoved(_dateLabel(context, chosen)),
-        type: AppToastType.success,
-      );
-    } on Object catch (_) {
-      if (!mounted) return;
-      setState(() => _movingDate = false);
-      showAppToast(context, l.dietRecordDateFailed, type: AppToastType.error);
-    }
-  }
-
-  String _dateLabel(BuildContext context, DateTime date) =>
-      DateFormat.yMMMd(Localizations.localeOf(context).toString()).format(date);
-
   /// 이 기록이 들어갈 끼니. `widget.mealType` 은 사진을 고른 시각으로 추측한
   /// 값이다(`_currentMealType`). 저장한 뒤 끼니 카드가 아침·점심·저녁·간식·야식
   /// 중 어디에 붙을지가 여기서 정해지므로, 저장 전에 보여 준다(#1897).
@@ -610,7 +574,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   /// 시각은 #1989 에서 빠졌다. `time_label` 은 계속 저장되고 서버 계약도 그대로
   /// 다 — 화면에서 내리는 것과 값을 버리는 것은 다르다.
   String _dateAndMealLabel(BuildContext context, AppLocalizations l) =>
-      '${_dateLabel(context, _date)} · ${mealBadge(l, _meal)}';
+      '${_recordDateLabel(context, _date)} · ${mealBadge(l, _meal)}';
 
   /// Sends the user back to the source picker. The photo they have can't be
   /// analysed, so "다시 시도" would just fail again — the useful next step is
@@ -835,7 +799,9 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
-        // 기록 날짜 — 기본은 오늘이고, 지난 식사의 사진이면 그 날로 옮긴다(#1241).
+        // 기록 날짜 — 값만 보여 준다. 고치는 자리는 헤더 연필이 여는 식단
+        // 상세 한 곳이다(#1947). 이 시트에 편집 자리가 둘이면 같은 화면에서
+        // 고치는 방법이 갈리고, 날짜만 고치고 끼니는 못 고치는 일이 생긴다.
         //
         // 위아래가 모두 구획이라 이 줄만 맨바닥이면 라벨이 `인식된 음식`·
         // `칼로리` 보다 한 칸 왼쪽에서 시작한다. 같은 구획에 넣어 시작하는
@@ -862,23 +828,6 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
                     OnCareTypography.strong(OnCareTypography.bodySmall),
                     OnCareColors.textPrimary,
                   ),
-                ),
-              ),
-              // 날짜를 옮기는 동안 버튼이 16 짜리 spinner 로 바뀐다. 자리를
-              // 잡아 두지 않으면 줄 높이가 32 에서 내려앉아 라벨과 값이
-              // 함께 튄다 — 두 상태가 같은 높이를 쓴다(#1864).
-              SizedBox(
-                height: tokens.density.buttonHeight(OnCareButtonSize.small),
-                child: Center(
-                  child: _movingDate
-                      ? const AppLoading.inline()
-                      : AppButton(
-                          key: const Key('diet-result-date-change'),
-                          label: l.dietRecordDateChange,
-                          onPressed: () => unawaited(_pickDate()),
-                          variant: AppButtonVariant.text,
-                          size: OnCareButtonSize.small,
-                        ),
                 ),
               ),
             ],
@@ -1030,7 +979,7 @@ Future<void> openMealDetailPage(BuildContext context, DietMeal meal) {
 
 /// Full-page meal editor. [initialMeal] makes the first transition immediate;
 /// when a web URL is refreshed, the same meal is restored from today's data.
-class DietMealDetailPage extends ConsumerWidget {
+class DietMealDetailPage extends ConsumerStatefulWidget {
   const DietMealDetailPage({
     super.key,
     required this.entryId,
@@ -1040,9 +989,24 @@ class DietMealDetailPage extends ConsumerWidget {
   final String entryId;
   final DietMeal? initialMeal;
 
+  @override
+  ConsumerState<DietMealDetailPage> createState() => _DietMealDetailPageState();
+}
+
+class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
+  /// 오늘 목록에서 한 번 찾은 끼니. 찾은 뒤로는 목록을 다시 보지 않는다.
+  ///
+  /// 분석 완료 시트의 연필은 [DietMealDetailPage.initialMeal] 없이 이 화면을
+  /// 연다. 여기서 날짜를 어제로 옮겨 저장하면 오늘 목록에서 그 기록이 빠지므로,
+  /// 목록을 계속 따라가면 방금 저장한 화면이 `불러오지 못했어요` 로 바뀐다
+  /// (#1947).
+  DietMeal? _found;
+
+  /// 오늘 목록에서 찾았으니 날짜는 오늘이다.
   DietMeal _fromEntry(DietEntry entry) => DietMeal(
     id: entry.id,
     mealType: entry.mealType,
+    date: _todayKst(),
     time: entry.timeLabel,
     total: entry.totalCalories,
     emoji: '',
@@ -1074,11 +1038,13 @@ class DietMealDetailPage extends ConsumerWidget {
   );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final DietMeal? supplied = initialMeal;
-    if (supplied != null && supplied.id == entryId) {
+  Widget build(BuildContext context) {
+    final DietMeal? supplied = widget.initialMeal;
+    if (supplied != null && supplied.id == widget.entryId) {
       return _MealEditSheet(meal: supplied);
     }
+    final DietMeal? found = _found;
+    if (found != null) return _MealEditSheet(meal: found);
 
     final AppLocalizations l = AppLocalizations.of(context);
     return ref
@@ -1086,8 +1052,10 @@ class DietMealDetailPage extends ConsumerWidget {
         .when(
           data: (DietDay day) {
             for (final DietEntry entry in day.entries) {
-              if (entry.id == entryId) {
-                return _MealEditSheet(meal: _fromEntry(entry));
+              if (entry.id == widget.entryId) {
+                // 빌드 중에 setState 하지 않는다 — 한 번 기억해 두고 같은
+                // 값으로 그린다. 다음 빌드부터는 위에서 곧장 돌아간다.
+                return _MealEditSheet(meal: _found = _fromEntry(entry));
               }
             }
             return _MealDetailUnavailable(message: l.dietLoadError);
@@ -1127,6 +1095,9 @@ class _MealEditSheet extends ConsumerStatefulWidget {
 class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   static const List<MealType> _types = MealType.values;
   late MealType _type = widget.meal.mealType;
+
+  /// 이 기록이 놓인 날(#1947). 저장할 때 끼니와 함께 보낸다.
+  late DateTime _date = widget.meal.date;
   late List<DietFood> _foods = List<DietFood>.of(widget.meal.items);
   bool _busy = false;
 
@@ -1137,6 +1108,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   /// 취소가 되돌아갈 자리. 저장에 성공하면 여기로 옮겨 온다 — 저장한 뒤에 다시
   /// 고치다 취소했을 때 저장 이전 값으로 되돌아가면 안 된다.
   late MealType _savedType = widget.meal.mealType;
+  late DateTime _savedDate = widget.meal.date;
   late List<DietFood> _savedFoods = List<DietFood>.of(widget.meal.items);
 
   /// 음식 줄마다 하나씩. 컨트롤러를 줄 위젯이 아니라 시트가 들고 있어야
@@ -1408,6 +1380,21 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
 
   void _beginEdit() => setState(() => _editing = true);
 
+  /// 기록 날짜를 고른다(#1947). 고른 값은 화면에만 두고 저장할 때 끼니·음식과
+  /// 함께 보낸다 — 취소하면 되돌아가야 하므로 고르는 즉시 옮기지 않는다.
+  Future<void> _pickDate() async {
+    final DateTime today = _todayKst();
+    final DateTime? picked = await showAppDatePicker(
+      context: context,
+      initialDate: _date,
+      // 지난 식사는 얼마든지 적을 수 있지만, 앞날의 식사는 아직 먹지 않았다.
+      firstDate: DateTime(today.year - 1),
+      lastDate: today,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _date = DateTime(picked.year, picked.month, picked.day));
+  }
+
   /// 수정을 접고 처음 값으로 되돌린다. 화면을 나가지는 않는다 — 보기 모드로만
   /// 돌아간다. 컨트롤러는 그 줄이 트리에서 물러난 다음 프레임에 버린다.
   void _cancelEdit() {
@@ -1415,6 +1402,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     setState(() {
       _editing = false;
       _type = _savedType;
+      _date = _savedDate;
       _foods = List<DietFood>.of(_savedFoods);
       _editors
         ..clear()
@@ -1499,12 +1487,18 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       setState(() {});
       return;
     }
+    // 날짜는 바꿨을 때만 보낸다. 같은 날을 다시 보내도 서버에서는 달라지는 것이
+    // 없지만, 보내지 않으면 이 화면이 날짜를 잘못 알고 있어도 기록이 엉뚱한
+    // 날로 옮겨 가지 않는다.
+    final DateTime previousDate = _savedDate;
+    final bool moved = _date != previousDate;
     setState(() => _busy = true);
     try {
       await ref
           .read(dietRepositoryProvider)
           .updateEntry(
             id: id,
+            date: moved ? wireDate(_date) : null,
             mealType: _type.name,
             foods: foods,
             totalCalories: foods.fold<int>(
@@ -1524,6 +1518,10 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
       // 같이 비우지 않으면 끼니를 바꿔도 기간 막대만 옛 값에 머문다.
       ref.invalidate(dietByDateProvider(nowKst()));
+      // 날짜를 옮겼으면 떠난 날과 도착한 날을 모두 비운다 — 한쪽만 비우면
+      // 합계가 두 날에 겹쳐 보이거나 어느 쪽에서도 보이지 않는다.
+      ref.invalidate(dietByDateProvider(previousDate));
+      if (moved) ref.invalidate(dietByDateProvider(_date));
       // 화면을 닫지 않고 보기 모드로 돌아간다. 닫아 버리면 목록으로 나가는데
       // 그 카드는 총 칼로리만 말하므로 방금 고친 값이 어떻게 됐는지 확인할
       // 자리가 없다. 취소가 이 화면에 남는 것과도 짝이 맞는다.
@@ -1531,13 +1529,22 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
         _busy = false;
         _editing = false;
         _savedType = _type;
+        _savedDate = _date;
         _savedFoods = List<DietFood>.of(_foods);
         // 저장된 끼니가 바뀌었으니 "탄수화물이 적혀 있었나" 의 답도 바뀐다.
         // 서버가 다음 요청에서 보는 값과 같은 값이어야 한다(#1893).
         _carbsRecorded = _carbsOf(_foods) > 0;
       });
       if (!toastContext.mounted) return;
-      showAppToast(toastContext, l.dietSaved, type: AppToastType.success);
+      // 날짜를 옮겼으면 목록으로 돌아갔을 때 그 카드가 이 날에서 사라진다 —
+      // 어디로 갔는지 말해 둔다.
+      showAppToast(
+        toastContext,
+        moved
+            ? l.dietRecordDateMoved(_recordDateLabel(toastContext, _date))
+            : l.dietSaved,
+        type: AppToastType.success,
+      );
     } catch (_) {
       if (mounted) setState(() => _busy = false);
       if (toastContext.mounted) {
@@ -1611,9 +1618,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       // 뒤로는 앱바 한 곳, 저장은 하단 한 곳이다 — 머리의 글자 저장은 없다(#1700).
       // 연필은 앱바가 아니라 `먹은 음식` 카드 머리에 둔다 — 고칠 것 바로 옆에
       // 있어야 무엇을 여는 버튼인지 알아본다.
-      appBar: AppTopBar(
-        title: l.dietMealSheetTitle(mealBadge(l, widget.meal.mealType)),
-      ),
+      // 제목은 저장된 끼니를 따른다 — 열 때의 값에 묶어 두면 끼니를 고쳐
+      // 저장한 뒤에도 옛 이름이 머리에 남는다.
+      appBar: AppTopBar(title: l.dietMealSheetTitle(mealBadge(l, _savedType))),
       body: SafeArea(
         top: false,
         child: Align(
@@ -1643,9 +1650,9 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
-                            // 연필은 첫 카드에 둔다 — 수정 모드는 끼니 종류·
-                            // 시간·음식·영양을 한꺼번에 바꾸므로, 음식 카드에
-                            // 붙이면 음식만 고치는 것으로 읽힌다.
+                            // 연필은 첫 카드에 둔다 — 수정 모드는 기록 날짜·
+                            // 끼니·음식·영양을 한꺼번에 바꾸므로(#1947), 음식
+                            // 카드에 붙이면 음식만 고치는 것으로 읽힌다.
                             Row(
                               children: <Widget>[
                                 Expanded(child: _FieldLabel(l.dietMealInfo)),
@@ -1660,30 +1667,92 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                               ],
                             ),
                             const SizedBox(height: OnCareSpacing.s12),
-                            // 보기 모드에서는 고른 끼니 하나만 보인다. 고를 수
-                            // 없는 칩 넷을 늘어놓으면 누를 수 있는 것처럼 읽힌다.
-                            if (_editing)
-                              Wrap(
-                                spacing: OnCareSpacing.s8,
-                                runSpacing: OnCareSpacing.s8,
-                                children: <Widget>[
-                                  for (final MealType t in _types)
-                                    AppChoiceChip(
-                                      label: mealBadge(l, t),
-                                      selected: _type == t,
-                                      onSelected: (_) =>
-                                          setState(() => _type = t),
+                            // "이 기록이 언제·어느 끼니인가" 를 한자리에서
+                            // 읽는다(#1947). 날짜와 끼니를 나란한 두 칸으로 두고
+                            // 값이 같은 자리에서 시작하도록 라벨 폭을 맞춘다 —
+                            // 라벨 폭을 숫자로 박지 않아 큰 글자에서도 넘치지
+                            // 않는다.
+                            Table(
+                              columnWidths: const <int, TableColumnWidth>{
+                                0: IntrinsicColumnWidth(),
+                                1: FlexColumnWidth(),
+                              },
+                              defaultVerticalAlignment:
+                                  TableCellVerticalAlignment.middle,
+                              children: <TableRow>[
+                                TableRow(
+                                  children: <Widget>[
+                                    _InfoLabel(l.dietRecordDate),
+                                    Row(
+                                      children: <Widget>[
+                                        Expanded(
+                                          child: Text(
+                                            _recordDateLabel(context, _date),
+                                            key: const Key('meal-detail-date'),
+                                            style: _text(
+                                              context,
+                                              OnCareTypography.strong(
+                                                OnCareTypography.bodySmall,
+                                              ),
+                                              OnCareColors.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                        if (_editing)
+                                          AppButton(
+                                            key: const Key(
+                                              'meal-detail-date-change',
+                                            ),
+                                            label: l.dietRecordDateChange,
+                                            onPressed: () =>
+                                                unawaited(_pickDate()),
+                                            variant: AppButtonVariant.text,
+                                            size: OnCareButtonSize.small,
+                                          ),
+                                      ],
                                     ),
-                                ],
-                              )
-                            else
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: AppTag(
-                                  label: mealBadge(l, _type),
-                                  tone: AppTagTone.brand,
+                                  ],
                                 ),
-                              ),
+                                const TableRow(
+                                  children: <Widget>[
+                                    SizedBox(height: OnCareSpacing.s12),
+                                    SizedBox(height: OnCareSpacing.s12),
+                                  ],
+                                ),
+                                TableRow(
+                                  children: <Widget>[
+                                    _InfoLabel(l.dietMealKind),
+                                    // 보기 모드에서는 고른 끼니 하나만 보인다.
+                                    // 고를 수 없는 칩 다섯을 늘어놓으면 누를 수
+                                    // 있는 것처럼 읽힌다.
+                                    if (_editing)
+                                      Wrap(
+                                        key: const Key('meal-detail-meal'),
+                                        spacing: OnCareSpacing.s8,
+                                        runSpacing: OnCareSpacing.s8,
+                                        children: <Widget>[
+                                          for (final MealType t in _types)
+                                            AppChoiceChip(
+                                              label: mealBadge(l, t),
+                                              selected: _type == t,
+                                              onSelected: (_) =>
+                                                  setState(() => _type = t),
+                                            ),
+                                        ],
+                                      )
+                                    else
+                                      Align(
+                                        key: const Key('meal-detail-meal'),
+                                        alignment: Alignment.centerLeft,
+                                        child: AppTag(
+                                          label: mealBadge(l, _type),
+                                          tone: AppTagTone.brand,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -1869,6 +1938,21 @@ class _FieldLabel extends StatelessWidget {
       context,
       OnCareTypography.titleSmall,
       OnCareColors.textPrimary,
+    ),
+  );
+}
+
+/// `식사 정보` 카드 안의 한 줄 라벨(`기록 날짜`·`끼니`). 값과 사이를 띄운다.
+/// 분석 완료 시트의 `기록 날짜` 라벨과 같은 모양이다.
+class _InfoLabel extends StatelessWidget {
+  const _InfoLabel(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsetsDirectional.only(end: OnCareSpacing.s12),
+    child: Text(
+      text,
+      style: _text(context, OnCareTypography.label, OnCareColors.textSecondary),
     ),
   );
 }

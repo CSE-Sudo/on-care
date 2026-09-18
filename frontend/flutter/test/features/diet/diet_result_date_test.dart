@@ -1,7 +1,10 @@
-/// 사진 분석 결과 시트의 기록 날짜. (#1241)
+/// 사진 분석 결과 시트의 기록 날짜. (#1241, #1947)
 ///
-/// 분석은 저장한 시각의 날짜로 기록을 남긴다. 지난 식사의 사진을 나중에 올리는
-/// 일이 있어, 결과를 확인하는 자리에서 실제로 먹은 날로 옮길 수 있어야 한다.
+/// 분석은 저장한 시각의 날짜로 기록을 남긴다. 지난 식사의 사진이면 실제로 먹은
+/// 날로 옮겨야 하는데, #1947 에서 그 자리를 이 시트의 `날짜 변경` 버튼에서 헤더
+/// 연필이 여는 식단 상세로 옮겼다 — 이 시트에서는 날짜만 고치고 끼니는 못 고쳐
+/// `어제 · 아침` 같은 기록이 남았다. 옮기는 검사는 `meal_detail_date_and_meal_test`
+/// 에 있고, 여기서는 시트가 값만 보이는지 본다.
 library;
 
 import 'dart:typed_data';
@@ -12,7 +15,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/session_feature_reset.dart';
-import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/repositories/meal_photo_picker.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
@@ -36,26 +38,6 @@ MealPhoto get _photo => MealPhoto.fromBytes(_jpegBytes)!;
 class _FixedPicker implements MealPhotoPicker {
   @override
   Future<MealPhoto?> pick(MealPhotoSource source) async => _photo;
-}
-
-/// 날짜 옮기기가 실패하는 저장소 — 실패했을 때 화면이 옛 날짜로 남는지 본다.
-class _FailingUpdateRepository extends FakeDietRepository {
-  int attempts = 0;
-
-  @override
-  Future<DietEntry> updateEntry({
-    required String id,
-    String? date,
-    String? mealType,
-    String? timeLabel,
-    List<FoodItem>? foods,
-    int? totalCalories,
-    int? sodiumMg,
-    double? sugarG,
-  }) async {
-    attempts += 1;
-    throw Exception('boom');
-  }
 }
 
 String _label(DateTime date) => DateFormat.yMMMd('ko').format(date);
@@ -112,81 +94,16 @@ void main() {
     expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 20))));
   });
 
-  testWidgets('날짜를 고치면 그 날의 식단으로 옮겨진다', (WidgetTester tester) async {
+  testWidgets('시트의 날짜 줄은 값만 보인다 — 고치는 자리는 헤더 연필 하나다', (
+    WidgetTester tester,
+  ) async {
     useFixedKstDate(DateTime(2026, 8, 20, 9));
-    final FakeDietRepository repo = FakeDietRepository();
-    await _openResultSheet(tester, repo);
+    await _openResultSheet(tester, FakeDietRepository());
 
-    // 저장소를 직접 읽는다 — 위젯 테스트의 가짜 시계에서는 provider 의 future 를
-    // 그냥 await 하면 시간이 흐르지 않아 영영 기다린다.
-    final int before = (await tester.runAsync(
-      () => repo.fetchToday(),
-    ))!.entries.length;
-
-    await tester.tap(find.byKey(const Key('diet-result-date-change')));
-    await tester.pumpAndSettle();
-    // 달력에서 이틀 전(18일)을 고른다.
-    await tester.tap(find.text('18'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('확인'));
-    await tester.pumpAndSettle();
-
-    expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 18))));
-    expect(repo.movedEntries.values.single.date, '2026-08-18');
-
-    // 오늘에서 빠지고 고른 날짜에서 보인다 — 한쪽만 바뀌면 하루 합계가 두 날에
-    // 겹쳐 보인다.
-    final DietDay today = (await tester.runAsync(() => repo.fetchToday()))!;
-    expect(today.entries.length, before - 1);
-    final DietDay moved = (await tester.runAsync(
-      () => repo.fetchByDate(DateTime(2026, 8, 18)),
-    ))!;
-    expect(
-      moved.entries.map((DietEntry e) => e.id),
-      contains(repo.movedEntries.keys.single),
-    );
-  });
-
-  testWidgets('앞날은 고를 수 없다', (WidgetTester tester) async {
-    useFixedKstDate(DateTime(2026, 8, 20, 9));
-    final FakeDietRepository repo = FakeDietRepository();
-    await _openResultSheet(tester, repo);
-
-    await tester.tap(find.byKey(const Key('diet-result-date-change')));
-    await tester.pumpAndSettle();
-
-    // 달력은 오늘(20일)까지만 열려 있다 — 먹지 않은 식사를 기록할 수는 없다.
-    // 내일을 눌러도 고른 날은 그대로다. 달력 안으로 좁혀 찾는다 — 뒤에 남아
-    // 있는 결과 시트의 탄·단·지도 단위 없는 숫자를 쓴다(#1564).
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const Key('portraitDatePickerCalendar')),
-        matching: find.text('21'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('확인'));
-    await tester.pumpAndSettle();
-
-    expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 20))));
-    expect(repo.movedEntries, isEmpty);
-  });
-
-  testWidgets('옮기지 못하면 날짜는 그대로 남고 사정을 알린다', (WidgetTester tester) async {
-    useFixedKstDate(DateTime(2026, 8, 20, 9));
-    final _FailingUpdateRepository repo = _FailingUpdateRepository();
-    await _openResultSheet(tester, repo);
-
-    await tester.tap(find.byKey(const Key('diet-result-date-change')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('18'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('확인'));
-    await tester.pumpAndSettle();
-
-    expect(repo.attempts, 1);
-    expect(_shownDate(tester), startsWith(_label(DateTime(2026, 8, 20))));
-    expect(find.textContaining('날짜를 바꾸지 못했어요'), findsOneWidget);
+    // 편집 자리가 둘이면 같은 화면에서 고치는 방법이 갈린다(#1947).
+    expect(find.byKey(const Key('diet-result-date-change')), findsNothing);
+    expect(find.text('날짜 변경'), findsNothing);
+    expect(find.byKey(const Key('diet-result-edit')), findsOneWidget);
   });
 
   // 날짜만 적으면 같은 날 세 끼가 구분되지 않아 어느 끼니로 들어가는지 알 수
