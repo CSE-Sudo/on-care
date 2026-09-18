@@ -198,6 +198,14 @@
     "description": "Representative name shown on the suggestion row when a food name matches the public nutrition DB (#1896)",
     "placeholders": { "name": { "type": "String" } }
   },
+  "dietMoreFoods": "{name} +{count}",
+  "@dietMoreFoods": {
+    "description": "Appended to the last food name on a meal card when more foods are hidden (#1990)",
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
   "dietFillFromDb": "Fill in",
   "@dietFillFromDb": {
     "description": "Button that fills a food's fields with the suggested public-DB nutrition (#1896)"
