@@ -30,8 +30,8 @@ class MockMyHealthRepository implements MyHealthRepository {
         id: 'user-7d4e9a2c5f18',
       ),
       risk: const RiskAlert(
-        title: '고혈압·당뇨 위험 주의',
-        body: '최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.',
+        title: '이번 주 관리 포인트',
+        body: '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
         level: RiskLevel.medium,
       ),
       activityPoints: points?.balance ?? kDemoOpeningPoints,
