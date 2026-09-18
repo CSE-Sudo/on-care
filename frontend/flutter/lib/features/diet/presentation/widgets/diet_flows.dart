@@ -1186,7 +1186,15 @@ class _MealEditSheet extends ConsumerStatefulWidget {
 }
 
 class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
-  static const List<MealType> _types = MealType.values;
+  /// 끼니 칩의 두 묶음 — 식사 셋과 그 사이·뒤에 먹는 둘.
+  ///
+  /// 칩 다섯을 `Wrap` 하나에 두면 폰 폭에서 `야식` 하나만 아랫줄로 떨어져 따로
+  /// 떨어진 선택지처럼 읽힌다(#2080). 묶음 단위로 줄을 바꿔, 한 줄에 다 들어가지
+  /// 않으면 `간식·야식` 이 함께 내려간다.
+  static const List<List<MealType>> _typeGroups = <List<MealType>>[
+    <MealType>[MealType.breakfast, MealType.lunch, MealType.dinner],
+    <MealType>[MealType.snack, MealType.lateNight],
+  ];
   late MealType _type = widget.meal.mealType;
 
   /// 이 기록이 놓인 날(#1947). 날짜는 끼니·음식과 따로 저장한다 — 고르는
@@ -1867,17 +1875,32 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                     // 고를 수 없는 칩 다섯을 늘어놓으면 누를 수
                                     // 있는 것처럼 읽힌다.
                                     if (_editing)
+                                      // 바깥 Wrap 은 묶음을, 안쪽 Wrap 은 칩을
+                                      // 늘어놓는다. 안쪽 Wrap 은 제 칩 폭만큼만
+                                      // 차지하므로 한 줄에 다 들어가면 그대로 한
+                                      // 줄이고, 넘치면 두 번째 묶음이 통째로
+                                      // 내려간다. 묶음 하나도 안 들어갈 만큼
+                                      // 좁으면 그 안에서만 줄을 바꾼다.
                                       Wrap(
                                         key: const Key('meal-detail-meal'),
                                         spacing: OnCareSpacing.s8,
                                         runSpacing: OnCareSpacing.s8,
                                         children: <Widget>[
-                                          for (final MealType t in _types)
-                                            AppChoiceChip(
-                                              label: mealBadge(l, t),
-                                              selected: _type == t,
-                                              onSelected: (_) =>
-                                                  setState(() => _type = t),
+                                          for (final List<MealType> group
+                                              in _typeGroups)
+                                            Wrap(
+                                              spacing: OnCareSpacing.s8,
+                                              runSpacing: OnCareSpacing.s8,
+                                              children: <Widget>[
+                                                for (final MealType t in group)
+                                                  AppChoiceChip(
+                                                    label: mealBadge(l, t),
+                                                    selected: _type == t,
+                                                    onSelected: (_) => setState(
+                                                      () => _type = t,
+                                                    ),
+                                                  ),
+                                              ],
                                             ),
                                         ],
                                       )
