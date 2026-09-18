@@ -1176,10 +1176,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myWithdrawReasonHint => 'You can pick more than one';
 
   @override
-  String get myWithdrawReasonPrivacy => 'I am worried about my privacy';
+  String get myWithdrawReasonPrivacy =>
+      'I am worried my personal data could be exposed';
 
   @override
-  String get myWithdrawReasonRarelyUsed => 'I hardly use it any more';
+  String get myWithdrawReasonRarelyUsed => 'I do not use it often';
 
   @override
   String get myWithdrawReasonHardToUse => 'It is awkward to use';
@@ -1201,7 +1202,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myWithdrawKeepPrivacy =>
-      'Only you and your trainer can see your records. Disconnect the trainer and they are yours alone — the gym and trainer card on the MY tab does that.';
+      'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — the gym and trainer card on the MY tab does that.';
 
   @override
   String get myWithdrawKeepRarelyUsed =>
