@@ -250,6 +250,14 @@ def test_a_slot_that_passed_its_deadline_expires_and_reopens(client, db_session)
         db_session.query(Notification).filter_by(user_id=member_id).count()
         == before + 1
     )
+    # 만료 알림도 결과 알림이다 — 누르면 내 상담 요청이 열린다(#2067).
+    latest = (
+        db_session.query(Notification)
+        .filter_by(user_id=member_id)
+        .order_by(Notification.created_at.desc())
+        .first()
+    )
+    assert latest.category == "consult_decision"
 
 
 def test_a_live_request_is_left_alone(client, db_session):

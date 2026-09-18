@@ -57,6 +57,11 @@ def init_db() -> None:
         # 걸린다. places 에 fitness 로 들어가므로 상담 대상 검증도 통과한다.
         from app.db.seed_gyms import seed_partner_gyms
         seed_partner_gyms()
+        # 데모 트레이너의 예약 자리(#2067). 상담 신청은 트레이너가 연 자리를
+        # 고르는 방식이라(#1873) 자리가 없으면 아무도 신청할 수 없다. 트레이너
+        # 계정이 모두 생긴 뒤에 깐다(외래 키).
+        from app.db.seed_slots import seed_demo_slots
+        seed_demo_slots()
         # 담당 회원 실데이터(식단·운동기록) — 트레이너 로스터/식단/기록을 실데이터로 채운다.
         # 회원 계정 시드(seed_trainer_domain) 뒤에 호출.
         from app.db.seed_member_data import seed_member_health_data

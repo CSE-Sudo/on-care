@@ -13,6 +13,10 @@ enum AlertTarget {
 
   /// MY 건강 목표 — 담당 트레이너가 목표를 바꿨을 때(#1832).
   healthGoals,
+
+  /// 내 상담 요청 — 상담 요청이 승인·거절·만료됐을 때(#2067). 결과와 사유가 있는
+  /// 곳이다.
+  consultations,
   unknown,
 }
 

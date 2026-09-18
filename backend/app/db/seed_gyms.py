@@ -151,6 +151,10 @@ _TRAINERS: tuple[
 )
 
 
+#: 이 모듈이 만드는 트레이너 id. 데모 예약 자리 시드(`seed_slots`)가 쓴다(#2067).
+TRAINER_IDS: tuple[str, ...] = tuple(row[0] for row in _TRAINERS)
+
+
 def _seed_gyms(db: Session, rows, *, is_partner: bool) -> int:
     """헬스장(Place)과 부가 정보(GymProfile)를 넣는다. 이미 있으면 건너뛴다."""
     created = 0
