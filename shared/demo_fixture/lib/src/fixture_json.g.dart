@@ -18,6 +18,7 @@ const String kimMinsuFixtureJson = r'''
   "foods": {
     "oatmeal": {
       "name": "오트밀",
+      "amountG": 240,
       "calories": 250,
       "sodiumMg": 100,
       "sugarG": 6.0,
@@ -27,6 +28,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "banana": {
       "name": "바나나",
+      "amountG": 120,
       "calories": 105,
       "sodiumMg": 1,
       "sugarG": 14.0,
@@ -36,6 +38,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "greek-yogurt": {
       "name": "그릭 요거트",
+      "amountG": 170,
       "calories": 170,
       "sodiumMg": 75,
       "sugarG": 7.0,
@@ -45,6 +48,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "nuts": {
       "name": "견과류",
+      "amountG": 25,
       "calories": 150,
       "sodiumMg": 5,
       "sugarG": 2.0,
@@ -54,6 +58,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "scrambled-egg": {
       "name": "스크램블 에그",
+      "amountG": 120,
       "calories": 185,
       "sodiumMg": 220,
       "sugarG": 0.8,
@@ -63,6 +68,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "strawberry": {
       "name": "딸기",
+      "amountG": 100,
       "calories": 32,
       "sodiumMg": 1,
       "sugarG": 5.5,
@@ -72,6 +78,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "chicken-salad": {
       "name": "닭가슴살 샐러드",
+      "amountG": 300,
       "calories": 315,
       "sodiumMg": 395,
       "sugarG": 10.0,
@@ -81,6 +88,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "bibimbap": {
       "name": "야채비빔밥",
+      "amountG": 500,
       "calories": 610,
       "sodiumMg": 900,
       "sugarG": 12.0,
@@ -90,6 +98,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "jjamppong": {
       "name": "짬뽕",
+      "amountG": 700,
       "calories": 750,
       "sodiumMg": 3200,
       "sugarG": 8.5,
@@ -99,6 +108,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "doenjang-jjigae": {
       "name": "된장찌개",
+      "amountG": 400,
       "calories": 300,
       "sodiumMg": 1300,
       "sugarG": 5.0,
@@ -108,6 +118,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "rice": {
       "name": "밥",
+      "amountG": 210,
       "calories": 310,
       "sodiumMg": 5,
       "sugarG": 0.7,
@@ -117,6 +128,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "grilled-salmon": {
       "name": "연어구이",
+      "amountG": 190,
       "calories": 395,
       "sodiumMg": 505,
       "sugarG": 9.0,
@@ -126,6 +138,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "brown-rice": {
       "name": "현미밥",
+      "amountG": 190,
       "calories": 280,
       "sodiumMg": 5,
       "sugarG": 0.0,
@@ -135,6 +148,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "sweet-potato": {
       "name": "고구마",
+      "amountG": 100,
       "calories": 130,
       "sodiumMg": 20,
       "sugarG": 6.5,
@@ -144,6 +158,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "iced-americano": {
       "name": "아이스 아메리카노",
+      "amountG": 350,
       "calories": 10,
       "sodiumMg": 5,
       "sugarG": 0.0,
@@ -153,6 +168,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "nut-pack": {
       "name": "견과류 한 봉",
+      "amountG": 15,
       "calories": 90,
       "sodiumMg": 2,
       "sugarG": 3.0,
@@ -162,6 +178,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "samgyeopsal": {
       "name": "삼겹살 2인분",
+      "amountG": 400,
       "calories": 620,
       "sodiumMg": 880,
       "sugarG": 1.0,
@@ -171,6 +188,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "soju": {
       "name": "소주 1병",
+      "amountG": 360,
       "calories": 55,
       "sodiumMg": 0,
       "sugarG": 0.0,
@@ -180,6 +198,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "choco-cake": {
       "name": "초코 케이크 한 조각",
+      "amountG": 90,
       "calories": 330,
       "sodiumMg": 280,
       "sugarG": 24.0,
@@ -189,6 +208,7 @@ const String kimMinsuFixtureJson = r'''
     },
     "cafe-latte": {
       "name": "카페라떼",
+      "amountG": 200,
       "calories": 100,
       "sodiumMg": 95,
       "sugarG": 5.3,

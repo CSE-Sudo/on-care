@@ -29,6 +29,7 @@ const String kDemoTrainerName = '김태오';
 class FixtureFood {
   const FixtureFood({
     required this.name,
+    required this.amountG,
     required this.calories,
     required this.sodiumMg,
     required this.sugarG,
@@ -39,6 +40,7 @@ class FixtureFood {
 
   factory FixtureFood.fromJson(Map<String, Object?> json) => FixtureFood(
     name: json['name']! as String,
+    amountG: (json['amountG']! as num).toDouble(),
     calories: (json['calories']! as num).toInt(),
     sodiumMg: (json['sodiumMg']! as num).toInt(),
     sugarG: (json['sugarG']! as num).toDouble(),
@@ -48,6 +50,10 @@ class FixtureFood {
   );
 
   final String name;
+
+  /// 먹은 양(g) — 아래 영양이 **무엇을 재고 나온 값인가** 다(#1876). 데모 음식은
+  /// 모두 양을 안다(#2090).
+  final double amountG;
   final int calories;
   final int sodiumMg;
   final double sugarG;
@@ -58,6 +64,7 @@ class FixtureFood {
   /// 화면·저장소가 읽는 키 이름 그대로. 세 곳이 같은 키를 쓴다.
   Map<String, Object?> toJson() => <String, Object?>{
     'name': name,
+    'amount_g': amountG,
     'calories': calories,
     'sodium_mg': sodiumMg,
     'sugar_g': sugarG,

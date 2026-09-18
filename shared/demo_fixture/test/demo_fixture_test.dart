@@ -92,6 +92,19 @@ void main() {
     }
   });
 
+  // 내용량은 나머지 영양이 무엇을 재고 나온 값인가다(#1876). 비어 있으면 화면은
+  // 아무것도 적지 않아(0g 은 안 먹었다로 읽힌다) 데모에서 양이 보이지 않는다(#2090).
+  test('모든 음식에 내용량이 있고, 저장소에 옮기는 글자에도 실린다', () {
+    for (final FixtureDay day in fixture.daysFor(DateTime(2026, 8, 16))) {
+      for (final FixtureMeal meal in day.meals) {
+        for (final FixtureFood food in meal.foods) {
+          expect(food.amountG, greaterThan(0), reason: food.name);
+          expect(food.toJson()['amount_g'], food.amountG, reason: food.name);
+        }
+      }
+    }
+  });
+
   test('기록이 없는 날이 남아 있다', () {
     // 빈 화면이 맞게 동작하는지 시연에서 볼 수 있어야 한다.
     final List<FixtureDay> days = fixture.daysFor(DateTime(2026, 8, 16));

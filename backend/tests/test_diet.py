@@ -216,6 +216,45 @@ def test_gemini_parser_sanitizes_and_totals_optional_macros():
     )
 
 
+def test_gemini_asks_for_and_reads_the_amount_in_the_photo():
+    """기본 인식기도 사진에 담긴 양을 묻고 읽는다 (#2090).
+
+    묻지 않으면 공공 DB 에 1회 섭취량이 알려진 음식만 양이 채워지고 나머지는 비어,
+    같은 끼니 안에서 어떤 음식은 양이 보이고 어떤 음식은 안 보인다. 0·음수·비유한값은
+    `litellm_vision` 과 같이 "모름" 으로 눕힌다 — `gt=0` 검증에 걸려 응답 전체가
+    깨지면 안 된다.
+    """
+    from app.services.recognizer.gemini import _PROMPT, GeminiVisionRecognizer
+
+    assert "amount_g" in _PROMPT
+
+    raw = json.dumps({
+        "foods": [
+            {"name": "비빔밥", "amount_g": 450, "calories": 600},
+            {"name": "김치", "amount_g": "40", "calories": 15},
+            {"name": "모름", "amount_g": 0},
+            {"name": "음수", "amount_g": -5},
+            {"name": "비유한", "amount_g": "NaN"},
+            {"name": "빠짐"},
+        ],
+    })
+
+    analysis = GeminiVisionRecognizer.__new__(GeminiVisionRecognizer)._parse(raw, 10)
+
+    assert [f.amount_g for f in analysis.foods] == [450.0, 40.0, None, None, None, None]
+
+
+def test_stub_recognizer_gives_every_food_an_amount():
+    """키가 없을 때 쓰는 스텁도 음식마다 양을 준다 — 시드의 1회 섭취량 (#2090)."""
+    import asyncio
+
+    from app.services.recognizer.stub import StubFoodRecognizer
+
+    analysis = asyncio.run(StubFoodRecognizer().recognize(b"", "image/jpeg"))
+
+    assert [f.amount_g for f in analysis.foods] == [110, 90, 50]
+
+
 def test_litellm_parser_sanitizes_and_totals_optional_macros():
     from app.services.recognizer.litellm_vision import LiteLLMVisionRecognizer
 
@@ -357,8 +396,8 @@ def test_analyze_stores_the_amount_each_food_was_scaled_from(client, db_session)
     """영양을 낸 **양**을 함께 남긴다 — 앱이 그 값으로 비례 환산한다(#1876).
 
     양을 버리면 "이 숫자가 무엇을 재고 나온 값인가" 가 사라져, 회원이 양을
-    고쳐도 영양을 다시 셀 근거가 없다. 스텁 인식기는 양을 주지 않으므로 보정이
-    알려진 1회 섭취량으로 환산하는데, **그 값이 실제 기준**이라 그대로 실린다.
+    고쳐도 영양을 다시 셀 근거가 없다. 스텁 인식기가 주는 양(시드의 1회 섭취량과
+    같은 값, #2090)으로 보정이 환산하고, **그 값이 실제 기준**이라 그대로 실린다.
     """
     from app.services.diet_service import today_str as _today_str
     from app.db.init_db import DEMO_USER_ID

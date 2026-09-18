@@ -107,6 +107,31 @@ FOODS: dict[str, tuple[str, int, int, float, float, float, float]] = {
     "cafe-latte": ("카페라떼", 100, 95, 5.3, 10, 5, 4),
 }
 
+#: 음식별 내용량(g) — 위 영양이 무엇을 재고 나온 값인가(#1876, #2090). 공공 DB 시드에
+#: 1회 섭취량이 있는 음식(바나나·짬뽕·된장찌개)은 그 값, 나머지는 칼로리에 맞는 흔한 1인분.
+AMOUNTS_G: dict[str, int] = {
+    "oatmeal": 240,
+    "banana": 120,
+    "greek-yogurt": 170,
+    "nuts": 25,
+    "scrambled-egg": 120,
+    "strawberry": 100,
+    "chicken-salad": 300,
+    "bibimbap": 500,
+    "jjamppong": 700,
+    "doenjang-jjigae": 400,
+    "rice": 210,
+    "grilled-salmon": 190,
+    "brown-rice": 190,
+    "sweet-potato": 100,
+    "iced-americano": 350,
+    "nut-pack": 15,
+    "samgyeopsal": 400,
+    "soju": 360,
+    "choco-cake": 90,
+    "cafe-latte": 200,
+}
+
 # ── 끼니 ───────────────────────────────────────────────────────────────────
 # (끼니종류, 시각, 사진, AI 코멘트, 음식들)
 #
@@ -650,6 +675,7 @@ def build() -> dict:
         "foods": {
             key: {
                 "name": name,
+                "amountG": AMOUNTS_G[key],
                 "calories": calories,
                 "sodiumMg": sodium,
                 "sugarG": _round1(sugar),
