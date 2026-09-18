@@ -309,6 +309,35 @@ void main() {
       );
     });
 
+    testWidgets('추천 이유 배지는 이름과 같은 세로선에서 시작한다 (#2038)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester, hasMyGym: false);
+
+      // 같은 카드 위 헬스장 블록이 태그를 이름 아래 글자 칸에 두듯, 트레이너
+      // 배지도 사람 아이콘 오른쪽 — 이름이 시작하는 자리 — 에서 시작한다.
+      // 들이지 않으면 배지가 아이콘보다도 왼쪽에 붙어 누구의 근거인지 흐려진다.
+      for (final Trainer trainer in <Trainer>[_kim, _park]) {
+        final Finder line = find.byKey(Key('gym-trainer-${trainer.id}'));
+        final double nameX = tester
+            .getTopLeft(
+              find.descendant(of: line, matching: find.text(trainer.name)),
+            )
+            .dx;
+        final double badgeX = tester
+            .getTopLeft(
+              find.descendant(
+                of: line,
+                matching: find.byKey(
+                  const ValueKey<String>('gym-trainer-reason-0'),
+                ),
+              ),
+            )
+            .dx;
+        expect(badgeX, moreOrLessEquals(nameX, epsilon: 0.5));
+      }
+    });
+
     testWidgets('내 헬스장 카드의 트레이너 줄은 지금처럼 두 줄로 쌓는다 (#2038)', (
       WidgetTester tester,
     ) async {

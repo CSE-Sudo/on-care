@@ -157,7 +157,20 @@ class GymTrainerLine extends StatelessWidget {
           // 카드 밖으로 밀려 나가지 않는다.
           if (showReason && reasons.isNotEmpty) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
-            TrainerReasonBadges(reasons: reasons, keyPrefix: 'gym-trainer'),
+            // 배지는 **이름과 같은 세로선**에서 시작한다 — 사람 아이콘 폭과
+            // 그 뒤 간격만큼 민다. 같은 카드 위 헬스장 블록이 태그를 아이콘
+            // 오른쪽 글자 칸에 두는 것과 같은 정렬이다. 들이지 않으면 배지가
+            // 아이콘보다도 왼쪽에서 시작해, 누구의 근거인지 흐려진다.
+            Padding(
+              key: const Key('gym-trainer-reasons-indent'),
+              padding: const EdgeInsetsDirectional.only(
+                start: OnCareSize.avatarSmall + OnCareSpacing.s8,
+              ),
+              child: TrainerReasonBadges(
+                reasons: reasons,
+                keyPrefix: 'gym-trainer',
+              ),
+            ),
           ],
         ],
       ),
