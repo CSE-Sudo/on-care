@@ -9,8 +9,23 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 #: 요청이 지정할 수 있는 대상. 트레이너 한 사람뿐이다 — 헬스장 전체로 보내는
 #: 갈래는 폐지됐고, 그때 만들어진 이력도 남아 있지 않다.
 ConsultationCreateTargetType = Literal["trainer"]
+#: 새 상담 요청이 보낼 수 있는 운동 목표. 회원앱 온보딩·MY 의 건강 목표 여덟 종
+#: (`health_focus.FOCUS_OPTIONS`)과 1:1 이고, 그 여덟 중 어디에도 넣기 어려운
+#: 회원을 위한 `other` 가 하나 더 있다. (#1992)
+#:
+#: 없앤 `health`(건강 관리)는 **입력에서 받지 않는다** — 여덟 목표 중 하나로 옮길
+#: 수 없어 그 회원만 건강 목표가 비어 있었고, 그게 이 통일의 이유다. 이미 저장된
+#: `health` 행은 그대로 두고 응답으로 내려준다(아래 [ConsultationOut]).
 ExerciseGoal = Literal[
-    "weight_loss", "strength", "fitness", "posture", "health", "other"
+    "weight_loss",
+    "strength",
+    "fitness",
+    "posture",
+    "rehab",
+    "eating",
+    "exercise_habit",
+    "blood_pressure",
+    "other",
 ]
 HealthPurposeType = Literal[
     "weight", "chronic", "rehab", "general", "none", "other"
@@ -133,7 +148,10 @@ class ConsultationOut(BaseModel):
     #: 하고, 대상이 지워지면 이름을 영영 못 만든다(#327).
     trainer_name: str | None = None
     trainer_gym_name: str | None = None
-    exercise_goal: ExerciseGoal
+    #: 응답은 없앤 `health`(건강 관리)를 포함해 저장된 그대로 내려준다 — 입력
+    #: 쪽(`ConsultationCreate`)만 새 목록으로 좁혔다. `preferred_time_slot` 과
+    #: 같은 규칙이고, 이미 접수된 요청을 백필하지 않기 때문이다(#1992).
+    exercise_goal: str
     health_purpose_type: HealthPurposeType
     health_purpose_detail: str | None
     preferred_date: Date

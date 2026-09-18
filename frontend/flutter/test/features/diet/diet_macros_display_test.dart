@@ -182,8 +182,10 @@ void main() {
     expect(find.textContaining('/ 220g'), findsOneWidget);
     expect(find.textContaining('/ 120g'), findsOneWidget);
     expect(find.textContaining('/ 50g'), findsOneWidget);
-    expect(find.textContaining('/ 1,500mg'), findsOneWidget);
-    // 당류는 이 카드가 더 이상 그리지 않는다(#1879).
+    // 나트륨과 당류는 이 카드가 그리지 않는다 — 당류는 #1879, 나트륨은 #1986
+    // 에서 내려갔다. 목표 자체는 온보딩·MY 에 그대로 있고, 숫자는 식단 상세와
+    // 분석 완료 시트의 영양 행에서 본다.
+    expect(find.textContaining('/ 1,500mg'), findsNothing);
     expect(find.textContaining('/ 35g'), findsNothing);
   });
 
@@ -238,18 +240,20 @@ void main() {
       // #1054 에서 짧게 줄인 문구도 함께 사라졌다.
       expect(find.textContaining('많아요'), findsNothing);
       expect(find.textContaining('남았어요'), findsNothing);
-      // 라벨과 한 덩어리(Text.rich)라 리치 텍스트까지 뒤져야 잡힌다.
-      expect(
-        find.textContaining('+1,428mg', findRichText: true),
-        findsOneWidget,
-      );
-      // 구분선 아래는 탄단지 세 줄 + 나트륨 한 줄이다 (#1879) — 당류는 없다.
+      // 나트륨 초과분은 이 카드에서 함께 사라졌다 (#1986) — 라벨과 한
+      // 덩어리(Text.rich)라 리치 텍스트까지 뒤져야 잡힌다.
+      expect(find.textContaining('+1,428mg', findRichText: true), findsNothing);
+      // 구분선 아래는 탄단지 세 줄뿐이다 — 당류는 #1879, 나트륨은 #1986 에서
+      // 내려갔다.
       expect(find.byKey(const Key('nutrition-sodium-status')), findsNothing);
-      expect(
-        find.byKey(const Key('nutrition-macro-progress-당류')),
-        findsNothing,
-      );
-      for (final String label in <String>['탄수화물', '단백질', '지방', '나트륨']) {
+      for (final String label in <String>['당류', '나트륨']) {
+        expect(
+          find.byKey(Key('nutrition-macro-progress-$label')),
+          findsNothing,
+          reason: label,
+        );
+      }
+      for (final String label in <String>['탄수화물', '단백질', '지방']) {
         expect(
           find.byKey(Key('nutrition-macro-progress-$label')),
           findsOneWidget,
@@ -265,15 +269,12 @@ void main() {
           )
           .color;
       // 오늘 합계는 탄 120 / 275 · 단 45 / 100 · 지 45 / 55 — 셋 다 목표 안쪽.
-      // 나트륨만 3,428 / 2,000 으로 넘긴다.
       expect(barColor('탄수화물'), OnCareBrand.member.statusWithinGoal);
       expect(barColor('지방'), OnCareBrand.member.statusWithinGoal);
-      expect(barColor('나트륨'), OnCareColors.danger);
 
       final Finder carbs = find.byKey(const Key('nutrition-macro-탄수화물'));
       final Finder protein = find.byKey(const Key('nutrition-macro-단백질'));
       final Finder fat = find.byKey(const Key('nutrition-macro-지방'));
-      final Finder sodium = find.byKey(const Key('nutrition-macro-나트륨'));
 
       // 좁은 화면에서 각 항목이 겹치지 않고 세로로 쌓이는지 확인한다.
       expect(
@@ -283,11 +284,6 @@ void main() {
       expect(
         tester.getBottomLeft(protein).dy,
         lessThanOrEqualTo(tester.getTopLeft(fat).dy),
-      );
-      // 나트륨은 탄단지 **아래** 제 줄이다.
-      expect(
-        tester.getBottomLeft(fat).dy,
-        lessThan(tester.getTopLeft(sodium).dy),
       );
       expect(tester.takeException(), isNull);
     },

@@ -757,32 +757,14 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
     return AppDialog(
       title: l.myDeleteTitle,
       showClose: false,
-      // [AppButtonPair] 와 같은 배치다. 확정 버튼에 Key 를 달아야 해서(이름이
-      // 맞기 전 비활성인지 테스트가 확인한다) 두 버튼을 직접 놓는다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              label: l.actionCancel,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(false),
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('delete-account-submit'),
-              label: l.myDeleteAction,
-              variant: AppButtonVariant.destructive,
-              fullWidth: true,
-              // 이름이 맞아야 눌린다 — 확인 절차가 형식만 남지 않도록.
-              onPressed: _matches
-                  ? () => Navigator.of(context).pop(true)
-                  : null,
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(false),
+        confirmKey: const ValueKey<String>('delete-account-submit'),
+        confirmLabel: l.myDeleteAction,
+        destructive: true,
+        // 이름이 맞아야 눌린다 — 확인 절차가 형식만 남지 않도록.
+        onConfirm: _matches ? () => Navigator.of(context).pop(true) : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

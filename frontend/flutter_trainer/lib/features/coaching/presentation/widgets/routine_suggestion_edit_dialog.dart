@@ -65,28 +65,13 @@ Future<bool?> showRoutineSuggestionConfirmDialog(
         key: const ValueKey<String>('routine-suggestion-confirm'),
         title: l.suggestionConfirmTitle,
         showClose: false,
-        // 버튼마다 테스트 키가 있어 AppButtonPair 대신 같은 모양을 직접 둔다.
-        footer: Row(
-          children: <Widget>[
-            Expanded(
-              child: AppButton(
-                key: const ValueKey<String>('suggestion-confirm-cancel'),
-                label: l.actionCancel,
-                variant: AppButtonVariant.secondary,
-                fullWidth: true,
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.buttonGap),
-            Expanded(
-              child: AppButton(
-                key: const ValueKey<String>('suggestion-confirm-submit'),
-                label: l.suggestionApprove,
-                fullWidth: true,
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-              ),
-            ),
-          ],
+        footer: AppButtonPair(
+          cancelKey: const ValueKey<String>('suggestion-confirm-cancel'),
+          cancelLabel: l.actionCancel,
+          onCancel: () => Navigator.of(dialogContext).pop(false),
+          confirmKey: const ValueKey<String>('suggestion-confirm-submit'),
+          confirmLabel: l.suggestionApprove,
+          onConfirm: () => Navigator.of(dialogContext).pop(true),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -238,28 +223,13 @@ class _RoutineSuggestionEditDialogState
       title: l.suggestionEditTitle,
       size: AppDialogSize.medium,
       showClose: false,
-      // 버튼마다 테스트 키가 있어 AppButtonPair 대신 같은 모양을 직접 둔다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('suggestion-edit-cancel'),
-              label: l.actionCancel,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('suggestion-edit-submit'),
-              label: l.suggestionEditSubmit,
-              fullWidth: true,
-              onPressed: _submit,
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelKey: const ValueKey<String>('suggestion-edit-cancel'),
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const ValueKey<String>('suggestion-edit-submit'),
+        confirmLabel: l.suggestionEditSubmit,
+        onConfirm: _submit,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

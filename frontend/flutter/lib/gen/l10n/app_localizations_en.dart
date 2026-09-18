@@ -337,6 +337,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietMealSnack => 'Snack';
 
   @override
+  String get dietMealLateNight => 'Late-night';
+
+  @override
   String dietMealSheetTitle(String meal) {
     return '$meal';
   }
@@ -1166,6 +1169,74 @@ class AppLocalizationsEn extends AppLocalizations {
       'We could not delete your account. Please try again in a moment.';
 
   @override
+  String get myWithdrawReasonTitle =>
+      'Are you sure you want to delete your account?';
+
+  @override
+  String get myWithdrawReasonQuestion => 'What did not work for you?';
+
+  @override
+  String get myWithdrawReasonHint => 'You can pick more than one';
+
+  @override
+  String get myWithdrawReasonPrivacy => 'I am worried about my privacy';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => 'I hardly use it any more';
+
+  @override
+  String get myWithdrawReasonHardToUse => 'It is awkward to use';
+
+  @override
+  String get myWithdrawReasonNotifications => 'Too many notifications';
+
+  @override
+  String get myWithdrawReasonAlternative => 'I am using another app';
+
+  @override
+  String get myWithdrawReasonOther => 'Something else';
+
+  @override
+  String get myWithdrawNext => 'Next';
+
+  @override
+  String get myWithdrawKeepTitle => 'Before you go';
+
+  @override
+  String get myWithdrawKeepPrivacy =>
+      'Only you and your trainer can see your records. Disconnect the trainer and they are yours alone — the gym and trainer card on the MY tab does that.';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'The AI coach still lines up something worth doing on the days you record nothing. Tapping a single suggestion on the Exercise tab is enough to pick it back up.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      'Tell us what got in the way and we will fix it. The 1:1 enquiry under MY > Customer support reaches us directly.';
+
+  @override
+  String get myWithdrawKeepNotifications =>
+      'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      'Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      'Whatever it is, tell us and we will act on it. Leave it in the 1:1 enquiry under MY > Customer support.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      'The diet and exercise records you have built up go with the account, and they cannot be restored.';
+
+  @override
+  String get myWithdrawStay => 'Keep using On-Care';
+
+  @override
+  String get myWithdrawContinue => 'Continue deleting';
+
+  @override
   String get myCancel => 'Cancel';
 
   @override
@@ -1795,18 +1866,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exExerciseGoal => 'Exercise Goal';
 
   @override
-  String get exGoalWeightLoss => 'Weight Loss';
-
-  @override
-  String get exGoalStrength => 'Build Strength';
-
-  @override
-  String get exGoalFitness => 'Improve Fitness';
-
-  @override
-  String get exGoalPosture => 'Improve Posture';
-
-  @override
   String get exGoalHealth => 'Health Management';
 
   @override
@@ -2173,35 +2232,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardOptionalTag => '(optional)';
 
   @override
-  String get pointsGuideTitle => 'Points quests';
-
-  @override
-  String get pointsGuideSubtitle =>
-      'The more you log each day, the more points you earn. Try these quests';
-
-  @override
-  String pointsGuideQuest(int number) {
-    return 'Quest $number';
-  }
-
-  @override
-  String pointsGuideDailyCap(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Up to $count times a day',
-      one: 'Once a day',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get pointsGuideSpendNote => 'Spend your points in MY › Points';
-
-  @override
-  String get pointsGuideStart => 'Get started';
-
-  @override
   String guideBadgeWithStep(int current, int total) {
     return 'App guide $current/$total';
   }
@@ -2268,7 +2298,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P';
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P\nSpend them in MY › Use Points';
   }
 
   @override

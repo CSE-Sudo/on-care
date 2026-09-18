@@ -130,28 +130,13 @@ class _SessionTimeRangeDialogState extends State<_SessionTimeRangeDialog> {
     final OnCareTokens tokens = context.oncare;
     return AppDialog(
       title: l.schedTimeRangeTitle,
-      // AppButtonPair 와 같은 배치 — 버튼마다 키를 달아야 해서 직접 둔다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('session-time-range-cancel'),
-              label: l.actionCancel,
-              onPressed: () => Navigator.of(context).pop(),
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('session-time-range-confirm'),
-              label: l.schedTimeRangeConfirm,
-              onPressed: () => _confirm(l),
-              fullWidth: true,
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelKey: const ValueKey<String>('session-time-range-cancel'),
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const ValueKey<String>('session-time-range-confirm'),
+        confirmLabel: l.schedTimeRangeConfirm,
+        onConfirm: () => _confirm(l),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
