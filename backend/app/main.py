@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="On-Care Backend",
-    description="만성질환(고혈압·당뇨) 위험군 헬스케어 플랫폼 — 프론트 계약 정렬판",
+    description="PT 회원과 트레이너를 잇는 식단·운동 관리 서비스 — 회원 앱·트레이너 웹 공용 API",
     version=settings.app_version,
     lifespan=lifespan,
 )
