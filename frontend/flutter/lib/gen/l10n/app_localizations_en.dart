@@ -2232,35 +2232,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardOptionalTag => '(optional)';
 
   @override
-  String get pointsGuideTitle => 'Points quests';
-
-  @override
-  String get pointsGuideSubtitle =>
-      'The more you log each day, the more points you earn. Try these quests';
-
-  @override
-  String pointsGuideQuest(int number) {
-    return 'Quest $number';
-  }
-
-  @override
-  String pointsGuideDailyCap(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Up to $count times a day',
-      one: 'Once a day',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get pointsGuideSpendNote => 'Spend your points in MY › Points';
-
-  @override
-  String get pointsGuideStart => 'Get started';
-
-  @override
   String guideBadgeWithStep(int current, int total) {
     return 'App guide $current/$total';
   }
@@ -2327,7 +2298,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P';
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P\nSpend them in MY › Use Points';
   }
 
   @override
