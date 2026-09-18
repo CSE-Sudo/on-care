@@ -943,6 +943,20 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           key: const Key('diet-result-nutrition'),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            // 내용량이 맨 위다 — 아래 값들이 모두 이 양을 재고 나온 값이라, 식단
+            // 수정의 음식 칸처럼 기준이 칼로리보다 먼저 읽혀야 한다(#1964).
+            // 양을 모르는 음식이 섞이면 합을 낼 수 없어 줄을 두지 않는다.
+            if (r.totalAmountG case final double amount) ...<Widget>[
+              KeyedSubtree(
+                key: const Key('diet-result-amount'),
+                child: _ResultRow(
+                  label: l.dietAmount,
+                  value: _gramsText(amount),
+                  unit: l.dietUnitG,
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s8),
+            ],
             _ResultRow(
               label: l.dietCalories,
               value: '${r.totalCalories}',
