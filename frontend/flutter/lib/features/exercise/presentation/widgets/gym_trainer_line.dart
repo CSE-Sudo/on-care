@@ -20,6 +20,7 @@ class GymTrainerLine extends StatelessWidget {
     this.showReason = true,
     this.bordered = false,
     this.onDetail,
+    this.stacked = false,
     super.key,
   });
 
@@ -43,8 +44,13 @@ class GymTrainerLine extends StatelessWidget {
   /// 받으므로 헬스장 상세는 줄 **밖**(이름·주소·태그 쪽)을 누를 때 열린다.
   final VoidCallback? onDetail;
 
-  /// 오른쪽에 배지나 버튼이 서는가. 그때는 이름·직함을 두 줄로 쌓는다.
-  bool get stacked => onDetail != null;
+  /// 이름 아래로 직함을 내려 **두 줄로 쌓을지**.
+  ///
+  /// 상세로 가는 길([onDetail])과는 따로 정한다(#2038). 예전에는 길을 열면
+  /// 저절로 쌓였는데, 헬스장 찾기 목록에 길을 열자 트레이너가 여럿인 카드가
+  /// 사람마다 한 줄씩 길어졌다. 찾기 목록은 이름·직함을 한 줄로 둔 채 화살표만
+  /// 붙이고, 담당 한 명만 서는 내 헬스장 카드는 지금처럼 쌓는다(#1187).
+  final bool stacked;
 
   Widget _name(BuildContext context) => Text(
     trainer.name,

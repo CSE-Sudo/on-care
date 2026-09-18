@@ -285,6 +285,52 @@ void main() {
       expect(find.byType(TrainerDetailPage), findsNothing);
     });
 
+    testWidgets('화살표를 붙여도 이름·직함은 한 줄에 둔다 (#2038)', (WidgetTester tester) async {
+      await pumpGymTab(tester, hasMyGym: false);
+
+      // 쌓으면 트레이너가 여럿인 카드가 사람마다 한 줄씩 길어진다 — 이전
+      // 모양 그대로 직함이 이름 옆에 선다.
+      final Finder line = find.byKey(const Key('gym-trainer-trainer-kim'));
+      final Finder name = find.descendant(
+        of: line,
+        matching: find.text('김트레이너'),
+      );
+      final Finder role = find.descendant(
+        of: line,
+        matching: find.text('퍼스널 트레이너'),
+      );
+      expect(
+        tester.getCenter(role).dy,
+        moreOrLessEquals(tester.getCenter(name).dy, epsilon: 2),
+      );
+      expect(
+        tester.getTopLeft(role).dx,
+        greaterThan(tester.getTopRight(name).dx),
+      );
+    });
+
+    testWidgets('내 헬스장 카드의 트레이너 줄은 지금처럼 두 줄로 쌓는다 (#2038)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester);
+
+      // 쌓기를 길과 떼어 냈을 뿐, 담당 한 명만 서는 이 카드의 모양은 그대로다
+      // (#1187).
+      final Finder line = find.byKey(const Key('gym-trainer-line-mine'));
+      final Finder name = find.descendant(
+        of: line,
+        matching: find.text('김트레이너'),
+      );
+      final Finder role = find.descendant(
+        of: line,
+        matching: find.text('퍼스널 트레이너'),
+      );
+      expect(
+        tester.getTopLeft(role).dy,
+        greaterThanOrEqualTo(tester.getBottomLeft(name).dy),
+      );
+    });
+
     testWidgets('트레이너 줄이 내 헬스장 카드와 같은 화살표를 단다 (#2038)', (
       WidgetTester tester,
     ) async {
