@@ -68,6 +68,55 @@ String _grams(double value) {
       : value.toStringAsFixed(1);
 }
 
+/// 끼니 카드 음식 한 줄 — 이름과 그 **양**(보조색). (#1964)
+///
+/// 한 덩어리 글자로 짓는다. 이름과 양을 따로 된 위젯으로 나란히 두면 좁은 폭·
+/// 큰 글자 배율에서 이름을 다 줄여도 양이 들어갈 자리가 모자라 줄이 넘친다
+/// (#739). 한 줄 말줄임이면 어떤 폭에서도 넘치지 않고, 두 글자가 같은 기준선에
+/// 선다.
+///
+/// 마지막 줄이 `외 N` 을 달 때도 양은 그 음식 이름 바로 뒤다 — `딸기 150g 외 2`.
+/// 양을 모르는 음식은 이름만 적는다: `0g` 은 안 먹었다는 말이 된다.
+InlineSpan _mealCardFoodSpan(
+  BuildContext context,
+  AppLocalizations l,
+  DietFood food, {
+  int hidden = 0,
+}) {
+  final double? grams = food.amountG;
+  final InlineSpan? amount = grams != null && grams > 0
+      ? TextSpan(
+          text: ' ${_grams(grams)}${l.dietUnitG}',
+          style: OnCareTypography.numeric(
+            _text(
+              context,
+              OnCareTypography.caption,
+              OnCareColors.textSecondary,
+            ),
+          ),
+        )
+      : null;
+  if (hidden <= 0) {
+    return TextSpan(
+      children: <InlineSpan>[
+        TextSpan(text: food.name),
+        ?amount,
+      ],
+    );
+  }
+  final String line = l.dietMoreFoods(food.name, hidden);
+  final int at = line.indexOf(food.name);
+  if (amount == null || at < 0) return TextSpan(text: line);
+  final int end = at + food.name.length;
+  return TextSpan(
+    children: <InlineSpan>[
+      TextSpan(text: line.substring(0, end)),
+      amount,
+      TextSpan(text: line.substring(end)),
+    ],
+  );
+}
+
 /// Maps a backend [DietEntry] onto the meal-card view model. The meal type is
 /// carried as a [MealType] so the badge text is resolved at render time.
 ///
@@ -1197,20 +1246,30 @@ class _MealCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: <Widget>[
-                                  // 카드에는 음식 이름만 남긴다 — kcal·나트륨·당류
-                                  // 세부는 상세 화면 몫이다(#1848).
+                                  // 카드에는 음식 이름과 그 **양**만 남긴다 —
+                                  // kcal·나트륨·당류 세부는 상세 화면 몫이다
+                                  // (#1848). 양은 수치가 아니라 "무엇을 얼마나"
+                                  // 의 일부라 이름 바로 옆에 붙인다. 식단 상세
+                                  // 보기 모드와 같은 자리다(#1964). 양을 모르는
+                                  // 음식에는 적지 않는다 — `0g` 은 안 먹었다는
+                                  // 말이 된다.
                                   for (int i = 0; i < shown.length; i++)
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
                                         vertical: OnCareSpacing.s2,
                                       ),
-                                      child: Text(
-                                        i == shown.length - 1 && hidden > 0
-                                            ? l.dietMoreFoods(
-                                                shown[i].name,
-                                                hidden,
-                                              )
-                                            : shown[i].name,
+                                      child: Text.rich(
+                                        _mealCardFoodSpan(
+                                          context,
+                                          l,
+                                          shown[i],
+                                          hidden: i == shown.length - 1
+                                              ? hidden
+                                              : 0,
+                                        ),
+                                        key: ValueKey<String>(
+                                          'meal-card-food-$i',
+                                        ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: _text(

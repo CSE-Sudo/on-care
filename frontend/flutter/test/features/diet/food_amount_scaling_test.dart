@@ -241,6 +241,17 @@ void main() {
       expect(find.text('0g'), findsNothing);
     });
 
+    testWidgets('내용량은 칼로리 앞이 아니라 이름 바로 옆에 붙는다', (WidgetTester tester) async {
+      await _openView(tester, FakeDietRepository());
+
+      final Rect name = tester.getRect(find.text('스크램블 에그'));
+      final Rect amount = tester.getRect(_viewAmount(1));
+      final Rect kcal = tester.getRect(find.text('185'));
+      // 양은 "무엇을 얼마나" 의 일부라 음식에 붙는다 — 끼니 카드와 같은 자리.
+      expect(amount.left - name.right, lessThan(8));
+      expect(kcal.left - amount.right, greaterThan(40), reason: '칼로리는 오른쪽 끝');
+    });
+
     testWidgets('수정 모드에서 고친 양이 저장 뒤 보기 모드에도 이어진다', (WidgetTester tester) async {
       await _openEdit(tester, FakeDietRepository());
 
@@ -252,6 +263,66 @@ void main() {
       expect(find.byKey(const Key('mealDetailEditButton')), findsOneWidget);
       expect(find.text('200g'), findsOneWidget);
       expect(find.text('100g'), findsNothing);
+    });
+  });
+
+  // 식단 탭 끼니 카드도 이름 옆에 양을 적는다 — 상세 보기 모드와 같은 자리다.
+  group('식단 탭 끼니 카드의 내용량', () {
+    /// 아침 카드의 음식 한 줄이 실제로 읽히는 글자.
+    String line(WidgetTester tester, int i) => tester
+        .widget<Text>(
+          find.descendant(
+            of: find.byKey(const Key('mealCard-mock-breakfast')),
+            matching: find.byKey(ValueKey<String>('meal-card-food-$i')),
+          ),
+        )
+        .textSpan!
+        .toPlainText();
+
+    Future<void> backToTab(WidgetTester tester) async {
+      GoRouter.of(tester.element(find.byType(DietMealDetailPage))).pop();
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('양을 아는 음식은 이름 옆에, 모르는 음식은 아무것도 적지 않는다', (
+      WidgetTester tester,
+    ) async {
+      await _openView(tester, FakeDietRepository());
+      await backToTab(tester);
+
+      expect(line(tester, 0), '스크램블 에그 100g');
+      // 딸기는 양을 모른다 — `0g` 이 뜨면 안 먹었다로 읽힌다.
+      expect(line(tester, 1), '딸기');
+    });
+
+    testWidgets('상세에서 고친 양이 목록 카드에도 이어진다', (WidgetTester tester) async {
+      await _openEdit(tester, FakeDietRepository());
+      await tester.enterText(_field('diet-food-amount-1'), '200');
+      await tester.enterText(_field('diet-food-amount-2'), '150');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+      await backToTab(tester);
+
+      expect(line(tester, 0), '스크램블 에그 200g');
+      expect(line(tester, 1), '딸기 150g');
+    });
+
+    testWidgets('`외 N` 이 붙는 줄에서도 양은 그 음식 이름 바로 뒤다', (
+      WidgetTester tester,
+    ) async {
+      await _openEdit(tester, FakeDietRepository());
+      await tester.enterText(_field('diet-food-amount-2'), '150');
+      await tester.tap(find.text('음식 추가'));
+      await tester.pumpAndSettle();
+      await tester.enterText(_field('diet-food-name-3'), '요거트');
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+      await backToTab(tester);
+
+      // 카드는 두 줄까지만 적고 나머지는 `외 N` 으로 센다.
+      expect(line(tester, 1), '딸기 150g 외 1');
     });
   });
 }

@@ -2240,9 +2240,11 @@ class _FoodEditors {
 
 /// 먹은 음식 한 줄 — 보기 모드의 읽기 전용 표시.
 ///
-/// 이름 다음에 **내용량**이 온다. 옆의 칼로리는 그 양을 재고 나온 값이라,
+/// 이름 **바로 옆**에 내용량이 온다. 오른쪽 칼로리는 그 양을 재고 나온 값이라,
 /// 기준이 보이지 않으면 230kcal 이 한 공기인지 반 공기인지 알 수 없다 —
 /// 수정 모드를 열어야만 기준이 드러나는 것은 순서가 뒤집힌 것이다(#1964).
+/// 칼로리 앞이 아니라 이름 옆인 까닭은, 양은 "무엇을 얼마나" 의 일부라 음식에
+/// 붙고 칼로리는 그 결과라서다. 식단 탭 끼니 카드도 같은 자리에 적는다.
 /// 양을 모르는 음식과 이 필드 이전 기록은 null 이라 아무것도 적지 않는다:
 /// `0g` 은 안 먹었다는 말이 된다.
 class _FoodViewRow extends StatelessWidget {
@@ -2262,29 +2264,38 @@ class _FoodViewRow extends StatelessWidget {
           AppTag(label: '$index', tone: AppTagTone.brand),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
-            child: Text(
-              food.name.trim().isEmpty ? l.dietNewFood : food.name,
-              style: _text(
-                context,
-                OnCareTypography.strong(OnCareTypography.body),
-                OnCareColors.textPrimary,
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    food.name.trim().isEmpty ? l.dietNewFood : food.name,
+                    style: _text(
+                      context,
+                      OnCareTypography.strong(OnCareTypography.body),
+                      OnCareColors.textPrimary,
+                    ),
+                  ),
+                ),
+                if (amount != null && amount > 0) ...<Widget>[
+                  const SizedBox(width: OnCareSpacing.s4),
+                  Text(
+                    '${_gramsText(amount)}${l.dietUnitG}',
+                    key: ValueKey<String>('diet-food-view-amount-$index'),
+                    style: OnCareTypography.numeric(
+                      _text(
+                        context,
+                        OnCareTypography.caption,
+                        OnCareColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (amount != null && amount > 0) ...<Widget>[
-            Text(
-              '${_gramsText(amount)}${l.dietUnitG}',
-              key: ValueKey<String>('diet-food-view-amount-$index'),
-              style: OnCareTypography.numeric(
-                _text(
-                  context,
-                  OnCareTypography.caption,
-                  OnCareColors.textSecondary,
-                ),
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.s8),
-          ],
+          const SizedBox(width: OnCareSpacing.s8),
           Text(
             '${food.kcal}',
             style: OnCareTypography.numeric(
