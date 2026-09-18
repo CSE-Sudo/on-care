@@ -6,11 +6,18 @@ from uuid import uuid4
 import pytest
 
 from app.core import clock
-from app.models.models import ConsultationRequest, Place, TrainerProfile, User
+from app.models.models import (
+    ConsultationRequest,
+    Place,
+    TrainerProfile,
+    TrainerReservationSlot,
+    User,
+)
 from app.schemas.consultation_api import ConsultationOut
 
 TEST_EMAIL_PREFIX = "consult-test-"
 TEST_PLACE_PREFIX = "consult-place-"
+TEST_SLOT_PREFIX = "consult-slot-"
 
 
 @pytest.fixture(autouse=True)
@@ -34,6 +41,9 @@ def _cleanup_consultation_data(db_session):
         db_session.query(User).filter(User.id.in_(user_ids)).delete(
             synchronize_session=False
         )
+    db_session.query(TrainerReservationSlot).filter(
+        TrainerReservationSlot.id.like(f"{TEST_SLOT_PREFIX}%")
+    ).delete(synchronize_session=False)
     db_session.query(Place).filter(
         Place.id.like(f"{TEST_PLACE_PREFIX}%")
     ).delete(synchronize_session=False)
@@ -108,20 +118,49 @@ def _create_trainer(
     return trainer
 
 
-def _payload(*, trainer_id: str | None = None) -> dict:
-    """상담 요청 본문. 대상은 트레이너 한 사람뿐이라 trainer_id 만 받는다.
+def _create_slot(
+    db_session, trainer_id: str, *, hours_ahead: float = 48
+) -> TrainerReservationSlot:
+    """그 트레이너가 연 `1:1 PT` 빈 자리 하나. (#1873)
+
+    기본값을 48시간 뒤로 두는 이유: 상담 폼은 시작까지
+    `CONSULT_SLOT_MIN_LEAD_HOURS`(4시간) 이상 남은 자리만 보여 주고, 그보다 가까운
+    자리는 신청 자체가 막힌다.
+    """
+    slot = TrainerReservationSlot(
+        id=f"{TEST_SLOT_PREFIX}{uuid4().hex[:10]}",
+        trainer_id=trainer_id,
+        starts_at=datetime.now(timezone.utc) + timedelta(hours=hours_ahead),
+        duration_minutes=30,
+        capacity=1,
+        remaining=1,
+        session_type="1:1 PT",
+    )
+    db_session.add(slot)
+    db_session.commit()
+    return slot
+
+
+def _payload(
+    db_session=None, *, trainer_id: str | None = None, slot_id: str | None = None
+) -> dict:
+    """상담 요청 본문. 대상은 트레이너 한 사람이고, 시각은 고른 자리가 들고 있다.
 
     `target_type` 은 서버 기본값(`trainer`)에 맡긴다 — 값이 하나뿐이라 클라이언트가
     보낼 이유가 없고, 보내지 않아도 만들어져야 한다.
+
+    `db_session` 과 `trainer_id` 를 함께 주면 그 트레이너의 빈 자리를 하나 만들어
+    고른다(#1873). 자리가 없는 경우를 보는 테스트는 `slot_id` 를 직접 준다.
     """
+    if slot_id is None and db_session is not None and trainer_id is not None:
+        slot_id = _create_slot(db_session, trainer_id).id
     return {
         "trainer_id": trainer_id,
         # 건강 목표 여덟 종 중 하나. 없앤 `health` 는 더 이상 받지 않는다(#1992).
         "exercise_goal": "fitness",
         "health_purpose_type": "general",
         "health_purpose_detail": "  건강 습관 개선  ",
-        "preferred_date": (clock.today() + timedelta(days=1)).isoformat(),
-        "preferred_time_slot": "14:30",
+        "slot_id": slot_id or "slot-does-not-exist",
         "message": "  상담을 받고 싶습니다.  ",
         "data_sharing_consent": True,
     }
@@ -130,7 +169,7 @@ def _payload(*, trainer_id: str | None = None) -> dict:
 def test_create_consultation_sets_server_fields(client, db_session):
     member_id, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
+    payload = _payload(db_session, trainer_id=trainer.id)
     payload["preferred_date"] = clock.today().isoformat()
 
     response = client.post(
@@ -178,7 +217,7 @@ def test_gym_target_is_no_longer_accepted(client, db_session):
 def test_client_cannot_set_consultation_status(client, db_session, status):
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
+    payload = _payload(db_session, trainer_id=trainer.id)
     payload["status"] = status
 
     response = client.post(
@@ -216,17 +255,40 @@ def test_consultation_out_validates_orm_instance():
     assert response.preferred_date == clock.today()
 
 
-def test_past_preferred_date_is_rejected(client, db_session):
+@pytest.mark.parametrize("hours_ahead", [1, 3.9])
+def test_slot_starting_too_soon_is_rejected(client, db_session, hours_ahead):
+    """시작까지 4시간이 안 남은 자리는 고를 수 없다. (#1873)
+
+    신청하는 순간 자리가 잠기고 만료는 시작 2시간 전이므로, 목록 하한을 만료
+    기준보다 크게 둬야 트레이너에게 확인할 시간이 남는다. 하한과 같게 두면 경계에서
+    신청 직후 만료되는 자리를 고를 수 있다.
+    """
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
-    payload["preferred_date"] = (clock.today() - timedelta(days=1)).isoformat()
+    slot = _create_slot(db_session, trainer.id, hours_ahead=hours_ahead)
 
     response = client.post(
-        "/v1/consultations", headers=_auth(token), json=payload
+        "/v1/consultations",
+        headers=_auth(token),
+        json=_payload(db_session, trainer_id=trainer.id, slot_id=slot.id),
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 409, response.text
+
+
+def test_slot_far_enough_ahead_is_accepted(client, db_session):
+    """하한을 막 넘긴 자리는 고를 수 있다 — 경계를 양쪽에서 못 박는다."""
+    _, token = _register_member(client)
+    trainer = _create_trainer(db_session)
+    slot = _create_slot(db_session, trainer.id, hours_ahead=4.1)
+
+    response = client.post(
+        "/v1/consultations",
+        headers=_auth(token),
+        json=_payload(db_session, trainer_id=trainer.id, slot_id=slot.id),
+    )
+
+    assert response.status_code == 201, response.text
 
 
 @pytest.mark.parametrize(
@@ -238,9 +300,9 @@ def test_past_preferred_date_is_rejected(client, db_session):
         # 목표가 비어 있었다 — 새 신청으로 다시 들어오지 않게 막는다(#1992).
         ("exercise_goal", "health"),
         ("health_purpose_type", "sleep"),
-        ("preferred_time_slot", "night"),
-        # 시각 없는 요청은 승인해도 잡을 시간이 없다 — 입력에서 막는다(#1587).
-        ("preferred_time_slot", "flexible"),
+        # 자리를 고르지 않으면 상담을 신청할 수 없다(#1873). 희망 시각을 적어
+        # 보내던 `preferred_time_slot` 은 입력에서 사라졌다.
+        ("slot_id", ""),
     ],
 )
 def test_invalid_limited_value_is_rejected(
@@ -248,7 +310,7 @@ def test_invalid_limited_value_is_rejected(
 ):
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
+    payload = _payload(db_session, trainer_id=trainer.id)
     payload[field] = value
 
     response = client.post(
@@ -280,7 +342,7 @@ def test_every_member_goal_is_accepted(client, db_session, goal: str):
     """
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
+    payload = _payload(db_session, trainer_id=trainer.id)
     payload["exercise_goal"] = goal
     # `other` 만 상세가 필요하다.
     payload["health_purpose_type"] = "general"
@@ -297,7 +359,7 @@ def test_every_member_goal_is_accepted(client, db_session, goal: str):
 def test_other_health_purpose_requires_detail(client, db_session, detail):
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
+    payload = _payload(db_session, trainer_id=trainer.id)
     payload["health_purpose_type"] = "other"
     payload["health_purpose_detail"] = detail
 
@@ -311,7 +373,7 @@ def test_other_health_purpose_requires_detail(client, db_session, detail):
 def test_blank_optional_text_is_normalized_to_null(client, db_session):
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
+    payload = _payload(db_session, trainer_id=trainer.id)
     payload["health_purpose_detail"] = " "
     payload["message"] = " "
 
@@ -327,7 +389,7 @@ def test_blank_optional_text_is_normalized_to_null(client, db_session):
 def test_message_length_is_limited(client, db_session):
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
+    payload = _payload(db_session, trainer_id=trainer.id)
     payload["message"] = "a" * 2001
 
     response = client.post(
@@ -350,14 +412,16 @@ def test_invalid_trainer_target_is_rejected(
     client, db_session, trainer_options
 ):
     _, token = _register_member(client)
-    trainer_id = "consult-trainer-missing"
-    if trainer_options is not None:
-        trainer_id = _create_trainer(db_session, **trainer_options).id
+    if trainer_options is None:
+        # 없는 트레이너에게는 자리도 없다 — 대상 검사가 자리보다 먼저 걸린다.
+        payload = _payload(trainer_id="consult-trainer-missing")
+    else:
+        payload = _payload(
+            db_session, trainer_id=_create_trainer(db_session, **trainer_options).id
+        )
 
     response = client.post(
-        "/v1/consultations",
-        headers=_auth(token),
-        json=_payload(trainer_id=trainer_id),
+        "/v1/consultations", headers=_auth(token), json=payload
     )
 
     assert response.status_code == 404
@@ -370,7 +434,7 @@ def test_trainer_without_gym_is_rejected(client, db_session):
     response = client.post(
         "/v1/consultations",
         headers=_auth(token),
-        json=_payload(trainer_id=trainer.id),
+        json=_payload(db_session, trainer_id=trainer.id),
     )
 
     assert response.status_code == 404
@@ -383,7 +447,7 @@ def test_trainer_at_non_fitness_place_is_rejected(client, db_session):
     response = client.post(
         "/v1/consultations",
         headers=_auth(token),
-        json=_payload(trainer_id=trainer.id),
+        json=_payload(db_session, trainer_id=trainer.id),
     )
 
     assert response.status_code == 404
@@ -404,7 +468,7 @@ def test_target_id_contract_is_validated(
 ):
     _, token = _register_member(client)
     trainer = _create_trainer(db_session)
-    payload = _payload(trainer_id=trainer.id)
+    payload = _payload(db_session, trainer_id=trainer.id)
     payload.update(payload_changes)
 
     response = client.post(
@@ -416,7 +480,7 @@ def test_target_id_contract_is_validated(
 
 def test_duplicate_pending_consultation_is_rejected(client, db_session):
     _, token = _register_member(client)
-    payload = _payload(trainer_id=_create_trainer(db_session).id)
+    payload = _payload(db_session, trainer_id=_create_trainer(db_session).id)
 
     first = client.post(
         "/v1/consultations", headers=_auth(token), json=payload
@@ -487,12 +551,12 @@ def test_pending_requests_to_different_trainers_are_independent(
     first = client.post(
         "/v1/consultations",
         headers=_auth(token),
-        json=_payload(trainer_id=_create_trainer(db_session).id),
+        json=_payload(db_session, trainer_id=_create_trainer(db_session).id),
     )
     second = client.post(
         "/v1/consultations",
         headers=_auth(token),
-        json=_payload(trainer_id=_create_trainer(db_session).id),
+        json=_payload(db_session, trainer_id=_create_trainer(db_session).id),
     )
 
     assert first.status_code == 201, first.text
@@ -508,7 +572,7 @@ def test_list_returns_only_current_member_in_latest_order(client, db_session):
     first = client.post(
         "/v1/consultations",
         headers=_auth(first_token),
-        json=_payload(trainer_id=first_trainer.id),
+        json=_payload(db_session, trainer_id=first_trainer.id),
     )
     assert first.status_code == 201
     first_row = db_session.get(ConsultationRequest, first.json()["id"])
@@ -518,13 +582,13 @@ def test_list_returns_only_current_member_in_latest_order(client, db_session):
     second = client.post(
         "/v1/consultations",
         headers=_auth(first_token),
-        json=_payload(trainer_id=second_trainer.id),
+        json=_payload(db_session, trainer_id=second_trainer.id),
     )
     assert second.status_code == 201
     other = client.post(
         "/v1/consultations",
         headers=_auth(second_token),
-        json=_payload(trainer_id=first_trainer.id),
+        json=_payload(db_session, trainer_id=first_trainer.id),
     )
     assert other.status_code == 201
 
@@ -547,7 +611,7 @@ def test_get_returns_own_consultation(client, db_session):
     created = client.post(
         "/v1/consultations",
         headers=_auth(token),
-        json=_payload(trainer_id=trainer.id),
+        json=_payload(db_session, trainer_id=trainer.id),
     )
 
     response = client.get(
@@ -566,7 +630,7 @@ def test_other_members_consultation_is_hidden(client, db_session):
     created = client.post(
         "/v1/consultations",
         headers=_auth(owner_token),
-        json=_payload(trainer_id=trainer.id),
+        json=_payload(db_session, trainer_id=trainer.id),
     )
 
     response = client.get(
@@ -625,7 +689,7 @@ def test_consultation_out_carries_target_names(client, db_session):
     created = client.post(
         "/v1/consultations",
         headers=_auth(token),
-        json=_payload(trainer_id=trainer.id),
+        json=_payload(db_session, trainer_id=trainer.id),
     )
     assert created.status_code == 201, created.text
     assert created.json()["trainer_name"] == trainer.name

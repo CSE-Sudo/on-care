@@ -243,16 +243,20 @@
   },
   "dietRecordDateChange": "Change date",
   "@dietRecordDateChange": {
-    "description": "Button that opens the date picker on the analysis result sheet."
+    "description": "Button on the record-date row of the analysis result sheet and the meal detail. Moves the meal to the picked day on its own (#1241, #1947)."
   },
   "dietRecordDateMoved": "Moved to {date}",
   "@dietRecordDateMoved": {
-    "description": "Confirmation after moving an analysed meal to another day.",
+    "description": "Confirmation after moving a meal to another day.",
     "placeholders": { "date": { "type": "String" } }
   },
   "dietRecordDateFailed": "Could not change the date. Please try again shortly.",
   "@dietRecordDateFailed": {
-    "description": "Error shown when moving an analysed meal to another day fails."
+    "description": "Error shown when moving a meal to another day fails."
+  },
+  "dietMealKind": "Meal",
+  "@dietMealKind": {
+    "description": "Label of the meal-type row next to the record date in the meal detail (#1947)."
   },
   "dietAnalysisDone": "Analysis complete!",
   "dietAiNutritionResult": "AI Nutrition Result",
@@ -1093,14 +1097,27 @@
     "placeholders": { "name": { "type": "String" } }
   },
   "coachInviteConsentAgree": "Agree and connect",
+  "exConsultSlotTitle": "Available times",
+  "exConsultSlotRequired": "Please choose an available time.",
+  "exConsultSlotsEmptyTitle": "No consultation times are open right now.",
+  "exConsultSlotsEmptyBody": "Call {gym} at {phone} to ask for a consultation time.",
+  "@exConsultSlotsEmptyBody": {"placeholders": {"gym": {"type": "String"}, "phone": {"type": "String"}}},
+  "exConsultSlotsEmptyNoPhone": "Open the {gym} details for its address and hours.",
+  "@exConsultSlotsEmptyNoPhone": {"placeholders": {"gym": {"type": "String"}}},
+  "exConsultSlotsError": "Could not load the available times.",
+  "exConsultSlotTaken": "Another member just took that time. Please choose another.",
+  "exGymCall": "Call",
+  "exGymCallFailed": "Could not open the phone app.",
+  "exGymDetail": "View gym details",
+  "exConsultChosenSlot": "Requested time",
+  "exConsultConfirmedAt": "Confirmed time",
+  "exConsultExpired": "Expired",
+  "exConsultExpiredBody": "The trainer did not respond in time. Try requesting another time.",
   "exExerciseGoal": "Exercise Goal",
   "exGoalHealth": "Health Management",
   "exOptionOther": "Other",
   "exOtherGoalHint": "Please describe your specific exercise goal in the message.",
   "exPreferredDate": "Preferred Date",
-  "exSelectDate": "Select a date",
-  "exSelectTime": "Select a time",
-  "exPreferredTime": "Preferred Time",
   "exTimeFlexible": "Discuss Later",
   "exTimeRangeTitle": "Select time",
   "exTimeRangeStartTime": "Start time",
@@ -1119,8 +1136,6 @@
   "exSendConsultRequest": "Send Consultation Request",
   "exGoalRequired": "Please select an exercise goal.",
   "exOtherGoalDetailRequired": "Please describe your specific exercise goal in the message.",
-  "exDateRequired": "Please select a preferred date.",
-  "exTimeRequired": "Please select a preferred time.",
   "exConsultTargetNotFound": "Couldn't find the consultation target.",
   "exConsultPendingExists": "A consultation request is already pending.",
   "exConsultReceived": "Your consultation request was received",

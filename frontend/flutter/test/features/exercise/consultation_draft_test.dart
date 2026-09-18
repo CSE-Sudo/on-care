@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
@@ -9,16 +8,13 @@ ConsultationDraft _draft({
   HealthPurposeType purpose = HealthPurposeType.general,
   String? detail,
   bool consent = true,
-  PreferredTime preferredTime = const PreferredTime.at(
-    TimeOfDay(hour: 9, minute: 30),
-  ),
+  String slotId = 'slot-1',
 }) => ConsultationDraft(
   trainerId: trainerId,
   exerciseGoal: ExerciseGoal.fitness,
   healthPurposeType: purpose,
   healthPurposeDetail: detail,
-  preferredDate: DateTime(2026, 8, 20),
-  preferredTimeSlot: preferredTime,
+  slotId: slotId,
   message: null,
   // 동의 없이는 보낼 수 없다(#1022) — 기본 대역은 동의한 상태로 둔다.
   dataSharingConsent: consent,
@@ -30,28 +26,22 @@ void main() {
     expect(json['trainer_id'], 'trainer-1');
     expect(json['exercise_goal'], 'fitness');
     expect(json['health_purpose_type'], 'general');
-    expect(json['preferred_time_slot'], '09:30');
-    // 서버 계약이 date 라 날짜만 보낸다.
-    expect(json['preferred_date'], '2026-08-20');
+    // 희망 날짜·시각 대신 고른 자리 하나를 보낸다(#1873).
+    expect(json['slot_id'], 'slot-1');
   });
 
-  test('시작–종료 범위는 HH:MM-HH:MM 으로 나간다 (#1256)', () {
-    final json = _draft(
-      preferredTime: const PreferredTime.range(
-        TimeOfDay(hour: 9, minute: 30),
-        TimeOfDay(hour: 10, minute: 30),
-      ),
-    ).toJson();
-    expect(json['preferred_time_slot'], '09:30-10:30');
+  test('희망 날짜·시각은 더 이상 보내지 않는다 (#1873)', () {
+    // 서버 입력에서 사라졌다 — 자리가 시각을 들고 있다. 남겨 보내면 서버는
+    // 무시하지만, 시각을 정하는 곳이 둘처럼 보이게 된다.
+    final json = _draft().toJson();
+    expect(json.containsKey('preferred_date'), isFalse);
+    expect(json.containsKey('preferred_time_slot'), isFalse);
   });
 
-  test('시각 없는 요청은 직렬화 전에 막는다 (#1587)', () {
+  test('자리를 고르지 않은 요청은 직렬화 전에 막는다 (#1873)', () {
     // 서버도 422 로 막지만, 여기서 먼저 막지 않으면 원인을 찾기 어려운 422 로
-    // 돌아온다. 시각 없는 상담은 승인해도 일정을 잡을 수 없다.
-    expect(
-      () => _draft(preferredTime: const PreferredTime.flexible()).toJson(),
-      throwsArgumentError,
-    );
+    // 돌아온다. 자리 없는 상담은 승인해도 잡을 시간이 없다.
+    expect(() => _draft(slotId: '  ').toJson(), throwsArgumentError);
   });
 
   test('폐지된 헬스장 대상 필드는 아예 싣지 않는다', () {

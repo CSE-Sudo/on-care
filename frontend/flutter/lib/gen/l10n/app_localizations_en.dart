@@ -443,6 +443,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not change the date. Please try again shortly.';
 
   @override
+  String get dietMealKind => 'Meal';
+
+  @override
   String get dietAnalysisDone => 'Analysis complete!';
 
   @override
@@ -1866,6 +1869,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachInviteConsentAgree => 'Agree and connect';
 
   @override
+  String get exConsultSlotTitle => 'Available times';
+
+  @override
+  String get exConsultSlotRequired => 'Please choose an available time.';
+
+  @override
+  String get exConsultSlotsEmptyTitle =>
+      'No consultation times are open right now.';
+
+  @override
+  String exConsultSlotsEmptyBody(String gym, String phone) {
+    return 'Call $gym at $phone to ask for a consultation time.';
+  }
+
+  @override
+  String exConsultSlotsEmptyNoPhone(String gym) {
+    return 'Open the $gym details for its address and hours.';
+  }
+
+  @override
+  String get exConsultSlotsError => 'Could not load the available times.';
+
+  @override
+  String get exConsultSlotTaken =>
+      'Another member just took that time. Please choose another.';
+
+  @override
+  String get exGymCall => 'Call';
+
+  @override
+  String get exGymCallFailed => 'Could not open the phone app.';
+
+  @override
+  String get exGymDetail => 'View gym details';
+
+  @override
+  String get exConsultChosenSlot => 'Requested time';
+
+  @override
+  String get exConsultConfirmedAt => 'Confirmed time';
+
+  @override
+  String get exConsultExpired => 'Expired';
+
+  @override
+  String get exConsultExpiredBody =>
+      'The trainer did not respond in time. Try requesting another time.';
+
+  @override
   String get exExerciseGoal => 'Exercise Goal';
 
   @override
@@ -1880,15 +1932,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exPreferredDate => 'Preferred Date';
-
-  @override
-  String get exSelectDate => 'Select a date';
-
-  @override
-  String get exSelectTime => 'Select a time';
-
-  @override
-  String get exPreferredTime => 'Preferred Time';
 
   @override
   String get exTimeFlexible => 'Discuss Later';
@@ -1946,12 +1989,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exOtherGoalDetailRequired =>
       'Please describe your specific exercise goal in the message.';
-
-  @override
-  String get exDateRequired => 'Please select a preferred date.';
-
-  @override
-  String get exTimeRequired => 'Please select a preferred time.';
 
   @override
   String get exConsultTargetNotFound =>

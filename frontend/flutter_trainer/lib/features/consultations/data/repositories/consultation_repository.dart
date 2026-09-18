@@ -8,6 +8,7 @@ import 'package:oncare_trainer/core/network/dio_client.dart';
 import 'package:oncare_trainer/core/storage/demo_member_directory.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -60,28 +61,13 @@ abstract interface class ConsultationRepository {
   Stream<int> watchPendingCount();
 
   /// Accepts [id], creating the trainer↔member link server-side.
-  Future<ConsultationAcceptResult> accept(
-    String id, {
-    ConsultationSchedule? schedule,
-  });
+  ///
+  /// 시각을 받지 않는다 — 회원이 신청할 때 고른 자리가 날짜·시각·길이·종류를
+  /// 모두 들고 있고, 승인은 그 자리를 첫 일정으로 확정할 뿐이다(#1873).
+  Future<ConsultationAcceptResult> accept(String id);
 
   /// Rejects [id]. [note] is delivered to the member as the reason.
   Future<void> reject(String id, {String? note});
-}
-
-/// Calendar values submitted together with an approval.
-class ConsultationSchedule {
-  const ConsultationSchedule({
-    required this.date,
-    required this.time,
-    required this.type,
-    required this.durationMinutes,
-  });
-
-  final String date;
-  final String time;
-  final String type;
-  final int durationMinutes;
 }
 
 /// 서버와 데모 저장소가 공통으로 돌려주는 승인 결과.
@@ -97,25 +83,6 @@ class ConsultationAcceptResult {
   final String? scheduleId;
 }
 
-/// 승인하려는 시간이 트레이너의 다른 일정과 겹친다 — 서버가 아무것도
-/// 만들지 않고 409 로 막았다. [schedule_recurrence.dart] 의
-/// `ScheduleSeriesConflictError` 와 같은 자리다: `AppError` 계열이 아니라
-/// 따로 잡아, 다른 409(이미 처리됨 등)와 섞이지 않고 버튼 옆에 인라인으로
-/// 보일 수 있게 한다.
-class ConsultationScheduleConflictError implements Exception {
-  const ConsultationScheduleConflictError({
-    required this.clientName,
-    required this.time,
-  });
-
-  /// 그 시간을 이미 차지하고 있는 세션의 고객 이름("신규 회원" 등 표시용
-  /// 값 포함).
-  final String clientName;
-
-  /// 겹친 세션의 시작 시각(`HH:mm`).
-  final String time;
-}
-
 /// Demo build: no inbox. Reads succeed with nothing so any consumer that
 /// does run (tests, a deep link) renders an empty state instead of an
 /// error, and decisions are refused rather than silently doing nothing.
@@ -127,16 +94,18 @@ class DemoConsultationRepository implements ConsultationRepository {
   }) : _requests =
            requests ??
            <ConsultationRequest>[
+             // 회원은 트레이너가 연 자리를 골라 신청한다(#1873) — 시드도 그
+             // 형태를 따라야 카드가 "고른 시간" 과 그 길이를 보여 준다.
              ConsultationRequest(
                id: 'demo-consultation-1',
                memberId: 'demo-consult-member-1',
                memberName: '김하늘',
                goalCode: 'fitness',
                purposeCode: 'general',
-               preferredDate: nowKst().add(const Duration(days: 1)),
-               // 사용자 앱은 시작–종료 범위로 희망 시간을 받는다(#1256) — 시드도
-               // 그 형태를 따라야 트레이너 화면에서 종료 시각까지 보인다.
-               preferredTimeCode: '19:00-20:00',
+               preferredDate: _demoSlot(days: 1, hour: 19),
+               preferredTimeCode: '19:00',
+               slotStartsAt: _demoSlot(days: 1, hour: 19),
+               slotDurationMinutes: 30,
                status: 'pending',
                message: '퇴근 후 가능한 시간으로 첫 상담을 받고 싶어요.',
              ),
@@ -148,12 +117,20 @@ class DemoConsultationRepository implements ConsultationRepository {
                memberName: '김민수',
                goalCode: 'weight_loss',
                purposeCode: 'chronic',
-               preferredDate: nowKst().add(const Duration(days: 3)),
-               preferredTimeCode: '12:00-13:00',
+               preferredDate: _demoSlot(days: 3, hour: 12),
+               preferredTimeCode: '12:00',
+               slotStartsAt: _demoSlot(days: 3, hour: 12),
+               slotDurationMinutes: 60,
                status: 'pending',
                message: '혈압 관리도 같이 봐주시면 좋겠어요.',
              ),
            ];
+
+  /// 오늘부터 [days] 뒤 [hour] 시 정각 — 데모 자리의 시작 시각.
+  static DateTime _demoSlot({required int days, required int hour}) {
+    final DateTime day = nowKst().add(Duration(days: days));
+    return DateTime(day.year, day.month, day.day, hour);
+  }
 
   List<ConsultationRequest> _requests;
   final ScheduleRepository Function()? scheduleRepository;
@@ -194,52 +171,35 @@ class DemoConsultationRepository implements ConsultationRepository {
   Stream<int> watchPendingCount() => Stream<int>.fromFuture(pendingCount());
 
   @override
-  Future<ConsultationAcceptResult> accept(
-    String id, {
-    ConsultationSchedule? schedule,
-  }) async {
+  Future<ConsultationAcceptResult> accept(String id) async {
     final index = _requests.indexWhere((request) => request.id == id);
     if (index < 0 || !_requests[index].isPending) {
       throw const ValidationError();
     }
     final request = _requests[index];
+    // 회원이 고른 자리가 그대로 첫 일정이 된다(#1873). 겹침 검사는 없앴다 —
+    // 자리를 연 사람이 트레이너 자신이고 한 자리는 한 사람 몫이다.
+    final DateTime? startsAt = request.slotStartsAt;
     final repositoryFactory = scheduleRepository;
-    if (schedule != null && repositoryFactory != null) {
-      final repository = repositoryFactory();
-      final sessions = await repository.watchDate(schedule.date).first;
-      final start = _minutes(schedule.time);
-      final end = start + schedule.durationMinutes;
-      for (final session in sessions) {
-        if (session.status == ScheduleStatus.gap) continue;
-        final existingStart = _minutes(session.time);
-        final existingEnd = existingStart + session.durationMinutes;
-        if (start < existingEnd && existingStart < end) {
-          throw ConsultationScheduleConflictError(
-            clientName: session.clientName,
-            time: session.time,
-          );
-        }
-      }
-      await repository.addSession(
-        date: schedule.date,
+    final bool scheduled = startsAt != null && repositoryFactory != null;
+    if (scheduled) {
+      await repositoryFactory().addSession(
+        date: ymd(startsAt),
         clientName: request.memberName,
         clientId: request.memberId,
-        time: schedule.time,
-        type: schedule.type,
-        durationMinutes: schedule.durationMinutes,
+        time:
+            '${startsAt.hour.toString().padLeft(2, '0')}:'
+            '${startsAt.minute.toString().padLeft(2, '0')}',
+        type: SessionType.personalTraining,
+        durationMinutes: request.slotDurationMinutes ?? 60,
         note: request.message ?? '',
       );
     }
     _decide(id, 'accepted');
     return ConsultationAcceptResult(
       clientConnected: true,
-      scheduleCreated: schedule != null && scheduleRepository != null,
+      scheduleCreated: scheduled,
     );
-  }
-
-  int _minutes(String time) {
-    final parts = time.split(':');
-    return int.parse(parts[0]) * 60 + int.parse(parts[1]);
   }
 
   @override
@@ -263,6 +223,8 @@ class DemoConsultationRepository implements ConsultationRepository {
         purposeCode: request.purposeCode,
         preferredDate: request.preferredDate,
         preferredTimeCode: request.preferredTimeCode,
+        slotStartsAt: request.slotStartsAt,
+        slotDurationMinutes: request.slotDurationMinutes,
         status: status,
         message: request.message,
         purposeDetail: request.purposeDetail,
@@ -344,11 +306,8 @@ class DioConsultationRepository implements ConsultationRepository {
   }
 
   @override
-  Future<ConsultationAcceptResult> accept(
-    String id, {
-    ConsultationSchedule? schedule,
-  }) async {
-    final data = await _decide(id, 'accept', null, schedule: schedule);
+  Future<ConsultationAcceptResult> accept(String id) async {
+    final data = await _decide(id, 'accept', null);
     return ConsultationAcceptResult(
       clientConnected: data['client_connected'] == true,
       scheduleCreated: data['schedule_created'] == true,
@@ -369,29 +328,16 @@ class DioConsultationRepository implements ConsultationRepository {
   Future<Map<String, Object?>> _decide(
     String id,
     String action,
-    String? note, {
-    ConsultationSchedule? schedule,
-  }) async {
+    String? note,
+  ) async {
     try {
       final response = await _dio.post<Map<String, Object?>>(
         '/trainer/consultations/${Uri.encodeComponent(id)}/$action',
-        data: <String, Object?>{
-          'note': note,
-          if (schedule != null) ...<String, Object?>{
-            'date': schedule.date,
-            'time': schedule.time,
-            'type': schedule.type,
-            'duration_minutes': schedule.durationMinutes,
-          },
-        },
+        data: <String, Object?>{'note': note},
       );
       return response.data ?? const <String, Object?>{};
     } on DioException catch (e) {
       final status = e.response?.statusCode;
-      if (action == 'accept' && status == 409) {
-        final conflict = _scheduleConflict(e);
-        if (conflict != null) throw conflict;
-      }
       if (status == 409 || status == 400 || status == 422) {
         throw ValidationError(message: _detail(e));
       }
@@ -404,27 +350,6 @@ class DioConsultationRepository implements ConsultationRepository {
     if (data is! Map) return null;
     final detail = data['detail'];
     return detail is String ? detail : null;
-  }
-
-  /// `consultation_service.ConsultationScheduleConflict` 이 만드는 409 몸통 —
-  /// 반복 생성 겹침(`{"message": ..., "conflicts": [...]}`)과 같은 모양이다.
-  /// `detail` 이 문자열이면(다른 409) `null` 을 돌려 일반 경로로 넘긴다.
-  ConsultationScheduleConflictError? _scheduleConflict(DioException e) {
-    final data = e.response?.data;
-    if (data is! Map) return null;
-    final detail = data['detail'];
-    if (detail is! Map) return null;
-    final conflicts = detail['conflicts'];
-    if (conflicts is! List || conflicts.isEmpty) return null;
-    final first = conflicts.first;
-    if (first is! Map) return null;
-    final clientName = first['client_name'];
-    final time = first['time'];
-    if (clientName is! String || time is! String) return null;
-    return ConsultationScheduleConflictError(
-      clientName: clientName,
-      time: time,
-    );
   }
 }
 
@@ -611,12 +536,9 @@ final consultationPendingCountProvider = StreamProvider.autoDispose<int>((ref) {
 /// whether the approval worked.
 Future<ConsultationAcceptResult> acceptConsultation(
   WidgetRef ref,
-  String id, {
-  ConsultationSchedule? schedule,
-}) async {
-  final result = await ref
-      .read(consultationRepositoryProvider)
-      .accept(id, schedule: schedule);
+  String id,
+) async {
+  final result = await ref.read(consultationRepositoryProvider).accept(id);
   _refreshAfterDecision(ref);
   ref.invalidate(clientsProvider);
   if (result.scheduleCreated) {

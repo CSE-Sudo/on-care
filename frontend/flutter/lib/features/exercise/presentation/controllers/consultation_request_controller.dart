@@ -7,13 +7,17 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_consultation_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
+import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 
 /// 데모는 서버로 나가지 않는다 — `LocalApiInterceptor` 에 `/consultations` 핸들러가
 /// 없다. 실 API 모드에서만 접수가 백엔드로 간다(#327).
 final consultationRepositoryProvider = Provider<ConsultationRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
-    return const MockConsultationRepository();
+    // 자리는 목 헬스장 저장소가 들고 있다 — 헬스장 탭과 상담 폼이 같은 자리를
+    // 봐야 데모가 앞뒤로 맞는다(#1873).
+    return MockConsultationRepository(ref.watch(gymRepositoryProvider));
   }
   return DioConsultationRepository(ref.watch(dioProvider));
 }, name: 'consultationRepository');
@@ -106,3 +110,15 @@ final consultationRequestControllerProvider =
       ),
       name: 'consultationRequests',
     );
+
+/// 상담 신청 폼이 보여 줄 그 트레이너의 빈 자리. (#1873)
+///
+/// 화면마다 다시 읽는다 — 자리는 다른 회원이 먼저 가져갈 수 있어, 폼을 열 때의
+/// 목록이 곧 지금 고를 수 있는 자리여야 한다.
+final consultationSlotsProvider =
+    FutureProvider.family<List<TrainerSlot>, String>((ref, trainerId) {
+      if (trainerId.isEmpty) {
+        return Future<List<TrainerSlot>>.value(const <TrainerSlot>[]);
+      }
+      return ref.watch(consultationRepositoryProvider).fetchSlots(trainerId);
+    }, name: 'consultationSlots');

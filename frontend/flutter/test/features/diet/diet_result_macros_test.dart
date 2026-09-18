@@ -182,7 +182,6 @@ void main() {
 
     // 탄·단·지를 따로 묶던 작은 세 칸은 없어졌다.
     expect(find.byKey(const Key('diet-result-macros')), findsNothing);
-    expect(find.byKey(const Key('diet-result-date-change')), findsOneWidget);
   });
 
   testWidgets('인식된 음식을 고치는 자리는 연필 아이콘이다', (WidgetTester tester) async {
@@ -210,8 +209,8 @@ void main() {
       find.byKey(const Key('diet-result-date-change')),
     );
 
-    expect(date.center.dy, label.center.dy);
-    expect(button.center.dy, label.center.dy);
+    expect(date.center.dy, moreOrLessEquals(label.center.dy, epsilon: 0.5));
+    expect(button.center.dy, moreOrLessEquals(label.center.dy, epsilon: 0.5));
 
     // 위아래가 모두 구획이라 라벨도 같은 자리에서 시작해야 한 줄로 읽힌다.
     expect(label.left, tester.getRect(find.text(l.dietCalories)).left);

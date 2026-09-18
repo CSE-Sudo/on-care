@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/app_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare_ui/oncare_ui.dart'
-    show AppButton, AppTimeRangePickerDialog, OnCareColors;
+import 'package:oncare_ui/oncare_ui.dart' show AppButton;
 
 import '../../support/consultation_test_support.dart';
 
@@ -36,6 +36,39 @@ const Trainer _trainer = Trainer(
   name: '김상담',
   role: '전담 트레이너',
 );
+
+/// 트레이너가 열어 둔 빈 자리 둘. 폼은 시작까지 4시간 이상 남은 자리만 받으므로
+/// 모레 저녁으로 둔다(#1873). 길이가 서로 달라야 화면이 자리의 길이를 그대로
+/// 쓰는지(코드 상수가 아니라) 보인다.
+List<TrainerSlot> _openSlots() {
+  // 기기 시각이 아니라 KST 로 잡는다 — 목 저장소와 폼 하한이 `nowKst()` 로
+  // 비교하므로, 여기만 기기 시각이면 CI(UTC)에서 9시간 어긋난다.
+  final DateTime twoDays = nowKst().add(const Duration(days: 2));
+  final DateTime evening = DateTime(
+    twoDays.year,
+    twoDays.month,
+    twoDays.day,
+    19,
+  );
+  return <TrainerSlot>[
+    TrainerSlot(
+      id: 'slot-evening',
+      trainerId: _trainer.id,
+      startsAt: evening,
+      booked: false,
+      sessionType: '1:1 PT',
+      durationMinutes: 30,
+    ),
+    TrainerSlot(
+      id: 'slot-late',
+      trainerId: _trainer.id,
+      startsAt: evening.add(const Duration(hours: 1)),
+      booked: false,
+      sessionType: '1:1 PT',
+      // 기본 길이 60분 — 첫 자리(30분)와 달라야 화면이 자리의 길이를 쓰는지 보인다.
+    ),
+  ];
+}
 
 const AppConfig _config = AppConfig(
   environment: Environment.dev,
@@ -105,21 +138,17 @@ Future<void> _revealInForm(
   await tester.pump();
 }
 
-/// 희망 시각을 범위 선택기 기본값(10:00–11:00)으로 확정한다.
+/// 첫 번째 빈 자리를 고른다. (#1873)
 ///
-/// "시간 협의"가 없어진 뒤(#1587) 폼을 끝까지 채우려면 이 단계가 반드시
-/// 필요하다 — 선택기 내부 조작은 `consult_time_range_picker_test.dart` 의
-/// 몫이라 여기서는 열고 확인만 누른다. 시작·종료를 한 창에서 고르므로
-/// (#1779) 확인은 한 번이다 — 창 아래 두 버튼(취소 / 확인)의 오른쪽이다.
-Future<void> _pickPreferredTime(WidgetTester tester) async {
-  await _revealInForm(tester, find.byKey(const Key('consult-time')), 180);
-  await tester.tap(find.byKey(const Key('consult-time')));
-  await tester.pumpAndSettle();
-  final Finder dialog = find.byType(AppTimeRangePickerDialog);
-  expect(dialog, findsOneWidget);
-  await tester.tap(
-    find.descendant(of: dialog, matching: find.byType(AppButton)).last,
+/// 희망 날짜·시각을 입력하던 두 칸은 없어졌다 — 트레이너가 열어 둔 자리 중
+/// 하나를 누르는 것이 시각을 정하는 유일한 길이다.
+Future<void> _pickSlot(WidgetTester tester) async {
+  await _revealInForm(
+    tester,
+    find.byKey(const Key('consult-slot-slot-evening')),
+    180,
   );
+  await tester.tap(find.byKey(const Key('consult-slot-slot-evening')));
   await tester.pumpAndSettle();
 }
 
@@ -135,6 +164,7 @@ void main() {
     WidgetTester tester,
     String location, {
     bool hasMyGym = true,
+    List<TrainerSlot>? slots,
   }) async {
     await tester.binding.setSurfaceSize(const Size(360, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -153,6 +183,11 @@ void main() {
         gymTrainersProvider(
           _gym.id,
         ).overrideWith((ref) async => const <Trainer>[_trainer]),
+        // 폼이 보여 줄 자리(#1873). 목 헬스장 저장소는 이 테스트의 트레이너를
+        // 모르므로 직접 준다.
+        consultationSlotsProvider(
+          _trainer.id,
+        ).overrideWith((ref) async => slots ?? _openSlots()),
       ],
     );
     addTearDown(container.dispose);
@@ -323,7 +358,7 @@ void main() {
     expect(find.text(l.exGoalHealth), findsNothing);
   });
 
-  testWidgets('time is always required and no enum text leaks (#1256, #1587)', (
+  testWidgets('자리를 골라야 신청되고, 고른 자리의 길이를 그대로 보인다 (#1873)', (
     WidgetTester tester,
   ) async {
     await pumpRoute(
@@ -332,25 +367,62 @@ void main() {
     );
     final AppLocalizations l = _localizations(tester);
 
+    // 희망 날짜·시각을 적는 두 칸은 없어졌다 — 시각은 트레이너가 연 자리에서만 온다.
+    expect(find.byKey(const Key('consult-date')), findsNothing);
+    expect(find.byKey(const Key('consult-time')), findsNothing);
+
     await _revealInForm(tester, find.text(l.exSendConsultRequest), 250);
     await tester.tap(find.text(l.exSendConsultRequest));
     await tester.pump();
-    await _revealInForm(tester, find.text(l.exTimeRequired), -100);
-    expect(find.text(l.exTimeRequired), findsOneWidget);
-    // 정확한 시각 대신 코드 원문(`PreferredTimeSlot.flexible` 같은)이 화면에
-    // 새어 나오면 안 된다.
-    expect(find.textContaining('PreferredTimeSlot'), findsNothing);
+    await _revealInForm(tester, find.text(l.exConsultSlotRequired), -100);
+    expect(find.text(l.exConsultSlotRequired), findsOneWidget);
 
-    // "시간 협의"는 없앴다(#1587) — 시각을 채우는 길은 범위 선택기뿐이다.
-    expect(find.byKey(const Key('consult-time-flexible')), findsNothing);
-    expect(find.text(l.exTimeFlexible), findsNothing);
+    // 길이는 트레이너가 자리를 열 때 정한 값이다 — 코드 상수 30분을 더하지 않는다.
+    // 두 번째 자리는 60분이라 종료가 한 시간 뒤다.
+    final List<TrainerSlot> slots = _openSlots();
+    String hm(DateTime v) =>
+        '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}';
+    final DateTime late = slots[1].startsAt;
+    expect(
+      find.textContaining(
+        '${hm(late)}–${hm(late.add(const Duration(minutes: 60)))}',
+      ),
+      findsOneWidget,
+    );
 
-    await _pickPreferredTime(tester);
-    await _revealInForm(tester, find.byKey(const Key('consult-time')), -100);
-    expect(find.text(l.exTimeRequired), findsNothing);
-    expect(find.byKey(const Key('consult-time')), findsOneWidget);
-    // 고른 값이 필드에 그대로 보인다(선택기 기본값 10:00–11:00).
-    expect(find.text('10:00–11:00'), findsOneWidget);
+    await _pickSlot(tester);
+    await _revealInForm(
+      tester,
+      find.byKey(const Key('consult-slot-slot-evening')),
+      -100,
+    );
+    expect(find.text(l.exConsultSlotRequired), findsNothing);
+  });
+
+  testWidgets('열린 자리가 없으면 신청할 수 없고 헬스장 전화를 안내한다 (#1873)', (
+    WidgetTester tester,
+  ) async {
+    await pumpRoute(
+      tester,
+      AppRoutes.consultationRequestPath(gymId: _gym.id, trainerId: _trainer.id),
+      slots: const <TrainerSlot>[],
+    );
+    final AppLocalizations l = _localizations(tester);
+
+    // 앱은 없는 시간을 만들어 내지 않는다 — 전화로 내보낸다.
+    await _revealInForm(
+      tester,
+      find.byKey(const Key('consult-slots-empty')),
+      180,
+    );
+    expect(find.text(l.exConsultSlotsEmptyTitle), findsOneWidget);
+    expect(find.byKey(const Key('consult-slots-empty-cta')), findsOneWidget);
+
+    await _revealInForm(tester, find.byKey(const Key('consult-submit')), 220);
+    final AppButton submit = tester.widget<AppButton>(
+      find.byKey(const Key('consult-submit')),
+    );
+    expect(submit.onPressed, isNull);
   });
 
   testWidgets('valid submission stores pending and history shows status', (
@@ -369,41 +441,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text(l.healthFocusWeightLoss));
-    await _revealInForm(tester, find.text(l.exSelectDate), 180);
-    // 날짜 칸은 입력창과 같은 흰 채움이다 — 고르기 전후로 모양이 같다
-    // (#1701, #1776).
-    Finder dateMaterial = find
-        .ancestor(
-          of: find.byIcon(AppIcons.calendar),
-          matching: find.byType(Material),
-        )
-        .first;
-    expect(
-      tester.widget<Material>(dateMaterial).color,
-      OnCareColors.surfaceCard,
-    );
-    await tester.tap(find.text(l.exSelectDate));
-    await tester.pumpAndSettle();
-    // 공용 날짜 선택창(입력칸 + 달력, #1778)이 뜬다.
-    final Finder datePickerDialog = find.byKey(const Key('portraitDatePicker'));
-    expect(datePickerDialog, findsOneWidget);
-    await tester.tap(find.byKey(const Key('portraitDatePickerConfirm')));
-    await tester.pumpAndSettle();
-    expect(find.text(l.exSelectDate), findsNothing);
-    dateMaterial = find
-        .ancestor(
-          of: find.byIcon(AppIcons.calendar),
-          matching: find.byType(Material),
-        )
-        .first;
-    expect(
-      tester.widget<Material>(dateMaterial).color,
-      OnCareColors.surfaceCard,
-    );
-    // 희망 시각은 필수다(#1587). 선택기 자체의 조작(다이얼·직접 입력)은
-    // `consult_time_range_picker_test.dart` 가 따로 다루므로, 여기서는 기본값
-    // (10:00–11:00)을 그대로 확정한다.
-    await _pickPreferredTime(tester);
+    // 희망 날짜·시각을 입력하는 대신 트레이너가 열어 둔 자리를 고른다(#1873).
+    await _pickSlot(tester);
 
     await _revealInForm(tester, find.text(l.exSendConsultRequest), 220);
     await tester.tap(find.text(l.exSendConsultRequest));
@@ -415,6 +454,9 @@ void main() {
     );
     expect(requests, hasLength(1));
     expect(requests.single.status, ConsultationStatus.pending);
+    // 고른 자리가 그대로 실린다 — 상담 내역이 확정 일시를 그리는 값이다.
+    expect(requests.single.slotStartsAt, _openSlots().first.startsAt);
+    expect(requests.single.slotDurationMinutes, 30);
 
     await tester.tap(find.text(l.exReturnExercise));
     await tester.pumpAndSettle();

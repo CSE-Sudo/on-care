@@ -36,14 +36,13 @@ import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
-import 'package:oncare_ui/oncare_ui.dart'
-    show AppButton, AppTimeRangePickerDialog;
+import 'package:oncare_ui/oncare_ui.dart' show AppLoading;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const String memberEmail = 'minsu@oncare.com';
 const String otherMemberEmail = 'jisu@oncare.com';
 
-/// 픽스처 전용. 정원 1 짜리 경쟁용 슬롯을 여는 데만 쓴다.
+/// 픽스처 전용. 정원 1 짜리 경쟁용 슬롯과 상담이 고를 자리를 여는 데만 쓴다.
 const String trainerEmail = 'trainer@oncare.com';
 const String trainerId = 'trainer-demo';
 
@@ -191,11 +190,7 @@ class E2eApi {
       },
       options: _auth,
     );
-    expect(
-      res.statusCode,
-      anyOf(200, 201),
-      reason: '첫 설정 저장 실패: ${res.data}',
-    );
+    expect(res.statusCode, anyOf(200, 201), reason: '첫 설정 저장 실패: ${res.data}');
   }
 
   /// 계정을 지운다. 상담·담당 연결은 회원 행을 따라 함께 사라진다(FK CASCADE).
@@ -216,40 +211,43 @@ class E2eApi {
 
   /// 상담을 API 로 만든다. **UI 검증용이 아니라** 예외 케이스(중복·권한)용이다 —
   /// 그쪽은 화면이 아니라 서버 규칙을 보는 자리다.
-  Map<String, Object?> _consultationBody(String trainerId) => <String, Object?>{
-    'target_type': 'trainer',
-    'trainer_id': trainerId,
-    'exercise_goal': 'strength',
-    'health_purpose_type': 'rehab',
-    'preferred_date': DateTime.now().toIso8601String().substring(0, 10),
-    // 시각 없는 `flexible` 은 서버가 422 로 막는다(#1587).
-    'preferred_time_slot': consultPreferredTimeSlot,
-    'message': 'E2E 예외 케이스',
-    // 동의 없이는 서버가 422 다 (#1022).
-    'data_sharing_consent': true,
-  };
+  ///
+  /// 시각은 트레이너가 연 자리 [slotId] 로만 정한다(#1873) — 희망 날짜·시각을
+  /// 적어 보내던 두 칸은 없어졌다.
+  Map<String, Object?> _consultationBody(String trainerId, String slotId) =>
+      <String, Object?>{
+        'target_type': 'trainer',
+        'trainer_id': trainerId,
+        'exercise_goal': 'strength',
+        'health_purpose_type': 'rehab',
+        'slot_id': slotId,
+        'message': 'E2E 예외 케이스',
+        // 동의 없이는 서버가 422 다 (#1022).
+        'data_sharing_consent': true,
+      };
 
   Future<Map<String, dynamic>> createConsultation({
     required String trainerId,
+    required String slotId,
   }) async {
     final Response<Map<String, dynamic>> res = await _dio
         .post<Map<String, dynamic>>(
           '/consultations',
-          data: _consultationBody(trainerId),
+          data: _consultationBody(trainerId, slotId),
           options: _auth,
         );
     expect(res.statusCode, 201, reason: '상담 생성 실패: ${res.data}');
     return res.data!;
   }
 
-  Future<int> createConsultationStatus({required String trainerId}) async {
-    final Response<Object?> res = await _dio.post<Object?>(
-      '/consultations',
-      data: _consultationBody(trainerId),
-      options: _auth,
-    );
-    return res.statusCode!;
-  }
+  Future<Response<Object?>> createConsultationRaw({
+    required String trainerId,
+    required String slotId,
+  }) => _dio.post<Object?>(
+    '/consultations',
+    data: _consultationBody(trainerId, slotId),
+    options: _auth,
+  );
 
   /// 이미 처리된 상담을 다시 처리하려 할 때의 응답(트레이너 토큰으로 부른다).
   Future<int> decideStatus(String consultationId, String action) async {
@@ -399,7 +397,7 @@ class E2eApi {
           },
           options: _auth,
         );
-    expect(res.statusCode, 201, reason: '경쟁 검증용 슬롯 생성 실패');
+    expect(res.statusCode, 201, reason: '슬롯 생성 실패: ${res.data}');
     return res.data!;
   }
 
@@ -754,40 +752,58 @@ Future<Finder> _revealInForm(WidgetTester tester, Finder target) async {
   return target;
 }
 
-/// [submitConsultation] 이 넣는 희망 시각. 서버에 남는 값
-/// (`preferred_time_slot`)이 `$consultStartTime-$consultEndTime` 이라,
-/// 시나리오가 그대로 단언할 수 있다.
+/// 상담이 고를 자리의 시작 시각(서울, `HH:mm`). 서버는 고른 자리의 시각을
+/// `preferred_time_slot` 에 이 모양으로 옮겨 적는다(#1873).
 ///
-/// **저녁 시각인 이유**: 승인은 이 시각에 상담 일정을 만드는데, 겹침 판정이
-/// (날짜, 시각) 정확히 같은 자리를 본다. 데모 시드가 오늘 트레이너 타임라인에
-/// 놓는 10:00·12:00·15:00·17:00 을 쓰면 승인이 409 로 막힌다.
+/// **저녁 시각인 이유**: 승인은 이 자리에 트레이너 일정을 만든다. 데모 시드가
+/// 트레이너 타임라인에 놓는 낮 시간과 겹치지 않게 두면, 달력에서 이번 실행이 만든
+/// 일정을 헷갈리지 않는다.
 ///
 /// 트레이너 앱 쪽 하네스의 같은 이름 상수와 **값이 같아야 한다** — 두 앱은
 /// 서로 다른 패키지라 공유할 수 없고, 트레이너 단계가 이 값을 그대로 단언한다.
 const String consultStartTime = '21:00';
 
-/// [consultStartTime] 의 종료 시각.
-const String consultEndTime = '22:00';
+/// 오늘(서울)부터 [daysAhead] 일 뒤 [consultStartTime] 의 순간.
+///
+/// 상담 폼은 시작까지 4시간 넘게 남은 자리만 보여 주고, 요청은 자리 시작 2시간
+/// 전에 만료된다(#1873). 며칠 뒤로 잡아 두면 스위트가 느린 날에도 두 경계에 닿지
+/// 않는다. 러너의 지역 시간이 아니라 서울 날짜로 센다 — CI 는 UTC 다.
+DateTime consultSlotStartsAt(int daysAhead) {
+  final DateTime seoul = DateTime.now().toUtc().add(const Duration(hours: 9));
+  final List<String> hm = consultStartTime.split(':');
+  // 서울 벽시계를 UTC 로 되돌린다 — `DateTime.utc` 는 넘치는 일·시를 알아서 넘긴다.
+  return DateTime.utc(
+    seoul.year,
+    seoul.month,
+    seoul.day + daysAhead,
+    int.parse(hm[0]) - 9,
+    int.parse(hm[1]),
+  );
+}
 
-/// [submitConsultation] 이 서버에 남기는 `preferred_time_slot` 값.
-const String consultPreferredTimeSlot = '$consultStartTime-$consultEndTime';
+/// [at] 의 서울 날짜(`yyyy-MM-dd`). 서버가 `preferred_date` 에 적는 값과 같다.
+String seoulDate(DateTime at) {
+  final DateTime seoul = at.toUtc().add(const Duration(hours: 9));
+  return '${seoul.year.toString().padLeft(4, '0')}-'
+      '${seoul.month.toString().padLeft(2, '0')}-'
+      '${seoul.day.toString().padLeft(2, '0')}';
+}
 
 /// 상담 신청 폼을 채우고 제출한다. 선택지는 **문구가 아니라 자리**로 고른다 —
 /// 문구는 번역이 바뀌면 흔들린다.
 ///
-/// 날짜는 달력 다이얼로그가 뜬 뒤 '확인' 을 눌러 **오늘** 로 확정한다. 서버가
-/// 오늘 이전을 거부하므로 오늘이 항상 유효하다.
+/// 시각은 트레이너가 열어 둔 자리 [slotId] 를 눌러 정한다(#1873). 칩은 자리 id 로
+/// 짚는다 — 트레이너에게 이번 실행 밖의 자리(시드·다른 스위트)가 함께 열려 있어도
+/// 이번 실행이 연 자리를 고른다.
 Future<void> submitConsultation(
   WidgetTester tester, {
   required int goalIndex,
+  required String slotId,
   required String message,
 }) async {
-  Future<void> tapChip(String prefix, int index) async {
-    final Finder chip = await _revealInForm(
-      tester,
-      find.byKey(ValueKey<String>('$prefix-$index')),
-    );
-    await tester.tap(chip);
+  Future<void> tapChip(Finder finder) async {
+    await _revealInForm(tester, finder);
+    await tester.tap(finder);
     await tester.pump();
   }
 
@@ -804,55 +820,30 @@ Future<void> submitConsultation(
   await tester.tap(consent);
   await tester.pump();
 
-  await tapChip('consult-goal', goalIndex);
+  await tapChip(find.byKey(ValueKey<String>('consult-goal-$goalIndex')));
 
-  final Finder date = await _revealInForm(
+  // 자리 목록은 폼이 열린 뒤 따로 읽어 온다. 다 올 때까지 기다린 뒤에 찾는다 —
+  // 오기 전에 스크롤해 찾으면 "아직 안 왔다" 를 "없다" 로 읽는다. 자리 칸은 방금
+  // 누른 운동 목표 바로 아래라 로딩 표시가 트리에 있다.
+  await pumpUntilAbsent(
     tester,
-    find.byKey(const Key('consult-date')),
+    find.descendant(
+      of: find.byKey(const Key('consult-form')),
+      matching: find.byType(AppLoading),
+    ),
+    step: '예약 가능한 시간 불러오기',
   );
-  await tester.tap(date);
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-
-  // 날짜는 공용 날짜 선택창(#1701, #1778)이다 — 처음 고른 날이 오늘이라 확인만
-  // 누른다.
-  final Finder dialog = find.byKey(const Key('portraitDatePicker'));
-  await pumpUntil(tester, dialog, step: '날짜 선택 다이얼로그');
-  await tester.tap(find.byKey(const Key('portraitDatePickerConfirm')));
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-
-  // "시간 협의"는 없앴다(#1587) — 희망 시각은 필수다. 상담 시간 선택창은
-  // 시작·종료를 한 창에서 고른다(#1779). 시계판을 돌리는 대신 시작·종료 칸에
-  // `HH:mm` 을 직접 넣는다: 제스처보다 흔들리지 않고, 값도 아래 단언과 맞춰
-  // 고정할 수 있다.
-  final Finder time = await _revealInForm(
-    tester,
-    find.byKey(const Key('consult-time')),
-  );
-  await tester.tap(time);
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
-
-  final Finder timeDialog = find.byType(AppTimeRangePickerDialog);
-  await pumpUntil(tester, timeDialog, step: '희망 시각 선택창');
-  await tester.enterText(
-    find.byKey(const ValueKey<String>('consult-time-range-start-input')),
-    consultStartTime,
-  );
-  await tester.pump();
-  await tester.enterText(
-    find.byKey(const ValueKey<String>('consult-time-range-end-input')),
-    consultEndTime,
-  );
-  await tester.pump();
-  // 확인은 창 아래 두 버튼(취소 / 확인)의 오른쪽이다 — 문구는 로케일마다
-  // 달라 자리로 고른다. 창이 길어도 두 버튼은 본문 스크롤 밖이라 늘 보인다.
-  await tester.tap(
-    find.descendant(of: timeDialog, matching: find.byType(AppButton)).last,
-  );
-  await tester.pump();
-  await tester.pump(const Duration(milliseconds: 400));
+  for (final String key in <String>[
+    'consult-slots-empty',
+    'consult-slots-error',
+  ]) {
+    expect(
+      find.byKey(Key(key)),
+      findsNothing,
+      reason: '[$e2ePhase] 상담 폼이 이번 실행이 연 자리를 보여 주지 않습니다($key).',
+    );
+  }
+  await tapChip(find.byKey(ValueKey<String>('consult-slot-$slotId')));
 
   final Finder box = await _revealInForm(
     tester,
