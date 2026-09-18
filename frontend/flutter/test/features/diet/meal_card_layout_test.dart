@@ -150,6 +150,37 @@ void main() {
       expect(kcal.center.dy, moreOrLessEquals(food.center.dy, epsilon: 2));
     });
 
+    testWidgets('음식이 하나여도 메뉴명·칼로리 줄은 사진 옆 남는 자리의 세로 가운데다', (
+      WidgetTester tester,
+    ) async {
+      // 그 줄이 배지 밑에 붙으면 사진 옆 아래가 비어 카드가 위로 쏠려 보인다.
+      await _pump(
+        tester,
+        _MealsRepository(<DietEntry>[
+          _meal('one', MealType.lunch, <String>['짬뽕']),
+          _meal('two', MealType.dinner, <String>['연어', '샐러드']),
+        ]),
+      );
+
+      for (final String id in <String>['one', 'two']) {
+        final Rect photo = tester.getRect(
+          _inCard(id, find.byType(MealPhotoView)),
+        );
+        final Rect header = tester.getRect(
+          _inCard(id, find.byKey(const ValueKey<String>('meal-card-header'))),
+        );
+        final Rect foods = tester.getRect(
+          _inCard(id, find.byKey(const ValueKey<String>('meal-card-foods'))),
+        );
+        final double spaceTop = header.bottom + OnCareSpacing.s4;
+        expect(
+          foods.center.dy,
+          moreOrLessEquals((spaceTop + photo.bottom) / 2, epsilon: 1),
+          reason: '$id 끼니의 메뉴명·칼로리 줄이 가운데에 서지 않았다',
+        );
+      }
+    });
+
     testWidgets('사진은 정사각 88 이다', (WidgetTester tester) async {
       await _pump(tester, FakeDietRepository());
 
@@ -272,6 +303,11 @@ void main() {
       // 오버플로가 나면 위젯 테스트가 예외로 떨어진다.
       expect(tester.takeException(), isNull);
       expect(_card('long'), findsOneWidget);
+      // 오른쪽이 사진보다 길어져도 사진은 늘어나지 않는다 — 카드만 늘어난다.
+      expect(
+        tester.getSize(_inCard('long', find.byType(MealPhotoView))),
+        const Size(88, 88),
+      );
     });
 
     testWidgets('칼로리는 말줄임 대신 배지를 줄인다', (WidgetTester tester) async {
