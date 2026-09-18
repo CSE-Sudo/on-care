@@ -27,6 +27,7 @@ import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
+import 'package:oncare/features/my_health/presentation/pages/withdraw_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -159,6 +160,7 @@ GoRouter buildAppRouter({
           'notifications' => const NotificationSettingsPage(),
           'terms' => const LegalDocumentPage(document: 'terms'),
           'privacy' => const LegalDocumentPage(document: 'privacy'),
+          'withdraw' => const WithdrawPage(),
           _ => const SupportPage(),
         },
       ),

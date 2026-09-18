@@ -72,7 +72,8 @@ class _RecordingRepository implements AccountRepository {
   Future<UserProfile> fetchProfile() => _inner.fetchProfile();
 
   @override
-  Future<void> deleteAccount() => _inner.deleteAccount();
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) =>
+      _inner.deleteAccount(reasons: reasons);
 
   @override
   Future<UserProfile> updateProfile({

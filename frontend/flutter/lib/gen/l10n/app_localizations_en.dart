@@ -1169,6 +1169,74 @@ class AppLocalizationsEn extends AppLocalizations {
       'We could not delete your account. Please try again in a moment.';
 
   @override
+  String get myWithdrawReasonTitle =>
+      'Are you sure you want to delete your account?';
+
+  @override
+  String get myWithdrawReasonQuestion => 'What did not work for you?';
+
+  @override
+  String get myWithdrawReasonHint => 'You can pick more than one';
+
+  @override
+  String get myWithdrawReasonPrivacy => 'I am worried about my privacy';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => 'I hardly use it any more';
+
+  @override
+  String get myWithdrawReasonHardToUse => 'It is awkward to use';
+
+  @override
+  String get myWithdrawReasonNotifications => 'Too many notifications';
+
+  @override
+  String get myWithdrawReasonAlternative => 'I am using another app';
+
+  @override
+  String get myWithdrawReasonOther => 'Something else';
+
+  @override
+  String get myWithdrawNext => 'Next';
+
+  @override
+  String get myWithdrawKeepTitle => 'Before you go';
+
+  @override
+  String get myWithdrawKeepPrivacy =>
+      'Only you and your trainer can see your records. Disconnect the trainer and they are yours alone — the gym and trainer card on the MY tab does that.';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'The AI coach still lines up something worth doing on the days you record nothing. Tapping a single suggestion on the Exercise tab is enough to pick it back up.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      'Tell us what got in the way and we will fix it. The 1:1 enquiry under MY > Customer support reaches us directly.';
+
+  @override
+  String get myWithdrawKeepNotifications =>
+      'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification settings.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      'Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      'Whatever it is, tell us and we will act on it. Leave it in the 1:1 enquiry under MY > Customer support.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      'The diet and exercise records you have built up go with the account, and they cannot be restored.';
+
+  @override
+  String get myWithdrawStay => 'Keep using On-Care';
+
+  @override
+  String get myWithdrawContinue => 'Continue deleting';
+
+  @override
   String get myCancel => 'Cancel';
 
   @override

@@ -16,8 +16,11 @@ class DioAccountRepository implements AccountRepository {
   }
 
   @override
-  Future<void> deleteAccount() async {
-    await _dio.delete<Map<String, Object?>>('/users/me');
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
+    await _dio.delete<Map<String, Object?>>(
+      '/users/me',
+      data: <String, Object?>{'reasons': reasons},
+    );
   }
 
   @override
