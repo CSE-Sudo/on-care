@@ -830,7 +830,13 @@ class _PtLogCard extends ConsumerWidget {
     // 이 카드가 남으면, 트레이너가 있던 흔적만 화면에 서 있게 된다. 실서버는
     // 담당이 없을 때 세션 목록이 비어 자연히 사라졌지만, 데모는 픽스처 세션을
     // 그대로 읽어 연결과 무관하게 카드를 세웠다.
-    if (ref.watch(memberCoachProvider).valueOrNull == null) {
+    //
+    // **담당이 없다고 확인됐을 때만** 걷는다. 코치 조회가 아직 오는 중이거나
+    // 실패했을 때는 담당이 없는 것이 아니다 — 그때 숨기면 담당이 있는 회원의
+    // 오늘 PT 기록이 조회 한 번 실패로 사라지고, 불러오는 동안 칸이 비었다가
+    // 튀어나온다. 실서버에서는 세션 목록이 이미 담당 여부를 따른다.
+    final AsyncValue<MemberCoach?> linked = ref.watch(memberCoachProvider);
+    if (linked.hasValue && linked.value == null) {
       return const SizedBox.shrink();
     }
     if (ref.watch(appConfigProvider).useMockApi) {

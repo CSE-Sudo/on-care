@@ -260,8 +260,8 @@ _LEGACY_DEMO_CONDITIONS = "고혈압, 당뇨 전단계"
 
 _HEALTH_PROFILE: dict[str, dict] = {
     "user-7d4e9a2c5f18": {
-        "risk_title": "고혈압·당뇨 위험 주의",
-        "risk_body": "최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.",
+        "risk_title": "이번 주 관리 포인트",
+        "risk_body": "식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.",
         "risk_level": "medium",
         "conditions": "체중 감량, 혈압 관리",
         "phone": "010-1234-5678",
