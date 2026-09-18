@@ -8,7 +8,6 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
-import 'package:oncare/features/account/presentation/pages/points_guide_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
@@ -27,6 +26,7 @@ import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
+import 'package:oncare/features/my_health/presentation/pages/withdraw_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -159,6 +159,7 @@ GoRouter buildAppRouter({
           'notifications' => const NotificationSettingsPage(),
           'terms' => const LegalDocumentPage(document: 'terms'),
           'privacy' => const LegalDocumentPage(document: 'privacy'),
+          'withdraw' => const WithdrawPage(),
           _ => const SupportPage(),
         },
       ),
@@ -209,10 +210,6 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.onboarding,
         builder: (context, state) => const OnboardingPage(),
-      ),
-      GoRoute(
-        path: AppRoutes.pointsGuide,
-        builder: (context, state) => const PointsGuidePage(),
       ),
       GoRoute(
         path: AppRoutes.splash,

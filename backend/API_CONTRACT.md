@@ -43,6 +43,13 @@
 |---|---|---|
 | GET | `/users/me` | `{ id(str), name, email }` |
 | GET | `/users/me/health` | `{ profile, risk, activity_points, activity_rank, settings[] }` |
+| DELETE | `/users/me` | `{ status: "deleted" }` |
+
+`DELETE /users/me` 는 본문으로 `{ reasons: [코드] }` 를 받는다(#2019). 본문은 없어도 되고,
+사유는 탈퇴의 조건이 아니다 — 아는 코드만 `account_deletion_reasons` 에 사유와 시각으로만
+남고(누가 골랐는지는 남기지 않는다), 모르는 코드는 조용히 버린다. 아는 코드는
+`privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
+`other`. 계정과 그에 매인 기록은 예전처럼 그대로 지워진다.
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
@@ -74,7 +81,9 @@
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 
-`entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
+`entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
+`meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이라 이 값을 검증하지 않으므로, 앱이 이름과 다른 문자열을 보내면 조용히 저장되고 트레이너 웹에서 다른 끼니로 읽힌다. 새 끼니를 더할 때도 enum 이름과 전송값을 일치시킨다.
+`lateNight` 이전에 저장된 `snack` 은 그대로 `snack` 이다 — 백필하지 않는다. 앱은 모르는 `meal_type` 을 간식으로 접어 읽고 죽지 않는다.
 `ai_comment` 는 사진 분석이 만든 식단평이다(#1932). 손으로 고쳐 만든 끼니와 분석이 식단평을 내지 못한 끼니는 빈 문자열이고, 앱은 비어 있으면 그 줄을 그리지 않는다.
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
 `foods[]`: `[{ name, amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).

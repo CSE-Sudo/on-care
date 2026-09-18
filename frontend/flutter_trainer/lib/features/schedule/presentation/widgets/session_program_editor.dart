@@ -147,33 +147,17 @@ class _SessionProgramEditorState extends ConsumerState<SessionProgramEditor> {
           ),
           const SizedBox(height: OnCareSpacing.s24),
         ],
-        // [취소] 왼쪽, [저장] 오른쪽, 폭 반반 — `AppButtonPair` 와 같은 모양이다.
-        // 테스트가 저장 버튼을 키로 찾으므로 키를 받는 두 [AppButton] 으로 세운다.
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: AppButton(
-                label: l.actionCancel,
-                variant: AppButtonVariant.secondary,
-                fullWidth: true,
-                onPressed: _saving ? null : widget.onCancel,
-              ),
-            ),
-            const SizedBox(width: OnCareSpacing.buttonGap),
-            Expanded(
-              child: AppButton(
-                key: const ValueKey<String>('save-program'),
-                label: _saving
-                    ? l.progSaving
-                    : widget.noteOnly
-                    ? l.progSaveNoteAction
-                    : l.progSaveAction,
-                fullWidth: true,
-                loading: _saving,
-                onPressed: _saving ? null : _save,
-              ),
-            ),
-          ],
+        AppButtonPair(
+          cancelLabel: l.actionCancel,
+          onCancel: _saving ? null : widget.onCancel,
+          confirmKey: const ValueKey<String>('save-program'),
+          confirmLabel: _saving
+              ? l.progSaving
+              : widget.noteOnly
+              ? l.progSaveNoteAction
+              : l.progSaveAction,
+          confirmLoading: _saving,
+          onConfirm: _saving ? null : _save,
         ),
       ],
     );

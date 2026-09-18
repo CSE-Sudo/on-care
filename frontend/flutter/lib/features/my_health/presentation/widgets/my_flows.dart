@@ -1313,6 +1313,16 @@ class SupportPage extends StatelessWidget {
           l.myLegalPrivacyTitle,
           () => _openLegal(context, _LegalDoc.privacy),
         ),
+        const AppDivider(),
+        // 탈퇴는 MY 설정 목록 맨 끝이 아니라 여기다(#2019). 로그아웃 바로
+        // 아래에 두면 빨간 글자 둘이 나란히 서서 어느 쪽이 되돌릴 수 없는
+        // 동작인지 흐려진다. 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다.
+        _supportRow(
+          context,
+          AppIcons.logout,
+          l.myWithdrawTitle,
+          () => context.push<void>(AppRoutes.mySettingsPath('withdraw')),
+        ),
       ]),
       const SizedBox(height: OnCareSpacing.s12),
       Center(
