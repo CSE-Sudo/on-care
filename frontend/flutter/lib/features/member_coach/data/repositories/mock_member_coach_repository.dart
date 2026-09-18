@@ -85,6 +85,30 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       ),
   ];
 
+  /// 담당 트레이너가 없는 회원에게 내려가는 AI 추천 개인운동.
+  ///
+  /// 서버 `auto_routine_service.SAFE_ROUTINES` 와 같은 두 종목이다 — 승인할
+  /// 사람이 없으므로 범위를 좁힌 것이 안전장치고, 데모가 다른 것을 보여 주면
+  /// 실서버로 옮겼을 때 화면이 달라진다.
+  static const List<CoachRoutine> _autoRoutines = <CoachRoutine>[
+    CoachRoutine(
+      id: 'auto-walk',
+      name: '저강도 걷기',
+      minutes: 20,
+      type: '유산소',
+      reason: '회복 목적의 가벼운 유산소예요. 대화할 수 있는 속도로 걸어 보세요.',
+      source: 'ai',
+    ),
+    CoachRoutine(
+      id: 'auto-stretch',
+      name: '전신 스트레칭',
+      minutes: 10,
+      type: '스트레칭',
+      reason: '굳은 근육을 풀어 다음 운동을 준비해요. 통증이 있으면 멈추세요.',
+      source: 'ai',
+    ),
+  ];
+
   /// 트레이너 웹의 김민수 스레드와 공유하는 실제 날짜 기준점.
   /// 마지막 대화가 항상 오늘이 되도록 사흘치 스레드의 첫날을 계산한다.
   static final DateTime _seedNow = nowKst();
@@ -274,7 +298,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<List<CoachRoutine>> fetchRoutines() async => _hasCoach()
       ? List<CoachRoutine>.unmodifiable(_routines)
-      : const <CoachRoutine>[];
+      // 담당이 없으면 서버가 보수적으로 좁힌 추천을 내려준다(#782). 데모가 빈
+      // 목록을 돌려주면 연결을 끊은 회원의 운동 탭에 받을 것이 하나도 남지
+      // 않는다 — 실서버와 같은 모양을 낸다(#2014).
+      : _autoRoutines;
 
   @override
   Future<CoachRoutine> completeRoutine(

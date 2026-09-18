@@ -108,7 +108,8 @@ class _PdfMemberCoachRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => _messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      _messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() => Stream.value(_messages);
@@ -164,6 +165,57 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  group('담당이 없는 회원의 AI 추천 개인운동 (#2015)', () {
+    const CoachRoutine aiRoutine = CoachRoutine(
+      id: 'auto-walk',
+      name: '저강도 걷기',
+      minutes: 20,
+      type: '유산소',
+      reason: '회복 목적의 가벼운 유산소예요.',
+      source: 'ai',
+    );
+
+    testWidgets('제목이 AI 가 낸 것임을 말한다', (WidgetTester tester) async {
+      // 트레이너 배정과 생김새가 같아서, 제목이 말하지 않으면 누가 정한
+      // 운동인지 각 줄의 출처를 읽어야 안다.
+      await pumpRecommendationCards(tester, <CoachRoutine>[
+        aiRoutine,
+      ], coach: null);
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(AiCoachingCard)),
+      );
+      expect(find.text(l.coachRoutineAiTitle), findsOneWidget);
+      expect(find.text(l.coachRoutineTitle), findsNothing);
+      // 줄마다의 출처도 AI 라고 말한다.
+      expect(find.text(l.coachRoutineAiAuto), findsOneWidget);
+    });
+
+    testWidgets('감지 기록을 여는 버튼이 있다', (WidgetTester tester) async {
+      await pumpRecommendationCards(tester, <CoachRoutine>[
+        aiRoutine,
+      ], coach: null);
+      expect(
+        find.byKey(const Key('routineInsightHistoryButton')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('담당이 있으면 제목도 버튼도 예전 그대로다', (WidgetTester tester) async {
+      // 담당이 있으면 이 카드는 트레이너 배정과 트레이너가 확인한 AI 추천을
+      // 함께 싣고, 감지 기록은 그 회원의 것이 아니다 — 서버도 403 이다(#1823).
+      await pumpRecommendationCards(tester, <CoachRoutine>[aiRoutine]);
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(AiCoachingCard)),
+      );
+      expect(find.text(l.coachRoutineTitle), findsOneWidget);
+      expect(find.text(l.coachRoutineAiTitle), findsNothing);
+      expect(
+        find.byKey(const Key('routineInsightHistoryButton')),
+        findsNothing,
+      );
+    });
+  });
 
   testWidgets('완료한 추천 운동은 글자가 흐려진다 (#1196)', (WidgetTester tester) async {
     const CoachRoutine done = CoachRoutine(

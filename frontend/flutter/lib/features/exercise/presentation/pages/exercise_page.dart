@@ -585,30 +585,33 @@ class _ExerciseDayDetail extends StatelessWidget {
           const SizedBox(height: OnCareSpacing.s12),
           ExerciseDayLoadCard(load: load, isToday: false),
           const SizedBox(height: OnCareSpacing.s20),
+          // 순서는 **오늘 화면과 같다**: 완료한 PT → 추천 개인운동 → 직접 기록.
+          // 날짜만 옮겼는데 카드가 다른 차례로 나오면, 어느 것이 트레이너 쪽이고
+          // 어느 것이 내가 적은 것인지 매번 다시 읽어야 한다(#2017). 화면 위쪽은
+          // "무엇을 해야 했나", 아래쪽은 "내가 무엇을 했나" 다(#1574).
+          if (ptSessions.isNotEmpty)
+            _DayRecordCard(
+              key: const ValueKey<String>('exercise-pt-records'),
+              title: l.exCompletedPtDayTitle,
+              icon: AppIcons.exercise,
+              sessions: ptSessions,
+            ),
+          if (ptSessions.isNotEmpty && routineSessions.isNotEmpty)
+            const SizedBox(height: OnCareSpacing.s12),
+          if (routineSessions.isNotEmpty)
+            _DayRecordCard(
+              key: const ValueKey<String>('exercise-routine-records'),
+              // 오늘 화면의 `추천 개인운동` 과 같은 어휘·같은 아이콘이다.
+              title: l.exCompletedRoutineDayTitle,
+              icon: AppIcons.running,
+              sessions: routineSessions,
+            ),
+          // 트레이너 쪽 기록이 하나라도 있으면 한 칸 띄운다 — 붙여 두면 아래
+          // `직접 기록한 운동` 제목이 위 카드에 딸린 것처럼 보인다.
+          if (ptSessions.isNotEmpty || routineSessions.isNotEmpty)
+            const SizedBox(height: OnCareSpacing.s20),
           // 직접 적은 기록은 따로 모아 그 자리에서 고치고 지운다(#1428).
           OwnExerciseRecords(week: week, date: date),
-          // 제목 없이 이어 붙이면 바로 위 `직접 추가한 운동이 없어요` 아래로
-          // 카드가 흘러나와, 없다고 해 놓고 보여 주는 꼴이 된다(#1884).
-          if (ptSessions.isNotEmpty || routineSessions.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s20),
-            if (ptSessions.isNotEmpty)
-              _DayRecordCard(
-                key: const ValueKey<String>('exercise-pt-records'),
-                title: l.exCompletedPtDayTitle,
-                icon: AppIcons.exercise,
-                sessions: ptSessions,
-              ),
-            if (ptSessions.isNotEmpty && routineSessions.isNotEmpty)
-              const SizedBox(height: OnCareSpacing.s12),
-            if (routineSessions.isNotEmpty)
-              _DayRecordCard(
-                key: const ValueKey<String>('exercise-routine-records'),
-                // 오늘 화면의 `추천 개인운동` 과 같은 어휘·같은 아이콘이다.
-                title: l.exCompletedRoutineDayTitle,
-                icon: AppIcons.running,
-                sessions: routineSessions,
-              ),
-          ],
         ],
       ),
     );
@@ -660,17 +663,20 @@ class _DayRecordCard extends ConsumerWidget {
   /// 이 묶음의 기록. 한 출처의 것만 들어온다.
   final List<ExerciseSession> sessions;
 
-  /// 카드에 적을 종목 줄. 세션이 종목을 들고 있으면 그대로, 없으면 이름과
-  /// 운동량으로 한 줄을 만든다 — 줄이 하나도 없는 빈 카드를 세우지 않는다.
+  /// 카드에 적을 종목 줄 — `벤치프레스 · 4세트 · 10회 · 40kg`.
+  ///
+  /// 이름과 운동량을 **필드에서** 붙인다. 예전에는 `items`(이름 문자열)를 그대로
+  /// 썼는데, 그러려면 픽스처가 세트·중량을 이름에 적어 넣어야 했다(#1902).
+  /// 이제 기록 한 행이 운동 하나이므로 그 행의 값이 곧 그 종목의 값이다.
   List<String> _lines(AppLocalizations l) => <String>[
-    for (final ExerciseSession s in sessions)
-      if (s.items.isNotEmpty) ...s.items else _summaryLine(l, s),
+    for (final ExerciseSession s in sessions) _line(l, s),
   ];
 
-  /// 종목을 들지 않은 세션의 한 줄 — `코어 강화 루틴 · 3세트` 처럼 이름과
-  /// 운동량을 붙인다.
-  static String _summaryLine(AppLocalizations l, ExerciseSession s) {
-    final String name = s.assignedRoutineName.isNotEmpty
+  /// 세션 한 줄. 이름은 회원이 적은 것 → 배정 루틴 이름 → 유형 순으로 고른다.
+  static String _line(AppLocalizations l, ExerciseSession s) {
+    final String name = s.name.isNotEmpty
+        ? s.name
+        : s.assignedRoutineName.isNotEmpty
         ? s.assignedRoutineName
         : exerciseTypeLabel(l, s.type);
     return '$name · ${exerciseAmountLabel(l, s)}';
@@ -820,6 +826,13 @@ class _PtLogCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 담당 트레이너가 없으면 PT 일지 자리 자체가 없다(#2014). 연결을 끊었는데
+    // 이 카드가 남으면, 트레이너가 있던 흔적만 화면에 서 있게 된다. 실서버는
+    // 담당이 없을 때 세션 목록이 비어 자연히 사라졌지만, 데모는 픽스처 세션을
+    // 그대로 읽어 연결과 무관하게 카드를 세웠다.
+    if (ref.watch(memberCoachProvider).valueOrNull == null) {
+      return const SizedBox.shrink();
+    }
     if (ref.watch(appConfigProvider).useMockApi) {
       // 종목·세트는 픽스처가 정한다 — 카드가 제 목록을 따로 들면 같은 세션을
       // 운동 현황과 다르게 말한다.

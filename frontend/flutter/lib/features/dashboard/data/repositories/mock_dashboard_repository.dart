@@ -50,12 +50,6 @@ class MockDashboardRepository implements DashboardRepository {
           calories: day.totalCalories,
           sodiumMg: day.totalSodiumMg,
           sugarG: day.totalSugarG,
-          // 실서버가 싣는 것을 데모도 똑같이 싣는다(#1879). 합산 규칙은
-          // 식단 탭과 공유한다([DietDayTotals]) — 따로 더하면 같은 날이 두
-          // 화면에서 다른 값으로 나온다.
-          carbsG: day.effectiveCarbsG,
-          proteinG: day.effectiveProteinG,
-          fatG: day.effectiveFatG,
         ),
       );
     }

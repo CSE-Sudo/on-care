@@ -24,12 +24,6 @@ class DashboardNutritionDay(BaseModel):
     calories: int
     sodium_mg: int
     sugar_g: float
-    # 탄단지를 날짜별로 같이 싣는다(#1879). 지금 이 셋을 그리는 화면은 없고
-    # (홈 주간 추이는 칼로리 고정), 주간 탄단지 추이를 되살릴 때 쓸 자리다.
-    # 기본값 0 이라 예전 앱과도 호환된다.
-    carbs_g: float = 0
-    protein_g: float = 0
-    fat_g: float = 0
 
 
 class DashboardSummary(BaseModel):

@@ -375,43 +375,23 @@ void main() {
     await scrollToCard(tester);
 
     final AppButton chat = tester.widget<AppButton>(
-      find.descendant(
-        of: find.byKey(const Key('gymTrainerChatButton')),
-        matching: find.byType(AppButton),
-      ),
+      find.byKey(const Key('gymTrainerChatButton')),
     );
     // 헤더 아이콘은 `context.oncare.brand.primary` 로 그려진다 — 같은 대화로
     // 들어가는 버튼이니 브랜드 채움이어야 한다. 색 값은 적지 않는다.
     expect(chat.variant, AppButtonVariant.primary);
   });
 
-  testWidgets('connected trainer shows unread count and caps it at 99+', (
-    WidgetTester tester,
-  ) async {
-    await pumpGymTab(tester, coach: _coach, unread: 100);
-    await scrollToCard(tester);
-
-    final Finder chatButton = find.byKey(const Key('gymTrainerChatButton'));
-    expect(
-      find.descendant(of: chatButton, matching: find.text('99+')),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(of: chatButton, matching: find.text('100')),
-      findsNothing,
-    );
-  });
-
-  testWidgets('connected trainer shows the actual unread count below 100', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('읽지 않은 메시지가 있어도 채팅 버튼에 배지가 없다', (WidgetTester tester) async {
     await pumpGymTab(tester, coach: _coach, unread: 7);
     await scrollToCard(tester);
 
     final Finder chatButton = find.byKey(const Key('gymTrainerChatButton'));
+    expect(chatButton, findsOneWidget);
+    // 같은 숫자를 헤더의 채팅 아이콘이 이미 말한다 — 버튼에는 달지 않는다.
     expect(
       find.descendant(of: chatButton, matching: find.text('7')),
-      findsOneWidget,
+      findsNothing,
     );
   });
 

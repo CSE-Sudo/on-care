@@ -57,13 +57,12 @@ void main() {
       final ExerciseWeek w = await _repo().fetchThisWeek();
       final List<FixtureDay> days = _weekDays(_friday);
 
-      // 세션은 하루·종류당 하나로 합쳐진다(PT 날의 레그프레스·레그컬은 둘 다
-      // 근력이라 한 줄). 주간 활동 그래프가 그 규칙으로 칸을 그린다.
+      // 운동 하나가 세션 하나다 — 실서버와 같은 모양이다(#1902). 예전에는
+      // 하루·종류당 하나로 합쳐, 종목별 세트·중량을 담을 칸이 없어 픽스처가 그
+      // 수를 이름 문자열에 적어 넣어야 했다.
       final int expectedSessions = days.fold<int>(
         0,
-        (int sum, FixtureDay d) =>
-            sum +
-            d.doneExercises.map((FixtureExercise e) => e.type).toSet().length,
+        (int sum, FixtureDay d) => sum + d.doneExercises.length,
       );
       expect(w.sessions.length, expectedSessions);
       expect(w.dailyMinutes, _minutesByWeekday(_friday));

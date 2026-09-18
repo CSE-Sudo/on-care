@@ -475,36 +475,19 @@ class _RejectDialogState extends State<_RejectDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // [AppButtonPair] 와 같은 반반 배치다. 버튼마다 테스트가 찾는 키가 있어
-    // 짝 위젯 대신 같은 규격의 [AppButton] 두 개로 조립한다.
     return AppDialog(
       title: l.consultRejectTitle,
       size: AppDialogSize.medium,
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('consultation-reject-cancel'),
-              label: l.actionCancel,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('consultation-reject-confirm'),
-              label: l.consultRejectAction,
-              variant: AppButtonVariant.destructive,
-              fullWidth: true,
-              // Returns '' rather than null when left blank: null is the
-              // cancel signal, and an empty note is a valid "no reason given".
-              onPressed: () =>
-                  Navigator.of(context).pop(_controller.text.trim()),
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelKey: const ValueKey<String>('consultation-reject-cancel'),
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const ValueKey<String>('consultation-reject-confirm'),
+        confirmLabel: l.consultReject,
+        destructive: true,
+        // Returns '' rather than null when left blank: null is the
+        // cancel signal, and an empty note is a valid "no reason given".
+        onConfirm: () => Navigator.of(context).pop(_controller.text.trim()),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

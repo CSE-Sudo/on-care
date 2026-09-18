@@ -35,34 +35,19 @@ class _CancelSessionDialogState extends State<CancelSessionDialog> {
     return AppDialog(
       title: l.schedCancelTitle,
       showClose: false,
-      // AppButtonPair 와 같은 배치 — 확정 버튼에 키를 달아야 해서 직접 둔다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              label: l.actionCancel,
-              onPressed: () => Navigator.of(context).pop(),
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('session-cancel-confirm'),
-              label: l.schedCancel,
-              variant: AppButtonVariant.destructive,
-              fullWidth: true,
-              // 주체를 고르기 전에는 저장할 수 없다 — 기본값으로 채우면 그 값이
-              // 사실인지 알 수 없다.
-              onPressed: _source == null
-                  ? null
-                  : () => Navigator.of(
-                      context,
-                    ).pop((source: _source!, reason: _reason.text.trim())),
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const ValueKey<String>('session-cancel-confirm'),
+        confirmLabel: l.schedCancel,
+        destructive: true,
+        // 주체를 고르기 전에는 저장할 수 없다 — 기본값으로 채우면 그 값이
+        // 사실인지 알 수 없다.
+        onConfirm: _source == null
+            ? null
+            : () => Navigator.of(
+                context,
+              ).pop((source: _source!, reason: _reason.text.trim())),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

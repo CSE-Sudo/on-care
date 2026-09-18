@@ -2138,12 +2138,6 @@ abstract class AppLocalizations {
   /// **'e.g. I have another appointment at your requested time.'**
   String get consultRejectHint;
 
-  /// No description provided for @consultRejectAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Decline'**
-  String get consultRejectAction;
-
   /// No description provided for @consultStatusPending.
   ///
   /// In en, this message translates to:
@@ -3890,12 +3884,6 @@ abstract class AppLocalizations {
   /// **'Changing…'**
   String get myPwChanging;
 
-  /// No description provided for @myPwChangeAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Change'**
-  String get myPwChangeAction;
-
   /// No description provided for @mySettingsSaveFailed.
   ///
   /// In en, this message translates to:
@@ -4729,24 +4717,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weight loss'**
   String get goalWeightLoss;
-
-  /// No description provided for @goalStrength.
-  ///
-  /// In en, this message translates to:
-  /// **'Strength'**
-  String get goalStrength;
-
-  /// No description provided for @goalFitness.
-  ///
-  /// In en, this message translates to:
-  /// **'Fitness'**
-  String get goalFitness;
-
-  /// No description provided for @goalPosture.
-  ///
-  /// In en, this message translates to:
-  /// **'Posture'**
-  String get goalPosture;
 
   /// No description provided for @goalHealth.
   ///

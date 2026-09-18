@@ -42,6 +42,28 @@ alembic downgrade -1          # 한 단계 롤백
 > 개발 편의를 위해 앱 기동 시 `create_all()` 로도 테이블을 만들지만(멱등), **운영은 `alembic upgrade head`** 를 정답으로 삼습니다.
 > (운영에서 `create_all` 을 끄려면 `AUTO_CREATE_TABLES=false` — 설정 항목은 이후 커밋에서 추가)
 
+> **`alembic.ini` 에는 한글을 넣지 마십시오(ASCII 전용).** Alembic 이 그 파일을 로케일 인코딩으로 읽어서, 한국어 Windows(cp949)에서는 한글 한 글자만 있어도 위 세 명령이 전부 `UnicodeDecodeError` 로 죽습니다. 리눅스 CI 는 UTF-8 로케일이라 통과하므로 드러나지 않고, `PYTHONUTF8=1` 로도 잡히지 않습니다. 설명은 `migrations/env.py` 나 이 문서에 적습니다. (#2004)
+
+## 테스트
+```bash
+cd backend
+pytest -q
+```
+DB 는 개발·데모 DB 가 아니라 **전용 테스트 DB**(기본값 `oncare_test`)를 씁니다. 최초 1회만 만들어 두면 됩니다 — 스키마와 시드는 실행이 채웁니다.
+
+```bash
+createdb -h 127.0.0.1 -U oncare oncare_test
+psql -h 127.0.0.1 -d oncare_test -c 'CREATE EXTENSION IF NOT EXISTS vector'   # superuser 필요
+```
+
+> **여러 명이(또는 워크트리 여러 개에서) 동시에 돌릴 때는 각자 다른 DB 를 가리키십시오.** 스위트는 시작할 때 `TRUNCATE <모든 테이블> RESTART IDENTITY CASCADE` 로 DB 를 비웁니다(`tests/conftest.py`). 기본값이 모두 같은 `oncare_test` 라, 나중에 시작한 실행이 먼저 돌던 실행의 데이터를 지워 **관계없는 테스트가 무더기로 깨집니다.** 원인이 코드처럼 보여 찾는 데 시간이 걸립니다.
+>
+> ```bash
+> createdb -h 127.0.0.1 -U oncare oncare_test_<내이름>
+> psql -h 127.0.0.1 -d oncare_test_<내이름> -c 'CREATE EXTENSION IF NOT EXISTS vector'
+> DATABASE_URL=postgresql+psycopg://oncare:oncare@localhost:5432/oncare_test_<내이름> pytest -q
+> ```
+
 ## RAG (pgvector + Gemini)
 공공문서 적재 → pgvector 검색 → 근거 코칭까지의 로컬 셋업·재현 절차는 **[docs/rag_gemini_setup.md](docs/rag_gemini_setup.md)** 참고.
 임베딩 `gemini-embedding-001`(768) · 코치/인식 `gemini-flash-latest` · `.env`: `EMBEDDER=gemini`, `EMBED_DIM=768`.
