@@ -49,18 +49,27 @@ void main() {
     final double today = tester
         .getSize(find.byKey(const Key('nutrition-summary-card')))
         .height;
+    final double todayTop = tester
+        .getRect(find.byKey(const Key('nutrition-summary-card')))
+        .top;
 
     await tester.tap(dietPeriodTab(DietPeriodTab.week));
     await tester.pumpAndSettle();
     final double week = tester
         .getSize(find.byKey(const Key('diet-period-card')))
         .height;
+    final double weekTop = tester
+        .getRect(find.byKey(const Key('diet-period-card')))
+        .top;
 
     await tester.tap(dietPeriodTab(DietPeriodTab.month));
     await tester.pumpAndSettle();
     final double all = tester
         .getSize(find.byKey(const Key('diet-period-card')))
         .height;
+    final double allTop = tester
+        .getRect(find.byKey(const Key('diet-period-card')))
+        .top;
 
     expect(week, today, reason: '이번 주 카드가 오늘 카드와 높이가 다르다');
     expect(all, today, reason: '전체 카드가 오늘 카드와 높이가 다르다');
@@ -72,5 +81,11 @@ void main() {
       reason: '오늘 카드가 기준 높이를 넘겼다 — 내용을 다시 재서 상수를 맞춰야 한다',
     );
     expect(kDietSummaryCardHeight, 216);
+
+    // 높이만 같아서는 안 된다 — **시작 위치**도 같아야 토글을 오갈 때 카드가
+    // 제자리에 있다. 제목·토글 줄 아래 여백이 기간 탭에서만 8 이라(지표 버튼
+    // 줄이 있던 시절 값) 카드가 4dp 오르내렸다.
+    expect(weekTop, todayTop, reason: '이번 주 카드가 오늘 카드와 다른 자리에서 시작한다');
+    expect(allTop, todayTop, reason: '전체 카드가 오늘 카드와 다른 자리에서 시작한다');
   });
 }

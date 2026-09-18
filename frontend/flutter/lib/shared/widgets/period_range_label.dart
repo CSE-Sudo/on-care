@@ -15,8 +15,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 /// `9. 14. ~ 9. 20.` — 카드가 집계한 기간.
 ///
-/// 연도는 적지 않는다. 한 줄에 들어가야 하고, 카드가 보는 것은 길어야 열두
-/// 주라 해가 바뀌어도 월·일만으로 갈리지 않는다.
+/// 연도는 적지 않는다. 한 줄에 들어가야 하고, 카드가 보는 기간은 오늘에서
+/// 거슬러 1년이 안 된다 — 식단 `전체` 는 84일(`kDietAllPeriodDays`), 운동
+/// `전체` 는 35주(`kExerciseAllPeriodWeeks`). 그 안에서 같은 월·일은 한 번만
+/// 나오므로 해가 바뀌어도(`12. 16. ~ 1. 5.`) 가리키는 날이 하나뿐이다.
+/// 두 값 중 하나라도 1년을 넘기면 연도를 적어야 한다.
 String periodRangeText(String locale, DateTime from, DateTime to) =>
     '${DateFormat.Md(locale).format(from)}'
     ' ~ '
