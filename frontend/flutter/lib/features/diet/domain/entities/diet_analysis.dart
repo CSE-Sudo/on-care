@@ -9,6 +9,7 @@ class RecognizedFood {
     required this.sodiumMg,
     required this.sugarG,
     required this.source,
+    this.amountG,
   });
 
   final String name;
@@ -16,6 +17,11 @@ class RecognizedFood {
   final int sodiumMg;
   final double sugarG;
   final String source; // "db"(공공 영양 DB 매핑) | "estimate"(LLM 추정)
+
+  /// 이 음식의 내용량(g) — 함께 온 영양이 무엇을 재고 나온 값인가다(#1876).
+  /// 서버가 양을 얻지 못했으면 null 이다. `0` 도 null 로 읽는다 — 0g 은
+  /// 안 먹었다는 말이지 모른다는 말이 아니다.
+  final double? amountG;
 
   bool get isFromDb => source == 'db';
 
@@ -25,6 +31,10 @@ class RecognizedFood {
     sodiumMg: (json['sodium_mg'] as num?)?.toInt() ?? 0,
     sugarG: (json['sugar_g'] as num?)?.toDouble() ?? 0,
     source: (json['source'] as String?) ?? 'estimate',
+    amountG: switch (json['amount_g']) {
+      final num g when g > 0 => g.toDouble(),
+      _ => null,
+    },
   );
 }
 

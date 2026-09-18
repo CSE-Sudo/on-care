@@ -162,6 +162,23 @@ String _recordDateLabel(BuildContext context, DateTime date) =>
 TextStyle _text(BuildContext context, TextStyle role, Color color) =>
     context.oncare.text(role).copyWith(color: color);
 
+/// 줄이 바뀌지 않는 공백(U+00A0).
+const String _nbsp = '\u00A0';
+
+/// 폭 없는 줄바꿈 금지 문자(U+2060 WORD JOINER).
+const String _wordJoiner = '\u2060';
+
+/// 한 덩어리로 읽혀야 하는 글자를 줄이 바뀌지 않게 잇는다.
+///
+/// 공백만 붙는 공백으로 바꾸면 모자라다 — 한국어는 음절 사이 어디서든 줄이
+/// 바뀌어 `그래놀` / `라 토핑` 처럼 갈렸다. 글자 사이마다 폭 없는 줄바꿈 금지
+/// 문자를 끼운다.
+String _keepTogether(String text) => text
+    .replaceAll(' ', _nbsp)
+    .runes
+    .map(String.fromCharCode)
+    .join(_wordJoiner);
+
 /// 그램 수치 한 줄. 소수 첫째 자리까지만, 정수는 콤마만 — 칼로리·나트륨 행과
 /// 같은 서식이다. 당류와 탄·단·지가 이 함수를 같이 쓴다(#1564).
 String _gramsText(double grams) => grams == grams.roundToDouble()
@@ -831,8 +848,44 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
                 ),
               ),
               const SizedBox(height: OnCareSpacing.s4),
-              Text(
-                recognized.isEmpty ? l.dietNoRecognizedFood : recognized,
+              // 음식마다 이름 옆에 AI 가 읽은 **양**을 보조색으로 붙인다(#1964).
+              // 영양은 모두 이 양으로 환산되므로, 양이 틀리면 칼로리·탄단지가
+              // 함께 틀린다 — 저장 전 이 자리에서 보여야 머리의 연필로 바로
+              // 고칠 수 있다. 식단 탭 끼니 카드·식단 상세와 같은 자리·같은
+              // 모양이다. 양을 모르는 음식은 이름만 적는다(0g 은 안 먹었다).
+              Text.rich(
+                key: const Key('diet-result-recognized-foods'),
+                TextSpan(
+                  children: recognized.isEmpty
+                      ? <InlineSpan>[TextSpan(text: l.dietNoRecognizedFood)]
+                      : <InlineSpan>[
+                          for (
+                            int i = 0;
+                            i < r.foods.length;
+                            i++
+                          ) ...<InlineSpan>[
+                            if (i > 0) const TextSpan(text: ' · '),
+                            // 한 음식의 이름과 양은 줄이 바뀌어도 붙어 있다 —
+                            // 이름 안·이름과 양 사이를 붙는 공백으로 잇고, 줄은
+                            // ` · ` 에서만 바뀐다. `그래놀라` / `토핑 50g` 처럼
+                            // 한 음식이 두 줄로 갈리면 다른 음식처럼 읽힌다.
+                            TextSpan(text: _keepTogether(r.foods[i].name)),
+                            if (r.foods[i].amountG case final double grams)
+                              TextSpan(
+                                text: _keepTogether(
+                                  '$_nbsp${_gramsText(grams)}${l.dietUnitG}',
+                                ),
+                                style: OnCareTypography.numeric(
+                                  _text(
+                                    context,
+                                    OnCareTypography.caption,
+                                    OnCareColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ],
+                ),
                 style: _text(
                   context,
                   OnCareTypography.titleSmall,
@@ -2248,6 +2301,14 @@ class _FoodEditors {
 }
 
 /// 먹은 음식 한 줄 — 보기 모드의 읽기 전용 표시.
+///
+/// 이름 **바로 옆**에 내용량이 온다. 오른쪽 칼로리는 그 양을 재고 나온 값이라,
+/// 기준이 보이지 않으면 230kcal 이 한 공기인지 반 공기인지 알 수 없다 —
+/// 수정 모드를 열어야만 기준이 드러나는 것은 순서가 뒤집힌 것이다(#1964).
+/// 칼로리 앞이 아니라 이름 옆인 까닭은, 양은 "무엇을 얼마나" 의 일부라 음식에
+/// 붙고 칼로리는 그 결과라서다. 식단 탭 끼니 카드도 같은 자리에 적는다.
+/// 양을 모르는 음식과 이 필드 이전 기록은 null 이라 아무것도 적지 않는다:
+/// `0g` 은 안 먹었다는 말이 된다.
 class _FoodViewRow extends StatelessWidget {
   const _FoodViewRow({required this.index, required this.food});
 
@@ -2257,6 +2318,7 @@ class _FoodViewRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final double? amount = food.amountG;
     return AppTile(
       tone: AppTileTone.none,
       child: Row(
@@ -2264,15 +2326,38 @@ class _FoodViewRow extends StatelessWidget {
           AppTag(label: '$index', tone: AppTagTone.brand),
           const SizedBox(width: OnCareSpacing.s8),
           Expanded(
-            child: Text(
-              food.name.trim().isEmpty ? l.dietNewFood : food.name,
-              style: _text(
-                context,
-                OnCareTypography.strong(OnCareTypography.body),
-                OnCareColors.textPrimary,
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: <Widget>[
+                Flexible(
+                  child: Text(
+                    food.name.trim().isEmpty ? l.dietNewFood : food.name,
+                    style: _text(
+                      context,
+                      OnCareTypography.strong(OnCareTypography.body),
+                      OnCareColors.textPrimary,
+                    ),
+                  ),
+                ),
+                if (amount != null && amount > 0) ...<Widget>[
+                  const SizedBox(width: OnCareSpacing.s4),
+                  Text(
+                    '${_gramsText(amount)}${l.dietUnitG}',
+                    key: ValueKey<String>('diet-food-view-amount-$index'),
+                    style: OnCareTypography.numeric(
+                      _text(
+                        context,
+                        OnCareTypography.caption,
+                        OnCareColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
+          const SizedBox(width: OnCareSpacing.s8),
           Text(
             '${food.kcal}',
             style: OnCareTypography.numeric(

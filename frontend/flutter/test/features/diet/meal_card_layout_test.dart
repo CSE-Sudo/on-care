@@ -103,8 +103,9 @@ void main() {
       final Rect badge = tester.getRect(
         _inCard('mock-breakfast', find.text(l.dietMealBreakfast)),
       );
+      // 이름 뒤에 그 양이 한 줄로 붙는다(#1964) — `스크램블 에그 100g`.
       final Rect first = tester.getRect(
-        _inCard('mock-breakfast', find.text('스크램블 에그')),
+        _inCard('mock-breakfast', find.textContaining('스크램블 에그')),
       );
       final Rect last = tester.getRect(
         _inCard('mock-breakfast', find.text('딸기')),
