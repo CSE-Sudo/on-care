@@ -188,7 +188,7 @@ class _NotificationTile extends StatelessWidget {
     TrainerNotificationKind.consultation => Icons.mark_email_unread_rounded,
     TrainerNotificationKind.reservation => Icons.event_available_rounded,
     TrainerNotificationKind.healthGoal => Icons.flag_rounded,
-    TrainerNotificationKind.memberName => Icons.badge_outlined,
+    TrainerNotificationKind.memberName => Icons.badge_rounded,
     TrainerNotificationKind.other => Icons.notifications_none_rounded,
   };
 
