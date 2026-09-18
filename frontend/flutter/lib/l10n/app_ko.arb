@@ -886,6 +886,7 @@
   "coachAssignedTrainer": "담당 트레이너",
   "coachPointsTitle": "이번 코칭 포인트",
   "coachRoutineTitle": "추천 개인운동",
+  "coachRoutineAiTitle": "AI 추천 개인운동",
   "coachRoutineByTrainer": "트레이너 직접 추천",
   "coachRoutineAiChecked": "AI 추천 · {name} 확인",
   "coachRoutineAiAuto": "AI 자동 추천",

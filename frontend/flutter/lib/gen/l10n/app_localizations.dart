@@ -4704,6 +4704,12 @@ abstract class AppLocalizations {
   /// **'Recommended solo workouts'**
   String get coachRoutineTitle;
 
+  /// Card title when the member has no trainer — every line is AI recommended (#2015).
+  ///
+  /// In en, this message translates to:
+  /// **'AI recommended solo workouts'**
+  String get coachRoutineAiTitle;
+
   /// Origin of a routine.
   ///
   /// In en, this message translates to:
