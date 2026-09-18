@@ -585,30 +585,33 @@ class _ExerciseDayDetail extends StatelessWidget {
           const SizedBox(height: OnCareSpacing.s12),
           ExerciseDayLoadCard(load: load, isToday: false),
           const SizedBox(height: OnCareSpacing.s20),
+          // 순서는 **오늘 화면과 같다**: 완료한 PT → 추천 개인운동 → 직접 기록.
+          // 날짜만 옮겼는데 카드가 다른 차례로 나오면, 어느 것이 트레이너 쪽이고
+          // 어느 것이 내가 적은 것인지 매번 다시 읽어야 한다(#2017). 화면 위쪽은
+          // "무엇을 해야 했나", 아래쪽은 "내가 무엇을 했나" 다(#1574).
+          if (ptSessions.isNotEmpty)
+            _DayRecordCard(
+              key: const ValueKey<String>('exercise-pt-records'),
+              title: l.exCompletedPtDayTitle,
+              icon: AppIcons.exercise,
+              sessions: ptSessions,
+            ),
+          if (ptSessions.isNotEmpty && routineSessions.isNotEmpty)
+            const SizedBox(height: OnCareSpacing.s12),
+          if (routineSessions.isNotEmpty)
+            _DayRecordCard(
+              key: const ValueKey<String>('exercise-routine-records'),
+              // 오늘 화면의 `추천 개인운동` 과 같은 어휘·같은 아이콘이다.
+              title: l.exCompletedRoutineDayTitle,
+              icon: AppIcons.running,
+              sessions: routineSessions,
+            ),
+          // 트레이너 쪽 기록이 하나라도 있으면 한 칸 띄운다 — 붙여 두면 아래
+          // `직접 기록한 운동` 제목이 위 카드에 딸린 것처럼 보인다.
+          if (ptSessions.isNotEmpty || routineSessions.isNotEmpty)
+            const SizedBox(height: OnCareSpacing.s20),
           // 직접 적은 기록은 따로 모아 그 자리에서 고치고 지운다(#1428).
           OwnExerciseRecords(week: week, date: date),
-          // 제목 없이 이어 붙이면 바로 위 `직접 추가한 운동이 없어요` 아래로
-          // 카드가 흘러나와, 없다고 해 놓고 보여 주는 꼴이 된다(#1884).
-          if (ptSessions.isNotEmpty || routineSessions.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s20),
-            if (ptSessions.isNotEmpty)
-              _DayRecordCard(
-                key: const ValueKey<String>('exercise-pt-records'),
-                title: l.exCompletedPtDayTitle,
-                icon: AppIcons.exercise,
-                sessions: ptSessions,
-              ),
-            if (ptSessions.isNotEmpty && routineSessions.isNotEmpty)
-              const SizedBox(height: OnCareSpacing.s12),
-            if (routineSessions.isNotEmpty)
-              _DayRecordCard(
-                key: const ValueKey<String>('exercise-routine-records'),
-                // 오늘 화면의 `추천 개인운동` 과 같은 어휘·같은 아이콘이다.
-                title: l.exCompletedRoutineDayTitle,
-                icon: AppIcons.running,
-                sessions: routineSessions,
-              ),
-          ],
         ],
       ),
     );
