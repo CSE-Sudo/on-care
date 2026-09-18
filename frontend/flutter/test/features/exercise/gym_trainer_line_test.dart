@@ -194,6 +194,36 @@ void main() {
       );
     });
 
+    testWidgets('트레이너 줄이 위 헬스장 줄과 한 격자에 선다 (#2038)', (
+      WidgetTester tester,
+    ) async {
+      await pumpGymTab(tester);
+
+      // 같은 카드의 두 줄이다 — 사람 아이콘은 덤벨 아이콘과 같은 세로 중심에,
+      // 트레이너 이름은 헬스장 이름과 같은 세로선에 선다. 예전에는 아이콘 칸
+      // 24 · 간격 8 이라 헬스장 줄(40 · 12)보다 20 만큼 왼쪽에서 시작했다.
+      final Finder card = find.byKey(const Key('my-gym-info-card'));
+      final Finder line = find.byKey(const Key('gym-trainer-line-mine'));
+
+      final double gymIconX = tester
+          .getCenter(find.byKey(const Key('connectedGymIcon')))
+          .dx;
+      final double trainerIconX = tester
+          .getCenter(
+            find.descendant(of: line, matching: find.byIcon(AppIcons.person)),
+          )
+          .dx;
+      expect(trainerIconX, moreOrLessEquals(gymIconX, epsilon: 0.5));
+
+      final double gymNameX = tester
+          .getTopLeft(find.descendant(of: card, matching: find.text(_gym.name)))
+          .dx;
+      final double trainerNameX = tester
+          .getTopLeft(find.descendant(of: line, matching: find.text('김트레이너')))
+          .dx;
+      expect(trainerNameX, moreOrLessEquals(gymNameX, epsilon: 0.5));
+    });
+
     testWidgets('한 명뿐이라 줄을 두르지 않는다 (#1881)', (WidgetTester tester) async {
       await pumpGymTab(tester);
 
