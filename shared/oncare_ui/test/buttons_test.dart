@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -137,6 +138,56 @@ void main() {
     );
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     await tester.tap(find.byType(AppButton));
+    expect(taps, 0);
+  });
+
+  // #2057 — 호출부가 중복 탭을 막으려고 핸들러까지 null 로 넘기면 비활성 회색
+  // 바탕이 되는데 스피너는 흰색 그대로라 묻혔다. 처리 중에는 핸들러와 상관없이
+  // 활성 모양이다.
+  testWidgets('처리 중에는 핸들러가 null 이어도 활성 채움 그대로다', (tester) async {
+    for (final (AppButtonVariant variant, Color fill)
+        in <(AppButtonVariant, Color)>[
+          (AppButtonVariant.primary, OnCareBrand.member.primary),
+          (AppButtonVariant.destructive, OnCareColors.danger),
+        ]) {
+      await _pump(
+        tester,
+        AppButton(
+          label: '저장',
+          onPressed: null,
+          loading: true,
+          variant: variant,
+        ),
+      );
+      final Material material = tester.widget<Material>(
+        find
+            .descendant(
+              of: find.byType(TextButton),
+              matching: find.byType(Material),
+            )
+            .first,
+      );
+      expect(material.color, fill, reason: '$variant');
+    }
+  });
+
+  // 포인터를 막는 것만으로는 키보드 Enter 가 새어 들어가 중복 제출이 된다.
+  testWidgets('처리 중에는 키보드로도 눌리지 않는다', (tester) async {
+    int taps = 0;
+    await _pump(
+      tester,
+      AppButton(label: '저장', onPressed: () => taps++, loading: true),
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
+    expect(
+      FocusManager.instance.primaryFocus?.context
+          ?.findAncestorWidgetOfExactType<TextButton>(),
+      isNotNull,
+      reason: 'Tab 으로 버튼에 초점이 가야 이 테스트가 의미가 있다',
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
     expect(taps, 0);
   });
 
