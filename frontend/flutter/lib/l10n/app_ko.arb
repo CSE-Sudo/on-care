@@ -137,6 +137,19 @@
   "@dietFillFromDb": {
     "description": "제안한 공공 DB 영양으로 그 음식의 칸을 채우는 버튼 (#1896)"
   },
+  "dietFoodFilledFromDb": "공공 DB · {name} 값으로 바꿨어요",
+  "@dietFoodFilledFromDb": {
+    "description": "이름을 바꾼 음식이 같은 음식의 공공 DB 값으로 채워졌을 때 이름 칸 아래 안내 (#2107)",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "dietUndoFill": "되돌리기",
+  "@dietUndoFill": {
+    "description": "이름을 바꿔 채운 공공 DB 값을 바꾸기 전으로 되돌리는 버튼 (#2107)"
+  },
+  "dietFoodNotInDb": "공공 DB에 없는 음식이에요. 영양 값을 확인해 주세요",
+  "@dietFoodNotInDb": {
+    "description": "이름을 바꾼 음식이 공공 DB 에 없어 옛 음식의 값이 남았을 때 이름 칸 아래 안내 (#2107)"
+  },
   "dietAddSheetTitle": "식단 추가",
   "dietAddSheetSubtitle": "사진으로 음식을 분석해요",
   "dietPickPhoto": "사진 선택",

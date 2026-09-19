@@ -330,6 +330,7 @@ DietMeal _mealFromEntry(DietEntry e, DateTime date) {
           carbsG: f.carbsG,
           proteinG: f.proteinG,
           fatG: f.fatG,
+          source: f.source,
         ),
     ],
     tags: const <DietTag>[],

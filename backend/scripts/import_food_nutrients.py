@@ -88,6 +88,34 @@ DB 가, 양은 비전 모델이 대는 역할 분담이다.
   값이 채운다(`enrich.apply_match` 의 "mixed").
 - **이름과 영양값이 똑같은 행은 한 번만 센다.** 급식 계산값은 한 줄이 급식 종류마다
   복제돼 있다.
+
+## 분석값이 한 건뿐이면 계산값과 맞춰 본다 (#2102)
+
+분석·표시값이 한 건뿐인 대표식품이 192개 있다(나머지는 계산값). 한 건은 그 집의
+레시피가 튀면 그대로 따라간다 — `오이무침` 은 부추를 넣은 한 건이 나트륨 1,070mg 이고
+계산값 6건은 보정해도 333mg 안팎이다. 계산값이 `_LONE_MIN_CALCULATED` 건 이상이면
+그 중앙값을 위의 체계적 차이(`_CALCULATED_BIAS`)로 보정해 비교하고, 열량이나 나트륨이
+`_LONE_RATIO` 배 넘게 어긋나면 그 한 건 대신 계산값에서 고른다. 계산값이 몇 건 안 되면
+중앙값도 흔들려 비교하지 않는다.
+
+## 1회 섭취량은 1인분으로 정한 값만 쓴다 (#2102)
+
+`serving_size_g` 는 인식기가 양을 주지 않았을 때만 쓰는 폴백이다(`enrich._grams`).
+예전에는 `식품중량` 중앙값이었는데, 그 칸은 판매 포장(`우유(멸균)` 1,000g)이거나
+여럿이 나눠 먹는 한 판(외식 분석 `해물파전` 1,330g)이거나 영양 기준량을 그대로 적은
+것(2022년 외식 분석은 모두 `100g`)이라 1인분이 아닌 값이 섞였다. 이제:
+
+- **가공식품**: 원본의 `1회 섭취참고량` 열. 식약처 「식품등의 표시기준」 [표3] 1회
+  섭취참고량을 식품유형마다 적은 것이다. 판매 형태 그대로의 무게라 100g 당 값과 같은
+  상태다. ml 은 위 밀도로 g 이 된다.
+- **음식**: 1인분을 담아 만든 행의 무게(`_SERVING_ORIGINS`). 가정식 분석이 가정 1인분을
+  조리해 잰 무게라 가장 가깝고, 다음이 성인 급식·외식 레시피 1인분이다. 조리된 음식의
+  무게라 100g 당 값과 같은 상태다. 그런 행이 없으면 그 분류의 [표3] 값(배추김치 40g·
+  밥 210g·떡 100g, `_DISH_REFERENCES`)을 쓴다.
+- **원재료성식품**: 비운다. [표3] 도 자연상태 식품에는 값을 두지 않는다.
+
+정할 수 없으면 비운다 — 틀린 1인분으로 환산한 값이 "공공 DB 근거" 로 표시되는 것보다
+인식기 추정치를 두는 편이 낫다(`enrich` 의 폴백 원칙). `serving_basis` 열이 그 근거다.
 """
 from __future__ import annotations
 
@@ -101,9 +129,36 @@ import sys
 import zipfile
 import xml.etree.ElementTree as ET
 
-# 1인분 힌트로만 쓴다(값 환산에는 쓰지 않는다). 프랜차이즈 포장은 판매 단위라
-# 1인분 대표값으로 부적절해 힌트 계산에서만 제외한다.
-_FRANCHISE_PREFIX = "외식(프랜차이즈"
+#: 음식 데이터셋에서 1인분으로 읽을 `식품기원명`(앞일수록 우선)과 `serving_basis` 표기.
+#: 1인분을 담아 만든 행만 쓴다 — 외식 분석은 판매 메뉴 하나를 산 무게라 여럿이 나눠 먹는
+#: 것(해물파전 1,330g·닭튀김 652g)이 섞이고, 프랜차이즈는 판매 단위(라지 피자 1,640g)다.
+#: 학교 급식은 학년별 배식 기준이라 뺀다(중고등 `쌀밥` 450g). 무게가 있는 첫 층의
+#: 중앙값을 쓴다.
+_SERVING_ORIGINS: tuple[tuple[str, str], ...] = (
+    ("가정식", "가정식 분석"),
+    ("산업체급식", "산업체 급식"),
+    ("외식(재료량", "외식 레시피"),
+)
+
+#: 1인분 행이 없는 음식에 쓰는 [표3] 1회 섭취참고량 — (음식 분류, 이름 패턴, g). 위에서부터
+#: 처음 맞는 것. [표3] 은 가공식품 표시용이지만 "그 식품을 한 번에 먹는 양" 이라 같은
+#: 식품이면 집에서 만든 것에도 맞는다(배추김치 40g, 떡 100g). 즉석조리식품의 국·탕·찌개·
+#: 죽 값은 1인분 그릇이다. 이름만으로 식품유형을 가를 수 없는 것(음료·튀김·면)은 두지 않는다.
+_DISH_REFERENCES: tuple[tuple[str, re.Pattern[str], float], ...] = (
+    ("김치류", re.compile(r"물김치|동치미|나박김치"), 80.0),     # 물김치
+    ("김치류", re.compile(r""), 40.0),                            # 배추김치·기타김치
+    ("장아찌·절임류", re.compile(r"장아찌"), 15.0),              # 장류절임 중 장아찌
+    ("장아찌·절임류", re.compile(r""), 25.0),                     # 그밖의 절임식품
+    ("밥류", re.compile(r"(?<!덮)밥$"), 210.0),                   # 즉석조리식품 밥
+    ("죽 및 스프류", re.compile(r"스프"), 150.0),
+    ("죽 및 스프류", re.compile(r""), 250.0),
+    ("국 및 탕류", re.compile(r""), 250.0),
+    ("찌개 및 전골류", re.compile(r""), 200.0),
+    ("면 및 만두류", re.compile(r"만두"), 150.0),
+    ("빵 및 과자류", re.compile(r"떡|송편|절편|인절미|백설기|경단|증편|기피편|부꾸미|약식"), 100.0),
+    ("빵 및 과자류", re.compile(r"빵|바게트|치아바타|번$|스콘|케이크|타르트|토스트|와플|크로플|파이|프레즐"), 70.0),
+    ("빵 및 과자류", re.compile(r"과자|쿠키|비스킷|크래커|웨이퍼|약과|유과|산자|매작과|다식|마카롱|다쿠아즈"), 30.0),
+)
 
 # "300g", "350ml", "1000m"(ml 절단), "201.7"(무단위) 를 모두 받는다.
 _WEIGHT = re.compile(r"^\s*([\d.]+)\s*([a-zA-Z]*)")
@@ -128,6 +183,8 @@ _OUT_COLUMNS = [
     "fat_g",
     "sample_count",
     "source_dataset",
+    "method",
+    "serving_basis",
 ]
 
 
@@ -140,7 +197,9 @@ _USED_COLUMNS = (
     "식품기원명",
     "데이터생성방법명",
     "식품대분류명",
+    "식품소분류명",
     "식품중량",
+    "1회 섭취참고량",
     "에너지(kcal)",
     "나트륨(mg)",
     "당류(g)",
@@ -278,10 +337,6 @@ def _weight_g(raw: str) -> float | None:
     return grams if 0 < grams <= 5000 else None
 
 
-def _median(values: list[float]) -> float | None:
-    return statistics.median(values) if values else None
-
-
 #: 대표 행을 고를 때 보는 영양소.
 _NUTRIENT_COLUMNS = (
     "에너지(kcal)",
@@ -303,6 +358,62 @@ _METHOD_RANK = {"분석": 0, "수집": 0, "산출": 1}
 #: 원래 방식보다 19개 늘고, 20 부터는 늘지 않는다(그 위로는 전형성만 나빠진다).
 _MISSING_PENALTY = 20.0
 
+#: 레시피 계산값이 분석값보다 체계적으로 낮은 정도(위 설명의 313종 중앙값 비율).
+#: 분석값이 한 건뿐일 때 계산값 중앙값을 이만큼 나눠 "분석했다면 나왔을 값" 으로 본다.
+_CALCULATED_BIAS = {"에너지(kcal)": 0.76, "나트륨(mg)": 0.71}
+
+#: 한 건뿐인 분석값을 계산값과 맞춰 볼 최소 계산값 수. 5 건 미만이면 계산값 중앙값도
+#: 한두 레시피에 끌려가 비교의 기준이 못 된다. 분석값이 한 건뿐인 192종 중 29종이 든다 —
+#: 급식 식단에 자주 오르는, 흔히 먹는 이름들이다.
+_LONE_MIN_CALCULATED = 5
+
+#: 보정한 계산값에서 몇 배 넘게 벗어나면 그 한 건을 믿지 않을지. 계산값이 5건 이상인
+#: 101종에서 레시피끼리 갈리는 폭(3사분위÷중앙값)은 열량 1.22·나트륨 1.26(중앙값)이라,
+#: 2 배는 레시피 차이로 설명되지 않는다.
+_LONE_RATIO = 2.0
+
+#: 비율만 보면 값이 아주 작을 때 잡음이 걸린다(`잡곡밥` 나트륨 3mg ↔ 1.4mg). 이 차이보다
+#: 작으면 어긋난 것으로 치지 않는다(100g 당).
+_LONE_FLOOR = {"에너지(kcal)": 20.0, "나트륨(mg)": 100.0}
+
+
+def _rank(row: dict[str, str]) -> int:
+    return _METHOD_RANK.get(row.get("데이터생성방법명", "").strip(), 1)
+
+
+def _unique(rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """이름과 영양값이 모두 같은 행은 하나만.
+
+    급식 데이터는 같은 레시피 계산값 한 줄을 초등·중고등·산업체·외식 급식으로
+    복제해 싣는다(`호떡` 147kcal 네 줄). 그대로 세면 복제된 값이 "전형" 이 된다.
+    이름까지 보는 것은 라벨 값이 우연히 같은 서로 다른 제품(차 음료 0kcal 여러 개)을
+    합치지 않으려는 것이다.
+    """
+    unique: dict[tuple[str, ...], dict[str, str]] = {}
+    for r in rows:
+        key = (r.get("식품명", "").strip(),) + tuple(
+            str(_number(r.get(c, ""))) for c in _NUTRIENT_COLUMNS
+        )
+        unique.setdefault(key, r)
+    return list(unique.values())
+
+
+def _lone_is_atypical(row: dict[str, str], calculated: list[dict[str, str]]) -> bool:
+    """한 건뿐인 분석·표시값이 같은 음식의 레시피 계산값들과 크게 어긋나는가."""
+    if len(calculated) < _LONE_MIN_CALCULATED:
+        return False
+    for column, bias in _CALCULATED_BIAS.items():
+        value = _number(row.get(column, ""))
+        values = [v for r in calculated if (v := _number(r.get(column, ""))) is not None]
+        if value is None or not values:
+            continue
+        expected = statistics.median(values) / bias
+        if abs(value - expected) < _LONE_FLOOR[column]:
+            continue
+        if expected <= 0 or not 1 / _LONE_RATIO <= value / expected <= _LONE_RATIO:
+            return True
+    return False
+
 
 def _representative(group: list[dict[str, str]]) -> dict[str, str] | None:
     """대표식품 하나의 값 한 벌을 낼 원본 행(메도이드). 열량이 있는 행이 없으면 None.
@@ -317,20 +428,14 @@ def _representative(group: list[dict[str, str]]) -> dict[str, str] | None:
 
     # 가장 믿을 만한 방법으로 만든 행만 남긴다. 레시피 계산값은 양념 나트륨이 빠지는
     # 일이 흔하다 — `라면` 은 분석값 270~491mg 인데 계산값은 58~128mg 이다.
-    best = min(_METHOD_RANK.get(r.get("데이터생성방법명", "").strip(), 1) for r in rows)
-    rows = [r for r in rows if _METHOD_RANK.get(r.get("데이터생성방법명", "").strip(), 1) == best]
-
-    # 급식 데이터는 같은 레시피 계산값 한 줄을 초등·중고등·산업체·외식 급식으로
-    # 복제해 싣는다(`호떡` 147kcal 네 줄). 그대로 세면 복제된 값이 "전형" 이 된다 —
-    # 이름과 영양값이 모두 같은 행은 한 번만 센다. 이름까지 보는 것은 라벨 값이 우연히
-    # 같은 서로 다른 제품(차 음료 0kcal 여러 개)을 합치지 않으려는 것이다.
-    unique: dict[tuple[str, ...], dict[str, str]] = {}
-    for r in rows:
-        key = (r.get("식품명", "").strip(),) + tuple(
-            str(_number(r.get(c, ""))) for c in _NUTRIENT_COLUMNS
-        )
-        unique.setdefault(key, r)
-    rows = list(unique.values())
+    best = min(_rank(r) for r in rows)
+    chosen = _unique([r for r in rows if _rank(r) == best])
+    # 다만 분석·표시값이 한 건뿐이고 계산값이 충분하면, 그 한 건이 튀었는지 본다(#2102).
+    if best == 0 and len(chosen) == 1:
+        calculated = _unique([r for r in rows if _rank(r) == 1])
+        if _lone_is_atypical(chosen[0], calculated):
+            chosen = calculated
+    rows = chosen
 
     centre: dict[str, tuple[float, float]] = {}
     for column in _NUTRIENT_COLUMNS:
@@ -473,6 +578,115 @@ def _plain_rows(canonical_name: str, rows: list[dict[str, str]]) -> list[dict[st
     return plain or rows
 
 
+def _portion_g(row: dict[str, str]) -> float | None:
+    """음식 행의 `식품중량` → 1인분 g. 영양 기준량을 그대로 적은 칸(`100g`)은 1인분이 아니다."""
+    raw = (row.get("식품중량") or "").strip()
+    if raw.lower() in {"100g", "100ml"}:
+        return None
+    return _weight_g(raw)
+
+
+def _dish_serving(
+    group: list[dict[str, str]], name: str, category: str
+) -> tuple[float | None, str]:
+    """음식 1인분: 1인분을 담아 만든 행의 무게 중앙값(`_SERVING_ORIGINS` 순서), 없으면
+    그 분류의 [표3] 값(`_DISH_REFERENCES`)."""
+    for prefix, basis in _SERVING_ORIGINS:
+        weights = [
+            w
+            for r in group
+            if (r.get("식품기원명") or "").startswith(prefix)
+            and (w := _portion_g(r)) is not None
+        ]
+        if weights:
+            return statistics.median(weights), basis
+    for kind, pattern, grams in _DISH_REFERENCES:
+        if category == kind and pattern.search(name):
+            return grams, "표시기준 1회 섭취참고량"
+    return None, ""
+
+
+#: `1회 섭취참고량` 한 칸의 값. "200ml", "5g(ml)", "250ml(g)", "100g(ml)" 꼴이다.
+#: 괄호는 "g 이나 ml" 라는 뜻이라 앞의 숫자를 g 로 읽는다(국·음료처럼 물이 대부분인 것).
+_REFERENCE = re.compile(r"^([\d.]+)(g|ml)(\((?:g|ml)\))?$")
+
+
+def _reference_detail(raw: str, row: dict[str, str]) -> str | None:
+    """식품유형 하나에 세부가 여럿이면 원본은 한 칸에 모두 적는다 — 그 행의 세부를 고른다.
+
+    원본으로 가를 수 없는 것(유탕면의 봉지 120g·용기 80g)은 None — 추측하지 않는다.
+    """
+    kind = (row.get("식품소분류명") or "").strip()
+    name = f"{row.get('대표식품명') or ''} {row.get('식품명') or ''}"
+    if raw.startswith("생·숙면"):
+        if kind in {"생면", "숙면"}:
+            return "200g"
+        if kind == "건면":
+            return "30g" if "당면" in name else "100g"
+        return None
+    if raw.startswith("드레싱"):
+        if "드레싱" in name:
+            return "15g"
+        return "165g" if "덮밥" in name else None
+    if raw.startswith("액상"):
+        if re.search(r"호상|떠먹", name):
+            return "100g"
+        return "150ml" if re.search(r"액상|마시는|드링크", name) else None
+    if raw.startswith("레토르트"):
+        if re.search(r"레토르트|3분", name):
+            return "200g"
+        return "25g" if re.search(r"분말|가루|고형", name) else None
+    return None
+
+
+#: [표3] 이 1회 섭취참고량을 **타거나 우려 마신 양**으로 정한 식품유형. 원본의 100g 당
+#: 값은 판매 형태(분말·청·원액)라 곱하면 조리 상태가 어긋난다 — 고형차는 380kcal/100g
+#: 인데 1회 섭취참고량은 200ml 다.
+_PREPARED_REFERENCE_KINDS = {
+    "침출차",
+    "고형차",
+    "액상차",
+    "음료베이스",
+    "농축과·채즙(또는 과·채분)",
+}
+
+
+def _reference_g(row: dict[str, str]) -> float | None:
+    """가공식품 행의 1회 섭취참고량(식약처 「식품등의 표시기준」 [표3]) → g."""
+    if (row.get("식품소분류명") or "").strip() in _PREPARED_REFERENCE_KINDS:
+        return None
+    raw = re.sub(r"\s+", "", row.get("1회 섭취참고량") or "")
+    if not raw:
+        return None
+    match = _REFERENCE.match(raw)
+    if match is None:
+        detail = _reference_detail(raw, row)
+        match = _REFERENCE.match(detail) if detail else None
+    if match is None:
+        # "1식"(도시락 한 개)처럼 무게가 아닌 단위다.
+        return None
+    value = float(match.group(1))
+    if match.group(2) == "ml" and not match.group(3):
+        value *= _density(row) or 1.0
+    return value
+
+
+def _serving(
+    group: list[dict[str, str]], dataset: str, row: dict[str, str]
+) -> tuple[float | None, str]:
+    """(1회 섭취량 g, 그 근거). 정할 수 없으면 (None, ""). `row` 는 값을 가져온 대표 행이다."""
+    if dataset == "음식":
+        category = _mode([(r.get("식품대분류명") or "").strip() for r in group])
+        return _dish_serving(group, (row.get("대표식품명") or "").strip(), category)
+    if dataset == "가공식품":
+        # 값을 가져온 행의 것을 쓴다. 한 대표식품에 식품유형이 섞이면(`기타 라면` 은 건조
+        # 유탕면과 숙면) 다른 행의 1회 섭취참고량은 다른 상태의 무게다.
+        value = _reference_g(row)
+        return (value, "표시기준 1회 섭취참고량") if value is not None else (None, "")
+    # 원재료성식품: [표3] 도 자연상태 식품에는 1회 섭취참고량을 두지 않는다.
+    return None, ""
+
+
 def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object]]:
     """원본 행 → 대표식품 단위 **100g 기준** 집계."""
     groups: dict[str, list[dict[str, str]]] = {}
@@ -500,18 +714,8 @@ def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object
         def value(column: str) -> float | None:
             return _number(row.get(column, ""))
 
-        # 1인분 힌트: 인식기가 양을 못 줬을 때만 쓰는 폴백. 프랜차이즈 포장은
-        # 판매 단위라 제외하고, 없으면 비워 둔다(추측하지 않는다).
-        serving_candidates = [
-            w
-            for w in (
-                _weight_g(r.get("식품중량", ""))
-                for r in group
-                if not (r.get("식품기원명") or "").startswith(_FRANCHISE_PREFIX)
-            )
-            if w is not None
-        ]
-        serving = _median(serving_candidates)
+        # 1인분 힌트: 인식기가 양을 못 줬을 때만 쓰는 폴백. 근거가 없으면 비운다.
+        serving, serving_basis = _serving(group, dataset, row)
 
         out.append(
             {
@@ -526,6 +730,8 @@ def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object
                 "fat_g": _round_or_none(value("지방(g)"), 2),
                 "sample_count": len(group),
                 "source_dataset": dataset,
+                "method": (row.get("데이터생성방법명") or "").strip(),
+                "serving_basis": serving_basis,
             }
         )
     return out
