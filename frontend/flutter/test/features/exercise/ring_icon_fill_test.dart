@@ -16,6 +16,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_symbols_icons/symbols.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
@@ -187,6 +188,14 @@ void main() {
   );
 
   group('링 위 기호의 채움', () {
+    test('운동·헬스장·근력은 기본 굵기 400의 덤벨 하나를 공유한다', () {
+      expect(AppIcons.exercise, Symbols.fitness_center_rounded);
+      expect(AppIcons.gym, AppIcons.exercise);
+      expect(AppIcons.strength, AppIcons.exercise);
+      expect(AppIcons.oncare.weight, 400);
+      expect(AppIcons.oncare.weightOverrides, isEmpty);
+    });
+
     test('회원앱 테마가 회원앱 아이콘 묶음을 싣는다', () {
       expect(
         AppTheme.light().extension<OnCareTokens>()!.icons,

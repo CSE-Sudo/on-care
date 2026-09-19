@@ -324,6 +324,14 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.descendant(
+        of: routineCard,
+        matching: find.byIcon(AppIcons.exercise),
+      ),
+      findsOneWidget,
+      reason: '완료한 루틴 헤더도 공통 운동 아이콘을 쓴다',
+    );
 
     // 각자의 종목은 제 카드 안에만 있다.
     expect(
