@@ -54,20 +54,4 @@ class DioChallengeRepository implements ChallengeRepository {
     }
   }
 
-  @override
-  Future<List<Challenge>> fetchHistory() async {
-    try {
-      final List<Object?> rows = _ok(
-        await _dio.get<List<Object?>>('/me/challenges'),
-      );
-      return <Challenge>[
-        for (final Object? raw in rows)
-          Challenge.fromJson(
-            (raw! as Map<Object?, Object?>).cast<String, Object?>(),
-          ),
-      ];
-    } on DioException catch (e) {
-      throw AppError.fromDio(e);
-    }
-  }
 }

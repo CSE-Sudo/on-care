@@ -94,14 +94,20 @@ Future<void> openAlertTarget(
       context.go(AppRoutes.diet);
     case AlertTarget.myBenefits:
       // 쿠폰이 방금 사용 처리·취소됐다 — 들고 있던 목록과 잔액을 다시 읽는다.
-      // 챌린지 결과 알림(#1789)도 이리로 온다 — 판정된 챌린지를 다시 읽는다.
       ref
         ..invalidate(myCouponsProvider)
-        ..invalidate(myChallengesProvider)
-        ..invalidate(weeklyChallengeProvider)
         ..invalidate(myHealthStateProvider);
       if (!context.mounted) return;
       await context.push<void>(AppRoutes.myBenefits);
+    case AlertTarget.pointsShop:
+      // 주간 챌린지가 판정됐다(#1789) — 결과를 보고 다음 주에 다시 참가하거나
+      // 돌려받은 포인트를 확인하는 자리가 포인트 사용처다. 들고 있던 챌린지와
+      // 잔액은 판정 전 값이라 함께 다시 읽는다.
+      ref
+        ..invalidate(weeklyChallengeProvider)
+        ..invalidate(myHealthStateProvider);
+      if (!context.mounted) return;
+      await context.push<void>(AppRoutes.myPoints);
     case AlertTarget.healthGoals:
       // 담당 트레이너가 건강 목표를 바꿨다(#1832). 들고 있던 프로필은 바뀌기 전
       // 목표라, 다시 받아 온 뒤 MY 건강 목표를 연다 — 바뀐 목표와 `마지막 변경`

@@ -18,18 +18,11 @@ class FakeChallengeRepository implements ChallengeRepository {
   bool failJoin = false;
 
   int weeklyCalls = 0;
-  int historyCalls = 0;
 
   @override
   Future<WeeklyChallenge> fetchWeekly() async {
     weeklyCalls++;
     return weekly;
-  }
-
-  @override
-  Future<List<Challenge>> fetchHistory() async {
-    historyCalls++;
-    return history;
   }
 
   @override

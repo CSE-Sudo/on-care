@@ -217,94 +217,15 @@ class ChallengeProgressView extends StatelessWidget {
   }
 }
 
-/// 내 혜택의 챌린지 한 줄 — 주, 목표 대비 운동한 날, 상태 태그.
-class ChallengeListCard extends StatelessWidget {
-  const ChallengeListCard({super.key, required this.challenge});
 
-  final Challenge challenge;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    final AppLocalizations l = AppLocalizations.of(context);
-    final Challenge c = challenge;
-    final bool active = c.status == ChallengeStatus.active;
-    final (String status, AppTagTone tone) = switch (c.status) {
-      ChallengeStatus.active => (l.challengeStatusActive, AppTagTone.brand),
-      ChallengeStatus.succeeded => (
-        l.challengeStatusSucceeded,
-        AppTagTone.success,
-      ),
-      ChallengeStatus.failed => (l.challengeStatusFailed, AppTagTone.neutral),
-    };
-    final String detail = switch (c.status) {
-      ChallengeStatus.active => l.challengeProgress(c.progress, c.goal),
-      ChallengeStatus.succeeded => l.challengeResultSucceeded(
-        c.goal,
-        c.progress,
-        l.myPointsCost(c.rewarded),
-      ),
-      ChallengeStatus.failed => l.challengeResultFailed(
-        c.goal,
-        c.progress,
-        l.myPointsCost(c.stake),
-      ),
-    };
-    return AppCard(
-      key: ValueKey<String>('challenge-${c.id}'),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const BenefitIconTile(icon: kChallengeIcon),
-          const SizedBox(width: OnCareSpacing.s12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                Text(
-                  l.challengeWeekTitle(challengeWeekRange(c)),
-                  style: tokens
-                      .text(OnCareTypography.titleSmall)
-                      .copyWith(
-                        color: c.status == ChallengeStatus.failed
-                            ? OnCareColors.textTertiary
-                            : OnCareColors.textPrimary,
-                      ),
-                ),
-                const SizedBox(height: OnCareSpacing.s4),
-                Text(
-                  detail,
-                  key: ValueKey<String>('challenge-detail-${c.id}'),
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-                if (active) ...<Widget>[
-                  const SizedBox(height: OnCareSpacing.s8),
-                  AppProgressBar(
-                    value: c.goal <= 0 ? 0 : c.progress / c.goal,
-                    color: c.achieved ? OnCareColors.success : null,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          AppTag(
-            key: ValueKey<String>('challenge-status-${c.id}'),
-            label: status,
-            tone: tone,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 운동 현황 아래 주간 챌린지 진행 줄. 이번 주에 참가했을 때만 선다. (#1789)
+/// 운동 탭의 주간 챌린지 진행 줄. 이번 주에 참가했을 때만 선다. (#1789)
 ///
-/// 불러오는 중·실패·참가 전에는 아무것도 그리지 않는다 — 운동 현황이 먼저 답할
+/// 불러오는 중·실패·참가 전에는 아무것도 그리지 않는다 — 운동 탭이 먼저 답할
 /// 것은 "얼마나 했나" 이고, 챌린지는 참가한 회원에게만 덧붙는 정보다.
+///
+/// `운동 현황`·`AI 맞춤 조언` 아래에 선다. 그 둘은 기간 토글(오늘·이번 주·전체)을
+/// 따라가는데 챌린지는 언제나 이번 주라, 사이에 끼우면 한 세로줄에서 기준 기간이
+/// 말없이 바뀐다. 제목에 주 범위를 적는 것도 같은 이유다.
 class ExerciseChallengeProgress extends ConsumerWidget {
   const ExerciseChallengeProgress({super.key});
 
@@ -336,7 +257,9 @@ class ExerciseChallengeProgress extends ConsumerWidget {
               Expanded(
                 child: ChallengeProgressView(
                   challenge: challenge,
-                  title: l.challengeShort,
+                  title: l.challengeShortWithRange(
+                    challengeWeekRange(challenge),
+                  ),
                   showHint: false,
                 ),
               ),

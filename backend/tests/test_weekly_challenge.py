@@ -394,7 +394,9 @@ def test_success_rewards_200_once_after_the_week_ends(client, db_session, at):
     notices = _result_notifications(db_session, member_id)
     assert len(notices) == 1
     assert notices[0].title == "주간 챌린지 성공! 200P를 받았어요"
-    assert notices[0].category == "benefits"
+    # 결과는 포인트 사용처로 보낸다 — 다음 주 참가와 돌려받은 포인트가 그 화면에
+    # 있다. 내 혜택은 교환해 가진 것(쿠폰·보호권)만 둔다(#1789).
+    assert notices[0].category == "points_shop"
     assert "9월 14일~9월 20일" in notices[0].body
 
     # 새 주의 상태는 참가 전이다.
@@ -471,8 +473,11 @@ def test_reading_notifications_creates_the_result_notice(client, db_session, at)
     assert r.status_code == 200, r.text
     notices = [n for n in r.json() if n["title"].startswith("주간 챌린지")]
     assert len(notices) == 1
-    assert notices[0]["category"] == "benefits"
-    assert notices[0]["action"] == {"label": "내 혜택 보기", "target": "my_benefits"}
+    assert notices[0]["category"] == "points_shop"
+    assert notices[0]["action"] == {
+        "label": "포인트 사용처 보기",
+        "target": "points_shop",
+    }
 
     r = client.get("/v1/notifications", headers=h)
     assert len([n for n in r.json() if n["title"].startswith("주간 챌린지")]) == 1

@@ -12,7 +12,4 @@ abstract interface class ChallengeRepository {
   /// 이번 주 챌린지에 참가한다(포인트를 건다). [clientRequestId] 가 같은 재시도는
   /// 두 번 걸지 않는다. 규칙에 막히면(월·화요일 아님 등) 서버 오류로 올라온다.
   Future<ChallengeJoin> join({String? clientRequestId});
-
-  /// 내 챌린지 — 최근 주 먼저.
-  Future<List<Challenge>> fetchHistory();
 }

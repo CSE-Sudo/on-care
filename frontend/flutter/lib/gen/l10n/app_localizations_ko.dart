@@ -1181,19 +1181,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myBenefitsLoadFailed => '혜택을 불러오지 못했어요';
 
   @override
-  String get myBenefitsChallenges => '주간 챌린지';
-
-  @override
-  String get myBenefitsChallengesEmpty => '참가한 챌린지가 없어요';
-
-  @override
-  String get myBenefitsChallengesEmptyMessage => '포인트 사용처에서 이번 주 챌린지에 참가해 보세요.';
-
-  @override
   String get challengeTitle => '주간 운동 챌린지';
 
   @override
   String get challengeShort => '주간 챌린지';
+
+  @override
+  String challengeShortWithRange(String range) {
+    return '주간 챌린지 · $range';
+  }
 
   @override
   String challengeDescription(String stake, int goal, String reward) {

@@ -239,8 +239,9 @@ settled_at? }`. `status` 는 `active`|`succeeded`|`failed`, `rewarded` 는 받�
 - **늦은 판정** 스케줄러가 없어 `GET /me/challenges/weekly`, `GET /me/challenges`, `POST /me/challenges/weekly/join`,
   `GET /me/points/shop`, `GET /users/me/health`, `GET /notifications` 를 부를 때 끝난 주의 진행 중 챌린지를 판정한다.
   조건부 UPDATE 한 번이라 보상·결과 알림은 챌린지마다 한 번뿐이다.
-- **알림** 판정마다 결과 알림 한 건. `category` 는 `benefits`, `action` 은 `{ label: "내 혜택 보기", target: "my_benefits" }`.
-  수신 설정 스위치는 없다.
+- **알림** 판정마다 결과 알림 한 건. `category` 는 `points_shop`, `action` 은
+  `{ label: "포인트 사용처 보기", target: "points_shop" }` — 결과를 읽고 할 일(다음 주 참가·돌려받은 포인트 확인)이 그
+  화면에 있다. 내 혜택은 교환해 **가진 것**(쿠폰·보호권)만 두므로 챌린지를 싣지 않는다. 수신 설정 스위치는 없다.
 
 ### 일정 (캘린더 상세 CRUD)
 

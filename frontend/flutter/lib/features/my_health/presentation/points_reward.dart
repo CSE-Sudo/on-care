@@ -21,6 +21,5 @@ String? pointsRewardLabel(AppLocalizations l, PointsAward? award) =>
 void refreshPointsBalance(WidgetRef ref) {
   ref
     ..invalidate(myHealthStateProvider)
-    ..invalidate(weeklyChallengeProvider)
-    ..invalidate(myChallengesProvider);
+    ..invalidate(weeklyChallengeProvider);
 }

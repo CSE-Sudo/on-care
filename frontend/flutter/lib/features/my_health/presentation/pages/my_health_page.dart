@@ -552,7 +552,6 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       // 참가 기록·잔액·교환 가능 여부가 함께 바뀌었다. MY 잔액도 다시 읽는다.
       ref
         ..invalidate(weeklyChallengeProvider)
-        ..invalidate(myChallengesProvider)
         ..invalidate(pointsShopProvider)
         ..invalidate(myHealthStateProvider);
       showAppToast(

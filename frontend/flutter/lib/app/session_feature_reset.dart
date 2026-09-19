@@ -62,7 +62,6 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(myCouponsProvider);
       // 주간 챌린지(#1789) — 같은 이유로 앞 계정의 참가·진행이 남지 않게 한다.
       ref.invalidate(weeklyChallengeProvider);
-      ref.invalidate(myChallengesProvider);
       // 목 저장소는 읽음 처리를 세션 동안 기억한다 — 다시 만들지 않으면 앞
       // 계정의 읽음 상태로 시작한다(#1936).
       ref.invalidate(notificationRepositoryProvider);

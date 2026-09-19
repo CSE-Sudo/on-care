@@ -1,7 +1,11 @@
-/// 운동 현황의 주간 챌린지 진행 줄. (#1789)
+/// 운동 탭의 주간 챌린지 진행 줄. (#1789)
 ///
-/// 이번 주 챌린지에 참가했을 때만 `주간 챌린지  2 / 3회` 가 선다. 참가 전이거나
-/// 챌린지를 못 읽었으면 운동 현황은 예전 그대로다.
+/// 이번 주 챌린지에 참가했을 때만 `주간 챌린지 · 9.14~9.20  2 / 3회` 가 선다.
+/// 참가 전이거나 챌린지를 못 읽었으면 아무것도 그리지 않는다.
+///
+/// 이 줄은 `운동 현황`·`AI 맞춤 조언` **아래**에 선다 — 그 둘은 기간 토글을
+/// 따라가는데 챌린지는 언제나 이번 주라, 사이에 끼우면 기준 기간이 말없이
+/// 바뀐다. 그래서 운동 현황 위젯 안에는 없다.
 library;
 
 import 'package:flutter/material.dart';
@@ -11,6 +15,7 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
 import 'package:oncare/features/benefits/domain/repositories/challenge_repository.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
+import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_activity_status.dart';
@@ -54,7 +59,12 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           home: const Scaffold(
             body: SingleChildScrollView(
-              child: ExerciseActivityStatus(week: _week),
+              child: Column(
+                children: <Widget>[
+                  ExerciseActivityStatus(week: _week),
+                  ExerciseChallengeProgress(),
+                ],
+              ),
             ),
           ),
         ),
@@ -65,7 +75,7 @@ void main() {
 
   final Finder line = find.byKey(const Key('exerciseChallengeProgress'));
 
-  testWidgets('참가했으면 운동 현황 아래 진행을 보여 준다', (tester) async {
+  testWidgets('참가했으면 운동 현황·조언 아래 진행을 보여 준다', (tester) async {
     await pump(
       tester,
       FakeChallengeRepository(
@@ -79,9 +89,18 @@ void main() {
     );
 
     expect(line, findsOneWidget);
+    // 제목에 주 범위를 함께 적는다 — 위 카드들과 기준 기간이 다르기 때문이다.
     expect(
-      find.descendant(of: line, matching: find.text('주간 챌린지')),
+      find.descendant(of: line, matching: find.text('주간 챌린지 · 9.14~9.20')),
       findsOneWidget,
+    );
+    // 운동 현황 위젯 안에는 없다.
+    expect(
+      find.descendant(
+        of: find.byType(ExerciseActivityStatus),
+        matching: line,
+      ),
+      findsNothing,
     );
     expect(
       find.descendant(of: line, matching: find.text('2 / 3회')),

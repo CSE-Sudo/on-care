@@ -1218,20 +1218,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myBenefitsLoadFailed => 'Couldn\'t load benefits';
 
   @override
-  String get myBenefitsChallenges => 'Weekly challenges';
-
-  @override
-  String get myBenefitsChallengesEmpty => 'No challenges yet';
-
-  @override
-  String get myBenefitsChallengesEmptyMessage =>
-      'Join this week\'s challenge from Rewards.';
-
-  @override
   String get challengeTitle => 'Weekly workout challenge';
 
   @override
   String get challengeShort => 'Weekly challenge';
+
+  @override
+  String challengeShortWithRange(String range) {
+    return 'Weekly challenge · $range';
+  }
 
   @override
   String challengeDescription(String stake, int goal, String reward) {

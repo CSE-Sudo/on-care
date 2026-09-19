@@ -20,9 +20,3 @@ final weeklyChallengeProvider = FutureProvider.autoDispose<WeeklyChallenge>(
   (ref) => ref.watch(challengeRepositoryProvider).fetchWeekly(),
   name: 'weeklyChallenge',
 );
-
-/// 내 챌린지 — 내 혜택의 챌린지 구역.
-final myChallengesProvider = FutureProvider.autoDispose<List<Challenge>>(
-  (ref) => ref.watch(challengeRepositoryProvider).fetchHistory(),
-  name: 'myChallenges',
-);

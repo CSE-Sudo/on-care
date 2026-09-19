@@ -2216,24 +2216,6 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load benefits'**
   String get myBenefitsLoadFailed;
 
-  /// No description provided for @myBenefitsChallenges.
-  ///
-  /// In en, this message translates to:
-  /// **'Weekly challenges'**
-  String get myBenefitsChallenges;
-
-  /// No description provided for @myBenefitsChallengesEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No challenges yet'**
-  String get myBenefitsChallengesEmpty;
-
-  /// No description provided for @myBenefitsChallengesEmptyMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'Join this week\'s challenge from Rewards.'**
-  String get myBenefitsChallengesEmptyMessage;
-
   /// No description provided for @challengeTitle.
   ///
   /// In en, this message translates to:
@@ -2245,6 +2227,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weekly challenge'**
   String get challengeShort;
+
+  /// Title of the progress row in the exercise tab, naming the week it covers.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly challenge · {range}'**
+  String challengeShortWithRange(String range);
 
   /// Challenge card summary. stake and reward are point amounts such as 100P.
   ///

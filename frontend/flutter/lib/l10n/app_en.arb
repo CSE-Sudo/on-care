@@ -715,11 +715,13 @@
   "myBenefitsEmpty": "No coupons yet",
   "myBenefitsEmptyMessage": "Redeem your points for a coupon.",
   "myBenefitsLoadFailed": "Couldn't load benefits",
-  "myBenefitsChallenges": "Weekly challenges",
-  "myBenefitsChallengesEmpty": "No challenges yet",
-  "myBenefitsChallengesEmptyMessage": "Join this week's challenge from Rewards.",
   "challengeTitle": "Weekly workout challenge",
   "challengeShort": "Weekly challenge",
+  "challengeShortWithRange": "Weekly challenge · {range}",
+  "@challengeShortWithRange": {
+    "description": "Title of the progress row in the exercise tab, naming the week it covers.",
+    "placeholders": { "range": { "type": "String" } }
+  },
   "challengeDescription": "Stake {stake}, work out {goal} times this week, and get {reward} back",
   "@challengeDescription": {
     "description": "Challenge card summary. stake and reward are point amounts such as 100P.",

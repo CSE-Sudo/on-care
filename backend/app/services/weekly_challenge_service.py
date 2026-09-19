@@ -305,7 +305,7 @@ def settle_due(db: Session, member_id: str) -> int:
             db,
             member_id=member_id,
             kind=notification_service.WEEKLY_CHALLENGE,
-            category=notification_service.MEMBER_BENEFITS,
+            category=notification_service.MEMBER_POINTS_SHOP,
             title=title,
             body=body,
         )

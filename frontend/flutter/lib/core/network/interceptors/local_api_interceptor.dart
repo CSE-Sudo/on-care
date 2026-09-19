@@ -2787,10 +2787,19 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   /// 목업 알림의 행동 유도 — 서버 `_ACTION_BY_CATEGORY` 중 목업이 만드는 것만.
-  static Map<String, Object?>? _demoActionFor(String category) =>
-      category == 'benefits'
-      ? const <String, Object?>{'label': '내 혜택 보기', 'target': 'my_benefits'}
-      : null;
+  static Map<String, Object?>? _demoActionFor(String category) => switch (
+    category
+  ) {
+    'benefits' => const <String, Object?>{
+      'label': '내 혜택 보기',
+      'target': 'my_benefits',
+    },
+    'points_shop' => const <String, Object?>{
+      'label': '포인트 사용처 보기',
+      'target': 'points_shop',
+    },
+    _ => null,
+  };
 
   // ---- Places ----
 

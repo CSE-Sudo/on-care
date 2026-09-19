@@ -22,20 +22,14 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
-    container
-      ..listen(weeklyChallengeProvider, (_, _) {})
-      ..listen(myChallengesProvider, (_, _) {});
+    container.listen(weeklyChallengeProvider, (_, _) {});
 
     await container.read(weeklyChallengeProvider.future);
-    await container.read(myChallengesProvider.future);
     expect(repo.weeklyCalls, 1);
-    expect(repo.historyCalls, 1);
 
     container.read(sessionFeatureResetProvider)();
     await container.read(weeklyChallengeProvider.future);
-    await container.read(myChallengesProvider.future);
 
     expect(repo.weeklyCalls, 2);
-    expect(repo.historyCalls, 2);
   });
 }
