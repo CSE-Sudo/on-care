@@ -210,6 +210,19 @@
   "@dietFillFromDb": {
     "description": "Button that fills a food's fields with the suggested public-DB nutrition (#1896)"
   },
+  "dietFoodFilledFromDb": "Changed to public DB · {name}",
+  "@dietFoodFilledFromDb": {
+    "description": "Shown after renaming a food filled its fields with the same food's public-DB nutrition (#2107)",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "dietUndoFill": "Undo",
+  "@dietUndoFill": {
+    "description": "Button that puts a renamed food's fields back to what they were before the public-DB fill (#2107)"
+  },
+  "dietFoodNotInDb": "Not in the public food DB. Please check the nutrition.",
+  "@dietFoodNotInDb": {
+    "description": "Shown when a renamed food is not in the public DB, so its fields still hold the old food's values (#2107)"
+  },
   "@dietMealSheetTitle": {
     "placeholders": {
       "meal": {
