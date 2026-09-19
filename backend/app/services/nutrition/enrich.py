@@ -28,7 +28,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.schemas.diet import DietAnalysis, RecognizedFood
-from app.services.nutrition.matcher import match_in_rows
+from app.services.nutrition.matcher import find_in_rows, match_in_rows
 from app.services.nutrition.table import NutrientRow, load_rows
 
 
@@ -71,22 +71,26 @@ def apply_match(food: RecognizedFood, match: NutrientRow, grams: float) -> None:
 
 def lookup_by_name(
     db: Session, name: str, amount_g: float | None = None
-) -> tuple[NutrientRow, RecognizedFood] | None:
-    """이름으로 공공 DB 를 찾아 그 영양 한 벌을 만든다. 못 찾으면 None. (#1896)
+) -> tuple[NutrientRow, RecognizedFood, bool] | None:
+    """이름으로 공공 DB 를 찾아 (행, 영양 한 벌, 정확 일치인가). 못 찾으면 None. (#1896)
 
     양을 정할 수 없으면(인식기 추정도 없고 `serving_size_g` 도 모르면) 찾은
     셈 치지 않는다 — 임의로 1인분을 가정하지 않는 것은 위 폴백 원칙과 같다.
     확정할 수 없는 숫자를 "공공 DB 근거" 로 내주는 것이 여기서 제일 나쁘다.
+
+    정확 일치 여부는 수정 화면이 곧바로 채울지, 보여 주고 고르게 할지를 가른다
+    (#2107, `matcher.find_in_rows`). 매칭 자체는 분석 보정과 같은 것이다.
     """
-    match = match_in_rows(load_rows(db), name)
-    if match is None:
+    found = find_in_rows(load_rows(db), name)
+    if found is None:
         return None
+    match, exact = found
     food = RecognizedFood(name=name, amount_g=amount_g)
     grams = _grams(food, match)
     if grams is None:
         return None
     apply_match(food, match, grams)
-    return match, food
+    return match, food, exact
 
 
 def enrich_analysis(db: Session, analysis: DietAnalysis, enabled: bool = True) -> DietAnalysis:

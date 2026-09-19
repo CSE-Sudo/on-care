@@ -142,11 +142,12 @@ def _keys(rows) -> list[tuple[str, object]]:
 
 
 def _match(pairs, exact: list[str], head: str):
+    """(행, 정확 일치인가). 못 찾으면 None."""
     # 1) 정확 일치
     for q in exact:
         for key, row in pairs:
             if key == q:
-                return row
+                return row, True
 
     if len(head) < _MIN_PARTIAL:
         return None
@@ -158,20 +159,30 @@ def _match(pairs, exact: list[str], head: str):
         if _MIN_PARTIAL <= len(key) < len(head) and head.endswith(key)
     ]
     if tails:
-        return max(tails, key=lambda pair: len(pair[0]))[1]
+        return max(tails, key=lambda pair: len(pair[0]))[1], False
 
     # 3) 질의가 정확히 한 표 이름의 끝부분 → 유일할 때만
     containing = {
         id(row): row for key, row in pairs if len(key) > len(head) and key.endswith(head)
     }
     if len(containing) == 1:
-        return next(iter(containing.values()))
+        return next(iter(containing.values())), False
 
     return None
 
 
-def match_in_rows(rows, name: str):
-    """name 을 rows(각 원소는 .name_norm 속성 보유)에 매칭. 없으면 None."""
+def find_in_rows(rows, name: str):
+    """name 을 rows 에 매칭한 (행, 정확 일치인가). 없으면 None. (#2107)
+
+    **정확 일치**는 같은 음식이다 — 정규화한 이름·양 표기를 뗀 이름·끝 괄호를 뗀
+    이름이 표 이름이나 별칭과 같거나, 표기 변형(`계란` → `달걀`)으로 그렇게 된
+    경우다. 끝말·끝부분 일치(2·3단계)는 **비슷한 음식**이다: `야채비빔밥` 은
+    `비빔밥` 에 붙지만 같은 음식이라고 말할 수는 없다(위 #2096 점검에서 끝말로
+    붙은 646건 중 203건이 칼로리 50% 넘게 어긋났다).
+
+    사진 분석은 이 구분 없이 붙은 값을 쓴다 — 확인할 사람이 없어서다. 수정 화면은
+    회원이 있으니, 같은 음식이면 곧바로 채우고 비슷한 음식이면 보여 주고 고르게 한다.
+    """
     exact, head = _query_forms(name)
     if not exact:
         return None
@@ -192,6 +203,12 @@ def match_in_rows(rows, name: str):
             if found is not None:
                 return found
     return None
+
+
+def match_in_rows(rows, name: str):
+    """name 을 rows(각 원소는 .name_norm 속성 보유)에 매칭. 없으면 None."""
+    found = find_in_rows(rows, name)
+    return found[0] if found is not None else None
 
 
 def match_food(db, name: str):

@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.services.nutrition.matcher import match_in_rows, normalize
+from app.services.nutrition.matcher import find_in_rows, match_in_rows, normalize
 
 
 # ---------- 순수 유닛 ----------
@@ -117,6 +117,32 @@ def test_egg_spelling_variant():
     assert match_in_rows(rows, "계란 2개").name_norm == "달걀"
     assert match_in_rows(rows, "계란국").name_norm == "달걀국"
     assert match_in_rows(rows, "계란말이").name_norm == "달걀말이"
+
+
+def test_find_in_rows_tells_the_same_food_from_a_similar_one():
+    """같은 음식인가, 이름 끝말로 붙은 비슷한 음식인가. (#2107)
+
+    수정 화면은 같은 음식이면 곧바로 채우고 비슷한 음식이면 제안만 한다 — 끝말로
+    붙은 값은 틀린 경우가 많아 회원이 보고 골라야 한다.
+    """
+    rows = _rows("비빔밥", "공기밥", "달걀말이", "김치찌개")
+
+    def kind(query):
+        found = find_in_rows(rows, query)
+        return None if found is None else (found[0].name_norm, found[1])
+
+    # 이름·양 표기·끝 괄호·별칭·표기 변형은 같은 음식이다.
+    assert kind("비빔밥") == ("비빔밥", True)
+    assert kind("비빔밥 1그릇") == ("비빔밥", True)
+    assert kind("김치찌개(돼지고기)") == ("김치찌개", True)
+    assert kind("흰밥") == ("공기밥", True)
+    assert kind("계란말이") == ("달걀말이", True)
+    # 끝말만 같은 이름은 비슷한 음식이다.
+    assert kind("야채비빔밥") == ("비빔밥", False)
+    assert kind("점심에 먹은 김치찌개") == ("김치찌개", False)
+    assert kind("외계인 수프") is None
+    # 보정이 쓰는 `match_in_rows` 는 종류와 상관없이 같은 행을 준다.
+    assert match_in_rows(rows, "야채비빔밥").name_norm == "비빔밥"
 
 
 # ---------- 시드와 같은 행 구성 (#2096) ----------
