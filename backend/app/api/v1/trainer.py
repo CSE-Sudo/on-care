@@ -652,6 +652,7 @@ def trainer_client_exercise_week(
             ExerciseSession.week_start == week_start,
         )
     ).all()
+    # 회원 앱과 같은 연속 일수 — 운동만 센다.
     data = build_current_week(list(rows))
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == member_id)

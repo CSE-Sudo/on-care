@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
+from app.schemas.streak_shield_api import StreakShieldOut
+
 if TYPE_CHECKING:
     from app.services.points_service import PointsResult
 
@@ -15,6 +17,7 @@ class ShopItemOut(BaseModel):
 
     `blocked_reason`: 교환 버튼을 막는 이유 — `no_trainer`(담당 트레이너 없음)·
     `no_gym`(연결한 헬스장 없음)·`active_coupon`(사용하지 않은 같은 쿠폰 보유)·
+    `shield_limit`(쓰지 않은 연속 기록 보호권을 최대로 보유, #1788)·
     `monthly_limit`(이번 달에 이미 교환)·`insufficient_points`(잔액 부족) 순으로
     하나만. 교환할 수 있으면 null. `shortfall` 은 모자란 포인트로, 모자라지 않으면
     0 이다.
@@ -82,9 +85,14 @@ class CouponOut(BaseModel):
 
 
 class ExchangeOut(BaseModel):
-    """POST /me/points/exchange 응답 — 발급한 쿠폰, 쓴 포인트, 그 뒤의 잔액."""
+    """POST /me/points/exchange 응답 — 발급한 쿠폰, 쓴 포인트, 그 뒤의 잔액.
 
-    coupon: CouponOut
+    연속 기록 보호권(#1788)은 쿠폰이 아니라 `coupon` 이 null 이고 `shield` 에 받은
+    보호권이 온다. 두 칸 중 교환한 항목의 것 하나만 있다.
+    """
+
+    coupon: CouponOut | None = None
+    shield: StreakShieldOut | None = None
     spent: int
     balance: int
 

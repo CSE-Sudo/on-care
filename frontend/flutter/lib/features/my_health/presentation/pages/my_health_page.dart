@@ -14,6 +14,7 @@ import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connected_gym_card.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
@@ -504,6 +505,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         ..invalidate(pointsShopProvider)
         ..invalidate(myCouponsProvider)
         ..invalidate(myHealthStateProvider);
+      if (item.id == kStreakShieldItem) {
+        // 보호권(#1788)은 내 혜택의 보유 수와 운동 현황의 `보호권 쓰기` 를 바꾼다.
+        ref
+          ..invalidate(myStreakShieldsProvider)
+          ..invalidate(exerciseWeekProvider);
+      }
       showAppToast(
         context,
         l.myPointsExchangeDone,

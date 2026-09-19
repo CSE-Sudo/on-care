@@ -28,6 +28,7 @@ from app.api.v1 import (
     points,
     reservations,
     social,
+    streak_shields,
     system,
     trainer,
     trainers,
@@ -120,6 +121,8 @@ app.include_router(coach_docs.router, prefix=settings.api_v1_prefix)
 app.include_router(trainer.router, prefix=settings.api_v1_prefix)
 app.include_router(member_coach.router, prefix=settings.api_v1_prefix)
 app.include_router(points.router, prefix=settings.api_v1_prefix)
+# 연속 기록 보호권(#1788). 교환은 포인트 사용처(`points`)와 같은 경로다.
+app.include_router(streak_shields.router, prefix=settings.api_v1_prefix)
 app.include_router(consultations.router, prefix=settings.api_v1_prefix)
 app.include_router(reservations.router, prefix=settings.api_v1_prefix)
 # 회원앱 헬스장·트레이너 디렉터리(#324). trainer(단수, 트레이너 앱 전용)와 별개다.
