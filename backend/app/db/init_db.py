@@ -161,24 +161,41 @@ def _public_food_rows() -> list[dict]:
         ]
 
 
-def _curated_per_100g(items: list[dict]) -> list[dict]:
+_NUTRIENT_FIELDS = ("calories", "sodium_mg", "sugar_g", "carbs_g", "protein_g", "fat_g")
+
+
+def _curated_per_100g(items: list[dict], public: dict[str, dict] | None = None) -> list[dict]:
     """큐레이션 시드(1인분 기준)를 100g 기준으로 환산.
 
     `food_nutrients` 는 100g 기준이다(공공 원본이 전부 그 형태고, 포장 단위로
-    1인분 환산하면 대표값이 3~5배까지 튄다). 큐레이션 43종은 사람이 1인분으로
-    정리한 값이라 여기서 맞춰 넣는다 — `serving_size_g` 가 모두 있어 기계적으로
-    변환된다. 1회 섭취량 자체는 컬럼에 남겨 인식기가 양을 못 줬을 때 폴백으로
-    쓴다.
+    1인분 환산하면 대표값이 3~5배까지 튄다). 큐레이션은 사람이 1인분으로 정리한
+    값이라 여기서 맞춰 넣는다 — `serving_size_g` 가 모두 있어 기계적으로 변환된다.
+    1회 섭취량 자체는 컬럼에 남겨 인식기가 양을 못 줬을 때 폴백으로 쓴다.
+
+    `from_public` 이 있는 항목은 영양값을 적지 않고 그 이름의 공공 표준 행에서 100g 당
+    값을 가져온다(#2100) — 근거가 남은 값(분석·업체 표시)이 있으면 그것을 쓰고, 큐레이션은
+    이름과 1회 섭취량만 정한다. `public` 은 정규화 이름 → 공공 행이다.
     """
+    from app.services.nutrition.matcher import normalize
+
     scaled: list[dict] = []
     for item in items:
         serving = item.get("serving_size_g")
         if not serving or serving <= 0:
             # 환산 기준이 없으면 값의 의미가 불분명해진다 — 넣지 않는다.
             continue
+        out = {k: v for k, v in item.items() if k != "from_public"}
+        source = item.get("from_public")
+        if source:
+            row = (public or {}).get(normalize(source))
+            if row is None:
+                raise ValueError(f"큐레이션 {item['name']} 의 from_public 행이 없다: {source}")
+            for field in _NUTRIENT_FIELDS:
+                out[field] = row.get(field)
+            scaled.append(out)
+            continue
         factor = 100.0 / float(serving)
-        out = dict(item)
-        for field in ("calories", "sodium_mg", "sugar_g", "carbs_g", "protein_g", "fat_g"):
+        for field in _NUTRIENT_FIELDS:
             value = item.get(field)
             if value is not None:
                 out[field] = round(float(value) * factor, 2)
@@ -190,14 +207,20 @@ def _food_nutrient_seed_rows() -> list[dict]:
     """`food_nutrients` 에 들어갈 행. name_norm 은 매칭기와 동일 규칙으로 생성.
 
     큐레이션을 **먼저** 넣고, 공공 표준데이터 집계본에서 이름이 겹치는 것은
-    건너뛴다. 큐레이션 값은 사람이 따로 검증한 대표값이라 공공 집계보다 우선한다.
+    건너뛴다. 큐레이션은 이름·1회 섭취량을 정하고, 영양값은 근거가 있는 공공 행에서
+    가져오거나(`from_public`) 출처를 적어 직접 둔다.
     """
     from app.data.food_nutrients_seed import FOOD_NUTRIENTS
     from app.services.nutrition.matcher import normalize
 
+    public = _public_food_rows()
+    by_norm: dict[str, dict] = {}
+    for row in public:
+        by_norm.setdefault(normalize(row["name"]), row)
+
     rows: list[dict] = []
     seen: set[str] = set()
-    for item in [*_curated_per_100g(FOOD_NUTRIENTS), *_public_food_rows()]:
+    for item in [*_curated_per_100g(FOOD_NUTRIENTS, by_norm), *public]:
         norm = normalize(item["name"])
         # 매칭은 name_norm 으로 하므로 중복 norm 은 조회를 모호하게 만든다.
         if not norm or norm in seen:
@@ -208,9 +231,9 @@ def _food_nutrient_seed_rows() -> list[dict]:
             "name_norm": norm,
             "category": item.get("category", ""),
             "serving_size_g": item.get("serving_size_g"),
-            "calories": item.get("calories", 0),
-            "sodium_mg": item.get("sodium_mg", 0),
-            "sugar_g": item.get("sugar_g", 0),
+            "calories": item.get("calories") or 0,
+            "sodium_mg": item.get("sodium_mg") or 0,
+            "sugar_g": item.get("sugar_g") or 0,
             "carbs_g": item.get("carbs_g"),
             "protein_g": item.get("protein_g"),
             "fat_g": item.get("fat_g"),

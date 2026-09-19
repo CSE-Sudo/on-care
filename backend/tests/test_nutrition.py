@@ -123,25 +123,17 @@ def test_egg_spelling_variant():
 
 @lru_cache(maxsize=1)
 def _seed_rows():
-    """`init_db._seed_food_nutrients` 가 만드는 것과 같은 행 — DB 없이."""
-    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
-    from app.db.init_db import _curated_per_100g, _public_food_rows
+    """`init_db._seed_food_nutrients` 가 넣는 것과 같은 행 — DB 없이."""
+    from app.db.init_db import _food_nutrient_seed_rows
     from app.services.nutrition.table import NutrientRow
 
-    rows, seen = [], set()
-    for i, item in enumerate([*_curated_per_100g(FOOD_NUTRIENTS), *_public_food_rows()]):
-        norm = normalize(item["name"])
-        if not norm or norm in seen:
-            continue
-        seen.add(norm)
-        rows.append(NutrientRow(
-            id=i, name=item["name"], name_norm=norm, category=item.get("category", ""),
-            serving_size_g=item.get("serving_size_g"), calories=item.get("calories", 0),
-            sodium_mg=item.get("sodium_mg", 0), sugar_g=item.get("sugar_g", 0),
-            carbs_g=item.get("carbs_g"), protein_g=item.get("protein_g"),
-            fat_g=item.get("fat_g"),
-        ))
-    return tuple(rows)
+    return tuple(
+        NutrientRow(id=i, **{k: row[k] for k in (
+            "name", "name_norm", "category", "serving_size_g", "calories", "sodium_mg",
+            "sugar_g", "carbs_g", "protein_g", "fat_g",
+        )})
+        for i, row in enumerate(_food_nutrient_seed_rows())
+    )
 
 
 @pytest.mark.parametrize(("name", "expected"), [
@@ -191,10 +183,12 @@ def test_curated_rows_carry_macros_that_add_up_to_calories():
     from app.data.food_nutrients_seed import FOOD_NUTRIENTS
     from app.db.init_db import _curated_per_100g
 
-    for row in _curated_per_100g(FOOD_NUTRIENTS):
+    own = [item for item in FOOD_NUTRIENTS if "from_public" not in item]
+    for row in _curated_per_100g(own):
         macros = (row.get("carbs_g"), row.get("protein_g"), row.get("fat_g"))
         assert None not in macros, row["name"]
-        if row["calories"] < 20:   # 아메리카노 — 열량이 탄·단·지에서 오지 않는다
+        # 아메리카노(열량이 탄·단·지에서 오지 않는다)·술(열량 대부분이 알코올)
+        if row["calories"] < 20 or row["category"] == "주류":
             continue
         atwater = macros[0] * 4 + macros[1] * 4 + macros[2] * 9
         assert atwater == pytest.approx(row["calories"], rel=0.12), row["name"]
@@ -237,7 +231,8 @@ def test_seed_resyncs_a_running_db_when_seed_data_changes(db_session):
     _seed_food_nutrients()
 
     db_session.expire_all()
-    assert match_food(db_session, "김치찌개").calories == pytest.approx(62.5)
+    seed = next(r for r in _food_nutrient_seed_rows() if r["name_norm"] == "김치찌개")
+    assert match_food(db_session, "김치찌개").calories == pytest.approx(seed["calories"])
     stored = db_session.get(ReferenceDataVersion, "food_nutrients")
     assert stored.fingerprint == _fingerprint(_food_nutrient_seed_rows())
 
@@ -282,30 +277,6 @@ def _migration_0075():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
-
-
-def test_migration_carries_the_seed_values():
-    """새로 만든 DB(시드)와 이미 떠 있는 DB(마이그레이션)의 숫자가 같아야 한다."""
-    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
-    from app.db.init_db import _curated_per_100g
-
-    migration = _migration_0075()
-    macros = {m[0]: m[1:] for m in migration.MACROS}
-    new_rows = {r["name_norm"]: r for r in migration.NEW_ROWS}
-    had_macros = {"요거트아이스크림", "과일토핑", "그래놀라토핑"}
-
-    for row in _curated_per_100g(FOOD_NUTRIENTS):
-        norm = normalize(row["name"])
-        if norm in had_macros:
-            continue
-        if norm in new_rows:
-            new = new_rows.pop(norm)
-            assert {k: new[k] for k in row} == row, row["name"]
-        else:
-            assert macros.pop(norm) == (
-                row["calories"], row["carbs_g"], row["protein_g"], row["fat_g"]
-            ), row["name"]
-    assert not macros and not new_rows       # 시드에 없는 값이 남지 않는다
 
 
 def test_migration_fills_an_already_seeded_table(db_session):
@@ -745,14 +716,32 @@ def test_enrich_keeps_fractional_sugar(db_session):
 
 
 def test_curated_seed_wins_over_public_data(db_session):
-    """큐레이션 값은 사람이 따로 검증한 대표값이라 같은 이름의 공공 집계보다 우선한다."""
+    """큐레이션 값은 같은 이름의 공공 집계보다 우선한다 — 공공 쪽이 레시피 계산값뿐일 때다."""
     from app.services.nutrition.matcher import match_food
 
-    ramen = match_food(db_session, "라면")
-    assert ramen is not None
-    # 큐레이션 1,800mg/550g → 100g 당 327.3
-    assert round(ramen.sodium_mg, 1) == 327.3
+    jjajang = match_food(db_session, "짜장면")
+    assert jjajang is not None
+    # 큐레이션 2,400mg/650g → 100g 당 369.2. 공공 짜장면은 계산값 295mg 이다.
+    assert round(jjajang.sodium_mg, 1) == 369.2
     assert match_food(db_session, "가공우유") is not None   # 가공식품 데이터셋
+
+
+def test_curated_from_public_takes_the_public_values():
+    """근거 있는 공공 값이 있으면 큐레이션은 이름과 1회 섭취량만 정한다(#2100)."""
+    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
+    from app.db.init_db import _public_food_rows
+
+    public = {normalize(r["name"]): r for r in _public_food_rows()}
+    rows = {r.name: r for r in _seed_rows()}
+    linked = [item for item in FOOD_NUTRIENTS if "from_public" in item]
+    assert linked
+    for item in linked:
+        source = public[normalize(item["from_public"])]
+        row = rows[item["name"]]
+        assert (row.calories, row.sodium_mg, row.protein_g) == (
+            source["calories"], source["sodium_mg"], source["protein_g"]
+        ), item["name"]
+        assert row.serving_size_g == item["serving_size_g"], item["name"]
 
 
 def test_import_reads_weight_units_explicitly():
