@@ -7,11 +7,13 @@ DB 초기화 + 데모 데이터 시드.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 
 from pathlib import Path
 
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -184,43 +186,94 @@ def _curated_per_100g(items: list[dict]) -> list[dict]:
     return scaled
 
 
-def _seed_food_nutrients() -> None:
-    """공공 식품영양성분 DB 시드(멱등). name_norm 은 매칭기와 동일 규칙으로 생성.
+def _food_nutrient_seed_rows() -> list[dict]:
+    """`food_nutrients` 에 들어갈 행. name_norm 은 매칭기와 동일 규칙으로 생성.
 
-    큐레이션 43종을 **먼저** 넣고, 공공 표준데이터 집계본에서 이름이 겹치는
-    것은 건너뛴다. 큐레이션 값은 고혈압·당뇨 관점으로 따로 검증한 것이라
-    공식 중앙값보다 우선한다 — 라면 나트륨이 큐레이션 1,800mg vs 공식 452mg
-    처럼 크게 갈리는 항목이 있고, 후자는 급식 라면이 섞인 결과로 보인다.
+    큐레이션을 **먼저** 넣고, 공공 표준데이터 집계본에서 이름이 겹치는 것은
+    건너뛴다. 큐레이션 값은 사람이 따로 검증한 대표값이라 공공 집계보다 우선한다.
     """
     from app.data.food_nutrients_seed import FOOD_NUTRIENTS
     from app.services.nutrition.matcher import normalize
 
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for item in [*_curated_per_100g(FOOD_NUTRIENTS), *_public_food_rows()]:
+        norm = normalize(item["name"])
+        # 매칭은 name_norm 으로 하므로 중복 norm 은 조회를 모호하게 만든다.
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+        rows.append({
+            "name": item["name"],
+            "name_norm": norm,
+            "category": item.get("category", ""),
+            "serving_size_g": item.get("serving_size_g"),
+            "calories": item.get("calories", 0),
+            "sodium_mg": item.get("sodium_mg", 0),
+            "sugar_g": item.get("sugar_g", 0),
+            "carbs_g": item.get("carbs_g"),
+            "protein_g": item.get("protein_g"),
+            "fat_g": item.get("fat_g"),
+        })
+    return rows
+
+
+def _fingerprint(rows: list[dict]) -> str:
+    payload = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+_FOOD_NUTRIENTS_VERSION = "food_nutrients"
+
+
+def _seed_food_nutrients() -> None:
+    """`food_nutrients` 를 시드 데이터와 맞춘다(멱등). (#2100)
+
+    예전에는 표가 비었을 때만 채워서, 큐레이션 값이나 공공 표준 집계본을 고쳐도
+    이미 떠 있는 DB 에는 닿지 않았다. 이제 시드 행으로 만든 지문을
+    `reference_data_versions` 에 적어 두고, 다르면 표를 **통째로** 새 시드로 바꾼다.
+    읽기 전용 참조표이고 다른 표가 참조하지 않으므로(행 id 도 저장하는 곳이 없다)
+    통째로 바꿔도 회원 기록에 영향이 없다.
+
+    같은 DB 를 쓰는 인스턴스가 동시에 뜨면 advisory lock 으로 한 곳만 바꾸고,
+    나머지는 lock 을 얻은 뒤 지문을 다시 읽어 그대로 둔다.
+    """
+    from app.services.nutrition.table import invalidate
+
+    rows = _food_nutrient_seed_rows()
+    fingerprint = _fingerprint(rows)
+
+    def up_to_date(db: Session) -> bool:
+        stored = db.get(models.ReferenceDataVersion, _FOOD_NUTRIENTS_VERSION)
+        return (
+            stored is not None
+            and stored.fingerprint == fingerprint
+            and db.scalar(select(models.FoodNutrient.id).limit(1)) is not None
+        )
+
     db: Session = SessionLocal()
     try:
-        if db.scalar(select(models.FoodNutrient).limit(1)):
+        if up_to_date(db):
             return
-        seen: set[str] = set()
-        for item in [*_curated_per_100g(FOOD_NUTRIENTS), *_public_food_rows()]:
-            norm = normalize(item["name"])
-            # 매칭은 name_norm 으로 하므로 중복 norm 은 조회를 모호하게 만든다.
-            if not norm or norm in seen:
-                continue
-            seen.add(norm)
-            db.add(models.FoodNutrient(
-                name=item["name"],
-                name_norm=norm,
-                category=item.get("category", ""),
-                serving_size_g=item.get("serving_size_g"),
-                calories=item.get("calories", 0),
-                sodium_mg=item.get("sodium_mg", 0),
-                sugar_g=item.get("sugar_g", 0),
-                carbs_g=item.get("carbs_g"),
-                protein_g=item.get("protein_g"),
-                fat_g=item.get("fat_g"),
-            ))
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+            {"key": "seed:food_nutrients"},
+        )
+        db.expire_all()
+        if up_to_date(db):
+            db.rollback()
+            return
+        db.execute(delete(models.FoodNutrient))
+        db.add_all(models.FoodNutrient(**row) for row in rows)
+        db.merge(models.ReferenceDataVersion(
+            name=_FOOD_NUTRIENTS_VERSION, fingerprint=fingerprint
+        ))
         db.commit()
     finally:
         db.close()
+    # 표를 Core `DELETE` 로 비웠으므로 캐시 무효화 훅만 믿지 않고 직접 비운다.
+    invalidate()
+    logger.info("food_nutrients 를 시드 데이터로 다시 맞췄다(%d행)", len(rows))
 
 
 def _public_exercise_rows() -> list[dict]:

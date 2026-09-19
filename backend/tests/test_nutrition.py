@@ -204,6 +204,66 @@ def test_aliases_point_at_seeded_rows():
         assert normalize(alias) not in names, alias
 
 
+# ---------- 시드 동기화 (#2100) ----------
+
+def _id_range(db):
+    from sqlalchemy import text
+
+    return tuple(db.execute(text("SELECT min(id), max(id) FROM food_nutrients")).one())
+
+
+def test_seed_resyncs_a_running_db_when_seed_data_changes(db_session):
+    """시드를 고쳐도 떠 있는 DB 에 닿지 않던 문제 — 지문이 다르면 통째로 다시 맞춘다."""
+    from sqlalchemy import text
+
+    from app.db.init_db import _fingerprint, _food_nutrient_seed_rows, _seed_food_nutrients
+    from app.models.models import ReferenceDataVersion
+    from app.services.nutrition.matcher import match_food
+
+    # 옛 시드로 채워진 DB: 값이 다르고 지문도 옛것이다.
+    db_session.execute(text("UPDATE food_nutrients SET calories = 1 WHERE name_norm = '김치찌개'"))
+    db_session.execute(text(
+        "UPDATE reference_data_versions SET fingerprint = 'stale' WHERE name = 'food_nutrients'"
+    ))
+    db_session.commit()
+
+    _seed_food_nutrients()
+
+    db_session.expire_all()
+    assert match_food(db_session, "김치찌개").calories == pytest.approx(62.5)
+    stored = db_session.get(ReferenceDataVersion, "food_nutrients")
+    assert stored.fingerprint == _fingerprint(_food_nutrient_seed_rows())
+
+
+def test_seed_leaves_the_table_alone_when_seed_data_is_unchanged(db_session):
+    """기동할 때마다 표를 갈아엎으면 안 된다 — 통째로 바꾸면 행 id 가 새로 매겨진다."""
+    from app.db.init_db import _seed_food_nutrients
+
+    _seed_food_nutrients()
+    before = _id_range(db_session)
+    _seed_food_nutrients()
+    db_session.expire_all()
+    assert _id_range(db_session) == before
+
+
+def test_seed_resyncs_a_db_that_has_no_fingerprint_yet(db_session):
+    """0076 직후 첫 기동: 지문이 없으니 한 번 다시 맞춘다 — 떠 있는 DB 가 새 값을 받는 경로."""
+    from sqlalchemy import text
+
+    from app.db.init_db import _seed_food_nutrients
+    from app.models.models import ReferenceDataVersion
+
+    db_session.execute(text("DELETE FROM reference_data_versions WHERE name = 'food_nutrients'"))
+    db_session.commit()
+    before = _id_range(db_session)
+
+    _seed_food_nutrients()
+
+    db_session.expire_all()
+    assert _id_range(db_session) != before
+    assert db_session.get(ReferenceDataVersion, "food_nutrients") is not None
+
+
 # ---------- 이미 떠 있는 DB 반영 (#2096 마이그레이션) ----------
 
 def _migration_0075():
@@ -617,7 +677,7 @@ def test_enrich_keeps_fractional_sugar(db_session):
 
 
 def test_curated_seed_wins_over_public_data(db_session):
-    """큐레이션 40종은 고혈압·당뇨 관점으로 따로 검증한 값이라 우선한다."""
+    """큐레이션 값은 사람이 따로 검증한 대표값이라 같은 이름의 공공 집계보다 우선한다."""
     from app.services.nutrition.matcher import match_food
 
     ramen = match_food(db_session, "라면")
