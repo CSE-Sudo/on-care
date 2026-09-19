@@ -510,6 +510,35 @@ def test_import_counts_duplicated_canteen_rows_once():
     assert out["calories"] >= 300
 
 
+def _raw_ml(name, rep, kcal, na, method="수집", cat="식용유지류", weight="500ml"):
+    r = _raw_full(name, kcal, na, "0", "0", "0", "91")
+    r.update({"대표식품명": rep, "식품대분류명": cat, "영양성분함량기준량": "100ml",
+              "데이터생성방법명": method, "식품중량": weight, "식품기원명": "가공식품"})
+    return r
+
+
+def test_import_converts_100ml_values_to_100g():
+    """앱은 그램을 곱한다 — 100ml 값을 100g 값으로 쓰면 식용유 열량이 8% 작다(밀도 0.92)."""
+    from scripts.import_food_nutrients import aggregate
+
+    [oil] = aggregate([_raw_ml("올리브유_가", "올리브유", "828", "0")], "가공식품")
+    assert oil["calories"] == pytest.approx(900.0, abs=0.1)        # 828 ÷ 0.92
+    assert oil["serving_size_g"] == pytest.approx(460.0)           # 500ml × 0.92
+
+    [ice] = aggregate([_raw_ml("바닐라콘", "아이스크림", "112", "40", cat="빙과류")], "가공식품")
+    assert ice["calories"] == pytest.approx(200.0, abs=0.1)        # 공기가 들어 밀도 0.56
+
+
+def test_import_leaves_ml_rows_without_a_density_source():
+    """FAO 밀도 자료에 없는 것(식초)과 급식 계산값의 형식상 100ml 는 그대로 둔다."""
+    from scripts.import_food_nutrients import aggregate
+
+    [vinegar] = aggregate([_raw_ml("현미식초", "식초", "20", "5", cat="조미식품")], "가공식품")
+    assert vinegar["calories"] == 20.0
+    [canteen] = aggregate([_raw_ml("우유", "우유", "65", "40", method="산출", cat="유제품류")], "음식")
+    assert canteen["calories"] == 65.0
+
+
 def test_import_skips_rows_without_energy():
     """보정 값으로 쓸 수 없는 행은 버린다."""
     from scripts.import_food_nutrients import aggregate

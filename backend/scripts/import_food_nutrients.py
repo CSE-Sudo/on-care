@@ -135,6 +135,7 @@ _OUT_COLUMNS = [
 #: 메모리에 들어간다.
 _USED_COLUMNS = (
     "식품명",
+    "영양성분함량기준량",
     "대표식품명",
     "식품기원명",
     "데이터생성방법명",
@@ -350,13 +351,76 @@ def _representative(group: list[dict[str, str]]) -> dict[str, str] | None:
     return min(rows, key=lambda r: (distance(r), _number(r["에너지(kcal)"])))
 
 
+#: 100ml 기준 값을 100g 기준으로 바꿀 밀도(g/ml). 값은 FAO/INFOODS Density Database
+#: v2.0(2012)에 실린 같은 종류 항목들의 중앙값이다 — 괄호 안이 그 항목과 범위.
+#: 위에서부터 처음 맞는 규칙을 쓴다(대표식품명, 없으면 식품대분류명).
+#:
+#: FAO 에 항목이 없는 식초·케첩·기타 소스·액젓·소주·막걸리·빙과는 환산하지 않는다 —
+#: 근거 없는 밀도로 바꾸는 것보다 1.0 으로 두는 편이 오차를 설명할 수 있다.
+_DENSITY_RULES: tuple[tuple[re.Pattern[str], float], ...] = (
+    (re.compile(r"아이스크림|아이스밀크"), 0.56),   # Ice cream 8종 0.51~0.62
+    (re.compile(r"마요네즈"), 0.91),               # Mayonnaise, traditional
+    (re.compile(r"두유"), 1.05),                   # Soy drink·Soya+milk 1.05~1.08
+    (re.compile(r"가공우유"), 1.06),               # Milk, chocolate milk 1.056
+    (re.compile(r"발효유|요구르트|요거트"), 1.06),  # Yoghurt 6종 1.03~1.08
+    (re.compile(r"우유"), 1.03),                   # Milk, liquid 6종 1.030~1.036
+    (re.compile(r"주스|과.채음료|탄산음료"), 1.04),  # Fruit juice 1.04, Cola 1.04
+    (re.compile(r"드레싱"), 1.10),                 # Salad dressing
+    (re.compile(r"간장"), 1.12),                   # Sauce, soy
+    (re.compile(r"시럽|물엿|올리고당|조청|당류가공품"), 1.32),  # Syrup 7종 1.18~1.40
+    (re.compile(r"^잼$"), 1.38),                   # Jam 1.333~1.43
+    (re.compile(r"증류주|위스키|고량주|보드카|브랜디|^럼$"), 0.95),  # Spirits, 40% alcohol
+)
+_DENSITY_BY_CATEGORY = {"식용유지류": 0.92}        # Oil 6종 0.914~0.927
+
+
+def _density(row: dict[str, str]) -> float | None:
+    name = (row.get("대표식품명") or "").strip()
+    for pattern, density in _DENSITY_RULES:
+        if pattern.search(name):
+            return density
+    return _DENSITY_BY_CATEGORY.get((row.get("식품대분류명") or "").strip())
+
+
+def _per_100g(row: dict[str, str]) -> dict[str, str]:
+    """100ml 기준 행을 100g 기준으로. 밀도를 모르거나 이미 100g 이면 그대로.
+
+    앱은 **그램**을 곱한다(`amount_g`). 100ml 값을 100g 값으로 쓰면 식용유는 열량이
+    8% 작고, 아이스크림은 절반 가까이 작고(공기가 들어 밀도 0.56), 간장은 나트륨이
+    12% 크다.
+
+    급식 계산값(`데이터생성방법명` 산출)의 100ml 는 환산하지 않는다. 3,140행 전부가
+    음식 종류와 상관없이 100ml 로 적혀 있어(밥·나물까지) 실제 부피 기준이 아니다.
+    """
+    if (row.get("영양성분함량기준량") or "").strip().lower() != "100ml":
+        return row
+    if (row.get("데이터생성방법명") or "").strip() == "산출":
+        return row
+    density = _density(row)
+    if density is None:
+        return row
+    out = dict(row)
+    for column in _NUTRIENT_COLUMNS:
+        v = _number(row.get(column, ""))
+        if v is not None:
+            out[column] = str(v / density)
+    # 1회 섭취량 힌트도 같은 밀도로 그램이 된다(`_weight_g` 는 ml 를 g 로 읽는다).
+    weight = _WEIGHT.match(row.get("식품중량") or "")
+    if weight and weight.group(2).lower() in {"ml", "m", "l"}:
+        grams = _weight_g(row["식품중량"])
+        if grams is not None:
+            out["식품중량"] = f"{grams * density}g"
+    out["영양성분함량기준량"] = "100g"
+    return out
+
+
 def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object]]:
     """원본 행 → 대표식품 단위 **100g 기준** 집계."""
     groups: dict[str, list[dict[str, str]]] = {}
     for row in rows:
         name = (row.get("대표식품명") or "").strip()
         if name:
-            groups.setdefault(name, []).append(row)
+            groups.setdefault(name, []).append(_per_100g(row))
 
     out: list[dict[str, object]] = []
     for name, group in sorted(groups.items()):
