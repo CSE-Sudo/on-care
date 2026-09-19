@@ -19,7 +19,9 @@
 `source="db"` 로 표시돼 사용자에게 "공공 DB 근거" 라는 더 높은 신뢰 신호를
 주므로, 추정치를 그대로 두는 편이 낫다(matcher 의 폴백 원칙과 같다).
 다만 `serving_size_g` 가 **알려진** 항목에 한해 그 값을 폴백으로 쓴다 —
-큐레이션 43종과 음식 데이터셋처럼 1회 섭취량이 실제로 확인된 경우다.
+식약처 「식품등의 표시기준」 1회 섭취참고량이나 가정식 분석 1인분처럼 근거가 있고,
+100g 당 값과 같은 조리 상태의 무게인 경우다(#2102, `scripts/import_food_nutrients`·
+`app/data/food_nutrients_seed` 설명). 근거가 없으면 비워 두어 여기서 추정치로 남는다.
 """
 from __future__ import annotations
 
