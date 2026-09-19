@@ -5,9 +5,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 회원앱 아이콘 목록(#1803) — 회원앱 화면이 쓰는 아이콘은 모두 여기서 고른다.
 ///
 /// 한 세트(Material Symbols Rounded)에서만 고르고, 모양은 [oncare] 가 정한다:
-/// 채움(FILL 1)·굵기 400·등급 0, 광학 크기는 그리는 크기(20~48)를 따른다. 운동
-/// 아이콘([exercise])만 굵기 300 으로 얇다. 그리는 쪽은 `Icon` 대신 [AppIcon] 을
-/// 써야 이 모양이 실린다.
+/// 채움(FILL 1)·굵기 400·등급 0, 광학 크기는 그리는 크기(20~48)를 따른다.
+/// 그리는 쪽은 `Icon` 대신 [AppIcon] 을 써야 이 모양이 실린다.
 ///
 /// 이름은 모양이 아니라 화면에서의 뜻으로 짓는다. 같은 모양을 뜻에 따라 다른
 /// 이름으로 부를 수 있다([gym] 은 [exercise] 와 같은 모양). 화면 코드에서
@@ -19,19 +18,18 @@ class AppIcons {
   static const IconData home = Symbols.home_rounded;
   static const IconData diet = Symbols.restaurant_rounded;
 
-  /// 운동 — 이 목록에서 유일하게 굵기 300 이다([oncare] 의 예외).
-  static const IconData exercise = Symbols.exercise_rounded;
+  /// 운동 — 근력·헬스장과 공유하는 덤벨 하나, 기본 굵기 400.
+  static const IconData exercise = Symbols.fitness_center_rounded;
   static const IconData my = Symbols.person_rounded;
 
   // --- 운동 ---
   /// 헬스장·소속. 운동 아이콘과 같은 모양이라 굵기도 같다.
   static const IconData gym = exercise;
 
-  /// 운동 유형 `근력`. 운동 그래프 링 12시에 **작게(≈14px)** 얹히는 자리라,
-  /// 획이 겹친 [exercise](덤벨 두 개)를 채우면 틈이 사라져 덩어리로 뭉친다.
-  /// 획이 단순한 덤벨 한 개로 둔다 — #1803 전 회원앱과 지금 트레이너웹이 같은
-  /// 링에서 쓰는 그림이다. (#1866)
-  static const IconData strength = Symbols.fitness_center_rounded;
+  /// 운동 유형 `근력`. 링 12시의 작은(≈14px) 자리에서도 뭉치지 않는
+  /// 덤벨 한 개를 [exercise]와 공유하고 기본 굵기 400을 쓴다.
+  /// (#1866, #2070)
+  static const IconData strength = exercise;
   static const IconData running = Symbols.directions_run_rounded;
   static const IconData flexibility = Symbols.self_improvement_rounded;
   static const IconData calories = Symbols.local_fire_department_rounded;
@@ -159,6 +157,5 @@ class AppIcons {
     grade: 0,
     minOpticalSize: 20,
     maxOpticalSize: 48,
-    weightOverrides: <OnCareIconWeight>[OnCareIconWeight(exercise, 300)],
   );
 }

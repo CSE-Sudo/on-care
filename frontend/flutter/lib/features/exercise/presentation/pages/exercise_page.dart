@@ -603,9 +603,9 @@ class _ExerciseDayDetail extends StatelessWidget {
             if (routineSessions.isNotEmpty)
               _DayRecordCard(
                 key: const ValueKey<String>('exercise-routine-records'),
-                // 오늘 화면의 `추천 개인운동` 과 같은 어휘·같은 아이콘이다.
+                // 지난 날의 완료 기록은 공통 운동 아이콘으로 묶는다(#2070).
                 title: l.exCompletedRoutineDayTitle,
-                icon: AppIcons.running,
+                icon: AppIcons.exercise,
                 sessions: routineSessions,
               ),
           ],

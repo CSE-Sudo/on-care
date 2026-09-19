@@ -384,6 +384,11 @@ void main() {
 
     final Finder coaching = find.byType(AiCoachingCard);
     expect(
+      find.descendant(of: coaching, matching: find.byIcon(AppIcons.running)),
+      findsOneWidget,
+      reason: '추천 개인운동 헤더는 기존 달리기 아이콘을 유지한다',
+    );
+    expect(
       find.descendant(of: coaching, matching: find.byIcon(AppIcons.routine)),
       findsNothing,
     );
