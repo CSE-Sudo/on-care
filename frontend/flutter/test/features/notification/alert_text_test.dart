@@ -25,7 +25,7 @@ void main() {
         (AlertItem a) => a.messageKey == kDemoAlertSodium,
       );
       expect(alertText(en, sodium).title, 'Watch your sodium');
-      expect(alertText(en, sodium).body, contains('3,428mg'));
+      expect(alertText(en, sodium).body, contains('4,657mg'));
       expect(alertText(ko, sodium).title, '나트륨 섭취 주의');
     });
 

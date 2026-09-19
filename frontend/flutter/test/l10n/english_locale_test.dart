@@ -34,12 +34,7 @@ import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
-import 'package:oncare/features/schedule/domain/entities/schedule_event.dart';
-import 'package:oncare/features/schedule/presentation/controllers/schedule_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
-import 'package:oncare/shared/widgets/modals/add_event_dialog.dart';
-import 'package:oncare/shared/widgets/modals/day_events_sheet.dart';
-import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 
 const AppConfig _mockConfig = AppConfig(
   environment: Environment.dev,
@@ -102,85 +97,6 @@ void main() {
     );
   }
 
-  // ── 일정 계열 — 이번에 문구 계층을 손댄 자리 ─────────────────────────────
-
-  testWidgets('일정 추가 대화상자에 한글이 남지 않는다', (WidgetTester tester) async {
-    await pump(
-      tester,
-      Builder(
-        builder: (BuildContext context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              onPressed: () => showAddEventDialog(context),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      ),
-      lang: 'en',
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-
-    expectNoHangul(tester, '일정 추가 대화상자');
-  });
-
-  testWidgets('그 날의 일정 시트에 한글이 남지 않는다', (WidgetTester tester) async {
-    await pump(
-      tester,
-      Builder(
-        builder: (BuildContext context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              // 일정이 없는 날 — 남는 것은 앱이 쓴 문구뿐이다.
-              onPressed: () => showDayEventsSheet(
-                context,
-                date: DateTime(2026, 8, 12),
-                events: const <ScheduleEvent>[],
-              ),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      ),
-      lang: 'en',
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-
-    expectNoHangul(tester, '그 날의 일정 시트');
-  });
-
-  testWidgets('일정 관리 시트에 한글이 남지 않는다', (WidgetTester tester) async {
-    await pump(
-      tester,
-      Builder(
-        builder: (BuildContext context) => Scaffold(
-          body: Center(
-            child: TextButton(
-              onPressed: () => showScheduleCalendarSheet(
-                context,
-                initialDate: DateTime(2026, 8, 12),
-              ),
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      ),
-      lang: 'en',
-      overrides: <Override>[
-        // 카테고리 범례와 요일 머리만 남기고 데모 일정은 비운다.
-        scheduleMonthProvider.overrideWith(
-          (Ref ref, String month) async => const <ScheduleEvent>[],
-        ),
-      ],
-    );
-    await tester.tap(find.text('open'));
-    await tester.pumpAndSettle();
-
-    expectNoHangul(tester, '일정 관리 시트');
-  });
-
   // ── MY · 알림 · 코칭 ────────────────────────────────────────────────────
 
   testWidgets('건강 목표 시트에 한글이 남지 않는다', (WidgetTester tester) async {
@@ -224,11 +140,56 @@ void main() {
         coachRoutinesProvider.overrideWith(
           (Ref ref) async => const <CoachRoutine>[],
         ),
-        coachUnreadProvider.overrideWith((Ref ref) async => 0),
+        coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
       ],
     );
 
     expectNoHangul(tester, 'AI 코칭 카드');
+  });
+
+  testWidgets('추천 운동의 세트·횟수·중량 줄에 한글이 남지 않는다', (WidgetTester tester) async {
+    // 위 시험은 루틴 목록을 **비워** 두므로 운동 한 줄을 한 번도 그리지 않는다.
+    // 그래서 엔티티가 `세트`·`분`·`휴식 초` 를 직접 조립하던 것이 오래 남아
+    // 있었다(#1933). 값을 채워 그 줄까지 그린다.
+    //
+    // 이름은 서버가 주는 데이터라 번역 대상이 아니다 — 여기서는 앱이 쓴 문구만
+    // 남도록 영어 이름을 준다.
+    await pump(
+      tester,
+      const Scaffold(body: SingleChildScrollView(child: AiCoachingCard())),
+      lang: 'en',
+      overrides: <Override>[
+        memberCoachProvider.overrideWith((Ref ref) async => null),
+        coachRoutinesProvider.overrideWith(
+          (Ref ref) async => const <CoachRoutine>[
+            CoachRoutine(
+              id: 'r-en',
+              name: 'Lower body',
+              minutes: 40,
+              type: 'strength',
+              reason: '',
+              source: 'trainer',
+              sets: 4,
+              reps: 12,
+              weight: 60,
+              exercises: <CoachRoutineExercise>[
+                CoachRoutineExercise(
+                  name: 'Squat',
+                  sets: 4,
+                  reps: 12,
+                  weight: 60,
+                  rest: 60,
+                ),
+                CoachRoutineExercise(name: 'Treadmill', duration: 15),
+              ],
+            ),
+          ],
+        ),
+        coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
+      ],
+    );
+
+    expectNoHangul(tester, '추천 운동 상세');
   });
 
   // ── 반대 방향 ───────────────────────────────────────────────────────────

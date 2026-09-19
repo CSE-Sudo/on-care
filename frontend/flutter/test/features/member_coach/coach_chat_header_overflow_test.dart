@@ -1,7 +1,8 @@
 /// 트레이너 채팅 헤더가 넘치지 않는지 (#840).
 ///
-/// 영어 부제(`Personal trainer · Available`)가 한국어보다 길어도 헤더가
-/// 넘치지 않아야 한다. #1235에서 불필요한 상태 점과 메뉴도 함께 걷어냈다.
+/// 영어 부제(`Personal trainer`)가 한국어보다 길어도 헤더가 넘치지 않아야
+/// 한다. #1235에서 불필요한 상태 점과 메뉴도 함께 걷어냈고, #2089 에서 부제의
+/// `상담 가능`(`Available`)도 뺐다 — 뒷받침하는 상태가 없는 약속이었다.
 ///
 /// 430px 는 iPhone 15 Pro Max 의 논리 폭이다. E2E 로그에는
 /// `RenderFlex overflowed by 59 pixels on the right` 로 남아 있었다.
@@ -88,6 +89,23 @@ void main() {
 
       expect(find.text('김트레이너'), findsOneWidget);
     });
+
+    // 트레이너가 지금 답할 수 있는지는 앱이 모른다. 부제는 관계만 적고
+    // `상담 가능` 같은 상태를 약속하지 않는다 (#2089).
+    for (final (String lang, String subtitle, String promise)
+        in <(String, String, String)>[
+          ('ko', '담당 트레이너', '상담 가능'),
+          ('en', 'Personal trainer', 'Available'),
+        ]) {
+      testWidgets('부제는 관계만 적고 상태를 약속하지 않는다 · $lang (#2089)', (
+        WidgetTester tester,
+      ) async {
+        await pumpChat(tester, lang: lang, size: const Size(430, 932));
+
+        expect(find.text(subtitle), findsOneWidget);
+        expect(find.textContaining(promise), findsNothing);
+      });
+    }
 
     testWidgets('상태 점과 동작하지 않는 메뉴가 없다', (WidgetTester tester) async {
       await pumpChat(tester, lang: 'ko', size: const Size(430, 932));

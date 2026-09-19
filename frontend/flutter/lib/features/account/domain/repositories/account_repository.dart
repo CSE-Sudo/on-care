@@ -1,4 +1,5 @@
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 
 abstract class AccountRepository {
@@ -7,7 +8,9 @@ abstract class AccountRepository {
   /// DELETE /users/me — withdraw the account. The server cascade-deletes
   /// the profile, diet/exercise, schedule, notifications and linked
   /// social accounts.
-  Future<void> deleteAccount();
+  /// 고른 탈퇴 사유를 함께 보낸다(#2019). 사유는 탈퇴를 막는 조건이 아니라
+  /// 물어보는 자리라, 비어 있어도 탈퇴는 그대로 진행된다.
+  Future<void> deleteAccount({List<String> reasons = const <String>[]});
 
   /// PUT /users/me/health-goals — 건강 목표(식단 일일 6종 + 주간 운동 3종).
   ///
@@ -59,14 +62,18 @@ abstract class AccountRepository {
   });
 
   /// PUT /users/me — update basic profile (name/email/phone/birth).
+  ///
+  /// 키·몸무게는 [MeasureUpdate] 로 받는다 — 인자를 주지 않으면 손대지 않고,
+  /// [MeasureUpdate.clear] 는 값을 지운다. `num?` 하나로는 그 둘을 표현할 수
+  /// 없어 비운 칸이 "손대지 않음"으로 나갔다(#1941).
   Future<UserProfile> updateProfile({
     String? name,
     String? email,
     String? phone,
     String? birthDate,
     String? gender,
-    num? heightCm,
-    num? weightKg,
+    MeasureUpdate? heightCm,
+    MeasureUpdate? weightKg,
     String? goals,
   });
 }

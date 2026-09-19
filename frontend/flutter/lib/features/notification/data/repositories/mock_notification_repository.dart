@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/domain/repositories/notification_repository.dart';
@@ -19,7 +20,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
   AlertItem(
     id: 'a1',
     title: '나트륨 섭취 주의',
-    body: '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.',
+    body: '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.',
     timeAgo: '10분 전',
     messageKey: kDemoAlertSodium,
     age: Duration(minutes: 10),
@@ -41,7 +42,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
   AlertItem(
     id: 'a5',
     title: '새 운동 루틴이 도착했어요',
-    body: '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.',
+    body: '$kDemoTrainerName 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.',
     timeAgo: '30분 전',
     messageKey: kDemoAlertRoutine,
     age: Duration(minutes: 30),
@@ -53,7 +54,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
   AlertItem(
     id: 'a7',
     title: '이번 주 리포트가 등록됐어요',
-    body: '김트레이너님이 이번 주 리포트를 등록했어요.',
+    body: '$kDemoTrainerName 트레이너님이 이번 주 리포트를 등록했어요.',
     timeAgo: '45분 전',
     messageKey: kDemoAlertReport,
     age: Duration(minutes: 45),
@@ -63,7 +64,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
   AlertItem(
     id: 'a2',
     title: 'PT 수업 완료',
-    body: '오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!',
+    body: '오늘 18:00 $kDemoTrainerName 트레이너와 12회차 PT를 마쳤어요!',
     timeAgo: '1시간 전',
     messageKey: kDemoAlertPtDone,
     age: Duration(hours: 1),

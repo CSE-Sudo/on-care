@@ -33,7 +33,6 @@ import 'package:oncare/features/diet/domain/entities/meal_photo.dart'
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
     show setsFromStrengthMinutes;
-import 'package:oncare/features/schedule/domain/schedule_format.dart';
 
 /// A drift-backed dummy backend. Intercepts dio requests and serves
 /// them out of the local SQLite database so the app can run as a
@@ -98,19 +97,20 @@ class LocalApiInterceptor extends Interceptor {
     'GET /diet/advice': _dietAdvice,
     'GET /diet/recommendations': _dietRecommendations,
     'POST /diet/analyze': _dietAnalyze,
+    'POST /diet/nutrition': _dietNutrition,
     'GET /exercise/weeks/current': _exerciseCurrentWeek,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
     'POST /exercise/calories': _exerciseCalories,
-    'GET /schedule/events': _scheduleEvents,
-    'POST /schedule/events': _scheduleCreate,
     'GET /notifications': _notifications,
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
     'GET /ai-coach/insights': _aiCoachInsights,
+    'GET /ai-coach/messages': _aiCoachHistory,
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
     'POST /auth/logout': _authLogout,
+    'POST /auth/refresh': _authRefresh,
     'POST /auth/social/kakao': _authSocial,
     'POST /auth/social/google': _authSocial,
     'GET /users/me': _usersMe,
@@ -287,11 +287,8 @@ class LocalApiInterceptor extends Interceptor {
     if (method == 'PUT' && path.startsWith('/exercise/sessions/')) {
       return _exerciseUpdate;
     }
-    if (method == 'PUT' && path.startsWith('/schedule/events/')) {
-      return _scheduleUpdate;
-    }
-    if (method == 'DELETE' && path.startsWith('/schedule/events/')) {
-      return _scheduleDelete;
+    if (method == 'DELETE' && path.startsWith('/ai-coach/insights/')) {
+      return _aiCoachInsightDismiss;
     }
     return null;
   }
@@ -429,6 +426,12 @@ class LocalApiInterceptor extends Interceptor {
     final List<Object?>? requestFoods = foodsValue is List
         ? List<Object?>.from(foodsValue)
         : null;
+    // 합계를 다시 셀 때 쓸 음식 목록. `foods` 를 보내지 않은 수정이면 null 이라
+    // 아래에서 본문의 합계를 그대로 반영한다(부분 수정 규약 유지).
+    final List<Map<String, Object?>>? storedFoods = requestFoods
+        ?.whereType<Map<Object?, Object?>>()
+        .map((Map<Object?, Object?> f) => f.cast<String, Object?>())
+        .toList();
     final Object? totalCaloriesValue = body['total_calories'];
     final Object? sodiumMgValue = body['sodium_mg'];
     final Object? sugarGValue = body['sugar_g'];
@@ -442,16 +445,26 @@ class LocalApiInterceptor extends Interceptor {
         foodsJson: requestFoods == null
             ? const Value.absent()
             : Value(jsonEncode(requestFoods)),
-        totalCalories:
-            body.containsKey('total_calories') && totalCaloriesValue is num
-            ? Value(totalCaloriesValue.toInt())
-            : const Value.absent(),
-        sodiumMg: body.containsKey('sodium_mg') && sodiumMgValue is num
-            ? Value(sodiumMgValue.toInt())
-            : const Value.absent(),
-        sugarG: body.containsKey('sugar_g') && sugarGValue is num
-            ? Value(sugarGValue.toDouble())
-            : const Value.absent(),
+        // 음식 목록이 왔으면 그것이 이 끼니의 사실이다 — 합계는 본문 값이 아니라
+        // **그 목록에서 다시 센다.** 실서버가 같은 규칙이라(`totals_from_foods`,
+        // #1892), 여기만 본문을 믿으면 앱이 합계를 잘못 보냈을 때 데모에서는 그대로
+        // 저장돼 맞아 보이고 실연동에서는 다른 값이 남는다 — 같은 조작이 두 환경에서
+        // 다른 결과를 낸다. 탄단지는 이미 음식에서 되짚고 있다. (#1922)
+        totalCalories: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'calories').round())
+            : (body.containsKey('total_calories') && totalCaloriesValue is num
+                  ? Value(totalCaloriesValue.toInt())
+                  : const Value.absent()),
+        sodiumMg: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'sodium_mg').round())
+            : (body.containsKey('sodium_mg') && sodiumMgValue is num
+                  ? Value(sodiumMgValue.toInt())
+                  : const Value.absent()),
+        sugarG: storedFoods != null
+            ? Value(_sumMacro(storedFoods, 'sugar_g'))
+            : (body.containsKey('sugar_g') && sugarGValue is num
+                  ? Value(sugarGValue.toDouble())
+                  : const Value.absent()),
       ),
     );
     final row = await (_db.select(
@@ -574,15 +587,6 @@ class LocalApiInterceptor extends Interceptor {
     // (혈당 row removed from the home summary per the latest design ref —
     // the indicator list now ends at 당류.)
 
-    // Today's schedule items.
-    final schedRows = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.date.equals(today))).get();
-    final schedJson = <Map<String, Object?>>[
-      for (final r in schedRows)
-        <String, Object?>{'time': r.time, 'title': r.title, 'emoji': r.emoji},
-    ];
-
     final now = nowKst();
     final monday = DateTime(now.year, now.month, now.day - (now.weekday - 1));
     final nutritionByDate = <String, Map<String, num>>{
@@ -659,7 +663,6 @@ class LocalApiInterceptor extends Interceptor {
       'exercise_count': exerciseRows.map((r) => r.dayLabel).toSet().length,
       'nutrition_week': nutritionWeek,
       'nutrition_week_prev': <Object?>[],
-      'today_schedule': schedJson,
       'week_score': score,
       // Delta is a static demo number for now — full week-over-week
       // diff lands in a later phase.
@@ -941,6 +944,9 @@ class LocalApiInterceptor extends Interceptor {
             // 사용자만 코멘트 없는 결과를 보게 된다.
             'coach_comment': existing.aiComment,
           },
+          // 끼니 카드가 쓰는 것과 같은 저장된 시각. 결과 시트가 제 시계로
+          // 다시 계산하면 카드와 어긋난다(#1897).
+          'time_label': existing.timeLabel,
           // 재시도는 새로 적립하지 않고 처음 받은 값을 싣는다(#1786).
           'points': _points
               .awardedFor(PointsRule.dietEntry, existing.id)
@@ -958,6 +964,8 @@ class LocalApiInterceptor extends Interceptor {
     final foods = <Map<String, Object?>>[
       <String, Object?>{
         'name': '요거트 아이스크림',
+        // 양은 공공 DB 시드의 1회 섭취량이다 — 실서버 스텁과 같은 값(#2090).
+        'amount_g': 110,
         'calories': 135,
         'sodium_mg': 55,
         'sugar_g': 14.5,
@@ -968,6 +976,7 @@ class LocalApiInterceptor extends Interceptor {
       },
       <String, Object?>{
         'name': '과일 토핑',
+        'amount_g': 90,
         'calories': 55,
         'sodium_mg': 5,
         'sugar_g': 9.0,
@@ -978,6 +987,7 @@ class LocalApiInterceptor extends Interceptor {
       },
       <String, Object?>{
         'name': '그래놀라 토핑',
+        'amount_g': 50,
         'calories': 205,
         'sodium_mg': 125,
         'sugar_g': 6.0,
@@ -991,11 +1001,14 @@ class LocalApiInterceptor extends Interceptor {
     const int totalNa = 185;
     const double totalSugar = 29.5;
     const String coach =
-        '나트륨이 185mg으로 낮아 혈압 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
+        '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
         '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
 
     final now = nowKst();
     final id = 'diet-${now.microsecondsSinceEpoch}';
+    // 행에 넣는 값과 응답에 싣는 값이 갈리지 않게 한 번만 만든다.
+    final String timeLabel =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
     await _db
         .into(_db.dietEntries)
         .insert(
@@ -1003,8 +1016,7 @@ class LocalApiInterceptor extends Interceptor {
             id: id,
             date: _todayDateString(),
             mealType: mealType,
-            timeLabel:
-                '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+            timeLabel: timeLabel,
             foodsJson: jsonEncode(foods),
             totalCalories: totalCal,
             sodiumMg: const Value(totalNa),
@@ -1036,6 +1048,7 @@ class LocalApiInterceptor extends Interceptor {
         'total_fat_g': _sumMacro(foods, 'fat_g'),
         'coach_comment': coach,
       },
+      'time_label': timeLabel,
       // 식단 기록 +50P, 하루 3회(#1786).
       'points': _points.award(PointsRule.dietEntry, id).toJson(),
     });
@@ -1500,6 +1513,64 @@ class LocalApiInterceptor extends Interceptor {
     'other': 5.0,
   };
 
+  /// POST /diet/nutrition — 음식 이름으로 공공 영양 DB 값. (#1896)
+  ///
+  /// 서버와 같은 순서다: 이름을 표에 붙이고, 붙었으면 **양으로 환산**해 돌려준다.
+  /// 양은 부르는 쪽이 준 값이 우선이고 없으면 그 음식의 1회 섭취량이다. 둘 다
+  /// 없으면 찾은 셈 치지 않는다 — 임의로 1인분을 가정해 확정할 수 없는 숫자를
+  /// "공공 DB 근거" 로 내밀지 않는 것이 서버 보정과 같은 원칙이다.
+  Future<Response<Object?>> _dietNutrition(RequestOptions options) async {
+    final Map<String, Object?> payload = _payloadOf(options.data);
+    final String name = ((payload['name'] as String?) ?? '').trim();
+    if (name.isEmpty) {
+      return _badRequest(options, '음식 이름을 입력해 주세요.');
+    }
+    final _DemoFood? match = _matchDemoFood(name);
+    final double? amountG =
+        (payload['amount_g'] as num?)?.toDouble() ?? match?.servingG;
+    if (match == null || amountG == null || amountG <= 0) {
+      // 못 찾았다 — 앱은 이때 아무것도 제안하지 않는다.
+      return _ok(options, <String, Object?>{
+        'matched_name': null,
+        'source': 'estimate',
+      });
+    }
+    // 표는 1인분 기준이라 `양 / 1인분` 이 그대로 배율이다(서버는 100g 기준값을
+    // 들고 `양 / 100` 을 곱한다 — 같은 값에 닿는 두 표기다).
+    final double scale = amountG / match.servingG;
+    return _ok(options, <String, Object?>{
+      'matched_name': match.name,
+      'source': 'db',
+      'amount_g': amountG,
+      'calories': (match.calories * scale).round(),
+      'sodium_mg': (match.sodiumMg * scale).round(),
+      'sugar_g': match.sugarG * scale,
+      'carbs_g': match.carbsG * scale,
+      'protein_g': match.proteinG * scale,
+      'fat_g': match.fatG * scale,
+    });
+  }
+
+  /// 이름 → 데모 영양표. 서버 `match_in_rows` 를 줄여 옮긴 것이다 —
+  /// 정확히 같은 이름 먼저, 그다음 표의 이름이 질의에 들어 있는 것 중 가장 긴 것.
+  _DemoFood? _matchDemoFood(String query) {
+    String norm(String v) => v.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    final String q = norm(query);
+    if (q.isEmpty) return null;
+    for (final _DemoFood f in _demoFoods) {
+      if (norm(f.name) == q) return f;
+    }
+    final List<_DemoFood> contained = <_DemoFood>[
+      for (final _DemoFood f in _demoFoods)
+        if (q.contains(norm(f.name))) f,
+    ];
+    if (contained.isEmpty) return null;
+    contained.sort(
+      (_DemoFood a, _DemoFood b) => norm(b.name).length - norm(a.name).length,
+    );
+    return contained.first;
+  }
+
   /// POST /exercise/calories — 운동 이름·시간·강도로 예상 소모 칼로리. (#1312)
   ///
   /// 서버와 같은 순서다: 이름을 종목표에 붙이고, 붙었으면 계수 × 데모 회원 체중
@@ -1689,167 +1760,10 @@ class LocalApiInterceptor extends Interceptor {
 
   // ---- Schedule ----
 
-  Future<Response<Object?>> _scheduleEvents(RequestOptions options) async {
-    // `?month=YYYY-MM` → whole month (calendar grid); otherwise
-    // `?date=YYYY-MM-DD` (defaults to today). Filtered in Dart to keep the
-    // drift import minimal (no LIKE extension needed); the demo table is
-    // tiny.
-    final month = options.queryParameters['month'] as String?;
-    final all = await _db.select(_db.scheduleEvents).get();
-    final rows = (month != null && month.isNotEmpty)
-        ? all.where((r) => r.date.startsWith('$month-')).toList()
-        : () {
-            final date =
-                (options.queryParameters['date'] as String?) ??
-                _todayDateString();
-            return all.where((r) => r.date == date).toList();
-          }();
 
-    final list = <Map<String, Object?>>[
-      for (final r in rows)
-        <String, Object?>{
-          'id': r.id,
-          'date': r.date,
-          'time': r.time,
-          'title': r.title,
-          'category': r.category,
-          'emoji': r.emoji,
-          'color_hex': r.colorHex,
-        },
-    ];
-    return _ok(options, list);
-  }
 
-  /// Category → (emoji, color) so created events look consistent with the
-  /// seeded ones. Mirrors what a FastAPI build would fill server-side.
-  (String, String) _scheduleStyle(String category) => switch (category) {
-    'hospital' => ('🏥', '#DBEAFE'),
-    'exercise' => ('💪', '#DCFCE7'),
-    'meal' => ('🍽️', '#FFEDD5'),
-    'medication' => ('💊', '#EDE9FE'),
-    _ => ('📌', '#E0F2F7'),
-  };
 
-  /// POST /schedule/events — persist a new event to drift so it shows up in
-  /// GET /schedule/events and the dashboard's "오늘의 일정" for that date.
-  ///
-  /// 형식 검사는 [isScheduleDate]·[isScheduleTime] 이 맡는다 — FastAPI
-  /// (`app/api/v1/schedule.py`) 와 같은 계약이라 데모와 실서버의 답이 갈리지
-  /// 않는다.
-  Future<Response<Object?>> _scheduleCreate(RequestOptions options) async {
-    final body = _jsonBody(options);
-    final date = (body['date'] as String? ?? '').trim();
-    final title = (body['title'] as String? ?? '').trim();
-    if (date.isEmpty || title.isEmpty) {
-      return _badRequest(options, 'date and title are required');
-    }
-    // 형식을 여기서도 막는다. 조회는 `YYYY-MM-DD` 를 전제해 거르므로, 계약을
-    // 벗어난 값을 받아 두면 저장은 성공했는데 어디에도 보이지 않는 일정이
-    // 남는다(#785). FastAPI 는 이미 같은 검사를 한다 — 데모도 같게 답한다.
-    if (!isScheduleDate(date)) {
-      return _badRequest(options, 'date must be YYYY-MM-DD');
-    }
-    final time = (body['time'] as String? ?? '').trim();
-    if (!isScheduleTime(time)) {
-      return _badRequest(options, 'time must be HH:mm or empty');
-    }
-    final category = (body['category'] as String? ?? 'other').trim();
-    final (emoji, colorHex) = _scheduleStyle(category);
-    final id = 'evt-${DateTime.now().microsecondsSinceEpoch}';
-    await _db
-        .into(_db.scheduleEvents)
-        .insert(
-          ScheduleEventsCompanion.insert(
-            id: id,
-            date: date,
-            time: time,
-            title: title,
-            category: category,
-            emoji: Value(emoji),
-            colorHex: Value(colorHex),
-          ),
-        );
-    return Response<Object?>(
-      requestOptions: options,
-      statusCode: 201,
-      data: <String, Object?>{
-        'id': id,
-        'date': date,
-        'time': time,
-        'title': title,
-        'category': category,
-        'emoji': emoji,
-        'color_hex': colorHex,
-      },
-    );
-  }
 
-  /// PUT /schedule/events/{id} — 준 필드만 바꾼다(FastAPI 의 `exclude_unset`).
-  ///
-  /// 시간을 지우는 것은 `''` 를 넘기는 것이지 생략이 아니다. 그래서 키가 있는지
-  /// 로 판단하고, 값이 빈 문자열이어도 그대로 반영한다.
-  Future<Response<Object?>> _scheduleUpdate(RequestOptions options) async {
-    final id = options.path.split('/').last;
-    final existing = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
-    if (existing == null) return _notFound(options, '일정을 찾을 수 없습니다.');
-
-    final body = _jsonBody(options);
-    final date = (body['date'] as String?)?.trim();
-    final time = (body['time'] as String?)?.trim();
-    final title = (body['title'] as String?)?.trim();
-    final category = (body['category'] as String?)?.trim();
-
-    // 생성과 같은 계약을 건다 — 수정으로 형식을 무너뜨릴 수 있으면 검증한 의미가
-    // 없다(#785 에서 저장·조회가 어긋나 일정이 사라졌던 것과 같은 경로).
-    if (date != null && !isScheduleDate(date)) {
-      return _badRequest(options, 'date must be YYYY-MM-DD');
-    }
-    if (time != null && !isScheduleTime(time)) {
-      return _badRequest(options, 'time must be HH:mm or empty');
-    }
-    if (title != null && title.isEmpty) {
-      return _badRequest(options, 'title must not be empty');
-    }
-
-    final String nextCategory = category ?? existing.category;
-    final (emoji, colorHex) = _scheduleStyle(nextCategory);
-    await (_db.update(_db.scheduleEvents)..where((t) => t.id.equals(id))).write(
-      ScheduleEventsCompanion(
-        date: date == null ? const Value.absent() : Value(date),
-        time: time == null ? const Value.absent() : Value(time),
-        title: title == null ? const Value.absent() : Value(title),
-        category: category == null ? const Value.absent() : Value(category),
-        // 카테고리가 바뀌면 이모지·색도 따라간다. 생성 때와 같은 규칙이라
-        // 수정한 일정만 다른 색으로 남지 않는다.
-        emoji: category == null ? const Value.absent() : Value(emoji),
-        colorHex: category == null ? const Value.absent() : Value(colorHex),
-      ),
-    );
-
-    final updated = await (_db.select(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).getSingle();
-    return _ok(options, <String, Object?>{
-      'id': updated.id,
-      'date': updated.date,
-      'time': updated.time,
-      'title': updated.title,
-      'category': updated.category,
-      'emoji': updated.emoji,
-      'color_hex': updated.colorHex,
-    });
-  }
-
-  Future<Response<Object?>> _scheduleDelete(RequestOptions options) async {
-    final id = options.path.split('/').last;
-    final n = await (_db.delete(
-      _db.scheduleEvents,
-    )..where((t) => t.id.equals(id))).go();
-    if (n == 0) return _notFound(options, '일정을 찾을 수 없습니다.');
-    return _ok(options, <String, Object?>{'status': 'deleted'});
-  }
 
   // ---- Notifications ----
 
@@ -1958,8 +1872,10 @@ class LocalApiInterceptor extends Interceptor {
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
     final (String reply, List<String> sources) = _mockCoachReply(message);
-    // 감지 기록 창이 읽을 원문을 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
-    await _rememberAiCoachMessage(message);
+    // 주고받은 것을 그대로 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
+    // 감지 기록 창과 다시 열었을 때의 대화가 모두 여기서 나온다(#1900).
+    await _rememberAiCoachMessage(message, fromMember: true);
+    await _rememberAiCoachMessage(reply, fromMember: false, sources: sources);
     final ChatInsight? insight = detectChatInsight(message);
     return _ok(options, <String, Object?>{
       'reply': reply,
@@ -1968,19 +1884,255 @@ class LocalApiInterceptor extends Interceptor {
     });
   }
 
-  static const String _aiCoachMessagesKey = 'ai_coach_user_messages';
+  /// 데모 대화가 담긴 자리. 시드를 고치면 **이름을 올린다** — 이미 데모를 켜 본
+  /// 기기에는 예전 대화가 남아 있어, 같은 이름을 그대로 쓰면 새 자료가 보이지
+  /// 않는다(#1918).
+  static const String _aiCoachMessagesKey = 'ai_coach_user_messages_v2';
 
-  /// 목업 대화의 회원 메시지. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  /// 데모 AI 코치가 처음부터 들고 있는 대화. (#1900)
+  ///
+  /// 예전에는 이 화면이 인사말 하나로 시작하고 감지 기록도 비어 있어, 처음 열어
+  /// 본 사람은 두 기능이 무엇을 하는지 알 수 없었다.
+  ///
+  /// **대화와 감지 기록은 이 한 곳에서 나온다.** 둘을 따로 적어 두면 기록에만
+  /// 있는 문장이 생겨 앞뒤가 맞지 않는다. 감지도 손으로 달지 않고 실제 규칙
+  /// ([detectChatInsight])에 태워, 데모가 실서버와 같은 것을 짚는다.
+  ///
+  /// `daysAgo` 로 적는 이유는 고정 날짜를 박아 두면 데모가 하루만 지나도 감지
+  /// 기간(30일) 밖으로 밀려나 기록이 비어 버리기 때문이다.
+  static const List<
+    ({
+      int daysAgo,
+      int hour,
+      int minute,
+      bool fromMember,
+      String text,
+      List<String> sources,
+    })
+  >
+  _aiCoachSeed =
+      <
+        ({
+          int daysAgo,
+          int hour,
+          int minute,
+          bool fromMember,
+          String text,
+          List<String> sources,
+        })
+      >[
+        (
+          daysAgo: 26,
+          hour: 21,
+          minute: 8,
+          fromMember: true,
+          text: '식단은 사진만 찍으면 되나요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 26,
+          hour: 21,
+          minute: 9,
+          fromMember: false,
+          text:
+              '네, 사진 한 장이면 AI가 음식을 알아보고 칼로리와 영양소를 계산해 기록해요. '
+              '가운데 + 버튼으로 운동도 바로 추가할 수 있어요. 기록이 쌓이면 제가 그걸 보고 더 '
+              '구체적으로 도와드릴 수 있습니다. 📷',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 19,
+          hour: 12,
+          minute: 40,
+          fromMember: true,
+          text: '점심에 라면 먹었는데 나트륨 줄이려면 어떻게 해요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 19,
+          hour: 12,
+          minute: 43,
+          fromMember: false,
+          text:
+              '국물을 남기는 것만으로도 절반 가까이 줄어요. 다음부터는 스프를 조금만 넣고, '
+              '달걀이나 두부를 올려 단백질을 더해 보세요. 하루 목표는 2000mg 이하예요. 🌿',
+          sources: <String>['나트륨 줄이기'],
+        ),
+        (
+          daysAgo: 12,
+          hour: 20,
+          minute: 12,
+          fromMember: true,
+          text: '어제 스쿼트하고 나서 무릎이 좀 아파요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 12,
+          hour: 20,
+          minute: 15,
+          fromMember: false,
+          text:
+              '무릎이 불편하시군요. 오늘은 스쿼트 대신 자전거나 걷기처럼 무릎에 체중이 덜 실리는 운동으로 '
+              '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+          sources: <String>['운동 중 통증 대처'],
+        ),
+        (
+          daysAgo: 9,
+          hour: 18,
+          minute: 5,
+          fromMember: true,
+          text: '회식 있는 날은 어떻게 먹는 게 좋아요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 9,
+          hour: 18,
+          minute: 7,
+          fromMember: false,
+          text:
+              '가기 전에 가볍게 요기를 해 두면 과식이 줄어요. 자리에서는 구이·찜 위주로 먹고 국물은 '
+              '남기고, 물을 자주 마셔 주세요. 다음 날 한 끼를 담백하게 맞추면 한 주 균형은 유지됩니다. 🥗',
+          sources: <String>['DASH 식단 개요'],
+        ),
+        (
+          daysAgo: 5,
+          hour: 23,
+          minute: 30,
+          fromMember: true,
+          text: '오늘은 야근해서 운동 못 했어요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 5,
+          hour: 23,
+          minute: 32,
+          fromMember: false,
+          text:
+              '하루 쉬어도 괜찮아요. 이번 주에 이미 두 번 하셨으니 흐름은 살아 있어요. '
+              '내일 10분만 걸어도 다시 이어집니다. 🚶',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 4,
+          hour: 7,
+          minute: 20,
+          fromMember: true,
+          text: '아침에 시간이 없는데 뭘 먹으면 좋을까요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 4,
+          hour: 7,
+          minute: 22,
+          fromMember: false,
+          text:
+              '준비가 짧은 조합으로 가 보세요. 그릭요거트에 견과류, 삶은 달걀과 통밀빵, 두유와 바나나 '
+              '같은 것들이요. 단백질이 들어가야 점심까지 덜 허기집니다.',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 2,
+          hour: 13,
+          minute: 10,
+          fromMember: true,
+          text: '단백질은 하루에 얼마나 먹어야 하나요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 2,
+          hour: 13,
+          minute: 12,
+          fromMember: false,
+          text:
+              '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
+              '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+          sources: <String>['한국인 영양소 섭취기준'],
+        ),
+        (
+          daysAgo: 1,
+          hour: 9,
+          minute: 5,
+          fromMember: true,
+          text: '어깨가 뻐근해요',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 1,
+          hour: 9,
+          minute: 7,
+          fromMember: false,
+          text:
+              '어깨는 굳기 쉬운 곳이라 운동 앞뒤로 풀어 주는 게 좋아요. 벽에 손을 대고 가슴을 여는 '
+              '스트레칭을 30초씩 세 번 해 보세요. 오늘은 어깨에 힘이 실리는 동작은 덜어 두시고요.',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 1,
+          hour: 15,
+          minute: 40,
+          fromMember: true,
+          text: '물은 얼마나 마셔야 해요?',
+          sources: <String>[],
+        ),
+        (
+          daysAgo: 1,
+          hour: 15,
+          minute: 42,
+          fromMember: false,
+          text:
+              '하루 6~8잔을 나눠 마시는 것을 권해요. 한 번에 많이 마시기보다 끼니와 운동 앞뒤로 '
+              '나눠 드시면 좋습니다. 💧',
+          sources: <String>['수분 섭취'],
+        ),
+      ];
+
+  /// 목업 대화. 기록 창이 계산할 만큼만 두고 오래된 것은 버린다.
+  ///
+  /// 아직 아무것도 없으면 [_aiCoachSeed] 를 깔아 둔다 — 데모를 처음 켠 사람도
+  /// 지난 대화와 감지 기록을 함께 본다.
   Future<List<Map<String, Object?>>> _aiCoachMessages() async {
     final String? raw = await _db.readValue(_aiCoachMessagesKey);
-    if (raw == null || raw.isEmpty) return <Map<String, Object?>>[];
+    if (raw == null || raw.isEmpty) {
+      final List<Map<String, Object?>> seeded = _seedAiCoachRows();
+      await _db.putValue(_aiCoachMessagesKey, jsonEncode(seeded));
+      return seeded;
+    }
     return <Map<String, Object?>>[
       for (final Object? row in jsonDecode(raw) as List<Object?>)
         if (row is Map) row.cast<String, Object?>(),
     ];
   }
 
-  Future<void> _rememberAiCoachMessage(String text) async {
+  static List<Map<String, Object?>> _seedAiCoachRows() {
+    final DateTime now = nowKst();
+    return <Map<String, Object?>>[
+      for (final turn in _aiCoachSeed)
+        <String, Object?>{
+          'id':
+              'local-ai-seed-${turn.daysAgo}-${turn.fromMember ? 'me' : 'coach'}',
+          'role': turn.fromMember ? 'user' : 'coach',
+          'text': turn.text,
+          'sources': turn.sources,
+          'created_at': DateTime(
+            now.year,
+            now.month,
+            now.day - turn.daysAgo,
+            turn.hour,
+            turn.minute,
+          ).toIso8601String(),
+        },
+    ];
+  }
+
+  /// 예전 저장분에는 역할이 없다 — 그때는 회원 메시지만 적었다.
+  static bool _isMemberRow(Map<String, Object?> row) =>
+      (row['role'] as String? ?? 'user') == 'user';
+
+  Future<void> _rememberAiCoachMessage(
+    String text, {
+    required bool fromMember,
+    List<String> sources = const <String>[],
+  }) async {
     final DateTime now = nowKst();
     final List<Map<String, Object?>> rows = <Map<String, Object?>>[
       for (final Map<String, Object?> row in await _aiCoachMessages())
@@ -1991,11 +2143,40 @@ class LocalApiInterceptor extends Interceptor {
           row,
       <String, Object?>{
         'id': 'local-ai-${now.microsecondsSinceEpoch}',
+        'role': fromMember ? 'user' : 'coach',
         'text': text,
+        'sources': sources,
         'created_at': now.toIso8601String(),
       },
     ];
     await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+  }
+
+  /// GET /ai-coach/messages — 저장된 대화, 오래된 것부터. (#1900)
+  ///
+  /// 실서버가 저장해 둔 대화를 돌려주는 자리다. 데모도 같은 모양으로 답해야
+  /// 화면이 이어 하는 대화로 열린다.
+  Future<Response<Object?>> _aiCoachHistory(RequestOptions options) async {
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    return _ok(options, <String, Object?>{
+      'messages': <Map<String, Object?>>[
+        for (final Map<String, Object?> row in rows)
+          <String, Object?>{
+            'role': _isMemberRow(row) ? 'user' : 'coach',
+            'content': row['text'],
+            'sources': row['sources'] ?? const <String>[],
+            // 화면이 날짜 구분선과 말풍선 옆 시각을 이것으로 그린다(#1918).
+            'created_at': row['created_at'],
+            if (_isMemberRow(row))
+              'insight': switch (detectChatInsight(
+                row['text'] as String? ?? '',
+              )) {
+                final ChatInsight insight => _insightJson(insight),
+                _ => null,
+              },
+          },
+      ],
+    });
   }
 
   static Map<String, Object?> _insightJson(ChatInsight insight) =>
@@ -2017,6 +2198,11 @@ class LocalApiInterceptor extends Interceptor {
         row['created_at'] as String? ?? '',
       );
       if (at == null || !isWithinInsightWindow(at, now)) continue;
+      // 코치 답변은 감지 대상이 아니다 — 감지는 회원이 한 말에서만 찾는다.
+      if (!_isMemberRow(row)) continue;
+      // 회원이 치운 줄은 건너뛴다(#1975). 실서버도 `insight_dismissed` 로 같은
+      // 것을 한다 — 데모에서만 되는 자리를 새로 만들지 않는다.
+      if (row['insight_dismissed'] == true) continue;
       final String text = row['text'] as String? ?? '';
       final ChatInsight? insight = detectChatInsight(text);
       if (insight == null) continue;
@@ -2033,35 +2219,64 @@ class LocalApiInterceptor extends Interceptor {
     });
   }
 
+  /// DELETE /ai-coach/insights/{message_id} — 그 줄의 감지를 기록에서 치운다(#1975).
+  ///
+  /// **메시지는 지우지 않는다.** 실서버와 같이 `더 보지 않음` 표시만 남기므로,
+  /// 회원이 쓴 말은 대화에 그대로 남는다.
+  ///
+  /// 이미 치운 줄을 다시 눌러도 200 이다 — 누른 쪽이 바라는 상태가 이미 참이다.
+  Future<Response<Object?>> _aiCoachInsightDismiss(RequestOptions options) async {
+    final String messageId = options.path.split('/').last;
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    final int index = rows.indexWhere(
+      (Map<String, Object?> row) => row['id'] == messageId,
+    );
+    if (index < 0) return _notFound(options, '감지 기록을 찾을 수 없습니다.');
+    rows[index] = <String, Object?>{...rows[index], 'insight_dismissed': true};
+    await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+    return _ok(options, <String, Object?>{'status': 'dismissed'});
+  }
+
   (String, List<String>) _mockCoachReply(String message) {
     bool has(List<String> keys) => keys.any(message.contains);
 
-    if (has(<String>['나트륨', '혈압', '짜', '소금', '국물'])) {
+    // 아픈 곳 이야기가 먼저다. 영양 갈래를 앞에 두면 "허리가 당겨요" 가 `당` 에
+    // 걸려 디저트 이야기를 답한다 — 화면에는 `허리 통증 감지` 표시가 붙은 채로
+    // 엉뚱한 답이 달렸다(#1918).
+    if (detectChatInsight(message)?.kind == ChatInsightKind.discomfort) {
+      return (
+        '불편한 곳이 있으시군요. 오늘은 그 부위에 힘이 실리는 동작을 빼고, 걷기나 가벼운 스트레칭으로 '
+            '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
+        <String>['운동 중 통증 대처'],
+      );
+    }
+    if (has(<String>['나트륨', '짜', '소금', '국물'])) {
       return (
         '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
-            '간을 해보세요. 하루 나트륨을 2000mg 이하로 맞추면 혈압 관리에 큰 도움이 돼요. 🌿',
+            '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
         <String>['나트륨 줄이기', 'DASH 식단 개요'],
       );
     }
-    if (has(<String>['당', '혈당', '설탕', '단 것', '디저트'])) {
+    // `당` 한 글자는 쓰지 않는다 — `당기다`·`당근`·`담당` 까지 걸린다.
+    if (has(<String>['혈당', '설탕', '단 것', '단맛', '디저트'])) {
       return (
-        '혈당 관리를 위해 가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 '
-            '늘려보세요. 음료는 물이나 무가당 차로 바꾸는 것만으로도 효과가 좋아요. 🍵',
+        '가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 늘려보세요. '
+            '음료를 물이나 무가당 차로 바꾸는 것만으로도 하루 당류가 꽤 줄어요. 🍵',
         <String>['당류 관리'],
       );
     }
     if (has(<String>['운동', '걷', '헬스', '유산소', '근력'])) {
       return (
-        '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 여기에 주 2회 가벼운 근력 '
-            '운동을 더하면 혈압·혈당 관리에 특히 좋아요. 식후 10분 걷기도 큰 도움이 됩니다. 🚶',
-        <String>['고혈압과 운동', '유산소와 근력 균형'],
+        '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
+            '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
+        <String>['유산소와 근력 균형'],
       );
     }
     // 저녁 메뉴 추천은 빠른 질문 버튼의 첫 줄이다 — 일반론 대신 오늘 기록(점심
     // 짬뽕)과 이어지는 한 끼를 답해야 "맞춤"으로 읽힌다(#1180).
     if (has(<String>['저녁']) && has(<String>['메뉴', '먹', '추천'])) {
       return (
-        '오늘은 점심에 짬뽕으로 나트륨과 당류를 많이 섭취했으니, 저녁은 싱겁고 단백질과 채소가 '
+        '오늘 점심에 드신 짬뽕으로 나트륨과 당류가 많았어요. 저녁은 싱겁고 단백질과 채소가 '
             '풍부한 메뉴를 추천해요.\n'
             '🍽️ 추천 메뉴: 닭가슴살 채소구이 + 현미밥\n\n'
             '• 닭가슴살로 운동 후 단백질을 보충하고\n'
@@ -2071,29 +2286,42 @@ class LocalApiInterceptor extends Interceptor {
         <String>['DASH 식단 개요', '나트륨 줄이기'],
       );
     }
+    if (has(<String>['단백질'])) {
+      return (
+        '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
+            '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
+        <String>['한국인 영양소 섭취기준'],
+      );
+    }
     if (has(<String>['뭐 먹', '식단', '점심', '저녁', '아침', '메뉴'])) {
       return (
-        '채소·통곡물·저지방 단백질 위주의 DASH 식단을 추천해요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
-            '드시면 좋아요. 혹시 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
+        '채소·통곡물·저지방 단백질 위주로 담아 보세요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
+            '드시면 좋아요. 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
         <String>['DASH 식단 개요'],
       );
     }
     if (has(<String>['물', '수분'])) {
       return (
-        '하루 6~8잔의 물을 나눠 마시는 것이 혈압과 신진대사에 도움이 돼요. 카페인·가당 음료는 줄이고 '
-            '물로 대체해보세요. 💧',
+        '하루 6~8잔의 물을 나눠 마시면 좋아요. 카페인·가당 음료를 줄이고 물로 바꿔 보세요. 💧',
         <String>['수분 섭취'],
       );
     }
     if (has(<String>['체중', '살', '다이어트', '몸무게'])) {
       return (
-        '급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전해요. 체중을 5~10%만 줄여도 혈압·혈당 '
-            '지표가 눈에 띄게 좋아질 수 있어요. 함께 천천히 가봐요! 💪',
+        '급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전해요. 한 주에 체중의 0.5~1% 정도가 '
+            '무리 없는 속도예요. 함께 천천히 가봐요! 💪',
         <String>['체중 관리'],
       );
     }
+    if (has(<String>['기록', '어떻게', '사용', '방법'])) {
+      return (
+        '식단은 사진 한 장이면 AI가 칼로리와 영양소를 계산해 기록해요. 운동은 가운데 + 버튼으로 바로 '
+            '추가할 수 있고요. 기록이 쌓이면 제가 그걸 보고 더 구체적으로 도와드릴 수 있어요. 📷',
+        <String>[],
+      );
+    }
     return (
-      '좋은 질문이에요! 식단·운동·혈압·혈당·수분 관리에 대해 더 구체적으로 물어봐 주시면 온이가 '
+      '좋은 질문이에요! 식단·운동·수분 관리에 대해 더 구체적으로 물어봐 주시면 온이가 '
           '맞춤으로 도와드릴게요. 예를 들어 "나트륨 줄이는 법"이나 "오늘 뭐 먹을까?"처럼요. 😊',
       <String>[],
     );
@@ -2145,6 +2373,27 @@ class LocalApiInterceptor extends Interceptor {
   /// 목업 모드의 로그아웃이 실 네트워크로 새어 나가 타임아웃까지 멎는다(#966).
   Future<Response<Object?>> _authLogout(RequestOptions options) async {
     return Response<Object?>(requestOptions: options, statusCode: 204);
+  }
+
+  /// POST /auth/refresh — 데모도 접근 토큰을 회전해 준다. (#1944)
+  ///
+  /// 데모 라우트 표에 이것이 빠져 있어, 목 빌드의 갱신 요청이 두 인터셉터를 모두
+  /// 지나쳐 **실제 `apiBaseUrl` 로 나갔다** — #966 이 `/auth/logout` 에 대해
+  /// 막았던 그 누출이 갱신 경로에 남아 있었다.
+  ///
+  /// 갱신 토큰은 쓰던 것을 그대로 돌려준다. 실서버도 회전 토큰을 항상 새로 주는
+  /// 것은 아니라, 앱이 둘 다 다룰 수 있어야 한다.
+  Future<Response<Object?>> _authRefresh(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final refresh = (body['refresh_token'] as String? ?? '').trim();
+    if (refresh.isEmpty) {
+      return _badRequest(options, 'refresh_token is required');
+    }
+    return _ok(options, <String, Object?>{
+      'access_token': 'demo-access-${DateTime.now().microsecondsSinceEpoch}',
+      'refresh_token': refresh,
+      'token_type': 'bearer',
+    });
   }
 
   /// POST /auth/social/{provider} — the demo exchanges any non-empty
@@ -2238,11 +2487,15 @@ class LocalApiInterceptor extends Interceptor {
       'phone',
       'birth_date',
       'gender',
-      'height_cm',
-      'weight_kg',
       'goals',
     ]) {
       if (body[k] != null) patch[k] = body[k];
+    }
+    // 키·몸무게만 **키가 있는지**를 본다. 비울 수 있는 두 칸이라 명시적 null 은
+    // 지움이고, 값으로 거르면 지운 값이 되살아난다 — 서버도 이 둘만
+    // `nullable_fields` 로 둔다(#1941).
+    for (final String k in <String>['height_cm', 'weight_kg']) {
+      if (body.containsKey(k)) patch[k] = body[k];
     }
     await _mergeProfileOverlay(patch);
     return _ok(options, await _mergedProfile());
@@ -2304,6 +2557,10 @@ class LocalApiInterceptor extends Interceptor {
 
   /// DELETE /users/me — withdraw. The demo wipes the profile overlay so a
   /// subsequent session starts clean, mirroring FastAPI's cascade delete.
+  ///
+  /// The body's `reasons` (#2019) are dropped here on purpose: the server keeps
+  /// them in a table nobody reads back, and the demo has no such table. The
+  /// withdrawal itself is what the demo has to reproduce.
   Future<Response<Object?>> _usersMeDelete(RequestOptions options) async {
     await _db.putValue('profile_overlay', '');
     return _ok(options, <String, Object?>{'status': 'deleted'});
@@ -2371,8 +2628,8 @@ class LocalApiInterceptor extends Interceptor {
     return _ok(options, <String, Object?>{
       'profile': <String, Object?>{'name': '김민수', 'email': 'minsu@oncare.com'},
       'risk': <String, Object?>{
-        'title': '고혈압·당뇨 위험 주의',
-        'body': '최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.',
+        'title': '이번 주 관리 포인트',
+        'body': '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
         'level': 'medium',
       },
       // 원장의 잔액 — 적립·회수가 그대로 보인다(#1786).
@@ -2744,3 +3001,51 @@ Map<String, Object?> _macroPayload(
     'fat_pct': percentages[2],
   };
 }
+
+/// 데모 영양표 한 줄 — **1인분 기준**이다. (#1896)
+class _DemoFood {
+  const _DemoFood(
+    this.name,
+    this.servingG,
+    this.calories,
+    this.sodiumMg,
+    this.sugarG,
+    this.carbsG,
+    this.proteinG,
+    this.fatG,
+  );
+
+  final String name;
+
+  /// 1회 섭취량(g). 위 값들이 이 양을 재고 나온 값이라 환산의 분모가 된다.
+  final double servingG;
+  final double calories;
+  final double sodiumMg;
+  final double sugarG;
+  final double carbsG;
+  final double proteinG;
+  final double fatG;
+}
+
+/// 이름으로 찾는 데모 영양표. 백엔드 큐레이션 시드(`food_nutrients_seed.py`)의
+/// 같은 이름·같은 1인분 값을 옮긴 것이다 — 한쪽만 고치면 로컬 데모와 서버 데모가
+/// 같은 음식에 다른 수치를 말한다(`_dietAnalyze` 의 세 줄과 같은 규약).
+///
+/// 전부가 아니라 시연에서 실제로 쳐 볼 만한 것만 둔다. 없는 이름은 제안이 뜨지
+/// 않을 뿐 수정과 저장은 그대로 된다.
+const List<_DemoFood> _demoFoods = <_DemoFood>[
+  _DemoFood('공기밥', 210, 310, 3, 0, 68, 6, 1),
+  _DemoFood('비빔밥', 500, 600, 900, 8, 90, 20, 15),
+  _DemoFood('김밥', 200, 480, 700, 6, 75, 12, 12),
+  _DemoFood('김치찌개', 400, 250, 1200, 3, 12, 15, 14),
+  _DemoFood('된장찌개', 400, 180, 1300, 4, 10, 12, 9),
+  _DemoFood('짜장면', 650, 700, 2400, 12, 104, 16, 20),
+  _DemoFood('짬뽕', 700, 660, 4000, 8, 90, 25, 18),
+  _DemoFood('라면', 550, 500, 1800, 5, 70, 10, 16),
+  _DemoFood('삼계탕', 1000, 900, 1400, 1, 40, 70, 45),
+  _DemoFood('떡볶이', 300, 550, 1600, 20, 100, 10, 12),
+  // 분석 데모가 돌려주는 세 줄 — 그 끼니를 수정하며 이름을 고쳐도 붙게 둔다.
+  _DemoFood('요거트 아이스크림', 110, 135, 55, 14.5, 26, 3, 2),
+  _DemoFood('과일 토핑', 90, 55, 5, 9, 13, 1, 0.5),
+  _DemoFood('그래놀라 토핑', 50, 205, 125, 6, 20, 5, 11.5),
+];

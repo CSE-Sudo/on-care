@@ -131,8 +131,16 @@ class OnCareTypography {
     'caption': caption,
   };
 
-  /// 기기 접근성 배율 상한. 레이아웃이 실제로 버티는 한계다.
-  static const double maxTextScale = 1.3;
+  /// 기기 접근성 배율 상한 — WCAG 1.4.4 가 요구하는 200% 다(#1942).
+  ///
+  /// 전에는 1.3 이었다. iOS 손쉬운 사용에서 200% 로 올린 저시력 회원이 이 앱만
+  /// 열면 글자가 30% 만 커져, 배율을 키워 쓰는 사람에게는 사실상 설정이 없는
+  /// 화면이었다.
+  static const double maxTextScale = 2.0;
+
+  /// 기기 배율 하한. 글자를 **줄이는** 설정도 회원의 선택이다 — 전에는 1.0 에서
+  /// 잘라 작게 쓰는 사람의 설정만 조용히 무시했다(#1942).
+  static const double minTextScale = 0.8;
 
   /// 본문 계열의 600 강조 변형. 크기는 그대로 둔다.
   static TextStyle strong(TextStyle style) =>
@@ -143,9 +151,9 @@ class OnCareTypography {
     fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
   );
 
-  /// 기기 배율을 존중하되 1.0 ~ [maxTextScale] 로 묶는다.
+  /// 기기 배율을 존중하되 [minTextScale] ~ [maxTextScale] 로 묶는다.
   static TextScaler scaler(TextScaler device) {
-    final double value = device.scale(1).clamp(1.0, maxTextScale);
+    final double value = device.scale(1).clamp(minTextScale, maxTextScale);
     return TextScaler.linear(value);
   }
 

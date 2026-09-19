@@ -302,11 +302,15 @@ def test_affiliated_trainer_shows_up_under_that_gym(client, trainer):
 
 def test_setting_a_gym_makes_the_trainer_consultable(client, trainer):
     """소속이 없으면 상담 대상이 아니다(#443). 설정하면 그때부터 받는다."""
+    from tests.test_consultation_decision import _open_slot
     from tests.test_consultations import _payload, _register_member
 
     token, trainer_id = trainer
     _member_id, member_token = _register_member(client)
-    payload = _payload(trainer_id=trainer_id)
+    # 상담은 트레이너가 연 자리를 고른다(#1873). 소속 여부만 보려는 테스트라 자리는
+    # 처음부터 열어 두고, 달라지는 것은 소속 하나뿐이게 한다. 자리는 트레이너가
+    # 지워질 때 함께 지워진다(`ondelete=CASCADE`).
+    payload = _payload(trainer_id=trainer_id, slot_id=_open_slot(trainer_id).id)
 
     before = client.post("/v1/consultations", headers=_auth(member_token), json=payload)
     assert before.status_code == 404, before.text

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 채팅 입력칸과 전송 버튼의 높이가 같다(#1827).
+/// 채팅 입력칸과 전송 버튼의 높이가 같다(#1827, #1911).
 ///
 /// 테마 입력칸 여백을 그대로 쓰면 글꼴 줄 높이만큼 칸이 버튼보다 커졌다. 두
 /// 밀도(회원앱·트레이너 웹)와 큰 글자 줄 높이에서 한 줄일 때 둘이 같은 높이·같은
@@ -41,7 +41,17 @@ void main() {
     await tester.pumpAndSettle();
     final Finder buttons = find.byType(AppIconButton);
     return (
-      field: tester.getRect(find.byType(InputDecorator)),
+      // **그려지는** 상자를 잰다. 입력칸의 자리(InputDecorator)는 최소 높이로
+      // 넓어져도 테두리·채움은 글 높이에 맞춰 그려질 수 있어, 자리만 재면 화면
+      // 에서는 버튼보다 낮은데 테스트는 통과한다(#1911).
+      field: tester.getRect(
+        find
+            .descendant(
+              of: find.byType(InputDecorator),
+              matching: find.byType(CustomPaint),
+            )
+            .first,
+      ),
       attach: tester.getRect(buttons.first),
       send: tester.getRect(buttons.last),
     );

@@ -3,13 +3,15 @@
 /// 회원 앱 단계와 번갈아 실행된다. 전체 순서는 `tool/run_consultation_e2e.sh` 참고.
 ///
 ///  1. (회원) `member-request`
-///  2. `trainer-accept`  — 인박스에서 요청 내용을 확인하고 일정을 잡아 승인한다.
+///  2. `trainer-accept`  — 인박스에서 요청 내용을 확인하고 승인한다. 일정은 회원이
+///                         고른 자리에 생긴다.
 ///  3. (회원) `member-after-accept`
 ///  4. `trainer-reject`  — 다른 요청을 사유와 함께 거절한다.
 ///  5. (회원) `member-after-reject`
 ///
-/// 승인은 상담 상태와 담당 연결을 함께 남긴다. 정확한 상담 시각을 받는 변경은
-/// 후속 이슈에서 다루므로, 여기서는 아직 일정을 자동 생성하지 않는다.
+/// 승인은 상담 상태와 담당 연결, 그리고 회원이 고른 자리의 일정을 함께 남긴다
+/// (#1873). 승인할 때 시각을 따로 받지 않는다 — 시각은 트레이너가 연 자리가 이미
+/// 정해 두었다.
 library;
 
 import 'package:flutter/material.dart';
@@ -78,17 +80,11 @@ void main() {
         expect(row['exercise_goal'], 'strength');
         // 운동 목표에서 자동 매핑된 값이다(#1112) — strength → general.
         expect(row['health_purpose_type'], 'general');
-        // 회원 단계에서 고른 희망 시각이 그대로 도착한다(#1256, #1587) —
-        // 시각 없는 요청은 더 이상 만들어지지 않는다.
-        expect(row['preferred_time_slot'], consultPreferredTimeSlot);
+        // 회원 단계에서 고른 자리가 그대로 도착한다(#1873) — 자리의 시각이
+        // 희망 시각 칸에 옮겨 적힌다.
+        expect(row['slot_id'], state.require('acceptSlotId'));
+        expect(row['preferred_time_slot'], consultStartTime);
         expect(row['status'], 'pending');
-
-        // 승인이 잡을 자리를 비워 둔다 — 앞선 실행이 승인까지 하고 정리 전에
-        // 죽었으면 같은 자리에 일정이 남아 이번 승인이 409 로 막힌다.
-        await api.clearSessionsAt(
-          date: row['preferred_date'] as String,
-          time: consultStartTime,
-        );
 
         await bootSignedOut(tester);
         await loginAsTrainer(tester);
@@ -125,9 +121,9 @@ void main() {
           reason: '승인했는데 담당 연결이 생기지 않았습니다.',
         );
 
-        // 희망 시각이 필수가 된 뒤로(#1587) 승인은 그 시각에 상담 일정까지
-        // 만든다. 담당만 생기고 일정이 없으면 트레이너가 스케줄 탭에서 다시
-        // 잡아야 하는 예전 상태로 돌아간 것이다.
+        // 승인은 회원이 고른 자리에 일정까지 만든다(#1873). 담당만 생기고
+        // 일정이 없으면 트레이너가 스케줄 탭에서 다시 잡아야 하는 예전 상태로
+        // 돌아간 것이다.
         final List<Map<String, dynamic>> sessions = await api.scheduleFor(
           memberId,
         );
@@ -143,7 +139,10 @@ void main() {
           reason:
               '승인이 ${row['preferred_date']} $consultStartTime 상담 일정을 만들지 않았습니다.',
         );
-        expect(session['type'], '상담');
+        // 종류와 길이는 자리의 것이다 — 코드 상수(상담 30분)로 만들면 트레이너가
+        // 연 자리와 달력이 어긋난다.
+        expect(session['type'], '1:1 PT');
+        expect(session['duration_minutes'], row['slot_duration_minutes']);
         // 정리 단계가 지울 수 있게 남긴다 — 회원 계정을 지워도
         // `trainer_schedule.member_id` 는 SET NULL 이라 일정은 그대로 남는다.
         E2eState.merge(<String, Object?>{'sessionId': session['id']});

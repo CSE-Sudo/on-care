@@ -32,7 +32,9 @@ router = APIRouter(tags=["notifications"])
 _ACTION_BY_CATEGORY: dict[str, NotificationAction] = {
     # 성격만 나타내던 기존 값들.
     "reminder": NotificationAction(label="기록하러 가기", target="dashboard"),
-    "health_check": NotificationAction(label="일정 보기", target="schedule"),
+    # 일정을 여는 화면이 회원 앱에 없다(#1928) — 액션을 달면 눌러도 갈 곳이 없어
+    # 고장 난 버튼이 된다. 회원이 일정을 볼 자리가 생기면 그때 되돌린다.
+    "health_check": NotificationAction(label="기록하러 가기", target="dashboard"),
     "achievement": NotificationAction(label="대시보드 보기", target="dashboard"),
     # 트레이너가 한 일 — 예전에는 전부 `system` 으로 뭉쳐 갈 곳이 없었다(#636).
     notification_service.MEMBER_COACH_CHAT: NotificationAction(
@@ -41,11 +43,15 @@ _ACTION_BY_CATEGORY: dict[str, NotificationAction] = {
     notification_service.MEMBER_ROUTINE: NotificationAction(
         label="운동 보기", target="exercise"
     ),
-    notification_service.MEMBER_SCHEDULE: NotificationAction(
-        label="일정 보기", target="schedule"
-    ),
+    # MEMBER_SCHEDULE 은 액션을 달지 않는다(#1928). 회원 앱에 일정 화면이 없어
+    # 어디로 보내든 알림이 말한 것을 보여 줄 수 없다 — 읽음 처리만 하고 제자리에
+    # 두는 편이 갈 곳 없는 버튼보다 낫다.
     notification_service.MEMBER_CONSULTATION: NotificationAction(
         label="트레이너 보기", target="exercise"
+    ),
+    # 상담 요청의 승인·거절·만료 — 결과와 사유가 있는 내 상담 요청(#2067).
+    notification_service.MEMBER_CONSULTATION_DECISION: NotificationAction(
+        label="상담 요청 보기", target="consultations"
     ),
     # 쿠폰 사용 처리·취소·만료 임박 — MY 의 내 혜택으로 간다(#1787).
     notification_service.MEMBER_BENEFITS: NotificationAction(

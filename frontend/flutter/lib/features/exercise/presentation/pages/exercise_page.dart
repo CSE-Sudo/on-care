@@ -1,8 +1,9 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-// NumberFormat 만 가져온다 — intl 의 TextDirection 이 dart:ui 것과 충돌한다.
-import 'package:intl/intl.dart' show DateFormat, NumberFormat;
+// DateFormat 만 가져온다 — intl 의 TextDirection 이 dart:ui 것과 충돌한다.
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
@@ -23,7 +24,6 @@ import 'package:oncare/features/notification/presentation/controllers/notificati
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/ai_advice_card.dart';
 import 'package:oncare/shared/widgets/member_tab_header.dart';
-import 'package:oncare/shared/widgets/modals/schedule_calendar_sheet.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 하단 내비게이션 위로 남겨 두는 높이. 내비 막대가 내용을 가리지 않게 한다.
@@ -31,9 +31,6 @@ const double _bottomNavInset = 108;
 
 /// PT 일지의 종목 줄 앞 점.
 const double _programBulletSize = 6;
-
-/// 지난 날짜 세션 카드의 운동 항목 앞 점.
-const double _itemBulletSize = 4;
 
 /// 헬스장 서브탭에서 고른 예약 카드 — 탭을 벗어났다가 운동 탭에 다시 들어오면
 /// 선택이 풀려야 하는 임시 UI 상태라 Riverpod 에 둔다(#861). 실제 예약
@@ -56,9 +53,21 @@ void resetExerciseTransientUiState(WidgetRef ref) {
 /// sub-tab switcher over a weekly summary, stacked activity chart, AI routine,
 /// today's logs, and the gym card.
 class ExercisePage extends ConsumerStatefulWidget {
-  const ExercisePage({this.initialSubTab = 0, super.key});
+  const ExercisePage({
+    this.initialSubTab = 0,
+    this.statusAnchorKey,
+    this.gymAnchorKey,
+    super.key,
+  });
 
   final int initialSubTab;
+
+  /// 사용 가이드가 `운동 현황` 카드의 자리를 재는 열쇠(#1857). 운동 탭은 이
+  /// 값을 주지 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? statusAnchorKey;
+
+  /// 사용 가이드가 `내 헬스장` 카드의 자리를 재는 열쇠(#1857).
+  final GlobalKey? gymAnchorKey;
 
   @override
   ConsumerState<ExercisePage> createState() => _ExercisePageState();
@@ -100,7 +109,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
                       _header(context, l),
                       _subTabs(l),
                       const SizedBox(height: OnCareSpacing.s16),
-                      const _RecordTab(),
+                      _RecordTab(statusAnchorKey: widget.statusAnchorKey),
                     ],
                   )
                 : Padding(
@@ -130,7 +139,6 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
           onBell: () => context.push(AppRoutes.notification),
           bellHasUnread:
               (ref.watch(notificationUnreadProvider).valueOrNull ?? 0) > 0,
-          onCalendar: () => showScheduleCalendarSheet(context),
         ),
   );
 
@@ -140,6 +148,7 @@ class _ExercisePageState extends ConsumerState<ExercisePage> {
   );
 
   Widget _gymTab() => GymTab(
+    gymAnchorKey: widget.gymAnchorKey,
     selectedSlot: ref.watch(exerciseSelectedReservationSlotProvider),
     onSlot: (String s) {
       final StateController<String?> notifier = ref.read(
@@ -243,7 +252,10 @@ class _SubTabs extends StatelessWidget {
 // ───────────────────────────────────────────────────────── 운동 기록 ──
 
 class _RecordTab extends ConsumerStatefulWidget {
-  const _RecordTab();
+  const _RecordTab({this.statusAnchorKey});
+
+  /// 사용 가이드가 `운동 현황` 카드의 자리를 재는 열쇠(#1857).
+  final GlobalKey? statusAnchorKey;
 
   @override
   ConsumerState<_RecordTab> createState() => _RecordTabState();
@@ -315,7 +327,10 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
               padding: const EdgeInsets.symmetric(
                 horizontal: OnCareSpacing.s24,
               ),
-              child: ExerciseActivityStatus(week: week),
+              child: KeyedSubtree(
+                key: widget.statusAnchorKey,
+                child: ExerciseActivityStatus(week: week),
+              ),
             ),
             const SizedBox(height: OnCareSpacing.s20),
             // 2) AI 맞춤 조언 — "얼마나 했나" 다음은 "그래서 오늘 뭘 할까" 다.
@@ -511,7 +526,6 @@ class _ExerciseDayDetail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     final int i = date.weekday - 1; // 0 = 월
     final double minutes = _at(week.dailyMinutes, i);
     if (minutes <= 0) {
@@ -546,14 +560,21 @@ class _ExerciseDayDetail extends StatelessWidget {
 
     final String dayLabel = i < week.dayLabels.length ? week.dayLabels[i] : '';
     // 회원이 직접 적은 기록은 위 `직접 기록한 운동` 이 맡는다 — 여기서는
-    // PT 일지와 배정 루틴만 남긴다. 같은 기록을 한 화면에 두 번 그리지
+    // 트레이너 쪽 기록만 남긴다. 같은 기록을 한 화면에 두 번 그리지
     // 않는다(#1428).
-    final List<ExerciseSession> sessions = week.sessions
+    //
+    // PT 와 배정 개인운동은 **갈라서** 센다. 한 카드에 몰면 수업을 하지 않은
+    // 날의 개인운동까지 `완료한 PT` 라고 적히고, 그 카드에는 수업 시각도
+    // 트레이너 피드백도 없어 제목만 혼자 PT 라고 우긴다(#1884).
+    List<ExerciseSession> sourced(ExerciseSource source) => week.sessions
         .where(
-          (ExerciseSession s) =>
-              s.dayLabel == dayLabel && s.source != ExerciseSource.member,
+          (ExerciseSession s) => s.dayLabel == dayLabel && s.source == source,
         )
-        .toList();
+        .toList(growable: false);
+    final List<ExerciseSession> ptSessions = sourced(ExerciseSource.trainerPt);
+    final List<ExerciseSession> routineSessions = sourced(
+      ExerciseSource.assignedRoutine,
+    );
     // 유형별 값은 `운동 현황 > 오늘` 과 **같은 카드**로 그린다 — 유산소·스트레칭은
     // 분, 근력은 세트로. 같은 데이터를 두 가지 모양으로 그리지 않는다(#682).
     final ExerciseDayLoad load = ExerciseDayLoad.fromMinutes(
@@ -580,87 +601,33 @@ class _ExerciseDayDetail extends StatelessWidget {
           const SizedBox(height: OnCareSpacing.s12),
           ExerciseDayLoadCard(load: load, isToday: false),
           const SizedBox(height: OnCareSpacing.s20),
+          // 순서는 **오늘 화면과 같다**: 완료한 PT → 추천 개인운동 → 직접 기록.
+          // 날짜만 옮겼는데 카드가 다른 차례로 나오면, 어느 것이 트레이너 쪽이고
+          // 어느 것이 내가 적은 것인지 매번 다시 읽어야 한다(#2017). 화면 위쪽은
+          // "무엇을 해야 했나", 아래쪽은 "내가 무엇을 했나" 다(#1574).
+          if (ptSessions.isNotEmpty)
+            _DayRecordCard(
+              key: const ValueKey<String>('exercise-pt-records'),
+              title: l.exCompletedPtDayTitle,
+              icon: AppIcons.exercise,
+              sessions: ptSessions,
+            ),
+          if (ptSessions.isNotEmpty && routineSessions.isNotEmpty)
+            const SizedBox(height: OnCareSpacing.s12),
+          if (routineSessions.isNotEmpty)
+            _DayRecordCard(
+              key: const ValueKey<String>('exercise-routine-records'),
+              // 오늘 화면의 `추천 개인운동` 과 같은 어휘·같은 아이콘이다.
+              title: l.exCompletedRoutineDayTitle,
+              icon: AppIcons.running,
+              sessions: routineSessions,
+            ),
+          // 트레이너 쪽 기록이 하나라도 있으면 한 칸 띄운다 — 붙여 두면 아래
+          // `직접 기록한 운동` 제목이 위 카드에 딸린 것처럼 보인다.
+          if (ptSessions.isNotEmpty || routineSessions.isNotEmpty)
+            const SizedBox(height: OnCareSpacing.s20),
           // 직접 적은 기록은 따로 모아 그 자리에서 고치고 지운다(#1428).
           OwnExerciseRecords(week: week, date: date),
-          if (sessions.isNotEmpty) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s12),
-            for (final ExerciseSession s in sessions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: OnCareSpacing.s8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: AppTile(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Expanded(
-                              child: Text(
-                                s.assignedRoutineName.isNotEmpty
-                                    ? s.assignedRoutineName
-                                    : exerciseTypeLabel(l, s.type),
-                                style: tokens
-                                    .text(OnCareTypography.label)
-                                    .copyWith(color: OnCareColors.textPrimary),
-                              ),
-                            ),
-                            Text(
-                              '${exerciseAmountLabel(l, s)} · '
-                              '${NumberFormat('#,###').format(s.calories)} ${l.unitKcal}',
-                              style: tokens
-                                  .text(OnCareTypography.bodySmall)
-                                  .copyWith(color: OnCareColors.textSecondary),
-                            ),
-                          ],
-                        ),
-                        // 무슨 운동을 했는지 — 유형만 적으면 `유산소 30분` 이
-                        // 러닝인지 자전거인지 알 수 없다. (#1021)
-                        if (s.items.isNotEmpty) ...<Widget>[
-                          const SizedBox(height: OnCareSpacing.s4),
-                          for (final String item in s.items)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                top: OnCareSpacing.s2,
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: <Widget>[
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: OnCareSpacing.s8,
-                                      right: OnCareSpacing.s8,
-                                    ),
-                                    child: SizedBox.square(
-                                      dimension: _itemBulletSize,
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: tokens.brand.primary,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Text(
-                                      item,
-                                      style: tokens
-                                          .text(OnCareTypography.bodySmall)
-                                          .copyWith(
-                                            color: OnCareColors.textPrimary,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-          ],
         ],
       ),
     );
@@ -678,6 +645,144 @@ Widget _fitTag(Widget tag) => FittedBox(
   alignment: AlignmentDirectional.centerStart,
   child: tag,
 );
+
+/// 지난 날짜의 트레이너 쪽 기록 한 묶음 — 오늘 화면의 `오늘 완료한 PT` 와 같은
+/// 짜임이다. (#1884)
+///
+/// 예전에는 제목 없이 `AppTile` 줄로 흘러나와, 바로 위 `직접 추가한 운동이
+/// 없어요` 에 딸린 것처럼 읽혔다. 같은 기록이 두 화면에서 다른 모양이면 회원은
+/// 다른 것으로 본다 — 오늘과 같은 순서로 적는다: 완료 시각·운동 시간 태그 →
+/// 구분선 → 종목 줄 → 트레이너 피드백.
+///
+/// **출처마다 따로 세운다.** PT 와 배정 개인운동은 한 카드에 몰지 않는다 —
+/// 수업을 하지 않은 날의 개인운동에 `완료한 PT` 라고 적히면, 그 카드에는 수업
+/// 시각도 피드백도 없어 제목만 혼자 PT 라고 우긴다.
+///
+/// 없는 값은 비운다. 배정 개인운동은 언제 했는지를 남기지 않으므로 완료 시각
+/// 태그가 서지 않고, 피드백이 없으면 그 자리도 뜨지 않는다.
+///
+/// 수정·삭제는 열지 않는다. 회원이 고칠 수 있는 기록이 아니다(#499, #638).
+class _DayRecordCard extends ConsumerWidget {
+  const _DayRecordCard({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.sessions,
+  });
+
+  /// 카드 제목 — `완료한 PT` 또는 `완료한 개인운동`.
+  final String title;
+
+  /// 제목 앞 아이콘. 오늘 화면의 같은 묶음과 같은 것을 쓴다.
+  final IconData icon;
+
+  /// 이 묶음의 기록. 한 출처의 것만 들어온다.
+  final List<ExerciseSession> sessions;
+
+  /// 카드에 적을 종목 줄 — `벤치프레스 · 4세트 · 10회 · 40kg`.
+  ///
+  /// 이름과 운동량을 **필드에서** 붙인다. 예전에는 `items`(이름 문자열)를 그대로
+  /// 썼는데, 그러려면 픽스처가 세트·중량을 이름에 적어 넣어야 했다(#1902).
+  /// 이제 기록 한 행이 운동 하나이므로 그 행의 값이 곧 그 종목의 값이다.
+  List<String> _lines(AppLocalizations l) => <String>[
+    for (final ExerciseSession s in sessions) _line(l, s),
+  ];
+
+  /// 세션 한 줄. 이름은 회원이 적은 것 → 배정 루틴 이름 → 유형 순으로 고른다.
+  static String _line(AppLocalizations l, ExerciseSession s) {
+    final String name = s.name.isNotEmpty
+        ? s.name
+        : s.assignedRoutineName.isNotEmpty
+        ? s.assignedRoutineName
+        : exerciseTypeLabel(l, s.type);
+    return '$name · ${exerciseAmountLabel(l, s)}';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    // 시각은 PT 를 받은 날에만 있다 — 배정 개인운동은 언제 했는지를 남기지
+    // 않으므로 그 태그를 세우지 않는다. 없는 값을 지어내지 않는다.
+    final String time = sessions
+        .map((ExerciseSession s) => s.timeLabel ?? '')
+        .firstWhere((String t) => t.isNotEmpty, orElse: () => '');
+    final int minutes = sessions.fold<int>(
+      0,
+      (int sum, ExerciseSession s) => sum + s.minutes,
+    );
+    final String feedback = sessions
+        .map((ExerciseSession s) => s.trainerFeedback)
+        .firstWhere((String f) => f.isNotEmpty, orElse: () => '');
+    final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          AppSectionHeader(title: title, icon: icon),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 칩이 한 줄에 못 들어가면 다음 줄로 내린다 — 오늘 카드와 같다(#995).
+          Wrap(
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[
+              if (time.isNotEmpty)
+                _fitTag(
+                  AppTag(
+                    icon: AppIcons.checkCircle,
+                    label: l.exCompletedPtTime(time),
+                    tone: AppTagTone.success,
+                  ),
+                ),
+              if (minutes > 0)
+                _fitTag(
+                  AppTag(
+                    icon: AppIcons.timer,
+                    label: l.exDurationMinutes(minutes),
+                    tone: AppTagTone.brand,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          const AppDivider(),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 무슨 운동을 했는지 — 유형만 적으면 `유산소 30분` 이 러닝인지
+          // 자전거인지 알 수 없다. (#1021) 유형별 합계는 바로 위 도넛 카드가
+          // 이미 말하므로 여기서 되풀이하지 않는다(#682).
+          for (final String line in _lines(l)) _ProgramLine(line),
+          if (feedback.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            SizedBox(
+              width: double.infinity,
+              child: AppTile(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l.exPtDayFeedback(coach?.name ?? l.exAssignedTrainer),
+                      style: tokens
+                          .text(OnCareTypography.label)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                    const SizedBox(height: OnCareSpacing.s4),
+                    Text(
+                      feedback,
+                      style: tokens
+                          .text(OnCareTypography.bodySmall)
+                          .copyWith(color: OnCareColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 /// PT 일지의 종목 한 줄 — 앞 점 + 줄바꿈되는 본문.
 class _ProgramLine extends StatelessWidget {
@@ -737,6 +842,19 @@ class _PtLogCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 담당 트레이너가 없으면 PT 일지 자리 자체가 없다(#2014). 연결을 끊었는데
+    // 이 카드가 남으면, 트레이너가 있던 흔적만 화면에 서 있게 된다. 실서버는
+    // 담당이 없을 때 세션 목록이 비어 자연히 사라졌지만, 데모는 픽스처 세션을
+    // 그대로 읽어 연결과 무관하게 카드를 세웠다.
+    //
+    // **담당이 없다고 확인됐을 때만** 걷는다. 코치 조회가 아직 오는 중이거나
+    // 실패했을 때는 담당이 없는 것이 아니다 — 그때 숨기면 담당이 있는 회원의
+    // 오늘 PT 기록이 조회 한 번 실패로 사라지고, 불러오는 동안 칸이 비었다가
+    // 튀어나온다. 실서버에서는 세션 목록이 이미 담당 여부를 따른다.
+    final AsyncValue<MemberCoach?> linked = ref.watch(memberCoachProvider);
+    if (linked.hasValue && linked.value == null) {
+      return const SizedBox.shrink();
+    }
     if (ref.watch(appConfigProvider).useMockApi) {
       // 종목·세트는 픽스처가 정한다 — 카드가 제 목록을 따로 들면 같은 세션을
       // 운동 현황과 다르게 말한다.
@@ -799,17 +917,12 @@ class _CompletedPtSessionCard extends StatelessWidget {
     // 세트 → 횟수 → 중량. 입력 화면이 묻는 순서 그대로다 (#1310) — 트레이너가
     // 적은 순서와 회원이 읽는 순서가 다르면 같은 한 줄이 두 앱에서 달라 보인다.
     final String details = <String>[
-      if (item.sets > 0) l.exProgramSets(item.sets),
+      if (item.sets > 0) l.exSetsCount(item.sets),
       if (item.reps > 0) l.exRepsCount(item.reps),
-      if (item.weight > 0) '${_trimZero(item.weight)}${l.exUnitKg}',
+      if (item.weight > 0) exerciseWeightLabel(l, item.weight),
     ].join(' · ');
     return details.isEmpty ? item.name : '${item.name} · $details';
   }
-
-  /// 20.0 → `20`, 62.5 → `62.5`. 정수 무게에 소수점이 붙으면 원판 단위가
-  /// 아닌 값을 적은 것처럼 읽힌다.
-  static String _trimZero(double value) =>
-      value == value.roundToDouble() ? '${value.round()}' : '$value';
 
   @override
   Widget build(BuildContext context) {
@@ -932,7 +1045,7 @@ class _DemoPtLogCard extends StatelessWidget {
               _fitTag(
                 AppTag(
                   icon: AppIcons.person,
-                  label: l.exDemoPtSessionCount,
+                  label: l.exDemoPtSessionCount(kDemoTrainerName),
                   tone: AppTagTone.brand,
                 ),
               ),
@@ -967,7 +1080,7 @@ class _DemoPtLogCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
                           Text(
-                            l.exDemoPtTrainerName,
+                            kDemoTrainerName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: tokens

@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:oncare_trainer/core/storage/app_database.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
@@ -157,11 +158,7 @@ Future<void> seedIfEmpty(
       .where((client) => client.chat.isNotEmpty)
       .map((client) {
         final lastDayIndex = _lastChat(client.chat).dayIndex;
-        return desiredChatAt(
-          client,
-          client.chat.length - 1,
-          lastDayIndex,
-        );
+        return desiredChatAt(client, client.chat.length - 1, lastDayIndex);
       })
       .reduce((a, b) => a.isAfter(b) ? a : b);
   final chatTimeShift = latestDesiredChatAt.isAfter(latestSafeChatAt)
@@ -649,7 +646,12 @@ class _History {
   final int daysAgo;
   final String label;
   final int completionRate;
-  final List<String> exercises;
+
+  /// 그 세션의 운동들. `exercisesJson` 에 그대로 실린다(#1902).
+  ///
+  /// 김민수는 공유 픽스처에서 값까지 실린 객체로 오고, 손으로 적어 둔 다른 데모
+  /// 회원은 아직 이름 문자열이다 — 읽는 쪽(`clientExerciseItems`)이 둘 다 받는다.
+  final List<Object> exercises;
   final String clientFeedback;
   final String trainerNote;
 }
@@ -792,7 +794,7 @@ class _FixtureClient {
     for (final FixtureDay day in days)
       for (final FixtureMeal meal in day.meals)
         _Meal(
-          _mealLabel(meal.mealType),
+          mealLabel(meal.mealType),
           meal.foods.map((FixtureFood f) => f.name).join(', '),
           meal.calories,
           meal.sodiumMg,
@@ -834,8 +836,19 @@ class _FixtureClient {
         ),
         label: day.routineLabel,
         completionRate: day.completion,
-        exercises: <String>[
-          for (final FixtureExercise e in day.exercises) e.label,
+        // 이름·수·수행 표시를 한 문자열에 뭉치지 않는다(#1902). 단위는 로케일을
+        // 타는 문구라 화면이 붙인다(#1933).
+        exercises: <Object>[
+          for (final FixtureExercise e in day.exercises)
+            <String, Object?>{
+              'name': e.name,
+              'type': e.type,
+              'minutes': e.minutes,
+              if (e.sets != null) 'sets': e.sets,
+              if (e.reps != null) 'reps': e.reps,
+              if (e.weight != null) 'weight': e.weight,
+              if (!e.done) 'done': false,
+            },
         ],
         clientFeedback: day.clientFeedback,
         trainerNote: day.trainerNote,
@@ -877,10 +890,21 @@ class _FixtureClient {
         // 리포트의 요일 칸은 **실제로 한** 운동만 적는다(#1288). 배정에는 날짜가
         // 없어 "그날 배정됐는데 안 했다" 가 성립하지 않으므로 미수행은 싣지
         // 않는다 — `history` 쪽(운동 기록 탭)이 ✓/✗ 를 그대로 쓰는 것과 다르다.
+        // 이름만이 아니라 **값까지** 싣는다(#1902). 예전에는 이름 문자열만
+        // 넣어서, 세트·중량을 보여 주려면 픽스처가 그 수를 이름에 적어 넣어야
+        // 했다.
         exercisesJson: Value(
-          jsonEncode(<String>[
+          jsonEncode(<Map<String, Object?>>[
             for (final FixtureExercise e in day.exercises)
-              if (e.done) e.name,
+              if (e.done)
+                <String, Object?>{
+                  'name': e.name,
+                  'type': e.type,
+                  'minutes': e.minutes,
+                  if (e.sets != null) 'sets': e.sets,
+                  if (e.reps != null) 'reps': e.reps,
+                  if (e.weight != null) 'weight': e.weight,
+                },
           ]),
         ),
       );
@@ -889,10 +913,16 @@ class _FixtureClient {
 }
 
 /// 끼니 종류 → 화면에 쓰는 한국어 라벨.
-String _mealLabel(String mealType) => switch (mealType) {
+///
+/// 키는 회원 앱 `MealType.name` 이다 — `lateNight`(야식, #1988)만 camelCase 인
+/// 것은 그 이름이 곧 전송값이기 때문이다. 야식을 적어 두지 않으면 아래 폴백이
+/// 낮의 간식으로 접어, 트레이너가 밤늦게 먹은 것을 갈라 볼 수 없다.
+@visibleForTesting
+String mealLabel(String mealType) => switch (mealType) {
   'breakfast' => '아침',
   'lunch' => '점심',
   'dinner' => '저녁',
+  'lateNight' => '야식',
   _ => '간식',
 };
 
@@ -971,13 +1001,37 @@ int _scaled(num value, double factor) => (value * factor).round();
 /// 단위가 다르다. 맨몸 운동은 중량을 비운다: 적지 않은 값을 `0kg` 으로 적으면
 /// 트레이너가 정해 준 무게처럼 읽힌다.
 const List<List<String>> _routinePool = <List<String>>[
-  <String>['스쿼트 4세트 · 10회 · 50kg', '런지 3세트 · 12회 · 10kg', '레그컬 3세트 · 12회 · 35kg'],
-  <String>['벤치프레스 4세트 · 8회 · 50kg', '푸시업 3세트 · 15회 · 0kg', '덤벨 플라이 3세트 · 12회 · 10kg'],
-  <String>['데드리프트 4세트 · 8회 · 60kg', '바벨 로우 3세트 · 10회 · 40kg', '풀업 3세트 · 8회 · 0kg'],
-  <String>['숄더 프레스 4세트 · 10회 · 20kg', '사이드 레터럴 3세트 · 15회 · 6kg', '페이스 풀 3세트 · 15회 · 15kg'],
+  <String>[
+    '스쿼트 4세트 · 10회 · 50kg',
+    '런지 3세트 · 12회 · 10kg',
+    '레그컬 3세트 · 12회 · 35kg',
+  ],
+  <String>[
+    '벤치프레스 4세트 · 8회 · 50kg',
+    '푸시업 3세트 · 15회 · 0kg',
+    '덤벨 플라이 3세트 · 12회 · 10kg',
+  ],
+  <String>[
+    '데드리프트 4세트 · 8회 · 60kg',
+    '바벨 로우 3세트 · 10회 · 40kg',
+    '풀업 3세트 · 8회 · 0kg',
+  ],
+  <String>[
+    '숄더 프레스 4세트 · 10회 · 20kg',
+    '사이드 레터럴 3세트 · 15회 · 6kg',
+    '페이스 풀 3세트 · 15회 · 15kg',
+  ],
   <String>['런닝 30분', '사이클 20분', '코어 서킷 3세트 · 12회 · 0kg'],
-  <String>['레그프레스 4세트 · 12회 · 70kg', '힙 쓰러스트 3세트 · 12회 · 40kg', '카프 레이즈 3세트 · 20회 · 0kg'],
-  <String>['플랭크 3세트 · 3회 · 0kg', '버피 3세트 · 12회 · 0kg', '마운틴 클라이머 3세트 · 20회 · 0kg'],
+  <String>[
+    '레그프레스 4세트 · 12회 · 70kg',
+    '힙 쓰러스트 3세트 · 12회 · 40kg',
+    '카프 레이즈 3세트 · 20회 · 0kg',
+  ],
+  <String>[
+    '플랭크 3세트 · 3회 · 0kg',
+    '버피 3세트 · 12회 · 0kg',
+    '마운틴 클라이머 3세트 · 20회 · 0kg',
+  ],
 ];
 
 /// 그날 **실제로 한** 운동 목록. 미수행은 싣지 않는다. (#1288)
@@ -1007,14 +1061,23 @@ List<String> _exercisesFor(
   return const <String>[];
 }
 
-/// 운동 기록 표기(`이름 ✓` / `이름 ✗`)에서 **한 것만** 이름으로 추린다.
+/// 시드의 운동 목록에서 **한 것만** 이름으로 추린다.
 ///
-/// 운동 기록 탭은 그 표기를 그대로 쓰고 리포트만 추린다. 시드가 두 화면에 같은
-/// 하루를 공급하므로 변환은 이 자리에서 한 번만 한다.
-List<String> _doneNames(List<String> lines) => <String>[
-  for (final String line in lines)
-    if (!line.contains('✗')) line.replaceAll('✓', '').trim(),
-];
+/// 값까지 실린 객체(#1902)와, 손으로 적어 둔 옛 표기(`이름 ✓` / `이름 ✗`)를 함께
+/// 받는다. 운동 기록 탭은 목록을 그대로 쓰고 리포트만 이름으로 추린다.
+List<String> _doneNames(List<Object> items) {
+  final List<String> names = <String>[];
+  for (final Object item in items) {
+    if (item is Map<String, Object?>) {
+      if (item['done'] == false) continue;
+      final Object? name = item['name'];
+      if (name is String && name.isNotEmpty) names.add(name);
+    } else if (item is String && !item.contains('✗')) {
+      names.add(item.replaceAll('✓', '').trim());
+    }
+  }
+  return names;
+}
 
 /// 요일·고객으로 고른 루틴에서 이행률만큼을 **한 것**으로 남긴다.
 List<String> _routineFor(int clientId, int weekday, int completion) {
@@ -1279,8 +1342,20 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     durationMinutes: 30,
     note: '출근 전 수업. 상체 위주로 짧게 끊어 간다.',
     program: <Map<String, Object?>>[
-      <String, Object?>{'name': '랫풀다운', 'type': '근력', 'sets': 4, 'reps': 10, 'weight': 35},
-      <String, Object?>{'name': '숄더프레스', 'type': '근력', 'sets': 3, 'reps': 12, 'weight': 12},
+      <String, Object?>{
+        'name': '랫풀다운',
+        'type': '근력',
+        'sets': 4,
+        'reps': 10,
+        'weight': 35,
+      },
+      <String, Object?>{
+        'name': '숄더프레스',
+        'type': '근력',
+        'sets': 3,
+        'reps': 12,
+        'weight': 12,
+      },
     ],
   ),
   _WeekSlot(
@@ -1299,8 +1374,20 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     durationMinutes: 90,
     note: '데드리프트 자세 교정 중. 허리 통증 여부를 매 세트 확인한다.',
     program: <Map<String, Object?>>[
-      <String, Object?>{'name': '데드리프트', 'type': '근력', 'sets': 4, 'reps': 8, 'weight': 60},
-      <String, Object?>{'name': '백익스텐션', 'type': '근력', 'sets': 3, 'reps': 15, 'weight': 0},
+      <String, Object?>{
+        'name': '데드리프트',
+        'type': '근력',
+        'sets': 4,
+        'reps': 8,
+        'weight': 60,
+      },
+      <String, Object?>{
+        'name': '백익스텐션',
+        'type': '근력',
+        'sets': 3,
+        'reps': 15,
+        'weight': 0,
+      },
     ],
   ),
   // 화
@@ -1320,8 +1407,20 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     durationMinutes: 50,
     note: '어깨 가동 범위 회복 단계. 중량보다 자세를 본다.',
     program: <Map<String, Object?>>[
-      <String, Object?>{'name': '밴드 외전', 'type': '근력', 'sets': 3, 'reps': 20, 'weight': 0},
-      <String, Object?>{'name': '인클라인 푸시업', 'type': '근력', 'sets': 3, 'reps': 12, 'weight': 0},
+      <String, Object?>{
+        'name': '밴드 외전',
+        'type': '근력',
+        'sets': 3,
+        'reps': 20,
+        'weight': 0,
+      },
+      <String, Object?>{
+        'name': '인클라인 푸시업',
+        'type': '근력',
+        'sets': 3,
+        'reps': 12,
+        'weight': 0,
+      },
     ],
   ),
   _WeekSlot(
@@ -1341,7 +1440,13 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     durationMinutes: 60,
     note: '체지방 감량 목표. 근력과 유산소를 반씩 섞는다.',
     program: <Map<String, Object?>>[
-      <String, Object?>{'name': '고블릿 스쿼트', 'type': '근력', 'sets': 4, 'reps': 12, 'weight': 16},
+      <String, Object?>{
+        'name': '고블릿 스쿼트',
+        'type': '근력',
+        'sets': 4,
+        'reps': 12,
+        'weight': 16,
+      },
       <String, Object?>{'name': '로잉머신', 'type': '유산소', 'duration': 15},
     ],
   ),
@@ -1370,8 +1475,20 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     durationMinutes: 90,
     note: '전신 순환. 세트 사이 휴식을 45초로 줄여 본다.',
     program: <Map<String, Object?>>[
-      <String, Object?>{'name': '케틀벨 스윙', 'type': '근력', 'sets': 4, 'reps': 15, 'weight': 12},
-      <String, Object?>{'name': '플랭크', 'type': '근력', 'sets': 3, 'reps': 3, 'weight': 0},
+      <String, Object?>{
+        'name': '케틀벨 스윙',
+        'type': '근력',
+        'sets': 4,
+        'reps': 15,
+        'weight': 12,
+      },
+      <String, Object?>{
+        'name': '플랭크',
+        'type': '근력',
+        'sets': 3,
+        'reps': 3,
+        'weight': 0,
+      },
     ],
   ),
   _WeekSlot(
@@ -1407,8 +1524,20 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     durationMinutes: 30,
     note: '주 2회 중 두 번째 수업. 월요일에 못 채운 하체를 넣는다.',
     program: <Map<String, Object?>>[
-      <String, Object?>{'name': '레그프레스', 'type': '근력', 'sets': 4, 'reps': 12, 'weight': 70},
-      <String, Object?>{'name': '런지', 'type': '근력', 'sets': 3, 'reps': 20, 'weight': 8},
+      <String, Object?>{
+        'name': '레그프레스',
+        'type': '근력',
+        'sets': 4,
+        'reps': 12,
+        'weight': 70,
+      },
+      <String, Object?>{
+        'name': '런지',
+        'type': '근력',
+        'sets': 3,
+        'reps': 20,
+        'weight': 8,
+      },
     ],
   ),
   _WeekSlot(
@@ -1428,8 +1557,20 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
     durationMinutes: 45,
     note: '주말 수업. 평일보다 길게 가져가되 마무리 스트레칭을 넉넉히 둔다.',
     program: <Map<String, Object?>>[
-      <String, Object?>{'name': '체스트프레스', 'type': '근력', 'sets': 4, 'reps': 10, 'weight': 25},
-      <String, Object?>{'name': '시티드로우', 'type': '근력', 'sets': 3, 'reps': 12, 'weight': 30},
+      <String, Object?>{
+        'name': '체스트프레스',
+        'type': '근력',
+        'sets': 4,
+        'reps': 10,
+        'weight': 25,
+      },
+      <String, Object?>{
+        'name': '시티드로우',
+        'type': '근력',
+        'sets': 3,
+        'reps': 12,
+        'weight': 30,
+      },
     ],
   ),
   // 김민수는 넣지 않는다 — 그의 하루는 공유 픽스처가 정하고(#757), 여기서 수업을
@@ -1534,8 +1675,20 @@ const List<_Slot> _schedule = <_Slot>[
         'reps': 10,
         'weight': 40.0,
       },
-      <String, Object?>{'name': '플랭크', 'type': '근력', 'sets': 3, 'reps': 3, 'weight': 0},
-      <String, Object?>{'name': '코어 서킷', 'type': '근력', 'sets': 2, 'reps': 12, 'weight': 0},
+      <String, Object?>{
+        'name': '플랭크',
+        'type': '근력',
+        'sets': 3,
+        'reps': 3,
+        'weight': 0,
+      },
+      <String, Object?>{
+        'name': '코어 서킷',
+        'type': '근력',
+        'sets': 2,
+        'reps': 12,
+        'weight': 0,
+      },
     ],
   ),
   _Slot(
@@ -1569,7 +1722,13 @@ const List<_Slot> _schedule = <_Slot>[
         'reps': 10,
         'weight': 26.0,
       },
-      <String, Object?>{'name': '트라이셉스 딥', 'type': '근력', 'sets': 3, 'reps': 12, 'weight': 0},
+      <String, Object?>{
+        'name': '트라이셉스 딥',
+        'type': '근력',
+        'sets': 3,
+        'reps': 12,
+        'weight': 0,
+      },
     ],
   ),
   // 상담으로 잡힌 가망 고객 — 로스터에 없으니 화면이 `이름(신규)` 로 부른다.

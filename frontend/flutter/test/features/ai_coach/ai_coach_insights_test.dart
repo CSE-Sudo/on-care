@@ -12,6 +12,7 @@ import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/data/repositories/dio_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
+import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -20,6 +21,7 @@ import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_contr
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// AI 챗봇 통증·부정적 반응 감지 — 응답 파싱, 메시지 표시, 감지 기록 창(#1824).
 
@@ -87,6 +89,14 @@ class _InsightRepo implements AiCoachRepository {
       bodyPart: '무릎',
     ),
   );
+
+  /// 치운 줄. 화면이 정말 지웠는지 여기로 확인한다(#1975).
+  final List<String> dismissed = <String>[];
+
+  @override
+  Future<void> dismissInsight(String messageId) async {
+    dismissed.add(messageId);
+  }
 
   @override
   Future<ChatInsightHistory> fetchInsights() async {
@@ -295,10 +305,152 @@ void main() {
       dio.close();
     });
 
+    test('처음 열어도 지난 대화가 있고, 감지 기록이 그 문장을 가리킨다 (#1900)', () async {
+      final chat = await dio.get<Map<String, Object?>>('/ai-coach/messages');
+      final List<Map<String, Object?>> messages =
+          (chat.data!['messages']! as List<Object?>)
+              .cast<Map<String, Object?>>();
+      // 인사말 하나로 시작하던 화면에 지난 대화가 깔린다.
+      expect(messages, isNotEmpty);
+      expect(messages.first['role'], 'user');
+
+      final listed = await dio.get<Map<String, Object?>>('/ai-coach/insights');
+      final List<Map<String, Object?>> rows =
+          (listed.data!['insights']! as List<Object?>)
+              .cast<Map<String, Object?>>();
+      expect(rows, isNotEmpty);
+
+      // 기록의 문장은 전부 대화 안에 회원이 한 말로 있다. 둘을 따로 적어 두면
+      // 기록에만 있는 문장이 생겨 앞뒤가 맞지 않는다.
+      final Set<String> saidByMember = <String>{
+        for (final Map<String, Object?> m in messages)
+          if (m['role'] == 'user') m['content']! as String,
+      };
+      for (final Map<String, Object?> row in rows) {
+        expect(saidByMember, contains(row['text']));
+      }
+
+      // 코치 답변은 감지 대상이 아니다.
+      final Set<String> saidByCoach = <String>{
+        for (final Map<String, Object?> m in messages)
+          if (m['role'] != 'user') m['content']! as String,
+      };
+      for (final Map<String, Object?> row in rows) {
+        expect(saidByCoach, isNot(contains(row['text'])));
+      }
+
+      // 최근 것이 위, 모두 감지 기간 안이다.
+      final List<DateTime> at = <DateTime>[
+        for (final Map<String, Object?> row in rows)
+          DateTime.parse(row['created_at']! as String),
+      ];
+      final DateTime now = nowKst();
+      for (int i = 1; i < at.length; i++) {
+        expect(at[i].isAfter(at[i - 1]), isFalse);
+      }
+      for (final DateTime t in at) {
+        expect(isWithinInsightWindow(t, now), isTrue);
+      }
+    });
+
+    test('대화에 주고받은 때가 실려 온다 (#1918)', () async {
+      final List<Map<String, Object?>> messages =
+          ((await dio.get<Map<String, Object?>>(
+                    '/ai-coach/messages',
+                  )).data!['messages']!
+                  as List<Object?>)
+              .cast<Map<String, Object?>>();
+
+      // 감지 기록에는 날짜가 있는데 대화에는 없어, 같은 일을 두 화면이 다르게
+      // 말하고 있었다.
+      final List<DateTime> at = <DateTime>[
+        for (final Map<String, Object?> m in messages)
+          DateTime.parse(m['created_at']! as String),
+      ];
+      expect(at.length, messages.length);
+      // 오래된 것부터 온다 — 화면이 그리는 차례 그대로다.
+      for (int i = 1; i < at.length; i++) {
+        expect(at[i].isBefore(at[i - 1]), isFalse);
+      }
+      // 하루치가 아니라 여러 날에 걸쳐 있어야 날짜 구분선이 뜻을 갖는다.
+      expect(at.map((DateTime t) => t.day).toSet().length, greaterThan(1));
+      // 시각도 서로 다르다 — 전부 같은 시각이면 한 번에 찍어 넣은 티가 난다.
+      expect(at.map((DateTime t) => t.hour).toSet().length, greaterThan(1));
+      // 모두 감지 기간(30일) 안이라 기록 화면과 짝이 맞는다.
+      final DateTime now = nowKst();
+      for (final DateTime t in at) {
+        expect(isWithinInsightWindow(t, now), isTrue);
+      }
+    });
+
+    test('데모 답변이 없는 트레이너를 가리키지 않는다 (#1918)', () async {
+      // 이 화면은 담당 트레이너가 **없을 때만** 열린다(#1823). 답변이 트레이너
+      // 에게 알리라고 하면 갈 곳이 없는 안내가 된다.
+      final List<Map<String, Object?>> messages =
+          ((await dio.get<Map<String, Object?>>(
+                    '/ai-coach/messages',
+                  )).data!['messages']!
+                  as List<Object?>)
+              .cast<Map<String, Object?>>();
+      for (final Map<String, Object?> m in messages) {
+        final String text = m['content']! as String;
+        for (final String banned in <String>['트레이너', '코치님', 'PT']) {
+          expect(text.contains(banned), isFalse, reason: text);
+        }
+      }
+    });
+
+    test('아픈 곳 이야기에 영양 답변이 끼어들지 않는다 (#1918)', () async {
+      // `당` 한 글자가 `당기다` 에 걸려, 통증 감지 표시를 달아 놓고 디저트
+      // 이야기를 답하고 있었다.
+      final chat = await dio.post<Map<String, Object?>>(
+        '/ai-coach/chat',
+        data: <String, Object?>{'message': '허리가 당겨요', 'history': <Object?>[]},
+      );
+      expect(chat.data!['user_insight'], <String, Object?>{
+        'kind': 'discomfort',
+        'body_part': '허리',
+      });
+      final String reply = chat.data!['reply']! as String;
+      expect(reply.contains('디저트'), isFalse, reason: reply);
+      expect(reply.contains('불편한 곳'), isTrue, reason: reply);
+    });
+
+    test('보낸 말과 받은 답이 다시 열었을 때 대화에 남는다 (#1900)', () async {
+      final int before =
+          ((await dio.get<Map<String, Object?>>(
+                    '/ai-coach/messages',
+                  )).data!['messages']!
+                  as List<Object?>)
+              .length;
+
+      await dio.post<Map<String, Object?>>(
+        '/ai-coach/chat',
+        data: <String, Object?>{'message': '허리가 뻐근해요', 'history': <Object?>[]},
+      );
+
+      final List<Map<String, Object?>> after =
+          ((await dio.get<Map<String, Object?>>(
+                    '/ai-coach/messages',
+                  )).data!['messages']!
+                  as List<Object?>)
+              .cast<Map<String, Object?>>();
+      // 회원 한 줄 + 코치 한 줄.
+      expect(after.length, before + 2);
+      expect(after[after.length - 2]['content'], '허리가 뻐근해요');
+      expect(after[after.length - 2]['insight'], <String, Object?>{
+        'kind': 'discomfort',
+        'body_part': '허리',
+      });
+      expect(after.last['role'], 'coach');
+      // 코치 답에는 감지가 붙지 않는다.
+      expect(after.last['insight'], isNull);
+    });
+
     test('채팅 답에 감지를 싣고, 기록은 30일 안의 감지된 메시지만 최신순이다', () async {
       // 31일 전 메시지를 미리 둔다 — 기록에서 빠져야 한다.
       await db.putValue(
-        'ai_coach_user_messages',
+        'ai_coach_user_messages_v2',
         jsonEncode(<Map<String, Object?>>[
           <String, Object?>{
             'id': 'old',
@@ -333,5 +485,92 @@ void main() {
       expect(rows.map((r) => r['text']), <String>['너무 힘들어서 못 했어요', '무릎이 아파요']);
       expect(rows.last['body_part'], '무릎');
     });
+  });
+
+  group('감지 기록 지우기 (#1975)', () {
+    _InsightRepo repoWithOneRecord() => _InsightRepo(
+      history: ChatInsightHistory(
+        records: <ChatInsightRecord>[
+          ChatInsightRecord(
+            messageId: 'm1',
+            createdAt: DateTime(2026, 9, 16, 9),
+            insight: const ChatInsight(
+              kind: ChatInsightKind.discomfort,
+              bodyPart: '어깨',
+            ),
+            text: '어깨가 아파요',
+          ),
+        ],
+      ),
+    );
+
+    Future<void> openSheet(WidgetTester tester, _InsightRepo repo) async {
+      await _pumpPage(tester, repo);
+      await tester.tap(find.byKey(const Key('aiCoachInsightHistoryButton')));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('누르자마자 지우지 않고 무엇이 남는지 먼저 말한다', (tester) async {
+      final _InsightRepo repo = repoWithOneRecord();
+      await openSheet(tester, repo);
+
+      await tester.tap(find.byKey(const Key('aiCoachInsightDelete-m1')));
+      await tester.pumpAndSettle();
+
+      // 되돌릴 수 없으므로 확인창이 먼저다. 문구는 대화에 쓴 말이 남는다고
+      // 말해야 한다 — 그것까지 지워지는 줄 알면 누르지 못한다.
+      expect(find.byType(AppDialog), findsOneWidget);
+      expect(find.textContaining('대화에 쓴 말은 그대로 남아요'), findsOneWidget);
+      expect(repo.dismissed, isEmpty);
+    });
+
+    testWidgets('취소하면 아무것도 지우지 않는다', (tester) async {
+      final _InsightRepo repo = repoWithOneRecord();
+      await openSheet(tester, repo);
+
+      await tester.tap(find.byKey(const Key('aiCoachInsightDelete-m1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+
+      expect(repo.dismissed, isEmpty);
+    });
+
+    testWidgets('확인하면 그 줄만 지운다', (tester) async {
+      final _InsightRepo repo = repoWithOneRecord();
+      await openSheet(tester, repo);
+
+      await tester.tap(find.byKey(const Key('aiCoachInsightDelete-m1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(AppButton, '삭제').last);
+      await tester.pumpAndSettle();
+
+      expect(repo.dismissed, <String>['m1']);
+    });
+  });
+
+  testWidgets('기록 창이 이 목록을 어디에 쓰는지 말한다 (#1973)', (tester) async {
+    // 무엇을 모았는지만 말하면 "내가 아프다고 말한 횟수" 목록으로 읽힌다.
+    // 이 값이 AI 답변에 쓰인다는 것을 말해야 회원이 왜 보는지 안다.
+    await _pumpPage(tester, _InsightRepo());
+    await tester.tap(find.byKey(const Key('aiCoachInsightHistoryButton')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('AI가 답할 때 참고해요'), findsOneWidget);
+  });
+
+  testWidgets('머리의 제목이 화면 가운데에 선다 (#1975)', (tester) async {
+    await _pumpPage(tester, _InsightRepo());
+
+    // 왼쪽 뒤로 버튼과 오른쪽 기록 버튼은 폭이 다르다. 양쪽을 맞추지 않으면
+    // 가운데 정렬한 아바타·제목 묶음이 왼쪽으로 밀린다.
+    //
+    // 재는 것은 **묶음 전체**다 — 아바타가 왼쪽에 붙어 있어 제목 글자 하나만
+    // 재면 그것이 가운데여도 묶음은 치우쳐 보인다.
+    // 대화의 코치 아바타와 같은 위젯이다 — 머리의 것은 트리에서 먼저 온다.
+    final double left = tester.getTopLeft(find.byType(OniAvatar).first).dx;
+    final double right = tester.getBottomRight(find.text('언제든 물어보세요')).dx;
+    final double screen = tester.getSize(find.byType(AICoachPage)).width;
+    expect((left + right) / 2, closeTo(screen / 2, 1));
   });
 }

@@ -12,6 +12,7 @@
 ///    이 테스트가 시드가 그려지는 화면을 피하는 이유다.
 library;
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -34,7 +35,7 @@ final RegExp _hangul = RegExp(r'[가-힣]');
 /// 실제 이름이 그대로 그려진다.
 const Set<String> _demoProfileValues = <String>{
   '김',
-  '김트레이너',
+  kDemoTrainerName,
   '온케어짐 신촌점',
   // `DemoConsultationRepository` 는 `seed: false` 와 무관하게 항상 대기 중인
   // 상담 요청 하나를 들고 있다(로스터 시딩과 별개 in-memory 픽스처) — 대시보드

@@ -1,3 +1,4 @@
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 
@@ -30,8 +31,10 @@ class RoutineHistoryEntry {
   /// 0–100 completion.
   final int completionRate;
 
-  /// Exercise lines; a "✗" marks a skipped one (rendered struck-through).
-  final List<String> exercises;
+  /// 그 세션의 운동들. 값까지 든다(#1902) — 예전에는 `벤치프레스 4세트 · 10회 ·
+  /// 40kg ✓` 처럼 이름·수·수행 표시가 한 문자열에 뭉쳐 있었다. 한 줄로 읽히는
+  /// 표기는 화면이 만든다(단위는 로케일을 탄다, #1933).
+  final List<ClientExerciseItem> exercises;
 
   /// Client's feedback (may be empty).
   final String clientFeedback;
@@ -75,7 +78,6 @@ List<RoutineHistoryEntry> historyInRange(
       .toList(growable: false);
 }
 
-
 /// 그 기록에서 실제로 한 운동 수와 배정된 수, 그리고 둘로 만든 이행률.
 /// (#1484)
 ///
@@ -86,18 +88,16 @@ extension RoutineHistoryCompletion on RoutineHistoryEntry {
   /// 배정된 운동 수. 줄이 없으면 0.
   int get totalCount => exercises.length;
 
-  /// 그중 마친 수 — `✗` 가 없는 줄이다.
-  int get doneCount =>
-      exercises.where((String line) => !line.contains('✗')).length;
+  /// 그중 마친 수.
+  int get doneCount => exercises.where((ClientExerciseItem e) => e.done).length;
 
   /// `3/3` — 카드 오른쪽 위, 퍼센트 바로 왼쪽에 선다.
   String get completionCountLabel => '$doneCount/$totalCount';
 
   /// 화면에 적는 이행률(%). 운동 줄이 있으면 그 줄로 만든 값이라 개수와 같은
   /// 사실을 말한다. 줄이 없는 기록(옛 데이터)은 서버 값을 그대로 쓴다.
-  int get displayRate => totalCount == 0
-      ? completionRate
-      : (doneCount / totalCount * 100).round();
+  int get displayRate =>
+      totalCount == 0 ? completionRate : (doneCount / totalCount * 100).round();
 }
 
 /// 화면에 그리는 기록 종류 이름. (#1453)

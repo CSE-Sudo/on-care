@@ -8,6 +8,8 @@ from __future__ import annotations
 from datetime import date, timedelta
 from uuid import uuid4
 
+import pytest
+
 from app.core import clock
 
 
@@ -30,6 +32,36 @@ def test_week_start_of_normalises_any_day_to_monday():
     monday = date(2026, 8, 3)
     for offset in range(7):
         assert week_start_of(date(2026, 8, 3 + offset)) == monday
+
+
+def test_meal_kr_labels_all_five_meal_types():
+    """다섯 끼니가 모두 제 라벨로 간다 (#1988).
+
+    키는 회원 앱 `MealType.name` 이다 — `lateNight` 만 camelCase 인 것은 그
+    이름이 곧 전송값이기 때문이다.
+    """
+    from app.services.trainer_service import _meal_kr
+
+    assert _meal_kr("breakfast") == "아침"
+    assert _meal_kr("lunch") == "점심"
+    assert _meal_kr("dinner") == "저녁"
+    assert _meal_kr("snack") == "간식"
+    assert _meal_kr("lateNight") == "야식"
+
+
+def test_meal_kr_does_not_fold_late_night_into_snack():
+    """야식이 간식으로 접히면 밤늦게 먹은 것을 낮의 간식과 갈라 볼 수 없다."""
+    from app.services.trainer_service import _meal_kr
+
+    assert _meal_kr("lateNight") != _meal_kr("snack")
+
+
+def test_meal_kr_passes_through_unknown_meal_types():
+    """모르는 값은 간식으로 접지 않고 그대로 둔다 — 새 끼니가 조용히 섞이면
+    트레이너가 틀린 근거로 코칭한다."""
+    from app.services.trainer_service import _meal_kr
+
+    assert _meal_kr("brunch") == "brunch"
 
 
 def test_report_message_omits_figures_without_data():
@@ -352,6 +384,76 @@ def test_put_me_with_no_fields_is_rejected(client):
     token = _trainer_token(client)
     r = client.put("/v1/trainer/me", json={}, headers=_auth(token))
     assert r.status_code == 400
+
+
+# ---- 트레이너 연락처 형식 (#1914) ----
+#
+# 회원 쪽은 #1780(가입)·#1883(프로필 수정)이 한 기준으로 맞췄는데 이 경로만
+# 길이(20자)만 보고 있었다. 같은 종류의 값을 두 앱이 다른 기준으로 받으면,
+# 나중에 이 번호를 회원 화면에 보일 때 그 자리에서 정리부터 해야 한다.
+
+
+@pytest.mark.parametrize("phone", ["없음", "0101234", "010-1234-567"])
+def test_put_me_rejects_a_malformed_phone(client, phone):
+    """전에는 20자 안이면 무엇이든 200 이었다."""
+    token = _trainer_token(client)
+    r = client.put("/v1/trainer/me", json={"phone": phone}, headers=_auth(token))
+    assert r.status_code == 422, r.text
+
+
+def test_put_me_normalizes_phone_like_the_member_paths(client):
+    """하이픈 없이 보내도 회원 경로와 같은 한 표기로 저장된다."""
+    token = _trainer_token(client)
+    before = client.get("/v1/trainer/me", headers=_auth(token)).json()
+    try:
+        r = client.put(
+            "/v1/trainer/me", json={"phone": "01098765432"}, headers=_auth(token)
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["phone"] == "010-9876-5432"
+        again = client.get("/v1/trainer/me", headers=_auth(token))
+        assert again.json()["phone"] == "010-9876-5432"
+    finally:
+        client.put(
+            "/v1/trainer/me", json={"phone": before["phone"]}, headers=_auth(token)
+        )
+
+
+def test_put_me_allows_clearing_the_phone(client):
+    """트레이너 가입은 전화번호를 받지 않는다 — 처음부터 없는 값을 요구하면 안 된다.
+
+    회원 쪽의 "있던 번호는 못 지운다"(#1883)는 가입이 필수로 받기 때문이고,
+    여기는 그 전제가 없다.
+    """
+    token = _trainer_token(client)
+    before = client.get("/v1/trainer/me", headers=_auth(token)).json()
+    try:
+        r = client.put("/v1/trainer/me", json={"phone": ""}, headers=_auth(token))
+        assert r.status_code == 200, r.text
+        assert r.json()["phone"] == ""
+    finally:
+        client.put(
+            "/v1/trainer/me", json={"phone": before["phone"]}, headers=_auth(token)
+        )
+
+
+@pytest.mark.parametrize(
+    "gym_phone", ["02-1234-5678", "02-332-1720", "0502-5552-4212", "010-7616-9819"]
+)
+def test_gym_phone_keeps_every_shape_a_gym_number_takes(gym_phone):
+    """헬스장 대표번호에는 휴대전화 규칙을 걸지 않는다. (DB 불필요)
+
+    시드의 실제 번호만 봐도 9~12자리가 섞여 있다(`seed_gyms`). 휴대전화 3-4-4 를
+    요구하면 **정상 번호가 422** 로 막히고, 더 나쁘게는 소속을 설정할 때
+    `Place.phone` 이 이 칸에 그대로 들어오므로(`set_trainer_gym`) 그 뒤로 이 폼을
+    저장할 수 없게 된다.
+
+    엔드포인트가 아니라 스키마에서 보는 이유는, 소속이 있는 트레이너는 헬스장
+    칸을 직접 고칠 수 없어(409) 형식 검사까지 가지 않기 때문이다.
+    """
+    from app.schemas.trainer_api import TrainerMeUpdate
+
+    assert TrainerMeUpdate(gym_phone=gym_phone).gym_phone == gym_phone
 
 
 # ---- 고객 AI 코칭 ----

@@ -131,6 +131,30 @@ void main() {
       expect(item.action?.isNavigable, isTrue);
     });
 
+    test('상담 결과 알림은 내 상담 요청으로 간다 (#2067)', () async {
+      final repo = DioNotificationRepository(
+        _dio(<Object?>[
+          <String, Object?>{
+            'id': 'n1',
+            'title': '상담 요청이 반려되었어요',
+            'body': '이번 주는 일정이 가득 찼어요',
+            'time_ago': '방금',
+            'category': 'consult_decision',
+            'read': false,
+            'action': <String, Object?>{
+              'label': '상담 요청 보기',
+              'target': 'consultations',
+            },
+          },
+        ]),
+      );
+
+      final AlertItem item = (await repo.fetchPage()).single;
+      expect(item.action?.target, AlertTarget.consultations);
+      expect(item.action?.isNavigable, isTrue);
+      expect(item.category, AlertCategory.reminder);
+    });
+
     test('쿠폰 알림의 my_benefits 는 내 혜택으로 옮긴다', () async {
       // 쿠폰 사용 처리·취소·만료 임박 알림 — 서버 `benefits` 카테고리(#1787).
       final repo = DioNotificationRepository(

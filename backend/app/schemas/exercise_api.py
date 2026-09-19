@@ -5,6 +5,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.exercise_limits import (
+    MAX_EXERCISE_MINUTES,
+    MAX_EXERCISE_REPS,
+    MAX_EXERCISE_SETS,
+    MAX_EXERCISE_WEIGHT_KG,
+)
 from app.schemas.points_api import PointsOut
 from app.schemas.streak_shield_api import StreakShieldWeekOut
 
@@ -129,15 +135,17 @@ class ExerciseSessionCreate(BaseModel):
     type: ExerciseTypeIn | LegacyExerciseTypeIn
     #: 회원이 적은 운동 이름. 유형만으로는 무슨 운동인지 남지 않는다.
     name: str = Field(default="", max_length=100)
-    minutes: int = Field(..., gt=0)
+    #: 이 운동에 쓴 시간(분). 상한은 [MAX_EXERCISE_MINUTES] — 예전에는 상한이
+    #: 없어 앱을 거치지 않으면 하루 10만 분짜리 기록도 그대로 저장됐다(#1903).
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력이면 회원이 적은 세트 수. 다른 유형에서 와도 저장하지 않는다 —
     #: 유산소를 세트로 세는 화면은 없다. (#1262)
-    sets: int | None = Field(None, gt=0, le=100)
+    sets: int | None = Field(None, gt=0, le=MAX_EXERCISE_SETS)
     #: 근력이면 한 세트당 횟수. 세트와 같은 규칙으로, 다른 유형에서 와도
     #: 버린다. (#1310)
-    reps: int | None = Field(None, gt=0, le=999)
+    reps: int | None = Field(None, gt=0, le=MAX_EXERCISE_REPS)
     #: 근력이면 중량(kg). 세트와 같은 규칙으로, 다른 유형에서 와도 버린다.
-    weight: float | None = Field(None, ge=0, le=1000)
+    weight: float | None = Field(None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     #: **서버가 다시 계산한다.** 받아 두는 이유는 이 필드를 채워 보내는 옛
     #: 클라이언트를 422 로 막지 않기 위해서다 — 값은 쓰지 않는다(#1312).
     #: 앱이 화면에 띄우는 미리보기는 `POST /exercise/calories` 로 같은 계산을
@@ -161,7 +169,7 @@ class ExerciseCalorieRequest(BaseModel):
     #: 운동 이름. 비어 있으면 400 이다 — 이름 없이 확정된 숫자를 내주지 않는 것이
     #: 이 계산의 요점이라, 빈 이름으로 부르는 것은 호출하는 쪽의 실수다.
     name: str = Field(..., max_length=100)
-    minutes: int = Field(..., gt=0, le=600)
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     intensity: ExerciseIntensityIn = "moderate"
 
 
@@ -179,12 +187,12 @@ class ExerciseCalorieResponse(BaseModel):
 class AssignedRoutineCompleteRequest(BaseModel):
     """회원이 배정 루틴을 실제 수행한 결과."""
 
-    minutes: int = Field(..., gt=0, le=600)
+    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
     #: 근력 루틴이면 실제로 한 세트 수·횟수·중량. 수기 기록과 같은 값을 남겨야
     #: 그래프가 두 기록을 같은 축으로 읽는다. (#1276, #1310)
-    sets: int | None = Field(None, gt=0, le=100)
-    reps: int | None = Field(None, gt=0, le=999)
-    weight: float | None = Field(None, ge=0, le=1000)
+    sets: int | None = Field(None, gt=0, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(None, gt=0, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     intensity: ExerciseIntensityIn = "moderate"
     #: 개인 운동 피드백은 없앴다(#1825). 옛 앱이 보내도 422 가 나지 않게 받기만 하고
     #: 저장하지 않는다.

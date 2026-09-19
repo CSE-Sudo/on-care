@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,17 +7,19 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
-import 'package:oncare/features/dashboard/presentation/widgets/dashboard_content.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
+import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/widgets/exercise_flows.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_invite_prompter.dart';
+import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
+import 'package:oncare/shared/widgets/member_bottom_nav.dart';
 import 'package:oncare/shared/widgets/oni_fab.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -82,6 +86,10 @@ class _MainShellState extends ConsumerState<MainShell>
 
   void _refreshMemberData() {
     ref.invalidate(dashboardSummaryProvider);
+    // 홈의 AI 추천 식단도 함께 되짚는다. 무효화되는 곳이 세션 초기화 하나뿐이라,
+    // 앱을 켠 순간의 추천이 하루 종일 고정되고 첫 조회가 실패하면 기본 추천이
+    // 앱 수명 내내 남았다(#1938).
+    ref.invalidate(dietRecommendationsProvider);
     ref.invalidate(exerciseWeekProvider);
     ref.invalidate(coachRoutinesProvider);
     ref.invalidate(coachSessionsProvider);
@@ -91,6 +99,7 @@ class _MainShellState extends ConsumerState<MainShell>
     switch (index) {
       case 0:
         ref.invalidate(dashboardSummaryProvider);
+        ref.invalidate(dietRecommendationsProvider);
         ref.invalidate(coachSessionsProvider);
         break;
       case 1:
@@ -115,9 +124,9 @@ class _MainShellState extends ConsumerState<MainShell>
   /// 정의한 `resetXxxTransientUiState` 가 안다.
   void _resetTransientUiState(int index) {
     switch (index) {
-      case 0:
-        resetDashboardTransientUiState(ref);
-        break;
+      // 0(홈)도 일부러 아무 것도 하지 않는다. 예전에는 식단·영양 카드에서 고른
+      // 지표(칼로리/나트륨/당류)를 기본값으로 되돌렸는데, 그래프가 칼로리
+      // 하나로 고정된 뒤로는(#1879) 홈에 되돌릴 임시 선택이 없다.
       case 1:
         resetDietTransientUiState(ref);
         break;
@@ -134,9 +143,28 @@ class _MainShellState extends ConsumerState<MainShell>
     }
   }
 
+  /// 미읽음 알림 수가 늘면 내 상담 요청을 다시 받는다(#2067).
+  ///
+  /// 트레이너의 승인·거절과 요청 만료는 알림으로 먼저 온다. 상담 목록은 처음 한
+  /// 번만 받아 와서, 이걸 듣지 않으면 알림은 "반려되었어요" 인데 화면은 "확인
+  /// 대기" 로 남고 그 옛 표시가 같은 트레이너에게 다시 신청하는 것까지 막는다.
+  /// 첫 값과 줄어들 때(읽음 처리)는 건너뛴다 — 새로 온 것이 없다.
+  ///
+  /// 상담 컨트롤러 provider 안이 아니라 여기서 듣는 이유: 세션 초기화
+  /// (`session_feature_reset.dart`)가 두 provider 를 함께 무효화하는데, 한쪽이
+  /// 다른 쪽을 들으면 riverpod 의존 검사에 걸린다.
+  void _onUnreadChanged(AsyncValue<int>? previous, AsyncValue<int> next) {
+    final int? before = previous?.valueOrNull;
+    final int? after = next.valueOrNull;
+    if (before == null || after == null || after <= before) return;
+    unawaited(
+      ref.read(consultationRequestControllerProvider.notifier).refresh(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    ref.listen<AsyncValue<int>>(notificationUnreadProvider, _onUnreadChanged);
     return Scaffold(
       // 페이지가 하단 바 뒤까지 이어지게 둔다 — 각 탭은 바 높이만큼 아래 여백을
       // 스스로 둔다.
@@ -156,48 +184,12 @@ class _MainShellState extends ConsumerState<MainShell>
               onTap: () => showCoachingSheet(context, ref: ref),
             )
           : null,
-      // 바 높이·라벨 아래 여백은 공용 하단 내비가 정한다. 안전영역이 0 인 웹에서도
-      // 라벨 아래 여백이 남는다(#1664, #840).
-      bottomNavigationBar: AppBottomNav(
+      // 하단 내비는 사용 가이드 화면과 **같은 위젯**이다(#1857) — 탭 이름·순서를
+      // 고칠 때 한쪽만 바뀌지 않는다.
+      bottomNavigationBar: MemberBottomNav(
         selectedIndex: navigationShell.currentIndex,
         onSelected: _onTap,
-        destinations: <AppNavDestination>[
-          AppNavDestination(
-            key: const ValueKey<String>('nav-dashboard'),
-            icon: AppIcons.home,
-            selectedIcon: AppIcons.home,
-            label: l.navDashboard,
-          ),
-          AppNavDestination(
-            key: const ValueKey<String>('nav-diet'),
-            icon: AppIcons.diet,
-            selectedIcon: AppIcons.diet,
-            label: l.navDiet,
-          ),
-          AppNavDestination(
-            key: const ValueKey<String>('nav-exercise'),
-            icon: AppIcons.exercise,
-            selectedIcon: AppIcons.exercise,
-            label: l.navExercise,
-          ),
-          // 운동 칸과 같이 열쇠를 준다 — 사람 아이콘은 이제 헬스장 카드의
-          // 트레이너 줄에도 있어서(#1185), 아이콘만으로는 이 칸을 지목할 수 없다.
-          AppNavDestination(
-            key: const ValueKey<String>('nav-my'),
-            icon: AppIcons.my,
-            selectedIcon: AppIcons.my,
-            label: l.navMyHealth,
-          ),
-        ],
-        // 식단과 운동 사이의 `+` — "새 기록 추가" 시트를 연다.
-        // 바 위로 튀어나온 원형 버튼이다(#1742).
-        centerAction: AppNavAddButton(
-          key: const Key('recordAddButton'),
-          // 아이콘 하나뿐이라 무엇을 여는 자리인지 툴팁이 말한다(#972).
-          tooltip: l.navAddRecordTitle,
-          onPressed: () =>
-              _showRecordAddSheet(context, onSaved: _goToRecordBranch),
-        ),
+        onAdd: () => _showRecordAddSheet(context, onSaved: _goToRecordBranch),
       ),
     );
   }

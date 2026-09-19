@@ -6,9 +6,10 @@ import 'package:mocktail/mocktail.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/network/dio_client.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
-import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
+import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 
 class _MockDio extends Mock implements Dio {}
 
@@ -181,15 +182,7 @@ void main() {
         }, '/trainer/consultations/consult-1/accept'),
       );
 
-      final result = await repo.accept(
-        'consult-1',
-        schedule: const ConsultationSchedule(
-          date: '2026-08-12',
-          time: '19:30',
-          type: '상담',
-          durationMinutes: 30,
-        ),
-      );
+      final result = await repo.accept('consult-1');
 
       final data =
           verify(
@@ -199,10 +192,15 @@ void main() {
                 ),
               ).captured.single
               as Map<String, Object?>;
-      expect(data['date'], '2026-08-12');
-      expect(data['time'], '19:30');
-      expect(data['type'], '상담');
-      expect(data['duration_minutes'], 30);
+      // 승인은 시각을 보내지 않는다 — 회원이 고른 자리가 이미 정해 두었다(#1873).
+      for (final String key in <String>[
+        'date',
+        'time',
+        'type',
+        'duration_minutes',
+      ]) {
+        expect(data.containsKey(key), isFalse, reason: key);
+      }
       expect(result.clientConnected, isTrue);
       expect(result.scheduleCreated, isTrue);
       expect(result.scheduleId, 'sched-1');
@@ -420,60 +418,50 @@ void main() {
         isNot(contains(request.id)),
       );
       expect(
-        (await repo.fetch(status: 'all'))
-            .firstWhere((r) => r.id == request.id)
-            .status,
+        (await repo.fetch(
+          status: 'all',
+        )).firstWhere((r) => r.id == request.id).status,
         'accepted',
       );
     });
 
-    test(
-      'the demo source creates the requested consultation session',
-      () async {
-        final scheduleRepository = _MockScheduleRepository();
-        when(() => scheduleRepository.watchDate('2026-08-12'))
-            .thenAnswer((_) => Stream<List<ScheduleSession>>.value(const []));
-        when(
-          () => scheduleRepository.addSession(
-            date: any(named: 'date'),
-            clientName: any(named: 'clientName'),
-            clientId: any(named: 'clientId'),
-            time: any(named: 'time'),
-            type: any(named: 'type'),
-            durationMinutes: any(named: 'durationMinutes'),
-            note: any(named: 'note'),
-          ),
-        ).thenAnswer((_) async {});
-        final repo = DemoConsultationRepository(
-          scheduleRepository: () => scheduleRepository,
-        );
-        final request = (await repo.fetch()).firstWhere(
-          (r) => r.id == 'demo-consultation-1',
-        );
+    test('the demo source books the slot the member picked (#1873)', () async {
+      final scheduleRepository = _MockScheduleRepository();
+      when(
+        () => scheduleRepository.addSession(
+          date: any(named: 'date'),
+          clientName: any(named: 'clientName'),
+          clientId: any(named: 'clientId'),
+          time: any(named: 'time'),
+          type: any(named: 'type'),
+          durationMinutes: any(named: 'durationMinutes'),
+          note: any(named: 'note'),
+        ),
+      ).thenAnswer((_) async {});
+      final repo = DemoConsultationRepository(
+        scheduleRepository: () => scheduleRepository,
+      );
+      final request = (await repo.fetch()).firstWhere(
+        (r) => r.id == 'demo-consultation-1',
+      );
 
-        final result = await repo.accept(
-          request.id,
-          schedule: const ConsultationSchedule(
-            date: '2026-08-12',
-            time: '19:00',
-            type: '상담',
-            durationMinutes: 30,
-          ),
-        );
+      final result = await repo.accept(request.id);
 
-        expect(result.scheduleCreated, isTrue);
-        verify(
-          () => scheduleRepository.addSession(
-            date: '2026-08-12',
-            clientName: request.memberName,
-            clientId: request.memberId,
-            time: '19:00',
-            type: '상담',
-            durationMinutes: 30,
-            note: request.message ?? '',
-          ),
-        ).called(1);
-      },
-    );
+      expect(result.scheduleCreated, isTrue);
+      // 자리가 정한 시각·길이 그대로, 종류는 `1:1 PT` 다 — 코드 상수 30분이나
+      // `상담` 종류를 지어내지 않는다.
+      final DateTime start = request.slotStartsAt!;
+      verify(
+        () => scheduleRepository.addSession(
+          date: ymd(start),
+          clientName: request.memberName,
+          clientId: request.memberId,
+          time: '19:00',
+          type: SessionType.personalTraining,
+          durationMinutes: request.slotDurationMinutes!,
+          note: request.message ?? '',
+        ),
+      ).called(1);
+    });
   });
 }

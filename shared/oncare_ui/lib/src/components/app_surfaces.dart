@@ -244,7 +244,8 @@ class AppStatCard extends StatelessWidget {
   }
 }
 
-/// 목록 행 — 앞(아바타·아이콘) / 제목 `bodyLarge` / 부제 `bodySmall` / 뒤 슬롯.
+/// 목록 행 — 앞(아바타·아이콘) / 제목 `bodyLarge` (+ 같은 줄 [titleMeta]) /
+/// 부제 `bodySmall` / 뒤 슬롯, 그리고 부제 아래 [below] 슬롯.
 ///
 /// 최소 높이는 밀도를 따른다(56/48). 선택은 옅은 브랜드 채움 + 브랜드 테두리,
 /// 읽지 않음은 빨간 점 + 제목 600 이다.
@@ -252,18 +253,34 @@ class AppListRow extends StatelessWidget {
   const AppListRow({
     super.key,
     required this.title,
+    this.titleMeta,
     this.subtitle,
     this.leading,
     this.trailing,
+    this.below,
     this.onTap,
     this.selected = false,
     this.unread = false,
   });
 
   final String title;
+
+  /// 제목 옆 **같은 줄**에 붙는 짧은 속성 — 트레이너 이름 옆 직함처럼 제목을
+  /// 꾸며 주는 말이다 (#2082). 이름과 짧은 속성은 한 줄에 읽혀야 하고, 제목
+  /// 아래 줄을 하나 더 쓰는 것은 기능을 풀어 쓰는 부제의 몫이다(#2038).
+  /// 부제와 같은 한 단계 작은 회색 글씨이고, 폭이 모자라면 이쪽이 먼저
+  /// 말줄임된다. 없으면 제목만 선다.
+  final String? titleMeta;
+
   final String? subtitle;
   final Widget? leading;
   final Widget? trailing;
+
+  /// 부제 아래에 붙는 것 — 태그 묶음처럼 한 줄 글로는 안 되는 내용을 놓는다.
+  /// 제목·부제와 같은 칸에 들어가므로 앞 칸(leading)에 맞춰 들여쓰기되고,
+  /// 뒤 슬롯(trailing)에 가리지 않는다. 행 높이는 내용만큼 늘어난다.
+  final Widget? below;
+
   final VoidCallback? onTap;
   final bool selected;
   final bool unread;
@@ -278,6 +295,9 @@ class AppListRow extends StatelessWidget {
               : OnCareTypography.bodyLarge,
         )
         .copyWith(color: OnCareColors.textPrimary);
+    final TextStyle subtitleStyle = tokens
+        .text(OnCareTypography.bodySmall)
+        .copyWith(color: OnCareColors.textSecondary);
     return Material(
       color: selected ? tokens.brand.surface : Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -308,21 +328,45 @@ class AppListRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Text(
-                        title,
-                        style: titleStyle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      if (titleMeta == null)
+                        Text(
+                          title,
+                          style: titleStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        )
+                      else
+                        // 제목과 속성을 한 문단에 적는다. 두 칸(Row)으로 나누면
+                        // 칸마다 남는 폭을 반씩 나눠 가져, 짧은 이름 옆에서도
+                        // 속성이 먼저 잘린다. 한 문단이면 말줄임이 줄 끝인
+                        // 속성부터 먹고, 두 글씨가 한 기준선에 선다.
+                        Text.rich(
+                          TextSpan(
+                            children: <InlineSpan>[
+                              TextSpan(text: title, style: titleStyle),
+                              const WidgetSpan(
+                                child: SizedBox(width: OnCareSpacing.s8),
+                              ),
+                              TextSpan(text: titleMeta),
+                            ],
+                          ),
+                          // 바탕 글씨를 속성 글씨로 둬 말줄임표도 속성처럼
+                          // 흐리게 찍힌다.
+                          style: subtitleStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       if (subtitle != null)
                         Text(
                           subtitle!,
-                          style: tokens
-                              .text(OnCareTypography.bodySmall)
-                              .copyWith(color: OnCareColors.textSecondary),
+                          style: subtitleStyle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
+                      if (below != null) ...<Widget>[
+                        const SizedBox(height: OnCareSpacing.s8),
+                        below!,
+                      ],
                     ],
                   ),
                 ),

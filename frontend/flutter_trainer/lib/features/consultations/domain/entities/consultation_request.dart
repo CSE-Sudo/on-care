@@ -15,6 +15,8 @@ class ConsultationRequest {
     required this.preferredDate,
     required this.preferredTimeCode,
     required this.status,
+    this.slotStartsAt,
+    this.slotDurationMinutes,
     this.message,
     this.purposeDetail,
     this.decisionNote,
@@ -49,10 +51,24 @@ class ConsultationRequest {
   /// [preferredTimeLabel] 로 만든다.
   final String preferredTimeCode;
 
+  /// 회원이 고른 자리의 시작 시각과 길이. (#1873)
+  ///
+  /// 회원이 희망 시각을 적어 보내던 방식을 버리고 **트레이너가 열어 둔 자리**를
+  /// 고르게 하면서 생겼다. 승인하면 이 자리가 그대로 첫 일정이 되므로, 카드는
+  /// 이 값을 보여 줘야 트레이너가 무엇을 수락하는지 안다.
+  ///
+  /// 자리 선택 이전에 접수된 요청에는 없다 — 그때는 위 두 칸(희망 날짜·시각)이
+  /// 회원이 적어 보낸 값이다.
+  final DateTime? slotStartsAt;
+  final int? slotDurationMinutes;
+
   /// The member's own note to the trainer.
   final String? message;
 
-  /// `pending` | `accepted` | `rejected`.
+  /// `pending` | `accepted` | `rejected` | `cancelled` | `expired`.
+  ///
+  /// `expired` 는 시간 안에 확인하지 않아 자리가 풀린 요청이다(#1873) — 트레이너의
+  /// 판단인 `rejected` 와 구분한다.
   final String status;
 
   /// Rejection reason, once decided.

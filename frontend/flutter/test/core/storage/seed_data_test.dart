@@ -45,12 +45,11 @@ void main() {
   });
 
   group('seedIfEmpty', () {
-    test('first run seeds diet/exercise/schedule with today\'s date', () async {
+    test('first run seeds diet/exercise with today\'s date', () async {
       await seedIfEmpty(db, fixture: _fixture);
 
       final today = _todayString();
       final diet = await db.select(db.dietEntries).get();
-      final sched = await db.select(db.scheduleEvents).get();
       final exercise = await db.select(db.exerciseSessions).get();
 
       expect(diet, isNotEmpty);
@@ -118,22 +117,6 @@ void main() {
             )
             .length,
         2,
-      );
-      // Schedule seeds a couple of events on today (for the dashboard's
-      // "오늘의 일정") plus a few spread across the current month (for the
-      // calendar). All stay within the current month so the date-slide
-      // keeps them visible.
-      final ym = today.substring(0, 7);
-      expect(sched, isNotEmpty);
-      expect(
-        sched.every((r) => r.date.startsWith('$ym-')),
-        isTrue,
-        reason: 'all seeded schedule rows must be in the current month',
-      );
-      expect(
-        sched.any((r) => r.date == today),
-        isTrue,
-        reason: 'at least one schedule row must be on today',
       );
       expect(
         exercise,
@@ -279,12 +262,12 @@ void main() {
             'seed-diet-yesterday-dinner': (
               '19:30',
               '고기와 술이 함께여서 칼로리가 크게 올라갔어요. 다음 날은 가볍게 시작해 보세요.',
-              'assets/images/diet-doenjang-rice.jpeg',
+              'assets/images/diet-samgyeopsal-rice-soju.jpg',
             ),
             'seed-diet-yesterday-snack': (
               '21:10',
               '디저트로 당류가 하루 목표를 넘었어요.',
-              'assets/images/snack-coffee-nuts.jpg',
+              'assets/images/snack-choco-cake-latte.jpg',
             ),
             'seed-diet-two-days-ago-breakfast': (
               '08:35',
@@ -427,12 +410,12 @@ void main() {
       expect(diet.every((entry) => entry.mealType != 'dinner'), isTrue);
       expect(
         diet.fold<int>(0, (sum, entry) => sum + entry.totalCalories),
-        1067,
+        1054,
       );
-      expect(diet.fold<int>(0, (sum, entry) => sum + entry.sodiumMg), 3428);
+      expect(diet.fold<int>(0, (sum, entry) => sum + entry.sodiumMg), 4657);
       expect(
         diet.fold<double>(0, (sum, entry) => sum + entry.sugarG),
-        closeTo(17.8, 0.001),
+        closeTo(16.7, 0.001),
       );
 
       for (final entry in allDiet) {

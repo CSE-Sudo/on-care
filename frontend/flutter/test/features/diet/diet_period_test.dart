@@ -9,6 +9,7 @@ import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 import 'package:oncare/features/diet/domain/entities/diet_period.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
+import 'package:oncare/features/diet/presentation/widgets/diet_period_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -181,44 +182,39 @@ void main() {
       return AppLocalizations.of(tester.element(find.byType(DietRecordPage)));
     }
 
-    testWidgets('지표 버튼 셋이 모두 같은 색이다', (WidgetTester tester) async {
-      // 지표마다 색이 다르면 고르기 전부터 셋이 서로 다른 뜻을 가진 것처럼
-      // 보인다. 버튼은 '무엇을 고르는가' 만 말해야 한다.
-      final AppLocalizations l = await pumpWeek(tester);
-
-      // 고른 것과 안 고른 것의 색이 다른 건 정상이다. 비교할 것은 **각 버튼을
-      // 골랐을 때의 색** 이 셋 다 같은가다.
-      final Set<Color?> activeColors = <Color?>{};
-      for (final String label in <String>[
-        l.dietCalories,
-        l.dietSodium,
-        l.dietSugar,
-      ]) {
-        await tester.tap(find.text(label));
-        await tester.pumpAndSettle();
-        activeColors.add(tester.widget<Text>(find.text(label)).style?.color);
-      }
+    testWidgets('지표 칩 줄이 없고 날짜 기간만 남는다 (#1986)', (WidgetTester tester) async {
+      // 나트륨이 당류와 같은 자리로 내려가며 고를 것이 칼로리 하나만 남았다.
+      // 고를 것이 하나뿐인 자리는 고르는 자리가 아니라, 칩 줄을 줄째로 걷어낸다.
+      // 탄단지는 애초에 그래프로 고르지 않는다 — 그 칼로리를 무엇이 채웠는지로
+      // 머리 숫자 옆과 막대의 누적 구간에 따로 나타난다.
+      await pumpWeek(tester);
 
       expect(
-        activeColors,
-        hasLength(1),
-        reason: '지표 버튼 색이 서로 다릅니다: $activeColors',
+        find.descendant(
+          of: find.byType(DietPeriodView),
+          matching: find.byType(AppChoiceChip),
+        ),
+        findsNothing,
       );
+      // 칩과 한 줄을 쓰던 날짜 기간은 남는다.
+      expect(find.byKey(const Key('diet-period-range')), findsOneWidget);
     });
 
-    testWidgets('날짜 범위가 지표 버튼과 같은 줄에 있다', (WidgetTester tester) async {
-      // 범위가 따로 한 줄을 쓰면 제목·범위·버튼 세 줄이 되어 그래프가 밀린다.
-      final AppLocalizations l = await pumpWeek(tester);
-      final Finder range = find.textContaining(RegExp(r'~|–|-'));
+    testWidgets('전체도 칩 줄이 없다 (#1986)', (WidgetTester tester) async {
+      // 두 기간이 같은 규칙으로 읽혀야 한다 — 한쪽에만 고를 자리가 남으면
+      // 토글을 누를 때마다 기준이 바뀐다.
+      await pumpWeek(tester);
+      await tester.tap(dietPeriodTab(DietPeriodTab.month));
+      await tester.pumpAndSettle();
 
-      final Finder rangeInRow = find.descendant(
-        of: find.ancestor(
-          of: find.text(l.dietCalories),
-          matching: find.byType(Row),
+      expect(
+        find.descendant(
+          of: find.byType(DietPeriodView),
+          matching: find.byType(AppChoiceChip),
         ),
-        matching: range,
+        findsNothing,
       );
-      expect(rangeInRow, findsWidgets, reason: '날짜 범위가 지표 버튼과 다른 줄에 있습니다.');
+      expect(find.byKey(const Key('diet-period-range')), findsOneWidget);
     });
   });
 

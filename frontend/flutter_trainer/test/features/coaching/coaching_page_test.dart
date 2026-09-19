@@ -15,6 +15,7 @@ import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_diet_entry.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_week.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
@@ -272,8 +273,10 @@ class _FixedClientRepository implements ClientRepository {
   ) async => const <ClientDietEntry>[];
 
   @override
-  Future<List<String>> fetchExercisesOn(String clientId, DateTime date) async =>
-      const <String>[];
+  Future<List<ClientExerciseItem>> fetchExercisesOn(
+    String clientId,
+    DateTime date,
+  ) async => <ClientExerciseItem>[];
 
   @override
   Future<ClientDietPeriod> fetchDietPeriod(
@@ -913,7 +916,10 @@ void main() {
         expect(personalBadge, findsOneWidget);
         expect(ptBadge, findsOneWidget);
         expect(tester.getSize(personalBadge), tester.getSize(ptBadge));
-        expect(find.text('벤치프레스 외 3개'), findsOneWidget);
+        // 전송 이력 줄과 `최근 루틴` 요약 **두 곳**에 같은 문구가 선다. 픽스처
+        // 이름에서 세트·중량을 뺀 뒤로(#1902) 둘의 첫 이름이 `벤치프레스` 로
+        // 같아졌기 때문이고, 둘 다 맞는 표기다. 하나라도 사라지면 여기서 걸린다.
+        expect(find.text('벤치프레스 외 3개'), findsNWidgets(2));
         expect(find.text('1:1 PT · 운동 4개'), findsNothing);
         expect(
           tester.getBottomRight(sugar).dy,
@@ -1194,10 +1200,11 @@ void main() {
         find.descendant(of: detail, matching: find.text('운동 기록')),
         findsOneWidget,
       );
+      // 이름과 값을 ` · ` 로 잇는다(#1902) — 예전에는 그 수가 이름 안에 있었다.
       expect(
         find.descendant(
           of: detail,
-          matching: find.text('벤치프레스 4세트 · 10회 · 40kg'),
+          matching: find.text('벤치프레스 · 4세트 · 10회 · 40kg'),
         ),
         findsOneWidget,
       );
