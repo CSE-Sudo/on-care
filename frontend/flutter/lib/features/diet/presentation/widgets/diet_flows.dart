@@ -482,7 +482,8 @@ class _ResultSheet extends ConsumerStatefulWidget {
   ConsumerState<_ResultSheet> createState() => _ResultSheetState();
 }
 
-class _ResultSheetState extends ConsumerState<_ResultSheet> {
+class _ResultSheetState extends ConsumerState<_ResultSheet>
+    with _FoodEditing<_ResultSheet> {
   DietAnalysisResult? _result;
   bool _loading = true;
   DietAnalysisFailure? _failure;
@@ -491,12 +492,23 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   /// 지난 식사의 사진이면 `날짜 변경` 으로 실제로 먹은 날로 옮긴다(#1241).
   ///
   /// 날짜는 식단 상세처럼 따로 옮긴다(#1947) — 사진을 올린 자리에서 가장 흔히
-  /// 고치는 것이 날짜라, 연필로 상세까지 들어가게 하지 않는다. 끼니·음식은
-  /// 헤더 연필이 여는 식단 상세에서 고친다.
+  /// 고치는 것이 날짜라, 연필을 거치게 하지 않는다. 끼니·음식은 헤더 연필이
+  /// 이 시트 안에 여는 수정 모드에서 고친다(#2097).
   late DateTime _date = _todayKst();
 
   /// 날짜를 옮기는 중. 두 번 눌러 같은 기록을 두 날짜로 보내지 않게 막는다.
   bool _movingDate = false;
+
+  /// 헤더 연필로 연 수정 모드(#2097). 시트를 떠나지 않고 이 자리에서 끼니·
+  /// 음식·영양을 고친 뒤 `저장` 한다 — 아래 `저장` 을 두고 다른 화면으로
+  /// 넘어가면, 저장하지 않은 줄 알았던 기록의 수정 화면이 열리는 셈이다.
+  bool _editing = false;
+
+  /// 수정 모드에서 고른 끼니. 연필을 누를 때 [_meal] 에서 시작한다.
+  late MealType _type = _meal;
+
+  /// 고친 값을 보내거나 기록을 지우는 중. 버튼과 시트 닫기를 막는다.
+  bool _saving = false;
 
   bool get _failed => _failure != null;
 
@@ -567,17 +579,102 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     return Future<void>.delayed(left);
   }
 
-  /// 인식 결과를 고치러 그 기록의 수정 화면으로 간다. (#1564)
+  /// 인식 결과를 이 시트 안에서 고치기 시작한다. (#1564, #2097)
   ///
-  /// 분석이 끝난 시점에 기록은 이미 저장돼 있으므로 여기서 새로 저장할 것은
-  /// 없다. 시트는 `false` 로 닫는다 — `true` 는 부르는 쪽에 "식단 탭으로
-  /// 옮겨 가라" 는 뜻이라, 수정 화면을 여는 것과 탭 이동이 겹친다.
-  void _openEdit() {
-    final DietAnalysisResult? result = _result;
-    if (result == null || result.entryId.isEmpty) return;
-    final GoRouter router = GoRouter.of(context);
-    Navigator.of(context).pop(false);
-    unawaited(router.push<void>(AppRoutes.dietEntryDetailPath(result.entryId)));
+  /// 예전에는 시트를 닫고 저장된 기록의 식단 상세로 넘어갔다. 시트 아래에
+  /// `저장` 이 서 있는데 연필이 저장 뒤의 화면을 여니, 회원에게는 저장하지도
+  /// 않은 기록이 이미 저장돼 있는 것으로 보였다.
+  void _beginEdit() {
+    final DietAnalysisResult? r = _result;
+    if (r == null || r.entryId.isEmpty) return;
+    final List<DietFood> foods = <DietFood>[
+      for (final RecognizedFood f in r.foods)
+        DietFood(
+          f.name,
+          f.calories,
+          amountG: f.amountG,
+          sodiumMg: f.sodiumMg,
+          sugarG: f.sugarG,
+          carbsG: f.carbsG,
+          proteinG: f.proteinG,
+          fatG: f.fatG,
+        ),
+    ];
+    setState(() {
+      _editing = true;
+      _type = _meal;
+      _loadFoods(foods);
+      _carbsRecorded = _carbsOf(foods) > 0;
+    });
+  }
+
+  /// 고친 값을 버리고 분석 결과 보기로 돌아간다. 시트는 닫지 않는다 — 고치다
+  /// 그만둔 것이지 기록을 그만둔 것이 아니다.
+  void _cancelEdit() => setState(() => _editing = false);
+
+  /// 고친 끼니·음식을 기록에 반영하고 시트를 닫는다. (#2097)
+  ///
+  /// 기록은 분석 때 이미 저장돼 있으므로 새로 만들지 않고 그 기록을 고친다.
+  /// 식단 상세의 `저장` 과 같은 요청이다.
+  Future<void> _saveEdit() async {
+    final DietAnalysisResult? r = _result;
+    if (r == null || r.entryId.isEmpty || _saving) return;
+    final List<FoodItem> foods = _foodPayload();
+    // 음식을 모두 지웠다면 빈 끼니를 남기는 대신 기록을 지울지 묻는다 —
+    // 식단 상세와 같다.
+    if (foods.isEmpty) {
+      await _deleteEmptied(r.entryId);
+      return;
+    }
+    if (!_validateFoods()) return;
+
+    final AppLocalizations l = AppLocalizations.of(context);
+    setState(() => _saving = true);
+    try {
+      await _saveFoods(id: r.entryId, mealType: _type, foods: foods);
+      if (!mounted) return;
+      ref.invalidate(dietTodayProvider);
+      ref.invalidate(dietByDateProvider(nowKst()));
+      // 날짜를 옮겨 둔 기록이면 그 날도 비운다.
+      ref.invalidate(dietByDateProvider(_date));
+      _finish();
+    } on Object catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      showAppToast(context, l.dietSaveFailed, type: AppToastType.error);
+    }
+  }
+
+  /// 음식을 모두 지우고 저장했을 때 — 기록을 지울지 묻고, 지우면 시트를 닫는다.
+  Future<void> _deleteEmptied(String id) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.dietDeleteTitle,
+      message: l.dietDeleteWhenEmpty,
+      confirmLabel: l.dietDelete,
+      cancelLabel: l.dietCancel,
+      destructive: true,
+    );
+    if (!ok || !mounted) return;
+    setState(() => _saving = true);
+    try {
+      await ref.read(dietRepositoryProvider).deleteEntry(id);
+      if (!mounted) return;
+      // 지운 끼니의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
+      refreshPointsBalance(ref);
+      ref.invalidate(dietTodayProvider);
+      ref.invalidate(dietByDateProvider(nowKst()));
+      ref.invalidate(dietByDateProvider(_date));
+      final AppToastHost toast = AppToastHost.of(context);
+      // 지웠으니 식단 탭으로 옮겨 갈 기록이 없다 — `false` 로 닫는다.
+      Navigator.of(context).pop(false);
+      toast.show(l.dietDeleted, type: AppToastType.success);
+    } on Object catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      showAppToast(context, l.dietDeleteFailed, type: AppToastType.error);
+    }
   }
 
   /// 기록 날짜만 따로 옮긴다. (#1241, #1947)
@@ -724,7 +821,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    return AppSheet(
+    final Widget sheet = AppSheet(
       title: _loading
           ? l.dietAnalyzing
           : _failed
@@ -748,13 +845,18 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       footer: _footer(l),
       child: _body(),
     );
+    // 고친 값을 보내는 동안에는 끌어내려 닫지 못하게 한다.
+    return PopScope(canPop: !_saving, child: sheet);
   }
 
-  /// 인식된 데이터를 고치러 가는 문. 헤더 우측에 놓이므로 결과가 있을 때만
-  /// 만든다 — 분석 중이거나 실패한 시트에는 고칠 것이 없다.
+  /// 인식된 데이터를 고치는 문. 헤더 우측에 놓이므로 결과가 있을 때만
+  /// 만든다 — 분석 중이거나 실패한 시트에는 고칠 것이 없다. 이미 고치는
+  /// 중이면 감춘다 — 식단 상세의 연필과 같다.
   Widget? _editButton(AppLocalizations l) {
     final DietAnalysisResult? r = _result;
-    if (_loading || _failed || r == null || r.entryId.isEmpty) return null;
+    if (_loading || _failed || _editing || r == null || r.entryId.isEmpty) {
+      return null;
+    }
     // 식단 상세가 연필을 쓰므로 여기서도 연필이다 — 같은 곳으로 가는 문이
     // 화면마다 다른 모양이면 다른 동작으로 읽힌다(#1864).
     return AppIconButton(
@@ -762,7 +864,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       icon: AppIcons.edit,
       tooltip: l.actionEdit,
       size: AppIconButtonSize.small,
-      onPressed: _openEdit,
+      onPressed: _beginEdit,
     );
   }
 
@@ -778,6 +880,16 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
       );
     }
     // [취소] 왼쪽, [저장] 오른쪽 — 앱의 모든 하단 두 버튼과 같은 순서다(#1690).
+    if (_editing) {
+      // 수정 모드의 `취소` 는 고친 값만 버리고 시트에 남는다. `저장` 은 고친
+      // 값을 보낸 뒤 닫는다.
+      return AppButtonPair(
+        cancelLabel: l.dietCancel,
+        onCancel: _saving ? null : _cancelEdit,
+        confirmLabel: l.dietSave,
+        onConfirm: _saving ? null : () => unawaited(_saveEdit()),
+      );
+    }
     return AppButtonPair(
       cancelLabel: l.dietCancel,
       // 저장은 이미 끝났고, 이 버튼은 시트를 닫기만 한다.
@@ -827,78 +939,91 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
     final String recognized = r.foods
         .map((RecognizedFood f) => f.name)
         .join(' · ');
+    // 수정 중에는 합계가 고치는 음식을 곧바로 따라온다 — 식단 상세와 같다.
+    // 보기에서는 서버가 준 합계를 그대로 적는다.
+    final String kcal = _editing ? '$_total' : '${r.totalCalories}';
+    final double carbs = _editing ? _carbs : r.totalCarbsG;
+    final double sugar = _editing ? _sugar : r.totalSugarG;
+    final double protein = _editing ? _protein : r.totalProteinG;
+    final double fat = _editing ? _fat : r.totalFatG;
+    final int sodium = _editing ? _sodium : r.totalSodiumMg;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 이 시트에서 강조할 것은 AI 가 무엇으로 읽었는지 하나다 — 거기에만
-        // 옅은 브랜드 채움을 준다. `0389e572` 가 걷어낸 것은 구획을 여럿
-        // 쌓아 카드가 온통 옅은 파랑이 되는 것이고, 그 커밋이 남긴 규칙은
-        // "바탕은 강조인 것만"이다. 그래서 박스는 여기 하나뿐이다(#1897).
-        AppTile(
-          key: const Key('diet-result-recognized'),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                l.dietRecognizedFood,
-                style: _text(
-                  context,
-                  OnCareTypography.strong(OnCareTypography.caption),
-                  tokens.brand.primary,
+        // 수정 모드에서는 `인식된 음식` 자리에 음식별 수정 칸이 선다 —
+        // 고치는 대상이 바로 그 인식 결과다(#2097).
+        if (_editing)
+          _foodsEditor(l)
+        else
+          // 이 시트에서 강조할 것은 AI 가 무엇으로 읽었는지 하나다 — 거기에만
+          // 옅은 브랜드 채움을 준다. `0389e572` 가 걷어낸 것은 구획을 여럿
+          // 쌓아 카드가 온통 옅은 파랑이 되는 것이고, 그 커밋이 남긴 규칙은
+          // "바탕은 강조인 것만"이다. 그래서 박스는 여기 하나뿐이다(#1897).
+          AppTile(
+            key: const Key('diet-result-recognized'),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  l.dietRecognizedFood,
+                  style: _text(
+                    context,
+                    OnCareTypography.strong(OnCareTypography.caption),
+                    tokens.brand.primary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: OnCareSpacing.s4),
-              // 음식마다 이름 옆에 AI 가 읽은 **양**을 보조색으로 붙인다(#1964).
-              // 영양은 모두 이 양으로 환산되므로, 양이 틀리면 칼로리·탄단지가
-              // 함께 틀린다 — 저장 전 이 자리에서 보여야 머리의 연필로 바로
-              // 고칠 수 있다. 식단 탭 끼니 카드·식단 상세와 같은 자리·같은
-              // 모양이다. 양을 모르는 음식은 이름만 적는다(0g 은 안 먹었다).
-              Text.rich(
-                key: const Key('diet-result-recognized-foods'),
-                TextSpan(
-                  children: recognized.isEmpty
-                      ? <InlineSpan>[TextSpan(text: l.dietNoRecognizedFood)]
-                      : <InlineSpan>[
-                          for (
-                            int i = 0;
-                            i < r.foods.length;
-                            i++
-                          ) ...<InlineSpan>[
-                            if (i > 0) const TextSpan(text: ' · '),
-                            // 한 음식의 이름과 양은 줄이 바뀌어도 붙어 있다 —
-                            // 이름 안·이름과 양 사이를 붙는 공백으로 잇고, 줄은
-                            // ` · ` 에서만 바뀐다. `그래놀라` / `토핑 50g` 처럼
-                            // 한 음식이 두 줄로 갈리면 다른 음식처럼 읽힌다.
-                            TextSpan(text: _keepTogether(r.foods[i].name)),
-                            if (r.foods[i].amountG case final double grams)
-                              TextSpan(
-                                text: _keepTogether(
-                                  '$_nbsp${_gramsText(grams)}${l.dietUnitG}',
-                                ),
-                                style: OnCareTypography.numeric(
-                                  _text(
-                                    context,
-                                    OnCareTypography.caption,
-                                    OnCareColors.textSecondary,
+                const SizedBox(height: OnCareSpacing.s4),
+                // 음식마다 이름 옆에 AI 가 읽은 **양**을 보조색으로 붙인다(#1964).
+                // 영양은 모두 이 양으로 환산되므로, 양이 틀리면 칼로리·탄단지가
+                // 함께 틀린다 — 저장 전 이 자리에서 보여야 머리의 연필로 바로
+                // 고칠 수 있다. 식단 탭 끼니 카드·식단 상세와 같은 자리·같은
+                // 모양이다. 양을 모르는 음식은 이름만 적는다(0g 은 안 먹었다).
+                Text.rich(
+                  key: const Key('diet-result-recognized-foods'),
+                  TextSpan(
+                    children: recognized.isEmpty
+                        ? <InlineSpan>[TextSpan(text: l.dietNoRecognizedFood)]
+                        : <InlineSpan>[
+                            for (
+                              int i = 0;
+                              i < r.foods.length;
+                              i++
+                            ) ...<InlineSpan>[
+                              if (i > 0) const TextSpan(text: ' · '),
+                              // 한 음식의 이름과 양은 줄이 바뀌어도 붙어 있다 —
+                              // 이름 안·이름과 양 사이를 붙는 공백으로 잇고, 줄은
+                              // ` · ` 에서만 바뀐다. `그래놀라` / `토핑 50g` 처럼
+                              // 한 음식이 두 줄로 갈리면 다른 음식처럼 읽힌다.
+                              TextSpan(text: _keepTogether(r.foods[i].name)),
+                              if (r.foods[i].amountG case final double grams)
+                                TextSpan(
+                                  text: _keepTogether(
+                                    '$_nbsp${_gramsText(grams)}${l.dietUnitG}',
+                                  ),
+                                  style: OnCareTypography.numeric(
+                                    _text(
+                                      context,
+                                      OnCareTypography.caption,
+                                      OnCareColors.textSecondary,
+                                    ),
                                   ),
                                 ),
-                              ),
+                            ],
                           ],
-                        ],
+                  ),
+                  style: _text(
+                    context,
+                    OnCareTypography.titleSmall,
+                    OnCareColors.textPrimary,
+                  ),
                 ),
-                style: _text(
-                  context,
-                  OnCareTypography.titleSmall,
-                  OnCareColors.textPrimary,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         const SizedBox(height: OnCareSpacing.s12),
         // 기록 날짜와 끼니. 날짜는 `날짜 변경` 으로 여기서 바로 따로 옮기고
-        // (#1241, #1947), 끼니·음식은 헤더 연필이 여는 식단 상세에서 고친다 —
-        // 식단 상세의 `식사 정보` 카드와 같은 나눔이다.
+        // (#1241, #1947), 끼니·음식은 헤더 연필이 여는 수정 모드에서 고친다
+        // (#2097) — 식단 상세의 `식사 정보` 카드와 같은 나눔이다.
         //
         // 식단 상세의 `식사 정보` 카드와 같은 두 줄이다 — 한 줄에 `날짜 · 끼니`
         // 로 붙여 두면 끼니가 날짜의 꼬리처럼 읽혀, 이 기록이 어느 끼니로
@@ -966,14 +1091,21 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
               TableRow(
                 children: <Widget>[
                   _InfoLabel(l.dietMealKind),
-                  Align(
-                    key: const Key('diet-result-meal'),
-                    alignment: Alignment.centerLeft,
-                    child: AppTag(
-                      label: mealBadge(l, _meal),
-                      tone: AppTagTone.brand,
+                  if (_editing)
+                    _MealTypeChips(
+                      key: const Key('diet-result-meal'),
+                      selected: _type,
+                      onSelected: (MealType t) => setState(() => _type = t),
+                    )
+                  else
+                    Align(
+                      key: const Key('diet-result-meal'),
+                      alignment: Alignment.centerLeft,
+                      child: AppTag(
+                        label: mealBadge(l, _meal),
+                        tone: AppTagTone.brand,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -996,15 +1128,11 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
           key: const Key('diet-result-nutrition'),
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            _ResultRow(
-              label: l.dietCalories,
-              value: '${r.totalCalories}',
-              unit: l.unitKcal,
-            ),
+            _ResultRow(label: l.dietCalories, value: kcal, unit: l.unitKcal),
             const SizedBox(height: OnCareSpacing.s8),
             _ResultRow(
               label: l.homeMacroCarbs,
-              value: _gramsText(r.totalCarbsG),
+              value: _gramsText(carbs),
               unit: l.dietUnitG,
             ),
             const SizedBox(height: OnCareSpacing.s8),
@@ -1012,30 +1140,76 @@ class _ResultSheetState extends ConsumerState<_ResultSheet> {
               label: l.dietSugar,
               // 서버가 준 double 을 그대로 문자열로 만들면 29.497999999999998
               // 이 찍힌다 — 칼로리·나트륨과 같은 서식으로 맞춘다(#1564).
-              value: _gramsText(r.totalSugarG),
+              value: _gramsText(sugar),
               unit: l.dietUnitG,
               sub: true,
             ),
             const SizedBox(height: OnCareSpacing.s8),
             _ResultRow(
               label: l.homeMacroProtein,
-              value: _gramsText(r.totalProteinG),
+              value: _gramsText(protein),
               unit: l.dietUnitG,
             ),
             const SizedBox(height: OnCareSpacing.s8),
             _ResultRow(
               label: l.homeMacroFat,
-              value: _gramsText(r.totalFatG),
+              value: _gramsText(fat),
               unit: l.dietUnitG,
             ),
             const SizedBox(height: OnCareSpacing.s8),
             _ResultRow(
               label: l.dietSodium,
-              value: '${r.totalSodiumMg}',
+              value: '$sodium',
               unit: l.dietUnitMg,
             ),
           ],
         ),
+      ],
+    );
+  }
+
+  /// 수정 모드의 `먹은 음식` 구획 — 음식마다 이름·내용량·영양 칸과, 음식을
+  /// 더하는 버튼. 칸은 식단 상세의 수정 모드와 같은 편집기다(#2097).
+  Widget _foodsEditor(AppLocalizations l) {
+    return Column(
+      key: const Key('diet-result-foods-editor'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                l.dietEatenFood,
+                style: _text(
+                  context,
+                  OnCareTypography.label,
+                  OnCareColors.textSecondary,
+                ),
+              ),
+            ),
+            AppButton(
+              key: const Key('diet-result-add-food'),
+              label: l.dietAddFood,
+              leadingIcon: AppIcons.add,
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+              onPressed: _addFood,
+            ),
+          ],
+        ),
+        Text(
+          l.dietEditFoodHint,
+          style: _text(
+            context,
+            OnCareTypography.caption,
+            OnCareColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: OnCareSpacing.s8),
+        for (int i = 0; i < _foods.length; i++) ...<Widget>[
+          if (i > 0) const SizedBox(height: OnCareSpacing.s8),
+          _foodEditor(i),
+        ],
       ],
     );
   }
@@ -1230,50 +1404,21 @@ class _MealDetailUnavailable extends StatelessWidget {
   }
 }
 
-class _MealEditSheet extends ConsumerStatefulWidget {
-  const _MealEditSheet({required this.meal});
-  final DietMeal meal;
-
-  @override
-  ConsumerState<_MealEditSheet> createState() => _MealEditSheetState();
-}
-
-class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
-  /// 끼니 칩의 두 묶음 — 식사 셋과 그 사이·뒤에 먹는 둘.
-  ///
-  /// 칩 다섯을 `Wrap` 하나에 두면 폰 폭에서 `야식` 하나만 아랫줄로 떨어져 따로
-  /// 떨어진 선택지처럼 읽힌다(#2080). 묶음 단위로 줄을 바꿔, 한 줄에 다 들어가지
-  /// 않으면 `간식·야식` 이 함께 내려간다.
-  static const List<List<MealType>> _typeGroups = <List<MealType>>[
-    <MealType>[MealType.breakfast, MealType.lunch, MealType.dinner],
-    <MealType>[MealType.snack, MealType.lateNight],
-  ];
-  late MealType _type = widget.meal.mealType;
-
-  /// 이 기록이 놓인 날(#1947). 날짜는 끼니·음식과 따로 저장한다 — 고르는
-  /// 즉시 옮기고, 옮기기에 성공했을 때만 바뀐다.
-  late DateTime _date = widget.meal.date;
-
-  /// 날짜를 옮기는 중. 두 번 눌러 같은 기록을 두 날로 보내지 않게 막는다.
-  bool _movingDate = false;
-  late List<DietFood> _foods = List<DietFood>.of(widget.meal.items);
-  bool _busy = false;
-
-  /// 이 화면은 보기로 열리고, 머리의 연필을 눌러야 입력 칸이 된다(#1856).
-  /// 대부분은 무엇을 먹었는지 다시 보려고 들어오지 고치려고 들어오지 않는다.
-  bool _editing = false;
-
-  /// 취소가 되돌아갈 자리. 저장에 성공하면 여기로 옮겨 온다 — 저장한 뒤에 다시
-  /// 고치다 취소했을 때 저장 이전 값으로 되돌아가면 안 된다.
-  late MealType _savedType = widget.meal.mealType;
-  late List<DietFood> _savedFoods = List<DietFood>.of(widget.meal.items);
+/// 끼니의 음식 목록을 고치는 편집기. 식단 상세의 수정 모드와 분석 완료
+/// 시트의 수정 모드가 함께 쓴다(#2097).
+///
+/// 음식별 입력 칸, 섭취량 비례 환산(#1876), 공공 DB 제안(#1896), 당류 검사
+/// (#1869)가 여기 모여 있다. 두 화면이 따로 들고 있으면 한쪽만 고쳐져 같은
+/// 음식이 화면마다 다르게 고쳐진다.
+///
+/// 처음 값은 [_loadFoods] 로 깐다.
+mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
+  List<DietFood> _foods = <DietFood>[];
 
   /// 음식 줄마다 하나씩. 컨트롤러를 줄 위젯이 아니라 시트가 들고 있어야
   /// 한 자 칠 때마다 새로 만들어지지 않는다 — 새로 만들면 커서가 맨 앞으로
   /// 튄다. 목록 순서와 1:1 로 붙어 다닌다(#1844).
-  late final List<_FoodEditors> _editors = <_FoodEditors>[
-    for (final DietFood f in _foods) _watchName(_FoodEditors.of(f)),
-  ];
+  final List<_FoodEditors> _editors = <_FoodEditors>[];
 
   /// 음식마다 당류가 그 음식의 탄수화물을 넘지 않는지 본다(#1869). 당류는
   /// 탄수화물의 일부라 그보다 클 수 없고, 서버도 같은 값을 422 로 거절한다
@@ -1301,14 +1446,33 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   /// 방금 지운 0. 앞은 봐주지 않으면 그 기록을 영영 고칠 수 없고, 뒤는
   /// 봐주면 탄수화물을 지워 검사를 피할 수 있다. 서버도 `entry.carbs_g` 로
   /// 같은 판단을 하므로, 저장에 성공할 때마다 함께 갱신한다.
-  late bool _carbsRecorded = _carbsOf(widget.meal.items) > 0;
+  bool _carbsRecorded = false;
 
-  static double _carbsOf(List<DietFood> foods) =>
+  double _carbsOf(List<DietFood> foods) =>
       foods.fold<double>(0, (double a, DietFood f) => a + f.carbsG);
 
-  /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
-  /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
-  static const double _photoHeight = 300;
+  /// 편집기를 [foods] 로 새로 깐다. 처음 열 때와 `취소` 로 되돌릴 때 쓴다.
+  ///
+  /// setState 는 부르지 않는다 — 부르는 쪽이 제 상태와 함께 한 번에 바꾼다.
+  /// 버리는 컨트롤러는 그 줄이 트리에서 물러난 다음 프레임에 버린다.
+  void _loadFoods(List<DietFood> foods) {
+    final List<_FoodEditors> stale = List<_FoodEditors>.of(_editors);
+    _foods = List<DietFood>.of(foods);
+    _editors
+      ..clear()
+      ..addAll(<_FoodEditors>[
+        for (final DietFood f in _foods) _watchName(_FoodEditors.of(f)),
+      ]);
+    // 접었다 다시 펴면 오류도 처음부터다 — 저장을 누른 적 없는 화면에
+    // 빨간 글씨가 먼저 서 있으면 안 된다(#1784).
+    _sugarErrors = AppFieldErrors<_FoodEditors>(_checkSugar);
+    if (stale.isEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final _FoodEditors e in stale) {
+        e.dispose();
+      }
+    });
+  }
 
   int get _total => _foods.fold(0, (int a, DietFood f) => a + f.kcal);
 
@@ -1535,6 +1699,139 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     _syncFood(index);
   }
 
+  void _addFood() {
+    // Empty draft name; the localized label is shown only as a placeholder
+    // and is validated out on save.
+    const DietFood draft = DietFood('', 0);
+    setState(() {
+      _foods = <DietFood>[..._foods, draft];
+      // 새 줄에서도 이름만 적으면 공공 DB 값을 제안받는다 — 오히려 이쪽이 더
+      // 요긴하다. 일곱 칸을 손으로 채우지 않아도 된다(#1896).
+      _editors.add(_watchName(_FoodEditors.of(draft)));
+    });
+  }
+
+  void _removeFood(int index) {
+    final _FoodEditors removed = _editors.removeAt(index);
+    setState(() => _foods = <DietFood>[..._foods]..removeAt(index));
+    // 이번 프레임에는 아직 지워진 줄이 트리에 남아 있다 — 그 줄이 물러난
+    // 뒤에 버린다.
+    WidgetsBinding.instance.addPostFrameCallback((_) => removed.dispose());
+  }
+
+  /// 저장할 음식. 이름이 빈 줄은 버린다 — 새 줄의 자리표시 문구
+  /// (`dietNewFood`)가 음식 이름으로 저장되지 않게.
+  ///
+  /// 영양은 이름·칼로리와 함께 되돌려 보낸다. 빠뜨리면 이 저장 한 번으로
+  /// 그 끼니의 탄단지·나트륨·당류가 0 이 된다 — 합계가 음식별 값에서
+  /// 계산되기 때문이다(#1853).
+  List<FoodItem> _foodPayload() => <FoodItem>[
+    for (final DietFood f in _foods)
+      if (f.name.trim().isNotEmpty)
+        FoodItem(
+          name: f.name.trim(),
+          calories: f.kcal,
+          amountG: f.amountG,
+          sodiumMg: f.sodiumMg,
+          sugarG: f.sugarG,
+          carbsG: f.carbsG,
+          proteinG: f.proteinG,
+          fatG: f.fatG,
+        ),
+  ];
+
+  /// 보낼 줄만 검사한다 — 이름이 빈 줄은 [_foodPayload] 가 버리므로, 거기
+  /// 남은 숫자 때문에 저장이 막히면 어디를 고쳐야 하는지 알 수 없다.
+  /// 틀린 칸이 있으면 그 아래에 이유를 세우고 false 다(#1869).
+  bool _validateFoods() {
+    final List<_FoodEditors> filled = <_FoodEditors>[
+      for (int i = 0; i < _foods.length; i++)
+        if (_foods[i].name.trim().isNotEmpty) _editors[i],
+    ];
+    if (_sugarErrors.validate(filled)) return true;
+    setState(() {});
+    return false;
+  }
+
+  /// 끼니·음식을 기록에 반영한다. 날짜는 보내지 않는다 — `날짜 변경` 이 따로
+  /// 옮긴다(#1947).
+  Future<void> _saveFoods({
+    required String id,
+    required MealType mealType,
+    required List<FoodItem> foods,
+  }) {
+    return ref
+        .read(dietRepositoryProvider)
+        .updateEntry(
+          id: id,
+          mealType: mealType.name,
+          foods: foods,
+          totalCalories: foods.fold<int>(
+            0,
+            (int a, FoodItem f) => a + f.calories,
+          ),
+          // 나트륨·당류는 끼니 행에도 따로 저장된다 — 음식에서 다시 합쳐
+          // 보내지 않으면 음식별 값만 바뀌고 끼니 합계는 옛 숫자에 머문다.
+          sodiumMg: foods.fold<int>(0, (int a, FoodItem f) => a + f.sodiumMg),
+          sugarG: foods.fold<double>(0, (double a, FoodItem f) => a + f.sugarG),
+        );
+  }
+
+  /// 음식 한 줄의 수정 칸.
+  Widget _foodEditor(int i) => _FoodEditBlock(
+    index: i + 1,
+    editors: _editors[i],
+    sugarError: _sugarErrors.of(_editors[i]),
+    onChanged: () => _syncFood(i),
+    onAmountChanged: () => _syncAmount(i),
+    onDelete: () => _removeFood(i),
+    suggestion: _suggestionWouldChange(_editors[i])
+        ? _editors[i].suggestion
+        : null,
+    onApplySuggestion: () => _applySuggestion(i),
+  );
+}
+
+class _MealEditSheet extends ConsumerStatefulWidget {
+  const _MealEditSheet({required this.meal});
+  final DietMeal meal;
+
+  @override
+  ConsumerState<_MealEditSheet> createState() => _MealEditSheetState();
+}
+
+class _MealEditSheetState extends ConsumerState<_MealEditSheet>
+    with _FoodEditing<_MealEditSheet> {
+  late MealType _type = widget.meal.mealType;
+
+  /// 이 기록이 놓인 날(#1947). 날짜는 끼니·음식과 따로 저장한다 — 고르는
+  /// 즉시 옮기고, 옮기기에 성공했을 때만 바뀐다.
+  late DateTime _date = widget.meal.date;
+
+  /// 날짜를 옮기는 중. 두 번 눌러 같은 기록을 두 날로 보내지 않게 막는다.
+  bool _movingDate = false;
+  bool _busy = false;
+
+  /// 이 화면은 보기로 열리고, 머리의 연필을 눌러야 입력 칸이 된다(#1856).
+  /// 대부분은 무엇을 먹었는지 다시 보려고 들어오지 고치려고 들어오지 않는다.
+  bool _editing = false;
+
+  /// 취소가 되돌아갈 자리. 저장에 성공하면 여기로 옮겨 온다 — 저장한 뒤에 다시
+  /// 고치다 취소했을 때 저장 이전 값으로 되돌아가면 안 된다.
+  late MealType _savedType = widget.meal.mealType;
+  late List<DietFood> _savedFoods = List<DietFood>.of(widget.meal.items);
+
+  /// 수정 화면 상단의 큰 끼니 사진 높이 (#1125) — 이 화면에 들어온 이유가 대개
+  /// "무엇을 먹었는지 다시 보려고" 라, 사진이 주인공이다.
+  static const double _photoHeight = 300;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFoods(widget.meal.items);
+    _carbsRecorded = _carbsOf(widget.meal.items) > 0;
+  }
+
   void _beginEdit() => setState(() => _editing = true);
 
   /// 기록 날짜만 따로 옮긴다(#1947). 연필을 누르지 않아도 되고, 고른 즉시
@@ -1600,45 +1897,11 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
   /// 수정을 접고 처음 값으로 되돌린다. 화면을 나가지는 않는다 — 보기 모드로만
   /// 돌아간다. 컨트롤러는 그 줄이 트리에서 물러난 다음 프레임에 버린다.
   void _cancelEdit() {
-    final List<_FoodEditors> stale = List<_FoodEditors>.of(_editors);
     setState(() {
       _editing = false;
       _type = _savedType;
-      _foods = List<DietFood>.of(_savedFoods);
-      _editors
-        ..clear()
-        ..addAll(<_FoodEditors>[
-          for (final DietFood f in _foods) _watchName(_FoodEditors.of(f)),
-        ]);
-      // 접었다 다시 펴면 오류도 처음부터다 — 저장을 누른 적 없는 화면에
-      // 빨간 글씨가 먼저 서 있으면 안 된다(#1784).
-      _sugarErrors = AppFieldErrors<_FoodEditors>(_checkSugar);
+      _loadFoods(_savedFoods);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      for (final _FoodEditors e in stale) {
-        e.dispose();
-      }
-    });
-  }
-
-  void _addFood() {
-    // Empty draft name; the localized label is shown only as a placeholder
-    // and is validated out on save.
-    const DietFood draft = DietFood('', 0);
-    setState(() {
-      _foods = <DietFood>[..._foods, draft];
-      // 새 줄에서도 이름만 적으면 공공 DB 값을 제안받는다 — 오히려 이쪽이 더
-      // 요긴하다. 일곱 칸을 손으로 채우지 않아도 된다(#1896).
-      _editors.add(_watchName(_FoodEditors.of(draft)));
-    });
-  }
-
-  void _removeFood(int index) {
-    final _FoodEditors removed = _editors.removeAt(index);
-    setState(() => _foods = <DietFood>[..._foods]..removeAt(index));
-    // 이번 프레임에는 아직 지워진 줄이 트리에 남아 있다 — 그 줄이 물러난
-    // 뒤에 버린다.
-    WidgetsBinding.instance.addPostFrameCallback((_) => removed.dispose());
   }
 
   Future<void> _save() async {
@@ -1651,25 +1914,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       navigator.pop();
       return;
     }
-    // Drop empty draft rows (see `dietNewFood` placeholder) so a
-    // translation string never lands in stored food names.
-    // 영양은 이름·칼로리와 함께 되돌려 보낸다. 빠뜨리면 이 저장 한 번으로
-    // 그 끼니의 탄단지·나트륨·당류가 0 이 된다 — 합계가 음식별 값에서
-    // 계산되기 때문이다(#1853).
-    final List<FoodItem> foods = <FoodItem>[
-      for (final DietFood f in _foods)
-        if (f.name.trim().isNotEmpty)
-          FoodItem(
-            name: f.name.trim(),
-            calories: f.kcal,
-            amountG: f.amountG,
-            sodiumMg: f.sodiumMg,
-            sugarG: f.sugarG,
-            carbsG: f.carbsG,
-            proteinG: f.proteinG,
-            fatG: f.fatG,
-          ),
-    ];
+    final List<FoodItem> foods = _foodPayload();
     // 음식을 모두 지우고 저장했다면 빈 끼니를 남기는 대신 기록을 지울지
     // 묻는다. 지우는 도중이 아니라 저장할 때 묻는 이유는, 한 줄씩 갈아 끼우는
     // 동안 끼어들면 고치던 흐름이 끊기기 때문이다.
@@ -1677,39 +1922,13 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
       await _confirmDelete(emptied: true);
       return;
     }
-    // 보낼 줄만 검사한다 — 이름이 빈 줄은 위에서 버려지므로, 거기 남은
-    // 숫자 때문에 저장이 막히면 어디를 고쳐야 하는지 알 수 없다.
-    final List<_FoodEditors> filled = <_FoodEditors>[
-      for (int i = 0; i < _foods.length; i++)
-        if (_foods[i].name.trim().isNotEmpty) _editors[i],
-    ];
     // 틀린 칸 아래에 이유를 보이고 요청은 보내지 않는다(#1869).
-    if (!_sugarErrors.validate(filled)) {
-      setState(() {});
-      return;
-    }
+    if (!_validateFoods()) return;
     // 날짜는 여기서 보내지 않는다 — `날짜 변경` 이 따로 옮긴다(#1947). 끼니·
     // 음식만 고친 저장이 기록을 다른 날로 옮길 일이 없다.
     setState(() => _busy = true);
     try {
-      await ref
-          .read(dietRepositoryProvider)
-          .updateEntry(
-            id: id,
-            mealType: _type.name,
-            foods: foods,
-            totalCalories: foods.fold<int>(
-              0,
-              (int a, FoodItem f) => a + f.calories,
-            ),
-            // 나트륨·당류는 끼니 행에도 따로 저장된다 — 음식에서 다시 합쳐
-            // 보내지 않으면 음식별 값만 바뀌고 끼니 합계는 옛 숫자에 머문다.
-            sodiumMg: foods.fold<int>(0, (int a, FoodItem f) => a + f.sodiumMg),
-            sugarG: foods.fold<double>(
-              0,
-              (double a, FoodItem f) => a + f.sugarG,
-            ),
-          );
+      await _saveFoods(id: id, mealType: _type, foods: foods);
       if (!mounted) return;
       ref.invalidate(dietTodayProvider);
       // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
@@ -1928,34 +2147,11 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                                     // 고를 수 없는 칩 다섯을 늘어놓으면 누를 수
                                     // 있는 것처럼 읽힌다.
                                     if (_editing)
-                                      // 바깥 Wrap 은 묶음을, 안쪽 Wrap 은 칩을
-                                      // 늘어놓는다. 안쪽 Wrap 은 제 칩 폭만큼만
-                                      // 차지하므로 한 줄에 다 들어가면 그대로 한
-                                      // 줄이고, 넘치면 두 번째 묶음이 통째로
-                                      // 내려간다. 묶음 하나도 안 들어갈 만큼
-                                      // 좁으면 그 안에서만 줄을 바꾼다.
-                                      Wrap(
+                                      _MealTypeChips(
                                         key: const Key('meal-detail-meal'),
-                                        spacing: OnCareSpacing.s8,
-                                        runSpacing: OnCareSpacing.s8,
-                                        children: <Widget>[
-                                          for (final List<MealType> group
-                                              in _typeGroups)
-                                            Wrap(
-                                              spacing: OnCareSpacing.s8,
-                                              runSpacing: OnCareSpacing.s8,
-                                              children: <Widget>[
-                                                for (final MealType t in group)
-                                                  AppChoiceChip(
-                                                    label: mealBadge(l, t),
-                                                    selected: _type == t,
-                                                    onSelected: (_) => setState(
-                                                      () => _type = t,
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                        ],
+                                        selected: _type,
+                                        onSelected: (MealType t) =>
+                                            setState(() => _type = t),
                                       )
                                     else
                                       Align(
@@ -2003,19 +2199,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
                             const SizedBox(height: OnCareSpacing.s12),
                             for (int i = 0; i < _foods.length; i++) ...<Widget>[
                               if (_editing)
-                                _FoodEditBlock(
-                                  index: i + 1,
-                                  editors: _editors[i],
-                                  sugarError: _sugarErrors.of(_editors[i]),
-                                  onChanged: () => _syncFood(i),
-                                  onAmountChanged: () => _syncAmount(i),
-                                  onDelete: () => _removeFood(i),
-                                  suggestion:
-                                      _suggestionWouldChange(_editors[i])
-                                      ? _editors[i].suggestion
-                                      : null,
-                                  onApplySuggestion: () => _applySuggestion(i),
-                                )
+                                _foodEditor(i)
                               else
                                 _FoodViewRow(index: i + 1, food: _foods[i]),
                               const SizedBox(height: OnCareSpacing.s8),
@@ -2142,6 +2326,57 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet> {
     );
     // Block back/drag dismiss while a save/delete request is in flight.
     return PopScope(canPop: !_busy, child: page);
+  }
+}
+
+/// 끼니를 고르는 칩 다섯. 식단 상세와 분석 완료 시트의 수정 모드가 함께
+/// 쓴다(#2097).
+class _MealTypeChips extends StatelessWidget {
+  const _MealTypeChips({
+    super.key,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  /// 끼니 칩의 두 묶음 — 식사 셋과 그 사이·뒤에 먹는 둘.
+  ///
+  /// 칩 다섯을 `Wrap` 하나에 두면 폰 폭에서 `야식` 하나만 아랫줄로 떨어져 따로
+  /// 떨어진 선택지처럼 읽힌다(#2080). 묶음 단위로 줄을 바꿔, 한 줄에 다 들어가지
+  /// 않으면 `간식·야식` 이 함께 내려간다.
+  static const List<List<MealType>> _groups = <List<MealType>>[
+    <MealType>[MealType.breakfast, MealType.lunch, MealType.dinner],
+    <MealType>[MealType.snack, MealType.lateNight],
+  ];
+
+  final MealType selected;
+  final ValueChanged<MealType> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    // 바깥 Wrap 은 묶음을, 안쪽 Wrap 은 칩을 늘어놓는다. 안쪽 Wrap 은 제 칩
+    // 폭만큼만 차지하므로 한 줄에 다 들어가면 그대로 한 줄이고, 넘치면 두 번째
+    // 묶음이 통째로 내려간다. 묶음 하나도 안 들어갈 만큼 좁으면 그 안에서만
+    // 줄을 바꾼다.
+    return Wrap(
+      spacing: OnCareSpacing.s8,
+      runSpacing: OnCareSpacing.s8,
+      children: <Widget>[
+        for (final List<MealType> group in _groups)
+          Wrap(
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[
+              for (final MealType t in group)
+                AppChoiceChip(
+                  label: mealBadge(l, t),
+                  selected: selected == t,
+                  onSelected: (_) => onSelected(t),
+                ),
+            ],
+          ),
+      ],
+    );
   }
 }
 
