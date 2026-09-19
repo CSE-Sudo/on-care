@@ -402,21 +402,23 @@ class _PointsCardState extends State<_PointsCard>
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    final AppLocalizations l = AppLocalizations.of(context);
     final int? points = widget.points;
     _startWhenVisible();
     return Semantics(
       button: true,
       child: AppCard(
         key: const Key('pointsBanner'),
+        backgroundColor: tokens.brand.pointsCard,
         onTap: () => _openPointsBenefitsPage(context, points),
         child: Row(
           children: <Widget>[
             ScaleTransition(
               key: const Key('pointsStar'),
               scale: _starScale,
-              child: AppIcon(
-                AppIcons.points,
-                color: tokens.brand.primary,
+              child: const AppIcon(
+                AppIcons.star,
+                color: OnCareColors.overlayReward,
                 size: OnCareSize.iconLarge,
               ),
             ),
@@ -430,19 +432,19 @@ class _PointsCardState extends State<_PointsCard>
                 builder: (BuildContext context, Widget? _) {
                   final int? shown = _shown(points);
                   return Text(
-                    shown != null ? '${shown}P' : '—P',
+                    shown != null ? l.myPointsCost(shown) : '—P',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: OnCareTypography.numeric(
                       tokens.text(OnCareTypography.titleMedium),
-                    ).copyWith(color: OnCareColors.textPrimary),
+                    ).copyWith(color: OnCareColors.textOnFill),
                   );
                 },
               ),
             ),
             const AppIcon(
               AppIcons.chevronRight,
-              color: OnCareColors.textTertiary,
+              color: OnCareColors.textOnFill,
               size: OnCareSize.iconMedium,
             ),
           ],
