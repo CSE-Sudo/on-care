@@ -1,4 +1,5 @@
 import 'package:oncare/core/points/points_award.dart';
+import 'package:oncare/features/diet/domain/entities/diet_day.dart';
 
 /// Result of POST /diet/analyze — the recognized foods + nutrition the
 /// server materialised (and already persisted as a diet entry).
@@ -19,7 +20,10 @@ class RecognizedFood {
   final int calories;
   final int sodiumMg;
   final double sugarG;
-  final String source; // "db"(공공 영양 DB 매핑) | "estimate"(LLM 추정)
+
+  /// 영양 출처(#2105). 분석 완료 시트에서 음식을 고쳐 저장할 때 음식마다 그대로
+  /// 되돌려 보낸다 — 안 보내면 손대지 않은 음식까지 서버 기본값으로 덮인다.
+  final FoodSource source;
 
   /// 음식별 탄수화물·단백질·지방(g). 서버는 음식마다 함께 주는데 앱은 합계만
   /// 읽고 있었다. 분석 완료 시트에서 음식을 고쳐 다시 보낼 때 이 값이 없으면
@@ -33,14 +37,12 @@ class RecognizedFood {
   /// 안 먹었다는 말이지 모른다는 말이 아니다.
   final double? amountG;
 
-  bool get isFromDb => source == 'db';
-
   factory RecognizedFood.fromJson(Map<String, Object?> json) => RecognizedFood(
     name: json['name']! as String,
     calories: (json['calories'] as num?)?.toInt() ?? 0,
     sodiumMg: (json['sodium_mg'] as num?)?.toInt() ?? 0,
     sugarG: (json['sugar_g'] as num?)?.toDouble() ?? 0,
-    source: (json['source'] as String?) ?? 'estimate',
+    source: FoodSource.fromJson(json['source']),
     carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,
     proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
     fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/diet/data/repositories/dio_diet_repository.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 
 void main() {
@@ -121,6 +122,7 @@ void main() {
         carbsG: 46,
         proteinG: 5,
         fatG: 1.8,
+        source: FoodSource.member,
       ),
     ];
 
@@ -139,7 +141,42 @@ void main() {
       'carbs_g': 46.0,
       'protein_g': 5.0,
       'fat_g': 1.8,
+      // 음식마다 출처를 되돌려 보낸다(#2105). 빠지면 서버가 채운다.
+      'source': 'member',
     });
+  });
+
+  test('음식별 출처를 읽는다 — 모르는 값과 누락은 estimate 다 (#2105)', () {
+    FoodSource sourceOf(Object? value) => FoodItem.fromJson(<String, Object?>{
+      'name': '비빔밥',
+      'calories': 600,
+      'source': value,
+    }).source;
+
+    expect(sourceOf('db'), FoodSource.db);
+    expect(sourceOf('mixed'), FoodSource.mixed);
+    expect(sourceOf('member'), FoodSource.member);
+    expect(sourceOf('estimate'), FoodSource.estimate);
+    // 이 필드 이전 기록이다.
+    expect(sourceOf(null), FoodSource.estimate);
+    expect(sourceOf('something-new'), FoodSource.estimate);
+  });
+
+  test('이름 조회 응답이 같은 음식인지 읽는다 — 모르는 서버면 비슷한 음식으로 본다 (#2107)', () {
+    FoodNutritionSuggestion? parse(Object? match) =>
+        FoodNutritionSuggestion.fromJson(<String, Object?>{
+          'matched_name': '짜장면',
+          'match': match,
+          'source': 'db',
+          'amount_g': 600,
+          'calories': 738,
+        });
+
+    expect(parse('exact')!.exact, isTrue);
+    expect(parse('similar')!.exact, isFalse);
+    // 이 필드를 모르는 서버 — 곧바로 채우지 않고 제안만 하는 쪽이 안전하다.
+    expect(parse(null)!.exact, isFalse);
+    expect(parse('exact')!.food.source, FoodSource.db);
   });
 
   test('섭취량은 저장 요청에 실리고 응답에서 다시 읽힌다', () async {

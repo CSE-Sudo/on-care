@@ -354,6 +354,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietFillFromDb => '값 채우기';
 
   @override
+  String dietFoodFilledFromDb(String name) {
+    return '공공 DB · $name 값으로 바꿨어요';
+  }
+
+  @override
+  String get dietUndoFill => '되돌리기';
+
+  @override
+  String get dietFoodNotInDb => '공공 DB에 없는 음식이에요. 영양 값을 확인해 주세요';
+
+  @override
   String get dietAddSheetTitle => '식단 추가';
 
   @override

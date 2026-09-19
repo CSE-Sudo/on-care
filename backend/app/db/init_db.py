@@ -156,6 +156,10 @@ def _public_food_rows() -> list[dict]:
                 "carbs_g": num(row.get("carbs_g", "")),
                 "protein_g": num(row.get("protein_g", "")),
                 "fat_g": num(row.get("fat_g", "")),
+                # 근거 열 — DB 에는 넣지 않고 검사·확인에만 쓴다(#2102).
+                "source_dataset": row.get("source_dataset", ""),
+                "method": row.get("method", ""),
+                "serving_basis": row.get("serving_basis", ""),
             }
             for row in csv.DictReader(fh)
         ]
@@ -165,26 +169,31 @@ _NUTRIENT_FIELDS = ("calories", "sodium_mg", "sugar_g", "carbs_g", "protein_g", 
 
 
 def _curated_per_100g(items: list[dict], public: dict[str, dict] | None = None) -> list[dict]:
-    """큐레이션 시드(1인분 기준)를 100g 기준으로 환산.
+    """큐레이션 시드를 100g 기준 행으로.
 
     `food_nutrients` 는 100g 기준이다(공공 원본이 전부 그 형태고, 포장 단위로
-    1인분 환산하면 대표값이 3~5배까지 튄다). 큐레이션은 사람이 1인분으로 정리한
-    값이라 여기서 맞춰 넣는다 — `serving_size_g` 가 모두 있어 기계적으로 변환된다.
-    1회 섭취량 자체는 컬럼에 남겨 인식기가 양을 못 줬을 때 폴백으로 쓴다.
+    1인분 환산하면 대표값이 3~5배까지 튄다). 영양값은 셋 중 하나로 온다
+    (`food_nutrients_seed` 설명):
 
-    `from_public` 이 있는 항목은 영양값을 적지 않고 그 이름의 공공 표준 행에서 100g 당
-    값을 가져온다(#2100) — 근거가 남은 값(분석·업체 표시)이 있으면 그것을 쓰고, 큐레이션은
-    이름과 1회 섭취량만 정한다. `public` 은 정규화 이름 → 공공 행이다.
+    - `from_public` — 그 이름의 공공 표준 행의 100g 당 값(#2100). `public` 은 정규화
+      이름 → 공공 행이다.
+    - `per_100g` — 출처 행의 100g 당 값을 그대로(#2102). 1인분으로 적었다가 다시
+      나누면 반올림이 끼고, 1회 섭취량을 바꿀 때마다 값을 다시 셈해야 한다.
+    - 1인분 값(데모 메뉴) — `serving_size_g` 로 나눠 100g 기준으로 바꾼다.
+
+    1회 섭취량 자체는 컬럼에 남겨 인식기가 양을 못 줬을 때 폴백으로 쓴다. 근거가 없어
+    비운 항목(`None`)은 폴백 없이 들어간다.
     """
     from app.services.nutrition.matcher import normalize
 
     scaled: list[dict] = []
     for item in items:
         serving = item.get("serving_size_g")
-        if not serving or serving <= 0:
-            # 환산 기준이 없으면 값의 의미가 불분명해진다 — 넣지 않는다.
-            continue
-        out = {k: v for k, v in item.items() if k != "from_public"}
+        out = {
+            k: v
+            for k, v in item.items()
+            if k not in {"from_public", "per_100g", "source", "serving_basis"}
+        }
         source = item.get("from_public")
         if source:
             row = (public or {}).get(normalize(source))
@@ -193,6 +202,13 @@ def _curated_per_100g(items: list[dict], public: dict[str, dict] | None = None) 
             for field in _NUTRIENT_FIELDS:
                 out[field] = row.get(field)
             scaled.append(out)
+            continue
+        if "per_100g" in item:
+            out.update(item["per_100g"])
+            scaled.append(out)
+            continue
+        if not serving or serving <= 0:
+            # 1인분 값인데 환산 기준이 없으면 값의 의미가 불분명해진다 — 넣지 않는다.
             continue
         factor = 100.0 / float(serving)
         for field in _NUTRIENT_FIELDS:

@@ -705,19 +705,19 @@ def test_food_nutrition_lookup_finds_a_known_name(client):
     body = r.json()
     assert body["matched_name"] == "짜장면"
     assert body["source"] == "db"
-    # 시드가 1인분으로 적어 둔 값이 100g 환산을 왕복해 돌아온다.
-    assert body["amount_g"] == 650
-    assert body["calories"] == pytest.approx(700, abs=2)
-    assert body["sodium_mg"] == pytest.approx(2400, abs=5)
+    # 시드의 1회 섭취량(가정식 분석 `자장면` 600g) × 100g 당 값(외식 분석 123kcal·368mg).
+    assert body["amount_g"] == 600
+    assert body["calories"] == 738
+    assert body["sodium_mg"] == 2208
 
 
 def test_food_nutrition_lookup_scales_to_the_amount_it_is_given(client):
     """양을 주면 그 양으로 환산한다 — 지금 먹은 양의 값을 제안해야 한다."""
     whole = client.post("/v1/diet/nutrition", json={"name": "짜장면"}).json()
     half = client.post(
-        "/v1/diet/nutrition", json={"name": "짜장면", "amount_g": 325}
+        "/v1/diet/nutrition", json={"name": "짜장면", "amount_g": whole["amount_g"] / 2}
     ).json()
-    assert half["amount_g"] == 325
+    assert half["amount_g"] == whole["amount_g"] / 2
     assert half["calories"] == pytest.approx(whole["calories"] / 2, abs=2)
     assert half["sodium_mg"] == pytest.approx(whole["sodium_mg"] / 2, abs=2)
 
@@ -763,6 +763,33 @@ def test_food_nutrition_lookup_matches_what_analysis_would_have_said(client, db_
     assert looked_up["sugar_g"] == pytest.approx(from_analysis.sugar_g)
     assert looked_up["amount_g"] == from_analysis.amount_g
     assert looked_up["source"] == from_analysis.source
+
+
+@pytest.mark.parametrize(
+    ("name", "matched", "match"),
+    [
+        ("비빔밥", "비빔밥", "exact"),
+        # 별칭은 같은 음식이다.
+        ("흰밥", "공기밥", "exact"),
+        # 이름 끝말로만 붙은 것은 비슷한 음식이다.
+        ("야채비빔밥", "비빔밥", "similar"),
+    ],
+)
+def test_food_nutrition_lookup_says_whether_it_is_the_same_food(
+    client, name, matched, match
+):
+    """같은 음식인지 비슷한 음식인지 함께 말한다. (#2107)
+
+    수정 화면은 같은 음식이면 곧바로 채우고, 비슷한 음식이면 제안만 한다.
+    """
+    body = client.post("/v1/diet/nutrition", json={"name": name}).json()
+    assert body["matched_name"] == matched
+    assert body["match"] == match
+
+
+def test_food_nutrition_lookup_has_no_match_kind_when_nothing_was_found(client):
+    body = client.post("/v1/diet/nutrition", json={"name": "듣도보도못한음식"}).json()
+    assert body["match"] is None
 
 
 def test_update_entry_saves_edited_foods(client, db_session):
@@ -1083,6 +1110,58 @@ def test_update_entry_keeps_per_food_macros(client):
     first = entry["foods"][0]
     assert (first["carbs_g"], first["protein_g"], first["fat_g"]) == (46.0, 5.0, 1.8)
     assert (first["calories"], first["sodium_mg"], first["sugar_g"]) == (220, 3, 0.5)
+
+
+def _stored_foods(client, entry_id: str) -> list[dict]:
+    return next(
+        e for e in client.get("/v1/diet/days/today").json()["entries"]
+        if e["id"] == entry_id
+    )["foods"]
+
+
+def test_update_entry_keeps_the_source_each_food_was_sent_with(client):
+    """음식마다 보낸 출처가 그대로 남는다. (#2105)
+
+    예전에는 수정 저장 한 번에 모든 음식이 `estimate` 가 됐다 — 앱이 출처를 보내지
+    않았고, 서버가 빠진 값을 인식기 기본값으로 채웠다. 손대지 않은 음식은 원래
+    출처를, 회원이 고친 음식은 `member` 를 싣는다.
+    """
+    entry_id = _analyzed_entry_id(client)
+    foods = _stored_foods(client, entry_id)
+    assert all(f["source"] == "db" for f in foods)
+
+    edited = [dict(f) for f in foods]
+    # 둘째 음식은 회원이 나트륨을 고쳤다.
+    edited[1]["sodium_mg"] = edited[1]["sodium_mg"] + 100
+    edited[1]["source"] = "member"
+    r = client.put(f"/v1/diet/entries/{entry_id}", json={"foods": edited})
+    assert r.status_code == 200, r.text
+
+    expected = ["db", "member"] + ["db"] * (len(foods) - 2)
+    assert [f["source"] for f in r.json()["foods"]] == expected
+    assert [f["source"] for f in _stored_foods(client, entry_id)] == expected
+
+
+def test_update_entry_food_without_a_source_is_the_members(client):
+    """출처가 빠진 음식은 `member` 다 — 수정 경로로 들어온 숫자는 인식기 추정이 아니다."""
+    entry_id = _analyzed_entry_id(client)
+
+    client.put(f"/v1/diet/entries/{entry_id}", json={"foods": _EDITED_FOODS})
+
+    assert [f["source"] for f in _stored_foods(client, entry_id)] == [
+        "member", "member",
+    ]
+
+
+@pytest.mark.parametrize("source", ["user", "", "DB"])
+def test_update_entry_rejects_an_unknown_food_source(client, source):
+    """출처는 네 값뿐이다 — 모르는 값을 저장하면 읽는 쪽이 제각각 해석한다."""
+    entry_id = _analyzed_entry_id(client)
+    food = dict(_EDITED_FOODS[0], source=source)
+
+    r = client.put(f"/v1/diet/entries/{entry_id}", json={"foods": [food]})
+
+    assert r.status_code == 422
 
 
 def test_update_entry_recomputes_totals_from_foods(client):

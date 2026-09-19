@@ -722,6 +722,24 @@ abstract class AppLocalizations {
   /// **'Fill in'**
   String get dietFillFromDb;
 
+  /// Shown after renaming a food filled its fields with the same food's public-DB nutrition (#2107)
+  ///
+  /// In en, this message translates to:
+  /// **'Changed to public DB · {name}'**
+  String dietFoodFilledFromDb(String name);
+
+  /// Button that puts a renamed food's fields back to what they were before the public-DB fill (#2107)
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get dietUndoFill;
+
+  /// Shown when a renamed food is not in the public DB, so its fields still hold the old food's values (#2107)
+  ///
+  /// In en, this message translates to:
+  /// **'Not in the public food DB. Please check the nutrition.'**
+  String get dietFoodNotInDb;
+
   /// No description provided for @dietAddSheetTitle.
   ///
   /// In en, this message translates to:

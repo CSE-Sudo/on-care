@@ -42,6 +42,8 @@ class FakeDietRepository implements DietRepository {
       foods: <FoodItem>[
         // 섭취량을 아는 음식과 모르는 음식을 한 끼니에 함께 둔다 — 서버가
         // 양을 얻지 못한 인식과 이 필드 이전 기록이 실제로 섞여 들어온다(#1876).
+        // 출처도 실서버와 같이 둔다(#2105): 양을 알아 DB × 양으로 환산한 음식은
+        // `db`, 양을 몰라 인식기 추정을 그대로 둔 음식은 `estimate`(기본값)다.
         FoodItem(
           name: '스크램블 에그',
           calories: 185,
@@ -51,6 +53,7 @@ class FakeDietRepository implements DietRepository {
           carbsG: 2,
           proteinG: 13,
           fatG: 14,
+          source: FoodSource.db,
         ),
         FoodItem(
           name: '딸기',
@@ -155,7 +158,7 @@ class FakeDietRepository implements DietRepository {
         calories: 600,
         sodiumMg: 900,
         sugarG: 8,
-        source: 'db',
+        source: FoodSource.db,
         carbsG: 90,
         proteinG: 20,
         fatG: 13.5,
@@ -166,7 +169,7 @@ class FakeDietRepository implements DietRepository {
         calories: 15,
         sodiumMg: 300,
         sugarG: 1,
-        source: 'db',
+        source: FoodSource.db,
         carbsG: 2.5,
         proteinG: 1,
         fatG: 0.5,
