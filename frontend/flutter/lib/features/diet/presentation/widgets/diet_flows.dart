@@ -950,11 +950,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 수정 모드에서는 `인식된 음식` 자리에 음식별 수정 칸이 선다 —
-        // 고치는 대상이 바로 그 인식 결과다(#2097).
-        if (_editing)
-          _foodsEditor(l)
-        else
+        // 수정 모드에서는 `인식된 음식` 을 감추고, 음식별 수정 칸이 아래
+        // 기록 날짜·끼니 다음에 선다(#2097). 식단 상세의 수정 모드처럼
+        // "언제·어느 끼니" 를 먼저 두고 "무엇을 먹었나" 를 그 아래에 둔다.
+        if (!_editing) ...<Widget>[
           // 이 시트에서 강조할 것은 AI 가 무엇으로 읽었는지 하나다 — 거기에만
           // 옅은 브랜드 채움을 준다. `0389e572` 가 걷어낸 것은 구획을 여럿
           // 쌓아 카드가 온통 옅은 파랑이 되는 것이고, 그 커밋이 남긴 규칙은
@@ -1020,7 +1019,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
               ],
             ),
           ),
-        const SizedBox(height: OnCareSpacing.s12),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         // 기록 날짜와 끼니. 날짜는 `날짜 변경` 으로 여기서 바로 따로 옮기고
         // (#1241, #1947), 끼니·음식은 헤더 연필이 여는 수정 모드에서 고친다
         // (#2097) — 식단 상세의 `식사 정보` 카드와 같은 나눔이다.
@@ -1112,6 +1112,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
+        if (_editing) ...<Widget>[
+          _foodsEditor(l),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         Text(
           l.dietNutritionResult,
           style: _text(
