@@ -93,6 +93,13 @@ def test_aliases_reach_rows_by_common_names():
     for name in ("스크램블 에그", "계란 스크램블"):
         assert match_in_rows(rows, name).name_norm == "스크램블드에그", name
     assert match_in_rows(rows, "딸기 요거트").name_norm == "농후발효유"
+    # 끝말 규칙으로는 `스테이크`(소고기)에 붙는 단백질 요리 (#2100)
+    rows = _rows("스테이크", "닭가슴살", "연어", "스파게티", "후라이드치킨")
+    assert match_in_rows(rows, "닭가슴살 스테이크").name_norm == "닭가슴살"
+    assert match_in_rows(rows, "연어 스테이크").name_norm == "연어"
+    assert match_in_rows(rows, "크림 파스타").name_norm == "스파게티"
+    assert match_in_rows(rows, "순살 치킨").name_norm == "후라이드치킨"
+    rows = _rows("공기밥", "스크램블드에그", "농후발효유", "그래놀라 토핑")
     assert match_in_rows(rows, "그래놀라").name_norm == "그래놀라토핑"
     # 한 글자 별칭 `밥` 도 정확 일치로만 붙는다 — 비빔밥은 공기밥이 아니다.
     assert match_in_rows(rows, "비빔밥") is None
@@ -597,6 +604,67 @@ def test_import_leaves_ml_rows_without_a_density_source():
     assert vinegar["calories"] == 20.0
     [canteen] = aggregate([_raw_ml("우유", "우유", "65", "40", method="산출", cat="유제품류")], "음식")
     assert canteen["calories"] == 65.0
+
+
+def test_import_uses_the_plain_raw_row_for_raw_ingredients():
+    """원재료성식품은 `{이름}_생것` 이 그 이름이 뜻하는 것이다 — 싹·말린 잎이 뽑히면 안 된다."""
+    from scripts.import_food_nutrients import aggregate
+
+    def raw(name, kcal, protein):
+        r = _raw_full(name, kcal, "16", "1", "5", protein, "0.3")
+        r.update({"대표식품명": "브로콜리", "식품기원명": "식물성", "데이터생성방법명": "분석"})
+        return r
+
+    rows = [raw("브로콜리_싹_생것", "31", "3.81"), raw("브로콜리_잎_말린것", "258", "20"),
+            raw("브로콜리_분말화한것", "284", "25"), raw("브로콜리_생것", "32", "2.9"),
+            raw("브로콜리_데친것", "28", "2.8")]
+    for r in rows:
+        r["식품대분류명"] = "채소류"
+    [out] = aggregate(rows, "원재료성식품")
+    assert (out["calories"], out["protein_g"]) == (32.0, 2.9)
+
+
+def test_import_splits_distinct_foods_sharing_one_raw_group():
+    """`호박` 묶음에는 단호박·애호박이 함께 있다 — 하나로 고르면 나머지가 틀린다."""
+    from scripts.import_food_nutrients import aggregate
+
+    def raw(name, kcal):
+        r = _raw_full(name, kcal, "1", "3", "10", "1", "0.2")
+        r.update({"대표식품명": "호박", "식품기원명": "식물성", "데이터생성방법명": "분석",
+                  "식품대분류명": "채소류"})
+        return r
+
+    rows = [raw("호박_단호박_생것", "57"), raw("호박_단호박_찐것", "66"),
+            raw("호박_애호박_생것", "22"), raw("호박_애호박_말린것", "284"),
+            raw("호박_잎_생것", "45")]
+    out = {r["name"]: r["calories"] for r in aggregate(rows, "원재료성식품")}
+    assert out["단호박"] == 57.0 and out["애호박"] == 22.0
+
+
+def test_import_keeps_dried_default_for_nuts_and_legumes():
+    """땅콩·팥은 말린 것이 기본형이다 — 생것 규칙을 쓰면 볶은 땅콩(567kcal)이 풋땅콩이 된다."""
+    from scripts.import_food_nutrients import aggregate
+
+    def raw(name, kcal):
+        r = _raw_full(name, kcal, "5", "4", "16", "25", "49")
+        r.update({"대표식품명": "땅콩", "식품기원명": "식물성", "데이터생성방법명": "분석",
+                  "식품대분류명": "견과 및 종실류"})
+        return r
+
+    rows = [raw("땅콩_생것", "318"), raw("땅콩_말린것", "567"), raw("땅콩_볶은것", "585"),
+            raw("땅콩_버터", "590")]
+    [out] = aggregate(rows, "원재료성식품")
+    assert out["calories"] > 500
+
+
+def test_import_renames_product_classes_that_wear_everyday_names():
+    """가공식품 `파스타` 는 건면이다 — 일상어 `파스타` 를 비워 두고 별칭이 요리로 보낸다."""
+    from scripts.import_food_nutrients import aggregate
+
+    row = _raw_full("탈리아텔레", "350", "0", "3", "71", "13", "1.5")
+    row["대표식품명"] = "파스타"
+    [out] = aggregate([row], "가공식품")
+    assert out["name"] == "파스타 건면"
 
 
 def test_import_skips_rows_without_energy():

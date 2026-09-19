@@ -414,17 +414,85 @@ def _per_100g(row: dict[str, str]) -> dict[str, str]:
     return out
 
 
+#: 원재료성식품에서 이름만 불렀을 때 보통 뜻하지 않는 가공·부위 변형.
+#: `브로콜리` 에는 `브로콜리_싹`·`브로콜리_잎_말린것`(271kcal)·`브로콜리_분말화한것` 이
+#: 함께 모여 있다.
+_RAW_VARIANT = re.compile(r"말린것|분말|가루|동결건조|농축|_잎|_줄기|_싹|_씨")
+
+#: 생것이 기본형인 분류. 곡류·두류·견과·해조류는 말린 것이 기본형이라(`땅콩` 567kcal,
+#: `팥` 335kcal, `김` 200kcal 대) 이 규칙을 쓰면 오히려 틀린다 — 그대로 메도이드로 고른다.
+_FRESH_BY_DEFAULT = {"채소류", "과일류", "버섯류"}
+
+#: 대표식품명이 일상어와 다른 것을 가리키는 묶음. 이름을 바꿔 일상어를 비워 두고,
+#: 일상어는 매칭기 별칭(`nutrition.matcher.ALIASES`)이 맞는 행으로 보낸다.
+_RENAMES: dict[tuple[str, str], str] = {
+    # 건면 제품(350kcal/100g)이다. "파스타" 는 삶은 요리를 뜻한다.
+    ("가공식품", "파스타"): "파스타 건면",
+    ("원재료성식품", "파스타"): "파스타 건면",   # 같은 건면(365kcal) — 가공식품이 우선한다
+    # 포장 가공품(너겟·스낵류)이다. "치킨" 은 치킨집 치킨을 뜻한다.
+    ("가공식품", "치킨"): "치킨 가공품",
+    # 프랜차이즈 커피 음료(라떼·프라푸치노)가 모인 묶음이다.
+    ("음식", "커피"): "커피 음료",
+    # 원두 추출액(에스프레소·아메리카노 용액)이다. "커피" 는 별칭으로 아메리카노에 보낸다.
+    ("원재료성식품", "커피"): "커피 추출액",
+}
+
+
+#: 원재료성식품 한 묶음에 서로 다른 일상 음식이 함께 든 것. `호박` 에는 단호박(57kcal)·
+#: 애호박(22)·늙은호박(38)·쥬키니가 모여 있어, 어느 것을 골라도 나머지는 틀린다.
+#: (대표식품명, 식품명 두 번째 칸) → 따로 세울 이름. 식품명은 `호박_단호박_생것` 꼴이다.
+_RAW_SPLITS: dict[tuple[str, str], str] = {
+    ("호박", "단호박"): "단호박",
+    ("호박", "애호박"): "애호박",
+    ("호박", "늙은호박"): "늙은호박",
+    ("호박", "쥬키니"): "쥬키니",
+    ("토마토", "방울토마토"): "방울토마토",
+}
+
+
+def _group_key(row: dict[str, str], dataset: str) -> tuple[str, str]:
+    """(묶을 이름, 그 묶음의 기본형 식품명). 기본형은 `{…}_생것` 이다."""
+    rep = (row.get("대표식품명") or "").strip()
+    if dataset == "원재료성식품":
+        parts = [p.strip() for p in (row.get("식품명") or "").split("_")]
+        if len(parts) >= 3 and (split := _RAW_SPLITS.get((rep, parts[1]))):
+            return split, f"{rep}_{parts[1]}_생것"
+    return rep, f"{rep}_생것"
+
+
+def _plain_rows(canonical_name: str, rows: list[dict[str, str]]) -> list[dict[str, str]]:
+    """원재료성식품에서 이름만 불렀을 때 뜻하는 행.
+
+    국가표준식품성분표는 기본형을 `{대표식품명}_생것` 으로 적는다(`사과_생것`). 그런
+    행이 있으면 그것만, 없으면 말린것·분말·잎·싹 같은 변형을 뺀 행을 본다.
+    """
+    canonical = [r for r in rows if (r.get("식품명") or "").strip() == canonical_name]
+    if canonical:
+        return canonical
+    plain = [r for r in rows if not _RAW_VARIANT.search(r.get("식품명") or "")]
+    return plain or rows
+
+
 def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object]]:
     """원본 행 → 대표식품 단위 **100g 기준** 집계."""
     groups: dict[str, list[dict[str, str]]] = {}
+    canonical: dict[str, str] = {}
     for row in rows:
-        name = (row.get("대표식품명") or "").strip()
-        if name:
-            groups.setdefault(name, []).append(_per_100g(row))
+        key, plain = _group_key(row, dataset)
+        if key:
+            groups.setdefault(key, []).append(_per_100g(row))
+            canonical.setdefault(key, plain)
 
     out: list[dict[str, object]] = []
-    for name, group in sorted(groups.items()):
-        row = _representative(group)
+    for source_name, group in sorted(groups.items()):
+        name = _RENAMES.get((dataset, source_name), source_name)
+        fresh = _mode([(r.get("식품대분류명") or "").strip() for r in group]) in _FRESH_BY_DEFAULT
+        candidates = (
+            _plain_rows(canonical[source_name], group)
+            if dataset == "원재료성식품" and fresh
+            else group
+        )
+        row = _representative(candidates)
         if row is None:
             # 열량조차 없으면 보정 값으로 쓸 수 없다.
             continue
