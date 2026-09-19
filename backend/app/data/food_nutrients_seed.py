@@ -8,16 +8,21 @@
 나트륨(sodium_mg)·당류(sugar_g)는 회원의 하루 목표와 바로 비교되는 값이라 특히 신중히 채웠다.
 값 단위: serving_size_g=g, calories=kcal, sodium_mg=mg, sugar_g/carbs_g/protein_g/fat_g=g.
 
-## 탄·단·지 (#2096)
+## 값의 근거 (#2096, #2100)
 
-여기서 탄·단·지를 비우면 인식기가 값을 주지 않은 음식은 0 이 된다. 이름이 같은 공공
-표준 행은 시드에서 건너뛰므로 거기서 채워지지도 않는다.
+큐레이션은 **이름과 1회 섭취량**을 정한다. 영양값은 셋 중 하나다.
 
-칼로리는 이 파일의 값을 그대로 두고, **참조 행의 탄·단·지 비율을 그 칼로리에 맞춰**
-환산했다(탄수화물·단백질 4, 지방 9 kcal/g). 그래서 탄·단·지로 다시 셈한 열량이 화면의
-칼로리와 어긋나지 않는다. 참조 행은 각 줄 끝 주석에 적었다 — 기본은 이름이 같은 공공
-표준 행이고, 그 비율을 믿기 어려우면 다른 행을 썼다(이유는 그 줄 주석). 아메리카노·
-콜라는 비율이 아니라 값을 그대로 적었다.
+1. `from_public` — 그 이름의 공공 표준 행에서 100g 당 값을 가져온다. 공공 집계가
+   분석값·업체 표시값 5건 이상에서 고른 값일 때만 쓴다(`scripts/import_food_nutrients`
+   의 메도이드). 줄 끝 주석이 그 데이터셋·방법·건수다. 공공 집계를 다시 만들면 같이
+   따라간다.
+2. 출처를 적은 실측값 — 공공 표준에 없는 오트밀·그릭 요거트·닭가슴살(USDA)과 맥주,
+   요거트 아이스크림 볼.
+3. 예전 큐레이션 값 — 공공 표준이 레시피 계산값뿐이거나(짜장면·잔치국수·물냉면·
+   제육볶음 등) 분석값이 5건이 안 되는 것. 계산값은 분석값보다 체계적으로 낮고(열량
+   ×0.76) 표본 한두 건은 그 제품이 튀면 그대로 따라가서, 근거가 약해도 사람이 정한
+   값을 둔다. 탄·단·지는 참조 행의 비율을 이 칼로리에 맞춰 환산했다(탄수화물·단백질 4,
+   지방 9 kcal/g) — 참조 행은 줄 끝 주석이다. 아메리카노·콜라는 값을 그대로 적었다.
 
 ## 공공 표준에 없는 항목
 
@@ -29,32 +34,23 @@
 """
 from __future__ import annotations
 
-# name, category, serving_g, kcal, sodium_mg, sugar_g, 탄·단·지. 줄 끝 주석은 탄·단·지 비율을 가져온 곳이다.
+# name, category, serving_g, 그리고 `from_public` 이거나 kcal·sodium_mg·sugar_g·탄·단·지. 줄 끝 주석이 근거다.
 FOOD_NUTRIENTS: list[dict] = [
     # --- 밥·분식 ---
     {"name": "공기밥", "category": "밥류", "serving_size_g": 210, "calories": 310, "sodium_mg": 3, "sugar_g": 0,
      "carbs_g": 69.5, "protein_g": 5.9, "fat_g": 0.9},  # 공공 표준 쌀밥
-    {"name": "비빔밥", "category": "밥류", "serving_size_g": 500, "calories": 600, "sodium_mg": 900, "sugar_g": 8,
-     "carbs_g": 96.9, "protein_g": 19.0, "fat_g": 15.2},  # 공공 표준 비빔밥
-    {"name": "김밥", "category": "분식", "serving_size_g": 200, "calories": 480, "sodium_mg": 700, "sugar_g": 6,
-     "carbs_g": 71.9, "protein_g": 17.3, "fat_g": 13.7},  # 공공 표준 김밥
-    {"name": "볶음밥", "category": "밥류", "serving_size_g": 400, "calories": 620, "sodium_mg": 1300, "sugar_g": 5,
-     "carbs_g": 102.0, "protein_g": 22.9, "fat_g": 13.4},  # 공공 표준 볶음밥
-    {"name": "떡볶이", "category": "분식", "serving_size_g": 300, "calories": 550, "sodium_mg": 1600, "sugar_g": 20,
-     "carbs_g": 104.7, "protein_g": 16.2, "fat_g": 7.4},  # 공공 표준 떡볶이
+    {"name": "비빔밥", "category": "밥류", "serving_size_g": 500, "from_public": "비빔밥"},  # 음식 비빔밥 분석 7건
+    {"name": "김밥", "category": "분식", "serving_size_g": 200, "from_public": "김밥"},  # 음식 김밥 분석 13건
+    {"name": "볶음밥", "category": "밥류", "serving_size_g": 400, "from_public": "볶음밥"},  # 음식 볶음밥 분석 23건
+    {"name": "떡볶이", "category": "분식", "serving_size_g": 300, "from_public": "떡볶이"},  # 음식 떡볶이 분석 35건
     {"name": "순대", "category": "분식", "serving_size_g": 200, "calories": 360, "sodium_mg": 900, "sugar_g": 2,
      "carbs_g": 45.4, "protein_g": 12.1, "fat_g": 14.4},  # 공공 표준 순대
     # --- 국·찌개·탕 ---
-    {"name": "김치찌개", "category": "국·찌개류", "serving_size_g": 400, "calories": 250, "sodium_mg": 1200, "sugar_g": 3,
-     "carbs_g": 15.8, "protein_g": 23.0, "fat_g": 10.5},  # 공공 표준 김치찌개
-    {"name": "된장찌개", "category": "국·찌개류", "serving_size_g": 400, "calories": 180, "sodium_mg": 1300, "sugar_g": 4,
-     "carbs_g": 18.6, "protein_g": 14.6, "fat_g": 5.2},  # 공공 표준 된장찌개
-    {"name": "순두부찌개", "category": "국·찌개류", "serving_size_g": 400, "calories": 220, "sodium_mg": 1100, "sugar_g": 3,
-     "carbs_g": 13.5, "protein_g": 19.7, "fat_g": 9.7},  # 공공 표준 순두부찌개
-    {"name": "미역국", "category": "국·찌개류", "serving_size_g": 300, "calories": 110, "sodium_mg": 800, "sugar_g": 1,
-     "carbs_g": 7.2, "protein_g": 11.8, "fat_g": 3.8},  # 공공 표준 미역국
-    {"name": "된장국", "category": "국·찌개류", "serving_size_g": 300, "calories": 90, "sodium_mg": 900, "sugar_g": 2,
-     "carbs_g": 10.3, "protein_g": 6.8, "fat_g": 2.4},  # 공공 표준 된장국
+    {"name": "김치찌개", "category": "국·찌개류", "serving_size_g": 400, "from_public": "김치찌개"},  # 음식 김치찌개 분석 8건
+    {"name": "된장찌개", "category": "국·찌개류", "serving_size_g": 400, "from_public": "된장찌개"},  # 음식 된장찌개 분석 8건
+    {"name": "순두부찌개", "category": "국·찌개류", "serving_size_g": 400, "from_public": "순두부찌개"},  # 음식 순두부찌개 분석 6건
+    {"name": "미역국", "category": "국·찌개류", "serving_size_g": 300, "from_public": "미역국"},  # 음식 미역국 분석 9건
+    {"name": "된장국", "category": "국·찌개류", "serving_size_g": 300, "from_public": "된장국"},  # 음식 된장국 분석 19건
     {"name": "갈비탕", "category": "탕류", "serving_size_g": 700, "calories": 430, "sodium_mg": 1500, "sugar_g": 3,
      "carbs_g": 20.5, "protein_g": 30.9, "fat_g": 25.0},  # 공공 표준 갈비탕
     {"name": "설렁탕", "category": "탕류", "serving_size_g": 700, "calories": 400, "sodium_mg": 1400, "sugar_g": 2,
@@ -62,12 +58,10 @@ FOOD_NUTRIENTS: list[dict] = [
     {"name": "삼계탕", "category": "탕류", "serving_size_g": 1000, "calories": 900, "sodium_mg": 1400, "sugar_g": 1,
      "carbs_g": 54.2, "protein_g": 79.3, "fat_g": 40.6},  # 공공 표준 삼계탕
     # --- 면 ---
-    {"name": "라면", "category": "면류", "serving_size_g": 550, "calories": 500, "sodium_mg": 1800, "sugar_g": 5,
-     "carbs_g": 73.1, "protein_g": 13.7, "fat_g": 17.0},  # 공공 표준 라면
+    {"name": "라면", "category": "면류", "serving_size_g": 550, "from_public": "라면"},  # 음식 라면 분석 17건
     {"name": "짜장면", "category": "면류", "serving_size_g": 650, "calories": 700, "sodium_mg": 2400, "sugar_g": 12,
      "carbs_g": 128.7, "protein_g": 24.0, "fat_g": 9.9},  # 공공 표준 짜장면
-    {"name": "짬뽕", "category": "면류", "serving_size_g": 700, "calories": 660, "sodium_mg": 4000, "sugar_g": 8,
-     "carbs_g": 98.7, "protein_g": 36.7, "fat_g": 13.2},  # 공공 표준 짬뽕
+    {"name": "짬뽕", "category": "면류", "serving_size_g": 700, "from_public": "짬뽕"},  # 음식 짬뽕 분석 7건
     {"name": "잔치국수", "category": "면류", "serving_size_g": 550, "calories": 480, "sodium_mg": 1900, "sugar_g": 6,
      "carbs_g": 88.7, "protein_g": 17.4, "fat_g": 6.2},  # 공공 표준 잔치국수
     {"name": "물냉면", "category": "면류", "serving_size_g": 600, "calories": 550, "sodium_mg": 2200, "sugar_g": 15,
@@ -82,20 +76,14 @@ FOOD_NUTRIENTS: list[dict] = [
     {"name": "양념갈비", "category": "구이류", "serving_size_g": 250, "calories": 550, "sodium_mg": 1200, "sugar_g": 16,
      "carbs_g": 17.1, "protein_g": 27.6, "fat_g": 41.2},  # 공공 표준 소갈비 구이
     # --- 튀김·외식 ---
-    {"name": "후라이드치킨", "category": "튀김류", "serving_size_g": 300, "calories": 800, "sodium_mg": 1200, "sugar_g": 2,
-     "carbs_g": 43.7, "protein_g": 70.3, "fat_g": 38.2},  # 공공 표준 닭튀김
+    {"name": "후라이드치킨", "category": "튀김류", "serving_size_g": 300, "from_public": "닭튀김"},  # 음식 `닭튀김` 분석 243건
     {"name": "양념치킨", "category": "튀김류", "serving_size_g": 300, "calories": 900, "sodium_mg": 1400, "sugar_g": 20,
      "carbs_g": 85.0, "protein_g": 79.9, "fat_g": 26.7},  # 공공 표준 닭강정
-    {"name": "돈까스", "category": "튀김류", "serving_size_g": 250, "calories": 730, "sodium_mg": 1000, "sugar_g": 8,
-     "carbs_g": 41.4, "protein_g": 35.9, "fat_g": 46.8},  # 공공 표준 돈가스
-    {"name": "감자튀김", "category": "튀김류", "serving_size_g": 130, "calories": 410, "sodium_mg": 350, "sugar_g": 1,
-     "carbs_g": 54.5, "protein_g": 4.5, "fat_g": 19.3},  # USDA FDC 170698 — 공공 표준 행은 표시 열량과 탄단지 합이 어긋난다
-    {"name": "피자", "category": "외식", "serving_size_g": 120, "calories": 280, "sodium_mg": 600, "sugar_g": 4,
-     "carbs_g": 28.9, "protein_g": 13.6, "fat_g": 12.2},  # 공공 표준 피자
-    {"name": "햄버거", "category": "외식", "serving_size_g": 250, "calories": 550, "sodium_mg": 1000, "sugar_g": 9,
-     "carbs_g": 47.0, "protein_g": 27.6, "fat_g": 28.0},  # 공공 표준 햄버거
-    {"name": "초밥", "category": "외식", "serving_size_g": 200, "calories": 480, "sodium_mg": 900, "sugar_g": 15,
-     "carbs_g": 86.9, "protein_g": 20.3, "fat_g": 5.7},  # 공공 표준 초밥
+    {"name": "돈까스", "category": "튀김류", "serving_size_g": 250, "from_public": "돈가스"},  # 음식 `돈가스` 분석 8건
+    {"name": "감자튀김", "category": "튀김류", "serving_size_g": 130, "from_public": "감자튀김"},  # 음식 감자튀김 분석 22건
+    {"name": "피자", "category": "외식", "serving_size_g": 120, "from_public": "피자"},  # 음식 피자 업체 표시 4706건
+    {"name": "햄버거", "category": "외식", "serving_size_g": 250, "from_public": "햄버거"},  # 음식 햄버거 분석 126건
+    {"name": "초밥", "category": "외식", "serving_size_g": 200, "from_public": "초밥"},  # 음식 초밥 분석 11건
     # --- 반찬·달걀 ---
     {"name": "김치", "category": "반찬", "serving_size_g": 50, "calories": 15, "sodium_mg": 300, "sugar_g": 1,
      "carbs_g": 2.5, "protein_g": 0.8, "fat_g": 0.2},  # 공공 표준 배추김치
@@ -110,14 +98,18 @@ FOOD_NUTRIENTS: list[dict] = [
      "carbs_g": 0.0, "protein_g": 0.4, "fat_g": 0.1},  # 값 그대로: USDA FDC 171890(드립 커피) × 350g
     {"name": "콜라", "category": "음료", "serving_size_g": 355, "calories": 150, "sodium_mg": 15, "sugar_g": 39,
      "carbs_g": 39.0, "protein_g": 0.0, "fat_g": 0.0},  # 값 그대로: 당류 39g 이 곧 탄수화물
+    # 가공식품 DB `맥주` 는 제로슈거·라이트 라거 표시값이 대부분이라(25kcal) 공공 집계로는
+    # 일반 맥주가 나오지 않는다. 같은 DB 의 분석값 네 건(46~65kcal/100g) 중 메도이드인
+    # `맥주`(53kcal)를 쓴다. 열량 대부분이 알코올이라 탄·단·지 합(4·4·9)과는 맞지 않는다.
+    # 1회 섭취량은 생맥주 한 잔(500ml, 밀도 1.0)이다.
+    {"name": "맥주", "category": "주류", "serving_size_g": 500, "calories": 265, "sodium_mg": 10, "sugar_g": 0,
+     "carbs_g": 14.5, "protein_g": 1.2, "fat_g": 0.1},  # 가공식품 `맥주` 분석값 × 500
     {"name": "우유", "category": "음료", "serving_size_g": 200, "calories": 130, "sodium_mg": 100, "sugar_g": 10,
      "carbs_g": 9.7, "protein_g": 6.6, "fat_g": 7.2},  # 공공 표준 우유(멸균) — `우유` 행은 탄수화물이 100g 당 11g 으로 가공우유가 섞였다
-    {"name": "사과", "category": "과일", "serving_size_g": 200, "calories": 100, "sodium_mg": 2, "sugar_g": 20,
-     "carbs_g": 23.3, "protein_g": 0.5, "fat_g": 0.6},  # 공공 표준 사과
+    {"name": "사과", "category": "과일", "serving_size_g": 200, "from_public": "사과"},  # 원재료성식품 사과 분석 8건
     {"name": "바나나", "category": "과일", "serving_size_g": 120, "calories": 105, "sodium_mg": 1, "sugar_g": 14,
      "carbs_g": 24.7, "protein_g": 1.2, "fat_g": 0.2},  # 공공 표준 바나나
-    {"name": "식빵", "category": "빵류", "serving_size_g": 70, "calories": 200, "sodium_mg": 380, "sugar_g": 4,
-     "carbs_g": 29.5, "protein_g": 4.9, "fat_g": 6.9},  # 공공 표준 식빵
+    {"name": "식빵", "category": "빵류", "serving_size_g": 70, "from_public": "식빵"},  # 음식 식빵 업체 표시 105건
     # --- PT 식단 (공공 표준에 없음 — USDA FoodData Central 실측값) ---
     # 물로 끓인 오트밀(FDC 173905, 71kcal/100g). 우유로 묽게 끓인 것(FNDDS 46~61)부터
     # 귀리 40g 에 우유 200ml(약 117)까지 조리법마다 갈리는데, 어느 쪽으로 틀려도 오차가

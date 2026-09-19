@@ -290,11 +290,15 @@ class DietPhoto(Base):
 
 
 class FoodNutrient(Base):
-    """공공 식품영양성분 DB(식약처/국가표준) 큐레이션 테이블.
+    """공공 식품영양성분 DB(식약처/국가표준) 참조표.
 
-    Vision 인식이 준 '음식 이름'을 이 표에 매핑해 신뢰 가능한 1인분 영양가로 교체한다.
-    (LLM 은 '무엇인지' 식별에 강하고, 정확한 영양 수치는 이 공공 DB 가 제공.)
-    수치는 1회 제공량(serving_size_g) 기준. name_norm 은 매칭용 정규화 이름.
+    Vision 인식이 준 '음식 이름'을 이 표에 매핑해 **100g 당 값 × 사진에서 읽은 양**으로
+    영양을 다시 적는다(`services/nutrition/enrich`). LLM 은 '무엇인지' 식별에 강하고,
+    정확한 영양 수치는 이 공공 DB 가 댄다. 수치는 100g 기준이고, `serving_size_g` 는
+    양을 모를 때 쓰는 1회 섭취량이다. name_norm 은 매칭용 정규화 이름.
+
+    시드 데이터가 바뀌면 기동 때 통째로 다시 맞춘다(`init_db._seed_food_nutrients`).
+    다른 표가 이 표를 참조하지 않으므로 행 id 는 유지되지 않는다.
     """
 
     __tablename__ = "food_nutrients"
@@ -306,9 +310,9 @@ class FoodNutrient(Base):
         String(30), default=""
     )  # 밥류|국·찌개류|구이류...
     serving_size_g: Mapped[float | None] = mapped_column(Float, nullable=True)
-    calories: Mapped[float] = mapped_column(Float, default=0)  # kcal / 1인분
-    sodium_mg: Mapped[float] = mapped_column(Float, default=0)  # mg  / 1인분
-    sugar_g: Mapped[float] = mapped_column(Float, default=0)  # g   / 1인분
+    calories: Mapped[float] = mapped_column(Float, default=0)  # kcal / 100g
+    sodium_mg: Mapped[float] = mapped_column(Float, default=0)  # mg  / 100g
+    sugar_g: Mapped[float] = mapped_column(Float, default=0)  # g   / 100g
     carbs_g: Mapped[float | None] = mapped_column(Float, nullable=True)
     protein_g: Mapped[float | None] = mapped_column(Float, nullable=True)
     fat_g: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -316,6 +320,23 @@ class FoodNutrient(Base):
         String(20), default="mfds"
     )  # 데이터 출처(식약처=mfds)
 
+
+
+class ReferenceDataVersion(Base):
+    """참조표마다 지금 들어 있는 시드 데이터의 지문. (#2100)
+
+    참조표(`food_nutrients` 등)는 표가 비었을 때만 시드하면, 시드 데이터를 고쳐도
+    이미 떠 있는 DB 에 닿지 않는다. 시드 데이터로 만든 지문을 여기 적어 두고, 기동 때
+    다르면 그 표를 새 시드로 통째로 바꾼다.
+    """
+
+    __tablename__ = "reference_data_versions"
+
+    name: Mapped[str] = mapped_column(String(50), primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 class ExerciseCatalogItem(Base):
     """운동 종목 참조표 — 이름을 소모 칼로리로 바꾸는 유일한 근거. (#1312)
