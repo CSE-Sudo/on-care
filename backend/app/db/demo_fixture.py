@@ -31,6 +31,8 @@ _DAY_LABELS = ("월", "화", "수", "목", "금", "토", "일")
 @dataclass(frozen=True)
 class FixtureFood:
     name: str
+    #: 먹은 양(g) — 아래 영양이 무엇을 재고 나온 값인가(#1876). 데모 음식은 모두 안다(#2090).
+    amount_g: float
     calories: int
     sodium_mg: int
     sugar_g: float
@@ -42,6 +44,7 @@ class FixtureFood:
         """화면·저장소가 읽는 키 이름 그대로. 세 곳이 같은 키를 쓴다."""
         return {
             "name": self.name,
+            "amount_g": self.amount_g,
             "calories": self.calories,
             "sodium_mg": self.sodium_mg,
             "sugar_g": self.sugar_g,
@@ -211,6 +214,7 @@ class DemoFixture:
         self._foods = {
             key: FixtureFood(
                 name=value["name"],
+                amount_g=float(value["amountG"]),
                 calories=value["calories"],
                 sodium_mg=value["sodiumMg"],
                 sugar_g=value["sugarG"],

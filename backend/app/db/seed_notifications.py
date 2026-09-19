@@ -39,7 +39,7 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     DemoNotification(
         "noti-demo-1",
         "나트륨 섭취 주의",
-        "점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.",
+        "점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.",
         "reminder",
         timedelta(minutes=10),
     ),

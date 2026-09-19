@@ -966,16 +966,16 @@ void main() {
 
     // 기본은 칼로리 — 나트륨 하나만 보여 주던 자리를 세 지표가 나눠 쓴다.
     expect(find.text('칼로리 추이'), findsOneWidget);
-    expect(drawnValues(), expected(client.caloriesWeek, 2380));
+    expect(drawnValues(), expected(client.caloriesWeek, 3231));
 
     await pickMetric('sodium');
     expect(find.text('나트륨 추이'), findsOneWidget);
-    expect(drawnValues(), expected(client.sodiumWeek, 2261));
+    expect(drawnValues(), expected(client.sodiumWeek, 1338));
 
     await pickMetric('sugar');
     expect(find.text('당류 추이'), findsOneWidget);
     // 당류는 소수를 유지한다 — 17.8 이 18 로 뭉개지면 요약 수치와 어긋난다.
-    expect(drawnValues(), expected(client.sugarWeek, 63.0));
+    expect(drawnValues(), expected(client.sugarWeek, 64.2));
     expect(client.sugarWeek.any((v) => v != v.roundToDouble()), isTrue);
   });
 

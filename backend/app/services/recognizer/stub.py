@@ -20,15 +20,15 @@ class StubFoodRecognizer(FoodRecognizer):
     async def recognize(self, image_bytes: bytes, mime_type: str) -> DietAnalysis:  # noqa: ARG002
         foods = [
             RecognizedFood(
-                name="요거트 아이스크림", calories=135, sodium_mg=55, sugar_g=14.5,
+                name="요거트 아이스크림", amount_g=110, calories=135, sodium_mg=55, sugar_g=14.5,
                 carbs_g=26.0, protein_g=3.0, fat_g=2.0, confidence=0.9,
             ),
             RecognizedFood(
-                name="과일 토핑", calories=55, sodium_mg=5, sugar_g=9.0,
+                name="과일 토핑", amount_g=90, calories=55, sodium_mg=5, sugar_g=9.0,
                 carbs_g=13.0, protein_g=1.0, fat_g=0.5, confidence=0.85,
             ),
             RecognizedFood(
-                name="그래놀라 토핑", calories=205, sodium_mg=125, sugar_g=6.0,
+                name="그래놀라 토핑", amount_g=50, calories=205, sodium_mg=125, sugar_g=6.0,
                 carbs_g=20.0, protein_g=5.0, fat_g=11.5, confidence=0.8,
             ),
         ]

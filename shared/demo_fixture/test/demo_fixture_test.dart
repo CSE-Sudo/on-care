@@ -27,13 +27,13 @@ void main() {
     final FixtureDay today = days.last;
     final FixtureDay yesterday = days[days.length - 2];
 
-    expect(today.calories, 1067);
-    expect(today.sodiumMg, 3428);
-    expect(today.sugarG, 17.8);
+    expect(today.calories, 1054);
+    expect(today.sodiumMg, 4657);
+    expect(today.sugarG, 16.7);
 
-    expect(yesterday.calories, 2380);
-    expect(yesterday.sodiumMg, 2261);
-    expect(yesterday.sugarG, 63.0);
+    expect(yesterday.calories, 3231);
+    expect(yesterday.sodiumMg, 1338);
+    expect(yesterday.sugarG, 64.2);
   });
 
   test('아직 오지 않은 날은 없다', () {
@@ -88,6 +88,19 @@ void main() {
         }
         expect(meal.calories, calories, reason: '${day.date} ${meal.slug}');
         expect(meal.sodiumMg, sodium, reason: '${day.date} ${meal.slug}');
+      }
+    }
+  });
+
+  // 내용량은 나머지 영양이 무엇을 재고 나온 값인가다(#1876). 비어 있으면 화면은
+  // 아무것도 적지 않아(0g 은 안 먹었다로 읽힌다) 데모에서 양이 보이지 않는다(#2090).
+  test('모든 음식에 내용량이 있고, 저장소에 옮기는 글자에도 실린다', () {
+    for (final FixtureDay day in fixture.daysFor(DateTime(2026, 8, 16))) {
+      for (final FixtureMeal meal in day.meals) {
+        for (final FixtureFood food in meal.foods) {
+          expect(food.amountG, greaterThan(0), reason: food.name);
+          expect(food.toJson()['amount_g'], food.amountG, reason: food.name);
+        }
       }
     }
   });

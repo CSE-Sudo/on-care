@@ -931,6 +931,8 @@ class LocalApiInterceptor extends Interceptor {
     final foods = <Map<String, Object?>>[
       <String, Object?>{
         'name': '요거트 아이스크림',
+        // 양은 공공 DB 시드의 1회 섭취량이다 — 실서버 스텁과 같은 값(#2090).
+        'amount_g': 110,
         'calories': 135,
         'sodium_mg': 55,
         'sugar_g': 14.5,
@@ -941,6 +943,7 @@ class LocalApiInterceptor extends Interceptor {
       },
       <String, Object?>{
         'name': '과일 토핑',
+        'amount_g': 90,
         'calories': 55,
         'sodium_mg': 5,
         'sugar_g': 9.0,
@@ -951,6 +954,7 @@ class LocalApiInterceptor extends Interceptor {
       },
       <String, Object?>{
         'name': '그래놀라 토핑',
+        'amount_g': 50,
         'calories': 205,
         'sodium_mg': 125,
         'sugar_g': 6.0,

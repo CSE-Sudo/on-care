@@ -110,9 +110,9 @@ _WEEKDAY_SUGAR = (41.5, 28.0, 45.5, 33.0, 38.5, 22.0, 30.0)
 #: 요일이 아니라 **어제**에 못 박는다 — 요일에 못 박으면 데모를 여는 날에 따라
 #: 넘긴 날이 이번 주 밖으로 밀려난다. 두 Flutter 앱의 데모 시드가 같은 합계를
 #: 쓴다(트레이너 `seed_data.dart` 의 `_feast*`, 사용자 앱의 어제 큐레이션).
-_FEAST_KCAL = 2380
-_FEAST_SODIUM_MG = 2261
-_FEAST_SUGAR_G = 63.0
+_FEAST_KCAL = 3231
+_FEAST_SODIUM_MG = 1338
+_FEAST_SUGAR_G = 64.2
 
 _SODIUM_WEEK: dict[str, list[int]] = {
     "user-jisu": [1700, 1950, 1600, 1800, 2100, 1750, 1800],
