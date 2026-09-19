@@ -167,7 +167,7 @@ void main() {
     expect(find.byKey(const Key('mealDetailPage')), findsNothing);
     expect(find.byKey(const Key('diet-result-nutrition')), findsOneWidget);
 
-    // `인식된 음식` 자리에 음식별 수정 칸이 선다. 인식한 두 음식이 그대로다.
+    // `인식된 음식` 대신 음식별 수정 칸이 선다. 인식한 두 음식이 그대로다.
     expect(find.byKey(const Key('diet-result-foods-editor')), findsOneWidget);
     expect(find.byKey(const Key('diet-result-recognized')), findsNothing);
     final TextField name = tester.widget<TextField>(
@@ -188,6 +188,24 @@ void main() {
       findsNWidgets(5),
     );
     expect(find.byKey(const Key('diet-result-edit')), findsNothing);
+
+    // 식단 상세의 수정 모드와 같은 순서다 — 기록 날짜·끼니가 위, 먹은 음식이
+    // 그 아래, 영양 결과가 맨 아래.
+    final double dateTop = tester
+        .getTopLeft(find.byKey(const Key('diet-result-date')))
+        .dy;
+    final double mealTop = tester
+        .getTopLeft(find.byKey(const Key('diet-result-meal')))
+        .dy;
+    final double foodsTop = tester
+        .getTopLeft(find.byKey(const Key('diet-result-foods-editor')))
+        .dy;
+    final double nutritionTop = tester
+        .getTopLeft(find.byKey(const Key('diet-result-nutrition')))
+        .dy;
+    expect(dateTop, lessThan(mealTop));
+    expect(mealTop, lessThan(foodsTop));
+    expect(foodsTop, lessThan(nutritionTop));
   });
 
   testWidgets('합계는 고치는 음식을 곧바로 따라온다', (WidgetTester tester) async {
