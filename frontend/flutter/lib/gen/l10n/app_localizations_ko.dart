@@ -1099,7 +1099,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myPointsBalance(int points) {
-    return '보유 ${points}P';
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return '보유 ${pointsString}P';
   }
 
   @override

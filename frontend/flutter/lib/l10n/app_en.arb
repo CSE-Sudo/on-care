@@ -660,9 +660,11 @@
   "myPointsBenefitsTitle": "Use Points",
   "myPointsBalance": "Balance: {points}P",
   "@myPointsBalance": {
+    "description": "The balance shown on the rewards screen, with thousands separators, e.g. 25,000P.",
     "placeholders": {
       "points": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       }
     }
   },

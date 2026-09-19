@@ -420,7 +420,8 @@
   "@myPointsBalance": {
     "placeholders": {
       "points": {
-        "type": "int"
+        "type": "int",
+        "format": "decimalPattern"
       }
     }
   },

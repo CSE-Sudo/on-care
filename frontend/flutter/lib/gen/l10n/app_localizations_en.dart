@@ -1135,7 +1135,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myPointsBalance(int points) {
-    return 'Balance: ${points}P';
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return 'Balance: ${pointsString}P';
   }
 
   @override

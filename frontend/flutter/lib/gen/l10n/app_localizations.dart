@@ -2084,7 +2084,7 @@ abstract class AppLocalizations {
   /// **'Use Points'**
   String get myPointsBenefitsTitle;
 
-  /// No description provided for @myPointsBalance.
+  /// The balance shown on the rewards screen, with thousands separators, e.g. 25,000P.
   ///
   /// In en, this message translates to:
   /// **'Balance: {points}P'**
