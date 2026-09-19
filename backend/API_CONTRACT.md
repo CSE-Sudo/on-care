@@ -112,7 +112,7 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` |
+| GET | `/exercise/weeks/current` | 질의 `?week_start=YYYY-MM-DD`(생략 시 이번 주) → `{ sessions[], daily_minutes[7], daily_calories[7], cardio_minutes[7], strength_minutes[7], stretching_minutes[7], day_labels[7], total_minutes, total_calories, streak_days, ai_coach_message }` — `streak_days` 는 **운동만** 센다(식단도 세는 기록 연속은 아래 "연속 기록 보호권" 절) |
 | POST | `/exercise/sessions` | 입력 `{ type, minutes(>0), calories, intensity(light\|moderate\|high), day_label? }` → 생성된 `sessions[]` 항목 + `points` |
 | PUT | `/exercise/sessions/{id}` | 입력 동일(부분 갱신) → 갱신된 항목(`points` 없음) |
 | DELETE | `/exercise/sessions/{id}` | `{ status: "deleted" }` — 그 기록으로 받은 포인트를 회수한다 |
@@ -170,10 +170,11 @@
 |---|---|---|---|---|
 | `pt_renewal` | PT 재등록 3만원 할인(30,000원) | 21000 | 30일 | 활성 담당 필요, 사용 가능한 쿠폰은 회원당 1장 |
 | `locker_month` | 개인 락커 1개월 무료 | 7000 | 30일 | 연결한 헬스장(`GET /me/gym`) 필요, 사용 가능한 쿠폰은 회원당 1장, 교환은 KST 달마다 1회 |
+| `streak_shield` | 연속 기록 보호권(#1788, 쿠폰 아님) | 300 | 없음(0) | 쓰지 않은 보호권 최대 4개, 회원이 포인트 화면에서 사용 |
 
 사용 가능한(`issued`, 기한 전) 쿠폰은 **종류마다** 회원당 1장이다 — `(user_id, item) WHERE status='issued'`
 partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으로 막히고, 교환하면 409 다. 사용·만료·취소되면
-다시 교환할 수 있다.
+다시 교환할 수 있다. 연속 기록 보호권은 쿠폰 표에 들지 않고 보유 한도(4개)를 따로 센다.
 
 `locker_month` 는 **KST 달력 한 달에 한 번**만 교환한다. 그 달(1일 0시~다음 달 1일 0시, KST)에 교환한 쿠폰이
 사용 가능·사용·만료 상태로 있으면 `monthly_limit` 으로 막히고 교환하면 409 다. 헬스장 해제로 취소돼 포인트를
@@ -181,8 +182,9 @@ partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으�
 
 `items[]`: `{ id, title, benefit, description, cost, valid_days, requires_trainer, requires_gym,
 available, blocked_reason, shortfall }`. `blocked_reason` 은 `no_trainer` → `no_gym` → `active_coupon` →
-`monthly_limit` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란 포인트(모자라지
-않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다.
+`shield_limit` → `monthly_limit` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
+포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
+보호권이면 `coupon: null` 과 `shield` 다(아래 "연속 기록 보호권" 절).
 
 `coupon`: `{ id, item, title, benefit, cost, status, trainer_name, gym_name, issued_at, issued_on,
 expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당
@@ -210,6 +212,39 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
   쿠폰은 그대로다. 기한이 지난 쿠폰은 두 해제 모두 돌려주지 않고 만료로 내리며, 다시 불러도 두 번 돌려주지 않는다.
 - **알림** 연결 해제로 인한 취소(`재등록 쿠폰이 취소됐어요`·`락커 쿠폰이 취소됐어요`)·만료 임박 알림의 `category` 는
   `benefits`, `action` 은 `{ label: "내 혜택 보기", target: "my_benefits" }`. 수신 설정 스위치는 없다.
+
+### 연속 기록 보호권 (#1788)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| POST | `/me/points/exchange` | 회원 | 입력 `{ item: "streak_shield", client_request_id? }` → **201** `{ coupon: null, shield, spent, balance }` |
+| GET | `/me/streak-shields` | 회원(데모 폴백) | `{ held, max_held, cost, used[], record_streak_days, protectable_date? }` |
+| POST | `/me/streak-shields/use` | 회원 | 입력 `{ date: "YYYY-MM-DD" }` → 같은 모양(사용 뒤) |
+
+`shield`: `{ id, cost, status(held|used), acquired_at, protected_on?, used_at? }`. `used[]`: `{ date, used_at }` — 보호한 날,
+최근 먼저(최대 100).
+
+**보호권이 지키는 것은 기록 연속이다.** 기록 연속(`record_streak_days`)은 **식단 한 끼든 운동 한 건이든** 남긴 날이 이어진
+길이로, 오늘부터 거슬러 세고(오늘이 비었으면 어제부터) 보호한 날도 기록한 날로 본다. 주 단위가 아니라 날짜를 거슬러 이어진다.
+운동 주간 응답의 `streak_days`(운동만, 그 주 안)와는 **다른 값**이고, 운동 주간 응답에는 보호권이 실리지 않는다.
+
+- **교환** 사용처 항목 `streak_shield`, 300P, 기한 없음(`valid_days: 0`), 회원이 쓴다. 쓰지 않은 보호권은 **최대 4개**다 —
+  가득 차면 사용처 항목의 `blocked_reason` 이 `shield_limit`(잔액 부족보다 먼저), 교환은 409. 잔액 행을 잠근 채 보유 수와
+  잔액을 보고 `spend`(source `streak_shield`)를 남긴다. 같은 `client_request_id` 재전송은 처음 보호권을 돌려준다.
+- **사용** 회원이 직접 한다. 보호할 수 있는 날은 **어제(KST)** 하나다. 오늘·그보다 오래된 날·미래는 409. 그날 기록(식단 한 건
+  또는 운동 분 > 0)이 있으면 409, 보호권이 없으면 409. 요일은 보지 않는다 — 기록 연속이 주 단위가 아니라 월요일에도 어제
+  (일요일)를 보호한다. 가장 먼저 교환한 보호권부터 쓴다. 하루에 보호는 한 번이며(회원·날짜 partial unique), 이미 보호한 날을
+  다시 보내면 보호권을 더 쓰지 않고 200 이다. 날짜 형식이 깨지면 422.
+- **`protectable_date`** 지금 보호할 수 있는 날(어제). 위 사용 규칙을 모두 통과하고 보호권이 있을 때만 값이 있다. 앱은 이 값이
+  있을 때만 `보호권 쓰기` 를 띄운다 — 그 자리는 포인트 화면 기록 잔디밭(#2075)이고, 운동 탭에는 두지 않는다.
+- **집계** 보호한 날은 `record_streak_days` 에만 들어간다. 운동 주간 응답의 `streak_days`·`daily_minutes`·`daily_calories`·
+  `total_*`·`sessions[]` 는 보호와 상관없이 실제 운동 기록만으로 만든다.
+- **기록이 생기면 보호권 되돌리기** 보호한 날에 기록이 생기면(식단 `POST /diet/analyze`·`PUT /diet/entries/{id}` 로 그날로 옮김,
+  운동 `POST /exercise/sessions`·`PUT /exercise/sessions/{id}`, `POST /me/coach/routines/{id}/complete`(AI 추천·트레이너 배정),
+  트레이너 PT 완료 `POST /trainer/schedule/{id}/complete`) 같은 트랜잭션에서 보호를 풀고 그 보호권을 `held` 로 돌린다. 포인트는
+  오가지 않는다. 멱등이며, 되돌린 뒤 그 기록을 지워도 보호는 다시 걸리지 않는다. 최대 보유 수는 **교환**의 규칙이라 되돌리기는
+  보지 않는다 — 이미 4개를 가진 회원은 5개가 될 수 있고(`held` > `max_held`), 그동안 사용처 항목은 `shield_limit` 으로 막힌다.
+- 트레이너 화면은 기록 연속도 보호한 날도 보지 않는다 — 트레이너가 보는 연속 일수는 회원 앱 운동 탭과 같은 **운동만** 센다.
 
 ### 주간 운동 챌린지 (#1789)
 

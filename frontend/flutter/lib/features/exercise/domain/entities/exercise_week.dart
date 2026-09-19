@@ -7,11 +7,15 @@ import 'package:oncare/core/points/points_award.dart';
 /// 없는 분(오늘 체크한 AI 추천 운동)이 더해진 뒤에도 같은 규칙으로 다시 셀 수
 /// 있다. 세 생산자(mock 저장소·LocalApiInterceptor·FastAPI)가 이 정의를 공유해
 /// 운동 탭의 '연속' 카드가 어느 경로에서든 같은 뜻이 된다.
+///
+/// **운동만 센다.** 식단도 세는 기록 연속(연속 기록 보호권이 지키는 값)과는 다른
+/// 값이고, 보호권으로 이어 붙인 날도 여기에는 들어가지 않는다 — 운동 탭의 이
+/// 숫자는 운동한 날만 말한다(#1788).
 int longestActiveStreak(List<double> dailyMinutes) {
   int best = 0;
   int run = 0;
-  for (final double m in dailyMinutes) {
-    if (m > 0) {
+  for (int i = 0; i < dailyMinutes.length; i++) {
+    if (dailyMinutes[i] > 0) {
       run += 1;
       if (run > best) best = run;
     } else {

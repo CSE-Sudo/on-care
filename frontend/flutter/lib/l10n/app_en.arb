@@ -398,6 +398,7 @@
     "placeholders": { "days": { "type": "int" } }
   },
   "exStreakStart": "Start a streak with today's workout.",
+  "exStreakProtected": "Kept by a shield",
   "exToday": "Today",
   "exLoadError": "Couldn't load your exercise data.",
   "exCompletedPtTitle": "Today's completed PT",
@@ -695,6 +696,32 @@
   "myPointsNeedGym": "Requires a connected gym",
   "myPointsActiveCoupon": "You already have an unused coupon",
   "myPointsMonthlyLimit": "You already redeemed this month",
+  "myPointsShieldLimit": "You can hold up to 4 shields",
+  "myShopStreakShieldTitle": "Streak shield",
+  "myShopStreakShieldDescription": "Keep your streak going when you logged nothing yesterday. Hold up to 4.",
+  "myBenefitsStreakShields": "Streak shields",
+  "myBenefitsShieldHeld": "{held}/{max} held",
+  "@myBenefitsShieldHeld": {
+    "placeholders": {
+      "held": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "myBenefitsShieldHeldCount": "{held} held",
+  "@myBenefitsShieldHeldCount": {
+    "placeholders": {
+      "held": {
+        "type": "int"
+      }
+    }
+  },
+  "myBenefitsShieldGuide": "Use one the day after a day with nothing logged.",
+  "myBenefitsShieldUsedTitle": "Protected days",
+  "myBenefitsShieldNoneUsed": "No protected days yet",
   "myPointsValidDays": "Valid for {days} days after redeeming",
   "@myPointsValidDays": {
     "placeholders": {

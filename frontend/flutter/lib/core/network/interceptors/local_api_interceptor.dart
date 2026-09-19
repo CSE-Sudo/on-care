@@ -22,6 +22,7 @@ import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
@@ -53,10 +54,19 @@ class LocalApiInterceptor extends Interceptor {
     this.isRealApi,
     DemoPointsLedger? points,
     DemoCouponBook? coupons,
+    DemoStreakShieldBook? shields,
     DemoWeeklyChallenge? challenges,
   }) : _points = points ?? DemoPointsLedger(),
        _couponsArg = coupons,
+       _shieldsArg = shields,
        _challengesArg = challenges;
+
+  /// 연속 기록 보호권(#1788). 앱에서는 목업 운동 저장소와 같은 인스턴스를 받아
+  /// 사용처에서 교환한 보호권이 운동 현황의 연속 일수로 이어진다. 주지 않으면
+  /// 쿠폰 원장이 쓰는 것, 그것도 없으면 이 인터셉터의 원장으로 만든다.
+  final DemoStreakShieldBook? _shieldsArg;
+  late final DemoStreakShieldBook _shields =
+      _shieldsArg ?? _couponsArg?.shields ?? DemoStreakShieldBook(ledger: _points);
 
   final AppDatabase _db;
   final Logger _logger;
@@ -69,7 +79,7 @@ class LocalApiInterceptor extends Interceptor {
   /// 헬스장·트레이너 해제가 쿠폰 취소로 이어진다. 주지 않으면 이 인터셉터의 원장으로 만든다.
   final DemoCouponBook? _couponsArg;
   late final DemoCouponBook _coupons =
-      _couponsArg ?? DemoCouponBook(ledger: _points);
+      _couponsArg ?? DemoCouponBook(ledger: _points, shields: _shields);
 
   /// 주간 운동 챌린지(#1789). 앱에서는 목업 운동 저장소가 운동한 날을 붙이는
   /// 인스턴스를 받는다. 주지 않으면 이 인터셉터의 원장으로 만들고, 운동한 날은
@@ -125,6 +135,9 @@ class LocalApiInterceptor extends Interceptor {
     'GET /me/points/shop': _pointsShop,
     'POST /me/points/exchange': _pointsExchange,
     'GET /me/coupons': _meCoupons,
+    // 연속 기록 보호권 — 교환은 위 exchange 가 받는다(#1788).
+    'GET /me/streak-shields': _streakShields,
+    'POST /me/streak-shields/use': _streakShieldUse,
     // 주간 운동 챌린지 — 서버와 같은 규칙의 목업(#1789).
     'GET /me/challenges/weekly': _challengeWeekly,
     'POST /me/challenges/weekly/join': _challengeJoin,
@@ -222,6 +235,8 @@ class LocalApiInterceptor extends Interceptor {
             idempotencyKey: Value(idempotencyKey),
           ),
         );
+    // 식단 한 끼도 기록이다 — 보호한 날이면 보호권을 돌려준다(#1788).
+    _refundShieldOnDate(_todayDateString());
   }
 
   Future<Response<Object?>?> _safeHandle(RequestOptions options) async {
@@ -377,6 +392,8 @@ class LocalApiInterceptor extends Interceptor {
         weight: Value(weight),
       ),
     );
+    // 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
     return _ok(
       options,
       _sessionJson(
@@ -492,6 +509,8 @@ class LocalApiInterceptor extends Interceptor {
     final row = await (_db.select(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).getSingle();
+    // 옮겨 간 날이 보호한 날이면 보호권을 돌려준다(#1788).
+    _refundShieldOnDate(row.date);
     final foods = jsonDecode(row.foodsJson) as List<Object?>;
     final macros = _foodMacroTotals(foods);
     return _ok(options, <String, Object?>{
@@ -1399,6 +1418,8 @@ class LocalApiInterceptor extends Interceptor {
       for (final l in _weekdayLabels) perDayOther[l] ?? 0,
     ];
 
+    // 운동 탭의 연속은 운동만 센다 — 보호권은 기록 연속(식단·운동)을 지키고
+    // 포인트 화면에서 쓴다(#1788, #2075).
     final streak = _longestActiveStreak(dailyMinutes);
 
     return _ok(options, <String, Object?>{
@@ -1429,12 +1450,13 @@ class LocalApiInterceptor extends Interceptor {
   /// 합계가 아니다(월·수·금 운동은 3일이 아니라 1일 연속). FastAPI
   /// `exercise_service._longest_streak`, 그리고 클라이언트의
   /// `longestActiveStreak` 와 같은 정의라야 '연속' 카드가 어느 경로에서든
-  /// 같은 값을 보인다.
+  /// 같은 값을 보인다. 보호권으로 이어 붙인 날([protectedDays])도 운동한 날로
+  /// 센다(#1788).
   int _longestActiveStreak(List<num> dailyMinutes) {
     int best = 0;
     int run = 0;
-    for (final num m in dailyMinutes) {
-      if (m > 0) {
+    for (int i = 0; i < dailyMinutes.length; i++) {
+      if (dailyMinutes[i] > 0) {
         run += 1;
         if (run > best) best = run;
       } else {
@@ -1698,6 +1720,8 @@ class LocalApiInterceptor extends Interceptor {
             weight: Value(weight),
           ),
         );
+    // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
 
     return _ok(options, <String, Object?>{
       ..._sessionJson(
@@ -2701,6 +2725,77 @@ class LocalApiInterceptor extends Interceptor {
     statusCode: result.statusCode,
     data: result.body,
   );
+
+  // ---- 연속 기록 보호권 (#1788) ----
+  //
+  // 규칙은 [DemoStreakShieldBook] 이 서버와 같게 들고 있다. 보호권이 지키는 것은
+  // **기록 연속**이라, 그날 식단이나 운동 기록이 있는지를 이 인터셉터의 drift 로
+  // 본다. 409 도 실서버처럼 상태코드로 돌려준다.
+
+  Future<Response<Object?>> _streakShields(RequestOptions options) async {
+    final Set<String> recorded = await _recordedDates();
+    return _ok(
+      options,
+      _shields.statusJson(
+        hasRecordOn: (DateTime day) => recorded.contains(_dateString(day)),
+      ),
+    );
+  }
+
+  /// 식단이나 운동 기록이 있는 날짜(YYYY-MM-DD) 전부.
+  ///
+  /// 기록 연속은 주 단위가 아니라 날짜를 거슬러 이어지므로 주별 집계로는 셀 수
+  /// 없다. 데모 DB 는 한 회원의 기록뿐이라 통째로 읽어도 가볍다.
+  Future<Set<String>> _recordedDates() async {
+    final Set<String> days = <String>{};
+    for (final row in await _db.select(_db.dietEntries).get()) {
+      days.add(row.date);
+    }
+    for (final row in await _db.select(_db.exerciseSessions).get()) {
+      if (row.minutes <= 0) continue;
+      final int index = _weekdayLabels.indexOf(row.dayLabel);
+      if (index < 0) continue;
+      final DateTime monday = DateTime.parse(row.weekStart);
+      days.add(
+        _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+      );
+    }
+    return days;
+  }
+
+  /// (주 시작, 요일) 자리에 기록이 생겼다 — 그날 쓴 보호권을 되돌린다.
+  /// 서버처럼 기록을 추가·수정하는 경로가 저장 뒤에 부른다.
+  void _refundShieldOn(String weekStart, String dayLabel) {
+    final int index = _weekdayLabels.indexOf(dayLabel);
+    if (index < 0) return;
+    final DateTime monday = DateTime.parse(weekStart);
+    _refundShieldOnDate(
+      _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+    );
+  }
+
+  /// `YYYY-MM-DD` 자리에 기록이 생겼다 — 식단 저장·수정이 부른다.
+  void _refundShieldOnDate(String ymd) {
+    if (!_isDateString(ymd)) return;
+    _shields.refundFor(DateTime.parse(ymd));
+  }
+
+  Future<Response<Object?>> _streakShieldUse(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final Object? raw = body['date'];
+    if (raw is! String || !_isDateString(raw)) {
+      return _unprocessable(options, 'date must be YYYY-MM-DD');
+    }
+    final DateTime day = DateTime.parse(raw);
+    final Set<String> recorded = await _recordedDates();
+    return _couponResponse(
+      options,
+      _shields.use(
+        day,
+        hasRecordOn: (DateTime d) => recorded.contains(_dateString(d)),
+      ),
+    );
+  }
 
   // ---- 주간 운동 챌린지 (#1789) ----
   //

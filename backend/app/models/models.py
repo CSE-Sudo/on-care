@@ -278,6 +278,66 @@ class PointsCoupon(Base):
     )
 
 
+class StreakShield(Base):
+    """연속 기록 보호권 한 장. (#1788)
+
+    포인트 사용처에서 300P 로 교환하면 `held` 로 생기고, 회원이 운동을 못 한 어제를
+    연속 기록에 이어 붙이면 `used` 가 되며 그 날짜(`protected_on`, KST)를 남긴다.
+
+    - 사용하지 않은 보호권은 회원당 최대 2장이다. 교환이 잔액 행을 잠근 채 세므로
+      같은 회원의 교환이 겹쳐도 넘지 않는다(`streak_shield_service.exchange`).
+    - 한 날짜는 한 번만 보호한다(partial unique index). 같은 날을 다시 보호하려는
+      재시도가 보호권을 두 장 쓰지 않게 하는 마지막 방어선이다.
+    - 보호한 날은 **연속 일수에만** 운동한 날로 센다. 운동 시간·칼로리·횟수 합계에는
+      넣지 않는다 — 그래서 운동 기록 표에 행을 만들지 않고 날짜만 따로 둔다.
+    - 기한은 없다. 교환에 쓴 포인트는 내역에 `spend`(source `streak_shield`)로 남는다.
+    """
+
+    __tablename__ = "streak_shields"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    cost: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(8), default="held", server_default="held"
+    )  # held|used
+    #: 교환 시도 단위 멱등키. 응답을 못 받고 다시 누른 교환이 두 장을 만들지 않는다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 보호한 날(KST, YYYY-MM-DD). 아직 쓰지 않았으면 NULL.
+    protected_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('held', 'used')", name="ck_streak_shields_status"
+        ),
+        # 쓴 보호권만 날짜·시각을 가진다. 반쪽 상태(날짜 없는 사용)를 막는다.
+        CheckConstraint(
+            "(status = 'held' AND protected_on IS NULL AND used_at IS NULL) "
+            "OR (status = 'used' AND protected_on IS NOT NULL AND used_at IS NOT NULL)",
+            name="ck_streak_shields_use",
+        ),
+        CheckConstraint("cost > 0", name="ck_streak_shields_cost"),
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_streak_shields_client_request"
+        ),
+        Index("ix_streak_shields_user_status", "user_id", "status"),
+        # 하루에 보호는 한 번 — 회원·날짜마다 쓴 보호권은 최대 한 장.
+        Index(
+            "uq_streak_shields_protected_on",
+            "user_id",
+            "protected_on",
+            unique=True,
+            postgresql_where=text("protected_on IS NOT NULL"),
+        ),
+    )
+
+
 class DietEntry(Base):
     """식단 기록 — drift DietEntries 대응. 나트륨·당류 포함."""
 

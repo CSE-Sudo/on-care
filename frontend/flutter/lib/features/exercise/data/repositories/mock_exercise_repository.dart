@@ -1,6 +1,7 @@
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
@@ -26,14 +27,19 @@ class MockExerciseRepository implements ExerciseRepository {
   /// date-relative fixture stays deterministic. [fixture] defaults to the
   /// bundled 김민수 픽스처. [points] 를 주면 직접 추가한 운동이 포인트를 받고
   /// 지우면 회수된다(#1786) — 없으면 적립 없이 기록만 남는다(테스트·단독 사용).
+  ///
+  /// [shields] 를 주면 보호한 날에 기록이 생겼을 때 보호권을 되돌린다(#1788) —
+  /// 사용처 목업 API 와 같은 원장이다. 연속 일수는 보호권과 상관없이 운동만 센다.
   MockExerciseRepository({
     DateTime? today,
     DemoFixture? fixture,
     DemoPointsLedger? points,
+    DemoStreakShieldBook? shields,
   }) : _today = _dateOnly(today ?? nowKst()),
        _todayIdx = (today ?? nowKst()).weekday - 1,
        _fixture = fixture ?? DemoFixture.load(),
-       _points = points {
+       _points = points,
+       _shields = shields {
     _sessions.addAll(_sessionsForWeek(0));
     _totalCalories = _sessions.fold<int>(
       0,
@@ -50,6 +56,9 @@ class MockExerciseRepository implements ExerciseRepository {
   final DemoFixture _fixture;
 
   final DemoPointsLedger? _points;
+
+  /// 연속 기록 보호권 원장(#1788). 없으면 보호한 날도 보호권 상태도 없다.
+  final DemoStreakShieldBook? _shields;
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
@@ -328,6 +337,8 @@ class MockExerciseRepository implements ExerciseRepository {
     );
     _sessions.add(session);
     _totalCalories += calories;
+    // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
+    _shields?.refundFor(date);
     return session;
   }
 
@@ -363,6 +374,8 @@ class MockExerciseRepository implements ExerciseRepository {
     );
     _sessions.add(session);
     _totalCalories += calories;
+    // 루틴 완료 기록도 같다 — 보호한 날이면 보호권을 되돌린다(#1788).
+    _shields?.refundFor(date);
     return session;
   }
 
@@ -439,6 +452,8 @@ class MockExerciseRepository implements ExerciseRepository {
     if (idx >= 0 && old != null) {
       _totalCalories = _nonNeg(_totalCalories - old.calories + calories);
       _sessions[idx] = updated;
+      // 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+      _shields?.refundFor(date);
     }
     return updated;
   }

@@ -433,6 +433,9 @@ class ExerciseDayLoadCard extends StatelessWidget {
 }
 
 /// `⚡ 5일 연속 운동 중이에요!` — 주의 톤 태그.
+///
+/// **운동만** 세는 줄이다. 식단도 세는 기록 연속과 그 보호권은 포인트 화면에
+/// 있다(#1788, #2075) — 여기에는 섞지 않는다.
 class _StreakLine extends StatelessWidget {
   const _StreakLine({required this.days});
 
@@ -441,20 +444,27 @@ class _StreakLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // 카드 안의 다른 글자와 같은 자리에서 시작하지만, 이 한 줄만 주황 태그로
-    // 깔아 **응원 문구**임을 표시한다. 불꽃은 소모 칼로리 도넛이 쓰므로 연속은
-    // '기세' 쪽 기호로 갈라 둔다. 좁으면 태그째 줄인다.
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: AlignmentDirectional.centerStart,
-        child: AppTag(
-          label: days > 0 ? l.exStreakCheer(days) : l.exStreakStart,
-          tone: AppTagTone.caution,
-          icon: AppIcons.streak,
+    return Row(
+      children: <Widget>[
+        Expanded(
+          // 카드 안의 다른 글자와 같은 자리에서 시작하지만, 이 한 줄만 주황 태그로
+          // 깔아 **응원 문구**임을 표시한다. 불꽃은 소모 칼로리 도넛이 쓰므로
+          // 연속은 '기세' 쪽 기호로 갈라 둔다. 좁으면 태그째 줄인다 — 버튼은
+          // 줄이지 않는다.
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: AppTag(
+                label: days > 0 ? l.exStreakCheer(days) : l.exStreakStart,
+                tone: AppTagTone.caution,
+                icon: AppIcons.streak,
+              ),
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }

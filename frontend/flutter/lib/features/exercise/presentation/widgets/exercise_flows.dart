@@ -10,6 +10,7 @@ import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/my_health/presentation/points_reward.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -422,6 +423,9 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       // Sheet dismissed mid-save → don't pop the page below.
       if (!mounted) return;
       ref.invalidate(exerciseWeekProvider);
+      // 보호권으로 이어 붙인 날에 기록했으면 서버가 그 보호권을 되돌렸다 —
+      // 내 혜택의 보유 수를 다시 읽는다(#1788).
+      ref.invalidate(myStreakShieldsProvider);
       if (added != null) refreshPointsBalance(ref);
       navigator.pop(true);
       toast.show(

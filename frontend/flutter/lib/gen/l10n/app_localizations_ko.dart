@@ -717,6 +717,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exStreakStart => '오늘 운동으로 연속 기록을 시작해 봐요.';
 
   @override
+  String get exStreakProtected => '보호권으로 이어짐';
+
+  @override
   String get exToday => '오늘';
 
   @override
@@ -1137,6 +1140,38 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myPointsMonthlyLimit => '이번 달에는 이미 교환했어요';
+
+  @override
+  String get myPointsShieldLimit => '보호권은 최대 4개까지 가질 수 있어요';
+
+  @override
+  String get myShopStreakShieldTitle => '연속 기록 보호권';
+
+  @override
+  String get myShopStreakShieldDescription =>
+      '아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요. 최대 4개까지 가질 수 있어요.';
+
+  @override
+  String get myBenefitsStreakShields => '연속 기록 보호권';
+
+  @override
+  String myBenefitsShieldHeld(int held, int max) {
+    return '보유 $held/$max개';
+  }
+
+  @override
+  String myBenefitsShieldHeldCount(int held) {
+    return '보유 $held개';
+  }
+
+  @override
+  String get myBenefitsShieldGuide => '아무것도 기록하지 못한 날이 있으면 다음 날 쓸 수 있어요.';
+
+  @override
+  String get myBenefitsShieldUsedTitle => '보호한 날';
+
+  @override
+  String get myBenefitsShieldNoneUsed => '아직 보호한 날이 없어요';
 
   @override
   String myPointsValidDays(int days) {

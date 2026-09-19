@@ -17,21 +17,23 @@ import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
-import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/benefits/presentation/pages/coupon_detail_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/my_benefits_page.dart';
+import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../exercise/fake_streak_shield_repository.dart';
 import 'fake_benefits_repository.dart';
-import 'fake_challenge_repository.dart';
 
 void main() {
   Future<void> pumpAt(
     WidgetTester tester,
     FakeBenefitsRepository repo,
-    String location,
-  ) async {
+    String location, {
+    FakeStreakShieldRepository? shields,
+  }) async {
     await tester.binding.setSurfaceSize(const Size(390, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final GoRouter router = GoRouter(
@@ -57,9 +59,8 @@ void main() {
       ProviderScope(
         overrides: <Override>[
           benefitsRepositoryProvider.overrideWithValue(repo),
-          // 내 혜택은 참가 챌린지 구역도 읽는다(#1789).
-          challengeRepositoryProvider.overrideWithValue(
-            FakeChallengeRepository(),
+          streakShieldRepositoryProvider.overrideWithValue(
+            shields ?? FakeStreakShieldRepository(),
           ),
         ],
         child: MaterialApp.router(
@@ -82,6 +83,66 @@ void main() {
 
   Finder useButton() => find.byKey(const Key('couponUseButton'));
   Finder staffNote() => find.byKey(const Key('couponStaffNote'));
+
+  testWidgets('보호권 구역은 보유 수와 보호한 날을 보여 준다 (#1788)', (tester) async {
+    await pumpAt(
+      tester,
+      FakeBenefitsRepository(),
+      AppRoutes.myBenefits,
+      shields: FakeStreakShieldRepository(
+        shields: StreakShields(
+          held: 1,
+          maxHeld: 2,
+          cost: 300,
+          used: <StreakShieldUse>[
+            StreakShieldUse(date: DateTime(2026, 9, 16)),
+            StreakShieldUse(date: DateTime(2026, 9, 10)),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey<String>('streak-shield-summary')), findsOneWidget);
+    final AppTag held = tester.widget<AppTag>(
+      find.byKey(const ValueKey<String>('streak-shield-held')),
+    );
+    expect(held.label, '보유 1/2개');
+    expect(held.tone, AppTagTone.brand);
+    expect(find.text('보호한 날'), findsOneWidget);
+    expect(find.text('2026.09.16'), findsOneWidget);
+    expect(find.text('2026.09.10'), findsOneWidget);
+    expect(find.text('보호권으로 이어짐'), findsNWidgets(2));
+  });
+
+  testWidgets('운동한 날의 보호권을 돌려받아 최대를 넘으면 개수만 적는다 (#1788)', (
+    tester,
+  ) async {
+    await pumpAt(
+      tester,
+      FakeBenefitsRepository(),
+      AppRoutes.myBenefits,
+      shields: FakeStreakShieldRepository(
+        shields: const StreakShields(held: 3, maxHeld: 2, cost: 300),
+      ),
+    );
+
+    final AppTag held = tester.widget<AppTag>(
+      find.byKey(const ValueKey<String>('streak-shield-held')),
+    );
+    expect(held.label, '보유 3개');
+    expect(held.tone, AppTagTone.brand);
+  });
+
+  testWidgets('보호권이 없고 보호한 날도 없으면 그렇게 말한다 (#1788)', (tester) async {
+    await pumpAt(tester, FakeBenefitsRepository(), AppRoutes.myBenefits);
+
+    final AppTag held = tester.widget<AppTag>(
+      find.byKey(const ValueKey<String>('streak-shield-held')),
+    );
+    expect(held.label, '보유 0/2개');
+    expect(held.tone, AppTagTone.neutral);
+    expect(find.text('아직 보호한 날이 없어요'), findsOneWidget);
+  });
 
   testWidgets('보유 쿠폰이 없으면 빈 상태와 사용처 바로가기를 보여 준다', (tester) async {
     await pumpAt(tester, FakeBenefitsRepository(), AppRoutes.myBenefits);
