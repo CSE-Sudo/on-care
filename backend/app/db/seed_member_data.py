@@ -40,7 +40,7 @@ from sqlalchemy.orm import Session
 from app.services.health_focus import normalize_conditions
 from app.core import clock
 from app.core.config import get_settings
-from app.db.demo_fixture import FixtureExercise, FixtureRoutine, load_fixture
+from app.db.demo_fixture import FixtureRoutine, load_fixture
 from app.db.seed_trainer import TRAINER_ID, _MEMBERS
 from app.db.session import SessionLocal
 from app.models import models
@@ -110,9 +110,9 @@ _WEEKDAY_SUGAR = (41.5, 28.0, 45.5, 33.0, 38.5, 22.0, 30.0)
 #: 요일이 아니라 **어제**에 못 박는다 — 요일에 못 박으면 데모를 여는 날에 따라
 #: 넘긴 날이 이번 주 밖으로 밀려난다. 두 Flutter 앱의 데모 시드가 같은 합계를
 #: 쓴다(트레이너 `seed_data.dart` 의 `_feast*`, 사용자 앱의 어제 큐레이션).
-_FEAST_KCAL = 2380
-_FEAST_SODIUM_MG = 2261
-_FEAST_SUGAR_G = 63.0
+_FEAST_KCAL = 3231
+_FEAST_SODIUM_MG = 1338
+_FEAST_SUGAR_G = 64.2
 
 _SODIUM_WEEK: dict[str, list[int]] = {
     "user-jisu": [1700, 1950, 1600, 1800, 2100, 1750, 1800],
@@ -260,8 +260,8 @@ _LEGACY_DEMO_CONDITIONS = "고혈압, 당뇨 전단계"
 
 _HEALTH_PROFILE: dict[str, dict] = {
     "user-7d4e9a2c5f18": {
-        "risk_title": "고혈압·당뇨 위험 주의",
-        "risk_body": "최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.",
+        "risk_title": "이번 주 관리 포인트",
+        "risk_body": "식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.",
         "risk_level": "medium",
         "conditions": "체중 감량, 혈압 관리",
         "phone": "010-1234-5678",
@@ -431,49 +431,78 @@ _SEED_ID_PREFIX = "seed-"
 
 
 def _ingest_member_documents(db: Session, member_id: str) -> int:
-    """한 회원의 시드 식단·운동·대화를 적재하고 적재한 건수를 돌려준다."""
+    """한 회원의 시드 식단·운동·대화를 적재하고 적재한 건수를 돌려준다.
+
+    적재는 한 건마다 커밋한다. 커밋은 세션에 실린 ORM 객체를 만료시키므로
+    **미리 읽어 둔 행을 들고 반복하면 안 된다** — 다음 속성 접근이 행을 다시
+    가져오는데, 그 사이 **다른 세션이** 지운 행이면 `ObjectDeletedError` 가
+    나고 적재가 아니라 **기동이** 죽는다(#1919).
+
+    남의 삭제여야 한다는 것이 요점이다. 같은 세션이 지우면 그 객체는 식별
+    맵에서 밀려나 조용히 옛 값을 쓰지만, 다른 세션의 삭제는 이 세션이 모르는
+    채 남아 있다가 만료 뒤 되읽을 때 터진다.
+
+    그래서 적재에 쓸 값을 **먼저 평범한 값으로 뽑아 두고** 반복한다. 만료될
+    객체가 없으면 그 사이 행이 사라져도 이미 뽑아 둔 값으로 적재가 끝난다 —
+    시드가 기동을 막지 않는다는 원칙은 `_entry_foods` 도 같다.
+    """
+    diets = [
+        {
+            "date": entry.date,
+            "foods": _entry_foods(entry),
+            "total_calories": entry.total_calories,
+            "sodium_mg": entry.sodium_mg,
+            "sugar_g": entry.sugar_g,
+            "source_ref": entry.id,
+        }
+        for entry in db.scalars(
+            select(models.DietEntry).where(
+                models.DietEntry.user_id == member_id,
+                models.DietEntry.id.like(f"{_SEED_ID_PREFIX}%"),
+            )
+        ).all()
+    ]
+
+    exercises = [
+        {
+            "date": _session_date(session),
+            "exercise_type": session.type,
+            "minutes": session.minutes,
+            "calories": session.calories,
+            "intensity": session.intensity,
+            "source_ref": session.id,
+        }
+        for session in db.scalars(
+            select(models.ExerciseSession).where(
+                models.ExerciseSession.user_id == member_id,
+                models.ExerciseSession.id.like(f"{_SEED_ID_PREFIX}%"),
+            )
+        ).all()
+    ]
+
+    chats = [
+        {
+            "sender": msg.sender,
+            "text": msg.body,
+            "date": clock.to_seoul(msg.created_at).date().isoformat(),
+            "source_ref": msg.id,
+        }
+        for msg in db.scalars(
+            select(models.ChatMessage).where(
+                models.ChatMessage.member_id == member_id,
+                models.ChatMessage.id.like(f"{_SEED_ID_PREFIX}%"),
+            )
+        ).all()
+    ]
+
     count = 0
-
-    for entry in db.scalars(
-        select(models.DietEntry).where(
-            models.DietEntry.user_id == member_id,
-            models.DietEntry.id.like(f"{_SEED_ID_PREFIX}%"),
-        )
-    ).all():
-        count += _ingested(
-            personal_ingest.record_diet,
-            db, member_id, date=entry.date, foods=_entry_foods(entry),
-            total_calories=entry.total_calories, sodium_mg=entry.sodium_mg,
-            sugar_g=entry.sugar_g, source_ref=entry.id,
-        )
-
-    for session in db.scalars(
-        select(models.ExerciseSession).where(
-            models.ExerciseSession.user_id == member_id,
-            models.ExerciseSession.id.like(f"{_SEED_ID_PREFIX}%"),
-        )
-    ).all():
-        count += _ingested(
-            personal_ingest.record_exercise,
-            db, member_id, date=_session_date(session),
-            exercise_type=session.type, minutes=session.minutes,
-            calories=session.calories, intensity=session.intensity,
-            source_ref=session.id,
-        )
-
-    for msg in db.scalars(
-        select(models.ChatMessage).where(
-            models.ChatMessage.member_id == member_id,
-            models.ChatMessage.id.like(f"{_SEED_ID_PREFIX}%"),
-        )
-    ).all():
-        count += _ingested(
-            personal_ingest.record_chat,
-            db, member_id, sender=msg.sender, text=msg.body,
-            date=clock.to_seoul(msg.created_at).date().isoformat(),
-            source_ref=msg.id,
-        )
-
+    for record, rows in (
+        (personal_ingest.record_diet, diets),
+        (personal_ingest.record_exercise, exercises),
+        (personal_ingest.record_chat, chats),
+    ):
+        for fields in rows:
+            count += _ingested(record, db, member_id, **fields)
     return count
 
 
@@ -754,65 +783,6 @@ def _seed_routines(db: Session, member_id: str) -> None:
 _FIXTURE_ID_PREFIX = "seed-fix-"
 
 
-@dataclass(frozen=True)
-class _TypeTotals:
-    """하루·한 종류로 접은 값. 운동 기록 한 행이 되는 그대로다."""
-
-    minutes: int
-    calories: int
-    name: str
-    #: 근력이면 그날 한 세트 수의 **합**. 다른 유형은 None 이다.
-    sets: int | None = None
-    #: 근력이면 그날 한 횟수 중 가장 많은 수. 세트와 달리 더하지 않는다 — 한
-    #: 세트당 수라 합계는 아무도 한 적 없는 값이 된다(#1310 의 PT 파생 기록과
-    #: 같은 규칙).
-    reps: int | None = None
-
-
-def _by_type(
-    exercises: tuple[FixtureExercise, ...],
-) -> dict[str, _TypeTotals]:
-    """운동을 종류별로 합친다. 픽스처 순서를 유지한다.
-
-    종류는 표준 어휘로 접어서 센다 (#996). 픽스처가 아직 옛 이름을 쓰더라도
-    DB 에는 표준 값만 들어가야 앱이 유형을 다시 매핑하지 않는다.
-
-    이름도 함께 잇는다 — 리포트의 요일 칸이 그날 무엇을 했는지를 운동 기록의
-    이름으로 적기 때문이다(#1288). 종류로 합치면서 이름까지 버리면 데모의 요일
-    칸이 "유산소 · 근력" 두 줄로만 남는다. PT 완료가 만드는 기록도 여러 운동을
-    쉼표로 잇는 같은 규칙을 쓴다.
-
-    세트·횟수도 함께 접는다 (#1265). 예전에는 픽스처가 적어 둔 세트를 버려서,
-    화면이 분에서 세트를 되짚었다 — 같은 회원의 같은 날 근력이 앱마다 다른 수로
-    보였다.
-    """
-    totals: dict[str, _TypeTotals] = {}
-    for exercise in exercises:
-        kind = exercise_types.normalize(exercise.type)
-        prev = totals.get(kind)
-        strength = kind == exercise_types.STRENGTH
-        totals[kind] = _TypeTotals(
-            minutes=(prev.minutes if prev else 0) + exercise.minutes,
-            calories=(prev.calories if prev else 0) + exercise.calories,
-            name=(
-                f"{prev.name}, {exercise.name}"
-                if prev and prev.name
-                else exercise.name
-            ),
-            sets=(
-                _add(prev.sets if prev else None, exercise.sets)
-                if strength
-                else None
-            ),
-            reps=(
-                _peak(prev.reps if prev else None, exercise.reps)
-                if strength
-                else None
-            ),
-        )
-    return totals
-
-
 def _add(left: int | None, right: int | None) -> int | None:
     """둘 다 없으면 None. 하나만 있으면 그 값 — 0 으로 채우지 않는다.
 
@@ -919,23 +889,31 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
         # 세션은 **실제로 한** 운동만 쌓는다. 못 한 항목까지 넣으면 이행률은 67% 인데
         # 주간 운동 시간은 100% 인 날이 나온다.
         #
-        # 하루에 같은 종류가 둘일 수 있어(PT 날의 레그프레스·레그컬은 둘 다 근력)
-        # 종류로 합친다. 주간 활동 그래프가 하루·종류당 한 칸을 그리므로 나눠 넣을
-        # 자리도 없다.
-        for kind, totals in _by_type(day.done_exercises).items():
+        # **운동 하나가 세션 하나**다 — 회원이 직접 적은 기록과 같은 모양이다
+        # (#1902). 예전에는 종류로 합쳐 한 행에 여러 종목을 담았는데, 그러면
+        # 종목별 세트·횟수·중량을 담을 칸이 없어 픽스처가 그 수를 **이름
+        # 문자열에** 적어 넣어야 했다(`레그프레스 70kg · 4세트`). 그래서 이름을
+        # 쓰는 화면과 필드를 읽는 화면이 같은 기록을 다르게 말했다.
+        #
+        # 유형별 합계는 주간 응답이 따로 세므로(`exercise_service`) 나눠 넣어도
+        # 그래프는 그대로다.
+        for index, exercise in enumerate(day.done_exercises):
+            kind = exercise_types.normalize(exercise.type)
+            strength = kind == exercise_types.STRENGTH
             db.add(models.ExerciseSession(
-                id=f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{kind}",
+                id=f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{index}",
                 user_id=member_id,
                 week_start=day.week_start,
                 day_label=day.day_label,
                 type=kind,
-                name=totals.name,
-                minutes=totals.minutes,
-                calories=totals.calories,
-                # 픽스처가 적어 둔 세트·횟수를 그대로 남긴다 — 없으면 화면이
+                name=exercise.name,
+                minutes=exercise.minutes,
+                calories=exercise.calories,
+                # 픽스처가 적어 둔 세트·횟수·중량을 그대로 남긴다 — 없으면 화면이
                 # 분에서 세트를 되짚어 아무도 적은 적 없는 수를 그린다. (#1265)
-                sets=totals.sets,
-                reps=totals.reps,
+                sets=exercise.sets if strength else None,
+                reps=exercise.reps if strength else None,
+                weight=exercise.weight if strength else None,
                 intensity="moderate",
                 # 실제로 운동한 날의 시각을 함께 적는다 (#1264). `created_at` 은
                 # 재시드 시각이라, 이것이 없으면 35주 전 운동도 방금 만든 행으로
@@ -956,8 +934,8 @@ def _fixture_row_ids(member_id: str, days: list) -> set[str]:
     for day in days:
         for index in range(len(day.meals)):
             ids.add(f"{_FIXTURE_ID_PREFIX}diet-{member_id}-{day.iso}-{index}")
-        for kind in _by_type(day.done_exercises):
-            ids.add(f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{kind}")
+        for index in range(len(day.done_exercises)):
+            ids.add(f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{index}")
     return ids
 
 

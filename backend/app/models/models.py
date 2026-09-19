@@ -4,7 +4,7 @@ ORM 모델 — 프론트 계약(LocalApiInterceptor + drift 스키마)에 맞춤
 핵심 정렬 사항:
 - 사용자 id 는 문자열(예: 'user-7d4e9a2c5f18')
 - 식단은 나트륨(sodium_mg)·당류(sugar_g)를 1급 지표로 (고혈압·당뇨 특화)
-- drift 테이블(diet_entries, exercise_sessions, schedule_events, notifications)과 1:1 대응
+- drift 테이블(diet_entries, exercise_sessions, notifications)과 1:1 대응
 
 이번 STEP 1 에서는 테이블 생성만 검증하고, 살은 이후 STEP 에서 채웁니다.
 """
@@ -288,7 +288,7 @@ class DietEntry(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     date: Mapped[str] = mapped_column(String(10), index=True)  # YYYY-MM-DD
-    meal_type: Mapped[str] = mapped_column(String(20))  # breakfast|lunch|dinner|snack
+    meal_type: Mapped[str] = mapped_column(String(20))  # breakfast|lunch|dinner|snack|lateNight
     time_label: Mapped[str] = mapped_column(String(10), default="")
     foods_json: Mapped[str] = mapped_column(Text, default="[]")  # [{name, calories}]
     total_calories: Mapped[int] = mapped_column(Integer, default=0)
@@ -302,6 +302,9 @@ class DietEntry(Base):
     engine: Mapped[str] = mapped_column(
         String(20), default=""
     )  # 인식 엔진(gemini|yolo)
+    # 사진 분석이 만든 식단평(#1932). 앱이 끼니 카드 아래 한 줄로 보여 준다.
+    # 손으로 적은 끼니와 이 컬럼 이전 기록은 빈 문자열이다.
+    ai_comment: Mapped[str] = mapped_column(Text, default="", server_default="")
     # 재시도 중복 저장 방지용 멱등키(클라 요청당 1회 생성). NULL 허용 → 기존/무키 요청은 제약 밖.
     idempotency_key: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -312,6 +315,23 @@ class DietEntry(Base):
         UniqueConstraint(
             "user_id", "idempotency_key", name="uq_diet_entries_user_idem"
         ),
+    )
+
+
+class AccountDeletionReason(Base):
+    """회원이 탈퇴하며 고른 사유 한 줄. (#2019)
+
+    **회원 행과 잇지 않는다.** 회원은 이 행을 쓰는 바로 그 순간 지워지므로 FK 를
+    걸면 남길 수가 없다. 남기는 것도 사유 코드와 시각뿐이다 — 누가 썼는지는
+    모으지 않는다. 여러 개를 고를 수 있어 한 번의 탈퇴가 여러 행이 된다.
+    """
+
+    __tablename__ = "account_deletion_reasons"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    reason: Mapped[str] = mapped_column(String(40), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )
 
 
@@ -352,11 +372,15 @@ class DietPhoto(Base):
 
 
 class FoodNutrient(Base):
-    """공공 식품영양성분 DB(식약처/국가표준) 큐레이션 테이블.
+    """공공 식품영양성분 DB(식약처/국가표준) 참조표.
 
-    Vision 인식이 준 '음식 이름'을 이 표에 매핑해 신뢰 가능한 1인분 영양가로 교체한다.
-    (LLM 은 '무엇인지' 식별에 강하고, 정확한 영양 수치는 이 공공 DB 가 제공.)
-    수치는 1회 제공량(serving_size_g) 기준. name_norm 은 매칭용 정규화 이름.
+    Vision 인식이 준 '음식 이름'을 이 표에 매핑해 **100g 당 값 × 사진에서 읽은 양**으로
+    영양을 다시 적는다(`services/nutrition/enrich`). LLM 은 '무엇인지' 식별에 강하고,
+    정확한 영양 수치는 이 공공 DB 가 댄다. 수치는 100g 기준이고, `serving_size_g` 는
+    양을 모를 때 쓰는 1회 섭취량이다. name_norm 은 매칭용 정규화 이름.
+
+    시드 데이터가 바뀌면 기동 때 통째로 다시 맞춘다(`init_db._seed_food_nutrients`).
+    다른 표가 이 표를 참조하지 않으므로 행 id 는 유지되지 않는다.
     """
 
     __tablename__ = "food_nutrients"
@@ -368,9 +392,9 @@ class FoodNutrient(Base):
         String(30), default=""
     )  # 밥류|국·찌개류|구이류...
     serving_size_g: Mapped[float | None] = mapped_column(Float, nullable=True)
-    calories: Mapped[float] = mapped_column(Float, default=0)  # kcal / 1인분
-    sodium_mg: Mapped[float] = mapped_column(Float, default=0)  # mg  / 1인분
-    sugar_g: Mapped[float] = mapped_column(Float, default=0)  # g   / 1인분
+    calories: Mapped[float] = mapped_column(Float, default=0)  # kcal / 100g
+    sodium_mg: Mapped[float] = mapped_column(Float, default=0)  # mg  / 100g
+    sugar_g: Mapped[float] = mapped_column(Float, default=0)  # g   / 100g
     carbs_g: Mapped[float | None] = mapped_column(Float, nullable=True)
     protein_g: Mapped[float | None] = mapped_column(Float, nullable=True)
     fat_g: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -378,6 +402,23 @@ class FoodNutrient(Base):
         String(20), default="mfds"
     )  # 데이터 출처(식약처=mfds)
 
+
+
+class ReferenceDataVersion(Base):
+    """참조표마다 지금 들어 있는 시드 데이터의 지문. (#2100)
+
+    참조표(`food_nutrients` 등)는 표가 비었을 때만 시드하면, 시드 데이터를 고쳐도
+    이미 떠 있는 DB 에 닿지 않는다. 시드 데이터로 만든 지문을 여기 적어 두고, 기동 때
+    다르면 그 표를 새 시드로 통째로 바꾼다.
+    """
+
+    __tablename__ = "reference_data_versions"
+
+    name: Mapped[str] = mapped_column(String(50), primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 class ExerciseCatalogItem(Base):
     """운동 종목 참조표 — 이름을 소모 칼로리로 바꾸는 유일한 근거. (#1312)
@@ -510,25 +551,6 @@ class ExerciseSession(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-
-
-class ScheduleEvent(Base):
-    """일정 — drift ScheduleEvents 대응."""
-
-    __tablename__ = "schedule_events"
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    user_id: Mapped[str] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), index=True
-    )
-    date: Mapped[str] = mapped_column(String(10), index=True)
-    time: Mapped[str] = mapped_column(String(10), default="")
-    title: Mapped[str] = mapped_column(String(200))
-    category: Mapped[str] = mapped_column(
-        String(20)
-    )  # hospital|exercise|meal|medication|other
-    emoji: Mapped[str] = mapped_column(String(10), default="")
-    color_hex: Mapped[str] = mapped_column(String(10), default="#E0F2F7")
 
 
 class Notification(Base):
@@ -766,6 +788,20 @@ class ConsultationRequest(Base):
     exercise_goal: Mapped[str] = mapped_column(String(30))
     health_purpose_type: Mapped[str] = mapped_column(String(30))
     health_purpose_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 회원이 고른 트레이너의 빈 자리. 신청하는 순간 이 자리를 잠그고, 수락하면
+    #: 그대로 첫 일정이 된다. 거절·취소·만료에서 되돌려 준다. (#1873)
+    #:
+    #: nullable 인 이유는 둘이다 — 자리 선택 이전에 접수된 요청에는 고른 자리가
+    #: 없고(그 요청들은 배포 때 `expired` 로 정리된다), 트레이너가 자리를 지우면
+    #: `SET NULL` 로 끊긴다. 끊겨도 아래 두 칸에 시각 사본이 남아 조회는 된다.
+    slot_id: Mapped[str | None] = mapped_column(
+        ForeignKey("trainer_reservation_slots.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    #: 고른 자리의 시각 사본. 자리를 보고 적는 값이라 새 요청에서는 자리와 늘
+    #: 같고, 자리가 끊겨도 화면이 "언제로 신청했는지"를 그릴 수 있다. 자리 선택
+    #: 이전 요청에는 회원이 직접 적어 보낸 희망 시각이 그대로 남아 있다.
     preferred_date: Mapped[str] = mapped_column(String(10))
     preferred_time_slot: Mapped[str] = mapped_column(String(20))
     #: 회원이 데이터 공유에 동의한 시각. 트레이너가 수락해 담당이 생기면 이
@@ -1837,6 +1873,15 @@ class AiMessage(Base):
     role: Mapped[str] = mapped_column(String(10))  # user|coach
     content: Mapped[str] = mapped_column(Text)
     sources_json: Mapped[str] = mapped_column(Text, default="[]")
+    #: 이 줄에서 찾은 통증·부정적 반응을 회원이 기록에서 치웠는가. (#1975)
+    #:
+    #: 감지는 저장하지 않고 대화에서 매번 계산하므로(`coach/insights.py`), 지울
+    #: 대상이 따로 없다. 대신 **그 감지를 더 보지 않겠다**는 표시를 메시지에
+    #: 남긴다 — 메시지 자체는 지우지 않는다. 회원이 쓴 말은 대화에 그대로 남고,
+    #: 규칙이 바뀌어 다른 감지가 나와도 이 표시는 그 줄 전체에 걸린다.
+    insight_dismissed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

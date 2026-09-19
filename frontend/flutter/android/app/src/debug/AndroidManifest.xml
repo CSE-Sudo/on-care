@@ -4,4 +4,9 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- 실기기에서 개발 PC 의 평문 HTTP 백엔드(http://PC-IP:8000/v1)를 보려면 필요하다.
+         targetSdk 28 이상은 평문 HTTP 를 기본으로 차단하고 이 앱은 36 이다.
+         디버그 빌드에만 얹으므로 릴리스 빌드는 그대로 평문을 막는다. -->
+    <application android:usesCleartextTraffic="true" />
 </manifest>

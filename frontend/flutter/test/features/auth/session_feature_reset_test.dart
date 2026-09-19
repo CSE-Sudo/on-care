@@ -38,6 +38,9 @@ class _FakeAiCoachRepository implements AiCoachRepository {
   }
 
   @override
+  Future<void> dismissInsight(String messageId) async {}
+
+  @override
   Future<ChatInsightHistory> fetchInsights() async =>
       const ChatInsightHistory();
 

@@ -241,87 +241,89 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
   }
 
   /// 숫자 칸 전부 — 검사 범위와 오류를 붙일 이름을 한곳에 둔다.
+  ///
+  /// 범위는 `oncare_ui` 의 [AppGoalRanges] 에서 읽는다(#1888). 회원 앱과 서버
+  /// (`health_goal_ranges`)가 같은 값을 쓰는 자리라, 여기에 숫자를 따로 적어
+  /// 두면 같은 컬럼을 고치는 세 문이 다시 갈라진다.
   List<_NumberField> _numberFields(AppLocalizations l) => <_NumberField>[
-    _NumberField('height', _height, l.memberHealthHeight, 50, 300, false),
-    _NumberField('weight', _weight, l.memberHealthWeight, 20, 500, false),
+    _NumberField('height',
+      _height,
+      l.memberHealthHeight,
+      AppGoalRanges.heightCm,
+      false,),
+    _NumberField('weight',
+      _weight,
+      l.memberHealthWeight,
+      AppGoalRanges.weightKg,
+      false,),
     _NumberField(
       'client-goal-calories',
       _goalCalories,
       l.memberHealthGoalCalories,
-      500,
-      10000,
+      AppGoalRanges.dailyCalories,
       true,
     ),
     _NumberField(
       'client-goal-sodium',
       _goalSodium,
       l.memberHealthGoalSodium,
-      0,
-      50000,
+      AppGoalRanges.dailySodiumMg,
       true,
     ),
     _NumberField(
       'client-goal-sugar',
       _goalSugar,
       l.memberHealthGoalSugar,
-      0,
-      1000,
+      AppGoalRanges.dailySugarG,
       true,
     ),
     _NumberField(
       'client-goal-carbs',
       _goalCarbs,
       l.memberHealthGoalCarbs,
-      0,
-      2000,
+      AppGoalRanges.dailyCarbsG,
       true,
     ),
     _NumberField(
       'client-goal-protein',
       _goalProtein,
       l.memberHealthGoalProtein,
-      0,
-      1000,
+      AppGoalRanges.dailyProteinG,
       true,
     ),
     _NumberField(
       'client-goal-fat',
       _goalFat,
       l.memberHealthGoalFat,
-      0,
-      1000,
+      AppGoalRanges.dailyFatG,
       true,
     ),
     _NumberField(
       'client-goal-burn',
       _goalBurn,
       l.memberHealthGoalBurnDaily,
-      0,
-      20000,
+      AppGoalRanges.dailyBurnKcal,
       true,
     ),
     _NumberField(
       'client-goal-cardio',
       _goalCardio,
       l.memberHealthGoalCardioWeekly,
-      0,
-      10080,
+      AppGoalRanges.weeklyCardioMinutes,
       true,
     ),
     _NumberField(
       'client-goal-strength',
       _goalStrength,
       l.memberHealthGoalStrengthWeekly,
-      0,
-      1000,
+      AppGoalRanges.weeklyStrengthSets,
       true,
     ),
     _NumberField(
       'client-goal-flexibility',
       _goalFlexibility,
       l.memberHealthGoalFlexibilityWeekly,
-      0,
-      10080,
+      AppGoalRanges.weeklyFlexibilityMinutes,
       true,
     ),
   ];
@@ -579,17 +581,20 @@ class _NumberField {
     this.id,
     this.controller,
     this.label,
-    this.min,
-    this.max,
+    this.range,
     this.integer,
   );
 
   final String id;
   final TextEditingController controller;
   final String label;
-  final double min;
-  final double max;
+
+  /// 받는 범위. 서버·회원 앱과 같은 값을 `oncare_ui` 에서 읽는다(#1888).
+  final AppGoalRange range;
   final bool integer;
+
+  double get min => range.min.toDouble();
+  double get max => range.max.toDouble();
 }
 
 /// 메모 목록 — 예전 `ClientMemoDialog` 의 내용을 다이얼로그 밖으로 꺼낸 것이다.

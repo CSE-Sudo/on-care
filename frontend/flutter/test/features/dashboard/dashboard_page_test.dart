@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
 
@@ -27,6 +28,9 @@ void main() {
       // 들어가므로 플래그를 켜고 편다. (#1526)
       showDemoEntry: true,
     );
+    // 저장된 세션이 없다고 답해 준다 — 없으면 복구가 끝나지 않아 시작
+    // 화면(#1944)에 머문다.
+    FlutterSecureStorage.setMockInitialValues(<String, String>{});
     await tester.pumpWidget(
       ProviderScope(
         overrides: <Override>[
@@ -56,9 +60,11 @@ void main() {
   ) async {
     await pumpApp(tester);
     expect(find.text('식단 · 영양'), findsOneWidget);
-    // 수치는 식단 하루치에서 온다 — 칼로리 1,067kcal (저녁 제외, #548).
-    expect(find.text('1,067'), findsWidgets);
-    // 탄단지는 홈 카드에서 뺐다 (#1117).
+    // 수치는 식단 하루치에서 온다 — 탄수화물 120g (저녁 제외, #548).
+    // 홈 지표가 탄단지로 바뀐 뒤(#1879)에도 출처는 그대로 식단이다.
+    expect(find.text('탄수화물'), findsOneWidget);
+    expect(find.text('120'), findsWidgets);
+    // 수치와 단위를 한 글자 덩어리로 붙이지 않는다 — 단위는 목표치 오른쪽이다.
     expect(find.text('120g'), findsNothing);
     // 오늘의 일정 카드는 화면에서 내려 뒀다 (#1055).
     expect(find.text('오늘의 일정'), findsNothing);

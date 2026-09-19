@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -50,7 +51,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     super.dispose();
   }
 
-  /// 칸의 지금 값에 대한 오류 문구. 전화번호는 `000-0000-0000` 만 받는다 —
+  /// 칸의 지금 값에 대한 오류 문구. 전화번호는 `010-0000-0000` 만 받는다 —
   /// 숫자만 쳐도 [AppPhoneNumberFormatter] 가 하이픈을 넣어 준다(#1784).
   String? _check(_Field field) =>
       authInputErrorText(AppLocalizations.of(context), switch (field) {
@@ -100,9 +101,18 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           .read(sessionControllerProvider.notifier)
           .register(email: email, password: password, name: name, phone: phone);
       if (!mounted) return;
+      // 가입한 사람은 언제나 이 앱을 처음 쓰는 사람이다 — 이 기기에서 다른
+      // 계정이 사용 가이드를 본 적이 있어도 다시 보여 준다(#1857).
+      ref.read(appGuideControllerProvider.notifier).resetSeen();
       // New accounts land in first-run onboarding; the guard keeps the
       // (now authenticated) user on this protected route.
       context.go(AppRoutes.onboarding);
+    } on AccountCreatedSignInFailed {
+      // 계정은 만들어졌다. 다시 가입하라고 하면 409 를 만나므로 로그인으로 보낸다.
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _error(l.signUpCreatedSignInNeeded);
+      context.go(AppRoutes.signIn);
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);

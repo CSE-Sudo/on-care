@@ -9,8 +9,23 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 #: 요청이 지정할 수 있는 대상. 트레이너 한 사람뿐이다 — 헬스장 전체로 보내는
 #: 갈래는 폐지됐고, 그때 만들어진 이력도 남아 있지 않다.
 ConsultationCreateTargetType = Literal["trainer"]
+#: 새 상담 요청이 보낼 수 있는 운동 목표. 회원앱 온보딩·MY 의 건강 목표 여덟 종
+#: (`health_focus.FOCUS_OPTIONS`)과 1:1 이고, 그 여덟 중 어디에도 넣기 어려운
+#: 회원을 위한 `other` 가 하나 더 있다. (#1992)
+#:
+#: 없앤 `health`(건강 관리)는 **입력에서 받지 않는다** — 여덟 목표 중 하나로 옮길
+#: 수 없어 그 회원만 건강 목표가 비어 있었고, 그게 이 통일의 이유다. 이미 저장된
+#: `health` 행은 그대로 두고 응답으로 내려준다(아래 [ConsultationOut]).
 ExerciseGoal = Literal[
-    "weight_loss", "strength", "fitness", "posture", "health", "other"
+    "weight_loss",
+    "strength",
+    "fitness",
+    "posture",
+    "rehab",
+    "eating",
+    "exercise_habit",
+    "blood_pressure",
+    "other",
 ]
 HealthPurposeType = Literal[
     "weight", "chronic", "rehab", "general", "none", "other"
@@ -40,8 +55,12 @@ class ConsultationCreate(BaseModel):
     exercise_goal: ExerciseGoal
     health_purpose_type: HealthPurposeType
     health_purpose_detail: str | None = Field(default=None, max_length=500)
-    preferred_date: Date
-    preferred_time_slot: str = Field(pattern=PREFERRED_TIME_PATTERN)
+    #: 회원이 고른 트레이너의 빈 자리. 희망 시각을 적어 보내던
+    #: `preferred_date`+`preferred_time_slot` 을 대신한다. (#1873)
+    #:
+    #: 자리가 길이까지 들고 있어 상담 시간을 아무도 다시 정하지 않는다 — 예전에는
+    #: 회원이 적은 종료 시각이 쓰이지 않고 승인이 늘 시작+30분으로 일정을 만들었다.
+    slot_id: str = Field(min_length=1, max_length=64)
     message: str | None = Field(default=None, max_length=2000)
     #: 식단·운동·신체 정보를 트레이너에게 보여 주는 데 동의했는가. (#1022)
     #:
@@ -82,7 +101,12 @@ class ConsultationCreate(BaseModel):
 
 
 #: 트레이너 인박스가 걸 수 있는 상태 필터. `all` 은 처리 이력까지 함께 본다.
-ConsultationStatusFilter = Literal["pending", "accepted", "rejected", "cancelled", "all"]
+#:
+#: `expired` 는 트레이너가 시간 안에 확인하지 않아 자리가 풀린 요청이다 —
+#: `rejected`(트레이너의 판단)와 구분한다. 대기 건수에서는 빠진다. (#1873)
+ConsultationStatusFilter = Literal[
+    "pending", "accepted", "rejected", "cancelled", "expired", "all"
+]
 
 
 class ConsultationDecision(BaseModel):
@@ -100,27 +124,12 @@ class ConsultationDecision(BaseModel):
 
 
 class ConsultationAccept(ConsultationDecision):
-    """Accept a request and optionally book its first consultation session.
+    """승인 본문. 남는 것은 `note` 뿐이다. (#1873)
 
-    Older clients may still send only ``note``.  The trainer schedule inbox
-    sends the complete schedule tuple so accepting and booking are atomic.
+    예전에는 트레이너가 승인하면서 날짜·시각·종류·소요 시간을 함께 보냈다. 지금은
+    **회원이 고른 자리**가 그 넷을 모두 들고 있어 승인이 시각을 정하지 않는다 —
+    시각을 정하는 사람이 둘이면 회원은 자기가 모르는 일정에 묶인다.
     """
-
-    date: Date | None = None
-    time: str | None = Field(default=None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
-    type: str | None = Field(default=None, min_length=1, max_length=30)
-    duration_minutes: int | None = Field(default=None, ge=15, le=600)
-
-    @model_validator(mode="after")
-    def _schedule_is_complete(self) -> ConsultationAccept:
-        values = (self.date, self.time, self.type, self.duration_minutes)
-        if any(value is not None for value in values) and not all(
-            value is not None for value in values
-        ):
-            raise ValueError(
-                "일정을 등록하려면 date, time, type, duration_minutes가 모두 필요합니다."
-            )
-        return self
 
 
 class ConsultationOut(BaseModel):
@@ -133,13 +142,27 @@ class ConsultationOut(BaseModel):
     #: 하고, 대상이 지워지면 이름을 영영 못 만든다(#327).
     trainer_name: str | None = None
     trainer_gym_name: str | None = None
-    exercise_goal: ExerciseGoal
+    #: 응답은 없앤 `health`(건강 관리)를 포함해 저장된 그대로 내려준다 — 입력
+    #: 쪽(`ConsultationCreate`)만 새 목록으로 좁혔다. `preferred_time_slot` 과
+    #: 같은 규칙이고, 이미 접수된 요청을 백필하지 않기 때문이다(#1992).
+    exercise_goal: str
     health_purpose_type: HealthPurposeType
     health_purpose_detail: str | None
+    #: 회원이 고른 자리의 시각 사본. 자리 선택 이전 요청에는 회원이 적어 보낸
+    #: 희망 시각이 그대로 남아 있다 — 그 요청들도 계속 조회돼야 해 두 칸을 지우지
+    #: 않았다(#1873).
     preferred_date: Date
     #: 응답은 과거 morning/afternoon/evening 값을 포함해 저장된 그대로 내려준다 —
     #: 입력 쪽(`ConsultationCreate`)만 새 형식으로 좁혔다.
     preferred_time_slot: str
+    #: 회원이 고른 자리. 화면이 **확정된 일시**를 그리는 자리다 — 승인 뒤에도
+    #: 회원이 "언제로 잡혔는지"를 상담 내역에서 확인할 수 있어야 한다. (#1873)
+    #:
+    #: 자리 선택 이전 요청과, 트레이너가 자리를 지운 요청에서는 비어 있다. 그때는
+    #: 화면이 위 `preferred_date`·`preferred_time_slot` 으로 되돌아간다.
+    slot_id: str | None = None
+    slot_starts_at: datetime | None = None
+    slot_duration_minutes: int | None = None
     message: str | None
     status: str
     #: 거절 사유. 트레이너가 남긴 문장이 그대로 온다. (#473)

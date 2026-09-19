@@ -9,8 +9,15 @@ import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 
+/// 데모에서 담당 트레이너 연결이 아직 살아 있는지 묻는다. (#1865)
+///
+/// 연결 상태는 헬스장 저장소가 들고 있다 — 이 저장소는 묻기만 한다. 두 곳이
+/// 각자 상태를 들고 있으면 트레이너를 끊었는데 담당 코치는 그대로인, 한쪽만
+/// 끊긴 화면이 나온다.
+typedef DemoCoachLinkCheck = bool Function();
+
 /// In-memory demo coach for `USE_MOCK_API=true`. Mirrors the trainer app's
-/// seed identity (김트레이너) so the two demo apps tell one story. Chat is
+/// seed identity ([kDemoTrainerName]) so the two demo apps tell one story. Chat is
 /// stateful for the session so a sent message appears in the thread.
 class MockMemberCoachRepository implements MemberCoachRepository {
   /// [exercise] 를 주면 루틴 완료가 **운동 기록으로도 남는다** — 실서버가 하는
@@ -22,11 +29,20 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   MockMemberCoachRepository({
     MockExerciseRepository? exercise,
     DemoPointsLedger? points,
+    DemoCoachLinkCheck? linked,
   }) : _exercise = exercise,
-       _points = points;
+       _points = points,
+       _linked = linked;
 
   final MockExerciseRepository? _exercise;
   final DemoPointsLedger? _points;
+
+  /// 담당 트레이너 연결 여부를 묻는 곳. 주지 않으면 늘 연결된 것으로 본다
+  /// (연결을 끊을 길이 없는 테스트·단독 사용).
+  final DemoCoachLinkCheck? _linked;
+
+  /// 담당이 살아 있는가. 끊겼으면 코치도, 배정 운동도, 대화도 내 것이 아니다.
+  bool _hasCoach() => _linked?.call() ?? true;
 
   /// 완료로 만들어 둔 운동 기록 — `루틴 id → 세션 id`. 되돌릴 때 무엇을 지울지
   /// 알아야 한다.
@@ -39,7 +55,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   static const _coach = MemberCoach(
     trainerId: 'seed-trainer',
-    name: '김트레이너',
+    name: kDemoTrainerName,
     specialty: '퍼스널 트레이너',
     career: '7년',
     intro: '혈압 관리와 체중 감량 전문 트레이너입니다.',
@@ -63,7 +79,34 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         type: r.type,
         reason: r.reason,
         source: r.source,
+        sets: r.sets,
+        reps: r.reps,
+        weight: r.weight,
       ),
+  ];
+
+  /// 담당 트레이너가 없는 회원에게 내려가는 AI 추천 개인운동.
+  ///
+  /// 서버 `auto_routine_service.SAFE_ROUTINES` 와 같은 두 종목이다 — 승인할
+  /// 사람이 없으므로 범위를 좁힌 것이 안전장치고, 데모가 다른 것을 보여 주면
+  /// 실서버로 옮겼을 때 화면이 달라진다.
+  static const List<CoachRoutine> _autoRoutines = <CoachRoutine>[
+    CoachRoutine(
+      id: 'auto-walk',
+      name: '저강도 걷기',
+      minutes: 20,
+      type: '유산소',
+      reason: '회복 목적의 가벼운 유산소예요. 대화할 수 있는 속도로 걸어 보세요.',
+      source: 'ai',
+    ),
+    CoachRoutine(
+      id: 'auto-stretch',
+      name: '전신 스트레칭',
+      minutes: 10,
+      type: '스트레칭',
+      reason: '굳은 근육을 풀어 다음 운동을 준비해요. 통증이 있으면 멈추세요.',
+      source: 'ai',
+    ),
   ];
 
   /// 트레이너 웹의 김민수 스레드와 공유하는 실제 날짜 기준점.
@@ -250,11 +293,15 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   bool _read = false;
 
   @override
-  Future<MemberCoach?> fetchCoach() async => _coach;
+  Future<MemberCoach?> fetchCoach() async => _hasCoach() ? _coach : null;
 
   @override
-  Future<List<CoachRoutine>> fetchRoutines() async =>
-      List<CoachRoutine>.unmodifiable(_routines);
+  Future<List<CoachRoutine>> fetchRoutines() async => _hasCoach()
+      ? List<CoachRoutine>.unmodifiable(_routines)
+      // 담당이 없으면 서버가 보수적으로 좁힌 추천을 내려준다(#782). 데모가 빈
+      // 목록을 돌려주면 연결을 끊은 회원의 운동 탭에 받을 것이 하나도 남지
+      // 않는다 — 실서버와 같은 모양을 낸다(#2014).
+      : _autoRoutines;
 
   @override
   Future<CoachRoutine> completeRoutine(
@@ -322,6 +369,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       sessionOrder: current.sessionOrder,
       exercises: current.exercises,
       trainerFeedback: current.trainerFeedback,
+      // 배정 값이라 완료를 물려도 그대로 남는다.
+      sets: current.sets,
+      reps: current.reps,
+      weight: current.weight,
     );
     _routines[index] = reverted;
     // 이 완료로 받은 포인트를 회수한다(#1786).
@@ -380,8 +431,10 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<List<CoachSession>> fetchSessions() async => const <CoachSession>[];
 
   @override
-  Future<List<CoachMessage>> fetchChat() async =>
-      List<CoachMessage>.unmodifiable(_chat);
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      _hasCoach()
+      ? List<CoachMessage>.unmodifiable(_chat)
+      : const <CoachMessage>[];
 
   @override
   Stream<List<CoachMessage>> watchChat() =>
@@ -414,6 +467,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 이미 주고받은 대화까지 안 읽은 것으로 치는 셈이라 숫자가 거짓말을 한다.
   @override
   Future<int> unreadCount() async {
+    if (!_hasCoach()) return 0;
     if (_read) return 0;
     final int lastMine = _chat.lastIndexWhere(
       (CoachMessage m) => m.sender == CoachSender.me,

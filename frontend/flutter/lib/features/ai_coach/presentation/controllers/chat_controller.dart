@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
@@ -61,10 +62,13 @@ class ChatController extends StateNotifier<ChatState> {
         .where((ChatMessage m) => !m.pending && m.notice == null)
         .toList();
 
+    // 방금 주고받는 것은 지금 시각이다 — 서버가 저장 시각을 따로 돌려주지
+    // 않으므로 여기서 찍는다(#1918).
+    final DateTime now = nowKst();
     state = state.copyWith(
       messages: <ChatMessage>[
         ...history,
-        ChatMessage(role: ChatRole.user, content: message),
+        ChatMessage(role: ChatRole.user, content: message, at: now),
         const ChatMessage(role: ChatRole.coach, content: '', pending: true),
       ],
       sending: true,
@@ -73,7 +77,7 @@ class ChatController extends StateNotifier<ChatState> {
     try {
       final reply = await _repo.sendMessage(message: message, history: history);
       // 답에 실려 온 감지 결과는 **방금 보낸 회원 메시지**에 붙인다(#1824).
-      final List<ChatMessage> next = _replacePending(reply);
+      final List<ChatMessage> next = _replacePending(reply.withTime(nowKst()));
       final int mine = next.lastIndexWhere((ChatMessage m) => m.isUser);
       if (mine >= 0 && reply.replyToInsight != null) {
         next[mine] = next[mine].withInsight(reply.replyToInsight);

@@ -31,6 +31,8 @@ _DAY_LABELS = ("월", "화", "수", "목", "금", "토", "일")
 @dataclass(frozen=True)
 class FixtureFood:
     name: str
+    #: 먹은 양(g) — 아래 영양이 무엇을 재고 나온 값인가(#1876). 데모 음식은 모두 안다(#2090).
+    amount_g: float
     calories: int
     sodium_mg: int
     sugar_g: float
@@ -42,6 +44,7 @@ class FixtureFood:
         """화면·저장소가 읽는 키 이름 그대로. 세 곳이 같은 키를 쓴다."""
         return {
             "name": self.name,
+            "amount_g": self.amount_g,
             "calories": self.calories,
             "sodium_mg": self.sodium_mg,
             "sugar_g": self.sugar_g,
@@ -106,6 +109,10 @@ class FixtureExercise:
     #: 보였다(분에서 되짚은 수와 픽스처가 적어 둔 수가 달랐다). (#1265)
     sets: int | None = None
     reps: int | None = None
+    #: 근력 항목의 중량(kg). 맨몸 운동은 0 이다 — 근력이면 언제나 값을 하나
+    #: 든다(#1902). 예전에는 이 값이 이름 문자열에만 있어(`레그프레스 70kg`),
+    #: 이름을 쓰는 화면과 필드를 읽는 화면이 같은 기록을 다르게 말했다.
+    weight: float | None = None
 
     @property
     def label(self) -> str:
@@ -207,6 +214,7 @@ class DemoFixture:
         self._foods = {
             key: FixtureFood(
                 name=value["name"],
+                amount_g=float(value["amountG"]),
                 calories=value["calories"],
                 sodium_mg=value["sodiumMg"],
                 sugar_g=value["sugarG"],

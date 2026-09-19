@@ -1,7 +1,12 @@
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 
-enum ConsultationStatus { pending, accepted, rejected, cancelled }
+/// 상담 요청의 상태.
+///
+/// [ConsultationStatus.expired] 는 트레이너가 시간 안에 확인하지 않아 잡고 있던
+/// 자리가 풀린 경우다(#1873). 트레이너의 판단인 [ConsultationStatus.rejected] 와
+/// 구분한다 — 회원에게 보여 줄 문구가 다르고, 다시 신청하면 되는 상황이다.
+enum ConsultationStatus { pending, accepted, rejected, cancelled, expired }
 
 class ConsultationRequest {
   const ConsultationRequest({
@@ -20,27 +25,32 @@ class ConsultationRequest {
     this.decisionNote,
     this.decidedAt,
     this.trainerGymName,
+    this.slotStartsAt,
+    this.slotDurationMinutes,
   });
 
   /// 서버가 접수하며 준 id 로 갈아끼울 때 쓴다 — 화면이 만든 임시 id 는 트레이너
   /// 앱과 이어지지 않는다(#327).
-  ConsultationRequest copyWith({String? id, ConsultationStatus? status}) => ConsultationRequest(
-    id: id ?? this.id,
-    trainerId: trainerId,
-    trainerName: trainerName,
-    trainerRole: trainerRole,
-    exerciseGoal: exerciseGoal,
-    healthPurposeType: healthPurposeType,
-    healthPurposeDetail: healthPurposeDetail,
-    preferredDate: preferredDate,
-    preferredTimeSlot: preferredTimeSlot,
-    message: message,
-    status: status ?? this.status,
-    createdAt: createdAt,
-    decisionNote: decisionNote,
-    decidedAt: decidedAt,
-    trainerGymName: trainerGymName,
-  );
+  ConsultationRequest copyWith({String? id, ConsultationStatus? status}) =>
+      ConsultationRequest(
+        id: id ?? this.id,
+        trainerId: trainerId,
+        trainerName: trainerName,
+        trainerRole: trainerRole,
+        exerciseGoal: exerciseGoal,
+        healthPurposeType: healthPurposeType,
+        healthPurposeDetail: healthPurposeDetail,
+        preferredDate: preferredDate,
+        preferredTimeSlot: preferredTimeSlot,
+        message: message,
+        status: status ?? this.status,
+        createdAt: createdAt,
+        decisionNote: decisionNote,
+        decidedAt: decidedAt,
+        trainerGymName: trainerGymName,
+        slotStartsAt: slotStartsAt,
+        slotDurationMinutes: slotDurationMinutes,
+      );
 
   final String id;
 
@@ -58,8 +68,18 @@ class ConsultationRequest {
 
   /// `healthPurposeType` 이 other 일 때 사용자가 적은 내용.
   final String? healthPurposeDetail;
+
+  /// 고른 자리의 시각 사본. 자리 선택 이전 요청에는 회원이 적어 보낸 희망 시각이
+  /// 그대로 남아 있다 — 그 요청들도 계속 조회돼야 해 두 칸을 지우지 않았다(#1873).
   final DateTime preferredDate;
   final PreferredTime preferredTimeSlot;
+
+  /// 회원이 고른 자리의 시작 시각과 길이. 화면이 **확정된 일시**를 그리는 값이다.
+  ///
+  /// 자리 선택 이전 요청과, 트레이너가 자리를 지운 요청에서는 null 이다. 그때는
+  /// 화면이 위 [preferredDate]·[preferredTimeSlot] 로 되돌아간다.
+  final DateTime? slotStartsAt;
+  final int? slotDurationMinutes;
   final String? message;
   final ConsultationStatus status;
   final DateTime createdAt;
@@ -97,11 +117,16 @@ ConsultationRequest consultationFromJson(Map<String, Object?> j) {
     preferredTimeSlot: preferredTimeSlotFromWire(
       j['preferred_time_slot'] as String?,
     ),
+    slotStartsAt: DateTime.tryParse(
+      (j['slot_starts_at'] as String?) ?? '',
+    )?.toLocal(),
+    slotDurationMinutes: (j['slot_duration_minutes'] as num?)?.toInt(),
     message: j['message'] as String?,
     status: switch (j['status']) {
       'accepted' => ConsultationStatus.accepted,
       'rejected' => ConsultationStatus.rejected,
       'cancelled' => ConsultationStatus.cancelled,
+      'expired' => ConsultationStatus.expired,
       _ => ConsultationStatus.pending,
     },
     createdAt:

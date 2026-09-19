@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,7 +66,7 @@ class _FailingGymRepository implements GymRepository {
   Future<List<Trainer>> fetchRecommendedTrainers() async => const <Trainer>[];
 }
 
-/// MY 탭의 "내 트레이너 · 헬스장" 섹션은 헬스장 연결과 트레이너 연결을 각각
+/// MY 탭의 "내 헬스장 · 트레이너" 섹션은 헬스장 연결과 트레이너 연결을 각각
 /// 따로 끊을 수 있다. 확인 창을 거쳐야만 삭제되는지, 트레이너만 끊었을 때
 /// 헬스장은 남는지 검증한다.
 ///
@@ -146,7 +147,7 @@ void main() {
     );
 
     expect(find.text('온케어짐 신촌점'), findsOneWidget);
-    expect(find.text('김트레이너'), findsOneWidget);
+    expect(find.text(kDemoTrainerName), findsOneWidget);
     expect(find.text('퍼스널 트레이너'), findsOneWidget);
     expect(find.textContaining('상세보기'), findsNothing);
     expect(find.byKey(const Key('gymTrainerDetailButton')), findsOneWidget);
@@ -162,11 +163,11 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
 
-    expect(find.text('My Trainer & Gym'), findsOneWidget);
+    expect(find.text('My Gym & Trainer'), findsOneWidget);
     // 카드의 동작은 상세로 가는 길이다 — 삭제는 그 화면 하단에 있다. (#1057)
     expect(find.byTooltip('Gym details'), findsOneWidget);
     expect(find.byTooltip('Trainer details'), findsOneWidget);
-    expect(find.text('내 트레이너 · 헬스장'), findsNothing);
+    expect(find.text('내 헬스장 · 트레이너'), findsNothing);
   });
 
   testWidgets('헬스장 연결 조회 실패 시 재시도 상태를 표시한다', (WidgetTester tester) async {

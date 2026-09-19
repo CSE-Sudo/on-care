@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/exercise/data/repositories/dio_consultation_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 
 /// 예약 슬롯은 트레이너에 귀속된다(#426). 예전에는 위젯 안에 슬롯 3개가
@@ -68,8 +70,32 @@ void main() {
     }
   });
 
+  test('윤재희만 빼고 모든 트레이너가 상담 폼에서 고를 자리를 갖는다 (#2067)', () async {
+    // 조민혁·발견 헬스장 트레이너에게 자리가 없어, 그들로 상담 신청을 열면 헬스장
+    // 전화 안내만 떴다. 상담 폼과 같은 조건(`1:1 PT`, 비어 있음, 4시간 뒤)으로 본다.
+    final MockGymRepository gyms = MockGymRepository();
+    final MockConsultationRepository consultations = MockConsultationRepository(
+      gyms,
+    );
+
+    for (final Trainer trainer in await gyms.fetchAllTrainers()) {
+      final List<TrainerSlot> slots = await consultations.fetchSlots(
+        trainer.id,
+      );
+      if (trainer.id == 'trainer-yoon') {
+        expect(slots, isEmpty, reason: '윤재희는 빈 상태를 보여 주려고 비워 둔다');
+      } else {
+        expect(
+          slots,
+          isNotEmpty,
+          reason: '${trainer.name}(${trainer.id}) 에게 자리가 없다',
+        );
+      }
+    }
+  });
+
   test('슬롯이 없는 트레이너는 빈 목록이다', () async {
-    // 윤트레이너는 빈 상태 화면을 데모에서 보려고 일부러 비워 뒀다.
+    // 윤재희는 빈 상태 화면을 데모에서 보려고 일부러 비워 뒀다.
     expect(await MockGymRepository().fetchSlots('trainer-yoon'), isEmpty);
     expect(await MockGymRepository().fetchSlots('trainer-nope'), isEmpty);
   });

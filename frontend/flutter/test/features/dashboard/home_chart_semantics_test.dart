@@ -34,7 +34,6 @@ void main() {
     exerciseMinutes: 45,
     exerciseCalories: 520,
     exerciseCount: 4,
-    todaySchedule: <ScheduleItem>[],
     weekScore: 85,
     weekScoreDelta: 12,
     sodiumWarning: null,

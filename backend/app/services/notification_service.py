@@ -199,7 +199,15 @@ def unread_count(db: Session, member_id: str) -> int:
 MEMBER_COACH_CHAT = "coach_chat"
 MEMBER_ROUTINE = "routine"
 MEMBER_SCHEDULE = "member_schedule"
+#: 담당 연결 — 트레이너의 담당 요청 도착·연결됨·연결 해제. 이름은 예전에 상담
+#: 결과도 함께 싣던 때의 것이다. 목적지는 운동 탭(담당 트레이너 자리)이다.
 MEMBER_CONSULTATION = "consultation_result"
+#: 회원이 낸 상담 요청의 처리 결과 — 승인·거절·만료(#2067). 결과와 사유는 **내 상담
+#: 요청**에 있어, 담당 연결과 갈래를 나눠 그 화면으로 보낸다. 같은 갈래였을 때는
+#: 거절 알림을 눌러도 운동 탭으로 가서 사유를 따로 찾아야 했다.
+#: `notifications.category` 가 `String(20)` 이라 20자를 넘기면 안 된다.
+MEMBER_CONSULTATION_DECISION = "consult_decision"
+
 #: 포인트 쿠폰(내 혜택)으로 가는 알림 — 담당 해제로 인한 취소·만료 임박. (#1787)
 MEMBER_BENEFITS = "benefits"
 
@@ -220,6 +228,9 @@ TRAINER_CONSULTATION_KIND = "consultation"
 TRAINER_RESERVATION_KIND = "reservation"
 #: 담당 회원이 건강 목표를 바꿨다 → 그 회원 상세(`subject_id`). (#1832)
 TRAINER_HEALTH_GOAL_KIND = "health_goal"
+#: 담당 회원이 이름을 바꿨다 → 그 회원 상세(`subject_id`). 이미 받은 알림은 옛
+#: 이름으로 남으므로 둘을 잇는다. (#2065)
+TRAINER_MEMBER_NAME_KIND = "member_name"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.

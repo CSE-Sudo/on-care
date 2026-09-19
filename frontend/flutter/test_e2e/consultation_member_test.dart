@@ -3,13 +3,15 @@
 /// 트레이너 웹 단계와 번갈아 실행된다. 순서와 실행 방법은
 /// `tool/run_consultation_e2e.sh` 와 `docs/local_fullstack.md` 참고.
 ///
-///  1. `member-request`      — 새 회원 둘이 UI 폼으로 상담을 신청한다.
+///  1. `member-request`      — 트레이너가 연 자리를 새 회원 둘이 UI 폼으로 골라
+///                              상담을 신청한다.
 ///  2. (트레이너) `trainer-accept`
 ///  3. `member-after-accept` — 승인 결과·담당·일정이 회원에게 돌아온다.
 ///  4. (트레이너) `trainer-reject`
 ///  5. `member-after-reject` — 거절 사유가 그대로 보이고 다시 신청할 수 있다.
 ///  6. `edge-cases`          — 중복 제출·남의 상담 조회.
-///  7. `cleanup`             — 계정 둘을 지운다.
+///  7. `cleanup`             — 승인이 만든 일정과 이번 실행이 연 자리를 닫고 계정
+///                              둘을 지운다.
 ///
 /// ## 왜 계정을 새로 만드는가
 ///
@@ -21,6 +23,7 @@
 /// 막힌다) 계정을 둘 쓴다.
 library;
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -47,12 +50,31 @@ Map<String, dynamic>? _pendingOf(List<Map<String, dynamic>> rows) {
 Future<void> _requestAs(
   WidgetTester tester, {
   required String email,
+  required String slotId,
   required String message,
 }) async {
   await bootSignedOut(tester);
   await loginAsMember(tester, email: email);
   await openConsultationForm(tester, trainerId);
-  await submitConsultation(tester, goalIndex: _goalStrength, message: message);
+  await submitConsultation(
+    tester,
+    goalIndex: _goalStrength,
+    slotId: slotId,
+    message: message,
+  );
+}
+
+/// 상담이 고를 자리를 트레이너 계정으로 연다. (#1873)
+///
+/// 상담 시각은 이제 트레이너가 열어 둔 `1:1 PT` 자리 중에서만 고른다. 회원마다
+/// 자리를 하나씩 쓴다 — 신청이 자리를 잠그므로 둘이 같은 자리를 고를 수 없다.
+/// 날짜를 하루씩 벌려 둔다: 같은 시각이면 폼에 두 칩이 같은 시각으로 나란히 선다.
+Future<(String, DateTime)> _openSlot(E2eApi trainer, int daysAhead) async {
+  final DateTime startsAt = consultSlotStartsAt(daysAhead);
+  final Map<String, dynamic> slot = await trainer.createSlotAsTrainer(
+    startsAt: startsAt,
+  );
+  return (slot['id']! as String, startsAt);
 }
 
 void main() {
@@ -83,6 +105,18 @@ void main() {
           'rejectId': rejectId,
         });
 
+        // 자리를 열자마자 id 를 남긴다 — 이 단계가 중간에 죽어도 정리가 닫는다.
+        final E2eApi trainerApi = await E2eApi.login(trainerEmail);
+        final (String acceptSlotId, DateTime acceptStartsAt) = await _openSlot(
+          trainerApi,
+          2,
+        );
+        final (String rejectSlotId, _) = await _openSlot(trainerApi, 3);
+        E2eState.merge(<String, Object?>{
+          'acceptSlotId': acceptSlotId,
+          'rejectSlotId': rejectSlotId,
+        });
+
         // 새 회원에게는 담당이 없다. 승인이 담당을 **만드는지** 보려면 여기서
         // 비어 있어야 한다.
         final E2eApi acceptApi = await E2eApi.login(acceptEmail);
@@ -92,7 +126,12 @@ void main() {
           reason: '새 회원에게 이미 담당 트레이너가 있습니다.',
         );
 
-        await _requestAs(tester, email: acceptEmail, message: _acceptMessage);
+        await _requestAs(
+          tester,
+          email: acceptEmail,
+          slotId: acceptSlotId,
+          message: _acceptMessage,
+        );
 
         // 화면이 아니라 서버에 남았는지 본다. 그리고 **입력한 값 그대로** 인지.
         final Map<String, dynamic>? saved = await _waitForPending(acceptApi);
@@ -104,19 +143,31 @@ void main() {
         expect(saved['exercise_goal'], 'strength');
         // 운동 목표에서 자동 매핑된 값이다(#1112) — strength → general.
         expect(saved['health_purpose_type'], 'general');
-        // 희망 시각은 필수라 UI 가 넣은 값이 그대로 남는다(#1587).
-        expect(saved['preferred_time_slot'], consultPreferredTimeSlot);
+        // 회원이 고른 자리가 그대로 남고, 그 자리의 시각이 옮겨 적힌다(#1873).
+        expect(saved['slot_id'], acceptSlotId);
+        expect(
+          DateTime.parse(saved['slot_starts_at'] as String).toUtc(),
+          acceptStartsAt,
+        );
+        expect(saved['preferred_date'], seoulDate(acceptStartsAt));
+        expect(saved['preferred_time_slot'], consultStartTime);
         expect(saved['message'], _acceptMessage);
         E2eState.merge(<String, Object?>{'acceptConsultationId': saved['id']});
 
         // 거절 사이클용 요청도 UI 로 낸다.
-        await _requestAs(tester, email: rejectEmail, message: _rejectMessage);
+        await _requestAs(
+          tester,
+          email: rejectEmail,
+          slotId: rejectSlotId,
+          message: _rejectMessage,
+        );
         final E2eApi rejectApi = await E2eApi.login(rejectEmail);
         final Map<String, dynamic>? rejectSaved = await _waitForPending(
           rejectApi,
         );
         expect(rejectSaved, isNotNull);
         expect(rejectSaved!['message'], _rejectMessage);
+        expect(rejectSaved['slot_id'], rejectSlotId);
         E2eState.merge(<String, Object?>{
           'rejectConsultationId': rejectSaved['id'],
         });
@@ -192,19 +243,30 @@ void main() {
         final String acceptConsultationId = state.require(
           'acceptConsultationId',
         );
+        final String rejectSlotId = state.require('rejectSlotId');
         final E2eApi rejected = await E2eApi.login(rejectEmail);
 
-        // 거절당한 회원은 **다시 신청할 수 있다.**
+        // 거절당한 회원은 **다시 신청할 수 있다.** 거절이 자리를 되돌리므로 같은
+        // 자리를 다시 고를 수 있다(#1873) — 되돌리지 않으면 여기서 409 가 난다.
         final Map<String, dynamic> again = await rejected.createConsultation(
           trainerId: trainerId,
+          slotId: rejectSlotId,
         );
         expect(again['status'], 'pending');
 
-        // 대기 중인데 또 내면 막힌다.
+        // 대기 중인데 또 내면 막힌다. 자리를 놓친 409(`slot_unavailable`)가 아니라
+        // 대기 중복 409 여야 한다 — 서버는 중복을 자리보다 먼저 본다.
+        final Response<Object?> duplicate = await rejected
+            .createConsultationRaw(trainerId: trainerId, slotId: rejectSlotId);
         expect(
-          await rejected.createConsultationStatus(trainerId: trainerId),
+          duplicate.statusCode,
           409,
           reason: '대기 중 상담이 있는데 중복 제출이 통과했습니다.',
+        );
+        expect(
+          (duplicate.data! as Map<String, dynamic>)['detail'],
+          isA<String>(),
+          reason: '대기 중복이 아니라 다른 이유로 막혔습니다: ${duplicate.data}',
         );
 
         // 남의 상담은 보이지 않는다.
@@ -236,10 +298,22 @@ void main() {
       case 'cleanup':
         // 일정을 먼저 지운다. `trainer_schedule.member_id` 는 SET NULL 이라 계정을
         // 먼저 지우면 주인 없는 상담 일정이 트레이너 달력에 영영 남는다.
+        //
+        // 이번 실행이 연 자리도 닫는다(#1873). 두지 않으면 다음 실행과 예약
+        // 스위트가 보는 트레이너 자리 목록에 쌓인다.
         final String? sessionId = state.values['sessionId'] as String?;
-        if (sessionId != null) {
+        final List<String> slotIds = <String>[
+          for (final String key in <String>['acceptSlotId', 'rejectSlotId'])
+            if (state.values[key] case final String id) id,
+        ];
+        if (sessionId != null || slotIds.isNotEmpty) {
           final E2eApi trainerApi = await E2eApi.login(trainerEmail);
-          await trainerApi.deleteTrainerSession(sessionId);
+          if (sessionId != null) {
+            await trainerApi.deleteTrainerSession(sessionId);
+          }
+          for (final String id in slotIds) {
+            await trainerApi.closeSlotAsTrainer(id);
+          }
         }
         for (final String key in <String>['acceptEmail', 'rejectEmail']) {
           final String? email = state.values[key] as String?;

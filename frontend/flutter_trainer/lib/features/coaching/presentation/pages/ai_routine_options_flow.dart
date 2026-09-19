@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/errors/app_error.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/routine_history_entry.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
@@ -632,9 +633,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         const <RoutineHistoryEntry>[];
     for (final RoutineHistoryEntry entry in history) {
       final List<String> done = <String>[
-        for (final String exercise in entry.exercises)
-          if (exercise.trim().endsWith('✓'))
-            exercise.trim().substring(0, exercise.trim().length - 1).trim(),
+        for (final ClientExerciseItem exercise in entry.exercises)
+          if (exercise.done) exercise.name,
       ];
       if (done.isEmpty) continue;
       return done.length == 1
@@ -1135,28 +1135,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               }),
             ),
           const SizedBox(height: OnCareSpacing.s12),
-          // 취소 버튼에 테스트가 찾는 Key 가 있어 AppButtonPair 대신 같은 모양을
-          // Row 로 만든다.
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: AppButton(
-                  key: const ValueKey<String>('hide-add-exercise-form'),
-                  label: l.actionCancel,
-                  onPressed: () => setState(() => _showAddExercise = false),
-                  variant: AppButtonVariant.secondary,
-                  fullWidth: true,
-                ),
-              ),
-              const SizedBox(width: OnCareSpacing.buttonGap),
-              Expanded(
-                child: AppButton(
-                  label: l.aiRegister,
-                  onPressed: _addExercise,
-                  fullWidth: true,
-                ),
-              ),
-            ],
+          AppButtonPair(
+            cancelKey: const ValueKey<String>('hide-add-exercise-form'),
+            cancelLabel: l.actionCancel,
+            onCancel: () => setState(() => _showAddExercise = false),
+            confirmLabel: l.aiRegister,
+            onConfirm: _addExercise,
           ),
         ],
       ),

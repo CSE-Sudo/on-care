@@ -162,14 +162,27 @@ void main() {
       expect(OnCareTypography.buttonSmall.fontSize, 13);
     });
 
-    test('기기 배율은 1.0 ~ 1.3 으로 묶인다', () {
+    test('기기 배율은 0.8 ~ 2.0 으로 묶인다 (#1942)', () {
+      // WCAG 1.4.4 는 200% 확대를 요구한다. 1.3 에서 자르면 손쉬운 사용에서
+      // 200% 로 올린 회원이 이 앱만 열었을 때 글자가 30% 만 커진다.
       expect(
         OnCareTypography.scaler(const TextScaler.linear(2)).scale(10),
-        closeTo(13, 1e-9),
+        closeTo(20, 1e-9),
       );
+      // 글자를 **줄이는** 설정도 회원의 선택이다 — 하한이 1.0 이던 동안에는
+      // 작게 쓰는 사람의 설정만 조용히 무시됐다.
       expect(
         OnCareTypography.scaler(const TextScaler.linear(0.8)).scale(10),
-        closeTo(10, 1e-9),
+        closeTo(8, 1e-9),
+      );
+      // 상한·하한 밖은 각각 그 값에서 묶인다.
+      expect(
+        OnCareTypography.scaler(const TextScaler.linear(3)).scale(10),
+        closeTo(20, 1e-9),
+      );
+      expect(
+        OnCareTypography.scaler(const TextScaler.linear(0.5)).scale(10),
+        closeTo(8, 1e-9),
       );
     });
   });

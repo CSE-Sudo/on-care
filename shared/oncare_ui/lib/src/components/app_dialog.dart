@@ -102,7 +102,9 @@ class AppDialog extends StatelessWidget {
                     bodyPadding ??
                     EdgeInsets.fromLTRB(
                       OnCareSpacing.dialogPadding,
-                      hasHeader ? OnCareSpacing.s12 : OnCareSpacing.dialogPadding,
+                      hasHeader
+                          ? OnCareSpacing.s12
+                          : OnCareSpacing.dialogPadding,
                       OnCareSpacing.dialogPadding,
                       footer == null ? OnCareSpacing.dialogPadding : 0,
                     ),
@@ -190,6 +192,9 @@ class AppSheet extends StatelessWidget {
     required this.child,
     this.footer,
     this.showClose = true,
+    this.leading,
+    this.trailing,
+    this.pinFooter = true,
   });
 
   final String? title;
@@ -197,6 +202,19 @@ class AppSheet extends StatelessWidget {
   final Widget child;
   final Widget? footer;
   final bool showClose;
+
+  /// 제목 왼쪽에 놓는 위젯. AI 가 말하는 시트는 여기에 [OniAvatar] 를 둬서
+  /// 홈의 AI 조언 카드와 같은 신호를 준다(#1897).
+  final Widget? leading;
+
+  /// 제목 오른쪽, 닫기 X 가 놓이던 자리에 놓는 위젯. `showClose: false` 로
+  /// 비워 둔 자리를 화면의 주된 동작이 쓴다(#1897).
+  final Widget? trailing;
+
+  /// 하단 버튼을 바닥에 고정할지. 기본은 고정(#1432)이고, 내용이 길어 버튼이
+  /// 마지막 줄을 덮는 시트는 `false` 로 두어 버튼을 스크롤 끝으로 보낸다 —
+  /// 다 읽은 뒤에야 버튼이 나오므로 글자가 가려지지 않는다(#1897).
+  final bool pinFooter;
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +241,10 @@ class AppSheet extends StatelessWidget {
                 ),
               ),
             ),
-            if (title != null || showClose)
+            if (title != null ||
+                showClose ||
+                leading != null ||
+                trailing != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   OnCareSpacing.sheetPadding,
@@ -233,6 +254,10 @@ class AppSheet extends StatelessWidget {
                 ),
                 child: Row(
                   children: <Widget>[
+                    if (leading != null) ...<Widget>[
+                      leading!,
+                      const SizedBox(width: OnCareSpacing.s12),
+                    ],
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -254,6 +279,7 @@ class AppSheet extends StatelessWidget {
                         ],
                       ),
                     ),
+                    ?trailing,
                     if (showClose) const AppCloseButton(),
                   ],
                 ),
@@ -261,10 +287,20 @@ class AppSheet extends StatelessWidget {
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(OnCareSpacing.sheetPadding),
-                child: child,
+                child: (footer == null || pinFooter)
+                    ? child
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          child,
+                          const SizedBox(height: OnCareSpacing.s16),
+                          SafeArea(top: false, child: footer!),
+                        ],
+                      ),
               ),
             ),
-            if (footer != null)
+            if (footer != null && pinFooter)
               SafeArea(
                 top: false,
                 child: Padding(

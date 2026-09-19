@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -520,7 +521,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
                 key: const Key('exerciseSetsStepper'),
                 value: _sets,
                 min: 1,
-                max: 40,
+                max: kMaxExerciseSets.toDouble(),
                 suffix: l.exUnitSets,
                 onChanged: (double v) {
                   setState(() => _sets = v);
@@ -534,7 +535,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
                 key: const Key('exerciseRepsStepper'),
                 value: _reps,
                 min: 1,
-                max: 999,
+                max: kMaxExerciseReps.toDouble(),
                 suffix: l.exUnitReps,
                 onChanged: (double v) => setState(() => _reps = v),
               ),
@@ -545,7 +546,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
                 key: const Key('exerciseWeightStepper'),
                 value: _weight,
                 min: 0,
-                max: 500,
+                max: kMaxExerciseWeightKg,
                 // 원판은 0.5kg 단위로 붙는다 — 버튼 한 번에 1kg 이 실용적인
                 // 걸음이고, 소수 자리는 직접 적어 채운다.
                 decimals: 1,

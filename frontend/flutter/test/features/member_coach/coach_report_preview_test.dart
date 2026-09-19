@@ -48,7 +48,7 @@ class _ReportThreadRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat() async => messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() =>
@@ -78,7 +78,7 @@ class _ReportThenChatRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat() async => messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() =>

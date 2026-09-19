@@ -1,8 +1,19 @@
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 
 /// 상담 목록 한 쪽의 건수. 서버 기본값과 같다(#980).
 const int consultationPageSize = 50;
+
+/// 회원에게 열리는 예약 자리 종류. 헬스장 탭 목록도 상담 폼도 이것만 쓴다(#1849).
+const String kConsultationSessionType = '1:1 PT';
+
+/// 상담 폼에 보이는 자리의 하한 — 시작까지 이만큼은 남아 있어야 고를 수 있다.
+///
+/// 서버 `CONSULT_SLOT_MIN_LEAD_HOURS` 와 같은 값이다. 만료 기준(자리 시작 2시간
+/// 전)보다 크게 둬야 트레이너에게 확인할 시간이 남는다 — 같게 두면 경계에서
+/// 신청 직후 만료되는 자리를 고를 수 있다(#1873).
+const Duration kConsultationSlotMinLead = Duration(hours: 4);
 
 /// 상담 신청 접수·조회. (#327)
 abstract class ConsultationRepository {
@@ -19,6 +30,13 @@ abstract class ConsultationRepository {
   Future<List<ConsultationRequest>> fetchMine({int limit});
 
   Future<void> cancel(String consultationId) async {}
+
+  /// 상담을 신청할 수 있는 그 트레이너의 빈 자리. (#1873)
+  ///
+  /// 헬스장 탭의 예약 가능 시간 목록과 다른 점은 둘이다 — 신청하는 순간 자리가
+  /// 잠기므로 **트레이너가 확인할 틈이 남은 자리**만 오고, 이미 잠긴 자리는 빠진다.
+  /// 비어 있으면 화면은 신청 버튼을 잠그고 헬스장 전화를 안내한다.
+  Future<List<TrainerSlot>> fetchSlots(String trainerId);
 }
 
 /// 서버가 409 로 거절한 경우 — 같은 헬스장/트레이너에 대기 중인 신청이 이미 있다.
@@ -26,4 +44,33 @@ abstract class ConsultationRepository {
 /// 서버 판정을 최종으로 삼는다.
 class DuplicatePendingConsultation implements Exception {
   const DuplicatePendingConsultation();
+}
+
+/// 서버가 409 로 거절했는데 **고른 자리를 잡을 수 없어서**인 경우. (#1873)
+///
+/// 다른 회원이 먼저 그 자리를 골랐거나, 폼을 띄워 둔 사이에 신청 하한을 지났다.
+/// [DuplicatePendingConsultation] 과 같은 409 지만 뜻이 반대라 따로 둔다 — 섞으면
+/// 자리를 놓친 회원을 "이미 대기 중" 으로 잘못 표시해 다시 신청하는 길을 막는다.
+class ConsultationSlotTaken implements Exception {
+  const ConsultationSlotTaken();
+}
+
+/// 서버가 409 로 거절했는데 **답을 기다리는 요청이 상한에 닿아서**인 경우. (#1628)
+///
+/// 대기 요청 하나가 트레이너 자리 하나를 잠가서, 한 회원이 여러 트레이너의 자리를
+/// 한꺼번에 묶지 못하게 서버가 막는다. [DuplicatePendingConsultation] 과 같은 409
+/// 지만 이 트레이너에게는 신청한 적이 없다 — 섞으면 "이미 대기 중" 으로 잘못 표시한다.
+class TooManyPendingConsultations implements Exception {
+  const TooManyPendingConsultations({this.limit});
+
+  /// 동시에 둘 수 있는 대기 요청 수(서버 설정). 서버가 싣지 않았으면 null.
+  final int? limit;
+}
+
+/// 서버가 429 로 거절한 경우 — 24시간 신청 한도를 넘었다. (#1628)
+class ConsultationRateLimited implements Exception {
+  const ConsultationRateLimited({this.retryAfter});
+
+  /// 다시 신청할 수 있기까지(서버 `Retry-After`). 모르면 null.
+  final Duration? retryAfter;
 }

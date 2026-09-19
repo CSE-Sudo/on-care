@@ -4,6 +4,7 @@
 """
 from __future__ import annotations
 
+import json
 from datetime import date
 from pathlib import Path
 
@@ -24,15 +25,31 @@ def test_backend_copy_matches_the_shared_original():
     assert FIXTURE_PATH.read_bytes() == SHARED_PATH.read_bytes()
 
 
+def test_every_demo_food_knows_how_much_was_eaten():
+    """데모 식단의 모든 음식에 내용량이 있다 (#2090).
+
+    내용량은 나머지 영양이 무엇을 재고 나온 값인가다(#1876). 비어 있으면 화면은
+    아무것도 적지 않으므로(0g 은 안 먹었다로 읽힌다) 데모에서 양이 보이지 않는다.
+    """
+    fixture = load_fixture()
+    for day in fixture.days_for(date(2026, 8, 16)):
+        for meal in day.meals:
+            for food in meal.foods:
+                assert food.amount_g > 0, food.name
+            # 시드가 DB 에 옮기는 글자에도 실린다.
+            stored = json.loads(meal.foods_json())
+            assert all(row["amount_g"] > 0 for row in stored), meal.slug
+
+
 def test_curated_days_keep_the_numbers_the_demo_says_out_loud():
     days = load_fixture().days_for(date(2026, 8, 16))
     today, yesterday = days[-1], days[-2]
 
-    assert (today.calories, today.sodium_mg, today.sugar_g) == (1067, 3428, 17.8)
+    assert (today.calories, today.sodium_mg, today.sugar_g) == (1054, 4657, 16.7)
     assert (yesterday.calories, yesterday.sodium_mg, yesterday.sugar_g) == (
-        2380,
-        2261,
-        63.0,
+        3231,
+        1338,
+        64.2,
     )
 
 

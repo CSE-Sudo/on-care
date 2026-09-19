@@ -37,7 +37,7 @@ const String kDietDayMessagesKey = 'diet_day_messages';
 ///   day without re-running on every boot.
 ///
 /// **Why this matters.** `LocalApiInterceptor._dashboardSummary`
-/// aggregates `dietEntries` / `exerciseSessions` / `scheduleEvents`
+/// aggregates `dietEntries` / `exerciseSessions`
 /// in real time with `WHERE date = today`. The legacy `seeded_v2`
 /// boolean flag would lock seed rows to the *first boot date* and
 /// produce an all-zero dashboard for every visitor on subsequent days.
@@ -68,9 +68,6 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     await (db.delete(db.dietEntries)..where((t) => t.id.like('seed-%'))).go();
     await (db.delete(
       db.exerciseSessions,
-    )..where((t) => t.id.like('seed-%'))).go();
-    await (db.delete(
-      db.scheduleEvents,
     )..where((t) => t.id.like('seed-%'))).go();
     await (db.delete(
       db.notificationItems,
@@ -143,88 +140,35 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
     // **실제로 한** 운동만 쌓는다. 못 한 항목까지 넣으면 이행률은 67% 인데 주간
     // 운동 시간은 100% 인 날이 나온다.
     //
-    // 하루에 같은 종류가 둘일 수 있어(PT 날의 레그프레스·레그컬은 둘 다 근력)
-    // 종류로 합친다 — 주간 활동 그래프가 하루·종류당 한 칸을 그린다.
+    // **운동 하나가 세션 하나**다 — 회원이 직접 적은 기록과 같은 모양이고,
+    // 백엔드 시드(`seed_member_data`)와도 **같은 규칙**이라야 mock 모드와 실 API
+    // 모드가 같은 수를 말한다(#1265).
+    //
+    // 예전에는 종류로 합쳐 한 행에 여러 종목을 담았다. 그러면 종목별 세트·횟수·
+    // 중량을 담을 칸이 없어 픽스처가 그 수를 **이름 문자열에** 적어 넣어야
+    // 했다(#1902). 유형별 합계는 주간 조회가 따로 세므로 나눠 넣어도 그래프는
+    // 그대로다.
     await db.batch((Batch b) {
       b.insertAll(db.exerciseSessions, <ExerciseSessionsCompanion>[
         for (final FixtureDay day in days)
-          for (final MapEntry<String, _TypeTotals> entry in _byType(
-            day.doneExercises,
-          ).entries)
+          for (final (int index, FixtureExercise e)
+              in day.doneExercises.indexed)
             ExerciseSessionsCompanion.insert(
-              id: 'seed-ex-${day.date}-${entry.key}',
+              id: 'seed-ex-${day.date}-$index',
               weekStart: day.weekStart,
               dayLabel: day.dayLabel,
-              type: entry.key,
-              minutes: entry.value.minutes,
-              calories: entry.value.calories,
-              // 픽스처가 적어 둔 이름·세트·횟수를 그대로 남긴다 — 백엔드 시드와
-              // **같은 규칙**이라야 mock 모드와 실 API 모드가 같은 수를
-              // 말한다. (#1265)
-              name: Value(entry.value.name),
-              sets: Value(entry.value.sets),
-              reps: Value(entry.value.reps),
+              type: e.type,
+              minutes: e.minutes,
+              calories: e.calories,
+              name: Value(e.name),
+              sets: Value(e.type == 'strength' ? e.sets : null),
+              reps: Value(e.type == 'strength' ? e.reps : null),
             ),
       ]);
     });
 
     // ---- Today's schedule (2 events) ----
-    await db.batch((Batch b) {
-      b.insertAll(db.scheduleEvents, <ScheduleEventsCompanion>[
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-hospital',
-          date: today,
-          time: '10:00',
-          title: '병원 정기검진',
-          category: 'hospital',
-          emoji: const Value('🏥'),
-          colorHex: const Value('#FEE2E2'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-gym',
-          date: today,
-          time: '18:00',
-          title: '헬스장 운동',
-          category: 'exercise',
-          emoji: const Value('💪'),
-          colorHex: const Value('#DCFCE7'),
-        ),
-        // 월 전반에 흩뿌린 데모 일정(카테고리별) — 캘린더 색상 구분이
-        // 보이도록. colorHex 는 생략(프론트가 category 로 색칠).
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-nutrition',
-          date: '${today.substring(0, 7)}-05',
-          time: '14:00',
-          title: '영양 상담',
-          category: 'meal',
-          emoji: const Value('🍽️'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-med',
-          date: '${today.substring(0, 7)}-12',
-          time: '09:00',
-          title: '혈압약 처방',
-          category: 'medication',
-          emoji: const Value('💊'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-family',
-          date: '${today.substring(0, 7)}-22',
-          time: '12:00',
-          title: '가족 모임',
-          category: 'other',
-          emoji: const Value('📌'),
-        ),
-        ScheduleEventsCompanion.insert(
-          id: 'seed-evt-pt',
-          date: '${today.substring(0, 7)}-26',
-          time: '19:00',
-          title: 'PT 세션',
-          category: 'exercise',
-          emoji: const Value('💪'),
-        ),
-      ]);
-    });
+    await db.batch((Batch b) {});
 
     // ---- Notifications ----
     await db.batch((Batch b) {
@@ -234,7 +178,7 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
           id: 'seed-noti-1',
           createdAt: now.subtract(const Duration(minutes: 10)),
           title: '나트륨 섭취 주의',
-          body: '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.',
+          body: '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.',
           category: 'reminder',
         ),
         NotificationItemsCompanion.insert(
@@ -248,21 +192,21 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
           id: 'seed-noti-5',
           createdAt: now.subtract(const Duration(minutes: 30)),
           title: '새 운동 루틴이 도착했어요',
-          body: '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.',
+          body: '$kDemoTrainerName 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.',
           category: 'routine',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-7',
           createdAt: now.subtract(const Duration(minutes: 45)),
           title: '이번 주 리포트가 등록됐어요',
-          body: '김트레이너님이 이번 주 리포트를 등록했어요.',
+          body: '$kDemoTrainerName 트레이너님이 이번 주 리포트를 등록했어요.',
           category: 'coach_chat',
         ),
         NotificationItemsCompanion.insert(
           id: 'seed-noti-2',
           createdAt: now.subtract(const Duration(hours: 1)),
           title: 'PT 수업 완료',
-          body: '오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!',
+          body: '오늘 18:00 $kDemoTrainerName 트레이너와 12회차 PT를 마쳤어요!',
           category: 'achievement',
         ),
         NotificationItemsCompanion.insert(
@@ -316,64 +260,6 @@ Future<void> seedIfEmpty(AppDatabase db, {DemoFixture? fixture}) async {
   );
 
   await db.putValue('seeded_v19', today);
-}
-
-/// 하루·한 종류로 접은 값. 운동 기록 한 행이 되는 그대로다.
-class _TypeTotals {
-  const _TypeTotals({
-    required this.minutes,
-    required this.calories,
-    required this.name,
-    this.sets,
-    this.reps,
-  });
-
-  final int minutes;
-  final int calories;
-  final String name;
-
-  /// 근력이면 그날 한 세트 수의 **합**. 다른 유형은 null 이다.
-  final int? sets;
-
-  /// 근력이면 그날 한 횟수 중 가장 많은 수. 세트와 달리 더하지 않는다 — 한
-  /// 세트당 수라 합계는 아무도 한 적 없는 값이 된다.
-  final int? reps;
-}
-
-/// 운동을 종류별로 합친다. 픽스처 순서를 유지한다.
-///
-/// 백엔드 시드(`seed_member_data._by_type`)와 **같은 규칙**이다 — 한쪽만 고치면
-/// mock 모드와 실 API 모드가 같은 날에 다른 수를 말한다. (#1265)
-Map<String, _TypeTotals> _byType(List<FixtureExercise> exercises) {
-  final Map<String, _TypeTotals> totals = <String, _TypeTotals>{};
-  for (final FixtureExercise exercise in exercises) {
-    final _TypeTotals? prev = totals[exercise.type];
-    final bool strength = exercise.type == 'strength';
-    totals[exercise.type] = _TypeTotals(
-      minutes: (prev?.minutes ?? 0) + exercise.minutes,
-      calories: (prev?.calories ?? 0) + exercise.calories,
-      name: prev == null || prev.name.isEmpty
-          ? exercise.name
-          : '${prev.name}, ${exercise.name}',
-      sets: strength ? _add(prev?.sets, exercise.sets) : null,
-      reps: strength ? _peak(prev?.reps, exercise.reps) : null,
-    );
-  }
-  return totals;
-}
-
-/// 둘 다 없으면 null. 하나만 있으면 그 값 — 0 으로 채우지 않는다. 0 은
-/// "0세트를 했다" 가 되고 null 은 "적지 않았다" 다.
-int? _add(int? left, int? right) {
-  if (left == null) return right;
-  if (right == null) return left;
-  return left + right;
-}
-
-int? _peak(int? left, int? right) {
-  if (left == null) return right;
-  if (right == null) return left;
-  return left > right ? left : right;
 }
 
 String _fmtDate(DateTime d) =>

@@ -50,6 +50,100 @@ def _aware(value: datetime) -> datetime:
 _SESSION_DURATION_MINUTES = {"1:1 PT": 60, "상담": 30}
 
 
+#: 회원에게 보이는 예약 자리 종류. 헬스장 탭 목록도 상담 신청 폼도 이것만 쓴다
+#: (#1849 유지). `상담` 종류는 코드에 남아 있지만 이 흐름에서는 쓰지 않는다.
+CONSULTATION_SESSION_TYPE = "1:1 PT"
+
+
+def consultation_slots(
+    db: Session, trainer_id: str, *, after: datetime
+) -> list[TrainerReservationSlot]:
+    """상담 신청 폼이 보여 줄 빈 자리. [after] 이후에 시작하는 것만. (#1873)
+
+    신청하는 순간 자리를 잠그므로, 트레이너가 확인할 틈이 남아 있는 자리만 보여야
+    한다 — 하한은 호출자가 만료 기준보다 크게 잡아 넘긴다
+    (`consultation_service.CONSULT_SLOT_MIN_LEAD_HOURS`).
+
+    이미 잠겼거나(`remaining <= 0`) 트레이너가 닫은 자리는 빠진다.
+    """
+    return list(
+        db.scalars(
+            select(TrainerReservationSlot)
+            .where(
+                TrainerReservationSlot.trainer_id == trainer_id,
+                TrainerReservationSlot.session_type == CONSULTATION_SESSION_TYPE,
+                TrainerReservationSlot.is_closed.is_(False),
+                TrainerReservationSlot.remaining > 0,
+                TrainerReservationSlot.starts_at > after,
+            )
+            .order_by(TrainerReservationSlot.starts_at)
+        ).all()
+    )
+
+
+def consultation_slot_options(
+    db: Session, trainer_id: str, *, after: datetime
+) -> list[TrainerSlotOut]:
+    """[consultation_slots] 를 응답 스키마로. 하한은 호출자가 정한다."""
+    return [_slot_out(slot) for slot in consultation_slots(db, trainer_id, after=after)]
+
+
+def hold_slot_for_consultation(
+    db: Session, trainer_id: str, slot_id: str, *, after: datetime
+) -> TrainerReservationSlot:
+    """상담 신청이 고른 자리를 잠근다(커밋 없음). (#1873)
+
+    **승인이 아니라 신청할 때** 잠근다 — 승인할 때 잠그면 두 회원이 같은 자리를
+    신청할 수 있고, 둘 중 하나는 트레이너가 수락한 뒤에야 거절당한다.
+
+    예약([reserve])과 달리 `TrainerReservation` 행을 만들지 않는다. 그 행은
+    `schedule_id` 가 필수라 일정이 있어야 하는데, 상담은 수락 전까지 일정이 없다.
+    좌석만 줄여 두고 상담 요청이 `slot_id` 로 그 자리를 가리킨다.
+    """
+    slot = db.scalar(
+        select(TrainerReservationSlot)
+        .where(TrainerReservationSlot.id == slot_id)
+        .with_for_update()
+        # 세션이 이 자리를 이미 읽어 뒀으면 `with_for_update` 만으로는 값이
+        # 갱신되지 않는다 — 잠금을 잡는 뜻은 **지금 커밋된 값**을 보겠다는 것이다.
+        .execution_options(populate_existing=True)
+    )
+    if slot is None:
+        raise SlotNotFound("예약 가능한 시간을 찾을 수 없습니다.")
+    if (
+        slot.trainer_id != trainer_id
+        or slot.session_type != CONSULTATION_SESSION_TYPE
+        or slot.is_closed
+        or slot.remaining <= 0
+        or _aware(slot.starts_at) <= after
+    ):
+        raise SlotUnavailable("예약할 수 없는 시간입니다.")
+    slot.remaining -= 1
+    return slot
+
+
+def release_consultation_hold(db: Session, slot_id: str | None) -> None:
+    """상담이 잡고 있던 자리를 되돌려 준다(커밋 없음). 거절·취소·만료가 부른다.
+
+    [_release] 를 쓰지 않는 이유: 그 함수는 `TrainerReservation` 행과 그것이 만든
+    일정까지 되돌린다. 상담이 잡은 자리에는 둘 다 없어 되돌릴 것이 좌석뿐이다.
+    """
+    if slot_id is None:
+        return
+    slot = db.scalar(
+        select(TrainerReservationSlot)
+        .where(TrainerReservationSlot.id == slot_id)
+        .with_for_update()
+        # 갱신 없이 잠그면 세션이 들고 있던 옛 `remaining` 에 1을 더하게 되고,
+        # 그 값이 우연히 지금 값과 같으면 UPDATE 자체가 나가지 않아 자리가
+        # 영영 풀리지 않는다.
+        .execution_options(populate_existing=True)
+    )
+    if slot is None:
+        return
+    slot.remaining = min(slot.capacity, slot.remaining + 1)
+
+
 def _slot_out(
     slot: TrainerReservationSlot, *, booked_by_name: str | None = None
 ) -> TrainerSlotOut:

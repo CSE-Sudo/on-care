@@ -88,13 +88,13 @@ void main() {
     await _open(tester, _profile('근력 향상'));
 
     expect(
-      find.text('2000kcal 기준 권장 배분: 탄수화물 262g · 단백질 112g · 지방 56g'),
+      find.text('2000kcal 기준 권장 배분: 탄수화물 262g · 단백질 112g · 지방 56g · 당류 50g'),
       findsOneWidget,
     );
 
     await _tapKey(tester, 'goal-focus-근력 향상');
     expect(
-      find.text('2000kcal 기준 권장 배분: 탄수화물 275g · 단백질 100g · 지방 56g'),
+      find.text('2000kcal 기준 권장 배분: 탄수화물 275g · 단백질 100g · 지방 56g · 당류 50g'),
       findsOneWidget,
     );
 
