@@ -5,7 +5,12 @@
 """
 from __future__ import annotations
 
+import importlib.util
+from functools import lru_cache
+from pathlib import Path
 from types import SimpleNamespace
+
+import pytest
 
 from app.services.nutrition.matcher import match_in_rows, normalize
 
@@ -37,6 +42,263 @@ def test_match_none_when_unknown_or_ambiguous():
     rows = _rows("된장찌개", "된장국")
     assert match_in_rows(rows, "외계인 수프") is None          # 미매칭
     assert match_in_rows(rows, "된장") is None                 # 여러 이름의 부분 → 모호 → 폴백
+
+
+# ---------- 머리 일치·별칭 (#2096) ----------
+
+def test_single_char_rows_match_only_exactly():
+    """한 글자 행이 긴 이름의 일부로 걸리면 `오트밀` 이 밀가루 값을 받는다."""
+    rows = _rows("밀", "무", "조", "마")
+    assert match_in_rows(rows, "밀").name_norm == "밀"
+    for name in ("오트밀", "통밀빵", "오이무침", "갈치조림", "고구마"):
+        assert match_in_rows(rows, name) is None, name
+
+
+def test_contained_name_must_be_the_last_word():
+    """한국어 음식 이름은 끝말이 음식을 정한다 — `소금빵` 은 빵이지 소금이 아니다."""
+    rows = _rows("소금", "보리", "치킨", "비빔밥", "케이크")
+    assert match_in_rows(rows, "야채비빔밥").name_norm == "비빔밥"
+    assert match_in_rows(rows, "초코 케이크").name_norm == "케이크"
+    for name in ("소금빵", "보리차", "치킨무"):
+        assert match_in_rows(rows, name) is None, name
+
+
+def test_unique_partial_must_be_the_last_word():
+    """질의가 표 이름의 앞부분이면 다른 음식이다 — 닭가슴살 ≠ 닭가슴살 샐러드."""
+    rows = _rows("닭가슴살 샐러드", "토마토케첩")
+    assert match_in_rows(rows, "닭가슴살") is None
+    assert match_in_rows(rows, "케첩").name_norm == "토마토케첩"
+
+
+def test_quantity_words_are_not_part_of_the_name():
+    rows = _rows("소주", "케이크", "피자", "메추리알", "된장")
+    assert match_in_rows(rows, "소주 1병").name_norm == "소주"
+    assert match_in_rows(rows, "초코 케이크 한 조각").name_norm == "케이크"
+    assert match_in_rows(rows, "피자 (1조각)").name_norm == "피자"
+    assert match_in_rows(rows, "메추리알 5알").name_norm == "메추리알"
+    # 앞에 수가 없으면 이름의 일부다 — `된장` 의 `장` 을 떼지 않는다.
+    assert match_in_rows(rows, "된장").name_norm == "된장"
+
+
+def test_trailing_note_is_not_the_name():
+    """괄호 설명을 떼지 않으면 괄호 안(`돼지고기`)이 이름의 끝이 된다."""
+    rows = _rows("김치찌개", "돼지고기")
+    assert match_in_rows(rows, "김치찌개(돼지고기)").name_norm == "김치찌개"
+
+
+def test_aliases_reach_rows_by_common_names():
+    rows = _rows("공기밥", "스크램블드에그", "농후발효유", "그래놀라 토핑")
+    for name in ("밥", "밥 1공기", "밥 반공기", "공깃밥", "흰 밥"):
+        assert match_in_rows(rows, name).name_norm == "공기밥", name
+    for name in ("스크램블 에그", "계란 스크램블"):
+        assert match_in_rows(rows, name).name_norm == "스크램블드에그", name
+    assert match_in_rows(rows, "딸기 요거트").name_norm == "농후발효유"
+    assert match_in_rows(rows, "그래놀라").name_norm == "그래놀라토핑"
+    # 한 글자 별칭 `밥` 도 정확 일치로만 붙는다 — 비빔밥은 공기밥이 아니다.
+    assert match_in_rows(rows, "비빔밥") is None
+
+
+def test_alias_is_ignored_when_its_row_is_missing():
+    """별칭 대상이 없는 DB(마이그레이션 전)에서는 별칭이 없는 것과 같다."""
+    assert match_in_rows(_rows("쌀밥"), "밥") is None
+
+
+def test_egg_spelling_variant():
+    """공공 표준은 `달걀`, 사람과 인식기는 `계란` 을 더 많이 쓴다."""
+    rows = _rows("달걀", "달걀국", "달걀말이")
+    assert match_in_rows(rows, "삶은 계란").name_norm == "달걀"
+    assert match_in_rows(rows, "계란 2개").name_norm == "달걀"
+    assert match_in_rows(rows, "계란국").name_norm == "달걀국"
+    assert match_in_rows(rows, "계란말이").name_norm == "달걀말이"
+
+
+# ---------- 시드와 같은 행 구성 (#2096) ----------
+
+@lru_cache(maxsize=1)
+def _seed_rows():
+    """`init_db._seed_food_nutrients` 가 만드는 것과 같은 행 — DB 없이."""
+    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
+    from app.db.init_db import _curated_per_100g, _public_food_rows
+    from app.services.nutrition.table import NutrientRow
+
+    rows, seen = [], set()
+    for i, item in enumerate([*_curated_per_100g(FOOD_NUTRIENTS), *_public_food_rows()]):
+        norm = normalize(item["name"])
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+        rows.append(NutrientRow(
+            id=i, name=item["name"], name_norm=norm, category=item.get("category", ""),
+            serving_size_g=item.get("serving_size_g"), calories=item.get("calories", 0),
+            sodium_mg=item.get("sodium_mg", 0), sugar_g=item.get("sugar_g", 0),
+            carbs_g=item.get("carbs_g"), protein_g=item.get("protein_g"),
+            fat_g=item.get("fat_g"),
+        ))
+    return tuple(rows)
+
+
+@pytest.mark.parametrize(("name", "expected"), [
+    ("오트밀", "오트밀"),
+    ("밥", "공기밥"),
+    ("스크램블 에그", "스크램블드에그"),
+    ("그릭 요거트", "그릭 요거트"),
+    ("닭가슴살", "닭가슴살"),
+    ("삶은 계란", "달걀"),
+    ("요거트", "농후발효유"),
+    ("소주 1병", "소주"),
+    ("초코 케이크 한 조각", "케이크"),
+    ("야채비빔밥", "비빔밥"),
+    # 스텁 인식기 이름 — tests/test_diet.py 의 395kcal·탄단지 59/9/14 가 여기에 기댄다.
+    ("요거트 아이스크림", "요거트 아이스크림"),
+    ("과일 토핑", "과일 토핑"),
+    ("그래놀라 토핑", "그래놀라 토핑"),
+])
+def test_seed_rows_match_common_names(name, expected):
+    assert match_in_rows(_seed_rows(), name).name == expected
+
+
+@pytest.mark.parametrize("name", ["오트밀 쿠키", "통밀빵"])
+def test_seed_rows_do_not_read_oat_as_wheat(name):
+    """#2096 전에는 둘 다 `밀`(밀가루 334kcal/100g)에 붙었다. 모르면 추정치를 둔다."""
+    assert match_in_rows(_seed_rows(), name) is None
+
+
+def test_oatmeal_is_not_wheat_flour():
+    """#2096: 오트밀 250g 이 `밀` 로 읽혀 835kcal·탄수화물 185g 이 나왔다."""
+    from app.schemas.diet import RecognizedFood
+    from app.services.nutrition.enrich import apply_match
+
+    food = RecognizedFood(name="오트밀", amount_g=250)
+    apply_match(food, match_in_rows(_seed_rows(), "오트밀"), 250)
+    assert food.calories == 178
+    assert (food.carbs_g, food.protein_g, food.fat_g) == pytest.approx((30.0, 6.35, 3.8))
+    assert food.source == "db"
+
+
+def test_curated_rows_carry_macros_that_add_up_to_calories():
+    """큐레이션 행이 탄·단·지를 비우면 인식기가 값을 안 준 음식은 0 이 된다.
+
+    탄·단·지는 참조 행의 비율을 큐레이션 칼로리에 맞춰 환산했으므로, 4·4·9 로
+    다시 셈하면 칼로리와 맞아야 한다.
+    """
+    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
+    from app.db.init_db import _curated_per_100g
+
+    for row in _curated_per_100g(FOOD_NUTRIENTS):
+        macros = (row.get("carbs_g"), row.get("protein_g"), row.get("fat_g"))
+        assert None not in macros, row["name"]
+        if row["calories"] < 20:   # 아메리카노 — 열량이 탄·단·지에서 오지 않는다
+            continue
+        atwater = macros[0] * 4 + macros[1] * 4 + macros[2] * 9
+        assert atwater == pytest.approx(row["calories"], rel=0.12), row["name"]
+
+
+def test_aliases_point_at_seeded_rows():
+    """대상이 없는 별칭은 조용히 무시되므로, 오타가 나도 아무도 모른다."""
+    from app.services.nutrition.matcher import ALIASES
+
+    names = {r.name_norm for r in _seed_rows()}
+    for alias, target in ALIASES.items():
+        assert normalize(target) in names, target
+        # 표 이름과 같으면 별칭이 아니라 그 행이 붙는다.
+        assert normalize(alias) not in names, alias
+
+
+# ---------- 이미 떠 있는 DB 반영 (#2096 마이그레이션) ----------
+
+def _migration_0075():
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "migrations" / "versions" / "0075_food_nutrient_macros.py"
+    )
+    spec = importlib.util.spec_from_file_location("migration_0075", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_migration_carries_the_seed_values():
+    """새로 만든 DB(시드)와 이미 떠 있는 DB(마이그레이션)의 숫자가 같아야 한다."""
+    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
+    from app.db.init_db import _curated_per_100g
+
+    migration = _migration_0075()
+    macros = {m[0]: m[1:] for m in migration.MACROS}
+    new_rows = {r["name_norm"]: r for r in migration.NEW_ROWS}
+    had_macros = {"요거트아이스크림", "과일토핑", "그래놀라토핑"}
+
+    for row in _curated_per_100g(FOOD_NUTRIENTS):
+        norm = normalize(row["name"])
+        if norm in had_macros:
+            continue
+        if norm in new_rows:
+            new = new_rows.pop(norm)
+            assert {k: new[k] for k in row} == row, row["name"]
+        else:
+            assert macros.pop(norm) == (
+                row["calories"], row["carbs_g"], row["protein_g"], row["fat_g"]
+            ), row["name"]
+    assert not macros and not new_rows       # 시드에 없는 값이 남지 않는다
+
+
+def test_migration_fills_an_already_seeded_table(db_session):
+    """시드는 빈 표에만 들어가므로 떠 있는 DB 는 마이그레이션으로 채워진다."""
+    from sqlalchemy import text
+
+    migration = _migration_0075()
+    conn = db_session.connection()
+
+    def rows():
+        return {
+            r.name_norm: r
+            for r in conn.execute(text(
+                "SELECT name_norm, calories, carbs_g, protein_g, fat_g FROM food_nutrients "
+                "WHERE name_norm IN ('공기밥', '김밥', '오트밀', '그릭요거트', '닭가슴살')"
+            ))
+        }
+
+    # #2096 이전 시드 상태: 큐레이션 탄·단·지가 비었고 새 항목이 없다. 김밥은 누가
+    # 칼로리를 고쳐 둔 행 — 이 칼로리에 맞춘 탄·단·지가 아니므로 채우면 안 된다.
+    conn.execute(text(
+        "UPDATE food_nutrients SET carbs_g = NULL, protein_g = NULL, fat_g = NULL "
+        "WHERE name_norm IN ('공기밥', '김밥')"
+    ))
+    conn.execute(text("UPDATE food_nutrients SET calories = 999 WHERE name_norm = '김밥'"))
+    conn.execute(text(
+        "DELETE FROM food_nutrients WHERE name_norm IN ('오트밀', '그릭요거트', '닭가슴살')"
+    ))
+    try:
+        migration.fill(conn)
+        migration.fill(conn)                 # 두 번 돌려도 같다
+        after = rows()
+        assert (after["공기밥"].carbs_g, after["공기밥"].protein_g) == pytest.approx((33.1, 2.81))
+        assert after["김밥"].carbs_g is None
+        assert after["오트밀"].calories == pytest.approx(71.0)
+        assert after["닭가슴살"].protein_g == pytest.approx(28.0)
+        assert conn.execute(text(
+            "SELECT count(*) FROM food_nutrients WHERE name_norm = '오트밀'"
+        )).scalar() == 1
+
+        migration.unfill(conn)
+        after = rows()
+        assert after["공기밥"].carbs_g is None
+        assert "오트밀" not in after and "그릭요거트" not in after
+    finally:
+        db_session.rollback()
+
+
+def test_migration_leaves_an_empty_table_to_the_seed(db_session):
+    """빈 표에 한 행이라도 넣으면 시드가 찼다고 보고 공공 표준 2천여 행을 건너뛴다."""
+    from sqlalchemy import text
+
+    migration = _migration_0075()
+    conn = db_session.connection()
+    conn.execute(text("DELETE FROM food_nutrients"))
+    try:
+        migration.fill(conn)
+        assert conn.execute(text("SELECT count(*) FROM food_nutrients")).scalar() == 0
+    finally:
+        db_session.rollback()
 
 
 # ---------- DB (CI) ----------
