@@ -146,7 +146,8 @@ class HealthProfile(Base):
 
 
 class PointsLedger(Base):
-    """활동 포인트 내역 — 적립(earn)·사용(spend)·회수(revoke) 한 줄씩. (#1786)
+    """활동 포인트 내역 — 적립(earn)·사용(spend)·회수(revoke)·반환(refund) 한 줄씩.
+    (#1786, #1787)
 
     잔액은 [HealthProfile.activity_points] 가 들고, 이 표는 그 잔액이 무엇으로
     움직였는지를 남긴다. 둘은 같은 트랜잭션에서 함께 바뀐다(`points_service`).
@@ -154,8 +155,10 @@ class PointsLedger(Base):
     `kst_date` 는 이 줄이 생긴 KST 날짜다. 하루 적립 한도를 이 값으로 센다 —
     `created_at` 은 UTC 라 그대로 날짜를 뽑으면 아침 기록이 전날로 잡힌다.
 
-    같은 기록(source)에 적립·회수는 한 번씩이다. 사용처(쿠폰 등)가 생기면
-    `kind='spend'` 로 음수 `delta` 를 남기고, 출처가 없으면 source 를 비운다.
+    종류는 짝을 이룬다. 회수(revoke)는 같은 source 의 적립을, 반환(refund)은 같은
+    source 의 사용을 되돌린다. 같은 기록(source)에 각 종류는 한 번씩이다 — 쿠폰
+    교환은 `kind='spend'` 로 음수 `delta` 를, 담당 해제로 쿠폰이 취소되면
+    `kind='refund'` 로 같은 크기의 양수 `delta` 를 남긴다(#1787).
     """
 
     __tablename__ = "points_ledger"
@@ -164,12 +167,13 @@ class PointsLedger(Base):
     user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    kind: Mapped[str] = mapped_column(String(10))  # earn|spend|revoke
-    #: 잔액 변화량. 적립은 양수, 사용·회수는 0 이하(실제로 뺀 값).
+    kind: Mapped[str] = mapped_column(String(10))  # earn|spend|revoke|refund
+    #: 잔액 변화량. 적립·반환은 양수, 사용·회수는 0 이하(실제로 뺀 값).
     delta: Mapped[int] = mapped_column(Integer)
-    #: 규칙 이름 — diet_entry|exercise_manual|routine_complete. 한도를 세는 단위.
+    #: 규칙 이름 — diet_entry|exercise_manual|routine_complete|coupon_<item>.
+    #: 적립 한도를 세는 단위다.
     reason: Mapped[str] = mapped_column(String(40))
-    #: 근거 기록 종류와 id — diet_entry|exercise_session.
+    #: 근거 기록 종류와 id — diet_entry|exercise_session|points_coupon.
     source_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
     source_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     kst_date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
@@ -179,10 +183,12 @@ class PointsLedger(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "kind IN ('earn', 'spend', 'revoke')", name="ck_points_ledger_kind"
+            "kind IN ('earn', 'spend', 'revoke', 'refund')",
+            name="ck_points_ledger_kind",
         ),
         CheckConstraint(
-            "(kind = 'earn' AND delta > 0) OR (kind <> 'earn' AND delta <= 0)",
+            "(kind IN ('earn', 'refund') AND delta > 0) "
+            "OR (kind IN ('spend', 'revoke') AND delta <= 0)",
             name="ck_points_ledger_delta_sign",
         ),
         UniqueConstraint(
@@ -193,6 +199,82 @@ class PointsLedger(Base):
             name="uq_points_ledger_source",
         ),
         Index("ix_points_ledger_user_day", "user_id", "kst_date", "reason"),
+    )
+
+
+class PointsCoupon(Base):
+    """포인트로 교환한 쿠폰 한 장. (#1787)
+
+    교환하면 `issued` 로 생기고, 사용 처리되면 `used`, 기한이 지나면 `expired`,
+    담당 트레이너 연결(PT 재등록)·헬스장 연결(개인 락커)이 끊겨 취소되면
+    `cancelled` 다. 기한은 스케줄러 없이
+    **읽는 쪽이 늦게 반영한다** — 조회·교환·사용 경로가 `expires_at` 이 지난
+    `issued` 를 `expired` 로 내린다(`points_coupon_service._expire_stale`).
+
+    - `cost` 는 교환할 때 쓴 포인트다. 연결 해제로 취소되면 이 값을 돌려준다 —
+      카탈로그 가격이 나중에 바뀌어도 낸 만큼 돌려받는다.
+    - `trainer_name`(PT 재등록)·`gym_name`(PT 재등록·개인 락커) 은 교환 시점의
+      사본이다. 쿠폰 화면이 사용 뒤에도 어느 트레이너·헬스장에서 쓴 쿠폰인지 말할
+      수 있게 한다.
+    - 사용 처리는 늘 직원 확인 뒤 회원 휴대폰에서 한다. 누른 사람이 늘 이
+      회원이라 따로 적지 않고, 시각만 `used_at` 에 남긴다.
+    - 사용 가능한 쿠폰은 종류마다 회원당 한 장뿐이다(partial unique index).
+    """
+
+    __tablename__ = "points_coupons"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 카탈로그 항목 id — pt_renewal|locker_month.
+    item: Mapped[str] = mapped_column(String(40))
+    cost: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(12), default="issued", server_default="issued"
+    )  # issued|used|expired|cancelled
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    trainer_name: Mapped[str] = mapped_column(
+        String(100), default="", server_default=""
+    )
+    gym_name: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    #: 교환 시도 단위 멱등키. 응답을 못 받고 다시 누른 교환이 두 장을 만들지 않는다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 이 시각부터 쓸 수 없다(마지막 사용일 다음 날 KST 0시).
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancelled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: 만료 3일 전 알림을 보낸 시각. 쿠폰마다 한 번만 보낸다.
+    expiry_reminded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('issued', 'used', 'expired', 'cancelled')",
+            name="ck_points_coupons_status",
+        ),
+        CheckConstraint("cost > 0", name="ck_points_coupons_cost"),
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_points_coupons_client_request"
+        ),
+        Index("ix_points_coupons_user_status", "user_id", "status"),
+        # 종류마다 사용 가능한 쿠폰은 회원당 최대 한 장 — PT 재등록은 재등록 1회에
+        # 1장, 개인 락커 쿠폰도 같은 규칙이다.
+        Index(
+            "uq_points_coupons_active_item",
+            "user_id",
+            "item",
+            unique=True,
+            postgresql_where=text("status = 'issued'"),
+        ),
     )
 
 

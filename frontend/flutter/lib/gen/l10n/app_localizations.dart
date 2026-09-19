@@ -2066,59 +2066,299 @@ abstract class AppLocalizations {
   /// **'Keep logging your activity to earn points and use the benefits above.'**
   String get myPointsBenefitsHint;
 
-  /// No description provided for @myPointsDiscountTitle.
+  /// A point amount with thousands separators, e.g. 5,000P.
   ///
   /// In en, this message translates to:
-  /// **'Cash discount with points'**
-  String get myPointsDiscountTitle;
+  /// **'{points}P'**
+  String myPointsCost(int points);
 
-  /// No description provided for @myPointsDiscountDescription.
+  /// No description provided for @myPointsExchange.
   ///
   /// In en, this message translates to:
-  /// **'Use points like cash for up to 10% off 1:1 coaching and personal training.'**
-  String get myPointsDiscountDescription;
+  /// **'Redeem'**
+  String get myPointsExchange;
 
-  /// No description provided for @myPointsDiscountCost.
+  /// No description provided for @myPointsExchangeConfirmTitle.
   ///
   /// In en, this message translates to:
-  /// **'Up to 10%'**
-  String get myPointsDiscountCost;
+  /// **'Redeem points?'**
+  String get myPointsExchangeConfirmTitle;
 
-  /// No description provided for @myPointsReportTitle.
+  /// No description provided for @myPointsExchangeConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'Unlock glucose and blood pressure reports'**
-  String get myPointsReportTitle;
+  /// **'Use {cost} for {item}. You can find the coupon in My benefits.'**
+  String myPointsExchangeConfirmMessage(String item, String cost);
 
-  /// No description provided for @myPointsReportDescription.
+  /// No description provided for @myPointsExchangeConfirmAction.
   ///
   /// In en, this message translates to:
-  /// **'View comprehensive weekly and monthly health-data reports.'**
-  String get myPointsReportDescription;
+  /// **'Redeem'**
+  String get myPointsExchangeConfirmAction;
 
-  /// No description provided for @myPointsReportCost.
+  /// No description provided for @myPointsExchangeDone.
   ///
   /// In en, this message translates to:
-  /// **'500P'**
-  String get myPointsReportCost;
+  /// **'Redeemed'**
+  String get myPointsExchangeDone;
 
-  /// No description provided for @myPointsRecipeTitle.
+  /// No description provided for @myPointsExchangeFailed.
   ///
   /// In en, this message translates to:
-  /// **'Personalized healthy recipe package'**
-  String get myPointsRecipeTitle;
+  /// **'Couldn\'t redeem. Please try again.'**
+  String get myPointsExchangeFailed;
 
-  /// No description provided for @myPointsRecipeDescription.
+  /// No description provided for @myPointsShortfall.
   ///
   /// In en, this message translates to:
-  /// **'Get PDF and interactive meal guides tailored to goals such as diabetes prevention or weight loss.'**
-  String get myPointsRecipeDescription;
+  /// **'{points} short'**
+  String myPointsShortfall(String points);
 
-  /// No description provided for @myPointsRecipeCost.
+  /// No description provided for @myPointsNeedTrainer.
   ///
   /// In en, this message translates to:
-  /// **'500P'**
-  String get myPointsRecipeCost;
+  /// **'Requires an assigned trainer'**
+  String get myPointsNeedTrainer;
+
+  /// No description provided for @myPointsNeedGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires a connected gym'**
+  String get myPointsNeedGym;
+
+  /// No description provided for @myPointsActiveCoupon.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an unused coupon'**
+  String get myPointsActiveCoupon;
+
+  /// No description provided for @myPointsMonthlyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You already redeemed this month'**
+  String get myPointsMonthlyLimit;
+
+  /// No description provided for @myPointsValidDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid for {days} days after redeeming'**
+  String myPointsValidDays(int days);
+
+  /// No description provided for @myPointsShopLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load rewards'**
+  String get myPointsShopLoadFailed;
+
+  /// No description provided for @myShopPtRenewalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'₩30,000 off PT renewal'**
+  String get myShopPtRenewalTitle;
+
+  /// No description provided for @myShopPtRenewalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Get ₩30,000 off when you renew PT with your trainer.'**
+  String get myShopPtRenewalDescription;
+
+  /// No description provided for @myShopLockerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Free personal locker for 1 month'**
+  String get myShopLockerTitle;
+
+  /// No description provided for @myShopLockerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a personal locker at your gym free for a month.'**
+  String get myShopLockerDescription;
+
+  /// No description provided for @myCouponPtRenewalBenefit.
+  ///
+  /// In en, this message translates to:
+  /// **'₩30,000 off PT renewal'**
+  String get myCouponPtRenewalBenefit;
+
+  /// No description provided for @myBenefitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My benefits'**
+  String get myBenefitsTitle;
+
+  /// No description provided for @myBenefitsView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get myBenefitsView;
+
+  /// No description provided for @myBenefitsCoupons.
+  ///
+  /// In en, this message translates to:
+  /// **'Coupons'**
+  String get myBenefitsCoupons;
+
+  /// No description provided for @myBenefitsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No coupons yet'**
+  String get myBenefitsEmpty;
+
+  /// No description provided for @myBenefitsEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Redeem your points for a coupon.'**
+  String get myBenefitsEmptyMessage;
+
+  /// No description provided for @myBenefitsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load benefits'**
+  String get myBenefitsLoadFailed;
+
+  /// No description provided for @myCouponStatusUsable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get myCouponStatusUsable;
+
+  /// No description provided for @myCouponStatusUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Used'**
+  String get myCouponStatusUsed;
+
+  /// No description provided for @myCouponStatusExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get myCouponStatusExpired;
+
+  /// No description provided for @myCouponStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get myCouponStatusCancelled;
+
+  /// No description provided for @myCouponDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'D-{days}'**
+  String myCouponDaysLeft(int days);
+
+  /// No description provided for @myCouponDDay.
+  ///
+  /// In en, this message translates to:
+  /// **'D-day'**
+  String get myCouponDDay;
+
+  /// No description provided for @myCouponUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Until {date}'**
+  String myCouponUntil(String date);
+
+  /// No description provided for @myCouponTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get myCouponTrainer;
+
+  /// No description provided for @myCouponGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym'**
+  String get myCouponGym;
+
+  /// No description provided for @myCouponIssuedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Redeemed on'**
+  String get myCouponIssuedOn;
+
+  /// No description provided for @myCouponExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires'**
+  String get myCouponExpiry;
+
+  /// No description provided for @myCouponExpiryWithDday.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} ({dday})'**
+  String myCouponExpiryWithDday(String date, String dday);
+
+  /// No description provided for @myCouponStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get myCouponStatus;
+
+  /// No description provided for @myCouponStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap only after your trainer or gym staff has checked it'**
+  String get myCouponStaffNote;
+
+  /// No description provided for @myCouponGymStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap only after gym staff has checked it'**
+  String get myCouponGymStaffNote;
+
+  /// No description provided for @myCouponStaffConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark this coupon as used?'**
+  String get myCouponStaffConfirmTitle;
+
+  /// No description provided for @myCouponStaffConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'For staff · This can\'t be undone once used'**
+  String get myCouponStaffConfirmMessage;
+
+  /// No description provided for @myCouponUsedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Used at'**
+  String get myCouponUsedAt;
+
+  /// No description provided for @myCouponUsedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Used on {time}'**
+  String myCouponUsedBanner(String time);
+
+  /// No description provided for @myCouponExpireNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Points aren\'t refunded once the coupon expires.'**
+  String get myCouponExpireNotice;
+
+  /// No description provided for @myCouponUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as used'**
+  String get myCouponUse;
+
+  /// No description provided for @myCouponUseDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as used'**
+  String get myCouponUseDone;
+
+  /// No description provided for @myCouponUseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark as used. Please try again.'**
+  String get myCouponUseFailed;
+
+  /// No description provided for @myCouponNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Coupon not found'**
+  String get myCouponNotFound;
 
   /// Screen reader label for an image a trainer sent in chat (#1942).
   ///

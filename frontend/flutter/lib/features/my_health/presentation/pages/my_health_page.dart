@@ -4,8 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/points/points_rules.dart';
+import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
+import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
+import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -452,51 +457,77 @@ Future<void> _openPointsBenefitsPage(BuildContext context, int? points) {
   return context.push<void>(AppRoutes.myPoints, extra: points);
 }
 
-/// A point redemption option shown in the benefits sheet.
-class _PointBenefit {
-  const _PointBenefit({
-    required this.icon,
-    required this.title,
-    required this.desc,
-    required this.cost,
-  });
-  final IconData icon;
-  final String title;
-  final String desc;
-  final String cost;
-}
-
-List<_PointBenefit> _pointBenefitsOf(AppLocalizations l) => <_PointBenefit>[
-  _PointBenefit(
-    icon: AppIcons.savings,
-    title: l.myPointsDiscountTitle,
-    desc: l.myPointsDiscountDescription,
-    cost: l.myPointsDiscountCost,
-  ),
-  _PointBenefit(
-    icon: AppIcons.unlock,
-    title: l.myPointsReportTitle,
-    desc: l.myPointsReportDescription,
-    cost: l.myPointsReportCost,
-  ),
-  _PointBenefit(
-    icon: AppIcons.guide,
-    title: l.myPointsRecipeTitle,
-    desc: l.myPointsRecipeDescription,
-    cost: l.myPointsRecipeCost,
-  ),
-];
-
-class PointsBenefitsPage extends StatelessWidget {
+/// 포인트 사용처 — 포인트를 쿠폰으로 교환한다. (#1787)
+///
+/// 예전 카드 셋(결제 차감 할인·예측 리포트·레시피)은 지금 서비스와 맞지 않았고
+/// 교환 버튼도 없었다. 서버가 주는 교환 목록을 그리고, 카드마다 `교환` → 파란 2열
+/// 확인창(`취소 / 교환하기`) → 포인트 차감 순서로 쓴다. 잔액이 모자라거나 조건이
+/// 안 되면 버튼을 막고 이유(모자란 포인트 등)를 카드에 적는다.
+///
+/// [points] 는 MY 가 들고 온 잔액이다 — 목록을 받기 전에도 보유 포인트 줄이
+/// 비지 않게 한다. 목록을 받으면 그 응답의 잔액을 쓴다.
+class PointsBenefitsPage extends ConsumerStatefulWidget {
   const PointsBenefitsPage({super.key, required this.points});
 
   final int? points;
 
   @override
+  ConsumerState<PointsBenefitsPage> createState() => _PointsBenefitsPageState();
+}
+
+class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
+  /// 교환 요청이 나가 있는 항목. 그 카드는 진행 표시, 다른 카드 버튼은 막는다 —
+  /// 두 교환이 겹치면 잔액 표시가 어느 쪽 응답을 따를지 알 수 없다.
+  String? _exchanging;
+
+  Future<void> _exchange(ShopItem item) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.myPointsExchangeConfirmTitle,
+      message: l.myPointsExchangeConfirmMessage(
+        shopItemTitle(l, item),
+        l.myPointsCost(item.cost),
+      ),
+      confirmLabel: l.myPointsExchangeConfirmAction,
+      cancelLabel: l.myCancel,
+    );
+    if (!ok || !mounted || _exchanging != null) return;
+    setState(() => _exchanging = item.id);
+    try {
+      await ref
+          .read(benefitsRepositoryProvider)
+          .exchange(item.id, clientRequestId: newClientRequestId());
+      if (!mounted) return;
+      // 잔액·교환 가능 여부·보유 쿠폰이 함께 바뀌었다. MY 잔액도 다시 읽는다.
+      ref
+        ..invalidate(pointsShopProvider)
+        ..invalidate(myCouponsProvider)
+        ..invalidate(myHealthStateProvider);
+      showAppToast(
+        context,
+        l.myPointsExchangeDone,
+        type: AppToastType.success,
+        actionLabel: l.myBenefitsView,
+        onAction: () => context.push<void>(AppRoutes.myBenefits),
+      );
+    } on Object {
+      if (!mounted) return;
+      // 그사이 조건이 바뀌었을 수 있다(다른 기기에서 교환 등) — 목록을 다시 읽어
+      // 막힌 이유를 카드에 보여 준다.
+      ref.invalidate(pointsShopProvider);
+      showAppToast(context, l.myPointsExchangeFailed, type: AppToastType.error);
+    } finally {
+      if (mounted) setState(() => _exchanging = null);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
-    final List<_PointBenefit> benefits = _pointBenefitsOf(l);
+    final AsyncValue<PointsShop> shop = ref.watch(pointsShopProvider);
+    final int? balance = shop.valueOrNull?.balance ?? widget.points;
     return AppPage(
       key: const Key('pointsBenefitsPage'),
       bottomInset: MediaQuery.paddingOf(context).bottom,
@@ -505,20 +536,58 @@ class PointsBenefitsPage extends StatelessWidget {
         actions: const <Widget>[_PointsInfoButton()],
       ),
       children: <Widget>[
-        Text(
-          points != null
-              ? l.myPointsBalance(points!)
-              : l.myPointsBenefitsSubtitle,
-          style: tokens
-              .text(OnCareTypography.label)
-              .copyWith(color: tokens.brand.primary),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                balance != null
+                    ? l.myPointsBalance(balance)
+                    : l.myPointsBenefitsSubtitle,
+                key: const Key('pointsShopBalance'),
+                style: tokens
+                    .text(OnCareTypography.label)
+                    .copyWith(color: tokens.brand.primary),
+              ),
+            ),
+            AppButton(
+              key: const Key('pointsShopMyBenefits'),
+              label: l.myBenefitsTitle,
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+              trailingIcon: AppIcons.chevronRight,
+              onPressed: () => context.push<void>(AppRoutes.myBenefits),
+            ),
+          ],
         ),
         const SizedBox(height: OnCareSpacing.s16),
-        for (int i = 0; i < benefits.length; i++) ...<Widget>[
-          _PointBenefitCard(benefit: benefits[i]),
-          if (i < benefits.length - 1)
-            const SizedBox(height: OnCareSpacing.cardGap),
-        ],
+        ...shop.when(
+          loading: () => const <Widget>[
+            AppCard(child: AppLoading(placement: AppStatePlacement.card)),
+          ],
+          error: (_, _) => <Widget>[
+            AppCard(
+              child: AppErrorState(
+                title: l.myPointsShopLoadFailed,
+                retryLabel: l.actionRetry,
+                onRetry: () => ref.invalidate(pointsShopProvider),
+                placement: AppStatePlacement.card,
+              ),
+            ),
+          ],
+          data: (PointsShop data) => <Widget>[
+            for (int i = 0; i < data.items.length; i++) ...<Widget>[
+              ShopItemCard(
+                item: data.items[i],
+                busy: _exchanging == data.items[i].id,
+                onExchange: _exchanging == null
+                    ? () => _exchange(data.items[i])
+                    : null,
+              ),
+              if (i < data.items.length - 1)
+                const SizedBox(height: OnCareSpacing.cardGap),
+            ],
+          ],
+        ),
         const SizedBox(height: OnCareSpacing.s16),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,55 +609,6 @@ class PointsBenefitsPage extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-class _PointBenefitCard extends StatelessWidget {
-  const _PointBenefitCard({required this.benefit});
-
-  final _PointBenefit benefit;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return AppCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          _IconTile(icon: benefit.icon),
-          const SizedBox(width: OnCareSpacing.s12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      child: Text(
-                        benefit.title,
-                        style: tokens
-                            .text(OnCareTypography.titleSmall)
-                            .copyWith(color: OnCareColors.textPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: OnCareSpacing.s8),
-                    AppTag(label: benefit.cost, tone: AppTagTone.brand),
-                  ],
-                ),
-                const SizedBox(height: OnCareSpacing.s4),
-                Text(
-                  benefit.desc,
-                  style: tokens
-                      .text(OnCareTypography.bodySmall)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

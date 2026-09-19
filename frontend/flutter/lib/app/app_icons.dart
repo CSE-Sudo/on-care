@@ -87,6 +87,14 @@ class AppIcons {
   static const IconData favorite = Symbols.favorite_rounded;
   static const IconData sync = Symbols.sync_rounded;
 
+  // --- 혜택·쿠폰 ---
+  /// 쿠폰 한 장 — 내 혜택의 빈 화면·없는 쿠폰, 앱이 모르는 교환 항목(#1787).
+  static const IconData coupon = Symbols.confirmation_number_rounded;
+
+  /// 교환 항목 — PT 재등록 할인·개인 락커 무료.
+  static const IconData ptRenewal = Symbols.card_membership_rounded;
+  static const IconData locker = Symbols.checkroom_rounded;
+
   // --- 이동·펼침 ---
   static const IconData back = Symbols.chevron_left_rounded;
   static const IconData chevronLeft = Symbols.chevron_left_rounded;

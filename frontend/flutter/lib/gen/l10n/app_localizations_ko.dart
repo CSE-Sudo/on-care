@@ -1089,33 +1089,172 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsBenefitsHint => '기록을 꾸준히 남기면 포인트가 쌓이고, 위 혜택에 사용할 수 있어요.';
 
   @override
-  String get myPointsDiscountTitle => '포인트 차감 현금성 할인';
+  String myPointsCost(int points) {
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return '${pointsString}P';
+  }
 
   @override
-  String get myPointsDiscountDescription =>
-      '1:1 코칭권·PT 결제 시 보유 포인트를 최대 10%까지 현금처럼 차감해요.';
+  String get myPointsExchange => '교환';
 
   @override
-  String get myPointsDiscountCost => '최대 10%';
+  String get myPointsExchangeConfirmTitle => '포인트로 교환할까요?';
 
   @override
-  String get myPointsReportTitle => '혈당·혈압 예측 리포트 잠금 해제';
+  String myPointsExchangeConfirmMessage(String item, String cost) {
+    return '$item에 $cost를 사용해요. 교환한 쿠폰은 내 혜택에서 볼 수 있어요.';
+  }
 
   @override
-  String get myPointsReportDescription => '주간·월간 건강 데이터 종합 리포트를 열람할 수 있어요.';
+  String get myPointsExchangeConfirmAction => '교환하기';
 
   @override
-  String get myPointsReportCost => '500P';
+  String get myPointsExchangeDone => '교환했어요';
 
   @override
-  String get myPointsRecipeTitle => '맞춤형 건강 식단 레시피 패키지';
+  String get myPointsExchangeFailed => '교환하지 못했어요. 다시 시도해 주세요.';
 
   @override
-  String get myPointsRecipeDescription =>
-      '건강 목표(당뇨 예방·체중 감량 등)에 맞춘 식단 가이드를 PDF·인터랙티브로 받아요.';
+  String myPointsShortfall(String points) {
+    return '$points 부족해요';
+  }
 
   @override
-  String get myPointsRecipeCost => '500P';
+  String get myPointsNeedTrainer => '담당 트레이너가 있어야 교환할 수 있어요';
+
+  @override
+  String get myPointsNeedGym => '헬스장을 연결해야 교환할 수 있어요';
+
+  @override
+  String get myPointsActiveCoupon => '사용하지 않은 쿠폰이 있어요';
+
+  @override
+  String get myPointsMonthlyLimit => '이번 달에는 이미 교환했어요';
+
+  @override
+  String myPointsValidDays(int days) {
+    return '교환 후 $days일 동안 사용';
+  }
+
+  @override
+  String get myPointsShopLoadFailed => '사용처를 불러오지 못했어요';
+
+  @override
+  String get myShopPtRenewalTitle => 'PT 재등록 3만원 할인';
+
+  @override
+  String get myShopPtRenewalDescription =>
+      '담당 트레이너에게 PT를 다시 등록할 때 30,000원을 할인받아요.';
+
+  @override
+  String get myShopLockerTitle => '개인 락커 1개월 무료';
+
+  @override
+  String get myShopLockerDescription => '연결한 헬스장에서 개인 락커를 한 달 동안 무료로 써요.';
+
+  @override
+  String get myCouponPtRenewalBenefit => 'PT 재등록 30,000원 할인';
+
+  @override
+  String get myBenefitsTitle => '내 혜택';
+
+  @override
+  String get myBenefitsView => '보기';
+
+  @override
+  String get myBenefitsCoupons => '쿠폰';
+
+  @override
+  String get myBenefitsEmpty => '보유한 쿠폰이 없어요';
+
+  @override
+  String get myBenefitsEmptyMessage => '포인트로 쿠폰을 교환해 보세요.';
+
+  @override
+  String get myBenefitsLoadFailed => '혜택을 불러오지 못했어요';
+
+  @override
+  String get myCouponStatusUsable => '사용 가능';
+
+  @override
+  String get myCouponStatusUsed => '사용 완료';
+
+  @override
+  String get myCouponStatusExpired => '만료';
+
+  @override
+  String get myCouponStatusCancelled => '취소됨';
+
+  @override
+  String myCouponDaysLeft(int days) {
+    return 'D-$days';
+  }
+
+  @override
+  String get myCouponDDay => 'D-day';
+
+  @override
+  String myCouponUntil(String date) {
+    return '$date까지';
+  }
+
+  @override
+  String get myCouponTrainer => '담당 트레이너';
+
+  @override
+  String get myCouponGym => '헬스장';
+
+  @override
+  String get myCouponIssuedOn => '교환일';
+
+  @override
+  String get myCouponExpiry => '만료일';
+
+  @override
+  String myCouponExpiryWithDday(String date, String dday) {
+    return '$date ($dday)';
+  }
+
+  @override
+  String get myCouponStatus => '상태';
+
+  @override
+  String get myCouponStaffNote => '트레이너·헬스장 직원이 확인한 뒤 눌러 주세요';
+
+  @override
+  String get myCouponGymStaffNote => '헬스장 직원이 확인한 뒤 눌러 주세요';
+
+  @override
+  String get myCouponStaffConfirmTitle => '쿠폰을 사용 완료할까요?';
+
+  @override
+  String get myCouponStaffConfirmMessage => '직원 확인용 · 사용 후 되돌릴 수 없어요';
+
+  @override
+  String get myCouponUsedAt => '사용 시각';
+
+  @override
+  String myCouponUsedBanner(String time) {
+    return '$time에 사용 완료했어요';
+  }
+
+  @override
+  String get myCouponExpireNotice => '만료되면 포인트는 돌려받을 수 없어요.';
+
+  @override
+  String get myCouponUse => '사용 완료';
+
+  @override
+  String get myCouponUseDone => '사용 완료로 바꿨어요';
+
+  @override
+  String get myCouponUseFailed => '사용 처리하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get myCouponNotFound => '쿠폰을 찾을 수 없어요';
 
   @override
   String get a11yCoachPhoto => '트레이너가 보낸 사진';

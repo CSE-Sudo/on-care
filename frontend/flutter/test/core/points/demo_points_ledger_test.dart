@@ -11,12 +11,13 @@ void main() {
 
   setUp(() {
     now = DateTime(2026, 9, 15, 9);
-    ledger = DemoPointsLedger(now: () => now);
+    // 시작 잔액을 못 박아 둔다 — 아래 규칙 테스트는 데모 시작 잔액과 상관없다.
+    ledger = DemoPointsLedger(openingBalance: 1240, now: () => now);
   });
 
-  test('데모 시작 잔액은 1240P 다', () {
-    expect(ledger.balance, kDemoOpeningPoints);
-    expect(kDemoOpeningPoints, 1240);
+  test('데모 시작 잔액은 25,000P 다', () {
+    expect(DemoPointsLedger().balance, kDemoOpeningPoints);
+    expect(kDemoOpeningPoints, 25000);
   });
 
   test('식단은 +50P, 하루 3회까지', () {
@@ -80,7 +81,7 @@ void main() {
 
   test('적립을 받지 않은 기록을 지우면 아무것도 회수하지 않는다', () {
     expect(ledger.revoke(PointsRule.dietEntry.sourceType, 'nothing'), 0);
-    expect(ledger.balance, kDemoOpeningPoints);
+    expect(ledger.balance, 1240);
   });
 
   test('회수해도 잔액은 0 아래로 내려가지 않는다', () {

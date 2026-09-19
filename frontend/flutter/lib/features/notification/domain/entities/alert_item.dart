@@ -11,6 +11,9 @@ enum AlertTarget {
   exercise,
   diet,
 
+  /// MY 의 내 혜택 — 쿠폰 사용 처리·취소·만료 임박 알림(#1787).
+  myBenefits,
+
   /// MY 건강 목표 — 담당 트레이너가 목표를 바꿨을 때(#1832).
   healthGoals,
 

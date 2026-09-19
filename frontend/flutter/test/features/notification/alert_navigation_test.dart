@@ -210,6 +210,10 @@ void main() {
             path: AppRoutes.consultationHistory,
             builder: (_, _) => const Text('내 상담 요청'),
           ),
+          GoRoute(
+            path: AppRoutes.myBenefits,
+            builder: (_, _) => const Text('내 혜택'),
+          ),
         ],
       );
 
@@ -261,6 +265,8 @@ void main() {
         // 상담 요청의 결과와 사유가 있는 곳(#2067).
         (AlertTarget.consultations, '내 상담 요청'),
         // 일정은 아직 전용 화면이 없어 대시보드로 보낸다.
+        // 쿠폰 사용 처리·취소·만료 임박은 내 혜택으로(#1787).
+        (AlertTarget.myBenefits, '내 혜택'),
       ]) {
         await pumpApp(tester, _FakeCoachRepository());
         await tap(tester, target);
@@ -349,6 +355,8 @@ void main() {
           AlertTarget.coachChat,
           AlertTarget.exercise,
           AlertTarget.diet,
+          // 쿠폰 사용 처리·취소·만료 임박 알림 — `benefits` 카테고리(#1787).
+          AlertTarget.myBenefits,
           AlertTarget.consultations,
           AlertTarget.unknown,
         ]),
