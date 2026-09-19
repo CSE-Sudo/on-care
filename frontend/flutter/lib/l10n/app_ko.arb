@@ -498,6 +498,119 @@
   "myBenefitsEmpty": "보유한 쿠폰이 없어요",
   "myBenefitsEmptyMessage": "포인트로 쿠폰을 교환해 보세요.",
   "myBenefitsLoadFailed": "혜택을 불러오지 못했어요",
+  "challengeTitle": "주간 운동 챌린지",
+  "challengeShort": "주간 챌린지",
+  "challengeShortWithRange": "주간 챌린지 · {range}",
+  "@challengeShortWithRange": {
+    "description": "운동 탭 진행 줄 제목 — 이 진행이 어느 주의 것인지 함께 적는다.",
+    "placeholders": { "range": { "type": "String" } }
+  },
+  "challengeDescription": "{stake}를 걸고 이번 주 {goal}회 운동하면 {reward}를 돌려받아요",
+  "@challengeDescription": {
+    "placeholders": {
+      "stake": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "int"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeJoinWindow": "월·화요일에만 참가할 수 있어요",
+  "challengeJoin": "참가",
+  "challengeJoinConfirmTitle": "주간 챌린지에 참가할까요?",
+  "challengeJoinConfirmMessage": "{stake}를 걸고 이번 주 {goal}회 운동에 도전해요. 일요일까지 채우면 {reward}를 돌려받고, 못 채우면 건 포인트는 사라져요.",
+  "@challengeJoinConfirmMessage": {
+    "placeholders": {
+      "stake": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "int"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeJoinConfirmAction": "참가하기",
+  "challengeJoinDone": "챌린지에 참가했어요",
+  "challengeJoinFailed": "참가하지 못했어요. 다시 시도해 주세요.",
+  "challengeJoinClosed": "다음 주 월요일에 다시 참가할 수 있어요",
+  "challengeThisWeek": "이번 주 진행",
+  "challengeProgress": "{progress} / {goal}회",
+  "@challengeProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "int"
+      }
+    }
+  },
+  "challengeRemaining": "일요일까지 {count}회 더 운동하면 {reward}를 돌려받아요",
+  "@challengeRemaining": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeAchieved": "목표 달성! 주가 끝나면 {reward}를 받아요",
+  "@challengeAchieved": {
+    "placeholders": {
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeWeekTitle": "{range} 챌린지",
+  "@challengeWeekTitle": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeStatusActive": "진행 중",
+  "challengeStatusSucceeded": "성공",
+  "challengeStatusFailed": "실패",
+  "challengeResultSucceeded": "목표 {goal}회 중 {progress}회 · {reward} 받음",
+  "@challengeResultSucceeded": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "int"
+      },
+      "reward": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeResultFailed": "목표 {goal}회 중 {progress}회 · 건 {stake} 소멸",
+  "@challengeResultFailed": {
+    "placeholders": {
+      "goal": {
+        "type": "int"
+      },
+      "progress": {
+        "type": "int"
+      },
+      "stake": {
+        "type": "String"
+      }
+    }
+  },
+  "challengeLoadFailed": "챌린지를 불러오지 못했어요",
   "myCouponStatusUsable": "사용 가능",
   "myCouponStatusUsed": "사용 완료",
   "myCouponStatusExpired": "만료",

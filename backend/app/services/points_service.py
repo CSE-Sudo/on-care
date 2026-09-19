@@ -49,6 +49,8 @@ SOURCE_DIET_ENTRY = "diet_entry"
 SOURCE_EXERCISE_SESSION = "exercise_session"
 #: 사용·반환의 근거 — 교환한 쿠폰(#1787).
 SOURCE_POINTS_COUPON = "points_coupon"
+#: 참가(사용)·보상(적립)의 근거 — 주간 운동 챌린지(#1789).
+SOURCE_WEEKLY_CHALLENGE = "weekly_challenge"
 
 
 class InsufficientPoints(Exception):
@@ -246,6 +248,40 @@ def refund(db: Session, user_id: str, source_type: str, source_id: str) -> int:
             kind=REFUND,
             delta=amount,
             reason=spent.reason,
+            source_type=source_type,
+            source_id=source_id,
+            kst_date=clock.today_iso(),
+        )
+    )
+    profile.activity_points = (profile.activity_points or 0) + amount
+    db.flush()
+    return amount
+
+
+def credit(
+    db: Session,
+    user_id: str,
+    *,
+    reason: str,
+    source_type: str,
+    source_id: str,
+    amount: int,
+) -> int:
+    """하루 한도 없이 [amount] 를 적립한다. 적립한 포인트(0 이상). 커밋하지 않는다. (#1789)
+
+    기록마다 한도를 세는 [award] 와 달리, 근거가 한 건뿐인 적립(주간 챌린지 보상)에
+    쓴다. 같은 source 에는 한 번뿐이라 판정이 겹쳐 들어와도 두 번 적립하지 않는다.
+    """
+    profile = _locked_profile(db, user_id)
+    if _row(db, user_id, EARN, source_type, source_id) is not None:
+        return 0
+    db.add(
+        PointsLedger(
+            id=_new_id(),
+            user_id=user_id,
+            kind=EARN,
+            delta=amount,
+            reason=reason,
             source_type=source_type,
             source_id=source_id,
             kst_date=clock.today_iso(),

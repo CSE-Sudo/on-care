@@ -28,7 +28,12 @@ from app.schemas.points_api import (
     ExchangeRequest,
     PointsShopOut,
 )
-from app.services import points_coupon_service, points_service, streak_shield_service
+from app.services import (
+    points_coupon_service,
+    points_service,
+    streak_shield_service,
+    weekly_challenge_service,
+)
 from app.services.audit import client_ip, record as record_audit
 
 router = APIRouter(tags=["points"])
@@ -40,6 +45,8 @@ def points_shop(
     db: Annotated[Session, Depends(get_db)],
 ) -> PointsShopOut:
     """교환 항목과 항목별 교환 가능 여부. 막힌 이유와 모자란 포인트를 함께 준다."""
+    # 끝난 주의 챌린지를 먼저 판정해 보상이 든 잔액으로 계산한다(#1789).
+    weekly_challenge_service.settle_quietly(db, current_user.id)
     return points_coupon_service.build_shop(db, current_user.id)
 
 
