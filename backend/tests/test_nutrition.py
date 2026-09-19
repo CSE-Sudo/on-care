@@ -174,24 +174,63 @@ def test_oatmeal_is_not_wheat_flour():
     assert food.source == "db"
 
 
-def test_curated_rows_carry_macros_that_add_up_to_calories():
-    """큐레이션 행이 탄·단·지를 비우면 인식기가 값을 안 준 음식은 0 이 된다.
+#: 열량 ÷ 4·4·9 합이 들어야 할 범위(#2102). 국가표준식품성분표는 식품군마다 에너지
+#: 환산계수가 달라(육류·수산물은 단백질·지방 계수가 커서 1.05~1.18) 4·4·9 와 정확히
+#: 같지 않다. 식이섬유가 많은 식품은 탄수화물에 든 섬유를 4 가 아니라 낮게 셈해 더 작다.
+_ATWATER_BAND = (0.78, 1.20)
+_FIBRE_BANDS = {
+    # 채소·과일·향신료·콩 — 실측 최저 0.64(라임)·0.71(오크라)·0.76(오레가노)·0.81(라이마빈스)
+    **dict.fromkeys(("채소류", "채소", "과일류", "과일", "조미료류", "두류"), (0.60, 1.20)),
+    # 버섯·해조류는 성분표가 탄수화물 환산계수를 절반 이하로 쓴다(버섯 0.49~0.51, 해조 0.28~0.55).
+    **dict.fromkeys(("버섯류", "해조류"), (0.25, 1.20)),
+}
+#: 분류로 설명되지 않는 행과 그 이유.
+_ATWATER_EXCEPTIONS = {
+    "돼지감자": "탄수화물 대부분이 이눌린(식이섬유)이다 — 0.50",
+    "귀뚜라미": "키틴질이 단백질로 잡혀 단백질 환산계수가 다르다 — 1.26",
+}
 
-    탄·단·지는 참조 행의 비율을 큐레이션 칼로리에 맞춰 환산했으므로, 4·4·9 로
-    다시 셈하면 칼로리와 맞아야 한다.
+
+def _atwater_band(row) -> tuple[float, float] | None:
+    """그 행이 맞아야 할 범위. None 이면 4·4·9 로 볼 수 없는 행이다."""
+    if row.category == "주류":
+        return None       # 열량 대부분이 알코올(7kcal/g)이라 탄·단·지에 없다
+    if row.name in _ATWATER_EXCEPTIONS:
+        return None
+    return _FIBRE_BANDS.get(row.category, _ATWATER_BAND)
+
+
+def test_seeded_calories_agree_with_their_macros():
+    """#2100·#2102: 열량과 탄·단·지가 한 원본 행에서 왔다면 4·4·9 합이 열량과 맞아야 한다.
+
+    영양소마다 다른 제품의 값을 섞으면(`감자튀김` 231kcal ↔ 4·4·9 합 131) 여기서 걸린다.
+    큐레이션과 공공 표준 행 모두 — 시드가 DB 에 넣는 그대로 본다.
     """
-    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
-    from app.db.init_db import _curated_per_100g
-
-    own = [item for item in FOOD_NUTRIENTS if "from_public" not in item]
-    for row in _curated_per_100g(own):
-        macros = (row.get("carbs_g"), row.get("protein_g"), row.get("fat_g"))
-        assert None not in macros, row["name"]
-        # 아메리카노(열량이 탄·단·지에서 오지 않는다)·술(열량 대부분이 알코올)
-        if row["calories"] < 20 or row["category"] == "주류":
-            continue
+    off = []
+    for row in _seed_rows():
+        macros = (row.carbs_g, row.protein_g, row.fat_g)
+        if None in macros:
+            continue      # 빈 칸은 `test_blank_macros_come_only_from_label_values` 가 본다
         atwater = macros[0] * 4 + macros[1] * 4 + macros[2] * 9
-        assert atwater == pytest.approx(row["calories"], rel=0.12), row["name"]
+        if row.calories < 20 and atwater < 20:
+            continue      # 물·차·아메리카노 — 비율이 잡음이다
+        band = _atwater_band(row)
+        if band is None:
+            continue
+        ratio = row.calories / atwater if atwater else float("inf")
+        if not band[0] <= ratio <= band[1]:
+            off.append((row.name, row.category, round(ratio, 2)))
+    assert off == []
+
+
+def test_curated_rows_carry_macros():
+    """큐레이션 행이 탄·단·지를 비우면 인식기가 값을 안 준 음식은 0 이 된다."""
+    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
+
+    names = {item["name"] for item in FOOD_NUTRIENTS}
+    for row in _seed_rows():
+        if row.name in names:
+            assert None not in (row.carbs_g, row.protein_g, row.fat_g), row.name
 
 
 def test_blank_macros_come_only_from_label_values():
@@ -312,10 +351,12 @@ def test_migration_fills_an_already_seeded_table(db_session):
 
     # #2096 이전 시드 상태: 큐레이션 탄·단·지가 비었고 새 항목이 없다. 김밥은 누가
     # 칼로리를 고쳐 둔 행 — 이 칼로리에 맞춘 탄·단·지가 아니므로 채우면 안 된다.
+    # 공기밥은 그때의 큐레이션 칼로리다(지금 시드는 #2102 의 농진청 값 146).
     conn.execute(text(
         "UPDATE food_nutrients SET carbs_g = NULL, protein_g = NULL, fat_g = NULL "
         "WHERE name_norm IN ('공기밥', '김밥')"
     ))
+    conn.execute(text("UPDATE food_nutrients SET calories = 147.62 WHERE name_norm = '공기밥'"))
     conn.execute(text("UPDATE food_nutrients SET calories = 999 WHERE name_norm = '김밥'"))
     conn.execute(text(
         "DELETE FROM food_nutrients WHERE name_norm IN ('오트밀', '그릭요거트', '닭가슴살')"
@@ -885,9 +926,29 @@ def test_curated_seed_wins_over_public_data(db_session):
 
     jjajang = match_food(db_session, "짜장면")
     assert jjajang is not None
-    # 큐레이션 2,400mg/650g → 100g 당 369.2. 공공 짜장면은 계산값 295mg 이다.
-    assert round(jjajang.sodium_mg, 1) == 369.2
+    # 큐레이션은 외식 분석 `자장면` 368mg/100g. 공공 `짜장면` 은 계산값 295mg 이다.
+    assert jjajang.sodium_mg == 368
     assert match_food(db_session, "가공우유") is not None   # 가공식품 데이터셋
+
+
+def test_every_curated_row_names_its_sources():
+    """#2102: 큐레이션 행마다 영양값과 1회 섭취량의 출처가 있다."""
+    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
+
+    for item in FOOD_NUTRIENTS:
+        assert item.get("from_public") or item.get("source"), item["name"]
+        assert item.get("serving_basis"), item["name"]
+        # 1인분 값으로 적는 것은 데모 메뉴뿐이다 — 나머지는 출처의 100g 당 값 그대로다.
+        if not item.get("from_public") and "per_100g" not in item:
+            assert item["source"] == "데모 메뉴", item["name"]
+
+
+def test_curated_rows_without_a_serving_basis_have_no_serving():
+    """근거가 없으면 1회 섭취량을 비운다 — 양을 모를 때 인식기 추정치를 둔다."""
+    from app.data.food_nutrients_seed import FOOD_NUTRIENTS
+
+    for item in FOOD_NUTRIENTS:
+        assert (item["serving_size_g"] is None) == item["serving_basis"].startswith("없음"), item["name"]
 
 
 def test_public_servings_name_their_basis():

@@ -705,19 +705,19 @@ def test_food_nutrition_lookup_finds_a_known_name(client):
     body = r.json()
     assert body["matched_name"] == "짜장면"
     assert body["source"] == "db"
-    # 시드가 1인분으로 적어 둔 값이 100g 환산을 왕복해 돌아온다.
-    assert body["amount_g"] == 650
-    assert body["calories"] == pytest.approx(700, abs=2)
-    assert body["sodium_mg"] == pytest.approx(2400, abs=5)
+    # 시드의 1회 섭취량(가정식 분석 `자장면` 600g) × 100g 당 값(외식 분석 123kcal·368mg).
+    assert body["amount_g"] == 600
+    assert body["calories"] == 738
+    assert body["sodium_mg"] == 2208
 
 
 def test_food_nutrition_lookup_scales_to_the_amount_it_is_given(client):
     """양을 주면 그 양으로 환산한다 — 지금 먹은 양의 값을 제안해야 한다."""
     whole = client.post("/v1/diet/nutrition", json={"name": "짜장면"}).json()
     half = client.post(
-        "/v1/diet/nutrition", json={"name": "짜장면", "amount_g": 325}
+        "/v1/diet/nutrition", json={"name": "짜장면", "amount_g": whole["amount_g"] / 2}
     ).json()
-    assert half["amount_g"] == 325
+    assert half["amount_g"] == whole["amount_g"] / 2
     assert half["calories"] == pytest.approx(whole["calories"] / 2, abs=2)
     assert half["sodium_mg"] == pytest.approx(whole["sodium_mg"] / 2, abs=2)
 
