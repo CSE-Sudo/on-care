@@ -76,9 +76,19 @@ def today_iso() -> str:
 
 
 def _meal_kr(meal_type: str) -> str:
-    return {"breakfast": "아침", "lunch": "점심", "dinner": "저녁", "snack": "간식"}.get(
-        meal_type, meal_type
-    )
+    """끼니 종류 → 트레이너 웹이 그리는 한국어 라벨.
+
+    키는 회원 앱 `MealType.name` 이다(#1988 의 `lateNight` 포함). 모르는 값은
+    접지 않고 그대로 돌려준다 — 간식으로 접으면 새 끼니가 조용히 낮의 간식과
+    한 칸에 섞인다.
+    """
+    return {
+        "breakfast": "아침",
+        "lunch": "점심",
+        "dinner": "저녁",
+        "snack": "간식",
+        "lateNight": "야식",
+    }.get(meal_type, meal_type)
 
 
 def relative_day_label(day: str) -> str:

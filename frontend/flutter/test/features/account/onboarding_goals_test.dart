@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
@@ -71,7 +74,8 @@ class _RecordingRepository implements AccountRepository {
   Future<UserProfile> fetchProfile() => _inner.fetchProfile();
 
   @override
-  Future<void> deleteAccount() => _inner.deleteAccount();
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) =>
+      _inner.deleteAccount(reasons: reasons);
 
   @override
   Future<UserProfile> updateProfile({
@@ -80,8 +84,8 @@ class _RecordingRepository implements AccountRepository {
     String? phone,
     String? birthDate,
     String? gender,
-    num? heightCm,
-    num? weightKg,
+    MeasureUpdate? heightCm,
+    MeasureUpdate? weightKg,
     String? goals,
   }) => _inner.updateProfile(
     name: name,
@@ -146,6 +150,46 @@ Future<_RecordingRepository> _open(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
   return repo;
+}
+
+/// 실제 경로로 온보딩을 띄운다 — 끝나고 **어디로 가는지** 보려면 라우터가 있어야
+/// 한다. 가이드·홈 자리는 이름표만 세운다.
+Future<void> _openInRouter(WidgetTester tester) async {
+  await tester.binding.setSurfaceSize(const Size(900, 2000));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final GoRouter router = GoRouter(
+    initialLocation: AppRoutes.onboarding,
+    routes: <RouteBase>[
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (_, _) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.guideTour,
+        builder: (_, _) => const Scaffold(body: Text('앱 사용 가이드')),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboard,
+        builder: (_, _) => const Scaffold(body: Text('홈')),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: <Override>[
+        accountRepositoryProvider.overrideWithValue(_RecordingRepository()),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }
 
 Finder _field(String key) =>
@@ -571,5 +615,100 @@ void main() {
       expect(sent[key], isNotNull, reason: key);
     }
     expect(sent['weekly_cardio_minutes'], 150);
+  });
+
+  // ---- 목표 범위 (#1888) ----
+  //
+  // 서버가 받는 범위 밖 값을 그대로 넘기면 완료 저장이 422 로 거절되어,
+  // **마지막 단계에서야** 실패를 보게 된다 — 어느 칸이 문제인지도 알 수 없다.
+  // 키·체중을 1단계에서 미리 보는 것과 같은 이유다.
+
+  testWidgets('범위 밖 식단 목표를 넣으면 3단계에 머물고 그 칸에 알려 준다', (tester) async {
+    await _open(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);  // 2단계
+    await _tapNext(tester);  // 3단계 식단 목표
+
+    await tester.enterText(_field('onboardKcalField'), '99999');
+    await _tapNext(tester);
+
+    expect(_stepLabel(tester), '3 / 4');
+    expect(
+      find.text(
+        '${AppGoalRanges.dailyCalories.min}~'
+        '${AppGoalRanges.dailyCalories.max} 사이로 입력해 주세요',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('범위 밖 운동 목표면 완료가 저장을 보내지 않는다', (tester) async {
+    final _RecordingRepository repo = await _open(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);  // 4단계 운동 목표
+
+    // 한 주는 10,080분이다.
+    await tester.enterText(_field('onboardCardioField'), '100000');
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+
+    expect(repo.submitted, isNull, reason: '서버에서 422 가 될 값은 보내지 않는다');
+    expect(
+      find.text(
+        '${AppGoalRanges.weeklyCardioMinutes.min}~'
+        '${AppGoalRanges.weeklyCardioMinutes.max} 사이로 입력해 주세요',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('고치면 안내가 사라지고 완료가 지나간다', (tester) async {
+    final _RecordingRepository repo = await _open(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+
+    await tester.enterText(_field('onboardCardioField'), '100000');
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+    expect(repo.submitted, isNull);
+
+    await tester.enterText(_field('onboardCardioField'), '150');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+
+    expect(repo.submitted!['weekly_cardio_minutes'], 150);
+  });
+
+  // 포인트 안내 화면을 걷어 내면서(#2012) 그 화면의 `시작` 버튼이 가이드로 가는
+  // 유일한 길이었다는 것을 놓쳤다. 온보딩이 홈으로 곧장 가 가입한 회원이
+  // 가이드를 한 번도 못 봤다.
+  testWidgets('온보딩을 마치면 홈이 아니라 앱 사용 가이드로 간다', (tester) async {
+    await _openInRouter(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('앱 사용 가이드'), findsOneWidget);
+    expect(find.text('홈'), findsNothing);
+  });
+
+  testWidgets('온보딩을 건너뛰어도 앱 사용 가이드는 본다', (tester) async {
+    await _openInRouter(tester);
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(OnboardingPage)),
+    );
+    await tester.tap(find.text(l.onboardSkip));
+    await tester.pumpAndSettle();
+
+    expect(find.text('앱 사용 가이드'), findsOneWidget);
+    expect(find.text('홈'), findsNothing);
   });
 }

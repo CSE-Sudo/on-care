@@ -15,7 +15,6 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
     required this.trailingAction,
     this.leading,
     this.onBell,
-    this.onCalendar,
     this.bellHasUnread = false,
   });
 
@@ -23,9 +22,6 @@ class MemberTabHeader extends StatelessWidget implements PreferredSizeWidget {
   final Widget trailingAction;
   final Widget? leading;
   final VoidCallback? onBell;
-
-  /// 캘린더 버튼은 지금 쓰지 않는다. 되살릴 수 있어 자리만 남겨 둔다(#1055).
-  final VoidCallback? onCalendar;
 
   /// 벨에 새 알림 점을 띄울지.
   final bool bellHasUnread;
@@ -80,9 +76,7 @@ class HeaderActionButton extends StatelessWidget {
       icon: icon,
       tooltip: tooltip,
       onPressed: onPressed,
-      color: enabled
-          ? context.oncare.brand.primary
-          : OnCareColors.textDisabled,
+      color: enabled ? context.oncare.brand.primary : OnCareColors.textDisabled,
     );
     return Stack(
       clipBehavior: Clip.none,

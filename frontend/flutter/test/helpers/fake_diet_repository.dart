@@ -1,6 +1,7 @@
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/diet/domain/entities/diet_analysis.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/entities/food_nutrition_suggestion.dart';
 import 'package:oncare/features/diet/domain/entities/meal_photo.dart';
 import 'package:oncare/features/diet/domain/entities/meal_recommendation.dart';
 import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
@@ -39,9 +40,12 @@ class FakeDietRepository implements DietRepository {
       photoAsset: 'assets/images/breakfast-scrambled-egg-strawberry.jpg',
       aiComment: '단백질과 식이섬유의 깔끔한 조합으로, 소금 간과 기름만 조절하면 혈당과 혈압 모두 잡는 우수한 식단입니다.',
       foods: <FoodItem>[
+        // 섭취량을 아는 음식과 모르는 음식을 한 끼니에 함께 둔다 — 서버가
+        // 양을 얻지 못한 인식과 이 필드 이전 기록이 실제로 섞여 들어온다(#1876).
         FoodItem(
           name: '스크램블 에그',
           calories: 185,
+          amountG: 100,
           sodiumMg: 220,
           sugarG: 0.8,
           carbsG: 2,
@@ -152,6 +156,10 @@ class FakeDietRepository implements DietRepository {
         sodiumMg: 900,
         sugarG: 8,
         source: 'db',
+        carbsG: 90,
+        proteinG: 20,
+        fatG: 13.5,
+        amountG: 400,
       ),
       RecognizedFood(
         name: '김치',
@@ -159,6 +167,10 @@ class FakeDietRepository implements DietRepository {
         sodiumMg: 300,
         sugarG: 1,
         source: 'db',
+        carbsG: 2.5,
+        proteinG: 1,
+        fatG: 0.5,
+        amountG: 40,
       ),
     ];
     const int cals = 615;
@@ -172,11 +184,14 @@ class FakeDietRepository implements DietRepository {
     const String coach = '비빔밥은 채소가 풍부해 좋아요. 나트륨이 다소 높으니 장을 줄여보세요.';
 
     final String id = 'mock-diet-${++_seq}';
+    // 행과 분석 결과가 같은 시각을 봐야 한다 — 서버도 한 시계 스냅샷에서
+    // 뽑는다(`save_analyzed_entry`).
+    final String timeLabel = _nowLabel();
     _entries.add(
       DietEntry(
         id: id,
         mealType: _mealTypeOf(mealType),
-        timeLabel: _nowLabel(),
+        timeLabel: timeLabel,
         totalCalories: cals,
         sodiumMg: sodium,
         sugarG: sugar,
@@ -191,6 +206,10 @@ class FakeDietRepository implements DietRepository {
                 calories: f.calories,
                 sodiumMg: f.sodiumMg,
                 sugarG: f.sugarG.toDouble(),
+                carbsG: f.carbsG,
+                proteinG: f.proteinG,
+                fatG: f.fatG,
+                amountG: f.amountG,
               ),
             )
             .toList(),
@@ -206,6 +225,7 @@ class FakeDietRepository implements DietRepository {
       totalProteinG: protein,
       totalFatG: fat,
       coachComment: coach,
+      timeLabel: timeLabel,
     );
     if (idempotencyKey != null) _analyzed[idempotencyKey] = result;
     return result;
@@ -248,7 +268,9 @@ class FakeDietRepository implements DietRepository {
     final DateTime today = DateTime(now.year, now.month, now.day);
     final int daysAgo = today.difference(selectedDate).inDays;
     final List<DietEntry> moved = movedEntries.values
-        .where((({String date, DietEntry entry}) m) => m.date == _wire(selectedDate))
+        .where(
+          (({String date, DietEntry entry}) m) => m.date == _wire(selectedDate),
+        )
         .map((({String date, DietEntry entry}) m) => m.entry)
         .toList();
     if (daysAgo == 0) return fetchToday();
@@ -287,6 +309,28 @@ class FakeDietRepository implements DietRepository {
     _analyzed.removeWhere((String _, DietAnalysisResult r) => r.entryId == id);
   }
 
+  /// 테스트가 이름 조회를 흉내 낼 자리. 기본은 "공공 DB 에 없는 이름" 이라
+  /// 아무것도 제안하지 않는다 — 제안을 보고 싶은 테스트가 채워 넣는다. (#1896)
+  final Map<String, FoodNutritionSuggestion> nutritionByName =
+      <String, FoodNutritionSuggestion>{};
+
+  /// 이름 조회가 실패하는 상황(서버 오류·오프라인)을 만드는 스위치.
+  bool nutritionLookupFails = false;
+
+  /// 실제로 조회를 부른 이름들 — 타이핑 중간값으로 부르지 않는지 확인한다.
+  final List<String> nutritionLookups = <String>[];
+
+  @override
+  Future<FoodNutritionSuggestion?> lookupFoodNutrition({
+    required String name,
+    double? amountG,
+  }) async {
+    nutritionLookups.add(name);
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+    if (nutritionLookupFails) throw Exception('lookup failed');
+    return nutritionByName[name.trim()];
+  }
+
   @override
   Future<DietEntry> updateEntry({
     required String id,
@@ -300,13 +344,19 @@ class FakeDietRepository implements DietRepository {
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final int idx = _entries.indexWhere((DietEntry e) => e.id == id);
-    final DietEntry? old = idx >= 0 ? _entries[idx] : null;
+    // 다른 날로 옮겨 둔 기록도 id 로 찾는다 — 실서버·목 인터셉터는 날짜와
+    // 상관없이 id 로 고친다. 오늘 목록만 뒤지면 옮긴 뒤 끼니를 고친 저장이
+    // 대역에서만 사라진다(#1947).
+    final ({String date, DietEntry entry})? movedOld = movedEntries[id];
+    final DietEntry? old = idx >= 0 ? _entries[idx] : movedOld?.entry;
     final List<FoodItem> updatedFoods =
         foods ?? old?.foods ?? const <FoodItem>[];
     final DietEntry updated = DietEntry(
       id: id,
+      // `byName` 은 모르는 값에 던진다. 실서버·목 인터셉터는 자유 문자열을
+      // 그대로 받아 두므로, 대역도 같은 자리에서 간식으로 접는다.
       mealType: mealType != null
-          ? MealType.values.byName(mealType)
+          ? _mealTypeOf(mealType)
           : (old?.mealType ?? MealType.lunch),
       timeLabel: timeLabel ?? old?.timeLabel ?? '',
       totalCalories:
@@ -330,7 +380,7 @@ class FakeDietRepository implements DietRepository {
       photoAsset: old?.photoAsset,
       foods: updatedFoods,
     );
-    if (old != null) {
+    if (idx >= 0) {
       _entries[idx] = updated;
     }
     // 날짜를 옮기면 오늘 목록에서 빠지고 그 날짜에서 보인다 — 실서버가 하는
@@ -339,13 +389,15 @@ class FakeDietRepository implements DietRepository {
     if (date != null) {
       final DateTime now = nowKst();
       final String todayWire = _wire(DateTime(now.year, now.month, now.day));
-      if (old != null) _entries.removeAt(idx);
+      if (idx >= 0) _entries.removeAt(idx);
       movedEntries.remove(id);
       if (date == todayWire) {
         _entries.add(updated);
       } else {
         movedEntries[id] = (date: date, entry: updated);
       }
+    } else if (movedOld != null) {
+      movedEntries[id] = (date: movedOld.date, entry: updated);
     }
     return updated;
   }
@@ -372,7 +424,6 @@ class FakeDietRepository implements DietRepository {
     final String mm = now.minute.toString().padLeft(2, '0');
     return '$hh:$mm';
   }
-
 }
 
 const List<DietEntry> _yesterdayEntries = <DietEntry>[

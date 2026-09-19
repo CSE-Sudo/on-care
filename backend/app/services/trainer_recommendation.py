@@ -86,14 +86,20 @@ _CONDITION_NEEDS: dict[str, _Need] = {
 }
 
 #: 상담 요청의 `exercise_goal`(Literal) → needs.
+#:
+#: 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서(#1992) 표를 따로 들 이유가
+#: 없어졌다 — [_CONDITION_NEEDS] 를 그대로 잇는다. 예전처럼 두 표를 나란히 두면
+#: 한쪽만 고쳐져 같은 목표가 다른 needs 로 갈린다.
 _EXERCISE_GOAL_NEEDS: dict[str, _Need] = {
-    "weight_loss": _Need("체중 감량", ("체중", "감량", "다이어트")),
-    "strength": _Need("근력 향상", ("근력", "근육", "웨이트")),
-    "fitness": _Need("체력 강화", ("체력", "컨디셔닝")),
-    "posture": _Need("자세 교정", ("자세", "체형", "교정")),
-    "health": _Need("건강 관리", ("건강", "재활")),
-    # 'other' 는 무엇을 원하는지 알려주는 바가 없어 needs 로 만들지 않는다.
+    code: _CONDITION_NEEDS[focus]
+    for code, focus in health_focus.EXERCISE_GOAL_FOCUS.items()
 }
+#: 없앤 선택지지만 이미 저장된 요청에 남아 있다. 건강 목표로는 잇지 않으므로
+#: (`EXERCISE_GOAL_FOCUS`) 여기서만 needs 를 만든다.
+#:
+#: 'other' 는 무엇을 원하는지 알려주는 바가 없어 needs 로 만들지 않는다 — 그 회원은
+#: 거리·경력만으로 점수가 나거나, 신호가 하나도 없으면 기존 순서로 되돌아간다.
+_EXERCISE_GOAL_NEEDS["health"] = _Need("건강 관리", ("건강", "재활"))
 
 
 @dataclass

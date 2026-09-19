@@ -5,6 +5,7 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/points/points_rules.dart';
 import 'package:oncare/core/utils/request_id.dart';
+import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
@@ -17,6 +18,7 @@ import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connected_gym_card.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
 import 'package:oncare/features/my_health/domain/entities/health_history.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
@@ -28,14 +30,21 @@ import 'package:oncare_ui/oncare_ui.dart';
 
 /// Stable identifiers for the settings rows, decoupled from their localized
 /// display labels so the switch never keys off a translated string.
-enum _MySetting { profile, goals, notif, support }
+enum _MySetting { profile, goals, notif, guide, support }
 
 /// MY 탭 — 프로필 카드, 내 트레이너 · 헬스장 섹션, 활동 포인트 카드, 설정 목록과
 /// 로그아웃 순서다. 포인트 카드는 트레이너 · 헬스장 아래에 둔다(#1785).
 class MyHealthPage extends ConsumerWidget {
-  const MyHealthPage({super.key});
+  const MyHealthPage({super.key, this.settingsAnchorKey, this.pointsAnchorKey});
 
-  void _openSetting(BuildContext context, _MySetting id) {
+  /// 사용 가이드가 설정 묶음의 자리를 재는 열쇠(#1857). MY 탭은 이 값을 주지
+  /// 않는다 — 가이드 화면만 자기 사본에 달아 쓴다.
+  final GlobalKey? settingsAnchorKey;
+
+  /// 사용 가이드가 포인트 카드의 자리를 재는 열쇠(#1857).
+  final GlobalKey? pointsAnchorKey;
+
+  void _openSetting(BuildContext context, WidgetRef ref, _MySetting id) {
     switch (id) {
       case _MySetting.profile:
         openProfilePage(context);
@@ -43,6 +52,11 @@ class MyHealthPage extends ConsumerWidget {
         openGoalsPage(context);
       case _MySetting.notif:
         openNotificationSettingsPage(context);
+      case _MySetting.guide:
+        // 온보딩 때 지나쳤거나 다시 보고 싶은 사람을 위한 자리(#1857). 본
+        // 기억을 지워야 가이드가 다시 뜬다 — 그 판단은 가이드 화면이 한다.
+        ref.read(appGuideControllerProvider.notifier).resetSeen();
+        context.go(AppRoutes.guideTour);
       case _MySetting.support:
         openSupportPage(context);
     }
@@ -88,11 +102,17 @@ class MyHealthPage extends ConsumerWidget {
         const SizedBox(height: OnCareSpacing.sectionGap),
         _TrainerGymSection(onFindGym: () => context.go(AppRoutes.exerciseGym)),
         const SizedBox(height: OnCareSpacing.sectionGap),
-        _PointsCard(points: health.valueOrNull?.activityPoints),
+        KeyedSubtree(
+          key: pointsAnchorKey,
+          child: _PointsCard(points: health.valueOrNull?.activityPoints),
+        ),
         const SizedBox(height: OnCareSpacing.sectionGap),
-        _Settings(
-          onTap: (_MySetting id) => _openSetting(context, id),
-          onLogout: () => _confirmLogout(context, ref),
+        KeyedSubtree(
+          key: settingsAnchorKey,
+          child: _Settings(
+            onTap: (_MySetting id) => _openSetting(context, ref, id),
+            onLogout: () => _confirmLogout(context, ref),
+          ),
         ),
       ],
     );
@@ -218,18 +238,27 @@ class _ProfileCard extends StatelessWidget {
 /// 데이터 공유 동의라서다 — 스스로 누른 것이어야 한다.
 ///
 /// 앞머리 아이콘은 두지 않는다 — 제목이 프로필 이름과 같은 왼쪽 선에서 시작한다(#1785).
-class _TrainerSyncRow extends StatelessWidget {
+class _TrainerSyncRow extends ConsumerWidget {
   const _TrainerSyncRow();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
     return Semantics(
       button: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => showTrainerSyncSheet(context),
+        onTap: () async {
+          await showTrainerSyncSheet(context);
+          // 시트를 여는 동안 트레이너가 코드를 쓰면 서버에는 담당·헬스장 연결이
+          // 생긴다. 셋 다 폴링 없는 provider 라 다시 읽지 않으면, 벨 알림은
+          // 연결됐다고 하는데 바로 아래 섹션은 `없음` 으로 남는다(#1931).
+          ref
+            ..invalidate(myGymProvider)
+            ..invalidate(myTrainerProvider)
+            ..invalidate(memberCoachProvider);
+        },
         child: Row(
           children: <Widget>[
             Expanded(
@@ -777,6 +806,7 @@ class _Settings extends StatelessWidget {
     _SettingItem(AppIcons.person, _MySetting.profile),
     _SettingItem(AppIcons.goal, _MySetting.goals),
     _SettingItem(AppIcons.notifications, _MySetting.notif),
+    _SettingItem(AppIcons.guide, _MySetting.guide),
     _SettingItem(AppIcons.chat, _MySetting.support),
   ];
 
@@ -788,6 +818,8 @@ class _Settings extends StatelessWidget {
         return l.myHealthGoalsTitle;
       case _MySetting.notif:
         return l.myNotifTitle;
+      case _MySetting.guide:
+        return l.myGuideTitle;
       case _MySetting.support:
         return l.mySupportTitle;
     }
@@ -859,7 +891,7 @@ class _TrainerGymSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        AppSectionHeader(title: l.myTrainerGymTitle),
+        AppSectionHeader(title: l.myGymTrainerTitle),
         const SizedBox(height: OnCareSpacing.s12),
         gymAsync.when(
           loading: () => const AppCard(

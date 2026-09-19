@@ -6,23 +6,33 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/account/domain/entities/health_focus.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
+import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
-import 'package:oncare/features/exercise/presentation/widgets/consult_time_range_picker.dart';
+import 'package:oncare/features/exercise/presentation/utils/consultation_limit_message.dart';
+import 'package:oncare/features/exercise/presentation/utils/exercise_goal_label.dart';
+import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
+import 'package:oncare/features/exercise/presentation/utils/slot_label.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-enum _ExerciseGoal { weightLoss, strength, fitness, posture, health, other }
-
-// 화면 선택지 → 서버 계약 enum. 순서가 같으므로 index 로 잇되, 길이가 어긋나면
-// 조용히 틀린 값이 나가므로 아래 assert 로 막는다.
-extension on _ExerciseGoal {
-  ExerciseGoal get wire => ExerciseGoal.values[index];
-}
+/// 화면에 그릴 운동 목표 선택지. 온보딩·MY 의 건강 목표 8종을 `kHealthFocusOptions`
+/// 에서 **그대로 읽고**, 그 뒤에 `기타` 를 붙인다 — 목록을 여기서 따로 들면 두
+/// 화면이 다시 갈라진다(#1992).
+///
+/// 여덟 목표는 [ExerciseGoal.other] 와 달리 건강 목표로 1:1 로 이어져, 상담이
+/// 수락되면 회원의 건강 목표가 빠짐없이 채워진다.
+final List<ExerciseGoal> _kGoalChoices = <ExerciseGoal>[
+  for (final String focus in kHealthFocusOptions)
+    kHealthFocusExerciseGoals[focus]!,
+  ExerciseGoal.other,
+];
 
 /// 필드 위 제목 — 섹션 제목 역할 글자.
 TextStyle _fieldTitleStyle(BuildContext context) => context.oncare
@@ -51,16 +61,25 @@ class _ConsultationRequestPageState
     extends ConsumerState<ConsultationRequestPage> {
   final TextEditingController _messageController = TextEditingController();
 
-  _ExerciseGoal? _exerciseGoal;
-  DateTime? _preferredDate;
+  ExerciseGoal? _exerciseGoal;
 
-  /// 희망 시각은 시작·종료가 모두 있어야 한다 — "시간 협의"는 없앴다(#1587).
-  /// 시각이 비어 있으면 트레이너가 승인해도 잡을 시간이 없어, 승인만 되고
-  /// 상담 일정은 만들어지지 않는 반쪽 상태가 남았다.
-  TimeOfDay? _preferredTimeOfDay;
-  TimeOfDay? _preferredEndTimeOfDay;
+  /// 회원이 고른 트레이너의 빈 자리. 희망 시각을 적어 보내던 방식을 버렸다
+  /// (#1873) — 회원이 적은 시각은 트레이너의 실제 달력과 아무 관계가 없어,
+  /// 길이를 아무도 정하지 못하고 겹치면 승인 자체가 막혔다.
+  String? _slotId;
   bool _attempted = false;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 이 트레이너에게 낸 요청이 대기 중이면 폼을 잠근다. 그 판단이 옛 목록에 기대면
+    // 거절·만료돼 자리가 풀린 트레이너에게 다시 신청하지 못한다 — 열 때 다시
+    // 받는다(#2067).
+    unawaited(
+      ref.read(consultationRequestControllerProvider.notifier).refresh(),
+    );
+  }
 
   @override
   void dispose() {
@@ -75,44 +94,11 @@ class _ConsultationRequestPageState
     return null;
   }
 
-  Future<void> _selectDate() async {
-    final DateTime today = DateUtils.dateOnly(nowKst());
-    final DateTime? selected = await showAppDatePicker(
-      context: context,
-      initialDate: _preferredDate ?? today,
-      firstDate: today,
-      lastDate: DateTime(today.year + 100),
-    );
-    if (selected != null && mounted) {
-      setState(() => _preferredDate = selected);
-    }
-  }
-
-  /// 시작과 종료 시각을 차례로 고른다. 두 앱이 같은 공용 시간 선택기로
-  /// 정확한 범위를 입력한다.
-  Future<void> _selectTime() async {
-    final TimeRangeValue? picked = await showConsultTimeRangePicker(
-      context: context,
-      start: _preferredTimeOfDay ?? const TimeOfDay(hour: 10, minute: 0),
-      end:
-          _preferredEndTimeOfDay ??
-          TimeOfDay(
-            hour: (_preferredTimeOfDay?.hour ?? 10) + 1,
-            minute: _preferredTimeOfDay?.minute ?? 0,
-          ),
-    );
-    if (picked == null || !mounted) return;
-    setState(() {
-      _preferredTimeOfDay = picked.start;
-      _preferredEndTimeOfDay = picked.end;
-    });
-  }
-
   /// 운동 목표가 "기타"면 문의 내용에 구체적으로 적어야 한다 — 그 내용이
   /// 서버로는 `health_purpose_detail`도 겸해서 나간다(#1112). 목표 선택
   /// 하나로 줄었으니 상세를 받을 자리도 문의 내용 하나여야 한다.
   bool get _otherGoalDetailMissing =>
-      _exerciseGoal == _ExerciseGoal.other &&
+      _exerciseGoal == ExerciseGoal.other &&
       _messageController.text.trim().isEmpty;
 
   /// 데이터 공유에 동의했는가. 신청은 회원이 하고 연결은 나중에 트레이너가
@@ -123,15 +109,13 @@ class _ConsultationRequestPageState
   bool get _isValid =>
       _exerciseGoal != null &&
       !_otherGoalDetailMissing &&
-      _preferredDate != null &&
-      _preferredTimeOfDay != null &&
-      _preferredEndTimeOfDay != null &&
+      _slotId != null &&
       _dataSharingConsent;
 
   Future<void> _submit({
     required Gym gym,
     required Trainer trainer,
-    required Map<_ExerciseGoal, String> goalLabels,
+    required List<TrainerSlot> slots,
   }) async {
     if (_submitting) return;
     setState(() => _attempted = true);
@@ -145,7 +129,7 @@ class _ConsultationRequestPageState
     setState(() => _submitting = true);
     final DateTime now = nowKst();
     final String message = _messageController.text.trim();
-    final ExerciseGoal exerciseGoal = _exerciseGoal!.wire;
+    final ExerciseGoal exerciseGoal = _exerciseGoal!;
     final HealthPurposeType healthPurposeType = healthPurposeFromExerciseGoal(
       exerciseGoal,
     );
@@ -153,9 +137,8 @@ class _ConsultationRequestPageState
     // 그대로다. 나머지 목표는 매핑된 종류만으로 뜻이 충분하다.
     final String? healthPurposeDetail =
         healthPurposeType == HealthPurposeType.other ? message : null;
-    final PreferredTime preferredTime = PreferredTime.range(
-      _preferredTimeOfDay!,
-      _preferredEndTimeOfDay!,
+    final TrainerSlot slot = slots.firstWhere(
+      (TrainerSlot s) => s.id == _slotId,
     );
     final ConsultationRequest request = ConsultationRequest(
       id: 'consult-${now.microsecondsSinceEpoch}',
@@ -168,8 +151,13 @@ class _ConsultationRequestPageState
       exerciseGoal: exerciseGoal,
       healthPurposeType: healthPurposeType,
       healthPurposeDetail: healthPurposeDetail,
-      preferredDate: _preferredDate!,
-      preferredTimeSlot: preferredTime,
+      // 고른 자리의 시각을 그대로 옮겨 적는다 — 서버도 같은 값을 돌려준다.
+      preferredDate: slot.startsAt,
+      preferredTimeSlot: PreferredTime.at(
+        TimeOfDay.fromDateTime(slot.startsAt),
+      ),
+      slotStartsAt: slot.startsAt,
+      slotDurationMinutes: slot.durationMinutes,
       message: message.isEmpty ? null : message,
       status: ConsultationStatus.pending,
       createdAt: now,
@@ -179,8 +167,7 @@ class _ConsultationRequestPageState
       exerciseGoal: exerciseGoal,
       healthPurposeType: healthPurposeType,
       healthPurposeDetail: healthPurposeDetail,
-      preferredDate: _preferredDate!,
-      preferredTimeSlot: preferredTime,
+      slotId: slot.id,
       message: message.isEmpty ? null : message,
       dataSharingConsent: _dataSharingConsent,
     );
@@ -188,6 +175,48 @@ class _ConsultationRequestPageState
     final ConsultationRequest? saved;
     try {
       saved = await controller.submit(draft: draft, display: request);
+    } on ConsultationSlotTaken {
+      // 다른 회원이 먼저 그 자리를 골랐다. 대기 중으로 표시하지 않고, 목록을 다시
+      // 읽어 남은 자리 중에서 고르게 한다(#1873).
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _slotId = null;
+      });
+      ref.invalidate(consultationSlotsProvider(trainer.id));
+      showAppToast(
+        context,
+        AppLocalizations.of(context).exConsultSlotTaken,
+        type: AppToastType.error,
+      );
+      return;
+    } on TooManyPendingConsultations catch (e) {
+      // 답을 기다리는 요청이 상한에 닿았다(#1628). 이 트레이너에게 낸 요청은 없으니
+      // 대기 중으로 표시하지 않는다. 취소하거나 답을 받으면 다시 낼 수 있다.
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      showAppToast(
+        context,
+        consultationTooManyPendingMessage(
+          AppLocalizations.of(context),
+          e.limit,
+        ),
+        type: AppToastType.error,
+      );
+      return;
+    } on ConsultationRateLimited catch (e) {
+      // 24시간 신청 한도(#1628). 언제 다시 낼 수 있는지 함께 알린다.
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      showAppToast(
+        context,
+        consultationRateLimitedMessage(
+          AppLocalizations.of(context),
+          e.retryAfter,
+        ),
+        type: AppToastType.error,
+      );
+      return;
     } on Object {
       // 409 외의 실패(네트워크 등)를 잡지 않으면 _submitting 이 true 로 남아
       // 제출 버튼이 영영 눌리지 않는다(리뷰 지적).
@@ -281,14 +310,18 @@ class _ConsultationRequestPageState
   }) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
-    final Map<_ExerciseGoal, String> goalLabels = <_ExerciseGoal, String>{
-      _ExerciseGoal.weightLoss: l.exGoalWeightLoss,
-      _ExerciseGoal.strength: l.exGoalStrength,
-      _ExerciseGoal.fitness: l.exGoalFitness,
-      _ExerciseGoal.posture: l.exGoalPosture,
-      _ExerciseGoal.health: l.exGoalHealth,
-      _ExerciseGoal.other: l.exOptionOther,
+    final Map<ExerciseGoal, String> goalLabels = <ExerciseGoal, String>{
+      for (final ExerciseGoal goal in _kGoalChoices)
+        goal: exerciseGoalLabel(l, goal),
     };
+    final AsyncValue<List<TrainerSlot>> slotsAsync = ref.watch(
+      consultationSlotsProvider(trainer.id),
+    );
+    final List<TrainerSlot> slots =
+        slotsAsync.valueOrNull ?? const <TrainerSlot>[];
+    // 자리가 하나도 없으면 신청할 수 없다 — 앱은 없는 시간을 만들어 내지 않고
+    // 헬스장 전화로 내보낸다(#1873).
+    final bool canSubmit = !hasPending && slots.isNotEmpty;
 
     return Center(
       child: ConstrainedBox(
@@ -316,19 +349,19 @@ class _ConsultationRequestPageState
               showRequired: _attempted && !_dataSharingConsent,
             ),
             const SizedBox(height: OnCareSpacing.s20),
-            _ChoiceField<_ExerciseGoal>(
+            _ChoiceField<ExerciseGoal>(
               chipKeyPrefix: 'consult-goal',
               title: l.exExerciseGoal,
-              values: _ExerciseGoal.values,
+              values: _kGoalChoices,
               labels: goalLabels,
               selected: _exerciseGoal,
-              onSelected: (_ExerciseGoal value) =>
+              onSelected: (ExerciseGoal value) =>
                   setState(() => _exerciseGoal = value),
               errorText: _attempted && _exerciseGoal == null
                   ? l.exGoalRequired
                   : null,
             ),
-            if (_exerciseGoal == _ExerciseGoal.other) ...<Widget>[
+            if (_exerciseGoal == ExerciseGoal.other) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s8),
               Text(
                 l.exOtherGoalHint,
@@ -338,37 +371,21 @@ class _ConsultationRequestPageState
               ),
             ],
             const SizedBox(height: OnCareSpacing.s20),
-            Text(l.exPreferredDate, style: _fieldTitleStyle(context)),
+            // 회원이 희망 시각을 적어 보내던 두 칸(날짜·시각)을 걷어내고, 트레이너가
+            // 열어 둔 자리를 고르게 한다(#1873). 시각을 정하는 사람이 하나가 되면서
+            // 길이도 겹침도 자리가 이미 정해 둔 값이 된다.
+            Text(l.exConsultSlotTitle, style: _fieldTitleStyle(context)),
             const SizedBox(height: OnCareSpacing.s8),
-            _PickerField(
-              key: const Key('consult-date'),
-              icon: AppIcons.calendar,
-              text: _preferredDate == null
-                  ? l.exSelectDate
-                  : MaterialLocalizations.of(
-                      context,
-                    ).formatMediumDate(_preferredDate!),
-              filled: _preferredDate != null,
-              onTap: _selectDate,
+            _SlotField(
+              slots: slotsAsync,
+              selectedId: _slotId,
+              onSelected: (String id) => setState(() => _slotId = id),
+              onRetry: () =>
+                  ref.invalidate(consultationSlotsProvider(trainer.id)),
+              gym: gym,
             ),
-            if (_attempted && _preferredDate == null)
-              _ErrorText(l.exDateRequired),
-            const SizedBox(height: OnCareSpacing.s20),
-            Text(l.exPreferredTime, style: _fieldTitleStyle(context)),
-            const SizedBox(height: OnCareSpacing.s8),
-            // 날짜 필드와 같은 자리·스타일이다 — 눌렀을 때 뜨는 게 날짜 대신
-            // [showConsultTimeRangePicker]일 뿐이다(#1256). 옆에 나란히 서던
-            // "시간 협의" 토글은 없앴다(#1587) — 값은 반드시 채워야 한다.
-            _PickerField(
-              key: const Key('consult-time'),
-              icon: AppIcons.clock,
-              text: _timeText(context),
-              filled: _preferredTimeOfDay != null,
-              onTap: _selectTime,
-            ),
-            if (_attempted &&
-                (_preferredTimeOfDay == null || _preferredEndTimeOfDay == null))
-              _ErrorText(l.exTimeRequired),
+            if (_attempted && slots.isNotEmpty && _slotId == null)
+              _ErrorText(l.exConsultSlotRequired),
             const SizedBox(height: OnCareSpacing.s20),
             Text(l.exConsultMessage, style: _fieldTitleStyle(context)),
             const SizedBox(height: OnCareSpacing.s8),
@@ -394,15 +411,11 @@ class _ConsultationRequestPageState
                   ? l.exConsultPendingCta
                   : l.exSendConsultRequest,
               // 보내는 중에는 스피너를 띄우고 탭을 막는다(loading).
-              onPressed: hasPending
-                  ? null
-                  : () => unawaited(
-                      _submit(
-                        gym: gym,
-                        trainer: trainer,
-                        goalLabels: goalLabels,
-                      ),
-                    ),
+              onPressed: canSubmit
+                  ? () => unawaited(
+                      _submit(gym: gym, trainer: trainer, slots: slots),
+                    )
+                  : null,
               loading: _submitting,
               size: OnCareButtonSize.large,
               fullWidth: true,
@@ -412,16 +425,132 @@ class _ConsultationRequestPageState
       ),
     );
   }
+}
 
-  String _timeText(BuildContext context) {
-    final TimeOfDay? start = _preferredTimeOfDay;
-    final TimeOfDay? end = _preferredEndTimeOfDay;
-    if (start == null || end == null) {
-      return AppLocalizations.of(context).exSelectTime;
-    }
-    final MaterialLocalizations m = MaterialLocalizations.of(context);
-    return '${m.formatTimeOfDay(start, alwaysUse24HourFormat: true)}'
-        '–${m.formatTimeOfDay(end, alwaysUse24HourFormat: true)}';
+/// 트레이너가 열어 둔 빈 자리 목록. 회원은 여기서 하나를 고른다. (#1873)
+///
+/// 자리가 하나도 없으면 **없는 시간을 만들어 내지 않는다** — 헬스장 전화로
+/// 내보내고 신청 버튼은 잠긴다. 트레이너가 자리를 열지 않으면 그것이 사실이다.
+class _SlotField extends StatelessWidget {
+  const _SlotField({
+    required this.slots,
+    required this.selectedId,
+    required this.onSelected,
+    required this.onRetry,
+    required this.gym,
+  });
+
+  final AsyncValue<List<TrainerSlot>> slots;
+  final String? selectedId;
+  final ValueChanged<String> onSelected;
+  final VoidCallback onRetry;
+  final Gym gym;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return switch (slots) {
+      AsyncLoading<List<TrainerSlot>>() => const Padding(
+        padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s16),
+        child: AppLoading(),
+      ),
+      AsyncError<List<TrainerSlot>>() => AppErrorState(
+        key: const Key('consult-slots-error'),
+        title: l.exConsultSlotsError,
+        retryLabel: l.actionRetry,
+        onRetry: onRetry,
+      ),
+      AsyncValue<List<TrainerSlot>>(:final value)
+          when (value ?? const []).isEmpty =>
+        _NoSlotsNotice(gym: gym),
+      // 헬스장 탭의 빈 예약 시간과 **같은 모양**이다 — 같은 자리를 같은 방식으로
+      // 고르는데 화면마다 모양이 다르면 같은 것인지 알아보기 어렵다. 같은 폼의 운동
+      // 목표도 칩이라 줄도 맞는다. 두 열로 두어 자리가 많아도 폼이 길어지지 않는다.
+      AsyncValue<List<TrainerSlot>>(:final value) => LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          final double itemWidth =
+              (constraints.maxWidth - OnCareSpacing.s8) / 2;
+          return Wrap(
+            spacing: OnCareSpacing.s8,
+            runSpacing: OnCareSpacing.s8,
+            children: <Widget>[
+              for (final TrainerSlot slot in value ?? const <TrainerSlot>[])
+                SizedBox(
+                  width: itemWidth,
+                  child: AppChoiceChip(
+                    // 자리 id 로 짚는다 — 헬스장 탭의 `slot-chip-<id>` 와 같다.
+                    // 순번으로 짚으면 다른 자리가 앞에 끼는 순간 엉뚱한 자리를
+                    // 고른다(실 API E2E 는 시드·다른 스위트의 자리와 함께 본다).
+                    key: ValueKey<String>('consult-slot-${slot.id}'),
+                    label: trainerSlotChipLabel(slot),
+                    selected: slot.id == selectedId,
+                    onSelected: (bool _) => onSelected(slot.id),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    };
+  }
+}
+
+/// 열린 자리가 없을 때. 헬스장 전화로 내보낸다. (#1873)
+class _NoSlotsNotice extends StatelessWidget {
+  const _NoSlotsNotice({required this.gym});
+
+  final Gym gym;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final String? phone = gym.phone;
+    return Container(
+      key: const Key('consult-slots-empty'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(OnCareSpacing.s12),
+      decoration: BoxDecoration(
+        color: OnCareColors.surfaceCard,
+        borderRadius: OnCareRadius.mdAll,
+        border: Border.all(color: OnCareColors.lineSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l.exConsultSlotsEmptyTitle,
+            style: tokens
+                .text(OnCareTypography.strong(OnCareTypography.body))
+                .copyWith(color: OnCareColors.textPrimary),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            // 번호가 없는 헬스장(`Gym.phone` 은 nullable)이면 주소·영업시간이 있는
+            // 헬스장 상세로 보낸다.
+            phone == null
+                ? l.exConsultSlotsEmptyNoPhone(gym.name)
+                : l.exConsultSlotsEmptyBody(gym.name, phone),
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          AppButton(
+            key: const Key('consult-slots-empty-cta'),
+            label: phone == null ? l.exGymDetail : l.exGymCall,
+            onPressed: () {
+              if (phone == null) {
+                unawaited(context.push(AppRoutes.gymDetailPath(gym.id)));
+              } else {
+                unawaited(callGym(context, phone));
+              }
+            },
+            fullWidth: true,
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -453,22 +582,28 @@ class _TargetCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: OnCareSpacing.s8),
-          Text(
-            trainer.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: tokens
-                .text(OnCareTypography.titleSmall)
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            trainer.role ?? l.exTrainerDedicated,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          // 이름과 직함은 한 줄에 읽힌다(#2038 · #2082). 한 문단에 적어
+          // 말줄임이 줄 끝인 직함부터 먹게 한다 — `AppListRow.titleMeta` 와
+          // 같은 방식이다.
+          Text.rich(
+            TextSpan(
+              children: <InlineSpan>[
+                TextSpan(
+                  text: trainer.name,
+                  style: tokens
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
+                ),
+                const WidgetSpan(child: SizedBox(width: OnCareSpacing.s8)),
+                TextSpan(text: trainer.role ?? l.exTrainerDedicated),
+              ],
+            ),
             style: tokens
                 .text(OnCareTypography.bodySmall)
                 .copyWith(color: OnCareColors.textSecondary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            key: const Key('consult-target-name-role'),
           ),
           const SizedBox(height: OnCareSpacing.s8),
           Text(
@@ -552,12 +687,18 @@ class _DataSharingNotice extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Checkbox(
-                  value: consented,
-                  onChanged: (bool? next) => onChanged(next ?? false),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  activeColor: tokens.brand.primary,
+                // 넘어가는 것이 회원의 건강 기록이라, 무엇에 동의하는지 이름
+                // 없이 `checkbox, not checked` 만 들려서는 안 된다(#1942).
+                Semantics(
+                  checked: consented,
+                  label: l.exConsultDataSharingAgree,
+                  child: Checkbox(
+                    value: consented,
+                    onChanged: (bool? next) => onChanged(next ?? false),
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    activeColor: tokens.brand.primary,
+                  ),
                 ),
                 const SizedBox(width: OnCareSpacing.s4),
                 Expanded(
@@ -638,75 +779,6 @@ class _ChoiceField<T> extends StatelessWidget {
         ),
         if (errorText != null) _ErrorText(errorText!),
       ],
-    );
-  }
-}
-
-/// 눌러서 선택기를 여는 한 칸(희망 날짜·희망 시각). 입력창과 같은 채움·테두리다.
-class _PickerField extends StatelessWidget {
-  const _PickerField({
-    required this.icon,
-    required this.text,
-    required this.filled,
-    required this.onTap,
-    super.key,
-  });
-
-  final IconData icon;
-  final String text;
-
-  /// 값이 골라졌는가 — 아니면 안내 문구를 옅게 쓴다.
-  final bool filled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Material(
-      color: OnCareColors.surfaceCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: OnCareRadius.mdAll,
-        side: BorderSide(color: OnCareColors.lineStrong),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: tokens.density.inputMedium),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s12),
-            child: Row(
-              children: <Widget>[
-                AppIcon(
-                  icon,
-                  size: OnCareSize.iconMedium,
-                  color: tokens.brand.primary,
-                ),
-                const SizedBox(width: OnCareSpacing.s8),
-                Expanded(
-                  child: Text(
-                    text,
-                    style: filled
-                        ? tokens
-                              .text(
-                                OnCareTypography.strong(OnCareTypography.body),
-                              )
-                              .copyWith(color: OnCareColors.textPrimary)
-                        : tokens
-                              .text(OnCareTypography.body)
-                              .copyWith(color: OnCareColors.textTertiary),
-                  ),
-                ),
-                const AppIcon(
-                  AppIcons.chevronRight,
-                  size: OnCareSize.iconMedium,
-                  color: OnCareColors.textTertiary,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

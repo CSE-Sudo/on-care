@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,7 +65,7 @@ void main() {
 
       final state = container.read(sessionControllerProvider);
       expect(state.status, SessionStatus.authenticated);
-      expect(state.profile?.name, '김트레이너');
+      expect(state.profile?.name, kDemoTrainerName);
       expect(state.profile?.email, 'trainer@oncare.com');
     });
 

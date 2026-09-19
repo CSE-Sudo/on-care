@@ -164,6 +164,33 @@ void main() {
       expect(dinner['photo_asset'], isNull);
     });
 
+    // 데모 분석도 음식마다 양을 준다 — 실서버 스텁과 같은 1회 섭취량(#2090).
+    // 비어 있으면 분석 완료 시트에 끼니 내용량이 뜨지 않는다.
+    test('인식된 모든 음식에 내용량이 실리고 저장까지 이어진다', () async {
+      final res = await dio.post<Map<String, Object?>>(
+        '/diet/analyze',
+        data: <String, Object?>{'meal_type': 'dinner'},
+      );
+      final analysis = res.data!['analysis']! as Map<String, Object?>;
+      final foods = (analysis['foods']! as List<Object?>)
+          .cast<Map<String, Object?>>();
+      expect(
+        foods.map((Map<String, Object?> f) => f['amount_g']).toList(),
+        <Object?>[110, 90, 50],
+      );
+
+      final today = await dio.get<Map<String, Object?>>('/diet/days/today');
+      final dinner = (today.data!['entries']! as List<Object?>)
+          .cast<Map<String, Object?>>()
+          .firstWhere((Map<String, Object?> e) => e['meal_type'] == 'dinner');
+      final stored = (dinner['foods']! as List<Object?>)
+          .cast<Map<String, Object?>>();
+      expect(
+        stored.every((Map<String, Object?> f) => (f['amount_g'] as num) > 0),
+        isTrue,
+      );
+    });
+
     test('같은 멱등키로 다시 보내도 코멘트를 잃지 않는다', () async {
       Future<Response<Map<String, Object?>>> send() => dio.post(
         '/diet/analyze',

@@ -1,3 +1,4 @@
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
@@ -8,7 +9,7 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 
 /// In-memory gym + trainer data matching the prototype's `GymCard` /
 /// `GymFinder` mocks. The user starts connected to 온케어짐 신촌점 and to
-/// 김트레이너 — the same gym and person the trainer app's
+/// [kDemoTrainerName] — the same gym and person the trainer app's
 /// `seedTrainerProfile` describes, so both apps show one relationship.
 ///
 /// Stateful (not const) so the two links can be dropped for the session. The
@@ -24,6 +25,13 @@ class MockGymRepository implements GymRepository {
   /// 연결 상태는 id 만 들고 있다 — 목록과 어긋날 수 없다.
   String? _myGymId = 'gym-oncare-sinchon';
   String? _myTrainerId = 'trainer-kim';
+
+  /// 담당 트레이너 연결이 살아 있는가(#1865).
+  ///
+  /// 조회([fetchMyTrainer])와 달리 **기다리지 않는다**. 데모 조회는 실제 요청처럼
+  /// 잠깐 지연을 두는데, 위젯 테스트는 시간을 스스로 진행시키지 않으면 그 대기가
+  /// 끝나지 않는다 — 연결 여부만 묻는 자리까지 지연을 타면 멀쩡하던 테스트가 멈춘다.
+  bool get hasTrainer => _myTrainerId != null;
 
   static const Gym _sinchon = Gym(
     id: 'gym-oncare-sinchon',
@@ -73,9 +81,9 @@ class MockGymRepository implements GymRepository {
   static const Trainer _kim = Trainer(
     id: 'trainer-kim',
     gymId: 'gym-oncare-sinchon',
-    name: '김트레이너',
+    name: kDemoTrainerName,
     role: '퍼스널 트레이너',
-    reason: '혈압 관리',
+    reasons: <String>['혈압 관리', '체중 감량', '식습관 개선'],
     career: '7년',
     intro:
         '혈압 관리와 체중 감량을 함께 다루는 퍼스널 트레이너입니다. 회원 상태에 맞춘 '
@@ -89,9 +97,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-park',
       gymId: 'gym-oncare-sinchon',
-      name: '박트레이너',
+      name: '박소율',
       role: '재활 트레이너',
-      reason: '무릎·허리 재활',
+      reasons: <String>['무릎·허리 재활', '수술 후 회복'],
       career: '11년',
       intro:
           '수술 후 회복과 만성 통증 관리를 주로 맡습니다. 무리하지 않는 범위에서 '
@@ -101,9 +109,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-choi',
       gymId: 'gym-oncare-sinchon',
-      name: '최트레이너',
+      name: '최건우',
       role: '그룹 PT 트레이너',
-      reason: '2~4인 소그룹',
+      reasons: <String>['2~4인 소그룹', '운동 습관'],
       career: '4년',
       intro:
           '2~4인 소그룹 수업을 진행합니다. 혼자서는 운동을 이어 가기 어려운 회원에게 '
@@ -113,9 +121,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-kang',
       gymId: 'gym-healthmate',
-      name: '강트레이너',
+      name: '강다인',
       role: '퍼스널 트레이너',
-      reason: '교대근무',
+      reasons: <String>['교대근무', '근력 향상'],
       career: '5년',
       intro:
           '불규칙한 근무 일정에 맞춘 운동 설계를 주로 합니다. 짧은 시간에 집중도를 '
@@ -125,9 +133,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-yoon',
       gymId: 'gym-healthmate',
-      name: '윤트레이너',
+      name: '윤재희',
       role: '근력 전문 트레이너',
-      reason: '기초 근력',
+      reasons: <String>['기초 근력', '파워리프팅'],
       career: '8년',
       intro:
           '기초 근력부터 파워리프팅까지 단계를 나눠 지도합니다. 현재 들 수 있는 '
@@ -137,9 +145,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-lee',
       gymId: 'gym-bodyandsoul',
-      name: '이트레이너',
+      name: '이도경',
       role: '퍼스널 트레이너',
-      reason: '운동 초심자',
+      reasons: <String>['운동 초심자', '식습관 개선', '운동 습관'],
       career: '9년',
       intro:
           '운동을 처음 시작하는 회원을 오래 지도했습니다. 식단 상담을 함께 진행해 '
@@ -149,9 +157,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-cho',
       gymId: 'gym-bodyandsoul',
-      name: '조트레이너',
+      name: '조민혁',
       role: '시니어 운동 트레이너',
-      reason: '낙상 예방',
+      reasons: <String>['낙상 예방', '균형 잡기', '체력 강화'],
       career: '12년',
       intro:
           '60대 이상 회원 수업을 오래 맡았습니다. 균형 잡기와 낙상 예방 동작부터 '
@@ -164,9 +172,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-jung',
       gymId: '11621774', // 휘트니스에이든
-      name: '정트레이너',
+      name: '정수빈',
       role: '퍼스널 트레이너',
-      reason: '감량 정체기',
+      reasons: <String>['감량 정체기', '체성분 관리'],
       career: '6년',
       intro:
           '체중이 멈춘 시점에 식사량과 운동량을 다시 맞추는 일을 자주 합니다. '
@@ -176,9 +184,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-ha',
       gymId: '11621774',
-      name: '하트레이너',
+      name: '하윤슬',
       role: '체형 교정 트레이너',
-      reason: '목·어깨 교정',
+      reasons: <String>['목·어깨 교정', '사무직 자세'],
       career: '4년',
       intro:
           '오래 앉아 생긴 목과 어깨 불편을 주로 다룹니다. 스트레칭과 가벼운 근력 '
@@ -188,9 +196,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-han',
       gymId: '1558845892', // 하이핏
-      name: '한트레이너',
+      name: '한서준',
       role: '퍼스널 트레이너',
-      reason: '기구 입문',
+      reasons: <String>['기구 입문'],
       career: '3년',
       intro:
           '기구 사용법부터 하나씩 익히는 수업입니다. 무게를 올리기 전에 자세가 '
@@ -200,9 +208,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-oh',
       gymId: '1558845892',
-      name: '오트레이너',
+      name: '오태린',
       role: '그룹 PT 트레이너',
-      reason: '3~5인 그룹',
+      reasons: <String>['3~5인 그룹'],
       career: '5년',
       intro:
           '3~5인 그룹 수업을 맡습니다. 서로 속도를 맞추는 구성이라 혼자 할 때보다 '
@@ -212,9 +220,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-seo',
       gymId: '328969863', // 빌드업짐 PT 신촌점
-      name: '서트레이너',
+      name: '서지안',
       role: '재활 전문 트레이너',
-      reason: '재활 후 복귀',
+      reasons: <String>['재활 후 복귀', '통증 관리'],
       career: '10년',
       intro:
           '병원 재활이 끝난 뒤 일상 운동으로 넘어가는 구간을 담당합니다. 통증 기록을 '
@@ -224,9 +232,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-nam',
       gymId: '328969863',
-      name: '남트레이너',
+      name: '남도윤',
       role: '퍼스널 트레이너',
-      reason: '스쿼트 자세 교정',
+      reasons: <String>['스쿼트 자세 교정', '근력 향상', '영상 피드백'],
       career: '7년',
       intro:
           '스쿼트와 데드리프트 자세 교정을 주로 합니다. 수행 장면을 영상으로 남겨 '
@@ -236,9 +244,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-moon',
       gymId: '696444256', // 신인규피티스튜디오
-      name: '문트레이너',
+      name: '문하람',
       role: '퍼스널 트레이너',
-      reason: '주간 식단',
+      reasons: <String>['주간 식단', '식습관 개선', '1:1 전담'],
       career: '7년',
       intro:
           '1:1 수업만 진행합니다. 매주 식사 기록을 함께 보고 다음 주에 바꿀 항목을 '
@@ -248,9 +256,9 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-bae',
       gymId: '696444256',
-      name: '배트레이너',
+      name: '배시우',
       role: '러닝 코치',
-      reason: '러닝 자세 교정',
+      reasons: <String>['러닝 자세 교정'],
       career: '5년',
       intro:
           '달리기 자세와 호흡을 함께 점검합니다. 무릎에 부담이 덜 가는 보폭을 찾는 '
@@ -319,7 +327,7 @@ class MockGymRepository implements GymRepository {
     await Future<void>.delayed(const Duration(milliseconds: 80));
     // 추천 사유가 붙은 트레이너만 레일에 올린다.
     return _trainers
-        .where((Trainer trainer) => trainer.reason?.isNotEmpty ?? false)
+        .where((Trainer trainer) => trainer.reasons.isNotEmpty)
         .toList(growable: false);
   }
 
@@ -342,9 +350,12 @@ class MockGymRepository implements GymRepository {
     return DateTime(day.year, day.month, day.day + addDays, hour, minute);
   }
 
+  /// 자리를 비워 두는 트레이너. 빈 상태(헬스장 전화 안내)도 데모에서 보여야 한다.
+  static const String _emptyTrainerId = 'trainer-yoon';
+
   static List<TrainerSlot> _seedSlots() {
     final DateTime today = nowKst();
-    return <TrainerSlot>[
+    final List<TrainerSlot> handWritten = <TrainerSlot>[
       // 오늘 자리는 데모에서 "가까운 시간"을 보여주려고 둔다. 저녁에 앱을 켜면
       // 이미 지나 목록에서 빠지므로, 트레이너마다 내일 이후 자리를 함께 둬서
       // 어느 시각에 열어도 예약할 수 있는 자리가 남는다.
@@ -381,7 +392,7 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '상담',
       ),
-      // 박트레이너 — 재활 세션이라 1:1, 낮 시간대.
+      // 박소율 — 재활 세션이라 1:1, 낮 시간대.
       TrainerSlot(
         id: 'slot-park-today',
         trainerId: 'trainer-park',
@@ -410,7 +421,7 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '1:1 PT',
       ),
-      // 강트레이너 — 교대근무 대응이라 이른 아침·늦은 밤.
+      // 강다인 — 교대근무 대응이라 이른 아침·늦은 밤.
       TrainerSlot(
         id: 'slot-kang-today',
         trainerId: 'trainer-kang',
@@ -432,7 +443,34 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '1:1 PT',
       ),
-      // 윤트레이너는 슬롯이 없다 — 빈 상태를 데모에서도 볼 수 있어야 한다.
+    ];
+    // 자리를 손으로 적지 않은 트레이너(조민혁·발견 헬스장 트레이너)에게는 서버 데모
+    // 시드(`backend/app/db/seed_slots.py`)와 같은 규칙으로 둘씩 둔다 — 내일 13:00,
+    // 모레 19:30, `1:1 PT` (#2067). 없으면 그 트레이너로 상담 신청을 열었을 때
+    // 헬스장 전화 안내만 떠서 신청 흐름을 볼 수 없다. 윤재희는 비워 둔다.
+    final Set<String> covered = <String>{
+      for (final TrainerSlot slot in handWritten) slot.trainerId,
+    };
+    return <TrainerSlot>[
+      ...handWritten,
+      for (final Trainer trainer in _trainers)
+        if (!covered.contains(trainer.id) &&
+            trainer.id != _emptyTrainerId) ...<TrainerSlot>[
+          TrainerSlot(
+            id: 'slot-${trainer.id}-1',
+            trainerId: trainer.id,
+            startsAt: _at(today, 1, 13, 0),
+            booked: false,
+            sessionType: '1:1 PT',
+          ),
+          TrainerSlot(
+            id: 'slot-${trainer.id}-2',
+            trainerId: trainer.id,
+            startsAt: _at(today, 2, 19, 30),
+            booked: false,
+            sessionType: '1:1 PT',
+          ),
+        ],
     ];
   }
 

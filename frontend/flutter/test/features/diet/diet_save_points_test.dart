@@ -132,7 +132,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('사진 찍기'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('저장하기'));
+    // 시트가 길어 버튼이 접힌 화면에서는 스크롤해야 닿는다.
+    await tester.ensureVisible(find.text('저장'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('저장'));
     await tester.pump();
     await tester.pump(OnCareMotion.toastEnter);
   }
@@ -158,9 +161,7 @@ void main() {
     await dismissToast(tester);
   });
 
-  testWidgets('하루 한도를 넘어 0 이면 표시 없이 저장 알림만 뜬다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('하루 한도를 넘어 0 이면 표시 없이 저장 알림만 뜬다', (WidgetTester tester) async {
     await saveMeal(tester, const PointsAward(awarded: 0, balance: 1390));
 
     expect(find.text('식단이 저장되었어요'), findsOneWidget);

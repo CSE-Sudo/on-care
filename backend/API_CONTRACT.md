@@ -43,6 +43,13 @@
 |---|---|---|
 | GET | `/users/me` | `{ id(str), name, email }` |
 | GET | `/users/me/health` | `{ profile, risk, activity_points, activity_rank, settings[] }` |
+| DELETE | `/users/me` | `{ status: "deleted" }` |
+
+`DELETE /users/me` 는 본문으로 `{ reasons: [코드] }` 를 받는다(#2019). 본문은 없어도 되고,
+사유는 탈퇴의 조건이 아니다 — 아는 코드만 `account_deletion_reasons` 에 사유와 시각으로만
+남고(누가 골랐는지는 남기지 않는다), 모르는 코드는 조용히 버린다. 아는 코드는
+`privacy` · `rarely_used` · `hard_to_use` · `too_many_notifications` · `found_alternative` ·
+`other`. 계정과 그에 매인 기록은 예전처럼 그대로 지워진다.
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
@@ -58,7 +65,9 @@
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/dashboard/summary` | `{ indicators[], diet_entries(int), exercise_minutes, today_schedule[], week_score, week_score_delta, sodium_warning(nullable), exercise_feedback }` |
+| GET | `/dashboard/summary` | `{ indicators[], diet_entries(int), exercise_minutes, week_score, week_score_delta, sodium_warning(nullable), exercise_feedback, ai_advice_key(nullable) }` |
+
+`ai_advice_key` 는 홈 `오늘의 AI 통합 조언` 이 고른 문장의 로케일 독립 식별자다(#1943). 앱이 이 키를 먼저 보고 자기 문장을 그린다 — 키가 없으면 위 두 문장을 받은 그대로 쓴다. 음식 이름이 들어간 나트륨 경고처럼 번역할 수 없는 문장에는 키를 주지 않는다.
 
 `indicators[]`: `{ label, current(float), max(int), unit, over_budget?(bool) }` — 칼로리/나트륨/당류 3종.
 `current` 는 당류가 소수(17.8g)라 float. 칼로리·나트륨은 정수 값이 그대로 실린다. 목표치(`max`)는 셋 다 정수.
@@ -68,12 +77,29 @@
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
-| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 
-`entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float) }`
+`entries[]`: `{ id(str), meal_type(breakfast|lunch|dinner|snack|lateNight), time_label, foods[], total_calories(int), sodium_mg(int), sugar_g(float), ai_comment(str), photo_url(str?) }`
+`meal_type` 값은 회원 앱 `MealType.name` 그대로다 — 그래서 `lateNight`(야식, #1988)만 camelCase 다. DB 는 `String(20)` 자유 문자열이라 이 값을 검증하지 않으므로, 앱이 이름과 다른 문자열을 보내면 조용히 저장되고 트레이너 웹에서 다른 끼니로 읽힌다. 새 끼니를 더할 때도 enum 이름과 전송값을 일치시킨다.
+`lateNight` 이전에 저장된 `snack` 은 그대로 `snack` 이다 — 백필하지 않는다. 앱은 모르는 `meal_type` 을 간식으로 접어 읽고 죽지 않는다.
+`ai_comment` 는 사진 분석이 만든 식단평이다(#1932). 손으로 고쳐 만든 끼니와 분석이 식단평을 내지 못한 끼니는 빈 문자열이고, 앱은 비어 있으면 그 줄을 그리지 않는다.
 당류만 소수다 — 항목 단위 당류가 6.3g·8.5g 처럼 소수로 들어오고 합계도 절삭 없이 유지된다(`total_sugar_g` 도 float).
-`foods[]`: `[{ name, calories }]` (drift 주석 기준)
+`foods[]`: `[{ name, amount_g(float?), calories(int?), sodium_mg(int?), sugar_g(float?), carbs_g(float?), protein_g(float?), fat_g(float?), source(db|estimate|mixed) }]` — 음식별 영양은 회원이 식단 상세에서 고칠 수 있는 값이고, 그대로 저장된다(#1856, #1892).
+
+`amount_g` 는 **그 영양이 무엇을 재고 나온 값인가** 다. 공공 DB 는 100g 기준이라 보정이 이 양으로 환산하며, 환산에 실제로 쓴 값(인식기 추정 또는 알려진 1회 섭취량)이 그대로 실린다. 양을 못 얻어 추정치를 그대로 둔 음식과 이 필드 이전 기록은 `null` 이다 — 읽는 쪽이 null 을 견뎌야 한다. 앱은 이 값으로 나머지 여섯 값을 비례 환산한다(#1876).
+
+**`PUT` 에 `foods` 를 실으면 그 끼니의 음식 목록이 통째로 갈리고, 끼니 합계(`total_calories`·`carbs_g`·`protein_g`·`fat_g`·`sodium_mg`·`sugar_g`)도 그 목록에서 다시 계산된다** — 같은 요청에 합계를 함께 보내도 음식 쪽이 이긴다. 원본을 하나로 두지 않으면 음식을 고칠 때마다 합계와 내역이 갈린다. `foods` 를 보내지 않으면 음식 목록은 그대로고 보낸 합계만 바뀐다. 빈 배열(`[]`)은 422 다 — 음식이 하나도 없는 끼니는 수정이 아니라 삭제다.
+
+당류가 탄수화물보다 크면 422 다(#1863). 당류는 탄수화물의 일부라 그보다 클 수 없고, 같은 값(전부 당인 음식)은 통과한다. **`foods` 를 보내면 음식 하나하나를 견준다**(#1893) — 합계로만 보면 탄수화물이 넉넉한 다른 음식이 어긋난 음식을 가려 준다. 응답 `detail` 이 몇 번째 음식인지 말해 준다. `foods` 없이 합계만 보내면 저장된 값과 합친 결과로 견준다.
+
+탄수화물 0 을 어떻게 볼지는 **그 0 이 어디서 왔는지**가 정한다. 컬럼이 `NOT NULL` 기본 0 이라 "탄수화물이 없다" 와 "아직 안 적혔다" 가 같은 0 으로 보이기 때문이다.
+
+- 저장된 끼니의 `carbs_g` 가 0 이고 이번 요청이 탄수화물을 **보내지 않았다면** 견주지 않는다 — 인식기가 그 값을 못 준 옛 기록이고, 여기서 막으면 그 기록의 당류를 영영 고칠 수 없다(#1877).
+- 탄수화물을 **실어 보냈다면** 그 값이 0 이어도 회원이 적은 값으로 보고 견준다. 탄수화물을 지워 검사를 피할 수 없다(#1893). 그래서 합계를 0 으로 초기화할 때는 `sugar_g` 도 함께 0 으로 보내야 한다.
+
+회원 앱도 수정 모드를 열었을 때의 값으로 **같은 판단**을 해서, 저장을 누르기 전에 그 음식의 당류 칸 아래에 이유를 보인다(#1869). 앱이 서버보다 엄격하지도, 느슨하지도 않다.
 `macros`: `{ carbs_pct, protein_pct, fat_pct }`
 `idempotency_key`(선택): 재시도 중복 저장 방지. 클라 요청당 1회 생성해 재시도 시 재사용하면, 서버는 (user_id, key) 유니크 제약으로 같은 키의 재요청에 대해 **인식·저장을 건너뛰고 기존 entry 를 반환**한다(중복 기록·RAG 재적재 없음).
 
@@ -236,7 +262,27 @@ category: hospital|exercise|meal|medication|other
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
-category: reminder|health_check|achievement|system
+category: reminder|health_check|achievement|system|coach_chat|routine|member_schedule|consultation_result|consult_decision|health_goals
+
+#### 갈래와 이동할 곳
+
+각 알림에는 누르면 갈 곳 `action: { label, target }` 이 실립니다(없으면 `null` — 읽음 처리만 하고
+제자리에 둡니다). 앱은 모르는 `target` 을 받으면 목록에는 싣고 이동만 하지 않습니다.
+
+| category | 무엇 | action.target |
+|---|---|---|
+| `reminder`·`health_check`·`achievement` | 기록·점검·성취 | `dashboard` |
+| `coach_chat` | 트레이너 메시지·리포트 | `coach_chat` |
+| `routine` | 루틴 배정 | `exercise` |
+| `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
+| `consultation_result` | 담당 연결 — 담당 요청 도착·연결됨·연결 해제 | `exercise` |
+| `consult_decision` | **내 상담 요청의 승인·거절·만료**(#2067) | `consultations`(내 상담 요청) |
+| `health_goals` | 담당 트레이너의 건강 목표 변경 | `health_goals` |
+| `system` | 공지 | 없음 |
+
+`consult_decision` 은 #2067 에서 `consultation_result` 에서 떼어 냈습니다. 같은 갈래였을 때는 거절
+알림을 눌러도 운동 탭으로 가서, 사유를 보려면 내 상담 요청을 따로 찾아가야 했습니다. 이미 저장된
+옛 결과 알림은 `consultation_result` 그대로라 운동 탭으로 갑니다(백필하지 않음).
 
 #### 목록 페이지네이션 (#965)
 
@@ -277,8 +323,12 @@ category: reminder|health_check|achievement|system
 | Method | Path | 응답 |
 |---|---|---|
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` |
+| GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
+| DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
 
 tag: diet|exercise|hydration|...
+
+`DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
 
 ### 바이탈 (체중/혈압/혈당) — 제거됨
 
@@ -336,7 +386,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 - **노출 조건**: 소속(`gym_id`)이 있고 그 장소가 `category='fitness'` 인 트레이너만. 상담 요청 시의 대상 검증과 같은 조건이라, 목록에 뜬 트레이너는 상담을 걸 수 있다. (#451)
 - **`/trainers/recommended` 순서**: 회원마다 다르다. 회원의 건강 목표(`conditions`, 옛 질환 이름은 새 목표로 읽는다)·목표(`goals`)·가장 최근 상담의 `exercise_goal`·내 헬스장(`MemberGym`)을 신호로 점수를 매겨 내림차순 정렬한다. 동점은 경력 → id 로 갈라 같은 회원이 새로고침해도 순서가 흔들리지 않는다. (#500)
-- **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818).
+- **트레이너 화면의 회원 목표(`TrainerClientOut.goal`, `MemberCoachOut.goal`, 루틴 추천 분석의 `goal`)**: 회원 건강 목표(`conditions` 중 목표, 최대 2개)를 ` · ` 로 이은 값이다. 트레이너가 `PUT /trainer/clients/{id}/health-profile` 로 `conditions` 를 고치면 회원앱과 같은 칸이 바뀐다. 옛 질환 이름은 저장 때 정리하고, 목표가 아닌 글(건강상태·주의사항)은 남는다. 상담 수락 때 회원 목표가 비어 있으면 상담의 `exercise_goal` 을 목표로 채운다(#1818). 상담 운동 목표가 건강 목표 여덟 종과 1:1 이 되면서 `other` 를 뺀 모든 값이 빠짐없이 채워진다(#1992).
+- **회원 건강 목표 숫자의 범위**: 회원 경로(`PUT /users/me/health-goals`·`POST /users/me/onboarding`)와 트레이너 경로(`PUT /trainer/clients/{id}/health-profile`)가 **같은 범위**를 쓴다 — 같은 컬럼을 고치는 문들이라 기준이 갈라지면 한쪽으로 들어온 값을 다른 쪽이 고칠 수 없다. 범위는 `app/schemas/health_goal_ranges.py` 한 곳에 있고, 어긋나면 422 다. `null` 은 그대로 목표 해제다. 자세한 사정은 [TRAINER_DOMAIN.md](docs/TRAINER_DOMAIN.md) 참조. (#1888)
 - **신호가 없는 회원**(온보딩 전 등)은 운영자가 `recommend_reason` 을 적어 둔 트레이너만 **기존 순서 그대로** 받는다. 빈 목록을 주지 않는다.
 - **`reason`**: 운영자가 쓴 `recommend_reason` 이 우선이고, 비어 있을 때만 점수 근거에서 만든 문구가 채워진다(예: `회원님이 다니는 헬스장 소속 · 체중 감량 지도 경험`).
 
@@ -378,7 +429,8 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 
 | Method | Path | 응답 |
 |---|---|---|
-| POST | `/consultations` | 입력 `{ trainer_id, exercise_goal, health_purpose_type, preferred_date, preferred_time_slot, message? }` |
+| POST | `/consultations` | 입력 `{ trainer_id, slot_id, exercise_goal, health_purpose_type, message? }` |
+| GET | `/consultations/slots?trainer_id=` | 상담 신청 폼이 고를 수 있는 그 트레이너의 빈 자리 |
 | GET | `/consultations/me` | 내가 보낸 요청 (최신순, 기본 50건·커서) |
 | DELETE | `/consultations/{consultation_id}` | 내가 보낸 대기 중 상담 요청 취소 |
 | GET | `/consultations/{id}` | 단건(남의 것·없는 것 404) |
@@ -386,17 +438,85 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 - 같은 트레이너에게 **대기 중인 요청은 한 건**입니다(`uq_consultation_requests_pending_trainer`,
   중복은 409). 그래서 목록이 자라는 쪽은 처리된 지난 요청입니다 — 상태 필터가 없어
   그대로 함께 쌓이고, 그 때문에 상한이 필요합니다. (#980)
-- `preferred_time_slot` 입력은 단일 `"HH:MM"` 또는 `"HH:MM-HH:MM"` 시작–종료 범위만 허용합니다.
-  시각 없는 `"flexible"` 은 더 이상 받지 않습니다(422) — 승인해도 잡을 시각이 없어 상담이
-  승인만 되고 일정은 만들어지지 않았습니다. (#1587)
-  과거 `flexible`·`morning`/`afternoon`/`evening` 값은 이미 저장된 행에 남아 있을 수 있어
-  **응답**에서는 그대로 내려줍니다 — 컬럼이 `String(20)` 이라 마이그레이션 없이 값 형식만
-  바뀐 것입니다.
+- **신청 한도** (#1628) — 트래픽이 아니라 남에게 주는 피해를 막습니다. 답을 기다리는 요청
+  하나가 트레이너 자리 하나를 최대 24시간 잠그고, 신청·취소를 되풀이하면 트레이너 알림함이
+  찹니다. 둘 다 **DB 에서 셉니다** — 재기동하면 비워지는 메모리 창으로는 반복을 막지 못합니다.
+
+  | 한도 | 기본값(설정) | 넘으면 |
+  |---|---|---|
+  | 동시에 답을 기다리는 요청 수(모든 트레이너 합) | 3 (`CONSULTATION_MAX_PENDING`) | **409** `detail = { code: "too_many_pending", message, limit }` |
+  | 24시간에 만든 요청 수(취소·거절·만료 포함) | 10 (`CONSULTATION_CREATE_PER_DAY`) | **429** `detail = { code: "consultation_rate_limited", message, limit }` + `Retry-After` |
+
+  - 판정 순서는 같은 트레이너 대기 중복(409, 문자열 detail) → 동시 대기 상한 → 24시간 한도입니다.
+    중복은 "이미 신청함" 상태라 앱이 기존 신청을 보여 줘야 하므로 한도 코드로 바꾸지 않습니다.
+  - 동시 대기 상한을 세기 전에, 이 회원의 대기 요청이 걸린 트레이너들의 지난 `pending` 을
+    만료 처리합니다 — 아무도 그 트레이너 화면을 열지 않아 아직 `pending` 인 요청이 회원을
+    막지 않게 합니다.
+  - `Retry-After` 는 한 건 여유가 생기는 시각까지의 초입니다(가장 먼저 창을 벗어나야 하는
+    신청 기준). 앱은 한 시간 이상이면 시간, 미만이면 분으로 올려 안내합니다.
+  - 값이 0 이면 그 한도를 끕니다. 24시간 한도는 다른 한도처럼 `RATE_LIMIT_ENABLED=false`
+    에서도 꺼집니다(실 API E2E 가 그렇게 돕니다).
+  - 거절·만료된 트레이너에게 곧바로 다시 신청하는 길은 막지 않습니다(#2067). 같은 트레이너
+    재신청 쿨다운은 두지 않습니다.
+- `exercise_goal` 입력은 회원앱 온보딩·MY 의 **건강 목표 여덟 종과 1:1** 입니다 —
+  `weight_loss`·`strength`·`fitness`·`posture`·`rehab`·`eating`·`exercise_habit`·`blood_pressure`,
+  그리고 여덟 중 어디에도 넣기 어려운 회원을 위한 `other` 입니다. 상담이 수락되면
+  여덟 목표는 회원 건강 목표(`HealthProfile.conditions`)로 그대로 이어집니다
+  (`health_focus.EXERCISE_GOAL_FOCUS`). `other` 는 무엇을 원하는지 알려주는 바가 없어
+  잇지 않습니다. (#1992)
+  없앤 `health`(건강 관리)는 **입력에서 받지 않습니다**(422) — 여덟 목표 중 하나로 옮길
+  수 없어 그 회원만 건강 목표가 비어 있었고, 그게 이 통일의 이유입니다. 이미 저장된
+  `health` 행은 백필하지 않고 **응답에서 그대로 내려줍니다**(응답 타입이 `str` 입니다).
+  `fitness` 는 부르는 이름만 `체력 향상` → `체력 강화` 로 바뀌었고 뜻은 같아 그대로 읽습니다.
+- **시각은 회원이 적어 보내지 않고 트레이너가 열어 둔 자리에서 고릅니다.** (#1873)
+  `preferred_date`+`preferred_time_slot` 입력은 `slot_id` 하나로 바뀌었습니다. 자리가
+  시작·길이·종류를 모두 들고 있어 승인이 시각을 다시 정하지 않습니다 — 예전에는 회원이
+  고른 종료 시각이 쓰이지 않고 승인이 늘 시작+30분으로 일정을 만들었습니다.
+- `GET /consultations/slots` 는 그 트레이너의 **`1:1 PT`** 자리 중 닫히지 않았고 비어 있고
+  **시작까지 4시간 이상** 남은 것만 줍니다(`CONSULT_SLOT_MIN_LEAD_HOURS`). 헬스장 탭의
+  예약 가능 시간 목록(`GET /trainers/{id}/slots`)과 종류 기준은 같고(#1849 유지) 하한과
+  잠김 여부만 다릅니다. 비면 앱은 신청 버튼을 잠그고 헬스장 전화를 안내합니다.
+- **신청하는 순간 자리가 잠깁니다**(`remaining` 감소). 승인할 때 잠그면 두 회원이 같은
+  자리를 신청할 수 있고, 둘 중 하나는 트레이너가 수락한 뒤에야 거절당합니다. 이미 잠긴
+  자리를 보내면 **409** 이고, 없는 자리는 **404** 입니다.
+- **만료** — 신청 후 **24시간**과 **자리 시작 2시간 전** 중 **먼저 오는 쪽**에 요청이
+  `expired` 가 되고 자리가 다시 열리며 회원에게 알림이 갑니다. `rejected`(트레이너의 판단)와
+  구분해 회원 화면 문구가 다릅니다. 목록 하한(4시간)을 만료 기준(2시간)보다 크게 둔 이유는
+  경계에서 트레이너의 확인 시간이 0 이 되지 않게 하기 위해서입니다 — 둘이 같으면 19:30 자리가
+  17:29 에 보이는데 만료는 17:30 이라 신청 1분 뒤에 만료됩니다. 차이(2시간)가 트레이너가
+  보장받는 최소 확인 시간입니다.
+- **정리 시점** — 스케줄러가 없어 **읽는 시점에** 정리합니다. 트레이너 자리 목록
+  (`GET /trainer/reservation-slots`)·상담 인박스(`GET /trainer/consultations`)·미처리 배지·
+  상담 신청 생성·`GET /consultations/slots` 가 해당 트레이너의 지난 `pending` 을 먼저
+  만료 처리한 뒤 결과를 돌려줍니다. 범위를 그 트레이너의 행으로 한정합니다.
+- **데모 트레이너의 자리** (#2067) — `SEED_DEMO_DATA` 가 켜진 서버는 기동할 때 데모
+  트레이너(윤재희 `trainer-yoon` 제외)마다 `1:1 PT` 60분 자리를 둘씩 깝니다(내일 13:00,
+  모레 19:30). `GET /consultations/slots` 와 `GET /trainers/{id}/slots` 는 그 트레이너에게
+  고를 자리가 하나도 없으면 같은 규칙으로 다시 깐 뒤 결과를 돌려줍니다 — 기동할 때만 깔면
+  재기동 없이 오래 켜 둔 서버에서 날짜가 지나 다시 빕니다. 고를 자리가 하나라도 있으면
+  (트레이너가 연 자리 포함) 아무것도 하지 않고, 잡혔거나 닫힌 시각은 다시 열지 않고 그 뒤
+  날짜로 밉니다. 데모 트레이너가 아닌 계정에는 깔지 않습니다. 윤재희는 빈 상태(헬스장 전화
+  안내)를 보여 주려고 비워 둡니다.
+- **거절·회원 취소·만료·회원 탈퇴는 자리를 되돌려 줍니다.** 탈퇴하면 요청 행은 회원과 함께 CASCADE 로 사라지므로, 그 전에 자리부터 풉니다 — 아니면 `remaining = 0` 으로 영영 잠깁니다. 예약(`TrainerReservation`)과 달리 상담이
+  잡은 자리에는 예약 행도 일정도 없어, 좌석만 되돌리는 별도 경로(`release_consultation_hold`)를
+  씁니다.
+- 응답에 `slot_id`·`slot_starts_at`·`slot_duration_minutes` 가 실립니다 — 회원 화면이 **확정된
+  일시**를 그리는 값입니다. 승인 알림 본문에도 확정 일시가 들어갑니다.
+- `preferred_date`·`preferred_time_slot` 은 **응답에 남습니다.** 새 요청에서는 고른 자리의
+  시각 사본이고, 자리 선택 이전 요청에는 회원이 적어 보낸 희망 시각이 그대로 있습니다.
+  과거 `flexible`·`morning`/`afternoon`/`evening` 값도 저장된 그대로 내려갑니다.
+- 자리 없이 접수돼 있던 `pending` 요청은 배포 마이그레이션(`0073_consultation_slot`)이
+  `expired` 로 정리하고 회원에게 알립니다 — 새 흐름으로는 트레이너가 수락해도 잡을 자리가
+  없기 때문입니다. `accepted`·`rejected`·`cancelled` 인 지난 요청은 건드리지 않습니다.
 - 커서는 `(created_at, id)` 로 알림과 같은 모양입니다(`before`·`before_id`).
 - 트레이너 인박스(`GET /trainer/consultations`)도 같은 파라미터를 받습니다. 기본값인
   `status=pending` 은 처리하는 만큼 줄지만 `status=all` 은 그 트레이너에게 들어온 요청
   전체입니다. 미처리 배지(`/trainer/consultations/pending-count`)는 **쪽 나눔과 무관하게**
-  전체를 셉니다.
+  전체를 셉니다. 상태 필터에 `expired` 가 있습니다(#1873).
+- **승인은 시각을 받지 않습니다.** `POST /trainer/consultations/{id}/accept` 본문은 `note`
+  하나뿐이고, 날짜·시각·종류·소요 시간 인자와 겹침 검사는 없앴습니다 — 자리를 연 사람이
+  트레이너 자신이고 한 자리는 한 사람 몫이라 겹침이 구조적으로 나지 않습니다. 회원이 고른
+  자리가 사라진 뒤 승인하면 **409** 입니다.
 
 ### 트레이너 알림함
 
@@ -408,8 +528,9 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 | POST | `/trainer/notifications/read-all` | `{ marked_read(int) }` |
 
 - **회원용 `/notifications` 를 재사용하지 않습니다.** `get_current_user` 가 트레이너 계정을 **403** 으로 막는 회원 전용 경로입니다(역할 분리). 저장되는 행은 같은 `notifications` 테이블이고 `user_id` 가 일반 사용자 FK라 스키마 변경은 없습니다. (#503)
-- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다.
-- **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소.
+- `category` 는 트레이너 전용 값입니다 — `message`|`consultation`|`reservation`|`health_goal`|`member_name`. 회원 알림의 집합(`reminder|health_check|achievement|system`)과 겹치지 않습니다. 한 테이블을 공유하지만 읽는 화면과 이동할 곳이 다릅니다. `health_goal`·`member_name` 은 `subject_id` 에 그 회원 id 를 실어 회원 상세로 갑니다.
+- **생성 지점**: 회원의 새 메시지(`POST /me/coach/chat`), 새 상담 요청(`POST /consultations` — 지정된 트레이너 한 사람), 새 예약·예약 취소, 담당 회원의 건강 목표 변경(#1832), 담당 회원의 이름 변경(`PUT /users/me`·`POST /users/me/onboarding`, #2065).
+- **이름은 알림을 만든 순간의 것입니다.** 제목·본문을 완성된 글자로 저장하므로, 이름을 바꿔도 이미 받은 알림은 그때 이름으로 남고 바꾼 뒤의 알림부터 새 이름을 씁니다(받은 순간의 기록이라 고쳐 쓰지 않습니다). 대신 담당 회원이 이름을 바꾸면 트레이너에게 `member_name` 알림(`{옛 이름} 회원이 이름을 바꿨어요: {새 이름}`)을 한 번 보내 옛 이름과 새 이름을 잇습니다. 트레이너는 아직 이름을 바꿀 길이 없고(`PUT /trainer/me` 는 이름을 받지 않음), 그 길을 열 때 담당 회원에게 같은 알림을 보냅니다. (#2065)
 - **수신 설정**: 메시지 알림만 `trainer_profiles.notify_new_message` 로 끌 수 있습니다. 상담 요청·예약은 끄는 스위치가 설정 화면에 없고, 놓쳐도 되는 종류가 아니라 항상 남깁니다.
 - 남의 알림 읽음 처리는 **404** 입니다.
 
@@ -430,6 +551,87 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 두 앱 모두 로그인과 토큰 저장이 붙어 있다(`session_controller.dart`, `secure_token_store.dart`,
 `auth_interceptor.dart`). 발급은 `POST /auth/login`·`POST /auth/refresh`·`POST /auth/social/{provider}`
 이고, 이후 요청은 `Authorization: Bearer <access>` 를 단다.
+
+### 가입 연락처 형식 (#1780)
+
+`POST /auth/register` 와 `POST /auth/trainer/register` 는 `email`·`phone` 의 **형식을 서버가
+본다**. 두 앱의 가입 화면(`oncare_ui` 의 `AppInputRules`)이 같은 것을 미리 걸러 주지만, 앱을
+거치지 않은 요청까지 막는 것은 여기다. 어긋나면 **422** 이고, 중복 이메일(409)·초대 코드
+오류보다 먼저 걸린다.
+
+| 필드 | 기준 | 저장 |
+|---|---|---|
+| `email` | `AppInputRules.email` 과 **같은 규칙**(로컬@도메인.최상위, 최대 255자) | 앞뒤 공백만 잘라낸 **입력 그대로** |
+| `phone` | `010` 으로 시작하는 숫자 11자리. 하이픈·공백은 세지 않는다. 빈 값 허용(선택) | `010-1234-5678` 한 가지 표기 |
+
+`email-validator`(`EmailStr`)를 쓰지 않는다. 그쪽은 RFC 2606 이 시험용으로 비워 둔 최상위
+도메인(`.test`·`.invalid`·`localhost`)을 막는데, 앱은 통과시키므로 기준이 갈라진다 — 실 API
+E2E 가 쓰는 `@oncare.test` 계정이 가입에서 떨어졌다. 두 규칙은 **함께 고쳐야 한다.**
+
+이메일을 소문자로 고치지 않는 이유는 로그인 조회와 중복 확인이 `users.email` 을 그대로
+비교하기 때문이다 — 저장만 정규화하면 대문자 도메인으로 가입한 사람이 자기가 친 주소로
+로그인하지 못한다(정규화는 그 조회까지 함께 옮겨야 하는 별개의 일, #1551).
+
+전화번호는 `01012345678` 처럼 하이픈 없이 보내도 받는다. **표기에 대해서만** 앱보다 느슨한
+쪽이라 앱을 통과한 값이 서버에서 막히는 일은 생기지 않는다. 시드와 기존 프로필이 이미 하이픈
+표기라 정리할 데이터는 없다.
+
+앞자리도 함께 본다. 숫자 개수만 세던 때는 `123-4567-8901` 처럼 걸 수 없는 번호가 그대로
+저장됐다 — 트레이너가 담당 회원에게 연락하려고 보는 값이라, 자릿수만 맞는 값을 받아 두면
+연락할 방법이 없는 것과 같다. 01X 번호는 2021-06-30 에 서비스가 끝나 지금 쓰이는 휴대전화는
+전부 `010` 이다. **헬스장 대표번호는 이 규칙을 타지 않는다** — 지역번호·안심번호(`02-332-1720`·
+`0502-5552-4212`)가 섞여 있어 휴대전화 3-4-4 를 걸면 정상 번호가 422 로 막힌다.
+
+`PUT /users/me`(프로필 수정)도 **같은 기준**이다(#1883). 전에는 이 경로만 비어 있어, 이메일을
+`asdf` 로 고친 회원이 원래 주소로 다시 로그인할 수 없었다(비밀번호 찾기 경로가 없어 스스로
+되돌릴 수도 없다). 전화번호도 여기서 정리가 되돌려졌다.
+
+여기에 한 가지가 더 붙는다: **있던 전화번호는 지울 수 없다**(422). 회원 가입 화면이 전화번호를
+필수로 받는데(#1634) 이 화면에서 비울 수 있으면 그 필수가 무의미해지고, 트레이너가 담당 회원에게
+연락할 방법이 사라진다. 반대로 **처음부터 없던 회원**(소셜 로그인 가입자와 #1634 이전 가입자는
+연락처를 넣을 자리가 없었다)에게는 요구하지 않는다 — 이름만 고치려는 사람을 전화번호로 막는
+화면이 된다. 이메일은 어느 쪽이든 비울 수 없다.
+
+`PUT /trainer/me` 의 `phone` 도 **같은 기준**이다(#1914). 트레이너는 이메일을 바꿀 수 없어
+계정 잠김 위험은 원래 없었지만, 같은 종류의 값을 두 앱이 다른 기준으로 받으면 나중에 이 번호를
+회원 화면에 보일 때 그 자리에서 정리부터 해야 한다. 회원 쪽과 달리 **빈 값은 언제든 허용한다** —
+트레이너 가입은 전화번호를 받지 않으므로(`TrainerRegister` 는 초대 코드만 더한다) 처음부터
+없는 값이다.
+
+같은 요청의 `gym_phone` 에는 **이 기준을 걸지 않는다.** 헬스장 대표번호는 휴대전화 3-4-4 가
+아니다 — 시드에만도 `02-1234-5678`(10자리) · `02-332-1720`(9자리) · `0502-5552-4212`(12자리)가
+섞여 있고, 소속을 설정하면 `Place.phone` 이 이 칸에 그대로 들어온다(`set_trainer_gym`).
+휴대전화 규칙을 걸면 정상 번호가 422 가 되고, 그 뒤로는 프로필 저장 자체가 막힌다. 대표번호
+표기를 통일하려면 지역번호·안심번호까지 읽는 별도 규칙이 필요하다.
+
+### 이름·생년월일 형식 (#1887)
+
+같은 이야기가 `name` 과 `birth_date` 에도 적용된다. 전에는 두 칸에만 기준이 없어, 컬럼 길이를
+넘기면 **500**(`value too long`)이고 들어가는 길이면 아무 값이나 **200** 이었다. 기준을 두는
+곳은 `backend/app/services/profile_format.py` 이고, 회원 앱은 `AppInputRules` 로 같은 것을 미리
+보여 준다.
+
+| 필드 | 기준 | 적용 경로 |
+|---|---|---|
+| `name` | 앞뒤 공백을 자른 뒤 **1~100자**(`users.name` 컬럼과 같다) | `POST /auth/register`(보낸 경우) · `POST /users/me/onboarding` · `PUT /users/me` |
+| `birth_date` | `YYYY-MM-DD` 이거나 **빈 값**. 표기뿐 아니라 실제 날짜인지도 본다 | `POST /users/me/onboarding` · `PUT /users/me` |
+
+**이름은 비울 수 없다**(422). 가입 화면이 필수로 받는 값인데 프로필 수정에서 빈 값이 통과하면
+그 필수가 무의미해지고, 이름이 빈 회원이 트레이너 로스터·채팅·상담 카드에 공백으로 뜬다.
+
+**가입에서 `name` 을 생략하면** 서버가 이메일 로컬 파트로 채우는데, 이때 100자로 **자른다**.
+이메일은 255자까지 받으므로(#1780) 자르지 않으면 긴 주소로 가입하는 사람이 *이름을 안 보냈을
+뿐인데* 500 을 받았다 — 무엇을 잘못했는지 알 방법이 없는 실패다. 빈 문자열도 생략과 같이 본다:
+여기서 422 를 내면 이름을 넣을 자리가 없는 경로(옛 빌드)가 가입에서 막힌다.
+
+**생년월일은 비울 수 있다.** 넣을 자리가 없던 시절에 가입한 회원과 소셜 로그인 가입자에게는
+처음부터 없는 값이라, 이름만 고치려는 사람을 생년월일로 막는 화면이 되면 안 된다. 대신 날짜가
+아닌 값은 받지 않는다 — 저장되면 트레이너의 담당 요청 확인 화면에서 나이가 조용히 비어 보이고
+(`trainer_client_invite_service._age_on` 이 파싱에 실패한다), 6자리 코드로 연결할 때 "이 사람이
+맞나" 를 확인하는 근거 하나가 사라진다.
+
+표기(`YYYY-MM-DD`)와 실제 날짜를 **둘 다** 본다. 표기만 보면 `1990-13-45` 가 통과하고, 파서에만
+맡기면 `19900101`·`1990-01-01T00:00:00Z` 처럼 컬럼 길이(10)를 넘는 값이 지나간다.
 
 ### 세션 폐기 (#966)
 

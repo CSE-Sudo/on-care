@@ -18,8 +18,31 @@ from pydantic import (
 )
 
 from app.core import clock
+from app.schemas.exercise_limits import (
+    MAX_EXERCISE_REPS,
+    MAX_EXERCISE_SETS,
+    MAX_EXERCISE_WEIGHT_KG,
+)
+from app.schemas.health_goal_ranges import (
+    ConditionsText,
+    DailyBurnKcal,
+    DailyCalories,
+    DailyCarbsG,
+    DailyFatG,
+    DailyProteinG,
+    DailySodiumMg,
+    DailySugarG,
+    GoalsText,
+    WeeklyBurnGoal,
+    WeeklyCardioMinutes,
+    WeeklyExerciseMinutesGoal,
+    WeeklyFlexibilityMinutes,
+    WeeklyStrengthSets,
+    WeeklyWorkoutGoal,
+)
 from app.schemas.partial_update import PartialUpdate
 from app.schemas.points_api import PointsOut
+from app.services import contact_format
 from app.services import health_focus
 from app.services import exercise_types
 
@@ -177,21 +200,25 @@ class MemberHealthProfileUpdate(PartialUpdate):
     gender: str | None = Field(default=None, pattern="^(male|female|other|)$")
     #: 건강 목표(최대 2개)와 트레이너가 적은 건강상태·주의사항이 함께 담긴다.
     #: 옛 질환 이름은 저장 전에 정리한다 — 회원앱 저장과 같은 규칙이다(#1818).
-    conditions: str | None = Field(default=None, max_length=1000)
-    goals: str | None = Field(default=None, max_length=500)
-    daily_calories: int | None = Field(default=None, ge=500, le=10000)
-    daily_sodium_mg: int | None = Field(default=None, ge=0, le=50000)
-    daily_sugar_g: int | None = Field(default=None, ge=0, le=1000)
-    daily_carbs_g: int | None = Field(default=None, ge=0, le=2000)
-    daily_protein_g: int | None = Field(default=None, ge=0, le=1000)
-    daily_fat_g: int | None = Field(default=None, ge=0, le=1000)
-    daily_burn_kcal: int | None = Field(default=None, ge=0, le=20000)
-    weekly_cardio_minutes: int | None = Field(default=None, ge=0, le=10080)
-    weekly_strength_sets: int | None = Field(default=None, ge=0, le=1000)
-    weekly_flexibility_minutes: int | None = Field(default=None, ge=0, le=10080)
-    weekly_workout_goal: int | None = Field(default=None, ge=0, le=21)
-    weekly_exercise_minutes_goal: int | None = Field(default=None, ge=0, le=10080)
-    weekly_burn_goal: int | None = Field(default=None, ge=0, le=100000)
+    #:
+    #: 아래 범위는 회원 경로(`HealthGoalsUpdate`·`OnboardingRequest`)와 **같은
+    #: 것**이다(#1888). 같은 컬럼을 고치는 두 문이 다른 기준을 쓰면, 한쪽으로
+    #: 들어온 값이 다른 쪽에서 고칠 수 없는 값이 된다.
+    conditions: ConditionsText | None = None
+    goals: GoalsText | None = None
+    daily_calories: DailyCalories | None = None
+    daily_sodium_mg: DailySodiumMg | None = None
+    daily_sugar_g: DailySugarG | None = None
+    daily_carbs_g: DailyCarbsG | None = None
+    daily_protein_g: DailyProteinG | None = None
+    daily_fat_g: DailyFatG | None = None
+    daily_burn_kcal: DailyBurnKcal | None = None
+    weekly_cardio_minutes: WeeklyCardioMinutes | None = None
+    weekly_strength_sets: WeeklyStrengthSets | None = None
+    weekly_flexibility_minutes: WeeklyFlexibilityMinutes | None = None
+    weekly_workout_goal: WeeklyWorkoutGoal | None = None
+    weekly_exercise_minutes_goal: WeeklyExerciseMinutesGoal | None = None
+    weekly_burn_goal: WeeklyBurnGoal | None = None
 
     nullable_fields: ClassVar[frozenset[str]] = frozenset(
         {
@@ -422,9 +449,9 @@ class ProgramDraftExercise(BaseModel):
     #: 유산소·스트레칭·기타의 운동 시간(분). 근력은 세트로 재므로 비어 있다.
     duration: LooseInt = Field(default=None, ge=0, le=600)
     #: 근력의 세트 수·한 세트당 횟수·중량(kg). 다른 유형에서는 비어 있다.
-    sets: LooseInt = Field(default=None, ge=0, le=99)
-    reps: LooseInt = Field(default=None, ge=0, le=999)
-    weight: LooseFloat = Field(default=None, ge=0, le=1000)
+    sets: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SETS)
+    reps: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_REPS)
+    weight: LooseFloat = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     intensity: RoutineIntensity = "moderate"
     memo: str = Field(default="", max_length=300)
     source: ProgramExerciseSource = "trainer"
@@ -507,9 +534,9 @@ class RoutineAssignRequest(BaseModel):
     intensity: RoutineIntensity = "moderate"
     #: 근력이면 세트 수·한 세트당 횟수·중량(kg). 다른 유형에서 와도 저장하지
     #: 않는다.
-    sets: int | None = Field(default=None, gt=0, le=99)
-    reps: int | None = Field(default=None, gt=0, le=999)
-    weight: float | None = Field(default=None, ge=0, le=1000)
+    sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
     source: RoutineSource = "trainer"
     #: 전송 시도당 클라이언트가 만드는 멱등키. 재시도 시 **같은 키를 다시 보내야**
@@ -530,9 +557,9 @@ class RoutineSuggestionCreateRequest(BaseModel):
     #: 같은 계약이다 — 승인하는 순간 이 행이 그대로 배정이 되므로, 여기서 받지
     #: 않으면 근력 제안은 세트가 빈 채로 회원에게 간다(#1321). 다른 유형에서
     #: 와도 저장하지 않는다.
-    sets: int | None = Field(default=None, gt=0, le=99)
-    reps: int | None = Field(default=None, gt=0, le=999)
-    weight: float | None = Field(default=None, ge=0, le=1000)
+    sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
     #: 이 후보의 근거 문구. 트레이너가 승인 판단에 쓰는 재료이고 회원에게는
     #: 전달되지 않는다. 개수·길이를 묶는 이유는 카드 한 장이 읽히는 분량을
@@ -558,9 +585,9 @@ class RoutineSuggestionApproveRequest(PartialUpdate):
     #: 근력이면 세트 수·한 세트당 횟수·중량(kg). 트레이너가 승인 직전에 고치는
     #: 자리라, 유형을 근력으로 바꾸며 이 셋을 함께 채우는 것이 이 화면의 흔한
     #: 흐름이다(#1321).
-    sets: int | None = Field(default=None, gt=0, le=99)
-    reps: int | None = Field(default=None, gt=0, le=999)
-    weight: float | None = Field(default=None, ge=0, le=1000)
+    sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
+    reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str | None = Field(default=None, max_length=200)
 
 
@@ -982,11 +1009,11 @@ class ProgramItem(BaseModel):
     type: RoutineType = "근력"
     date: _date | None = None
     duration: LooseInt = Field(default=None, ge=0, le=600)
-    sets: LooseInt = Field(default=None, ge=0, le=99)
+    sets: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SETS)
     #: 근력의 한 세트당 횟수. 세트·중량과 한 벌이다(#1310) — 셋이 다 있어야
     #: 트레이너가 짠 근력 한 줄이 회원 화면에서 그대로 재현된다.
-    reps: LooseInt = Field(default=None, ge=0, le=999)
-    weight: LooseFloat = Field(default=None, ge=0, le=1000)
+    reps: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_REPS)
+    weight: LooseFloat = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     intensity: RoutineIntensity = "moderate"
     session: str = Field(default="", max_length=100)
 
@@ -1235,8 +1262,20 @@ class TrainerMeUpdate(PartialUpdate):
     이름/이메일은 계정(User)에 속하므로 여기서 바꾸지 않는다. 프로필 화면에서
     바꿀 수 있는 값만 노출한다.
 
+    **트레이너 이름 수정을 열 때** 담당 회원에게 이름이 바뀌었다고 알림 하나를 함께
+    보낸다(#2065). 이미 받은 알림은 옛 이름으로 남으므로 그 알림이 둘을 잇는다 —
+    회원 쪽은 `name_change.record_member_rename` 이 같은 일을 한다.
+
     모든 항목이 DB NOT NULL 이라 null 로 바꿀 수 있는 값이 아니다(#495).
     """
+    #: 트레이너 본인의 휴대전화. 회원 경로(`UserRegister`·`ProfileUpdate`)와
+    #: **같은 함수**로 정리한다(#1914) — 전에는 길이만 봐서 `없음`·`0101234` 가
+    #: 200 으로 저장됐다. 두 앱이 같은 종류의 값을 다른 기준으로 받으면, 나중에
+    #: 이 번호를 회원 화면에 보일 때 그 자리에서 정리부터 해야 한다.
+    #:
+    #: 빈 문자열은 그대로 둔다. 트레이너 가입은 전화번호를 받지 않으므로
+    #: (`TrainerRegister` 는 초대 코드만 더한다) 처음부터 없는 값이고, 회원 쪽의
+    #: "있던 번호는 못 지운다"(#1883)는 여기 해당하지 않는다.
     phone: str | None = Field(default=None, max_length=20)
     specialty: str | None = Field(default=None, max_length=50)
     career_years: int | None = Field(default=None, ge=0, le=80)
@@ -1245,7 +1284,26 @@ class TrainerMeUpdate(PartialUpdate):
     gym_name: str | None = Field(default=None, max_length=100)
     gym_address: str | None = Field(default=None, max_length=300)
     gym_hours: str | None = Field(default=None, max_length=50)
+    #: 헬스장 대표번호. **여기에는 위 규칙을 걸지 않는다**(#1914).
+    #:
+    #: `normalize_phone` 은 휴대전화 3-4-4(숫자 11자리)만 받는데, 헬스장 번호는
+    #: 그 모양이 아니다 — 시드에만도 `02-1234-5678`(10자리) · `02-332-1720`(9자리)
+    #: · `0502-5552-4212`(12자리)가 섞여 있다. 그 규칙을 걸면 **정상 번호가 422**
+    #: 로 막히고, 더 나쁘게는 소속을 설정할 때 `Place.phone` 이 이 칸에 그대로
+    #: 들어오므로(`set_trainer_gym`) 그 뒤로 이 폼을 저장할 수 없게 된다.
+    #:
+    #: 대표번호 표기를 통일하려면 지역번호·안심번호까지 읽는 별도 규칙이
+    #: 필요하다. 그건 이 이슈에서 다루지 않는다.
     gym_phone: str | None = Field(default=None, max_length=20)
+
+    # `None` 을 그냥 통과시키는 것은 여기서 판단할 일이 아니기 때문이다 —
+    # 누락인지 명시적 null 인지는 아래 `_reject_explicit_null` 이 가른다.
+    @field_validator("phone", mode="before")
+    @classmethod
+    def _normalize_phone(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return contact_format.normalize_phone(value)
+        return value
 
     @model_validator(mode="after")
     def _reject_explicit_null(self) -> TrainerMeUpdate:
@@ -1620,9 +1678,9 @@ class ProgramTemplateExercise(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     minutes: int = Field(ge=1, le=300)
     type: RoutineType = "근력"
-    sets: LooseIntZero = Field(default=0, ge=0, le=99)
-    reps: LooseIntZero = Field(default=0, ge=0, le=999)
-    weight: LooseFloatZero = Field(default=0, ge=0, le=1000)
+    sets: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_SETS)
+    reps: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_REPS)
+    weight: LooseFloatZero = Field(default=0, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
 
     @model_validator(mode="after")
     def _drop_fields_not_in_type(self) -> ProgramTemplateExercise:

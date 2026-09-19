@@ -77,7 +77,7 @@ void main() {
           db.trainerClients,
         )..where((c) => c.id.equals('seed-client-1'))).getSingle();
         // 사용자 앱과 같은 픽스처에서 오는 값이다.
-        expect(minsu.sugarG, 17.8);
+        expect(minsu.sugarG, 16.7);
       },
     );
 

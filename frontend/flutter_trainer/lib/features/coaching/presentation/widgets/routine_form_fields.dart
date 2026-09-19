@@ -4,6 +4,7 @@ import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_limits.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// Category order mirrors the member app's exercise-add sheet.
@@ -129,7 +130,7 @@ class RoutineSetsField extends StatelessWidget {
       label: l.routineFieldSets,
       value: sets.toDouble(),
       min: 1,
-      max: 99,
+      max: kMaxExerciseSets.toDouble(),
       suffix: l.routineUnitSets,
       keyPrefix: keyPrefix ?? 'routine-sets',
       steppers: !compact,
@@ -165,7 +166,7 @@ class RoutineRepsField extends StatelessWidget {
       label: l.routineFieldReps,
       value: reps.toDouble(),
       min: 1,
-      max: 999,
+      max: kMaxExerciseReps.toDouble(),
       suffix: l.routineUnitReps,
       keyPrefix: keyPrefix ?? 'routine-reps',
       steppers: !compact,
@@ -198,7 +199,7 @@ class RoutineWeightField extends StatelessWidget {
       label: l.routineFieldWeight,
       value: weight,
       min: 0,
-      max: 1000,
+      max: kMaxExerciseWeightKg,
       decimals: 1,
       suffix: l.routineUnitKg,
       keyPrefix: keyPrefix ?? 'routine-weight',

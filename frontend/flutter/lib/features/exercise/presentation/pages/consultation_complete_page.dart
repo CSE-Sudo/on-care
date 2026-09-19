@@ -50,9 +50,6 @@ class ConsultationCompletePage extends StatelessWidget {
     // 트레이너 이름이 없으면(대상이 지워진 경우) 종류 문구만 남긴다.
     final String targetName = request.trainerName ?? '';
     final String targetType = l.exTrainerConsultType;
-    final String date = MaterialLocalizations.of(
-      context,
-    ).formatMediumDate(request.preferredDate);
 
     return <Widget>[
       const SizedBox(height: OnCareSpacing.s32),
@@ -97,10 +94,11 @@ class ConsultationCompletePage extends StatelessWidget {
             _SummaryRow(label: targetType, value: targetName),
             const _SummaryDivider(),
             _SummaryRow(
-              label: l.exPreferredDate,
-              value:
-                  '$date · '
-                  '${preferredTimeLabel(context, l, request.preferredTimeSlot)}',
+              // 회원이 고른 자리다 — 희망을 적어 보낸 것이 아니다(#1873).
+              label: request.slotStartsAt == null
+                  ? l.exPreferredDate
+                  : l.exConsultChosenSlot,
+              value: consultationTimeLabel(context, l, request),
             ),
             const _SummaryDivider(),
             _SummaryRow(

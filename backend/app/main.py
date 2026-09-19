@@ -28,7 +28,6 @@ from app.api.v1 import (
     places,
     points,
     reservations,
-    schedule,
     social,
     system,
     trainer,
@@ -53,7 +52,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="On-Care Backend",
-    description="만성질환(고혈압·당뇨) 위험군 헬스케어 플랫폼 — 프론트 계약 정렬판",
+    description="PT 회원과 트레이너를 잇는 식단·운동 관리 서비스 — 회원 앱·트레이너 웹 공용 API",
     version=settings.app_version,
     lifespan=lifespan,
 )
@@ -114,7 +113,6 @@ app.include_router(social.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 app.include_router(diet.router, prefix=settings.api_v1_prefix)
 app.include_router(exercise.router, prefix=settings.api_v1_prefix)
-app.include_router(schedule.router, prefix=settings.api_v1_prefix)
 app.include_router(notifications.router, prefix=settings.api_v1_prefix)
 app.include_router(places.router, prefix=settings.api_v1_prefix)
 app.include_router(ai_coach.router, prefix=settings.api_v1_prefix)

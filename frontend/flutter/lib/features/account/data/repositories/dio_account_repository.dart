@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/domain/repositories/account_repository.dart';
 
@@ -15,8 +16,11 @@ class DioAccountRepository implements AccountRepository {
   }
 
   @override
-  Future<void> deleteAccount() async {
-    await _dio.delete<Map<String, Object?>>('/users/me');
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) async {
+    await _dio.delete<Map<String, Object?>>(
+      '/users/me',
+      data: <String, Object?>{'reasons': reasons},
+    );
   }
 
   @override
@@ -71,8 +75,8 @@ class DioAccountRepository implements AccountRepository {
     String? phone,
     String? birthDate,
     String? gender,
-    num? heightCm,
-    num? weightKg,
+    MeasureUpdate? heightCm,
+    MeasureUpdate? weightKg,
     String? goals,
   }) async {
     final res = await _dio.put<Map<String, Object?>>(
@@ -83,8 +87,10 @@ class DioAccountRepository implements AccountRepository {
         'phone': ?phone,
         'birth_date': ?birthDate,
         'gender': ?gender,
-        'height_cm': ?heightCm,
-        'weight_kg': ?weightKg,
+        // 키를 **넣되 값이 null** 이면 서버가 값을 지운다. `?value` 로 통째로
+        // 빼면 지움이 '손대지 않음'이 되어 비운 값이 되살아난다(#1941).
+        if (heightCm != null) 'height_cm': heightCm.value,
+        if (weightKg != null) 'weight_kg': weightKg.value,
         'goals': ?goals,
       },
     );

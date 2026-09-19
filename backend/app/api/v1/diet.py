@@ -32,6 +32,8 @@ from app.schemas.diet_api import (
     DietEntryUpdate,
     DietRecommendationsResponse,
     DietTodayResponse,
+    FoodNutritionOut,
+    FoodNutritionRequest,
 )
 from app.schemas.points_api import PointsOut
 from app.services import (
@@ -41,7 +43,7 @@ from app.services import (
     points_service,
 )
 from app.services.coach import personal_ingest
-from app.services.nutrition.enrich import enrich_analysis
+from app.services.nutrition.enrich import enrich_analysis, lookup_by_name
 from app.services.recognizer.factory import get_recognizer
 
 router = APIRouter(tags=["diet"])
@@ -117,12 +119,52 @@ def diet_recommendations(
     )
 
 
+@router.post("/diet/nutrition", response_model=FoodNutritionOut)
+def food_nutrition(
+    payload: FoodNutritionRequest,
+    current_user: CurrentUser,  # noqa: ARG001 — 로그인한 회원만 쓰는 조회다
+    db: Annotated[Session, Depends(get_db)],
+) -> FoodNutritionOut:
+    """음식 이름으로 공공 영양 DB 값을 찾는다. (#1896)
+
+    수정 화면이 이름을 고쳤을 때 "이 이름이면 값이 이렇다" 를 **제안**하는 데
+    쓴다. 덮어쓰기는 앱이 하지 않는다 — 이름 변경은 "다른 음식이다" 일 수도
+    "오타를 고쳤다" 일 수도 있어 서버가 구분할 수 없고, 자동으로 갈아 끼우면
+    회원이 손으로 바로잡아 둔 값이 소리 없이 사라진다.
+
+    계산은 분석 보정(`enrich_analysis`)과 **같은 것**이다. 음식 하나짜리 보정과
+    같은 일이라, 따로 두면 같은 음식인데 화면 어디서 왔느냐에 따라 숫자가 갈린다.
+
+    이름이 비어 있으면 400 — 이름 없이 확정된 숫자를 내주지 않는 것이 이 조회의
+    요점이다(`POST /exercise/calories` 와 같은 규약, #1312). 못 찾았거나 양을
+    정할 수 없으면 `matched_name` 이 null 이고, 그때 앱은 아무것도 제안하지 않는다.
+    """
+    name = payload.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="음식 이름을 입력해 주세요.")
+    found = lookup_by_name(db, name, payload.amount_g)
+    if found is None:
+        return FoodNutritionOut()
+    match, food = found
+    return FoodNutritionOut(
+        matched_name=match.name,
+        source=food.source,
+        amount_g=food.amount_g,
+        calories=food.calories,
+        carbs_g=food.carbs_g,
+        protein_g=food.protein_g,
+        fat_g=food.fat_g,
+        sodium_mg=food.sodium_mg,
+        sugar_g=food.sugar_g,
+    )
+
+
 @router.post("/diet/analyze", response_model=DietAnalyzeResponse)
 async def diet_analyze(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(..., description="음식 사진"),
-    meal_type: str = Form("lunch", description="breakfast|lunch|dinner|snack"),
+    meal_type: str = Form("lunch", description="breakfast|lunch|dinner|snack|lateNight"),
     idempotency_key: str | None = Form(
         None,
         max_length=64,  # DietEntry.idempotency_key 컬럼(String(64)) 경계와 일치 — 초과 시 DB 500 방지
@@ -143,6 +185,7 @@ async def diet_analyze(
             return DietAnalyzeResponse(
                 entry_id=existing.id,
                 analysis=diet_service.entry_to_analysis(existing),
+                time_label=existing.time_label,
                 points=_points_already_awarded(db, current_user.id, existing.id),
             )
 
@@ -169,11 +212,15 @@ async def diet_analyze(
         db, current_user.id, meal_type, analysis, idempotency_key
     )
     entry_id = entry.id
+    # 아래에서 적립·사진 저장이 각각 커밋하므로 그때 이 인스턴스의 속성이
+    # 만료된다. 응답에 실을 값은 여기서 함께 잡아 둔다(`entry_id` 와 같은 이유).
+    entry_time_label = entry.time_label
     if not is_new:
         # 동시 재시도가 유니크 제약에 걸려 기존 엔트리를 받은 경우(중복 저장 방지)
         return DietAnalyzeResponse(
             entry_id=entry_id,
             analysis=diet_service.entry_to_analysis(entry),
+            time_label=entry_time_label,
             points=_points_already_awarded(db, current_user.id, entry_id),
         )
 
@@ -187,6 +234,7 @@ async def diet_analyze(
     return DietAnalyzeResponse(
         entry_id=entry_id,
         analysis=analysis,
+        time_label=entry_time_label,
         photo_url=diet_service.member_photo_url(photo.id) if photo else None,
         points=points,
     )

@@ -1,6 +1,6 @@
 /// MY 포인트 카드 위치와 적립 안내 (i) 버튼 자리. (#1785)
 ///
-/// 포인트 카드는 `내 트레이너 · 헬스장` 섹션 아래에 선다. 적립 안내 (i) 는
+/// 포인트 카드는 `내 헬스장 · 트레이너` 섹션 아래에 선다. 적립 안내 (i) 는
 /// 잔액 숫자 옆이 아니라 `포인트 사용처` 화면 헤더 오른쪽 끝에 있다.
 library;
 
@@ -62,13 +62,13 @@ void main() {
 
   Finder banner() => find.byKey(const Key('pointsBanner'));
 
-  testWidgets('포인트 카드는 내 트레이너 · 헬스장 섹션 아래, 설정 위에 선다', (
+  testWidgets('포인트 카드는 내 헬스장 · 트레이너 섹션 아래, 설정 위에 선다', (
     WidgetTester tester,
   ) async {
     await pumpHome(tester, const MyHealthPage());
 
     final double trainerGymTop = tester
-        .getTopLeft(find.text('내 트레이너 · 헬스장'))
+        .getTopLeft(find.text('내 헬스장 · 트레이너'))
         .dy;
     final double gymCardBottom = tester
         .getBottomLeft(find.byKey(const Key('my-gym-info-card')))

@@ -70,14 +70,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'No records yet today. Add a meal or workout to get started.';
 
   @override
-  String get homeScheduleEmpty => 'No events scheduled for today.';
-
-  @override
   String get homeAiAdviceTitle => 'Today\'s combined AI advice';
 
   @override
+  String get homeAdviceSodiumOver =>
+      'You went over the sodium target today. Try keeping the rest of your meals light.';
+
+  @override
+  String homeAdviceExerciseOnTrack(int minutes) {
+    return 'You worked out $minutes minutes this week. You are on track!';
+  }
+
+  @override
+  String homeAdviceExerciseMore(int minutes) {
+    return 'You worked out $minutes minutes this week. A little more to go!';
+  }
+
+  @override
+  String get homeAdviceExerciseStart =>
+      'Start moving this week — an easy walk is a good beginning.';
+
+  @override
   String get homeAiAdviceBody =>
-      'Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
+      'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
 
   @override
   String get homeSodiumExceededBadge => 'Sodium over';
@@ -187,14 +202,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeViewAll => 'View all';
 
   @override
-  String homeScheduleDate(String weekday, int month, int day) {
-    return '$weekday, $month/$day';
-  }
-
-  @override
-  String get homeScheduleTitle => 'Today\'s schedule';
-
-  @override
   String get unitKcal => 'kcal';
 
   @override
@@ -250,6 +257,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietNutritionSummary => 'Nutrition';
+
+  @override
+  String get dietAmount => 'Serving size';
 
   @override
   String get dietCalories => 'Calories';
@@ -327,9 +337,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietMealSnack => 'Snack';
 
   @override
+  String get dietMealLateNight => 'Late-night';
+
+  @override
   String dietMealSheetTitle(String meal) {
     return '$meal';
   }
+
+  @override
+  String dietFoodDbMatch(String name) {
+    return 'Public DB · $name';
+  }
+
+  @override
+  String dietMoreFoods(String name, int count) {
+    return '$name +$count';
+  }
+
+  @override
+  String get dietFillFromDb => 'Fill in';
 
   @override
   String get dietAddSheetTitle => 'Add a Meal';
@@ -417,6 +443,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not change the date. Please try again shortly.';
 
   @override
+  String get dietMealKind => 'Meal';
+
+  @override
   String get dietAnalysisDone => 'Analysis complete!';
 
   @override
@@ -467,9 +496,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietSaved => 'Meal saved';
 
   @override
-  String get dietSaveEntry => 'Save';
-
-  @override
   String get dietSaveFailed => 'Couldn\'t save. Please try again in a moment.';
 
   @override
@@ -501,9 +527,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietMealInfo => 'Meal Info';
 
   @override
-  String get dietEatenTime => 'Time Eaten';
-
-  @override
   String get dietEatenFood => 'Food Eaten';
 
   @override
@@ -513,7 +536,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietAddFood => 'Add Food';
 
   @override
-  String get dietEditFoodHint => 'You can edit the food name and calories';
+  String get dietEditFoodHint =>
+      'Change the serving size and the nutrition follows';
 
   @override
   String get dietTotalCalories => 'Total Calories';
@@ -524,6 +548,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get dietEditNutritionHint =>
       'Edit each food\'s nutrition and it adds up here';
+
+  @override
+  String get dietSugarOverCarbs => 'Sugar can\'t be more than carbs';
 
   @override
   String get dietDeleteMeal => 'Delete Meal';
@@ -610,8 +637,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exActivityTitle => 'Activity';
 
   @override
-  String exWeekOfMonthLabel(int month, int week) {
-    return 'Week $week, $month/';
+  String exBurnWeekOfMonthTitle(int month, int week) {
+    return 'Burned in week $week, $month/';
   }
 
   @override
@@ -666,6 +693,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exRest => 'Rest';
 
   @override
+  String exRestSeconds(int seconds) {
+    return 'Rest ${seconds}s';
+  }
+
+  @override
   String get exAiRecommendedExercise => 'AI recommended exercise';
 
   @override
@@ -708,17 +740,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String exCompletedPtFeedback(String coachName) {
     return '$coachName · Today\'s feedback';
-  }
-
-  @override
-  String exProgramSets(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sets',
-      one: '1 set',
-    );
-    return '$_temp0';
   }
 
   @override
@@ -788,12 +809,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exSetsCount(int sets) {
-    return '$sets sets';
+    String _temp0 = intl.Intl.pluralLogic(
+      sets,
+      locale: localeName,
+      other: '$sets sets',
+      one: '1 set',
+    );
+    return '$_temp0';
   }
 
   @override
   String exRepsCount(int reps) {
-    return '$reps reps';
+    String _temp0 = intl.Intl.pluralLogic(
+      reps,
+      locale: localeName,
+      other: '$reps reps',
+      one: '1 rep',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -840,6 +873,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exOwnRecordSource => 'Self-logged';
+
+  @override
+  String get exCompletedPtDayTitle => 'Completed PT';
+
+  @override
+  String get exCompletedRoutineDayTitle => 'Completed solo workout';
+
+  @override
+  String exPtDayFeedback(String coachName) {
+    return '$coachName · Feedback';
+  }
 
   @override
   String get exDeleteExercise => 'Delete workout';
@@ -893,10 +937,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exGymSearchPlaceholder => 'Search by area or gym name';
 
   @override
-  String get exTrainerSearchPlaceholder =>
-      'Search by specialty or trainer name';
-
-  @override
   String get exSortRecommended => 'Recommended';
 
   @override
@@ -904,9 +944,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exSortRating => 'Rating';
-
-  @override
-  String get exSortName => 'Name';
 
   @override
   String exResultCount(int count) {
@@ -1053,6 +1090,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myNotifTitle => 'Notification Settings';
+
+  @override
+  String get myGuideTitle => 'App guide';
 
   @override
   String get mySupportTitle => 'Customer Support';
@@ -1337,16 +1377,110 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCouponNotFound => 'Coupon not found';
 
   @override
+  String get a11yCoachPhoto => 'Photo from your trainer';
+
+  @override
+  String get a11yMealPhoto => 'Meal photo';
+
+  @override
+  String a11yMealPhotoOf(String name) {
+    return 'Photo of $name';
+  }
+
+  @override
   String get myLogout => 'Log out';
 
   @override
   String get myLogoutConfirm => 'Log out of your account?';
 
   @override
+  String get myWithdrawTitle => 'Delete account';
+
+  @override
+  String get myWithdrawConfirm =>
+      'Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.';
+
+  @override
+  String get myWithdrawAction => 'Delete account';
+
+  @override
+  String get myWithdrawFailed =>
+      'We could not delete your account. Please try again in a moment.';
+
+  @override
+  String get myWithdrawReasonTitle =>
+      'Are you sure you want to delete your account?';
+
+  @override
+  String get myWithdrawReasonQuestion => 'What did not work for you?';
+
+  @override
+  String get myWithdrawReasonHint => 'You can pick more than one';
+
+  @override
+  String get myWithdrawReasonPrivacy =>
+      'I am worried my personal data could be exposed';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => 'I do not use it often';
+
+  @override
+  String get myWithdrawReasonHardToUse => 'It is awkward to use';
+
+  @override
+  String get myWithdrawReasonNotifications => 'Too many notifications';
+
+  @override
+  String get myWithdrawReasonAlternative => 'I am using another app';
+
+  @override
+  String get myWithdrawReasonOther => 'Something else';
+
+  @override
+  String get myWithdrawNext => 'Next';
+
+  @override
+  String get myWithdrawKeepTitle => 'Before you go';
+
+  @override
+  String get myWithdrawKeepPrivacy =>
+      'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — you can do that from My Gym & Trainer on the MY tab.';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      'Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.';
+
+  @override
+  String get myWithdrawKeepNotifications =>
+      'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      'Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      'Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      'The diet and exercise records you have built up go with the account, and they cannot be restored.';
+
+  @override
+  String get myWithdrawStay => 'Keep using On-Care';
+
+  @override
+  String get myWithdrawContinue => 'Continue deleting';
+
+  @override
   String get myCancel => 'Cancel';
 
   @override
-  String get myTrainerGymTitle => 'My Trainer & Gym';
+  String get myGymTrainerTitle => 'My Gym & Trainer';
 
   @override
   String get myConnectionDeleteTitle => 'Remove Connection';
@@ -1451,10 +1585,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegalPrivacyTitle => 'Privacy Policy';
 
   @override
-  String get myLegalTermsBody => 'Terms of Service (Korean original governs).';
+  String get myLegalTermsBody =>
+      'Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member\'s health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company\'s policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 January 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
-  String get myLegalPrivacyBody => 'Privacy Policy (Korean original governs).';
+  String get myLegalPrivacyBody =>
+      'On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members\' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member\'s personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member\'s consent, except where a law specifically provides otherwise.\n\n5. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n6. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.';
 
   @override
   String get myLegalEffectiveDate => 'Effective Jan 1, 2026';
@@ -1482,11 +1618,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachCardExerciseTag => 'Exercise';
 
   @override
-  String get coachCardExerciseTitle => 'PT session 12 done';
+  String get coachCardExerciseTitle => '3 workouts this week';
 
   @override
   String get coachCardExerciseBody =>
-      'Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.';
+      'You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.';
 
   @override
   String get coachCardWaterTag => 'Hydration';
@@ -1529,10 +1665,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
-  String get coachChatSubtitle => 'Personal trainer · Available';
+  String get coachChatSubtitle => 'Personal trainer';
 
   @override
   String get coachChatBack => 'Back';
+
+  @override
+  String get coachChatLoadOlder => 'Load older messages';
 
   @override
   String get coachChatLoadFailed => 'Couldn\'t load the conversation';
@@ -1856,11 +1995,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightNegative => 'Negative feedback noted';
 
   @override
+  String get aicInsightDelete => 'Delete';
+
+  @override
+  String get aicInsightDeleteConfirm =>
+      'Remove this detection from the log? What you wrote stays in the conversation.';
+
+  @override
+  String get aicInsightDeleteFailed =>
+      'We could not remove it. Please try again in a moment.';
+
+  @override
   String get aicInsightHistoryTitle => 'Noted signals';
 
   @override
+  String get aicInsightHistoryAction => 'Notes';
+
+  @override
   String aicInsightHistorySubtitle(int days) {
-    return 'Pain and negative feedback noted in the last $days days';
+    return 'Pain and negative feedback noted in the last $days days. The AI uses these when it answers';
   }
 
   @override
@@ -1891,7 +2044,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicQuickReply2 => 'How much should I exercise today?';
 
   @override
-  String get aicQuickReply3 => 'How are my blood sugar readings?';
+  String get aicQuickReply3 => 'How much sodium have I had today?';
 
   @override
   String get exConsultRequestTitle => 'Consultation Request';
@@ -1950,19 +2103,79 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachInviteConsentAgree => 'Agree and connect';
 
   @override
+  String get exConsultSlotTitle => 'Available times';
+
+  @override
+  String get exConsultSlotRequired => 'Please choose an available time.';
+
+  @override
+  String get exConsultSlotsEmptyTitle =>
+      'No consultation times are open right now.';
+
+  @override
+  String exConsultSlotsEmptyBody(String gym, String phone) {
+    return 'Call $gym at $phone to ask for a consultation time.';
+  }
+
+  @override
+  String exConsultSlotsEmptyNoPhone(String gym) {
+    return 'Open the $gym details for its address and hours.';
+  }
+
+  @override
+  String get exConsultSlotsError => 'Could not load the available times.';
+
+  @override
+  String get exConsultSlotTaken =>
+      'Another member just took that time. Please choose another.';
+
+  @override
+  String exConsultTooManyPending(int count) {
+    return 'You already have $count consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.';
+  }
+
+  @override
+  String exConsultRateLimitedHours(int hours) {
+    return 'Too many consultation requests. Please try again in $hours hours.';
+  }
+
+  @override
+  String exConsultRateLimitedMinutes(int minutes) {
+    return 'Too many consultation requests. Please try again in $minutes minutes.';
+  }
+
+  @override
+  String get exConsultRateLimited =>
+      'Too many consultation requests. Please try again later.';
+
+  @override
+  String get exConsultTooManyPendingNoCount =>
+      'You have too many consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.';
+
+  @override
+  String get exGymCall => 'Call';
+
+  @override
+  String get exGymCallFailed => 'Could not open the phone app.';
+
+  @override
+  String get exGymDetail => 'View gym details';
+
+  @override
+  String get exConsultChosenSlot => 'Requested time';
+
+  @override
+  String get exConsultConfirmedAt => 'Confirmed time';
+
+  @override
+  String get exConsultExpired => 'Expired';
+
+  @override
+  String get exConsultExpiredBody =>
+      'The trainer did not respond in time. Try requesting another time.';
+
+  @override
   String get exExerciseGoal => 'Exercise Goal';
-
-  @override
-  String get exGoalWeightLoss => 'Weight Loss';
-
-  @override
-  String get exGoalStrength => 'Build Strength';
-
-  @override
-  String get exGoalFitness => 'Improve Fitness';
-
-  @override
-  String get exGoalPosture => 'Improve Posture';
 
   @override
   String get exGoalHealth => 'Health Management';
@@ -1976,15 +2189,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exPreferredDate => 'Preferred Date';
-
-  @override
-  String get exSelectDate => 'Select a date';
-
-  @override
-  String get exSelectTime => 'Select a time';
-
-  @override
-  String get exPreferredTime => 'Preferred Time';
 
   @override
   String get exTimeFlexible => 'Discuss Later';
@@ -2042,12 +2246,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exOtherGoalDetailRequired =>
       'Please describe your specific exercise goal in the message.';
-
-  @override
-  String get exDateRequired => 'Please select a preferred date.';
-
-  @override
-  String get exTimeRequired => 'Please select a preferred time.';
 
   @override
   String get exConsultTargetNotFound =>
@@ -2140,6 +2338,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mySupportExternalHint => 'Opens the KakaoTalk channel';
 
   @override
+  String get authRestoring => 'Restoring your session';
+
+  @override
+  String get authRestoreFailed =>
+      'We could not restore your session — the connection looks unstable.';
+
+  @override
+  String get authRestoreRetry => 'Try again';
+
+  @override
+  String get authRestoreSignIn => 'Go to sign in';
+
+  @override
   String get authTagline => 'Diet & exercise management app';
 
   @override
@@ -2200,6 +2411,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signUpNameEmpty => 'Enter your name';
 
   @override
+  String get signUpNameTooLong => 'Names can be up to 100 characters';
+
+  @override
   String get signUpPhoneHint => '010-0000-0000';
 
   @override
@@ -2228,7 +2442,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signUpPhoneFormatInvalid =>
-      'Enter your phone number as 000-0000-0000';
+      'Enter your phone number as 010-0000-0000';
+
+  @override
+  String get myFieldBirthInvalid => 'Enter your date of birth as 1996-03-21';
 
   @override
   String get trainerSyncEntryLabel => 'Sync data with a trainer';
@@ -2260,6 +2477,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainerSyncRetry => 'Get a new code';
+
+  @override
+  String get signUpCreatedSignInNeeded =>
+      'Your account was created. Please sign in.';
 
   @override
   String get signUpEmailTaken =>
@@ -2308,33 +2529,74 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardOptionalTag => '(optional)';
 
   @override
-  String get pointsGuideTitle => 'Points quests';
-
-  @override
-  String get pointsGuideSubtitle =>
-      'The more you log each day, the more points you earn. Try these quests';
-
-  @override
-  String pointsGuideQuest(int number) {
-    return 'Quest $number';
+  String guideBadgeWithStep(int current, int total) {
+    return 'App guide $current/$total';
   }
 
   @override
-  String pointsGuideDailyCap(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Up to $count times a day',
-      one: 'Once a day',
-    );
-    return '$_temp0';
+  String get guideSampleBadge => 'Sample screen';
+
+  @override
+  String get guideSkip => 'Skip';
+
+  @override
+  String get guidePrev => 'Back';
+
+  @override
+  String get guideNext => 'Next';
+
+  @override
+  String get guideDone => 'Done';
+
+  @override
+  String get guideHomeAdviceTitle => 'Today\'s AI summary';
+
+  @override
+  String get guideHomeAdviceBody =>
+      'It reads your meals and workouts together and points to what to do today';
+
+  @override
+  String get guideQuickAddTitle => 'Quick add';
+
+  @override
+  String get guideQuickAddBody =>
+      'The + in the middle adds a meal or a workout from any screen';
+
+  @override
+  String get guideDietNutritionTitle => 'Nutrition summary';
+
+  @override
+  String get guideDietNutritionBody =>
+      'Today\'s calories, macros, sodium and sugar, and how far each is from your goal';
+
+  @override
+  String get guideExerciseStatusTitle => 'Workout status';
+
+  @override
+  String get guideExerciseStatusBody =>
+      'How much you moved today and this week, and how far the goal still is';
+
+  @override
+  String get guideGymTitle => 'Your gym and trainer';
+
+  @override
+  String get guideGymBody =>
+      'The gym and trainer you are connected to — their plans and feedback arrive in the app';
+
+  @override
+  String get guideMySettingsTitle => 'Settings';
+
+  @override
+  String get guideMySettingsBody =>
+      'Change your profile, health goals and alerts here — and replay this guide';
+
+  @override
+  String get guidePointsTitle => 'Points';
+
+  @override
+  String guidePointsBody(int diet, int exercise, int routine) {
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P\nSpend them in MY › Use Points';
   }
-
-  @override
-  String get pointsGuideSpendNote => 'Spend your points in MY › Points';
-
-  @override
-  String get pointsGuideStart => 'Get started';
 
   @override
   String get onboardRequiredTag => '(required)';
@@ -2477,7 +2739,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiCoachWelcome =>
-      'Hi, I\'m Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.';
+      'Hi, I\'m Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.';
 
   @override
   String get aiCoachFailure =>
@@ -2494,100 +2756,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionConfirm => 'OK';
-
-  @override
-  String get scheduleCategoryHospital => 'Hospital';
-
-  @override
-  String get scheduleCategoryExercise => 'Exercise';
-
-  @override
-  String get scheduleCategoryMeal => 'Meal';
-
-  @override
-  String get scheduleCategoryMedication => 'Medication';
-
-  @override
-  String get scheduleCategoryOther => 'Other';
-
-  @override
-  String get eventAddTitle => 'Add event';
-
-  @override
-  String get eventEditTitle => 'Edit event';
-
-  @override
-  String get eventTitleLabel => 'Event title';
-
-  @override
-  String get eventTitleHint => 'e.g. Regular checkup';
-
-  @override
-  String get eventDateLabel => 'Date';
-
-  @override
-  String get eventTimeLabel => 'Time';
-
-  @override
-  String get eventTimeNone => 'No time';
-
-  @override
-  String get eventTitleRequired => 'Please enter an event title';
-
-  @override
-  String get eventAddFailed =>
-      'Couldn\'t add the event. Please try again in a moment';
-
-  @override
-  String get eventEditFailed =>
-      'Couldn\'t save the event. Please try again in a moment';
-
-  @override
-  String get eventSaving => 'Saving…';
-
-  @override
-  String get eventAdding => 'Adding…';
-
-  @override
-  String get eventSave => 'Save';
-
-  @override
-  String get eventAdd => 'Add';
-
-  @override
-  String eventClearField(String label) {
-    return 'Clear $label';
-  }
-
-  @override
-  String get eventDeleteTitle => 'Delete event';
-
-  @override
-  String eventDeleteConfirm(String title) {
-    return 'Delete “$title”? This can\'t be undone.';
-  }
-
-  @override
-  String get eventDeleteFailed =>
-      'Couldn\'t delete the event. Please try again in a moment';
-
-  @override
-  String get eventDeleted => 'Event deleted';
-
-  @override
-  String get eventsEmptyForDay => 'No events on this day';
-
-  @override
-  String get eventAddForDay => 'Add an event on this day';
-
-  @override
-  String get eventTimeUnset => 'Time TBD';
-
-  @override
-  String get scheduleSheetTitle => 'Schedule';
-
-  @override
-  String get eventsLoadFailed => 'Couldn\'t load events';
 
   @override
   String get coachCardSleepTag => 'Sleep';
@@ -2691,8 +2859,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Calculated from your carb, protein and fat goals';
 
   @override
-  String myGoalMacroSuggestionNote(int kcal, int carbs, int protein, int fat) {
-    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat';
+  String myGoalMacroSuggestionNote(
+    int kcal,
+    int carbs,
+    int protein,
+    int fat,
+    int sugar,
+  ) {
+    return 'Suggested split for $kcal kcal: $carbs g carbs · $protein g protein · $fat g fat · $sugar g sugar';
   }
 
   @override
@@ -2709,6 +2883,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGoalsSaved => 'Health goals saved';
+
+  @override
+  String myGoalRange(int min, int max) {
+    return 'Enter a value between $min and $max';
+  }
 
   @override
   String get mySettingsLoadFailed => 'Couldn\'t load your settings';
@@ -2752,6 +2931,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachRoutineTitle => 'Recommended solo workouts';
+
+  @override
+  String get coachRoutineAiTitle => 'AI recommended solo workouts';
 
   @override
   String get coachRoutineByTrainer => 'Recommended by your trainer';
@@ -2897,7 +3079,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoAlertSodiumBody =>
-      'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.';
+      'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.';
 
   @override
   String get demoAlertDinnerTitle => 'Log your dinner';
@@ -2910,22 +3092,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get demoAlertRoutineTitle => 'A new workout routine arrived';
 
   @override
-  String get demoAlertRoutineBody =>
-      'Trainer Kim adjusted it to a walking routine for your knee.';
+  String demoAlertRoutineBody(String trainerName) {
+    return 'Trainer $trainerName adjusted it to a walking routine for your knee.';
+  }
 
   @override
   String get demoAlertReportTitle => 'This week\'s report is ready';
 
   @override
-  String get demoAlertReportBody =>
-      'Trainer Kim posted your report for this week.';
+  String demoAlertReportBody(String trainerName) {
+    return 'Trainer $trainerName posted your report for this week.';
+  }
 
   @override
   String get demoAlertPtDoneTitle => 'PT session complete';
 
   @override
-  String get demoAlertPtDoneBody =>
-      'You finished PT session 12 with Trainer Kim at 18:00 today!';
+  String demoAlertPtDoneBody(String trainerName) {
+    return 'You finished PT session 12 with Trainer $trainerName at 18:00 today!';
+  }
 
   @override
   String get demoAlertTrainerFeedbackTitle => 'Feedback from your trainer';
@@ -3024,10 +3209,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A cancelled request can\'t be restored.';
 
   @override
-  String get exDemoPtSessionCount => 'Session 12 with Trainer Kim';
-
-  @override
-  String get exDemoPtTrainerName => 'Trainer Kim';
+  String exDemoPtSessionCount(String trainerName) {
+    return 'Session 12 with Trainer $trainerName';
+  }
 
   @override
   String get exDemoPtFeedback =>

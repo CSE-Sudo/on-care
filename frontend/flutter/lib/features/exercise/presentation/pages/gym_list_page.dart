@@ -627,6 +627,17 @@ class _GymListCard extends ConsumerWidget {
             GymTrainerLine(
               key: Key('gym-trainer-${trainer.id}'),
               trainer: trainer,
+              // 한 카드에 여러 명이 잇달아 선다 — 실선으로 서로를 가른다.
+              bordered: true,
+              // 트레이너 줄은 **트레이너 상세**로 간다(#2038). 예전에는 읽기만
+              // 하는 줄이라 탭이 바깥 카드로 흘러 헬스장 상세가 열렸다 — 누른
+              // 것과 다른 곳에 도착했다. 내 헬스장 카드의 같은 줄은 이미
+              // 트레이너 상세로 가므로(#1187) 두 화면이 같은 동작이 된다. 이
+              // 목록을 보는 회원은 헬스장이 아직 없어, 트레이너를 누르는 까닭이
+              // 곧 `상담 신청` 이다 — 그 입구가 트레이너 상세다.
+              // 이름·직함은 한 줄 그대로 두고 화살표만 붙는다.
+              onDetail: () =>
+                  context.push(AppRoutes.trainerDetailPath(trainer.id)),
             ),
           ],
         ],

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/gen/l10n/app_localizations.dart';
 
 /// Bytes of a stored meal photo, keyed by its API path (`/diet/photos/<id>`).
 ///
@@ -51,6 +52,7 @@ class StoredMealPhoto extends ConsumerWidget {
     required this.width,
     required this.height,
     required this.fallback,
+    this.semanticLabel,
   });
 
   /// API path relative to the API base (`/diet/photos/<id>`).
@@ -61,6 +63,10 @@ class StoredMealPhoto extends ConsumerWidget {
   final double width;
   final double height;
   final Widget fallback;
+
+  /// 음성 안내가 읽을 대체 텍스트. 주지 않으면 `끼니 사진` 이다(#1942) —
+  /// 어떤 끼니인지까지 말할 수 있는 자리에서만 따로 준다.
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -74,6 +80,9 @@ class StoredMealPhoto extends ConsumerWidget {
               bytes,
               width: width,
               height: height,
+              // 사진이 무엇인지 말해 준다 — 없으면 노드가 생기지 않아 음성
+              // 안내에서는 끼니에 사진이 있다는 것도 알 수 없다(#1942).
+              semanticLabel: semanticLabel ?? AppLocalizations.of(context).a11yMealPhoto,
               fit: BoxFit.cover,
               errorBuilder: (BuildContext _, Object _, StackTrace? _) =>
                   fallback,

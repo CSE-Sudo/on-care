@@ -169,7 +169,7 @@ def test_seeded_trainers_cover_every_gym(client):
 
 
 def test_consultation_works_for_a_trainer_at_a_discovered_gym(
-    client, directory_trainer
+    client, db_session, directory_trainer
 ):
     """카카오 발견 헬스장 소속 트레이너도 상담 대상이어야 한다.
 
@@ -180,7 +180,7 @@ def test_consultation_works_for_a_trainer_at_a_discovered_gym(
 
     trainer_id = directory_trainer(gym_id="328969863")  # 빌드업짐 PT 신촌점
     _member_id, token = _register_member(client)
-    payload = _payload(trainer_id=trainer_id)
+    payload = _payload(db_session, trainer_id=trainer_id)
     r = client.post("/v1/consultations", headers=_auth(token), json=payload)
 
     assert r.status_code == 201, r.text
@@ -398,7 +398,9 @@ def test_listed_trainers_all_have_a_fitness_gym(client):
         assert client.get(f"/v1/gyms/{gym_id}").status_code == 200, gym_id
 
 
-def test_hidden_trainer_is_also_rejected_by_consultation(client, directory_trainer):
+def test_hidden_trainer_is_also_rejected_by_consultation(
+    client, db_session, directory_trainer
+):
     """디렉터리에서 뺀 트레이너는 상담 대상도 아니다 — 두 조건이 같아야 한다(#443).
 
     반대로 목록에 남겨 두면 회원은 고를 수 있는데 상담 요청에서만 404 를 받는다.
@@ -411,7 +413,7 @@ def test_hidden_trainer_is_also_rejected_by_consultation(client, directory_train
     r = client.post(
         "/v1/consultations",
         headers=_auth(token),
-        json=_payload(trainer_id=trainer_id),
+        json=_payload(db_session, trainer_id=trainer_id),
     )
     assert r.status_code == 404, r.text
 
@@ -425,7 +427,7 @@ def test_my_coach_exposes_gym_id(client, db_session):
     from app.services import trainer_service
 
     coach = trainer_service.build_member_coach(db_session, "user-7d4e9a2c5f18")
-    assert coach is not None, "시드가 user-7d4e9a2c5f18 ↔ 김트레이너를 연결해야 한다"
+    assert coach is not None, "시드가 user-7d4e9a2c5f18 ↔ 데모 트레이너(trainer-demo)를 연결해야 한다"
     # 이름만으로는 목록의 헬스장과 이어붙일 수 없다.
     assert coach.gym.id == "gym-oncare-sinchon"
     assert coach.gym.name == "온케어짐 신촌점"
@@ -450,7 +452,7 @@ def test_disconnect_my_coach_is_idempotent(client):
 def connected_member(client, db_session):
     """헬스장·담당 트레이너에 모두 연결된 새 회원을 만드는 팩토리. (member_id, token)
 
-    끝나면 만든 링크를 지운다 — 김트레이너의 시드 담당 링크 **수**를 세는 테스트가
+    끝나면 만든 링크를 지운다 — 데모 트레이너의 시드 담당 링크 **수**를 세는 테스트가
     있어(`test_trainer.test_demo_trainer_client_links_seeded`) 남겨 두면 그쪽이 깨진다.
     """
     from uuid import uuid4
@@ -549,7 +551,7 @@ def test_coach_gym_follows_the_member_link_not_the_trainer(db_session, connected
     from app.services import trainer_service
 
     member_id, _token = connected_member()
-    # 김트레이너의 소속은 gym-oncare-sinchon 이다. 회원만 다른 곳으로 옮긴다.
+    # 데모 트레이너의 소속은 gym-oncare-sinchon 이다. 회원만 다른 곳으로 옮긴다.
     link = db_session.get(models.MemberGym, member_id)
     link.gym_id = "gym-healthmate"
     db_session.commit()

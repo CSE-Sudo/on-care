@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
+import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
 /// [PreferredTime] → 현지화 문구. "시간 협의"거나 로케일에 맞는 "오후 7:00" 형태.
@@ -22,4 +23,30 @@ String preferredTimeLabel(
   );
   if (start == end) return startLabel;
   return '$startLabel–${m.formatTimeOfDay(end, alwaysUse24HourFormat: true)}';
+}
+
+/// 상담 요청의 시각 한 줄 — `2026. 3. 5. 19:00–19:30`. (#1873)
+///
+/// 고른 자리가 있으면 그 자리의 시작–종료를 그린다. 길이는 트레이너가 자리를 열 때
+/// 정한 값이다. 자리 선택 이전 요청(과 자리가 지워진 요청)은 회원이 적어 보낸 희망
+/// 날짜·시각을 예전 그대로 보여 준다 — 조회가 깨지면 안 된다.
+String consultationTimeLabel(
+  BuildContext context,
+  AppLocalizations l,
+  ConsultationRequest request,
+) {
+  final MaterialLocalizations m = MaterialLocalizations.of(context);
+  final DateTime? start = request.slotStartsAt;
+  if (start == null) {
+    return '${m.formatMediumDate(request.preferredDate)} · '
+        '${preferredTimeLabel(context, l, request.preferredTimeSlot)}';
+  }
+  final DateTime end = start.add(
+    Duration(minutes: request.slotDurationMinutes ?? 60),
+  );
+  String hm(DateTime value) => m.formatTimeOfDay(
+    TimeOfDay.fromDateTime(value),
+    alwaysUse24HourFormat: true,
+  );
+  return '${m.formatMediumDate(start)} ${hm(start)}–${hm(end)}';
 }

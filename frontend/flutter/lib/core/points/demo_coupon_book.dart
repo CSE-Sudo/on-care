@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -349,9 +350,8 @@ const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
   kDemoLockerMonth,
 ];
 
-/// 데모 담당 트레이너와 헬스장 — `MockGymRepository` 의 김트레이너·온케어짐
-/// 신촌점과 같다.
-const String kDemoTrainerName = '김트레이너';
+/// 데모 헬스장 — `MockGymRepository` 의 온케어짐 신촌점과 같다. 담당 트레이너
+/// 이름은 두 앱이 함께 읽는 `demo_fixture` 의 [kDemoTrainerName] 이다.
 const String kDemoGymName = '온케어짐 신촌점';
 
 class _DemoCoupon {

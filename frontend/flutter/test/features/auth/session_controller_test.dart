@@ -10,6 +10,7 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_consultation_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
@@ -44,7 +45,7 @@ void main() {
       overrides: <Override>[
         // 상담 컨트롤러가 appConfig 를 타므로 repository 를 직접 고정한다(#327).
         consultationRepositoryProvider.overrideWithValue(
-          const MockConsultationRepository(),
+          MockConsultationRepository(MockGymRepository()),
         ),
         sessionFeatureResetOverride(),
       ],
@@ -80,7 +81,7 @@ void main() {
       overrides: <Override>[
         // 상담 컨트롤러가 appConfig 를 타므로 repository 를 직접 고정한다(#327).
         consultationRepositoryProvider.overrideWithValue(
-          const MockConsultationRepository(),
+          MockConsultationRepository(MockGymRepository()),
         ),
         sessionFeatureResetOverride(),
       ],
@@ -116,7 +117,7 @@ void main() {
       overrides: <Override>[
         dioProvider.overrideWithValue(dio),
         consultationRepositoryProvider.overrideWithValue(
-          const MockConsultationRepository(),
+          MockConsultationRepository(MockGymRepository()),
         ),
         sessionFeatureResetOverride(),
       ],
@@ -160,7 +161,7 @@ void main() {
       overrides: <Override>[
         dioProvider.overrideWithValue(dio),
         consultationRepositoryProvider.overrideWithValue(
-          const MockConsultationRepository(),
+          MockConsultationRepository(MockGymRepository()),
         ),
         sessionFeatureResetOverride(),
       ],

@@ -8,11 +8,12 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/features/account/presentation/pages/onboarding_page.dart';
-import 'package:oncare/features/account/presentation/pages/points_guide_page.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
+import 'package:oncare/features/app_guide/presentation/pages/guide_tour_page.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
+import 'package:oncare/features/auth/presentation/pages/splash_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/coupon_detail_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/my_benefits_page.dart';
 import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart';
@@ -26,8 +27,8 @@ import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_detail_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/gym_list_page.dart';
 import 'package:oncare/features/exercise/presentation/pages/trainer_detail_page.dart';
-import 'package:oncare/features/exercise/presentation/pages/trainer_list_page.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
+import 'package:oncare/features/my_health/presentation/pages/withdraw_page.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -45,12 +46,19 @@ String? sessionRedirect(SessionStatus status, String location) {
   final onAuthRoute =
       location == AppRoutes.signIn || location == AppRoutes.signUp;
   switch (status) {
+    // 복구 중에는 시작 화면에 머문다(#1944). 전에는 로그아웃과 같이 묶여
+    // **완전히 눌리는 로그인 폼**이 떴다 — 느린 망에서 이메일을 치던 중에
+    // 복구가 끝나면 화면이 홈으로 튀고, 먼저 로그인 버튼을 누르면 진행 중이던
+    // 복구가 버려졌다.
     case SessionStatus.unknown:
+      return location == AppRoutes.splash ? null : AppRoutes.splash;
     case SessionStatus.signedOut:
       return onAuthRoute ? null : AppRoutes.signIn;
     case SessionStatus.demo:
     case SessionStatus.authenticated:
-      return onAuthRoute ? AppRoutes.dashboard : null;
+      return onAuthRoute || location == AppRoutes.splash
+          ? AppRoutes.dashboard
+          : null;
   }
 }
 
@@ -69,7 +77,7 @@ GoRouter buildAppRouter({
 }) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
   return GoRouter(
-    initialLocation: AppRoutes.signIn,
+    initialLocation: AppRoutes.splash,
     debugLogDiagnostics: !config.isProd,
     observers: observer == null
         ? const <NavigatorObserver>[]
@@ -162,6 +170,7 @@ GoRouter buildAppRouter({
           'notifications' => const NotificationSettingsPage(),
           'terms' => const LegalDocumentPage(document: 'terms'),
           'privacy' => const LegalDocumentPage(document: 'privacy'),
+          'withdraw' => const WithdrawPage(),
           _ => const SupportPage(),
         },
       ),
@@ -173,10 +182,6 @@ GoRouter buildAppRouter({
         path: AppRoutes.gymDetail,
         builder: (context, state) =>
             GymDetailPage(gymId: state.pathParameters['gymId'] ?? ''),
-      ),
-      GoRoute(
-        path: AppRoutes.trainers,
-        builder: (context, state) => const TrainerListPage(),
       ),
       GoRoute(
         path: AppRoutes.trainerDetail,
@@ -218,8 +223,12 @@ GoRouter buildAppRouter({
         builder: (context, state) => const OnboardingPage(),
       ),
       GoRoute(
-        path: AppRoutes.pointsGuide,
-        builder: (context, state) => const PointsGuidePage(),
+        path: AppRoutes.splash,
+        builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.guideTour,
+        builder: (context, state) => const GuideTourPage(),
       ),
       if (!config.isProd)
         GoRoute(

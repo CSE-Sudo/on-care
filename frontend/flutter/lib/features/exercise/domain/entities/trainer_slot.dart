@@ -45,3 +45,17 @@ class TrainerSlot {
     );
   }
 }
+
+/// 서버 `TrainerSlotOut` → 엔티티. 헬스장 탭의 예약 가능 시간 목록과 상담 신청
+/// 폼이 같은 모양의 응답을 읽어 한곳에 둔다. (#1873)
+TrainerSlot trainerSlotFromJson(Map<String, Object?> j) => TrainerSlot(
+  id: j['id']! as String,
+  trainerId: (j['trainer_id'] as String?) ?? '',
+  startsAt: DateTime.parse(j['starts_at']! as String).toLocal(),
+  // 서버는 아직 좌석 수로 자리를 센다. 한 사람 몫뿐인 자리라 남은 좌석이
+  // 0인지만 의미가 있으므로 여기서 예약 여부로 접고, 좌석 수는 앱 안으로
+  // 들이지 않는다(#1072).
+  booked: ((j['remaining'] as num?) ?? 0).toInt() <= 0,
+  sessionType: (j['session_type'] as String?) ?? '1:1 PT',
+  durationMinutes: (j['duration_minutes'] as num?)?.toInt() ?? 60,
+);

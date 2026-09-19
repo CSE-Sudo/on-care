@@ -29,9 +29,17 @@ class PeriodChartSelection extends ChangeNotifier {
     notifyListeners();
   }
 
-  void reset() {
-    if (_selected == null) return;
+  /// 고른 날을 푼다.
+  ///
+  /// [includeVisible] 을 주면 보이는 구간까지 함께 비운다 — 그리는 배열이 통째로
+  /// 바뀔 때(식단 탭의 기간 토글, #1984) 앞 기간의 구간이 남아 있으면 [averageOf]
+  /// 가 새 배열과 무관한 창으로 평균을 낸다. 비운 구간은 그래프가 자리를 잡으며
+  /// [setVisible] 로 다시 알려 준다.
+  void reset({bool includeVisible = false}) {
+    final bool clearsVisible = includeVisible && _visible != null;
+    if (_selected == null && !clearsVisible) return;
     _selected = null;
+    if (clearsVisible) _visible = null;
     notifyListeners();
   }
 

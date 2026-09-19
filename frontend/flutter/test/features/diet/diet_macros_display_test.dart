@@ -182,8 +182,11 @@ void main() {
     expect(find.textContaining('/ 220g'), findsOneWidget);
     expect(find.textContaining('/ 120g'), findsOneWidget);
     expect(find.textContaining('/ 50g'), findsOneWidget);
-    expect(find.textContaining('/ 1,500mg'), findsOneWidget);
-    expect(find.textContaining('/ 35g'), findsOneWidget);
+    // 나트륨과 당류는 이 카드가 그리지 않는다 — 당류는 #1879, 나트륨은 #1986
+    // 에서 내려갔다. 목표 자체는 온보딩·MY 에 그대로 있고, 숫자는 식단 상세와
+    // 분석 완료 시트의 영양 행에서 본다.
+    expect(find.textContaining('/ 1,500mg'), findsNothing);
+    expect(find.textContaining('/ 35g'), findsNothing);
   });
 
   testWidgets(
@@ -227,36 +230,36 @@ void main() {
       );
       expect(find.textContaining('1,067'), findsOneWidget);
       expect(find.textContaining('2,000 kcal'), findsOneWidget);
-      expect(find.textContaining('3,428'), findsOneWidget);
-      expect(find.textContaining('17.8'), findsOneWidget);
+      // 지방 45 / 55g — 목표에 가까운 값이 카드에 그대로 적힌다.
+      expect(find.textContaining('45 / 55g'), findsOneWidget);
       // 배지도, 차이를 설명하는 문장도 없다 — 카드마다 있고 없고가 갈려
       // 높이를 들쭉날쭉하게 만들었다 (#1070). 초과는 라벨 옆의 작은 빨간
-      // 글씨와 수치 색으로만 말한다.
+      // 글씨와 바 색으로만 말한다.
       expect(find.text('목표 초과'), findsNothing);
       expect(find.text('정상'), findsNothing);
       // #1054 에서 짧게 줄인 문구도 함께 사라졌다.
-      expect(find.text('1,428mg 많아요'), findsNothing);
-      expect(find.text('32.2g 남았어요'), findsNothing);
       expect(find.textContaining('많아요'), findsNothing);
       expect(find.textContaining('남았어요'), findsNothing);
-      // 라벨과 한 덩어리(Text.rich)라 리치 텍스트까지 뒤져야 잡힌다.
-      expect(
-        find.textContaining('+1,428mg', findRichText: true),
-        findsOneWidget,
-      );
-      // 목표 안쪽인 당류에는 초과분 글씨가 붙지 않는다.
-      expect(find.textContaining('+32.2g', findRichText: true), findsNothing);
-      // 나트륨·당류는 요약 카드 안 가로 바로 들어왔다 (#1120) — 따로 뗀
-      // 상태 카드와 세로 바는 없다.
+      // 나트륨 초과분은 이 카드에서 함께 사라졌다 (#1986) — 라벨과 한
+      // 덩어리(Text.rich)라 리치 텍스트까지 뒤져야 잡힌다.
+      expect(find.textContaining('+1,428mg', findRichText: true), findsNothing);
+      // 구분선 아래는 탄단지 세 줄뿐이다 — 당류는 #1879, 나트륨은 #1986 에서
+      // 내려갔다.
       expect(find.byKey(const Key('nutrition-sodium-status')), findsNothing);
-      expect(
-        find.byKey(const Key('nutrition-macro-progress-나트륨')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const Key('nutrition-macro-progress-당류')),
-        findsOneWidget,
-      );
+      for (final String label in <String>['당류', '나트륨']) {
+        expect(
+          find.byKey(Key('nutrition-macro-progress-$label')),
+          findsNothing,
+          reason: label,
+        );
+      }
+      for (final String label in <String>['탄수화물', '단백질', '지방']) {
+        expect(
+          find.byKey(Key('nutrition-macro-progress-$label')),
+          findsOneWidget,
+          reason: label,
+        );
+      }
       Color? barColor(String label) => tester
           .widget<LinearProgressIndicator>(
             find.descendant(
@@ -265,14 +268,13 @@ void main() {
             ),
           )
           .color;
-      expect(barColor('나트륨'), OnCareColors.danger);
-      expect(barColor('당류'), OnCareBrand.member.statusWithinGoal);
+      // 오늘 합계는 탄 120 / 275 · 단 45 / 100 · 지 45 / 55 — 셋 다 목표 안쪽.
+      expect(barColor('탄수화물'), OnCareBrand.member.statusWithinGoal);
+      expect(barColor('지방'), OnCareBrand.member.statusWithinGoal);
 
       final Finder carbs = find.byKey(const Key('nutrition-macro-탄수화물'));
       final Finder protein = find.byKey(const Key('nutrition-macro-단백질'));
       final Finder fat = find.byKey(const Key('nutrition-macro-지방'));
-      final Finder sodium = find.byKey(const Key('nutrition-macro-나트륨'));
-      final Finder sugar = find.byKey(const Key('nutrition-macro-당류'));
 
       // 좁은 화면에서 각 항목이 겹치지 않고 세로로 쌓이는지 확인한다.
       expect(
@@ -282,15 +284,6 @@ void main() {
       expect(
         tester.getBottomLeft(protein).dy,
         lessThanOrEqualTo(tester.getTopLeft(fat).dy),
-      );
-      // 탄단지는 칼로리 아래, 나트륨·당류는 그 아래 — 한 카드 안에서 순서대로.
-      expect(
-        tester.getBottomLeft(fat).dy,
-        lessThan(tester.getTopLeft(sodium).dy),
-      );
-      expect(
-        tester.getBottomLeft(sodium).dy,
-        lessThan(tester.getTopLeft(sugar).dy),
       );
       expect(tester.takeException(), isNull);
     },
@@ -312,43 +305,44 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // 오늘 4끼 합계 = 탄140·단79·지72g.
-    expect(find.text('탄수화물'), findsOneWidget);
+    // 오늘 4끼 합계 = 탄120·단45·지45g.
+    for (final String label in <String>['탄수화물', '단백질', '지방']) {
+      expect(
+        find.byKey(Key('nutrition-macro-$label')),
+        findsOneWidget,
+        reason: label,
+      );
+    }
     expect(find.textContaining('탄수화물 45%'), findsNothing);
     expect(find.textContaining('120 / 275g'), findsOneWidget);
-    expect(find.text('단백질'), findsOneWidget);
     expect(find.textContaining('단백질 17%'), findsNothing);
     expect(find.textContaining('45 / 100g'), findsOneWidget); // 단백질 45g
-    expect(find.text('지방'), findsOneWidget);
     expect(find.textContaining('지방 38%'), findsNothing);
     expect(find.textContaining('45 / 55g'), findsOneWidget); // 지방 45g
-    // 탄단지는 바 없이 글자만 쓴다 (#1120) — 초과 여부는 값의 색이 말한다.
-    void expectMacroValueColor(String label, Color expectedColor) {
-      final Text value = tester
-          .widgetList<Text>(
-            find.descendant(
-              of: find.byKey(Key('nutrition-macro-$label')),
-              matching: find.byType(Text),
-            ),
-          )
-          .last;
-      final TextSpan span = value.textSpan! as TextSpan;
-      expect((span.children!.first as TextSpan).style?.color, expectedColor);
-    }
+    // 탄단지는 목표 대비 진행바로 적는다 (#1879) — 초과 여부는 바 색이 말한다.
+    Color? barColor(String label) => tester
+        .widget<LinearProgressIndicator>(
+          find.descendant(
+            of: find.byKey(Key('nutrition-macro-progress-$label')),
+            matching: find.byType(LinearProgressIndicator),
+          ),
+        )
+        .color;
 
-    final Color macroValueColor = OnCareBrand.member.macroProtein;
-    expectMacroValueColor('탄수화물', macroValueColor);
-    expectMacroValueColor('단백질', macroValueColor);
-    expectMacroValueColor('지방', macroValueColor);
-    // 칼로리 숫자 아래에 세로로 쌓인다 — 예전처럼 가로로 늘어놓지 않는다.
+    final Color withinGoal = OnCareBrand.member.statusWithinGoal;
+    expect(barColor('탄수화물'), withinGoal);
+    expect(barColor('단백질'), withinGoal);
+    expect(barColor('지방'), withinGoal);
+    // 넓은 화면에서는 세 줄이 가로로 나란히 놓인다 — 세로로 쌓이는 것은
+    // 좁은 화면(#1120)의 규칙이다.
+    final Finder carbs = find.byKey(const Key('nutrition-macro-탄수화물'));
+    final Finder protein = find.byKey(const Key('nutrition-macro-단백질'));
+    final Finder fat = find.byKey(const Key('nutrition-macro-지방'));
     expect(
-      tester.getTopLeft(find.text('탄수화물')).dy,
-      lessThan(tester.getTopLeft(find.text('단백질')).dy),
+      tester.getTopLeft(carbs).dx,
+      lessThan(tester.getTopLeft(protein).dx),
     );
-    expect(
-      tester.getTopLeft(find.text('단백질')).dy,
-      lessThan(tester.getTopLeft(find.text('지방')).dy),
-    );
+    expect(tester.getTopLeft(protein).dx, lessThan(tester.getTopLeft(fat).dx));
     expect(find.text('짬뽕'), findsOneWidget);
   });
 
@@ -453,10 +447,10 @@ void main() {
     expect(find.textContaining('선택한 날짜에 기록된 식단'), findsNothing);
   });
 
-  testWidgets('나트륨과 당류는 같은 색 규칙을 쓴다 — 목표 안쪽은 브랜드 파랑 (#682, #1070)', (
+  testWidgets('탄단지 세 줄은 같은 색 규칙을 쓴다 — 목표 안쪽은 브랜드 파랑 (#682, #1070)', (
     WidgetTester tester,
   ) async {
-    // 목표 안쪽 값. 두 지표가 같은 카드에 나란히 놓이므로 같은 상태를 서로
+    // 목표 안쪽 값. 세 지표가 같은 카드에 나란히 놀이므로 같은 상태를 서로
     // 다른 색으로 말하면 안 된다.
     const DietDay day = DietDay(
       entries: <DietEntry>[
@@ -513,11 +507,12 @@ void main() {
       tester.element(find.byType(NutritionSummary)),
     );
     expect(
-      barColor(l.dietSodium),
-      barColor(l.dietSugar),
-      reason: '목표 안쪽의 나트륨과 당류가 다른 색이면 안 된다',
+      barColor(l.homeMacroCarbs),
+      barColor(l.homeMacroProtein),
+      reason: '목표 안쪽의 탄수화물과 단백질이 다른 색이면 안 된다',
     );
-    expect(barColor(l.dietSodium), OnCareBrand.member.statusWithinGoal);
+    expect(barColor(l.homeMacroFat), barColor(l.homeMacroCarbs));
+    expect(barColor(l.homeMacroCarbs), OnCareBrand.member.statusWithinGoal);
   });
 
   testWidgets('목표를 넘기면 달성률이 100% 를 넘어 적힌다 (#846)', (WidgetTester tester) async {

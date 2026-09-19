@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
 
@@ -35,7 +36,6 @@ DashboardSummary _summary({String? adviceKey, String? sodiumWarning}) =>
       macros: const DietMacros.zero(),
       dietEntries: 0,
       exerciseMinutes: 0,
-      todaySchedule: const <ScheduleItem>[],
       weekScore: 0,
       weekScoreDelta: 0,
       sodiumWarning: sodiumWarning,
@@ -130,6 +130,9 @@ void main() {
         // 들어가므로 플래그를 켜고 편다. (#1526)
         showDemoEntry: true,
       );
+      // 저장된 세션이 없다고 답해 준다 — 없으면 복구가 끝나지 않아 시작
+      // 화면(#1944)에 머문다.
+      FlutterSecureStorage.setMockInitialValues(<String, String>{});
       await tester.pumpWidget(
         ProviderScope(
           overrides: <Override>[

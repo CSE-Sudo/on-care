@@ -260,6 +260,56 @@ def test_delete_me_removes_account(client):
     assert again.status_code == 401
 
 
+def test_delete_me_keeps_only_known_reasons(client, db_session):
+    """탈퇴 사유는 아는 코드만, 사유와 시각으로만 남는다. (#2019)
+
+    사유는 탈퇴의 조건이 아니다 — 모르는 코드가 섞여 와도 422 로 막지 않고
+    조용히 버린다. 화면의 글은 번역되고 바뀌지만 집계는 코드로 이어진다.
+    누가 골랐는지는 남기지 않는다: 그 회원 행은 같은 요청에서 지워진다.
+    """
+    from app.models.models import AccountDeletionReason
+
+    before = {r.id for r in db_session.query(AccountDeletionReason).all()}
+    token, email = _register_and_login(client)
+    # TestClient.delete() 는 본문을 받지 않는다 — request() 로 보낸다.
+    r = client.request(
+        "DELETE",
+        "/v1/users/me",
+        json={"reasons": ["privacy", "hard_to_use", "privacy", "made-up"]},
+        headers=_auth(token),
+    )
+    assert r.status_code == 200, r.text
+
+    db_session.expire_all()
+    added = [
+        row
+        for row in db_session.query(AccountDeletionReason).all()
+        if row.id not in before
+    ]
+    # 같은 사유를 두 번 보내도 한 번만 센다.
+    assert sorted(row.reason for row in added) == ["hard_to_use", "privacy"]
+    assert all(row.created_at is not None for row in added)
+
+    again = client.post(
+        "/v1/auth/login", data={"username": email, "password": "pw-12345!"}
+    )
+    assert again.status_code == 401
+
+
+def test_delete_me_without_reasons_still_deletes(client):
+    """사유 칸을 건너뛴 탈퇴도 예전처럼 그대로 지운다. (#1935·#2019)"""
+    token, email = _register_and_login(client)
+    r = client.request(
+        "DELETE", "/v1/users/me", json={"reasons": []}, headers=_auth(token)
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "deleted"
+    again = client.post(
+        "/v1/auth/login", data={"username": email, "password": "pw-12345!"}
+    )
+    assert again.status_code == 401
+
+
 def test_profile_writes_require_auth(client):
     # require_auth 는 데모 폴백을 쓰지 않으므로 토큰 없으면 401
     assert client.post("/v1/users/me/onboarding", json={}).status_code == 401
@@ -323,3 +373,196 @@ def test_health_goals_cleans_legacy_condition_names_but_keeps_trainer_notes(clie
 
     assert saved.status_code == 200
     assert saved.json()["conditions"] == "체중 감량, 혈압 관리, 무릎 통증으로 러닝 자제"
+
+
+# ---- 연락처 형식 (#1883) ----
+#
+# 가입은 #1780 이 막았지만 이 화면은 같은 값을 다른 문으로 쓴다. 이메일은
+# **로그인하는 값**이라, 형식을 보지 않으면 오타 한 번이 계정 잠김이 된다.
+
+
+@pytest.mark.parametrize("email", ["asdf", "member@oncare", "", "  "])
+def test_update_me_rejects_malformed_email(client, email):
+    token, original = _register_and_login(client)
+    r = client.put("/v1/users/me", json={"email": email}, headers=_auth(token))
+    assert r.status_code == 422, r.text
+
+    # 계정은 그대로다 — 원래 주소로 계속 로그인할 수 있다.
+    again = client.post(
+        "/v1/auth/login", data={"username": original, "password": "pw-12345!"}
+    )
+    assert again.status_code == 200, again.text
+
+
+@pytest.mark.parametrize("phone", ["없음", "010-1234-567", "0101234"])
+def test_update_me_rejects_malformed_phone(client, phone):
+    token, _ = _register_and_login(client)
+    r = client.put("/v1/users/me", json={"phone": phone}, headers=_auth(token))
+    assert r.status_code == 422, r.text
+
+
+def test_update_me_normalizes_phone_like_signup(client):
+    """가입과 같은 표기로 정리한다 — 여기서 되돌려지면 정규화가 무의미하다."""
+    token, _ = _register_and_login(client)
+    r = client.put("/v1/users/me", json={"phone": "01012345678"}, headers=_auth(token))
+    assert r.status_code == 200, r.text
+    assert r.json()["phone"] == "010-1234-5678"
+
+    profile = client.get("/v1/users/me/profile", headers=_auth(token))
+    assert profile.json()["phone"] == "010-1234-5678"
+
+
+def test_update_me_rejects_clearing_an_existing_phone(client):
+    """있던 연락처는 지울 수 없다.
+
+    가입 화면이 전화번호를 필수로 받는데(#1634) 이 화면에서 비울 수 있으면 그
+    필수가 무의미해지고, 트레이너가 담당 회원에게 연락할 방법이 사라진다.
+    """
+    token, _ = _register_and_login(client)
+    assert (
+        client.put(
+            "/v1/users/me", json={"phone": "010-1234-5678"}, headers=_auth(token)
+        ).status_code
+        == 200
+    )
+    r = client.put("/v1/users/me", json={"phone": ""}, headers=_auth(token))
+    assert r.status_code == 422, r.text
+
+    # 지워지지 않았다.
+    profile = client.get("/v1/users/me/profile", headers=_auth(token))
+    assert profile.json()["phone"] == "010-1234-5678"
+
+
+def test_update_me_allows_empty_phone_when_there_was_none(client):
+    """처음부터 없던 회원에게는 요구하지 않는다.
+
+    소셜 로그인 가입자와 #1634 이전 가입자는 연락처를 넣을 자리가 없었다. 그
+    사람들까지 막으면 이름만 고치려는데 전화번호를 내놓으라고 막는 화면이 된다.
+    """
+    token, _ = _register_and_login(client)  # 가입 시 phone 을 보내지 않는다
+    assert client.get("/v1/users/me/profile", headers=_auth(token)).json()["phone"] == ""
+
+    r = client.put(
+        "/v1/users/me", json={"name": "이름만", "phone": ""}, headers=_auth(token)
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["name"] == "이름만"
+    assert r.json()["phone"] == ""
+
+
+def test_update_me_accepts_a_valid_email_change(client):
+    """막는 것은 형식이 틀린 값뿐이다 — 제대로 된 주소로는 바꿀 수 있다."""
+    token, _ = _register_and_login(client)
+    new_email = f"prof-moved-{uuid4().hex[:8]}@oncare.com"
+    r = client.put("/v1/users/me", json={"email": new_email}, headers=_auth(token))
+    assert r.status_code == 200, r.text
+    assert r.json()["email"] == new_email
+
+    moved = client.post(
+        "/v1/auth/login", data={"username": new_email, "password": "pw-12345!"}
+    )
+    assert moved.status_code == 200, moved.text
+
+
+# ---- 이름·생년월일 형식 (#1887) ----
+#
+# 같은 두 칸을 온보딩과 프로필 수정이 함께 고친다. 전에는 어느 쪽에도 기준이
+# 없어, 컬럼 길이를 넘기면 500 이고 들어가는 길이면 아무 값이나 200 이었다.
+# 가입 경로와 순수 규칙은 `test_name_birth_date_format.py` 에 있다.
+
+
+@pytest.mark.parametrize("name", ["", "   "])
+def test_update_me_rejects_blank_name(client, name):
+    """가입에서 필수로 받은 이름을 이 화면에서 지울 수 없다.
+
+    이름이 빈 회원은 트레이너 로스터·채팅·상담 카드에 공백으로 뜬다.
+    """
+    token, _ = _register_and_login(client, name="지워지지 않는 이름")
+    r = client.put("/v1/users/me", json={"name": name}, headers=_auth(token))
+    assert r.status_code == 422, r.text
+
+    profile = client.get("/v1/users/me/profile", headers=_auth(token))
+    assert profile.json()["name"] == "지워지지 않는 이름"
+
+
+def test_update_me_name_length_boundary(client):
+    """컬럼 길이(100)가 기준이다 — 바로 안은 200, 바로 바깥은 422(전에는 500)."""
+    token, _ = _register_and_login(client)
+
+    at_limit = "가" * 100
+    ok = client.put("/v1/users/me", json={"name": at_limit}, headers=_auth(token))
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["name"] == at_limit
+
+    over = client.put("/v1/users/me", json={"name": "가" * 101}, headers=_auth(token))
+    assert over.status_code == 422, over.text
+    assert (
+        client.get("/v1/users/me/profile", headers=_auth(token)).json()["name"]
+        == at_limit
+    )
+
+
+@pytest.mark.parametrize(
+    "birth_date",
+    ["asdfghjkl", "1990-01-01T00:00:00Z", "19900101", "1990-13-45"],
+)
+def test_update_me_rejects_non_date_birth_date(client, birth_date):
+    """날짜가 아닌 값은 저장되지 않는다.
+
+    저장되면 트레이너의 담당 요청 확인 화면에서 나이가 조용히 비어 보인다 —
+    6자리 코드로 연결할 때 "이 사람이 맞나" 를 확인하는 근거 하나가 사라진다.
+    """
+    token, _ = _register_and_login(client)
+    r = client.put(
+        "/v1/users/me", json={"birth_date": birth_date}, headers=_auth(token)
+    )
+    assert r.status_code == 422, r.text
+    assert client.get("/v1/users/me/profile", headers=_auth(token)).json()[
+        "birth_date"
+    ] == ""
+
+
+def test_update_me_accepts_ymd_birth_date_and_clearing_it(client):
+    """막는 것은 날짜가 아닌 값뿐이다. 비우는 것은 할 수 있는 일이다."""
+    token, _ = _register_and_login(client)
+    saved = client.put(
+        "/v1/users/me", json={"birth_date": "1990-01-01"}, headers=_auth(token)
+    )
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["birth_date"] == "1990-01-01"
+
+    cleared = client.put(
+        "/v1/users/me", json={"birth_date": ""}, headers=_auth(token)
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["birth_date"] == ""
+
+
+def test_onboarding_holds_the_same_name_and_birth_date_rules(client):
+    """온보딩도 같은 문이다 — 한쪽만 조이면 다른 문으로 같은 값이 들어온다."""
+    token, _ = _register_and_login(client, name="온보딩 회원")
+
+    blank = client.post(
+        "/v1/users/me/onboarding", json={"name": "  "}, headers=_auth(token)
+    )
+    assert blank.status_code == 422, blank.text
+
+    too_long = client.post(
+        "/v1/users/me/onboarding", json={"name": "가" * 101}, headers=_auth(token)
+    )
+    assert too_long.status_code == 422, too_long.text
+
+    not_a_date = client.post(
+        "/v1/users/me/onboarding",
+        json={"birth_date": "asdfghjkl"},
+        headers=_auth(token),
+    )
+    assert not_a_date.status_code == 422, not_a_date.text
+
+    ok = client.post(
+        "/v1/users/me/onboarding",
+        json={"name": "온보딩 회원", "birth_date": "1990-01-01"},
+        headers=_auth(token),
+    )
+    assert ok.status_code == 200, ok.text
+    assert ok.json()["birth_date"] == "1990-01-01"

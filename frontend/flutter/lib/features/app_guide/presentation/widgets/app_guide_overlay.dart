@@ -1,0 +1,248 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:oncare/app/app_icons.dart';
+import 'package:oncare/core/points/points_rules.dart';
+import 'package:oncare/features/app_guide/domain/guide_step.dart';
+import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
+import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
+
+/// 사용 가이드의 덮개 — 화면을 어둡게 덮고 지금 짚는 자리만 밝게 뚫는다. (#1857)
+///
+/// 짚는 자리에는 꼬리 달린 작은 말풍선이 붙고, 화면 위쪽에 `앱 사용 가이드 n/N`
+/// 과 `건너뛰기`, 아래쪽에 `이전`·`다음` 이 선다. 말풍선을 크게 만들지 않는 이유는
+/// 단순하다 — 설명이 크면 정작 짚은 자리를 가린다.
+class AppGuideOverlay extends ConsumerStatefulWidget {
+  const AppGuideOverlay({super.key});
+
+  @override
+  ConsumerState<AppGuideOverlay> createState() => _AppGuideOverlayState();
+}
+
+class _AppGuideOverlayState extends ConsumerState<AppGuideOverlay> {
+  /// 지금 짚는 자리(이 덮개 좌표계). 아직 재지 못했으면 null 이고, 그때는
+  /// 구멍 없이 덮는다.
+  Rect? _hole;
+  GuideStepId? _measuredStep;
+
+  /// 지금 자리를 찾는 중인 단계. 단계가 바뀌면 진행 중이던 탐색은 스스로
+  /// 물러난다 — 두 단계가 같은 `_hole` 을 두고 다투지 않게.
+  GuideStepId? _pending;
+
+  /// 자리를 찾을 때까지 기다리는 한계. 60fps 기준 1초쯤이다 — 이보다 오래
+  /// 걸리면 그 화면에 그 카드가 없는 것으로 보고 구멍 없이 덮는다.
+  static const int _maxWaitFrames = 60;
+
+  /// 같은 자리가 이만큼 이어서 나오면 자리가 멈춘 것으로 본다.
+  static const int _settledFrames = 3;
+
+  /// 짚을 자리를 찾아 구멍을 낸다. (#1857)
+  ///
+  /// 세 가지를 차례로 기다려야 한다.
+  /// 1. **그려지기** — 탭을 옮기는 단계에서는 한 프레임으로 모자란다. 새 탭의
+  ///    카드는 자기 자료를 받아 온 뒤에야 나타난다.
+  /// 2. **보이는 자리로 오기** — MY 의 포인트처럼 접힌 화면 아래에 있는 카드는
+  ///    화면 안으로 굴려 와야 짚을 수 있다.
+  /// 3. **자리가 멈추기** — 값이 차오르는 동안 카드 높이가 달라진다. 자리가
+  ///    이어서 같아질 때까지 다시 잰다.
+  Future<void> _findAndMeasure(GuideStepId? step) async {
+    _pending = step;
+    if (step == null) {
+      _apply(step, null);
+      return;
+    }
+    final GlobalKey key = ref.read(guideAnchorsProvider).keyOf(step);
+    for (int frame = 0; frame < _maxWaitFrames; frame++) {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || _pending != step) return;
+      if (key.currentContext != null) break;
+    }
+    final BuildContext? anchor = key.currentContext;
+    if (anchor != null && anchor.mounted && Scrollable.maybeOf(anchor) != null) {
+      // 카드가 말풍선에 가리지 않도록 화면 위쪽에 놓는다.
+      await Scrollable.ensureVisible(
+        anchor,
+        alignment: 0.3,
+        duration: OnCareMotion.normal,
+        curve: Curves.easeOut,
+      );
+      if (!mounted || _pending != step) return;
+    }
+    // 3. 자리가 **멈출** 때까지. 카드는 값이 차오르는 동안 높이가 조금씩 달라져,
+    //    첫 프레임에 잰 자리는 몇 px 어긋난 채로 굳는다. 같은 자리가 이어서
+    //    나올 때까지 다시 잰다.
+    Rect? last;
+    int stable = 0;
+    for (
+      int frame = 0;
+      frame < _maxWaitFrames && stable < _settledFrames;
+      frame++
+    ) {
+      final Rect? now = _measure(step);
+      if (now == last) {
+        stable++;
+      } else {
+        stable = 1;
+        last = now;
+        _apply(step, now);
+      }
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted || _pending != step) return;
+    }
+  }
+
+  void _apply(GuideStepId? step, Rect? hole) {
+    if (!mounted) return;
+    if (_measuredStep == step && hole == _hole) return;
+    setState(() {
+      _measuredStep = step;
+      _hole = hole;
+    });
+  }
+
+  Rect? _measure(GuideStepId? step) {
+    if (step == null) return null;
+    final GlobalKey key = ref.read(guideAnchorsProvider).keyOf(step);
+    final RenderObject? anchor = key.currentContext?.findRenderObject();
+    final RenderObject? self = context.findRenderObject();
+    if (anchor is! RenderBox || !anchor.hasSize) return null;
+    if (self is! RenderBox || !self.hasSize) return null;
+    // 짚는 요소는 이 덮개의 **형제**다(같은 Stack 아래 예시 화면 쪽에 있다).
+    // 덮개를 기준으로 바로 변환할 수 없으므로 둘 다 화면 좌표로 읽어 뺀다 —
+    // 예전에는 덮개를 조상으로 넘겨, 구멍이 엉뚱한 자리에 생기거나 아예 생기지
+    // 않았다.
+    final Offset delta =
+        anchor.localToGlobal(Offset.zero) - self.localToGlobal(Offset.zero);
+    final Rect rect = delta & anchor.size;
+    // 화면 밖으로 밀린 자리는 짚지 않는다 — 덮기만 한다.
+    if (!rect.isFinite || !rect.overlaps(Offset.zero & self.size)) return null;
+    return rect;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppGuideState guide = ref.watch(appGuideControllerProvider);
+    final GuideStepId? step = guide.step;
+    if (step == null) return const SizedBox.shrink();
+    // 단계가 바뀌면 새 자리를 찾는다.
+    if (step != _pending) unawaited(_findAndMeasure(step));
+
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final AppGuideController controller = ref.read(
+      appGuideControllerProvider.notifier,
+    );
+
+    return AppSpotlight(
+      key: const Key('appGuideOverlay'),
+      // 아직 이 단계의 자리를 재지 못했으면 구멍 없이 덮는다 — 지난 단계의
+      // 구멍이 새 탭 위에 엉뚱하게 밝은 자리로 남지 않게.
+      hole: _measuredStep == step ? _hole : null,
+      // 갑자기 어두워진 이유와 남은 길이를 화면 맨 위에서 먼저 말한다.
+      topBar: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          // 좁은 화면이나 말이 긴 언어에서는 두 배지가 아래위로 놓인다 —
+          // 한 줄로 밀어붙이면 `건너뛰기` 가 화면 밖으로 밀린다.
+          Expanded(
+            child: Wrap(
+              spacing: OnCareSpacing.s4,
+              runSpacing: OnCareSpacing.s4,
+              children: <Widget>[
+                AppTag(
+                  key: const Key('appGuideBadge'),
+                  label: l.guideBadgeWithStep(
+                    guide.stepNumber,
+                    guide.totalSteps,
+                  ),
+                  tone: AppTagTone.brand,
+                  icon: AppIcons.info,
+                ),
+                // 아래는 진짜 화면이지만 값은 예시다 — 내 기록으로 읽지 않게
+                // 밝힌다.
+                AppTag(
+                  key: const Key('guideSampleBadge'),
+                  label: l.guideSampleBadge,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
+          // 건너뛰기는 작게, 그러나 어느 단계에서나 열려 있다.
+          AppSpotlightAction(
+            key: const Key('appGuideSkip'),
+            label: l.guideSkip,
+            onPressed: controller.skip,
+          ),
+        ],
+      ),
+      caption: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Text(
+            _title(l, step),
+            key: const Key('appGuideCard'),
+            style: tokens
+                .text(OnCareTypography.titleSmall)
+                .copyWith(color: OnCareColors.textPrimary),
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            _body(l, step),
+            style: tokens
+                .text(OnCareTypography.bodySmall)
+                .copyWith(color: OnCareColors.textSecondary),
+          ),
+        ],
+      ),
+      bottomBar: Row(
+        children: <Widget>[
+          if (!guide.isFirst)
+            AppSpotlightAction(
+              key: const Key('appGuidePrev'),
+              label: l.guidePrev,
+              leadingIcon: AppIcons.back,
+              onPressed: controller.previous,
+            ),
+          const Spacer(),
+          AppSpotlightAction(
+            key: const Key('appGuideNext'),
+            label: guide.isLast ? l.guideDone : l.guideNext,
+            trailingIcon: AppIcons.chevronRight,
+            onPressed: controller.next,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _title(AppLocalizations l, GuideStepId step) => switch (step) {
+    GuideStepId.homeAdvice => l.guideHomeAdviceTitle,
+    GuideStepId.quickAdd => l.guideQuickAddTitle,
+    GuideStepId.dietNutrition => l.guideDietNutritionTitle,
+    GuideStepId.exerciseStatus => l.guideExerciseStatusTitle,
+    GuideStepId.gym => l.guideGymTitle,
+    GuideStepId.mySettings => l.guideMySettingsTitle,
+    GuideStepId.points => l.guidePointsTitle,
+  };
+
+  /// 포인트 단계의 숫자는 적립 규칙([PointsRule]) 한 곳에서 읽는다 — 안내가
+  /// 규칙보다 오래 살아남아 옛 숫자를 말하는 일이 없게(#1826 과 같은 규칙).
+  static String _body(AppLocalizations l, GuideStepId step) => switch (step) {
+    GuideStepId.homeAdvice => l.guideHomeAdviceBody,
+    GuideStepId.quickAdd => l.guideQuickAddBody,
+    GuideStepId.dietNutrition => l.guideDietNutritionBody,
+    GuideStepId.exerciseStatus => l.guideExerciseStatusBody,
+    GuideStepId.gym => l.guideGymBody,
+    GuideStepId.mySettings => l.guideMySettingsBody,
+    GuideStepId.points => l.guidePointsBody(
+      PointsRule.dietEntry.points,
+      PointsRule.exerciseManual.points,
+      PointsRule.routineComplete.points,
+    ),
+  };
+}

@@ -8,14 +8,17 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
 import 'package:oncare/features/account/domain/entities/health_focus.dart';
+import 'package:oncare/features/account/domain/entities/measure_update.dart';
 import 'package:oncare/features/account/domain/entities/recommended_goals.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/account/presentation/focus_change_label.dart';
 import 'package:oncare/features/account/presentation/health_focus_label.dart';
+import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/my_health/domain/support_links.dart';
+import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -25,6 +28,18 @@ import 'package:url_launcher/url_launcher.dart';
 /// 파싱이 null 로 날아가는 것을 막는다.
 final List<TextInputFormatter> _digitsOnly = <TextInputFormatter>[
   FilteringTextInputFormatter.digitsOnly,
+];
+
+/// 키·몸무게처럼 소수로 적는 칸. 숫자와 소수점 하나만 남긴다 — `70kg` 을
+/// 붙여넣으면 단위가 함께 들어와 숫자로 읽히지 않는다(#1941).
+final List<TextInputFormatter> _decimal = <TextInputFormatter>[
+  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+  TextInputFormatter.withFunction((
+    TextEditingValue previous,
+    TextEditingValue next,
+  ) {
+    return '.'.allMatches(next.text).length > 1 ? previous : next;
+  }),
 ];
 
 Widget _shell(
@@ -185,6 +200,15 @@ class ProfileSettingsPage extends ConsumerWidget {
   }
 }
 
+/// 프로필 편집에서 형식을 보는 칸. (#1883·#1887)
+///
+/// 키·몸무게는 여기 없다 — 숫자 범위는 서버 스키마가 보고, 잘못 넣어도 되돌릴
+/// 수 있다. 나머지 네 칸은 다르다: 이메일은 **로그인하는 값**이라 잘못 저장하면
+/// 그 계정에 다시 들어올 수 없고, 전화번호는 트레이너가 회원에게 연락하는
+/// 값이다. 이름과 생년월일은 컬럼 길이를 넘기면 저장 자체가 실패하고(#1887),
+/// 날짜가 아닌 생년월일은 트레이너 화면에서 나이를 조용히 지운다.
+enum _ProfileField { name, email, phone, birth, height, weight }
+
 class _ProfileForm extends ConsumerStatefulWidget {
   const _ProfileForm({required this.initial});
   final UserProfile initial;
@@ -211,6 +235,14 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   late String _gender = widget.initial.gender.isEmpty
       ? 'male'
       : widget.initial.gender;
+
+  /// 이 회원이 성별을 고른 적이 있는가 — 화면에 보이는 값과 별개다.
+  ///
+  /// 칩은 늘 하나가 선택돼 보이지만, 그것이 곧 회원의 선택은 아니다. 온보딩을
+  /// 건너뛴 회원에게는 화면을 채우려고 세운 기본값이라, 전화번호 한 줄만 고쳐
+  /// 저장해도 고른 적 없는 `male` 이 서버에 굳었다(#1941). 회원이 칩을 누른
+  /// 뒤부터만 성별을 함께 보낸다.
+  late bool _genderChosen = widget.initial.gender.isNotEmpty;
   late final TextEditingController _height = TextEditingController(
     text: widget.initial.heightCm?.toString() ?? '',
   );
@@ -218,6 +250,11 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     text: widget.initial.weightKg?.toString() ?? '',
   );
   bool _saving = false;
+
+  /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
+  /// 대로 다시 검사한다 — 가입 화면과 같은 방식이다(#1883).
+  late final AppFieldErrors<_ProfileField> _errors =
+      AppFieldErrors<_ProfileField>(_check);
 
   @override
   void dispose() {
@@ -230,9 +267,72 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     super.dispose();
   }
 
+  /// 칸의 지금 값에 대한 오류 문구. 규칙도 문구도 가입 화면과 같은 것을 쓴다 —
+  /// 여기만 다른 기준을 두면 같은 값이 화면마다 다르게 판정된다.
+  ///
+  /// **있던 연락처는 지울 수 없다.** 가입 화면이 전화번호를 필수로 받는데
+  /// (#1634) 여기서 비울 수 있으면 그 필수가 무의미해지고, 트레이너가 담당
+  /// 회원에게 연락할 방법이 사라진다.
+  ///
+  /// 처음부터 없던 회원에게만 빈 칸을 허용한다 — 소셜 로그인 가입자와 #1634
+  /// 이전 가입자는 연락처를 넣을 자리가 없었다. 그 사람들에게까지 요구하면
+  /// 이름만 고치려는데 전화번호를 내놓으라고 막는 화면이 된다. 서버도 같은
+  /// 판정이다(#1883).
+  String? _check(_ProfileField field) => switch (field) {
+    // 키·몸무게는 서버와 같은 범위로 본다. 여기서 보지 않으면 `70kg` 같은
+    // 붙여넣기가 숫자로 읽히지 않은 채 "저장되었어요" 로 넘어간다(#1941).
+    _ProfileField.height => _measureError(AppGoalRanges.heightCm, _height.text),
+    _ProfileField.weight => _measureError(AppGoalRanges.weightKg, _weight.text),
+    _ => authInputErrorText(AppLocalizations.of(context), switch (field) {
+      _ProfileField.name => AppInputRules.name(_name.text),
+      _ProfileField.email => AppInputRules.email(_email.text),
+      _ProfileField.phone =>
+        _phone.text.trim().isEmpty && widget.initial.phone.trim().isEmpty
+            ? null
+            : AppInputRules.phone(_phone.text),
+      // 생년월일은 비어 있어도 된다 — 넣을 자리가 없던 시절에 가입한 회원과
+      // 소셜 로그인 가입자에게는 처음부터 없는 값이다. 서버도 같다(#1887).
+      _ProfileField.birth => AppInputRules.birthDate(_birth.text),
+      _ => null,
+    }),
+  };
+
+  /// 키·몸무게 칸의 오류 문구. 목표 칸과 같은 범위 문구를 쓴다.
+  ///
+  /// **빈 칸은 오류가 아니다** — 지우는 것은 할 수 있는 일이고, 비운 칸은
+  /// `값 지움`으로 나간다. 정수만 보는 [AppGoalRange.rejects] 대신 직접 보는
+  /// 것은 `170.5` 처럼 소수로 적는 값이기 때문이다.
+  String? _measureError(AppGoalRange range, String text) {
+    final String value = text.trim();
+    if (value.isEmpty) return null;
+    final num? parsed = num.tryParse(value);
+    if (parsed != null && parsed >= range.min && parsed <= range.max) {
+      return null;
+    }
+    return AppLocalizations.of(context).myGoalRange(range.min, range.max);
+  }
+
+  /// 오류를 보인 칸이 있을 때만 입력마다 다시 그린다.
+  void _onEdited(String _) {
+    if (_errors.isWatching) setState(() {});
+  }
+
+  /// 칸에 적힌 키·몸무게를 저장소가 읽는 형태로. 빈 칸은 [MeasureUpdate.clear].
+  ///
+  /// 저장 직전에만 부른다 — 여기까지 왔다면 [_check] 가 이미 숫자임을 봤다.
+  MeasureUpdate _measureUpdate(TextEditingController controller) =>
+      MeasureUpdate(num.tryParse(controller.text.trim()));
+
   Future<void> _save() async {
     if (_saving) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 틀린 칸이 있으면 보내지 않고 칸 아래에 알린다. 서버도 같은 기준으로
+    // 막지만(#1883), 거기서 걸리면 이유를 알 수 없는 "저장에 실패했어요"
+    // 토스트만 남는다 — 어느 칸이 문제인지는 여기서만 말해 줄 수 있다.
+    if (!_errors.validate(_ProfileField.values)) {
+      setState(() {});
+      return;
+    }
     final NavigatorState navigator = Navigator.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     setState(() => _saving = true);
@@ -244,15 +344,24 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             email: _email.text.trim(),
             phone: _phone.text.trim(),
             birthDate: _birth.text.trim(),
-            gender: _gender,
-            heightCm: num.tryParse(_height.text.trim()),
-            weightKg: num.tryParse(_weight.text.trim()),
+            // 고른 적이 없으면 보내지 않는다 — 화면을 채우려고 세운 기본값을
+            // 회원의 선택으로 굳히지 않는다(#1941).
+            gender: _genderChosen ? _gender : null,
+            // 비운 칸은 `값 지움`으로 보낸다. 예전에는 null 을 넘겨 저장소가
+            // 키를 통째로 빼는 바람에, 서버가 "손대지 않음"으로 읽어 지운
+            // 값이 되살아났다(#1941).
+            heightCm: _measureUpdate(_height),
+            weightKg: _measureUpdate(_weight),
             // 자유 입력 운동 목표는 `건강 목표` 화면으로 옮겼다(#1471) —
             // 여기서 보내지 않으므로 그 화면에서 정한 값이 덮이지 않는다.
           );
       // Sheet dismissed mid-save → don't touch ref/pop the page below.
       if (!mounted) return;
-      ref.invalidate(profileProvider);
+      // MY 카드의 이름·이메일은 `/users/me/health` 에서 온다. 프로필만 되짚으면
+      // "저장되었어요" 를 보고 돌아온 화면이 옛 이름 그대로다(#1930).
+      ref
+        ..invalidate(profileProvider)
+        ..invalidate(myHealthStateProvider);
       navigator.pop();
       toast.show(l.myProfileSaved, type: AppToastType.success);
     } catch (_) {
@@ -278,24 +387,43 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       ),
       const SizedBox(height: OnCareSpacing.s16),
       _card(<Widget>[
-        AppTextField(label: l.myFieldName, controller: _name),
+        AppTextField(
+          key: const ValueKey<String>('my-profile-name'),
+          label: l.myFieldName,
+          controller: _name,
+          errorText: _errors.of(_ProfileField.name),
+          onChanged: _onEdited,
+        ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-email'),
           label: l.myFieldEmail,
           controller: _email,
           keyboardType: TextInputType.emailAddress,
+          errorText: _errors.of(_ProfileField.email),
+          onChanged: _onEdited,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-phone'),
           label: l.myFieldPhone,
           controller: _phone,
           keyboardType: TextInputType.phone,
+          // 숫자만 쳐도 하이픈을 넣어 준다 — 가입 화면과 같은 서식이다.
+          inputFormatters: const <TextInputFormatter>[
+            AppPhoneNumberFormatter(),
+          ],
+          errorText: _errors.of(_ProfileField.phone),
+          onChanged: _onEdited,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-birth'),
           label: l.myFieldBirth,
           controller: _birth,
           hint: '1996-03-21',
+          errorText: _errors.of(_ProfileField.birth),
+          onChanged: _onEdited,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         // 세 값 중 하나를 고르는 칸이라 펼침 메뉴 대신 칩을 늘어놓는다 — 고른 값과
@@ -321,21 +449,32 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
                 key: ValueKey<String>('profile-gender-${option.value}'),
                 label: option.label,
                 selected: _gender == option.value,
-                onSelected: (_) => setState(() => _gender = option.value),
+                onSelected: (_) => setState(() {
+                  _gender = option.value;
+                  _genderChosen = true;
+                }),
               ),
           ],
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-height'),
           label: l.myFieldHeight,
           controller: _height,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: _decimal,
+          errorText: _errors.of(_ProfileField.height),
+          onChanged: _onEdited,
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const ValueKey<String>('my-profile-weight'),
           label: l.myFieldWeight,
           controller: _weight,
-          keyboardType: TextInputType.number,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: _decimal,
+          errorText: _errors.of(_ProfileField.weight),
+          onChanged: _onEdited,
         ),
       ]),
     ], saving: _saving);
@@ -457,8 +596,58 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     if (widget.initial.weeklyFlexibilityMinutes == null) _kFlexibility,
   };
 
+  /// 칸마다 서버가 받는 범위(#1888). 서버 `health_goal_ranges` 와 같은 값을
+  /// `oncare_ui` 한 곳에서 읽는다 — 화면과 서버가 다른 기준을 말하면, 회원은
+  /// 이유를 알 수 없는 "저장에 실패했어요" 토스트만 보게 된다.
+  static const Map<String, AppGoalRange> _ranges = <String, AppGoalRange>{
+    _kKcal: AppGoalRanges.dailyCalories,
+    _kSodium: AppGoalRanges.dailySodiumMg,
+    _kSugar: AppGoalRanges.dailySugarG,
+    _kCarbs: AppGoalRanges.dailyCarbsG,
+    _kProtein: AppGoalRanges.dailyProteinG,
+    _kFat: AppGoalRanges.dailyFatG,
+    _kBurn: AppGoalRanges.dailyBurnKcal,
+    _kCardio: AppGoalRanges.weeklyCardioMinutes,
+    _kStrength: AppGoalRanges.weeklyStrengthSets,
+    _kFlexibility: AppGoalRanges.weeklyFlexibilityMinutes,
+  };
+
+  /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
+  /// 대로 다시 검사한다 — 프로필 모달과 같은 방식이다(#1883).
+  late final AppFieldErrors<String> _errors = AppFieldErrors<String>(_rangeError);
+
+  /// 그 칸의 지금 값이 범위를 벗어났는가.
+  ///
+  /// 빈 칸은 오류가 아니다 — 목표를 세우지 않는 것은 할 수 있는 일이고,
+  /// 빈 칸은 `목표 해제`로 나간다.
+  String? _rangeError(String key) {
+    final AppGoalRange range = _ranges[key]!;
+    if (!range.rejects(_controllerFor(key).text)) return null;
+    return AppLocalizations.of(context).myGoalRange(range.min, range.max);
+  }
+
+  TextEditingController _controllerFor(String key) => switch (key) {
+    _kKcal => _kcal,
+    _kSodium => _sodium,
+    _kSugar => _sugar,
+    _kCarbs => _carbs,
+    _kProtein => _protein,
+    _kFat => _fat,
+    _kBurn => _burn,
+    _kCardio => _cardio,
+    _kStrength => _strength,
+    _kFlexibility => _flexibility,
+    _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
+  };
+
   /// 그 칸은 이제 회원이 정한 값이다.
   void _markTouched(String key) => _prefilled.remove(key);
+
+  /// 칸을 고쳤다 — 손댄 것으로 표시하고, 오류를 보인 칸이 있으면 다시 그린다.
+  void _onGoalEdited(String key) {
+    _markTouched(key);
+    if (_errors.isWatching) setState(() {});
+  }
 
   /// 저장할 값. 아직 손대지 않은 권장값 칸은 `null` — 곧 '목표 없음' 이다.
   int? _valueToSave(String key, TextEditingController c) =>
@@ -542,7 +731,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     });
   }
 
-  /// 권장 배분을 세 칸에 채운다.
+  /// 권장 배분을 네 칸에 채운다.
   ///
   /// 채운 뒤 칼로리를 다시 계산한다 — 반올림 때문에 배분의 합이 입력한
   /// 칼로리와 몇 kcal 어긋나는데, 화면에 남은 두 값이 서로 맞지 않으면
@@ -554,6 +743,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _protein.text = '${split.protein}';
     _fat.text = '${split.fat}';
     // 당류도 같은 칼로리에서 나온다 — 식습관 개선을 골랐으면 5% 로 줄어든다.
+    // 안내 줄도 이 칸을 함께 말한다: 버튼이 덮는 칸과 문구가 어긋나면, 당류를
+    // 낮춰 둔 회원이 탄단지만 맞추려다 말한 적 없는 값까지 바꾸게 된다(#1941).
     _sugar.text = '${split.sugar}';
     _markTouched(_kCarbs);
     _markTouched(_kProtein);
@@ -605,6 +796,13 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   Future<void> _save() async {
     if (_saving) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    // 범위 밖 값이 있으면 보내지 않고 칸 아래에 알린다. 서버도 같은 기준으로
+    // 막지만(#1888), 거기서 걸리면 이유를 알 수 없는 "저장에 실패했어요"
+    // 토스트만 남는다 — 어느 칸이 문제인지는 여기서만 말해 줄 수 있다.
+    if (!_errors.validate(_ranges.keys)) {
+      setState(() {});
+      return;
+    }
     final NavigatorState navigator = Navigator.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     setState(() => _saving = true);
@@ -721,7 +919,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${exercise.dailyBurnKcal}',
-          onChanged: (_) => _markTouched(_kBurn),
+          errorText: _errors.of(_kBurn),
+          onChanged: (_) => _onGoalEdited(_kBurn),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
@@ -731,7 +930,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${exercise.weeklyCardioMinutes}',
-          onChanged: (_) => _markTouched(_kCardio),
+          errorText: _errors.of(_kCardio),
+          onChanged: (_) => _onGoalEdited(_kCardio),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
@@ -741,7 +941,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${exercise.weeklyStrengthSets}',
-          onChanged: (_) => _markTouched(_kStrength),
+          errorText: _errors.of(_kStrength),
+          onChanged: (_) => _onGoalEdited(_kStrength),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
@@ -751,7 +952,8 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${exercise.weeklyFlexibilityMinutes}',
-          onChanged: (_) => _markTouched(_kFlexibility),
+          errorText: _errors.of(_kFlexibility),
+          onChanged: (_) => _onGoalEdited(_kFlexibility),
         ),
         // 식단 목표의 `권장 비율로 채우기` 와 같은 자리·같은 모양이다 (#1139).
         // 권장값은 WHO 권고(주 150분 중강도 유산소)에서 시작해 고른 건강 목표로
@@ -774,12 +976,14 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       const SizedBox(height: OnCareSpacing.s8),
       _card(<Widget>[
         AppTextField(
+          key: const Key('goalCaloriesField'),
           label: l.myGoalCalories,
           controller: _kcal,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${UserProfile.defaultDailyCalories}',
           helper: _kcalFromMacros ? l.myGoalCaloriesFromMacros : null,
+          errorText: _errors.of(_kKcal),
           // 회원이 직접 고친 순간부터는 계산된 값이 아니다.
           onChanged: (_) => setState(() {
             _kcalFromMacros = false;
@@ -788,21 +992,25 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const Key('goalSodiumField'),
           label: l.myGoalSodium,
           controller: _sodium,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${UserProfile.defaultDailySodiumMg}',
-          onChanged: (_) => _markTouched(_kSodium),
+          errorText: _errors.of(_kSodium),
+          onChanged: (_) => _onGoalEdited(_kSodium),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
+          key: const Key('goalSugarField'),
           label: l.myGoalSugar,
           controller: _sugar,
           keyboardType: TextInputType.number,
           inputFormatters: _digitsOnly,
           hint: '${UserProfile.defaultDailySugarG}',
-          onChanged: (_) => _markTouched(_kSugar),
+          errorText: _errors.of(_kSugar),
+          onChanged: (_) => _onGoalEdited(_kSugar),
         ),
         const SizedBox(height: OnCareSpacing.s12),
         AppTextField(
@@ -814,8 +1022,11 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           hint: split == null
               ? '${UserProfile.defaultDailyCarbsG}'
               : '${split.carbs}',
+          errorText: _errors.of(_kCarbs),
           onChanged: (_) {
             _markTouched(_kCarbs);
+            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+            // 칸이 있으면 그 문구도 이때 다시 그려진다.
             _syncCaloriesFromMacros();
           },
         ),
@@ -829,8 +1040,11 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           hint: split == null
               ? '${UserProfile.defaultDailyProteinG}'
               : '${split.protein}',
+          errorText: _errors.of(_kProtein),
           onChanged: (_) {
             _markTouched(_kProtein);
+            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+            // 칸이 있으면 그 문구도 이때 다시 그려진다.
             _syncCaloriesFromMacros();
           },
         ),
@@ -844,8 +1058,11 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
           hint: split == null
               ? '${UserProfile.defaultDailyFatG}'
               : '${split.fat}',
+          errorText: _errors.of(_kFat),
           onChanged: (_) {
             _markTouched(_kFat);
+            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+            // 칸이 있으면 그 문구도 이때 다시 그려진다.
             _syncCaloriesFromMacros();
           },
         ),
@@ -862,6 +1079,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
               split.carbs,
               split.protein,
               split.fat,
+              split.sugar,
             ),
             actionLabel: l.myGoalMacroApplySuggestion,
             onApply: _applySuggestedSplit,
@@ -1014,20 +1232,29 @@ class _NotificationSettingsPageState
           if (i > 0) const AppDivider(),
           AppListRow(
             title: _notifLabel(l, kNotificationSettingItems[i].key),
-            trailing: Switch(
-              value: _valueOf(
-                kNotificationSettingItems[i].key,
-                saved,
-                kNotificationSettingItems[i].fallback,
-              ),
-              onChanged: (bool v) => _persist(
-                kNotificationSettingItems[i].key,
-                v,
-                // 실패했을 때 돌아갈 곳 — 지금 화면에 보이는 값.
-                _valueOf(
+            // 스위치에 **이름을 붙인다**(#1942). 제목과 스위치가 따로 읽히면
+            // 음성 안내에는 정체 불명의 `switch, on` 이 다섯 개 이어져, 순서를
+            // 외운 사람만 어느 알림을 끄는지 안다.
+            trailing: Semantics(
+              label: _notifLabel(l, kNotificationSettingItems[i].key),
+              // 이름은 이 하나로 둔다 — 제목 노드까지 함께 읽히면 같은 말이
+              // 두 번 나온다.
+              excludeSemantics: true,
+              child: Switch(
+                value: _valueOf(
                   kNotificationSettingItems[i].key,
                   saved,
                   kNotificationSettingItems[i].fallback,
+                ),
+                onChanged: (bool v) => _persist(
+                  kNotificationSettingItems[i].key,
+                  v,
+                  // 실패했을 때 돌아갈 곳 — 지금 화면에 보이는 값.
+                  _valueOf(
+                    kNotificationSettingItems[i].key,
+                    saved,
+                    kNotificationSettingItems[i].fallback,
+                  ),
                 ),
               ),
             ),
@@ -1085,6 +1312,16 @@ class SupportPage extends StatelessWidget {
           AppIcons.privacy,
           l.myLegalPrivacyTitle,
           () => _openLegal(context, _LegalDoc.privacy),
+        ),
+        const AppDivider(),
+        // 탈퇴는 MY 설정 목록 맨 끝이 아니라 여기다(#2019). 로그아웃 바로
+        // 아래에 두면 빨간 글자 둘이 나란히 서서 어느 쪽이 되돌릴 수 없는
+        // 동작인지 흐려진다. 약관·개인정보 다음, 계정을 정리하는 줄로 묶는다.
+        _supportRow(
+          context,
+          AppIcons.logout,
+          l.myWithdrawTitle,
+          () => context.push<void>(AppRoutes.mySettingsPath('withdraw')),
         ),
       ]),
       const SizedBox(height: OnCareSpacing.s12),

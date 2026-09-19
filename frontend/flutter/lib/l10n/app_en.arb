@@ -23,9 +23,26 @@
   "dashboardMetricExercise": "Weekly exercise",
   "homeDashboardLoadError": "Could not load the dashboard.",
   "homeDashboardEmpty": "No records yet today. Add a meal or workout to get started.",
-  "homeScheduleEmpty": "No events scheduled for today.",
   "homeAiAdviceTitle": "Today's combined AI advice",
-  "homeAiAdviceBody": "Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
+  "homeAdviceSodiumOver": "You went over the sodium target today. Try keeping the rest of your meals light.",
+  "@homeAdviceSodiumOver": {
+    "description": "Home AI advice when today's sodium is over the goal (#1943)."
+  },
+  "homeAdviceExerciseOnTrack": "You worked out {minutes} minutes this week. You are on track!",
+  "@homeAdviceExerciseOnTrack": {
+    "description": "Home AI advice when the weekly exercise goal is met (#1943).",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "homeAdviceExerciseMore": "You worked out {minutes} minutes this week. A little more to go!",
+  "@homeAdviceExerciseMore": {
+    "description": "Home AI advice when there is some exercise but not enough (#1943).",
+    "placeholders": { "minutes": { "type": "int" } }
+  },
+  "homeAdviceExerciseStart": "Start moving this week — an easy walk is a good beginning.",
+  "@homeAdviceExerciseStart": {
+    "description": "Home AI advice when nothing was logged this week (#1943)."
+  },
+  "homeAiAdviceBody": "Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.",
   "homeSodiumExceededBadge": "Sodium over",
   "homeMacroCarbs": "Carbs",
   "homeMacroProtein": "Protein",
@@ -77,7 +94,6 @@
   "homeRecBasisOverLimit": "over the daily limit",
   "homeRecMealsTitle": "Recommended meals",
   "homeViewAll": "View all",
-  "homeScheduleDate": "{weekday}, {month}/{day}",
   "@homeScheduleDate": {
     "placeholders": {
       "weekday": {
@@ -91,7 +107,6 @@
       }
     }
   },
-  "homeScheduleTitle": "Today's schedule",
   "unitKcal": "kcal",
   "unitMinutes": "min",
   "unitSets": "sets",
@@ -123,6 +138,10 @@
   "dietWeekdaySat": "Sat",
   "dietWeekdaySun": "Sun",
   "dietNutritionSummary": "Nutrition",
+  "dietAmount": "Serving size",
+  "@dietAmount": {
+    "description": "Label of the serving-size (g) field at the top of a food edit block; the rest of the nutrition scales with it (#1876)"
+  },
   "dietCalories": "Calories",
   "dietSodium": "Sodium",
   "dietSugar": "Sugar",
@@ -172,7 +191,25 @@
   "dietMealLunch": "Lunch",
   "dietMealDinner": "Dinner",
   "dietMealSnack": "Snack",
+  "dietMealLateNight": "Late-night",
   "dietMealSheetTitle": "{meal}",
+  "dietFoodDbMatch": "Public DB · {name}",
+  "@dietFoodDbMatch": {
+    "description": "Representative name shown on the suggestion row when a food name matches the public nutrition DB (#1896)",
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "dietMoreFoods": "{name} +{count}",
+  "@dietMoreFoods": {
+    "description": "Appended to the last food name on a meal card when more foods are hidden (#1990)",
+    "placeholders": {
+      "name": { "type": "String" },
+      "count": { "type": "int" }
+    }
+  },
+  "dietFillFromDb": "Fill in",
+  "@dietFillFromDb": {
+    "description": "Button that fills a food's fields with the suggested public-DB nutrition (#1896)"
+  },
   "@dietMealSheetTitle": {
     "placeholders": {
       "meal": {
@@ -206,16 +243,20 @@
   },
   "dietRecordDateChange": "Change date",
   "@dietRecordDateChange": {
-    "description": "Button that opens the date picker on the analysis result sheet."
+    "description": "Button on the record-date row of the analysis result sheet and the meal detail. Moves the meal to the picked day on its own (#1241, #1947)."
   },
   "dietRecordDateMoved": "Moved to {date}",
   "@dietRecordDateMoved": {
-    "description": "Confirmation after moving an analysed meal to another day.",
+    "description": "Confirmation after moving a meal to another day.",
     "placeholders": { "date": { "type": "String" } }
   },
   "dietRecordDateFailed": "Could not change the date. Please try again shortly.",
   "@dietRecordDateFailed": {
-    "description": "Error shown when moving an analysed meal to another day fails."
+    "description": "Error shown when moving a meal to another day fails."
+  },
+  "dietMealKind": "Meal",
+  "@dietMealKind": {
+    "description": "Label of the meal-type row next to the record date in the meal detail (#1947)."
   },
   "dietAnalysisDone": "Analysis complete!",
   "dietAiNutritionResult": "AI Nutrition Result",
@@ -232,7 +273,6 @@
   "dietNoRecognizedFood": "No food recognized",
   "dietNutritionResult": "Nutrition Result",
   "dietSaved": "Meal saved",
-  "dietSaveEntry": "Save",
   "dietSaveFailed": "Couldn't save. Please try again in a moment.",
   "dietDeleteTitle": "Delete Meal Record",
   "dietDeleteConfirm": "Delete this meal record?",
@@ -243,14 +283,14 @@
   "dietDeleteFailed": "Couldn't delete. Please try again in a moment.",
   "dietSave": "Save",
   "dietMealInfo": "Meal Info",
-  "dietEatenTime": "Time Eaten",
   "dietEatenFood": "Food Eaten",
   "dietNewFood": "New food",
   "dietAddFood": "Add Food",
-  "dietEditFoodHint": "You can edit the food name and calories",
+  "dietEditFoodHint": "Change the serving size and the nutrition follows",
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
   "dietEditNutritionHint": "Edit each food's nutrition and it adds up here",
+  "dietSugarOverCarbs": "Sugar can't be more than carbs",
   "dietDeleteMeal": "Delete Meal",
   "dietEditMeal": "Edit meal",
   "exTypeCardio": "Cardio",
@@ -286,8 +326,8 @@
   "exNearbyGymsMapLabel": "Gyms near me",
   "exWeekSummary": "This Week's Summary",
   "exActivityTitle": "Activity",
-  "exWeekOfMonthLabel": "Week {week}, {month}/",
-  "@exWeekOfMonthLabel": {
+  "exBurnWeekOfMonthTitle": "Burned in week {week}, {month}/",
+  "@exBurnWeekOfMonthTitle": {
     "placeholders": {
       "month": { "type": "int" },
       "week": { "type": "int" }
@@ -327,6 +367,14 @@
   },
   "exTodayTotalTime": "Today's total time",
   "exRest": "Rest",
+  "exRestSeconds": "Rest {seconds}s",
+  "@exRestSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "exAiRecommendedExercise": "AI recommended exercise",
   "exStatTime": "Time",
   "exStatCalories": "Calories",
@@ -354,14 +402,6 @@
     "placeholders": {
       "coachName": {
         "type": "String"
-      }
-    }
-  },
-  "exProgramSets": "{count, plural, =1{1 set} other{{count} sets}}",
-  "@exProgramSets": {
-    "placeholders": {
-      "count": {
-        "type": "int"
       }
     }
   },
@@ -393,7 +433,7 @@
   "exEnterName": "Please enter an exercise name",
   "exExerciseDuration": "Duration",
   "exExerciseSets": "Sets",
-  "exSetsCount": "{sets} sets",
+  "exSetsCount": "{sets, plural, =1{1 set} other{{sets} sets}}",
   "@exSetsCount": {
     "placeholders": {
       "sets": {
@@ -401,7 +441,7 @@
       }
     }
   },
-  "exRepsCount": "{reps} reps",
+  "exRepsCount": "{reps, plural, =1{1 rep} other{{reps} reps}}",
   "@exRepsCount": {
     "placeholders": {
       "reps": {
@@ -430,6 +470,16 @@
   "exOwnRecords": "Workouts you logged",
   "exOwnRecordsEmpty": "No workouts logged yet",
   "exOwnRecordSource": "Self-logged",
+  "exCompletedPtDayTitle": "Completed PT",
+  "exCompletedRoutineDayTitle": "Completed solo workout",
+  "exPtDayFeedback": "{coachName} · Feedback",
+  "@exPtDayFeedback": {
+    "placeholders": {
+      "coachName": {
+        "type": "String"
+      }
+    }
+  },
   "exDeleteExercise": "Delete workout",
   "exDeleteExerciseBody": "Deleting this record cannot be undone.",
   "exDeleted": "Workout deleted",
@@ -447,11 +497,9 @@
   "exGymNotFound": "Couldn't find this gym.",
   "exTrainerNotFound": "Couldn't find this trainer.",
   "exGymSearchPlaceholder": "Search by area or gym name",
-  "exTrainerSearchPlaceholder": "Search by specialty or trainer name",
   "exSortRecommended": "Recommended",
   "exSortDistance": "Distance",
   "exSortRating": "Rating",
-  "exSortName": "Name",
   "exResultCount": "{count, plural, =1{1 result} other{{count} results}}",
   "@exResultCount": {
     "placeholders": {
@@ -580,6 +628,8 @@
   "mySettingsTitle": "Settings",
   "myProfileTitle": "My Profile",
   "myNotifTitle": "Notification Settings",
+  "myGuideTitle": "App guide",
+  "@myGuideTitle": {"description": "MY tab: opens the spotlight app guide again (#1857)."},
   "mySupportTitle": "Customer Support",
   "myPointsBenefitsTitle": "Use Points",
   "myPointsBalance": "Balance: {points}P",
@@ -818,10 +868,56 @@
   "myCouponUseDone": "Marked as used",
   "myCouponUseFailed": "Couldn't mark as used. Please try again.",
   "myCouponNotFound": "Coupon not found",
+  "a11yCoachPhoto": "Photo from your trainer",
+  "@a11yCoachPhoto": {
+    "description": "Screen reader label for an image a trainer sent in chat (#1942)."
+  },
+  "a11yMealPhoto": "Meal photo",
+  "@a11yMealPhoto": {
+    "description": "Screen reader label for a saved meal photo (#1942)."
+  },
+  "a11yMealPhotoOf": "Photo of {name}",
+  "@a11yMealPhotoOf": {
+    "description": "Screen reader label for a recommended meal photo (#1942).",
+    "placeholders": { "name": { "type": "String" } }
+  },
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
+  "myWithdrawTitle": "Delete account",
+  "@myWithdrawTitle": {
+    "description": "Account deletion entry at the end of the MY settings list (#1935)."
+  },
+  "myWithdrawConfirm": "Deleting your account erases the diet, exercise and health records you saved, and removes your trainer link and the messages you exchanged. This cannot be undone.",
+  "myWithdrawAction": "Delete account",
+  "myWithdrawFailed": "We could not delete your account. Please try again in a moment.",
+  "myWithdrawReasonTitle": "Are you sure you want to delete your account?",
+  "@myWithdrawReasonTitle": {
+    "description": "First step of the two-step account deletion flow under customer support (#2019)."
+  },
+  "myWithdrawReasonQuestion": "What did not work for you?",
+  "myWithdrawReasonHint": "You can pick more than one",
+  "myWithdrawReasonPrivacy": "I am worried my personal data could be exposed",
+  "myWithdrawReasonRarelyUsed": "I do not use it often",
+  "myWithdrawReasonHardToUse": "It is awkward to use",
+  "myWithdrawReasonNotifications": "Too many notifications",
+  "myWithdrawReasonAlternative": "I am using another app",
+  "myWithdrawReasonOther": "Something else",
+  "myWithdrawNext": "Next",
+  "myWithdrawKeepTitle": "Before you go",
+  "@myWithdrawKeepTitle": {
+    "description": "Second step: what can be changed instead of leaving, chosen from the reasons picked (#2019)."
+  },
+  "myWithdrawKeepPrivacy": "Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone \u2014 you can do that from My Gym & Trainer on the MY tab.",
+  "myWithdrawKeepRarelyUsed": "You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.",
+  "myWithdrawKeepHardToUse": "Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.",
+  "myWithdrawKeepNotifications": "Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.",
+  "myWithdrawKeepAlternative": "Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.",
+  "myWithdrawKeepOther": "Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.",
+  "myWithdrawKeepDefault": "The diet and exercise records you have built up go with the account, and they cannot be restored.",
+  "myWithdrawStay": "Keep using On-Care",
+  "myWithdrawContinue": "Continue deleting",
   "myCancel": "Cancel",
-  "myTrainerGymTitle": "My Trainer & Gym",
+  "myGymTrainerTitle": "My Gym & Trainer",
   "myConnectionDeleteTitle": "Remove Connection",
   "myDelete": "Remove",
   "myGymDisconnectWithTrainerConfirm": "Disconnect {gym}?\nYour trainer link with {trainer} will also be removed.",
@@ -881,8 +977,8 @@
   "mySupportInquiry": "1:1 Inquiry",
   "myLegalTermsTitle": "Terms of Service",
   "myLegalPrivacyTitle": "Privacy Policy",
-  "myLegalTermsBody": "Terms of Service (Korean original governs).",
-  "myLegalPrivacyBody": "Privacy Policy (Korean original governs).",
+  "myLegalTermsBody": "Article 1 (Purpose)\nThese Terms govern the rights, obligations and responsibilities between On-Care (the \"Company\") and its members in connection with the use of the health management service (the \"Service\") the Company provides.\n\nArticle 2 (Effect and Amendment of the Terms)\n(1) These Terms apply to every member who uses the Service.\n(2) The Company may amend these Terms within the limits of applicable law. Any amendment is announced inside the Service together with its effective date and the reason for the change.\n\nArticle 3 (Provision of the Service)\nThe Company provides features that support a member's health management, including diet records, exercise records, health indicator tracking and AI coaching. The specific contents of the Service may change in line with the Company's policy.\n\nArticle 4 (Obligations of the Member)\nMembers must enter their own health information accurately. Information provided by the Service does not replace a medical diagnosis or treatment. If you have a health problem, please consult a qualified medical institution.\n\nArticle 5 (Limitation of Liability)\nTo the extent permitted by law, the Company is not liable for decisions a member makes on the basis of information obtained through the Service, nor for the consequences of those decisions.\n\nAddendum\nThese Terms take effect on 1 January 2026.\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
+  "myLegalPrivacyBody": "On-Care (the \"Company\") complies with the Personal Information Protection Act and other applicable laws, and protects its members' personal information with care.\n\n1. Personal information collected\nFor membership registration and provision of the Service, the Company collects your name, email address, phone number and date of birth, together with health-related information such as diet, exercise and health indicators.\n\n2. Purpose of collection and use\nThe personal information collected is used only to identify members, provide health management features, deliver personalised AI coaching, improve the Service and respond to customer enquiries.\n\n3. Retention and use period\nAs a rule, a member's personal information is destroyed without delay when the member withdraws from the Service. Where applicable law requires it to be retained, it is stored securely for the period the law prescribes.\n\n4. Provision to third parties\nThe Company does not provide personal information to any third party without the member's consent, except where a law specifically provides otherwise.\n\n5. Rights of the user\nMembers may at any time view or correct their personal information, or request that its processing be suspended and the information deleted.\n\n6. Personal information protection officer\nFor enquiries about personal information, please contact customer support (support@oncare.com).\n\nEffective date: 1 January 2026\n\nThis is a translation of the Korean original for reference. In case of any discrepancy, the Korean version governs.",
   "myLegalEffectiveDate": "Effective Jan 1, 2026",
   "myAppVersion": "On-Care · Version 1.0.0",
   "coachHeaderPill": "AI Health Assistant",
@@ -891,8 +987,8 @@
   "coachCardDietTitle": "Great breakfast — watch lunch sodium",
   "coachCardDietBody": "Breakfast was nicely balanced. The jjamppong you had for lunch can be heavy on sodium and sugar, so drink plenty of water today. For the rest of the day, pair vegetables with protein to keep things balanced.",
   "coachCardExerciseTag": "Exercise",
-  "coachCardExerciseTitle": "PT session 12 done",
-  "coachCardExerciseBody": "Nice work finishing PT session 12 — staying consistent is what counts. As your coach advised, take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
+  "coachCardExerciseTitle": "3 workouts this week",
+  "coachCardExerciseBody": "You finished three workouts this week — staying consistent is what counts. Take your time with the rotator-cuff shoulder stretches and wind down with light cardio. Afterwards, rest and rehydrate rather than pushing on.",
   "coachCardWaterTag": "Hydration",
   "coachInviteTitle": "A trainer wants to coach you",
   "coachInviteFrom": "Trainer {name}",
@@ -907,8 +1003,15 @@
   "coachInviteRejected": "Request declined",
   "coachInviteFailed": "Couldn't complete that. Please try again",
   "coachImageUnavailable": "Couldn't load the photo",
-  "coachChatSubtitle": "Personal trainer · Available",
+  "coachChatSubtitle": "Personal trainer",
+  "@coachChatSubtitle": {
+    "description": "Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089)."
+  },
   "coachChatBack": "Back",
+  "coachChatLoadOlder": "Load older messages",
+  "@coachChatLoadOlder": {
+    "description": "Button above the trainer chat thread that fetches the previous page (#1943)."
+  },
   "coachChatLoadFailed": "Couldn't load the conversation",
   "coachChatSendFailed": "Couldn't send your message. Please try again",
   "coachChatPdfOpenFailed": "Couldn't open the PDF. Please try again",
@@ -1161,19 +1264,27 @@
   "aicQuickRepliesLabel": "Try asking",
   "aicGeneratingReply": "Writing your answer",
   "aicInsightDiscomfortPart": "{part} pain noted",
-  "@aicInsightDiscomfortPart": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"part": {"type": "String"}}},
+  "@aicInsightDiscomfortPart": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"part": {"type": "String"}}},
   "aicInsightDiscomfort": "Pain noted",
-  "@aicInsightDiscomfort": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "@aicInsightDiscomfort": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
   "aicInsightNegative": "Negative feedback noted",
-  "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
+  "aicInsightDelete": "Delete",
+  "@aicInsightDelete": {
+    "description": "Removes one detection from the AI coach insight log (#1975)."
+  },
+  "aicInsightDeleteConfirm": "Remove this detection from the log? What you wrote stays in the conversation.",
+  "aicInsightDeleteFailed": "We could not remove it. Please try again in a moment.",
   "aicInsightHistoryTitle": "Noted signals",
-  "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
-  "aicInsightHistorySubtitle": "Pain and negative feedback noted in the last {days} days",
-  "@aicInsightHistorySubtitle": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"days": {"type": "int"}}},
+  "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
+  "aicInsightHistoryAction": "Notes",
+  "@aicInsightHistoryAction": {"description": "AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900)."},
+  "aicInsightHistorySubtitle": "Pain and negative feedback noted in the last {days} days. The AI uses these when it answers",
+  "@aicInsightHistorySubtitle": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"days": {"type": "int"}}},
   "aicInsightHistoryEmpty": "Nothing noted in the last {days} days",
-  "@aicInsightHistoryEmpty": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824).", "placeholders": {"days": {"type": "int"}}},
+  "@aicInsightHistoryEmpty": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"days": {"type": "int"}}},
   "aicInsightHistoryFailed": "Couldn't load noted signals",
-  "@aicInsightHistoryFailed": {"description": "AI coach chat: pain / negative feedback noted in the member's messages (#1824)."},
+  "@aicInsightHistoryFailed": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
   "aicRetentionNotice": "AI chat history is kept for the last {days} days",
   "@aicRetentionNotice": {"description": "AI coach chat: how long the conversation is kept (#1823).", "placeholders": {"days": {"type": "int"}}},
   "aicTrainerConnectedTitle": "Chat with your trainer",
@@ -1185,7 +1296,7 @@
   },
   "aicQuickReply1": "Recommend a dinner menu for today",
   "aicQuickReply2": "How much should I exercise today?",
-  "aicQuickReply3": "How are my blood sugar readings?",
+  "aicQuickReply3": "How much sodium have I had today?",
   "exConsultRequestTitle": "Consultation Request",
   "exGymConsultRequest": "Request a Consultation",
   "exGymConsultPickTrainer": "Choose a trainer",
@@ -1206,18 +1317,35 @@
     "placeholders": { "name": { "type": "String" } }
   },
   "coachInviteConsentAgree": "Agree and connect",
+  "exConsultSlotTitle": "Available times",
+  "exConsultSlotRequired": "Please choose an available time.",
+  "exConsultSlotsEmptyTitle": "No consultation times are open right now.",
+  "exConsultSlotsEmptyBody": "Call {gym} at {phone} to ask for a consultation time.",
+  "@exConsultSlotsEmptyBody": {"placeholders": {"gym": {"type": "String"}, "phone": {"type": "String"}}},
+  "exConsultSlotsEmptyNoPhone": "Open the {gym} details for its address and hours.",
+  "@exConsultSlotsEmptyNoPhone": {"placeholders": {"gym": {"type": "String"}}},
+  "exConsultSlotsError": "Could not load the available times.",
+  "exConsultSlotTaken": "Another member just took that time. Please choose another.",
+  "exConsultTooManyPending": "You already have {count} consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.",
+  "@exConsultTooManyPending": {"placeholders": {"count": {"type": "int"}}},
+  "exConsultRateLimitedHours": "Too many consultation requests. Please try again in {hours} hours.",
+  "@exConsultRateLimitedHours": {"placeholders": {"hours": {"type": "int"}}},
+  "exConsultRateLimitedMinutes": "Too many consultation requests. Please try again in {minutes} minutes.",
+  "@exConsultRateLimitedMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "exConsultRateLimited": "Too many consultation requests. Please try again later.",
+  "exConsultTooManyPendingNoCount": "You have too many consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.",
+  "exGymCall": "Call",
+  "exGymCallFailed": "Could not open the phone app.",
+  "exGymDetail": "View gym details",
+  "exConsultChosenSlot": "Requested time",
+  "exConsultConfirmedAt": "Confirmed time",
+  "exConsultExpired": "Expired",
+  "exConsultExpiredBody": "The trainer did not respond in time. Try requesting another time.",
   "exExerciseGoal": "Exercise Goal",
-  "exGoalWeightLoss": "Weight Loss",
-  "exGoalStrength": "Build Strength",
-  "exGoalFitness": "Improve Fitness",
-  "exGoalPosture": "Improve Posture",
   "exGoalHealth": "Health Management",
   "exOptionOther": "Other",
   "exOtherGoalHint": "Please describe your specific exercise goal in the message.",
   "exPreferredDate": "Preferred Date",
-  "exSelectDate": "Select a date",
-  "exSelectTime": "Select a time",
-  "exPreferredTime": "Preferred Time",
   "exTimeFlexible": "Discuss Later",
   "exTimeRangeTitle": "Select time",
   "exTimeRangeStartTime": "Start time",
@@ -1236,8 +1364,6 @@
   "exSendConsultRequest": "Send Consultation Request",
   "exGoalRequired": "Please select an exercise goal.",
   "exOtherGoalDetailRequired": "Please describe your specific exercise goal in the message.",
-  "exDateRequired": "Please select a preferred date.",
-  "exTimeRequired": "Please select a preferred time.",
   "exConsultTargetNotFound": "Couldn't find the consultation target.",
   "exConsultPendingExists": "A consultation request is already pending.",
   "exConsultReceived": "Your consultation request was received",
@@ -1281,6 +1407,13 @@
   "@mySupportExternalHint": {
     "description": "Shown under the FAQ / 1:1 inquiry rows so it is clear the tap leaves the app."
   },
+  "authRestoring": "Restoring your session",
+  "@authRestoring": {
+    "description": "Splash message while the saved session is being restored (#1944)."
+  },
+  "authRestoreFailed": "We could not restore your session — the connection looks unstable.",
+  "authRestoreRetry": "Try again",
+  "authRestoreSignIn": "Go to sign in",
   "authTagline": "Diet & exercise management app",
   "authEmailHint": "Email",
   "authPasswordHint": "Password",
@@ -1306,6 +1439,10 @@
   "signUpSubtitle": "Create an On-Care account and start managing your health",
   "signUpNameHint": "Name",
   "signUpNameEmpty": "Enter your name",
+  "signUpNameTooLong": "Names can be up to 100 characters",
+  "@signUpNameTooLong": {
+    "description": "Shared name-length message (#1887). The limit matches the users.name column and the server rule in profile_format.py."
+  },
   "@signUpNameEmpty": {
     "description": "Red text under the name field on sign-up when it is empty or whitespace only (#1784)."
   },
@@ -1320,7 +1457,11 @@
   "signUpHaveAccountQuestion": "Already have an account?",
   "signUpPasswordWeak": "Use at least 8 characters, including letters and numbers",
   "signUpPasswordMismatch": "Passwords do not match",
-  "signUpPhoneFormatInvalid": "Enter your phone number as 000-0000-0000",
+  "signUpPhoneFormatInvalid": "Enter your phone number as 010-0000-0000",
+  "myFieldBirthInvalid": "Enter your date of birth as 1996-03-21",
+  "@myFieldBirthInvalid": {
+    "description": "Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py."
+  },
   "trainerSyncEntryLabel": "Sync data with a trainer",
   "trainerSyncEntryHint": "Connect with your trainer using a 6-digit code",
   "trainerSyncTitle": "Sync data with a trainer",
@@ -1331,6 +1472,8 @@
   "trainerSyncExpired": "This code has expired.",
   "trainerSyncFailed": "Could not get a code.",
   "trainerSyncRetry": "Get a new code",
+  "signUpCreatedSignInNeeded": "Your account was created. Please sign in.",
+  "@signUpCreatedSignInNeeded": {"description": "Sign-up: the account was created but the follow-up sign-in failed (#1926)."},
   "signUpEmailTaken": "That email is already registered. Please sign in.",
   "signUpFailed": "Sign-up failed. Please try again in a moment.",
   "onboardSkip": "Do this later",
@@ -1345,18 +1488,46 @@
   "onboardHealthTitle": "Health goals",
   "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (up to 2)",
   "onboardOptionalTag": "(optional)",
-  "pointsGuideTitle": "Points quests",
-  "@pointsGuideTitle": {"description": "Points guide shown once after onboarding (#1826)."},
-  "pointsGuideSubtitle": "The more you log each day, the more points you earn. Try these quests",
-  "@pointsGuideSubtitle": {"description": "Points guide shown once after onboarding (#1826)."},
-  "pointsGuideQuest": "Quest {number}",
-  "@pointsGuideQuest": {"description": "Points guide: numbered quest label (#1826).", "placeholders": {"number": {"type": "int"}}},
-  "pointsGuideDailyCap": "{count, plural, =1{Once a day} other{Up to {count} times a day}}",
-  "@pointsGuideDailyCap": {"description": "Points guide: how many times a day the points can be earned (#1826).", "placeholders": {"count": {"type": "int"}}},
-  "pointsGuideSpendNote": "Spend your points in MY › Points",
-  "@pointsGuideSpendNote": {"description": "Points guide: where the points are used (#1826)."},
-  "pointsGuideStart": "Get started",
-  "@pointsGuideStart": {"description": "Points guide: button that goes to Home (#1826)."},
+  "guideBadgeWithStep": "App guide {current}/{total}",
+  "@guideBadgeWithStep": {"description": "Spotlight guide: the guide label with the current step (#1857).", "placeholders": {"current": {"type": "int"}, "total": {"type": "int"}}},
+  "guideSampleBadge": "Sample screen",
+  "@guideSampleBadge": {"description": "Spotlight guide: the screen under the guide is filled with sample data, not the member's own (#1857)."},
+  "guideSkip": "Skip",
+  "@guideSkip": {"description": "Spotlight guide: ends the guide without seeing the rest (#1857)."},
+  "guidePrev": "Back",
+  "@guidePrev": {"description": "Spotlight guide: goes back one step (#1857)."},
+  "guideNext": "Next",
+  "@guideNext": {"description": "Spotlight guide: goes to the next step (#1857)."},
+  "guideDone": "Done",
+  "@guideDone": {"description": "Spotlight guide: ends the guide on the last step (#1857)."},
+  "guideHomeAdviceTitle": "Today's AI summary",
+  "@guideHomeAdviceTitle": {"description": "Spotlight guide step: the home AI advice card (#1857)."},
+  "guideHomeAdviceBody": "It reads your meals and workouts together and points to what to do today",
+  "@guideHomeAdviceBody": {"description": "Spotlight guide step: the home AI advice card (#1857)."},
+  "guideQuickAddTitle": "Quick add",
+  "@guideQuickAddTitle": {"description": "Spotlight guide step: the center add button (#1857)."},
+  "guideQuickAddBody": "The + in the middle adds a meal or a workout from any screen",
+  "@guideQuickAddBody": {"description": "Spotlight guide step: the center add button (#1857)."},
+  "guideDietNutritionTitle": "Nutrition summary",
+  "@guideDietNutritionTitle": {"description": "Spotlight guide step: the diet tab nutrition summary (#1857)."},
+  "guideDietNutritionBody": "Today's calories, macros, sodium and sugar, and how far each is from your goal",
+  "@guideDietNutritionBody": {"description": "Spotlight guide step: the diet tab nutrition summary (#1857)."},
+  "guideExerciseStatusTitle": "Workout status",
+  "@guideExerciseStatusTitle": {"description": "Spotlight guide step: the exercise tab weekly status (#1857)."},
+  "guideExerciseStatusBody": "How much you moved today and this week, and how far the goal still is",
+  "@guideExerciseStatusBody": {"description": "Spotlight guide step: the exercise tab weekly status (#1857)."},
+  "guideGymTitle": "Your gym and trainer",
+  "@guideGymTitle": {"description": "Spotlight guide step: the exercise tab gym section (#1857)."},
+  "guideGymBody": "The gym and trainer you are connected to — their plans and feedback arrive in the app",
+  "@guideGymBody": {"description": "Spotlight guide step: the exercise tab gym section (#1857)."},
+  "guideMySettingsTitle": "Settings",
+  "@guideMySettingsTitle": {"description": "Spotlight guide step: the MY tab profile and settings (#1857)."},
+  "guideMySettingsBody": "Change your profile, health goals and alerts here — and replay this guide",
+  "@guideMySettingsBody": {"description": "Spotlight guide step: the MY tab profile and settings (#1857)."},
+  "guidePointsTitle": "Points",
+  "@guidePointsTitle": {"description": "Spotlight guide step: the MY tab points card (#1857)."},
+  "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points",
+  "@guidePointsBody": {"description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).", "placeholders": {"diet": {"type": "int"}, "exercise": {"type": "int"}, "routine": {"type": "int"}}},
   "onboardRequiredTag": "(required)",
   "@onboardRequiredTag": {"description": "Onboarding step 1: the basic info step must be filled in (#1830)."},
   "onboardBirthRequired": "Choose your date of birth",
@@ -1434,7 +1605,7 @@
   "onboardGenderMale": "Male",
   "onboardGenderFemale": "Female",
   "onboardGenderOther": "Other",
-  "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nAsk me anything about diet, exercise, blood pressure, or blood sugar.",
+  "aiCoachWelcome": "Hi, I'm Oni, your AI health coach 🙂\nI look at your diet and exercise records — ask me anything.",
   "@aiCoachWelcome": {
     "description": "Greeting bubble the app shows when the coach conversation opens."
   },
@@ -1458,83 +1629,6 @@
   "@actionConfirm": {
     "description": "Generic acknowledge button in shared dialogs."
   },
-  "scheduleCategoryHospital": "Hospital",
-  "@scheduleCategoryHospital": {
-    "description": "Schedule category label."
-  },
-  "scheduleCategoryExercise": "Exercise",
-  "@scheduleCategoryExercise": {
-    "description": "Schedule category label."
-  },
-  "scheduleCategoryMeal": "Meal",
-  "@scheduleCategoryMeal": {
-    "description": "Schedule category label."
-  },
-  "scheduleCategoryMedication": "Medication",
-  "@scheduleCategoryMedication": {
-    "description": "Schedule category label."
-  },
-  "scheduleCategoryOther": "Other",
-  "@scheduleCategoryOther": {
-    "description": "Schedule category label."
-  },
-  "eventAddTitle": "Add event",
-  "@eventAddTitle": {
-    "description": "Title of the add-event dialog."
-  },
-  "eventEditTitle": "Edit event",
-  "@eventEditTitle": {
-    "description": "Title of the edit-event dialog."
-  },
-  "eventTitleLabel": "Event title",
-  "@eventTitleLabel": {
-    "description": "Label of the event title field."
-  },
-  "eventTitleHint": "e.g. Regular checkup",
-  "@eventTitleHint": {
-    "description": "Hint of the event title field."
-  },
-  "eventDateLabel": "Date",
-  "@eventDateLabel": {
-    "description": "Label of the event date picker field."
-  },
-  "eventTimeLabel": "Time",
-  "@eventTimeLabel": {
-    "description": "Label of the event time picker field."
-  },
-  "eventTimeNone": "No time",
-  "@eventTimeNone": {
-    "description": "Shown in the time field when no time is set."
-  },
-  "eventTitleRequired": "Please enter an event title",
-  "@eventTitleRequired": {
-    "description": "Validation message when the event title is empty."
-  },
-  "eventAddFailed": "Couldn't add the event. Please try again in a moment",
-  "@eventAddFailed": {
-    "description": "Shown when creating an event fails."
-  },
-  "eventEditFailed": "Couldn't save the event. Please try again in a moment",
-  "@eventEditFailed": {
-    "description": "Shown when updating an event fails."
-  },
-  "eventSaving": "Saving…",
-  "@eventSaving": {
-    "description": "Submit button label while an edit is saving."
-  },
-  "eventAdding": "Adding…",
-  "@eventAdding": {
-    "description": "Submit button label while a new event is saving."
-  },
-  "eventSave": "Save",
-  "@eventSave": {
-    "description": "Submit button label of the edit-event dialog."
-  },
-  "eventAdd": "Add",
-  "@eventAdd": {
-    "description": "Submit button label of the add-event dialog."
-  },
-  "eventClearField": "Clear {label}",
   "@eventClearField": {
     "description": "Tooltip of the clear button on a picker field.",
     "placeholders": {
@@ -1543,11 +1637,6 @@
       }
     }
   },
-  "eventDeleteTitle": "Delete event",
-  "@eventDeleteTitle": {
-    "description": "Title of the delete confirmation dialog."
-  },
-  "eventDeleteConfirm": "Delete “{title}”? This can't be undone.",
   "@eventDeleteConfirm": {
     "description": "Body of the delete confirmation dialog.",
     "placeholders": {
@@ -1555,34 +1644,6 @@
         "type": "String"
       }
     }
-  },
-  "eventDeleteFailed": "Couldn't delete the event. Please try again in a moment",
-  "@eventDeleteFailed": {
-    "description": "Shown when deleting an event fails."
-  },
-  "eventDeleted": "Event deleted",
-  "@eventDeleted": {
-    "description": "Shown after an event is deleted."
-  },
-  "eventsEmptyForDay": "No events on this day",
-  "@eventsEmptyForDay": {
-    "description": "Empty state of the day events sheet."
-  },
-  "eventAddForDay": "Add an event on this day",
-  "@eventAddForDay": {
-    "description": "Button that opens the add-event dialog for the selected day."
-  },
-  "eventTimeUnset": "Time TBD",
-  "@eventTimeUnset": {
-    "description": "Shown for an event saved without a time."
-  },
-  "scheduleSheetTitle": "Schedule",
-  "@scheduleSheetTitle": {
-    "description": "Title of the schedule calendar sheet."
-  },
-  "eventsLoadFailed": "Couldn't load events",
-  "@eventsLoadFailed": {
-    "description": "Shown when the calendar fails to load its events."
   },
   "coachCardSleepTag": "Sleep",
   "@coachCardSleepTag": {
@@ -1683,7 +1744,7 @@
   "@myGoalCaloriesFromMacros": {
     "description": "Helper under the calorie goal field when it was derived from the macro fields."
   },
-  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat",
+  "myGoalMacroSuggestionNote": "Suggested split for {kcal} kcal: {carbs} g carbs · {protein} g protein · {fat} g fat · {sugar} g sugar",
   "@myGoalMacroSuggestionNote": {
     "description": "Explains the placeholder grams shown in the macro fields.",
     "placeholders": {
@@ -1692,7 +1753,8 @@
       },
       "carbs": { "type": "int" },
       "protein": { "type": "int" },
-      "fat": { "type": "int" }
+      "fat": { "type": "int" },
+      "sugar": { "type": "int" }
     }
   },
   "myGoalMacroApplySuggestion": "Use suggested split",
@@ -1712,6 +1774,8 @@
     "description": "Health goal field label."
   },
   "myGoalsSaved": "Health goals saved",
+  "myGoalRange": "Enter a value between {min} and {max}",
+  "@myGoalRange": {"description": "Health-goal field outside the range the server accepts (#1888). Shared by the MY goals sheet and onboarding steps 3-4.", "placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
   "@myGoalsSaved": {
     "description": "Shown after health goals are saved."
   },
@@ -1764,6 +1828,8 @@
     "description": "Section title in the coaching card."
   },
   "coachRoutineTitle": "Recommended solo workouts",
+  "coachRoutineAiTitle": "AI recommended solo workouts",
+  "@coachRoutineAiTitle": {"description": "Card title when the member has no trainer — every line is AI recommended (#2015)."},
   "@coachRoutineTitle": {
     "description": "Section title in the coaching card."
   },
@@ -1930,7 +1996,7 @@
   "@demoAlertSodiumTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 3,428mg. Drink plenty of water.",
+  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 4,657mg. Drink plenty of water.",
   "@demoAlertSodiumBody": {
     "description": "Body of a demo notification shown in tour mode."
   },
@@ -1946,25 +2012,40 @@
   "@demoAlertRoutineTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertRoutineBody": "Trainer Kim adjusted it to a walking routine for your knee.",
+  "demoAlertRoutineBody": "Trainer {trainerName} adjusted it to a walking routine for your knee.",
   "@demoAlertRoutineBody": {
-    "description": "Body of a demo notification shown in tour mode."
+    "description": "Body of a demo notification shown in tour mode.",
+    "placeholders": {
+      "trainerName": {
+        "type": "String"
+      }
+    }
   },
   "demoAlertReportTitle": "This week's report is ready",
   "@demoAlertReportTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertReportBody": "Trainer Kim posted your report for this week.",
+  "demoAlertReportBody": "Trainer {trainerName} posted your report for this week.",
   "@demoAlertReportBody": {
-    "description": "Body of a demo notification shown in tour mode."
+    "description": "Body of a demo notification shown in tour mode.",
+    "placeholders": {
+      "trainerName": {
+        "type": "String"
+      }
+    }
   },
   "demoAlertPtDoneTitle": "PT session complete",
   "@demoAlertPtDoneTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer Kim at 18:00 today!",
+  "demoAlertPtDoneBody": "You finished PT session 12 with Trainer {trainerName} at 18:00 today!",
   "@demoAlertPtDoneBody": {
-    "description": "Body of a demo notification shown in tour mode."
+    "description": "Body of a demo notification shown in tour mode.",
+    "placeholders": {
+      "trainerName": {
+        "type": "String"
+      }
+    }
   },
   "demoAlertTrainerFeedbackTitle": "Feedback from your trainer",
   "@demoAlertTrainerFeedbackTitle": {
@@ -2043,8 +2124,14 @@
   "a11yNextWeek": "Next week",
   "exConsultHistoryCancelTitle": "Cancel this consultation request?",
   "exConsultHistoryCancelBody": "A cancelled request can't be restored.",
-  "exDemoPtSessionCount": "Session 12 with Trainer Kim",
-  "exDemoPtTrainerName": "Trainer Kim",
+  "exDemoPtSessionCount": "Session 12 with Trainer {trainerName}",
+  "@exDemoPtSessionCount": {
+    "placeholders": {
+      "trainerName": {
+        "type": "String"
+      }
+    }
+  },
   "exDemoPtFeedback": "Your right shoulder tends to lift during shoulder presses, so be sure to stretch your rotator cuff when you finish!",
   "exStepperDecrease": "Decrease",
   "exStepperIncrease": "Increase",

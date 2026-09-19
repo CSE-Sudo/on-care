@@ -26,6 +26,9 @@ class _SlowRepository implements AiCoachRepository {
       const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]);
 
   @override
+  Future<void> dismissInsight(String messageId) async {}
+
+  @override
   Future<ChatInsightHistory> fetchInsights() async =>
       const ChatInsightHistory();
 
@@ -46,6 +49,9 @@ class _QuietRepository implements AiCoachRepository {
   @override
   Future<AiCoachState> fetchState() async =>
       const AiCoachState(greeting: '', suggestions: <AiSuggestion>[]);
+
+  @override
+  Future<void> dismissInsight(String messageId) async {}
 
   @override
   Future<ChatInsightHistory> fetchInsights() async =>

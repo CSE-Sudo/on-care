@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -7,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import RequireMember, RequireTrainer
 from app.core.pagination import DEFAULT_PAGE, MAX_PAGE, parse_before
+from app.db import seed_slots
 from app.db.session import get_db
 from app.schemas.reservation_api import (
     MyReservationOut,
@@ -16,7 +18,7 @@ from app.schemas.reservation_api import (
     TrainerSlotOut,
     TrainerSlotUpdate,
 )
-from app.services import reservation_service
+from app.services import consultation_service, reservation_service
 
 router = APIRouter(tags=["reservations"])
 
@@ -49,7 +51,17 @@ def member_trainer_slots(
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> list[TrainerSlotOut]:
-    return reservation_service.list_member_slots(db, trainer_id)
+    # 헬스장 탭의 예약 가능 시간도 상담 폼과 같은 자리를 본다 — 데모 트레이너의
+    # 자리가 떨어졌으면 같은 규칙으로 다시 깐다(#2067).
+    now = datetime.now(timezone.utc)
+    if seed_slots.top_up_demo_slots(
+        db,
+        trainer_id,
+        after=consultation_service.slot_visibility_cutoff(now),
+        now=now,
+    ):
+        db.commit()
+    return reservation_service.list_member_slots(db, trainer_id, now=now)
 
 
 @router.post("/reservations", response_model=ReservationOut, status_code=201)
@@ -118,6 +130,14 @@ def trainer_slots(
     db: Annotated[Session, Depends(get_db)],
     include_past: bool = Query(False),
 ) -> list[TrainerSlotOut]:
+    """트레이너가 연 자리 목록.
+
+    주기 전에 지난 상담 대기 요청을 만료 처리한다 — 스케줄러가 없어 읽는 시점에
+    정리한다(#1873). 만료된 요청이 잡고 있던 자리는 여기서 다시 `remaining > 0` 이
+    되어, 트레이너가 자기 화면에서 풀린 자리를 바로 본다.
+    """
+    if consultation_service.expire_stale_requests(db, trainer.id):
+        db.commit()
     return reservation_service.list_trainer_slots(
         db, trainer.id, include_past=include_past
     )
