@@ -39,6 +39,7 @@ class DietFood {
     this.carbsG = 0,
     this.proteinG = 0,
     this.fatG = 0,
+    this.source = FoodSource.estimate,
   });
   final String name;
   final int kcal;
@@ -52,6 +53,10 @@ class DietFood {
   final double carbsG;
   final double proteinG;
   final double fatG;
+
+  /// 위 영양이 어디서 왔나(#2105). 수정 화면이 음식마다 따라가다 저장할 때
+  /// 그대로 싣는다 — 버리면 손대지 않은 음식까지 서버 기본값으로 덮인다.
+  final FoodSource source;
 }
 
 /// A nutrient chip on a meal card (`over` = above the daily target → red).
@@ -598,6 +603,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           carbsG: f.carbsG,
           proteinG: f.proteinG,
           fatG: f.fatG,
+          source: f.source,
         ),
     ];
     setState(() {
@@ -950,11 +956,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        // 수정 모드에서는 `인식된 음식` 자리에 음식별 수정 칸이 선다 —
-        // 고치는 대상이 바로 그 인식 결과다(#2097).
-        if (_editing)
-          _foodsEditor(l)
-        else
+        // 수정 모드에서는 `인식된 음식` 을 감추고, 음식별 수정 칸이 아래
+        // 기록 날짜·끼니 다음에 선다(#2097). 식단 상세의 수정 모드처럼
+        // "언제·어느 끼니" 를 먼저 두고 "무엇을 먹었나" 를 그 아래에 둔다.
+        if (!_editing) ...<Widget>[
           // 이 시트에서 강조할 것은 AI 가 무엇으로 읽었는지 하나다 — 거기에만
           // 옅은 브랜드 채움을 준다. `0389e572` 가 걷어낸 것은 구획을 여럿
           // 쌓아 카드가 온통 옅은 파랑이 되는 것이고, 그 커밋이 남긴 규칙은
@@ -1020,7 +1025,8 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
               ],
             ),
           ),
-        const SizedBox(height: OnCareSpacing.s12),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         // 기록 날짜와 끼니. 날짜는 `날짜 변경` 으로 여기서 바로 따로 옮기고
         // (#1241, #1947), 끼니·음식은 헤더 연필이 여는 수정 모드에서 고친다
         // (#2097) — 식단 상세의 `식사 정보` 카드와 같은 나눔이다.
@@ -1112,6 +1118,10 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
           ),
         ),
         const SizedBox(height: OnCareSpacing.s12),
+        if (_editing) ...<Widget>[
+          _foodsEditor(l),
+          const SizedBox(height: OnCareSpacing.s12),
+        ],
         Text(
           l.dietNutritionResult,
           style: _text(
@@ -1347,6 +1357,7 @@ class _DietMealDetailPageState extends ConsumerState<DietMealDetailPage> {
           carbsG: food.carbsG,
           proteinG: food.proteinG,
           fatG: food.fatG,
+          source: food.source,
         ),
     ],
     tags: const <DietTag>[],
@@ -1408,8 +1419,9 @@ class _MealDetailUnavailable extends StatelessWidget {
 /// 시트의 수정 모드가 함께 쓴다(#2097).
 ///
 /// 음식별 입력 칸, 섭취량 비례 환산(#1876), 공공 DB 제안(#1896), 당류 검사
-/// (#1869)가 여기 모여 있다. 두 화면이 따로 들고 있으면 한쪽만 고쳐져 같은
-/// 음식이 화면마다 다르게 고쳐진다.
+/// (#1869), 영양 출처(#2105), 탄단지를 따라가는 열량(#2106), 이름을 바꾸면
+/// 그 음식의 값(#2107)이 여기 모여 있다. 두 화면이 따로 들고 있으면 한쪽만
+/// 고쳐져 같은 음식이 화면마다 다르게 고쳐진다.
 ///
 /// 처음 값은 [_loadFoods] 로 깐다.
 mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
@@ -1570,8 +1582,49 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
           carbsG: _asDouble(e.carbs),
           proteinG: _asDouble(e.protein),
           fatG: _asDouble(e.fat),
+          source: e.source,
         );
     });
+  }
+
+  /// 영양 칸 하나를 손으로 고쳤을 때. 그 음식의 값은 이제 **회원이 적은 값**이다
+  /// (#2105) — 분석이나 공공 DB 가 준 숫자가 아니니 출처를 [FoodSource.member]
+  /// 로 바꾼다. 탄단지를 고친 결과로 열량이 따라온 것도 마찬가지다.
+  ///
+  /// [kcal] 은 열량 칸을, [macro] 는 탄수화물·단백질·지방 칸을 고쳤다는 뜻이다.
+  /// 당류·나트륨은 둘 다 아니다 — 열량에 들어가지 않는다(당류는 탄수화물의 일부).
+  void _editNutrient(int index, {bool kcal = false, bool macro = false}) {
+    final _FoodEditors e = _editors[index];
+    // 열량을 직접 적었으면 그 음식은 이번 편집 동안 자동 반영을 멈춘다(#2106).
+    // 라벨 값을 옮겨 적는 중이면, 칸을 어느 순서로 적든 라벨 열량이 남아야 한다.
+    if (kcal) e.kcalPinned = true;
+    if (macro) _followKcal(e);
+    e
+      ..source = FoodSource.member
+      ..edits += 1
+      // 값을 손으로 고쳤으니 "DB 값으로 바꿨어요 · 되돌리기" 는 낡았고, "값을
+      // 확인해 주세요" 는 할 일을 했다.
+      ..notice = null;
+    _syncFood(index);
+  }
+
+  /// 탄단지가 바뀐 **만큼만** 열량을 움직인다. (#2106)
+  ///
+  /// `새 열량 = 기준 열량 + 4×Δ탄수화물 + 4×Δ단백질 + 9×Δ지방`. 4·4·9 로 새로
+  /// 계산해 덮지 않는 이유는 공공 DB 열량이 식품마다 다른 에너지 환산계수를 써서다
+  /// — 삼겹살 구운것은 100g 484kcal 인데 4·4·9 로는 462kcal 다. 새로 계산하면
+  /// 지방만 줄였는데도 성분표가 알던 몫이 함께 사라진다.
+  ///
+  /// 기준은 한 글자마다 다시 세우지 않는다([_EnergyBasis]).
+  void _followKcal(_FoodEditors e) {
+    if (e.kcalPinned || e.fillOnly) return;
+    e.kcal.text = _FoodEditors.intText(
+      e.energy.kcalFor(
+        carbsG: _asDouble(e.carbs),
+        proteinG: _asDouble(e.protein),
+        fatG: _asDouble(e.fat),
+      ),
+    );
   }
 
   /// 섭취량 칸이 바뀌었을 때 — 영양 여섯 값이 같은 비율로 따라온다. (#1876)
@@ -1597,56 +1650,103 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
       e.protein.text = _FoodEditors.gramText(basis.proteinG * factor);
       e.fat.text = _FoodEditors.gramText(basis.fatG * factor);
       e.sodium.text = _FoodEditors.intText((basis.sodiumMg * factor).round());
+      // 방금 곱해 적은 한 벌은 서로 맞는 값이다 — 이어서 탄단지를 고치면 열량은
+      // 이 값에서 바뀐 만큼 움직여야 한다(#2106).
+      e.energy = e.readEnergy();
     }
     // 칸을 비웠을 때는 영양을 건드리지 않는다. 양을 적지 않겠다는 뜻이지 아무
     // 것도 안 먹었다는 뜻이 아니다. 기준도 그대로 두어, 다시 적으면 처음 그
     // 한 벌에서 비례한다 — 지우고 고쳐 쓰는 동안 값이 조금씩 어긋나지 않는다.
+    //
+    // 출처는 그대로다(#2105). 양만 바꾼 음식은 여전히 DB × 양이고, 추정은
+    // 추정 × 양이다. 다만 "DB 값으로 바꿨어요 · 되돌리기" 는 거둔다 — 되돌리면
+    // 방금 적은 양까지 되돌아가 버린다.
+    if (e.notice is _FilledFromDb) e.notice = null;
     _syncFood(index, rebase: false);
   }
 
-  /// 이름 칸을 벗어났을 때 공공 영양 DB 를 찾는다. (#1896)
+  /// 이름 칸을 벗어났을 때 공공 영양 DB 를 찾는다. (#1896, #2107)
   ///
-  /// 찾아도 **덮어쓰지 않는다.** 이름 변경은 "다른 음식이다" 일 수도 "오타를
-  /// 고쳤다" 일 수도 있어 앱이 구분할 수 없고, 자동으로 갈아 끼우면 회원이
-  /// 개별 칸에서 손으로 바로잡아 둔 값이 소리 없이 사라진다. 제안만 띄우고
-  /// 누를 때만 채운다.
+  /// 이름을 **바꿨다면** 칸의 값은 이제 다른 음식의 것이다. 옛 음식의 값이 새
+  /// 이름 아래 조용히 남는 것이 가장 부정확하므로, 찾은 결과에 따라 셋으로 나눈다.
   ///
-  /// 지금 적힌 양을 함께 보낸다 — 그 양의 값을 제안해야 회원이 "내가 먹은 만큼"
-  /// 을 보게 된다. 양이 없으면 서버가 그 음식의 1회 섭취량으로 답한다.
+  /// - **같은 음식**이 DB 에 있으면(이름·별칭·표기 변형이 같다) 곧바로 그 값으로
+  ///   채우고 "무엇으로 바꿨는지 · 되돌리기" 를 띄운다. 되돌릴 수 있어야 손으로
+  ///   바로잡아 둔 값이 소리 없이 사라지지 않는다 — #1896 이 제안만 하던 까닭이다.
+  /// - **비슷한 음식**만 있으면(이름 끝말로 붙었다) 제안만 한다. 끝말로 붙은 값은
+  ///   틀린 경우가 많아 회원이 보고 골라야 한다(서버 `matcher.find_in_rows`).
+  /// - 없으면 값은 두고 확인해 달라고 말한다.
+  ///
+  /// 이름을 바꾸지 않고 칸만 드나들었으면 예전처럼 제안만 한다. 조회가 도는 사이
+  /// 회원이 영양 칸을 고쳤으면 그 값이 이긴다 — 덮지 않고 제안으로 남긴다.
+  ///
+  /// 지금 적힌 양을 함께 보낸다 — 그 양의 값이어야 회원이 "내가 먹은 만큼" 을
+  /// 보게 된다. 사진 속 그릇의 양은 이름이 바뀌어도 같다. 양이 없으면 서버가 그
+  /// 음식의 1회 섭취량으로 답한다.
   Future<void> _lookupNutrition(_FoodEditors e) async {
     final String name = e.name.text.trim();
     if (name.isEmpty) {
       // 이름을 지웠는데 아까 제안이 남아 있으면 그게 무엇의 제안인지 알 수 없다.
-      if (e.suggestion != null || e.lookedUpName != null) {
+      if (e.suggestion != null || e.lookedUpName != null || e.notice != null) {
         setState(() {
           e.suggestion = null;
           e.lookedUpName = null;
+          e.notice = null;
         });
       }
       return;
     }
     if (name == e.lookedUpName) return;
     e.lookedUpName = name;
+    final bool renamed = name != e.valuesName;
+    final int editsBefore = e.edits;
+    FoodNutritionSuggestion? found;
+    bool failed = false;
     try {
-      final FoodNutritionSuggestion? found = await ref
+      found = await ref
           .read(dietRepositoryProvider)
           .lookupFoodNutrition(name: name, amountG: _asAmount(e.amount));
-      // 그 사이 이름이 또 바뀌었으면 이 응답은 낡은 값이다.
-      if (!mounted || e.lookedUpName != name) return;
-      setState(() => e.suggestion = found);
     } on Object {
-      // 조회가 실패해도 수정과 저장은 그대로 된다. 제안은 거들 뿐이라
+      // 조회가 실패해도 수정과 저장은 그대로 된다. 찾기는 거들 뿐이라
       // 여기서 막을 이유가 없다.
-      if (!mounted || e.lookedUpName != name) return;
-      setState(() => e.suggestion = null);
+      failed = true;
     }
+    // 그 사이 이름이 또 바뀌었거나 그 줄이 지워졌으면 이 응답은 낡은 값이다.
+    final int index = _editors.indexOf(e);
+    if (!mounted || e.lookedUpName != name || index < 0) return;
+    if (!renamed) {
+      setState(() => e.suggestion = found);
+      return;
+    }
+    // 여기부터 칸의 값은 새 이름의 것으로 본다 — 같은 이름으로 다시 드나들어도
+    // 이름 변경으로 세지 않는다.
+    e.valuesName = name;
+    if (found != null && found.exact && e.edits == editsBefore) {
+      _fillFrom(index, found, announce: true);
+      return;
+    }
+    setState(() {
+      e
+        ..suggestion = found
+        // 옛 음식의 값이 새 이름 아래 남았다 — 공공 DB 나 분석이 이 이름에 대해
+        // 말한 숫자가 아니다(#2105).
+        ..source = FoodSource.member
+        // 없다는 것을 알 때만 말한다. 조회가 실패했으면 없는 음식인지 모른다.
+        ..notice = (found == null && !failed) ? const _NotInDb() : null;
+    });
+    _syncFood(index, rebase: false);
   }
 
   /// 제안을 적용하면 달라지는 값이 있나. 없으면 제안을 띄우지 않는다 —
   /// 이미 그 값인데 `값 채우기` 가 서 있으면 누를 이유를 찾게 된다.
   bool _suggestionWouldChange(_FoodEditors e) {
-    final _FoodBasis? filled = _suggestionAt(e);
-    if (filled == null) return false;
+    final FoodNutritionSuggestion? s = e.suggestion;
+    final _FoodBasis? filled = s == null ? null : _filledBy(e, s);
+    return filled != null && _wouldChange(e, filled);
+  }
+
+  /// [filled] 로 채우면 지금 칸과 달라지는 값이 있나.
+  bool _wouldChange(_FoodEditors e, _FoodBasis filled) {
     bool sameGram(double a, double b) => (a - b).abs() < 0.05;
     return !(filled.kcal == _asInt(e.kcal) &&
         filled.sodiumMg == _asInt(e.sodium) &&
@@ -1662,10 +1762,9 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
   /// 회원이 이미 양을 적어 두었으면 그 양이 이긴다 — 제안을 받았다고 내가 적은
   /// 양이 뒤집히면 안 된다. 양이 없을 때만 제안이 들고 온 1회 섭취량을 쓴다.
   /// 곱셈은 #1876 의 비례 환산과 같은 계산이다.
-  _FoodBasis? _suggestionAt(_FoodEditors e) {
-    final FoodNutritionSuggestion? s = e.suggestion;
-    final double? base = s?.food.amountG;
-    if (s == null || base == null || base <= 0) return null;
+  _FoodBasis? _filledBy(_FoodEditors e, FoodNutritionSuggestion s) {
+    final double? base = s.food.amountG;
+    if (base == null || base <= 0) return null;
     final double target = _asAmount(e.amount) ?? base;
     final double factor = target / base;
     return _FoodBasis(
@@ -1680,13 +1779,30 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
   }
 
   /// `값 채우기` — 제안한 값으로 그 음식의 칸을 채운다.
-  ///
-  /// 채운 값이 곧 새 기준이 되어, 이어서 내용량을 고치면 #1876 의 비례 환산이
-  /// 그대로 이어진다.
   void _applySuggestion(int index) {
+    final FoodNutritionSuggestion? s = _editors[index].suggestion;
+    if (s != null) _fillFrom(index, s);
+  }
+
+  /// 공공 DB 에서 찾은 값으로 그 음식의 칸을 채운다. `값 채우기` 와, 같은
+  /// 음식으로 이름을 바꿨을 때(#2107)가 같은 길을 쓴다.
+  ///
+  /// 채운 한 벌은 서로 맞는 값이라 모든 기준이 여기서 다시 선다 — 이어서 내용량을
+  /// 고치면 #1876 의 비례 환산이, 탄단지를 고치면 #2106 의 열량 반영이 이 값에서
+  /// 출발한다. 출처는 찾은 값의 것이다(#2105).
+  ///
+  /// [announce] 면 무엇으로 바꿨는지 말하고 되돌릴 수 있게 한다. 회원이 누르지
+  /// 않았는데 값이 바뀌었기 때문이다.
+  void _fillFrom(
+    int index,
+    FoodNutritionSuggestion found, {
+    bool announce = false,
+  }) {
     final _FoodEditors e = _editors[index];
-    final _FoodBasis? filled = _suggestionAt(e);
+    final _FoodBasis? filled = _filledBy(e, found);
     if (filled == null) return;
+    final bool changes = _wouldChange(e, filled);
+    final _FoodSnapshot before = _FoodSnapshot.of(e);
     e.amount.text = _FoodEditors.gramText(filled.amountG);
     e.kcal.text = _FoodEditors.intText(filled.kcal);
     e.carbs.text = _FoodEditors.gramText(filled.carbsG);
@@ -1694,15 +1810,43 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
     e.protein.text = _FoodEditors.gramText(filled.proteinG);
     e.fat.text = _FoodEditors.gramText(filled.fatG);
     e.sodium.text = _FoodEditors.intText(filled.sodiumMg);
-    // 제안을 거둔다 — 방금 그 값으로 채웠으니 더 제안할 것이 없다.
-    setState(() => e.suggestion = null);
+    e
+      ..source = found.food.source
+      ..valuesName = e.name.text.trim()
+      ..energy = e.readEnergy()
+      ..kcalPinned = false
+      ..fillOnly = false;
+    setState(() {
+      // 제안을 거둔다 — 방금 그 값으로 채웠으니 더 제안할 것이 없다.
+      e.suggestion = null;
+      // 이미 그 값이었으면 바뀐 것이 없으니 말할 것도 없다.
+      e.notice = announce && changes ? _FilledFromDb(found, before) : null;
+    });
     _syncFood(index);
+  }
+
+  /// `되돌리기` — 이름을 바꿔 채운 값을 바꾸기 전으로 되돌린다(#2107).
+  ///
+  /// 이름은 새 이름 그대로다. 옛 값을 새 이름 아래 두기로 한 것이니 출처는
+  /// 회원의 몫이다(#2105). 찾은 값은 제안으로 남겨 다시 고를 수 있게 한다.
+  void _undoFill(int index) {
+    final _FoodEditors e = _editors[index];
+    final _NameNotice? notice = e.notice;
+    if (notice is! _FilledFromDb) return;
+    notice.before.restoreTo(e);
+    e.source = FoodSource.member;
+    setState(() {
+      e.notice = null;
+      e.suggestion = notice.found;
+    });
+    _syncFood(index, rebase: false);
   }
 
   void _addFood() {
     // Empty draft name; the localized label is shown only as a placeholder
-    // and is validated out on save.
-    const DietFood draft = DietFood('', 0);
+    // and is validated out on save. 새 줄의 값은 회원이 적는다(#2105) — 공공 DB
+    // 값으로 채우면 그때 출처가 바뀐다.
+    const DietFood draft = DietFood('', 0, source: FoodSource.member);
     setState(() {
       _foods = <DietFood>[..._foods, draft];
       // 새 줄에서도 이름만 적으면 공공 DB 값을 제안받는다 — 오히려 이쪽이 더
@@ -1737,6 +1881,7 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
           carbsG: f.carbsG,
           proteinG: f.proteinG,
           fatG: f.fatG,
+          source: f.source,
         ),
   ];
 
@@ -1782,13 +1927,19 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
     index: i + 1,
     editors: _editors[i],
     sugarError: _sugarErrors.of(_editors[i]),
-    onChanged: () => _syncFood(i),
+    // 이름만 바뀐 동안에는 기준을 다시 세우지 않는다 — 값은 그대로다. 이름이
+    // 값에 닿는 것은 칸을 벗어난 뒤다([_lookupNutrition]).
+    onNameChanged: () => _syncFood(i, rebase: false),
     onAmountChanged: () => _syncAmount(i),
+    onKcalChanged: () => _editNutrient(i, kcal: true),
+    onMacroChanged: () => _editNutrient(i, macro: true),
+    onChanged: () => _editNutrient(i),
     onDelete: () => _removeFood(i),
     suggestion: _suggestionWouldChange(_editors[i])
         ? _editors[i].suggestion
         : null,
     onApplySuggestion: () => _applySuggestion(i),
+    onUndoFill: () => _undoFill(i),
   );
 }
 
@@ -2437,6 +2588,115 @@ class _FoodBasis {
   final int sodiumMg;
 }
 
+/// 탄단지를 고칠 때 열량이 출발하는 자리 — **서로 맞는 열량·탄·단·지 한 벌.**
+/// (#2106)
+///
+/// 섭취량의 기준([_FoodBasis])과 따로 둔다. 그쪽은 영양 칸을 고칠 때마다 지금
+/// 값으로 다시 서는데, 열량의 기준까지 그렇게 하면 `128` 을 치는 동안 `1` 다음
+/// 부터는 기준에 탄수화물이 생겨 탄단지 없던 기록의 "채우기" 가 "늘리기" 로
+/// 읽히고, 정수 반올림도 글자마다 쌓인다. 그래서 이 한 벌은 앱이 서로 맞는 값을
+/// 한꺼번에 적은 때에만 다시 선다 — 편집을 열 때, 섭취량 비례 환산 직후, 공공 DB
+/// 값으로 채운 직후.
+class _EnergyBasis {
+  const _EnergyBasis({
+    required this.kcal,
+    required this.carbsG,
+    required this.proteinG,
+    required this.fatG,
+  });
+
+  final int kcal;
+  final double carbsG;
+  final double proteinG;
+  final double fatG;
+
+  /// 탄단지 없이 열량만 있는 한 벌 — 인식기가 탄단지를 주지 않은 옛 기록이다
+  /// (#1877). 여기에 탄단지를 적는 것은 이미 열량에 든 성분을 **채워 넣는** 것이지
+  /// 늘리는 것이 아니다. 반영하면 두 번 센다(700kcal 짜장면에 탄수화물 128g 을
+  /// 채우면 1,212kcal).
+  bool get onlyKcal => kcal > 0 && carbsG == 0 && proteinG == 0 && fatG == 0;
+
+  /// 탄단지가 이 값들로 바뀌었을 때의 열량 — 바뀐 만큼만 더하고 뺀다. 0 아래로
+  /// 내려가지 않는다.
+  int kcalFor({
+    required double carbsG,
+    required double proteinG,
+    required double fatG,
+  }) {
+    final double next =
+        kcal +
+        4 * (carbsG - this.carbsG) +
+        4 * (proteinG - this.proteinG) +
+        9 * (fatG - this.fatG);
+    return next <= 0 ? 0 : next.round();
+  }
+}
+
+/// 이름 칸 아래에 서는 한 줄 안내(#2107). 제안(`값 채우기`)과는 다르다 — 이미
+/// 일어난 일을 말한다.
+sealed class _NameNotice {
+  const _NameNotice();
+}
+
+/// 같은 음식의 공공 DB 값으로 바꿨다. 무엇으로 바꿨는지 말하고 되돌릴 수 있게
+/// 한다 — 회원이 누르지 않았는데 값이 바뀌었다.
+final class _FilledFromDb extends _NameNotice {
+  const _FilledFromDb(this.found, this.before);
+
+  final FoodNutritionSuggestion found;
+
+  /// 바꾸기 전의 칸. `되돌리기` 가 여기로 돌아간다.
+  final _FoodSnapshot before;
+}
+
+/// 공공 DB 에 없는 이름이다. 값은 옛 음식의 것 그대로라 확인해 달라고 말한다.
+final class _NotInDb extends _NameNotice {
+  const _NotInDb();
+}
+
+/// 한 음식 줄의 칸과 기준을 통째로 적어 둔 것 — `되돌리기` 가 돌아갈 자리(#2107).
+class _FoodSnapshot {
+  _FoodSnapshot.of(_FoodEditors e)
+    : amount = e.amount.text,
+      kcal = e.kcal.text,
+      carbs = e.carbs.text,
+      sugar = e.sugar.text,
+      protein = e.protein.text,
+      fat = e.fat.text,
+      sodium = e.sodium.text,
+      basis = e.basis,
+      energy = e.energy,
+      kcalPinned = e.kcalPinned,
+      fillOnly = e.fillOnly;
+
+  final String amount;
+  final String kcal;
+  final String carbs;
+  final String sugar;
+  final String protein;
+  final String fat;
+  final String sodium;
+  final _FoodBasis? basis;
+  final _EnergyBasis energy;
+  final bool kcalPinned;
+  final bool fillOnly;
+
+  void restoreTo(_FoodEditors e) {
+    e.amount.text = amount;
+    e.kcal.text = kcal;
+    e.carbs.text = carbs;
+    e.sugar.text = sugar;
+    e.protein.text = protein;
+    e.fat.text = fat;
+    e.sodium.text = sodium;
+    e
+      ..basis = basis
+      ..energy = energy
+      ..kcalPinned = kcalPinned
+      ..fillOnly = fillOnly;
+  }
+}
+
 /// 음식 한 줄이 쓰는 입력 컨트롤러 한 벌. [_MealEditSheetState] 가 목록으로
 /// 들고 다닌다.
 class _FoodEditors {
@@ -2449,6 +2709,8 @@ class _FoodEditors {
     required this.protein,
     required this.fat,
     required this.sodium,
+    required this.source,
+    required this.valuesName,
   });
 
   /// 0 은 빈 칸으로 연다 — 새로 추가한 줄에 `0` 이 적혀 있으면 지우고 쓰는
@@ -2463,7 +2725,15 @@ class _FoodEditors {
       protein: _gramField(food.proteinG),
       fat: _gramField(food.fatG),
       sodium: _intField(food.sodiumMg),
+      source: food.source,
+      valuesName: food.name.trim(),
     );
+    // 열량 반영의 기준은 **칸에 보이는 값**으로 세운다(#2106). 소수 한 자리로
+    // 반올림해 적은 칸과 원본이 다르면, 손대지 않은 칸이 Δ 를 만들어 열량이
+    // 저절로 1kcal 씩 흔들린다.
+    editors
+      ..energy = editors.readEnergy()
+      ..fillOnly = editors.energy.onlyKcal;
     // 양을 아는 음식은 열자마자 기준이 선다. 모르는 음식은 회원이 처음 적어
     // 넣는 양이 기준이 된다 — 그때까지는 비례 환산할 근거가 없다.
     final double? amountG = food.amountG;
@@ -2517,6 +2787,42 @@ class _FoodEditors {
   /// 지금 적힌 영양이 **어느 양에서 나온 값인가.** 섭취량을 모르는 음식은
   /// null 이고, 회원이 양을 적어 넣거나 영양 칸을 직접 고칠 때 다시 선다.
   _FoodBasis? basis;
+
+  /// 지금 칸의 영양이 어디서 왔나(#2105). 저장할 때 그대로 싣는다.
+  FoodSource source;
+
+  /// 지금 칸의 영양이 **어느 이름의 값인가**(#2107). 이름을 이것과 다르게 고치고
+  /// 칸을 벗어나야 "다른 음식이 됐다" 로 본다 — 칸만 드나든 것은 이름 변경이
+  /// 아니다.
+  String valuesName;
+
+  /// 탄단지를 고칠 때 열량이 출발하는 자리(#2106).
+  late _EnergyBasis energy;
+
+  /// 회원이 이 음식의 열량을 직접 적었다 — 이번 편집 동안 열량을 탄단지에
+  /// 따라 움직이지 않는다(#2106). 라벨 값을 옮겨 적는 중이면 칸을 어느 순서로
+  /// 적든 라벨 열량이 남아야 한다. 저장한 기록은 이것을 기억하지 않는다.
+  bool kcalPinned = false;
+
+  /// 편집을 열 때 탄단지 없이 열량만 있던 음식이다([_EnergyBasis.onlyKcal]) —
+  /// 이번 편집 동안 탄단지를 적어도 열량을 움직이지 않는다. 공공 DB 값으로
+  /// 채우면 풀린다.
+  late bool fillOnly;
+
+  /// 영양 칸을 손으로 고친 횟수. 이름 조회가 도는 사이 회원이 값을 고쳤는지
+  /// 가린다(#2107) — 그랬으면 응답이 그 값을 덮지 않는다.
+  int edits = 0;
+
+  /// 이름 칸 아래의 안내(#2107). 없으면 null.
+  _NameNotice? notice;
+
+  /// 지금 칸에 적힌 열량·탄·단·지 한 벌(#2106).
+  _EnergyBasis readEnergy() => _EnergyBasis(
+    kcal: int.tryParse(kcal.text.trim()) ?? 0,
+    carbsG: double.tryParse(carbs.text.trim()) ?? 0,
+    proteinG: double.tryParse(protein.text.trim()) ?? 0,
+    fatG: double.tryParse(fat.text.trim()) ?? 0,
+  );
 
   void dispose() {
     nameFocus.dispose();
@@ -2632,12 +2938,16 @@ class _FoodEditBlock extends StatelessWidget {
   const _FoodEditBlock({
     required this.index,
     required this.editors,
+    required this.onNameChanged,
     required this.onChanged,
     required this.onAmountChanged,
+    required this.onKcalChanged,
+    required this.onMacroChanged,
     required this.onDelete,
     this.sugarError,
     this.suggestion,
     required this.onApplySuggestion,
+    required this.onUndoFill,
   });
 
   /// 숫자 칸 폭. 못 박아 두어야 라벨 칸이 자릿수에 따라 늘었다 줄었다 하지
@@ -2646,11 +2956,20 @@ class _FoodEditBlock extends StatelessWidget {
 
   final int index;
   final _FoodEditors editors;
+  final VoidCallback onNameChanged;
+
+  /// 당류·나트륨 칸. 열량에 들어가지 않는 값이다.
   final VoidCallback onChanged;
 
   /// 내용량 칸 전용. 나머지 칸과 갈래가 다르다 — 이 칸은 자기 값만 바꾸는
   /// 것이 아니라 아래 여섯 값을 함께 다시 적는다.
   final VoidCallback onAmountChanged;
+
+  /// 열량 칸. 여기에 적으면 그 음식의 열량은 탄단지를 따라가지 않는다(#2106).
+  final VoidCallback onKcalChanged;
+
+  /// 탄수화물·단백질·지방 칸. 열량이 바뀐 만큼 따라온다(#2106).
+  final VoidCallback onMacroChanged;
   final VoidCallback onDelete;
 
   /// 당류 칸 아래에 보일 오류 문구. null 이면 아무것도 그리지 않는다(#1869).
@@ -2661,9 +2980,17 @@ class _FoodEditBlock extends StatelessWidget {
   final FoodNutritionSuggestion? suggestion;
   final VoidCallback onApplySuggestion;
 
+  /// "DB 값으로 바꿨어요" 옆의 `되돌리기`(#2107).
+  final VoidCallback onUndoFill;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
+    final TextStyle caption = _text(
+      context,
+      OnCareTypography.caption,
+      OnCareColors.textSecondary,
+    );
     return AppTile(
       tone: AppTileTone.neutral,
       child: Column(
@@ -2682,7 +3009,7 @@ class _FoodEditBlock extends StatelessWidget {
                   focusNode: editors.nameFocus,
                   hint: l.dietNewFood,
                   textInputAction: TextInputAction.next,
-                  onChanged: (_) => onChanged(),
+                  onChanged: (_) => onNameChanged(),
                 ),
               ),
               AppIconButton(
@@ -2695,6 +3022,37 @@ class _FoodEditBlock extends StatelessWidget {
               ),
             ],
           ),
+          // 이미 일어난 일(바꿨다·없다)이 먼저다. 제안과 함께 설 일은 없다 —
+          // 바꾼 직후에는 제안이 거둬지고, 되돌리면 안내가 거둬진다.
+          if (editors.notice case final _NameNotice notice)
+            Padding(
+              padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+              child: switch (notice) {
+                _FilledFromDb(:final FoodNutritionSuggestion found) => Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: Text(
+                        l.dietFoodFilledFromDb(found.matchedName),
+                        key: ValueKey<String>('diet-food-db-filled-$index'),
+                        style: caption,
+                      ),
+                    ),
+                    AppButton(
+                      key: ValueKey<String>('diet-food-db-undo-$index'),
+                      label: l.dietUndoFill,
+                      variant: AppButtonVariant.text,
+                      size: OnCareButtonSize.small,
+                      onPressed: onUndoFill,
+                    ),
+                  ],
+                ),
+                _NotInDb() => Text(
+                  l.dietFoodNotInDb,
+                  key: ValueKey<String>('diet-food-not-in-db-$index'),
+                  style: caption,
+                ),
+              },
+            ),
           if (suggestion case final FoodNutritionSuggestion found)
             Padding(
               padding: const EdgeInsets.only(top: OnCareSpacing.s8),
@@ -2704,11 +3062,7 @@ class _FoodEditBlock extends StatelessWidget {
                     child: Text(
                       l.dietFoodDbMatch(found.matchedName),
                       key: ValueKey<String>('diet-food-db-match-$index'),
-                      style: _text(
-                        context,
-                        OnCareTypography.caption,
-                        OnCareColors.textSecondary,
-                      ),
+                      style: caption,
                     ),
                   ),
                   AppButton(
@@ -2746,6 +3100,7 @@ class _FoodEditBlock extends StatelessWidget {
             unit: l.unitKcal,
             controller: editors.kcal,
             decimal: false,
+            onChanged: onKcalChanged,
           ),
           _field(
             context,
@@ -2753,6 +3108,7 @@ class _FoodEditBlock extends StatelessWidget {
             label: l.homeMacroCarbs,
             unit: l.dietUnitG,
             controller: editors.carbs,
+            onChanged: onMacroChanged,
           ),
           _field(
             context,
@@ -2769,6 +3125,7 @@ class _FoodEditBlock extends StatelessWidget {
             label: l.homeMacroProtein,
             unit: l.dietUnitG,
             controller: editors.protein,
+            onChanged: onMacroChanged,
           ),
           _field(
             context,
@@ -2776,6 +3133,7 @@ class _FoodEditBlock extends StatelessWidget {
             label: l.homeMacroFat,
             unit: l.dietUnitG,
             controller: editors.fat,
+            onChanged: onMacroChanged,
           ),
           _field(
             context,

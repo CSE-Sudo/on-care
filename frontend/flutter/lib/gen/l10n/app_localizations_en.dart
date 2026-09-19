@@ -358,6 +358,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietFillFromDb => 'Fill in';
 
   @override
+  String dietFoodFilledFromDb(String name) {
+    return 'Changed to public DB · $name';
+  }
+
+  @override
+  String get dietUndoFill => 'Undo';
+
+  @override
+  String get dietFoodNotInDb =>
+      'Not in the public food DB. Please check the nutrition.';
+
+  @override
   String get dietAddSheetTitle => 'Add a Meal';
 
   @override

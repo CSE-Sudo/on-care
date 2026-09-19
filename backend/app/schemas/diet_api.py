@@ -82,6 +82,28 @@ class DietEntryOut(BaseModel):
     ai_comment: str = ""
 
 
+#: 음식별 영양 출처. 인식기·보정이 붙이는 `db`·`mixed`·`estimate` 에, 회원이 영양
+#: 칸을 직접 고친 값(`member`)이 더해진다(#2105). `member` 는 운동 기록의
+#: `source='member'`(회원 수기)와 같은 말이다.
+FoodSource = Literal["db", "mixed", "estimate", "member"]
+
+
+class EditedFood(RecognizedFood):
+    """수정 화면이 되돌려 보내는 음식 한 줄. (#2105)
+
+    출처는 앱이 정한다. 손대지 않은 음식·섭취량만 바꾼 음식(DB × 양 그대로)은
+    원래 출처를, 공공 DB 값으로 채운 음식은 `db` 를, 영양 칸을 직접 고친 음식은
+    `member` 를 싣는다. 이 넷을 가를 수 있는 곳은 편집기뿐이다 — 서버가 저장값과
+    견주면 반올림 때문에 "양만 바꿈" 과 "직접 고침" 을 가를 수 없다. 출처는 회원
+    자신의 기록에 붙는 표시라 권한 경계가 아니므로 어휘만 검사한다.
+
+    **빠지면 `member` 다.** 인식기 쪽 기본값 `estimate` 를 물려받으면, 이 필드를
+    보내지 않던 앱이 저장할 때마다 손대지 않은 음식까지 "인식기 추정" 이 됐다.
+    수정 경로로 들어온 숫자를 인식기 추정이라 부르는 것은 사실이 아니다.
+    """
+    source: FoodSource = "member"
+
+
 class DietEntryUpdate(PartialUpdate):
     """PUT /diet/entries/{id} — 끼니 정보와 영양소 부분 수정.
 
@@ -100,7 +122,7 @@ class DietEntryUpdate(PartialUpdate):
     #: 빈 목록은 받지 않는다. 음식이 하나도 없는 끼니는 수정이 아니라 삭제이고
     #: (앱도 그때 삭제할지 묻는다), 실수로 빈 배열이 오면 그 기록의 영양이
     #: 소리 없이 0 이 된다.
-    foods: list[RecognizedFood] | None = Field(None, min_length=1)
+    foods: list[EditedFood] | None = Field(None, min_length=1)
     total_calories: int | None = Field(None, ge=0)
     carbs_g: float | None = Field(None, ge=0, allow_inf_nan=False)
     protein_g: float | None = Field(None, ge=0, allow_inf_nan=False)
@@ -151,6 +173,11 @@ class FoodNutritionOut(BaseModel):
     수 있어야 한다 — 운동이 `matched_name` 을 그렇게 쓴다(#1312).
     """
     matched_name: str | None = None
+    #: 같은 음식인가(`exact`), 이름 끝말로 붙은 비슷한 음식인가(`similar`). 못
+    #: 찾았으면 null. 수정 화면은 같은 음식이면 곧바로 채우고, 비슷한 음식이면
+    #: 제안만 한다(#2107) — 끝말로 붙은 값은 틀린 경우가 많아 회원이 보고 골라야
+    #: 한다(`matcher.find_in_rows`).
+    match: Literal["exact", "similar"] | None = None
     source: str = "estimate"
     amount_g: float | None = None
     calories: int | None = None

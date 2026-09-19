@@ -145,9 +145,10 @@ def food_nutrition(
     found = lookup_by_name(db, name, payload.amount_g)
     if found is None:
         return FoodNutritionOut()
-    match, food = found
+    match, food, exact = found
     return FoodNutritionOut(
         matched_name=match.name,
+        match="exact" if exact else "similar",
         source=food.source,
         amount_g=food.amount_g,
         calories=food.calories,
