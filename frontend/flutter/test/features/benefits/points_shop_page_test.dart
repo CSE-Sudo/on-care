@@ -63,8 +63,9 @@ void main() {
     expect(find.text('교환 후 30일 동안 사용'), findsNWidgets(2));
     expect(find.byIcon(AppIcons.ptRenewal), findsOneWidget);
     expect(find.byIcon(AppIcons.locker), findsOneWidget);
-    expect(find.text('보유 9,000P'), findsNothing);
-    expect(find.text('보유 9000P'), findsOneWidget);
+    // 사용처 가격과 같이 천 단위를 끊어 읽는다 — 한 화면에 9000P 와 21,000P 가
+    // 섞이면 자릿수를 세어 보게 된다.
+    expect(find.text('보유 9,000P'), findsOneWidget);
 
     expect(find.textContaining('결제'), findsNothing);
     expect(find.textContaining('리포트'), findsNothing);
@@ -149,7 +150,7 @@ void main() {
     expect(repo.exchanged, <String>['locker_month']);
     expect(find.byType(AppDialog), findsNothing);
     // 목록을 다시 읽어 잔액이 줄었다.
-    expect(find.text('보유 2000P'), findsOneWidget);
+    expect(find.text('보유 2,000P'), findsOneWidget);
     expect(find.text('교환했어요'), findsOneWidget);
     await drainToast(tester);
   });
@@ -197,6 +198,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.exchanged, isEmpty);
-    expect(find.text('보유 9000P'), findsOneWidget);
+    expect(find.text('보유 9,000P'), findsOneWidget);
   });
 }
