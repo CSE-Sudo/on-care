@@ -102,18 +102,16 @@ void main() {
 
     final (Set<String> seen, double peak) = await watch(tester);
 
-    expect(seen.difference(<String>{'—P', '1240P'}), isEmpty);
+    expect(seen.difference(<String>{'—P', '1,240P'}), isEmpty);
     expect(peak, 1);
     await tester.pumpAndSettle();
-    expect(pointsText(tester), '1240P');
+    expect(pointsText(tester), '1,240P');
   });
 
-  testWidgets('잔액이 오르면 이전 값에서 숫자가 올라가고 별이 톡 튄다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('잔액이 오르면 이전 값에서 숫자가 올라가고 별이 톡 튄다', (WidgetTester tester) async {
     await pumpPage(tester);
     await tester.pumpAndSettle();
-    expect(pointsText(tester), '1240P');
+    expect(pointsText(tester), '1,240P');
 
     ledger.award(PointsRule.dietEntry, 'diet-1');
     await refetch(tester);
@@ -121,12 +119,12 @@ void main() {
 
     // 1240 과 1290 사이의 숫자를 거쳐 간다.
     expect(
-      seen.where((String s) => s != '1240P' && s != '1290P'),
+      seen.where((String s) => s != '1,240P' && s != '1,290P'),
       isNotEmpty,
     );
     expect(peak, greaterThan(1.1));
     await tester.pumpAndSettle();
-    expect(pointsText(tester), '1290P');
+    expect(pointsText(tester), '1,290P');
     expect(starScale(tester), 1);
   });
 
@@ -134,15 +132,15 @@ void main() {
     ledger.award(PointsRule.dietEntry, 'diet-1');
     await pumpPage(tester);
     await tester.pumpAndSettle();
-    expect(pointsText(tester), '1290P');
+    expect(pointsText(tester), '1,290P');
 
     ledger.revoke(PointsRule.dietEntry.sourceType, 'diet-1');
     await refetch(tester);
     final (Set<String> seen, double peak) = await watch(tester);
 
-    expect(seen.difference(<String>{'1290P', '1240P'}), isEmpty);
+    expect(seen.difference(<String>{'1,290P', '1,240P'}), isEmpty);
     expect(peak, 1);
-    expect(pointsText(tester), '1240P');
+    expect(pointsText(tester), '1,240P');
   });
 
   testWidgets('움직임 줄이기에서는 새 숫자로 바로 바꾼다', (WidgetTester tester) async {
@@ -153,9 +151,9 @@ void main() {
     await refetch(tester);
     final (Set<String> seen, double peak) = await watch(tester);
 
-    expect(seen.difference(<String>{'1240P', '1260P'}), isEmpty);
+    expect(seen.difference(<String>{'1,240P', '1,260P'}), isEmpty);
     expect(peak, 1);
-    expect(pointsText(tester), '1260P');
+    expect(pointsText(tester), '1,260P');
   });
 
   testWidgets('가려진 탭에서 받은 적립은 탭이 보일 때 움직인다', (WidgetTester tester) async {
@@ -170,17 +168,17 @@ void main() {
     await refetch(tester);
     await tester.pump(const Duration(seconds: 2));
     // 회원이 보지 못하는 동안에는 이전 숫자에 머문다.
-    expect(pointsText(tester), '1240P');
+    expect(pointsText(tester), '1,240P');
 
     visible.value = true;
     final (Set<String> seen, double peak) = await watch(tester);
 
     expect(
-      seen.where((String s) => s != '1240P' && s != '1260P'),
+      seen.where((String s) => s != '1,240P' && s != '1,260P'),
       isNotEmpty,
     );
     expect(peak, greaterThan(1.1));
     await tester.pumpAndSettle();
-    expect(pointsText(tester), '1260P');
+    expect(pointsText(tester), '1,260P');
   });
 }
