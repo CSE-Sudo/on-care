@@ -137,6 +137,9 @@ class DioDietRepository implements DietRepository {
                   'carbs_g': food.carbsG,
                   'protein_g': food.proteinG,
                   'fat_g': food.fatG,
+                  // 음식마다 출처를 되돌려 보낸다(#2105). 빠뜨리면 서버가 빠진
+                  // 값을 채우므로, 손대지 않은 음식까지 원래 출처를 잃는다.
+                  'source': food.source.name,
                 },
               )
               .toList(),

@@ -390,8 +390,30 @@ class LocalApiInterceptor extends Interceptor {
         (foodsValue is! List || foodsValue.any((food) => food is! Map))) {
       return _badRequest(options, 'foods must be a list of objects');
     }
+    // 음식별 출처(#2105). 실서버와 같은 규칙이다 — 네 값만 받고, 빠지면 회원이
+    // 적은 값(`member`)으로 저장한다. 인식기 기본값(`estimate`)으로 채우면
+    // 수정 경로로 들어온 숫자를 인식기 추정이라 부르게 된다.
+    const Set<String> sources = <String>{'db', 'mixed', 'estimate', 'member'};
+    if (foodsValue is List &&
+        foodsValue.any(
+          (Object? food) =>
+              food is Map &&
+              food.containsKey('source') &&
+              !sources.contains(food['source']),
+        )) {
+      return _unprocessable(
+        options,
+        'source must be db, mixed, estimate or member',
+      );
+    }
     final List<Object?>? requestFoods = foodsValue is List
-        ? List<Object?>.from(foodsValue)
+        ? <Object?>[
+            for (final Object? food in foodsValue)
+              if (food is Map && !food.containsKey('source'))
+                <Object?, Object?>{...food, 'source': 'member'}
+              else
+                food,
+          ]
         : null;
     // 합계를 다시 셀 때 쓸 음식 목록. `foods` 를 보내지 않은 수정이면 null 이라
     // 아래에서 본문의 합계를 그대로 반영한다(부분 수정 규약 유지).
@@ -1473,7 +1495,8 @@ class LocalApiInterceptor extends Interceptor {
     if (name.isEmpty) {
       return _badRequest(options, '음식 이름을 입력해 주세요.');
     }
-    final _DemoFood? match = _matchDemoFood(name);
+    final ({_DemoFood food, bool exact})? found = _matchDemoFood(name);
+    final _DemoFood? match = found?.food;
     final double? amountG =
         (payload['amount_g'] as num?)?.toDouble() ?? match?.servingG;
     if (match == null || amountG == null || amountG <= 0) {
@@ -1488,6 +1511,9 @@ class LocalApiInterceptor extends Interceptor {
     final double scale = amountG / match.servingG;
     return _ok(options, <String, Object?>{
       'matched_name': match.name,
+      // 같은 음식인가, 이름에 들어 있는 비슷한 음식인가(#2107). 수정 화면은
+      // 같은 음식이면 곧바로 채우고 비슷한 음식이면 제안만 한다.
+      'match': found!.exact ? 'exact' : 'similar',
       'source': 'db',
       'amount_g': amountG,
       'calories': (match.calories * scale).round(),
@@ -1499,14 +1525,15 @@ class LocalApiInterceptor extends Interceptor {
     });
   }
 
-  /// 이름 → 데모 영양표. 서버 `match_in_rows` 를 줄여 옮긴 것이다 —
-  /// 정확히 같은 이름 먼저, 그다음 표의 이름이 질의에 들어 있는 것 중 가장 긴 것.
-  _DemoFood? _matchDemoFood(String query) {
+  /// 이름 → 데모 영양표. 서버 `find_in_rows` 를 줄여 옮긴 것이다 —
+  /// 정확히 같은 이름 먼저(같은 음식), 그다음 표의 이름이 질의에 들어 있는 것 중
+  /// 가장 긴 것(비슷한 음식).
+  ({_DemoFood food, bool exact})? _matchDemoFood(String query) {
     String norm(String v) => v.replaceAll(RegExp(r'\s+'), '').toLowerCase();
     final String q = norm(query);
     if (q.isEmpty) return null;
     for (final _DemoFood f in _demoFoods) {
-      if (norm(f.name) == q) return f;
+      if (norm(f.name) == q) return (food: f, exact: true);
     }
     final List<_DemoFood> contained = <_DemoFood>[
       for (final _DemoFood f in _demoFoods)
@@ -1516,7 +1543,7 @@ class LocalApiInterceptor extends Interceptor {
     contained.sort(
       (_DemoFood a, _DemoFood b) => norm(b.name).length - norm(a.name).length,
     );
-    return contained.first;
+    return (food: contained.first, exact: false);
   }
 
   /// POST /exercise/calories — 운동 이름·시간·강도로 예상 소모 칼로리. (#1312)

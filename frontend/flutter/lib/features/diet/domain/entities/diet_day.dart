@@ -14,6 +14,37 @@ MealType _mealFromString(String s) => MealType.values.firstWhere(
   orElse: () => MealType.snack,
 );
 
+/// 음식 한 줄의 영양이 **어디서 왔나.** 서버 `foods[].source` 와 같은 어휘다
+/// (#2105).
+///
+/// 수정 화면이 음식마다 이 값을 들고 다니다 저장할 때 되돌려 보낸다. 예전에는
+/// 읽을 때 버렸고, 서버가 빠진 값을 인식기 기본값으로 채워 수정 저장 한 번에
+/// 모든 음식이 [estimate] 가 됐다.
+enum FoodSource {
+  /// 공공 영양 DB × 양.
+  db,
+
+  /// DB 행에 탄단지가 비어 인식기 값을 남겼다.
+  mixed,
+
+  /// 매칭이나 양이 없어 인식기 추정을 그대로 두었다.
+  estimate,
+
+  /// 회원이 수정 화면에서 영양 칸을 직접 고쳤다. 운동 기록의 `member`(회원
+  /// 수기)와 같은 말이다.
+  member;
+
+  /// 모르는 값과 누락은 [estimate] 로 읽는다 — 이 필드 이전 기록이 그렇고,
+  /// 서버도 없으면 그렇게 저장해 왔다.
+  static FoodSource fromJson(Object? value) =>
+      switch ((value as String?)?.trim()) {
+        'db' => FoodSource.db,
+        'mixed' => FoodSource.mixed,
+        'member' => FoodSource.member,
+        _ => FoodSource.estimate,
+      };
+}
+
 class FoodItem {
   const FoodItem({
     required this.name,
@@ -24,6 +55,7 @@ class FoodItem {
     this.carbsG = 0,
     this.proteinG = 0,
     this.fatG = 0,
+    this.source = FoodSource.estimate,
   });
   final String name;
   final int calories;
@@ -45,6 +77,9 @@ class FoodItem {
   final double proteinG;
   final double fatG;
 
+  /// 위 영양이 어디서 왔나(#2105). 수정 저장 때 그대로 되돌려 보낸다.
+  final FoodSource source;
+
   factory FoodItem.fromJson(Map<String, Object?> json) => FoodItem(
     name: json['name']! as String,
     calories: (json['calories']! as num).toInt(),
@@ -58,6 +93,7 @@ class FoodItem {
     carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,
     proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
     fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,
+    source: FoodSource.fromJson(json['source']),
   );
 }
 

@@ -201,6 +201,7 @@ void main() {
         'carbs_g': 46.0,
         'protein_g': 5.0,
         'fat_g': 1.8,
+        'source': 'db',
       },
       <String, Object?>{
         'name': '닭가슴살',
@@ -210,6 +211,7 @@ void main() {
         'carbs_g': 0.0,
         'protein_g': 31.0,
         'fat_g': 3.6,
+        'source': 'member',
       },
     ];
 
@@ -277,6 +279,73 @@ void main() {
     expect(half.data!['calories'], 350);
     expect(half.data!['sodium_mg'], 1200);
   });
+
+  test('POST /diet/nutrition 은 같은 음식인지 비슷한 음식인지 말한다 (#2107)', () async {
+    final same = await dio.post<Map<String, Object?>>(
+      '/diet/nutrition',
+      data: <String, Object?>{'name': '짜장면'},
+    );
+    expect(same.data!['match'], 'exact');
+
+    // 이름 안에 표의 음식이 들어 있을 뿐이다 — 곧바로 채우지 않고 제안만 한다.
+    final similar = await dio.post<Map<String, Object?>>(
+      '/diet/nutrition',
+      data: <String, Object?>{'name': '간짜장면'},
+    );
+    expect(similar.data!['matched_name'], '짜장면');
+    expect(similar.data!['match'], 'similar');
+  });
+
+  test(
+    'PUT /diet/entries 는 출처가 빠진 음식을 member 로 저장하고 모르는 출처는 거절한다 (#2105)',
+    () async {
+      await db
+          .into(db.dietEntries)
+          .insert(
+            DietEntriesCompanion.insert(
+              id: 'diet-source',
+              date: nowKst().toIso8601String().substring(0, 10),
+              mealType: 'lunch',
+              timeLabel: '12:00',
+              foodsJson: jsonEncode(<Map<String, Object?>>[
+                <String, Object?>{
+                  'name': '비빔밥',
+                  'calories': 600,
+                  'source': 'db',
+                },
+              ]),
+              totalCalories: 600,
+            ),
+          );
+
+      final saved = await dio.put<Map<String, Object?>>(
+        '/diet/entries/diet-source',
+        data: <String, Object?>{
+          'foods': <Map<String, Object?>>[
+            <String, Object?>{'name': '비빔밥', 'calories': 600, 'source': 'db'},
+            // 수정 경로로 들어온 숫자를 인식기 추정이라 부르지 않는다.
+            <String, Object?>{'name': '김치', 'calories': 15},
+          ],
+        },
+      );
+      final List<Object?> foods = saved.data!['foods']! as List<Object?>;
+      expect(
+        foods.map((Object? f) => (f! as Map<Object?, Object?>)['source']),
+        <String>['db', 'member'],
+      );
+
+      final rejected = await dio.put<Map<String, Object?>>(
+        '/diet/entries/diet-source',
+        data: <String, Object?>{
+          'foods': <Map<String, Object?>>[
+            <String, Object?>{'name': '비빔밥', 'calories': 600, 'source': 'user'},
+          ],
+        },
+        options: Options(validateStatus: (_) => true),
+      );
+      expect(rejected.statusCode, 422);
+    },
+  );
 
   test('POST /diet/nutrition 은 못 찾으면 조용하다 — 이름이 비면 400', () async {
     final unknown = await dio.post<Map<String, Object?>>(
