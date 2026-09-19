@@ -2749,7 +2749,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get demoAlertSodiumBody =>
-      '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.';
+      '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.';
 
   @override
   String get demoAlertDinnerTitle => '저녁 식단을 기록해 주세요';

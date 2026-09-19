@@ -42,15 +42,15 @@ void main() {
       day.entries.every((entry) => entry.mealType != MealType.dinner),
       isTrue,
     );
-    expect(day.totalCalories, 1067);
-    expect(day.totalSodiumMg, 3428);
-    expect(day.totalSugarG, closeTo(17.8, 0.001));
-    expect(day.macros.carbsG, closeTo(120.0, 0.001));
-    expect(day.macros.proteinG, closeTo(45.0, 0.001));
-    expect(day.macros.fatG, closeTo(45.0, 0.001));
+    expect(day.totalCalories, 1054);
+    expect(day.totalSodiumMg, 4657);
+    expect(day.totalSugarG, closeTo(16.7, 0.001));
+    expect(day.macros.carbsG, closeTo(111.6, 0.001));
+    expect(day.macros.proteinG, closeTo(54.4, 0.001));
+    expect(day.macros.fatG, closeTo(34.1, 0.001));
     expect(
       <int>[day.macros.carbsPct, day.macros.proteinPct, day.macros.fatPct],
-      <int>[45, 17, 38],
+      <int>[46, 22, 32],
     );
     final pastRes = await dio.get<Map<String, Object?>>(
       '/diet/days/${_daysAgoString(2)}',

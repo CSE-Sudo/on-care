@@ -1779,7 +1779,7 @@
   "@demoAlertSodiumTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 3,428mg. Drink plenty of water.",
+  "demoAlertSodiumBody": "Lunch jjamppong pushed today's sodium to 4,657mg. Drink plenty of water.",
   "@demoAlertSodiumBody": {
     "description": "Body of a demo notification shown in tour mode."
   },

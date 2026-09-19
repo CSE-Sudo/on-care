@@ -2845,7 +2845,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoAlertSodiumBody =>
-      'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.';
+      'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.';
 
   @override
   String get demoAlertDinnerTitle => 'Log your dinner';

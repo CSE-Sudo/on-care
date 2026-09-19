@@ -9,6 +9,23 @@ import 'package:oncare_trainer/core/storage/seed_data.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 
+/// 탄단지가 모두 0 으로 **적힌** 음식의 열량(kcal).
+///
+/// 소주처럼 열량이 알코올(7kcal/g)에서 나오는 음식은 탄단지가 0 이라, 그 열량은
+/// 탄단지로 설명되지 않는다(#2090). 탄단지 값을 아예 적지 않은 음식(다른 데모
+/// 회원의 시드)은 빼지 않는다 — 그 끼니의 탄단지는 그 음식 몫까지 담고 있다.
+int _kcalWithoutMacros(String foodsJson) {
+  int total = 0;
+  for (final Object? food in jsonDecode(foodsJson) as List<Object?>) {
+    final Map<String, Object?> f = food! as Map<String, Object?>;
+    const List<String> macros = <String>['carbs_g', 'protein_g', 'fat_g'];
+    final bool listed = macros.every(f.containsKey);
+    final bool allZero = macros.every((String k) => (f[k] as num? ?? 0) == 0);
+    if (listed && allZero) total += (f['calories'] as num? ?? 0).toInt();
+  }
+  return total;
+}
+
 /// 데모 식단의 끼니 영양소. 트레이너가 식단 탭에서 코칭 근거로 읽는 값이라,
 /// 열량만 있고 탄단지가 0 이면 화면이 근거 없이 숫자만 보여 준다(#819).
 void main() {
@@ -40,15 +57,21 @@ void main() {
 
     for (final meal in meals) {
       if (meal.calories == 0) continue;
+      // 소주처럼 탄단지가 0 인 음식의 열량은 탄단지로 잡히지 않는다 — 소주 1병
+      // 320kcal 는 탄단지가 0 이다(#2090). 그 몫은 빼고 견준다.
+      final int fromNutrients =
+          meal.calories - _kcalWithoutMacros(meal.foodsJson);
+      if (fromNutrients <= 0) continue;
       // 탄수화물·단백질 4kcal/g, 지방 9kcal/g. 데모 값이라 정확할 필요는 없지만,
       // 열량과 크게 어긋나면 트레이너가 두 숫자 중 무엇을 믿을지 알 수 없다.
       final derived = meal.carbsG * 4 + meal.proteinG * 4 + meal.fatG * 9;
       expect(
-        (derived - meal.calories).abs() / meal.calories,
+        (derived - fromNutrients).abs() / fromNutrients,
         lessThan(0.15),
         reason:
             '${meal.meal} · ${meal.items}: '
-            '${meal.calories}kcal 인데 탄단지 환산은 ${derived.round()}kcal',
+            '탄단지 없는 음식을 뺀 ${fromNutrients}kcal 인데 '
+            '탄단지 환산은 ${derived.round()}kcal',
       );
     }
   });

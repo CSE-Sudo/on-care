@@ -20,7 +20,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
   AlertItem(
     id: 'a1',
     title: '나트륨 섭취 주의',
-    body: '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.',
+    body: '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.',
     timeAgo: '10분 전',
     messageKey: kDemoAlertSodium,
     age: Duration(minutes: 10),

@@ -65,32 +65,32 @@ void main() {
       expect(meals.map((m) => m.id).toSet(), hasLength(3));
       expect(meals.every((m) => m.id.isNotEmpty), isTrue);
       expect(meals.first.items, '스크램블 에그, 딸기');
-      expect(meals.first.calories, 217);
-      expect(meals.first.sodiumMg, 221);
-      expect(meals.first.carbsG, 10);
-      expect(meals.first.proteinG, 13.5);
-      expect(meals.first.fatG, 14.5);
+      expect(meals.first.calories, 247);
+      expect(meals.first.sodiumMg, 359);
+      expect(meals.first.carbsG, 10.4);
+      expect(meals.first.proteinG, 16);
+      expect(meals.first.fatG, 14.8);
       expect(meals[1].items, '짬뽕');
-      expect(meals[1].calories, 750);
-      expect(meals[1].sodiumMg, 3200);
-      expect(meals[1].carbsG, 107);
-      expect(meals[1].proteinG, 29);
-      expect(meals[1].fatG, 22.5);
+      expect(meals[1].calories, 707);
+      expect(meals[1].sodiumMg, 4286);
+      expect(meals[1].carbsG, 95.1);
+      expect(meals[1].proteinG, 35.4);
+      expect(meals[1].fatG, 12.7);
       expect(meals[2].items, '아이스 아메리카노, 견과류 한 봉');
       expect(meals[2].calories, 100);
-      expect(meals[2].sodiumMg, 7);
-      expect(meals[2].carbsG, 3);
-      expect(meals[2].proteinG, 2.5);
-      expect(meals[2].fatG, 8);
+      expect(meals[2].sodiumMg, 12);
+      expect(meals[2].carbsG, 6.1);
+      expect(meals[2].proteinG, 3);
+      expect(meals[2].fatG, 6.6);
 
       final minsu = (await DriftClientRepository(db).watchClients().first)
           .firstWhere((client) => client.id == 'seed-client-1');
-      expect(minsu.calories, 1067);
-      expect(minsu.sodiumMg, 3428);
-      expect(minsu.sugarG, 17.8);
-      expect(minsu.carbsG, 120);
-      expect(minsu.proteinG, 45);
-      expect(minsu.fatG, 45);
+      expect(minsu.calories, 1054);
+      expect(minsu.sodiumMg, 4657);
+      expect(minsu.sugarG, 16.7);
+      expect(minsu.carbsG, 111.6);
+      expect(minsu.proteinG, 54.4);
+      expect(minsu.fatG, 34.1);
     });
 
     test('returns per-client data (clients differ)', () async {
@@ -196,11 +196,13 @@ void main() {
 
     Future<ProviderContainer> openDiet(
       WidgetTester tester,
-      String clientName,
-    ) => pumpTrainerApp(
+      String clientName, {
+      DateTime? seedClock,
+    }) => pumpTrainerApp(
       tester,
       token: 'demo-trainer-token',
       at: AppRoutes.clientDetail(seedClientIds[clientName]!, section: 'diet'),
+      seedClock: seedClock,
     );
 
     testWidgets('a failed diet retries in place on a narrow viewport', (
@@ -274,9 +276,9 @@ void main() {
         of: find.byKey(Key('client-nutrition-macro-$label')),
         matching: find.textContaining(text),
       );
-      expect(inMacro('탄수화물', '120'), findsOneWidget);
-      expect(inMacro('단백질', '45'), findsOneWidget);
-      expect(inMacro('지방', '45'), findsOneWidget);
+      expect(inMacro('탄수화물', '111.6'), findsOneWidget);
+      expect(inMacro('단백질', '54.4'), findsOneWidget);
+      expect(inMacro('지방', '34.1'), findsOneWidget);
 
       expect(find.text('나트륨 초과'), findsOneWidget);
       final Finder sodiumStatus = find.byKey(
@@ -287,16 +289,16 @@ void main() {
       expect(
         find.descendant(
           of: sodiumStatus,
-          matching: find.textContaining('3,428', findRichText: true),
+          matching: find.textContaining('4,657', findRichText: true),
         ),
         findsOneWidget,
       );
-      // 초과분은 라벨 오른쪽에 `+1,428mg` 로 붙는다 (#1166) — 회원 앱과 같은
+      // 초과분은 라벨 오른쪽에 `+2,657mg` 로 붙는다 (#1166) — 회원 앱과 같은
       // 표기다. 예전의 '목표보다 … 많아요' 한 문장을 대신한다.
       expect(
         find.descendant(
           of: sodiumStatus,
-          matching: find.textContaining('+1,428mg', findRichText: true),
+          matching: find.textContaining('+2,657mg', findRichText: true),
         ),
         findsOneWidget,
         reason: '목표를 넘겼는데 초과분 표기가 없습니다.',
@@ -304,7 +306,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const Key('client-nutrition-mineral-당류')),
-          matching: find.textContaining('17.8', findRichText: true),
+          matching: find.textContaining('16.7', findRichText: true),
         ),
         findsOneWidget,
       );
@@ -329,7 +331,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.text('탄수화물 10g · 단백질 13.5g · 지방 14.5g'), findsOneWidget);
+      expect(find.text('탄수화물 10.4g · 단백질 16g · 지방 14.8g'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('점심'),
         150,
@@ -342,14 +344,14 @@ void main() {
         scrollable: detailScrollable('seed-client-1'),
       );
       expect(find.text('간식'), findsOneWidget);
-      // Over-target AI comment (3428 − 2000 = 1428mg) — last list item,
+      // Over-target AI comment (4657 − 2000 = 2657mg) — last list item,
       // built lazily, so scroll it into view first.
       await tester.scrollUntilVisible(
-        find.textContaining('나트륨이 목표치를 1428mg 초과했어요'),
+        find.textContaining('나트륨이 목표치를 2657mg 초과했어요'),
         150,
         scrollable: detailScrollable('seed-client-1'),
       );
-      expect(find.textContaining('나트륨이 목표치를 1428mg 초과했어요'), findsOneWidget);
+      expect(find.textContaining('나트륨이 목표치를 2657mg 초과했어요'), findsOneWidget);
     });
 
     testWidgets('목표를 넘긴 날은 링을 채우되 100%라고 적지 않는다 (#820)', (tester) async {
@@ -468,7 +470,15 @@ void main() {
     testWidgets('AI 코멘트가 기간을 따라 바뀐다 (#1017)', (tester) async {
       // 오늘 하루만 보고 쓴 문장을 이번 주 그래프 아래 그대로 두면, 화면과
       // 조언이 서로 다른 기간을 말한다.
-      final container = await openDiet(tester, '김민수');
+      //
+      // 평일(목요일)로 고정한다. 주말에 돌리면 이번 주 문장이 `넘은 날 수` 가
+      // 아니라 `주말에 나트륨이 올라요` 분기로 먼저 빠져, 코드를 건드리지 않아도
+      // 토·일에만 깨졌다(#2090 에서 토요일에 드러났다).
+      final container = await openDiet(
+        tester,
+        '김민수',
+        seedClock: DateTime(2026, 8, 13, 10),
+      );
       await tester.scrollUntilVisible(
         find.textContaining('나트륨이 목표치를'),
         150,

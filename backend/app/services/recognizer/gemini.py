@@ -30,6 +30,7 @@ _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 
   "foods": [
     {
       "name": "음식 이름(한국어)",
+      "amount_g": 사진에 담긴 양(g),
       "calories": 예상 칼로리 정수(kcal),
       "carbs_g": 예상 탄수화물(g),
       "protein_g": 예상 단백질(g),
@@ -43,6 +44,9 @@ _PROMPT = """당신은 전문 영양사입니다. 업로드된 음식 사진을 
 }
 
 음식이 여러 개면 foods 에 모두 넣으세요. 모르는 값은 null 로 두세요.
+amount_g 는 **사진에 실제로 담긴 양**을 그램으로 추정하세요(그릇 크기·조각 수를
+근거로). 공공 영양 DB 가 100g 당 값을 갖고 있어 이 값으로 환산합니다 — 영양
+수치보다 이쪽이 더 중요합니다.
 나트륨·당류는 회원의 일일 목표와 비교하는 값이니 신중히 추정하세요."""
 
 
@@ -87,6 +91,7 @@ class GeminiVisionRecognizer(FoodRecognizer):
                 foods.append(
                     RecognizedFood(
                         name=str(f.get("name", "알 수 없음")),
+                        amount_g=_as_amount_g(f.get("amount_g")),
                         calories=_as_int(f.get("calories")),
                         carbs_g=_as_macro_float(f.get("carbs_g")),
                         protein_g=_as_macro_float(f.get("protein_g")),
@@ -124,6 +129,22 @@ def _as_float(v) -> float | None:
         return float(v)
     except (TypeError, ValueError):
         return None
+
+
+def _as_amount_g(v) -> float | None:
+    """사진에 담긴 양(g). 0·음수·비유한값은 "모름"(None)으로 눕힌다. (#2090)
+
+    `RecognizedFood.amount_g` 는 `gt=0` 이라 0 을 그대로 넘기면 검증 오류로 응답
+    파싱 전체가 깨진다. 모델이 0 을 줬다는 건 양을 모른다는 뜻이다 — 보정이
+    알려진 1회 섭취량으로 폴백하거나 추정치를 유지한다(`litellm_vision` 과 같은 규칙).
+    """
+    if v is None:
+        return None
+    try:
+        value = float(v)
+    except (TypeError, ValueError):
+        return None
+    return value if math.isfinite(value) and value > 0 else None
 
 
 def _as_macro_float(v) -> float | None:
