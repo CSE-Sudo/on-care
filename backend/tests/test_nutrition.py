@@ -502,6 +502,91 @@ def test_import_reads_weight_units_explicitly():
     assert _weight_g("6000g") is None         # 대형 포장은 1인분 힌트가 못 된다
 
 
+# ---------- 원본 파일 읽기 (#2100) ----------
+
+def _write_xlsx(path, rows, *, inline_first_row=False):
+    """최소 구성의 xlsx. 첫 행은 인라인 문자열로, 나머지 문자열은 공유 문자열로 적는다."""
+    import zipfile
+
+    shared: list[str] = []
+    sheet_rows = []
+    for r, row in enumerate(rows, start=1):
+        cells = []
+        for c, value in enumerate(row):
+            if value == "":
+                continue                      # 빈 셀은 적지 않는다 — 열 주소로 자리를 잡아야 한다
+            ref = f"{chr(65 + c)}{r}"
+            if isinstance(value, (int, float)):
+                cells.append(f'<c r="{ref}"><v>{value}</v></c>')
+            elif r == 1 and inline_first_row:
+                cells.append(f'<c r="{ref}" t="inlineStr"><is><t>{value}</t></is></c>')
+            else:
+                shared.append(value)
+                cells.append(f'<c r="{ref}" t="s"><v>{len(shared) - 1}</v></c>')
+        sheet_rows.append(f'<row r="{r}">{"".join(cells)}</row>')
+    ns = 'xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"'
+    rel_ns = 'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+    with zipfile.ZipFile(path, "w") as z:
+        z.writestr("xl/workbook.xml", (
+            f'<workbook {ns} {rel_ns}><sheets>'
+            '<sheet name="가공식품" sheetId="1" r:id="rId1"/></sheets></workbook>'
+        ))
+        z.writestr("xl/_rels/workbook.xml.rels", (
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" Target="worksheets/sheet1.xml" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"/>'
+            '</Relationships>'
+        ))
+        z.writestr("xl/sharedStrings.xml", (
+            f'<sst {ns}>' + "".join(f"<si><t>{s}</t></si>" for s in shared) + "</sst>"
+        ))
+        z.writestr("xl/worksheets/sheet1.xml", (
+            f'<worksheet {ns}><sheetData>{"".join(sheet_rows)}</sheetData></worksheet>'
+        ))
+
+
+def test_import_reads_kfind_xlsx(tmp_path):
+    """K-FIND 는 엑셀로만 준다. 받은 그대로 읽어야 변환 단계에서 틀릴 일이 없다."""
+    from scripts.import_food_nutrients import _read
+
+    path = tmp_path / "20260828_가공식품DB_2건.xlsx"
+    _write_xlsx(path, [
+        ["식품명", "대표식품명", "식품기원명", "식품중량", "에너지(kcal)", "당류(g)", "탄수화물(g)"],
+        ["우유_흰", "우유", "가공식품", "200ml", 63, "", "4.7"],   # 당류 칸이 비어 있다
+        ["우유_딸기", "우유", "가공식품", "200ml", 85.5, "10.2", ""],
+    ], inline_first_row=True)
+    rows = _read(path)
+    assert [r["대표식품명"] for r in rows] == ["우유", "우유"]
+    assert rows[0]["에너지(kcal)"] == "63" and rows[1]["에너지(kcal)"] == "85.5"
+    # 빈 셀이 옆 칸을 당겨 오면 탄수화물이 당류 자리에 들어간다.
+    assert rows[0]["당류(g)"] == "" and rows[0]["탄수화물(g)"] == "4.7"
+    assert rows[1]["탄수화물(g)"] == ""
+    assert "식품명" not in rows[0]            # 집계가 안 쓰는 열은 버린다(메모리)
+
+
+def test_import_rejects_portal_truncated_file(tmp_path, monkeypatch):
+    """공공데이터포털은 5만 건에서 오류 없이 자른다 — 잘린 원본으로 집계하면 안 된다."""
+    import scripts.import_food_nutrients as importer
+
+    path = tmp_path / "가공식품.csv"
+    path.write_text("대표식품명,에너지(kcal)\n" + "우유,63\n" * 3, encoding="utf-8")
+    monkeypatch.setattr(importer, "_TRUNCATED_AT", 3)
+    with pytest.raises(SystemExit, match="잘린 파일"):
+        importer._read(path)
+
+
+def test_import_finds_kfind_file_by_its_download_name(tmp_path):
+    from scripts.import_food_nutrients import _find_source
+
+    assert _find_source(tmp_path, "가공식품") is None
+    (tmp_path / "20260728_가공식품DB_310000건.xlsx").touch()
+    (tmp_path / "20260828_가공식품DB_316734건.xlsx").touch()
+    assert _find_source(tmp_path, "가공식품").name == "20260828_가공식품DB_316734건.xlsx"
+    # 직접 이름 붙인 파일이 있으면 그것을 쓴다.
+    (tmp_path / "가공식품.csv").touch()
+    assert _find_source(tmp_path, "가공식품").name == "가공식품.csv"
+
+
 def test_vision_parser_keeps_amount_g():
     """프롬프트가 amount_g 를 요구하는데 파서가 안 넘기면 보정이 폴백만 탄다."""
     import json
