@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,12 +14,29 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 화면은 그 전체 이력을 진행 중/지난 요청으로 나눠 보여준다.
 ///
 /// `consultationRequestControllerProvider` 가 이미 `GET /consultations/me`
-/// 전체를 들고 있어 별도 API 호출이 필요 없다.
-class ConsultationHistoryPage extends ConsumerWidget {
+/// 전체를 들고 있어 별도 API 호출이 필요 없다. 다만 열 때마다 그 목록을 다시
+/// 받는다(#2067) — 이 화면이 보여 주는 것은 트레이너의 결정과 사유인데, 들고 있던
+/// 목록은 결정 전 것일 수 있다.
+class ConsultationHistoryPage extends ConsumerStatefulWidget {
   const ConsultationHistoryPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConsultationHistoryPage> createState() =>
+      _ConsultationHistoryPageState();
+}
+
+class _ConsultationHistoryPageState
+    extends ConsumerState<ConsultationHistoryPage> {
+  @override
+  void initState() {
+    super.initState();
+    unawaited(
+      ref.read(consultationRequestControllerProvider.notifier).refresh(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final List<ConsultationRequest> requests = ref.watch(
       consultationRequestControllerProvider,

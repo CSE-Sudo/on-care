@@ -73,11 +73,25 @@ jobs:
       # 두 앱이 함께 쓰는 UI 규격 패키지(#1691). 토큰·테마 불변식은 앱 테스트가
       # 보지 않으므로 여기서 한 번 돌린다(트레이너 CI 에는 두지 않는다).
       - name: Analyze and test shared UI package
+        id: oncare_ui
         working-directory: shared/oncare_ui
         run: |
           flutter pub get
           flutter analyze
           flutter test
+
+      # 공용 버튼 골든(#2054)이 어긋나면 기준·실제·차이 PNG 가 test/failures/ 에
+      # 생긴다. 러너가 끝나면 사라지므로 올려 둔다 — 리뷰어가 무엇이 바뀌었는지
+      # 이미지로 보고, 운영체제 차이로만 깨졌다면 `_testImage.png` 를 새 기준으로
+      # 받는다. 이 단계가 실패했을 때만 돈다.
+      - name: Upload golden failures
+        if: failure() && steps.oncare_ui.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: oncare-ui-golden-failures
+          path: shared/oncare_ui/test/failures/
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Install dependencies
         run: flutter pub get

@@ -128,28 +128,12 @@ class _ProgramTemplateDialogState extends ConsumerState<ProgramTemplateDialog> {
       size: AppDialogSize.medium,
       // 하단 [취소, 저장] 으로만 닫는다 — 예전 창에도 닫기 X 는 없었다.
       showClose: false,
-      // 저장 버튼은 테스트가 Key 로 누르므로 AppButtonPair 대신 같은 모양의
-      // Row 로 짓는다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              label: l.actionCancel,
-              onPressed: _saving ? null : () => Navigator.of(context).pop(),
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('template-save'),
-              label: l.coachTemplateSave,
-              onPressed: _saving ? null : _save,
-              fullWidth: true,
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: _saving ? null : () => Navigator.of(context).pop(),
+        confirmKey: const ValueKey<String>('template-save'),
+        confirmLabel: l.coachTemplateSave,
+        onConfirm: _saving ? null : _save,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

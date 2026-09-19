@@ -20,7 +20,9 @@ node_modules/
 package-lock.json
 
 # Flutter golden test diff outputs (regenerated locally on failure).
+# 골든이 어긋나면 비교 대상 파일 옆 `failures/` 에 기준·실제·차이 PNG 가 생긴다(#2054).
 **/test/golden/failures/
+**/test/failures/
 
 # 공공 표준데이터 원본 CSV(5.9MB) — 집계본만 커밋한다
 backend/data/raw/

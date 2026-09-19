@@ -143,6 +143,9 @@ def _member(client) -> tuple[str, str]:
 
 
 def _request_consultation(client, token: str, trainer_id: str) -> str:
+    """회원이 그 트레이너의 빈 자리를 골라 상담을 신청한다. (#1873)"""
+    from tests.test_consultation_decision import _open_slot
+
     response = client.post(
         "/v1/consultations",
         headers=_auth(token),
@@ -151,8 +154,7 @@ def _request_consultation(client, token: str, trainer_id: str) -> str:
             "exercise_goal": "strength",
             "health_purpose_type": "general",
             "health_purpose_detail": None,
-            "preferred_date": (clock.today() + timedelta(days=1)).isoformat(),
-            "preferred_time_slot": "09:00",
+            "slot_id": _open_slot(trainer_id).id,
             "message": "상담 부탁드립니다.",
             "data_sharing_consent": True,
         },

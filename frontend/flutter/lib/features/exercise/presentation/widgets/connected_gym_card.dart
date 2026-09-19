@@ -118,6 +118,10 @@ class ConnectedGymCard extends StatelessWidget {
                 trainer: trainer!,
                 showReason: false,
                 onDetail: onTrainerDetail,
+                // 위 헬스장 줄과 한 격자다 — 아이콘은 같은 세로 중심, 이름은
+                // 같은 세로선에서 시작한다(#2038).
+                leadingWidth: _gymIconBox,
+                leadingGap: OnCareSpacing.s12,
               ),
             ] else if (onFindTrainer != null) ...<Widget>[
               const SizedBox(height: OnCareSpacing.s12),

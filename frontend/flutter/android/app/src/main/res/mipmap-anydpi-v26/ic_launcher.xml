@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 8 이상의 적응형 아이콘. 런처가 원·스퀘어클 등 제 모양으로 마스크하므로
+     배경은 브랜드 파랑(#3EAFDF, OnCareBrand.primary)만 깔고 전경에 흰 마크를 둔다.
+     레거시 mipmap-*/ic_launcher.png 는 Android 7 이하에서만 쓰인다.
+     monochrome 은 Android 13+ 의 테마 아이콘용이다. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
+</adaptive-icon>

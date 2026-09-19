@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:intl/intl.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
-import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
+import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
@@ -215,9 +214,29 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
 
   /// [showInsights] 가 거짓이면 감지 기록 버튼을 숨기되 자리는 남겨, 제목이
   /// 가운데에서 밀리지 않게 한다.
+  ///
+  /// **양쪽 폭을 맞춰 제목을 화면 가운데에 세운다**(#1975). 왼쪽 뒤로 버튼은
+  /// 고정 폭이고 오른쪽 `기록` 은 글자 길이만큼이라, 그대로 두면 가운데 정렬한
+  /// 묶음이 왼쪽으로 밀린다 — 영어처럼 버튼이 길어지는 로케일에서 더 밀린다.
+  ///
+  /// 그래서 뒤로 버튼을 `기록` 과 같은 폭의 빈 자리 **위에 겹쳐** 둔다. 두 자리를
+  /// 나란히 두면 좌우는 맞지만 제목이 쓸 폭이 그만큼 줄어 부제가 말줄임된다.
+  /// 폭을 숫자로 적지 않고 같은 위젯을 숨겨 두는 것은, 로케일이 바뀌어도
+  /// 저절로 따라가게 하기 위해서다.
   Widget _header(BuildContext context, {required bool showInsights}) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    // 오른쪽에 그릴 버튼과 왼쪽에 자리만 잡을 복제본. 키는 진짜 하나에만 둔다 —
+    // 둘 다 달면 테스트가 어느 쪽을 누를지 가릴 수 없다.
+    AppButton insightButton({Key? key}) => AppButton(
+      key: key,
+      label: l.aicInsightHistoryAction,
+      size: OnCareButtonSize.small,
+      leadingIcon: AppIcons.note,
+      // 채움이던 동안에는 머리에서 대화보다 먼저 눈에 들었다(#1975).
+      variant: AppButtonVariant.brandOutline,
+      onPressed: () => _showInsightHistory(context),
+    );
     return ColoredBox(
       color: OnCareColors.surfaceCard,
       child: Padding(
@@ -227,10 +246,26 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
         ),
         child: Row(
           children: <Widget>[
-            AppBackButton(
-              onPressed: () => context.canPop()
-                  ? context.pop()
-                  : context.go(AppRoutes.dashboard),
+            // 뒤로 버튼을 `기록` 과 같은 폭의 자리 **위에** 겹쳐 둔다. 두 자리를
+            // 나란히 두면 그만큼 제목이 쓸 폭이 줄어 부제가 말줄임된다.
+            Stack(
+              alignment: AlignmentDirectional.centerStart,
+              children: <Widget>[
+                Visibility(
+                  visible: false,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: IgnorePointer(
+                    child: ExcludeSemantics(child: insightButton()),
+                  ),
+                ),
+                AppBackButton(
+                  onPressed: () => context.canPop()
+                      ? context.pop()
+                      : context.go(AppRoutes.dashboard),
+                ),
+              ],
             ),
             Expanded(
               child: Row(
@@ -277,12 +312,8 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
               maintainState: true,
               // 아이콘만으로는 전할 수 없는 기능이라 글자를 함께 쓴다(#1900).
               // 예전의 심전도 모니터는 심박을 재는 자리로 읽혔다.
-              child: AppButton(
+              child: insightButton(
                 key: const Key('aiCoachInsightHistoryButton'),
-                label: l.aicInsightHistoryAction,
-                size: OnCareButtonSize.small,
-                leadingIcon: AppIcons.note,
-                onPressed: () => _showInsightHistory(context),
               ),
             ),
           ],
@@ -358,7 +389,8 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
           AppTag(
             key: const Key('aiCoachInsightTag'),
             label: insightLabel(l, insight),
-            tone: AppTagTone.caution,
+            // 통증·부정적 반응은 주의가 아니라 짚고 넘어갈 신호다(#1975).
+            tone: AppTagTone.danger,
             // 머리의 `기록` 버튼과 같은 아이콘이다 — 그 버튼이 모아 보여 주는
             // 것이 바로 이 표시라는 것을 아이콘이 잇는다(#1918).
             icon: AppIcons.note,
@@ -463,114 +495,6 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     );
   }
 
-  void _showInsightHistory(BuildContext context) {
-    ref.invalidate(aiCoachInsightsProvider);
-    showAppSheet<void>(
-      context: context,
-      builder: (BuildContext _) => const _InsightHistorySheet(),
-    );
-  }
-}
-
-/// 감지 한 줄의 이름 — `무릎 통증 감지` / `통증 감지` / `부정적 반응 감지`.
-String insightLabel(AppLocalizations l, ChatInsight insight) =>
-    switch (insight.kind) {
-      ChatInsightKind.discomfort => switch (insight.bodyPart) {
-        final String part => l.aicInsightDiscomfortPart(part),
-        null => l.aicInsightDiscomfort,
-      },
-      ChatInsightKind.negativeFeedback => l.aicInsightNegative,
-    };
-
-/// 최근 30일 감지 기록 창(#1824).
-class _InsightHistorySheet extends ConsumerWidget {
-  const _InsightHistorySheet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final AsyncValue<ChatInsightHistory> history = ref.watch(
-      aiCoachInsightsProvider,
-    );
-    final int days = history.valueOrNull?.windowDays ?? kChatInsightWindowDays;
-    return AppSheet(
-      key: const Key('aiCoachInsightHistorySheet'),
-      title: l.aicInsightHistoryTitle,
-      subtitle: l.aicInsightHistorySubtitle(days),
-      child: history.when(
-        loading: () => const AppLoading(),
-        error: (_, _) => Text(
-          l.aicInsightHistoryFailed,
-          style: tokens
-              .text(OnCareTypography.bodySmall)
-              .copyWith(color: OnCareColors.textSecondary),
-        ),
-        data: (ChatInsightHistory value) => value.records.isEmpty
-            ? Text(
-                l.aicInsightHistoryEmpty(value.windowDays),
-                key: const Key('aiCoachInsightHistoryEmpty'),
-                style: tokens
-                    .text(OnCareTypography.bodySmall)
-                    .copyWith(color: OnCareColors.textSecondary),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  for (final (int i, ChatInsightRecord record)
-                      in value.records.indexed) ...<Widget>[
-                    if (i > 0) const AppDivider(),
-                    _InsightRow(record: record),
-                  ],
-                ],
-              ),
-      ),
-    );
-  }
-}
-
-class _InsightRow extends StatelessWidget {
-  const _InsightRow({required this.record});
-
-  final ChatInsightRecord record;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    final String date = DateFormat.MMMd(
-      Localizations.localeOf(context).toLanguageTag(),
-    ).format(record.createdAt);
-    return Padding(
-      key: ValueKey<String>('aiCoachInsightRow-${record.messageId}'),
-      padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              AppTag(
-                label: insightLabel(l, record.insight),
-                tone: AppTagTone.caution,
-              ),
-              const SizedBox(width: OnCareSpacing.s8),
-              Text(
-                date,
-                style: tokens
-                    .text(OnCareTypography.caption)
-                    .copyWith(color: OnCareColors.textTertiary),
-              ),
-            ],
-          ),
-          const SizedBox(height: OnCareSpacing.s4),
-          Text(
-            record.text,
-            style: tokens
-                .text(OnCareTypography.bodySmall)
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-        ],
-      ),
-    );
-  }
+  void _showInsightHistory(BuildContext context) =>
+      showInsightHistorySheet(context, ref);
 }

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 
@@ -37,6 +38,10 @@ class _RestoringRepository implements ConsultationRepository {
 
   @override
   Future<void> cancel(String consultationId) async {}
+
+  @override
+  Future<List<TrainerSlot>> fetchSlots(String trainerId) async =>
+      const <TrainerSlot>[];
 }
 
 class _FailingRepository implements ConsultationRepository {
@@ -50,6 +55,10 @@ class _FailingRepository implements ConsultationRepository {
 
   @override
   Future<void> cancel(String consultationId) async {}
+
+  @override
+  Future<List<TrainerSlot>> fetchSlots(String trainerId) async =>
+      const <TrainerSlot>[];
 }
 
 void main() {

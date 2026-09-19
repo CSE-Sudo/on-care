@@ -145,9 +145,10 @@ def food_nutrition(
     found = lookup_by_name(db, name, payload.amount_g)
     if found is None:
         return FoodNutritionOut()
-    match, food = found
+    match, food, exact = found
     return FoodNutritionOut(
         matched_name=match.name,
+        match="exact" if exact else "similar",
         source=food.source,
         amount_g=food.amount_g,
         calories=food.calories,
@@ -164,7 +165,7 @@ async def diet_analyze(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
     image: UploadFile = File(..., description="음식 사진"),
-    meal_type: str = Form("lunch", description="breakfast|lunch|dinner|snack"),
+    meal_type: str = Form("lunch", description="breakfast|lunch|dinner|snack|lateNight"),
     idempotency_key: str | None = Form(
         None,
         max_length=64,  # DietEntry.idempotency_key 컬럼(String(64)) 경계와 일치 — 초과 시 DB 500 방지

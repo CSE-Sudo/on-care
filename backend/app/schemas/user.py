@@ -149,7 +149,7 @@ class UserRegister(BaseModel):
     #: (`TrainerRegister`)은 이 값을 쓰지 않고, 없어도 회원은 MY 탭에서 언제든
     #: 넣을 수 있다.
     #:
-    #: 들어온 표기가 무엇이든 `000-0000-0000` 하나로 정리해 저장한다(#1780).
+    #: 들어온 표기가 무엇이든 `010-0000-0000` 하나로 정리해 저장한다(#1780).
     phone: str = ""
 
     @field_validator("email", mode="before")
@@ -331,6 +331,16 @@ class OnboardingRequest(BaseModel):
         return value
 
 
+class AccountDeleteRequest(BaseModel):
+    """DELETE /users/me 본문 — 회원이 고른 탈퇴 사유. (#2019)
+
+    본문 없이 불러도 된다. 사유는 탈퇴를 막는 조건이 아니라 물어보는 자리다.
+    고른 것 중 서버가 아는 값만 남는다.
+    """
+
+    reasons: list[str] = Field(default_factory=list, max_length=10)
+
+
 class ProfileUpdate(PartialUpdate):
     """PUT /users/me — 내 프로필 모달(이름/이메일/전화/생년월일).
 
@@ -351,7 +361,7 @@ class ProfileUpdate(PartialUpdate):
     #:
     #: 빈 문자열도 막힌다. 이메일은 비울 수 있는 값이 아니다.
     email: Optional[str] = None
-    #: 가입과 같이 `000-0000-0000` 한 표기로 정리해 저장한다(#1883). 가입만
+    #: 가입과 같이 `010-0000-0000` 한 표기로 정리해 저장한다(#1883). 가입만
     #: 정리하면 이 화면이 그 정리를 그대로 되돌린다.
     #:
     #: 빈 문자열은 그대로 둔다 — 연락처를 지우는 것은 할 수 있는 일이다.

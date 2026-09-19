@@ -17,6 +17,13 @@ enum AppButtonVariant {
   /// 흰 바탕 + 테두리 — 취소·보조 동작.
   secondary,
 
+  /// 흰 바탕 + 브랜드 테두리·글자 — 화면 머리에 놓이는 보조 동작. (#1975)
+  ///
+  /// [primary] 와 [secondary] 사이다. 브랜드 색을 띠어 무엇을 하는 자리인지
+  /// 보이되, 채우지 않아 그 화면의 본문보다 앞서지 않는다. AI 코치 머리의
+  /// `기록` 이 채움이던 동안에는 대화보다 먼저 눈에 들었다.
+  brandOutline,
+
   /// 브랜드 글자 — 링크·가벼운 동작.
   text,
 
@@ -78,6 +85,11 @@ class AppButton extends StatelessWidget {
         OnCareColors.surfaceCard,
         OnCareColors.textPrimary,
         const BorderSide(color: OnCareColors.lineStrong),
+      ),
+      AppButtonVariant.brandOutline => (
+        OnCareColors.surfaceCard,
+        tokens.brand.primary,
+        BorderSide(color: tokens.brand.primary),
       ),
       AppButtonVariant.text => (
         Colors.transparent,
@@ -186,9 +198,14 @@ class AppButton extends StatelessWidget {
             ],
           );
 
+    // 처리 중에는 실제 핸들러를 넘기지 않고 빈 동작을 넘긴다(#2057).
+    // - null 을 넘기면 비활성 모양(채움은 옅은 회색)이 되어 흰 스피너가 묻힌다.
+    //   호출부가 중복 탭을 막으려고 `busy ? null : save` 로 넘기는 일이 흔하다.
+    // - 실제 핸들러를 넘기면 아래 AbsorbPointer 가 포인터만 막고, 초점이 간
+    //   버튼의 키보드 Enter·Space 는 그대로 통과해 한 번 더 제출된다.
     Widget button = TextButton(
       style: style,
-      onPressed: onPressed,
+      onPressed: loading ? _ignorePress : onPressed,
       child: content,
     );
     if (loading) {
@@ -202,6 +219,9 @@ class AppButton extends StatelessWidget {
         : button;
   }
 }
+
+/// 처리 중인 [AppButton] 이 활성 모양을 유지하면서 아무것도 하지 않도록 넘기는 동작.
+void _ignorePress() {}
 
 /// 확인창·시트·폼 하단의 두 버튼 — [취소] 왼쪽, [확인] 오른쪽, 폭 반반(#1690 확정).
 class AppButtonPair extends StatelessWidget {

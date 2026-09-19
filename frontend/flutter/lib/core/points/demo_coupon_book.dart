@@ -1,0 +1,423 @@
+import 'dart:math' as math;
+
+import 'package:demo_fixture/demo_fixture.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
+import 'package:oncare/core/utils/clock.dart';
+
+/// 목업 API 의 포인트 사용처·쿠폰. 서버 `points_coupon_service` 의 대역이다. (#1787)
+///
+/// 사용처는 헬스장이 현장에서 주는 혜택이고, 가격은 혜택 1만원 = 7,000P 기준이다.
+/// 규칙은 서버와 같다:
+/// - PT 재등록 3만원 할인 쿠폰(21,000P)은 담당 트레이너가 있어야 교환하고, 사용하지
+///   않은 쿠폰은 한 장뿐이다.
+/// - 개인 락커 1개월 무료 쿠폰(7,000P)은 헬스장이 연결돼 있어야 교환하고, 사용하지
+///   않은 쿠폰은 한 장뿐이며, 교환은 한 달(KST)에 한 번이다. 취소돼 포인트를
+///   돌려받은 쿠폰은 세지 않는다.
+/// - 막힌 이유는 담당 없음·헬스장 없음 → 사용하지 않은 같은 쿠폰 → 보호권 최대
+///   보유 → 이번 달 교환 → 잔액 부족 순으로 하나만 준다.
+/// - 쓸 수 있는 마지막 날은 교환일 + 30일. 지나면 만료되고 포인트는 돌려주지 않는다.
+/// - 사용 처리는 한 번뿐이고 다시 누르면 같은 응답이다.
+/// - 담당 트레이너 연결이 끊기면([endTrainerLink]) 재등록 쿠폰을, 헬스장 연결이
+///   끊기면([endGymLink]) 락커 쿠폰을 취소하고 포인트를 돌려준다.
+///
+/// 만료 3일 전 알림은 목업에 없다 — 데모에서 교환한 쿠폰은 30일 뒤에야 그 창에
+/// 들어가고, 목업 알림함은 이 원장과 따로 논다.
+///
+/// 모든 쿠폰은 헬스장 직원(PT 재등록은 트레이너·헬스장 직원)이 확인한 뒤 회원
+/// 화면의 `사용 완료` 를 누른다.
+class DemoCouponBook {
+  DemoCouponBook({
+    required DemoPointsLedger ledger,
+    DateTime Function()? now,
+    bool hasTrainer = true,
+    bool hasGym = true,
+    DemoStreakShieldBook? shields,
+  }) : _ledger = ledger,
+       _now = now ?? nowKst,
+       _hasTrainer = hasTrainer,
+       _hasGym = hasGym,
+       _shields = shields ?? DemoStreakShieldBook(ledger: ledger, now: now);
+
+  /// 연속 기록 보호권(#1788) — 사용처 목록에 함께 서고, 교환은 이 원장이 받는다.
+  /// 목업 운동 저장소가 같은 인스턴스를 봐야 교환한 보호권을 운동 현황에서 쓴다.
+  final DemoStreakShieldBook _shields;
+  DemoStreakShieldBook get shields => _shields;
+
+  final DemoPointsLedger _ledger;
+  final DateTime Function() _now;
+  bool _hasTrainer;
+  bool _hasGym;
+  int _sequence = 0;
+
+  final List<_DemoCoupon> _coupons = <_DemoCoupon>[];
+
+  /// 데모 회원(김민수)에게 담당 트레이너가 있는가. 목업 헬스장 저장소의 연결과 같다.
+  bool get hasTrainer => _hasTrainer;
+
+  /// 데모 회원에게 연결한 헬스장이 있는가. 목업 헬스장 저장소의 연결과 같다.
+  bool get hasGym => _hasGym;
+
+  /// 담당 트레이너 연결이 끊겼다 — 재등록 쿠폰을 취소하고 포인트를 돌려준다.
+  ///
+  /// 목업 헬스장 저장소가 헬스장·트레이너 해제에서 부른다.
+  void endTrainerLink() {
+    _hasTrainer = false;
+    _cancelUnused(kDemoPtRenewal.id);
+  }
+
+  /// 헬스장 연결이 끊겼다 — 락커 쿠폰을 취소하고 포인트를 돌려준다.
+  ///
+  /// 목업 헬스장 저장소가 헬스장 해제에서 부른다.
+  void endGymLink() {
+    _hasGym = false;
+    _cancelUnused(kDemoLockerMonth.id);
+  }
+
+  /// `GET /me/points/shop`.
+  Map<String, Object?> shopJson() {
+    _expireStale();
+    final int balance = _ledger.balance;
+    return <String, Object?>{
+      'balance': balance,
+      'has_trainer': _hasTrainer,
+      'has_gym': _hasGym,
+      'items': <Map<String, Object?>>[
+        for (final DemoShopItem item in kDemoShopCatalog)
+          _itemJson(item, balance),
+      ],
+    };
+  }
+
+  /// `POST /me/points/exchange`.
+  DemoCouponResult exchange(String itemId, {String? clientRequestId}) {
+    final DemoShopItem? item = _item(itemId);
+    if (item == null) return _error(404, '없는 교환 항목이에요.');
+    if (item.id == kDemoStreakShield.id) {
+      // 쿠폰이 아니라 보호권 한 장이 생긴다 — 보유 한도와 원장이 따로다(#1788).
+      return _shields.exchange(clientRequestId: clientRequestId);
+    }
+    if (clientRequestId != null) {
+      final _DemoCoupon? existing = _coupons
+          .where((_DemoCoupon c) => c.clientRequestId == clientRequestId)
+          .firstOrNull;
+      if (existing != null) return DemoCouponResult(201, _exchangeJson(existing));
+    }
+    _expireStale();
+    if (item.requiresTrainer && !_hasTrainer) {
+      return _error(409, '담당 트레이너가 있어야 교환할 수 있어요.');
+    }
+    if (item.requiresGym && !_hasGym) {
+      return _error(409, '헬스장을 연결해야 교환할 수 있어요.');
+    }
+    if (item.oneActive && _activeOf(item.id) != null) {
+      return _error(409, '사용하지 않은 쿠폰이 이미 있어요.');
+    }
+    if (item.monthlyLimit && _exchangedThisMonth(item.id)) {
+      return _error(409, '이번 달에는 이미 교환했어요.');
+    }
+    final int shortfall = item.cost - _ledger.balance;
+    if (shortfall > 0) return _error(409, '포인트가 ${shortfall}P 부족해요.');
+
+    final DateTime today = _today();
+    final _DemoCoupon coupon = _DemoCoupon(
+      id: 'cpn-demo-${++_sequence}',
+      item: item.id,
+      cost: item.cost,
+      issuedAt: _now(),
+      issuedOn: today,
+      lastDay: DateTime(today.year, today.month, today.day + item.validDays),
+      trainerName: item.requiresTrainer ? kDemoTrainerName : '',
+      gymName: item.requiresTrainer || item.requiresGym ? kDemoGymName : '',
+      clientRequestId: clientRequestId,
+    );
+    if (!_ledger.spend(coupon.id, item.cost)) {
+      return _error(409, '포인트가 부족해요.');
+    }
+    _coupons.add(coupon);
+    return DemoCouponResult(201, _exchangeJson(coupon));
+  }
+
+  /// `GET /me/coupons` — 사용 가능한 것 먼저, 그다음 최신순.
+  List<Map<String, Object?>> couponsJson() {
+    _expireStale();
+    final List<_DemoCoupon> ordered = _coupons.reversed.toList()
+      ..sort(
+        (_DemoCoupon a, _DemoCoupon b) =>
+            (a.status == 'issued' ? 0 : 1) - (b.status == 'issued' ? 0 : 1),
+      );
+    return <Map<String, Object?>>[
+      for (final _DemoCoupon coupon in ordered) _couponJson(coupon),
+    ];
+  }
+
+  /// `POST /me/coupons/{id}/use`.
+  DemoCouponResult use(String couponId) {
+    _expireStale();
+    final _DemoCoupon? coupon = _coupons
+        .where((_DemoCoupon c) => c.id == couponId)
+        .firstOrNull;
+    if (coupon == null) return _error(404, '쿠폰을 찾을 수 없어요.');
+    switch (coupon.status) {
+      case 'issued':
+        coupon
+          ..status = 'used'
+          ..usedAt = _now();
+        return DemoCouponResult(200, _couponJson(coupon));
+      case 'used':
+        return DemoCouponResult(200, _couponJson(coupon));
+      case 'expired':
+        return _error(409, '만료된 쿠폰이에요.');
+      default:
+        return _error(409, '취소된 쿠폰이에요.');
+    }
+  }
+
+  // ---- 내부 ----
+
+  DateTime _today() {
+    final DateTime now = _now();
+    return DateTime(now.year, now.month, now.day);
+  }
+
+  void _expireStale() {
+    final DateTime today = _today();
+    for (final _DemoCoupon coupon in _coupons) {
+      if (coupon.status == 'issued' && today.isAfter(coupon.lastDay)) {
+        coupon.status = 'expired';
+      }
+    }
+  }
+
+  /// [itemId] 의 사용 가능한 쿠폰을 취소하고 포인트를 돌려준다. 기한이 지난 쿠폰은
+  /// 돌려주지 않고 만료로 내린다. 이미 취소된 쿠폰은 건너뛰어 두 번 돌려주지 않는다.
+  void _cancelUnused(String itemId) {
+    final DateTime today = _today();
+    for (final _DemoCoupon coupon in _coupons) {
+      if (coupon.item != itemId || coupon.status != 'issued') {
+        continue;
+      }
+      if (today.isAfter(coupon.lastDay)) {
+        coupon.status = 'expired';
+        continue;
+      }
+      coupon
+        ..status = 'cancelled'
+        ..cancelledAt = _now();
+      _ledger.refund(coupon.id);
+    }
+  }
+
+  _DemoCoupon? _activeOf(String itemId) => _coupons
+      .where((_DemoCoupon c) => c.item == itemId && c.status == 'issued')
+      .firstOrNull;
+
+  /// 이번 달(KST)에 [itemId] 를 교환했는가. 사용 가능·사용·만료 쿠폰은 세고, 취소돼
+  /// 포인트를 돌려받은 쿠폰은 세지 않는다.
+  bool _exchangedThisMonth(String itemId) {
+    final DateTime today = _today();
+    return _coupons.any(
+      (_DemoCoupon c) =>
+          c.item == itemId &&
+          c.status != 'cancelled' &&
+          c.issuedOn.year == today.year &&
+          c.issuedOn.month == today.month,
+    );
+  }
+
+  static DemoShopItem? _item(String itemId) => kDemoShopCatalog
+      .where((DemoShopItem item) => item.id == itemId)
+      .firstOrNull;
+
+  Map<String, Object?> _itemJson(DemoShopItem item, int balance) {
+    final int shortfall = math.max(item.cost - balance, 0);
+    final String? blocked = item.requiresTrainer && !_hasTrainer
+        ? 'no_trainer'
+        : item.requiresGym && !_hasGym
+        ? 'no_gym'
+        : item.oneActive && _activeOf(item.id) != null
+        ? 'active_coupon'
+        : item.id == kDemoStreakShield.id &&
+              _shields.held >= DemoStreakShieldBook.maxHeld
+        ? 'shield_limit'
+        : item.monthlyLimit && _exchangedThisMonth(item.id)
+        ? 'monthly_limit'
+        : shortfall > 0
+        ? 'insufficient_points'
+        : null;
+    return <String, Object?>{
+      'id': item.id,
+      'title': item.title,
+      'benefit': item.benefit,
+      'description': item.description,
+      'cost': item.cost,
+      'valid_days': item.validDays,
+      'requires_trainer': item.requiresTrainer,
+      'requires_gym': item.requiresGym,
+      'available': blocked == null,
+      'blocked_reason': blocked,
+      'shortfall': shortfall,
+    };
+  }
+
+  Map<String, Object?> _exchangeJson(_DemoCoupon coupon) => <String, Object?>{
+    'coupon': _couponJson(coupon),
+    'spent': coupon.cost,
+    'balance': _ledger.balance,
+  };
+
+  Map<String, Object?> _couponJson(_DemoCoupon coupon) {
+    final DemoShopItem? item = _item(coupon.item);
+    final bool usable = coupon.status == 'issued';
+    final int daysLeft = usable
+        ? math.max((coupon.lastDay.difference(_today()).inHours / 24).round(), 0)
+        : 0;
+    return <String, Object?>{
+      'id': coupon.id,
+      'item': coupon.item,
+      'title': item?.title ?? coupon.item,
+      'benefit': item?.benefit ?? coupon.item,
+      'cost': coupon.cost,
+      'status': coupon.status,
+      'trainer_name': coupon.trainerName,
+      'gym_name': coupon.gymName,
+      'issued_at': coupon.issuedAt.toIso8601String(),
+      'issued_on': _ymd(coupon.issuedOn),
+      'expires_on': _ymd(coupon.lastDay),
+      'days_left': daysLeft,
+      'used_at': coupon.usedAt?.toIso8601String(),
+      'cancelled_at': coupon.cancelledAt?.toIso8601String(),
+    };
+  }
+
+  static DemoCouponResult _error(int status, String detail) =>
+      DemoCouponResult(status, <String, Object?>{'detail': detail});
+
+  static String _ymd(DateTime day) =>
+      '${day.year.toString().padLeft(4, '0')}-'
+      '${day.month.toString().padLeft(2, '0')}-'
+      '${day.day.toString().padLeft(2, '0')}';
+}
+
+/// 목업 응답 — 상태코드와 본문.
+class DemoCouponResult {
+  const DemoCouponResult(this.statusCode, this.body);
+
+  final int statusCode;
+  final Object? body;
+}
+
+/// 교환 항목 하나. 서버 카탈로그(`points_coupon_service.CATALOG`)와 같은 값이다.
+class DemoShopItem {
+  const DemoShopItem({
+    required this.id,
+    required this.title,
+    required this.benefit,
+    required this.description,
+    required this.cost,
+    required this.validDays,
+    this.requiresTrainer = false,
+    this.requiresGym = false,
+    this.oneActive = false,
+    this.monthlyLimit = false,
+  });
+
+  final String id;
+  final String title;
+  final String benefit;
+  final String description;
+  final int cost;
+  final int validDays;
+  final bool requiresTrainer;
+  final bool requiresGym;
+  final bool oneActive;
+
+  /// 한 달(KST)에 한 번만 교환할 수 있는가.
+  final bool monthlyLimit;
+}
+
+const DemoShopItem kDemoPtRenewal = DemoShopItem(
+  id: 'pt_renewal',
+  title: 'PT 재등록 3만원 할인',
+  benefit: 'PT 재등록 30,000원 할인',
+  description: '담당 트레이너에게 PT를 다시 등록할 때 30,000원을 할인받아요.',
+  cost: 21000,
+  validDays: 30,
+  requiresTrainer: true,
+  oneActive: true,
+);
+
+const DemoShopItem kDemoLockerMonth = DemoShopItem(
+  id: 'locker_month',
+  title: '개인 락커 1개월 무료',
+  benefit: '개인 락커 1개월 무료',
+  description: '연결한 헬스장에서 개인 락커를 한 달 동안 무료로 써요.',
+  cost: 7000,
+  validDays: 30,
+  requiresGym: true,
+  oneActive: true,
+  monthlyLimit: true,
+);
+
+const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
+  kDemoPtRenewal,
+  kDemoLockerMonth,
+  kDemoStreakShield,
+];
+
+/// 연속 기록 보호권(#1788) — 쿠폰이 아니다. 기한이 없어 `validDays` 는 0 이고,
+/// 교환·사용 규칙은 [DemoStreakShieldBook] 이 들고 있다.
+const DemoShopItem kDemoStreakShield = DemoShopItem(
+  id: DemoStreakShieldBook.itemId,
+  title: '연속 기록 보호권',
+  benefit: '운동을 못 한 하루를 연속 기록에 이어 붙이기',
+  description: '아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요. 최대 4개까지 가질 수 있어요.',
+  cost: DemoStreakShieldBook.cost,
+  validDays: 0,
+);
+
+/// 데모 헬스장 — `MockGymRepository` 의 온케어짐 신촌점과 같다. 담당 트레이너
+/// 이름은 두 앱이 함께 읽는 `demo_fixture` 의 [kDemoTrainerName] 이다.
+const String kDemoGymName = '온케어짐 신촌점';
+
+class _DemoCoupon {
+  _DemoCoupon({
+    required this.id,
+    required this.item,
+    required this.cost,
+    required this.issuedAt,
+    required this.issuedOn,
+    required this.lastDay,
+    required this.trainerName,
+    required this.gymName,
+    this.clientRequestId,
+  });
+
+  final String id;
+  final String item;
+  final int cost;
+  final DateTime issuedAt;
+  final DateTime issuedOn;
+
+  /// 쓸 수 있는 마지막 날.
+  final DateTime lastDay;
+  final String trainerName;
+  final String gymName;
+  final String? clientRequestId;
+  String status = 'issued';
+  DateTime? usedAt;
+  DateTime? cancelledAt;
+}
+
+/// 목업 경로가 함께 쓰는 쿠폰 원장 하나 — 목업 API 와 목업 헬스장 저장소가 같은
+/// 인스턴스를 본다. 포인트는 [demoPointsLedgerProvider] 에서 빠진다.
+///
+/// 보호권은 목업 운동 저장소와 같은 원장을 쓴다(#1788).
+final demoCouponBookProvider = Provider<DemoCouponBook>(
+  (ref) => DemoCouponBook(
+    ledger: ref.watch(demoPointsLedgerProvider),
+    shields: ref.watch(demoStreakShieldBookProvider),
+  ),
+  name: 'demoCouponBook',
+);

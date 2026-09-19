@@ -49,9 +49,11 @@ from app.services import (
     exercise_service,
     exercise_types,
     notification_service,
+    points_coupon_service,
     points_service,
     routine_suggestion_service,
     schedule_parse,
+    streak_shield_service,
 )
 from app.schemas.points_api import PointsOut
 from app.services.coach import personal_ingest
@@ -75,9 +77,19 @@ def today_iso() -> str:
 
 
 def _meal_kr(meal_type: str) -> str:
-    return {"breakfast": "아침", "lunch": "점심", "dinner": "저녁", "snack": "간식"}.get(
-        meal_type, meal_type
-    )
+    """끼니 종류 → 트레이너 웹이 그리는 한국어 라벨.
+
+    키는 회원 앱 `MealType.name` 이다(#1988 의 `lateNight` 포함). 모르는 값은
+    접지 않고 그대로 돌려준다 — 간식으로 접으면 새 끼니가 조용히 낮의 간식과
+    한 칸에 섞인다.
+    """
+    return {
+        "breakfast": "아침",
+        "lunch": "점심",
+        "dinner": "저녁",
+        "snack": "간식",
+        "lateNight": "야식",
+    }.get(meal_type, meal_type)
 
 
 def relative_day_label(day: str) -> str:
@@ -901,8 +913,11 @@ def remove_client(db: Session, link: TrainerClient) -> None:
     관계 행이 사라지면 트레이너의 고객 기반 화면과 권한에서 제외된다. 스케줄,
     프로그램·루틴, 리포트, PT 이력과 대화 원본은 삭제하지 않으므로 회원 앱에서는
     기존 기록을 계속 볼 수 있다.
+
+    담당이 끝나므로 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787).
     """
     link.active = False
+    points_coupon_service.cancel_renewal_coupons(db, link.member_id)
     db.commit()
 
 
@@ -993,6 +1008,17 @@ def delete_trainer_account(db: Session, trainer: User) -> None:
         db.delete(reservation)
     # RESTRICT 자식을 먼저 비운 뒤에야 트레이너 삭제의 CASCADE 가 성립한다.
     db.flush()
+
+    # 지금 담당 중인 회원의 PT 재등록 쿠폰은 쓸 트레이너가 사라지므로 취소하고
+    # 포인트를 돌려준다(#1787). 과거 담당(휴면 링크) 회원은 이미 해제 때 처리됐다.
+    active_member_ids = db.scalars(
+        select(TrainerClient.member_id).where(
+            TrainerClient.trainer_id == trainer.id,
+            TrainerClient.active.is_(True),
+        )
+    ).all()
+    for member_id in active_member_ids:
+        points_coupon_service.cancel_renewal_coupons(db, member_id)
 
     trainer_name = trainer.name or "트레이너"
     for member_id in member_ids:
@@ -1544,6 +1570,11 @@ def complete_assigned_routine(
         # 제약에 걸리는 자리를 적립보다 앞에 둔다.
         db.flush()
         points = _completion_points(db, routine, member_id, row.id, award=True)
+        # 완료 기록이 보호권으로 이어 붙인 날에 떨어지면(자정 무렵 보호와 겹친 완료)
+        # 그 보호권을 되돌린다(#1788).
+        streak_shield_service.refund_for_record(
+            db, member_id, clock.to_seoul(completed_at).date()
+        )
         db.commit()
     except IntegrityError:
         db.rollback()
@@ -3728,6 +3759,9 @@ def _add_member_exercise_log(
         completed_at=exercise_activity.noon(session_day),
     )
     db.add(row)
+    # 보호권으로 이어 붙인 날의 PT 를 완료 처리하면 그날은 운동한 날이다 — 그
+    # 보호권을 되돌린다(#1788). 트레이너 화면은 보호한 날을 모른다.
+    streak_shield_service.refund_for_record(db, s.member_id, session_day)
     return row
 
 
@@ -4019,6 +4053,9 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
     **전부** 내리는 이유: partial unique index 가 회원당 1건을 강제하지만, 정합성이
     깨져 여러 건이 남은 경우 첫 건만 끄면 get_member_trainer_id() 가 계속 다른 링크를
     반환해 "해제했는데 그대로"가 된다(리뷰 지적).
+
+    담당이 끝나면 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787) — 헬스장
+    해제·트레이너만 해제 두 경로가 모두 여기를 지난다.
     """
     links = db.scalars(
         select(TrainerClient).where(
@@ -4028,6 +4065,8 @@ def _deactivate_coach_links(db: Session, member_id: str) -> bool:
     ).all()
     for link in links:
         link.active = False
+    if links:
+        points_coupon_service.cancel_renewal_coupons(db, member_id)
     return bool(links)
 
 

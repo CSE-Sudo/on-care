@@ -65,6 +65,14 @@ class _GoalSyncHostState extends State<_GoalSyncHost> {
   }
 }
 
+/// 세션은 돌려주지만 담당 조회는 실패하는 저장소 — 망이 흔들린 순간이다.
+class _CoachFailingRepository extends _SessionMemberCoachRepository {
+  const _CoachFailingRepository(super.sessions);
+
+  @override
+  Future<MemberCoach?> fetchCoach() async => throw Exception('offline');
+}
+
 class _SessionMemberCoachRepository implements MemberCoachRepository {
   const _SessionMemberCoachRepository(this.sessions, {this.coach});
 
@@ -91,7 +99,8 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<List<CoachSession>> fetchSessions() async => sessions;
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => const <CoachMessage>[];
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      const <CoachMessage>[];
   @override
   Stream<List<CoachMessage>> watchChat() =>
       const Stream<List<CoachMessage>>.empty();
@@ -291,6 +300,67 @@ void main() {
     expect(find.text('숄더 프레스 · 4세트 · 12회 · 10kg'), findsOneWidget);
     expect(find.text('김트레이너 · 오늘의 피드백'), findsOneWidget);
     expect(find.text('오른쪽 어깨 가동 범위를 확인해 주세요.'), findsOneWidget);
+  });
+
+  testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (
+    WidgetTester tester,
+  ) async {
+    // 연결을 끊었는데 이 칸이 남으면 트레이너가 있던 흔적만 화면에 서 있게
+    // 된다. 세션 기록은 그대로 두고 담당만 없앤 상태로 확인한다 — 데모는
+    // 픽스처 세션을 연결과 무관하게 읽어 카드를 세우고 있었다.
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _SessionMemberCoachRepository(<CoachSession>[
+        CoachSession(
+          id: 'completed-pt',
+          date: nowKst(),
+          time: '18:00',
+          type: '1:1 PT',
+          durationMinutes: 50,
+          status: '완료',
+        ),
+      ]),
+    );
+
+    expect(find.byKey(const Key('completedPtSessionCard')), findsNothing);
+    expect(find.text('18:00 수업 완료'), findsNothing);
+  });
+
+  testWidgets('담당 조회가 실패해도 오늘 한 PT 기록은 사라지지 않는다 (#2014)', (
+    WidgetTester tester,
+  ) async {
+    // 칸을 걷는 조건은 "담당이 없다고 확인됐을 때" 다. 조회 실패는 담당이
+    // 없다는 뜻이 아니다 — 여기서 숨기면 담당이 있는 회원이 망이 한 번
+    // 흔들린 것만으로 오늘 PT 기록을 잃는다.
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      coachRepository: _CoachFailingRepository(<CoachSession>[
+        CoachSession(
+          id: 'completed-pt',
+          date: nowKst(),
+          time: '18:00',
+          type: '1:1 PT',
+          durationMinutes: 50,
+          status: '완료',
+        ),
+      ]),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('completedPtSessionCard')),
+      400,
+    );
+    expect(find.text('18:00 수업 완료'), findsOneWidget);
   });
 
   testWidgets('MY 에서 저장한 운동 목표가 열려 있던 홈·운동 탭에 반영된다 (#1139)', (

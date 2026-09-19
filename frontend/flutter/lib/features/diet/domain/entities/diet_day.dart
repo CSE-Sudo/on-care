@@ -1,7 +1,49 @@
-enum MealType { breakfast, lunch, dinner, snack }
+/// 끼니 종류. 이름이 곧 API `meal_type` 문자열이다 — 보내는 쪽도 읽는 쪽도
+/// [MealType.name] 을 그대로 쓴다. 서버는 이 값을 검증하지 않는 자유 문자열
+/// (`String(20)`)로 받으므로, 이름과 전송값이 갈리면 틀린 값이 조용히 저장되고
+/// 트레이너 웹에서 간식으로 접힌다. 새 값을 더할 때도 이 규칙을 지킨다.
+enum MealType { breakfast, lunch, dinner, snack, lateNight }
 
-MealType _mealFromString(String s) =>
-    MealType.values.firstWhere((m) => m.name == s);
+/// 서버가 준 `meal_type` → [MealType]. 모르는 값은 [MealType.snack] 으로 접는다.
+///
+/// 끼니는 늘어날 수 있고(#1988 의 `lateNight`), 앱은 저보다 새 서버를 만날 수
+/// 있다. 그때 하루치 식단 전체가 파싱에서 죽는 것보다, 모르는 한 끼가 간식으로
+/// 보이는 편이 낫다.
+MealType _mealFromString(String s) => MealType.values.firstWhere(
+  (m) => m.name == s,
+  orElse: () => MealType.snack,
+);
+
+/// 음식 한 줄의 영양이 **어디서 왔나.** 서버 `foods[].source` 와 같은 어휘다
+/// (#2105).
+///
+/// 수정 화면이 음식마다 이 값을 들고 다니다 저장할 때 되돌려 보낸다. 예전에는
+/// 읽을 때 버렸고, 서버가 빠진 값을 인식기 기본값으로 채워 수정 저장 한 번에
+/// 모든 음식이 [estimate] 가 됐다.
+enum FoodSource {
+  /// 공공 영양 DB × 양.
+  db,
+
+  /// DB 행에 탄단지가 비어 인식기 값을 남겼다.
+  mixed,
+
+  /// 매칭이나 양이 없어 인식기 추정을 그대로 두었다.
+  estimate,
+
+  /// 회원이 수정 화면에서 영양 칸을 직접 고쳤다. 운동 기록의 `member`(회원
+  /// 수기)와 같은 말이다.
+  member;
+
+  /// 모르는 값과 누락은 [estimate] 로 읽는다 — 이 필드 이전 기록이 그렇고,
+  /// 서버도 없으면 그렇게 저장해 왔다.
+  static FoodSource fromJson(Object? value) =>
+      switch ((value as String?)?.trim()) {
+        'db' => FoodSource.db,
+        'mixed' => FoodSource.mixed,
+        'member' => FoodSource.member,
+        _ => FoodSource.estimate,
+      };
+}
 
 class FoodItem {
   const FoodItem({
@@ -13,6 +55,7 @@ class FoodItem {
     this.carbsG = 0,
     this.proteinG = 0,
     this.fatG = 0,
+    this.source = FoodSource.estimate,
   });
   final String name;
   final int calories;
@@ -34,6 +77,9 @@ class FoodItem {
   final double proteinG;
   final double fatG;
 
+  /// 위 영양이 어디서 왔나(#2105). 수정 저장 때 그대로 되돌려 보낸다.
+  final FoodSource source;
+
   factory FoodItem.fromJson(Map<String, Object?> json) => FoodItem(
     name: json['name']! as String,
     calories: (json['calories']! as num).toInt(),
@@ -47,6 +93,7 @@ class FoodItem {
     carbsG: (json['carbs_g'] as num?)?.toDouble() ?? 0,
     proteinG: (json['protein_g'] as num?)?.toDouble() ?? 0,
     fatG: (json['fat_g'] as num?)?.toDouble() ?? 0,
+    source: FoodSource.fromJson(json['source']),
   );
 }
 

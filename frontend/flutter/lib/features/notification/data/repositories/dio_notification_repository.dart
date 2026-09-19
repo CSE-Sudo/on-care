@@ -95,14 +95,17 @@ class DioNotificationRepository implements NotificationRepository {
     'coach_chat' => AlertTarget.coachChat,
     'exercise' => AlertTarget.exercise,
     'diet' => AlertTarget.diet,
+    'my_benefits' => AlertTarget.myBenefits,
     'health_goals' => AlertTarget.healthGoals,
+    'consultations' => AlertTarget.consultations,
     _ => AlertTarget.unknown,
   };
 
   /// 서버 갈래 → 앱 갈래.
   ///
   /// 트레이너 활동이 만드는 회원 알림(`coach_chat`·`routine`·`member_schedule`·
-  /// `consultation_result`)은 회원이 확인하고 움직여야 하는 알림이라 리마인더다.
+  /// `consultation_result`·`consult_decision`)은 회원이 확인하고 움직여야 하는
+  /// 알림이라 리마인더다.
   /// 예전에는 모르는 갈래로 떨어져 시스템 공지(정보 아이콘)처럼 보였다(#1812).
   @visibleForTesting
   static AlertCategory categoryFromWire(String s) => switch (s) {
@@ -110,7 +113,8 @@ class DioNotificationRepository implements NotificationRepository {
     'coach_chat' ||
     'routine' ||
     'member_schedule' ||
-    'consultation_result' => AlertCategory.reminder,
+    'consultation_result' ||
+    'consult_decision' => AlertCategory.reminder,
     'health_check' => AlertCategory.healthCheck,
     'achievement' => AlertCategory.achievement,
     _ => AlertCategory.system,

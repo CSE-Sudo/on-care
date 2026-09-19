@@ -182,55 +182,39 @@ void main() {
       return AppLocalizations.of(tester.element(find.byType(DietRecordPage)));
     }
 
-    testWidgets('지표는 칼로리·나트륨 둘이다 (#1879)', (WidgetTester tester) async {
-      // 탄단지는 그래프로 고르지 않는다 — 기간이 묻는 값은 칼로리(와 그 옆의
-      // 나트륨)고, 탄단지는 그 칼로리를 무엇이 채웠는지로 따로 나타난다.
-      final AppLocalizations l = await pumpWeek(tester);
+    testWidgets('지표 칩 줄이 없고 날짜 기간만 남는다 (#1986)', (WidgetTester tester) async {
+      // 나트륨이 당류와 같은 자리로 내려가며 고를 것이 칼로리 하나만 남았다.
+      // 고를 것이 하나뿐인 자리는 고르는 자리가 아니라, 칩 줄을 줄째로 걷어낸다.
+      // 탄단지는 애초에 그래프로 고르지 않는다 — 그 칼로리를 무엇이 채웠는지로
+      // 머리 숫자 옆과 막대의 누적 구간에 따로 나타난다.
+      await pumpWeek(tester);
 
-      final Finder chips = find.descendant(
-        of: find.byType(DietPeriodView),
-        matching: find.byType(AppChoiceChip),
-      );
-      expect(chips, findsNWidgets(2));
-      expect(
-        tester
-            .widgetList<AppChoiceChip>(chips)
-            .map((AppChoiceChip c) => c.label),
-        <String>[l.dietCalories, l.dietSodium],
-      );
-      // 범위는 버튼과 같은 줄에 남는다 — 따로 한 줄을 쓰면 제목·범위·버튼 세
-      // 줄이 되어 정작 그래프가 아래로 밀린다.
       expect(
         find.descendant(
-          of: find.ancestor(
-            of: find.text(l.dietCalories),
-            matching: find.byType(Row),
-          ),
-          matching: find.textContaining(RegExp(r'~|–|-')),
+          of: find.byType(DietPeriodView),
+          matching: find.byType(AppChoiceChip),
         ),
-        findsWidgets,
-        reason: '날짜 범위가 지표 버튼과 다른 줄에 있습니다.',
+        findsNothing,
       );
+      // 칩과 한 줄을 쓰던 날짜 기간은 남는다.
+      expect(find.byKey(const Key('diet-period-range')), findsOneWidget);
     });
 
-    testWidgets('전체도 같은 두 지표를 고른다 (#1879)', (WidgetTester tester) async {
-      // 기간에 따라 그림(꺾은선 ↔ 막대)만 다르고 고르는 지표는 같다 — 이번 주와
-      // 전체가 서로 다른 지표를 내놓으면 토글을 누를 때마다 기준이 바뀐다.
-      final AppLocalizations l = await pumpWeek(tester);
+    testWidgets('전체도 칩 줄이 없다 (#1986)', (WidgetTester tester) async {
+      // 두 기간이 같은 규칙으로 읽혀야 한다 — 한쪽에만 고를 자리가 남으면
+      // 토글을 누를 때마다 기준이 바뀐다.
+      await pumpWeek(tester);
       await tester.tap(dietPeriodTab(DietPeriodTab.month));
       await tester.pumpAndSettle();
 
-      final Finder chips = find.descendant(
-        of: find.byType(DietPeriodView),
-        matching: find.byType(AppChoiceChip),
-      );
-      expect(chips, findsNWidgets(2));
       expect(
-        tester
-            .widgetList<AppChoiceChip>(chips)
-            .map((AppChoiceChip c) => c.label),
-        <String>[l.dietCalories, l.dietSodium],
+        find.descendant(
+          of: find.byType(DietPeriodView),
+          matching: find.byType(AppChoiceChip),
+        ),
+        findsNothing,
       );
+      expect(find.byKey(const Key('diet-period-range')), findsOneWidget);
     });
   });
 

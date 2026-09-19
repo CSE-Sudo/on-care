@@ -20,7 +20,8 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 void main() {
   late DemoPointsLedger ledger;
 
-  setUp(() => ledger = DemoPointsLedger());
+  // 시작 잔액을 못 박아 둔다 — 아래 숫자는 이 값에서 움직인다.
+  setUp(() => ledger = DemoPointsLedger(openingBalance: 1240));
 
   Future<void> pumpPage(
     WidgetTester tester, {

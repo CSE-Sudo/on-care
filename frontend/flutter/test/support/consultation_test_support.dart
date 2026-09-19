@@ -1,12 +1,14 @@
-import 'package:flutter/material.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_consultation_repository.dart';
+import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
 import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 
 /// 서버로 나가지 않는 컨트롤러 — 테스트는 대기 상태만 필요하다.
 ConsultationRequestController newTestConsultationController() =>
-    ConsultationRequestController(const MockConsultationRepository());
+    ConsultationRequestController(
+      MockConsultationRepository(MockGymRepository()),
+    );
 
 /// 표시용 요청에서 접수 payload 를 만든다. mock repository 는 내용을 보지 않으므로
 /// 대상 트레이너만 맞으면 충분하다.
@@ -15,8 +17,7 @@ ConsultationDraft draftFor(ConsultationRequest request) => ConsultationDraft(
   exerciseGoal: ExerciseGoal.fitness,
   healthPurposeType: HealthPurposeType.general,
   healthPurposeDetail: null,
-  preferredDate: request.preferredDate,
-  preferredTimeSlot: const PreferredTime.at(TimeOfDay(hour: 9, minute: 0)),
+  slotId: 'slot-test',
   message: request.message,
 );
 

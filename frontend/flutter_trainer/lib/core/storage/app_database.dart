@@ -64,12 +64,12 @@ class TrainerClients extends Table {
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
 }
 
-/// A single meal in a client's day (아침/점심/저녁/간식).
+/// A single meal in a client's day (아침/점심/저녁/간식/야식).
 @DataClassName('ClientDietEntryRow')
 class ClientDietEntries extends Table {
   TextColumn get id => text()();
   TextColumn get clientId => text()();
-  TextColumn get meal => text()(); // 아침|점심|저녁|간식
+  TextColumn get meal => text()(); // 아침|점심|저녁|간식|야식
   TextColumn get items => text()();
   IntColumn get calories => integer()();
   IntColumn get sodiumMg => integer()();
@@ -135,7 +135,7 @@ class ClientRoutineHistory extends Table {
 
   TextColumn get label => text()(); // "PT 세션 · 트레이너 지도"
   IntColumn get completionRate => integer()(); // 0..100
-  TextColumn get exercisesJson => text()(); // ["레그프레스 3세트", ...]
+  TextColumn get exercisesJson => text()(); // ["레그프레스", ...]
   TextColumn get clientFeedback => text().withDefault(const Constant(''))();
   TextColumn get trainerNote => text().withDefault(const Constant(''))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();

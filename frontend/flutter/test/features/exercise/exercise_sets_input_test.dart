@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
+import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -324,6 +325,47 @@ void main() {
     await _save(tester);
 
     expect(repo.minutes, 47);
+  });
+
+  testWidgets('트레이너가 배정할 수 있는 세트·중량을 회원도 직접 적을 수 있다', (
+    WidgetTester tester,
+  ) async {
+    // 예전에는 세트가 회원 앱 40·서버 100·트레이너 99 로 셋이 다 달랐고 중량은
+    // 회원 앱만 500kg 이었다. 트레이너가 짠 프로그램이 화면에 보여도 회원이 그
+    // 수를 옮겨 적을 수 없었다(#1904).
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(tester, repo);
+
+    await tester.tap(find.text('근력'));
+    await tester.pumpAndSettle();
+    await _typeName(tester, '레그프레스');
+
+    for (final (Key key, num value) in <(Key, num)>[
+      (const Key('exerciseSetsStepper'), kMaxExerciseSets),
+      (const Key('exerciseRepsStepper'), kMaxExerciseReps),
+      (const Key('exerciseWeightStepper'), kMaxExerciseWeightKg),
+    ]) {
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(key),
+          matching: find.byKey(const Key('numberStepperField')),
+        ),
+        '${value.toInt()}',
+      );
+      await tester.pumpAndSettle();
+      // 상한 안의 값이므로 잘리지 않는다 — 예전에는 40·500 으로 깎였다.
+      expect(
+        _stepperValue(tester, key),
+        '${value.toInt()}',
+        reason: '$key 가 상한 안의 값을 깎았다',
+      );
+    }
+
+    await _save(tester);
+
+    expect(repo.sets, kMaxExerciseSets);
+    expect(repo.reps, kMaxExerciseReps);
+    expect(repo.weight, kMaxExerciseWeightKg);
   });
 
   testWidgets('중량은 소수점 한 자리까지 받는다', (WidgetTester tester) async {

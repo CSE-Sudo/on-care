@@ -146,7 +146,8 @@ class HealthProfile(Base):
 
 
 class PointsLedger(Base):
-    """활동 포인트 내역 — 적립(earn)·사용(spend)·회수(revoke) 한 줄씩. (#1786)
+    """활동 포인트 내역 — 적립(earn)·사용(spend)·회수(revoke)·반환(refund) 한 줄씩.
+    (#1786, #1787)
 
     잔액은 [HealthProfile.activity_points] 가 들고, 이 표는 그 잔액이 무엇으로
     움직였는지를 남긴다. 둘은 같은 트랜잭션에서 함께 바뀐다(`points_service`).
@@ -154,8 +155,10 @@ class PointsLedger(Base):
     `kst_date` 는 이 줄이 생긴 KST 날짜다. 하루 적립 한도를 이 값으로 센다 —
     `created_at` 은 UTC 라 그대로 날짜를 뽑으면 아침 기록이 전날로 잡힌다.
 
-    같은 기록(source)에 적립·회수는 한 번씩이다. 사용처(쿠폰 등)가 생기면
-    `kind='spend'` 로 음수 `delta` 를 남기고, 출처가 없으면 source 를 비운다.
+    종류는 짝을 이룬다. 회수(revoke)는 같은 source 의 적립을, 반환(refund)은 같은
+    source 의 사용을 되돌린다. 같은 기록(source)에 각 종류는 한 번씩이다 — 쿠폰
+    교환은 `kind='spend'` 로 음수 `delta` 를, 담당 해제로 쿠폰이 취소되면
+    `kind='refund'` 로 같은 크기의 양수 `delta` 를 남긴다(#1787).
     """
 
     __tablename__ = "points_ledger"
@@ -164,12 +167,13 @@ class PointsLedger(Base):
     user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    kind: Mapped[str] = mapped_column(String(10))  # earn|spend|revoke
-    #: 잔액 변화량. 적립은 양수, 사용·회수는 0 이하(실제로 뺀 값).
+    kind: Mapped[str] = mapped_column(String(10))  # earn|spend|revoke|refund
+    #: 잔액 변화량. 적립·반환은 양수, 사용·회수는 0 이하(실제로 뺀 값).
     delta: Mapped[int] = mapped_column(Integer)
-    #: 규칙 이름 — diet_entry|exercise_manual|routine_complete. 한도를 세는 단위.
+    #: 규칙 이름 — diet_entry|exercise_manual|routine_complete|coupon_<item>.
+    #: 적립 한도를 세는 단위다.
     reason: Mapped[str] = mapped_column(String(40))
-    #: 근거 기록 종류와 id — diet_entry|exercise_session.
+    #: 근거 기록 종류와 id — diet_entry|exercise_session|points_coupon.
     source_type: Mapped[str | None] = mapped_column(String(40), nullable=True)
     source_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     kst_date: Mapped[str] = mapped_column(String(10))  # YYYY-MM-DD
@@ -179,10 +183,12 @@ class PointsLedger(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "kind IN ('earn', 'spend', 'revoke')", name="ck_points_ledger_kind"
+            "kind IN ('earn', 'spend', 'revoke', 'refund')",
+            name="ck_points_ledger_kind",
         ),
         CheckConstraint(
-            "(kind = 'earn' AND delta > 0) OR (kind <> 'earn' AND delta <= 0)",
+            "(kind IN ('earn', 'refund') AND delta > 0) "
+            "OR (kind IN ('spend', 'revoke') AND delta <= 0)",
             name="ck_points_ledger_delta_sign",
         ),
         UniqueConstraint(
@@ -196,6 +202,142 @@ class PointsLedger(Base):
     )
 
 
+class PointsCoupon(Base):
+    """포인트로 교환한 쿠폰 한 장. (#1787)
+
+    교환하면 `issued` 로 생기고, 사용 처리되면 `used`, 기한이 지나면 `expired`,
+    담당 트레이너 연결(PT 재등록)·헬스장 연결(개인 락커)이 끊겨 취소되면
+    `cancelled` 다. 기한은 스케줄러 없이
+    **읽는 쪽이 늦게 반영한다** — 조회·교환·사용 경로가 `expires_at` 이 지난
+    `issued` 를 `expired` 로 내린다(`points_coupon_service._expire_stale`).
+
+    - `cost` 는 교환할 때 쓴 포인트다. 연결 해제로 취소되면 이 값을 돌려준다 —
+      카탈로그 가격이 나중에 바뀌어도 낸 만큼 돌려받는다.
+    - `trainer_name`(PT 재등록)·`gym_name`(PT 재등록·개인 락커) 은 교환 시점의
+      사본이다. 쿠폰 화면이 사용 뒤에도 어느 트레이너·헬스장에서 쓴 쿠폰인지 말할
+      수 있게 한다.
+    - 사용 처리는 늘 직원 확인 뒤 회원 휴대폰에서 한다. 누른 사람이 늘 이
+      회원이라 따로 적지 않고, 시각만 `used_at` 에 남긴다.
+    - 사용 가능한 쿠폰은 종류마다 회원당 한 장뿐이다(partial unique index).
+    """
+
+    __tablename__ = "points_coupons"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 카탈로그 항목 id — pt_renewal|locker_month.
+    item: Mapped[str] = mapped_column(String(40))
+    cost: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(12), default="issued", server_default="issued"
+    )  # issued|used|expired|cancelled
+    trainer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    trainer_name: Mapped[str] = mapped_column(
+        String(100), default="", server_default=""
+    )
+    gym_name: Mapped[str] = mapped_column(String(200), default="", server_default="")
+    #: 교환 시도 단위 멱등키. 응답을 못 받고 다시 누른 교환이 두 장을 만들지 않는다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 이 시각부터 쓸 수 없다(마지막 사용일 다음 날 KST 0시).
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancelled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    #: 만료 3일 전 알림을 보낸 시각. 쿠폰마다 한 번만 보낸다.
+    expiry_reminded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('issued', 'used', 'expired', 'cancelled')",
+            name="ck_points_coupons_status",
+        ),
+        CheckConstraint("cost > 0", name="ck_points_coupons_cost"),
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_points_coupons_client_request"
+        ),
+        Index("ix_points_coupons_user_status", "user_id", "status"),
+        # 종류마다 사용 가능한 쿠폰은 회원당 최대 한 장 — PT 재등록은 재등록 1회에
+        # 1장, 개인 락커 쿠폰도 같은 규칙이다.
+        Index(
+            "uq_points_coupons_active_item",
+            "user_id",
+            "item",
+            unique=True,
+            postgresql_where=text("status = 'issued'"),
+        ),
+    )
+
+
+class StreakShield(Base):
+    """연속 기록 보호권 한 장. (#1788)
+
+    포인트 사용처에서 300P 로 교환하면 `held` 로 생기고, 회원이 운동을 못 한 어제를
+    연속 기록에 이어 붙이면 `used` 가 되며 그 날짜(`protected_on`, KST)를 남긴다.
+
+    - 사용하지 않은 보호권은 회원당 최대 2장이다. 교환이 잔액 행을 잠근 채 세므로
+      같은 회원의 교환이 겹쳐도 넘지 않는다(`streak_shield_service.exchange`).
+    - 한 날짜는 한 번만 보호한다(partial unique index). 같은 날을 다시 보호하려는
+      재시도가 보호권을 두 장 쓰지 않게 하는 마지막 방어선이다.
+    - 보호한 날은 **연속 일수에만** 운동한 날로 센다. 운동 시간·칼로리·횟수 합계에는
+      넣지 않는다 — 그래서 운동 기록 표에 행을 만들지 않고 날짜만 따로 둔다.
+    - 기한은 없다. 교환에 쓴 포인트는 내역에 `spend`(source `streak_shield`)로 남는다.
+    """
+
+    __tablename__ = "streak_shields"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    cost: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(8), default="held", server_default="held"
+    )  # held|used
+    #: 교환 시도 단위 멱등키. 응답을 못 받고 다시 누른 교환이 두 장을 만들지 않는다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 보호한 날(KST, YYYY-MM-DD). 아직 쓰지 않았으면 NULL.
+    protected_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('held', 'used')", name="ck_streak_shields_status"
+        ),
+        # 쓴 보호권만 날짜·시각을 가진다. 반쪽 상태(날짜 없는 사용)를 막는다.
+        CheckConstraint(
+            "(status = 'held' AND protected_on IS NULL AND used_at IS NULL) "
+            "OR (status = 'used' AND protected_on IS NOT NULL AND used_at IS NOT NULL)",
+            name="ck_streak_shields_use",
+        ),
+        CheckConstraint("cost > 0", name="ck_streak_shields_cost"),
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_streak_shields_client_request"
+        ),
+        Index("ix_streak_shields_user_status", "user_id", "status"),
+        # 하루에 보호는 한 번 — 회원·날짜마다 쓴 보호권은 최대 한 장.
+        Index(
+            "uq_streak_shields_protected_on",
+            "user_id",
+            "protected_on",
+            unique=True,
+            postgresql_where=text("protected_on IS NOT NULL"),
+        ),
+    )
+
+
 class DietEntry(Base):
     """식단 기록 — drift DietEntries 대응. 나트륨·당류 포함."""
 
@@ -206,7 +348,7 @@ class DietEntry(Base):
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
     date: Mapped[str] = mapped_column(String(10), index=True)  # YYYY-MM-DD
-    meal_type: Mapped[str] = mapped_column(String(20))  # breakfast|lunch|dinner|snack
+    meal_type: Mapped[str] = mapped_column(String(20))  # breakfast|lunch|dinner|snack|lateNight
     time_label: Mapped[str] = mapped_column(String(10), default="")
     foods_json: Mapped[str] = mapped_column(Text, default="[]")  # [{name, calories}]
     total_calories: Mapped[int] = mapped_column(Integer, default=0)
@@ -233,6 +375,23 @@ class DietEntry(Base):
         UniqueConstraint(
             "user_id", "idempotency_key", name="uq_diet_entries_user_idem"
         ),
+    )
+
+
+class AccountDeletionReason(Base):
+    """회원이 탈퇴하며 고른 사유 한 줄. (#2019)
+
+    **회원 행과 잇지 않는다.** 회원은 이 행을 쓰는 바로 그 순간 지워지므로 FK 를
+    걸면 남길 수가 없다. 남기는 것도 사유 코드와 시각뿐이다 — 누가 썼는지는
+    모으지 않는다. 여러 개를 고를 수 있어 한 번의 탈퇴가 여러 행이 된다.
+    """
+
+    __tablename__ = "account_deletion_reasons"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    reason: Mapped[str] = mapped_column(String(40), index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )
 
 
@@ -273,11 +432,15 @@ class DietPhoto(Base):
 
 
 class FoodNutrient(Base):
-    """공공 식품영양성분 DB(식약처/국가표준) 큐레이션 테이블.
+    """공공 식품영양성분 DB(식약처/국가표준) 참조표.
 
-    Vision 인식이 준 '음식 이름'을 이 표에 매핑해 신뢰 가능한 1인분 영양가로 교체한다.
-    (LLM 은 '무엇인지' 식별에 강하고, 정확한 영양 수치는 이 공공 DB 가 제공.)
-    수치는 1회 제공량(serving_size_g) 기준. name_norm 은 매칭용 정규화 이름.
+    Vision 인식이 준 '음식 이름'을 이 표에 매핑해 **100g 당 값 × 사진에서 읽은 양**으로
+    영양을 다시 적는다(`services/nutrition/enrich`). LLM 은 '무엇인지' 식별에 강하고,
+    정확한 영양 수치는 이 공공 DB 가 댄다. 수치는 100g 기준이고, `serving_size_g` 는
+    양을 모를 때 쓰는 1회 섭취량이다. name_norm 은 매칭용 정규화 이름.
+
+    시드 데이터가 바뀌면 기동 때 통째로 다시 맞춘다(`init_db._seed_food_nutrients`).
+    다른 표가 이 표를 참조하지 않으므로 행 id 는 유지되지 않는다.
     """
 
     __tablename__ = "food_nutrients"
@@ -289,9 +452,9 @@ class FoodNutrient(Base):
         String(30), default=""
     )  # 밥류|국·찌개류|구이류...
     serving_size_g: Mapped[float | None] = mapped_column(Float, nullable=True)
-    calories: Mapped[float] = mapped_column(Float, default=0)  # kcal / 1인분
-    sodium_mg: Mapped[float] = mapped_column(Float, default=0)  # mg  / 1인분
-    sugar_g: Mapped[float] = mapped_column(Float, default=0)  # g   / 1인분
+    calories: Mapped[float] = mapped_column(Float, default=0)  # kcal / 100g
+    sodium_mg: Mapped[float] = mapped_column(Float, default=0)  # mg  / 100g
+    sugar_g: Mapped[float] = mapped_column(Float, default=0)  # g   / 100g
     carbs_g: Mapped[float | None] = mapped_column(Float, nullable=True)
     protein_g: Mapped[float | None] = mapped_column(Float, nullable=True)
     fat_g: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -299,6 +462,23 @@ class FoodNutrient(Base):
         String(20), default="mfds"
     )  # 데이터 출처(식약처=mfds)
 
+
+
+class ReferenceDataVersion(Base):
+    """참조표마다 지금 들어 있는 시드 데이터의 지문. (#2100)
+
+    참조표(`food_nutrients` 등)는 표가 비었을 때만 시드하면, 시드 데이터를 고쳐도
+    이미 떠 있는 DB 에 닿지 않는다. 시드 데이터로 만든 지문을 여기 적어 두고, 기동 때
+    다르면 그 표를 새 시드로 통째로 바꾼다.
+    """
+
+    __tablename__ = "reference_data_versions"
+
+    name: Mapped[str] = mapped_column(String(50), primary_key=True)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 class ExerciseCatalogItem(Base):
     """운동 종목 참조표 — 이름을 소모 칼로리로 바꾸는 유일한 근거. (#1312)
@@ -668,6 +848,20 @@ class ConsultationRequest(Base):
     exercise_goal: Mapped[str] = mapped_column(String(30))
     health_purpose_type: Mapped[str] = mapped_column(String(30))
     health_purpose_detail: Mapped[str | None] = mapped_column(Text, nullable=True)
+    #: 회원이 고른 트레이너의 빈 자리. 신청하는 순간 이 자리를 잠그고, 수락하면
+    #: 그대로 첫 일정이 된다. 거절·취소·만료에서 되돌려 준다. (#1873)
+    #:
+    #: nullable 인 이유는 둘이다 — 자리 선택 이전에 접수된 요청에는 고른 자리가
+    #: 없고(그 요청들은 배포 때 `expired` 로 정리된다), 트레이너가 자리를 지우면
+    #: `SET NULL` 로 끊긴다. 끊겨도 아래 두 칸에 시각 사본이 남아 조회는 된다.
+    slot_id: Mapped[str | None] = mapped_column(
+        ForeignKey("trainer_reservation_slots.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    #: 고른 자리의 시각 사본. 자리를 보고 적는 값이라 새 요청에서는 자리와 늘
+    #: 같고, 자리가 끊겨도 화면이 "언제로 신청했는지"를 그릴 수 있다. 자리 선택
+    #: 이전 요청에는 회원이 직접 적어 보낸 희망 시각이 그대로 남아 있다.
     preferred_date: Mapped[str] = mapped_column(String(10))
     preferred_time_slot: Mapped[str] = mapped_column(String(20))
     #: 회원이 데이터 공유에 동의한 시각. 트레이너가 수락해 담당이 생기면 이
@@ -1739,6 +1933,15 @@ class AiMessage(Base):
     role: Mapped[str] = mapped_column(String(10))  # user|coach
     content: Mapped[str] = mapped_column(Text)
     sources_json: Mapped[str] = mapped_column(Text, default="[]")
+    #: 이 줄에서 찾은 통증·부정적 반응을 회원이 기록에서 치웠는가. (#1975)
+    #:
+    #: 감지는 저장하지 않고 대화에서 매번 계산하므로(`coach/insights.py`), 지울
+    #: 대상이 따로 없다. 대신 **그 감지를 더 보지 않겠다**는 표시를 메시지에
+    #: 남긴다 — 메시지 자체는 지우지 않는다. 회원이 쓴 말은 대화에 그대로 남고,
+    #: 규칙이 바뀌어 다른 감지가 나와도 이 표시는 그 줄 전체에 걸린다.
+    insight_dismissed: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

@@ -9,6 +9,9 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
+import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
+import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/data/repositories/chat_pdf_repository.dart';
@@ -108,7 +111,8 @@ class _PdfMemberCoachRepository extends MockMemberCoachRepository {
   ];
 
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => _messages;
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      _messages;
 
   @override
   Stream<List<CoachMessage>> watchChat() => Stream.value(_messages);
@@ -130,6 +134,32 @@ Widget _chatApp(Widget home) => MaterialApp(
   supportedLocales: AppLocalizations.supportedLocales,
   home: home,
 );
+
+/// 감지 한 줄을 들고 있다가 치우면 비우는 AI 코치 저장소.
+class _OneInsightAiRepository extends MockAiCoachRepository {
+  final List<String> dismissed = <String>[];
+
+  @override
+  Future<ChatInsightHistory> fetchInsights() async => ChatInsightHistory(
+    records: dismissed.isNotEmpty
+        ? const <ChatInsightRecord>[]
+        : <ChatInsightRecord>[
+            ChatInsightRecord(
+              messageId: 'msg-knee',
+              createdAt: DateTime(2026, 9, 18, 9),
+              insight: const ChatInsight(
+                kind: ChatInsightKind.discomfort,
+                bodyPart: '무릎',
+              ),
+              text: '무릎이 아파요',
+            ),
+          ],
+  );
+
+  @override
+  Future<void> dismissInsight(String messageId) async =>
+      dismissed.add(messageId);
+}
 
 void main() {
   Future<void> pumpRecommendationCards(
@@ -164,6 +194,106 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  group('담당이 없는 회원의 AI 추천 개인운동 (#2015)', () {
+    const CoachRoutine aiRoutine = CoachRoutine(
+      id: 'auto-walk',
+      name: '저강도 걷기',
+      minutes: 20,
+      type: '유산소',
+      reason: '회복 목적의 가벼운 유산소예요.',
+      source: 'ai',
+    );
+
+    testWidgets('제목이 AI 가 낸 것임을 말한다', (WidgetTester tester) async {
+      // 트레이너 배정과 생김새가 같아서, 제목이 말하지 않으면 누가 정한
+      // 운동인지 각 줄의 출처를 읽어야 안다.
+      await pumpRecommendationCards(tester, <CoachRoutine>[
+        aiRoutine,
+      ], coach: null);
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(AiCoachingCard)),
+      );
+      expect(find.text(l.coachRoutineAiTitle), findsOneWidget);
+      expect(find.text(l.coachRoutineTitle), findsNothing);
+      // 줄마다의 출처도 AI 라고 말한다.
+      expect(find.text(l.coachRoutineAiAuto), findsOneWidget);
+    });
+
+    testWidgets('감지 기록을 여는 버튼이 있다', (WidgetTester tester) async {
+      await pumpRecommendationCards(tester, <CoachRoutine>[
+        aiRoutine,
+      ], coach: null);
+      expect(
+        find.byKey(const Key('routineInsightHistoryButton')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('감지를 치우면 그 자리에서 추천을 다시 받는다 (#2016)', (
+      WidgetTester tester,
+    ) async {
+      // 서버는 감지가 바뀌면 그날 추천을 고친다. 이 창은 운동 탭 안에서 열려
+      // 탭 이동이 없으니, 여기서 다시 받지 않으면 치운 감지로 뺐던 걷기가
+      // 돌아오지 않은 채로 남는다.
+      final _OneInsightAiRepository ai = _OneInsightAiRepository();
+      int fetches = 0;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            memberCoachProvider.overrideWith((ref) async => null),
+            coachRoutinesProvider.overrideWith((ref) async {
+              fetches++;
+              return <CoachRoutine>[aiRoutine];
+            }),
+            coachUnreadProvider.overrideWith((ref) => Stream<int>.value(0)),
+            aiCoachRepositoryProvider.overrideWithValue(ai),
+          ],
+          child: _chatApp(
+            const Scaffold(
+              body: SingleChildScrollView(child: AiCoachingCard()),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(AiCoachingCard)),
+      );
+      final int before = fetches;
+
+      await tester.tap(find.byKey(const Key('routineInsightHistoryButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(l.aicInsightDelete).first);
+      await tester.pumpAndSettle();
+      // 확인창의 빨간 버튼으로 확정한다.
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AppButtonPair),
+          matching: find.text(l.aicInsightDelete),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(ai.dismissed, <String>['msg-knee']);
+      expect(fetches, greaterThan(before));
+    });
+
+    testWidgets('담당이 있으면 제목도 버튼도 예전 그대로다', (WidgetTester tester) async {
+      // 담당이 있으면 이 카드는 트레이너 배정과 트레이너가 확인한 AI 추천을
+      // 함께 싣고, 감지 기록은 그 회원의 것이 아니다 — 서버도 403 이다(#1823).
+      await pumpRecommendationCards(tester, <CoachRoutine>[aiRoutine]);
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byType(AiCoachingCard)),
+      );
+      expect(find.text(l.coachRoutineTitle), findsOneWidget);
+      expect(find.text(l.coachRoutineAiTitle), findsNothing);
+      expect(
+        find.byKey(const Key('routineInsightHistoryButton')),
+        findsNothing,
+      );
+    });
+  });
 
   testWidgets('완료한 추천 운동은 글자가 흐려진다 (#1196)', (WidgetTester tester) async {
     const CoachRoutine done = CoachRoutine(
@@ -323,12 +453,7 @@ void main() {
         programName: '주 2회 분할',
         sessionName: '세션 A · 하체',
         exercises: <CoachRoutineExercise>[
-          CoachRoutineExercise(
-            name: '레그프레스',
-            sets: '4',
-            reps: '12회',
-            weight: '60kg',
-          ),
+          CoachRoutineExercise(name: '레그프레스', sets: 4, reps: 12, weight: 60),
         ],
       ),
       CoachRoutine(
@@ -342,7 +467,7 @@ void main() {
         sessionName: '세션 B · 유산소',
         sessionOrder: 1,
         exercises: <CoachRoutineExercise>[
-          CoachRoutineExercise(name: '인터벌 러닝', duration: '20'),
+          CoachRoutineExercise(name: '인터벌 러닝', duration: 20),
         ],
       ),
     ]);
@@ -361,11 +486,12 @@ void main() {
       find.descendant(of: trainerCard, matching: find.text('세션 B · 유산소')),
       findsOneWidget,
     );
-    // 운동 구성이 세트·횟수·중량까지 그대로 보인다.
+    // 운동 구성이 세트·횟수·중량까지 그대로 보인다. 구분자는 앱의 나머지
+    // 표기와 같은 ` · ` 다 — 예전에는 세트와 횟수 사이만 `×` 였다(#1904).
     expect(
       find.descendant(
         of: trainerCard,
-        matching: find.text('레그프레스 · 4세트 × 12회 · 60kg'),
+        matching: find.text('레그프레스 · 4세트 · 12회 · 60kg'),
       ),
       findsOneWidget,
     );
@@ -560,7 +686,7 @@ void main() {
     expect(find.byType(TrainerChatPage), findsOneWidget);
     expect(find.byKey(const Key('underlyingFloatingButton')), findsNothing);
     expect(find.text('김트레이너'), findsOneWidget);
-    expect(find.text('담당 트레이너 · 상담 가능'), findsOneWidget);
+    expect(find.text('담당 트레이너'), findsOneWidget);
     // 말풍선 검사는 **마지막** 트레이너 메시지로 한다. 대화가 3일치로 늘면서
     // 화면은 맨 아래에서 열리므로, 첫 메시지는 뷰포트 밖이라 좌표를 잴 수 없다.
     expect(find.text('김트레이너 · 18:18'), findsNothing);

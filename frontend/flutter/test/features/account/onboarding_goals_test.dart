@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/data/repositories/mock_account_repository.dart';
 import 'package:oncare/features/account/domain/entities/goal_update.dart';
@@ -72,7 +74,8 @@ class _RecordingRepository implements AccountRepository {
   Future<UserProfile> fetchProfile() => _inner.fetchProfile();
 
   @override
-  Future<void> deleteAccount() => _inner.deleteAccount();
+  Future<void> deleteAccount({List<String> reasons = const <String>[]}) =>
+      _inner.deleteAccount(reasons: reasons);
 
   @override
   Future<UserProfile> updateProfile({
@@ -147,6 +150,46 @@ Future<_RecordingRepository> _open(WidgetTester tester) async {
   );
   await tester.pumpAndSettle();
   return repo;
+}
+
+/// 실제 경로로 온보딩을 띄운다 — 끝나고 **어디로 가는지** 보려면 라우터가 있어야
+/// 한다. 가이드·홈 자리는 이름표만 세운다.
+Future<void> _openInRouter(WidgetTester tester) async {
+  await tester.binding.setSurfaceSize(const Size(900, 2000));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final GoRouter router = GoRouter(
+    initialLocation: AppRoutes.onboarding,
+    routes: <RouteBase>[
+      GoRoute(
+        path: AppRoutes.onboarding,
+        builder: (_, _) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: AppRoutes.guideTour,
+        builder: (_, _) => const Scaffold(body: Text('앱 사용 가이드')),
+      ),
+      GoRoute(
+        path: AppRoutes.dashboard,
+        builder: (_, _) => const Scaffold(body: Text('홈')),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: <Override>[
+        accountRepositoryProvider.overrideWithValue(_RecordingRepository()),
+      ],
+      child: MaterialApp.router(
+        routerConfig: router,
+        theme: AppTheme.light(),
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }
 
 Finder _field(String key) =>
@@ -639,5 +682,33 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.submitted!['weekly_cardio_minutes'], 150);
+  });
+
+  // 포인트 안내 화면을 걷어 내면서(#2012) 그 화면의 `시작` 버튼이 가이드로 가는
+  // 유일한 길이었다는 것을 놓쳤다. 온보딩이 홈으로 곧장 가 가입한 회원이
+  // 가이드를 한 번도 못 봤다.
+  testWidgets('온보딩을 마치면 홈이 아니라 앱 사용 가이드로 간다', (tester) async {
+    await _openInRouter(tester);
+    await _fillBasics(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await _tapNext(tester);
+    await tester.tap(find.text('완료'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('앱 사용 가이드'), findsOneWidget);
+    expect(find.text('홈'), findsNothing);
+  });
+
+  testWidgets('온보딩을 건너뛰어도 앱 사용 가이드는 본다', (tester) async {
+    await _openInRouter(tester);
+    final AppLocalizations l = AppLocalizations.of(
+      tester.element(find.byType(OnboardingPage)),
+    );
+    await tester.tap(find.text(l.onboardSkip));
+    await tester.pumpAndSettle();
+
+    expect(find.text('앱 사용 가이드'), findsOneWidget);
+    expect(find.text('홈'), findsNothing);
   });
 }

@@ -7,11 +7,13 @@ DB 초기화 + 데모 데이터 시드.
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 
 from pathlib import Path
 
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -57,6 +59,11 @@ def init_db() -> None:
         # 걸린다. places 에 fitness 로 들어가므로 상담 대상 검증도 통과한다.
         from app.db.seed_gyms import seed_partner_gyms
         seed_partner_gyms()
+        # 데모 트레이너의 예약 자리(#2067). 상담 신청은 트레이너가 연 자리를
+        # 고르는 방식이라(#1873) 자리가 없으면 아무도 신청할 수 없다. 트레이너
+        # 계정이 모두 생긴 뒤에 깐다(외래 키).
+        from app.db.seed_slots import seed_demo_slots
+        seed_demo_slots()
         # 담당 회원 실데이터(식단·운동기록) — 트레이너 로스터/식단/기록을 실데이터로 채운다.
         # 회원 계정 시드(seed_trainer_domain) 뒤에 호출.
         from app.db.seed_member_data import seed_member_health_data
@@ -149,29 +156,62 @@ def _public_food_rows() -> list[dict]:
                 "carbs_g": num(row.get("carbs_g", "")),
                 "protein_g": num(row.get("protein_g", "")),
                 "fat_g": num(row.get("fat_g", "")),
+                # 근거 열 — DB 에는 넣지 않고 검사·확인에만 쓴다(#2102).
+                "source_dataset": row.get("source_dataset", ""),
+                "method": row.get("method", ""),
+                "serving_basis": row.get("serving_basis", ""),
             }
             for row in csv.DictReader(fh)
         ]
 
 
-def _curated_per_100g(items: list[dict]) -> list[dict]:
-    """큐레이션 시드(1인분 기준)를 100g 기준으로 환산.
+_NUTRIENT_FIELDS = ("calories", "sodium_mg", "sugar_g", "carbs_g", "protein_g", "fat_g")
+
+
+def _curated_per_100g(items: list[dict], public: dict[str, dict] | None = None) -> list[dict]:
+    """큐레이션 시드를 100g 기준 행으로.
 
     `food_nutrients` 는 100g 기준이다(공공 원본이 전부 그 형태고, 포장 단위로
-    1인분 환산하면 대표값이 3~5배까지 튄다). 큐레이션 43종은 사람이 1인분으로
-    정리한 값이라 여기서 맞춰 넣는다 — `serving_size_g` 가 모두 있어 기계적으로
-    변환된다. 1회 섭취량 자체는 컬럼에 남겨 인식기가 양을 못 줬을 때 폴백으로
-    쓴다.
+    1인분 환산하면 대표값이 3~5배까지 튄다). 영양값은 셋 중 하나로 온다
+    (`food_nutrients_seed` 설명):
+
+    - `from_public` — 그 이름의 공공 표준 행의 100g 당 값(#2100). `public` 은 정규화
+      이름 → 공공 행이다.
+    - `per_100g` — 출처 행의 100g 당 값을 그대로(#2102). 1인분으로 적었다가 다시
+      나누면 반올림이 끼고, 1회 섭취량을 바꿀 때마다 값을 다시 셈해야 한다.
+    - 1인분 값(데모 메뉴) — `serving_size_g` 로 나눠 100g 기준으로 바꾼다.
+
+    1회 섭취량 자체는 컬럼에 남겨 인식기가 양을 못 줬을 때 폴백으로 쓴다. 근거가 없어
+    비운 항목(`None`)은 폴백 없이 들어간다.
     """
+    from app.services.nutrition.matcher import normalize
+
     scaled: list[dict] = []
     for item in items:
         serving = item.get("serving_size_g")
+        out = {
+            k: v
+            for k, v in item.items()
+            if k not in {"from_public", "per_100g", "source", "serving_basis"}
+        }
+        source = item.get("from_public")
+        if source:
+            row = (public or {}).get(normalize(source))
+            if row is None:
+                raise ValueError(f"큐레이션 {item['name']} 의 from_public 행이 없다: {source}")
+            for field in _NUTRIENT_FIELDS:
+                out[field] = row.get(field)
+            scaled.append(out)
+            continue
+        if "per_100g" in item:
+            out.update(item["per_100g"])
+            scaled.append(out)
+            continue
         if not serving or serving <= 0:
-            # 환산 기준이 없으면 값의 의미가 불분명해진다 — 넣지 않는다.
+            # 1인분 값인데 환산 기준이 없으면 값의 의미가 불분명해진다 — 넣지 않는다.
             continue
         factor = 100.0 / float(serving)
-        out = dict(item)
-        for field in ("calories", "sodium_mg", "sugar_g", "carbs_g", "protein_g", "fat_g"):
+        for field in _NUTRIENT_FIELDS:
             value = item.get(field)
             if value is not None:
                 out[field] = round(float(value) * factor, 2)
@@ -179,43 +219,100 @@ def _curated_per_100g(items: list[dict]) -> list[dict]:
     return scaled
 
 
-def _seed_food_nutrients() -> None:
-    """공공 식품영양성분 DB 시드(멱등). name_norm 은 매칭기와 동일 규칙으로 생성.
+def _food_nutrient_seed_rows() -> list[dict]:
+    """`food_nutrients` 에 들어갈 행. name_norm 은 매칭기와 동일 규칙으로 생성.
 
-    큐레이션 43종을 **먼저** 넣고, 공공 표준데이터 집계본에서 이름이 겹치는
-    것은 건너뛴다. 큐레이션 값은 고혈압·당뇨 관점으로 따로 검증한 것이라
-    공식 중앙값보다 우선한다 — 라면 나트륨이 큐레이션 1,800mg vs 공식 452mg
-    처럼 크게 갈리는 항목이 있고, 후자는 급식 라면이 섞인 결과로 보인다.
+    큐레이션을 **먼저** 넣고, 공공 표준데이터 집계본에서 이름이 겹치는 것은
+    건너뛴다. 큐레이션은 이름·1회 섭취량을 정하고, 영양값은 근거가 있는 공공 행에서
+    가져오거나(`from_public`) 출처를 적어 직접 둔다.
     """
     from app.data.food_nutrients_seed import FOOD_NUTRIENTS
     from app.services.nutrition.matcher import normalize
 
+    public = _public_food_rows()
+    by_norm: dict[str, dict] = {}
+    for row in public:
+        by_norm.setdefault(normalize(row["name"]), row)
+
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for item in [*_curated_per_100g(FOOD_NUTRIENTS, by_norm), *public]:
+        norm = normalize(item["name"])
+        # 매칭은 name_norm 으로 하므로 중복 norm 은 조회를 모호하게 만든다.
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+        rows.append({
+            "name": item["name"],
+            "name_norm": norm,
+            "category": item.get("category", ""),
+            "serving_size_g": item.get("serving_size_g"),
+            "calories": item.get("calories") or 0,
+            "sodium_mg": item.get("sodium_mg") or 0,
+            "sugar_g": item.get("sugar_g") or 0,
+            "carbs_g": item.get("carbs_g"),
+            "protein_g": item.get("protein_g"),
+            "fat_g": item.get("fat_g"),
+        })
+    return rows
+
+
+def _fingerprint(rows: list[dict]) -> str:
+    payload = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+_FOOD_NUTRIENTS_VERSION = "food_nutrients"
+
+
+def _seed_food_nutrients() -> None:
+    """`food_nutrients` 를 시드 데이터와 맞춘다(멱등). (#2100)
+
+    예전에는 표가 비었을 때만 채워서, 큐레이션 값이나 공공 표준 집계본을 고쳐도
+    이미 떠 있는 DB 에는 닿지 않았다. 이제 시드 행으로 만든 지문을
+    `reference_data_versions` 에 적어 두고, 다르면 표를 **통째로** 새 시드로 바꾼다.
+    읽기 전용 참조표이고 다른 표가 참조하지 않으므로(행 id 도 저장하는 곳이 없다)
+    통째로 바꿔도 회원 기록에 영향이 없다.
+
+    같은 DB 를 쓰는 인스턴스가 동시에 뜨면 advisory lock 으로 한 곳만 바꾸고,
+    나머지는 lock 을 얻은 뒤 지문을 다시 읽어 그대로 둔다.
+    """
+    from app.services.nutrition.table import invalidate
+
+    rows = _food_nutrient_seed_rows()
+    fingerprint = _fingerprint(rows)
+
+    def up_to_date(db: Session) -> bool:
+        stored = db.get(models.ReferenceDataVersion, _FOOD_NUTRIENTS_VERSION)
+        return (
+            stored is not None
+            and stored.fingerprint == fingerprint
+            and db.scalar(select(models.FoodNutrient.id).limit(1)) is not None
+        )
+
     db: Session = SessionLocal()
     try:
-        if db.scalar(select(models.FoodNutrient).limit(1)):
+        if up_to_date(db):
             return
-        seen: set[str] = set()
-        for item in [*_curated_per_100g(FOOD_NUTRIENTS), *_public_food_rows()]:
-            norm = normalize(item["name"])
-            # 매칭은 name_norm 으로 하므로 중복 norm 은 조회를 모호하게 만든다.
-            if not norm or norm in seen:
-                continue
-            seen.add(norm)
-            db.add(models.FoodNutrient(
-                name=item["name"],
-                name_norm=norm,
-                category=item.get("category", ""),
-                serving_size_g=item.get("serving_size_g"),
-                calories=item.get("calories", 0),
-                sodium_mg=item.get("sodium_mg", 0),
-                sugar_g=item.get("sugar_g", 0),
-                carbs_g=item.get("carbs_g"),
-                protein_g=item.get("protein_g"),
-                fat_g=item.get("fat_g"),
-            ))
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+            {"key": "seed:food_nutrients"},
+        )
+        db.expire_all()
+        if up_to_date(db):
+            db.rollback()
+            return
+        db.execute(delete(models.FoodNutrient))
+        db.add_all(models.FoodNutrient(**row) for row in rows)
+        db.merge(models.ReferenceDataVersion(
+            name=_FOOD_NUTRIENTS_VERSION, fingerprint=fingerprint
+        ))
         db.commit()
     finally:
         db.close()
+    # 표를 Core `DELETE` 로 비웠으므로 캐시 무효화 훅만 믿지 않고 직접 비운다.
+    invalidate()
+    logger.info("food_nutrients 를 시드 데이터로 다시 맞췄다(%d행)", len(rows))
 
 
 def _public_exercise_rows() -> list[dict]:

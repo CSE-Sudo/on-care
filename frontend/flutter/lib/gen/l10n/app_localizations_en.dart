@@ -92,7 +92,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeAiAdviceBody =>
-      'Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
+      'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.';
 
   @override
   String get homeSodiumExceededBadge => 'Sodium over';
@@ -337,6 +337,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietMealSnack => 'Snack';
 
   @override
+  String get dietMealLateNight => 'Late-night';
+
+  @override
   String dietMealSheetTitle(String meal) {
     return '$meal';
   }
@@ -347,7 +350,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dietMoreFoods(String name, int count) {
+    return '$name +$count';
+  }
+
+  @override
   String get dietFillFromDb => 'Fill in';
+
+  @override
+  String dietFoodFilledFromDb(String name) {
+    return 'Changed to public DB · $name';
+  }
+
+  @override
+  String get dietUndoFill => 'Undo';
+
+  @override
+  String get dietFoodNotInDb =>
+      'Not in the public food DB. Please check the nutrition.';
 
   @override
   String get dietAddSheetTitle => 'Add a Meal';
@@ -435,6 +455,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not change the date. Please try again shortly.';
 
   @override
+  String get dietMealKind => 'Meal';
+
+  @override
   String get dietAnalysisDone => 'Analysis complete!';
 
   @override
@@ -485,9 +508,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietSaved => 'Meal saved';
 
   @override
-  String get dietSaveEntry => 'Save';
-
-  @override
   String get dietSaveFailed => 'Couldn\'t save. Please try again in a moment.';
 
   @override
@@ -517,9 +537,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dietMealInfo => 'Meal Info';
-
-  @override
-  String get dietEatenTime => 'Time Eaten';
 
   @override
   String get dietEatenFood => 'Food Eaten';
@@ -632,8 +649,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exActivityTitle => 'Activity';
 
   @override
-  String exWeekOfMonthLabel(int month, int week) {
-    return 'Week $week, $month/';
+  String exBurnWeekOfMonthTitle(int month, int week) {
+    return 'Burned in week $week, $month/';
   }
 
   @override
@@ -716,6 +733,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exStreakStart => 'Start a streak with today\'s workout.';
 
   @override
+  String get exStreakProtected => 'Kept by a shield';
+
+  @override
   String get exToday => 'Today';
 
   @override
@@ -735,17 +755,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String exCompletedPtFeedback(String coachName) {
     return '$coachName · Today\'s feedback';
-  }
-
-  @override
-  String exProgramSets(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count sets',
-      one: '1 set',
-    );
-    return '$_temp0';
   }
 
   @override
@@ -815,12 +824,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exSetsCount(int sets) {
-    return '$sets sets';
+    String _temp0 = intl.Intl.pluralLogic(
+      sets,
+      locale: localeName,
+      other: '$sets sets',
+      one: '1 set',
+    );
+    return '$_temp0';
   }
 
   @override
   String exRepsCount(int reps) {
-    return '$reps reps';
+    String _temp0 = intl.Intl.pluralLogic(
+      reps,
+      locale: localeName,
+      other: '$reps reps',
+      one: '1 rep',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -1086,7 +1107,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myNotifTitle => 'Notification Settings';
 
   @override
-  String get myGuideTitle => 'Replay the app guide';
+  String get myGuideTitle => 'App guide';
 
   @override
   String get mySupportTitle => 'Customer Support';
@@ -1096,7 +1117,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String myPointsBalance(int points) {
-    return 'Balance: ${points}P';
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return 'Balance: ${pointsString}P';
   }
 
   @override
@@ -1107,34 +1132,209 @@ class AppLocalizationsEn extends AppLocalizations {
       'Keep logging your activity to earn points and use the benefits above.';
 
   @override
-  String get myPointsDiscountTitle => 'Cash discount with points';
+  String myPointsCost(int points) {
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return '${pointsString}P';
+  }
 
   @override
-  String get myPointsDiscountDescription =>
-      'Use points like cash for up to 10% off 1:1 coaching and personal training.';
+  String get myPointsExchange => 'Redeem';
 
   @override
-  String get myPointsDiscountCost => 'Up to 10%';
+  String get myPointsExchangeConfirmTitle => 'Redeem points?';
 
   @override
-  String get myPointsReportTitle => 'Unlock glucose and blood pressure reports';
+  String myPointsExchangeConfirmMessage(String item, String cost) {
+    return 'Use $cost for $item. You can find the coupon in My benefits.';
+  }
 
   @override
-  String get myPointsReportDescription =>
-      'View comprehensive weekly and monthly health-data reports.';
+  String get myPointsExchangeConfirmAction => 'Redeem';
 
   @override
-  String get myPointsReportCost => '500P';
+  String get myPointsExchangeDone => 'Redeemed';
 
   @override
-  String get myPointsRecipeTitle => 'Personalized healthy recipe package';
+  String get myPointsExchangeFailed => 'Couldn\'t redeem. Please try again.';
 
   @override
-  String get myPointsRecipeDescription =>
-      'Get PDF and interactive meal guides tailored to goals such as diabetes prevention or weight loss.';
+  String myPointsShortfall(String points) {
+    return '$points short';
+  }
 
   @override
-  String get myPointsRecipeCost => '500P';
+  String get myPointsNeedTrainer => 'Requires an assigned trainer';
+
+  @override
+  String get myPointsNeedGym => 'Requires a connected gym';
+
+  @override
+  String get myPointsActiveCoupon => 'You already have an unused coupon';
+
+  @override
+  String get myPointsMonthlyLimit => 'You already redeemed this month';
+
+  @override
+  String get myPointsShieldLimit => 'You can hold up to 4 shields';
+
+  @override
+  String get myShopStreakShieldTitle => 'Streak shield';
+
+  @override
+  String get myShopStreakShieldDescription =>
+      'Keep your streak going when you logged nothing yesterday. Hold up to 4.';
+
+  @override
+  String get myBenefitsStreakShields => 'Streak shields';
+
+  @override
+  String myBenefitsShieldHeld(int held, int max) {
+    return '$held/$max held';
+  }
+
+  @override
+  String myBenefitsShieldHeldCount(int held) {
+    return '$held held';
+  }
+
+  @override
+  String get myBenefitsShieldGuide =>
+      'Use one the day after a day with nothing logged.';
+
+  @override
+  String get myBenefitsShieldUsedTitle => 'Protected days';
+
+  @override
+  String get myBenefitsShieldNoneUsed => 'No protected days yet';
+
+  @override
+  String myPointsValidDays(int days) {
+    return 'Valid for $days days after redeeming';
+  }
+
+  @override
+  String get myPointsShopLoadFailed => 'Couldn\'t load rewards';
+
+  @override
+  String get myShopPtRenewalTitle => '₩30,000 off PT renewal';
+
+  @override
+  String get myShopPtRenewalDescription =>
+      'Get ₩30,000 off when you renew PT with your trainer.';
+
+  @override
+  String get myShopLockerTitle => 'Free personal locker for 1 month';
+
+  @override
+  String get myShopLockerDescription =>
+      'Use a personal locker at your gym free for a month.';
+
+  @override
+  String get myCouponPtRenewalBenefit => '₩30,000 off PT renewal';
+
+  @override
+  String get myBenefitsTitle => 'My benefits';
+
+  @override
+  String get myBenefitsView => 'View';
+
+  @override
+  String get myBenefitsCoupons => 'Coupons';
+
+  @override
+  String get myBenefitsEmpty => 'No coupons yet';
+
+  @override
+  String get myBenefitsEmptyMessage => 'Redeem your points for a coupon.';
+
+  @override
+  String get myBenefitsLoadFailed => 'Couldn\'t load benefits';
+
+  @override
+  String get myCouponStatusUsable => 'Available';
+
+  @override
+  String get myCouponStatusUsed => 'Used';
+
+  @override
+  String get myCouponStatusExpired => 'Expired';
+
+  @override
+  String get myCouponStatusCancelled => 'Cancelled';
+
+  @override
+  String myCouponDaysLeft(int days) {
+    return 'D-$days';
+  }
+
+  @override
+  String get myCouponDDay => 'D-day';
+
+  @override
+  String myCouponUntil(String date) {
+    return 'Until $date';
+  }
+
+  @override
+  String get myCouponTrainer => 'Trainer';
+
+  @override
+  String get myCouponGym => 'Gym';
+
+  @override
+  String get myCouponIssuedOn => 'Redeemed on';
+
+  @override
+  String get myCouponExpiry => 'Expires';
+
+  @override
+  String myCouponExpiryWithDday(String date, String dday) {
+    return '$date ($dday)';
+  }
+
+  @override
+  String get myCouponStatus => 'Status';
+
+  @override
+  String get myCouponStaffNote =>
+      'Tap only after your trainer or gym staff has checked it';
+
+  @override
+  String get myCouponGymStaffNote => 'Tap only after gym staff has checked it';
+
+  @override
+  String get myCouponStaffConfirmTitle => 'Mark this coupon as used?';
+
+  @override
+  String get myCouponStaffConfirmMessage =>
+      'For staff · This can\'t be undone once used';
+
+  @override
+  String get myCouponUsedAt => 'Used at';
+
+  @override
+  String myCouponUsedBanner(String time) {
+    return 'Used on $time';
+  }
+
+  @override
+  String get myCouponExpireNotice =>
+      'Points aren\'t refunded once the coupon expires.';
+
+  @override
+  String get myCouponUse => 'Mark as used';
+
+  @override
+  String get myCouponUseDone => 'Marked as used';
+
+  @override
+  String get myCouponUseFailed => 'Couldn\'t mark as used. Please try again.';
+
+  @override
+  String get myCouponNotFound => 'Coupon not found';
 
   @override
   String get a11yCoachPhoto => 'Photo from your trainer';
@@ -1166,6 +1366,75 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get myWithdrawFailed =>
       'We could not delete your account. Please try again in a moment.';
+
+  @override
+  String get myWithdrawReasonTitle =>
+      'Are you sure you want to delete your account?';
+
+  @override
+  String get myWithdrawReasonQuestion => 'What did not work for you?';
+
+  @override
+  String get myWithdrawReasonHint => 'You can pick more than one';
+
+  @override
+  String get myWithdrawReasonPrivacy =>
+      'I am worried my personal data could be exposed';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => 'I do not use it often';
+
+  @override
+  String get myWithdrawReasonHardToUse => 'It is awkward to use';
+
+  @override
+  String get myWithdrawReasonNotifications => 'Too many notifications';
+
+  @override
+  String get myWithdrawReasonAlternative => 'I am using another app';
+
+  @override
+  String get myWithdrawReasonOther => 'Something else';
+
+  @override
+  String get myWithdrawNext => 'Next';
+
+  @override
+  String get myWithdrawKeepTitle => 'Before you go';
+
+  @override
+  String get myWithdrawKeepPrivacy =>
+      'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — you can do that from My Gym & Trainer on the MY tab.';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      'You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      'Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.';
+
+  @override
+  String get myWithdrawKeepNotifications =>
+      'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      'Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      'Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      'The diet and exercise records you have built up go with the account, and they cannot be restored.';
+
+  @override
+  String get myWithdrawStay => 'Keep using On-Care';
+
+  @override
+  String get myWithdrawContinue => 'Continue deleting';
 
   @override
   String get myCancel => 'Cancel';
@@ -1356,7 +1625,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachImageUnavailable => 'Couldn\'t load the photo';
 
   @override
-  String get coachChatSubtitle => 'Personal trainer · Available';
+  String get coachChatSubtitle => 'Personal trainer';
 
   @override
   String get coachChatBack => 'Back';
@@ -1686,6 +1955,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInsightNegative => 'Negative feedback noted';
 
   @override
+  String get aicInsightDelete => 'Delete';
+
+  @override
+  String get aicInsightDeleteConfirm =>
+      'Remove this detection from the log? What you wrote stays in the conversation.';
+
+  @override
+  String get aicInsightDeleteFailed =>
+      'We could not remove it. Please try again in a moment.';
+
+  @override
   String get aicInsightHistoryTitle => 'Noted signals';
 
   @override
@@ -1693,7 +1973,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return 'Pain and negative feedback noted in the last $days days';
+    return 'Pain and negative feedback noted in the last $days days. The AI uses these when it answers';
   }
 
   @override
@@ -1783,19 +2063,79 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachInviteConsentAgree => 'Agree and connect';
 
   @override
+  String get exConsultSlotTitle => 'Available times';
+
+  @override
+  String get exConsultSlotRequired => 'Please choose an available time.';
+
+  @override
+  String get exConsultSlotsEmptyTitle =>
+      'No consultation times are open right now.';
+
+  @override
+  String exConsultSlotsEmptyBody(String gym, String phone) {
+    return 'Call $gym at $phone to ask for a consultation time.';
+  }
+
+  @override
+  String exConsultSlotsEmptyNoPhone(String gym) {
+    return 'Open the $gym details for its address and hours.';
+  }
+
+  @override
+  String get exConsultSlotsError => 'Could not load the available times.';
+
+  @override
+  String get exConsultSlotTaken =>
+      'Another member just took that time. Please choose another.';
+
+  @override
+  String exConsultTooManyPending(int count) {
+    return 'You already have $count consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.';
+  }
+
+  @override
+  String exConsultRateLimitedHours(int hours) {
+    return 'Too many consultation requests. Please try again in $hours hours.';
+  }
+
+  @override
+  String exConsultRateLimitedMinutes(int minutes) {
+    return 'Too many consultation requests. Please try again in $minutes minutes.';
+  }
+
+  @override
+  String get exConsultRateLimited =>
+      'Too many consultation requests. Please try again later.';
+
+  @override
+  String get exConsultTooManyPendingNoCount =>
+      'You have too many consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.';
+
+  @override
+  String get exGymCall => 'Call';
+
+  @override
+  String get exGymCallFailed => 'Could not open the phone app.';
+
+  @override
+  String get exGymDetail => 'View gym details';
+
+  @override
+  String get exConsultChosenSlot => 'Requested time';
+
+  @override
+  String get exConsultConfirmedAt => 'Confirmed time';
+
+  @override
+  String get exConsultExpired => 'Expired';
+
+  @override
+  String get exConsultExpiredBody =>
+      'The trainer did not respond in time. Try requesting another time.';
+
+  @override
   String get exExerciseGoal => 'Exercise Goal';
-
-  @override
-  String get exGoalWeightLoss => 'Weight Loss';
-
-  @override
-  String get exGoalStrength => 'Build Strength';
-
-  @override
-  String get exGoalFitness => 'Improve Fitness';
-
-  @override
-  String get exGoalPosture => 'Improve Posture';
 
   @override
   String get exGoalHealth => 'Health Management';
@@ -1809,15 +2149,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exPreferredDate => 'Preferred Date';
-
-  @override
-  String get exSelectDate => 'Select a date';
-
-  @override
-  String get exSelectTime => 'Select a time';
-
-  @override
-  String get exPreferredTime => 'Preferred Time';
 
   @override
   String get exTimeFlexible => 'Discuss Later';
@@ -1875,12 +2206,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exOtherGoalDetailRequired =>
       'Please describe your specific exercise goal in the message.';
-
-  @override
-  String get exDateRequired => 'Please select a preferred date.';
-
-  @override
-  String get exTimeRequired => 'Please select a preferred time.';
 
   @override
   String get exConsultTargetNotFound =>
@@ -2077,7 +2402,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signUpPhoneFormatInvalid =>
-      'Enter your phone number as 000-0000-0000';
+      'Enter your phone number as 010-0000-0000';
 
   @override
   String get myFieldBirthInvalid => 'Enter your date of birth as 1996-03-21';
@@ -2164,35 +2489,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardOptionalTag => '(optional)';
 
   @override
-  String get pointsGuideTitle => 'Points quests';
-
-  @override
-  String get pointsGuideSubtitle =>
-      'The more you log each day, the more points you earn. Try these quests';
-
-  @override
-  String pointsGuideQuest(int number) {
-    return 'Quest $number';
-  }
-
-  @override
-  String pointsGuideDailyCap(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: 'Up to $count times a day',
-      one: 'Once a day',
-    );
-    return '$_temp0';
-  }
-
-  @override
-  String get pointsGuideSpendNote => 'Spend your points in MY › Points';
-
-  @override
-  String get pointsGuideStart => 'Get started';
-
-  @override
   String guideBadgeWithStep(int current, int total) {
     return 'App guide $current/$total';
   }
@@ -2259,7 +2555,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P';
+    return 'Every log earns points.\nLog a meal +${diet}P, log a workout +${exercise}P, finish a recommended workout +${routine}P\nSpend them in MY › Use Points';
   }
 
   @override
@@ -2597,6 +2893,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineTitle => 'Recommended solo workouts';
 
   @override
+  String get coachRoutineAiTitle => 'AI recommended solo workouts';
+
+  @override
   String get coachRoutineByTrainer => 'Recommended by your trainer';
 
   @override
@@ -2740,7 +3039,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoAlertSodiumBody =>
-      'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.';
+      'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.';
 
   @override
   String get demoAlertDinnerTitle => 'Log your dinner';
@@ -2753,22 +3052,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get demoAlertRoutineTitle => 'A new workout routine arrived';
 
   @override
-  String get demoAlertRoutineBody =>
-      'Trainer Kim adjusted it to a walking routine for your knee.';
+  String demoAlertRoutineBody(String trainerName) {
+    return 'Trainer $trainerName adjusted it to a walking routine for your knee.';
+  }
 
   @override
   String get demoAlertReportTitle => 'This week\'s report is ready';
 
   @override
-  String get demoAlertReportBody =>
-      'Trainer Kim posted your report for this week.';
+  String demoAlertReportBody(String trainerName) {
+    return 'Trainer $trainerName posted your report for this week.';
+  }
 
   @override
   String get demoAlertPtDoneTitle => 'PT session complete';
 
   @override
-  String get demoAlertPtDoneBody =>
-      'You finished PT session 12 with Trainer Kim at 18:00 today!';
+  String demoAlertPtDoneBody(String trainerName) {
+    return 'You finished PT session 12 with Trainer $trainerName at 18:00 today!';
+  }
 
   @override
   String get demoAlertTrainerFeedbackTitle => 'Feedback from your trainer';
@@ -2867,10 +3169,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A cancelled request can\'t be restored.';
 
   @override
-  String get exDemoPtSessionCount => 'Session 12 with Trainer Kim';
-
-  @override
-  String get exDemoPtTrainerName => 'Trainer Kim';
+  String exDemoPtSessionCount(String trainerName) {
+    return 'Session 12 with Trainer $trainerName';
+  }
 
   @override
   String get exDemoPtFeedback =>

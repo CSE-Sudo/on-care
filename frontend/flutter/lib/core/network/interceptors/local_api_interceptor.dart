@@ -19,7 +19,9 @@ import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
+import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
 import 'package:oncare/core/utils/clock.dart';
@@ -49,7 +51,18 @@ class LocalApiInterceptor extends Interceptor {
     this._logger, {
     this.isRealApi,
     DemoPointsLedger? points,
-  }) : _points = points ?? DemoPointsLedger();
+    DemoCouponBook? coupons,
+    DemoStreakShieldBook? shields,
+  }) : _points = points ?? DemoPointsLedger(),
+       _couponsArg = coupons,
+       _shieldsArg = shields;
+
+  /// 연속 기록 보호권(#1788). 앱에서는 목업 운동 저장소와 같은 인스턴스를 받아
+  /// 사용처에서 교환한 보호권이 운동 현황의 연속 일수로 이어진다. 주지 않으면
+  /// 쿠폰 원장이 쓰는 것, 그것도 없으면 이 인터셉터의 원장으로 만든다.
+  final DemoStreakShieldBook? _shieldsArg;
+  late final DemoStreakShieldBook _shields =
+      _shieldsArg ?? _couponsArg?.shields ?? DemoStreakShieldBook(ledger: _points);
 
   final AppDatabase _db;
   final Logger _logger;
@@ -57,6 +70,12 @@ class LocalApiInterceptor extends Interceptor {
   /// 포인트 원장(#1786). 앱에서는 목업 운동·코치 저장소와 같은 원장을 받아
   /// 하루 한도와 MY 잔액이 한 숫자로 움직인다. 주지 않으면(테스트) 따로 만든다.
   final DemoPointsLedger _points;
+
+  /// 포인트 사용처·쿠폰(#1787). 앱에서는 목업 헬스장 저장소와 같은 인스턴스를 받아
+  /// 헬스장·트레이너 해제가 쿠폰 취소로 이어진다. 주지 않으면 이 인터셉터의 원장으로 만든다.
+  final DemoCouponBook? _couponsArg;
+  late final DemoCouponBook _coupons =
+      _couponsArg ?? DemoCouponBook(ledger: _points, shields: _shields);
 
   /// 이 요청을 목업이 아니라 실 백엔드로 보내야 하는지 판정한다(`AppConfig.isRealApi`).
   ///
@@ -101,6 +120,13 @@ class LocalApiInterceptor extends Interceptor {
     'POST /users/me/onboarding': _usersMeOnboarding,
     'PUT /users/me/health-goals': _usersMeHealthGoals,
     'GET /users/me/health': _usersMeHealth,
+    // 포인트 사용처·쿠폰 — 서버와 같은 규칙의 목업 원장(#1787).
+    'GET /me/points/shop': _pointsShop,
+    'POST /me/points/exchange': _pointsExchange,
+    'GET /me/coupons': _meCoupons,
+    // 연속 기록 보호권 — 교환은 위 exchange 가 받는다(#1788).
+    'GET /me/streak-shields': _streakShields,
+    'POST /me/streak-shields/use': _streakShieldUse,
     'POST /users/me/pairing-code': _pairingCodeIssue,
     'DELETE /users/me/pairing-code': _pairingCodeRevoke,
     'GET /places/nearby': _placesNearby,
@@ -194,6 +220,8 @@ class LocalApiInterceptor extends Interceptor {
             idempotencyKey: Value(idempotencyKey),
           ),
         );
+    // 식단 한 끼도 기록이다 — 보호한 날이면 보호권을 돌려준다(#1788).
+    _refundShieldOnDate(_todayDateString());
   }
 
   Future<Response<Object?>?> _safeHandle(RequestOptions options) async {
@@ -247,6 +275,11 @@ class LocalApiInterceptor extends Interceptor {
     if (method == 'DELETE' && path.startsWith('/diet/entries/')) {
       return _dietDelete;
     }
+    if (method == 'POST' &&
+        path.startsWith('/me/coupons/') &&
+        path.endsWith('/use')) {
+      return _couponUse;
+    }
     if (method == 'DELETE' && path.startsWith('/exercise/sessions/')) {
       return _exerciseDelete;
     }
@@ -255,6 +288,9 @@ class LocalApiInterceptor extends Interceptor {
     }
     if (method == 'PUT' && path.startsWith('/exercise/sessions/')) {
       return _exerciseUpdate;
+    }
+    if (method == 'DELETE' && path.startsWith('/ai-coach/insights/')) {
+      return _aiCoachInsightDismiss;
     }
     return null;
   }
@@ -341,6 +377,8 @@ class LocalApiInterceptor extends Interceptor {
         weight: Value(weight),
       ),
     );
+    // 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
     return _ok(
       options,
       _sessionJson(
@@ -387,8 +425,30 @@ class LocalApiInterceptor extends Interceptor {
         (foodsValue is! List || foodsValue.any((food) => food is! Map))) {
       return _badRequest(options, 'foods must be a list of objects');
     }
+    // 음식별 출처(#2105). 실서버와 같은 규칙이다 — 네 값만 받고, 빠지면 회원이
+    // 적은 값(`member`)으로 저장한다. 인식기 기본값(`estimate`)으로 채우면
+    // 수정 경로로 들어온 숫자를 인식기 추정이라 부르게 된다.
+    const Set<String> sources = <String>{'db', 'mixed', 'estimate', 'member'};
+    if (foodsValue is List &&
+        foodsValue.any(
+          (Object? food) =>
+              food is Map &&
+              food.containsKey('source') &&
+              !sources.contains(food['source']),
+        )) {
+      return _unprocessable(
+        options,
+        'source must be db, mixed, estimate or member',
+      );
+    }
     final List<Object?>? requestFoods = foodsValue is List
-        ? List<Object?>.from(foodsValue)
+        ? <Object?>[
+            for (final Object? food in foodsValue)
+              if (food is Map && !food.containsKey('source'))
+                <Object?, Object?>{...food, 'source': 'member'}
+              else
+                food,
+          ]
         : null;
     // 합계를 다시 셀 때 쓸 음식 목록. `foods` 를 보내지 않은 수정이면 null 이라
     // 아래에서 본문의 합계를 그대로 반영한다(부분 수정 규약 유지).
@@ -434,6 +494,8 @@ class LocalApiInterceptor extends Interceptor {
     final row = await (_db.select(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).getSingle();
+    // 옮겨 간 날이 보호한 날이면 보호권을 돌려준다(#1788).
+    _refundShieldOnDate(row.date);
     final foods = jsonDecode(row.foodsJson) as List<Object?>;
     final macros = _foodMacroTotals(foods);
     return _ok(options, <String, Object?>{
@@ -559,9 +621,6 @@ class LocalApiInterceptor extends Interceptor {
           'calories': 0,
           'sodium_mg': 0,
           'sugar_g': 0.0,
-          'carbs_g': 0.0,
-          'protein_g': 0.0,
-          'fat_g': 0.0,
         },
     };
     final allDietRows = await _db.select(_db.dietEntries).get();
@@ -571,15 +630,6 @@ class LocalApiInterceptor extends Interceptor {
       totals['calories'] = totals['calories']! + row.totalCalories;
       totals['sodium_mg'] = totals['sodium_mg']! + row.sodiumMg;
       totals['sugar_g'] = totals['sugar_g']! + row.sugarG;
-      // 실서버가 싣는 것을 데모도 똑같이 싣는다(#1879). 행에는 탄단지
-      // 칸이 없으므로 끼니의 음식에서 접는다 — `/diet/days/{date}` 가 하루
-      // 합계를 만드는 방법과 같다.
-      final rowMacros = _foodMacroTotals(
-        jsonDecode(row.foodsJson) as List<Object?>,
-      );
-      totals['carbs_g'] = totals['carbs_g']! + rowMacros.carbsG;
-      totals['protein_g'] = totals['protein_g']! + rowMacros.proteinG;
-      totals['fat_g'] = totals['fat_g']! + rowMacros.fatG;
     }
     final nutritionWeek = <Map<String, Object?>>[
       for (var index = 0; index < 7; index++)
@@ -940,6 +990,8 @@ class LocalApiInterceptor extends Interceptor {
     final foods = <Map<String, Object?>>[
       <String, Object?>{
         'name': '요거트 아이스크림',
+        // 양은 공공 DB 시드의 1회 섭취량이다 — 실서버 스텁과 같은 값(#2090).
+        'amount_g': 110,
         'calories': 135,
         'sodium_mg': 55,
         'sugar_g': 14.5,
@@ -950,6 +1002,7 @@ class LocalApiInterceptor extends Interceptor {
       },
       <String, Object?>{
         'name': '과일 토핑',
+        'amount_g': 90,
         'calories': 55,
         'sodium_mg': 5,
         'sugar_g': 9.0,
@@ -960,6 +1013,7 @@ class LocalApiInterceptor extends Interceptor {
       },
       <String, Object?>{
         'name': '그래놀라 토핑',
+        'amount_g': 50,
         'calories': 205,
         'sodium_mg': 125,
         'sugar_g': 6.0,
@@ -973,7 +1027,7 @@ class LocalApiInterceptor extends Interceptor {
     const int totalNa = 185;
     const double totalSugar = 29.5;
     const String coach =
-        '나트륨이 185mg으로 낮아 혈압 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
+        '나트륨이 185mg으로 낮아 부담이 적어요. 당류는 하루 목표(50g)의 절반 남짓인데, '
         '그 절반이 요거트 아이스크림 자체에서 나옵니다. 토핑은 지금처럼 과일·견과 위주로 담아 보세요.';
 
     final now = nowKst();
@@ -1349,6 +1403,8 @@ class LocalApiInterceptor extends Interceptor {
       for (final l in _weekdayLabels) perDayOther[l] ?? 0,
     ];
 
+    // 운동 탭의 연속은 운동만 센다 — 보호권은 기록 연속(식단·운동)을 지키고
+    // 포인트 화면에서 쓴다(#1788, #2075).
     final streak = _longestActiveStreak(dailyMinutes);
 
     return _ok(options, <String, Object?>{
@@ -1379,12 +1435,13 @@ class LocalApiInterceptor extends Interceptor {
   /// 합계가 아니다(월·수·금 운동은 3일이 아니라 1일 연속). FastAPI
   /// `exercise_service._longest_streak`, 그리고 클라이언트의
   /// `longestActiveStreak` 와 같은 정의라야 '연속' 카드가 어느 경로에서든
-  /// 같은 값을 보인다.
+  /// 같은 값을 보인다. 보호권으로 이어 붙인 날([protectedDays])도 운동한 날로
+  /// 센다(#1788).
   int _longestActiveStreak(List<num> dailyMinutes) {
     int best = 0;
     int run = 0;
-    for (final num m in dailyMinutes) {
-      if (m > 0) {
+    for (int i = 0; i < dailyMinutes.length; i++) {
+      if (dailyMinutes[i] > 0) {
         run += 1;
         if (run > best) best = run;
       } else {
@@ -1478,7 +1535,8 @@ class LocalApiInterceptor extends Interceptor {
     if (name.isEmpty) {
       return _badRequest(options, '음식 이름을 입력해 주세요.');
     }
-    final _DemoFood? match = _matchDemoFood(name);
+    final ({_DemoFood food, bool exact})? found = _matchDemoFood(name);
+    final _DemoFood? match = found?.food;
     final double? amountG =
         (payload['amount_g'] as num?)?.toDouble() ?? match?.servingG;
     if (match == null || amountG == null || amountG <= 0) {
@@ -1493,6 +1551,9 @@ class LocalApiInterceptor extends Interceptor {
     final double scale = amountG / match.servingG;
     return _ok(options, <String, Object?>{
       'matched_name': match.name,
+      // 같은 음식인가, 이름에 들어 있는 비슷한 음식인가(#2107). 수정 화면은
+      // 같은 음식이면 곧바로 채우고 비슷한 음식이면 제안만 한다.
+      'match': found!.exact ? 'exact' : 'similar',
       'source': 'db',
       'amount_g': amountG,
       'calories': (match.calories * scale).round(),
@@ -1504,14 +1565,15 @@ class LocalApiInterceptor extends Interceptor {
     });
   }
 
-  /// 이름 → 데모 영양표. 서버 `match_in_rows` 를 줄여 옮긴 것이다 —
-  /// 정확히 같은 이름 먼저, 그다음 표의 이름이 질의에 들어 있는 것 중 가장 긴 것.
-  _DemoFood? _matchDemoFood(String query) {
+  /// 이름 → 데모 영양표. 서버 `find_in_rows` 를 줄여 옮긴 것이다 —
+  /// 정확히 같은 이름 먼저(같은 음식), 그다음 표의 이름이 질의에 들어 있는 것 중
+  /// 가장 긴 것(비슷한 음식).
+  ({_DemoFood food, bool exact})? _matchDemoFood(String query) {
     String norm(String v) => v.replaceAll(RegExp(r'\s+'), '').toLowerCase();
     final String q = norm(query);
     if (q.isEmpty) return null;
     for (final _DemoFood f in _demoFoods) {
-      if (norm(f.name) == q) return f;
+      if (norm(f.name) == q) return (food: f, exact: true);
     }
     final List<_DemoFood> contained = <_DemoFood>[
       for (final _DemoFood f in _demoFoods)
@@ -1521,7 +1583,7 @@ class LocalApiInterceptor extends Interceptor {
     contained.sort(
       (_DemoFood a, _DemoFood b) => norm(b.name).length - norm(a.name).length,
     );
-    return contained.first;
+    return (food: contained.first, exact: false);
   }
 
   /// POST /exercise/calories — 운동 이름·시간·강도로 예상 소모 칼로리. (#1312)
@@ -1643,6 +1705,8 @@ class LocalApiInterceptor extends Interceptor {
             weight: Value(weight),
           ),
         );
+    // 보호권으로 이어 붙인 날에 기록이 생기면 그 보호권을 되돌린다(#1788).
+    _refundShieldOn(weekStart, dayLabel);
 
     return _ok(options, <String, Object?>{
       ..._sessionJson(
@@ -2151,6 +2215,9 @@ class LocalApiInterceptor extends Interceptor {
       if (at == null || !isWithinInsightWindow(at, now)) continue;
       // 코치 답변은 감지 대상이 아니다 — 감지는 회원이 한 말에서만 찾는다.
       if (!_isMemberRow(row)) continue;
+      // 회원이 치운 줄은 건너뛴다(#1975). 실서버도 `insight_dismissed` 로 같은
+      // 것을 한다 — 데모에서만 되는 자리를 새로 만들지 않는다.
+      if (row['insight_dismissed'] == true) continue;
       final String text = row['text'] as String? ?? '';
       final ChatInsight? insight = detectChatInsight(text);
       if (insight == null) continue;
@@ -2165,6 +2232,24 @@ class LocalApiInterceptor extends Interceptor {
       'window_days': kChatInsightWindowDays,
       'insights': insights,
     });
+  }
+
+  /// DELETE /ai-coach/insights/{message_id} — 그 줄의 감지를 기록에서 치운다(#1975).
+  ///
+  /// **메시지는 지우지 않는다.** 실서버와 같이 `더 보지 않음` 표시만 남기므로,
+  /// 회원이 쓴 말은 대화에 그대로 남는다.
+  ///
+  /// 이미 치운 줄을 다시 눌러도 200 이다 — 누른 쪽이 바라는 상태가 이미 참이다.
+  Future<Response<Object?>> _aiCoachInsightDismiss(RequestOptions options) async {
+    final String messageId = options.path.split('/').last;
+    final List<Map<String, Object?>> rows = await _aiCoachMessages();
+    final int index = rows.indexWhere(
+      (Map<String, Object?> row) => row['id'] == messageId,
+    );
+    if (index < 0) return _notFound(options, '감지 기록을 찾을 수 없습니다.');
+    rows[index] = <String, Object?>{...rows[index], 'insight_dismissed': true};
+    await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
+    return _ok(options, <String, Object?>{'status': 'dismissed'});
   }
 
   (String, List<String>) _mockCoachReply(String message) {
@@ -2487,6 +2572,10 @@ class LocalApiInterceptor extends Interceptor {
 
   /// DELETE /users/me — withdraw. The demo wipes the profile overlay so a
   /// subsequent session starts clean, mirroring FastAPI's cascade delete.
+  ///
+  /// The body's `reasons` (#2019) are dropped here on purpose: the server keeps
+  /// them in a table nobody reads back, and the demo has no such table. The
+  /// withdrawal itself is what the demo has to reproduce.
   Future<Response<Object?>> _usersMeDelete(RequestOptions options) async {
     await _db.putValue('profile_overlay', '');
     return _ok(options, <String, Object?>{'status': 'deleted'});
@@ -2554,8 +2643,8 @@ class LocalApiInterceptor extends Interceptor {
     return _ok(options, <String, Object?>{
       'profile': <String, Object?>{'name': '김민수', 'email': 'minsu@oncare.com'},
       'risk': <String, Object?>{
-        'title': '고혈압·당뇨 위험 주의',
-        'body': '최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.',
+        'title': '이번 주 관리 포인트',
+        'body': '식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.',
         'level': 'medium',
       },
       // 원장의 잔액 — 적립·회수가 그대로 보인다(#1786).
@@ -2571,6 +2660,117 @@ class LocalApiInterceptor extends Interceptor {
         <String, Object?>{'label': '고객 지원', 'icon': '💬', 'kind': 'support'},
       ],
     });
+  }
+
+  // ---- 포인트 사용처·쿠폰 (#1787) ----
+  //
+  // 규칙은 [DemoCouponBook] 이 서버와 같게 들고 있다. 여기서는 경로와 응답 모양만
+  // 잇는다. 409(잔액 부족 등)도 실서버처럼 상태코드로 돌려준다.
+
+  Future<Response<Object?>> _pointsShop(RequestOptions options) async =>
+      _ok(options, _coupons.shopJson());
+
+  Future<Response<Object?>> _pointsExchange(RequestOptions options) async {
+    final body = _jsonBody(options);
+    return _couponResponse(
+      options,
+      _coupons.exchange(
+        (body['item'] as String?) ?? '',
+        clientRequestId: body['client_request_id'] as String?,
+      ),
+    );
+  }
+
+  Future<Response<Object?>> _meCoupons(RequestOptions options) async =>
+      _ok(options, _coupons.couponsJson());
+
+  Future<Response<Object?>> _couponUse(RequestOptions options) async {
+    // `/me/coupons/{id}/use` — 끝에서 두 번째 조각이 쿠폰 id 다.
+    final List<String> segments = options.path.split('/');
+    final String id = segments.length >= 2
+        ? Uri.decodeComponent(segments[segments.length - 2])
+        : '';
+    return _couponResponse(options, _coupons.use(id));
+  }
+
+  Response<Object?> _couponResponse(
+    RequestOptions options,
+    DemoCouponResult result,
+  ) => Response<Object?>(
+    requestOptions: options,
+    statusCode: result.statusCode,
+    data: result.body,
+  );
+
+  // ---- 연속 기록 보호권 (#1788) ----
+  //
+  // 규칙은 [DemoStreakShieldBook] 이 서버와 같게 들고 있다. 보호권이 지키는 것은
+  // **기록 연속**이라, 그날 식단이나 운동 기록이 있는지를 이 인터셉터의 drift 로
+  // 본다. 409 도 실서버처럼 상태코드로 돌려준다.
+
+  Future<Response<Object?>> _streakShields(RequestOptions options) async {
+    final Set<String> recorded = await _recordedDates();
+    return _ok(
+      options,
+      _shields.statusJson(
+        hasRecordOn: (DateTime day) => recorded.contains(_dateString(day)),
+      ),
+    );
+  }
+
+  /// 식단이나 운동 기록이 있는 날짜(YYYY-MM-DD) 전부.
+  ///
+  /// 기록 연속은 주 단위가 아니라 날짜를 거슬러 이어지므로 주별 집계로는 셀 수
+  /// 없다. 데모 DB 는 한 회원의 기록뿐이라 통째로 읽어도 가볍다.
+  Future<Set<String>> _recordedDates() async {
+    final Set<String> days = <String>{};
+    for (final row in await _db.select(_db.dietEntries).get()) {
+      days.add(row.date);
+    }
+    for (final row in await _db.select(_db.exerciseSessions).get()) {
+      if (row.minutes <= 0) continue;
+      final int index = _weekdayLabels.indexOf(row.dayLabel);
+      if (index < 0) continue;
+      final DateTime monday = DateTime.parse(row.weekStart);
+      days.add(
+        _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+      );
+    }
+    return days;
+  }
+
+  /// (주 시작, 요일) 자리에 기록이 생겼다 — 그날 쓴 보호권을 되돌린다.
+  /// 서버처럼 기록을 추가·수정하는 경로가 저장 뒤에 부른다.
+  void _refundShieldOn(String weekStart, String dayLabel) {
+    final int index = _weekdayLabels.indexOf(dayLabel);
+    if (index < 0) return;
+    final DateTime monday = DateTime.parse(weekStart);
+    _refundShieldOnDate(
+      _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+    );
+  }
+
+  /// `YYYY-MM-DD` 자리에 기록이 생겼다 — 식단 저장·수정이 부른다.
+  void _refundShieldOnDate(String ymd) {
+    if (!_isDateString(ymd)) return;
+    _shields.refundFor(DateTime.parse(ymd));
+  }
+
+  Future<Response<Object?>> _streakShieldUse(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final Object? raw = body['date'];
+    if (raw is! String || !_isDateString(raw)) {
+      return _unprocessable(options, 'date must be YYYY-MM-DD');
+    }
+    final DateTime day = DateTime.parse(raw);
+    final Set<String> recorded = await _recordedDates();
+    return _couponResponse(
+      options,
+      _shields.use(
+        day,
+        hasRecordOn: (DateTime d) => recorded.contains(_dateString(d)),
+      ),
+    );
   }
 
   // ---- Places ----

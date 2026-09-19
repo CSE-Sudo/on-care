@@ -8,36 +8,33 @@ import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/consultations/data/dtos/consultation_dtos.dart';
 import 'package:oncare_trainer/features/consultations/data/repositories/consultation_repository.dart';
 import 'package:oncare_trainer/features/consultations/domain/entities/consultation_request.dart';
-import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
-
-/// 승인이 만드는 세션의 소요 시간(분). 백엔드 기본값과 같다.
-const int _defaultConsultationDurationMinutes = 30;
 
 /// 카드 필드 라벨 열 폭 — `운동 목표`·`희망 일시` 가 한 줄에 들어가는 폭.
 const double _fieldLabelWidth = 84;
 
-/// `HH:mm` 에 [minutes] 를 더한다. 자정을 넘기면 다음 날로 넘어가지 않고
-/// 24시간 안에서만 돈다 — 희망 시각 표시용이라 날짜가 바뀌는 값까지 다룰
-/// 필요는 없다.
-String _addMinutes(String hhmm, int minutes) {
-  final parts = hhmm.split(':');
-  final total = int.parse(parts[0]) * 60 + int.parse(parts[1]) + minutes;
-  final hour = (total ~/ 60) % 24;
-  final minute = total % 60;
-  return '${hour.toString().padLeft(2, '0')}:'
-      '${minute.toString().padLeft(2, '0')}';
-}
+String _hm(DateTime value) =>
+    '${value.hour.toString().padLeft(2, '0')}:'
+    '${value.minute.toString().padLeft(2, '0')}';
 
-/// 희망 시각 문구 — 정확한 시각(`HH:mm`)이면 기본 상담 소요 시간을 더해
-/// 시작–종료로 보여준다. 회원이 이미 범위를 준 코드(`HH:mm-HH:mm`)나
-/// `flexible`/레거시 값은 [preferredTimeLabel] 그대로 둔다.
-String _preferredTimeRangeLabel(AppLocalizations l, String code) {
-  final String label = preferredTimeLabel(l, code);
-  final String? start = preferredStartTime(code);
-  if (start == null || label.contains('–')) return label;
-  return '$start–${_addMinutes(start, _defaultConsultationDurationMinutes)}';
+/// 회원이 고른 자리 문구 — `3월 5일 화 19:00–19:30 (30분)`. (#1873)
+///
+/// 길이는 트레이너가 그 자리를 열 때 정한 값이다. 예전에는 코드 상수 30분을
+/// 더해 보여 줬는데, 승인이 만드는 일정과 카드가 서로 다른 길이를 말할 수 있었다.
+///
+/// 자리 선택 이전에 접수된 요청에는 자리가 없다 — 그때는 회원이 적어 보낸 희망
+/// 시각을 [preferredTimeLabel] 그대로 보여 준다.
+String _slotLabel(AppLocalizations l, ConsultationRequest request) {
+  final DateTime? start = request.slotStartsAt;
+  if (start == null) {
+    return '${dateLabel(l, request.preferredDate)} '
+        '${preferredTimeLabel(l, request.preferredTimeCode)}';
+  }
+  final int minutes = request.slotDurationMinutes ?? 60;
+  final DateTime end = start.add(Duration(minutes: minutes));
+  return '${dateLabel(l, start)} ${_hm(start)}–${_hm(end)} '
+      '(${l.consultSlotDuration(minutes)})';
 }
 
 /// 상담 요청 — the inbox where a member becomes a client.
@@ -228,16 +225,8 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
   /// would otherwise race and the second call would 409.
   bool _busy = false;
 
-  /// 승인하려던 시간이 겹쳐 막혔을 때의 안내 — 토스트 대신 승인 버튼 왼쪽
-  /// 여백에 인라인으로 보인다. 다른 409(이미 처리됨 등)는 여기 담기지
-  /// 않고 예전처럼 토스트로 뜬다.
-  String? _conflict;
-
   Future<void> _run(Future<void> Function() action, String success) async {
-    setState(() {
-      _busy = true;
-      _conflict = null;
-    });
+    setState(() => _busy = true);
     final AppLocalizations l = AppLocalizations.of(context);
     final String failureText = l.consultActionFailed;
     try {
@@ -264,37 +253,18 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
     }
   }
 
-  /// 승인은 회원이 정확한 시각을 준 경우에만(`HH:mm`, `flexible`·과거
-  /// morning/afternoon/evening 값 제외) 그 희망 일시로 실제 스케줄을 만든다.
-  /// 정확한 시각이 없는데 아무 시간이나 임의로 잡으면, 그 시간이 이미 다른
-  /// 일정으로 차 있을 때 승인 자체가 막혀 버린다 — 트레이너가 직접 시간을
-  /// 정하지 않은 요청을 시스템이 추측해 예약하는 셈이라 위험만 크고 얻는
-  /// 것이 없다. 이런 요청은 예전처럼 담당 편입·알림만 하고 스케줄은
-  /// 비워 둔다.
+  /// 승인한다. 시각을 정하지 않는다 — 회원이 고른 자리가 날짜·시각·길이를 이미
+  /// 들고 있고, 서버가 그 자리를 첫 일정으로 확정한다(#1873).
   ///
-  /// 겹치면 서버가 아무것도 만들지 않고 [ConsultationScheduleConflictError]
-  /// 로 막는데, 그건 토스트가 아니라 버튼 옆 인라인 문구로 보여준다.
+  /// 예전에는 여기서 희망 시각에 코드 상수 30분을 더해 일정을 보냈고, 겹치면
+  /// 버튼 옆에 인라인 문구를 띄웠다. 자리를 연 사람이 트레이너 자신이고 한 자리는
+  /// 한 사람 몫이라 겹침이 구조적으로 나지 않아 그 경로를 걷어냈다.
   Future<void> _accept() async {
-    setState(() {
-      _busy = true;
-      _conflict = null;
-    });
+    setState(() => _busy = true);
     final AppLocalizations l = AppLocalizations.of(context);
     final request = widget.request;
-    final String? startTime = preferredStartTime(request.preferredTimeCode);
     try {
-      final result = await acceptConsultation(
-        ref,
-        request.id,
-        schedule: startTime == null
-            ? null
-            : ConsultationSchedule(
-                date: ymd(request.preferredDate),
-                time: startTime,
-                type: SessionType.consultation,
-                durationMinutes: _defaultConsultationDurationMinutes,
-              ),
-      );
+      final result = await acceptConsultation(ref, request.id);
       if (!mounted) return;
       showAppToast(
         context,
@@ -303,12 +273,6 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
             : l.consultApproved(request.memberName),
         type: AppToastType.success,
       );
-    } on ConsultationScheduleConflictError catch (e) {
-      if (mounted) {
-        setState(
-          () => _conflict = l.consultScheduleConflict(e.clientName, e.time),
-        );
-      }
     } on AppError catch (e) {
       ref.invalidate(consultationsProvider);
       ref.invalidate(consultationPendingCountProvider);
@@ -387,14 +351,12 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
             value: label(exerciseGoalLabels(l), request.goalCode),
           ),
           _Field(
-            label: l.consultPreferredTime,
-            // 대기 중일 때만 정확한 시간까지 본다 — 승인·거절이 끝나면
-            // 그 요청이 원래 몇 시를 원했는지는 더 이상 결정에 쓸 정보가
-            // 아니다. 승인된 세션의 실제 시간은 스케줄 화면이 말한다.
-            value: request.isPending
-                ? '${dateLabel(l, request.preferredDate)} '
-                      '${_preferredTimeRangeLabel(l, request.preferredTimeCode)}'
-                : dateLabel(l, request.preferredDate),
+            // 회원이 고른 자리다 — 수락하면 이 자리가 그대로 첫 일정이 되므로,
+            // 트레이너는 여기서 무엇을 수락하는지 본다(#1873).
+            label: request.slotStartsAt == null
+                ? l.consultPreferredTime
+                : l.consultChosenSlot,
+            value: _slotLabel(l, request),
           ),
           if (request.message != null)
             _Field(
@@ -413,22 +375,7 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
             const SizedBox(height: OnCareSpacing.s16),
             Row(
               children: <Widget>[
-                // 겹침 안내는 버튼 왼쪽 여백을 그대로 쓴다 — 토스트 대신
-                // 여기서 바로 무엇과 겹치는지 읽을 수 있다.
-                Expanded(
-                  child: _conflict == null
-                      ? const SizedBox.shrink()
-                      : Text(
-                          _conflict!,
-                          style: tokens
-                              .text(
-                                OnCareTypography.strong(
-                                  OnCareTypography.caption,
-                                ),
-                              )
-                              .copyWith(color: OnCareColors.danger),
-                        ),
-                ),
+                const Spacer(),
                 // 거절은 사유를 받는 확인창을 연다 — 화면 안 트리거라 빨간 글자다.
                 AppButton(
                   key: ValueKey<String>('consultation-reject-${request.id}'),
@@ -475,36 +422,19 @@ class _RejectDialogState extends State<_RejectDialog> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    // [AppButtonPair] 와 같은 반반 배치다. 버튼마다 테스트가 찾는 키가 있어
-    // 짝 위젯 대신 같은 규격의 [AppButton] 두 개로 조립한다.
     return AppDialog(
       title: l.consultRejectTitle,
       size: AppDialogSize.medium,
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('consultation-reject-cancel'),
-              label: l.actionCancel,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const ValueKey<String>('consultation-reject-confirm'),
-              label: l.consultRejectAction,
-              variant: AppButtonVariant.destructive,
-              fullWidth: true,
-              // Returns '' rather than null when left blank: null is the
-              // cancel signal, and an empty note is a valid "no reason given".
-              onPressed: () =>
-                  Navigator.of(context).pop(_controller.text.trim()),
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelKey: const ValueKey<String>('consultation-reject-cancel'),
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const ValueKey<String>('consultation-reject-confirm'),
+        confirmLabel: l.consultReject,
+        destructive: true,
+        // Returns '' rather than null when left blank: null is the
+        // cancel signal, and an empty note is a valid "no reason given".
+        onConfirm: () => Navigator.of(context).pop(_controller.text.trim()),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -539,6 +469,8 @@ class _StatusTag extends StatelessWidget {
     final (String label, AppTagTone tone) = switch (status) {
       'accepted' => (l.consultStatusAccepted, AppTagTone.success),
       'rejected' => (l.consultStatusRejected, AppTagTone.danger),
+      // 시간 안에 확인하지 못해 자리가 풀린 요청 — 거절(판단)과 구분한다(#1873).
+      'expired' => (l.consultStatusExpired, AppTagTone.neutral),
       _ => (l.consultStatusPending, AppTagTone.caution),
     };
     return AppTag(label: label, tone: tone);

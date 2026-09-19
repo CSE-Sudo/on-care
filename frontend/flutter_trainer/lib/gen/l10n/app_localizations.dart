@@ -527,7 +527,7 @@ abstract class AppLocalizations {
   /// Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive.
   ///
   /// In en, this message translates to:
-  /// **'Enter your phone number as 000-0000-0000'**
+  /// **'Enter your phone number as 010-0000-0000'**
   String get authErrPhoneInvalid;
 
   /// Shared birth-date message (#1887). The trainer app has no birth-date field today; kept so the shared AppInputError mapping stays exhaustive.
@@ -2096,6 +2096,24 @@ abstract class AppLocalizations {
   /// **'Health management purpose'**
   String get consultHealthPurpose;
 
+  /// No description provided for @consultChosenSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Chosen time'**
+  String get consultChosenSlot;
+
+  /// No description provided for @consultSlotDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} min'**
+  String consultSlotDuration(int minutes);
+
+  /// No description provided for @consultStatusExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get consultStatusExpired;
+
   /// No description provided for @consultPreferredTime.
   ///
   /// In en, this message translates to:
@@ -2137,12 +2155,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'e.g. I have another appointment at your requested time.'**
   String get consultRejectHint;
-
-  /// No description provided for @consultRejectAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Decline'**
-  String get consultRejectAction;
 
   /// No description provided for @consultStatusPending.
   ///
@@ -2575,12 +2587,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get exTypeOther;
-
-  /// No description provided for @exSetsValue.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 set} other{{count} sets}}'**
-  String exSetsValue(int count);
 
   /// No description provided for @clientPeriodLoggedDays.
   ///
@@ -3353,13 +3359,13 @@ abstract class AppLocalizations {
   /// No description provided for @progSetsValue.
   ///
   /// In en, this message translates to:
-  /// **'{sets} sets'**
+  /// **'{sets, plural, =1{1 set} other{{sets} sets}}'**
   String progSetsValue(int sets);
 
   /// No description provided for @progRepsValue.
   ///
   /// In en, this message translates to:
-  /// **'{reps} reps'**
+  /// **'{reps, plural, =1{1 rep} other{{reps} reps}}'**
   String progRepsValue(int reps);
 
   /// No description provided for @progEmpty.
@@ -3895,12 +3901,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Changing…'**
   String get myPwChanging;
-
-  /// No description provided for @myPwChangeAction.
-  ///
-  /// In en, this message translates to:
-  /// **'Change'**
-  String get myPwChangeAction;
 
   /// No description provided for @mySettingsSaveFailed.
   ///
@@ -4735,24 +4735,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weight loss'**
   String get goalWeightLoss;
-
-  /// No description provided for @goalStrength.
-  ///
-  /// In en, this message translates to:
-  /// **'Strength'**
-  String get goalStrength;
-
-  /// No description provided for @goalFitness.
-  ///
-  /// In en, this message translates to:
-  /// **'Fitness'**
-  String get goalFitness;
-
-  /// No description provided for @goalPosture.
-  ///
-  /// In en, this message translates to:
-  /// **'Posture'**
-  String get goalPosture;
 
   /// No description provided for @goalHealth.
   ///
@@ -6949,7 +6931,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiStrengthSummary.
   ///
   /// In en, this message translates to:
-  /// **'{sets} sets × {reps} reps · {weight}kg'**
+  /// **'{sets} sets · {reps} reps · {weight}kg'**
   String aiStrengthSummary(int sets, int reps, String weight);
 
   /// No description provided for @routineFormDecrease.

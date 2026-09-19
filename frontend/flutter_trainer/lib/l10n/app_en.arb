@@ -145,7 +145,7 @@
   "authErrEmailInvalid": "Enter a valid email address",
   "authErrPasswordEmpty": "Enter your password",
   "authErrPasswordWeak": "Use at least 8 characters, including letters and numbers",
-  "authErrPhoneInvalid": "Enter your phone number as 000-0000-0000",
+  "authErrPhoneInvalid": "Enter your phone number as 010-0000-0000",
   "@authErrPhoneInvalid": {
     "description": "Shared phone-format message (#1784). Trainer sign-up has no phone field today; kept so the shared AppInputError mapping stays exhaustive."
   },
@@ -671,6 +671,10 @@
   "consultTargetTrainer": "Direct request",
   "consultExerciseGoal": "Training goal",
   "consultHealthPurpose": "Health management purpose",
+  "consultChosenSlot": "Chosen time",
+  "consultSlotDuration": "{minutes} min",
+  "@consultSlotDuration": {"placeholders": {"minutes": {"type": "int"}}},
+  "consultStatusExpired": "Expired",
   "consultPreferredTime": "Preferred time",
   "consultMessage": "Message",
   "consultReject": "Decline",
@@ -678,7 +682,6 @@
   "consultRejectTitle": "Decline request",
   "consultRejectNotice": "The reason you write is sent to the member as a notification.",
   "consultRejectHint": "e.g. I have another appointment at your requested time.",
-  "consultRejectAction": "Decline",
   "consultStatusPending": "Pending",
   "consultStatusAccepted": "Approved",
   "workoutRecords": "Workout log",
@@ -870,14 +873,6 @@
   },
   "exStreakStart": "No streak yet",
   "exTypeOther": "Other",
-  "exSetsValue": "{count, plural, =1{1 set} other{{count} sets}}",
-  "@exSetsValue": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "clientPeriodLoggedDays": "{days, plural, =1{1 day logged} other{{days} days logged}}",
   "@clientPeriodLoggedDays": {
     "placeholders": {
@@ -1206,7 +1201,7 @@
   "progType": "Type",
   "progDuration": "Duration (min)",
   "progOptional": "Optional",
-  "progSetsValue": "{sets} sets",
+  "progSetsValue": "{sets, plural, =1{1 set} other{{sets} sets}}",
   "@progSetsValue": {
     "placeholders": {
       "sets": {
@@ -1214,7 +1209,7 @@
       }
     }
   },
-  "progRepsValue": "{reps} reps",
+  "progRepsValue": "{reps, plural, =1{1 rep} other{{reps} reps}}",
   "@progRepsValue": {
     "placeholders": {
       "reps": {
@@ -1363,7 +1358,6 @@
   },
   "myPwConfirm": "Confirm new password",
   "myPwChanging": "Changing…",
-  "myPwChangeAction": "Change",
   "mySettingsSaveFailed": "Couldn't save your settings. Please try again in a moment",
   "routineTypeWalking": "Walking",
   "@routineTypeWalking": {
@@ -1671,9 +1665,6 @@
   },
   "aiFrequentExercisesLabel": "Frequently done",
   "goalWeightLoss": "Weight loss",
-  "goalStrength": "Strength",
-  "goalFitness": "Fitness",
-  "goalPosture": "Posture",
   "goalHealth": "General health",
   "goalOther": "Other",
   "slotAm": "AM",
@@ -2606,7 +2597,7 @@
     }
   },
   "coachTemplateMenu": "Template menu",
-  "aiStrengthSummary": "{sets} sets × {reps} reps · {weight}kg",
+  "aiStrengthSummary": "{sets} sets · {reps} reps · {weight}kg",
   "@aiStrengthSummary": {
     "placeholders": {
       "sets": {

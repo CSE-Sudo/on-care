@@ -7,10 +7,17 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.db import seed_member_data
-from app.models.models import ChatMessage, CoachDocument, DietEntry, ExerciseSession
+from app.db.session import SessionLocal
+from app.models.models import (
+    ChatMessage,
+    CoachDocument,
+    DietEntry,
+    ExerciseSession,
+    User,
+)
 from app.services.coach.rag import has_personal_doc
 
 
@@ -247,3 +254,69 @@ def _doc_count_for_ref(db, ref: str) -> int:
             select(CoachDocument.id).where(CoachDocument.source_ref == ref)
         ).all()
     )
+
+
+def test_ingest_survives_rows_deleted_by_another_session(client, db_session, monkeypatch):
+    """적재 도중 다른 세션이 시드 행을 지워도 기동이 죽지 않는다. (#1919)
+
+    적재는 한 건마다 커밋한다. 커밋은 세션에 실린 ORM 객체를 만료시키므로, 미리
+    읽어 둔 행을 들고 반복하면 다음 속성 접근이 행을 다시 가져온다 — 그 사이
+    **다른 세션이** 지운 행이면 `ObjectDeletedError` 가 나고, 적재가 아니라
+    `init_db` 가 죽는다.
+
+    다른 세션이어야 한다는 것이 요점이다. 같은 세션이 지우면 그 객체는 식별
+    맵에서 밀려나 조용히 옛 값을 쓰지만, 남의 삭제는 이 세션이 모르는 채 남아
+    있다가 만료 뒤 되읽을 때 터진다.
+
+    **전용 회원을 만들어 쓴다.** `db_session` 은 테스트마다 롤백하지 않아서,
+    진짜 시드 회원의 행을 지우면 뒤따르는 테스트가 시드가 사라진 DB 를 보게
+    된다.
+    """
+    member_id = "user-1919-probe"
+    db_session.add(User(id=member_id, email=f"{member_id}@example.com", name="적재 프로브"))
+    # 기록이 이 회원을 참조하므로 먼저 내보낸다 — `DietEntry.user_id` 는 관계가
+    # 아니라 그냥 FK 칼럼이라 SQLAlchemy 가 순서를 정해 주지 않는다.
+    db_session.flush()
+    for n in range(3):
+        db_session.add(
+            DietEntry(
+                id=f"seed-diet-{member_id}-{n}",
+                user_id=member_id,
+                date="2026-09-01",
+                meal_type="lunch",
+                foods_json='[{"name": "밥", "calories": 300}]',
+                total_calories=300,
+            )
+        )
+    db_session.commit()
+
+    seen: list[str | None] = []
+
+    def _delete_elsewhere_then_commit(db, uid, **kw):
+        seen.append(kw.get("source_ref"))
+        if len(seen) == 1:
+            other = SessionLocal()
+            try:
+                other.execute(
+                    delete(DietEntry).where(DietEntry.user_id == member_id)
+                )
+                other.commit()
+            finally:
+                other.close()
+        # 실제 적재 경로가 하는 일 — 이 커밋이 남은 객체를 만료시킨다.
+        db.commit()
+
+    monkeypatch.setattr(seed_member_data, "has_personal_doc", lambda *a, **k: False)
+    for name in ("record_diet", "record_exercise", "record_chat"):
+        monkeypatch.setattr(
+            seed_member_data.personal_ingest, name, _delete_elsewhere_then_commit
+        )
+
+    try:
+        # 고치기 전에는 두 번째 행을 읽는 자리에서 ObjectDeletedError 가 났다.
+        seed_member_data._ingest_member_documents(db_session, member_id)
+        assert len(seen) == 3, "행이 사라져도 이미 뽑아 둔 값으로 셋 다 적재해야 한다"
+    finally:
+        # 회원을 지우면 남은 기록도 CASCADE 로 함께 사라진다.
+        db_session.execute(delete(User).where(User.id == member_id))
+        db_session.commit()

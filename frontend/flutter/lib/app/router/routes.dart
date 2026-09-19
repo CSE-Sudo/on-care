@@ -14,6 +14,10 @@ class AppRoutes {
   static const String notification = '/notification';
   static const String dietEntryDetail = '/diet/entries/:entryId';
   static const String myPoints = '/my-health/points';
+
+  /// 내 혜택 — 보유 쿠폰(이후 보호권·챌린지)을 모은다(#1787).
+  static const String myBenefits = '/my-health/benefits';
+  static const String myCouponDetail = '/my-health/benefits/coupons/:couponId';
   static const String mySettings = '/my-health/settings/:section';
   static const String gyms = '/gyms';
   static const String gymDetail = '/gyms/:gymId';
@@ -36,6 +40,9 @@ class AppRoutes {
 
   static String dietEntryDetailPath(String entryId) =>
       '$diet/entries/${Uri.encodeComponent(entryId)}';
+
+  static String myCouponDetailPath(String couponId) =>
+      '$myBenefits/coupons/${Uri.encodeComponent(couponId)}';
 
   static String mySettingsPath(String section) =>
       '/my-health/settings/${Uri.encodeComponent(section)}';
@@ -62,8 +69,6 @@ class AppRoutes {
   // First-run onboarding (shown right after sign-up)
   static const String onboarding = '/onboarding';
 
-  /// 온보딩을 마치거나 건너뛴 뒤 홈으로 가기 전에 보는 포인트 안내(#1826).
-  static const String pointsGuide = '/onboarding/points';
 
   /// 포인트 안내의 `시작하기` 뒤에 보는 사용 가이드(#1857) — 예시 자료로 채운
   /// 화면 위에서 주요 기능을 하나씩 밝게 짚는다.

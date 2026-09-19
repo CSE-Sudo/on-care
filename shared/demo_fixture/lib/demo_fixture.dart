@@ -14,10 +14,22 @@ import 'dart:convert';
 
 import 'package:demo_fixture/src/fixture_json.g.dart';
 
+/// 김민수의 담당 트레이너 — 데모 트레이너 계정의 이름. (#2062)
+///
+/// 회원 앱의 목 코치·목 헬스장·데모 알림 문구와 트레이너 웹의 데모 프로필이 모두
+/// 이 값을 읽는다. 문구에 이름을 글자로 박지 않고 이 값을 끼워 넣어, 이름을 바꿀
+/// 때 한 곳만 고치면 되게 한다. 백엔드 시드의 같은 사람은
+/// `backend/app/db/seed_trainer.py` 의 `TRAINER_NAME` 이다 — 둘은 같아야 한다.
+///
+/// 예전에는 `김트레이너` 라는 자리표시자였다. 이름과 직함을 한 줄에 두면
+/// `김트레이너 퍼스널 트레이너` 처럼 `트레이너` 가 두 번 읽혀 실제 이름으로 바꿨다.
+const String kDemoTrainerName = '김태오';
+
 /// 음식 한 가지.
 class FixtureFood {
   const FixtureFood({
     required this.name,
+    required this.amountG,
     required this.calories,
     required this.sodiumMg,
     required this.sugarG,
@@ -28,6 +40,7 @@ class FixtureFood {
 
   factory FixtureFood.fromJson(Map<String, Object?> json) => FixtureFood(
     name: json['name']! as String,
+    amountG: (json['amountG']! as num).toDouble(),
     calories: (json['calories']! as num).toInt(),
     sodiumMg: (json['sodiumMg']! as num).toInt(),
     sugarG: (json['sugarG']! as num).toDouble(),
@@ -37,6 +50,10 @@ class FixtureFood {
   );
 
   final String name;
+
+  /// 먹은 양(g) — 아래 영양이 **무엇을 재고 나온 값인가** 다(#1876). 데모 음식은
+  /// 모두 양을 안다(#2090).
+  final double amountG;
   final int calories;
   final int sodiumMg;
   final double sugarG;
@@ -47,6 +64,7 @@ class FixtureFood {
   /// 화면·저장소가 읽는 키 이름 그대로. 세 곳이 같은 키를 쓴다.
   Map<String, Object?> toJson() => <String, Object?>{
     'name': name,
+    'amount_g': amountG,
     'calories': calories,
     'sodium_mg': sodiumMg,
     'sugar_g': sugarG,
@@ -113,6 +131,7 @@ class FixtureExercise {
     required this.done,
     this.sets,
     this.reps,
+    this.weight,
   });
 
   factory FixtureExercise.fromJson(Map<String, Object?> json) =>
@@ -124,6 +143,7 @@ class FixtureExercise {
         done: json['done']! as bool,
         sets: (json['sets'] as num?)?.toInt(),
         reps: (json['reps'] as num?)?.toInt(),
+        weight: (json['weight'] as num?)?.toDouble(),
       );
 
   final String name;
@@ -142,6 +162,11 @@ class FixtureExercise {
   /// 근력 항목의 **한 세트당 횟수**. 세트·중량과 한 벌이다(#1310) — 셋이 다
   /// 있어야 지난주에 무엇을 했는지 그대로 되짚는다.
   final int? reps;
+
+  /// 근력 항목의 **중량**(kg). 맨몸 운동은 `0` 이다 — 근력이면 언제나 값을
+  /// 하나 든다(#1902). 예전에는 이 값이 이름 문자열에만 있어(`레그프레스 70kg`)
+  /// 이름을 쓰는 화면과 필드를 읽는 화면이 같은 기록을 다르게 말했다.
+  final double? weight;
 
   /// 트레이너 화면이 쓰는 표기. 이행률과 이 목록이 같은 자리에서 나오므로
   /// "67%" 옆에 "3개 중 3개 완료" 가 놓이는 일이 없다(#754).

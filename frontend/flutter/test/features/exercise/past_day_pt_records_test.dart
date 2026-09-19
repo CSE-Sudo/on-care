@@ -151,7 +151,9 @@ void main() {
     required String name,
     String? timeLabel,
     String trainerFeedback = '',
-    List<String> items = const <String>['벤치프레스 4세트 · 10회 · 40kg'],
+    int sets = 4,
+    int reps = 10,
+    double weight = 40,
   }) => ExerciseSession(
     id: id,
     dayLabel: _labelOf(date),
@@ -159,12 +161,15 @@ void main() {
     type: ExerciseType.strength,
     minutes: 50,
     calories: 300,
-    sets: 4,
+    // 운동 하나가 세션 하나다(#1902). 종목별 값이 이 행의 필드로 온다.
+    name: name,
+    sets: sets,
+    reps: reps,
+    weight: weight,
     source: source,
     assignedRoutineName: name,
     timeLabel: timeLabel,
     trainerFeedback: trainerFeedback,
-    items: items,
   );
 
   Future<AppLocalizations> pumpDay(
@@ -206,7 +211,7 @@ void main() {
     expect(inCard(find.text(l.exDurationMinutes(50))), findsOneWidget);
     expect(inCard(find.byType(AppDivider)), findsOneWidget);
     expect(
-      inCard(find.text('벤치프레스 4세트 · 10회 · 40kg')),
+      inCard(find.text('PT 세션 · 4세트 · 10회 · 40kg')),
       findsOneWidget,
       reason: '무슨 운동을 했는지가 종목 줄로 남는다',
     );
@@ -221,7 +226,6 @@ void main() {
         date: target,
         source: ExerciseSource.assignedRoutine,
         name: '코어 루틴',
-        items: const <String>['코어 강화 10분'],
       ),
     ]);
 
@@ -237,14 +241,15 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: card, matching: find.text('코어 강화 10분')),
+      find.descendant(
+        of: card,
+        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg'),
+      ),
       findsOneWidget,
     );
   });
 
-  testWidgets('제목이 `직접 추가한 운동이 없어요` 아래에 온다 — 카드가 그 문구에 딸려 읽히지 않는다', (
-    tester,
-  ) async {
+  testWidgets('트레이너 쪽 기록이 직접 기록한 운동보다 위에 선다 (#2017)', (tester) async {
     final DateTime target = otherDay();
     final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
       trainerSession(
@@ -256,25 +261,30 @@ void main() {
       ),
     ]);
 
-    // 회원이 직접 적은 기록은 없는 날이다 — 빈 안내가 떠 있다.
-    expect(find.text(l.exOwnRecordsEmpty), findsOneWidget);
-
-    final double emptyBottom = tester
-        .getRect(find.text(l.exOwnRecordsEmpty))
-        .bottom;
-    final double titleTop = tester
+    // 오늘 화면과 같은 차례다: 완료한 PT → 추천 개인운동 → 직접 기록.
+    // 날짜만 옮겼는데 순서가 뒤집히면 어느 것이 트레이너 쪽이고 어느 것이 내가
+    // 적은 것인지 매번 다시 읽어야 한다.
+    final double ptTitleTop = tester
         .getRect(find.text(l.exCompletedPtDayTitle))
         .top;
     final double itemTop = tester
-        .getRect(find.text('벤치프레스 4세트 · 10회 · 40kg'))
+        .getRect(find.text('PT 세션 · 4세트 · 10회 · 40kg'))
         .top;
+    final double ownTitleTop = tester.getRect(find.text(l.exOwnRecords)).top;
 
-    // 제목이 빈 안내와 기록 **사이**에 선다. 기록이 안내 바로 밑에 붙으면
-    // 없다고 해 놓고 보여 주는 꼴이 된다.
-    expect(titleTop, greaterThan(emptyBottom));
-    expect(itemTop, greaterThan(titleTop));
-    // 안내와 카드가 붙어 보이지 않게 띄운다(#1884).
-    expect(titleTop - emptyBottom, greaterThanOrEqualTo(OnCareSpacing.s20));
+    expect(itemTop, greaterThan(ptTitleTop));
+    expect(ownTitleTop, greaterThan(itemTop));
+
+    // 직접 적은 기록이 없는 날이라 빈 안내가 그 제목 아래에 남는다 — PT 카드가
+    // 그 문구에 딸려 읽히지 않는다(#1884).
+    final double emptyTop = tester.getRect(find.text(l.exOwnRecordsEmpty)).top;
+    expect(emptyTop, greaterThan(ownTitleTop));
+
+    // 두 묶음이 붙어 보이지 않게 띄운다.
+    final double ptBottom = tester
+        .getRect(find.text('PT 세션 · 4세트 · 10회 · 40kg'))
+        .bottom;
+    expect(ownTitleTop - ptBottom, greaterThanOrEqualTo(OnCareSpacing.s20));
   });
 
   testWidgets('배정 개인운동은 PT 카드에 섞이지 않고 제 카드로 선다', (tester) async {
@@ -292,7 +302,6 @@ void main() {
         date: target,
         source: ExerciseSource.assignedRoutine,
         name: '코어 루틴',
-        items: const <String>['코어 강화 10분'],
       ),
     ]);
 
@@ -328,16 +337,22 @@ void main() {
     expect(
       find.descendant(
         of: ptCard,
-        matching: find.text('벤치프레스 4세트 · 10회 · 40kg'),
+        matching: find.text('PT 세션 · 4세트 · 10회 · 40kg'),
       ),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: ptCard, matching: find.text('코어 강화 10분')),
+      find.descendant(
+        of: ptCard,
+        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg'),
+      ),
       findsNothing,
     );
     expect(
-      find.descendant(of: routineCard, matching: find.text('코어 강화 10분')),
+      find.descendant(
+        of: routineCard,
+        matching: find.text('코어 루틴 · 4세트 · 10회 · 40kg'),
+      ),
       findsOneWidget,
     );
 
@@ -366,7 +381,6 @@ void main() {
         date: target,
         source: ExerciseSource.assignedRoutine,
         name: '코어 루틴',
-        items: const <String>['코어 강화 10분'],
       ),
     ]);
 

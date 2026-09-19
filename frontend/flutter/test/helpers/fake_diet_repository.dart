@@ -42,6 +42,8 @@ class FakeDietRepository implements DietRepository {
       foods: <FoodItem>[
         // 섭취량을 아는 음식과 모르는 음식을 한 끼니에 함께 둔다 — 서버가
         // 양을 얻지 못한 인식과 이 필드 이전 기록이 실제로 섞여 들어온다(#1876).
+        // 출처도 실서버와 같이 둔다(#2105): 양을 알아 DB × 양으로 환산한 음식은
+        // `db`, 양을 몰라 인식기 추정을 그대로 둔 음식은 `estimate`(기본값)다.
         FoodItem(
           name: '스크램블 에그',
           calories: 185,
@@ -51,6 +53,7 @@ class FakeDietRepository implements DietRepository {
           carbsG: 2,
           proteinG: 13,
           fatG: 14,
+          source: FoodSource.db,
         ),
         FoodItem(
           name: '딸기',
@@ -155,14 +158,22 @@ class FakeDietRepository implements DietRepository {
         calories: 600,
         sodiumMg: 900,
         sugarG: 8,
-        source: 'db',
+        source: FoodSource.db,
+        carbsG: 90,
+        proteinG: 20,
+        fatG: 13.5,
+        amountG: 400,
       ),
       RecognizedFood(
         name: '김치',
         calories: 15,
         sodiumMg: 300,
         sugarG: 1,
-        source: 'db',
+        source: FoodSource.db,
+        carbsG: 2.5,
+        proteinG: 1,
+        fatG: 0.5,
+        amountG: 40,
       ),
     ];
     const int cals = 615;
@@ -198,6 +209,10 @@ class FakeDietRepository implements DietRepository {
                 calories: f.calories,
                 sodiumMg: f.sodiumMg,
                 sugarG: f.sugarG.toDouble(),
+                carbsG: f.carbsG,
+                proteinG: f.proteinG,
+                fatG: f.fatG,
+                amountG: f.amountG,
               ),
             )
             .toList(),
@@ -332,13 +347,19 @@ class FakeDietRepository implements DietRepository {
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final int idx = _entries.indexWhere((DietEntry e) => e.id == id);
-    final DietEntry? old = idx >= 0 ? _entries[idx] : null;
+    // 다른 날로 옮겨 둔 기록도 id 로 찾는다 — 실서버·목 인터셉터는 날짜와
+    // 상관없이 id 로 고친다. 오늘 목록만 뒤지면 옮긴 뒤 끼니를 고친 저장이
+    // 대역에서만 사라진다(#1947).
+    final ({String date, DietEntry entry})? movedOld = movedEntries[id];
+    final DietEntry? old = idx >= 0 ? _entries[idx] : movedOld?.entry;
     final List<FoodItem> updatedFoods =
         foods ?? old?.foods ?? const <FoodItem>[];
     final DietEntry updated = DietEntry(
       id: id,
+      // `byName` 은 모르는 값에 던진다. 실서버·목 인터셉터는 자유 문자열을
+      // 그대로 받아 두므로, 대역도 같은 자리에서 간식으로 접는다.
       mealType: mealType != null
-          ? MealType.values.byName(mealType)
+          ? _mealTypeOf(mealType)
           : (old?.mealType ?? MealType.lunch),
       timeLabel: timeLabel ?? old?.timeLabel ?? '',
       totalCalories:
@@ -362,7 +383,7 @@ class FakeDietRepository implements DietRepository {
       photoAsset: old?.photoAsset,
       foods: updatedFoods,
     );
-    if (old != null) {
+    if (idx >= 0) {
       _entries[idx] = updated;
     }
     // 날짜를 옮기면 오늘 목록에서 빠지고 그 날짜에서 보인다 — 실서버가 하는
@@ -371,13 +392,15 @@ class FakeDietRepository implements DietRepository {
     if (date != null) {
       final DateTime now = nowKst();
       final String todayWire = _wire(DateTime(now.year, now.month, now.day));
-      if (old != null) _entries.removeAt(idx);
+      if (idx >= 0) _entries.removeAt(idx);
       movedEntries.remove(id);
       if (date == todayWire) {
         _entries.add(updated);
       } else {
         movedEntries[id] = (date: date, entry: updated);
       }
+    } else if (movedOld != null) {
+      movedEntries[id] = (date: movedOld.date, entry: updated);
     }
     return updated;
   }

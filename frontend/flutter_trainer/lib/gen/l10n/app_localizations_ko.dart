@@ -231,7 +231,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get authErrPasswordWeak => '영문과 숫자를 포함해 8자 이상 입력해 주세요';
 
   @override
-  String get authErrPhoneInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
+  String get authErrPhoneInvalid => '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get authErrBirthDateInvalid => '생년월일을 1996-03-21 형식으로 입력해 주세요';
@@ -1099,6 +1099,17 @@ class AppLocalizationsKo extends AppLocalizations {
   String get consultHealthPurpose => '건강관리 목적';
 
   @override
+  String get consultChosenSlot => '고른 시간';
+
+  @override
+  String consultSlotDuration(int minutes) {
+    return '$minutes분';
+  }
+
+  @override
+  String get consultStatusExpired => '만료됨';
+
+  @override
   String get consultPreferredTime => '희망 일시';
 
   @override
@@ -1118,9 +1129,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get consultRejectHint => '예) 요청하신 시간에 다른 일정이 있어요.';
-
-  @override
-  String get consultRejectAction => '거절하기';
 
   @override
   String get consultStatusPending => '대기중';
@@ -1365,11 +1373,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exTypeOther => '기타';
-
-  @override
-  String exSetsValue(int count) {
-    return '$count세트';
-  }
 
   @override
   String clientPeriodLoggedDays(int days) {
@@ -2100,9 +2103,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPwChanging => '변경 중…';
 
   @override
-  String get myPwChangeAction => '변경하기';
-
-  @override
   String get mySettingsSaveFailed => '설정을 저장하지 못했어요. 잠시 후 다시 시도해 주세요';
 
   @override
@@ -2565,15 +2565,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get goalWeightLoss => '체중 감량';
-
-  @override
-  String get goalStrength => '근력 향상';
-
-  @override
-  String get goalFitness => '체력 증진';
-
-  @override
-  String get goalPosture => '자세 교정';
 
   @override
   String get goalHealth => '건강 관리';
@@ -3843,7 +3834,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aiStrengthSummary(int sets, int reps, String weight) {
-    return '$sets세트 × $reps회 · ${weight}kg';
+    return '$sets세트 · $reps회 · ${weight}kg';
   }
 
   @override

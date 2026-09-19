@@ -89,7 +89,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get homeAiAdviceBody =>
-      '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 높아진 나트륨과 혈당을 낮추기 위해 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
+      '아침 식단과 저녁 PT는 완벽했습니다! 점심 짬뽕으로 나트륨이 높았으니 물을 충분히 마시고, 코치님이 강조하신 어깨 스트레칭으로 건강하게 마무리해 보세요.';
 
   @override
   String get homeSodiumExceededBadge => '나트륨 초과';
@@ -333,6 +333,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietMealSnack => '간식';
 
   @override
+  String get dietMealLateNight => '야식';
+
+  @override
   String dietMealSheetTitle(String meal) {
     return '$meal 식단';
   }
@@ -343,7 +346,23 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String dietMoreFoods(String name, int count) {
+    return '$name 외 $count';
+  }
+
+  @override
   String get dietFillFromDb => '값 채우기';
+
+  @override
+  String dietFoodFilledFromDb(String name) {
+    return '공공 DB · $name 값으로 바꿨어요';
+  }
+
+  @override
+  String get dietUndoFill => '되돌리기';
+
+  @override
+  String get dietFoodNotInDb => '공공 DB에 없는 음식이에요. 영양 값을 확인해 주세요';
 
   @override
   String get dietAddSheetTitle => '식단 추가';
@@ -427,6 +446,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietRecordDateFailed => '날짜를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
+  String get dietMealKind => '끼니';
+
+  @override
   String get dietAnalysisDone => '분석 완료!';
 
   @override
@@ -474,9 +496,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietSaved => '식단이 저장되었어요';
 
   @override
-  String get dietSaveEntry => '저장하기';
-
-  @override
   String get dietSaveFailed => '저장에 실패했어요. 잠시 후 다시 시도해 주세요';
 
   @override
@@ -505,9 +524,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get dietMealInfo => '식사 정보';
-
-  @override
-  String get dietEatenTime => '먹은 시간';
 
   @override
   String get dietEatenFood => '먹은 음식';
@@ -617,8 +633,8 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exActivityTitle => '운동 현황';
 
   @override
-  String exWeekOfMonthLabel(int month, int week) {
-    return '$month월 $week주차';
+  String exBurnWeekOfMonthTitle(int month, int week) {
+    return '$month월 $week주차 소모';
   }
 
   @override
@@ -701,6 +717,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exStreakStart => '오늘 운동으로 연속 기록을 시작해 봐요.';
 
   @override
+  String get exStreakProtected => '보호권으로 이어짐';
+
+  @override
   String get exToday => '오늘';
 
   @override
@@ -720,11 +739,6 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String exCompletedPtFeedback(String coachName) {
     return '$coachName · 오늘의 피드백';
-  }
-
-  @override
-  String exProgramSets(int count) {
-    return '$count세트';
   }
 
   @override
@@ -1058,7 +1072,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myNotifTitle => '알림 설정';
 
   @override
-  String get myGuideTitle => '앱 사용 가이드 다시 보기';
+  String get myGuideTitle => '앱 사용 가이드';
 
   @override
   String get mySupportTitle => '고객 지원';
@@ -1068,7 +1082,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myPointsBalance(int points) {
-    return '보유 ${points}P';
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return '보유 ${pointsString}P';
   }
 
   @override
@@ -1078,33 +1096,204 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsBenefitsHint => '기록을 꾸준히 남기면 포인트가 쌓이고, 위 혜택에 사용할 수 있어요.';
 
   @override
-  String get myPointsDiscountTitle => '포인트 차감 현금성 할인';
+  String myPointsCost(int points) {
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return '${pointsString}P';
+  }
 
   @override
-  String get myPointsDiscountDescription =>
-      '1:1 코칭권·PT 결제 시 보유 포인트를 최대 10%까지 현금처럼 차감해요.';
+  String get myPointsExchange => '교환';
 
   @override
-  String get myPointsDiscountCost => '최대 10%';
+  String get myPointsExchangeConfirmTitle => '포인트로 교환할까요?';
 
   @override
-  String get myPointsReportTitle => '혈당·혈압 예측 리포트 잠금 해제';
+  String myPointsExchangeConfirmMessage(String item, String cost) {
+    return '$item에 $cost를 사용해요. 교환한 쿠폰은 내 혜택에서 볼 수 있어요.';
+  }
 
   @override
-  String get myPointsReportDescription => '주간·월간 건강 데이터 종합 리포트를 열람할 수 있어요.';
+  String get myPointsExchangeConfirmAction => '교환하기';
 
   @override
-  String get myPointsReportCost => '500P';
+  String get myPointsExchangeDone => '교환했어요';
 
   @override
-  String get myPointsRecipeTitle => '맞춤형 건강 식단 레시피 패키지';
+  String get myPointsExchangeFailed => '교환하지 못했어요. 다시 시도해 주세요.';
 
   @override
-  String get myPointsRecipeDescription =>
-      '건강 목표(당뇨 예방·체중 감량 등)에 맞춘 식단 가이드를 PDF·인터랙티브로 받아요.';
+  String myPointsShortfall(String points) {
+    return '$points 부족해요';
+  }
 
   @override
-  String get myPointsRecipeCost => '500P';
+  String get myPointsNeedTrainer => '담당 트레이너가 있어야 교환할 수 있어요';
+
+  @override
+  String get myPointsNeedGym => '헬스장을 연결해야 교환할 수 있어요';
+
+  @override
+  String get myPointsActiveCoupon => '사용하지 않은 쿠폰이 있어요';
+
+  @override
+  String get myPointsMonthlyLimit => '이번 달에는 이미 교환했어요';
+
+  @override
+  String get myPointsShieldLimit => '보호권은 최대 4개까지 가질 수 있어요';
+
+  @override
+  String get myShopStreakShieldTitle => '연속 기록 보호권';
+
+  @override
+  String get myShopStreakShieldDescription =>
+      '아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요. 최대 4개까지 가질 수 있어요.';
+
+  @override
+  String get myBenefitsStreakShields => '연속 기록 보호권';
+
+  @override
+  String myBenefitsShieldHeld(int held, int max) {
+    return '보유 $held/$max개';
+  }
+
+  @override
+  String myBenefitsShieldHeldCount(int held) {
+    return '보유 $held개';
+  }
+
+  @override
+  String get myBenefitsShieldGuide => '아무것도 기록하지 못한 날이 있으면 다음 날 쓸 수 있어요.';
+
+  @override
+  String get myBenefitsShieldUsedTitle => '보호한 날';
+
+  @override
+  String get myBenefitsShieldNoneUsed => '아직 보호한 날이 없어요';
+
+  @override
+  String myPointsValidDays(int days) {
+    return '교환 후 $days일 동안 사용';
+  }
+
+  @override
+  String get myPointsShopLoadFailed => '사용처를 불러오지 못했어요';
+
+  @override
+  String get myShopPtRenewalTitle => 'PT 재등록 3만원 할인';
+
+  @override
+  String get myShopPtRenewalDescription =>
+      '담당 트레이너에게 PT를 다시 등록할 때 30,000원을 할인받아요.';
+
+  @override
+  String get myShopLockerTitle => '개인 락커 1개월 무료';
+
+  @override
+  String get myShopLockerDescription => '연결한 헬스장에서 개인 락커를 한 달 동안 무료로 써요.';
+
+  @override
+  String get myCouponPtRenewalBenefit => 'PT 재등록 30,000원 할인';
+
+  @override
+  String get myBenefitsTitle => '내 혜택';
+
+  @override
+  String get myBenefitsView => '보기';
+
+  @override
+  String get myBenefitsCoupons => '쿠폰';
+
+  @override
+  String get myBenefitsEmpty => '보유한 쿠폰이 없어요';
+
+  @override
+  String get myBenefitsEmptyMessage => '포인트로 쿠폰을 교환해 보세요.';
+
+  @override
+  String get myBenefitsLoadFailed => '혜택을 불러오지 못했어요';
+
+  @override
+  String get myCouponStatusUsable => '사용 가능';
+
+  @override
+  String get myCouponStatusUsed => '사용 완료';
+
+  @override
+  String get myCouponStatusExpired => '만료';
+
+  @override
+  String get myCouponStatusCancelled => '취소됨';
+
+  @override
+  String myCouponDaysLeft(int days) {
+    return 'D-$days';
+  }
+
+  @override
+  String get myCouponDDay => 'D-day';
+
+  @override
+  String myCouponUntil(String date) {
+    return '$date까지';
+  }
+
+  @override
+  String get myCouponTrainer => '담당 트레이너';
+
+  @override
+  String get myCouponGym => '헬스장';
+
+  @override
+  String get myCouponIssuedOn => '교환일';
+
+  @override
+  String get myCouponExpiry => '만료일';
+
+  @override
+  String myCouponExpiryWithDday(String date, String dday) {
+    return '$date ($dday)';
+  }
+
+  @override
+  String get myCouponStatus => '상태';
+
+  @override
+  String get myCouponStaffNote => '트레이너·헬스장 직원이 확인한 뒤 눌러 주세요';
+
+  @override
+  String get myCouponGymStaffNote => '헬스장 직원이 확인한 뒤 눌러 주세요';
+
+  @override
+  String get myCouponStaffConfirmTitle => '쿠폰을 사용 완료할까요?';
+
+  @override
+  String get myCouponStaffConfirmMessage => '직원 확인용 · 사용 후 되돌릴 수 없어요';
+
+  @override
+  String get myCouponUsedAt => '사용 시각';
+
+  @override
+  String myCouponUsedBanner(String time) {
+    return '$time에 사용 완료했어요';
+  }
+
+  @override
+  String get myCouponExpireNotice => '만료되면 포인트는 돌려받을 수 없어요.';
+
+  @override
+  String get myCouponUse => '사용 완료';
+
+  @override
+  String get myCouponUseDone => '사용 완료로 바꿨어요';
+
+  @override
+  String get myCouponUseFailed => '사용 처리하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get myCouponNotFound => '쿠폰을 찾을 수 없어요';
 
   @override
   String get a11yCoachPhoto => '트레이너가 보낸 사진';
@@ -1131,10 +1320,77 @@ class AppLocalizationsKo extends AppLocalizations {
       '탈퇴하면 계정과 함께 기록한 식단·운동·건강 지표가 모두 지워지고, 트레이너와의 연결과 주고받은 대화도 사라집니다. 되돌릴 수 없어요.';
 
   @override
-  String get myWithdrawAction => '탈퇴하기';
+  String get myWithdrawAction => '탈퇴';
 
   @override
   String get myWithdrawFailed => '탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get myWithdrawReasonTitle => '정말 탈퇴를 원하시나요?';
+
+  @override
+  String get myWithdrawReasonQuestion => '어떤 부분이 불편하셨나요?';
+
+  @override
+  String get myWithdrawReasonHint => '복수 선택 가능';
+
+  @override
+  String get myWithdrawReasonPrivacy => '개인정보 노출이 걱정돼요';
+
+  @override
+  String get myWithdrawReasonRarelyUsed => '자주 사용하지 않아요';
+
+  @override
+  String get myWithdrawReasonHardToUse => '쓰기가 불편해요';
+
+  @override
+  String get myWithdrawReasonNotifications => '알림이 너무 많아요';
+
+  @override
+  String get myWithdrawReasonAlternative => '다른 앱을 쓰고 있어요';
+
+  @override
+  String get myWithdrawReasonOther => '그 밖의 이유';
+
+  @override
+  String get myWithdrawNext => '다음';
+
+  @override
+  String get myWithdrawKeepTitle => '탈퇴하기 전에';
+
+  @override
+  String get myWithdrawKeepPrivacy =>
+      '회원님의 기록은 절대 불특정 타인에게 공개하지 않아요. 볼 수 있는 사람은 회원님과 연결된 담당 트레이너뿐이고, 트레이너 연결을 끊으면 회원님만 볼 수 있어요 — MY 탭의 내 헬스장 · 트레이너에서 바로 끊을 수 있습니다.';
+
+  @override
+  String get myWithdrawKeepRarelyUsed =>
+      '매일 다 적지 않아도 괜찮아요. 가운데 + 를 누르면 어느 화면에서든 끼니 하나, 운동 하나를 바로 남길 수 있어요.';
+
+  @override
+  String get myWithdrawKeepHardToUse =>
+      '어디가 불편했는지 알려주시면 고칩니다. MY > 고객 지원의 1:1 문의로 바로 닿아요.';
+
+  @override
+  String get myWithdrawKeepNotifications =>
+      '알림은 종류별로 끌 수 있어요. MY > 알림 설정에서 받고 싶은 것만 남겨 보세요.';
+
+  @override
+  String get myWithdrawKeepAlternative =>
+      '앱을 지워도 기록은 그대로 남습니다. 탈퇴하면 그때 사라지고 되살릴 수 없어요.';
+
+  @override
+  String get myWithdrawKeepOther =>
+      '무엇이든 알려주시면 반영합니다. MY > 고객 지원의 1:1 문의로 남겨 주세요.';
+
+  @override
+  String get myWithdrawKeepDefault =>
+      '지금까지 쌓은 식단·운동 기록은 탈퇴와 함께 사라지고 되살릴 수 없어요.';
+
+  @override
+  String get myWithdrawStay => '계속 사용하기';
+
+  @override
+  String get myWithdrawContinue => '탈퇴 계속';
 
   @override
   String get myCancel => '취소';
@@ -1324,7 +1580,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachImageUnavailable => '사진을 불러오지 못했어요';
 
   @override
-  String get coachChatSubtitle => '담당 트레이너 · 상담 가능';
+  String get coachChatSubtitle => '담당 트레이너';
 
   @override
   String get coachChatBack => '뒤로가기';
@@ -1650,6 +1906,15 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInsightNegative => '부정적 반응 감지';
 
   @override
+  String get aicInsightDelete => '삭제';
+
+  @override
+  String get aicInsightDeleteConfirm => '이 감지를 기록에서 지울까요? 대화에 쓴 말은 그대로 남아요.';
+
+  @override
+  String get aicInsightDeleteFailed => '지우지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
   String get aicInsightHistoryTitle => '감지 기록';
 
   @override
@@ -1657,7 +1922,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String aicInsightHistorySubtitle(int days) {
-    return '최근 $days일 동안 대화에서 감지한 통증·부정적 반응이에요';
+    return '최근 $days일 동안 감지한 통증·부정적 반응이에요. AI가 답할 때 참고해요';
   }
 
   @override
@@ -1746,19 +2011,76 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachInviteConsentAgree => '동의하고 연결';
 
   @override
+  String get exConsultSlotTitle => '예약 가능한 시간';
+
+  @override
+  String get exConsultSlotRequired => '예약 가능한 시간을 선택해주세요.';
+
+  @override
+  String get exConsultSlotsEmptyTitle => '지금은 예약 가능한 상담 시간이 없어요.';
+
+  @override
+  String exConsultSlotsEmptyBody(String gym, String phone) {
+    return '$gym $phone 로 문의해 상담 시간을 요청해 주세요.';
+  }
+
+  @override
+  String exConsultSlotsEmptyNoPhone(String gym) {
+    return '$gym 상세에서 위치와 영업시간을 확인해 문의해 주세요.';
+  }
+
+  @override
+  String get exConsultSlotsError => '예약 가능한 시간을 불러오지 못했어요.';
+
+  @override
+  String get exConsultSlotTaken => '방금 다른 회원이 그 시간을 예약했어요. 다른 시간을 선택해주세요.';
+
+  @override
+  String exConsultTooManyPending(int count) {
+    return '답을 기다리는 상담 요청이 이미 $count건 있어요. 답을 받거나 요청을 취소한 뒤 다시 신청해 주세요.';
+  }
+
+  @override
+  String exConsultRateLimitedHours(int hours) {
+    return '상담 신청이 너무 잦아요. $hours시간 뒤에 다시 신청해 주세요.';
+  }
+
+  @override
+  String exConsultRateLimitedMinutes(int minutes) {
+    return '상담 신청이 너무 잦아요. $minutes분 뒤에 다시 신청해 주세요.';
+  }
+
+  @override
+  String get exConsultRateLimited => '상담 신청이 너무 잦아요. 잠시 후 다시 신청해 주세요.';
+
+  @override
+  String get exConsultTooManyPendingNoCount =>
+      '답을 기다리는 상담 요청이 너무 많아요. 답을 받거나 요청을 취소한 뒤 다시 신청해 주세요.';
+
+  @override
+  String get exGymCall => '전화 걸기';
+
+  @override
+  String get exGymCallFailed => '전화 앱을 열 수 없어요.';
+
+  @override
+  String get exGymDetail => '헬스장 상세 보기';
+
+  @override
+  String get exConsultChosenSlot => '신청한 시간';
+
+  @override
+  String get exConsultConfirmedAt => '확정 일시';
+
+  @override
+  String get exConsultExpired => '만료됨';
+
+  @override
+  String get exConsultExpiredBody =>
+      '트레이너가 시간 안에 확인하지 않았어요. 다른 시간으로 다시 신청해 보세요.';
+
+  @override
   String get exExerciseGoal => '운동 목표';
-
-  @override
-  String get exGoalWeightLoss => '체중 감량';
-
-  @override
-  String get exGoalStrength => '근력 향상';
-
-  @override
-  String get exGoalFitness => '체력 향상';
-
-  @override
-  String get exGoalPosture => '자세 교정';
 
   @override
   String get exGoalHealth => '건강 관리';
@@ -1771,15 +2093,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exPreferredDate => '희망 날짜';
-
-  @override
-  String get exSelectDate => '날짜를 선택해주세요';
-
-  @override
-  String get exSelectTime => '시간을 선택해주세요';
-
-  @override
-  String get exPreferredTime => '희망 시간대';
 
   @override
   String get exTimeFlexible => '시간 협의';
@@ -1834,12 +2147,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exOtherGoalDetailRequired => '구체적인 운동 목표를 문의 내용에 입력해주세요.';
-
-  @override
-  String get exDateRequired => '희망 날짜를 선택해주세요.';
-
-  @override
-  String get exTimeRequired => '희망 시간대를 선택해주세요.';
 
   @override
   String get exConsultTargetNotFound => '상담 대상 정보를 찾을 수 없어요.';
@@ -2021,7 +2328,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get signUpPasswordMismatch => '비밀번호가 일치하지 않아요';
 
   @override
-  String get signUpPhoneFormatInvalid => '전화번호를 000-0000-0000 형식으로 입력해 주세요';
+  String get signUpPhoneFormatInvalid => '전화번호를 010-0000-0000 형식으로 입력해 주세요';
 
   @override
   String get myFieldBirthInvalid => '생년월일을 1996-03-21 형식으로 입력해 주세요';
@@ -2101,28 +2408,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get onboardOptionalTag => '(선택)';
 
   @override
-  String get pointsGuideTitle => '포인트 퀘스트';
-
-  @override
-  String get pointsGuideSubtitle => '매일 기록할수록 포인트가 쌓여요. 아래 퀘스트로 모아 보세요';
-
-  @override
-  String pointsGuideQuest(int number) {
-    return '퀘스트 $number';
-  }
-
-  @override
-  String pointsGuideDailyCap(int count) {
-    return '하루 $count회까지';
-  }
-
-  @override
-  String get pointsGuideSpendNote => '모은 포인트는 MY › 포인트 사용처에서 쓸 수 있어요';
-
-  @override
-  String get pointsGuideStart => '시작하기';
-
-  @override
   String guideBadgeWithStep(int current, int total) {
     return '앱 사용 가이드 $current/$total';
   }
@@ -2185,7 +2470,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String guidePointsBody(int diet, int exercise, int routine) {
-    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P';
+    return '기록할 때마다 포인트가 쌓여요.\n식단 기록 +${diet}P, 운동 추가 +${exercise}P, 추천 운동 완료 +${routine}P\n모은 포인트는 MY › 포인트 사용처에서 써요';
   }
 
   @override
@@ -2509,6 +2794,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineTitle => '추천 개인운동';
 
   @override
+  String get coachRoutineAiTitle => 'AI 추천 개인운동';
+
+  @override
   String get coachRoutineByTrainer => '트레이너 직접 추천';
 
   @override
@@ -2650,7 +2938,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get demoAlertSodiumBody =>
-      '점심 짬뽕으로 오늘 나트륨이 3,428mg까지 올랐어요. 물을 충분히 드세요.';
+      '점심 짬뽕으로 오늘 나트륨이 4,657mg까지 올랐어요. 물을 충분히 드세요.';
 
   @override
   String get demoAlertDinnerTitle => '저녁 식단을 기록해 주세요';
@@ -2662,19 +2950,25 @@ class AppLocalizationsKo extends AppLocalizations {
   String get demoAlertRoutineTitle => '새 운동 루틴이 도착했어요';
 
   @override
-  String get demoAlertRoutineBody => '김트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+  String demoAlertRoutineBody(String trainerName) {
+    return '$trainerName 트레이너님이 무릎 상태에 맞춰 걷기 루틴으로 조정해 보냈어요.';
+  }
 
   @override
   String get demoAlertReportTitle => '이번 주 리포트가 등록됐어요';
 
   @override
-  String get demoAlertReportBody => '김트레이너님이 이번 주 리포트를 등록했어요.';
+  String demoAlertReportBody(String trainerName) {
+    return '$trainerName 트레이너님이 이번 주 리포트를 등록했어요.';
+  }
 
   @override
   String get demoAlertPtDoneTitle => 'PT 수업 완료';
 
   @override
-  String get demoAlertPtDoneBody => '오늘 18:00 김트레이너와 12회차 PT를 마쳤어요!';
+  String demoAlertPtDoneBody(String trainerName) {
+    return '오늘 18:00 $trainerName 트레이너와 12회차 PT를 마쳤어요!';
+  }
 
   @override
   String get demoAlertTrainerFeedbackTitle => '트레이너 피드백 도착';
@@ -2768,10 +3062,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exConsultHistoryCancelBody => '취소한 요청은 다시 되돌릴 수 없어요.';
 
   @override
-  String get exDemoPtSessionCount => '김트레이너와 12회차';
-
-  @override
-  String get exDemoPtTrainerName => '김트레이너';
+  String exDemoPtSessionCount(String trainerName) {
+    return '$trainerName 트레이너와 12회차';
+  }
 
   @override
   String get exDemoPtFeedback =>

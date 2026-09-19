@@ -25,8 +25,10 @@ from app.api.v1 import (
     member_coach,
     notifications,
     places,
+    points,
     reservations,
     social,
+    streak_shields,
     system,
     trainer,
     trainers,
@@ -50,7 +52,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="On-Care Backend",
-    description="만성질환(고혈압·당뇨) 위험군 헬스케어 플랫폼 — 프론트 계약 정렬판",
+    description="PT 회원과 트레이너를 잇는 식단·운동 관리 서비스 — 회원 앱·트레이너 웹 공용 API",
     version=settings.app_version,
     lifespan=lifespan,
 )
@@ -118,6 +120,9 @@ app.include_router(chat_attachments.router, prefix=settings.api_v1_prefix)
 app.include_router(coach_docs.router, prefix=settings.api_v1_prefix)
 app.include_router(trainer.router, prefix=settings.api_v1_prefix)
 app.include_router(member_coach.router, prefix=settings.api_v1_prefix)
+app.include_router(points.router, prefix=settings.api_v1_prefix)
+# 연속 기록 보호권(#1788). 교환은 포인트 사용처(`points`)와 같은 경로다.
+app.include_router(streak_shields.router, prefix=settings.api_v1_prefix)
 app.include_router(consultations.router, prefix=settings.api_v1_prefix)
 app.include_router(reservations.router, prefix=settings.api_v1_prefix)
 # 회원앱 헬스장·트레이너 디렉터리(#324). trainer(단수, 트레이너 앱 전용)와 별개다.

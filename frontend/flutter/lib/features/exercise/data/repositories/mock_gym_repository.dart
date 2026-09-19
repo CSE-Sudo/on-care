@@ -1,3 +1,5 @@
+import 'package:demo_fixture/demo_fixture.dart';
+import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/my_reservation.dart';
@@ -7,13 +9,18 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 
 /// In-memory gym + trainer data matching the prototype's `GymCard` /
 /// `GymFinder` mocks. The user starts connected to 온케어짐 신촌점 and to
-/// 김트레이너 — the same gym and person the trainer app's
+/// [kDemoTrainerName] — the same gym and person the trainer app's
 /// `seedTrainerProfile` describes, so both apps show one relationship.
 ///
 /// Stateful (not const) so the two links can be dropped for the session. The
 /// provider holds one instance, so MY 탭과 운동 탭이 같은 연결 상태를 본다.
 class MockGymRepository implements GymRepository {
-  MockGymRepository();
+  /// [coupons] 를 주면 헬스장 연결이 끊길 때 목업 락커 쿠폰을, 담당 트레이너 연결이
+  /// 끊길 때 목업 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다(#1787) — 서버의 해제
+  /// 경로와 같은 규칙이다.
+  MockGymRepository({DemoCouponBook? coupons}) : _coupons = coupons;
+
+  final DemoCouponBook? _coupons;
 
   /// 연결 상태는 id 만 들고 있다 — 목록과 어긋날 수 없다.
   String? _myGymId = 'gym-oncare-sinchon';
@@ -74,7 +81,7 @@ class MockGymRepository implements GymRepository {
   static const Trainer _kim = Trainer(
     id: 'trainer-kim',
     gymId: 'gym-oncare-sinchon',
-    name: '김트레이너',
+    name: kDemoTrainerName,
     role: '퍼스널 트레이너',
     reasons: <String>['혈압 관리', '체중 감량', '식습관 개선'],
     career: '7년',
@@ -90,7 +97,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-park',
       gymId: 'gym-oncare-sinchon',
-      name: '박트레이너',
+      name: '박소율',
       role: '재활 트레이너',
       reasons: <String>['무릎·허리 재활', '수술 후 회복'],
       career: '11년',
@@ -102,7 +109,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-choi',
       gymId: 'gym-oncare-sinchon',
-      name: '최트레이너',
+      name: '최건우',
       role: '그룹 PT 트레이너',
       reasons: <String>['2~4인 소그룹', '운동 습관'],
       career: '4년',
@@ -114,7 +121,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-kang',
       gymId: 'gym-healthmate',
-      name: '강트레이너',
+      name: '강다인',
       role: '퍼스널 트레이너',
       reasons: <String>['교대근무', '근력 향상'],
       career: '5년',
@@ -126,7 +133,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-yoon',
       gymId: 'gym-healthmate',
-      name: '윤트레이너',
+      name: '윤재희',
       role: '근력 전문 트레이너',
       reasons: <String>['기초 근력', '파워리프팅'],
       career: '8년',
@@ -138,7 +145,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-lee',
       gymId: 'gym-bodyandsoul',
-      name: '이트레이너',
+      name: '이도경',
       role: '퍼스널 트레이너',
       reasons: <String>['운동 초심자', '식습관 개선', '운동 습관'],
       career: '9년',
@@ -150,7 +157,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-cho',
       gymId: 'gym-bodyandsoul',
-      name: '조트레이너',
+      name: '조민혁',
       role: '시니어 운동 트레이너',
       reasons: <String>['낙상 예방', '균형 잡기', '체력 강화'],
       career: '12년',
@@ -165,7 +172,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-jung',
       gymId: '11621774', // 휘트니스에이든
-      name: '정트레이너',
+      name: '정수빈',
       role: '퍼스널 트레이너',
       reasons: <String>['감량 정체기', '체성분 관리'],
       career: '6년',
@@ -177,7 +184,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-ha',
       gymId: '11621774',
-      name: '하트레이너',
+      name: '하윤슬',
       role: '체형 교정 트레이너',
       reasons: <String>['목·어깨 교정', '사무직 자세'],
       career: '4년',
@@ -189,7 +196,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-han',
       gymId: '1558845892', // 하이핏
-      name: '한트레이너',
+      name: '한서준',
       role: '퍼스널 트레이너',
       reasons: <String>['기구 입문'],
       career: '3년',
@@ -201,7 +208,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-oh',
       gymId: '1558845892',
-      name: '오트레이너',
+      name: '오태린',
       role: '그룹 PT 트레이너',
       reasons: <String>['3~5인 그룹'],
       career: '5년',
@@ -213,7 +220,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-seo',
       gymId: '328969863', // 빌드업짐 PT 신촌점
-      name: '서트레이너',
+      name: '서지안',
       role: '재활 전문 트레이너',
       reasons: <String>['재활 후 복귀', '통증 관리'],
       career: '10년',
@@ -225,7 +232,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-nam',
       gymId: '328969863',
-      name: '남트레이너',
+      name: '남도윤',
       role: '퍼스널 트레이너',
       reasons: <String>['스쿼트 자세 교정', '근력 향상', '영상 피드백'],
       career: '7년',
@@ -237,7 +244,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-moon',
       gymId: '696444256', // 신인규피티스튜디오
-      name: '문트레이너',
+      name: '문하람',
       role: '퍼스널 트레이너',
       reasons: <String>['주간 식단', '식습관 개선', '1:1 전담'],
       career: '7년',
@@ -249,7 +256,7 @@ class MockGymRepository implements GymRepository {
     Trainer(
       id: 'trainer-demo-bae',
       gymId: '696444256',
-      name: '배트레이너',
+      name: '배시우',
       role: '러닝 코치',
       reasons: <String>['러닝 자세 교정'],
       career: '5년',
@@ -276,7 +283,10 @@ class MockGymRepository implements GymRepository {
   @override
   Future<void> disconnectMyGym() async {
     await Future<void>.delayed(const Duration(milliseconds: 60));
-    // 헬스장을 떠나면 그곳 소속 트레이너 연결도 함께 사라진다.
+    // 헬스장을 떠나면 그곳 소속 트레이너 연결도 함께 사라진다. 락커 쿠폰은
+    // 헬스장에, 재등록 쿠폰은 담당에 딸려 함께 취소된다.
+    if (_myGymId != null) _coupons?.endGymLink();
+    if (_myTrainerId != null) _coupons?.endTrainerLink();
     _myGymId = null;
     _myTrainerId = null;
   }
@@ -325,6 +335,7 @@ class MockGymRepository implements GymRepository {
   Future<void> disconnectMyTrainer() async {
     await Future<void>.delayed(const Duration(milliseconds: 60));
     // 헬스장 연결은 그대로 두고 담당 트레이너만 뗀다.
+    if (_myTrainerId != null) _coupons?.endTrainerLink();
     _myTrainerId = null;
   }
 
@@ -339,9 +350,12 @@ class MockGymRepository implements GymRepository {
     return DateTime(day.year, day.month, day.day + addDays, hour, minute);
   }
 
+  /// 자리를 비워 두는 트레이너. 빈 상태(헬스장 전화 안내)도 데모에서 보여야 한다.
+  static const String _emptyTrainerId = 'trainer-yoon';
+
   static List<TrainerSlot> _seedSlots() {
     final DateTime today = nowKst();
-    return <TrainerSlot>[
+    final List<TrainerSlot> handWritten = <TrainerSlot>[
       // 오늘 자리는 데모에서 "가까운 시간"을 보여주려고 둔다. 저녁에 앱을 켜면
       // 이미 지나 목록에서 빠지므로, 트레이너마다 내일 이후 자리를 함께 둬서
       // 어느 시각에 열어도 예약할 수 있는 자리가 남는다.
@@ -378,7 +392,7 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '상담',
       ),
-      // 박트레이너 — 재활 세션이라 1:1, 낮 시간대.
+      // 박소율 — 재활 세션이라 1:1, 낮 시간대.
       TrainerSlot(
         id: 'slot-park-today',
         trainerId: 'trainer-park',
@@ -407,7 +421,7 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '1:1 PT',
       ),
-      // 강트레이너 — 교대근무 대응이라 이른 아침·늦은 밤.
+      // 강다인 — 교대근무 대응이라 이른 아침·늦은 밤.
       TrainerSlot(
         id: 'slot-kang-today',
         trainerId: 'trainer-kang',
@@ -429,7 +443,34 @@ class MockGymRepository implements GymRepository {
         booked: false,
         sessionType: '1:1 PT',
       ),
-      // 윤트레이너는 슬롯이 없다 — 빈 상태를 데모에서도 볼 수 있어야 한다.
+    ];
+    // 자리를 손으로 적지 않은 트레이너(조민혁·발견 헬스장 트레이너)에게는 서버 데모
+    // 시드(`backend/app/db/seed_slots.py`)와 같은 규칙으로 둘씩 둔다 — 내일 13:00,
+    // 모레 19:30, `1:1 PT` (#2067). 없으면 그 트레이너로 상담 신청을 열었을 때
+    // 헬스장 전화 안내만 떠서 신청 흐름을 볼 수 없다. 윤재희는 비워 둔다.
+    final Set<String> covered = <String>{
+      for (final TrainerSlot slot in handWritten) slot.trainerId,
+    };
+    return <TrainerSlot>[
+      ...handWritten,
+      for (final Trainer trainer in _trainers)
+        if (!covered.contains(trainer.id) &&
+            trainer.id != _emptyTrainerId) ...<TrainerSlot>[
+          TrainerSlot(
+            id: 'slot-${trainer.id}-1',
+            trainerId: trainer.id,
+            startsAt: _at(today, 1, 13, 0),
+            booked: false,
+            sessionType: '1:1 PT',
+          ),
+          TrainerSlot(
+            id: 'slot-${trainer.id}-2',
+            trainerId: trainer.id,
+            startsAt: _at(today, 2, 19, 30),
+            booked: false,
+            sessionType: '1:1 PT',
+          ),
+        ],
     ];
   }
 

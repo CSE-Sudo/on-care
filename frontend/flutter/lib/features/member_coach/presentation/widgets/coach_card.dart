@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
+import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
     show exerciseAmountLabelOf;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
@@ -145,7 +147,13 @@ class AiCoachingCard extends ConsumerWidget {
     // 하면 되는가" 라는 한 가지 질문이고, 누가 정했는지는 각 줄의 출처가 말한다.
     final List<CoachRoutine> routines =
         ref.watch(coachRoutinesProvider).valueOrNull ?? const <CoachRoutine>[];
-    final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
+    final AsyncValue<MemberCoach?> coachState = ref.watch(memberCoachProvider);
+    final MemberCoach? coach = coachState.valueOrNull;
+    // **담당이 없다고 확인됐을 때만** 담당 없는 회원의 모양을 쓴다. 조회가 오는
+    // 중이거나 실패했을 때 `coach == null` 로 가르면, 담당이 있는 회원에게
+    // `AI 추천 개인운동` 제목과 서버가 403 으로 막는 `기록` 버튼이 뜨고,
+    // 트레이너가 배정한 운동에 `취소` 까지 붙는다.
+    final bool unassigned = coachState.hasValue && coach == null;
 
     // 추천이 없으면 카드 자체를 그리지 않는다. 빈 카드는 자리만 차지하고
     // 아무것도 알려 주지 않는다.
@@ -163,7 +171,40 @@ class AiCoachingCard extends ConsumerWidget {
           // 카드가 말하는 것은 `AI 코칭` 이 아니라 **추천 개인운동**이다
           // (#1130). 제목이 곧 내용이라 아이콘도 운동 쪽으로 바꿨다. 큰 글자
           // 배율에서는 제목이 줄을 바꿔 카드 안에 머문다(#766).
-          AppSectionHeader(title: l.coachRoutineTitle, icon: AppIcons.running),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: AppSectionHeader(
+                  // 담당이 없으면 이 목록은 **전부 AI 가 낸 것**이다. 트레이너
+                  // 배정과 생김새가 같아서, 제목이 그 말을 하지 않으면 누가 정한
+                  // 운동인지 각 줄의 출처를 읽어야 안다(#2015).
+                  //
+                  // 담당이 있을 때는 트레이너 배정과 트레이너가 확인한 AI 추천이
+                  // 한 목록에 섞이므로 일반 제목이 맞다.
+                  title: unassigned
+                      ? l.coachRoutineAiTitle
+                      : l.coachRoutineTitle,
+                  icon: AppIcons.running,
+                ),
+              ),
+              // 담당이 없는 회원은 이 추천이 대화에서 찾은 통증·부정적 반응을
+              // 반영해 내려온다(#1973). 무엇이 반영됐는지 여기서 보고, 잘못
+              // 잡힌 것은 치울 수 있어야 한다(#2015).
+              //
+              // 담당이 있으면 이 카드는 트레이너 배정을 싣고, 감지 기록 자체가
+              // 그 회원의 것이 아니다 — 서버도 403 으로 막는다(#1823).
+              if (unassigned)
+                AppButton(
+                  key: const Key('routineInsightHistoryButton'),
+                  label: l.aicInsightHistoryAction,
+                  size: OnCareButtonSize.small,
+                  leadingIcon: AppIcons.note,
+                  // AI 코치 머리의 같은 버튼과 같은 모양이다(#1975).
+                  variant: AppButtonVariant.brandOutline,
+                  onPressed: () => showInsightHistorySheet(context, ref),
+                ),
+            ],
+          ),
           // 카드 제목이 이미 `추천 개인운동` 이라 안에 같은 말을 또 두지
           // 않는다. `PT 와 다음 PT 사이…` 안내도 뺐다 (#1130).
           const SizedBox(height: OnCareSpacing.s12),
@@ -203,7 +244,7 @@ class AiCoachingCard extends ConsumerWidget {
               sourceLabel: routineSourceLabel(l, routine, coach),
               // 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이
               // 서로 다른 기록을 본다. 담당이 없을 때만 스스로 물린다. (#1020)
-              cancellable: coach == null,
+              cancellable: unassigned,
             ),
             const SizedBox(height: OnCareSpacing.s8),
           ],
@@ -278,7 +319,7 @@ class _RecommendedExerciseRow extends ConsumerStatefulWidget {
     required this.cancellable,
   });
 
-  /// 회원이 읽는 출처 한 줄 — `AI 추천 · 김트레이너 확인` 처럼.
+  /// 회원이 읽는 출처 한 줄 — `AI 추천 · 김태오 확인` 처럼.
   final String sourceLabel;
 
   final CoachRoutine routine;
@@ -410,6 +451,8 @@ class _RecommendedExerciseRowState
           );
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
+      // 완료 기록이 보호한 날에 떨어지면 보호권이 돌아온다 — 다시 읽는다(#1788).
+      ref.invalidate(myStreakShieldsProvider);
       // 추천·배정 운동 완료는 포인트를 받는다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
       if (mounted) {
@@ -651,30 +694,14 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
     final OnCareTokens tokens = context.oncare;
     return AppSheet(
       title: l.coachRoutineCompleteTitle,
-      // [AppButtonPair] 와 같은 배치(취소 왼쪽 보조, 확정 오른쪽 주요)다. 확정
-      // 버튼에 테스트·자동화가 잡는 키가 있어 두 버튼을 직접 놓는다.
-      footer: Row(
-        children: <Widget>[
-          Expanded(
-            child: AppButton(
-              label: l.actionCancel,
-              variant: AppButtonVariant.secondary,
-              fullWidth: true,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ),
-          const SizedBox(width: OnCareSpacing.buttonGap),
-          Expanded(
-            child: AppButton(
-              key: const Key('confirmRoutineCompletion'),
-              label: l.coachRoutineSubmit,
-              fullWidth: true,
-              onPressed: () => Navigator.of(
-                context,
-              ).pop(_RoutineCompletionInput(intensity: _intensity)),
-            ),
-          ),
-        ],
+      footer: AppButtonPair(
+        cancelLabel: l.actionCancel,
+        onCancel: () => Navigator.of(context).pop(),
+        confirmKey: const Key('confirmRoutineCompletion'),
+        confirmLabel: l.coachRoutineSubmit,
+        onConfirm: () => Navigator.of(
+          context,
+        ).pop(_RoutineCompletionInput(intensity: _intensity)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -782,6 +809,7 @@ class _ChatButton extends StatelessWidget {
     );
   }
 }
+
 
 /// 루틴 한 줄이 말하는 **양**. 근력은 세트·횟수(·중량)로, 나머지는 분으로
 /// 읽는다 — 회원이 직접 적은 기록과 **같은 규칙**(`exerciseAmountLabelOf`)이다.

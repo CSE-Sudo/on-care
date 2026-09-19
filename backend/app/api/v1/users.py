@@ -32,8 +32,9 @@ from app.core.security import (
     verify_password,
 )
 from app.db.session import get_db
-from app.models.models import HealthProfile, User
+from app.models.models import AccountDeletionReason, HealthProfile, User
 from app.schemas.user import (
+    AccountDeleteRequest,
     HealthGoalsUpdate,
     HealthProfileBrief,
     OnboardingRequest,
@@ -50,8 +51,10 @@ from app.schemas.user import (
     UserRegister,
 )
 from app.services import (
+    consultation_service,
     health_goal_change,
     member_pairing_service,
+    name_change,
     reservation_service,
     token_revocation,
     trainer_signup_service,
@@ -74,7 +77,10 @@ def get_my_health(
 ) -> UserHealth:
     profile = current_user.health_profile
 
-    # risk: 저장된 프로필 있으면 사용, 없으면 데모 기본값(프론트 mock 과 동일)
+    # risk: 저장된 프로필 있으면 사용, 없으면 기본 문구(프론트 mock 과 동일).
+    # 기본 문구는 질환을 말하지 않는다 — 예전에는 프로필이 없는 모든 회원에게
+    # "고혈압·당뇨 위험 주의" 를 지어 보냈다. 폐기된 이전 타깃의 흔적이고,
+    # 회원의 기록과 무관한 건강 경고다.
     if profile and profile.risk_title:
         risk = RiskInfo(
             title=profile.risk_title, body=profile.risk_body, level=profile.risk_level
@@ -82,15 +88,15 @@ def get_my_health(
         rank = profile.activity_rank
     else:
         risk = RiskInfo(
-            title="고혈압·당뇨 위험 주의",
-            body="최근 혈압과 혈당 추세가 다소 높습니다. 식단·운동 관리에 신경 써주세요.",
+            title="이번 주 관리 포인트",
+            body="식단·운동 기록을 꾸준히 이어 가면 트레이너가 더 정확하게 도와줄 수 있어요.",
             level="medium",
         )
         rank = 14
 
     # 포인트는 위험도와 따로 읽는다(#1786). 예전에는 위험 문구가 없는 프로필에
     # 데모 숫자 1240 을 돌려줘, 기록으로 적립해도 화면의 잔액이 움직이지 않았다.
-    # 데모 회원의 시작 잔액 1240 은 시드가 프로필에 넣는다.
+    # 데모 회원의 시작 잔액(`DEMO_OPENING_POINTS`)은 시드가 프로필에 넣는다.
     points = profile.activity_points if profile is not None else 0
 
     return UserHealth(
@@ -163,8 +169,11 @@ def submit_onboarding(
 ) -> ProfileView:
     """최초 온보딩 저장. 제공된 필드만 반영하고 onboarded=True 로 표시."""
     data = payload.model_dump(exclude_unset=True)
+    name_before = user.name
     if "name" in data and data["name"] is not None:
         user.name = data.pop("name")
+        # 담당 트레이너가 있는데 첫 설정에서 이름을 고쳤다면 알린다(#2065).
+        name_change.record_member_rename(db, user, before=name_before)
     else:
         data.pop("name", None)
 
@@ -219,7 +228,11 @@ def update_me(
             raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다.")
         user.email = new_email
     if data.get("name") is not None:
+        name_before = user.name
         user.name = data["name"]
+        # 트레이너 알림함에는 옛 이름의 알림이 그대로 남는다 — 바뀐 사실을 한 번
+        # 알려 목록의 새 이름과 잇는다(#2065).
+        name_change.record_member_rename(db, user, before=name_before)
 
     profile = _get_or_create_profile(db, user)
 
@@ -297,14 +310,46 @@ def revoke_pairing_code(
     member_pairing_service.revoke(db, user.id)
 
 
+#: 탈퇴 화면이 보여 주는 사유. 앱과 같은 목록이고, 모르는 값은 버린다 —
+#: 자유 입력을 받지 않는 이유는 그 칸에 무엇이 적힐지 알 수 없기 때문이다(#2019).
+DELETION_REASONS: frozenset[str] = frozenset(
+    {
+        "privacy",
+        "rarely_used",
+        "hard_to_use",
+        "too_many_notifications",
+        "found_alternative",
+        "other",
+    }
+)
+
+
 @router.delete("/users/me")
 def delete_me(
     user: RequireMember,
     db: Annotated[Session, Depends(get_db)],
+    payload: AccountDeleteRequest | None = None,
 ) -> dict:
     """회원 탈퇴. 예약 좌석을 복구한 뒤 프로필·식단·운동·일정·알림·
-    소셜계정·개인 코치문서를 함께 삭제한다."""
+    소셜계정·개인 코치문서를 함께 삭제한다.
+
+    고른 사유가 있으면 **회원 행과 잇지 않고** 따로 남긴다(#2019). 회원은 이
+    요청으로 사라지므로 FK 를 걸면 남길 수가 없고, 남기는 것도 사유 코드와
+    시각뿐이다.
+
+    사유는 없어도 된다. 탈퇴를 막는 조건이 아니라 물어보는 자리일 뿐이다.
+    """
+    for reason in sorted(set(payload.reasons if payload else []) & DELETION_REASONS):
+        db.add(
+            AccountDeletionReason(
+                id=f"del-{uuid.uuid4().hex[:12]}",
+                reason=reason,
+            )
+        )
     reservation_service.cancel_member_reservations_for_account_deletion(db, user.id)
+    # 대기 중인 상담이 잡고 있던 자리도 풀어 준다 — 요청 행은 CASCADE 로 사라져도
+    # 자리는 남아 잠긴 채가 된다(#1873).
+    consultation_service.release_holds_for_account_deletion(db, user.id)
     db.delete(user)
     db.commit()
     return {"status": "deleted"}

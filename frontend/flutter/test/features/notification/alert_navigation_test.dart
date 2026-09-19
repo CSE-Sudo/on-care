@@ -14,6 +14,11 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/exercise/domain/entities/consultation_draft.dart';
+import 'package:oncare/features/exercise/domain/entities/consultation_request.dart';
+import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
+import 'package:oncare/features/exercise/domain/repositories/consultation_repository.dart';
+import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -74,7 +79,8 @@ class _FakeCoachRepository implements MemberCoachRepository {
       Stream<List<CoachMessage>>.value(const <CoachMessage>[]);
 
   @override
-  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => const <CoachMessage>[];
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async =>
+      const <CoachMessage>[];
 
   @override
   Future<List<CoachRoutine>> fetchRoutines() async => const <CoachRoutine>[];
@@ -115,6 +121,29 @@ class _FakeCoachRepository implements MemberCoachRepository {
   Future<void> sendMessage(String text) async {}
 }
 
+/// 내 상담 요청 목록을 몇 번 받았는지만 센다.
+class _CountingConsultations implements ConsultationRepository {
+  int fetchCalls = 0;
+
+  @override
+  Future<List<ConsultationRequest>> fetchMine({
+    int limit = consultationPageSize,
+  }) async {
+    fetchCalls++;
+    return const <ConsultationRequest>[];
+  }
+
+  @override
+  Future<String> create(ConsultationDraft draft) async => '';
+
+  @override
+  Future<void> cancel(String consultationId) async {}
+
+  @override
+  Future<List<TrainerSlot>> fetchSlots(String trainerId) async =>
+      const <TrainerSlot>[];
+}
+
 void main() {
   group('AlertAction', () {
     test('앱이 아는 target 은 이동할 수 있다', () {
@@ -148,7 +177,11 @@ void main() {
 
     /// 진입 화면(`/home`)이 살아 있는 채로 각 목적지를 확인한다. 목적지 화면은
     /// 이름표만 둔다 — 여기서 볼 것은 "어디로 갔는가" 뿐이다.
-    Future<void> pumpApp(WidgetTester tester, _FakeCoachRepository repo) async {
+    Future<void> pumpApp(
+      WidgetTester tester,
+      _FakeCoachRepository repo, {
+      ConsultationRepository? consultations,
+    }) async {
       final GoRouter router = GoRouter(
         initialLocation: '/home',
         routes: <RouteBase>[
@@ -173,6 +206,14 @@ void main() {
             path: AppRoutes.exercise,
             builder: (_, _) => const Text('운동'),
           ),
+          GoRoute(
+            path: AppRoutes.consultationHistory,
+            builder: (_, _) => const Text('내 상담 요청'),
+          ),
+          GoRoute(
+            path: AppRoutes.myBenefits,
+            builder: (_, _) => const Text('내 혜택'),
+          ),
         ],
       );
 
@@ -181,6 +222,9 @@ void main() {
           overrides: <Override>[
             appConfigProvider.overrideWithValue(_config),
             memberCoachRepositoryProvider.overrideWithValue(repo),
+            consultationRepositoryProvider.overrideWithValue(
+              consultations ?? _CountingConsultations(),
+            ),
           ],
           child: MaterialApp.router(
             theme: AppTheme.light(),
@@ -218,13 +262,36 @@ void main() {
         (AlertTarget.dashboard, '대시보드'),
         (AlertTarget.diet, '식단'),
         (AlertTarget.exercise, '운동'),
+        // 상담 요청의 결과와 사유가 있는 곳(#2067).
+        (AlertTarget.consultations, '내 상담 요청'),
         // 일정은 아직 전용 화면이 없어 대시보드로 보낸다.
+        // 쿠폰 사용 처리·취소·만료 임박은 내 혜택으로(#1787).
+        (AlertTarget.myBenefits, '내 혜택'),
       ]) {
         await pumpApp(tester, _FakeCoachRepository());
         await tap(tester, target);
 
         expect(find.text(label), findsOneWidget, reason: '$target');
       }
+    });
+
+    testWidgets('상담 결과 알림은 내 상담 요청 목록을 다시 받는다 (#2067)', (
+      WidgetTester tester,
+    ) async {
+      // 들고 있던 목록은 트레이너가 결정하기 전 것이다 — 그대로 열면 알림은
+      // "반려되었어요" 인데 화면은 "확인 대기" 다.
+      final _CountingConsultations consultations = _CountingConsultations();
+      await pumpApp(
+        tester,
+        _FakeCoachRepository(),
+        consultations: consultations,
+      );
+      final int before = consultations.fetchCalls;
+
+      await tap(tester, AlertTarget.consultations);
+
+      expect(consultations.fetchCalls, greaterThan(before));
+      expect(find.text('내 상담 요청'), findsOneWidget);
     });
 
     testWidgets('모르는 목적지는 아무 데도 가지 않는다', (WidgetTester tester) async {
@@ -288,6 +355,9 @@ void main() {
           AlertTarget.coachChat,
           AlertTarget.exercise,
           AlertTarget.diet,
+          // 쿠폰 사용 처리·취소·만료 임박 알림 — `benefits` 카테고리(#1787).
+          AlertTarget.myBenefits,
+          AlertTarget.consultations,
           AlertTarget.unknown,
         ]),
       );

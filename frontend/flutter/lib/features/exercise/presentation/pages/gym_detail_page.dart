@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +12,7 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -211,11 +214,25 @@ class _GymDetails extends ConsumerWidget {
               _DetailSection(
                 icon: AppIcons.phone,
                 title: l.exPhone,
-                child: Text(
-                  gym.phone!,
-                  style: tokens
-                      .text(OnCareTypography.strong(OnCareTypography.body))
-                      .copyWith(color: OnCareColors.textPrimary),
+                // 눌러서 전화를 건다(#1873). 예전에는 누를 수 없는 글자였는데,
+                // 상담 자리가 없을 때 회원이 나갈 곳이 이 번호라 걸 수 있어야 한다.
+                child: InkWell(
+                  key: const Key('gym-detail-phone'),
+                  onTap: () => unawaited(callGym(context, gym.phone!)),
+                  child: Semantics(
+                    button: true,
+                    label: '${l.exGymCall} ${gym.phone!}',
+                    child: Text(
+                      gym.phone!,
+                      style: tokens
+                          .text(OnCareTypography.strong(OnCareTypography.body))
+                          .copyWith(
+                            color: tokens.brand.primary,
+                            decoration: TextDecoration.underline,
+                            decorationColor: tokens.brand.primary,
+                          ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -458,8 +475,10 @@ class _AffiliatedTrainerRow extends StatelessWidget {
     final OnCareTokens tokens = context.oncare;
     final bool locked = onTap == null && trailingLabel != null;
     return AppListRow(
+      // 이름과 직함은 한 줄에 읽힌다 — 헬스장 찾기·내 헬스장 카드의 트레이너
+      // 줄과 같은 규칙이다(#2038 · #2082). 폭이 모자라면 직함이 먼저 준다.
       title: trainer.name,
-      subtitle: trainer.role,
+      titleMeta: trainer.role,
       onTap: locked
           ? null
           : (onTap ??

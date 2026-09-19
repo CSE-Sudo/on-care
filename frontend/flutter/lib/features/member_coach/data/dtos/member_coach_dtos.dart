@@ -51,6 +51,16 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
 ///
 /// 키가 아예 없던 예전 응답은 빈 목록이라, 화면이 예전처럼 [CoachRoutine.reason]
 /// 만 보여 준다.
+/// 수로 온 값은 그대로, 단위가 섞인 옛 문자열(`12회`·`60kg`)은 숫자만 떼어
+/// 읽는다. 예전 응답 한 줄 때문에 세션 구성이 통째로 비면 안 된다.
+int? _intOrNull(Object? v) => v is num
+    ? v.toInt()
+    : int.tryParse(RegExp(r'-?\d+').stringMatch('${v ?? ''}') ?? '');
+
+double? _doubleOrNull(Object? v) => v is num
+    ? v.toDouble()
+    : double.tryParse(RegExp(r'-?\d+(\.\d+)?').stringMatch('${v ?? ''}') ?? '');
+
 List<CoachRoutineExercise> _coachRoutineExercises(Object? raw) {
   if (raw is! List) return const <CoachRoutineExercise>[];
   return <CoachRoutineExercise>[
@@ -58,11 +68,11 @@ List<CoachRoutineExercise> _coachRoutineExercises(Object? raw) {
       if (entry is Map<String, Object?>)
         CoachRoutineExercise(
           name: _str(entry['name']),
-          sets: _str(entry['sets']),
-          reps: _str(entry['reps']),
-          weight: _str(entry['weight']),
-          duration: _str(entry['duration']),
-          rest: _str(entry['rest']),
+          sets: _intOrNull(entry['sets']),
+          reps: _intOrNull(entry['reps']),
+          weight: _doubleOrNull(entry['weight']),
+          duration: _intOrNull(entry['duration']),
+          rest: _intOrNull(entry['rest']),
           memo: _str(entry['memo']),
         ),
   ];

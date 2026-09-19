@@ -262,12 +262,12 @@ void main() {
             'seed-diet-yesterday-dinner': (
               '19:30',
               '고기와 술이 함께여서 칼로리가 크게 올라갔어요. 다음 날은 가볍게 시작해 보세요.',
-              'assets/images/diet-doenjang-rice.jpeg',
+              'assets/images/diet-samgyeopsal-rice-soju.jpg',
             ),
             'seed-diet-yesterday-snack': (
               '21:10',
               '디저트로 당류가 하루 목표를 넘었어요.',
-              'assets/images/snack-coffee-nuts.jpg',
+              'assets/images/snack-choco-cake-latte.jpg',
             ),
             'seed-diet-two-days-ago-breakfast': (
               '08:35',
@@ -410,12 +410,12 @@ void main() {
       expect(diet.every((entry) => entry.mealType != 'dinner'), isTrue);
       expect(
         diet.fold<int>(0, (sum, entry) => sum + entry.totalCalories),
-        1067,
+        1054,
       );
-      expect(diet.fold<int>(0, (sum, entry) => sum + entry.sodiumMg), 3428);
+      expect(diet.fold<int>(0, (sum, entry) => sum + entry.sodiumMg), 4657);
       expect(
         diet.fold<double>(0, (sum, entry) => sum + entry.sugarG),
-        closeTo(17.8, 0.001),
+        closeTo(16.7, 0.001),
       );
 
       for (final entry in allDiet) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,11 +7,14 @@ import 'package:go_router/go_router.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
+import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 
@@ -47,8 +52,20 @@ Future<void> openAlertTarget(
       }
       if (name == null || !context.mounted) return;
       await openTrainerChatPage(context, trainerName: name);
+    case AlertTarget.consultations:
+      // 상담 요청의 승인·거절·만료(#2067). 결과와 사유는 운동 탭이 아니라 내 상담
+      // 요청에 있다. 들고 있던 목록은 트레이너가 결정하기 전 것이라 다시 받는다 —
+      // 옛 "확인 대기" 가 남으면 알림과 화면이 다른 말을 한다. 화면이 열릴 때도
+      // 다시 받지만, 여기서 먼저 시작해 두면 그만큼 빨리 바뀐다.
+      unawaited(
+        ref.read(consultationRequestControllerProvider.notifier).refresh(),
+      );
+      if (!context.mounted) return;
+      // 기다리지 않는다 — 화면을 닫을 때까지 끝나지 않는 Future 다.
+      unawaited(context.push(AppRoutes.consultationHistory));
     case AlertTarget.exercise:
-      // 담당 요청 알림도 이 목적지로 온다(서버 category `consultation_result`).
+      // 담당 요청 알림이 이 목적지로 온다(서버 category `consultation_result`).
+      // 상담 요청의 결과 알림은 내 상담 요청으로 간다(`consult_decision`, #2067).
       // 요청은 이제 운동 탭 카드가 아니라 앱 어디서든 뜨는 창이라(#1801), 요청
       // 목록을 곧바로 다시 받게 해 아직 대기 중이면 창이 바로 뜨게 한다. 알림에는
       // 요청 id 가 없어 어느 요청의 알림인지는 가리지 못한다 — 대기 중인 요청이
@@ -74,6 +91,13 @@ Future<void> openAlertTarget(
         ..invalidate(dietByDateProvider(nowKst()));
       if (!context.mounted) return;
       context.go(AppRoutes.diet);
+    case AlertTarget.myBenefits:
+      // 쿠폰이 방금 사용 처리·취소됐다 — 들고 있던 목록과 잔액을 다시 읽는다.
+      ref
+        ..invalidate(myCouponsProvider)
+        ..invalidate(myHealthStateProvider);
+      if (!context.mounted) return;
+      await context.push<void>(AppRoutes.myBenefits);
     case AlertTarget.healthGoals:
       // 담당 트레이너가 건강 목표를 바꿨다(#1832). 들고 있던 프로필은 바뀌기 전
       // 목표라, 다시 받아 온 뒤 MY 건강 목표를 연다 — 바뀐 목표와 `마지막 변경`

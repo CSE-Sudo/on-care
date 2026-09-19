@@ -251,7 +251,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeAiAdviceBody.
   ///
   /// In en, this message translates to:
-  /// **'Your breakfast and evening PT were perfect! To bring down the sodium and blood sugar raised by the lunch jjamppong, drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
+  /// **'Your breakfast and evening PT were perfect! Lunch ran high in sodium, so drink plenty of water and finish well with the shoulder stretches your coach emphasized.'**
   String get homeAiAdviceBody;
 
   /// No description provided for @homeSodiumExceededBadge.
@@ -692,6 +692,12 @@ abstract class AppLocalizations {
   /// **'Snack'**
   String get dietMealSnack;
 
+  /// No description provided for @dietMealLateNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Late-night'**
+  String get dietMealLateNight;
+
   /// No description provided for @dietMealSheetTitle.
   ///
   /// In en, this message translates to:
@@ -704,11 +710,35 @@ abstract class AppLocalizations {
   /// **'Public DB · {name}'**
   String dietFoodDbMatch(String name);
 
+  /// Appended to the last food name on a meal card when more foods are hidden (#1990)
+  ///
+  /// In en, this message translates to:
+  /// **'{name} +{count}'**
+  String dietMoreFoods(String name, int count);
+
   /// Button that fills a food's fields with the suggested public-DB nutrition (#1896)
   ///
   /// In en, this message translates to:
   /// **'Fill in'**
   String get dietFillFromDb;
+
+  /// Shown after renaming a food filled its fields with the same food's public-DB nutrition (#2107)
+  ///
+  /// In en, this message translates to:
+  /// **'Changed to public DB · {name}'**
+  String dietFoodFilledFromDb(String name);
+
+  /// Button that puts a renamed food's fields back to what they were before the public-DB fill (#2107)
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get dietUndoFill;
+
+  /// Shown when a renamed food is not in the public DB, so its fields still hold the old food's values (#2107)
+  ///
+  /// In en, this message translates to:
+  /// **'Not in the public food DB. Please check the nutrition.'**
+  String get dietFoodNotInDb;
 
   /// No description provided for @dietAddSheetTitle.
   ///
@@ -836,23 +866,29 @@ abstract class AppLocalizations {
   /// **'Record date'**
   String get dietRecordDate;
 
-  /// Button that opens the date picker on the analysis result sheet.
+  /// Button on the record-date row of the analysis result sheet and the meal detail. Moves the meal to the picked day on its own (#1241, #1947).
   ///
   /// In en, this message translates to:
   /// **'Change date'**
   String get dietRecordDateChange;
 
-  /// Confirmation after moving an analysed meal to another day.
+  /// Confirmation after moving a meal to another day.
   ///
   /// In en, this message translates to:
   /// **'Moved to {date}'**
   String dietRecordDateMoved(String date);
 
-  /// Error shown when moving an analysed meal to another day fails.
+  /// Error shown when moving a meal to another day fails.
   ///
   /// In en, this message translates to:
   /// **'Could not change the date. Please try again shortly.'**
   String get dietRecordDateFailed;
+
+  /// Label of the meal-type row next to the record date in the meal detail (#1947).
+  ///
+  /// In en, this message translates to:
+  /// **'Meal'**
+  String get dietMealKind;
 
   /// No description provided for @dietAnalysisDone.
   ///
@@ -944,12 +980,6 @@ abstract class AppLocalizations {
   /// **'Meal saved'**
   String get dietSaved;
 
-  /// No description provided for @dietSaveEntry.
-  ///
-  /// In en, this message translates to:
-  /// **'Save'**
-  String get dietSaveEntry;
-
   /// No description provided for @dietSaveFailed.
   ///
   /// In en, this message translates to:
@@ -1009,12 +1039,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Meal Info'**
   String get dietMealInfo;
-
-  /// No description provided for @dietEatenTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Time Eaten'**
-  String get dietEatenTime;
 
   /// No description provided for @dietEatenFood.
   ///
@@ -1226,11 +1250,11 @@ abstract class AppLocalizations {
   /// **'Activity'**
   String get exActivityTitle;
 
-  /// No description provided for @exWeekOfMonthLabel.
+  /// No description provided for @exBurnWeekOfMonthTitle.
   ///
   /// In en, this message translates to:
-  /// **'Week {week}, {month}/'**
-  String exWeekOfMonthLabel(int month, int week);
+  /// **'Burned in week {week}, {month}/'**
+  String exBurnWeekOfMonthTitle(int month, int week);
 
   /// No description provided for @exBurnTodayTitle.
   ///
@@ -1370,6 +1394,12 @@ abstract class AppLocalizations {
   /// **'Start a streak with today\'s workout.'**
   String get exStreakStart;
 
+  /// No description provided for @exStreakProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept by a shield'**
+  String get exStreakProtected;
+
   /// No description provided for @exToday.
   ///
   /// In en, this message translates to:
@@ -1405,12 +1435,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{coachName} · Today\'s feedback'**
   String exCompletedPtFeedback(String coachName);
-
-  /// No description provided for @exProgramSets.
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{1 set} other{{count} sets}}'**
-  String exProgramSets(int count);
 
   /// No description provided for @exAddExercise.
   ///
@@ -1541,13 +1565,13 @@ abstract class AppLocalizations {
   /// No description provided for @exSetsCount.
   ///
   /// In en, this message translates to:
-  /// **'{sets} sets'**
+  /// **'{sets, plural, =1{1 set} other{{sets} sets}}'**
   String exSetsCount(int sets);
 
   /// No description provided for @exRepsCount.
   ///
   /// In en, this message translates to:
-  /// **'{reps} reps'**
+  /// **'{reps, plural, =1{1 rep} other{{reps} reps}}'**
   String exRepsCount(int reps);
 
   /// No description provided for @exEnterSets.
@@ -2015,7 +2039,7 @@ abstract class AppLocalizations {
   /// MY tab: opens the spotlight app guide again (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Replay the app guide'**
+  /// **'App guide'**
   String get myGuideTitle;
 
   /// No description provided for @mySupportTitle.
@@ -2030,7 +2054,7 @@ abstract class AppLocalizations {
   /// **'Use Points'**
   String get myPointsBenefitsTitle;
 
-  /// No description provided for @myPointsBalance.
+  /// The balance shown on the rewards screen, with thousands separators, e.g. 25,000P.
   ///
   /// In en, this message translates to:
   /// **'Balance: {points}P'**
@@ -2048,59 +2072,353 @@ abstract class AppLocalizations {
   /// **'Keep logging your activity to earn points and use the benefits above.'**
   String get myPointsBenefitsHint;
 
-  /// No description provided for @myPointsDiscountTitle.
+  /// A point amount with thousands separators, e.g. 5,000P.
   ///
   /// In en, this message translates to:
-  /// **'Cash discount with points'**
-  String get myPointsDiscountTitle;
+  /// **'{points}P'**
+  String myPointsCost(int points);
 
-  /// No description provided for @myPointsDiscountDescription.
+  /// No description provided for @myPointsExchange.
   ///
   /// In en, this message translates to:
-  /// **'Use points like cash for up to 10% off 1:1 coaching and personal training.'**
-  String get myPointsDiscountDescription;
+  /// **'Redeem'**
+  String get myPointsExchange;
 
-  /// No description provided for @myPointsDiscountCost.
+  /// No description provided for @myPointsExchangeConfirmTitle.
   ///
   /// In en, this message translates to:
-  /// **'Up to 10%'**
-  String get myPointsDiscountCost;
+  /// **'Redeem points?'**
+  String get myPointsExchangeConfirmTitle;
 
-  /// No description provided for @myPointsReportTitle.
+  /// No description provided for @myPointsExchangeConfirmMessage.
   ///
   /// In en, this message translates to:
-  /// **'Unlock glucose and blood pressure reports'**
-  String get myPointsReportTitle;
+  /// **'Use {cost} for {item}. You can find the coupon in My benefits.'**
+  String myPointsExchangeConfirmMessage(String item, String cost);
 
-  /// No description provided for @myPointsReportDescription.
+  /// No description provided for @myPointsExchangeConfirmAction.
   ///
   /// In en, this message translates to:
-  /// **'View comprehensive weekly and monthly health-data reports.'**
-  String get myPointsReportDescription;
+  /// **'Redeem'**
+  String get myPointsExchangeConfirmAction;
 
-  /// No description provided for @myPointsReportCost.
+  /// No description provided for @myPointsExchangeDone.
   ///
   /// In en, this message translates to:
-  /// **'500P'**
-  String get myPointsReportCost;
+  /// **'Redeemed'**
+  String get myPointsExchangeDone;
 
-  /// No description provided for @myPointsRecipeTitle.
+  /// No description provided for @myPointsExchangeFailed.
   ///
   /// In en, this message translates to:
-  /// **'Personalized healthy recipe package'**
-  String get myPointsRecipeTitle;
+  /// **'Couldn\'t redeem. Please try again.'**
+  String get myPointsExchangeFailed;
 
-  /// No description provided for @myPointsRecipeDescription.
+  /// No description provided for @myPointsShortfall.
   ///
   /// In en, this message translates to:
-  /// **'Get PDF and interactive meal guides tailored to goals such as diabetes prevention or weight loss.'**
-  String get myPointsRecipeDescription;
+  /// **'{points} short'**
+  String myPointsShortfall(String points);
 
-  /// No description provided for @myPointsRecipeCost.
+  /// No description provided for @myPointsNeedTrainer.
   ///
   /// In en, this message translates to:
-  /// **'500P'**
-  String get myPointsRecipeCost;
+  /// **'Requires an assigned trainer'**
+  String get myPointsNeedTrainer;
+
+  /// No description provided for @myPointsNeedGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Requires a connected gym'**
+  String get myPointsNeedGym;
+
+  /// No description provided for @myPointsActiveCoupon.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have an unused coupon'**
+  String get myPointsActiveCoupon;
+
+  /// No description provided for @myPointsMonthlyLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You already redeemed this month'**
+  String get myPointsMonthlyLimit;
+
+  /// No description provided for @myPointsShieldLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You can hold up to 4 shields'**
+  String get myPointsShieldLimit;
+
+  /// No description provided for @myShopStreakShieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak shield'**
+  String get myShopStreakShieldTitle;
+
+  /// No description provided for @myShopStreakShieldDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your streak going when you logged nothing yesterday. Hold up to 4.'**
+  String get myShopStreakShieldDescription;
+
+  /// No description provided for @myBenefitsStreakShields.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak shields'**
+  String get myBenefitsStreakShields;
+
+  /// No description provided for @myBenefitsShieldHeld.
+  ///
+  /// In en, this message translates to:
+  /// **'{held}/{max} held'**
+  String myBenefitsShieldHeld(int held, int max);
+
+  /// No description provided for @myBenefitsShieldHeldCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{held} held'**
+  String myBenefitsShieldHeldCount(int held);
+
+  /// No description provided for @myBenefitsShieldGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Use one the day after a day with nothing logged.'**
+  String get myBenefitsShieldGuide;
+
+  /// No description provided for @myBenefitsShieldUsedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected days'**
+  String get myBenefitsShieldUsedTitle;
+
+  /// No description provided for @myBenefitsShieldNoneUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'No protected days yet'**
+  String get myBenefitsShieldNoneUsed;
+
+  /// No description provided for @myPointsValidDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid for {days} days after redeeming'**
+  String myPointsValidDays(int days);
+
+  /// No description provided for @myPointsShopLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load rewards'**
+  String get myPointsShopLoadFailed;
+
+  /// No description provided for @myShopPtRenewalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'₩30,000 off PT renewal'**
+  String get myShopPtRenewalTitle;
+
+  /// No description provided for @myShopPtRenewalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Get ₩30,000 off when you renew PT with your trainer.'**
+  String get myShopPtRenewalDescription;
+
+  /// No description provided for @myShopLockerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Free personal locker for 1 month'**
+  String get myShopLockerTitle;
+
+  /// No description provided for @myShopLockerDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a personal locker at your gym free for a month.'**
+  String get myShopLockerDescription;
+
+  /// No description provided for @myCouponPtRenewalBenefit.
+  ///
+  /// In en, this message translates to:
+  /// **'₩30,000 off PT renewal'**
+  String get myCouponPtRenewalBenefit;
+
+  /// No description provided for @myBenefitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'My benefits'**
+  String get myBenefitsTitle;
+
+  /// No description provided for @myBenefitsView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get myBenefitsView;
+
+  /// No description provided for @myBenefitsCoupons.
+  ///
+  /// In en, this message translates to:
+  /// **'Coupons'**
+  String get myBenefitsCoupons;
+
+  /// No description provided for @myBenefitsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No coupons yet'**
+  String get myBenefitsEmpty;
+
+  /// No description provided for @myBenefitsEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Redeem your points for a coupon.'**
+  String get myBenefitsEmptyMessage;
+
+  /// No description provided for @myBenefitsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load benefits'**
+  String get myBenefitsLoadFailed;
+
+  /// No description provided for @myCouponStatusUsable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get myCouponStatusUsable;
+
+  /// No description provided for @myCouponStatusUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Used'**
+  String get myCouponStatusUsed;
+
+  /// No description provided for @myCouponStatusExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get myCouponStatusExpired;
+
+  /// No description provided for @myCouponStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get myCouponStatusCancelled;
+
+  /// No description provided for @myCouponDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'D-{days}'**
+  String myCouponDaysLeft(int days);
+
+  /// No description provided for @myCouponDDay.
+  ///
+  /// In en, this message translates to:
+  /// **'D-day'**
+  String get myCouponDDay;
+
+  /// No description provided for @myCouponUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Until {date}'**
+  String myCouponUntil(String date);
+
+  /// No description provided for @myCouponTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get myCouponTrainer;
+
+  /// No description provided for @myCouponGym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym'**
+  String get myCouponGym;
+
+  /// No description provided for @myCouponIssuedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Redeemed on'**
+  String get myCouponIssuedOn;
+
+  /// No description provided for @myCouponExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires'**
+  String get myCouponExpiry;
+
+  /// No description provided for @myCouponExpiryWithDday.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} ({dday})'**
+  String myCouponExpiryWithDday(String date, String dday);
+
+  /// No description provided for @myCouponStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get myCouponStatus;
+
+  /// No description provided for @myCouponStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap only after your trainer or gym staff has checked it'**
+  String get myCouponStaffNote;
+
+  /// No description provided for @myCouponGymStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap only after gym staff has checked it'**
+  String get myCouponGymStaffNote;
+
+  /// No description provided for @myCouponStaffConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark this coupon as used?'**
+  String get myCouponStaffConfirmTitle;
+
+  /// No description provided for @myCouponStaffConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'For staff · This can\'t be undone once used'**
+  String get myCouponStaffConfirmMessage;
+
+  /// No description provided for @myCouponUsedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Used at'**
+  String get myCouponUsedAt;
+
+  /// No description provided for @myCouponUsedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Used on {time}'**
+  String myCouponUsedBanner(String time);
+
+  /// No description provided for @myCouponExpireNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Points aren\'t refunded once the coupon expires.'**
+  String get myCouponExpireNotice;
+
+  /// No description provided for @myCouponUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as used'**
+  String get myCouponUse;
+
+  /// No description provided for @myCouponUseDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Marked as used'**
+  String get myCouponUseDone;
+
+  /// No description provided for @myCouponUseFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t mark as used. Please try again.'**
+  String get myCouponUseFailed;
+
+  /// No description provided for @myCouponNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Coupon not found'**
+  String get myCouponNotFound;
 
   /// Screen reader label for an image a trainer sent in chat (#1942).
   ///
@@ -2155,6 +2473,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'We could not delete your account. Please try again in a moment.'**
   String get myWithdrawFailed;
+
+  /// First step of the two-step account deletion flow under customer support (#2019).
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account?'**
+  String get myWithdrawReasonTitle;
+
+  /// No description provided for @myWithdrawReasonQuestion.
+  ///
+  /// In en, this message translates to:
+  /// **'What did not work for you?'**
+  String get myWithdrawReasonQuestion;
+
+  /// No description provided for @myWithdrawReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'You can pick more than one'**
+  String get myWithdrawReasonHint;
+
+  /// No description provided for @myWithdrawReasonPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'I am worried my personal data could be exposed'**
+  String get myWithdrawReasonPrivacy;
+
+  /// No description provided for @myWithdrawReasonRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'I do not use it often'**
+  String get myWithdrawReasonRarelyUsed;
+
+  /// No description provided for @myWithdrawReasonHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'It is awkward to use'**
+  String get myWithdrawReasonHardToUse;
+
+  /// No description provided for @myWithdrawReasonNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many notifications'**
+  String get myWithdrawReasonNotifications;
+
+  /// No description provided for @myWithdrawReasonAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'I am using another app'**
+  String get myWithdrawReasonAlternative;
+
+  /// No description provided for @myWithdrawReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Something else'**
+  String get myWithdrawReasonOther;
+
+  /// No description provided for @myWithdrawNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get myWithdrawNext;
+
+  /// Second step: what can be changed instead of leaving, chosen from the reasons picked (#2019).
+  ///
+  /// In en, this message translates to:
+  /// **'Before you go'**
+  String get myWithdrawKeepTitle;
+
+  /// No description provided for @myWithdrawKeepPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — you can do that from My Gym & Trainer on the MY tab.'**
+  String get myWithdrawKeepPrivacy;
+
+  /// No description provided for @myWithdrawKeepRarelyUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.'**
+  String get myWithdrawKeepRarelyUsed;
+
+  /// No description provided for @myWithdrawKeepHardToUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.'**
+  String get myWithdrawKeepHardToUse;
+
+  /// No description provided for @myWithdrawKeepNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.'**
+  String get myWithdrawKeepNotifications;
+
+  /// No description provided for @myWithdrawKeepAlternative.
+  ///
+  /// In en, this message translates to:
+  /// **'Removing the app leaves your records untouched. Deleting the account is what erases them, and that cannot be undone.'**
+  String get myWithdrawKeepAlternative;
+
+  /// No description provided for @myWithdrawKeepOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Whatever it is, tell us and we will act on it. Leave it in the 1:1 Inquiry under MY > Customer Support.'**
+  String get myWithdrawKeepOther;
+
+  /// No description provided for @myWithdrawKeepDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'The diet and exercise records you have built up go with the account, and they cannot be restored.'**
+  String get myWithdrawKeepDefault;
+
+  /// No description provided for @myWithdrawStay.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep using On-Care'**
+  String get myWithdrawStay;
+
+  /// No description provided for @myWithdrawContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue deleting'**
+  String get myWithdrawContinue;
 
   /// No description provided for @myCancel.
   ///
@@ -2498,10 +2936,10 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load the photo'**
   String get coachImageUnavailable;
 
-  /// No description provided for @coachChatSubtitle.
+  /// Line under the trainer's name in the chat header. States the relationship only — nothing tracks whether the trainer is online or working, so it must not promise availability (#2089).
   ///
   /// In en, this message translates to:
-  /// **'Personal trainer · Available'**
+  /// **'Personal trainer'**
   String get coachChatSubtitle;
 
   /// No description provided for @coachChatBack.
@@ -3025,25 +3463,43 @@ abstract class AppLocalizations {
   /// **'Writing your answer'**
   String get aicGeneratingReply;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'{part} pain noted'**
   String aicInsightDiscomfortPart(String part);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Pain noted'**
   String get aicInsightDiscomfort;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Negative feedback noted'**
   String get aicInsightNegative;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// Removes one detection from the AI coach insight log (#1975).
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get aicInsightDelete;
+
+  /// No description provided for @aicInsightDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this detection from the log? What you wrote stays in the conversation.'**
+  String get aicInsightDeleteConfirm;
+
+  /// No description provided for @aicInsightDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not remove it. Please try again in a moment.'**
+  String get aicInsightDeleteFailed;
+
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Noted signals'**
@@ -3055,19 +3511,19 @@ abstract class AppLocalizations {
   /// **'Notes'**
   String get aicInsightHistoryAction;
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
-  /// **'Pain and negative feedback noted in the last {days} days'**
+  /// **'Pain and negative feedback noted in the last {days} days. The AI uses these when it answers'**
   String aicInsightHistorySubtitle(int days);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Nothing noted in the last {days} days'**
   String aicInsightHistoryEmpty(int days);
 
-  /// AI coach chat: pain / negative feedback noted in the member's messages (#1824).
+  /// AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t load noted signals'**
@@ -3211,35 +3667,125 @@ abstract class AppLocalizations {
   /// **'Agree and connect'**
   String get coachInviteConsentAgree;
 
+  /// No description provided for @exConsultSlotTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Available times'**
+  String get exConsultSlotTitle;
+
+  /// No description provided for @exConsultSlotRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose an available time.'**
+  String get exConsultSlotRequired;
+
+  /// No description provided for @exConsultSlotsEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No consultation times are open right now.'**
+  String get exConsultSlotsEmptyTitle;
+
+  /// No description provided for @exConsultSlotsEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Call {gym} at {phone} to ask for a consultation time.'**
+  String exConsultSlotsEmptyBody(String gym, String phone);
+
+  /// No description provided for @exConsultSlotsEmptyNoPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the {gym} details for its address and hours.'**
+  String exConsultSlotsEmptyNoPhone(String gym);
+
+  /// No description provided for @exConsultSlotsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the available times.'**
+  String get exConsultSlotsError;
+
+  /// No description provided for @exConsultSlotTaken.
+  ///
+  /// In en, this message translates to:
+  /// **'Another member just took that time. Please choose another.'**
+  String get exConsultSlotTaken;
+
+  /// No description provided for @exConsultTooManyPending.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have {count} consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.'**
+  String exConsultTooManyPending(int count);
+
+  /// No description provided for @exConsultRateLimitedHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again in {hours} hours.'**
+  String exConsultRateLimitedHours(int hours);
+
+  /// No description provided for @exConsultRateLimitedMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again in {minutes} minutes.'**
+  String exConsultRateLimitedMinutes(int minutes);
+
+  /// No description provided for @exConsultRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many consultation requests. Please try again later.'**
+  String get exConsultRateLimited;
+
+  /// No description provided for @exConsultTooManyPendingNoCount.
+  ///
+  /// In en, this message translates to:
+  /// **'You have too many consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.'**
+  String get exConsultTooManyPendingNoCount;
+
+  /// No description provided for @exGymCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Call'**
+  String get exGymCall;
+
+  /// No description provided for @exGymCallFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open the phone app.'**
+  String get exGymCallFailed;
+
+  /// No description provided for @exGymDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'View gym details'**
+  String get exGymDetail;
+
+  /// No description provided for @exConsultChosenSlot.
+  ///
+  /// In en, this message translates to:
+  /// **'Requested time'**
+  String get exConsultChosenSlot;
+
+  /// No description provided for @exConsultConfirmedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirmed time'**
+  String get exConsultConfirmedAt;
+
+  /// No description provided for @exConsultExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get exConsultExpired;
+
+  /// No description provided for @exConsultExpiredBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The trainer did not respond in time. Try requesting another time.'**
+  String get exConsultExpiredBody;
+
   /// No description provided for @exExerciseGoal.
   ///
   /// In en, this message translates to:
   /// **'Exercise Goal'**
   String get exExerciseGoal;
-
-  /// No description provided for @exGoalWeightLoss.
-  ///
-  /// In en, this message translates to:
-  /// **'Weight Loss'**
-  String get exGoalWeightLoss;
-
-  /// No description provided for @exGoalStrength.
-  ///
-  /// In en, this message translates to:
-  /// **'Build Strength'**
-  String get exGoalStrength;
-
-  /// No description provided for @exGoalFitness.
-  ///
-  /// In en, this message translates to:
-  /// **'Improve Fitness'**
-  String get exGoalFitness;
-
-  /// No description provided for @exGoalPosture.
-  ///
-  /// In en, this message translates to:
-  /// **'Improve Posture'**
-  String get exGoalPosture;
 
   /// No description provided for @exGoalHealth.
   ///
@@ -3264,24 +3810,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Preferred Date'**
   String get exPreferredDate;
-
-  /// No description provided for @exSelectDate.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a date'**
-  String get exSelectDate;
-
-  /// No description provided for @exSelectTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Select a time'**
-  String get exSelectTime;
-
-  /// No description provided for @exPreferredTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Preferred Time'**
-  String get exPreferredTime;
 
   /// No description provided for @exTimeFlexible.
   ///
@@ -3390,18 +3918,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Please describe your specific exercise goal in the message.'**
   String get exOtherGoalDetailRequired;
-
-  /// No description provided for @exDateRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please select a preferred date.'**
-  String get exDateRequired;
-
-  /// No description provided for @exTimeRequired.
-  ///
-  /// In en, this message translates to:
-  /// **'Please select a preferred time.'**
-  String get exTimeRequired;
 
   /// No description provided for @exConsultTargetNotFound.
   ///
@@ -3754,7 +4270,7 @@ abstract class AppLocalizations {
   /// No description provided for @signUpPhoneFormatInvalid.
   ///
   /// In en, this message translates to:
-  /// **'Enter your phone number as 000-0000-0000'**
+  /// **'Enter your phone number as 010-0000-0000'**
   String get signUpPhoneFormatInvalid;
 
   /// Shared birth-date format message (#1887). Matches the YYYY-MM-DD rule the server enforces in profile_format.py.
@@ -3907,42 +4423,6 @@ abstract class AppLocalizations {
   /// **'(optional)'**
   String get onboardOptionalTag;
 
-  /// Points guide shown once after onboarding (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'Points quests'**
-  String get pointsGuideTitle;
-
-  /// Points guide shown once after onboarding (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'The more you log each day, the more points you earn. Try these quests'**
-  String get pointsGuideSubtitle;
-
-  /// Points guide: numbered quest label (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'Quest {number}'**
-  String pointsGuideQuest(int number);
-
-  /// Points guide: how many times a day the points can be earned (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'{count, plural, =1{Once a day} other{Up to {count} times a day}}'**
-  String pointsGuideDailyCap(int count);
-
-  /// Points guide: where the points are used (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'Spend your points in MY › Points'**
-  String get pointsGuideSpendNote;
-
-  /// Points guide: button that goes to Home (#1826).
-  ///
-  /// In en, this message translates to:
-  /// **'Get started'**
-  String get pointsGuideStart;
-
   /// Spotlight guide: the guide label with the current step (#1857).
   ///
   /// In en, this message translates to:
@@ -4060,7 +4540,7 @@ abstract class AppLocalizations {
   /// Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).
   ///
   /// In en, this message translates to:
-  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P'**
+  /// **'Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points'**
   String guidePointsBody(int diet, int exercise, int routine);
 
   /// Onboarding step 1: the basic info step must be filled in (#1830).
@@ -4632,6 +5112,12 @@ abstract class AppLocalizations {
   /// **'Recommended solo workouts'**
   String get coachRoutineTitle;
 
+  /// Card title when the member has no trainer — every line is AI recommended (#2015).
+  ///
+  /// In en, this message translates to:
+  /// **'AI recommended solo workouts'**
+  String get coachRoutineAiTitle;
+
   /// Origin of a routine.
   ///
   /// In en, this message translates to:
@@ -4887,7 +5373,7 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Lunch jjamppong pushed today\'s sodium to 3,428mg. Drink plenty of water.'**
+  /// **'Lunch jjamppong pushed today\'s sodium to 4,657mg. Drink plenty of water.'**
   String get demoAlertSodiumBody;
 
   /// Title of a demo notification shown in tour mode.
@@ -4911,8 +5397,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Trainer Kim adjusted it to a walking routine for your knee.'**
-  String get demoAlertRoutineBody;
+  /// **'Trainer {trainerName} adjusted it to a walking routine for your knee.'**
+  String demoAlertRoutineBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -4923,8 +5409,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'Trainer Kim posted your report for this week.'**
-  String get demoAlertReportBody;
+  /// **'Trainer {trainerName} posted your report for this week.'**
+  String demoAlertReportBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -4935,8 +5421,8 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'You finished PT session 12 with Trainer Kim at 18:00 today!'**
-  String get demoAlertPtDoneBody;
+  /// **'You finished PT session 12 with Trainer {trainerName} at 18:00 today!'**
+  String demoAlertPtDoneBody(String trainerName);
 
   /// Title of a demo notification shown in tour mode.
   ///
@@ -5103,14 +5589,8 @@ abstract class AppLocalizations {
   /// No description provided for @exDemoPtSessionCount.
   ///
   /// In en, this message translates to:
-  /// **'Session 12 with Trainer Kim'**
-  String get exDemoPtSessionCount;
-
-  /// No description provided for @exDemoPtTrainerName.
-  ///
-  /// In en, this message translates to:
-  /// **'Trainer Kim'**
-  String get exDemoPtTrainerName;
+  /// **'Session 12 with Trainer {trainerName}'**
+  String exDemoPtSessionCount(String trainerName);
 
   /// No description provided for @exDemoPtFeedback.
   ///
