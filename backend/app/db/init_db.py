@@ -156,6 +156,10 @@ def _public_food_rows() -> list[dict]:
                 "carbs_g": num(row.get("carbs_g", "")),
                 "protein_g": num(row.get("protein_g", "")),
                 "fat_g": num(row.get("fat_g", "")),
+                # 근거 열 — DB 에는 넣지 않고 검사·확인에만 쓴다(#2102).
+                "source_dataset": row.get("source_dataset", ""),
+                "method": row.get("method", ""),
+                "serving_basis": row.get("serving_basis", ""),
             }
             for row in csv.DictReader(fh)
         ]

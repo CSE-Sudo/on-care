@@ -194,6 +194,21 @@ def test_curated_rows_carry_macros_that_add_up_to_calories():
         assert atwater == pytest.approx(row["calories"], rel=0.12), row["name"]
 
 
+def test_blank_macros_come_only_from_label_values():
+    """#2102: 탄·단·지가 빈 공공 행은 원본에서 채울 수 없는 것뿐이어야 한다.
+
+    업체 표시값(`수집`)은 탄·단·지를 적지 않은 일이 많고, 원재료성식품은 지방을 재지
+    않은 행이 있다. 같은 음식의 레시피 계산값에는 탄·단·지가 있지만 체계적으로 낮아
+    (열량 ×0.76) 섞으면 한 행의 값 한 벌이 깨진다 — 비워 두면 인식기 값이 채운다.
+    """
+    from app.db.init_db import _public_food_rows
+
+    blank = [r for r in _public_food_rows() if None in (r["carbs_g"], r["protein_g"], r["fat_g"])]
+    assert blank
+    for r in blank:
+        assert r["method"] == "수집" or r["source_dataset"] == "원재료성식품", r["name"]
+
+
 def test_aliases_point_at_seeded_rows():
     """대상이 없는 별칭은 조용히 무시되므로, 오타가 나도 아무도 모른다."""
     from app.services.nutrition.matcher import ALIASES
@@ -404,15 +419,114 @@ def test_import_keeps_franchise_rows_for_density():
     assert out[0]["calories"] == 252.0
 
 
-def test_import_serving_hint_ignores_franchise_packaging():
-    """1회 섭취량 힌트에는 판매 포장(라지 피자 한 판)을 쓰지 않는다."""
+def test_import_serving_hint_ignores_sale_units():
+    """1회 섭취량 힌트에는 판매 단위(라지 피자 한 판, 여럿이 나눠 먹는 외식 메뉴)를 쓰지 않는다.
+
+    가정식 분석이 가정 1인분을 조리해 잰 무게라 1인분에 가장 가깝다(#2102).
+    """
     from scripts.import_food_nutrients import aggregate
 
     rows = [
         _raw("피자_라지", "피자", "외식(프랜차이즈 등 업체 제공 영양정", "1640g", "252", "416", "3.7"),
-        _raw("피자_급식", "피자", "초등학교급식(재료량 기반 산출 함량)", "200g", "254", "420", "3.5"),
+        _raw("피자_외식", "피자", "외식(분석함량)", "964g", "250", "410", "3.6"),
+        _raw("피자_가정", "피자", "가정식(분석 함량)", "200g", "254", "420", "3.5"),
+        _raw("피자_급식", "피자", "산업체급식(재료량 기반 산출 함량)", "300g", "254", "420", "3.5"),
     ]
-    assert aggregate(rows, "음식")[0]["serving_size_g"] == 200.0
+    [out] = aggregate(rows, "음식")
+    assert out["serving_size_g"] == 200.0
+    assert out["serving_basis"] == "가정식 분석"
+
+
+def test_import_serving_falls_back_through_portion_rows():
+    """가정식 1인분이 없으면 성인 급식, 그다음 외식 레시피 1인분. 학교 급식은 쓰지 않는다.
+
+    학교 급식은 학년별 배식 기준이라 성인 1인분이 아니다(중고등 `쌀밥` 450g, 초등 250g).
+    """
+    from scripts.import_food_nutrients import aggregate
+
+    school = [
+        _raw("국_초등", "무국", "초등학교급식(재료량 기반 산출 함량)", "180ml", "20", "300", "1"),
+        _raw("국_중고", "무국", "중고등학교급식(재료량 기반 산출 함량)", "450ml", "20", "300", "1"),
+    ]
+    out = aggregate([*school, _raw("국_외식", "무국", "외식(재료량 기반 산출함량)", "600ml", "20", "300", "1")], "음식")
+    assert (out[0]["serving_size_g"], out[0]["serving_basis"]) == (600.0, "외식 레시피")
+    out = aggregate([*school, _raw("국_산업", "무국", "산업체급식(재료량 기반 산출 함량)", "320ml", "20", "300", "1"),
+                     _raw("국_외식", "무국", "외식(재료량 기반 산출함량)", "600ml", "20", "300", "1")], "음식")
+    assert (out[0]["serving_size_g"], out[0]["serving_basis"]) == (320.0, "산업체 급식")
+
+
+def test_import_serving_ignores_the_nutrient_basis_written_as_weight():
+    """2022년 외식 분석처럼 `식품중량` 에 영양 기준량(100g)을 그대로 적은 칸은 1인분이 아니다."""
+    from scripts.import_food_nutrients import aggregate
+
+    [out] = aggregate([_raw("달걀찜_채소", "달걀찜", "가정식(분석 함량)", "100g", "89", "329", "0")], "음식")
+    assert out["serving_size_g"] is None
+
+
+@pytest.mark.parametrize(("rep", "category", "grams"), [
+    ("배추김치", "김치류", 40.0),        # [표3] 배추김치
+    ("열무물김치", "김치류", 80.0),      # [표3] 물김치
+    ("쌀밥", "밥류", 210.0),             # [표3] 즉석조리식품 밥
+    ("돼지고기 덮밥", "밥류", None),     # 덮밥은 밥 210g 이 아니다
+    ("마늘장아찌", "장아찌·절임류", 15.0),
+    ("해물탕", "국 및 탕류", 250.0),
+    ("송편", "빵 및 과자류", 100.0),     # [표3] 떡류
+    ("식빵", "빵 및 과자류", 70.0),      # [표3] 빵류
+    ("돈가스", "튀김류", None),          # [표3] 에 없는 요리는 비운다
+])
+def test_import_serving_falls_back_to_the_reference_amount_for_dishes(rep, category, grams):
+    """1인분 행이 없는 음식은 그 분류의 [표3] 1회 섭취참고량을 쓴다 — 없으면 비운다."""
+    from scripts.import_food_nutrients import aggregate
+
+    row = _raw(rep, rep, "외식(분석함량)", "100g", "100", "300", "1", category)
+    [out] = aggregate([row], "음식")
+    assert out["serving_size_g"] == grams
+    assert out["serving_basis"] == ("표시기준 1회 섭취참고량" if grams else "")
+
+
+def _packaged(name, rep, reference, kind="", kcal="100", basis="100g", weight="1000g", cat="음료류"):
+    row = _raw(name, rep, "가공식품", weight, kcal, "10", "1", cat)
+    row.update({"탄수화물(g)": "10", "단백질(g)": "1", "지방(g)": "1", "식품소분류명": kind,
+                "영양성분함량기준량": basis, "1회 섭취참고량": reference, "데이터생성방법명": "수집"})
+    return row
+
+
+@pytest.mark.parametrize(("row", "grams"), [
+    # 포장 무게(1L)가 아니라 1회 섭취참고량. ml 은 공공 집계와 같은 밀도로 g 이 된다.
+    (_packaged("멸균우유", "우유(멸균)", "200ml", "우유", "61", "100ml", "1000ml", "유가공품류"), 206.0),
+    (_packaged("양조간장", "간장", "5ml", "양조간장", "54", "100ml", "900ml", "장류"), 5.6),
+    (_packaged("즉석국", "국/탕류", "250ml(g)", "즉석조리식품", "37"), 250.0),  # 괄호는 "g 이나 ml"
+    (_packaged("건면", "파스타 건면", "생·숙면 200g, 건면 100g, 당면 30g, 유탕면(봉지)120g, 유탕면(용기)80g",
+               "건면", "350", cat="면류"), 100.0),
+    # 봉지·용기를 원본으로 가를 수 없다.
+    (_packaged("유탕면", "기타 라면", "생·숙면 200g, 건면 100g, 당면 30g, 유탕면(봉지)120g, 유탕면(용기)80g",
+               "유탕면", "450", cat="면류"), None),
+    (_packaged("도시락", "도시락", "1식", "즉석섭취식품", "157"), None),   # 무게가 아니다
+    # 타서 마신 양(200ml)이다 — 분말의 100g 당 값(380kcal)에 곱하면 조리 상태가 어긋난다.
+    (_packaged("율무차분말", "고형차", "200ml", "고형차", "380"), None),
+])
+def test_import_serving_of_packaged_food_is_the_reference_amount(row, grams):
+    """가공식품 1회 섭취량은 원본의 `1회 섭취참고량`(식약처 「식품등의 표시기준」 [표3])이다."""
+    from scripts.import_food_nutrients import aggregate
+
+    [out] = aggregate([row], "가공식품")
+    assert out["serving_size_g"] == (None if grams is None else pytest.approx(grams))
+
+
+def test_import_serving_of_packaged_food_follows_the_row_that_gives_the_values():
+    """한 대표식품에 식품유형이 섞이면 값을 준 행의 1회 섭취참고량을 쓴다.
+
+    `기타 라면` 은 건조 유탕면(450kcal/100g)이 대부분인데, 숙면 몇 개의 200g 을 붙이면
+    유탕면 값에 200g 을 곱해 900kcal 이 된다.
+    """
+    from scripts.import_food_nutrients import aggregate
+
+    noodle = "생·숙면 200g, 건면 100g, 당면 30g, 유탕면(봉지)120g, 유탕면(용기)80g"
+    fried = [_packaged(f"유탕면_{i}", "기타 라면", noodle, "유탕면", str(445 + i), cat="면류") for i in range(4)]
+    boiled = [_packaged("숙면", "기타 라면", noodle, "숙면", "160", cat="면류")]
+    [out] = aggregate(fried + boiled, "가공식품")
+    assert out["calories"] > 400
+    assert out["serving_size_g"] is None
 
 
 def test_import_leaves_serving_blank_when_unknown():
@@ -548,6 +662,53 @@ def test_import_counts_duplicated_canteen_rows_once():
     assert out["calories"] >= 300
 
 
+def _lone(name, kcal, na, method):
+    r = _raw_full(name, kcal, na, "1", "5", "1.5", "1")
+    r.update({"대표식품명": "오이무침", "식품대분류명": "생채·무침류", "데이터생성방법명": method})
+    return r
+
+
+def _calculated(n, kcal="30", na="230"):
+    return [_lone(f"오이무침_계산{i}", kcal, str(int(na) + i), "산출") for i in range(n)]
+
+
+def test_import_distrusts_a_lone_analysis_far_from_the_recipes():
+    """#2102: 분석값이 한 건뿐이면 레시피 계산값과 맞춰 본다.
+
+    `오이무침` 은 부추를 넣은 분석 한 건이 나트륨 1,070mg 이고, 계산값 6건은 보정해도
+    333mg 안팎이다. 2배 넘게 어긋나면 그 한 건 대신 계산값에서 고른다.
+    """
+    from scripts.import_food_nutrients import aggregate
+
+    [out] = aggregate([_lone("오이무침_부추", "31", "1070", "분석"), *_calculated(6)], "음식")
+    assert out["sodium_mg"] < 300
+    assert out["method"] == "산출"
+
+
+def test_import_keeps_a_lone_analysis_close_to_the_recipes():
+    """계산값은 분석값보다 체계적으로 낮다(열량 ×0.76, 나트륨 ×0.71) — 그만큼은 어긋난 게 아니다."""
+    from scripts.import_food_nutrients import aggregate
+
+    [out] = aggregate([_lone("오이무침", "40", "420", "분석"), *_calculated(6)], "음식")
+    assert (out["sodium_mg"], out["method"]) == (420.0, "분석")
+
+
+def test_import_keeps_a_lone_analysis_when_recipes_are_few():
+    """계산값이 몇 건 안 되면 그 중앙값도 흔들려 비교의 기준이 못 된다."""
+    from scripts.import_food_nutrients import aggregate
+
+    [out] = aggregate([_lone("오이무침_부추", "31", "1070", "분석"), *_calculated(4)], "음식")
+    assert out["sodium_mg"] == 1070.0
+
+
+def test_import_ignores_tiny_absolute_gaps_for_a_lone_analysis():
+    """값이 아주 작으면 비율만 커진다(`잡곡밥` 나트륨 3mg ↔ 계산값 1mg) — 잡음으로 본다."""
+    from scripts.import_food_nutrients import aggregate
+
+    [out] = aggregate([_lone("잡곡밥", "146", "3", "분석"), *_calculated(6, kcal="120", na="1")], "음식")
+    assert (out["sodium_mg"], out["method"]) == (3.0, "분석")
+
+
 def _raw_ml(name, rep, kcal, na, method="수집", cat="식용유지류", weight="500ml"):
     r = _raw_full(name, kcal, na, "0", "0", "0", "91")
     r.update({"대표식품명": rep, "식품대분류명": cat, "영양성분함량기준량": "100ml",
@@ -559,9 +720,12 @@ def test_import_converts_100ml_values_to_100g():
     """앱은 그램을 곱한다 — 100ml 값을 100g 값으로 쓰면 식용유 열량이 8% 작다(밀도 0.92)."""
     from scripts.import_food_nutrients import aggregate
 
-    [oil] = aggregate([_raw_ml("올리브유_가", "올리브유", "828", "0")], "가공식품")
+    row = _raw_ml("올리브유_가", "올리브유", "828", "0")
+    row["1회 섭취참고량"] = "5ml"
+    [oil] = aggregate([row], "가공식품")
     assert oil["calories"] == pytest.approx(900.0, abs=0.1)        # 828 ÷ 0.92
-    assert oil["serving_size_g"] == pytest.approx(460.0)           # 500ml × 0.92
+    # 1회 섭취량도 같은 밀도로 g 이 된다 — 포장(500ml)이 아니라 1회 섭취참고량이다(#2102).
+    assert oil["serving_size_g"] == pytest.approx(4.6)             # 5ml × 0.92
 
     [ice] = aggregate([_raw_ml("바닐라콘", "아이스크림", "112", "40", cat="빙과류")], "가공식품")
     assert ice["calories"] == pytest.approx(200.0, abs=0.1)        # 공기가 들어 밀도 0.56
@@ -724,6 +888,16 @@ def test_curated_seed_wins_over_public_data(db_session):
     # 큐레이션 2,400mg/650g → 100g 당 369.2. 공공 짜장면은 계산값 295mg 이다.
     assert round(jjajang.sodium_mg, 1) == 369.2
     assert match_food(db_session, "가공우유") is not None   # 가공식품 데이터셋
+
+
+def test_public_servings_name_their_basis():
+    """#2102: 공공 행의 1회 섭취량은 근거가 있을 때만 있다(`serving_basis`)."""
+    from app.db.init_db import _public_food_rows
+
+    rows = _public_food_rows()
+    assert rows
+    for r in rows:
+        assert bool(r["serving_size_g"]) == bool(r["serving_basis"]), r["name"]
 
 
 def test_curated_from_public_takes_the_public_values():
