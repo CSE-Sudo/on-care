@@ -31,8 +31,9 @@ class RecognizedFood(BaseModel):
         None, gt=0, allow_inf_nan=False, description="추정 섭취량 g"
     )
     confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
-    # 영양 수치 출처: 공공 DB | 인식기 추정 | 두 값의 혼합
-    source: str = Field("estimate", description="db|estimate|mixed")
+    # 영양 수치 출처: 공공 DB | 인식기 추정 | 두 값의 혼합. 저장된 기록에는 회원이
+    # 수정 화면에서 직접 고친 값(member)도 있다(#2105, `diet_api.EditedFood`).
+    source: str = Field("estimate", description="db|estimate|mixed|member")
 
 
 class DietAnalysis(BaseModel):
