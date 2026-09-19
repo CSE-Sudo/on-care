@@ -736,24 +736,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exStreakProtected => 'Kept by a shield';
 
   @override
-  String get exStreakShieldUse => 'Use shield';
-
-  @override
-  String get exStreakShieldConfirmTitle => 'Use a streak shield?';
-
-  @override
-  String exStreakShieldConfirmMessage(int month, int day, int held) {
-    return 'You didn\'t log a workout on $month/$day. Use 1 shield to keep your streak going. (You have $held)';
-  }
-
-  @override
-  String get exStreakShieldDone => 'Yesterday is now part of your streak';
-
-  @override
-  String get exStreakShieldFailed =>
-      'Couldn\'t use the shield. Please try again.';
-
-  @override
   String get exToday => 'Today';
 
   @override
@@ -1196,14 +1178,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsMonthlyLimit => 'You already redeemed this month';
 
   @override
-  String get myPointsShieldLimit => 'You can hold up to 2 shields';
+  String get myPointsShieldLimit => 'You can hold up to 4 shields';
 
   @override
   String get myShopStreakShieldTitle => 'Streak shield';
 
   @override
   String get myShopStreakShieldDescription =>
-      'Keep your streak going when you missed a workout yesterday. Hold up to 2.';
+      'Keep your streak going when you logged nothing yesterday. Hold up to 4.';
 
   @override
   String get myBenefitsStreakShields => 'Streak shields';
@@ -1220,7 +1202,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myBenefitsShieldGuide =>
-      'Use one from Activity the day after a missed workout.';
+      'Use one the day after a day with nothing logged.';
 
   @override
   String get myBenefitsShieldUsedTitle => 'Protected days';

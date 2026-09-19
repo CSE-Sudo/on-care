@@ -399,18 +399,6 @@
   },
   "exStreakStart": "Start a streak with today's workout.",
   "exStreakProtected": "Kept by a shield",
-  "exStreakShieldUse": "Use shield",
-  "exStreakShieldConfirmTitle": "Use a streak shield?",
-  "exStreakShieldConfirmMessage": "You didn't log a workout on {month}/{day}. Use 1 shield to keep your streak going. (You have {held})",
-  "@exStreakShieldConfirmMessage": {
-    "placeholders": {
-      "month": { "type": "int" },
-      "day": { "type": "int" },
-      "held": { "type": "int" }
-    }
-  },
-  "exStreakShieldDone": "Yesterday is now part of your streak",
-  "exStreakShieldFailed": "Couldn't use the shield. Please try again.",
   "exToday": "Today",
   "exLoadError": "Couldn't load your exercise data.",
   "exCompletedPtTitle": "Today's completed PT",
@@ -708,9 +696,9 @@
   "myPointsNeedGym": "Requires a connected gym",
   "myPointsActiveCoupon": "You already have an unused coupon",
   "myPointsMonthlyLimit": "You already redeemed this month",
-  "myPointsShieldLimit": "You can hold up to 2 shields",
+  "myPointsShieldLimit": "You can hold up to 4 shields",
   "myShopStreakShieldTitle": "Streak shield",
-  "myShopStreakShieldDescription": "Keep your streak going when you missed a workout yesterday. Hold up to 2.",
+  "myShopStreakShieldDescription": "Keep your streak going when you logged nothing yesterday. Hold up to 4.",
   "myBenefitsStreakShields": "Streak shields",
   "myBenefitsShieldHeld": "{held}/{max} held",
   "@myBenefitsShieldHeld": {
@@ -731,7 +719,7 @@
       }
     }
   },
-  "myBenefitsShieldGuide": "Use one from Activity the day after a missed workout.",
+  "myBenefitsShieldGuide": "Use one the day after a day with nothing logged.",
   "myBenefitsShieldUsedTitle": "Protected days",
   "myBenefitsShieldNoneUsed": "No protected days yet",
   "myPointsValidDays": "Valid for {days} days after redeeming",

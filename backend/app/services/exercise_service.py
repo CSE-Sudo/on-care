@@ -197,27 +197,23 @@ def weekly_goals(profile) -> tuple[int, int]:
     )
 
 
-def _longest_streak(daily: list[int], protected: list[bool] | None = None) -> int:
+def _longest_streak(daily: list[int]) -> int:
     """'N일 연속' — 운동한 요일 중 가장 긴 연속 구간의 길이.
 
     활성 일수의 단순 합계가 아니다: 월·수·금 운동은 3일이 아니라 1일 연속.
-    연속 기록 보호권으로 이어 붙인 날([protected])도 운동한 날로 센다(#1788).
+    **운동만 센다** — 식단도 세는 기록 연속(`record_activity.record_streak_days`)과
+    다른 값이고, 연속 기록 보호권으로 이어 붙인 날도 여기에는 들어가지 않는다(#1788).
     프론트 `longestActiveStreak` / LocalApiInterceptor 와 같은 정의.
     """
     best = run = 0
-    for i, m in enumerate(daily):
-        shielded = protected is not None and i < len(protected) and protected[i]
-        run = run + 1 if m > 0 or shielded else 0
+    for m in daily:
+        run = run + 1 if m > 0 else 0
         best = max(best, run)
     return best
 
 
-def build_current_week(rows: list, protected_days: list[bool] | None = None) -> dict:
-    """ExerciseSession row 리스트 → 프론트 계약 형태의 dict.
-
-    [protected_days] 는 요일별 보호권 사용 여부다(#1788). 연속 일수에만 반영하고
-    분·칼로리·세션 합계에는 넣지 않는다 — 보호한 날은 운동한 날이 아니다.
-    """
+def build_current_week(rows: list) -> dict:
+    """ExerciseSession row 리스트 → 프론트 계약 형태의 dict."""
     per_day = {l: 0 for l in WEEKDAY_LABELS}
     per_day_cal = {l: 0 for l in WEEKDAY_LABELS}
     per_cardio = {l: 0 for l in WEEKDAY_LABELS}
@@ -279,11 +275,7 @@ def build_current_week(rows: list, protected_days: list[bool] | None = None) -> 
     sessions.sort(key=lambda s: WEEKDAY_LABELS.index(s["day_label"]), reverse=True)
 
     daily = [per_day[l] for l in WEEKDAY_LABELS]
-    protected = [
-        bool(protected_days[i]) if protected_days and i < len(protected_days) else False
-        for i in range(len(WEEKDAY_LABELS))
-    ]
-    streak = _longest_streak(daily, protected)
+    streak = _longest_streak(daily)
 
     msg = (
         "주간 운동 목표 80%를 달성했어요! 오늘 가볍게 걷기를 더해 100%를 채워봐요."
@@ -307,7 +299,6 @@ def build_current_week(rows: list, protected_days: list[bool] | None = None) -> 
         "total_minutes": total_minutes,
         "total_calories": total_calories,
         "streak_days": streak,
-        "protected_days": protected,
         "ai_coach_message": msg,
     }
 

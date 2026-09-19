@@ -59,15 +59,18 @@ void main() {
 
     expect(find.text('연속 기록 보호권'), findsOneWidget);
     expect(find.text('300P'), findsOneWidget);
-    expect(find.textContaining('운동을 못 한 어제를 연속 기록에 이어 붙여요'), findsOneWidget);
+    expect(
+      find.textContaining('아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요'),
+      findsOneWidget,
+    );
     expect(find.textContaining('동안 사용'), findsNothing);
     expect(tester.widget<AppButton>(find.byKey(exchangeKey)).onPressed, isNotNull);
   });
 
-  testWidgets('보호권을 두 개 가지고 있으면 버튼을 막고 이유를 적는다', (tester) async {
+  testWidgets('보호권을 네 개 가지고 있으면 버튼을 막고 이유를 적는다', (tester) async {
     await pumpShop(tester, FakeBenefitsRepository(shop: _shop(full: true)));
 
-    expect(find.text('보호권은 최대 2개까지 가질 수 있어요'), findsOneWidget);
+    expect(find.text('보호권은 최대 4개까지 가질 수 있어요'), findsOneWidget);
     expect(tester.widget<AppButton>(find.byKey(exchangeKey)).onPressed, isNull);
   });
 

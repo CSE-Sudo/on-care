@@ -1,11 +1,15 @@
-"""연속 기록 보호권 — 교환 한도, 사용 규칙, 연속 일수 반영, 합계 불변. (#1788)
+"""연속 기록 보호권 — 교환 한도, 사용 규칙, 기록 연속 반영. (#1788)
 
-연속 일수 계산 두 개는 DB 없이 돈다. 나머지는 DB 필요(로컬 skip, CI 실행).
+보호권이 지키는 것은 **기록 연속**이다: 식단 한 끼든 운동 한 건이든 남긴 날이
+이어진 길이(`record_activity.record_streak_days`). 운동 탭의 `N일 연속 운동`
+(`exercise_service._longest_streak`)은 운동만 세고 보호한 날을 넣지 않는다 —
+여기서도 그 둘이 서로를 건드리지 않는지 함께 본다.
 
-"오늘" 을 목요일(2026-09-17, KST)로 고정한다. 이번 주 월요일은 9월 14일, 보호할 수
-있는 어제는 9월 16일(수)이다. 요일에 매인 규칙(월요일에는 지난 일요일을 보호하지
-않는다)을 실행 요일과 상관없이 재려는 것이다. 새로 가입한 회원으로 확인해 다른
-테스트의 기록·포인트와 섞이지 않게 한다.
+연속 일수 계산 하나는 DB 없이 돈다. 나머지는 DB 필요(로컬 skip, CI 실행).
+
+"오늘" 을 목요일(2026-09-17, KST)로 고정한다. 보호할 수 있는 어제는 9월 16일(수)
+이다. 실행 요일과 상관없이 날짜에 매인 규칙을 재려는 것이다. 새로 가입한 회원으로
+확인해 다른 테스트의 기록·포인트와 섞이지 않게 한다.
 """
 from __future__ import annotations
 
@@ -18,6 +22,7 @@ from sqlalchemy import select
 from app.core import clock
 from app.core.security import create_access_token
 from app.models.models import (
+    DietEntry,
     HealthProfile,
     PointsLedger,
     TrainerClient,
@@ -43,27 +48,20 @@ def thursday(monkeypatch):
 # ---- 연속 일수 (DB 없음) ----
 
 
-def test_longest_streak_counts_protected_days_as_active():
-    daily = [30, 0, 20, 0, 0, 0, 0]
-    protected = [False, True, False, False, False, False, False]
-
-    assert _longest_streak(daily) == 1
-    assert _longest_streak(daily, protected) == 3
-    # 보호한 날만 있어도 그날은 이어진 하루다.
-    assert _longest_streak([0] * 7, [False, False, True, True, False, False, False]) == 2
+def test_longest_streak_counts_exercise_only():
+    # 운동 탭의 연속은 운동만 센다 — 보호권도 식단도 여기에는 들어가지 않는다.
+    assert _longest_streak([30, 0, 20, 0, 0, 0, 0]) == 1
+    assert _longest_streak([30, 20, 20, 0, 0, 0, 0]) == 3
+    assert _longest_streak([0] * 7) == 0
 
 
-def test_week_totals_ignore_protected_days():
-    data = build_current_week(
-        [], protected_days=[False, True, False, False, False, False, False]
-    )
+def test_exercise_week_has_no_shield_fields():
+    # 보호권은 운동 주간 응답에 실리지 않는다 — 쓰는 자리는 포인트 화면이다(#2075).
+    data = build_current_week([])
 
-    assert data["streak_days"] == 1
-    assert data["protected_days"] == [False, True, False, False, False, False, False]
-    assert data["total_minutes"] == 0
-    assert data["total_calories"] == 0
-    assert data["daily_minutes"] == [0] * 7
-    assert data["sessions"] == []
+    assert "protected_days" not in data
+    assert "streak_shield" not in data
+    assert data["streak_days"] == 0
 
 
 # ---- 도우미 ----
@@ -125,6 +123,21 @@ def _add_exercise(client, headers, day: str, minutes: int = 30) -> None:
     assert r.status_code == 201, r.text
 
 
+def _add_diet(db_session, member_id: str, day: str) -> None:
+    """그날 끼니 한 건. 사진 분석을 타지 않고 행만 넣는다 — 기록 여부만 보면 된다."""
+    db_session.add(
+        DietEntry(
+            id=f"diet-shd-{uuid4().hex[:10]}",
+            user_id=member_id,
+            date=day,
+            meal_type="lunch",
+            time_label="12:00",
+            total_calories=500,
+        )
+    )
+    db_session.commit()
+
+
 def _week(client, headers, week_start: str | None = None) -> dict:
     params = {"week_start": week_start} if week_start else None
     r = client.get("/v1/exercise/weeks/current", params=params, headers=headers)
@@ -161,8 +174,8 @@ def test_shop_lists_streak_shield(client, db_session, thursday):
     assert item["shortfall"] == 200
 
 
-def test_exchange_spends_300_and_holds_at_most_two(client, db_session, thursday):
-    member_id, h = _new_member(client, db_session, points=1000)
+def test_exchange_spends_300_and_holds_at_most_four(client, db_session, thursday):
+    member_id, h = _new_member(client, db_session, points=2000)
 
     first = _exchange(client, h)
     assert first.status_code == 201, first.text
@@ -170,12 +183,13 @@ def test_exchange_spends_300_and_holds_at_most_two(client, db_session, thursday)
     assert body["coupon"] is None
     assert body["shield"]["status"] == "held"
     assert body["shield"]["protected_on"] is None
-    assert (body["spent"], body["balance"]) == (300, 700)
+    assert (body["spent"], body["balance"]) == (300, 1700)
 
-    assert _exchange(client, h).status_code == 201
-    third = _exchange(client, h)
-    assert third.status_code == 409, third.text
-    assert _balance(client, h) == 400
+    for _ in range(3):
+        assert _exchange(client, h).status_code == 201
+    fifth = _exchange(client, h)
+    assert fifth.status_code == 409, fifth.text
+    assert _balance(client, h) == 800
 
     item = _shop_item(client, h)
     assert item["available"] is False
@@ -190,9 +204,8 @@ def test_exchange_spends_300_and_holds_at_most_two(client, db_session, thursday)
     ).all()
     assert sorted((row.kind, row.delta, row.reason) for row in spends) == [
         ("spend", -300, "streak_shield"),
-        ("spend", -300, "streak_shield"),
-    ]
-    assert _shields(client, h)["held"] == 2
+    ] * 4
+    assert _shields(client, h)["held"] == 4
 
 
 def test_exchange_retry_with_same_request_id_spends_once(client, db_session, thursday):
@@ -210,9 +223,7 @@ def test_exchange_retry_with_same_request_id_spends_once(client, db_session, thu
 # ---- 사용 ----
 
 
-def test_use_joins_yesterday_to_streak_without_touching_totals(
-    client, db_session, monkeypatch
-):
+def test_use_joins_yesterday_to_record_streak_only(client, db_session, monkeypatch):
     monkeypatch.setattr(clock, "now", lambda: THURSDAY)
     _, h = _new_member(client, db_session, points=1000)
     assert _exchange(client, h).status_code == 201
@@ -222,20 +233,23 @@ def test_use_joins_yesterday_to_streak_without_touching_totals(
     _add_exercise(client, h, TODAY, minutes=20)
 
     before = _week(client, h)
+    before_status = _shields(client, h)
+    # 월·화는 이어졌고 수(어제)가 비어 오늘만 남았다 — 기록 연속은 1.
     assert before["streak_days"] == 2
-    assert before["protected_days"] == [False] * 7
-    assert before["streak_shield"] == {"held": 2, "protectable_date": YESTERDAY}
+    assert before_status["record_streak_days"] == 1
+    assert (before_status["held"], before_status["protectable_date"]) == (2, YESTERDAY)
 
     r = _use(client, h, YESTERDAY)
     assert r.status_code == 200, r.text
     assert r.json()["held"] == 1
     assert [u["date"] for u in r.json()["used"]] == [YESTERDAY]
+    # 보호권이 이어 붙인 것은 기록 연속뿐이다: 월·화·수(보호)·목.
+    assert r.json()["record_streak_days"] == 4
+    assert r.json()["protectable_date"] is None
 
     after = _week(client, h)
-    assert after["streak_days"] == 4
-    assert after["protected_days"] == [False, False, True, False, False, False, False]
-    assert after["streak_shield"] == {"held": 1, "protectable_date": None}
-    # 보호한 날은 운동한 날이 아니다 — 합계·요일별 값·기록 목록이 그대로다.
+    # 운동 탭의 연속은 그대로 2 다 — 보호한 날은 운동한 날이 아니다.
+    assert after["streak_days"] == 2
     for key in (
         "total_minutes",
         "total_calories",
@@ -250,19 +264,11 @@ def test_use_joins_yesterday_to_streak_without_touching_totals(
     assert again.status_code == 200, again.text
     status = _shields(client, h)
     assert status["held"] == 1
-    assert (status["max_held"], status["cost"]) == (2, 300)
+    assert (status["max_held"], status["cost"]) == (4, 300)
     assert [u["date"] for u in status["used"]] == [YESTERDAY]
 
-    # 주가 바뀌면 지난 주 조회는 보호한 날과 연속 일수를 그대로 보여 주고, 보호권
-    # 상태는 싣지 않는다.
-    monkeypatch.setattr(clock, "now", lambda: NEXT_MONDAY)
-    past = _week(client, h, week_start=MONDAY)
-    assert past["streak_days"] == 4
-    assert past["protected_days"][2] is True
-    assert past["streak_shield"] is None
 
-
-def test_use_only_protects_yesterday_without_exercise(client, db_session, thursday):
+def test_use_only_protects_yesterday_without_record(client, db_session, thursday):
     _, h = _new_member(client, db_session, points=300)
     assert _exchange(client, h).status_code == 201
 
@@ -271,32 +277,53 @@ def test_use_only_protects_yesterday_without_exercise(client, db_session, thursd
         assert r.status_code == 409, (day, r.text)
 
     _add_exercise(client, h, YESTERDAY)
-    assert _week(client, h)["streak_shield"] == {"held": 1, "protectable_date": None}
+    assert _shields(client, h)["protectable_date"] is None
     r = _use(client, h, YESTERDAY)
     assert r.status_code == 409, r.text
 
     assert _shields(client, h)["held"] == 1
+
+
+def test_diet_alone_makes_the_day_recorded(client, db_session, thursday):
+    """식단 한 끼만 있어도 그날은 기록한 날이다 — 보호할 수 없고 연속은 이어진다."""
+    member_id, h = _new_member(client, db_session, points=300)
+    assert _exchange(client, h).status_code == 201
+    _add_diet(db_session, member_id, YESTERDAY)
+
+    status = _shields(client, h)
+    # 어제는 식단으로 이미 기록한 날이라 보호 대상이 아니다.
+    assert status["protectable_date"] is None
+    assert status["record_streak_days"] == 1
+    r = _use(client, h, YESTERDAY)
+    assert r.status_code == 409, r.text
+
+    # 운동 탭의 연속은 식단을 세지 않는다.
+    assert _week(client, h)["streak_days"] == 0
+
+
+def test_monday_protects_last_sunday(client, db_session, monkeypatch):
+    """기록 연속은 주 단위가 아니다 — 월요일에도 어제(일요일)를 보호한다."""
+    monkeypatch.setattr(clock, "now", lambda: NEXT_MONDAY)
+    _, h = _new_member(client, db_session, points=300)
+    assert _exchange(client, h).status_code == 201
+
+    assert _shields(client, h)["protectable_date"] == "2026-09-20"
+    r = _use(client, h, "2026-09-20")
+    assert r.status_code == 200, r.text
+    assert r.json()["held"] == 0
+    assert r.json()["record_streak_days"] == 1
 
 
 def test_use_without_shield_is_rejected(client, db_session, thursday):
     _, h = _new_member(client, db_session)
 
-    assert _week(client, h)["streak_shield"] == {"held": 0, "protectable_date": None}
+    status = _shields(client, h)
+    assert (status["held"], status["protectable_date"]) == (0, None)
     r = _use(client, h, YESTERDAY)
     assert r.status_code == 409, r.text
-    assert _week(client, h)["protected_days"] == [False] * 7
+    assert _shields(client, h)["used"] == []
 
 
-def test_monday_does_not_protect_last_sunday(client, db_session, monkeypatch):
-    monkeypatch.setattr(clock, "now", lambda: NEXT_MONDAY)
-    _, h = _new_member(client, db_session, points=300)
-    assert _exchange(client, h).status_code == 201
-
-    # 어제(일요일)는 지난주다 — 이번 주 연속 일수에 이어지지 않아 보호권을 쓰지 않는다.
-    assert _week(client, h)["streak_shield"] == {"held": 1, "protectable_date": None}
-    r = _use(client, h, "2026-09-20")
-    assert r.status_code == 409, r.text
-    assert _shields(client, h)["held"] == 1
 
 
 def _make_linked_trainer(db_session, member_id: str) -> str:
@@ -352,9 +379,8 @@ def test_exercise_on_protected_day_refunds_shield(client, db_session, thursday):
 
     status = _shields(client, h)
     assert (status["held"], status["used"]) == (1, [])
-    week = _week(client, h)
-    assert week["protected_days"] == [False] * 7
-    assert week["streak_days"] == 2  # 화·수 — 수요일은 이제 실제로 운동한 날이다.
+    # 수요일은 이제 실제로 운동한 날이라 운동 연속도 화·수로 이어진다.
+    assert _week(client, h)["streak_days"] == 2
 
     # 같은 날을 더 기록해도 더 돌려주지 않는다.
     _add_exercise(client, h, YESTERDAY, minutes=10)
@@ -365,25 +391,24 @@ def test_exercise_on_protected_day_refunds_shield(client, db_session, thursday):
         assert client.delete(
             f"/v1/exercise/sessions/{session_id}", headers=h
         ).status_code == 200
-    week = _week(client, h)
-    assert week["protected_days"] == [False] * 7
-    assert week["streak_days"] == 1
-    assert _shields(client, h)["held"] == 1
+    assert _week(client, h)["streak_days"] == 1
+    status = _shields(client, h)
+    assert (status["held"], status["used"]) == (1, [])
 
 
 def test_refund_may_exceed_hold_limit(client, db_session, thursday):
-    _, h = _new_member(client, db_session, points=1000)
+    _, h = _new_member(client, db_session, points=2000)
     assert _exchange(client, h).status_code == 201
     assert _use(client, h, YESTERDAY).status_code == 200
-    assert _exchange(client, h).status_code == 201
-    assert _exchange(client, h).status_code == 201
-    assert _shields(client, h)["held"] == 2
+    for _ in range(4):
+        assert _exchange(client, h).status_code == 201
+    assert _shields(client, h)["held"] == 4
 
     _add_exercise(client, h, YESTERDAY)
 
-    # 최대 보유 수는 교환의 규칙이다 — 돌려받아 3개가 되고, 그동안 교환은 막힌다.
-    assert _shields(client, h)["held"] == 3
-    assert _week(client, h)["streak_shield"] == {"held": 3, "protectable_date": None}
+    # 최대 보유 수는 교환의 규칙이다 — 돌려받아 5개가 되고, 그동안 교환은 막힌다.
+    status = _shields(client, h)
+    assert (status["held"], status["protectable_date"]) == (5, None)
     item = _shop_item(client, h)
     assert (item["available"], item["blocked_reason"]) == (False, "shield_limit")
     assert _exchange(client, h).status_code == 409
@@ -403,8 +428,8 @@ def test_moving_record_onto_protected_day_refunds_shield(client, db_session, thu
     )
 
     assert r.status_code == 200, r.text
-    assert _shields(client, h)["held"] == 1
-    assert _week(client, h)["protected_days"][2] is False
+    status = _shields(client, h)
+    assert (status["held"], status["used"]) == (1, [])
 
 
 def test_routine_completion_on_protected_day_refunds_shield(
@@ -444,8 +469,8 @@ def test_routine_completion_on_protected_day_refunds_shield(
     assert r.status_code == 200, r.text
 
     monkeypatch.setattr(clock, "now", lambda: THURSDAY)
-    assert _shields(client, h)["held"] == 1
-    assert _week(client, h)["protected_days"][2] is False
+    status = _shields(client, h)
+    assert (status["held"], status["used"]) == (1, [])
 
 
 def test_trainer_pt_completion_on_protected_day_refunds_shield(
@@ -476,20 +501,19 @@ def test_trainer_pt_completion_on_protected_day_refunds_shield(
         )
         assert done.status_code == 200, done.text
 
-        assert _shields(client, h)["held"] == 1
+        status = _shields(client, h)
+        assert (status["held"], status["used"]) == (1, [])
         week = _week(client, h)
-        assert week["protected_days"][2] is False
         assert f"sched-ex-{session_id}" in [s["id"] for s in week["sessions"]]
 
         # 트레이너가 세션을 지워 파생 기록이 사라져도 보호는 다시 걸리지 않는다.
         client.delete(f"/v1/trainer/schedule/{session_id}", headers=th)
-        assert _week(client, h)["protected_days"][2] is False
-        assert _shields(client, h)["held"] == 1
+        assert _shields(client, h)["used"] == []
     finally:
         _drop_user(db_session, trainer_id)
 
 
-def test_trainer_week_counts_protected_day(client, db_session, thursday):
+def test_trainer_week_ignores_protected_day(client, db_session, thursday):
     member_id, h = _new_member(client, db_session, points=300)
     trainer_id = f"trainer-{uuid4().hex[:10]}"
     db_session.add(
@@ -523,9 +547,10 @@ def test_trainer_week_counts_protected_day(client, db_session, thursday):
             headers={"Authorization": f"Bearer {create_access_token(trainer_id)}"},
         )
         assert r.status_code == 200, r.text
-        assert r.json()["streak_days"] == 3
-        assert r.json()["protected_days"][2] is True
-        assert r.json()["streak_shield"] is None
+        # 트레이너가 보는 연속도 운동만 센다 — 보호한 수요일은 끊긴 자리다.
+        assert r.json()["streak_days"] == 1
+        assert "protected_days" not in r.json()
+        assert "streak_shield" not in r.json()
     finally:
         db_session.rollback()
         db_session.expire_all()

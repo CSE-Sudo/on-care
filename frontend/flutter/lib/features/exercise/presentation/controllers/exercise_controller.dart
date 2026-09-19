@@ -277,16 +277,8 @@ ExerciseWeek applyTodayBonus(
     totalCalories: week.totalCalories + bonus.calories,
     // 휴식일이던 오늘이 보너스로 활성일이 되면 연속 일수도 늘어야 한다. 저장된
     // 값을 그대로 넘기면 '운동 일수'(dailyMinutes 기반)와 '연속' 카드가 어긋난다.
-    // 보호권으로 이어 붙인 날도 함께 센다(#1788).
-    streakDays: longestActiveStreak(
-      dailyMinutes,
-      protectedDays: week.protectedDays,
-    ),
+    streakDays: longestActiveStreak(dailyMinutes),
     aiCoachMessage: week.aiCoachMessage,
-    // 보호권 상태는 오늘 루틴과 상관없다 — 빠뜨리면 루틴을 체크한 순간
-    // `보호권 쓰기` 버튼이 사라진다.
-    protectedDays: week.protectedDays,
-    streakShield: week.streakShield,
   );
 }
 

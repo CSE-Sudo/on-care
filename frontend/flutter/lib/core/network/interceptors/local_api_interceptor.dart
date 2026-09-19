@@ -220,6 +220,8 @@ class LocalApiInterceptor extends Interceptor {
             idempotencyKey: Value(idempotencyKey),
           ),
         );
+    // 식단 한 끼도 기록이다 — 보호한 날이면 보호권을 돌려준다(#1788).
+    _refundShieldOnDate(_todayDateString());
   }
 
   Future<Response<Object?>?> _safeHandle(RequestOptions options) async {
@@ -492,6 +494,8 @@ class LocalApiInterceptor extends Interceptor {
     final row = await (_db.select(
       _db.dietEntries,
     )..where((t) => t.id.equals(id))).getSingle();
+    // 옮겨 간 날이 보호한 날이면 보호권을 돌려준다(#1788).
+    _refundShieldOnDate(row.date);
     final foods = jsonDecode(row.foodsJson) as List<Object?>;
     final macros = _foodMacroTotals(foods);
     return _ok(options, <String, Object?>{
@@ -1399,23 +1403,11 @@ class LocalApiInterceptor extends Interceptor {
       for (final l in _weekdayLabels) perDayOther[l] ?? 0,
     ];
 
-    // 보호권으로 이어 붙인 날은 연속 일수에만 들어간다(#1788) — 분·칼로리·기록
-    // 목록은 위에서 운동 기록만으로 만들었다.
-    final List<bool> protectedDays = _shields.protectedDaysOf(
-      DateTime.parse(weekStart),
-    );
-    final streak = _longestActiveStreak(dailyMinutes, protectedDays);
+    // 운동 탭의 연속은 운동만 센다 — 보호권은 기록 연속(식단·운동)을 지키고
+    // 포인트 화면에서 쓴다(#1788, #2075).
+    final streak = _longestActiveStreak(dailyMinutes);
 
     return _ok(options, <String, Object?>{
-      'protected_days': protectedDays,
-      // `보호권 쓰기` 는 어제만 보호하므로 이번 주를 볼 때만 싣는다.
-      'streak_shield': weekStart == _mondayOfThisWeekString()
-          ? _shields.weekStateJson(
-              (DateTime day) =>
-                  _mondayOfString(_dateString(day)) == weekStart &&
-                  (perDay[_weekdayLabels[day.weekday - 1]] ?? 0) > 0,
-            )
-          : null,
       'sessions': sessionsJson,
       'daily_minutes': dailyMinutes,
       'daily_calories': dailyCalories,
@@ -1445,15 +1437,11 @@ class LocalApiInterceptor extends Interceptor {
   /// `longestActiveStreak` 와 같은 정의라야 '연속' 카드가 어느 경로에서든
   /// 같은 값을 보인다. 보호권으로 이어 붙인 날([protectedDays])도 운동한 날로
   /// 센다(#1788).
-  int _longestActiveStreak(
-    List<num> dailyMinutes, [
-    List<bool> protectedDays = const <bool>[],
-  ]) {
+  int _longestActiveStreak(List<num> dailyMinutes) {
     int best = 0;
     int run = 0;
     for (int i = 0; i < dailyMinutes.length; i++) {
-      final bool shielded = i < protectedDays.length && protectedDays[i];
-      if (dailyMinutes[i] > 0 || shielded) {
+      if (dailyMinutes[i] > 0) {
         run += 1;
         if (run > best) best = run;
       } else {
@@ -2716,22 +2704,56 @@ class LocalApiInterceptor extends Interceptor {
 
   // ---- 연속 기록 보호권 (#1788) ----
   //
-  // 규칙은 [DemoStreakShieldBook] 이 서버와 같게 들고 있다. 그날 운동 기록이
-  // 있는지는 이 인터셉터의 drift 기록으로 본다 — 주간 집계와 같은 (주 시작, 요일)
-  // 이다. 409 도 실서버처럼 상태코드로 돌려준다.
+  // 규칙은 [DemoStreakShieldBook] 이 서버와 같게 들고 있다. 보호권이 지키는 것은
+  // **기록 연속**이라, 그날 식단이나 운동 기록이 있는지를 이 인터셉터의 drift 로
+  // 본다. 409 도 실서버처럼 상태코드로 돌려준다.
 
-  Future<Response<Object?>> _streakShields(RequestOptions options) async =>
-      _ok(options, _shields.statusJson());
+  Future<Response<Object?>> _streakShields(RequestOptions options) async {
+    final Set<String> recorded = await _recordedDates();
+    return _ok(
+      options,
+      _shields.statusJson(
+        hasRecordOn: (DateTime day) => recorded.contains(_dateString(day)),
+      ),
+    );
+  }
 
-  /// (주 시작, 요일) 자리에 운동 기록이 생겼다 — 그날 쓴 보호권을 되돌린다.
+  /// 식단이나 운동 기록이 있는 날짜(YYYY-MM-DD) 전부.
+  ///
+  /// 기록 연속은 주 단위가 아니라 날짜를 거슬러 이어지므로 주별 집계로는 셀 수
+  /// 없다. 데모 DB 는 한 회원의 기록뿐이라 통째로 읽어도 가볍다.
+  Future<Set<String>> _recordedDates() async {
+    final Set<String> days = <String>{};
+    for (final row in await _db.select(_db.dietEntries).get()) {
+      days.add(row.date);
+    }
+    for (final row in await _db.select(_db.exerciseSessions).get()) {
+      if (row.minutes <= 0) continue;
+      final int index = _weekdayLabels.indexOf(row.dayLabel);
+      if (index < 0) continue;
+      final DateTime monday = DateTime.parse(row.weekStart);
+      days.add(
+        _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+      );
+    }
+    return days;
+  }
+
+  /// (주 시작, 요일) 자리에 기록이 생겼다 — 그날 쓴 보호권을 되돌린다.
   /// 서버처럼 기록을 추가·수정하는 경로가 저장 뒤에 부른다.
   void _refundShieldOn(String weekStart, String dayLabel) {
     final int index = _weekdayLabels.indexOf(dayLabel);
     if (index < 0) return;
     final DateTime monday = DateTime.parse(weekStart);
-    _shields.refundFor(
-      DateTime(monday.year, monday.month, monday.day + index),
+    _refundShieldOnDate(
+      _dateString(DateTime(monday.year, monday.month, monday.day + index)),
     );
+  }
+
+  /// `YYYY-MM-DD` 자리에 기록이 생겼다 — 식단 저장·수정이 부른다.
+  void _refundShieldOnDate(String ymd) {
+    if (!_isDateString(ymd)) return;
+    _shields.refundFor(DateTime.parse(ymd));
   }
 
   Future<Response<Object?>> _streakShieldUse(RequestOptions options) async {
@@ -2741,19 +2763,13 @@ class LocalApiInterceptor extends Interceptor {
       return _unprocessable(options, 'date must be YYYY-MM-DD');
     }
     final DateTime day = DateTime.parse(raw);
-    final String weekStart = _mondayOfString(raw);
-    final String dayLabel = _weekdayLabels[day.weekday - 1];
-    final rows =
-        await (_db.select(_db.exerciseSessions)..where(
-              (t) =>
-                  t.weekStart.equals(weekStart) &
-                  t.dayLabel.equals(dayLabel) &
-                  t.minutes.isBiggerThanValue(0),
-            ))
-            .get();
+    final Set<String> recorded = await _recordedDates();
     return _couponResponse(
       options,
-      _shields.use(day, hasExerciseOn: (_) => rows.isNotEmpty),
+      _shields.use(
+        day,
+        hasRecordOn: (DateTime d) => recorded.contains(_dateString(d)),
+      ),
     );
   }
 

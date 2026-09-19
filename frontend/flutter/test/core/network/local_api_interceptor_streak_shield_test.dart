@@ -1,8 +1,9 @@
 /// 목업 API 의 연속 기록 보호권 — 실서버와 같은 규칙. (#1788)
 ///
-/// 사용처에서 300P 로 교환하고 쓰지 않은 보호권은 두 개까지. 보호할 수 있는 날은
-/// 어제(이번 주 안) 하나이고, 운동 기록이 있는 날은 보호하지 않는다. 보호한 날은
-/// 연속 일수에만 들어가고 분·칼로리·기록 목록은 그대로다.
+/// 사용처에서 300P 로 교환하고 쓰지 않은 보호권은 네 개까지. 보호할 수 있는 날은
+/// 어제 하나이고, **식단이든 운동이든** 기록이 있는 날은 보호하지 않는다. 보호권이
+/// 지키는 것은 기록 연속이라, 운동 탭의 연속 일수(운동만)와 주간 합계는 보호와
+/// 상관없이 그대로다.
 ///
 /// 오늘을 목요일(2026-09-17)로 고정한다. 월·화·목에 운동했고 어제(수)는 비었다.
 library;
@@ -45,7 +46,7 @@ void main() {
     now = DateTime(2026, 9, 17, 10);
     debugNowKstOverride = () => now;
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    ledger = DemoPointsLedger(openingBalance: 1000);
+    ledger = DemoPointsLedger(openingBalance: 2000);
     shields = DemoStreakShieldBook(ledger: ledger, now: () => now);
     dio = Dio(BaseOptions(baseUrl: 'https://example.test'));
     dio.interceptors.add(
@@ -94,7 +95,7 @@ void main() {
     dio,
   ).fetchShop()).items.firstWhere((ShopItem i) => i.id == 'streak_shield');
 
-  test('보호권은 300P 이고 쓰지 않은 것은 두 개까지 가진다', () async {
+  test('보호권은 300P 이고 쓰지 않은 것은 네 개까지 가진다', () async {
     final ShopItem item = await shieldItem();
     expect((item.cost, item.validDays, item.available), (300, 0, true));
 
@@ -103,11 +104,13 @@ void main() {
     final Map<Object?, Object?> body = first.data! as Map<Object?, Object?>;
     expect(body['coupon'], isNull);
     expect((body['shield']! as Map<Object?, Object?>)['status'], 'held');
-    expect(body['balance'], 700);
+    expect(body['balance'], 1700);
 
-    expect((await exchange()).statusCode, 201);
+    for (int i = 0; i < 3; i++) {
+      expect((await exchange()).statusCode, 201);
+    }
     expect((await exchange()).statusCode, 409);
-    expect(ledger.balance, 400);
+    expect(ledger.balance, 2000 - 300 * 4);
 
     final ShopItem full = await shieldItem();
     expect(full.available, isFalse);
@@ -115,37 +118,31 @@ void main() {
     expect(full.shortfall, 0);
   });
 
-  test('어제를 보호하면 연속 일수에만 들어가고 합계는 그대로다', () async {
+  test('어제를 보호하면 기록 연속만 이어지고 운동 탭은 그대로다', () async {
     await exchange();
     await exchange();
 
     final Map<String, Object?> before = await week();
+    // 운동 주간 응답에는 보호권이 실리지 않는다 — 쓰는 자리는 포인트 화면이다.
     expect(before['streak_days'], 2);
-    expect(before['protected_days'], List<bool>.filled(7, false));
-    expect(before['streak_shield'], <String, Object?>{
-      'held': 2,
-      'protectable_date': _yesterday,
-    });
+    expect(before.containsKey('protected_days'), isFalse);
+    expect(before.containsKey('streak_shield'), isFalse);
+
+    final StreakShields beforeStatus = await DioStreakShieldRepository(
+      dio,
+    ).fetch();
+    // 목요일(오늘)만 기록이 있고 어제가 비었다.
+    expect(beforeStatus.recordStreakDays, 1);
+    expect(beforeStatus.protectableDate, DateTime(2026, 9, 16));
 
     final Response<Object?> r = await use(_yesterday);
     expect(r.statusCode, 200);
     expect((r.data! as Map<Object?, Object?>)['held'], 1);
+    // 월·화·수(보호)·목 — 기록 연속만 이어졌다.
+    expect((r.data! as Map<Object?, Object?>)['record_streak_days'], 4);
 
     final Map<String, Object?> after = await week();
-    expect(after['streak_days'], 4);
-    expect(after['protected_days'], <bool>[
-      false,
-      false,
-      true,
-      false,
-      false,
-      false,
-      false,
-    ]);
-    expect(after['streak_shield'], <String, Object?>{
-      'held': 1,
-      'protectable_date': null,
-    });
+    expect(after['streak_days'], 2);
     for (final String key in <String>[
       'total_minutes',
       'total_calories',
@@ -163,14 +160,12 @@ void main() {
     expect((await use(_yesterday)).statusCode, 200);
     final StreakShields status = await DioStreakShieldRepository(dio).fetch();
     expect(status.held, 1);
-    expect((status.maxHeld, status.cost), (2, 300));
+    expect((status.maxHeld, status.cost), (4, 300));
+    expect(status.protectableDate, isNull);
     expect(
       status.used.map((StreakShieldUse u) => u.date),
       <DateTime>[DateTime(2026, 9, 16)],
     );
-
-    // 지난 주 조회에는 보호권 상태를 싣지 않는다.
-    expect((await week('2026-09-07'))['streak_shield'], isNull);
   });
 
   test('오늘·그저께·운동한 어제는 보호하지 않는다', () async {
@@ -181,19 +176,39 @@ void main() {
     expect((await use('2026-9-16')).statusCode, 422);
 
     await db.into(db.exerciseSessions).insert(session('ex-wed', '수', 15));
-    expect((await week())['streak_shield'], <String, Object?>{
-      'held': 1,
-      'protectable_date': null,
-    });
+    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    expect(status.protectableDate, isNull);
     expect((await use(_yesterday)).statusCode, 409);
     expect(shields.held, 1);
   });
 
+  test('식단만 남긴 어제도 기록한 날이라 보호하지 않는다', () async {
+    await exchange();
+    await db
+        .into(db.dietEntries)
+        .insert(
+          DietEntriesCompanion.insert(
+            id: 'diet-wed',
+            date: _yesterday,
+            mealType: 'lunch',
+            timeLabel: '12:00',
+            foodsJson: '[]',
+            totalCalories: 500,
+          ),
+        );
+
+    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    expect(status.protectableDate, isNull);
+    // 월·화·수(식단)·목 — 식단 한 끼가 연속을 이었다.
+    expect(status.recordStreakDays, 4);
+    expect((await use(_yesterday)).statusCode, 409);
+    // 운동 탭의 연속은 식단을 세지 않는다.
+    expect((await week())['streak_days'], 2);
+  });
+
   test('보호권이 없으면 보호할 날도 없고 사용은 409 다', () async {
-    expect((await week())['streak_shield'], <String, Object?>{
-      'held': 0,
-      'protectable_date': null,
-    });
+    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    expect((status.held, status.protectableDate), (0, null));
     expect((await use(_yesterday)).statusCode, 409);
   });
 
@@ -214,37 +229,31 @@ void main() {
   test('보호한 날에 운동을 기록하면 보호권이 돌아오고, 지워도 다시 보호되지 않는다', () async {
     await exchange();
     expect((await use(_yesterday)).statusCode, 200);
-    // 보호한 뒤 두 장을 더 사 쓰지 않은 보호권이 가득 찼다.
-    await exchange();
-    await exchange();
-    expect(shields.held, 2);
+    // 보호한 뒤 네 장을 더 사 쓰지 않은 보호권이 가득 찼다.
+    for (int i = 0; i < 4; i++) {
+      expect((await exchange()).statusCode, 201);
+    }
+    expect(shields.held, 4);
 
     final String first = await addExercise(_yesterday);
 
-    // 되돌리기는 최대 보유 수를 보지 않는다 — 3개가 되고 교환은 막힌다.
-    expect(shields.held, 3);
-    final Map<String, Object?> after = await week();
-    expect((after['protected_days']! as List<Object?>)[2], isFalse);
-    expect(after['streak_shield'], <String, Object?>{
-      'held': 3,
-      'protectable_date': null,
-    });
+    // 되돌리기는 최대 보유 수를 보지 않는다 — 5개가 되고 교환은 막힌다.
+    expect(shields.held, 5);
     expect((await shieldItem()).blockReason, ShopBlockReason.shieldLimit);
     expect((await exchange()).statusCode, 409);
     final StreakShields status = await DioStreakShieldRepository(dio).fetch();
-    expect(status.held, 3);
+    expect(status.held, 5);
     expect(status.used, isEmpty);
 
     // 같은 날 기록을 더해도 더 돌려주지 않는다.
     final String second = await addExercise(_yesterday);
-    expect(shields.held, 3);
+    expect(shields.held, 5);
 
     // 기록을 지워도 보호는 다시 걸리지 않는다.
     await dio.delete<Object?>('/exercise/sessions/$first');
     await dio.delete<Object?>('/exercise/sessions/$second');
-    final Map<String, Object?> deleted = await week();
-    expect((deleted['protected_days']! as List<Object?>)[2], isFalse);
-    expect(shields.held, 3);
+    expect(shields.isProtected(DateTime(2026, 9, 16)), isFalse);
+    expect(shields.held, 5);
   });
 
   test('기록을 보호한 날로 옮겨도 보호권이 돌아온다', () async {
@@ -262,15 +271,13 @@ void main() {
     expect(shields.isProtected(DateTime(2026, 9, 16)), isFalse);
   });
 
-  test('월요일에는 지난 일요일을 보호하지 않는다', () async {
+  test('월요일에도 어제(일요일)를 보호한다 — 기록 연속은 주 단위가 아니다', () async {
     now = DateTime(2026, 9, 21, 10);
     await exchange();
 
-    expect((await week())['streak_shield'], <String, Object?>{
-      'held': 1,
-      'protectable_date': null,
-    });
-    expect((await use('2026-09-20')).statusCode, 409);
-    expect(shields.held, 1);
+    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
+    expect(status.protectableDate, DateTime(2026, 9, 20));
+    expect((await use('2026-09-20')).statusCode, 200);
+    expect(shields.held, 0);
   });
 }

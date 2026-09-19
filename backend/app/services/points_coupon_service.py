@@ -122,7 +122,7 @@ STREAK_SHIELD = ShopItem(
     id=streak_shield_service.ITEM_ID,
     title="연속 기록 보호권",
     benefit="운동을 못 한 하루를 연속 기록에 이어 붙이기",
-    description="운동을 못 한 어제를 연속 기록에 이어 붙여요. 최대 2개까지 가질 수 있어요.",
+    description="아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요. 최대 4개까지 가질 수 있어요.",
     cost=streak_shield_service.COST,
     valid_days=0,
 )

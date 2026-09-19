@@ -1,7 +1,7 @@
 """연속 기록 보호권 응답 스키마. (#1788)
 
-포인트 사용처 교환 응답(`ExchangeOut.shield`)과 운동 주간 응답(`streak_shield`)이
-함께 읽으므로, 두 스키마 모듈 어느 쪽도 import 하지 않는 별도 모듈에 둔다.
+포인트 사용처 교환 응답(`ExchangeOut.shield`)과 보호권 조회가 함께 읽으므로, 두
+스키마 모듈 어느 쪽도 import 하지 않는 별도 모듈에 둔다.
 """
 from __future__ import annotations
 
@@ -32,12 +32,20 @@ class StreakShieldUseOut(BaseModel):
 
 
 class StreakShieldsOut(BaseModel):
-    """GET /me/streak-shields — 보유 개수와 보호한 날(최근 먼저)."""
+    """GET /me/streak-shields — 보유 개수·보호한 날·기록 연속.
+
+    `record_streak_days` 는 식단 한 끼든 운동 한 건이든 남긴 날이 이어진 길이다
+    (보호한 날 포함). 운동 주간 응답의 `streak_days`(운동만)와 다른 값이다.
+    `protectable_date` 는 지금 보호할 수 있는 날(어제)이고, 보호권이 없거나 어제
+    기록이 있거나 이미 보호했으면 null 이다.
+    """
 
     held: int
     max_held: int
     cost: int
     used: list[StreakShieldUseOut]
+    record_streak_days: int = 0
+    protectable_date: str | None = None
 
 
 class StreakShieldUseRequest(BaseModel):
@@ -49,14 +57,3 @@ class StreakShieldUseRequest(BaseModel):
 
     date: date_
 
-
-class StreakShieldWeekOut(BaseModel):
-    """운동 주간 응답의 보호권 상태 — **이번 주** 조회에만 붙는다.
-
-    `protectable_date` 는 지금 보호할 수 있는 날(어제)이다. 보호권이 없거나, 어제
-    운동 기록이 있거나, 이미 보호했거나, 어제가 지난주(오늘이 월요일)면 null 이다.
-    앱은 이 값이 있을 때만 `보호권 쓰기` 버튼을 띄운다.
-    """
-
-    held: int
-    protectable_date: str | None = None

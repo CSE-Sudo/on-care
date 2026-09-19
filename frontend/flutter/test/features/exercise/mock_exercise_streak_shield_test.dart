@@ -1,15 +1,16 @@
-/// 데모 모드의 연속 기록 보호권 — 목업 운동 저장소와 보호권 원장이 한 규칙으로
-/// 움직인다. (#1788)
+/// 데모 모드의 연속 기록 보호권 — 목업 운동 저장소·목업 식단과 보호권 원장이 한
+/// 규칙으로 움직인다. (#1788)
 ///
-/// 데모의 기록은 김민수 픽스처라 어제 운동 기록이 있는지는 픽스처가 정한다. 그래서
-/// 기대값을 그 주의 실제 기록에서 끌어낸다 — 규칙은 "기록이 있으면 보호하지 않는다"
-/// 하나다.
+/// 보호권은 **기록 연속**(식단 한 끼든 운동 한 건이든)을 지킨다. 운동 탭의 주간
+/// 응답에는 보호권이 실리지 않고 연속 일수도 운동만 센다 — 여기서 그 경계를 본다.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
+import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/repositories/diet_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_streak_shield_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -19,6 +20,52 @@ import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 final DateTime _today = DateTime(2026, 8, 20, 9);
 final DateTime _yesterday = DateTime(2026, 8, 19);
 const int _yesterdayIndex = 2;
+
+/// 날짜별 끼니 수만 아는 식단 저장소 — 기록 연속은 "한 끼라도 있나" 만 본다.
+class _FakeDiet implements DietRepository {
+  _FakeDiet([Set<DateTime>? days])
+    : _days = <String>{for (final DateTime d in days ?? <DateTime>{}) _key(d)};
+
+  final Set<String> _days;
+
+  static String _key(DateTime d) => '${d.year}-${d.month}-${d.day}';
+
+  static const DietDay _empty = DietDay(
+    entries: <DietEntry>[],
+    totalCalories: 0,
+    macros: DietMacros.zero(),
+    totalSodiumMg: 0,
+    totalSugarG: 0,
+    aiCoachMessage: '',
+  );
+
+  @override
+  Future<DietDay> fetchByDate(DateTime date) async => _days.contains(_key(date))
+      ? DietDay(
+          entries: <DietEntry>[
+            DietEntry(
+              id: 'e-${_key(date)}',
+              mealType: MealType.lunch,
+              timeLabel: '12:00',
+              foods: const <FoodItem>[],
+              totalCalories: 500,
+            ),
+          ],
+          totalCalories: 500,
+          macros: const DietMacros.zero(),
+          totalSodiumMg: 0,
+          totalSugarG: 0,
+          aiCoachMessage: '',
+        )
+      : _empty;
+
+  @override
+  Future<DietDay> fetchToday() => fetchByDate(_today);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName}');
+}
 
 void main() {
   late DemoStreakShieldBook book;
@@ -32,42 +79,33 @@ void main() {
     exercise = MockExerciseRepository(today: _today, shields: book);
   });
 
-  test('이번 주 조회에 보호권 상태가 실리고, 보호한 날은 연속 일수에만 들어간다', () async {
+  MockStreakShieldRepository repoWith(_FakeDiet diet) =>
+      MockStreakShieldRepository(
+        book: book,
+        exercise: exercise,
+        diet: diet,
+        now: () => _today,
+      );
+
+  test('보호권은 운동 주간 응답에 실리지 않고 연속 일수도 바꾸지 않는다', () async {
     expect(book.exchange().statusCode, 201);
 
     final ExerciseWeek before = await exercise.fetchThisWeek();
-    final bool exercisedYesterday =
-        before.dailyMinutes[_yesterdayIndex] > 0;
-    expect(before.streakShield?.held, 1);
-    expect(
-      before.streakShield?.protectableDate,
-      exercisedYesterday ? isNull : _yesterday,
-    );
-
-    // 주간 조립을 재려고 기록 여부와 상관없이 어제를 보호한다.
-    expect(book.use(_yesterday, hasExerciseOn: (_) => false).statusCode, 200);
+    // 기록 여부와 상관없이 주간 조립을 재려고 어제를 보호한다.
+    expect(book.use(_yesterday, hasRecordOn: (_) => false).statusCode, 200);
 
     final ExerciseWeek after = await exercise.fetchThisWeek();
-    expect(after.isProtectedDay(_yesterdayIndex), isTrue);
-    expect(
-      after.streakDays,
-      longestActiveStreak(after.dailyMinutes, protectedDays: after.protectedDays),
-    );
+    expect(after.streakDays, longestActiveStreak(after.dailyMinutes));
+    expect(after.streakDays, before.streakDays);
     expect(after.totalMinutes, before.totalMinutes);
     expect(after.totalCalories, before.totalCalories);
     expect(after.dailyMinutes, before.dailyMinutes);
-    expect(after.streakShield?.held, 0);
-    expect(after.streakShield?.protectableDate, isNull);
-
-    // 지난 주 조회에는 보호권 상태가 없다.
-    final ExerciseWeek past = await exercise.fetchWeek(DateTime(2026, 8, 10));
-    expect(past.streakShield, isNull);
   });
 
   test('보호한 날에 직접 추가·수정·루틴 완료로 기록이 생기면 보호권이 돌아온다', () async {
     expect(book.exchange().statusCode, 201);
     // 기록 여부와 상관없이 되돌리기만 재려고 어제를 보호해 둔다.
-    expect(book.use(_yesterday, hasExerciseOn: (_) => false).statusCode, 200);
+    expect(book.use(_yesterday, hasRecordOn: (_) => false).statusCode, 200);
     expect(book.held, 0);
 
     await exercise.addSession(
@@ -89,7 +127,7 @@ void main() {
     expect(book.held, 1);
 
     // 수정으로 그날로 옮긴 경우.
-    expect(book.use(_yesterday, hasExerciseOn: (_) => false).statusCode, 200);
+    expect(book.use(_yesterday, hasRecordOn: (_) => false).statusCode, 200);
     expect(book.held, 0);
     final ExerciseSession monday = await exercise.addSession(
       type: ExerciseType.cardio,
@@ -107,7 +145,7 @@ void main() {
     expect(book.held, 1);
 
     // 루틴 완료 기록도 같다.
-    expect(book.use(_yesterday, hasExerciseOn: (_) => false).statusCode, 200);
+    expect(book.use(_yesterday, hasRecordOn: (_) => false).statusCode, 200);
     await exercise.addAssignedRoutineSession(
       type: ExerciseType.cardio,
       minutes: 20,
@@ -119,12 +157,23 @@ void main() {
     expect(book.held, 1);
   });
 
+  test('식단만 남긴 날도 기록한 날이라 보호하지 않는다', () async {
+    expect(book.exchange().statusCode, 201);
+    final MockStreakShieldRepository repo = repoWith(
+      _FakeDiet(<DateTime>{_yesterday}),
+    );
+
+    await expectLater(repo.use(_yesterday), throwsA(isA<ServerError>()));
+    final StreakShields status = await repo.fetch();
+    expect(status.held, 1);
+    expect(status.protectableDate, isNull);
+    // 어제 식단이 있어 연속은 최소 하루다.
+    expect(status.recordStreakDays, greaterThanOrEqualTo(1));
+  });
+
   test('목업 보호권 저장소는 그날 기록이 있으면 쓰지 않고, 없으면 한 장을 쓴다', () async {
     expect(book.exchange().statusCode, 201);
-    final MockStreakShieldRepository repo = MockStreakShieldRepository(
-      book: book,
-      exercise: exercise,
-    );
+    final MockStreakShieldRepository repo = repoWith(_FakeDiet());
     final ExerciseWeek week = await exercise.fetchThisWeek();
 
     if (week.dailyMinutes[_yesterdayIndex] > 0) {

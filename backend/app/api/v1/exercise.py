@@ -92,13 +92,7 @@ def current_week(
         .where(ExerciseSession.user_id == current_user.id)
         .where(ExerciseSession.week_start == week_start)
     ).all()
-    # 보호권으로 이어 붙인 날은 연속 일수에만 들어간다(#1788).
-    data = build_current_week(
-        list(rows),
-        protected_days=streak_shield_service.protected_days_of_week(
-            db, current_user.id, week_start
-        ),
-    )
+    data = build_current_week(list(rows))
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == current_user.id)
     )
@@ -107,12 +101,6 @@ def current_week(
         sessions=[ExerciseSessionOut(**s) for s in data.pop("sessions")],
         weekly_goal_minutes=goal_minutes,
         weekly_goal_calories=goal_calories,
-        # `보호권 쓰기` 는 어제만 보호하므로 이번 주를 볼 때만 싣는다.
-        streak_shield=(
-            streak_shield_service.week_state(db, current_user.id)
-            if week_start == monday_of_this_week_str()
-            else None
-        ),
         **data,
     )
 
@@ -281,7 +269,7 @@ def add_session(
         db, current_user.id, points_service.EXERCISE_MANUAL, row.id
     )
     # 보호권으로 이어 붙인 날에 운동 기록이 생기면 그 보호권을 되돌린다(#1788).
-    streak_shield_service.refund_for_exercise(
+    streak_shield_service.refund_for_record(
         db, current_user.id, exercise_activity.activity_date_of(row)
     )
     db.commit()
@@ -335,7 +323,7 @@ def update_session(
     row.calorie_source = estimated.source
     row.intensity = payload.intensity
     # 기록을 보호권으로 이어 붙인 날로 옮겼으면 그 보호권을 되돌린다(#1788).
-    streak_shield_service.refund_for_exercise(
+    streak_shield_service.refund_for_record(
         db, current_user.id, exercise_activity.activity_date_of(row)
     )
     db.commit()

@@ -99,7 +99,6 @@ from app.services import (
     trainer_routine_options_service,
     trainer_service,
     trainer_task_progress_service,
-    streak_shield_service,
 )
 from app.services.coach import conversation
 from app.services.exercise_service import (
@@ -653,13 +652,8 @@ def trainer_client_exercise_week(
             ExerciseSession.week_start == week_start,
         )
     ).all()
-    # 회원 앱과 같은 연속 일수 — 보호권으로 이어 붙인 날을 함께 센다(#1788).
-    data = build_current_week(
-        list(rows),
-        protected_days=streak_shield_service.protected_days_of_week(
-            db, member_id, week_start
-        ),
-    )
+    # 회원 앱과 같은 연속 일수 — 운동만 센다.
+    data = build_current_week(list(rows))
     profile = db.scalar(
         select(HealthProfile).where(HealthProfile.user_id == member_id)
     )

@@ -1572,7 +1572,7 @@ def complete_assigned_routine(
         points = _completion_points(db, routine, member_id, row.id, award=True)
         # 완료 기록이 보호권으로 이어 붙인 날에 떨어지면(자정 무렵 보호와 겹친 완료)
         # 그 보호권을 되돌린다(#1788).
-        streak_shield_service.refund_for_exercise(
+        streak_shield_service.refund_for_record(
             db, member_id, clock.to_seoul(completed_at).date()
         )
         db.commit()
@@ -3761,7 +3761,7 @@ def _add_member_exercise_log(
     db.add(row)
     # 보호권으로 이어 붙인 날의 PT 를 완료 처리하면 그날은 운동한 날이다 — 그
     # 보호권을 되돌린다(#1788). 트레이너 화면은 보호한 날을 모른다.
-    streak_shield_service.refund_for_exercise(db, s.member_id, session_day)
+    streak_shield_service.refund_for_record(db, s.member_id, session_day)
     return row
 
 
