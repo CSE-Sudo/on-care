@@ -508,7 +508,8 @@ def main(argv: list[str] | None = None) -> int:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=_OUT_COLUMNS)
+        # 저장소의 집계본은 LF 다. csv 기본값(CRLF)으로 쓰면 줄마다 diff 가 난다.
+        writer = csv.DictWriter(fh, fieldnames=_OUT_COLUMNS, lineterminator="\n")
         writer.writeheader()
         writer.writerows(merged[name] for name in sorted(merged))
 
