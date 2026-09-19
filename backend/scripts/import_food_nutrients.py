@@ -62,8 +62,32 @@ DB 가, 양은 비전 모델이 대는 역할 분담이다.
 매칭기 3단계에서 모호 판정 → 폴백한다. 데이터를 잔뜩 넣고도 흔한 음식이
 안 잡힌다. `대표식품명` 이 인식기가 말하는 층이다.
 
-같은 대표식품에 여러 행이 있고 편차가 있으므로 **중앙값**으로 모은다(평균은
-이상치에 끌려간다).
+## 대표식품 하나의 값은 원본 한 행에서 가져온다 (#2100)
+
+같은 대표식품에 여러 행이 있고 편차가 있다. 예전에는 영양소마다 따로 중앙값을
+냈는데, 그러면 열량은 A 제품, 탄수화물은 B 제품의 값이 한 행에 섞여 탄·단·지로
+다시 셈한 열량이 표시 열량과 어긋났다(`감자튀김` 231kcal ↔ 4·4·9 합 131).
+
+그래서 **실제 원본 한 행의 값 한 벌**을 쓴다. 고르는 기준은 "모든 영양소가
+동시에 가장 전형적인 행"(메도이드)이다 — 영양소마다 그 대표식품 안의 중앙값에서
+얼마나 떨어졌는지를 흩어진 정도(MAD)로 나눠 더하고, 합이 가장 작은 행을 쓴다.
+평균을 쓰지 않는 이유와 같다 — 이상치에 끌려가지 않는다.
+
+열량만 보고 고르면 그 제품의 나트륨·당류가 치우쳐 있을 수 있다. 실제 원본으로
+재면 고른 행의 나트륨이 중앙값에서 평균 33% 떨어졌고, 메도이드는 11% 다.
+빈 칸은 `_MISSING_PENALTY` 만큼 떨어진 것으로 친다 — 탄·단·지가 찬 행이 극단값이
+아니면 그 행을 고른다.
+
+고르기 전에 두 가지를 거른다.
+
+- **레시피 계산값은 다른 값이 없을 때만 쓴다**(`데이터생성방법명` 이 `산출`).
+  분석값과 다른 방법이 함께 있는 음식에서 중앙값 비율을 재면, 업체 표시값(수집)은
+  분석값과 거의 같고(열량 ×0.96, 나트륨 ×0.95), 레시피 계산값은 체계적으로
+  낮다(열량 ×0.76, 나트륨 ×0.71, 지방 ×0.65, 당류 ×0.58 · 313종). 업체 표시값은
+  탄·단·지가 빠진 일이 많지만, 다 찬 계산값을 쓰는 것보다 낫다 — 빈 칸은 인식기
+  값이 채운다(`enrich.apply_match` 의 "mixed").
+- **이름과 영양값이 똑같은 행은 한 번만 센다.** 급식 계산값은 한 줄이 급식 종류마다
+  복제돼 있다.
 """
 from __future__ import annotations
 
@@ -110,8 +134,10 @@ _OUT_COLUMNS = [
 #: 집계가 읽는 열. 원본은 150여 열이라 이것만 남겨야 가공식품 30만 행이
 #: 메모리에 들어간다.
 _USED_COLUMNS = (
+    "식품명",
     "대표식품명",
     "식품기원명",
+    "데이터생성방법명",
     "식품대분류명",
     "식품중량",
     "에너지(kcal)",
@@ -255,6 +281,75 @@ def _median(values: list[float]) -> float | None:
     return statistics.median(values) if values else None
 
 
+#: 대표 행을 고를 때 보는 영양소.
+_NUTRIENT_COLUMNS = (
+    "에너지(kcal)",
+    "나트륨(mg)",
+    "당류(g)",
+    "탄수화물(g)",
+    "단백질(g)",
+    "지방(g)",
+)
+
+#: `데이터생성방법명` 의 믿을 만한 순서. 레시피로 계산한 값(산출)만 뒤로 미룬다 —
+#: 분석값과 비교하면 업체 표시값(수집)은 거의 같고(열량 ×0.96) 계산값은 체계적으로
+#: 낮다(×0.76). 분석과 수집은 같은 등급이다. 가공식품의 분석 행은 30만 행 중 735개뿐이라
+#: 분석을 앞세우면 `카레` 가 고형 카레(425kcal·나트륨 4,059mg)로 뽑힌다.
+#: 모르는 값은 수집과 같다.
+_METHOD_RANK = {"분석": 0, "수집": 0, "산출": 1}
+
+#: 빈 칸을 중앙값에서 MAD 몇 배만큼 떨어진 것으로 칠지. 3 이면 탄·단·지가 빈 행이
+#: 원래 방식보다 19개 늘고, 20 부터는 늘지 않는다(그 위로는 전형성만 나빠진다).
+_MISSING_PENALTY = 20.0
+
+
+def _representative(group: list[dict[str, str]]) -> dict[str, str] | None:
+    """대표식품 하나의 값 한 벌을 낼 원본 행(메도이드). 열량이 있는 행이 없으면 None.
+
+    영양소마다 |값 − 중앙값| ÷ 흩어진 정도를 더해 가장 작은 행. 흩어진 정도는
+    MAD 인데, 값이 모두 같으면 0 이 되므로 중앙값의 5% 와 0.1 을 하한으로 둔다.
+    합이 같으면 열량이 낮은 행(결정적으로 고르기 위해).
+    """
+    rows = [r for r in group if _number(r.get("에너지(kcal)", "")) is not None]
+    if not rows:
+        return None
+
+    # 가장 믿을 만한 방법으로 만든 행만 남긴다. 레시피 계산값은 양념 나트륨이 빠지는
+    # 일이 흔하다 — `라면` 은 분석값 270~491mg 인데 계산값은 58~128mg 이다.
+    best = min(_METHOD_RANK.get(r.get("데이터생성방법명", "").strip(), 1) for r in rows)
+    rows = [r for r in rows if _METHOD_RANK.get(r.get("데이터생성방법명", "").strip(), 1) == best]
+
+    # 급식 데이터는 같은 레시피 계산값 한 줄을 초등·중고등·산업체·외식 급식으로
+    # 복제해 싣는다(`호떡` 147kcal 네 줄). 그대로 세면 복제된 값이 "전형" 이 된다 —
+    # 이름과 영양값이 모두 같은 행은 한 번만 센다. 이름까지 보는 것은 라벨 값이 우연히
+    # 같은 서로 다른 제품(차 음료 0kcal 여러 개)을 합치지 않으려는 것이다.
+    unique: dict[tuple[str, ...], dict[str, str]] = {}
+    for r in rows:
+        key = (r.get("식품명", "").strip(),) + tuple(
+            str(_number(r.get(c, ""))) for c in _NUTRIENT_COLUMNS
+        )
+        unique.setdefault(key, r)
+    rows = list(unique.values())
+
+    centre: dict[str, tuple[float, float]] = {}
+    for column in _NUTRIENT_COLUMNS:
+        values = [v for r in rows if (v := _number(r.get(column, ""))) is not None]
+        if not values:
+            continue
+        median = statistics.median(values)
+        mad = statistics.median([abs(v - median) for v in values])
+        centre[column] = (median, max(mad, abs(median) * 0.05, 0.1))
+
+    def distance(r: dict[str, str]) -> float:
+        total = 0.0
+        for column, (median, spread) in centre.items():
+            v = _number(r.get(column, ""))
+            total += _MISSING_PENALTY if v is None else abs(v - median) / spread
+        return total
+
+    return min(rows, key=lambda r: (distance(r), _number(r["에너지(kcal)"])))
+
+
 def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object]]:
     """원본 행 → 대표식품 단위 **100g 기준** 집계."""
     groups: dict[str, list[dict[str, str]]] = {}
@@ -265,16 +360,13 @@ def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object
 
     out: list[dict[str, object]] = []
     for name, group in sorted(groups.items()):
-
-        def med(column: str) -> float | None:
-            return _median(
-                [v for v in (_number(r.get(column, "")) for r in group) if v is not None]
-            )
-
-        calories = med("에너지(kcal)")
-        if calories is None:
+        row = _representative(group)
+        if row is None:
             # 열량조차 없으면 보정 값으로 쓸 수 없다.
             continue
+
+        def value(column: str) -> float | None:
+            return _number(row.get(column, ""))
 
         # 1인분 힌트: 인식기가 양을 못 줬을 때만 쓰는 폴백. 프랜차이즈 포장은
         # 판매 단위라 제외하고, 없으면 비워 둔다(추측하지 않는다).
@@ -294,12 +386,12 @@ def aggregate(rows: list[dict[str, str]], dataset: str) -> list[dict[str, object
                 "name": name,
                 "category": _mode([(r.get("식품대분류명") or "").strip() for r in group]),
                 "serving_size_g": None if serving is None else round(serving, 1),
-                "calories": round(calories, 1),
-                "sodium_mg": _round_or_none(med("나트륨(mg)"), 1),
-                "sugar_g": _round_or_none(med("당류(g)"), 2),
-                "carbs_g": _round_or_none(med("탄수화물(g)"), 2),
-                "protein_g": _round_or_none(med("단백질(g)"), 2),
-                "fat_g": _round_or_none(med("지방(g)"), 2),
+                "calories": round(value("에너지(kcal)"), 1),
+                "sodium_mg": _round_or_none(value("나트륨(mg)"), 1),
+                "sugar_g": _round_or_none(value("당류(g)"), 2),
+                "carbs_g": _round_or_none(value("탄수화물(g)"), 2),
+                "protein_g": _round_or_none(value("단백질(g)"), 2),
+                "fat_g": _round_or_none(value("지방(g)"), 2),
                 "sample_count": len(group),
                 "source_dataset": dataset,
             }

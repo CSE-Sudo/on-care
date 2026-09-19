@@ -362,7 +362,8 @@ def test_import_keeps_franchise_rows_for_density():
     ]
     out = aggregate(rows, "음식")
     assert out[0]["sample_count"] == 2       # 프랜차이즈도 표본에 든다
-    assert out[0]["calories"] == 253.0       # 두 값의 중앙
+    # 두 행이 똑같이 전형적이면 열량이 낮은 행 — 두 값의 평균(253)을 만들지 않는다(#2100).
+    assert out[0]["calories"] == 252.0
 
 
 def test_import_serving_hint_ignores_franchise_packaging():
@@ -394,6 +395,119 @@ def test_import_uses_median_not_mean():
         for i, kcal in enumerate(["10", "20", "900"])
     ]
     assert aggregate(rows, "음식")[0]["calories"] == 20.0     # 평균이면 310
+
+
+def _raw_full(name, kcal, na, sugar, carbs, protein, fat):
+    row = _raw(name, "감자튀김", "외식(프랜차이즈 등 업체 제공 영양정", "100g", kcal, na, sugar, "튀김류")
+    row.update({"탄수화물(g)": carbs, "단백질(g)": protein, "지방(g)": fat})
+    return row
+
+
+def test_import_takes_all_values_from_one_source_row():
+    """#2100: 영양소마다 따로 중앙값을 내면 열량과 탄·단·지가 다른 제품에서 온다.
+
+    아래에서 영양소별 중앙값은 열량 300·탄수화물 40·지방 15 로, 어느 제품에도 없는
+    조합이다. 한 행의 값 한 벌을 써야 4·4·9 로 다시 셈한 열량이 표시 열량과 맞는다.
+    """
+    from scripts.import_food_nutrients import aggregate
+
+    rows = [
+        _raw_full("가", "250", "200", "0.3", "40", "3", "8"),
+        _raw_full("나", "300", "210", "0.3", "38", "4", "15"),
+        _raw_full("다", "320", "220", "0.4", "42", "3.5", "15.5"),
+    ]
+    [out] = aggregate(rows, "음식")
+    assert (out["calories"], out["carbs_g"], out["protein_g"], out["fat_g"]) == (300.0, 38.0, 4.0, 15.0)
+
+
+def test_import_prefers_the_most_typical_row_over_all_nutrients():
+    """열량만 가운데인 제품은 나트륨이 치우쳐 있을 수 있다 — 모든 영양소를 함께 본다."""
+    from scripts.import_food_nutrients import aggregate
+
+    rows = [
+        _raw_full("열량만 가운데", "300", "900", "1", "40", "4", "13"),   # 나트륨이 혼자 튄다
+        _raw_full("전형", "305", "210", "1", "40", "4", "13.5"),
+        _raw_full("비슷", "295", "205", "1", "39", "4", "13"),
+        _raw_full("비슷2", "310", "215", "1", "41", "4", "14"),
+    ]
+    [out] = aggregate(rows, "음식")
+    assert out["sodium_mg"] < 300
+
+
+def test_import_prefers_rows_with_macros_unless_they_are_extreme():
+    """탄·단·지가 빈 행을 고르면 그 음식은 인식기 값에 기댄다 — 찬 행이 있으면 그 행."""
+    from scripts.import_food_nutrients import aggregate
+
+    rows = [
+        _raw_full("탄단지 없음", "300", "210", "1", "", "", ""),
+        _raw_full("탄단지 없음2", "301", "211", "1", "", "", ""),
+        _raw_full("탄단지 있음", "320", "230", "1.2", "40", "4", "15"),
+    ]
+    [out] = aggregate(rows, "음식")
+    assert out["carbs_g"] == 40.0
+
+
+def test_import_prefers_analysed_over_recipe_calculated_rows():
+    """레시피 계산값은 분석값보다 체계적으로 낮다(음식 313종 비교: 열량 ×0.76, 나트륨 ×0.71).
+
+    계산값이 더 많아도 분석값·업체 표시값이 있으면 그것을 쓴다 — `라면` 은 분석값 나트륨
+    270~491mg 인데 계산값은 58~128mg 이다.
+    """
+    from scripts.import_food_nutrients import aggregate
+
+    def row(kcal, na, method):
+        r = _raw_full("라면", kcal, na, "0.1", "13", "2.5", "3")
+        r["데이터생성방법명"] = method
+        return r
+
+    rows = [row("79", "58", "산출"), row("79", "60", "산출"), row("95", "91", "산출"),
+            row("99", "352", "분석"), row("92", "333", "분석")]
+    [out] = aggregate(rows, "음식")
+    assert out["sodium_mg"] > 300
+
+
+def test_import_treats_label_values_like_analysed_ones():
+    """업체 표시값은 분석값과 거의 같다(×0.96). 소수의 분석 제품이 대표를 정하면 안 된다.
+
+    가공식품 `카레` 는 분석 행이 고형 카레 하나라, 분석을 앞세우면 425kcal·나트륨
+    4,059mg 이 된다. 데우기만 하는 카레 제품 표시값 여럿이 대표가 되어야 한다.
+    """
+    from scripts.import_food_nutrients import aggregate
+
+    def row(name, kcal, na, method):
+        r = _raw_full(name, kcal, na, "3", "12", "2.5", "3")
+        r["데이터생성방법명"] = method
+        return r
+
+    rows = [row("고형카레", "425", "4059", "분석"),
+            row("카레_가", "95", "620", "수집"), row("카레_나", "100", "640", "수집"),
+            row("카레_다", "105", "610", "수집")]
+    [out] = aggregate(rows, "가공식품")
+    assert out["calories"] < 200
+
+
+def test_import_keeps_distinct_products_with_equal_labels():
+    """라벨 값이 우연히 같은 서로 다른 제품은 합치지 않는다 — 이름이 다르면 다른 표본이다."""
+    from scripts.import_food_nutrients import aggregate
+
+    drinks = [_raw_full(f"차음료_{i}", "0", "5", "0", "0", "0", "0") for i in range(5)]
+    leaves = [_raw_full("찻잎_가", "330", "7", "1", "60", "20", "2"),
+              _raw_full("찻잎_나", "320", "9", "1", "58", "22", "2")]
+    [out] = aggregate(drinks + leaves, "가공식품")
+    assert out["calories"] == 0.0
+
+
+def test_import_counts_duplicated_canteen_rows_once():
+    """급식 데이터는 같은 계산값을 급식 종류마다 복제한다 — 복제 수가 '전형' 을 정하면 안 된다."""
+    from scripts.import_food_nutrients import aggregate
+
+    dup = [_raw_full("호떡", "147", "2", "5", "20.14", "2.7", "5.91") for _ in range(4)]
+    rows = [*dup,
+            _raw_full("호떡_꿀", "300", "230", "15", "55", "5.4", "7"),
+            _raw_full("호떡_흑당", "314", "211", "16", "57", "5.4", "7.1"),
+            _raw_full("호떡_견과", "320", "240", "14", "56", "6", "7.5")]
+    [out] = aggregate(rows, "음식")
+    assert out["calories"] >= 300
 
 
 def test_import_skips_rows_without_energy():
@@ -551,9 +665,9 @@ def test_import_reads_kfind_xlsx(tmp_path):
 
     path = tmp_path / "20260828_가공식품DB_2건.xlsx"
     _write_xlsx(path, [
-        ["식품명", "대표식품명", "식품기원명", "식품중량", "에너지(kcal)", "당류(g)", "탄수화물(g)"],
-        ["우유_흰", "우유", "가공식품", "200ml", 63, "", "4.7"],   # 당류 칸이 비어 있다
-        ["우유_딸기", "우유", "가공식품", "200ml", 85.5, "10.2", ""],
+        ["식품명", "대표식품명", "식품기원명", "식품중량", "에너지(kcal)", "당류(g)", "탄수화물(g)", "업체명"],
+        ["우유_흰", "우유", "가공식품", "200ml", 63, "", "4.7", "가"],   # 당류 칸이 비어 있다
+        ["우유_딸기", "우유", "가공식품", "200ml", 85.5, "10.2", "", "나"],
     ], inline_first_row=True)
     rows = _read(path)
     assert [r["대표식품명"] for r in rows] == ["우유", "우유"]
@@ -561,7 +675,7 @@ def test_import_reads_kfind_xlsx(tmp_path):
     # 빈 셀이 옆 칸을 당겨 오면 탄수화물이 당류 자리에 들어간다.
     assert rows[0]["당류(g)"] == "" and rows[0]["탄수화물(g)"] == "4.7"
     assert rows[1]["탄수화물(g)"] == ""
-    assert "식품명" not in rows[0]            # 집계가 안 쓰는 열은 버린다(메모리)
+    assert "업체명" not in rows[0]            # 집계가 안 쓰는 열은 버린다(메모리)
 
 
 def test_import_rejects_portal_truncated_file(tmp_path, monkeypatch):
