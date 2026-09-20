@@ -107,11 +107,11 @@ void main() {
     expect(find.byIcon(AppIcons.info), findsNothing);
     // 카드 구성은 별 아이콘·잔액·화살표다.
     expect(
-      find.descendant(of: banner(), matching: find.byIcon(AppIcons.points)),
+      find.descendant(of: banner(), matching: find.byIcon(AppIcons.star)),
       findsOneWidget,
     );
     expect(
-      find.descendant(of: banner(), matching: find.text('1240P')),
+      find.descendant(of: banner(), matching: find.text('1,240P')),
       findsOneWidget,
     );
     expect(
@@ -121,6 +121,33 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('포인트 카드는 파란 바탕·노란 별·흰 숫자와 화살표를 쓴다', (WidgetTester tester) async {
+    await pumpHome(tester, const MyHealthPage());
+
+    final Material material = tester.widget<Material>(
+      find.descendant(of: banner(), matching: find.byType(Material)).first,
+    );
+    expect(material.color, OnCareBrand.member.pointsCard);
+
+    final Iterable<AppIcon> icons = tester.widgetList<AppIcon>(
+      find.descendant(of: banner(), matching: find.byType(AppIcon)),
+    );
+    final AppIcon star = icons.singleWhere(
+      (AppIcon icon) => icon.icon == AppIcons.star,
+    );
+    expect(star.color, OnCareColors.overlayReward);
+
+    final Text balance = tester.widget<Text>(
+      find.descendant(of: banner(), matching: find.text('1,240P')),
+    );
+    expect(balance.style?.color, OnCareColors.textOnFill);
+
+    final AppIcon arrow = icons.singleWhere(
+      (AppIcon icon) => icon.icon == AppIcons.chevronRight,
+    );
+    expect(arrow.color, OnCareColors.textOnFill);
   });
 
   testWidgets('포인트 사용처 헤더 오른쪽 끝의 (i) 가 적립 안내 창을 연다', (

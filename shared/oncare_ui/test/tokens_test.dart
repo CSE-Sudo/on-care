@@ -11,6 +11,7 @@ void main() {
       expect(OnCareBrand.trainer.primary, const Color(0xFF2E7DAB));
       expect(OnCareBrand.member.surface, const Color(0xFFEDF7FC));
       expect(OnCareBrand.trainer.surface, const Color(0xFFEAF2F9));
+      expect(OnCareBrand.member.pointsCard, OnCareBrand.member.primary);
     });
 
     test('차트 주색과 목표 안쪽은 각 앱의 메인 색이다(#1070, #1239)', () {
@@ -118,6 +119,7 @@ void main() {
         greaterThan(4.5),
       );
     });
+
   });
 
   group('글자 역할', () {

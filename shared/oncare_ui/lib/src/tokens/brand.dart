@@ -15,6 +15,7 @@ class OnCareBrand {
     required this.strong,
     required this.surface,
     required this.surfaceSoft,
+    required this.pointsCard,
     required this.exerciseCardio,
     required this.exerciseStrength,
     required this.exerciseStretching,
@@ -29,6 +30,7 @@ class OnCareBrand {
     strong: Color(0xFF277DA1),
     surface: Color(0xFFEDF7FC),
     surfaceSoft: Color(0xFFF2F9FB),
+    pointsCard: Color(0xFF3EAFDF),
     exerciseCardio: Color(0xFF2795C4),
     exerciseStrength: Color(0xFF66C4E8),
     exerciseStretching: Color(0xFFA8E4F7),
@@ -43,6 +45,7 @@ class OnCareBrand {
     strong: Color(0xFF17435F),
     surface: Color(0xFFEAF2F9),
     surfaceSoft: Color(0xFFF2F7FB),
+    pointsCard: Color(0xFF2E7DAB),
     exerciseCardio: Color(0xFF3793C9),
     exerciseStrength: Color(0xFF87BFDF),
     exerciseStretching: Color(0xFFC2DEEF),
@@ -64,6 +67,9 @@ class OnCareBrand {
 
   /// [surface] 보다 한 단계 옅은 바탕 — 주간 달력 양옆 원형 화살표(#1778).
   final Color surfaceSoft;
+
+  /// MY 포인트 카드 채움 — 앱의 메인 파랑과 통일한다(#2074).
+  final Color pointsCard;
 
   /// 운동 유형 램프 — 유산소 → 근력 → 스트레칭으로 연해진다(#1168).
   ///

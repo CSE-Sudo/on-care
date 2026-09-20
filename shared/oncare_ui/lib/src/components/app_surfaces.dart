@@ -22,12 +22,16 @@ class AppCard extends StatelessWidget {
     required this.child,
     this.onTap,
     this.selected = false,
+    this.backgroundColor,
     this.padding = const EdgeInsets.all(OnCareSpacing.cardPadding),
   });
 
   final Widget child;
   final VoidCallback? onTap;
   final bool selected;
+
+  /// 특정 의미를 가진 강조 카드의 채움. 없으면 기본 카드/선택 카드 색을 쓴다.
+  final Color? backgroundColor;
 
   /// 차트처럼 가장자리까지 채울 때만 줄인다.
   final EdgeInsetsGeometry padding;
@@ -41,7 +45,9 @@ class AppCard extends StatelessWidget {
         boxShadow: OnCareShadows.card,
       ),
       child: Material(
-        color: selected ? tokens.brand.surface : OnCareColors.surfaceCard,
+        color:
+            backgroundColor ??
+            (selected ? tokens.brand.surface : OnCareColors.surfaceCard),
         shape: RoundedRectangleBorder(
           borderRadius: OnCareRadius.xlAll,
           side: BorderSide(
