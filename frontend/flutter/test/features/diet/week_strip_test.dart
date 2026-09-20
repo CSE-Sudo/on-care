@@ -17,10 +17,15 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import '../../helpers/fixed_clock.dart';
 
 import '../../helpers/fake_diet_repository.dart';
 
 void main() {
+  // 날짜 스트립은 이번 주(월~일)만 보여 주고 앞으로의 날은 고를 수 없다. 오늘을
+  // 고정하지 않으면 **월요일에는 고를 지난 날이 없어** 이 파일이 요일에 매인다(#1209).
+  setUp(useFixedKstDate);
+
   Future<void> pumpDiet(WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 3000);
     tester.view.devicePixelRatio = 1.0;
