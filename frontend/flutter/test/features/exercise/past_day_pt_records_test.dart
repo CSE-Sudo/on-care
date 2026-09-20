@@ -17,6 +17,7 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+import '../../helpers/fixed_clock.dart';
 
 /// 지난 날짜의 PT 기록이 **제 제목 아래** 선다. (#1884)
 ///
@@ -133,6 +134,10 @@ Widget _app(ExerciseRepository repo) => ProviderScope(
 );
 
 void main() {
+  // 월요일에는 다른 평일이 모두 미래라 선택할 수 없다.
+  // 과거 기록을 고르는 시나리오는 주 중간으로 고정한다.
+  setUp(() => useFixedKstDate());
+
   DateTime today() {
     final DateTime now = nowKst();
     return DateTime(now.year, now.month, now.day);

@@ -19,8 +19,13 @@ import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
 import '../../helpers/fake_diet_repository.dart';
+import '../../helpers/fixed_clock.dart';
 
 void main() {
+  // 월요일에는 다른 평일이 모두 미래라 선택할 수 없다.
+  // 과거 기록을 고르는 시나리오는 주 중간으로 고정한다.
+  setUp(() => useFixedKstDate());
+
   Future<void> pumpDiet(WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 3000);
     tester.view.devicePixelRatio = 1.0;
