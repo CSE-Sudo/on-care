@@ -45,6 +45,7 @@ class OnCareIconSet {
     required this.image,
     required this.attachImage,
     required this.send,
+    required this.emote,
     required this.file,
     required this.reward,
     this.timeInput,
@@ -82,6 +83,7 @@ class OnCareIconSet {
     image: Icons.image_rounded,
     attachImage: Icons.add_photo_alternate_rounded,
     send: Icons.send_rounded,
+    emote: Icons.sentiment_satisfied_rounded,
     file: Icons.picture_as_pdf_rounded,
     reward: Icons.star_rounded,
   );
@@ -140,6 +142,9 @@ class OnCareIconSet {
 
   /// 채팅 전송.
   final IconData send;
+
+  /// 채팅 이모티콘 창 열기(#2020) — 회색 웃는 얼굴.
+  final IconData emote;
 
   /// 채팅 첨부 파일 카드.
   final IconData file;

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
+import 'package:oncare/core/points/demo_emote_pass.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
@@ -9,9 +10,13 @@ import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.d
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/member_coach/data/repositories/dio_emote_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/dio_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_emote_repository.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/domain/entities/emote_state.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/emote_repository.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 
 /// Selects the real Dio-backed coach repository against the FastAPI backend,
@@ -169,3 +174,16 @@ final coachInvitesProvider = StreamProvider.autoDispose<List<CoachInvite>>((
     interval: const Duration(seconds: 15),
   );
 }, name: 'coachInvites');
+
+/// 채팅 이모티콘 이용권 저장소. (#2020)
+final emoteRepositoryProvider = Provider<EmoteRepository>((ref) {
+  if (ref.watch(appConfigProvider).useMockApi) {
+    return MockEmoteRepository(ref.watch(demoEmotePassBookProvider));
+  }
+  return DioEmoteRepository(ref.watch(dioProvider));
+});
+
+/// 이용권 상태 — 고르는 창이 열릴 때 한 번 읽는다. 남은 시간은 창이 스스로 센다.
+final emoteStateProvider = FutureProvider.autoDispose<EmoteState>((ref) {
+  return ref.watch(emoteRepositoryProvider).fetchState();
+});

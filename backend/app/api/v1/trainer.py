@@ -84,6 +84,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     diet_service,
+    emote_service,
     exercise_service,
     chat_image_storage,
     consultation_service,
@@ -715,6 +716,13 @@ def trainer_send_chat(
     """트레이너가 담당 고객에게 메시지 발신."""
     _require_client(db, trainer.id, member_id)
     text = payload.text.strip()
+    emote_id = payload.emote_id
+    if emote_id is not None:
+        # 트레이너는 이용권 없이 보낸다(#2020) — 이용권은 회원이 포인트를 쓰는
+        # 자리이고, 트레이너에게는 포인트라는 것이 없다. 아는 id 인지만 본다.
+        if not emote_service.is_known(emote_id):
+            raise HTTPException(status_code=400, detail="없는 이모티콘이에요.")
+        text = text or "(이모티콘)"
     if not text:
         raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없습니다.")
     try:
@@ -726,6 +734,7 @@ def trainer_send_chat(
             text,
             notify=notification_service.TRAINER_MESSAGE,
             client_request_id=payload.client_request_id,
+            emote_id=emote_id,
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

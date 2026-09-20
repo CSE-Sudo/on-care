@@ -701,17 +701,25 @@ class _Bubble extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final fromTrainer = message.fromTrainer;
     // 말풍선 폭 상한(대화 폭의 72%)과 시간 위치는 [AppChatBubble] 이 정한다.
     // 누가 한 말인지는 색과 **어느 쪽으로 붙어 있는가**가 말한다.
     final Widget bubble = AppChatBubble(
       mine: fromTrainer,
       time: _clockOnly(message.timeLabel),
+      // 이모티콘은 말풍선 없이 그림만 둔다 — 회원 앱과 같다(#2020).
+      bare: message.emoteId != null,
       child: Column(
         key: ValueKey<String>('trainer-message-bubble-${message.id}'),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(message.body),
+          // 회원이 보낸 이모티콘은 그림만 둔다 — 본문은 이모티콘을 그리지 못하는
+          // 자리(로스터의 마지막 메시지)가 읽는 글이다(#2020).
+          if (message.emoteId case final String emote?)
+            AppEmote(id: emote, semanticLabel: l.chatEmoteLabel)
+          else
+            Text(message.body),
           if (message.attachment case final attachment?) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
             // 사진은 대화 안에서 그리고, PDF 는 내려받는 카드로 둔다. 사진을

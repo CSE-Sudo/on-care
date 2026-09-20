@@ -82,4 +82,11 @@ class OnCareSize {
   // --- 선 ---
   static const double hairline = 1;
   static const double focusBorder = 1.5;
+
+  /// 채팅 말풍선 안의 이모티콘 한 변. (#2020)
+  static const double emoteBubble = 96;
+
+  /// 고르는 창의 이모티콘 한 변.
+  static const double emotePick = 64;
+
 }

@@ -53,6 +53,30 @@
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
+### 채팅 이모티콘 (#2020)
+
+| Method | Path | 응답 핵심 필드 |
+|---|---|---|
+| GET | `/me/emotes` | `{ pass: {expires_at, remaining_seconds}\|null, cost, hours, balance }` |
+| POST | `/me/emotes/pass` | 같은 모양 — 산 뒤의 상태 |
+
+이용권은 **24시간 전체 사용**이다. 한 번 사면 그동안 모든 이모티콘을 보낸다.
+남은 시간은 `remaining_seconds` 로 준다 — 기기 시계가 틀어져도 어긋나지 않는다.
+이용 중에 또 사면 409 이고, 포인트가 모자라면 400 이다. `client_request_id` 가 같은
+재시도는 두 번 쓰지 않는다. MY 탭에서는 같은 이용권을 포인트 사용처의
+`emote_pass_24h` 항목으로 산다(`POST /me/points/exchange`) — 이용 중이면 그 항목이
+`blocked_reason: "active_pass"` 로 막힌다.
+
+이모티콘은 채팅 메시지에 실려 간다: `POST /me/coach/chat` 과
+`POST /trainer/clients/{id}/chat` 이 `emote_id` 를 받고, `ChatMessageOut` 이 같은 값을
+돌려준다. **회원은 이용권이 있어야 보낸다**(없으면 402). **트레이너는 이용권 없이
+보낸다** — 이용권은 회원이 포인트를 쓰는 자리다. 모르는 id 는 400 이다. 본문(`body`)은
+이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽을 글로 채워 둔다.
+그림과 목록은 앱이 들고 있다(공용 패키지 `oncare_ui` 의 에셋).
+
+**이용권이 끝나도 이미 보낸 이모티콘은 그대로 보인다.** 지난 대화는 기록이라
+새로 보내는 것만 막힌다.
+
 `activity_points`: 포인트 잔액(`health_profiles.activity_points`) 그대로다. 프로필 행이 없으면 0.
 예전에는 위험 문구(`risk_title`)가 없는 프로필에 데모 숫자 1240 을 지어 보냈다 — 이제 데모 회원의
 시작 잔액(`DEMO_OPENING_POINTS`, 25,000)은 시드가 프로필에 넣는다. 적립 규칙은 아래 "활동 포인트" 절 참조. (#1786)

@@ -319,6 +319,9 @@ class ChatMessageOut(BaseModel):
     time_label: str    # "18:10"
     created_at: str    # ISO datetime — 커서/정렬용
     attachment: ChatAttachmentOut | None = None
+    # 이모티콘 메시지면 그 id(#2020). 두 앱이 이 값으로 그림을 고르고, 모르는
+    # id 면 본문 글로 대신한다 — 앱보다 새 이모티콘이 와도 대화가 깨지지 않는다.
+    emote_id: str | None = None
     # 주간 리포트 전송 안내라면 그 주 월요일 `YYYY-MM-DD`, 아니면 None. 두 앱은
     # 이 값으로 대화 가운데 안내 상자를 그린다(#1600). 첨부 유무와는 별개다 —
     # 리포트는 PDF 없이 본문만으로도 나간다.
@@ -327,7 +330,12 @@ class ChatMessageOut(BaseModel):
 
 class ChatSendRequest(BaseModel):
     # 상한만 둔다(빈/공백은 라우터에서 trim 후 400). 과도한 길이는 여기서 422.
-    text: str = Field(max_length=2000)
+    #
+    # 이모티콘만 보낼 때는 본문이 비어 있다 — 그때는 [emote_id] 가 대신 채운다.
+    text: str = Field(default="", max_length=2000)
+    #: 이모티콘 id(#2020). 회원은 이용권이 있어야 보낼 수 있고, 트레이너는 그냥
+    #: 보낸다. 모르는 id 는 400 이다.
+    emote_id: str | None = Field(default=None, min_length=1, max_length=40)
     # 발신 시도당 한 번 만들고 재시도에서 재사용한다. 선택값이라 구버전 앱도
     # 기존처럼 전송할 수 있다.
     client_request_id: str | None = Field(default=None, min_length=1, max_length=64)

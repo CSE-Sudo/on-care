@@ -867,6 +867,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachTemplateStarterHint => '기본 구성이에요. 고치면 내 템플릿으로 저장돼요';
 
   @override
+  String get chatEmoteLabel => '이모티콘';
+
+  @override
   String get chatAttachImage => '사진 첨부';
 
   @override

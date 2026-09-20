@@ -22,3 +22,7 @@ dev_dependencies:
 # `packages/oncare_ui/Pretendard` 로 바뀌어 옛 화면 코드의 서체가 끊긴다.
 flutter:
   uses-material-design: true
+  # 채팅 이모티콘(#2020). 회원 앱과 트레이너 웹이 같은 그림을 쓴다 — 트레이너는
+  # 이용권 없이도 받은 이모티콘을 그려야 하므로 두 앱이 함께 보는 이 패키지에 둔다.
+  assets:
+    - assets/emotes/

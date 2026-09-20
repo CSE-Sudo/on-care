@@ -528,6 +528,7 @@
   },
   "coachTemplateLoadFailed": "Couldn't load templates",
   "coachTemplateStarterHint": "A starter block. Editing saves it as your own",
+  "chatEmoteLabel": "Emote",
   "chatAttachImage": "Attach a photo",
   "chatImageUnavailable": "Couldn't load the photo",
   "chatImageSendFailed": "Couldn't send the photo. Please try again",

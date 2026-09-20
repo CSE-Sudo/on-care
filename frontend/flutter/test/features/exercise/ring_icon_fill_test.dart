@@ -60,6 +60,7 @@ OnCareIconSet _axes({double? fill, double weight = 400}) => OnCareIconSet(
   image: _any,
   attachImage: _any,
   send: _any,
+  emote: _any,
   file: _any,
   reward: _any,
   fill: fill,

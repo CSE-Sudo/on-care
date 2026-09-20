@@ -671,6 +671,7 @@ def chat_message_out(msg: ChatMessage, viewer: str) -> ChatMessageOut:
         time_label=_hhmm(msg.created_at),
         created_at=_iso(msg.created_at),
         attachment=attachment,
+        emote_id=msg.emote_id,
         report_week_start=msg.report_week_start,
     )
 
@@ -770,6 +771,7 @@ def send_message(
     attachment_file_id: str | None = None,
     attachment_file_size: int | None = None,
     report_week_start: str | None = None,
+    emote_id: str | None = None,
 ) -> ChatMessageOut:
     """스레드에 메시지 추가(sender: 'trainer'|'member'). 로스터 last_message 는
     build_roster 가 최신 메시지를 읽어 자동 반영하므로 별도 비정규화가 없다.
@@ -806,6 +808,9 @@ def send_message(
         # 리포트 전송 안내인가 — 호출자가 정한다. 첨부와 마찬가지로 본문만
         # 보고는 알 수 없고, 리포트는 PDF 없이도 나간다(#1600).
         report_week_start=report_week_start,
+        # 이모티콘 메시지(#2020). 본문은 이모티콘을 못 그리는 자리(알림·로스터의
+        # 마지막 메시지)가 읽을 글이고, 그림은 이 id 가 고른다.
+        emote_id=emote_id,
         created_at=datetime.now(timezone.utc),
     )
     db.add(msg)

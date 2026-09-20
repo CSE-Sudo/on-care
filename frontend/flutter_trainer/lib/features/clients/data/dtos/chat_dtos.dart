@@ -20,6 +20,7 @@ ClientChatMessage chatMessageFromJson(Map<String, Object?> json) {
     createdAt: _parseTime(json['created_at']),
     attachment: _attachment(json['attachment']),
     reportWeekStart: _reportWeekStart(json['report_week_start']),
+    emoteId: json['emote_id'] is String ? json['emote_id']! as String : null,
   );
 }
 

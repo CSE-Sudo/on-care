@@ -19,6 +19,7 @@ class ClientChatMessage {
     required this.createdAt,
     this.attachment,
     this.reportWeekStart,
+    this.emoteId,
   });
 
   /// Row id (`seed-chat-…` for seeds, `chat-…` for runtime replies).
@@ -41,6 +42,13 @@ class ClientChatMessage {
   /// 월요일. (#1378) 데모/드리프트는 첨부를 저장하지 못해 [attachment] 대신
   /// 이 값으로 안내 말풍선을 구분한다.
   final DateTime? reportWeekStart;
+
+  /// 회원이 보낸 이모티콘이면 그 id. (#2020)
+  ///
+  /// 트레이너는 이용권 없이도 받은 이모티콘을 본다 — 지난 대화는 기록이다.
+  /// 본문(`body`)은 이모티콘을 그리지 못하는 자리(로스터의 마지막 메시지)가
+  /// 읽는 글이라 함께 온다.
+  final String? emoteId;
 
   /// Whether this message was sent by the trainer.
   bool get fromTrainer => sender == ChatSender.trainer;
