@@ -18,6 +18,8 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/fixed_clock.dart';
+
 /// 지난 날짜의 PT 기록이 **제 제목 아래** 선다. (#1884)
 ///
 /// 이 목록에는 제목이 없어, 바로 위 `직접 기록한 운동` 이 비었을 때 띄우는
@@ -187,6 +189,7 @@ void main() {
   }
 
   testWidgets('지난 날짜의 PT 기록이 오늘 카드와 같은 차림으로 선다', (tester) async {
+    useFixedKstDate();
     final DateTime target = otherDay();
     final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
       trainerSession(
@@ -219,6 +222,7 @@ void main() {
   });
 
   testWidgets('시각·피드백이 없는 기록에는 없는 값을 지어내지 않는다', (tester) async {
+    useFixedKstDate();
     final DateTime target = otherDay();
     final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
       trainerSession(
@@ -250,6 +254,7 @@ void main() {
   });
 
   testWidgets('트레이너 쪽 기록이 직접 기록한 운동보다 위에 선다 (#2017)', (tester) async {
+    useFixedKstDate();
     final DateTime target = otherDay();
     final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
       trainerSession(
@@ -288,6 +293,7 @@ void main() {
   });
 
   testWidgets('배정 개인운동은 PT 카드에 섞이지 않고 제 카드로 선다', (tester) async {
+    useFixedKstDate();
     final DateTime target = otherDay();
     final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
       trainerSession(
@@ -374,6 +380,7 @@ void main() {
   });
 
   testWidgets('배정 개인운동만 있는 날에는 PT 카드가 서지 않는다', (tester) async {
+    useFixedKstDate();
     final DateTime target = otherDay();
     final AppLocalizations l = await pumpDay(tester, <ExerciseSession>[
       trainerSession(
@@ -397,6 +404,7 @@ void main() {
   });
 
   testWidgets('회원이 직접 적은 기록은 두 카드 어디에도 오지 않는다', (tester) async {
+    useFixedKstDate();
     final DateTime target = otherDay();
     await pumpDay(tester, <ExerciseSession>[
       ExerciseSession(

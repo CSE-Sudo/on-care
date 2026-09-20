@@ -18,6 +18,8 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
+import '../../helpers/fixed_clock.dart';
+
 const List<String> _dayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
 /// 요일마다 [minutes] 분씩 채운 주. 0 을 주면 기록이 없는 주가 된다.
@@ -169,6 +171,7 @@ void main() {
   testWidgets('오늘이 아닌 날에 기록이 있으면 빈 문구 대신 그날 요약을 그린다 (#671)', (
     WidgetTester tester,
   ) async {
+    useFixedKstDate();
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -201,6 +204,7 @@ void main() {
   });
 
   testWidgets('정말 기록이 없는 날에는 빈 문구가 그대로 나온다', (WidgetTester tester) async {
+    useFixedKstDate();
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -222,6 +226,7 @@ void main() {
   testWidgets('지난 주로 넘겨 고른 날은 그 주를 따로 받아 그린다 (#671)', (
     WidgetTester tester,
   ) async {
+    useFixedKstDate();
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -266,6 +271,7 @@ void main() {
   });
 
   testWidgets('지난 주 조회가 실패하면 빈 문구로 내려앉는다', (WidgetTester tester) async {
+    useFixedKstDate();
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
