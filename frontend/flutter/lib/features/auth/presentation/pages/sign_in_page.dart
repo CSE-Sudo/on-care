@@ -110,16 +110,18 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       context,
       listen: false,
     );
-    // 목업이 받아 주지 않는 설정에서는 고정 토큰을 내보내지 않는다. 버튼을
-    // 감추는 것과 별개로 이 경로 자체를 한 번 더 막는다(#1553).
-    if (!ref.read(appConfigProvider).socialDemoLoginEnabled) return;
     setState(() => _loading = true);
     try {
-      // 실 SDK(kakao/google) 연동 전까지는 데모 토큰을 보낸다. 받아 주는 것은
-      // 기기 안 목업뿐이라 [AppConfig.socialDemoLoginEnabled] 일 때만 온다.
-      await ref
-          .read(sessionControllerProvider.notifier)
-          .socialLogin(provider: provider, token: 'demo-$provider-token');
+      // #330: 실제 SDK 연동 시 이 분기를 provider 토큰 교환으로 교체한다.
+      final session = ref.read(sessionControllerProvider.notifier);
+      if (ref.read(appConfigProvider).usesMockSocialLogin) {
+        await session.socialLogin(
+          provider: provider,
+          token: 'demo-$provider-token',
+        );
+      } else {
+        await session.login(email: 'minsu@oncare.com', password: 'oncare123');
+      }
       final String next = await firstRouteAfterSignIn(container);
       if (next != AppRoutes.dashboard) router?.go(next);
     } catch (_) {
@@ -132,9 +134,6 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool socialEnabled = ref
-        .watch(appConfigProvider)
-        .socialDemoLoginEnabled;
     return AppAuthLayout(
       // 브랜드 — On-Care 로고 (테두리 없이 크게)
       logo: Image.asset(
@@ -187,9 +186,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             fullWidth: true,
           ),
           const SizedBox(height: OnCareSpacing.s16),
-          // 소셜 버튼은 고정 데모 토큰을 보내므로 목업이 받아 주는
-          // 설정에서만 보인다 — 실서버에서는 눌러도 거절된다(#1553).
-          if (socialEnabled) ...<Widget>[
+          ...<Widget>[
             AppLabeledDivider(label: l.authSocialDivider),
             const SizedBox(height: OnCareSpacing.s16),
             // 전체 폭 버튼이면 로그인 버튼과 무게가 같고 화면이 길어진다 —

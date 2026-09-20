@@ -102,17 +102,9 @@ class AppConfig {
     return false;
   }
 
-  /// 로그인 화면의 카카오·구글 버튼을 쓸 수 있는가. (#1553)
-  ///
-  /// 실 OAuth SDK 를 붙이기 전이라 버튼은 고정 `demo-<provider>-token` 을 보낸다.
-  /// 그 토큰을 받아 주는 것은 기기 안의 목업 인터셉터뿐이므로, 소셜 교환 요청이
-  /// **목업에서 끝나는 설정에서만** 연다. 요청이 실서버로 나가는 설정 —
-  /// `USE_MOCK_API=false`, `REAL_API=auth`, `ENV=prod` — 에서는 닫는다. 운영
-  /// 서버는 고정 토큰을 거절해 죽은 버튼이 되고, 검증이 느슨해지면 누르는 사람
-  /// 모두가 같은 계정을 나눠 쓰게 된다.
-  ///
-  /// 실 OAuth 를 붙이면 이 게이트 대신 provider SDK 가 받은 토큰을 보낸다.
-  bool get socialDemoLoginEnabled =>
+  /// #330 실제 OAuth SDK 연동 전, 고정 토큰을 기기 안 목업에만 보낸다.
+  /// 실 인증을 쓰는 설정에서는 시드 데모 계정의 일반 로그인으로 연결한다(#2069).
+  bool get usesMockSocialLogin =>
       useMockApi && !isProd && !isRealApi('POST', '/auth/social');
 
   /// 로그인 화면에 "로그인 없이 데모 둘러보기" 진입을 노출할지. (#1526)

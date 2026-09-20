@@ -80,9 +80,13 @@ class _TrainerSignInPageState extends ConsumerState<TrainerSignInPage> {
     final destination = _destination;
     setState(() => _loading = true);
     try {
-      await ref
-          .read(sessionControllerProvider.notifier)
-          .socialLogin(provider: provider);
+      // #330: 실제 SDK 연동 전에는 실 서버의 시드 데모 계정으로 로그인한다.
+      final session = ref.read(sessionControllerProvider.notifier);
+      if (ref.read(appConfigProvider).useMockApi) {
+        await session.socialLogin(provider: provider);
+      } else {
+        await session.login(email: 'trainer@oncare.com', password: 'oncare123');
+      }
       if (!mounted) return;
       context.go(destination);
     } catch (_) {

@@ -65,16 +65,17 @@ Widget _shell(
 Widget _formShell(
   BuildContext context,
   String title,
-  Widget footer,
+  Widget? footer,
   List<Widget> children, {
   bool saving = false,
+  List<Widget> actions = const <Widget>[],
 }) {
   final OnCareTokens tokens = context.oncare;
   final double side = tokens.density.pagePadding;
   final Widget page = Scaffold(
     key: const Key('mySettingsPage'),
     backgroundColor: tokens.pageBackground,
-    appBar: AppTopBar(title: title),
+    appBar: AppTopBar(title: title, actions: actions),
     body: SafeArea(
       top: false,
       child: Align(
@@ -96,16 +97,17 @@ Widget _formShell(
                   children: children,
                 ),
               ),
-              Padding(
-                key: const Key('mySettingsSaveRow'),
-                padding: EdgeInsets.fromLTRB(
-                  side,
-                  OnCareSpacing.s8,
-                  side,
-                  OnCareSpacing.s16,
+              if (footer != null)
+                Padding(
+                  key: const Key('mySettingsSaveRow'),
+                  padding: EdgeInsets.fromLTRB(
+                    side,
+                    OnCareSpacing.s8,
+                    side,
+                    OnCareSpacing.s16,
+                  ),
+                  child: footer,
                 ),
-                child: footer,
-              ),
             ],
           ),
         ),
@@ -161,11 +163,12 @@ Widget _saveRow({
   required BuildContext context,
   required bool saving,
   required VoidCallback onSave,
+  VoidCallback? onCancel,
 }) {
   final AppLocalizations l = AppLocalizations.of(context);
   return AppButtonPair(
     cancelLabel: l.myCancel,
-    onCancel: saving ? null : () => Navigator.of(context).pop(),
+    onCancel: saving ? null : (onCancel ?? () => Navigator.of(context).pop()),
     confirmLabel: l.mySave,
     onConfirm: onSave,
     confirmLoading: saving,
@@ -250,11 +253,56 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     text: widget.initial.weightKg?.toString() ?? '',
   );
   bool _saving = false;
+  bool _editing = false;
 
   /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
   /// 대로 다시 검사한다 — 가입 화면과 같은 방식이다(#1883).
-  late final AppFieldErrors<_ProfileField> _errors =
-      AppFieldErrors<_ProfileField>(_check);
+  late AppFieldErrors<_ProfileField> _errors = AppFieldErrors<_ProfileField>(
+    _check,
+  );
+
+  void _beginEdit() {
+    _name.text = widget.initial.name;
+    _email.text = widget.initial.email;
+    _phone.text = widget.initial.phone;
+    _birth.text = widget.initial.birthDate;
+    _height.text = widget.initial.heightCm?.toString() ?? '';
+    _weight.text = widget.initial.weightKg?.toString() ?? '';
+    _genderChosen = widget.initial.gender.isNotEmpty;
+    _gender = _genderChosen ? widget.initial.gender : 'male';
+    _errors = AppFieldErrors<_ProfileField>(_check);
+    setState(() => _editing = true);
+  }
+
+  void _cancelEdit() {
+    FocusScope.of(context).unfocus();
+    setState(() => _editing = false);
+  }
+
+  /// 보기와 수정이 같은 라벨·값 자리를 사용한다.
+  Widget _profileField(String label, String value, Widget editor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(label, style: context.oncare.text(OnCareTypography.label)),
+        const SizedBox(height: OnCareSpacing.s8),
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: context.oncare.density.inputMedium,
+          ),
+          child: _editing
+              ? editor
+              : Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value.isEmpty ? '—' : value,
+                    style: context.oncare.text(OnCareTypography.body),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
 
   @override
   void dispose() {
@@ -333,7 +381,6 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       setState(() {});
       return;
     }
-    final NavigatorState navigator = Navigator.of(context);
     final AppToastHost toast = AppToastHost.of(context);
     setState(() => _saving = true);
     try {
@@ -362,7 +409,10 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       ref
         ..invalidate(profileProvider)
         ..invalidate(myHealthStateProvider);
-      navigator.pop();
+      setState(() {
+        _saving = false;
+        _editing = false;
+      });
       toast.show(l.myProfileSaved, type: AppToastType.success);
     } catch (_) {
       if (mounted) setState(() => _saving = false);
@@ -373,111 +423,161 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final Widget footer = _saveRow(
-      context: context,
-      saving: _saving,
-      onSave: _save,
-    );
-    return _formShell(context, l.myProfileTitle, footer, <Widget>[
-      Center(
-        child: AppAvatar(
-          name: widget.initial.name.trim(),
-          size: AppAvatarSize.xLarge,
+    final Widget? footer = _editing
+        ? _saveRow(
+            context: context,
+            saving: _saving,
+            onSave: _save,
+            onCancel: _cancelEdit,
+          )
+        : null;
+    return _formShell(
+      context,
+      l.myProfileTitle,
+      footer,
+      <Widget>[
+        Center(
+          child: AppAvatar(
+            name: widget.initial.name.trim(),
+            size: AppAvatarSize.xLarge,
+          ),
         ),
-      ),
-      const SizedBox(height: OnCareSpacing.s16),
-      _card(<Widget>[
-        AppTextField(
-          key: const ValueKey<String>('my-profile-name'),
-          label: l.myFieldName,
-          controller: _name,
-          errorText: _errors.of(_ProfileField.name),
-          onChanged: _onEdited,
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const ValueKey<String>('my-profile-email'),
-          label: l.myFieldEmail,
-          controller: _email,
-          keyboardType: TextInputType.emailAddress,
-          errorText: _errors.of(_ProfileField.email),
-          onChanged: _onEdited,
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const ValueKey<String>('my-profile-phone'),
-          label: l.myFieldPhone,
-          controller: _phone,
-          keyboardType: TextInputType.phone,
-          // 숫자만 쳐도 하이픈을 넣어 준다 — 가입 화면과 같은 서식이다.
-          inputFormatters: const <TextInputFormatter>[
-            AppPhoneNumberFormatter(),
-          ],
-          errorText: _errors.of(_ProfileField.phone),
-          onChanged: _onEdited,
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const ValueKey<String>('my-profile-birth'),
-          label: l.myFieldBirth,
-          controller: _birth,
-          hint: '1996-03-21',
-          errorText: _errors.of(_ProfileField.birth),
-          onChanged: _onEdited,
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        // 세 값 중 하나를 고르는 칸이라 펼침 메뉴 대신 칩을 늘어놓는다 — 고른 값과
-        // 고를 수 있는 값이 한눈에 보인다.
-        Text(
-          l.myFieldGender,
-          style: context.oncare
-              .text(OnCareTypography.label)
-              .copyWith(color: OnCareColors.textSecondary),
-        ),
-        const SizedBox(height: OnCareSpacing.s8),
-        Wrap(
-          spacing: OnCareSpacing.s8,
-          runSpacing: OnCareSpacing.s8,
-          children: <Widget>[
-            for (final ({String value, String label}) option
-                in <({String value, String label})>[
-                  (value: 'male', label: l.onboardGenderMale),
-                  (value: 'female', label: l.onboardGenderFemale),
-                  (value: 'other', label: l.onboardGenderOther),
-                ])
-              AppChoiceChip(
-                key: ValueKey<String>('profile-gender-${option.value}'),
-                label: option.label,
-                selected: _gender == option.value,
-                onSelected: (_) => setState(() {
-                  _gender = option.value;
-                  _genderChosen = true;
-                }),
+        const SizedBox(height: OnCareSpacing.s16),
+        Theme(
+          data: Theme.of(context).copyWith(
+            inputDecorationTheme: Theme.of(context).inputDecorationTheme
+                .copyWith(fillColor: OnCareColors.surfaceInput),
+          ),
+          child: AbsorbPointer(
+            absorbing: _saving,
+            child: _card(<Widget>[
+              _profileField(
+                l.myFieldName,
+                widget.initial.name,
+                AppTextField(
+                  key: const ValueKey<String>('my-profile-name'),
+                  controller: _name,
+                  errorText: _errors.of(_ProfileField.name),
+                  onChanged: _onEdited,
+                ),
               ),
-          ],
+              const SizedBox(height: OnCareSpacing.s12),
+              _profileField(
+                l.myFieldEmail,
+                widget.initial.email,
+                AppTextField(
+                  key: const ValueKey<String>('my-profile-email'),
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  errorText: _errors.of(_ProfileField.email),
+                  onChanged: _onEdited,
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s12),
+              _profileField(
+                l.myFieldPhone,
+                widget.initial.phone,
+                AppTextField(
+                  key: const ValueKey<String>('my-profile-phone'),
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  // 숫자만 쳐도 하이픈을 넣어 준다 — 가입 화면과 같은 서식이다.
+                  inputFormatters: const <TextInputFormatter>[
+                    AppPhoneNumberFormatter(),
+                  ],
+                  errorText: _errors.of(_ProfileField.phone),
+                  onChanged: _onEdited,
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s12),
+              _profileField(
+                l.myFieldBirth,
+                widget.initial.birthDate,
+                AppTextField(
+                  key: const ValueKey<String>('my-profile-birth'),
+                  controller: _birth,
+                  hint: '1996-03-21',
+                  errorText: _errors.of(_ProfileField.birth),
+                  onChanged: _onEdited,
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s12),
+              _profileField(
+                l.myFieldGender,
+                switch (widget.initial.gender) {
+                  'male' => l.onboardGenderMale,
+                  'female' => l.onboardGenderFemale,
+                  'other' => l.onboardGenderOther,
+                  _ => '—',
+                },
+                Wrap(
+                  spacing: OnCareSpacing.s8,
+                  runSpacing: OnCareSpacing.s8,
+                  children: <Widget>[
+                    for (final ({String value, String label}) option
+                        in <({String value, String label})>[
+                          (value: 'male', label: l.onboardGenderMale),
+                          (value: 'female', label: l.onboardGenderFemale),
+                          (value: 'other', label: l.onboardGenderOther),
+                        ])
+                      AppChoiceChip(
+                        key: ValueKey<String>('profile-gender-${option.value}'),
+                        label: option.label,
+                        selected: _gender == option.value,
+                        onSelected: (_) => setState(() {
+                          _gender = option.value;
+                          _genderChosen = true;
+                        }),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s12),
+              _profileField(
+                l.myFieldHeight,
+                widget.initial.heightCm?.toString() ?? '',
+                AppTextField(
+                  key: const ValueKey<String>('my-profile-height'),
+                  controller: _height,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: _decimal,
+                  errorText: _errors.of(_ProfileField.height),
+                  onChanged: _onEdited,
+                ),
+              ),
+              const SizedBox(height: OnCareSpacing.s12),
+              _profileField(
+                l.myFieldWeight,
+                widget.initial.weightKg?.toString() ?? '',
+                AppTextField(
+                  key: const ValueKey<String>('my-profile-weight'),
+                  controller: _weight,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: _decimal,
+                  errorText: _errors.of(_ProfileField.weight),
+                  onChanged: _onEdited,
+                ),
+              ),
+            ]),
+          ),
         ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const ValueKey<String>('my-profile-height'),
-          label: l.myFieldHeight,
-          controller: _height,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: _decimal,
-          errorText: _errors.of(_ProfileField.height),
-          onChanged: _onEdited,
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const ValueKey<String>('my-profile-weight'),
-          label: l.myFieldWeight,
-          controller: _weight,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: _decimal,
-          errorText: _errors.of(_ProfileField.weight),
-          onChanged: _onEdited,
-        ),
-      ]),
-    ], saving: _saving);
+      ],
+      saving: _saving,
+      actions: <Widget>[
+        if (!_editing)
+          AppIconButton(
+            key: const Key('profileEditButton'),
+            icon: AppIcons.edit,
+            tooltip: l.actionEdit,
+            size: AppIconButtonSize.small,
+            onPressed: _beginEdit,
+          ),
+      ],
+    );
   }
 }
 
@@ -614,7 +714,9 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
 
   /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
   /// 대로 다시 검사한다 — 프로필 모달과 같은 방식이다(#1883).
-  late final AppFieldErrors<String> _errors = AppFieldErrors<String>(_rangeError);
+  late final AppFieldErrors<String> _errors = AppFieldErrors<String>(
+    _rangeError,
+  );
 
   /// 그 칸의 지금 값이 범위를 벗어났는가.
   ///
