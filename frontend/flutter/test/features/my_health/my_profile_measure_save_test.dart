@@ -87,6 +87,8 @@ Future<(AppLocalizations, _RecordingAccountRepository)> _openProfile(
     ),
   );
   await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('profileEditButton')));
+  await tester.pumpAndSettle();
   return (
     AppLocalizations.of(tester.element(find.byType(ProfileSettingsPage))),
     repository,

@@ -84,6 +84,8 @@ Future<(AppLocalizations, _CountingAccountRepository)> _openProfile(
     ),
   );
   await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('profileEditButton')));
+  await tester.pumpAndSettle();
   return (
     AppLocalizations.of(tester.element(find.byType(ProfileSettingsPage))),
     repository,
@@ -177,27 +179,23 @@ void main() {
     await _save(tester, l);
 
     expect(find.text(l.signUpPhoneFormatInvalid), findsOneWidget);
-    expect(
-      repo.saves,
-      0,
-      reason: '가입이 필수로 받은 값을 여기서 비우면 트레이너가 연락할 방법이 사라진다',
-    );
+    expect(repo.saves, 0, reason: '가입이 필수로 받은 값을 여기서 비우면 트레이너가 연락할 방법이 사라진다');
   });
 
-  testWidgets('처음부터 전화번호가 없던 회원은 빈 칸으로 저장할 수 있다', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('처음부터 전화번호가 없던 회원은 빈 칸으로 저장할 수 있다', (WidgetTester tester) async {
     // 소셜 로그인 가입자와 #1634 이전 가입자가 이 상태다 — 연락처를 넣을
     // 자리가 없었다. 이름만 고치려는데 전화번호로 막으면 안 된다.
-    final (AppLocalizations l, _CountingAccountRepository repo) =
-        await _openProfile(
-          tester,
-          profile: const UserProfile(
-            id: 'no-phone',
-            name: '연락처없음',
-            email: 'nophone@oncare.com',
-          ),
-        );
+    final (
+      AppLocalizations l,
+      _CountingAccountRepository repo,
+    ) = await _openProfile(
+      tester,
+      profile: const UserProfile(
+        id: 'no-phone',
+        name: '연락처없음',
+        email: 'nophone@oncare.com',
+      ),
+    );
 
     expect(find.text(l.signUpPhoneFormatInvalid), findsNothing);
     await _save(tester, l);
