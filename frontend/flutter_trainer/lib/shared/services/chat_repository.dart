@@ -27,10 +27,13 @@ abstract interface class ChatRepository {
   /// [reportWeekStart]가 있으면 이 메시지는 리포트 PDF 전송 안내다(#1378) —
   /// 데모/드리프트 구현만 이 값을 저장한다. 실서버는 `/report/send-pdf`가
   /// 첨부 메타데이터를 직접 만들어 붙이므로 여기로 오지 않는다.
+  /// [emoteId] 를 주면 이모티콘 메시지다(#2020). 트레이너는 이용권 없이 보낸다 —
+  /// 이용권은 회원이 포인트를 쓰는 자리다.
   Future<void> sendTrainerMessage({
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   });
   Stream<Map<String, int>> watchUnreadCounts();
   Future<void> markThreadRead(String clientId);
@@ -84,9 +87,10 @@ class DriftChatRepository implements ChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty && emoteId == null) return;
     final now = nowKst();
     final id = 'chat-$clientId-${now.microsecondsSinceEpoch}';
     await _db.transaction(() async {
@@ -97,9 +101,12 @@ class DriftChatRepository implements ChatRepository {
               id: id,
               clientId: clientId,
               sender: 'trainer',
-              body: trimmed,
+              // 본문은 이모티콘을 그리지 못하는 자리(고객 목록의 마지막
+              // 메시지)가 읽는 글이다.
+              body: trimmed.isEmpty ? '(이모티콘)' : trimmed,
               timeLabel: _timeLabel(now),
               createdAt: now,
+              emoteId: Value<String?>(emoteId),
             ),
           );
       if (reportWeekStart != null) {
@@ -194,6 +201,7 @@ class DriftChatRepository implements ChatRepository {
       timeLabel: row.timeLabel,
       createdAt: row.createdAt,
       reportWeekStart: weekStart == null ? null : DateTime.tryParse(weekStart),
+      emoteId: row.emoteId,
     );
   }
 

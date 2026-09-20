@@ -161,6 +161,12 @@ class ClientChatMessages extends Table {
   TextColumn get timeLabel => text()(); // "18:10"
   DateTimeColumn get createdAt => dateTime()(); // ordering key
 
+  /// 이 메시지가 이모티콘이면 그 id(`oni_owoon` …). (#2020)
+  ///
+  /// 본문(`body`)은 이모티콘을 그리지 못하는 자리(고객 목록의 마지막 메시지)가
+  /// 읽는 글이라 함께 둔다.
+  TextColumn get emoteId => text().nullable()();
+
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
 }
@@ -300,7 +306,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -437,6 +443,23 @@ class AppDatabase extends _$AppDatabase {
       if (from < 17) {
         await m.addColumn(trainerClients, trainerClients.gender);
         await m.addColumn(trainerClients, trainerClients.age);
+      }
+      // v18: 채팅 이모티콘(#2020). 기존 메시지는 null 이라 예전처럼 글로 읽힌다.
+      //
+      // 표가 있는지 먼저 본다 — 옛 버전에서 올라오는 DB 중에는 채팅 표를 아직
+      // 만들지 않은 것이 있고, 없는 표에 컬럼을 붙이면 거기서 죽는다.
+      if (from < 18) {
+        final List<QueryRow> existing = await m.database
+            .customSelect(
+              "SELECT 1 FROM sqlite_master WHERE type='table' "
+              "AND name='client_chat_messages'",
+            )
+            .get();
+        if (existing.isEmpty) {
+          await m.createTable(clientChatMessages);
+        } else {
+          await m.addColumn(clientChatMessages, clientChatMessages.emoteId);
+        }
       }
     },
   );

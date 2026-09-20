@@ -52,6 +52,7 @@ class _RealApiFakeChatRepository implements ChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async {}
 
   @override

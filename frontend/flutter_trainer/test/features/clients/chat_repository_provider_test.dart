@@ -25,6 +25,7 @@ class _CountingChatRepository implements ChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async {}
 
   @override

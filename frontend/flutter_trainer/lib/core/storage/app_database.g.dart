@@ -3366,6 +3366,17 @@ class $ClientChatMessagesTable extends ClientChatMessages
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _emoteIdMeta = const VerificationMeta(
+    'emoteId',
+  );
+  @override
+  late final GeneratedColumn<String> emoteId = GeneratedColumn<String>(
+    'emote_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3374,6 +3385,7 @@ class $ClientChatMessagesTable extends ClientChatMessages
     body,
     timeLabel,
     createdAt,
+    emoteId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3432,6 +3444,12 @@ class $ClientChatMessagesTable extends ClientChatMessages
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('emote_id')) {
+      context.handle(
+        _emoteIdMeta,
+        emoteId.isAcceptableOrUnknown(data['emote_id']!, _emoteIdMeta),
+      );
+    }
     return context;
   }
 
@@ -3465,6 +3483,10 @@ class $ClientChatMessagesTable extends ClientChatMessages
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
       )!,
+      emoteId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}emote_id'],
+      ),
     );
   }
 
@@ -3482,6 +3504,12 @@ class ClientChatMessageRow extends DataClass
   final String body;
   final String timeLabel;
   final DateTime createdAt;
+
+  /// 이 메시지가 이모티콘이면 그 id(`oni_owoon` …). (#2020)
+  ///
+  /// 본문(`body`)은 이모티콘을 그리지 못하는 자리(고객 목록의 마지막 메시지)가
+  /// 읽는 글이라 함께 둔다.
+  final String? emoteId;
   const ClientChatMessageRow({
     required this.id,
     required this.clientId,
@@ -3489,6 +3517,7 @@ class ClientChatMessageRow extends DataClass
     required this.body,
     required this.timeLabel,
     required this.createdAt,
+    this.emoteId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3499,6 +3528,9 @@ class ClientChatMessageRow extends DataClass
     map['body'] = Variable<String>(body);
     map['time_label'] = Variable<String>(timeLabel);
     map['created_at'] = Variable<DateTime>(createdAt);
+    if (!nullToAbsent || emoteId != null) {
+      map['emote_id'] = Variable<String>(emoteId);
+    }
     return map;
   }
 
@@ -3510,6 +3542,9 @@ class ClientChatMessageRow extends DataClass
       body: Value(body),
       timeLabel: Value(timeLabel),
       createdAt: Value(createdAt),
+      emoteId: emoteId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(emoteId),
     );
   }
 
@@ -3525,6 +3560,7 @@ class ClientChatMessageRow extends DataClass
       body: serializer.fromJson<String>(json['body']),
       timeLabel: serializer.fromJson<String>(json['timeLabel']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      emoteId: serializer.fromJson<String?>(json['emoteId']),
     );
   }
   @override
@@ -3537,6 +3573,7 @@ class ClientChatMessageRow extends DataClass
       'body': serializer.toJson<String>(body),
       'timeLabel': serializer.toJson<String>(timeLabel),
       'createdAt': serializer.toJson<DateTime>(createdAt),
+      'emoteId': serializer.toJson<String?>(emoteId),
     };
   }
 
@@ -3547,6 +3584,7 @@ class ClientChatMessageRow extends DataClass
     String? body,
     String? timeLabel,
     DateTime? createdAt,
+    Value<String?> emoteId = const Value.absent(),
   }) => ClientChatMessageRow(
     id: id ?? this.id,
     clientId: clientId ?? this.clientId,
@@ -3554,6 +3592,7 @@ class ClientChatMessageRow extends DataClass
     body: body ?? this.body,
     timeLabel: timeLabel ?? this.timeLabel,
     createdAt: createdAt ?? this.createdAt,
+    emoteId: emoteId.present ? emoteId.value : this.emoteId,
   );
   ClientChatMessageRow copyWithCompanion(ClientChatMessagesCompanion data) {
     return ClientChatMessageRow(
@@ -3563,6 +3602,7 @@ class ClientChatMessageRow extends DataClass
       body: data.body.present ? data.body.value : this.body,
       timeLabel: data.timeLabel.present ? data.timeLabel.value : this.timeLabel,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      emoteId: data.emoteId.present ? data.emoteId.value : this.emoteId,
     );
   }
 
@@ -3574,14 +3614,15 @@ class ClientChatMessageRow extends DataClass
           ..write('sender: $sender, ')
           ..write('body: $body, ')
           ..write('timeLabel: $timeLabel, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('emoteId: $emoteId')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, clientId, sender, body, timeLabel, createdAt);
+      Object.hash(id, clientId, sender, body, timeLabel, createdAt, emoteId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3591,7 +3632,8 @@ class ClientChatMessageRow extends DataClass
           other.sender == this.sender &&
           other.body == this.body &&
           other.timeLabel == this.timeLabel &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.emoteId == this.emoteId);
 }
 
 class ClientChatMessagesCompanion
@@ -3602,6 +3644,7 @@ class ClientChatMessagesCompanion
   final Value<String> body;
   final Value<String> timeLabel;
   final Value<DateTime> createdAt;
+  final Value<String?> emoteId;
   final Value<int> rowid;
   const ClientChatMessagesCompanion({
     this.id = const Value.absent(),
@@ -3610,6 +3653,7 @@ class ClientChatMessagesCompanion
     this.body = const Value.absent(),
     this.timeLabel = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.emoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ClientChatMessagesCompanion.insert({
@@ -3619,6 +3663,7 @@ class ClientChatMessagesCompanion
     required String body,
     required String timeLabel,
     required DateTime createdAt,
+    this.emoteId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        clientId = Value(clientId),
@@ -3633,6 +3678,7 @@ class ClientChatMessagesCompanion
     Expression<String>? body,
     Expression<String>? timeLabel,
     Expression<DateTime>? createdAt,
+    Expression<String>? emoteId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3642,6 +3688,7 @@ class ClientChatMessagesCompanion
       if (body != null) 'body': body,
       if (timeLabel != null) 'time_label': timeLabel,
       if (createdAt != null) 'created_at': createdAt,
+      if (emoteId != null) 'emote_id': emoteId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3653,6 +3700,7 @@ class ClientChatMessagesCompanion
     Value<String>? body,
     Value<String>? timeLabel,
     Value<DateTime>? createdAt,
+    Value<String?>? emoteId,
     Value<int>? rowid,
   }) {
     return ClientChatMessagesCompanion(
@@ -3662,6 +3710,7 @@ class ClientChatMessagesCompanion
       body: body ?? this.body,
       timeLabel: timeLabel ?? this.timeLabel,
       createdAt: createdAt ?? this.createdAt,
+      emoteId: emoteId ?? this.emoteId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3687,6 +3736,9 @@ class ClientChatMessagesCompanion
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
+    if (emoteId.present) {
+      map['emote_id'] = Variable<String>(emoteId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3702,6 +3754,7 @@ class ClientChatMessagesCompanion
           ..write('body: $body, ')
           ..write('timeLabel: $timeLabel, ')
           ..write('createdAt: $createdAt, ')
+          ..write('emoteId: $emoteId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -7243,6 +7296,7 @@ typedef $$ClientChatMessagesTableCreateCompanionBuilder =
       required String body,
       required String timeLabel,
       required DateTime createdAt,
+      Value<String?> emoteId,
       Value<int> rowid,
     });
 typedef $$ClientChatMessagesTableUpdateCompanionBuilder =
@@ -7253,6 +7307,7 @@ typedef $$ClientChatMessagesTableUpdateCompanionBuilder =
       Value<String> body,
       Value<String> timeLabel,
       Value<DateTime> createdAt,
+      Value<String?> emoteId,
       Value<int> rowid,
     });
 
@@ -7292,6 +7347,11 @@ class $$ClientChatMessagesTableFilterComposer
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get emoteId => $composableBuilder(
+    column: $table.emoteId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -7334,6 +7394,11 @@ class $$ClientChatMessagesTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get emoteId => $composableBuilder(
+    column: $table.emoteId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ClientChatMessagesTableAnnotationComposer
@@ -7362,6 +7427,9 @@ class $$ClientChatMessagesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get emoteId =>
+      $composableBuilder(column: $table.emoteId, builder: (column) => column);
 }
 
 class $$ClientChatMessagesTableTableManager
@@ -7410,6 +7478,7 @@ class $$ClientChatMessagesTableTableManager
                 Value<String> body = const Value.absent(),
                 Value<String> timeLabel = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
+                Value<String?> emoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientChatMessagesCompanion(
                 id: id,
@@ -7418,6 +7487,7 @@ class $$ClientChatMessagesTableTableManager
                 body: body,
                 timeLabel: timeLabel,
                 createdAt: createdAt,
+                emoteId: emoteId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -7428,6 +7498,7 @@ class $$ClientChatMessagesTableTableManager
                 required String body,
                 required String timeLabel,
                 required DateTime createdAt,
+                Value<String?> emoteId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ClientChatMessagesCompanion.insert(
                 id: id,
@@ -7436,6 +7507,7 @@ class $$ClientChatMessagesTableTableManager
                 body: body,
                 timeLabel: timeLabel,
                 createdAt: createdAt,
+                emoteId: emoteId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
