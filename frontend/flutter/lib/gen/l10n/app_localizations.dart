@@ -2159,7 +2159,7 @@ abstract class AppLocalizations {
   /// No description provided for @myShopStreakShieldDescription.
   ///
   /// In en, this message translates to:
-  /// **'Keep your streak going when you logged nothing yesterday. Hold up to 4.'**
+  /// **'Keep your streak going on a day you logged nothing. Use it within the last 30 days; hold up to 4.'**
   String get myShopStreakShieldDescription;
 
   /// No description provided for @myBenefitsStreakShields.
@@ -2183,7 +2183,7 @@ abstract class AppLocalizations {
   /// No description provided for @myBenefitsShieldGuide.
   ///
   /// In en, this message translates to:
-  /// **'Use one the day after a day with nothing logged.'**
+  /// **'Tap an empty day on the record graph to bridge it. Only days within the last 30 days.'**
   String get myBenefitsShieldGuide;
 
   /// No description provided for @myBenefitsShieldUsedTitle.
@@ -2197,6 +2197,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No protected days yet'**
   String get myBenefitsShieldNoneUsed;
+
+  /// No description provided for @myShopGraphColorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Graph colour'**
+  String get myShopGraphColorTitle;
+
+  /// No description provided for @myShopGraphColorDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a new colour for the record graph on the points screen. Colours you unlock stay yours.'**
+  String get myShopGraphColorDescription;
+
+  /// No description provided for @myGraphTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Record graph'**
+  String get myGraphTitle;
+
+  /// No description provided for @myGraphMonthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}'**
+  String myGraphMonthLabel(int month);
+
+  /// No description provided for @myGraphStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}-day record streak'**
+  String myGraphStreak(int days);
+
+  /// No description provided for @myGraphLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the record graph.'**
+  String get myGraphLoadFailed;
+
+  /// No description provided for @myGraphDate.
+  ///
+  /// In en, this message translates to:
+  /// **'{month}/{day}'**
+  String myGraphDate(int month, int day);
+
+  /// No description provided for @myGraphDayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a square to see that day'**
+  String get myGraphDayHint;
+
+  /// No description provided for @myGraphDayNone.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · nothing logged'**
+  String myGraphDayNone(String date);
+
+  /// No description provided for @myGraphDayDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · meals only'**
+  String myGraphDayDiet(String date);
+
+  /// No description provided for @myGraphDayExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · workout only'**
+  String myGraphDayExercise(String date);
+
+  /// No description provided for @myGraphDayBoth.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · meals and workout'**
+  String myGraphDayBoth(String date);
+
+  /// No description provided for @myGraphDayProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · kept by a shield'**
+  String myGraphDayProtected(String date);
+
+  /// No description provided for @myGraphProtectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a shield'**
+  String get myGraphProtectAction;
+
+  /// No description provided for @myGraphProtectConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use a streak shield?'**
+  String get myGraphProtectConfirmTitle;
+
+  /// No description provided for @myGraphProtectConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This keeps {date} in your record streak and spends one shield ({held} left).'**
+  String myGraphProtectConfirmMessage(String date, int held);
+
+  /// No description provided for @myGraphProtectDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your streak is unbroken'**
+  String get myGraphProtectDone;
+
+  /// No description provided for @myGraphProtectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t use the shield'**
+  String get myGraphProtectFailed;
+
+  /// No description provided for @myGraphColorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Graph colour'**
+  String get myGraphColorTitle;
+
+  /// No description provided for @myGraphColorPickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a colour to unlock'**
+  String get myGraphColorPickTitle;
+
+  /// No description provided for @myGraphColorLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock for {cost}'**
+  String myGraphColorLocked(String cost);
+
+  /// No description provided for @myGraphColorDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Graph colour changed'**
+  String get myGraphColorDone;
+
+  /// No description provided for @myGraphColorExchangeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock the {color} graph for {cost}? Once unlocked it stays yours.'**
+  String myGraphColorExchangeConfirm(String color, String cost);
+
+  /// No description provided for @myGraphColorUnlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Graph colour unlocked'**
+  String get myGraphColorUnlocked;
+
+  /// No description provided for @myGraphColorFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t change the colour'**
+  String get myGraphColorFailed;
+
+  /// No description provided for @myGraphColorBlue.
+  ///
+  /// In en, this message translates to:
+  /// **'Blue'**
+  String get myGraphColorBlue;
+
+  /// No description provided for @myGraphColorGreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Green'**
+  String get myGraphColorGreen;
+
+  /// No description provided for @myGraphColorPurple.
+  ///
+  /// In en, this message translates to:
+  /// **'Purple'**
+  String get myGraphColorPurple;
+
+  /// No description provided for @myGraphColorOrange.
+  ///
+  /// In en, this message translates to:
+  /// **'Orange'**
+  String get myGraphColorOrange;
+
+  /// No description provided for @myGraphColorPink.
+  ///
+  /// In en, this message translates to:
+  /// **'Pink'**
+  String get myGraphColorPink;
 
   /// No description provided for @myPointsValidDays.
   ///
@@ -5595,7 +5775,7 @@ abstract class AppLocalizations {
   /// Body of a demo notification shown in tour mode.
   ///
   /// In en, this message translates to:
-  /// **'You\'ve logged your meals every day for over a month.'**
+  /// **'You\'ve logged your meals every day for over two weeks.'**
   String get demoAlertMealStreakBody;
 
   /// Title of a demo notification shown in tour mode.

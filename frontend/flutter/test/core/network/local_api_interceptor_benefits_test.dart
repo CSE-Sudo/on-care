@@ -92,15 +92,19 @@ void main() {
       'pt_renewal',
       'locker_month',
       'streak_shield',
+      'graph_color',
     ]);
-    expect(shop.items.map((ShopItem i) => i.cost), <int>[21000, 7000, 300]);
+    expect(
+      shop.items.map((ShopItem i) => i.cost),
+      <int>[21000, 7000, 300, 150],
+    );
     expect(
       shop.items.map((ShopItem i) => i.requiresTrainer),
-      <bool>[true, false, false],
+      <bool>[true, false, false, false],
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresGym),
-      <bool>[false, true, false],
+      <bool>[false, true, false, false],
     );
     expect(shop.items.every((ShopItem i) => i.available), isTrue);
 

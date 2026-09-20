@@ -8,7 +8,7 @@
 const String kimMinsuFixtureJson = r'''
 {
   "version": 1,
-  "readme": "김민수 데모 데이터의 단일 원본. 사용자앱·트레이너웹·백엔드가 이 파일만 읽는다. 날짜는 상대값이다 — weeks[].weeksAgo 는 이번 주 월요일에서 몇 주 거슬러 올라가는지, days[].weekday 는 월(0)~일(6). recent[].offset 은 오늘로부터의 일수이고 주 격자 위를 덮는다. 이행률은 exercises[].done 개수에서 계산한다 — 퍼센트를 따로 적지 않는다.",
+  "readme": "김민수 데모 데이터의 단일 원본. 사용자앱·트레이너웹·백엔드가 이 파일만 읽는다. 날짜는 상대값이다 — weeks[].weeksAgo 는 이번 주 월요일에서 몇 주 거슬러 올라가는지, days[].weekday 는 월(0)~일(6). recent[].offset 은 오늘로부터의 일수이고 주 격자 위를 덮는다. 이행률은 exercises[].done 개수에서 계산한다 — 퍼센트를 따로 적지 않는다. 3주 전 수요일은 일부러 비워 둔다 — 기록 연속이 끊긴 자리가 보이고, 최근 30일 안이라 연속 기록 보호권(#1788)을 그 칸에 써 볼 수 있다.",
   "member": {
     "name": "김민수",
     "userAppSeedId": "user-7d4e9a2c5f18",
@@ -1375,20 +1375,8 @@ const String kimMinsuFixtureJson = r'''
         },
         {
           "weekday": 2,
-          "label": "AI 개인운동",
-          "pt": false,
           "exercises": [],
-          "meals": [
-            {
-              "meal": "breakfast-egg-strawberry"
-            },
-            {
-              "meal": "lunch-chicken-salad"
-            },
-            {
-              "meal": "dinner-salmon-brown-rice"
-            }
-          ]
+          "meals": []
         },
         {
           "weekday": 3,

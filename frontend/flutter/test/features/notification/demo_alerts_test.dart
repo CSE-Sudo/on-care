@@ -100,8 +100,11 @@ void main() {
       expect(byTitle('PT 수업 완료').body, contains('오늘'));
     });
 
-    test('연속 기록 알림은 요일과 상관없이 한 달 넘게 끊기지 않은 기록과 같다', () {
+    test('연속 기록 알림은 요일과 상관없이 보름 넘게 끊기지 않은 기록과 같다', () {
       // 픽스처의 빈 날은 요일이 정해져 있다 — 일주일 치 오늘을 모두 돌려 본다.
+      //
+      // "한 달" 이 아닌 이유: 보호권(#1788)을 시연하려면 최근 30일 안에 빈 날이
+      // 하나 있어야 하고(#2075), 그러면 식단이 한 달을 넘게 이어질 수 없다.
       for (int offset = 0; offset < 7; offset++) {
         final List<FixtureDay> week = fixture.daysFor(
           DateTime(2026, 9, 14 + offset, 19),
@@ -111,10 +114,10 @@ void main() {
           if (d.meals.isEmpty) break;
           run++;
         }
-        expect(run, greaterThan(31), reason: week.last.date);
+        expect(run, greaterThan(15), reason: week.last.date);
       }
       final String body = byTitle('식단 기록을 꾸준히 이어가고 있어요').body;
-      expect(body, contains('한 달 넘게'));
+      expect(body, contains('보름 넘게'));
       expect(body, isNot(matches(RegExp(r'\d'))));
     });
 

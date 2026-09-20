@@ -6,6 +6,7 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sheet.dart';
+import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -452,7 +453,10 @@ class _RecommendedExerciseRowState
       ref.invalidate(coachRoutinesProvider);
       ref.invalidate(exerciseWeekProvider);
       // 완료 기록이 보호한 날에 떨어지면 보호권이 돌아온다 — 다시 읽는다(#1788).
-      ref.invalidate(myStreakShieldsProvider);
+      // 그날 달력 칸도 달라졌다(#2075).
+      ref
+        ..invalidate(myStreakShieldsProvider)
+        ..invalidate(activityCalendarProvider);
       // 추천·배정 운동 완료는 포인트를 받는다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
       if (mounted) {

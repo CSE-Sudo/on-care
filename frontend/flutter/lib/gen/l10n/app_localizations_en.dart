@@ -1185,7 +1185,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myShopStreakShieldDescription =>
-      'Keep your streak going when you logged nothing yesterday. Hold up to 4.';
+      'Keep your streak going on a day you logged nothing. Use it within the last 30 days; hold up to 4.';
 
   @override
   String get myBenefitsStreakShields => 'Streak shields';
@@ -1202,13 +1202,126 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myBenefitsShieldGuide =>
-      'Use one the day after a day with nothing logged.';
+      'Tap an empty day on the record graph to bridge it. Only days within the last 30 days.';
 
   @override
   String get myBenefitsShieldUsedTitle => 'Protected days';
 
   @override
   String get myBenefitsShieldNoneUsed => 'No protected days yet';
+
+  @override
+  String get myShopGraphColorTitle => 'Graph colour';
+
+  @override
+  String get myShopGraphColorDescription =>
+      'Pick a new colour for the record graph on the points screen. Colours you unlock stay yours.';
+
+  @override
+  String get myGraphTitle => 'Record graph';
+
+  @override
+  String myGraphMonthLabel(int month) {
+    return '$month';
+  }
+
+  @override
+  String myGraphStreak(int days) {
+    return '$days-day record streak';
+  }
+
+  @override
+  String get myGraphLoadFailed => 'Couldn\'t load the record graph.';
+
+  @override
+  String myGraphDate(int month, int day) {
+    return '$month/$day';
+  }
+
+  @override
+  String get myGraphDayHint => 'Tap a square to see that day';
+
+  @override
+  String myGraphDayNone(String date) {
+    return '$date · nothing logged';
+  }
+
+  @override
+  String myGraphDayDiet(String date) {
+    return '$date · meals only';
+  }
+
+  @override
+  String myGraphDayExercise(String date) {
+    return '$date · workout only';
+  }
+
+  @override
+  String myGraphDayBoth(String date) {
+    return '$date · meals and workout';
+  }
+
+  @override
+  String myGraphDayProtected(String date) {
+    return '$date · kept by a shield';
+  }
+
+  @override
+  String get myGraphProtectAction => 'Use a shield';
+
+  @override
+  String get myGraphProtectConfirmTitle => 'Use a streak shield?';
+
+  @override
+  String myGraphProtectConfirmMessage(String date, int held) {
+    return 'This keeps $date in your record streak and spends one shield ($held left).';
+  }
+
+  @override
+  String get myGraphProtectDone => 'Your streak is unbroken';
+
+  @override
+  String get myGraphProtectFailed => 'Couldn\'t use the shield';
+
+  @override
+  String get myGraphColorTitle => 'Graph colour';
+
+  @override
+  String get myGraphColorPickTitle => 'Pick a colour to unlock';
+
+  @override
+  String myGraphColorLocked(String cost) {
+    return 'Unlock for $cost';
+  }
+
+  @override
+  String get myGraphColorDone => 'Graph colour changed';
+
+  @override
+  String myGraphColorExchangeConfirm(String color, String cost) {
+    return 'Unlock the $color graph for $cost? Once unlocked it stays yours.';
+  }
+
+  @override
+  String get myGraphColorUnlocked => 'Graph colour unlocked';
+
+  @override
+  String get myGraphColorFailed => 'Couldn\'t change the colour';
+
+  @override
+  String get myGraphColorBlue => 'Blue';
+
+  @override
+  String get myGraphColorGreen => 'Green';
+
+  @override
+  String get myGraphColorPurple => 'Purple';
+
+  @override
+  String get myGraphColorOrange => 'Orange';
+
+  @override
+  String get myGraphColorPink => 'Pink';
 
   @override
   String myPointsValidDays(int days) {
@@ -3178,7 +3291,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get demoAlertMealStreakBody =>
-      'You\'ve logged your meals every day for over a month.';
+      'You\'ve logged your meals every day for over two weeks.';
 
   @override
   String get demoAlertMaintenanceTitle => 'Scheduled maintenance';

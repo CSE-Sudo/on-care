@@ -15,7 +15,14 @@ abstract interface class BenefitsRepository {
 
   /// 포인트를 써서 쿠폰을 발급한다. [clientRequestId] 가 같은 재시도는 두 번
   /// 쓰지 않는다. 규칙에 막히면(잔액 부족 등) 서버 오류로 올라온다.
-  Future<CouponExchange> exchange(String itemId, {String? clientRequestId});
+  ///
+  /// [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 지금은 그래프 색 바꾸기
+  /// (#2076)에서 어느 색을 열지 싣는다. 갈래가 없는 항목은 주지 않는다.
+  Future<CouponExchange> exchange(
+    String itemId, {
+    String? option,
+    String? clientRequestId,
+  });
 
   /// 내 쿠폰 — 사용 가능한 것 먼저.
   Future<List<Coupon>> fetchCoupons();

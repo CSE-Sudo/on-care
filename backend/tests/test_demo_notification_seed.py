@@ -89,7 +89,12 @@ def test_routine_alert_names_a_routine_in_the_fixture():
 
 def test_streak_alert_matches_an_unbroken_meal_history():
     # 픽스처의 빈 날은 요일이 정해져 있어, 오늘이 무슨 요일이든 끊기지 않은 기간이
-    # 한 달을 넘는다. 일주일 치를 모두 돌려 본다.
+    # 보름을 넘는다. 일주일 치를 모두 돌려 본다.
+    #
+    # 예전에는 "한 달 넘게" 였다. 보호권(#1788)을 시연하려면 최근 30일 안에 빈 날이
+    # 하나 있어야 하는데(#2075 기록 그래프에서 그 칸을 눌러 쓴다), 그러면 식단이
+    # 끊기지 않은 기간이 한 달을 넘을 수 없다 — 두 문구가 같은 픽스처에서 동시에
+    # 참일 수 없어 알림 쪽을 사실에 맞췄다.
     for offset in range(7):
         days = load_fixture().days_for(date(2026, 9, 14) + timedelta(days=offset))
         run = 0
@@ -97,9 +102,9 @@ def test_streak_alert_matches_an_unbroken_meal_history():
             if not day.meals:
                 break
             run += 1
-        assert run > 31, f"{days[-1].iso}: {run}일 — '한 달 넘게' 가 틀린다"
+        assert run > 15, f"{days[-1].iso}: {run}일 — '보름 넘게' 가 틀린다"
     body = _body("식단 기록을 꾸준히 이어가고 있어요")
-    assert "한 달 넘게" in body
+    assert "보름 넘게" in body
     assert not any(ch.isdigit() for ch in body)
 
 

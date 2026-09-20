@@ -156,7 +156,7 @@
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
 | GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, has_gym, items[] }` |
-| POST | `/me/points/exchange` | 회원 | 입력 `{ item, client_request_id? }` → **201** `{ coupon, spent, balance }` |
+| POST | `/me/points/exchange` | 회원 | 입력 `{ item, option?, client_request_id? }` → **201** `{ coupon, spent, balance }` |
 | GET | `/me/coupons` | 회원(데모 폴백) | `coupon[]` — 사용 가능 먼저, 그다음 최신순(최대 100) |
 | POST | `/me/coupons/{id}/use` | 회원 | `coupon` — 회원 휴대폰에서 사용 완료 |
 
@@ -171,6 +171,7 @@
 | `pt_renewal` | PT 재등록 3만원 할인(30,000원) | 21000 | 30일 | 활성 담당 필요, 사용 가능한 쿠폰은 회원당 1장 |
 | `locker_month` | 개인 락커 1개월 무료 | 7000 | 30일 | 연결한 헬스장(`GET /me/gym`) 필요, 사용 가능한 쿠폰은 회원당 1장, 교환은 KST 달마다 1회 |
 | `streak_shield` | 연속 기록 보호권(#1788, 쿠폰 아님) | 300 | 없음(0) | 쓰지 않은 보호권 최대 4개, 회원이 포인트 화면에서 사용 |
+| `graph_color` | 그래프 색 바꾸기(#2076, 쿠폰 아님) | 150 | 없음(0) | `option` 에 열 색 하나, 이미 연 색은 409, 모두 열면 목록에서 빠짐 |
 
 사용 가능한(`issued`, 기한 전) 쿠폰은 **종류마다** 회원당 1장이다 — `(user_id, item) WHERE status='issued'`
 partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으로 막히고, 교환하면 409 다. 사용·만료·취소되면
@@ -184,7 +185,10 @@ partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으�
 available, blocked_reason, shortfall }`. `blocked_reason` 은 `no_trainer` → `no_gym` → `active_coupon` →
 `shield_limit` → `monthly_limit` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
 포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
-보호권이면 `coupon: null` 과 `shield` 다(아래 "연속 기록 보호권" 절).
+보호권이면 `coupon: null` 과 `shield`, 그래프 색이면 `graph_color` 다(아래 두 절).
+
+`option` 은 항목이 여러 갈래일 때 고른 갈래다 — 지금은 `graph_color` 에서 어느 색을 열지 싣는다. 다른 항목은 보지
+않는다.
 
 `coupon`: `{ id, item, title, benefit, cost, status, trainer_name, gym_name, issued_at, issued_on,
 expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당
@@ -218,7 +222,7 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
 | Method | Path | 권한 | 응답 |
 |---|---|---|---|
 | POST | `/me/points/exchange` | 회원 | 입력 `{ item: "streak_shield", client_request_id? }` → **201** `{ coupon: null, shield, spent, balance }` |
-| GET | `/me/streak-shields` | 회원(데모 폴백) | `{ held, max_held, cost, used[], record_streak_days, protectable_date? }` |
+| GET | `/me/streak-shields` | 회원(데모 폴백) | `{ held, max_held, cost, used[], record_streak_days, protectable_from?, protectable_to? }` |
 | POST | `/me/streak-shields/use` | 회원 | 입력 `{ date: "YYYY-MM-DD" }` → 같은 모양(사용 뒤) |
 
 `shield`: `{ id, cost, status(held|used), acquired_at, protected_on?, used_at? }`. `used[]`: `{ date, used_at }` — 보호한 날,
@@ -231,12 +235,16 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
 - **교환** 사용처 항목 `streak_shield`, 300P, 기한 없음(`valid_days: 0`), 회원이 쓴다. 쓰지 않은 보호권은 **최대 4개**다 —
   가득 차면 사용처 항목의 `blocked_reason` 이 `shield_limit`(잔액 부족보다 먼저), 교환은 409. 잔액 행을 잠근 채 보유 수와
   잔액을 보고 `spend`(source `streak_shield`)를 남긴다. 같은 `client_request_id` 재전송은 처음 보호권을 돌려준다.
-- **사용** 회원이 직접 한다. 보호할 수 있는 날은 **어제(KST)** 하나다. 오늘·그보다 오래된 날·미래는 409. 그날 기록(식단 한 건
-  또는 운동 분 > 0)이 있으면 409, 보호권이 없으면 409. 요일은 보지 않는다 — 기록 연속이 주 단위가 아니라 월요일에도 어제
-  (일요일)를 보호한다. 가장 먼저 교환한 보호권부터 쓴다. 하루에 보호는 한 번이며(회원·날짜 partial unique), 이미 보호한 날을
-  다시 보내면 보호권을 더 쓰지 않고 200 이다. 날짜 형식이 깨지면 422.
-- **`protectable_date`** 지금 보호할 수 있는 날(어제). 위 사용 규칙을 모두 통과하고 보호권이 있을 때만 값이 있다. 앱은 이 값이
-  있을 때만 `보호권 쓰기` 를 띄운다 — 그 자리는 포인트 화면 기록 잔디밭(#2075)이고, 운동 탭에는 두지 않는다.
+- **사용** 회원이 직접 한다. 보호할 수 있는 날은 **어제부터 거슬러 30일(KST)** 안의 날이다. 오늘·미래·창보다 오래된 날은 409.
+  그날 기록(식단 한 건 또는 운동 분 > 0)이 있으면 409, 보호권이 없으면 409. 요일은 보지 않는다 — 기록 연속이 주 단위가 아니라
+  월요일에도 어제(일요일)를 보호한다. 가장 먼저 교환한 보호권부터 쓴다. 하루에 보호는 한 번이며(회원·날짜 partial unique),
+  이미 보호한 날을 다시 보내면 보호권을 더 쓰지 않고 200 이다. 날짜 형식이 깨지면 422.
+  창이 어제 하나가 아닌 이유: 어제를 놓친 뒤에 산 보호권이 쓸 데가 없으면 안 되고, 그렇다고 무제한이면 몇 달 전 기록까지 칠해
+  연속 숫자의 뜻이 가벼워진다.
+- **`protectable_from`·`protectable_to`** 지금 보호권을 쓸 수 있는 날의 구간(양끝 포함). 보호권이 없으면 둘 다 null 이다.
+  **구간 안이라고 다 보호할 수 있는 것은 아니다** — 기록이 있거나 이미 보호한 날은 빠진다. 앱은 이 구간과 날짜별 기록
+  (`GET /me/activity-calendar` 의 `days[]`)을 겹쳐 누를 수 있는 칸을 가리고, 마지막 판정은 사용 요청이 한다. 그 자리는 포인트
+  화면 기록 그래프(#2075)이고, 운동 탭에는 두지 않는다.
 - **집계** 보호한 날은 `record_streak_days` 에만 들어간다. 운동 주간 응답의 `streak_days`·`daily_minutes`·`daily_calories`·
   `total_*`·`sessions[]` 는 보호와 상관없이 실제 운동 기록만으로 만든다.
 - **기록이 생기면 보호권 되돌리기** 보호한 날에 기록이 생기면(식단 `POST /diet/analyze`·`PUT /diet/entries/{id}` 로 그날로 옮김,
@@ -245,6 +253,42 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
   오가지 않는다. 멱등이며, 되돌린 뒤 그 기록을 지워도 보호는 다시 걸리지 않는다. 최대 보유 수는 **교환**의 규칙이라 되돌리기는
   보지 않는다 — 이미 4개를 가진 회원은 5개가 될 수 있고(`held` > `max_held`), 그동안 사용처 항목은 `shield_limit` 으로 막힌다.
 - 트레이너 화면은 기록 연속도 보호한 날도 보지 않는다 — 트레이너가 보는 연속 일수는 회원 앱 운동 탭과 같은 **운동만** 센다.
+
+### 기록 그래프·그래프 색 (#2075, #2076)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| GET | `/me/activity-calendar?from=&to=` | 회원(데모 폴백) | `{ from_date, to_date, days[], record_streak_days, shields_held, protectable_from?, protectable_to?, color }` |
+| POST | `/me/points/exchange` | 회원 | 입력 `{ item: "graph_color", option: "<색>", client_request_id? }` → **201** `{ coupon: null, shield: null, graph_color, spent, balance }` |
+| PUT | `/me/graph-color` | 회원 | 입력 `{ color }` → `{ current, unlocked[], palette[], cost }` |
+
+포인트 화면의 **기록 그래프**이 읽는 하나다. 하루에 칸 하나를 칠해 어느 날 기록이 끊겼는지 보여 준다. 앱은 월간 그래프
+(날짜 숫자가 든 7열 × 5~6줄)으로 그리고 한 달씩 앞뒤로 넘긴다 — 달마다 그 달의 1일~말일(이번 달은 오늘까지)을 부른다.
+
+`days[]`: `{ date, has_diet, has_exercise, protected }` — `from_date`…`to_date` 를 하루도 빠짐없이 채운 오름차순
+배열이다(기록이 없는 날도 빈 칸으로 온다). 날짜는 모두 KST.
+
+- **칸의 세 단계** 아무 기록도 없음 / 식단·운동 중 하나만 / 둘 다. 식단은 **끼니 하나라도** 있으면 `has_diet` 이고
+  (적립 규칙 #1786 과 같은 눈금), 운동은 분 > 0 이면 `has_exercise` 다.
+- **보호한 날**(#1788)은 실제 기록이 아니다 — `has_diet`·`has_exercise` 가 둘 다 false 이고 `protected` 만 true 다.
+  앱은 그 칸에 방패를 얹어 실제 기록과 구분한다.
+- **구간** `from`·`to` 는 `YYYY-MM-DD`. 주지 않으면 **오늘로 끝나는 371일**(앱이 그리는 격자와 같다)이다. `to` 가 오늘보다 뒤면 오늘로 당기고(오늘
+  이후 날짜는 싣지 않는다 — 빈 칸이 끊긴 날처럼 보인다), 구간이 371일보다 길면 뒤에서부터 371일만 싣는다.
+  **연속은 구간과 무관하다** — 지난달을 보고 있어도 `record_streak_days` 는 오늘 기준 값이다.
+- **`record_streak_days`·`shields_held`·`protectable_from`·`protectable_to`** 는 `GET /me/streak-shields` 와 **같은 값**이다 — 한
+  화면의 두 자리에 다른 연속이 보이지 않게 같은 계산을 쓴다. 운동 탭의 `연속 N일`(운동만, 그 주 안)과는 다른 숫자이고,
+  이 기능은 운동 탭과 트레이너웹을 바꾸지 않는다.
+
+`color`: `{ current, unlocked[], palette[], cost }` — 지금 그래프 색, 고를 수 있는 색, 서버가 파는 색 전부, 한 색의 값.
+
+- **팔레트** `blue`(기본) · `green` · `purple` · `orange` · `pink`. `blue` 는 회원앱 파랑이고 포인트가 들지 않아 늘
+  `unlocked` 첫 칸에 있다. 앱은 가격·목록을 따로 들고 있지 않고 이 응답을 쓴다.
+- **교환** 한 색에 150P, **색 하나씩** 연다. 연 색은 그 자리에서 `current` 가 된다. 파는 색이 아니거나(`blue`·모르는
+  색·`option` 없음) 404, 이미 연 색은 409, 잔액 부족은 409. 같은 `client_request_id` 재전송은 두 번 쓰지 않는다.
+  네 색을 모두 열면 `GET /me/points/shop` 의 `items[]` 에서 이 항목이 **빠진다**.
+- **고르기** `PUT /me/graph-color` 는 포인트가 들지 않는다 — 이미 연 색 사이는 언제든 오간다. `blue` 는 늘 고를 수
+  있고(고른 행을 푸는 일이다), 아직 열지 않은 색은 409, 팔레트에 없는 색은 404. 고른 색은 서버에 있어 기기를 바꿔도
+  유지된다. 기한은 없다.
 
 ### 주간 운동 챌린지 (#1789)
 

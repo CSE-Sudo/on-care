@@ -29,6 +29,7 @@ from app.schemas.points_api import (
     PointsShopOut,
 )
 from app.services import (
+    graph_color_service,
     points_coupon_service,
     points_service,
     streak_shield_service,
@@ -59,17 +60,22 @@ def exchange_points(
     """포인트를 써서 쿠폰을 발급한다. 내역에는 `spend` 로 남는다.
 
     없는 항목은 404, 규칙에 막히면(담당 트레이너 없음·연결한 헬스장 없음·사용하지
-    않은 같은 종류 쿠폰 보유·연속 기록 보호권 최대 보유·이번 달 교환·잔액 부족)
-    409 다. 보호권(#1788)은 쿠폰 대신 `shield` 에 받은 보호권이 온다.
+    않은 같은 종류 쿠폰 보유·연속 기록 보호권 최대 보유·이번 달 교환·이미 가진 그래프
+    색·잔액 부족) 409 다. 보호권(#1788)은 쿠폰 대신 `shield` 에, 그래프 색 바꾸기
+    (#2076)은 `graph_color` 에 연 뒤의 색 상태가 온다.
     """
     try:
         return points_coupon_service.exchange(
             db,
             member.id,
             payload.item,
+            option=payload.option,
             client_request_id=payload.client_request_id,
         )
-    except points_coupon_service.UnknownItem as exc:
+    except (
+        points_coupon_service.UnknownItem,
+        graph_color_service.UnknownColor,
+    ) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except points_service.InsufficientPoints as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -79,6 +85,7 @@ def exchange_points(
         points_coupon_service.ActiveCouponExists,
         streak_shield_service.ShieldLimitReached,
         points_coupon_service.MonthlyLimitReached,
+        graph_color_service.AlreadyUnlocked,
     ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 

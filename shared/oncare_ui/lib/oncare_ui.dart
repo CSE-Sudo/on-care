@@ -35,6 +35,7 @@ export 'src/tokens/calendar.dart';
 export 'src/tokens/colors.dart';
 export 'src/tokens/density.dart';
 export 'src/tokens/elevation.dart';
+export 'src/tokens/record_colors.dart';
 export 'src/tokens/icons.dart';
 export 'src/tokens/layout.dart';
 export 'src/tokens/motion.dart';

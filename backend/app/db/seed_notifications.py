@@ -88,7 +88,7 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
     DemoNotification(
         "noti-demo-8",
         "식단 기록을 꾸준히 이어가고 있어요",
-        "한 달 넘게 하루도 빠짐없이 식단을 기록하고 있어요.",
+        "보름 넘게 하루도 빠짐없이 식단을 기록하고 있어요.",
         "achievement",
         timedelta(hours=26),
         read=True,

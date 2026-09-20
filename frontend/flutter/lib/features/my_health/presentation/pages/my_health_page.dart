@@ -7,13 +7,17 @@ import 'package:oncare/core/points/points_rules.dart';
 import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
 import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
+import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
+import 'package:oncare/features/benefits/presentation/widgets/graph_color_sheet.dart';
+import 'package:oncare/features/benefits/presentation/widgets/record_graph_card.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
@@ -487,14 +491,35 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
   String? _exchanging;
 
   Future<void> _exchange(ShopItem item) async {
+    if (item.id == kGraphColorItem) {
+      // 색은 하나씩 연다(#2076) — 어느 색을 열지 먼저 고르고 나서 확인창이다.
+      final GraphColorChoice? choice = await _pickGraphColor(
+        lockedOnly: true,
+      );
+      if (choice == null || !mounted) return;
+      await _exchangeItem(item, option: choice.color);
+      return;
+    }
+    await _exchangeItem(item);
+  }
+
+  Future<void> _exchangeItem(ShopItem item, {String? option}) async {
     final AppLocalizations l = AppLocalizations.of(context);
+    // 그래프 색(#2076)은 쿠폰이 아니라 고른 색 하나가 열린다 — 확인창도 "쿠폰은 내
+    // 혜택에서" 가 아니라 어느 색을 여는지 말한다.
+    final bool isColor = item.id == kGraphColorItem && option != null;
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myPointsExchangeConfirmTitle,
-      message: l.myPointsExchangeConfirmMessage(
-        shopItemTitle(l, item),
-        l.myPointsCost(item.cost),
-      ),
+      message: isColor
+          ? l.myGraphColorExchangeConfirm(
+              graphColorName(l, option),
+              l.myPointsCost(item.cost),
+            )
+          : l.myPointsExchangeConfirmMessage(
+              shopItemTitle(l, item),
+              l.myPointsCost(item.cost),
+            ),
       confirmLabel: l.myPointsExchangeConfirmAction,
       cancelLabel: l.myCancel,
     );
@@ -503,7 +528,11 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     try {
       await ref
           .read(benefitsRepositoryProvider)
-          .exchange(item.id, clientRequestId: newClientRequestId());
+          .exchange(
+            item.id,
+            option: option,
+            clientRequestId: newClientRequestId(),
+          );
       if (!mounted) return;
       // 잔액·교환 가능 여부·보유 쿠폰이 함께 바뀌었다. MY 잔액도 다시 읽는다.
       ref
@@ -511,10 +540,22 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         ..invalidate(myCouponsProvider)
         ..invalidate(myHealthStateProvider);
       if (item.id == kStreakShieldItem) {
-        // 보호권(#1788)은 내 혜택의 보유 수와 운동 현황의 `보호권 쓰기` 를 바꾼다.
+        // 보호권(#1788)은 내 혜택의 보유 수와 기록 그래프의 `보호권 쓰기` 를 바꾼다.
         ref
           ..invalidate(myStreakShieldsProvider)
-          ..invalidate(exerciseWeekProvider);
+          ..invalidate(exerciseWeekProvider)
+          ..invalidate(activityCalendarProvider);
+      }
+      if (isColor) {
+        // 연 색은 그 자리에서 그래프 색이 된다(#2076). 쿠폰이 아니라 내 혜택으로
+        // 보낼 것이 없으므로 안내만 띄운다.
+        ref.invalidate(activityCalendarProvider);
+        showAppToast(
+          context,
+          l.myGraphColorUnlocked,
+          type: AppToastType.success,
+        );
+        return;
       }
       showAppToast(
         context,
@@ -531,6 +572,98 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       showAppToast(context, l.myPointsExchangeFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _exchanging = null);
+    }
+  }
+
+  /// 보호권 사용 요청이 나가 있다(#1788). 교환·참가와 겹치지 않게 서로 막는다.
+  bool _usingShield = false;
+
+  /// 색 고르기 시트를 띄우고 고른 색을 돌려준다. 아무것도 고르지 않으면 null.
+  ///
+  /// [lockedOnly] 는 사용처 카드에서 들어온 길이다 — 아직 열지 않은 색만 보여 준다.
+  Future<GraphColorChoice?> _pickGraphColor({
+    bool lockedOnly = false,
+  }) async {
+    final GraphColorState? color = ref
+        .read(activityCalendarProvider)
+        .valueOrNull
+        ?.color;
+    if (color == null) return null;
+    return showAppSheet<GraphColorChoice>(
+      context: context,
+      builder: (BuildContext ctx) =>
+          GraphColorSheet(state: color, lockedOnly: lockedOnly),
+    );
+  }
+
+  /// 그래프 카드의 팔레트 버튼 — 연 색은 바로 바꾸고, 열지 않은 색은 교환으로 잇는다.
+  Future<void> _changeGraphColor() async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final GraphColorChoice? choice = await _pickGraphColor();
+    if (choice == null || !mounted) return;
+    if (choice.unlock) {
+      // 여기서도 값을 치르는 길은 사용처 교환과 같은 확인창을 탄다.
+      final ShopItem? item = ref
+          .read(pointsShopProvider)
+          .valueOrNull
+          ?.items
+          .where((ShopItem i) => i.id == kGraphColorItem)
+          .firstOrNull;
+      if (item == null) return;
+      await _exchangeItem(item, option: choice.color);
+      return;
+    }
+    try {
+      await ref
+          .read(activityCalendarRepositoryProvider)
+          .selectColor(choice.color);
+      if (!mounted) return;
+      ref.invalidate(activityCalendarProvider);
+      showAppToast(context, l.myGraphColorDone, type: AppToastType.success);
+    } on Object {
+      if (!mounted) return;
+      showAppToast(context, l.myGraphColorFailed, type: AppToastType.error);
+    }
+  }
+
+  /// 어제를 기록 연속에 이어 붙인다(#1788). 되돌리기는 없으므로 확인창을 탄다.
+  Future<void> _useShield(DateTime date) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final int held =
+        ref.read(activityCalendarProvider).valueOrNull?.shieldsHeld ?? 0;
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.myGraphProtectConfirmTitle,
+      message: l.myGraphProtectConfirmMessage(
+        formatCouponDate(date),
+        // 지금 쓰는 한 장을 뺀 나머지. 확인창에서 보는 숫자가 누른 뒤의 보유 수다.
+        held > 0 ? held - 1 : 0,
+      ),
+      confirmLabel: l.myGraphProtectAction,
+      cancelLabel: l.myCancel,
+    );
+    if (!ok || !mounted || _usingShield) return;
+    setState(() => _usingShield = true);
+    try {
+      await ref.read(streakShieldRepositoryProvider).use(date);
+      if (!mounted) return;
+      // 달력 칸·연속·보유 수가 함께 바뀌었다. 내 혜택의 보호한 날도 다시 읽는다.
+      ref
+        ..invalidate(activityCalendarProvider)
+        ..invalidate(myStreakShieldsProvider)
+        ..invalidate(pointsShopProvider);
+      showAppToast(
+        context,
+        l.myGraphProtectDone,
+        type: AppToastType.success,
+      );
+    } on Object {
+      if (!mounted) return;
+      // 그사이 날이 바뀌었거나 그날 기록이 생겼을 수 있다 — 다시 읽어 상태를 맞춘다.
+      ref.invalidate(activityCalendarProvider);
+      showAppToast(context, l.myGraphProtectFailed, type: AppToastType.error);
+    } finally {
+      if (mounted) setState(() => _usingShield = false);
     }
   }
 
@@ -588,7 +721,11 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     final AsyncValue<WeeklyChallenge> challenge = ref.watch(
       weeklyChallengeProvider,
     );
-    final bool idle = _exchanging == null && !_joiningChallenge;
+    final AsyncValue<ActivityCalendar> calendar = ref.watch(
+      activityCalendarProvider,
+    );
+    final bool idle =
+        _exchanging == null && !_joiningChallenge && !_usingShield;
     final int? balance = shop.valueOrNull?.balance ?? widget.points;
     return AppPage(
       key: const Key('pointsBenefitsPage'),
@@ -622,6 +759,34 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s16),
+        // 기록 그래프(#2075) — 화면 맨 위다. 내 기록 흐름을 먼저 보고 그 아래로
+        // "그래서 뭘 교환할까" 가 이어진다. 불러오는 중·실패면 교환 목록만 보인다.
+        ...calendar.when(
+          loading: () => const <Widget>[
+            AppCard(child: AppLoading(placement: AppStatePlacement.card)),
+            SizedBox(height: OnCareSpacing.cardGap),
+          ],
+          error: (_, _) => <Widget>[
+            AppCard(
+              child: AppErrorState(
+                title: l.myGraphLoadFailed,
+                retryLabel: l.actionRetry,
+                onRetry: () => ref.invalidate(activityCalendarProvider),
+                placement: AppStatePlacement.card,
+              ),
+            ),
+            const SizedBox(height: OnCareSpacing.cardGap),
+          ],
+          data: (ActivityCalendar data) => <Widget>[
+            RecordGraphCard(
+              calendar: data,
+              busy: _usingShield,
+              onProtect: idle ? _useShield : null,
+              onChangeColor: idle ? _changeGraphColor : null,
+            ),
+            const SizedBox(height: OnCareSpacing.cardGap),
+          ],
+        ),
         // 주간 운동 챌린지(#1789) — 쿠폰 교환 위에 선다. 불러오는 중·실패면 교환
         // 목록만 보인다(챌린지를 못 읽었다고 교환까지 막지 않는다).
         ...challenge.maybeWhen(

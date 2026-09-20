@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
+from app.schemas.activity_api import GraphColorOut
 from app.schemas.streak_shield_api import StreakShieldOut
 
 if TYPE_CHECKING:
@@ -50,9 +51,13 @@ class ExchangeRequest(BaseModel):
 
     `client_request_id` 는 교환 시도 단위 멱등키다. 같은 값으로 다시 보내면 새로
     쓰지 않고 처음 발급한 쿠폰을 돌려준다.
+
+    `option` 은 항목이 여러 갈래일 때 고른 갈래다 — 그래프 색 바꾸기(#2076)에서 어느
+    색을 열지 싣는다. 갈래가 없는 항목은 주지 않는다.
     """
 
     item: str = Field(min_length=1, max_length=40)
+    option: str | None = Field(default=None, min_length=1, max_length=40)
     client_request_id: str | None = Field(default=None, min_length=1, max_length=64)
 
 
@@ -88,11 +93,13 @@ class ExchangeOut(BaseModel):
     """POST /me/points/exchange 응답 — 발급한 쿠폰, 쓴 포인트, 그 뒤의 잔액.
 
     연속 기록 보호권(#1788)은 쿠폰이 아니라 `coupon` 이 null 이고 `shield` 에 받은
-    보호권이 온다. 두 칸 중 교환한 항목의 것 하나만 있다.
+    보호권이, 그래프 색 바꾸기(#2076)는 `graph_color` 에 연 뒤의 색 상태가 온다.
+    세 칸 중 교환한 항목의 것 하나만 있다.
     """
 
     coupon: CouponOut | None = None
     shield: StreakShieldOut | None = None
+    graph_color: GraphColorOut | None = None
     spent: int
     balance: int
 
