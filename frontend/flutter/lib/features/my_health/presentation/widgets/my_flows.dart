@@ -294,14 +294,9 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               ? editor
               : Align(
                   alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: OnCareSpacing.s12,
-                    ),
-                    child: Text(
-                      value.isEmpty ? '—' : value,
-                      style: context.oncare.text(OnCareTypography.body),
-                    ),
+                  child: Text(
+                    value.isEmpty ? '—' : value,
+                    style: context.oncare.text(OnCareTypography.body),
                   ),
                 ),
         ),
