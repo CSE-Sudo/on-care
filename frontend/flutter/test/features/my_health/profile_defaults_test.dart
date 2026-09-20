@@ -89,6 +89,46 @@ void main() {
     );
   });
 
+  testWidgets('수정 전후 항목 위치를 유지하고 취소하면 저장 없이 보기로 돌아온다', (tester) async {
+    final l = await _openProfile(tester, editing: false);
+    final labels = <String>[
+      l.myFieldName,
+      l.myFieldEmail,
+      l.myFieldPhone,
+      l.myFieldBirth,
+      l.myFieldGender,
+      l.myFieldHeight,
+      l.myFieldWeight,
+    ];
+    final positions = <Offset>[
+      for (final label in labels) tester.getTopLeft(find.text(label)),
+    ];
+    await tester.tap(find.byKey(const Key('profileEditButton')));
+    await tester.pumpAndSettle();
+    for (var i = 0; i < labels.length; i++) {
+      expect(tester.getTopLeft(find.text(labels[i])), positions[i]);
+    }
+    final name = find.byKey(const ValueKey<String>('my-profile-name'));
+    await tester.enterText(name, '취소할이름');
+    await tester.tap(find.text(l.myCancel));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProfileSettingsPage), findsOneWidget);
+    expect(find.text('김민수'), findsOneWidget);
+    expect(find.text('취소할이름'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+    await tester.tap(find.byKey(const Key('profileEditButton')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(
+            find.descendant(of: name, matching: find.byType(TextField)),
+          )
+          .controller!
+          .text,
+      '김민수',
+    );
+  });
+
   testWidgets('데모 회원은 성별이 이미 채워져 있다', (WidgetTester tester) async {
     final AppLocalizations l = await _openProfile(tester);
 
