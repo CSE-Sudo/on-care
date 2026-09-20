@@ -67,20 +67,26 @@ class DioChatRepository implements ChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async {
     // reportWeekStart는 데모/드리프트 전용이다 — 실서버는 `/report/send-pdf`가
     // 첨부 메타데이터를 직접 붙이므로 이 경로로 오지 않는다.
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty && emoteId == null) return;
     final encodedId = Uri.encodeComponent(clientId);
     final payload = (clientId: clientId, text: trimmed);
-    final requestId = _pendingRequestIds.putIfAbsent(payload, requestIdFactory);
+    // 같은 이모티콘을 연달아 보내는 것은 흔한 일이라, 멱등키를 글로만 묶으면
+    // 두 번째가 재시도로 접힌다. 이모티콘은 누를 때마다 새 키를 만든다.
+    final requestId = emoteId != null
+        ? requestIdFactory()
+        : _pendingRequestIds.putIfAbsent(payload, requestIdFactory);
     try {
       await _dio.post<Map<String, Object?>>(
         '/trainer/clients/$encodedId/chat',
         data: <String, Object?>{
           'text': trimmed,
           'client_request_id': requestId,
+          'emote_id': ?emoteId,
         },
       );
     } on DioException catch (e) {

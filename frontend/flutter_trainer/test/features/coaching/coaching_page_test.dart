@@ -64,6 +64,7 @@ class _FailingChatRepository extends DriftChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async => throw Exception('chat write failed');
 }
 
@@ -77,6 +78,7 @@ class _SlowChatRepository extends DriftChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 300));
     return super.sendTrainerMessage(
@@ -350,6 +352,7 @@ class _FakeRealChatRepository implements ChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async {
     if (failSend) throw Exception('note failed');
   }

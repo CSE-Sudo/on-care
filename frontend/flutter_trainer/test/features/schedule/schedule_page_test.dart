@@ -29,6 +29,7 @@ class _FailingChatRepository extends DriftChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async => throw Exception('chat write failed');
 }
 

@@ -48,6 +48,7 @@ class _SlowChatRepository extends DriftChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 400));
     return super.sendTrainerMessage(
@@ -71,6 +72,7 @@ class _ControllableChatRepository extends DriftChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) => gate;
 }
 
@@ -119,6 +121,7 @@ class _StaticLiveChatRepository implements ChatRepository {
     required String clientId,
     required String text,
     DateTime? reportWeekStart,
+    String? emoteId,
   }) async {}
 
   @override
