@@ -17,6 +17,7 @@ import 'package:oncare/features/member_coach/data/repositories/mock_member_coach
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import '../../helpers/fixed_clock.dart';
 
 const List<String> _dayLabels = <String>['월', '화', '수', '목', '금', '토', '일'];
 
@@ -166,6 +167,10 @@ DateTime _otherDayThisWeek() {
 }
 
 void main() {
+  // 월요일에는 다른 평일이 모두 미래라 선택할 수 없다.
+  // 과거 기록을 고르는 시나리오는 주 중간으로 고정한다.
+  setUp(() => useFixedKstDate());
+
   testWidgets('오늘이 아닌 날에 기록이 있으면 빈 문구 대신 그날 요약을 그린다 (#671)', (
     WidgetTester tester,
   ) async {
