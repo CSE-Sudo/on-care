@@ -15,6 +15,7 @@ import 'package:oncare/features/member_coach/data/repositories/mock_member_coach
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import '../../helpers/fixed_clock.dart';
 
 /// 직접 추가한 운동 기록이 운동 탭에 남는다. (#1428)
 ///
@@ -172,6 +173,10 @@ Widget _app(ExerciseRepository repo) => ProviderScope(
 );
 
 void main() {
+  // 날짜 스트립은 이번 주(월~일)만 보여 준다. 오늘을 고정하지 않으면 **월요일에는
+  // 고를 지난 날이 없어** 이 파일 전체가 요일에 매인다(#1209). 주 중간으로 고정한다.
+  setUp(useFixedKstDate);
+
   DateTime today() {
     final DateTime now = nowKst();
     return DateTime(now.year, now.month, now.day);
