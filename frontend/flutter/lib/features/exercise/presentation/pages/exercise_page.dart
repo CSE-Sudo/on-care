@@ -8,6 +8,7 @@ import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
 import 'package:oncare/features/diet/presentation/widgets/week_strip_label.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -358,6 +359,16 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
                 },
               ),
             ),
+            // 2-1) 이번 주 챌린지에 참가했으면 진행(예: 2 / 3회)을 덧붙인다(#1789).
+            //
+            // 위 `운동 현황`·`AI 맞춤 조언` 은 기간 토글을 따라가는데 챌린지는
+            // 언제나 이번 주다. 그 둘 사이에 끼우면 한 세로줄에서 기준 기간이
+            // 말없이 바뀌므로, 숫자와 그 해석이 붙어 있는 두 카드 **뒤**에
+            // 세우고 제목에 주 범위를 적는다.
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
+              child: ExerciseChallengeProgress(),
+            ),
             const SizedBox(height: OnCareSpacing.s20),
             // 3) 오늘 완료한 PT 일지 (트레이너 피드백 포함)
             const Padding(
@@ -602,9 +613,10 @@ class _ExerciseDayDetail extends StatelessWidget {
           if (routineSessions.isNotEmpty)
             _DayRecordCard(
               key: const ValueKey<String>('exercise-routine-records'),
-              // 오늘 화면의 `추천 개인운동` 과 같은 어휘·같은 아이콘이다.
+              // 어휘는 오늘 화면의 `추천 개인운동` 과 같게 두되, 지난 날의 완료
+              // 기록은 공통 운동 아이콘으로 묶는다(#2070).
               title: l.exCompletedRoutineDayTitle,
-              icon: AppIcons.running,
+              icon: AppIcons.exercise,
               sessions: routineSessions,
             ),
           // 트레이너 쪽 기록이 하나라도 있으면 한 칸 띄운다 — 붙여 두면 아래

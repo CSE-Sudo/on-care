@@ -278,6 +278,66 @@ class PointsCoupon(Base):
     )
 
 
+class StreakShield(Base):
+    """연속 기록 보호권 한 장. (#1788)
+
+    포인트 사용처에서 300P 로 교환하면 `held` 로 생기고, 회원이 운동을 못 한 어제를
+    연속 기록에 이어 붙이면 `used` 가 되며 그 날짜(`protected_on`, KST)를 남긴다.
+
+    - 사용하지 않은 보호권은 회원당 최대 2장이다. 교환이 잔액 행을 잠근 채 세므로
+      같은 회원의 교환이 겹쳐도 넘지 않는다(`streak_shield_service.exchange`).
+    - 한 날짜는 한 번만 보호한다(partial unique index). 같은 날을 다시 보호하려는
+      재시도가 보호권을 두 장 쓰지 않게 하는 마지막 방어선이다.
+    - 보호한 날은 **연속 일수에만** 운동한 날로 센다. 운동 시간·칼로리·횟수 합계에는
+      넣지 않는다 — 그래서 운동 기록 표에 행을 만들지 않고 날짜만 따로 둔다.
+    - 기한은 없다. 교환에 쓴 포인트는 내역에 `spend`(source `streak_shield`)로 남는다.
+    """
+
+    __tablename__ = "streak_shields"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    cost: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(8), default="held", server_default="held"
+    )  # held|used
+    #: 교환 시도 단위 멱등키. 응답을 못 받고 다시 누른 교환이 두 장을 만들지 않는다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 보호한 날(KST, YYYY-MM-DD). 아직 쓰지 않았으면 NULL.
+    protected_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('held', 'used')", name="ck_streak_shields_status"
+        ),
+        # 쓴 보호권만 날짜·시각을 가진다. 반쪽 상태(날짜 없는 사용)를 막는다.
+        CheckConstraint(
+            "(status = 'held' AND protected_on IS NULL AND used_at IS NULL) "
+            "OR (status = 'used' AND protected_on IS NOT NULL AND used_at IS NOT NULL)",
+            name="ck_streak_shields_use",
+        ),
+        CheckConstraint("cost > 0", name="ck_streak_shields_cost"),
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_streak_shields_client_request"
+        ),
+        Index("ix_streak_shields_user_status", "user_id", "status"),
+        # 하루에 보호는 한 번 — 회원·날짜마다 쓴 보호권은 최대 한 장.
+        Index(
+            "uq_streak_shields_protected_on",
+            "user_id",
+            "protected_on",
+            unique=True,
+            postgresql_where=text("protected_on IS NOT NULL"),
+        ),
+    )
+
+
 class DietEntry(Base):
     """식단 기록 — drift DietEntries 대응. 나트륨·당류 포함."""
 
@@ -1888,4 +1948,62 @@ class AiMessage(Base):
 
     __table_args__ = (
         UniqueConstraint("conversation_id", "seq", name="uq_ai_messages_convo_seq"),
+    )
+
+
+class WeeklyChallenge(Base):
+    """주간 운동 챌린지 참가 기록 — 회원이 참가한 주 하나당 한 줄. (#1789)
+
+    포인트를 걸고(`stake`) 한 주(KST 월~일) 운동 목표를 채우면 `reward` 를 돌려받는다.
+    참가는 그 주 월·화요일에만, 한 주에 한 번이다(`(user_id, week_start)` 유니크).
+
+    - `goal` 은 참가할 때의 주간 운동 횟수 목표 사본이다. 참가 뒤 목표를 바꿔도
+      그 주 챌린지는 참가할 때 목표로 판정한다.
+    - `status` 는 active(진행 중)|succeeded|failed. 스케줄러가 없어 **주가 끝난 뒤
+      읽는 쪽이 판정한다**(`weekly_challenge_service.settle_due`).
+    - `final_days` 는 판정 때 센 운동한 날 수다. 판정 뒤 지난 주 기록이 바뀌어도
+      결과 화면이 판정과 어긋나지 않게 남긴다.
+    - 포인트 움직임은 `points_ledger` 에 `source_type='weekly_challenge'` 로 남는다 —
+      참가 `spend`, 성공 `earn`.
+    """
+
+    __tablename__ = "weekly_challenges"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 그 주의 월요일(KST, YYYY-MM-DD). `exercise_sessions.week_start` 와 같은 표기.
+    week_start: Mapped[str] = mapped_column(String(10))
+    goal: Mapped[int] = mapped_column(Integer)
+    stake: Mapped[int] = mapped_column(Integer)
+    reward: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(
+        String(12), default="active", server_default="active"
+    )  # active|succeeded|failed
+    final_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    #: 참가 시도 단위 멱등키. 응답을 못 받고 다시 누른 참가가 두 번 걸지 않는다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    settled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'succeeded', 'failed')",
+            name="ck_weekly_challenges_status",
+        ),
+        CheckConstraint("goal BETWEEN 1 AND 7", name="ck_weekly_challenges_goal"),
+        CheckConstraint("stake > 0", name="ck_weekly_challenges_stake"),
+        CheckConstraint("reward > 0", name="ck_weekly_challenges_reward"),
+        UniqueConstraint(
+            "user_id", "week_start", name="uq_weekly_challenges_user_week"
+        ),
+        UniqueConstraint(
+            "user_id",
+            "client_request_id",
+            name="uq_weekly_challenges_client_request",
+        ),
+        Index("ix_weekly_challenges_user_status", "user_id", "status"),
     )

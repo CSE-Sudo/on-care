@@ -1394,6 +1394,12 @@ abstract class AppLocalizations {
   /// **'Start a streak with today\'s workout.'**
   String get exStreakStart;
 
+  /// No description provided for @exStreakProtected.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept by a shield'**
+  String get exStreakProtected;
+
   /// No description provided for @exToday.
   ///
   /// In en, this message translates to:
@@ -2048,7 +2054,7 @@ abstract class AppLocalizations {
   /// **'Use Points'**
   String get myPointsBenefitsTitle;
 
-  /// No description provided for @myPointsBalance.
+  /// The balance shown on the rewards screen, with thousands separators, e.g. 25,000P.
   ///
   /// In en, this message translates to:
   /// **'Balance: {points}P'**
@@ -2138,6 +2144,60 @@ abstract class AppLocalizations {
   /// **'You already redeemed this month'**
   String get myPointsMonthlyLimit;
 
+  /// No description provided for @myPointsShieldLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'You can hold up to 4 shields'**
+  String get myPointsShieldLimit;
+
+  /// No description provided for @myShopStreakShieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak shield'**
+  String get myShopStreakShieldTitle;
+
+  /// No description provided for @myShopStreakShieldDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep your streak going when you logged nothing yesterday. Hold up to 4.'**
+  String get myShopStreakShieldDescription;
+
+  /// No description provided for @myBenefitsStreakShields.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak shields'**
+  String get myBenefitsStreakShields;
+
+  /// No description provided for @myBenefitsShieldHeld.
+  ///
+  /// In en, this message translates to:
+  /// **'{held}/{max} held'**
+  String myBenefitsShieldHeld(int held, int max);
+
+  /// No description provided for @myBenefitsShieldHeldCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{held} held'**
+  String myBenefitsShieldHeldCount(int held);
+
+  /// No description provided for @myBenefitsShieldGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Use one the day after a day with nothing logged.'**
+  String get myBenefitsShieldGuide;
+
+  /// No description provided for @myBenefitsShieldUsedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protected days'**
+  String get myBenefitsShieldUsedTitle;
+
+  /// No description provided for @myBenefitsShieldNoneUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'No protected days yet'**
+  String get myBenefitsShieldNoneUsed;
+
   /// No description provided for @myPointsValidDays.
   ///
   /// In en, this message translates to:
@@ -2215,6 +2275,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t load benefits'**
   String get myBenefitsLoadFailed;
+
+  /// No description provided for @challengeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly workout challenge'**
+  String get challengeTitle;
+
+  /// No description provided for @challengeShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly challenge'**
+  String get challengeShort;
+
+  /// Title of the progress row in the exercise tab, naming the week it covers.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly challenge · {range}'**
+  String challengeShortWithRange(String range);
+
+  /// Challenge card summary. stake and reward are point amounts such as 100P.
+  ///
+  /// In en, this message translates to:
+  /// **'Stake {stake}, work out {goal} times this week, and get {reward} back'**
+  String challengeDescription(String stake, int goal, String reward);
+
+  /// No description provided for @challengeJoinWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'You can join on Monday or Tuesday'**
+  String get challengeJoinWindow;
+
+  /// No description provided for @challengeJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get challengeJoin;
+
+  /// No description provided for @challengeJoinConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join this week\'s challenge?'**
+  String get challengeJoinConfirmTitle;
+
+  /// No description provided for @challengeJoinConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Stake {stake} and aim for {goal} workouts this week. Reach it by Sunday to get {reward} back, or the stake is lost.'**
+  String challengeJoinConfirmMessage(String stake, int goal, String reward);
+
+  /// No description provided for @challengeJoinConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get challengeJoinConfirmAction;
+
+  /// No description provided for @challengeJoinDone.
+  ///
+  /// In en, this message translates to:
+  /// **'You joined this week\'s challenge'**
+  String get challengeJoinDone;
+
+  /// No description provided for @challengeJoinFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t join. Please try again.'**
+  String get challengeJoinFailed;
+
+  /// No description provided for @challengeJoinClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'You can join again next Monday'**
+  String get challengeJoinClosed;
+
+  /// No description provided for @challengeThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get challengeThisWeek;
+
+  /// Challenge progress: days with a workout record out of the goal.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress} / {goal} workouts'**
+  String challengeProgress(int progress, int goal);
+
+  /// No description provided for @challengeRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} more by Sunday to get {reward} back'**
+  String challengeRemaining(int count, String reward);
+
+  /// No description provided for @challengeAchieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal reached! You get {reward} when the week ends'**
+  String challengeAchieved(String reward);
+
+  /// No description provided for @challengeWeekTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge {range}'**
+  String challengeWeekTitle(String range);
+
+  /// No description provided for @challengeStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get challengeStatusActive;
+
+  /// No description provided for @challengeStatusSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get challengeStatusSucceeded;
+
+  /// No description provided for @challengeStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get challengeStatusFailed;
+
+  /// No description provided for @challengeResultSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress} of {goal} workouts · {reward} earned'**
+  String challengeResultSucceeded(int goal, int progress, String reward);
+
+  /// No description provided for @challengeResultFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress} of {goal} workouts · {stake} stake lost'**
+  String challengeResultFailed(int goal, int progress, String stake);
+
+  /// No description provided for @challengeLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load challenges'**
+  String get challengeLoadFailed;
 
   /// No description provided for @myCouponStatusUsable.
   ///

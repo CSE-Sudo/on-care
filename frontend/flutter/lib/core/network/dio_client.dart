@@ -9,6 +9,8 @@ import 'package:oncare/core/network/interceptors/local_api_interceptor.dart';
 import 'package:oncare/core/network/interceptors/mock_api_interceptor.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
+import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/storage/app_database.dart';
 
 /// App-wide `Dio` instance, wired with logging/auth/mock interceptors
@@ -49,6 +51,11 @@ final dioProvider = Provider<Dio>((ref) {
           points: ref.watch(demoPointsLedgerProvider),
           // 목업 헬스장 저장소와 같은 쿠폰 원장 — 해제가 쿠폰 취소로 이어진다(#1787).
           coupons: ref.watch(demoCouponBookProvider),
+          // 목업 운동 저장소와 같은 보호권 원장 — 보호한 날에 기록이 생기면
+          // 여기서 되돌린다(#1788).
+          shields: ref.watch(demoStreakShieldBookProvider),
+          // 목업 운동 저장소가 운동한 날을 붙이는 챌린지 — 진행이 운동 탭과 같다(#1789).
+          challenges: ref.watch(demoWeeklyChallengeProvider),
         ),
       )
       ..add(MockApiInterceptor(logger, isRealApi: config.isRealApi));

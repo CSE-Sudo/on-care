@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/points/points_award.dart';
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
@@ -14,5 +15,11 @@ String? pointsRewardLabel(AppLocalizations l, PointsAward? award) =>
 ///
 /// 잔액은 [myHealthStateProvider] 가 들고 있는데, 예전에는 세션 초기화 때만
 /// 다시 읽어 적립이 MY 에 보이지 않았다.
-void refreshPointsBalance(WidgetRef ref) =>
-    ref.invalidate(myHealthStateProvider);
+///
+/// 운동 기록이 바뀌면 주간 챌린지 진행(운동한 날 수)도 달라지므로 함께 다시
+/// 읽는다(#1789). 보고 있는 화면이 없으면 무효화는 아무 일도 하지 않는다.
+void refreshPointsBalance(WidgetRef ref) {
+  ref
+    ..invalidate(myHealthStateProvider)
+    ..invalidate(weeklyChallengeProvider);
+}

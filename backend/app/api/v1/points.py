@@ -28,7 +28,12 @@ from app.schemas.points_api import (
     ExchangeRequest,
     PointsShopOut,
 )
-from app.services import points_coupon_service, points_service
+from app.services import (
+    points_coupon_service,
+    points_service,
+    streak_shield_service,
+    weekly_challenge_service,
+)
 from app.services.audit import client_ip, record as record_audit
 
 router = APIRouter(tags=["points"])
@@ -40,6 +45,8 @@ def points_shop(
     db: Annotated[Session, Depends(get_db)],
 ) -> PointsShopOut:
     """교환 항목과 항목별 교환 가능 여부. 막힌 이유와 모자란 포인트를 함께 준다."""
+    # 끝난 주의 챌린지를 먼저 판정해 보상이 든 잔액으로 계산한다(#1789).
+    weekly_challenge_service.settle_quietly(db, current_user.id)
     return points_coupon_service.build_shop(db, current_user.id)
 
 
@@ -52,7 +59,8 @@ def exchange_points(
     """포인트를 써서 쿠폰을 발급한다. 내역에는 `spend` 로 남는다.
 
     없는 항목은 404, 규칙에 막히면(담당 트레이너 없음·연결한 헬스장 없음·사용하지
-    않은 같은 종류 쿠폰 보유·이번 달 교환·잔액 부족) 409 다.
+    않은 같은 종류 쿠폰 보유·연속 기록 보호권 최대 보유·이번 달 교환·잔액 부족)
+    409 다. 보호권(#1788)은 쿠폰 대신 `shield` 에 받은 보호권이 온다.
     """
     try:
         return points_coupon_service.exchange(
@@ -69,6 +77,7 @@ def exchange_points(
         points_coupon_service.TrainerRequired,
         points_coupon_service.GymRequired,
         points_coupon_service.ActiveCouponExists,
+        streak_shield_service.ShieldLimitReached,
         points_coupon_service.MonthlyLimitReached,
     ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

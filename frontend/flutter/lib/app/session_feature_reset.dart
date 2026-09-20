@@ -5,10 +5,12 @@ import 'package:oncare/features/account/presentation/controllers/account_control
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/notification/data/repositories/notification_settings_repository.dart';
@@ -59,6 +61,10 @@ Override sessionFeatureResetOverride() {
       // 앞 계정의 잔액·교환 가능 여부·쿠폰이 남는다.
       ref.invalidate(pointsShopProvider);
       ref.invalidate(myCouponsProvider);
+      // 연속 기록 보호권(#1788) — 앞 계정의 보유 수·보호한 날이 남지 않게 한다.
+      ref.invalidate(myStreakShieldsProvider);
+      // 주간 챌린지(#1789) — 같은 이유로 앞 계정의 참가·진행이 남지 않게 한다.
+      ref.invalidate(weeklyChallengeProvider);
       // 목 저장소는 읽음 처리를 세션 동안 기억한다 — 다시 만들지 않으면 앞
       // 계정의 읽음 상태로 시작한다(#1936).
       ref.invalidate(notificationRepositoryProvider);

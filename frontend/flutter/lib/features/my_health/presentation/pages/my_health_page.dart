@@ -8,12 +8,16 @@ import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
 import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
+import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connected_gym_card.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/trainer_chat_header_button.dart';
@@ -506,6 +510,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
         ..invalidate(pointsShopProvider)
         ..invalidate(myCouponsProvider)
         ..invalidate(myHealthStateProvider);
+      if (item.id == kStreakShieldItem) {
+        // 보호권(#1788)은 내 혜택의 보유 수와 운동 현황의 `보호권 쓰기` 를 바꾼다.
+        ref
+          ..invalidate(myStreakShieldsProvider)
+          ..invalidate(exerciseWeekProvider);
+      }
       showAppToast(
         context,
         l.myPointsExchangeDone,
@@ -524,11 +534,61 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     }
   }
 
+  /// 주간 챌린지 참가 요청이 나가 있다(#1789). 교환과 겹치지 않게 서로 막는다.
+  bool _joiningChallenge = false;
+
+  /// 주간 챌린지 참가 — 파란 2열 확인창에서 건 포인트·목표·보상을 밝힌 뒤 건다.
+  Future<void> _joinChallenge(WeeklyChallenge state) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.challengeJoinConfirmTitle,
+      message: l.challengeJoinConfirmMessage(
+        l.myPointsCost(state.stake),
+        state.goal,
+        l.myPointsCost(state.reward),
+      ),
+      confirmLabel: l.challengeJoinConfirmAction,
+      cancelLabel: l.myCancel,
+    );
+    if (!ok || !mounted || _joiningChallenge || _exchanging != null) return;
+    setState(() => _joiningChallenge = true);
+    try {
+      await ref
+          .read(challengeRepositoryProvider)
+          .join(clientRequestId: newClientRequestId());
+      if (!mounted) return;
+      // 참가 기록·잔액·교환 가능 여부가 함께 바뀌었다. MY 잔액도 다시 읽는다.
+      ref
+        ..invalidate(weeklyChallengeProvider)
+        ..invalidate(pointsShopProvider)
+        ..invalidate(myHealthStateProvider);
+      showAppToast(
+        context,
+        l.challengeJoinDone,
+        type: AppToastType.success,
+        actionLabel: l.myBenefitsView,
+        onAction: () => context.push<void>(AppRoutes.myBenefits),
+      );
+    } on Object {
+      if (!mounted) return;
+      // 그사이 요일이 넘어갔거나 잔액이 바뀌었을 수 있다 — 다시 읽어 이유를 보여 준다.
+      ref.invalidate(weeklyChallengeProvider);
+      showAppToast(context, l.challengeJoinFailed, type: AppToastType.error);
+    } finally {
+      if (mounted) setState(() => _joiningChallenge = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
     final AppLocalizations l = AppLocalizations.of(context);
     final AsyncValue<PointsShop> shop = ref.watch(pointsShopProvider);
+    final AsyncValue<WeeklyChallenge> challenge = ref.watch(
+      weeklyChallengeProvider,
+    );
+    final bool idle = _exchanging == null && !_joiningChallenge;
     final int? balance = shop.valueOrNull?.balance ?? widget.points;
     return AppPage(
       key: const Key('pointsBenefitsPage'),
@@ -562,6 +622,19 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s16),
+        // 주간 운동 챌린지(#1789) — 쿠폰 교환 위에 선다. 불러오는 중·실패면 교환
+        // 목록만 보인다(챌린지를 못 읽었다고 교환까지 막지 않는다).
+        ...challenge.maybeWhen(
+          data: (WeeklyChallenge state) => <Widget>[
+            WeeklyChallengeCard(
+              state: state,
+              busy: _joiningChallenge,
+              onJoin: idle ? () => _joinChallenge(state) : null,
+            ),
+            const SizedBox(height: OnCareSpacing.cardGap),
+          ],
+          orElse: () => const <Widget>[],
+        ),
         ...shop.when(
           loading: () => const <Widget>[
             AppCard(child: AppLoading(placement: AppStatePlacement.card)),
@@ -581,9 +654,7 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
               ShopItemCard(
                 item: data.items[i],
                 busy: _exchanging == data.items[i].id,
-                onExchange: _exchanging == null
-                    ? () => _exchange(data.items[i])
-                    : null,
+                onExchange: idle ? () => _exchange(data.items[i]) : null,
               ),
               if (i < data.items.length - 1)
                 const SizedBox(height: OnCareSpacing.cardGap),

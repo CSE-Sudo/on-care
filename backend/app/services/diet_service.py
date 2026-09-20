@@ -23,7 +23,7 @@ from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
     DietEntryOut, DietEntryUpdate, DietTodayResponse, calculate_macros,
 )
-from app.services import diet_photo_service, period_window
+from app.services import diet_photo_service, period_window, streak_shield_service
 from app.services.coach.personal_ingest import record_diet, refresh_diet
 
 logger = logging.getLogger(__name__)
@@ -396,6 +396,9 @@ def save_analyzed_entry(
         idempotency_key=idempotency_key,
     )
     db.add(entry)
+    # 보호한 날에 기록이 생기면 그날 쓴 보호권을 되돌린다(#1788) — 식단 한 끼도
+    # 기록이라 보호가 필요 없어진다. 기록과 같은 트랜잭션에서 부른다.
+    streak_shield_service.refund_for_record(db, user_id, recorded_at.date())
     try:
         db.commit()
     except IntegrityError:
@@ -455,6 +458,14 @@ def _sugar_exceeds_carbs(
     return carbs > 0 or carbs_recorded
 
 
+def _parsed_date(value: str) -> date_type | None:
+    """`YYYY-MM-DD` → date. 형식이 깨졌으면 None — 보호권 되돌리기는 건너뛴다."""
+    try:
+        return date_type.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) -> DietEntryOut:
     """식단 기록의 날짜·끼니 분류/시간 + 영양소 부분 수정."""
     # 인식 엔진 출력(`RecognizedFood`)에는 이 검사를 걸지 않는다 — 모델이 어긋난
@@ -497,6 +508,10 @@ def apply_entry_update(db: Session, entry: DietEntry, payload: DietEntryUpdate) 
         # 날짜가 바뀌면 그 하루의 합계도 함께 옮겨진다 — 화면은 날짜별로 조회하므로
         # 이 값이 곧 "어느 날 먹은 것인가" 다(#1241).
         entry.date = payload.date
+        # 옮겨 간 날이 보호한 날이면 보호권을 되돌린다(#1788).
+        streak_shield_service.refund_for_record(
+            db, entry.user_id, _parsed_date(payload.date)
+        )
     if payload.meal_type is not None:
         entry.meal_type = payload.meal_type
     if payload.time_label is not None:

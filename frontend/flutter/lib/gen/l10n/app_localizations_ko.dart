@@ -717,6 +717,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exStreakStart => '오늘 운동으로 연속 기록을 시작해 봐요.';
 
   @override
+  String get exStreakProtected => '보호권으로 이어짐';
+
+  @override
   String get exToday => '오늘';
 
   @override
@@ -1079,7 +1082,11 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String myPointsBalance(int points) {
-    return '보유 ${points}P';
+    final intl.NumberFormat pointsNumberFormat =
+        intl.NumberFormat.decimalPattern(localeName);
+    final String pointsString = pointsNumberFormat.format(points);
+
+    return '보유 ${pointsString}P';
   }
 
   @override
@@ -1135,6 +1142,38 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsMonthlyLimit => '이번 달에는 이미 교환했어요';
 
   @override
+  String get myPointsShieldLimit => '보호권은 최대 4개까지 가질 수 있어요';
+
+  @override
+  String get myShopStreakShieldTitle => '연속 기록 보호권';
+
+  @override
+  String get myShopStreakShieldDescription =>
+      '아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요. 최대 4개까지 가질 수 있어요.';
+
+  @override
+  String get myBenefitsStreakShields => '연속 기록 보호권';
+
+  @override
+  String myBenefitsShieldHeld(int held, int max) {
+    return '보유 $held/$max개';
+  }
+
+  @override
+  String myBenefitsShieldHeldCount(int held) {
+    return '보유 $held개';
+  }
+
+  @override
+  String get myBenefitsShieldGuide => '아무것도 기록하지 못한 날이 있으면 다음 날 쓸 수 있어요.';
+
+  @override
+  String get myBenefitsShieldUsedTitle => '보호한 날';
+
+  @override
+  String get myBenefitsShieldNoneUsed => '아직 보호한 날이 없어요';
+
+  @override
   String myPointsValidDays(int days) {
     return '교환 후 $days일 동안 사용';
   }
@@ -1175,6 +1214,93 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myBenefitsLoadFailed => '혜택을 불러오지 못했어요';
+
+  @override
+  String get challengeTitle => '주간 운동 챌린지';
+
+  @override
+  String get challengeShort => '주간 챌린지';
+
+  @override
+  String challengeShortWithRange(String range) {
+    return '주간 챌린지 · $range';
+  }
+
+  @override
+  String challengeDescription(String stake, int goal, String reward) {
+    return '$stake를 걸고 이번 주 $goal회 운동하면 $reward를 돌려받아요';
+  }
+
+  @override
+  String get challengeJoinWindow => '월·화요일에만 참가할 수 있어요';
+
+  @override
+  String get challengeJoin => '참가';
+
+  @override
+  String get challengeJoinConfirmTitle => '주간 챌린지에 참가할까요?';
+
+  @override
+  String challengeJoinConfirmMessage(String stake, int goal, String reward) {
+    return '$stake를 걸고 이번 주 $goal회 운동에 도전해요. 일요일까지 채우면 $reward를 돌려받고, 못 채우면 건 포인트는 사라져요.';
+  }
+
+  @override
+  String get challengeJoinConfirmAction => '참가하기';
+
+  @override
+  String get challengeJoinDone => '챌린지에 참가했어요';
+
+  @override
+  String get challengeJoinFailed => '참가하지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get challengeJoinClosed => '다음 주 월요일에 다시 참가할 수 있어요';
+
+  @override
+  String get challengeThisWeek => '이번 주 진행';
+
+  @override
+  String challengeProgress(int progress, int goal) {
+    return '$progress / $goal회';
+  }
+
+  @override
+  String challengeRemaining(int count, String reward) {
+    return '일요일까지 $count회 더 운동하면 $reward를 돌려받아요';
+  }
+
+  @override
+  String challengeAchieved(String reward) {
+    return '목표 달성! 주가 끝나면 $reward를 받아요';
+  }
+
+  @override
+  String challengeWeekTitle(String range) {
+    return '$range 챌린지';
+  }
+
+  @override
+  String get challengeStatusActive => '진행 중';
+
+  @override
+  String get challengeStatusSucceeded => '성공';
+
+  @override
+  String get challengeStatusFailed => '실패';
+
+  @override
+  String challengeResultSucceeded(int goal, int progress, String reward) {
+    return '목표 $goal회 중 $progress회 · $reward 받음';
+  }
+
+  @override
+  String challengeResultFailed(int goal, int progress, String stake) {
+    return '목표 $goal회 중 $progress회 · 건 $stake 소멸';
+  }
+
+  @override
+  String get challengeLoadFailed => '챌린지를 불러오지 못했어요';
 
   @override
   String get myCouponStatusUsable => '사용 가능';

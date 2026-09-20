@@ -201,6 +201,8 @@ def _longest_streak(daily: list[int]) -> int:
     """'N일 연속' — 운동한 요일 중 가장 긴 연속 구간의 길이.
 
     활성 일수의 단순 합계가 아니다: 월·수·금 운동은 3일이 아니라 1일 연속.
+    **운동만 센다** — 식단도 세는 기록 연속(`record_activity.record_streak_days`)과
+    다른 값이고, 연속 기록 보호권으로 이어 붙인 날도 여기에는 들어가지 않는다(#1788).
     프론트 `longestActiveStreak` / LocalApiInterceptor 와 같은 정의.
     """
     best = run = 0

@@ -96,6 +96,7 @@ class DioNotificationRepository implements NotificationRepository {
     'exercise' => AlertTarget.exercise,
     'diet' => AlertTarget.diet,
     'my_benefits' => AlertTarget.myBenefits,
+    'points_shop' => AlertTarget.pointsShop,
     'health_goals' => AlertTarget.healthGoals,
     'consultations' => AlertTarget.consultations,
     _ => AlertTarget.unknown,

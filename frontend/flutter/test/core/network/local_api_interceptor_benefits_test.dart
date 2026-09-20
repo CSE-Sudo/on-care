@@ -91,10 +91,17 @@ void main() {
     expect(shop.items.map((ShopItem i) => i.id), <String>[
       'pt_renewal',
       'locker_month',
+      'streak_shield',
     ]);
-    expect(shop.items.map((ShopItem i) => i.cost), <int>[21000, 7000]);
-    expect(shop.items.map((ShopItem i) => i.requiresTrainer), <bool>[true, false]);
-    expect(shop.items.map((ShopItem i) => i.requiresGym), <bool>[false, true]);
+    expect(shop.items.map((ShopItem i) => i.cost), <int>[21000, 7000, 300]);
+    expect(
+      shop.items.map((ShopItem i) => i.requiresTrainer),
+      <bool>[true, false, false],
+    );
+    expect(
+      shop.items.map((ShopItem i) => i.requiresGym),
+      <bool>[false, true, false],
+    );
     expect(shop.items.every((ShopItem i) => i.available), isTrue);
 
     book.endTrainerLink();
@@ -113,15 +120,16 @@ void main() {
       dio,
     ).exchange('locker_month');
 
+    final Coupon coupon = result.coupon!;
     expect(result.spent, 7000);
     expect(result.balance, 23000);
-    expect(result.coupon.status, CouponStatus.issued);
-    expect(result.coupon.gymName, kDemoGymName);
-    expect(result.coupon.trainerName, isEmpty);
-    expect(result.coupon.daysLeft, 30);
-    expect(result.coupon.expiresOn, DateTime(2026, 10, 15));
+    expect(coupon.status, CouponStatus.issued);
+    expect(coupon.gymName, kDemoGymName);
+    expect(coupon.trainerName, isEmpty);
+    expect(coupon.daysLeft, 30);
+    expect(coupon.expiresOn, DateTime(2026, 10, 15));
     expect(await balance(), 23000);
-    expect((await coupons()).single['id'], result.coupon.id);
+    expect((await coupons()).single['id'], coupon.id);
   });
 
   test('잔액이 모자라면 409 이고 아무것도 바뀌지 않는다', () async {

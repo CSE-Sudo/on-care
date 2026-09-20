@@ -58,6 +58,7 @@ from app.services import (
     reservation_service,
     token_revocation,
     trainer_signup_service,
+    weekly_challenge_service,
 )
 from app.services.health_service import DEMO_SETTINGS
 from app.services.profile_format import name_from_email
@@ -75,6 +76,8 @@ def get_my_health(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> UserHealth:
+    # 끝난 주의 챌린지를 먼저 판정한다(#1789) — 보상이 들어온 잔액을 보여 준다.
+    weekly_challenge_service.settle_quietly(db, current_user.id)
     profile = current_user.health_profile
 
     # risk: 저장된 프로필 있으면 사용, 없으면 기본 문구(프론트 mock 과 동일).

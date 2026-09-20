@@ -247,8 +247,12 @@ def test_shop_lists_items_with_block_reasons(client, db_session, trainer_id, gym
     assert body["balance"] == 7000
     assert body["has_trainer"] is False
     assert body["has_gym"] is False
-    assert [i["id"] for i in body["items"]] == ["pt_renewal", "locker_month"]
-    renewal, locker = body["items"]
+    assert [i["id"] for i in body["items"]] == [
+        "pt_renewal",
+        "locker_month",
+        "streak_shield",
+    ]
+    renewal, locker = body["items"][:2]
     assert "redeemer" not in renewal and "redeemer" not in locker
     # 혜택 1만원 = 7,000P — 3만원 할인은 21,000P, 락커 한 달(1만원)은 7,000P.
     assert (renewal["title"], renewal["benefit"]) == (
@@ -286,8 +290,9 @@ def test_catalog_is_gym_benefits_only(client, db_session):
     member_id, h = _new_member(client, db_session, points=30000)
 
     items = client.get("/v1/me/points/shop", headers=h).json()["items"]
-    # 사용처는 헬스장 혜택 두 장뿐이다. 카탈로그 밖 항목은 교환하면 404 다.
-    assert [i["id"] for i in items] == ["pt_renewal", "locker_month"]
+    # 사용처는 헬스장 혜택 두 장과 연속 기록 보호권(#1788)이다. 카탈로그 밖 항목은
+    # 교환하면 404 다.
+    assert [i["id"] for i in items] == ["pt_renewal", "locker_month", "streak_shield"]
     assert _exchange(client, h, "unknown_item").status_code == 404
 
     assert _balance(client, h) == 30000

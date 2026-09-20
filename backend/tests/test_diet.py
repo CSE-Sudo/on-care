@@ -506,6 +506,9 @@ def test_save_analyzed_entry_isolates_rag_failure_without_database(monkeypatch):
     from app.services import diet_service
 
     db = MagicMock()
+    # 저장 경로가 보호권 되돌리기를 함께 부른다(#1788) — 그 UPDATE 의 rowcount 를
+    # 숫자로 돌려주지 않으면 스텁이 비교 연산에서 깨진다. 보호한 날이 없는 상태다.
+    db.execute.return_value.rowcount = 0
 
     def fail_record_diet(*args, **kwargs):
         raise RuntimeError("embedding unavailable")

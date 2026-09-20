@@ -3,6 +3,8 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_streak_shields.dart';
+import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/exercise/data/kakao_gym_demo_profile.dart';
 import 'package:oncare/features/exercise/data/repositories/dio_exercise_repository.dart';
@@ -28,8 +30,17 @@ final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
     // One instance per provider lifetime so in-memory CRUD (add/edit/delete)
     // persists across `exerciseWeekProvider` invalidations for the session.
-    // 포인트는 식단(목업 API)·MY 와 같은 원장에 쌓는다(#1786).
-    return MockExerciseRepository(points: ref.watch(demoPointsLedgerProvider));
+    // 포인트는 식단(목업 API)·MY 와 같은 원장에 쌓는다(#1786). 보호권은 사용처
+    // 목업 API 와 같은 원장이다(#1788).
+    final MockExerciseRepository repo = MockExerciseRepository(
+      points: ref.watch(demoPointsLedgerProvider),
+      shields: ref.watch(demoStreakShieldBookProvider),
+    );
+    // 주간 챌린지 목업은 운동한 날을 이 저장소에서 센다(#1789) — 목업 모드에서
+    // 회원이 추가한 운동은 여기에만 있다.
+    ref.watch(demoWeeklyChallengeProvider).recordedDays =
+        repo.recordedDaysOfWeek;
+    return repo;
   }
   return DioExerciseRepository(ref.watch(dioProvider));
 }, name: 'exerciseRepository');

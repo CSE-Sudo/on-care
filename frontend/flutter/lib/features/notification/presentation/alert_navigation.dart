@@ -8,6 +8,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
+import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
@@ -98,6 +99,15 @@ Future<void> openAlertTarget(
         ..invalidate(myHealthStateProvider);
       if (!context.mounted) return;
       await context.push<void>(AppRoutes.myBenefits);
+    case AlertTarget.pointsShop:
+      // 주간 챌린지가 판정됐다(#1789) — 결과를 보고 다음 주에 다시 참가하거나
+      // 돌려받은 포인트를 확인하는 자리가 포인트 사용처다. 들고 있던 챌린지와
+      // 잔액은 판정 전 값이라 함께 다시 읽는다.
+      ref
+        ..invalidate(weeklyChallengeProvider)
+        ..invalidate(myHealthStateProvider);
+      if (!context.mounted) return;
+      await context.push<void>(AppRoutes.myPoints);
     case AlertTarget.healthGoals:
       // 담당 트레이너가 건강 목표를 바꿨다(#1832). 들고 있던 프로필은 바뀌기 전
       // 목표라, 다시 받아 온 뒤 MY 건강 목표를 연다 — 바뀐 목표와 `마지막 변경`
