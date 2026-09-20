@@ -236,6 +236,26 @@ class MockExerciseRepository implements ExerciseRepository {
     ];
   }
 
+  /// [monday] 주에 운동 기록이 있는 날들(#1789). 주간 챌린지 목업이 진행을 센다.
+  ///
+  /// 목업 API 가 응답을 만드는 중에 부르므로 기다림 없이 바로 답한다. 이번 주는
+  /// 추가·삭제가 반영된 기록, 지난 주는 픽스처, 아직 오지 않은 주는 비어 있다.
+  Set<DateTime> recordedDaysOfWeek(DateTime monday) {
+    final DateTime start = _dateOnly(monday);
+    if (start.isAfter(_addDays(_today, -_todayIdx))) return <DateTime>{};
+    final int weeksAgo = _weeksAgo(start);
+    final List<ExerciseSession> sessions = weeksAgo <= 0
+        ? _sessions
+        : _sessionsForWeek(weeksAgo);
+    return <DateTime>{
+      for (final ExerciseSession s in sessions)
+        if (s.date != null)
+          _dateOnly(s.date!)
+        else if (_dayLabels.contains(s.dayLabel))
+          _addDays(start, _dayLabels.indexOf(s.dayLabel)),
+    };
+  }
+
   /// [weekStart] 가 이번 주에서 몇 주 전인지. 이번 주면 0.
   int _weeksAgo(DateTime weekStart) {
     final DateTime thisMonday = _addDays(_today, -_todayIdx);

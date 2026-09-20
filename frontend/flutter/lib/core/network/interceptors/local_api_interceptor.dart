@@ -9,6 +9,7 @@ import 'package:drift/drift.dart'
         // 밖이라 메서드가 아예 보이지 않는다(#965).
         BooleanExpressionOperators,
         ComparableExpr,
+        InsertMode,
         OrderClauseGenerator,
         OrderingMode,
         OrderingTerm,
@@ -22,6 +23,7 @@ import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
+import 'package:oncare/core/points/demo_weekly_challenge.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/core/storage/seed_data.dart' show kDietDayMessagesKey;
 import 'package:oncare/core/utils/clock.dart';
@@ -53,9 +55,11 @@ class LocalApiInterceptor extends Interceptor {
     DemoPointsLedger? points,
     DemoCouponBook? coupons,
     DemoStreakShieldBook? shields,
+    DemoWeeklyChallenge? challenges,
   }) : _points = points ?? DemoPointsLedger(),
        _couponsArg = coupons,
-       _shieldsArg = shields;
+       _shieldsArg = shields,
+       _challengesArg = challenges;
 
   /// 연속 기록 보호권(#1788). 앱에서는 목업 운동 저장소와 같은 인스턴스를 받아
   /// 사용처에서 교환한 보호권이 운동 현황의 연속 일수로 이어진다. 주지 않으면
@@ -76,6 +80,13 @@ class LocalApiInterceptor extends Interceptor {
   final DemoCouponBook? _couponsArg;
   late final DemoCouponBook _coupons =
       _couponsArg ?? DemoCouponBook(ledger: _points, shields: _shields);
+
+  /// 주간 운동 챌린지(#1789). 앱에서는 목업 운동 저장소가 운동한 날을 붙이는
+  /// 인스턴스를 받는다. 주지 않으면 이 인터셉터의 원장으로 만들고, 운동한 날은
+  /// 이 인터셉터의 운동 표로 센다.
+  final DemoWeeklyChallenge? _challengesArg;
+  late final DemoWeeklyChallenge _challenges =
+      _challengesArg ?? DemoWeeklyChallenge(ledger: _points);
 
   /// 이 요청을 목업이 아니라 실 백엔드로 보내야 하는지 판정한다(`AppConfig.isRealApi`).
   ///
@@ -127,6 +138,10 @@ class LocalApiInterceptor extends Interceptor {
     // 연속 기록 보호권 — 교환은 위 exchange 가 받는다(#1788).
     'GET /me/streak-shields': _streakShields,
     'POST /me/streak-shields/use': _streakShieldUse,
+    // 주간 운동 챌린지 — 서버와 같은 규칙의 목업(#1789).
+    'GET /me/challenges/weekly': _challengeWeekly,
+    'POST /me/challenges/weekly/join': _challengeJoin,
+    'GET /me/challenges': _challengeHistory,
     'POST /users/me/pairing-code': _pairingCodeIssue,
     'DELETE /users/me/pairing-code': _pairingCodeRevoke,
     'GET /places/nearby': _placesNearby,
@@ -1786,6 +1801,8 @@ class LocalApiInterceptor extends Interceptor {
   /// 커서(#965). 여기서 상한을 무시하면 로컬 모드에서만 무한 목록이 되어, 이어
   /// 받기가 되는지 개발 중에 확인할 수 없다.
   Future<Response<Object?>> _notifications(RequestOptions options) async {
+    // 끝난 주의 챌린지 결과 알림은 알림함을 읽을 때 생긴다 — 서버와 같다(#1789).
+    await _settleChallenges();
     final Map<String, dynamic> params = options.queryParameters;
     final int limit = switch (params['limit']) {
       final int v => v.clamp(1, 100),
@@ -1828,6 +1845,8 @@ class LocalApiInterceptor extends Interceptor {
           'read': r.read,
           'created_at': r.createdAt.toIso8601String(),
           'time_ago': _timeAgoKorean(now.difference(r.createdAt)),
+          // 내 혜택 알림(챌린지 결과)은 서버처럼 갈 곳을 싣는다(#1789).
+          'action': ?_demoActionFor(r.category),
           // 데모 시드 알림은 문구 키를 함께 준다 — 화면이 로케일에 맞는 문장을
           // 고른다. 시드 밖의 알림은 키가 없다(#1812).
           'message_key': ?kDemoAlertKeyBySeedId[r.id],
@@ -2640,6 +2659,8 @@ class LocalApiInterceptor extends Interceptor {
   }
 
   Future<Response<Object?>> _usersMeHealth(RequestOptions options) async {
+    // 끝난 주의 챌린지를 먼저 판정해 보상이 든 잔액을 싣는다(#1789).
+    await _settleChallenges();
     return _ok(options, <String, Object?>{
       'profile': <String, Object?>{'name': '김민수', 'email': 'minsu@oncare.com'},
       'risk': <String, Object?>{
@@ -2667,8 +2688,11 @@ class LocalApiInterceptor extends Interceptor {
   // 규칙은 [DemoCouponBook] 이 서버와 같게 들고 있다. 여기서는 경로와 응답 모양만
   // 잇는다. 409(잔액 부족 등)도 실서버처럼 상태코드로 돌려준다.
 
-  Future<Response<Object?>> _pointsShop(RequestOptions options) async =>
-      _ok(options, _coupons.shopJson());
+  Future<Response<Object?>> _pointsShop(RequestOptions options) async {
+    // 끝난 주의 챌린지를 먼저 판정해 보상이 든 잔액으로 계산한다(#1789).
+    await _settleChallenges();
+    return _ok(options, _coupons.shopJson());
+  }
 
   Future<Response<Object?>> _pointsExchange(RequestOptions options) async {
     final body = _jsonBody(options);
@@ -2772,6 +2796,105 @@ class LocalApiInterceptor extends Interceptor {
       ),
     );
   }
+
+  // ---- 주간 운동 챌린지 (#1789) ----
+  //
+  // 규칙은 [DemoWeeklyChallenge] 가 서버와 같게 들고 있다. 여기서는 끝난 주를 먼저
+  // 판정하고(결과 알림을 알림함에 넣는다), 목표·운동한 날을 이어 준다.
+
+  Future<Response<Object?>> _challengeWeekly(RequestOptions options) async {
+    await _settleChallenges();
+    return _ok(
+      options,
+      await _challenges.stateJson(
+        daysOf: _exerciseDaysOf,
+        goal: await _weeklyWorkoutGoal(),
+      ),
+    );
+  }
+
+  Future<Response<Object?>> _challengeJoin(RequestOptions options) async {
+    final body = _jsonBody(options);
+    await _settleChallenges();
+    return _couponResponse(
+      options,
+      await _challenges.join(
+        daysOf: _exerciseDaysOf,
+        goal: await _weeklyWorkoutGoal(),
+        clientRequestId: body['client_request_id'] as String?,
+      ),
+    );
+  }
+
+  Future<Response<Object?>> _challengeHistory(RequestOptions options) async {
+    await _settleChallenges();
+    return _ok(options, await _challenges.historyJson(daysOf: _exerciseDaysOf));
+  }
+
+  /// 끝난 주를 판정하고 결과 알림을 알림함에 넣는다. 챌린지마다 한 번이다.
+  Future<void> _settleChallenges() async {
+    final List<DemoChallengeNotice> notices = await _challenges.settleDue(
+      _exerciseDaysOf,
+    );
+    for (final DemoChallengeNotice notice in notices) {
+      await _db
+          .into(_db.notificationItems)
+          .insert(
+            NotificationItemsCompanion.insert(
+              id: notice.id,
+              createdAt: nowKst(),
+              title: notice.title,
+              body: notice.body,
+              category: 'benefits',
+            ),
+            mode: InsertMode.insertOrIgnore,
+          );
+    }
+  }
+
+  /// 회원의 주간 운동 횟수 목표(프로필). 없으면 null — 챌린지가 3회로 둔다.
+  Future<int?> _weeklyWorkoutGoal() async =>
+      ((await _mergedProfile())['weekly_workout_goal'] as num?)?.toInt();
+
+  /// [monday] 주에 운동 기록이 있는 날. 목업 운동 저장소가 붙인 출처가 있으면 그것을,
+  /// 없으면(테스트·운동 저장소를 아직 만들지 않음) 이 인터셉터의 운동 표를 본다.
+  Future<Set<DateTime>> _exerciseDaysOf(DateTime monday) async {
+    final Set<DateTime> Function(DateTime)? recorded =
+        _challenges.recordedDays;
+    if (recorded != null) return recorded(monday);
+    const List<String> labels = <String>['월', '화', '수', '목', '금', '토', '일'];
+    final String weekStart =
+        '${monday.year.toString().padLeft(4, '0')}-'
+        '${monday.month.toString().padLeft(2, '0')}-'
+        '${monday.day.toString().padLeft(2, '0')}';
+    final rows = await (_db.select(
+      _db.exerciseSessions,
+    )..where((t) => t.weekStart.equals(weekStart))).get();
+    return <DateTime>{
+      for (final row in rows)
+        if (labels.contains(row.dayLabel))
+          DateTime(
+            monday.year,
+            monday.month,
+            monday.day + labels.indexOf(row.dayLabel),
+          ),
+    };
+  }
+
+  /// 목업 알림의 행동 유도 — 서버 `_ACTION_BY_CATEGORY` 중 목업이 만드는 것만.
+  static Map<String, Object?>? _demoActionFor(String category) => switch (
+    category
+  ) {
+    'benefits' => const <String, Object?>{
+      'label': '내 혜택 보기',
+      'target': 'my_benefits',
+    },
+    'points_shop' => const <String, Object?>{
+      'label': '포인트 사용처 보기',
+      'target': 'points_shop',
+    },
+    _ => null,
+  };
 
   // ---- Places ----
 

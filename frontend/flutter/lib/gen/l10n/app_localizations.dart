@@ -2276,6 +2276,144 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load benefits'**
   String get myBenefitsLoadFailed;
 
+  /// No description provided for @challengeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly workout challenge'**
+  String get challengeTitle;
+
+  /// No description provided for @challengeShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly challenge'**
+  String get challengeShort;
+
+  /// Title of the progress row in the exercise tab, naming the week it covers.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly challenge · {range}'**
+  String challengeShortWithRange(String range);
+
+  /// Challenge card summary. stake and reward are point amounts such as 100P.
+  ///
+  /// In en, this message translates to:
+  /// **'Stake {stake}, work out {goal} times this week, and get {reward} back'**
+  String challengeDescription(String stake, int goal, String reward);
+
+  /// No description provided for @challengeJoinWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'You can join on Monday or Tuesday'**
+  String get challengeJoinWindow;
+
+  /// No description provided for @challengeJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get challengeJoin;
+
+  /// No description provided for @challengeJoinConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join this week\'s challenge?'**
+  String get challengeJoinConfirmTitle;
+
+  /// No description provided for @challengeJoinConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Stake {stake} and aim for {goal} workouts this week. Reach it by Sunday to get {reward} back, or the stake is lost.'**
+  String challengeJoinConfirmMessage(String stake, int goal, String reward);
+
+  /// No description provided for @challengeJoinConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get challengeJoinConfirmAction;
+
+  /// No description provided for @challengeJoinDone.
+  ///
+  /// In en, this message translates to:
+  /// **'You joined this week\'s challenge'**
+  String get challengeJoinDone;
+
+  /// No description provided for @challengeJoinFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t join. Please try again.'**
+  String get challengeJoinFailed;
+
+  /// No description provided for @challengeJoinClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'You can join again next Monday'**
+  String get challengeJoinClosed;
+
+  /// No description provided for @challengeThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This week'**
+  String get challengeThisWeek;
+
+  /// Challenge progress: days with a workout record out of the goal.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress} / {goal} workouts'**
+  String challengeProgress(int progress, int goal);
+
+  /// No description provided for @challengeRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} more by Sunday to get {reward} back'**
+  String challengeRemaining(int count, String reward);
+
+  /// No description provided for @challengeAchieved.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal reached! You get {reward} when the week ends'**
+  String challengeAchieved(String reward);
+
+  /// No description provided for @challengeWeekTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge {range}'**
+  String challengeWeekTitle(String range);
+
+  /// No description provided for @challengeStatusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get challengeStatusActive;
+
+  /// No description provided for @challengeStatusSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get challengeStatusSucceeded;
+
+  /// No description provided for @challengeStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get challengeStatusFailed;
+
+  /// No description provided for @challengeResultSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress} of {goal} workouts · {reward} earned'**
+  String challengeResultSucceeded(int goal, int progress, String reward);
+
+  /// No description provided for @challengeResultFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{progress} of {goal} workouts · {stake} stake lost'**
+  String challengeResultFailed(int goal, int progress, String stake);
+
+  /// No description provided for @challengeLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load challenges'**
+  String get challengeLoadFailed;
+
   /// No description provided for @myCouponStatusUsable.
   ///
   /// In en, this message translates to:
