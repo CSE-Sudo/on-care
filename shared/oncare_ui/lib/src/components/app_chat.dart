@@ -19,10 +19,17 @@ class AppChatBubble extends StatelessWidget {
     required this.mine,
     required this.child,
     this.time,
+    this.bare = false,
   });
 
   final bool mine;
   final Widget child;
+
+  /// 바탕·테두리·안쪽 여백 없이 내용만 둔다(#2020).
+  ///
+  /// 이모티콘이 그렇다 — 그림 하나가 곧 말이라 말풍선에 담으면 그림 뒤로 파란
+  /// 상자가 비친다. 자리(좌·우)와 옆의 시간은 그대로다.
+  final bool bare;
 
   /// 말풍선 옆에 붙는 시간(`caption`).
   final String? time;
@@ -48,19 +55,23 @@ class AppChatBubble extends StatelessWidget {
               maxWidth: constraints.maxWidth * maxWidthFactor,
             ),
             child: Container(
-              padding: tokens.density.chatBubblePadding,
-              decoration: BoxDecoration(
-                color: mine ? tokens.brand.primary : OnCareColors.surfaceCard,
-                border: mine
-                    ? null
-                    : Border.all(color: OnCareColors.lineSubtle),
-                borderRadius: BorderRadius.only(
-                  topLeft: OnCareRadius.lg,
-                  topRight: OnCareRadius.lg,
-                  bottomLeft: mine ? OnCareRadius.lg : OnCareRadius.xs,
-                  bottomRight: mine ? OnCareRadius.xs : OnCareRadius.lg,
-                ),
-              ),
+              padding: bare ? EdgeInsets.zero : tokens.density.chatBubblePadding,
+              decoration: bare
+                  ? null
+                  : BoxDecoration(
+                      color: mine
+                          ? tokens.brand.primary
+                          : OnCareColors.surfaceCard,
+                      border: mine
+                          ? null
+                          : Border.all(color: OnCareColors.lineSubtle),
+                      borderRadius: BorderRadius.only(
+                        topLeft: OnCareRadius.lg,
+                        topRight: OnCareRadius.lg,
+                        bottomLeft: mine ? OnCareRadius.lg : OnCareRadius.xs,
+                        bottomRight: mine ? OnCareRadius.xs : OnCareRadius.lg,
+                      ),
+                    ),
               child: DefaultTextStyle.merge(style: textStyle, child: child),
             ),
           ),
@@ -214,6 +225,8 @@ class AppChatInputBar extends StatelessWidget {
     required this.onSend,
     this.attachTooltip,
     this.onAttach,
+    this.emoteTooltip,
+    this.onEmote,
     this.focusNode,
     this.enabled = true,
   });
@@ -224,6 +237,11 @@ class AppChatInputBar extends StatelessWidget {
   final VoidCallback? onSend;
   final String? attachTooltip;
   final VoidCallback? onAttach;
+
+  /// 이모티콘 고르는 창을 여는 버튼. 주면 입력칸과 전송 사이에 선다(#2020).
+  /// 전송과 같은 크기지만 흰 바탕에 회색 테두리라, 보내는 버튼과 헷갈리지 않는다.
+  final String? emoteTooltip;
+  final VoidCallback? onEmote;
   final FocusNode? focusNode;
   final bool enabled;
 
@@ -306,6 +324,14 @@ class AppChatInputBar extends StatelessWidget {
                   ),
                 ),
               ),
+              if (onEmote != null) ...<Widget>[
+                const SizedBox(width: OnCareSpacing.s8),
+                _EmoteButton(
+                  tooltip: emoteTooltip ?? '',
+                  size: rowHeight,
+                  onPressed: enabled ? onEmote : null,
+                ),
+              ],
               const SizedBox(width: OnCareSpacing.s8),
               AppIconButton(
                 icon: AppIcon.setOf(context).send,
@@ -314,6 +340,56 @@ class AppChatInputBar extends StatelessWidget {
                 onPressed: enabled ? onSend : null,
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 이모티콘 창을 여는 버튼. 전송 버튼과 **같은 한 변**이고 입력칸 높이와도 같다.
+///
+/// 채움 버튼([AppIconButton] 의 `filled`)을 쓰지 않는 이유는, 브랜드 색 버튼이
+/// 둘이면 어느 쪽이 보내는 것인지 한눈에 갈리지 않기 때문이다. 여는 버튼은 흰
+/// 바탕에 회색 테두리·회색 아이콘으로 한 단계 뒤에 둔다.
+class _EmoteButton extends StatelessWidget {
+  const _EmoteButton({
+    required this.tooltip,
+    required this.size,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final double size;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool enabled = onPressed != null;
+    return Tooltip(
+      message: tooltip,
+      child: Semantics(
+        button: true,
+        label: tooltip,
+        child: Material(
+          color: OnCareColors.surfaceCard,
+          shape: const RoundedRectangleBorder(
+            borderRadius: OnCareRadius.mdAll,
+            side: BorderSide(color: OnCareColors.lineStrong),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            child: SizedBox.square(
+              dimension: size,
+              child: AppIcon(
+                AppIcon.setOf(context).emote,
+                size: OnCareSize.iconMedium,
+                color: enabled
+                    ? OnCareColors.textTertiary
+                    : OnCareColors.textDisabled,
+              ),
+            ),
           ),
         ),
       ),

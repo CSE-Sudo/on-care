@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/points/demo_emote_pass.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -34,16 +35,23 @@ class DemoCouponBook {
     bool hasTrainer = true,
     bool hasGym = true,
     DemoStreakShieldBook? shields,
+    DemoEmotePassBook? emotes,
   }) : _ledger = ledger,
        _now = now ?? nowKst,
        _hasTrainer = hasTrainer,
        _hasGym = hasGym,
-       _shields = shields ?? DemoStreakShieldBook(ledger: ledger, now: now);
+       _shields = shields ?? DemoStreakShieldBook(ledger: ledger, now: now),
+       _emotes = emotes ?? DemoEmotePassBook(ledger: ledger, now: now);
 
   /// 연속 기록 보호권(#1788) — 사용처 목록에 함께 서고, 교환은 이 원장이 받는다.
   /// 목업 운동 저장소가 같은 인스턴스를 봐야 교환한 보호권을 운동 현황에서 쓴다.
   final DemoStreakShieldBook _shields;
   DemoStreakShieldBook get shields => _shields;
+
+  /// 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니다. 채팅의 고르는 창과 같은
+  /// 것을 봐야 MY 탭에서 산 이용권이 채팅에도 보인다.
+  final DemoEmotePassBook _emotes;
+  DemoEmotePassBook get emotes => _emotes;
 
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
@@ -94,6 +102,15 @@ class DemoCouponBook {
   DemoCouponResult exchange(String itemId, {String? clientRequestId}) {
     final DemoShopItem? item = _item(itemId);
     if (item == null) return _error(404, '없는 교환 항목이에요.');
+    if (item.id == kDemoEmotePass.id) {
+      // 쿠폰이 아니라 24시간 이용권이 생긴다(#2020).
+      final DemoCouponResult bought = _emotes.buy(clientRequestId: clientRequestId);
+      if (bought.statusCode >= 400) return bought;
+      return DemoCouponResult(201, <String, Object?>{
+        'spent': DemoEmotePassBook.cost,
+        'balance': _ledger.balance,
+      });
+    }
     if (item.id == kDemoStreakShield.id) {
       // 쿠폰이 아니라 보호권 한 장이 생긴다 — 보유 한도와 원장이 따로다(#1788).
       return _shields.exchange(clientRequestId: clientRequestId);
@@ -238,6 +255,8 @@ class DemoCouponBook {
         ? 'no_gym'
         : item.oneActive && _activeOf(item.id) != null
         ? 'active_coupon'
+        : item.id == kDemoEmotePass.id && _emotes.active
+        ? 'active_pass'
         : item.id == kDemoStreakShield.id &&
               _shields.held >= DemoStreakShieldBook.maxHeld
         ? 'shield_limit'
@@ -364,7 +383,19 @@ const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
   kDemoPtRenewal,
   kDemoLockerMonth,
   kDemoStreakShield,
+  kDemoEmotePass,
 ];
+
+/// 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니다. 산 때부터 24시간이라
+/// `validDays` 는 1 이고, 규칙은 [DemoEmotePassBook] 이 들고 있다.
+const DemoShopItem kDemoEmotePass = DemoShopItem(
+  id: 'emote_pass_24h',
+  title: '채팅 이모티콘 24시간',
+  benefit: '트레이너 채팅 이모티콘 24시간',
+  description: '산 때부터 24시간 동안 트레이너 채팅에서 이모티콘을 모두 쓸 수 있어요.',
+  cost: DemoEmotePassBook.cost,
+  validDays: 1,
+);
 
 /// 연속 기록 보호권(#1788) — 쿠폰이 아니다. 기한이 없어 `validDays` 는 0 이고,
 /// 교환·사용 규칙은 [DemoStreakShieldBook] 이 들고 있다.
@@ -418,6 +449,7 @@ final demoCouponBookProvider = Provider<DemoCouponBook>(
   (ref) => DemoCouponBook(
     ledger: ref.watch(demoPointsLedgerProvider),
     shields: ref.watch(demoStreakShieldBookProvider),
+    emotes: ref.watch(demoEmotePassBookProvider),
   ),
   name: 'demoCouponBook',
 );

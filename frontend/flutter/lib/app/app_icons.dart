@@ -117,6 +117,9 @@ class AppIcons {
   static const IconData remove = Symbols.remove_rounded;
   static const IconData edit = Symbols.edit_rounded;
   static const IconData delete = Symbols.delete_rounded;
+  /// 채팅 이모티콘 창을 여는 웃는 얼굴. (#2020)
+  static const IconData emote = Symbols.sentiment_satisfied_rounded;
+
   static const IconData check = Symbols.check_rounded;
   static const IconData search = Symbols.search_rounded;
   static const IconData send = Symbols.send_rounded;
@@ -162,6 +165,7 @@ class AppIcons {
     image: image,
     attachImage: attachImage,
     send: send,
+    emote: emote,
     file: file,
     reward: star,
     timeInput: keyboard,

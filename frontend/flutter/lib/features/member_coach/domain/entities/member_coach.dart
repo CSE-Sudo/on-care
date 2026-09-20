@@ -223,6 +223,7 @@ class CoachMessage {
     required this.createdAt,
     this.attachment,
     this.reportWeekStart,
+    this.emoteId,
   });
 
   final String id;
@@ -239,6 +240,12 @@ class CoachMessage {
   /// 보내는 쪽이 실어 보내는 값으로만 판단한다. 트레이너 앱의
   /// `ClientChatMessage.reportWeekStart` 와 같은 값이다.
   final DateTime? reportWeekStart;
+
+  /// 이 메시지가 이모티콘이면 그 id. (#2020)
+  ///
+  /// 본문(`body`)은 이모티콘을 그리지 못하는 자리(알림·목록의 마지막 메시지)가
+  /// 읽는 글이라 함께 온다. 그림은 이 id 로 고른다.
+  final String? emoteId;
 
   bool get fromMe => sender == CoachSender.me;
 }

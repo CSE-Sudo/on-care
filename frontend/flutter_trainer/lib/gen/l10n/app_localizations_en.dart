@@ -898,6 +898,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A starter block. Editing saves it as your own';
 
   @override
+  String get chatEmoteLabel => 'Emote';
+
+  @override
   String get chatAttachImage => 'Attach a photo';
 
   @override

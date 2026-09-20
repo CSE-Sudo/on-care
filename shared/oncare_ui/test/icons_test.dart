@@ -22,6 +22,7 @@ const IconData _empty = IconData(0xe00f, fontFamily: 'TestSymbols');
 const IconData _offline = IconData(0xe010, fontFamily: 'TestSymbols');
 const IconData _image = IconData(0xe011, fontFamily: 'TestSymbols');
 const IconData _attachImage = IconData(0xe012, fontFamily: 'TestSymbols');
+const IconData _emote = IconData(0xE9F0, fontFamily: 'X');
 const IconData _send = IconData(0xe013, fontFamily: 'TestSymbols');
 const IconData _file = IconData(0xe014, fontFamily: 'TestSymbols');
 const IconData _glyph = IconData(0xe015, fontFamily: 'TestSymbols');
@@ -53,6 +54,7 @@ const OnCareIconSet _symbols = OnCareIconSet(
   image: _image,
   attachImage: _attachImage,
   send: _send,
+  emote: _emote,
   file: _file,
   reward: _reward,
   fill: 1,

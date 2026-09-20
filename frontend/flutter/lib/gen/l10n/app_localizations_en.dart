@@ -1441,6 +1441,75 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLogoutConfirm => 'Log out of your account?';
 
   @override
+  String get emoteSheetTitle => 'Emotes';
+
+  @override
+  String get emotePassActive => 'Emotes are on';
+
+  @override
+  String emotePassRemaining(String left) {
+    return '$left left';
+  }
+
+  @override
+  String emotePassOffer(int cost, int hours) {
+    return 'Use them all for $hours hours for ${cost}P';
+  }
+
+  @override
+  String emotePassBalance(int balance) {
+    return 'You have ${balance}P';
+  }
+
+  @override
+  String emotePassShortfall(int shortfall, int balance) {
+    return '${shortfall}P more and they are yours (you have ${balance}P)';
+  }
+
+  @override
+  String get emoteBuyTitle => 'Emote pass';
+
+  @override
+  String emoteBuyConfirm(int cost, int hours) {
+    return 'Spend ${cost}P to use every emote for $hours hours? The clock starts the moment you buy.';
+  }
+
+  @override
+  String get emoteBuyAction => 'Buy pass';
+
+  @override
+  String get emoteBought => 'You can send emotes now';
+
+  @override
+  String get emoteBuyFailed =>
+      'We could not buy the pass. Please try again in a moment.';
+
+  @override
+  String get emoteLoadFailed => 'We could not load the emotes';
+
+  @override
+  String emoteRemainingHm(int hours, int minutes) {
+    return '${hours}h ${minutes}m';
+  }
+
+  @override
+  String emoteRemainingM(int minutes) {
+    return '${minutes}m';
+  }
+
+  @override
+  String get emoteRemainingSoon => 'Ending soon';
+
+  @override
+  String get emoteSendFailed => 'We could not send the emote';
+
+  @override
+  String get a11yOpenEmotes => 'Emotes';
+
+  @override
+  String get a11yEmote => 'Emote';
+
+  @override
   String get myWithdrawTitle => 'Delete account';
 
   @override

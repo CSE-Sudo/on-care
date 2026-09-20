@@ -86,7 +86,7 @@ class _FakeCoachRepository implements MemberCoachRepository {
       Stream<List<CoachMessage>>.value(const <CoachMessage>[]);
 
   @override
-  Future<void> sendMessage(String text) async {}
+  Future<void> sendMessage(String text, {String? emoteId}) async {}
 
   @override
   Future<void> markRead() async {}

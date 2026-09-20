@@ -1676,6 +1676,12 @@ abstract class AppLocalizations {
   /// **'A starter block. Editing saves it as your own'**
   String get coachTemplateStarterHint;
 
+  /// No description provided for @chatEmoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Emote'**
+  String get chatEmoteLabel;
+
   /// No description provided for @chatAttachImage.
   ///
   /// In en, this message translates to:

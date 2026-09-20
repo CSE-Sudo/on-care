@@ -56,7 +56,9 @@ abstract interface class MemberCoachRepository {
   Stream<List<CoachMessage>> watchChat();
 
   /// Sends a message to the coach. No-ops on blank text.
-  Future<void> sendMessage(String text);
+  /// 글 또는 이모티콘 하나를 보낸다. [emoteId] 를 주면 이모티콘 메시지다(#2020) —
+  /// 이용권이 없으면 서버가 막는다.
+  Future<void> sendMessage(String text, {String? emoteId});
 
   /// Marks the thread read up to the newest coach message.
   Future<void> markRead();

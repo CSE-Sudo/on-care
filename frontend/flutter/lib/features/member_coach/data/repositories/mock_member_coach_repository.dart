@@ -441,15 +441,16 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       Stream<List<CoachMessage>>.fromFuture(fetchChat());
 
   @override
-  Future<void> sendMessage(String text) async {
+  Future<void> sendMessage(String text, {String? emoteId}) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty && emoteId == null) return;
     final now = nowKst();
     _chat.add(
       CoachMessage(
         id: 'me-${now.microsecondsSinceEpoch}',
         sender: CoachSender.me,
-        body: trimmed,
+        body: trimmed.isEmpty ? '(이모티콘)' : trimmed,
+        emoteId: emoteId,
         timeLabel:
             '${now.hour.toString().padLeft(2, '0')}:'
             '${now.minute.toString().padLeft(2, '0')}',
