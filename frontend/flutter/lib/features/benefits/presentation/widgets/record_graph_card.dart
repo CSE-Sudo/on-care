@@ -192,6 +192,8 @@ class _Grid extends StatelessWidget {
     // 요일이라 "주말에만 빠진다" 같은 흐름이 보인다. 일요일이 맨 윗줄이다.
     final int lead = days.first.date.weekday % 7;
     final int weeks = ((lead + days.length) / 7).ceil();
+    // 격자 전체 폭. 주마다 칸 하나와 뒤따르는 틈이고, 마지막 주에는 틈이 없다.
+    final double gridWidth = weeks * (_side + _gap) - _gap;
 
     return SingleChildScrollView(
       controller: controller,
@@ -205,7 +207,7 @@ class _Grid extends StatelessWidget {
             height: _monthBar,
             // 격자와 같은 폭을 준다 — 라벨을 주 자리에 얹는 Stack 은 폭이
             // 정해져야 하고, 스크롤 안이라 부모가 정해 주지 않는다.
-            width: weeks * _side + (weeks - 1) * _gap,
+            width: gridWidth,
             child: _MonthLabels(
               days: days,
               lead: lead,
