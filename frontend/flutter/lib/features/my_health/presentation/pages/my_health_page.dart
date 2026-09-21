@@ -9,6 +9,7 @@ import 'package:oncare/features/app_guide/presentation/controllers/app_guide_con
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
 import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
@@ -17,6 +18,7 @@ import 'package:oncare/features/benefits/presentation/controllers/challenge_prov
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
 import 'package:oncare/features/benefits/presentation/widgets/graph_color_sheet.dart';
+import 'package:oncare/features/benefits/presentation/widgets/profile_pet_sheet.dart';
 import 'package:oncare/features/benefits/presentation/widgets/record_graph_card.dart';
 import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
@@ -186,14 +188,16 @@ class _IconTile extends StatelessWidget {
   }
 }
 
-class _ProfileCard extends StatelessWidget {
+class _ProfileCard extends ConsumerWidget {
   const _ProfileCard({required this.profile});
 
   final UserProfile? profile;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final OnCareTokens tokens = context.oncare;
+    // 포인트로 단 펫(#2021). 읽는 중이거나 읽지 못하면 이름만 그린다.
+    final ProfilePet? pet = ref.watch(profilePetProvider).valueOrNull;
     final AppLocalizations l = AppLocalizations.of(context);
     final String name = profile?.name ?? '';
     final String email = profile?.email ?? '';
@@ -210,14 +214,7 @@ class _ProfileCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(
-                      displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: tokens
-                          .text(OnCareTypography.titleSmall)
-                          .copyWith(color: OnCareColors.textPrimary),
-                    ),
+                    ProfileNameLine(name: displayName, pet: pet),
                     if (email.isNotEmpty)
                       Text(
                         email,
@@ -238,6 +235,62 @@ class _ProfileCard extends StatelessWidget {
           const _TrainerSyncRow(),
         ],
       ),
+    );
+  }
+}
+
+/// 프로필 이름과 그 옆의 펫 이모지(#2021).
+///
+/// 펫이 차지하는 칸은 **이름 글줄 높이 그대로**다. 칸이 글줄보다 크면 다는 날과
+/// 떨어지는 날 이름 줄 높이가 달라져 아래 이메일·카드가 흔들린다. 이모티콘 그림은
+/// 둘레에 여백이 있어 글줄 높이로는 작게 보이므로, 칸은 그대로 두고 그림만
+/// [_petScale] 배 키워 그린다(배치에는 영향이 없다). 이름이 길면 이름이 말줄임되고
+/// 펫은 끝에 남는다.
+@visibleForTesting
+class ProfileNameLine extends StatelessWidget {
+  const ProfileNameLine({super.key, required this.name, this.pet});
+
+  final String name;
+  final ProfilePet? pet;
+
+  static const double _petScale = 1.4;
+
+  @override
+  Widget build(BuildContext context) {
+    final OnCareTokens tokens = context.oncare;
+    final AppLocalizations l = AppLocalizations.of(context);
+    final TextStyle style = tokens
+        .text(OnCareTypography.titleSmall)
+        .copyWith(color: OnCareColors.textPrimary);
+    final ProfilePet? worn = pet;
+    final String? emote = worn == null ? null : profilePetEmote(worn.kind);
+    final double line =
+        MediaQuery.textScalerOf(context).scale(style.fontSize ?? 16) *
+        (style.height ?? 1);
+    return Row(
+      key: const Key('profileNameLine'),
+      children: <Widget>[
+        Flexible(
+          child: Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: style,
+          ),
+        ),
+        if (worn != null && emote != null) ...<Widget>[
+          const SizedBox(width: OnCareSpacing.s8),
+          Transform.scale(
+            scale: _petScale,
+            child: AppEmote(
+              key: const Key('profilePet'),
+              id: emote,
+              size: line,
+              semanticLabel: l.myProfilePetLabel(profilePetName(l, worn.kind)),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -517,6 +570,16 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       await _exchangeItem(item, option: choice.color);
       return;
     }
+    if (item.id == kProfilePetItem) {
+      // 어느 펫을 달지 먼저 고르고 나서 확인창이다(#2021).
+      final String? kind = await showAppSheet<String>(
+        context: context,
+        builder: (BuildContext ctx) => const ProfilePetSheet(),
+      );
+      if (kind == null || !mounted) return;
+      await _exchangeItem(item, option: kind);
+      return;
+    }
     await _exchangeItem(item);
   }
 
@@ -525,12 +588,19 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     // 그래프 색(#2076)은 쿠폰이 아니라 고른 색 하나가 열린다 — 확인창도 "쿠폰은 내
     // 혜택에서" 가 아니라 어느 색을 여는지 말한다.
     final bool isColor = item.id == kGraphColorItem && option != null;
+    // 프로필 펫(#2021)도 쿠폰이 아니다 — 어느 펫을 얼마 동안 다는지 말한다.
+    final bool isPet = item.id == kProfilePetItem && option != null;
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myPointsExchangeConfirmTitle,
       message: isColor
           ? l.myGraphColorExchangeConfirm(
               graphColorName(l, option),
+              l.myPointsCost(item.cost),
+            )
+          : isPet
+          ? l.myProfilePetExchangeConfirm(
+              profilePetName(l, option),
               l.myPointsCost(item.cost),
             )
           : l.myPointsExchangeConfirmMessage(
@@ -562,6 +632,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
           ..invalidate(myStreakShieldsProvider)
           ..invalidate(exerciseWeekProvider)
           ..invalidate(activityCalendarProvider);
+      }
+      if (isPet) {
+        // 단 펫은 MY 프로필 이름 옆에 바로 보인다(#2021). 내 혜택으로 보낼 것이 없다.
+        ref.invalidate(profilePetProvider);
+        showAppToast(context, l.myProfilePetDone, type: AppToastType.success);
+        return;
       }
       if (isColor) {
         // 연 색은 그 자리에서 그래프 색이 된다(#2076). 쿠폰이 아니라 내 혜택으로

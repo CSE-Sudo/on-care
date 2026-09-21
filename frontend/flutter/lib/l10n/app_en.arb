@@ -877,6 +877,58 @@
   "myGraphColorPurple": "Purple",
   "myGraphColorOrange": "Orange",
   "myGraphColorPink": "Pink",
+  "myShopProfilePetTitle": "Profile pet emoji",
+  "myShopProfilePetDescription": "Pick a dog or a cat to wear next to your name on MY for 7 days.",
+  "myProfilePetDog": "Dog",
+  "myProfilePetCat": "Cat",
+  "myProfilePetSheetTitle": "Pick a pet for your name",
+  "myProfilePetActive": "{pet} · {left}",
+  "@myProfilePetActive": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      },
+      "left": {
+        "type": "String"
+      }
+    }
+  },
+  "myProfilePetDaysLeft": "{days, plural, =1{1 day left} other{{days} days left}}",
+  "@myProfilePetDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetHoursLeft": "{hours, plural, =1{1 hour left} other{{hours} hours left}}",
+  "@myProfilePetHoursLeft": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetExchangeConfirm": "Wear the {pet} next to your name for 7 days for {cost}?",
+  "@myProfilePetExchangeConfirm": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myProfilePetDone": "Your pet is next to your name",
+  "myProfilePetLabel": "{pet} pet emoji",
+  "@myProfilePetLabel": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      }
+    }
+  },
   "myPointsValidDays": "Valid for {days} days after redeeming",
   "@myPointsValidDays": {
     "placeholders": {

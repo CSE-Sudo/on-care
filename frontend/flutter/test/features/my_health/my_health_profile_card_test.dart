@@ -4,6 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
+import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
+import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/my_health/data/repositories/mock_my_health_repository.dart';
@@ -12,6 +16,8 @@ import 'package:oncare/features/my_health/presentation/controllers/my_health_con
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import '../benefits/fake_benefits_repository.dart';
 
 /// MY 탭 프로필 카드의 "트레이너와 데이터 동기화" — 트레이너가 신규 고객
 /// 등록에서 입력하는 6자리 코드가 여기서 나온다. (#1634)
@@ -43,7 +49,7 @@ void main() {
 
   setUp(() => sync = _FakeTrainerSyncRepository());
 
-  Future<void> pumpMyTab(WidgetTester tester) async {
+  Future<void> pumpMyTab(WidgetTester tester, {ProfilePet? pet}) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -55,6 +61,9 @@ void main() {
             const MockMyHealthRepository(),
           ),
           trainerSyncRepositoryProvider.overrideWithValue(sync),
+          benefitsRepositoryProvider.overrideWithValue(
+            FakeBenefitsRepository(pet: pet),
+          ),
         ],
         child: MaterialApp(
           theme: AppTheme.light(),
@@ -148,5 +157,49 @@ void main() {
 
     // 발급이 동의였으니 취소도 즉시 반영돼야 한다 — 만료를 기다리지 않는다.
     expect(sync.revoked, 1);
+  });
+
+  testWidgets('펫은 달고 있을 때만 이름 옆에 붙고, 빠져도 이름 줄이 흔들리지 않는다 (#2021)', (
+    tester,
+  ) async {
+    Future<(double, double)> measure() async => (
+      tester.getSize(find.byKey(const Key('profileNameLine'))).height,
+      tester.getTopLeft(find.text('트레이너와 데이터 동기화')).dy,
+    );
+
+    await pumpMyTab(
+      tester,
+      pet: const ProfilePet(kind: 'dog', remainingSeconds: 5 * 86400),
+    );
+    expect(find.byKey(const Key('profilePet')), findsOneWidget);
+    final (double, double) worn = await measure();
+
+    // 기간이 끝나면 서버가 `pet` 을 비워 보낸다.
+    expect(
+      ProfilePet.fromStateJson(<String, Object?>{
+        'pet': <String, Object?>{'kind': 'dog', 'remaining_seconds': 0},
+      }),
+      isNull,
+    );
+    await tester.pumpWidget(const SizedBox());
+    await pumpMyTab(tester);
+    expect(find.byKey(const Key('profilePet')), findsNothing);
+    expect(await measure(), worn);
+
+    // 사용처 카드는 달고 있는 펫과 남은 기간을 적는다.
+    final AppLocalizations l = lookupAppLocalizations(const Locale('ko'));
+    const ShopItem card = ShopItem(
+      id: kProfilePetItem,
+      title: '',
+      benefit: '',
+      description: '',
+      cost: 200,
+      validDays: 7,
+      available: false,
+      blockReason: ShopBlockReason.activePet,
+      activeOption: 'cat',
+      remainingSeconds: 5 * 86400 - 60,
+    );
+    expect(shopBlockLabel(l, card), '고양이 · 5일 남음');
   });
 }

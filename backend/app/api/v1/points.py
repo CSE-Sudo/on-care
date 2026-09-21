@@ -28,10 +28,12 @@ from app.schemas.points_api import (
     ExchangeRequest,
     PointsShopOut,
 )
+from app.schemas.profile_pet_api import ProfilePetStateOut
 from app.services import (
     graph_color_service,
     points_coupon_service,
     points_service,
+    profile_pet_service,
     streak_shield_service,
     weekly_challenge_service,
 )
@@ -61,8 +63,9 @@ def exchange_points(
 
     없는 항목은 404, 규칙에 막히면(담당 트레이너 없음·연결한 헬스장 없음·사용하지
     않은 같은 종류 쿠폰 보유·연속 기록 보호권 최대 보유·이번 달 교환·이미 가진 그래프
-    색·잔액 부족) 409 다. 보호권(#1788)은 쿠폰 대신 `shield` 에, 그래프 색 바꾸기
-    (#2076)은 `graph_color` 에 연 뒤의 색 상태가 온다.
+    색·달고 있는 프로필 펫·잔액 부족) 409 다. 보호권(#1788)은 쿠폰 대신 `shield` 에,
+    그래프 색 바꾸기(#2076)은 `graph_color` 에 연 뒤의 색 상태가, 프로필 펫(#2021)은
+    `profile_pet` 에 단 펫이 온다. 모르는 색·펫은 404 다.
     """
     try:
         return points_coupon_service.exchange(
@@ -75,6 +78,7 @@ def exchange_points(
     except (
         points_coupon_service.UnknownItem,
         graph_color_service.UnknownColor,
+        profile_pet_service.UnknownPet,
     ) as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except points_service.InsufficientPoints as exc:
@@ -86,8 +90,21 @@ def exchange_points(
         streak_shield_service.ShieldLimitReached,
         points_coupon_service.MonthlyLimitReached,
         graph_color_service.AlreadyUnlocked,
+        profile_pet_service.PetAlreadyActive,
     ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.get("/me/profile-pet", response_model=ProfilePetStateOut)
+def my_profile_pet(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> ProfilePetStateOut:
+    """MY 프로필 이름 옆에 단 펫(#2021). 기간이 끝났으면 `pet` 이 null 이다.
+
+    사는 것은 포인트 사용처의 `profile_pet` 교환(`POST /me/points/exchange`)이다.
+    """
+    return profile_pet_service.state(db, current_user.id)
 
 
 @router.get("/me/coupons", response_model=list[CouponOut])

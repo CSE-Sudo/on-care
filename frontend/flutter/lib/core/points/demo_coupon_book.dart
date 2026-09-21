@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/points/demo_emote_pass.dart';
 import 'package:oncare/core/points/demo_graph_colors.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/core/points/demo_profile_pet.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/utils/clock.dart';
 
@@ -38,13 +39,15 @@ class DemoCouponBook {
     DemoStreakShieldBook? shields,
     DemoGraphColorBook? palette,
     DemoEmotePassBook? emotes,
+    DemoProfilePetBook? pets,
   }) : _ledger = ledger,
        _now = now ?? nowKst,
        _hasTrainer = hasTrainer,
        _hasGym = hasGym,
        _shields = shields ?? DemoStreakShieldBook(ledger: ledger, now: now),
        _palette = palette ?? DemoGraphColorBook(ledger: ledger),
-       _emotes = emotes ?? DemoEmotePassBook(ledger: ledger, now: now);
+       _emotes = emotes ?? DemoEmotePassBook(ledger: ledger, now: now),
+       _pets = pets ?? DemoProfilePetBook(ledger: ledger, now: now);
 
   /// 연속 기록 보호권(#1788) — 사용처 목록에 함께 서고, 교환은 이 원장이 받는다.
   /// 목업 운동 저장소가 같은 인스턴스를 봐야 교환한 보호권을 운동 현황에서 쓴다.
@@ -60,6 +63,11 @@ class DemoCouponBook {
   /// 것을 봐야 MY 탭에서 산 이용권이 채팅에도 보인다.
   final DemoEmotePassBook _emotes;
   DemoEmotePassBook get emotes => _emotes;
+
+  /// MY 프로필 펫 이모지(#2021) — 쿠폰이 아니다. MY 프로필 카드와 같은 것을 봐야
+  /// 사용처에서 단 펫이 이름 옆에 보인다.
+  final DemoProfilePetBook _pets;
+  DemoProfilePetBook get pets => _pets;
 
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
@@ -122,6 +130,10 @@ class DemoCouponBook {
     if (item.id == kDemoGraphColor.id) {
       // 쿠폰이 아니라 그래프 색 하나가 열린다 — 고른 색은 `option` 이 싣는다(#2076).
       return _palette.exchange(option, clientRequestId: clientRequestId);
+    }
+    if (item.id == kDemoProfilePet.id) {
+      // 쿠폰이 아니라 고른 펫이 7일 동안 이름 옆에 붙는다(#2021).
+      return _pets.exchange(option, clientRequestId: clientRequestId);
     }
     if (item.id == kDemoEmotePass.id) {
       // 쿠폰이 아니라 24시간 이용권이 생긴다(#2020).
@@ -278,6 +290,8 @@ class DemoCouponBook {
         ? 'active_coupon'
         : item.id == kDemoEmotePass.id && _emotes.active
         ? 'active_pass'
+        : item.id == kDemoProfilePet.id && _pets.active
+        ? 'active_pet'
         : item.id == kDemoStreakShield.id &&
               _shields.held >= DemoStreakShieldBook.maxHeld
         ? 'shield_limit'
@@ -298,6 +312,7 @@ class DemoCouponBook {
       'available': blocked == null,
       'blocked_reason': blocked,
       'shortfall': shortfall,
+      if (item.id == kDemoProfilePet.id) ..._pets.activeFieldsJson(),
     };
   }
 
@@ -406,7 +421,19 @@ const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
   kDemoStreakShield,
   kDemoGraphColor,
   kDemoEmotePass,
+  kDemoProfilePet,
 ];
+
+/// MY 프로필 펫 이모지(#2021) — 쿠폰이 아니다. 규칙은 [DemoProfilePetBook] 이 들고
+/// 있다.
+const DemoShopItem kDemoProfilePet = DemoShopItem(
+  id: DemoProfilePetBook.itemId,
+  title: '프로필 펫 이모지',
+  benefit: 'MY 프로필 이름 옆 펫 이모지 7일',
+  description: '강아지나 고양이를 골라 7일 동안 MY 프로필 이름 옆에 달아요.',
+  cost: DemoProfilePetBook.cost,
+  validDays: DemoProfilePetBook.days,
+);
 
 /// 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니다. 산 때부터 24시간이라
 /// `validDays` 는 1 이고, 규칙은 [DemoEmotePassBook] 이 들고 있다.
@@ -486,6 +513,7 @@ final demoCouponBookProvider = Provider<DemoCouponBook>(
     // 기록 그래프가 보는 것과 같은 색 원장 — 사용처에서 연 색이 바로 그래프에 뜬다(#2076).
     palette: ref.watch(demoGraphColorBookProvider),
     emotes: ref.watch(demoEmotePassBookProvider),
+    pets: ref.watch(demoProfilePetBookProvider),
   ),
   name: 'demoCouponBook',
 );
