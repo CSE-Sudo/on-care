@@ -101,6 +101,7 @@ class _RecordingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async {
     addedDate = date;
@@ -145,6 +146,7 @@ class _RecordingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 }

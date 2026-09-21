@@ -224,6 +224,12 @@ class _ProgramDraftFields extends StatelessWidget {
             keyPrefix: 'program-name-$index',
             controller: draft.name,
             label: l.progExerciseName,
+            // 이름이 버티는 운동이면 `횟수` 칸이 `버티는 시간` 으로 바뀐다
+            // (#1969). 트레이너가 직접 고른 뒤에는 덮지 않는다.
+            onChanged: (String _) {
+              draft.syncMeasureToName();
+              onChanged();
+            },
           ),
           const SizedBox(height: OnCareSpacing.s8),
           // 근력은 세트·횟수·중량을 한 줄에, 나머지는 시간 한 칸으로 묻는다.
@@ -244,16 +250,28 @@ class _ProgramDraftFields extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
+                // 버티는 운동은 `횟수` 자리를 `버티는 시간` 이 대신한다 —
+                // 칸을 하나 더 두지 않고 바꿔 가며 쓴다(#1969).
                 Expanded(
-                  child: RoutineRepsField(
-                    keyPrefix: 'program-reps-$index',
-                    reps: draft.reps,
-                    compact: true,
-                    onChanged: (int value) {
-                      draft.reps = value;
-                      onChanged();
-                    },
-                  ),
+                  child: draft.isHold
+                      ? RoutineHoldSecondsField(
+                          keyPrefix: 'program-hold-$index',
+                          holdSeconds: draft.holdSeconds,
+                          compact: true,
+                          onChanged: (int value) {
+                            draft.holdSeconds = value;
+                            onChanged();
+                          },
+                        )
+                      : RoutineRepsField(
+                          keyPrefix: 'program-reps-$index',
+                          reps: draft.reps,
+                          compact: true,
+                          onChanged: (int value) {
+                            draft.reps = value;
+                            onChanged();
+                          },
+                        ),
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
                 Expanded(

@@ -35,6 +35,7 @@ abstract interface class TrainerRoutineSuggestionRepository {
     String? type,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
     String? reason,
   });
@@ -125,6 +126,7 @@ class MockTrainerRoutineSuggestionRepository
     String? type,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
     String? reason,
   }) async => _review(suggestionId);

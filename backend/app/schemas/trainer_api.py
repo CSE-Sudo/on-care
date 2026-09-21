@@ -19,6 +19,7 @@ from pydantic import (
 
 from app.core import clock
 from app.schemas.exercise_limits import (
+    MAX_EXERCISE_HOLD_SECONDS,
     MAX_EXERCISE_REPS,
     MAX_EXERCISE_SETS,
     MAX_EXERCISE_WEIGHT_KG,
@@ -430,9 +431,15 @@ def _drop_fields_not_in_type(model: _ProgramLike) -> _ProgramLike:
     """
     if model.type == "근력":
         model.duration = None
+        # 한 세트는 회로든 초로든 한 번만 잰다(#1969). 버티는 운동이면 초가
+        # 맞고 횟수를 비운다 — 둘이 함께 남으면 `플랭크 3세트 · 10회 · 60초`
+        # 처럼 한 줄이 두 단위로 자기를 말한다.
+        if model.hold_seconds is not None:
+            model.reps = None
     else:
         model.sets = None
         model.reps = None
+        model.hold_seconds = None
         model.weight = None
     return model
 
@@ -459,6 +466,13 @@ class ProgramDraftExercise(BaseModel):
     #: 근력의 세트 수·한 세트당 횟수·중량(kg). 다른 유형에서는 비어 있다.
     sets: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_SETS)
     reps: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_REPS)
+    #: 버티는 운동이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
+    #: 쓴다 — 이 값이 있으면 횟수가 비고, 없으면 반대다(#1969). 이 칸이 없던
+    #: 동안 트레이너는 "플랭크 3세트 · 60초" 를 **이름에** 적을 수밖에 없었고,
+    #: 이름에 적힌 글자는 어떤 집계에도 잡히지 않았다.
+    hold_seconds: LooseInt = Field(
+        default=None, ge=0, le=MAX_EXERCISE_HOLD_SECONDS
+    )
     weight: LooseFloat = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     intensity: RoutineIntensity = "moderate"
     memo: str = Field(default="", max_length=300)
@@ -497,6 +511,9 @@ class RoutineOut(BaseModel):
     #: (#1276, #1310)
     sets: int | None = None
     reps: int | None = None
+    #: 버티는 루틴이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
+    #: 쓴다 — 있으면 횟수가 비고, 없으면 반대다. (#1969)
+    hold_seconds: int | None = None
     weight: float | None = None
     reason: str
     source: RoutineSource
@@ -544,6 +561,11 @@ class RoutineAssignRequest(BaseModel):
     #: 않는다.
     sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
     reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    #: 버티는 운동이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
+    #: 쓴다 — 이 값을 보내면 서버가 횟수를 비운다. (#1969)
+    hold_seconds: int | None = Field(
+        default=None, gt=0, le=MAX_EXERCISE_HOLD_SECONDS
+    )
     weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
     source: RoutineSource = "trainer"
@@ -567,6 +589,11 @@ class RoutineSuggestionCreateRequest(BaseModel):
     #: 와도 저장하지 않는다.
     sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
     reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    #: 버티는 운동이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
+    #: 쓴다 — 이 값을 보내면 서버가 횟수를 비운다. (#1969)
+    hold_seconds: int | None = Field(
+        default=None, gt=0, le=MAX_EXERCISE_HOLD_SECONDS
+    )
     weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str = Field(default="", max_length=200)
     #: 이 후보의 근거 문구. 트레이너가 승인 판단에 쓰는 재료이고 회원에게는
@@ -595,6 +622,11 @@ class RoutineSuggestionApproveRequest(PartialUpdate):
     #: 흐름이다(#1321).
     sets: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_SETS)
     reps: int | None = Field(default=None, gt=0, le=MAX_EXERCISE_REPS)
+    #: 버티는 운동이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
+    #: 쓴다 — 이 값을 보내면 서버가 횟수를 비운다. (#1969)
+    hold_seconds: int | None = Field(
+        default=None, gt=0, le=MAX_EXERCISE_HOLD_SECONDS
+    )
     weight: float | None = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     reason: str | None = Field(default=None, max_length=200)
 
@@ -1021,6 +1053,13 @@ class ProgramItem(BaseModel):
     #: 근력의 한 세트당 횟수. 세트·중량과 한 벌이다(#1310) — 셋이 다 있어야
     #: 트레이너가 짠 근력 한 줄이 회원 화면에서 그대로 재현된다.
     reps: LooseInt = Field(default=None, ge=0, le=MAX_EXERCISE_REPS)
+    #: 버티는 운동이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
+    #: 쓴다 — 이 값이 있으면 횟수가 비고, 없으면 반대다(#1969). 이 칸이 없던
+    #: 동안 트레이너는 "플랭크 3세트 · 60초" 를 **이름에** 적을 수밖에 없었고,
+    #: 이름에 적힌 글자는 어떤 집계에도 잡히지 않았다.
+    hold_seconds: LooseInt = Field(
+        default=None, ge=0, le=MAX_EXERCISE_HOLD_SECONDS
+    )
     weight: LooseFloat = Field(default=None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
     intensity: RoutineIntensity = "moderate"
     session: str = Field(default="", max_length=100)
@@ -1688,6 +1727,11 @@ class ProgramTemplateExercise(BaseModel):
     type: RoutineType = "근력"
     sets: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_SETS)
     reps: LooseIntZero = Field(default=0, ge=0, le=MAX_EXERCISE_REPS)
+    #: 버티는 운동이면 한 세트를 버티는 시간(초). 0 이 "적지 않음" 이고, 값이
+    #: 있으면 `reps` 를 비운다 — 이 모델의 다른 칸과 같은 규칙이다. (#1969)
+    hold_seconds: LooseIntZero = Field(
+        default=0, ge=0, le=MAX_EXERCISE_HOLD_SECONDS
+    )
     weight: LooseFloatZero = Field(default=0, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
 
     @model_validator(mode="after")
@@ -1701,7 +1745,11 @@ class ProgramTemplateExercise(BaseModel):
         if self.type != "근력":
             self.sets = 0
             self.reps = 0
+            self.hold_seconds = 0
             self.weight = 0.0
+        elif self.hold_seconds:
+            # 버티는 운동이면 초가 맞고 횟수는 비운다. (#1969)
+            self.reps = 0
         return self
 
 

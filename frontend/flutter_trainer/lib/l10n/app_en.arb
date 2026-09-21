@@ -1210,6 +1210,14 @@
       }
     }
   },
+  "progHoldValue": "{seconds} sec",
+  "@progHoldValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "progRepsValue": "{reps, plural, =1{1 rep} other{{reps} reps}}",
   "@progRepsValue": {
     "placeholders": {
@@ -1383,6 +1391,8 @@
   "routineFieldExerciseNameHintOther": "e.g. Rehab exercise, Sports activity",
   "routineFieldSets": "Sets",
   "routineFieldReps": "Reps",
+  "routineFieldHold": "Hold time",
+  "routineFieldMeasure": "Measured in",
   "routineFieldWeight": "Weight",
   "routineFieldCalories": "Estimated calories",
   "routineCaloriesNeedName": "Enter an exercise name",
@@ -1390,6 +1400,7 @@
   "routineUnitMinutes": "min",
   "routineUnitSets": "sets",
   "routineUnitReps": "reps",
+  "routineUnitSeconds": "sec",
   "routineUnitKg": "kg",
   "routineKcalValue": "{count} kcal",
   "@routineKcalValue": {
@@ -2242,7 +2253,6 @@
   "programEditorWeight": "Weight kg",
   "programEditorDuration": "Time min",
   "programEditorDistance": "Distance m",
-  "programEditorRest": "Rest sec",
   "programEditorExerciseMemo": "Memo",
   "reportsComparisonTitle": "{week} vs last week",
   "@reportsComparisonTitle": {
@@ -2599,6 +2609,20 @@
   },
   "coachTemplateMenu": "Template menu",
   "aiStrengthSummary": "{sets} sets · {reps} reps · {weight}kg",
+  "aiHoldSummary": "{sets} sets · {seconds} sec · {weight}kg",
+  "@aiHoldSummary": {
+    "placeholders": {
+      "sets": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      },
+      "weight": {
+        "type": "String"
+      }
+    }
+  },
   "@aiStrengthSummary": {
     "placeholders": {
       "sets": {

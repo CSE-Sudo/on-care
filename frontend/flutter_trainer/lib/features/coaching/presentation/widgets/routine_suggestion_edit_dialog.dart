@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
+import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -16,6 +17,7 @@ typedef RoutineSuggestionEdit = ({
   String type,
   int? sets,
   int? reps,
+  int? holdSeconds,
   double? weight,
   String reason,
 });
@@ -144,7 +146,11 @@ String routineSuggestionAmountLabel(
   if (suggestion.type != '근력') return l.minutesShort(suggestion.minutes);
   final List<String> parts = <String>[
     if (suggestion.sets != null) l.progSetsValue(suggestion.sets!),
-    if (suggestion.reps != null) l.progRepsValue(suggestion.reps!),
+    // 버티는 운동은 회가 아니라 초로 읽는다 — 둘은 배타다(#1969).
+    if (suggestion.holdSeconds != null)
+      l.progHoldValue(suggestion.holdSeconds!)
+    else if (suggestion.reps != null)
+      l.progRepsValue(suggestion.reps!),
     if (suggestion.weight != null)
       '${_trimZero(suggestion.weight!)}${l.routineUnitKg}',
   ];
@@ -188,6 +194,13 @@ class _RoutineSuggestionEditDialogState
   // 다른 입력 화면과 같은 기본값으로 시작한다.
   late int _sets = widget.suggestion.sets ?? 3;
   late int _reps = widget.suggestion.reps ?? 10;
+  late int _holdSeconds = widget.suggestion.holdSeconds ?? 60;
+  // 제안이 든 칸이 곧 이 운동을 재는 단위다. 값이 없는 제안은 이름으로
+  // 본다 — 종목표가 버티는 운동이라고 하면 초로 연다. (#1969)
+  late bool _isHold =
+      widget.suggestion.holdSeconds != null ||
+      (widget.suggestion.reps == null &&
+          isIsometricExerciseName(widget.suggestion.name));
   late double _weight = widget.suggestion.weight ?? 20;
 
   bool get _isStrength => _type == '근력';
@@ -210,7 +223,9 @@ class _RoutineSuggestionEditDialogState
       type: _type,
       // 근력이 아니면 세 값을 싣지 않는다 — 유산소를 세트로 세는 화면은 없다.
       sets: _isStrength ? _sets : null,
-      reps: _isStrength ? _reps : null,
+      // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 비운다(#1969).
+      reps: _isStrength && !_isHold ? _reps : null,
+      holdSeconds: _isStrength && _isHold ? _holdSeconds : null,
       weight: _isStrength ? _weight : null,
       reason: _reason.text.trim(),
     ));
@@ -256,11 +271,28 @@ class _RoutineSuggestionEditDialogState
               onChanged: (next) => setState(() => _sets = next),
             ),
             const SizedBox(height: OnCareSpacing.s8),
-            RoutineRepsField(
-              keyPrefix: 'suggestion-edit-reps',
-              reps: _reps,
-              onChanged: (next) => setState(() => _reps = next),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: RoutineMeasureToggle(
+                keyPrefix: 'suggestion-edit-measure',
+                isHold: _isHold,
+                onChanged: (bool hold) => setState(() => _isHold = hold),
+              ),
             ),
+            const SizedBox(height: OnCareSpacing.s8),
+            // 버티는 운동은 `횟수` 자리를 `버티는 시간` 이 대신한다(#1969).
+            if (_isHold)
+              RoutineHoldSecondsField(
+                keyPrefix: 'suggestion-edit-hold',
+                holdSeconds: _holdSeconds,
+                onChanged: (next) => setState(() => _holdSeconds = next),
+              )
+            else
+              RoutineRepsField(
+                keyPrefix: 'suggestion-edit-reps',
+                reps: _reps,
+                onChanged: (next) => setState(() => _reps = next),
+              ),
             const SizedBox(height: OnCareSpacing.s8),
             RoutineWeightField(
               keyPrefix: 'suggestion-edit-weight',

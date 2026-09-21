@@ -1817,6 +1817,11 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
+  String progHoldValue(int seconds) {
+    return '$seconds초';
+  }
+
+  @override
   String progRepsValue(int reps) {
     return '$reps회';
   }
@@ -2169,6 +2174,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineFieldReps => '횟수';
 
   @override
+  String get routineFieldHold => '버티는 시간';
+
+  @override
+  String get routineFieldMeasure => '재는 방법';
+
+  @override
   String get routineFieldWeight => '중량';
 
   @override
@@ -2189,6 +2200,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get routineUnitReps => '회';
+
+  @override
+  String get routineUnitSeconds => '초';
 
   @override
   String get routineUnitKg => 'kg';
@@ -3451,9 +3465,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get programEditorDistance => '거리 m';
 
   @override
-  String get programEditorRest => '휴식 초';
-
-  @override
   String get programEditorExerciseMemo => '메모';
 
   @override
@@ -3838,6 +3849,11 @@ class AppLocalizationsKo extends AppLocalizations {
   @override
   String aiStrengthSummary(int sets, int reps, String weight) {
     return '$sets세트 · $reps회 · ${weight}kg';
+  }
+
+  @override
+  String aiHoldSummary(int sets, int seconds, String weight) {
+    return '$sets세트 · $seconds초 · ${weight}kg';
   }
 
   @override

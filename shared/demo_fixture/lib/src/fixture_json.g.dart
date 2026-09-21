@@ -387,12 +387,13 @@ const String kimMinsuFixtureJson = r'''
           "weight": 45
         },
         {
-          "name": "플랭크 60초",
+          "name": "플랭크",
           "type": "strength",
           "minutes": 6,
           "calories": 36,
           "done": true,
           "sets": 3,
+          "holdSeconds": 60,
           "weight": 0
         }
       ],
@@ -3395,12 +3396,13 @@ const String kimMinsuFixtureJson = r'''
               "weight": 40
             },
             {
-              "name": "플랭크 45초",
+              "name": "플랭크",
               "type": "strength",
               "minutes": 6,
               "calories": 36,
               "done": true,
               "sets": 3,
+              "holdSeconds": 45,
               "weight": 0
             },
             {

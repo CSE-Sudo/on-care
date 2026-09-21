@@ -367,12 +367,22 @@ class LocalApiInterceptor extends Interceptor {
           ? (body['sets'] as num?)?.toInt()
           : existing.sets,
     );
-    final reps = _strengthOnly(
+    // 회↔초를 되돌린 수정도 같은 규칙이다 — 초가 실려 오면 횟수를 비운다.
+    // (#1969)
+    final holdSeconds = _strengthOnly(
       type,
-      body.containsKey('reps')
-          ? (body['reps'] as num?)?.toInt()
-          : existing.reps,
+      body.containsKey('hold_seconds')
+          ? (body['hold_seconds'] as num?)?.toInt()
+          : existing.holdSeconds,
     );
+    final reps = holdSeconds != null
+        ? null
+        : _strengthOnly(
+            type,
+            body.containsKey('reps')
+                ? (body['reps'] as num?)?.toInt()
+                : existing.reps,
+          );
     final weight = _strengthOnly(
       type,
       body.containsKey('weight')
@@ -397,6 +407,7 @@ class LocalApiInterceptor extends Interceptor {
         dayLabel: Value(dayLabel),
         sets: Value(sets),
         reps: Value(reps),
+        holdSeconds: Value(holdSeconds),
         weight: Value(weight),
       ),
     );
@@ -413,6 +424,7 @@ class LocalApiInterceptor extends Interceptor {
         minutes: minutes,
         sets: sets,
         reps: reps,
+        holdSeconds: holdSeconds,
         weight: weight,
         calories: estimated.calories,
         intensity: intensity,
@@ -1386,6 +1398,7 @@ class LocalApiInterceptor extends Interceptor {
           minutes: r.minutes,
           sets: r.sets,
           reps: r.reps,
+          holdSeconds: r.holdSeconds,
           weight: r.weight,
           calories: r.calories,
           intensity: r.intensity,
@@ -1635,6 +1648,9 @@ class LocalApiInterceptor extends Interceptor {
       'calories': result.calories,
       'source': result.source,
       'matched_name': result.matchedName,
+      // 데모에는 종목 참조표의 `isometric` 표시가 없다 — 이름 조각으로 본다.
+      // 폼이 `횟수` 대신 `초` 를 물을지의 기본값이다(#1969).
+      'isometric': isIsometricExerciseName(name),
     });
   }
 
@@ -1706,7 +1722,14 @@ class LocalApiInterceptor extends Interceptor {
       intensity: intensity,
     );
     final sets = _strengthOnly(type, (payload['sets'] as num?)?.toInt());
-    final reps = _strengthOnly(type, (payload['reps'] as num?)?.toInt());
+    // 한 세트는 회로든 초로든 한 번만 잰다 — 초가 오면 횟수를 비운다(#1969).
+    final holdSeconds = _strengthOnly(
+      type,
+      (payload['hold_seconds'] as num?)?.toInt(),
+    );
+    final reps = holdSeconds != null
+        ? null
+        : _strengthOnly(type, (payload['reps'] as num?)?.toInt());
     final weight = _strengthOnly(type, (payload['weight'] as num?)?.toDouble());
     final (String weekStart, String dayLabel) = _placement(payload['date']);
 
@@ -1725,6 +1748,7 @@ class LocalApiInterceptor extends Interceptor {
             intensity: Value(intensity),
             sets: Value(sets),
             reps: Value(reps),
+            holdSeconds: Value(holdSeconds),
             weight: Value(weight),
           ),
         );
@@ -1741,6 +1765,7 @@ class LocalApiInterceptor extends Interceptor {
         minutes: minutes,
         sets: sets,
         reps: reps,
+        holdSeconds: holdSeconds,
         weight: weight,
         calories: estimated.calories,
         intensity: intensity,
@@ -1763,6 +1788,7 @@ class LocalApiInterceptor extends Interceptor {
     required int minutes,
     required int? sets,
     required int? reps,
+    required int? holdSeconds,
     required double? weight,
     required int calories,
     required String intensity,
@@ -1776,6 +1802,7 @@ class LocalApiInterceptor extends Interceptor {
     'minutes': minutes,
     'sets': sets,
     'reps': reps,
+    'hold_seconds': holdSeconds,
     'weight': weight,
     'calories': calories,
     'calorie_source': calorieSource,

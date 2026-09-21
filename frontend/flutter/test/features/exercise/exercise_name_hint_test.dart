@@ -52,6 +52,7 @@ class _StubRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 
@@ -81,6 +82,7 @@ class _StubRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 }

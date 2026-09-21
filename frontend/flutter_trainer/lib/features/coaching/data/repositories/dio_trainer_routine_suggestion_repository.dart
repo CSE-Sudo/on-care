@@ -41,6 +41,7 @@ class DioTrainerRoutineSuggestionRepository
     String? type,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
     String? reason,
   }) async {
@@ -53,6 +54,7 @@ class DioTrainerRoutineSuggestionRepository
         type: type,
         sets: sets,
         reps: reps,
+        holdSeconds: holdSeconds,
         weight: weight,
         reason: reason,
       ),

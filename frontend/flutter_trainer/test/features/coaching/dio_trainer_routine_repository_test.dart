@@ -71,6 +71,7 @@ void main() {
             'intensity': 'moderate',
             'sets': null,
             'reps': null,
+            'hold_seconds': null,
             'weight': null,
             'reason': '걷기, 스쿼트',
             'source': 'ai',

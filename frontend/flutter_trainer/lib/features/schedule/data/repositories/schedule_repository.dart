@@ -813,8 +813,15 @@ String _programItemLabel(ProgramItem raw) {
   final List<String> parts = <String>[];
   if (item.type == '근력') {
     if (item.sets != null) parts.add('${item.sets}세트');
+    // 버티는 운동은 회가 아니라 초로 읽는다 — `플랭크 3세트 60초`. 둘은
+    // 배타라 한 줄에 함께 서지 않는다. (#1969)
+    final int? holdSeconds = item.holdSeconds;
     final int? reps = item.reps;
-    if (reps != null && reps > 0) parts.add('$reps회');
+    if (holdSeconds != null && holdSeconds > 0) {
+      parts.add('$holdSeconds초');
+    } else if (reps != null && reps > 0) {
+      parts.add('$reps회');
+    }
     // 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 적지 않은 값과
     // 0 은 다른 뜻이다. 값이 없는 것은 규칙 이전의 옛 행뿐이다.
     final double? weight = item.weight;

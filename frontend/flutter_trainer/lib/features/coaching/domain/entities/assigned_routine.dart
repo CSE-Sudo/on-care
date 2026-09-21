@@ -14,6 +14,7 @@ class AssignedRoutine {
     this.intensity = 'moderate',
     this.sets,
     this.reps,
+    this.holdSeconds,
     this.weight,
   });
 
@@ -41,6 +42,10 @@ class AssignedRoutine {
   /// (#1276, #1310)
   final int? sets;
   final int? reps;
+
+  /// 버티는 루틴이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓴다 — 있으면 횟수가 비고, 없으면 반대다. (#1969)
+  final int? holdSeconds;
   final double? weight;
 
   /// Why this routine — surfaced to the member.

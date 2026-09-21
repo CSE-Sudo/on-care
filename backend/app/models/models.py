@@ -586,6 +586,12 @@ class ExerciseCatalogItem(Base):
     #: 유형이 아니라 이 값이 맞다("줄넘기"를 근력으로 골라도 유산소다).
     type: Mapped[str] = mapped_column(String(20), default="other")
     met: Mapped[float] = mapped_column(Float, default=0)
+    #: 버티는 운동인가 — 플랭크처럼 한 세트를 회가 아니라 초로 재는 종목이다.
+    #: 폼이 `횟수` 칸을 `초` 칸으로 바꿔 보이는 근거고, 표에 없는 자유 입력
+    #: 이름도 있으므로 **기본값일 뿐** 사용자가 폼에서 바꿀 수 있다. (#1969)
+    isometric: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
     #: 데이터 출처. khpi=한국건강증진개발원 공공데이터, compendium=국제 표준표.
     source: Mapped[str] = mapped_column(String(20), default="khpi")
 
@@ -652,6 +658,18 @@ class ExerciseSession(Base):
     #: 사람마다 소모가 달라, 추정식에 넣으면 근거 없는 정밀도가 된다. 횟수도
     #: 같은 이유로 계산에 넣지 않는다.
     weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    #: 등척성 홀드 한 세트를 버틴 시간(초). 플랭크처럼 회가 아니라 초로 재는
+    #: 근력 기록에만 있고, 이때 `reps` 는 비어 있다 — 같은 한 세트를 두 단위로
+    #: 적으면 어느 쪽이 맞는지 알 수 없다(#1969). 이 칸이 생기기 전에는 담을
+    #: 자리가 없어 45초 홀드가 `reps: 3` 으로 적히거나 이름에 "· 60초" 로
+    #: 붙었다. 주간 집계는 이 값을 세지 않는다 — 홀드도 세트로 세고, 초는
+    #: 그 세트가 얼마짜리였는지를 말할 뿐이다.
+    hold_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    #: 이 운동에 실제로 쓴 시간(초). `minutes` 와 같은 것을 더 잘게 잰 값이다
+    #: (#1969, #2071). 회원이 초까지 적으면 서버가 여기 그대로 두고 `minutes`
+    #: 를 반올림해 채운다 — 주간 집계·트레이너웹이 분을 읽기 때문이다. 이 칸이
+    #: 비어 있는 옛 기록은 `minutes × 60` 으로 읽는다.
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     calories: Mapped[int] = mapped_column(Integer, default=0)
     #: 이 칼로리가 어디서 나왔나 — db=종목 참조표+체중, mixed=이름 해석은 AI 이고
     #: 수치는 참조표, estimate=유형 평균 어림값. 식단(`RecognizedFood.source`)과
@@ -1347,6 +1365,10 @@ class TrainerRoutine(Base):
     sets: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reps: Mapped[int | None] = mapped_column(Integer, nullable=True)
     weight: Mapped[float | None] = mapped_column(Float, nullable=True)
+    #: 등척성 홀드면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠 쓴다 —
+    #: 버티는 운동이면 이 값이 있고 `reps` 가 비며, 아니면 반대다(#1969).
+    #: 트레이너가 "플랭크 60초 3세트" 를 배정할 수 있는 유일한 칸이다.
+    hold_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     reason: Mapped[str] = mapped_column(String(200), default="")
     source: Mapped[str] = mapped_column(String(20), default="ai")  # ai|trainer
     #: 검토 상태 — approved(회원에게 노출) | pending(트레이너 검토 대기) |

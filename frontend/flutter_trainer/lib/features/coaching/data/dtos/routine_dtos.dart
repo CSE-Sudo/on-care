@@ -1,5 +1,6 @@
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
+import 'package:oncare_trainer/shared/exercise_limits.dart';
 
 /// Valid routine types accepted by the backend (`RoutineType` literal).
 ///
@@ -82,6 +83,7 @@ AssignedRoutine assignedRoutineFromJson(Map<String, Object?> json) {
     intensity: normaliseRoutineIntensity(json['intensity'] as String?),
     sets: (json['sets'] as num?)?.toInt(),
     reps: (json['reps'] as num?)?.toInt(),
+    holdSeconds: (json['hold_seconds'] as num?)?.toInt(),
     weight: (json['weight'] as num?)?.toDouble(),
   );
 }
@@ -106,7 +108,12 @@ Map<String, Object?> assignRoutineToJson(
     // 세트·횟수·중량은 근력에만 싣는다 — 서버도 다른 유형에서는 버린다.
     // (#1276, #1310)
     'sets': strength ? r.sets?.clamp(1, 99) : null,
-    'reps': strength ? r.reps?.clamp(1, 999) : null,
+    // 한 세트는 회로든 초로든 한 번만 잰다 — 초가 있으면 횟수를 비운다.
+    // (#1969)
+    'reps': strength && r.holdSeconds == null ? r.reps?.clamp(1, 999) : null,
+    'hold_seconds': strength
+        ? r.holdSeconds?.clamp(1, kMaxExerciseHoldSeconds)
+        : null,
     'weight': strength ? r.weight?.clamp(0, 1000) : null,
     'reason': _truncate(r.reason, 200),
     'source': r.source == 'trainer' ? 'trainer' : 'ai',

@@ -1,4 +1,5 @@
 import 'package:demo_fixture/demo_fixture.dart';
+import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
@@ -302,6 +303,9 @@ class MockExerciseRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
   }) async => ExerciseCalorieEstimate(
     calories: estimateExerciseCalories(type, minutes, intensity: intensity),
+    // 목업에는 종목 참조표가 없다 — 이름 조각으로 본다(#1969). 실서버는 표의
+    // `isometric` 표시를 그대로 내려 준다.
+    isometric: isIsometricExerciseName(name),
   );
 
   @override
@@ -314,6 +318,7 @@ class MockExerciseRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
@@ -329,7 +334,9 @@ class MockExerciseRepository implements ExerciseRepository {
       intensity: intensity,
       dateLabel: _dateLabel(_ymd(date)),
       sets: _strengthOnly(type, sets),
-      reps: _strengthOnly(type, reps),
+      // 한 세트를 회로든 초로든 한 번만 잰다 — 초가 오면 횟수를 비운다(#1969).
+      reps: holdSeconds == null ? _strengthOnly(type, reps) : null,
+      holdSeconds: _strengthOnly(type, holdSeconds),
       name: name,
       weight: _strengthOnly(type, weight),
       date: date,
@@ -422,6 +429,7 @@ class MockExerciseRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
@@ -444,7 +452,8 @@ class MockExerciseRepository implements ExerciseRepository {
       timeLabel: old?.timeLabel,
       items: old?.items ?? const <String>[],
       sets: _strengthOnly(type, sets),
-      reps: _strengthOnly(type, reps),
+      reps: holdSeconds == null ? _strengthOnly(type, reps) : null,
+      holdSeconds: _strengthOnly(type, holdSeconds),
       name: name,
       weight: _strengthOnly(type, weight),
       date: date,

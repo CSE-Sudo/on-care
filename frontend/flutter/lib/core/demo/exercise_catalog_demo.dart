@@ -12,14 +12,25 @@
 /// 고치고 그 값을 옮긴다.
 library;
 
-/// 종목 한 줄 — 이름, 집계 유형, 단위체중당 소모 계수, 별칭.
+/// 종목 한 줄 — 이름, 집계 유형, 단위체중당 소모 계수, 별칭, 버티는 운동 여부.
 class DemoExerciseActivity {
-  const DemoExerciseActivity(this.name, this.type, this.met, this.aliases);
+  const DemoExerciseActivity(
+    this.name,
+    this.type,
+    this.met,
+    this.aliases, {
+    this.isometric = false,
+  });
 
   final String name;
   final String type;
   final double met;
   final List<String> aliases;
+
+  /// 버티는 운동인가 — 플랭크처럼 한 세트를 회가 아니라 초로 재는 종목이다.
+  /// 폼이 `횟수` 칸을 `초` 칸으로 바꿔 보이는 **기본값**이고, 표에 없는 자유
+  /// 입력 이름도 있으므로 회원이 곧바로 바꿀 수 있다. (#1969)
+  final bool isometric;
 }
 
 /// 데모에서 알아듣는 종목. 회원이 실제로 적는 말 위주로 서버 시드에서 추렸다.
@@ -55,7 +66,13 @@ const List<DemoExerciseActivity> kDemoExerciseCatalog = <DemoExerciseActivity>[
   DemoExerciseActivity('푸시업', 'strength', 8.0, <String>['팔굽혀펴기']),
   DemoExerciseActivity('턱걸이', 'strength', 8.0, <String>['풀업', '친업']),
   DemoExerciseActivity('윗몸일으키기', 'strength', 8.0, <String>['싯업', '크런치']),
-  DemoExerciseActivity('플랭크', 'strength', 3.8, <String>['사이드플랭크']),
+  DemoExerciseActivity(
+    '플랭크',
+    'strength',
+    3.8,
+    <String>['사이드플랭크'],
+    isometric: true,
+  ),
   DemoExerciseActivity('케틀벨', 'strength', 8.0, <String>['케틀벨 스윙']),
   DemoExerciseActivity('스트레칭', 'stretching', 2.3, <String>['정적 스트레칭']),
   DemoExerciseActivity('요가', 'stretching', 2.5, <String>['하타요가']),
@@ -151,3 +168,10 @@ int demoCatalogCalories(
         (minutes < 0 ? 0 : minutes) /
         60.0)
     .round();
+
+/// [name] 이 버티는 운동인가 — 폼이 `횟수` 대신 `초` 를 물을지의 **기본값**.
+///
+/// 표에 붙지 않는 이름은 `false` 다. 지어내지 않는 것이 이 표의 규칙이고,
+/// 어차피 사용자가 폼에서 곧바로 바꿀 수 있다. (#1969)
+bool isIsometricExerciseName(String name) =>
+    matchDemoExercise(name)?.isometric ?? false;

@@ -33,6 +33,8 @@ class CatalogRow:
     aliases_norm: str
     type: str
     met: float
+    #: 버티는 운동인가 — 폼이 `횟수` 대신 `초` 를 묻는 기본값이다. (#1969)
+    isometric: bool
     source: str
 
 

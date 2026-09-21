@@ -152,6 +152,22 @@ def _weight_for(normalized_type: str, weight: float | None) -> float | None:
     return None if value is None else round(value, 1)
 
 
+def _reps_and_hold(
+    normalized_type: str, payload: ExerciseSessionCreate
+) -> tuple[int | None, int | None]:
+    """(횟수, 홀드 초). 한 세트는 회로든 초로든 **한 번만** 잰다. (#1969)
+
+    버티는 운동이면 초가 맞고 횟수는 비운다. 둘 다 오면 초를 믿는다 — 초를 보내는
+    클라이언트는 이 칸을 아는 쪽이고, 횟수는 칸이 없던 시절처럼 초를 억지로 담아
+    보낸 값일 수 있다(`reps: 3` 으로 적힌 45초 홀드가 그렇게 생겼다).
+
+    세트·중량과 같은 규칙으로 근력이 아니면 둘 다 버린다.
+    """
+    hold = _strength_only(normalized_type, payload.hold_seconds)
+    reps = _strength_only(normalized_type, payload.reps)
+    return (None, hold) if hold is not None else (reps, None)
+
+
 def _placement(day: date | None) -> tuple[str, str, datetime]:
     """(주 시작 월요일, 요일 라벨, 완료 시각). 날짜가 없으면 오늘이다.
 
@@ -224,6 +240,7 @@ def preview_calories(
         calories=result.calories,
         source=result.source,
         matched_name=result.matched_name,
+        isometric=exercise_service.isometric_default(db, payload.name),
     )
 
 
@@ -242,6 +259,7 @@ def add_session(
     week_start, day_label, completed_at = _placement(payload.date)
     normalized = exercise_types.normalize(payload.type)
     estimated = _calories_for(db, current_user.id, payload, normalized)
+    reps, hold_seconds = _reps_and_hold(normalized, payload)
     row = ExerciseSession(
         id=f"ex-{uuid.uuid4().hex[:12]}",
         user_id=current_user.id,
@@ -250,8 +268,10 @@ def add_session(
         type=normalized,
         name=payload.name.strip(),
         minutes=payload.minutes,
+        duration_seconds=payload.duration_seconds,
         sets=_strength_only(normalized, payload.sets),
-        reps=_strength_only(normalized, payload.reps),
+        reps=reps,
+        hold_seconds=hold_seconds,
         weight=_weight_for(normalized, payload.weight),
         calories=estimated.calories,
         calorie_source=estimated.source,
@@ -315,8 +335,9 @@ def update_session(
     row.type = exercise_types.normalize(payload.type)
     row.name = payload.name.strip()
     row.minutes = payload.minutes
+    row.duration_seconds = payload.duration_seconds
     row.sets = _strength_only(row.type, payload.sets)
-    row.reps = _strength_only(row.type, payload.reps)
+    row.reps, row.hold_seconds = _reps_and_hold(row.type, payload)
     row.weight = _weight_for(row.type, payload.weight)
     estimated = _calories_for(db, current_user.id, payload, row.type)
     row.calories = estimated.calories

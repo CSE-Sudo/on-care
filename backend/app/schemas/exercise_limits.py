@@ -41,3 +41,18 @@ MAX_EXERCISE_WEIGHT_KG = 1000
 #: (`AssignedRoutineCompleteRequest`). 곳마다 다르면 미리보기는 되는데 저장은
 #: 422 로 떨어지는 값이 생긴다.
 MAX_EXERCISE_MINUTES = 600
+
+#: 등척성 홀드 한 세트의 버티는 시간 상한(초). 한 시간이다. (#1969)
+#:
+#: 세트 **하나**가 이보다 길 수는 없다고 본다 — 플랭크·행잉처럼 버티는 운동은
+#: 분 단위가 이미 길고, 한 세트가 한 시간을 넘으면 그것은 홀드가 아니라 다른
+#: 운동이다. `MAX_EXERCISE_SETS` 와 곱해도 `MAX_EXERCISE_SECONDS` 를 넘을 수
+#: 있으나, 두 값은 서로 다른 것을 재므로 여기서 묶지 않는다 — 홀드 초는 한
+#: 세트의 길이이고 운동 기록의 초는 그 운동에 실제로 쓴 벽시계 시간이다.
+MAX_EXERCISE_HOLD_SECONDS = 3600
+
+#: 운동 한 건의 시간 상한(초). `MAX_EXERCISE_MINUTES` 와 같은 길이다. (#1969)
+#:
+#: 초와 분은 같은 것을 두 단위로 재는 값이라, 상한이 어긋나면 초로는 되는데
+#: 분으로는 422 인 기록이 생긴다. 곱으로 파생시켜 둘이 갈라질 자리를 없앤다.
+MAX_EXERCISE_SECONDS = MAX_EXERCISE_MINUTES * 60

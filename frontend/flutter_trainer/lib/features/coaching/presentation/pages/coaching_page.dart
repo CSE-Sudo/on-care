@@ -439,7 +439,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             // 읽혔다.
             duration: exercise.isStrength ? null : exercise.minutes,
             sets: exercise.isStrength ? exercise.sets : null,
-            reps: exercise.isStrength ? exercise.reps : null,
+            // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은
+            // 비운다(#1969).
+            reps: exercise.isStrength && !exercise.isHold
+                ? exercise.reps
+                : null,
+            holdSeconds: exercise.isStrength && exercise.isHold
+                ? exercise.holdSeconds
+                : null,
             weight: exercise.isStrength ? exercise.weight : null,
             intensity: exercise.intensity,
             session: multi ? capSessionName(session.name) : '',
@@ -844,6 +851,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                           reason: l.coachReviewed,
                           sets: exercises[index].sets,
                           reps: exercises[index].reps,
+                          holdSeconds: exercises[index].holdSeconds,
                           weight: exercises[index].weight,
                         ),
                     ];

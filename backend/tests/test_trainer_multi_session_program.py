@@ -69,6 +69,7 @@ def _exercise(name: str, **overrides) -> dict:
         "duration": None,
         "sets": 4,
         "reps": 12,
+        "hold_seconds": None,
         "weight": 60.0,
         "intensity": "moderate",
         "memo": "",

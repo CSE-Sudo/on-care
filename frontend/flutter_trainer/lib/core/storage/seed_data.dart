@@ -846,6 +846,8 @@ class _FixtureClient {
               'minutes': e.minutes,
               if (e.sets != null) 'sets': e.sets,
               if (e.reps != null) 'reps': e.reps,
+              // 버티는 운동은 회가 아니라 초로 잰다(#1969).
+              if (e.holdSeconds != null) 'hold_seconds': e.holdSeconds,
               if (e.weight != null) 'weight': e.weight,
               if (!e.done) 'done': false,
             },
@@ -903,6 +905,7 @@ class _FixtureClient {
                   'minutes': e.minutes,
                   if (e.sets != null) 'sets': e.sets,
                   if (e.reps != null) 'reps': e.reps,
+                  if (e.holdSeconds != null) 'hold_seconds': e.holdSeconds,
                   if (e.weight != null) 'weight': e.weight,
                 },
           ]),
@@ -1486,7 +1489,9 @@ const List<_WeekSlot> _weekSchedule = <_WeekSlot>[
         'name': '플랭크',
         'type': '근력',
         'sets': 3,
-        'reps': 3,
+        // 버티는 운동이라 초로 적는다 — `reps: 3` 은 45초를 "3회" 라고 말하던
+        // 뜻이 틀린 값이었다. (#1969)
+        'hold_seconds': 45,
         'weight': 0,
       },
     ],
@@ -1679,7 +1684,9 @@ const List<_Slot> _schedule = <_Slot>[
         'name': '플랭크',
         'type': '근력',
         'sets': 3,
-        'reps': 3,
+        // 버티는 운동이라 초로 적는다 — `reps: 3` 은 45초를 "3회" 라고 말하던
+        // 뜻이 틀린 값이었다. (#1969)
+        'hold_seconds': 45,
         'weight': 0,
       },
       <String, Object?>{

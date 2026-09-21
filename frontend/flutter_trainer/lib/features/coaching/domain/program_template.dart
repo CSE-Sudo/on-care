@@ -7,6 +7,7 @@ class TemplateExercise {
     required this.type,
     this.sets = 0,
     this.reps = 0,
+    this.holdSeconds = 0,
     this.weight = 0,
   });
 
@@ -25,6 +26,12 @@ class TemplateExercise {
   /// 비근력 운동은 0 이고 [minutes] 만 쓴다.
   final int sets;
   final int reps;
+
+  /// 버티는 운동이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓴다 — 있으면 횟수가 0 이고, 없으면 반대다. 0 이 "적지 않음" 이다.
+  /// (#1969)
+  final int holdSeconds;
+
   final double weight;
 
   /// `ProgramTemplateExercise` 한 줄.
@@ -35,6 +42,7 @@ class TemplateExercise {
         type: json['type'] as String? ?? '근력',
         sets: (json['sets'] as num?)?.toInt() ?? 0,
         reps: (json['reps'] as num?)?.toInt() ?? 0,
+        holdSeconds: (json['hold_seconds'] as num?)?.toInt() ?? 0,
         weight: (json['weight'] as num?)?.toDouble() ?? 0,
       );
 
@@ -45,6 +53,7 @@ class TemplateExercise {
     'type': type,
     'sets': sets,
     'reps': reps,
+    'hold_seconds': holdSeconds,
     'weight': weight,
   };
 }

@@ -401,6 +401,7 @@ def _seed_exercise_catalog() -> None:
                 aliases_norm="|".join(aliases),
                 type=exercise_types.normalize(item.get("type")),
                 met=float(item["met"]),
+                isometric=bool(item.get("isometric", False)),
                 source=item.get("source", "khpi"),
             ))
         db.commit()

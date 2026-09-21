@@ -2,6 +2,7 @@ import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
+import 'package:oncare_trainer/shared/exercise_limits.dart';
 
 /// Wire values the backend accepts for an exercise's origin.
 const List<String> kProgramExerciseSources = <String>['ai', 'trainer'];
@@ -38,7 +39,13 @@ Map<String, Object?> programExerciseToJson(
   // 기록이 같은 규칙을 쓴다 (#1276, #1310).
   'duration': exercise.isStrength ? null : exercise.minutes.clamp(0, 600),
   'sets': exercise.isStrength ? exercise.sets.clamp(0, 99) : null,
-  'reps': exercise.isStrength ? exercise.reps.clamp(0, 999) : null,
+  // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 비운다(#1969).
+  'reps': exercise.isStrength && !exercise.isHold
+      ? exercise.reps.clamp(0, 999)
+      : null,
+  'hold_seconds': exercise.isStrength && exercise.isHold
+      ? exercise.holdSeconds.clamp(1, kMaxExerciseHoldSeconds)
+      : null,
   'weight': exercise.isStrength ? exercise.weight.clamp(0, 1000) : null,
   'intensity': normaliseRoutineIntensity(exercise.intensity),
   'memo': _cap(exercise.memo, _kMemoMax),
@@ -60,6 +67,9 @@ ProgramExerciseDraft programExerciseFromJson(Map<String, Object?> json) =>
       minutes: looseInt(json['duration']) ?? 30,
       sets: looseInt(json['sets']) ?? 3,
       reps: looseInt(json['reps']) ?? 10,
+      holdSeconds: looseInt(json['hold_seconds']) ?? 60,
+      // 저장된 행이 든 칸이 곧 이 운동을 재는 단위다. (#1969)
+      isHold: looseInt(json['hold_seconds']) != null,
       weight: looseDouble(json['weight']) ?? 20,
       intensity: normaliseRoutineIntensity(json['intensity'] as String?),
       memo: json['memo'] as String? ?? '',

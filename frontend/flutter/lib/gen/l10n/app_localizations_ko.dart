@@ -783,6 +783,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exExerciseReps => '횟수';
 
   @override
+  String get exExerciseHold => '버티는 시간';
+
+  @override
+  String get exExerciseMeasure => '재는 방법';
+
+  @override
   String get exExerciseWeight => '중량';
 
   @override
@@ -793,6 +799,9 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get exUnitReps => '회';
+
+  @override
+  String get exUnitSeconds => '초';
 
   @override
   String get exUnitKg => 'kg';

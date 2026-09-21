@@ -86,6 +86,8 @@ class RoutineExercise {
     required this.type,
     this.sets = 0,
     this.reps = 0,
+    this.holdSeconds = 0,
+    this.isHold = false,
     this.weight = 0,
   });
 
@@ -99,6 +101,15 @@ class RoutineExercise {
   /// 옮겨진다 — 셋 중 하나라도 빠지면 프로그램 편집기에서 다시 물어야 한다.
   final int sets;
   final int reps;
+
+  /// 버티는 운동이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓰지만 값은 따로 들고 있어야, 회↔초를 오갈 때 각자의 값이 남는다.
+  /// 0 이 "적지 않음" 이다. (#1969)
+  final int holdSeconds;
+
+  /// 지금 이 운동을 초로 재는가 — 어느 칸을 보이고 어느 칸을 실을지를 정한다.
+  final bool isHold;
+
   final double weight;
 
   RoutineExercise copyWith({
@@ -107,6 +118,8 @@ class RoutineExercise {
     String? type,
     int? sets,
     int? reps,
+    int? holdSeconds,
+    bool? isHold,
     double? weight,
   }) => RoutineExercise(
     name: name ?? this.name,
@@ -114,6 +127,8 @@ class RoutineExercise {
     type: type ?? this.type,
     sets: sets ?? this.sets,
     reps: reps ?? this.reps,
+    holdSeconds: holdSeconds ?? this.holdSeconds,
+    isHold: isHold ?? this.isHold,
     weight: weight ?? this.weight,
   );
 }

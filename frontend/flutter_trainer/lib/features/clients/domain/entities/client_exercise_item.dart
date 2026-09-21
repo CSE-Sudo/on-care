@@ -14,6 +14,7 @@ class ClientExerciseItem {
     this.minutes = 0,
     this.sets,
     this.reps,
+    this.holdSeconds,
     this.weight,
     this.done = true,
   });
@@ -33,6 +34,7 @@ class ClientExerciseItem {
         minutes: (json['minutes'] as num?)?.toInt() ?? 0,
         sets: (json['sets'] as num?)?.toInt(),
         reps: (json['reps'] as num?)?.toInt(),
+        holdSeconds: (json['hold_seconds'] as num?)?.toInt(),
         weight: (json['weight'] as num?)?.toDouble(),
         done: json['done'] as bool? ?? true,
       );
@@ -47,6 +49,11 @@ class ClientExerciseItem {
   /// 근력의 세트 수·한 세트당 횟수·중량(kg). 다른 유형은 null 이다.
   final int? sets;
   final int? reps;
+
+  /// 버티는 운동이면 한 세트를 버틴 시간(초). [reps] 와 한 자리를 나눠 쓴다 —
+  /// 플랭크를 `3회` 로 적으면 45초를 "3회" 라고 말하게 된다(#1969).
+  final int? holdSeconds;
+
   final double? weight;
 
   /// 실제로 했는가. 운동 기록 탭이 ✓/✗ 로 그린다 — 배정만 되고 하지 않은 항목도
@@ -54,7 +61,8 @@ class ClientExerciseItem {
   final bool done;
 
   /// 이름 말고 적힌 값이 하나라도 있는가.
-  bool get hasAmount => sets != null || reps != null || minutes > 0;
+  bool get hasAmount =>
+      sets != null || reps != null || holdSeconds != null || minutes > 0;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'name': name,
@@ -62,6 +70,7 @@ class ClientExerciseItem {
     if (minutes > 0) 'minutes': minutes,
     if (sets != null) 'sets': sets,
     if (reps != null) 'reps': reps,
+    if (holdSeconds != null) 'hold_seconds': holdSeconds,
     if (weight != null) 'weight': weight,
     if (!done) 'done': done,
   };

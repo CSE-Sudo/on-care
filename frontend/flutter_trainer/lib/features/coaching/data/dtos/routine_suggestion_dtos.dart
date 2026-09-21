@@ -1,5 +1,6 @@
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
+import 'package:oncare_trainer/shared/exercise_limits.dart';
 
 /// `RoutineOut` JSON → [RoutineSuggestion].
 ///
@@ -14,6 +15,7 @@ RoutineSuggestion routineSuggestionFromJson(Map<String, Object?> json) {
     type: _str(json['type']),
     sets: (json['sets'] as num?)?.toInt(),
     reps: (json['reps'] as num?)?.toInt(),
+    holdSeconds: (json['hold_seconds'] as num?)?.toInt(),
     weight: (json['weight'] as num?)?.toDouble(),
     reason: _str(json['reason']),
     evidence: _strings(json['evidence']),
@@ -31,6 +33,7 @@ Map<String, Object?> routineSuggestionApproveToJson({
   String? type,
   int? sets,
   int? reps,
+  int? holdSeconds,
   double? weight,
   String? reason,
 }) {
@@ -46,7 +49,12 @@ Map<String, Object?> routineSuggestionApproveToJson({
     if (minutes != null) 'minutes': minutes.clamp(0, 600),
     if (type != null && kRoutineTypes.contains(type)) 'type': type,
     if (strength && sets != null) 'sets': sets.clamp(1, 99),
-    if (strength && reps != null) 'reps': reps.clamp(1, 999),
+    // 한 세트는 회로든 초로든 한 번만 잰다. 초로 승인하면 횟수를 보내지
+    // 않고, 서버가 제안 행의 옛 횟수를 지운다(#1969).
+    if (strength && holdSeconds == null && reps != null)
+      'reps': reps.clamp(1, 999),
+    if (strength && holdSeconds != null)
+      'hold_seconds': holdSeconds.clamp(1, kMaxExerciseHoldSeconds),
     if (strength && weight != null) 'weight': weight.clamp(0, 1000),
     if (reason != null) 'reason': _truncate(reason.trim(), 200),
   };

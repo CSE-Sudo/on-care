@@ -215,7 +215,8 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
     ],
 }
 
-# 픽스처가 없는 회원의 AI 배정 루틴 (name, minutes, type, reason, sets, reps, weight).
+# 픽스처가 없는 회원의 AI 배정 루틴
+# (name, minutes, type, reason, sets, reps, hold_seconds, weight).
 # 김민수(user-7d4e9a2c5f18)는 여기 없다 — 공유 픽스처의 `routines` 가 원본이다(#1199).
 #
 # 근력은 세트·횟수·중량을 칸으로 든다(#1276). 예전에는 그 값이 이름 안에 문자열로
@@ -223,18 +224,25 @@ _CHAT: dict[str, list[tuple[str, str, int]]] = {
 # 읽었다 — 세트는 이름에 있으니 옮겨 적을 수도, 세어 볼 수도 없는 값이었다. 맨몸
 # 운동(플랭크)은 중량이 0 이다 — 두 앱의 중량 칸은 비울 수 없어(최솟값 0),
 # 맨몸은 적지 않은 값이 아니라 0 으로 적은 값이다.
+#
+# 플랭크는 **버티는** 운동이라 한 세트를 회가 아니라 초로 든다(#1969). 초를 담을
+# 칸이 없던 동안 이 줄은 45초 홀드를 `reps: 3` 이라고 적고 있었다 — 45초를
+# "3회" 라고 말하는, 뜻이 틀린 데이터였다.
 _ROUTINES: dict[
-    str, list[tuple[str, int, str, str, int | None, int | None, float | None]]
+    str,
+    list[
+        tuple[str, int, str, str, int | None, int | None, int | None, float | None]
+    ],
 ] = {
     "user-jisu": [
-        ("인터벌 런닝", 25, "유산소", "체지방 연소 효율↑", None, None, None),
-        ("스쿼트", 15, "근력", "하체 근력 강화", 3, 12, 40.0),
-        ("플랭크", 10, "근력", "코어 안정화", 3, 3, 0.0),
+        ("인터벌 런닝", 25, "유산소", "체지방 연소 효율↑", None, None, None, None),
+        ("스쿼트", 15, "근력", "하체 근력 강화", 3, 12, None, 40.0),
+        ("플랭크", 10, "근력", "코어 안정화", 3, None, 45, 0.0),
     ],
     "user-sungho": [
-        ("벤치프레스", 20, "근력", "상체 근력 목표", 4, 8, 65.0),
-        ("데드리프트", 15, "근력", "전신 근력 향상", 3, 8, 60.0),
-        ("유산소 쿨다운", 10, "유산소", "나트륨 배출 지원", None, None, None),
+        ("벤치프레스", 20, "근력", "상체 근력 목표", 4, 8, None, 65.0),
+        ("데드리프트", 15, "근력", "전신 근력 향상", 3, 8, None, 60.0),
+        ("유산소 쿨다운", 10, "유산소", "나트륨 배출 지원", None, None, None, None),
     ],
 }
 
@@ -296,7 +304,9 @@ _SCHEDULE: list[tuple[str, str, str | None, str, int, str, str, list[dict]]] = [
     ("12:00", "이지수", "user-jisu", "1:1 PT", 50, "완료", "데드리프트 자세 안정적. 다음 세션 60kg 도전.", [
         {"name": "데드리프트", "type": "근력", "sets": 4, "reps": 8, "weight": 55},
         {"name": "루마니안 데드리프트", "type": "근력", "sets": 3, "reps": 10, "weight": 40},
-        {"name": "플랭크", "type": "근력", "sets": 3, "reps": 3, "weight": 0},
+        # 플랭크는 버티는 운동이라 초로 적는다 — `reps: 3` 은 45초를 "3회" 라고
+        # 말하던 뜻이 틀린 값이었다. (#1969)
+        {"name": "플랭크", "type": "근력", "sets": 3, "hold_seconds": 45, "weight": 0},
         {"name": "코어 서킷", "type": "근력", "sets": 2, "reps": 12, "weight": 0},
     ]),
     ("14:00", "", None, "", 0, "공백", "", []),
@@ -717,9 +727,12 @@ def _routine_rows(member_id: str) -> list[FixtureRoutine]:
             source="ai",
             sets=sets,
             reps=reps,
+            hold_seconds=hold_seconds,
             weight=weight,
         )
-        for i, (name, minutes, rtype, reason, sets, reps, weight) in enumerate(
+        for i, (
+            name, minutes, rtype, reason, sets, reps, hold_seconds, weight
+        ) in enumerate(
             _ROUTINES.get(member_id, ())
         )
     ]
@@ -761,6 +774,7 @@ def _seed_routines(db: Session, member_id: str) -> None:
                 # 모양으로 읽힌다(#1276).
                 sets=_strength_only(routine.type, routine.sets),
                 reps=_strength_only(routine.type, routine.reps),
+                hold_seconds=_strength_only(routine.type, routine.hold_seconds),
                 weight=_strength_only(routine.type, routine.weight),
                 sort_order=i,
             ))
@@ -772,6 +786,7 @@ def _seed_routines(db: Session, member_id: str) -> None:
         row.source = routine.source
         row.sets = _strength_only(routine.type, routine.sets)
         row.reps = _strength_only(routine.type, routine.reps)
+        row.hold_seconds = _strength_only(routine.type, routine.hold_seconds)
         row.weight = _strength_only(routine.type, routine.weight)
         row.sort_order = i
     _safe_commit(db)
@@ -913,6 +928,7 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
                 # 분에서 세트를 되짚어 아무도 적은 적 없는 수를 그린다. (#1265)
                 sets=exercise.sets if strength else None,
                 reps=exercise.reps if strength else None,
+                hold_seconds=exercise.hold_seconds if strength else None,
                 weight=exercise.weight if strength else None,
                 intensity="moderate",
                 # 실제로 운동한 날의 시각을 함께 적는다 (#1264). `created_at` 은

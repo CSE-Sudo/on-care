@@ -92,6 +92,7 @@ class _RoutineSuggestionReviewCardState
             // 값을 그대로 배정으로 옮긴다. (#1321)
             sets: edit?.sets,
             reps: edit?.reps,
+            holdSeconds: edit?.holdSeconds,
             weight: edit?.weight,
             reason: edit?.reason,
           ),

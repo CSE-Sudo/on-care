@@ -61,7 +61,15 @@ class ExerciseSessions extends Table {
   /// 그때는 분에서 환산해 읽는다. (#1262)
   IntColumn get sets => integer().nullable()();
   /// 근력 기록의 한 세트당 횟수. 세트·중량과 한 벌이라 근력에만 있다. (#1310)
+  /// 버티는 운동이면 대신 [holdSeconds] 가 차고 이 칸이 빈다.
   IntColumn get reps => integer().nullable()();
+  /// 버티는 운동이면 한 세트를 버틴 시간(초). 플랭크처럼 회가 아니라 초로 재는
+  /// 기록이고, 이때 [reps] 는 null 이다 — 한 세트를 두 단위로 적지 않는다.
+  /// (#1969)
+  IntColumn get holdSeconds => integer().nullable()();
+  /// 이 운동에 쓴 시간(초). [minutes] 와 같은 것을 더 잘게 잰 값이고, 초를
+  /// 모르는 기록은 null 이다 — 그때는 `minutes × 60` 으로 읽는다. (#1969, #2071)
+  IntColumn get durationSeconds => integer().nullable()();
   /// 근력 기록의 중량(kg). 세트와 짝이라 근력에만 있다. (#1276)
   RealColumn get weight => real().nullable()();
   IntColumn get calories => integer()();
@@ -115,7 +123,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -180,6 +188,16 @@ class AppDatabase extends _$AppDatabase {
         // 회원앱 일정 기능 제거(#1928) — 읽고 쓰는 곳이 없어진 표를 지운다.
         // 바이탈 때(v5)와 같은 방식으로, 없는 표를 지우다 실패하지 않게 한다.
         await customStatement('DROP TABLE IF EXISTS schedule_events');
+      }
+      if (from < 13) {
+        // 홀드 초·운동 시간 초 컬럼 추가 — 기존 기록은 둘 다 null 이다.
+        // 홀드가 없는 기록은 예전처럼 횟수로 읽히고, 초를 모르는 기록의 길이는
+        // `minutes × 60` 이다. (#1969, #2071)
+        await m.addColumn(exerciseSessions, exerciseSessions.holdSeconds);
+        await m.addColumn(
+          exerciseSessions,
+          exerciseSessions.durationSeconds,
+        );
       }
     },
   );

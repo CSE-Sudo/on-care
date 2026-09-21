@@ -39,6 +39,12 @@
 
 `aliases` 는 같은 종목의 다른 표기다. 매칭기가 정규화 후 이름과 별칭을 같은
 자격으로 보므로, `사이클`·`싸이클`·`실내자전거` 가 한 행을 가리킨다.
+
+`isometric` 은 **버티는 운동인가** 다(#1969). 플랭크처럼 자세를 유지하는 종목은
+한 세트를 몇 회가 아니라 몇 초로 재므로, 폼이 `횟수` 칸을 `초` 칸으로 바꿔
+보여야 한다. 표시가 없으면 `False` 다 — 대부분의 종목은 회로 센다. 이 값은
+**폼의 기본값**일 뿐이고, 표에 없는 자유 입력 이름도 있으므로 트레이너·회원이
+폼에서 직접 바꿀 수 있다.
 """
 from __future__ import annotations
 
@@ -49,7 +55,7 @@ _STRENGTH = exercise_types.STRENGTH
 _STRETCHING = exercise_types.STRETCHING
 _OTHER = exercise_types.OTHER
 
-#: name, type, met, aliases
+#: name, type, met, aliases, isometric(기본 False)
 EXERCISE_CATALOG: list[dict] = [
     # --- 걷기·달리기 ---
     {"name": "걷기", "type": _CARDIO, "met": 3.5, "aliases": ["산책", "워킹", "walking"]},
@@ -87,7 +93,7 @@ EXERCISE_CATALOG: list[dict] = [
     {"name": "턱걸이", "type": _STRENGTH, "met": 8.0, "aliases": ["풀업", "친업", "pull up"]},
     {"name": "딥스", "type": _STRENGTH, "met": 8.0, "aliases": ["dips", "평행봉"]},
     {"name": "윗몸일으키기", "type": _STRENGTH, "met": 8.0, "aliases": ["싯업", "크런치", "복근운동"]},
-    {"name": "플랭크", "type": _STRENGTH, "met": 3.8, "aliases": ["plank", "사이드플랭크"]},
+    {"name": "플랭크", "type": _STRENGTH, "met": 3.8, "aliases": ["plank", "사이드플랭크"], "isometric": True},
     {"name": "케틀벨", "type": _STRENGTH, "met": 8.0, "aliases": ["케틀벨 스윙", "kettlebell"]},
     {"name": "맨몸운동", "type": _STRENGTH, "met": 3.8, "aliases": ["체조", "칼리스데닉스", "홈트"]},
     # --- 스트레칭·이완 ---

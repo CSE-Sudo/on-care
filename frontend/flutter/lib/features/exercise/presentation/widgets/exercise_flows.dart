@@ -163,6 +163,16 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   // 각자의 값이 남는다 — 하나로 쓰면 30분이 30세트가 되어 돌아온다.
   late double _sets = _initialSets(widget.session);
   late double _reps = (widget.session?.reps ?? 10).toDouble();
+  // 버티는 운동은 한 세트를 회가 아니라 초로 잰다(#1969). 횟수와 따로 들고
+  // 있어야 회↔초를 오갈 때 각자의 값이 남는다 — 한 칸을 같이 쓰면 10회가
+  // 10초로 돌아온다.
+  late double _holdSeconds = (widget.session?.holdSeconds ?? 60).toDouble();
+  // 지금 이 운동을 초로 재는가. 수정 시트는 기록이 든 칸을 그대로 따르고,
+  // 새 기록은 이름을 적으면 종목표가 말해 준다(`_fetchEstimate`).
+  late bool _isHold = widget.session?.holdSeconds != null;
+  // 회원이 직접 회↔초를 고른 뒤에는 이름 해석이 그 선택을 덮지 않는다 —
+  // 종목표는 **기본값**일 뿐이고, 고르는 것은 적는 사람이다.
+  bool _holdChosenByUser = false;
   late double _weight = widget.session?.weight ?? 20;
   // 기본값은 오늘. 지난 기록을 고치면 그 기록의 날짜로 열린다 — 오늘로
   // 되돌리면 기록을 고치기만 해도 이번 주로 옮겨 간다.
@@ -281,6 +291,9 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       setState(() {
         _estimate = result;
         _estimating = false;
+        // 종목표가 버티는 운동이라고 하면 `횟수` 대신 `초` 를 묻는다(#1969).
+        // 회원이 이미 직접 골랐으면 그 선택이 이긴다.
+        if (!_holdChosenByUser) _isHold = result.isometric;
       });
     } on Object {
       // 미리보기가 실패해도 기록은 적을 수 있어야 한다 — 서버가 저장할 때 다시
@@ -368,7 +381,11 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     // 근력이 아니면 세트·횟수·중량을 싣지 않는다 — 유산소를 세트로 세는
     // 화면은 없고, 유형을 바꾼 수정에서는 null 이 옛 값을 지운다.
     final int? sets = _isStrength ? _sets.round() : null;
-    final int? reps = _isStrength ? _reps.round() : null;
+    // 한 세트는 회로든 초로든 **한 번만** 잰다(#1969). 고르지 않은 쪽은
+    // null 로 실어 보내야, 회↔초를 되돌린 수정에서 옛 값이 남지 않는다.
+    final bool holding = _isStrength && _isHold;
+    final int? reps = _isStrength && !_isHold ? _reps.round() : null;
+    final int? holdSeconds = holding ? _holdSeconds.round() : null;
     final double? weight = _isStrength ? _weight : null;
     final ExerciseType type = _typeFromIndex(_type);
     final ExerciseSession? editing = widget.session;
@@ -404,6 +421,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
               date: _date,
               sets: sets,
               reps: reps,
+              holdSeconds: holdSeconds,
               weight: weight,
             );
       } else {
@@ -418,6 +436,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
               date: _date,
               sets: sets,
               reps: reps,
+              holdSeconds: holdSeconds,
               weight: weight,
             );
       }
@@ -536,16 +555,39 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
                 },
               ),
               const SizedBox(height: OnCareSpacing.s20),
-              _Label(l.exExerciseReps),
-              const SizedBox(height: OnCareSpacing.s8),
-              _NumberStepper(
-                key: const Key('exerciseRepsStepper'),
-                value: _reps,
-                min: 1,
-                max: kMaxExerciseReps.toDouble(),
-                suffix: l.exUnitReps,
-                onChanged: (double v) => setState(() => _reps = v),
+              // 버티는 운동은 `횟수` 자리를 `버티는 시간` 이 대신한다 — 칸을
+              // 하나 더 두지 않고 **바꿔 가며** 쓴다(#1969). 플랭크를 `3회` 로
+              // 적으면 45초를 "3회" 라고 말하는 뜻이 틀린 기록이 남는다.
+              _MeasureToggle(
+                label: _isHold ? l.exExerciseHold : l.exExerciseReps,
+                repsLabel: l.exUnitReps,
+                secondsLabel: l.exUnitSeconds,
+                semanticsLabel: l.exExerciseMeasure,
+                isHold: _isHold,
+                onChanged: (bool hold) => setState(() {
+                  _isHold = hold;
+                  _holdChosenByUser = true;
+                }),
               ),
+              const SizedBox(height: OnCareSpacing.s8),
+              if (_isHold)
+                _NumberStepper(
+                  key: const Key('exerciseHoldStepper'),
+                  value: _holdSeconds,
+                  min: 1,
+                  max: kMaxExerciseHoldSeconds.toDouble(),
+                  suffix: l.exUnitSeconds,
+                  onChanged: (double v) => setState(() => _holdSeconds = v),
+                )
+              else
+                _NumberStepper(
+                  key: const Key('exerciseRepsStepper'),
+                  value: _reps,
+                  min: 1,
+                  max: kMaxExerciseReps.toDouble(),
+                  suffix: l.exUnitReps,
+                  onChanged: (double v) => setState(() => _reps = v),
+                ),
               const SizedBox(height: OnCareSpacing.s20),
               _Label(l.exExerciseWeight),
               const SizedBox(height: OnCareSpacing.s8),
@@ -916,6 +958,62 @@ class _DateField extends StatelessWidget {
       ),
     );
   }
+}
+
+/// `횟수`/`버티는 시간` 라벨과 그 오른쪽의 **회 / 초** 전환 칩.
+///
+/// 칸을 하나 더 두지 않고 한 칸을 바꿔 가며 쓴다(#1969). 근력 폼은 이미
+/// 세트·횟수·중량 세 칸인데 대부분의 운동에 쓰이지 않는 네 번째 칸을 늘 띄워
+/// 두면, 비어 있는 칸이 적어야 할 값처럼 읽힌다.
+class _MeasureToggle extends StatelessWidget {
+  const _MeasureToggle({
+    required this.label,
+    required this.repsLabel,
+    required this.secondsLabel,
+    required this.semanticsLabel,
+    required this.isHold,
+    required this.onChanged,
+  });
+
+  /// 지금 고른 단위의 칸 이름 — `횟수` 또는 `버티는 시간`.
+  final String label;
+  final String repsLabel;
+  final String secondsLabel;
+
+  /// 전환 칩 묶음이 무엇을 고르는 것인지 — 화면에는 칩의 단위만 보이므로,
+  /// 읽어 주는 쪽에는 이 말이 있어야 `회` 가 무엇의 회인지 전해진다.
+  final String semanticsLabel;
+  final bool isHold;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: <Widget>[
+      Expanded(child: _Label(label)),
+      Semantics(
+        label: semanticsLabel,
+        container: true,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            AppChoiceChip(
+              key: const Key('exerciseMeasureReps'),
+              label: repsLabel,
+              selected: !isHold,
+              onSelected: (bool _) => onChanged(false),
+            ),
+            const SizedBox(width: OnCareSpacing.s8),
+            AppChoiceChip(
+              key: const Key('exerciseMeasureSeconds'),
+              label: secondsLabel,
+              selected: isHold,
+              onSelected: (bool _) => onChanged(true),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class _Label extends StatelessWidget {

@@ -19,6 +19,8 @@ class ProgramDraft {
     required this.minutes,
     required this.sets,
     required this.reps,
+    required this.holdSeconds,
+    required this.isHold,
     required this.weight,
     required this.intensity,
   }) : name = TextEditingController(text: name);
@@ -30,6 +32,10 @@ class ProgramDraft {
     minutes: item.duration ?? 30,
     sets: item.sets ?? 3,
     reps: item.reps ?? 10,
+    holdSeconds: item.holdSeconds ?? 60,
+    // 저장된 행이 든 칸이 곧 이 운동을 재는 단위다 — 초가 있으면 초로
+    // 열린다(#1969).
+    isHold: item.holdSeconds != null,
     weight: item.weight ?? 20,
     intensity: normaliseRoutineIntensity(item.intensity),
   );
@@ -46,6 +52,10 @@ class ProgramDraft {
     minutes: 30,
     sets: 3,
     reps: 10,
+    holdSeconds: 60,
+    // 새 행은 회로 연다. 이름을 적으면 종목표가 버티는 운동이라고 할 때
+    // 초로 바뀐다(`syncMeasureToName`).
+    isHold: false,
     weight: 20,
     intensity: 'moderate',
   );
@@ -72,12 +82,41 @@ class ProgramDraft {
   /// 하나로 쓰면 30분이 30세트가 되어 돌아온다.
   int sets;
   int reps;
+
+  /// 버티는 운동이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓰지만 값은 따로 들고 있어야, 회↔초를 오갈 때 각자의 값이 남는다 —
+  /// 한 칸을 같이 쓰면 10회가 10초로 돌아온다. (#1969)
+  int holdSeconds;
+
+  /// 지금 이 운동을 초로 재는가. 이름 해석이 기본값을 주고, 트레이너가
+  /// 고르면 그 선택이 이긴다([measureChosenByUser]).
+  bool isHold;
+
+  /// 트레이너가 회↔초를 직접 골랐는가. 고른 뒤에는 이름이 바뀌어도
+  /// 종목표가 그 선택을 덮지 않는다.
+  bool measureChosenByUser = false;
+
   double weight;
 
   /// 운동 강도 계약값.
   String intensity;
 
   bool get isStrength => type == '근력';
+
+  /// 지금 이름이 **버티는 운동**이면 초로 재도록 맞춘다. (#1969)
+  ///
+  /// 트레이너가 직접 고른 뒤에는 아무것도 하지 않는다 — 종목표는 기본값일
+  /// 뿐이고, 고르는 것은 짜는 사람이다. 이름 칸이 바뀔 때 부른다.
+  void syncMeasureToName() {
+    if (measureChosenByUser) return;
+    isHold = isIsometricExerciseName(name.text);
+  }
+
+  /// 트레이너가 회↔초를 골랐다.
+  void chooseMeasure({required bool hold}) {
+    isHold = hold;
+    measureChosenByUser = true;
+  }
 
   /// 저장·칼로리 계산이 쓰는 분. 근력이면 세트에서 환산한 값이다 — 서버는
   /// 여전히 분을 요구하고 주간 운동 시간도 분으로 센다.
@@ -100,7 +139,9 @@ class ProgramDraft {
     date: date,
     duration: isStrength ? null : minutes,
     sets: isStrength ? sets : null,
-    reps: isStrength ? reps : null,
+    // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 비운다(#1969).
+    reps: isStrength && !isHold ? reps : null,
+    holdSeconds: isStrength && isHold ? holdSeconds : null,
     weight: isStrength ? weight : null,
     intensity: intensity,
     session: session,

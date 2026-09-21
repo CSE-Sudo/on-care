@@ -364,6 +364,8 @@ void main() {
         'duration': null,
         'sets': 3,
         'reps': 12,
+        // 회로 재는 운동이라 홀드 초는 비어 있다(#1969).
+        'hold_seconds': null,
         'weight': 60.0,
         'intensity': 'moderate',
         // 세션 구분은 항상 실린다 — 단일 세션 프로그램은 빈 문자열(#709).

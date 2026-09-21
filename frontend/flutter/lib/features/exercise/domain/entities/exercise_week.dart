@@ -107,6 +107,8 @@ class ExerciseSession {
     this.completedAt,
     this.sets,
     this.reps,
+    this.holdSeconds,
+    this.durationSeconds,
     this.name = '',
     this.weight,
     this.date,
@@ -136,7 +138,19 @@ class ExerciseSession {
 
   /// 근력 기록의 한 세트당 횟수. 세트·중량과 한 벌이다 — 셋이 다 있어야 회원이
   /// 지난주에 무엇을 했는지 그대로 되짚는다. (#1310)
+  ///
+  /// 버티는 운동이면 대신 [holdSeconds] 가 있고 이 값은 null 이다 — 한 세트를
+  /// 두 단위로 적지 않는다.
   final int? reps;
+
+  /// 버티는 운동이면 한 세트를 버틴 시간(초). 플랭크처럼 회가 아니라 초로 재는
+  /// 기록이고, 이때 [reps] 는 null 이다. (#1969)
+  final int? holdSeconds;
+
+  /// 이 운동에 쓴 시간(초). [minutes] 와 같은 것을 더 잘게 잰 값이고, 초를
+  /// 모르는 옛 기록은 null 이다 — 그때는 `minutes × 60` 으로 읽는다.
+  /// (#1969, #2071)
+  final int? durationSeconds;
 
   /// 이 기록의 실제 날짜. 수정 시트가 원래 날짜로 열리려면 요일만으로는
   /// 모자란다 — 몇 주 전 기록도 같은 요일 라벨을 갖는다. (#1276)
@@ -193,6 +207,8 @@ class ExerciseSession {
         completedAt: DateTime.tryParse(json['completed_at'] as String? ?? ''),
         sets: (json['sets'] as num?)?.toInt(),
         reps: (json['reps'] as num?)?.toInt(),
+        holdSeconds: (json['hold_seconds'] as num?)?.toInt(),
+        durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
         name: json['name'] as String? ?? '',
         weight: (json['weight'] as num?)?.toDouble(),
         date: DateTime.tryParse(json['date'] as String? ?? ''),

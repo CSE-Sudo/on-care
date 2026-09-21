@@ -52,6 +52,7 @@ def _exercise(**overrides) -> dict:
         "duration": None,
         "sets": 4,
         "reps": 12,
+        "hold_seconds": None,
         "weight": 60.0,
         "intensity": "moderate",
         "memo": "무릎 각도 확인",
