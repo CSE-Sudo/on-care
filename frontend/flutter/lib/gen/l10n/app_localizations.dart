@@ -4699,6 +4699,18 @@ abstract class AppLocalizations {
   /// **'Sign-in failed. Check your email and password'**
   String get authSignInFailed;
 
+  /// No description provided for @authSignInNetworkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your internet connection and try again'**
+  String get authSignInNetworkFailed;
+
+  /// No description provided for @authSignInUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t sign in right now. Please try again in a moment'**
+  String get authSignInUnavailable;
+
   /// No description provided for @authSocialSignInFailed.
   ///
   /// In en, this message translates to:

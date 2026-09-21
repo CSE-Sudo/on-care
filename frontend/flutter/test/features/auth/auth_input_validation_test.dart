@@ -214,6 +214,18 @@ void main() {
       expect(find.text('로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요'), findsOneWidget);
       expect(find.text(_emailInvalid), findsNothing);
     });
+
+    testWidgets('서버 장애는 비밀번호 탓을 하지 않는다 (#1940)', (
+      WidgetTester tester,
+    ) async {
+      await _pump(tester, const SignInPage(), status: 503);
+      await _type(tester, email, 'minsu@oncare.com');
+      await _type(tester, password, 'oncare123');
+      await _submit(tester, submit);
+
+      expect(find.text('지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요'), findsOneWidget);
+      expect(find.textContaining('비밀번호를 확인'), findsNothing);
+    });
   });
 
   group('회원가입', () {

@@ -2692,6 +2692,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign-in failed. Check your email and password';
 
   @override
+  String get authSignInNetworkFailed =>
+      'Check your internet connection and try again';
+
+  @override
+  String get authSignInUnavailable =>
+      'Can\'t sign in right now. Please try again in a moment';
+
+  @override
   String get authSocialSignInFailed =>
       'Social sign-in failed. Please try again in a moment';
 

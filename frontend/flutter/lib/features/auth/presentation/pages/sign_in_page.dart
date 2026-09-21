@@ -8,6 +8,7 @@ import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/features/account/presentation/first_run_route.dart';
 import 'package:oncare/features/auth/presentation/auth_input_error_text.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare/features/auth/presentation/sign_in_failure.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -93,10 +94,15 @@ class _SignInPageState extends ConsumerState<SignInPage> {
       // 탭 껍데기(`StatefulShellRoute`)가 다시 세워지며 열려 있던 탭이 초기화된다.
       final String next = await firstRouteAfterSignIn(container);
       if (next != AppRoutes.dashboard) router?.go(next);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      showAppToast(context, l.authSignInFailed, type: AppToastType.error);
+      // 비밀번호 탓은 서버가 자격 증명을 거절했을 때만 한다(#1940).
+      showAppToast(
+        context,
+        signInFailureText(l, signInFailureOf(e)),
+        type: AppToastType.error,
+      );
     }
   }
 

@@ -1279,6 +1279,8 @@
   "authEmailInvalid": "이메일 형식이 올바르지 않아요",
   "authPasswordEmpty": "비밀번호를 입력해 주세요",
   "authSignInFailed": "로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요",
+  "authSignInNetworkFailed": "인터넷 연결을 확인하고 다시 시도해 주세요",
+  "authSignInUnavailable": "지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요",
   "authSocialSignInFailed": "소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요",
   "signUpTitle": "회원가입",
   "signUpSubtitle": "On-Care 계정을 만들어 건강 관리를 시작하세요",
