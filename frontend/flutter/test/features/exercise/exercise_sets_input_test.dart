@@ -5,6 +5,7 @@
 /// 회원이 적지 않은 수(분 ÷ 3)가 화면에 떴다.
 library;
 
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +26,7 @@ class _CapturingRepository implements ExerciseRepository {
   int? sets;
   int? reps;
   int? holdSeconds;
+  int? durationSeconds;
   double? weight;
   String? name;
   DateTime? date;
@@ -50,9 +52,20 @@ class _CapturingRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async {
-    _capture(type, minutes, sets, reps, holdSeconds, weight, name, date);
+    _capture(
+      type,
+      minutes,
+      sets,
+      reps,
+      holdSeconds,
+      durationSeconds,
+      weight,
+      name,
+      date,
+    );
     return _echo(
       'new',
       type,
@@ -61,6 +74,7 @@ class _CapturingRepository implements ExerciseRepository {
       sets,
       reps,
       holdSeconds,
+      durationSeconds,
       weight,
       name,
       date,
@@ -97,10 +111,21 @@ class _CapturingRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async {
     updatedId = id;
-    _capture(type, minutes, sets, reps, holdSeconds, weight, name, date);
+    _capture(
+      type,
+      minutes,
+      sets,
+      reps,
+      holdSeconds,
+      durationSeconds,
+      weight,
+      name,
+      date,
+    );
     return _echo(
       id,
       type,
@@ -109,6 +134,7 @@ class _CapturingRepository implements ExerciseRepository {
       sets,
       reps,
       holdSeconds,
+      durationSeconds,
       weight,
       name,
       date,
@@ -121,6 +147,7 @@ class _CapturingRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
     String name,
     DateTime date,
@@ -130,6 +157,7 @@ class _CapturingRepository implements ExerciseRepository {
     this.sets = sets;
     this.reps = reps;
     this.holdSeconds = holdSeconds;
+    this.durationSeconds = durationSeconds;
     this.weight = weight;
     this.name = name;
     this.date = date;
@@ -143,6 +171,7 @@ class _CapturingRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
     String name,
     DateTime date,
@@ -155,6 +184,7 @@ class _CapturingRepository implements ExerciseRepository {
     sets: sets,
     reps: reps,
     holdSeconds: holdSeconds,
+    durationSeconds: durationSeconds,
     weight: weight,
     name: name,
     date: date,
@@ -232,6 +262,28 @@ String _stepperValue(WidgetTester tester, Key key) => tester
     .controller!
     .text;
 
+/// 시·분·초 휠의 [column] 번째 칸을 [steps] 칸만큼 굴린다(양수가 아래로).
+///
+/// `FixedExtentScrollPhysics` 가 칸에 맞춰 세우므로, 칸 높이만큼 끌면 한 칸이다.
+Future<void> _rollWheel(
+  WidgetTester tester,
+  int column,
+  int steps, {
+  double itemExtent = 40,
+}) async {
+  // 시트 안이라 부모 스크롤이 휠과 아레나를 다툰다. 슬롭(`kTouchSlop`, 18)을
+  // **넘는** 첫 이동이 승부를 가르고 그 이동 자체는 버려지므로, 그 뒤의
+  // 이동이 그대로 칸 수다. `tester.drag` 는 슬롭을 끈 거리에서 빼 한 칸이
+  // 모자라게 서고, `touchSlopY: 0` 으로는 아레나가 갈리지 않아 휠이 멈춰 있다.
+  final TestGesture gesture = await tester.startGesture(
+    tester.getCenter(find.byType(ListWheelScrollView).at(column)),
+  );
+  await gesture.moveBy(const Offset(0, -kTouchSlop - 1));
+  await gesture.moveBy(Offset(0, -itemExtent * steps));
+  await gesture.up();
+  await tester.pumpAndSettle();
+}
+
 Future<void> _save(WidgetTester tester) async {
   await tester.tap(find.text('저장'));
   await tester.pumpAndSettle();
@@ -242,10 +294,10 @@ void main() {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);
 
-    // 기본값은 유산소 — 분으로 묻는다.
+    // 기본값은 유산소 — 시·분·초 휠로 묻는다(#2071).
     expect(find.text('운동 시간'), findsOneWidget);
     expect(find.text('세트 수'), findsNothing);
-    expect(find.byKey(const Key('exerciseMinutesStepper')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseDurationWheel')), findsOneWidget);
 
     await tester.tap(find.text('근력'));
     await tester.pumpAndSettle();
@@ -256,7 +308,7 @@ void main() {
     expect(find.text('운동 시간'), findsNothing);
     expect(find.byKey(const Key('exerciseSetsStepper')), findsOneWidget);
     expect(find.byKey(const Key('exerciseRepsStepper')), findsOneWidget);
-    expect(find.byKey(const Key('exerciseMinutesStepper')), findsNothing);
+    expect(find.byKey(const Key('exerciseDurationWheel')), findsNothing);
     expect(_stepperValue(tester, const Key('exerciseSetsStepper')), '12');
     expect(_stepperValue(tester, const Key('exerciseRepsStepper')), '10');
   });
@@ -374,6 +426,7 @@ void main() {
     await _openSheet(tester, repo);
 
     await _typeName(tester, '러닝머신');
+    await _rollWheel(tester, 1, 30);
     await _save(tester);
 
     expect(repo.type, ExerciseType.cardio);
@@ -404,44 +457,87 @@ void main() {
     expect(repo.name, isNull, reason: '취소는 저장 요청을 보내지 않는다');
   });
 
-  testWidgets('−/+ 버튼은 값을 한 칸씩 옮긴다', (WidgetTester tester) async {
-    final _CapturingRepository repo = _CapturingRepository();
-    await _openSheet(tester, repo);
-
-    final Finder plus = find.descendant(
-      of: find.byKey(const Key('exerciseMinutesStepper')),
-      matching: find.byKey(const Key('numberStepperIncrement')),
-    );
-    await tester.tap(plus);
-    await tester.pumpAndSettle();
-    expect(_stepperValue(tester, const Key('exerciseMinutesStepper')), '31');
-
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const Key('exerciseMinutesStepper')),
-        matching: find.byKey(const Key('numberStepperDecrement')),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(_stepperValue(tester, const Key('exerciseMinutesStepper')), '30');
-  });
-
-  testWidgets('시간은 직접 적어 넣을 수 있다', (WidgetTester tester) async {
+  testWidgets('휠을 굴린 시간이 그대로 실려 간다 (#2071)', (WidgetTester tester) async {
     final _CapturingRepository repo = _CapturingRepository();
     await _openSheet(tester, repo);
 
     await _typeName(tester, '러닝머신');
-    await tester.enterText(
-      find.descendant(
-        of: find.byKey(const Key('exerciseMinutesStepper')),
-        matching: find.byKey(const Key('numberStepperField')),
-      ),
-      '47',
-    );
-    await tester.pumpAndSettle();
+    // 0 에서 시작해 47칸 굴린다.
+    await _rollWheel(tester, 1, 47);
     await _save(tester);
 
+    expect(repo.durationSeconds, 47 * 60);
+    // 서버는 여전히 분도 받는다 — 초에서 환산한 값이다.
     expect(repo.minutes, 47);
+  });
+
+  testWidgets('분으로는 적을 수 없던 초를 적는다 (#2071)', (WidgetTester tester) async {
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(tester, repo);
+
+    await _typeName(tester, '계단 오르기');
+    // 45초만 적는다 — 분 스테퍼로는 적을 수 없던 값이다.
+    await _rollWheel(tester, 2, 45);
+    await _save(tester);
+
+    expect(repo.durationSeconds, 45);
+    // 45초가 반올림으로 0분이 되어 거절되지 않는다 — 서버와 같은 환산이다.
+    expect(repo.minutes, 1);
+  });
+
+  testWidgets('시 칸을 굴리면 한 시간이 넘는 운동도 적는다 (#2071)', (
+    WidgetTester tester,
+  ) async {
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(tester, repo);
+
+    await _typeName(tester, '등산');
+    // 예전에는 `90분` 처럼 분으로 환산해 올려야 했다.
+    await _rollWheel(tester, 0, 1);
+    await _rollWheel(tester, 1, 35);
+    await _save(tester);
+
+    expect(repo.durationSeconds, 3600 + 35 * 60);
+    expect(repo.minutes, 95);
+  });
+
+  testWidgets('시트는 0시 0분 0초로 열리고 그대로는 저장되지 않는다 (#2071)', (
+    WidgetTester tester,
+  ) async {
+    // 미리 채워 둔 시간은 회원이 한 번도 건드리지 않고 저장할 수 있는 값이다 —
+    // 그러면 아무도 적은 적 없는 시간이 기록에 남는다. 0 에서 시작하면 저장이
+    // 막히므로, 기록에 남는 시간은 반드시 적은 값이다.
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(tester, repo);
+
+    await _typeName(tester, '러닝머신');
+    await _save(tester);
+
+    expect(repo.name, isNull, reason: '저장 요청 자체가 나가지 않아야 한다');
+  });
+
+  testWidgets('수정 시트는 저장된 초로 휠이 맞춰져 열린다 (#2071)', (
+    WidgetTester tester,
+  ) async {
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(
+      tester,
+      repo,
+      session: ExerciseSession(
+        id: 'ex-secs',
+        dayLabel: '월',
+        type: ExerciseType.cardio,
+        minutes: 2,
+        durationSeconds: 95,
+        calories: 18,
+        name: '계단 오르기',
+        date: DateTime(2026, 3, 2),
+      ),
+    );
+
+    // 휠을 건드리지 않고 그대로 저장하면 적어 둔 초가 그대로 나간다.
+    await _save(tester);
+    expect(repo.durationSeconds, 95);
   });
 
   testWidgets('트레이너가 배정할 수 있는 세트·중량을 회원도 직접 적을 수 있다', (

@@ -347,7 +347,12 @@ class LocalApiInterceptor extends Interceptor {
     if (existing == null) return _notFound(options, '운동 기록을 찾을 수 없습니다.');
     final body = _jsonBody(options);
     final type = (body['type'] as String? ?? existing.type).trim();
-    final minutes = (body['minutes'] as num?)?.toInt() ?? existing.minutes;
+    final durationSeconds = body.containsKey('duration_seconds')
+        ? (body['duration_seconds'] as num?)?.toInt()
+        : existing.durationSeconds;
+    final minutes = durationSeconds != null
+        ? _minutesFromSeconds(durationSeconds)
+        : ((body['minutes'] as num?)?.toInt() ?? existing.minutes);
     final intensity = (body['intensity'] as String? ?? existing.intensity)
         .trim();
     final name = ((body['name'] as String?) ?? existing.name).trim();
@@ -408,6 +413,7 @@ class LocalApiInterceptor extends Interceptor {
         sets: Value(sets),
         reps: Value(reps),
         holdSeconds: Value(holdSeconds),
+        durationSeconds: Value(durationSeconds),
         weight: Value(weight),
       ),
     );
@@ -425,6 +431,7 @@ class LocalApiInterceptor extends Interceptor {
         sets: sets,
         reps: reps,
         holdSeconds: holdSeconds,
+        durationSeconds: durationSeconds,
         weight: weight,
         calories: estimated.calories,
         intensity: intensity,
@@ -1399,6 +1406,7 @@ class LocalApiInterceptor extends Interceptor {
           sets: r.sets,
           reps: r.reps,
           holdSeconds: r.holdSeconds,
+          durationSeconds: r.durationSeconds,
           weight: r.weight,
           calories: r.calories,
           intensity: r.intensity,
@@ -1708,7 +1716,13 @@ class LocalApiInterceptor extends Interceptor {
     final Map<String, Object?> payload = _payloadOf(options.data);
 
     final type = (payload['type'] as String?) ?? 'cardio';
-    final minutes = (payload['minutes'] as num?)?.toInt() ?? 0;
+    // 초가 오면 그쪽이 맞고 분은 여기서 파생된다 — 실 서버
+    // (`ExerciseSessionCreate._minutes_from_seconds`)와 같은 규칙이라야, 같은
+    // 기록이 데모와 실서버에서 다른 길이로 읽히지 않는다. (#2071)
+    final durationSeconds = (payload['duration_seconds'] as num?)?.toInt();
+    final minutes = durationSeconds != null
+        ? _minutesFromSeconds(durationSeconds)
+        : ((payload['minutes'] as num?)?.toInt() ?? 0);
     if (minutes <= 0) {
       return _badRequest(options, 'minutes must be > 0');
     }
@@ -1749,6 +1763,7 @@ class LocalApiInterceptor extends Interceptor {
             sets: Value(sets),
             reps: Value(reps),
             holdSeconds: Value(holdSeconds),
+            durationSeconds: Value(durationSeconds),
             weight: Value(weight),
           ),
         );
@@ -1766,6 +1781,7 @@ class LocalApiInterceptor extends Interceptor {
         sets: sets,
         reps: reps,
         holdSeconds: holdSeconds,
+        durationSeconds: durationSeconds,
         weight: weight,
         calories: estimated.calories,
         intensity: intensity,
@@ -1789,6 +1805,7 @@ class LocalApiInterceptor extends Interceptor {
     required int? sets,
     required int? reps,
     required int? holdSeconds,
+    required int? durationSeconds,
     required double? weight,
     required int calories,
     required String intensity,
@@ -1803,6 +1820,7 @@ class LocalApiInterceptor extends Interceptor {
     'sets': sets,
     'reps': reps,
     'hold_seconds': holdSeconds,
+    'duration_seconds': durationSeconds,
     'weight': weight,
     'calories': calories,
     'calorie_source': calorieSource,
@@ -1811,6 +1829,11 @@ class LocalApiInterceptor extends Interceptor {
     'time_label': _defaultTimeLabel(type),
     'items': name.isEmpty ? _defaultItems(type) : <String>[name],
   };
+
+  /// 초 → 분. 실 서버 `ExerciseSessionCreate._minutes_from_seconds` 와 같은
+  /// 규칙이다 — 1초짜리 기록도 0분이 되지 않는다. (#2071)
+  static int _minutesFromSeconds(int seconds) =>
+      seconds <= 0 ? 0 : math.max(1, (seconds / 60).round());
 
   /// (주 시작, 요일 라벨) → `YYYY-MM-DD`. FastAPI `session_date_of` 와 같다.
   String _dateOfWeekday(String weekStart, String dayLabel) {

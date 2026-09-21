@@ -45,6 +45,11 @@ abstract class ExerciseRepository {
   /// [reps] 와 한 자리를 나눠 쓴다 — 이 값을 실으면 서버가 횟수를 비운다.
   /// 한 세트를 회로든 초로든 한 번만 잰다(#1969).
   ///
+  /// [durationSeconds] 는 회원이 시·분·초 휠로 적은 걸린 시간이다(#2071).
+  /// 보내면 서버가 그 초로 `minutes` 를 다시 계산한다 — 분 칸은 주간 집계와
+  /// 트레이너웹이 읽으므로 늘 차 있어야 한다. 근력은 분이 세트에서 나오는
+  /// 값이라 싣지 않는다.
+  ///
   /// [date] 는 회원이 달력에서 고른 날이다. 생략하면 서버가 오늘로 둔다.
   Future<ExerciseSession> addSession({
     required ExerciseType type,
@@ -56,6 +61,7 @@ abstract class ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   });
 
@@ -74,6 +80,7 @@ abstract class ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   });
 }

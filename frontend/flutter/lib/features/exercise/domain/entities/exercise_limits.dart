@@ -25,3 +25,9 @@ const double kMaxExerciseWeightKg = 1000;
 /// 플랭크·행잉처럼 버티는 운동은 한 세트를 회가 아니라 초로 잰다. 한 세트가
 /// 한 시간을 넘으면 그것은 홀드가 아니라 다른 운동이다.
 const int kMaxExerciseHoldSeconds = 3600;
+
+/// 운동 한 건의 시간 상한(분). 열 시간이다. (#1903, #2071)
+///
+/// 기록 한 건이 이보다 길 수는 없다고 본다 — 하루치가 아니라 **한 운동**이
+/// 차지한 시간이기 때문이다. 시·분·초 휠이 고를 수 있는 끝도 이 값이다.
+const int kMaxExerciseMinutes = 600;
