@@ -19,6 +19,7 @@ class GymTrainerLine extends StatelessWidget {
     required this.trainer,
     this.showReason = true,
     this.bordered = false,
+    this.matchGymRow = false,
     this.onDetail,
     this.leadingWidth = OnCareSize.avatarSmall,
     this.leadingGap = OnCareSpacing.s8,
@@ -26,6 +27,9 @@ class GymTrainerLine extends StatelessWidget {
   });
 
   final Trainer trainer;
+
+  /// 연결 카드에서는 헬스장 행과 같은 글꼴·아이콘·최소 높이를 쓴다.
+  final bool matchGymRow;
 
   /// 줄을 회색 실선으로 두를지. 한 헬스장의 트레이너가 **잇달아 설 때**(헬스장
   /// 찾기 카드) 켠다 — 바탕이 카드와 같은 흰색이라 테두리가 없으면 어디까지가
@@ -60,7 +64,9 @@ class GymTrainerLine extends StatelessWidget {
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
     style: context.oncare
-        .text(OnCareTypography.label)
+        .text(
+          matchGymRow ? OnCareTypography.titleSmall : OnCareTypography.label,
+        )
         .copyWith(color: OnCareColors.textPrimary),
   );
 
@@ -69,7 +75,9 @@ class GymTrainerLine extends StatelessWidget {
     maxLines: 1,
     overflow: TextOverflow.ellipsis,
     style: context.oncare
-        .text(OnCareTypography.caption)
+        .text(
+          matchGymRow ? OnCareTypography.bodySmall : OnCareTypography.caption,
+        )
         .copyWith(color: OnCareColors.textSecondary),
   );
 
@@ -85,7 +93,7 @@ class GymTrainerLine extends StatelessWidget {
         // 카드·MY)은 카드가 이미 여백을 주고 있어, 여기서 또 밀면 위의 헬스장
         // 줄보다 안쪽으로 들어가 두 줄의 왼쪽 끝과 화살표가 어긋난다 (#1881).
         horizontal: bordered ? OnCareSpacing.s8 : 0,
-        vertical: OnCareSpacing.s8,
+        vertical: matchGymRow ? OnCareSpacing.s4 : OnCareSpacing.s8,
       ),
       // 줄 바탕은 흰색이다 (#1881). 예전에는 옅은 브랜드 파랑이었는데, 그 색은
       // 헬스장 키워드 태그(`AppTag`)의 채움색과 같아서 근거 태그를 그 위에
@@ -100,54 +108,61 @@ class GymTrainerLine extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              // 칸 폭만 넓히고 높이는 그대로 둔다 — 줄이 높아지지 않는다.
-              Container(
-                width: leadingWidth,
-                height: OnCareSize.avatarSmall,
-                alignment: Alignment.center,
-                child: AppIcon(
-                  AppIcons.person,
-                  size: OnCareSize.iconSmall,
-                  color: tokens.brand.primary,
-                ),
-              ),
-              SizedBox(width: leadingGap),
-              // 이름·직함은 **언제나 한 줄**이다(#2038). 이름과 짧은 속성은 한
-              // 줄에 읽혀야 하고, 두 줄은 `제목 + 설명` 처럼 기능을 풀어 쓰는
-              // 줄의 몫이다. 예전에는 오른쪽에 `연결됨` 배지와 `상세보기` 버튼이
-              // 함께 서서 직함이 `퍼스널 트…` 로 잘려 쌓았는데(#1187), 배지는
-              // 카드 머리로 올라가고 버튼은 화살표로 바뀌어(#1881) 그 까닭이
-              // 없어졌다.
-              Expanded(
-                child: Row(
-                  children: <Widget>[
-                    Flexible(child: _name(context)),
-                    const SizedBox(width: OnCareSpacing.s8),
-                    Flexible(child: _role(context, l)),
-                  ],
-                ),
-              ),
-              // 상세로 가는 길은 줄 **오른쪽 끝**에 선다 — 다른 화면의 동작
-              // 버튼과 같은 자리다 (#1267). 같은 카드 위 헬스장 줄과 똑같이
-              // **민 아이콘**이다 (#1881): 아이콘 버튼은 44 칸 안에 24 글리프를
-              // 가운데 두므로, 그것만 버튼으로 두면 화살표가 헬스장 줄 화살표
-              // 보다 10 만큼 안으로 들어가 두 줄이 어긋난다. 누르는 자리는
-              // 줄 전체가 받는다.
-              if (onDetail != null) ...<Widget>[
-                const SizedBox(width: OnCareSpacing.s8),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: matchGymRow ? OnCareSpacing.s48 : 0,
+            ),
+            child: Row(
+              children: <Widget>[
+                // 연결 카드에서는 헬스장 아이콘과 같은 정사각형 칸을 쓴다.
                 Container(
-                  key: const Key('gymTrainerDetailButton'),
-                  alignment: Alignment.centerRight,
-                  child: const AppIcon(
-                    AppIcons.chevronRight,
-                    size: OnCareSize.iconLarge,
-                    color: OnCareColors.textTertiary,
+                  width: leadingWidth,
+                  height: matchGymRow ? leadingWidth : OnCareSize.avatarSmall,
+                  alignment: Alignment.center,
+                  child: AppIcon(
+                    AppIcons.person,
+                    size: matchGymRow
+                        ? OnCareSize.iconMedium
+                        : OnCareSize.iconSmall,
+                    color: tokens.brand.primary,
                   ),
                 ),
+                SizedBox(width: leadingGap),
+                // 이름·직함은 **언제나 한 줄**이다(#2038). 이름과 짧은 속성은 한
+                // 줄에 읽혀야 하고, 두 줄은 `제목 + 설명` 처럼 기능을 풀어 쓰는
+                // 줄의 몫이다. 예전에는 오른쪽에 `연결됨` 배지와 `상세보기` 버튼이
+                // 함께 서서 직함이 `퍼스널 트…` 로 잘려 쌓았는데(#1187), 배지는
+                // 카드 머리로 올라가고 버튼은 화살표로 바뀌어(#1881) 그 까닭이
+                // 없어졌다.
+                Expanded(
+                  child: Row(
+                    children: <Widget>[
+                      Flexible(child: _name(context)),
+                      const SizedBox(width: OnCareSpacing.s8),
+                      Flexible(child: _role(context, l)),
+                    ],
+                  ),
+                ),
+                // 상세로 가는 길은 줄 **오른쪽 끝**에 선다 — 다른 화면의 동작
+                // 버튼과 같은 자리다 (#1267). 같은 카드 위 헬스장 줄과 똑같이
+                // **민 아이콘**이다 (#1881): 아이콘 버튼은 44 칸 안에 24 글리프를
+                // 가운데 두므로, 그것만 버튼으로 두면 화살표가 헬스장 줄 화살표
+                // 보다 10 만큼 안으로 들어가 두 줄이 어긋난다. 누르는 자리는
+                // 줄 전체가 받는다.
+                if (onDetail != null) ...<Widget>[
+                  const SizedBox(width: OnCareSpacing.s8),
+                  Container(
+                    key: const Key('gymTrainerDetailButton'),
+                    alignment: Alignment.centerRight,
+                    child: const AppIcon(
+                      AppIcons.chevronRight,
+                      size: OnCareSize.iconLarge,
+                      color: OnCareColors.textTertiary,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
           // 고를 근거는 한 사람에게 하나뿐인 경우가 드물다 — 있는 만큼 배지를
           // 나란히 세운다(#1881). 좁은 폭에서는 Wrap 이 다음 줄로 흘려, 줄이

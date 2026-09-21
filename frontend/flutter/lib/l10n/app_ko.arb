@@ -338,7 +338,6 @@
   "exCannotDelete": "이 기록은 삭제할 수 없어요",
   "exSaveFailed": "저장에 실패했어요. 잠시 후 다시 시도해 주세요",
   "exFindGym": "헬스장 찾기",
-  "exFindTrainer": "트레이너 찾기",
   "exGymDetailTitle": "헬스장 상세",
   "exTrainerDetailTitle": "트레이너 상세",
   "exDistance": "거리",

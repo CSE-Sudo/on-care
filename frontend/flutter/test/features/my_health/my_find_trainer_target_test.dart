@@ -29,7 +29,7 @@ const AppConfig _config = AppConfig(
 );
 
 void main() {
-  testWidgets('담당 트레이너가 없으면 그 헬스장의 소속 트레이너로 보낸다 (#793)', (
+  testWidgets('담당 트레이너가 없으면 안내만 표시하고 헬스장 행으로 상세에 간다 (#2072)', (
     WidgetTester tester,
   ) async {
     tester.view.physicalSize = const Size(390 * 3, 844 * 3);
@@ -47,7 +47,7 @@ void main() {
           // appConfigProvider 를 읽으므로 여기서 넘겨야 한다 — 없으면
           // 'must be overridden in ProviderScope' 로 화면이 아예 뜨지 않는다(#805).
           appConfigProvider.overrideWithValue(_config),
-          // 헬스장은 연결돼 있고 담당 트레이너만 없는 상태 — 이 버튼이 뜨는 조건.
+          // 헬스장은 연결돼 있고 담당 트레이너만 없는 상태.
           myGymProvider.overrideWith((ref) async => _gym),
           myTrainerProvider.overrideWith((ref) async => null),
           gymTrainersProvider(
@@ -71,13 +71,14 @@ void main() {
     final AppLocalizations l = AppLocalizations.of(
       tester.element(find.byType(Scaffold).first),
     );
-    final Finder findTrainer = find.text(l.exFindTrainer);
+    final Finder findTrainer = find.text(l.myNoTrainer);
     await tester.scrollUntilVisible(
       findTrainer,
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(findTrainer);
+    expect(find.text('트레이너 찾기'), findsNothing);
+    await tester.tap(find.text(_gym.name));
     await tester.pumpAndSettle();
 
     // 예전에는 라벨이 '트레이너 찾기'인데 헬스장을 찾는 운동 탭으로 갔다.

@@ -1718,12 +1718,6 @@ abstract class AppLocalizations {
   /// **'Find a Gym'**
   String get exFindGym;
 
-  /// No description provided for @exFindTrainer.
-  ///
-  /// In en, this message translates to:
-  /// **'Find a Trainer'**
-  String get exFindTrainer;
-
   /// No description provided for @exGymDetailTitle.
   ///
   /// In en, this message translates to:

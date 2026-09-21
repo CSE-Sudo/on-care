@@ -222,6 +222,56 @@ void main() {
           .getTopLeft(find.descendant(of: line, matching: find.text('김트레이너')))
           .dx;
       expect(trainerNameX, moreOrLessEquals(gymNameX, epsilon: 0.5));
+      final Finder gymName = find.descendant(
+        of: card,
+        matching: find.text(_gym.name),
+      );
+      final Finder trainerName = find.descendant(
+        of: line,
+        matching: find.text(_kim.name),
+      );
+      expect(
+        tester.widget<Text>(trainerName).style,
+        tester.widget<Text>(gymName).style,
+      );
+      final Finder role = find.descendant(
+        of: line,
+        matching: find.text(_kim.role!),
+      );
+      final Finder address = find.descendant(
+        of: card,
+        matching: find.textContaining(_gym.address),
+      );
+      expect(
+        tester.widget<Text>(role).style,
+        tester.widget<Text>(address).style,
+      );
+      expect(
+        tester.getSize(line).height,
+        tester.getSize(find.byKey(const Key('connectedGymRow'))).height + 8,
+      );
+      final Finder person = find.descendant(
+        of: line,
+        matching: find.byIcon(AppIcons.person),
+      );
+      final Finder gymIcon = find.descendant(
+        of: card,
+        matching: find.byIcon(AppIcons.gym),
+      );
+      expect(tester.getSize(person), tester.getSize(gymIcon));
+      final Finder divider = find.descendant(
+        of: card,
+        matching: find.byType(AppDivider),
+      );
+      expect(divider, findsOneWidget);
+      expect(
+        tester.getCenter(divider).dy,
+        greaterThan(tester.getBottomLeft(gymName).dy),
+      );
+      expect(
+        tester.getCenter(divider).dy,
+        lessThan(tester.getTopLeft(line).dy),
+      );
     });
 
     testWidgets('한 명뿐이라 줄을 두르지 않는다 (#1881)', (WidgetTester tester) async {
@@ -236,11 +286,29 @@ void main() {
       expect(mine.border, isNull);
     });
 
-    testWidgets('담당 트레이너가 없으면 줄 자체가 없다', (WidgetTester tester) async {
+    testWidgets('담당 트레이너가 없으면 안내와 구분선을 표시한다 (#2072)', (
+      WidgetTester tester,
+    ) async {
       await pumpGymTab(tester, myTrainer: null);
 
       expect(find.byKey(const Key('gym-trainer-line-mine')), findsNothing);
       expect(find.byKey(const Key('gymTrainerDetailButton')), findsNothing);
+      expect(
+        find.text(
+          AppLocalizations.of(
+            tester.element(find.byKey(const Key('my-gym-info-card'))),
+          ).myNoTrainer,
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('트레이너 찾기'), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('my-gym-info-card')),
+          matching: find.byType(AppDivider),
+        ),
+        findsOneWidget,
+      );
     });
   });
 
