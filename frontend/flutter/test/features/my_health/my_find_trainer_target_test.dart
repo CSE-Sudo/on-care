@@ -78,6 +78,14 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('트레이너 찾기'), findsNothing);
+    final Uri beforeTap = router.routerDelegate.currentConfiguration.uri;
+    await tester.tap(findTrainer);
+    await tester.pumpAndSettle();
+    expect(router.routerDelegate.currentConfiguration.uri, beforeTap);
+    expect(find.byTooltip(l.myTrainerDetailTooltip), findsNothing);
+
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 180));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(_gym.name));
     await tester.pumpAndSettle();
 

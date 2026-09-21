@@ -302,6 +302,16 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('트레이너 찾기'), findsNothing);
+      final AppLocalizations l = AppLocalizations.of(
+        tester.element(find.byKey(const Key('my-gym-info-card'))),
+      );
+      final Uri beforeTap = router.routerDelegate.currentConfiguration.uri;
+      await tester.tap(find.text(l.myNoTrainer));
+      await tester.pumpAndSettle();
+      expect(router.routerDelegate.currentConfiguration.uri, beforeTap);
+      expect(find.byType(TrainerDetailPage), findsNothing);
+      expect(find.byType(GymDetailPage), findsNothing);
+
       expect(
         find.descendant(
           of: find.byKey(const Key('my-gym-info-card')),
