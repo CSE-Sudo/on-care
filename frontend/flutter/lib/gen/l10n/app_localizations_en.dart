@@ -9,6 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get coachInviteUnavailable =>
+      'This request has already been handled or cancelled.';
+
+  @override
   String get appTitle => 'On-Care';
 
   @override
