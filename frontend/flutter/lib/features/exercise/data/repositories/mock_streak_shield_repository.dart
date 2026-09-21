@@ -14,8 +14,12 @@ import 'package:oncare/features/exercise/domain/repositories/streak_shield_repos
 ///
 /// 보호권이 지키는 것은 **기록 연속**이라 식단과 운동을 함께 봐야 하는데, 데모의
 /// 두 기록은 사는 곳이 다르다 — 운동은 목업 운동 저장소, 식단은 로컬 목업 API 의
-/// drift 다. 그래서 두 저장소에 물어 이어진 길이를 센다. 연속이 끊기는 주에서
-/// 멈추므로 보통 몇 번이면 끝나고, 아주 긴 연속에서도 [_maxWalk] 일에서 멈춘다.
+/// drift 다. 그래서 두 저장소에 [_maxWalk] 일치를 물어 날짜별 기록 여부를 만든다.
+///
+/// 하루씩 묻지 않는다: 운동은 구간이 걸치는 주를 나란히 읽고(주간 응답 하나가 그
+/// 주 7일을 준다), 식단은 그중 운동이 없는 날만 나란히 읽는다. 기다리는 것은
+/// 연속이 얼마나 길든 **두 번**이다 — 기록 그래프(`MockActivityCalendarRepository`)
+/// 가 한 해치를 읽는 방식과 같다.
 class MockStreakShieldRepository implements StreakShieldRepository {
   const MockStreakShieldRepository({
     required DemoStreakShieldBook book,
@@ -56,69 +60,64 @@ class MockStreakShieldRepository implements StreakShieldRepository {
     );
   }
 
-  /// 오늘부터(또는 [around] 부터) 거슬러 올라가며 날짜별 기록 여부를 미리 읽어
-  /// 둔다. 원장은 동기 함수를 기대하므로 비동기 조회를 여기서 끝낸다.
+  /// [around](없으면 오늘)부터 [_maxWalk] 일치를 거슬러 날짜별 기록 여부를 미리
+  /// 읽어 둔다. 원장은 동기 함수를 기대하므로 비동기 조회를 여기서 끝낸다.
   ///
-  /// 하루씩 묻지 않고 **주 단위로** 읽는다: 운동은 주간 응답 한 번이 그 주 7일을
-  /// 다 주고(하루마다 부르면 같은 주를 일곱 번 다시 읽는다), 식단은 그 주에서
-  /// 아직 모르는 날만 나란히 읽는다. 그래서 한 주에 기다리는 횟수가 둘이다.
+  /// 연속이 끊기는 날에서 멈추지 않고 구간 전체를 읽는다. 원장이 기록 여부를
+  /// 묻는 곳은 연속 계산만이 아니다 — 보호할 수 있는 날인지도 묻는데(최근
+  /// [DemoStreakShieldBook.protectWindowDays] 일), 끊긴 데서 멈추면 그 너머의
+  /// 기록한 날이 "기록 없음" 으로 답해 이미 기록이 있는 날에 보호권을 쓰게 된다.
   Future<bool Function(DateTime day)> _recorded({DateTime? around}) async {
     final DateTime today = _dateOnly(_now());
-    final Set<String> recorded = <String>{};
-    final Map<String, bool> known = <String, bool>{};
-    DateTime cursor = around == null
+    final DateTime last = around == null
         ? today
         : (around.isAfter(today) ? around : today);
-    final DateTime start = cursor;
-    for (int i = 0; i < _maxWalk; i++) {
-      if (!known.containsKey(_key(cursor))) {
-        await _loadWeekOf(cursor, upTo: start, into: known);
-      }
-      final bool has = known[_key(cursor)] ?? false;
-      if (has) recorded.add(_key(cursor));
-      // 보호한 날도 이어진 날이라 거기서 멈추지 않는다.
-      if (!has && !_book.isProtected(cursor) && cursor.isBefore(today)) break;
-      cursor = DateTime(cursor.year, cursor.month, cursor.day - 1);
-    }
-    return (DateTime day) => recorded.contains(_key(_dateOnly(day)));
-  }
+    final DateTime first = _shift(last, -(_maxWalk - 1));
 
-  /// [day] 가 든 주의 기록 여부를 [into] 에 채운다. [upTo] 뒤의 날은 거슬러
-  /// 올라가는 길에 없으니 읽지 않는다.
-  Future<void> _loadWeekOf(
-    DateTime day, {
-    required DateTime upTo,
-    required Map<String, bool> into,
-  }) async {
-    final DateTime monday = _mondayOf(day);
-    final List<DateTime> days = <DateTime>[
-      for (int i = 0; i < 7; i++)
-        DateTime(monday.year, monday.month, monday.day + i),
+    final List<DateTime> mondays = <DateTime>[
+      for (
+        DateTime monday = _mondayOf(first);
+        !monday.isAfter(last);
+        monday = _shift(monday, 7)
+      )
+        monday,
     ];
-    final ExerciseWeek week = await _exercise.fetchWeek(monday);
+    final List<ExerciseWeek> weeks = await Future.wait<ExerciseWeek>(
+      mondays.map(_exercise.fetchWeek),
+    );
 
+    final Set<String> recorded = <String>{};
     // 운동이 있는 날은 식단을 묻지 않는다 — 답이 이미 정해졌다.
     final List<DateTime> ask = <DateTime>[];
-    for (int i = 0; i < days.length; i++) {
-      if (days[i].isAfter(upTo)) continue;
-      if (i < week.dailyMinutes.length && week.dailyMinutes[i] > 0) {
-        into[_key(days[i])] = true;
-        continue;
+    for (int w = 0; w < mondays.length; w++) {
+      final List<double> minutes = weeks[w].dailyMinutes;
+      for (int i = 0; i < 7; i++) {
+        final DateTime day = _shift(mondays[w], i);
+        if (day.isBefore(first) || day.isAfter(last)) continue;
+        if (i < minutes.length && minutes[i] > 0) {
+          recorded.add(_key(day));
+          continue;
+        }
+        ask.add(day);
       }
-      ask.add(days[i]);
     }
+
     final List<DietDay> diets = await Future.wait<DietDay>(
-      ask.map((DateTime d) => _diet.fetchByDate(d)),
+      ask.map(_diet.fetchByDate),
     );
     for (int i = 0; i < ask.length; i++) {
-      into[_key(ask[i])] = diets[i].entries.isNotEmpty;
+      if (diets[i].entries.isNotEmpty) recorded.add(_key(ask[i]));
     }
+
+    return (DateTime day) => recorded.contains(_key(_dateOnly(day)));
   }
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  static DateTime _mondayOf(DateTime d) =>
-      DateTime(d.year, d.month, d.day - (d.weekday - 1));
+  static DateTime _shift(DateTime d, int days) =>
+      DateTime(d.year, d.month, d.day + days);
+
+  static DateTime _mondayOf(DateTime d) => _shift(d, 1 - d.weekday);
 
   static String _key(DateTime d) => '${d.year}-${d.month}-${d.day}';
 }
