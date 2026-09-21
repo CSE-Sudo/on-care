@@ -17,9 +17,9 @@
 그래서 가중치를 상수로 두고, 화면에 붙는 사유 문자열도 **점수를 만든 그 항목에서**
 생성한다.
 
-**한계(의도적).** 트레이너의 전문 분야는 `specialty`·`intro` 자유 텍스트뿐이라
-키워드 매칭에 기댄다. 트레이너 앱이 구조화된 전문 분야를 입력받게 되면 이 매칭은
-그 값을 보도록 바뀌어야 한다 — 그때까지의 근사다.
+**한계(의도적).** 트레이너의 전문 분야는 `specialty`·`intro`·`recommend_reason`
+자유 텍스트뿐이라 키워드 매칭에 기댄다. 트레이너 앱이 구조화된 전문 분야를
+입력받게 되면 이 매칭은 그 값을 보도록 바뀌어야 한다 — 그때까지의 근사다.
 """
 from __future__ import annotations
 
@@ -74,15 +74,37 @@ class _Need:
 #:
 #: 옛 질환 이름(고혈압·비만)으로 저장된 값은 [normalize_conditions] 가 새 목표로
 #: 바꾼 뒤 찾는다. 상담 신청의 운동 목표와 라벨이 같아 [_dedup] 가 하나로 합친다.
+#:
+#: 동의어는 **트레이너가 실제로 쓰는 말**에서 가져온다. 사전에 없는 표현을 쓴
+#: 트레이너는 목표 일치 30점을 통째로 못 받아 거리·경력만으로 줄 세워진다 —
+#: `체력 강화`·`혈압 관리` 는 한때 데모 트레이너 14명 중 누구와도 매칭되지
+#: 않았다(#2121). 선택지를 늘리거나 시드 문구를 고칠 때는
+#: `test_every_focus_matches_someone` 가 이 대조를 대신 해 준다.
 _CONDITION_NEEDS: dict[str, _Need] = {
-    health_focus.FOCUS_WEIGHT_LOSS: _Need("체중 감량", ("체중", "감량", "다이어트")),
-    health_focus.FOCUS_STRENGTH: _Need("근력 향상", ("근력", "근육", "웨이트")),
-    health_focus.FOCUS_FITNESS: _Need("체력 강화", ("체력", "컨디셔닝")),
-    health_focus.FOCUS_POSTURE: _Need("자세 교정", ("자세", "체형", "교정")),
-    health_focus.FOCUS_REHAB: _Need("재활", ("재활", "통증", "부상")),
-    health_focus.FOCUS_EATING: _Need("식습관 개선", ("식단", "식습관", "영양")),
-    health_focus.FOCUS_EXERCISE_HABIT: _Need("운동 습관", ("입문", "초보", "습관")),
-    health_focus.FOCUS_BLOOD_PRESSURE: _Need("혈압 관리", ("혈압", "고혈압")),
+    health_focus.FOCUS_WEIGHT_LOSS: _Need(
+        "체중 감량", ("체중", "감량", "다이어트", "체지방", "체성분")
+    ),
+    health_focus.FOCUS_STRENGTH: _Need(
+        "근력 향상", ("근력", "근육", "웨이트", "스트렝스", "파워리프팅")
+    ),
+    health_focus.FOCUS_FITNESS: _Need(
+        "체력 강화", ("체력", "컨디셔닝", "지구력", "유산소", "러닝", "달리기")
+    ),
+    health_focus.FOCUS_POSTURE: _Need(
+        "자세 교정", ("자세", "체형", "교정", "스트레칭")
+    ),
+    health_focus.FOCUS_REHAB: _Need(
+        "재활", ("재활", "통증", "부상", "수술", "회복", "물리치료")
+    ),
+    health_focus.FOCUS_EATING: _Need(
+        "식습관 개선", ("식단", "식습관", "영양", "식사")
+    ),
+    health_focus.FOCUS_EXERCISE_HABIT: _Need(
+        "운동 습관", ("입문", "초보", "습관", "처음", "기구", "출석")
+    ),
+    health_focus.FOCUS_BLOOD_PRESSURE: _Need(
+        "혈압 관리", ("혈압", "고혈압", "심혈관", "유산소")
+    ),
 }
 
 #: 상담 요청의 `exercise_goal`(Literal) → needs.
@@ -222,9 +244,15 @@ def score_trainer(
             reasons.append(f"{km:.1f}km 거리")
 
     if signals.needs:
-        # 전문 분야와 소개글을 함께 본다 — 시드처럼 specialty 가 '퍼스널 트레이너'
-        # 로 일반적이고 실제 강점은 intro 에 적혀 있는 경우가 많다.
-        haystack = f"{profile.specialty or ''} {profile.intro or ''}"
+        # 전문 분야·소개글·추천 사유를 함께 본다 — 시드처럼 specialty 가 '퍼스널
+        # 트레이너' 로 일반적이고 실제 강점은 intro 나 recommend_reason 에 적혀
+        # 있는 경우가 많다. recommend_reason 은 운영자가 그 트레이너의 강점을 한
+        # 줄로 적어 둔 값이라 셋 중 가장 정확한데, 예전에는 점수에서만 빠져 있어
+        # `혈압 관리와 운동 병행 지도` 라고 적힌 트레이너가 `혈압 관리` 회원에게
+        # 0점을 받았다(#2121).
+        haystack = " ".join(
+            (profile.specialty or "", profile.intro or "", profile.recommend_reason or "")
+        )
         matched = [
             need for need in signals.needs
             if any(k in haystack for k in need.keywords)

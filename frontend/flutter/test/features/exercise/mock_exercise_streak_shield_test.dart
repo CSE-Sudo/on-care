@@ -173,6 +173,18 @@ void main() {
     expect(status.recordStreakDays, greaterThanOrEqualTo(1));
   });
 
+  test('연속이 끊긴 날 너머에 있어도 기록이 있는 날은 보호하지 않는다', () async {
+    expect(book.exchange().statusCode, 201);
+    // 어제는 비었고(연속이 거기서 끊긴다), 그 너머 20일 전에는 식단이 있다.
+    final DateTime longAgo = DateTime(2026, 7, 31);
+    expect(_today.difference(longAgo).inDays, lessThan(30));
+    final MockStreakShieldRepository repo = repoWith(_FakeDiet(<DateTime>{longAgo}));
+
+    // 끊긴 데서 멈추고 읽으면 20일 전이 "기록 없음" 으로 답해 보호권이 빠진다.
+    await expectLater(repo.use(longAgo), throwsA(isA<ServerError>()));
+    expect((await repo.fetch()).held, 1);
+  });
+
   test('목업 보호권 저장소는 그날 기록이 있으면 쓰지 않고, 없으면 한 장을 쓴다', () async {
     expect(book.exchange().statusCode, 201);
     final MockStreakShieldRepository repo = repoWith(_FakeDiet());
