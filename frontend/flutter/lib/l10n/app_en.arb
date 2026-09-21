@@ -535,7 +535,6 @@
   "exCannotDelete": "This record cannot be deleted",
   "exSaveFailed": "Couldn't save. Please try again in a moment",
   "exFindGym": "Find a Gym",
-  "exFindTrainer": "Find a Trainer",
   "exGymDetailTitle": "Gym Details",
   "exTrainerDetailTitle": "Trainer Details",
   "exDistance": "Distance",

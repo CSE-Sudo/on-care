@@ -17,7 +17,6 @@ class ConnectedGymCard extends StatelessWidget {
     required this.trainer,
     required this.onGymTap,
     this.onTrainerDetail,
-    this.onFindTrainer,
     this.footer,
     super.key,
   });
@@ -26,7 +25,6 @@ class ConnectedGymCard extends StatelessWidget {
   final Trainer? trainer;
   final VoidCallback onGymTap;
   final VoidCallback? onTrainerDetail;
-  final VoidCallback? onFindTrainer;
 
   /// 운동 탭의 채팅처럼 화면별로만 필요한 동작. MY는 전달하지 않는다.
   final Widget? footer;
@@ -59,95 +57,114 @@ class ConnectedGymCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       vertical: OnCareSpacing.s4,
                     ),
-                    child: Row(
-                      children: <Widget>[
-                        Container(
-                          key: const Key('connectedGymIcon'),
-                          width: _gymIconBox,
-                          height: _gymIconBox,
-                          alignment: Alignment.center,
-                          child: AppIcon(
-                            AppIcons.gym,
-                            size: OnCareSize.iconMedium,
-                            color: tokens.brand.primary,
+                    child: ConstrainedBox(
+                      key: const Key('connectedGymRow'),
+                      constraints: const BoxConstraints(
+                        minHeight: OnCareSpacing.s48,
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Container(
+                            key: const Key('connectedGymIcon'),
+                            width: _gymIconBox,
+                            height: _gymIconBox,
+                            alignment: Alignment.center,
+                            child: AppIcon(
+                              AppIcons.gym,
+                              size: OnCareSize.iconMedium,
+                              color: tokens.brand.primary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: OnCareSpacing.s12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                gym.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: tokens
-                                    .text(OnCareTypography.titleSmall)
-                                    .copyWith(color: OnCareColors.textPrimary),
-                              ),
-                              const SizedBox(height: OnCareSpacing.s2),
-                              Text(
-                                '${gym.address} · ${gym.distanceKm.toStringAsFixed(1)}km',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: tokens
-                                    .text(OnCareTypography.bodySmall)
-                                    .copyWith(
-                                      color: OnCareColors.textSecondary,
-                                    ),
-                              ),
-                            ],
+                          const SizedBox(width: OnCareSpacing.s12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  gym.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: tokens
+                                      .text(OnCareTypography.titleSmall)
+                                      .copyWith(
+                                        color: OnCareColors.textPrimary,
+                                      ),
+                                ),
+                                const SizedBox(height: OnCareSpacing.s2),
+                                Text(
+                                  '${gym.address} · ${gym.distanceKm.toStringAsFixed(1)}km',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: tokens
+                                      .text(OnCareTypography.bodySmall)
+                                      .copyWith(
+                                        color: OnCareColors.textSecondary,
+                                      ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: OnCareSpacing.s8),
-                        const AppIcon(
-                          AppIcons.chevronRight,
-                          size: OnCareSize.iconLarge,
-                          color: OnCareColors.textTertiary,
-                        ),
-                      ],
+                          const SizedBox(width: OnCareSpacing.s8),
+                          const AppIcon(
+                            AppIcons.chevronRight,
+                            size: OnCareSize.iconLarge,
+                            color: OnCareColors.textTertiary,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: OnCareSpacing.s8),
+              child: AppDivider(),
+            ),
             if (trainer != null) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s12),
               GymTrainerLine(
                 key: const Key('gym-trainer-line-mine'),
                 trainer: trainer!,
                 showReason: false,
+                matchGymRow: true,
                 onDetail: onTrainerDetail,
                 // 위 헬스장 줄과 한 격자다 — 아이콘은 같은 세로 중심, 이름은
                 // 같은 세로선에서 시작한다(#2038).
                 leadingWidth: _gymIconBox,
                 leadingGap: OnCareSpacing.s12,
               ),
-            ] else if (onFindTrainer != null) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s12),
-              Row(
-                children: <Widget>[
-                  const AppIcon(
-                    AppIcons.personOff,
-                    size: OnCareSize.iconSmall,
-                    color: OnCareColors.textTertiary,
+            ] else ...<Widget>[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: OnCareSpacing.s4),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minHeight: OnCareSpacing.s48,
                   ),
-                  const SizedBox(width: OnCareSpacing.s8),
-                  Expanded(
-                    child: Text(
-                      l.myNoTrainer,
-                      style: tokens
-                          .text(OnCareTypography.bodySmall)
-                          .copyWith(color: OnCareColors.textSecondary),
-                    ),
+                  child: Row(
+                    children: <Widget>[
+                      const SizedBox(
+                        width: _gymIconBox,
+                        height: _gymIconBox,
+                        child: Center(
+                          child: AppIcon(
+                            AppIcons.personOff,
+                            size: OnCareSize.iconMedium,
+                            color: OnCareColors.textTertiary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: OnCareSpacing.s12),
+                      Expanded(
+                        child: Text(
+                          l.myNoTrainer,
+                          style: tokens
+                              .text(OnCareTypography.titleSmall)
+                              .copyWith(color: OnCareColors.textSecondary),
+                        ),
+                      ),
+                    ],
                   ),
-                  AppButton(
-                    label: l.exFindTrainer,
-                    onPressed: onFindTrainer,
-                    variant: AppButtonVariant.text,
-                    size: OnCareButtonSize.small,
-                  ),
-                ],
+                ),
               ),
             ],
             if (footer != null) ...<Widget>[

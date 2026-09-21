@@ -1097,11 +1097,6 @@ class _TrainerGymSection extends ConsumerWidget {
                       : () => context.push(
                           AppRoutes.trainerDetailPath(trainer.id),
                         ),
-                  // 헬스장은 이미 연결돼 있고 트레이너만 없는 상태다. 헬스장을
-                  // 찾는 화면이 아니라 **그 헬스장의 소속 트레이너**로 보낸다 —
-                  // 예전에는 라벨이 '트레이너 찾기'인데 헬스장 탭으로 갔다(#793).
-                  onFindTrainer: () =>
-                      context.push(AppRoutes.gymDetailPath(gym.id)),
                 ),
         ),
       ],
