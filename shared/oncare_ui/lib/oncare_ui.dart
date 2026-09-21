@@ -12,6 +12,7 @@ export 'src/components/app_button.dart';
 export 'src/components/app_calendar.dart';
 export 'src/components/app_chat.dart';
 export 'src/components/app_dialog.dart';
+export 'src/components/app_duration_wheel.dart';
 export 'src/components/app_emotes.dart';
 export 'src/components/app_icon.dart';
 export 'src/components/app_icon_button.dart';

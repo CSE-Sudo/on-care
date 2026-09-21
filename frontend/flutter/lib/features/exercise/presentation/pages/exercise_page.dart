@@ -704,9 +704,12 @@ class _DayRecordCard extends ConsumerWidget {
     final String time = sessions
         .map((ExerciseSession s) => s.timeLabel ?? '')
         .firstWhere((String t) => t.isNotEmpty, orElse: () => '');
-    final int minutes = sessions.fold<int>(
+    // 초를 적은 기록이 섞여 있으면 초로 더한다 — 분으로 먼저 접고 더하면
+    // 45초짜리 둘이 2분이 된다(#2071). 초를 모르는 옛 기록은 `minutes × 60`.
+    final int seconds = sessions.fold<int>(
       0,
-      (int sum, ExerciseSession s) => sum + s.minutes,
+      (int sum, ExerciseSession s) =>
+          sum + (s.durationSeconds ?? s.minutes * 60),
     );
     final String feedback = sessions
         .map((ExerciseSession s) => s.trainerFeedback)
@@ -732,11 +735,16 @@ class _DayRecordCard extends ConsumerWidget {
                     tone: AppTagTone.success,
                   ),
                 ),
-              if (minutes > 0)
+              if (seconds > 0)
                 _fitTag(
                   AppTag(
                     icon: AppIcons.timer,
-                    label: l.exDurationMinutes(minutes),
+                    label: formatDurationParts(
+                      Duration(seconds: seconds),
+                      hoursUnit: l.exUnitHours,
+                      minutesUnit: l.unitMinutes,
+                      secondsUnit: l.exUnitSeconds,
+                    ),
                     tone: AppTagTone.brand,
                   ),
                 ),

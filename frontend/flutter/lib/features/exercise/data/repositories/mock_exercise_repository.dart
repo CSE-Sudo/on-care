@@ -319,6 +319,7 @@ class MockExerciseRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
@@ -337,6 +338,7 @@ class MockExerciseRepository implements ExerciseRepository {
       // 한 세트를 회로든 초로든 한 번만 잰다 — 초가 오면 횟수를 비운다(#1969).
       reps: holdSeconds == null ? _strengthOnly(type, reps) : null,
       holdSeconds: _strengthOnly(type, holdSeconds),
+      durationSeconds: durationSeconds,
       name: name,
       weight: _strengthOnly(type, weight),
       date: date,
@@ -430,6 +432,7 @@ class MockExerciseRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 120));
@@ -454,6 +457,7 @@ class MockExerciseRepository implements ExerciseRepository {
       sets: _strengthOnly(type, sets),
       reps: holdSeconds == null ? _strengthOnly(type, reps) : null,
       holdSeconds: _strengthOnly(type, holdSeconds),
+      durationSeconds: durationSeconds,
       name: name,
       weight: _strengthOnly(type, weight),
       date: date,

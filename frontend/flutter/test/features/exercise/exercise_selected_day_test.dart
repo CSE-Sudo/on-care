@@ -75,6 +75,7 @@ class _FixedWeekRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 
@@ -105,6 +106,7 @@ class _FixedWeekRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 }

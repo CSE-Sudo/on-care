@@ -5,6 +5,7 @@
 /// 이름 칸이 왜 필수인지도 화면에서 읽히지 않았다.
 library;
 
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,6 +82,7 @@ class _CatalogRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 
@@ -96,6 +98,7 @@ class _CatalogRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 }
@@ -132,7 +135,26 @@ Future<void> _openSheet(
   );
   await tester.tap(find.text('열기'));
   await tester.pumpAndSettle();
+  // 새 기록은 0시 0분 0초로 열린다(#2071). 이 스위트는 `유산소 30분` 의
+  // 칼로리를 보므로, 그 시간을 먼저 적어 둔다 — 0 이면 미리보기를 부르지
+  // 않는다(서버가 `minutes > 0` 을 요구한다).
+  if (session == null) await _rollWheel(tester, 1, 30);
 }
+/// 시·분 휠의 [column] 번째 칸을 [steps] 칸만큼 굴린다. (#2071)
+///
+/// 시트 안이라 부모 스크롤이 휠과 아레나를 다툰다. 슬롭(`kTouchSlop`)을 **넘는**
+/// 첫 이동이 승부를 가르고 그 이동 자체는 버려지므로, 그 뒤의 이동이 그대로
+/// 칸 수다.
+Future<void> _rollWheel(WidgetTester tester, int column, int steps) async {
+  final TestGesture gesture = await tester.startGesture(
+    tester.getCenter(find.byType(ListWheelScrollView).at(column)),
+  );
+  await gesture.moveBy(const Offset(0, -kTouchSlop - 1));
+  await gesture.moveBy(Offset(0, -40.0 * steps));
+  await gesture.up();
+  await tester.pumpAndSettle();
+}
+
 
 AppLocalizations _l(WidgetTester tester) => AppLocalizations.of(
   tester.element(find.byKey(const Key('exerciseAddContent'))),

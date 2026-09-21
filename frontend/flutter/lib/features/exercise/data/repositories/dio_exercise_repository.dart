@@ -69,6 +69,7 @@ class DioExerciseRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async {
     final res = await _dio.post<Map<String, Object?>>(
@@ -83,6 +84,7 @@ class DioExerciseRepository implements ExerciseRepository {
         sets: sets,
         reps: reps,
         holdSeconds: holdSeconds,
+        durationSeconds: durationSeconds,
         weight: weight,
       ),
     );
@@ -106,6 +108,7 @@ class DioExerciseRepository implements ExerciseRepository {
     required int? sets,
     required int? reps,
     required int? holdSeconds,
+    required int? durationSeconds,
     required double? weight,
   }) => <String, Object?>{
     'type': type.name,
@@ -114,6 +117,7 @@ class DioExerciseRepository implements ExerciseRepository {
     'sets': sets,
     'reps': reps,
     'hold_seconds': holdSeconds,
+    'duration_seconds': durationSeconds,
     'weight': weight,
     'calories': calories,
     'intensity': intensity.name,
@@ -137,6 +141,7 @@ class DioExerciseRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async {
     final res = await _dio.put<Map<String, Object?>>(
@@ -151,6 +156,7 @@ class DioExerciseRepository implements ExerciseRepository {
         sets: sets,
         reps: reps,
         holdSeconds: holdSeconds,
+        durationSeconds: durationSeconds,
         weight: weight,
       ),
     );

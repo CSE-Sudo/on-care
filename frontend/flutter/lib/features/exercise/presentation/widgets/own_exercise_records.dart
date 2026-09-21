@@ -203,6 +203,7 @@ String exerciseAmountLabel(AppLocalizations l, ExerciseSession s) =>
       l,
       type: s.type,
       minutes: s.minutes,
+      durationSeconds: s.durationSeconds,
       sets: s.sets,
       reps: s.reps,
       weight: s.weight,
@@ -217,6 +218,7 @@ String exerciseAmountLabelOf(
   AppLocalizations l, {
   required ExerciseType type,
   required int minutes,
+  int? durationSeconds,
   int? sets,
   int? reps,
   double? weight,
@@ -228,7 +230,14 @@ String exerciseAmountLabelOf(
   // 받지도 않은 지시를 읽는다.
   if (type != ExerciseType.strength ||
       (sets == null && !setsFromMinutesWhenUnknown)) {
-    return '$minutes${l.unitMinutes}';
+    // 적은 만큼만 보인다 — `45초`·`30분`·`1시간 5분 30초`(#2071). 딱 떨어지는
+    // 30분은 예전과 같은 모양이라, 초를 적었을 때만 길어진다. 초를 모르는 옛
+    // 기록은 분에서 되짚는다.
+    return exerciseDurationLabel(
+      l,
+      minutes: minutes,
+      durationSeconds: durationSeconds,
+    );
   }
   final int setCount = sets ?? setsFromStrengthMinutes(minutes.toDouble());
   final StringBuffer buffer = StringBuffer(l.exSetsCount(setCount));
@@ -240,6 +249,24 @@ String exerciseAmountLabelOf(
   if (weight != null) buffer.write(' · ${exerciseWeightLabel(l, weight)}');
   return buffer.toString();
 }
+
+/// 걸린 시간 한 값의 표기 — **적은 만큼만** 보인다. (#2071)
+///
+/// `45초` · `30분` · `1시간 5분 30초`. 0 인 칸은 빼므로 딱 떨어지는 30분은
+/// 예전(`30분`)과 같이 읽히고, 초를 적었을 때만 길어진다.
+///
+/// [durationSeconds] 를 모르는 옛 기록은 `minutes × 60` 으로 읽는다 — 그 기록은
+/// 애초에 분으로만 적혔으므로 초 칸이 붙지 않는다.
+String exerciseDurationLabel(
+  AppLocalizations l, {
+  required int minutes,
+  int? durationSeconds,
+}) => formatDurationParts(
+  Duration(seconds: durationSeconds ?? minutes * 60),
+  hoursUnit: l.exUnitHours,
+  minutesUnit: l.unitMinutes,
+  secondsUnit: l.exUnitSeconds,
+);
 
 /// 중량 한 값의 표기 — `20kg`, `62.5kg`. (#1904)
 ///

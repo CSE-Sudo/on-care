@@ -102,6 +102,7 @@ class _RecordingRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async {
     addedDate = date;
@@ -147,6 +148,7 @@ class _RecordingRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 }
