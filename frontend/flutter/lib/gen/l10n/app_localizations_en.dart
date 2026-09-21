@@ -922,9 +922,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exFindGym => 'Find a Gym';
 
   @override
-  String get exFindTrainer => 'Find a Trainer';
-
-  @override
   String get exGymDetailTitle => 'Gym Details';
 
   @override
