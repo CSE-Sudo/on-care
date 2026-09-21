@@ -17,6 +17,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import '../../helpers/fixed_clock.dart';
 
+
 /// 직접 추가한 운동 기록이 운동 탭에 남는다. (#1428)
 ///
 /// 하단 `+` 로 저장한 기록은 주간 통계·그래프에만 반영되고 개별 기록을 볼 자리가
@@ -194,6 +195,7 @@ void main() {
   }
 
   testWidgets('오늘 직접 추가한 기록이 오늘 화면에 개별 항목으로 보인다', (tester) async {
+    useFixedKstDate();
     await pumpExercise(
       tester,
       _RecordingRepository(<ExerciseSession>[
@@ -213,6 +215,7 @@ void main() {
   });
 
   testWidgets('저장한 값(유형·운동량·강도·칼로리)이 그대로 보인다', (tester) async {
+    useFixedKstDate();
     await pumpExercise(
       tester,
       _RecordingRepository(<ExerciseSession>[
@@ -245,6 +248,7 @@ void main() {
   });
 
   testWidgets('운동 탭 안의 추가 버튼은 하단 + 와 같은 시트를 연다', (tester) async {
+    useFixedKstDate();
     await pumpExercise(tester, _RecordingRepository(<ExerciseSession>[]));
 
     final Finder add = find.byKey(
@@ -261,6 +265,7 @@ void main() {
   });
 
   testWidgets('운동 탭에서 고른 날짜가 추가 폼의 기본 날짜가 된다', (tester) async {
+    useFixedKstDate();
     await pumpExercise(tester, _RecordingRepository(<ExerciseSession>[]));
 
     // 오늘이 아닌 이번 주의 다른 날을 고른다.
@@ -293,6 +298,7 @@ void main() {
   });
 
   testWidgets('기록에서 수정과 삭제로 들어갈 수 있다', (tester) async {
+    useFixedKstDate();
     final _RecordingRepository repo = _RecordingRepository(<ExerciseSession>[
       _memberSession(id: 'own-1', date: today()),
     ]);
@@ -337,6 +343,7 @@ void main() {
   });
 
   testWidgets('PT 일지·배정 루틴은 직접 기록 목록에 섞이지 않는다', (tester) async {
+    useFixedKstDate();
     final DateTime target = today().weekday == DateTime.monday
         ? today().add(const Duration(days: 1))
         : today().subtract(const Duration(days: 1));

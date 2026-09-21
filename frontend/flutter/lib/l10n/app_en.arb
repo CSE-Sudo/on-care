@@ -31,12 +31,20 @@
   "homeAdviceExerciseOnTrack": "You worked out {minutes} minutes this week. You are on track!",
   "@homeAdviceExerciseOnTrack": {
     "description": "Home AI advice when the weekly exercise goal is met (#1943).",
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "homeAdviceExerciseMore": "You worked out {minutes} minutes this week. A little more to go!",
   "@homeAdviceExerciseMore": {
     "description": "Home AI advice when there is some exercise but not enough (#1943).",
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "homeAdviceExerciseStart": "Start moving this week — an easy walk is a good beginning.",
   "@homeAdviceExerciseStart": {
@@ -196,14 +204,22 @@
   "dietFoodDbMatch": "Public DB · {name}",
   "@dietFoodDbMatch": {
     "description": "Representative name shown on the suggestion row when a food name matches the public nutrition DB (#1896)",
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "dietMoreFoods": "{name} +{count}",
   "@dietMoreFoods": {
     "description": "Appended to the last food name on a meal card when more foods are hidden (#1990)",
     "placeholders": {
-      "name": { "type": "String" },
-      "count": { "type": "int" }
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
   "dietFillFromDb": "Fill in",
@@ -213,7 +229,11 @@
   "dietFoodFilledFromDb": "Changed to public DB · {name}",
   "@dietFoodFilledFromDb": {
     "description": "Shown after renaming a food filled its fields with the same food's public-DB nutrition (#2107)",
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "dietUndoFill": "Undo",
   "@dietUndoFill": {
@@ -261,7 +281,11 @@
   "dietRecordDateMoved": "Moved to {date}",
   "@dietRecordDateMoved": {
     "description": "Confirmation after moving a meal to another day.",
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "dietRecordDateFailed": "Could not change the date. Please try again shortly.",
   "@dietRecordDateFailed": {
@@ -342,8 +366,12 @@
   "exBurnWeekOfMonthTitle": "Burned in week {week}, {month}/",
   "@exBurnWeekOfMonthTitle": {
     "placeholders": {
-      "month": { "type": "int" },
-      "week": { "type": "int" }
+      "month": {
+        "type": "int"
+      },
+      "week": {
+        "type": "int"
+      }
     }
   },
   "exBurnTodayTitle": "Burned today",
@@ -352,7 +380,9 @@
   "exGoalValue": "Goal {value}",
   "@exGoalValue": {
     "placeholders": {
-      "value": { "type": "String" }
+      "value": {
+        "type": "String"
+      }
     }
   },
   "exLoadEmpty": "No records yet.",
@@ -395,7 +425,11 @@
   "exUnitStreakDays": "day streak",
   "exStreakCheer": "{days} days in a row!",
   "@exStreakCheer": {
-    "placeholders": { "days": { "type": "int" } }
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
   },
   "exStreakStart": "Start a streak with today's workout.",
   "exStreakProtected": "Kept by a shield",
@@ -643,7 +677,9 @@
   "myProfileTitle": "My Profile",
   "myNotifTitle": "Notification Settings",
   "myGuideTitle": "App guide",
-  "@myGuideTitle": {"description": "MY tab: opens the spotlight app guide again (#1857)."},
+  "@myGuideTitle": {
+    "description": "MY tab: opens the spotlight app guide again (#1857)."
+  },
   "mySupportTitle": "Customer Support",
   "myPointsBenefitsTitle": "Use Points",
   "myPointsBalance": "Balance: {points}P",
@@ -698,7 +734,7 @@
   "myPointsMonthlyLimit": "You already redeemed this month",
   "myPointsShieldLimit": "You can hold up to 4 shields",
   "myShopStreakShieldTitle": "Streak shield",
-  "myShopStreakShieldDescription": "Keep your streak going when you logged nothing yesterday. Hold up to 4.",
+  "myShopStreakShieldDescription": "Keep your streak going on a day you logged nothing. Use it within the last 30 days; hold up to 4.",
   "myBenefitsStreakShields": "Streak shields",
   "myBenefitsShieldHeld": "{held}/{max} held",
   "@myBenefitsShieldHeld": {
@@ -719,9 +755,125 @@
       }
     }
   },
-  "myBenefitsShieldGuide": "Use one the day after a day with nothing logged.",
+  "myBenefitsShieldGuide": "Tap an empty day on the record graph to bridge it. Only days within the last 30 days.",
   "myBenefitsShieldUsedTitle": "Protected days",
   "myBenefitsShieldNoneUsed": "No protected days yet",
+  "myShopGraphColorTitle": "Graph colour",
+  "myShopGraphColorDescription": "Pick a new colour for the record graph on the points screen. Colours you unlock stay yours.",
+  "myGraphTitle": "Record graph",
+  "myGraphMonthLabel": "{month}",
+  "@myGraphMonthLabel": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "myGraphStreak": "{days}-day record streak",
+  "@myGraphStreak": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myGraphLoadFailed": "Couldn't load the record graph.",
+  "myGraphDate": "{month}/{day}",
+  "@myGraphDate": {
+    "placeholders": {
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "myGraphDayHint": "Tap a square to see that day",
+  "myGraphDayNone": "{date} · nothing logged",
+  "@myGraphDayNone": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphDayDiet": "{date} · meals only",
+  "@myGraphDayDiet": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphDayExercise": "{date} · workout only",
+  "@myGraphDayExercise": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphDayBoth": "{date} · meals and workout",
+  "@myGraphDayBoth": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphDayProtected": "{date} · kept by a shield",
+  "@myGraphDayProtected": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphProtectAction": "Use a shield",
+  "myGraphProtectConfirmTitle": "Use a streak shield?",
+  "myGraphProtectConfirmMessage": "This keeps {date} in your record streak and spends one shield ({held} left).",
+  "@myGraphProtectConfirmMessage": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "held": {
+        "type": "int"
+      }
+    }
+  },
+  "myGraphProtectDone": "Your streak is unbroken",
+  "myGraphProtectFailed": "Couldn't use the shield",
+  "myGraphColorTitle": "Graph colour",
+  "myGraphColorPickTitle": "Pick a colour to unlock",
+  "myGraphColorLocked": "Unlock for {cost}",
+  "@myGraphColorLocked": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphColorDone": "Graph colour changed",
+  "myGraphColorExchangeConfirm": "Unlock the {color} graph for {cost}? Once unlocked it stays yours.",
+  "@myGraphColorExchangeConfirm": {
+    "placeholders": {
+      "color": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphColorUnlocked": "Graph colour unlocked",
+  "myGraphColorFailed": "Couldn't change the colour",
+  "myGraphColorBlue": "Blue",
+  "myGraphColorGreen": "Green",
+  "myGraphColorPurple": "Purple",
+  "myGraphColorOrange": "Orange",
+  "myGraphColorPink": "Pink",
   "myPointsValidDays": "Valid for {days} days after redeeming",
   "@myPointsValidDays": {
     "placeholders": {
@@ -747,7 +899,11 @@
   "challengeShortWithRange": "Weekly challenge · {range}",
   "@challengeShortWithRange": {
     "description": "Title of the progress row in the exercise tab, naming the week it covers.",
-    "placeholders": { "range": { "type": "String" } }
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
   },
   "challengeDescription": "Stake {stake}, work out {goal} times this week, and get {reward} back",
   "@challengeDescription": {
@@ -923,7 +1079,11 @@
   "a11yMealPhotoOf": "Photo of {name}",
   "@a11yMealPhotoOf": {
     "description": "Screen reader label for a recommended meal photo (#1942).",
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
@@ -976,7 +1136,7 @@
   "@myWithdrawKeepTitle": {
     "description": "Second step: what can be changed instead of leaving, chosen from the reasons picked (#2019)."
   },
-  "myWithdrawKeepPrivacy": "Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone \u2014 you can do that from My Gym & Trainer on the MY tab.",
+  "myWithdrawKeepPrivacy": "Your records are never shown to strangers. Only you and the trainer you are linked with can see them, and once you disconnect the trainer they are yours alone — you can do that from My Gym & Trainer on the MY tab.",
   "myWithdrawKeepRarelyUsed": "You do not have to log everything every day. The + in the middle lets you add a single meal or workout from any screen.",
   "myWithdrawKeepHardToUse": "Tell us what got in the way and we will fix it. The 1:1 Inquiry under MY > Customer Support reaches us directly.",
   "myWithdrawKeepNotifications": "Notifications can be switched off one kind at a time. Keep only what you want under MY > Notification Settings.",
@@ -1061,14 +1221,32 @@
   "coachCardWaterTag": "Hydration",
   "coachInviteTitle": "A trainer wants to coach you",
   "coachInviteFrom": "Trainer {name}",
-  "@coachInviteFrom": {"placeholders": {"name": {"type": "String"}}},
+  "@coachInviteFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "coachInviteGym": "at {gym}",
-  "@coachInviteGym": {"placeholders": {"gym": {"type": "String"}}},
+  "@coachInviteGym": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
   "coachInviteExplain": "Accepting lets this trainer see your meal and workout records.",
   "coachInviteAccept": "Accept",
   "coachInviteReject": "Decline",
   "coachInviteAccepted": "{name} is now your coach",
-  "@coachInviteAccepted": {"placeholders": {"name": {"type": "String"}}},
+  "@coachInviteAccepted": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "coachInviteRejected": "Request declined",
   "coachInviteFailed": "Couldn't complete that. Please try again",
   "coachImageUnavailable": "Couldn't load the photo",
@@ -1089,10 +1267,18 @@
   "@coachChatReportWeek": {
     "description": "Week the registered report covers, shown on the report card.",
     "placeholders": {
-      "sm": {"type": "int"},
-      "sd": {"type": "int"},
-      "em": {"type": "int"},
-      "ed": {"type": "int"}
+      "sm": {
+        "type": "int"
+      },
+      "sd": {
+        "type": "int"
+      },
+      "em": {
+        "type": "int"
+      },
+      "ed": {
+        "type": "int"
+      }
     }
   },
   "coachChatReportOpenPdf": "Open PDF",
@@ -1103,8 +1289,12 @@
   "@coachReportPdfPeriod": {
     "description": "Week the previewed report covers, printed under the title.",
     "placeholders": {
-      "from": {"type": "String"},
-      "to": {"type": "String"}
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
     }
   },
   "coachReportPdfSectionMetrics": "Key metrics",
@@ -1114,8 +1304,12 @@
   "@coachReportPdfBullet": {
     "description": "One metric line in the previewed report.",
     "placeholders": {
-      "label": {"type": "String"},
-      "value": {"type": "String"}
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
     }
   },
   "coachReportPdfLabelWorkoutDays": "Days trained",
@@ -1131,30 +1325,54 @@
   "coachReportPdfLabelSugarShort": "Sugar",
   "coachReportPdfValueDays": "{value} days",
   "@coachReportPdfValueDays": {
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfValueMinutes": "{value} min",
   "@coachReportPdfValueMinutes": {
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfValueKcal": "{value} kcal",
   "@coachReportPdfValueKcal": {
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfValueMg": "{value} mg",
   "@coachReportPdfValueMg": {
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfValueGram": "{value} g",
   "@coachReportPdfValueGram": {
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfAttendance": "{done} of {booked}",
   "@coachReportPdfAttendance": {
     "description": "PT sessions completed out of the ones booked that week.",
     "placeholders": {
-      "done": {"type": "String"},
-      "booked": {"type": "String"}
+      "done": {
+        "type": "String"
+      },
+      "booked": {
+        "type": "String"
+      }
     }
   },
   "coachReportPdfNoData": "No data",
@@ -1162,9 +1380,15 @@
   "@coachReportPdfDay": {
     "description": "One weekday line in the previewed report.",
     "placeholders": {
-      "weekday": {"type": "String"},
-      "exercise": {"type": "String"},
-      "intake": {"type": "String"}
+      "weekday": {
+        "type": "String"
+      },
+      "exercise": {
+        "type": "String"
+      },
+      "intake": {
+        "type": "String"
+      }
     }
   },
   "coachReportPdfSectionTrainerNote": "From your trainer",
@@ -1198,7 +1422,11 @@
   "coachReportPdfValueSessions": "{value} sessions",
   "@coachReportPdfValueSessions": {
     "description": "A count of PT sessions with its unit.",
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfLabelCardio": "Cardio",
   "@coachReportPdfLabelCardio": {
@@ -1229,19 +1457,33 @@
     "description": "Section heading for the goal gauges."
   },
   "coachReportPdfColumnMetric": "Metric",
-  "@coachReportPdfColumnMetric": {"description": "Summary table column: the metric name."},
+  "@coachReportPdfColumnMetric": {
+    "description": "Summary table column: the metric name."
+  },
   "coachReportPdfColumnThisWeek": "This week",
-  "@coachReportPdfColumnThisWeek": {"description": "Summary table column: this week's value."},
+  "@coachReportPdfColumnThisWeek": {
+    "description": "Summary table column: this week's value."
+  },
   "coachReportPdfColumnLastWeek": "Last week",
-  "@coachReportPdfColumnLastWeek": {"description": "Summary table column: last week's value."},
+  "@coachReportPdfColumnLastWeek": {
+    "description": "Summary table column: last week's value."
+  },
   "coachReportPdfColumnChange": "Change",
-  "@coachReportPdfColumnChange": {"description": "Summary table column: the difference between the two weeks."},
+  "@coachReportPdfColumnChange": {
+    "description": "Summary table column: the difference between the two weeks."
+  },
   "coachReportPdfColumnWeekday": "Day",
-  "@coachReportPdfColumnWeekday": {"description": "Daily table column: the weekday."},
+  "@coachReportPdfColumnWeekday": {
+    "description": "Daily table column: the weekday."
+  },
   "coachReportPdfColumnWorkout": "Workout",
-  "@coachReportPdfColumnWorkout": {"description": "Daily table column: what was done that day."},
+  "@coachReportPdfColumnWorkout": {
+    "description": "Daily table column: what was done that day."
+  },
   "coachReportPdfColumnIntake": "Intake",
-  "@coachReportPdfColumnIntake": {"description": "Daily table column: calories eaten that day."},
+  "@coachReportPdfColumnIntake": {
+    "description": "Daily table column: calories eaten that day."
+  },
   "coachReportPdfUpcoming": "Still to come",
   "@coachReportPdfUpcoming": {
     "description": "Daily table cell for a weekday that has not happened yet."
@@ -1249,37 +1491,68 @@
   "coachReportPdfGoalOf": "{value} (goal {target})",
   "@coachReportPdfGoalOf": {
     "description": "Text form of a gauge: the value and the goal it is measured against.",
-    "placeholders": {"value": {"type": "String"}, "target": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfChartTarget": "goal {value}",
   "@coachReportPdfChartTarget": {
     "description": "Label on a chart's dashed goal line.",
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfDayUpcoming": "{weekday} — still to come",
   "@coachReportPdfDayUpcoming": {
     "description": "Daily line for a weekday that has not happened yet.",
-    "placeholders": {"weekday": {"type": "String"}}
+    "placeholders": {
+      "weekday": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfChange": "· {label}: {current} (last week {previous}, {delta})",
   "@coachReportPdfChange": {
     "description": "One comparison line: this week's value, last week's, and the difference.",
     "placeholders": {
-      "label": {"type": "String"},
-      "current": {"type": "String"},
-      "previous": {"type": "String"},
-      "delta": {"type": "String"}
+      "label": {
+        "type": "String"
+      },
+      "current": {
+        "type": "String"
+      },
+      "previous": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
     }
   },
   "coachReportPdfDeltaUp": "+{value}",
   "@coachReportPdfDeltaUp": {
     "description": "Difference when this week is higher.",
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfDeltaDown": "-{value}",
   "@coachReportPdfDeltaDown": {
     "description": "Difference when this week is lower.",
-    "placeholders": {"value": {"type": "String"}}
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfDeltaSame": "no change",
   "@coachReportPdfDeltaSame": {
@@ -1292,12 +1565,20 @@
   "coachReportPdfSodiumTargetNote": "The sodium goal is the {target}mg daily target you set on the MY screen.",
   "@coachReportPdfSodiumTargetNote": {
     "description": "Footnote naming the sodium goal the over-days count was measured against.",
-    "placeholders": {"target": {"type": "String"}}
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
   },
   "coachReportPdfPreviewNote": "Built from your own records for the week the trainer's report covers.",
   "coachReportPdfFileName": "weekly-report_{date}.pdf",
   "@coachReportPdfFileName": {
-    "placeholders": {"date": {"type": "String"}}
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "coachChatInputHint": "Message your trainer...",
   "coachChatDemoAnalyzed": "AI analyzed your diet and exercise data",
@@ -1333,11 +1614,22 @@
   "aicQuickRepliesLabel": "Try asking",
   "aicGeneratingReply": "Writing your answer",
   "aicInsightDiscomfortPart": "{part} pain noted",
-  "@aicInsightDiscomfortPart": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"part": {"type": "String"}}},
+  "@aicInsightDiscomfortPart": {
+    "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).",
+    "placeholders": {
+      "part": {
+        "type": "String"
+      }
+    }
+  },
   "aicInsightDiscomfort": "Pain noted",
-  "@aicInsightDiscomfort": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
+  "@aicInsightDiscomfort": {
+    "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
+  },
   "aicInsightNegative": "Negative feedback noted",
-  "@aicInsightNegative": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
+  "@aicInsightNegative": {
+    "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
+  },
   "aicInsightDelete": "Delete",
   "@aicInsightDelete": {
     "description": "Removes one detection from the AI coach insight log (#1975)."
@@ -1345,21 +1637,57 @@
   "aicInsightDeleteConfirm": "Remove this detection from the log? What you wrote stays in the conversation.",
   "aicInsightDeleteFailed": "We could not remove it. Please try again in a moment.",
   "aicInsightHistoryTitle": "Noted signals",
-  "@aicInsightHistoryTitle": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
+  "@aicInsightHistoryTitle": {
+    "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
+  },
   "aicInsightHistoryAction": "Notes",
-  "@aicInsightHistoryAction": {"description": "AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900)."},
+  "@aicInsightHistoryAction": {
+    "description": "AI coach chat: header button that opens the noted-signals list; short because it sits beside the title (#1900)."
+  },
   "aicInsightHistorySubtitle": "Pain and negative feedback noted in the last {days} days. The AI uses these when it answers",
-  "@aicInsightHistorySubtitle": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"days": {"type": "int"}}},
+  "@aicInsightHistorySubtitle": {
+    "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "aicInsightHistoryEmpty": "Nothing noted in the last {days} days",
-  "@aicInsightHistoryEmpty": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).", "placeholders": {"days": {"type": "int"}}},
+  "@aicInsightHistoryEmpty": {
+    "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "aicInsightHistoryFailed": "Couldn't load noted signals",
-  "@aicInsightHistoryFailed": {"description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."},
+  "@aicInsightHistoryFailed": {
+    "description": "AI coach chat: pain / negative feedback the AI takes into account when answering (#1824, #1973)."
+  },
   "aicRetentionNotice": "AI chat history is kept for the last {days} days",
-  "@aicRetentionNotice": {"description": "AI coach chat: how long the conversation is kept (#1823).", "placeholders": {"days": {"type": "int"}}},
+  "@aicRetentionNotice": {
+    "description": "AI coach chat: how long the conversation is kept (#1823).",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "aicTrainerConnectedTitle": "Chat with your trainer",
-  "@aicTrainerConnectedTitle": {"description": "AI coach chat: shown instead of the chat when the member has a trainer (#1823)."},
+  "@aicTrainerConnectedTitle": {
+    "description": "AI coach chat: shown instead of the chat when the member has a trainer (#1823)."
+  },
   "aicTrainerConnectedBody": "You're connected with {name}. Members with a trainer chat with their trainer instead of the AI chatbot",
-  "@aicTrainerConnectedBody": {"description": "AI coach chat: shown instead of the chat when the member has a trainer (#1823).", "placeholders": {"name": {"type": "String"}}},
+  "@aicTrainerConnectedBody": {
+    "description": "AI coach chat: shown instead of the chat when the member has a trainer (#1823).",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "@aicGeneratingReply": {
     "description": "Shown in the coach bubble while a tailored reply is being generated"
   },
@@ -1383,24 +1711,61 @@
   "coachInviteConsentTitle": "Before you connect",
   "coachInviteConsentBody": "Once {name} becomes your trainer, they can see your meal records, workout records, body information and health goals. Disconnecting also revokes that access.",
   "@coachInviteConsentBody": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "coachInviteConsentAgree": "Agree and connect",
   "exConsultSlotTitle": "Available times",
   "exConsultSlotRequired": "Please choose an available time.",
   "exConsultSlotsEmptyTitle": "No consultation times are open right now.",
   "exConsultSlotsEmptyBody": "Call {gym} at {phone} to ask for a consultation time.",
-  "@exConsultSlotsEmptyBody": {"placeholders": {"gym": {"type": "String"}, "phone": {"type": "String"}}},
+  "@exConsultSlotsEmptyBody": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      },
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
   "exConsultSlotsEmptyNoPhone": "Open the {gym} details for its address and hours.",
-  "@exConsultSlotsEmptyNoPhone": {"placeholders": {"gym": {"type": "String"}}},
+  "@exConsultSlotsEmptyNoPhone": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
   "exConsultSlotsError": "Could not load the available times.",
   "exConsultSlotTaken": "Another member just took that time. Please choose another.",
   "exConsultTooManyPending": "You already have {count} consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.",
-  "@exConsultTooManyPending": {"placeholders": {"count": {"type": "int"}}},
+  "@exConsultTooManyPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "exConsultRateLimitedHours": "Too many consultation requests. Please try again in {hours} hours.",
-  "@exConsultRateLimitedHours": {"placeholders": {"hours": {"type": "int"}}},
+  "@exConsultRateLimitedHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
   "exConsultRateLimitedMinutes": "Too many consultation requests. Please try again in {minutes} minutes.",
-  "@exConsultRateLimitedMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "@exConsultRateLimitedMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "exConsultRateLimited": "Too many consultation requests. Please try again later.",
   "exConsultTooManyPendingNoCount": "You have too many consultation requests waiting for a reply. Wait for an answer or cancel one, then try again.",
   "exGymCall": "Call",
@@ -1537,12 +1902,20 @@
   "trainerSyncConsent": "The trainer who enters this code becomes your coach and can see your meals, workouts, and health records.",
   "trainerSyncHint": "Read these six digits out to your trainer.",
   "trainerSyncCountdown": "Expires in {remaining}",
-  "@trainerSyncCountdown": {"placeholders": {"remaining": {"type": "String"}}},
+  "@trainerSyncCountdown": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
   "trainerSyncExpired": "This code has expired.",
   "trainerSyncFailed": "Could not get a code.",
   "trainerSyncRetry": "Get a new code",
   "signUpCreatedSignInNeeded": "Your account was created. Please sign in.",
-  "@signUpCreatedSignInNeeded": {"description": "Sign-up: the account was created but the follow-up sign-in failed (#1926)."},
+  "@signUpCreatedSignInNeeded": {
+    "description": "Sign-up: the account was created but the follow-up sign-in failed (#1926)."
+  },
   "signUpEmailTaken": "That email is already registered. Please sign in.",
   "signUpFailed": "Sign-up failed. Please try again in a moment.",
   "onboardSkip": "Do this later",
@@ -1558,59 +1931,148 @@
   "onboardHealthSubtitle": "Pick what you want to focus on in your health care. (up to 2)",
   "onboardOptionalTag": "(optional)",
   "guideBadgeWithStep": "App guide {current}/{total}",
-  "@guideBadgeWithStep": {"description": "Spotlight guide: the guide label with the current step (#1857).", "placeholders": {"current": {"type": "int"}, "total": {"type": "int"}}},
+  "@guideBadgeWithStep": {
+    "description": "Spotlight guide: the guide label with the current step (#1857).",
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "guideSampleBadge": "Sample screen",
-  "@guideSampleBadge": {"description": "Spotlight guide: the screen under the guide is filled with sample data, not the member's own (#1857)."},
+  "@guideSampleBadge": {
+    "description": "Spotlight guide: the screen under the guide is filled with sample data, not the member's own (#1857)."
+  },
   "guideSkip": "Skip",
-  "@guideSkip": {"description": "Spotlight guide: ends the guide without seeing the rest (#1857)."},
+  "@guideSkip": {
+    "description": "Spotlight guide: ends the guide without seeing the rest (#1857)."
+  },
   "guidePrev": "Back",
-  "@guidePrev": {"description": "Spotlight guide: goes back one step (#1857)."},
+  "@guidePrev": {
+    "description": "Spotlight guide: goes back one step (#1857)."
+  },
   "guideNext": "Next",
-  "@guideNext": {"description": "Spotlight guide: goes to the next step (#1857)."},
+  "@guideNext": {
+    "description": "Spotlight guide: goes to the next step (#1857)."
+  },
   "guideDone": "Done",
-  "@guideDone": {"description": "Spotlight guide: ends the guide on the last step (#1857)."},
+  "@guideDone": {
+    "description": "Spotlight guide: ends the guide on the last step (#1857)."
+  },
   "guideHomeAdviceTitle": "Today's AI summary",
-  "@guideHomeAdviceTitle": {"description": "Spotlight guide step: the home AI advice card (#1857)."},
+  "@guideHomeAdviceTitle": {
+    "description": "Spotlight guide step: the home AI advice card (#1857)."
+  },
   "guideHomeAdviceBody": "It reads your meals and workouts together and points to what to do today",
-  "@guideHomeAdviceBody": {"description": "Spotlight guide step: the home AI advice card (#1857)."},
+  "@guideHomeAdviceBody": {
+    "description": "Spotlight guide step: the home AI advice card (#1857)."
+  },
   "guideQuickAddTitle": "Quick add",
-  "@guideQuickAddTitle": {"description": "Spotlight guide step: the center add button (#1857)."},
+  "@guideQuickAddTitle": {
+    "description": "Spotlight guide step: the center add button (#1857)."
+  },
   "guideQuickAddBody": "The + in the middle adds a meal or a workout from any screen",
-  "@guideQuickAddBody": {"description": "Spotlight guide step: the center add button (#1857)."},
+  "@guideQuickAddBody": {
+    "description": "Spotlight guide step: the center add button (#1857)."
+  },
   "guideDietNutritionTitle": "Nutrition summary",
-  "@guideDietNutritionTitle": {"description": "Spotlight guide step: the diet tab nutrition summary (#1857)."},
+  "@guideDietNutritionTitle": {
+    "description": "Spotlight guide step: the diet tab nutrition summary (#1857)."
+  },
   "guideDietNutritionBody": "Today's calories, macros, sodium and sugar, and how far each is from your goal",
-  "@guideDietNutritionBody": {"description": "Spotlight guide step: the diet tab nutrition summary (#1857)."},
+  "@guideDietNutritionBody": {
+    "description": "Spotlight guide step: the diet tab nutrition summary (#1857)."
+  },
   "guideExerciseStatusTitle": "Workout status",
-  "@guideExerciseStatusTitle": {"description": "Spotlight guide step: the exercise tab weekly status (#1857)."},
+  "@guideExerciseStatusTitle": {
+    "description": "Spotlight guide step: the exercise tab weekly status (#1857)."
+  },
   "guideExerciseStatusBody": "How much you moved today and this week, and how far the goal still is",
-  "@guideExerciseStatusBody": {"description": "Spotlight guide step: the exercise tab weekly status (#1857)."},
+  "@guideExerciseStatusBody": {
+    "description": "Spotlight guide step: the exercise tab weekly status (#1857)."
+  },
   "guideGymTitle": "Your gym and trainer",
-  "@guideGymTitle": {"description": "Spotlight guide step: the exercise tab gym section (#1857)."},
+  "@guideGymTitle": {
+    "description": "Spotlight guide step: the exercise tab gym section (#1857)."
+  },
   "guideGymBody": "The gym and trainer you are connected to — their plans and feedback arrive in the app",
-  "@guideGymBody": {"description": "Spotlight guide step: the exercise tab gym section (#1857)."},
+  "@guideGymBody": {
+    "description": "Spotlight guide step: the exercise tab gym section (#1857)."
+  },
   "guideMySettingsTitle": "Settings",
-  "@guideMySettingsTitle": {"description": "Spotlight guide step: the MY tab profile and settings (#1857)."},
+  "@guideMySettingsTitle": {
+    "description": "Spotlight guide step: the MY tab profile and settings (#1857)."
+  },
   "guideMySettingsBody": "Change your profile, health goals and alerts here — and replay this guide",
-  "@guideMySettingsBody": {"description": "Spotlight guide step: the MY tab profile and settings (#1857)."},
+  "@guideMySettingsBody": {
+    "description": "Spotlight guide step: the MY tab profile and settings (#1857)."
+  },
   "guidePointsTitle": "Points",
-  "@guidePointsTitle": {"description": "Spotlight guide step: the MY tab points card (#1857)."},
+  "@guidePointsTitle": {
+    "description": "Spotlight guide step: the MY tab points card (#1857)."
+  },
   "guidePointsBody": "Every log earns points.\nLog a meal +{diet}P, log a workout +{exercise}P, finish a recommended workout +{routine}P\nSpend them in MY › Use Points",
-  "@guidePointsBody": {"description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).", "placeholders": {"diet": {"type": "int"}, "exercise": {"type": "int"}, "routine": {"type": "int"}}},
+  "@guidePointsBody": {
+    "description": "Spotlight guide step: the MY tab points card; numbers come from the points rules (#1857).",
+    "placeholders": {
+      "diet": {
+        "type": "int"
+      },
+      "exercise": {
+        "type": "int"
+      },
+      "routine": {
+        "type": "int"
+      }
+    }
+  },
   "onboardRequiredTag": "(required)",
-  "@onboardRequiredTag": {"description": "Onboarding step 1: the basic info step must be filled in (#1830)."},
+  "@onboardRequiredTag": {
+    "description": "Onboarding step 1: the basic info step must be filled in (#1830)."
+  },
   "onboardBirthRequired": "Choose your date of birth",
-  "@onboardBirthRequired": {"description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."},
+  "@onboardBirthRequired": {
+    "description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."
+  },
   "onboardGenderRequired": "Choose your gender",
-  "@onboardGenderRequired": {"description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."},
+  "@onboardGenderRequired": {
+    "description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."
+  },
   "onboardHeightRequired": "Enter your height",
-  "@onboardHeightRequired": {"description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."},
+  "@onboardHeightRequired": {
+    "description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."
+  },
   "onboardHeightRange": "Height must be between {min} and {max} cm",
-  "@onboardHeightRange": {"description": "Onboarding step 1: height outside the range the server accepts (#1830).", "placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
+  "@onboardHeightRange": {
+    "description": "Onboarding step 1: height outside the range the server accepts (#1830).",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "onboardWeightRequired": "Enter your weight",
-  "@onboardWeightRequired": {"description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."},
+  "@onboardWeightRequired": {
+    "description": "Onboarding step 1: shown under an empty field after tapping Next (#1830)."
+  },
   "onboardWeightRange": "Weight must be between {min} and {max} kg",
-  "@onboardWeightRange": {"description": "Onboarding step 1: weight outside the range the server accepts (#1830).", "placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
+  "@onboardWeightRange": {
+    "description": "Onboarding step 1: weight outside the range the server accepts (#1830).",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "onboardSkipStep": "Skip this step",
   "onboardBirthLabel": "Date of birth",
   "onboardBirthYearHint": "Year",
@@ -1619,32 +2081,50 @@
   "onboardBirthYearValue": "{year}",
   "@onboardBirthYearValue": {
     "description": "One row of the birth-year dropdown in onboarding step 1.",
-    "placeholders": { "year": { "type": "int" } }
+    "placeholders": {
+      "year": {
+        "type": "int"
+      }
+    }
   },
   "onboardBirthMonthValue": "{month}",
   "@onboardBirthMonthValue": {
     "description": "One row of the birth-month dropdown in onboarding step 1.",
-    "placeholders": { "month": { "type": "int" } }
+    "placeholders": {
+      "month": {
+        "type": "int"
+      }
+    }
   },
   "onboardBirthDayValue": "{day}",
   "@onboardBirthDayValue": {
     "description": "One row of the birth-day dropdown in onboarding step 1.",
-    "placeholders": { "day": { "type": "int" } }
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
   },
   "onboardGenderLabel": "Gender",
   "onboardAgeSummary": "{age} years old",
   "@onboardAgeSummary": {
     "description": "Age chip next to the date-of-birth field in onboarding step 1.",
     "placeholders": {
-      "age": { "type": "int" }
+      "age": {
+        "type": "int"
+      }
     }
   },
   "onboardBmiSummary": "BMI {bmi} · {category}",
   "@onboardBmiSummary": {
     "description": "BMI chip in onboarding step 1: the value and its category.",
     "placeholders": {
-      "bmi": { "type": "String" },
-      "category": { "type": "String" }
+      "bmi": {
+        "type": "String"
+      },
+      "category": {
+        "type": "String"
+      }
     }
   },
   "onboardBmiUnderweight": "Underweight",
@@ -1725,11 +2205,25 @@
   "myGoalsFocusSection": "What you want to focus on",
   "myGoalsFocusHint": "Pick what you want to focus on in your health care. (up to 2)",
   "myGoalsFocusLastChanged": "Last changed by {who} · {date}",
-  "@myGoalsFocusLastChanged": {"description": "MY health goals: who last changed the goal chips and when (#1832).", "placeholders": {"who": {"type": "String"}, "date": {"type": "String"}}},
+  "@myGoalsFocusLastChanged": {
+    "description": "MY health goals: who last changed the goal chips and when (#1832).",
+    "placeholders": {
+      "who": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "myGoalsFocusChangedByTrainer": "your trainer",
-  "@myGoalsFocusChangedByTrainer": {"description": "MY health goals: the goals were last changed by the member's trainer (#1832)."},
+  "@myGoalsFocusChangedByTrainer": {
+    "description": "MY health goals: the goals were last changed by the member's trainer (#1832)."
+  },
   "myGoalsFocusChangedByMe": "you",
-  "@myGoalsFocusChangedByMe": {"description": "MY health goals: the goals were last changed by the member (#1832)."},
+  "@myGoalsFocusChangedByMe": {
+    "description": "MY health goals: the goals were last changed by the member (#1832)."
+  },
   "healthFocusWeightLoss": "Weight loss",
   "@healthFocusWeightLoss": {
     "description": "Health goal chip in onboarding and MY health goals."
@@ -1775,10 +2269,18 @@
   "@myGoalExerciseSuggestionNote": {
     "description": "Explains the suggested exercise goals, adjusted for the picked health goals.",
     "placeholders": {
-      "burn": { "type": "int" },
-      "cardio": { "type": "int" },
-      "strength": { "type": "int" },
-      "flexibility": { "type": "int" }
+      "burn": {
+        "type": "int"
+      },
+      "cardio": {
+        "type": "int"
+      },
+      "strength": {
+        "type": "int"
+      },
+      "flexibility": {
+        "type": "int"
+      }
     }
   },
   "myGoalExerciseApplySuggestion": "Use suggested goals",
@@ -1820,10 +2322,18 @@
       "kcal": {
         "type": "int"
       },
-      "carbs": { "type": "int" },
-      "protein": { "type": "int" },
-      "fat": { "type": "int" },
-      "sugar": { "type": "int" }
+      "carbs": {
+        "type": "int"
+      },
+      "protein": {
+        "type": "int"
+      },
+      "fat": {
+        "type": "int"
+      },
+      "sugar": {
+        "type": "int"
+      }
     }
   },
   "myGoalMacroApplySuggestion": "Use suggested split",
@@ -1844,7 +2354,17 @@
   },
   "myGoalsSaved": "Health goals saved",
   "myGoalRange": "Enter a value between {min} and {max}",
-  "@myGoalRange": {"description": "Health-goal field outside the range the server accepts (#1888). Shared by the MY goals sheet and onboarding steps 3-4.", "placeholders": {"min": {"type": "int"}, "max": {"type": "int"}}},
+  "@myGoalRange": {
+    "description": "Health-goal field outside the range the server accepts (#1888). Shared by the MY goals sheet and onboarding steps 3-4.",
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "@myGoalsSaved": {
     "description": "Shown after health goals are saved."
   },
@@ -1898,7 +2418,9 @@
   },
   "coachRoutineTitle": "Recommended solo workouts",
   "coachRoutineAiTitle": "AI recommended solo workouts",
-  "@coachRoutineAiTitle": {"description": "Card title when the member has no trainer — every line is AI recommended (#2015)."},
+  "@coachRoutineAiTitle": {
+    "description": "Card title when the member has no trainer — every line is AI recommended (#2015)."
+  },
   "@coachRoutineTitle": {
     "description": "Section title in the coaching card."
   },
@@ -1939,14 +2461,22 @@
   "coachRoutineUndo": "Undo",
   "coachRoutineUndoConfirm": "Undo completing '{name}'? It will be removed from your workout log too.",
   "@coachRoutineUndoConfirm": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "coachRoutineUndone": "Completion undone",
   "coachRoutineUndoFailed": "Could not undo the completion.",
   "coachRoutineCancel": "Cancel this workout",
   "coachRoutineCancelConfirm": "Remove '{name}' from the list? Anything you already logged stays.",
   "@coachRoutineCancelConfirm": {
-    "placeholders": { "name": { "type": "String" } }
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "coachCardRoutineUndoTitle": "Undo completion?",
   "@coachCardRoutineUndoTitle": {
@@ -2045,12 +2575,20 @@
   "alertTimeMinutesAgo": "{minutes}m ago",
   "@alertTimeMinutesAgo": {
     "description": "Relative time for a notification under an hour old.",
-    "placeholders": { "minutes": { "type": "int" } }
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
   },
   "alertTimeHoursAgo": "{hours}h ago",
   "@alertTimeHoursAgo": {
     "description": "Relative time for a notification under a day old.",
-    "placeholders": { "hours": { "type": "int" } }
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
   },
   "alertTimeYesterday": "Yesterday",
   "@alertTimeYesterday": {
@@ -2059,7 +2597,11 @@
   "alertTimeDaysAgo": "{days}d ago",
   "@alertTimeDaysAgo": {
     "description": "Relative time for a notification two or more days old.",
-    "placeholders": { "days": { "type": "int" } }
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
   },
   "demoAlertSodiumTitle": "Watch your sodium",
   "@demoAlertSodiumTitle": {
@@ -2136,7 +2678,7 @@
   "@demoAlertMealStreakTitle": {
     "description": "Title of a demo notification shown in tour mode."
   },
-  "demoAlertMealStreakBody": "You've logged your meals every day for over a month.",
+  "demoAlertMealStreakBody": "You've logged your meals every day for over two weeks.",
   "@demoAlertMealStreakBody": {
     "description": "Body of a demo notification shown in tour mode."
   },
@@ -2155,7 +2697,11 @@
   "exPtFeedbackTitle": "Today's feedback",
   "exNextPtSchedule": "Next PT · {when}",
   "@exNextPtSchedule": {
-    "placeholders": { "when": { "type": "String" } }
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
   },
   "exNextPtNone": "No PT scheduled yet",
   "@exPtFeedbackTitle": {
@@ -2177,11 +2723,35 @@
     }
   },
   "a11yChartSummary": "{title}. {detail}",
-  "@a11yChartSummary": {"placeholders": {"title": {"type": "String"}, "detail": {"type": "String"}}},
+  "@a11yChartSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
   "a11yChartEmpty": "{title}. No records yet",
-  "@a11yChartEmpty": {"placeholders": {"title": {"type": "String"}}},
+  "@a11yChartEmpty": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "a11yChartPoint": "{day} {value}",
-  "@a11yChartPoint": {"placeholders": {"day": {"type": "String"}, "value": {"type": "String"}}},
+  "@a11yChartPoint": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "a11yShowPassword": "Show password",
   "a11yHidePassword": "Hide password",
   "a11yOpenCoaching": "Open coaching tips",

@@ -41,9 +41,10 @@ class FakeBenefitsRepository implements BenefitsRepository {
   @override
   Future<CouponExchange> exchange(
     String itemId, {
+    String? option,
     String? clientRequestId,
   }) async {
-    exchanged.add(itemId);
+    exchanged.add(option == null ? itemId : '$itemId:$option');
     final ShopItem item = shop.items.firstWhere((ShopItem i) => i.id == itemId);
     final int balance = shop.balance - item.cost;
     final Coupon coupon = couponOf(

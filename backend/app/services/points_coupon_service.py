@@ -52,6 +52,7 @@ from app.schemas.points_api import (
 )
 from app.services import (
     emote_service,
+    graph_color_service,
     notification_service,
     points_service,
     streak_shield_service,
@@ -129,8 +130,21 @@ STREAK_SHIELD = ShopItem(
     id=streak_shield_service.ITEM_ID,
     title="연속 기록 보호권",
     benefit="운동을 못 한 하루를 연속 기록에 이어 붙이기",
-    description="아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요. 최대 4개까지 가질 수 있어요.",
+    description="아무것도 기록하지 못한 날을 연속 기록에 이어 붙여요. 최근 30일 안에서 쓰고, 최대 4개까지 가질 수 있어요.",
     cost=streak_shield_service.COST,
+    valid_days=0,
+)
+
+#: 그래프 색 바꾸기(#2076) — 쿠폰도 보호권도 아니다. 교환하면 고른 색 하나가 열리고
+#: 기록 그래프가 바로 그 색이 된다. 색마다 카드를 세우지 않고 항목 하나로 두고, 고른
+#: 색은 교환 요청의 `option` 이 싣는다. 기한이 없어 `valid_days` 는 0 이다.
+#: 규칙은 `graph_color_service` 가 들고 있다.
+GRAPH_COLOR = ShopItem(
+    id=graph_color_service.ITEM_ID,
+    title="그래프 색 바꾸기",
+    benefit="기록 그래프를 다른 색으로",
+    description="포인트 화면 기록 그래프의 색을 골라 바꿔요. 한 번 연 색은 계속 쓸 수 있어요.",
+    cost=graph_color_service.COST,
     valid_days=0,
 )
 
@@ -151,6 +165,7 @@ CATALOG: tuple[ShopItem, ...] = (
     PT_RENEWAL,
     LOCKER_MONTH,
     STREAK_SHIELD,
+    GRAPH_COLOR,
     EMOTE_PASS,
 )
 _ITEMS: dict[str, ShopItem] = {item.id: item for item in CATALOG}
@@ -226,11 +241,16 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
         ).all()
     )
     shields_held = streak_shield_service.held_count(db, member_id)
+    # 네 색을 모두 연 회원에게는 그래프 색 항목을 아예 싣지 않는다(#2076) — 더 살 게
+    # 없는 카드를 막힌 채 남겨 두면 목록만 길어진다. 색 바꾸기는 기록 그래프에서 한다.
+    all_colors = graph_color_service.all_unlocked(db, member_id)
     # 이용 중인 이모티콘 이용권이 있으면 또 사지 못한다 — 같은 하루를 두 번 사는
     # 셈이 된다. 남은 시간은 채팅의 고르는 창이 보여 준다(#2020).
     emote_pass_active = emote_service.active_pass(db, member_id) is not None
     items: list[ShopItemOut] = []
     for item in CATALOG:
+        if item.id == GRAPH_COLOR.id and all_colors:
+            continue
         shortfall = max(item.cost - balance, 0)
         blocked: str | None = None
         if item.requires_trainer and not has_trainer:
@@ -300,6 +320,7 @@ def exchange(
     member_id: str,
     item_id: str,
     *,
+    option: str | None = None,
     client_request_id: str | None = None,
 ) -> ExchangeOut:
     """포인트를 써서 쿠폰 한 장을 발급한다. 커밋한다.
@@ -313,12 +334,20 @@ def exchange(
 
     락커 쿠폰은 회원의 헬스장(`GET /me/gym` 과 같은 `member_gyms` 링크) 이름을
     쿠폰에 남긴다.
+
+    [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 지금은 그래프 색(#2076) 하나이고,
+    다른 항목은 보지 않는다.
     """
     from app.services import gym_service, trainer_service
 
     item = _ITEMS.get(item_id)
     if item is None:
         raise UnknownItem("없는 교환 항목이에요.")
+    if item.id == GRAPH_COLOR.id:
+        # 쿠폰이 아니라 그래프 색 하나가 열린다 — 고른 색은 `option` 이 싣는다(#2076).
+        return graph_color_service.exchange(
+            db, member_id, option, client_request_id=client_request_id
+        )
     if item.id == EMOTE_PASS.id:
         # 쿠폰이 아니라 24시간 이용권이 생긴다 — 표도 규칙도 따로다(#2020).
         emote_service.buy(db, member_id, client_request_id=client_request_id)

@@ -36,8 +36,12 @@ class StreakShieldsOut(BaseModel):
 
     `record_streak_days` 는 식단 한 끼든 운동 한 건이든 남긴 날이 이어진 길이다
     (보호한 날 포함). 운동 주간 응답의 `streak_days`(운동만)와 다른 값이다.
-    `protectable_date` 는 지금 보호할 수 있는 날(어제)이고, 보호권이 없거나 어제
-    기록이 있거나 이미 보호했으면 null 이다.
+
+    `protectable_from`·`protectable_to` 는 지금 보호권을 쓸 수 있는 날의 구간
+    (양끝 포함, KST)으로, 어제부터 거슬러 30일이다. 보호권이 없으면 둘 다 null 이다.
+    이 구간 **안이라고 다 보호할 수 있는 것은 아니다** — 기록이 있거나 이미 보호한
+    날은 빠진다. 앱은 날짜별 기록(`GET /me/activity-calendar`)과 이 구간을 겹쳐
+    누를 수 있는 칸을 가리고, 마지막 판정은 사용 요청이 한다.
     """
 
     held: int
@@ -45,7 +49,8 @@ class StreakShieldsOut(BaseModel):
     cost: int
     used: list[StreakShieldUseOut]
     record_streak_days: int = 0
-    protectable_date: str | None = None
+    protectable_from: str | None = None
+    protectable_to: str | None = None
 
 
 class StreakShieldUseRequest(BaseModel):

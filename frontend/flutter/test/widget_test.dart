@@ -11,6 +11,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
+import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/dashboard/data/repositories/mock_dashboard_repository.dart';
 import 'package:oncare/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -32,6 +33,7 @@ import 'package:oncare/shared/services/locale_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 import 'helpers/diet_period_tabs.dart';
+import 'helpers/fake_activity_calendar_repository.dart';
 import 'helpers/fake_diet_repository.dart';
 
 class _CountingMemberCoachRepository extends MockMemberCoachRepository {
@@ -87,6 +89,12 @@ void main() {
           // (Stage 9.6); swap to the in-memory mock here.
           exerciseRepositoryProvider.overrideWithValue(
             MockExerciseRepository() as ExerciseRepository,
+          ),
+          // 기록 그래프(#2075)의 데모 저장소는 식단·색·보호권을 목업 API 에서
+          // 받아 와 dio + drift 가 있어야 답이 온다 — 위 식단 저장소와 같은
+          // 이유로 메모리 대역을 끼운다(없으면 포인트 화면이 계속 기다린다).
+          activityCalendarRepositoryProvider.overrideWithValue(
+            FakeActivityCalendarRepository(),
           ),
           // Dashboard summary defaults to DioDashboardRepository (Stage
           // 9.8); the smoke test only inspects the nav, so the mock is

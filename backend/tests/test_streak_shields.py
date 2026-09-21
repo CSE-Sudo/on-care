@@ -237,7 +237,9 @@ def test_use_joins_yesterday_to_record_streak_only(client, db_session, monkeypat
     # 월·화는 이어졌고 수(어제)가 비어 오늘만 남았다 — 기록 연속은 1.
     assert before["streak_days"] == 2
     assert before_status["record_streak_days"] == 1
-    assert (before_status["held"], before_status["protectable_date"]) == (2, YESTERDAY)
+    # 창은 어제부터 거슬러 30일이다 — 어느 칸이 실제로 비었는지는 달력이 가린다.
+    assert (before_status["held"], before_status["protectable_to"]) == (2, YESTERDAY)
+    assert before_status["protectable_from"] == "2026-08-18"
 
     r = _use(client, h, YESTERDAY)
     assert r.status_code == 200, r.text
@@ -245,7 +247,6 @@ def test_use_joins_yesterday_to_record_streak_only(client, db_session, monkeypat
     assert [u["date"] for u in r.json()["used"]] == [YESTERDAY]
     # 보호권이 이어 붙인 것은 기록 연속뿐이다: 월·화·수(보호)·목.
     assert r.json()["record_streak_days"] == 4
-    assert r.json()["protectable_date"] is None
 
     after = _week(client, h)
     # 운동 탭의 연속은 그대로 2 다 — 보호한 날은 운동한 날이 아니다.
@@ -268,16 +269,27 @@ def test_use_joins_yesterday_to_record_streak_only(client, db_session, monkeypat
     assert [u["date"] for u in status["used"]] == [YESTERDAY]
 
 
-def test_use_only_protects_yesterday_without_record(client, db_session, thursday):
-    _, h = _new_member(client, db_session, points=300)
-    assert _exchange(client, h).status_code == 201
+def test_use_protects_any_empty_day_in_the_window(client, db_session, thursday):
+    """보호할 수 있는 날은 어제부터 거슬러 30일 안의 **빈** 날이다. (#2075)
 
-    for day in (TODAY, TUESDAY, "2026-09-18"):
+    어제 하나만 열어 두면 어제를 놓친 뒤에 산 보호권은 쓸 데가 없다. 대신 창을
+    30일로 묶어, 몇 달 전 기록까지 칠해 연속 숫자가 가벼워지지 않게 한다.
+    """
+    _, h = _new_member(client, db_session, points=900)
+    for _ in range(3):
+        assert _exchange(client, h).status_code == 201
+
+    # 오늘·미래·창보다 오래된 날은 막힌다.
+    for day in (TODAY, "2026-09-18", "2026-08-17"):
         r = _use(client, h, day)
         assert r.status_code == 409, (day, r.text)
 
+    # 창 안이고 비어 있으면 어제가 아니어도 보호한다 — 창의 첫날과 며칠 전.
+    assert _use(client, h, "2026-08-18").status_code == 200
+    assert _use(client, h, "2026-09-10").status_code == 200
+
+    # 기록이 있는 날은 창 안이어도 보호하지 않는다.
     _add_exercise(client, h, YESTERDAY)
-    assert _shields(client, h)["protectable_date"] is None
     r = _use(client, h, YESTERDAY)
     assert r.status_code == 409, r.text
 
@@ -292,7 +304,6 @@ def test_diet_alone_makes_the_day_recorded(client, db_session, thursday):
 
     status = _shields(client, h)
     # 어제는 식단으로 이미 기록한 날이라 보호 대상이 아니다.
-    assert status["protectable_date"] is None
     assert status["record_streak_days"] == 1
     r = _use(client, h, YESTERDAY)
     assert r.status_code == 409, r.text
@@ -307,7 +318,7 @@ def test_monday_protects_last_sunday(client, db_session, monkeypatch):
     _, h = _new_member(client, db_session, points=300)
     assert _exchange(client, h).status_code == 201
 
-    assert _shields(client, h)["protectable_date"] == "2026-09-20"
+    assert _shields(client, h)["protectable_to"] == "2026-09-20"
     r = _use(client, h, "2026-09-20")
     assert r.status_code == 200, r.text
     assert r.json()["held"] == 0
@@ -318,7 +329,9 @@ def test_use_without_shield_is_rejected(client, db_session, thursday):
     _, h = _new_member(client, db_session)
 
     status = _shields(client, h)
-    assert (status["held"], status["protectable_date"]) == (0, None)
+    # 보호권이 없으면 창도 비운다.
+    assert (status["held"], status["protectable_from"]) == (0, None)
+    assert status["protectable_to"] is None
     r = _use(client, h, YESTERDAY)
     assert r.status_code == 409, r.text
     assert _shields(client, h)["used"] == []
@@ -408,7 +421,7 @@ def test_refund_may_exceed_hold_limit(client, db_session, thursday):
 
     # 최대 보유 수는 교환의 규칙이다 — 돌려받아 5개가 되고, 그동안 교환은 막힌다.
     status = _shields(client, h)
-    assert (status["held"], status["protectable_date"]) == (5, None)
+    assert status["held"] == 5
     item = _shop_item(client, h)
     assert (item["available"], item["blocked_reason"]) == (False, "shield_limit")
     assert _exchange(client, h).status_code == 409

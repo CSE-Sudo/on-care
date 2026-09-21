@@ -60,7 +60,7 @@ void main() {
     expect(find.text('연속 기록 보호권'), findsOneWidget);
     expect(find.text('300P'), findsOneWidget);
     expect(
-      find.textContaining('아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요'),
+      find.textContaining('아무것도 기록하지 못한 날을 연속 기록에 이어 붙여요'),
       findsOneWidget,
     );
     expect(find.textContaining('동안 사용'), findsNothing);

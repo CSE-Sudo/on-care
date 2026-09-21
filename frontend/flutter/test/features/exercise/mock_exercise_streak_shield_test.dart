@@ -166,7 +166,9 @@ void main() {
     await expectLater(repo.use(_yesterday), throwsA(isA<ServerError>()));
     final StreakShields status = await repo.fetch();
     expect(status.held, 1);
-    expect(status.protectableDate, isNull);
+    // 창은 보유 수만 본다 — 어제에 기록이 있어도 창은 열려 있고, 그 하루가 빠질
+    // 뿐이다(사용은 위에서 거절당했다).
+    expect(status.protectableTo, _yesterday);
     // 어제 식단이 있어 연속은 최소 하루다.
     expect(status.recordStreakDays, greaterThanOrEqualTo(1));
   });

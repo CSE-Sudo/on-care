@@ -26,8 +26,13 @@ final streakShieldRepositoryProvider = Provider<StreakShieldRepository>((ref) {
   return DioStreakShieldRepository(ref.watch(dioProvider));
 }, name: 'streakShieldRepository');
 
-/// 내 혜택의 보호권 구역 — 보유 수와 보호한 날. 교환·사용 뒤 다시 읽는다.
-final myStreakShieldsProvider = FutureProvider.autoDispose<StreakShields>(
+/// 내 혜택의 보호권 구역 — 보유 수와 보호한 날.
+///
+/// auto-dispose 가 아니다: 데모에서 이 값을 만들려면 기록을 여러 주 거슬러 읽어야
+/// 해서, 화면을 나갔다 들어올 때마다 버리면 그 순회를 매번 다시 한다. 바뀌는
+/// 계기는 정해져 있고(교환·사용·기록 추가·세션 전환) 그때마다 부르는 쪽이
+/// `invalidate` 하므로, 들고 있어도 낡은 값을 보여 주지 않는다.
+final myStreakShieldsProvider = FutureProvider<StreakShields>(
   (ref) => ref.watch(streakShieldRepositoryProvider).fetch(),
   name: 'myStreakShields',
 );

@@ -21,6 +21,7 @@ import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
+import 'package:oncare/core/points/demo_graph_colors.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/points/demo_weekly_challenge.dart';
@@ -67,6 +68,10 @@ class LocalApiInterceptor extends Interceptor {
   final DemoStreakShieldBook? _shieldsArg;
   late final DemoStreakShieldBook _shields =
       _shieldsArg ?? _couponsArg?.shields ?? DemoStreakShieldBook(ledger: _points);
+
+  /// 그래프 색(#2076). 쿠폰 원장이 들고 있는 것을 함께 쓴다 — 사용처에서 연 색이
+  /// 기록 그래프에 바로 보인다.
+  DemoGraphColorBook get _palette => _coupons.grass;
 
   final AppDatabase _db;
   final Logger _logger;
@@ -138,6 +143,9 @@ class LocalApiInterceptor extends Interceptor {
     // 연속 기록 보호권 — 교환은 위 exchange 가 받는다(#1788).
     'GET /me/streak-shields': _streakShields,
     'POST /me/streak-shields/use': _streakShieldUse,
+    // 기록 그래프와 그래프 색 — 색을 여는 교환도 위 exchange 가 받는다(#2075, #2076).
+    'GET /me/activity-calendar': _activityCalendar,
+    'PUT /me/graph-color': _paletteColor,
     // 주간 운동 챌린지 — 서버와 같은 규칙의 목업(#1789).
     'GET /me/challenges/weekly': _challengeWeekly,
     'POST /me/challenges/weekly/join': _challengeJoin,
@@ -2700,6 +2708,7 @@ class LocalApiInterceptor extends Interceptor {
       options,
       _coupons.exchange(
         (body['item'] as String?) ?? '',
+        option: body['option'] as String?,
         clientRequestId: body['client_request_id'] as String?,
       ),
     );
@@ -2796,6 +2805,99 @@ class LocalApiInterceptor extends Interceptor {
       ),
     );
   }
+
+  // ---- 기록 그래프·그래프 색 (#2075, #2076) ----
+  //
+  // 칸의 진하기는 그날 무엇을 남겼는가 세 단계다(없음 / 하나만 / 둘 다). 보호한
+  // 날은 실제 기록이 아니라 `protected` 만 true 다. 연속·보호권 값은 보호권
+  // 조회(`_streakShields`)와 같은 계산을 써서 한 화면의 두 자리가 어긋나지 않게 한다.
+
+  /// 기록 그래프가 한 번에 받는 날 수(53주). 서버
+  /// `activity_calendar_service.MAX_DAYS` 와 같은 값이다.
+  static const int _graphDays = 371;
+
+  Future<Response<Object?>> _activityCalendar(RequestOptions options) async {
+    final DateTime today = _dateOnly(nowKst());
+    final DateTime last = _minDate(
+      _queryDate(options, 'to') ?? today,
+      today,
+    );
+    final DateTime first = _minDate(
+      // 구간을 주지 않으면 오늘로 끝나는 371일(53주)이다 — 앱이 그리는 격자와
+      // 같은 눈금이다. 서버 `activity_calendar_service.MAX_DAYS` 와 같은 값.
+      _queryDate(options, 'from') ??
+          DateTime(last.year, last.month, last.day - (_graphDays - 1)),
+      last,
+    );
+    final Set<String> diet = await _dietDates();
+    final Set<String> exercise = await _exerciseDates();
+    final Set<String> recorded = <String>{...diet, ...exercise};
+    final Map<String, Object?> shields = _shields.statusJson(
+      hasRecordOn: (DateTime day) => recorded.contains(_dateString(day)),
+    );
+    return _ok(options, <String, Object?>{
+      'from_date': _dateString(first),
+      'to_date': _dateString(last),
+      'days': <Map<String, Object?>>[
+        for (
+          DateTime cursor = first;
+          !cursor.isAfter(last);
+          cursor = DateTime(cursor.year, cursor.month, cursor.day + 1)
+        )
+          <String, Object?>{
+            'date': _dateString(cursor),
+            'has_diet': diet.contains(_dateString(cursor)),
+            'has_exercise': exercise.contains(_dateString(cursor)),
+            'protected': _shields.isProtected(cursor),
+          },
+      ],
+      'record_streak_days': shields['record_streak_days'],
+      'shields_held': shields['held'],
+      'protectable_from': shields['protectable_from'],
+      'protectable_to': shields['protectable_to'],
+      'color': _palette.statusJson(),
+    });
+  }
+
+  Future<Response<Object?>> _paletteColor(RequestOptions options) async {
+    final body = _jsonBody(options);
+    return _couponResponse(
+      options,
+      _palette.select((body['color'] as String?) ?? ''),
+    );
+  }
+
+  /// 식단 기록이 있는 날짜(YYYY-MM-DD). 끼니 종류는 보지 않는다.
+  Future<Set<String>> _dietDates() async => <String>{
+    for (final row in await _db.select(_db.dietEntries).get()) row.date,
+  };
+
+  /// 운동 기록(분 > 0)이 있는 날짜(YYYY-MM-DD). 운동은 (주 시작, 요일)로 산다.
+  Future<Set<String>> _exerciseDates() async {
+    final Set<String> days = <String>{};
+    for (final row in await _db.select(_db.exerciseSessions).get()) {
+      if (row.minutes <= 0) continue;
+      final int index = _weekdayLabels.indexOf(row.dayLabel);
+      if (index < 0) continue;
+      final DateTime monday = DateTime.parse(row.weekStart);
+      days.add(
+        _dateString(DateTime(monday.year, monday.month, monday.day + index)),
+      );
+    }
+    return days;
+  }
+
+  /// `?from=`·`?to=` 의 날짜. 없거나 형식이 깨지면 null.
+  DateTime? _queryDate(RequestOptions options, String key) {
+    final Object? raw = options.queryParameters[key];
+    if (raw is! String || !_isDateString(raw)) return null;
+    final DateTime parsed = DateTime.parse(raw);
+    return DateTime(parsed.year, parsed.month, parsed.day);
+  }
+
+  static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  static DateTime _minDate(DateTime a, DateTime b) => a.isAfter(b) ? b : a;
 
   // ---- 주간 운동 챌린지 (#1789) ----
   //

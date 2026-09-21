@@ -1149,7 +1149,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myShopStreakShieldDescription =>
-      '아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요. 최대 4개까지 가질 수 있어요.';
+      '아무것도 기록하지 못한 날을 연속 기록에 이어 붙여요. 최근 30일 안에서 쓰고, 최대 4개까지 가질 수 있어요.';
 
   @override
   String get myBenefitsStreakShields => '연속 기록 보호권';
@@ -1165,13 +1165,127 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get myBenefitsShieldGuide => '아무것도 기록하지 못한 날이 있으면 다음 날 쓸 수 있어요.';
+  String get myBenefitsShieldGuide =>
+      '기록이 빈 날을 기록 그래프에서 눌러 이어 붙여요. 최근 30일 안의 날만 돼요.';
 
   @override
   String get myBenefitsShieldUsedTitle => '보호한 날';
 
   @override
   String get myBenefitsShieldNoneUsed => '아직 보호한 날이 없어요';
+
+  @override
+  String get myShopGraphColorTitle => '그래프 색 바꾸기';
+
+  @override
+  String get myShopGraphColorDescription =>
+      '포인트 화면 기록 그래프의 색을 골라 바꿔요. 한 번 연 색은 계속 쓸 수 있어요.';
+
+  @override
+  String get myGraphTitle => '기록 그래프';
+
+  @override
+  String myGraphMonthLabel(int month) {
+    return '$month월';
+  }
+
+  @override
+  String myGraphStreak(int days) {
+    return '기록 연속 $days일';
+  }
+
+  @override
+  String get myGraphLoadFailed => '기록 그래프를 불러오지 못했어요.';
+
+  @override
+  String myGraphDate(int month, int day) {
+    return '$month월 $day일';
+  }
+
+  @override
+  String get myGraphDayHint => '칸을 누르면 그날 기록이 보여요';
+
+  @override
+  String myGraphDayNone(String date) {
+    return '$date · 기록 없음';
+  }
+
+  @override
+  String myGraphDayDiet(String date) {
+    return '$date · 식단만 기록';
+  }
+
+  @override
+  String myGraphDayExercise(String date) {
+    return '$date · 운동만 기록';
+  }
+
+  @override
+  String myGraphDayBoth(String date) {
+    return '$date · 식단 · 운동 모두 기록';
+  }
+
+  @override
+  String myGraphDayProtected(String date) {
+    return '$date · 보호권으로 이어짐';
+  }
+
+  @override
+  String get myGraphProtectAction => '보호권 쓰기';
+
+  @override
+  String get myGraphProtectConfirmTitle => '보호권을 쓸까요?';
+
+  @override
+  String myGraphProtectConfirmMessage(String date, int held) {
+    return '$date을 기록 연속에 이어 붙여요. 보호권 한 개를 씁니다(남은 보호권 $held개).';
+  }
+
+  @override
+  String get myGraphProtectDone => '연속을 이어 붙였어요';
+
+  @override
+  String get myGraphProtectFailed => '보호권을 쓰지 못했어요';
+
+  @override
+  String get myGraphColorTitle => '그래프 색';
+
+  @override
+  String get myGraphColorPickTitle => '열 색 고르기';
+
+  @override
+  String myGraphColorLocked(String cost) {
+    return '$cost로 열기';
+  }
+
+  @override
+  String get myGraphColorDone => '그래프 색을 바꿨어요';
+
+  @override
+  String myGraphColorExchangeConfirm(String color, String cost) {
+    return '$color 그래프를 $cost로 열까요? 한 번 열면 계속 쓸 수 있어요.';
+  }
+
+  @override
+  String get myGraphColorUnlocked => '그래프 색을 열었어요';
+
+  @override
+  String get myGraphColorFailed => '그래프 색을 바꾸지 못했어요';
+
+  @override
+  String get myGraphColorBlue => '파랑';
+
+  @override
+  String get myGraphColorGreen => '초록';
+
+  @override
+  String get myGraphColorPurple => '보라';
+
+  @override
+  String get myGraphColorOrange => '주황';
+
+  @override
+  String get myGraphColorPink => '분홍';
 
   @override
   String myPointsValidDays(int days) {
@@ -3141,7 +3255,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get demoAlertMealStreakTitle => '식단 기록을 꾸준히 이어가고 있어요';
 
   @override
-  String get demoAlertMealStreakBody => '한 달 넘게 하루도 빠짐없이 식단을 기록하고 있어요.';
+  String get demoAlertMealStreakBody => '보름 넘게 하루도 빠짐없이 식단을 기록하고 있어요.';
 
   @override
   String get demoAlertMaintenanceTitle => '서비스 점검 안내';

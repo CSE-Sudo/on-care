@@ -251,6 +251,7 @@ def test_shop_lists_items_with_block_reasons(client, db_session, trainer_id, gym
         "pt_renewal",
         "locker_month",
         "streak_shield",
+        "graph_color",
         "emote_pass_24h",
     ]
     renewal, locker = body["items"][:2]
@@ -291,12 +292,13 @@ def test_catalog_is_gym_benefits_only(client, db_session):
     member_id, h = _new_member(client, db_session, points=30000)
 
     items = client.get("/v1/me/points/shop", headers=h).json()["items"]
-    # 사용처는 헬스장 혜택 두 장과 연속 기록 보호권(#1788), 채팅 이모티콘 24시간
-    # 이용권(#2020)이다. 카탈로그 밖 항목은 교환하면 404 다.
+    # 사용처는 헬스장 혜택 두 장과 연속 기록 보호권(#1788), 그래프 색 바꾸기(#2076),
+    # 채팅 이모티콘 24시간 이용권(#2020)이다. 카탈로그 밖 항목은 교환하면 404 다.
     assert [i["id"] for i in items] == [
         "pt_renewal",
         "locker_month",
         "streak_shield",
+        "graph_color",
         "emote_pass_24h",
     ]
     assert _exchange(client, h, "unknown_item").status_code == 404

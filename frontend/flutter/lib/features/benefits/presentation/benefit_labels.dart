@@ -12,13 +12,18 @@ import 'package:oncare/gen/l10n/app_localizations.dart';
 const String kPtRenewalItem = 'pt_renewal';
 const String kLockerMonthItem = 'locker_month';
 
-/// 연속 기록 보호권(#1788) — 쿠폰이 아니라 운동 현황에서 쓴다.
+/// 연속 기록 보호권(#1788) — 쿠폰이 아니라 포인트 화면 기록 그래프에서 쓴다(#2075).
 const String kStreakShieldItem = 'streak_shield';
+
+/// 그래프 색 바꾸기(#2076) — 쿠폰이 아니라 그래프 색 하나를 연다. 교환 전에 어느 색을
+/// 열지 고르는 단계가 하나 더 있다.
+const String kGraphColorItem = 'graph_color';
 
 String shopItemTitle(AppLocalizations l, ShopItem item) => switch (item.id) {
   kPtRenewalItem => l.myShopPtRenewalTitle,
   kLockerMonthItem => l.myShopLockerTitle,
   kStreakShieldItem => l.myShopStreakShieldTitle,
+  kGraphColorItem => l.myShopGraphColorTitle,
   _ => item.title,
 };
 
@@ -27,6 +32,7 @@ String shopItemDescription(AppLocalizations l, ShopItem item) =>
       kPtRenewalItem => l.myShopPtRenewalDescription,
       kLockerMonthItem => l.myShopLockerDescription,
       kStreakShieldItem => l.myShopStreakShieldDescription,
+      kGraphColorItem => l.myShopGraphColorDescription,
       _ => item.description,
     };
 
@@ -46,6 +52,17 @@ String? shopBlockLabel(AppLocalizations l, ShopItem item) {
   };
 }
 
+/// 그래프 색 이름 — 팔레트와 색 고르기 시트가 쓴다(#2076). 앱이 모르는 색이 오면
+/// 서버가 준 이름을 그대로 적는다(빈 칸이 되지 않게).
+String graphColorName(AppLocalizations l, String color) => switch (color) {
+  'blue' => l.myGraphColorBlue,
+  'green' => l.myGraphColorGreen,
+  'purple' => l.myGraphColorPurple,
+  'orange' => l.myGraphColorOrange,
+  'pink' => l.myGraphColorPink,
+  _ => color,
+};
+
 /// 쿠폰의 혜택 한 줄.
 String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) {
   kPtRenewalItem => l.myCouponPtRenewalBenefit,
@@ -57,6 +74,7 @@ IconData benefitIcon(String itemId) => switch (itemId) {
   kPtRenewalItem => AppIcons.ptRenewal,
   kLockerMonthItem => AppIcons.locker,
   kStreakShieldItem => AppIcons.streakShield,
+  kGraphColorItem => AppIcons.palette,
   _ => AppIcons.coupon,
 };
 

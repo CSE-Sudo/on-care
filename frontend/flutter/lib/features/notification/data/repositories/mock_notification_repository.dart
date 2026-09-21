@@ -95,7 +95,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
   AlertItem(
     id: 'a9',
     title: '식단 기록을 꾸준히 이어가고 있어요',
-    body: '한 달 넘게 하루도 빠짐없이 식단을 기록하고 있어요.',
+    body: '보름 넘게 하루도 빠짐없이 식단을 기록하고 있어요.',
     timeAgo: '어제',
     messageKey: kDemoAlertMealStreak,
     age: Duration(hours: 26),
