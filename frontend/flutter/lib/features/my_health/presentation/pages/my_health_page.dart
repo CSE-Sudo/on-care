@@ -90,6 +90,12 @@ class MyHealthPage extends ConsumerWidget {
     final AsyncValue<MyHealthState> health = ref.watch(myHealthStateProvider);
     final bool bellHasUnread =
         (ref.watch(notificationUnreadProvider).valueOrNull ?? 0) > 0;
+    // 포인트 카드를 회원이 고른 그래프 색으로 칠한다(#2076). 색은 기록 그래프
+    // 응답에 실려 온다 — 색만 읽는 경로가 따로 없다. 그 값은 auto-dispose 가
+    // 아니라 세션에 한 번만 읽고, 사용처 화면이 어차피 같은 값을 쓰므로 여기서
+    // 먼저 읽어도 요청이 늘지 않는다. 읽기 전에는 기본 색(회원앱 파랑)이다.
+    final String? graphColor =
+        ref.watch(activityCalendarProvider).valueOrNull?.color.current;
     return AppPage(
       // MainShell 은 `extendBody` 라 이 화면의 아래 여백(padding.bottom)에 하단
       // 내비 높이가 이미 들어 있다. 마지막 항목이 내비 뒤에 숨지 않게 그만큼 띄운다.
@@ -111,7 +117,10 @@ class MyHealthPage extends ConsumerWidget {
         const SizedBox(height: OnCareSpacing.sectionGap),
         KeyedSubtree(
           key: pointsAnchorKey,
-          child: _PointsCard(points: health.valueOrNull?.activityPoints),
+          child: _PointsCard(
+            points: health.valueOrNull?.activityPoints,
+            graphColor: graphColor,
+          ),
         ),
         const SizedBox(height: OnCareSpacing.sectionGap),
         KeyedSubtree(
@@ -358,10 +367,18 @@ class _TrainerSyncRow extends ConsumerWidget {
 /// 잔액이 마지막으로 보인 값보다 오르면 숫자가 그 값에서 올라가고 별이 톡
 /// 튄다(#1786). 처음 읽을 때는 움직이지 않는다 — 오른 것이 아니라 처음 보는
 /// 값이다. 줄면(기록 삭제로 회수) 그대로 바꾼다.
+///
+/// 카드 채움은 회원이 산 기록 그래프 색을 따른다(#2076). 그래프는 사용처 화면을
+/// 열어야 보이지만 이 카드는 MY 탭을 열 때마다 보이므로, 산 색이 값을 하는 자리가
+/// 여기다. 기본 색(`blue`)의 진한 단계가 곧 지금까지의 카드 색이라 아무 색도 사지
+/// 않은 회원에게는 달라지는 것이 없다.
 class _PointsCard extends StatefulWidget {
-  const _PointsCard({required this.points});
+  const _PointsCard({required this.points, this.graphColor});
 
   final int? points;
+
+  /// 회원이 고른 기록 그래프 색 이름. null 이면(아직 읽기 전) 기본 색이다.
+  final String? graphColor;
 
   @override
   State<_PointsCard> createState() => _PointsCardState();
@@ -470,7 +487,7 @@ class _PointsCardState extends State<_PointsCard>
       button: true,
       child: AppCard(
         key: const Key('pointsBanner'),
-        backgroundColor: tokens.brand.pointsCard,
+        backgroundColor: OnCareRecordColors.rampOf(widget.graphColor).full,
         onTap: () => _openPointsBenefitsPage(context, points),
         child: Row(
           children: <Widget>[

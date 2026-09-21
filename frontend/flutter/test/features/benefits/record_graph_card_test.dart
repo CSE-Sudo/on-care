@@ -66,6 +66,9 @@ BoxDecoration _cellBox(WidgetTester tester, DateTime day) =>
 
 Color _cellColor(WidgetTester tester, DateTime day) => _cellBox(tester, day).color!;
 
+AppTag _streakTag(WidgetTester tester) =>
+    tester.widget<AppTag>(find.byKey(const Key('recordGraphStreak')));
+
 String _dayLine(WidgetTester tester) =>
     tester.widget<Text>(find.byKey(const Key('recordGraphDayLine'))).data!;
 
@@ -169,6 +172,41 @@ void main() {
     expect(find.text('기록 연속 12일'), findsOneWidget);
     expect(find.text('없음'), findsNothing);
     expect(find.text('둘 다'), findsNothing);
+  });
+
+  testWidgets('기록 연속 태그도 고른 색을 따른다', (tester) async {
+    await pump(
+      tester,
+      _graph(
+        streak: 12,
+        color: const GraphColorState(
+          current: 'pink',
+          unlocked: <String>['blue', 'pink'],
+          palette: <String>['blue', 'green', 'purple', 'orange', 'pink'],
+          cost: 150,
+        ),
+      ),
+    );
+
+    expect(_streakTag(tester).accent, OnCareRecordColors.pink.full);
+  });
+
+  testWidgets('연속이 끊긴 0일 태그는 색을 따르지 않는다', (tester) async {
+    await pump(
+      tester,
+      _graph(
+        color: const GraphColorState(
+          current: 'pink',
+          unlocked: <String>['blue', 'pink'],
+          palette: <String>['blue', 'green', 'purple', 'orange', 'pink'],
+          cost: 150,
+        ),
+      ),
+    );
+
+    final AppTag tag = _streakTag(tester);
+    expect(tag.accent, isNull);
+    expect(tag.tone, AppTagTone.neutral);
   });
 
   testWidgets('보호한 날 칸에는 방패와 테두리가 함께 선다', (tester) async {

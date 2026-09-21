@@ -117,6 +117,11 @@ class _RecordGraphCardState extends State<RecordGraphCard> {
                 tone: calendar.recordStreakDays > 0
                     ? AppTagTone.brand
                     : AppTagTone.neutral,
+                // 연속이 이어지는 동안에는 고른 색을 따른다(#2076) — 같은 카드
+                // 안에서 칸은 분홍인데 이 태그만 파랑이면 색을 바꾼 것이 아니라
+                // 한 자리를 빠뜨린 것으로 보인다. 연속이 끊긴 0 일은 회색 그대로
+                // 둔다: 그때 이 태그가 말하는 것은 색이 아니라 "끊겼다" 다.
+                accent: calendar.recordStreakDays > 0 ? ramp.full : null,
               ),
               if (widget.onChangeColor != null) ...<Widget>[
                 const SizedBox(width: OnCareSpacing.s4),
