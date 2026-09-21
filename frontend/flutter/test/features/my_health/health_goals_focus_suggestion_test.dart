@@ -32,6 +32,9 @@ Future<void> _open(WidgetTester tester, UserProfile profile) async {
     ),
   );
   await tester.pumpAndSettle();
+  // 건강 목표는 보기 모드로 열린다 — 연필을 눌러야 칸이 열린다(#2132).
+  await tester.tap(find.byKey(const Key('goalsEditButton')));
+  await tester.pumpAndSettle();
 }
 
 Finder _field(String key) =>

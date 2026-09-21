@@ -5478,6 +5478,12 @@ abstract class AppLocalizations {
   /// **'Weekly calories burned goal (kcal)'**
   String get myGoalWorkoutCalories;
 
+  /// Footnote under a read-only health-goal card that has fields the member has never set.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimmed numbers are recommendations for goals you haven\'t set yet'**
+  String get myGoalUnsetHint;
+
   /// Shown after health goals are saved.
   ///
   /// In en, this message translates to:

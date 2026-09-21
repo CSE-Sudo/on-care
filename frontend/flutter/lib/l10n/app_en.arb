@@ -2355,6 +2355,10 @@
   "@myGoalWorkoutCalories": {
     "description": "Health goal field label."
   },
+  "myGoalUnsetHint": "Dimmed numbers are recommendations for goals you haven't set yet",
+  "@myGoalUnsetHint": {
+    "description": "Footnote under a read-only health-goal card that has fields the member has never set."
+  },
   "myGoalsSaved": "Health goals saved",
   "myGoalRange": "Enter a value between {min} and {max}",
   "@myGoalRange": {

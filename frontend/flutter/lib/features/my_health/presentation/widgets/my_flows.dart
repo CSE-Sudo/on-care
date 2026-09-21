@@ -616,53 +616,28 @@ class _GoalsForm extends ConsumerStatefulWidget {
 }
 
 class _GoalsFormState extends ConsumerState<_GoalsForm> {
-  late final TextEditingController _kcal = _ctl(
-    widget.initial.dailyCalories,
-    UserProfile.defaultDailyCalories,
-  );
-  late final TextEditingController _sodium = _ctl(
-    widget.initial.dailySodiumMg,
-    UserProfile.defaultDailySodiumMg,
-  );
-  late final TextEditingController _sugar = _ctl(
-    widget.initial.dailySugarG,
-    UserProfile.defaultDailySugarG,
-  );
-  late final TextEditingController _carbs = _ctl(
-    widget.initial.dailyCarbsG,
-    UserProfile.defaultDailyCarbsG,
-  );
-  late final TextEditingController _protein = _ctl(
-    widget.initial.dailyProteinG,
-    UserProfile.defaultDailyProteinG,
-  );
-  late final TextEditingController _fat = _ctl(
-    widget.initial.dailyFatG,
-    UserProfile.defaultDailyFatG,
-  );
+  final TextEditingController _kcal = TextEditingController();
+  final TextEditingController _sodium = TextEditingController();
+  final TextEditingController _sugar = TextEditingController();
+  final TextEditingController _carbs = TextEditingController();
+  final TextEditingController _protein = TextEditingController();
+  final TextEditingController _fat = TextEditingController();
   // 운동 목표는 운동 탭이 견주는 축과 같다 (#1139) — 소모는 하루, 유형별은
   // 한 주다. 주간 운동 횟수·시간은 어느 화면도 쓰지 않아 뺐다.
-  late final TextEditingController _burn = _ctl(
-    widget.initial.dailyBurnKcal,
-    kDefaultExerciseLoadGoals.dailyBurnKcal.round(),
-  );
-  late final TextEditingController _cardio = _ctl(
-    widget.initial.weeklyCardioMinutes,
-    kDefaultExerciseLoadGoals.weeklyCardioMinutes.round(),
-  );
-  late final TextEditingController _strength = _ctl(
-    widget.initial.weeklyStrengthSets,
-    kDefaultExerciseLoadGoals.weeklyStrengthSets.round(),
-  );
-  late final TextEditingController _flexibility = _ctl(
-    widget.initial.weeklyFlexibilityMinutes,
-    kDefaultExerciseLoadGoals.weeklyFlexibilityMinutes.round(),
-  );
+  final TextEditingController _burn = TextEditingController();
+  final TextEditingController _cardio = TextEditingController();
+  final TextEditingController _strength = TextEditingController();
+  final TextEditingController _flexibility = TextEditingController();
   bool _saving = false;
+
+  /// 지금 고치는 중인가. 들어오면 보기 모드이고, 연필을 눌러야 칸이 열린다 —
+  /// 내 프로필·식단 끼니 상세와 같다(#2132). 목표는 트레이너도 함께 고치는
+  /// 값이라, 열어 본 김에 손이 스친 값이 그대로 저장되지 않게 한 단계 둔다.
+  bool _editing = false;
 
   /// 주로 관리하고 싶은 항목. 진단·치료 중인 질환을 단정하는 값이 아니라
   /// **어디에 초점을 둘지**다(#1471). 온보딩이 저장한 값을 그대로 이어받는다.
-  late final Set<String> _focus = parseHealthFocus(widget.initial.conditions);
+  late Set<String> _focus = parseHealthFocus(widget.initial.conditions);
 
   // 목표 칸을 가리키는 이름. 어느 칸이 '아직 회원이 세운 적 없는 칸' 인지
   // 기억하는 열쇠다.
@@ -683,7 +658,9 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   /// 저장할 때 `null` 로 나간다 — 열어 보고 저장만 했다는 이유로 기본값이 진짜
   /// 목표로 굳지 않는다(PR #900 리뷰의 계약). 회원이 그 칸을 한 번이라도
   /// 고치면 여기서 빠지고, 그때부터는 적힌 값이 그대로 저장된다.
-  late final Set<String> _prefilled = <String>{
+  late Set<String> _prefilled = _prefilledKeys();
+
+  Set<String> _prefilledKeys() => <String>{
     if (widget.initial.dailyCalories == null) _kKcal,
     if (widget.initial.dailySodiumMg == null) _kSodium,
     if (widget.initial.dailySugarG == null) _kSugar,
@@ -714,9 +691,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
 
   /// 칸 아래 오류 문구. 저장을 누르기 전에는 숨기고, 오류를 보인 칸은 고치는
   /// 대로 다시 검사한다 — 프로필 모달과 같은 방식이다(#1883).
-  late final AppFieldErrors<String> _errors = AppFieldErrors<String>(
-    _rangeError,
-  );
+  late AppFieldErrors<String> _errors = AppFieldErrors<String>(_rangeError);
 
   /// 그 칸의 지금 값이 범위를 벗어났는가.
   ///
@@ -751,6 +726,138 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     if (_errors.isWatching) setState(() {});
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _fillControllers();
+  }
+
+  /// 칸에 저장된 목표를 담고, **없으면 권장 기본값을 채운다.**
+  ///
+  /// 한동안은 빈 칸으로 뒀다. `null` 은 *미설정 또는 목표 해제*라는 계약을
+  /// 지키려던 것인데(PR #900 리뷰), 화면에서는 식단 여섯 칸만 까맣게 차고 운동
+  /// 네 칸은 옅은 회색 자리표시로 남아 — 같은 시트의 위아래가 서로 다른 상태로
+  /// 읽혔다. 회원이 보기에 운동 목표는 "없는 것" 이었다.
+  ///
+  /// 채워 넣는 값은 이 화면이 이미 각주로 `권장` 이라 말하던 그 값이고, 온보딩이
+  /// 처음부터 저장해 두는 값과도 같다. 곧, 비어 보이던 자리에 원래 쓰이던
+  /// 기준선을 그대로 드러낸 것이다.
+  void _fillControllers() {
+    for (final String key in _ranges.keys) {
+      _controllerFor(key).text = '${_savedValue(key) ?? _fallbackValue(key)}';
+    }
+  }
+
+  /// 연필을 눌렀다 — 칸을 지금 저장된 목표로 되감고 연다.
+  ///
+  /// 되감는 이유는 취소한 뒤 다시 들어왔을 때다. 화면을 떠나지 않으므로
+  /// 컨트롤러에는 지난번에 고치다 만 값이 남아 있다 — 내 프로필과 같다.
+  void _beginEdit() {
+    _fillControllers();
+    _focus = parseHealthFocus(widget.initial.conditions);
+    _prefilled = _prefilledKeys();
+    _errors = AppFieldErrors<String>(_rangeError);
+    setState(() {
+      _kcalFromMacros = false;
+      _editing = true;
+    });
+  }
+
+  void _cancelEdit() {
+    FocusScope.of(context).unfocus();
+    setState(() => _editing = false);
+  }
+
+  /// 보기와 수정이 같은 라벨·값 자리를 쓴다 — 내 프로필과 같은 모양이다.
+  ///
+  /// 아직 세운 적 없는 칸은 권장값이 적혀 있을 뿐이다. 칸마다 `(권장)` 을 달면
+  /// 운동 카드처럼 네 칸이 모두 비어 있는 자리에서 같은 말이 네 번 되풀이돼,
+  /// 숫자보다 꼬리표가 먼저 읽힌다. 그래서 숫자는 흐리게만 두고 왜 흐린지는
+  /// 카드가 한 줄로 말한다([_unsetHint]).
+  Widget _goalField(String key, String label, Widget editor) {
+    if (_editing) return editor;
+    // 칸이 아니라 **저장된 목표**를 읽는다. 컨트롤러에는 고치다 취소한 값이
+    // 남아 있을 수 있는데, 보기 모드가 그것을 보여 주면 버린 값이 저장된 것처럼
+    // 읽힌다. 같은 이유로 세웠는지 여부도 지금 프로필에서 다시 센다.
+    final int? saved = _savedValue(key);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(label, style: context.oncare.text(OnCareTypography.label)),
+        const SizedBox(height: OnCareSpacing.s8),
+        ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: context.oncare.density.inputMedium,
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${saved ?? _fallbackValue(key)}',
+              key: Key('goalValue-$key'),
+              style: context.oncare
+                  .text(OnCareTypography.body)
+                  .copyWith(
+                    color: saved == null
+                        ? OnCareColors.textTertiary
+                        : OnCareColors.textPrimary,
+                  ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 흐린 숫자가 무엇인지 말하는 카드 각주.
+  ///
+  /// 그 카드에 세운 적 없는 칸이 하나라도 있을 때만 선다 — 흐린 숫자가 없는
+  /// 카드에 붙으면 가리킬 대상이 없는 문장이 된다.
+  Widget _unsetHint(List<String> keys) {
+    if (_editing || keys.every((String key) => _savedValue(key) != null)) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      key: const Key('goalUnsetHint'),
+      padding: const EdgeInsets.only(top: OnCareSpacing.s12),
+      child: Text(
+        AppLocalizations.of(context).myGoalUnsetHint,
+        style: context.oncare
+            .text(OnCareTypography.caption)
+            .copyWith(color: OnCareColors.textTertiary),
+      ),
+    );
+  }
+
+  /// 서버에 저장돼 있는 목표. `null` 이면 세운 적 없는 칸이다.
+  int? _savedValue(String key) => switch (key) {
+    _kKcal => widget.initial.dailyCalories,
+    _kSodium => widget.initial.dailySodiumMg,
+    _kSugar => widget.initial.dailySugarG,
+    _kCarbs => widget.initial.dailyCarbsG,
+    _kProtein => widget.initial.dailyProteinG,
+    _kFat => widget.initial.dailyFatG,
+    _kBurn => widget.initial.dailyBurnKcal,
+    _kCardio => widget.initial.weeklyCardioMinutes,
+    _kStrength => widget.initial.weeklyStrengthSets,
+    _kFlexibility => widget.initial.weeklyFlexibilityMinutes,
+    _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
+  };
+
+  /// 세운 적 없는 칸을 채워 두는 권장값. 칸이 열릴 때 적히는 값과 같다.
+  int _fallbackValue(String key) => switch (key) {
+    _kKcal => UserProfile.defaultDailyCalories,
+    _kSodium => UserProfile.defaultDailySodiumMg,
+    _kSugar => UserProfile.defaultDailySugarG,
+    _kCarbs => UserProfile.defaultDailyCarbsG,
+    _kProtein => UserProfile.defaultDailyProteinG,
+    _kFat => UserProfile.defaultDailyFatG,
+    _kBurn => kDefaultExerciseLoadGoals.dailyBurnKcal.round(),
+    _kCardio => kDefaultExerciseLoadGoals.weeklyCardioMinutes.round(),
+    _kStrength => kDefaultExerciseLoadGoals.weeklyStrengthSets.round(),
+    _kFlexibility => kDefaultExerciseLoadGoals.weeklyFlexibilityMinutes.round(),
+    _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
+  };
+
   /// 저장할 값. 아직 손대지 않은 권장값 칸은 `null` — 곧 '목표 없음' 이다.
   int? _valueToSave(String key, TextEditingController c) =>
       _prefilled.contains(key) ? null : _val(c);
@@ -761,19 +868,6 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
   /// 화면을 열자마자는 `false` 다 — 저장된 목표를 그대로 보여 줘야 하고,
   /// 들어온 것만으로 값이 달라지면 안 된다.
   bool _kcalFromMacros = false;
-
-  /// 저장된 값을 담고, **없으면 권장 기본값을 채운다.**
-  ///
-  /// 한동안은 빈 칸으로 뒀다. `null` 은 *미설정 또는 목표 해제*라는 계약을
-  /// 지키려던 것인데(PR #900 리뷰), 화면에서는 식단 여섯 칸만 까맣게 차고 운동
-  /// 네 칸은 옅은 회색 자리표시로 남아 — 같은 시트의 위아래가 서로 다른 상태로
-  /// 읽혔다. 회원이 보기에 운동 목표는 "없는 것" 이었다.
-  ///
-  /// 채워 넣는 값은 이 화면이 이미 각주로 `권장` 이라 말하던 그 값이고, 온보딩이
-  /// 처음부터 저장해 두는 값과도 같다. 곧, 비어 보이던 자리에 원래 쓰이던
-  /// 기준선을 그대로 드러낸 것이다.
-  static TextEditingController _ctl(int? value, int fallback) =>
-      TextEditingController(text: '${value ?? fallback}');
 
   /// 지금 고른 건강 목표로 낸 권장값(#1816). 온보딩과 **같은 계산**이다 — 전에는
   /// 이 화면만 따로 탄 50 · 단 30 · 지 20 으로 나눠, 온보딩에서 받은 권장값과
@@ -905,7 +999,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       setState(() {});
       return;
     }
-    final NavigatorState navigator = Navigator.of(context);
+    FocusScope.of(context).unfocus();
     final AppToastHost toast = AppToastHost.of(context);
     setState(() => _saving = true);
     try {
@@ -933,8 +1027,13 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
       if (!mounted) return;
       ref.read(profileProvider.notifier).applyUpdatedProfile(updatedProfile);
       ref.invalidate(dashboardSummaryProvider);
-      navigator.pop();
-      // 시트를 닫은 **뒤에** 뜨는 알림이라 손잡이를 미리 잡아 두고 쓴다.
+      // 저장해도 화면을 닫지 않고 보기 모드로 돌아온다 — 내 프로필과 같다
+      // (#2132). 방금 저장한 목표가 화면에 그대로 남아, 무엇이 저장됐는지
+      // 돌아간 화면에서 다시 찾지 않아도 된다.
+      setState(() {
+        _saving = false;
+        _editing = false;
+      });
       // 예전에는 이 자리만 위쪽 배너로 따로 떠 있었다 — 닫기 버튼을 눌러야
       // 사라지는 배너였다(#1259). 지금은 다른 화면과 같은 토스트로 알린다.
       toast.show(l.myGoalsSaved, type: AppToastType.success);
@@ -954,241 +1053,347 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     // 만질 때마다 사라진다.
     final split = _suggestedSplit;
     final RecommendedGoals exercise = _exerciseSuggestion;
-    final Widget footer = _saveRow(
-      context: context,
-      saving: _saving,
-      onSave: _save,
-    );
-    return _formShell(context, l.myHealthGoalsTitle, footer, <Widget>[
-      // 순서: 관리 초점 → 자유 입력 운동 목표 → 수치형 운동 목표 → 식단 목표
-      // (#1471). 온보딩 2단계가 묻는 것과 같은 순서라, 두 화면이 같은 이야기를
-      // 같은 차례로 한다.
-      AppSectionHeader(title: l.myGoalsFocusSection),
-      const SizedBox(height: OnCareSpacing.s8),
-      _card(<Widget>[
-        Text(
-          l.myGoalsFocusHint,
-          style: context.oncare
-              .text(OnCareTypography.bodySmall)
-              .copyWith(color: OnCareColors.textSecondary),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        Wrap(
-          spacing: OnCareSpacing.s8,
-          runSpacing: OnCareSpacing.s8,
-          children: <Widget>[
-            // 온보딩 2단계와 같은 목록·같은 순서다(#1814).
-            for (final String option in kHealthFocusOptions)
-              AppChoiceChip(
-                key: ValueKey<String>('goal-focus-$option'),
-                label: healthFocusLabel(l, option),
-                selected: _focus.contains(option),
-                // 두 개를 고르면 나머지 칩은 잠긴다 — 온보딩과 같다(#1814).
-                onSelected: canPickHealthFocus(_focus, option)
-                    ? (_) => setState(() {
-                        if (!_focus.remove(option)) _focus.add(option);
-                      })
-                    : null,
-              ),
-          ],
-        ),
-        // 담당 트레이너도 같은 목표를 고친다 — 누가 언제 바꿨는지 칩 아래에
-        // 남긴다(#1832).
-        if (focusLastChangedLabel(
-              l,
-              widget.initial,
-              locale: Localizations.localeOf(context).toString(),
-            )
-            case final String changed) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s12),
-          Text(
-            changed,
-            key: const Key('goalFocusLastChanged'),
-            style: context.oncare
-                .text(OnCareTypography.caption)
-                .copyWith(color: OnCareColors.textTertiary),
-          ),
-        ],
-      ]),
-      const SizedBox(height: OnCareSpacing.s20),
-      AppSectionHeader(title: l.myGoalsExerciseSection),
-      const SizedBox(height: OnCareSpacing.s8),
-      _card(<Widget>[
-        AppTextField(
-          key: const Key('goalDailyBurnField'),
-          label: l.myGoalBurnDaily,
-          controller: _burn,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: '${exercise.dailyBurnKcal}',
-          errorText: _errors.of(_kBurn),
-          onChanged: (_) => _onGoalEdited(_kBurn),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const Key('goalCardioField'),
-          label: l.myGoalCardioWeekly,
-          controller: _cardio,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: '${exercise.weeklyCardioMinutes}',
-          errorText: _errors.of(_kCardio),
-          onChanged: (_) => _onGoalEdited(_kCardio),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const Key('goalStrengthField'),
-          label: l.myGoalStrengthWeekly,
-          controller: _strength,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: '${exercise.weeklyStrengthSets}',
-          errorText: _errors.of(_kStrength),
-          onChanged: (_) => _onGoalEdited(_kStrength),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const Key('goalFlexibilityField'),
-          label: l.myGoalFlexibilityWeekly,
-          controller: _flexibility,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: '${exercise.weeklyFlexibilityMinutes}',
-          errorText: _errors.of(_kFlexibility),
-          onChanged: (_) => _onGoalEdited(_kFlexibility),
-        ),
-        // 식단 목표의 `권장 비율로 채우기` 와 같은 자리·같은 모양이다 (#1139).
-        // 권장값은 WHO 권고(주 150분 중강도 유산소)에서 시작해 고른 건강 목표로
-        // 조정한다 — 온보딩 4단계와 같은 계산이다(#1816).
-        const SizedBox(height: OnCareSpacing.s12),
-        _MacroSuggestionRow(
-          buttonKey: const Key('goalApplyExerciseGoals'),
-          note: l.myGoalExerciseSuggestionNote(
-            exercise.dailyBurnKcal,
-            exercise.weeklyCardioMinutes,
-            exercise.weeklyStrengthSets,
-            exercise.weeklyFlexibilityMinutes,
-          ),
-          actionLabel: l.myGoalExerciseApplySuggestion,
-          onApply: _applySuggestedExerciseGoals,
-        ),
-      ]),
-      const SizedBox(height: OnCareSpacing.s20),
-      AppSectionHeader(title: l.myGoalsDietSection),
-      const SizedBox(height: OnCareSpacing.s8),
-      _card(<Widget>[
-        AppTextField(
-          key: const Key('goalCaloriesField'),
-          label: l.myGoalCalories,
-          controller: _kcal,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: '${UserProfile.defaultDailyCalories}',
-          helper: _kcalFromMacros ? l.myGoalCaloriesFromMacros : null,
-          errorText: _errors.of(_kKcal),
-          // 회원이 직접 고친 순간부터는 계산된 값이 아니다.
-          onChanged: (_) => setState(() {
-            _kcalFromMacros = false;
-            _markTouched(_kKcal);
-          }),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const Key('goalSodiumField'),
-          label: l.myGoalSodium,
-          controller: _sodium,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: '${UserProfile.defaultDailySodiumMg}',
-          errorText: _errors.of(_kSodium),
-          onChanged: (_) => _onGoalEdited(_kSodium),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const Key('goalSugarField'),
-          label: l.myGoalSugar,
-          controller: _sugar,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: '${UserProfile.defaultDailySugarG}',
-          errorText: _errors.of(_kSugar),
-          onChanged: (_) => _onGoalEdited(_kSugar),
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const Key('goalCarbsField'),
-          label: l.myGoalCarbs,
-          controller: _carbs,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: split == null
-              ? '${UserProfile.defaultDailyCarbsG}'
-              : '${split.carbs}',
-          errorText: _errors.of(_kCarbs),
-          onChanged: (_) {
-            _markTouched(_kCarbs);
-            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
-            // 칸이 있으면 그 문구도 이때 다시 그려진다.
-            _syncCaloriesFromMacros();
-          },
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const Key('goalProteinField'),
-          label: l.myGoalProtein,
-          controller: _protein,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: split == null
-              ? '${UserProfile.defaultDailyProteinG}'
-              : '${split.protein}',
-          errorText: _errors.of(_kProtein),
-          onChanged: (_) {
-            _markTouched(_kProtein);
-            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
-            // 칸이 있으면 그 문구도 이때 다시 그려진다.
-            _syncCaloriesFromMacros();
-          },
-        ),
-        const SizedBox(height: OnCareSpacing.s12),
-        AppTextField(
-          key: const Key('goalFatField'),
-          label: l.myGoalFat,
-          controller: _fat,
-          keyboardType: TextInputType.number,
-          inputFormatters: _digitsOnly,
-          hint: split == null
-              ? '${UserProfile.defaultDailyFatG}'
-              : '${split.fat}',
-          errorText: _errors.of(_kFat),
-          onChanged: (_) {
-            _markTouched(_kFat);
-            // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
-            // 칸이 있으면 그 문구도 이때 다시 그려진다.
-            _syncCaloriesFromMacros();
-          },
-        ),
-        // 안내 줄과 버튼은 늘 함께 보인다. 칸이 이미 권장값과 같아도 감추지
-        // 않는다 — 칸이 채워진 채로 열리게 된 뒤로는 이 줄이 **그 숫자가
-        // 어디서 왔는지** 말하는 유일한 자리이고, 값을 고쳐 둔 다음 되돌릴
-        // 길도 이 버튼 하나뿐이다.
-        if (split != null) ...<Widget>[
-          const SizedBox(height: OnCareSpacing.s12),
-          _MacroSuggestionRow(
-            buttonKey: const Key('goalApplyMacroSplit'),
-            note: l.myGoalMacroSuggestionNote(
-              _kcalValue!,
-              split.carbs,
-              split.protein,
-              split.fat,
-              split.sugar,
+    // 보기 모드가 읽는 초점도 저장된 값이다 — 고치다 취소한 선택이 남아
+    // 있을 수 있는 `_focus` 가 아니라 프로필에서 다시 센다.
+    final Set<String> savedFocus = parseHealthFocus(widget.initial.conditions);
+    final Widget? footer = _editing
+        ? _saveRow(
+            context: context,
+            saving: _saving,
+            onSave: _save,
+            onCancel: _cancelEdit,
+          )
+        : null;
+    return _formShell(
+      context,
+      l.myHealthGoalsTitle,
+      footer,
+      <Widget>[
+        // 순서: 관리 초점 → 자유 입력 운동 목표 → 수치형 운동 목표 → 식단 목표
+        // (#1471). 온보딩 2단계가 묻는 것과 같은 순서라, 두 화면이 같은 이야기를
+        // 같은 차례로 한다.
+        AppSectionHeader(title: l.myGoalsFocusSection),
+        const SizedBox(height: OnCareSpacing.s8),
+        _card(<Widget>[
+          if (_editing) ...<Widget>[
+            Text(
+              l.myGoalsFocusHint,
+              style: context.oncare
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
-            actionLabel: l.myGoalMacroApplySuggestion,
-            onApply: _applySuggestedSplit,
+            const SizedBox(height: OnCareSpacing.s12),
+            Wrap(
+              spacing: OnCareSpacing.s8,
+              runSpacing: OnCareSpacing.s8,
+              children: <Widget>[
+                // 온보딩 2단계와 같은 목록·같은 순서다(#1814).
+                for (final String option in kHealthFocusOptions)
+                  AppChoiceChip(
+                    key: ValueKey<String>('goal-focus-$option'),
+                    label: healthFocusLabel(l, option),
+                    selected: _focus.contains(option),
+                    // 두 개를 고르면 나머지 칩은 잠긴다 — 온보딩과 같다(#1814).
+                    onSelected: canPickHealthFocus(_focus, option)
+                        ? (_) => setState(() {
+                            if (!_focus.remove(option)) _focus.add(option);
+                          })
+                        : null,
+                  ),
+              ],
+            ),
+          ] else
+            // 보기 모드에서는 고른 것만 남긴다. 열 개를 전부 비활성 칩으로 두면
+            // 고르지 않은 여덟 개가 회색으로 화면을 채워, 무엇을 고른 화면인지가
+            // 오히려 흐려진다. 누를 수 없는 자리이므로 칩이 아니라 태그다.
+            Align(
+              alignment: Alignment.centerLeft,
+              child: savedFocus.isEmpty
+                  ? Text(
+                      '—',
+                      key: const Key('goalFocusNone'),
+                      style: context.oncare.text(OnCareTypography.body),
+                    )
+                  : Wrap(
+                      spacing: OnCareSpacing.s8,
+                      runSpacing: OnCareSpacing.s8,
+                      children: <Widget>[
+                        for (final String option in kHealthFocusOptions)
+                          if (savedFocus.contains(option))
+                            AppTag(
+                              key: ValueKey<String>('goal-focus-tag-$option'),
+                              label: healthFocusLabel(l, option),
+                              tone: AppTagTone.brand,
+                            ),
+                      ],
+                    ),
+            ),
+          // 담당 트레이너도 같은 목표를 고친다 — 누가 언제 바꿨는지 칩 아래에
+          // 남긴다(#1832).
+          if (focusLastChangedLabel(
+                l,
+                widget.initial,
+                locale: Localizations.localeOf(context).toString(),
+              )
+              case final String changed) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            Text(
+              changed,
+              key: const Key('goalFocusLastChanged'),
+              style: context.oncare
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+          ],
+        ]),
+        const SizedBox(height: OnCareSpacing.s20),
+        AppSectionHeader(title: l.myGoalsExerciseSection),
+        const SizedBox(height: OnCareSpacing.s8),
+        _card(<Widget>[
+          _goalField(
+            _kBurn,
+            l.myGoalBurnDaily,
+            AppTextField(
+              key: const Key('goalDailyBurnField'),
+              label: l.myGoalBurnDaily,
+              controller: _burn,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${exercise.dailyBurnKcal}',
+              errorText: _errors.of(_kBurn),
+              onChanged: (_) => _onGoalEdited(_kBurn),
+            ),
           ),
-        ],
-      ]),
-    ], saving: _saving);
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kCardio,
+            l.myGoalCardioWeekly,
+            AppTextField(
+              key: const Key('goalCardioField'),
+              label: l.myGoalCardioWeekly,
+              controller: _cardio,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${exercise.weeklyCardioMinutes}',
+              errorText: _errors.of(_kCardio),
+              onChanged: (_) => _onGoalEdited(_kCardio),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kStrength,
+            l.myGoalStrengthWeekly,
+            AppTextField(
+              key: const Key('goalStrengthField'),
+              label: l.myGoalStrengthWeekly,
+              controller: _strength,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${exercise.weeklyStrengthSets}',
+              errorText: _errors.of(_kStrength),
+              onChanged: (_) => _onGoalEdited(_kStrength),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kFlexibility,
+            l.myGoalFlexibilityWeekly,
+            AppTextField(
+              key: const Key('goalFlexibilityField'),
+              label: l.myGoalFlexibilityWeekly,
+              controller: _flexibility,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${exercise.weeklyFlexibilityMinutes}',
+              errorText: _errors.of(_kFlexibility),
+              onChanged: (_) => _onGoalEdited(_kFlexibility),
+            ),
+          ),
+          // 식단 목표의 `권장 비율로 채우기` 와 같은 자리·같은 모양이다 (#1139).
+          // 권장값은 WHO 권고(주 150분 중강도 유산소)에서 시작해 고른 건강 목표로
+          // 조정한다 — 온보딩 4단계와 같은 계산이다(#1816).
+          // 값을 덮어쓰는 버튼이라 보기 모드에서는 내지 않는다.
+          if (_editing) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            _MacroSuggestionRow(
+              buttonKey: const Key('goalApplyExerciseGoals'),
+              note: l.myGoalExerciseSuggestionNote(
+                exercise.dailyBurnKcal,
+                exercise.weeklyCardioMinutes,
+                exercise.weeklyStrengthSets,
+                exercise.weeklyFlexibilityMinutes,
+              ),
+              actionLabel: l.myGoalExerciseApplySuggestion,
+              onApply: _applySuggestedExerciseGoals,
+            ),
+          ],
+          _unsetHint(const <String>[
+            _kBurn,
+            _kCardio,
+            _kStrength,
+            _kFlexibility,
+          ]),
+        ]),
+        const SizedBox(height: OnCareSpacing.s20),
+        AppSectionHeader(title: l.myGoalsDietSection),
+        const SizedBox(height: OnCareSpacing.s8),
+        _card(<Widget>[
+          _goalField(
+            _kKcal,
+            l.myGoalCalories,
+            AppTextField(
+              key: const Key('goalCaloriesField'),
+              label: l.myGoalCalories,
+              controller: _kcal,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${UserProfile.defaultDailyCalories}',
+              helper: _kcalFromMacros ? l.myGoalCaloriesFromMacros : null,
+              errorText: _errors.of(_kKcal),
+              // 회원이 직접 고친 순간부터는 계산된 값이 아니다.
+              onChanged: (_) => setState(() {
+                _kcalFromMacros = false;
+                _markTouched(_kKcal);
+              }),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kSodium,
+            l.myGoalSodium,
+            AppTextField(
+              key: const Key('goalSodiumField'),
+              label: l.myGoalSodium,
+              controller: _sodium,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${UserProfile.defaultDailySodiumMg}',
+              errorText: _errors.of(_kSodium),
+              onChanged: (_) => _onGoalEdited(_kSodium),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kSugar,
+            l.myGoalSugar,
+            AppTextField(
+              key: const Key('goalSugarField'),
+              label: l.myGoalSugar,
+              controller: _sugar,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: '${UserProfile.defaultDailySugarG}',
+              errorText: _errors.of(_kSugar),
+              onChanged: (_) => _onGoalEdited(_kSugar),
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kCarbs,
+            l.myGoalCarbs,
+            AppTextField(
+              key: const Key('goalCarbsField'),
+              label: l.myGoalCarbs,
+              controller: _carbs,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: split == null
+                  ? '${UserProfile.defaultDailyCarbsG}'
+                  : '${split.carbs}',
+              errorText: _errors.of(_kCarbs),
+              onChanged: (_) {
+                _markTouched(_kCarbs);
+                // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+                // 칸이 있으면 그 문구도 이때 다시 그려진다.
+                _syncCaloriesFromMacros();
+              },
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kProtein,
+            l.myGoalProtein,
+            AppTextField(
+              key: const Key('goalProteinField'),
+              label: l.myGoalProtein,
+              controller: _protein,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: split == null
+                  ? '${UserProfile.defaultDailyProteinG}'
+                  : '${split.protein}',
+              errorText: _errors.of(_kProtein),
+              onChanged: (_) {
+                _markTouched(_kProtein);
+                // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+                // 칸이 있으면 그 문구도 이때 다시 그려진다.
+                _syncCaloriesFromMacros();
+              },
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          _goalField(
+            _kFat,
+            l.myGoalFat,
+            AppTextField(
+              key: const Key('goalFatField'),
+              label: l.myGoalFat,
+              controller: _fat,
+              keyboardType: TextInputType.number,
+              inputFormatters: _digitsOnly,
+              hint: split == null
+                  ? '${UserProfile.defaultDailyFatG}'
+                  : '${split.fat}',
+              errorText: _errors.of(_kFat),
+              onChanged: (_) {
+                _markTouched(_kFat);
+                // 칼로리를 다시 계산하며 setState 가 함께 일어난다 — 오류를 보인
+                // 칸이 있으면 그 문구도 이때 다시 그려진다.
+                _syncCaloriesFromMacros();
+              },
+            ),
+          ),
+          // 안내 줄과 버튼은 늘 함께 보인다. 칸이 이미 권장값과 같아도 감추지
+          // 않는다 — 칸이 채워진 채로 열리게 된 뒤로는 이 줄이 **그 숫자가
+          // 어디서 왔는지** 말하는 유일한 자리이고, 값을 고쳐 둔 다음 되돌릴
+          // 길도 이 버튼 하나뿐이다.
+          if (split != null && _editing) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s12),
+            _MacroSuggestionRow(
+              buttonKey: const Key('goalApplyMacroSplit'),
+              note: l.myGoalMacroSuggestionNote(
+                _kcalValue!,
+                split.carbs,
+                split.protein,
+                split.fat,
+                split.sugar,
+              ),
+              actionLabel: l.myGoalMacroApplySuggestion,
+              onApply: _applySuggestedSplit,
+            ),
+          ],
+          _unsetHint(const <String>[
+            _kKcal,
+            _kSodium,
+            _kSugar,
+            _kCarbs,
+            _kProtein,
+            _kFat,
+          ]),
+        ]),
+      ],
+      saving: _saving,
+      actions: <Widget>[
+        if (!_editing)
+          AppIconButton(
+            key: const Key('goalsEditButton'),
+            icon: AppIcons.edit,
+            tooltip: l.actionEdit,
+            size: AppIconButtonSize.small,
+            onPressed: _beginEdit,
+          ),
+      ],
+    );
   }
 }
 
