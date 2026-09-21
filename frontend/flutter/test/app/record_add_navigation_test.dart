@@ -5,6 +5,7 @@
 /// 성공했을 때만**이다 — 취소하거나 실패하면 보던 탭에 남는다.
 library;
 
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,6 +66,7 @@ class _SavingRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async {
     saved = true;
@@ -106,6 +108,7 @@ class _SavingRepository implements ExerciseRepository {
     int? sets,
     int? reps,
     int? holdSeconds,
+    int? durationSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 }
@@ -167,9 +170,11 @@ void main() {
     await tester.tap(find.text(l.navExercise).last);
     await tester.pumpAndSettle();
 
-    // 이름을 적고 저장한다 — 이름이 없으면 저장이 막힌다.
+    // 이름과 시간을 적고 저장한다 — 둘 중 하나라도 비면 저장이 막힌다.
+    // 시트는 0시 0분 0초로 열린다(#2071).
     await tester.enterText(find.byType(TextField).first, '아침 러닝');
     await tester.pump();
+    await _rollWheel(tester, 1, 30);
     await tester.tap(find.text(l.exSave));
     await tester.pumpAndSettle();
 
@@ -212,4 +217,19 @@ void main() {
 
     expect(location(), contains('/dashboard'));
   });
+}
+
+/// 시·분 휠의 [column] 번째 칸을 [steps] 칸만큼 굴린다. (#2071)
+///
+/// 시트 안이라 부모 스크롤이 휠과 아레나를 다툰다. 슬롭(`kTouchSlop`)을 **넘는**
+/// 첫 이동이 승부를 가르고 그 이동 자체는 버려지므로, 그 뒤의 이동이 그대로
+/// 칸 수다.
+Future<void> _rollWheel(WidgetTester tester, int column, int steps) async {
+  final TestGesture gesture = await tester.startGesture(
+    tester.getCenter(find.byType(ListWheelScrollView).at(column)),
+  );
+  await gesture.moveBy(const Offset(0, -kTouchSlop - 1));
+  await gesture.moveBy(Offset(0, -40.0 * steps));
+  await gesture.up();
+  await tester.pumpAndSettle();
 }

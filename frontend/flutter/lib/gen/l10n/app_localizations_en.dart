@@ -820,6 +820,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exUnitSeconds => 'sec';
 
   @override
+  String get exUnitHours => 'hr';
+
+  @override
   String get exUnitKg => 'kg';
 
   @override

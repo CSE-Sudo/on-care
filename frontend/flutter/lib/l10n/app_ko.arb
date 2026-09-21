@@ -313,6 +313,7 @@
   "exUnitSets": "세트",
   "exUnitReps": "회",
   "exUnitSeconds": "초",
+  "exUnitHours": "시간",
   "exUnitKg": "kg",
   "exEnterName": "운동 이름을 입력해주세요",
   "exExerciseDuration": "운동 시간",

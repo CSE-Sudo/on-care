@@ -804,6 +804,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exUnitSeconds => '초';
 
   @override
+  String get exUnitHours => '시간';
+
+  @override
   String get exUnitKg => 'kg';
 
   @override

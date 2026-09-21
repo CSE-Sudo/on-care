@@ -480,6 +480,7 @@
   "exUnitSets": "sets",
   "exUnitReps": "reps",
   "exUnitSeconds": "sec",
+  "exUnitHours": "hr",
   "exUnitKg": "kg",
   "exEnterName": "Please enter an exercise name",
   "exExerciseDuration": "Duration",

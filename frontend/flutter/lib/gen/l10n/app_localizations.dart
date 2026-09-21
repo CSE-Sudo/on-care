@@ -1556,6 +1556,12 @@ abstract class AppLocalizations {
   /// **'sec'**
   String get exUnitSeconds;
 
+  /// No description provided for @exUnitHours.
+  ///
+  /// In en, this message translates to:
+  /// **'hr'**
+  String get exUnitHours;
+
   /// No description provided for @exUnitKg.
   ///
   /// In en, this message translates to:

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -157,7 +158,11 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   // Intensity is persisted on ExerciseSession, so an edit reopens at the
   // saved level (가벼움/보통/높음); a new session defaults to 보통.
   late int _level = widget.session?.intensity.index ?? 1;
-  late double _minutes = widget.session?.minutes.toDouble() ?? 30;
+  // 유산소·스트레칭·기타의 걸린 시간. 분이 아니라 **초**로 들고 있다 —
+  // 분 단위 스테퍼로는 45초짜리 운동을 적을 수 없었고, 한 시간이 넘는 운동은
+  // 90분처럼 분으로 환산해 올려야 했다(#2071). 초를 모르는 옛 기록은
+  // `minutes × 60` 으로 읽는다.
+  late Duration _duration = _initialDuration(widget.session);
   // 근력은 시간이 아니라 **세트·횟수·중량**으로 재는 운동이다
   // (#1262, #1276, #1310). 분과 따로 들고 있어야 유형을 근력↔유산소로 오갈 때
   // 각자의 값이 남는다 — 하나로 쓰면 30분이 30세트가 되어 돌아온다.
@@ -206,6 +211,20 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
 
   static DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
+  /// 편집 시트가 열릴 걸린 시간. 기록이 초를 들고 있으면 그 값, 초를 모르는
+  /// 옛 기록이면 분에서 환산한 값, **새 기록이면 0** 이다. (#2071)
+  ///
+  /// 새 기록을 0 에서 시작하는 것은 타이머의 규칙이다 — 미리 채워 둔 30분은
+  /// 회원이 한 번도 건드리지 않고 저장할 수 있는 값이고, 그러면 아무도 적은
+  /// 적 없는 시간이 기록에 남는다. 0 이면 저장이 막히므로(`exEnterDuration`)
+  /// 시간은 반드시 적은 값이 된다.
+  static Duration _initialDuration(ExerciseSession? session) {
+    if (session == null) return Duration.zero;
+    final int? seconds = session.durationSeconds;
+    if (seconds != null && seconds > 0) return Duration(seconds: seconds);
+    return Duration(minutes: session.minutes);
+  }
+
   /// 편집 시트가 열릴 세트 수. 기록이 세트를 들고 있으면 그 값, 세트를 모르는
   /// 옛 근력 기록이면 분에서 환산한 값, 새 기록이면 12세트다.
   static double _initialSets(ExerciseSession? session) {
@@ -247,7 +266,10 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   void _scheduleEstimate({bool immediate = false}) {
     _estimateDebounce?.cancel();
     if (!mounted) return;
-    if (_name.text.trim().isEmpty) {
+    // 시간이 0 이면 계산할 것이 없다. 서버는 `minutes > 0` 을 요구하므로
+    // 그대로 부르면 422 가 돌아온다 — 아직 시간을 적지 않은 상태이지
+    // 오류가 아니다. (#2071)
+    if (_name.text.trim().isEmpty || _effectiveMinutes <= 0) {
       if (_estimate != null || _estimating) {
         setState(() {
           _estimate = null;
@@ -330,9 +352,18 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
   int get _strengthMinutes =>
       (_sets.round() * kStrengthMinutesPerSetWithRest).round();
 
-  /// 저장·칼로리 계산이 쓰는 분. 근력이면 세트에서 환산한 값이다.
-  int get _effectiveMinutes =>
-      _isStrength ? _strengthMinutes : _minutes.round();
+  /// 저장·칼로리 계산이 쓰는 분. 근력이면 세트에서, 아니면 초에서 환산한다.
+  ///
+  /// 환산 규칙이 서버(`ExerciseSessionCreate._minutes_from_seconds`)와 **같아야**
+  /// 한다. 미리보기로 받은 칼로리를 그대로 저장하는 것이 #1312 의 요구인데,
+  /// 앱과 서버가 같은 초를 다른 분으로 읽으면 저장 뒤 숫자가 달라진다.
+  /// 45초짜리 운동이 반올림으로 0분이 되어 거절되지도 않는다.
+  int get _effectiveMinutes => _isStrength
+      ? _strengthMinutes
+      : _minutesFromSeconds(_duration.inSeconds);
+
+  static int _minutesFromSeconds(int seconds) =>
+      seconds <= 0 ? 0 : math.max(1, (seconds / 60).round());
 
   /// 편집 시트 안에서 지운다 — 목록 줄에는 더 이상 휴지통을 두지 않는다.
   /// 지우기는 되돌릴 수 없는 동작이라, 고치는 화면 안에 한 번 더 들어와야만
@@ -370,6 +401,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       toast.show(l.exEnterName, type: AppToastType.error);
       return;
     }
+    // 0초는 저장하지 않는다 — 지금까지 최소 1분이 하던 일이다(#2071).
     final int minutes = _effectiveMinutes;
     if (minutes <= 0) {
       toast.show(
@@ -387,6 +419,10 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     final int? reps = _isStrength && !_isHold ? _reps.round() : null;
     final int? holdSeconds = holding ? _holdSeconds.round() : null;
     final double? weight = _isStrength ? _weight : null;
+    // 초는 시간으로 재는 유형에만 싣는다. 근력의 분은 세트에서 환산한 값이라
+    // 회원이 적은 시간이 아니다 — 초를 함께 보내면 서버가 그 초로 분을 다시
+    // 계산해, 세트에서 나온 분을 덮는다. (#2071)
+    final int? durationSeconds = _isStrength ? null : _duration.inSeconds;
     final ExerciseType type = _typeFromIndex(_type);
     final ExerciseSession? editing = widget.session;
     if (editing != null && editing.id == null) {
@@ -422,6 +458,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
               sets: sets,
               reps: reps,
               holdSeconds: holdSeconds,
+              durationSeconds: durationSeconds,
               weight: weight,
             );
       } else {
@@ -437,6 +474,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
               sets: sets,
               reps: reps,
               holdSeconds: holdSeconds,
+              durationSeconds: durationSeconds,
               weight: weight,
             );
       }
@@ -605,14 +643,20 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
             ] else ...<Widget>[
               _Label(l.exExerciseDuration),
               const SizedBox(height: OnCareSpacing.s8),
-              _NumberStepper(
-                key: const Key('exerciseMinutesStepper'),
-                value: _minutes,
-                min: 1,
-                max: 600,
-                suffix: l.exUnitMinutes,
-                onChanged: (double v) {
-                  setState(() => _minutes = v);
+              // 아이폰 타이머처럼 시·분·초를 굴려 고른다(#2071). 분 단위
+              // 스테퍼로는 45초짜리 운동을 적을 수 없었고, 한 시간이 넘는
+              // 운동은 90분처럼 분으로 환산해 올려야 했다.
+              AppDurationWheel(
+                key: const Key('exerciseDurationWheel'),
+                duration: _duration,
+                maxSeconds: kMaxExerciseMinutes * 60,
+                labels: AppDurationWheelLabels(
+                  hours: l.exUnitHours,
+                  minutes: l.exUnitMinutes,
+                  seconds: l.exUnitSeconds,
+                ),
+                onChanged: (Duration v) {
+                  setState(() => _duration = v);
                   _scheduleEstimate();
                 },
               ),
