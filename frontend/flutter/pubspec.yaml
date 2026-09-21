@@ -78,6 +78,7 @@ dependencies:
   # printing 이 전이 의존성으로 끌고 오지만, 직접 import 하므로 명시한다.
   pdf: ^3.11.3
   image_picker: ^1.2.3
+  geolocator: ^14.0.2
 
   # NOTE: Social-login SDKs (sign_in_with_apple / google_sign_in /
   # kakao_flutter_sdk_user / flutter_naver_login) are added in Stage 4

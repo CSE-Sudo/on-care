@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -28,5 +30,59 @@ Future<void> callGym(BuildContext context, String phone) async {
   }
   if (!opened) {
     toast.show(l.exGymCallFailed, type: AppToastType.error);
+  }
+}
+
+/// 번호를 누르면 전화·복사 동작을 고른다. 취소는 외부 앱을 열지 않는다.
+Future<void> showGymPhoneSheet(
+  BuildContext context,
+  String name,
+  String phone,
+) async {
+  final l = AppLocalizations.of(context);
+  final action = await showAppSheet<String>(
+    context: context,
+    builder: (sheetContext) => AppSheet(
+      title: name,
+      showClose: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  phone,
+                  style: context.oncare
+                      .text(OnCareTypography.titleSmall)
+                      .copyWith(color: OnCareColors.textPrimary),
+                ),
+              ),
+              IconButton(
+                tooltip: l.exGymCopyPhone,
+                onPressed: () => Navigator.pop(sheetContext, 'copy'),
+                icon: const Icon(AppIcons.copy, size: 20, fill: 0, weight: 400),
+                color: OnCareColors.textSecondary,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              ),
+            ],
+          ),
+          const SizedBox(height: OnCareSpacing.s20),
+          AppButton(
+            label: l.exGymCall,
+            leadingIcon: AppIcons.phone,
+            onPressed: () => Navigator.pop(sheetContext, 'call'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (!context.mounted) return;
+  if (action == 'call') {
+    await callGym(context, phone);
+  } else if (action == 'copy') {
+    await Clipboard.setData(ClipboardData(text: phone));
+    if (context.mounted) AppToastHost.of(context).show(l.exGymPhoneCopied);
   }
 }

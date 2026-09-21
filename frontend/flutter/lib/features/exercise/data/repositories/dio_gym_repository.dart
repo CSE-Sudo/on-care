@@ -13,7 +13,13 @@ import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart
 /// `GET /me/gym`, 담당 트레이너는 `GET /me/coach`. 그래서 트레이너만 해제해도
 /// 헬스장 카드는 남는다(#444).
 class DioGymRepository implements GymRepository {
-  DioGymRepository(this._dio);
+  DioGymRepository(
+    this._dio, {
+    this.lat = kGymSearchLat,
+    this.lng = kGymSearchLng,
+  });
+  final double lat;
+  final double lng;
   final Dio _dio;
 
   static Gym _gym(Map<String, Object?> j) => Gym(
@@ -81,11 +87,8 @@ class DioGymRepository implements GymRepository {
   }
 
   @override
-  Future<List<Gym>> fetchNearby() => _list(
-    '/gyms',
-    _gym,
-    query: <String, Object?>{'lat': kGymSearchLat, 'lng': kGymSearchLng},
-  );
+  Future<List<Gym>> fetchNearby() =>
+      _list('/gyms', _gym, query: <String, Object?>{'lat': lat, 'lng': lng});
 
   @override
   Future<List<Trainer>> fetchTrainersByGym(String gymId) =>
@@ -117,10 +120,7 @@ class DioGymRepository implements GymRepository {
     try {
       final res = await _dio.get<Map<String, Object?>>(
         '/me/gym',
-        queryParameters: <String, Object?>{
-          'lat': kGymSearchLat,
-          'lng': kGymSearchLng,
-        },
+        queryParameters: <String, Object?>{'lat': lat, 'lng': lng},
       );
       if (res.data != null) return _gym(res.data!);
     } on DioException catch (e) {

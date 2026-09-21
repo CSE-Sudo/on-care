@@ -108,6 +108,7 @@ class AppIcons {
   // --- 이동·펼침 ---
   static const IconData back = Symbols.chevron_left_rounded;
   static const IconData chevronLeft = Symbols.chevron_left_rounded;
+  static const IconData copy = Symbols.content_copy_rounded;
   static const IconData chevronRight = Symbols.chevron_right_rounded;
   static const IconData expandMore = Symbols.keyboard_arrow_down_rounded;
   static const IconData expandLess = Symbols.keyboard_arrow_up_rounded;

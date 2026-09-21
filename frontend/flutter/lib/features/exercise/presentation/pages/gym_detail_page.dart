@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +10,7 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
 import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
@@ -155,14 +154,16 @@ class _GymDetails extends ConsumerWidget {
             const SizedBox(height: OnCareSpacing.s12),
             Row(
               children: <Widget>[
-                Expanded(
-                  child: _MetricCard(
-                    icon: AppIcons.location,
-                    label: l.exDistance,
-                    value: '${gym.distanceKm.toStringAsFixed(1)}km',
+                if (ref.watch(gymShowDistanceProvider)) ...<Widget>[
+                  Expanded(
+                    child: _MetricCard(
+                      icon: AppIcons.location,
+                      label: l.exDistance,
+                      value: '${gym.distanceKm.toStringAsFixed(1)}km',
+                    ),
                   ),
-                ),
-                const SizedBox(width: OnCareSpacing.cardGap),
+                  const SizedBox(width: OnCareSpacing.cardGap),
+                ],
                 Expanded(
                   child: _MetricCard(
                     icon: AppIcons.star,
@@ -214,23 +215,35 @@ class _GymDetails extends ConsumerWidget {
               _DetailSection(
                 icon: AppIcons.phone,
                 title: l.exPhone,
-                // 눌러서 전화를 건다(#1873). 예전에는 누를 수 없는 글자였는데,
-                // 상담 자리가 없을 때 회원이 나갈 곳이 이 번호라 걸 수 있어야 한다.
                 child: InkWell(
                   key: const Key('gym-detail-phone'),
-                  onTap: () => unawaited(callGym(context, gym.phone!)),
+                  borderRadius: OnCareRadius.mdAll,
+                  onTap: () => showGymPhoneSheet(context, gym.name, gym.phone!),
                   child: Semantics(
                     button: true,
                     label: '${l.exGymCall} ${gym.phone!}',
-                    child: Text(
-                      gym.phone!,
-                      style: tokens
-                          .text(OnCareTypography.strong(OnCareTypography.body))
-                          .copyWith(
-                            color: tokens.brand.primary,
-                            decoration: TextDecoration.underline,
-                            decorationColor: tokens.brand.primary,
+                    excludeSemantics: true,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: OnCareSpacing.s48,
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              gym.phone!,
+                              style: tokens
+                                  .text(OnCareTypography.body)
+                                  .copyWith(color: OnCareColors.textPrimary),
+                            ),
                           ),
+                          AppIcon(
+                            AppIcons.phone,
+                            size: OnCareSize.iconSmall,
+                            color: tokens.brand.primary,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
