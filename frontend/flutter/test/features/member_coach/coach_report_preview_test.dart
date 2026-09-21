@@ -447,5 +447,45 @@ void main() {
       );
       expect(alone, contains('지난주 기록이 없어 견줄 값이 없어요.'));
     });
+
+    testWidgets('포인트로 받은 리포트는 트레이너 자리에 감지 기록을 싣는다 (#2022)', (
+      WidgetTester tester,
+    ) async {
+      final AppLocalizations l = await localizations(tester);
+      const MemberReportPdfGenerator pdf = MemberReportPdfGenerator();
+      const List<String> insights = <String>['무릎 통증 감지 2회'];
+      final List<String> lines = pdf.textContent(
+        l: l,
+        report: _report(days: _week()),
+        source: MemberReportSource.points,
+        insightLines: insights,
+      );
+
+      expect(lines, contains(l.coachReportPdfSectionInsights));
+      expect(lines, contains('무릎 통증 감지 2회'));
+      expect(lines, contains(l.coachReportPdfSelfMadeNote));
+      expect(lines, isNot(contains(l.coachReportPdfSectionTrainerNote)));
+
+      // 적는 가장 긴 요약(세 종류와 `외 N건`)도 한 장에 담긴다(#1619). 영어
+      // 문서가 더 길어 두 언어를 다 본다.
+      for (final (String lang, String worst) in <(String, String)>[
+        ('ko', '오른쪽 무릎 통증 감지 3회 · 왼쪽 어깨 통증 감지 2회 · 부정적 반응 감지 2회 · 외 5건'),
+        (
+          'en',
+          'Right knee pain noted ×3 · Left shoulder pain noted ×2 · Negative feedback noted ×2 · +5 more',
+        ),
+      ]) {
+        expect(
+          pdf.pageCount(
+            l: lookupAppLocalizations(Locale(lang)),
+            report: _report(days: _week()),
+            source: MemberReportSource.points,
+            insightLines: <String>[worst],
+          ),
+          1,
+          reason: lang,
+        );
+      }
+    });
   });
 }

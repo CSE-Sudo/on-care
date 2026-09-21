@@ -204,6 +204,7 @@
 | `graph_color` | 그래프 색 바꾸기(#2076, 쿠폰 아님) | 150 | 없음(0) | `option` 에 열 색 하나, 이미 연 색은 409, 모두 열면 목록에서 빠짐 |
 | `emote_pass_24h` | 채팅 이모티콘 24시간(#2020, 쿠폰 아님) | 300 | 24시간 | 이용 중이면 `active_pass` |
 | `profile_pet` | 프로필 펫 이모지(#2021, 쿠폰 아님) | 200 | 7일 | `option` 에 `dog`\|`cat`, 달고 있으면 `active_pet`(409) |
+| `weekly_report` | 주간 리포트(#2022, 쿠폰 아님) | 300 | 없음(0) | **담당이 없는 회원만** — 담당이 있으면 목록에서 빠지고 409, 지난주를 이미 받았으면 `week_owned`(409) |
 
 사용 가능한(`issued`, 기한 전) 쿠폰은 **종류마다** 회원당 1장이다 — `(user_id, item) WHERE status='issued'`
 partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으로 막히고, 교환하면 409 다. 사용·만료·취소되면
@@ -215,7 +216,7 @@ partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으�
 
 `items[]`: `{ id, title, benefit, description, cost, valid_days, requires_trainer, requires_gym,
 available, blocked_reason, shortfall, active_option, active_until, remaining_seconds }`. `blocked_reason` 은
-`no_trainer` → `no_gym` → `active_coupon` → `shield_limit` → `active_pass` → `active_pet` → `monthly_limit` →
+`no_trainer` → `no_gym` → `active_coupon` → `shield_limit` → `active_pass` → `active_pet` → `week_owned` → `monthly_limit` →
 `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
 포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
 보호권이면 `coupon: null` 과 `shield`, 그래프 색이면 `graph_color` 다(아래 두 절).
@@ -340,6 +341,22 @@ MY 탭 프로필 카드의 이름 옆에 강아지나 고양이 하나를 단다
   비교한다 — 지나면 `pet` 이 null 이 되어 저절로 떨어진다. 남은 기간은 `remaining_seconds` 로 준다.
 - **달고 있는 동안에는 다시 사지 못한다.** 사용처 카드가 `active_pet` 으로 막히고 409 다. 모르는 펫·`option` 없음은
   404, 잔액 부족은 409. 같은 `client_request_id` 재전송은 두 번 쓰지 않는다.
+
+### 포인트로 받는 주간 리포트 (#2022)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| GET | `/me/weekly-reports` | 회원(데모 폴백) | `{ reports: [{week_start, purchased_at}], next_week_start, cost }` — 최근 주 먼저(최대 60) |
+| POST | `/me/points/exchange` | 회원 | 입력 `{ item: "weekly_report", client_request_id? }` → **201** `{ coupon: null, weekly_report_week, spent, balance }` |
+
+주간 리포트는 트레이너가 등록해 주는 것이라 담당이 없는 회원은 받을 길이 없었다. 그 회원이 포인트로 한 주를 받는다.
+
+- **담당이 없는 회원만** 산다. 담당이 있으면 `GET /me/points/shop` 의 `items[]` 에서 항목이 빠지고, 교환하면 409 다.
+- 사는 주는 **지난주**(가장 최근에 끝난 KST 월~일)다. `next_week_start` 가 그 주의 월요일이다. **같은 주는 한 번만** 산다
+  (`(user_id, week_start)` 유일) — 이미 받았으면 사용처 항목이 `week_owned` 로 막히고 409 다. 잔액 부족은 409.
+- **리포트 내용은 저장하지 않는다.** 서버는 어느 주를 샀는지만 들고 있고, 앱이 회원의 식단·운동 기록과 AI 코치 감지 기록
+  (`GET /ai-coach/insights`)으로 트레이너 리포트와 같은 문서를 세운다. 트레이너 코멘트 자리는 비운다.
+- 산 뒤에 담당이 생겨도 산 리포트는 목록에 남는다 — 회원 자신의 기록이다.
 
 ### 주간 운동 챌린지 (#1789)
 

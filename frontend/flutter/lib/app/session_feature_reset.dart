@@ -65,6 +65,8 @@ Override sessionFeatureResetOverride() {
       // MY 프로필 펫(#2021) — auto-dispose 가 아니라 되짚지 않으면 앞 계정의 펫이
       // 이름 옆에 남는다.
       ref.invalidate(profilePetProvider);
+      // 포인트로 받은 주간 리포트(#2022) — 내 혜택을 연 채 전환하면 앞 계정의 주가 남는다.
+      ref.invalidate(myWeeklyReportsProvider);
       // 연속 기록 보호권(#1788) — 앞 계정의 보유 수·보호한 날이 남지 않게 한다.
       ref.invalidate(myStreakShieldsProvider);
       // 기록 그래프·그래프 색(#2075, #2076) — 보호권과 같은 이유다. auto-dispose 가

@@ -44,8 +44,16 @@ class MemberReportPdfGenerator {
     required AppLocalizations l,
     required MemberWeeklyReport report,
     String trainerNote = '',
+    MemberReportSource source = MemberReportSource.trainer,
+    List<String>? insightLines,
   }) async {
-    final List<_Block> blocks = _blocks(l, report, trainerNote);
+    final List<_Block> blocks = _blocks(
+      l,
+      report,
+      trainerNote,
+      source: source,
+      insightLines: insightLines,
+    );
     final List<Uint8List> pageImages = <Uint8List>[];
     ui.PictureRecorder recorder = ui.PictureRecorder();
     Canvas canvas = Canvas(recorder);
@@ -94,11 +102,19 @@ class MemberReportPdfGenerator {
     required AppLocalizations l,
     required MemberWeeklyReport report,
     String trainerNote = '',
+    MemberReportSource source = MemberReportSource.trainer,
+    List<String>? insightLines,
   }) {
     const double contentWidth = _pageWidth - (_margin * 2);
     int pages = 1;
     double y = _headerHeight;
-    for (final _Block block in _blocks(l, report, trainerNote)) {
+    for (final _Block block in _blocks(
+      l,
+      report,
+      trainerNote,
+      source: source,
+      insightLines: insightLines,
+    )) {
       final double height = block.height(contentWidth);
       if (y + height + block.after > _pageHeight - _margin) {
         pages++;
@@ -114,10 +130,14 @@ class MemberReportPdfGenerator {
     required AppLocalizations l,
     required MemberWeeklyReport report,
     String trainerNote = '',
+    MemberReportSource source = MemberReportSource.trainer,
+    List<String>? insightLines,
   }) => _blocks(
     l,
     report,
     trainerNote,
+    source: source,
+    insightLines: insightLines,
   ).expand((_Block block) => block.textLines).toList(growable: false);
 
   double _beginPage(Canvas canvas, AppLocalizations l, int pageNumber) {
@@ -165,8 +185,10 @@ class MemberReportPdfGenerator {
   List<_Block> _blocks(
     AppLocalizations l,
     MemberWeeklyReport report,
-    String trainerNote,
-  ) {
+    String trainerNote, {
+    MemberReportSource source = MemberReportSource.trainer,
+    List<String>? insightLines,
+  }) {
     final List<String> weekdays = <String>[
       l.dietWeekdayMon,
       l.dietWeekdayTue,
@@ -270,12 +292,27 @@ class MemberReportPdfGenerator {
         ],
       ),
 
-      _TextBlock.section(l.coachReportPdfSectionTrainerNote),
-      _TextBlock.body(
-        trainerNote.trim().isEmpty
-            ? l.coachReportPdfNoTrainerNote
-            : trainerNote.trim(),
-      ),
+      // 포인트로 받은 리포트(#2022)는 트레이너가 쓴 것이 아니다. 비어 있을 트레이너
+      // 메시지 자리에 그 주의 감지 기록(AI 코치가 찾은 통증·부정적 반응)을 싣고, 왜
+      // 트레이너 메시지가 없는지 작게 적는다. 구역을 하나 더 세우면 한 장을 넘는다
+      // (#1619). 감지를 읽지 못했으면([insightLines] 가 null) 이유만 적는다.
+      if (source == MemberReportSource.points) ...<_Block>[
+        _TextBlock.section(l.coachReportPdfSectionInsights),
+        if (insightLines != null)
+          _TextBlock.note(
+            insightLines.isEmpty
+                ? l.coachReportPdfNoInsights
+                : insightLines.join('\n'),
+          ),
+        _TextBlock.note(l.coachReportPdfSelfMadeNote),
+      ] else ...<_Block>[
+        _TextBlock.section(l.coachReportPdfSectionTrainerNote),
+        _TextBlock.body(
+          trainerNote.trim().isEmpty
+              ? l.coachReportPdfNoTrainerNote
+              : trainerNote.trim(),
+        ),
+      ],
 
       // 식단 쪽 지표는 상자 넷으로. 지난주 대비를 상자 안에 적어, 표 하나를
       // 통째로 덜어 낸다.
@@ -1241,6 +1278,15 @@ class _ChartBlock extends _Block {
 }
 
 /// 미리보기 문서를 만드는 서비스.
+/// 리포트를 누가 만들었나. 트레이너 메시지 자리에 무엇을 적을지가 갈린다.
+enum MemberReportSource {
+  /// 트레이너가 채팅으로 등록한 리포트(#1600).
+  trainer,
+
+  /// 담당 트레이너가 없는 회원이 포인트로 받은 리포트(#2022).
+  points,
+}
+
 final memberReportPdfGeneratorProvider = Provider<MemberReportPdfGenerator>(
   (_) => const MemberReportPdfGenerator(),
   name: 'memberReportPdfGenerator',

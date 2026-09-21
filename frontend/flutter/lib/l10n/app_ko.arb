@@ -657,6 +657,52 @@
     }
   },
   "myProfilePetDone": "이름 옆에 펫을 달았어요",
+  "myShopWeeklyReportTitle": "주간 리포트",
+  "myShopWeeklyReportDescription": "{range} 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.",
+  "@myShopWeeklyReportDescription": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "myWeeklyReportOwned": "지난주 리포트는 이미 받았어요",
+  "myWeeklyReportExchangeConfirm": "{range} 리포트를 {cost}로 만들까요?",
+  "@myWeeklyReportExchangeConfirm": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myWeeklyReportDone": "지난주 리포트를 만들었어요",
+  "myBenefitsWeeklyReports": "주간 리포트",
+  "myWeeklyReportCardTitle": "포인트로 받은 리포트",
+  "coachReportPdfSelfMadeNote": "담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.",
+  "coachReportPdfSectionInsights": "감지 기록",
+  "coachReportPdfNoInsights": "이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.",
+  "coachReportPdfInsightSummary": "{label} {count}회",
+  "@coachReportPdfInsightSummary": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coachReportPdfInsightMore": "외 {count}건",
+  "@coachReportPdfInsightMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "myProfilePetLabel": "{pet} 펫 이모지",
   "@myProfilePetLabel": {
     "placeholders": {

@@ -9,12 +9,14 @@ library;
 ///
 /// [shieldLimit] 은 쓰지 않은 연속 기록 보호권을 이미 최대로 가진 경우다(#1788).
 /// [activePet] 은 기간이 남은 프로필 펫 이모지를 달고 있는 경우다(#2021).
+/// [weekOwned] 는 지난주 주간 리포트를 이미 받은 경우다(#2022).
 enum ShopBlockReason {
   noTrainer,
   noGym,
   activeCoupon,
   shieldLimit,
   activePet,
+  weekOwned,
   monthlyLimit,
   insufficientPoints,
   unknown,
@@ -27,6 +29,7 @@ ShopBlockReason? _blockFrom(Object? raw) => switch (raw) {
   'active_coupon' => ShopBlockReason.activeCoupon,
   'shield_limit' => ShopBlockReason.shieldLimit,
   'active_pet' => ShopBlockReason.activePet,
+  'week_owned' => ShopBlockReason.weekOwned,
   'monthly_limit' => ShopBlockReason.monthlyLimit,
   'insufficient_points' => ShopBlockReason.insufficientPoints,
   _ => ShopBlockReason.unknown,

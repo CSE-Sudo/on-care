@@ -1,6 +1,7 @@
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
+import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
 import 'package:oncare/features/benefits/domain/repositories/benefits_repository.dart';
 
 /// 위젯 테스트용 사용처·쿠폰 저장소 — 넣어 준 목록을 돌려주고 호출을 기록한다.
@@ -65,6 +66,16 @@ class FakeBenefitsRepository implements BenefitsRepository {
 
   @override
   Future<ProfilePet?> fetchProfilePet() async => pet;
+
+  /// 포인트로 받은 주간 리포트(#2022). 기본은 받은 주가 없다.
+  WeeklyReportPurchases reports = WeeklyReportPurchases(
+    weeks: const <DateTime>[],
+    nextWeekStart: DateTime(2026, 9, 14),
+    cost: 300,
+  );
+
+  @override
+  Future<WeeklyReportPurchases> fetchWeeklyReports() async => reports;
 
   @override
   Future<Coupon> useCoupon(String couponId) async {

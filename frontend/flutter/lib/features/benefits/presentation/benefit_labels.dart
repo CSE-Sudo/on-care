@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare/app/app_icons.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -23,6 +24,10 @@ const String kGraphColorItem = 'graph_color';
 /// 어느 펫을 달지 고르는 단계가 하나 더 있다.
 const String kProfilePetItem = 'profile_pet';
 
+/// 주간 리포트(#2022) — 담당 트레이너가 없는 회원이 지난주 리포트를 받는다. 담당이
+/// 있으면 서버가 목록에 싣지 않는다.
+const String kWeeklyReportItem = 'weekly_report';
+
 /// 고를 수 있는 펫. 고르는 창에 서는 순서 그대로다(서버 `KINDS` 와 같다).
 const List<String> kProfilePetKinds = <String>['dog', 'cat'];
 
@@ -32,6 +37,7 @@ String shopItemTitle(AppLocalizations l, ShopItem item) => switch (item.id) {
   kStreakShieldItem => l.myShopStreakShieldTitle,
   kGraphColorItem => l.myShopGraphColorTitle,
   kProfilePetItem => l.myShopProfilePetTitle,
+  kWeeklyReportItem => l.myShopWeeklyReportTitle,
   _ => item.title,
 };
 
@@ -42,6 +48,9 @@ String shopItemDescription(AppLocalizations l, ShopItem item) =>
       kStreakShieldItem => l.myShopStreakShieldDescription,
       kGraphColorItem => l.myShopGraphColorDescription,
       kProfilePetItem => l.myShopProfilePetDescription,
+      kWeeklyReportItem => l.myShopWeeklyReportDescription(
+        reportWeekRange(l, lastWeekMonday()),
+      ),
       _ => item.description,
     };
 
@@ -58,6 +67,7 @@ String? shopBlockLabel(AppLocalizations l, ShopItem item) {
       profilePetName(l, item.activeOption ?? ''),
       profilePetLeft(l, item.remainingSeconds),
     ),
+    ShopBlockReason.weekOwned => l.myWeeklyReportOwned,
     ShopBlockReason.monthlyLimit => l.myPointsMonthlyLimit,
     ShopBlockReason.insufficientPoints => l.myPointsShortfall(
       l.myPointsCost(item.shortfall),
@@ -104,6 +114,24 @@ String profilePetLeft(AppLocalizations l, int remainingSeconds) {
   return l.myProfilePetHoursLeft(hours < 1 ? 1 : hours);
 }
 
+/// 지금 주간 리포트를 받으면 가리키는 주 — 지난주 월요일(KST). 서버
+/// `weekly_report_purchase_service.target_week` 와 같은 규칙이다(#2022).
+DateTime lastWeekMonday() {
+  final DateTime today = todayKst();
+  return DateTime(today.year, today.month, today.day - today.weekday + 1 - 7);
+}
+
+/// `9월 14일 – 9월 20일` — 채팅의 리포트 카드와 같은 표기다.
+String reportWeekRange(AppLocalizations l, DateTime monday) {
+  final DateTime sunday = DateTime(monday.year, monday.month, monday.day + 6);
+  return l.coachChatReportWeek(
+    monday.month,
+    monday.day,
+    sunday.month,
+    sunday.day,
+  );
+}
+
 /// 쿠폰의 혜택 한 줄.
 String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) {
   kPtRenewalItem => l.myCouponPtRenewalBenefit,
@@ -117,6 +145,7 @@ IconData benefitIcon(String itemId) => switch (itemId) {
   kStreakShieldItem => AppIcons.streakShield,
   kGraphColorItem => AppIcons.palette,
   kProfilePetItem => AppIcons.pets,
+  kWeeklyReportItem => AppIcons.document,
   _ => AppIcons.coupon,
 };
 

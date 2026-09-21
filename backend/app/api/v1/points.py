@@ -29,12 +29,14 @@ from app.schemas.points_api import (
     PointsShopOut,
 )
 from app.schemas.profile_pet_api import ProfilePetStateOut
+from app.schemas.weekly_report_api import WeeklyReportListOut
 from app.services import (
     graph_color_service,
     points_coupon_service,
     points_service,
     profile_pet_service,
     streak_shield_service,
+    weekly_report_purchase_service,
     weekly_challenge_service,
 )
 from app.services.audit import client_ip, record as record_audit
@@ -63,9 +65,11 @@ def exchange_points(
 
     없는 항목은 404, 규칙에 막히면(담당 트레이너 없음·연결한 헬스장 없음·사용하지
     않은 같은 종류 쿠폰 보유·연속 기록 보호권 최대 보유·이번 달 교환·이미 가진 그래프
-    색·달고 있는 프로필 펫·잔액 부족) 409 다. 보호권(#1788)은 쿠폰 대신 `shield` 에,
-    그래프 색 바꾸기(#2076)은 `graph_color` 에 연 뒤의 색 상태가, 프로필 펫(#2021)은
-    `profile_pet` 에 단 펫이 온다. 모르는 색·펫은 404 다.
+    색·달고 있는 프로필 펫·담당이 있는 회원의 주간 리포트·이미 받은 주·잔액 부족)
+    409 다. 보호권(#1788)은 쿠폰 대신 `shield` 에, 그래프 색 바꾸기(#2076)은
+    `graph_color` 에 연 뒤의 색 상태가, 프로필 펫(#2021)은 `profile_pet` 에 단 펫이,
+    주간 리포트(#2022)는 `weekly_report_week` 에 받은 주가 온다. 모르는 색·펫은
+    404 다.
     """
     try:
         return points_coupon_service.exchange(
@@ -91,6 +95,8 @@ def exchange_points(
         points_coupon_service.MonthlyLimitReached,
         graph_color_service.AlreadyUnlocked,
         profile_pet_service.PetAlreadyActive,
+        weekly_report_purchase_service.TrainerAssigned,
+        weekly_report_purchase_service.WeekAlreadyOwned,
     ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
@@ -105,6 +111,19 @@ def my_profile_pet(
     사는 것은 포인트 사용처의 `profile_pet` 교환(`POST /me/points/exchange`)이다.
     """
     return profile_pet_service.state(db, current_user.id)
+
+
+@router.get("/me/weekly-reports", response_model=WeeklyReportListOut)
+def my_weekly_reports(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> WeeklyReportListOut:
+    """포인트로 받은 주간 리포트(#2022) — 산 주와 지금 살 수 있는 주.
+
+    리포트 내용은 앱이 회원 기록으로 세운다. 사는 것은 포인트 사용처의
+    `weekly_report` 교환(`POST /me/points/exchange`)이다.
+    """
+    return weekly_report_purchase_service.list_reports(db, current_user.id)
 
 
 @router.get("/me/coupons", response_model=list[CouponOut])

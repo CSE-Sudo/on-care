@@ -921,6 +921,52 @@
     }
   },
   "myProfilePetDone": "Your pet is next to your name",
+  "myShopWeeklyReportTitle": "Weekly report",
+  "myShopWeeklyReportDescription": "Look back on {range} with a report built from your meals, workouts and AI Coach notes.",
+  "@myShopWeeklyReportDescription": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "myWeeklyReportOwned": "You already have last week's report",
+  "myWeeklyReportExchangeConfirm": "Make the report for {range} for {cost}?",
+  "@myWeeklyReportExchangeConfirm": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myWeeklyReportDone": "Last week's report is ready",
+  "myBenefitsWeeklyReports": "Weekly reports",
+  "myWeeklyReportCardTitle": "Report from points",
+  "coachReportPdfSelfMadeNote": "Made with points, without a trainer — so there's no trainer message.",
+  "coachReportPdfSectionInsights": "AI Coach notes",
+  "coachReportPdfNoInsights": "No pain or negative feedback this week.",
+  "coachReportPdfInsightSummary": "{label} ×{count}",
+  "@coachReportPdfInsightSummary": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coachReportPdfInsightMore": "+{count} more",
+  "@coachReportPdfInsightMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "myProfilePetLabel": "{pet} pet emoji",
   "@myProfilePetLabel": {
     "placeholders": {

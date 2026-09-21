@@ -2456,6 +2456,78 @@ abstract class AppLocalizations {
   /// **'Your pet is next to your name'**
   String get myProfilePetDone;
 
+  /// No description provided for @myShopWeeklyReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly report'**
+  String get myShopWeeklyReportTitle;
+
+  /// No description provided for @myShopWeeklyReportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Look back on {range} with a report built from your meals, workouts and AI Coach notes.'**
+  String myShopWeeklyReportDescription(String range);
+
+  /// No description provided for @myWeeklyReportOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have last week\'s report'**
+  String get myWeeklyReportOwned;
+
+  /// No description provided for @myWeeklyReportExchangeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the report for {range} for {cost}?'**
+  String myWeeklyReportExchangeConfirm(String range, String cost);
+
+  /// No description provided for @myWeeklyReportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Last week\'s report is ready'**
+  String get myWeeklyReportDone;
+
+  /// No description provided for @myBenefitsWeeklyReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly reports'**
+  String get myBenefitsWeeklyReports;
+
+  /// No description provided for @myWeeklyReportCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report from points'**
+  String get myWeeklyReportCardTitle;
+
+  /// No description provided for @coachReportPdfSelfMadeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Made with points, without a trainer — so there\'s no trainer message.'**
+  String get coachReportPdfSelfMadeNote;
+
+  /// No description provided for @coachReportPdfSectionInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Coach notes'**
+  String get coachReportPdfSectionInsights;
+
+  /// No description provided for @coachReportPdfNoInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'No pain or negative feedback this week.'**
+  String get coachReportPdfNoInsights;
+
+  /// No description provided for @coachReportPdfInsightSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} ×{count}'**
+  String coachReportPdfInsightSummary(String label, int count);
+
+  /// No description provided for @coachReportPdfInsightMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String coachReportPdfInsightMore(int count);
+
   /// No description provided for @myProfilePetLabel.
   ///
   /// In en, this message translates to:
