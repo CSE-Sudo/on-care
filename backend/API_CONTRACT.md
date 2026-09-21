@@ -202,6 +202,8 @@
 | `locker_month` | 개인 락커 1개월 무료 | 7000 | 30일 | 연결한 헬스장(`GET /me/gym`) 필요, 사용 가능한 쿠폰은 회원당 1장, 교환은 KST 달마다 1회 |
 | `streak_shield` | 연속 기록 보호권(#1788, 쿠폰 아님) | 300 | 없음(0) | 쓰지 않은 보호권 최대 4개, 회원이 포인트 화면에서 사용 |
 | `graph_color` | 그래프 색 바꾸기(#2076, 쿠폰 아님) | 150 | 없음(0) | `option` 에 열 색 하나, 이미 연 색은 409, 모두 열면 목록에서 빠짐 |
+| `emote_pass_24h` | 채팅 이모티콘 24시간(#2020, 쿠폰 아님) | 300 | 24시간 | 이용 중이면 `active_pass` |
+| `profile_pet` | 프로필 펫 이모지(#2021, 쿠폰 아님) | 200 | 7일 | `option` 에 `dog`\|`cat`, 달고 있으면 `active_pet`(409) |
 
 사용 가능한(`issued`, 기한 전) 쿠폰은 **종류마다** 회원당 1장이다 — `(user_id, item) WHERE status='issued'`
 partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으로 막히고, 교환하면 409 다. 사용·만료·취소되면
@@ -212,13 +214,17 @@ partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으�
 돌려받은(`cancelled`) 쿠폰은 세지 않는다.
 
 `items[]`: `{ id, title, benefit, description, cost, valid_days, requires_trainer, requires_gym,
-available, blocked_reason, shortfall }`. `blocked_reason` 은 `no_trainer` → `no_gym` → `active_coupon` →
-`shield_limit` → `monthly_limit` → `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
+available, blocked_reason, shortfall, active_option, active_until, remaining_seconds }`. `blocked_reason` 은
+`no_trainer` → `no_gym` → `active_coupon` → `shield_limit` → `active_pass` → `active_pet` → `monthly_limit` →
+`insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
 포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
 보호권이면 `coupon: null` 과 `shield`, 그래프 색이면 `graph_color` 다(아래 두 절).
 
-`option` 은 항목이 여러 갈래일 때 고른 갈래다 — 지금은 `graph_color` 에서 어느 색을 열지 싣는다. 다른 항목은 보지
-않는다.
+`active_option`·`active_until`·`remaining_seconds` 는 기간제 항목을 쓰고 있을 때 고른 갈래·끝나는 시각·남은 초다 —
+지금은 `profile_pet` 이 달고 있는 펫과 남은 기간을 싣는다(카드가 `강아지 · 5일 남음` 을 적는다). 아니면 null·null·0.
+
+`option` 은 항목이 여러 갈래일 때 고른 갈래다 — `graph_color` 에서 어느 색을 열지, `profile_pet` 에서 어느 펫을 달지
+싣는다. 다른 항목은 보지 않는다.
 
 `coupon`: `{ id, item, title, benefit, cost, status, trainer_name, gym_name, issued_at, issued_on,
 expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당
@@ -319,6 +325,21 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
 - **고르기** `PUT /me/graph-color` 는 포인트가 들지 않는다 — 이미 연 색 사이는 언제든 오간다. `blue` 는 늘 고를 수
   있고(고른 행을 푸는 일이다), 아직 열지 않은 색은 409, 팔레트에 없는 색은 404. 고른 색은 서버에 있어 기기를 바꿔도
   유지된다. 기한은 없다.
+
+### MY 프로필 펫 이모지 (#2021)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| GET | `/me/profile-pet` | 회원(데모 폴백) | `{ pet: {kind, expires_at, remaining_seconds}\|null, cost, days, kinds[] }` |
+| POST | `/me/points/exchange` | 회원 | 입력 `{ item: "profile_pet", option: "dog"\|"cat", client_request_id? }` → **201** `{ coupon: null, profile_pet, spent, balance }` |
+
+MY 탭 프로필 카드의 이름 옆에 강아지나 고양이 하나를 단다. 꾸미기용이고 기능에는 영향이 없다. 그림은 채팅
+이모티콘(#2020)의 강아지·고양이를 앱이 그리고, 서버는 `kind` 만 안다.
+
+- **기간제** 200P 에 산 때부터 7일이다. 끝나는 시각은 서버가 들고 있고(`expires_at`), 스케줄러 없이 조회할 때
+  비교한다 — 지나면 `pet` 이 null 이 되어 저절로 떨어진다. 남은 기간은 `remaining_seconds` 로 준다.
+- **달고 있는 동안에는 다시 사지 못한다.** 사용처 카드가 `active_pet` 으로 막히고 409 다. 모르는 펫·`option` 없음은
+  404, 잔액 부족은 409. 같은 `client_request_id` 재전송은 두 번 쓰지 않는다.
 
 ### 주간 운동 챌린지 (#1789)
 

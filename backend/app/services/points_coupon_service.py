@@ -50,11 +50,13 @@ from app.schemas.points_api import (
     PointsShopOut,
     ShopItemOut,
 )
+from app.schemas.profile_pet_api import ProfilePetOut
 from app.services import (
     emote_service,
     graph_color_service,
     notification_service,
     points_service,
+    profile_pet_service,
     streak_shield_service,
 )
 
@@ -74,6 +76,8 @@ BLOCK_INSUFFICIENT = "insufficient_points"
 BLOCK_SHIELD_LIMIT = "shield_limit"
 #: 이용 중인 이모티콘 이용권이 있다(#2020). 남은 시간이 지나야 다시 산다.
 BLOCK_ACTIVE_PASS = "active_pass"
+#: 기간이 남은 프로필 펫 이모지를 달고 있다(#2021). 기간이 끝나야 다시 산다.
+BLOCK_ACTIVE_PET = "active_pet"
 
 #: 만료 알림을 보내기 시작하는 남은 날 수.
 REMIND_DAYS_BEFORE = 3
@@ -160,6 +164,18 @@ EMOTE_PASS = ShopItem(
     valid_days=1,
 )
 
+#: MY 프로필 펫 이모지(#2021) — 쿠폰이 아니다. 교환하면 고른 펫(강아지·고양이)이
+#: 7일 동안 MY 프로필 이름 옆에 붙는다. 고른 펫은 교환 요청의 `option` 이 싣는다.
+#: 규칙은 `profile_pet_service` 가 들고 있다.
+PROFILE_PET = ShopItem(
+    id=profile_pet_service.ITEM_ID,
+    title="프로필 펫 이모지",
+    benefit="MY 프로필 이름 옆 펫 이모지 7일",
+    description="강아지나 고양이를 골라 7일 동안 MY 프로필 이름 옆에 달아요.",
+    cost=profile_pet_service.COST,
+    valid_days=profile_pet_service.DAYS,
+)
+
 #: 화면에 서는 순서 그대로다.
 CATALOG: tuple[ShopItem, ...] = (
     PT_RENEWAL,
@@ -167,6 +183,7 @@ CATALOG: tuple[ShopItem, ...] = (
     STREAK_SHIELD,
     GRAPH_COLOR,
     EMOTE_PASS,
+    PROFILE_PET,
 )
 _ITEMS: dict[str, ShopItem] = {item.id: item for item in CATALOG}
 
@@ -223,7 +240,7 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
 
     막힌 이유는 하나만 준다. 순서는 교환([exchange])이 거절하는 순서와 같다 —
     자격(담당 없음·헬스장 없음) → 사용 가능한 같은 쿠폰 → 보호권 최대 보유 →
-    이용 중인 이모티콘 이용권 → 이번 달 교환 → 잔액 부족.
+    이용 중인 이모티콘 이용권 → 달고 있는 프로필 펫 → 이번 달 교환 → 잔액 부족.
     """
     from app.services import gym_service, trainer_service
 
@@ -247,6 +264,8 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
     # 이용 중인 이모티콘 이용권이 있으면 또 사지 못한다 — 같은 하루를 두 번 사는
     # 셈이 된다. 남은 시간은 채팅의 고르는 창이 보여 준다(#2020).
     emote_pass_active = emote_service.active_pass(db, member_id) is not None
+    # 달고 있는 펫이 있으면 또 사지 못한다 — 대신 카드가 남은 기간을 보여 준다(#2021).
+    pet = profile_pet_service.pet_out(profile_pet_service.active_pet(db, member_id))
     items: list[ShopItemOut] = []
     for item in CATALOG:
         if item.id == GRAPH_COLOR.id and all_colors:
@@ -266,6 +285,8 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
             blocked = BLOCK_SHIELD_LIMIT
         elif item.id == EMOTE_PASS.id and emote_pass_active:
             blocked = BLOCK_ACTIVE_PASS
+        elif item.id == PROFILE_PET.id and pet is not None:
+            blocked = BLOCK_ACTIVE_PET
         elif item.monthly_limit and _exchanged_this_month(db, member_id, item.id):
             blocked = BLOCK_MONTHLY_LIMIT
         elif shortfall > 0:
@@ -283,11 +304,23 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
                 available=blocked is None,
                 blocked_reason=blocked,
                 shortfall=shortfall,
+                **_active_fields(item, pet),
             )
         )
     return PointsShopOut(
         balance=balance, has_trainer=has_trainer, has_gym=has_gym, items=items
     )
+
+
+def _active_fields(item: ShopItem, pet: ProfilePetOut | None) -> dict[str, object]:
+    """기간제 항목을 쓰고 있으면 카드가 남은 기간을 그릴 값. 아니면 빈 dict."""
+    if item.id == PROFILE_PET.id and pet is not None:
+        return {
+            "active_option": pet.kind,
+            "active_until": pet.expires_at,
+            "remaining_seconds": pet.remaining_seconds,
+        }
+    return {}
 
 
 def list_coupons(db: Session, member_id: str) -> list[CouponOut]:
@@ -335,8 +368,8 @@ def exchange(
     락커 쿠폰은 회원의 헬스장(`GET /me/gym` 과 같은 `member_gyms` 링크) 이름을
     쿠폰에 남긴다.
 
-    [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 지금은 그래프 색(#2076) 하나이고,
-    다른 항목은 보지 않는다.
+    [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 그래프 색(#2076)과 프로필 펫
+    (#2021)이고, 다른 항목은 보지 않는다.
     """
     from app.services import gym_service, trainer_service
 
@@ -346,6 +379,11 @@ def exchange(
     if item.id == GRAPH_COLOR.id:
         # 쿠폰이 아니라 그래프 색 하나가 열린다 — 고른 색은 `option` 이 싣는다(#2076).
         return graph_color_service.exchange(
+            db, member_id, option, client_request_id=client_request_id
+        )
+    if item.id == PROFILE_PET.id:
+        # 쿠폰이 아니라 고른 펫이 7일 동안 이름 옆에 붙는다 — 펫은 `option` 이 싣는다(#2021).
+        return profile_pet_service.exchange(
             db, member_id, option, client_request_id=client_request_id
         )
     if item.id == EMOTE_PASS.id:

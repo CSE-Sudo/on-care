@@ -95,18 +95,20 @@ void main() {
       'graph_color',
       // 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니라 이용권이다.
       'emote_pass_24h',
+      // MY 프로필 펫 이모지(#2021) — 7일 동안 이름 옆에 단다.
+      'profile_pet',
     ]);
     expect(
       shop.items.map((ShopItem i) => i.cost),
-      <int>[21000, 7000, 300, 150, 300],
+      <int>[21000, 7000, 300, 150, 300, 200],
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresTrainer),
-      <bool>[true, false, false, false, false],
+      <bool>[true, false, false, false, false, false],
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresGym),
-      <bool>[false, true, false, false, false],
+      <bool>[false, true, false, false, false, false],
     );
     expect(shop.items.every((ShopItem i) => i.available), isTrue);
 
@@ -119,6 +121,20 @@ void main() {
     items = await shopItems();
     expect(items['locker_month']!.blockReason, ShopBlockReason.noGym);
     expect((await DioBenefitsRepository(dio).fetchShop()).hasGym, isFalse);
+  });
+
+  test('프로필 펫을 달면 이름 옆에 붙고 카드가 남은 기간을 싣는다 (#2021)', () async {
+    final DioBenefitsRepository repo = DioBenefitsRepository(dio);
+    await repo.exchange('profile_pet', option: 'cat');
+
+    expect((await repo.fetchProfilePet())!.kind, 'cat');
+    final ShopItem card = (await shopItems())['profile_pet']!;
+    expect(card.blockReason, ShopBlockReason.activePet);
+    expect(card.remainingSeconds, 7 * 86400);
+
+    now = now.add(const Duration(days: 7));
+    expect(await repo.fetchProfilePet(), isNull);
+    expect((await shopItems())['profile_pet']!.available, isTrue);
   });
 
   test('교환하면 포인트가 빠지고 헬스장이 적힌 쿠폰이 생긴다', () async {

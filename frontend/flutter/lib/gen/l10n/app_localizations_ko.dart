@@ -1297,6 +1297,50 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGraphColorPink => '분홍';
 
   @override
+  String get myShopProfilePetTitle => '프로필 펫 이모지';
+
+  @override
+  String get myShopProfilePetDescription =>
+      '강아지나 고양이를 골라 7일 동안 MY 프로필 이름 옆에 달아요.';
+
+  @override
+  String get myProfilePetDog => '강아지';
+
+  @override
+  String get myProfilePetCat => '고양이';
+
+  @override
+  String get myProfilePetSheetTitle => '이름 옆에 달 펫을 골라요';
+
+  @override
+  String myProfilePetActive(String pet, String left) {
+    return '$pet · $left';
+  }
+
+  @override
+  String myProfilePetDaysLeft(int days) {
+    return '$days일 남음';
+  }
+
+  @override
+  String myProfilePetHoursLeft(int hours) {
+    return '$hours시간 남음';
+  }
+
+  @override
+  String myProfilePetExchangeConfirm(String pet, String cost) {
+    return '$pet를 $cost로 7일 동안 이름 옆에 달까요?';
+  }
+
+  @override
+  String get myProfilePetDone => '이름 옆에 펫을 달았어요';
+
+  @override
+  String myProfilePetLabel(String pet) {
+    return '$pet 펫 이모지';
+  }
+
+  @override
   String myPointsValidDays(int days) {
     return '교환 후 $days일 동안 사용';
   }

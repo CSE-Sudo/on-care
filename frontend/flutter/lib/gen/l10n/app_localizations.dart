@@ -2396,6 +2396,72 @@ abstract class AppLocalizations {
   /// **'Pink'**
   String get myGraphColorPink;
 
+  /// No description provided for @myShopProfilePetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile pet emoji'**
+  String get myShopProfilePetTitle;
+
+  /// No description provided for @myShopProfilePetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a dog or a cat to wear next to your name on MY for 7 days.'**
+  String get myShopProfilePetDescription;
+
+  /// No description provided for @myProfilePetDog.
+  ///
+  /// In en, this message translates to:
+  /// **'Dog'**
+  String get myProfilePetDog;
+
+  /// No description provided for @myProfilePetCat.
+  ///
+  /// In en, this message translates to:
+  /// **'Cat'**
+  String get myProfilePetCat;
+
+  /// No description provided for @myProfilePetSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a pet for your name'**
+  String get myProfilePetSheetTitle;
+
+  /// No description provided for @myProfilePetActive.
+  ///
+  /// In en, this message translates to:
+  /// **'{pet} · {left}'**
+  String myProfilePetActive(String pet, String left);
+
+  /// No description provided for @myProfilePetDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day left} other{{days} days left}}'**
+  String myProfilePetDaysLeft(int days);
+
+  /// No description provided for @myProfilePetHoursLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours, plural, =1{1 hour left} other{{hours} hours left}}'**
+  String myProfilePetHoursLeft(int hours);
+
+  /// No description provided for @myProfilePetExchangeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear the {pet} next to your name for 7 days for {cost}?'**
+  String myProfilePetExchangeConfirm(String pet, String cost);
+
+  /// No description provided for @myProfilePetDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your pet is next to your name'**
+  String get myProfilePetDone;
+
+  /// No description provided for @myProfilePetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{pet} pet emoji'**
+  String myProfilePetLabel(String pet);
+
   /// No description provided for @myPointsValidDays.
   ///
   /// In en, this message translates to:

@@ -613,6 +613,58 @@
   "myGraphColorPurple": "보라",
   "myGraphColorOrange": "주황",
   "myGraphColorPink": "분홍",
+  "myShopProfilePetTitle": "프로필 펫 이모지",
+  "myShopProfilePetDescription": "강아지나 고양이를 골라 7일 동안 MY 프로필 이름 옆에 달아요.",
+  "myProfilePetDog": "강아지",
+  "myProfilePetCat": "고양이",
+  "myProfilePetSheetTitle": "이름 옆에 달 펫을 골라요",
+  "myProfilePetActive": "{pet} · {left}",
+  "@myProfilePetActive": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      },
+      "left": {
+        "type": "String"
+      }
+    }
+  },
+  "myProfilePetDaysLeft": "{days}일 남음",
+  "@myProfilePetDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetHoursLeft": "{hours}시간 남음",
+  "@myProfilePetHoursLeft": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetExchangeConfirm": "{pet}를 {cost}로 7일 동안 이름 옆에 달까요?",
+  "@myProfilePetExchangeConfirm": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myProfilePetDone": "이름 옆에 펫을 달았어요",
+  "myProfilePetLabel": "{pet} 펫 이모지",
+  "@myProfilePetLabel": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      }
+    }
+  },
   "myPointsValidDays": "교환 후 {days}일 동안 사용",
   "@myPointsValidDays": {
     "placeholders": {
