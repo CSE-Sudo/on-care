@@ -192,8 +192,10 @@ class _ExerciseDraft {
     required this.minutes,
     required this.sets,
     required this.reps,
+    required this.holdSeconds,
     required this.weight,
     required this.type,
+    required this.isHold,
   }) : key = _nextKey++;
 
   factory _ExerciseDraft.empty() => _ExerciseDraft(
@@ -201,8 +203,11 @@ class _ExerciseDraft {
     minutes: TextEditingController(text: '10'),
     sets: TextEditingController(text: '3'),
     reps: TextEditingController(text: '10'),
+    holdSeconds: TextEditingController(text: '60'),
     weight: TextEditingController(text: '20'),
     type: kRoutineTypes.first,
+    // 새 줄은 회로 연다 — 버티는 운동은 트레이너가 `초` 칩으로 바꾼다(#1969).
+    isHold: false,
   );
 
   factory _ExerciseDraft.from(TemplateExercise exercise) => _ExerciseDraft(
@@ -214,6 +219,11 @@ class _ExerciseDraft {
     reps: TextEditingController(
       text: exercise.reps > 0 ? '${exercise.reps}' : '10',
     ),
+    holdSeconds: TextEditingController(
+      text: exercise.holdSeconds > 0 ? '${exercise.holdSeconds}' : '60',
+    ),
+    // 저장된 줄이 든 칸이 곧 이 운동을 재는 단위다. (#1969)
+    isHold: exercise.holdSeconds > 0,
     // 중량만 0 을 그대로 연다 — 중량 칸은 비울 수 없어(최솟값 0) 저장된 0 은
     // 트레이너가 적은 맨몸이다. 세트·횟수는 최솟값이 1 이라 0 이 나올 수 없고,
     // 그 0 은 칸이 생기기 전에 저장된 템플릿의 빈자리다.
@@ -230,8 +240,17 @@ class _ExerciseDraft {
   final TextEditingController minutes;
   final TextEditingController sets;
   final TextEditingController reps;
+
+  /// 버티는 운동이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓰지만 컨트롤러는 따로 둔다 — 회↔초를 오갈 때 각자의 값이 남아야
+  /// 한다. (#1969)
+  final TextEditingController holdSeconds;
+
   final TextEditingController weight;
   String type;
+
+  /// 지금 이 줄을 초로 재는가.
+  bool isHold;
 
   /// 이름이 비었거나 시간이 0 이하면 저장 대상이 아니다 — 빈 줄을 남긴 채
   /// 저장을 눌러도 그 줄만 조용히 빠진다.
@@ -247,7 +266,11 @@ class _ExerciseDraft {
       // 비근력은 저장하지 않는다 — 화면에서 숨긴 값이 조용히 실리면
       // 안 쓰는 필드가 남아 있는 것처럼 보인다.
       sets: isStrength ? (int.tryParse(sets.text.trim()) ?? 0) : 0,
-      reps: isStrength ? (int.tryParse(reps.text.trim()) ?? 0) : 0,
+      // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 0 이다(#1969).
+      reps: isStrength && !isHold ? (int.tryParse(reps.text.trim()) ?? 0) : 0,
+      holdSeconds: isStrength && isHold
+          ? (int.tryParse(holdSeconds.text.trim()) ?? 0)
+          : 0,
       weight: isStrength ? (double.tryParse(weight.text.trim()) ?? 0) : 0,
     );
   }
@@ -257,6 +280,7 @@ class _ExerciseDraft {
     minutes.dispose();
     sets.dispose();
     reps.dispose();
+    holdSeconds.dispose();
     weight.dispose();
   }
 }
@@ -300,6 +324,20 @@ class _ExerciseRow extends StatelessWidget {
               ),
             ],
           ),
+          if (isStrength) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: RoutineMeasureToggle(
+                keyPrefix: 'template-measure-${draft.key}',
+                isHold: draft.isHold,
+                onChanged: (bool hold) {
+                  draft.isHold = hold;
+                  onChanged();
+                },
+              ),
+            ),
+          ],
           const SizedBox(height: OnCareSpacing.s4),
           // 근력은 세트·횟수·중량으로, 그 외 유형은 시간으로 잰다
           // (#1029, #1310). 숫자 칸은 이름 아래 제 줄에 둔다 — 한 줄에 넷을
@@ -319,10 +357,14 @@ class _ExerciseRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
+                // 버티는 운동은 `횟수` 자리를 `버티는 시간` 이 대신한다 —
+                // 칸을 하나 더 두지 않고 바꿔 가며 쓴다(#1969).
                 Expanded(
                   child: AppTextField(
-                    controller: draft.reps,
-                    label: l.programEditorReps,
+                    controller: draft.isHold ? draft.holdSeconds : draft.reps,
+                    label: draft.isHold
+                        ? l.routineFieldHold
+                        : l.programEditorReps,
                     keyboardType: TextInputType.number,
                     inputFormatters: <TextInputFormatter>[
                       FilteringTextInputFormatter.digitsOnly,

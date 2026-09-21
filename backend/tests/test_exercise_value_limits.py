@@ -22,6 +22,7 @@ from app.schemas.exercise_api import (
     ExerciseSessionCreate,
 )
 from app.schemas.exercise_limits import (
+    MAX_EXERCISE_HOLD_SECONDS,
     MAX_EXERCISE_REPS,
     MAX_EXERCISE_SETS,
     MAX_EXERCISE_WEIGHT_KG,
@@ -40,6 +41,9 @@ SCHEMAS: list[type[BaseModel]] = [
 EXPECTED = {
     "sets": MAX_EXERCISE_SETS,
     "reps": MAX_EXERCISE_REPS,
+    # 홀드 초도 두 앱이 주고받는 같은 값이다 — 트레이너가 배정할 수 있는
+    # 초를 회원이 자기 앱에서 적을 수 없으면 안 된다. (#1969)
+    "hold_seconds": MAX_EXERCISE_HOLD_SECONDS,
     "weight": MAX_EXERCISE_WEIGHT_KG,
 }
 

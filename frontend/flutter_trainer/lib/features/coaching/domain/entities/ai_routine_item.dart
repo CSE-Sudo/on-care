@@ -10,6 +10,7 @@ class AiRoutineItem {
     required this.reason,
     this.sets = 0,
     this.reps = 0,
+    this.holdSeconds = 0,
     this.weight = 0,
   });
 
@@ -33,5 +34,11 @@ class AiRoutineItem {
   /// 값이 없어 0 으로 읽힌다.
   final int sets;
   final int reps;
+
+  /// 버티는 운동이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓴다 — 있으면 횟수가 0 이고, 없으면 반대다. 0 이 "적지 않음" 이다.
+  /// (#1969)
+  final int holdSeconds;
+
   final double weight;
 }

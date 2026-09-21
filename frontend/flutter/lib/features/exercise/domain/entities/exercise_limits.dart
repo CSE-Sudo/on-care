@@ -19,3 +19,9 @@ const int kMaxExerciseReps = 999;
 
 /// 근력 한 기록의 중량 상한(kg). 레그프레스처럼 세 자리 kg 을 쓰는 종목이 있다.
 const double kMaxExerciseWeightKg = 1000;
+
+/// 등척성 홀드 한 세트의 버티는 시간 상한(초). 한 시간이다. (#1969)
+///
+/// 플랭크·행잉처럼 버티는 운동은 한 세트를 회가 아니라 초로 잰다. 한 세트가
+/// 한 시간을 넘으면 그것은 홀드가 아니라 다른 운동이다.
+const int kMaxExerciseHoldSeconds = 3600;

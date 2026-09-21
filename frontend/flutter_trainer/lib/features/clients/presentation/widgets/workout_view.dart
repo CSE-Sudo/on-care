@@ -796,7 +796,11 @@ String _pendingRoutineAmountLabel(AppLocalizations l, AssignedRoutine routine) {
   if (routine.type != '근력') return l.minutesShort(routine.minutes);
   final List<String> parts = <String>[
     if (routine.sets != null) l.progSetsValue(routine.sets!),
-    if (routine.reps != null) l.progRepsValue(routine.reps!),
+    // 버티는 운동은 회가 아니라 초로 읽는다 — 둘은 배타다(#1969).
+    if (routine.holdSeconds != null)
+      l.progHoldValue(routine.holdSeconds!)
+    else if (routine.reps != null)
+      l.progRepsValue(routine.reps!),
     if (routine.weight != null)
       '${_trimZero(routine.weight!)}${l.routineUnitKg}',
   ];
@@ -965,11 +969,17 @@ class _PendingRoutineRowState extends ConsumerState<_PendingRoutineRow> {
 String clientExerciseLine(AppLocalizations l, ClientExerciseItem item) {
   final int? sets = item.sets;
   final int? reps = item.reps;
+  final int? holdSeconds = item.holdSeconds;
   final double? weight = item.weight;
   final List<String> parts = <String>[
     item.name,
     if (sets != null && sets > 0) l.progSetsValue(sets),
-    if (reps != null && reps > 0) l.progRepsValue(reps),
+    // 버티는 운동은 `3세트 · 60초` 로 읽는다 — 한 세트를 두 단위로 적지
+    // 않으므로 회와 함께 서지 않는다(#1969).
+    if (holdSeconds != null && holdSeconds > 0)
+      l.progHoldValue(holdSeconds)
+    else if (reps != null && reps > 0)
+      l.progRepsValue(reps),
     if (weight != null && weight > 0)
       '${_trimZeroKg(weight)}${l.routineUnitKg}',
     if (sets == null && item.minutes > 0) l.minutesShort(item.minutes),

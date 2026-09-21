@@ -1514,6 +1514,18 @@ abstract class AppLocalizations {
   /// **'Reps'**
   String get exExerciseReps;
 
+  /// No description provided for @exExerciseHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold time'**
+  String get exExerciseHold;
+
+  /// No description provided for @exExerciseMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Measured in'**
+  String get exExerciseMeasure;
+
   /// No description provided for @exExerciseWeight.
   ///
   /// In en, this message translates to:
@@ -1537,6 +1549,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'reps'**
   String get exUnitReps;
+
+  /// No description provided for @exUnitSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'sec'**
+  String get exUnitSeconds;
 
   /// No description provided for @exUnitKg.
   ///

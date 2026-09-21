@@ -64,6 +64,7 @@ class _SavingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async {
     saved = true;
@@ -104,6 +105,7 @@ class _SavingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async => throw UnimplementedError();
 }

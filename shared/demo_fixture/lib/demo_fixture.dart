@@ -131,6 +131,7 @@ class FixtureExercise {
     required this.done,
     this.sets,
     this.reps,
+    this.holdSeconds,
     this.weight,
   });
 
@@ -143,6 +144,7 @@ class FixtureExercise {
         done: json['done']! as bool,
         sets: (json['sets'] as num?)?.toInt(),
         reps: (json['reps'] as num?)?.toInt(),
+        holdSeconds: (json['holdSeconds'] as num?)?.toInt(),
         weight: (json['weight'] as num?)?.toDouble(),
       );
 
@@ -162,6 +164,12 @@ class FixtureExercise {
   /// 근력 항목의 **한 세트당 횟수**. 세트·중량과 한 벌이다(#1310) — 셋이 다
   /// 있어야 지난주에 무엇을 했는지 그대로 되짚는다.
   final int? reps;
+
+  /// 버티는 운동이면 한 세트를 **버틴 시간**(초). 플랭크처럼 회가 아니라 초로
+  /// 재는 종목이고, 이때 [reps] 는 null 이다 — 한 세트를 두 단위로 적지
+  /// 않는다(#1969). 이 칸이 생기기 전에는 담을 자리가 없어 `플랭크 60초` 처럼
+  /// **이름에** 적었고, 이름에 적힌 글자는 어떤 집계에도 잡히지 않았다.
+  final int? holdSeconds;
 
   /// 근력 항목의 **중량**(kg). 맨몸 운동은 `0` 이다 — 근력이면 언제나 값을
   /// 하나 든다(#1902). 예전에는 이 값이 이름 문자열에만 있어(`레그프레스 70kg`)
@@ -260,6 +268,7 @@ class FixtureRoutine {
     required this.source,
     this.sets,
     this.reps,
+    this.holdSeconds,
     this.weight,
   });
 
@@ -272,6 +281,7 @@ class FixtureRoutine {
     source: json['source']! as String,
     sets: (json['sets'] as num?)?.toInt(),
     reps: (json['reps'] as num?)?.toInt(),
+    holdSeconds: (json['holdSeconds'] as num?)?.toInt(),
     weight: (json['weight'] as num?)?.toDouble(),
   );
 
@@ -295,6 +305,10 @@ class FixtureRoutine {
   /// 값을 `0kg` 으로 적으면 트레이너가 정해 준 무게처럼 읽힌다.
   final int? sets;
   final int? reps;
+
+  /// 버티는 배정이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓴다 — 있으면 횟수가 비고, 없으면 반대다. (#1969)
+  final int? holdSeconds;
   final double? weight;
 }
 

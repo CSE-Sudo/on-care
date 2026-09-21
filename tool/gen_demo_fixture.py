@@ -259,7 +259,7 @@ PT_SESSIONS: dict[int, tuple[int, str, str, list[tuple]]] = {
          "데드리프트 힙힌지 안정적. 중량 55kg 유지 후 다음 달 60kg.",
          [("데드리프트 55kg · 4세트", "strength", 12, 4, 8),
           ("루마니안 데드리프트 40kg · 3세트", "strength", 9, 3, 10),
-          ("플랭크 45초 · 3세트", "strength", 6, 3, 3),
+          ("플랭크", "strength", 6, 3, None, 45),
           ("마무리 러닝머신 12분", "cardio", 12),
           ("허리 스트레칭 10분", "stretching", 10)]),
     17: (2, "어깨가 아직 조금 불편해서 무게를 낮췄어요.",
@@ -470,12 +470,13 @@ RECENT: list[dict] = [
         # 보는 같은 세션에는 있었다.
         #
         # 플랭크는 버티는 운동이라 횟수가 없다 — 한 세트에 얼마나 버텼는지가
-        # 값이다. `3회` 로 적으면 세트 수를 횟수 칸에 옮겨 적은 것처럼 읽힌다.
+        # 값이고, 그 초는 `holdSeconds` 칸에 든다(#1969). 칸이 없던 동안에는
+        # 이름에 적을 수밖에 없었다.
         "exercises": [
             ("벤치프레스 4세트 · 10회 · 40kg", "strength", 12, True, 4, 10),
             ("덤벨 숄더프레스 4세트 · 12회 · 10kg", "strength", 10, True, 4, 12),
             ("랫풀다운 4세트 · 12회 · 45kg", "strength", 12, True, 4, 12),
-            ("플랭크 3세트 · 60초", "strength", 6, True, 3),
+            ("플랭크", "strength", 6, True, 3, None, 60),
         ],
         "meals": [
             (B_EGG, "seed-diet-breakfast", "08:20",
@@ -561,6 +562,7 @@ def _exercise(
     done: bool,
     sets: int | None = None,
     reps: int | None = None,
+    hold_seconds: int | None = None,
 ) -> dict:
     entry = {
         "name": name,
@@ -574,6 +576,11 @@ def _exercise(
         entry["sets"] = sets
     if reps is not None:
         entry["reps"] = reps
+    # 버티는 운동은 회가 아니라 초로 잰다(#1969). `reps` 와 한 자리를 나눠
+    # 쓰므로 한 줄이 둘을 함께 들지 않는다 — 담을 칸이 없던 동안 홀드는
+    # `플랭크 3세트 · 60초` 처럼 **이름에** 적혀 어떤 집계에도 잡히지 않았다.
+    if hold_seconds is not None:
+        entry["holdSeconds"] = hold_seconds
     return entry
 
 

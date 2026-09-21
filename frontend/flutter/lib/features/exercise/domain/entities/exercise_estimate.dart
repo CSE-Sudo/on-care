@@ -33,6 +33,7 @@ class ExerciseCalorieEstimate {
     required this.calories,
     this.source = ExerciseCalorieSource.estimate,
     this.matchedName = '',
+    this.isometric = false,
   });
 
   factory ExerciseCalorieEstimate.fromJson(Map<String, Object?> json) =>
@@ -40,6 +41,7 @@ class ExerciseCalorieEstimate {
         calories: (json['calories'] as num?)?.toInt() ?? 0,
         source: ExerciseCalorieSource.fromJson(json['source']),
         matchedName: (json['matched_name'] as String?) ?? '',
+        isometric: (json['isometric'] as bool?) ?? false,
       );
 
   final int calories;
@@ -48,6 +50,13 @@ class ExerciseCalorieEstimate {
   /// 값을 계산한 종목의 대표 이름. 회원이 적은 말과 다를 수 있어("런닝머신" →
   /// "러닝머신") 무엇으로 계산했는지 화면이 보여 준다. 폴백이면 비어 있다.
   final String matchedName;
+
+  /// 이 이름이 **버티는 운동**인가 — 플랭크처럼 한 세트를 회가 아니라 초로
+  /// 재는 종목이다(#1969). 폼이 `횟수` 칸을 `초` 칸으로 바꿔 보이는
+  /// **기본값**이고, 종목표에 없는 자유 입력 이름도 있으므로 회원이 곧바로
+  /// 바꿀 수 있다. 칼로리와 함께 오는 이유는 폼이 이름을 다 적은 그 시점에
+  /// 이미 이 요청을 보내기 때문이다.
+  final bool isometric;
 }
 
 /// 유형별 분당 칼로리 — **이름이 붙지 않을 때의 폴백**이다. 백엔드

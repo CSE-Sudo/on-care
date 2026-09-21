@@ -70,6 +70,7 @@ class _AwardingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async => ExerciseSession(
     id: 'added',
@@ -96,6 +97,7 @@ class _AwardingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async => ExerciseSession(
     id: id,

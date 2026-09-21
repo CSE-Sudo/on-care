@@ -3368,6 +3368,12 @@ abstract class AppLocalizations {
   /// **'{sets, plural, =1{1 set} other{{sets} sets}}'**
   String progSetsValue(int sets);
 
+  /// No description provided for @progHoldValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} sec'**
+  String progHoldValue(int seconds);
+
   /// No description provided for @progRepsValue.
   ///
   /// In en, this message translates to:
@@ -4034,6 +4040,18 @@ abstract class AppLocalizations {
   /// **'Reps'**
   String get routineFieldReps;
 
+  /// No description provided for @routineFieldHold.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold time'**
+  String get routineFieldHold;
+
+  /// No description provided for @routineFieldMeasure.
+  ///
+  /// In en, this message translates to:
+  /// **'Measured in'**
+  String get routineFieldMeasure;
+
   /// No description provided for @routineFieldWeight.
   ///
   /// In en, this message translates to:
@@ -4075,6 +4093,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'reps'**
   String get routineUnitReps;
+
+  /// No description provided for @routineUnitSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'sec'**
+  String get routineUnitSeconds;
 
   /// No description provided for @routineUnitKg.
   ///
@@ -6304,12 +6328,6 @@ abstract class AppLocalizations {
   /// **'Distance m'**
   String get programEditorDistance;
 
-  /// No description provided for @programEditorRest.
-  ///
-  /// In en, this message translates to:
-  /// **'Rest sec'**
-  String get programEditorRest;
-
   /// No description provided for @programEditorExerciseMemo.
   ///
   /// In en, this message translates to:
@@ -6939,6 +6957,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{sets} sets · {reps} reps · {weight}kg'**
   String aiStrengthSummary(int sets, int reps, String weight);
+
+  /// No description provided for @aiHoldSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{sets} sets · {seconds} sec · {weight}kg'**
+  String aiHoldSummary(int sets, int seconds, String weight);
 
   /// No description provided for @routineFormDecrease.
   ///

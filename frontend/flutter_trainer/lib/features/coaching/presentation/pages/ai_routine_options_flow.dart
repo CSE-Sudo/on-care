@@ -9,6 +9,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dar
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/exercise_estimate.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_form_fields.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
@@ -73,6 +74,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   // [_newExerciseMinutes] 를 그대로 쓴다.
   int _newExerciseSets = 3;
   int _newExerciseReps = 10;
+  int _newExerciseHoldSeconds = 60;
+
+  /// 새 운동 줄을 초로 재는가 — 위 목록의 항목과 같은 규칙이다. (#1969)
+  bool _newExerciseIsHold = false;
+
+  /// 트레이너가 새 운동 줄의 회↔초를 직접 골랐는가.
+  bool _newExerciseMeasureChosen = false;
   double _newExerciseWeight = 20;
 
   /// Whether the trainer has touched minutes/intensity directly (#776),
@@ -91,6 +99,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   int _maxReachedStage = 0;
   String _selectedKey = 'A';
   List<RoutineExercise> _edited = <RoutineExercise>[];
+
+  /// 트레이너가 회↔초를 직접 고른 항목의 자리. 고른 뒤에는 이름이 바뀌어도
+  /// 종목표가 그 선택을 덮지 않는다 — 종목표는 기본값일 뿐이다. (#1969)
+  final Set<int> _measureChosen = <int>{};
 
   @override
   void dispose() {
@@ -215,7 +227,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           minutes: _newExerciseMinutes,
           type: _newExerciseType,
           sets: isStrength ? _newExerciseSets : 0,
-          reps: isStrength ? _newExerciseReps : 0,
+          // 한 세트는 회로든 초로든 한 번만 잰다 — 고르지 않은 쪽은 0 이다.
+          // (#1969)
+          reps: isStrength && !_newExerciseIsHold ? _newExerciseReps : 0,
+          holdSeconds: isStrength && _newExerciseIsHold
+              ? _newExerciseHoldSeconds
+              : 0,
+          isHold: isStrength && _newExerciseIsHold,
           weight: isStrength ? _newExerciseWeight : 0,
         ),
       );
@@ -224,6 +242,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       _newExerciseMinutes = 30;
       _newExerciseSets = 3;
       _newExerciseReps = 10;
+      _newExerciseHoldSeconds = 60;
+      _newExerciseIsHold = false;
+      _newExerciseMeasureChosen = false;
       _newExerciseWeight = 20;
       _showAddExercise = false;
     });
@@ -997,9 +1018,33 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             initialValue: exercise.name,
             hint: l.progExerciseName,
             onChanged: (name) {
-              _edited[index] = _edited[index].copyWith(name: name);
+              // 이름이 버티는 운동이면 `횟수` 칸이 `버티는 시간` 으로
+              // 바뀐다(#1969). 트레이너가 직접 고른 뒤에는 덮지 않는다 —
+              // 그 선택은 `_measureChosen` 이 기억한다.
+              _edited[index] = _edited[index].copyWith(
+                name: name,
+                isHold: _measureChosen.contains(index)
+                    ? null
+                    : isIsometricExerciseName(name),
+              );
             },
           ),
+          if (exercise.type == '근력') ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            // 한 세트를 회로 잴지 초로 잴지. 이름 해석이 기본값을 주고,
+            // 고르는 것은 트레이너다(#1969).
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: RoutineMeasureToggle(
+                keyPrefix: 'routine-measure-$_selectedKey-$index',
+                isHold: exercise.isHold,
+                onChanged: (bool hold) => setState(() {
+                  _measureChosen.add(index);
+                  _edited[index] = _edited[index].copyWith(isHold: hold);
+                }),
+              ),
+            ),
+          ],
           const SizedBox(height: OnCareSpacing.s8),
           // 근력은 세트·횟수·중량을 한 줄에, 그 외 유형은 시간 한 칸으로
           // 잰다(#1029, #1310, #1489). 다른 편집 화면과 같은 compact 입력을
@@ -1020,16 +1065,36 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                   ),
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
+                // 버티는 운동은 `횟수` 자리를 `버티는 시간` 이 대신한다 —
+                // 칸을 하나 더 두지 않고 바꿔 가며 쓴다(#1969).
                 Expanded(
-                  child: RoutineRepsField(
-                    key: ValueKey<String>('routine-reps-$_selectedKey-$index'),
-                    keyPrefix: 'routine-reps-$_selectedKey-$index',
-                    reps: exercise.reps > 0 ? exercise.reps : 10,
-                    compact: true,
-                    onChanged: (reps) => setState(() {
-                      _edited[index] = _edited[index].copyWith(reps: reps);
-                    }),
-                  ),
+                  child: exercise.isHold
+                      ? RoutineHoldSecondsField(
+                          key: ValueKey<String>(
+                            'routine-hold-$_selectedKey-$index',
+                          ),
+                          keyPrefix: 'routine-hold-$_selectedKey-$index',
+                          holdSeconds: exercise.holdSeconds > 0
+                              ? exercise.holdSeconds
+                              : 60,
+                          compact: true,
+                          onChanged: (seconds) => setState(() {
+                            _edited[index] = _edited[index].copyWith(
+                              holdSeconds: seconds,
+                            );
+                          }),
+                        )
+                      : RoutineRepsField(
+                          key: ValueKey<String>(
+                            'routine-reps-$_selectedKey-$index',
+                          ),
+                          keyPrefix: 'routine-reps-$_selectedKey-$index',
+                          reps: exercise.reps > 0 ? exercise.reps : 10,
+                          compact: true,
+                          onChanged: (reps) => setState(() {
+                            _edited[index] = _edited[index].copyWith(reps: reps);
+                          }),
+                        ),
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
@@ -1078,6 +1143,12 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             controller: _newExerciseName,
             label: l.progExerciseName,
             hint: l.aiExerciseNameExample,
+            // 이름이 버티는 운동이면 `횟수` 칸이 `버티는 시간` 으로 바뀐다 —
+            // 트레이너가 직접 고른 뒤에는 덮지 않는다(#1969).
+            onChanged: (String name) {
+              if (_newExerciseMeasureChosen) return;
+              setState(() => _newExerciseIsHold = isIsometricExerciseName(name));
+            },
           ),
           const SizedBox(height: OnCareSpacing.s12),
           RoutineCategoryChips(
@@ -1085,6 +1156,20 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             value: _newExerciseType,
             onChanged: (type) => setState(() => _newExerciseType = type),
           ),
+          if (_newExerciseType == '근력') ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: RoutineMeasureToggle(
+                keyPrefix: 'new-exercise-measure',
+                isHold: _newExerciseIsHold,
+                onChanged: (bool hold) => setState(() {
+                  _newExerciseMeasureChosen = true;
+                  _newExerciseIsHold = hold;
+                }),
+              ),
+            ),
+          ],
           const SizedBox(height: OnCareSpacing.s8),
           // 근력은 세트·횟수·중량을 한 줄에, 그 외 유형은 시간 한 칸으로
           // 잰다(#1029, #1310, #1489).
@@ -1103,14 +1188,24 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
-                  child: RoutineRepsField(
-                    key: const ValueKey<String>('new-exercise-reps'),
-                    keyPrefix: 'new-exercise-reps',
-                    reps: _newExerciseReps,
-                    compact: true,
-                    onChanged: (reps) =>
-                        setState(() => _newExerciseReps = reps),
-                  ),
+                  child: _newExerciseIsHold
+                      ? RoutineHoldSecondsField(
+                          key: const ValueKey<String>('new-exercise-hold'),
+                          keyPrefix: 'new-exercise-hold',
+                          holdSeconds: _newExerciseHoldSeconds,
+                          compact: true,
+                          onChanged: (seconds) => setState(
+                            () => _newExerciseHoldSeconds = seconds,
+                          ),
+                        )
+                      : RoutineRepsField(
+                          key: const ValueKey<String>('new-exercise-reps'),
+                          keyPrefix: 'new-exercise-reps',
+                          reps: _newExerciseReps,
+                          compact: true,
+                          onChanged: (reps) =>
+                              setState(() => _newExerciseReps = reps),
+                        ),
                 ),
                 const SizedBox(width: OnCareSpacing.s8),
                 Expanded(
@@ -1357,9 +1452,15 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 ///
 /// 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 트레이너가 적은
 /// 값이다.
+///
+/// 버티는 운동은 횟수 자리에 초가 선다 — `3세트 · 60초 · 0kg`. 한 세트를 두
+/// 단위로 적지 않으므로 둘이 한 줄에 함께 서지 않는다. (#1969)
 String _strengthSummary(AppLocalizations l, RoutineExercise exercise) {
   final double w = exercise.weight;
   final String weight = w == w.roundToDouble() ? '${w.round()}' : '$w';
+  if (exercise.isHold) {
+    return l.aiHoldSummary(exercise.sets, exercise.holdSeconds, weight);
+  }
   return l.aiStrengthSummary(exercise.sets, exercise.reps, weight);
 }
 

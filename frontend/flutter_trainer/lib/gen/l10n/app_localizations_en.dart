@@ -1893,6 +1893,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String progHoldValue(int seconds) {
+    return '$seconds sec';
+  }
+
+  @override
   String progRepsValue(int reps) {
     String _temp0 = intl.Intl.pluralLogic(
       reps,
@@ -2266,6 +2271,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineFieldReps => 'Reps';
 
   @override
+  String get routineFieldHold => 'Hold time';
+
+  @override
+  String get routineFieldMeasure => 'Measured in';
+
+  @override
   String get routineFieldWeight => 'Weight';
 
   @override
@@ -2286,6 +2297,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get routineUnitReps => 'reps';
+
+  @override
+  String get routineUnitSeconds => 'sec';
 
   @override
   String get routineUnitKg => 'kg';
@@ -3609,9 +3623,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programEditorDistance => 'Distance m';
 
   @override
-  String get programEditorRest => 'Rest sec';
-
-  @override
   String get programEditorExerciseMemo => 'Memo';
 
   @override
@@ -4002,6 +4013,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String aiStrengthSummary(int sets, int reps, String weight) {
     return '$sets sets · $reps reps · ${weight}kg';
+  }
+
+  @override
+  String aiHoldSummary(int sets, int seconds, String weight) {
+    return '$sets sets · $seconds sec · ${weight}kg';
   }
 
   @override

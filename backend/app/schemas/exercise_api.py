@@ -3,11 +3,13 @@ from __future__ import annotations
 from datetime import date as date_, datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.exercise_limits import (
+    MAX_EXERCISE_HOLD_SECONDS,
     MAX_EXERCISE_MINUTES,
     MAX_EXERCISE_REPS,
+    MAX_EXERCISE_SECONDS,
     MAX_EXERCISE_SETS,
     MAX_EXERCISE_WEIGHT_KG,
 )
@@ -39,6 +41,12 @@ class ExerciseSessionOut(BaseModel):
     reps: int | None = None
     #: 근력 기록의 중량(kg). 세트와 짝이라 근력에만 있다. (#1276)
     weight: float | None = None
+    #: 등척성 홀드 한 세트를 버틴 시간(초). 버티는 운동이면 이 값이 있고
+    #: `reps` 가 비며, 아니면 반대다 — 한 세트를 두 단위로 적지 않는다(#1969).
+    hold_seconds: int | None = None
+    #: 이 운동에 쓴 시간(초). `minutes` 와 같은 것을 더 잘게 잰 값이고, 초를
+    #: 모르는 옛 기록은 None 이다 — 그때는 `minutes × 60` 으로 읽는다. (#1969)
+    duration_seconds: int | None = None
     calories: int
     #: 이 칼로리의 근거 — db=종목 참조표+체중, mixed=이름 해석만 AI, estimate=유형
     #: 평균 어림값. 식단(`RecognizedFood.source`)과 같은 어휘다(#1312). 기본값이
@@ -130,7 +138,16 @@ class ExerciseSessionCreate(BaseModel):
     name: str = Field(default="", max_length=100)
     #: 이 운동에 쓴 시간(분). 상한은 [MAX_EXERCISE_MINUTES] — 예전에는 상한이
     #: 없어 앱을 거치지 않으면 하루 10만 분짜리 기록도 그대로 저장됐다(#1903).
-    minutes: int = Field(..., gt=0, le=MAX_EXERCISE_MINUTES)
+    #: 이 운동에 쓴 시간(분). [duration_seconds] 를 보내면 생략할 수 있고, 그때는
+    #: 서버가 초에서 계산해 채운다. 둘 다 없으면 422 다.
+    minutes: int | None = Field(None, gt=0, le=MAX_EXERCISE_MINUTES)
+    #: 이 운동에 쓴 시간(초). 회원이 시·분·초로 적으면 그 값이 그대로 온다
+    #: (#1969, #2071). 분만으로는 45초짜리 운동을 적을 수 없었다.
+    #:
+    #: `minutes` 와 함께 와도 다투지 않는다 — 초가 있으면 그쪽이 맞고, 분은
+    #: 서버가 다시 계산한다. 두 값이 어긋난 채 저장되면 같은 기록이 화면마다
+    #: 다른 길이로 읽힌다.
+    duration_seconds: int | None = Field(None, gt=0, le=MAX_EXERCISE_SECONDS)
     #: 근력이면 회원이 적은 세트 수. 다른 유형에서 와도 저장하지 않는다 —
     #: 유산소를 세트로 세는 화면은 없다. (#1262)
     sets: int | None = Field(None, gt=0, le=MAX_EXERCISE_SETS)
@@ -139,6 +156,11 @@ class ExerciseSessionCreate(BaseModel):
     reps: int | None = Field(None, gt=0, le=MAX_EXERCISE_REPS)
     #: 근력이면 중량(kg). 세트와 같은 규칙으로, 다른 유형에서 와도 버린다.
     weight: float | None = Field(None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
+    #: 버티는 운동이면 한 세트를 버틴 시간(초). `reps` 와 한 자리를 나눠 쓰므로
+    #: 이 값이 오면 서버가 `reps` 를 비운다 — 45초 홀드를 "3회" 라고 적는 일이
+    #: 이 칸이 없어서 생겼다(#1969). 세트·횟수와 같은 규칙으로 근력이 아닌
+    #: 유형에서 와도 버린다.
+    hold_seconds: int | None = Field(None, gt=0, le=MAX_EXERCISE_HOLD_SECONDS)
     #: **서버가 다시 계산한다.** 받아 두는 이유는 이 필드를 채워 보내는 옛
     #: 클라이언트를 422 로 막지 않기 위해서다 — 값은 쓰지 않는다(#1312).
     #: 앱이 화면에 띄우는 미리보기는 `POST /exercise/calories` 로 같은 계산을
@@ -148,6 +170,23 @@ class ExerciseSessionCreate(BaseModel):
     #: 이 운동을 한 날. 생략하면 오늘이다. 예전 `day_label`(요일 문자열)은 어느
     #: 주인지를 담지 못해, 지난 날짜를 골라도 늘 이번 주로 저장됐다.
     date: date_ | None = None
+
+    @model_validator(mode="after")
+    def _minutes_from_seconds(self) -> ExerciseSessionCreate:
+        """분과 초를 한 값으로 맞춘다. (#1969, #2071)
+
+        초가 있으면 초가 맞고 분은 여기서 파생된다 — 주간 집계·트레이너웹이 분을
+        읽으므로 분 칸은 늘 채워져 있어야 하고, 두 값이 다른 길이를 말하면 같은
+        기록이 화면마다 다르게 읽힌다.
+
+        1초짜리 운동도 0분이 되지 않는다. `minutes > 0` 이 저장의 전제이고,
+        회원이 적어 넣은 기록이 반올림 때문에 422 로 떨어지면 안 된다.
+        """
+        if self.duration_seconds is not None:
+            self.minutes = max(1, round(self.duration_seconds / 60))
+        elif self.minutes is None:
+            raise ValueError("minutes 또는 duration_seconds 중 하나는 있어야 합니다.")
+        return self
 
 
 class ExerciseCalorieRequest(BaseModel):
@@ -175,6 +214,11 @@ class ExerciseCalorieResponse(BaseModel):
     #: 값을 계산한 종목의 대표 이름("런닝머신" → "러닝머신"). 폴백이면 빈 문자열.
     #: 회원이 적은 말과 다를 수 있어, 화면이 무엇으로 계산했는지 보여 준다.
     matched_name: str = ""
+    #: 이 이름이 버티는 운동인가 — 폼이 `횟수` 대신 `초` 를 물을지의 **기본값**
+    #: 이다(#1969). 칼로리와 함께 내려 주는 이유는 폼이 이미 이름을 다 적은
+    #: 시점에 이 요청을 보내기 때문이다 — 같은 걸 묻는 요청을 하나 더 두면
+    #: 이름 한 번에 두 번 왕복한다. 사용자가 폼에서 바꿀 수 있다.
+    isometric: bool = False
 
 
 class AssignedRoutineCompleteRequest(BaseModel):
@@ -186,6 +230,8 @@ class AssignedRoutineCompleteRequest(BaseModel):
     sets: int | None = Field(None, gt=0, le=MAX_EXERCISE_SETS)
     reps: int | None = Field(None, gt=0, le=MAX_EXERCISE_REPS)
     weight: float | None = Field(None, ge=0, le=MAX_EXERCISE_WEIGHT_KG)
+    #: 버티는 루틴이면 실제로 버틴 시간(초). `reps` 와 한 자리를 나눠 쓴다. (#1969)
+    hold_seconds: int | None = Field(None, gt=0, le=MAX_EXERCISE_HOLD_SECONDS)
     intensity: ExerciseIntensityIn = "moderate"
     #: 개인 운동 피드백은 없앴다(#1825). 옛 앱이 보내도 422 가 나지 않게 받기만 하고
     #: 저장하지 않는다.

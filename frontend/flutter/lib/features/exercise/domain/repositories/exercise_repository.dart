@@ -36,10 +36,14 @@ abstract class ExerciseRepository {
   /// Persist a new workout session (POST /exercise/sessions) and return
   /// the created session as the server materialised it.
   ///
-  /// [sets]·[reps]·[weight] 는 근력 기록에만 있는 값이다 — 근력은 시간이
-  /// 아니라 세트·횟수·무게로 읽는 운동이라 회원이 적은 수를 그대로 싣는다.
-  /// 다른 유형은 null 이고, 서버도 근력이 아닌 기록에서는 이 값들을 버린다.
-  /// (#1262, #1276, #1310)
+  /// [sets]·[reps]·[holdSeconds]·[weight] 는 근력 기록에만 있는 값이다 —
+  /// 근력은 시간이 아니라 세트·횟수·무게로 읽는 운동이라 회원이 적은 수를
+  /// 그대로 싣는다. 다른 유형은 null 이고, 서버도 근력이 아닌 기록에서는 이
+  /// 값들을 버린다. (#1262, #1276, #1310)
+  ///
+  /// [holdSeconds] 는 플랭크처럼 **버티는** 운동이 한 세트를 버틴 시간이고,
+  /// [reps] 와 한 자리를 나눠 쓴다 — 이 값을 실으면 서버가 횟수를 비운다.
+  /// 한 세트를 회로든 초로든 한 번만 잰다(#1969).
   ///
   /// [date] 는 회원이 달력에서 고른 날이다. 생략하면 서버가 오늘로 둔다.
   Future<ExerciseSession> addSession({
@@ -51,6 +55,7 @@ abstract class ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   });
 
@@ -68,6 +73,7 @@ abstract class ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   });
 }

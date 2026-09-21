@@ -1052,6 +1052,28 @@ class $ExerciseSessionsTable extends ExerciseSessions
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _holdSecondsMeta = const VerificationMeta(
+    'holdSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> holdSeconds = GeneratedColumn<int>(
+    'hold_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _durationSecondsMeta = const VerificationMeta(
+    'durationSeconds',
+  );
+  @override
+  late final GeneratedColumn<int> durationSeconds = GeneratedColumn<int>(
+    'duration_seconds',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _weightMeta = const VerificationMeta('weight');
   @override
   late final GeneratedColumn<double> weight = GeneratedColumn<double>(
@@ -1106,6 +1128,8 @@ class $ExerciseSessionsTable extends ExerciseSessions
     minutes,
     sets,
     reps,
+    holdSeconds,
+    durationSeconds,
     weight,
     calories,
     intensity,
@@ -1178,6 +1202,24 @@ class $ExerciseSessionsTable extends ExerciseSessions
         reps.isAcceptableOrUnknown(data['reps']!, _repsMeta),
       );
     }
+    if (data.containsKey('hold_seconds')) {
+      context.handle(
+        _holdSecondsMeta,
+        holdSeconds.isAcceptableOrUnknown(
+          data['hold_seconds']!,
+          _holdSecondsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('duration_seconds')) {
+      context.handle(
+        _durationSecondsMeta,
+        durationSeconds.isAcceptableOrUnknown(
+          data['duration_seconds']!,
+          _durationSecondsMeta,
+        ),
+      );
+    }
     if (data.containsKey('weight')) {
       context.handle(
         _weightMeta,
@@ -1245,6 +1287,14 @@ class $ExerciseSessionsTable extends ExerciseSessions
         DriftSqlType.int,
         data['${effectivePrefix}reps'],
       ),
+      holdSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hold_seconds'],
+      ),
+      durationSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_seconds'],
+      ),
       weight: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}weight'],
@@ -1287,7 +1337,17 @@ class ExerciseSessionRow extends DataClass
   final int? sets;
 
   /// 근력 기록의 한 세트당 횟수. 세트·중량과 한 벌이라 근력에만 있다. (#1310)
+  /// 버티는 운동이면 대신 [holdSeconds] 가 차고 이 칸이 빈다.
   final int? reps;
+
+  /// 버티는 운동이면 한 세트를 버틴 시간(초). 플랭크처럼 회가 아니라 초로 재는
+  /// 기록이고, 이때 [reps] 는 null 이다 — 한 세트를 두 단위로 적지 않는다.
+  /// (#1969)
+  final int? holdSeconds;
+
+  /// 이 운동에 쓴 시간(초). [minutes] 와 같은 것을 더 잘게 잰 값이고, 초를
+  /// 모르는 기록은 null 이다 — 그때는 `minutes × 60` 으로 읽는다. (#1969, #2071)
+  final int? durationSeconds;
 
   /// 근력 기록의 중량(kg). 세트와 짝이라 근력에만 있다. (#1276)
   final double? weight;
@@ -1303,6 +1363,8 @@ class ExerciseSessionRow extends DataClass
     required this.minutes,
     this.sets,
     this.reps,
+    this.holdSeconds,
+    this.durationSeconds,
     this.weight,
     required this.calories,
     required this.intensity,
@@ -1323,6 +1385,12 @@ class ExerciseSessionRow extends DataClass
     if (!nullToAbsent || reps != null) {
       map['reps'] = Variable<int>(reps);
     }
+    if (!nullToAbsent || holdSeconds != null) {
+      map['hold_seconds'] = Variable<int>(holdSeconds);
+    }
+    if (!nullToAbsent || durationSeconds != null) {
+      map['duration_seconds'] = Variable<int>(durationSeconds);
+    }
     if (!nullToAbsent || weight != null) {
       map['weight'] = Variable<double>(weight);
     }
@@ -1342,6 +1410,12 @@ class ExerciseSessionRow extends DataClass
       minutes: Value(minutes),
       sets: sets == null && nullToAbsent ? const Value.absent() : Value(sets),
       reps: reps == null && nullToAbsent ? const Value.absent() : Value(reps),
+      holdSeconds: holdSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(holdSeconds),
+      durationSeconds: durationSeconds == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationSeconds),
       weight: weight == null && nullToAbsent
           ? const Value.absent()
           : Value(weight),
@@ -1365,6 +1439,8 @@ class ExerciseSessionRow extends DataClass
       minutes: serializer.fromJson<int>(json['minutes']),
       sets: serializer.fromJson<int?>(json['sets']),
       reps: serializer.fromJson<int?>(json['reps']),
+      holdSeconds: serializer.fromJson<int?>(json['holdSeconds']),
+      durationSeconds: serializer.fromJson<int?>(json['durationSeconds']),
       weight: serializer.fromJson<double?>(json['weight']),
       calories: serializer.fromJson<int>(json['calories']),
       intensity: serializer.fromJson<String>(json['intensity']),
@@ -1383,6 +1459,8 @@ class ExerciseSessionRow extends DataClass
       'minutes': serializer.toJson<int>(minutes),
       'sets': serializer.toJson<int?>(sets),
       'reps': serializer.toJson<int?>(reps),
+      'holdSeconds': serializer.toJson<int?>(holdSeconds),
+      'durationSeconds': serializer.toJson<int?>(durationSeconds),
       'weight': serializer.toJson<double?>(weight),
       'calories': serializer.toJson<int>(calories),
       'intensity': serializer.toJson<String>(intensity),
@@ -1399,6 +1477,8 @@ class ExerciseSessionRow extends DataClass
     int? minutes,
     Value<int?> sets = const Value.absent(),
     Value<int?> reps = const Value.absent(),
+    Value<int?> holdSeconds = const Value.absent(),
+    Value<int?> durationSeconds = const Value.absent(),
     Value<double?> weight = const Value.absent(),
     int? calories,
     String? intensity,
@@ -1412,6 +1492,10 @@ class ExerciseSessionRow extends DataClass
     minutes: minutes ?? this.minutes,
     sets: sets.present ? sets.value : this.sets,
     reps: reps.present ? reps.value : this.reps,
+    holdSeconds: holdSeconds.present ? holdSeconds.value : this.holdSeconds,
+    durationSeconds: durationSeconds.present
+        ? durationSeconds.value
+        : this.durationSeconds,
     weight: weight.present ? weight.value : this.weight,
     calories: calories ?? this.calories,
     intensity: intensity ?? this.intensity,
@@ -1427,6 +1511,12 @@ class ExerciseSessionRow extends DataClass
       minutes: data.minutes.present ? data.minutes.value : this.minutes,
       sets: data.sets.present ? data.sets.value : this.sets,
       reps: data.reps.present ? data.reps.value : this.reps,
+      holdSeconds: data.holdSeconds.present
+          ? data.holdSeconds.value
+          : this.holdSeconds,
+      durationSeconds: data.durationSeconds.present
+          ? data.durationSeconds.value
+          : this.durationSeconds,
       weight: data.weight.present ? data.weight.value : this.weight,
       calories: data.calories.present ? data.calories.value : this.calories,
       intensity: data.intensity.present ? data.intensity.value : this.intensity,
@@ -1445,6 +1535,8 @@ class ExerciseSessionRow extends DataClass
           ..write('minutes: $minutes, ')
           ..write('sets: $sets, ')
           ..write('reps: $reps, ')
+          ..write('holdSeconds: $holdSeconds, ')
+          ..write('durationSeconds: $durationSeconds, ')
           ..write('weight: $weight, ')
           ..write('calories: $calories, ')
           ..write('intensity: $intensity, ')
@@ -1463,6 +1555,8 @@ class ExerciseSessionRow extends DataClass
     minutes,
     sets,
     reps,
+    holdSeconds,
+    durationSeconds,
     weight,
     calories,
     intensity,
@@ -1480,6 +1574,8 @@ class ExerciseSessionRow extends DataClass
           other.minutes == this.minutes &&
           other.sets == this.sets &&
           other.reps == this.reps &&
+          other.holdSeconds == this.holdSeconds &&
+          other.durationSeconds == this.durationSeconds &&
           other.weight == this.weight &&
           other.calories == this.calories &&
           other.intensity == this.intensity &&
@@ -1495,6 +1591,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
   final Value<int> minutes;
   final Value<int?> sets;
   final Value<int?> reps;
+  final Value<int?> holdSeconds;
+  final Value<int?> durationSeconds;
   final Value<double?> weight;
   final Value<int> calories;
   final Value<String> intensity;
@@ -1509,6 +1607,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     this.minutes = const Value.absent(),
     this.sets = const Value.absent(),
     this.reps = const Value.absent(),
+    this.holdSeconds = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
     this.weight = const Value.absent(),
     this.calories = const Value.absent(),
     this.intensity = const Value.absent(),
@@ -1524,6 +1624,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     required int minutes,
     this.sets = const Value.absent(),
     this.reps = const Value.absent(),
+    this.holdSeconds = const Value.absent(),
+    this.durationSeconds = const Value.absent(),
     this.weight = const Value.absent(),
     required int calories,
     this.intensity = const Value.absent(),
@@ -1544,6 +1646,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     Expression<int>? minutes,
     Expression<int>? sets,
     Expression<int>? reps,
+    Expression<int>? holdSeconds,
+    Expression<int>? durationSeconds,
     Expression<double>? weight,
     Expression<int>? calories,
     Expression<String>? intensity,
@@ -1559,6 +1663,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
       if (minutes != null) 'minutes': minutes,
       if (sets != null) 'sets': sets,
       if (reps != null) 'reps': reps,
+      if (holdSeconds != null) 'hold_seconds': holdSeconds,
+      if (durationSeconds != null) 'duration_seconds': durationSeconds,
       if (weight != null) 'weight': weight,
       if (calories != null) 'calories': calories,
       if (intensity != null) 'intensity': intensity,
@@ -1576,6 +1682,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     Value<int>? minutes,
     Value<int?>? sets,
     Value<int?>? reps,
+    Value<int?>? holdSeconds,
+    Value<int?>? durationSeconds,
     Value<double?>? weight,
     Value<int>? calories,
     Value<String>? intensity,
@@ -1591,6 +1699,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
       minutes: minutes ?? this.minutes,
       sets: sets ?? this.sets,
       reps: reps ?? this.reps,
+      holdSeconds: holdSeconds ?? this.holdSeconds,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
       weight: weight ?? this.weight,
       calories: calories ?? this.calories,
       intensity: intensity ?? this.intensity,
@@ -1626,6 +1736,12 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
     if (reps.present) {
       map['reps'] = Variable<int>(reps.value);
     }
+    if (holdSeconds.present) {
+      map['hold_seconds'] = Variable<int>(holdSeconds.value);
+    }
+    if (durationSeconds.present) {
+      map['duration_seconds'] = Variable<int>(durationSeconds.value);
+    }
     if (weight.present) {
       map['weight'] = Variable<double>(weight.value);
     }
@@ -1655,6 +1771,8 @@ class ExerciseSessionsCompanion extends UpdateCompanion<ExerciseSessionRow> {
           ..write('minutes: $minutes, ')
           ..write('sets: $sets, ')
           ..write('reps: $reps, ')
+          ..write('holdSeconds: $holdSeconds, ')
+          ..write('durationSeconds: $durationSeconds, ')
           ..write('weight: $weight, ')
           ..write('calories: $calories, ')
           ..write('intensity: $intensity, ')
@@ -2600,6 +2718,8 @@ typedef $$ExerciseSessionsTableCreateCompanionBuilder =
       required int minutes,
       Value<int?> sets,
       Value<int?> reps,
+      Value<int?> holdSeconds,
+      Value<int?> durationSeconds,
       Value<double?> weight,
       required int calories,
       Value<String> intensity,
@@ -2616,6 +2736,8 @@ typedef $$ExerciseSessionsTableUpdateCompanionBuilder =
       Value<int> minutes,
       Value<int?> sets,
       Value<int?> reps,
+      Value<int?> holdSeconds,
+      Value<int?> durationSeconds,
       Value<double?> weight,
       Value<int> calories,
       Value<String> intensity,
@@ -2669,6 +2791,16 @@ class $$ExerciseSessionsTableFilterComposer
 
   ColumnFilters<int> get reps => $composableBuilder(
     column: $table.reps,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get holdSeconds => $composableBuilder(
+    column: $table.holdSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2742,6 +2874,16 @@ class $$ExerciseSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get holdSeconds => $composableBuilder(
+    column: $table.holdSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get weight => $composableBuilder(
     column: $table.weight,
     builder: (column) => ColumnOrderings(column),
@@ -2795,6 +2937,16 @@ class $$ExerciseSessionsTableAnnotationComposer
 
   GeneratedColumn<int> get reps =>
       $composableBuilder(column: $table.reps, builder: (column) => column);
+
+  GeneratedColumn<int> get holdSeconds => $composableBuilder(
+    column: $table.holdSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get durationSeconds => $composableBuilder(
+    column: $table.durationSeconds,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<double> get weight =>
       $composableBuilder(column: $table.weight, builder: (column) => column);
@@ -2854,6 +3006,8 @@ class $$ExerciseSessionsTableTableManager
                 Value<int> minutes = const Value.absent(),
                 Value<int?> sets = const Value.absent(),
                 Value<int?> reps = const Value.absent(),
+                Value<int?> holdSeconds = const Value.absent(),
+                Value<int?> durationSeconds = const Value.absent(),
                 Value<double?> weight = const Value.absent(),
                 Value<int> calories = const Value.absent(),
                 Value<String> intensity = const Value.absent(),
@@ -2868,6 +3022,8 @@ class $$ExerciseSessionsTableTableManager
                 minutes: minutes,
                 sets: sets,
                 reps: reps,
+                holdSeconds: holdSeconds,
+                durationSeconds: durationSeconds,
                 weight: weight,
                 calories: calories,
                 intensity: intensity,
@@ -2884,6 +3040,8 @@ class $$ExerciseSessionsTableTableManager
                 required int minutes,
                 Value<int?> sets = const Value.absent(),
                 Value<int?> reps = const Value.absent(),
+                Value<int?> holdSeconds = const Value.absent(),
+                Value<int?> durationSeconds = const Value.absent(),
                 Value<double?> weight = const Value.absent(),
                 required int calories,
                 Value<String> intensity = const Value.absent(),
@@ -2898,6 +3056,8 @@ class $$ExerciseSessionsTableTableManager
                 minutes: minutes,
                 sets: sets,
                 reps: reps,
+                holdSeconds: holdSeconds,
+                durationSeconds: durationSeconds,
                 weight: weight,
                 calories: calories,
                 intensity: intensity,

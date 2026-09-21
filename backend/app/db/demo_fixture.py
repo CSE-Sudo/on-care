@@ -109,6 +109,10 @@ class FixtureExercise:
     #: 보였다(분에서 되짚은 수와 픽스처가 적어 둔 수가 달랐다). (#1265)
     sets: int | None = None
     reps: int | None = None
+    #: 버티는 운동이면 한 세트를 버틴 시간(초). 플랭크처럼 회가 아니라 초로
+    #: 재는 종목이고, 이때 `reps` 는 None 이다(#1969). 이 칸이 생기기 전에는
+    #: 담을 자리가 없어 `플랭크 60초` 처럼 **이름에** 적었다.
+    hold_seconds: int | None = None
     #: 근력 항목의 중량(kg). 맨몸 운동은 0 이다 — 근력이면 언제나 값을 하나
     #: 든다(#1902). 예전에는 이 값이 이름 문자열에만 있어(`레그프레스 70kg`),
     #: 이름을 쓰는 화면과 필드를 읽는 화면이 같은 기록을 다르게 말했다.
@@ -142,6 +146,9 @@ class FixtureRoutine:
     #: — 유형마다 재는 단위가 다르다. 맨몸 운동은 중량만 비어 있다.
     sets: int | None = None
     reps: int | None = None
+    #: 버티는 배정이면 한 세트를 버티는 시간(초). `reps` 와 한 자리를 나눠
+    #: 쓴다. (#1969)
+    hold_seconds: int | None = None
     weight: float | None = None
 
 
@@ -236,6 +243,7 @@ class DemoFixture:
                 source=item["source"],
                 sets=item.get("sets"),
                 reps=item.get("reps"),
+                hold_seconds=item.get("holdSeconds"),
                 weight=item.get("weight"),
             )
             for item in payload.get("routines", ())
@@ -280,6 +288,7 @@ class DemoFixture:
                     done=item["done"],
                     sets=item.get("sets"),
                     reps=item.get("reps"),
+                    hold_seconds=item.get("holdSeconds"),
                 )
                 for item in entry["exercises"]
             ),

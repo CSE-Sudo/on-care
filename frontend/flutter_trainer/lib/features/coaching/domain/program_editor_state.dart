@@ -139,6 +139,8 @@ class ProgramExerciseDraft {
     this.minutes = 30,
     this.sets = 3,
     this.reps = 10,
+    this.holdSeconds = 60,
+    this.isHold = false,
     this.weight = 20,
     this.intensity = 'moderate',
     this.memo = '',
@@ -160,6 +162,17 @@ class ProgramExerciseDraft {
   /// 오갈 때 각자의 값이 남는다 — 하나로 쓰면 30분이 30세트가 되어 돌아온다.
   final int sets;
   final int reps;
+
+  /// 버티는 운동이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓰지만 값은 따로 들고 있어야, 회↔초를 오갈 때 각자의 값이 남는다 —
+  /// 한 칸을 같이 쓰면 10회가 10초로 돌아온다. (#1969)
+  final int holdSeconds;
+
+  /// 지금 이 운동을 초로 재는가. 저장 형태에서는 어느 칸이 찼는지가 곧 이
+  /// 값이고, 편집 중에는 이름 해석이 기본값을 주되 트레이너가 고른 것이
+  /// 이긴다.
+  final bool isHold;
+
   final double weight;
 
   /// 운동 강도 계약값('light'|'moderate'|'high').
@@ -201,6 +214,8 @@ class ProgramExerciseDraft {
     int? minutes,
     int? sets,
     int? reps,
+    int? holdSeconds,
+    bool? isHold,
     double? weight,
     String? intensity,
     String? memo,
@@ -214,6 +229,8 @@ class ProgramExerciseDraft {
     minutes: minutes ?? this.minutes,
     sets: sets ?? this.sets,
     reps: reps ?? this.reps,
+    holdSeconds: holdSeconds ?? this.holdSeconds,
+    isHold: isHold ?? this.isHold,
     weight: weight ?? this.weight,
     intensity: intensity ?? this.intensity,
     memo: memo ?? this.memo,

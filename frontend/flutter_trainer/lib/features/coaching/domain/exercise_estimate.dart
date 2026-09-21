@@ -70,3 +70,22 @@ RoutineCalorieEstimate? estimateRoutineCalories({
     calories: (perMinute * (minutes < 0 ? 0 : minutes) * factor).round(),
   );
 }
+
+/// 버티는 운동으로 알려진 종목 이름 조각 — 서버 종목표의 `isometric` 표시를
+/// 앱이 보는 벌이다. 원본은 `backend/app/data/exercise_catalog_seed.py` 이고,
+/// 이 목록은 서버에 닿지 못하는 자리(데모·목업)와 응답이 오기 전의 **기본값**
+/// 으로만 쓴다. (#1969)
+///
+/// 이름 조각으로 보는 이유는 회원이 적는 말이 종목 이름 그대로가 아니기
+/// 때문이다 — `사이드 플랭크`, `플랭크 홀드` 가 모두 같은 종목이다.
+const List<String> kIsometricNameParts = <String>['플랭크', 'plank'];
+
+/// [name] 이 버티는 운동인가 — 폼이 `횟수` 대신 `초` 를 물을지의 **기본값**.
+///
+/// 맞고 틀리고를 여기서 끝내지 않는다. 종목표에 없는 이름도 있고 같은 이름을
+/// 다르게 쓰는 사람도 있어, 폼은 이 값으로 칸을 고르되 사용자가 곧바로 바꿀
+/// 수 있어야 한다.
+bool isIsometricExerciseName(String name) {
+  final String normalized = name.toLowerCase().replaceAll(' ', '');
+  return kIsometricNameParts.any(normalized.contains);
+}

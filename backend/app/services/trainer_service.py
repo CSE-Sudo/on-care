@@ -1260,6 +1260,7 @@ def _routine_out(
         intensity=intensity,
         sets=getattr(rt, "sets", None),
         reps=getattr(rt, "reps", None),
+        hold_seconds=getattr(rt, "hold_seconds", None),
         weight=getattr(rt, "weight", None),
         # 예상 소모 칼로리 — 트레이너가 고른 강도로 계산한다. 회원이 수행을
         # 마치면 그때의 강도로 다시 계산한 값이 운동 기록에 남는다. (#996)
@@ -1307,6 +1308,7 @@ def create_routine_suggestion(
     reason: str,
     sets: int | None = None,
     reps: int | None = None,
+    hold_seconds: int | None = None,
     weight: float | None = None,
     evidence: Sequence[str] | None = None,
     client_request_id: str | None = None,
@@ -1341,7 +1343,10 @@ def create_routine_suggestion(
         # 규칙이다. 승인하면 이 행이 그대로 배정이 되므로 여기서 규칙이 갈리면
         # 승인 전후로 값이 달라진다. (#1321)
         sets=sets if type_ == "근력" else None,
-        reps=reps if type_ == "근력" else None,
+        # 버티는 운동이면 초가 맞고 횟수는 비운다 — 한 세트를 두 단위로 적지
+        # 않는다(#1969).
+        reps=reps if type_ == "근력" and hold_seconds is None else None,
+        hold_seconds=hold_seconds if type_ == "근력" else None,
         weight=round(weight, 1) if weight is not None and type_ == "근력" else None,
         reason=reason,
         source="ai",
@@ -1422,6 +1427,7 @@ def approve_routine_suggestion(
     type_: str | None = None,
     sets: int | None = None,
     reps: int | None = None,
+    hold_seconds: int | None = None,
     weight: float | None = None,
     reason: str | None = None,
 ) -> RoutineOut:
@@ -1443,6 +1449,8 @@ def approve_routine_suggestion(
         row.sets = sets
     if reps is not None:
         row.reps = reps
+    if hold_seconds is not None:
+        row.hold_seconds = hold_seconds
     if weight is not None:
         row.weight = round(weight, 1)
     # 유형을 근력이 아닌 것으로 바꿔 승인하면 세트·횟수·중량을 지운다 — 남겨
@@ -1451,7 +1459,11 @@ def approve_routine_suggestion(
     if row.type != "근력":
         row.sets = None
         row.reps = None
+        row.hold_seconds = None
         row.weight = None
+    elif row.hold_seconds is not None:
+        # 버티는 운동으로 승인하면 횟수를 지운다. (#1969)
+        row.reps = None
     row.status = ROUTINE_APPROVED
     row.reviewed_at = clock.now()
     row.reviewed_by = trainer_id
@@ -1465,7 +1477,8 @@ def approve_routine_suggestion(
         title="새 운동 루틴이 배정되었어요",
         body=f"{row.name} · " + _amount_label(
             row.type, minutes=row.minutes,
-            sets=row.sets, reps=row.reps, weight=row.weight,
+            sets=row.sets, reps=row.reps, hold_seconds=row.hold_seconds,
+            weight=row.weight,
         ),
     )
     db.commit()
@@ -1495,6 +1508,7 @@ def complete_assigned_routine(
     minutes: int,
     sets: int | None = None,
     reps: int | None = None,
+    hold_seconds: int | None = None,
     weight: float | None = None,
     intensity: str,
 ) -> RoutineCompleteOut:
@@ -1529,7 +1543,15 @@ def complete_assigned_routine(
     # 트레이너도 회원도 적은 적 없는 수를 그린다. (#1276, #1310)
     sets = sets if sets is not None else getattr(routine, "sets", None)
     reps = reps if reps is not None else getattr(routine, "reps", None)
+    hold_seconds = (
+        hold_seconds if hold_seconds is not None
+        else getattr(routine, "hold_seconds", None)
+    )
     weight = weight if weight is not None else getattr(routine, "weight", None)
+    # 회원이 초로 적었으면 횟수는 뜻이 없다 — 배정에 남아 있던 옛 횟수가
+    # 함께 따라오면 한 세트가 두 단위로 적힌다. (#1969)
+    if hold_seconds is not None:
+        reps = None
     assigned_estimate = exercise_service.estimate(
         db,
         name=routine.name,
@@ -1551,6 +1573,9 @@ def complete_assigned_routine(
         # 그래프가 두 기록을 같은 축으로 읽는다. (#1276, #1310)
         sets=sets if exercise_type == exercise_types.STRENGTH else None,
         reps=reps if exercise_type == exercise_types.STRENGTH else None,
+        hold_seconds=(
+            hold_seconds if exercise_type == exercise_types.STRENGTH else None
+        ),
         weight=(
             round(weight, 1)
             if weight is not None and exercise_type == exercise_types.STRENGTH
@@ -1714,7 +1739,8 @@ def _assigned_history_out(row: ExerciseSession) -> RoutineHistoryOut:
             f"{row.assigned_routine_name or row.type} · "
             + _amount_label(
                 row.type, minutes=row.minutes,
-                sets=row.sets, reps=row.reps, weight=row.weight,
+                sets=row.sets, reps=row.reps, hold_seconds=row.hold_seconds,
+            weight=row.weight,
             )
             + f" · {row.intensity}"
         ],
@@ -1746,6 +1772,7 @@ def assign_routine(
     intensity: str = "moderate",
     sets: int | None = None,
     reps: int | None = None,
+    hold_seconds: int | None = None,
     weight: float | None = None,
 ) -> RoutineOut:
     """회원에게 루틴 배정. 로스터 last_routine 은 build_roster 가 최신 루틴을 읽어 반영.
@@ -1779,7 +1806,10 @@ def assign_routine(
         # 세트·횟수·중량은 근력에만 남긴다 — 운동 기록과 같은 규칙이다.
         # (#1276, #1310)
         sets=sets if type_ == "근력" else None,
-        reps=reps if type_ == "근력" else None,
+        # 버티는 운동이면 초가 맞고 횟수는 비운다 — 한 세트를 두 단위로 적지
+        # 않는다(#1969).
+        reps=reps if type_ == "근력" and hold_seconds is None else None,
+        hold_seconds=hold_seconds if type_ == "근력" else None,
         weight=round(weight, 1) if weight is not None and type_ == "근력" else None,
         reason=reason,
         source=source,
@@ -1812,7 +1842,8 @@ def assign_routine(
         category=notification_service.MEMBER_ROUTINE,
         title="새 운동 루틴이 배정되었어요",
         body=f"{name} · " + _amount_label(
-            type_, minutes=minutes, sets=sets, reps=reps, weight=weight,
+            type_, minutes=minutes, sets=sets, reps=reps,
+            hold_seconds=hold_seconds, weight=weight,
         ),
     )
     db.commit()
@@ -2638,6 +2669,7 @@ def _program_items(program_json: str) -> list[ProgramItem]:
             # (#1276, #1310).
             sets=m.get("sets"),
             reps=m.get("reps"),
+            hold_seconds=m.get("hold_seconds"),
             weight=m.get("weight"),
             duration=m.get("duration"),
             date=m.get("date"),
@@ -2658,7 +2690,11 @@ def _program_item_label(item: ProgramItem) -> str:
     """
     if item.type == "근력":
         parts = [f"{item.sets}세트"] if item.sets else []
-        if item.reps:
+        # 버티는 운동은 회가 아니라 초로 읽는다 — `플랭크 3세트 60초`. 둘은
+        # 배타라 한 줄에 함께 서지 않는다. (#1969)
+        if item.hold_seconds:
+            parts.append(f"{item.hold_seconds}초")
+        elif item.reps:
             parts.append(f"{item.reps}회")
         # 맨몸 운동은 `0kg` 이다 — 두 앱의 중량 칸은 비울 수 없어(최솟값 0)
         # 근력이면 언제나 값을 하나 든다. 값이 아예 없는 것은 이 규칙이 서기
@@ -2677,6 +2713,7 @@ def _amount_label(
     sets: int | None,
     reps: int | None,
     weight: float | None,
+    hold_seconds: int | None = None,
 ) -> str:
     """운동 한 줄이 말하는 **양**. 근력은 세트·횟수·중량, 나머지는 시간이다.
 
@@ -2695,7 +2732,10 @@ def _amount_label(
     if exercise_types.normalize(type_) != exercise_types.STRENGTH or sets is None:
         return f"{minutes}분"
     parts = [f"{sets}세트"]
-    if reps:
+    # 버티는 운동은 초로 읽는다 — `플랭크 · 3세트 · 60초`. (#1969)
+    if hold_seconds:
+        parts.append(f"{hold_seconds}초")
+    elif reps:
         parts.append(f"{reps}회")
     # 맨몸 운동은 `0kg` 이다 — 중량 칸을 비울 수 없으므로 0 도 적은 값이다.
     if weight is not None:
@@ -3253,6 +3293,7 @@ def _schedule_program_items(
             duration=exercise.duration,
             sets=exercise.sets,
             reps=exercise.reps,
+            hold_seconds=exercise.hold_seconds,
             weight=exercise.weight,
             intensity=exercise.intensity,
             session=session.name if multi else "",
@@ -3719,6 +3760,9 @@ def _add_member_exercise_log(
     # 횟수는 세트와 달리 더하지 않는다 — 한 세트당 수라 합계는 아무도 한 적 없는
     # 수가 된다. 중량과 같은 규칙으로 가장 많이 한 수를 그날의 기록으로 남긴다.
     rep_counts = [i.reps for i in strength_items if i.reps]
+    # 버티는 종목의 홀드도 같은 규칙이다 — 합계는 아무도 버틴 적 없는 시간이라
+    # 가장 오래 버틴 값을 그날의 기록으로 남긴다. (#1969)
+    hold_counts = [i.hold_seconds for i in strength_items if i.hold_seconds]
     # 항목마다 강도가 다르면 세션 하나로 접을 값이 없다 — 그럴 때만 기본값이다.
     marked = {i.intensity for i in items}
     intensity = marked.pop() if len(marked) == 1 else _PT_INTENSITY
@@ -3751,7 +3795,13 @@ def _add_member_exercise_log(
         sets=sets if ex_type == exercise_types.STRENGTH else None,
         reps=(
             max(rep_counts)
-            if rep_counts and ex_type == exercise_types.STRENGTH
+            if rep_counts and not hold_counts
+            and ex_type == exercise_types.STRENGTH
+            else None
+        ),
+        hold_seconds=(
+            max(hold_counts)
+            if hold_counts and ex_type == exercise_types.STRENGTH
             else None
         ),
         # 여러 운동을 한 세션이면 가장 무거웠던 무게가 그날의 기록이다 —
@@ -3815,6 +3865,7 @@ def send_session_program(
             duration=item.duration,
             sets=item.sets,
             reps=item.reps,
+            hold_seconds=item.hold_seconds,
             weight=item.weight,
             intensity=item.intensity,
         )

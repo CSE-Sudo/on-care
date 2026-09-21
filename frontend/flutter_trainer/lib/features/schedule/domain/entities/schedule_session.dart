@@ -16,6 +16,7 @@ class ProgramItem {
     this.duration,
     this.sets,
     this.reps,
+    this.holdSeconds,
     this.weight,
     this.intensity = 'moderate',
     this.session = '',
@@ -38,6 +39,11 @@ class ProgramItem {
   /// 근력의 세트 수·한 세트당 횟수·중량(kg). 다른 유형은 null 이다.
   final int? sets;
   final int? reps;
+
+  /// 버티는 운동이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓴다 — 있으면 횟수가 비고, 없으면 반대다. 칸이 없던 동안 트레이너는
+  /// `플랭크 3세트 · 60초` 를 **이름에** 적을 수밖에 없었다. (#1969)
+  final int? holdSeconds;
   final double? weight;
 
   /// 운동 강도 계약값('light'|'moderate'|'high').
@@ -61,7 +67,9 @@ class ProgramItem {
     date: date,
     duration: type == '근력' ? null : duration,
     sets: type == '근력' ? sets : null,
-    reps: type == '근력' ? reps : null,
+    // 한 세트는 회로든 초로든 한 번만 잰다 — 초가 있으면 횟수를 버린다(#1969).
+    reps: type == '근력' && holdSeconds == null ? reps : null,
+    holdSeconds: type == '근력' ? holdSeconds : null,
     weight: type == '근력' ? weight : null,
     intensity: intensity,
     session: session,

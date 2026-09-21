@@ -65,6 +65,7 @@ Map<String, Object?> programItemToJson(ProgramItem raw) {
     'duration': item.duration,
     'sets': item.sets,
     'reps': item.reps,
+    'hold_seconds': item.holdSeconds,
     'weight': item.weight,
     'intensity': item.intensity,
     'session': item.session,
@@ -97,6 +98,7 @@ ProgramItem programItemFromJson(Map<String, Object?> entry) => ProgramItem(
   duration: looseInt(entry['duration']),
   sets: looseInt(entry['sets']),
   reps: looseInt(entry['reps']),
+  holdSeconds: looseInt(entry['hold_seconds']),
   weight: looseDouble(entry['weight']),
   intensity:
       entry['intensity'] is String && (entry['intensity'] as String).isNotEmpty

@@ -47,6 +47,7 @@ class _FakeSuggestionRepository implements TrainerRoutineSuggestionRepository {
     String? type,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
     String? reason,
   }) async {

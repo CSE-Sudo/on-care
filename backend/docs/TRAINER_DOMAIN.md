@@ -260,7 +260,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 |---|---|---|
 | 초안 | `session_name` + `exercises_json` | `sessions_json`(세션 배열, 순서 = 배열 순서) |
 | 배정 | 프로그램 전체가 루틴 **한 건** | 세션당 루틴 한 건 + `program_name`/`session_name`/`session_order`/`exercises_json` |
-| 일정 | `program_json` = `[{name,sets,reps,weight}]` | 항목에 `session` 추가(없으면 빈 문자열) |
+| 일정 | `program_json` = `[{name,sets,reps,hold_seconds,weight}]` | 항목에 `session` 추가(없으면 빈 문자열) |
 
 **세션이 하나뿐인 프로그램은 예전과 같은 모양이다** — 루틴 이름이 프로그램
 이름이고 `session_name` 이 비어 회원 화면에 없던 세션 라벨이 생기지 않는다.
@@ -270,6 +270,33 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 `{key}#{index}` 로 나눠 저장하는데, `(trainer, member, client_request_id)` 유니크
 제약이 한 키로 여러 행을 허용하지 않기 때문이다. 재시도는 먼저 배정된 세션들을
 그대로 돌려준다 — 반쯤 겹친 배정이 남지 않는다.
+
+### 버티는 운동의 초 (#1969)
+
+플랭크·행잉처럼 **버티는** 운동은 한 세트를 몇 회가 아니라 몇 초로 잰다. 그 초를
+담을 칸이 어디에도 없어, 트레이너는 `플랭크 3세트 · 60초` 를 **이름에** 적을
+수밖에 없었고 이름에 적힌 글자는 어떤 집계에도 잡히지 않았다. 45초 홀드가
+`reps: 3` 으로 적힌 데이터도 남아 있었다 — 45초를 "3회" 라고 말하는 값이다.
+
+`0082_isometric_hold_seconds` 가 `hold_seconds` 를 네 곳에 같은 이름으로 열었다:
+`trainer_routines`·`exercise_sessions` 컬럼과, `ProgramDraftExercise`·
+`ProgramItem`·`ProgramTemplateExercise`·`RoutineOut` 스키마다.
+
+**`reps` 와 한 자리를 나눠 쓴다.** 버티는 운동이면 `hold_seconds` 가 있고 `reps`
+가 비며, 아니면 반대다 — 한 세트를 두 단위로 적으면 어느 쪽이 맞는지 알 수 없다.
+둘이 함께 오면 서버가 초를 믿고 횟수를 버린다(`_drop_fields_not_in_type`,
+`_reps_and_hold`): 초를 보내는 쪽은 이 칸을 아는 클라이언트이고, 횟수는 칸이
+없던 시절처럼 초를 억지로 담아 보낸 값일 수 있다.
+
+**어느 종목이 버티는 운동인지는 종목 참조표가 말한다.** `exercise_catalog.isometric`
+이 그 표시이고 시드(`exercise_catalog_seed.py`)에서 온다. 이 값은 폼이 `횟수` 칸을
+`초` 칸으로 바꿔 보이는 **기본값**일 뿐이고(`POST /exercise/calories` 응답의
+`isometric`), 표에 없는 자유 입력 이름이 있으므로 트레이너·회원이 폼에서 곧바로
+바꿀 수 있다.
+
+**주간 집계는 초를 세지 않는다.** 홀드도 세트로 세어 `strength_sets` 에 그대로
+들어가고(`sets_of`), 초는 그 세트가 얼마짜리였는지를 말할 뿐이다. 초는 분으로도
+세트로도 곧바로 환산되지 않아, 새 집계 축을 만드는 대신 지금 축을 그대로 둔다.
 
 ### 반복 PT 일정 (#870)
 

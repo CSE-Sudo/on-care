@@ -175,6 +175,90 @@ class RoutineRepsField extends StatelessWidget {
   }
 }
 
+/// 버티는 운동의 **한 세트를 버티는 시간** 한 칸. (#1969)
+///
+/// [RoutineRepsField] 와 한 자리를 나눠 쓴다 — 플랭크·행잉처럼 버티는 운동은
+/// 한 세트를 몇 회가 아니라 몇 초로 재므로, 칸을 하나 더 두지 않고 횟수 칸을
+/// 이것으로 바꿔 보인다. 칸이 없던 동안 트레이너는 `플랭크 3세트 · 60초` 를
+/// **이름에** 적을 수밖에 없었고, 이름에 적힌 글자는 어떤 집계에도 잡히지
+/// 않았다.
+class RoutineHoldSecondsField extends StatelessWidget {
+  const RoutineHoldSecondsField({
+    required this.holdSeconds,
+    required this.onChanged,
+    this.keyPrefix,
+    this.compact = false,
+    super.key,
+  });
+
+  final int holdSeconds;
+  final ValueChanged<int> onChanged;
+  final String? keyPrefix;
+
+  /// [RoutineMinutesField.compact] 참고.
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    return _NumberInput(
+      label: l.routineFieldHold,
+      value: holdSeconds.toDouble(),
+      min: 1,
+      max: kMaxExerciseHoldSeconds.toDouble(),
+      suffix: l.routineUnitSeconds,
+      keyPrefix: keyPrefix ?? 'routine-hold',
+      steppers: !compact,
+      onChanged: (double v) => onChanged(v.round()),
+    );
+  }
+}
+
+/// 한 세트를 **회로 잴지 초로 잴지** 고르는 칩 두 개. (#1969)
+///
+/// 이름 해석이 기본값을 정하지만([isIsometricExerciseName]), 고르는 것은
+/// 트레이너다 — 종목표에 없는 이름도 있고 같은 운동을 다르게 시키기도 한다.
+class RoutineMeasureToggle extends StatelessWidget {
+  const RoutineMeasureToggle({
+    required this.isHold,
+    required this.onChanged,
+    this.keyPrefix,
+    super.key,
+  });
+
+  final bool isHold;
+  final ValueChanged<bool> onChanged;
+  final String? keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String prefix = keyPrefix ?? 'routine-measure';
+    return Semantics(
+      label: l.routineFieldMeasure,
+      container: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          AppChoiceChip(
+            key: Key('$prefix-reps'),
+            label: l.routineUnitReps,
+            selected: !isHold,
+            onSelected: (bool _) => onChanged(false),
+          ),
+          const SizedBox(width: OnCareSpacing.s8),
+          AppChoiceChip(
+            key: Key('$prefix-seconds'),
+            label: l.routineUnitSeconds,
+            selected: isHold,
+            onSelected: (bool _) => onChanged(true),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// 근력의 중량 한 칸. 소수점 한 자리까지 받는다 — 원판은 0.5kg 단위다.
 class RoutineWeightField extends StatelessWidget {
   const RoutineWeightField({
@@ -217,6 +301,7 @@ class RoutineNameField extends StatelessWidget {
     this.label,
     this.keyPrefix = 'routine-exercise-name',
     this.hint,
+    this.onChanged,
     this.onSubmitted,
     this.autofocus = false,
     super.key,
@@ -229,6 +314,10 @@ class RoutineNameField extends StatelessWidget {
   /// 유형별 예시 문구(#1483) — 없으면 일반 예시로 떨어진다.
   /// [routineTypeNameHint] 로 만든다.
   final String? hint;
+
+  /// 글자가 바뀔 때마다. 이름이 버티는 운동인지에 따라 `횟수`/`버티는 시간`
+  /// 칸이 갈리므로, 적는 동안 따라와야 한다(#1969).
+  final ValueChanged<String>? onChanged;
 
   final ValueChanged<String>? onSubmitted;
   final bool autofocus;
@@ -243,6 +332,7 @@ class RoutineNameField extends StatelessWidget {
       hint: hint ?? l.routineFieldExerciseNameHint,
       maxLength: 100,
       autofocus: autofocus,
+      onChanged: onChanged,
       onSubmitted: onSubmitted,
     );
   }

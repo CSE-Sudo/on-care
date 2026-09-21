@@ -143,6 +143,22 @@ def estimate(
     )
 
 
+def isometric_default(db: Session, name: str) -> bool:
+    """이 운동 이름이 **버티는 운동**인가 — 폼의 `초 / 회` 기본값이다. (#1969)
+
+    소모 칼로리와 함께 내주지만 [estimate] 의 결과에 얹지 않는다. 칼로리는 체중을
+    모르면 유형 평균으로 떨어지는데, 플랭크가 버티는 운동인 것은 그 회원의 체중을
+    아는지와 아무 상관이 없기 때문이다 — 얹어 두면 체중을 적지 않은 회원에게만
+    `횟수` 칸이 뜬다.
+
+    이름 해석 모델은 부르지 않는다. 이 값은 폼이 어느 칸을 보일지를 정하는
+    **기본값**일 뿐이고 사용자가 곧바로 바꿀 수 있으므로, 못 붙인 이름 하나를
+    위해 외부 호출을 태울 자리가 아니다.
+    """
+    row = resolver.resolve(db, name, use_ai=False).row
+    return bool(row is not None and row.isometric)
+
+
 def _date_label_for_day(day_label: str) -> str:
     today = clock.today()
     today_idx = today.weekday()  # 0=월
@@ -248,6 +264,8 @@ def build_current_week(rows: list) -> dict:
             "minutes": r.minutes,
             "sets": getattr(r, "sets", None),
             "reps": getattr(r, "reps", None),
+            "hold_seconds": getattr(r, "hold_seconds", None),
+            "duration_seconds": getattr(r, "duration_seconds", None),
             "weight": getattr(r, "weight", None),
             "calories": r.calories,
             "calorie_source": getattr(r, "calorie_source", "") or "estimate",

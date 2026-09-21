@@ -799,6 +799,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exExerciseReps => 'Reps';
 
   @override
+  String get exExerciseHold => 'Hold time';
+
+  @override
+  String get exExerciseMeasure => 'Measured in';
+
+  @override
   String get exExerciseWeight => 'Weight';
 
   @override
@@ -809,6 +815,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exUnitReps => 'reps';
+
+  @override
+  String get exUnitSeconds => 'sec';
 
   @override
   String get exUnitKg => 'kg';

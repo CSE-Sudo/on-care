@@ -15,6 +15,7 @@ class RoutineSuggestion {
     required this.reason,
     this.sets,
     this.reps,
+    this.holdSeconds,
     this.weight,
     this.evidence = const <String>[],
   });
@@ -42,6 +43,10 @@ class RoutineSuggestion {
   /// 적은 적 없는 수를 그린다. (#1321)
   final int? sets;
   final int? reps;
+
+  /// 버티는 제안이면 한 세트를 버티는 시간(초). [reps] 와 한 자리를 나눠
+  /// 쓴다 — 있으면 횟수가 비고, 없으면 반대다. (#1969)
+  final int? holdSeconds;
   final double? weight;
 
   /// 이 제안이 무엇을 보고 만들어졌나(`최근 PT 피드백 반영` 등). 트레이너의
@@ -56,6 +61,7 @@ class RoutineSuggestion {
     String? type,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
     String? reason,
   }) {
@@ -66,6 +72,7 @@ class RoutineSuggestion {
       type: type ?? this.type,
       sets: sets ?? this.sets,
       reps: reps ?? this.reps,
+      holdSeconds: holdSeconds ?? this.holdSeconds,
       weight: weight ?? this.weight,
       reason: reason ?? this.reason,
       evidence: evidence,

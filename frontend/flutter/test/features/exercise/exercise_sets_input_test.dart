@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -23,6 +24,7 @@ class _CapturingRepository implements ExerciseRepository {
   int? minutes;
   int? sets;
   int? reps;
+  int? holdSeconds;
   double? weight;
   String? name;
   DateTime? date;
@@ -47,9 +49,10 @@ class _CapturingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async {
-    _capture(type, minutes, sets, reps, weight, name, date);
+    _capture(type, minutes, sets, reps, holdSeconds, weight, name, date);
     return _echo(
       'new',
       type,
@@ -57,6 +60,7 @@ class _CapturingRepository implements ExerciseRepository {
       calories,
       sets,
       reps,
+      holdSeconds,
       weight,
       name,
       date,
@@ -73,6 +77,9 @@ class _CapturingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
   }) async => ExerciseCalorieEstimate(
     calories: estimateExerciseCalories(type, minutes, intensity: intensity),
+    // 실 서버는 종목 참조표의 `isometric` 표시를 내려 준다. 대역도 같은 표를
+    // 보는 데모 종목표로 답해, 폼의 `회/초` 기본값이 같은 근거를 탄다(#1969).
+    isometric: isIsometricExerciseName(name),
   );
 
   @override
@@ -89,11 +96,23 @@ class _CapturingRepository implements ExerciseRepository {
     ExerciseIntensity intensity = ExerciseIntensity.moderate,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
   }) async {
     updatedId = id;
-    _capture(type, minutes, sets, reps, weight, name, date);
-    return _echo(id, type, minutes, calories, sets, reps, weight, name, date);
+    _capture(type, minutes, sets, reps, holdSeconds, weight, name, date);
+    return _echo(
+      id,
+      type,
+      minutes,
+      calories,
+      sets,
+      reps,
+      holdSeconds,
+      weight,
+      name,
+      date,
+    );
   }
 
   void _capture(
@@ -101,6 +120,7 @@ class _CapturingRepository implements ExerciseRepository {
     int minutes,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
     String name,
     DateTime date,
@@ -109,6 +129,7 @@ class _CapturingRepository implements ExerciseRepository {
     this.minutes = minutes;
     this.sets = sets;
     this.reps = reps;
+    this.holdSeconds = holdSeconds;
     this.weight = weight;
     this.name = name;
     this.date = date;
@@ -121,6 +142,7 @@ class _CapturingRepository implements ExerciseRepository {
     int calories,
     int? sets,
     int? reps,
+    int? holdSeconds,
     double? weight,
     String name,
     DateTime date,
@@ -132,6 +154,7 @@ class _CapturingRepository implements ExerciseRepository {
     calories: calories,
     sets: sets,
     reps: reps,
+    holdSeconds: holdSeconds,
     weight: weight,
     name: name,
     date: date,
@@ -186,8 +209,12 @@ Future<void> _openSheet(
 }
 
 /// 이름을 적는다 — 저장에 필요한 유일한 필수 입력이다.
+///
+/// 디바운스(400ms)를 넘겨 이름 해석까지 돌린다. 그 응답이 `회/초` 기본값을
+/// 정하므로(#1969), 넘기지 않으면 칸이 아직 바뀌지 않은 상태를 본다.
 Future<void> _typeName(WidgetTester tester, String name) async {
   await tester.enterText(find.byKey(const Key('exerciseNameField')), name);
+  await tester.pump(const Duration(milliseconds: 500));
   await tester.pumpAndSettle();
 }
 
@@ -250,6 +277,96 @@ void main() {
     expect(repo.weight, 20.0);
     // 서버는 분(>0)도 받는다 — 세트당 벽시계 3분으로 환산한 값이다.
     expect(repo.minutes, 36);
+  });
+
+  testWidgets('버티는 운동을 적으면 횟수 칸이 버티는 시간으로 바뀐다 (#1969)', (
+    WidgetTester tester,
+  ) async {
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(tester, repo);
+
+    await tester.tap(find.text('근력'));
+    await tester.pumpAndSettle();
+    // 이름을 적기 전에는 회로 묻는다 — 대부분의 근력이 그렇다.
+    expect(find.byKey(const Key('exerciseRepsStepper')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseHoldStepper')), findsNothing);
+
+    await _typeName(tester, '플랭크');
+
+    // 종목표가 버티는 운동이라고 하면 같은 자리를 초가 대신한다 — 칸이
+    // 늘어나지 않는다.
+    expect(find.byKey(const Key('exerciseHoldStepper')), findsOneWidget);
+    expect(find.byKey(const Key('exerciseRepsStepper')), findsNothing);
+    expect(find.text('버티는 시간'), findsOneWidget);
+    expect(find.text('횟수'), findsNothing);
+  });
+
+  testWidgets('버티는 운동은 초를 싣고 횟수를 비운다 (#1969)', (WidgetTester tester) async {
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(tester, repo);
+
+    await tester.tap(find.text('근력'));
+    await tester.pumpAndSettle();
+    await _typeName(tester, '플랭크');
+    await _save(tester);
+
+    expect(repo.holdSeconds, 60);
+    // 한 세트를 두 단위로 적지 않는다. 45초를 `reps: 3` 으로 적던 것이
+    // 이 칸을 만든 이유다.
+    expect(repo.reps, isNull);
+    expect(repo.sets, 12);
+  });
+
+  testWidgets('회/초는 회원이 직접 고를 수 있고 그 선택이 이름을 이긴다 (#1969)', (
+    WidgetTester tester,
+  ) async {
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(tester, repo);
+
+    await tester.tap(find.text('근력'));
+    await tester.pumpAndSettle();
+    await _typeName(tester, '플랭크');
+    expect(find.byKey(const Key('exerciseHoldStepper')), findsOneWidget);
+
+    // 종목표는 기본값일 뿐이다 — 고르는 것은 적는 사람이다.
+    await tester.tap(find.byKey(const Key('exerciseMeasureReps')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('exerciseRepsStepper')), findsOneWidget);
+
+    // 고른 뒤에는 이름을 다시 적어도 덮지 않는다.
+    await _typeName(tester, '사이드 플랭크');
+    expect(find.byKey(const Key('exerciseRepsStepper')), findsOneWidget);
+
+    await _save(tester);
+    expect(repo.reps, 10);
+    expect(repo.holdSeconds, isNull);
+  });
+
+  testWidgets('초로 적힌 기록을 열면 초 칸으로 열린다 (#1969)', (WidgetTester tester) async {
+    final _CapturingRepository repo = _CapturingRepository();
+    await _openSheet(
+      tester,
+      repo,
+      session: ExerciseSession(
+        id: 'ex-hold',
+        dayLabel: '월',
+        type: ExerciseType.strength,
+        minutes: 9,
+        calories: 54,
+        name: '플랭크',
+        sets: 3,
+        holdSeconds: 45,
+        weight: 0,
+        date: DateTime(2026, 3, 2),
+      ),
+    );
+
+    expect(find.byKey(const Key('exerciseHoldStepper')), findsOneWidget);
+    expect(
+      _stepperValue(tester, const Key('exerciseHoldStepper')),
+      '45',
+      reason: '적어 둔 초가 그대로 열려야 한다',
+    );
   });
 
   testWidgets('근력이 아닌 기록에는 세트·횟수·중량이 실리지 않는다', (WidgetTester tester) async {
