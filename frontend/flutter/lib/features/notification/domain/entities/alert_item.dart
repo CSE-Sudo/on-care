@@ -49,6 +49,8 @@ class AlertItem {
     required this.timeAgo,
     required this.category,
     this.read = false,
+    this.wireCategory,
+    this.inviteId,
     this.action,
     this.createdAt = '',
     this.messageKey,
@@ -61,6 +63,10 @@ class AlertItem {
   final String timeAgo;
   final AlertCategory category;
   final bool read;
+
+  /// 표시용 category와 별개인 서버 종류 및 담당 요청 식별자. (#1802)
+  final String? wireCategory;
+  final String? inviteId;
 
   /// 서버가 준 `created_at` **그대로**(ISO). 다음 쪽을 이어 받는 커서로 되돌려 준다.
   ///
@@ -89,6 +95,8 @@ class AlertItem {
     timeAgo: timeAgo,
     category: category,
     read: read ?? this.read,
+    wireCategory: wireCategory,
+    inviteId: inviteId,
     action: action,
     createdAt: createdAt,
     messageKey: messageKey,

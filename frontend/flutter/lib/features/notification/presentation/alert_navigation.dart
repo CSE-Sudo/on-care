@@ -18,6 +18,8 @@ import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_she
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/widgets/my_flows.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
+import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 /// 알림을 눌렀을 때 관련 화면으로 보내고, **그 화면이 읽는 값을 다시 받게 한다.**
 ///
@@ -32,6 +34,40 @@ Future<void> openAlertTarget(
   WidgetRef ref,
   AlertItem item,
 ) async {
+  if (item.wireCategory == 'coach_invite' && item.inviteId != null) {
+    final selected = ref.read(selectedCoachInviteProvider.notifier);
+    if (selected.state != null) return;
+    // 조회 전에 선택해 폴링이 다른 요청을 먼저 여는 것을 막는다.
+    selected.state = item.inviteId;
+    // 셸 없이 알림 화면으로 직접 진입해도 조회 중 스트림을 유지한다.
+    final subscription = ref.listenManual(coachInvitesProvider, (_, _) {});
+    try {
+      final invites = await ref.refresh(coachInvitesProvider.future);
+      if (!context.mounted) {
+        if (selected.mounted) selected.state = null;
+        return;
+      }
+      if (invites.any((invite) => invite.id == item.inviteId)) {
+        // 알림 화면으로 직접 진입한 경우에도 팝업을 담당하는 셸을 만든다.
+        context.go(AppRoutes.exercise);
+        return;
+      }
+      selected.state = null;
+      AppToastHost.of(
+        context,
+      ).show(AppLocalizations.of(context).coachInviteUnavailable);
+    } on Exception {
+      if (selected.mounted) selected.state = null;
+      if (!context.mounted) return;
+      AppToastHost.of(context).show(
+        AppLocalizations.of(context).coachInviteFailed,
+        type: AppToastType.error,
+      );
+      return;
+    } finally {
+      subscription.close();
+    }
+  }
   final AlertAction? action = item.action;
   if (action == null || !action.isNavigable) return;
 
@@ -65,12 +101,7 @@ Future<void> openAlertTarget(
       // 기다리지 않는다 — 화면을 닫을 때까지 끝나지 않는 Future 다.
       unawaited(context.push(AppRoutes.consultationHistory));
     case AlertTarget.exercise:
-      // 담당 요청 알림이 이 목적지로 온다(서버 category `consultation_result`).
-      // 상담 요청의 결과 알림은 내 상담 요청으로 간다(`consult_decision`, #2067).
-      // 요청은 이제 운동 탭 카드가 아니라 앱 어디서든 뜨는 창이라(#1801), 요청
-      // 목록을 곧바로 다시 받게 해 아직 대기 중이면 창이 바로 뜨게 한다. 알림에는
-      // 요청 id 가 없어 어느 요청의 알림인지는 가리지 못한다 — 대기 중인 요청이
-      // 없으면 예전처럼 운동 탭으로 갈 뿐이다.
+      // 요청 ID가 없는 과거 알림은 기존 목록 갱신과 운동 탭 이동을 유지한다.
       ref
         ..invalidate(exerciseWeekProvider)
         ..invalidate(coachRoutinesProvider)

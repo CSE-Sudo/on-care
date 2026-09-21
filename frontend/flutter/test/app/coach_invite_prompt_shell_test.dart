@@ -29,6 +29,7 @@ import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/notification/domain/entities/alert_item.dart';
 import 'package:oncare/features/notification/presentation/alert_navigation.dart';
+import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -58,10 +59,12 @@ class _InviteRepository extends MockMemberCoachRepository {
 
   /// 답한 뒤에도 서버 목록에서 바로 빠지지 않는 상황을 흉내 낸다.
   bool keepAfterDecision = false;
+  bool failFetch = false;
 
   @override
   Future<List<CoachInvite>> fetchInvites() async {
     fetchInviteCalls++;
+    if (failFetch) throw Exception('offline');
     return List<CoachInvite>.of(invites);
   }
 
@@ -158,6 +161,101 @@ void main() {
       find.byKey(const ValueKey<String>('coach-invite-accept-tci-1')),
       findsNothing,
     );
+  });
+
+  Future<void> tapInviteAlert(
+    WidgetTester tester, {
+    String id = 'tci-1',
+  }) async {
+    final ref = tester
+        .state<ConsumerState<MainShell>>(find.byType(MainShell))
+        .ref;
+    final future = openAlertTarget(
+      tester.element(find.byType(MainShell)),
+      ref,
+      AlertItem(
+        id: 'n-invite',
+        title: '요청',
+        body: '',
+        timeAgo: '',
+        category: AlertCategory.reminder,
+        wireCategory: 'coach_invite',
+        inviteId: id,
+        action: const AlertAction(label: '요청 확인', target: AlertTarget.exercise),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await future;
+  }
+
+  testWidgets('셸 없이 알림 화면에 진입해도 선택한 요청을 연다', (tester) async {
+    final repository = _InviteRepository();
+    await pumpShell(tester, repository, location: AppRoutes.notification);
+    repository.invites = <CoachInvite>[
+      const CoachInvite(id: 'tci-2', trainerId: 't2', trainerName: '다른코치'),
+      _invite,
+    ];
+    final page = find.byType(NotificationPage);
+    final ref = tester.state<ConsumerState>(page).ref;
+    final future = openAlertTarget(
+      tester.element(page),
+      ref,
+      const AlertItem(
+        id: 'n',
+        title: '요청',
+        body: '',
+        timeAgo: '',
+        category: AlertCategory.reminder,
+        wireCategory: 'coach_invite',
+        inviteId: 'tci-1',
+        action: AlertAction(label: '요청 확인', target: AlertTarget.exercise),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await future;
+    expect(inviteDialog(), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('coach-invite-tci-2')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('여러 요청 중 알림의 ID와 일치하는 창을 하나만 연다', (tester) async {
+    final repository = _InviteRepository();
+    await pumpShell(tester, repository);
+    repository.invites = <CoachInvite>[
+      const CoachInvite(id: 'tci-2', trainerId: 't2', trainerName: '다른코치'),
+      _invite,
+    ];
+    await tapInviteAlert(tester);
+    expect(inviteDialog(), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('coach-invite-tci-2')),
+      findsNothing,
+    );
+    await tapInviteAlert(tester);
+    expect(inviteDialog(), findsOneWidget);
+  });
+
+  testWidgets('처리되거나 취소된 요청은 안내 후 운동으로 이동한다', (tester) async {
+    await pumpShell(tester, _InviteRepository());
+    await tapInviteAlert(tester);
+    expect(location(), contains(AppRoutes.exercise));
+    expect(find.text('이미 처리되었거나 취소된 요청이에요.'), findsOneWidget);
+    expect(inviteDialog(), findsNothing);
+  });
+
+  testWidgets('조회 실패는 처리 완료로 간주하지 않고 다시 시도할 수 있다', (tester) async {
+    final repository = _InviteRepository();
+    await pumpShell(tester, repository);
+    repository.failFetch = true;
+    await tapInviteAlert(tester);
+    expect(location(), contains(AppRoutes.dashboard));
+    expect(find.text('이미 처리되었거나 취소된 요청이에요.'), findsNothing);
+    repository.failFetch = false;
+    repository.invites = <CoachInvite>[_invite];
+    await tapInviteAlert(tester);
+    expect(inviteDialog(), findsOneWidget);
   });
 
   testWidgets('운동으로 가는 알림을 누르면 대기 중인 담당 요청 창이 뜬다', (WidgetTester tester) async {

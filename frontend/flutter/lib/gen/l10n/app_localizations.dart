@@ -98,6 +98,12 @@ abstract class AppLocalizations {
     Locale('ko'),
   ];
 
+  /// No description provided for @coachInviteUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This request has already been handled or cancelled.'**
+  String get coachInviteUnavailable;
+
   /// Application name shown in window/AppBar titles.
   ///
   /// In en, this message translates to:

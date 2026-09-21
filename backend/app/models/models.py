@@ -728,6 +728,8 @@ class Notification(Base):
     # 알림이 가리키는 회원 id (#1832). `category` 만으로 갈 곳이 정해지지 않는
     # 알림 — 트레이너의 `회원 건강 목표 변경` 은 **그 회원** 상세로 가야 한다.
     subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # 담당 요청 알림이 가리키는 요청. 과거 알림은 연결 정보가 없다. (#1802)
+    invite_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

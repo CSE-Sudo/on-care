@@ -1,4 +1,5 @@
 {
+  "coachInviteUnavailable": "이미 처리되었거나 취소된 요청이에요.",
   "@@locale": "ko",
   "appTitle": "On-Care",
   "navDashboard": "홈",

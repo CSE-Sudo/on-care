@@ -371,13 +371,23 @@ category: hospital|exercise|meal|medication|other
 
 | Method | Path | 응답 |
 |---|---|---|
-| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago }]` (배열, 최신순, 기본 50건) |
+| GET | `/notifications` | `[{ id, title, body, category, read(bool), created_at(ISO), time_ago, action, invite_id }]` (배열, 최신순, 기본 50건) |
 | GET | `/notifications/unread-count` | `{ unread(int) }` |
 | POST | `/notifications/{id}/read` | 단건 읽음 → `{ id, read: true }` |
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
-category: reminder|health_check|achievement|system|coach_chat|routine|member_schedule|consultation_result|consult_decision|health_goals
+category: reminder|health_check|achievement|system|coach_chat|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals
+
+#### 담당 요청 알림 (#1802)
+
+`GET /notifications`는 `action: { label, target } | null` 및
+`invite_id: string | null`을 포함합니다. 새 담당 요청은 `category: "coach_invite"`,
+`invite_id: "tci-…"`, `action: { label: "요청 확인", target: "exercise" }`로 전달됩니다.
+앱은 `/me/coach/invites`의 최신 대기 목록에서 해당 ID를 찾아 기존 수락·거절 창을 엽니다.
+처리·취소되어 목록에 없으면 안내 후 기존 목적지로 이동합니다. 조회 오류는 처리 완료로
+간주하지 않습니다. 코드 연결 안내는 `consultation_result`, 상담 결과는 `consult_decision`을 유지합니다.
+과거 알림과 다른 종류의 알림은 `invite_id: null`이며 기존 이동을 유지합니다.
 
 #### 갈래와 이동할 곳
 
@@ -390,7 +400,8 @@ category: reminder|health_check|achievement|system|coach_chat|routine|member_sch
 | `coach_chat` | 트레이너 메시지·리포트 | `coach_chat` |
 | `routine` | 루틴 배정 | `exercise` |
 | `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
-| `consultation_result` | 담당 연결 — 담당 요청 도착·연결됨·연결 해제 | `exercise` |
+| `coach_invite` | 담당 요청 도착 — `invite_id`로 수락·거절 창 열기 | `exercise`(처리·취소 시 이동) |
+| `consultation_result` | 담당 연결 — 연결됨·연결 해제 및 과거 담당 요청 | `exercise` |
 | `consult_decision` | **내 상담 요청의 승인·거절·만료**(#2067) | `consultations`(내 상담 요청) |
 | `health_goals` | 담당 트레이너의 건강 목표 변경 | `health_goals` |
 | `system` | 공지 | 없음 |
