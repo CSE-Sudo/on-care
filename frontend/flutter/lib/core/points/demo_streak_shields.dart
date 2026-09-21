@@ -11,10 +11,10 @@ import 'package:oncare/core/utils/clock.dart';
 ///
 /// 규칙은 서버와 같다:
 /// - 교환 300P. 쓰지 않은 보호권은 최대 4개.
-/// - 보호할 수 있는 날은 **어제** 하나. 식단이든 운동이든 기록이 있는 날은
-///   보호하지 않고, 하루에 보호는 한 번. 가장 먼저 교환한 보호권부터 쓴다.
-///   기록 연속은 주 단위가 아니라 날짜를 거슬러 이어지므로 월요일에도 어제를
-///   보호할 수 있다.
+/// - 보호할 수 있는 날은 **어제부터 거슬러 [protectWindowDays]일** 안의 날. 식단이든
+///   운동이든 기록이 있는 날은 보호하지 않고, 하루에 보호는 한 번. 가장 먼저 교환한
+///   보호권부터 쓴다. 기록 연속은 주 단위가 아니라 날짜를 거슬러 이어지므로
+///   월요일에도 어제(일요일)를 보호할 수 있다.
 /// - 같은 날을 다시 보호하면 보호권을 더 쓰지 않고 같은 응답이다.
 ///
 /// 기록은 이 원장이 들고 있지 않다. 데모에서 기록을 가진 곳(목업 저장소, 로컬
@@ -30,6 +30,16 @@ class DemoStreakShieldBook {
   static const String itemId = 'streak_shield';
   static const int cost = 300;
   static const int maxHeld = 4;
+
+  /// 보호할 수 있는 창 — 어제부터 거슬러 이만큼(오늘은 들지 않는다). 서버
+  /// `streak_shield_service.PROTECT_WINDOW_DAYS` 와 같은 값이다.
+  static const int protectWindowDays = 30;
+
+  /// 연속을 거슬러 세는 날의 상한. 데모 저장소가 기록을 미리 읽어 오는 깊이와
+  /// **같은 값**이다(`MockStreakShieldRepository`). 365일까지 세려면 그만큼을
+  /// 읽어야 하는데, 화면이 쓰는 것은 보유 수·보호한 날·연속 일수뿐이라 그 값이
+  /// 데모 픽스처(35주)를 넘게 커질 일이 없다.
+  static const int streakDayLimit = 120;
 
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
@@ -92,12 +102,15 @@ class DemoStreakShieldBook {
       'record_streak_days': hasRecordOn == null
           ? 0
           : recordStreakDays(hasRecordOn),
-      'protectable_date':
-          hasRecordOn != null &&
-              held > 0 &&
-              _blockReason(yesterday, hasRecordOn) == null
-          ? _ymd(yesterday)
+      // 창은 보유 수만 본다 — 어느 날이 실제로 비었는지는 기록 그래프가 가린다.
+      'protectable_from': held > 0
+          ? _ymd(DateTime(
+              yesterday.year,
+              yesterday.month,
+              yesterday.day - (protectWindowDays - 1),
+            ))
           : null,
+      'protectable_to': held > 0 ? _ymd(yesterday) : null,
     };
   }
 
@@ -105,7 +118,10 @@ class DemoStreakShieldBook {
   ///
   /// 오늘이 비어 있으면 어제부터 센다 — 자정이 지나는 순간 어제까지 쌓은 연속이
   /// 0 으로 보이지 않게 한다. 서버 `record_activity.record_streak_days` 와 같다.
-  int recordStreakDays(bool Function(DateTime day) hasRecordOn, {int limit = 365}) {
+  int recordStreakDays(
+    bool Function(DateTime day) hasRecordOn, {
+    int limit = streakDayLimit,
+  }) {
     bool recorded(DateTime day) => isProtected(day) || hasRecordOn(day);
     final DateTime today = _dateOnly(_now());
     DateTime cursor = recorded(today)
@@ -166,7 +182,15 @@ class DemoStreakShieldBook {
 
   /// 보호할 수 없는 이유(문구). 보유 수는 보지 않는다.
   String? _blockReason(DateTime day, bool Function(DateTime day) hasRecordOn) {
-    if (day != _yesterday()) return '어제만 보호할 수 있어요.';
+    final DateTime last = _yesterday();
+    final DateTime first = DateTime(
+      last.year,
+      last.month,
+      last.day - (protectWindowDays - 1),
+    );
+    if (day.isBefore(first) || day.isAfter(last)) {
+      return '최근 $protectWindowDays일 안의 날만 보호할 수 있어요.';
+    }
     if (isProtected(day)) return '이미 보호한 날이에요.';
     if (hasRecordOn(day)) return '기록이 있는 날은 보호하지 않아도 돼요.';
     return null;

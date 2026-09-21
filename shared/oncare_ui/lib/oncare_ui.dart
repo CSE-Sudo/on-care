@@ -40,6 +40,7 @@ export 'src/tokens/icons.dart';
 export 'src/tokens/layout.dart';
 export 'src/tokens/motion.dart';
 export 'src/tokens/radius.dart';
+export 'src/tokens/record_colors.dart';
 export 'src/tokens/sizes.dart';
 export 'src/tokens/spacing.dart';
 export 'src/tokens/typography.dart';

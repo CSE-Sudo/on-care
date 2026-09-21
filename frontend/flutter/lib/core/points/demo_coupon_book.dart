@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:demo_fixture/demo_fixture.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/points/demo_emote_pass.dart';
+import 'package:oncare/core/points/demo_graph_colors.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
 import 'package:oncare/core/utils/clock.dart';
@@ -35,18 +36,25 @@ class DemoCouponBook {
     bool hasTrainer = true,
     bool hasGym = true,
     DemoStreakShieldBook? shields,
+    DemoGraphColorBook? palette,
     DemoEmotePassBook? emotes,
   }) : _ledger = ledger,
        _now = now ?? nowKst,
        _hasTrainer = hasTrainer,
        _hasGym = hasGym,
        _shields = shields ?? DemoStreakShieldBook(ledger: ledger, now: now),
+       _palette = palette ?? DemoGraphColorBook(ledger: ledger),
        _emotes = emotes ?? DemoEmotePassBook(ledger: ledger, now: now);
 
   /// 연속 기록 보호권(#1788) — 사용처 목록에 함께 서고, 교환은 이 원장이 받는다.
   /// 목업 운동 저장소가 같은 인스턴스를 봐야 교환한 보호권을 운동 현황에서 쓴다.
   final DemoStreakShieldBook _shields;
   DemoStreakShieldBook get shields => _shields;
+
+  /// 그래프 색(#2076) — 사용처 목록에 함께 서고, 교환은 이 원장이 받는다. 기록 그래프
+  /// 저장소가 같은 인스턴스를 봐야 교환한 색이 바로 그래프에 보인다.
+  final DemoGraphColorBook _palette;
+  DemoGraphColorBook get grass => _palette;
 
   /// 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니다. 채팅의 고르는 창과 같은
   /// 것을 봐야 MY 탭에서 산 이용권이 채팅에도 보인다.
@@ -92,16 +100,29 @@ class DemoCouponBook {
       'has_trainer': _hasTrainer,
       'has_gym': _hasGym,
       'items': <Map<String, Object?>>[
+        // 네 색을 모두 연 회원에게는 그래프 색 항목을 싣지 않는다(#2076) — 더 살 게
+        // 없는 카드를 막힌 채 남겨 두지 않는다. 색 바꾸기는 기록 그래프에서 한다.
         for (final DemoShopItem item in kDemoShopCatalog)
-          _itemJson(item, balance),
+          if (!(item.id == kDemoGraphColor.id && _palette.allUnlocked))
+            _itemJson(item, balance),
       ],
     };
   }
 
   /// `POST /me/points/exchange`.
-  DemoCouponResult exchange(String itemId, {String? clientRequestId}) {
+  ///
+  /// [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 지금은 그래프 색(#2076) 하나다.
+  DemoCouponResult exchange(
+    String itemId, {
+    String? option,
+    String? clientRequestId,
+  }) {
     final DemoShopItem? item = _item(itemId);
     if (item == null) return _error(404, '없는 교환 항목이에요.');
+    if (item.id == kDemoGraphColor.id) {
+      // 쿠폰이 아니라 그래프 색 하나가 열린다 — 고른 색은 `option` 이 싣는다(#2076).
+      return _palette.exchange(option, clientRequestId: clientRequestId);
+    }
     if (item.id == kDemoEmotePass.id) {
       // 쿠폰이 아니라 24시간 이용권이 생긴다(#2020).
       final DemoCouponResult bought = _emotes.buy(clientRequestId: clientRequestId);
@@ -383,6 +404,7 @@ const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
   kDemoPtRenewal,
   kDemoLockerMonth,
   kDemoStreakShield,
+  kDemoGraphColor,
   kDemoEmotePass,
 ];
 
@@ -403,8 +425,20 @@ const DemoShopItem kDemoStreakShield = DemoShopItem(
   id: DemoStreakShieldBook.itemId,
   title: '연속 기록 보호권',
   benefit: '운동을 못 한 하루를 연속 기록에 이어 붙이기',
-  description: '아무것도 기록하지 못한 어제를 연속 기록에 이어 붙여요. 최대 4개까지 가질 수 있어요.',
+  description:
+      '아무것도 기록하지 못한 날을 연속 기록에 이어 붙여요. 최근 30일 안에서 쓰고, 최대 4개까지 가질 수 있어요.',
   cost: DemoStreakShieldBook.cost,
+  validDays: 0,
+);
+
+/// 그래프 색 바꾸기(#2076) — 쿠폰이 아니다. 기한이 없어 `validDays` 는 0 이고,
+/// 색 목록·교환 규칙은 [DemoGraphColorBook] 이 들고 있다.
+const DemoShopItem kDemoGraphColor = DemoShopItem(
+  id: DemoGraphColorBook.itemId,
+  title: '그래프 색 바꾸기',
+  benefit: '기록 그래프를 다른 색으로',
+  description: '포인트 화면 기록 그래프의 색을 골라 바꿔요. 한 번 연 색은 계속 쓸 수 있어요.',
+  cost: DemoGraphColorBook.cost,
   validDays: 0,
 );
 
@@ -449,6 +483,8 @@ final demoCouponBookProvider = Provider<DemoCouponBook>(
   (ref) => DemoCouponBook(
     ledger: ref.watch(demoPointsLedgerProvider),
     shields: ref.watch(demoStreakShieldBookProvider),
+    // 기록 그래프가 보는 것과 같은 색 원장 — 사용처에서 연 색이 바로 그래프에 뜬다(#2076).
+    palette: ref.watch(demoGraphColorBookProvider),
     emotes: ref.watch(demoEmotePassBookProvider),
   ),
   name: 'demoCouponBook',

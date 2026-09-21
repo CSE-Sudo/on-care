@@ -4,6 +4,7 @@ import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
+import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -63,6 +64,9 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(myCouponsProvider);
       // 연속 기록 보호권(#1788) — 앞 계정의 보유 수·보호한 날이 남지 않게 한다.
       ref.invalidate(myStreakShieldsProvider);
+      // 기록 그래프·그래프 색(#2075, #2076) — 보호권과 같은 이유다. auto-dispose 가
+      // 아니라 되짚지 않으면 앞 계정의 기록과 색이 그대로 남는다.
+      ref.invalidate(activityCalendarProvider);
       // 주간 챌린지(#1789) — 같은 이유로 앞 계정의 참가·진행이 남지 않게 한다.
       ref.invalidate(weeklyChallengeProvider);
       // 목 저장소는 읽음 처리를 세션 동안 기억한다 — 다시 만들지 않으면 앞

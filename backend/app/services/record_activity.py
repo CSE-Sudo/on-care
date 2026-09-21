@@ -86,3 +86,47 @@ def record_streak_days(
         count += 1
         cursor -= timedelta(days=1)
     return count
+
+
+def diet_days(db: Session, member_id: str, start: date, end: date) -> set[str]:
+    """[start]…[end] 안에서 식단 기록이 있는 날(YYYY-MM-DD).
+
+    기록 그래프(#2075)처럼 여러 날을 한꺼번에 묻는 화면을 위해 하루 하나씩 세는
+    [has_diet] 대신 범위를 한 번에 읽는다.
+    """
+    return set(
+        db.scalars(
+            select(DietEntry.date).where(
+                DietEntry.user_id == member_id,
+                DietEntry.date >= start.isoformat(),
+                DietEntry.date <= end.isoformat(),
+            )
+        ).all()
+    )
+
+
+def exercise_days(db: Session, member_id: str, start: date, end: date) -> set[str]:
+    """[start]…[end] 안에서 운동 기록이 있는 날(YYYY-MM-DD).
+
+    운동은 (주 시작, 요일)로 저장한다 — 범위가 걸친 주를 모두 읽고 날짜로 되돌린
+    뒤 범위 밖을 버린다.
+    """
+    first_monday = start - timedelta(days=start.weekday())
+    last_monday = end - timedelta(days=end.weekday())
+    rows = db.execute(
+        select(ExerciseSession.week_start, ExerciseSession.day_label).where(
+            ExerciseSession.user_id == member_id,
+            ExerciseSession.week_start >= first_monday.isoformat(),
+            ExerciseSession.week_start <= last_monday.isoformat(),
+            ExerciseSession.minutes > 0,
+        )
+    ).all()
+    days: set[str] = set()
+    for week_start, day_label in rows:
+        if day_label not in exercise_activity.WEEKDAY_LABELS:
+            continue
+        monday = date.fromisoformat(week_start)
+        day = monday + timedelta(days=exercise_activity.WEEKDAY_LABELS.index(day_label))
+        if start <= day <= end:
+            days.add(day.isoformat())
+    return days

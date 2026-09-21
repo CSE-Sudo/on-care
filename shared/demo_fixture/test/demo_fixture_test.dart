@@ -111,6 +111,34 @@ void main() {
     expect(days.where((FixtureDay d) => !d.hasRecord), isNotEmpty);
   });
 
+  test('최근 30일 안에 빈 날이 있다 — 보호권을 시연할 자리 (#1788, #2075)', () {
+    // 보호권은 **기록이 빈 날**에만 쓰고, 쓸 수 있는 창은 어제부터 30일이다.
+    // 픽스처가 그 창을 꽉 채워 버리면 시연에서 버튼이 아예 뜨지 않는다 — 예전에
+    // 가장 가까운 빈 날이 6주 전이라 그랬다.
+    for (final DateTime now in <DateTime>[
+      DateTime(2026, 8, 10), // 월
+      DateTime(2026, 8, 13), // 목
+      DateTime(2026, 8, 16), // 일
+    ]) {
+      final DateTime today = DateTime(now.year, now.month, now.day);
+      final DateTime windowStart = DateTime(
+        today.year,
+        today.month,
+        today.day - 30,
+      );
+      final Iterable<FixtureDay> empty = fixture
+          .daysFor(now)
+          .where((FixtureDay d) => !d.hasRecord)
+          .where((FixtureDay d) {
+            final DateTime date = DateTime.parse(d.date);
+            // 오늘과 어제는 빼고 본다 — 창은 어제까지이고, 오늘은 보호할 수 없다.
+            return date.isAfter(windowStart) &&
+                date.isBefore(DateTime(today.year, today.month, today.day - 1));
+          });
+      expect(empty, isNotEmpty, reason: '$now 기준 창에 빈 날이 없다');
+    }
+  });
+
   test('과거에도 PT 사례가 흩어져 있다 (#1265)', () {
     // 데모는 오늘 하루만 보는 것이 아니다. 지난주·전체로 넘겼을 때 PT 를 받은
     // 날과 그때 무엇을 몇 세트 했는지가 없으면 과거가 통째로 비어 보인다.

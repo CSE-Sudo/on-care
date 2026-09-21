@@ -338,6 +338,52 @@ class StreakShield(Base):
     )
 
 
+class GraphColor(Base):
+    """기록 그래프 색 하나 — 포인트로 연 색과 지금 고른 색. (#2076)
+
+    기본 색(회원앱 파랑)은 누구나 쓰므로 행이 없다. 행이 있는 색은 150P 를 내고
+    연 색이고, 그중 `selected` 인 행 하나가 지금 기록 그래프를 그리는 색이다. 아무 행도
+    고르지 않았으면 기본 색이다 — 기본 색으로 되돌리는 것은 고른 행을 푸는 일이라
+    "기본 색 행" 을 따로 만들지 않는다.
+
+    - 같은 색을 두 번 사지 않는다(`uq_graph_colors_color`).
+    - 한 회원이 고른 색은 하나뿐이다(partial unique index).
+    - 기한이 없다. 한 번 연 색은 계속 쓴다.
+    """
+
+    __tablename__ = "graph_colors"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: green|purple|orange|pink. 기본 색(blue)은 행을 만들지 않는다.
+    color: Mapped[str] = mapped_column(String(16))
+    cost: Mapped[int] = mapped_column(Integer)
+    #: 교환 시도 단위 멱등키. 응답을 못 받고 다시 누른 교환이 두 번 쓰지 않는다.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    acquired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    #: 지금 기록 그래프를 그리는 색인가. 회원마다 최대 하나다.
+    selected: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default=text("false")
+    )
+
+    __table_args__ = (
+        CheckConstraint("cost > 0", name="ck_graph_colors_cost"),
+        UniqueConstraint("user_id", "color", name="uq_graph_colors_color"),
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_graph_colors_client_request"
+        ),
+        # 고른 색은 회원당 하나. 두 번 고르기가 겹쳐도 한 행만 남는다.
+        Index(
+            "uq_graph_colors_selected",
+            "user_id",
+            unique=True,
+            postgresql_where=text("selected"),
+        ),
+    )
+
+
 class DietEntry(Base):
     """식단 기록 — drift DietEntries 대응. 나트륨·당류 포함."""
 

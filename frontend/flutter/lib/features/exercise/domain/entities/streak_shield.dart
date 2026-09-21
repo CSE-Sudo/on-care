@@ -29,7 +29,8 @@ class StreakShields {
     required this.cost,
     this.used = const <StreakShieldUse>[],
     this.recordStreakDays = 0,
-    this.protectableDate,
+    this.protectableFrom,
+    this.protectableTo,
   });
 
   final int held;
@@ -40,9 +41,11 @@ class StreakShields {
   /// 식단이든 운동이든 기록한 날이 이어진 길이(보호한 날 포함).
   final int recordStreakDays;
 
-  /// 지금 보호할 수 있는 날(어제). null 이면 보호할 날이 없다 — 어제 기록이
-  /// 있거나 이미 보호했거나 보호권이 없다.
-  final DateTime? protectableDate;
+  /// 지금 보호권을 쓸 수 있는 날의 구간(양끝 포함) — 어제부터 거슬러 30일.
+  /// 보호권이 없으면 둘 다 null 이다. 어느 날이 실제로 비었는지는 기록 그래프
+  /// (`ActivityCalendar`)이 말한다.
+  final DateTime? protectableFrom;
+  final DateTime? protectableTo;
 
   factory StreakShields.fromJson(Map<String, Object?> json) => StreakShields(
     held: (json['held'] as num?)?.toInt() ?? 0,
@@ -57,6 +60,7 @@ class StreakShields {
           ),
     ],
     recordStreakDays: (json['record_streak_days'] as num?)?.toInt() ?? 0,
-    protectableDate: _dateFrom(json['protectable_date']),
+    protectableFrom: _dateFrom(json['protectable_from']),
+    protectableTo: _dateFrom(json['protectable_to']),
   );
 }

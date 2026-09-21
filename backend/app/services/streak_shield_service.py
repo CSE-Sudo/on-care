@@ -12,8 +12,11 @@
 
 - **교환** 포인트 사용처에서 300P. 쓰지 않은 보호권은 최대 4장까지 가진다. 잔액 행을
   잠근 채 보유 개수와 잔액을 확인하므로, 같은 회원의 교환이 겹쳐도 한도를 넘지 않는다.
-- **사용** 회원이 직접 한다. 보호할 수 있는 날은 **어제(KST)** 하나뿐이다 — 오늘이나
-  그보다 오래된 날은 안 된다. 식단이든 운동이든 기록이 있는 날은 보호하지 않는다.
+- **사용** 회원이 직접 한다. 보호할 수 있는 날은 **어제부터 거슬러 [PROTECT_WINDOW_DAYS]
+  일(KST)** 안의 날이다 — 오늘과 그보다 오래된 날은 안 된다. 기록 그래프(#2075)에서 빈
+  날을 눌러 쓰므로 어제 하나만 열어 두면 "어제를 놓친 뒤에야 산 보호권" 은 쓸 데가
+  없다. 창을 30일로 묶는 이유는, 무제한이면 몇 달 전 기록까지 칠해 연속 숫자의 뜻이
+  가벼워지기 때문이다. 식단이든 운동이든 기록이 있는 날은 보호하지 않는다.
   하루에 보호는 한 번이다. 가장 먼저 교환한 보호권부터 쓴다.
 - **주 경계를 보지 않는다.** 기록 연속은 주 단위가 아니라 날짜를 거슬러 이어지므로,
   오늘이 월요일이어도 어제(일요일)를 보호하면 연속이 이어진다.
@@ -59,14 +62,17 @@ USED = "used"
 #: 사용·반환 내역의 근거 — 교환한 보호권.
 SOURCE_STREAK_SHIELD = "streak_shield"
 
+#: 보호할 수 있는 창 — 어제부터 거슬러 이만큼(오늘은 들지 않는다).
+PROTECT_WINDOW_DAYS = 30
+
 #: 사용을 막는 이유.
-BLOCK_NOT_YESTERDAY = "not_yesterday"
+BLOCK_OUT_OF_WINDOW = "out_of_window"
 BLOCK_ALREADY_PROTECTED = "already_protected"
 BLOCK_HAS_RECORD = "has_record"
 BLOCK_NO_SHIELD = "no_shield"
 
 _BLOCK_MESSAGES = {
-    BLOCK_NOT_YESTERDAY: "어제만 보호할 수 있어요.",
+    BLOCK_OUT_OF_WINDOW: f"최근 {PROTECT_WINDOW_DAYS}일 안의 날만 보호할 수 있어요.",
     BLOCK_ALREADY_PROTECTED: "이미 보호한 날이에요.",
     BLOCK_HAS_RECORD: "기록이 있는 날은 보호하지 않아도 돼요.",
     BLOCK_NO_SHIELD: "보호권이 없어요.",
@@ -110,7 +116,7 @@ def held_count(db: Session, member_id: str) -> int:
 def status(db: Session, member_id: str) -> StreakShieldsOut:
     """보유 개수·보호한 날(최근 먼저)·기록 연속 일수·지금 보호할 수 있는 날.
 
-    내 혜택의 보호권 구역과, 보호권을 쓰는 화면(#2075 포인트 화면 기록 잔디밭)이
+    내 혜택의 보호권 구역과, 보호권을 쓰는 화면(#2075 포인트 화면 기록 그래프)이
     이 하나를 읽는다. 운동 주간 응답에는 보호권이 실리지 않는다 — 운동 탭의
     연속 일수는 운동만 센다.
     """
@@ -123,12 +129,10 @@ def status(db: Session, member_id: str) -> StreakShieldsOut:
     held = held_count(db, member_id)
     protected_on = {row.protected_on for row in rows if row.protected_on}
     today = clock.today()
-    yesterday = today - timedelta(days=1)
-    protectable = (
-        yesterday.isoformat()
-        if held > 0 and _block_reason(db, member_id, yesterday) is None
-        else None
-    )
+    # 창은 보유 수와 상관없이 늘 같다 — 보호권이 없으면 창만 비운다. 어느 날이
+    # 실제로 보호 가능한지(기록 없음·아직 보호 안 함)는 그래프가 날짜별 기록으로
+    # 가리고, 마지막 판정은 사용 요청이 [_block_reason] 으로 한다.
+    window = protect_window(today)
     return StreakShieldsOut(
         held=held,
         max_held=MAX_HELD,
@@ -141,7 +145,8 @@ def status(db: Session, member_id: str) -> StreakShieldsOut:
         record_streak_days=record_activity.record_streak_days(
             db, member_id, today=today, protected=protected_on
         ),
-        protectable_date=protectable,
+        protectable_from=window[0].isoformat() if held > 0 else None,
+        protectable_to=window[1].isoformat() if held > 0 else None,
     )
 
 
@@ -285,11 +290,22 @@ def refund_for_record(db: Session, member_id: str, day: date | None) -> bool:
 # ---- 내부 ----
 
 
+def protect_window(today: date) -> tuple[date, date]:
+    """보호할 수 있는 날의 구간(양끝 포함) — 어제부터 거슬러 30일.
+
+    그래프(#2075)가 어느 칸을 누를 수 있는지 그릴 때와 사용 요청을 판정할 때가 같은
+    구간을 봐야 한다. 앱이 창 길이를 따로 들고 있으면 규칙이 바뀔 때 화면만 옛
+    창으로 남는다.
+    """
+    last = today - timedelta(days=1)
+    return last - timedelta(days=PROTECT_WINDOW_DAYS - 1), last
+
+
 def _block_reason(db: Session, member_id: str, day: date) -> str | None:
     """[day] 를 지금 보호할 수 없는 이유. 보유 수는 보지 않는다."""
-    today = clock.today()
-    if day != today - timedelta(days=1):
-        return BLOCK_NOT_YESTERDAY
+    first, last = protect_window(clock.today())
+    if not first <= day <= last:
+        return BLOCK_OUT_OF_WINDOW
     if _protected(db, member_id, day):
         return BLOCK_ALREADY_PROTECTED
     if record_activity.has_record(db, member_id, day):

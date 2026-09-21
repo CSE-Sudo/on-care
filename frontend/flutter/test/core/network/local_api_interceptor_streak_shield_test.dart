@@ -133,7 +133,9 @@ void main() {
     ).fetch();
     // 목요일(오늘)만 기록이 있고 어제가 비었다.
     expect(beforeStatus.recordStreakDays, 1);
-    expect(beforeStatus.protectableDate, DateTime(2026, 9, 16));
+    // 창은 어제부터 거슬러 30일이다 — 어느 날이 비었는지는 기록 그래프가 가린다.
+    expect(beforeStatus.protectableTo, DateTime(2026, 9, 16));
+    expect(beforeStatus.protectableFrom, DateTime(2026, 8, 18));
 
     final Response<Object?> r = await use(_yesterday);
     expect(r.statusCode, 200);
@@ -161,25 +163,34 @@ void main() {
     final StreakShields status = await DioStreakShieldRepository(dio).fetch();
     expect(status.held, 1);
     expect((status.maxHeld, status.cost), (4, 300));
-    expect(status.protectableDate, isNull);
     expect(
       status.used.map((StreakShieldUse u) => u.date),
       <DateTime>[DateTime(2026, 9, 16)],
     );
   });
 
-  test('오늘·그저께·운동한 어제는 보호하지 않는다', () async {
+  test('창 밖의 날과 운동한 어제는 보호하지 않는다', () async {
     await exchange();
 
+    // 오늘·창보다 오래된 날은 막힌다. 그저께(9/15)는 창 안이라 이제 보호된다.
     expect((await use('2026-09-17')).statusCode, 409);
-    expect((await use('2026-09-15')).statusCode, 409);
+    expect((await use('2026-08-17')).statusCode, 409);
     expect((await use('2026-9-16')).statusCode, 422);
 
     await db.into(db.exerciseSessions).insert(session('ex-wed', '수', 15));
-    final StreakShields status = await DioStreakShieldRepository(dio).fetch();
-    expect(status.protectableDate, isNull);
     expect((await use(_yesterday)).statusCode, 409);
     expect(shields.held, 1);
+  });
+
+  test('창 안의 빈 날은 어제가 아니어도 보호한다 (#2075)', () async {
+    await exchange();
+    await exchange();
+
+    // 화요일(9/15)은 운동 기록이 있어 막히고, 기록이 없는 9/10·창 첫날은 열린다.
+    expect((await use('2026-09-15')).statusCode, 409);
+    expect((await use('2026-09-10')).statusCode, 200);
+    expect((await use('2026-08-18')).statusCode, 200);
+    expect(shields.held, 0);
   });
 
   test('식단만 남긴 어제도 기록한 날이라 보호하지 않는다', () async {
@@ -198,7 +209,6 @@ void main() {
         );
 
     final StreakShields status = await DioStreakShieldRepository(dio).fetch();
-    expect(status.protectableDate, isNull);
     // 월·화·수(식단)·목 — 식단 한 끼가 연속을 이었다.
     expect(status.recordStreakDays, 4);
     expect((await use(_yesterday)).statusCode, 409);
@@ -208,7 +218,8 @@ void main() {
 
   test('보호권이 없으면 보호할 날도 없고 사용은 409 다', () async {
     final StreakShields status = await DioStreakShieldRepository(dio).fetch();
-    expect((status.held, status.protectableDate), (0, null));
+    expect((status.held, status.protectableFrom), (0, null));
+    expect(status.protectableTo, isNull);
     expect((await use(_yesterday)).statusCode, 409);
   });
 
@@ -276,7 +287,7 @@ void main() {
     await exchange();
 
     final StreakShields status = await DioStreakShieldRepository(dio).fetch();
-    expect(status.protectableDate, DateTime(2026, 9, 20));
+    expect(status.protectableTo, DateTime(2026, 9, 20));
     expect((await use('2026-09-20')).statusCode, 200);
     expect(shields.held, 0);
   });

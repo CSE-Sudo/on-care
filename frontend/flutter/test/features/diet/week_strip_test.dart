@@ -59,6 +59,7 @@ void main() {
   }
 
   testWidgets('스트립은 월요일에서 시작해 일요일로 끝난다', (WidgetTester tester) async {
+    useFixedKstDate();
     await pumpDiet(tester);
 
     for (final int day in stripDays(tester)) {
@@ -77,6 +78,7 @@ void main() {
   });
 
   testWidgets('주차 번호 대신 고른 날을 적는다', (WidgetTester tester) async {
+    useFixedKstDate();
     await pumpDiet(tester);
 
     // 처음에는 오늘이 골라져 있다.

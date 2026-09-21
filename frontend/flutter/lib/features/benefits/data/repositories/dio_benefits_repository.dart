@@ -42,6 +42,7 @@ class DioBenefitsRepository implements BenefitsRepository {
   @override
   Future<CouponExchange> exchange(
     String itemId, {
+    String? option,
     String? clientRequestId,
   }) async {
     try {
@@ -51,6 +52,7 @@ class DioBenefitsRepository implements BenefitsRepository {
             '/me/points/exchange',
             data: <String, Object?>{
               'item': itemId,
+              'option': ?option,
               'client_request_id': ?clientRequestId,
             },
           ),

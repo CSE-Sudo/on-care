@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_load.dart';
@@ -424,8 +425,10 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       if (!mounted) return;
       ref.invalidate(exerciseWeekProvider);
       // 보호권으로 이어 붙인 날에 기록했으면 서버가 그 보호권을 되돌렸다 —
-      // 내 혜택의 보유 수를 다시 읽는다(#1788).
-      ref.invalidate(myStreakShieldsProvider);
+      // 내 혜택의 보유 수를 다시 읽는다(#1788). 그날 달력 칸도 달라졌다(#2075).
+      ref
+        ..invalidate(myStreakShieldsProvider)
+        ..invalidate(activityCalendarProvider);
       if (added != null) refreshPointsBalance(ref);
       navigator.pop(true);
       toast.show(
