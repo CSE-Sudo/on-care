@@ -424,6 +424,38 @@ class DietEntry(Base):
     )
 
 
+class ProfilePet(Base):
+    """MY 프로필 이름 옆에 붙는 펫 이모지 — 포인트로 여는 기간제 꾸밈. (#2021)
+
+    강아지나 고양이 하나를 골라 7일 동안 단다. 기능에는 영향이 없다. 언제까지인지는
+    `expires_at` 하나가 들고 있고, 만료는 스케줄러 없이 조회할 때 비교한다 — 지나면
+    저절로 떨어진다. 행은 지우지 않는다(무엇을 언제 샀는지가 남는다).
+    """
+
+    __tablename__ = "profile_pets"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: dog|cat.
+    kind: Mapped[str] = mapped_column(String(16))
+    #: 쓴 포인트. 가격이 바뀌어도 그때 얼마였는지가 남는다.
+    cost: Mapped[int] = mapped_column(Integer, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    #: 재시도가 두 번 사지 않게 하는 멱등키.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_profile_pet_client_request"
+        ),
+    )
+
+
 class EmotePass(Base):
     """채팅 이모티콘 24시간 이용권. (#2020)
 

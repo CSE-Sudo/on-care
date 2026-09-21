@@ -85,6 +85,37 @@ class _ReportThenChatRepository extends MockMemberCoachRepository {
       Stream<List<CoachMessage>>.value(messages);
 }
 
+/// 같은 시각이면 id가 작은 리포트 안내가 먼저 서야 하는 스레드.
+class _SameTimeReportRepository extends MockMemberCoachRepository {
+  _SameTimeReportRepository();
+
+  static final DateTime createdAt = DateTime(2026, 8, 24, 18, 10);
+  static final List<CoachMessage> messages = <CoachMessage>[
+    CoachMessage(
+      id: 'b-message',
+      sender: CoachSender.me,
+      body: '동시 메시지',
+      timeLabel: '18:10',
+      createdAt: createdAt,
+    ),
+    CoachMessage(
+      id: 'a-report',
+      sender: CoachSender.trainer,
+      body: '이번 주 리포트입니다.',
+      timeLabel: '18:10',
+      createdAt: createdAt,
+      reportWeekStart: _weekStart,
+    ),
+  ];
+
+  @override
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => messages;
+
+  @override
+  Stream<List<CoachMessage>> watchChat() =>
+      Stream<List<CoachMessage>>.value(messages);
+}
+
 MemberWeeklyReport _report({
   List<ExerciseSession> sessions = const <ExerciseSession>[],
   List<double> minutes = const <double>[30, 0, 45, 0, 20, 0, 0],
@@ -190,16 +221,28 @@ void main() {
       );
     });
 
-    testWidgets('뒤에 대화가 이어져도 안내는 맨 아래에 남는다', (WidgetTester tester) async {
+    testWidgets('뒤에 대화가 이어지면 안내는 발생 시각 위치에 남는다 (#2127)', (
+      WidgetTester tester,
+    ) async {
       await pumpChat(tester, repository: _ReportThenChatRepository());
 
       final Rect card = tester.getRect(find.byType(CoachReportCard));
       final Rect lastBubble = tester.getRect(find.text('확인했습니다'));
       expect(
-        card.top,
-        greaterThan(lastBubble.bottom),
-        reason: '리포트를 여는 자리는 대화가 늘어도 같은 곳이어야 한다',
+        card.bottom,
+        lessThan(lastBubble.top),
+        reason: '리포트 뒤에 온 메시지는 안내 카드 아래에 있어야 한다',
       );
+    });
+
+    testWidgets('발생 시각이 같으면 id 순으로 안내와 메시지를 정렬한다 (#2127)', (
+      WidgetTester tester,
+    ) async {
+      await pumpChat(tester, repository: _SameTimeReportRepository());
+
+      final Rect card = tester.getRect(find.byType(CoachReportCard));
+      final Rect bubble = tester.getRect(find.text('동시 메시지'));
+      expect(card.bottom, lessThan(bubble.top));
     });
   });
 

@@ -1337,6 +1337,62 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGraphColorPink => 'Pink';
 
   @override
+  String get myShopProfilePetTitle => 'Profile pet emoji';
+
+  @override
+  String get myShopProfilePetDescription =>
+      'Pick a dog or a cat to wear next to your name on MY for 7 days.';
+
+  @override
+  String get myProfilePetDog => 'Dog';
+
+  @override
+  String get myProfilePetCat => 'Cat';
+
+  @override
+  String get myProfilePetSheetTitle => 'Pick a pet for your name';
+
+  @override
+  String myProfilePetActive(String pet, String left) {
+    return '$pet · $left';
+  }
+
+  @override
+  String myProfilePetDaysLeft(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days left',
+      one: '1 day left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myProfilePetHoursLeft(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours left',
+      one: '1 hour left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myProfilePetExchangeConfirm(String pet, String cost) {
+    return 'Wear the $pet next to your name for 7 days for $cost?';
+  }
+
+  @override
+  String get myProfilePetDone => 'Your pet is next to your name';
+
+  @override
+  String myProfilePetLabel(String pet) {
+    return '$pet pet emoji';
+  }
+
+  @override
   String myPointsValidDays(int days) {
     return 'Valid for $days days after redeeming';
   }

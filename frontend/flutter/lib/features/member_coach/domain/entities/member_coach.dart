@@ -197,6 +197,7 @@ class CoachProgramItem {
     required this.sets,
     required this.reps,
     required this.weight,
+    this.duration = 0,
   });
 
   final String name;
@@ -208,6 +209,10 @@ class CoachProgramItem {
   final int sets;
   final int reps;
   final double weight;
+
+  /// 유산소·스트레칭·기타 항목의 운동 시간(분). 서버는 근력 항목에서는 이 값을
+  /// 비우고 세트·횟수·중량을 사용한다.
+  final int duration;
 }
 
 /// Chat message viewpoint for the member: their own message vs the coach's.

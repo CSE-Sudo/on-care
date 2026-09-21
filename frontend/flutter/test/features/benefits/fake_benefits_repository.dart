@@ -1,5 +1,6 @@
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
 import 'package:oncare/features/benefits/domain/repositories/benefits_repository.dart';
 
 /// 위젯 테스트용 사용처·쿠폰 저장소 — 넣어 준 목록을 돌려주고 호출을 기록한다.
@@ -7,12 +8,15 @@ import 'package:oncare/features/benefits/domain/repositories/benefits_repository
 /// 기본 잔액은 9,000P 다 — PT 재등록(21,000P)은 모자라고 개인 락커(7,000P)는
 /// 교환할 수 있어, 두 상태가 한 화면에 함께 선다.
 class FakeBenefitsRepository implements BenefitsRepository {
-  FakeBenefitsRepository({PointsShop? shop, List<Coupon>? coupons})
+  FakeBenefitsRepository({PointsShop? shop, List<Coupon>? coupons, this.pet})
     : shop = shop ?? shopWith(balance: 9000),
       coupons = coupons ?? <Coupon>[];
 
   PointsShop shop;
   List<Coupon> coupons;
+
+  /// MY 이름 옆에 단 펫(#2021). null 이면 달고 있지 않다.
+  ProfilePet? pet;
 
   final List<String> exchanged = <String>[];
   final List<String> used = <String>[];
@@ -58,6 +62,9 @@ class FakeBenefitsRepository implements BenefitsRepository {
 
   @override
   Future<List<Coupon>> fetchCoupons() async => coupons;
+
+  @override
+  Future<ProfilePet?> fetchProfilePet() async => pet;
 
   @override
   Future<Coupon> useCoupon(String couponId) async {

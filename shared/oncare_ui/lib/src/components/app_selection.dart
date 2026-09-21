@@ -335,27 +335,40 @@ class AppTag extends StatelessWidget {
     required this.label,
     this.tone = AppTagTone.neutral,
     this.icon,
+    this.accent,
   });
 
   final String label;
   final AppTagTone tone;
   final IconData? icon;
 
+  /// 톤 대신 쓸 색 — 회원이 고른 색을 따라야 하는 태그의 자리(#2076).
+  ///
+  /// 기록 그래프 색처럼 **회원이 고른 값**이라 톤 다섯 가지로 말할 수 없는
+  /// 태그만 이 자리를 쓴다. 주는 값은 여전히 토큰이어야 한다(기록 색 계열의
+  /// `OnCareRecordRamp.full` 등) — 여기서 임의의 색을 만들지 않는다.
+  /// 채움은 톤과 같은 규칙으로 그 색의 8% 다.
+  final Color? accent;
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
-    final Color accent = switch (tone) {
-      AppTagTone.neutral => OnCareColors.textSecondary,
-      AppTagTone.brand => tokens.brand.primary,
-      AppTagTone.success => OnCareColors.success,
-      AppTagTone.caution => OnCareColors.caution,
-      AppTagTone.danger => OnCareColors.danger,
-    };
-    final Color fill = switch (tone) {
-      AppTagTone.neutral => OnCareColors.surfaceInput,
-      AppTagTone.brand => tokens.brand.surface,
-      _ => OnCareColors.onWhite(accent, OnCareAlpha.subtle),
-    };
+    final Color accent =
+        this.accent ??
+        switch (tone) {
+          AppTagTone.neutral => OnCareColors.textSecondary,
+          AppTagTone.brand => tokens.brand.primary,
+          AppTagTone.success => OnCareColors.success,
+          AppTagTone.caution => OnCareColors.caution,
+          AppTagTone.danger => OnCareColors.danger,
+        };
+    final Color fill = this.accent != null
+        ? OnCareColors.onWhite(accent, OnCareAlpha.subtle)
+        : switch (tone) {
+            AppTagTone.neutral => OnCareColors.surfaceInput,
+            AppTagTone.brand => tokens.brand.surface,
+            _ => OnCareColors.onWhite(accent, OnCareAlpha.subtle),
+          };
     return Container(
       height: OnCareSize.tagHeight,
       padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s8),

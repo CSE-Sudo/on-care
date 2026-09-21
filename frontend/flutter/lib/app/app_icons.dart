@@ -99,6 +99,9 @@ class AppIcons {
   /// 기록 그래프 색 고르기 — 그래프 카드 오른쪽 위 버튼(#2076).
   static const IconData palette = Symbols.palette_rounded;
 
+  /// 프로필 펫 이모지 — 사용처 카드(#2021).
+  static const IconData pets = Symbols.pets_rounded;
+
   /// 주간 챌린지 — 사용처 카드·운동 탭(#1789). 알림의 달성과 같은 모양이다.
   static const IconData challenge = achievement;
 

@@ -45,6 +45,29 @@ void main() {
     expect(r.trainerFeedback, '잘했어요');
   });
 
+  test('coachSessionFromJson keeps non-strength program duration (#2126)', () {
+    final CoachSession session = coachSessionFromJson(<String, Object?>{
+      'id': 'session-1',
+      'date': '2026-09-21',
+      'time': '18:00',
+      'type': '1:1 PT',
+      'duration_minutes': 50,
+      'status': '완료',
+      'note': '',
+      'program': <Object?>[
+        <String, Object?>{
+          'name': '마무리 러닝머신',
+          'sets': null,
+          'reps': null,
+          'weight': null,
+          'duration': '10분',
+        },
+      ],
+    });
+
+    expect(session.program.single.duration, 10);
+  });
+
   group('coachMessageFromJson (member viewpoint)', () {
     test('maps a coach (trainer) message', () {
       final m = coachMessageFromJson(<String, Object?>{
