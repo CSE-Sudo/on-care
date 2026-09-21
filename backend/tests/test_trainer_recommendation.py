@@ -151,3 +151,71 @@ def test_order_is_stable_across_calls(client):
     """같은 회원은 새로고침해도 같은 순서를 본다(동점 정렬이 결정적)."""
     headers = _register(client, conditions="비만")
     assert _ids(client, headers) == _ids(client, headers)
+
+
+#: 데모 시드에 담당 트레이너가 없는 건강 목표. (#2121)
+#:
+#: 사전을 넓혀도 채울 수 없다 — 레일에 오르는 트레이너(`seed_gyms._TRAINERS`) 중
+#: 혈압·심혈관을 다룬다고 적은 사람이 아무도 없다. `seed_trainer.py` 의 데모
+#: 트레이너가 유일하게 `혈압 관리` 를 적어 두었지만 `gym_id` 가 없어 디렉터리
+#: 조건(`_trainer_query`)에서 빠진다. 시드 쪽에서 해결할 일이라 여기서는 목록으로
+#: 남겨 둔다 — 채워지면 이 집합을 비운다.
+_FOCUS_WITHOUT_TRAINER = {"혈압 관리"}
+
+
+def test_every_focus_matches_someone():
+    """온보딩이 고를 수 있는 건강 목표마다 매칭되는 트레이너가 있는가. (#2121)
+
+    키워드 사전은 **트레이너가 실제로 쓰는 말**과 맞물려야만 동작한다. 한쪽만
+    바뀌면 그 목표를 고른 회원은 목표 일치 30점을 통째로 못 받고 거리·경력만으로
+    줄 세워지는데, 화면에는 아무 표시가 없어 누구도 알아차리지 못한다. 선택지를
+    늘리거나 시드 문구를 고칠 때 여기서 걸린다.
+    """
+    from app.db.seed_gyms import _TRAINERS
+    from app.services import health_focus
+    from app.services.trainer_recommendation import _CONDITION_NEEDS
+
+    uncovered = []
+    for focus in health_focus.FOCUS_OPTIONS:
+        need = _CONDITION_NEEDS[focus]
+        # score_trainer 와 같은 haystack — specialty · intro · recommend_reason.
+        matched = [
+            name
+            for _id, _gym, name, specialty, reason, _career, intro, _certs in _TRAINERS
+            if any(k in f"{specialty} {intro} {reason}" for k in need.keywords)
+        ]
+        if not matched:
+            uncovered.append(need.label)
+
+    assert set(uncovered) == _FOCUS_WITHOUT_TRAINER, (
+        f"매칭되는 트레이너가 없는 목표: {uncovered} "
+        f"(알려진 공백: {sorted(_FOCUS_WITHOUT_TRAINER)})"
+    )
+
+
+def test_recommend_reason_counts_as_specialty_text():
+    """운영자가 적어 둔 추천 사유도 목표 일치 판정에 쓰인다. (#2121)
+
+    `recommend_reason` 은 그 트레이너의 강점을 한 줄로 적은 값이고, 레일 노출
+    조건이자 회원 화면에 그대로 나가는 문구다. 점수에서만 빠져 있으면 화면은
+    "혈압 관리 지도" 라고 말하는데 정작 혈압 관리 회원에게 가점이 없다.
+    """
+    from app.models import models
+    from app.services.trainer_recommendation import (
+        MemberSignals,
+        _CONDITION_NEEDS,
+        score_trainer,
+    )
+    from app.services import health_focus
+
+    need = _CONDITION_NEEDS[health_focus.FOCUS_BLOOD_PRESSURE]
+    signals = MemberSignals(needs=[need])
+    profile = models.TrainerProfile(
+        trainer_id="t", specialty="퍼스널 트레이너", intro="1:1 수업을 진행합니다.",
+        recommend_reason="혈압 관리와 운동 병행 지도", career_years=0,
+    )
+
+    scored = score_trainer(signals, profile, None)
+
+    assert scored.score > 0
+    assert need.label in scored.reason
