@@ -10,6 +10,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
+import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
+import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
@@ -20,13 +22,20 @@ import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
+import '../../helpers/fake_activity_calendar_repository.dart';
 import '../benefits/fake_benefits_repository.dart';
 import '../benefits/fake_challenge_repository.dart';
 
 void main() {
   const Size surface = Size(390, 1600);
 
-  Future<void> pumpHome(WidgetTester tester, Widget home) async {
+  /// [graphColor] 는 회원이 고른 기록 그래프 색이다 — 포인트 카드가 이 색을
+  /// 따른다(#2076).
+  Future<void> pumpHome(
+    WidgetTester tester,
+    Widget home, {
+    String graphColor = 'blue',
+  }) async {
     // 목록 끝까지 한 번에 그려지도록 세로를 넉넉히 둔다.
     await tester.binding.setSurfaceSize(surface);
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -46,6 +55,23 @@ void main() {
           // 사용처 화면은 주간 챌린지도 읽는다(#1789).
           challengeRepositoryProvider.overrideWithValue(
             FakeChallengeRepository(),
+          ),
+          // 기록 그래프는 DB 없이 답하는 대역을 쓴다 — MY 탭도 이 응답에서
+          // 카드 색을 읽는다(#2076).
+          activityCalendarRepositoryProvider.overrideWithValue(
+            FakeActivityCalendarRepository()
+              ..color = GraphColorState(
+                current: graphColor,
+                unlocked: <String>{'blue', graphColor}.toList(),
+                palette: const <String>[
+                  'blue',
+                  'green',
+                  'purple',
+                  'orange',
+                  'pink',
+                ],
+                cost: 150,
+              ),
           ),
         ],
         child: MaterialApp(
@@ -129,7 +155,10 @@ void main() {
     final Material material = tester.widget<Material>(
       find.descendant(of: banner(), matching: find.byType(Material)).first,
     );
-    expect(material.color, OnCareBrand.member.pointsCard);
+    // 기본 색의 진한 단계가 곧 카드 색이다 — 색을 사지 않은 회원에게는 앱의
+    // 메인 파랑 그대로다(#2076).
+    expect(material.color, OnCareRecordColors.base.full);
+    expect(material.color, OnCareBrand.member.primary);
 
     final Iterable<AppIcon> icons = tester.widgetList<AppIcon>(
       find.descendant(of: banner(), matching: find.byType(AppIcon)),
@@ -148,6 +177,23 @@ void main() {
       (AppIcon icon) => icon.icon == AppIcons.chevronRight,
     );
     expect(arrow.color, OnCareColors.textOnFill);
+  });
+
+  testWidgets('포인트 카드 바탕은 회원이 고른 기록 그래프 색을 따른다', (
+    WidgetTester tester,
+  ) async {
+    await pumpHome(tester, const MyHealthPage(), graphColor: 'pink');
+
+    final Material material = tester.widget<Material>(
+      find.descendant(of: banner(), matching: find.byType(Material)).first,
+    );
+    expect(material.color, OnCareRecordColors.pink.full);
+
+    // 글자·화살표는 흰색 그대로다 — 바탕만 바뀐다.
+    final Text balance = tester.widget<Text>(
+      find.descendant(of: banner(), matching: find.text('1,240P')),
+    );
+    expect(balance.style?.color, OnCareColors.textOnFill);
   });
 
   testWidgets('포인트 사용처 헤더 오른쪽 끝의 (i) 가 적립 안내 창을 연다', (

@@ -31,6 +31,10 @@ class AppCard extends StatelessWidget {
   final bool selected;
 
   /// 특정 의미를 가진 강조 카드의 채움. 없으면 기본 카드/선택 카드 색을 쓴다.
+  ///
+  /// 채운 카드는 흰 글자를 얹는 카드라([OnCareColors.textOnFill]), 누름·hover 도
+  /// 채움이 아니라 **그 글자색 8%** 로 얹는다 — 옅은 브랜드 채움을 그대로 얹으면
+  /// 어느 색으로 채웠든 카드가 눌릴 때마다 파랗게 물든다(#2076).
   final Color? backgroundColor;
 
   /// 차트처럼 가장자리까지 채울 때만 줄인다.
@@ -39,6 +43,11 @@ class AppCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    // 누름·hover 에 얹는 색. 흰 카드는 옅은 브랜드 채움이고, 채운 카드는 그 위에
+    // 서는 글자색 8% 다.
+    final Color ink = backgroundColor == null
+        ? tokens.brand.surface
+        : OnCareColors.textOnFill.withValues(alpha: OnCareAlpha.subtle);
     return DecoratedBox(
       decoration: const BoxDecoration(
         borderRadius: OnCareRadius.xlAll,
@@ -57,7 +66,9 @@ class AppCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          hoverColor: onTap == null ? null : tokens.brand.surface,
+          hoverColor: onTap == null ? null : ink,
+          highlightColor: onTap == null || backgroundColor == null ? null : ink,
+          splashColor: onTap == null || backgroundColor == null ? null : ink,
           child: Padding(padding: padding, child: child),
         ),
       ),
