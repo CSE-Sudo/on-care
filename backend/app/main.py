@@ -21,6 +21,7 @@ from app.api.v1 import (
     coach_docs,
     consultations,
     dashboard,
+    emotes,
     diet,
     exercise,
     gyms,
@@ -123,6 +124,7 @@ app.include_router(coach_docs.router, prefix=settings.api_v1_prefix)
 app.include_router(trainer.router, prefix=settings.api_v1_prefix)
 app.include_router(member_coach.router, prefix=settings.api_v1_prefix)
 app.include_router(points.router, prefix=settings.api_v1_prefix)
+app.include_router(emotes.router, prefix=settings.api_v1_prefix)
 # 연속 기록 보호권(#1788). 교환은 포인트 사용처(`points`)와 같은 경로다.
 app.include_router(streak_shields.router, prefix=settings.api_v1_prefix)
 # 기록 그래프와 그래프 색(#2075, #2076). 색을 여는 교환도 `points` 와 같은 경로다.

@@ -93,4 +93,26 @@ void main() {
       );
     });
   });
+
+  group('이모티콘 (#2020)', () {
+    Map<String, Object?> message(Object? emote) => <String, Object?>{
+      'id': 'c9',
+      'sender': 'client',
+      'body': '(이모티콘)',
+      'time_label': '18:12',
+      'created_at': '2026-07-30T18:12:00',
+      'emote_id': emote,
+    };
+
+    test('회원이 보낸 이모티콘 id 를 그대로 읽는다', () {
+      // 트레이너는 이용권 없이도 받은 이모티콘을 본다 — 지난 대화는 기록이다.
+      expect(chatMessageFromJson(message('oni_owoon')).emoteId, 'oni_owoon');
+    });
+
+    test('이모티콘이 아닌 메시지는 비어 있다', () {
+      expect(chatMessageFromJson(message(null)).emoteId, isNull);
+      // 값이 글이 아니면 일반 메시지로 둔다 — 대화 전체가 뜨지 않는 편보다 낫다.
+      expect(chatMessageFromJson(message(12)).emoteId, isNull);
+    });
+  });
 }

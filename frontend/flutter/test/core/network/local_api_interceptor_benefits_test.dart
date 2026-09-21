@@ -93,18 +93,20 @@ void main() {
       'locker_month',
       'streak_shield',
       'graph_color',
+      // 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니라 이용권이다.
+      'emote_pass_24h',
     ]);
     expect(
       shop.items.map((ShopItem i) => i.cost),
-      <int>[21000, 7000, 300, 150],
+      <int>[21000, 7000, 300, 150, 300],
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresTrainer),
-      <bool>[true, false, false, false],
+      <bool>[true, false, false, false, false],
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresGym),
-      <bool>[false, true, false, false],
+      <bool>[false, true, false, false, false],
     );
     expect(shop.items.every((ShopItem i) => i.available), isTrue);
 

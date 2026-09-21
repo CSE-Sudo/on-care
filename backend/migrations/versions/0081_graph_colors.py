@@ -2,7 +2,7 @@
 
 포인트 사용처에서 150P 로 여는 그래프 색 표를 만든다. 기본 색(회원앱 파랑)은
 누구나 쓰므로 행이 없고, 행이 있는 색만 포인트로 연 색이다. 그중 `selected` 인
-행 하나가 지금 기록 그래프을 그리는 색이다.
+행 하나가 지금 기록 그래프를 그리는 색이다.
 
 - 같은 색을 두 번 사지 않는다(`uq_graph_colors_color`).
 - 한 회원이 고른 색은 하나뿐이다(partial unique index) — 기본 색으로 되돌리면
@@ -11,8 +11,8 @@
 교환에 쓴 포인트는 기존 `points_ledger` 에 `spend` 로 남으므로 내역 표는 바꾸지
 않는다.
 
-Revision ID: 0080_graph_colors
-Revises: 0079_weekly_challenges
+Revision ID: 0081_graph_colors
+Revises: 0080_chat_emotes
 """
 from __future__ import annotations
 
@@ -21,8 +21,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0080_graph_colors"
-down_revision: str | Sequence[str] | None = "0079_weekly_challenges"
+revision: str = "0081_graph_colors"
+down_revision: str | Sequence[str] | None = "0080_chat_emotes"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

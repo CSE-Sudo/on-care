@@ -69,7 +69,7 @@ class _ReadFailingMemberCoachRepository extends MockMemberCoachRepository {
 
 class _SendFailingMemberCoachRepository extends MockMemberCoachRepository {
   @override
-  Future<void> sendMessage(String text) async {
+  Future<void> sendMessage(String text, {String? emoteId}) async {
     throw StateError('메시지 전송 실패');
   }
 }

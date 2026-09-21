@@ -10,6 +10,7 @@ import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/clients/data/repositories/chat_pdf_repository.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/chat_image_attachment.dart';
+import 'package:oncare_trainer/features/clients/presentation/widgets/trainer_emote_sheet.dart';
 import 'package:oncare_trainer/features/messages/domain/chat_context_insight.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
@@ -79,6 +80,39 @@ class _ChatViewState extends ConsumerState<ChatView> {
     _input.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  /// 이모티콘 창을 열고, 고른 것을 그 자리에서 보낸다. (#2020)
+  ///
+  /// 고르면 바로 보낸다 — 이모티콘은 한 번의 반응이라, 고른 뒤 전송을 다시 누르게
+  /// 하면 글보다 느려진다. 회원 앱의 고르는 창과 같은 흐름이다.
+  Future<void> _sendEmote() async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String? picked = await showTrainerEmoteSheet(context);
+    if (picked == null || !mounted) return;
+    setState(() => _sending = true);
+    try {
+      await ref
+          .read(chatRepositoryProvider)
+          .sendTrainerMessage(
+            clientId: widget.clientId,
+            text: '',
+            emoteId: picked,
+          );
+    } catch (_) {
+      if (!mounted) return;
+      showAppToast(context, l.chatSendFailed, type: AppToastType.error);
+      return;
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+    if (!mounted) return;
+    // 데모(drift)는 쓰기에 스트림이 다시 흐른다. 실서버는 한 번 읽어 오는 경로라
+    // 보낸 뒤 다시 받아야 방금 보낸 것이 보인다 — 글 전송과 같다.
+    if (!ref.read(appConfigProvider).useMockApi) {
+      ref.invalidate(chatThreadProvider(widget.clientId));
+      ref.invalidate(unreadCountsProvider);
+    }
   }
 
   Future<void> _send() async {
@@ -416,6 +450,7 @@ class _ChatViewState extends ConsumerState<ChatView> {
           onAttachImage: ref.watch(appConfigProvider).useMockApi
               ? null
               : _sendImage,
+          onEmote: _sendEmote,
         ),
       ],
     );
@@ -701,17 +736,25 @@ class _Bubble extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l = AppLocalizations.of(context);
     final fromTrainer = message.fromTrainer;
     // 말풍선 폭 상한(대화 폭의 72%)과 시간 위치는 [AppChatBubble] 이 정한다.
     // 누가 한 말인지는 색과 **어느 쪽으로 붙어 있는가**가 말한다.
     final Widget bubble = AppChatBubble(
       mine: fromTrainer,
       time: _clockOnly(message.timeLabel),
+      // 이모티콘은 말풍선 없이 그림만 둔다 — 회원 앱과 같다(#2020).
+      bare: message.emoteId != null,
       child: Column(
         key: ValueKey<String>('trainer-message-bubble-${message.id}'),
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(message.body),
+          // 회원이 보낸 이모티콘은 그림만 둔다 — 본문은 이모티콘을 그리지 못하는
+          // 자리(로스터의 마지막 메시지)가 읽는 글이다(#2020).
+          if (message.emoteId case final String emote?)
+            AppEmote(id: emote, semanticLabel: l.chatEmoteLabel)
+          else
+            Text(message.body),
           if (message.attachment case final attachment?) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s8),
             // 사진은 대화 안에서 그리고, PDF 는 내려받는 카드로 둔다. 사진을
@@ -866,6 +909,7 @@ class _InputBar extends StatelessWidget {
     required this.sending,
     required this.onSend,
     this.onAttachImage,
+    this.onEmote,
   });
 
   final TextEditingController controller;
@@ -878,6 +922,9 @@ class _InputBar extends StatelessWidget {
   /// 사진 첨부. 데모처럼 받을 백엔드가 없는 빌드에서는 null 이라 버튼 자체가
   /// 그려지지 않는다 — 눌러도 아무 데도 닿지 않는 버튼을 두지 않는다. (#921)
   final Future<void> Function()? onAttachImage;
+
+  /// 이모티콘 창 열기(#2020). 트레이너는 이용권 없이 보낸다.
+  final Future<void> Function()? onEmote;
 
   @override
   Widget build(BuildContext context) {
@@ -902,6 +949,8 @@ class _InputBar extends StatelessWidget {
         onSend: onSend,
         attachTooltip: l.chatAttachImage,
         onAttach: attach == null ? null : () => attach(),
+        emoteTooltip: l.chatEmoteLabel,
+        onEmote: onEmote == null ? null : () => onEmote!(),
         enabled: !sending,
       ),
     );

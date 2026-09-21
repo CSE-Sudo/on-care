@@ -118,7 +118,7 @@ class _FakeCoachRepository implements MemberCoachRepository {
   Future<void> markRead() async {}
 
   @override
-  Future<void> sendMessage(String text) async {}
+  Future<void> sendMessage(String text, {String? emoteId}) async {}
 }
 
 /// 내 상담 요청 목록을 몇 번 받았는지만 센다.

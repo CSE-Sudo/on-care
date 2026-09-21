@@ -119,19 +119,21 @@ class DioMemberCoachRepository implements MemberCoachRepository {
       );
 
   @override
-  Future<void> sendMessage(String text) async {
+  Future<void> sendMessage(String text, {String? emoteId}) async {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return;
-    final requestId = _pendingRequestIds.putIfAbsent(
-      trimmed,
-      _requestIdFactory,
-    );
+    if (trimmed.isEmpty && emoteId == null) return;
+    // 같은 이모티콘을 연달아 보내는 것은 흔한 일이라, 멱등키를 글로만 묶으면
+    // 두 번째가 재시도로 접힌다. 이모티콘은 누를 때마다 새 키를 만든다.
+    final String requestId = emoteId != null
+        ? _requestIdFactory()
+        : _pendingRequestIds.putIfAbsent(trimmed, _requestIdFactory);
     try {
       await _dio.post<Map<String, Object?>>(
         '/me/coach/chat',
         data: <String, Object?>{
           'text': trimmed,
           'client_request_id': requestId,
+          'emote_id': ?emoteId,
         },
       );
     } on DioException catch (e) {
@@ -205,10 +207,7 @@ class DioMemberCoachRepository implements MemberCoachRepository {
     Map<String, Object?>? query,
   }) async {
     try {
-      final res = await _dio.get<List<dynamic>>(
-        path,
-        queryParameters: query,
-      );
+      final res = await _dio.get<List<dynamic>>(path, queryParameters: query);
       final data = res.data ?? const <dynamic>[];
       return data
           .map((dynamic item) {

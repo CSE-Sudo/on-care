@@ -24,7 +24,11 @@ from app.schemas.trainer_api import (
     MemberCoachOut, MemberInviteAcceptRequest, RoutineCompleteOut, RoutineOut,
     ScheduleSessionOut,
 )
-from app.services import trainer_client_invite_service, trainer_service
+from app.services import (
+    emote_service,
+    trainer_client_invite_service,
+    trainer_service,
+)
 
 router = APIRouter(tags=["member-coach"])
 
@@ -217,6 +221,18 @@ def send_to_coach(
     """회원이 담당 트레이너에게 메시지 발신(트레이너 로스터 last_message 에 자동 반영)."""
     trainer_id = _my_trainer_or_404(db, member.id)
     text = payload.text.strip()
+    emote_id = payload.emote_id
+    if emote_id is not None:
+        # 이모티콘은 회원이 포인트로 산 24시간 이용권 안에서만 보낸다(#2020).
+        # 모르는 id 를 저장하면 앱이 그리지 못하는 빈 말풍선이 대화에 남는다.
+        if not emote_service.is_known(emote_id):
+            raise HTTPException(status_code=400, detail="없는 이모티콘이에요.")
+        try:
+            emote_service.require_pass(db, member.id)
+        except emote_service.PassRequired as exc:
+            raise HTTPException(status_code=402, detail=str(exc)) from exc
+        # 본문은 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽는다.
+        text = text or "(이모티콘)"
     if not text:
         raise HTTPException(status_code=400, detail="빈 메시지는 보낼 수 없습니다.")
     try:
@@ -228,6 +244,7 @@ def send_to_coach(
             text,
             viewer="member",
             client_request_id=payload.client_request_id,
+            emote_id=emote_id,
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

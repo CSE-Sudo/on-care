@@ -14,6 +14,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_rep
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_notice.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_image_attachment.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_report_card.dart';
+import 'package:oncare/features/member_coach/presentation/widgets/emote_sheet.dart';
 import 'package:oncare/features/member_coach/services/member_report_pdf_generator.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -216,6 +217,31 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
     super.dispose();
   }
 
+  /// 이모티콘 창을 열고, 고른 것을 그 자리에서 보낸다. (#2020)
+  ///
+  /// 고르면 바로 보낸다 — 이모티콘은 한 번의 반응이라, 고른 뒤 전송을 다시 누르게
+  /// 하면 글보다 느려진다. 이용권은 창이 맡는다(없으면 고를 수 없다).
+  Future<void> _pickEmote() async {
+    final AppToastHost toast = AppToastHost.of(context);
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String? picked = await showEmoteSheet(context);
+    if (picked == null || !mounted) return;
+    setState(() => _sending = true);
+    try {
+      await ref
+          .read(memberCoachRepositoryProvider)
+          .sendMessage('', emoteId: picked);
+    } catch (_) {
+      if (!mounted) return;
+      toast.show(l.emoteSendFailed, type: AppToastType.error);
+      return;
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+    if (!mounted) return;
+    ref.invalidate(coachChatProvider);
+  }
+
   Future<void> _send() async {
     if (_sending) return;
     final text = _input.text.trim();
@@ -370,9 +396,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                                     variant: AppButtonVariant.text,
                                     size: OnCareButtonSize.small,
                                     onPressed: () => ref
-                                        .read(
-                                          coachChatHistoryProvider.notifier,
-                                        )
+                                        .read(coachChatHistoryProvider.notifier)
                                         .loadOlder(messages.first),
                                   ),
                           ),
@@ -393,6 +417,8 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
                 controller: _input,
                 hint: l.coachChatInputHint,
                 sendTooltip: l.a11ySendMessage,
+                emoteTooltip: l.a11yOpenEmotes,
+                onEmote: _pickEmote,
                 enabled: !_sending,
                 onSend: _send,
               ),
@@ -459,6 +485,9 @@ class _MessageRow extends ConsumerWidget {
     final Widget bubble = AppChatBubble(
       mine: fromMe,
       time: _clockOnly(message.timeLabel),
+      // 이모티콘은 그림 하나가 곧 말이다 — 말풍선에 담으면 그림 뒤로 파란 상자가
+      // 비친다(#2020).
+      bare: message.emoteId != null,
       child: KeyedSubtree(
         key: ValueKey<String>('coach-message-bubble-${message.id}'),
         child: _body(context, ref),
@@ -490,7 +519,16 @@ class _MessageRow extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Text(message.body),
+        // 이모티콘 메시지는 그림만 둔다 — 본문은 이모티콘을 그리지 못하는
+        // 자리(알림·목록의 마지막 메시지)가 읽는 글이라 여기서 또 보이면
+        // `(이모티콘)` 이 말풍선에 그대로 남는다(#2020).
+        if (message.emoteId case final String emote?)
+          AppEmote(
+            id: emote,
+            semanticLabel: AppLocalizations.of(context).a11yEmote,
+          )
+        else
+          Text(message.body),
         if (message.attachment case final attachment?) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s8),
           // 사진은 대화 안에서 그리고, 리포트 PDF 는 내려받는

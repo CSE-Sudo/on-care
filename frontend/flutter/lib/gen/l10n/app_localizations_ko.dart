@@ -1514,6 +1514,74 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLogoutConfirm => '로그아웃 하시겠어요?';
 
   @override
+  String get emoteSheetTitle => '이모티콘';
+
+  @override
+  String get emotePassActive => '이모티콘 쓰는 중';
+
+  @override
+  String emotePassRemaining(String left) {
+    return '$left 남았어요';
+  }
+
+  @override
+  String emotePassOffer(int cost, int hours) {
+    return '${cost}P로 $hours시간 동안 모두 쓰기';
+  }
+
+  @override
+  String emotePassBalance(int balance) {
+    return '지금 ${balance}P 있어요';
+  }
+
+  @override
+  String emotePassShortfall(int shortfall, int balance) {
+    return '${shortfall}P 더 모으면 쓸 수 있어요 (지금 ${balance}P)';
+  }
+
+  @override
+  String get emoteBuyTitle => '이모티콘 이용권';
+
+  @override
+  String emoteBuyConfirm(int cost, int hours) {
+    return '${cost}P를 써서 $hours시간 동안 이모티콘을 모두 쓸까요? 산 때부터 시간이 흘러가요.';
+  }
+
+  @override
+  String get emoteBuyAction => '이용권 사기';
+
+  @override
+  String get emoteBought => '이제 이모티콘을 보낼 수 있어요';
+
+  @override
+  String get emoteBuyFailed => '이용권을 사지 못했어요. 잠시 후 다시 시도해 주세요.';
+
+  @override
+  String get emoteLoadFailed => '이모티콘을 불러오지 못했어요';
+
+  @override
+  String emoteRemainingHm(int hours, int minutes) {
+    return '$hours시간 $minutes분';
+  }
+
+  @override
+  String emoteRemainingM(int minutes) {
+    return '$minutes분';
+  }
+
+  @override
+  String get emoteRemainingSoon => '곧 끝나요';
+
+  @override
+  String get emoteSendFailed => '이모티콘을 보내지 못했어요';
+
+  @override
+  String get a11yOpenEmotes => '이모티콘';
+
+  @override
+  String get a11yEmote => '이모티콘';
+
+  @override
   String get myWithdrawTitle => '회원 탈퇴';
 
   @override

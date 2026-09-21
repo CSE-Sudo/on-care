@@ -424,6 +424,39 @@ class DietEntry(Base):
     )
 
 
+class EmotePass(Base):
+    """채팅 이모티콘 24시간 이용권. (#2020)
+
+    한 번 사면 그 시각부터 24시간 동안 **모든** 이모티콘을 보낼 수 있다. 묶음별로
+    사지 않는 이유는, 회원이 무엇을 살지 고르는 동안 정작 하고 싶던 말을 놓치기
+    때문이다. 남은 시간은 `expires_at` 하나로 계산한다.
+
+    이용권이 끝나도 이미 보낸 이모티콘은 대화에 그대로 남는다 — 지난 대화는
+    기록이지 이용권의 대상이 아니다. 끝난 뒤에는 새로 보내는 것만 막힌다.
+    """
+
+    __tablename__ = "emote_passes"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 쓴 포인트. 가격이 바뀌어도 그때 얼마였는지가 남는다.
+    cost: Mapped[int] = mapped_column(Integer, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    #: 재시도가 두 번 사지 않게 하는 멱등키.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_emote_pass_client_request"
+        ),
+    )
+
+
 class AccountDeletionReason(Base):
     """회원이 탈퇴하며 고른 사유 한 줄. (#2019)
 
@@ -1674,6 +1707,9 @@ class ChatMessage(Base):
     # 실어 보낸 값을 그대로 들고 있는다. 일반 대화는 NULL 이라 예전 행과 조회
     # 흐름은 그대로다.
     report_week_start: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # 이 메시지가 이모티콘이면 그 id(`oni_owoon` …). 본문은 이모티콘을 못 그리는
+    # 자리(알림·미리보기)를 위한 글이고, 그림은 이 id 로 고른다. (#2020)
+    emote_id: Mapped[str | None] = mapped_column(String(40), nullable=True)
     read_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

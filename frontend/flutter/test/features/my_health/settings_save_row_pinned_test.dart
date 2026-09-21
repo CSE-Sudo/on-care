@@ -84,6 +84,8 @@ void main() {
 
   testWidgets('프로필: 저장 줄이 스크롤 없이 하단에 보인다', (tester) async {
     await _pump(tester, const ProfileSettingsPage());
+    await tester.tap(find.byKey(const Key('profileEditButton')));
+    await tester.pumpAndSettle();
 
     _expectPinnedAndTappable(tester);
   });

@@ -105,7 +105,7 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   Stream<List<CoachMessage>> watchChat() =>
       const Stream<List<CoachMessage>>.empty();
   @override
-  Future<void> sendMessage(String text) async {}
+  Future<void> sendMessage(String text, {String? emoteId}) async {}
   @override
   Future<void> markRead() async {}
   @override

@@ -2768,6 +2768,114 @@ abstract class AppLocalizations {
   /// **'Log out of your account?'**
   String get myLogoutConfirm;
 
+  /// No description provided for @emoteSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emotes'**
+  String get emoteSheetTitle;
+
+  /// No description provided for @emotePassActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Emotes are on'**
+  String get emotePassActive;
+
+  /// No description provided for @emotePassRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{left} left'**
+  String emotePassRemaining(String left);
+
+  /// No description provided for @emotePassOffer.
+  ///
+  /// In en, this message translates to:
+  /// **'Use them all for {hours} hours for {cost}P'**
+  String emotePassOffer(int cost, int hours);
+
+  /// No description provided for @emotePassBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {balance}P'**
+  String emotePassBalance(int balance);
+
+  /// No description provided for @emotePassShortfall.
+  ///
+  /// In en, this message translates to:
+  /// **'{shortfall}P more and they are yours (you have {balance}P)'**
+  String emotePassShortfall(int shortfall, int balance);
+
+  /// No description provided for @emoteBuyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Emote pass'**
+  String get emoteBuyTitle;
+
+  /// No description provided for @emoteBuyConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Spend {cost}P to use every emote for {hours} hours? The clock starts the moment you buy.'**
+  String emoteBuyConfirm(int cost, int hours);
+
+  /// No description provided for @emoteBuyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy pass'**
+  String get emoteBuyAction;
+
+  /// No description provided for @emoteBought.
+  ///
+  /// In en, this message translates to:
+  /// **'You can send emotes now'**
+  String get emoteBought;
+
+  /// No description provided for @emoteBuyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not buy the pass. Please try again in a moment.'**
+  String get emoteBuyFailed;
+
+  /// No description provided for @emoteLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not load the emotes'**
+  String get emoteLoadFailed;
+
+  /// No description provided for @emoteRemainingHm.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h {minutes}m'**
+  String emoteRemainingHm(int hours, int minutes);
+
+  /// No description provided for @emoteRemainingM.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m'**
+  String emoteRemainingM(int minutes);
+
+  /// No description provided for @emoteRemainingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Ending soon'**
+  String get emoteRemainingSoon;
+
+  /// No description provided for @emoteSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'We could not send the emote'**
+  String get emoteSendFailed;
+
+  /// No description provided for @a11yOpenEmotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Emotes'**
+  String get a11yOpenEmotes;
+
+  /// No description provided for @a11yEmote.
+  ///
+  /// In en, this message translates to:
+  /// **'Emote'**
+  String get a11yEmote;
+
   /// Account deletion entry at the end of the MY settings list (#1935).
   ///
   /// In en, this message translates to:

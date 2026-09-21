@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:go_router/go_router.dart';
+import 'package:oncare_trainer/app/router/app_router.dart';
+import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/features/auth/data/repositories/dio_trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/auth_tokens.dart';
 import 'package:oncare_trainer/features/auth/domain/entities/session_state.dart';
 import 'package:oncare_trainer/features/auth/domain/repositories/trainer_auth_repository.dart';
 import 'package:oncare_trainer/features/auth/presentation/controllers/session_controller.dart';
+import 'package:oncare_trainer/features/auth/presentation/pages/trainer_sign_in_page.dart';
+import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_profile.dart';
 
 import '../../helpers/pump_app.dart';
@@ -17,6 +21,9 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
 
   final AuthFailure? failure;
   int loginCalls = 0;
+  int socialCalls = 0;
+  String? email;
+  String? socialProvider;
   String? password;
 
   static const TrainerAuthTokens _tokens = TrainerAuthTokens(
@@ -30,6 +37,7 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
     required String password,
   }) async {
     loginCalls++;
+    this.email = email;
     this.password = password;
     if (failure != null) throw AuthException(failure!);
     return _tokens;
@@ -47,7 +55,12 @@ class _RecordingAuthRepository implements TrainerAuthRepository {
   Future<TrainerAuthTokens> socialLogin({
     required String provider,
     required String token,
-  }) async => _tokens;
+  }) async {
+    socialCalls++;
+    socialProvider = provider;
+    if (failure != null) throw AuthException(failure!);
+    return _tokens;
+  }
 
   @override
   Future<TrainerAuthTokens> refresh(String refreshToken) async => _tokens;
@@ -117,6 +130,82 @@ Finder _errorUnder(ValueKey<String> key, String message) =>
     find.descendant(of: find.byKey(key), matching: find.text(message));
 
 void main() {
+  for (final mock in <bool>[true, false]) {
+    for (final provider in <String>['kakao', 'google']) {
+      for (final fail in <bool>[false, true]) {
+        testWidgets('$provider mock=$mock fail=$fail 소셜 버튼 로그인', (
+          tester,
+        ) async {
+          final repo = _RecordingAuthRepository(
+            failure: fail ? AuthFailure.invalidCredentials : null,
+          );
+          final router = GoRouter(
+            initialLocation: '/login',
+            routes: <RouteBase>[
+              GoRoute(
+                path: '/login',
+                builder: (_, _) => const TrainerSignInPage(),
+              ),
+              GoRoute(
+                path: '/dashboard',
+                builder: (_, _) => const Scaffold(body: Text('로그인 완료')),
+              ),
+            ],
+          );
+          addTearDown(router.dispose);
+          final container = await pumpTrainerApp(
+            tester,
+            seed: false,
+            extraOverrides: <Override>[
+              trainerAuthRepositoryProvider.overrideWithValue(repo),
+              appRouterProvider.overrideWithValue(router),
+              appConfigProvider.overrideWithValue(
+                AppConfig(
+                  environment: Environment.dev,
+                  apiBaseUrl: 'https://api.test',
+                  useMockApi: mock,
+                ),
+              ),
+            ],
+          );
+          container.read(sessionControllerProvider);
+          await settle(tester);
+          final button = find.byKey(
+            ValueKey<String>('trainer-login-$provider'),
+          );
+          await tester.ensureVisible(button);
+          await tester.tap(button);
+          await settle(tester);
+          expect(repo.socialCalls, mock ? 1 : 0);
+          expect(repo.loginCalls, mock ? 0 : 1);
+          if (mock) {
+            expect(repo.socialProvider, provider);
+          } else {
+            expect(repo.email, 'trainer@oncare.com');
+            expect(repo.password, 'oncare123');
+          }
+          expect(
+            container.read(sessionControllerProvider).status,
+            fail ? SessionStatus.signedOut : SessionStatus.authenticated,
+          );
+          if (fail) {
+            expect(find.byType(TrainerSignInPage), findsOneWidget);
+            expect(
+              find.text(
+                AppLocalizations.of(
+                  tester.element(find.byType(TrainerSignInPage)),
+                ).authErrSocialFailed,
+              ),
+              findsOneWidget,
+            );
+          } else {
+            expect(find.text('로그인 완료'), findsOneWidget);
+          }
+        });
+      }
+    }
+  }
+
   group('TrainerSignInPage', () {
     testWidgets('빈칸으로 로그인하면 칸 아래에 빨간 문구를 보이고 요청하지 않는다', (tester) async {
       final repo = await _pumpWithRepo(tester);
