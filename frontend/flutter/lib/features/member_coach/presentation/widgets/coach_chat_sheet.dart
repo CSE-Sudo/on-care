@@ -50,36 +50,34 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
   int _lastCount = -1;
   bool _sending = false;
 
-  /// 대화 목록 전체 — 말풍선 스레드 뒤에 리포트 안내를 붙인다.
+  /// 대화 목록 전체 — 일반 말풍선과 리포트 안내를 한 타임라인에 둔다.
   ///
-  /// 리포트 안내는 온 시각 자리에 끼우지 않고 **항상 맨 아래**에 둔다. 대화가
-  /// 이어지면 안내가 위로 밀려 올라가 버리는데, 회원이 리포트를 여는 자리는
-  /// 대화를 새로 열 때마다 같은 곳이어야 찾을 수 있다.
+  /// 서버 응답 순서에 기대지 않고 발생 시각으로 정렬한다. 같은 시각에는 id를
+  /// 보조 기준으로 써 새로고침할 때마다 순서가 바뀌지 않게 한다(#2127).
   List<Widget> _chatChildren(
     List<CoachMessage> messages, {
     required bool showDemoBanners,
   }) {
-    final List<CoachMessage> thread = <CoachMessage>[];
-    final List<CoachMessage> reports = <CoachMessage>[];
-    for (final CoachMessage message in messages) {
-      (message.reportWeekStart == null ? thread : reports).add(message);
+    final List<CoachMessage> timeline = List<CoachMessage>.of(messages)
+      ..sort((CoachMessage first, CoachMessage second) {
+        final int byTime = first.createdAt.compareTo(second.createdAt);
+        return byTime != 0 ? byTime : first.id.compareTo(second.id);
+      });
+    return showDemoBanners
+        ? _withDemoBanners(timeline)
+        : _withoutDemoBanners(timeline);
+  }
+
+  Widget _chatItem(CoachMessage message) {
+    final DateTime? weekStart = message.reportWeekStart;
+    if (weekStart != null) {
+      return _ReportNotice(
+        key: ValueKey<String>('coach-message-bubble-${message.id}'),
+        message: message,
+        weekStart: weekStart,
+      );
     }
-    return <Widget>[
-      ...showDemoBanners
-          ? _withDemoBanners(thread)
-          : _withoutDemoBanners(thread),
-      // 스레드의 마지막 요소는 아래 여백을 달지 않는다 — 원래 목록의 끝이라서다.
-      // 그 뒤에 안내를 붙이면 `개인 추천운동을 받았어요` 배너와 맞붙으므로,
-      // 스레드가 비어 있지 않을 때만 한 칸 띄운다.
-      if (thread.isNotEmpty && reports.isNotEmpty)
-        const SizedBox(height: OnCareSpacing.s16),
-      for (final CoachMessage message in reports)
-        _ReportNotice(
-          key: ValueKey<String>('coach-message-bubble-${message.id}'),
-          message: message,
-          weekStart: message.reportWeekStart!,
-        ),
-    ];
+    return _MessageRow(message: message, trainerName: widget.trainerName);
   }
 
   /// 데모 안내 배너를 **하루 단위로** 끼워 넣은 목록을 만든다.
@@ -118,7 +116,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
           out.add(const SizedBox(height: OnCareSpacing.s16));
         }
       }
-      out.add(_MessageRow(message: m, trainerName: widget.trainerName));
+      out.add(_chatItem(m));
       if (i == lastSeeded) {
         out.add(const _ReceivedBanner());
         if (i != messages.length - 1) {
@@ -138,7 +136,7 @@ class _TrainerChatPageState extends ConsumerState<TrainerChatPage> {
           ..add(_dateDivider(message.createdAt))
           ..add(const SizedBox(height: OnCareSpacing.s8));
       }
-      out.add(_MessageRow(message: message, trainerName: widget.trainerName));
+      out.add(_chatItem(message));
     }
     return out;
   }

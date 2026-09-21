@@ -107,6 +107,7 @@ CoachSession coachSessionFromJson(Map<String, Object?> json) {
                   sets: _looseInt(item['sets']),
                   reps: _looseInt(item['reps']),
                   weight: _looseDouble(item['weight']),
+                  duration: _looseInt(item['duration']),
                 );
               })
               .toList(growable: false)

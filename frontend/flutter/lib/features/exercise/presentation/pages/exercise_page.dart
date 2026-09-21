@@ -859,7 +859,7 @@ class _PtLogCard extends ConsumerWidget {
       // 고르는 기준은 **출처**다. `근력이면 PT` 로 세면, 오늘 회원이 직접 적은
       // 근력 한 줄이 PT 일지 안으로 딸려 들어가 하지 않은 종목이 트레이너
       // 세션에 적힌다.
-      final List<String> items =
+      final List<ExerciseSession> sessions =
           ref
               .watch(exerciseWeekViewProvider)
               .valueOrNull
@@ -869,10 +869,9 @@ class _PtLogCard extends ConsumerWidget {
                     s.dayLabel == _todayLabel() &&
                     s.source == ExerciseSource.trainerPt,
               )
-              .expand((ExerciseSession s) => s.items)
               .toList() ??
-          const <String>[];
-      return _DemoPtLogCard(items: items);
+          const <ExerciseSession>[];
+      return _DemoPtLogCard(sessions: sessions);
     }
 
     final DateTime now = nowKst();
@@ -911,6 +910,12 @@ class _CompletedPtSessionCard extends StatelessWidget {
   final String coachName;
 
   String _programLabel(CoachProgramItem item, AppLocalizations l) {
+    // 서버 계약상 근력이 아닌 항목은 세트 대신 duration(분)을 갖는다. 이 값을
+    // 버리면 러닝머신·스트레칭이 이름만 남아, 데모와 같은 회귀가 실 API에서도
+    // 생긴다(#2126).
+    if (item.duration > 0) {
+      return '${item.name} · ${l.exDurationMinutes(item.duration)}';
+    }
     // 세트 → 횟수 → 중량. 입력 화면이 묻는 순서 그대로다 (#1310) — 트레이너가
     // 적은 순서와 회원이 읽는 순서가 다르면 같은 한 줄이 두 앱에서 달라 보인다.
     final String details = <String>[
@@ -1011,10 +1016,11 @@ class _CompletedPtSessionCard extends StatelessWidget {
 /// **가상의 데이터**다 — 실모드에서는 이 자리에 실제 회원의 기록이 들어온다(#847).
 /// 화면에 보이는 문구라 모두 l10n 에 둔다.
 class _DemoPtLogCard extends StatelessWidget {
-  const _DemoPtLogCard({required this.items});
+  const _DemoPtLogCard({required this.sessions});
 
-  /// 오늘 세션의 종목 줄. 픽스처의 근력 기록에서 온다.
-  final List<String> items;
+  /// 오늘 PT의 구조화된 운동 기록. 이름 문자열이 아니라 이 필드들에서 운동량을
+  /// 조립해야 픽스처와 실서버가 같은 모양으로 보인다(#2126).
+  final List<ExerciseSession> sessions;
 
   @override
   Widget build(BuildContext context) {
@@ -1051,7 +1057,8 @@ class _DemoPtLogCard extends StatelessWidget {
           const SizedBox(height: OnCareSpacing.s12),
           const AppDivider(),
           const SizedBox(height: OnCareSpacing.s12),
-          for (final String it in items) _ProgramLine(it),
+          for (final ExerciseSession session in sessions)
+            _ProgramLine(_DayRecordCard._line(l, session)),
           const SizedBox(height: OnCareSpacing.s12),
           AppTile(
             child: Column(
