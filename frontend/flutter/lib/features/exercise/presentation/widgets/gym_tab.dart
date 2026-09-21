@@ -127,7 +127,7 @@ class _MyGymSection extends StatelessWidget {
 
   final AsyncValue<Gym?> gymAsync;
 
-  /// 담당 트레이너. 헬스장과 별개로 해제될 수 있어 null 이면 트레이너 행이 빠진다.
+  /// 담당 트레이너. 헬스장과 별개로 해제될 수 있어 null 이면 담당 트레이너가 없다는 안내를 표시한다.
   final Trainer? trainer;
   final String? selectedSlot;
   final ValueChanged<String> onSlot;

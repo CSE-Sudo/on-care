@@ -16,6 +16,7 @@ import 'package:oncare/features/my_health/data/repositories/mock_my_health_repos
 import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/features/my_health/presentation/pages/my_health_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 class _FailingGymRepository implements GymRepository {
   const _FailingGymRepository();
@@ -153,6 +154,10 @@ void main() {
     expect(find.byKey(const Key('gymTrainerDetailButton')), findsOneWidget);
     expect(find.byKey(const Key('connectedGymIcon')), findsOneWidget);
     expect(find.byKey(const Key('gymTrainerChatButton')), findsNothing);
+    expect(
+      find.descendant(of: gymCard(), matching: find.byType(AppDivider)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('영어 로케일에서 섹션 액션이 영어로 표시된다', (WidgetTester tester) async {

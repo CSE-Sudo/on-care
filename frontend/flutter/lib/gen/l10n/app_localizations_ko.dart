@@ -893,9 +893,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get exFindGym => '헬스장 찾기';
 
   @override
-  String get exFindTrainer => '트레이너 찾기';
-
-  @override
   String get exGymDetailTitle => '헬스장 상세';
 
   @override
