@@ -1,9 +1,9 @@
-/// 상세 스케줄 카드의 동작 줄. (#1012)
+/// 상세 스케줄 카드의 동작 줄. (#1012, #2178)
 ///
 /// 일곱 개가 같은 크기·같은 모양으로 늘어서 있었다. 버튼이 많아 보이는 것이
 /// 아니라 실제로 많았고, 되돌릴 수 없는 `삭제` 가 자주 쓰는 `채팅` 과 나란히
-/// 서 있었다. 여기서 재는 것은 "글씨는 자주 쓰는 것만, 나머지는 라벨 붙은
-/// 아이콘" 이라는 계약이다.
+/// 서 있었다. 여기서 재는 것은 "카드에는 약속의 결말(`완료`·`취소 처리`)만
+/// 글씨 버튼으로, 손보는 동작은 연필 버튼 하나의 메뉴로" 라는 계약이다.
 library;
 
 import 'package:flutter/material.dart';
@@ -12,6 +12,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/session_manage_row.dart';
+
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../helpers/fixed_clock.dart';
 import '../../helpers/pump_app.dart';
@@ -43,6 +45,11 @@ void main() {
     await settle(tester);
   }
 
+  Future<void> openEditMenu(WidgetTester tester) async {
+    await tester.tap(find.byKey(const ValueKey<String>('session-edit-menu')));
+    await settle(tester);
+  }
+
   Finder inRow(Finder matching) =>
       find.descendant(of: find.byType(SessionManageRow), matching: matching);
 
@@ -63,7 +70,7 @@ void main() {
     );
   });
 
-  testWidgets('아이콘만 그리는 동작에도 툴팁과 시맨틱 라벨이 있다', (tester) async {
+  testWidgets('손보는 동작은 연필 버튼 하나의 메뉴로 묶인다 (#2178)', (tester) async {
     await openSchedule(tester);
     await openSession(tester, '박성호');
 
@@ -74,39 +81,69 @@ void main() {
       'session-edit-note-chip': '메모 추가',
       'session-delete-chip': '삭제',
     };
-    for (final entry in keys.entries) {
-      final chip = find.byKey(ValueKey<String>(entry.key));
-      expect(chip, findsOneWidget, reason: '${entry.value} 가 없다');
-      // 아이콘만으로는 무엇인지 말하지 못한다.
-      final Tooltip tip = tester.widget<Tooltip>(
-        find.descendant(of: chip, matching: find.byType(Tooltip)).first,
-      );
-      expect(tip.message, entry.value);
+    // 메뉴를 열기 전에는 카드에 서 있지 않다 — 결말을 남기는 두 버튼만 있다.
+    for (final key in keys.keys) {
+      expect(find.byKey(ValueKey<String>(key)), findsNothing, reason: key);
     }
+    expect(
+      find.byKey(const ValueKey<String>('session-complete-chip')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('session-cancel-chip')),
+      findsOneWidget,
+    );
+    // 연필 버튼은 아이콘만 그리므로 툴팁이 이름을 말한다.
+    final Tooltip tip = tester.widget<Tooltip>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey<String>('session-edit-menu')),
+            matching: find.byType(Tooltip),
+          )
+          .first,
+    );
+    expect(tip.message, '수정');
+
+    await openEditMenu(tester);
+    for (final entry in keys.entries) {
+      final item = find.byKey(ValueKey<String>(entry.key));
+      expect(item, findsOneWidget, reason: '${entry.value} 가 없다');
+      // 메뉴 항목은 글씨로 무엇인지 말한다.
+      expect(
+        find.descendant(of: item, matching: find.text(entry.value)),
+        findsOneWidget,
+      );
+    }
+
+    // 연필 버튼을 다시 누르면 메뉴가 닫힌다.
+    await openEditMenu(tester);
+    expect(
+      find.byKey(const ValueKey<String>('session-delete-chip')),
+      findsNothing,
+    );
   });
 
-  testWidgets('삭제는 마지막 자리에 채우지 않은 알약으로 선다', (tester) async {
+  testWidgets('삭제는 메뉴 마지막 자리에 빨간 글씨로 선다', (tester) async {
     await openSchedule(tester);
     await openSession(tester, '박성호');
+    await openEditMenu(tester);
 
-    final Rect delete = tester.getRect(
-      find.byKey(const ValueKey<String>('session-delete-chip')),
+    final Finder delete = find.byKey(
+      const ValueKey<String>('session-delete-chip'),
     );
+    final Rect deleteRect = tester.getRect(delete);
     final Rect note = tester.getRect(
       find.byKey(const ValueKey<String>('session-edit-note-chip')),
     );
     // 되돌릴 수 없는 동작을 자주 쓰는 것 앞에 두지 않는다.
-    expect(delete.left, greaterThan(note.left));
+    expect(deleteRect.top, greaterThan(note.top));
 
-    final Material fill = tester.widget<Material>(
-      find
-          .descendant(
-            of: find.byKey(const ValueKey<String>('session-delete-chip')),
-            matching: find.byType(Material),
-          )
-          .first,
+    final MenuItemButton button = tester.widget<MenuItemButton>(delete);
+    expect(
+      button.style?.foregroundColor?.resolve(<WidgetState>{}),
+      OnCareColors.danger,
+      reason: '다른 동작과 같은 무게로 세우지 않는다',
     );
-    expect(fill.color, Colors.transparent, reason: '다른 동작과 같은 무게로 채우지 않는다');
   });
 
   testWidgets('머리글 첫 줄이 상태·시각·종류를 함께 말한다', (tester) async {

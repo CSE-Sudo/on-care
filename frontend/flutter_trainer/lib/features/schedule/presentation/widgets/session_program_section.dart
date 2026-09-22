@@ -129,7 +129,7 @@ class SessionNoPlanBox extends StatelessWidget {
             ),
           ),
           const SizedBox(width: OnCareSpacing.s8),
-          // `프로그램 수정`(관리 줄, `session-edit-program-chip`)과는 다른
+          // `프로그램 수정`(편집 메뉴, `session-edit-program-chip`)과는 다른
           // 동작이라 키도 다르다 — 이 카드에서 편집기를 여는 게 아니라 코칭
           // 탭으로 나간다.
           AppIconButton(

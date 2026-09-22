@@ -349,9 +349,11 @@ void main() {
     testWidgets('삭제 확인 문구가 취소·노쇼를 가리킨다', (tester) async {
       await openSchedule(tester);
       await openSession(tester, '박성호');
-      final delete = find.byKey(const ValueKey<String>('session-delete-chip'));
-      await revealInPanel(tester, delete.first);
-      await tester.tap(delete.first);
+      // 삭제는 PT 카드의 편집 메뉴 안에 있다(#2178).
+      await tapChip(tester, 'session-edit-menu');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('session-delete-chip')),
+      );
       await settle(tester);
 
       // 잘못 만든 일정과 진행되지 않은 PT 를 가르는 문장이다(#871).
@@ -364,9 +366,11 @@ void main() {
       await openSchedule(tester);
       // 김민수(18:00, 완료)는 예정에서만 갈리는 취소·노쇼로 되돌릴 수 없다(#1226).
       await openSession(tester, '김민수');
-      final delete = find.byKey(const ValueKey<String>('session-delete-chip'));
-      await revealInPanel(tester, delete.first);
-      await tester.tap(delete.first);
+      // 삭제는 PT 카드의 편집 메뉴 안에 있다(#2178).
+      await tapChip(tester, 'session-edit-menu');
+      await tester.tap(
+        find.byKey(const ValueKey<String>('session-delete-chip')),
+      );
       await settle(tester);
 
       expect(find.textContaining('취소·노쇼로 남기세요'), findsNothing);

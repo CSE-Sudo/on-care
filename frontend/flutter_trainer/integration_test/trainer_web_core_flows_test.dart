@@ -537,7 +537,7 @@ void main() {
     await tester.tap(find.text('김민수').first);
     await _pumpUntil(
       tester,
-      find.byKey(const ValueKey<String>('session-delete-chip')),
+      find.byKey(const ValueKey<String>('session-edit-menu')),
       step: 'booked client actions',
     );
     expect(
