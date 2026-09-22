@@ -59,6 +59,19 @@ abstract class DietRepository {
     double? sugarG,
   });
 
+  /// POST /diet/entries — 사진 없이 회원이 직접 적은 끼니를 저장한다(#2151).
+  ///
+  /// 합계는 서버가 [foods] 에서 낸다. 포인트는 적립되지 않는다 — 적립은 사진
+  /// 분석 저장만 한다. [date] 는 `YYYY-MM-DD` 이고 비우면 오늘이다.
+  /// [idempotencyKey] 는 [analyze] 와 같다 — 저장 한 번에 하나 만들어 재시도에
+  /// 그대로 쓴다.
+  Future<DietEntry> createEntry({
+    required String date,
+    required String mealType,
+    required List<FoodItem> foods,
+    String? idempotencyKey,
+  });
+
   /// POST /diet/nutrition — 음식 이름으로 공공 영양 DB 값을 찾는다. (#1896)
   ///
   /// 수정 화면이 이름을 고쳤을 때 **제안**에 쓴다. 계산은 분석 보정과 같은

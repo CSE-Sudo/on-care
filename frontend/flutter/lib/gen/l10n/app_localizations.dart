@@ -1064,6 +1064,30 @@ abstract class AppLocalizations {
   /// **'Add Food'**
   String get dietAddFood;
 
+  /// No description provided for @dietManualAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add manually'**
+  String get dietManualAdd;
+
+  /// No description provided for @dietManualAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Meal Manually'**
+  String get dietManualAddTitle;
+
+  /// No description provided for @dietManualAddHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a food name and we\'ll fill in the nutrition'**
+  String get dietManualAddHint;
+
+  /// No description provided for @dietManualAddEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one food'**
+  String get dietManualAddEmpty;
+
   /// No description provided for @dietEditFoodHint.
   ///
   /// In en, this message translates to:
