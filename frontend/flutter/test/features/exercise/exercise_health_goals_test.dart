@@ -500,6 +500,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('openGoals')));
     await tester.pumpAndSettle();
+    // 건강 목표는 보기 모드로 열린다 — 연필을 눌러야 칸이 열린다(#2132).
+    await tester.tap(find.byKey(const Key('goalsEditButton')));
+    await tester.pumpAndSettle();
     // 운동 목표 네 칸: 일일 소모 · 주간 유산소 · 주간 근력 · 주간 스트레칭.
     // 자리 대신 키로 집는다 — 화면 순서가 바뀌어도(#1471) 같은 칸을 고친다.
     for (final ({String key, String value}) field
@@ -514,6 +517,13 @@ void main() {
     final Finder save = find.text('저장');
     await tester.ensureVisible(save);
     await tester.tap(save);
+    await tester.pumpAndSettle();
+
+    // 저장해도 화면은 닫히지 않고 보기 모드로 돌아온다(#2132) — 홈 카드를
+    // 보려면 회원이 직접 나가야 한다.
+    expect(find.byType(HealthGoalsPage), findsOneWidget);
+    expect(find.byKey(const Key('goalsEditButton')), findsOneWidget);
+    await tester.tap(find.byTooltip('뒤로'));
     await tester.pumpAndSettle();
 
     expect(find.byType(HealthGoalsPage), findsNothing);

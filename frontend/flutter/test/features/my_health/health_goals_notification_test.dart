@@ -58,6 +58,9 @@ Future<void> _openHealthGoals(
     ),
   );
   await tester.pumpAndSettle();
+  // 건강 목표는 보기 모드로 열린다 — 연필을 눌러야 칸이 열린다(#2132).
+  await tester.tap(find.byKey(const Key('goalsEditButton')));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _tapSave(WidgetTester tester) async {
@@ -70,10 +73,10 @@ Future<void> _tapSave(WidgetTester tester) async {
 }
 
 void main() {
-  // 건강 목표 저장 알림은 시트를 닫은 **뒤에** 도착한다. 예전에는 이 자리만
-  // 위쪽 배너로 떠서 닫기 버튼을 눌러야 사라졌다(#1259). 지금은 다른 화면과
-  // 같은 토스트로 알린다.
-  testWidgets('저장 성공 알림은 이전 화면에서 토스트로 뜬다', (tester) async {
+  // 예전에는 이 자리만 위쪽 배너로 떠서 닫기 버튼을 눌러야 사라졌다(#1259).
+  // 지금은 다른 화면과 같은 토스트로 알린다. 저장해도 화면을 닫지 않고 보기
+  // 모드로 돌아오므로(#2132), 토스트는 건강 목표 화면 위에 뜬다.
+  testWidgets('저장 성공 알림은 같은 화면에서 토스트로 뜨고 보기 모드로 돌아온다', (tester) async {
     await _openHealthGoals(tester, MockAccountRepository());
 
     await _tapSave(tester);
@@ -86,7 +89,10 @@ void main() {
       tester.getRect(find.text('건강 목표가 저장되었어요')).center.dy,
       lessThan(screen.height / 4),
     );
-    expect(find.text('식단 목표'), findsNothing);
+    // 화면은 그대로 있고, 칸은 다시 닫혀 연필이 돌아온다.
+    expect(find.text('식단 목표'), findsOneWidget);
+    expect(find.byKey(const Key('goalsEditButton')), findsOneWidget);
+    expect(find.byKey(const Key('mySettingsSaveRow')), findsNothing);
 
     await tester.pump(const Duration(seconds: 4));
     await tester.pumpAndSettle();
