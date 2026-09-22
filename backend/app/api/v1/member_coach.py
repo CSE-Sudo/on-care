@@ -26,6 +26,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     emote_service,
+    member_departure,
     trainer_client_invite_service,
     trainer_service,
 )
@@ -65,7 +66,10 @@ def disconnect_my_coach(
 
     이미 연결이 없으면 404 가 아니라 204 다. 해제는 멱등이어야 하고, 두 번 눌렀다고
     오류 화면을 보일 이유가 없다.
+
+    담당 트레이너에게는 연결이 끊겼다고 알린다(#2174). 해제와 같은 커밋에 얹는다.
     """
+    member_departure.notify_trainer(db, current_user, reason="disconnected")
     trainer_service.disconnect_member_gym(db, current_user.id)
 
 
@@ -78,7 +82,10 @@ def disconnect_my_trainer(
 
     헬스장은 그대로 두고 담당만 바꾸는 흐름(트레이너 교체)이 있어야 하므로 전체
     해제와 나눈다. 전체 해제와 마찬가지로 멱등이다. (#444)
+
+    담당 트레이너에게는 연결이 끊겼다고 알린다(#2174).
     """
+    member_departure.notify_trainer(db, current_user, reason="disconnected")
     trainer_service.disconnect_member_coach(db, current_user.id)
 
 
