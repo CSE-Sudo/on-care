@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
+import 'package:oncare/features/benefits/presentation/benefit_labels.dart';
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -90,10 +91,12 @@ class WeeklyChallengeCard extends StatelessWidget {
                     ),
                     const SizedBox(height: OnCareSpacing.s4),
                     Text(
-                      l.challengeDescription(
-                        l.myPointsCost(state.stake),
-                        state.goal,
-                        l.myPointsCost(state.reward),
+                      keepWords(
+                        l.challengeDescription(
+                          l.myPointsCost(state.stake),
+                          state.goal,
+                          l.myPointsCost(state.reward),
+                        ),
                       ),
                       key: const Key('weeklyChallengeDescription'),
                       style: tokens
@@ -103,7 +106,7 @@ class WeeklyChallengeCard extends StatelessWidget {
                     if (joined == null) ...<Widget>[
                       const SizedBox(height: OnCareSpacing.s4),
                       Text(
-                        l.challengeJoinWindow,
+                        keepWords(l.challengeJoinWindow),
                         style: tokens
                             .text(OnCareTypography.caption)
                             .copyWith(color: OnCareColors.textTertiary),
@@ -124,7 +127,7 @@ class WeeklyChallengeCard extends StatelessWidget {
                   child: blocked == null
                       ? const SizedBox.shrink()
                       : Text(
-                          blocked,
+                          keepWords(blocked),
                           key: const Key('weeklyChallengeBlocked'),
                           style: tokens
                               .text(
@@ -197,16 +200,17 @@ class ChallengeProgressView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: OnCareSpacing.s8),
-        AppProgressBar(
-          value: c.goal <= 0 ? 0 : c.progress / c.goal,
-          color: c.achieved ? OnCareColors.success : null,
-        ),
+        // 채워도 브랜드 파랑 그대로다 — 달성은 아래 안내 줄이 말한다. 사용처 화면의
+        // 다른 막대(분석용 식판, #2150)와 색을 맞춘다.
+        AppProgressBar(value: c.goal <= 0 ? 0 : c.progress / c.goal),
         if (showHint) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s8),
           Text(
-            c.achieved
-                ? l.challengeAchieved(l.myPointsCost(c.reward))
-                : l.challengeRemaining(c.remaining, l.myPointsCost(c.reward)),
+            keepWords(
+              c.achieved
+                  ? l.challengeAchieved(l.myPointsCost(c.reward))
+                  : l.challengeRemaining(c.remaining, l.myPointsCost(c.reward)),
+            ),
             style: tokens
                 .text(OnCareTypography.caption)
                 .copyWith(color: OnCareColors.textTertiary),
@@ -216,7 +220,6 @@ class ChallengeProgressView extends StatelessWidget {
     );
   }
 }
-
 
 /// 운동 탭의 주간 챌린지 진행 줄. 이번 주에 참가했을 때만 선다. (#1789)
 ///

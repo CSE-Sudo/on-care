@@ -1,4 +1,5 @@
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/diet_tray.dart';
 import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
@@ -33,6 +34,13 @@ abstract interface class BenefitsRepository {
 
   /// 회원이 스스로 사용 완료를 누르는 쿠폰을 사용 처리한다. 되돌리기는 없다.
   Future<Coupon> useCoupon(String couponId);
+
+  /// 분석용 식판(#2150) — 사진 기록일 진행 상황과 받을 수 있는지.
+  Future<DietTray> fetchDietTray();
+
+  /// 조건을 채운 회원이 식판 수령 쿠폰을 받는다. 받은 뒤의 상태를 돌려준다.
+  /// 규칙에 막히면(조건 미달 등) 서버 오류로 올라온다.
+  Future<DietTray> claimDietTray({String? clientRequestId});
 
   /// MY 프로필 이름 옆에 단 펫(#2021). 달고 있지 않거나 기간이 끝났으면 null.
   Future<ProfilePet?> fetchProfilePet();
