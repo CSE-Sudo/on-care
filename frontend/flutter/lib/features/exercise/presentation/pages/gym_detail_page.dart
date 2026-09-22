@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -152,26 +150,32 @@ class _GymDetails extends ConsumerWidget {
                   .text(OnCareTypography.titleLarge)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
-            const SizedBox(height: OnCareSpacing.s12),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: _MetricCard(
-                    icon: AppIcons.location,
-                    label: l.exDistance,
-                    value: '${gym.distanceKm.toStringAsFixed(1)}km',
-                  ),
+            if (gym.rating > 0) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              Semantics(
+                label: '${l.exRating} ${gym.rating.toStringAsFixed(1)}',
+                excludeSemantics: true,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    const AppIcon(
+                      AppIcons.star,
+                      size: OnCareSize.iconSmall,
+                      color: OnCareColors.cautionFill,
+                    ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    Text(
+                      gym.rating.toStringAsFixed(1),
+                      style: OnCareTypography.numeric(
+                        tokens
+                            .text(OnCareTypography.bodySmall)
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: OnCareSpacing.cardGap),
-                Expanded(
-                  child: _MetricCard(
-                    icon: AppIcons.star,
-                    label: l.exRating,
-                    value: gym.rating.toStringAsFixed(1),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
             const SizedBox(height: OnCareSpacing.s20),
             _DetailSection(
               icon: AppIcons.location,
@@ -214,23 +218,35 @@ class _GymDetails extends ConsumerWidget {
               _DetailSection(
                 icon: AppIcons.phone,
                 title: l.exPhone,
-                // 눌러서 전화를 건다(#1873). 예전에는 누를 수 없는 글자였는데,
-                // 상담 자리가 없을 때 회원이 나갈 곳이 이 번호라 걸 수 있어야 한다.
                 child: InkWell(
                   key: const Key('gym-detail-phone'),
-                  onTap: () => unawaited(callGym(context, gym.phone!)),
+                  borderRadius: OnCareRadius.mdAll,
+                  onTap: () => showGymPhoneSheet(context, gym.name, gym.phone!),
                   child: Semantics(
                     button: true,
                     label: '${l.exGymCall} ${gym.phone!}',
-                    child: Text(
-                      gym.phone!,
-                      style: tokens
-                          .text(OnCareTypography.strong(OnCareTypography.body))
-                          .copyWith(
-                            color: tokens.brand.primary,
-                            decoration: TextDecoration.underline,
-                            decorationColor: tokens.brand.primary,
+                    excludeSemantics: true,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minHeight: OnCareSpacing.s48,
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              gym.phone!,
+                              style: tokens
+                                  .text(OnCareTypography.body)
+                                  .copyWith(color: OnCareColors.textPrimary),
+                            ),
                           ),
+                          AppIcon(
+                            AppIcons.phone,
+                            size: OnCareSize.iconSmall,
+                            color: tokens.brand.primary,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -353,60 +369,6 @@ class _TrainerPickerSheet extends ConsumerWidget {
                 ),
               );
             },
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return AppTile(
-      child: Row(
-        children: <Widget>[
-          AppIcon(
-            icon,
-            size: OnCareSize.iconMedium,
-            color: tokens.brand.primary,
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: OnCareTypography.numeric(
-                    tokens
-                        .text(OnCareTypography.titleSmall)
-                        .copyWith(color: OnCareColors.textPrimary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

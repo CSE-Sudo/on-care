@@ -2886,5 +2886,14 @@
         "type": "int"
       }
     }
-  }
+  },
+  "gymLocationDenied": "Allow location access to find gyms near you.",
+  "gymLocationBrowserBlocked": "Allow location access in your browser site settings, then try again.",
+  "gymLocationBlocked": "Allow location access in app settings, then try again.",
+  "gymLocationDisabled": "Turn on device location services, then try again.",
+  "gymLocationUnavailable": "Could not get your location. Please try again.",
+  "gymLocateAction": "Find near my location",
+  "gymLocationSettings": "Settings",
+  "exGymCopyPhone": "Copy phone number",
+  "exGymPhoneCopied": "Phone number copied."
 }

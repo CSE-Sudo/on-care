@@ -92,7 +92,7 @@ class ConnectedGymCard extends StatelessWidget {
                                 ),
                                 const SizedBox(height: OnCareSpacing.s2),
                                 Text(
-                                  '${gym.address} · ${gym.distanceKm.toStringAsFixed(1)}km',
+                                  gym.address,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: tokens
