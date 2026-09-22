@@ -40,7 +40,9 @@ class OnCareBrand {
   static const OnCareBrand trainer = OnCareBrand._(
     name: 'trainer',
     primary: Color(0xFF2E7DAB),
-    strong: Color(0xFF17435F),
+    // 진한 네이비는 로고 네이비(`assets/images/oncare-logo-navy.svg`)와 같은 값이다.
+    // 따로 두면 같은 역할의 남색이 두 가지로 보인다(#2173).
+    strong: Color(0xFF235C88),
     surface: Color(0xFFEAF2F9),
     surfaceSoft: Color(0xFFF2F7FB),
     exerciseCardio: Color(0xFF3793C9),
