@@ -3432,6 +3432,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineAiTitle => 'AI recommended solo workouts';
 
   @override
+  String get coachRoutinePastReadOnly =>
+      'What you did that day. Past days can\'t be checked.';
+
+  @override
   String get coachRoutineByTrainer => 'Recommended by your trainer';
 
   @override

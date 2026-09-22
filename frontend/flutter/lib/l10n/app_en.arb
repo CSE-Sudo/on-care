@@ -2649,6 +2649,7 @@
   },
   "coachRoutineTitle": "Recommended solo workouts",
   "coachRoutineAiTitle": "AI recommended solo workouts",
+  "coachRoutinePastReadOnly": "What you did that day. Past days can't be checked.",
   "@coachRoutineAiTitle": {
     "description": "Card title when the member has no trainer — every line is AI recommended (#2015)."
   },
