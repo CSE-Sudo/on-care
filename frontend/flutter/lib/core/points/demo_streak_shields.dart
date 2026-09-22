@@ -102,15 +102,14 @@ class DemoStreakShieldBook {
       'record_streak_days': hasRecordOn == null
           ? 0
           : recordStreakDays(hasRecordOn),
-      // 창은 보유 수만 본다 — 어느 날이 실제로 비었는지는 기록 그래프가 가린다.
-      'protectable_from': held > 0
-          ? _ymd(DateTime(
-              yesterday.year,
-              yesterday.month,
-              yesterday.day - (protectWindowDays - 1),
-            ))
-          : null,
-      'protectable_to': held > 0 ? _ymd(yesterday) : null,
+      // 창은 보유 수와 상관없이 내려 준다 — 보호권이 없으면 그래프가 교환과
+      // 사용을 한 번에 잇는다. 어느 날이 실제로 비었는지는 기록 그래프가 가린다.
+      'protectable_from': _ymd(DateTime(
+        yesterday.year,
+        yesterday.month,
+        yesterday.day - (protectWindowDays - 1),
+      )),
+      'protectable_to': _ymd(yesterday),
     };
   }
 

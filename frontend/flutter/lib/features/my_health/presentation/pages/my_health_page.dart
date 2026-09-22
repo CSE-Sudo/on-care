@@ -741,16 +741,23 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     }
   }
 
-  /// 어제를 기록 연속에 이어 붙인다(#1788). 되돌리기는 없으므로 확인창을 탄다.
+  /// 빈 날을 기록 연속에 이어 붙인다(#1788). 되돌리기는 없으므로 확인창을 탄다.
+  ///
+  /// 보호권이 없으면 교환부터 묻고, 사겠다고 하면 산 보호권을 그 자리에서 그날에
+  /// 쓴다([_buyAndUseShield]).
   Future<void> _useShield(DateTime date) async {
     final AppLocalizations l = AppLocalizations.of(context);
     final int held =
         ref.read(activityCalendarProvider).valueOrNull?.shieldsHeld ?? 0;
+    if (held <= 0) {
+      await _buyAndUseShield(date);
+      return;
+    }
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myGraphProtectConfirmTitle,
       message: l.myGraphProtectConfirmMessage(
-        formatCouponDate(date),
+        l.myGraphDate(date.month, date.day),
         // 지금 쓰는 한 장을 뺀 나머지. 확인창에서 보는 숫자가 누른 뒤의 보유 수다.
         held > 0 ? held - 1 : 0,
       ),
@@ -779,6 +786,77 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       showAppToast(context, l.myGraphProtectFailed, type: AppToastType.error);
     } finally {
       if (mounted) setState(() => _usingShield = false);
+    }
+  }
+
+  /// 보호권이 없을 때 — 한 장을 사서 바로 [date] 에 쓴다.
+  ///
+  /// 교환과 사용은 서버에서 따로 두 요청이다. 교환이 된 뒤 사용이 막히면(그사이
+  /// 그날 기록이 생겼거나 날이 넘어갔다) 산 보호권은 내 혜택에 남으므로 그렇게
+  /// 알린다. 잔액이 모자라는 등 교환할 수 없으면 확인창 대신 막힌 이유를 보여 준다.
+  Future<void> _buyAndUseShield(DateTime date) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    ShopItem? item;
+    try {
+      item = (await ref.read(pointsShopProvider.future)).items
+          .where((ShopItem i) => i.id == kStreakShieldItem)
+          .firstOrNull;
+    } on Object {
+      item = null;
+    }
+    if (!mounted) return;
+    if (item == null) {
+      showAppToast(context, l.myPointsExchangeFailed, type: AppToastType.error);
+      return;
+    }
+    if (!item.available) {
+      showAppToast(
+        context,
+        shopBlockLabel(l, item) ?? l.myPointsExchangeFailed,
+        type: AppToastType.error,
+      );
+      return;
+    }
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.myGraphProtectBuyConfirmTitle,
+      message: l.myGraphProtectBuyConfirmMessage(
+        l.myGraphDate(date.month, date.day),
+        l.myPointsCost(item.cost),
+      ),
+      confirmLabel: l.myGraphProtectBuyAction,
+      cancelLabel: l.myCancel,
+    );
+    if (!ok || !mounted || _usingShield || _exchanging != null) return;
+    setState(() => _usingShield = true);
+    bool bought = false;
+    try {
+      await ref
+          .read(benefitsRepositoryProvider)
+          .exchange(kStreakShieldItem, clientRequestId: newClientRequestId());
+      bought = true;
+      await ref.read(streakShieldRepositoryProvider).use(date);
+      if (!mounted) return;
+      showAppToast(context, l.myGraphProtectDone, type: AppToastType.success);
+    } on Object {
+      if (!mounted) return;
+      showAppToast(
+        context,
+        bought ? l.myGraphProtectBoughtNotUsed : l.myPointsExchangeFailed,
+        type: AppToastType.error,
+      );
+    } finally {
+      // 잔액·보유 수·달력 칸·연속이 함께 바뀌었다(교환만 됐어도 잔액과 보유 수는
+      // 바뀌었다). MY 잔액도 다시 읽는다.
+      if (mounted) {
+        ref
+          ..invalidate(activityCalendarProvider)
+          ..invalidate(myStreakShieldsProvider)
+          ..invalidate(exerciseWeekProvider)
+          ..invalidate(pointsShopProvider)
+          ..invalidate(myHealthStateProvider);
+        setState(() => _usingShield = false);
+      }
     }
   }
 
