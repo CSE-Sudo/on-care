@@ -1,3 +1,4 @@
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 
 enum ChatRole { user, coach }
@@ -27,6 +28,9 @@ class ChatMessage {
     this.insight,
     this.replyToInsight,
     this.at,
+    this.pointsSpent = 0,
+    this.balanceAfter,
+    this.replyQuota,
   });
 
   final ChatRole role;
@@ -50,6 +54,17 @@ class ChatMessage {
   /// 앱이 스스로 띄운 말풍선(인사·실패 안내)에는 없다 — 주고받은 것이 아니다.
   final DateTime? at;
 
+  /// 이 코치 답변에 쓴 포인트(#2145). 무료거나 AI 가 답하지 못했으면 0 이다.
+  /// 0 보다 크면 답변 아래에 `−50P · 남은 포인트` 를 적는다.
+  final int pointsSpent;
+
+  /// 포인트를 쓴 뒤의 잔액. 모르면 null 이고 차감한 값만 적는다.
+  final int? balanceAfter;
+
+  /// 답에 실려 온 **보낸 뒤의 오늘 한도**. 컨트롤러가 입력칸 위 줄로 옮긴다 —
+  /// [replyToInsight] 처럼 방금 받은 답에만 있고 저장된 대화에서는 늘 null 이다.
+  final AiChatQuota? replyQuota;
+
   bool get isUser => role == ChatRole.user;
 
   /// 주고받은 때만 채운 사본.
@@ -62,6 +77,9 @@ class ChatMessage {
     insight: insight,
     replyToInsight: replyToInsight,
     at: value,
+    pointsSpent: pointsSpent,
+    balanceAfter: balanceAfter,
+    replyQuota: replyQuota,
   );
 
   /// 감지 결과만 바꾼 사본.
@@ -73,6 +91,8 @@ class ChatMessage {
     notice: notice,
     insight: value,
     at: at,
+    pointsSpent: pointsSpent,
+    balanceAfter: balanceAfter,
   );
 
   /// Request shape sent as chat history to the server (snake_case-safe).
@@ -92,6 +112,8 @@ class ChatMessage {
     ],
     insight: ChatInsight.fromJson(json['insight']),
     at: DateTime.tryParse((json['created_at'] as String?) ?? '')?.toLocal(),
+    pointsSpent: (json['points_spent'] as num?)?.toInt() ?? 0,
+    balanceAfter: (json['balance_after'] as num?)?.toInt(),
   );
 
   /// Parse a coach reply from `POST /ai-coach/chat` → `{ reply, sources }`.
@@ -104,5 +126,12 @@ class ChatMessage {
         s.toString(),
     ],
     replyToInsight: ChatInsight.fromJson(json['user_insight']),
+    pointsSpent: (json['points_spent'] as num?)?.toInt() ?? 0,
+    balanceAfter: (json['balance_after'] as num?)?.toInt(),
+    replyQuota: json['quota'] is Map
+        ? AiChatQuota.fromJson(
+            (json['quota']! as Map<Object?, Object?>).cast<String, Object?>(),
+          )
+        : null,
   );
 }

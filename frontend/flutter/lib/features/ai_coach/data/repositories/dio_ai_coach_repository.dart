@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -37,16 +38,46 @@ class DioAiCoachRepository implements AiCoachRepository {
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   }) async {
-    final res = await _dio.post<Map<String, Object?>>(
-      '/ai-coach/chat',
-      options: Options(receiveTimeout: _chatTimeout),
-      data: <String, Object?>{
-        'message': message,
-        'history': <Map<String, Object?>>[for (final m in history) m.toJson()],
-      },
-    );
+    final Response<Map<String, Object?>> res;
+    try {
+      res = await _dio.post<Map<String, Object?>>(
+        '/ai-coach/chat',
+        options: Options(receiveTimeout: _chatTimeout),
+        data: <String, Object?>{
+          'message': message,
+          'history': <Map<String, Object?>>[
+            for (final m in history) m.toJson(),
+          ],
+          'pay_with_points': payWithPoints,
+          'client_request_id': ?clientRequestId,
+        },
+      );
+    } on DioException catch (e) {
+      throw _blocked(e.response?.data) ?? e;
+    }
+    // 목업 인터셉터가 만든 응답은 상태코드 검사를 거치지 않고 그대로 돌아온다 —
+    // 한도 거절도 여기서 실서버와 같은 예외로 바꾼다(#2145).
+    if ((res.statusCode ?? 200) >= 400) {
+      throw _blocked(res.data) ??
+          DioException.badResponse(
+            statusCode: res.statusCode!,
+            requestOptions: res.requestOptions,
+            response: res,
+          );
+    }
     return ChatMessage.coachFromReply(res.data!);
+  }
+
+  static AiChatBlocked? _blocked(Object? body) =>
+      body is Map ? AiChatBlocked.fromDetail(body['detail']) : null;
+
+  @override
+  Future<AiChatQuota> fetchQuota() async {
+    final res = await _dio.get<Map<String, Object?>>('/ai-coach/quota');
+    return AiChatQuota.fromJson(res.data ?? const <String, Object?>{});
   }
 
   @override

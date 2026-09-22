@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -14,6 +14,8 @@ import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+
+import 'free_quota.dart';
 
 /// 답을 붙잡아 두는 저장소 — 대기 중 말풍선을 검사할 때 쓴다.
 class _SlowRepository implements AiCoachRepository {
@@ -29,6 +31,9 @@ class _SlowRepository implements AiCoachRepository {
   Future<void> dismissInsight(String messageId) async {}
 
   @override
+  Future<AiChatQuota> fetchQuota() async => kFreeQuota;
+
+  @override
   Future<ChatInsightHistory> fetchInsights() async =>
       const ChatInsightHistory();
 
@@ -39,6 +44,8 @@ class _SlowRepository implements AiCoachRepository {
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   }) => reply.future;
 }
 
@@ -54,6 +61,9 @@ class _QuietRepository implements AiCoachRepository {
   Future<void> dismissInsight(String messageId) async {}
 
   @override
+  Future<AiChatQuota> fetchQuota() async => kFreeQuota;
+
+  @override
   Future<ChatInsightHistory> fetchInsights() async =>
       const ChatInsightHistory();
 
@@ -64,6 +74,8 @@ class _QuietRepository implements AiCoachRepository {
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   }) async => const ChatMessage(role: ChatRole.coach, content: '네');
 }
 

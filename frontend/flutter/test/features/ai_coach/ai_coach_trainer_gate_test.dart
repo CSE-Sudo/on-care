@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-
 import 'package:oncare/app/app_theme.dart';
 import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/core/config/app_config.dart';
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -17,6 +17,8 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare/shared/widgets/coaching_sheet.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import 'free_quota.dart';
 
 /// 담당 트레이너가 있는 회원은 AI 챗봇을 쓰지 않는다. 대화는 30일만 남고, 머리의
 /// 초록 점은 없다(#1823).
@@ -43,6 +45,9 @@ class _CountingRepository implements AiCoachRepository {
   Future<void> dismissInsight(String messageId) async {}
 
   @override
+  Future<AiChatQuota> fetchQuota() async => kFreeQuota;
+
+  @override
   Future<ChatInsightHistory> fetchInsights() async {
     insightCalls += 1;
     return const ChatInsightHistory();
@@ -58,6 +63,8 @@ class _CountingRepository implements AiCoachRepository {
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   }) async => const ChatMessage(role: ChatRole.coach, content: '네');
 }
 

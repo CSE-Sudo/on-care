@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
@@ -11,6 +12,7 @@ import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sh
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/member_coach/presentation/widgets/coach_chat_sheet.dart';
+import 'package:oncare/features/my_health/presentation/controllers/my_health_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
@@ -57,12 +59,67 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
     });
   }
 
-  void _send([String? preset]) {
+  Future<void> _send([String? preset]) async {
     final String text = (preset ?? _controller.text).trim();
     if (text.isEmpty) return;
     _controller.clear();
-    ref.read(chatControllerProvider.notifier).send(text);
     _scrollToBottom();
+    final ChatController chat = ref.read(chatControllerProvider.notifier);
+    ChatSendResult result = await chat.send(text);
+    if (!mounted) return;
+    if (result.outcome == ChatSendOutcome.needsConsent) {
+      // 무료를 다 쓴 뒤 처음 한 번만 묻는다(#2145). 동의하면 그날은 다시 묻지 않는다.
+      if (!await _confirmPaidChat()) {
+        _restoreInput(text);
+        return;
+      }
+      chat.consentToPaidChat();
+      result = await chat.send(text);
+      if (!mounted) return;
+    }
+    final AppLocalizations l = AppLocalizations.of(context);
+    switch (result.outcome) {
+      case ChatSendOutcome.sent:
+        // 포인트로 보냈으면 MY 의 잔액도 바뀌었다.
+        if (ref.read(chatControllerProvider).messages.lastOrNull?.pointsSpent
+            case final int spent when spent > 0) {
+          ref.invalidate(myHealthStateProvider);
+        }
+      case ChatSendOutcome.ignored:
+        break;
+      case ChatSendOutcome.needsConsent:
+        _restoreInput(text);
+      case ChatSendOutcome.dailyLimit:
+        _restoreInput(text);
+        showAppToast(context, l.aicQuotaExhausted);
+      case ChatSendOutcome.insufficientPoints:
+        _restoreInput(text);
+        showAppToast(
+          context,
+          l.aicPaidInsufficient(l.myPointsCost(result.shortfall)),
+          type: AppToastType.error,
+        );
+    }
+  }
+
+  /// 보내지 못한 글을 입력칸에 돌려놓는다 — 다시 쓰게 하지 않는다.
+  void _restoreInput(String text) {
+    if (_controller.text.isEmpty) _controller.text = text;
+  }
+
+  Future<bool> _confirmPaidChat() {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final AiChatQuota? quota = ref.read(chatControllerProvider).quota;
+    return showAppConfirmDialog(
+      context: context,
+      title: l.aicPaidConfirmTitle,
+      message: l.aicPaidConfirmMessage(
+        l.myPointsCost(quota?.cost ?? 0),
+        quota?.paidLimit ?? 0,
+      ),
+      confirmLabel: l.aicPaidConfirmAction,
+      cancelLabel: l.myCancel,
+    );
   }
 
   @override
@@ -140,8 +197,10 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
 
     // 빠른 질문은 **마지막 말 아래**에 붙는다. 내 차례일 때만 띄워, 답을 기다리는
     // 동안 끼어들지 않는다(#1918).
+    // 오늘 대화를 다 썼으면 눌러도 보낼 수 없으므로 띄우지 않는다(#2145).
     final bool showQuickReplies =
         !chat.sending &&
+        chat.quota?.next != AiChatNext.exhausted &&
         chat.messages.isNotEmpty &&
         !chat.messages.last.isUser;
     final TextStyle captionStyle = tokens
@@ -199,13 +258,16 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
             ],
           ),
         ),
+        // 오늘 남은 대화(#2145) — 보내기 전에 얼마가 나갈지 먼저 보인다.
+        if (chat.quota case final AiChatQuota quota) _QuotaLine(quota: quota),
         // 입력줄은 여러 줄 입력(줄바꿈)을 받으므로 키보드의 완료로는 보내지
         // 않는다 — 보내기는 전송 버튼 하나다.
         AppChatInputBar(
           controller: _controller,
           hint: l.aicInputHint,
           sendTooltip: l.a11ySendMessage,
-          enabled: !chat.sending,
+          enabled:
+              !chat.sending && chat.quota?.next != AiChatNext.exhausted,
           onSend: () => _send(),
         ),
       ],
@@ -439,6 +501,27 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
                   ),
                   child: _sourceChips(m.sources),
                 ),
+              // 포인트로 산 답변이면 얼마가 나갔는지 바로 아래에 적는다(#2145).
+              if (!m.pending && m.pointsSpent > 0)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    top: OnCareSpacing.s4,
+                    left: OnCareSpacing.s4,
+                  ),
+                  child: Text(
+                    switch (m.balanceAfter) {
+                      final int balance => l.aicPointsSpentWithBalance(
+                        l.myPointsCost(m.pointsSpent),
+                        l.myPointsCost(balance),
+                      ),
+                      null => l.aicPointsSpent(l.myPointsCost(m.pointsSpent)),
+                    },
+                    key: const Key('aiCoachPointsSpent'),
+                    style: OnCareTypography.numeric(
+                      tokens.text(OnCareTypography.caption),
+                    ).copyWith(color: OnCareColors.textTertiary),
+                  ),
+                ),
             ],
           ),
         ),
@@ -497,4 +580,58 @@ class _AICoachPageState extends ConsumerState<AICoachPage> {
 
   void _showInsightHistory(BuildContext context) =>
       showInsightHistorySheet(context, ref);
+}
+
+/// 입력칸 위의 오늘 남은 대화 한 줄. (#2145)
+///
+/// 무료가 남았으면 남은 횟수, 다 썼으면 다음 대화의 값과 오늘 산 수·잔액, 오늘 다
+/// 썼으면 내일 다시 열린다는 안내와 트레이너 찾기다. 담당 트레이너와 연결하면 AI
+/// 챗봇 대신 트레이너와 대화한다 — 한도가 곧 그 길의 입구다.
+class _QuotaLine extends StatelessWidget {
+  const _QuotaLine({required this.quota});
+
+  final AiChatQuota quota;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final TextStyle style = OnCareTypography.numeric(
+      tokens.text(OnCareTypography.caption),
+    ).copyWith(
+      color: quota.short ? OnCareColors.danger : OnCareColors.textSecondary,
+    );
+    final String text = switch (quota.next) {
+      AiChatNext.free => l.aicQuotaFreeLeft(quota.freeLeft),
+      AiChatNext.paid => l.aicQuotaPaidNext(
+        l.myPointsCost(quota.cost),
+        quota.paidUsed,
+        quota.paidLimit,
+        l.myPointsCost(quota.balance),
+      ),
+      AiChatNext.exhausted => l.aicQuotaExhausted,
+    };
+    return Padding(
+      key: const Key('aiCoachQuotaLine'),
+      padding: const EdgeInsets.fromLTRB(
+        OnCareSpacing.s16,
+        OnCareSpacing.s8,
+        OnCareSpacing.s16,
+        0,
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(child: Text(text, style: style)),
+          if (quota.next == AiChatNext.exhausted)
+            AppButton(
+              key: const Key('aiCoachFindTrainer'),
+              label: l.aicQuotaFindTrainer,
+              size: OnCareButtonSize.small,
+              variant: AppButtonVariant.brandOutline,
+              onPressed: () => context.go(AppRoutes.exerciseGym),
+            ),
+        ],
+      ),
+    );
+  }
 }

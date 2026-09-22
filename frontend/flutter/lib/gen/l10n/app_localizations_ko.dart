@@ -2259,6 +2259,48 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aicInputHint => 'AI에게 무엇이든 물어보세요';
 
   @override
+  String aicQuotaFreeLeft(int count) {
+    return '오늘 무료 대화 $count회 남음';
+  }
+
+  @override
+  String aicQuotaPaidNext(String cost, int used, int limit, String balance) {
+    return '다음 대화 $cost · 오늘 구매 $used/$limit · 남은 포인트 $balance';
+  }
+
+  @override
+  String get aicQuotaExhausted => '오늘 대화를 다 썼어요. 내일 다시 열려요';
+
+  @override
+  String get aicQuotaFindTrainer => '트레이너 찾기';
+
+  @override
+  String get aicPaidConfirmTitle => '포인트로 대화를 이어갈까요?';
+
+  @override
+  String aicPaidConfirmMessage(String cost, int limit) {
+    return '오늘 무료 대화를 다 썼어요. 이제 한 번 보낼 때마다 $cost가 차감돼요 (오늘 $limit회까지).';
+  }
+
+  @override
+  String get aicPaidConfirmAction => '포인트로 보내기';
+
+  @override
+  String aicPaidInsufficient(String shortfall) {
+    return '포인트가 $shortfall 모자라요. 식단·운동을 기록하면 포인트가 쌓여요.';
+  }
+
+  @override
+  String aicPointsSpentWithBalance(String spent, String balance) {
+    return '−$spent · 남은 포인트 $balance';
+  }
+
+  @override
+  String aicPointsSpent(String spent) {
+    return '−$spent';
+  }
+
+  @override
   String get aicQuickRepliesLabel => '이런 걸 물어보세요';
 
   @override

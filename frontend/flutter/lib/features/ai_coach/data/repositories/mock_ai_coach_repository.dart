@@ -1,5 +1,6 @@
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -23,6 +24,8 @@ class MockAiCoachRepository implements AiCoachRepository {
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   }) async {
     await Future<void>.delayed(const Duration(milliseconds: 400));
     _sent.add((
@@ -88,4 +91,16 @@ class MockAiCoachRepository implements AiCoachRepository {
       ],
     );
   }
+
+  /// 목업은 한도를 세지 않는다 — 늘 무료가 남아 있다(#2145).
+  @override
+  Future<AiChatQuota> fetchQuota() async => const AiChatQuota(
+    freeLimit: 10,
+    freeLeft: 10,
+    paidLimit: 10,
+    paidLeft: 10,
+    cost: 50,
+    balance: 0,
+    next: AiChatNext.free,
+  );
 }

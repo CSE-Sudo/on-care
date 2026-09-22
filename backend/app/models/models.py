@@ -2088,6 +2088,45 @@ class AiConversation(Base):
     )
 
 
+class AiChatUsage(Base):
+    """AI 챗봇이 답한 대화 한 번 — 하루 무료 횟수와 포인트 구매를 센다. (#2145)
+
+    **LLM 이 실제로 답했을 때만** 한 줄이 생긴다. 키가 없거나 모델이 실패해 검색 기반
+    대체 답을 준 대화는 세지 않는다 — 회원이 받은 것이 AI 답이 아니다.
+
+    `paid` 면 그 대화에 포인트를 썼고, 원장(`points_ledger`)의 `ai_chat` 사용 줄이 이
+    행의 id 를 근거로 남는다. `balance_after` 는 차감 뒤 잔액으로, 답변 아래의
+    `−50P · 남은 포인트` 가 읽는다. `message_id` 는 그 답변(`ai_messages`)이다 — 한 달이
+    지나 대화가 지워지면 가리키는 곳이 없어지지만 하루 한도는 이 행으로 센다.
+    """
+
+    __tablename__ = "ai_chat_usages"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 답한 KST 날짜 `YYYY-MM-DD`. 하루 한도를 이 값으로 센다.
+    kst_date: Mapped[str] = mapped_column(String(10))
+    paid: Mapped[bool] = mapped_column(Boolean, default=False)
+    #: 쓴 포인트. 무료면 0 이다.
+    cost: Mapped[int] = mapped_column(Integer, default=0)
+    balance_after: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    message_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: 같은 메시지의 재전송이 두 번 세지 않게 하는 멱등키.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        Index("ix_ai_chat_usages_user_date", "user_id", "kst_date"),
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_ai_chat_usage_client_request"
+        ),
+    )
+
+
 class AiMessage(Base):
     """AI 코치 대화의 한 줄.
 
