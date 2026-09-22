@@ -21,7 +21,7 @@ class ShopItemOut(BaseModel):
     `no_gym`(연결한 헬스장 없음)·`active_coupon`(사용하지 않은 같은 쿠폰 보유)·
     `shield_limit`(쓰지 않은 연속 기록 보호권을 최대로 보유, #1788)·
     `active_pass`(이용 중인 이모티콘 이용권, #2020)·`active_pet`(달고 있는 프로필 펫,
-    #2021)·`monthly_limit`(이번 달에 이미 교환)·`insufficient_points`(잔액 부족) 순으로
+    #2021)·`week_owned`(지난주 리포트를 이미 받음, #2022)·`monthly_limit`(이번 달에 이미 교환)·`insufficient_points`(잔액 부족) 순으로
     하나만. 교환할 수 있으면 null. `shortfall` 은 모자란 포인트로, 모자라지 않으면
     0 이다.
 
@@ -103,7 +103,7 @@ class ExchangeOut(BaseModel):
 
     연속 기록 보호권(#1788)은 쿠폰이 아니라 `coupon` 이 null 이고 `shield` 에 받은
     보호권이, 그래프 색 바꾸기(#2076)는 `graph_color` 에 연 뒤의 색 상태가 온다.
-    세 칸 중 교환한 항목의 것 하나만 있다.
+    프로필 펫(#2021)·주간 리포트(#2022)도 제 칸에 온다. 교환한 항목의 것 하나만 있다.
     """
 
     coupon: CouponOut | None = None
@@ -111,6 +111,8 @@ class ExchangeOut(BaseModel):
     graph_color: GraphColorOut | None = None
     #: 프로필 펫 이모지(#2021)를 교환했으면 단 펫과 남은 기간.
     profile_pet: ProfilePetOut | None = None
+    #: 주간 리포트(#2022)를 교환했으면 받은 주의 월요일 `YYYY-MM-DD`.
+    weekly_report_week: str | None = None
     spent: int
     balance: int
 

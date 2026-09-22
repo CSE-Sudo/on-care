@@ -148,6 +148,8 @@ class LocalApiInterceptor extends Interceptor {
     'PUT /me/graph-color': _paletteColor,
     // MY 프로필 펫 이모지 — 다는 교환도 위 exchange 가 받는다(#2021).
     'GET /me/profile-pet': _profilePet,
+    // 포인트로 받는 주간 리포트 — 교환도 위 exchange 가 받는다(#2022).
+    'GET /me/weekly-reports': _weeklyReports,
     // 주간 운동 챌린지 — 서버와 같은 규칙의 목업(#1789).
     'GET /me/challenges/weekly': _challengeWeekly,
     'POST /me/challenges/weekly/join': _challengeJoin,
@@ -2772,6 +2774,10 @@ class LocalApiInterceptor extends Interceptor {
   /// `GET /me/profile-pet`(#2021). 사용처 교환과 같은 원장을 본다.
   Future<Response<Object?>> _profilePet(RequestOptions options) async =>
       _ok(options, _coupons.pets.stateJson());
+
+  /// `GET /me/weekly-reports`(#2022). 사용처 교환과 같은 원장을 본다.
+  Future<Response<Object?>> _weeklyReports(RequestOptions options) async =>
+      _ok(options, _coupons.reports.listJson());
 
   Future<Response<Object?>> _couponUse(RequestOptions options) async {
     // `/me/coupons/{id}/use` — 끝에서 두 번째 조각이 쿠폰 id 다.
