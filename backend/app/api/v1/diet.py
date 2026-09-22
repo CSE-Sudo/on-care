@@ -7,6 +7,7 @@
   POST /diet/analyze             -> 사진 → 인식 → diet_entries 저장(+ 사진 축소본, 포인트 적립)
   POST /diet/analyze?engine=yolo -> 엔진 강제(비교실험)
   GET  /diet/photos/{photo_id}   -> 내 끼니 사진 원본 바이트(본인만)
+  POST /diet/entries             -> 사진 없이 직접 적은 끼니 저장(포인트 없음)
   PUT/DELETE /diet/entries/{id}  -> 끼니/영양소 수정·삭제(본인 소유만, 삭제는 적립 회수)
 
 집계·코칭·저장 등 도메인 로직은 diet_service 로 이관했다(exercise_service 등과 일관).
@@ -28,6 +29,7 @@ from app.db.session import get_db
 from app.schemas.diet_api import (
     DietAdviceResponse,
     DietAnalyzeResponse,
+    DietEntryCreate,
     DietEntryOut,
     DietEntryUpdate,
     DietRecommendationsResponse,
@@ -288,6 +290,23 @@ def diet_photo(
         # 바뀌지 않으므로(끼니 하나에 사진 하나) 브라우저 캐시는 길게 허용한다.
         headers={"Cache-Control": "private, max-age=86400"},
     )
+
+
+@router.post("/diet/entries", response_model=DietEntryOut, status_code=201)
+def create_entry(
+    payload: DietEntryCreate,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> DietEntryOut:
+    """사진 없이 회원이 직접 적은 끼니를 저장한다(#2151).
+
+    포인트는 적립하지 않는다 — 적립은 사진 분석 저장(`/diet/analyze`)만 한다.
+    기록이므로 연속 기록에는 들어간다.
+    """
+    try:
+        return diet_service.save_manual_entry(db, current_user.id, payload)
+    except diet_service.NutritionInconsistentError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @router.put("/diet/entries/{entry_id}", response_model=DietEntryOut)

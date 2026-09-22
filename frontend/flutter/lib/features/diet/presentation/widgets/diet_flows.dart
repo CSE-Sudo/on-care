@@ -217,16 +217,26 @@ typedef DietPickedPhoto = ({MealPhoto photo, String mealType});
 /// **기록이 저장되면 true.** 하단 `+` 로 연 흐름이 저장 성공에만 식단 탭으로
 /// 옮겨 가려면, 취소·권한 거부·분석 실패와 저장 성공을 구분해야 한다(#1434).
 Future<bool> showDietAddSheet(BuildContext context) async {
-  final DietPickedPhoto? picked = await showAppSheet<DietPickedPhoto>(
+  final Object? choice = await showAppSheet<Object>(
     context: _rootContext(context),
     builder: (BuildContext ctx) => const _DietAddSheet(),
   );
-  if (picked == null) return false;
   if (!context.mounted) return false;
-  // 결과 시트는 사진 선택 시트가 **닫힌 뒤** 열린다 — 두 시트가 겹치면 뒤엣
+  // 다음 화면은 사진 선택 시트가 **닫힌 뒤** 열린다 — 두 시트가 겹치면 뒤엣
   // 것이 스크림 위로 비친다.
-  return showDietResultSheet(context, picked.photo, picked.mealType);
+  return switch (choice) {
+    final DietPickedPhoto picked => showDietResultSheet(
+      context,
+      picked.photo,
+      picked.mealType,
+    ),
+    _DietAddChoice.manual => openDietManualAddPage(context),
+    _ => false,
+  };
 }
+
+/// 사진 선택 시트가 사진 말고 돌려주는 것. 머리의 `+ 직접 추가` 다(#2151).
+enum _DietAddChoice { manual }
 
 /// Photo-source choice for 식단 추가.
 ///
@@ -299,6 +309,21 @@ class _DietAddSheetState extends ConsumerState<_DietAddSheet> {
       key: const Key('dietAddSheet'),
       title: l.dietAddSheetTitle,
       subtitle: l.dietAddSheetSubtitle,
+      // 닫기는 끌어내리기 하나로 둔다 — 비운 X 자리에 사진 없이 적는 문을
+      // 둔다(#2151). 모양은 수정 화면의 `+ 음식 추가` 와 같다.
+      showClose: false,
+      trailing: AppButton(
+        key: const Key('dietManualAddButton'),
+        label: l.dietManualAdd,
+        leadingIcon: AppIcons.add,
+        variant: AppButtonVariant.text,
+        size: OnCareButtonSize.small,
+        // OS 사진 선택기가 떠 있는 동안에는 막는다 — 그 사이 시트를 닫으면
+        // 고른 사진이 돌아올 자리가 없다.
+        onPressed: _picking
+            ? null
+            : () => Navigator.of(context).pop(_DietAddChoice.manual),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1922,6 +1947,88 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
         );
   }
 
+  /// `총 칼로리` 줄. 식단 상세와 직접 추가가 함께 쓴다.
+  Widget _totalRow(BuildContext context, AppLocalizations l) {
+    final OnCareTokens tokens = context.oncare;
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            l.dietTotalCalories,
+            style: _text(
+              context,
+              OnCareTypography.strong(OnCareTypography.bodySmall),
+              OnCareColors.textPrimary,
+            ),
+          ),
+        ),
+        Text(
+          '$_total ${l.unitKcal}',
+          key: const Key('meal-total'),
+          style: OnCareTypography.numeric(
+            _text(context, OnCareTypography.titleSmall, tokens.brand.primary),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// 지금 화면의 음식에서 낸 영양 합계 카드. 식단 상세와 직접 추가가 함께
+  /// 쓴다 — 두 화면이 같은 순서·같은 서식으로 읽혀야 한다.
+  Widget _nutritionCard(BuildContext context, AppLocalizations l) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _FieldLabel(l.dietNutritionInfo),
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.dietEditNutritionHint,
+            style: _text(
+              context,
+              OnCareTypography.caption,
+              OnCareColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: OnCareSpacing.s12),
+          // 탄단지가 기준이다. 당류는 탄수화물의 일부라 바로 아래에 들여 붙이고,
+          // 나트륨은 탄단지가 아니라 맨 끝에 둔다. 지방은 포화·트랜스까지 나누지
+          // 않는다 — 분석이 그만큼 재지 못한다.
+          _NutrientRow(
+            label: l.homeMacroCarbs,
+            value: _gramsText(_carbs),
+            unit: l.dietUnitG,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          _NutrientRow(
+            label: l.dietSugar,
+            value: _gramsText(_sugar),
+            unit: l.dietUnitG,
+            sub: true,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          _NutrientRow(
+            label: l.homeMacroProtein,
+            value: _gramsText(_protein),
+            unit: l.dietUnitG,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          _NutrientRow(
+            label: l.homeMacroFat,
+            value: _gramsText(_fat),
+            unit: l.dietUnitG,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          _NutrientRow(
+            label: l.dietSodium,
+            value: '$_sodium',
+            unit: l.dietUnitMg,
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 음식 한 줄의 수정 칸.
   Widget _foodEditor(int i) => _FoodEditBlock(
     index: i + 1,
@@ -1941,6 +2048,291 @@ mixin _FoodEditing<W extends ConsumerStatefulWidget> on ConsumerState<W> {
     onApplySuggestion: () => _applySuggestion(i),
     onUndoFill: () => _undoFill(i),
   );
+}
+
+// ─────────────────────────────────────────────────── 직접 추가 ──
+
+/// 사진 없이 끼니를 적는 화면을 연다(#2151). 저장했으면 true.
+///
+/// 하단 내비·`+` 버튼을 가리도록 루트 내비게이터에 올린다 — 사진 선택 시트와
+/// 같은 자리다(#791).
+Future<bool> openDietManualAddPage(BuildContext context) async {
+  final bool? saved = await Navigator.of(context, rootNavigator: true)
+      .push<bool>(
+        MaterialPageRoute<bool>(builder: (_) => const _MealCreatePage()),
+      );
+  return saved ?? false;
+}
+
+/// 사진 없이 적는 끼니. 식단 상세의 수정 모드와 같은 칸을 빈 채로 연다.
+///
+/// 음식 칸은 [_FoodEditing] 을 그대로 쓴다 — 이름을 적고 칸을 벗어나면 공공 DB
+/// 값을 찾아 채우거나 제안하는 흐름(#1896, #2107)이 여기서 가장 요긴하다. 일곱
+/// 칸을 손으로 채우지 않아도 된다.
+///
+/// **사진은 받지 않는다.** 사진 분석으로 저장한 끼니에도 사진을 바꾸는 길이
+/// 없어, 여기서만 사진을 받으면 흐름이 갈린다. 목록 썸네일은 음식 이름으로
+/// 고른 이모지다(`mealThumbEmoji`).
+class _MealCreatePage extends ConsumerStatefulWidget {
+  const _MealCreatePage();
+
+  @override
+  ConsumerState<_MealCreatePage> createState() => _MealCreatePageState();
+}
+
+class _MealCreatePageState extends ConsumerState<_MealCreatePage>
+    with _FoodEditing<_MealCreatePage> {
+  /// 처음 끼니는 사진 분석과 같이 지금 시각으로 고른다.
+  MealType _type = MealType.values.byName(_currentMealType());
+  DateTime _date = _todayKst();
+  bool _busy = false;
+
+  /// `음식을 하나 이상 적어 주세요` — 저장을 눌렀는데 이름 적힌 음식이 없을 때.
+  bool _showEmpty = false;
+
+  /// 저장 한 번에 하나. 응답을 잃고 다시 누른 저장이 끼니를 둘 만들지 않는다.
+  final String _idempotencyKey =
+      'manual-${DateTime.now().microsecondsSinceEpoch}';
+
+  @override
+  void initState() {
+    super.initState();
+    // 빈 줄 하나로 연다 — 무엇을 적는 화면인지 칸이 먼저 말한다.
+    _loadFoods(const <DietFood>[DietFood('', 0, source: FoodSource.member)]);
+    // 회원이 적는 값이라 탄수화물 0 도 적은 값이다 — 서버도 그렇게 본다.
+    _carbsRecorded = true;
+  }
+
+  Future<void> _pickDate() async {
+    final DateTime today = _todayKst();
+    final DateTime? picked = await showAppDatePicker(
+      context: context,
+      initialDate: _date,
+      // 지난 식사는 얼마든지 적을 수 있지만, 앞날의 식사는 아직 먹지 않았다.
+      firstDate: DateTime(today.year - 1),
+      lastDate: today,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _date = DateTime(picked.year, picked.month, picked.day));
+  }
+
+  Future<void> _save() async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final NavigatorState navigator = Navigator.of(context);
+    // 페이지를 닫은 뒤에 결과를 알리므로, 사라지지 않는 내비게이터 자리를 쓴다.
+    final BuildContext toastContext = navigator.context;
+    final List<FoodItem> foods = _foodPayload();
+    if (foods.isEmpty) {
+      setState(() => _showEmpty = true);
+      return;
+    }
+    if (!_validateFoods()) return;
+    setState(() {
+      _busy = true;
+      _showEmpty = false;
+    });
+    try {
+      await ref
+          .read(dietRepositoryProvider)
+          .createEntry(
+            date: wireDate(_date),
+            mealType: _type.name,
+            foods: foods,
+            idempotencyKey: _idempotencyKey,
+          );
+      if (!mounted) return;
+      ref.invalidate(dietTodayProvider);
+      // 기간 뷰(이번 주·전체)는 오늘을 dietByDateProvider 로 읽는다.
+      ref.invalidate(dietByDateProvider(nowKst()));
+      ref.invalidate(dietByDateProvider(_date));
+      // 포인트는 적립되지 않는다 — 사진 분석 저장만 적립한다(#2151).
+      navigator.pop(true);
+      if (!toastContext.mounted) return;
+      showAppToast(toastContext, l.dietSaved, type: AppToastType.success);
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+      if (toastContext.mounted) {
+        showAppToast(toastContext, l.dietSaveFailed, type: AppToastType.error);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    final double side = tokens.density.pagePadding;
+    final Widget page = Scaffold(
+      key: const Key('mealCreatePage'),
+      backgroundColor: OnCareColors.surfaceCard,
+      appBar: AppTopBar(title: l.dietManualAddTitle),
+      body: SafeArea(
+        top: false,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: OnCareLayout.mobileContentMaxWidth,
+            ),
+            child: Column(
+              children: <Widget>[
+                Expanded(
+                  child: ListView(
+                    padding: EdgeInsets.fromLTRB(
+                      side,
+                      OnCareSpacing.s8,
+                      side,
+                      OnCareSpacing.sectionGap,
+                    ),
+                    children: <Widget>[
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            _FieldLabel(l.dietMealInfo),
+                            const SizedBox(height: OnCareSpacing.s12),
+                            // 식단 상세와 같은 두 줄 — 날짜와 끼니의 값이 같은
+                            // 자리에서 시작한다(#1947).
+                            Table(
+                              columnWidths: const <int, TableColumnWidth>{
+                                0: IntrinsicColumnWidth(),
+                                1: FlexColumnWidth(),
+                              },
+                              defaultVerticalAlignment:
+                                  TableCellVerticalAlignment.middle,
+                              children: <TableRow>[
+                                TableRow(
+                                  children: <Widget>[
+                                    _InfoLabel(l.dietRecordDate),
+                                    Row(
+                                      children: <Widget>[
+                                        Expanded(
+                                          child: Text(
+                                            _recordDateLabel(context, _date),
+                                            key: const Key('meal-create-date'),
+                                            style: _text(
+                                              context,
+                                              OnCareTypography.strong(
+                                                OnCareTypography.bodySmall,
+                                              ),
+                                              OnCareColors.textPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                        AppButton(
+                                          key: const Key(
+                                            'meal-create-date-change',
+                                          ),
+                                          label: l.dietRecordDateChange,
+                                          onPressed: _busy
+                                              ? null
+                                              : () => unawaited(_pickDate()),
+                                          variant: AppButtonVariant.text,
+                                          size: OnCareButtonSize.small,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const TableRow(
+                                  children: <Widget>[
+                                    SizedBox(height: OnCareSpacing.s12),
+                                    SizedBox(height: OnCareSpacing.s12),
+                                  ],
+                                ),
+                                TableRow(
+                                  children: <Widget>[
+                                    _InfoLabel(l.dietMealKind),
+                                    _MealTypeChips(
+                                      key: const Key('meal-create-meal'),
+                                      selected: _type,
+                                      onSelected: (MealType t) =>
+                                          setState(() => _type = t),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: OnCareSpacing.cardGap),
+                      AppCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                Expanded(child: _FieldLabel(l.dietEatenFood)),
+                                AppButton(
+                                  key: const Key('meal-create-add-food'),
+                                  label: l.dietAddFood,
+                                  leadingIcon: AppIcons.add,
+                                  variant: AppButtonVariant.text,
+                                  size: OnCareButtonSize.small,
+                                  onPressed: _busy ? null : _addFood,
+                                ),
+                              ],
+                            ),
+                            Text(
+                              l.dietManualAddHint,
+                              style: _text(
+                                context,
+                                OnCareTypography.caption,
+                                OnCareColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: OnCareSpacing.s12),
+                            for (int i = 0; i < _foods.length; i++) ...<Widget>[
+                              _foodEditor(i),
+                              const SizedBox(height: OnCareSpacing.s8),
+                            ],
+                            if (_showEmpty) ...<Widget>[
+                              Text(
+                                l.dietManualAddEmpty,
+                                key: const Key('meal-create-empty'),
+                                style: _text(
+                                  context,
+                                  OnCareTypography.caption,
+                                  OnCareColors.danger,
+                                ),
+                              ),
+                              const SizedBox(height: OnCareSpacing.s8),
+                            ],
+                            const AppDivider(),
+                            const SizedBox(height: OnCareSpacing.s12),
+                            _totalRow(context, l),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: OnCareSpacing.cardGap),
+                      _nutritionCard(context, l),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.fromLTRB(
+                    side,
+                    OnCareSpacing.s8,
+                    side,
+                    OnCareSpacing.s16,
+                  ),
+                  child: AppButtonPair(
+                    cancelLabel: l.dietCancel,
+                    onCancel: _busy ? null : () => Navigator.of(context).pop(),
+                    confirmLabel: l.dietSave,
+                    onConfirm: _busy ? null : () => unawaited(_save()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    // 저장 요청이 도는 동안에는 뒤로 가지 못하게 한다.
+    return PopScope(canPop: !_busy, child: page);
+  }
 }
 
 class _MealEditSheet extends ConsumerStatefulWidget {
@@ -2357,88 +2749,12 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
                             ],
                             const AppDivider(),
                             const SizedBox(height: OnCareSpacing.s12),
-                            Row(
-                              children: <Widget>[
-                                Expanded(
-                                  child: Text(
-                                    l.dietTotalCalories,
-                                    style: _text(
-                                      context,
-                                      OnCareTypography.strong(
-                                        OnCareTypography.bodySmall,
-                                      ),
-                                      OnCareColors.textPrimary,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '$_total ${l.unitKcal}',
-                                  style: OnCareTypography.numeric(
-                                    _text(
-                                      context,
-                                      OnCareTypography.titleSmall,
-                                      tokens.brand.primary,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            _totalRow(context, l),
                           ],
                         ),
                       ),
                       const SizedBox(height: OnCareSpacing.cardGap),
-                      AppCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            _FieldLabel(l.dietNutritionInfo),
-                            const SizedBox(height: OnCareSpacing.s4),
-                            Text(
-                              l.dietEditNutritionHint,
-                              style: _text(
-                                context,
-                                OnCareTypography.caption,
-                                OnCareColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: OnCareSpacing.s12),
-                            // 탄단지가 기준이다. 당류는 탄수화물의 일부라
-                            // 바로 아래에 들여 붙이고, 나트륨은 탄단지가
-                            // 아니라 맨 끝에 둔다. 지방은 포화·트랜스까지
-                            // 나누지 않는다 — 분석이 그만큼 재지 못한다.
-                            _NutrientRow(
-                              label: l.homeMacroCarbs,
-                              value: _gramsText(_carbs),
-                              unit: l.dietUnitG,
-                            ),
-                            const SizedBox(height: OnCareSpacing.s8),
-                            _NutrientRow(
-                              label: l.dietSugar,
-                              value: _gramsText(_sugar),
-                              unit: l.dietUnitG,
-                              sub: true,
-                            ),
-                            const SizedBox(height: OnCareSpacing.s8),
-                            _NutrientRow(
-                              label: l.homeMacroProtein,
-                              value: _gramsText(_protein),
-                              unit: l.dietUnitG,
-                            ),
-                            const SizedBox(height: OnCareSpacing.s8),
-                            _NutrientRow(
-                              label: l.homeMacroFat,
-                              value: _gramsText(_fat),
-                              unit: l.dietUnitG,
-                            ),
-                            const SizedBox(height: OnCareSpacing.s8),
-                            _NutrientRow(
-                              label: l.dietSodium,
-                              value: '$_sodium',
-                              unit: l.dietUnitMg,
-                            ),
-                          ],
-                        ),
-                      ),
+                      _nutritionCard(context, l),
                       const SizedBox(height: OnCareSpacing.s16),
                       // 화면 안에서 삭제 확인창을 여는 버튼은 빨간 글자다(#1690).
                       Center(

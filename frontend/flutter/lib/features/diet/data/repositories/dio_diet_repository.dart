@@ -106,6 +106,43 @@ class DioDietRepository implements DietRepository {
   }
 
   @override
+  Future<DietEntry> createEntry({
+    required String date,
+    required String mealType,
+    required List<FoodItem> foods,
+    String? idempotencyKey,
+  }) async {
+    final res = await _dio.post<Map<String, Object?>>(
+      '/diet/entries',
+      data: <String, Object?>{
+        'date': date,
+        'meal_type': mealType,
+        'foods': foods.map(_foodJson).toList(),
+        'idempotency_key': ?idempotencyKey,
+      },
+    );
+    return DietEntry.fromJson(res.data!);
+  }
+
+  /// 음식 한 줄의 전송 표현. 직접 추가와 수정이 같은 모양을 보낸다.
+  static Map<String, Object?> _foodJson(FoodItem food) => <String, Object?>{
+    'name': food.name,
+    'calories': food.calories,
+    // 섭취량은 나머지 값의 기준이라 함께 싣는다. 빠뜨리면 다음에 이 끼니를
+    // 열었을 때 양을 모르는 기록이 되어, 양으로 영양을 움직이는 길이 저장 한
+    // 번에 끊긴다(#1876).
+    'amount_g': food.amountG,
+    'sodium_mg': food.sodiumMg,
+    'sugar_g': food.sugarG,
+    'carbs_g': food.carbsG,
+    'protein_g': food.proteinG,
+    'fat_g': food.fatG,
+    // 음식마다 출처를 되돌려 보낸다(#2105). 빠뜨리면 서버가 빠진 값을
+    // 채우므로, 손대지 않은 음식까지 원래 출처를 잃는다.
+    'source': food.source.name,
+  };
+
+  @override
   Future<DietEntry> updateEntry({
     required String id,
     String? date,
@@ -122,27 +159,7 @@ class DioDietRepository implements DietRepository {
         'date': ?date,
         'meal_type': ?mealType,
         'time_label': ?timeLabel,
-        if (foods != null)
-          'foods': foods
-              .map(
-                (FoodItem food) => <String, Object?>{
-                  'name': food.name,
-                  'calories': food.calories,
-                  // 섭취량은 나머지 값의 기준이라 함께 싣는다. 빠뜨리면 다음에
-                  // 이 끼니를 열었을 때 양을 모르는 기록이 되어, 양으로 영양을
-                  // 움직이는 길이 저장 한 번에 끊긴다(#1876).
-                  'amount_g': food.amountG,
-                  'sodium_mg': food.sodiumMg,
-                  'sugar_g': food.sugarG,
-                  'carbs_g': food.carbsG,
-                  'protein_g': food.proteinG,
-                  'fat_g': food.fatG,
-                  // 음식마다 출처를 되돌려 보낸다(#2105). 빠뜨리면 서버가 빠진
-                  // 값을 채우므로, 손대지 않은 음식까지 원래 출처를 잃는다.
-                  'source': food.source.name,
-                },
-              )
-              .toList(),
+        if (foods != null) 'foods': foods.map(_foodJson).toList(),
         'total_calories': ?totalCalories,
         'sodium_mg': ?sodiumMg,
         'sugar_g': ?sugarG,

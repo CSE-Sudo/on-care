@@ -21,7 +21,8 @@ from app.core import clock
 from app.models.models import DietEntry
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
-    DietEntryOut, DietEntryUpdate, DietTodayResponse, calculate_macros,
+    DietEntryCreate, DietEntryOut, DietEntryUpdate, DietTodayResponse,
+    calculate_macros,
 )
 from app.services import diet_photo_service, period_window, streak_shield_service
 from app.services.coach.personal_ingest import record_diet, refresh_diet
@@ -424,6 +425,86 @@ def save_analyzed_entry(
             type(exc).__name__,
         )
     return entry, True
+
+
+#: 손으로 적은 끼니의 `engine` 값(#2151). 인식 엔진이 없는 기록이라는 표시다.
+MANUAL_ENGINE = "manual"
+
+
+def save_manual_entry(
+    db: Session, user_id: str, payload: DietEntryCreate
+) -> DietEntryOut:
+    """회원이 사진 없이 적은 끼니를 저장한다(#2151).
+
+    사진 분석 저장(`save_analyzed_entry`)과 같은 규칙을 따른다 — 멱등키로 재시도를
+    막고, 보호한 날이면 보호권을 되돌리고, 개인 RAG 로 적재한다. 다른 것은 둘이다.
+    합계를 인식기가 아니라 음식 목록에서 내고, **포인트를 적립하지 않는다**(라우터가
+    부르지 않는다). 사진이 없으니 식단평(`ai_comment`)도 없다.
+    """
+    if payload.idempotency_key:
+        existing = find_by_idempotency(db, user_id, payload.idempotency_key)
+        if existing is not None:
+            return _entry_out(existing)
+    # 회원이 적은 값이라 탄수화물 0 도 적은 값이다 — 수정에서 방금 0 으로 바꾼
+    # 것과 같이 본다(#1893).
+    for number, food in enumerate(payload.foods, start=1):
+        if _sugar_exceeds_carbs(food.carbs_g, food.sugar_g, carbs_recorded=True):
+            raise NutritionInconsistentError(
+                f"{number}번째 음식({food.name})의 당류는 탄수화물보다 "
+                f"클 수 없습니다. 당류 {food.sugar_g}g, 탄수화물 {food.carbs_g}g"
+            )
+    totals = totals_from_foods(payload.foods)
+    foods_for_storage = store_foods(payload.foods)
+    recorded_at = clock.now()
+    entry = DietEntry(
+        id=f"diet-{uuid.uuid4().hex[:12]}",
+        user_id=user_id,
+        date=payload.date or recorded_at.date().isoformat(),
+        meal_type=payload.meal_type,
+        time_label=recorded_at.strftime("%H:%M"),
+        foods_json=json.dumps(foods_for_storage, ensure_ascii=False),
+        total_calories=totals.total_calories,
+        carbs_g=totals.total_carbs_g,
+        protein_g=totals.total_protein_g,
+        fat_g=totals.total_fat_g,
+        sodium_mg=totals.total_sodium_mg,
+        sugar_g=totals.total_sugar_g,
+        engine=MANUAL_ENGINE,
+        idempotency_key=payload.idempotency_key,
+    )
+    out_date = entry.date
+    db.add(entry)
+    # 기록이 놓이는 날이 보호한 날이면 보호권을 되돌린다(#1788).
+    streak_shield_service.refund_for_record(db, user_id, _parsed_date(entry.date))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = (
+            find_by_idempotency(db, user_id, payload.idempotency_key)
+            if payload.idempotency_key
+            else None
+        )
+        if existing is not None:
+            return _entry_out(existing)
+        raise
+    db.refresh(entry)
+    # RAG 적재가 롤백하면 이 인스턴스가 만료된다 — 응답은 그 전에 만든다.
+    out = _entry_out(entry)
+
+    try:
+        record_diet(
+            db, user_id, date=out_date, foods=foods_for_storage,
+            total_calories=out.total_calories, sodium_mg=out.sodium_mg,
+            sugar_g=out.sugar_g, source_ref=out.id,
+        )
+    except Exception as exc:  # noqa: BLE001 — 개인 RAG 적재는 best-effort
+        db.rollback()
+        logger.warning(
+            "개인 RAG 적재 실패(%s) — 식단 저장은 유지",
+            type(exc).__name__,
+        )
+    return out
 
 
 def get_owned_entry(db: Session, user_id: str, entry_id: str) -> DietEntry | None:
