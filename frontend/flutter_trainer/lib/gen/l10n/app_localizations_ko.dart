@@ -38,7 +38,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get schedCancelSource => '취소한 쪽';
+  String get schedCancelSource => '처리 구분';
 
   @override
   String get schedCancelByMember => '회원 취소';
@@ -925,9 +925,6 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get clientClosePanel => '패널 닫기';
-
-  @override
-  String get clientChat => '채팅';
 
   @override
   String get chatTooLong => '메시지가 너무 길어요 (최대 2000자)';

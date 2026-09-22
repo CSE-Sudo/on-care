@@ -155,7 +155,7 @@ abstract class AppLocalizations {
   /// No description provided for @schedCancelSource.
   ///
   /// In en, this message translates to:
-  /// **'Cancelled by'**
+  /// **'Type'**
   String get schedCancelSource;
 
   /// No description provided for @schedCancelByMember.
@@ -1795,12 +1795,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close panel'**
   String get clientClosePanel;
-
-  /// No description provided for @clientChat.
-  ///
-  /// In en, this message translates to:
-  /// **'Chat'**
-  String get clientChat;
 
   /// No description provided for @chatTooLong.
   ///

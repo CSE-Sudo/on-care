@@ -295,38 +295,38 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   /// 삭제와 달리 일정 행이 남는다. 다이얼로그가 주체를 **고르게** 하는 까닭은
   /// 지표 때문이다 — 트레이너 사정의 취소와 고객 취소를 구분하지 않으면 나중에
   /// 회원의 낮은 이행률을 잘못 읽는다.
-  Future<void> _confirmCancel(ScheduleSession s) async {
-    final result = await showAppDialog<({String source, String reason})>(
+  ///
+  /// 같은 창에서 `노쇼` 도 고른다(#2175). [allowNoShow] 는 오늘·지난 PT 에서만
+  /// 참이다 — 오지 않았다는 사실은 그 시간이 지나야 안다.
+  Future<void> _confirmCancel(
+    ScheduleSession s, {
+    required bool allowNoShow,
+  }) async {
+    final result = await showAppDialog<CancelSessionChoice>(
       context: context,
-      builder: (context) => CancelSessionDialog(session: s),
+      builder: (context) =>
+          CancelSessionDialog(session: s, allowNoShow: allowNoShow),
     );
     if (result == null || !mounted) return;
     final AppLocalizations l = AppLocalizations.of(context);
+    final repo = ref.read(scheduleRepositoryProvider);
     try {
-      await ref
-          .read(scheduleRepositoryProvider)
-          .cancelSession(s.id, source: result.source, reason: result.reason);
+      if (result.noShow) {
+        await repo.markNoShow(s.id);
+      } else {
+        await repo.cancelSession(
+          s.id,
+          source: result.source,
+          reason: result.reason,
+        );
+      }
     } catch (_) {
       if (!mounted) return;
-      showAppToast(context, l.schedCancelFailed, type: AppToastType.error);
-    }
-  }
-
-  /// 노쇼 처리 — 예약된 시간에 회원이 오지 않았다는 기록. (#871)
-  Future<void> _confirmNoShow(ScheduleSession s) async {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final ok = await _confirm(
-      title: l.schedNoShowTitle,
-      confirmLabel: l.schedNoShow,
-      confirmKey: const ValueKey<String>('session-no-show-confirm'),
-      body: <Widget>[Text(l.schedNoShowConfirm(s.time, s.clientName))],
-    );
-    if (!ok || !mounted) return;
-    try {
-      await ref.read(scheduleRepositoryProvider).markNoShow(s.id);
-    } catch (_) {
-      if (!mounted) return;
-      showAppToast(context, l.schedNoShowFailed, type: AppToastType.error);
+      showAppToast(
+        context,
+        result.noShow ? l.schedNoShowFailed : l.schedCancelFailed,
+        type: AppToastType.error,
+      );
     }
   }
 
@@ -358,20 +358,6 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
     } finally {
       if (mounted) setState(() => _sendingProgramId = null);
     }
-  }
-
-  /// Jumps to the client's 채팅. The 고객 page decides whether that is a
-  /// split panel or a full-width detail, so one location covers both.
-  /// Falls back to the roster when the name can't be resolved (e.g. a
-  /// renamed client).
-  void _openChat(ScheduleSession s) {
-    final clients = ref.read(clientsProvider).valueOrNull ?? const [];
-    final match = clients.where((c) => c.name == s.clientName);
-    if (match.isEmpty) {
-      context.go(AppRoutes.clients);
-      return;
-    }
-    context.go(AppRoutes.messagesFor(match.first.id));
   }
 
   /// 계획 없는 세션의 `프로그램 추가` — 이 카드 안이 아니라 그 고객의 코칭
@@ -691,15 +677,14 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
           onGoToProgram: () => _openProgram(session),
           onEditNote: () => _openProgramEditor(session, noteOnly: true),
           onDelete: () => _confirmDelete(session),
-          onChat: () => _openChat(session),
           onComplete: (session.isUpcoming && !isFuture)
               ? () => _confirmComplete(session)
               : null,
           // 취소는 앞으로의 약속에도 열려 있다 — 거두는 것이 취소다. 노쇼는
-          // 지나간 약속에만: 오지 않았다는 사실은 그 시간이 지나야 안다(#871).
-          onCancel: session.isUpcoming ? () => _confirmCancel(session) : null,
-          onNoShow: (session.isUpcoming && !isFuture)
-              ? () => _confirmNoShow(session)
+          // 같은 창의 선택지로, 지나간 약속에만 선다: 오지 않았다는 사실은 그
+          // 시간이 지나야 안다(#871, #2175).
+          onCancel: session.isUpcoming
+              ? () => _confirmCancel(session, allowNoShow: !isFuture)
               : null,
           programDateLabel: dateText,
           sendingProgram: _sendingProgramId == session.id,

@@ -38,7 +38,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get schedCancelSource => 'Cancelled by';
+  String get schedCancelSource => 'Type';
 
   @override
   String get schedCancelByMember => 'Member';
@@ -958,9 +958,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clientClosePanel => 'Close panel';
-
-  @override
-  String get clientChat => 'Chat';
 
   @override
   String get chatTooLong => 'Message is too long (2000 characters max)';
