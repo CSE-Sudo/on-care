@@ -248,6 +248,9 @@ TRAINER_HEALTH_GOAL_KIND = "health_goal"
 #: 담당 회원이 이름을 바꿨다 → 그 회원 상세(`subject_id`). 이미 받은 알림은 옛
 #: 이름으로 남으므로 둘을 잇는다. (#2065)
 TRAINER_MEMBER_NAME_KIND = "member_name"
+#: 담당 회원이 떠났다 — 탈퇴했거나 담당 연결을 끊었다(#2174). 회원이 목록에서
+#: 사라진 뒤라 갈 곳이 없고, 알림함에서 확인만 한다.
+TRAINER_MEMBER_LEFT_KIND = "member_left"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.

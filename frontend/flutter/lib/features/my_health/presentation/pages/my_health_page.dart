@@ -8,6 +8,8 @@ import 'package:oncare/core/utils/request_id.dart';
 import 'package:oncare/features/app_guide/presentation/controllers/app_guide_controller.dart';
 import 'package:oncare/features/auth/presentation/controllers/session_controller.dart';
 import 'package:oncare/features/benefits/domain/entities/activity_calendar.dart';
+import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/diet_tray.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_challenge.dart';
@@ -17,6 +19,7 @@ import 'package:oncare/features/benefits/presentation/controllers/benefits_provi
 import 'package:oncare/features/benefits/presentation/controllers/challenge_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
 import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
+import 'package:oncare/features/benefits/presentation/widgets/diet_tray_card.dart';
 import 'package:oncare/features/benefits/presentation/widgets/graph_color_sheet.dart';
 import 'package:oncare/features/benefits/presentation/widgets/profile_pet_sheet.dart';
 import 'package:oncare/features/benefits/presentation/widgets/record_graph_card.dart';
@@ -857,6 +860,48 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     }
   }
 
+  /// 식판 받기 요청이 나가 있다(#2150). 교환·참가와 겹치지 않게 서로 막는다.
+  bool _claimingTray = false;
+
+  /// 분석용 식판 수령 쿠폰을 받는다(#2150). 파란 2열 확인창에서 어디서·언제까지
+  /// 받는지와 1인 1회를 밝힌 뒤 받는다. 포인트는 쓰지 않는다.
+  Future<void> _claimTray() async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.myDietTrayClaimConfirmTitle,
+      message: keepWords(l.myDietTrayClaimConfirmMessage),
+      confirmLabel: l.myDietTrayClaim,
+      cancelLabel: l.myCancel,
+    );
+    if (!ok || !mounted || _claimingTray) return;
+    setState(() => _claimingTray = true);
+    try {
+      await ref
+          .read(benefitsRepositoryProvider)
+          .claimDietTray(clientRequestId: newClientRequestId());
+      if (!mounted) return;
+      // 카드 상태와 내 혜택의 쿠폰이 함께 바뀌었다.
+      ref
+        ..invalidate(dietTrayProvider)
+        ..invalidate(myCouponsProvider);
+      showAppToast(
+        context,
+        l.myDietTrayClaimDone,
+        type: AppToastType.success,
+        actionLabel: l.myBenefitsView,
+        onAction: () => context.push<void>(AppRoutes.myBenefits),
+      );
+    } on Object {
+      if (!mounted) return;
+      // 그사이 날이 넘어가 조건이 바뀌었거나 담당이 끊겼을 수 있다 — 다시 읽는다.
+      ref.invalidate(dietTrayProvider);
+      showAppToast(context, l.myDietTrayClaimFailed, type: AppToastType.error);
+    } finally {
+      if (mounted) setState(() => _claimingTray = false);
+    }
+  }
+
   /// 주간 챌린지 참가 요청이 나가 있다(#1789). 교환과 겹치지 않게 서로 막는다.
   bool _joiningChallenge = false;
 
@@ -914,8 +959,12 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     final AsyncValue<ActivityCalendar> calendar = ref.watch(
       activityCalendarProvider,
     );
+    final AsyncValue<DietTray> tray = ref.watch(dietTrayProvider);
     final bool idle =
-        _exchanging == null && !_joiningChallenge && !_usingShield;
+        _exchanging == null &&
+        !_joiningChallenge &&
+        !_usingShield &&
+        !_claimingTray;
     final int? balance = shop.valueOrNull?.balance ?? widget.points;
     return AppPage(
       key: const Key('pointsBenefitsPage'),
@@ -1004,6 +1053,22 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
             ),
             const SizedBox(height: OnCareSpacing.cardGap),
           ],
+        ),
+        // 분석용 식판(#2150) — 기록 그래프 바로 아래. 사진 기록이 쌓이는 흐름과 "며칠
+        // 더 찍으면 받는가" 를 한눈에 잇는다. 불러오는 중·실패면 아무것도 그리지 않는다
+        // (식판을 못 읽었다고 교환까지 막지 않는다).
+        ...tray.maybeWhen(
+          data: (DietTray data) => <Widget>[
+            DietTrayCard(
+              tray: data,
+              busy: _claimingTray,
+              onClaim: idle ? _claimTray : null,
+              onViewCoupon: (Coupon coupon) =>
+                  context.push<void>(AppRoutes.myCouponDetailPath(coupon.id)),
+            ),
+            const SizedBox(height: OnCareSpacing.cardGap),
+          ],
+          orElse: () => const <Widget>[],
         ),
         // 주간 운동 챌린지(#1789) — 쿠폰 교환 위에 선다. 불러오는 중·실패면 교환
         // 목록만 보인다(챌린지를 못 읽었다고 교환까지 막지 않는다).
