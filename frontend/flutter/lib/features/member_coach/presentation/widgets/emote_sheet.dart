@@ -13,8 +13,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 사는지는 그림을 보며 골라야 알 수 있고, 채팅을 하다 MY 탭까지 다녀오라고 하면
 /// 하려던 말을 놓친다.
 ///
-/// 산 이모티콘은 맨 위 `쓰는 중` 에 모은다. 회원이 매번 찾는 것은 산 몇 개인데, 안 산
-/// 이모티콘 사이에 흩어 두면 60개를 훑어야 찾는다. 안 산 것은 그 아래 묶음별로 둔다.
+/// 한 판에 이모티콘만 늘어놓고, 산 것을 맨 앞으로 올린다. 회원이 매번 찾는 것은 산
+/// 몇 개인데, 안 산 이모티콘 사이에 흩어 두면 60개를 훑어야 찾는다.
 Future<String?> showEmoteSheet(BuildContext context) {
   return showAppSheet<String>(
     context: context,
@@ -57,9 +57,9 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
     final EmoteState? state = _state;
     if (state == null) return;
     if (state.shortfall > 0) {
-      // 모자라면 얼마가 모자란지 말한다 — `살 수 없어요` 만으로는 무엇을 해야 하는지
-      // 알 수 없다.
-      toast.show(l.emoteShortfall(state.shortfall, state.balance));
+      // 모자라면 확인창을 띄우지 않는다 — 누를 수 없는 `사기` 가 있는 창을 한 번 더
+      // 닫게 된다.
+      toast.show(l.emoteShortfall);
       return;
     }
     final bool ok = await _confirmBuy(context, id, state);
@@ -107,17 +107,14 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
             )
           else if (state == null)
             const AppLoading()
-          else ...<Widget>[
-            _Summary(state: state),
-            const SizedBox(height: OnCareSpacing.s16),
+          else
             Flexible(
-              child: _Board(
+              child: _Grid(
                 state: state,
                 onPick: (String id) => Navigator.of(context).pop(id),
                 onBuy: _buy,
               ),
             ),
-          ],
         ],
       ),
     );
@@ -155,41 +152,8 @@ Future<bool> _confirmBuy(BuildContext context, String id, EmoteState state) {
   ).then((bool? ok) => ok ?? false);
 }
 
-/// 값·기간과 지금 잔액 두 줄.
-class _Summary extends StatelessWidget {
-  const _Summary({required this.state});
-
-  final EmoteState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
-    return Column(
-      key: const Key('emoteSummary'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          l.emoteSheetInfo(state.cost, state.days),
-          style: tokens
-              .text(OnCareTypography.strong(OnCareTypography.body))
-              .copyWith(color: OnCareColors.textPrimary),
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        Text(
-          l.emoteBalance(state.balance),
-          style: tokens
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-/// 산 것(`쓰는 중`) 먼저, 그 아래 안 산 것을 묶음별로.
-class _Board extends StatelessWidget {
-  const _Board({
+class _Grid extends StatelessWidget {
+  const _Grid({
     required this.state,
     required this.onPick,
     required this.onBuy,
@@ -201,152 +165,51 @@ class _Board extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l = AppLocalizations.of(context);
-    // 산 것도 목록 순서대로 둔다 — 산 순서나 남은 기간 순이면 하나를 살 때마다 자리가
-    // 바뀌어, 늘 누르던 자리에서 다른 이모티콘이 나온다.
-    final List<String> owned = <String>[
+    // 원래 순서에서 산 것만 맨 앞으로 — 산 것끼리, 안 산 것끼리는 원래 순서 그대로다.
+    // 산 순서나 남은 기간 순이면 하나를 살 때마다 자리가 바뀐다.
+    final List<String> ordered = <String>[
       for (final String id in AppEmotes.all)
         if (state.isUnlocked(id)) id,
+      for (final String id in AppEmotes.all)
+        if (!state.isUnlocked(id)) id,
     ];
     return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: Wrap(
+        spacing: OnCareSpacing.s8,
+        runSpacing: OnCareSpacing.s8,
         children: <Widget>[
-          if (owned.isNotEmpty)
-            _Section(
-              key: const Key('emoteOwned'),
-              title: l.emoteOwnedSection,
-              children: <Widget>[
-                for (final String id in owned)
-                  _Tile(
-                    id: id,
-                    caption: _leftLabel(l, state.unlocked[id]!),
-                    locked: false,
-                    onTap: () => onPick(id),
-                  ),
-              ],
+          for (final String id in ordered)
+            _Tile(
+              id: id,
+              // 안 산 것도 무엇인지는 보여 준다 — 가려 두면 무엇을 사는지 모른 채
+              // 사야 한다. 흐리게만 둔다.
+              locked: !state.isUnlocked(id),
+              onTap: () =>
+                  state.isUnlocked(id) ? onPick(id) : onBuy(id),
             ),
-          for (final AppEmotePack pack in AppEmotes.packs)
-            if (pack.emotes.any((String id) => !state.isUnlocked(id)))
-              _Section(
-                key: Key('emotePack-${pack.id}'),
-                title: _packName(l, pack.id),
-                children: <Widget>[
-                  for (final String id in pack.emotes)
-                    if (!state.isUnlocked(id))
-                      _Tile(
-                        id: id,
-                        caption: l.emotePrice(state.cost),
-                        // 안 산 것도 무엇인지는 보여 준다 — 가려 두면 무엇을 사는지
-                        // 모른 채 사야 한다.
-                        locked: true,
-                        onTap: () => onBuy(id),
-                      ),
-                ],
-              ),
         ],
       ),
     );
   }
 }
 
-class _Section extends StatelessWidget {
-  const _Section({super.key, required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: OnCareSpacing.s16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          AppSectionHeader(title: title),
-          const SizedBox(height: OnCareSpacing.s8),
-          Wrap(
-            spacing: OnCareSpacing.s8,
-            runSpacing: OnCareSpacing.s8,
-            children: children,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// 이모티콘 한 칸 — 그림과 그 아래 한 줄(값 또는 남은 기간).
 class _Tile extends StatelessWidget {
-  const _Tile({
-    required this.id,
-    required this.caption,
-    required this.locked,
-    required this.onTap,
-  });
+  const _Tile({required this.id, required this.locked, required this.onTap});
 
   final String id;
-  final String caption;
   final bool locked;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
     return InkWell(
       key: Key('emote-$id'),
       borderRadius: OnCareRadius.mdAll,
       onTap: onTap,
-      child: SizedBox(
-        width: OnCareSize.emotePick,
-        child: Column(
-          children: <Widget>[
-            Opacity(
-              opacity: locked ? 0.35 : 1,
-              child: AppEmote(id: id, size: OnCareSize.emotePick),
-            ),
-            const SizedBox(height: OnCareSpacing.s4),
-            Text(
-              caption,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: tokens
-                  .text(OnCareTypography.caption)
-                  .copyWith(
-                    color: locked
-                        ? OnCareColors.textSecondary
-                        : tokens.brand.primary,
-                  ),
-            ),
-          ],
-        ),
+      child: Opacity(
+        opacity: locked ? 0.35 : 1,
+        child: AppEmote(id: id, size: OnCareSize.emotePick),
       ),
     );
   }
 }
-
-/// 남은 기간 한 줄 — `6일 남음` · `5시간 남음` · `곧 끝나요`.
-///
-/// 날은 올림으로 센다. 막 산 이모티콘이 `6일 남음` 으로 보이면 하루를 덜 받은 것
-/// 같다.
-String _leftLabel(AppLocalizations l, Duration left) {
-  if (left >= const Duration(days: 1)) {
-    final int days = (left.inSeconds / Duration.secondsPerDay).ceil();
-    return l.emoteLeftDays(days);
-  }
-  if (left >= const Duration(hours: 1)) return l.emoteLeftHours(left.inHours);
-  return l.emoteLeftSoon;
-}
-
-String _packName(AppLocalizations l, String pack) => switch (pack) {
-  'owoon' => l.emotePackOwoon,
-  'legday' => l.emotePackLegday,
-  'diet' => l.emotePackDiet,
-  'coach' => l.emotePackCoach,
-  'condition' => l.emotePackCondition,
-  'react' => l.emotePackReact,
-  'dog' => l.emotePackDog,
-  'cat' => l.emotePackCat,
-  _ => pack,
-};

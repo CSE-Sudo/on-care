@@ -1,6 +1,6 @@
 /// 트레이너 채팅의 이모티콘 — 버튼·하나씩 사기·전송·말풍선. (#2020, #2153)
 ///
-/// 이모티콘은 하나씩 사서 7일 동안 쓴다. 산 것은 맨 위 `쓰는 중` 에 모이고, 안 산
+/// 이모티콘은 하나씩 사서 7일 동안 쓴다. 한 판에 늘어놓되 산 것이 맨 앞에 오고, 안 산
 /// 것도 **무엇인지는 보인다** — 가려 두면 무엇을 사는지 모른 채 사야 한다.
 library;
 
@@ -123,7 +123,7 @@ void main() {
     );
   });
 
-  testWidgets('안 산 이모티콘은 값과 함께 보이고, 누르면 보내지 않고 사기를 묻는다', (
+  testWidgets('안 산 이모티콘도 보이고, 누르면 보내지 않고 사기를 묻는다', (
     WidgetTester tester,
   ) async {
     final _FakeEmoteRepository emotes = _FakeEmoteRepository();
@@ -136,10 +136,6 @@ void main() {
 
     await _openSheet(tester, l);
 
-    expect(find.text(l.emoteSheetInfo(50, 7)), findsOneWidget);
-    // 산 것이 없으면 `쓰는 중` 도 없다.
-    expect(find.byKey(const Key('emoteOwned')), findsNothing);
-    expect(find.byKey(const Key('emotePack-owoon')), findsOneWidget);
     expect(find.byKey(const Key('emote-oni_owoon')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('emote-oni_owoon')));
@@ -156,7 +152,7 @@ void main() {
     expect(find.byKey(const Key('emoteSheet')), findsOneWidget);
   });
 
-  testWidgets('사면 창은 그대로이고 그 이모티콘이 쓰는 중으로 올라간다', (WidgetTester tester) async {
+  testWidgets('사면 창은 그대로이고 그 이모티콘이 맨 앞으로 온다', (WidgetTester tester) async {
     final _FakeEmoteRepository emotes = _FakeEmoteRepository();
     final _RecordingCoachRepository coach = _RecordingCoachRepository();
     final AppLocalizations l = await _pumpChat(
@@ -166,28 +162,23 @@ void main() {
     );
     await _openSheet(tester, l);
 
-    await tester.tap(find.byKey(const Key('emote-oni_owoon')));
+    await tester.tap(find.byKey(const Key('emote-oni_gains')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('emoteBuyConfirm')));
     await tester.pumpAndSettle();
 
-    expect(emotes.bought, <String>['oni_owoon']);
+    expect(emotes.bought, <String>['oni_gains']);
     // 사기만 한다 — 보내는 것은 다시 눌러서다.
     expect(coach.sentEmote, isNull);
     expect(find.byKey(const Key('emoteSheet')), findsOneWidget);
+    // 원래 두 번째였던 이모티콘이 첫 번째 자리로 온다.
     expect(
-      find.descendant(
-        of: find.byKey(const Key('emoteOwned')),
-        matching: find.byKey(const Key('emote-oni_owoon')),
-      ),
-      findsOneWidget,
+      tester.getTopLeft(find.byKey(const Key('emote-oni_gains'))).dx,
+      lessThan(tester.getTopLeft(find.byKey(const Key('emote-oni_owoon'))).dx),
     );
-    // 남은 기간을 말한다 — 언제 끝나는지 모르면 다시 살 때를 알 수 없다.
-    expect(find.text(l.emoteLeftDays(7)), findsOneWidget);
-    expect(find.text(l.emoteBalance(950)), findsOneWidget);
   });
 
-  testWidgets('산 이모티콘은 맨 위에 모이고, 누르면 바로 나간다', (WidgetTester tester) async {
+  testWidgets('산 이모티콘은 맨 앞에 오고, 누르면 바로 나간다', (WidgetTester tester) async {
     final _RecordingCoachRepository coach = _RecordingCoachRepository();
     final AppLocalizations l = await _pumpChat(
       tester,
@@ -196,21 +187,13 @@ void main() {
     );
 
     await _openSheet(tester, l);
-    // 강아지 묶음은 목록 아래쪽이지만, 산 것은 맨 위라 끌어 올리지 않아도 보인다.
-    final Finder owned = find.byKey(const Key('emoteOwned'));
-    expect(owned, findsOneWidget);
-    expect(
-      tester.getTopLeft(owned).dy,
-      lessThan(tester.getTopLeft(find.byKey(const Key('emotePack-owoon'))).dy),
+    // 강아지는 원래 목록 아래쪽이지만, 산 것은 맨 앞이라 끌어 올리지 않아도 보인다.
+    final Offset dog = tester.getTopLeft(find.byKey(const Key('emote-dog_love')));
+    final Offset first = tester.getTopLeft(
+      find.byKey(const Key('emote-oni_owoon')),
     );
-    expect(
-      find.descendant(
-        of: owned,
-        matching: find.byKey(const Key('emote-dog_love')),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text(l.emoteLeftDays(7)), findsOneWidget);
+    expect(dog.dy, first.dy);
+    expect(dog.dx, lessThan(first.dx));
 
     await tester.tap(find.byKey(const Key('emote-dog_love')));
     await tester.pumpAndSettle();
@@ -220,7 +203,7 @@ void main() {
     expect(find.byKey(const Key('emoteSheet')), findsNothing);
   });
 
-  testWidgets('포인트가 모자라면 사기를 묻지 않고 모자란 만큼을 말한다', (WidgetTester tester) async {
+  testWidgets('포인트가 모자라면 사기를 묻지 않고 부족하다고 알린다', (WidgetTester tester) async {
     final _FakeEmoteRepository emotes = _FakeEmoteRepository(balance: 30);
     final AppLocalizations l = await _pumpChat(tester, emotes: emotes);
     await _openSheet(tester, l);
@@ -229,7 +212,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('emoteBuyDialog')), findsNothing);
-    expect(find.text(l.emoteShortfall(20, 30)), findsOneWidget);
+    expect(find.text(l.emoteShortfall), findsOneWidget);
     expect(emotes.bought, isEmpty);
     await tester.pumpAndSettle(const Duration(seconds: 5));
   });

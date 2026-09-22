@@ -1704,61 +1704,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteSheetTitle => '이모티콘';
 
   @override
-  String emoteSheetInfo(int cost, int days) {
-    return '하나에 ${cost}P · 산 때부터 $days일 동안 써요';
-  }
-
-  @override
-  String emoteBalance(int balance) {
-    return '지금 ${balance}P 있어요';
-  }
-
-  @override
-  String get emoteOwnedSection => '쓰는 중';
-
-  @override
-  String get emotePackOwoon => '오운완';
-
-  @override
-  String get emotePackLegday => '하체데이';
-
-  @override
-  String get emotePackDiet => '식단';
-
-  @override
-  String get emotePackCoach => '쌤이랑';
-
-  @override
-  String get emotePackCondition => '컨디션';
-
-  @override
-  String get emotePackReact => '리액션';
-
-  @override
-  String get emotePackDog => '댕댕';
-
-  @override
-  String get emotePackCat => '냥이';
-
-  @override
-  String emotePrice(int cost) {
-    return '${cost}P';
-  }
-
-  @override
-  String emoteLeftDays(int days) {
-    return '$days일 남음';
-  }
-
-  @override
-  String emoteLeftHours(int hours) {
-    return '$hours시간 남음';
-  }
-
-  @override
-  String get emoteLeftSoon => '곧 끝나요';
-
-  @override
   String get emoteBuyTitle => '이모티콘 사기';
 
   @override
@@ -1776,9 +1721,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteBuyFailed => '이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String emoteShortfall(int shortfall, int balance) {
-    return '${shortfall}P 더 모으면 살 수 있어요 (지금 ${balance}P)';
-  }
+  String get emoteShortfall => '포인트가 부족해요';
 
   @override
   String get emoteLoadFailed => '이모티콘을 불러오지 못했어요';

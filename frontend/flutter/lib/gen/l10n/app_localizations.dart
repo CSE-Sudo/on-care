@@ -3092,96 +3092,6 @@ abstract class AppLocalizations {
   /// **'Emotes'**
   String get emoteSheetTitle;
 
-  /// No description provided for @emoteSheetInfo.
-  ///
-  /// In en, this message translates to:
-  /// **'{cost}P each · yours for {days} days from purchase'**
-  String emoteSheetInfo(int cost, int days);
-
-  /// No description provided for @emoteBalance.
-  ///
-  /// In en, this message translates to:
-  /// **'You have {balance}P'**
-  String emoteBalance(int balance);
-
-  /// No description provided for @emoteOwnedSection.
-  ///
-  /// In en, this message translates to:
-  /// **'Yours'**
-  String get emoteOwnedSection;
-
-  /// No description provided for @emotePackOwoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Workout done'**
-  String get emotePackOwoon;
-
-  /// No description provided for @emotePackLegday.
-  ///
-  /// In en, this message translates to:
-  /// **'Leg day'**
-  String get emotePackLegday;
-
-  /// No description provided for @emotePackDiet.
-  ///
-  /// In en, this message translates to:
-  /// **'Diet'**
-  String get emotePackDiet;
-
-  /// No description provided for @emotePackCoach.
-  ///
-  /// In en, this message translates to:
-  /// **'With coach'**
-  String get emotePackCoach;
-
-  /// No description provided for @emotePackCondition.
-  ///
-  /// In en, this message translates to:
-  /// **'Condition'**
-  String get emotePackCondition;
-
-  /// No description provided for @emotePackReact.
-  ///
-  /// In en, this message translates to:
-  /// **'Reactions'**
-  String get emotePackReact;
-
-  /// No description provided for @emotePackDog.
-  ///
-  /// In en, this message translates to:
-  /// **'Doggo'**
-  String get emotePackDog;
-
-  /// No description provided for @emotePackCat.
-  ///
-  /// In en, this message translates to:
-  /// **'Kitty'**
-  String get emotePackCat;
-
-  /// No description provided for @emotePrice.
-  ///
-  /// In en, this message translates to:
-  /// **'{cost}P'**
-  String emotePrice(int cost);
-
-  /// No description provided for @emoteLeftDays.
-  ///
-  /// In en, this message translates to:
-  /// **'{days}d left'**
-  String emoteLeftDays(int days);
-
-  /// No description provided for @emoteLeftHours.
-  ///
-  /// In en, this message translates to:
-  /// **'{hours}h left'**
-  String emoteLeftHours(int hours);
-
-  /// No description provided for @emoteLeftSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Ending'**
-  String get emoteLeftSoon;
-
   /// No description provided for @emoteBuyTitle.
   ///
   /// In en, this message translates to:
@@ -3215,8 +3125,8 @@ abstract class AppLocalizations {
   /// No description provided for @emoteShortfall.
   ///
   /// In en, this message translates to:
-  /// **'{shortfall}P more to buy it (you have {balance}P)'**
-  String emoteShortfall(int shortfall, int balance);
+  /// **'Not enough points'**
+  String get emoteShortfall;
 
   /// No description provided for @emoteLoadFailed.
   ///

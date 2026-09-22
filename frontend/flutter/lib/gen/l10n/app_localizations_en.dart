@@ -1766,61 +1766,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emoteSheetTitle => 'Emotes';
 
   @override
-  String emoteSheetInfo(int cost, int days) {
-    return '${cost}P each · yours for $days days from purchase';
-  }
-
-  @override
-  String emoteBalance(int balance) {
-    return 'You have ${balance}P';
-  }
-
-  @override
-  String get emoteOwnedSection => 'Yours';
-
-  @override
-  String get emotePackOwoon => 'Workout done';
-
-  @override
-  String get emotePackLegday => 'Leg day';
-
-  @override
-  String get emotePackDiet => 'Diet';
-
-  @override
-  String get emotePackCoach => 'With coach';
-
-  @override
-  String get emotePackCondition => 'Condition';
-
-  @override
-  String get emotePackReact => 'Reactions';
-
-  @override
-  String get emotePackDog => 'Doggo';
-
-  @override
-  String get emotePackCat => 'Kitty';
-
-  @override
-  String emotePrice(int cost) {
-    return '${cost}P';
-  }
-
-  @override
-  String emoteLeftDays(int days) {
-    return '${days}d left';
-  }
-
-  @override
-  String emoteLeftHours(int hours) {
-    return '${hours}h left';
-  }
-
-  @override
-  String get emoteLeftSoon => 'Ending';
-
-  @override
   String get emoteBuyTitle => 'Buy emote';
 
   @override
@@ -1839,9 +1784,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'We could not buy the emote. Please try again in a moment.';
 
   @override
-  String emoteShortfall(int shortfall, int balance) {
-    return '${shortfall}P more to buy it (you have ${balance}P)';
-  }
+  String get emoteShortfall => 'Not enough points';
 
   @override
   String get emoteLoadFailed => 'We could not load the emotes';
