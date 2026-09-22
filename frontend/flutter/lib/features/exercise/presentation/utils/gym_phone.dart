@@ -51,7 +51,7 @@ Future<void> showGymPhoneSheet(
         children: <Widget>[
           Row(
             children: <Widget>[
-              Expanded(
+              Flexible(
                 child: Text(
                   phone,
                   style: context.oncare
@@ -63,6 +63,11 @@ Future<void> showGymPhoneSheet(
                 tooltip: l.exGymCopyPhone,
                 onPressed: () => Navigator.pop(sheetContext, 'copy'),
                 icon: AppIcons.copy,
+                glyph: const AppIcon(
+                  AppIcons.copy,
+                  size: OnCareSize.iconSmall,
+                  outlined: true,
+                ),
                 color: OnCareColors.textSecondary,
               ),
             ],

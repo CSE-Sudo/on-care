@@ -16,6 +16,7 @@ class AppIcon extends StatelessWidget {
     this.size,
     this.color,
     this.semanticLabel,
+    this.outlined = false,
   });
 
   final IconData? icon;
@@ -24,6 +25,9 @@ class AppIcon extends StatelessWidget {
   final double? size;
   final Color? color;
   final String? semanticLabel;
+
+  /// 테두리형이 필요한 보조 동작. 기본값은 앱의 아이콘 테마를 따른다.
+  final bool outlined;
 
   /// 현재 테마의 아이콘 묶음. 테마에 토큰이 없으면 기본 묶음이다 — 아이콘은
   /// 브랜드 색과 달리 기본값으로 그려도 어느 앱인지 틀리지 않는다.
@@ -39,6 +43,7 @@ class AppIcon extends StatelessWidget {
     double? size,
     Color? color,
     String? semanticLabel,
+    bool outlined = false,
   }) {
     final OnCareIconSet set = setOf(context);
     return Icon(
@@ -46,7 +51,7 @@ class AppIcon extends StatelessWidget {
       size: size,
       color: color,
       semanticLabel: semanticLabel,
-      fill: set.fill,
+      fill: outlined ? 0 : set.fill,
       weight: set.weightOf(icon),
       grade: set.grade,
       opticalSize: set.opticalSizeFor(size ?? IconTheme.of(context).size),
@@ -85,6 +90,7 @@ class AppIcon extends StatelessWidget {
     size: size,
     color: color,
     semanticLabel: semanticLabel,
+    outlined: outlined,
   );
 }
 
