@@ -4039,6 +4039,66 @@ abstract class AppLocalizations {
   /// **'Ask the AI anything'**
   String get aicInputHint;
 
+  /// No description provided for @aicQuotaFreeLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 free chat left today} other{{count} free chats left today}}'**
+  String aicQuotaFreeLeft(int count);
+
+  /// No description provided for @aicQuotaPaidNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next chat {cost} · Bought today {used}/{limit} · {balance} left'**
+  String aicQuotaPaidNext(String cost, int used, int limit, String balance);
+
+  /// No description provided for @aicQuotaExhausted.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s chats. They reopen tomorrow'**
+  String get aicQuotaExhausted;
+
+  /// No description provided for @aicQuotaFindTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Find a trainer'**
+  String get aicQuotaFindTrainer;
+
+  /// No description provided for @aicPaidConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep chatting with points?'**
+  String get aicPaidConfirmTitle;
+
+  /// No description provided for @aicPaidConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used today\'s free chats. Each message now costs {cost} (up to {limit} today).'**
+  String aicPaidConfirmMessage(String cost, int limit);
+
+  /// No description provided for @aicPaidConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send with points'**
+  String get aicPaidConfirmAction;
+
+  /// No description provided for @aicPaidInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'You need {shortfall} more. Log meals and workouts to earn points.'**
+  String aicPaidInsufficient(String shortfall);
+
+  /// No description provided for @aicPointsSpentWithBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'−{spent} · {balance} left'**
+  String aicPointsSpentWithBalance(String spent, String balance);
+
+  /// No description provided for @aicPointsSpent.
+  ///
+  /// In en, this message translates to:
+  /// **'−{spent}'**
+  String aicPointsSpent(String spent);
+
   /// No description provided for @aicQuickRepliesLabel.
   ///
   /// In en, this message translates to:

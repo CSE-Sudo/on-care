@@ -1,3 +1,4 @@
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -15,10 +16,19 @@ abstract class AiCoachRepository {
   ///
   /// 서버가 대화를 저장하므로 [history] 를 보내지 않아도 맥락이 이어진다. 서버에
   /// 저장분이 없을 때(목업으로 대화하다 실 서버로 전환한 경우)를 위해 계속 보낸다.
+  ///
+  /// 오늘 무료 대화를 다 썼으면 [payWithPoints] 가 있어야 포인트로 보낸다(#2145).
+  /// 한도 때문에 보내지 못하면 [AiChatBlocked] 를 던진다. [clientRequestId] 가 같은
+  /// 재전송은 서버가 한 번만 센다.
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   });
+
+  /// GET /ai-coach/quota — 오늘 남은 무료·포인트 대화(#2145).
+  Future<AiChatQuota> fetchQuota();
 
   /// GET /ai-coach/insights — 최근 30일 동안 회원이 AI 챗봇에 쓴 메시지의
   /// 통증·부정적 반응 감지 기록(최신순). 트레이너 채팅 감지와 같은 규칙이다(#1824).

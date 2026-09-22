@@ -170,8 +170,12 @@ def answer(
     user_id: str,
     message: str,
     history: list | None = None,
-) -> tuple[str, list[str]]:
-    """(답변 텍스트, 근거 공공문서 제목들) 반환."""
+) -> tuple[str, list[str], bool]:
+    """(답변 텍스트, 근거 공공문서 제목들, LLM 이 답했는가) 반환.
+
+    세 번째 값이 거짓이면 검색 기반 대체 답이다 — 회원 챗봇의 하루 한도는 LLM 이
+    답한 대화만 센다(#2145).
+    """
     history = history or []
     hits = _safe_retrieve(db, user_id, message)
     sources = list(dict.fromkeys(d.title for d in hits["public"] if d.title))
@@ -196,7 +200,7 @@ def answer(
         prompt = _build_user_prompt(context, history, message)
         text = llm.generate(_SYSTEM, prompt).text.strip()
         if text:
-            return text, sources
+            return text, sources, True
     except Exception:  # noqa: BLE001 — 키 미설정/네트워크/모델 오류 → 검색 기반 폴백
         pass
-    return _fallback_reply(hits), sources
+    return _fallback_reply(hits), sources, False

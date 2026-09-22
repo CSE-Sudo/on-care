@@ -2322,6 +2322,55 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aicInputHint => 'Ask the AI anything';
 
   @override
+  String aicQuotaFreeLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count free chats left today',
+      one: '1 free chat left today',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String aicQuotaPaidNext(String cost, int used, int limit, String balance) {
+    return 'Next chat $cost · Bought today $used/$limit · $balance left';
+  }
+
+  @override
+  String get aicQuotaExhausted =>
+      'You\'ve used today\'s chats. They reopen tomorrow';
+
+  @override
+  String get aicQuotaFindTrainer => 'Find a trainer';
+
+  @override
+  String get aicPaidConfirmTitle => 'Keep chatting with points?';
+
+  @override
+  String aicPaidConfirmMessage(String cost, int limit) {
+    return 'You\'ve used today\'s free chats. Each message now costs $cost (up to $limit today).';
+  }
+
+  @override
+  String get aicPaidConfirmAction => 'Send with points';
+
+  @override
+  String aicPaidInsufficient(String shortfall) {
+    return 'You need $shortfall more. Log meals and workouts to earn points.';
+  }
+
+  @override
+  String aicPointsSpentWithBalance(String spent, String balance) {
+    return '−$spent · $balance left';
+  }
+
+  @override
+  String aicPointsSpent(String spent) {
+    return '−$spent';
+  }
+
+  @override
   String get aicQuickRepliesLabel => 'Try asking';
 
   @override

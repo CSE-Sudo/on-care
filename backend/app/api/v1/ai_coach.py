@@ -24,6 +24,7 @@ from app.core.rate_limit import rate_limit
 from app.db.session import get_db
 from app.models.models import AiConversation, AiMessage
 from app.schemas.misc_api import (
+    AiChatQuotaOut,
     AiCoachFeedback,
     ChatHistory,
     ChatInsightList,
@@ -33,6 +34,7 @@ from app.schemas.misc_api import (
     ChatReply,
     ChatRequest,
 )
+from app.services import ai_chat_quota_service, points_service
 from app.services.coach import conversation, insights
 from app.services.coach.chat import answer
 from app.services.coach_service import build_feedback
@@ -75,6 +77,8 @@ def ai_coach_messages(
     """
     _ensure_ai_chat_allowed(db, current_user.id)
     rows = conversation.load_messages(db, current_user.id)
+    # 포인트로 산 답변 아래에 차감을 다시 그린다(#2145).
+    paid = ai_chat_quota_service.spent_by_message(db, [m.id for m in rows])
     return ChatHistory(
         messages=[
             ChatMessageOut(
@@ -83,10 +87,25 @@ def ai_coach_messages(
                 sources=conversation.parse_sources(m.sources_json),
                 created_at=m.created_at,
                 insight=_insight_out(m.content) if m.role == "user" else None,
+                points_spent=paid[m.id].cost if m.id in paid else 0,
+                balance_after=paid[m.id].balance_after if m.id in paid else None,
             )
             for m in rows
         ]
     )
+
+
+@router.get("/ai-coach/quota", response_model=AiChatQuotaOut)
+def ai_coach_quota(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> AiChatQuotaOut:
+    """오늘 남은 무료·포인트 대화와 다음 대화가 무엇으로 나가는가(#2145).
+
+    입력칸 위 줄이 이것 하나로 그려진다. 담당 트레이너가 있는 회원은 403 이다.
+    """
+    _ensure_ai_chat_allowed(db, current_user.id)
+    return ai_chat_quota_service.status(db, current_user.id)
 
 
 @router.post(
@@ -107,20 +126,96 @@ def ai_coach_chat(
     `history` 를 보내지 않아도 맥락이 이어진다. 다만 저장분이 아직 없을 때는
     요청에 실려 온 `history` 를 쓴다 — 목업 모드로 대화하다 실 서버로 전환한
     클라이언트의 맥락을 버리지 않기 위해서다.
+
+    **하루 한도(#2145)** — 무료를 다 쓴 뒤에는 `pay_with_points` 동의가 있어야
+    포인트로 보낸다. 동의가 없으면 402(`points_required`), 오늘 다 썼으면
+    429(`daily_limit`), 잔액이 모자라면 409(`insufficient_points`)다. `detail` 은
+    `{code, message}` 이고 모자라면 `shortfall` 도 싣는다. AI 가 답했을 때만 세고
+    차감한다. 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려준다.
     """
     _ensure_ai_chat_allowed(db, current_user.id)
     message = payload.message.strip()
     if not message:
         raise HTTPException(status_code=400, detail="메시지가 비어 있습니다.")
 
+    if payload.client_request_id:
+        replay = _replay(db, current_user.id, payload.client_request_id, message)
+        if replay is not None:
+            return replay
+
+    try:
+        paid = ai_chat_quota_service.plan(
+            db, current_user.id, pay_with_points=payload.pay_with_points
+        )
+    except ai_chat_quota_service.PointsConsentRequired as exc:
+        raise HTTPException(
+            status_code=402, detail={"code": "points_required", "message": str(exc)}
+        ) from exc
+    except ai_chat_quota_service.DailyLimitReached as exc:
+        raise HTTPException(
+            status_code=429, detail={"code": "daily_limit", "message": str(exc)}
+        ) from exc
+    except points_service.InsufficientPoints as exc:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "insufficient_points",
+                "message": str(exc),
+                "shortfall": exc.shortfall,
+            },
+        ) from exc
+
     stored = conversation.load_messages(db, current_user.id)
     history = stored or payload.history
 
-    reply, sources = answer(db, current_user.id, message, history)
-    conversation.append_exchange(
+    reply, sources, generated = answer(db, current_user.id, message, history)
+    convo = conversation.append_exchange(
         db, current_user.id, question=message, reply=reply, sources=sources
     )
-    return ChatReply(reply=reply, sources=sources, user_insight=_insight_out(message))
+    spent = 0
+    balance_after: int | None = None
+    if generated:
+        usage = ai_chat_quota_service.record(
+            db,
+            current_user.id,
+            paid=paid,
+            message_id=conversation.last_reply_id(db, convo),
+            client_request_id=payload.client_request_id,
+        )
+        spent = usage.cost
+        balance_after = usage.balance_after
+    return ChatReply(
+        reply=reply,
+        sources=sources,
+        user_insight=_insight_out(message),
+        points_spent=spent,
+        balance_after=balance_after,
+        quota=ai_chat_quota_service.status(db, current_user.id),
+    )
+
+
+def _replay(
+    db: Session, user_id: str, client_request_id: str, message: str
+) -> ChatReply | None:
+    """같은 멱등키로 이미 답한 대화면 그 답을 그대로 돌려준다(#2145).
+
+    응답을 못 받고 다시 보낸 메시지가 두 번 세지거나 두 번 차감되지 않는다.
+    답변이 한 달이 지나 지워졌으면 다시 답한다(그때는 새로 센다).
+    """
+    usage = ai_chat_quota_service.by_request(db, user_id, client_request_id)
+    if usage is None or usage.message_id is None:
+        return None
+    row = db.get(AiMessage, usage.message_id)
+    if row is None:
+        return None
+    return ChatReply(
+        reply=row.content,
+        sources=conversation.parse_sources(row.sources_json),
+        user_insight=_insight_out(message),
+        points_spent=usage.cost,
+        balance_after=usage.balance_after,
+        quota=ai_chat_quota_service.status(db, user_id),
+    )
 
 
 def _insight_out(text: str) -> ChatInsightOut | None:

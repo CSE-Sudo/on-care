@@ -20,6 +20,7 @@ import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/core/demo/period_advice.dart';
 import 'package:oncare/core/network/request_extras.dart';
+import 'package:oncare/core/points/demo_ai_chat_quota.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
 import 'package:oncare/core/points/demo_graph_colors.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
@@ -80,6 +81,9 @@ class LocalApiInterceptor extends Interceptor {
   /// 하루 한도와 MY 잔액이 한 숫자로 움직인다. 주지 않으면(테스트) 따로 만든다.
   final DemoPointsLedger _points;
 
+  /// AI 챗봇 하루 한도(#2145). 포인트는 이 인터셉터의 원장에서 빠진다.
+  late final DemoAiChatQuota _aiChatQuota = DemoAiChatQuota(ledger: _points);
+
   /// 포인트 사용처·쿠폰(#1787). 앱에서는 목업 헬스장 저장소와 같은 인스턴스를 받아
   /// 헬스장·트레이너 해제가 쿠폰 취소로 이어진다. 주지 않으면 이 인터셉터의 원장으로 만든다.
   final DemoCouponBook? _couponsArg;
@@ -122,6 +126,8 @@ class LocalApiInterceptor extends Interceptor {
     'GET /ai-coach/feedback': _aiCoachFeedback,
     'POST /ai-coach/chat': _aiCoachChat,
     'GET /ai-coach/insights': _aiCoachInsights,
+    // AI 챗봇 하루 한도 — 서버와 같은 규칙의 목업(#2145).
+    'GET /ai-coach/quota': _aiCoachQuota,
     'GET /ai-coach/messages': _aiCoachHistory,
     'POST /auth/login': _authLogin,
     'POST /auth/register': _authRegister,
@@ -1961,6 +1967,23 @@ class LocalApiInterceptor extends Interceptor {
     if (message.isEmpty) {
       return _badRequest(options, 'message is empty');
     }
+    // 하루 한도(#2145) — 무료를 넘기면 동의가 있어야 포인트로 보낸다.
+    final String? requestId = payload['client_request_id'] as String?;
+    final ({int spent, int? balance})? replayed = _aiChatQuota.replay(
+      requestId,
+    );
+    if (replayed == null) {
+      final (int, Map<String, Object?>)? refused = _aiChatQuota.refusal(
+        payWithPoints: payload['pay_with_points'] == true,
+      );
+      if (refused != null) {
+        return Response<Object?>(
+          requestOptions: options,
+          statusCode: refused.$1,
+          data: <String, Object?>{'detail': refused.$2},
+        );
+      }
+    }
 
     // 답을 즉시 돌려주면 "맞춤 답변 생성 중" 표시가 한 프레임 만에 지나가,
     // 답이 그 사람의 기록을 읽고 만들어진다는 것이 보이지 않는다(#1180).
@@ -1968,17 +1991,34 @@ class LocalApiInterceptor extends Interceptor {
     await Future<void>.delayed(const Duration(milliseconds: 700));
 
     final (String reply, List<String> sources) = _mockCoachReply(message);
+    final ({int spent, int? balance}) charge =
+        replayed ?? _aiChatQuota.record(clientRequestId: requestId);
     // 주고받은 것을 그대로 남긴다 — 실서버가 대화를 저장하는 것과 같은 몫(#1824).
     // 감지 기록 창과 다시 열었을 때의 대화가 모두 여기서 나온다(#1900).
-    await _rememberAiCoachMessage(message, fromMember: true);
-    await _rememberAiCoachMessage(reply, fromMember: false, sources: sources);
+    if (replayed == null) {
+      await _rememberAiCoachMessage(message, fromMember: true);
+      await _rememberAiCoachMessage(
+        reply,
+        fromMember: false,
+        sources: sources,
+        pointsSpent: charge.spent,
+        balanceAfter: charge.balance,
+      );
+    }
     final ChatInsight? insight = detectChatInsight(message);
     return _ok(options, <String, Object?>{
       'reply': reply,
       'sources': sources,
       'user_insight': insight == null ? null : _insightJson(insight),
+      'points_spent': charge.spent,
+      'balance_after': charge.balance,
+      'quota': _aiChatQuota.statusJson(),
     });
   }
+
+  /// `GET /ai-coach/quota`(#2145).
+  Future<Response<Object?>> _aiCoachQuota(RequestOptions options) async =>
+      _ok(options, _aiChatQuota.statusJson());
 
   /// 데모 대화가 담긴 자리. 시드를 고치면 **이름을 올린다** — 이미 데모를 켜 본
   /// 기기에는 예전 대화가 남아 있어, 같은 이름을 그대로 쓰면 새 자료가 보이지
@@ -2228,6 +2268,8 @@ class LocalApiInterceptor extends Interceptor {
     String text, {
     required bool fromMember,
     List<String> sources = const <String>[],
+    int pointsSpent = 0,
+    int? balanceAfter,
   }) async {
     final DateTime now = nowKst();
     final List<Map<String, Object?>> rows = <Map<String, Object?>>[
@@ -2243,6 +2285,9 @@ class LocalApiInterceptor extends Interceptor {
         'text': text,
         'sources': sources,
         'created_at': now.toIso8601String(),
+        // 포인트로 산 답변(#2145) — 다시 열었을 때도 답변 아래에 차감을 적는다.
+        if (pointsSpent > 0) 'points_spent': pointsSpent,
+        'balance_after': ?balanceAfter,
       },
     ];
     await _db.putValue(_aiCoachMessagesKey, jsonEncode(rows));
@@ -2263,6 +2308,8 @@ class LocalApiInterceptor extends Interceptor {
             'sources': row['sources'] ?? const <String>[],
             // 화면이 날짜 구분선과 말풍선 옆 시각을 이것으로 그린다(#1918).
             'created_at': row['created_at'],
+            'points_spent': row['points_spent'] ?? 0,
+            'balance_after': row['balance_after'],
             if (_isMemberRow(row))
               'insight': switch (detectChatInsight(
                 row['text'] as String? ?? '',

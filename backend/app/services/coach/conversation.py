@@ -223,6 +223,16 @@ def append_exchange(
     return convo
 
 
+def last_reply_id(db: Session, convo: AiConversation) -> str | None:
+    """대화의 마지막 코치 답변 id. 방금 저장한 답을 가리킬 때 쓴다(#2145)."""
+    return db.scalar(
+        select(AiMessage.id)
+        .where(AiMessage.conversation_id == convo.id, AiMessage.role == ROLE_COACH)
+        .order_by(AiMessage.seq.desc())
+        .limit(1)
+    )
+
+
 def parse_sources(raw: str) -> list[str]:
     """저장된 sources_json → 리스트. 깨진 값이면 빈 목록(화면이 죽으면 안 된다)."""
     try:

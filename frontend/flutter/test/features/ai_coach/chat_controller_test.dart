@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
 import 'package:oncare/features/ai_coach/domain/repositories/ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/ai_coach_controller.dart';
 import 'package:oncare/features/ai_coach/presentation/controllers/chat_controller.dart';
+
+import 'free_quota.dart';
 
 class _FakeCoachRepo implements AiCoachRepository {
   _FakeCoachRepo({
@@ -28,6 +30,9 @@ class _FakeCoachRepo implements AiCoachRepository {
   Future<void> dismissInsight(String messageId) async {}
 
   @override
+  Future<AiChatQuota> fetchQuota() async => kFreeQuota;
+
+  @override
   Future<ChatInsightHistory> fetchInsights() async =>
       const ChatInsightHistory();
 
@@ -41,6 +46,8 @@ class _FakeCoachRepo implements AiCoachRepository {
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   }) async => const ChatMessage(
     role: ChatRole.coach,
     content: '저염 식단이 도움이 됩니다.',

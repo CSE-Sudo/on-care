@@ -1158,6 +1158,73 @@
   "aicDatePillToday": "오늘",
   "aicMedicalDisclaimer": "AI 코치는 식단·운동 관리를 돕는 참고용이에요. 진단·처방이 아니니 증상이 있으면 전문의와 상담해 주세요.",
   "aicInputHint": "AI에게 무엇이든 물어보세요",
+  "aicQuotaFreeLeft": "오늘 무료 대화 {count}회 남음",
+  "@aicQuotaFreeLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aicQuotaPaidNext": "다음 대화 {cost} · 오늘 구매 {used}/{limit} · 남은 포인트 {balance}",
+  "@aicQuotaPaidNext": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "aicQuotaExhausted": "오늘 대화를 다 썼어요. 내일 다시 열려요",
+  "aicQuotaFindTrainer": "트레이너 찾기",
+  "aicPaidConfirmTitle": "포인트로 대화를 이어갈까요?",
+  "aicPaidConfirmMessage": "오늘 무료 대화를 다 썼어요. 이제 한 번 보낼 때마다 {cost}가 차감돼요 (오늘 {limit}회까지).",
+  "@aicPaidConfirmMessage": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "aicPaidConfirmAction": "포인트로 보내기",
+  "aicPaidInsufficient": "포인트가 {shortfall} 모자라요. 식단·운동을 기록하면 포인트가 쌓여요.",
+  "@aicPaidInsufficient": {
+    "placeholders": {
+      "shortfall": {
+        "type": "String"
+      }
+    }
+  },
+  "aicPointsSpentWithBalance": "−{spent} · 남은 포인트 {balance}",
+  "@aicPointsSpentWithBalance": {
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "aicPointsSpent": "−{spent}",
+  "@aicPointsSpent": {
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      }
+    }
+  },
   "aicQuickRepliesLabel": "이런 걸 물어보세요",
   "aicGeneratingReply": "맞춤 답변 생성 중",
   "aicInsightDiscomfortPart": "{part} 통증 감지",

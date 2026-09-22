@@ -92,6 +92,27 @@ class ChatRequest(BaseModel):
     # 직전 대화(선택). 이제 서버가 대화를 저장하므로 보내지 않아도 맥락이 이어진다.
     # 서버에 저장분이 없을 때만 쓰인다(목업→실 서버 전환 클라이언트 호환).
     history: list[ChatTurn] = []
+    #: 오늘 무료 대화를 다 썼을 때 포인트로 보내는 데 동의했는가(#2145). 무료가 남아
+    #: 있으면 보지 않는다. 동의 없이 무료를 넘기면 402 다.
+    pay_with_points: bool = False
+    #: 같은 메시지의 재전송이 두 번 세지 않게 하는 멱등키(#2145).
+    client_request_id: str | None = Field(default=None, min_length=1, max_length=64)
+
+
+class AiChatQuotaOut(BaseModel):
+    """오늘 AI 챗봇을 얼마나 더 쓸 수 있는가. (#2145)
+
+    `next` 는 다음 대화가 무엇으로 나가는가 — `free`(무료)·`paid`(포인트 `cost`)·
+    `exhausted`(오늘 더 없음). 입력칸 위 줄이 이 값 하나로 그려진다.
+    """
+
+    free_limit: int
+    free_left: int
+    paid_limit: int
+    paid_left: int
+    cost: int
+    balance: int
+    next: str
 
 
 class ChatInsightOut(BaseModel):
@@ -105,6 +126,12 @@ class ChatReply(BaseModel):
     sources: list[str] = []        # 답변 근거로 쓰인 공공 가이드라인 제목
     #: 방금 보낸 회원 메시지의 감지 결과. 없으면 null (#1824).
     user_insight: ChatInsightOut | None = None
+    #: 이 대화에 쓴 포인트(#2145). 무료거나 AI 가 답하지 못했으면 0 이다.
+    points_spent: int = 0
+    #: 포인트를 썼으면 차감 뒤 잔액. 쓰지 않았으면 null.
+    balance_after: int | None = None
+    #: 보낸 뒤의 오늘 한도 — 입력칸 위 줄을 다시 읽지 않고 바꾼다.
+    quota: AiChatQuotaOut | None = None
 
 
 class ChatMessageOut(BaseModel):
@@ -115,6 +142,9 @@ class ChatMessageOut(BaseModel):
     created_at: datetime
     #: 회원 메시지의 통증·부정적 반응 감지. 코치 답변이나 신호가 없으면 null (#1824).
     insight: ChatInsightOut | None = None
+    #: 코치 답변에 쓴 포인트(#2145). 무료였으면 0 — 답변 아래 차감 표시가 읽는다.
+    points_spent: int = 0
+    balance_after: int | None = None
 
 
 class ChatHistory(BaseModel):

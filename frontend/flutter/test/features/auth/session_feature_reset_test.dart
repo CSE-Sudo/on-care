@@ -2,12 +2,12 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:logger/logger.dart';
-
 import 'package:oncare/app/session_feature_reset.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/logging/app_logger.dart';
 import 'package:oncare/core/session/session_feature_reset.dart';
 import 'package:oncare/core/storage/app_database.dart';
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -24,6 +24,7 @@ import 'package:oncare/features/member_coach/presentation/controllers/member_coa
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 
 import '../../helpers/fake_diet_repository.dart';
+import '../ai_coach/free_quota.dart';
 
 const AppConfig _mockConfig = AppConfig(
   environment: Environment.dev,
@@ -41,6 +42,9 @@ class _FakeAiCoachRepository implements AiCoachRepository {
   Future<void> dismissInsight(String messageId) async {}
 
   @override
+  Future<AiChatQuota> fetchQuota() async => kFreeQuota;
+
+  @override
   Future<ChatInsightHistory> fetchInsights() async =>
       const ChatInsightHistory();
 
@@ -51,6 +55,8 @@ class _FakeAiCoachRepository implements AiCoachRepository {
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   }) async {
     return const ChatMessage(role: ChatRole.coach, content: '확인했어요');
   }

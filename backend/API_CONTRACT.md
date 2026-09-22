@@ -489,8 +489,22 @@ category: reminder|health_check|achievement|system|coach_chat|routine|member_sch
 | GET | `/ai-coach/feedback` | `{ greeting, suggestions[{ tag, title, body }] }` |
 | GET | `/ai-coach/insights` | `{ window_days, insights[{ message_id, created_at, kind, body_part, text }] }` — 최근 30일 회원 메시지의 통증·부정적 반응 감지 |
 | DELETE | `/ai-coach/insights/{message_id}` | `{ status }` — 그 줄의 감지를 기록에서 치움 |
+| GET | `/ai-coach/quota` | `{ free_limit, free_left, paid_limit, paid_left, cost, balance, next }` — 오늘 남은 대화(#2145) |
+| POST | `/ai-coach/chat` | 입력 `{ message, history?, pay_with_points?, client_request_id? }` → `{ reply, sources, user_insight, points_spent, balance_after, quota }` |
 
 tag: diet|exercise|hydration|...
+
+**하루 대화 한도(#2145).** AI 챗봇(담당 트레이너가 없는 회원)은 KST 하루 **무료 10회**다. 다 쓰면 **한 번에 50P** 로 하루 **10회**까지
+더 보낸다(세 값은 서버 설정 `coach_chat_free_per_day`·`coach_chat_paid_cost`·`coach_chat_paid_per_day`).
+
+- `next` 는 다음 대화가 무엇으로 나가는가 — `free` · `paid` · `exhausted`.
+- 무료를 넘겨 보내려면 `pay_with_points: true` 가 있어야 한다. 앱은 무료를 다 쓴 뒤 처음 한 번만 확인창을 띄운다.
+- 거절은 `detail: { code, message }` 다. 동의 없음 402 `points_required`, 오늘 다 씀 429 `daily_limit`, 잔액 부족 409
+  `insufficient_points`(+`shortfall`).
+- **AI 가 답했을 때만 센다.** 검색 기반 대체 답은 무료 횟수도 포인트도 쓰지 않는다. 포인트로 산 답은 원장에 `ai_chat` 사용 줄로 남고,
+  `points_spent`·`balance_after` 가 답변 아래 차감 표시(`−50P · 남은 포인트`)를 채운다. `GET /ai-coach/messages` 의 코치 답변도 같은
+  두 값을 싣는다.
+- 같은 `client_request_id` 재전송은 저장한 답을 그대로 돌려주고 다시 세지 않는다.
 
 `DELETE /ai-coach/insights/{message_id}` 는 **메시지를 지우지 않는다**(#1975). 감지는 저장하지 않고 대화에서 매번 계산하므로 지울 행이 없다 — 그 줄에 `더 보지 않음` 표시만 남기고 `GET` 이 건너뛴다. 회원이 쓴 말은 대화에 그대로 남고 AI 가 맥락으로 읽는 것도 그대로다. 이미 치운 줄을 다시 눌러도 200 이고, 남의 대화·없는 id 는 404 다.
 

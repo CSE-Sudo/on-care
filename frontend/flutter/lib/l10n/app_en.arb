@@ -1713,6 +1713,73 @@
   "aicDatePillToday": "Today",
   "aicMedicalDisclaimer": "The AI coach is a reference for diet and exercise habits, not a diagnosis or prescription. Please consult a doctor about symptoms.",
   "aicInputHint": "Ask the AI anything",
+  "aicQuotaFreeLeft": "{count, plural, =1{1 free chat left today} other{{count} free chats left today}}",
+  "@aicQuotaFreeLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aicQuotaPaidNext": "Next chat {cost} · Bought today {used}/{limit} · {balance} left",
+  "@aicQuotaPaidNext": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "aicQuotaExhausted": "You've used today's chats. They reopen tomorrow",
+  "aicQuotaFindTrainer": "Find a trainer",
+  "aicPaidConfirmTitle": "Keep chatting with points?",
+  "aicPaidConfirmMessage": "You've used today's free chats. Each message now costs {cost} (up to {limit} today).",
+  "@aicPaidConfirmMessage": {
+    "placeholders": {
+      "cost": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "aicPaidConfirmAction": "Send with points",
+  "aicPaidInsufficient": "You need {shortfall} more. Log meals and workouts to earn points.",
+  "@aicPaidInsufficient": {
+    "placeholders": {
+      "shortfall": {
+        "type": "String"
+      }
+    }
+  },
+  "aicPointsSpentWithBalance": "−{spent} · {balance} left",
+  "@aicPointsSpentWithBalance": {
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "aicPointsSpent": "−{spent}",
+  "@aicPointsSpent": {
+    "placeholders": {
+      "spent": {
+        "type": "String"
+      }
+    }
+  },
   "aicQuickRepliesLabel": "Try asking",
   "aicGeneratingReply": "Writing your answer",
   "aicInsightDiscomfortPart": "{part} pain noted",

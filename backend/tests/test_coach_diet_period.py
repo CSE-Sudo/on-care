@@ -381,7 +381,7 @@ def test_chat_answer_carries_the_period_summary_into_the_llm_prompt(
 
     monkeypatch.setattr(coach_chat, "get_coach_llm", lambda: _StubLLM())
 
-    text, _sources = coach_chat.answer(db_session, user_id, "이번 주 식단 어땠어?")
+    text, _sources, _ = coach_chat.answer(db_session, user_id, "이번 주 식단 어땠어?")
 
     assert text == "이번 주는 나트륨이 계속 높았어요."
     assert "이번 주 4일 기록" in captured["prompt"]

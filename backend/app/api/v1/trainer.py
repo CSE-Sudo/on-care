@@ -1772,7 +1772,7 @@ def trainer_client_ai_coach(
     # 트레이너라, 회원 대화(trainer_id IS NULL)와 섞이면 회원이 앱을 열었을 때
     # 자기가 하지 않은 대화를 보게 된다.
     history = conversation.load_messages(db, member_id, trainer_id=trainer.id)
-    reply, sources = coach_answer(db, member_id, message, history)
+    reply, sources, _ = coach_answer(db, member_id, message, history)
     conversation.append_exchange(
         db, member_id, question=message, reply=reply, sources=sources,
         trainer_id=trainer.id,

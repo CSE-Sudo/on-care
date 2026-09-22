@@ -148,6 +148,12 @@ class Settings(BaseSettings):
     # AI 코치 채팅 한도. 브루트포스 방어가 아니라 LLM 비용 가드라서 목적이 다르다.
     # 사람이 대화하는 속도로는 걸리지 않되, 폭주하는 클라이언트는 막는 값.
     coach_chat_per_minute: int = 20
+    # AI 챗봇 하루 대화 한도(#2145). 분당 한도는 폭주하는 클라이언트를 막고, 이 값들은
+    # 한 회원의 하루 비용을 묶는다. 무료를 다 쓰면 한 번에 `coach_chat_paid_cost` 포인트로
+    # 하루 `coach_chat_paid_per_day` 번까지 더 보낸다. 날짜는 KST 로 센다.
+    coach_chat_free_per_day: int = 10
+    coach_chat_paid_cost: int = 50
+    coach_chat_paid_per_day: int = 10
     # 트레이너 루틴 생성 한도. 채팅보다 낮게 잡는다 — 같은 LLM 비용에 회원 분석
     # 쿼리가 더 얹히고, 슬라이더·강도·메모를 바꿔 가며 "생성"을 연타하기 쉬운
     # UI 라 연타가 그대로 비용이 된다. 생성 왕복이 실측 3~6초라(#579) 사람이

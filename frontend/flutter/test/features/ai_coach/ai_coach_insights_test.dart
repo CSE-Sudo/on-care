@@ -13,6 +13,7 @@ import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/ai_coach/data/repositories/dio_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/data/repositories/mock_ai_coach_repository.dart';
 import 'package:oncare/features/ai_coach/domain/chat_insight_detector.dart';
+import 'package:oncare/features/ai_coach/domain/entities/ai_chat_quota.dart';
 import 'package:oncare/features/ai_coach/domain/entities/ai_coach_state.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_insight.dart';
 import 'package:oncare/features/ai_coach/domain/entities/chat_message.dart';
@@ -22,6 +23,8 @@ import 'package:oncare/features/ai_coach/presentation/controllers/chat_controlle
 import 'package:oncare/features/ai_coach/presentation/pages/ai_coach_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
+
+import 'free_quota.dart';
 
 /// AI 챗봇 통증·부정적 반응 감지 — 응답 파싱, 메시지 표시, 감지 기록 창(#1824).
 
@@ -78,9 +81,14 @@ class _InsightRepo implements AiCoachRepository {
         ];
 
   @override
+  Future<AiChatQuota> fetchQuota() async => kFreeQuota;
+
+  @override
   Future<ChatMessage> sendMessage({
     required String message,
     required List<ChatMessage> history,
+    bool payWithPoints = false,
+    String? clientRequestId,
   }) async => const ChatMessage(
     role: ChatRole.coach,
     content: '쉬어 가세요',
