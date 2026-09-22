@@ -3283,6 +3283,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGoalWorkoutCalories => 'Weekly calories burned goal (kcal)';
 
   @override
+  String get myGoalUnsetHint =>
+      'Dimmed values are the baseline used before you set a goal';
+
+  @override
   String get myGoalsSaved => 'Health goals saved';
 
   @override

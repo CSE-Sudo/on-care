@@ -5694,6 +5694,12 @@ abstract class AppLocalizations {
   /// **'Weekly calories burned goal (kcal)'**
   String get myGoalWorkoutCalories;
 
+  /// Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers.
+  ///
+  /// In en, this message translates to:
+  /// **'Dimmed values are the baseline used before you set a goal'**
+  String get myGoalUnsetHint;
+
   /// Shown after health goals are saved.
   ///
   /// In en, this message translates to:

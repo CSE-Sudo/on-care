@@ -158,6 +158,8 @@ GRAPH_COLOR = ShopItem(
 #: 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니다. 교환하면 `emote_passes` 에
 #: 한 장이 생기고, 그 시각부터 24시간 동안 트레이너 채팅에서 이모티콘을 보낸다.
 #: 기한이 날이 아니라 시간이라 `valid_days` 는 1 이다(화면은 이 값을 쓰지 않는다).
+#: 트레이너 채팅에만 쓰이므로 담당이 있어야 교환한다(#2142). 목록에서 빼지 않고
+#: `no_trainer` 로 막아 둔다 — 트레이너와 연결하면 쓸 수 있다는 것이 보여야 한다.
 EMOTE_PASS = ShopItem(
     id=emote_service.ITEM_ID,
     title="채팅 이모티콘 24시간",
@@ -165,6 +167,7 @@ EMOTE_PASS = ShopItem(
     description="산 때부터 24시간 동안 트레이너 채팅에서 이모티콘을 모두 쓸 수 있어요.",
     cost=emote_service.COST,
     valid_days=1,
+    requires_trainer=True,
 )
 
 #: MY 프로필 펫 이모지(#2021) — 쿠폰이 아니다. 교환하면 고른 펫(강아지·고양이)이

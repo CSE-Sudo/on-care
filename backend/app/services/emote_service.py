@@ -11,6 +11,9 @@
   기록이지 이용권의 대상이 아니다. 끝난 뒤에는 새로 보내는 것만 막힌다.
 - **트레이너는 이용권 없이 보낸다.** 이용권은 회원이 포인트를 쓰는 자리이고,
   트레이너에게는 포인트라는 것이 없다.
+- **담당 트레이너가 있어야 산다**(#2142). 이모티콘은 트레이너 채팅에만 있어서, 담당이
+  없는 회원이 사면 포인트만 나가고 쓸 곳이 없다. 이미 산 이용권은 쓰던 중 담당이
+  끊겨도 남은 시간을 빼앗지 않는다.
 
 만료는 스케줄러 없이 `expires_at` 을 그때그때 비교해 판단한다(쿠폰과 같은 방식).
 """
@@ -47,6 +50,10 @@ class PassAlreadyActive(EmoteError):
     def __init__(self, remaining_seconds: int) -> None:
         super().__init__("이미 이용 중이에요.")
         self.remaining_seconds = remaining_seconds
+
+
+class TrainerRequired(EmoteError):
+    """담당 트레이너가 없다 — 이모티콘을 보낼 트레이너 채팅이 없다."""
 
 
 class PassRequired(EmoteError):
@@ -103,9 +110,12 @@ def buy(
 ) -> EmoteStateOut:
     """포인트를 써서 24시간 이용권을 산다. 커밋한다.
 
-    [client_request_id] 가 같은 재시도는 두 번 사지 않는다. 이용 중이면
-    [PassAlreadyActive], 잔액이 모자라면 [points_service.InsufficientPoints] 다.
+    [client_request_id] 가 같은 재시도는 두 번 사지 않는다. 담당 트레이너가 없으면
+    [TrainerRequired], 이용 중이면 [PassAlreadyActive], 잔액이 모자라면
+    [points_service.InsufficientPoints] 다.
     """
+    from app.services import trainer_service
+
     if client_request_id:
         existing = db.scalars(
             select(EmotePass).where(
@@ -116,6 +126,8 @@ def buy(
         if existing is not None:
             return state(db, member_id)
 
+    if trainer_service.get_member_trainer_id(db, member_id) is None:
+        raise TrainerRequired("담당 트레이너가 있어야 쓸 수 있어요.")
     points_service.lock_balance(db, member_id)
     current_pass = active_pass(db, member_id)
     if current_pass is not None:

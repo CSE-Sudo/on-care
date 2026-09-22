@@ -41,7 +41,10 @@ def buy_pass(
         return emote_service.buy(
             db, member.id, client_request_id=payload.client_request_id
         )
-    except emote_service.PassAlreadyActive as exc:
+    except (
+        emote_service.TrainerRequired,
+        emote_service.PassAlreadyActive,
+    ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except points_service.InsufficientPoints as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -2523,6 +2523,10 @@
   "@myGoalWorkoutCalories": {
     "description": "Health goal field label."
   },
+  "myGoalUnsetHint": "Dimmed values are the baseline used before you set a goal",
+  "@myGoalUnsetHint": {
+    "description": "Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers."
+  },
   "myGoalsSaved": "Health goals saved",
   "myGoalRange": "Enter a value between {min} and {max}",
   "@myGoalRange": {
