@@ -746,6 +746,11 @@ def _strength_only(type_: str, value: _T | None) -> _T | None:
     return value if type_ == "근력" else None
 
 
+def _seed_routine_since() -> str:
+    """시드 개인운동이 걸리기 시작한 날 — 데모 기록 창(오늘 포함 4주)의 첫날."""
+    return (clock.today() - timedelta(days=27)).isoformat()
+
+
 def _seed_routines(db: Session, member_id: str) -> None:
     """개인운동 시드(멱등, 결정론적 id).
 
@@ -777,6 +782,9 @@ def _seed_routines(db: Session, member_id: str) -> None:
                 hold_seconds=_strength_only(routine.type, routine.hold_seconds),
                 weight=_strength_only(routine.type, routine.weight),
                 sort_order=i,
+                # 데모의 개인운동은 몇 주째 걸려 있던 목록이다 — 지난 날짜를
+                # 열어도 그날의 체크 목록이 보인다(#2161).
+                active_from=_seed_routine_since(),
             ))
             continue
         row.name = routine.name

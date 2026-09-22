@@ -20,11 +20,18 @@ import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 
-final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
+// 타입을 적어 둔다 — 목업 코치 저장소와 서로를 읽어(추천 개인운동, #2161)
+// 추론이 둘 사이를 돈다.
+final Provider<ExerciseRepository>
+exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
   // Local/demo mode serves the mock "오늘 PT 받은 날" scenario week (12회차 PT,
   // 코치 피드백·짬뽕 식단 반영 AI 루틴) so the exercise tab renders the intended
   // context with no backend. The real REST repo is used otherwise.
@@ -36,6 +43,17 @@ final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
     final MockExerciseRepository repo = MockExerciseRepository(
       points: ref.watch(demoPointsLedgerProvider),
       shields: ref.watch(demoStreakShieldBookProvider),
+      // 추천 개인운동의 날짜별 목록·완료는 목업 코치 저장소가 들고 있다(#2161).
+      // 그 저장소는 이 저장소를 받아 만들어지므로 여기서 watch 하면 서로를
+      // 기다린다 — 조언이 부를 때 읽어 온다.
+      routineDays: (DateTime from, DateTime to) {
+        final MemberCoachRepository coach = ref.read(
+          memberCoachRepositoryProvider,
+        );
+        return coach is MockMemberCoachRepository
+            ? coach.routineDaysBetween(from, to)
+            : const <RoutineDay>[];
+      },
     );
     // 주간 챌린지 목업은 운동한 날을 이 저장소에서 센다(#1789) — 목업 모드에서
     // 회원이 추가한 운동은 여기에만 있다.
