@@ -3517,7 +3517,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategoryReminder => 'Reminder';
 
   @override
-  String get alertCategoryHealth => 'Health';
+  String get alertCategoryCoachChat => 'Trainer message';
+
+  @override
+  String get alertCategoryCoachReport => 'Weekly report';
+
+  @override
+  String get alertCategoryRoutine => 'Workout routine';
+
+  @override
+  String get alertCategorySchedule => 'PT schedule';
+
+  @override
+  String get alertCategoryTrainer => 'Trainer';
+
+  @override
+  String get alertCategoryConsultation => 'Consultation request';
+
+  @override
+  String get alertCategoryHealthGoals => 'Health goals';
+
+  @override
+  String get alertCategoryBenefits => 'Benefits';
+
+  @override
+  String get alertCategoryChallenge => 'Challenge';
 
   @override
   String get alertCategoryAchievement => 'Achievement';

@@ -14,6 +14,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 목록형(#1810)에서는 갈래를 글자 태그 대신 아이콘으로 보여 준다 — 한 줄에 태그·
 /// 제목·시각이 함께 서면 제목이 밀려 잘린다. 이름은 화면 읽기 라벨로 남긴다.
+///
+/// 아이콘은 알림을 눌렀을 때 도착하는 화면이 같은 뜻으로 쓰는 그림과 맞춘다(#2084).
+/// 별(`AppIcons.points`)은 "내 포인트" 라 쓰지 않는다 — 포인트가 들어온 것처럼 읽힌다.
 ({String label, IconData icon}) _categoryDisplay(
   AppLocalizations l,
   AlertCategory c,
@@ -22,9 +25,46 @@ import 'package:oncare_ui/oncare_ui.dart';
     label: l.alertCategoryReminder,
     icon: AppIcons.notifications,
   ),
-  AlertCategory.healthCheck => (
-    label: l.alertCategoryHealth,
-    icon: AppIcons.healthCheck,
+  // 코치 카드·트레이너 채팅 버튼의 말풍선.
+  AlertCategory.coachChat => (
+    label: l.alertCategoryCoachChat,
+    icon: AppIcons.chat,
+  ),
+  // 코치 대화의 리포트 카드와 같은 문서(#2085).
+  AlertCategory.coachReport => (
+    label: l.alertCategoryCoachReport,
+    icon: AppIcons.document,
+  ),
+  AlertCategory.routine => (
+    label: l.alertCategoryRoutine,
+    icon: AppIcons.routine,
+  ),
+  // 운동 탭의 다음 PT·헬스장 탭 예약과 같은 달력.
+  AlertCategory.schedule => (
+    label: l.alertCategorySchedule,
+    icon: AppIcons.eventAvailable,
+  ),
+  AlertCategory.trainerLink => (
+    label: l.alertCategoryTrainer,
+    icon: AppIcons.person,
+  ),
+  // 헬스장 목록의 "내 상담 요청" 버튼과 같은 서류.
+  AlertCategory.consultDecision => (
+    label: l.alertCategoryConsultation,
+    icon: AppIcons.request,
+  ),
+  // MY 건강 목표 항목의 깃발.
+  AlertCategory.healthGoals => (
+    label: l.alertCategoryHealthGoals,
+    icon: AppIcons.goal,
+  ),
+  AlertCategory.benefits => (
+    label: l.alertCategoryBenefits,
+    icon: AppIcons.coupon,
+  ),
+  AlertCategory.challenge => (
+    label: l.alertCategoryChallenge,
+    icon: AppIcons.challenge,
   ),
   AlertCategory.achievement => (
     label: l.alertCategoryAchievement,
