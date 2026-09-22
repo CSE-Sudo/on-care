@@ -3660,7 +3660,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'A draft filled in from this week\'s figures. Check it over before sending.';
 
   @override
-  String get reportsFeedbackRestore => 'Restore draft';
+  String get reportsFeedbackUndo => 'Undo';
+
+  @override
+  String get reportsFeedbackRedo => 'Redo';
 
   @override
   String get reportsFeedbackSave => 'Save feedback';
