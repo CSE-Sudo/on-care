@@ -71,7 +71,11 @@ class DemoWeeklyReportBook {
     if (_weeks.contains(week)) return _error(409, '이 주의 리포트는 이미 받았어요.');
     final int shortfall = cost - _ledger.balance;
     if (shortfall > 0) return _error(409, '포인트가 ${shortfall}P 부족해요.');
-    if (!_ledger.spend('weekly-report-demo-${++_sequence}', cost)) {
+    if (!_ledger.spend(
+      'weekly-report-demo-${++_sequence}',
+      cost,
+      reason: itemId,
+    )) {
       return _error(409, '포인트가 부족해요.');
     }
     _weeks.add(week);

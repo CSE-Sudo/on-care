@@ -727,6 +727,48 @@
   "myShopLockerDescription": "연결한 헬스장에서 개인 락커를 한 달 동안 무료로 써요.",
   "myCouponPtRenewalBenefit": "PT 재등록 30,000원 할인",
   "myBenefitsTitle": "내 혜택",
+  "myPointsHistoryTitle": "포인트 내역",
+  "myPointsHistoryEmpty": "아직 포인트 내역이 없어요",
+  "myPointsHistoryEmptyMessage": "식단·운동을 기록하면 포인트가 쌓여요.",
+  "myPointsHistoryLoadFailed": "포인트 내역을 불러오지 못했어요",
+  "myPointsHistoryMore": "더 보기",
+  "myPointsReasonDiet": "식단 기록",
+  "myPointsReasonExercise": "운동 기록",
+  "myPointsReasonRoutine": "추천·배정 운동 완료",
+  "myPointsReasonPtRenewal": "PT 재등록 할인 쿠폰",
+  "myPointsReasonLocker": "개인 락커 쿠폰",
+  "myPointsReasonShield": "연속 기록 보호권",
+  "myPointsReasonGraphColor": "그래프 색",
+  "myPointsReasonEmotePass": "채팅 이모티콘 24시간",
+  "myPointsReasonProfilePet": "프로필 펫 이모지",
+  "myPointsReasonWeeklyReport": "주간 리포트",
+  "myPointsReasonChallengeStake": "주간 챌린지 참가",
+  "myPointsReasonChallengeReward": "주간 챌린지 보상",
+  "myPointsReasonAiChat": "AI 코치 대화 {count}회",
+  "@myPointsReasonAiChat": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "myPointsReasonOther": "포인트",
+  "myPointsKindRevoked": "{label} · 기록 삭제로 회수",
+  "@myPointsKindRevoked": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "myPointsKindRefunded": "{label} · 취소로 반환",
+  "@myPointsKindRefunded": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "myBenefitsView": "보기",
   "myBenefitsCoupons": "쿠폰",
   "myBenefitsEmpty": "보유한 쿠폰이 없어요",

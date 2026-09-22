@@ -75,7 +75,7 @@ class DemoGraphColorBook {
     if (_bought.contains(color)) return _error(409, '이미 가지고 있는 색이에요.');
     final int shortfall = cost - _ledger.balance;
     if (shortfall > 0) return _error(409, '포인트가 ${shortfall}P 부족해요.');
-    if (!_ledger.spend('grs-demo-${++_sequence}', cost)) {
+    if (!_ledger.spend('grs-demo-${++_sequence}', cost, reason: itemId)) {
       return _error(409, '포인트가 부족해요.');
     }
     _bought.add(color);

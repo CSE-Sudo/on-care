@@ -849,15 +849,43 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
       children: <Widget>[
         Row(
           children: <Widget>[
+            // 보유 포인트가 곧 포인트 내역의 입구다(#2146) — 이 숫자가 무엇으로
+            // 쌓이고 쓰였는지를 연다. 버튼을 하나 더 세우면 좁은 폭에서 줄이 넘친다.
             Expanded(
-              child: Text(
-                balance != null
-                    ? l.myPointsBalance(balance)
-                    : l.myPointsBenefitsSubtitle,
-                key: const Key('pointsShopBalance'),
-                style: tokens
-                    .text(OnCareTypography.label)
-                    .copyWith(color: tokens.brand.primary),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Semantics(
+                  button: true,
+                  label: l.myPointsHistoryTitle,
+                  child: InkWell(
+                    key: const Key('pointsShopHistory'),
+                    borderRadius: OnCareRadius.smAll,
+                    onTap: () => context.push<void>(AppRoutes.myPointsHistory),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Flexible(
+                          child: Text(
+                            balance != null
+                                ? l.myPointsBalance(balance)
+                                : l.myPointsBenefitsSubtitle,
+                            key: const Key('pointsShopBalance'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: tokens
+                                .text(OnCareTypography.label)
+                                .copyWith(color: tokens.brand.primary),
+                          ),
+                        ),
+                        AppIcon(
+                          AppIcons.chevronRight,
+                          size: OnCareSize.iconSmall,
+                          color: tokens.brand.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
             AppButton(

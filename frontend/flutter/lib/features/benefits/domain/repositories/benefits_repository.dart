@@ -1,4 +1,5 @@
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
@@ -38,4 +39,8 @@ abstract interface class BenefitsRepository {
 
   /// 포인트로 받은 주간 리포트(#2022) — 산 주와 지금 살 수 있는 주.
   Future<WeeklyReportPurchases> fetchWeeklyReports();
+
+  /// 포인트 내역(#2146) — 기록이 있는 날 기준 최근 며칠치, 최신순. [before] 가
+  /// 있으면 그 날짜(`YYYY-MM-DD`)보다 앞을 받는다.
+  Future<PointsHistory> fetchPointsHistory({String? before});
 }

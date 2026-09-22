@@ -188,6 +188,7 @@
 | GET | `/me/points/shop` | 회원(데모 폴백) | `{ balance, has_trainer, has_gym, items[] }` |
 | POST | `/me/points/exchange` | 회원 | 입력 `{ item, option?, client_request_id? }` → **201** `{ coupon, spent, balance }` |
 | GET | `/me/coupons` | 회원(데모 폴백) | `coupon[]` — 사용 가능 먼저, 그다음 최신순(최대 100) |
+| GET | `/me/points/history?before=` | 회원(데모 폴백) | `{ balance, items[], next_before }` — 포인트 내역(#2146) |
 | POST | `/me/coupons/{id}/use` | 회원 | `coupon` — 회원 휴대폰에서 사용 완료 |
 
 사용처는 앱에 있는 헬스장이 현장에서 주는 혜택이다. 가격은 혜택 1만원 = 7,000P 기준이다.
@@ -226,6 +227,13 @@ available, blocked_reason, shortfall, active_option, active_until, remaining_sec
 
 `option` 은 항목이 여러 갈래일 때 고른 갈래다 — `graph_color` 에서 어느 색을 열지, `profile_pet` 에서 어느 펫을 달지
 싣는다. 다른 항목은 보지 않는다.
+
+**포인트 내역(#2146).** `items[]`: `{ id, kind, reason, delta, count, kst_date, created_at }` — 원장(`points_ledger`) 한 줄씩, 최신순.
+`kind` 는 `earn`(적립)·`spend`(사용)·`revoke`(회수 — 기록을 지워 적립을 되돌림)·`refund`(반환 — 쿠폰 취소 등). `delta` 는 잔액 변화량(적립·반환
+양수, 사용·회수 0 이하). `reason` 은 사유 코드(`diet_entry`·`exercise_manual`·`routine_complete`·`coupon_<항목>`·`streak_shield`·`graph_color`·
+`emote_pass_24h`·`profile_pet`·`weekly_report`·`challenge_stake`·`challenge_reward`·`ai_chat`)이고 앱이 문구로 바꾼다.
+- **날짜 단위로 넘긴다.** 기록이 있는 날 기준 최근 14일치를 주고, 더 있으면 `next_before`(받은 날 중 가장 앞 날짜)를 `before` 로 넘겨 그보다 앞을 받는다.
+- **AI 코치 대화는 하루 한 줄로 묶는다**(#2145) — `count` 에 대화 수, `delta` 에 합계. 한 통마다 한 줄이면 내역이 채팅 기록처럼 길어진다.
 
 `coupon`: `{ id, item, title, benefit, cost, status, trainer_name, gym_name, issued_at, issued_on,
 expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당

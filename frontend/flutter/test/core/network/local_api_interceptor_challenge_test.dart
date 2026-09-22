@@ -154,7 +154,7 @@ void main() {
   });
 
   test('잔액이 모자라면 참가할 수 없다', () async {
-    ledger.spend('other', 940);
+    ledger.spend('other', 940, reason: 'coupon_locker_month');
 
     final Map<String, Object?> state = await weekly();
     expect(state['joinable'], isFalse);

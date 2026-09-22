@@ -144,6 +144,8 @@ class LocalApiInterceptor extends Interceptor {
     'GET /users/me/health': _usersMeHealth,
     // 포인트 사용처·쿠폰 — 서버와 같은 규칙의 목업 원장(#1787).
     'GET /me/points/shop': _pointsShop,
+    // 포인트 내역 — 원장이 사유와 함께 남긴 줄(#2146).
+    'GET /me/points/history': _pointsHistory,
     'POST /me/points/exchange': _pointsExchange,
     'GET /me/coupons': _meCoupons,
     // 연속 기록 보호권 — 교환은 위 exchange 가 받는다(#1788).
@@ -2814,6 +2816,12 @@ class LocalApiInterceptor extends Interceptor {
       ),
     );
   }
+
+  /// `GET /me/points/history`(#2146). `before` 날짜보다 앞을 받는다.
+  Future<Response<Object?>> _pointsHistory(RequestOptions options) async => _ok(
+    options,
+    _points.historyJson(before: options.queryParameters['before'] as String?),
+  );
 
   Future<Response<Object?>> _meCoupons(RequestOptions options) async =>
       _ok(options, _coupons.couponsJson());

@@ -1,4 +1,5 @@
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
@@ -76,6 +77,20 @@ class FakeBenefitsRepository implements BenefitsRepository {
 
   @override
   Future<WeeklyReportPurchases> fetchWeeklyReports() async => reports;
+
+  /// 포인트 내역(#2146). `before` 가 없으면 첫 쪽, 있으면 [olderHistory].
+  PointsHistory history = const PointsHistory(
+    balance: 9000,
+    entries: <PointsHistoryEntry>[],
+  );
+  PointsHistory olderHistory = const PointsHistory(
+    balance: 9000,
+    entries: <PointsHistoryEntry>[],
+  );
+
+  @override
+  Future<PointsHistory> fetchPointsHistory({String? before}) async =>
+      before == null ? history : olderHistory;
 
   @override
   Future<Coupon> useCoupon(String couponId) async {

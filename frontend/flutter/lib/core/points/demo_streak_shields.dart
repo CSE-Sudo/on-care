@@ -74,7 +74,7 @@ class DemoStreakShieldBook {
       acquiredAt: _now(),
       clientRequestId: clientRequestId,
     );
-    if (!_ledger.spend(shield.id, cost)) return _error(409, '포인트가 부족해요.');
+    if (!_ledger.spend(shield.id, cost, reason: itemId)) return _error(409, '포인트가 부족해요.');
     _shields.add(shield);
     return DemoCouponResult(201, _exchangeJson(shield));
   }

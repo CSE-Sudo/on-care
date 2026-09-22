@@ -2588,6 +2588,132 @@ abstract class AppLocalizations {
   /// **'My benefits'**
   String get myBenefitsTitle;
 
+  /// No description provided for @myPointsHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Points history'**
+  String get myPointsHistoryTitle;
+
+  /// No description provided for @myPointsHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No points activity yet'**
+  String get myPointsHistoryEmpty;
+
+  /// No description provided for @myPointsHistoryEmptyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Log meals and workouts to earn points.'**
+  String get myPointsHistoryEmptyMessage;
+
+  /// No description provided for @myPointsHistoryLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your points history'**
+  String get myPointsHistoryLoadFailed;
+
+  /// No description provided for @myPointsHistoryMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get myPointsHistoryMore;
+
+  /// No description provided for @myPointsReasonDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Meal log'**
+  String get myPointsReasonDiet;
+
+  /// No description provided for @myPointsReasonExercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout log'**
+  String get myPointsReasonExercise;
+
+  /// No description provided for @myPointsReasonRoutine.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended or assigned workout done'**
+  String get myPointsReasonRoutine;
+
+  /// No description provided for @myPointsReasonPtRenewal.
+  ///
+  /// In en, this message translates to:
+  /// **'PT renewal discount coupon'**
+  String get myPointsReasonPtRenewal;
+
+  /// No description provided for @myPointsReasonLocker.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal locker coupon'**
+  String get myPointsReasonLocker;
+
+  /// No description provided for @myPointsReasonShield.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak shield'**
+  String get myPointsReasonShield;
+
+  /// No description provided for @myPointsReasonGraphColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Graph colour'**
+  String get myPointsReasonGraphColor;
+
+  /// No description provided for @myPointsReasonEmotePass.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat emotes for 24 hours'**
+  String get myPointsReasonEmotePass;
+
+  /// No description provided for @myPointsReasonProfilePet.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile pet emoji'**
+  String get myPointsReasonProfilePet;
+
+  /// No description provided for @myPointsReasonWeeklyReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly report'**
+  String get myPointsReasonWeeklyReport;
+
+  /// No description provided for @myPointsReasonChallengeStake.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly challenge entry'**
+  String get myPointsReasonChallengeStake;
+
+  /// No description provided for @myPointsReasonChallengeReward.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly challenge reward'**
+  String get myPointsReasonChallengeReward;
+
+  /// No description provided for @myPointsReasonAiChat.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{AI Coach chat} other{AI Coach chats ×{count}}}'**
+  String myPointsReasonAiChat(int count);
+
+  /// No description provided for @myPointsReasonOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Points'**
+  String get myPointsReasonOther;
+
+  /// No description provided for @myPointsKindRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} · taken back after deleting the log'**
+  String myPointsKindRevoked(String label);
+
+  /// No description provided for @myPointsKindRefunded.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} · refunded after cancelling'**
+  String myPointsKindRefunded(String label);
+
   /// No description provided for @myBenefitsView.
   ///
   /// In en, this message translates to:

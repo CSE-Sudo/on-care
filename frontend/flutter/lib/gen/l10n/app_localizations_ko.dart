@@ -1416,6 +1416,75 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myBenefitsTitle => '내 혜택';
 
   @override
+  String get myPointsHistoryTitle => '포인트 내역';
+
+  @override
+  String get myPointsHistoryEmpty => '아직 포인트 내역이 없어요';
+
+  @override
+  String get myPointsHistoryEmptyMessage => '식단·운동을 기록하면 포인트가 쌓여요.';
+
+  @override
+  String get myPointsHistoryLoadFailed => '포인트 내역을 불러오지 못했어요';
+
+  @override
+  String get myPointsHistoryMore => '더 보기';
+
+  @override
+  String get myPointsReasonDiet => '식단 기록';
+
+  @override
+  String get myPointsReasonExercise => '운동 기록';
+
+  @override
+  String get myPointsReasonRoutine => '추천·배정 운동 완료';
+
+  @override
+  String get myPointsReasonPtRenewal => 'PT 재등록 할인 쿠폰';
+
+  @override
+  String get myPointsReasonLocker => '개인 락커 쿠폰';
+
+  @override
+  String get myPointsReasonShield => '연속 기록 보호권';
+
+  @override
+  String get myPointsReasonGraphColor => '그래프 색';
+
+  @override
+  String get myPointsReasonEmotePass => '채팅 이모티콘 24시간';
+
+  @override
+  String get myPointsReasonProfilePet => '프로필 펫 이모지';
+
+  @override
+  String get myPointsReasonWeeklyReport => '주간 리포트';
+
+  @override
+  String get myPointsReasonChallengeStake => '주간 챌린지 참가';
+
+  @override
+  String get myPointsReasonChallengeReward => '주간 챌린지 보상';
+
+  @override
+  String myPointsReasonAiChat(int count) {
+    return 'AI 코치 대화 $count회';
+  }
+
+  @override
+  String get myPointsReasonOther => '포인트';
+
+  @override
+  String myPointsKindRevoked(String label) {
+    return '$label · 기록 삭제로 회수';
+  }
+
+  @override
+  String myPointsKindRefunded(String label) {
+    return '$label · 취소로 반환';
+  }
+
+  @override
   String get myBenefitsView => '보기';
 
   @override

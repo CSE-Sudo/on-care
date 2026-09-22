@@ -57,7 +57,11 @@ class DemoEmotePassBook {
         'detail': '포인트가 ${shortfall}P 부족해요.',
       });
     }
-    if (!_ledger.spend('emote-pass-demo-${++_sequence}', cost)) {
+    if (!_ledger.spend(
+      'emote-pass-demo-${++_sequence}',
+      cost,
+      reason: 'emote_pass_24h',
+    )) {
       return const DemoCouponResult(400, <String, Object?>{
         'detail': '포인트가 부족해요.',
       });

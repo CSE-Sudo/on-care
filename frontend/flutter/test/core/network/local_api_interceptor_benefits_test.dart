@@ -17,6 +17,7 @@ import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/storage/app_database.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_benefits_repository.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_gym_repository.dart';
 
@@ -152,6 +153,22 @@ void main() {
       ShopBlockReason.weekOwned,
     );
     await expectLater(repo.exchange('weekly_report'), throwsA(anything));
+  });
+
+  test('포인트 내역은 사유를 남기고 AI 대화를 하루 한 줄로 묶는다 (#2146)', () async {
+    final DioBenefitsRepository repo = DioBenefitsRepository(dio);
+    await repo.exchange('streak_shield');
+    ledger
+      ..spend('chat-1', 50, reason: 'ai_chat')
+      ..spend('chat-2', 50, reason: 'ai_chat');
+
+    final PointsHistory history = await repo.fetchPointsHistory();
+    final Map<String, PointsHistoryEntry> byReason =
+        <String, PointsHistoryEntry>{
+          for (final PointsHistoryEntry e in history.entries) e.reason: e,
+        };
+    expect(byReason['streak_shield']!.delta, -300);
+    expect((byReason['ai_chat']!.count, byReason['ai_chat']!.delta), (2, -100));
   });
 
   test('교환하면 포인트가 빠지고 헬스장이 적힌 쿠폰이 생긴다', () async {

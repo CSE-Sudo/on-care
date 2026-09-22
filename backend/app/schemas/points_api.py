@@ -117,6 +117,38 @@ class ExchangeOut(BaseModel):
     balance: int
 
 
+class PointsHistoryItemOut(BaseModel):
+    """포인트 내역 한 줄. (#2146)
+
+    `kind`: earn(적립)·spend(사용)·revoke(회수 — 기록을 지워 적립을 되돌림)·
+    refund(반환 — 쿠폰 취소 등으로 사용을 되돌림). `delta` 는 잔액 변화량이다(적립·
+    반환은 양수, 사용·회수는 0 이하). `reason` 은 사유 코드 — diet_entry ·
+    exercise_manual · routine_complete · coupon_<항목> · streak_shield · graph_color ·
+    emote_pass_24h · profile_pet · weekly_report · challenge_stake ·
+    challenge_reward · ai_chat. `count` 는 묶은 줄 수로, AI 코치 대화(`ai_chat`)만
+    하루치를 한 줄로 묶어 1 보다 크다.
+    """
+
+    id: str
+    kind: str
+    reason: str
+    delta: int
+    count: int = 1
+    kst_date: str
+    created_at: datetime
+
+
+class PointsHistoryOut(BaseModel):
+    """GET /me/points/history — 최근 며칠치 내역(최신순)과 지금 잔액.
+
+    `next_before` 가 있으면 그 값을 `before` 로 넘겨 그 앞 날짜들을 이어 받는다.
+    """
+
+    balance: int
+    items: list[PointsHistoryItemOut]
+    next_before: str | None = None
+
+
 class PointsOut(BaseModel):
     """이번 저장으로 받은 포인트와 그 뒤의 잔액.
 

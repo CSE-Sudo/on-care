@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 
@@ -130,6 +131,52 @@ String reportWeekRange(AppLocalizations l, DateTime monday) {
     sunday.month,
     sunday.day,
   );
+}
+
+/// 포인트 내역 한 줄의 이름(#2146). 회수·반환이면 무엇이 되돌려졌는지 덧붙인다.
+String pointsEntryLabel(AppLocalizations l, PointsHistoryEntry entry) {
+  final String base = switch (entry.reason) {
+    'diet_entry' => l.myPointsReasonDiet,
+    'exercise_manual' => l.myPointsReasonExercise,
+    'routine_complete' => l.myPointsReasonRoutine,
+    'coupon_$kPtRenewalItem' => l.myPointsReasonPtRenewal,
+    'coupon_$kLockerMonthItem' => l.myPointsReasonLocker,
+    kStreakShieldItem => l.myPointsReasonShield,
+    kGraphColorItem => l.myPointsReasonGraphColor,
+    'emote_pass_24h' => l.myPointsReasonEmotePass,
+    kProfilePetItem => l.myPointsReasonProfilePet,
+    kWeeklyReportItem => l.myPointsReasonWeeklyReport,
+    'challenge_stake' => l.myPointsReasonChallengeStake,
+    'challenge_reward' => l.myPointsReasonChallengeReward,
+    'ai_chat' => l.myPointsReasonAiChat(entry.count),
+    _ => l.myPointsReasonOther,
+  };
+  return switch (entry.kind) {
+    PointsEntryKind.revoke => l.myPointsKindRevoked(base),
+    PointsEntryKind.refund => l.myPointsKindRefunded(base),
+    PointsEntryKind.earn || PointsEntryKind.spend => base,
+  };
+}
+
+/// 포인트 내역 한 줄의 아이콘 — 사용처 항목은 사용처 카드와 같은 아이콘이다.
+IconData pointsEntryIcon(PointsHistoryEntry entry) => switch (entry.reason) {
+  'diet_entry' => AppIcons.diet,
+  'exercise_manual' || 'routine_complete' => AppIcons.exercise,
+  'challenge_stake' || 'challenge_reward' => AppIcons.challenge,
+  'ai_chat' => AppIcons.ai,
+  'emote_pass_24h' => AppIcons.emote,
+  final String reason when reason.startsWith('coupon_') => benefitIcon(
+    reason.substring('coupon_'.length),
+  ),
+  final String reason => benefitIcon(reason),
+};
+
+/// `+50P` / `−50P`. 0 은 부호 없이 적는다.
+String pointsDelta(AppLocalizations l, int delta) {
+  final String amount = l.myPointsCost(delta.abs());
+  if (delta > 0) return '+$amount';
+  if (delta < 0) return '−$amount';
+  return amount;
 }
 
 /// 쿠폰의 혜택 한 줄.

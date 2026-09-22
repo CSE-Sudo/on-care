@@ -1467,6 +1467,82 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myBenefitsTitle => 'My benefits';
 
   @override
+  String get myPointsHistoryTitle => 'Points history';
+
+  @override
+  String get myPointsHistoryEmpty => 'No points activity yet';
+
+  @override
+  String get myPointsHistoryEmptyMessage =>
+      'Log meals and workouts to earn points.';
+
+  @override
+  String get myPointsHistoryLoadFailed => 'Couldn\'t load your points history';
+
+  @override
+  String get myPointsHistoryMore => 'Load more';
+
+  @override
+  String get myPointsReasonDiet => 'Meal log';
+
+  @override
+  String get myPointsReasonExercise => 'Workout log';
+
+  @override
+  String get myPointsReasonRoutine => 'Recommended or assigned workout done';
+
+  @override
+  String get myPointsReasonPtRenewal => 'PT renewal discount coupon';
+
+  @override
+  String get myPointsReasonLocker => 'Personal locker coupon';
+
+  @override
+  String get myPointsReasonShield => 'Streak shield';
+
+  @override
+  String get myPointsReasonGraphColor => 'Graph colour';
+
+  @override
+  String get myPointsReasonEmotePass => 'Chat emotes for 24 hours';
+
+  @override
+  String get myPointsReasonProfilePet => 'Profile pet emoji';
+
+  @override
+  String get myPointsReasonWeeklyReport => 'Weekly report';
+
+  @override
+  String get myPointsReasonChallengeStake => 'Weekly challenge entry';
+
+  @override
+  String get myPointsReasonChallengeReward => 'Weekly challenge reward';
+
+  @override
+  String myPointsReasonAiChat(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'AI Coach chats ×$count',
+      one: 'AI Coach chat',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get myPointsReasonOther => 'Points';
+
+  @override
+  String myPointsKindRevoked(String label) {
+    return '$label · taken back after deleting the log';
+  }
+
+  @override
+  String myPointsKindRefunded(String label) {
+    return '$label · refunded after cancelling';
+  }
+
+  @override
   String get myBenefitsView => 'View';
 
   @override

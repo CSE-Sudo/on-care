@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
@@ -26,6 +26,7 @@ from app.schemas.points_api import (
     CouponOut,
     ExchangeOut,
     ExchangeRequest,
+    PointsHistoryOut,
     PointsShopOut,
 )
 from app.schemas.profile_pet_api import ProfilePetStateOut
@@ -33,6 +34,7 @@ from app.schemas.weekly_report_api import WeeklyReportListOut
 from app.services import (
     graph_color_service,
     points_coupon_service,
+    points_history_service,
     points_service,
     profile_pet_service,
     streak_shield_service,
@@ -124,6 +126,23 @@ def my_weekly_reports(
     `weekly_report` 교환(`POST /me/points/exchange`)이다.
     """
     return weekly_report_purchase_service.list_reports(db, current_user.id)
+
+
+@router.get("/me/points/history", response_model=PointsHistoryOut)
+def points_history(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    before: Annotated[
+        str | None,
+        Query(pattern=r"^\d{4}-\d{2}-\d{2}$", description="이 KST 날짜보다 앞을 받는다"),
+    ] = None,
+) -> PointsHistoryOut:
+    """포인트 내역 — 최근 14일치(기록이 있는 날 기준), 최신순(#2146).
+
+    AI 코치 대화 차감은 하루 한 줄로 묶어 `count` 에 대화 수가 온다. 더 앞의 날이
+    있으면 `next_before` 를 `before` 로 넘긴다.
+    """
+    return points_history_service.history(db, current_user.id, before=before)
 
 
 @router.get("/me/coupons", response_model=list[CouponOut])

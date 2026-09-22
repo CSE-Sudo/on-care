@@ -79,7 +79,7 @@ class DemoProfilePetBook {
     if (active) return _error(409, '이미 달고 있는 펫이 있어요.');
     final int shortfall = cost - _ledger.balance;
     if (shortfall > 0) return _error(409, '포인트가 ${shortfall}P 부족해요.');
-    if (!_ledger.spend('pet-demo-${++_sequence}', cost)) {
+    if (!_ledger.spend('pet-demo-${++_sequence}', cost, reason: itemId)) {
       return _error(409, '포인트가 부족해요.');
     }
     _kind = kind;
