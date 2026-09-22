@@ -324,6 +324,10 @@
   "dietEatenFood": "Food Eaten",
   "dietNewFood": "New food",
   "dietAddFood": "Add Food",
+  "dietManualAdd": "Add manually",
+  "dietManualAddTitle": "Add Meal Manually",
+  "dietManualAddHint": "Type a food name and we'll fill in the nutrition",
+  "dietManualAddEmpty": "Add at least one food",
   "dietEditFoodHint": "Change the serving size and the nutrition follows",
   "dietTotalCalories": "Total Calories",
   "dietNutritionInfo": "Nutrition Info",
@@ -849,6 +853,20 @@
   },
   "myGraphProtectDone": "Your streak is unbroken",
   "myGraphProtectFailed": "Couldn't use the shield",
+  "myGraphProtectBuyConfirmTitle": "Buy a streak shield?",
+  "myGraphProtectBuyConfirmMessage": "You don't have a shield. Buy one for {cost} and use it right away to keep {date} in your record streak.",
+  "@myGraphProtectBuyConfirmMessage": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphProtectBuyAction": "Buy and use",
+  "myGraphProtectBoughtNotUsed": "You bought a shield but couldn't use it. It's kept in My benefits.",
   "myGraphColorTitle": "Graph colour",
   "myGraphColorPickTitle": "Pick a colour to unlock",
   "myGraphColorLocked": "Unlock for {cost}",
@@ -1196,6 +1214,69 @@
   "myCouponStatus": "Status",
   "myCouponStaffNote": "Tap only after your trainer or gym staff has checked it",
   "myCouponGymStaffNote": "Tap only after gym staff has checked it",
+  "myCouponNoExpiry": "No expiry",
+  "myDietTrayTitle": "Free analysis tray",
+  "myDietTrayFree": "Free",
+  "myDietTrayDescription": "Log meal photos on {days} of the last {window} days and we'll give you a standard tray made for analysis. Meals shot on the same tray are measured more accurately.",
+  "@myDietTrayDescription": {
+    "placeholders": {
+      "window": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayProgressLabel": "Photo logs, last {window} days",
+  "@myDietTrayProgressLabel": {
+    "placeholders": {
+      "window": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayProgress": "{days} / {required} days",
+  "@myDietTrayProgress": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayDaysLeft": "{days} more days of photos to go",
+  "@myDietTrayDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayNeedTrainer": "Connect a trainer to receive it",
+  "myDietTrayClaimable": "You're eligible! Pick it up at your trainer's gym",
+  "myDietTrayIssued": "Pick it up at {gym}. Before you go, ask your trainer in chat whether it's ready",
+  "@myDietTrayIssued": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
+  "myDietTrayReceived": "You've received your tray. Try shooting meals on it",
+  "myDietTrayClaim": "Claim",
+  "myDietTrayViewCoupon": "View coupon",
+  "myDietTrayClaimConfirmTitle": "Get your tray pickup coupon?",
+  "myDietTrayClaimConfirmMessage": "Pick it up at your trainer's gym. There's no deadline, and it's one tray per member.",
+  "myDietTrayClaimDone": "Tray pickup coupon added",
+  "myDietTrayClaimFailed": "Couldn't get the tray pickup coupon",
+  "myDietTrayNotice": "One per member · Only days with meal photos count (typed meals and shield-protected days don't) · No pickup deadline · Check with your trainer that the tray is ready before visiting the gym · Terms may change depending on stock and operations",
+  "myDietTrayCouponBenefit": "Standard analysis tray",
+  "myDietTrayStaffNote": "Tap after gym staff hands you the tray",
+  "myDietTrayIssuedOn": "Received on",
+  "myDietTrayExpireNotice": "No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.",
   "myCouponStaffConfirmTitle": "Mark this coupon as used?",
   "myCouponStaffConfirmMessage": "For staff · This can't be undone once used",
   "myCouponUsedAt": "Used at",
@@ -2761,9 +2842,41 @@
   "@alertCategoryReminder": {
     "description": "Notification category badge."
   },
-  "alertCategoryHealth": "Health",
-  "@alertCategoryHealth": {
-    "description": "Notification category badge."
+  "alertCategoryCoachChat": "Trainer message",
+  "@alertCategoryCoachChat": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryCoachReport": "Weekly report",
+  "@alertCategoryCoachReport": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryRoutine": "Workout routine",
+  "@alertCategoryRoutine": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategorySchedule": "PT schedule",
+  "@alertCategorySchedule": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryTrainer": "Trainer",
+  "@alertCategoryTrainer": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryConsultation": "Consultation request",
+  "@alertCategoryConsultation": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryHealthGoals": "Health goals",
+  "@alertCategoryHealthGoals": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryBenefits": "Benefits",
+  "@alertCategoryBenefits": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryChallenge": "Challenge",
+  "@alertCategoryChallenge": {
+    "description": "Notification category label for screen readers."
   },
   "alertCategoryAchievement": "Achievement",
   "@alertCategoryAchievement": {

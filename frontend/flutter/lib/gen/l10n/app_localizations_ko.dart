@@ -538,6 +538,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddFood => '음식 추가';
 
   @override
+  String get dietManualAdd => '직접 추가';
+
+  @override
+  String get dietManualAddTitle => '식단 직접 추가';
+
+  @override
+  String get dietManualAddHint => '음식 이름을 적으면 영양 정보를 찾아 채워요';
+
+  @override
+  String get dietManualAddEmpty => '음식을 하나 이상 적어 주세요';
+
+  @override
   String get dietEditFoodHint => '내용량을 고치면 영양이 비례해 따라와요';
 
   @override
@@ -1260,6 +1272,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGraphProtectFailed => '보호권을 쓰지 못했어요';
 
   @override
+  String get myGraphProtectBuyConfirmTitle => '보호권을 구매할까요?';
+
+  @override
+  String myGraphProtectBuyConfirmMessage(String date, String cost) {
+    return '지금 가진 보호권이 없어요. $cost로 보호권을 구매하고 $date을 바로 기록 연속에 이어 붙여요.';
+  }
+
+  @override
+  String get myGraphProtectBuyAction => '구매하고 쓰기';
+
+  @override
+  String get myGraphProtectBoughtNotUsed => '보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.';
+
+  @override
   String get myGraphColorTitle => '그래프 색';
 
   @override
@@ -1636,6 +1662,85 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get myCouponGymStaffNote => '헬스장 직원이 확인한 뒤 눌러 주세요';
+
+  @override
+  String get myCouponNoExpiry => '기한 없음';
+
+  @override
+  String get myDietTrayTitle => '분석용 식판 무료 제공';
+
+  @override
+  String get myDietTrayFree => '무료';
+
+  @override
+  String myDietTrayDescription(int window, int days) {
+    return '최근 $window일 중 $days일 식단 사진을 남기면 분석에 맞춘 규격 식판을 드려요. 같은 식판에 담아 찍으면 양을 더 정확하게 분석해요.';
+  }
+
+  @override
+  String myDietTrayProgressLabel(int window) {
+    return '최근 $window일 사진 기록';
+  }
+
+  @override
+  String myDietTrayProgress(int days, int required) {
+    return '$days / $required일';
+  }
+
+  @override
+  String myDietTrayDaysLeft(int days) {
+    return '$days일 더 찍으면 받을 수 있어요';
+  }
+
+  @override
+  String get myDietTrayNeedTrainer => '담당 트레이너를 연결하면 받을 수 있어요';
+
+  @override
+  String get myDietTrayClaimable => '조건을 채웠어요! 담당 트레이너의 헬스장에서 받아요';
+
+  @override
+  String myDietTrayIssued(String gym) {
+    return '$gym에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 채팅으로 물어보세요';
+  }
+
+  @override
+  String get myDietTrayReceived => '식판을 받았어요. 식판에 담아 찍어 보세요';
+
+  @override
+  String get myDietTrayClaim => '받기';
+
+  @override
+  String get myDietTrayViewCoupon => '쿠폰 보기';
+
+  @override
+  String get myDietTrayClaimConfirmTitle => '식판 수령 쿠폰을 받을까요?';
+
+  @override
+  String get myDietTrayClaimConfirmMessage =>
+      '담당 트레이너의 헬스장에서 받아요. 기한은 없고, 식판은 한 사람당 한 번 받을 수 있어요.';
+
+  @override
+  String get myDietTrayClaimDone => '식판 수령 쿠폰을 받았어요';
+
+  @override
+  String get myDietTrayClaimFailed => '식판 수령 쿠폰을 받지 못했어요';
+
+  @override
+  String get myDietTrayNotice =>
+      '1인 1회 · 사진으로 기록한 날만 세요(손으로 적은 끼니, 보호권으로 이은 날 제외) · 수령 기한 없음 · 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 확인해 주세요 · 재고와 운영 사정에 따라 조건이 바뀔 수 있어요';
+
+  @override
+  String get myDietTrayCouponBenefit => '분석용 규격 식판';
+
+  @override
+  String get myDietTrayStaffNote => '헬스장 직원에게 식판을 받은 뒤 눌러 주세요';
+
+  @override
+  String get myDietTrayIssuedOn => '받은 날';
+
+  @override
+  String get myDietTrayExpireNotice =>
+      '기한 없이 쓸 수 있어요. 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 채팅으로 물어보세요.';
 
   @override
   String get myCouponStaffConfirmTitle => '쿠폰을 사용 완료할까요?';
@@ -3385,7 +3490,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertCategoryReminder => '리마인더';
 
   @override
-  String get alertCategoryHealth => '건강';
+  String get alertCategoryCoachChat => '트레이너 메시지';
+
+  @override
+  String get alertCategoryCoachReport => '주간 리포트';
+
+  @override
+  String get alertCategoryRoutine => '운동 루틴';
+
+  @override
+  String get alertCategorySchedule => 'PT 일정';
+
+  @override
+  String get alertCategoryTrainer => '담당 트레이너';
+
+  @override
+  String get alertCategoryConsultation => '상담 요청';
+
+  @override
+  String get alertCategoryHealthGoals => '건강 목표';
+
+  @override
+  String get alertCategoryBenefits => '혜택';
+
+  @override
+  String get alertCategoryChallenge => '챌린지';
 
   @override
   String get alertCategoryAchievement => '달성';

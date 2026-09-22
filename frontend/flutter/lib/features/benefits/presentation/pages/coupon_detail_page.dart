@@ -19,7 +19,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// **직원이 확인한 뒤** 회원 휴대폰의 `사용 완료` 를 누른다(직원 확인 버튼). 그래서
 /// 버튼 위에 직원에게 말하는 안내를 두고, 파란 확인창도 직원 확인용이라고 밝힌다.
 /// 되돌리기는 없다. 안내는 PT 재등록이면 트레이너·헬스장 직원, 개인 락커면 헬스장
-/// 직원에게 말한다.
+/// 직원에게 말한다. 분석용 식판(#2150) 수령 쿠폰은 담당 트레이너와 그 헬스장을 적고,
+/// 식판을 건네받은 뒤 누르라고 말한다.
 ///
 /// 목록([myCouponsProvider])에서 이 쿠폰을 찾아 그린다. 사용 처리 뒤 목록을 다시
 /// 읽으면 이 화면도 사용 완료 상태로 바뀐다.
@@ -49,7 +50,10 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
     try {
       await ref.read(benefitsRepositoryProvider).useCoupon(coupon.id);
       if (!mounted) return;
-      ref.invalidate(myCouponsProvider);
+      // 식판 수령 쿠폰(#2150)이면 포인트 화면의 식판 카드도 `받음` 이 된다.
+      ref
+        ..invalidate(myCouponsProvider)
+        ..invalidate(dietTrayProvider);
       showAppToast(context, l.myCouponUseDone, type: AppToastType.success);
     } on Object {
       if (!mounted) return;
@@ -103,6 +107,7 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
     final OnCareTokens tokens = context.oncare;
     final bool isRenewal = coupon.item == kPtRenewalItem;
     final bool isLocker = coupon.item == kLockerMonthItem;
+    final bool isTray = coupon.item == kDietTrayItem;
     final String expiry = formatCouponDate(coupon.expiresOn);
     final DateTime? usedAt = coupon.usedAt;
     return <Widget>[
@@ -139,18 +144,20 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
             const SizedBox(height: OnCareSpacing.s16),
             const AppDivider(),
             const SizedBox(height: OnCareSpacing.s8),
-            if (isRenewal)
+            if (isRenewal || isTray)
               _InfoRow(label: l.myCouponTrainer, value: coupon.trainerName),
-            if (isRenewal || isLocker)
+            if (isRenewal || isLocker || isTray)
               _InfoRow(label: l.myCouponGym, value: coupon.gymName),
             _InfoRow(
-              label: l.myCouponIssuedOn,
+              label: isTray ? l.myDietTrayIssuedOn : l.myCouponIssuedOn,
               value: formatCouponDate(coupon.issuedOn),
             ),
             _InfoRow(
               key: const Key('couponExpiry'),
               label: l.myCouponExpiry,
-              value: coupon.usable
+              value: coupon.noExpiry
+                  ? l.myCouponNoExpiry
+                  : coupon.usable
                   ? l.myCouponExpiryWithDday(
                       expiry,
                       couponDday(l, coupon.daysLeft),
@@ -172,8 +179,9 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
         const SizedBox(height: OnCareSpacing.s12),
         // 만료 안내 — 아이콘 없이 한 줄. 직원에게 보여 주라는 말은 버튼 위 줄과
         // 겹쳐 따로 두지 않는다.
+        // 식판(#2150)은 기한이 없다 — 대신 헛걸음하지 않게 트레이너에게 먼저 묻게 한다.
         Text(
-          l.myCouponExpireNotice,
+          isTray ? keepWords(l.myDietTrayExpireNotice) : l.myCouponExpireNotice,
           key: const Key('couponExpireNotice'),
           style: tokens
               .text(OnCareTypography.caption)
@@ -185,7 +193,11 @@ class _CouponDetailPageState extends ConsumerState<CouponDetailPage> {
           key: const Key('couponStaffNote'),
           icon: AppIcons.badge,
           color: tokens.brand.primary,
-          text: isRenewal ? l.myCouponStaffNote : l.myCouponGymStaffNote,
+          text: isRenewal
+              ? l.myCouponStaffNote
+              : isTray
+              ? l.myDietTrayStaffNote
+              : l.myCouponGymStaffNote,
         ),
         const SizedBox(height: OnCareSpacing.s8),
         AppButton(

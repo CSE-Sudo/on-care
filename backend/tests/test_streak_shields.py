@@ -329,9 +329,9 @@ def test_use_without_shield_is_rejected(client, db_session, thursday):
     _, h = _new_member(client, db_session)
 
     status = _shields(client, h)
-    # 보호권이 없으면 창도 비운다.
-    assert (status["held"], status["protectable_from"]) == (0, None)
-    assert status["protectable_to"] is None
+    # 보호권이 없어도 창은 내려 온다 — 사용 요청은 보유 수에서 막힌다.
+    assert (status["held"], status["protectable_from"]) == (0, "2026-08-18")
+    assert status["protectable_to"] == YESTERDAY
     r = _use(client, h, YESTERDAY)
     assert r.status_code == 409, r.text
     assert _shields(client, h)["used"] == []

@@ -59,6 +59,7 @@ class Coupon {
     this.trainerName = '',
     this.gymName = '',
     this.usedAt,
+    this.noExpiry = false,
   });
 
   final String id;
@@ -89,6 +90,9 @@ class Coupon {
   /// 마지막 날까지 남은 날 — 당일 0. 사용 가능이 아니면 0.
   final int daysLeft;
 
+  /// 기한이 없는 쿠폰(분석용 식판, #2150). 참이면 [expiresOn]·[daysLeft] 는 뜻이 없다.
+  final bool noExpiry;
+
   /// 사용 완료를 누른 시각(KST 벽시계). 사용하지 않았으면 null.
   final DateTime? usedAt;
 
@@ -107,6 +111,7 @@ class Coupon {
     expiresOn: _dateFrom(json['expires_on']),
     daysLeft: (json['days_left'] as num?)?.toInt() ?? 0,
     usedAt: _kstFrom(json['used_at']),
+    noExpiry: (json['no_expiry'] as bool?) ?? false,
   );
 }
 

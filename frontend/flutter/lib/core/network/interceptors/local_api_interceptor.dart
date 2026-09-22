@@ -118,6 +118,7 @@ class LocalApiInterceptor extends Interceptor {
     'GET /diet/recommendations': _dietRecommendations,
     'POST /diet/analyze': _dietAnalyze,
     'POST /diet/nutrition': _dietNutrition,
+    'POST /diet/entries': _dietCreate,
     'GET /exercise/weeks/current': _exerciseCurrentWeek,
     'GET /exercise/advice': _exerciseAdvice,
     'POST /exercise/sessions': _exerciseAddSession,
@@ -148,6 +149,9 @@ class LocalApiInterceptor extends Interceptor {
     'GET /me/points/history': _pointsHistory,
     'POST /me/points/exchange': _pointsExchange,
     'GET /me/coupons': _meCoupons,
+    // 분석용 식판 — 사진 기록일 달성 보상, 쿠폰은 위 coupons 에 선다(#2150).
+    'GET /me/diet-tray': _dietTray,
+    'POST /me/diet-tray/claim': _dietTrayClaim,
     // 연속 기록 보호권 — 교환은 위 exchange 가 받는다(#1788).
     'GET /me/streak-shields': _streakShields,
     'POST /me/streak-shields/use': _streakShieldUse,
@@ -452,6 +456,138 @@ class LocalApiInterceptor extends Interceptor {
     );
   }
 
+  /// 기록 날짜 검사(#1241). 실서버와 같은 규칙이다 — 형식이 틀리거나 아직 오지
+  /// 않은 날은 받지 않는다. 데모에서만 통과하면 실연동에서 그 화면이 처음 실패한다.
+  static String? _entryDateError(String? date) {
+    final DateTime? parsed = DateTime.tryParse(date ?? '');
+    if (date == null || parsed == null || date.length != 10) {
+      return 'date 는 YYYY-MM-DD 형식이어야 합니다.';
+    }
+    final DateTime now = nowKst();
+    if (parsed.isAfter(DateTime(now.year, now.month, now.day))) {
+      return 'date 는 오늘보다 뒤일 수 없습니다.';
+    }
+    return null;
+  }
+
+  /// POST /diet/entries — 사진 없이 회원이 직접 적은 끼니(#2151).
+  ///
+  /// 실서버와 같은 규칙이다. 합계는 음식에서 내고, 출처가 빠진 음식은 회원 값
+  /// (`member`)이며, **포인트는 적립하지 않는다.** 기록이므로 보호한 날이면
+  /// 보호권은 돌려준다.
+  Future<Response<Object?>> _dietCreate(RequestOptions options) async {
+    final body = _jsonBody(options);
+    final String? idempotencyKey = (body['idempotency_key'] as String?)?.trim();
+    if (idempotencyKey != null && idempotencyKey.isNotEmpty) {
+      final existing =
+          await (_db.select(_db.dietEntries)
+                ..where((t) => t.idempotencyKey.equals(idempotencyKey)))
+              .getSingleOrNull();
+      if (existing != null) return _created(options, _dietEntryJson(existing));
+    }
+    final String? date = (body['date'] as String?)?.trim();
+    if (body.containsKey('date')) {
+      final String? error = _entryDateError(date);
+      if (error != null) return _unprocessable(options, error);
+    }
+    const Set<String> mealTypes = <String>{
+      'breakfast',
+      'lunch',
+      'dinner',
+      'snack',
+      'lateNight',
+    };
+    final String? mealType = (body['meal_type'] as String?)?.trim();
+    if (mealType == null || !mealTypes.contains(mealType)) {
+      return _unprocessable(options, 'meal_type 이 올바르지 않습니다.');
+    }
+    final Object? foodsValue = body['foods'];
+    if (foodsValue is! List ||
+        foodsValue.isEmpty ||
+        foodsValue.any(
+          (Object? f) =>
+              f is! Map || ((f['name'] as String?) ?? '').trim().isEmpty,
+        )) {
+      return _unprocessable(options, '음식을 하나 이상 이름과 함께 적어 주세요.');
+    }
+    const Set<String> sources = <String>{'db', 'mixed', 'estimate', 'member'};
+    final List<Map<String, Object?>> foods = <Map<String, Object?>>[
+      for (final Object? f in foodsValue)
+        <String, Object?>{
+          'source': 'member',
+          ...(f! as Map<Object?, Object?>).cast<String, Object?>(),
+        },
+    ];
+    for (int i = 0; i < foods.length; i++) {
+      final Map<String, Object?> food = foods[i];
+      if (!sources.contains(food['source'])) {
+        return _unprocessable(
+          options,
+          'source must be db, mixed, estimate or member',
+        );
+      }
+      final num carbs = (food['carbs_g'] as num?) ?? 0;
+      final num sugar = (food['sugar_g'] as num?) ?? 0;
+      if (sugar > carbs) {
+        return _unprocessable(
+          options,
+          '${i + 1}번째 음식(${food['name']})의 당류는 탄수화물보다 클 수 없습니다.',
+        );
+      }
+    }
+    final now = nowKst();
+    final String id = 'diet-${now.microsecondsSinceEpoch}';
+    final String day = date ?? _todayDateString();
+    await _db
+        .into(_db.dietEntries)
+        .insert(
+          DietEntriesCompanion.insert(
+            id: id,
+            date: day,
+            mealType: mealType,
+            timeLabel:
+                '${now.hour.toString().padLeft(2, '0')}:'
+                '${now.minute.toString().padLeft(2, '0')}',
+            foodsJson: jsonEncode(foods),
+            totalCalories: _sumMacro(foods, 'calories').round(),
+            sodiumMg: Value(_sumMacro(foods, 'sodium_mg').round()),
+            sugarG: Value(_sumMacro(foods, 'sugar_g')),
+            idempotencyKey: Value(
+              (idempotencyKey?.isEmpty ?? true) ? null : idempotencyKey,
+            ),
+          ),
+        );
+    _refundShieldOnDate(day);
+    final row = await (_db.select(
+      _db.dietEntries,
+    )..where((t) => t.id.equals(id))).getSingle();
+    return _created(options, _dietEntryJson(row));
+  }
+
+  /// 끼니 한 행의 `entries[]` 표현. 탄단지는 행에 칼럼이 없어 음식에서 되짚는다.
+  Map<String, Object?> _dietEntryJson(DietEntryRow row) {
+    final foods = jsonDecode(row.foodsJson) as List<Object?>;
+    final macros = _foodMacroTotals(foods);
+    return <String, Object?>{
+      'id': row.id,
+      'meal_type': row.mealType,
+      'time_label': row.timeLabel,
+      'foods': foods,
+      'total_calories': row.totalCalories,
+      'carbs_g': macros.carbsG,
+      'protein_g': macros.proteinG,
+      'fat_g': macros.fatG,
+      'sodium_mg': row.sodiumMg,
+      'sugar_g': row.sugarG,
+      'ai_comment': row.aiComment,
+      'photo_asset': row.photoAsset.isEmpty ? null : row.photoAsset,
+      'photo_url': _photoUrl(row),
+    };
+  }
+
+  Response<Object?> _created(RequestOptions options, Object? body) =>
+      Response<Object?>(requestOptions: options, statusCode: 201, data: body);
+
   Future<Response<Object?>> _dietUpdate(RequestOptions options) async {
     final id = options.path.split('/').last;
     final existing = await (_db.select(
@@ -463,14 +599,8 @@ class LocalApiInterceptor extends Interceptor {
     // 날은 받지 않는다. 데모에서만 통과하면 실연동에서 그 화면이 처음 실패한다.
     final String? date = (body['date'] as String?)?.trim();
     if (body.containsKey('date')) {
-      final DateTime? parsed = DateTime.tryParse(date ?? '');
-      if (date == null || parsed == null || date.length != 10) {
-        return _badRequest(options, 'date 는 YYYY-MM-DD 형식이어야 합니다.');
-      }
-      final DateTime now = nowKst();
-      if (parsed.isAfter(DateTime(now.year, now.month, now.day))) {
-        return _badRequest(options, 'date 는 오늘보다 뒤일 수 없습니다.');
-      }
+      final String? error = _entryDateError(date);
+      if (error != null) return _badRequest(options, error);
     }
     final mealType = (body['meal_type'] as String?)?.trim();
     final timeLabel = (body['time_label'] as String?)?.trim();
@@ -2833,6 +2963,40 @@ class LocalApiInterceptor extends Interceptor {
   /// `GET /me/weekly-reports`(#2022). 사용처 교환과 같은 원장을 본다.
   Future<Response<Object?>> _weeklyReports(RequestOptions options) async =>
       _ok(options, _coupons.reports.listJson());
+
+  /// `GET /me/diet-tray`(#2150). 사진 기록일은 drift 에서 센다.
+  Future<Response<Object?>> _dietTray(RequestOptions options) async => _ok(
+    options,
+    _coupons.dietTrayJson(photoDays: await _dietTrayPhotoDays()),
+  );
+
+  Future<Response<Object?>> _dietTrayClaim(RequestOptions options) async {
+    final body = _jsonBody(options);
+    return _couponResponse(
+      options,
+      _coupons.claimDietTray(
+        photoDays: await _dietTrayPhotoDays(),
+        clientRequestId: body['client_request_id'] as String?,
+      ),
+    );
+  }
+
+  /// 식판 구간(최근 28일, 오늘 포함) 안에서 식단 사진을 남긴 날 수.
+  ///
+  /// 서버는 사진 분석으로 저장한 끼니(`engine`)를 센다. 데모 행에는 엔진이 없어서
+  /// 사진이 붙은 끼니(시드 에셋이나 방금 올린 원본)로 센다 — 손으로 적은 끼니는
+  /// 둘 다 비어 있다.
+  Future<int> _dietTrayPhotoDays() async {
+    final String from = _dateString(_coupons.dietTrayWindowFrom());
+    final String to = _dateString(_coupons.dietTrayWindowTo());
+    return <String>{
+      for (final row in await _db.select(_db.dietEntries).get())
+        if ((row.photoAsset.isNotEmpty || row.photoBytes != null) &&
+            row.date.compareTo(from) >= 0 &&
+            row.date.compareTo(to) <= 0)
+          row.date,
+    }.length;
+  }
 
   Future<Response<Object?>> _couponUse(RequestOptions options) async {
     // `/me/coupons/{id}/use` — 끝에서 두 번째 조각이 쿠폰 id 다.

@@ -44,6 +44,11 @@ _ACTION_BY_CATEGORY: dict[str, NotificationAction] = {
     notification_service.MEMBER_COACH_CHAT: NotificationAction(
         label="대화 보기", target="coach_chat"
     ),
+    # 주간 리포트 — 리포트 카드가 있는 코치 대화로 간다. 메시지와 목적지는 같고
+    # 알림함 아이콘만 다르다(#2085).
+    notification_service.MEMBER_COACH_REPORT: NotificationAction(
+        label="리포트 보기", target="coach_chat"
+    ),
     notification_service.MEMBER_ROUTINE: NotificationAction(
         label="운동 보기", target="exercise"
     ),
