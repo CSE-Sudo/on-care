@@ -83,9 +83,15 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   /// 입력창을 새 문구로 다시 만들 때 올린다.
   ///
   /// `TextEditingController` 는 한 번 만들어지면 initialText 를 다시 읽지
-  /// 않는다. 요약을 초안으로 가져오는 건 드문 동작이라, 컨트롤러를 밖으로
-  /// 끌어내는 대신 위젯 키를 바꿔 다시 만든다.
+  /// 않는다. 저장해 둔 초안이 늦게 도착하는 건 드문 일이라, 컨트롤러를 밖으로
+  /// 끌어내는 대신 위젯 키를 바꿔 다시 만든다. 요약 가져오기는 되돌릴 수
+  /// 있어야 해서 [_summaryEpoch] 가 따로 맡는다(#2187).
   int _draftEpoch = 0;
+
+  /// 요약을 초안으로 가져올 때 올린다. 입력창을 다시 만들면 편집 기록이
+  /// 사라져, 가져오기 전 글로 되돌릴 수 없다 — 이 값은 입력창 안의 글만
+  /// 바꾼다(#2187).
+  int _summaryEpoch = 0;
 
   /// 입력창이 비었는가. 메뉴의 전송 항목을 잠그는 유일한 이유라, 이 값이
   /// 바뀔 때만 다시 그린다 — 글자마다 화면 전체를 다시 그리지 않는다.
@@ -93,11 +99,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   /// 피드백 초안을 서버에 저장하는 중이다. (#821)
   bool _savingFeedback = false;
-
-  /// 입력창이 출발점([_baseFor])과 달라졌는가. 되돌리기 버튼을 켜는 유일한
-  /// 이유라, [_feedbackBlank] 와 같은 방식으로 이 값이 **바뀔 때만** 다시
-  /// 그린다 — 글자마다 리포트 화면 전체를 다시 그리지 않는다. (#821)
-  bool _feedbackDiffers = false;
 
   /// 입력창의 출발점 — 저장해 둔 초안이 있으면 그것, 없으면 수치에서 만든
   /// 자동 문구다. (#821)
@@ -184,7 +185,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       _feedbackDraft = null;
       _feedbackFor = null;
       _feedbackBlank = false;
-      _feedbackDiffers = false;
     });
   }
 
@@ -192,18 +192,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   ///
   /// 요약 카드는 넓은 화면에서 왼쪽 열로, 좁은 화면에서는 리포트 흐름 안으로
   /// 자리를 옮겨 다녀 부르는 곳이 둘이다 — 옮기는 규칙은 한 곳에 둔다.
-  void _useSummaryAsDraft(
-    AppLocalizations l,
-    WeeklyReport report,
-    ReportFeedbackDraft? savedDraft,
-    String draft,
-  ) {
+  void _useSummaryAsDraft(WeeklyReport report, String draft) {
     setState(() {
       _feedbackDraft = draft;
       _feedbackFor = _feedbackKey(report);
       _feedbackBlank = draft.trim().isEmpty;
-      _feedbackDiffers = draft != _baseFor(l, report, savedDraft);
-      _draftEpoch++;
+      _summaryEpoch++;
     });
   }
 
@@ -225,7 +219,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       _feedbackDraft = null;
       _feedbackFor = null;
       _feedbackBlank = false;
-      _feedbackDiffers = false;
     });
   }
 
@@ -565,43 +558,26 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         // 안에 들어오고, 비어 있던 목록 아래를 쓴다.
                         showSummary: !wide,
                         draftEpoch: _draftEpoch,
+                        summaryEpoch: _summaryEpoch,
                         initialFeedback: _messageFor(l, data, savedDraft),
                         savingFeedback: _savingFeedback,
                         onSaveFeedback: () => _saveFeedback(
                           data,
                           _messageFor(l, data, savedDraft),
                         ),
-                        // 트레이너가 손댄 흔적이 있을 때만 켠다 — 누를 게
-                        // 없는 버튼을 띄워 두지 않는다. 되돌릴 자리는 저장해
-                        // 둔 초안이고, 저장한 적이 없으면 자동 생성 문구다.
-                        canRestoreDraft:
-                            _messageFor(l, data, savedDraft) !=
-                            _baseFor(l, data, savedDraft),
-                        onRestoreDraft: () => setState(() {
-                          _feedbackDraft = null;
-                          _feedbackFor = null;
-                          _feedbackBlank = false;
-                          _feedbackDiffers = false;
-                          _draftEpoch++;
-                        }),
                         weekNav: weekNav,
                         onUseSummaryAsDraft: (draft) =>
-                            _useSummaryAsDraft(l, data, savedDraft, draft),
+                            _useSummaryAsDraft(data, draft),
                         onFeedbackChanged: (text) {
                           _feedbackDraft = text;
                           _feedbackFor = _feedbackKey(data);
-                          // 비었는지, 출발점과 달라졌는지가 바뀔 때만 다시
-                          // 그린다 — 앞은 전송 항목을, 뒤는 되돌리기 버튼을
+                          // 비었는지가 바뀔 때만 다시 그린다 — 전송 항목을
                           // 가르는 값이다. 그 외에는 화면이 달라질 것이 없어
-                          // 글자마다 다시 그리지 않는다.
+                          // 글자마다 다시 그리지 않는다. 되돌리기·다시 실행
+                          // 버튼은 입력창의 편집 기록이 직접 켠다(#2187).
                           final blank = text.trim().isEmpty;
-                          final differs = text != _baseFor(l, data, savedDraft);
-                          if (blank != _feedbackBlank ||
-                              differs != _feedbackDiffers) {
-                            setState(() {
-                              _feedbackBlank = blank;
-                              _feedbackDiffers = differs;
-                            });
+                          if (blank != _feedbackBlank) {
+                            setState(() => _feedbackBlank = blank);
                           }
                         },
                       ),
@@ -654,7 +630,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             report: data,
                             fill: fill,
                             onUseAsDraft: (draft) =>
-                                _useSummaryAsDraft(l, data, savedDraft, draft),
+                                _useSummaryAsDraft(data, draft),
                           ),
                         );
                     return Row(

@@ -70,10 +70,15 @@ class AppTextField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.textAlign = TextAlign.start,
+    this.undoController,
   });
 
   final TextEditingController? controller;
   final FocusNode? focusNode;
+
+  /// 입력창 밖의 되돌리기·다시 실행 버튼이 이 칸의 편집 기록을 앞뒤로 오가게
+  /// 할 때 준다. 비우면 칸이 자기 기록을 따로 든다(단축키는 그대로 된다).
+  final UndoHistoryController? undoController;
   final String? label;
   final String? hint;
   final String? helper;
@@ -107,6 +112,7 @@ class AppTextField extends StatelessWidget {
       child: TextField(
         controller: controller,
         focusNode: focusNode,
+        undoController: undoController,
         enabled: enabled,
         autofocus: autofocus,
         obscureText: obscureText,
