@@ -143,6 +143,8 @@ String pointsEntryLabel(AppLocalizations l, PointsHistoryEntry entry) {
     'coupon_$kLockerMonthItem' => l.myPointsReasonLocker,
     kStreakShieldItem => l.myPointsReasonShield,
     kGraphColorItem => l.myPointsReasonGraphColor,
+    'emote_unlock' => l.myPointsReasonEmoteUnlock,
+    // 지난 24시간 이용권(#2020) — 이모티콘을 하나씩 사게 바뀐 뒤에도 내역에 남는다.
     'emote_pass_24h' => l.myPointsReasonEmotePass,
     kProfilePetItem => l.myPointsReasonProfilePet,
     kWeeklyReportItem => l.myPointsReasonWeeklyReport,
@@ -164,7 +166,7 @@ IconData pointsEntryIcon(PointsHistoryEntry entry) => switch (entry.reason) {
   'exercise_manual' || 'routine_complete' => AppIcons.exercise,
   'challenge_stake' || 'challenge_reward' => AppIcons.challenge,
   'ai_chat' => AppIcons.ai,
-  'emote_pass_24h' => AppIcons.emote,
+  'emote_unlock' || 'emote_pass_24h' => AppIcons.emote,
   final String reason when reason.startsWith('coupon_') => benefitIcon(
     reason.substring('coupon_'.length),
   ),

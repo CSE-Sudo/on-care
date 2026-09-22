@@ -20,8 +20,7 @@ class ShopItemOut(BaseModel):
     `blocked_reason`: 교환 버튼을 막는 이유 — `no_trainer`(담당 트레이너 없음)·
     `no_gym`(연결한 헬스장 없음)·`active_coupon`(사용하지 않은 같은 쿠폰 보유)·
     `shield_limit`(쓰지 않은 연속 기록 보호권을 최대로 보유, #1788)·
-    `active_pass`(이용 중인 이모티콘 이용권, #2020)·`active_pet`(달고 있는 프로필 펫,
-    #2021)·`week_owned`(지난주 리포트를 이미 받음, #2022)·`monthly_limit`(이번 달에 이미 교환)·`insufficient_points`(잔액 부족) 순으로
+    `active_pet`(달고 있는 프로필 펫, #2021)·`week_owned`(지난주 리포트를 이미 받음, #2022)·`monthly_limit`(이번 달에 이미 교환)·`insufficient_points`(잔액 부족) 순으로
     하나만. 교환할 수 있으면 null. `shortfall` 은 모자란 포인트로, 모자라지 않으면
     0 이다.
 
@@ -124,8 +123,8 @@ class PointsHistoryItemOut(BaseModel):
     refund(반환 — 쿠폰 취소 등으로 사용을 되돌림). `delta` 는 잔액 변화량이다(적립·
     반환은 양수, 사용·회수는 0 이하). `reason` 은 사유 코드 — diet_entry ·
     exercise_manual · routine_complete · coupon_<항목> · streak_shield · graph_color ·
-    emote_pass_24h · profile_pet · weekly_report · challenge_stake ·
-    challenge_reward · ai_chat. `count` 는 묶은 줄 수로, AI 코치 대화(`ai_chat`)만
+    emote_unlock · emote_pass_24h(지난 24시간 이용권, #2020) · profile_pet ·
+    weekly_report · challenge_stake · challenge_reward · ai_chat. `count` 는 묶은 줄 수로, AI 코치 대화(`ai_chat`)만
     하루치를 한 줄로 묶어 1 보다 크다.
     """
 

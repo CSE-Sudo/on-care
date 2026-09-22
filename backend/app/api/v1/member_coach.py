@@ -223,13 +223,13 @@ def send_to_coach(
     text = payload.text.strip()
     emote_id = payload.emote_id
     if emote_id is not None:
-        # 이모티콘은 회원이 포인트로 산 24시간 이용권 안에서만 보낸다(#2020).
+        # 이모티콘은 회원이 포인트로 산 것만, 산 때부터 7일 동안 보낸다(#2153).
         # 모르는 id 를 저장하면 앱이 그리지 못하는 빈 말풍선이 대화에 남는다.
         if not emote_service.is_known(emote_id):
             raise HTTPException(status_code=400, detail="없는 이모티콘이에요.")
         try:
-            emote_service.require_pass(db, member.id)
-        except emote_service.PassRequired as exc:
+            emote_service.require_unlocked(db, member.id, emote_id)
+        except emote_service.EmoteLocked as exc:
             raise HTTPException(status_code=402, detail=str(exc)) from exc
         # 본문은 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽는다.
         text = text or "(이모티콘)"

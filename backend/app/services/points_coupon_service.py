@@ -52,7 +52,6 @@ from app.schemas.points_api import (
 )
 from app.schemas.profile_pet_api import ProfilePetOut
 from app.services import (
-    emote_service,
     graph_color_service,
     notification_service,
     points_service,
@@ -75,8 +74,6 @@ BLOCK_MONTHLY_LIMIT = "monthly_limit"
 BLOCK_INSUFFICIENT = "insufficient_points"
 #: 쓰지 않은 연속 기록 보호권을 이미 최대로 가지고 있다(#1788).
 BLOCK_SHIELD_LIMIT = "shield_limit"
-#: 이용 중인 이모티콘 이용권이 있다(#2020). 남은 시간이 지나야 다시 산다.
-BLOCK_ACTIVE_PASS = "active_pass"
 #: 기간이 남은 프로필 펫 이모지를 달고 있다(#2021). 기간이 끝나야 다시 산다.
 BLOCK_ACTIVE_PET = "active_pet"
 #: 지난주 주간 리포트를 이미 받았다(#2022). 다음 주가 끝나야 다시 산다.
@@ -155,21 +152,6 @@ GRAPH_COLOR = ShopItem(
     valid_days=0,
 )
 
-#: 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니다. 교환하면 `emote_passes` 에
-#: 한 장이 생기고, 그 시각부터 24시간 동안 트레이너 채팅에서 이모티콘을 보낸다.
-#: 기한이 날이 아니라 시간이라 `valid_days` 는 1 이다(화면은 이 값을 쓰지 않는다).
-#: 트레이너 채팅에만 쓰이므로 담당이 있어야 교환한다(#2142). 목록에서 빼지 않고
-#: `no_trainer` 로 막아 둔다 — 트레이너와 연결하면 쓸 수 있다는 것이 보여야 한다.
-EMOTE_PASS = ShopItem(
-    id=emote_service.ITEM_ID,
-    title="채팅 이모티콘 24시간",
-    benefit="트레이너 채팅 이모티콘 24시간",
-    description="산 때부터 24시간 동안 트레이너 채팅에서 이모티콘을 모두 쓸 수 있어요.",
-    cost=emote_service.COST,
-    valid_days=1,
-    requires_trainer=True,
-)
-
 #: MY 프로필 펫 이모지(#2021) — 쿠폰이 아니다. 교환하면 고른 펫(강아지·고양이)이
 #: 7일 동안 MY 프로필 이름 옆에 붙는다. 고른 펫은 교환 요청의 `option` 이 싣는다.
 #: 규칙은 `profile_pet_service` 가 들고 있다.
@@ -200,7 +182,6 @@ CATALOG: tuple[ShopItem, ...] = (
     LOCKER_MONTH,
     STREAK_SHIELD,
     GRAPH_COLOR,
-    EMOTE_PASS,
     PROFILE_PET,
     WEEKLY_REPORT,
 )
@@ -259,8 +240,10 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
 
     막힌 이유는 하나만 준다. 순서는 교환([exchange])이 거절하는 순서와 같다 —
     자격(담당 없음·헬스장 없음) → 사용 가능한 같은 쿠폰 → 보호권 최대 보유 →
-    이용 중인 이모티콘 이용권 → 달고 있는 프로필 펫 → 이미 받은 지난주 리포트 →
-    이번 달 교환 → 잔액 부족.
+    달고 있는 프로필 펫 → 이미 받은 지난주 리포트 → 이번 달 교환 → 잔액 부족.
+
+    채팅 이모티콘은 여기서 팔지 않는다(#2153) — 하나씩 사므로 무엇을 사는지는
+    채팅의 이모티콘 창에서 봐야 알 수 있다.
 
     주간 리포트는 **담당 트레이너가 있는 회원에게는 싣지 않는다**(#2022) — 트레이너가
     등록해 주므로 살 이유가 없고, 막힌 카드로 남겨 두면 목록만 길어진다.
@@ -284,9 +267,6 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
     # 네 색을 모두 연 회원에게는 그래프 색 항목을 아예 싣지 않는다(#2076) — 더 살 게
     # 없는 카드를 막힌 채 남겨 두면 목록만 길어진다. 색 바꾸기는 기록 그래프에서 한다.
     all_colors = graph_color_service.all_unlocked(db, member_id)
-    # 이용 중인 이모티콘 이용권이 있으면 또 사지 못한다 — 같은 하루를 두 번 사는
-    # 셈이 된다. 남은 시간은 채팅의 고르는 창이 보여 준다(#2020).
-    emote_pass_active = emote_service.active_pass(db, member_id) is not None
     # 달고 있는 펫이 있으면 또 사지 못한다 — 대신 카드가 남은 기간을 보여 준다(#2021).
     pet = profile_pet_service.pet_out(profile_pet_service.active_pet(db, member_id))
     # 지난주 리포트를 이미 받았으면 같은 주를 또 사지 못한다(#2022).
@@ -312,8 +292,6 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
             and shields_held >= streak_shield_service.MAX_HELD
         ):
             blocked = BLOCK_SHIELD_LIMIT
-        elif item.id == EMOTE_PASS.id and emote_pass_active:
-            blocked = BLOCK_ACTIVE_PASS
         elif item.id == PROFILE_PET.id and pet is not None:
             blocked = BLOCK_ACTIVE_PET
         elif item.id == WEEKLY_REPORT.id and report_owned:
@@ -421,12 +399,6 @@ def exchange(
         # 쿠폰이 아니라 고른 펫이 7일 동안 이름 옆에 붙는다 — 펫은 `option` 이 싣는다(#2021).
         return profile_pet_service.exchange(
             db, member_id, option, client_request_id=client_request_id
-        )
-    if item.id == EMOTE_PASS.id:
-        # 쿠폰이 아니라 24시간 이용권이 생긴다 — 표도 규칙도 따로다(#2020).
-        emote_service.buy(db, member_id, client_request_id=client_request_id)
-        return ExchangeOut(
-            spent=EMOTE_PASS.cost, balance=points_service.balance(db, member_id)
         )
     if item.id == STREAK_SHIELD.id:
         # 쿠폰이 아니라 보호권 한 장이 생긴다 — 보유 한도와 표가 따로다(#1788).

@@ -253,7 +253,6 @@ def test_shop_lists_items_with_block_reasons(client, db_session, trainer_id, gym
         "locker_month",
         "streak_shield",
         "graph_color",
-        "emote_pass_24h",
         "profile_pet",
         "weekly_report",
     ]
@@ -296,14 +295,13 @@ def test_catalog_is_gym_benefits_only(client, db_session):
 
     items = client.get("/v1/me/points/shop", headers=h).json()["items"]
     # 사용처는 헬스장 혜택 두 장과 연속 기록 보호권(#1788), 그래프 색 바꾸기(#2076),
-    # 채팅 이모티콘 24시간 이용권(#2020), 프로필 펫 이모지(#2021), 담당이 없는
-    # 회원의 주간 리포트(#2022)다. 카탈로그 밖 항목은 교환하면 404 다.
+    # 프로필 펫 이모지(#2021), 담당이 없는 회원의 주간 리포트(#2022)다. 채팅
+    # 이모티콘은 채팅의 이모티콘 창에서 하나씩 산다(#2153). 카탈로그 밖 항목은 교환하면 404 다.
     assert [i["id"] for i in items] == [
         "pt_renewal",
         "locker_month",
         "streak_shield",
         "graph_color",
-        "emote_pass_24h",
         "profile_pet",
         "weekly_report",
     ]

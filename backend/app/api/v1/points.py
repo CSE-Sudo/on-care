@@ -32,7 +32,6 @@ from app.schemas.points_api import (
 from app.schemas.profile_pet_api import ProfilePetStateOut
 from app.schemas.weekly_report_api import WeeklyReportListOut
 from app.services import (
-    emote_service,
     graph_color_service,
     points_coupon_service,
     points_history_service,
@@ -92,8 +91,6 @@ def exchange_points(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except (
         points_coupon_service.TrainerRequired,
-        emote_service.TrainerRequired,
-        emote_service.PassAlreadyActive,
         points_coupon_service.GymRequired,
         points_coupon_service.ActiveCouponExists,
         streak_shield_service.ShieldLimitReached,

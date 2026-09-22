@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
-import 'package:oncare/core/points/demo_emote_pass.dart';
+import 'package:oncare/core/points/demo_emote_book.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
@@ -178,7 +178,7 @@ final coachInvitesProvider = StreamProvider.autoDispose<List<CoachInvite>>((
 /// 채팅 이모티콘 이용권 저장소. (#2020)
 final emoteRepositoryProvider = Provider<EmoteRepository>((ref) {
   if (ref.watch(appConfigProvider).useMockApi) {
-    return MockEmoteRepository(ref.watch(demoEmotePassBookProvider));
+    return MockEmoteRepository(ref.watch(demoEmoteBookProvider));
   }
   return DioEmoteRepository(ref.watch(dioProvider));
 });

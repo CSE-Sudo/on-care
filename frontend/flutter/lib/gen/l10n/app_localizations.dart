@@ -2690,6 +2690,12 @@ abstract class AppLocalizations {
   /// **'Chat emotes for 24 hours'**
   String get myPointsReasonEmotePass;
 
+  /// No description provided for @myPointsReasonEmoteUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat emote'**
+  String get myPointsReasonEmoteUnlock;
+
   /// No description provided for @myPointsReasonProfilePet.
   ///
   /// In en, this message translates to:
@@ -3086,89 +3092,137 @@ abstract class AppLocalizations {
   /// **'Emotes'**
   String get emoteSheetTitle;
 
-  /// No description provided for @emotePassActive.
+  /// No description provided for @emoteSheetInfo.
   ///
   /// In en, this message translates to:
-  /// **'Emotes are on'**
-  String get emotePassActive;
+  /// **'{cost}P each · yours for {days} days from purchase'**
+  String emoteSheetInfo(int cost, int days);
 
-  /// No description provided for @emotePassRemaining.
-  ///
-  /// In en, this message translates to:
-  /// **'{left} left'**
-  String emotePassRemaining(String left);
-
-  /// No description provided for @emotePassOffer.
-  ///
-  /// In en, this message translates to:
-  /// **'Use them all for {hours} hours for {cost}P'**
-  String emotePassOffer(int cost, int hours);
-
-  /// No description provided for @emotePassBalance.
+  /// No description provided for @emoteBalance.
   ///
   /// In en, this message translates to:
   /// **'You have {balance}P'**
-  String emotePassBalance(int balance);
+  String emoteBalance(int balance);
 
-  /// No description provided for @emotePassShortfall.
+  /// No description provided for @emoteOwnedSection.
   ///
   /// In en, this message translates to:
-  /// **'{shortfall}P more and they are yours (you have {balance}P)'**
-  String emotePassShortfall(int shortfall, int balance);
+  /// **'Yours'**
+  String get emoteOwnedSection;
+
+  /// No description provided for @emotePackOwoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout done'**
+  String get emotePackOwoon;
+
+  /// No description provided for @emotePackLegday.
+  ///
+  /// In en, this message translates to:
+  /// **'Leg day'**
+  String get emotePackLegday;
+
+  /// No description provided for @emotePackDiet.
+  ///
+  /// In en, this message translates to:
+  /// **'Diet'**
+  String get emotePackDiet;
+
+  /// No description provided for @emotePackCoach.
+  ///
+  /// In en, this message translates to:
+  /// **'With coach'**
+  String get emotePackCoach;
+
+  /// No description provided for @emotePackCondition.
+  ///
+  /// In en, this message translates to:
+  /// **'Condition'**
+  String get emotePackCondition;
+
+  /// No description provided for @emotePackReact.
+  ///
+  /// In en, this message translates to:
+  /// **'Reactions'**
+  String get emotePackReact;
+
+  /// No description provided for @emotePackDog.
+  ///
+  /// In en, this message translates to:
+  /// **'Doggo'**
+  String get emotePackDog;
+
+  /// No description provided for @emotePackCat.
+  ///
+  /// In en, this message translates to:
+  /// **'Kitty'**
+  String get emotePackCat;
+
+  /// No description provided for @emotePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'{cost}P'**
+  String emotePrice(int cost);
+
+  /// No description provided for @emoteLeftDays.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d left'**
+  String emoteLeftDays(int days);
+
+  /// No description provided for @emoteLeftHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h left'**
+  String emoteLeftHours(int hours);
+
+  /// No description provided for @emoteLeftSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Ending'**
+  String get emoteLeftSoon;
 
   /// No description provided for @emoteBuyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Emote pass'**
+  /// **'Buy emote'**
   String get emoteBuyTitle;
 
   /// No description provided for @emoteBuyConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Spend {cost}P to use every emote for {hours} hours? The clock starts the moment you buy.'**
-  String emoteBuyConfirm(int cost, int hours);
+  /// **'Use this emote for {days} days for {cost}P? The days start the moment you buy.'**
+  String emoteBuyConfirm(int cost, int days);
 
   /// No description provided for @emoteBuyAction.
   ///
   /// In en, this message translates to:
-  /// **'Buy pass'**
+  /// **'Buy'**
   String get emoteBuyAction;
 
   /// No description provided for @emoteBought.
   ///
   /// In en, this message translates to:
-  /// **'You can send emotes now'**
+  /// **'You can send this emote now'**
   String get emoteBought;
 
   /// No description provided for @emoteBuyFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not buy the pass. Please try again in a moment.'**
+  /// **'We could not buy the emote. Please try again in a moment.'**
   String get emoteBuyFailed;
+
+  /// No description provided for @emoteShortfall.
+  ///
+  /// In en, this message translates to:
+  /// **'{shortfall}P more to buy it (you have {balance}P)'**
+  String emoteShortfall(int shortfall, int balance);
 
   /// No description provided for @emoteLoadFailed.
   ///
   /// In en, this message translates to:
   /// **'We could not load the emotes'**
   String get emoteLoadFailed;
-
-  /// No description provided for @emoteRemainingHm.
-  ///
-  /// In en, this message translates to:
-  /// **'{hours}h {minutes}m'**
-  String emoteRemainingHm(int hours, int minutes);
-
-  /// No description provided for @emoteRemainingM.
-  ///
-  /// In en, this message translates to:
-  /// **'{minutes}m'**
-  String emoteRemainingM(int minutes);
-
-  /// No description provided for @emoteRemainingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Ending soon'**
-  String get emoteRemainingSoon;
 
   /// No description provided for @emoteSendFailed.
   ///
