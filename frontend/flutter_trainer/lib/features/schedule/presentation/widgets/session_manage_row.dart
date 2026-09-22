@@ -12,8 +12,8 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 ///  * **갈래로 묶는다.** "이 약속이 어떻게 끝났나"(완료·취소·노쇼) / "일정을
 ///    손본다"(수정·삭제) 를 구분선으로 가른다.
-///  * **자주 쓰는 것만 글씨로 남긴다.** 매 세션마다 누르는 `완료` 는 글씨를
-///    지키고, 나머지는 아이콘으로 줄인다. 아이콘만으로는 무엇인지 말하지
+///  * **자주 쓰는 것만 글씨로 남긴다.** 매 세션마다 누르는 `완료`·`취소 처리`
+///    는 글씨를 지키고(#2176), 나머지는 아이콘으로 줄인다. 아이콘만으로는 무엇인지 말하지
 ///    못하므로 툴팁(= 시맨틱 라벨)을 반드시 함께 단다.
 ///
 /// `채팅` 은 이 줄에서 뺐다(#2179) — 회원과의 대화는 메시지 화면이 맡는다.
@@ -89,12 +89,15 @@ class SessionManageRow extends StatelessWidget {
           size: OnCareButtonSize.small,
           onPressed: onComplete,
         ),
+      // `완료` 와 같은 모양으로 선다(#2176) — 아이콘만 두었더니 같은 갈래의
+      // 두 동작이 서로 다른 무게로 읽혔다.
       if (onCancel != null)
-        AppIconButton(
+        AppButton(
           key: const ValueKey<String>('session-cancel-chip'),
-          icon: Icons.event_busy_rounded,
-          tooltip: l.schedCancel,
-          color: OnCareColors.textSecondary,
+          leadingIcon: Icons.event_busy_rounded,
+          label: l.schedCancel,
+          variant: AppButtonVariant.secondary,
+          size: OnCareButtonSize.small,
           onPressed: onCancel,
         ),
       if (onNoShow != null)

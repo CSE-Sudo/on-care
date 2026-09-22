@@ -214,6 +214,22 @@ void main() {
       expect(tester.widget<AppButton>(confirm).onPressed, isNotNull);
     });
 
+    testWidgets('취소 처리는 완료와 같은 모양의 글씨 버튼이다 (#2176)', (tester) async {
+      await openSchedule(tester);
+      await openSession(tester, '박성호');
+
+      final AppButton complete = tester.widget<AppButton>(
+        find.byKey(const ValueKey<String>('session-complete-chip')),
+      );
+      final AppButton cancel = tester.widget<AppButton>(
+        find.byKey(const ValueKey<String>('session-cancel-chip')),
+      );
+      expect(cancel.label, '취소 처리');
+      expect(cancel.leadingIcon, isNotNull);
+      expect(cancel.variant, complete.variant);
+      expect(cancel.size, complete.size);
+    });
+
     testWidgets('취소한 세션은 목록에 남고 상태와 기록을 보여 준다', (tester) async {
       await openSchedule(tester);
       await openSession(tester, '박성호');
