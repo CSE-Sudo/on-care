@@ -14,14 +14,13 @@ import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// One client's week, ready to send.
-class ClientReportView extends StatelessWidget {
+class ClientReportView extends StatefulWidget {
   const ClientReportView({
     super.key,
     required this.report,
     required this.showSummary,
     required this.draftEpoch,
-    required this.canRestoreDraft,
-    required this.onRestoreDraft,
+    required this.summaryEpoch,
     required this.initialFeedback,
     required this.onUseSummaryAsDraft,
     required this.onFeedbackChanged,
@@ -40,11 +39,9 @@ class ClientReportView extends StatelessWidget {
   /// 바뀌면 입력창을 새 문구로 다시 만든다.
   final int draftEpoch;
 
-  /// 입력창이 자동 생성 초안과 달라져 되돌릴 것이 있는가.
-  final bool canRestoreDraft;
-
-  /// 입력창을 자동 생성 초안으로 되돌린다.
-  final VoidCallback onRestoreDraft;
+  /// 요약을 초안으로 가져올 때 올린다. [draftEpoch] 와 달리 입력창을 새로
+  /// 만들지 않고 그 안의 글을 바꿔, 가져오기 전 글로 되돌릴 수 있다(#2187).
+  final int summaryEpoch;
 
   final String initialFeedback;
 
@@ -65,67 +62,123 @@ class ClientReportView extends StatelessWidget {
   final Widget weekNav;
 
   @override
+  State<ClientReportView> createState() => _ClientReportViewState();
+}
+
+class _ClientReportViewState extends State<ClientReportView> {
+  /// 피드백 입력창의 편집 기록을 제목 줄 버튼과 잇는다(#2187).
+  ///
+  /// `초안으로 되돌리기` 는 고친 내용을 한 번에 전부 버렸다. 문서 편집기처럼
+  /// 한 단계씩 앞뒤로 오가게 한다. 입력창이 새로 만들어지면(키가 바뀌면)
+  /// 기록도 새로 시작하므로 컨트롤러도 새로 둔다 — 지난 입력창이 남긴
+  /// `되돌릴 수 있음` 이 새 입력창의 버튼을 켜 두지 않게.
+  UndoHistoryController _undo = UndoHistoryController();
+
+  String get _editorKey =>
+      'feedback-${widget.report.client.id}-'
+      '${widget.report.weekStart.toIso8601String()}-${widget.draftEpoch}';
+
+  late String _undoFor = _editorKey;
+
+  @override
+  void didUpdateWidget(ClientReportView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_editorKey == _undoFor) return;
+    _undoFor = _editorKey;
+    // 지난 입력창은 이번 프레임이 끝나야 떨어져 나가며 컨트롤러에서 손을
+    // 뗀다. 그 전에 치우면 이미 치운 것을 건드린다.
+    final UndoHistoryController old = _undo;
+    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+    _undo = UndoHistoryController();
+  }
+
+  @override
+  void dispose() {
+    _undo.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final bool hasWeek = report.weekCompletion.length == weekdayCount;
+    final bool hasWeek = widget.report.weekCompletion.length == weekdayCount;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         _SectionCard(
-          title: l.reportsClientWeekly(report.client.name),
+          title: l.reportsClientWeekly(widget.report.client.name),
           icon: Icons.description_rounded,
           // 고객 이름·나이는 적지 않는다 — 카드 제목이 이미 누구의 리포트인지
           // 말하고, 왼쪽 목록에서 방금 고른 고객이다(#1177). 그 자리를 주
           // 이동이 가져간다: 옮기는 것은 이 카드의 내용이다.
-          trailing: weekNav,
-          child: MetricComparisonSection(report: report),
+          trailing: widget.weekNav,
+          child: MetricComparisonSection(report: widget.report),
         ),
-        if (showSummary) ...<Widget>[
+        if (widget.showSummary) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s16),
-          ReportAiCard(report: report, onUseAsDraft: onUseSummaryAsDraft),
+          ReportAiCard(
+            report: widget.report,
+            onUseAsDraft: widget.onUseSummaryAsDraft,
+          ),
         ],
         const SizedBox(height: OnCareSpacing.s16),
         _SectionCard(
           title: l.reportsFeedbackTitle,
           // 저장 버튼을 제목 행에 둔다 — 입력창 위에 버튼만 있는 줄이 따로
           // 있으면 카드가 그만큼 세로로 늘어난다.
-          // 되돌리기를 저장 옆에 둔다 — 입력창을 되돌릴 수단이 그 입력창 바로
-          // 위에 있어야 한다.
+          // 되돌리기·다시 실행을 저장 옆에 둔다 — 입력창을 되돌릴 수단이 그
+          // 입력창 바로 위에 있어야 한다. 되돌릴 것이 없으면 꺼 둔다(#2187).
           //
-          // 지난 주에는 둘 다 없다. 트레이너가 손볼 것은 이번 주에 보낼 글이고,
+          // 지난 주에는 모두 없다. 트레이너가 손볼 것은 이번 주에 보낼 글이고,
           // 이미 지나간 주의 초안을 저장해 둘 자리는 없다(#1177).
-          trailing: report.isCurrentWeek
+          trailing: widget.report.isCurrentWeek
               ? Row(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    AppButton(
-                      label: l.reportsFeedbackRestore,
-                      leadingIcon: Icons.undo_rounded,
-                      variant: AppButtonVariant.secondary,
-                      size: OnCareButtonSize.small,
-                      onPressed: canRestoreDraft ? onRestoreDraft : null,
+                    ValueListenableBuilder<UndoHistoryValue>(
+                      valueListenable: _undo,
+                      builder: (context, history, _) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          AppIconButton(
+                            key: const ValueKey<String>('report-feedback-undo'),
+                            icon: Icons.undo_rounded,
+                            tooltip: l.reportsFeedbackUndo,
+                            size: AppIconButtonSize.small,
+                            onPressed: history.canUndo ? _undo.undo : null,
+                          ),
+                          AppIconButton(
+                            key: const ValueKey<String>('report-feedback-redo'),
+                            icon: Icons.redo_rounded,
+                            tooltip: l.reportsFeedbackRedo,
+                            size: AppIconButtonSize.small,
+                            onPressed: history.canRedo ? _undo.redo : null,
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(width: OnCareSpacing.buttonGap),
                     AppButton(
                       key: const ValueKey<String>('report-feedback-save'),
-                      label: savingFeedback
+                      label: widget.savingFeedback
                           ? l.reportsFeedbackSaving
                           : l.reportsFeedbackSave,
                       leadingIcon: Icons.save_rounded,
                       variant: AppButtonVariant.secondary,
                       size: OnCareButtonSize.small,
-                      onPressed: savingFeedback ? null : onSaveFeedback,
+                      onPressed: widget.savingFeedback
+                          ? null
+                          : widget.onSaveFeedback,
                     ),
                   ],
                 )
               : null,
           child: ReportFeedbackEditor(
-            key: ValueKey<String>(
-              'feedback-${report.client.id}-'
-              '${report.weekStart.toIso8601String()}-$draftEpoch',
-            ),
-            initialText: initialFeedback,
-            onChanged: onFeedbackChanged,
+            key: ValueKey<String>(_editorKey),
+            initialText: widget.initialFeedback,
+            undoController: _undo,
+            replaceEpoch: widget.summaryEpoch,
+            onChanged: widget.onFeedbackChanged,
           ),
         ),
         const SizedBox(height: OnCareSpacing.s16),
@@ -137,7 +190,7 @@ class ClientReportView extends StatelessWidget {
           title: l.reportsBurnByDay,
           // 한 주를 요약하는 세 값은 제목 줄에 둔다. 카드 안에서 큰 숫자로
           // 다시 보여 주면 그래프가 아래로 밀린다(#754 의 반복).
-          trailing: _WeekSummaryChips(report: report),
+          trailing: _WeekSummaryChips(report: widget.report),
           trailingFlexible: true,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -145,7 +198,7 @@ class ClientReportView extends StatelessWidget {
               // 계열은 리포트가 자기 주의 것을 들고 온다 — 보고 있는 주가
               // 어디든 같은 규칙으로 그린다(#752).
               if (hasWeek)
-                WeeklyCompletionChart(report: report)
+                WeeklyCompletionChart(report: widget.report)
               else
                 AppEmptyState(
                   title: l.reportsNoWorkoutsThisWeek,
@@ -156,17 +209,17 @@ class ClientReportView extends StatelessWidget {
                 const SizedBox(height: OnCareSpacing.s12),
                 // 막대 바로 아래에 그날의 운동 내역. 67% 가 어디서 나온
                 // 값인지 같은 카드 안에서 답이 난다(#754).
-                ReportDailyDetail(report: report),
+                ReportDailyDetail(report: widget.report),
                 const _SectionDivider(),
                 // 이행률이 말하지 않는 값 — 그 주에 실제로 움직인 시간이다.
-                WeeklyExerciseMinutes(report: report),
+                WeeklyExerciseMinutes(report: widget.report),
               ],
-              if (report.completionAvg != null) ...<Widget>[
+              if (widget.report.completionAvg != null) ...<Widget>[
                 const _SectionDivider(),
                 // 마지막 줄에 보고 있는 주를 앞선 세 주 옆에 놓는다. 며칠을
                 // 나눈 값인지는 따로 적지 않는다 — 값이 있는 막대를 세면
                 // 나온다(#754).
-                FourWeekComplianceTrend(report: report),
+                FourWeekComplianceTrend(report: widget.report),
               ],
             ],
           ),
@@ -177,7 +230,7 @@ class ClientReportView extends StatelessWidget {
           // 그 옆에 지표 하나의 수치만 붙어 있었고, 같은 값은 요약 카드의 근거
           // 줄과 4주 막대의 빨강이 이미 말한다(#1177).
           title: l.reportsDietTrend,
-          child: MetricTrendSection(report: report),
+          child: MetricTrendSection(report: widget.report),
         ),
       ],
     );

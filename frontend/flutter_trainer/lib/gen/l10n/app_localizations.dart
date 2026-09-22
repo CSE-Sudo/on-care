@@ -6400,11 +6400,17 @@ abstract class AppLocalizations {
   /// **'A draft filled in from this week\'s figures. Check it over before sending.'**
   String get reportsFeedbackDraftNote;
 
-  /// No description provided for @reportsFeedbackRestore.
+  /// No description provided for @reportsFeedbackUndo.
   ///
   /// In en, this message translates to:
-  /// **'Restore draft'**
-  String get reportsFeedbackRestore;
+  /// **'Undo'**
+  String get reportsFeedbackUndo;
+
+  /// No description provided for @reportsFeedbackRedo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get reportsFeedbackRedo;
 
   /// No description provided for @reportsFeedbackSave.
   ///
