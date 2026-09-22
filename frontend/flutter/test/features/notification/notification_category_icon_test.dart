@@ -18,6 +18,7 @@ import 'package:oncare/features/notification/domain/repositories/notification_re
 import 'package:oncare/features/notification/presentation/controllers/notification_controller.dart';
 import 'package:oncare/features/notification/presentation/pages/notification_page.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 const AppConfig _realConfig = AppConfig(
   environment: Environment.prod,
@@ -154,6 +155,29 @@ void main() {
       tester.widget<Semantics>(_rowOf('health_goals')).properties.label,
       isNot('시스템'),
     );
+  });
+
+  // 흰 원 없이 본문과 같은 회색 아이콘만 둔다 — 읽음 상태는 줄 바탕이 말한다.
+  testWidgets('갈래 아이콘은 원 없이 회색으로 그린다', (WidgetTester tester) async {
+    await _pump(tester);
+
+    for (final String wire in _expected.keys) {
+      final Icon icon = tester.widget<Icon>(
+        find.descendant(of: _rowOf(wire), matching: find.byType(Icon)),
+      );
+      expect(icon.color, OnCareColors.textSecondary, reason: wire);
+      final Iterable<BoxDecoration> circles = tester
+          .widgetList<DecoratedBox>(
+            find.descendant(
+              of: _rowOf(wire),
+              matching: find.byType(DecoratedBox),
+            ),
+          )
+          .map((DecoratedBox b) => b.decoration)
+          .whereType<BoxDecoration>()
+          .where((BoxDecoration d) => d.shape == BoxShape.circle);
+      expect(circles, isEmpty, reason: wire);
+    }
   });
 
   testWidgets('포인트 별은 알림 갈래에 쓰지 않는다', (WidgetTester tester) async {

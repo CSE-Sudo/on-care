@@ -318,27 +318,26 @@ class _AlertTile extends StatelessWidget {
   }
 }
 
-/// 알림 줄 왼쪽의 흰 원 — 옅은 테두리 안에 갈래 아이콘. 줄 바탕이 파래도 원은
-/// 흰색이라 아이콘이 묻히지 않는다.
+/// 알림 줄 왼쪽의 갈래 아이콘 — 원 없이 아이콘만 둔다(#2084).
+///
+/// 흰 원을 두르면 줄마다 동그라미가 하나씩 서서 목록이 무거워 보였다. 자리 폭은
+/// 원이 있던 때와 같게 두어 제목·본문이 시작하는 위치는 그대로다. 색은 본문과 같은
+/// 회색이라 글 흐름에 섞이고, 읽음 상태는 아이콘이 아니라 줄 바탕이 말한다.
 class _CategoryBadge extends StatelessWidget {
   const _CategoryBadge({required this.icon});
   final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        shape: BoxShape.circle,
-        border: Border.all(color: OnCareColors.lineSubtle),
-      ),
-      child: AppIcon(
-        icon,
-        size: OnCareSize.iconMedium,
-        color: OnCareColors.textSecondary,
+      child: Center(
+        child: AppIcon(
+          icon,
+          size: OnCareSize.iconMedium,
+          color: OnCareColors.textSecondary,
+        ),
       ),
     );
   }
