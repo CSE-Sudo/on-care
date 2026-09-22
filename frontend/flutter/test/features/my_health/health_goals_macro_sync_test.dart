@@ -33,6 +33,9 @@ Future<void> _openHealthGoals(WidgetTester tester) async {
     ),
   );
   await tester.pumpAndSettle();
+  // 건강 목표는 보기 모드로 열린다 — 연필을 눌러야 칸이 열린다(#2132).
+  await tester.tap(find.byKey(const Key('goalsEditButton')));
+  await tester.pumpAndSettle();
 }
 
 Finder _field(String key) =>
@@ -57,6 +60,20 @@ String _text(WidgetTester tester, String key) =>
 
 String _calories(WidgetTester tester) =>
     _fieldByLabel(tester, '일일 칼로리 제한 (kcal)').controller!.text;
+
+/// 권장 안내 줄의 전체 문구.
+///
+/// 줄이 항목 중간(`스트레칭 60` / `분`)에서 끊기지 않게 항목마다 따로 세우므로
+/// (#2140), 화면에는 한 문장이 여러 Text 로 나뉘어 있다. 붙여서 읽는다.
+String _suggestionNote(WidgetTester tester, String marker) {
+  final Finder wrap = find
+      .ancestor(of: find.textContaining(marker), matching: find.byType(Wrap))
+      .first;
+  return tester
+      .widgetList<Text>(find.descendant(of: wrap, matching: find.byType(Text)))
+      .map((Text t) => t.data!)
+      .join();
+}
 
 void main() {
   testWidgets('화면을 열자마자는 저장된 값이 그대로 남는다', (tester) async {
@@ -156,7 +173,7 @@ void main() {
 
     // 버튼은 탄단지에 더해 당류 칸도 덮는다. 안내 줄이 셋만 말하면, 당류를
     // 낮춰 둔 회원이 탄단지만 맞추려다 말한 적 없는 값을 바꾸게 된다.
-    final String note = tester.widget<Text>(find.textContaining('권장 배분')).data!;
+    final String note = _suggestionNote(tester, '권장 배분');
     final RegExpMatch? sugar = RegExp(r'당류 (\d+)g').firstMatch(note);
     expect(sugar, isNotNull, reason: '안내 줄이 당류를 말하지 않는다: $note');
 

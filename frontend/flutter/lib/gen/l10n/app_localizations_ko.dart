@@ -3238,6 +3238,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGoalWorkoutCalories => '주간 소모 칼로리 목표 (kcal)';
 
   @override
+  String get myGoalUnsetHint => '흐린 값은 목표를 세우기 전의 기본 기준이에요';
+
+  @override
   String get myGoalsSaved => '건강 목표가 저장되었어요';
 
   @override

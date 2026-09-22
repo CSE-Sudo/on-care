@@ -69,7 +69,7 @@ def _with_trainer(client, db_session, points: int = 0):
 
 
 def test_pass_costs_points_and_lasts_a_day(client, db_session):
-    member_id, headers = _new_member(client, db_session, points=1000)
+    member_id, headers, _, _ = _with_trainer(client, db_session, points=1000)
 
     before = client.get("/v1/me/emotes", headers=headers).json()
     assert before["pass"] is None
@@ -85,7 +85,7 @@ def test_pass_costs_points_and_lasts_a_day(client, db_session):
 
 
 def test_buying_twice_is_blocked_while_the_pass_is_alive(client, db_session):
-    _, headers = _new_member(client, db_session, points=1000)
+    _, headers, _, _ = _with_trainer(client, db_session, points=1000)
     client.post("/v1/me/emotes/pass", json={}, headers=headers)
 
     again = client.post("/v1/me/emotes/pass", json={}, headers=headers)
@@ -96,7 +96,7 @@ def test_buying_twice_is_blocked_while_the_pass_is_alive(client, db_session):
 
 
 def test_retrying_the_same_purchase_spends_once(client, db_session):
-    _, headers = _new_member(client, db_session, points=1000)
+    _, headers, _, _ = _with_trainer(client, db_session, points=1000)
     key = uuid4().hex
 
     first = client.post(
@@ -111,7 +111,7 @@ def test_retrying_the_same_purchase_spends_once(client, db_session):
 
 
 def test_not_enough_points(client, db_session):
-    _, headers = _new_member(client, db_session, points=10)
+    _, headers, _, _ = _with_trainer(client, db_session, points=10)
 
     r = client.post("/v1/me/emotes/pass", json={}, headers=headers)
 
@@ -191,7 +191,7 @@ def test_trainer_sends_without_a_pass(client, db_session):
 
 
 def test_points_shop_sells_the_pass_and_hides_it_while_active(client, db_session):
-    _, headers = _new_member(client, db_session, points=1000)
+    _, headers, _, _ = _with_trainer(client, db_session, points=1000)
 
     items = {i["id"]: i for i in client.get("/v1/me/points/shop", headers=headers).json()["items"]}
     assert items[emote_service.ITEM_ID]["cost"] == emote_service.COST
@@ -209,3 +209,23 @@ def test_points_shop_sells_the_pass_and_hides_it_while_active(client, db_session
     after = {i["id"]: i for i in client.get("/v1/me/points/shop", headers=headers).json()["items"]}
     assert after[emote_service.ITEM_ID]["available"] is False
     assert after[emote_service.ITEM_ID]["blocked_reason"] == "active_pass"
+
+
+def test_member_without_a_trainer_cannot_buy_the_pass(client, db_session):
+    """이모티콘은 트레이너 채팅에만 있다 — 담당이 없으면 사지 못한다(#2142)."""
+    _, headers = _new_member(client, db_session, points=1000)
+
+    card = next(
+        i
+        for i in client.get("/v1/me/points/shop", headers=headers).json()["items"]
+        if i["id"] == emote_service.ITEM_ID
+    )
+    assert (card["available"], card["blocked_reason"]) == (False, "no_trainer")
+    exchanged = client.post(
+        "/v1/me/points/exchange",
+        json={"item": emote_service.ITEM_ID},
+        headers=headers,
+    )
+    assert exchanged.status_code == 409
+    assert client.post("/v1/me/emotes/pass", json={}, headers=headers).status_code == 409
+    assert client.get("/v1/me/emotes", headers=headers).json()["balance"] == 1000
