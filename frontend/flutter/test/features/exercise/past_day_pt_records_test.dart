@@ -13,12 +13,12 @@ import 'package:oncare/features/exercise/domain/repositories/exercise_repository
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/pages/exercise_page.dart';
 import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 import '../../helpers/fixed_clock.dart';
-
 
 /// 지난 날짜의 PT 기록이 **제 제목 아래** 선다. (#1884)
 ///
@@ -114,6 +114,18 @@ class _FixedWeekRepository implements ExerciseRepository {
   }) async => throw UnimplementedError();
 }
 
+/// 그날 걸려 있던 추천 개인운동 목록을 **모르는** 코치 저장소. (#2161)
+///
+/// 지난 날짜는 원래 그날의 체크 목록(읽기 전용)으로 추천 개인운동을 보여 준다.
+/// 이 시험이 보는 `완료한 개인운동` 기록 카드는 목록을 알 수 없을 때(담당이
+/// 바뀌어 옛 목록이 지금 담당의 것이 아닐 때) 한 운동을 잃지 않으려고 서는
+/// 자리다. 그 경우를 만든다.
+class _NoDayListCoachRepository extends MockMemberCoachRepository {
+  @override
+  Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async =>
+      const <CoachRoutine>[];
+}
+
 Widget _app(ExerciseRepository repo) => ProviderScope(
   overrides: <Override>[
     appConfigProvider.overrideWithValue(
@@ -126,7 +138,7 @@ Widget _app(ExerciseRepository repo) => ProviderScope(
     exerciseRepositoryProvider.overrideWithValue(repo),
     accountRepositoryProvider.overrideWithValue(MockAccountRepository()),
     memberCoachRepositoryProvider.overrideWithValue(
-      MockMemberCoachRepository() as MemberCoachRepository,
+      _NoDayListCoachRepository() as MemberCoachRepository,
     ),
   ],
   child: MaterialApp(

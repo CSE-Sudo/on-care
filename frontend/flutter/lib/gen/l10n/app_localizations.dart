@@ -6090,6 +6090,12 @@ abstract class AppLocalizations {
   /// **'AI recommended solo workouts'**
   String get coachRoutineAiTitle;
 
+  /// No description provided for @coachRoutinePastReadOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'What you did that day. Past days can\'t be checked.'**
+  String get coachRoutinePastReadOnly;
+
   /// Origin of a routine.
   ///
   /// In en, this message translates to:

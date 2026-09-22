@@ -1806,7 +1806,8 @@
     }
   },
   "routineAlreadyGone": "That program is already gone",
-  "workoutPendingTitle": "Not done yet",
+  "workoutPendingTitle": "Daily personal exercises",
+  "workoutRoutineDoneToday": "Done today",
   "workoutUndatedTitle": "Records without a date",
   "workoutPendingCancel": "Cancel assignment",
   "routineUpdateFailed": "Couldn't update the program. Please try again in a moment",
