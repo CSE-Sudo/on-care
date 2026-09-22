@@ -5093,8 +5093,14 @@ abstract class AppLocalizations {
   /// No description provided for @workoutPendingTitle.
   ///
   /// In en, this message translates to:
-  /// **'Not done yet'**
+  /// **'Daily personal exercises'**
   String get workoutPendingTitle;
+
+  /// No description provided for @workoutRoutineDoneToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Done today'**
+  String get workoutRoutineDoneToday;
 
   /// No description provided for @workoutUndatedTitle.
   ///
