@@ -1959,9 +1959,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotManageTitle => 'Manage booking slots';
 
   @override
-  String slotIntro(String date) {
-    return 'Open times for members to book on $date.';
-  }
+  String get slotIntro =>
+      'Open times for members to book. Every upcoming slot is listed below by date.';
 
   @override
   String get slotOpenAction => 'Open';
@@ -1970,7 +1969,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get slotReload => 'Reload';
 
   @override
-  String get slotEmpty => 'No booking slots open on this day.';
+  String get slotEmpty => 'No booking slots are open.';
 
   @override
   String get slotClosedSummary => 'Closed';

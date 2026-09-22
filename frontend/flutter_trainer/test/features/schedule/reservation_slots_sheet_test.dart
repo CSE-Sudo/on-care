@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/active_polling_stream.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
@@ -68,11 +69,16 @@ class _ExternalSlotRepository implements ReservationSlotRepository {
   void dispose() => unawaited(_revisions.close());
 }
 
-ReservationSlot _slot({required bool booked, String? bookedByName}) {
+ReservationSlot _slot({
+  required bool booked,
+  String? bookedByName,
+  String id = 'slot-1',
+  int daysAhead = 0,
+}) {
   final DateTime today = todayKst();
   return ReservationSlot(
-    id: 'slot-1',
-    startsAt: DateTime(today.year, today.month, today.day, 14),
+    id: id,
+    startsAt: DateTime(today.year, today.month, today.day + daysAhead, 14),
     booked: booked,
     isClosed: false,
     sessionType: SessionType.personalTraining,
@@ -106,7 +112,7 @@ void main() {
       final today = todayKst();
       expect(
         find.text('${today.month}월 ${today.day}일'),
-        findsWidgets, // 안내 문구와 날짜 버튼 둘 다 같은 표기를 쓴다.
+        findsWidgets, // 열기 폼의 날짜 칸이 고른 날에서 시작한다.
       );
     });
 
@@ -182,6 +188,57 @@ void main() {
         find.byKey(const ValueKey<String>('time-range-next')),
         findsOneWidget,
       );
+    });
+
+    testWidgets('고른 날이 아닌 슬롯까지 날짜별로 묶어 모두 보여 준다 (#2182)', (tester) async {
+      final repository = _ExternalSlotRepository(<ReservationSlot>[
+        _slot(booked: false, id: 'later', daysAhead: 9),
+        _slot(booked: false),
+        _slot(booked: true, bookedByName: '김하늘', id: 'next', daysAhead: 1),
+      ]);
+      addTearDown(repository.dispose);
+      await openSheet(
+        tester,
+        extraOverrides: <Override>[
+          reservationSlotRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+
+      final today = todayKst();
+      final List<String> days = <String>[
+        for (final int ahead in <int>[0, 1, 9])
+          ymd(DateTime(today.year, today.month, today.day + ahead)),
+      ];
+      for (final String id in <String>['slot-1', 'next', 'later']) {
+        expect(
+          find.byKey(ValueKey<String>('slot-row-$id')),
+          findsOneWidget,
+          reason: id,
+        );
+      }
+      // 날짜 머리가 시간 순으로 서고, 각 줄은 자기 날짜 아래에 온다.
+      final List<double> headerY = <double>[
+        for (final String day in days)
+          tester.getTopLeft(find.byKey(ValueKey<String>('slot-day-$day'))).dy,
+      ];
+      expect(headerY, orderedEquals(<double>[...headerY]..sort()));
+      final double laterRowY = tester
+          .getTopLeft(find.byKey(const ValueKey<String>('slot-row-later')))
+          .dy;
+      expect(laterRowY, greaterThan(headerY.last));
+    });
+
+    testWidgets('열린 슬롯이 하나도 없으면 빈 안내를 보여 준다 (#2182)', (tester) async {
+      final repository = _ExternalSlotRepository(const <ReservationSlot>[]);
+      addTearDown(repository.dispose);
+      await openSheet(
+        tester,
+        extraOverrides: <Override>[
+          reservationSlotRepositoryProvider.overrideWithValue(repository),
+        ],
+      );
+
+      expect(find.text('열린 예약 슬롯이 없습니다.'), findsOneWidget);
     });
 
     testWidgets('회원이 잡아 간 자리가 열려 있는 목록에 바로 반영된다 (#1590)', (tester) async {
