@@ -102,6 +102,7 @@
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
@@ -165,7 +166,7 @@
 
 | 규칙(`reason`) | 언제 | 포인트 | 하루 한도 |
 |---|---|---|---|
-| `diet_entry` | `POST /diet/analyze` 로 끼니가 새로 저장될 때 | +50 | 3회 |
+| `diet_entry` | `POST /diet/analyze` 로 끼니가 새로 저장될 때(직접 추가 `POST /diet/entries` 는 적립 없음, #2151) | +50 | 3회 |
 | `exercise_manual` | `POST /exercise/sessions` (회원이 직접 추가) | +20 | 3회 |
 | `routine_complete` | `POST /me/coach/routines/{id}/complete` — AI 추천(`source: "ai"`)·트레이너 배정(`source: "trainer"`) 모두 | +50 | 1회(두 출처 합산) |
 
@@ -450,7 +451,7 @@ category: hospital|exercise|meal|medication|other
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
-category: reminder|health_check|achievement|system|coach_chat|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals
+category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
 
 #### 담당 요청 알림 (#1802)
 
@@ -470,18 +471,25 @@ category: reminder|health_check|achievement|system|coach_chat|routine|member_sch
 | category | 무엇 | action.target |
 |---|---|---|
 | `reminder`·`health_check`·`achievement` | 기록·점검·성취 | `dashboard` |
-| `coach_chat` | 트레이너 메시지·리포트 | `coach_chat` |
+| `coach_chat` | 트레이너 메시지·피드백 | `coach_chat` |
+| `coach_report` | **트레이너가 등록한 주간 리포트**(#2085) | `coach_chat` |
 | `routine` | 루틴 배정 | `exercise` |
 | `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
 | `coach_invite` | 담당 요청 도착 — `invite_id`로 수락·거절 창 열기 | `exercise`(처리·취소 시 이동) |
 | `consultation_result` | 담당 연결 — 연결됨·연결 해제 및 과거 담당 요청 | `exercise` |
 | `consult_decision` | **내 상담 요청의 승인·거절·만료**(#2067) | `consultations`(내 상담 요청) |
 | `health_goals` | 담당 트레이너의 건강 목표 변경 | `health_goals` |
+| `benefits` | 쿠폰 취소·만료 임박 | `my_benefits` |
+| `points_shop` | 주간 챌린지 결과 | `points_shop` |
 | `system` | 공지 | 없음 |
 
 `consult_decision` 은 #2067 에서 `consultation_result` 에서 떼어 냈습니다. 같은 갈래였을 때는 거절
 알림을 눌러도 운동 탭으로 가서, 사유를 보려면 내 상담 요청을 따로 찾아가야 했습니다. 이미 저장된
 옛 결과 알림은 `consultation_result` 그대로라 운동 탭으로 갑니다(백필하지 않음).
+
+`coach_report` 는 #2085 에서 `coach_chat` 에서 떼어 냈습니다. 목적지는 같은 코치 대화이고, 회원 앱 알림함이 갈래로 아이콘을 고르기 때문에(#2084) 리포트는 문서, 메시지는 말풍선으로 보이게 나눴습니다. 이미 `coach_chat` 으로 저장된 옛 리포트 알림은 그대로 둡니다(백필하지 않음).
+
+회원 앱은 갈래를 접지 않고 갈래마다 알림함 아이콘을 고릅니다(#2084). 보내는 곳이 없는 `health_check` 는 `reminder` 와 같게, 모르는 갈래는 `system` 과 같게 그립니다.
 
 #### 목록 페이지네이션 (#965)
 

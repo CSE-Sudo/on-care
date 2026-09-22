@@ -1064,6 +1064,30 @@ abstract class AppLocalizations {
   /// **'Add Food'**
   String get dietAddFood;
 
+  /// No description provided for @dietManualAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add manually'**
+  String get dietManualAdd;
+
+  /// No description provided for @dietManualAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Meal Manually'**
+  String get dietManualAddTitle;
+
+  /// No description provided for @dietManualAddHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a food name and we\'ll fill in the nutrition'**
+  String get dietManualAddHint;
+
+  /// No description provided for @dietManualAddEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one food'**
+  String get dietManualAddEmpty;
+
   /// No description provided for @dietEditFoodHint.
   ///
   /// In en, this message translates to:
@@ -6246,11 +6270,59 @@ abstract class AppLocalizations {
   /// **'Reminder'**
   String get alertCategoryReminder;
 
-  /// Notification category badge.
+  /// Notification category label for screen readers.
   ///
   /// In en, this message translates to:
-  /// **'Health'**
-  String get alertCategoryHealth;
+  /// **'Trainer message'**
+  String get alertCategoryCoachChat;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly report'**
+  String get alertCategoryCoachReport;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout routine'**
+  String get alertCategoryRoutine;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'PT schedule'**
+  String get alertCategorySchedule;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get alertCategoryTrainer;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request'**
+  String get alertCategoryConsultation;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Health goals'**
+  String get alertCategoryHealthGoals;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Benefits'**
+  String get alertCategoryBenefits;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge'**
+  String get alertCategoryChallenge;
 
   /// Notification category badge.
   ///

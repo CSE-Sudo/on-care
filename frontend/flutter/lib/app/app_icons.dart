@@ -56,8 +56,7 @@ class AppIcons {
   static const IconData notifications = Symbols.notifications_rounded;
   static const IconData notificationsOff = Symbols.notifications_off_rounded;
 
-  /// 알림 갈래 — 건강 확인·달성.
-  static const IconData healthCheck = Symbols.monitor_heart_rounded;
+  /// 알림 갈래 — 달성.
   static const IconData achievement = Symbols.emoji_events_rounded;
   static const IconData chat = Symbols.chat_bubble_rounded;
   static const IconData help = Symbols.help_rounded;

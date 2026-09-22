@@ -14,6 +14,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// 목록형(#1810)에서는 갈래를 글자 태그 대신 아이콘으로 보여 준다 — 한 줄에 태그·
 /// 제목·시각이 함께 서면 제목이 밀려 잘린다. 이름은 화면 읽기 라벨로 남긴다.
+///
+/// 아이콘은 알림을 눌렀을 때 도착하는 화면이 같은 뜻으로 쓰는 그림과 맞춘다(#2084).
+/// 별(`AppIcons.points`)은 "내 포인트" 라 쓰지 않는다 — 포인트가 들어온 것처럼 읽힌다.
 ({String label, IconData icon}) _categoryDisplay(
   AppLocalizations l,
   AlertCategory c,
@@ -22,9 +25,46 @@ import 'package:oncare_ui/oncare_ui.dart';
     label: l.alertCategoryReminder,
     icon: AppIcons.notifications,
   ),
-  AlertCategory.healthCheck => (
-    label: l.alertCategoryHealth,
-    icon: AppIcons.healthCheck,
+  // 코치 카드·트레이너 채팅 버튼의 말풍선.
+  AlertCategory.coachChat => (
+    label: l.alertCategoryCoachChat,
+    icon: AppIcons.chat,
+  ),
+  // 코치 대화의 리포트 카드와 같은 문서(#2085).
+  AlertCategory.coachReport => (
+    label: l.alertCategoryCoachReport,
+    icon: AppIcons.document,
+  ),
+  AlertCategory.routine => (
+    label: l.alertCategoryRoutine,
+    icon: AppIcons.routine,
+  ),
+  // 운동 탭의 다음 PT·헬스장 탭 예약과 같은 달력.
+  AlertCategory.schedule => (
+    label: l.alertCategorySchedule,
+    icon: AppIcons.eventAvailable,
+  ),
+  AlertCategory.trainerLink => (
+    label: l.alertCategoryTrainer,
+    icon: AppIcons.person,
+  ),
+  // 헬스장 목록의 "내 상담 요청" 버튼과 같은 서류.
+  AlertCategory.consultDecision => (
+    label: l.alertCategoryConsultation,
+    icon: AppIcons.request,
+  ),
+  // MY 건강 목표 항목의 깃발.
+  AlertCategory.healthGoals => (
+    label: l.alertCategoryHealthGoals,
+    icon: AppIcons.goal,
+  ),
+  AlertCategory.benefits => (
+    label: l.alertCategoryBenefits,
+    icon: AppIcons.coupon,
+  ),
+  AlertCategory.challenge => (
+    label: l.alertCategoryChallenge,
+    icon: AppIcons.challenge,
   ),
   AlertCategory.achievement => (
     label: l.alertCategoryAchievement,
@@ -278,27 +318,26 @@ class _AlertTile extends StatelessWidget {
   }
 }
 
-/// 알림 줄 왼쪽의 흰 원 — 옅은 테두리 안에 갈래 아이콘. 줄 바탕이 파래도 원은
-/// 흰색이라 아이콘이 묻히지 않는다.
+/// 알림 줄 왼쪽의 갈래 아이콘 — 원 없이 아이콘만 둔다(#2084).
+///
+/// 흰 원을 두르면 줄마다 동그라미가 하나씩 서서 목록이 무거워 보였다. 자리 폭은
+/// 원이 있던 때와 같게 두어 제목·본문이 시작하는 위치는 그대로다. 색은 본문과 같은
+/// 회색이라 글 흐름에 섞이고, 읽음 상태는 아이콘이 아니라 줄 바탕이 말한다.
 class _CategoryBadge extends StatelessWidget {
   const _CategoryBadge({required this.icon});
   final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: OnCareSize.avatarLarge,
       height: OnCareSize.avatarLarge,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: OnCareColors.surfaceCard,
-        shape: BoxShape.circle,
-        border: Border.all(color: OnCareColors.lineSubtle),
-      ),
-      child: AppIcon(
-        icon,
-        size: OnCareSize.iconMedium,
-        color: OnCareColors.textSecondary,
+      child: Center(
+        child: AppIcon(
+          icon,
+          size: OnCareSize.iconMedium,
+          color: OnCareColors.textSecondary,
+        ),
       ),
     );
   }
