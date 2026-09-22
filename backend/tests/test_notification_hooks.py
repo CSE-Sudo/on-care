@@ -230,6 +230,59 @@ def test_report_creates_its_own_notification_kind(client, db_session):
     assert "주간 리포트가 도착했어요" in _titles(client, member_token)
 
 
+def _items(client, member_token: str) -> list[dict]:
+    response = client.get("/v1/notifications", headers=_auth(member_token))
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_report_notification_has_its_own_category(client, db_session):
+    """주간 리포트는 `coach_report` 갈래이고, 누르면 코치 대화로 간다(#2085).
+
+    트레이너 메시지와 같은 `coach_chat` 이면 회원 앱 알림함이 리포트도 말풍선으로
+    그린다. 목적지는 메시지와 같다.
+    """
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+    client.put(
+        "/v1/users/me/notification-settings",
+        headers=_auth(member_token),
+        json={"weekly_report": True},
+    )
+
+    sent = client.post(
+        f"/v1/trainer/clients/{member_id}/report/send",
+        headers=_auth(trainer_token),
+        json={"message": "이번 주 잘하셨어요"},
+    )
+
+    assert sent.status_code == 201, sent.text
+    report = next(
+        item
+        for item in _items(client, member_token)
+        if item["title"] == "주간 리포트가 도착했어요"
+    )
+    assert report["category"] == notification_service.MEMBER_COACH_REPORT
+    assert report["action"] == {"label": "리포트 보기", "target": "coach_chat"}
+
+
+def test_trainer_message_keeps_the_coach_chat_category(client, db_session):
+    """트레이너 메시지는 `coach_chat` 그대로다 — 리포트만 갈래가 나뉜다(#2085)."""
+    trainer_token, member_id, member_token, _ = _pair(client, db_session)
+
+    sent = client.post(
+        f"/v1/trainer/clients/{member_id}/chat",
+        headers=_auth(trainer_token),
+        json={"text": "오늘 운동 어떠셨어요?"},
+    )
+
+    assert sent.status_code == 201, sent.text
+    message = next(
+        item for item in _items(client, member_token) if "메시지" in item["title"]
+    )
+    assert message["category"] == notification_service.MEMBER_COACH_CHAT
+    assert message["action"]["target"] == "coach_chat"
+
+
 def test_member_message_creates_no_notification(client, db_session):
     """회원이 보낸 메시지는 자기 알림함에 남지 않는다."""
     _, _, member_token, _ = _pair(client, db_session)

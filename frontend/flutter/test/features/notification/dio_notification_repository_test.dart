@@ -94,7 +94,7 @@ void main() {
         ]),
       );
       final item = (await repo.fetchPage()).single.copyWith(read: true);
-      expect(item.category, AlertCategory.reminder);
+      expect(item.category, AlertCategory.trainerLink);
       expect(item.wireCategory, 'coach_invite');
       expect(item.inviteId, 'tci-2');
       expect(item.action?.target, AlertTarget.exercise);
@@ -171,7 +171,7 @@ void main() {
       final AlertItem item = (await repo.fetchPage()).single;
       expect(item.action?.target, AlertTarget.consultations);
       expect(item.action?.isNavigable, isTrue);
-      expect(item.category, AlertCategory.reminder);
+      expect(item.category, AlertCategory.consultDecision);
     });
 
     test('쿠폰 알림의 my_benefits 는 내 혜택으로 옮긴다', () async {

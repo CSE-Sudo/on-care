@@ -10,6 +10,7 @@ import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/account/domain/entities/user_profile.dart';
 import 'package:oncare/features/account/presentation/controllers/account_controller.dart';
 import 'package:oncare/features/diet/domain/entities/diet_day.dart';
+import 'package:oncare/features/diet/domain/meal_emoji.dart';
 import 'package:oncare/features/diet/presentation/controllers/diet_controller.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_period_view.dart';
@@ -46,17 +47,6 @@ String _weekdayLabel(AppLocalizations l, int weekday) => switch (weekday) {
   5 => l.dietWeekdayFri,
   6 => l.dietWeekdaySat,
   _ => l.dietWeekdaySun,
-};
-
-/// Meal-type thumbnail emoji. The badge label is localized separately at
-/// display time via [mealBadge] so the API `meal_type` stays decoupled from the
-/// UI language. 이모지 칩의 바탕은 사진 틀의 자리 표시 색 하나다(#1700).
-const Map<MealType, String> _mealEmoji = <MealType, String>{
-  MealType.breakfast: '🥣',
-  MealType.lunch: '🥗',
-  MealType.dinner: '🐟',
-  MealType.snack: '🍎',
-  MealType.lateNight: '🌙',
 };
 
 /// 역할 글자 + 색. 크기·굵기 숫자는 적지 않는다(#1690).
@@ -311,7 +301,9 @@ DietMeal _mealFromEntry(DietEntry e, DateTime date) {
     date: DateTime(date.year, date.month, date.day),
     time: e.timeLabel,
     total: e.totalCalories,
-    emoji: _mealEmoji[e.mealType] ?? _mealEmoji[MealType.snack]!,
+    // 사진이 없을 때 그리는 이모지 — 음식 이름으로 고르고, 모르면 끼니
+    // 이모지다(#2151).
+    emoji: mealThumbEmoji(e.mealType, e.foods.map((FoodItem f) => f.name)),
     thumbBg: OnCareColors.surfaceInput,
     photoAsset: e.photoAsset,
     photoUrl: e.photoUrl,

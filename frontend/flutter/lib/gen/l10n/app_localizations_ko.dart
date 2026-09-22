@@ -538,6 +538,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddFood => '음식 추가';
 
   @override
+  String get dietManualAdd => '직접 추가';
+
+  @override
+  String get dietManualAddTitle => '식단 직접 추가';
+
+  @override
+  String get dietManualAddHint => '음식 이름을 적으면 영양 정보를 찾아 채워요';
+
+  @override
+  String get dietManualAddEmpty => '음식을 하나 이상 적어 주세요';
+
+  @override
   String get dietEditFoodHint => '내용량을 고치면 영양이 비례해 따라와요';
 
   @override
@@ -3399,7 +3411,31 @@ class AppLocalizationsKo extends AppLocalizations {
   String get alertCategoryReminder => '리마인더';
 
   @override
-  String get alertCategoryHealth => '건강';
+  String get alertCategoryCoachChat => '트레이너 메시지';
+
+  @override
+  String get alertCategoryCoachReport => '주간 리포트';
+
+  @override
+  String get alertCategoryRoutine => '운동 루틴';
+
+  @override
+  String get alertCategorySchedule => 'PT 일정';
+
+  @override
+  String get alertCategoryTrainer => '담당 트레이너';
+
+  @override
+  String get alertCategoryConsultation => '상담 요청';
+
+  @override
+  String get alertCategoryHealthGoals => '건강 목표';
+
+  @override
+  String get alertCategoryBenefits => '혜택';
+
+  @override
+  String get alertCategoryChallenge => '챌린지';
 
   @override
   String get alertCategoryAchievement => '달성';
