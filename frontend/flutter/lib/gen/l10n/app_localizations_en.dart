@@ -552,6 +552,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietAddFood => 'Add Food';
 
   @override
+  String get dietManualAdd => 'Add manually';
+
+  @override
+  String get dietManualAddTitle => 'Add Meal Manually';
+
+  @override
+  String get dietManualAddHint =>
+      'Type a food name and we\'ll fill in the nutrition';
+
+  @override
+  String get dietManualAddEmpty => 'Add at least one food';
+
+  @override
   String get dietEditFoodHint =>
       'Change the serving size and the nutrition follows';
 

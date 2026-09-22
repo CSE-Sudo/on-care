@@ -538,6 +538,18 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dietAddFood => '음식 추가';
 
   @override
+  String get dietManualAdd => '직접 추가';
+
+  @override
+  String get dietManualAddTitle => '식단 직접 추가';
+
+  @override
+  String get dietManualAddHint => '음식 이름을 적으면 영양 정보를 찾아 채워요';
+
+  @override
+  String get dietManualAddEmpty => '음식을 하나 이상 적어 주세요';
+
+  @override
   String get dietEditFoodHint => '내용량을 고치면 영양이 비례해 따라와요';
 
   @override
