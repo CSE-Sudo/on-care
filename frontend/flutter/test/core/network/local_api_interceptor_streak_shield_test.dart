@@ -216,10 +216,11 @@ void main() {
     expect((await week())['streak_days'], 2);
   });
 
-  test('보호권이 없으면 보호할 날도 없고 사용은 409 다', () async {
+  test('보호권이 없어도 보호할 날의 창은 오고, 사용은 409 다', () async {
     final StreakShields status = await DioStreakShieldRepository(dio).fetch();
-    expect((status.held, status.protectableFrom), (0, null));
-    expect(status.protectableTo, isNull);
+    // 창은 보유 수와 상관없이 온다 — 그래프가 교환과 사용을 한 번에 잇는다.
+    expect((status.held, status.protectableFrom), (0, DateTime(2026, 8, 18)));
+    expect(status.protectableTo, DateTime(2026, 9, 16));
     expect((await use(_yesterday)).statusCode, 409);
   });
 

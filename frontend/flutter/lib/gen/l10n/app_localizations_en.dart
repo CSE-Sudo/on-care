@@ -1297,6 +1297,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGraphProtectFailed => 'Couldn\'t use the shield';
 
   @override
+  String get myGraphProtectBuyConfirmTitle => 'Buy a streak shield?';
+
+  @override
+  String myGraphProtectBuyConfirmMessage(String date, String cost) {
+    return 'You don\'t have a shield. Buy one for $cost and use it right away to keep $date in your record streak.';
+  }
+
+  @override
+  String get myGraphProtectBuyAction => 'Buy and use';
+
+  @override
+  String get myGraphProtectBoughtNotUsed =>
+      'You bought a shield but couldn\'t use it. It\'s kept in My benefits.';
+
+  @override
   String get myGraphColorTitle => 'Graph colour';
 
   @override

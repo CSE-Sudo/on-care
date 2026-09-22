@@ -21,9 +21,11 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///   구분한다. 칸 안이 빈 칸 색 그대로라 방패만으로는 한 해치를 훑을 때 눈에
 ///   걸리지 않았다 — 테두리가 "여기를 이어 붙였다" 를 멀리서도 짚어 준다.
 /// - 날짜를 누르면 그래프 아래 **고정된 한 줄**이 그날 기록으로 바뀐다. 그날이
-///   지금 보호권을 쓸 수 있는 날이면 그 줄 오른쪽에 `보호권 쓰기` 가 붙는다 —
-///   누른 김에 바로 쓰되, 보려고 누른 사람에게 확인창이 튀어나오지는 않는다.
-/// - 보호할 수 있는 칸은 테두리로 미리 표시해 둔다(눌러 볼 이유를 준다).
+///   보호권으로 이어 붙일 수 있는 빈 날이면 그 줄 오른쪽에 `보호권 쓰기` 가
+///   붙는다 — 누른 김에 바로 쓰되, 보려고 누른 사람에게 확인창이 튀어나오지는
+///   않는다. 보호권이 없어도 붙고, 누르면 교환부터 묻는다(부르는 쪽이 정한다).
+/// - 가진 보호권으로 바로 보호할 수 있는 칸은 테두리로 미리 표시해 둔다(눌러 볼
+///   이유를 준다). 보호권이 없으면 표시하지 않는다 — 빈 날마다 사라고 권하게 된다.
 class RecordGraphCard extends StatefulWidget {
   const RecordGraphCard({
     super.key,
@@ -35,7 +37,8 @@ class RecordGraphCard extends StatefulWidget {
 
   final ActivityCalendar calendar;
 
-  /// 그날을 연속에 이어 붙인다. null 이면 쓸 수 없다.
+  /// 그날을 연속에 이어 붙인다. null 이면 쓸 수 없다. 보호권이 없을 때도
+  /// 불린다 — 교환을 물을지는 부르는 쪽이 [ActivityCalendar.shieldsHeld] 로 정한다.
   final ValueChanged<DateTime>? onProtect;
 
   /// 그래프 색 고르기 — 카드 오른쪽 위 팔레트 버튼이 부른다.
@@ -95,7 +98,7 @@ class _RecordGraphCardState extends State<RecordGraphCard> {
     final bool canProtect =
         selected != null &&
         widget.onProtect != null &&
-        calendar.isProtectable(selected);
+        calendar.isProtectableDay(selected);
     return AppCard(
       key: const Key('recordGraphCard'),
       child: Column(
