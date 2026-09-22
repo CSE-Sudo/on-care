@@ -2354,6 +2354,30 @@ abstract class AppLocalizations {
   /// **'Couldn\'t use the shield'**
   String get myGraphProtectFailed;
 
+  /// No description provided for @myGraphProtectBuyConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy a streak shield?'**
+  String get myGraphProtectBuyConfirmTitle;
+
+  /// No description provided for @myGraphProtectBuyConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You don\'t have a shield. Buy one for {cost} and use it right away to keep {date} in your record streak.'**
+  String myGraphProtectBuyConfirmMessage(String date, String cost);
+
+  /// No description provided for @myGraphProtectBuyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Buy and use'**
+  String get myGraphProtectBuyAction;
+
+  /// No description provided for @myGraphProtectBoughtNotUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'You bought a shield but couldn\'t use it. It\'s kept in My benefits.'**
+  String get myGraphProtectBoughtNotUsed;
+
   /// No description provided for @myGraphColorTitle.
   ///
   /// In en, this message translates to:

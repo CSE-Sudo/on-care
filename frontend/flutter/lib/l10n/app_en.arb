@@ -853,6 +853,20 @@
   },
   "myGraphProtectDone": "Your streak is unbroken",
   "myGraphProtectFailed": "Couldn't use the shield",
+  "myGraphProtectBuyConfirmTitle": "Buy a streak shield?",
+  "myGraphProtectBuyConfirmMessage": "You don't have a shield. Buy one for {cost} and use it right away to keep {date} in your record streak.",
+  "@myGraphProtectBuyConfirmMessage": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphProtectBuyAction": "Buy and use",
+  "myGraphProtectBoughtNotUsed": "You bought a shield but couldn't use it. It's kept in My benefits.",
   "myGraphColorTitle": "Graph colour",
   "myGraphColorPickTitle": "Pick a colour to unlock",
   "myGraphColorLocked": "Unlock for {cost}",

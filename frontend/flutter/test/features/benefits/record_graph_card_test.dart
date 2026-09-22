@@ -321,12 +321,35 @@ void main() {
     expect(find.byKey(const Key('recordGraphProtect')), findsNothing);
   });
 
-  testWidgets('보호권이 없으면 어느 칸도 보호권 쓰기가 없다', (tester) async {
+  testWidgets('창이 없으면 어느 칸도 보호권 쓰기가 없다', (tester) async {
     await pump(tester, _graph(), onProtect: (_) {});
 
     await _tapCell(tester, _yesterday);
 
     expect(find.byKey(const Key('recordGraphProtect')), findsNothing);
+  });
+
+  testWidgets('보호권이 없어도 창 안의 빈 칸에는 보호권 쓰기가 붙는다', (tester) async {
+    DateTime? asked;
+    final DateTime empty = DateTime(2026, 8, 5);
+    await pump(
+      tester,
+      _graph(
+        protectableFrom: DateTime(2026, 7, 21),
+        protectableTo: _yesterday,
+      ),
+      onProtect: (DateTime d) => asked = d,
+    );
+
+    // 가진 보호권이 없으면 빈 칸마다 테두리로 권하지는 않는다.
+    expect(_cellBox(tester, empty).border, isNull);
+
+    await _tapCell(tester, empty);
+    await tester.tap(find.byKey(const Key('recordGraphProtect')));
+    await tester.pump();
+
+    // 교환을 물을지는 부르는 쪽이 정한다 — 카드는 그날을 넘길 뿐이다.
+    expect(asked, empty);
   });
 
   testWidgets('연 색으로 그리고, 팔레트 버튼이 색 고르기를 연다', (tester) async {

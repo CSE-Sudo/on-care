@@ -589,6 +589,20 @@
   },
   "myGraphProtectDone": "연속을 이어 붙였어요",
   "myGraphProtectFailed": "보호권을 쓰지 못했어요",
+  "myGraphProtectBuyConfirmTitle": "보호권을 구매할까요?",
+  "myGraphProtectBuyConfirmMessage": "지금 가진 보호권이 없어요. {cost}로 보호권을 구매하고 {date}을 바로 기록 연속에 이어 붙여요.",
+  "@myGraphProtectBuyConfirmMessage": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphProtectBuyAction": "구매하고 쓰기",
+  "myGraphProtectBoughtNotUsed": "보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.",
   "myGraphColorTitle": "그래프 색",
   "myGraphColorPickTitle": "열 색 고르기",
   "myGraphColorLocked": "{cost}로 열기",
