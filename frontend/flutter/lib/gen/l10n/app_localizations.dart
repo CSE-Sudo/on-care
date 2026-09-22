@@ -6138,11 +6138,59 @@ abstract class AppLocalizations {
   /// **'Reminder'**
   String get alertCategoryReminder;
 
-  /// Notification category badge.
+  /// Notification category label for screen readers.
   ///
   /// In en, this message translates to:
-  /// **'Health'**
-  String get alertCategoryHealth;
+  /// **'Trainer message'**
+  String get alertCategoryCoachChat;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly report'**
+  String get alertCategoryCoachReport;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout routine'**
+  String get alertCategoryRoutine;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'PT schedule'**
+  String get alertCategorySchedule;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get alertCategoryTrainer;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request'**
+  String get alertCategoryConsultation;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Health goals'**
+  String get alertCategoryHealthGoals;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Benefits'**
+  String get alertCategoryBenefits;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge'**
+  String get alertCategoryChallenge;
 
   /// Notification category badge.
   ///

@@ -46,6 +46,16 @@ def test_each_alert_opens_the_same_screen_as_the_app_demo():
     assert _target("서비스 점검 안내") is None
 
 
+def test_report_and_feedback_use_different_categories():
+    """리포트는 `coach_report`, 피드백은 `coach_chat` — 회원앱 목 데이터와 같다(#2085).
+
+    둘이 같은 갈래면 회원 앱 알림함에서 리포트도 말풍선으로 보인다.
+    """
+    by_title = {n.title: n.category for n in DEMO_NOTIFICATIONS}
+    assert by_title["이번 주 리포트가 등록됐어요"] == notification_service.MEMBER_COACH_REPORT
+    assert by_title["트레이너 피드백 도착"] == notification_service.MEMBER_COACH_CHAT
+
+
 def test_categories_are_known_backend_categories():
     known = {
         "reminder",
@@ -53,6 +63,7 @@ def test_categories_are_known_backend_categories():
         "achievement",
         "system",
         notification_service.MEMBER_COACH_CHAT,
+        notification_service.MEMBER_COACH_REPORT,
         notification_service.MEMBER_ROUTINE,
         notification_service.MEMBER_SCHEDULE,
         notification_service.MEMBER_CONSULTATION,

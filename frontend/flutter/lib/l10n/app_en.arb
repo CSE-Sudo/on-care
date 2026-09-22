@@ -2779,9 +2779,41 @@
   "@alertCategoryReminder": {
     "description": "Notification category badge."
   },
-  "alertCategoryHealth": "Health",
-  "@alertCategoryHealth": {
-    "description": "Notification category badge."
+  "alertCategoryCoachChat": "Trainer message",
+  "@alertCategoryCoachChat": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryCoachReport": "Weekly report",
+  "@alertCategoryCoachReport": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryRoutine": "Workout routine",
+  "@alertCategoryRoutine": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategorySchedule": "PT schedule",
+  "@alertCategorySchedule": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryTrainer": "Trainer",
+  "@alertCategoryTrainer": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryConsultation": "Consultation request",
+  "@alertCategoryConsultation": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryHealthGoals": "Health goals",
+  "@alertCategoryHealthGoals": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryBenefits": "Benefits",
+  "@alertCategoryBenefits": {
+    "description": "Notification category label for screen readers."
+  },
+  "alertCategoryChallenge": "Challenge",
+  "@alertCategoryChallenge": {
+    "description": "Notification category label for screen readers."
   },
   "alertCategoryAchievement": "Achievement",
   "@alertCategoryAchievement": {

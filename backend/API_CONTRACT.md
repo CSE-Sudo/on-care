@@ -424,7 +424,7 @@ category: hospital|exercise|meal|medication|other
 | POST | `/notifications/read-all` | 전체 읽음 → `{ marked_read(int) }` |
 | DELETE | `/notifications/{id}` | 삭제 → `{ status: "deleted" }` |
 
-category: reminder|health_check|achievement|system|coach_chat|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals
+category: reminder|health_check|achievement|system|coach_chat|coach_report|routine|member_schedule|coach_invite|consultation_result|consult_decision|health_goals|benefits|points_shop
 
 #### 담당 요청 알림 (#1802)
 
@@ -444,18 +444,25 @@ category: reminder|health_check|achievement|system|coach_chat|routine|member_sch
 | category | 무엇 | action.target |
 |---|---|---|
 | `reminder`·`health_check`·`achievement` | 기록·점검·성취 | `dashboard` |
-| `coach_chat` | 트레이너 메시지·리포트 | `coach_chat` |
+| `coach_chat` | 트레이너 메시지·피드백 | `coach_chat` |
+| `coach_report` | **트레이너가 등록한 주간 리포트**(#2085) | `coach_chat` |
 | `routine` | 루틴 배정 | `exercise` |
 | `member_schedule` | 일정 등록 | 없음(회원 앱에 일정 화면이 없음, #1928) |
 | `coach_invite` | 담당 요청 도착 — `invite_id`로 수락·거절 창 열기 | `exercise`(처리·취소 시 이동) |
 | `consultation_result` | 담당 연결 — 연결됨·연결 해제 및 과거 담당 요청 | `exercise` |
 | `consult_decision` | **내 상담 요청의 승인·거절·만료**(#2067) | `consultations`(내 상담 요청) |
 | `health_goals` | 담당 트레이너의 건강 목표 변경 | `health_goals` |
+| `benefits` | 쿠폰 취소·만료 임박 | `my_benefits` |
+| `points_shop` | 주간 챌린지 결과 | `points_shop` |
 | `system` | 공지 | 없음 |
 
 `consult_decision` 은 #2067 에서 `consultation_result` 에서 떼어 냈습니다. 같은 갈래였을 때는 거절
 알림을 눌러도 운동 탭으로 가서, 사유를 보려면 내 상담 요청을 따로 찾아가야 했습니다. 이미 저장된
 옛 결과 알림은 `consultation_result` 그대로라 운동 탭으로 갑니다(백필하지 않음).
+
+`coach_report` 는 #2085 에서 `coach_chat` 에서 떼어 냈습니다. 목적지는 같은 코치 대화이고, 회원 앱 알림함이 갈래로 아이콘을 고르기 때문에(#2084) 리포트는 문서, 메시지는 말풍선으로 보이게 나눴습니다. 이미 `coach_chat` 으로 저장된 옛 리포트 알림은 그대로 둡니다(백필하지 않음).
+
+회원 앱은 갈래를 접지 않고 갈래마다 알림함 아이콘을 고릅니다(#2084). 보내는 곳이 없는 `health_check` 는 `reminder` 와 같게, 모르는 갈래는 `system` 과 같게 그립니다.
 
 #### 목록 페이지네이션 (#965)
 

@@ -15,6 +15,9 @@ import 'package:oncare/features/notification/domain/repositories/notification_re
 ///
 /// 화면은 [AlertItem.messageKey]·[AlertItem.age] 로 로케일에 맞는 문장과 상대 시각을
 /// 그린다. `title`·`body`·`timeAgo` 의 한국어는 키를 모르는 곳을 위한 원문이다(#1812).
+///
+/// 갈래는 서버 데모 시드(`backend/app/db/seed_notifications.py`)와 같다 — 둘러보기와
+/// 실서버 데모 계정의 알림함이 같은 아이콘으로 보여야 한다(#2084).
 const List<AlertItem> demoAlerts = <AlertItem>[
   // 문구의 수치는 데모 픽스처의 오늘 식단(아침·점심 짬뽕·간식) 합계와 같다.
   AlertItem(
@@ -46,7 +49,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
     timeAgo: '30분 전',
     messageKey: kDemoAlertRoutine,
     age: Duration(minutes: 30),
-    category: AlertCategory.reminder,
+    category: AlertCategory.routine,
     action: AlertAction(label: '운동 보기', target: AlertTarget.exercise),
   ),
   // 주간 리포트는 트레이너 채팅의 리포트 카드로 온다 — 알림도 그 대화로 잇는다.
@@ -58,7 +61,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
     timeAgo: '45분 전',
     messageKey: kDemoAlertReport,
     age: Duration(minutes: 45),
-    category: AlertCategory.achievement,
+    category: AlertCategory.coachReport,
     action: AlertAction(label: '리포트 보기', target: AlertTarget.coachChat),
   ),
   AlertItem(
@@ -78,7 +81,7 @@ const List<AlertItem> demoAlerts = <AlertItem>[
     timeAgo: '2시간 전',
     messageKey: kDemoAlertTrainerFeedback,
     age: Duration(hours: 2),
-    category: AlertCategory.reminder,
+    category: AlertCategory.coachChat,
     action: AlertAction(label: '대화 보기', target: AlertTarget.coachChat),
   ),
   // 이번 주 운동 시간은 요일마다 달라지므로 남은 분을 숫자로 박지 않는다.
