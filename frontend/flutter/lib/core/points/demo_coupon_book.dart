@@ -199,7 +199,7 @@ class DemoCouponBook {
       gymName: item.requiresTrainer || item.requiresGym ? kDemoGymName : '',
       clientRequestId: clientRequestId,
     );
-    if (!_ledger.spend(coupon.id, item.cost)) {
+    if (!_ledger.spend(coupon.id, item.cost, reason: 'coupon_${item.id}')) {
       return _error(409, '포인트가 부족해요.');
     }
     _coupons.add(coupon);

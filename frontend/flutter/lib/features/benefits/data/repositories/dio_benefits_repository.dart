@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
@@ -112,6 +113,22 @@ class DioBenefitsRepository implements BenefitsRepository {
     try {
       return WeeklyReportPurchases.fromJson(
         _ok(await _dio.get<Map<String, Object?>>('/me/weekly-reports')),
+      );
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Future<PointsHistory> fetchPointsHistory({String? before}) async {
+    try {
+      return PointsHistory.fromJson(
+        _ok(
+          await _dio.get<Map<String, Object?>>(
+            '/me/points/history',
+            queryParameters: <String, Object?>{'before': ?before},
+          ),
+        ),
       );
     } on DioException catch (e) {
       throw AppError.fromDio(e);

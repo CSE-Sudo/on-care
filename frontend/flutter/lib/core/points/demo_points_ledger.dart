@@ -38,6 +38,72 @@ class DemoPointsLedger {
   /// 현재 잔액.
   int get balance => _balance;
 
+  /// 잔액이 움직인 줄(#2146). 서버 `points_ledger` 처럼 적립·사용·회수·반환마다
+  /// 사유와 함께 한 줄이다 — 포인트 내역 화면이 읽는다.
+  final List<_Entry> _entries = <_Entry>[];
+
+  void _log(String kind, String reason, int delta) {
+    final DateTime at = _now();
+    _entries.add(
+      _Entry(
+        id: 'pl-demo-${_entries.length + 1}',
+        kind: kind,
+        reason: reason,
+        delta: delta,
+        day: _day(at),
+        at: at,
+      ),
+    );
+  }
+
+  /// 적립 규칙의 사유 코드 — 서버 `EarnRule.reason` 과 같다.
+  static String _reasonOf(PointsRule rule) => switch (rule) {
+    PointsRule.dietEntry => 'diet_entry',
+    PointsRule.exerciseManual => 'exercise_manual',
+    PointsRule.routineComplete => 'routine_complete',
+  };
+
+  /// `GET /me/points/history` — 서버 `points_history_service` 와 같은 모양이다(#2146).
+  ///
+  /// 기록이 있는 날 기준 최근 [pageDays] 일치를 최신순으로 주고, [before] 가 있으면
+  /// 그 날짜보다 앞을 준다. AI 코치 대화 차감은 하루 한 줄로 묶는다.
+  Map<String, Object?> historyJson({String? before, int pageDays = 14}) {
+    final List<String> days =
+        <String>{
+          for (final _Entry e in _entries)
+            if (before == null || e.day.compareTo(before) < 0) e.day,
+        }.toList()
+          ..sort((String a, String b) => b.compareTo(a));
+    final bool hasMore = days.length > pageDays;
+    final List<String> page = days.take(pageDays).toList();
+    final List<_Entry> rows =
+        _entries.where((_Entry e) => page.contains(e.day)).toList()
+          ..sort((_Entry a, _Entry b) => b.at.compareTo(a.at));
+    final List<Map<String, Object?>> items = <Map<String, Object?>>[];
+    final Map<String, Map<String, Object?>> chats =
+        <String, Map<String, Object?>>{};
+    for (final _Entry e in rows) {
+      if (e.kind == 'spend' && e.reason == 'ai_chat') {
+        final Map<String, Object?> grouped = chats.putIfAbsent(e.day, () {
+          final Map<String, Object?> row = e.toJson()
+            ..['delta'] = 0
+            ..['count'] = 0;
+          items.add(row);
+          return row;
+        });
+        grouped['delta'] = (grouped['delta']! as int) + e.delta;
+        grouped['count'] = (grouped['count']! as int) + 1;
+        continue;
+      }
+      items.add(e.toJson());
+    }
+    return <String, Object?>{
+      'balance': _balance,
+      'items': items,
+      'next_before': hasMore && page.isNotEmpty ? page.last : null,
+    };
+  }
+
   /// [sourceId] 기록에 [rule] 대로 적립한다. 이미 적립한 기록이면 새로 쌓지 않고
   /// 그때 받은 값을 돌려준다.
   PointsAward award(PointsRule rule, String sourceId) {
@@ -58,6 +124,7 @@ class DemoPointsLedger {
       delta: rule.points,
     );
     _balance += rule.points;
+    _log('earn', _reasonOf(rule), rule.points);
     return PointsAward(awarded: rule.points, balance: _balance);
   }
 
@@ -74,20 +141,29 @@ class DemoPointsLedger {
     final int taken = math.min(existing.delta, math.max(_balance, 0));
     existing.revoked = true;
     _balance -= taken;
+    _log('revoke', _reasonOf(existing.rule), -taken);
     return taken;
   }
 
   /// `sourceId` → 그 쿠폰을 교환하며 쓴 포인트(#1787). 반환하면 지운다.
   final Map<String, int> _spent = <String, int>{};
 
+  /// `sourceId` → 그 사용의 사유. 반환 줄도 같은 사유를 단다.
+  final Map<String, String> _spentReason = <String, String>{};
+
   /// 반환까지 끝난 사용. 같은 쿠폰을 두 번 돌려주지 않는다.
   final Set<String> _refunded = <String>{};
 
-  /// 쿠폰 교환에 [cost] 만큼 쓴다. 잔액이 모자라면 아무것도 바꾸지 않고 false.
-  bool spend(String sourceId, int cost) {
+  /// [cost] 만큼 쓴다. 잔액이 모자라면 아무것도 바꾸지 않고 false.
+  ///
+  /// [reason] 은 서버 원장과 같은 사유 코드다(`coupon_<항목>`·`streak_shield`·
+  /// `ai_chat` …) — 포인트 내역이 무엇에 썼는지 적는다(#2146).
+  bool spend(String sourceId, int cost, {required String reason}) {
     if (_balance < cost || _spent.containsKey(sourceId)) return false;
     _spent[sourceId] = cost;
+    _spentReason[sourceId] = reason;
     _balance -= cost;
+    _log('spend', reason, -cost);
     return true;
   }
 
@@ -100,6 +176,7 @@ class DemoPointsLedger {
     if (cost == null || _refunded.contains(sourceId)) return 0;
     _refunded.add(sourceId);
     _balance += cost;
+    _log('refund', _spentReason[sourceId] ?? 'refund', cost);
     return cost;
   }
 
@@ -108,9 +185,14 @@ class DemoPointsLedger {
   /// 서버의 `credit` 과 같다. 적립한 포인트(0 이상)를 돌려준다.
   final Set<String> _credited = <String>{};
 
-  int credit(String sourceId, int amount) {
+  int credit(
+    String sourceId,
+    int amount, {
+    String reason = 'challenge_reward',
+  }) {
     if (amount <= 0 || !_credited.add(sourceId)) return 0;
     _balance += amount;
+    _log('earn', reason, amount);
     return amount;
   }
 
@@ -121,6 +203,34 @@ class DemoPointsLedger {
       '${at.year.toString().padLeft(4, '0')}-'
       '${at.month.toString().padLeft(2, '0')}-'
       '${at.day.toString().padLeft(2, '0')}';
+}
+
+class _Entry {
+  _Entry({
+    required this.id,
+    required this.kind,
+    required this.reason,
+    required this.delta,
+    required this.day,
+    required this.at,
+  });
+
+  final String id;
+  final String kind;
+  final String reason;
+  final int delta;
+  final String day;
+  final DateTime at;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'kind': kind,
+    'reason': reason,
+    'delta': delta,
+    'count': 1,
+    'kst_date': day,
+    'created_at': at.toIso8601String(),
+  };
 }
 
 class _Earned {

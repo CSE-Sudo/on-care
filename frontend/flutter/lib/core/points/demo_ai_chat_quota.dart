@@ -95,7 +95,11 @@ class DemoAiChatQuota {
     ({int spent, int? balance}) result = (spent: 0, balance: null);
     if (used.free < freeLimit) {
       _byDay[_today] = (free: used.free + 1, paid: used.paid);
-    } else if (_ledger.spend('ai-chat-demo-${++_sequence}', cost)) {
+    } else if (_ledger.spend(
+      'ai-chat-demo-${++_sequence}',
+      cost,
+      reason: 'ai_chat',
+    )) {
       _byDay[_today] = (free: used.free, paid: used.paid + 1);
       result = (spent: cost, balance: _ledger.balance);
     }

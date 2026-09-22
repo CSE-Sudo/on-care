@@ -16,6 +16,7 @@ import 'package:oncare/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:oncare/features/auth/presentation/pages/splash_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/coupon_detail_page.dart';
 import 'package:oncare/features/benefits/presentation/pages/my_benefits_page.dart';
+import 'package:oncare/features/benefits/presentation/pages/points_history_page.dart';
 import 'package:oncare/features/dashboard/presentation/pages/dashboard_page.dart';
 import 'package:oncare/features/diet/presentation/pages/diet_record_page.dart';
 import 'package:oncare/features/diet/presentation/widgets/diet_flows.dart';
@@ -156,6 +157,11 @@ GoRouter buildAppRouter({
       GoRoute(
         path: AppRoutes.myBenefits,
         builder: (context, state) => const MyBenefitsPage(),
+      ),
+      // 포인트 내역(#2146) — 포인트 화면의 `포인트 내역` 에서 들어온다.
+      GoRoute(
+        path: AppRoutes.myPointsHistory,
+        builder: (context, state) => const PointsHistoryPage(),
       ),
       GoRoute(
         path: AppRoutes.myCouponDetail,

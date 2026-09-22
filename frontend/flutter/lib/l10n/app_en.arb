@@ -991,6 +991,48 @@
   "myShopLockerDescription": "Use a personal locker at your gym free for a month.",
   "myCouponPtRenewalBenefit": "₩30,000 off PT renewal",
   "myBenefitsTitle": "My benefits",
+  "myPointsHistoryTitle": "Points history",
+  "myPointsHistoryEmpty": "No points activity yet",
+  "myPointsHistoryEmptyMessage": "Log meals and workouts to earn points.",
+  "myPointsHistoryLoadFailed": "Couldn't load your points history",
+  "myPointsHistoryMore": "Load more",
+  "myPointsReasonDiet": "Meal log",
+  "myPointsReasonExercise": "Workout log",
+  "myPointsReasonRoutine": "Recommended or assigned workout done",
+  "myPointsReasonPtRenewal": "PT renewal discount coupon",
+  "myPointsReasonLocker": "Personal locker coupon",
+  "myPointsReasonShield": "Streak shield",
+  "myPointsReasonGraphColor": "Graph colour",
+  "myPointsReasonEmotePass": "Chat emotes for 24 hours",
+  "myPointsReasonProfilePet": "Profile pet emoji",
+  "myPointsReasonWeeklyReport": "Weekly report",
+  "myPointsReasonChallengeStake": "Weekly challenge entry",
+  "myPointsReasonChallengeReward": "Weekly challenge reward",
+  "myPointsReasonAiChat": "{count, plural, =1{AI Coach chat} other{AI Coach chats ×{count}}}",
+  "@myPointsReasonAiChat": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "myPointsReasonOther": "Points",
+  "myPointsKindRevoked": "{label} · taken back after deleting the log",
+  "@myPointsKindRevoked": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "myPointsKindRefunded": "{label} · refunded after cancelling",
+  "@myPointsKindRefunded": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
   "myBenefitsView": "View",
   "myBenefitsCoupons": "Coupons",
   "myBenefitsEmpty": "No coupons yet",

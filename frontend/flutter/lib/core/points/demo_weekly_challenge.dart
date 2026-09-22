@@ -140,7 +140,7 @@ class DemoWeeklyChallenge {
       goal: goalOf(goal),
       clientRequestId: clientRequestId,
     );
-    if (!_ledger.spend(challenge.id, stake)) {
+    if (!_ledger.spend(challenge.id, stake, reason: 'challenge_stake')) {
       return _error(409, '포인트가 부족해요.');
     }
     _challenges.add(challenge);

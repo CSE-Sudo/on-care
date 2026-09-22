@@ -15,6 +15,9 @@ class AppRoutes {
   static const String dietEntryDetail = '/diet/entries/:entryId';
   static const String myPoints = '/my-health/points';
 
+  /// 포인트 내역 — 적립·사용·회수·반환(#2146).
+  static const String myPointsHistory = '/my-health/points/history';
+
   /// 내 혜택 — 보유 쿠폰(이후 보호권·챌린지)을 모은다(#1787).
   static const String myBenefits = '/my-health/benefits';
   static const String myCouponDetail = '/my-health/benefits/coupons/:couponId';
