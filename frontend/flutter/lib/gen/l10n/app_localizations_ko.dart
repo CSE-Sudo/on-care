@@ -9,6 +9,9 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get coachInviteUnavailable => '이미 처리되었거나 취소된 요청이에요.';
+
+  @override
   String get appTitle => 'On-Care';
 
   @override
@@ -2651,6 +2654,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authSignInFailed => '로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요';
+
+  @override
+  String get authSignInNetworkFailed => '인터넷 연결을 확인하고 다시 시도해 주세요';
+
+  @override
+  String get authSignInUnavailable => '지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요';

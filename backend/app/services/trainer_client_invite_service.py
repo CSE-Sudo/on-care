@@ -424,7 +424,8 @@ def _notify_member(db: Session, row: TrainerClientInvite) -> None:
             user_id=row.member_id,
             title="담당 요청이 도착했어요",
             body=f"{trainer_name} 트레이너가 담당 코치가 되기를 요청했어요.",
-            category=notification_service.MEMBER_CONSULTATION,
+            category=notification_service.MEMBER_COACH_INVITE,
+            invite_id=row.id,
             read=False,
         )
     )

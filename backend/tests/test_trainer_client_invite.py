@@ -171,6 +171,14 @@ def test_the_member_sees_the_invite_and_gets_a_notification(client, db_session):
     assert rows[0]["trainer_name"] == trainer.name
     assert rows[0]["message"] == "함께 해요"
 
+    alerts = client.get("/v1/notifications", headers=_auth(member_token)).json()
+    alert = next(a for a in alerts if a["invite_id"] == invite_id)
+    assert alert["category"] == "coach_invite"
+    assert alert["action"] == {"label": "요청 확인", "target": "exercise"}
+    stored = db_session.get(Notification, alert["id"])
+    assert stored.invite_id == invite_id
+    assert stored.category == "coach_invite"
+
     # 알림이 없으면 회원은 요청이 왔다는 사실 자체를 알 수 없다.
     assert (
         db_session.query(Notification)
@@ -390,3 +398,23 @@ def test_the_sent_list_shows_what_happened(client, db_session):
     assert [(row["member_name"], row["status"]) for row in rows] == [
         ("정수락", "accepted")
     ]
+
+
+@pytest.mark.parametrize("decision", ["accept", "reject", "cancel"])
+def test_decided_invite_keeps_its_notification_reference(client, db_session, decision):
+    _, trainer_token = _trainer(client, db_session)
+    member_id, _, member_token = _member(client)
+    invite_id = _invite(client, trainer_token, member_id)
+    if decision == "cancel":
+        response = client.delete(
+            f"/v1/trainer/client-invites/{invite_id}", headers=_auth(trainer_token)
+        )
+    else:
+        response = client.post(
+            f"/v1/me/coach/invites/{invite_id}/{decision}",
+            headers=_auth(member_token), json={"data_sharing_consent": True},
+        )
+    assert response.status_code == 200, response.text
+    assert client.get("/v1/me/coach/invites", headers=_auth(member_token)).json() == []
+    alerts = client.get("/v1/notifications", headers=_auth(member_token)).json()
+    assert any(a["category"] == "coach_invite" and a["invite_id"] == invite_id for a in alerts)

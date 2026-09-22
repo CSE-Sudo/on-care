@@ -50,6 +50,9 @@ _ACTION_BY_CATEGORY: dict[str, NotificationAction] = {
     # MEMBER_SCHEDULE 은 액션을 달지 않는다(#1928). 회원 앱에 일정 화면이 없어
     # 어디로 보내든 알림이 말한 것을 보여 줄 수 없다 — 읽음 처리만 하고 제자리에
     # 두는 편이 갈 곳 없는 버튼보다 낫다.
+    notification_service.MEMBER_COACH_INVITE: NotificationAction(
+        label="요청 확인", target="exercise"
+    ),
     notification_service.MEMBER_CONSULTATION: NotificationAction(
         label="트레이너 보기", target="exercise"
     ),
@@ -134,7 +137,7 @@ def list_notifications(
         NotificationOut(
             id=r.id, title=r.title, body=r.body, category=r.category,
             read=r.read, created_at=r.created_at, time_ago=_time_ago(r.created_at),
-            action=_action_for(r.category),
+            action=_action_for(r.category), invite_id=r.invite_id,
         )
         for r in rows
     ]

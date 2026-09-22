@@ -9,6 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get coachInviteUnavailable =>
+      'This request has already been handled or cancelled.';
+
+  @override
   String get appTitle => 'On-Care';
 
   @override
@@ -2732,6 +2736,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authSignInFailed =>
       'Sign-in failed. Check your email and password';
+
+  @override
+  String get authSignInNetworkFailed =>
+      'Check your internet connection and try again';
+
+  @override
+  String get authSignInUnavailable =>
+      'Can\'t sign in right now. Please try again in a moment';
 
   @override
   String get authSocialSignInFailed =>

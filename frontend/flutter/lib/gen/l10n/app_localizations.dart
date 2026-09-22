@@ -98,6 +98,12 @@ abstract class AppLocalizations {
     Locale('ko'),
   ];
 
+  /// No description provided for @coachInviteUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This request has already been handled or cancelled.'**
+  String get coachInviteUnavailable;
+
   /// Application name shown in window/AppBar titles.
   ///
   /// In en, this message translates to:
@@ -4764,6 +4770,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign-in failed. Check your email and password'**
   String get authSignInFailed;
+
+  /// No description provided for @authSignInNetworkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your internet connection and try again'**
+  String get authSignInNetworkFailed;
+
+  /// No description provided for @authSignInUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t sign in right now. Please try again in a moment'**
+  String get authSignInUnavailable;
 
   /// No description provided for @authSocialSignInFailed.
   ///

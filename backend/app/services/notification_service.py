@@ -199,7 +199,7 @@ def unread_count(db: Session, member_id: str) -> int:
 MEMBER_COACH_CHAT = "coach_chat"
 MEMBER_ROUTINE = "routine"
 MEMBER_SCHEDULE = "member_schedule"
-#: 담당 연결 — 트레이너의 담당 요청 도착·연결됨·연결 해제. 이름은 예전에 상담
+#: 담당 연결 — 연결됨·연결 해제. 이름은 예전에 상담
 #: 결과도 함께 싣던 때의 것이다. 목적지는 운동 탭(담당 트레이너 자리)이다.
 MEMBER_CONSULTATION = "consultation_result"
 #: 회원이 낸 상담 요청의 처리 결과 — 승인·거절·만료(#2067). 결과와 사유는 **내 상담
@@ -226,6 +226,7 @@ POINTS_COUPON = "points_coupon"
 #: 스위치가 없다 — 건 포인트를 돌려받았는지·잃었는지 알려 주는 알림이다.
 WEEKLY_CHALLENGE = "weekly_challenge"
 
+MEMBER_COACH_INVITE = "coach_invite"
 #: 담당 트레이너가 회원 건강 목표를 바꿨다 → MY 건강 목표(#1832).
 MEMBER_HEALTH_GOALS = "health_goals"
 
