@@ -3,8 +3,8 @@
 담당 트레이너가 없는 회원이 포인트로 한 주의 리포트를 받는다. 리포트 내용은
 저장하지 않고(앱이 회원 기록으로 세운다) 산 주만 남긴다. 같은 주는 한 번만 산다.
 
-Revision ID: 0084_weekly_report_purchases
-Revises: 0083_profile_pets
+Revision ID: 0085_weekly_report_purchases
+Revises: 0084_merge_notification_pets
 """
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0084_weekly_report_purchases"
-down_revision: str | Sequence[str] | None = "0083_profile_pets"
+revision: str = "0085_weekly_report_purchases"
+down_revision: str | Sequence[str] | None = "0084_merge_notification_pets"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
