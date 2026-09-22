@@ -1248,7 +1248,7 @@
   "myLogoutConfirm": "Log out of your account?",
   "emoteSheetTitle": "Emotes",
   "emoteBuyTitle": "Buy emote",
-  "emoteBuyConfirm": "Use this emote for {days} days for {cost}P? The days start the moment you buy.",
+  "emoteBuyConfirm": "Use this emote for {days} days for {cost}P?\nThe days start the moment you buy.",
   "@emoteBuyConfirm": {"placeholders": {"cost": {"type": "int"}, "days": {"type": "int"}}},
   "emoteBuyAction": "Buy",
   "emoteBought": "You can send this emote now",

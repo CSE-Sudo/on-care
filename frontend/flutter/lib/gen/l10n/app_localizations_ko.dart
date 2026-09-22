@@ -1708,7 +1708,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String emoteBuyConfirm(int cost, int days) {
-    return '${cost}P로 $days일 동안 쓸까요? 산 때부터 기간이 흘러가요.';
+    return '${cost}P로 $days일 동안 쓸까요?\n산 때부터 기간이 흘러가요.';
   }
 
   @override

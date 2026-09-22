@@ -968,7 +968,7 @@
   "myLogoutConfirm": "로그아웃 하시겠어요?",
   "emoteSheetTitle": "이모티콘",
   "emoteBuyTitle": "이모티콘 사기",
-  "emoteBuyConfirm": "{cost}P로 {days}일 동안 쓸까요? 산 때부터 기간이 흘러가요.",
+  "emoteBuyConfirm": "{cost}P로 {days}일 동안 쓸까요?\n산 때부터 기간이 흘러가요.",
   "emoteBuyAction": "사기",
   "emoteBought": "이제 이 이모티콘을 보낼 수 있어요",
   "emoteBuyFailed": "이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.",

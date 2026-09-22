@@ -3101,7 +3101,7 @@ abstract class AppLocalizations {
   /// No description provided for @emoteBuyConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Use this emote for {days} days for {cost}P? The days start the moment you buy.'**
+  /// **'Use this emote for {days} days for {cost}P?\nThe days start the moment you buy.'**
   String emoteBuyConfirm(int cost, int days);
 
   /// No description provided for @emoteBuyAction.

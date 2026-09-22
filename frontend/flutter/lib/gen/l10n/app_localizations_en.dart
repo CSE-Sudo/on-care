@@ -1770,7 +1770,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String emoteBuyConfirm(int cost, int days) {
-    return 'Use this emote for $days days for ${cost}P? The days start the moment you buy.';
+    return 'Use this emote for $days days for ${cost}P?\nThe days start the moment you buy.';
   }
 
   @override
