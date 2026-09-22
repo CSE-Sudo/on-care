@@ -143,6 +143,7 @@ void main() {
 
     expect(find.byKey(const Key('emoteBuyDialog')), findsOneWidget);
     expect(find.text(l.emoteBuyConfirm(50, 7)), findsOneWidget);
+    expect(find.text(l.myPointsBalance(1000)), findsOneWidget);
     await tester.tap(find.text(l.myCancel));
     await tester.pumpAndSettle();
 

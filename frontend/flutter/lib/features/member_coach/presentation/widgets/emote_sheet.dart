@@ -121,7 +121,7 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
   }
 }
 
-/// 사기 전 확인창 — 무엇을 사는지 그림으로 보여 준다.
+/// 사기 전 확인창 — 무엇을 사는지 그림으로 보여 주고, 보유 포인트를 적는다.
 Future<bool> _confirmBuy(BuildContext context, String id, EmoteState state) {
   final AppLocalizations l = AppLocalizations.of(context);
   return showAppDialog<bool>(
@@ -145,6 +145,16 @@ Future<bool> _confirmBuy(BuildContext context, String id, EmoteState state) {
           Text(
             l.emoteBuyConfirm(state.cost, state.days),
             textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          // 지금 잔액만 적는다 — 값이 50P 로 늘 같아 산 뒤 잔액은 바로 셀 수 있다.
+          Text(
+            l.myPointsBalance(state.balance),
+            key: const Key('emoteBuyBalance'),
+            textAlign: TextAlign.center,
+            style: context.oncare
+                .text(OnCareTypography.caption)
+                .copyWith(color: OnCareColors.textSecondary),
           ),
         ],
       ),
