@@ -9,6 +9,9 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get coachInviteUnavailable => '이미 처리되었거나 취소된 요청이에요.';
+
+  @override
   String get appTitle => 'On-Care';
 
   @override
@@ -1297,6 +1300,95 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGraphColorPink => '분홍';
 
   @override
+  String get myShopProfilePetTitle => '프로필 펫 이모지';
+
+  @override
+  String get myShopProfilePetDescription =>
+      '강아지나 고양이를 골라 7일 동안 MY 프로필 이름 옆에 달아요.';
+
+  @override
+  String get myProfilePetDog => '강아지';
+
+  @override
+  String get myProfilePetCat => '고양이';
+
+  @override
+  String get myProfilePetSheetTitle => '이름 옆에 달 펫을 골라요';
+
+  @override
+  String myProfilePetActive(String pet, String left) {
+    return '$pet · $left';
+  }
+
+  @override
+  String myProfilePetDaysLeft(int days) {
+    return '$days일 남음';
+  }
+
+  @override
+  String myProfilePetHoursLeft(int hours) {
+    return '$hours시간 남음';
+  }
+
+  @override
+  String myProfilePetExchangeConfirm(String pet, String cost) {
+    return '$pet를 $cost로 7일 동안 이름 옆에 달까요?';
+  }
+
+  @override
+  String get myProfilePetDone => '이름 옆에 펫을 달았어요';
+
+  @override
+  String get myShopWeeklyReportTitle => '주간 리포트';
+
+  @override
+  String myShopWeeklyReportDescription(String range) {
+    return '$range 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.';
+  }
+
+  @override
+  String get myWeeklyReportOwned => '지난주 리포트는 이미 받았어요';
+
+  @override
+  String myWeeklyReportExchangeConfirm(String range, String cost) {
+    return '$range 리포트를 $cost로 만들까요?';
+  }
+
+  @override
+  String get myWeeklyReportDone => '지난주 리포트를 만들었어요';
+
+  @override
+  String get myBenefitsWeeklyReports => '주간 리포트';
+
+  @override
+  String get myWeeklyReportCardTitle => '포인트로 받은 리포트';
+
+  @override
+  String get coachReportPdfSelfMadeNote =>
+      '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.';
+
+  @override
+  String get coachReportPdfSectionInsights => '감지 기록';
+
+  @override
+  String get coachReportPdfNoInsights => '이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.';
+
+  @override
+  String coachReportPdfInsightSummary(String label, int count) {
+    return '$label $count회';
+  }
+
+  @override
+  String coachReportPdfInsightMore(int count) {
+    return '외 $count건';
+  }
+
+  @override
+  String myProfilePetLabel(String pet) {
+    return '$pet 펫 이모지';
+  }
+
+  @override
   String myPointsValidDays(int days) {
     return '교환 후 $days일 동안 사용';
   }
@@ -2562,6 +2654,12 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get authSignInFailed => '로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요';
+
+  @override
+  String get authSignInNetworkFailed => '인터넷 연결을 확인하고 다시 시도해 주세요';
+
+  @override
+  String get authSignInUnavailable => '지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요';
 
   @override
   String get authSocialSignInFailed => '소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요';

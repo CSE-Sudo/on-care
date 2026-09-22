@@ -9,6 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get coachInviteUnavailable =>
+      'This request has already been handled or cancelled.';
+
+  @override
   String get appTitle => 'On-Care';
 
   @override
@@ -1333,6 +1337,108 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGraphColorPink => 'Pink';
 
   @override
+  String get myShopProfilePetTitle => 'Profile pet emoji';
+
+  @override
+  String get myShopProfilePetDescription =>
+      'Pick a dog or a cat to wear next to your name on MY for 7 days.';
+
+  @override
+  String get myProfilePetDog => 'Dog';
+
+  @override
+  String get myProfilePetCat => 'Cat';
+
+  @override
+  String get myProfilePetSheetTitle => 'Pick a pet for your name';
+
+  @override
+  String myProfilePetActive(String pet, String left) {
+    return '$pet · $left';
+  }
+
+  @override
+  String myProfilePetDaysLeft(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days left',
+      one: '1 day left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myProfilePetHoursLeft(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours left',
+      one: '1 hour left',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String myProfilePetExchangeConfirm(String pet, String cost) {
+    return 'Wear the $pet next to your name for 7 days for $cost?';
+  }
+
+  @override
+  String get myProfilePetDone => 'Your pet is next to your name';
+
+  @override
+  String get myShopWeeklyReportTitle => 'Weekly report';
+
+  @override
+  String myShopWeeklyReportDescription(String range) {
+    return 'Look back on $range with a report built from your meals, workouts and AI Coach notes.';
+  }
+
+  @override
+  String get myWeeklyReportOwned => 'You already have last week\'s report';
+
+  @override
+  String myWeeklyReportExchangeConfirm(String range, String cost) {
+    return 'Make the report for $range for $cost?';
+  }
+
+  @override
+  String get myWeeklyReportDone => 'Last week\'s report is ready';
+
+  @override
+  String get myBenefitsWeeklyReports => 'Weekly reports';
+
+  @override
+  String get myWeeklyReportCardTitle => 'Report from points';
+
+  @override
+  String get coachReportPdfSelfMadeNote =>
+      'Made with points, without a trainer — so there\'s no trainer message.';
+
+  @override
+  String get coachReportPdfSectionInsights => 'AI Coach notes';
+
+  @override
+  String get coachReportPdfNoInsights =>
+      'No pain or negative feedback this week.';
+
+  @override
+  String coachReportPdfInsightSummary(String label, int count) {
+    return '$label ×$count';
+  }
+
+  @override
+  String coachReportPdfInsightMore(int count) {
+    return '+$count more';
+  }
+
+  @override
+  String myProfilePetLabel(String pet) {
+    return '$pet pet emoji';
+  }
+
+  @override
   String myPointsValidDays(int days) {
     return 'Valid for $days days after redeeming';
   }
@@ -2630,6 +2736,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get authSignInFailed =>
       'Sign-in failed. Check your email and password';
+
+  @override
+  String get authSignInNetworkFailed =>
+      'Check your internet connection and try again';
+
+  @override
+  String get authSignInUnavailable =>
+      'Can\'t sign in right now. Please try again in a moment';
 
   @override
   String get authSocialSignInFailed =>

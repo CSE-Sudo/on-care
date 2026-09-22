@@ -1,4 +1,5 @@
 {
+  "coachInviteUnavailable": "이미 처리되었거나 취소된 요청이에요.",
   "@@locale": "ko",
   "appTitle": "On-Care",
   "navDashboard": "홈",
@@ -613,6 +614,104 @@
   "myGraphColorPurple": "보라",
   "myGraphColorOrange": "주황",
   "myGraphColorPink": "분홍",
+  "myShopProfilePetTitle": "프로필 펫 이모지",
+  "myShopProfilePetDescription": "강아지나 고양이를 골라 7일 동안 MY 프로필 이름 옆에 달아요.",
+  "myProfilePetDog": "강아지",
+  "myProfilePetCat": "고양이",
+  "myProfilePetSheetTitle": "이름 옆에 달 펫을 골라요",
+  "myProfilePetActive": "{pet} · {left}",
+  "@myProfilePetActive": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      },
+      "left": {
+        "type": "String"
+      }
+    }
+  },
+  "myProfilePetDaysLeft": "{days}일 남음",
+  "@myProfilePetDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetHoursLeft": "{hours}시간 남음",
+  "@myProfilePetHoursLeft": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetExchangeConfirm": "{pet}를 {cost}로 7일 동안 이름 옆에 달까요?",
+  "@myProfilePetExchangeConfirm": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myProfilePetDone": "이름 옆에 펫을 달았어요",
+  "myShopWeeklyReportTitle": "주간 리포트",
+  "myShopWeeklyReportDescription": "{range} 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.",
+  "@myShopWeeklyReportDescription": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "myWeeklyReportOwned": "지난주 리포트는 이미 받았어요",
+  "myWeeklyReportExchangeConfirm": "{range} 리포트를 {cost}로 만들까요?",
+  "@myWeeklyReportExchangeConfirm": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myWeeklyReportDone": "지난주 리포트를 만들었어요",
+  "myBenefitsWeeklyReports": "주간 리포트",
+  "myWeeklyReportCardTitle": "포인트로 받은 리포트",
+  "coachReportPdfSelfMadeNote": "담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.",
+  "coachReportPdfSectionInsights": "감지 기록",
+  "coachReportPdfNoInsights": "이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.",
+  "coachReportPdfInsightSummary": "{label} {count}회",
+  "@coachReportPdfInsightSummary": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coachReportPdfInsightMore": "외 {count}건",
+  "@coachReportPdfInsightMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetLabel": "{pet} 펫 이모지",
+  "@myProfilePetLabel": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      }
+    }
+  },
   "myPointsValidDays": "교환 후 {days}일 동안 사용",
   "@myPointsValidDays": {
     "placeholders": {
@@ -1226,6 +1325,8 @@
   "authEmailInvalid": "이메일 형식이 올바르지 않아요",
   "authPasswordEmpty": "비밀번호를 입력해 주세요",
   "authSignInFailed": "로그인에 실패했어요. 이메일·비밀번호를 확인해 주세요",
+  "authSignInNetworkFailed": "인터넷 연결을 확인하고 다시 시도해 주세요",
+  "authSignInUnavailable": "지금은 로그인할 수 없어요. 잠시 후 다시 시도해 주세요",
   "authSocialSignInFailed": "소셜 로그인에 실패했어요. 잠시 후 다시 시도해 주세요",
   "signUpTitle": "회원가입",
   "signUpSubtitle": "On-Care 계정을 만들어 건강 관리를 시작하세요",

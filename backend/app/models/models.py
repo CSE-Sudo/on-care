@@ -424,6 +424,77 @@ class DietEntry(Base):
     )
 
 
+class WeeklyReportPurchase(Base):
+    """포인트로 받은 주간 리포트 한 주. (#2022)
+
+    주간 리포트는 트레이너가 등록해 주는 것이라 담당이 없는 회원은 받을 길이 없었다.
+    그 회원이 포인트로 한 주를 산다. 리포트 내용은 저장하지 않는다 — 회원이 이미
+    쌓은 식단·운동 기록과 감지 기록으로 앱이 그때그때 세운다(트레이너 리포트를
+    회원 앱이 여는 방식과 같다). 여기에는 **어느 주를 샀는지**만 남는다.
+
+    같은 주는 한 번만 산다(`uq_weekly_report_purchase_week`).
+    """
+
+    __tablename__ = "weekly_report_purchases"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 그 주 월요일 `YYYY-MM-DD`(KST). `ExerciseSession.week_start` 와 같은 방식이다.
+    week_start: Mapped[str] = mapped_column(String(10))
+    #: 쓴 포인트. 가격이 바뀌어도 그때 얼마였는지가 남는다.
+    cost: Mapped[int] = mapped_column(Integer, default=0)
+    #: 재시도가 두 번 사지 않게 하는 멱등키.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "week_start", name="uq_weekly_report_purchase_week"
+        ),
+        UniqueConstraint(
+            "user_id",
+            "client_request_id",
+            name="uq_weekly_report_purchase_client_request",
+        ),
+    )
+
+
+class ProfilePet(Base):
+    """MY 프로필 이름 옆에 붙는 펫 이모지 — 포인트로 여는 기간제 꾸밈. (#2021)
+
+    강아지나 고양이 하나를 골라 7일 동안 단다. 기능에는 영향이 없다. 언제까지인지는
+    `expires_at` 하나가 들고 있고, 만료는 스케줄러 없이 조회할 때 비교한다 — 지나면
+    저절로 떨어진다. 행은 지우지 않는다(무엇을 언제 샀는지가 남는다).
+    """
+
+    __tablename__ = "profile_pets"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: dog|cat.
+    kind: Mapped[str] = mapped_column(String(16))
+    #: 쓴 포인트. 가격이 바뀌어도 그때 얼마였는지가 남는다.
+    cost: Mapped[int] = mapped_column(Integer, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    #: 재시도가 두 번 사지 않게 하는 멱등키.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_profile_pet_client_request"
+        ),
+    )
+
+
 class EmotePass(Base):
     """채팅 이모티콘 24시간 이용권. (#2020)
 
@@ -728,6 +799,8 @@ class Notification(Base):
     # 알림이 가리키는 회원 id (#1832). `category` 만으로 갈 곳이 정해지지 않는
     # 알림 — 트레이너의 `회원 건강 목표 변경` 은 **그 회원** 상세로 가야 한다.
     subject_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # 담당 요청 알림이 가리키는 요청. 과거 알림은 연결 정보가 없다. (#1802)
+    invite_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

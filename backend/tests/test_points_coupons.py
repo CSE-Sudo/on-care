@@ -28,6 +28,7 @@ from app.models.models import (
     TrainerProfile,
     User,
 )
+from app.services import weekly_report_purchase_service
 
 TRAINER_NAME = "쿠폰 트레이너"
 GYM_NAME = "쿠폰 테스트짐"
@@ -253,6 +254,8 @@ def test_shop_lists_items_with_block_reasons(client, db_session, trainer_id, gym
         "streak_shield",
         "graph_color",
         "emote_pass_24h",
+        "profile_pet",
+        "weekly_report",
     ]
     renewal, locker = body["items"][:2]
     assert "redeemer" not in renewal and "redeemer" not in locker
@@ -293,13 +296,16 @@ def test_catalog_is_gym_benefits_only(client, db_session):
 
     items = client.get("/v1/me/points/shop", headers=h).json()["items"]
     # 사용처는 헬스장 혜택 두 장과 연속 기록 보호권(#1788), 그래프 색 바꾸기(#2076),
-    # 채팅 이모티콘 24시간 이용권(#2020)이다. 카탈로그 밖 항목은 교환하면 404 다.
+    # 채팅 이모티콘 24시간 이용권(#2020), 프로필 펫 이모지(#2021), 담당이 없는
+    # 회원의 주간 리포트(#2022)다. 카탈로그 밖 항목은 교환하면 404 다.
     assert [i["id"] for i in items] == [
         "pt_renewal",
         "locker_month",
         "streak_shield",
         "graph_color",
         "emote_pass_24h",
+        "profile_pet",
+        "weekly_report",
     ]
     assert _exchange(client, h, "unknown_item").status_code == 404
 
@@ -779,3 +785,35 @@ def test_refund_happens_once_per_coupon(client, db_session, trainer_id, gym_id):
         )
     db_session.commit()
     assert _balance(client, h) == 28000
+
+
+# ---- 주간 리포트 (#2022) ----
+
+
+def test_weekly_report_is_only_for_members_without_a_trainer(
+    client, db_session, trainer_id
+):
+    member_id, h = _new_member(client, db_session, points=1000)
+    assert _shop_item(client, h, "weekly_report")["available"] is True
+
+    _link(db_session, member_id, trainer_id)
+
+    # 담당이 있으면 트레이너가 등록해 준다 — 목록에서 빠지고 교환도 막힌다.
+    items = client.get("/v1/me/points/shop", headers=h).json()["items"]
+    assert "weekly_report" not in [i["id"] for i in items]
+    assert _exchange(client, h, "weekly_report").status_code == 409
+
+
+def test_weekly_report_buys_last_week_once(client, db_session):
+    _, h = _new_member(client, db_session, points=1000)
+    last_monday = weekly_report_purchase_service.target_week().isoformat()
+
+    bought = _exchange(client, h, "weekly_report")
+    assert bought.status_code == 201, bought.text
+    assert bought.json()["weekly_report_week"] == last_monday
+    assert _exchange(client, h, "weekly_report").status_code == 409
+
+    listed = client.get("/v1/me/weekly-reports", headers=h).json()
+    assert [r["week_start"] for r in listed["reports"]] == [last_monday]
+    assert _shop_item(client, h, "weekly_report")["blocked_reason"] == "week_owned"
+    assert client.get("/v1/me/points/shop", headers=h).json()["balance"] == 700

@@ -98,6 +98,12 @@ abstract class AppLocalizations {
     Locale('ko'),
   ];
 
+  /// No description provided for @coachInviteUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This request has already been handled or cancelled.'**
+  String get coachInviteUnavailable;
+
   /// Application name shown in window/AppBar titles.
   ///
   /// In en, this message translates to:
@@ -2396,6 +2402,144 @@ abstract class AppLocalizations {
   /// **'Pink'**
   String get myGraphColorPink;
 
+  /// No description provided for @myShopProfilePetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile pet emoji'**
+  String get myShopProfilePetTitle;
+
+  /// No description provided for @myShopProfilePetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a dog or a cat to wear next to your name on MY for 7 days.'**
+  String get myShopProfilePetDescription;
+
+  /// No description provided for @myProfilePetDog.
+  ///
+  /// In en, this message translates to:
+  /// **'Dog'**
+  String get myProfilePetDog;
+
+  /// No description provided for @myProfilePetCat.
+  ///
+  /// In en, this message translates to:
+  /// **'Cat'**
+  String get myProfilePetCat;
+
+  /// No description provided for @myProfilePetSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a pet for your name'**
+  String get myProfilePetSheetTitle;
+
+  /// No description provided for @myProfilePetActive.
+  ///
+  /// In en, this message translates to:
+  /// **'{pet} · {left}'**
+  String myProfilePetActive(String pet, String left);
+
+  /// No description provided for @myProfilePetDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day left} other{{days} days left}}'**
+  String myProfilePetDaysLeft(int days);
+
+  /// No description provided for @myProfilePetHoursLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours, plural, =1{1 hour left} other{{hours} hours left}}'**
+  String myProfilePetHoursLeft(int hours);
+
+  /// No description provided for @myProfilePetExchangeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Wear the {pet} next to your name for 7 days for {cost}?'**
+  String myProfilePetExchangeConfirm(String pet, String cost);
+
+  /// No description provided for @myProfilePetDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Your pet is next to your name'**
+  String get myProfilePetDone;
+
+  /// No description provided for @myShopWeeklyReportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly report'**
+  String get myShopWeeklyReportTitle;
+
+  /// No description provided for @myShopWeeklyReportDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Look back on {range} with a report built from your meals, workouts and AI Coach notes.'**
+  String myShopWeeklyReportDescription(String range);
+
+  /// No description provided for @myWeeklyReportOwned.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have last week\'s report'**
+  String get myWeeklyReportOwned;
+
+  /// No description provided for @myWeeklyReportExchangeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Make the report for {range} for {cost}?'**
+  String myWeeklyReportExchangeConfirm(String range, String cost);
+
+  /// No description provided for @myWeeklyReportDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Last week\'s report is ready'**
+  String get myWeeklyReportDone;
+
+  /// No description provided for @myBenefitsWeeklyReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly reports'**
+  String get myBenefitsWeeklyReports;
+
+  /// No description provided for @myWeeklyReportCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Report from points'**
+  String get myWeeklyReportCardTitle;
+
+  /// No description provided for @coachReportPdfSelfMadeNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Made with points, without a trainer — so there\'s no trainer message.'**
+  String get coachReportPdfSelfMadeNote;
+
+  /// No description provided for @coachReportPdfSectionInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Coach notes'**
+  String get coachReportPdfSectionInsights;
+
+  /// No description provided for @coachReportPdfNoInsights.
+  ///
+  /// In en, this message translates to:
+  /// **'No pain or negative feedback this week.'**
+  String get coachReportPdfNoInsights;
+
+  /// No description provided for @coachReportPdfInsightSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} ×{count}'**
+  String coachReportPdfInsightSummary(String label, int count);
+
+  /// No description provided for @coachReportPdfInsightMore.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more'**
+  String coachReportPdfInsightMore(int count);
+
+  /// No description provided for @myProfilePetLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{pet} pet emoji'**
+  String myProfilePetLabel(String pet);
+
   /// No description provided for @myPointsValidDays.
   ///
   /// In en, this message translates to:
@@ -4626,6 +4770,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sign-in failed. Check your email and password'**
   String get authSignInFailed;
+
+  /// No description provided for @authSignInNetworkFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your internet connection and try again'**
+  String get authSignInNetworkFailed;
+
+  /// No description provided for @authSignInUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t sign in right now. Please try again in a moment'**
+  String get authSignInUnavailable;
 
   /// No description provided for @authSocialSignInFailed.
   ///

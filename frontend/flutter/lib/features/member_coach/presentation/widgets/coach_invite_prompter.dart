@@ -41,6 +41,10 @@ class _CoachInvitePrompterState extends ConsumerState<CoachInvitePrompter> {
   @override
   void initState() {
     super.initState();
+    ref.listenManual<String?>(
+      selectedCoachInviteProvider,
+      (_, _) => _scheduleNext(),
+    );
     ref.listenManual<AsyncValue<List<CoachInvite>>>(
       coachInvitesProvider,
       (_, _) => _scheduleNext(),
@@ -71,7 +75,14 @@ class _CoachInvitePrompterState extends ConsumerState<CoachInvitePrompter> {
       ref.read(sessionControllerProvider).canEnterApp;
 
   Future<void> _showNext() async {
-    if (!mounted || _showingId != null || !_sessionAllowsPrompt) return;
+    if (!mounted || !_sessionAllowsPrompt) return;
+    final String? selected = ref.read(selectedCoachInviteProvider);
+    if (_showingId != null) {
+      if (selected == _showingId) {
+        ref.read(selectedCoachInviteProvider.notifier).state = null;
+      }
+      return;
+    }
     final AsyncValue<List<CoachInvite>> invites = ref.read(
       coachInvitesProvider,
     );
@@ -79,11 +90,24 @@ class _CoachInvitePrompterState extends ConsumerState<CoachInvitePrompter> {
     // 아직 그 안에 남아 있다.
     if (invites is! AsyncData<List<CoachInvite>>) return;
     final CoachInvite? next = invites.value
-        .where((CoachInvite invite) => !_decided.contains(invite.id))
+        .where(
+          (CoachInvite invite) => selected != null
+              ? invite.id == selected
+              : !_decided.contains(invite.id),
+        )
         .firstOrNull;
-    if (next == null) return;
+    if (next == null) {
+      // 다른 창에 답하는 동안 선택한 요청이 취소돼도 대기열을 막지 않는다.
+      if (selected != null) {
+        ref.read(selectedCoachInviteProvider.notifier).state = null;
+      }
+      return;
+    }
 
     _showingId = next.id;
+    if (selected != null) {
+      ref.read(selectedCoachInviteProvider.notifier).state = null;
+    }
     final CoachInviteDecision? decision = await showCoachInviteDialog(
       context,
       invite: next,

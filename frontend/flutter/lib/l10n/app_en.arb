@@ -1,4 +1,5 @@
 {
+  "coachInviteUnavailable": "This request has already been handled or cancelled.",
   "@@locale": "en",
   "appTitle": "On-Care",
   "@appTitle": {
@@ -877,6 +878,104 @@
   "myGraphColorPurple": "Purple",
   "myGraphColorOrange": "Orange",
   "myGraphColorPink": "Pink",
+  "myShopProfilePetTitle": "Profile pet emoji",
+  "myShopProfilePetDescription": "Pick a dog or a cat to wear next to your name on MY for 7 days.",
+  "myProfilePetDog": "Dog",
+  "myProfilePetCat": "Cat",
+  "myProfilePetSheetTitle": "Pick a pet for your name",
+  "myProfilePetActive": "{pet} · {left}",
+  "@myProfilePetActive": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      },
+      "left": {
+        "type": "String"
+      }
+    }
+  },
+  "myProfilePetDaysLeft": "{days, plural, =1{1 day left} other{{days} days left}}",
+  "@myProfilePetDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetHoursLeft": "{hours, plural, =1{1 hour left} other{{hours} hours left}}",
+  "@myProfilePetHoursLeft": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetExchangeConfirm": "Wear the {pet} next to your name for 7 days for {cost}?",
+  "@myProfilePetExchangeConfirm": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myProfilePetDone": "Your pet is next to your name",
+  "myShopWeeklyReportTitle": "Weekly report",
+  "myShopWeeklyReportDescription": "Look back on {range} with a report built from your meals, workouts and AI Coach notes.",
+  "@myShopWeeklyReportDescription": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "myWeeklyReportOwned": "You already have last week's report",
+  "myWeeklyReportExchangeConfirm": "Make the report for {range} for {cost}?",
+  "@myWeeklyReportExchangeConfirm": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myWeeklyReportDone": "Last week's report is ready",
+  "myBenefitsWeeklyReports": "Weekly reports",
+  "myWeeklyReportCardTitle": "Report from points",
+  "coachReportPdfSelfMadeNote": "Made with points, without a trainer — so there's no trainer message.",
+  "coachReportPdfSectionInsights": "AI Coach notes",
+  "coachReportPdfNoInsights": "No pain or negative feedback this week.",
+  "coachReportPdfInsightSummary": "{label} ×{count}",
+  "@coachReportPdfInsightSummary": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coachReportPdfInsightMore": "+{count} more",
+  "@coachReportPdfInsightMore": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "myProfilePetLabel": "{pet} pet emoji",
+  "@myProfilePetLabel": {
+    "placeholders": {
+      "pet": {
+        "type": "String"
+      }
+    }
+  },
   "myPointsValidDays": "Valid for {days} days after redeeming",
   "@myPointsValidDays": {
     "placeholders": {
@@ -1871,6 +1970,8 @@
   "authEmailInvalid": "Enter a valid email address",
   "authPasswordEmpty": "Enter your password",
   "authSignInFailed": "Sign-in failed. Check your email and password",
+  "authSignInNetworkFailed": "Check your internet connection and try again",
+  "authSignInUnavailable": "Can't sign in right now. Please try again in a moment",
   "authSocialSignInFailed": "Social sign-in failed. Please try again in a moment",
   "signUpTitle": "Sign up",
   "signUpSubtitle": "Create an On-Care account and start managing your health",

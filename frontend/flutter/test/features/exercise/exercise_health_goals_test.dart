@@ -151,6 +151,7 @@ void main() {
     WidgetTester tester, {
     required UserProfile profile,
     MemberCoachRepository? coachRepository,
+    ExerciseWeek? exerciseWeek,
   }) async {
     await tester.binding.setSurfaceSize(const Size(800, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -167,7 +168,7 @@ void main() {
           accountRepositoryProvider.overrideWithValue(
             MockAccountRepository(profile: profile),
           ),
-          exerciseWeekProvider.overrideWith((ref) async => week),
+          exerciseWeekProvider.overrideWith((ref) async => exerciseWeek ?? week),
           memberCoachRepositoryProvider.overrideWithValue(
             coachRepository ?? MockMemberCoachRepository(),
           ),
@@ -276,6 +277,13 @@ void main() {
             note: '오른쪽 어깨 가동 범위를 확인해 주세요.',
             program: const <CoachProgramItem>[
               CoachProgramItem(name: '숄더 프레스', sets: 4, reps: 12, weight: 10),
+              CoachProgramItem(
+                name: '마무리 러닝머신',
+                sets: 0,
+                reps: 0,
+                weight: 0,
+                duration: 10,
+              ),
             ],
           ),
         ],
@@ -298,8 +306,87 @@ void main() {
 
     expect(find.text('18:00 수업 완료'), findsOneWidget);
     expect(find.text('숄더 프레스 · 4세트 · 12회 · 10kg'), findsOneWidget);
+    expect(find.text('마무리 러닝머신 · 10분'), findsOneWidget);
     expect(find.text('김트레이너 · 오늘의 피드백'), findsOneWidget);
     expect(find.text('오른쪽 어깨 가동 범위를 확인해 주세요.'), findsOneWidget);
+  });
+
+  testWidgets('데모의 오늘 완료한 PT는 종목별 분·세트·횟수·중량을 표시한다 (#2126)', (
+    WidgetTester tester,
+  ) async {
+    final String today = const <String>[
+      '월',
+      '화',
+      '수',
+      '목',
+      '금',
+      '토',
+      '일',
+    ][nowKst().weekday - 1];
+    await pumpExercise(
+      tester,
+      profile: const UserProfile(
+        id: 'member',
+        name: '테스트',
+        email: 'member@example.com',
+      ),
+      exerciseWeek: ExerciseWeek(
+        sessions: <ExerciseSession>[
+          ExerciseSession(
+            dayLabel: today,
+            type: ExerciseType.strength,
+            minutes: 20,
+            calories: 120,
+            name: '레그프레스',
+            items: const <String>['레그프레스'],
+            source: ExerciseSource.trainerPt,
+            sets: 4,
+            reps: 12,
+            weight: 70,
+          ),
+          ExerciseSession(
+            dayLabel: today,
+            type: ExerciseType.cardio,
+            minutes: 15,
+            calories: 90,
+            name: '러닝머신',
+            items: const <String>['러닝머신'],
+            source: ExerciseSource.trainerPt,
+          ),
+          ExerciseSession(
+            dayLabel: today,
+            type: ExerciseType.stretching,
+            minutes: 10,
+            calories: 30,
+            name: '하체 스트레칭',
+            items: const <String>['하체 스트레칭'],
+            source: ExerciseSource.trainerPt,
+          ),
+          ExerciseSession(
+            dayLabel: today,
+            type: ExerciseType.other,
+            minutes: 5,
+            calories: 20,
+            name: '밸런스 훈련',
+            items: const <String>['밸런스 훈련'],
+            source: ExerciseSource.trainerPt,
+          ),
+        ],
+        dailyMinutes: const <double>[50, 0, 0, 0, 0, 0, 0],
+        dayLabels: const <String>['월', '화', '수', '목', '금', '토', '일'],
+        totalMinutes: 50,
+        totalCalories: 260,
+        streakDays: 1,
+        aiCoachMessage: '',
+      ),
+    );
+
+    await tester.scrollUntilVisible(find.text('레그프레스 · 4세트 · 12회 · 70kg'), 400);
+
+    expect(find.text('레그프레스 · 4세트 · 12회 · 70kg'), findsOneWidget);
+    expect(find.text('러닝머신 · 15분'), findsOneWidget);
+    expect(find.text('하체 스트레칭 · 10분'), findsOneWidget);
+    expect(find.text('밸런스 훈련 · 5분'), findsOneWidget);
   });
 
   testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (

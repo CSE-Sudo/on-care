@@ -57,11 +57,17 @@ Override sessionFeatureResetOverride() {
       // 받은 담당 요청은 셸이 듣는 동안 살아 있다. 데모에서 로그인해도 셸이 그대로면
       // 앞 세션의 목록이 남는다(#1801).
       ref.invalidate(coachInvitesProvider);
+      ref.invalidate(selectedCoachInviteProvider);
       ref.invalidate(myHealthStateProvider);
       // 포인트 사용처·내 쿠폰(#1787). auto-dispose 지만 화면을 연 채 전환하면
       // 앞 계정의 잔액·교환 가능 여부·쿠폰이 남는다.
       ref.invalidate(pointsShopProvider);
       ref.invalidate(myCouponsProvider);
+      // MY 프로필 펫(#2021) — auto-dispose 가 아니라 되짚지 않으면 앞 계정의 펫이
+      // 이름 옆에 남는다.
+      ref.invalidate(profilePetProvider);
+      // 포인트로 받은 주간 리포트(#2022) — 내 혜택을 연 채 전환하면 앞 계정의 주가 남는다.
+      ref.invalidate(myWeeklyReportsProvider);
       // 연속 기록 보호권(#1788) — 앞 계정의 보유 수·보호한 날이 남지 않게 한다.
       ref.invalidate(myStreakShieldsProvider);
       // 기록 그래프·그래프 색(#2075, #2076) — 보호권과 같은 이유다. auto-dispose 가

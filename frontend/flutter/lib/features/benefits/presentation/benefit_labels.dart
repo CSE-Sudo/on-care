@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:oncare/app/app_icons.dart';
+import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -19,11 +20,24 @@ const String kStreakShieldItem = 'streak_shield';
 /// 열지 고르는 단계가 하나 더 있다.
 const String kGraphColorItem = 'graph_color';
 
+/// 프로필 펫 이모지(#2021) — 쿠폰이 아니라 7일 동안 MY 이름 옆에 펫을 단다. 교환 전에
+/// 어느 펫을 달지 고르는 단계가 하나 더 있다.
+const String kProfilePetItem = 'profile_pet';
+
+/// 주간 리포트(#2022) — 담당 트레이너가 없는 회원이 지난주 리포트를 받는다. 담당이
+/// 있으면 서버가 목록에 싣지 않는다.
+const String kWeeklyReportItem = 'weekly_report';
+
+/// 고를 수 있는 펫. 고르는 창에 서는 순서 그대로다(서버 `KINDS` 와 같다).
+const List<String> kProfilePetKinds = <String>['dog', 'cat'];
+
 String shopItemTitle(AppLocalizations l, ShopItem item) => switch (item.id) {
   kPtRenewalItem => l.myShopPtRenewalTitle,
   kLockerMonthItem => l.myShopLockerTitle,
   kStreakShieldItem => l.myShopStreakShieldTitle,
   kGraphColorItem => l.myShopGraphColorTitle,
+  kProfilePetItem => l.myShopProfilePetTitle,
+  kWeeklyReportItem => l.myShopWeeklyReportTitle,
   _ => item.title,
 };
 
@@ -33,6 +47,10 @@ String shopItemDescription(AppLocalizations l, ShopItem item) =>
       kLockerMonthItem => l.myShopLockerDescription,
       kStreakShieldItem => l.myShopStreakShieldDescription,
       kGraphColorItem => l.myShopGraphColorDescription,
+      kProfilePetItem => l.myShopProfilePetDescription,
+      kWeeklyReportItem => l.myShopWeeklyReportDescription(
+        reportWeekRange(l, lastWeekMonday()),
+      ),
       _ => item.description,
     };
 
@@ -44,6 +62,12 @@ String? shopBlockLabel(AppLocalizations l, ShopItem item) {
     ShopBlockReason.noGym => l.myPointsNeedGym,
     ShopBlockReason.activeCoupon => l.myPointsActiveCoupon,
     ShopBlockReason.shieldLimit => l.myPointsShieldLimit,
+    // 달고 있는 펫과 남은 기간 — 사용처에서 남은 기간을 보는 자리다(#2021).
+    ShopBlockReason.activePet => l.myProfilePetActive(
+      profilePetName(l, item.activeOption ?? ''),
+      profilePetLeft(l, item.remainingSeconds),
+    ),
+    ShopBlockReason.weekOwned => l.myWeeklyReportOwned,
     ShopBlockReason.monthlyLimit => l.myPointsMonthlyLimit,
     ShopBlockReason.insufficientPoints => l.myPointsShortfall(
       l.myPointsCost(item.shortfall),
@@ -63,6 +87,51 @@ String graphColorName(AppLocalizations l, String color) => switch (color) {
   _ => color,
 };
 
+/// 펫 이름 — 고르는 창·사용처 카드·확인창이 쓴다(#2021).
+String profilePetName(AppLocalizations l, String kind) => switch (kind) {
+  'dog' => l.myProfilePetDog,
+  'cat' => l.myProfilePetCat,
+  _ => kind,
+};
+
+/// 펫을 그리는 이모티콘 그림 — 채팅 이모티콘(#2020)의 강아지·고양이 얼굴이다.
+/// 앱이 모르는 펫이면 null 이고 아무것도 그리지 않는다.
+String? profilePetEmote(String kind) => switch (kind) {
+  'dog' => 'dog_hehe',
+  'cat' => 'cat_meh',
+  _ => null,
+};
+
+/// 남은 기간 — 하루 이상이면 날, 하루가 안 남았으면 시간. 둘 다 올림이라 막 단
+/// 펫은 `7일 남음`, 끝나기 직전은 `1시간 남음` 이다.
+String profilePetLeft(AppLocalizations l, int remainingSeconds) {
+  const int hour = 3600;
+  const int day = 24 * hour;
+  if (remainingSeconds >= day) {
+    return l.myProfilePetDaysLeft((remainingSeconds + day - 1) ~/ day);
+  }
+  final int hours = (remainingSeconds + hour - 1) ~/ hour;
+  return l.myProfilePetHoursLeft(hours < 1 ? 1 : hours);
+}
+
+/// 지금 주간 리포트를 받으면 가리키는 주 — 지난주 월요일(KST). 서버
+/// `weekly_report_purchase_service.target_week` 와 같은 규칙이다(#2022).
+DateTime lastWeekMonday() {
+  final DateTime today = todayKst();
+  return DateTime(today.year, today.month, today.day - today.weekday + 1 - 7);
+}
+
+/// `9월 14일 – 9월 20일` — 채팅의 리포트 카드와 같은 표기다.
+String reportWeekRange(AppLocalizations l, DateTime monday) {
+  final DateTime sunday = DateTime(monday.year, monday.month, monday.day + 6);
+  return l.coachChatReportWeek(
+    monday.month,
+    monday.day,
+    sunday.month,
+    sunday.day,
+  );
+}
+
 /// 쿠폰의 혜택 한 줄.
 String couponBenefit(AppLocalizations l, Coupon coupon) => switch (coupon.item) {
   kPtRenewalItem => l.myCouponPtRenewalBenefit,
@@ -75,6 +144,8 @@ IconData benefitIcon(String itemId) => switch (itemId) {
   kLockerMonthItem => AppIcons.locker,
   kStreakShieldItem => AppIcons.streakShield,
   kGraphColorItem => AppIcons.palette,
+  kProfilePetItem => AppIcons.pets,
+  kWeeklyReportItem => AppIcons.document,
   _ => AppIcons.coupon,
 };
 

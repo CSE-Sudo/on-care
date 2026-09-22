@@ -85,6 +85,37 @@ class _ReportThenChatRepository extends MockMemberCoachRepository {
       Stream<List<CoachMessage>>.value(messages);
 }
 
+/// 같은 시각이면 id가 작은 리포트 안내가 먼저 서야 하는 스레드.
+class _SameTimeReportRepository extends MockMemberCoachRepository {
+  _SameTimeReportRepository();
+
+  static final DateTime createdAt = DateTime(2026, 8, 24, 18, 10);
+  static final List<CoachMessage> messages = <CoachMessage>[
+    CoachMessage(
+      id: 'b-message',
+      sender: CoachSender.me,
+      body: '동시 메시지',
+      timeLabel: '18:10',
+      createdAt: createdAt,
+    ),
+    CoachMessage(
+      id: 'a-report',
+      sender: CoachSender.trainer,
+      body: '이번 주 리포트입니다.',
+      timeLabel: '18:10',
+      createdAt: createdAt,
+      reportWeekStart: _weekStart,
+    ),
+  ];
+
+  @override
+  Future<List<CoachMessage>> fetchChat({CoachMessage? before}) async => messages;
+
+  @override
+  Stream<List<CoachMessage>> watchChat() =>
+      Stream<List<CoachMessage>>.value(messages);
+}
+
 MemberWeeklyReport _report({
   List<ExerciseSession> sessions = const <ExerciseSession>[],
   List<double> minutes = const <double>[30, 0, 45, 0, 20, 0, 0],
@@ -190,16 +221,28 @@ void main() {
       );
     });
 
-    testWidgets('뒤에 대화가 이어져도 안내는 맨 아래에 남는다', (WidgetTester tester) async {
+    testWidgets('뒤에 대화가 이어지면 안내는 발생 시각 위치에 남는다 (#2127)', (
+      WidgetTester tester,
+    ) async {
       await pumpChat(tester, repository: _ReportThenChatRepository());
 
       final Rect card = tester.getRect(find.byType(CoachReportCard));
       final Rect lastBubble = tester.getRect(find.text('확인했습니다'));
       expect(
-        card.top,
-        greaterThan(lastBubble.bottom),
-        reason: '리포트를 여는 자리는 대화가 늘어도 같은 곳이어야 한다',
+        card.bottom,
+        lessThan(lastBubble.top),
+        reason: '리포트 뒤에 온 메시지는 안내 카드 아래에 있어야 한다',
       );
+    });
+
+    testWidgets('발생 시각이 같으면 id 순으로 안내와 메시지를 정렬한다 (#2127)', (
+      WidgetTester tester,
+    ) async {
+      await pumpChat(tester, repository: _SameTimeReportRepository());
+
+      final Rect card = tester.getRect(find.byType(CoachReportCard));
+      final Rect bubble = tester.getRect(find.text('동시 메시지'));
+      expect(card.bottom, lessThan(bubble.top));
     });
   });
 
@@ -403,6 +446,46 @@ void main() {
         report: _report(days: _week()),
       );
       expect(alone, contains('지난주 기록이 없어 견줄 값이 없어요.'));
+    });
+
+    testWidgets('포인트로 받은 리포트는 트레이너 자리에 감지 기록을 싣는다 (#2022)', (
+      WidgetTester tester,
+    ) async {
+      final AppLocalizations l = await localizations(tester);
+      const MemberReportPdfGenerator pdf = MemberReportPdfGenerator();
+      const List<String> insights = <String>['무릎 통증 감지 2회'];
+      final List<String> lines = pdf.textContent(
+        l: l,
+        report: _report(days: _week()),
+        source: MemberReportSource.points,
+        insightLines: insights,
+      );
+
+      expect(lines, contains(l.coachReportPdfSectionInsights));
+      expect(lines, contains('무릎 통증 감지 2회'));
+      expect(lines, contains(l.coachReportPdfSelfMadeNote));
+      expect(lines, isNot(contains(l.coachReportPdfSectionTrainerNote)));
+
+      // 적는 가장 긴 요약(세 종류와 `외 N건`)도 한 장에 담긴다(#1619). 영어
+      // 문서가 더 길어 두 언어를 다 본다.
+      for (final (String lang, String worst) in <(String, String)>[
+        ('ko', '오른쪽 무릎 통증 감지 3회 · 왼쪽 어깨 통증 감지 2회 · 부정적 반응 감지 2회 · 외 5건'),
+        (
+          'en',
+          'Right knee pain noted ×3 · Left shoulder pain noted ×2 · Negative feedback noted ×2 · +5 more',
+        ),
+      ]) {
+        expect(
+          pdf.pageCount(
+            l: lookupAppLocalizations(Locale(lang)),
+            report: _report(days: _week()),
+            source: MemberReportSource.points,
+            insightLines: <String>[worst],
+          ),
+          1,
+          reason: lang,
+        );
+      }
     });
   });
 }

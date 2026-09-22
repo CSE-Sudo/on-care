@@ -1,5 +1,7 @@
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
+import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
 
 /// 포인트 사용처와 내 혜택(쿠폰). (#1787)
 ///
@@ -16,8 +18,9 @@ abstract interface class BenefitsRepository {
   /// 포인트를 써서 쿠폰을 발급한다. [clientRequestId] 가 같은 재시도는 두 번
   /// 쓰지 않는다. 규칙에 막히면(잔액 부족 등) 서버 오류로 올라온다.
   ///
-  /// [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 지금은 그래프 색 바꾸기
-  /// (#2076)에서 어느 색을 열지 싣는다. 갈래가 없는 항목은 주지 않는다.
+  /// [option] 은 항목이 여러 갈래일 때 고른 갈래다 — 그래프 색 바꾸기(#2076)에서
+  /// 어느 색을 열지, 프로필 펫(#2021)에서 어느 펫을 달지 싣는다. 갈래가 없는 항목은
+  /// 주지 않는다.
   Future<CouponExchange> exchange(
     String itemId, {
     String? option,
@@ -29,4 +32,10 @@ abstract interface class BenefitsRepository {
 
   /// 회원이 스스로 사용 완료를 누르는 쿠폰을 사용 처리한다. 되돌리기는 없다.
   Future<Coupon> useCoupon(String couponId);
+
+  /// MY 프로필 이름 옆에 단 펫(#2021). 달고 있지 않거나 기간이 끝났으면 null.
+  Future<ProfilePet?> fetchProfilePet();
+
+  /// 포인트로 받은 주간 리포트(#2022) — 산 주와 지금 살 수 있는 주.
+  Future<WeeklyReportPurchases> fetchWeeklyReports();
 }

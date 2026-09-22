@@ -49,6 +49,32 @@ void main() {
     expect(find.text('다시 시도'), findsOneWidget);
   });
 
+  testWidgets('채운 카드의 누름·hover 는 브랜드 채움이 아니라 흰 글자 8% 다', (tester) async {
+    await _pump(
+      tester,
+      AppCard(
+        backgroundColor: OnCareRecordColors.pink.full,
+        onTap: () {},
+        child: const Text('채움'),
+      ),
+    );
+
+    final Color ink = OnCareColors.textOnFill.withValues(
+      alpha: OnCareAlpha.subtle,
+    );
+    final InkWell filled = tester.widget<InkWell>(find.byType(InkWell));
+    expect(filled.hoverColor, ink);
+    expect(filled.highlightColor, ink);
+    expect(filled.splashColor, ink);
+
+    // 흰 카드는 지금까지대로 옅은 브랜드 채움이다.
+    await _pump(tester, AppCard(onTap: () {}, child: const Text('흰 카드')));
+    final InkWell plain = tester.widget<InkWell>(find.byType(InkWell));
+    expect(plain.hoverColor, OnCareBrand.member.surface);
+    expect(plain.highlightColor, isNull);
+    expect(plain.splashColor, isNull);
+  });
+
   testWidgets('목록 행 최소 높이는 밀도를 따른다', (tester) async {
     await _pump(tester, const AppListRow(title: '행'));
     expect(

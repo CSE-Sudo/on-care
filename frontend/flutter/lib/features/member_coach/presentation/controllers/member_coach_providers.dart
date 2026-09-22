@@ -187,3 +187,6 @@ final emoteRepositoryProvider = Provider<EmoteRepository>((ref) {
 final emoteStateProvider = FutureProvider.autoDispose<EmoteState>((ref) {
   return ref.watch(emoteRepositoryProvider).fetchState();
 });
+
+/// 알림에서 선택한 요청을 전역 팝업이 먼저 연다. 창 생성은 prompter만 맡는다.
+final selectedCoachInviteProvider = StateProvider<String?>((ref) => null);

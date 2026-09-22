@@ -8,11 +8,15 @@ library;
 /// 교환 버튼을 막는 이유. 앱이 모르는 값은 [unknown] 이고 버튼만 막는다.
 ///
 /// [shieldLimit] 은 쓰지 않은 연속 기록 보호권을 이미 최대로 가진 경우다(#1788).
+/// [activePet] 은 기간이 남은 프로필 펫 이모지를 달고 있는 경우다(#2021).
+/// [weekOwned] 는 지난주 주간 리포트를 이미 받은 경우다(#2022).
 enum ShopBlockReason {
   noTrainer,
   noGym,
   activeCoupon,
   shieldLimit,
+  activePet,
+  weekOwned,
   monthlyLimit,
   insufficientPoints,
   unknown,
@@ -24,6 +28,8 @@ ShopBlockReason? _blockFrom(Object? raw) => switch (raw) {
   'no_gym' => ShopBlockReason.noGym,
   'active_coupon' => ShopBlockReason.activeCoupon,
   'shield_limit' => ShopBlockReason.shieldLimit,
+  'active_pet' => ShopBlockReason.activePet,
+  'week_owned' => ShopBlockReason.weekOwned,
   'monthly_limit' => ShopBlockReason.monthlyLimit,
   'insufficient_points' => ShopBlockReason.insufficientPoints,
   _ => ShopBlockReason.unknown,
@@ -42,6 +48,8 @@ class ShopItem {
     this.requiresGym = false,
     this.blockReason,
     this.shortfall = 0,
+    this.activeOption,
+    this.remainingSeconds = 0,
   });
 
   /// pt_renewal|locker_month.
@@ -67,6 +75,12 @@ class ShopItem {
   /// 모자란 포인트. 모자라지 않으면 0.
   final int shortfall;
 
+  /// 기간제 항목을 쓰고 있으면 고른 갈래(프로필 펫이면 `dog`·`cat`, #2021).
+  final String? activeOption;
+
+  /// 기간제 항목의 남은 초. 쓰고 있지 않으면 0 — 카드가 남은 기간을 적는다.
+  final int remainingSeconds;
+
   factory ShopItem.fromJson(Map<String, Object?> json) => ShopItem(
     id: json['id']! as String,
     title: (json['title'] as String?) ?? '',
@@ -79,6 +93,8 @@ class ShopItem {
     available: json['available'] == true,
     blockReason: _blockFrom(json['blocked_reason']),
     shortfall: (json['shortfall'] as num?)?.toInt() ?? 0,
+    activeOption: json['active_option'] as String?,
+    remainingSeconds: (json['remaining_seconds'] as num?)?.toInt() ?? 0,
   );
 }
 

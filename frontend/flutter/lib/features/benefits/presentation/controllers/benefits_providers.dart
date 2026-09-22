@@ -4,6 +4,8 @@ import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_benefits_repository.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
+import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
+import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
 import 'package:oncare/features/benefits/domain/repositories/benefits_repository.dart';
 
 /// 포인트 사용처·내 혜택 저장소. (#1787)
@@ -27,3 +29,18 @@ final myCouponsProvider = FutureProvider.autoDispose<List<Coupon>>(
   (ref) => ref.watch(benefitsRepositoryProvider).fetchCoupons(),
   name: 'myCoupons',
 );
+
+/// MY 프로필 이름 옆에 단 펫(#2021). MY 탭이 들고 있는 동안 살아 있고, 사용처에서
+/// 펫을 달면 다시 읽는다. 읽지 못하면 이름만 그린다 — 꾸밈 때문에 프로필이 비지 않는다.
+final profilePetProvider = FutureProvider<ProfilePet?>(
+  (ref) => ref.watch(benefitsRepositoryProvider).fetchProfilePet(),
+  name: 'profilePet',
+);
+
+/// 포인트로 받은 주간 리포트(#2022). 내 혜택 화면이 연 동안 살아 있고, 사용처에서
+/// 리포트를 받으면 다시 읽는다.
+final myWeeklyReportsProvider =
+    FutureProvider.autoDispose<WeeklyReportPurchases>(
+      (ref) => ref.watch(benefitsRepositoryProvider).fetchWeeklyReports(),
+      name: 'myWeeklyReports',
+    );
