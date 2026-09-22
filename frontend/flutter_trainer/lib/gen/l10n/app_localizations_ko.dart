@@ -2765,7 +2765,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineAlreadyGone => '이미 삭제된 프로그램이에요';
 
   @override
-  String get workoutPendingTitle => '아직 하지 않은 개인 운동';
+  String get workoutPendingTitle => '매일 하는 개인 운동';
+
+  @override
+  String get workoutRoutineDoneToday => '오늘 완료';
 
   @override
   String get workoutUndatedTitle => '날짜를 알 수 없는 기록';

@@ -401,7 +401,7 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 | Method | Path | 설명 |
 |---|---|---|
 | GET | `/me/coach` | 내 담당 코치 요약(활성 담당 없으면 404) |
-| GET | `/me/coach/routines` | 받은 루틴 |
+| GET | `/me/coach/routines?date=` | 받은 루틴 — 그날 걸려 있던 목록과 그날 완료(`date` 없으면 오늘, 미래는 422) |
 | GET | `/me/coach/sessions` | 내 PT 세션(최근 100건) |
 | GET | `/me/coach/chat` | 채팅 스레드 |
 | GET | `/me/coach/chat/unread` | 미확인 수 |
@@ -413,6 +413,23 @@ O2O 코칭의 재등록 고리. 세션 수·완료 수는 `trainer_schedule`, �
 - 담당 코치는 **active 링크**만 인정(`get_member_trainer_id` → `active.is_(True)`).
   휴면 링크만 있으면 코치 조회/발신 불가(404/빈 목록).
 - `/me/coach/sessions`는 시간이 지나며 누적되는 PT 세션을 **최근 100건**으로 상한.
+
+### 추천 개인운동은 매일 새로 체크하는 목록 (#2161)
+
+트레이너가 목록을 바꾸기 전까지 같은 목록이 **날마다 미완료로 다시 시작**한다.
+
+- `trainer_routines.active_from`(포함) ~ `ended_on`(이날부터 없음, 걸려 있는 동안 NULL)이
+  목록에 걸린 기간이다. 배정은 배정한 날, AI 제안은 승인한 날부터 걸린다.
+- **철회는 행을 지우지 않는다.** `DELETE /trainer/clients/{id}/routines/{rid}` 와 회원의
+  `DELETE /me/coach/routines/{rid}` 는 `ended_on` 을 오늘로 찍는다 — 오늘 목록에서 바로
+  빠지고, 지난 날짜에 걸려 있던 목록은 남는다. 이미 내려온 배정을 다시 철회하면 404.
+  승인 전·거절한 후보는 회원 목록에 걸린 적이 없어 예전처럼 행째 지운다.
+- 완료는 `(배정, 그날)` 에 한 번이다(`uq_exercise_sessions_routine_day`). `complete`·
+  `DELETE …/complete` 는 **오늘**만 건드린다. 지난 날짜는 읽기 전용이다.
+- `RoutineOut.completed` 는 조회한 **그날** 완료했는가다. 트레이너 배정 목록도 오늘 기준이다.
+- 담당 없는 회원의 하루치 AI 추천은 만들 때 `active_from = 그날`, `ended_on = 다음 날`
+  이라 그날 하루만 걸린다. 지난 날짜를 열어도 그날 추천을 새로 만들지 않는다.
+- 지난 날짜는 **지금의 담당 기준**으로 읽는다(그 트레이너가 그날 걸어 둔 목록).
 
 ### 회원↔헬스장 링크 (#444)
 

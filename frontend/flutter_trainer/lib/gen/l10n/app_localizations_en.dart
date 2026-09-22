@@ -2887,7 +2887,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get routineAlreadyGone => 'That program is already gone';
 
   @override
-  String get workoutPendingTitle => 'Not done yet';
+  String get workoutPendingTitle => 'Daily personal exercises';
+
+  @override
+  String get workoutRoutineDoneToday => 'Done today';
 
   @override
   String get workoutUndatedTitle => 'Records without a date';

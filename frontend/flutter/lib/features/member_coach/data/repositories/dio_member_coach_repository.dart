@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/core/utils/active_polling_stream.dart';
 import 'package:oncare/core/utils/request_id.dart';
+import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/member_coach/data/dtos/member_coach_dtos.dart';
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
@@ -38,6 +39,14 @@ class DioMemberCoachRepository implements MemberCoachRepository {
   @override
   Future<List<CoachRoutine>> fetchRoutines() =>
       _getList('/me/coach/routines', coachRoutineFromJson);
+
+  @override
+  Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) => _getList(
+    '/me/coach/routines',
+    coachRoutineFromJson,
+    // 서버가 KST 날짜로 읽는다(`YYYY-MM-DD`).
+    query: <String, Object?>{'date': wireDate(day)},
+  );
 
   @override
   Future<CoachRoutine> completeRoutine(
