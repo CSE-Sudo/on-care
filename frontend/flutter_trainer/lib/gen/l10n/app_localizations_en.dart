@@ -38,7 +38,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get schedCancelSource => 'Cancelled by';
+  String get schedCancelSource => 'Type';
 
   @override
   String get schedCancelByMember => 'Member';

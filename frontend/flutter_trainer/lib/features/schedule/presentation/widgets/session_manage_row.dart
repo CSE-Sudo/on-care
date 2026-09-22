@@ -33,7 +33,6 @@ class SessionManageRow extends StatelessWidget {
     required this.onDelete,
     required this.onComplete,
     this.onCancel,
-    this.onNoShow,
   });
 
   final VoidCallback onEditSchedule;
@@ -68,11 +67,9 @@ class SessionManageRow extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback? onComplete;
 
-  /// 예정 세션만 — 진행되지 않은 약속을 `취소` 기록으로 남긴다(#871).
+  /// 예정 세션만 — 진행되지 않은 약속을 `취소`·`노쇼` 기록으로 남긴다(#871).
+  /// 노쇼는 따로 버튼을 두지 않고 이 창의 선택지로 고른다(#2175).
   final VoidCallback? onCancel;
-
-  /// 예정이면서 지나간 세션만 — 회원이 오지 않았다는 기록.
-  final VoidCallback? onNoShow;
 
   @override
   Widget build(BuildContext context) {
@@ -99,14 +96,6 @@ class SessionManageRow extends StatelessWidget {
           variant: AppButtonVariant.secondary,
           size: OnCareButtonSize.small,
           onPressed: onCancel,
-        ),
-      if (onNoShow != null)
-        AppIconButton(
-          key: const ValueKey<String>('session-no-show-chip'),
-          icon: Icons.person_off_rounded,
-          tooltip: l.schedNoShow,
-          color: OnCareColors.textSecondary,
-          onPressed: onNoShow,
         ),
     ];
 

@@ -28,7 +28,7 @@
       }
     }
   },
-  "schedCancelSource": "Cancelled by",
+  "schedCancelSource": "Type",
   "schedCancelByMember": "Member",
   "schedCancelByTrainer": "Trainer",
   "schedCancelByOther": "Other",

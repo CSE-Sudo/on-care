@@ -265,22 +265,85 @@ void main() {
       );
     });
 
-    testWidgets('노쇼는 확인을 거쳐 기록된다', (tester) async {
+    testWidgets('노쇼는 취소 처리 창에서 골라 기록된다 (#2175)', (tester) async {
       await openSchedule(tester);
       await openSession(tester, '박성호');
-      await tapChip(tester, 'session-no-show-chip');
+
+      // 카드에는 노쇼 버튼이 따로 없다 — 취소 처리 창 한 곳에서 고른다.
+      expect(
+        find.byKey(const ValueKey<String>('session-no-show-chip')),
+        findsNothing,
+      );
+      await tapChip(tester, 'session-cancel-chip');
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('session-no-show-confirm')),
+        find.byKey(const ValueKey<String>('cancel-source-no-show')),
+      );
+      await settle(tester);
+      // 노쇼에는 사유가 남지 않는다 — 적을 칸도 세우지 않고, 문장도 노쇼를 말한다.
+      expect(
+        find.byKey(const ValueKey<String>('cancel-reason-input')),
+        findsNothing,
+      );
+      expect(find.text('노쇼로 기록할까요?'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('session-cancel-confirm')),
       );
       await settle(tester);
 
       expect(find.text('박성호'), findsWidgets);
       expect(find.text('노쇼'), findsWidgets);
+      // 취소가 아니라 노쇼로 남았다 — 취소 주체 기록 줄이 없다.
+      expect(find.textContaining('회원 취소'), findsNothing);
       expect(
-        find.byKey(const ValueKey<String>('session-no-show-chip')),
+        find.byKey(const ValueKey<String>('session-cancel-chip')),
         findsNothing,
       );
+    });
+
+    testWidgets('앞으로의 PT 에는 노쇼 선택지가 없다 (#2175)', (tester) async {
+      await openSchedule(tester);
+      // 노은채(금요일)는 고정 시각(목요일) 기준으로 아직 오지 않은 예정 PT 다.
+      await openSession(tester, '노은채');
+      expect(
+        find.byKey(const ValueKey<String>('session-complete-chip')),
+        findsNothing,
+      );
+      await tapChip(tester, 'session-cancel-chip');
+
+      // 취소는 앞으로의 약속에도 열려 있지만, 오지 않았다는 사실은 그 시간이
+      // 지나야 안다 — 서버도 미래 PT 의 노쇼를 거절한다.
+      expect(
+        find.byKey(const ValueKey<String>('cancel-source-member')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('cancel-source-no-show')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('노쇼에서 취소 주체로 다시 고르면 사유 칸이 돌아온다 (#2175)', (
+      tester,
+    ) async {
+      await openSchedule(tester);
+      await openSession(tester, '박성호');
+      await tapChip(tester, 'session-cancel-chip');
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('cancel-source-no-show')),
+      );
+      await settle(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('cancel-source-trainer')),
+      );
+      await settle(tester);
+
+      expect(
+        find.byKey(const ValueKey<String>('cancel-reason-input')),
+        findsOneWidget,
+      );
+      expect(find.text('이 PT를 취소할까요?'), findsOneWidget);
     });
 
     testWidgets('삭제 확인 문구가 취소·노쇼를 가리킨다', (tester) async {

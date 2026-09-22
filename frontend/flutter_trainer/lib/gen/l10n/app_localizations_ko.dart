@@ -38,7 +38,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get schedCancelSource => '취소한 쪽';
+  String get schedCancelSource => '처리 구분';
 
   @override
   String get schedCancelByMember => '회원 취소';

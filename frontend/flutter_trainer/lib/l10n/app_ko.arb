@@ -19,7 +19,7 @@
       }
     }
   },
-  "schedCancelSource": "취소한 쪽",
+  "schedCancelSource": "처리 구분",
   "schedCancelByMember": "회원 취소",
   "schedCancelByTrainer": "트레이너 취소",
   "schedCancelByOther": "기타",

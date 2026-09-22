@@ -35,7 +35,6 @@ class SessionCard extends ConsumerWidget {
     required this.onDelete,
     required this.onComplete,
     this.onCancel,
-    this.onNoShow,
     required this.programDateLabel,
     required this.sendingProgram,
     required this.onSendProgram,
@@ -54,10 +53,10 @@ class SessionCard extends ConsumerWidget {
 
   final VoidCallback onDelete;
 
-  /// 예정 세션의 `취소`·`노쇼` 기록 처리. 대상이 아니면 null 이라 화면에 나오지
-  /// 않는다 — 서버가 409 로 막을 동작을 아예 내놓지 않는다(#871).
+  /// 예정 세션의 `취소`·`노쇼` 기록 처리 — 노쇼도 이 창에서 고른다(#2175).
+  /// 대상이 아니면 null 이라 화면에 나오지 않는다 — 서버가 409 로 막을 동작을
+  /// 아예 내놓지 않는다(#871).
   final VoidCallback? onCancel;
-  final VoidCallback? onNoShow;
   final String programDateLabel;
 
   /// 이 세션의 프로그램 전송이 진행 중인가. (#822)
@@ -262,7 +261,6 @@ class SessionCard extends ConsumerWidget {
             showEditProgram: s.program.isNotEmpty && !s.programSent,
             onDelete: onDelete,
             onCancel: onCancel,
-            onNoShow: onNoShow,
             onComplete: onComplete,
           ),
           if (!noteOnly && s.isDone && s.program.isNotEmpty) ...<Widget>[
