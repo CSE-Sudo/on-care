@@ -853,7 +853,7 @@
   "exBurnMonthTitle": "Burned this month",
   "exBurnDayTitle": "Burned",
   "exBurnAllTitle": "Average burned",
-  "exWeekOfMonthLabel": "Week {week}, {month}/",
+  "exWeekOfMonthLabel": "Burned in week {week}, {month}/",
   "@exWeekOfMonthLabel": {
     "placeholders": {
       "month": {

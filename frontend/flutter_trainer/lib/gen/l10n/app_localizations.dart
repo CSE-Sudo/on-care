@@ -2573,7 +2573,7 @@ abstract class AppLocalizations {
   /// No description provided for @exWeekOfMonthLabel.
   ///
   /// In en, this message translates to:
-  /// **'Week {week}, {month}/'**
+  /// **'Burned in week {week}, {month}/'**
   String exWeekOfMonthLabel(int month, int week);
 
   /// No description provided for @exStreakCheer.

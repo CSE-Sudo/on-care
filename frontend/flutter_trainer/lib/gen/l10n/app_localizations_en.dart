@@ -1413,7 +1413,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String exWeekOfMonthLabel(int month, int week) {
-    return 'Week $week, $month/';
+    return 'Burned in week $week, $month/';
   }
 
   @override

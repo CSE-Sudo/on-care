@@ -30,14 +30,18 @@ typedef ClientDateRange = ({DateTime from, DateTime to});
 /// 같은 기간을 보여야 나란히 놓고 이야기할 수 있다. (#1018)
 const int kClientAllPeriodDays = 84;
 
-/// `전체` 운동이 거슬러 올라가는 날 수. 회원 앱 운동 탭과 같은 **35주**다
+/// `전체` 운동이 거슬러 올라가는 **주** 수. 회원 앱 운동 탭과 같은 **35주**다
 /// (`kExerciseAllPeriodWeeks`). 식단보다 길다 — 운동은 한 칸이 한 주라 여덟 달을
 /// 늘어놓아도 읽히지만, 식단은 한 칸이 하루라 그만큼 길면 막대가 실오라기가
 /// 된다. (#1170)
 ///
 /// 12주로 두었더니 회원 앱에는 작년 12월치 기록이 있는데 트레이너 화면은 6월
 /// 이후만 보였다 — 같은 사람의 같은 이력을 두 화면이 다른 길이로 말했다.
-const int kClientAllExerciseDays = 35 * 7;
+///
+/// 날 수(35 × 7)가 아니라 주 수로 센다(#2157). 오늘에서 245일을 거슬러 가면
+/// 첫날이 주 한가운데에 떨어져, 첫 주가 잘린 채 한 칸 더 붙어 36칸이 됐다.
+/// 회원 앱은 이번 주 월요일에서 34주를 거슬러 **월요일부터** 35칸이다.
+const int kClientAllExerciseWeeks = 35;
 
 /// [period] 가 덮는 날짜 범위. [exercise] 면 `전체` 가 운동 기준으로 길어진다.
 ClientDateRange clientRangeFor(
@@ -62,9 +66,19 @@ ClientDateRange clientRangeFor(
     case ClientPeriod.month:
       // `이번 달` 이 아니라 `전체` 다 — 달이 바뀌었다고 앞의 기록이 사라지면
       // 추세를 볼 수 없다. 회원 앱과 같은 길이다(식단 12주 · 운동 35주).
-      final int days = exercise
-          ? kClientAllExerciseDays
-          : kClientAllPeriodDays;
+      if (exercise) {
+        // 운동은 한 칸이 한 주라 **월요일에서** 시작한다(#2157).
+        final DateTime monday = clientMondayOf(day);
+        return (
+          from: DateTime(
+            monday.year,
+            monday.month,
+            monday.day - (kClientAllExerciseWeeks - 1) * 7,
+          ),
+          to: day,
+        );
+      }
+      const int days = kClientAllPeriodDays;
       return (
         from: DateTime(day.year, day.month, day.day - days + 1),
         to: day,
@@ -231,8 +245,17 @@ class ClientExerciseDay {
 
   /// 유형 분해가 있는가. 없으면 막대를 쌓지 않고 전부 유산소로 본다 —
   /// 임의로 나누면 없는 근력 시간을 지어내는 셈이다.
+  ///
+  /// `기타` 도 분해의 한 칸이다(#2157). 예전에는 세 유형만 봐서, `기타` 만
+  /// 기록한 날을 분해가 없는 날로 읽고 그날 분 전체(= 기타 분)를 유산소에
+  /// 넣었다 — 기타 30분이 `유산소 30분` 과 `기타 30분` 으로 두 번 셌다. 회원
+  /// 앱(`dayLoadsOfWeek`)은 분해가 실려 오면 그 값을 그대로 써 유산소 0분 +
+  /// 기타 N분이다.
   bool get hasTypeSplit =>
-      cardioMinutes > 0 || strengthMinutes > 0 || stretchingMinutes > 0;
+      cardioMinutes > 0 ||
+      strengthMinutes > 0 ||
+      stretchingMinutes > 0 ||
+      otherMinutes > 0;
 }
 
 /// 한 기간의 운동 집계.
