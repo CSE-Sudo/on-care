@@ -1873,9 +1873,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotManageTitle => '예약 슬롯 관리';
 
   @override
-  String slotIntro(String date) {
-    return '$date에 회원이 예약할 시간을 엽니다.';
-  }
+  String get slotIntro => '회원이 예약할 시간을 엽니다. 아래에 앞으로 열린 슬롯이 날짜별로 모입니다.';
 
   @override
   String get slotOpenAction => '열기';
@@ -1884,7 +1882,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotReload => '다시 불러오기';
 
   @override
-  String get slotEmpty => '이 날짜에 열린 예약 슬롯이 없습니다.';
+  String get slotEmpty => '열린 예약 슬롯이 없습니다.';
 
   @override
   String get slotClosedSummary => '예약 닫힘';

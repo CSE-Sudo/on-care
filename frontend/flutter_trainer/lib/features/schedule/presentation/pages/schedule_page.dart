@@ -397,13 +397,16 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
   ///
   /// 이번 주 오늘을 보고 있으면 아무것도 그리지 않는다 — 눌러도 달라질 것이
   /// 없는 버튼이다.
+  ///
+  /// 흰 채움이던 동안에는 회색 페이지 위에서 버튼만 떠 보였다. 칠하지 않는
+  /// 네이비 외곽선이라 페이지 배경이 그대로 비친다(#2180).
   Widget _todayControl() {
     final AppLocalizations l = AppLocalizations.of(context);
     final today = _dateOnly(nowKst());
     if (_selectedDay == today) return const SizedBox.shrink();
     return AppButton(
       label: l.labelToday,
-      variant: AppButtonVariant.secondary,
+      variant: AppButtonVariant.strongOutline,
       leadingIcon: Icons.today_rounded,
       onPressed: () => _selectDay(today),
     );
@@ -432,7 +435,8 @@ class _SchedulePageState extends ConsumerState<SchedulePage> {
         AppButton(
           key: const ValueKey<String>('schedule-open-slots'),
           label: l.schedSlots,
-          variant: AppButtonVariant.secondary,
+          // `오늘` 과 같은 네이비 외곽선이다 — 둘 다 페이지 배경 위에 선다(#2180).
+          variant: AppButtonVariant.strongOutline,
           leadingIcon: Icons.event_available_rounded,
           onPressed: () => _openReservationSlotsSheet(),
         ),

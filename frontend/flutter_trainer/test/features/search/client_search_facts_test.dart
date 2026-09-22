@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_status.dart';
 import 'package:oncare_trainer/features/search/domain/client_search_facts.dart';
@@ -118,13 +119,80 @@ void main() {
       clientSearchDestination(Uri.parse('/reports'), minsu, facts),
       '/reports?client=c1',
     );
+    // 날짜만이 아니라 그 세션을 넘긴다 — 그날 첫 세션이 다른 회원일 수 있다
+    // (#2185).
     expect(
       clientSearchDestination(Uri.parse('/schedule'), minsu, facts),
-      '/schedule?d=2026-08-20',
+      AppRoutes.scheduleAt(date: '2026-08-20', sessionId: '2026-08-20-10:00'),
     );
     expect(
       clientSearchDestination(Uri.parse('/dashboard'), minsu, facts),
       '/clients/c1/diet',
     );
+  });
+
+  group('scheduleFocusSession (#2185)', () {
+    const today = '2026-08-13';
+
+    test('다가오는 예정이 있으면 가장 가까운 것을 연다', () {
+      final picked = scheduleFocusSession(<ScheduleSession>[
+        session(date: '2026-08-20', time: '10:00', clientId: 'c1'),
+        session(
+          date: '2026-08-10',
+          time: '10:00',
+          clientId: 'c1',
+          status: ScheduleStatus.done,
+        ),
+        session(date: '2026-08-13', time: '18:00', clientId: 'c1'),
+      ], today);
+
+      expect(picked!.id, '2026-08-13-18:00');
+    });
+
+    test('다가오는 예정이 없으면 가장 최근에 지난 세션을 연다', () {
+      final picked = scheduleFocusSession(<ScheduleSession>[
+        session(
+          date: '2026-08-01',
+          time: '10:00',
+          clientId: 'c1',
+          status: ScheduleStatus.done,
+        ),
+        session(
+          date: '2026-08-11',
+          time: '09:00',
+          clientId: 'c1',
+          status: ScheduleStatus.done,
+        ),
+        session(
+          date: '2026-08-11',
+          time: '07:00',
+          clientId: 'c1',
+          status: ScheduleStatus.done,
+        ),
+        // 앞으로의 취소는 "다가오는 PT" 가 아니다.
+        session(
+          date: '2026-08-20',
+          time: '10:00',
+          clientId: 'c1',
+          status: ScheduleStatus.cancelled,
+        ),
+      ], today);
+
+      expect(picked!.id, '2026-08-11-09:00');
+    });
+
+    test('세션이 없으면 고객 상세로 보낸다', () {
+      expect(scheduleFocusSession(const <ScheduleSession>[], today), isNull);
+      expect(
+        clientScheduleDestination(minsu, const <ScheduleSession>[], today),
+        AppRoutes.clientDetail(minsu.id),
+      );
+      expect(
+        clientScheduleDestination(minsu, <ScheduleSession>[
+          session(date: '2026-08-20', time: '10:00', clientId: 'c1'),
+        ], today),
+        AppRoutes.scheduleAt(date: '2026-08-20', sessionId: '2026-08-20-10:00'),
+      );
+    });
   });
 }

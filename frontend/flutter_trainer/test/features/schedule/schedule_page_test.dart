@@ -1405,6 +1405,16 @@ void main() {
       );
       expect(find.textContaining('이 날짜에는 일정이 없어요'), findsOneWidget);
       expect(find.text('오늘'), findsOneWidget);
+      // `오늘` 과 `예약 슬롯` 은 페이지 배경 위 네이비 외곽선이다(#2180).
+      for (final Finder button in <Finder>[
+        find.widgetWithText(AppButton, '오늘'),
+        find.byKey(const ValueKey<String>('schedule-open-slots')),
+      ]) {
+        expect(
+          tester.widget<AppButton>(button).variant,
+          AppButtonVariant.strongOutline,
+        );
+      }
 
       // 그 날에 일정을 만들면 빈 안내가 사라진다.
       await tester.tap(find.text('새 일정'));

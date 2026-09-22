@@ -1257,17 +1257,10 @@
   "slotClosed": "New bookings closed.",
   "slotActionFailed": "Couldn't complete the request. Please try again in a moment.",
   "slotManageTitle": "Manage booking slots",
-  "slotIntro": "Open times for members to book on {date}.",
-  "@slotIntro": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
+  "slotIntro": "Open times for members to book. Every upcoming slot is listed below by date.",
   "slotOpenAction": "Open",
   "slotReload": "Reload",
-  "slotEmpty": "No booking slots open on this day.",
+  "slotEmpty": "No booking slots are open.",
   "slotClosedSummary": "Closed",
   "slotBookedSummary": "Booked",
   "slotOpenSummary": "Open",

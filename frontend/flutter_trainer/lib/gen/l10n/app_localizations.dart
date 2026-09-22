@@ -3467,8 +3467,8 @@ abstract class AppLocalizations {
   /// No description provided for @slotIntro.
   ///
   /// In en, this message translates to:
-  /// **'Open times for members to book on {date}.'**
-  String slotIntro(String date);
+  /// **'Open times for members to book. Every upcoming slot is listed below by date.'**
+  String get slotIntro;
 
   /// No description provided for @slotOpenAction.
   ///
@@ -3485,7 +3485,7 @@ abstract class AppLocalizations {
   /// No description provided for @slotEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No booking slots open on this day.'**
+  /// **'No booking slots are open.'**
   String get slotEmpty;
 
   /// No description provided for @slotClosedSummary.
