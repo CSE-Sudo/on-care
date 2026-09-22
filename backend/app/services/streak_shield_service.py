@@ -129,9 +129,10 @@ def status(db: Session, member_id: str) -> StreakShieldsOut:
     held = held_count(db, member_id)
     protected_on = {row.protected_on for row in rows if row.protected_on}
     today = clock.today()
-    # 창은 보유 수와 상관없이 늘 같다 — 보호권이 없으면 창만 비운다. 어느 날이
-    # 실제로 보호 가능한지(기록 없음·아직 보호 안 함)는 그래프가 날짜별 기록으로
-    # 가리고, 마지막 판정은 사용 요청이 [_block_reason] 으로 한다.
+    # 창은 보유 수와 상관없이 늘 같고, 보호권이 없어도 내려 준다 — 그래프가 빈 날을
+    # 눌렀을 때 `보호권 쓰기` 를 띄우고, 보호권이 없으면 교환과 사용을 한 번에
+    # 잇는다. 어느 날이 실제로 보호 가능한지(기록 없음·아직 보호 안 함)는 그래프가
+    # 날짜별 기록으로 가리고, 마지막 판정은 사용 요청이 [_block_reason] 으로 한다.
     window = protect_window(today)
     return StreakShieldsOut(
         held=held,
@@ -145,8 +146,8 @@ def status(db: Session, member_id: str) -> StreakShieldsOut:
         record_streak_days=record_activity.record_streak_days(
             db, member_id, today=today, protected=protected_on
         ),
-        protectable_from=window[0].isoformat() if held > 0 else None,
-        protectable_to=window[1].isoformat() if held > 0 else None,
+        protectable_from=window[0].isoformat(),
+        protectable_to=window[1].isoformat(),
     )
 
 
