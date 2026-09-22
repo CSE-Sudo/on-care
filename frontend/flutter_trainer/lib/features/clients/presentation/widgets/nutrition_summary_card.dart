@@ -59,27 +59,32 @@ ClientDietGoals clientDietGoalsOf(MemberHealthProfile? profile) => (
 /// 최소 높이라 글자 배율이 커지면 셋이 함께 커진다. (회원 앱 #1124)
 const double kClientNutritionCardHeight = 240;
 
-/// 정보(칼로리+탄단지) 칸의 고정 폭 — 콘텐츠 고유 치수.
-const double _infoColumnWidth = 260;
+/// 칼로리 칸의 폭 — 콘텐츠 고유 치수. 좁은 카드에서는 [_infoColumnWidthNarrow].
+const double _infoColumnWidth = 240;
+const double _infoColumnWidthNarrow = 200;
 
-/// 탄단지 진행 바 칸의 최대 폭 — 진행 바 길이를 여기서 제한한다. 폭 그대로
-/// 늘어나게 두면 넓은 화면에서 바가 지나치게 길어진다.
-const double _macroColumnWidth = 260;
+/// 탄단지 진행 바 칸은 남는 폭을 쓰되 이만큼에서 멈춘다 — 넓은 화면에서 바가
+/// 끝없이 늘어나면 값과 라벨이 서로 멀어져 한 줄로 읽히지 않는다.
+const double _macroColumnMaxWidth = 360;
+
+/// 탄단지 칸이 이보다 좁아지면 한 줄(라벨 · 값/목표)이 넘친다.
+const double _macroColumnMinWidth = 160;
 
 /// 달성률 도넛의 지름.
-const double _donutDimension = 112;
+const double _donutDimension = 136;
 
 /// 달성률 도넛의 선 굵기.
-const double _donutStroke = 10;
+const double _donutStroke = 12;
 
-/// 도넛 | 정보 | 탄단지 세 칸 사이의 간격. 셋 다 같은 값을 써서
+/// 도넛 | 칼로리 | 탄단지 세 칸 사이의 간격. 넓은 카드는 [_columnGapWide],
+/// 좁은 카드는 [_columnGapNarrow] 다. 한 카드 안에서는 둘 다 같은 값을 써서
 /// 리듬이 고르게 읽힌다.
-const double _columnGap = OnCareSpacing.s24;
+const double _columnGapWide = OnCareSpacing.s40;
+const double _columnGapNarrow = OnCareSpacing.s24;
 
-/// 세 칸 + 간격을 다 더한 콘텐츠 폭. 카드가 이보다 좁아지면 가운데
-/// 정렬 대신 전체를 비례 축소해 넘침·경계 밖 렌더링을 막는다.
-const double _contentWidth =
-    _donutDimension + _columnGap * 2 + _infoColumnWidth + _macroColumnWidth;
+/// 이 폭부터 넓은 카드다 — 1440 화면의 회원 상세(카드 안쪽 약 716)가 여기
+/// 든다. 1280 화면(약 556)은 좁은 카드다.
+const double _wideCardWidth = 680;
 
 /// 한 지표의 표시값 한 벌.
 class _Item {
@@ -172,25 +177,31 @@ class NutritionSummaryCard extends StatelessWidget {
       key: const Key('client-nutrition-summary-card'),
       constraints: const BoxConstraints(minHeight: kClientNutritionCardHeight),
       child: AppCard(
-        // 넓은 웹 화면 전용 3열: 도넛 | 정보 | 탄단지(위아래).
-        // 세 칸 모두 고정 폭이고 사이 간격도 [_columnGap] 하나로 통일해
-        // 리듬이 고르게 읽힌다. `Row` 는 내용 크기만큼만 차지하고
-        // (`mainAxisSize.min`), 그 덩어리를 `Center` 가 카드 한가운데
-        // 두어 좌우 여백이 정확히 같다. 좁은 화면(분할 패널 등)에 맞춰
-        // 배치를 다시 짜지는 않지만, 카드가 [_contentWidth] 보다 좁아지면
-        // 넘치는 대신 전체가 비례 축소된다 — 화면이 깨지지 않게 하는
-        // 안전장치일 뿐 좁은 화면을 위한 설계는 아니다.
+        // 웹 화면 3열: 도넛 | 칼로리 | 탄단지(위아래). 세 칸 덩어리를
+        // `Center` 가 카드 한가운데 두어 좌우 여백이 정확히 같다.
         child: LayoutBuilder(
           builder: (BuildContext context, BoxConstraints c) {
+            // 폭에 따라 간격과 칼로리 칸만 바뀌고, 탄단지 칸이 남는 폭을
+            // 가져간다(최대 [_macroColumnMaxWidth]). 세 칸 덩어리는 카드
+            // 가운데에 놓인다 — 1280 화면에서도 글자를 줄이지 않는다(#2156).
+            final bool wide = c.maxWidth >= _wideCardWidth;
+            final double gap = wide ? _columnGapWide : _columnGapNarrow;
+            final double infoWidth = wide
+                ? _infoColumnWidth
+                : _infoColumnWidthNarrow;
+            final double fixed = _donutDimension + gap * 2 + infoWidth;
+            final double contentWidth = math.min(
+              c.maxWidth,
+              fixed + _macroColumnMaxWidth,
+            );
             final Widget row = Row(
-              mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 // 1열 — 달성률 도넛.
                 _CalorieDonut(calories: calories, color: calorieColor),
-                const SizedBox(width: _columnGap),
+                SizedBox(width: gap),
                 // 2열 — 칼로리.
                 SizedBox(
-                  width: _infoColumnWidth,
+                  width: infoWidth,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
@@ -237,13 +248,12 @@ class NutritionSummaryCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: _columnGap),
+                SizedBox(width: gap),
                 // 3열 — 탄·단·지 진행 바를 위에서부터. 회원 앱 `오늘` 카드의
                 // 세 칸과 같은 것이다(#2156) — 글자만 적으면 목표에 얼마나
                 // 닿았는지를 트레이너가 숫자로 나눠 봐야 한다. 폭을 고정해 바
                 // 길이를 제한한다.
-                SizedBox(
-                  width: _macroColumnWidth,
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     mainAxisSize: MainAxisSize.min,
@@ -251,19 +261,27 @@ class NutritionSummaryCard extends StatelessWidget {
                       for (final _Item m in macros) ...<Widget>[
                         _MacroProgressItem(item: m),
                         if (m != macros.last)
-                          const SizedBox(height: OnCareSpacing.s12),
+                          const SizedBox(height: OnCareSpacing.s16),
                       ],
                     ],
                   ),
                 ),
               ],
             );
-            // 카드가 [_contentWidth] 보다 좁아지면 전체를 비례 축소한다 —
-            // 카드 밖으로 요소가 벗어나지 않아야 하므로 스크롤이 아니라
-            // `FittedBox` 다(이 파일의 칼로리 숫자·탄단지 줄과 같은 패턴).
-            return c.maxWidth >= _contentWidth
-                ? Center(child: row)
-                : FittedBox(fit: BoxFit.scaleDown, child: row);
+            // 탄단지 칸까지 최소 폭이 안 나오는 아주 좁은 카드는 전체를 비례
+            // 축소한다 — 넘치지 않게 하는 안전장치일 뿐 좁은 화면 설계는 아니다.
+            if (c.maxWidth < fixed + _macroColumnMinWidth) {
+              return FittedBox(
+                fit: BoxFit.scaleDown,
+                child: SizedBox(
+                  width: fixed + _macroColumnMinWidth,
+                  child: row,
+                ),
+              );
+            }
+            return Center(
+              child: SizedBox(width: contentWidth, child: row),
+            );
           },
         ),
       ),
@@ -401,53 +419,72 @@ class _MacroProgressItem extends StatelessWidget {
     );
     return Column(
       key: Key('client-nutrition-macro-${item.label}'),
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text.rich(
-          TextSpan(
-            children: <InlineSpan>[
-              TextSpan(text: item.label),
-              // 초과분은 라벨 오른쪽에 빨간 글씨로. 초과가 아닐 때는 아무것도
-              // 붙이지 않는다 — 체크 표시를 두면 목표에 한참 못 미친 날도
-              // "정상" 이라고 말한다. (회원 앱 #1070)
-              if (item.isOverGoal)
+        // 라벨과 수치를 **한 줄**에 둔다 — 왼쪽이 라벨(+초과분), 오른쪽이
+        // `값 / 목표`. 두 줄로 쌓으면 세 칸이 카드 높이를 넘겨 도넛·칼로리 칸과
+        // 균형이 깨진다(#2156).
+        //
+        // 좁은 카드·큰 글씨에서는 둘이 반씩 나눠 갖고 넘치는 쪽이 줄어든다 —
+        // 라벨은 말줄임, 수치는 글자 크기를 줄인다(끝자리가 잘리면 안 된다).
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Flexible(
+              child: Text.rich(
                 TextSpan(
-                  text: ' +${item.difference}${item.unit}',
-                  style: captionStrong.copyWith(color: OnCareColors.danger),
-                ),
-            ],
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: captionStrong.copyWith(color: OnCareColors.textPrimary),
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text.rich(
-            TextSpan(
-              children: <InlineSpan>[
-                TextSpan(
-                  text: item.value,
-                  style: tokens
-                      .text(
-                        OnCareTypography.numeric(
-                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                  children: <InlineSpan>[
+                    TextSpan(text: item.label),
+                    // 초과분은 라벨 오른쪽에 빨간 글씨로. 초과가 아닐 때는
+                    // 아무것도 붙이지 않는다 — 체크 표시를 두면 목표에 한참 못
+                    // 미친 날도 "정상" 이라고 말한다. (회원 앱 #1070)
+                    if (item.isOverGoal)
+                      TextSpan(
+                        text: ' +${item.difference}${item.unit}',
+                        style: captionStrong.copyWith(
+                          color: OnCareColors.danger,
                         ),
-                      )
-                      .copyWith(color: OnCareColors.textPrimary),
+                      ),
+                  ],
                 ),
-                TextSpan(
-                  text: ' / ${item.goal}${item.unit}',
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textTertiary),
-                ),
-              ],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: captionStrong.copyWith(color: OnCareColors.textPrimary),
+              ),
             ),
-            maxLines: 1,
-          ),
+            const SizedBox(width: OnCareSpacing.s8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text.rich(
+                  TextSpan(
+                    children: <InlineSpan>[
+                      TextSpan(
+                        text: item.value,
+                        style: tokens
+                            .text(
+                              OnCareTypography.numeric(
+                                OnCareTypography.strong(
+                                  OnCareTypography.bodySmall,
+                                ),
+                              ),
+                            )
+                            .copyWith(color: OnCareColors.textPrimary),
+                      ),
+                      TextSpan(
+                        text: ' / ${item.goal}${item.unit}',
+                        style: tokens
+                            .text(OnCareTypography.caption)
+                            .copyWith(color: OnCareColors.textTertiary),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: OnCareSpacing.s8),
         AppProgressBar(
