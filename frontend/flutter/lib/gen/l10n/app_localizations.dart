@@ -6221,6 +6221,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'+{points}P'**
   String pointsRewardBadge(int points);
+
+  /// No description provided for @gymLocationDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access to find gyms near you.'**
+  String get gymLocationDenied;
+
+  /// No description provided for @gymLocationBrowserBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access in your browser site settings, then try again.'**
+  String get gymLocationBrowserBlocked;
+
+  /// No description provided for @gymLocationBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location access in app settings, then try again.'**
+  String get gymLocationBlocked;
+
+  /// No description provided for @gymLocationDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on device location services, then try again.'**
+  String get gymLocationDisabled;
+
+  /// No description provided for @gymLocationUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not get your location. Please try again.'**
+  String get gymLocationUnavailable;
+
+  /// No description provided for @gymLocateAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Find near my location'**
+  String get gymLocateAction;
+
+  /// No description provided for @gymLocationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get gymLocationSettings;
+
+  /// No description provided for @exGymCopyPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy phone number'**
+  String get exGymCopyPhone;
+
+  /// No description provided for @exGymPhoneCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number copied.'**
+  String get exGymPhoneCopied;
 }
 
 class _AppLocalizationsDelegate

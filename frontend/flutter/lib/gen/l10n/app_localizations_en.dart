@@ -3583,4 +3583,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String pointsRewardBadge(int points) {
     return '+${points}P';
   }
+
+  @override
+  String get gymLocationDenied =>
+      'Allow location access to find gyms near you.';
+
+  @override
+  String get gymLocationBrowserBlocked =>
+      'Allow location access in your browser site settings, then try again.';
+
+  @override
+  String get gymLocationBlocked =>
+      'Allow location access in app settings, then try again.';
+
+  @override
+  String get gymLocationDisabled =>
+      'Turn on device location services, then try again.';
+
+  @override
+  String get gymLocationUnavailable =>
+      'Could not get your location. Please try again.';
+
+  @override
+  String get gymLocateAction => 'Find near my location';
+
+  @override
+  String get gymLocationSettings => 'Settings';
+
+  @override
+  String get exGymCopyPhone => 'Copy phone number';
+
+  @override
+  String get exGymPhoneCopied => 'Phone number copied.';
 }

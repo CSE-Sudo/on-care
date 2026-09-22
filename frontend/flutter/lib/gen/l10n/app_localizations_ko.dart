@@ -3459,4 +3459,32 @@ class AppLocalizationsKo extends AppLocalizations {
   String pointsRewardBadge(int points) {
     return '+${points}P';
   }
+
+  @override
+  String get gymLocationDenied => '위치 사용을 허용하면 주변 헬스장을 찾을 수 있어요.';
+
+  @override
+  String get gymLocationBrowserBlocked =>
+      '브라우저 사이트 설정에서 위치 사용을 허용한 뒤 다시 눌러 주세요.';
+
+  @override
+  String get gymLocationBlocked => '앱 설정에서 위치 사용을 허용한 뒤 다시 눌러 주세요.';
+
+  @override
+  String get gymLocationDisabled => '기기의 위치 서비스를 켠 뒤 다시 눌러 주세요.';
+
+  @override
+  String get gymLocationUnavailable => '현재 위치를 가져오지 못했어요. 다시 시도해 주세요.';
+
+  @override
+  String get gymLocateAction => '현재 위치로 찾기';
+
+  @override
+  String get gymLocationSettings => '설정';
+
+  @override
+  String get exGymCopyPhone => '전화번호 복사';
+
+  @override
+  String get exGymPhoneCopied => '전화번호를 복사했어요.';
 }

@@ -94,6 +94,19 @@ Dio _dio(_StubAdapter adapter) =>
     Dio(BaseOptions(baseUrl: 'http://x/v1'))..httpClientAdapter = adapter;
 
 void main() {
+  test('사용자 좌표를 목록과 내 헬스장 API에 전달한다', () async {
+    final adapter = _StubAdapter({'/gyms': '[]'});
+    final dio = Dio()..httpClientAdapter = adapter;
+    final repo = DioGymRepository(dio, lat: 35.1, lng: 129.1);
+    await repo.fetchNearby();
+    await repo.fetchMyGym();
+    for (final path in ['/gyms', '/me/gym']) {
+      expect(adapter.queryOf(path)['lat'], 35.1);
+      expect(adapter.queryOf(path)['lng'], 129.1);
+    }
+    dio.close();
+  });
+
   test('GET /gyms 응답이 Gym 으로 매핑된다', () async {
     final adapter = _StubAdapter(<String, Object?>{'/gyms': _gymsJson});
     final gyms = await DioGymRepository(_dio(adapter)).fetchNearby();

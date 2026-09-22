@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:oncare/app/app_icons.dart';
@@ -11,6 +13,7 @@ import 'package:oncare/features/exercise/domain/entities/gym.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
+import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
 import 'package:oncare/features/exercise/presentation/widgets/gym_trainer_line.dart';
 import 'package:oncare/features/exercise/presentation/widgets/kakao_map/kakao_map_view.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
@@ -80,8 +83,59 @@ class GymFinderView extends ConsumerStatefulWidget {
 }
 
 class _GymFinderViewState extends ConsumerState<GymFinderView> {
+  bool _locating = false;
+
+  Future<void> _locate() async {
+    if (_locating) return;
+    setState(() => _locating = true);
+    try {
+      final area = await ref.read(gymLocationServiceProvider).locate();
+      if (!mounted) return;
+      ref.read(gymSearchAreaProvider.notifier).state = area;
+      ref.read(gymHasLocationProvider.notifier).state = true;
+    } catch (error) {
+      if (!mounted) return;
+      final l = AppLocalizations.of(context);
+      final message = switch (error) {
+        GymLocationFailure.denied => l.gymLocationDenied,
+        GymLocationFailure.blocked =>
+          kIsWeb ? l.gymLocationBrowserBlocked : l.gymLocationBlocked,
+        GymLocationFailure.disabled => l.gymLocationDisabled,
+        _ => l.gymLocationUnavailable,
+      };
+      final canOpenSettings =
+          !kIsWeb &&
+          (error == GymLocationFailure.blocked ||
+              error == GymLocationFailure.disabled);
+      AppToastHost.of(context).show(
+        message,
+        type: AppToastType.error,
+        actionLabel: canOpenSettings ? l.gymLocationSettings : null,
+        onAction: canOpenSettings
+            ? () {
+                if (error == GymLocationFailure.disabled) {
+                  Geolocator.openLocationSettings();
+                } else {
+                  Geolocator.openAppSettings();
+                }
+              }
+            : null,
+      );
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
   String _query = '';
   _GymSort _sort = _GymSort.recommended;
+
+  Future<void> _selectSort(_GymSort value) async {
+    if (value == _GymSort.distance && !ref.read(gymShowDistanceProvider)) {
+      await _locate();
+      if (!mounted || !ref.read(gymShowDistanceProvider)) return;
+    }
+    setState(() => _sort = value);
+  }
 
   List<Gym> _visibleGyms(List<Gym> gyms) {
     final String query = _query.trim().toLowerCase();
@@ -161,6 +215,13 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                         ),
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
+                      AppIconButton(
+                        key: const Key('gym-current-location'),
+                        tooltip: l.gymLocateAction,
+                        onPressed: _locating ? null : _locate,
+                        icon: AppIcons.location,
+                        glyph: _locating ? const AppLoading.inline() : null,
+                      ),
                       // 헤더의 채팅 버튼과 같은 자리·배지 모양이다 — 대기 중인
                       // 상담 요청이 있으면 점이 켜진다(#1257).
                       HeaderActionButton(
@@ -186,8 +247,7 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                         ? _ResultControls(
                             countLabel: l.exResultCount(visible.length),
                             sort: _sort,
-                            onSort: (_GymSort value) =>
-                                setState(() => _sort = value),
+                            onSort: _selectSort,
                           )
                         : null,
                     resultSliver: _resultSliver(context, gymsAsync, visible),
@@ -557,15 +617,17 @@ class _GymListCard extends ConsumerWidget {
                     const SizedBox(height: OnCareSpacing.s4),
                     Row(
                       children: <Widget>[
-                        Flexible(
-                          child: Text(
-                            '${gym.distanceKm.toStringAsFixed(1)}km',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: OnCareTypography.numeric(meta),
+                        if (ref.watch(gymShowDistanceProvider)) ...<Widget>[
+                          Flexible(
+                            child: Text(
+                              '${gym.distanceKm.toStringAsFixed(1)}km',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: OnCareTypography.numeric(meta),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: OnCareSpacing.s8),
+                          const SizedBox(width: OnCareSpacing.s8),
+                        ],
                         const AppIcon(
                           AppIcons.star,
                           size: OnCareSize.iconSmall,
@@ -648,13 +710,14 @@ class _GymListCard extends ConsumerWidget {
 
 /// 목록에 보이는 헬스장을 카카오맵 핀으로 찍는다. `KAKAO_JS_KEY` 가 없거나
 /// SDK 로드가 실패하면 [_GymMiniMap] 그래픽으로 폴백한다(#329).
-class _GymMap extends StatelessWidget {
+class _GymMap extends ConsumerWidget {
   const _GymMap({required this.gyms});
 
   final List<Gym> gyms;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final area = ref.watch(gymSearchAreaProvider);
     final List<Gym> located = gyms
         .where((Gym g) => g.hasCoordinates)
         .toList(growable: false);
@@ -664,11 +727,11 @@ class _GymMap extends StatelessWidget {
     // 않는다 — 아래로 이어지는 시트만 제 위쪽 모서리를 갖는다.
     return SizedBox.expand(
       child: KakaoMapView(
-        // 지도 중심은 언제나 검색 중심([kGymFinderArea])이다. 첫 결과 좌표를
+        // 지도 중심은 언제나 검색 중심(gymSearchAreaProvider)이다. 첫 결과 좌표를
         // 쓰면 검색어·정렬·응답 순서에 따라 중심이 흔들려, 지도 중심과 장소
         // 검색 중심이 같아야 한다는 요건이 깨진다.
-        centerLat: kGymFinderArea.lat,
-        centerLng: kGymFinderArea.lng,
+        centerLat: area.lat,
+        centerLng: area.lng,
         markers: <KakaoMapMarker>[
           for (final Gym g in located)
             KakaoMapMarker(lat: g.lat!, lng: g.lng!, title: g.name),
