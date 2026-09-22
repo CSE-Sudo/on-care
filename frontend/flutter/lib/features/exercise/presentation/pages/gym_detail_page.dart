@@ -10,7 +10,6 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
-import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
 import 'package:oncare/features/exercise/presentation/utils/gym_phone.dart';
 import 'package:oncare/features/exercise/presentation/widgets/connection_disconnect.dart';
 import 'package:oncare/features/exercise/presentation/widgets/trainer_reason_badges.dart';
@@ -151,28 +150,32 @@ class _GymDetails extends ConsumerWidget {
                   .text(OnCareTypography.titleLarge)
                   .copyWith(color: OnCareColors.textPrimary),
             ),
-            const SizedBox(height: OnCareSpacing.s12),
-            Row(
-              children: <Widget>[
-                if (ref.watch(gymShowDistanceProvider)) ...<Widget>[
-                  Expanded(
-                    child: _MetricCard(
-                      icon: AppIcons.location,
-                      label: l.exDistance,
-                      value: '${gym.distanceKm.toStringAsFixed(1)}km',
+            if (gym.rating > 0) ...<Widget>[
+              const SizedBox(height: OnCareSpacing.s8),
+              Semantics(
+                label: '${l.exRating} ${gym.rating.toStringAsFixed(1)}',
+                excludeSemantics: true,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    const AppIcon(
+                      AppIcons.star,
+                      size: OnCareSize.iconSmall,
+                      color: OnCareColors.cautionFill,
                     ),
-                  ),
-                  const SizedBox(width: OnCareSpacing.cardGap),
-                ],
-                Expanded(
-                  child: _MetricCard(
-                    icon: AppIcons.star,
-                    label: l.exRating,
-                    value: gym.rating.toStringAsFixed(1),
-                  ),
+                    const SizedBox(width: OnCareSpacing.s4),
+                    Text(
+                      gym.rating.toStringAsFixed(1),
+                      style: OnCareTypography.numeric(
+                        tokens
+                            .text(OnCareTypography.bodySmall)
+                            .copyWith(color: OnCareColors.textSecondary),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
             const SizedBox(height: OnCareSpacing.s20),
             _DetailSection(
               icon: AppIcons.location,
@@ -366,60 +369,6 @@ class _TrainerPickerSheet extends ConsumerWidget {
                 ),
               );
             },
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return AppTile(
-      child: Row(
-        children: <Widget>[
-          AppIcon(
-            icon,
-            size: OnCareSize.iconMedium,
-            color: tokens.brand.primary,
-          ),
-          const SizedBox(width: OnCareSpacing.s8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tokens
-                      .text(OnCareTypography.caption)
-                      .copyWith(color: OnCareColors.textSecondary),
-                ),
-                Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: OnCareTypography.numeric(
-                    tokens
-                        .text(OnCareTypography.titleSmall)
-                        .copyWith(color: OnCareColors.textPrimary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
