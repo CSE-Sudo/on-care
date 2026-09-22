@@ -3461,8 +3461,8 @@ abstract class AppLocalizations {
   /// No description provided for @slotIntro.
   ///
   /// In en, this message translates to:
-  /// **'Open times for members to book on {date}.'**
-  String slotIntro(String date);
+  /// **'Open times for members to book. Every upcoming slot is listed below by date.'**
+  String get slotIntro;
 
   /// No description provided for @slotOpenAction.
   ///
@@ -3479,7 +3479,7 @@ abstract class AppLocalizations {
   /// No description provided for @slotEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No booking slots open on this day.'**
+  /// **'No booking slots are open.'**
   String get slotEmpty;
 
   /// No description provided for @slotClosedSummary.
@@ -5087,8 +5087,14 @@ abstract class AppLocalizations {
   /// No description provided for @workoutPendingTitle.
   ///
   /// In en, this message translates to:
-  /// **'Not done yet'**
+  /// **'Daily personal exercises'**
   String get workoutPendingTitle;
+
+  /// No description provided for @workoutRoutineDoneToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Done today'**
+  String get workoutRoutineDoneToday;
 
   /// No description provided for @workoutUndatedTitle.
   ///
@@ -6388,11 +6394,17 @@ abstract class AppLocalizations {
   /// **'A draft filled in from this week\'s figures. Check it over before sending.'**
   String get reportsFeedbackDraftNote;
 
-  /// No description provided for @reportsFeedbackRestore.
+  /// No description provided for @reportsFeedbackUndo.
   ///
   /// In en, this message translates to:
-  /// **'Restore draft'**
-  String get reportsFeedbackRestore;
+  /// **'Undo'**
+  String get reportsFeedbackUndo;
+
+  /// No description provided for @reportsFeedbackRedo.
+  ///
+  /// In en, this message translates to:
+  /// **'Redo'**
+  String get reportsFeedbackRedo;
 
   /// No description provided for @reportsFeedbackSave.
   ///

@@ -27,7 +27,7 @@ class NotificationsPage extends ConsumerWidget {
   ///
   /// 건강 목표 변경은 **그 회원** 상세로 간다(#1832). 회원 id 가 빠진 알림이면
   /// 고객 목록으로 간다 — 누구의 목표인지는 본문에 적혀 있다. 회원 이름 변경도
-  /// 같은 길이다(#2065).
+  /// 같은 길이다(#2065). 회원이 떠난 알림은 이동하지 않는다(#2174).
   @visibleForTesting
   static String? targetOf(TrainerNotification notification) =>
       switch (notification.kind) {
@@ -39,6 +39,8 @@ class NotificationsPage extends ConsumerWidget {
           final String id => AppRoutes.clientDetail(id),
           null => AppRoutes.clients,
         },
+        // 떠난 회원의 상세는 더 열 수 없다(#2174).
+        TrainerNotificationKind.memberLeft ||
         TrainerNotificationKind.other => null,
       };
 
@@ -189,6 +191,7 @@ class _NotificationTile extends StatelessWidget {
     TrainerNotificationKind.reservation => Icons.event_available_rounded,
     TrainerNotificationKind.healthGoal => Icons.flag_rounded,
     TrainerNotificationKind.memberName => Icons.badge_rounded,
+    TrainerNotificationKind.memberLeft => Icons.person_remove_rounded,
     TrainerNotificationKind.other => Icons.notifications_none_rounded,
   };
 

@@ -284,11 +284,12 @@ void main() {
       );
       await settle(tester);
 
-      // 거절 트리거는 빨간 글자, 사유 창의 확정은 빨간 채움, 취소는 보조다.
+      // 거절 트리거는 네이비 외곽선(#2184), 사유 창의 확정은 빨간 채움, 취소는
+      // 보조다.
       final trigger = tester.widget<AppButton>(
         find.byKey(const ValueKey<String>('consultation-reject-consult-1')),
       );
-      expect(trigger.variant, AppButtonVariant.destructiveText);
+      expect(trigger.variant, AppButtonVariant.strongOutline);
       final confirm = tester.widget<AppButton>(
         find.byKey(const ValueKey<String>('consultation-reject-confirm')),
       );

@@ -525,7 +525,7 @@ Widget _dayEmpty(BuildContext context) {
 }
 
 /// 하루치 운동 요약 — 시간·소모 칼로리·유형별 시간과 그날의 세션 목록.
-class _ExerciseDayDetail extends StatelessWidget {
+class _ExerciseDayDetail extends ConsumerWidget {
   const _ExerciseDayDetail({required this.week, required this.date});
 
   final ExerciseWeek week;
@@ -535,16 +535,36 @@ class _ExerciseDayDetail extends StatelessWidget {
       i >= 0 && i < series.length ? series[i] : 0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final int i = date.weekday - 1; // 0 = 월
     final double minutes = _at(week.dailyMinutes, i);
+    // 그날 걸려 있던 추천 개인운동과 그날 한 것(#2161). 매일 새로 체크하는
+    // 목록이라 지난 날짜도 오늘과 같은 모양으로 보이되 체크할 수 없다. 아직
+    // 오지 않은 날에는 목록이 없다.
+    final bool future = dateOnly(date).isAfter(todayKst());
+    final List<CoachRoutine> dayRoutines = future
+        ? const <CoachRoutine>[]
+        : ref.watch(coachRoutinesOnDayProvider(dateOnly(date))).valueOrNull ??
+              const <CoachRoutine>[];
     if (minutes <= 0) {
       // 기록이 없는 날에도 **그날로** 적을 자리는 있어야 한다(#1428).
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           _dayEmpty(context),
+          // 아무것도 하지 않은 날일수록 "무엇이 걸려 있었나" 가 보여야 한다 —
+          // 전부 미완료인 목록이 그날의 기록이다(#2161).
+          if (dayRoutines.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                OnCareSpacing.s24,
+                0,
+                OnCareSpacing.s24,
+                OnCareSpacing.s20,
+              ),
+              child: AiCoachingCard(day: date),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: OnCareSpacing.s24),
             child: OwnExerciseRecords(week: week, date: date),
@@ -571,6 +591,8 @@ class _ExerciseDayDetail extends StatelessWidget {
     final List<ExerciseSession> routineSessions = sourced(
       ExerciseSource.assignedRoutine,
     );
+    final bool hasRoutineBlock =
+        dayRoutines.isNotEmpty || routineSessions.isNotEmpty;
     // 유형별 값은 `운동 현황 > 오늘` 과 **같은 카드**로 그린다 — 유산소·스트레칭은
     // 분, 근력은 세트로. 같은 데이터를 두 가지 모양으로 그리지 않는다(#682).
     final ExerciseDayLoad load = ExerciseDayLoad.fromMinutes(
@@ -608,9 +630,15 @@ class _ExerciseDayDetail extends StatelessWidget {
               icon: AppIcons.exercise,
               sessions: ptSessions,
             ),
-          if (ptSessions.isNotEmpty && routineSessions.isNotEmpty)
+          if (ptSessions.isNotEmpty && hasRoutineBlock)
             const SizedBox(height: OnCareSpacing.s12),
-          if (routineSessions.isNotEmpty)
+          // 추천 개인운동은 오늘 화면과 같은 체크 목록으로 보인다 — 한 것과 안
+          // 한 것이 함께 보여야 그날의 기록이다(#2161). 그날 목록을 알 수 없을
+          // 때(담당이 바뀌어 옛 목록이 지금 담당의 것이 아닐 때)만 예전처럼 한
+          // 기록을 묶어 보여 준다 — 한 운동이 화면에서 사라지면 안 된다.
+          if (dayRoutines.isNotEmpty)
+            AiCoachingCard(day: date)
+          else if (routineSessions.isNotEmpty)
             _DayRecordCard(
               key: const ValueKey<String>('exercise-routine-records'),
               // 어휘는 오늘 화면의 `추천 개인운동` 과 같게 두되, 지난 날의 완료
@@ -621,7 +649,7 @@ class _ExerciseDayDetail extends StatelessWidget {
             ),
           // 트레이너 쪽 기록이 하나라도 있으면 한 칸 띄운다 — 붙여 두면 아래
           // `직접 기록한 운동` 제목이 위 카드에 딸린 것처럼 보인다.
-          if (ptSessions.isNotEmpty || routineSessions.isNotEmpty)
+          if (ptSessions.isNotEmpty || hasRoutineBlock)
             const SizedBox(height: OnCareSpacing.s20),
           // 직접 적은 기록은 따로 모아 그 자리에서 고치고 지운다(#1428).
           OwnExerciseRecords(week: week, date: date),

@@ -83,6 +83,10 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   Future<MemberCoach?> fetchCoach() async => coach;
   @override
   Future<List<CoachRoutine>> fetchRoutines() async => const <CoachRoutine>[];
+
+  @override
+  Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async =>
+      const <CoachRoutine>[];
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
@@ -168,7 +172,9 @@ void main() {
           accountRepositoryProvider.overrideWithValue(
             MockAccountRepository(profile: profile),
           ),
-          exerciseWeekProvider.overrideWith((ref) async => exerciseWeek ?? week),
+          exerciseWeekProvider.overrideWith(
+            (ref) async => exerciseWeek ?? week,
+          ),
           memberCoachRepositoryProvider.overrideWithValue(
             coachRepository ?? MockMemberCoachRepository(),
           ),
