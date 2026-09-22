@@ -1260,6 +1260,20 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myGraphProtectFailed => '보호권을 쓰지 못했어요';
 
   @override
+  String get myGraphProtectBuyConfirmTitle => '보호권을 구매할까요?';
+
+  @override
+  String myGraphProtectBuyConfirmMessage(String date, String cost) {
+    return '지금 가진 보호권이 없어요. $cost로 보호권을 구매하고 $date을 바로 기록 연속에 이어 붙여요.';
+  }
+
+  @override
+  String get myGraphProtectBuyAction => '구매하고 쓰기';
+
+  @override
+  String get myGraphProtectBoughtNotUsed => '보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.';
+
+  @override
   String get myGraphColorTitle => '그래프 색';
 
   @override
