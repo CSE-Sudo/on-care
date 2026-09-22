@@ -59,12 +59,11 @@ Future<void> showGymPhoneSheet(
                       .copyWith(color: OnCareColors.textPrimary),
                 ),
               ),
-              IconButton(
+              AppIconButton(
                 tooltip: l.exGymCopyPhone,
                 onPressed: () => Navigator.pop(sheetContext, 'copy'),
-                icon: const Icon(AppIcons.copy, size: 20, fill: 0, weight: 400),
+                icon: AppIcons.copy,
                 color: OnCareColors.textSecondary,
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               ),
             ],
           ),

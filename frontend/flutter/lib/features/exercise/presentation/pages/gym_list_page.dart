@@ -103,25 +103,23 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
         GymLocationFailure.disabled => l.gymLocationDisabled,
         _ => l.gymLocationUnavailable,
       };
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          action:
-              !kIsWeb &&
-                  (error == GymLocationFailure.blocked ||
-                      error == GymLocationFailure.disabled)
-              ? SnackBarAction(
-                  label: l.gymLocationSettings,
-                  onPressed: () {
-                    if (error == GymLocationFailure.disabled) {
-                      Geolocator.openLocationSettings();
-                    } else {
-                      Geolocator.openAppSettings();
-                    }
-                  },
-                )
-              : null,
-        ),
+      final canOpenSettings =
+          !kIsWeb &&
+          (error == GymLocationFailure.blocked ||
+              error == GymLocationFailure.disabled);
+      AppToastHost.of(context).show(
+        message,
+        type: AppToastType.error,
+        actionLabel: canOpenSettings ? l.gymLocationSettings : null,
+        onAction: canOpenSettings
+            ? () {
+                if (error == GymLocationFailure.disabled) {
+                  Geolocator.openLocationSettings();
+                } else {
+                  Geolocator.openAppSettings();
+                }
+              }
+            : null,
       );
     } finally {
       if (mounted) setState(() => _locating = false);
@@ -217,19 +215,12 @@ class _GymFinderViewState extends ConsumerState<GymFinderView> {
                         ),
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
-                      IconButton(
+                      AppIconButton(
                         key: const Key('gym-current-location'),
                         tooltip: l.gymLocateAction,
                         onPressed: _locating ? null : _locate,
-                        icon: _locating
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Icon(AppIcons.location),
+                        icon: AppIcons.location,
+                        glyph: _locating ? const AppLoading.inline() : null,
                       ),
                       // 헤더의 채팅 버튼과 같은 자리·배지 모양이다 — 대기 중인
                       // 상담 요청이 있으면 점이 켜진다(#1257).
