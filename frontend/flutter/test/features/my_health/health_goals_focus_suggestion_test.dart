@@ -66,14 +66,28 @@ UserProfile _profile(String conditions) => UserProfile(
   dailyFatG: 55,
 );
 
+/// 권장 안내 줄의 전체 문구.
+///
+/// 줄이 항목 중간(`스트레칭 60` / `분`)에서 끊기지 않게 항목마다 따로 세우므로
+/// (#2140), 화면에는 한 문장이 여러 Text 로 나뉘어 있다. 붙여서 읽는다.
+String _suggestionNote(WidgetTester tester, String marker) {
+  final Finder wrap = find
+      .ancestor(of: find.textContaining(marker), matching: find.byType(Wrap))
+      .first;
+  return tester
+      .widgetList<Text>(find.descendant(of: wrap, matching: find.byType(Text)))
+      .map((Text t) => t.data!)
+      .join();
+}
+
 void main() {
   testWidgets('운동 권장값은 고른 목표를 반영하고 안내 문구도 같은 숫자를 말한다', (tester) async {
     await _open(tester, _profile('체력 강화, 자세 교정'));
 
     expect(_hint(tester, 'goalCardioField'), '200');
     expect(
-      find.text('권장: 하루 300kcal · 주 유산소 200분 · 근력 21세트 · 스트레칭 90분'),
-      findsOneWidget,
+      _suggestionNote(tester, '권장: 하루'),
+      '권장: 하루 300kcal · 주 유산소 200분 · 근력 21세트 · 스트레칭 90분',
     );
 
     final Finder apply = find.byKey(const Key('goalApplyExerciseGoals'));
@@ -91,14 +105,14 @@ void main() {
     await _open(tester, _profile('근력 향상'));
 
     expect(
-      find.text('2000kcal 기준 권장 배분: 탄수화물 262g · 단백질 112g · 지방 56g · 당류 50g'),
-      findsOneWidget,
+      _suggestionNote(tester, '권장 배분'),
+      '2000kcal 기준 권장 배분: 탄수화물 262g · 단백질 112g · 지방 56g · 당류 50g',
     );
 
     await _tapKey(tester, 'goal-focus-근력 향상');
     expect(
-      find.text('2000kcal 기준 권장 배분: 탄수화물 275g · 단백질 100g · 지방 56g · 당류 50g'),
-      findsOneWidget,
+      _suggestionNote(tester, '권장 배분'),
+      '2000kcal 기준 권장 배분: 탄수화물 275g · 단백질 100g · 지방 56g · 당류 50g',
     );
 
     await _tapKey(tester, 'goal-focus-근력 향상');

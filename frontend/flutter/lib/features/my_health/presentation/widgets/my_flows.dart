@@ -1427,18 +1427,54 @@ class _MacroSuggestionRow extends StatelessWidget {
   /// 버튼의 키. 식단·운동 두 곳이 같은 줄을 쓰므로 각자 다른 키를 준다.
   final Key buttonKey;
 
+  /// 안내 줄의 항목을 나누는 글자. 두 ARB(ko·en)가 같은 글자를 쓴다.
+  static const String _separator = ' · ';
+
   @override
   Widget build(BuildContext context) {
+    final TextStyle noteStyle = context.oncare
+        .text(OnCareTypography.caption)
+        .copyWith(color: OnCareColors.textSecondary);
     // 안내와 버튼을 한 줄에 두면 좁은 폰·큰 글자에서 영어 버튼 라벨이 넘친다.
     // 안내를 위에, 버튼을 그 아래 끝에 둔다.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Text(
-          note,
-          style: context.oncare
-              .text(OnCareTypography.caption)
-              .copyWith(color: OnCareColors.textSecondary),
+        // 한 덩어리 Text 로 두면 한글은 글자 사이 어디서나 끊겨, `스트레칭 60`
+        // 에서 줄이 바뀌고 `분` 만 다음 줄에 남는다. 항목을 따로 세워 두면 줄은
+        // 항목과 항목 **사이**에서만 바뀐다. 나눌 글자가 없는 안내는 한 항목이
+        // 되어 지금과 똑같이 그려진다.
+        // 눈으로는 항목이 여럿이지만 읽어 주는 것은 한 문장이다 — 쪼갠 채로
+        // 두면 스크린리더가 네 토막으로 끊어 읽는다.
+        Semantics(
+          container: true,
+          label: note,
+          child: ExcludeSemantics(
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final List<String> parts = note.split(_separator);
+                return Wrap(
+                  runSpacing: OnCareSpacing.s4,
+                  children: <Widget>[
+                    for (int i = 0; i < parts.length; i++)
+                      ConstrainedBox(
+                        // 항목 하나가 한 줄보다 길면(큰 글자 설정) 그 안에서는
+                        // 끊겨야 한다 — Wrap 은 자식에게 폭을 주지 않는다.
+                        constraints: BoxConstraints(
+                          maxWidth: constraints.maxWidth,
+                        ),
+                        child: Text(
+                          i == parts.length - 1
+                              ? parts[i]
+                              : '${parts[i]}$_separator',
+                          style: noteStyle,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
         Align(
           alignment: AlignmentDirectional.centerEnd,

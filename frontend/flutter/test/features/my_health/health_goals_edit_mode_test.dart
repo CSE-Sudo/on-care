@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -93,7 +94,7 @@ void main() {
     // 흐린 숫자는 홈·운동 탭이 실제로 재는 기준선이라 `권장치` 라 부르지
     // 않는다 — 아래쪽 `권장:` 줄은 관리 초점을 반영한 다른 수다.
     expect(find.byKey(const Key('goalUnsetHint')), findsOneWidget);
-    expect(find.text('흐린 값은 아직 목표를 세우지 않아 앱이 기준으로 쓰고 있는 값이에요'), findsOneWidget);
+    expect(find.text('흐린 값은 목표를 세우기 전의 기본 기준이에요'), findsOneWidget);
   });
 
   testWidgets('수정 모드에서는 각주를 내지 않는다 — 칸이 스스로 말한다', (tester) async {
@@ -119,6 +120,36 @@ void main() {
     await _beginEdit(tester);
     // 고칠 때는 여덟 개가 모두 선다.
     expect(find.byType(AppChoiceChip), findsNWidgets(8));
+  });
+
+  testWidgets('권장 안내는 항목 중간에서 줄이 끊기지 않는다', (tester) async {
+    // 한 덩어리 Text 였을 때는 한글이 글자 사이 어디서나 끊겨 `스트레칭 60`
+    // 에서 줄이 바뀌고 `분` 만 다음 줄에 남았다. 항목마다 Text 를 세워 두면
+    // 줄은 항목과 항목 사이에서만 바뀐다.
+    await _open(tester);
+    await _beginEdit(tester);
+
+    final Finder note = find
+        .ancestor(
+          of: find.textContaining('권장: 하루'),
+          matching: find.byType(Wrap),
+        )
+        .first;
+    final List<String> parts = tester
+        .widgetList<Text>(
+          find.descendant(of: note, matching: find.byType(Text)),
+        )
+        .map((Text t) => t.data!)
+        .toList();
+
+    // 네 항목이 각자 선다 — 숫자와 단위가 같은 Text 안에 있어 떨어질 수 없다.
+    expect(parts, hasLength(4));
+    expect(parts.last, endsWith('분'));
+    expect(parts.join(), startsWith('권장: 하루'));
+
+    // 읽어 주는 것은 여전히 한 문장이다.
+    final SemanticsNode semantics = tester.getSemantics(note);
+    expect(semantics.label, parts.join());
   });
 
   testWidgets('연필을 누르면 칸과 저장 줄이 열리고, 연필은 사라진다', (tester) async {

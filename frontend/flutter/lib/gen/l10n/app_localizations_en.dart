@@ -3121,7 +3121,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myGoalUnsetHint =>
-      'Dimmed values are what the app currently measures against for goals you haven\'t set';
+      'Dimmed values are the baseline used before you set a goal';
 
   @override
   String get myGoalsSaved => 'Health goals saved';
