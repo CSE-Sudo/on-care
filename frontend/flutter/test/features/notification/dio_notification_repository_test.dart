@@ -80,6 +80,25 @@ void main() {
   });
 
   group('fetchPage', () {
+    test('담당 요청 종류와 ID는 파싱 및 읽음 처리 후에도 유지된다', () async {
+      final repo = DioNotificationRepository(
+        _dio(<Object?>[
+          <String, Object?>{
+            'id': 'n1',
+            'title': '요청',
+            'body': '',
+            'category': 'coach_invite',
+            'invite_id': 'tci-2',
+            'action': <String, Object?>{'label': '요청 확인', 'target': 'exercise'},
+          },
+        ]),
+      );
+      final item = (await repo.fetchPage()).single.copyWith(read: true);
+      expect(item.category, AlertCategory.reminder);
+      expect(item.wireCategory, 'coach_invite');
+      expect(item.inviteId, 'tci-2');
+      expect(item.action?.target, AlertTarget.exercise);
+    });
     // 로컬 목 모드의 데모 시드만 문구 키를 준다. 없으면 null 이다(#1812).
     test('문구 키가 있으면 옮기고 없으면 비워 둔다', () async {
       final repo = DioNotificationRepository(

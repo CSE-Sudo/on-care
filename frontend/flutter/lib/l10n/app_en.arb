@@ -1,4 +1,5 @@
 {
+  "coachInviteUnavailable": "This request has already been handled or cancelled.",
   "@@locale": "en",
   "appTitle": "On-Care",
   "@appTitle": {

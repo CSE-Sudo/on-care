@@ -55,6 +55,7 @@ class NotificationOut(BaseModel):
     created_at: datetime
     time_ago: str
     action: NotificationAction | None = None
+    invite_id: str | None = None
 
 
 # ---- 장소 ----

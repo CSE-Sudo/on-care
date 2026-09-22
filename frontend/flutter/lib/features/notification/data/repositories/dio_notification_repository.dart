@@ -66,6 +66,10 @@ class DioNotificationRepository implements NotificationRepository {
       timeAgo: (json['time_ago'] as String?) ?? '',
       category: categoryFromWire(json['category']! as String),
       read: (json['read'] as bool?) ?? false,
+      wireCategory: json['category'] as String?,
+      inviteId: json['invite_id'] is String
+          ? json['invite_id'] as String
+          : null,
       action: _actionFrom(json['action']),
       // 다음 쪽 커서로 되돌려 줄 값이라 **문자열 그대로** 들고 간다(#965).
       createdAt: (json['created_at'] as String?) ?? '',
@@ -114,6 +118,7 @@ class DioNotificationRepository implements NotificationRepository {
     'coach_chat' ||
     'routine' ||
     'member_schedule' ||
+    'coach_invite' ||
     'consultation_result' ||
     'consult_decision' => AlertCategory.reminder,
     'health_check' => AlertCategory.healthCheck,

@@ -9,6 +9,9 @@ class AppLocalizationsKo extends AppLocalizations {
   AppLocalizationsKo([String locale = 'ko']) : super(locale);
 
   @override
+  String get coachInviteUnavailable => '이미 처리되었거나 취소된 요청이에요.';
+
+  @override
   String get appTitle => 'On-Care';
 
   @override
