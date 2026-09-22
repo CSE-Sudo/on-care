@@ -2456,6 +2456,10 @@
   "@myGoalWorkoutCalories": {
     "description": "Health goal field label."
   },
+  "myGoalUnsetHint": "Dimmed values are the baseline used before you set a goal",
+  "@myGoalUnsetHint": {
+    "description": "Footnote under a read-only health-goal card that has fields the member has never set. The number shown is the app-wide baseline in force, not the personalized recommendation the edit form offers."
+  },
   "myGoalsSaved": "Health goals saved",
   "myGoalRange": "Enter a value between {min} and {max}",
   "@myGoalRange": {
@@ -2886,5 +2890,14 @@
         "type": "int"
       }
     }
-  }
+  },
+  "gymLocationDenied": "Allow location access to find gyms near you.",
+  "gymLocationBrowserBlocked": "Allow location access in your browser site settings, then try again.",
+  "gymLocationBlocked": "Allow location access in app settings, then try again.",
+  "gymLocationDisabled": "Turn on device location services, then try again.",
+  "gymLocationUnavailable": "Could not get your location. Please try again.",
+  "gymLocateAction": "Find near my location",
+  "gymLocationSettings": "Settings",
+  "exGymCopyPhone": "Copy phone number",
+  "exGymPhoneCopied": "Phone number copied."
 }

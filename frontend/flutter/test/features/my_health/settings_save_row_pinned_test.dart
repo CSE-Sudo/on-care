@@ -72,6 +72,8 @@ void _expectPinnedAndTappable(WidgetTester tester) {
 void main() {
   testWidgets('건강 목표: 저장 줄이 스크롤 없이 하단에 보인다', (tester) async {
     await _pump(tester, const HealthGoalsPage());
+    await tester.tap(find.byKey(const Key('goalsEditButton')));
+    await tester.pumpAndSettle();
 
     _expectPinnedAndTappable(tester);
 
@@ -92,6 +94,8 @@ void main() {
 
   testWidgets('키보드가 올라오면 저장 줄이 키보드 위에 선다', (tester) async {
     await _pump(tester, const HealthGoalsPage());
+    await tester.tap(find.byKey(const Key('goalsEditButton')));
+    await tester.pumpAndSettle();
 
     const double keyboard = 300;
     tester.view.viewInsets = const FakeViewPadding(bottom: keyboard * 3);

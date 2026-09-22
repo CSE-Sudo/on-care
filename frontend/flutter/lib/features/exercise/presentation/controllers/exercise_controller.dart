@@ -19,6 +19,7 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
+import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
@@ -310,7 +311,8 @@ final gymRepositoryProvider = Provider<GymRepository>((ref) {
     // 운동 탭에 함께 반영된다. 해제하면 목업 락커·재등록 쿠폰도 취소된다(#1787).
     return MockGymRepository(coupons: ref.watch(demoCouponBookProvider));
   }
-  return DioGymRepository(ref.watch(dioProvider));
+  final area = ref.watch(gymSearchAreaProvider);
+  return DioGymRepository(ref.watch(dioProvider), lat: area.lat, lng: area.lng);
 }, name: 'gymRepository');
 
 final myGymProvider = FutureProvider<Gym?>((ref) {
@@ -321,8 +323,7 @@ final nearbyGymsProvider = FutureProvider<List<Gym>>((ref) {
   return ref.watch(gymRepositoryProvider).fetchNearby();
 }, name: 'nearbyGyms');
 
-/// 헬스장 찾기의 카카오 Local 조회 조건. 좌표는 지도 중심·실 API 조회와 같은
-/// 상수를 쓴다(`gym_search_area.dart`) — 따로 두면 조용히 어긋난다.
+/// 초기 검색 영역. 실제 지도·조회는 gymSearchAreaProvider를 공유한다.
 const PlaceQuery kGymFinderArea = PlaceQuery(
   lat: kGymSearchLat,
   lng: kGymSearchLng,
@@ -366,6 +367,7 @@ String _gymNameKey(String name) => name.replaceAll(RegExp(r'\s+'), '');
 /// [nearbyGymsProvider] 를 그대로 두는 이유: 트레이너 목록·상담 신청이 같은
 /// provider 를 보므로, 거기에 카카오 결과를 섞으면 그 화면들이 흐트러진다.
 final gymFinderResultsProvider = FutureProvider<List<Gym>>((ref) async {
+  final area = ref.watch(gymSearchAreaProvider);
   final List<Gym> partners = await ref.watch(nearbyGymsProvider.future);
   // 시연용 보강값은 데모(mock) 경로에서만 붙인다.
   final bool demo = ref.watch(appConfigProvider).useMockApi;
@@ -374,7 +376,7 @@ final gymFinderResultsProvider = FutureProvider<List<Gym>>((ref) async {
   try {
     final List<Place> places = await ref
         .watch(placeRepositoryProvider)
-        .nearbyPlaces(kGymFinderArea);
+        .nearbyPlaces(area);
     discovered = places
         .map((Place p) => _gymFromPlace(p, allowDemoProfile: demo))
         .toList();

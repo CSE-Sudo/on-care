@@ -9,6 +9,9 @@
          앱 안에서 최근 사진 썸네일을 직접 읽는 #1845 를 착수할 때 다시 볼 항목이다. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
     <application
         android:label="oncare"
         android:name="${applicationName}"
