@@ -770,7 +770,7 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
 
   /// 보기와 수정이 같은 라벨·값 자리를 쓴다 — 내 프로필과 같은 모양이다.
   ///
-  /// 아직 세운 적 없는 칸은 권장값이 적혀 있을 뿐이다. 칸마다 `(권장)` 을 달면
+  /// 아직 세운 적 없는 칸은 기본값이 적혀 있을 뿐이다. 칸마다 꼬리표를 달면
   /// 운동 카드처럼 네 칸이 모두 비어 있는 자리에서 같은 말이 네 번 되풀이돼,
   /// 숫자보다 꼬리표가 먼저 읽힌다. 그래서 숫자는 흐리게만 두고 왜 흐린지는
   /// 카드가 한 줄로 말한다([_unsetHint]).
@@ -810,6 +810,12 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
 
   /// 흐린 숫자가 무엇인지 말하는 카드 각주.
   ///
+  /// `권장치` 라고 부르지 않는다. 흐린 숫자는 [_fallbackValue] — 목표를 세우지
+  /// 않은 회원에게 `exerciseGoalsProvider` 가 홈·운동 탭에서 실제로 적용하는
+  /// 기준선이다. 같은 화면 아래쪽 `권장:` 줄은 관리 초점·체중을 반영한 **권해
+  /// 주는** 값이라 숫자가 다르다(소모 300 대 400). 둘을 같은 이름으로 부르면
+  /// 화면이 한 자리에서 서로 다른 두 수를 권장이라 말하게 된다.
+  ///
   /// 그 카드에 세운 적 없는 칸이 하나라도 있을 때만 선다 — 흐린 숫자가 없는
   /// 카드에 붙으면 가리킬 대상이 없는 문장이 된다.
   Widget _unsetHint(List<String> keys) {
@@ -843,7 +849,11 @@ class _GoalsFormState extends ConsumerState<_GoalsForm> {
     _ => throw ArgumentError('알 수 없는 목표 칸: $key'),
   };
 
-  /// 세운 적 없는 칸을 채워 두는 권장값. 칸이 열릴 때 적히는 값과 같다.
+  /// 세운 적 없는 칸을 채워 두는 기본값.
+  ///
+  /// 홈·운동 탭이 목표 없는 회원에게 쓰는 기준선과 같은 상수다
+  /// (`exerciseGoalsProvider`). 이 화면만 다른 수를 적으면, 회원이 여기서 본
+  /// 목표와 홈 도넛이 재는 목표가 어긋난다.
   int _fallbackValue(String key) => switch (key) {
     _kKcal => UserProfile.defaultDailyCalories,
     _kSodium => UserProfile.defaultDailySodiumMg,

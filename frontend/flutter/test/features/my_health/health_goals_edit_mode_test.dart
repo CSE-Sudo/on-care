@@ -90,8 +90,10 @@ void main() {
     expect(colorOf('kcal'), OnCareColors.textPrimary);
 
     // 각주는 흐린 숫자가 있는 식단 카드에만 선다 — 운동 목표는 다 세워 뒀다.
+    // 흐린 숫자는 홈·운동 탭이 실제로 재는 기준선이라 `권장치` 라 부르지
+    // 않는다 — 아래쪽 `권장:` 줄은 관리 초점을 반영한 다른 수다.
     expect(find.byKey(const Key('goalUnsetHint')), findsOneWidget);
-    expect(find.text('흐리게 보이는 값은 아직 세우지 않은 목표의 권장치예요'), findsOneWidget);
+    expect(find.text('흐린 값은 아직 목표를 세우지 않아 앱이 기준으로 쓰고 있는 값이에요'), findsOneWidget);
   });
 
   testWidgets('수정 모드에서는 각주를 내지 않는다 — 칸이 스스로 말한다', (tester) async {

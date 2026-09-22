@@ -1373,7 +1373,7 @@
   "myGoalWorkoutCount": "주간 운동 횟수 목표 (회)",
   "myGoalWorkoutMinutes": "주간 운동 시간 목표 (분)",
   "myGoalWorkoutCalories": "주간 소모 칼로리 목표 (kcal)",
-  "myGoalUnsetHint": "흐리게 보이는 값은 아직 세우지 않은 목표의 권장치예요",
+  "myGoalUnsetHint": "흐린 값은 아직 목표를 세우지 않아 앱이 기준으로 쓰고 있는 값이에요",
   "myGoalsSaved": "건강 목표가 저장되었어요",
   "myGoalRange": "{min}~{max} 사이로 입력해 주세요",
   "mySettingsLoadFailed": "설정을 불러오지 못했어요",
