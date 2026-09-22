@@ -84,6 +84,44 @@ void main() {
   Finder useButton() => find.byKey(const Key('couponUseButton'));
   Finder staffNote() => find.byKey(const Key('couponStaffNote'));
 
+  testWidgets('식판 수령 쿠폰은 기한 없이 서고, 가기 전에 트레이너에게 묻게 한다 (#2150)', (tester) async {
+    final FakeBenefitsRepository repo = FakeBenefitsRepository(
+      coupons: <Coupon>[couponOf(id: 'cpn-tray', item: 'diet_tray')],
+    );
+    await pumpAt(tester, repo, AppRoutes.myBenefits);
+
+    expect(find.text('분석용 규격 식판'), findsOneWidget);
+    expect(find.text('기한 없음'), findsOneWidget);
+    expect(find.text('사용 가능'), findsOneWidget);
+    expect(find.textContaining('D-'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey<String>('coupon-cpn-tray')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('받은 날'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('couponExpiry')),
+        matching: find.text('기한 없음'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('couponExpireNotice')))
+          .data!
+          .replaceAll('\u2060', ''),
+      contains('채팅으로 물어보세요'),
+    );
+    expect(
+      find.descendant(
+        of: staffNote(),
+        matching: find.text('헬스장 직원에게 식판을 받은 뒤 눌러 주세요'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('보호권 구역은 보유 수와 보호한 날을 보여 준다 (#1788)', (tester) async {
     await pumpAt(
       tester,
