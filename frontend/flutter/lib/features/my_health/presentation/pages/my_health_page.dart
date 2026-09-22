@@ -590,6 +590,8 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
     final bool isColor = item.id == kGraphColorItem && option != null;
     // 프로필 펫(#2021)도 쿠폰이 아니다 — 어느 펫을 얼마 동안 다는지 말한다.
     final bool isPet = item.id == kProfilePetItem && option != null;
+    // 주간 리포트(#2022)는 어느 주를 받는지 말한다 — 지난주다.
+    final bool isReport = item.id == kWeeklyReportItem;
     final bool ok = await showAppConfirmDialog(
       context: context,
       title: l.myPointsExchangeConfirmTitle,
@@ -601,6 +603,11 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
           : isPet
           ? l.myProfilePetExchangeConfirm(
               profilePetName(l, option),
+              l.myPointsCost(item.cost),
+            )
+          : isReport
+          ? l.myWeeklyReportExchangeConfirm(
+              reportWeekRange(l, lastWeekMonday()),
               l.myPointsCost(item.cost),
             )
           : l.myPointsExchangeConfirmMessage(
@@ -632,6 +639,18 @@ class _PointsBenefitsPageState extends ConsumerState<PointsBenefitsPage> {
           ..invalidate(myStreakShieldsProvider)
           ..invalidate(exerciseWeekProvider)
           ..invalidate(activityCalendarProvider);
+      }
+      if (isReport) {
+        // 받은 리포트는 내 혜택에서 연다 — 트레이너 리포트와 같은 문서다.
+        ref.invalidate(myWeeklyReportsProvider);
+        showAppToast(
+          context,
+          l.myWeeklyReportDone,
+          type: AppToastType.success,
+          actionLabel: l.myBenefitsView,
+          onAction: () => context.push<void>(AppRoutes.myBenefits),
+        );
+        return;
       }
       if (isPet) {
         // 단 펫은 MY 프로필 이름 옆에 바로 보인다(#2021). 내 혜택으로 보낼 것이 없다.

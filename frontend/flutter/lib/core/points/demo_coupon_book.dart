@@ -7,6 +7,7 @@ import 'package:oncare/core/points/demo_graph_colors.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/demo_profile_pet.dart';
 import 'package:oncare/core/points/demo_streak_shields.dart';
+import 'package:oncare/core/points/demo_weekly_reports.dart';
 import 'package:oncare/core/utils/clock.dart';
 
 /// 목업 API 의 포인트 사용처·쿠폰. 서버 `points_coupon_service` 의 대역이다. (#1787)
@@ -69,6 +70,14 @@ class DemoCouponBook {
   final DemoProfilePetBook _pets;
   DemoProfilePetBook get pets => _pets;
 
+  /// 포인트로 받는 주간 리포트(#2022) — 담당이 없을 때만 사용처에 선다. 담당 여부를
+  /// 이 원장이 들고 있어서 여기서 만든다.
+  late final DemoWeeklyReportBook reports = DemoWeeklyReportBook(
+    ledger: _ledger,
+    now: _now,
+    hasTrainer: () => _hasTrainer,
+  );
+
   final DemoPointsLedger _ledger;
   final DateTime Function() _now;
   bool _hasTrainer;
@@ -111,7 +120,9 @@ class DemoCouponBook {
         // 네 색을 모두 연 회원에게는 그래프 색 항목을 싣지 않는다(#2076) — 더 살 게
         // 없는 카드를 막힌 채 남겨 두지 않는다. 색 바꾸기는 기록 그래프에서 한다.
         for (final DemoShopItem item in kDemoShopCatalog)
-          if (!(item.id == kDemoGraphColor.id && _palette.allUnlocked))
+          if (!(item.id == kDemoGraphColor.id && _palette.allUnlocked) &&
+              // 담당이 있으면 트레이너가 리포트를 등록해 준다 — 싣지 않는다(#2022).
+              !(item.id == kDemoWeeklyReport.id && !reports.listed))
             _itemJson(item, balance),
       ],
     };
@@ -130,6 +141,10 @@ class DemoCouponBook {
     if (item.id == kDemoGraphColor.id) {
       // 쿠폰이 아니라 그래프 색 하나가 열린다 — 고른 색은 `option` 이 싣는다(#2076).
       return _palette.exchange(option, clientRequestId: clientRequestId);
+    }
+    if (item.id == kDemoWeeklyReport.id) {
+      // 쿠폰이 아니라 지난주 리포트 한 주를 받는다 — 담당이 없는 회원만(#2022).
+      return reports.exchange(clientRequestId: clientRequestId);
     }
     if (item.id == kDemoProfilePet.id) {
       // 쿠폰이 아니라 고른 펫이 7일 동안 이름 옆에 붙는다(#2021).
@@ -292,6 +307,8 @@ class DemoCouponBook {
         ? 'active_pass'
         : item.id == kDemoProfilePet.id && _pets.active
         ? 'active_pet'
+        : item.id == kDemoWeeklyReport.id && reports.targetOwned
+        ? 'week_owned'
         : item.id == kDemoStreakShield.id &&
               _shields.held >= DemoStreakShieldBook.maxHeld
         ? 'shield_limit'
@@ -422,7 +439,19 @@ const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
   kDemoGraphColor,
   kDemoEmotePass,
   kDemoProfilePet,
+  kDemoWeeklyReport,
 ];
+
+/// 포인트로 받는 주간 리포트(#2022) — 쿠폰이 아니다. 기한이 없어 `validDays` 는
+/// 0 이고, 규칙은 [DemoWeeklyReportBook] 이 들고 있다.
+const DemoShopItem kDemoWeeklyReport = DemoShopItem(
+  id: DemoWeeklyReportBook.itemId,
+  title: '주간 리포트',
+  benefit: '지난주 식단·운동 리포트',
+  description: '지난주 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.',
+  cost: DemoWeeklyReportBook.cost,
+  validDays: 0,
+);
 
 /// MY 프로필 펫 이모지(#2021) — 쿠폰이 아니다. 규칙은 [DemoProfilePetBook] 이 들고
 /// 있다.

@@ -1339,6 +1339,51 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myProfilePetDone => '이름 옆에 펫을 달았어요';
 
   @override
+  String get myShopWeeklyReportTitle => '주간 리포트';
+
+  @override
+  String myShopWeeklyReportDescription(String range) {
+    return '$range 식단·운동 기록과 감지 기록으로 한 주를 돌아보는 리포트를 만들어요.';
+  }
+
+  @override
+  String get myWeeklyReportOwned => '지난주 리포트는 이미 받았어요';
+
+  @override
+  String myWeeklyReportExchangeConfirm(String range, String cost) {
+    return '$range 리포트를 $cost로 만들까요?';
+  }
+
+  @override
+  String get myWeeklyReportDone => '지난주 리포트를 만들었어요';
+
+  @override
+  String get myBenefitsWeeklyReports => '주간 리포트';
+
+  @override
+  String get myWeeklyReportCardTitle => '포인트로 받은 리포트';
+
+  @override
+  String get coachReportPdfSelfMadeNote =>
+      '담당 트레이너 없이 포인트로 받은 리포트라 트레이너 메시지가 없어요.';
+
+  @override
+  String get coachReportPdfSectionInsights => '감지 기록';
+
+  @override
+  String get coachReportPdfNoInsights => '이 주의 AI 코치 대화에서 감지된 통증·부정적 반응이 없어요.';
+
+  @override
+  String coachReportPdfInsightSummary(String label, int count) {
+    return '$label $count회';
+  }
+
+  @override
+  String coachReportPdfInsightMore(int count) {
+    return '외 $count건';
+  }
+
+  @override
   String myProfilePetLabel(String pet) {
     return '$pet 펫 이모지';
   }

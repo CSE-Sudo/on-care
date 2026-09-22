@@ -137,6 +137,23 @@ void main() {
     expect((await shopItems())['profile_pet']!.available, isTrue);
   });
 
+  test('주간 리포트는 담당이 없을 때만 서고 지난주를 한 번만 산다 (#2022)', () async {
+    final DioBenefitsRepository repo = DioBenefitsRepository(dio);
+    // 데모 회원은 담당이 있다 — 트레이너가 등록해 주므로 항목이 없다.
+    expect((await shopItems()).containsKey('weekly_report'), isFalse);
+
+    book.endTrainerLink();
+    expect((await shopItems())['weekly_report']!.available, isTrue);
+    await repo.exchange('weekly_report');
+
+    expect((await repo.fetchWeeklyReports()).weeks, hasLength(1));
+    expect(
+      (await shopItems())['weekly_report']!.blockReason,
+      ShopBlockReason.weekOwned,
+    );
+    await expectLater(repo.exchange('weekly_report'), throwsA(anything));
+  });
+
   test('교환하면 포인트가 빠지고 헬스장이 적힌 쿠폰이 생긴다', () async {
     final CouponExchange result = await DioBenefitsRepository(
       dio,

@@ -1,6 +1,7 @@
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
+import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
 
 /// 포인트 사용처와 내 혜택(쿠폰). (#1787)
 ///
@@ -34,4 +35,7 @@ abstract interface class BenefitsRepository {
 
   /// MY 프로필 이름 옆에 단 펫(#2021). 달고 있지 않거나 기간이 끝났으면 null.
   Future<ProfilePet?> fetchProfilePet();
+
+  /// 포인트로 받은 주간 리포트(#2022) — 산 주와 지금 살 수 있는 주.
+  Future<WeeklyReportPurchases> fetchWeeklyReports();
 }

@@ -1388,6 +1388,52 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myProfilePetDone => 'Your pet is next to your name';
 
   @override
+  String get myShopWeeklyReportTitle => 'Weekly report';
+
+  @override
+  String myShopWeeklyReportDescription(String range) {
+    return 'Look back on $range with a report built from your meals, workouts and AI Coach notes.';
+  }
+
+  @override
+  String get myWeeklyReportOwned => 'You already have last week\'s report';
+
+  @override
+  String myWeeklyReportExchangeConfirm(String range, String cost) {
+    return 'Make the report for $range for $cost?';
+  }
+
+  @override
+  String get myWeeklyReportDone => 'Last week\'s report is ready';
+
+  @override
+  String get myBenefitsWeeklyReports => 'Weekly reports';
+
+  @override
+  String get myWeeklyReportCardTitle => 'Report from points';
+
+  @override
+  String get coachReportPdfSelfMadeNote =>
+      'Made with points, without a trainer — so there\'s no trainer message.';
+
+  @override
+  String get coachReportPdfSectionInsights => 'AI Coach notes';
+
+  @override
+  String get coachReportPdfNoInsights =>
+      'No pain or negative feedback this week.';
+
+  @override
+  String coachReportPdfInsightSummary(String label, int count) {
+    return '$label ×$count';
+  }
+
+  @override
+  String coachReportPdfInsightMore(int count) {
+    return '+$count more';
+  }
+
+  @override
   String myProfilePetLabel(String pet) {
     return '$pet pet emoji';
   }

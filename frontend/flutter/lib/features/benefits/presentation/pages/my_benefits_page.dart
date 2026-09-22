@@ -7,6 +7,7 @@ import 'package:oncare/app/router/routes.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
 import 'package:oncare/features/benefits/presentation/controllers/benefits_providers.dart';
 import 'package:oncare/features/benefits/presentation/widgets/benefit_cards.dart';
+import 'package:oncare/features/benefits/presentation/widgets/purchased_report_card.dart';
 import 'package:oncare/features/benefits/presentation/widgets/streak_shield_card.dart';
 import 'package:oncare/features/exercise/domain/entities/streak_shield.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
@@ -28,6 +29,11 @@ class MyBenefitsPage extends ConsumerWidget {
     final AsyncValue<StreakShields> shields = ref.watch(
       myStreakShieldsProvider,
     );
+    // 포인트로 받은 주간 리포트(#2022). 받은 주가 있을 때만 구역을 세운다 — 담당이
+    // 있는 회원은 살 수 없는 항목이라, 빈 구역을 두면 없는 기능을 가리킨다.
+    final List<DateTime> reports =
+        ref.watch(myWeeklyReportsProvider).valueOrNull?.weeks ??
+        const <DateTime>[];
     return AppPage(
       key: const Key('myBenefitsPage'),
       bottomInset: MediaQuery.paddingOf(context).bottom,
@@ -97,6 +103,16 @@ class MyBenefitsPage extends ConsumerWidget {
             StreakShieldSummaryCard(shields: data),
           ],
         ),
+        if (reports.isNotEmpty) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s24),
+          AppSectionHeader(title: l.myBenefitsWeeklyReports),
+          const SizedBox(height: OnCareSpacing.s12),
+          for (int i = 0; i < reports.length; i++) ...<Widget>[
+            PurchasedReportCard(weekStart: reports[i]),
+            if (i < reports.length - 1)
+              const SizedBox(height: OnCareSpacing.cardGap),
+          ],
+        ],
       ],
     );
   }
