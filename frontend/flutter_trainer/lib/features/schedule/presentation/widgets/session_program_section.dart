@@ -34,7 +34,10 @@ class SessionProgramRow extends StatelessWidget {
         l.minutesShort(item.duration!),
     ];
     final String detail = parts.join(' · ');
+    // 운동마다 구획이 이어져 깔리므로 기본 채움보다 한 단계 옅게 둔다 —
+    // 기본 채움으로는 목록 전체가 무겁게 읽혔다(#2177).
     return AppTile(
+      tone: AppTileTone.brandSoft,
       child: Row(
         children: <Widget>[
           Container(

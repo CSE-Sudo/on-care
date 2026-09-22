@@ -81,6 +81,10 @@ enum AppTileTone {
   /// 옅은 브랜드 채움 — 기본값.
   brand,
 
+  /// [brand] 보다 한 단계 옅은 브랜드 채움. 같은 구획이 여러 개 이어져 목록이
+  /// 무겁게 읽히는 자리에 쓴다(#2177).
+  brandSoft,
+
   /// 옅은 회색 채움. 입력 칸이 놓인 구획에 쓴다 — 채움이 "여기에 적는다"는
   /// 신호가 된다.
   neutral,
@@ -107,6 +111,7 @@ class AppTile extends StatelessWidget {
     return Material(
       color: switch (tone) {
         AppTileTone.brand => context.oncare.brand.surface,
+        AppTileTone.brandSoft => context.oncare.brand.surfaceSoft,
         AppTileTone.neutral => OnCareColors.surfaceInput,
         AppTileTone.none => Colors.transparent,
       },
