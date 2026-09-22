@@ -10,8 +10,8 @@
 - 담당 없는 회원의 하루치 AI 추천(`client_request_id = 'auto-YYYY-MM-DD'`)은 그날
   하루만 걸려 있던 것이므로 `ended_on` = 다음 날.
 
-Revision ID: 0087_daily_routine_completion
-Revises: 0086_ai_chat_usages
+Revision ID: 0088_daily_routine_completion
+Revises: 0087_points_coupons_zero_cost
 """
 from __future__ import annotations
 
@@ -20,8 +20,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0087_daily_routine_completion"
-down_revision: str | Sequence[str] | None = "0086_ai_chat_usages"
+revision: str = "0088_daily_routine_completion"
+down_revision: str | Sequence[str] | None = "0087_points_coupons_zero_cost"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
