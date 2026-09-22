@@ -227,9 +227,11 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
               .copyWith(color: OnCareColors.textSecondary),
         ),
         const SizedBox(height: OnCareSpacing.s16),
-        // 종류·날짜·시간·추가 버튼을 한 줄에 둔다 — 넷 다 "언제·누구
-        // 자리를 열까"를 정하고 실행하는 같은 흐름이라, 하나만 다른
-        // 줄에 서면 무엇이 먼저인지 자리로 오해된다(#1090).
+        // 종류·날짜·시간·추가 버튼은 "언제·누구 자리를 열까"를 정하고 실행하는
+        // 같은 흐름이라 한 덩어리로 둔다(#1090). 넷을 한 줄에 세우던 때에는
+        // 560 창에서 칸마다 글자 폭이 모자라 `9월 ...`·`10:0...` 처럼 잘렸다
+        // (#2181). 두 줄로 나누어 종류·날짜 → 시간·열기 순서로 읽히게 한다 —
+        // 실행 버튼은 여전히 흐름의 끝(오른쪽 아래)이다.
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
@@ -262,7 +264,12 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                 onTap: _saving ? null : _pickDate,
               ),
             ),
-            const SizedBox(width: OnCareSpacing.s8),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: <Widget>[
             Expanded(
               child: _fieldColumn(
                 key: const ValueKey<String>('slot-time-range'),

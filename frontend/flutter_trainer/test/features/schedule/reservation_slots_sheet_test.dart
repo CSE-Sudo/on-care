@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -107,6 +108,39 @@ void main() {
         find.text('${today.month}월 ${today.day}일'),
         findsWidgets, // 안내 문구와 날짜 버튼 둘 다 같은 표기를 쓴다.
       );
+    });
+
+    // #2181 — 네 칸이 한 줄이던 때에는 `9월 ...`·`10:0...` 처럼 잘렸다.
+    testWidgets('유형·날짜·시간 값이 줄임표 없이 다 보인다 (#2181)', (tester) async {
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await openSheet(tester);
+
+      final today = todayKst();
+      for (final (String field, String value) in <(String, String)>[
+        ('slot-session-type', '1:1 PT'),
+        ('slot-date', '${today.month}월 ${today.day}일'),
+        ('slot-time-range', '10:00 – 11:00'),
+      ]) {
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.descendant(
+            of: find.descendant(
+              of: find.byKey(ValueKey<String>(field)),
+              matching: find.text(value),
+            ),
+            matching: find.byType(RichText),
+          ),
+        );
+        // 가장 긴 달(12월)·두 자리 날짜여도 들어갈 여유가 있어야 한다.
+        expect(paragraph.didExceedMaxLines, isFalse, reason: field);
+        expect(
+          paragraph.getMaxIntrinsicWidth(double.infinity),
+          lessThanOrEqualTo(paragraph.size.width),
+          reason: field,
+        );
+      }
     });
 
     testWidgets('날짜 버튼을 누르면 과거로는 못 가는 날짜 선택창이 뜬다 (#1090)', (tester) async {
