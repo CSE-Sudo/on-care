@@ -151,6 +151,8 @@ class DemoCouponBook {
       return _pets.exchange(option, clientRequestId: clientRequestId);
     }
     if (item.id == kDemoEmotePass.id) {
+      // 트레이너 채팅에만 쓰이므로 담당이 있어야 산다(#2142).
+      if (!_hasTrainer) return _error(409, '담당 트레이너가 있어야 쓸 수 있어요.');
       // 쿠폰이 아니라 24시간 이용권이 생긴다(#2020).
       final DemoCouponResult bought = _emotes.buy(clientRequestId: clientRequestId);
       if (bought.statusCode >= 400) return bought;
@@ -473,6 +475,8 @@ const DemoShopItem kDemoEmotePass = DemoShopItem(
   description: '산 때부터 24시간 동안 트레이너 채팅에서 이모티콘을 모두 쓸 수 있어요.',
   cost: DemoEmotePassBook.cost,
   validDays: 1,
+  // 트레이너 채팅에만 쓰인다 — 담당이 없으면 `no_trainer` 로 막힌다(#2142).
+  requiresTrainer: true,
 );
 
 /// 연속 기록 보호권(#1788) — 쿠폰이 아니다. 기한이 없어 `validDays` 는 0 이고,

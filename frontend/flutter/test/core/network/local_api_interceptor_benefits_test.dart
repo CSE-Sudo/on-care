@@ -104,7 +104,8 @@ void main() {
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresTrainer),
-      <bool>[true, false, false, false, false, false],
+      // 채팅 이모티콘 이용권은 트레이너 채팅에만 쓰인다(#2142).
+      <bool>[true, false, false, false, true, false],
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresGym),
@@ -115,6 +116,7 @@ void main() {
     book.endTrainerLink();
     Map<String, ShopItem> items = await shopItems();
     expect(items['pt_renewal']!.blockReason, ShopBlockReason.noTrainer);
+    expect(items['emote_pass_24h']!.blockReason, ShopBlockReason.noTrainer);
     expect(items['locker_month']!.available, isTrue);
 
     book.endGymLink();
