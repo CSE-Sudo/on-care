@@ -12,6 +12,7 @@ import json
 import re
 import uuid
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
@@ -4308,6 +4309,113 @@ def build_member_coach(db: Session, member_id: str) -> MemberCoachOut | None:
             )
         ),
     )
+
+
+@dataclass(frozen=True)
+class RoutineDayItem:
+    """그날 걸려 있던 추천 개인운동 하나와 그날 했는지. (#2161)"""
+
+    routine_id: str
+    name: str
+    #: 유산소|근력|스트레칭|기타 — 배정의 한글 유형 그대로다.
+    type: str
+    minutes: int
+    #: 목록 순서. 트레이너가 정한 차례이자 "다음 운동" 을 셀 때의 기준이다.
+    sort_order: int
+    #: ai|trainer
+    source: str
+    done: bool
+    #: 그날 완료로 남긴 분. 하지 않았으면 None.
+    completed_minutes: int | None
+
+
+@dataclass(frozen=True)
+class RoutineDay:
+    """하루치 추천 개인운동 — 그날 목록(정렬순)과 그날 완료. (#2161)"""
+
+    date: date
+    routines: list[RoutineDayItem]
+
+
+def member_routine_days(
+    db: Session, member_id: str, start: date, end: date
+) -> list[RoutineDay]:
+    """[start]~[end](양끝 포함)의 날마다 걸려 있던 추천 개인운동과 그날 완료. (#2161)
+
+    추천 개인운동은 매일 새로 체크하는 목록이라, 기간을 되짚는 쪽(운동 AI 맞춤
+    조언, #2162)은 날마다 "무엇이 걸려 있었고 무엇을 했나" 를 읽어야 한다 — 완료
+    기록만 세면 안 한 날이 보이지 않는다.
+
+    회원 화면(`build_member_routines`)과 같은 규칙이다: 지금의 담당 기준(담당이
+    없으면 AI 자동 추천), 승인된 것만, 그날 걸려 있던 것만. 목록이 빈 날도 한
+    칸을 차지한다 — 날짜가 빠지면 부르는 쪽이 "안 걸린 날" 과 "없는 날" 을 가를
+    수 없다. 아직 오지 않은 날은 담지 않는다. 하루치 AI 추천을 새로 만들지 않는다
+    — 읽기만 한다.
+
+    쿼리는 기간 길이와 무관하게 둘이다(배정, 완료).
+    """
+    end = min(end, clock.today())
+    if end < start:
+        return []
+    trainer_id = get_member_trainer_id(db, member_id)
+    start_iso, end_iso = start.isoformat(), end.isoformat()
+    rows = db.scalars(
+        select(TrainerRoutine)
+        .where(
+            TrainerRoutine.trainer_id == trainer_id,
+            TrainerRoutine.member_id == member_id,
+            TrainerRoutine.status == ROUTINE_APPROVED,
+            # 기간과 겹치는 배정만 — 기간 안 어느 날이든 걸려 있었던 것.
+            TrainerRoutine.active_from <= end_iso,
+            or_(
+                TrainerRoutine.ended_on.is_(None),
+                TrainerRoutine.ended_on > start_iso,
+            ),
+        )
+        .order_by(TrainerRoutine.sort_order, TrainerRoutine.created_at)
+    ).all()
+    done: dict[tuple[str, date], ExerciseSession] = {}
+    if rows:
+        for session in db.scalars(
+            select(ExerciseSession).where(
+                ExerciseSession.assigned_routine_id.in_([r.id for r in rows]),
+                ExerciseSession.week_start
+                >= exercise_service.monday_of_str(start_iso),
+                ExerciseSession.week_start <= end_iso,
+            )
+        ).all():
+            day = exercise_activity.activity_date_of(session)
+            if day is not None and start <= day <= end:
+                done[(session.assigned_routine_id, day)] = session
+
+    days: list[RoutineDay] = []
+    day = start
+    while day <= end:
+        iso = day.isoformat()
+        items: list[RoutineDayItem] = []
+        for row in rows:
+            if row.active_from > iso or (
+                row.ended_on is not None and row.ended_on <= iso
+            ):
+                continue
+            completion = done.get((row.id, day))
+            items.append(
+                RoutineDayItem(
+                    routine_id=row.id,
+                    name=row.name,
+                    type=row.type,
+                    minutes=row.minutes,
+                    sort_order=row.sort_order,
+                    source=row.source,
+                    done=completion is not None,
+                    completed_minutes=(
+                        completion.minutes if completion is not None else None
+                    ),
+                )
+            )
+        days.append(RoutineDay(date=day, routines=items))
+        day += timedelta(days=1)
+    return days
 
 
 class RoutineDayInFuture(Exception):

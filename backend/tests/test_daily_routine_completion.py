@@ -373,3 +373,68 @@ def test_a_removed_ai_recommendation_does_not_come_back_the_same_day(
     again = _mine(client, member)
     assert removed_id not in again
     assert removed["name"] not in {row["name"] for row in again.values()}
+
+
+# ─────────────────────────────── 기간 되짚기(운동 AI 맞춤 조언의 재료) ─────
+
+
+def _days(start, end):
+    from app.services import trainer_service
+
+    db = SessionLocal()
+    try:
+        return trainer_service.member_routine_days(db, MEMBER_ID, start, end)
+    finally:
+        db.close()
+
+
+def test_routine_days_list_each_day_with_what_was_on_it(
+    client, assigned, today, monkeypatch
+):
+    """날마다 걸려 있던 목록과 그날 했는지. 기간 되짚기(#2162)가 읽는 모양이다."""
+    _, routine = assigned
+    member = _login(client, "jisu@oncare.com")
+    _complete(client, member, routine["id"], minutes=18)
+    _move_to(monkeypatch, today + timedelta(days=2))
+
+    days = _days(
+        today.date() - timedelta(days=1), today.date() + timedelta(days=5)
+    )
+
+    # 아직 오지 않은 날은 담지 않는다 — 오늘(이틀 뒤)까지 네 칸이다.
+    assert [d.date for d in days] == [
+        today.date() + timedelta(days=offset) for offset in range(-1, 3)
+    ]
+    by_day = {
+        d.date: {item.routine_id: item for item in d.routines} for d in days
+    }
+    # 배정 전날에는 걸려 있지 않았다.
+    assert routine["id"] not in by_day[today.date() - timedelta(days=1)]
+    # 배정한 날은 했고, 그 뒤 이틀은 걸려 있었지만 하지 않았다.
+    done_day = by_day[today.date()][routine["id"]]
+    assert done_day.done is True
+    assert done_day.completed_minutes == 18
+    for offset in (1, 2):
+        item = by_day[today.date() + timedelta(days=offset)][routine["id"]]
+        assert item.done is False
+        assert item.completed_minutes is None
+    assert done_day.type == "유산소"
+    assert done_day.name == routine["name"]
+
+
+def test_routine_days_stop_listing_from_the_day_it_was_withdrawn(
+    client, assigned, today, monkeypatch
+):
+    trainer, routine = assigned
+    _move_to(monkeypatch, today + timedelta(days=1))
+    client.delete(
+        f"/v1/trainer/clients/{MEMBER_ID}/routines/{routine['id']}",
+        headers=_h(trainer),
+    )
+
+    days = _days(today.date(), today.date() + timedelta(days=1))
+
+    listed = [
+        routine["id"] in {item.routine_id for item in d.routines} for d in days
+    ]
+    assert listed == [True, False]
