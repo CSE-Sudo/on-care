@@ -574,9 +574,12 @@ void main() {
     Finder circleCells() =>
         painted(OnCareBrand.trainer.primary, BoxShape.circle);
 
-    /// 사이 날 띠(옅은 브랜드). 시작·종료일 칸의 안쪽 절반 조각도 포함한다.
-    Finder bandCells() =>
-        painted(OnCareBrand.trainer.surface, BoxShape.rectangle);
+    /// 사이 날 띠(브랜드 강조 채움, #2183). 시작·종료일 칸의 안쪽 절반 조각도
+    /// 포함한다.
+    Finder bandCells() => painted(
+      OnCareColors.onWhite(OnCareBrand.trainer.primary, OnCareAlpha.medium),
+      BoxShape.rectangle,
+    );
 
     /// [day] 숫자를 그린 글자.
     Text dayText(WidgetTester tester, String day) => tester.widget<Text>(
