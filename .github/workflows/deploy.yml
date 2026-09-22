@@ -45,6 +45,9 @@ jobs:
       - name: Download drift WASM (sqlite3.wasm + drift_worker.js)
         working-directory: frontend/flutter
         run: bash tool/fetch_drift_wasm.sh
+        env:
+          # 릴리스 주소가 504 일 때 API 로 다시 받는다 — 인증해야 한도에 걸리지 않는다(#2135).
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Build Flutter web
         working-directory: frontend/flutter
@@ -63,6 +66,9 @@ jobs:
       - name: Download drift WASM (trainer)
         working-directory: frontend/flutter_trainer
         run: bash tool/fetch_drift_wasm.sh
+        env:
+          # 릴리스 주소가 504 일 때 API 로 다시 받는다 — 인증해야 한도에 걸리지 않는다(#2135).
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Build Flutter web (trainer)
         working-directory: frontend/flutter_trainer
