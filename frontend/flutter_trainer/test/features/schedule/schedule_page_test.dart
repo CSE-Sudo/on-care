@@ -858,10 +858,6 @@ void main() {
         find.byKey(const ValueKey<String>('session-delete-chip')),
         findsOneWidget,
       );
-      expect(
-        find.byKey(const ValueKey<String>('session-chat-chip')),
-        findsOneWidget,
-      );
     });
 
     // 상담은 운동 프로그램을 짜는 자리가 아니라 무슨 이야기를 나눴는지 적는
@@ -1371,10 +1367,6 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey<String>('session-chat-chip')),
-        findsOneWidget,
-      );
-      expect(
         find.byKey(const ValueKey<String>('session-complete-chip')),
         findsNothing,
       );
@@ -1507,43 +1499,6 @@ void main() {
       await settle(tester);
       expect(find.text('김민수'), findsWidgets);
       expect(find.text('오늘'), findsNothing);
-    });
-
-    testWidgets('채팅 chip jumps to the standalone message thread', (
-      tester,
-    ) async {
-      await openSchedule(tester);
-
-      await openSession(tester, '박성호');
-
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-chat-chip')),
-      );
-      await tester.tap(find.byKey(const ValueKey<String>('session-chat-chip')));
-      await settle(tester);
-
-      // Client detail opened on the chat section — the header's message
-      // button reads as selected, standing in for the tab it replaced.
-      expect(
-        find.byKey(const ValueKey<String>('messages-thread-seed-client-3')),
-        findsOneWidget,
-      );
-      // The thread auto-scrolls to the newest message; drag back up so
-      // the lazily-built banner at the top of the thread exists.
-      await tester.drag(
-        find
-            .descendant(
-              of: find.byKey(
-                const ValueKey<String>('messages-thread-seed-client-3'),
-              ),
-              matching: find.byType(ListView),
-            )
-            .first,
-        const Offset(0, 600),
-      );
-      await tester.pump();
-      expect(find.textContaining('AI가 박성호님의'), findsOneWidget);
     });
 
     testWidgets('editing a session whose client is not in the roster keeps '

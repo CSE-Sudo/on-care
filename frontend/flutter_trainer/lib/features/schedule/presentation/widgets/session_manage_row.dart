@@ -11,10 +11,12 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 지금은 두 가지로 정리한다.
 ///
 ///  * **갈래로 묶는다.** "이 약속이 어떻게 끝났나"(완료·취소·노쇼) / "일정을
-///    손본다"(수정·삭제) / "고객에게 간다"(채팅) 를 구분선으로 가른다.
-///  * **자주 쓰는 것만 글씨로 남긴다.** 매 세션마다 누르는 `완료`·`채팅` 은
-///    글씨를 지키고, 나머지는 아이콘으로 줄인다. 아이콘만으로는 무엇인지 말하지
+///    손본다"(수정·삭제) 를 구분선으로 가른다.
+///  * **자주 쓰는 것만 글씨로 남긴다.** 매 세션마다 누르는 `완료` 는 글씨를
+///    지키고, 나머지는 아이콘으로 줄인다. 아이콘만으로는 무엇인지 말하지
 ///    못하므로 툴팁(= 시맨틱 라벨)을 반드시 함께 단다.
+///
+/// `채팅` 은 이 줄에서 뺐다(#2179) — 회원과의 대화는 메시지 화면이 맡는다.
 ///
 /// `삭제` 는 마지막 자리에 채우지 않은 빨간 아이콘으로 둔다. 되돌릴 수 없는
 /// 동작을 다른 것들과 같은 무게로 세우지 않는다.
@@ -29,7 +31,6 @@ class SessionManageRow extends StatelessWidget {
     this.showEditNote = true,
     this.showEditProgram = true,
     required this.onDelete,
-    required this.onChat,
     required this.onComplete,
     this.onCancel,
     this.onNoShow,
@@ -65,7 +66,6 @@ class SessionManageRow extends StatelessWidget {
   final bool showEditProgram;
 
   final VoidCallback onDelete;
-  final VoidCallback onChat;
   final VoidCallback? onComplete;
 
   /// 예정 세션만 — 진행되지 않은 약속을 `취소` 기록으로 남긴다(#871).
@@ -135,7 +135,7 @@ class SessionManageRow extends StatelessWidget {
         ),
     ];
 
-    // 갈래를 띄울 거라면 끝까지 띄운다 — `채팅`·`삭제` 는 오른쪽 끝에 붙여
+    // 갈래를 띄울 거라면 끝까지 띄운다 — `삭제` 는 오른쪽 끝에 붙여
     // 세션을 손보는 동작들과 확실히 갈라 놓는다(#1012).
     return Row(
       children: <Widget>[
@@ -152,18 +152,8 @@ class SessionManageRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: OnCareSpacing.s8),
-        AppButton(
-          key: const ValueKey<String>('session-chat-chip'),
-          leadingIcon: Icons.chat_bubble_outline_rounded,
-          label: l.clientChat,
-          variant: AppButtonVariant.text,
-          size: OnCareButtonSize.small,
-          onPressed: onChat,
-        ),
-        const SizedBox(width: OnCareSpacing.s4),
         // 되돌릴 수 없는 동작이라 마지막 자리에, 채우지 않은 빨간 아이콘으로
-        // 둔다. 누르면 확인창이 먼저 뜬다. 글씨를 달면 이 줄의 글씨 버튼이
-        // 셋이 되어(`완료`·`채팅`·`삭제`) 다시 "버튼이 많은 줄" 이 된다.
+        // 둔다. 누르면 확인창이 먼저 뜬다.
         AppIconButton(
           key: const ValueKey<String>('session-delete-chip'),
           icon: Icons.delete_outline_rounded,

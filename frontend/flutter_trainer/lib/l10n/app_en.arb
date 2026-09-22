@@ -548,7 +548,6 @@
   "clientDormant": "Dormant",
   "clientStatusChangeFailed": "Couldn't change the status. Please try again.",
   "clientClosePanel": "Close panel",
-  "clientChat": "Chat",
   "chatTooLong": "Message is too long (2000 characters max)",
   "chatSendFailed": "Couldn't send the message. Please try again",
   "chatPdfOpenFailed": "Couldn't open the PDF. Please try again",

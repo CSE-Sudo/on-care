@@ -347,7 +347,6 @@
   "clientDormant": "휴면",
   "clientStatusChangeFailed": "상태를 바꾸지 못했어요. 잠시 후 다시 시도해 주세요",
   "clientClosePanel": "패널 닫기",
-  "clientChat": "채팅",
   "chatTooLong": "메시지가 너무 길어요 (최대 2000자)",
   "chatSendFailed": "메시지 전송에 실패했어요. 다시 시도해 주세요",
   "chatLoadFailed": "대화를 불러오지 못했어요",

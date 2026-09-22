@@ -1796,12 +1796,6 @@ abstract class AppLocalizations {
   /// **'Close panel'**
   String get clientClosePanel;
 
-  /// No description provided for @clientChat.
-  ///
-  /// In en, this message translates to:
-  /// **'Chat'**
-  String get clientChat;
-
   /// No description provided for @chatTooLong.
   ///
   /// In en, this message translates to:

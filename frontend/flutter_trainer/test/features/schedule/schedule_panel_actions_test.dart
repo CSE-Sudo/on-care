@@ -50,7 +50,7 @@ void main() {
     await openSchedule(tester);
     await openSession(tester, '박성호');
 
-    // 매 세션마다 누르는 것만 글씨를 지킨다 — 완료와 채팅.
+    // 매 세션마다 누르는 것만 글씨를 지킨다.
     final labels = tester
         .widgetList<Text>(inRow(find.byType(Text)))
         .map((t) => t.data)
@@ -92,11 +92,11 @@ void main() {
     final Rect delete = tester.getRect(
       find.byKey(const ValueKey<String>('session-delete-chip')),
     );
-    final Rect chat = tester.getRect(
-      find.byKey(const ValueKey<String>('session-chat-chip')),
+    final Rect note = tester.getRect(
+      find.byKey(const ValueKey<String>('session-edit-note-chip')),
     );
     // 되돌릴 수 없는 동작을 자주 쓰는 것 앞에 두지 않는다.
-    expect(delete.left, greaterThan(chat.left));
+    expect(delete.left, greaterThan(note.left));
 
     final Material fill = tester.widget<Material>(
       find

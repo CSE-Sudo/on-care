@@ -927,9 +927,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientClosePanel => '패널 닫기';
 
   @override
-  String get clientChat => '채팅';
-
-  @override
   String get chatTooLong => '메시지가 너무 길어요 (최대 2000자)';
 
   @override

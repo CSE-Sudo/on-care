@@ -960,9 +960,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clientClosePanel => 'Close panel';
 
   @override
-  String get clientChat => 'Chat';
-
-  @override
   String get chatTooLong => 'Message is too long (2000 characters max)';
 
   @override
