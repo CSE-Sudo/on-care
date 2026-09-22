@@ -930,6 +930,69 @@
   "myCouponStatus": "상태",
   "myCouponStaffNote": "트레이너·헬스장 직원이 확인한 뒤 눌러 주세요",
   "myCouponGymStaffNote": "헬스장 직원이 확인한 뒤 눌러 주세요",
+  "myCouponNoExpiry": "기한 없음",
+  "myDietTrayTitle": "분석용 식판 무료 제공",
+  "myDietTrayFree": "무료",
+  "myDietTrayDescription": "최근 {window}일 중 {days}일 식단 사진을 남기면 분석에 맞춘 규격 식판을 드려요. 같은 식판에 담아 찍으면 양을 더 정확하게 분석해요.",
+  "@myDietTrayDescription": {
+    "placeholders": {
+      "window": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayProgressLabel": "최근 {window}일 사진 기록",
+  "@myDietTrayProgressLabel": {
+    "placeholders": {
+      "window": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayProgress": "{days} / {required}일",
+  "@myDietTrayProgress": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayDaysLeft": "{days}일 더 찍으면 받을 수 있어요",
+  "@myDietTrayDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayNeedTrainer": "담당 트레이너를 연결하면 받을 수 있어요",
+  "myDietTrayClaimable": "조건을 채웠어요! 담당 트레이너의 헬스장에서 받아요",
+  "myDietTrayIssued": "{gym}에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 채팅으로 물어보세요",
+  "@myDietTrayIssued": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
+  "myDietTrayReceived": "식판을 받았어요. 식판에 담아 찍어 보세요",
+  "myDietTrayClaim": "받기",
+  "myDietTrayViewCoupon": "쿠폰 보기",
+  "myDietTrayClaimConfirmTitle": "식판 수령 쿠폰을 받을까요?",
+  "myDietTrayClaimConfirmMessage": "담당 트레이너의 헬스장에서 받아요. 기한은 없고, 식판은 한 사람당 한 번 받을 수 있어요.",
+  "myDietTrayClaimDone": "식판 수령 쿠폰을 받았어요",
+  "myDietTrayClaimFailed": "식판 수령 쿠폰을 받지 못했어요",
+  "myDietTrayNotice": "1인 1회 · 사진으로 기록한 날만 세요(손으로 적은 끼니, 보호권으로 이은 날 제외) · 수령 기한 없음 · 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 확인해 주세요 · 재고와 운영 사정에 따라 조건이 바뀔 수 있어요",
+  "myDietTrayCouponBenefit": "분석용 규격 식판",
+  "myDietTrayStaffNote": "헬스장 직원에게 식판을 받은 뒤 눌러 주세요",
+  "myDietTrayIssuedOn": "받은 날",
+  "myDietTrayExpireNotice": "기한 없이 쓸 수 있어요. 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 채팅으로 물어보세요.",
   "myCouponStaffConfirmTitle": "쿠폰을 사용 완료할까요?",
   "myCouponStaffConfirmMessage": "직원 확인용 · 사용 후 되돌릴 수 없어요",
   "myCouponUsedAt": "사용 시각",

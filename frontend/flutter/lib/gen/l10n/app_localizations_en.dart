@@ -1697,6 +1697,87 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myCouponGymStaffNote => 'Tap only after gym staff has checked it';
 
   @override
+  String get myCouponNoExpiry => 'No expiry';
+
+  @override
+  String get myDietTrayTitle => 'Free analysis tray';
+
+  @override
+  String get myDietTrayFree => 'Free';
+
+  @override
+  String myDietTrayDescription(int window, int days) {
+    return 'Log meal photos on $days of the last $window days and we\'ll give you a standard tray made for analysis. Meals shot on the same tray are measured more accurately.';
+  }
+
+  @override
+  String myDietTrayProgressLabel(int window) {
+    return 'Photo logs, last $window days';
+  }
+
+  @override
+  String myDietTrayProgress(int days, int required) {
+    return '$days / $required days';
+  }
+
+  @override
+  String myDietTrayDaysLeft(int days) {
+    return '$days more days of photos to go';
+  }
+
+  @override
+  String get myDietTrayNeedTrainer => 'Connect a trainer to receive it';
+
+  @override
+  String get myDietTrayClaimable =>
+      'You\'re eligible! Pick it up at your trainer\'s gym';
+
+  @override
+  String myDietTrayIssued(String gym) {
+    return 'Pick it up at $gym. Before you go, ask your trainer in chat whether it\'s ready';
+  }
+
+  @override
+  String get myDietTrayReceived =>
+      'You\'ve received your tray. Try shooting meals on it';
+
+  @override
+  String get myDietTrayClaim => 'Claim';
+
+  @override
+  String get myDietTrayViewCoupon => 'View coupon';
+
+  @override
+  String get myDietTrayClaimConfirmTitle => 'Get your tray pickup coupon?';
+
+  @override
+  String get myDietTrayClaimConfirmMessage =>
+      'Pick it up at your trainer\'s gym. There\'s no deadline, and it\'s one tray per member.';
+
+  @override
+  String get myDietTrayClaimDone => 'Tray pickup coupon added';
+
+  @override
+  String get myDietTrayClaimFailed => 'Couldn\'t get the tray pickup coupon';
+
+  @override
+  String get myDietTrayNotice =>
+      'One per member · Only days with meal photos count (typed meals and shield-protected days don\'t) · No pickup deadline · Check with your trainer that the tray is ready before visiting the gym · Terms may change depending on stock and operations';
+
+  @override
+  String get myDietTrayCouponBenefit => 'Standard analysis tray';
+
+  @override
+  String get myDietTrayStaffNote => 'Tap after gym staff hands you the tray';
+
+  @override
+  String get myDietTrayIssuedOn => 'Received on';
+
+  @override
+  String get myDietTrayExpireNotice =>
+      'No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.';
+
+  @override
   String get myCouponStaffConfirmTitle => 'Mark this coupon as used?';
 
   @override

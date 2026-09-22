@@ -93,6 +93,9 @@ class AppIcons {
   static const IconData ptRenewal = Symbols.card_membership_rounded;
   static const IconData locker = Symbols.checkroom_rounded;
 
+  /// 분석용 식판 — 사진 기록 달성 보상 카드·수령 쿠폰(#2150).
+  static const IconData dietTray = Symbols.bento_rounded;
+
   /// 연속 기록 보호권 — 사용처 카드·내 혜택(#1788).
   static const IconData streakShield = Symbols.shield_rounded;
 

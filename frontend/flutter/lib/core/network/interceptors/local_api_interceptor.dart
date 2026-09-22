@@ -148,6 +148,9 @@ class LocalApiInterceptor extends Interceptor {
     'GET /me/points/history': _pointsHistory,
     'POST /me/points/exchange': _pointsExchange,
     'GET /me/coupons': _meCoupons,
+    // 분석용 식판 — 사진 기록일 달성 보상, 쿠폰은 위 coupons 에 선다(#2150).
+    'GET /me/diet-tray': _dietTray,
+    'POST /me/diet-tray/claim': _dietTrayClaim,
     // 연속 기록 보호권 — 교환은 위 exchange 가 받는다(#1788).
     'GET /me/streak-shields': _streakShields,
     'POST /me/streak-shields/use': _streakShieldUse,
@@ -2833,6 +2836,40 @@ class LocalApiInterceptor extends Interceptor {
   /// `GET /me/weekly-reports`(#2022). 사용처 교환과 같은 원장을 본다.
   Future<Response<Object?>> _weeklyReports(RequestOptions options) async =>
       _ok(options, _coupons.reports.listJson());
+
+  /// `GET /me/diet-tray`(#2150). 사진 기록일은 drift 에서 센다.
+  Future<Response<Object?>> _dietTray(RequestOptions options) async => _ok(
+    options,
+    _coupons.dietTrayJson(photoDays: await _dietTrayPhotoDays()),
+  );
+
+  Future<Response<Object?>> _dietTrayClaim(RequestOptions options) async {
+    final body = _jsonBody(options);
+    return _couponResponse(
+      options,
+      _coupons.claimDietTray(
+        photoDays: await _dietTrayPhotoDays(),
+        clientRequestId: body['client_request_id'] as String?,
+      ),
+    );
+  }
+
+  /// 식판 구간(최근 28일, 오늘 포함) 안에서 식단 사진을 남긴 날 수.
+  ///
+  /// 서버는 사진 분석으로 저장한 끼니(`engine`)를 센다. 데모 행에는 엔진이 없어서
+  /// 사진이 붙은 끼니(시드 에셋이나 방금 올린 원본)로 센다 — 손으로 적은 끼니는
+  /// 둘 다 비어 있다.
+  Future<int> _dietTrayPhotoDays() async {
+    final String from = _dateString(_coupons.dietTrayWindowFrom());
+    final String to = _dateString(_coupons.dietTrayWindowTo());
+    return <String>{
+      for (final row in await _db.select(_db.dietEntries).get())
+        if ((row.photoAsset.isNotEmpty || row.photoBytes != null) &&
+            row.date.compareTo(from) >= 0 &&
+            row.date.compareTo(to) <= 0)
+          row.date,
+    }.length;
+  }
 
   Future<Response<Object?>> _couponUse(RequestOptions options) async {
     // `/me/coupons/{id}/use` — 끝에서 두 번째 조각이 쿠폰 id 다.

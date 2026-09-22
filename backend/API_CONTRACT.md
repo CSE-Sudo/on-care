@@ -236,7 +236,8 @@ available, blocked_reason, shortfall, active_option, active_until, remaining_sec
 - **AI 코치 대화는 하루 한 줄로 묶는다**(#2145) — `count` 에 대화 수, `delta` 에 합계. 한 통마다 한 줄이면 내역이 채팅 기록처럼 길어진다.
 
 `coupon`: `{ id, item, title, benefit, cost, status, trainer_name, gym_name, issued_at, issued_on,
-expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당
+expires_at, expires_on, days_left, no_expiry, used_at?, cancelled_at? }`. `no_expiry` 가 참이면 기한 없는
+쿠폰(분석용 식판, #2150)이고 `expires_on`·`days_left` 는 뜻이 없다(`days_left` 0). `trainer_name` 은 PT 재등록 쿠폰을 교환할 때의 담당
 트레이너, `gym_name` 은 교환할 때의 헬스장 사본이다(PT 재등록은 코치 요약의 헬스장, 락커는 회원 헬스장 — 쿠폰 화면
 표시용).
 
@@ -261,6 +262,32 @@ expires_at, expires_on, days_left, used_at?, cancelled_at? }`. `trainer_name` �
   쿠폰은 그대로다. 기한이 지난 쿠폰은 두 해제 모두 돌려주지 않고 만료로 내리며, 다시 불러도 두 번 돌려주지 않는다.
 - **알림** 연결 해제로 인한 취소(`재등록 쿠폰이 취소됐어요`·`락커 쿠폰이 취소됐어요`)·만료 임박 알림의 `category` 는
   `benefits`, `action` 은 `{ label: "내 혜택 보기", target: "my_benefits" }`. 수신 설정 스위치는 없다.
+
+### 분석용 식판 (#2150)
+
+| Method | Path | 권한 | 응답 |
+|---|---|---|---|
+| GET | `/me/diet-tray` | 회원(데모 폴백) | `{ status, photo_days, required_days, window_days, window_from, window_to, has_trainer, coupon? }` |
+| POST | `/me/diet-tray/claim` | 회원 | 입력 `{ client_request_id? }` → **201** 같은 모양(받은 뒤) |
+
+식단 사진 분석에 맞춘 **규격 식판**을 사진 기록을 꾸준히 남긴 회원에게 무료로 준다. 포인트 교환이 아니라 달성
+보상이다 — 사용처 목록(`/me/points/shop`)에 없고, `POST /me/points/exchange` 에 `diet_tray` 를 주면 404 다.
+
+- **조건** 최근 `window_days`(28)일(KST, 오늘 포함 — `window_from`~`window_to`) 중 식단 사진을 남긴 날(`photo_days`)이
+  `required_days`(20)일 이상이고 활성 담당이 있다. 사진 분석으로 저장한 끼니(`diet_entries.engine` 이 빈 값이 아님)만
+  세고, 하루 여러 끼도 하루다. 손으로 적은 끼니와 보호권으로 이은 날은 세지 않는다.
+- **`status`** `progress`(조건을 채우는 중이거나 담당 없음) · `claimable`(지금 받을 수 있음) · `issued`(수령 쿠폰을
+  받았고 아직 쓰지 않음) · `received`(식판을 받음). `coupon` 은 `issued`·`received` 일 때의 쿠폰, 그 밖에는 null.
+- **받기** 조건을 서버가 다시 확인하고 `coupon`(item `diet_tray`, `cost` 0, **기한 없음** — `no_expiry: true`)을
+  만든다. 담당 트레이너와 그 헬스장이 `trainer_name`·`gym_name` 에 남고, 그 헬스장에서 받는다. 식판이 헬스장에 언제
+  닿을지는 우리 사정이라 기한을 두지 않는다 — 회원은 가기 전에 담당 트레이너에게 채팅으로 준비됐는지 묻는다(트레이너
+  웹에 알림이 없어 "준비 완료" 를 알릴 길이 아직 없다). 만료 임박 알림도 없다. 쿠폰 목록·사용 처리는 위 쿠폰 절과 같다(직원 확인 뒤
+  회원 휴대폰에서 `사용 완료`). 포인트 내역에는 남지 않는다. 담당 없음·사진 기록일 부족·이미 받음·받지 않은 식판 쿠폰
+  보유는 409, 같은 `client_request_id` 재전송은 새로 만들지 않는다.
+- **1인 1회** `used` 식판 쿠폰이 있으면 다시 받지 않는다. 담당 해제로 취소된 쿠폰은 식판을 받은 것이 아니라, 새 담당이
+  생기고 조건을 채우고 있으면 다시 받는다.
+- **담당 해제** PT 재등록 쿠폰과 같은 경로에서 받지 않은 식판 쿠폰을 `cancelled` 로 바꾸고 `식판 수령 쿠폰이
+  취소됐어요` 알림(`benefits`)을 만든다. 0P 라 돌려줄 포인트는 없다.
 
 ### 연속 기록 보호권 (#1788)
 

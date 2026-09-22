@@ -1196,6 +1196,69 @@
   "myCouponStatus": "Status",
   "myCouponStaffNote": "Tap only after your trainer or gym staff has checked it",
   "myCouponGymStaffNote": "Tap only after gym staff has checked it",
+  "myCouponNoExpiry": "No expiry",
+  "myDietTrayTitle": "Free analysis tray",
+  "myDietTrayFree": "Free",
+  "myDietTrayDescription": "Log meal photos on {days} of the last {window} days and we'll give you a standard tray made for analysis. Meals shot on the same tray are measured more accurately.",
+  "@myDietTrayDescription": {
+    "placeholders": {
+      "window": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayProgressLabel": "Photo logs, last {window} days",
+  "@myDietTrayProgressLabel": {
+    "placeholders": {
+      "window": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayProgress": "{days} / {required} days",
+  "@myDietTrayProgress": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayDaysLeft": "{days} more days of photos to go",
+  "@myDietTrayDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayNeedTrainer": "Connect a trainer to receive it",
+  "myDietTrayClaimable": "You're eligible! Pick it up at your trainer's gym",
+  "myDietTrayIssued": "Pick it up at {gym}. Before you go, ask your trainer in chat whether it's ready",
+  "@myDietTrayIssued": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
+  "myDietTrayReceived": "You've received your tray. Try shooting meals on it",
+  "myDietTrayClaim": "Claim",
+  "myDietTrayViewCoupon": "View coupon",
+  "myDietTrayClaimConfirmTitle": "Get your tray pickup coupon?",
+  "myDietTrayClaimConfirmMessage": "Pick it up at your trainer's gym. There's no deadline, and it's one tray per member.",
+  "myDietTrayClaimDone": "Tray pickup coupon added",
+  "myDietTrayClaimFailed": "Couldn't get the tray pickup coupon",
+  "myDietTrayNotice": "One per member · Only days with meal photos count (typed meals and shield-protected days don't) · No pickup deadline · Check with your trainer that the tray is ready before visiting the gym · Terms may change depending on stock and operations",
+  "myDietTrayCouponBenefit": "Standard analysis tray",
+  "myDietTrayStaffNote": "Tap after gym staff hands you the tray",
+  "myDietTrayIssuedOn": "Received on",
+  "myDietTrayExpireNotice": "No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.",
   "myCouponStaffConfirmTitle": "Mark this coupon as used?",
   "myCouponStaffConfirmMessage": "For staff · This can't be undone once used",
   "myCouponUsedAt": "Used at",

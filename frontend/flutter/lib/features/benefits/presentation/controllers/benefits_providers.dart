@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/features/benefits/data/repositories/dio_benefits_repository.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/diet_tray.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
@@ -28,6 +29,12 @@ final pointsShopProvider = FutureProvider.autoDispose<PointsShop>(
 final myCouponsProvider = FutureProvider.autoDispose<List<Coupon>>(
   (ref) => ref.watch(benefitsRepositoryProvider).fetchCoupons(),
   name: 'myCoupons',
+);
+
+/// 분석용 식판(#2150). 포인트 화면이 연 동안 살아 있고, 받기·쿠폰 사용 뒤 다시 읽는다.
+final dietTrayProvider = FutureProvider.autoDispose<DietTray>(
+  (ref) => ref.watch(benefitsRepositoryProvider).fetchDietTray(),
+  name: 'dietTray',
 );
 
 /// MY 프로필 이름 옆에 단 펫(#2021). MY 탭이 들고 있는 동안 살아 있고, 사용처에서

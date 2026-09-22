@@ -9,7 +9,12 @@
   사용 가능한 쿠폰은 회원당 한 장이고, 교환은 KST 달력 한 달에 한 번이다. 담당
   해제·헬스장 해제로 취소돼 포인트를 돌려받은 쿠폰은 세지 않는다.
 
-두 쿠폰 모두 헬스장에서 회원이 휴대폰으로 쿠폰 화면을 열고, 직원(PT 재등록은
+- **분석용 식판**(#2150) — 사용처 항목이 아니라 달성 보상이다. 포인트로 교환하지
+  않고 `diet_tray_service` 가 조건을 확인해 0P 쿠폰으로 발급한다. 쿠폰 목록·상세·
+  사용 처리는 두 쿠폰과 같은 길을 탄다. **기한이 없다**([NO_EXPIRY]) — 식판이
+  헬스장에 언제 닿을지는 우리 사정이라, 그 때문에 회원의 쿠폰이 만료되면 안 된다.
+
+모든 쿠폰은 헬스장에서 회원이 휴대폰으로 쿠폰 화면을 열고, 직원(PT 재등록은
 트레이너·헬스장 직원)이 확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다
 (직원 확인 버튼). 트레이너웹에는 처리 화면이 없다.
 
@@ -30,7 +35,8 @@
   탭·재전송이 두 번 처리되지 않고 오류도 보지 않는다. 되돌리기는 없다.
 - **담당 연결이 끊기면** 사용 가능한 PT 재등록 쿠폰을, **헬스장 연결이 끊기면**
   사용 가능한 락커 쿠폰을 취소하고 교환에 쓴 포인트를 돌려준다(내역 `refund`).
-  쓸 곳이 없는 쿠폰을 남겨 두면 포인트만 묶인다.
+  쓸 곳이 없는 쿠폰을 남겨 두면 포인트만 묶인다. 담당이 끊기면 받지 않은 식판
+  쿠폰(#2150)도 취소한다 — 0P 라 돌려줄 포인트는 없다.
 """
 from __future__ import annotations
 
@@ -81,6 +87,11 @@ BLOCK_ACTIVE_PASS = "active_pass"
 BLOCK_ACTIVE_PET = "active_pet"
 #: 지난주 주간 리포트를 이미 받았다(#2022). 다음 주가 끝나야 다시 산다.
 BLOCK_WEEK_OWNED = "week_owned"
+
+#: 기한 없는 쿠폰의 `expires_at`(#2150). 컬럼이 NULL 을 받지 않고, 만료·알림 경로가
+#: 모두 `expires_at` 을 시각으로 비교하므로 닿지 않는 먼 시각을 넣는다. 응답은
+#: `no_expiry` 로 알린다.
+NO_EXPIRY = datetime(9999, 1, 1, tzinfo=clock.SEOUL)
 
 #: 만료 알림을 보내기 시작하는 남은 날 수.
 REMIND_DAYS_BEFORE = 3
@@ -194,6 +205,21 @@ WEEKLY_REPORT = ShopItem(
     valid_days=0,
 )
 
+#: 분석용 식판(#2150) — 사용처 항목이 아니라 달성 보상이라 [CATALOG] 에 없다. 쿠폰
+#: 목록·상세가 이름을 찾도록 [_ITEMS] 에만 둔다. 포인트 교환으로는 받을 수 없고
+#: (`exchange` 가 404), 조건 확인과 발급은 `diet_tray_service` 가 한다.
+DIET_TRAY = ShopItem(
+    id="diet_tray",
+    title="분석용 식판",
+    benefit="분석용 규격 식판",
+    description="식단 사진 분석에 맞춘 규격 식판을 담당 트레이너의 헬스장에서 받아요.",
+    cost=0,
+    # 기한 없음 — `expires_at` 은 [NO_EXPIRY] 다.
+    valid_days=0,
+    requires_trainer=True,
+    one_active=True,
+)
+
 #: 화면에 서는 순서 그대로다.
 CATALOG: tuple[ShopItem, ...] = (
     PT_RENEWAL,
@@ -204,7 +230,8 @@ CATALOG: tuple[ShopItem, ...] = (
     PROFILE_PET,
     WEEKLY_REPORT,
 )
-_ITEMS: dict[str, ShopItem] = {item.id: item for item in CATALOG}
+_CATALOG_IDS = frozenset(item.id for item in CATALOG)
+_ITEMS: dict[str, ShopItem] = {item.id: item for item in (*CATALOG, DIET_TRAY)}
 
 
 class CouponError(Exception):
@@ -404,7 +431,7 @@ def exchange(
     """
     from app.services import gym_service, trainer_service
 
-    item = _ITEMS.get(item_id)
+    item = _ITEMS.get(item_id) if item_id in _CATALOG_IDS else None
     if item is None:
         raise UnknownItem("없는 교환 항목이에요.")
     if item.id == GRAPH_COLOR.id:
@@ -594,19 +621,29 @@ def remind_expiring(db: Session, member_id: str) -> int:
 def cancel_renewal_coupons(db: Session, member_id: str) -> int:
     """담당 연결이 끊긴 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다.
 
-    취소한 장수를 돌려준다. 커밋하지 않는다 — 담당 해제와 같은 트랜잭션이어야
+    받지 않은 식판 쿠폰(#2150)도 함께 취소한다. 취소한 장수를 돌려준다. 커밋하지 않는다 — 담당 해제와 같은 트랜잭션이어야
     "연결은 끊겼는데 쿠폰은 살아 있는" 반쪽 상태가 생기지 않는다.
 
     이미 기한이 지난 쿠폰은 돌려주지 않고 만료로 내린다(소멸 규칙). 잔액 행을
     쿠폰보다 먼저 잠근다 — 교환과 같은 순서라 서로 기다리다 멈추지 않는다.
     """
-    return _cancel_unused(
+    renewal = _cancel_unused(
         db,
         member_id,
         PT_RENEWAL,
         title="재등록 쿠폰이 취소됐어요",
         reason="담당 트레이너 연결이 해제되어",
     )
+    # 식판(#2150)도 담당 트레이너의 헬스장에서 받는 것이라 함께 취소한다. 0P 라
+    # 돌려줄 포인트는 없고, 새 담당이 생기면 조건을 채운 채로 다시 받는다.
+    tray = _cancel_unused(
+        db,
+        member_id,
+        DIET_TRAY,
+        title="식판 수령 쿠폰이 취소됐어요",
+        reason="담당 트레이너 연결이 해제되어",
+    )
+    return renewal + tray
 
 
 def cancel_locker_coupons(db: Session, member_id: str) -> int:
@@ -665,19 +702,24 @@ def _cancel_unused(
             continue
         row.status = CANCELLED
         row.cancelled_at = now
-        refunded = points_service.refund(
-            db, member_id, points_service.SOURCE_POINTS_COUPON, row.id
-        )
+        if row.cost > 0:
+            refunded = points_service.refund(
+                db, member_id, points_service.SOURCE_POINTS_COUPON, row.id
+            )
+            body = (
+                f"{reason} {item.benefit} 쿠폰을 취소하고 "
+                f"{refunded:,}P를 돌려드렸어요."
+            )
+        else:
+            # 포인트로 사지 않은 쿠폰(식판, #2150) — 돌려줄 것이 없다.
+            body = f"{reason} {item.benefit} 쿠폰을 취소했어요."
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notification_service.POINTS_COUPON,
             category=notification_service.MEMBER_BENEFITS,
             title=title,
-            body=(
-                f"{reason} {item.benefit} 쿠폰을 취소하고 "
-                f"{refunded:,}P를 돌려드렸어요."
-            ),
+            body=body,
         )
         cancelled += 1
     db.flush()
@@ -692,6 +734,7 @@ def coupon_out(row: PointsCoupon, now: datetime | None = None) -> CouponOut:
     item = _ITEMS.get(row.item)
     status = _status(row, now)
     last_day = _expires_on(row)
+    no_expiry = row.expires_at >= NO_EXPIRY
     return CouponOut(
         id=row.id,
         item=row.item,
@@ -705,7 +748,8 @@ def coupon_out(row: PointsCoupon, now: datetime | None = None) -> CouponOut:
         issued_on=clock.to_seoul(row.issued_at).date().isoformat(),
         expires_at=row.expires_at,
         expires_on=last_day.isoformat(),
-        days_left=_days_left(last_day) if status == ISSUED else 0,
+        days_left=_days_left(last_day) if status == ISSUED and not no_expiry else 0,
+        no_expiry=no_expiry,
         used_at=row.used_at,
         cancelled_at=row.cancelled_at,
     )
@@ -742,6 +786,14 @@ def _claim(db: Session, row: PointsCoupon) -> bool:
         db.commit()
         raise CouponNotUsable(EXPIRED)
     raise CouponNotUsable(row.status)
+
+
+def expire_stale(db: Session, member_id: str) -> None:
+    """기한이 지난 사용 가능 쿠폰을 만료로 내린다. 커밋하지 않는다.
+
+    식판 받기(#2150)처럼 이 모듈 밖에서 쿠폰을 만드는 쪽이 쓴다.
+    """
+    _expire_stale(db, member_id)
 
 
 def _expire_stale(db: Session, member_id: str) -> None:
