@@ -212,7 +212,8 @@ class PointsCoupon(Base):
     `issued` 를 `expired` 로 내린다(`points_coupon_service._expire_stale`).
 
     - `cost` 는 교환할 때 쓴 포인트다. 연결 해제로 취소되면 이 값을 돌려준다 —
-      카탈로그 가격이 나중에 바뀌어도 낸 만큼 돌려받는다.
+      카탈로그 가격이 나중에 바뀌어도 낸 만큼 돌려받는다. 달성 보상으로 받은
+      식판 수령 쿠폰(#2150)은 0 이다.
     - `trainer_name`(PT 재등록)·`gym_name`(PT 재등록·개인 락커) 은 교환 시점의
       사본이다. 쿠폰 화면이 사용 뒤에도 어느 트레이너·헬스장에서 쓴 쿠폰인지 말할
       수 있게 한다.
@@ -227,7 +228,7 @@ class PointsCoupon(Base):
     user_id: Mapped[str] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    #: 카탈로그 항목 id — pt_renewal|locker_month.
+    #: 카탈로그 항목 id — pt_renewal|locker_month, 달성 보상 diet_tray(#2150).
     item: Mapped[str] = mapped_column(String(40))
     cost: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(
@@ -261,7 +262,8 @@ class PointsCoupon(Base):
             "status IN ('issued', 'used', 'expired', 'cancelled')",
             name="ck_points_coupons_status",
         ),
-        CheckConstraint("cost > 0", name="ck_points_coupons_cost"),
+        # 식판 수령 쿠폰(#2150)은 포인트로 사지 않은 달성 보상이라 0P 다.
+        CheckConstraint("cost >= 0", name="ck_points_coupons_cost"),
         UniqueConstraint(
             "user_id", "client_request_id", name="uq_points_coupons_client_request"
         ),

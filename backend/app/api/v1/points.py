@@ -5,6 +5,8 @@
   POST /me/points/exchange         -> 201 { coupon, spent, balance }
   GET  /me/coupons                 -> 쿠폰 배열(사용 가능 먼저)
   POST /me/coupons/{id}/use        -> 쿠폰(회원 휴대폰에서 사용 완료)
+  GET  /me/diet-tray               -> 분석용 식판 진행 상황(#2150)
+  POST /me/diet-tray/claim         -> 201 식판 수령 쿠폰 발급 뒤 상태
 
 모든 쿠폰은 헬스장이 현장에서 주는 혜택이고 회원 휴대폰에서 사용 처리한다. 직원
 (PT 재등록은 트레이너·헬스장 직원)이 확인한 뒤 회원 화면의 `사용 완료` 를 누른다 —
@@ -22,6 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import CurrentUser, RequireMember
 from app.db.session import get_db
+from app.schemas.diet_tray_api import DietTrayClaimRequest, DietTrayOut
 from app.schemas.points_api import (
     CouponOut,
     ExchangeOut,
@@ -32,6 +35,7 @@ from app.schemas.points_api import (
 from app.schemas.profile_pet_api import ProfilePetStateOut
 from app.schemas.weekly_report_api import WeeklyReportListOut
 from app.services import (
+    diet_tray_service,
     graph_color_service,
     points_coupon_service,
     points_history_service,
@@ -185,3 +189,32 @@ def use_my_coupon(
             detail=f"coupon={coupon_id} item={out.item}",
         )
     return out
+
+
+@router.get("/me/diet-tray", response_model=DietTrayOut)
+def my_diet_tray(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> DietTrayOut:
+    """분석용 식판(#2150) — 최근 28일 사진 기록일과 받을 수 있는지."""
+    return diet_tray_service.state(db, current_user.id)
+
+
+@router.post("/me/diet-tray/claim", response_model=DietTrayOut, status_code=201)
+def claim_diet_tray(
+    payload: DietTrayClaimRequest,
+    member: RequireMember,
+    db: Annotated[Session, Depends(get_db)],
+) -> DietTrayOut:
+    """조건을 다시 확인하고 식판 수령 쿠폰(0P)을 발급한다. 발급 뒤 상태를 준다.
+
+    담당 트레이너 없음·사진 기록일 부족·이미 받음·받지 않은 식판 쿠폰 보유는 409 다.
+    같은 `client_request_id` 의 재시도는 새로 만들지 않는다. 받은 쿠폰은 `/me/coupons`
+    에 서고, 헬스장에서 직원 확인 뒤 `사용 완료` 로 처리한다.
+    """
+    try:
+        return diet_tray_service.claim(
+            db, member.id, client_request_id=payload.client_request_id
+        )
+    except diet_tray_service.DietTrayError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc

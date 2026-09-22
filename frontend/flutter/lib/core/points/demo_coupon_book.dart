@@ -24,6 +24,11 @@ import 'package:oncare/core/utils/clock.dart';
 /// - 사용 처리는 한 번뿐이고 다시 누르면 같은 응답이다.
 /// - 담당 트레이너 연결이 끊기면([endTrainerLink]) 재등록 쿠폰을, 헬스장 연결이
 ///   끊기면([endGymLink]) 락커 쿠폰을 취소하고 포인트를 돌려준다.
+/// - 분석용 식판(#2150)은 교환 항목이 아니라 달성 보상이다. 서버
+///   `diet_tray_service` 와 같이 최근 28일 중 식단 사진을 남긴 날이 20일 이상이고
+///   담당이 있으면 기한 없는 0P 쿠폰으로 받는다([dietTrayJson]·[claimDietTray]). 사진
+///   기록일은 목업 API 가 drift 에서 세어 넘긴다. 담당이 끊기면 받지 않은 쿠폰을
+///   취소한다.
 ///
 /// 만료 3일 전 알림은 목업에 없다 — 데모에서 교환한 쿠폰은 30일 뒤에야 그 창에
 /// 들어가고, 목업 알림함은 이 원장과 따로 논다.
@@ -90,6 +95,8 @@ class DemoCouponBook {
   void endTrainerLink() {
     _hasTrainer = false;
     _cancelUnused(kDemoPtRenewal.id);
+    // 식판(#2150)도 담당 트레이너의 헬스장에서 받는다. 0P 라 돌려줄 포인트는 없다.
+    _cancelUnused(kDemoDietTray.id);
   }
 
   /// 헬스장 연결이 끊겼다 — 락커 쿠폰을 취소하고 포인트를 돌려준다.
@@ -222,6 +229,101 @@ class DemoCouponBook {
     }
   }
 
+  // ---- 분석용 식판 (#2150) ----
+
+  /// 사진 기록일을 세는 구간(오늘 포함)과 필요한 날 수. 서버와 같은 값이다.
+  static const int dietTrayWindowDays = 28;
+  static const int dietTrayRequiredDays = 20;
+
+  /// 사진 기록일을 세는 구간의 첫날 — 오늘에서 27일 전.
+  DateTime dietTrayWindowFrom() {
+    final DateTime today = _today();
+    return DateTime(
+      today.year,
+      today.month,
+      today.day - (dietTrayWindowDays - 1),
+    );
+  }
+
+  /// 사진 기록일을 세는 구간의 마지막 날 — 오늘.
+  DateTime dietTrayWindowTo() => _today();
+
+  /// `GET /me/diet-tray`. [photoDays] 는 구간 안에서 식단 사진을 남긴 날 수다.
+  Map<String, Object?> dietTrayJson({required int photoDays}) {
+    _expireStale();
+    final _DemoCoupon? received = _coupons
+        .where(
+          (_DemoCoupon c) => c.item == kDemoDietTray.id && c.status == 'used',
+        )
+        .firstOrNull;
+    final _DemoCoupon? active = received == null
+        ? _activeOf(kDemoDietTray.id)
+        : null;
+    final String status = received != null
+        ? 'received'
+        : active != null
+        ? 'issued'
+        : _hasTrainer && photoDays >= dietTrayRequiredDays
+        ? 'claimable'
+        : 'progress';
+    final _DemoCoupon? row = received ?? active;
+    return <String, Object?>{
+      'status': status,
+      'photo_days': photoDays,
+      'required_days': dietTrayRequiredDays,
+      'window_days': dietTrayWindowDays,
+      'window_from': _ymd(dietTrayWindowFrom()),
+      'window_to': _ymd(dietTrayWindowTo()),
+      'has_trainer': _hasTrainer,
+      'coupon': row == null ? null : _couponJson(row),
+    };
+  }
+
+  /// `POST /me/diet-tray/claim`. 조건을 다시 확인하고 0P 쿠폰을 발급한다.
+  DemoCouponResult claimDietTray({
+    required int photoDays,
+    String? clientRequestId,
+  }) {
+    if (clientRequestId != null &&
+        _coupons.any(
+          (_DemoCoupon c) =>
+              c.item == kDemoDietTray.id &&
+              c.clientRequestId == clientRequestId,
+        )) {
+      return DemoCouponResult(201, dietTrayJson(photoDays: photoDays));
+    }
+    _expireStale();
+    if (_coupons.any(
+      (_DemoCoupon c) => c.item == kDemoDietTray.id && c.status == 'used',
+    )) {
+      return _error(409, '식판은 이미 받았어요.');
+    }
+    if (_activeOf(kDemoDietTray.id) != null) {
+      return _error(409, '받지 않은 식판 쿠폰이 이미 있어요.');
+    }
+    if (!_hasTrainer) return _error(409, '담당 트레이너가 있어야 받을 수 있어요.');
+    final int shortfall = dietTrayRequiredDays - photoDays;
+    if (shortfall > 0) return _error(409, '식단 사진 기록이 $shortfall일 더 필요해요.');
+    final DateTime today = _today();
+    _coupons.add(
+      _DemoCoupon(
+        id: 'cpn-demo-${++_sequence}',
+        item: kDemoDietTray.id,
+        cost: 0,
+        issuedAt: _now(),
+        issuedOn: today,
+        lastDay: _noExpiry,
+        trainerName: kDemoTrainerName,
+        gymName: kDemoGymName,
+        clientRequestId: clientRequestId,
+      ),
+    );
+    return DemoCouponResult(201, dietTrayJson(photoDays: photoDays));
+  }
+
+  /// 기한 없는 쿠폰(식판)의 마지막 날 — 서버 `NO_EXPIRY` 와 같이 닿지 않는 날이다.
+  static final DateTime _noExpiry = DateTime(9998, 12, 31);
+
   // ---- 내부 ----
 
   DateTime _today() {
@@ -321,9 +423,12 @@ class DemoCouponBook {
   };
 
   Map<String, Object?> _couponJson(_DemoCoupon coupon) {
-    final DemoShopItem? item = _item(coupon.item);
+    final DemoShopItem? item = coupon.item == kDemoDietTray.id
+        ? kDemoDietTray
+        : _item(coupon.item);
     final bool usable = coupon.status == 'issued';
-    final int daysLeft = usable
+    final bool noExpiry = coupon.lastDay == _noExpiry;
+    final int daysLeft = usable && !noExpiry
         ? math.max((coupon.lastDay.difference(_today()).inHours / 24).round(), 0)
         : 0;
     return <String, Object?>{
@@ -339,6 +444,7 @@ class DemoCouponBook {
       'issued_on': _ymd(coupon.issuedOn),
       'expires_on': _ymd(coupon.lastDay),
       'days_left': daysLeft,
+      'no_expiry': noExpiry,
       'used_at': coupon.usedAt?.toIso8601String(),
       'cancelled_at': coupon.cancelledAt?.toIso8601String(),
     };
@@ -421,6 +527,21 @@ const List<DemoShopItem> kDemoShopCatalog = <DemoShopItem>[
   kDemoProfilePet,
   kDemoWeeklyReport,
 ];
+
+/// 분석용 식판(#2150) — 교환 항목이 아니라 달성 보상이라 [kDemoShopCatalog] 에 없다.
+/// 쿠폰 목록·상세가 이름을 찾을 때만 쓴다. 서버 `points_coupon_service.DIET_TRAY` 와
+/// 같은 값이다.
+const DemoShopItem kDemoDietTray = DemoShopItem(
+  id: 'diet_tray',
+  title: '분석용 식판',
+  benefit: '분석용 규격 식판',
+  description: '식단 사진 분석에 맞춘 규격 식판을 담당 트레이너의 헬스장에서 받아요.',
+  cost: 0,
+  // 기한 없음 — 식판이 헬스장에 언제 닿을지는 우리 사정이다.
+  validDays: 0,
+  requiresTrainer: true,
+  oneActive: true,
+);
 
 /// 포인트로 받는 주간 리포트(#2022) — 쿠폰이 아니다. 기한이 없어 `validDays` 는
 /// 0 이고, 규칙은 [DemoWeeklyReportBook] 이 들고 있다.

@@ -369,15 +369,20 @@ void main() {
     });
   });
 
-  testWidgets('사진이 없는 기록은 끼니 이모지로 접힌다', (WidgetTester tester) async {
-    // 사진 → 번들 에셋 → 끼니 이모지 순서는 [MealPhotoView] 가 안다(#1053).
+  testWidgets('사진이 없는 기록은 음식 이름의 이모지, 모르면 끼니 이모지로 접힌다', (
+    WidgetTester tester,
+  ) async {
+    // 사진 → 번들 에셋 → 이모지 순서는 [MealPhotoView] 가 안다(#1053). 이모지는
+    // 음식 이름으로 먼저 고른다(#2151).
     await _pump(
       tester,
       _MealsRepository(<DietEntry>[
         _meal('nophoto', MealType.lateNight, <String>['라면']),
+        _meal('unknown', MealType.lateNight, <String>['할머니표 반찬']),
       ]),
     );
 
-    expect(_inCard('nophoto', find.text('🌙')), findsOneWidget);
+    expect(_inCard('nophoto', find.text('🍜')), findsOneWidget);
+    expect(_inCard('unknown', find.text('🌙')), findsOneWidget);
   });
 }

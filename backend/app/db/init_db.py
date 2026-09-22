@@ -37,6 +37,7 @@ def init_db() -> None:
     # AUTO_CREATE_TABLES=false 로 꺼둔다.
     if settings.auto_create_tables:
         Base.metadata.create_all(bind=engine)
+        _relax_points_coupon_cost()
 
     # 참조 데이터: 공공 식품영양성분 DB(데모/운영 무관, 멱등)
     _seed_food_nutrients()
@@ -79,6 +80,34 @@ def init_db() -> None:
         ingest_seeded_documents()
 
     _promote_admins()  # ADMIN_EMAILS 사용자를 관리자로 승격(멱등)
+
+
+def _relax_points_coupon_cost() -> None:
+    """create_all 로 만든 옛 DB 의 `cost > 0` 제약을 `cost >= 0` 으로 바꾼다(#2150).
+
+    create_all 은 이미 있는 표의 제약을 고치지 않는다. 식판 수령 쿠폰은 0P 라 옛
+    제약이 남은 로컬·테스트 DB 에서는 받기가 깨진다. 운영은 Alembic
+    `0087_points_coupons_zero_cost` 가 같은 일을 한다. 이미 바뀌었으면 아무것도 하지
+    않는다.
+    """
+    with engine.begin() as conn:
+        current = conn.scalar(
+            text(
+                "SELECT pg_get_constraintdef(oid) FROM pg_constraint "
+                "WHERE conname = 'ck_points_coupons_cost'"
+            )
+        )
+        if current is None or ">=" in current:
+            return
+        conn.execute(
+            text("ALTER TABLE points_coupons DROP CONSTRAINT ck_points_coupons_cost")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE points_coupons ADD CONSTRAINT ck_points_coupons_cost "
+                "CHECK (cost >= 0)"
+            )
+        )
 
 
 def _seed_demo_user() -> None:

@@ -1064,6 +1064,30 @@ abstract class AppLocalizations {
   /// **'Add Food'**
   String get dietAddFood;
 
+  /// No description provided for @dietManualAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add manually'**
+  String get dietManualAdd;
+
+  /// No description provided for @dietManualAddTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Meal Manually'**
+  String get dietManualAddTitle;
+
+  /// No description provided for @dietManualAddHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a food name and we\'ll fill in the nutrition'**
+  String get dietManualAddHint;
+
+  /// No description provided for @dietManualAddEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Add at least one food'**
+  String get dietManualAddEmpty;
+
   /// No description provided for @dietEditFoodHint.
   ///
   /// In en, this message translates to:
@@ -3001,6 +3025,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap only after gym staff has checked it'**
   String get myCouponGymStaffNote;
+
+  /// No description provided for @myCouponNoExpiry.
+  ///
+  /// In en, this message translates to:
+  /// **'No expiry'**
+  String get myCouponNoExpiry;
+
+  /// No description provided for @myDietTrayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Free analysis tray'**
+  String get myDietTrayTitle;
+
+  /// No description provided for @myDietTrayFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get myDietTrayFree;
+
+  /// No description provided for @myDietTrayDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Log meal photos on {days} of the last {window} days and we\'ll give you a standard tray made for analysis. Meals shot on the same tray are measured more accurately.'**
+  String myDietTrayDescription(int window, int days);
+
+  /// No description provided for @myDietTrayProgressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo logs, last {window} days'**
+  String myDietTrayProgressLabel(int window);
+
+  /// No description provided for @myDietTrayProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} / {required} days'**
+  String myDietTrayProgress(int days, int required);
+
+  /// No description provided for @myDietTrayDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} more days of photos to go'**
+  String myDietTrayDaysLeft(int days);
+
+  /// No description provided for @myDietTrayNeedTrainer.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a trainer to receive it'**
+  String get myDietTrayNeedTrainer;
+
+  /// No description provided for @myDietTrayClaimable.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re eligible! Pick it up at your trainer\'s gym'**
+  String get myDietTrayClaimable;
+
+  /// No description provided for @myDietTrayIssued.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick it up at {gym}. Before you go, ask your trainer in chat whether it\'s ready'**
+  String myDietTrayIssued(String gym);
+
+  /// No description provided for @myDietTrayReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve received your tray. Try shooting meals on it'**
+  String get myDietTrayReceived;
+
+  /// No description provided for @myDietTrayClaim.
+  ///
+  /// In en, this message translates to:
+  /// **'Claim'**
+  String get myDietTrayClaim;
+
+  /// No description provided for @myDietTrayViewCoupon.
+  ///
+  /// In en, this message translates to:
+  /// **'View coupon'**
+  String get myDietTrayViewCoupon;
+
+  /// No description provided for @myDietTrayClaimConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get your tray pickup coupon?'**
+  String get myDietTrayClaimConfirmTitle;
+
+  /// No description provided for @myDietTrayClaimConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick it up at your trainer\'s gym. There\'s no deadline, and it\'s one tray per member.'**
+  String get myDietTrayClaimConfirmMessage;
+
+  /// No description provided for @myDietTrayClaimDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Tray pickup coupon added'**
+  String get myDietTrayClaimDone;
+
+  /// No description provided for @myDietTrayClaimFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t get the tray pickup coupon'**
+  String get myDietTrayClaimFailed;
+
+  /// No description provided for @myDietTrayNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'One per member · Only days with meal photos count (typed meals and shield-protected days don\'t) · No pickup deadline · Check with your trainer that the tray is ready before visiting the gym · Terms may change depending on stock and operations'**
+  String get myDietTrayNotice;
+
+  /// No description provided for @myDietTrayCouponBenefit.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard analysis tray'**
+  String get myDietTrayCouponBenefit;
+
+  /// No description provided for @myDietTrayStaffNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap after gym staff hands you the tray'**
+  String get myDietTrayStaffNote;
+
+  /// No description provided for @myDietTrayIssuedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Received on'**
+  String get myDietTrayIssuedOn;
+
+  /// No description provided for @myDietTrayExpireNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.'**
+  String get myDietTrayExpireNotice;
 
   /// No description provided for @myCouponStaffConfirmTitle.
   ///
@@ -6078,11 +6234,59 @@ abstract class AppLocalizations {
   /// **'Reminder'**
   String get alertCategoryReminder;
 
-  /// Notification category badge.
+  /// Notification category label for screen readers.
   ///
   /// In en, this message translates to:
-  /// **'Health'**
-  String get alertCategoryHealth;
+  /// **'Trainer message'**
+  String get alertCategoryCoachChat;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly report'**
+  String get alertCategoryCoachReport;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout routine'**
+  String get alertCategoryRoutine;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'PT schedule'**
+  String get alertCategorySchedule;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Trainer'**
+  String get alertCategoryTrainer;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Consultation request'**
+  String get alertCategoryConsultation;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Health goals'**
+  String get alertCategoryHealthGoals;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Benefits'**
+  String get alertCategoryBenefits;
+
+  /// Notification category label for screen readers.
+  ///
+  /// In en, this message translates to:
+  /// **'Challenge'**
+  String get alertCategoryChallenge;
 
   /// Notification category badge.
   ///

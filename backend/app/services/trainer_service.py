@@ -842,20 +842,27 @@ def send_message(
         )
     if notify is not None and sender == "trainer":
         trainer_name = db.scalar(select(User.name).where(User.id == trainer_id))
+        is_report = notify == notification_service.WEEKLY_REPORT
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notify,
             title=(
                 "주간 리포트가 도착했어요"
-                if notify == notification_service.WEEKLY_REPORT
+                if is_report
                 else f"{trainer_name or '트레이너'} 트레이너의 메시지"
             ),
             # 사진만 보낸 메시지는 본문이 비어 있다(#921). 알림 본문까지 비우면
             # 목록에 제목만 뜬 빈 줄이 남아, 무엇이 왔는지 알 수 없다.
             body=text or ("사진을 보냈어요" if attachment_file_id and attachment_type == "image" else text),
-            # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다.
-            category=notification_service.MEMBER_COACH_CHAT,
+            # 리포트도 대화 스레드로 도착한다 — 별도 리포트 함이 없다. 목적지는
+            # 같지만 갈래를 나눠 회원 앱이 리포트를 메시지와 다른 아이콘으로
+            # 그린다(#2085).
+            category=(
+                notification_service.MEMBER_COACH_REPORT
+                if is_report
+                else notification_service.MEMBER_COACH_CHAT
+            ),
         )
     db.commit()
     db.refresh(msg)

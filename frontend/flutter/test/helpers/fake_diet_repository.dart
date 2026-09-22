@@ -405,6 +405,43 @@ class FakeDietRepository implements DietRepository {
     return updated;
   }
 
+  /// 직접 추가로 들어온 요청(#2151). 테스트가 보낸 값을 확인한다.
+  final List<({String date, String mealType, List<FoodItem> foods})> created =
+      <({String date, String mealType, List<FoodItem> foods})>[];
+
+  @override
+  Future<DietEntry> createEntry({
+    required String date,
+    required String mealType,
+    required List<FoodItem> foods,
+    String? idempotencyKey,
+  }) async {
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    created.add((date: date, mealType: mealType, foods: foods));
+    final String id = 'mock-manual-${++_seq}';
+    double sum(double Function(FoodItem) pick) =>
+        foods.fold<double>(0, (double a, FoodItem f) => a + pick(f));
+    final DietEntry entry = DietEntry(
+      id: id,
+      mealType: _mealTypeOf(mealType),
+      timeLabel: '12:00',
+      totalCalories: foods.fold<int>(0, (int a, FoodItem f) => a + f.calories),
+      sodiumMg: foods.fold<int>(0, (int a, FoodItem f) => a + f.sodiumMg),
+      sugarG: sum((FoodItem f) => f.sugarG),
+      carbsG: sum((FoodItem f) => f.carbsG),
+      proteinG: sum((FoodItem f) => f.proteinG),
+      fatG: sum((FoodItem f) => f.fatG),
+      foods: foods,
+    );
+    final DateTime now = nowKst();
+    if (date == _wire(DateTime(now.year, now.month, now.day))) {
+      _entries.add(entry);
+    } else {
+      movedEntries[id] = (date: date, entry: entry);
+    }
+    return entry;
+  }
+
   /// 다른 날짜로 옮겨 둔 기록. [fetchByDate] 가 그 날짜에서 함께 돌려준다.
   final Map<String, ({String date, DietEntry entry})> movedEntries =
       <String, ({String date, DietEntry entry})>{};
