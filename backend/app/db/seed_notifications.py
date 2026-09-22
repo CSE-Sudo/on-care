@@ -7,7 +7,8 @@
 
 갈래는 백엔드 알림 갈래다 — 목적지(`action.target`)는 `api/v1/notifications.py` 의
 갈래별 표가 정한다. 회원앱 데모의 목적지와 같은 화면으로 이어지도록 고른다:
-루틴 → 운동, 코치 채팅 → 트레이너 채팅.
+루틴 → 운동, 코치 채팅·주간 리포트 → 트레이너 채팅. 회원앱 목 데이터
+(`mock_notification_repository.dart`)와 갈래도 같아야 알림함 아이콘이 같다(#2084).
 """
 from __future__ import annotations
 
@@ -61,7 +62,7 @@ DEMO_NOTIFICATIONS: tuple[DemoNotification, ...] = (
         "noti-demo-4",
         "이번 주 리포트가 등록됐어요",
         f"{TRAINER_NAME} 트레이너님이 이번 주 리포트를 등록했어요.",
-        notification_service.MEMBER_COACH_CHAT,
+        notification_service.MEMBER_COACH_REPORT,
         timedelta(minutes=45),
     ),
     DemoNotification(
