@@ -102,6 +102,7 @@
 |---|---|---|
 | GET | `/diet/days/today` | `{ entries[], total_calories, total_sodium_mg, total_sugar_g, macros, ai_coach_message }` |
 | POST | `/diet/analyze` | multipart `{ image, meal_type, idempotency_key? }` → `{ entry_id, analysis, time_label, photo_url?, points }` (분석과 동시에 diet_entries 저장·포인트 적립) |
+| POST | `/diet/entries` | `{ date?, meal_type, foods[](1개 이상, 이름 필수), idempotency_key? }` → 201, 새 `entries[]` 항목 하나 — 사진 없이 회원이 직접 적은 끼니(#2151). 합계는 음식에서 내고, **포인트는 적립하지 않는다.** `date` 가 없으면 오늘(KST), 앞날은 422. 당류 > 탄수화물인 음식이 있으면 422 |
 | PUT | `/diet/entries/{id}` | 부분 수정 `{ date?, meal_type?, time_label?, foods?, total_calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` → 고쳐진 `entries[]` 항목 하나 |
 | DELETE | `/diet/entries/{id}` | `{ status: "deleted" }` — 그 끼니로 받은 포인트를 회수한다 |
 | POST | `/diet/nutrition` | `{ name(필수), amount_g? }` → `{ matched_name?, match(exact\|similar)?, source, amount_g?, calories?, carbs_g?, protein_g?, fat_g?, sodium_mg?, sugar_g? }` — 이름으로 찾은 공공 DB 값(#1896). 못 찾았거나 양을 정할 수 없으면 `matched_name`·`match` 가 null |
@@ -165,7 +166,7 @@
 
 | 규칙(`reason`) | 언제 | 포인트 | 하루 한도 |
 |---|---|---|---|
-| `diet_entry` | `POST /diet/analyze` 로 끼니가 새로 저장될 때 | +50 | 3회 |
+| `diet_entry` | `POST /diet/analyze` 로 끼니가 새로 저장될 때(직접 추가 `POST /diet/entries` 는 적립 없음, #2151) | +50 | 3회 |
 | `exercise_manual` | `POST /exercise/sessions` (회원이 직접 추가) | +20 | 3회 |
 | `routine_complete` | `POST /me/coach/routines/{id}/complete` — AI 추천(`source: "ai"`)·트레이너 배정(`source: "trainer"`) 모두 | +50 | 1회(두 출처 합산) |
 
