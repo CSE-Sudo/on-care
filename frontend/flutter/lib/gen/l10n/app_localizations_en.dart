@@ -552,6 +552,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietAddFood => 'Add Food';
 
   @override
+  String get dietManualAdd => 'Add manually';
+
+  @override
+  String get dietManualAddTitle => 'Add Meal Manually';
+
+  @override
+  String get dietManualAddHint =>
+      'Type a food name and we\'ll fill in the nutrition';
+
+  @override
+  String get dietManualAddEmpty => 'Add at least one food';
+
+  @override
   String get dietEditFoodHint =>
       'Change the serving size and the nutrition follows';
 
@@ -3536,7 +3549,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategoryReminder => 'Reminder';
 
   @override
-  String get alertCategoryHealth => 'Health';
+  String get alertCategoryCoachChat => 'Trainer message';
+
+  @override
+  String get alertCategoryCoachReport => 'Weekly report';
+
+  @override
+  String get alertCategoryRoutine => 'Workout routine';
+
+  @override
+  String get alertCategorySchedule => 'PT schedule';
+
+  @override
+  String get alertCategoryTrainer => 'Trainer';
+
+  @override
+  String get alertCategoryConsultation => 'Consultation request';
+
+  @override
+  String get alertCategoryHealthGoals => 'Health goals';
+
+  @override
+  String get alertCategoryBenefits => 'Benefits';
+
+  @override
+  String get alertCategoryChallenge => 'Challenge';
 
   @override
   String get alertCategoryAchievement => 'Achievement';
