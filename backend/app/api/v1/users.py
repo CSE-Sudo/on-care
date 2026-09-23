@@ -53,6 +53,7 @@ from app.schemas.user import (
 from app.services import (
     consultation_service,
     health_goal_change,
+    member_departure,
     member_pairing_service,
     name_change,
     reservation_service,
@@ -353,6 +354,9 @@ def delete_me(
     # 대기 중인 상담이 잡고 있던 자리도 풀어 준다 — 요청 행은 CASCADE 로 사라져도
     # 자리는 남아 잠긴 채가 된다(#1873).
     consultation_service.release_holds_for_account_deletion(db, user.id)
+    # 담당 링크는 회원과 함께 CASCADE 로 사라진다 — 지우기 전에 담당 트레이너에게
+    # 알린다. 알림은 트레이너 계정에 달려 탈퇴 뒤에도 남는다(#2174).
+    member_departure.notify_trainer(db, user, reason="withdrawn")
     db.delete(user)
     db.commit()
     return {"status": "deleted"}

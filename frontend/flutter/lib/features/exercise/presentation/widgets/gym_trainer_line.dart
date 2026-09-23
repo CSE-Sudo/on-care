@@ -20,6 +20,7 @@ class GymTrainerLine extends StatelessWidget {
     this.showReason = true,
     this.bordered = false,
     this.matchGymRow = false,
+    this.showAvatar = false,
     this.onDetail,
     this.leadingWidth = OnCareSize.avatarSmall,
     this.leadingGap = OnCareSpacing.s8,
@@ -30,6 +31,13 @@ class GymTrainerLine extends StatelessWidget {
 
   /// 연결 카드에서는 헬스장 행과 같은 글꼴·아이콘·최소 높이를 쓴다.
   final bool matchGymRow;
+
+  /// 앞 칸에 사람 아이콘 대신 **성씨 프로필**([AppAvatar])을 세울지 (#2154).
+  ///
+  /// 헬스장 찾기 목록에서 켠다 — 트레이너를 고르는 자리라, 눌러 들어간 트레이너
+  /// 상세·채팅과 같은 얼굴로 서야 같은 사람으로 읽힌다. 내 헬스장 카드·MY 는
+  /// 위 헬스장 줄의 아이콘과 한 격자에 서므로 아이콘을 그대로 둔다.
+  final bool showAvatar;
 
   /// 줄을 회색 실선으로 두를지. 한 헬스장의 트레이너가 **잇달아 설 때**(헬스장
   /// 찾기 카드) 켠다 — 바탕이 카드와 같은 흰색이라 테두리가 없으면 어디까지가
@@ -119,13 +127,15 @@ class GymTrainerLine extends StatelessWidget {
                   width: leadingWidth,
                   height: matchGymRow ? leadingWidth : OnCareSize.avatarSmall,
                   alignment: Alignment.center,
-                  child: AppIcon(
-                    AppIcons.person,
-                    size: matchGymRow
-                        ? OnCareSize.iconMedium
-                        : OnCareSize.iconSmall,
-                    color: tokens.brand.primary,
-                  ),
+                  child: showAvatar
+                      ? AppAvatar(name: trainer.name, size: AppAvatarSize.small)
+                      : AppIcon(
+                          AppIcons.person,
+                          size: matchGymRow
+                              ? OnCareSize.iconMedium
+                              : OnCareSize.iconSmall,
+                          color: tokens.brand.primary,
+                        ),
                 ),
                 SizedBox(width: leadingGap),
                 // 이름·직함은 **언제나 한 줄**이다(#2038). 이름과 짧은 속성은 한

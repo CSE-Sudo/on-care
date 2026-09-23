@@ -8,6 +8,7 @@ import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dar
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/health_focus.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_trainer/shared/utils/focus_change_label.dart';
 import 'package:oncare_trainer/shared/utils/health_focus_labels.dart';
@@ -373,6 +374,9 @@ class _HealthProfileSectionState extends ConsumerState<_HealthProfileSection> {
       // 저장한 값이 이 화면에도 바로 남는다 — 다음에 창을 열 때 서버에서 다시
       // 읽는다(#1449).
       ref.invalidate(clientsProvider);
+      // 식단·운동 그래프의 목표선도 이 프로필을 본다(#2156) — 트레이너가 고친
+      // 목표가 창을 닫자마자 그래프에 그어진다.
+      ref.invalidate(memberHealthProfileProvider(widget.clientId));
       if (!mounted) return;
       setState(() {
         _saving = false;

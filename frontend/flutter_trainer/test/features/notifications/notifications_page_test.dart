@@ -11,6 +11,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/app/shell/nav_destinations.dart';
 import 'package:oncare_trainer/features/notifications/data/repositories/notification_repository.dart';
 import 'package:oncare_trainer/features/notifications/domain/entities/trainer_notification.dart';
+import 'package:oncare_trainer/features/notifications/presentation/pages/notifications_page.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations_ko.dart';
 
 import '../../helpers/pump_app.dart';
@@ -74,7 +75,13 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
     _rows = <TrainerNotification>[
       for (final TrainerNotification r in _rows)
         if (r.id == id)
-          _notification(id: r.id, title: r.title, body: r.body, kind: r.kind, read: true)
+          _notification(
+            id: r.id,
+            title: r.title,
+            body: r.body,
+            kind: r.kind,
+            read: true,
+          )
         else
           r,
     ];
@@ -86,7 +93,13 @@ class _FakeNotificationRepository implements TrainerNotificationRepository {
     final int n = _rows.where((TrainerNotification r) => !r.read).length;
     _rows = <TrainerNotification>[
       for (final TrainerNotification r in _rows)
-        _notification(id: r.id, title: r.title, body: r.body, kind: r.kind, read: true),
+        _notification(
+          id: r.id,
+          title: r.title,
+          body: r.body,
+          kind: r.kind,
+          read: true,
+        ),
     ];
     return n;
   }
@@ -97,7 +110,10 @@ void main() {
     await withWideSurface(tester, () async {
       await pumpTrainerApp(tester, token: 'demo-token');
 
-      expect(find.text(navLabel(_ko, notificationsDestination.label)), findsNothing);
+      expect(
+        find.text(navLabel(_ko, notificationsDestination.label)),
+        findsNothing,
+      );
     });
   });
 
@@ -113,7 +129,10 @@ void main() {
         ],
       );
 
-      expect(find.text(navLabel(_ko, notificationsDestination.label)), findsOneWidget);
+      expect(
+        find.text(navLabel(_ko, notificationsDestination.label)),
+        findsOneWidget,
+      );
     });
   });
 
@@ -192,6 +211,53 @@ void main() {
 
     // 갈 곳이 있든 없든 확인한 알림은 배지에서 빠져야 한다.
     expect(repo.readCalls, <String>['noti-1']);
+  });
+
+  test('회원이 떠난 알림은 member_left 로 읽고 이동하지 않는다 (#2174)', () {
+    final TrainerNotification notice =
+        TrainerNotification.fromJson(<String, Object?>{
+          'id': 'noti-left',
+          'title': '회원 탈퇴',
+          'body': '김민수 회원이 탈퇴했어요.',
+          'category': 'member_left',
+          'read': false,
+          'created_at': '2026-09-23T01:00:00Z',
+          'time_ago': '방금 전',
+        });
+
+    expect(notice.kind, TrainerNotificationKind.memberLeft);
+    expect(NotificationsPage.targetOf(notice), isNull);
+  });
+
+  testWidgets('회원이 떠난 알림도 목록에 그려지고 누르면 읽음 처리만 된다 (#2174)', (tester) async {
+    final repo = _FakeNotificationRepository(<TrainerNotification>[
+      _notification(
+        id: 'noti-left',
+        title: '담당 연결 해제',
+        body: '김민수 회원이 담당 연결을 끊었어요.',
+        kind: TrainerNotificationKind.memberLeft,
+      ),
+    ]);
+    await pumpTrainerApp(
+      tester,
+      token: 'demo-token',
+      at: AppRoutes.notifications,
+      extraOverrides: <Override>[
+        trainerNotificationRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+
+    expect(find.text('담당 연결 해제'), findsOneWidget);
+    expect(find.text('김민수 회원이 담당 연결을 끊었어요.'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('notification-noti-left')),
+    );
+    await settle(tester);
+
+    expect(repo.readCalls, <String>['noti-left']);
+    // 갈 곳이 없어 알림함에 머문다.
+    expect(find.text('담당 연결 해제'), findsOneWidget);
   });
 
   testWidgets('모두 읽음이 전체를 읽음 처리한다', (tester) async {

@@ -38,7 +38,7 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get schedCancelSource => '취소한 쪽';
+  String get schedCancelSource => '처리 구분';
 
   @override
   String get schedCancelByMember => '회원 취소';
@@ -927,9 +927,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get clientClosePanel => '패널 닫기';
 
   @override
-  String get clientChat => '채팅';
-
-  @override
   String get chatTooLong => '메시지가 너무 길어요 (최대 2000자)';
 
   @override
@@ -1363,7 +1360,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String exWeekOfMonthLabel(int month, int week) {
-    return '$month월 $week주차';
+    return '$month월 $week주차 소모';
   }
 
   @override
@@ -1873,9 +1870,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotManageTitle => '예약 슬롯 관리';
 
   @override
-  String slotIntro(String date) {
-    return '$date에 회원이 예약할 시간을 엽니다.';
-  }
+  String get slotIntro => '회원이 예약할 시간을 엽니다. 아래에 앞으로 열린 슬롯이 날짜별로 모입니다.';
 
   @override
   String get slotOpenAction => '열기';
@@ -1884,7 +1879,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get slotReload => '다시 불러오기';
 
   @override
-  String get slotEmpty => '이 날짜에 열린 예약 슬롯이 없습니다.';
+  String get slotEmpty => '열린 예약 슬롯이 없습니다.';
 
   @override
   String get slotClosedSummary => '예약 닫힘';
@@ -2765,7 +2760,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get routineAlreadyGone => '이미 삭제된 프로그램이에요';
 
   @override
-  String get workoutPendingTitle => '아직 하지 않은 개인 운동';
+  String get workoutPendingTitle => '매일 하는 개인 운동';
+
+  @override
+  String get workoutRoutineDoneToday => '오늘 완료';
 
   @override
   String get workoutUndatedTitle => '날짜를 알 수 없는 기록';
@@ -3502,7 +3500,10 @@ class AppLocalizationsKo extends AppLocalizations {
       '수치에서 자동으로 채운 초안이에요. 보내기 전에 확인하고 고쳐 주세요.';
 
   @override
-  String get reportsFeedbackRestore => '초안으로 되돌리기';
+  String get reportsFeedbackUndo => '되돌리기';
+
+  @override
+  String get reportsFeedbackRedo => '다시 실행';
 
   @override
   String get reportsFeedbackSave => '피드백 저장';

@@ -22,37 +22,68 @@ import 'package:oncare/features/member_coach/domain/repositories/member_coach_re
 /// Selects the real Dio-backed coach repository against the FastAPI backend,
 /// or the in-memory demo for `USE_MOCK_API=true`. One mock instance per
 /// provider lifetime so demo chat sends persist for the session.
-final memberCoachRepositoryProvider = Provider<MemberCoachRepository>((ref) {
-  if (ref.watch(appConfigProvider).useMockApi) {
-    // 데모에는 서버가 없다. 실서버는 루틴 완료를 받으면 회원 운동 기록 한 건을
-    // 함께 만들고 취소하면 지우는데(#1131), 그 일을 이 대역이 대신하도록 운동
-    // 저장소를 건네준다 — 그러지 않으면 체크해도 `운동 현황` 이 꿈쩍하지 않는다.
-    // 파생 기록(출처 `assigned_routine`)을 만들고 지우는 일은 목업 저장소만
-    // 할 수 있다. 테스트가 운동 저장소를 다른 대역으로 갈아 끼우면 루틴 상태만
-    // 바뀌는 예전 동작으로 떨어진다 — 화면이 죽는 것보다 낫다.
-    final ExerciseRepository exercise = ref.watch(exerciseRepositoryProvider);
-    final GymRepository gym = ref.watch(gymRepositoryProvider);
-    return MockMemberCoachRepository(
-      exercise: exercise is MockExerciseRepository ? exercise : null,
-      // 루틴 완료(추천·배정) 적립도 같은 원장이다(#1786).
-      points: ref.watch(demoPointsLedgerProvider),
-      // 담당 트레이너 연결은 헬스장 저장소가 들고 있다 — 트레이너를 끊으면
-      // 담당 코치도 없어야 헤더가 AI 챗봇 입구로 바뀐다(#1840, #1865).
-      linked: gym is MockGymRepository ? () => gym.hasTrainer : null,
-    );
-  }
-  return DioMemberCoachRepository(ref.watch(dioProvider));
-}, name: 'memberCoachRepository');
+final Provider<MemberCoachRepository> memberCoachRepositoryProvider =
+    Provider<MemberCoachRepository>((ref) {
+      if (ref.watch(appConfigProvider).useMockApi) {
+        // 데모에는 서버가 없다. 실서버는 루틴 완료를 받으면 회원 운동 기록 한 건을
+        // 함께 만들고 취소하면 지우는데(#1131), 그 일을 이 대역이 대신하도록 운동
+        // 저장소를 건네준다 — 그러지 않으면 체크해도 `운동 현황` 이 꿈쩍하지 않는다.
+        // 파생 기록(출처 `assigned_routine`)을 만들고 지우는 일은 목업 저장소만
+        // 할 수 있다. 테스트가 운동 저장소를 다른 대역으로 갈아 끼우면 루틴 상태만
+        // 바뀌는 예전 동작으로 떨어진다 — 화면이 죽는 것보다 낫다.
+        final ExerciseRepository exercise = ref.watch(
+          exerciseRepositoryProvider,
+        );
+        final GymRepository gym = ref.watch(gymRepositoryProvider);
+        return MockMemberCoachRepository(
+          exercise: exercise is MockExerciseRepository ? exercise : null,
+          // 루틴 완료(추천·배정) 적립도 같은 원장이다(#1786).
+          points: ref.watch(demoPointsLedgerProvider),
+          // 담당 트레이너 연결은 헬스장 저장소가 들고 있다 — 트레이너를 끊으면
+          // 담당 코치도 없어야 헤더가 AI 챗봇 입구로 바뀐다(#1840, #1865).
+          linked: gym is MockGymRepository ? () => gym.hasTrainer : null,
+        );
+      }
+      return DioMemberCoachRepository(ref.watch(dioProvider));
+    }, name: 'memberCoachRepository');
 
 /// The member's assigned coach (null when none).
 final memberCoachProvider = FutureProvider<MemberCoach?>((ref) {
   return ref.watch(memberCoachRepositoryProvider).fetchCoach();
 });
 
-/// Routines the coach has assigned to the member.
+/// 오늘의 추천 개인운동 — 오늘 걸려 있는 목록과 오늘 완료. (#2161)
+///
+/// 매일 미완료로 다시 시작하는 목록이다. 날이 바뀌면 앱이 돌아올 때 다시 읽는다
+/// (셸의 `_refreshMemberData`).
 final coachRoutinesProvider = FutureProvider<List<CoachRoutine>>((ref) {
   return ref.watch(memberCoachRepositoryProvider).fetchRoutines();
 });
+
+/// 지난 날짜의 추천 개인운동 — 그날 걸려 있던 목록과 그날 완료. (#2161)
+///
+/// 읽기 전용이다. 키는 날짜만 남긴 값이라 같은 날을 시각만 달리 불러도 한 번만
+/// 읽는다 — 부르는 쪽이 [dateOnly] 로 넘긴다.
+final coachRoutinesOnDayProvider =
+    FutureProvider.family<List<CoachRoutine>, DateTime>((ref, DateTime day) {
+      return ref.watch(memberCoachRepositoryProvider).fetchRoutinesOn(day);
+    }, name: 'coachRoutinesOnDay');
+
+/// 날짜만 남긴다 — [coachRoutinesOnDayProvider] 의 키.
+DateTime dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);
+
+/// 추천 개인운동의 체크가 바뀌면 함께 달라지는 것을 다시 읽는다. (#2161)
+///
+/// 오늘 목록, 지난 날짜 목록, 그리고 **운동 AI 맞춤 조언**. 조언은 추천 개인운동
+/// 중 무엇을 했는지를 읽고 말하므로(#2162), 체크한 뒤에도 옛 조언이 남으면
+/// "다음 운동" 이 방금 끝낸 운동을 가리킨다.
+void refreshCoachRoutines(WidgetRef ref) {
+  ref
+    ..invalidate(coachRoutinesProvider)
+    ..invalidate(coachRoutinesOnDayProvider)
+    ..invalidate(exerciseAdviceProvider);
+}
 
 /// 트레이너가 잡아 준 PT 일정. 담당이 없거나 잡힌 일정이 없으면 빈 목록이라,
 /// 화면이 늘어나지 않는다. (#490)

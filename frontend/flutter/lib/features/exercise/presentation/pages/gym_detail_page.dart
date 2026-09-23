@@ -451,16 +451,9 @@ class _AffiliatedTrainerRow extends StatelessWidget {
           ? null
           : (onTap ??
                 () => context.push(AppRoutes.trainerDetailPath(trainer.id))),
-      leading: Container(
-        width: OnCareSize.avatarLarge,
-        height: OnCareSize.avatarLarge,
-        alignment: Alignment.center,
-        child: AppIcon(
-          AppIcons.person,
-          size: OnCareSize.iconMedium,
-          color: tokens.brand.primary,
-        ),
-      ),
+      // 트레이너 상세·채팅과 같은 성씨 프로필로 선다 (#2154) — 고르는 자리와
+      // 눌러 들어간 자리에서 같은 사람이 다른 얼굴이 되지 않게.
+      leading: AppAvatar(name: trainer.name, size: AppAvatarSize.large),
       // 여기가 상담할 트레이너를 고르는 자리다 — 헬스장 찾기에서 봤던 근거를
       // 정작 고르는 화면에서 다시 찾게 두지 않는다 (#1881).
       below: trainer.reasons.isEmpty

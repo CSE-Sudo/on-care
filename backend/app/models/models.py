@@ -33,6 +33,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core import clock
 from app.core.config import get_settings
 from app.db.session import Base
 
@@ -794,8 +795,13 @@ class ExerciseSession(Base):
     )
     # 배정 루틴 수행이면 원본 id와 당시 내용을 함께 보존한다. 루틴이 나중에
     # 수정·철회돼도 이미 끝낸 운동 기록은 당시 내용으로 남아야 한다(#638).
+    #
+    # 추천 개인운동은 매일 새로 체크하는 목록이라 같은 배정이 날마다 한 번씩
+    # 완료된다(#2161). 그래서 유일한 것은 `(배정, 그날)` 이다 — 아래
+    # `uq_exercise_sessions_routine_day`. 예전에는 이 칸 하나가 유일해서 한 번
+    # 체크하면 다음 날에도 완료로 남았다.
     assigned_routine_id: Mapped[str | None] = mapped_column(
-        String(64), nullable=True, unique=True, index=True
+        String(64), nullable=True, index=True
     )
     assigned_trainer_id: Mapped[str | None] = mapped_column(
         ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
@@ -810,6 +816,19 @@ class ExerciseSession(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        # 배정 하나는 하루에 한 번 완료한다(#2161). 운동 기록의 날짜는
+        # `(week_start, day_label)` 이라 그 둘로 하루를 가리킨다. 더블 탭·재전송이
+        # 같은 날 기록 둘을 만들지 않게 하는 마지막 방어선이다. 수기 기록은
+        # `assigned_routine_id` 가 NULL 이라 이 제약에 걸리지 않는다.
+        UniqueConstraint(
+            "assigned_routine_id",
+            "week_start",
+            "day_label",
+            name="uq_exercise_sessions_routine_day",
+        ),
     )
 
 
@@ -1509,6 +1528,23 @@ class TrainerRoutine(Base):
     # 재전송 중복 배정 방지용 멱등키(전송 시도당 1회 생성). NULL 허용 → 기존/무키
     # 요청은 제약 밖. DietEntry.idempotency_key 와 같은 방식이다.
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    #: 이 개인운동이 회원 목록에 걸리기 시작한 날(KST `YYYY-MM-DD`, 포함). (#2161)
+    #:
+    #: 추천 개인운동은 매일 새로 체크하는 목록이고, 트레이너가 바꾸기 전까지 같은
+    #: 목록이 날마다 되풀이된다. 지난 날짜 화면이 "그날 무엇이 걸려 있었고 무엇을
+    #: 했나" 를 그리려면 목록이 언제부터 언제까지였는지가 남아야 한다. 배정은
+    #: 배정한 날, AI 제안은 승인한 날부터다.
+    active_from: Mapped[str] = mapped_column(
+        String(10), default=lambda: clock.today_iso()
+    )
+    #: 목록에서 내려온 날(KST `YYYY-MM-DD`, **이날부터 없음**). 걸려 있는 동안은
+    #: NULL 이다. (#2161)
+    #:
+    #: 트레이너가 철회하거나 회원이 자기 개인운동을 지우면 행을 지우지 않고 이
+    #: 날짜를 찍는다 — 행이 사라지면 지난 날짜에 걸려 있던 목록을 되살릴 수 없다.
+    #: 오늘 철회한 것은 오늘 목록에서 바로 빠진다. 담당 없는 회원의 하루치 AI
+    #: 추천은 만들 때 다음 날로 찍혀 그날 하루만 걸린다.
+    ended_on: Mapped[str | None] = mapped_column(String(10), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -1519,6 +1555,10 @@ class TrainerRoutine(Base):
             "member_id",
             "client_request_id",
             name="uq_trainer_routines_client_request",
+        ),
+        CheckConstraint(
+            "ended_on IS NULL OR ended_on >= active_from",
+            name="ck_trainer_routines_active_window",
         ),
     )
 

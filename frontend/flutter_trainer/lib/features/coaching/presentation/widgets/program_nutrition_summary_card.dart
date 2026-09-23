@@ -11,9 +11,15 @@
 /// `_NutritionSummaryCard`)를 따른다. 앞으로 둘 중 한쪽만 바꾸라는 요구가
 /// 없는 한, 한쪽을 고쳐도 다른 쪽은 그대로여야 한다.
 ///
-/// 영양 목표값 상수(`carbsTargetG` 등)와 카드 기준 높이만은
-/// [NutritionSummaryCard] 쪽 정의를 그대로 가져다 쓴다 — 같은 하루의 같은
-/// 목표를 두 탭이 서로 다른 숫자로 보이면 안 되기 때문이다.
+/// 영양 목표([clientDietGoalsOf])와 카드 기준 높이만은 [NutritionSummaryCard]
+/// 쪽 정의를 그대로 가져다 쓴다 — 같은 하루의 같은 목표를 두 탭이 서로 다른
+/// 숫자로 보이면 안 되기 때문이다.
+///
+/// 구분선 아래는 탄·단·지 진행 바 세 칸이다(#2189). 회원 앱이 나트륨·당류를
+/// 카드에서 내렸고(회원 앱 #1986) 같은 탭의 `이번 주`·`전체` 도 칼로리만 본다
+/// (#2156) — 이 카드만 나트륨·당류를 그리면 기간을 옮길 때마다 지표가 바뀐다.
+/// 이 칸은 회원 상세보다 좁아서 회원 상세의 가로 3열이 아니라 회원 앱 `오늘`
+/// 카드의 배치(위 칼로리+도넛, 아래 탄단지 가로 세 칸)를 그대로 쓴다.
 library;
 
 import 'dart:math' as math;
@@ -21,8 +27,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'package:oncare_trainer/core/utils/number_format.dart';
+import 'package:oncare_trainer/features/clients/domain/entities/member_health_profile.dart';
 import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_summary_card.dart'
-    show carbsTargetG, proteinTargetG, fatTargetG, kClientNutritionCardHeight;
+    show ClientDietGoals, clientDietGoalsOf, kClientNutritionCardHeight;
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_ui/oncare_ui.dart';
@@ -60,76 +67,65 @@ class _Item {
   String get difference => formatNumber((current - target).abs());
 }
 
-/// 오늘 섭취 칼로리 + 탄단지 + 나트륨·당류. 카드는 **한 장**이다.
+/// 오늘 섭취 칼로리 + 탄단지. 카드는 **한 장**이다.
 class ProgramNutritionSummaryCard extends StatelessWidget {
-  /// Creates the summary for [client].
-  const ProgramNutritionSummaryCard({super.key, required this.client});
+  /// Creates the summary for [client] against the goals in [profile].
+  const ProgramNutritionSummaryCard({
+    super.key,
+    required this.client,
+    this.profile,
+  });
 
   /// 오늘 합계를 들고 있는 고객.
   final TrainerClient client;
 
-  /// 이 폭보다 좁으면 나트륨·당류 두 칸을 세로로 쌓는다.
-  static const double _mineralStackBelowWidth =
-      OnCareLayout.sidebarWidth + OnCareSpacing.s48;
+  /// 목표를 읽을 건강 프로필. 아직 못 읽었으면 null 이고 기본값으로 그린다.
+  final MemberHealthProfile? profile;
+
+  /// 이 폭보다 좁으면 탄단지 세 칸을 위아래로 쌓는다 — 회원 앱 `오늘` 카드와
+  /// 같은 값이다.
+  static const double _macroStackBelowWidth = 280;
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    final ClientDietGoals goals = clientDietGoalsOf(profile);
 
     final _Item calories = _Item(
       label: l.metricCalories,
       value: formatNumber(client.calories),
-      goal: formatNumber(calorieTargetKcal),
+      goal: formatNumber(goals.calories),
       unit: 'kcal',
       current: client.calories,
-      target: calorieTargetKcal,
+      target: goals.calories,
     );
     final List<_Item> macros = <_Item>[
       _Item(
         label: l.metricCarbs,
         value: formatNumber(client.carbsG),
-        goal: formatNumber(carbsTargetG),
+        goal: formatNumber(goals.carbsG),
         unit: 'g',
         current: client.carbsG,
-        target: carbsTargetG,
+        target: goals.carbsG,
       ),
       _Item(
         label: l.metricProtein,
         value: formatNumber(client.proteinG),
-        goal: formatNumber(proteinTargetG),
+        goal: formatNumber(goals.proteinG),
         unit: 'g',
         current: client.proteinG,
-        target: proteinTargetG,
+        target: goals.proteinG,
       ),
       _Item(
         label: l.metricFat,
         value: formatNumber(client.fatG),
-        goal: formatNumber(fatTargetG),
+        goal: formatNumber(goals.fatG),
         unit: 'g',
         current: client.fatG,
-        target: fatTargetG,
+        target: goals.fatG,
       ),
     ];
-    final List<_Item> minerals = <_Item>[
-      _Item(
-        label: l.metricSodium,
-        value: formatNumber(client.sodiumMg),
-        goal: formatNumber(sodiumTargetMg),
-        unit: 'mg',
-        current: client.sodiumMg,
-        target: sodiumTargetMg,
-      ),
-      _Item(
-        label: l.metricSugar,
-        value: formatNumber(client.sugarG),
-        goal: formatNumber(sugarTargetG),
-        unit: 'g',
-        current: client.sugarG,
-        target: sugarTargetG,
-      ),
-    ];
-
     final Color calorieColor = _statusColor(context, calories);
     // 오늘·이번 주·전체가 같은 크기여야 토글을 눌러도 화면이 튀지 않는다.
     // 글자 배율이 커지면 셋 다 함께 커진다 — 최소 높이라 넘치지 않는다.
@@ -186,16 +182,6 @@ class ProgramNutritionSummaryCard extends StatelessWidget {
                           maxLines: 1,
                         ),
                       ),
-                      // 탄단지는 칼로리 숫자와 도넛 사이에 놓는다 — 칼로리가
-                      // 무엇으로 채워졌는지가 그 숫자 바로 아래에서 읽혀야 한다.
-                      // 바는 두지 않는다: 옆의 도넛이 이미 달성률을 그리고 있어,
-                      // 좁은 왼쪽 칸에 바까지 넣으면 읽을 것만 는다. (회원 앱 #1120)
-                      const SizedBox(height: OnCareSpacing.s8),
-                      for (final _Item m in macros) ...<Widget>[
-                        _MacroTextLine(item: m),
-                        if (m != macros.last)
-                          const SizedBox(height: OnCareSpacing.s4),
-                      ],
                     ],
                   ),
                 ),
@@ -208,12 +194,13 @@ class ProgramNutritionSummaryCard extends StatelessWidget {
             const SizedBox(height: OnCareSpacing.s12),
             LayoutBuilder(
               builder: (BuildContext context, BoxConstraints c) {
-                if (c.maxWidth < _mineralStackBelowWidth) {
+                // 구분선 아래는 탄·단·지 진행 바 세 칸이다(#2189).
+                if (c.maxWidth < _macroStackBelowWidth) {
                   return Column(
                     children: <Widget>[
-                      for (final _Item m in minerals) ...<Widget>[
-                        _MineralItem(item: m),
-                        if (m != minerals.last)
+                      for (final _Item m in macros) ...<Widget>[
+                        _MacroProgressItem(item: m),
+                        if (m != macros.last)
                           const SizedBox(height: OnCareSpacing.s12),
                       ],
                     ],
@@ -222,10 +209,10 @@ class ProgramNutritionSummaryCard extends StatelessWidget {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    for (int i = 0; i < minerals.length; i++) ...<Widget>[
-                      Expanded(child: _MineralItem(item: minerals[i])),
-                      if (i < minerals.length - 1)
-                        const SizedBox(width: OnCareSpacing.s8),
+                    for (int i = 0; i < macros.length; i++) ...<Widget>[
+                      Expanded(child: _MacroProgressItem(item: macros[i])),
+                      if (i < macros.length - 1)
+                        const SizedBox(width: OnCareSpacing.s12),
                     ],
                   ],
                 );
@@ -355,86 +342,10 @@ class ProgramCalorieRingPainter extends CustomPainter {
       oldDelegate.progress != progress || oldDelegate.color != color;
 }
 
-/// 카드 머리의 탄단지 한 줄 — `탄수화물 204 /275g`. 바 없이 글자만 쓴다.
-class _MacroTextLine extends StatelessWidget {
-  const _MacroTextLine({required this.item});
-
-  final _Item item;
-
-  /// 라벨이 차지하는 폭. `탄수화물`(네 글자)이 들어갈 만큼만 잡는다 — 값이
-  /// 라벨 바로 옆에서 시작하면서도 세 줄의 숫자가 세로로 가지런하다. 글자
-  /// 배율을 따라가야 큰 글씨에서 라벨이 잘리지 않는다. (회원 앱 #1149)
-  static const double _labelWidth = OnCareSpacing.s48 + OnCareSpacing.s8;
-
-  @override
-  Widget build(BuildContext context) {
-    final OnCareTokens tokens = context.oncare;
-    return Row(
-      key: Key('client-nutrition-macro-${item.label}'),
-      children: <Widget>[
-        SizedBox(
-          width: MediaQuery.textScalerOf(context).scale(_labelWidth),
-          child: Text(
-            item.label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: tokens
-                .text(OnCareTypography.strong(OnCareTypography.caption))
-                .copyWith(color: OnCareColors.textSecondary),
-          ),
-        ),
-        const SizedBox(width: OnCareSpacing.s4),
-        // 값은 라벨 바로 옆에서 시작한다. 글자 배율이 커지면 값부터 줄인다 —
-        // 이 줄이 넘치면 카드 오른쪽의 도넛을 밀어낸다.
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text.rich(
-              TextSpan(
-                children: <InlineSpan>[
-                  TextSpan(
-                    text: item.value,
-                    // 초과면 빨강 — 바가 없으니 색이 그 말을 대신한다.
-                    // 세 항목이 각자 판단하므로 지방만 넘긴 날은 지방 줄만
-                    // 빨개진다. (회원 앱 #890)
-                    // 목표 안쪽은 목표 안 색(statusWithinGoal)을 흰 바탕에
-                    // 65% 로 옅게 깐 색이다 — 브랜드 토큰에서 그 색이
-                    // `macroProtein` 이다(#1070 #1239).
-                    style:
-                        OnCareTypography.numeric(
-                          tokens.text(
-                            OnCareTypography.strong(OnCareTypography.bodySmall),
-                          ),
-                        ).copyWith(
-                          color: item.isOverGoal
-                              ? OnCareColors.danger
-                              : tokens.brand.macroProtein,
-                        ),
-                  ),
-                  TextSpan(
-                    text: ' / ${item.goal}${item.unit}',
-                    style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.caption))
-                        .copyWith(color: OnCareColors.textSecondary),
-                  ),
-                ],
-              ),
-              maxLines: 1,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 아래 줄의 나트륨·당류 한 칸 — 라벨(+초과분) · 값/목표 · 진행 바.
-///
-/// 나트륨·당류는 탄단지와 달리 그 자체가 경고 지표라, 목표 안쪽일 때도 색이
-/// 또렷하다(옅게 두지 않는다).
-class _MineralItem extends StatelessWidget {
-  const _MineralItem({required this.item});
+/// 아래 줄의 탄·단·지 한 칸 — 라벨(+초과분) · 값/목표 · 진행 바. 회원 앱
+/// `오늘` 카드의 `_MacroProgressItem` 과 같은 구성이다(#2189).
+class _MacroProgressItem extends StatelessWidget {
+  const _MacroProgressItem({required this.item});
 
   final _Item item;
 
@@ -446,7 +357,7 @@ class _MineralItem extends StatelessWidget {
       OnCareTypography.strong(OnCareTypography.caption),
     );
     return Column(
-      key: Key('client-nutrition-mineral-${item.label}'),
+      key: Key('client-nutrition-macro-${item.label}'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text.rich(
@@ -495,7 +406,7 @@ class _MineralItem extends StatelessWidget {
         ),
         const SizedBox(height: OnCareSpacing.s8),
         AppProgressBar(
-          key: Key('client-nutrition-mineral-progress-${item.label}'),
+          key: Key('client-nutrition-macro-progress-${item.label}'),
           value: item.gaugeValue,
           color: color,
         ),

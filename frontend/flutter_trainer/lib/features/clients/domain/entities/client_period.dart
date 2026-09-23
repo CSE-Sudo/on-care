@@ -30,14 +30,18 @@ typedef ClientDateRange = ({DateTime from, DateTime to});
 /// 같은 기간을 보여야 나란히 놓고 이야기할 수 있다. (#1018)
 const int kClientAllPeriodDays = 84;
 
-/// `전체` 운동이 거슬러 올라가는 날 수. 회원 앱 운동 탭과 같은 **35주**다
+/// `전체` 운동이 거슬러 올라가는 **주** 수. 회원 앱 운동 탭과 같은 **35주**다
 /// (`kExerciseAllPeriodWeeks`). 식단보다 길다 — 운동은 한 칸이 한 주라 여덟 달을
 /// 늘어놓아도 읽히지만, 식단은 한 칸이 하루라 그만큼 길면 막대가 실오라기가
 /// 된다. (#1170)
 ///
 /// 12주로 두었더니 회원 앱에는 작년 12월치 기록이 있는데 트레이너 화면은 6월
 /// 이후만 보였다 — 같은 사람의 같은 이력을 두 화면이 다른 길이로 말했다.
-const int kClientAllExerciseDays = 35 * 7;
+///
+/// 날 수(35 × 7)가 아니라 주 수로 센다(#2157). 오늘에서 245일을 거슬러 가면
+/// 첫날이 주 한가운데에 떨어져, 첫 주가 잘린 채 한 칸 더 붙어 36칸이 됐다.
+/// 회원 앱은 이번 주 월요일에서 34주를 거슬러 **월요일부터** 35칸이다.
+const int kClientAllExerciseWeeks = 35;
 
 /// [period] 가 덮는 날짜 범위. [exercise] 면 `전체` 가 운동 기준으로 길어진다.
 ClientDateRange clientRangeFor(
@@ -62,13 +66,20 @@ ClientDateRange clientRangeFor(
     case ClientPeriod.month:
       // `이번 달` 이 아니라 `전체` 다 — 달이 바뀌었다고 앞의 기록이 사라지면
       // 추세를 볼 수 없다. 회원 앱과 같은 길이다(식단 12주 · 운동 35주).
-      final int days = exercise
-          ? kClientAllExerciseDays
-          : kClientAllPeriodDays;
-      return (
-        from: DateTime(day.year, day.month, day.day - days + 1),
-        to: day,
-      );
+      if (exercise) {
+        // 운동은 한 칸이 한 주라 **월요일에서** 시작한다(#2157).
+        final DateTime monday = clientMondayOf(day);
+        return (
+          from: DateTime(
+            monday.year,
+            monday.month,
+            monday.day - (kClientAllExerciseWeeks - 1) * 7,
+          ),
+          to: day,
+        );
+      }
+      const int days = kClientAllPeriodDays;
+      return (from: DateTime(day.year, day.month, day.day - days + 1), to: day);
   }
 }
 
@@ -203,6 +214,7 @@ class ClientExerciseDay {
     this.stretchingCalories = 0,
     this.otherCalories = 0,
     this.strengthSets = 0,
+    this.typeSplitFromPayload,
   });
 
   final DateTime date;
@@ -231,8 +243,24 @@ class ClientExerciseDay {
 
   /// 유형 분해가 있는가. 없으면 막대를 쌓지 않고 전부 유산소로 본다 —
   /// 임의로 나누면 없는 근력 시간을 지어내는 셈이다.
+  ///
+  /// **응답이 말해 주면 그 말을 따른다**(#2195). 주간 응답에 유형 배열이 실려
+  /// 왔는지는 `ClientExerciseWeek.hasTypeSplit` 이 알고, 회원 앱
+  /// (`dayLoadsOfWeek`)도 같은 기준 — 배열이 있으면 그 값을 그대로 쓴다.
+  /// 값으로 되짚으면 **네 유형이 모두 0 인 날**(쉰 날, 또는 분 없이 칼로리만
+  /// 있는 날)이 분해가 없는 날로 읽혀, 그날 분이 통째로 유산소로 간다.
+  ///
+  /// 그 말을 듣지 못한 날([typeSplitFromPayload] 가 null — 직접 만든 값)만 값으로
+  /// 되짚는다. `기타` 도 분해의 한 칸이다(#2157).
+  /// 주간 응답이 말한 분해 여부. 직접 만든 값이면 null 이다.
+  final bool? typeSplitFromPayload;
+
   bool get hasTypeSplit =>
-      cardioMinutes > 0 || strengthMinutes > 0 || stretchingMinutes > 0;
+      typeSplitFromPayload ??
+      (cardioMinutes > 0 ||
+          strengthMinutes > 0 ||
+          stretchingMinutes > 0 ||
+          otherMinutes > 0);
 }
 
 /// 한 기간의 운동 집계.
@@ -243,10 +271,16 @@ class ClientExercisePeriod {
     required this.days,
     this.weeklyGoalMinutes = 0,
     this.weeklyGoalCalories = 0,
+    this.streakDays = 0,
   });
 
   final ClientDateRange range;
   final List<ClientExerciseDay> days;
+
+  /// 운동한 날의 최장 연속 구간 — **서버가 센 값**이다(#2195). 여러 주를 이어
+  /// 붙인 기간이면 마지막(가장 최근) 주의 값이다. `이번 주` 도넛 옆의 연속
+  /// 태그가 이 값을 읽는다 — 회원 앱도 같은 필드를 쓴다.
+  final int streakDays;
 
   /// 회원의 주간 운동 시간 목표(분). 그래프의 목표선은 이 값을 7 로 나눠
   /// 하루 목표로 그린다 — 식단 그래프가 하루 목표를 그리는 것과 같은 뜻이다.

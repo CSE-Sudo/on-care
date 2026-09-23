@@ -15,7 +15,11 @@
 ///  * 기록이 없는 칸은 3px 짜리 회색 그루터기다. 0 을 아예 안 그리면 그 칸이
 ///    빠진 것처럼 보이고, 색을 주면 짧은 운동을 한 것처럼 보인다.
 ///  * 링 12시에는 그 링이 무엇인지 말하는 흰 기호를, 원호 **끝**에는 그림자와
-///    얇은 `>` 를 얹는다 — 한 바퀴를 넘겨 겹쳐도 어디서 멈췄는지 읽힌다.
+///    얇은 `>` 를 얹는다 — 한 바퀴를 넘겨 겹쳐도 어디서 멈췄는지 읽힌다. 목표의
+///    정확한 배수(100%·200% …)에서는 끝이 12시 기호와 겹치므로 둘 다 생략한다
+///    (회원 앱 #1462).
+///  * 목표는 코드 상수가 아니라 회원 프로필에서 읽은 [ExerciseBurnGoals] 다
+///    (회원 앱 #1139, #2157).
 ///
 /// 회원 앱에는 진입 애니메이션이 있지만 여기서는 정적으로 그린다. 트레이너
 /// 콘솔의 다른 차트(`BarSeriesChart`)도 정적이라, 한 화면에서 어떤 그래프는
@@ -30,6 +34,7 @@ import 'package:intl/intl.dart' show DateFormat, NumberFormat;
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/widgets/chart_semantics.dart';
+import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 소모 칼로리 색. **트레이너 메인 색**이다 (#1168).
@@ -362,27 +367,63 @@ class BurnGoalRings extends StatelessWidget {
     required this.calories,
     required this.split,
     required this.title,
+    this.goals = kDefaultExerciseBurnGoals,
+    this.range,
   });
 
   final int calories;
   final ActivitySplit split;
   final String title;
 
+  /// 회원의 목표 — 머리줄의 주간 소모 목표와 링 셋의 주간 목표(#2157).
+  final ExerciseBurnGoals goals;
+
+  /// 이 카드가 집계한 주(월~일). 주면 머리줄 **같은 줄** 오른쪽에 적는다
+  /// (회원 앱 #2007) — 제 줄을 쓰면 고정 높이 안에서 링과 목록이 그만큼
+  /// 깎인다. `전체` 는 제 기간을 스스로 적는데 `이번 주` 만 비어 있으면, 이
+  /// 숫자가 어느 주의 것인지 카드가 말하지 않는다.
+  final ({DateTime from, DateTime to})? range;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
     final String locale = Localizations.localeOf(context).toString();
+    final ({DateTime from, DateTime to})? r = range;
     final List<double> ratios = <double>[
       for (final ExerciseKind kind in ExerciseKind.values)
-        split.valueOf(kind) / weeklyGoalOf(kind),
+        goals.weeklyGoalOf(kind) <= 0
+            ? 0
+            : split.valueOf(kind) / goals.weeklyGoalOf(kind),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        ActivityHeadlineLine(
-          caption: title,
-          value: activityValueOfGoal(locale, calories, kWeeklyBurnKcal),
-          unit: l.unitKcal,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(
+              flex: 6,
+              child: ActivityHeadlineLine(
+                caption: title,
+                value: activityValueOfGoal(
+                  locale,
+                  calories,
+                  goals.weeklyBurnKcal,
+                ),
+                unit: l.unitKcal,
+              ),
+            ),
+            if (r != null) ...<Widget>[
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                flex: 4,
+                child: PeriodRangeLabel(
+                  key: const Key('client-exercise-week-range'),
+                  text: periodRangeText(locale, r.from, r.to),
+                ),
+              ),
+            ],
+          ],
         ),
         Expanded(
           child: LayoutBuilder(
@@ -441,7 +482,7 @@ class BurnGoalRings extends StatelessWidget {
                                     label: kindLabel(l, kind),
                                     value: '${split.valueOf(kind).round()}',
                                     goal:
-                                        '/${kindValueText(l, kind, weeklyGoalOf(kind))}',
+                                        '/${kindValueText(l, kind, goals.weeklyGoalOf(kind))}',
                                   ),
                                 // 기타는 목표가 없다 — 오늘 카드와 같이 분만
                                 // 적고, 한 주에 기록이 있을 때만 맨 아래 회색
@@ -480,11 +521,17 @@ class ActivityHeadlineLine extends StatelessWidget {
     required this.caption,
     required this.value,
     required this.unit,
+    this.stacked = false,
   });
 
   final String caption;
   final String value;
   final String unit;
+
+  /// 이름을 위 한 줄, 숫자를 그 아래 한 줄로 쌓을지. `전체` 가 쓴다 — 오른쪽
+  /// 칸이 날짜 기간 + 유형별 내역 여러 줄이라, 한 줄 머리는 숫자 아래가
+  /// 통째로 빈다(회원 앱 #2061).
+  final bool stacked;
 
   @override
   Widget build(BuildContext context) {
@@ -492,6 +539,43 @@ class ActivityHeadlineLine extends StatelessWidget {
     final TextStyle minor = tokens.text(
       OnCareTypography.strong(OnCareTypography.caption),
     );
+    final Widget captionText = Text(
+      caption,
+      style: minor.copyWith(color: OnCareColors.textSecondary),
+    );
+    final List<Widget> number = <Widget>[
+      Text(
+        value,
+        style: tokens
+            .text(OnCareTypography.numeric(OnCareTypography.titleLarge))
+            .copyWith(color: OnCareColors.textPrimary),
+      ),
+      const SizedBox(width: OnCareSpacing.s4),
+      Text(unit, style: minor.copyWith(color: OnCareColors.textTertiary)),
+    ];
+    if (stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: captionText,
+          ),
+          const SizedBox(height: OnCareSpacing.s4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: number,
+            ),
+          ),
+        ],
+      );
+    }
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: AlignmentDirectional.centerStart,
@@ -499,19 +583,9 @@ class ActivityHeadlineLine extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
-          Text(
-            caption,
-            style: minor.copyWith(color: OnCareColors.textSecondary),
-          ),
+          captionText,
           const SizedBox(width: OnCareSpacing.s8),
-          Text(
-            value,
-            style: tokens
-                .text(OnCareTypography.numeric(OnCareTypography.titleLarge))
-                .copyWith(color: OnCareColors.textPrimary),
-          ),
-          const SizedBox(width: OnCareSpacing.s4),
-          Text(unit, style: minor.copyWith(color: OnCareColors.textTertiary)),
+          ...number,
         ],
       ),
     );
@@ -725,12 +799,13 @@ class BurnBarChart extends StatelessWidget {
             onSelected: selection.select,
             onVisibleRangeChanged: selection.setVisible,
             daysPerScreen: _slotsPerScreen,
-            // 목표치는 왼쪽 칸에 두 줄로 적는다 (#1071).
+            // 목표치는 왼쪽 칸에 두 줄로 적는다 (#1071). 단위는 붙이지 않는다 —
+            // 회원 앱 `전체` 와 같은 `목표\n2100` 이다(#2157). kcal 은 바로
+            // 위 머리줄이 이미 말한다.
             goalBottom: goalKcal > 0
                 ? chartHeight * (goalKcal / max).clamp(0.0, 1.0)
                 : null,
-            goalLabel:
-                '${l.clientPeriodGoal}\n${goalKcal.round()}${l.unitKcal}',
+            goalLabel: '${l.clientPeriodGoal}\n${goalKcal.round()}',
             // 달이 바뀌는 칸에만 적는다 — 모든 칸에 적으면 글자가 서로 겹쳐
             // 아무것도 읽히지 않는다. 회원 앱 `전체` 그래프와 같은 규칙이다.
             labelBuilder: (int i) =>
@@ -1073,6 +1148,20 @@ double ringOverflowTurn(double ratio) {
   return ratio - ratio.floorToDouble();
 }
 
+/// 부동소수점 오차를 감안한 허용 오차 (회원 앱 #1462).
+const double _kRingMultipleEpsilon = 1e-6;
+
+/// [filled] 가 목표의 정확한 양의 정수 배(1, 2, 3 …)에 아주 가까운가.
+///
+/// 이 자리에서는 원호 끝이 12시의 고정 시작 기호와 겹친다 — 캡 그림자와
+/// 진행 끝 `>` 기호를 여기 또 그리면 검은 얼룩과 아이콘 중복으로 보인다
+/// (회원 앱 #1462). 0(아직 시작 전)은 배수로 치지 않는다.
+bool isAtRingMultiple(double filled) {
+  if (!filled.isFinite || filled < 1 - _kRingMultipleEpsilon) return false;
+  final double nearest = filled.roundToDouble();
+  return nearest >= 1 && (filled - nearest).abs() <= _kRingMultipleEpsilon;
+}
+
 /// 링 하나 — 트랙 + 채운 호. 목표를 넘기면 한 바퀴를 넘어 이어 그리고, 겹친
 /// 끝 아래에 그림자를 깔아 어디서 멈췄는지 보이게 한다. 그림자는 그 링의
 /// 두께로 잘라 밖으로 번지지 않는다.
@@ -1105,7 +1194,10 @@ void paintRing(
     ..strokeWidth = stroke
     ..strokeCap = StrokeCap.round
     ..color = color;
-  if (ratio >= 1) {
+  // 정확한 목표 배수(100%, 200% …)에서는 캡 그림자와 끝 `>` 를 그리지 않는다
+  // (회원 앱 #1462) — 끝이 12시 기호와 겹쳐 검은 얼룩과 기호 둘로 보인다.
+  final bool atMultiple = isAtRingMultiple(ratio);
+  if (ratio >= 1 - _kRingMultipleEpsilon) {
     // 한 바퀴는 **끝이 없는 원**으로. 2π 원호에 둥근 끝을 주면 시작과 끝의
     // 캡이 같은 자리에 겹쳐 혹처럼 튀어나온다.
     canvas.drawCircle(
@@ -1116,18 +1208,20 @@ void paintRing(
         ..strokeWidth = stroke
         ..color = color,
     );
-    final double over = ringOverflowTurn(ratio);
+    final double over = atMultiple ? 0 : ringOverflowTurn(ratio);
     capAngle = -math.pi / 2 + math.pi * 2 * over;
-    _paintCapShadow(canvas, center, radius, stroke, capAngle);
-    if (over > 0) {
-      canvas.drawArc(rect, -math.pi / 2, math.pi * 2 * over, false, arc);
+    if (!atMultiple) {
+      _paintCapShadow(canvas, center, radius, stroke, capAngle);
+      if (over > 0) {
+        canvas.drawArc(rect, -math.pi / 2, math.pi * 2 * over, false, arc);
+      }
     }
   } else if (ratio > 0) {
     capAngle = -math.pi / 2 + math.pi * 2 * ratio;
     _paintCapShadow(canvas, center, radius, stroke, capAngle);
     canvas.drawArc(rect, -math.pi / 2, math.pi * 2 * ratio, false, arc);
   }
-  if (ratio > 0) {
+  if (ratio > 0 && !atMultiple) {
     _paintCapChevron(canvas, center, radius, stroke, capAngle);
   }
   // 유형 기호는 12시에 고정한다 — 링이 한 바퀴를 넘겨 겹쳐도 가려지지 않게

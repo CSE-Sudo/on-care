@@ -39,6 +39,7 @@ import 'package:oncare_trainer/features/search/presentation/widgets/client_searc
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 // 예외 둘: 탭 이동 시 스크롤 초기화(UI 위젯 아님), 그리고 요일별 막대그래프
 // — 패키지에 대응 차트가 없고 리포트 탭·테스트가 같은 위젯 타입을 쓴다.
 import 'package:oncare_trainer/shared/widgets/client_picker_card.dart';
@@ -1085,6 +1086,10 @@ class _ClientDataSwitcherState extends ConsumerState<_ClientDataSwitcher> {
             ProgramNutritionSummaryCard(
               key: ValueKey<String>('program-diet-${widget.client.id}'),
               client: widget.client,
+              // 목표는 회원 프로필에서 읽는다(#2189). 읽는 중·실패면 기본값.
+              profile: ref
+                  .watch(memberHealthProfileProvider(widget.client.id))
+                  .valueOrNull,
             )
           else
             ClientDietPeriodCard(

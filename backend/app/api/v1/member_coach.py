@@ -10,7 +10,7 @@ TrainerSchedule, TrainerClient)을 회원 관점으로 읽고 쓴다. 이로써 
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -26,6 +26,7 @@ from app.schemas.trainer_api import (
 )
 from app.services import (
     emote_service,
+    member_departure,
     trainer_client_invite_service,
     trainer_service,
 )
@@ -65,7 +66,10 @@ def disconnect_my_coach(
 
     이미 연결이 없으면 404 가 아니라 204 다. 해제는 멱등이어야 하고, 두 번 눌렀다고
     오류 화면을 보일 이유가 없다.
+
+    담당 트레이너에게는 연결이 끊겼다고 알린다(#2174). 해제와 같은 커밋에 얹는다.
     """
+    member_departure.notify_trainer(db, current_user, reason="disconnected")
     trainer_service.disconnect_member_gym(db, current_user.id)
 
 
@@ -78,7 +82,10 @@ def disconnect_my_trainer(
 
     헬스장은 그대로 두고 담당만 바꾸는 흐름(트레이너 교체)이 있어야 하므로 전체
     해제와 나눈다. 전체 해제와 마찬가지로 멱등이다. (#444)
+
+    담당 트레이너에게는 연결이 끊겼다고 알린다(#2174).
     """
+    member_departure.notify_trainer(db, current_user, reason="disconnected")
     trainer_service.disconnect_member_coach(db, current_user.id)
 
 
@@ -86,9 +93,23 @@ def disconnect_my_trainer(
 def my_routines(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
+    day: Annotated[
+        date | None,
+        Query(
+            alias="date",
+            description="이날 걸려 있던 목록과 그날 완료(KST). 없으면 오늘.",
+        ),
+    ] = None,
 ) -> list[RoutineOut]:
-    """트레이너/AI가 나에게 배정한 루틴."""
-    return trainer_service.build_member_routines(db, current_user.id)
+    """트레이너/AI가 나에게 배정한 루틴 — 그날 목록과 그날 완료. (#2161)
+
+    추천 개인운동은 매일 미완료로 다시 시작한다. `completed` 는 그날 완료했는가다.
+    지난 날짜는 읽기 전용 기록이고, 아직 오지 않은 날은 422 다.
+    """
+    try:
+        return trainer_service.build_member_routines(db, current_user.id, day)
+    except trainer_service.RoutineDayInFuture as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post(
@@ -101,7 +122,7 @@ def complete_my_routine(
     member: RequireMember,
     db: Annotated[Session, Depends(get_db)],
 ) -> RoutineCompleteOut:
-    """나에게 배정된 루틴을 회원 운동 기록으로 한 번만 완료한다.
+    """나에게 배정된 루틴을 오늘의 운동 기록으로 완료한다 — 하루 한 번 (#2161).
 
     포인트 적립 결과(`points`)가 함께 온다 — AI 추천·트레이너 배정 모두 같은
     규칙이다(#1786).

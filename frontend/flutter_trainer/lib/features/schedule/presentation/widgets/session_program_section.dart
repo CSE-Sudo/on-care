@@ -34,7 +34,10 @@ class SessionProgramRow extends StatelessWidget {
         l.minutesShort(item.duration!),
     ];
     final String detail = parts.join(' · ');
+    // 운동마다 구획이 이어져 깔리므로 기본 채움보다 한 단계 옅게 둔다 —
+    // 기본 채움으로는 목록 전체가 무겁게 읽혔다(#2177).
     return AppTile(
+      tone: AppTileTone.brandSoft,
       child: Row(
         children: <Widget>[
           Container(
@@ -129,7 +132,7 @@ class SessionNoPlanBox extends StatelessWidget {
             ),
           ),
           const SizedBox(width: OnCareSpacing.s8),
-          // `프로그램 수정`(관리 줄, `session-edit-program-chip`)과는 다른
+          // `프로그램 수정`(편집 메뉴, `session-edit-program-chip`)과는 다른
           // 동작이라 키도 다르다 — 이 카드에서 편집기를 여는 게 아니라 코칭
           // 탭으로 나간다.
           AppIconButton(
