@@ -270,6 +270,7 @@ class _RecordAddSheet extends StatelessWidget {
     final l = AppLocalizations.of(context);
     return AppSheet(
       key: const Key('recordAddSheet'),
+      showClose: false,
       title: l.navAddRecordTitle,
       subtitle: l.navAddRecordSubtitle,
       // 시트는 화면 끝까지 내려오므로, 홈 인디케이터가 있는 기기에서는 그만큼을

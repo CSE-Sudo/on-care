@@ -87,6 +87,34 @@ class TrainerMe(BaseModel):
     gym: TrainerGymOut
 
 
+class ClientSignalOut(BaseModel):
+    """회원 목록의 PT 관리 신호 하나. (#2203)
+
+    기준은 `app/services/client_signals.py` 에 있다. 근거 값은 신호마다 쓰는 것만
+    채운다 — 기록 끊김·배정 루틴 미수행은 `days`, 노쇼·취소 반복은 `count`, 운동
+    목표 미달·칼로리 이탈·단백질 부족은 `percent`, 칼로리 이탈은 `direction` 도.
+    """
+    kind: Literal[
+        "discomfort",
+        "record_gap",
+        "no_show",
+        "routine_missed",
+        "exercise_goal_low",
+        "calorie_off",
+        "protein_low",
+    ]
+    #: 기록 끊김: 마지막 기록(없으면 담당 시작일)에서 지난 날 수, 30 이면 30일 넘게.
+    #: 배정 루틴 미수행: 루틴이 걸려 있었는데 하나도 완료하지 않은 날 수.
+    days: int | None = None
+    #: 노쇼·취소 반복: 최근 30일 노쇼와 회원 사정 취소 횟수.
+    count: int | None = None
+    #: 운동 목표 미달: 경과일 비례 달성률(%). 칼로리 이탈: 목표에서 벗어난 폭(%).
+    #: 단백질 부족: 목표 대비 섭취율(%).
+    percent: int | None = None
+    #: 칼로리 이탈의 방향.
+    direction: Literal["over", "under"] | None = None
+
+
 class TrainerClientOut(BaseModel):
     """고객 로스터 카드 — 프론트 TrainerClient 계약 정렬.
 
@@ -123,6 +151,9 @@ class TrainerClientOut(BaseModel):
     #: 바꿔 가며 볼 수 있다(#746). 당류만 소수를 유지한다.
     calories_week: list[int] = Field(default_factory=list)
     sugar_week: list[float] = Field(default_factory=list)
+    #: PT 관리 신호, 급한 순(#2203). 담당 해제·휴면 회원은 빈 목록이다. 답장 대기는
+    #: 앱이 안 읽은 메시지 수로 따로 센다.
+    signals: list[ClientSignalOut] = Field(default_factory=list)
 
 
 class TrainerClientStatusUpdate(BaseModel):

@@ -690,9 +690,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get actionClose => '닫기';
-
-  @override
   String exWeekNumber(int n) {
     return '$n주';
   }
@@ -3439,13 +3436,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get coachRoutineIntensity => '수행 강도';
 
   @override
-  String get coachIntensityLight => '가벼움';
+  String coachRoutinePlannedIntensity(String level) {
+    return '권장 $level';
+  }
 
   @override
-  String get coachIntensityModerate => '보통';
-
-  @override
-  String get coachIntensityHigh => '높음';
+  String coachRoutineDoneIntensity(String level) {
+    return '수행 $level';
+  }
 
   @override
   String get coachRoutineSubmit => '완료 기록';

@@ -39,6 +39,7 @@ class CoachRoutine {
     required this.type,
     required this.reason,
     required this.source,
+    this.intensity = 'moderate',
     this.completed = false,
     this.completedAt,
     this.completedMinutes,
@@ -66,6 +67,13 @@ class CoachRoutine {
 
   /// `ai` (AI-suggested) or `trainer` (hand-assigned).
   final String source;
+
+  /// 트레이너가 권하는 강도 — `light` | `moderate` | `high`. (#2160)
+  ///
+  /// 서버가 배정마다 들고 있던 값인데 회원 앱은 받지 않아, 회원은 이 운동을 어느
+  /// 강도로 하라는 것인지 모르고 시작했다. 이 필드를 모르는 옛 응답은 서버
+  /// 기본값과 같은 `moderate` 로 읽는다.
+  final String intensity;
   final bool completed;
   final DateTime? completedAt;
   final int? completedMinutes;

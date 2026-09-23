@@ -28,7 +28,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.schemas.trainer_api import ReportSummaryOut, WeeklyReportOut
-from app.services import trainer_service
+from app.services import client_signals, trainer_service
 from app.services.coach import prompt_safety
 from app.services.coach.llm import DEFAULT_THINKING_BUDGET, get_coach_llm
 
@@ -43,8 +43,9 @@ CALORIE_TARGET_KCAL = 2000
 SUGAR_TARGET_G = 50
 
 #: 칼로리가 목표에서 이만큼 벗어나면 주의로 본다. 하루하루가 목표에 딱 맞는
-#: 주는 없으므로 좁게 잡으면 매주 주의가 뜬다.
-CALORIE_TOLERANCE = 0.15
+#: 주는 없으므로 좁게 잡으면 매주 주의가 뜬다. 회원 목록의 `칼로리 목표 이탈`
+#: 배지와 같은 기준이라 값은 `client_signals` 한 곳에 둔다(#2203).
+CALORIE_TOLERANCE = client_signals.CALORIE_TOLERANCE
 
 #: 당류를 이 날 수보다 많이 넘겼으면 주의로 본다 — 나트륨과 같은 규칙이다.
 SUGAR_OVER_DAYS = 2

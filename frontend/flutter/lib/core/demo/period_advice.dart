@@ -21,8 +21,8 @@ typedef ExerciseDayTotals = ({
   Map<String, int> byType,
 });
 
-/// DASH 권고 상한. 서버의 `diet_service.DASH_SODIUM_LIMIT_MG` 와 같은 값이다.
-const int kDashSodiumLimitMg = 2000;
+/// 하루 나트륨 상한(WHO 권고). 서버의 `diet_service.SODIUM_LIMIT_MG` 와 같은 값이다.
+const int kSodiumLimitMg = 2000;
 
 /// 기간 이름 — 화면의 기간 토글, 서버의 `period` 쿼리와 같은 말이다.
 const String kPeriodToday = 'today';
@@ -58,7 +58,7 @@ String dietPeriodAdvice(List<DietDayTotals> days, String period) {
 
   final List<DietDayTotals> over = <DietDayTotals>[
     for (final DietDayTotals d in days)
-      if (d.sodiumMg > kDashSodiumLimitMg) d,
+      if (d.sodiumMg > kSodiumLimitMg) d,
   ];
 
   if (period == kPeriodWeek) {
@@ -110,7 +110,7 @@ String dietPeriodAdvice(List<DietDayTotals> days, String period) {
 
   // 오늘 — 그날 합계 하나로 말한다.
   final DietDayTotals today = days.last;
-  if (today.sodiumMg > kDashSodiumLimitMg) {
+  if (today.sodiumMg > kSodiumLimitMg) {
     return '오늘 나트륨 ${today.sodiumMg}mg 로 권장량을 넘겼어요. 남은 끼니는 담백하게.';
   }
   return '오늘 나트륨 ${today.sodiumMg}mg 로 권장량 안이에요. 이대로 마무리해요.';

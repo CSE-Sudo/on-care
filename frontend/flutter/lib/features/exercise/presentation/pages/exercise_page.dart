@@ -714,13 +714,18 @@ class _DayRecordCard extends ConsumerWidget {
   ];
 
   /// 세션 한 줄. 이름은 회원이 적은 것 → 배정 루틴 이름 → 유형 순으로 고른다.
+  ///
+  /// 끝에 **그날 한 강도**를 적는다(#2160). 직접 기록한 운동 줄은 강도를 태그로
+  /// 이미 말하는데 PT·추천 운동에서 파생된 기록만 빠져 있어, 회원이 지난 날짜를
+  /// 열어도 자기가 어느 강도로 했는지 다시 볼 수 없었다.
   static String _line(AppLocalizations l, ExerciseSession s) {
     final String name = s.name.isNotEmpty
         ? s.name
         : s.assignedRoutineName.isNotEmpty
         ? s.assignedRoutineName
         : exerciseTypeLabel(l, s.type);
-    return '$name · ${exerciseAmountLabel(l, s)}';
+    return '$name · ${exerciseAmountLabel(l, s)} · '
+        '${exerciseIntensityLabel(l, s.intensity)}';
   }
 
   @override

@@ -157,7 +157,7 @@ class _OwnRecordCard extends ConsumerWidget {
                   children: <Widget>[
                     AppTag(label: exerciseTypeLabel(l, session.type)),
                     AppTag(label: exerciseAmountLabel(l, session)),
-                    AppTag(label: _intensityLabel(l, session.intensity)),
+                    AppTag(label: exerciseIntensityLabel(l, session.intensity)),
                     Text(
                       '${NumberFormat('#,###').format(session.calories)} '
                       '${l.unitKcal}',
@@ -188,7 +188,11 @@ class _OwnRecordCard extends ConsumerWidget {
   }
 }
 
-String _intensityLabel(AppLocalizations l, ExerciseIntensity intensity) =>
+/// 강도 한 값의 표기 — `가벼움`·`보통`·`높음`.
+///
+/// 직접 기록한 운동 줄과 추천 개인운동의 권장 강도가 같은 문구를 쓴다(#2160).
+/// 같은 값을 화면마다 다른 말로 적으면 회원이 다른 것으로 읽는다.
+String exerciseIntensityLabel(AppLocalizations l, ExerciseIntensity intensity) =>
     switch (intensity) {
       ExerciseIntensity.light => l.exLevelLight,
       ExerciseIntensity.moderate => l.exLevelModerate,

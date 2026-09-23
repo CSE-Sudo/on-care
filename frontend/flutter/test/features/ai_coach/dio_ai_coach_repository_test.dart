@@ -79,7 +79,8 @@ void main() {
 
   test('코치 답변의 근거를 그대로 싣는다', () async {
     final adapter = _StubAdapter(
-      '{"reply":"국물을 남겨보세요","sources":["나트륨 줄이기","DASH 식단 개요"]}',
+      '{"reply":"국물을 남겨보세요",'
+      '"sources":["2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회 — 나트륨과 염소"]}',
     );
     final repo = DioAiCoachRepository(_dioWith(adapter));
 
@@ -90,6 +91,9 @@ void main() {
 
     expect(reply.role, ChatRole.coach);
     expect(reply.content, '국물을 남겨보세요');
-    expect(reply.sources, contains('DASH 식단 개요'));
+    expect(
+      reply.sources,
+      contains('2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회 — 나트륨과 염소'),
+    );
   });
 }

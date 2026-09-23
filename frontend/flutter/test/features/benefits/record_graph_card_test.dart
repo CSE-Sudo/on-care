@@ -403,6 +403,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('초록'), findsOneWidget);
+    // 회원 앱의 부분 창에는 닫기 X 를 두지 않는다(#2170).
+    expect(find.byType(AppCloseButton), findsNothing);
     // 열지 않은 색에만 값이 붙는다. 이미 연 색은 포인트 없이 바꾼다.
     expect(find.text('150P로 열기'), findsNWidgets(3));
 

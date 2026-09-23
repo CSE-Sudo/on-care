@@ -270,6 +270,7 @@ class FixtureRoutine {
     this.reps,
     this.holdSeconds,
     this.weight,
+    this.intensity = 'moderate',
   });
 
   factory FixtureRoutine.fromJson(Map<String, Object?> json) => FixtureRoutine(
@@ -283,6 +284,7 @@ class FixtureRoutine {
     reps: (json['reps'] as num?)?.toInt(),
     holdSeconds: (json['holdSeconds'] as num?)?.toInt(),
     weight: (json['weight'] as num?)?.toDouble(),
+    intensity: json['intensity'] as String? ?? 'moderate',
   );
 
   /// 실서버 시드가 쓰는 것과 같은 id. 두 앱이 같은 루틴을 같은 이름으로
@@ -310,6 +312,12 @@ class FixtureRoutine {
   /// 쓴다 — 있으면 횟수가 비고, 없으면 반대다. (#1969)
   final int? holdSeconds;
   final double? weight;
+
+  /// 트레이너가 권하는 강도 — `light` | `moderate` | `high`. (#2160)
+  ///
+  /// 회원 앱이 추천 개인운동 줄에 그대로 적는다. 이 값을 적지 않던 픽스처는
+  /// 서버 기본값과 같은 `moderate` 로 읽힌다.
+  final String intensity;
 }
 
 /// 픽스처 파일 한 벌.

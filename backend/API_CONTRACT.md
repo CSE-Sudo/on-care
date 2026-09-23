@@ -768,6 +768,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 실제 회원 User이고 트레이너 API는 회원의 실제 `diet_entries`·`routine_history`를 그대로
 읽어 집계한다.
 
+**로스터의 PT 관리 신호 (#2203)**: `GET /trainer/clients` 의 각 카드는 `signals` 를 싣는다 —
+`[{ kind, days?, count?, percent?, direction? }]`, 급한 순. `kind` 는 `discomfort`(통증·불편) ·
+`record_gap`(기록 끊김, `days`) · `no_show`(노쇼·취소 반복, `count`) · `routine_missed`(배정 루틴
+미수행, `days`) · `exercise_goal_low`(운동 목표 미달, `percent`) · `calorie_off`(칼로리 목표 이탈,
+`percent`·`direction` over|under) · `protein_low`(단백질 부족, `percent`) 일곱 가지다. 담당 해제·휴면
+회원은 빈 목록이다. 답장 대기는 여기 없다 — 앱이 `/trainer/chat/unread` 로 실시간으로 센다.
+기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
+
 ---
 
 ## 인증
@@ -920,5 +928,8 @@ CORS 와일드카드, 기본·짧은 `DEMO_LOGIN_PASSWORD` 로 켠 데모 시드
 
 ## 도메인 핵심 (놓치면 안 되는 차별점)
 
-On-Care 는 **고혈압·당뇨 위험군 특화**다. 식단은 칼로리뿐 아니라 **나트륨(sodium_mg)·당류(sugar_g)**
-가 1급 지표다. Gemini 식단 분석 프롬프트도 **DASH 식단/고혈압 관점**(기존 PoC 의 프롬프트)을 반영한다.
+On-Care 의 식단은 칼로리뿐 아니라 **나트륨(sodium_mg)·당류(sugar_g)** 가 1급 지표다. 근거는
+WHO 나트륨 권고와 **2025 한국인 영양소 섭취기준**(첨가당 총에너지 10% 이내, 나트륨 만성질환
+위험감소섭취량)이고, 그 원문이 AI 코치의 공개 근거 문서로 적재된다. 예전에 이 자리에 있던
+**고혈압·당뇨 위험군 특화 / DASH 식단 관점** 서술은 폐기된 스타트 단계의 타깃이다 — 지금
+타깃은 PT 를 이용하는 회원과 이들을 관리하는 트레이너다(#1652).

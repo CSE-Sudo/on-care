@@ -103,6 +103,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         type: r.type,
         reason: r.reason,
         source: r.source,
+        // 권장 강도도 픽스처가 정한다 — 실서버와 같은 값이어야 모드를 바꿔도
+        // 같은 안내가 뜬다(#2160).
+        intensity: r.intensity,
         sets: r.sets,
         reps: r.reps,
         weight: r.weight,
@@ -122,6 +125,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       type: '유산소',
       reason: '회복 목적의 가벼운 유산소예요. 대화할 수 있는 속도로 걸어 보세요.',
       source: 'ai',
+      intensity: 'light',
     ),
     CoachRoutine(
       id: 'auto-stretch',
@@ -130,6 +134,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       type: '스트레칭',
       reason: '굳은 근육을 풀어 다음 운동을 준비해요. 통증이 있으면 멈추세요.',
       source: 'ai',
+      intensity: 'light',
     ),
   ];
 

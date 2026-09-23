@@ -693,7 +693,6 @@ void main() {
     expect(en.exExerciseContent, 'What you did');
     expect(en.exViewDetail, 'View details');
     expect(en.exRegister, 'Register');
-    expect(en.actionClose, 'Close');
     expect(en.exGymRegistered('Gangnam Gym'), 'Registered Gangnam Gym');
     expect(ko.exGymRegistered('강남 짐'), '강남 짐을(를) 등록했어요');
 
@@ -702,7 +701,6 @@ void main() {
       en.exExerciseContent,
       en.exViewDetail,
       en.exRegister,
-      en.actionClose,
       en.exGymRegistered('Gym'),
       // 재사용한 기존 키도 영문 값이 멀쩡한지 함께 본다.
       en.exStatTime,

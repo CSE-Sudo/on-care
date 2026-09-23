@@ -107,6 +107,7 @@ class _TrainerSyncSheetState extends ConsumerState<_TrainerSyncSheet> {
         .copyWith(color: OnCareColors.textSecondary);
 
     return AppSheet(
+      showClose: false,
       title: l.trainerSyncTitle,
       child: SafeArea(
         top: false,

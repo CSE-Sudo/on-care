@@ -63,7 +63,7 @@ Future<void> _open(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('머리에 Oni 아바타·AI 건강 도우미·오늘의 한 줄·둥근 닫기가 한 줄로 놓인다', (tester) async {
+  testWidgets('머리에 Oni 아바타·AI 건강 도우미·오늘의 한 줄이 놓이고 닫기는 없다', (tester) async {
     await _open(tester);
 
     final Finder header = find.byKey(const Key('coachingSheetHeader'));
@@ -72,30 +72,28 @@ void main() {
       find.byType(OniAvatar),
       find.text('AI 건강 도우미'),
       find.text('오늘의 맞춤 조언을 모아봤어요'),
-      find.byKey(const Key('coachingSheetClose')),
     ]) {
       expect(find.descendant(of: header, matching: part), findsOneWidget);
     }
 
-    // 아바타가 왼쪽, 닫기가 오른쪽 끝이다 — 같은 줄에 있다.
+    // 아바타가 왼쪽, 제목이 그 오른쪽이다 — 같은 줄에 있다.
     final Rect avatar = tester.getRect(
       find.descendant(of: header, matching: find.byType(OniAvatar)),
     );
-    final Rect close = tester.getRect(
-      find.byKey(const Key('coachingSheetClose')),
-    );
     final Rect title = tester.getRect(find.text('AI 건강 도우미'));
     expect(avatar.right, lessThan(title.left));
-    expect(close.left, greaterThan(title.right));
-    expect((avatar.center.dy - close.center.dy).abs(), lessThan(12));
+    expect(title.center.dy, greaterThan(avatar.top));
+    expect(title.center.dy, lessThan(avatar.bottom));
 
     // 제목 글자는 메인 파랑이다.
     final Text pill = tester.widget<Text>(find.text('AI 건강 도우미'));
     final BuildContext ctx = tester.element(find.text('AI 건강 도우미'));
     expect(pill.style?.color, ctx.oncare.brand.primary);
 
-    // 예전 공용 시트 제목(큰 제목 + 닫기 X)은 없다.
+    // 회원 앱의 부분 창에는 닫기 X 를 두지 않는다 — 공용 X 도, 둥근 X 도
+    // 없다(#2170).
     expect(find.byType(AppCloseButton), findsNothing);
+    expect(find.byKey(const Key('coachingSheetClose')), findsNothing);
   });
 
   testWidgets('조언 카드는 왼쪽 알약 태그와 제목·본문이다', (tester) async {
@@ -108,9 +106,10 @@ void main() {
     expect(tag.right, lessThan(title.left));
   });
 
-  testWidgets('둥근 닫기를 누르면 창이 닫히고, 대화 버튼은 AI 코치로 간다', (tester) async {
+  testWidgets('바깥을 누르면 창이 닫히고, 대화 버튼은 AI 코치로 간다', (tester) async {
     await _open(tester);
-    await tester.tap(find.byKey(const Key('coachingSheetClose')));
+    // 닫기 X 가 없는 대신 시트 위 빈 곳(막)을 눌러 닫는다.
+    await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('coachingSheet')), findsNothing);
 

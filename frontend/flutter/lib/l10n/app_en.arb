@@ -404,7 +404,6 @@
       }
     }
   },
-  "actionClose": "Close",
   "exWeekNumber": "Week {n}",
   "@exWeekNumber": {
     "placeholders": {
@@ -2799,17 +2798,23 @@
   "@coachRoutineIntensity": {
     "description": "Field label in the completion dialog."
   },
-  "coachIntensityLight": "Light",
-  "@coachIntensityLight": {
-    "description": "Intensity option."
+  "coachRoutinePlannedIntensity": "Suggested {level}",
+  "@coachRoutinePlannedIntensity": {
+    "description": "The intensity the trainer suggests for a routine.",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
   },
-  "coachIntensityModerate": "Moderate",
-  "@coachIntensityModerate": {
-    "description": "Intensity option."
-  },
-  "coachIntensityHigh": "High",
-  "@coachIntensityHigh": {
-    "description": "Intensity option."
+  "coachRoutineDoneIntensity": "Logged {level}",
+  "@coachRoutineDoneIntensity": {
+    "description": "The intensity the member logged for a completed routine.",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
   },
   "coachRoutineSubmit": "Save",
   "@coachRoutineSubmit": {
