@@ -2007,15 +2007,13 @@ def _session_summary(
     return minutes, type_, ("ai" if has_ai else "trainer")
 
 
-def _program_request_key(base: str, index: int, day: int = 0) -> str:
-    """세션·날짜별 멱등키. 프로그램 전체가 한 번의 전송 시도이므로 같은 base 를 쓴다.
+def _program_request_key(base: str, index: int) -> str:
+    """세션별 멱등키. 프로그램 전체가 한 번의 전송 시도이므로 같은 base 를 쓴다.
 
     세션마다 키를 나누는 이유는 `(trainer, member, client_request_id)` 유니크
-    제약 때문이다 — 같은 키로 여러 행을 만들 수 없다. 한 주 분량을 날마다
-    배정할 때는(#2223) 날짜까지 키에 넣어야 이레가 서로를 밀어내지 않는다.
-    첫날은 접미사를 붙이지 않아, 날짜가 하나뿐인 기존 배정의 키와 같다.
+    제약 때문이다 — 같은 키로 여러 행을 만들 수 없다.
     """
-    return f"{base}#{index}" if day == 0 else f"{base}#{index}d{day}"
+    return f"{base}#{index}"
 
 
 def assign_program(
@@ -2026,7 +2024,7 @@ def assign_program(
     delivery_kind: str | None = None,
     trainer_message: str = "",
     start_date: date | None = None,
-    repeat_days: int = 1,
+    active_days: int | None = None,
 ) -> list[RoutineOut]:
     """다중 세션 프로그램을 회원에게 배정한다. 세션 하나가 루틴 한 건이 된다. (#709)
 
@@ -2045,16 +2043,14 @@ def assign_program(
     `개인운동만` 전송이 쓴다(#2223) — PT 없이 한 주 분량을 한 묶음으로 보내고,
     이력이 그 전송을 `개인운동만` 으로 알아볼 수 있게 종류와 한마디를 남긴다.
 
-    [repeat_days] 는 **같은 구성을 며칠간 매일 하라고 보내는가**다. `개인운동만`
-    은 이레(7)를 보낸다 — 보낸 날부터 한 주 동안 회원 앱에 매일 떠야 하기
-    때문이다. 날마다 행을 하나씩 만드는 이유는 회원 앱이 이미 날짜별로 운동을
-    보여 주고 완료도 날짜별로 남기기 때문이다: 기간 칸을 새로 만들면 조회와
-    완료 기록을 양쪽 앱에서 함께 고쳐야 한다. 1 이면 예전과 같은 한 건이다.
+    [active_days] 는 **이 배정이 회원 목록에 며칠간 걸려 있는가**다. 추천
+    개인운동은 매일 새로 체크하는 목록이고 그 기간은 `active_from`~`ended_on`
+    이 정하므로(#2161), `개인운동만` 은 7 을 보내 보낸 날부터 한 주만 걸어
+    둔다. 비우면 트레이너가 철회할 때까지 걸려 있는 기존 배정이다.
     """
     if client_request_id:
         existing = _program_routines_for_request(
-            db, trainer_id, member_id, client_request_id, len(sessions),
-            repeat_days,
+            db, trainer_id, member_id, client_request_id, len(sessions)
         )
         if existing:
             return [_routine_out(db, rt) for rt in existing]
@@ -2068,14 +2064,13 @@ def assign_program(
             delivery_kind=delivery_kind,
             trainer_message=trainer_message,
             start_date=start_date,
-            repeat_days=repeat_days,
+            active_days=active_days,
         )
     except IntegrityError:
         db.rollback()
         if client_request_id:
             existing = _program_routines_for_request(
-                db, trainer_id, member_id, client_request_id, len(sessions),
-                repeat_days,
+                db, trainer_id, member_id, client_request_id, len(sessions)
             )
             if existing:
                 return [_routine_out(db, rt) for rt in existing]
@@ -2089,9 +2084,8 @@ def assign_program(
 def _program_routines_for_request(
     db: Session, trainer_id: str, member_id: str, client_request_id: str,
     session_count: int,
-    repeat_days: int = 1,
 ) -> list[TrainerRoutine]:
-    """그 멱등키로 이미 배정된 루틴들(세션 순서·날짜순). 없으면 빈 목록."""
+    """그 멱등키로 이미 배정된 세션 루틴들(세션 순서대로). 없으면 빈 목록."""
     return list(
         db.scalars(
             select(TrainerRoutine)
@@ -2100,13 +2094,12 @@ def _program_routines_for_request(
                 TrainerRoutine.member_id == member_id,
                 TrainerRoutine.client_request_id.in_(
                     [
-                        _program_request_key(client_request_id, index, day)
+                        _program_request_key(client_request_id, index)
                         for index in range(session_count)
-                        for day in range(repeat_days)
                     ]
                 ),
             )
-            .order_by(TrainerRoutine.session_order, TrainerRoutine.exercise_date)
+            .order_by(TrainerRoutine.session_order)
         ).all()
     )
 
@@ -2119,7 +2112,7 @@ def _add_program_routines(
     delivery_kind: str | None = None,
     trainer_message: str = "",
     start_date: date | None = None,
-    repeat_days: int = 1,
+    active_days: int | None = None,
 ) -> list[TrainerRoutine]:
     """세션 루틴과 배정 알림을 세션에 올리고 flush 한다. 커밋은 호출부 몫이다.
 
@@ -2127,13 +2120,16 @@ def _add_program_routines(
     트랜잭션이어야 둘 중 하나만 남는 반쪽 상태가 생기지 않는다. 유니크 제약
     위반은 flush 에서 [IntegrityError] 로 올라온다.
 
-    [repeat_days] 가 1 보다 크면 같은 구성을 시작일부터 날마다 하나씩 만든다
-    (#2223) — 회원 앱이 날짜별로 운동을 보여 주므로, 한 주 내내 뜨게 하려면
-    이레치가 있어야 한다. 그 경우 시작일이 없으면 오늘(KST)부터다.
+    [active_days] 가 오면 그만큼만 회원 목록에 걸어 둔다(#2223) — 배정한 날을
+    1일로 세어 `ended_on` 을 찍는다. 비우면 철회할 때까지 걸려 있다(#2161).
     """
     multi = len(sessions) > 1
-    days = max(repeat_days, 1)
-    first_day = start_date or (clock.today() if days > 1 else None)
+    today_iso = clock.today_iso()
+    ended_on = (
+        (clock.today() + timedelta(days=active_days)).isoformat()
+        if active_days is not None
+        else None
+    )
     max_order = db.scalar(
         select(func.max(TrainerRoutine.sort_order)).where(
             TrainerRoutine.trainer_id == trainer_id,
@@ -2142,49 +2138,42 @@ def _add_program_routines(
     ) or 0
     now = datetime.now(timezone.utc)
     created: list[TrainerRoutine] = []
-    order = 0
     for index, session in enumerate(sessions):
         minutes, type_, source = _session_summary(session.exercises)
-        exercises_json = json.dumps(
-            [e.model_dump(mode="json") for e in session.exercises],
-            ensure_ascii=False,
+        rt = TrainerRoutine(
+            id=f"rt-{uuid.uuid4().hex[:12]}",
+            trainer_id=trainer_id,
+            member_id=member_id,
+            name=(session.name or name) if multi else name,
+            minutes=minutes,
+            type=type_,
+            reason=", ".join(e.name for e in session.exercises)[:200],
+            source=source,
+            program_name=name if multi else "",
+            session_name=session.name if multi else "",
+            session_order=index,
+            exercises_json=json.dumps(
+                [e.model_dump(mode="json") for e in session.exercises],
+                ensure_ascii=False,
+            ),
+            sort_order=max_order + index + 1,
+            client_request_id=(
+                _program_request_key(client_request_id, index)
+                if client_request_id
+                else None
+            ),
+            exercise_date=start_date.isoformat() if start_date else None,
+            active_from=today_iso,
+            ended_on=ended_on,
+            delivery_kind=delivery_kind,
+            trainer_message=trainer_message,
+            created_at=now,
         )
-        for day in range(days):
-            order += 1
-            rt = TrainerRoutine(
-                id=f"rt-{uuid.uuid4().hex[:12]}",
-                trainer_id=trainer_id,
-                member_id=member_id,
-                name=(session.name or name) if multi else name,
-                minutes=minutes,
-                type=type_,
-                reason=", ".join(e.name for e in session.exercises)[:200],
-                source=source,
-                program_name=name if multi else "",
-                session_name=session.name if multi else "",
-                session_order=index,
-                exercises_json=exercises_json,
-                sort_order=max_order + order,
-                client_request_id=(
-                    _program_request_key(client_request_id, index, day)
-                    if client_request_id
-                    else None
-                ),
-                exercise_date=(
-                    (first_day + timedelta(days=day)).isoformat()
-                    if first_day
-                    else None
-                ),
-                delivery_kind=delivery_kind,
-                trainer_message=trainer_message,
-                created_at=now,
-            )
-            db.add(rt)
-            created.append(rt)
+        db.add(rt)
+        created.append(rt)
     db.flush()
 
-    # 알림은 전송당 한 번이다 — 이레치를 만들었다고 알림이 일곱 번 가지 않는다.
-    total_minutes = sum(rt.minutes for rt in created[: len(sessions)])
+    total_minutes = sum(rt.minutes for rt in created)
     notification_service.queue(
         db,
         member_id=member_id,
@@ -2192,13 +2181,9 @@ def _add_program_routines(
         category=notification_service.MEMBER_ROUTINE,
         title="새 운동 루틴이 배정되었어요",
         body=(
-            f"{name} · 세션 {len(sessions)}개 · {total_minutes}분"
+            f"{name} · 세션 {len(created)}개 · {total_minutes}분"
             if multi
-            else (
-                f"{name} · {total_minutes}분 · {days}일간"
-                if days > 1
-                else f"{name} · {total_minutes}분"
-            )
+            else f"{name} · {total_minutes}분"
         ),
     )
     return created

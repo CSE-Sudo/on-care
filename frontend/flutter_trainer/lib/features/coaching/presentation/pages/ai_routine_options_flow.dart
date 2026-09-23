@@ -660,8 +660,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 },
             ],
             'delivery_kind': 'routine_only',
-            // 시작일은 보내지 않는다 — 서버가 받은 날(KST)부터 이레를 만든다.
-            'repeat_days': _routineOnlyDays,
+            // 시작일은 보내지 않는다 — 서버가 받은 날(KST)부터 이레 동안
+            // 회원 목록에 걸어 둔다(#2161 의 `active_from`~`ended_on`).
+            'active_days': _routineOnlyDays,
             'client_request_id': requestId,
           });
     } catch (error) {
@@ -1906,7 +1907,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  /// `개인운동만` 이 덮는 날 수 — 보낸 날부터 한 주. 서버에 그대로 나간다.
+  /// `개인운동만` 이 회원 목록에 걸려 있는 날 수 — 보낸 날부터 한 주.
+  /// 서버에 그대로 나간다.
   static const int _routineOnlyDays = 7;
 
   /// 한 번에 정할 수 있는 개인운동 수. 운동 하나가 배정 한 건(=프로그램 세션

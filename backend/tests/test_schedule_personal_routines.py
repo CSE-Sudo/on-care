@@ -227,16 +227,17 @@ def _routine_only_body(request_id: str) -> dict:
             },
         ],
         "delivery_kind": "routine_only",
-        "repeat_days": 7,
+        "active_days": 7,
         "client_request_id": request_id,
     }
 
 
-def test_routine_only_delivery_covers_a_week_from_today(client, db_session):
-    """`개인운동만` 은 보낸 날부터 이레 동안 날마다 배정된다. (#2223)
+def test_routine_only_delivery_stays_on_the_list_for_a_week(client, db_session):
+    """`개인운동만` 은 보낸 날부터 한 주 동안 회원 목록에 걸린다. (#2223)
 
-    회원 앱은 운동을 날짜별로 보여 주므로, 한 주 내내 뜨게 하려면 이레치가
-    있어야 한다. 시작일은 트레이너가 고르지 않는다 — 보낸 날이 곧 시작일이다.
+    추천 개인운동은 매일 새로 체크하는 목록이고 그 기간은
+    `active_from`~`ended_on` 이 정한다(#2161) — 날마다 행을 만들지 않는다.
+    시작일은 트레이너가 고르지 않는다: 보낸 날이 곧 시작일이다.
     """
     token = _tok(client)
     _cleanup_routines(db_session)
@@ -249,31 +250,40 @@ def test_routine_only_delivery_covers_a_week_from_today(client, db_session):
         assert r.status_code == 201, r.text
         rows = r.json()
 
-        today = clock.today()
-        week = [
-            (today + timedelta(days=offset)).isoformat() for offset in range(7)
-        ]
-        # 운동 하나가 배정 한 건이고, 그것이 이레 동안 날마다 선다.
-        assert [row["session_name"] for row in rows] == ["걷기"] * 7 + [
-            "플랭크"
-        ] * 7
-        assert [row["exercise_date"] for row in rows] == week * 2
+        # 운동 하나가 배정 한 건이다 — 회원이 하나씩 완료를 표시할 수 있다.
+        assert [row["session_name"] for row in rows] == ["걷기", "플랭크"]
         assert {row["delivery_kind"] for row in rows} == {"routine_only"}
         # 붙일 PT 일정이 없다.
         assert {row["schedule_id"] for row in rows} == {None}
 
-        # 바로 보낸 것이므로 회원이 보는 목록에 이레치가 모두 들어간다.
+        today = clock.today()
+        db_session.expire_all()
+        saved = db_session.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.member_id == MEMBER,
+                TrainerRoutine.program_name
+                == f"{_NAME_PREFIX} 이번 주 개인운동",
+            )
+        ).all()
+        assert {row.active_from for row in saved} == {today.isoformat()}
+        # 이레째 다음 날부터 목록에서 내려간다(`ended_on` 은 그날부터 없음).
+        assert {row.ended_on for row in saved} == {
+            (today + timedelta(days=7)).isoformat()
+        }
+
+        # 바로 보낸 것이므로 회원이 보는 목록에 들어간다.
         assigned = client.get(
             f"/v1/trainer/clients/{MEMBER}/routines", headers=_h(token)
         )
-        assigned_ids = {row["id"] for row in assigned.json()}
-        assert {row["id"] for row in rows} <= assigned_ids
+        assert {row["id"] for row in rows} <= {
+            row["id"] for row in assigned.json()
+        }
     finally:
         _cleanup_routines(db_session)
 
 
 def test_routine_only_retry_does_not_send_a_second_week(client, db_session):
-    """응답을 잃고 같은 키로 다시 보내도 이레치가 두 벌 가지 않는다. (#2223)"""
+    """응답을 잃고 같은 키로 다시 보내도 한 주가 두 벌 가지 않는다. (#2223)"""
     token = _tok(client)
     _cleanup_routines(db_session)
     body = _routine_only_body("req-2223-only-retry")
@@ -283,8 +293,7 @@ def test_routine_only_retry_does_not_send_a_second_week(client, db_session):
 
         assert first.status_code == 201, first.text
         assert retry.status_code == 201, retry.text
-        # 운동 둘 × 이레.
-        assert len(first.json()) == 14
+        assert len(first.json()) == 2
         assert [row["id"] for row in retry.json()] == [
             row["id"] for row in first.json()
         ]
@@ -296,6 +305,6 @@ def test_routine_only_retry_does_not_send_a_second_week(client, db_session):
                 == f"{_NAME_PREFIX} 이번 주 개인운동",
             )
         ).all()
-        assert len(rows) == 14
+        assert len(rows) == 2
     finally:
         _cleanup_routines(db_session)

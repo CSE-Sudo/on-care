@@ -1277,8 +1277,8 @@ void main() {
     expect(sent.payload['delivery_kind'], 'routine_only');
     // 전송 전체에 붙는 한마디는 두지 않는다 — 회원 앱에 받을 자리가 없다.
     expect(sent.payload.containsKey('trainer_message'), isFalse);
-    // 시작일은 고르지 않는다 — 보낸 날부터 이레라고 서버에 말할 뿐이다(#2223).
-    expect(sent.payload['repeat_days'], 7);
+    // 시작일은 고르지 않는다 — 보낸 날부터 이레 동안 걸어 두라고 말할 뿐이다.
+    expect(sent.payload['active_days'], 7);
     expect(sent.payload.containsKey('start_date'), isFalse);
     expect(sent.payload['client_request_id'], isNotNull);
 
