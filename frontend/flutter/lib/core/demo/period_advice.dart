@@ -443,11 +443,20 @@ String _routineToday(RoutineAdviceDay day) {
   final String? order = pending.length >= 2
       ? pending.take(2).join(' → ')
       : null;
-  if (done.isNotEmpty) {
+  // 한글로 끝나지 않는 이름(`Squat`)에는 조사를 붙일 수 없다 — 마친 운동을
+  // 말하는 문장을 건너뛴다.
+  if (done.isNotEmpty && _hasFinalConsonant(done.last) != null) {
     final String finished = '${_josa(done.last, '을', '를')} 마쳤어요.';
     return _firstFit(<String>[
       if (order != null) '$finished 다음은 $order 순서로 해 보세요.',
       '$finished 다음은 ${pending.first} 차례예요.',
+      if (order != null) '다음은 $order 순서로 해 보세요.',
+      '다음은 ${pending.first} 차례예요.',
+      left,
+    ]);
+  }
+  if (done.isNotEmpty) {
+    return _firstFit(<String>[
       if (order != null) '다음은 $order 순서로 해 보세요.',
       '다음은 ${pending.first} 차례예요.',
       left,
@@ -495,6 +504,10 @@ String _routineWeek(List<RoutineAdviceDay> days) {
   final ({List<RoutineAdviceItem> assigned, List<RoutineAdviceItem> done})
   tally = _tally(lookingBack ? lastWeek : thisWeek, today);
   final String when = lookingBack ? '지난주' : '이번 주';
+  // 일요일에는 이번 주에 남은 날이 없다 — 다음 주를 말한다.
+  final bool sunday = today.weekday == DateTime.sunday;
+  final String rest = sunday ? '다음 주엔' : '남은 날엔';
+  final String keepGoing = sunday ? '다음 주도 이어 가요.' : '남은 날도 이어 가요.';
   final String? firstPending = days.last.routines
       .where((RoutineAdviceItem i) => !i.done)
       .map((RoutineAdviceItem i) => i.name)
@@ -511,9 +524,9 @@ String _routineWeek(List<RoutineAdviceDay> days) {
       ]);
     }
     return _firstFit(<String>[
-      '이번 주 한 추천 운동이 아직 없어요. 오늘 $firstPending부터 해 볼까요?',
-      '이번 주 추천 운동을 아직 못 했어요. $firstPending부터 해 봐요.',
-      '이번 주 추천 운동을 아직 못 했어요. 오늘 하나부터 해 봐요.',
+      '이번 주엔 추천 운동을 아직 안 했어요. 오늘 $firstPending부터 해 볼까요?',
+      '이번 주엔 추천 운동을 아직 안 했어요. $firstPending부터 해 봐요.',
+      '이번 주엔 추천 운동을 아직 안 했어요. 오늘 하나부터 해 봐요.',
     ]);
   }
 
@@ -539,6 +552,15 @@ String _routineWeek(List<RoutineAdviceDay> days) {
       final int share = _pct(minutes[top]!, total);
       final String topLabel = _josa(exerciseTypeLabel(top), '이', '가');
       final String missingLabel = exerciseTypeLabel(missing);
+      // 한 유형만 했으면 "100%" 가 아니라 그 유형만 했다고 말한다.
+      if (share == 100) {
+        final String only = '$when엔 ${exerciseTypeLabel(top)} 추천 운동만 했어요.';
+        final String nextStep = lookingBack ? '이번 주는' : rest;
+        return _firstFit(<String>[
+          '$only $nextStep $missingLabel부터 해 보세요.',
+          only,
+        ]);
+      }
       if (lookingBack) {
         return _firstFit(<String>[
           '지난주 추천 운동 중 $topLabel $share%였어요. 이번 주는 $missingLabel부터 해 보세요.',
@@ -546,7 +568,7 @@ String _routineWeek(List<RoutineAdviceDay> days) {
         ]);
       }
       return _firstFit(<String>[
-        '이번 주 추천 운동 중 $topLabel $share%예요. 남은 날엔 $missingLabel부터 해 보세요.',
+        '이번 주 추천 운동 중 $topLabel $share%예요. $rest $missingLabel부터 해 보세요.',
         '이번 주 추천 운동은 $topLabel $share%예요.',
       ]);
     }
@@ -568,11 +590,11 @@ String _routineWeek(List<RoutineAdviceDay> days) {
       '$when 추천 운동 ${tally.assigned.length}개 중 ${tally.done.length}개를 했어요.';
   if (lookingBack) return _firstFit(<String>['$counts 이번 주는 더 채워 봐요.', counts]);
   if (firstPending == null) {
-    return _firstFit(<String>['$counts 남은 날도 이어 가요.', counts]);
+    return _firstFit(<String>['$counts $keepGoing', counts]);
   }
   return _firstFit(<String>[
     '$counts 오늘 $firstPending부터 이어 가요.',
-    '$counts 남은 날도 이어 가요.',
+    '$counts $keepGoing',
     counts,
   ]);
 }
@@ -602,6 +624,15 @@ String _leastDoneType(
   return best!;
 }
 
+/// 자주 빠진 것을 셀 묶음 — 부위, 모르면 운동 이름. 서버 `_group_key` 와 같다.
+///
+/// 스트레칭은 부위로 묶지 않는다. `어깨 관절 보호 스트레칭` 이 빠진 것을 "상체
+/// 운동이 자주 빠졌어요" 라고 하면 회원은 상체 근력 운동을 떠올린다.
+String _groupKey(RoutineAdviceItem item) {
+  if (_typeCode(item.type) == 'stretching') return item.name;
+  return bodyPartOf(item.name) ?? item.name;
+}
+
 String _routineAll(List<RoutineAdviceDay> days) {
   final DateTime today = _dateOnly(days.last.date);
   final List<String> current = <String>[
@@ -619,10 +650,7 @@ String _routineAll(List<RoutineAdviceDay> days) {
   );
   final int span = today.difference(since).inDays + 1;
   if (span < _allMinDays) {
-    return _firstFit(<String>[
-      '지금 추천 운동은 $span일째예요. 일주일이 쌓이면 빠진 운동을 짚어 드릴게요.',
-      '추천 운동 $span일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요.',
-    ]);
+    return '추천 목록을 받은 지 $span일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요.';
   }
   final ({List<RoutineAdviceItem> assigned, List<RoutineAdviceItem> done})
   tally = _tally(
@@ -631,29 +659,26 @@ String _routineAll(List<RoutineAdviceDay> days) {
     names: names,
   );
   if (tally.done.isEmpty) {
-    // 한 번도 하지 않았으면 짚을 곳이 없다 — 오늘 첫 운동을 권한다.
+    // 한 번도 하지 않았으면 짚을 곳이 없다 — 탓하지 않고 오늘 첫 운동을 권한다.
     final String? firstPending = days.last.routines
         .where((RoutineAdviceItem i) => !i.done)
         .map((RoutineAdviceItem i) => i.name)
         .firstOrNull;
+    final String sinceText = '추천 목록을 받은 지 $span일째예요.';
     return _firstFit(<String>[
-      if (firstPending != null)
-        '추천 운동을 $span일째 못 했어요. 오늘 $firstPending부터 해 볼까요?',
-      '추천 운동을 $span일째 못 했어요. 오늘 하나부터 해 볼까요?',
+      if (firstPending != null) '$sinceText 오늘 $firstPending부터 시작해 볼까요?',
+      '$sinceText 오늘 하나부터 시작해 봐요.',
     ]);
   }
 
   // 부위로 묶는다. 부위를 모르면 운동 이름이 한 묶음이다.
   final Map<String, int> firstSeen = <String, int>{};
-  for (int index = 0; index < current.length; index++) {
-    firstSeen.putIfAbsent(
-      bodyPartOf(current[index]) ?? current[index],
-      () => index,
-    );
+  for (int index = 0; index < days.last.routines.length; index++) {
+    firstSeen.putIfAbsent(_groupKey(days.last.routines[index]), () => index);
   }
   final Map<String, List<int>> groups = <String, List<int>>{};
   for (final RoutineAdviceItem item in tally.assigned) {
-    final String key = bodyPartOf(item.name) ?? item.name;
+    final String key = _groupKey(item);
     final List<int> counts = groups.putIfAbsent(key, () => <int>[0, 0]);
     counts[0] += 1;
     if (item.done) counts[1] += 1;
@@ -689,6 +714,13 @@ String _routineAll(List<RoutineAdviceDay> days) {
         '$key 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?',
       ]);
     }
+    if (_hasFinalConsonant(key) == null) {
+      return _firstFit(<String>[
+        '추천 운동 $key, 자주 빠졌어요. 다음엔 먼저 해 볼까요?',
+        '$key, 자주 빠졌어요. 먼저 해 볼까요?',
+        '자주 빠진 추천 운동이 있어요. 목록 순서를 바꿔 볼까요?',
+      ]);
+    }
     final String subject = _josa(key, '이', '가');
     return _firstFit(<String>[
       '추천 운동 중 $subject 자주 빠졌어요. 다음엔 먼저 해 볼까요?',
@@ -701,8 +733,8 @@ String _routineAll(List<RoutineAdviceDay> days) {
   if (rate >= _praiseRate) {
     return '추천 운동을 ${span ~/ 7}주째 꾸준히 하고 있어요. 앞으로도 화이팅!';
   }
-  return '지금 추천 운동을 ${_pct(tally.done.length, tally.assigned.length)}% 해냈어요. '
-      '빠지는 날 없이 이어 가 봐요.';
+  final int pct = _pct(tally.done.length, tally.assigned.length);
+  return '지금 추천 운동의 $pct%를 했어요. 빠지는 날 없이 이어 가 봐요.';
 }
 
 bool _greater((double, int, int) a, (double, int, int) b) {

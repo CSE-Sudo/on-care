@@ -232,11 +232,19 @@ def _today(day: RoutineDayLike) -> str:
     left = f"남은 추천 운동이 {len(pending)}개예요. 목록 순서대로 해 보세요."
     # 남은 것이 하나면 "순서" 가 없다 — 그 하나의 차례라고만 말한다.
     order = " → ".join(pending[:2]) if len(pending) >= 2 else None
-    if done:
+    # 한글로 끝나지 않는 이름(`Squat`)에는 조사를 붙일 수 없다 — `Squat을(를)` 로
+    # 적지 않고 마친 운동을 말하는 문장을 건너뛴다.
+    if done and _has_final_consonant(done[-1]) is not None:
         finished = _josa(done[-1], "을", "를") + " 마쳤어요."
         return _first_fit(
             *((f"{finished} 다음은 {order} 순서로 해 보세요.",) if order else ()),
             f"{finished} 다음은 {pending[0]} 차례예요.",
+            *((f"다음은 {order} 순서로 해 보세요.",) if order else ()),
+            f"다음은 {pending[0]} 차례예요.",
+            left,
+        )
+    if done:
+        return _first_fit(
             *((f"다음은 {order} 순서로 해 보세요.",) if order else ()),
             f"다음은 {pending[0]} 차례예요.",
             left,
@@ -262,6 +270,10 @@ def _week(days: Sequence[RoutineDayLike]) -> str:
     )
     tally = _tally(last_week if looking_back else this_week, today)
     when = "지난주" if looking_back else "이번 주"
+    # 일요일에는 이번 주에 남은 날이 없다 — 다음 주를 말한다.
+    sunday = today.weekday() == 6
+    rest = "다음 주엔" if sunday else "남은 날엔"
+    keep_going = "다음 주도 이어 가요." if sunday else "남은 날도 이어 가요."
     first_pending = next((i.name for i in days[-1].routines if not i.done), None)
 
     if not tally.done:
@@ -273,9 +285,9 @@ def _week(days: Sequence[RoutineDayLike]) -> str:
                 "지난주엔 추천 운동을 못 했어요. 이번 주는 하나씩 해 봐요.",
             )
         return _first_fit(
-            f"이번 주 한 추천 운동이 아직 없어요. 오늘 {first_pending}부터 해 볼까요?",
-            f"이번 주 추천 운동을 아직 못 했어요. {first_pending}부터 해 봐요.",
-            "이번 주 추천 운동을 아직 못 했어요. 오늘 하나부터 해 봐요.",
+            f"이번 주엔 추천 운동을 아직 안 했어요. 오늘 {first_pending}부터 해 볼까요?",
+            f"이번 주엔 추천 운동을 아직 안 했어요. {first_pending}부터 해 봐요.",
+            "이번 주엔 추천 운동을 아직 안 했어요. 오늘 하나부터 해 봐요.",
         )
 
     # 유형 쏠림 — 한 추천 운동의 시간으로 센다. 목록에 한 유형만 걸려 있으면
@@ -293,6 +305,11 @@ def _week(days: Sequence[RoutineDayLike]) -> str:
             share = _pct(minutes[top], total)
             top_label = _josa(_type_label(top), "이", "가")
             missing_label = _type_label(missing)
+            # 한 유형만 했으면 "100%" 가 아니라 그 유형만 했다고 말한다.
+            if share == 100:
+                only = f"{when}엔 {_type_label(top)} 추천 운동만 했어요."
+                next_step = "이번 주는" if looking_back else rest
+                return _first_fit(f"{only} {next_step} {missing_label}부터 해 보세요.", only)
             if looking_back:
                 return _first_fit(
                     f"지난주 추천 운동 중 {top_label} {share}%였어요. "
@@ -301,7 +318,7 @@ def _week(days: Sequence[RoutineDayLike]) -> str:
                 )
             return _first_fit(
                 f"이번 주 추천 운동 중 {top_label} {share}%예요. "
-                f"남은 날엔 {missing_label}부터 해 보세요.",
+                f"{rest} {missing_label}부터 해 보세요.",
                 f"이번 주 추천 운동은 {top_label} {share}%예요.",
             )
 
@@ -315,10 +332,10 @@ def _week(days: Sequence[RoutineDayLike]) -> str:
     if looking_back:
         return _first_fit(f"{counts} 이번 주는 더 채워 봐요.", counts)
     if first_pending is None:
-        return _first_fit(f"{counts} 남은 날도 이어 가요.", counts)
+        return _first_fit(f"{counts} {keep_going}", counts)
     return _first_fit(
         f"{counts} 오늘 {first_pending}부터 이어 가요.",
-        f"{counts} 남은 날도 이어 가요.",
+        f"{counts} {keep_going}",
         counts,
     )
 
@@ -336,6 +353,17 @@ def _least_done_type(tally: _Tally, exclude: str) -> str:
     return min(candidates, key=lambda t: (done.get(t, 0) / listed[t], _TYPE_ORDER.index(t)))
 
 
+def _group_key(item: RoutineItemLike) -> str:
+    """자주 빠진 것을 셀 묶음 — 부위, 모르면 운동 이름.
+
+    스트레칭은 부위로 묶지 않는다. `어깨 관절 보호 스트레칭` 이 빠진 것을 "상체
+    운동이 자주 빠졌어요" 라고 하면 회원은 상체 근력 운동을 떠올린다.
+    """
+    if _type_code(item) == exercise_types.STRETCHING:
+        return item.name
+    return body_part_of(item.name) or item.name
+
+
 def _all(days: Sequence[RoutineDayLike]) -> str:
     today = days[-1].date
     current = [i.name for i in days[-1].routines]
@@ -344,31 +372,26 @@ def _all(days: Sequence[RoutineDayLike]) -> str:
     since = next(d.date for d in days if any(i.name in names for i in d.routines))
     span = (today - since).days + 1
     if span < _ALL_MIN_DAYS:
-        return _first_fit(
-            f"지금 추천 운동은 {span}일째예요. 일주일이 쌓이면 빠진 운동을 짚어 드릴게요.",
-            f"추천 운동 {span}일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요.",
-        )
+        return f"추천 목록을 받은 지 {span}일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요."
     tally = _tally([d for d in days if d.date >= since], today, names)
     if not tally.done:
         # 한 번도 하지 않았으면 모든 묶음이 똑같이 빠져 짚을 곳이 없다 — "0% 해냈어요"
-        # 대신 오늘 첫 운동을 권한다.
+        # 대신 오늘 첫 운동을 권한다. 못 했다고 탓하지 않고 시작을 권한다.
         first_pending = next((i.name for i in days[-1].routines if not i.done), None)
+        since_text = f"추천 목록을 받은 지 {span}일째예요."
         return _first_fit(
-            *(
-                (f"추천 운동을 {span}일째 못 했어요. 오늘 {first_pending}부터 해 볼까요?",)
-                if first_pending else ()
-            ),
-            f"추천 운동을 {span}일째 못 했어요. 오늘 하나부터 해 볼까요?",
+            *((f"{since_text} 오늘 {first_pending}부터 시작해 볼까요?",) if first_pending else ()),
+            f"{since_text} 오늘 하나부터 시작해 봐요.",
         )
 
     # 부위로 묶는다. 부위를 모르면 운동 이름이 한 묶음이다. 같은 수면 지금 목록에서
     # 앞선 쪽 — 먼저 하도록 짜인 운동이 빠지는 편이 더 먼저 짚을 일이다.
     groups: dict[str, list[int]] = {}
     first_seen: dict[str, int] = {}
-    for index, name in enumerate(current):
-        first_seen.setdefault(body_part_of(name) or name, index)
+    for index, item in enumerate(days[-1].routines):
+        first_seen.setdefault(_group_key(item), index)
     for item in tally.assigned:
-        key = body_part_of(item.name) or item.name
+        key = _group_key(item)
         counts = groups.setdefault(key, [0, 0])
         counts[0] += 1
         if item.done:
@@ -390,6 +413,12 @@ def _all(days: Sequence[RoutineDayLike]) -> str:
                 f"추천 운동 중 {key} 운동이 자주 빠졌어요. {key} 운동을 먼저 해 볼까요?",
                 f"{key} 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?",
             )
+        if _has_final_consonant(key) is None:
+            return _first_fit(
+                f"추천 운동 {key}, 자주 빠졌어요. 다음엔 먼저 해 볼까요?",
+                f"{key}, 자주 빠졌어요. 먼저 해 볼까요?",
+                "자주 빠진 추천 운동이 있어요. 목록 순서를 바꿔 볼까요?",
+            )
         subject = _josa(key, "이", "가")
         return _first_fit(
             f"추천 운동 중 {subject} 자주 빠졌어요. 다음엔 먼저 해 볼까요?",
@@ -401,4 +430,5 @@ def _all(days: Sequence[RoutineDayLike]) -> str:
     if rate >= _PRAISE_RATE:
         weeks = span // 7
         return f"추천 운동을 {weeks}주째 꾸준히 하고 있어요. 앞으로도 화이팅!"
-    return f"지금 추천 운동을 {_pct(len(tally.done), len(tally.assigned))}% 해냈어요. 빠지는 날 없이 이어 가 봐요."
+    pct = _pct(len(tally.done), len(tally.assigned))
+    return f"지금 추천 운동의 {pct}%를 했어요. 빠지는 날 없이 이어 가 봐요."

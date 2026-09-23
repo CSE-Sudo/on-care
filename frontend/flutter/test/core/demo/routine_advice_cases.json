@@ -202,7 +202,7 @@
           ]
         }
       ],
-      "expected": "Squat을(를) 마쳤어요. 다음은 Lunge 차례예요."
+      "expected": "다음은 Lunge 차례예요."
     },
     {
       "name": "오늘 — 긴 이름은 순서를 줄인다",
@@ -539,7 +539,7 @@
           ]
         }
       ],
-      "expected": "이번 주 추천 운동 중 유산소가 100%예요. 남은 날엔 근력부터 해 보세요."
+      "expected": "이번 주엔 유산소 추천 운동만 했어요. 남은 날엔 근력부터 해 보세요."
     },
     {
       "name": "이번 주 — 고르게 해냄",
@@ -1607,7 +1607,7 @@
           ]
         }
       ],
-      "expected": "이번 주 한 추천 운동이 아직 없어요. 오늘 저강도 걷기부터 해 볼까요?"
+      "expected": "이번 주엔 추천 운동을 아직 안 했어요. 오늘 저강도 걷기부터 해 볼까요?"
     },
     {
       "name": "이번 주(월) — 지난주 쏠림을 돌아본다",
@@ -1822,7 +1822,7 @@
           ]
         }
       ],
-      "expected": "지난주 추천 운동 중 유산소가 100%였어요. 이번 주는 근력부터 해 보세요."
+      "expected": "지난주엔 유산소 추천 운동만 했어요. 이번 주는 근력부터 해 보세요."
     },
     {
       "name": "이번 주(월) — 지난주를 고르게 해냈으면 칭찬",
@@ -2040,6 +2040,1015 @@
       "expected": "지난주 추천 운동을 고르게 해냈어요. 이번 주도 이어 가요!"
     },
     {
+      "name": "이번 주(일) — 남은 날이 없으면 다음 주를 말한다",
+      "period": "week",
+      "days": [
+        {
+          "date": "2026-09-14",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-15",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-16",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-18",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-19",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-20",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-21",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-22",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-23",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-24",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-25",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-26",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-27",
+          "routines": [
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            },
+            {
+              "name": "힙브릿지",
+              "type": "근력",
+              "minutes": 8,
+              "done": true,
+              "completed_minutes": 8
+            },
+            {
+              "name": "밴드 워크",
+              "type": "근력",
+              "minutes": 6,
+              "done": true,
+              "completed_minutes": 6
+            }
+          ]
+        }
+      ],
+      "expected": "이번 주 추천 운동 21개 중 6개를 했어요. 다음 주도 이어 가요."
+    },
+    {
+      "name": "이번 주(일) — 쏠림도 다음 주로",
+      "period": "week",
+      "days": [
+        {
+          "date": "2026-09-14",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-15",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-16",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-18",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-19",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-20",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-21",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-22",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-23",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-24",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-25",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-26",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-27",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        }
+      ],
+      "expected": "이번 주엔 유산소 추천 운동만 했어요. 다음 주엔 근력부터 해 보세요."
+    },
+    {
+      "name": "이번 주 — 두 유형을 했지만 한쪽에 쏠림",
+      "period": "week",
+      "days": [
+        {
+          "date": "2026-09-14",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-15",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-16",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-18",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-19",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-20",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-21",
+          "routines": [
+            {
+              "name": "러닝",
+              "type": "유산소",
+              "minutes": 40,
+              "done": true,
+              "completed_minutes": 40
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 5,
+              "done": true,
+              "completed_minutes": 5
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 5,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-22",
+          "routines": [
+            {
+              "name": "러닝",
+              "type": "유산소",
+              "minutes": 40,
+              "done": true,
+              "completed_minutes": 40
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 5,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 5,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-23",
+          "routines": [
+            {
+              "name": "러닝",
+              "type": "유산소",
+              "minutes": 40,
+              "done": true,
+              "completed_minutes": 40
+            },
+            {
+              "name": "스쿼트",
+              "type": "근력",
+              "minutes": 5,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "전신 스트레칭",
+              "type": "스트레칭",
+              "minutes": 5,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        }
+      ],
+      "expected": "이번 주 추천 운동 중 유산소가 96%예요. 남은 날엔 스트레칭부터 해 보세요."
+    },
+    {
       "name": "전체 — 목록이 걸린 지 일주일이 안 되면 며칠째인지",
       "period": "all",
       "days": [
@@ -2122,7 +3131,7 @@
           ]
         }
       ],
-      "expected": "지금 추천 운동은 3일째예요. 일주일이 쌓이면 빠진 운동을 짚어 드릴게요."
+      "expected": "추천 목록을 받은 지 3일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요."
     },
     {
       "name": "전체 — 하체가 자주 빠짐",
@@ -4447,7 +5456,966 @@
           ]
         }
       ],
-      "expected": "추천 운동을 10일째 못 했어요. 오늘 저강도 걷기부터 해 볼까요?"
+      "expected": "추천 목록을 받은 지 10일째예요. 오늘 저강도 걷기부터 시작해 볼까요?"
+    },
+    {
+      "name": "전체 — 스트레칭은 부위로 묶지 않고 이름으로",
+      "period": "all",
+      "days": [
+        {
+          "date": "2026-09-03",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-04",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-05",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-06",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-07",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-08",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-09",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-10",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-11",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-12",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-13",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-14",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-15",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-16",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-18",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-19",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-20",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-21",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-22",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        },
+        {
+          "date": "2026-09-23",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "어깨 관절 보호 스트레칭",
+              "type": "스트레칭",
+              "minutes": 8,
+              "done": false,
+              "completed_minutes": null
+            },
+            {
+              "name": "벤치 프레스",
+              "type": "근력",
+              "minutes": 10,
+              "done": true,
+              "completed_minutes": 10
+            }
+          ]
+        }
+      ],
+      "expected": "추천 운동 중 어깨 관절 보호 스트레칭이 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
+    },
+    {
+      "name": "전체 — 한글이 아닌 이름도 조사 없이",
+      "period": "all",
+      "days": [
+        {
+          "date": "2026-09-03",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-04",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-05",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-06",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-07",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-08",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-09",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-10",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-11",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-12",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-13",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-14",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-15",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-16",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-17",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-18",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-19",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-20",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-21",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-22",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        },
+        {
+          "date": "2026-09-23",
+          "routines": [
+            {
+              "name": "저강도 걷기",
+              "type": "유산소",
+              "minutes": 30,
+              "done": true,
+              "completed_minutes": 30
+            },
+            {
+              "name": "Band walk",
+              "type": "기타",
+              "minutes": 10,
+              "done": false,
+              "completed_minutes": null
+            }
+          ]
+        }
+      ],
+      "expected": "추천 운동 Band walk, 자주 빠졌어요. 다음엔 먼저 해 볼까요?"
     },
     {
       "name": "전체 — 빠진 곳이 고르면 완료율",
@@ -4974,7 +6942,7 @@
           ]
         }
       ],
-      "expected": "지금 추천 운동을 34% 해냈어요. 빠지는 날 없이 이어 가 봐요."
+      "expected": "지금 추천 운동의 34%를 했어요. 빠지는 날 없이 이어 가 봐요."
     },
     {
       "name": "전체 — 지금 목록이 걸린 동안만 센다",
