@@ -130,12 +130,16 @@ def exercise_advice(
     """
     start, end, days = exercise_service.period_days(db, current_user.id, period)
     routine_days = trainer_service.advice_routine_days(db, current_user.id, period)
+    advice = exercise_service.period_advice(days, period, routine_days)
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=exercise_service.period_coach_message(days, period, routine_days),
+        message=advice.text,
+        # 앱이 자기 언어로 그릴 수 있게 문장 키와 값도 함께 준다(#2210).
+        advice_key=advice.key,
+        advice_params=advice.params,
     )
 
 

@@ -15,6 +15,7 @@ import 'package:drift/drift.dart'
         OrderingTerm,
         Value;
 import 'package:logger/logger.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/demo_ai_advice.dart';
 import 'package:oncare/core/demo/demo_alert_keys.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
@@ -1441,12 +1442,16 @@ class LocalApiInterceptor extends Interceptor {
         ),
     ];
 
+    final ExerciseAdvice advice = exercisePeriodAdviceOf(days, period);
     return _ok(options, <String, Object?>{
       'period': period,
       'from_date': start,
       'to_date': end,
       'days_logged': days.length,
-      'message': exercisePeriodAdvice(days, period),
+      'message': advice.message,
+      // 서버처럼 문장 키·값도 준다(#2210).
+      'advice_key': advice.key,
+      'advice_params': advice.params,
     });
   }
 

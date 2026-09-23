@@ -6647,6 +6647,361 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Phone number copied.'**
   String get exGymPhoneCopied;
+
+  /// Exercise tab AI advice sentence `record_empty_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'No workout logged today yet. How about a 10-minute walk to start?'**
+  String get exerciseAdviceRecordEmptyToday;
+
+  /// Exercise tab AI advice sentence `record_empty_week` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'No workouts logged this week yet. How about a 10-minute walk to start?'**
+  String get exerciseAdviceRecordEmptyWeek;
+
+  /// Exercise tab AI advice sentence `record_empty_all` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Once you log more, we\'ll show how your workout volume and types are trending.'**
+  String get exerciseAdviceRecordEmptyAll;
+
+  /// Exercise tab AI advice sentence `record_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Today: {minutes} min and {calories} kcal, mostly {type, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Wrap up with a stretch.'**
+  String exerciseAdviceRecordToday(int calories, int minutes, String type);
+
+  /// Exercise tab AI advice sentence `record_week_one_day` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Just one day this week ({minutes} min). One more session keeps the flow going.'**
+  String exerciseAdviceRecordWeekOneDay(int minutes);
+
+  /// Exercise tab AI advice sentence `record_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s {days, plural, =1{1 day} other{{days} days}} and {minutes} min leaned on {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. Mix in some {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}?'**
+  String exerciseAdviceRecordWeekSkew(
+    int days,
+    int minutes,
+    String missing,
+    String top,
+  );
+
+  /// Exercise tab AI advice sentence `record_week_balanced` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day} other{{days} days}} and {minutes} min this week, with a good mix of types.'**
+  String exerciseAdviceRecordWeekBalanced(int days, int minutes);
+
+  /// Exercise tab AI advice sentence `record_all_up` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve done more over the last 4 weeks than before. This approach suits you.'**
+  String get exerciseAdviceRecordAllUp;
+
+  /// Exercise tab AI advice sentence `record_all_down` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.'**
+  String get exerciseAdviceRecordAllDown;
+
+  /// Exercise tab AI advice sentence `record_all_steady` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =1{1 day} other{{days} days}} and {minutes} min over {weeks, plural, =1{1 week} other{{weeks} weeks}} — nice and steady.'**
+  String exerciseAdviceRecordAllSteady(int days, int minutes, int weeks);
+
+  /// Exercise tab AI advice sentence `routine_today_all_done` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished {count, plural, =1{your recommended workout} other{all {count} recommended workouts}} today. Great job!'**
+  String exerciseAdviceRoutineTodayAllDone(int count);
+
+  /// Exercise tab AI advice sentence `routine_today_done_next_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} done. Next up: {next} → {then}.'**
+  String exerciseAdviceRoutineTodayDoneNextOrder(
+    String done,
+    String doneObj,
+    String next,
+    String then,
+  );
+
+  /// Exercise tab AI advice sentence `routine_today_done_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{done} done. {next} is next.'**
+  String exerciseAdviceRoutineTodayDoneNext(
+    String done,
+    String doneObj,
+    String next,
+  );
+
+  /// Exercise tab AI advice sentence `routine_today_next_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Next up: {next} → {then}.'**
+  String exerciseAdviceRoutineTodayNextOrder(String next, String then);
+
+  /// Exercise tab AI advice sentence `routine_today_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{next} is next.'**
+  String exerciseAdviceRoutineTodayNext(String next);
+
+  /// Exercise tab AI advice sentence `routine_today_left` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 recommended workout left} other{{count} recommended workouts left}}. Go down the list in order.'**
+  String exerciseAdviceRoutineTodayLeft(int count);
+
+  /// Exercise tab AI advice sentence `routine_today_start_order` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Start today\'s recommended workouts with {next} → {then}.'**
+  String exerciseAdviceRoutineTodayStartOrder(String next, String then);
+
+  /// Exercise tab AI advice sentence `routine_today_start` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Start today with {next}.'**
+  String exerciseAdviceRoutineTodayStart(String next);
+
+  /// Exercise tab AI advice sentence `routine_week_none_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'No recommended workouts this week yet. Start with {next} today?'**
+  String exerciseAdviceRoutineWeekNoneToday(String next);
+
+  /// Exercise tab AI advice sentence `routine_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'No recommended workouts this week yet. Try {next} first.'**
+  String exerciseAdviceRoutineWeekNoneNext(String next);
+
+  /// Exercise tab AI advice sentence `routine_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'No recommended workouts this week yet. Try one today.'**
+  String get exerciseAdviceRoutineWeekNone;
+
+  /// Exercise tab AI advice sentence `routine_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  String exerciseAdviceRoutineWeekOnly(String missing, String rest, String top);
+
+  /// Exercise tab AI advice sentence `routine_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'This week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.'**
+  String exerciseAdviceRoutineWeekOnlyShort(String top);
+
+  /// Exercise tab AI advice sentence `routine_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{share}% of this week\'s recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. {rest, select, next_week{Next week} other{For the rest of the week}}, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  String exerciseAdviceRoutineWeekSkew(
+    String missing,
+    String rest,
+    int share,
+    String top,
+  );
+
+  /// Exercise tab AI advice sentence `routine_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{share}% of this week\'s recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  String exerciseAdviceRoutineWeekSkewShort(int share, String top);
+
+  /// Exercise tab AI advice sentence `routine_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You kept up with this week\'s recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going!'**
+  String exerciseAdviceRoutineWeekPraise(String how);
+
+  /// Exercise tab AI advice sentence `routine_week_counts_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did {completed} of {assigned} recommended workouts this week. Continue with {next} today.'**
+  String exerciseAdviceRoutineWeekCountsToday(
+    int assigned,
+    int completed,
+    String next,
+  );
+
+  /// Exercise tab AI advice sentence `routine_week_counts_keep` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did {completed} of {assigned} recommended workouts this week. {rest, select, next_week{Keep it going next week.} other{Keep it going for the rest of the week.}}'**
+  String exerciseAdviceRoutineWeekCountsKeep(
+    int assigned,
+    int completed,
+    String rest,
+  );
+
+  /// Exercise tab AI advice sentence `routine_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did {completed} of {assigned} recommended workouts this week.'**
+  String exerciseAdviceRoutineWeekCounts(int assigned, int completed);
+
+  /// Exercise tab AI advice sentence `routine_last_week_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'No recommended workouts last week. This week, start with {next}.'**
+  String exerciseAdviceRoutineLastWeekNoneNext(String next);
+
+  /// Exercise tab AI advice sentence `routine_last_week_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'No recommended workouts last week. Take them one at a time this week.'**
+  String get exerciseAdviceRoutineLastWeekNone;
+
+  /// Exercise tab AI advice sentence `routine_last_week_only` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  String exerciseAdviceRoutineLastWeekOnly(String missing, String top);
+
+  /// Exercise tab AI advice sentence `routine_last_week_only_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Last week you only did {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}} workouts.'**
+  String exerciseAdviceRoutineLastWeekOnlyShort(String top);
+
+  /// Exercise tab AI advice sentence `routine_last_week_skew` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{share}% of last week\'s recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}. This week, start with {missing, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  String exerciseAdviceRoutineLastWeekSkew(
+    String missing,
+    int share,
+    String top,
+  );
+
+  /// Exercise tab AI advice sentence `routine_last_week_skew_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{share}% of last week\'s recommended workouts were {top, select, cardio{cardio} strength{strength} stretching{stretching} other{other exercise}}.'**
+  String exerciseAdviceRoutineLastWeekSkewShort(int share, String top);
+
+  /// Exercise tab AI advice sentence `routine_last_week_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You kept up with last week\'s recommended workouts {how, select, even{across the board} other{steadily}}. Keep it going this week!'**
+  String exerciseAdviceRoutineLastWeekPraise(String how);
+
+  /// Exercise tab AI advice sentence `routine_last_week_counts_more` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did {completed} of {assigned} recommended workouts last week. Let\'s do more this week.'**
+  String exerciseAdviceRoutineLastWeekCountsMore(int assigned, int completed);
+
+  /// Exercise tab AI advice sentence `routine_last_week_counts` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did {completed} of {assigned} recommended workouts last week.'**
+  String exerciseAdviceRoutineLastWeekCounts(int assigned, int completed);
+
+  /// Exercise tab AI advice sentence `routine_all_new` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {days} with your recommended list. After a week, we\'ll point out what gets skipped.'**
+  String exerciseAdviceRoutineAllNew(int days);
+
+  /// Exercise tab AI advice sentence `routine_all_none_next` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {days} with your recommended list. Start with {next} today?'**
+  String exerciseAdviceRoutineAllNoneNext(int days, String next);
+
+  /// Exercise tab AI advice sentence `routine_all_none` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Day {days} with your recommended list. Try one today.'**
+  String exerciseAdviceRoutineAllNone(int days);
+
+  /// Exercise tab AI advice sentence `routine_all_done_today_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did the {part, select, lower{lower-body} upper{upper-body} core{core} full{full-body} other{full-body}} workouts you often skip today. Keep it going!'**
+  String exerciseAdviceRoutineAllDoneTodayPart(String part);
+
+  /// Exercise tab AI advice sentence `routine_all_done_today_name` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did {name} today, one you often skip. Keep it going!'**
+  String exerciseAdviceRoutineAllDoneTodayName(String name, String nameObj);
+
+  /// Exercise tab AI advice sentence `routine_all_done_today_name_plain` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did {name} today, one you often skip. Keep it going!'**
+  String exerciseAdviceRoutineAllDoneTodayNamePlain(String name);
+
+  /// Exercise tab AI advice sentence `routine_all_done_today` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You did a workout you often skip today. Keep it going!'**
+  String get exerciseAdviceRoutineAllDoneToday;
+
+  /// Exercise tab AI advice sentence `routine_all_missed_part` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} recommended workouts get skipped often. Try doing them first?'**
+  String exerciseAdviceRoutineAllMissedPart(String part);
+
+  /// Exercise tab AI advice sentence `routine_all_missed_part_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{part, select, lower{Lower-body} upper{Upper-body} core{Core} full{Full-body} other{Full-body}} workouts get skipped often. Move them up?'**
+  String exerciseAdviceRoutineAllMissedPartShort(String part);
+
+  /// Exercise tab AI advice sentence `routine_all_missed_name` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} gets skipped often. Try doing it first next time?'**
+  String exerciseAdviceRoutineAllMissedName(String name, String nameSubj);
+
+  /// Exercise tab AI advice sentence `routine_all_missed_name_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} gets skipped often. Do it first?'**
+  String exerciseAdviceRoutineAllMissedNameShort(String name, String nameSubj);
+
+  /// Exercise tab AI advice sentence `routine_all_missed_name_plain` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} gets skipped often. Try doing it first next time?'**
+  String exerciseAdviceRoutineAllMissedNamePlain(String name);
+
+  /// Exercise tab AI advice sentence `routine_all_missed_name_plain_short` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} gets skipped often. Do it first?'**
+  String exerciseAdviceRoutineAllMissedNamePlainShort(String name);
+
+  /// Exercise tab AI advice sentence `routine_all_missed` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'Some recommended workouts get skipped often. Try reordering your list?'**
+  String get exerciseAdviceRoutineAllMissed;
+
+  /// Exercise tab AI advice sentence `routine_all_praise` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'{weeks, plural, =1{1 week} other{{weeks} weeks}} of steady recommended workouts. Keep it up!'**
+  String exerciseAdviceRoutineAllPraise(int weeks);
+
+  /// Exercise tab AI advice sentence `routine_all_rate` (#2210). The server sends this key and its params; the Korean copy must match backend exercise_advice._KO.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve done {pct}% of your recommended workouts. Try not to skip a day.'**
+  String exerciseAdviceRoutineAllRate(int pct);
 }
 
 class _AppLocalizationsDelegate

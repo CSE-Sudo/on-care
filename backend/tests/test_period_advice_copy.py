@@ -19,7 +19,14 @@ from pathlib import Path
 
 import pytest
 
-from app.services import diet_service, exercise_service, period_window, routine_advice
+from app.services import (
+    diet_service,
+    exercise_advice,
+    exercise_service,
+    exercise_types,
+    period_window,
+    routine_advice,
+)
 from app.services.diet_service import DietDayTotals
 from app.services.exercise_service import ExerciseDayTotals
 from app.services.trainer_service import RoutineDay, RoutineDayItem
@@ -119,16 +126,18 @@ def test_exercise_messages_stay_short(days, period):
     assert len(message) <= MAX_LEN, message
 
 
-# --- 추천 개인운동 기준 조언 (#2162) -------------------------------------------
+# --- 추천 개인운동 기준 조언 (#2162) · 문장 키 (#2210) -------------------------
 #
-# 서버와 데모(`core/demo/period_advice.dart`)가 **같은 사례 파일**을 읽어 같은
-# 문장을 내는지 본다. 규칙을 바꾸면 그 파일의 expected 도 함께 고친다.
+# 서버와 데모(`core/demo/period_advice.dart`)·앱 번역(`app_ko.arb`)이 **같은 사례
+# 파일**을 읽어 같은 키·값·한국어 문장을 내는지 본다. 규칙이나 문장을 바꾸면 그
+# 파일도 함께 고친다.
 
 _ROUTINE_CASES_PATH = (
     Path(__file__).resolve().parents[2]
     / "frontend/flutter/test/core/demo/routine_advice_cases.json"
 )
 _ROUTINE_CASES = json.loads(_ROUTINE_CASES_PATH.read_text(encoding="utf-8"))
+_CASE_IDS = [c["name"] for c in _ROUTINE_CASES["cases"]]
 
 
 def _routine_days(raw: list[dict]) -> list[RoutineDay]:
@@ -153,21 +162,37 @@ def _routine_days(raw: list[dict]) -> list[RoutineDay]:
     ]
 
 
-@pytest.mark.parametrize(
-    "case", _ROUTINE_CASES["cases"], ids=[c["name"] for c in _ROUTINE_CASES["cases"]]
-)
-def test_routine_advice_matches_the_shared_cases(case):
-    message = routine_advice.coach_message(_routine_days(case["days"]), case["period"])
-    assert message == case["expected"]
+def _records(raw: list[dict]) -> list[ExerciseDayTotals]:
+    return [
+        ExerciseDayTotals(
+            date=date.fromisoformat(r["date"]),
+            minutes=r["minutes"],
+            calories=r["calories"],
+            by_type=dict(r["by_type"]),
+        )
+        for r in raw
+    ]
 
 
-@pytest.mark.parametrize(
-    "case", _ROUTINE_CASES["cases"], ids=[c["name"] for c in _ROUTINE_CASES["cases"]]
-)
-def test_routine_advice_stays_short(case):
+def _case_advice(case: dict) -> exercise_advice.Advice:
+    return exercise_service.period_advice(
+        _records(case["records"]), case["period"], _routine_days(case["days"])
+    )
+
+
+@pytest.mark.parametrize("case", _ROUTINE_CASES["cases"], ids=_CASE_IDS)
+def test_advice_matches_the_shared_cases(case):
+    result = _case_advice(case)
+    assert result.key == case["expected"]["key"]
+    assert result.params == case["expected"]["params"]
+    assert result.text == case["expected"]["message"]
+
+
+@pytest.mark.parametrize("case", _ROUTINE_CASES["cases"], ids=_CASE_IDS)
+def test_advice_stays_short(case):
     """트레이너가 긴 이름을 적어도 카드 한도를 넘지 않는다."""
-    message = routine_advice.coach_message(_routine_days(case["days"]), case["period"])
-    assert message is None or len(message) <= MAX_LEN, message
+    message = _case_advice(case).text
+    assert len(message) <= MAX_LEN, message
 
 
 def test_routine_advice_limit_is_the_card_limit():
@@ -179,14 +204,44 @@ def test_body_part_is_read_from_the_exercise_name(name, part):
     assert routine_advice.body_part_of(name) == part
 
 
+@pytest.mark.parametrize(
+    "rendering",
+    _ROUTINE_CASES["renderings"],
+    ids=[f"{r['key']}-{i}" for i, r in enumerate(_ROUTINE_CASES["renderings"])],
+)
+def test_every_key_renders_the_shared_korean(rendering):
+    """앱의 한국어 번역이 서버 문장과 글자까지 같은지 보는 표 — 표가 서버와 먼저 같아야 한다."""
+    result = exercise_advice.advice(rendering["key"], **rendering["params"])
+    assert result.text == rendering["message"]
+
+
+def test_the_rendering_table_covers_every_key():
+    """새 키를 더하고 표를 다시 만들지 않으면 앱 번역이 그 키를 검증받지 못한다."""
+    assert {r["key"] for r in _ROUTINE_CASES["renderings"]} == set(exercise_advice.KEYS)
+
+
+def test_advice_params_carry_no_korean_particles():
+    """값은 로케일과 무관하다 — 조사·유형 라벨은 각 언어가 붙인다."""
+    for rendering in _ROUTINE_CASES["renderings"]:
+        for key, value in rendering["params"].items():
+            assert not key.endswith(("_obj", "_subj", "_label", "_ko")), key
+            if key in ("type", "top", "missing"):
+                assert value in exercise_types.CANONICAL_TYPES, value
+            if key == "part":
+                assert value in exercise_advice.PART_LABELS_KO, value
+
+
 def test_routine_list_takes_over_the_advice():
     """오늘 걸린 추천이 있으면 직접 기록보다 그 목록으로 말한다."""
-    case = next(c for c in _ROUTINE_CASES["cases"] if c["period"] == "today" and c["expected"])
+    case = next(
+        c for c in _ROUTINE_CASES["cases"]
+        if c["period"] == "today" and c["expected"]["key"].startswith("routine_")
+    )
     days = [_exercise_day(date.fromisoformat(case["days"][-1]["date"]))]
     message = exercise_service.period_coach_message(
         days, period_window.PERIOD_TODAY, _routine_days(case["days"])
     )
-    assert message == case["expected"]
+    assert message == case["expected"]["message"]
 
 
 @pytest.mark.parametrize("period", PERIODS)

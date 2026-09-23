@@ -610,12 +610,15 @@ def trainer_client_exercise_advice(
     start, end, days = exercise_service.period_days(db, member_id, period)
     # 추천 개인운동 기준 조언(#2162)도 회원 앱과 같은 함수로 읽는다.
     routine_days = trainer_service.advice_routine_days(db, member_id, period)
+    advice = exercise_service.period_advice(days, period, routine_days)
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=exercise_service.period_coach_message(days, period, routine_days),
+        message=advice.text,
+        advice_key=advice.key,
+        advice_params=advice.params,
     )
 
 

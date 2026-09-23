@@ -1,3 +1,4 @@
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 
@@ -15,7 +16,9 @@ abstract class ExerciseRepository {
   /// [period] 는 화면의 기간 토글과 같은 말이다(`today`·`week`·`all`). 구간
   /// 경계는 서버가 정한다 — 앱이 따로 계산해 넘기면 같은 회원의 `이번 주` 가
   /// 화면마다 다른 날부터 시작한다.
-  Future<String> fetchAdvice(String period);
+  ///
+  /// 문장 키·값과 한국어 문장을 함께 준다(#2210) — 화면이 자기 언어로 그린다.
+  Future<ExerciseAdvice> fetchAdvice(String period);
 
   /// POST /exercise/calories — 운동 이름·시간·강도로 예상 소모 칼로리. (#1312)
   ///
