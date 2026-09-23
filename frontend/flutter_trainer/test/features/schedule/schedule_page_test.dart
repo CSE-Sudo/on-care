@@ -520,20 +520,44 @@ void main() {
       await tester.pump();
     }
 
+    /// PT 카드의 연필 버튼을 눌러 편집 메뉴를 연다. 일정 수정·프로그램 수정·
+    /// 메모·삭제는 이 메뉴 안에 있다(#2178).
+    Future<void> openEditMenu(WidgetTester tester) async {
+      final Finder trigger = find.byKey(
+        const ValueKey<String>('session-edit-menu'),
+      );
+      await tester.ensureVisible(trigger);
+      await tester.pump();
+      await tester.tap(trigger);
+      await settle(tester);
+    }
+
+    /// 열린 편집 메뉴를 닫는다 — 연필 버튼을 다시 누른다. 메뉴가 떠 있는 채로
+    /// 다른 자리를 누르지 않는다.
+    Future<void> closeEditMenu(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey<String>('session-edit-menu')));
+      await settle(tester);
+      expect(find.byType(MenuItemButton), findsNothing);
+    }
+
     /// 메모 자리가 스스로를 뭐라고 부르는가 — `메모 추가` 인가 `메모 수정` 인가.
-    /// 아이콘만 그리는 자리라 그 이름은 툴팁과 시맨틱스에만 남는다(#1011).
-    String noteActionLabel(WidgetTester tester) => tester
-        .widget<Tooltip>(
-          find
-              .descendant(
-                of: find.byKey(
-                  const ValueKey<String>('session-edit-note-chip'),
-                ),
-                matching: find.byType(Tooltip),
-              )
-              .first,
-        )
-        .message!;
+    /// 편집 메뉴 안에서는 항목 글씨로(#2178), 상담의 빈 메모 상자 안에서는
+    /// 아이콘 버튼의 툴팁으로 남는다(#1011).
+    String noteActionLabel(WidgetTester tester) {
+      final Finder chip = find.byKey(
+        const ValueKey<String>('session-edit-note-chip'),
+      );
+      final Finder tip = find.descendant(
+        of: chip,
+        matching: find.byType(Tooltip),
+      );
+      if (tip.evaluate().isNotEmpty) {
+        return tester.widget<Tooltip>(tip.first).message!;
+      }
+      return tester
+          .widget<Text>(find.descendant(of: chip, matching: find.byType(Text)))
+          .data!;
+    }
 
     /// 이번 주 안에서 오늘이 아닌 날. 시드가 채운 뒤라 [clearDay] 로 비운다.
     DateTime otherDayThisWeek() {
@@ -841,10 +865,7 @@ void main() {
 
       await openSession(tester, '박성호');
 
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
-      );
+      await openEditMenu(tester);
       expect(find.text('벤치프레스'), findsOneWidget); // planned program
       expect(
         find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
@@ -856,10 +877,6 @@ void main() {
       );
       expect(
         find.byKey(const ValueKey<String>('session-delete-chip')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('session-chat-chip')),
         findsOneWidget,
       );
     });
@@ -884,9 +901,15 @@ void main() {
       );
       // 아직 적은 것이 없으므로 `메모 수정` 이 아니라 `메모 추가` 다(#1011).
       expect(noteActionLabel(tester), '메모 추가');
+      await openEditMenu(tester);
       expect(
         find.byKey(const ValueKey<String>('session-edit-program-chip')),
         findsNothing,
+      );
+      // 메모 자리는 빈 메모 상자 안에 하나만 있다 — 메뉴에 또 세우지 않는다.
+      expect(
+        find.byKey(const ValueKey<String>('session-edit-note-chip')),
+        findsOneWidget,
       );
     });
 
@@ -913,6 +936,7 @@ void main() {
         find.byKey(const ValueKey<String>('session-add-program-chip')),
         findsOneWidget,
       );
+      await openEditMenu(tester);
       expect(
         find.byKey(const ValueKey<String>('session-edit-program-chip')),
         findsNothing,
@@ -923,6 +947,7 @@ void main() {
         findsOneWidget,
       );
       expect(noteActionLabel(tester), '메모 추가');
+      await closeEditMenu(tester);
 
       await tester.tap(
         find.byKey(const ValueKey<String>('session-add-program-chip')),
@@ -942,10 +967,12 @@ void main() {
         );
 
         await openSession(tester, '김민수');
+        await openEditMenu(tester);
         expect(
           find.byKey(const ValueKey<String>('session-edit-program-chip')),
           findsOneWidget,
         );
+        await closeEditMenu(tester);
 
         final send = find.byKey(
           const ValueKey<String>('schedule-send-program'),
@@ -955,6 +982,7 @@ void main() {
         await tester.tap(send);
         await tester.pumpAndSettle();
 
+        await openEditMenu(tester);
         expect(
           find.byKey(const ValueKey<String>('session-edit-program-chip')),
           findsNothing,
@@ -1024,10 +1052,7 @@ void main() {
 
       await openSession(tester, '박성호');
 
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
-      );
+      await openEditMenu(tester);
       await tester.tap(
         find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
       );
@@ -1072,10 +1097,7 @@ void main() {
 
       await openSession(tester, '박성호');
 
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-edit-program-chip')),
-      );
+      await openEditMenu(tester);
       await tester.tap(
         find.byKey(const ValueKey<String>('session-edit-program-chip')),
       );
@@ -1140,10 +1162,7 @@ void main() {
       await openSchedule(tester);
       await openSession(tester, '박성호');
 
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-edit-note-chip')),
-      );
+      await openEditMenu(tester);
       // 메모가 없는 세션이라 이 자리는 아직 `메모 추가` 다(#1011).
       expect(noteActionLabel(tester), '메모 추가');
       await tester.tap(
@@ -1181,6 +1200,7 @@ void main() {
       expect(find.text('벤치프레스'), findsOneWidget);
 
       // 메모를 남긴 뒤에는 같은 자리가 `메모 수정` 으로 이름을 바꾼다.
+      await openEditMenu(tester);
       expect(noteActionLabel(tester), '메모 수정');
     });
 
@@ -1196,7 +1216,7 @@ void main() {
 
       // 시드의 김민수 세션에는 메모가 있다.
       await openSession(tester, '김민수');
-      await revealInPanel(tester, noteChip);
+      await openEditMenu(tester);
       expect(noteActionLabel(tester), '메모 수정');
       expect(
         find.descendant(
@@ -1204,12 +1224,13 @@ void main() {
           matching: find.byIcon(Icons.edit_note_rounded),
         ),
         findsOneWidget,
-        reason: '아이콘도 함께 갈린다 — 글씨 없이 아이콘만 그리는 자리다',
+        reason: '아이콘도 함께 갈린다 — 글씨와 함께 무엇을 하는지 말한다',
       );
+      await closeEditMenu(tester);
 
       // 박성호 세션에는 없다.
       await openSession(tester, '박성호');
-      await revealInPanel(tester, noteChip);
+      await openEditMenu(tester);
       expect(noteActionLabel(tester), '메모 추가');
       expect(
         find.descendant(
@@ -1225,10 +1246,7 @@ void main() {
 
       await openSession(tester, '윤가온');
 
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-delete-chip')),
-      );
+      await openEditMenu(tester);
       await tester.tap(
         find.byKey(const ValueKey<String>('session-delete-chip')),
       );
@@ -1362,16 +1380,13 @@ void main() {
 
       // Manage actions are there, but 완료 is not — the class is in the
       // future (review PR 245).
+      await openEditMenu(tester);
       expect(
         find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
         findsOneWidget,
       );
       expect(
         find.byKey(const ValueKey<String>('session-edit-program-chip')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('session-chat-chip')),
         findsOneWidget,
       );
       expect(
@@ -1405,6 +1420,16 @@ void main() {
       );
       expect(find.textContaining('이 날짜에는 일정이 없어요'), findsOneWidget);
       expect(find.text('오늘'), findsOneWidget);
+      // `오늘` 과 `예약 슬롯` 은 페이지 배경 위 네이비 외곽선이다(#2180).
+      for (final Finder button in <Finder>[
+        find.widgetWithText(AppButton, '오늘'),
+        find.byKey(const ValueKey<String>('schedule-open-slots')),
+      ]) {
+        expect(
+          tester.widget<AppButton>(button).variant,
+          AppButtonVariant.strongOutline,
+        );
+      }
 
       // 그 날에 일정을 만들면 빈 안내가 사라진다.
       await tester.tap(find.text('새 일정'));
@@ -1509,43 +1534,6 @@ void main() {
       expect(find.text('오늘'), findsNothing);
     });
 
-    testWidgets('채팅 chip jumps to the standalone message thread', (
-      tester,
-    ) async {
-      await openSchedule(tester);
-
-      await openSession(tester, '박성호');
-
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-chat-chip')),
-      );
-      await tester.tap(find.byKey(const ValueKey<String>('session-chat-chip')));
-      await settle(tester);
-
-      // Client detail opened on the chat section — the header's message
-      // button reads as selected, standing in for the tab it replaced.
-      expect(
-        find.byKey(const ValueKey<String>('messages-thread-seed-client-3')),
-        findsOneWidget,
-      );
-      // The thread auto-scrolls to the newest message; drag back up so
-      // the lazily-built banner at the top of the thread exists.
-      await tester.drag(
-        find
-            .descendant(
-              of: find.byKey(
-                const ValueKey<String>('messages-thread-seed-client-3'),
-              ),
-              matching: find.byType(ListView),
-            )
-            .first,
-        const Offset(0, 600),
-      );
-      await tester.pump();
-      expect(find.textContaining('AI가 박성호님의'), findsOneWidget);
-    });
-
     testWidgets('editing a session whose client is not in the roster keeps '
         'its own values on a no-op save', (tester) async {
       useWideConsole(tester);
@@ -1559,10 +1547,7 @@ void main() {
       // 윤가온 (상담, 30분) is booked but is NOT a registered client.
       await openSession(tester, '윤가온');
 
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
-      );
+      await openEditMenu(tester);
       await tester.tap(
         find.byKey(const ValueKey<String>('session-edit-schedule-chip')),
       );
@@ -1702,10 +1687,7 @@ void main() {
 
       await openSession(tester, '박성호');
 
-      await revealInPanel(
-        tester,
-        find.byKey(const ValueKey<String>('session-delete-chip')),
-      );
+      await openEditMenu(tester);
       await tester.tap(
         find.byKey(const ValueKey<String>('session-delete-chip')),
       );

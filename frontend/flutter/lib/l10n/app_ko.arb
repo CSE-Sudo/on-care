@@ -1683,6 +1683,7 @@
   "coachPointsTitle": "이번 코칭 포인트",
   "coachRoutineTitle": "추천 개인운동",
   "coachRoutineAiTitle": "AI 추천 개인운동",
+  "coachRoutinePastReadOnly": "그날 한 운동이에요. 지난 날짜는 체크할 수 없어요.",
   "coachRoutineByTrainer": "트레이너 직접 추천",
   "coachRoutineAiChecked": "AI 추천 · {name} 확인",
   "coachRoutineAiAuto": "AI 자동 추천",

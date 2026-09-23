@@ -67,9 +67,9 @@ class SessionNoNoteBox extends StatelessWidget {
             ),
           ),
           const SizedBox(width: OnCareSpacing.s8),
-          // 키는 이 자리 전체에 둔다 — `session_manage_row.dart` 의 같은 키와
-          // 같은 규약이라, 테스트가 툴팁 문구를 그 자손에서 찾는 방식
-          // (`noteActionLabel`)을 그대로 쓸 수 있다.
+          // 키는 이 자리 전체에 둔다 — `session_manage_row.dart` 편집 메뉴의
+          // `메모` 항목과 같은 키라, 테스트가 이름을 그 자손(여기서는 툴팁)에서
+          // 찾는 방식(`noteActionLabel`)을 그대로 쓸 수 있다.
           AppIconButton(
             key: const ValueKey<String>('session-edit-note-chip'),
             icon: Icons.note_add_rounded,

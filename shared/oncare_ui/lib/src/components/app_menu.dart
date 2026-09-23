@@ -9,6 +9,7 @@ import 'package:oncare_ui/src/tokens/sizes.dart';
 class AppMenuItem {
   const AppMenuItem({
     required this.label,
+    this.key,
     required this.onSelected,
     this.icon,
     this.destructive = false,
@@ -16,6 +17,10 @@ class AppMenuItem {
   });
 
   final String label;
+
+  /// 항목 버튼에 붙는 키. 버튼 줄을 메뉴로 접을 때 예전 버튼의 키를 그대로
+  /// 이어 받아, 그 동작을 찾던 테스트·자동화가 깨지지 않게 한다(#2178).
+  final Key? key;
 
   /// `null` 이면 비활성이다.
   final VoidCallback? onSelected;
@@ -49,6 +54,7 @@ class AppMenu extends StatelessWidget {
       menuChildren: <Widget>[
         for (final AppMenuItem item in items)
           MenuItemButton(
+            key: item.key,
             onPressed: item.onSelected,
             leadingIcon: item.selected
                 ? AppIcon(

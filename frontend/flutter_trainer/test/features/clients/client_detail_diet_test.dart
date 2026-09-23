@@ -249,7 +249,7 @@ void main() {
       );
       expect(find.text('오늘 섭취 칼로리'), findsOneWidget);
       // 회원 앱과 같은 **한 장**이다(#698, #1166): 칼로리 링 + 탄단지 글자
-      // 세 줄 + 나트륨·당류 진행 바. 예전의 세 장짜리 묶음은 없어졌다.
+      // 진행 바 세 줄(#2156). 예전의 세 장짜리 묶음은 없어졌다.
       expect(
         find.byKey(const Key('client-nutrition-summary-card')),
         findsOneWidget,
@@ -280,36 +280,25 @@ void main() {
       expect(inMacro('단백질', '54.4'), findsOneWidget);
       expect(inMacro('지방', '34.1'), findsOneWidget);
 
+      // 헤더의 경고 배지는 그대로다 — 카드에서 내린 것은 막대뿐이다.
       expect(find.text('나트륨 초과'), findsOneWidget);
-      final Finder sodiumStatus = find.byKey(
-        const Key('client-nutrition-mineral-나트륨'),
-      );
-      expect(sodiumStatus, findsOneWidget);
-      // 천 단위 구분이 들어간다 — 회원 앱과 같은 형식.
+      // 나트륨·당류 막대는 없다 — 회원 앱 `오늘` 카드와 같다(회원 앱 #1986,
+      // #2156). 그 자리에 탄·단·지 진행 바가 선다.
       expect(
-        find.descendant(
-          of: sodiumStatus,
-          matching: find.textContaining('4,657', findRichText: true),
-        ),
-        findsOneWidget,
-      );
-      // 초과분은 라벨 오른쪽에 `+2,657mg` 로 붙는다 (#1166) — 회원 앱과 같은
-      // 표기다. 예전의 '목표보다 … 많아요' 한 문장을 대신한다.
-      expect(
-        find.descendant(
-          of: sodiumStatus,
-          matching: find.textContaining('+2,657mg', findRichText: true),
-        ),
-        findsOneWidget,
-        reason: '목표를 넘겼는데 초과분 표기가 없습니다.',
+        find.byKey(const Key('client-nutrition-mineral-나트륨')),
+        findsNothing,
       );
       expect(
-        find.descendant(
-          of: find.byKey(const Key('client-nutrition-mineral-당류')),
-          matching: find.textContaining('16.7', findRichText: true),
-        ),
-        findsOneWidget,
+        find.byKey(const Key('client-nutrition-mineral-당류')),
+        findsNothing,
       );
+      for (final String label in <String>['탄수화물', '단백질', '지방']) {
+        expect(
+          find.byKey(Key('client-nutrition-macro-progress-$label')),
+          findsOneWidget,
+          reason: label,
+        );
+      }
       // The detail header plus the 7-day trend card push every meal card
       // down, so reach them by scrolling.
       await tester.scrollUntilVisible(
@@ -367,43 +356,6 @@ void main() {
       // 와 정면으로 어긋난다.
       expect(find.text('113%'), findsOneWidget);
       expect(find.text('100%'), findsNothing);
-    });
-
-    testWidgets('목표 안쪽 나트륨·당류는 메인 색을 쓴다 (#1166)', (tester) async {
-      await openDiet(tester, '이지수');
-
-      for (final Key key in <Key>[
-        const Key('client-nutrition-mineral-나트륨'),
-        const Key('client-nutrition-mineral-당류'),
-      ]) {
-        expect(
-          tester
-              .widgetList<AppProgressBar>(
-                find.descendant(
-                  of: find.byKey(key),
-                  matching: find.byType(AppProgressBar),
-                ),
-              )
-              .any((bar) => bar.color == OnCareBrand.trainer.primary),
-          isTrue,
-          reason: '$key 목표 안쪽 막대가 트레이너 메인 색을 써야 합니다.',
-        );
-      }
-    });
-
-    testWidgets('integer-valued sugar keeps the existing compact format', (
-      tester,
-    ) async {
-      await openDiet(tester, '이지수');
-
-      expect(
-        find.descendant(
-          of: find.byKey(const Key('client-nutrition-mineral-당류')),
-          matching: find.textContaining('38', findRichText: true),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('38.0'), findsNothing);
     });
 
     testWidgets('거른 끼니는 카드 없이 다음 끼니부터 선다 (#1381)', (tester) async {

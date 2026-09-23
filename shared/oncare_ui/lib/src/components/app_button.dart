@@ -24,6 +24,14 @@ enum AppButtonVariant {
   /// `기록` 이 채움이던 동안에는 대화보다 먼저 눈에 들었다.
   brandOutline,
 
+  /// 투명 바탕 + 진한 브랜드(`strong`) 테두리·글자 — 놓인 바탕에 녹는 보조 동작.
+  /// (#2180, #2184)
+  ///
+  /// 바탕을 칠하지 않아 페이지 배경 위에서는 페이지 색, 흰 카드 위에서는 흰색이
+  /// 된다. [secondary] 의 흰 채움은 회색 페이지 위에서 버튼만 떠 보였고, 흰 카드
+  /// 안의 `거절` 은 빨간 글자만 있어 옆 `승인` 과 모양이 달랐다.
+  strongOutline,
+
   /// 브랜드 글자 — 링크·가벼운 동작.
   text,
 
@@ -90,6 +98,11 @@ class AppButton extends StatelessWidget {
         OnCareColors.surfaceCard,
         tokens.brand.primary,
         BorderSide(color: tokens.brand.primary),
+      ),
+      AppButtonVariant.strongOutline => (
+        Colors.transparent,
+        tokens.brand.strong,
+        BorderSide(color: tokens.brand.strong),
       ),
       AppButtonVariant.text => (
         Colors.transparent,

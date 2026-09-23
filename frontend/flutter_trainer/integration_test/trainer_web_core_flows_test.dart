@@ -537,19 +537,16 @@ void main() {
     await tester.tap(find.text('김민수').first);
     await _pumpUntil(
       tester,
-      find.byKey(const ValueKey<String>('session-chat-chip')),
+      find.byKey(const ValueKey<String>('session-edit-menu')),
       step: 'booked client actions',
     );
-    await tester.ensureVisible(
-      find.byKey(const ValueKey<String>('session-chat-chip')),
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('week-detail')),
+        matching: find.text('김민수'),
+      ),
+      findsWidgets,
+      reason: 'detail panel did not open the booked client',
     );
-    await tester.pump();
-    await tester.tap(find.byKey(const ValueKey<String>('session-chat-chip')));
-    await _pumpUntil(
-      tester,
-      _chatThread,
-      step: 'booked client chat navigation',
-    );
-    expect(_location(tester), _chatLocation);
   });
 }

@@ -54,7 +54,11 @@ ValueKey<String> clientSearchDestinationKey(
 ) => ValueKey<String>('client-search-destination-$clientId-$destination');
 
 /// What a pick resolved to: the client and the route to open.
-typedef _Pick = ({TrainerClient client, String route});
+///
+/// [inTab] marks a direct pick (row tap or Enter) rather than an explicit
+/// cross-tab destination — only those may be re-resolved on the 스케줄 tab
+/// (#2185).
+typedef _Pick = ({TrainerClient client, String route, bool inTab});
 
 enum _SearchDestination { clients, schedule, messages, coaching, reports }
 
@@ -65,7 +69,7 @@ String? _destinationRoute(
 ) => switch (destination) {
   _SearchDestination.clients => AppRoutes.clientDetail(client.id),
   _SearchDestination.schedule => switch (facts.nextSession[client.id]) {
-    final next? => AppRoutes.scheduleAt(date: next.date),
+    final next? => AppRoutes.scheduleAt(date: next.date, sessionId: next.id),
     null => null,
   },
   _SearchDestination.messages => AppRoutes.messagesFor(client.id),
@@ -195,16 +199,42 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
         client,
         facts,
       ),
+      inTab: true,
     ));
   }
 
-  void _apply(_Pick pick) {
-    context.go(pick.route);
+  /// Opens [pick]. On the 스케줄 tab a direct pick opens that member's own
+  /// session — the nearest upcoming one, else the most recent — rather than
+  /// just a date whose first session may be someone else's (#2185). The
+  /// search facts only hold the next 28 days of 예정, so the member's full
+  /// history is read here, once, at the moment of the pick.
+  Future<void> _apply(_Pick pick) async {
+    var route = pick.route;
+    if (pick.inTab &&
+        GoRouterState.of(context).uri.pathSegments.firstOrNull == 'schedule') {
+      route = await _scheduleRoute(pick.client) ?? route;
+      if (!mounted) return;
+    }
+    context.go(route);
+  }
+
+  /// The member's session route on the 스케줄 tab, or `null` when the read
+  /// fails (the facts-based route is used then).
+  Future<String?> _scheduleRoute(TrainerClient client) async {
+    try {
+      final sessions = await ref
+          .read(scheduleRepositoryProvider)
+          .watchClientSessions((id: client.id, name: client.name))
+          .first;
+      return clientScheduleDestination(client, sessions, ymd(nowKst()));
+    } catch (_) {
+      return null;
+    }
   }
 
   void _openDestination(TrainerClient client, String route) {
     _close(clear: true);
-    _apply((client: client, route: route));
+    _apply((client: client, route: route, inTab: false));
   }
 
   Future<void> _openDialog() async {
@@ -214,7 +244,7 @@ class _ClientSearchBarState extends ConsumerState<ClientSearchBar> {
       builder: (_) => _ClientSearchDialog(location: location),
     );
     if (pick == null || !mounted) return;
-    _apply(pick);
+    await _apply(pick);
   }
 
   @override
@@ -789,10 +819,16 @@ class _ClientSearchDialogState extends ConsumerState<_ClientSearchDialog> {
   }
 
   void _pop(TrainerClient client, ClientSearchFacts facts) {
-    _popRoute(client, clientSearchDestination(widget.location, client, facts));
+    Navigator.of(context).pop<_Pick>((
+      client: client,
+      route: clientSearchDestination(widget.location, client, facts),
+      inTab: true,
+    ));
   }
 
   void _popRoute(TrainerClient client, String route) {
-    Navigator.of(context).pop<_Pick>((client: client, route: route));
+    Navigator.of(
+      context,
+    ).pop<_Pick>((client: client, route: route, inTab: false));
   }
 }

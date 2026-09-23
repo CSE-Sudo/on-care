@@ -132,4 +132,34 @@ void main() {
       lessThanOrEqualTo(900 * OnCareLayout.sheetMaxHeightFactor),
     );
   });
+
+  testWidgets('메뉴 항목의 키가 항목 버튼에 붙는다 (#2178)', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: OnCareTheme.light(
+          brand: OnCareBrand.trainer,
+          density: OnCareDensity.web,
+        ),
+        home: Scaffold(
+          body: AppMenu(
+            items: <AppMenuItem>[
+              AppMenuItem(
+                key: const ValueKey<String>('menu-edit'),
+                label: '수정',
+                onSelected: () {},
+              ),
+            ],
+            triggerBuilder: (context, toggle) =>
+                TextButton(onPressed: toggle, child: const Text('열기')),
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey<String>('menu-edit')), findsNothing);
+    await tester.tap(find.text('열기'));
+    await tester.pumpAndSettle();
+    final Finder item = find.byKey(const ValueKey<String>('menu-edit'));
+    expect(item, findsOneWidget);
+    expect(tester.widget(item), isA<MenuItemButton>());
+  });
 }

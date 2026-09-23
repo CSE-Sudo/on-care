@@ -18,7 +18,7 @@ import 'package:oncare_ui/oncare_ui.dart';
 /// 상세 패널의 세션 한 건 — 시간·상태·누구인가와 그날 할 일.
 ///
 /// 완료된 세션은 프로그램과 메모를 보여 주고 고객에게 보낼 수 있다. 예정된
-/// 세션은 계획(없으면 [SessionNoPlanBox])과 수정·삭제·채팅 동선을 연다.
+/// 세션은 계획(없으면 [SessionNoPlanBox])과 수정·삭제 동선을 연다.
 /// 취소·노쇼로 끝난 세션은 [SessionEndedBox] 로 그 기록을 남긴다.
 ///
 /// 카드는 **늘 펼친 상태**다(#1012). 접었다 펴는 손잡이가 머리글에 있었지만,
@@ -33,10 +33,8 @@ class SessionCard extends ConsumerWidget {
     required this.onGoToProgram,
     required this.onEditNote,
     required this.onDelete,
-    required this.onChat,
     required this.onComplete,
     this.onCancel,
-    this.onNoShow,
     required this.programDateLabel,
     required this.sendingProgram,
     required this.onSendProgram,
@@ -54,12 +52,11 @@ class SessionCard extends ConsumerWidget {
   final VoidCallback onEditNote;
 
   final VoidCallback onDelete;
-  final VoidCallback onChat;
 
-  /// 예정 세션의 `취소`·`노쇼` 기록 처리. 대상이 아니면 null 이라 화면에 나오지
-  /// 않는다 — 서버가 409 로 막을 동작을 아예 내놓지 않는다(#871).
+  /// 예정 세션의 `취소`·`노쇼` 기록 처리 — 노쇼도 이 창에서 고른다(#2175).
+  /// 대상이 아니면 null 이라 화면에 나오지 않는다 — 서버가 409 로 막을 동작을
+  /// 아예 내놓지 않는다(#871).
   final VoidCallback? onCancel;
-  final VoidCallback? onNoShow;
   final String programDateLabel;
 
   /// 이 세션의 프로그램 전송이 진행 중인가. (#822)
@@ -264,8 +261,6 @@ class SessionCard extends ConsumerWidget {
             showEditProgram: s.program.isNotEmpty && !s.programSent,
             onDelete: onDelete,
             onCancel: onCancel,
-            onNoShow: onNoShow,
-            onChat: onChat,
             onComplete: onComplete,
           ),
           if (!noteOnly && s.isDone && s.program.isNotEmpty) ...<Widget>[

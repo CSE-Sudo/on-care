@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
+import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/core/utils/server_message.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/reservation_slot_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/reservation_slot.dart';
@@ -32,11 +33,6 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
   /// 정원 대신 종류를 고른다 — 슬롯은 늘 한 사람 몫이다(#1012). 회원 예약이
   /// 만드는 일정이 이 종류를 그대로 물려받는다(#1083).
   String _type = SessionType.personalTraining;
-
-  bool _sameDay(DateTime left, DateTime right) =>
-      left.year == right.year &&
-      left.month == right.month &&
-      left.day == right.day;
 
   /// 24시간 표기로 고정한다 — `TimeOfDay.format(context)` 는 로케일 기본값
   /// (오전/오후 12시간제)을 따라가 이 시트만 다른 곳(스케줄 시간표 등)과
@@ -221,15 +217,17 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
-          l.slotIntro(l.dateMonthDay(_date.month, _date.day)),
+          l.slotIntro,
           style: tokens
               .text(OnCareTypography.bodySmall)
               .copyWith(color: OnCareColors.textSecondary),
         ),
         const SizedBox(height: OnCareSpacing.s16),
-        // 종류·날짜·시간·추가 버튼을 한 줄에 둔다 — 넷 다 "언제·누구
-        // 자리를 열까"를 정하고 실행하는 같은 흐름이라, 하나만 다른
-        // 줄에 서면 무엇이 먼저인지 자리로 오해된다(#1090).
+        // 종류·날짜·시간·추가 버튼은 "언제·누구 자리를 열까"를 정하고 실행하는
+        // 같은 흐름이라 한 덩어리로 둔다(#1090). 넷을 한 줄에 세우던 때에는
+        // 560 창에서 칸마다 글자 폭이 모자라 `9월 ...`·`10:0...` 처럼 잘렸다
+        // (#2181). 두 줄로 나누어 종류·날짜 → 시간·열기 순서로 읽히게 한다 —
+        // 실행 버튼은 여전히 흐름의 끝(오른쪽 아래)이다.
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
@@ -262,7 +260,12 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
                 onTap: _saving ? null : _pickDate,
               ),
             ),
-            const SizedBox(width: OnCareSpacing.s8),
+          ],
+        ),
+        const SizedBox(height: OnCareSpacing.s12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: <Widget>[
             Expanded(
               child: _fieldColumn(
                 key: const ValueKey<String>('slot-time-range'),
@@ -295,29 +298,58 @@ class _ReservationSlotsSheetState extends ConsumerState<ReservationSlotsSheet> {
             ),
           ),
           data: (allSlots) {
-            final daySlots = allSlots
-                .where((slot) => _sameDay(slot.startsAt, _date))
-                .toList();
-            if (daySlots.isEmpty) {
+            // 고른 날의 슬롯만 보여 주던 것을 앞으로 열린 슬롯 전부로 넓힌다
+            // (#2182). 서버는 이미 전부를 내려 주는데 창이 날짜로 걸러, 다른
+            // 날 슬롯을 보려면 창을 닫고 캘린더에서 날짜를 옮겨야 했다. 위
+            // 열기 폼은 여전히 고른 날에서 시작한다.
+            if (allSlots.isEmpty) {
               return AppEmptyState(
                 title: l.slotEmpty,
                 icon: Icons.event_available_rounded,
                 placement: AppStatePlacement.card,
               );
             }
+            final sorted = <ReservationSlot>[...allSlots]
+              ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+            final byDay = <String, List<ReservationSlot>>{};
+            for (final slot in sorted) {
+              byDay.putIfAbsent(ymd(slot.startsAt), () => []).add(slot);
+            }
+            final days = byDay.entries.toList();
             return Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                for (var i = 0; i < daySlots.length; i++) ...<Widget>[
-                  if (i != 0) const SizedBox(height: OnCareSpacing.s8),
-                  _slotRow(l, tokens, daySlots[i]),
+                for (var d = 0; d < days.length; d++) ...<Widget>[
+                  if (d != 0) const SizedBox(height: OnCareSpacing.s16),
+                  _dayHeader(tokens, l, days[d].key, days[d].value.first),
+                  const SizedBox(height: OnCareSpacing.s8),
+                  for (var i = 0; i < days[d].value.length; i++) ...<Widget>[
+                    if (i != 0) const SizedBox(height: OnCareSpacing.s8),
+                    _slotRow(l, tokens, days[d].value[i]),
+                  ],
                 ],
               ],
             );
           },
         ),
       ],
+    );
+  }
+
+  /// 날짜 묶음 머리 — `오늘 · 9월 23일 (화)` 처럼 스케줄 머리와 같은 표기다.
+  Widget _dayHeader(
+    OnCareTokens tokens,
+    AppLocalizations l,
+    String day,
+    ReservationSlot first,
+  ) {
+    return Text(
+      dateLabel(l, first.startsAt),
+      key: ValueKey<String>('slot-day-$day'),
+      style: tokens
+          .text(OnCareTypography.label)
+          .copyWith(color: OnCareColors.textSecondary),
     );
   }
 

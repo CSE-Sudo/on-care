@@ -66,7 +66,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(tile);
       await tester.pumpAndSettle();
-      if (find.textContaining('탄수화물').evaluate().isNotEmpty) break;
+      // 카드 머리에도 탄단지 줄이 늘 있어 `탄수화물` 로는 펼쳤는지 알 수 없다.
+      // `칼로리` 는 펼친 줄에만 있다 — 기간 그래프에 지표 칩이 없어졌다(#2156).
+      if (find
+          .textContaining('칼로리', findRichText: true)
+          .evaluate()
+          .isNotEmpty) {
+        break;
+      }
     }
 
     // `탄단지` 라는 상위 용어는 없고, 각 영양소 이름만 남는다.
