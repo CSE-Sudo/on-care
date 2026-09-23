@@ -194,7 +194,30 @@ class MockExerciseRepository implements ExerciseRepository {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     // 문장 규칙은 서버(`exercise_service.period_coach_message`)의 것을 그대로
     // 쓴다 — 데모로 본 화면과 실 연동으로 본 화면이 다른 말을 하면 안 된다.
-    return exercisePeriodAdvice(_dayTotals(period), period);
+    // 추천 개인운동도 서버와 같은 구간을 읽는다(#2162).
+    return exercisePeriodAdvice(
+      _dayTotals(period),
+      period,
+      routineDays: <RoutineAdviceDay>[
+        for (final RoutineDay day in routineDaysBetween(
+          routineAdviceFetchStart(period, _today),
+          _today,
+        ))
+          (
+            date: day.date,
+            routines: <RoutineAdviceItem>[
+              for (final CoachRoutine r in day.routines)
+                (
+                  name: r.name,
+                  type: r.type,
+                  minutes: r.minutes,
+                  done: r.completed,
+                  completedMinutes: r.completedMinutes,
+                ),
+            ],
+          ),
+      ],
+    );
   }
 
   /// 기간이 덮는 날들의 하루 합계. **기록이 있는 날만** 만든다 — 쉰 날과 적지

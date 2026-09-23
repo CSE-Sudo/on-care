@@ -14,6 +14,7 @@
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, timedelta
 
@@ -22,7 +23,9 @@ from sqlalchemy.orm import Session
 
 from app.core import clock
 from app.models.models import ExerciseSession
-from app.services import exercise_activity, exercise_types, period_window
+from app.services import (
+    exercise_activity, exercise_types, period_window, routine_advice,
+)
 from app.services.exercise_catalog import energy, resolver
 
 #: 요일 라벨(월=0 … 일=6). 순서를 두 벌 두지 않으려고 논리 운동일 모듈의 정의를
@@ -387,17 +390,28 @@ def _avg(values: list[int]) -> float:
     return sum(values) / len(values) if values else 0
 
 
-def period_coach_message(days: list[ExerciseDayTotals], period: str) -> str:
-    """기간에 맞는 운동 조언. (#1025, #1574)
+def period_coach_message(
+    days: list[ExerciseDayTotals],
+    period: str,
+    routine_days: Sequence[routine_advice.RoutineDayLike] = (),
+) -> str:
+    """기간에 맞는 운동 조언. (#1025, #1574, #2162)
 
     기간마다 **재료가 다르다.** 오늘은 오늘 한 운동, 이번 주는 며칠 움직였고
     무엇에 치우쳤는지, 전체는 최근 4주와 그 이전의 추세다. 말투도 다르다 —
     오늘은 다음 한 걸음을 제안하고, 이번 주·전체는 되짚어 준다.
 
+    오늘 걸린 추천 개인운동([routine_days])이 있으면 그 목록을 기준으로 말한다
+    (`routine_advice`, #2162) — 회원이 먼저 묻는 것은 "추천 중 뭘 먼저 할까" 다.
+    추천이 없는 회원은 아래의 직접 기록 기준 조언을 그대로 듣는다.
+
     **한 문장 반을 넘기지 않는다.** 카드가 회원 앱·트레이너웹 양쪽에서 좁은 폭에
     들어가고, 길어질수록 정작 숫자가 묻힌다 — 짚어 주는 수치 하나와 다음 행동
     하나면 충분하다. (#1574)
     """
+    routine_message = routine_advice.coach_message(routine_days, period)
+    if routine_message is not None:
+        return routine_message
     if not days:
         if period == period_window.PERIOD_WEEK:
             return "이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?"

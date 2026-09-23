@@ -404,7 +404,6 @@
       }
     }
   },
-  "actionClose": "Close",
   "exWeekNumber": "Week {n}",
   "@exWeekNumber": {
     "placeholders": {

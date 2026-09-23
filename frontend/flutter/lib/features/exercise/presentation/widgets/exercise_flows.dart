@@ -387,6 +387,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
       firstDate: DateTime(now.year - 2),
       // 앞으로 한 기록은 없다 — 아직 하지 않은 운동을 적을 자리가 아니다.
       lastDate: _dateOnly(now),
+      showClose: false,
     );
     if (picked != null && mounted) setState(() => _date = _dateOnly(picked));
   }
@@ -507,6 +508,7 @@ class _ExerciseAddSheetState extends ConsumerState<_ExerciseAddSheet> {
     final List<String> levels = _levelLabels(l);
     final Widget sheet = AppSheet(
       key: const Key('exerciseAddSheet'),
+      showClose: false,
       title: widget.isEdit ? l.exEditExercise : l.exAddExercise,
       // [취소] 왼쪽, [저장] 오른쪽 — 식단 수정 화면과 같은 두 버튼이다(#1782).
       // 취소는 저장하지 않고 시트만 닫는다. 저장 중에는 둘 다 비활성이 되어

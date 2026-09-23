@@ -6,6 +6,9 @@
 /// 지어내지 않는가.
 library;
 
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:oncare/core/demo/period_advice.dart';
@@ -29,7 +32,11 @@ void main() {
   group('식단', () {
     test('기록이 없으면 기간마다 다른 안내를 남긴다', () {
       final Set<String> messages = <String>{
-        for (final String period in <String>[kPeriodToday, kPeriodWeek, kPeriodAll])
+        for (final String period in <String>[
+          kPeriodToday,
+          kPeriodWeek,
+          kPeriodAll,
+        ])
           dietPeriodAdvice(const <DietDayTotals>[], period),
       };
       // 셋이 같은 문장이면 토글이 아무 일도 하지 않는 것처럼 보인다.
@@ -38,11 +45,15 @@ void main() {
 
     test('오늘은 그날 나트륨 합계를 짚는다', () {
       expect(
-        dietPeriodAdvice(<DietDayTotals>[_diet('2026-08-27', 3400)], kPeriodToday),
+        dietPeriodAdvice(<DietDayTotals>[
+          _diet('2026-08-27', 3400),
+        ], kPeriodToday),
         contains('3400mg'),
       );
       expect(
-        dietPeriodAdvice(<DietDayTotals>[_diet('2026-08-27', 1200)], kPeriodToday),
+        dietPeriodAdvice(<DietDayTotals>[
+          _diet('2026-08-27', 1200),
+        ], kPeriodToday),
         contains('권장량 안'),
       );
     });
@@ -77,7 +88,9 @@ void main() {
 
     test('조언은 짧다 — 카드 한 줄 반을 넘기지 않는다', () {
       final List<String> messages = <String>[
-        dietPeriodAdvice(<DietDayTotals>[_diet('2026-08-27', 3400)], kPeriodToday),
+        dietPeriodAdvice(<DietDayTotals>[
+          _diet('2026-08-27', 3400),
+        ], kPeriodToday),
         dietPeriodAdvice(<DietDayTotals>[
           _diet('2026-08-24', 2600),
           _diet('2026-08-25', 2600),
@@ -94,7 +107,11 @@ void main() {
   group('운동', () {
     test('기록이 없으면 기간마다 다른 안내를 남긴다', () {
       final Set<String> messages = <String>{
-        for (final String period in <String>[kPeriodToday, kPeriodWeek, kPeriodAll])
+        for (final String period in <String>[
+          kPeriodToday,
+          kPeriodWeek,
+          kPeriodAll,
+        ])
           exercisePeriodAdvice(const <ExerciseDayTotals>[], period),
       };
       expect(messages.length, 3);
@@ -122,14 +139,8 @@ void main() {
 
       final String mixed = exercisePeriodAdvice(<ExerciseDayTotals>[
         _exercise('2026-08-24'),
-        _exercise(
-          '2026-08-25',
-          byType: <String, int>{'strength': 30},
-        ),
-        _exercise(
-          '2026-08-26',
-          byType: <String, int>{'stretching': 30},
-        ),
+        _exercise('2026-08-25', byType: <String, int>{'strength': 30}),
+        _exercise('2026-08-26', byType: <String, int>{'stretching': 30}),
       ], kPeriodWeek);
       expect(mixed, contains('고르게'));
     });
@@ -164,6 +175,113 @@ void main() {
       for (final String message in messages) {
         expect(message.length, lessThanOrEqualTo(45), reason: message);
       }
+    });
+  });
+
+  // 서버(`routine_advice.py`)와 **같은 사례 파일**을 읽는다(#2162). 서버 테스트
+  // (`test_period_advice_copy.py`)도 이 파일로 같은 문장을 확인한다.
+  group('추천 개인운동 기준 조언', () {
+    final Map<String, dynamic> shared =
+        jsonDecode(
+              File(
+                'test/core/demo/routine_advice_cases.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
+
+    List<RoutineAdviceDay> routineDays(List<dynamic> raw) => <RoutineAdviceDay>[
+      for (final dynamic day in raw)
+        (
+          date: DateTime.parse((day as Map<String, dynamic>)['date'] as String),
+          routines: <RoutineAdviceItem>[
+            for (final dynamic item in day['routines'] as List<dynamic>)
+              (
+                name: (item as Map<String, dynamic>)['name'] as String,
+                type: item['type'] as String,
+                minutes: item['minutes'] as int,
+                done: item['done'] as bool,
+                completedMinutes: item['completed_minutes'] as int?,
+              ),
+          ],
+        ),
+    ];
+
+    for (final dynamic raw in shared['cases'] as List<dynamic>) {
+      final Map<String, dynamic> c = raw as Map<String, dynamic>;
+      test('서버와 같은 문장 — ${c['name']}', () {
+        final String? message = routineCoachMessage(
+          routineDays(c['days'] as List<dynamic>),
+          c['period'] as String,
+        );
+        expect(message, c['expected']);
+        if (message != null) {
+          expect(message.runes.length, lessThanOrEqualTo(kAdviceMaxLen));
+        }
+      });
+    }
+
+    test('부위는 운동 이름으로 판정한다 — 서버와 같은 결과', () {
+      (shared['body_parts'] as Map<String, dynamic>).forEach((
+        String name,
+        dynamic part,
+      ) {
+        expect(bodyPartOf(name), part, reason: name);
+      });
+    });
+
+    test('오늘 걸린 추천이 있으면 그 목록으로 말하고, 없으면 기록 기준 조언이다', () {
+      final List<ExerciseDayTotals> days = <ExerciseDayTotals>[
+        _exercise('2026-09-23'),
+      ];
+      final String recordAdvice = exercisePeriodAdvice(days, kPeriodToday);
+      expect(
+        exercisePeriodAdvice(
+          days,
+          kPeriodToday,
+          routineDays: <RoutineAdviceDay>[
+            (
+              date: DateTime.parse('2026-09-23'),
+              routines: <RoutineAdviceItem>[],
+            ),
+          ],
+        ),
+        recordAdvice,
+      );
+      expect(
+        exercisePeriodAdvice(
+          days,
+          kPeriodToday,
+          routineDays: <RoutineAdviceDay>[
+            (
+              date: DateTime.parse('2026-09-23'),
+              routines: <RoutineAdviceItem>[
+                (
+                  name: '스쿼트',
+                  type: '근력',
+                  minutes: 10,
+                  done: false,
+                  completedMinutes: null,
+                ),
+              ],
+            ),
+          ],
+        ),
+        '오늘은 스쿼트부터 시작해 보세요.',
+      );
+    });
+
+    test('조언이 읽는 구간의 시작은 서버와 같다', () {
+      final DateTime wednesday = DateTime(2026, 9, 23);
+      expect(routineAdviceFetchStart(kPeriodToday, wednesday), wednesday);
+      // 이번 주는 지난주 월요일부터 — 월·화에 지난주를 돌아본다.
+      expect(
+        routineAdviceFetchStart(kPeriodWeek, wednesday),
+        DateTime(2026, 9, 14),
+      );
+      expect(
+        routineAdviceFetchStart(kPeriodAll, wednesday),
+        DateTime(2026, 7, 2),
+      );
     });
   });
 }

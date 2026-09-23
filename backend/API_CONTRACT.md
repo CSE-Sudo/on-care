@@ -768,6 +768,14 @@ category: medical|fitness|healthy_food|pharmacy (생략 가능)
 실제 회원 User이고 트레이너 API는 회원의 실제 `diet_entries`·`routine_history`를 그대로
 읽어 집계한다.
 
+**로스터의 PT 관리 신호 (#2203)**: `GET /trainer/clients` 의 각 카드는 `signals` 를 싣는다 —
+`[{ kind, days?, count?, percent?, direction? }]`, 급한 순. `kind` 는 `discomfort`(통증·불편) ·
+`record_gap`(기록 끊김, `days`) · `no_show`(노쇼·취소 반복, `count`) · `routine_missed`(배정 루틴
+미수행, `days`) · `exercise_goal_low`(운동 목표 미달, `percent`) · `calorie_off`(칼로리 목표 이탈,
+`percent`·`direction` over|under) · `protein_low`(단백질 부족, `percent`) 일곱 가지다. 담당 해제·휴면
+회원은 빈 목록이다. 답장 대기는 여기 없다 — 앱이 `/trainer/chat/unread` 로 실시간으로 센다.
+기준값과 예외 규칙은 [`docs/TRAINER_DOMAIN.md`](docs/TRAINER_DOMAIN.md) 의 "PT 관리 신호" 참조.
+
 ---
 
 ## 인증
