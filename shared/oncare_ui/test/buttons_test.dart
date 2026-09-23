@@ -97,6 +97,7 @@ void main() {
       AppButtonVariant.secondary: OnCareColors.textPrimary,
       AppButtonVariant.destructiveText: OnCareColors.danger,
       AppButtonVariant.strongOutline: OnCareBrand.member.strong,
+      AppButtonVariant.strong: OnCareColors.textOnFill,
     };
     for (final MapEntry<AppButtonVariant, Color> entry in expected.entries) {
       await _pump(
@@ -165,6 +166,39 @@ void main() {
     expect(
       styleOf().side!.resolve(disabled),
       const BorderSide(color: OnCareColors.lineSubtle),
+    );
+  });
+
+  // #2202 — 옅은 브랜드 바탕 위에서 묻히지 않도록 진한 브랜드로 채운다.
+  // 비활성은 다른 채움 버튼과 같은 회색 채움이다.
+  testWidgets('strong 은 진한 브랜드 채움에 흰 글자다', (tester) async {
+    ButtonStyle styleOf() =>
+        tester.widget<TextButton>(find.byType(TextButton)).style!;
+
+    await _pump(
+      tester,
+      AppButton(
+        label: '회원',
+        onPressed: () {},
+        variant: AppButtonVariant.strong,
+      ),
+    );
+    final Set<WidgetState> idle = <WidgetState>{};
+    expect(
+      styleOf().backgroundColor!.resolve(idle),
+      OnCareBrand.member.strong,
+    );
+    expect(styleOf().foregroundColor!.resolve(idle), OnCareColors.textOnFill);
+    expect(styleOf().side, isNull);
+
+    final Set<WidgetState> disabled = <WidgetState>{WidgetState.disabled};
+    expect(
+      styleOf().backgroundColor!.resolve(disabled),
+      OnCareColors.surfaceInput,
+    );
+    expect(
+      styleOf().foregroundColor!.resolve(disabled),
+      OnCareColors.textDisabled,
     );
   });
 

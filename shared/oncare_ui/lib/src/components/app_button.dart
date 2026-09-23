@@ -32,6 +32,12 @@ enum AppButtonVariant {
   /// 안의 `거절` 은 빨간 글자만 있어 옆 `승인` 과 모양이 달랐다.
   strongOutline,
 
+  /// 진한 브랜드(`strong`) 채움 + 흰 글자 — 옅은 브랜드 바탕 위의 바로가기. (#2202)
+  ///
+  /// [primary] 의 메인 색 채움은 옅은 남색 안내 카드(트레이너 웹 활동 피드백)
+  /// 위에서 바탕과 가까워 묻힌다. 한 단계 진한 색으로 채워야 바탕과 갈린다.
+  strong,
+
   /// 브랜드 글자 — 링크·가벼운 동작.
   text,
 
@@ -103,6 +109,11 @@ class AppButton extends StatelessWidget {
         Colors.transparent,
         tokens.brand.strong,
         BorderSide(color: tokens.brand.strong),
+      ),
+      AppButtonVariant.strong => (
+        tokens.brand.strong,
+        OnCareColors.textOnFill,
+        null,
       ),
       AppButtonVariant.text => (
         Colors.transparent,

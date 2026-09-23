@@ -187,7 +187,9 @@ class _TaskProgressCard extends ConsumerWidget {
                 key: const ValueKey<String>('task-progress-prev-week'),
                 icon: Icons.chevron_left_rounded,
                 tooltip: l.a11yPrevWeek,
-                variant: AppIconButtonVariant.tonal,
+                // 배경 상자 없이 화살표만 — 제목 줄에서 화살표만 무거워
+                // 보였다(#2202). 넘어갈 수 없는 쪽은 비활성 회색이 된다.
+                color: brand.primary,
                 onPressed: offset <= -_maxTaskProgressWeeksBack
                     ? null
                     : () => ref
@@ -199,7 +201,7 @@ class _TaskProgressCard extends ConsumerWidget {
                 key: const ValueKey<String>('task-progress-next-week'),
                 icon: Icons.chevron_right_rounded,
                 tooltip: l.a11yNextWeek,
-                variant: AppIconButtonVariant.tonal,
+                color: brand.primary,
                 onPressed: offset >= 0
                     ? null
                     : () => ref

@@ -125,7 +125,8 @@ class _ActivityFeedbackDetail extends StatelessWidget {
                 key: ValueKey<String>('ai-summary-cta-${item.kind.name}'),
                 label: item.kind.tabLabel(l),
                 onPressed: () => context.go(destination),
-                variant: AppButtonVariant.secondary,
+                // 옅은 남색 카드 위에서 묻히지 않도록 진한 네이비로 채운다(#2202).
+                variant: AppButtonVariant.strong,
                 size: OnCareButtonSize.small,
                 trailingIcon: Icons.chevron_right_rounded,
               ),
