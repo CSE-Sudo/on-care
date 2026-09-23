@@ -1028,7 +1028,7 @@
   "aiStepReview": "프로그램 선택",
   "aiStepDone": "최종 검토",
   "aiSkipPtProgram": "PT 없이 개인운동만 짜기",
-  "aiPersonalRationaleLabel": "AI 추천 사유 · 트레이너만 봐요",
+  "aiPersonalRationaleLabel": "AI 추천 사유",
   "aiPersonalStepBadge": "AI 제안 {count}",
   "@aiPersonalStepBadge": {
     "placeholders": { "count": { "type": "int" } }
@@ -1039,6 +1039,11 @@
   },
   "aiPersonalStepLoadFailed": "AI 개인운동 제안을 불러오지 못했어요",
   "aiPersonalStepNoSuggestion": "오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.",
+  "aiPersonalDismissTitle": "이 운동을 뺄까요?",
+  "aiPersonalDismissBody": "{name}을(를) 이번 개인운동에서 빼요. AI 제안이면 다시 올라오지 않아요.",
+  "@aiPersonalDismissBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
   "aiPersonalDismissTooltip": "이 제안 빼기",
   "aiPersonalDismissed": "{name}은(는) 추천하지 않아요",
   "@aiPersonalDismissed": {

@@ -2498,7 +2498,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
 
   @override
-  String get aiPersonalRationaleLabel => 'AI 추천 사유 · 트레이너만 봐요';
+  String get aiPersonalRationaleLabel => 'AI 추천 사유';
 
   @override
   String aiPersonalStepBadge(int count) {
@@ -2515,6 +2515,14 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get aiPersonalStepNoSuggestion => '오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.';
+
+  @override
+  String get aiPersonalDismissTitle => '이 운동을 뺄까요?';
+
+  @override
+  String aiPersonalDismissBody(String name) {
+    return '$name을(를) 이번 개인운동에서 빼요. AI 제안이면 다시 올라오지 않아요.';
+  }
 
   @override
   String get aiPersonalDismissTooltip => '이 제안 빼기';

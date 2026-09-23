@@ -4613,7 +4613,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiPersonalRationaleLabel.
   ///
   /// In en, this message translates to:
-  /// **'Why AI picked this · trainer only'**
+  /// **'Why AI picked this'**
   String get aiPersonalRationaleLabel;
 
   /// No description provided for @aiPersonalStepBadge.
@@ -4639,6 +4639,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No AI suggestion today. Add one below.'**
   String get aiPersonalStepNoSuggestion;
+
+  /// No description provided for @aiPersonalDismissTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop this exercise?'**
+  String get aiPersonalDismissTitle;
+
+  /// No description provided for @aiPersonalDismissBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will be dropped from this personal exercise. An AI suggestion will not come back.'**
+  String aiPersonalDismissBody(String name);
 
   /// No description provided for @aiPersonalDismissTooltip.
   ///

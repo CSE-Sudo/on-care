@@ -2607,7 +2607,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSkipPtProgram => 'Skip PT — personal exercise only';
 
   @override
-  String get aiPersonalRationaleLabel => 'Why AI picked this · trainer only';
+  String get aiPersonalRationaleLabel => 'Why AI picked this';
 
   @override
   String aiPersonalStepBadge(int count) {
@@ -2626,6 +2626,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiPersonalStepNoSuggestion =>
       'No AI suggestion today. Add one below.';
+
+  @override
+  String get aiPersonalDismissTitle => 'Drop this exercise?';
+
+  @override
+  String aiPersonalDismissBody(String name) {
+    return '$name will be dropped from this personal exercise. An AI suggestion will not come back.';
+  }
 
   @override
   String get aiPersonalDismissTooltip => 'Drop this suggestion';

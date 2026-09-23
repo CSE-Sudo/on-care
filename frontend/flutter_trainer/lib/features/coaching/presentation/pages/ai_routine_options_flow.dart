@@ -492,6 +492,24 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 일이라, 서버의 대기 중 제안도 거절 처리한다 — 그러지 않으면 뺀 제안이
   /// 다음 날 다시 올라와 트레이너가 같은 것을 또 뺀다. 서버 호출이 실패해도
   /// 화면에서는 빼 둔다: 이번 전송에 넣지 않겠다는 뜻은 이미 분명하다.
+  ///
+  /// 되돌릴 수 없는 일이라 **한 번 묻는다** — 거절한 제안은 다시 올라오지
+  /// 않는다(다른 화면의 루틴 철회와 같은 확인창이다).
+  Future<void> _confirmRemoveExerciseAt(int index) async {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final String name = _activeList[index].name;
+    final bool ok = await showAppConfirmDialog(
+      context: context,
+      title: l.aiPersonalDismissTitle,
+      message: l.aiPersonalDismissBody(name),
+      confirmLabel: l.actionDelete,
+      cancelLabel: l.actionCancel,
+      destructive: true,
+    );
+    if (!ok || !mounted) return;
+    _removeExerciseAt(index);
+  }
+
   void _removeExerciseAt(int index) {
     final bool personal = _currentStep == _Step.personal;
     final _PersonalOrigin? origin =
@@ -1420,7 +1438,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                     ? l.aiPersonalDismissTooltip
                     : l.progDeleteExercise,
                 color: OnCareColors.textTertiary,
-                onPressed: () => _removeExerciseAt(index),
+                onPressed: () => unawaited(_confirmRemoveExerciseAt(index)),
               ),
             ],
           ),
@@ -1809,7 +1827,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 icon: Icons.delete_outline_rounded,
                 tooltip: l.aiPersonalDismissTooltip,
                 color: OnCareColors.textSecondary,
-                onPressed: () => _removeExerciseAt(index),
+                onPressed: () => unawaited(_confirmRemoveExerciseAt(index)),
               ),
             ],
           ),

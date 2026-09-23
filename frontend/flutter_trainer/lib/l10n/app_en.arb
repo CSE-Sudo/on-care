@@ -1618,7 +1618,7 @@
   "aiStepReview": "Program selection",
   "aiStepDone": "Final review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
-  "aiPersonalRationaleLabel": "Why AI picked this · trainer only",
+  "aiPersonalRationaleLabel": "Why AI picked this",
   "aiPersonalStepBadge": "{count} AI suggested",
   "@aiPersonalStepBadge": {
     "placeholders": { "count": { "type": "int" } }
@@ -1629,6 +1629,11 @@
   },
   "aiPersonalStepLoadFailed": "Could not load the AI personal-exercise suggestions",
   "aiPersonalStepNoSuggestion": "No AI suggestion today. Add one below.",
+  "aiPersonalDismissTitle": "Drop this exercise?",
+  "aiPersonalDismissBody": "{name} will be dropped from this personal exercise. An AI suggestion will not come back.",
+  "@aiPersonalDismissBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
   "aiPersonalDismissTooltip": "Drop this suggestion",
   "aiPersonalDismissed": "{name} will not be recommended",
   "@aiPersonalDismissed": {

@@ -33,7 +33,6 @@ void main() {
         type: '근력',
         sets: 3,
         reps: 15,
-        weight: 0,
       ),
       // 버티는 운동은 초가 횟수 자리를 대신한다(#1969).
       RoutineExercise(

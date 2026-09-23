@@ -638,11 +638,55 @@ void main() {
       expect(find.text('숨이 차면 속도를 낮추세요'), findsOneWidget);
       expect(find.text('혈압 관리 목표'), findsOneWidget);
       expect(find.text('최근 근력운동 비중 높음'), findsOneWidget);
-      // 그 글은 트레이너 몫이라고 못 박는다 — 회원에게는 가지 않는다.
-      expect(find.text('AI 추천 사유 · 트레이너만 봐요'), findsNWidgets(2));
+      expect(find.text('AI 추천 사유'), findsNWidgets(2));
       // 제안이 채워졌으므로 빈 상태 문구는 없다.
       expect(
         find.byKey(const ValueKey<String>('personal-routine-empty')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('AI 제안을 뺄 때는 한 번 묻는다 (#2223)', (tester) async {
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+        ],
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-remove-0')),
+      );
+      await tester.pumpAndSettle();
+
+      // 거절한 제안은 다시 올라오지 않는다 — 되돌릴 수 없으므로 확인을 받는다.
+      expect(find.text('이 운동을 뺄까요?'), findsOneWidget);
+
+      // 취소하면 그대로 남는다.
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('가벼운 인터벌 러닝', findRichText: true),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-remove-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('삭제'));
+      await tester.pumpAndSettle();
+      // 줄이 사라진다(이름은 "추천하지 않아요" 토스트에도 들어가므로 줄로 본다).
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-row-0')),
         findsNothing,
       );
     });
