@@ -79,10 +79,7 @@ ClientDateRange clientRangeFor(
         );
       }
       const int days = kClientAllPeriodDays;
-      return (
-        from: DateTime(day.year, day.month, day.day - days + 1),
-        to: day,
-      );
+      return (from: DateTime(day.year, day.month, day.day - days + 1), to: day);
   }
 }
 
@@ -217,6 +214,7 @@ class ClientExerciseDay {
     this.stretchingCalories = 0,
     this.otherCalories = 0,
     this.strengthSets = 0,
+    this.typeSplitFromPayload,
   });
 
   final DateTime date;
@@ -246,16 +244,23 @@ class ClientExerciseDay {
   /// 유형 분해가 있는가. 없으면 막대를 쌓지 않고 전부 유산소로 본다 —
   /// 임의로 나누면 없는 근력 시간을 지어내는 셈이다.
   ///
-  /// `기타` 도 분해의 한 칸이다(#2157). 예전에는 세 유형만 봐서, `기타` 만
-  /// 기록한 날을 분해가 없는 날로 읽고 그날 분 전체(= 기타 분)를 유산소에
-  /// 넣었다 — 기타 30분이 `유산소 30분` 과 `기타 30분` 으로 두 번 셌다. 회원
-  /// 앱(`dayLoadsOfWeek`)은 분해가 실려 오면 그 값을 그대로 써 유산소 0분 +
-  /// 기타 N분이다.
+  /// **응답이 말해 주면 그 말을 따른다**(#2195). 주간 응답에 유형 배열이 실려
+  /// 왔는지는 `ClientExerciseWeek.hasTypeSplit` 이 알고, 회원 앱
+  /// (`dayLoadsOfWeek`)도 같은 기준 — 배열이 있으면 그 값을 그대로 쓴다.
+  /// 값으로 되짚으면 **네 유형이 모두 0 인 날**(쉰 날, 또는 분 없이 칼로리만
+  /// 있는 날)이 분해가 없는 날로 읽혀, 그날 분이 통째로 유산소로 간다.
+  ///
+  /// 그 말을 듣지 못한 날([typeSplitFromPayload] 가 null — 직접 만든 값)만 값으로
+  /// 되짚는다. `기타` 도 분해의 한 칸이다(#2157).
+  /// 주간 응답이 말한 분해 여부. 직접 만든 값이면 null 이다.
+  final bool? typeSplitFromPayload;
+
   bool get hasTypeSplit =>
-      cardioMinutes > 0 ||
-      strengthMinutes > 0 ||
-      stretchingMinutes > 0 ||
-      otherMinutes > 0;
+      typeSplitFromPayload ??
+      (cardioMinutes > 0 ||
+          strengthMinutes > 0 ||
+          stretchingMinutes > 0 ||
+          otherMinutes > 0);
 }
 
 /// 한 기간의 운동 집계.
@@ -266,10 +271,16 @@ class ClientExercisePeriod {
     required this.days,
     this.weeklyGoalMinutes = 0,
     this.weeklyGoalCalories = 0,
+    this.streakDays = 0,
   });
 
   final ClientDateRange range;
   final List<ClientExerciseDay> days;
+
+  /// 운동한 날의 최장 연속 구간 — **서버가 센 값**이다(#2195). 여러 주를 이어
+  /// 붙인 기간이면 마지막(가장 최근) 주의 값이다. `이번 주` 도넛 옆의 연속
+  /// 태그가 이 값을 읽는다 — 회원 앱도 같은 필드를 쓴다.
+  final int streakDays;
 
   /// 회원의 주간 운동 시간 목표(분). 그래프의 목표선은 이 값을 7 로 나눠
   /// 하루 목표로 그린다 — 식단 그래프가 하루 목표를 그리는 것과 같은 뜻이다.
