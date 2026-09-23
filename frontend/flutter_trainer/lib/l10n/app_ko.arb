@@ -1034,6 +1034,7 @@
   "aiProgramKindRoutineOnlyHint": "이번엔 PT가 없어요",
   "aiGoToPersonalStep": "다음 · 개인운동 짜기",
   "aiPersonalStepTitle": "PT 사이에 할 개인운동",
+  "aiPersonalStepTitleRoutineOnly": "이번 주 개인운동",
   "aiPersonalStepBlurb": "이 PT에 붙여 두었다가 PT를 완료할 때 회원에게 보내요. 최소 한 개를 정해 주세요.",
   "aiPersonalStepBlurbRoutineOnly": "이번 한 주 동안 회원이 혼자 할 운동이에요. 최소 한 개를 정해 주세요.",
   "aiPersonalStepEmpty": "아직 정한 개인운동이 없어요. 아래에서 직접 더해 주세요.",

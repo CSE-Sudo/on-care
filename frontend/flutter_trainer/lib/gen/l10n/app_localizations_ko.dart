@@ -2516,6 +2516,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiPersonalStepTitle => 'PT 사이에 할 개인운동';
 
   @override
+  String get aiPersonalStepTitleRoutineOnly => '이번 주 개인운동';
+
+  @override
   String get aiPersonalStepBlurb =>
       '이 PT에 붙여 두었다가 PT를 완료할 때 회원에게 보내요. 최소 한 개를 정해 주세요.';
 

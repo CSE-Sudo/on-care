@@ -2625,6 +2625,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiPersonalStepTitle => 'Personal exercise between PT';
 
   @override
+  String get aiPersonalStepTitleRoutineOnly => 'This week\'s personal exercise';
+
+  @override
   String get aiPersonalStepBlurb =>
       'Attached to this PT and sent to the member when you complete it. Pick at least one.';
 

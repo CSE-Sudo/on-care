@@ -1624,6 +1624,7 @@
   "aiProgramKindRoutineOnlyHint": "No PT this time",
   "aiGoToPersonalStep": "Next · plan personal exercise",
   "aiPersonalStepTitle": "Personal exercise between PT",
+  "aiPersonalStepTitleRoutineOnly": "This week's personal exercise",
   "aiPersonalStepBlurb": "Attached to this PT and sent to the member when you complete it. Pick at least one.",
   "aiPersonalStepBlurbRoutineOnly": "What the member does on their own this week. Pick at least one.",
   "aiPersonalStepEmpty": "No personal exercise yet. Add one below.",

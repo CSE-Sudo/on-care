@@ -1507,7 +1507,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       key: const ValueKey<String>('personal-routine-step'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        _AssistantLabel(text: l.aiPersonalStepTitle),
+        _AssistantLabel(
+          // `개인운동만` 은 붙을 PT 가 없다 — "PT 사이에 할" 이라고 말하면
+          // 방금 "이번엔 PT 가 없어요" 를 고른 트레이너에게 어긋난 말이 된다.
+          text: _kind == ProgramKind.routineOnly
+              ? l.aiPersonalStepTitleRoutineOnly
+              : l.aiPersonalStepTitle,
+        ),
         const SizedBox(height: OnCareSpacing.s4),
         Text(
           _kind == ProgramKind.routineOnly

@@ -4646,6 +4646,12 @@ abstract class AppLocalizations {
   /// **'Personal exercise between PT'**
   String get aiPersonalStepTitle;
 
+  /// No description provided for @aiPersonalStepTitleRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s personal exercise'**
+  String get aiPersonalStepTitleRoutineOnly;
+
   /// No description provided for @aiPersonalStepBlurb.
   ///
   /// In en, this message translates to:
