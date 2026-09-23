@@ -8,7 +8,7 @@ void main() {
   group('브랜드', () {
     test('앱마다 다른 것은 브랜드 색뿐이다', () {
       expect(OnCareBrand.member.primary, const Color(0xFF3EAFDF));
-      expect(OnCareBrand.trainer.primary, const Color(0xFF2E7DAB));
+      expect(OnCareBrand.trainer.primary, const Color(0xFF235C88));
       expect(OnCareBrand.member.surface, const Color(0xFFEDF7FC));
       expect(OnCareBrand.trainer.surface, const Color(0xFFEAF2F9));
     });

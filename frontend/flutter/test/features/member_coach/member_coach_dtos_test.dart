@@ -28,6 +28,7 @@ void main() {
       'type': '유산소',
       'reason': '혈압 안정',
       'source': 'ai',
+      'intensity': 'light',
       'completed': true,
       'completed_at': '2026-08-13T10:00:00Z',
       'completed_minutes': 25,
@@ -42,8 +43,27 @@ void main() {
     expect(r.completedAt, DateTime.utc(2026, 8, 13, 10));
     expect(r.completedMinutes, 25);
     expect(r.completedIntensity, 'high');
+    // 권장 강도와 회원이 고른 강도는 서로 다른 칸이다(#2160) — 하나로 뭉치면
+    // 권장대로 했는지 알 수 없다.
+    expect(r.intensity, 'light');
     expect(r.trainerFeedback, '잘했어요');
   });
+
+  test(
+    'coachRoutineFromJson defaults a missing intensity to moderate (#2160)',
+    () {
+      // 이 키가 없던 옛 응답. 서버 기본값과 같은 값으로 읽어야 줄이 비지 않는다.
+      final r = coachRoutineFromJson(<String, Object?>{
+        'id': 'r-old',
+        'name': '실내 자전거',
+        'minutes': 20,
+        'type': '유산소',
+        'reason': '',
+        'source': 'trainer',
+      });
+      expect(r.intensity, 'moderate');
+    },
+  );
 
   test('coachSessionFromJson keeps non-strength program duration (#2126)', () {
     final CoachSession session = coachSessionFromJson(<String, Object?>{

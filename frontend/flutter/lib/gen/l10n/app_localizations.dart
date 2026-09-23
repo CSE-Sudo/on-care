@@ -6192,23 +6192,17 @@ abstract class AppLocalizations {
   /// **'Intensity'**
   String get coachRoutineIntensity;
 
-  /// Intensity option.
+  /// The intensity the trainer suggests for a routine.
   ///
   /// In en, this message translates to:
-  /// **'Light'**
-  String get coachIntensityLight;
+  /// **'Suggested {level}'**
+  String coachRoutinePlannedIntensity(String level);
 
-  /// Intensity option.
+  /// The intensity the member logged for a completed routine.
   ///
   /// In en, this message translates to:
-  /// **'Moderate'**
-  String get coachIntensityModerate;
-
-  /// Intensity option.
-  ///
-  /// In en, this message translates to:
-  /// **'High'**
-  String get coachIntensityHigh;
+  /// **'Logged {level}'**
+  String coachRoutineDoneIntensity(String level);
 
   /// Submit button of the completion dialog.
   ///
