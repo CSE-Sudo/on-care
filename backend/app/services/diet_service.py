@@ -43,8 +43,11 @@ _FOOD_STORAGE_FIELDS = (
     "name", "amount_g", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
 )
-# DASH 권고 나트륨 상한(고혈압 특화 코칭 기준).
-DASH_SODIUM_LIMIT_MG = 2000
+# 하루 나트륨 상한. WHO 권고(2,000mg)를 쓴다 — 2025 한국인 영양소 섭취기준의
+# 성인 만성질환위험감소섭취량 2,300mg 보다 엄격한 쪽이다. 예전에는 이 값이
+# DASH(고혈압 식이) 상한이라는 이름을 달고 있었는데, 지금 타깃은 고혈압
+# 위험군이 아니라 PT 회원이라 근거를 섭취기준 쪽으로 옮겼다(#1652).
+SODIUM_LIMIT_MG = 2000
 
 
 def today_str() -> str:
@@ -123,8 +126,8 @@ def _entry_out(entry: DietEntry, photo_id: str | None = None) -> DietEntryOut:
 
 
 def coach_message(total_sodium_mg: int, has_entries: bool) -> str:
-    """오늘 나트륨 기준 코칭 메시지(고혈압 특화). DASH 권고 초과 시 경고."""
-    if total_sodium_mg > DASH_SODIUM_LIMIT_MG:
+    """오늘 나트륨 기준 코칭 메시지. 하루 상한을 넘으면 알린다."""
+    if total_sodium_mg > SODIUM_LIMIT_MG:
         return "오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!"
     if not has_entries:
         return "아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?"
@@ -291,7 +294,7 @@ def period_stats(db: Session, user_id: str, start: str, end: str) -> DietPeriodS
         return DietPeriodStats(0, 0, 0, 0.0, 0)
 
     days_over_sodium = sum(
-        1 for d in daily.values() if d["sodium"] > DASH_SODIUM_LIMIT_MG
+        1 for d in daily.values() if d["sodium"] > SODIUM_LIMIT_MG
     )
     return DietPeriodStats(
         days_logged=days_logged,
@@ -313,7 +316,7 @@ class DietDayTotals:
 
     @property
     def over_sodium(self) -> bool:
-        return self.sodium_mg > DASH_SODIUM_LIMIT_MG
+        return self.sodium_mg > SODIUM_LIMIT_MG
 
 
 def daily_totals(

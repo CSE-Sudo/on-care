@@ -29,7 +29,8 @@ from app.schemas.diet_api import calculate_macros
 
 router = APIRouter(tags=["dashboard"])
 
-# 고혈압·당뇨 관점 일일 권장 기준치
+# 일일 권장 기준치. 나트륨은 WHO 권고, 당류는 2025 한국인 영양소 섭취기준의
+# 첨가당 권고(총에너지의 10% 이내 = 2,000kcal 기준 50g)를 따른다(#1652).
 _MAX_CALORIES = 2000
 _MAX_SODIUM_MG = 2000
 _MAX_SUGAR_G = 50
