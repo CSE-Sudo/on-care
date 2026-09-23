@@ -5363,13 +5363,13 @@ abstract class AppLocalizations {
   /// No description provided for @dashTaskProgressToday.
   ///
   /// In en, this message translates to:
-  /// **'Done today'**
+  /// **'Today\'s tasks'**
   String get dashTaskProgressToday;
 
   /// No description provided for @dashTaskProgressCarriedOver.
   ///
   /// In en, this message translates to:
-  /// **'Done (carried over)'**
+  /// **'Carried over'**
   String get dashTaskProgressCarriedOver;
 
   /// No description provided for @dashTodoConsultation.
@@ -5479,6 +5479,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done'**
   String get dashTaskCategoryDone;
+
+  /// No description provided for @dashTaskCategoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get dashTaskCategoryEmpty;
 
   /// No description provided for @dashTaskCategoryRemaining.
   ///

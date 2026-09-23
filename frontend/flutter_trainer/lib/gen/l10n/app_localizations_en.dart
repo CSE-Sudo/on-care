@@ -3043,10 +3043,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTaskProgressTitle => 'Task completion';
 
   @override
-  String get dashTaskProgressToday => 'Done today';
+  String get dashTaskProgressToday => 'Today\'s tasks';
 
   @override
-  String get dashTaskProgressCarriedOver => 'Done (carried over)';
+  String get dashTaskProgressCarriedOver => 'Carried over';
 
   @override
   String get dashTodoConsultation => 'Consult';
@@ -3112,6 +3112,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashTaskCategoryDone => 'Done';
+
+  @override
+  String get dashTaskCategoryEmpty => 'None';
 
   @override
   String dashTaskCategoryRemaining(int count) {
