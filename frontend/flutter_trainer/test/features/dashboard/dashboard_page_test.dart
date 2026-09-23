@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/features/dashboard/presentation/widgets/attention_card.dart';
+import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tasks_card.dart';
 import 'package:oncare_trainer/features/schedule/presentation/widgets/schedule_week_timetable.dart';
 import 'package:oncare_trainer/shared/models/client_alerts.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -310,7 +311,14 @@ void main() {
   ) async {
     await openDashboard(tester);
 
-    expect(find.text('오늘 할 일'), findsOneWidget);
+    // 할 일 진행률 범례도 `오늘 할 일` 이라(#2214) 카드 안에서만 찾는다.
+    expect(
+      find.descendant(
+        of: find.byType(TodayTasksCard),
+        matching: find.text('오늘 할 일'),
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('확인 필요'), findsWidgets);
     expect(find.textContaining('/ 5 완료'), findsNothing);
   });

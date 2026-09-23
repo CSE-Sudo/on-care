@@ -12,6 +12,7 @@ import 'package:oncare_trainer/app/router/routes.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/dashboard/data/demo_task_history.dart';
+import 'package:oncare_trainer/features/dashboard/presentation/widgets/today_tasks_card.dart';
 
 import '../../helpers/pump_app.dart';
 
@@ -52,7 +53,14 @@ void main() {
   testWidgets('새 계정도 지난 할 일 한 건과 채워진 막대를 본다', (WidgetTester tester) async {
     await openDashboard(tester);
 
-    expect(find.text('지난 할 일'), findsOneWidget);
+    // 할 일 진행률 범례도 `지난 할 일` 이라(#2214) 카드 안에서만 찾는다.
+    expect(
+      find.descendant(
+        of: find.byType(TodayTasksCard),
+        matching: find.text('지난 할 일'),
+      ),
+      findsOneWidget,
+    );
     // 카테고리 상자는 접힌 채로 시작한다 — 펼쳐야 항목이 보인다.
     await tester.tap(
       find.byKey(const ValueKey<String>('dashboard-category-toggle-지난 할 일')),

@@ -524,13 +524,18 @@ class AppBanner extends StatelessWidget {
 
 /// 구분선 — 1px 옅은 선.
 class AppDivider extends StatelessWidget {
-  const AppDivider({super.key});
+  const AppDivider({super.key, this.color = OnCareColors.lineSubtle});
+
+  /// 선 색. 기본 [OnCareColors.lineSubtle] 은 옅은 브랜드 바탕(`brand.surface`)
+  /// 과 밝기가 거의 같아 묻힌다 — 그런 바탕 위에서는 [OnCareColors.lineStrong]
+  /// 을 준다(#2202).
+  final Color color;
 
   @override
-  Widget build(BuildContext context) => const Divider(
+  Widget build(BuildContext context) => Divider(
     height: OnCareSize.hairline,
     thickness: OnCareSize.hairline,
-    color: OnCareColors.lineSubtle,
+    color: color,
   );
 }
 
