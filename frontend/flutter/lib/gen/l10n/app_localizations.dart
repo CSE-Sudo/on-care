@@ -2714,6 +2714,12 @@ abstract class AppLocalizations {
   /// **'Chat emotes for 24 hours'**
   String get myPointsReasonEmotePass;
 
+  /// No description provided for @myPointsReasonEmoteUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat emote'**
+  String get myPointsReasonEmoteUnlock;
+
   /// No description provided for @myPointsReasonProfilePet.
   ///
   /// In en, this message translates to:
@@ -3242,89 +3248,47 @@ abstract class AppLocalizations {
   /// **'Emotes'**
   String get emoteSheetTitle;
 
-  /// No description provided for @emotePassActive.
-  ///
-  /// In en, this message translates to:
-  /// **'Emotes are on'**
-  String get emotePassActive;
-
-  /// No description provided for @emotePassRemaining.
-  ///
-  /// In en, this message translates to:
-  /// **'{left} left'**
-  String emotePassRemaining(String left);
-
-  /// No description provided for @emotePassOffer.
-  ///
-  /// In en, this message translates to:
-  /// **'Use them all for {hours} hours for {cost}P'**
-  String emotePassOffer(int cost, int hours);
-
-  /// No description provided for @emotePassBalance.
-  ///
-  /// In en, this message translates to:
-  /// **'You have {balance}P'**
-  String emotePassBalance(int balance);
-
-  /// No description provided for @emotePassShortfall.
-  ///
-  /// In en, this message translates to:
-  /// **'{shortfall}P more and they are yours (you have {balance}P)'**
-  String emotePassShortfall(int shortfall, int balance);
-
   /// No description provided for @emoteBuyTitle.
   ///
   /// In en, this message translates to:
-  /// **'Emote pass'**
+  /// **'Buy emote'**
   String get emoteBuyTitle;
 
   /// No description provided for @emoteBuyConfirm.
   ///
   /// In en, this message translates to:
-  /// **'Spend {cost}P to use every emote for {hours} hours? The clock starts the moment you buy.'**
-  String emoteBuyConfirm(int cost, int hours);
+  /// **'Use this emote for {days} days for {cost}P?\nThe days start the moment you buy.'**
+  String emoteBuyConfirm(int cost, int days);
 
   /// No description provided for @emoteBuyAction.
   ///
   /// In en, this message translates to:
-  /// **'Buy pass'**
+  /// **'Buy'**
   String get emoteBuyAction;
 
   /// No description provided for @emoteBought.
   ///
   /// In en, this message translates to:
-  /// **'You can send emotes now'**
+  /// **'You can send this emote now'**
   String get emoteBought;
 
   /// No description provided for @emoteBuyFailed.
   ///
   /// In en, this message translates to:
-  /// **'We could not buy the pass. Please try again in a moment.'**
+  /// **'We could not buy the emote. Please try again in a moment.'**
   String get emoteBuyFailed;
+
+  /// No description provided for @emoteShortfall.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough points'**
+  String get emoteShortfall;
 
   /// No description provided for @emoteLoadFailed.
   ///
   /// In en, this message translates to:
   /// **'We could not load the emotes'**
   String get emoteLoadFailed;
-
-  /// No description provided for @emoteRemainingHm.
-  ///
-  /// In en, this message translates to:
-  /// **'{hours}h {minutes}m'**
-  String emoteRemainingHm(int hours, int minutes);
-
-  /// No description provided for @emoteRemainingM.
-  ///
-  /// In en, this message translates to:
-  /// **'{minutes}m'**
-  String emoteRemainingM(int minutes);
-
-  /// No description provided for @emoteRemainingSoon.
-  ///
-  /// In en, this message translates to:
-  /// **'Ending soon'**
-  String get emoteRemainingSoon;
 
   /// No description provided for @emoteSendFailed.
   ///
@@ -6228,23 +6192,17 @@ abstract class AppLocalizations {
   /// **'Intensity'**
   String get coachRoutineIntensity;
 
-  /// Intensity option.
+  /// The intensity the trainer suggests for a routine.
   ///
   /// In en, this message translates to:
-  /// **'Light'**
-  String get coachIntensityLight;
+  /// **'Suggested {level}'**
+  String coachRoutinePlannedIntensity(String level);
 
-  /// Intensity option.
+  /// The intensity the member logged for a completed routine.
   ///
   /// In en, this message translates to:
-  /// **'Moderate'**
-  String get coachIntensityModerate;
-
-  /// Intensity option.
-  ///
-  /// In en, this message translates to:
-  /// **'High'**
-  String get coachIntensityHigh;
+  /// **'Logged {level}'**
+  String coachRoutineDoneIntensity(String level);
 
   /// Submit button of the completion dialog.
   ///

@@ -94,30 +94,27 @@ void main() {
       'locker_month',
       'streak_shield',
       'graph_color',
-      // 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니라 이용권이다.
-      'emote_pass_24h',
+      // 채팅 이모티콘은 채팅의 이모티콘 창에서 하나씩 산다(#2153) — 여기에는 없다.
       // MY 프로필 펫 이모지(#2021) — 7일 동안 이름 옆에 단다.
       'profile_pet',
     ]);
     expect(
       shop.items.map((ShopItem i) => i.cost),
-      <int>[21000, 7000, 300, 150, 300, 200],
+      <int>[21000, 7000, 300, 150, 200],
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresTrainer),
-      // 채팅 이모티콘 이용권은 트레이너 채팅에만 쓰인다(#2142).
-      <bool>[true, false, false, false, true, false],
+      <bool>[true, false, false, false, false],
     );
     expect(
       shop.items.map((ShopItem i) => i.requiresGym),
-      <bool>[false, true, false, false, false, false],
+      <bool>[false, true, false, false, false],
     );
     expect(shop.items.every((ShopItem i) => i.available), isTrue);
 
     book.endTrainerLink();
     Map<String, ShopItem> items = await shopItems();
     expect(items['pt_renewal']!.blockReason, ShopBlockReason.noTrainer);
-    expect(items['emote_pass_24h']!.blockReason, ShopBlockReason.noTrainer);
     expect(items['locker_month']!.available, isTrue);
 
     book.endGymLink();

@@ -1535,6 +1535,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myPointsReasonEmotePass => 'Chat emotes for 24 hours';
 
   @override
+  String get myPointsReasonEmoteUnlock => 'Chat emote';
+
+  @override
   String get myPointsReasonProfilePet => 'Profile pet emoji';
 
   @override
@@ -1857,61 +1860,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emoteSheetTitle => 'Emotes';
 
   @override
-  String get emotePassActive => 'Emotes are on';
+  String get emoteBuyTitle => 'Buy emote';
 
   @override
-  String emotePassRemaining(String left) {
-    return '$left left';
+  String emoteBuyConfirm(int cost, int days) {
+    return 'Use this emote for $days days for ${cost}P?\nThe days start the moment you buy.';
   }
 
   @override
-  String emotePassOffer(int cost, int hours) {
-    return 'Use them all for $hours hours for ${cost}P';
-  }
+  String get emoteBuyAction => 'Buy';
 
   @override
-  String emotePassBalance(int balance) {
-    return 'You have ${balance}P';
-  }
-
-  @override
-  String emotePassShortfall(int shortfall, int balance) {
-    return '${shortfall}P more and they are yours (you have ${balance}P)';
-  }
-
-  @override
-  String get emoteBuyTitle => 'Emote pass';
-
-  @override
-  String emoteBuyConfirm(int cost, int hours) {
-    return 'Spend ${cost}P to use every emote for $hours hours? The clock starts the moment you buy.';
-  }
-
-  @override
-  String get emoteBuyAction => 'Buy pass';
-
-  @override
-  String get emoteBought => 'You can send emotes now';
+  String get emoteBought => 'You can send this emote now';
 
   @override
   String get emoteBuyFailed =>
-      'We could not buy the pass. Please try again in a moment.';
+      'We could not buy the emote. Please try again in a moment.';
+
+  @override
+  String get emoteShortfall => 'Not enough points';
 
   @override
   String get emoteLoadFailed => 'We could not load the emotes';
-
-  @override
-  String emoteRemainingHm(int hours, int minutes) {
-    return '${hours}h ${minutes}m';
-  }
-
-  @override
-  String emoteRemainingM(int minutes) {
-    return '${minutes}m';
-  }
-
-  @override
-  String get emoteRemainingSoon => 'Ending soon';
 
   @override
   String get emoteSendFailed => 'We could not send the emote';
@@ -3605,13 +3575,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineIntensity => 'Intensity';
 
   @override
-  String get coachIntensityLight => 'Light';
+  String coachRoutinePlannedIntensity(String level) {
+    return 'Suggested $level';
+  }
 
   @override
-  String get coachIntensityModerate => 'Moderate';
-
-  @override
-  String get coachIntensityHigh => 'High';
+  String coachRoutineDoneIntensity(String level) {
+    return 'Logged $level';
+  }
 
   @override
   String get coachRoutineSubmit => 'Save';

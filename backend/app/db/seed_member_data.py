@@ -781,6 +781,9 @@ def _seed_routines(db: Session, member_id: str) -> None:
                 reps=_strength_only(routine.type, routine.reps),
                 hold_seconds=_strength_only(routine.type, routine.hold_seconds),
                 weight=_strength_only(routine.type, routine.weight),
+                # 권장 강도도 시드가 소유한다 — 픽스처를 고치면 실연동 화면의
+                # 안내도 같이 바뀌어야 한다(#2160).
+                intensity=routine.intensity,
                 sort_order=i,
                 # 데모의 개인운동은 몇 주째 걸려 있던 목록이다 — 지난 날짜를
                 # 열어도 그날의 체크 목록이 보인다(#2161).
@@ -796,6 +799,7 @@ def _seed_routines(db: Session, member_id: str) -> None:
         row.reps = _strength_only(routine.type, routine.reps)
         row.hold_seconds = _strength_only(routine.type, routine.hold_seconds)
         row.weight = _strength_only(routine.type, routine.weight)
+        row.intensity = routine.intensity
         row.sort_order = i
     _safe_commit(db)
 

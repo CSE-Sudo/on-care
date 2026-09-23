@@ -1022,6 +1022,7 @@
   "myPointsReasonShield": "Streak shield",
   "myPointsReasonGraphColor": "Graph colour",
   "myPointsReasonEmotePass": "Chat emotes for 24 hours",
+  "myPointsReasonEmoteUnlock": "Chat emote",
   "myPointsReasonProfilePet": "Profile pet emoji",
   "myPointsReasonWeeklyReport": "Weekly report",
   "myPointsReasonChallengeStake": "Weekly challenge entry",
@@ -1313,27 +1314,14 @@
   "myLogout": "Log out",
   "myLogoutConfirm": "Log out of your account?",
   "emoteSheetTitle": "Emotes",
-  "emotePassActive": "Emotes are on",
-  "emotePassRemaining": "{left} left",
-  "@emotePassRemaining": {"placeholders": {"left": {"type": "String"}}},
-  "emotePassOffer": "Use them all for {hours} hours for {cost}P",
-  "@emotePassOffer": {"placeholders": {"cost": {"type": "int"}, "hours": {"type": "int"}}},
-  "emotePassBalance": "You have {balance}P",
-  "@emotePassBalance": {"placeholders": {"balance": {"type": "int"}}},
-  "emotePassShortfall": "{shortfall}P more and they are yours (you have {balance}P)",
-  "@emotePassShortfall": {"placeholders": {"shortfall": {"type": "int"}, "balance": {"type": "int"}}},
-  "emoteBuyTitle": "Emote pass",
-  "emoteBuyConfirm": "Spend {cost}P to use every emote for {hours} hours? The clock starts the moment you buy.",
-  "@emoteBuyConfirm": {"placeholders": {"cost": {"type": "int"}, "hours": {"type": "int"}}},
-  "emoteBuyAction": "Buy pass",
-  "emoteBought": "You can send emotes now",
-  "emoteBuyFailed": "We could not buy the pass. Please try again in a moment.",
+  "emoteBuyTitle": "Buy emote",
+  "emoteBuyConfirm": "Use this emote for {days} days for {cost}P?\nThe days start the moment you buy.",
+  "@emoteBuyConfirm": {"placeholders": {"cost": {"type": "int"}, "days": {"type": "int"}}},
+  "emoteBuyAction": "Buy",
+  "emoteBought": "You can send this emote now",
+  "emoteBuyFailed": "We could not buy the emote. Please try again in a moment.",
+  "emoteShortfall": "Not enough points",
   "emoteLoadFailed": "We could not load the emotes",
-  "emoteRemainingHm": "{hours}h {minutes}m",
-  "@emoteRemainingHm": {"placeholders": {"hours": {"type": "int"}, "minutes": {"type": "int"}}},
-  "emoteRemainingM": "{minutes}m",
-  "@emoteRemainingM": {"placeholders": {"minutes": {"type": "int"}}},
-  "emoteRemainingSoon": "Ending soon",
   "emoteSendFailed": "We could not send the emote",
   "a11yOpenEmotes": "Emotes",
   "a11yEmote": "Emote",
@@ -2811,17 +2799,23 @@
   "@coachRoutineIntensity": {
     "description": "Field label in the completion dialog."
   },
-  "coachIntensityLight": "Light",
-  "@coachIntensityLight": {
-    "description": "Intensity option."
+  "coachRoutinePlannedIntensity": "Suggested {level}",
+  "@coachRoutinePlannedIntensity": {
+    "description": "The intensity the trainer suggests for a routine.",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
   },
-  "coachIntensityModerate": "Moderate",
-  "@coachIntensityModerate": {
-    "description": "Intensity option."
-  },
-  "coachIntensityHigh": "High",
-  "@coachIntensityHigh": {
-    "description": "Intensity option."
+  "coachRoutineDoneIntensity": "Logged {level}",
+  "@coachRoutineDoneIntensity": {
+    "description": "The intensity the member logged for a completed routine.",
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
   },
   "coachRoutineSubmit": "Save",
   "@coachRoutineSubmit": {
