@@ -94,7 +94,8 @@ class OnCareIconSet {
   /// 뒤로가기([AppBackButton]).
   final IconData back;
 
-  /// 닫기([AppCloseButton])·검색어 지우기.
+  /// 닫기([AppCloseButton])·검색어 지우기. 회원 앱은 부분 창에 닫기 X 를 두지
+  /// 않아 검색어 지우기에만 쓴다(#2170).
   final IconData close;
 
   /// 달력 이전·다음 이동.

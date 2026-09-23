@@ -708,9 +708,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get actionClose => 'Close';
-
-  @override
   String exWeekNumber(int n) {
     return 'Week $n';
   }

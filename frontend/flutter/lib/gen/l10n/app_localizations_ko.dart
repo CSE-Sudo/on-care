@@ -690,9 +690,6 @@ class AppLocalizationsKo extends AppLocalizations {
   }
 
   @override
-  String get actionClose => '닫기';
-
-  @override
   String exWeekNumber(int n) {
     return '$n주';
   }

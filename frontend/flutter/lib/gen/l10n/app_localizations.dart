@@ -1352,12 +1352,6 @@ abstract class AppLocalizations {
   /// **'Registered {gym}'**
   String exGymRegistered(String gym);
 
-  /// No description provided for @actionClose.
-  ///
-  /// In en, this message translates to:
-  /// **'Close'**
-  String get actionClose;
-
   /// No description provided for @exWeekNumber.
   ///
   /// In en, this message translates to:
