@@ -119,7 +119,7 @@
 | DELETE | `/trainer/me` | 트레이너 탈퇴 — 담당 회원에게 알린 뒤 계정과 딸린 데이터 삭제 (#505) |
 | GET | `/trainer/clients/{member_id}/routines` | 배정 루틴 |
 | POST | `/trainer/clients/{member_id}/routines` | 루틴 배정(단건) |
-| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`repeat_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223) |
+| POST | `/trainer/clients/{member_id}/program` | 프로그램 배정 — 세션당 루틴 한 건 (#709). `delivery_kind`·`trainer_message`·`start_date`·`active_days` 로 프로그램 만들기의 `개인운동만` 전송을 받는다. `active_days` 만큼만 회원 목록에 걸어 둔다(`active_from`~`ended_on`, #2161) — `개인운동만` 은 7 을 보내 보낸 날부터 한 주 동안 걸리고, 다음 주 분은 트레이너가 다시 보낸다 (#2223) |
 | POST | `/trainer/clients/{member_id}/program-schedule` | 프로그램 탭 `일정 추가` — 배정과 PT 일정 등록을 한 트랜잭션으로, `client_request_id` 로 재시도 멱등 (#1580). 고른 시간대와 겹치는 예정 세션에 연결하고 없으면 새 일정, 여럿이면 `session_id` 필수(아니면 409 + 후보) (#1581) |
 | GET | `/trainer/schedule/{session_id}/routines` | 그 PT 일정에 붙어 있는(아직 보내지 않은) 개인운동 (#2223) |
 | PUT | `/trainer/clients/{member_id}/routines/{routine_id}` | 루틴 부분 수정(이름·시간·종류·사유) |
