@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oncare/app/app_theme.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/exercise_catalog_demo.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_limits.dart';
@@ -34,7 +35,8 @@ class _CapturingRepository implements ExerciseRepository {
   String? updatedId;
 
   @override
-  Future<String> fetchAdvice(String period) async => '조언';
+  Future<ExerciseAdvice> fetchAdvice(String period) async =>
+      const ExerciseAdvice(message: '조언');
 
   @override
   Future<ExerciseWeek> fetchThisWeek() async => _emptyWeek;

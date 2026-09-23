@@ -3845,4 +3845,473 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exGymPhoneCopied => 'Phone number copied.';
+
+  @override
+  String get exerciseAdviceRecordEmptyToday =>
+      'No workout logged today yet. How about a 10-minute walk to start?';
+
+  @override
+  String get exerciseAdviceRecordEmptyWeek =>
+      'No workouts logged this week yet. How about a 10-minute walk to start?';
+
+  @override
+  String get exerciseAdviceRecordEmptyAll =>
+      'Once you log more, we\'ll show how your workout volume and types are trending.';
+
+  @override
+  String exerciseAdviceRecordToday(int calories, int minutes, String type) {
+    String _temp0 = intl.Intl.selectLogic(type, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'Today: $minutes min and $calories kcal, mostly $_temp0. Wrap up with a stretch.';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekOneDay(int minutes) {
+    return 'Just one day this week ($minutes min). One more session keeps the flow going.';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekSkew(
+    int days,
+    int minutes,
+    String missing,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    String _temp1 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'This week\'s $_temp0 and $minutes min leaned on $_temp1. Mix in some $_temp2?';
+  }
+
+  @override
+  String exerciseAdviceRecordWeekBalanced(int days, int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    return '$_temp0 and $minutes min this week, with a good mix of types.';
+  }
+
+  @override
+  String get exerciseAdviceRecordAllUp =>
+      'You\'ve done more over the last 4 weeks than before. This approach suits you.';
+
+  @override
+  String get exerciseAdviceRecordAllDown =>
+      'Your last 4 weeks are trending down. Try to keep 3 days a week, even short ones.';
+
+  @override
+  String exerciseAdviceRecordAllSteady(int days, int minutes, int weeks) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days',
+      one: '1 day',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      weeks,
+      locale: localeName,
+      other: '$weeks weeks',
+      one: '1 week',
+    );
+    return '$_temp0 and $minutes min over $_temp1 — nice and steady.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayAllDone(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'all $count recommended workouts',
+      one: 'your recommended workout',
+    );
+    return 'You finished $_temp0 today. Great job!';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayDoneNextOrder(
+    String done,
+    String doneObj,
+    String next,
+    String then,
+  ) {
+    return '$done done. Next up: $next → $then.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayDoneNext(
+    String done,
+    String doneObj,
+    String next,
+  ) {
+    return '$done done. $next is next.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayNextOrder(String next, String then) {
+    return 'Next up: $next → $then.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayNext(String next) {
+    return '$next is next.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count recommended workouts left',
+      one: '1 recommended workout left',
+    );
+    return '$_temp0. Go down the list in order.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayStartOrder(String next, String then) {
+    return 'Start today\'s recommended workouts with $next → $then.';
+  }
+
+  @override
+  String exerciseAdviceRoutineTodayStart(String next) {
+    return 'Start today with $next.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekNoneToday(String next) {
+    return 'No recommended workouts this week yet. Start with $next today?';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekNoneNext(String next) {
+    return 'No recommended workouts this week yet. Try $next first.';
+  }
+
+  @override
+  String get exerciseAdviceRoutineWeekNone =>
+      'No recommended workouts this week yet. Try one today.';
+
+  @override
+  String exerciseAdviceRoutineWeekOnly(
+    String missing,
+    String rest,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp1 = intl.Intl.selectLogic(rest, {
+      'next_week': 'Next week',
+      'other': 'For the rest of the week',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'This week you only did $_temp0 workouts. $_temp1, start with $_temp2.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekOnlyShort(String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'This week you only did $_temp0 workouts.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekSkew(
+    String missing,
+    String rest,
+    int share,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp1 = intl.Intl.selectLogic(rest, {
+      'next_week': 'Next week',
+      'other': 'For the rest of the week',
+    });
+    String _temp2 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return '$share% of this week\'s recommended workouts were $_temp0. $_temp1, start with $_temp2.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekSkewShort(int share, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return '$share% of this week\'s recommended workouts were $_temp0.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekPraise(String how) {
+    String _temp0 = intl.Intl.selectLogic(how, {
+      'even': 'across the board',
+      'other': 'steadily',
+    });
+    return 'You kept up with this week\'s recommended workouts $_temp0. Keep it going!';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCountsToday(
+    int assigned,
+    int completed,
+    String next,
+  ) {
+    return 'You did $completed of $assigned recommended workouts this week. Continue with $next today.';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCountsKeep(
+    int assigned,
+    int completed,
+    String rest,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(rest, {
+      'next_week': 'Keep it going next week.',
+      'other': 'Keep it going for the rest of the week.',
+    });
+    return 'You did $completed of $assigned recommended workouts this week. $_temp0';
+  }
+
+  @override
+  String exerciseAdviceRoutineWeekCounts(int assigned, int completed) {
+    return 'You did $completed of $assigned recommended workouts this week.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekNoneNext(String next) {
+    return 'No recommended workouts last week. This week, start with $next.';
+  }
+
+  @override
+  String get exerciseAdviceRoutineLastWeekNone =>
+      'No recommended workouts last week. Take them one at a time this week.';
+
+  @override
+  String exerciseAdviceRoutineLastWeekOnly(String missing, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'Last week you only did $_temp0 workouts. This week, start with $_temp1.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekOnlyShort(String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return 'Last week you only did $_temp0 workouts.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekSkew(
+    String missing,
+    int share,
+    String top,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    String _temp1 = intl.Intl.selectLogic(missing, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return '$share% of last week\'s recommended workouts were $_temp0. This week, start with $_temp1.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekSkewShort(int share, String top) {
+    String _temp0 = intl.Intl.selectLogic(top, {
+      'cardio': 'cardio',
+      'strength': 'strength',
+      'stretching': 'stretching',
+      'other': 'other exercise',
+    });
+    return '$share% of last week\'s recommended workouts were $_temp0.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekPraise(String how) {
+    String _temp0 = intl.Intl.selectLogic(how, {
+      'even': 'across the board',
+      'other': 'steadily',
+    });
+    return 'You kept up with last week\'s recommended workouts $_temp0. Keep it going this week!';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekCountsMore(int assigned, int completed) {
+    return 'You did $completed of $assigned recommended workouts last week. Let\'s do more this week.';
+  }
+
+  @override
+  String exerciseAdviceRoutineLastWeekCounts(int assigned, int completed) {
+    return 'You did $completed of $assigned recommended workouts last week.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNew(int days) {
+    return 'Day $days with your recommended list. After a week, we\'ll point out what gets skipped.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNoneNext(int days, String next) {
+    return 'Day $days with your recommended list. Start with $next today?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllNone(int days) {
+    return 'Day $days with your recommended list. Try one today.';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayPart(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': 'lower-body',
+      'upper': 'upper-body',
+      'core': 'core',
+      'full': 'full-body',
+      'other': 'full-body',
+    });
+    return 'You did the $_temp0 workouts you often skip today. Keep it going!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayName(String name, String nameObj) {
+    return 'You did $name today, one you often skip. Keep it going!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllDoneTodayNamePlain(String name) {
+    return 'You did $name today, one you often skip. Keep it going!';
+  }
+
+  @override
+  String get exerciseAdviceRoutineAllDoneToday =>
+      'You did a workout you often skip today. Keep it going!';
+
+  @override
+  String exerciseAdviceRoutineAllMissedPart(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': 'Lower-body',
+      'upper': 'Upper-body',
+      'core': 'Core',
+      'full': 'Full-body',
+      'other': 'Full-body',
+    });
+    return '$_temp0 recommended workouts get skipped often. Try doing them first?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedPartShort(String part) {
+    String _temp0 = intl.Intl.selectLogic(part, {
+      'lower': 'Lower-body',
+      'upper': 'Upper-body',
+      'core': 'Core',
+      'full': 'Full-body',
+      'other': 'Full-body',
+    });
+    return '$_temp0 workouts get skipped often. Move them up?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedName(String name, String nameSubj) {
+    return '$name gets skipped often. Try doing it first next time?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNameShort(String name, String nameSubj) {
+    return '$name gets skipped often. Do it first?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNamePlain(String name) {
+    return '$name gets skipped often. Try doing it first next time?';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllMissedNamePlainShort(String name) {
+    return '$name gets skipped often. Do it first?';
+  }
+
+  @override
+  String get exerciseAdviceRoutineAllMissed =>
+      'Some recommended workouts get skipped often. Try reordering your list?';
+
+  @override
+  String exerciseAdviceRoutineAllPraise(int weeks) {
+    String _temp0 = intl.Intl.pluralLogic(
+      weeks,
+      locale: localeName,
+      other: '$weeks weeks',
+      one: '1 week',
+    );
+    return '$_temp0 of steady recommended workouts. Keep it up!';
+  }
+
+  @override
+  String exerciseAdviceRoutineAllRate(int pct) {
+    return 'You\'ve done $pct% of your recommended workouts. Try not to skip a day.';
+  }
 }

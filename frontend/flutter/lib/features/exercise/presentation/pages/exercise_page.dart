@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart' show DateFormat;
 import 'package:oncare/app/app_icons.dart';
 import 'package:oncare/app/router/routes.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/utils/clock.dart';
 import 'package:oncare/features/benefits/presentation/widgets/challenge_cards.dart';
@@ -352,7 +353,12 @@ class _RecordTabState extends ConsumerState<_RecordTab> {
                   );
                   return PeriodAiAdviceCard(
                     title: l.dietAiFeedback,
-                    advice: ref.watch(exerciseAdviceProvider(period)),
+                    // 서버가 준 문장 키로 지금 언어의 문장을 그린다(#2210).
+                    advice: ref
+                        .watch(exerciseAdviceProvider(period))
+                        .whenData(
+                          (ExerciseAdvice a) => exerciseAdviceText(l, a),
+                        ),
                     onRetry: () =>
                         ref.invalidate(exerciseAdviceProvider(period)),
                   );

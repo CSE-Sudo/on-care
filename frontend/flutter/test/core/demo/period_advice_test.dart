@@ -8,10 +8,13 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' show Locale;
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/demo/period_advice.dart';
+import 'package:oncare/gen/l10n/app_localizations.dart';
 
 DietDayTotals _diet(String date, int sodium) =>
     (date: DateTime.parse(date), sodiumMg: sodium);
@@ -178,9 +181,9 @@ void main() {
     });
   });
 
-  // 서버(`routine_advice.py`)와 **같은 사례 파일**을 읽는다(#2162). 서버 테스트
-  // (`test_period_advice_copy.py`)도 이 파일로 같은 문장을 확인한다.
-  group('추천 개인운동 기준 조언', () {
+  // 서버와 **같은 사례 파일**을 읽는다(#2162, #2210). 서버 테스트
+  // (`test_period_advice_copy.py`)도 이 파일로 같은 키·값·문장을 확인한다.
+  group('운동 조언 — 서버와 같은 키·값·문장', () {
     final Map<String, dynamic> shared =
         jsonDecode(
               File(
@@ -188,6 +191,8 @@ void main() {
               ).readAsStringSync(),
             )
             as Map<String, dynamic>;
+    final AppLocalizations ko = lookupAppLocalizations(const Locale('ko'));
+    final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
 
     List<RoutineAdviceDay> routineDays(List<dynamic> raw) => <RoutineAdviceDay>[
       for (final dynamic day in raw)
@@ -206,19 +211,90 @@ void main() {
         ),
     ];
 
+    List<ExerciseDayTotals> records(List<dynamic> raw) => <ExerciseDayTotals>[
+      for (final dynamic r in raw)
+        _exercise(
+          ((r as Map<String, dynamic>)['date']) as String,
+          minutes: r['minutes'] as int,
+          calories: r['calories'] as int,
+          byType: (r['by_type'] as Map<String, dynamic>).map(
+            (String k, dynamic v) => MapEntry<String, int>(k, v as int),
+          ),
+        ),
+    ];
+
+    Map<String, Object> params(Map<String, dynamic> raw) => <String, Object>{
+      for (final MapEntry<String, dynamic> e in raw.entries)
+        e.key: e.value as Object,
+    };
+
     for (final dynamic raw in shared['cases'] as List<dynamic>) {
       final Map<String, dynamic> c = raw as Map<String, dynamic>;
-      test('서버와 같은 문장 — ${c['name']}', () {
-        final String? message = routineCoachMessage(
-          routineDays(c['days'] as List<dynamic>),
+      test('서버와 같은 조언 — ${c['name']}', () {
+        final ExerciseAdvice advice = exercisePeriodAdviceOf(
+          records(c['records'] as List<dynamic>),
           c['period'] as String,
+          routineDays: routineDays(c['days'] as List<dynamic>),
         );
-        expect(message, c['expected']);
-        if (message != null) {
-          expect(message.runes.length, lessThanOrEqualTo(kAdviceMaxLen));
-        }
+        final Map<String, dynamic> expected =
+            c['expected'] as Map<String, dynamic>;
+        expect(advice.key, expected['key']);
+        expect(
+          advice.params,
+          params(expected['params'] as Map<String, dynamic>),
+        );
+        expect(advice.message, expected['message']);
+        expect(advice.message.runes.length, lessThanOrEqualTo(kAdviceMaxLen));
       });
     }
+
+    // 모든 키 × 대표 값 — 한국어 ARB 가 서버 문장과 글자까지 같은지, 영어 ARB 가
+    // 빠짐없이 영어로 그리는지.
+    final RegExp hangul = RegExp('[가-힣]');
+    for (final dynamic raw in shared['renderings'] as List<dynamic>) {
+      final Map<String, dynamic> r = raw as Map<String, dynamic>;
+      final ExerciseAdvice advice = ExerciseAdvice(
+        message: '',
+        key: r['key'] as String,
+        params: params(r['params'] as Map<String, dynamic>),
+      );
+      test('번역 — ${r['key']} ${r['params']}', () {
+        expect(exerciseAdviceText(ko, advice), r['message']);
+        final String english = exerciseAdviceText(en, advice);
+        expect(english, isNotEmpty);
+        // 값으로 들어간 운동 이름을 빼면 영어 문장에 한글이 없어야 한다.
+        String rest = english;
+        for (final Object value in advice.params.values) {
+          if (value is String) rest = rest.replaceAll(value, '');
+        }
+        expect(rest.contains(hangul), isFalse, reason: english);
+      });
+    }
+
+    test('모르는 키·맞지 않는 값이면 받은 한국어 문장을 쓴다', () {
+      expect(
+        exerciseAdviceText(
+          en,
+          const ExerciseAdvice(message: '서버 문장', key: 'future_key'),
+        ),
+        '서버 문장',
+      );
+      expect(
+        exerciseAdviceText(
+          en,
+          const ExerciseAdvice(
+            message: '서버 문장',
+            key: 'routine_today_next',
+            params: <String, Object>{'next': 3},
+          ),
+        ),
+        '서버 문장',
+      );
+      expect(
+        exerciseAdviceText(en, const ExerciseAdvice(message: '키 없는 문장')),
+        '키 없는 문장',
+      );
+    });
 
     test('부위는 운동 이름으로 판정한다 — 서버와 같은 결과', () {
       (shared['body_parts'] as Map<String, dynamic>).forEach((

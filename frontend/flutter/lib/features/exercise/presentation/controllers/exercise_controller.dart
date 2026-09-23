@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
@@ -78,7 +79,7 @@ final exerciseWeekProvider = FutureProvider<ExerciseWeek>((ref) {
 /// 지금 보고 있는 기간의 카드를 덮어쓰지 않는다.
 ///
 /// 구간 경계는 서버가 정한다 — 앱이 따로 계산해 넘기지 않는다.
-final exerciseAdviceProvider = FutureProvider.family<String, String>((
+final exerciseAdviceProvider = FutureProvider.family<ExerciseAdvice, String>((
   ref,
   String period,
 ) async {
