@@ -7,8 +7,9 @@ import 'package:oncare_ui/oncare_ui.dart';
 ///
 /// Each bar has two segments: that day's own tasks (navy) stacked under
 /// tasks that were **carried over** from an earlier day's unfinished list
-/// (회색이 섞인 푸른색) — [DailyTaskSnapshot.completedCarriedOver] is a real
-/// count, not a visual flourish. The full bar height represents that day's
+/// (중간 회색 [OnCareColors.chartGoalLine], #2214) —
+/// [DailyTaskSnapshot.completedCarriedOver] is a real count, not a visual
+/// flourish. The full bar height represents that day's
 /// completion rate, while each segment shows how the completed tasks split
 /// between today's list and carried-over work.
 class TaskProgressChart extends StatelessWidget {
@@ -221,9 +222,12 @@ class _StackedBar extends StatelessWidget {
                   if (carriedHeight > 0)
                     Container(
                       height: carriedHeight,
-                      decoration: BoxDecoration(
-                        color: brand.border,
-                        borderRadius: const BorderRadius.vertical(
+                      // 메인 색 농담(`brand.border`)은 메인 색이 로고 네이비로
+                      // 내려온 뒤 회색빛이 돌아 오늘 처리 막대와 겉돌았다 —
+                      // 차트 보조 요소의 중간 회색으로 칠한다(#2214).
+                      decoration: const BoxDecoration(
+                        color: OnCareColors.chartGoalLine,
+                        borderRadius: BorderRadius.vertical(
                           top: OnCareRadius.xs,
                         ),
                       ),

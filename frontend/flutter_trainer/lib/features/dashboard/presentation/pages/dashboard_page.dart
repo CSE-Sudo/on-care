@@ -175,7 +175,8 @@ class _TaskProgressCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       TaskProgressLegend(
-                        color: brand.border,
+                        // 막대의 이월 처리 칸과 같은 색이다(#2214).
+                        color: OnCareColors.chartGoalLine,
                         label: l.dashTaskProgressCarriedOver,
                       ),
                     ],
