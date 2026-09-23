@@ -45,7 +45,8 @@ class LLMBusyError(RuntimeError):
 #: 최근 개선이 묻힌다.
 LOOKBACK_DAYS = 3
 
-#: 기본 일일 한도(DASH 권고). HealthProfile 에 개인 목표가 있으면 그쪽이 우선한다.
+#: 기본 일일 한도. 나트륨은 WHO 권고, 당류는 2025 한국인 영양소 섭취기준의 첨가당
+#: 권고(총에너지 10% 이내)를 따른다. HealthProfile 에 개인 목표가 있으면 그쪽이 우선한다.
 DEFAULT_SODIUM_LIMIT_MG = 2000
 DEFAULT_SUGAR_LIMIT_G = 50
 DEFAULT_CALORIE_LIMIT = 2000

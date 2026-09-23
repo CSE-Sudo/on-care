@@ -555,34 +555,101 @@ def _seed_exercise_catalog() -> None:
     logger.info("exercise_catalog 를 시드 데이터로 다시 맞췄다(%d행)", len(rows))
 
 
+_PUBLIC_COACH_DOCS_VERSION = "coach_public_docs"
+
+#: 시드가 넣은 공개 문서의 `source`. 관리자가 직접 올린 공공 문서
+#: (`POST /coach/documents/public`, 기본 `source="public"`)와 구분하려고 따로 둔다 —
+#: 다시 적재할 때 지우는 것은 시드가 넣은 것뿐이어야 한다.
+PUBLIC_DOC_SOURCE = "public_seed"
+
+
 def _seed_public_coach_docs() -> None:
-    """공공 코칭 가이드라인을 RAG 공공 문서로 적재(멱등). 임베딩 불가 시 경고 로그 후 스킵."""
+    """공개 근거 문서를 RAG 공공 문서로 적재(멱등). (#1652)
+
+    예전에는 공공 문서가 **하나라도** 있으면 건너뛰어서, 근거 문서를 바꿔도 이미
+    떠 있는 DB 는 새 문서를 영영 받지 못했다. 고혈압·당뇨 전제의 옛 요약이 그대로
+    남아 코치가 타깃과 무관한 근거로 말하게 된다. 참조표 시드(#2100, #1651)와 같이
+    문서 목록의 지문을 `reference_data_versions` 에 적어 두고, 다르면 공공 문서를
+    **통째로** 새 목록으로 바꾼다. 지우는 것은 `user_id IS NULL` 뿐이라 회원 개인
+    문서는 건드리지 않는다. 관리자가 직접 올린 공공 문서도 남는다 — 지우는 대상을
+    시드가 넣은 `source` 로 좁힌다.
+
+    임베딩이 안 되면(제공자 키 없음·장애) 경고만 남기고 넘어간다. 기동을 막을
+    일이 아니고, 코치는 규칙 폴백으로 답한다. 이때 지문을 적지 않으므로 다음
+    기동에서 다시 시도한다 — 여기서 적어 두면 빈 근거가 최신 상태로 굳는다.
+    """
     from app.data.coach_public_docs import PUBLIC_DOCS
     from app.services.coach.rag import ingest_document
 
+    docs = [
+        {"title": doc.title, "domain": doc.domain, "content": doc.read()}
+        for doc in PUBLIC_DOCS
+    ]
+    fingerprint = _fingerprint(docs)
+
+    def up_to_date(db: Session) -> bool:
+        stored = db.get(models.ReferenceDataVersion, _PUBLIC_COACH_DOCS_VERSION)
+        return (
+            stored is not None
+            and stored.fingerprint == fingerprint
+            and db.scalar(
+                select(models.CoachDocument.id)
+                .where(
+                    models.CoachDocument.user_id.is_(None),
+                    models.CoachDocument.source == PUBLIC_DOC_SOURCE,
+                )
+                .limit(1)
+            ) is not None
+        )
+
     db: Session = SessionLocal()
     try:
-        exists = db.scalar(
-            select(models.CoachDocument).where(models.CoachDocument.user_id.is_(None)).limit(1)
-        )
-        if exists:
+        if up_to_date(db):
             return
-        for doc in PUBLIC_DOCS:
+        # 같은 DB 를 쓰는 인스턴스가 동시에 뜨면 한 곳만 바꾼다. 임베딩까지 잠금
+        # 안에서 도는데, 경쟁하는 쪽은 같이 기동하는 인스턴스뿐이다.
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+            {"key": "seed:coach_public_docs"},
+        )
+        db.expire_all()
+        if up_to_date(db):
+            db.rollback()
+            return
+
+        db.execute(
+            delete(models.CoachDocument).where(
+                models.CoachDocument.user_id.is_(None),
+                models.CoachDocument.source == PUBLIC_DOC_SOURCE,
+            )
+        )
+        failed = 0
+        for doc in docs:
             try:
                 ingest_document(
                     db, doc["content"], user_id=None,
-                    domain=doc["domain"], source="public", title=doc["title"],
+                    domain=doc["domain"], source=PUBLIC_DOC_SOURCE,
+                    title=doc["title"],
                 )
             except Exception:  # noqa: BLE001 — 적재 실패가 기동을 막지 않도록
-                # 조용히 삼키면 RAG 가 빈 채로 코치가 규칙 폴백에 갇혀 원인 파악이 어렵다.
+                # 조용히 삼키면 RAG 가 빈 채로 코치가 규칙 폴백에 갇혀 원인 파악이
+                # 어렵다.
                 logger.warning(
-                    "공공 코칭 문서 적재 실패 — 임베딩 제공자(EMBEDDER) 설정 확인 필요: %s",
-                    doc.get("title"),
+                    "공개 근거 문서 적재 실패 — 임베딩 제공자(EMBEDDER) 설정 확인 필요: %s",
+                    doc["title"],
                     exc_info=True,
                 )
+                failed += 1
                 db.rollback()
+        if failed:
+            return
+        db.merge(models.ReferenceDataVersion(
+            name=_PUBLIC_COACH_DOCS_VERSION, fingerprint=fingerprint
+        ))
+        db.commit()
     finally:
         db.close()
+    logger.info("공개 근거 문서를 다시 적재했다(%d건)", len(docs))
 
 
 def _seed_demo_places() -> None:

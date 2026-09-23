@@ -3,7 +3,7 @@
 
 Gemini든 YOLO든 이 형식으로 변환됩니다(이식성).
 On-Care 특화: 칼로리뿐 아니라 나트륨(sodium_mg)·당류(sugar_g)가 1급 지표.
-또한 고혈압(DASH) 관점 식단평(coach_comment)을 포함 — 기존 PoC 프롬프트 방향 계승.
+또한 섭취기준 관점의 식단평(coach_comment)을 포함.
 """
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ class DietAnalysis(BaseModel):
     total_fat_g: float = 0.0
     total_sodium_mg: int = 0
     total_sugar_g: float = 0.0
-    # 고혈압·DASH 관점 식단평 (기존 PoC 의 핵심 가치)
+    # 나트륨·당류를 중심으로 한 식단평
     coach_comment: str = ""
     latency_ms: Optional[int] = None
     raw_model_output: Optional[str] = None

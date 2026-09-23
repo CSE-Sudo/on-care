@@ -1,79 +1,68 @@
-"""공공 코칭 가이드라인 시드(RAG 공공 문서, user_id=NULL).
+"""AI 코치의 공개 근거 문서 목록(RAG 공공 문서, `user_id IS NULL`). (#1652)
 
-고혈압·당뇨 위험군 대상의 일반적·비처방적 생활수칙. init_db 에서 청킹→임베딩→적재된다.
-도메인별 코치가 자기 domain(diet|exercise) + general 문서를 검색에 활용한다.
-출처: 공개 가이드라인(DASH, WHO 신체활동 권고 등) 요지 정리.
+예전에는 이 파일이 **손으로 쓴 요약 8건**이었다. 공개 가이드라인의 요지를 문단
+하나씩 적어 둔 것이라 출처를 댈 수 없었고, 8건 중 5건이 고혈압·당뇨 위험군 전제라
+지금 타깃(PT 를 이용하는 회원과 이들을 관리하는 트레이너)과 어긋났다. 코치가 회원
+에게 타깃과 무관한 근거로 말하는 셈이었다.
+
+이제는 공개 문서의 **원문**에서 뽑은 텍스트를 적재한다. 파일은
+`app/data/coach_docs/*.txt` 에 있고, 원본 PDF 에서 뽑는 경로는
+`backend/scripts/extract_coach_docs.py` 다.
+
+## 출처와 이용허락범위
+
+두 자료 모두 공공누리 제4유형(출처표시 · 비상업적 이용만 · **변경금지**)이다. 이
+프로젝트는 비상업이라 이용에 문제가 없고, 원문을 고치지 않는 것이 조건이다. 다만
+그 문서를 근거로 코치가 문장을 만드는 것까지 변경금지에 걸리는지는 단정하기 어려워,
+**답변에 출처를 함께 표시**하는 쪽으로 설계한다 — `title` 이 곧 그 출처 표기다.
+`coach.chat.answer` 가 검색된 공공 문서의 `title` 을 근거 목록으로 돌려주고,
+프롬프트 컨텍스트에도 같은 값이 붙는다.
 """
 from __future__ import annotations
 
-PUBLIC_DOCS: list[dict] = [
-    {
-        "title": "DASH 식단 개요",
-        "domain": "diet",
-        "content": (
-            "DASH 식단은 고혈압 관리를 위해 고안된 식사법입니다. 채소, 과일, 통곡물, "
-            "저지방 유제품을 충분히 먹고 나트륨, 포화지방, 첨가당을 줄이는 것이 핵심입니다. "
-            "하루 나트륨은 2300mg 이하, 가능하면 1500mg 을 목표로 권장합니다."
-        ),
-    },
-    {
-        "title": "나트륨 줄이기",
-        "domain": "diet",
-        "content": (
-            "가공식품, 국물, 젓갈, 라면 스프에는 나트륨이 많습니다. 국물은 남기고 건더기 위주로 "
-            "먹으며, 소금 대신 후추, 마늘, 레몬으로 간을 하면 나트륨 섭취를 크게 줄일 수 있습니다. "
-            "국이나 찌개는 싱겁게 조리하는 습관이 혈압 관리에 도움이 됩니다."
-        ),
-    },
-    {
-        "title": "당류 관리",
-        "domain": "diet",
-        "content": (
-            "혈당 관리를 위해 설탕, 가당 음료, 디저트 같은 단순당 섭취를 줄이세요. "
-            "식이섬유가 풍부한 통곡물과 채소를 늘리고, 음료는 물이나 무가당 차로 바꾸며, "
-            "과일은 주스보다 생과일로 먹는 것이 혈당 급상승을 줄이는 데 좋습니다."
-        ),
-    },
-    {
-        "title": "고혈압과 운동",
-        "domain": "exercise",
-        "content": (
-            "규칙적인 유산소 운동은 수축기 혈압을 낮추는 데 도움이 됩니다. 빠르게 걷기, 자전거, "
-            "수영 같은 중강도 운동을 주 5회, 하루 30분 이상 권장합니다. 운동 전후에는 준비운동과 "
-            "정리운동으로 몸을 서서히 적응시키세요."
-        ),
-    },
-    {
-        "title": "당뇨와 운동",
-        "domain": "exercise",
-        "content": (
-            "식후 가벼운 걷기는 혈당 스파이크를 완화합니다. 유산소 운동과 함께 주 2회 근력 운동을 "
-            "병행하면 인슐린 민감성이 개선됩니다. 저혈당에 대비해 운동 중 몸 상태를 살피고 "
-            "필요하면 간단한 간식을 준비하세요."
-        ),
-    },
-    {
-        "title": "유산소와 근력 균형",
-        "domain": "exercise",
-        "content": (
-            "세계보건기구는 주당 150분 이상의 중강도 유산소 운동과 주 2회 근력 운동을 권장합니다. "
-            "오래 앉아 있는 시간을 줄이고 틈틈이 스트레칭과 걷기를 더하면 심혈관 건강에 도움이 됩니다."
-        ),
-    },
-    {
-        "title": "수분 섭취",
-        "domain": "general",
-        "content": (
-            "충분한 수분 섭취는 혈압과 신진대사 관리에 도움이 됩니다. 하루 6~8잔의 물을 나눠 마시고, "
-            "카페인과 알코올, 가당 음료는 줄이는 것이 좋습니다."
-        ),
-    },
-    {
-        "title": "체중 관리",
-        "domain": "general",
-        "content": (
-            "과체중은 고혈압과 당뇨 위험을 높입니다. 체중을 5~10%만 줄여도 혈압과 혈당 지표가 "
-            "개선될 수 있습니다. 급격한 감량보다 식단과 운동을 병행한 완만한 감량이 안전합니다."
-        ),
-    },
-]
+from dataclasses import dataclass
+from pathlib import Path
+
+DOCS_DIR = Path(__file__).resolve().parent / "coach_docs"
+
+
+@dataclass(frozen=True, slots=True)
+class PublicDoc:
+    """적재할 공개 문서 한 절."""
+
+    #: `coach_docs/<file>` 의 파일 이름.
+    file: str
+    #: 답변에 그대로 나가는 출처 표기. 문서명·발행처·절을 한 줄에 담는다.
+    title: str
+    #: 도메인 필터 — diet|exercise|general. 도메인별 코치가 자기 domain 과
+    #: general 을 검색한다.
+    domain: str
+
+    def read(self) -> str:
+        return (DOCS_DIR / self.file).read_text(encoding="utf-8").strip()
+
+
+#: 발행처 표기. 제목에 매번 적는 대신 여기서 이어 붙인다.
+_PA = "한국인을 위한 신체활동 지침서(2023 개정판) · 보건복지부"
+_KDRI = "2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회"
+
+PUBLIC_DOCS: tuple[PublicDoc, ...] = (
+    # --- 운동 ---
+    PublicDoc("pa_adult.txt", f"{_PA} — 성인(19~64세) 신체활동 지침", "exercise"),
+    PublicDoc("pa_older_adult.txt", f"{_PA} — 노인(65세 이상) 신체활동 지침", "exercise"),
+    PublicDoc("pa_intensity.txt", f"{_PA} — 신체활동 강도의 기준과 측정방법", "exercise"),
+    PublicDoc("pa_safety.txt", f"{_PA} — 안전하게 신체활동 실천하기", "exercise"),
+    # 3개월 안에 그만두는 것을 붙잡는 것이 이 서비스의 문제 정의라, 지속 전략은
+    # 운동 코치뿐 아니라 어느 대화에서든 근거가 된다.
+    PublicDoc("pa_adherence.txt", f"{_PA} — 신체활동을 지속하기 위한 전략", "general"),
+    # --- 식단 ---
+    PublicDoc("kdri_energy.txt", f"{_KDRI} — 에너지", "diet"),
+    PublicDoc("kdri_carbohydrate.txt", f"{_KDRI} — 탄수화물과 당류", "diet"),
+    PublicDoc("kdri_fiber.txt", f"{_KDRI} — 식이섬유", "diet"),
+    PublicDoc("kdri_protein.txt", f"{_KDRI} — 단백질과 아미노산", "diet"),
+    PublicDoc("kdri_fat.txt", f"{_KDRI} — 지질과 지방산", "diet"),
+    # 앱이 식단을 나트륨·당류로 평가한다. 그 상한의 근거가 DASH(고혈압 식이)뿐
+    # 이었어서, 만성질환위험감소섭취량을 다룬 이 절로 근거를 옮긴다.
+    PublicDoc("kdri_sodium.txt", f"{_KDRI} — 나트륨과 염소", "diet"),
+    PublicDoc("kdri_water.txt", f"{_KDRI} — 수분", "general"),
+)

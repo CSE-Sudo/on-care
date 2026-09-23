@@ -49,6 +49,21 @@ import 'package:oncare/features/exercise/domain/entities/exercise_load.dart'
 /// snake_case payloads are produced/consumed via
 /// `core/network/case_mapper.dart` so the contract matches the real
 /// server's Pydantic models.
+/// 데모 답변에 붙는 근거 출처.
+///
+/// 실제 서버는 검색된 공개 문서의 제목을 그대로 돌려준다
+/// (`backend/app/data/coach_public_docs.py`). 예전 목업은 손으로 쓴 요약의 제목
+/// (`DASH 식단 개요` 등)을 적고 있었는데, 그 문서들이 공개 가이드라인 원문으로
+/// 교체되면서 데모만 있지도 않은 근거를 인용하게 됐다(#1652).
+const String _srcPa = '한국인을 위한 신체활동 지침서(2023 개정판) · 보건복지부';
+const String _srcKdri = '2025 한국인 영양소 섭취기준 · 보건복지부/한국영양학회';
+const String _srcSodium = '$_srcKdri — 나트륨과 염소';
+const String _srcCarb = '$_srcKdri — 탄수화물과 당류';
+const String _srcProtein = '$_srcKdri — 단백질과 아미노산';
+const String _srcWater = '$_srcKdri — 수분';
+const String _srcPaAdult = '$_srcPa — 성인(19~64세) 신체활동 지침';
+const String _srcPaSafety = '$_srcPa — 안전하게 신체활동 실천하기';
+
 class LocalApiInterceptor extends Interceptor {
   LocalApiInterceptor(
     this._db,
@@ -2224,7 +2239,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '국물을 남기는 것만으로도 절반 가까이 줄어요. 다음부터는 스프를 조금만 넣고, '
               '달걀이나 두부를 올려 단백질을 더해 보세요. 하루 목표는 2000mg 이하예요. 🌿',
-          sources: <String>['나트륨 줄이기'],
+          sources: <String>[_srcSodium],
         ),
         (
           daysAgo: 12,
@@ -2242,7 +2257,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '무릎이 불편하시군요. 오늘은 스쿼트 대신 자전거나 걷기처럼 무릎에 체중이 덜 실리는 운동으로 '
               '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
-          sources: <String>['운동 중 통증 대처'],
+          sources: <String>[_srcPaSafety],
         ),
         (
           daysAgo: 9,
@@ -2260,7 +2275,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '가기 전에 가볍게 요기를 해 두면 과식이 줄어요. 자리에서는 구이·찜 위주로 먹고 국물은 '
               '남기고, 물을 자주 마셔 주세요. 다음 날 한 끼를 담백하게 맞추면 한 주 균형은 유지됩니다. 🥗',
-          sources: <String>['DASH 식단 개요'],
+          sources: <String>[_srcSodium],
         ),
         (
           daysAgo: 5,
@@ -2314,7 +2329,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
               '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
-          sources: <String>['한국인 영양소 섭취기준'],
+          sources: <String>[_srcProtein],
         ),
         (
           daysAgo: 1,
@@ -2350,7 +2365,7 @@ class LocalApiInterceptor extends Interceptor {
           text:
               '하루 6~8잔을 나눠 마시는 것을 권해요. 한 번에 많이 마시기보다 끼니와 운동 앞뒤로 '
               '나눠 드시면 좋습니다. 💧',
-          sources: <String>['수분 섭취'],
+          sources: <String>[_srcWater],
         ),
       ];
 
@@ -2522,14 +2537,14 @@ class LocalApiInterceptor extends Interceptor {
       return (
         '불편한 곳이 있으시군요. 오늘은 그 부위에 힘이 실리는 동작을 빼고, 걷기나 가벼운 스트레칭으로 '
             '바꿔 보세요. 통증이 사흘 넘게 이어지거나 붓는다면 병원 진료를 받아 보시는 것이 좋아요.',
-        <String>['운동 중 통증 대처'],
+        <String>[_srcPaSafety],
       );
     }
     if (has(<String>['나트륨', '짜', '소금', '국물'])) {
       return (
         '나트륨을 줄이려면 국물은 남기고 건더기 위주로 드시고, 소금 대신 후추·마늘·레몬으로 '
             '간을 해보세요. 하루 목표는 2000mg 이하예요. 🌿',
-        <String>['나트륨 줄이기', 'DASH 식단 개요'],
+        <String>[_srcSodium],
       );
     }
     // `당` 한 글자는 쓰지 않는다 — `당기다`·`당근`·`담당` 까지 걸린다.
@@ -2537,14 +2552,14 @@ class LocalApiInterceptor extends Interceptor {
       return (
         '가당 음료와 디저트 같은 단순당을 줄이고, 식이섬유가 풍부한 통곡물·채소를 늘려보세요. '
             '음료를 물이나 무가당 차로 바꾸는 것만으로도 하루 당류가 꽤 줄어요. 🍵',
-        <String>['당류 관리'],
+        <String>[_srcCarb],
       );
     }
     if (has(<String>['운동', '걷', '헬스', '유산소', '근력'])) {
       return (
         '빠르게 걷기 같은 중강도 유산소를 주 5회, 하루 30분씩 해보세요. 주간 목표 150분이 이렇게 '
             '채워져요. 여기에 주 2회 가벼운 근력 운동을 더하면 균형이 좋아집니다. 🚶',
-        <String>['유산소와 근력 균형'],
+        <String>[_srcPaAdult],
       );
     }
     // 저녁 메뉴 추천은 빠른 질문 버튼의 첫 줄이다 — 일반론 대신 오늘 기록(점심
@@ -2558,27 +2573,27 @@ class LocalApiInterceptor extends Interceptor {
             '• 다양한 채소로 식이섬유와 영양소를 챙겨주세요.\n'
             '• 현미밥은 적당량 곁들여 균형 잡힌 한 끼로 드시면 좋아요.\n\n'
             '오늘은 국물이나 양념이 많은 음식은 피하고, 물도 충분히 섭취해 주세요.',
-        <String>['DASH 식단 개요', '나트륨 줄이기'],
+        <String>[_srcSodium, _srcCarb],
       );
     }
     if (has(<String>['단백질'])) {
       return (
         '근력 운동을 하시는 동안에는 체중 1kg당 1.2~1.6g이 기준이에요. 회원님 목표는 하루 100g이니 '
             '끼니마다 손바닥 하나 정도의 단백질 반찬을 올리시면 채워집니다.',
-        <String>['한국인 영양소 섭취기준'],
+        <String>[_srcProtein],
       );
     }
     if (has(<String>['뭐 먹', '식단', '점심', '저녁', '아침', '메뉴'])) {
       return (
         '채소·통곡물·저지방 단백질 위주로 담아 보세요. 국·찌개는 싱겁게, 튀김보다 구이·찜으로 '
             '드시면 좋아요. 최근 나트륨이 높았다면 담백한 샐러드나 생선구이가 균형을 맞춰줘요. 🥗',
-        <String>['DASH 식단 개요'],
+        <String>[_srcSodium],
       );
     }
     if (has(<String>['물', '수분'])) {
       return (
         '하루 6~8잔의 물을 나눠 마시면 좋아요. 카페인·가당 음료를 줄이고 물로 바꿔 보세요. 💧',
-        <String>['수분 섭취'],
+        <String>[_srcWater],
       );
     }
     if (has(<String>['체중', '살', '다이어트', '몸무게'])) {
