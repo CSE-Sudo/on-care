@@ -37,6 +37,11 @@
 *.cmd     text eol=crlf
 *.ps1     text eol=crlf
 
+# --- 공공데이터 원본 (받은 바이트 그대로 보관) ---
+# KOGL 제4유형은 변경금지다. 줄바꿈(CRLF)이나 인코딩(CP949)을 건드리면 받은
+# 파일과 바이트가 달라지므로, 이 파일만 자동 변환에서 뺀다. (#1651)
+backend/app/data/exercise_met_public.csv -text
+
 # --- 바이너리 (줄바꿈 변환·텍스트 diff 금지) ---
 *.png     binary
 *.jpg     binary
