@@ -364,6 +364,22 @@ def _group_key(item: RoutineItemLike) -> str:
     return body_part_of(item.name) or item.name
 
 
+def _done_today_praise(key: str) -> str:
+    """자주 빠지던 부위·운동을 오늘 해냈을 때의 말."""
+    tail = "이대로 이어 가요!"
+    if key in (LOWER, UPPER, CORE, FULL):
+        return f"자주 빠지던 {key} 운동을 오늘 해냈어요. {tail}"
+    if _has_final_consonant(key) is None:
+        return _first_fit(
+            f"자주 빠지던 {key}, 오늘 해냈어요. {tail}",
+            f"자주 빠지던 운동을 오늘 해냈어요. {tail}",
+        )
+    return _first_fit(
+        f"자주 빠지던 {_josa(key, '을', '를')} 오늘 해냈어요. {tail}",
+        f"자주 빠지던 운동을 오늘 해냈어요. {tail}",
+    )
+
+
 def _all(days: Sequence[RoutineDayLike]) -> str:
     today = days[-1].date
     current = [i.name for i in days[-1].routines]
@@ -408,6 +424,10 @@ def _all(days: Sequence[RoutineDayLike]) -> str:
         key, _, _ = max(
             missed, key=lambda m: (m[2], m[1], -first_seen.get(m[0], len(current)))
         )
+        # 자주 빠지던 것을 오늘 했으면 그것부터 알아준다. 방금 체크한 운동을 두고
+        # "다음엔 먼저 해 볼까요?" 라고 하면 회원은 체크가 반영되지 않은 줄 안다.
+        if any(i.done and _group_key(i) == key for i in days[-1].routines):
+            return _done_today_praise(key)
         if key in (LOWER, UPPER, CORE, FULL):
             return _first_fit(
                 f"추천 운동 중 {key} 운동이 자주 빠졌어요. {key} 운동을 먼저 해 볼까요?",

@@ -633,6 +633,24 @@ String _groupKey(RoutineAdviceItem item) {
   return bodyPartOf(item.name) ?? item.name;
 }
 
+/// 자주 빠지던 부위·운동을 오늘 해냈을 때의 말. 서버 `_done_today_praise` 와 같다.
+String _doneTodayPraise(String key) {
+  const String tail = '이대로 이어 가요!';
+  if (<String>[kPartLower, kPartUpper, kPartCore, kPartFull].contains(key)) {
+    return '자주 빠지던 $key 운동을 오늘 해냈어요. $tail';
+  }
+  if (_hasFinalConsonant(key) == null) {
+    return _firstFit(<String>[
+      '자주 빠지던 $key, 오늘 해냈어요. $tail',
+      '자주 빠지던 운동을 오늘 해냈어요. $tail',
+    ]);
+  }
+  return _firstFit(<String>[
+    '자주 빠지던 ${_josa(key, '을', '를')} 오늘 해냈어요. $tail',
+    '자주 빠지던 운동을 오늘 해냈어요. $tail',
+  ]);
+}
+
 String _routineAll(List<RoutineAdviceDay> days) {
   final DateTime today = _dateOnly(days.last.date);
   final List<String> current = <String>[
@@ -708,6 +726,13 @@ String _routineAll(List<RoutineAdviceDay> days) {
   });
   if (worst != null) {
     final String key = worst!;
+    // 자주 빠지던 것을 오늘 했으면 그것부터 알아준다. 방금 체크한 운동을 두고
+    // "다음엔 먼저 해 볼까요?" 라고 하면 회원은 체크가 반영되지 않은 줄 안다.
+    if (days.last.routines.any(
+      (RoutineAdviceItem i) => i.done && _groupKey(i) == key,
+    )) {
+      return _doneTodayPraise(key);
+    }
     if (<String>[kPartLower, kPartUpper, kPartCore, kPartFull].contains(key)) {
       return _firstFit(<String>[
         '추천 운동 중 $key 운동이 자주 빠졌어요. $key 운동을 먼저 해 볼까요?',
