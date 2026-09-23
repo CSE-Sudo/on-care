@@ -4730,11 +4730,17 @@ abstract class AppLocalizations {
   /// **'Sending this to the member'**
   String get aiRoutineOnlyReviewTitle;
 
-  /// No description provided for @aiRoutineOnlyStartDate.
+  /// No description provided for @aiRoutineOnlyWeekRange.
   ///
   /// In en, this message translates to:
-  /// **'Start date'**
-  String get aiRoutineOnlyStartDate;
+  /// **'Shown daily {start} – {end}'**
+  String aiRoutineOnlyWeekRange(String start, String end);
+
+  /// No description provided for @aiRoutineOnlyWeeklyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Appears in the member app every day for 7 days from today. Send next week\'s set again then.'**
+  String get aiRoutineOnlyWeeklyHint;
 
   /// No description provided for @aiRoutineOnlyMessage.
   ///

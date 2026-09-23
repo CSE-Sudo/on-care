@@ -10,8 +10,10 @@ import 'package:oncare_trainer/features/clients/domain/entities/routine_history_
 import 'package:oncare_trainer/features/clients/domain/entities/trainer_memo.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_options_repository.dart';
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
+import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_suggestion_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_suggestion.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
@@ -348,6 +350,7 @@ void main() {
       RoutineOptions? response,
       List<RoutineHistoryEntry> history = const <RoutineHistoryEntry>[],
       List<TrainerMemo> memos = const <TrainerMemo>[],
+      List<RoutineSuggestion>? suggestions,
     }) async {
       tester.view.physicalSize = const Size(1000, 2400);
       tester.view.devicePixelRatio = 1.0;
@@ -370,6 +373,12 @@ void main() {
             trainerMemoRepositoryProvider.overrideWithValue(
               _StaticMemoRepository(memos),
             ),
+            // 개인운동 단계가 출발점으로 삼는 AI 제안. 기본값(데모 저장소)은
+            // 세 건을 채우므로, 빈 목록을 보려면 이 자리를 갈아 끼운다.
+            if (suggestions != null)
+              trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
+                _StaticSuggestionRepository(suggestions),
+              ),
           ],
           child: MaterialApp(
             locale: const Locale('ko'),
@@ -584,8 +593,53 @@ void main() {
       expect(repo.calls, 0);
     });
 
+    testWidgets('개인운동 단계는 AI 제안 목록으로 시작하고, 제안이 늦게 와도 '
+        '채워진다 (#2223)', (tester) async {
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+            evidence: <String>['혈압 관리 목표'],
+          ),
+          RoutineSuggestion(
+            id: 'sug-2',
+            name: '힙 브리지',
+            minutes: 0,
+            type: '근력',
+            sets: 3,
+            reps: 15,
+            weight: 0,
+            reason: '허리가 아프면 범위를 줄이세요',
+            evidence: <String>['최근 근력운동 비중 높음'],
+          ),
+        ],
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+
+      // 제안이 목록의 출발점이다 — 줄마다 이름·회원에게 갈 메모·근거가 선다.
+      expect(find.text('가벼운 인터벌 러닝'), findsOneWidget);
+      expect(find.text('힙 브리지'), findsOneWidget);
+      expect(find.text('AI 제안 2'), findsOneWidget);
+      expect(find.text('숨이 차면 속도를 낮추세요'), findsOneWidget);
+      expect(find.text('혈압 관리 목표'), findsOneWidget);
+      expect(find.text('최근 근력운동 비중 높음'), findsOneWidget);
+      // 제안이 채워졌으므로 빈 상태 문구는 없다.
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-empty')),
+        findsNothing,
+      );
+    });
+
     testWidgets('개인운동 없이는 프로그램에 반영되지 않는다 (#2223)', (tester) async {
-      await pumpFlow(tester);
+      // 제안이 하나도 없는 날 — 직접 넣지 않으면 넘어갈 수 없어야 한다.
+      await pumpFlow(tester, suggestions: const <RoutineSuggestion>[]);
       await generate(tester);
 
       await tester.ensureVisible(
@@ -1142,6 +1196,16 @@ void main() {
       '이번 주는 PT 쉬어요',
     );
     await tester.pump();
+    // 언제부터 언제까지인지와, 다음 주에 다시 보내야 한다는 것을 그 자리에서
+    // 말한다.
+    expect(
+      find.byKey(const ValueKey<String>('routine-only-week-range')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.'),
+      findsOneWidget,
+    );
     await tester.ensureVisible(
       find.byKey(const ValueKey<String>('send-routine-only')),
     );
@@ -1153,7 +1217,9 @@ void main() {
     expect(sent.memberId, _client.id);
     expect(sent.payload['delivery_kind'], 'routine_only');
     expect(sent.payload['trainer_message'], '이번 주는 PT 쉬어요');
-    expect(sent.payload['start_date'], isA<String>());
+    // 시작일은 고르지 않는다 — 보낸 날부터 이레라고 서버에 말할 뿐이다(#2223).
+    expect(sent.payload['repeat_days'], 7);
+    expect(sent.payload.containsKey('start_date'), isFalse);
     expect(sent.payload['client_request_id'], isNotNull);
 
     // 두 번 눌러도 같은 운동이 두 벌 가지 않는다.
@@ -1211,6 +1277,34 @@ void main() {
 /// Records what conditions the flow actually sent, and returns a fixed
 /// [RoutineOptions] regardless — used to check the "leave it blank, let the
 /// server decide" contract (#776) without a real backend.
+/// 정해진 제안만 돌려주는 저장소. 빈 목록으로 두면 개인운동 단계가 비어
+/// 시작한다. (#2223)
+class _StaticSuggestionRepository implements TrainerRoutineSuggestionRepository {
+  _StaticSuggestionRepository(this._rows);
+
+  final List<RoutineSuggestion> _rows;
+
+  @override
+  Future<List<RoutineSuggestion>> pending(String memberId) async =>
+      List<RoutineSuggestion>.unmodifiable(_rows);
+
+  @override
+  Future<void> approve(
+    String suggestionId, {
+    String? name,
+    int? minutes,
+    String? type,
+    int? sets,
+    int? reps,
+    int? holdSeconds,
+    double? weight,
+    String? reason,
+  }) async {}
+
+  @override
+  Future<void> dismiss(String suggestionId) async {}
+}
+
 class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
   _CapturingOptionsRepository(this._response);
 

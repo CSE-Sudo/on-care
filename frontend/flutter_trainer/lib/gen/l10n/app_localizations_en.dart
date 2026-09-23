@@ -2678,7 +2678,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiRoutineOnlyReviewTitle => 'Sending this to the member';
 
   @override
-  String get aiRoutineOnlyStartDate => 'Start date';
+  String aiRoutineOnlyWeekRange(String start, String end) {
+    return 'Shown daily $start – $end';
+  }
+
+  @override
+  String get aiRoutineOnlyWeeklyHint =>
+      'Appears in the member app every day for 7 days from today. Send next week\'s set again then.';
 
   @override
   String get aiRoutineOnlyMessage => 'A note for the member (optional)';

@@ -195,44 +195,83 @@ def test_program_schedule_without_personal_routines_still_works(client, db_sessi
         _cleanup(db_session, day)
 
 
-def test_routine_only_delivery_goes_straight_to_the_member(client, db_session):
-    """`개인운동만` 은 붙일 일정이 없어 바로 배정되고, 종류와 한마디가 남는다. (#2223)"""
+def _routine_only_body(request_id: str) -> dict:
+    return {
+        "name": f"{_NAME_PREFIX} 이번 주 개인운동",
+        "sessions": [
+            {
+                "id": "session-1",
+                "name": "세션 A",
+                "exercises": [{"id": "ex-1", "name": "걷기", "duration": 30}],
+            }
+        ],
+        "delivery_kind": "routine_only",
+        "trainer_message": "이번 주는 PT 쉬어요, 이것만 챙겨 주세요",
+        "repeat_days": 7,
+        "client_request_id": request_id,
+    }
+
+
+def test_routine_only_delivery_covers_a_week_from_today(client, db_session):
+    """`개인운동만` 은 보낸 날부터 이레 동안 날마다 배정된다. (#2223)
+
+    회원 앱은 운동을 날짜별로 보여 주므로, 한 주 내내 뜨게 하려면 이레치가
+    있어야 한다. 시작일은 트레이너가 고르지 않는다 — 보낸 날이 곧 시작일이다.
+    """
     token = _tok(client)
-    day = clock.today().isoformat()
     _cleanup_routines(db_session)
     try:
         r = client.post(
             _PROGRAM_URL,
-            json={
-                "name": f"{_NAME_PREFIX} 이번 주 개인운동",
-                "sessions": [
-                    {
-                        "id": "session-1",
-                        "name": "세션 A",
-                        "exercises": [
-                            {"id": "ex-1", "name": "걷기", "duration": 30},
-                        ],
-                    }
-                ],
-                "delivery_kind": "routine_only",
-                "trainer_message": "이번 주는 PT 쉬어요, 이것만 챙겨 주세요",
-                "start_date": day,
-                "client_request_id": "req-2223-only",
-            },
+            json=_routine_only_body("req-2223-only"),
             headers=_h(token),
         )
         assert r.status_code == 201, r.text
-        [routine] = r.json()
-        assert routine["delivery_kind"] == "routine_only"
-        assert routine["trainer_message"] == "이번 주는 PT 쉬어요, 이것만 챙겨 주세요"
-        assert routine["exercise_date"] == day
-        # 붙일 PT 일정이 없다.
-        assert routine["schedule_id"] is None
+        rows = r.json()
 
-        # 바로 보낸 것이므로 회원이 보는 목록에 들어간다.
+        today = clock.today()
+        assert [row["exercise_date"] for row in rows] == [
+            (today + timedelta(days=offset)).isoformat() for offset in range(7)
+        ]
+        assert {row["delivery_kind"] for row in rows} == {"routine_only"}
+        assert {row["trainer_message"] for row in rows} == {
+            "이번 주는 PT 쉬어요, 이것만 챙겨 주세요"
+        }
+        # 붙일 PT 일정이 없다.
+        assert {row["schedule_id"] for row in rows} == {None}
+
+        # 바로 보낸 것이므로 회원이 보는 목록에 이레치가 모두 들어간다.
         assigned = client.get(
             f"/v1/trainer/clients/{MEMBER}/routines", headers=_h(token)
         )
-        assert routine["id"] in {row["id"] for row in assigned.json()}
+        assigned_ids = {row["id"] for row in assigned.json()}
+        assert {row["id"] for row in rows} <= assigned_ids
+    finally:
+        _cleanup_routines(db_session)
+
+
+def test_routine_only_retry_does_not_send_a_second_week(client, db_session):
+    """응답을 잃고 같은 키로 다시 보내도 이레치가 두 벌 가지 않는다. (#2223)"""
+    token = _tok(client)
+    _cleanup_routines(db_session)
+    body = _routine_only_body("req-2223-only-retry")
+    try:
+        first = client.post(_PROGRAM_URL, json=body, headers=_h(token))
+        retry = client.post(_PROGRAM_URL, json=body, headers=_h(token))
+
+        assert first.status_code == 201, first.text
+        assert retry.status_code == 201, retry.text
+        assert len(first.json()) == 7
+        assert [row["id"] for row in retry.json()] == [
+            row["id"] for row in first.json()
+        ]
+        db_session.expire_all()
+        rows = db_session.scalars(
+            select(TrainerRoutine).where(
+                TrainerRoutine.member_id == MEMBER,
+                TrainerRoutine.name.like(f"{_NAME_PREFIX} 이번 주 개인운동"),
+            )
+        ).all()
+        assert len(rows) == 7
     finally:
         _cleanup_routines(db_session)

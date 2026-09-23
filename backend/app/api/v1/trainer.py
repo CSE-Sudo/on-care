@@ -934,6 +934,7 @@ def trainer_assign_program(
         delivery_kind=payload.delivery_kind,
         trainer_message=payload.trainer_message.strip(),
         start_date=payload.start_date,
+        repeat_days=payload.repeat_days,
     )
 
 

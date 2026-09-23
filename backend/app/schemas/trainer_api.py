@@ -823,9 +823,17 @@ class ProgramAssignRequest(BaseModel):
     #: 회원에게 함께 남기는 한마디(선택). 예: "이번 주는 PT 쉬어요, 이것만
     #: 챙겨 주세요".
     trainer_message: str = Field(default="", max_length=200)
-    #: 회원이 이 운동을 시작할 날(#2223). `개인운동만` 전송이 고르는 시작일이고,
-    #: 비우면 예전처럼 날짜 없는 배정이다.
+    #: 회원이 이 운동을 시작할 날(#2223). 비우면 하루짜리 배정은 예전처럼
+    #: 날짜가 없고, 여러 날짜리([repeat_days] > 1)는 오늘(KST)부터다.
     start_date: _date | None = None
+    #: 같은 구성을 시작일부터 **며칠간 매일** 하라고 보내는가(#2223).
+    #:
+    #: 프로그램 만들기의 `개인운동만` 은 이레를 보낸다 — 보낸 날부터 한 주
+    #: 동안 회원 앱에 매일 떠야 하기 때문이다. 날마다 배정 한 건이 만들어진다:
+    #: 회원 앱이 이미 날짜별로 운동을 보여 주고 완료도 날짜별로 남기므로,
+    #: 기간 칸을 새로 만들지 않고 같은 규약을 그대로 쓴다. 기본 1 은 예전과
+    #: 같은 한 건이다.
+    repeat_days: int = Field(default=1, ge=1, le=31)
 
     _v_total = field_validator("sessions")(_check_program_total_exercises)
 

@@ -171,9 +171,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 옆에 따로 들고 있는다. 줄을 지우면 뒤 번호가 당겨지므로 함께 옮긴다.
   final List<_PersonalOrigin?> _personalOrigins = <_PersonalOrigin?>[];
 
-  /// `개인운동만` 전송의 시작일 — 기본은 오늘이다. (#2223)
-  DateTime _startDate = todayKst();
-
   /// `개인운동만` 전송에 붙이는 회원에게 한마디(선택).
   final TextEditingController _memberMessage = TextEditingController();
 
@@ -440,6 +437,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       _maxReachedStage = 0;
       _showAddExercise = false;
     });
+    // 제안이 이미 와 있으면 지금 채우고, 아직이면 개인운동 칸이 그릴 때
+    // 채운다. 어느 쪽이든 다시 그리는 것은 `_advance` 가 한다.
     _seedPersonalFromSuggestions();
     // 가운데 두 칸을 지나 마지막 칸(개인운동)으로 간다.
     _advance();
@@ -450,24 +449,28 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 없애는 `AI 개인운동 제안` 카드가 보여 주던 바로 그 목록이다 — 개인운동을
   /// 보내는 입구를 이 단계 하나로 모으면서, 카드에 걸려 있던 제안도 여기로
   /// 들어온다. 한 번만 채운다: 다시 채우면 트레이너가 지운 제안이 되살아난다.
+  /// **상태만 바꾼다** — 다시 그리는 것은 부르는 쪽의 몫이다. 화면을 짓는
+  /// 도중(`build`)에도 불리므로 여기서 `setState` 를 하면 겹친다.
   void _seedPersonalFromSuggestions() {
     if (_personalSeeded) return;
-    _personalSeeded = true;
     final suggestions = ref
         .read(routineSuggestionsProvider(widget.client.id))
         .valueOrNull;
-    if (suggestions == null || suggestions.isEmpty) return;
-    setState(() {
-      _personal = <RoutineExercise>[
-        for (final s in suggestions) _exerciseOfSuggestion(s),
-      ];
-      _personalOrigins
-        ..clear()
-        ..addAll(<_PersonalOrigin?>[
-          for (final s in suggestions)
-            _PersonalOrigin(id: s.id, evidence: s.evidence),
-        ]);
-    });
+    // 아직 도착하지 않았다. **채웠다고 표시하지 않는다** — 표시해 버리면
+    // 뒤늦게 온 제안이 영영 목록에 들어오지 못하고, 트레이너는 제안이 있는
+    // 날에도 빈 목록을 본다.
+    if (suggestions == null) return;
+    _personalSeeded = true;
+    if (suggestions.isEmpty) return;
+    _personal = <RoutineExercise>[
+      for (final s in suggestions) _exerciseOfSuggestion(s),
+    ];
+    _personalOrigins
+      ..clear()
+      ..addAll(<_PersonalOrigin?>[
+        for (final s in suggestions)
+          _PersonalOrigin(id: s.id, evidence: s.evidence),
+      ]);
   }
 
   /// 그 줄의 근거 문구들. 직접 넣은 줄은 비어 있다.
@@ -626,7 +629,8 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             ],
             'delivery_kind': 'routine_only',
             'trainer_message': _memberMessage.text.trim(),
-            'start_date': _ymd(_startDate),
+            // 시작일은 보내지 않는다 — 서버가 받은 날(KST)부터 이레를 만든다.
+            'repeat_days': _routineOnlyDays,
             'client_request_id': requestId,
           });
     } catch (error) {
@@ -1693,28 +1697,49 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  /// `개인운동만` 을 보낼 조건 — 시작일과 회원에게 한마디. (#2223)
+  /// `개인운동만` 을 보낼 조건 — 언제부터 언제까지인지와 회원에게 한마디.
+  /// (#2223)
   ///
-  /// 붙일 PT 일정이 없어 이 칸이 마지막이다. 목록은 바로 위에서 고치고 있으니
-  /// 다시 늘어놓지 않고, 보내기에만 필요한 둘을 받는다.
+  /// 시작일을 고르게 하지 않는다. 이 전송은 **보낸 날부터 한 주**가 규칙이고,
+  /// 날짜를 묻는 순간 트레이너는 매번 같은 답(오늘)을 고르게 된다. 대신 언제
+  /// 부터 언제까지 회원에게 뜨는지를 적어 둔다 — 다음 주 분은 다시 보내야
+  /// 한다는 것도 여기서 말한다.
   Widget _routineOnlySendFields() {
     final AppLocalizations l = AppLocalizations.of(context);
+    final DateTime start = todayKst();
+    final DateTime end = start.add(
+      const Duration(days: _routineOnlyDays - 1),
+    );
     return AppCard(
       key: const ValueKey<String>('routine-only-send-fields'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(
-            l.aiRoutineOnlyStartDate,
-            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
+          Row(
+            children: <Widget>[
+              const Icon(
+                Icons.event_repeat_rounded,
+                size: OnCareSize.iconMedium,
+                color: OnCareColors.textSecondary,
+              ),
+              const SizedBox(width: OnCareSpacing.s8),
+              Expanded(
+                child: Text(
+                  l.aiRoutineOnlyWeekRange(_ymd(start), _ymd(end)),
+                  key: const ValueKey<String>('routine-only-week-range'),
+                  style: _text(
+                    OnCareTypography.strong(OnCareTypography.bodySmall),
+                    OnCareColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: OnCareSpacing.s8),
-          AppButton(
-            key: const ValueKey<String>('routine-only-start-date'),
-            label: _ymd(_startDate),
-            onPressed: _pickStartDate,
-            variant: AppButtonVariant.secondary,
-            leadingIcon: Icons.event_rounded,
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.aiRoutineOnlyWeeklyHint,
+            key: const ValueKey<String>('routine-only-weekly-hint'),
+            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
           ),
           const SizedBox(height: OnCareSpacing.s16),
           AppTextField(
@@ -1731,6 +1756,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
+  /// `개인운동만` 이 덮는 날 수 — 보낸 날부터 한 주. 서버에 그대로 나간다.
+  static const int _routineOnlyDays = 7;
+
   /// 날짜 한 줄(YYYY-MM-DD) — 서버가 받는 모양이고 화면에도 그대로 쓴다.
   String _ymd(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-'
@@ -1739,23 +1767,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   /// 서버 `trainer_message` 의 상한. 여기서 막으면 422 왕복이 없다.
   static const int _memberMessageMaxLength = 200;
-
-  Future<void> _pickStartDate() async {
-    final DateTime now = todayKst();
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate,
-      // 지난 날로는 보내지 않는다 — 이미 지난 날의 운동을 새로 시키는 일은 없다.
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-    );
-    if (picked == null || !mounted) return;
-    setState(() {
-      _startDate = picked;
-      // 보낼 내용이 달라졌다 — 멱등키를 새로 만든다.
-      _routineOnlyRequestId = null;
-    });
-  }
 
   Widget _addExerciseForm() {
     final AppLocalizations l = AppLocalizations.of(context);

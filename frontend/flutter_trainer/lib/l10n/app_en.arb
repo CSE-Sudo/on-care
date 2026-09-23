@@ -1647,7 +1647,11 @@
   "aiPersonalStepNext": "Next",
   "aiKeepOnePersonalRoutine": "Keep at least one personal exercise.",
   "aiRoutineOnlyReviewTitle": "Sending this to the member",
-  "aiRoutineOnlyStartDate": "Start date",
+  "aiRoutineOnlyWeekRange": "Shown daily {start} – {end}",
+  "@aiRoutineOnlyWeekRange": {
+    "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
+  },
+  "aiRoutineOnlyWeeklyHint": "Appears in the member app every day for 7 days from today. Send next week's set again then.",
   "aiRoutineOnlyMessage": "A note for the member (optional)",
   "aiRoutineOnlyMessageHint": "No PT this week — just keep these up",
   "aiRoutineOnlySend": "Send to member",

@@ -2566,7 +2566,13 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiRoutineOnlyReviewTitle => '이대로 회원에게 보낼게요';
 
   @override
-  String get aiRoutineOnlyStartDate => '시작일';
+  String aiRoutineOnlyWeekRange(String start, String end) {
+    return '$start ~ $end 매일 표시';
+  }
+
+  @override
+  String get aiRoutineOnlyWeeklyHint =>
+      '보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.';
 
   @override
   String get aiRoutineOnlyMessage => '회원에게 한마디 (선택)';
