@@ -2914,10 +2914,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTaskProgressTitle => '할 일 진행률';
 
   @override
-  String get dashTaskProgressToday => '오늘 처리';
+  String get dashTaskProgressToday => '오늘 할 일';
 
   @override
-  String get dashTaskProgressCarriedOver => '이월 처리';
+  String get dashTaskProgressCarriedOver => '지난 할 일';
 
   @override
   String get dashTodoConsultation => '상담';

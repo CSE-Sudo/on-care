@@ -149,7 +149,7 @@ class _TaskProgressCard extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          // 범례(오늘 처리/이월 처리)를 그래프 위 별도 줄 대신 제목 옆으로 —
+          // 범례(오늘 할 일/지난 할 일)를 그래프 위 별도 줄 대신 제목 옆으로 —
           // 자리가 모자라면 범례만 FittedBox 로 줄어들고, 주 이동 버튼은
           // 터치 크기를 지킨다. 범례 칸은 Expanded 로 몫을 다 쓰고 그 안에서
           // 오른쪽 정렬한다 — Flexible(loose) 이면 범례가 안 쓴 몫이 버튼
@@ -175,7 +175,7 @@ class _TaskProgressCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: OnCareSpacing.s8),
                       TaskProgressLegend(
-                        // 막대의 이월 처리 칸과 같은 색이다(#2214).
+                        // 막대의 지난 할 일 칸과 같은 색이다(#2214).
                         color: OnCareColors.chartGoalLine,
                         label: l.dashTaskProgressCarriedOver,
                       ),

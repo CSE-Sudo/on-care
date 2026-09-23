@@ -370,7 +370,8 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     final sections = <Widget>[
       _CategorySection(
         title: l.dashTaskCarriedOverTitle,
-        color: context.oncare.brand.border,
+        // 할 일 진행률 차트의 "지난 할 일" 막대와 같은 색이다(#2214).
+        color: OnCareColors.chartGoalLine,
         tinted: true,
         missions: carriedOver,
         checkedKeys: _checkedKeys,
@@ -472,11 +473,9 @@ class _CategorySectionState extends State<_CategorySection> {
         color: widget.tinted
             ? OnCareColors.onWhite(widget.color, OnCareAlpha.subtle)
             : OnCareColors.surfacePage,
-        border: Border.all(
-          color: widget.tinted
-              ? OnCareColors.onWhite(widget.color, OnCareAlpha.strong)
-              : OnCareColors.lineSubtle,
-        ),
+        // 테두리는 모든 상자가 같은 옅은 선이다 — "지난 할 일" 만 색 농도로 칠한
+        // 테두리는 다른 상자보다 진해 튀었다(#2214). 구분은 점 색과 바탕으로 한다.
+        border: Border.all(color: OnCareColors.lineSubtle),
         borderRadius: OnCareRadius.mdAll,
       ),
       child: Column(

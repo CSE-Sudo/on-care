@@ -223,7 +223,7 @@ class _StackedBar extends StatelessWidget {
                     Container(
                       height: carriedHeight,
                       // 메인 색 농담(`brand.border`)은 메인 색이 로고 네이비로
-                      // 내려온 뒤 회색빛이 돌아 오늘 처리 막대와 겉돌았다 —
+                      // 내려온 뒤 회색빛이 돌아 오늘 할 일 막대와 겉돌았다 —
                       // 차트 보조 요소의 중간 회색으로 칠한다(#2214).
                       decoration: const BoxDecoration(
                         color: OnCareColors.chartGoalLine,

@@ -1912,8 +1912,8 @@
     }
   },
   "dashTaskProgressTitle": "Task completion",
-  "dashTaskProgressToday": "Done today",
-  "dashTaskProgressCarriedOver": "Done (carried over)",
+  "dashTaskProgressToday": "Today's tasks",
+  "dashTaskProgressCarriedOver": "Carried over",
   "dashTodoConsultation": "Consult",
   "dashTodoDiet": "Diet",
   "dashTodoWorkout": "Workout",
