@@ -45,6 +45,7 @@ from app.schemas.trainer_api import (
 from app.services import health_focus
 from app.services import (
     auto_routine_service,
+    client_signals,
     diet_photo_service,
     exercise_activity,
     exercise_service,
@@ -398,6 +399,8 @@ def build_roster(
     ).all():
         gender_by_member[member_id] = gender
         goal_by_member[member_id] = health_focus.focus_label(conditions)
+    # PT 관리 신호(#2203) — 기준과 계산은 client_signals 한 곳에 있다.
+    signals_by_member = client_signals.build_signals(db, trainer_id, list(links))
 
     out: list[TrainerClientOut] = []
     for link in links:
@@ -440,6 +443,7 @@ def build_roster(
             sodium_week=_sodium_week(diet_rows, monday),
             calories_week=_calories_week(diet_rows, monday),
             sugar_week=_sugar_week(diet_rows, monday),
+            signals=signals_by_member.get(link.member_id, []),
         ))
     return out
 
