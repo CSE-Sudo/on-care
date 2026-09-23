@@ -1028,6 +1028,7 @@
   "aiStepReview": "프로그램 선택",
   "aiStepDone": "최종 검토",
   "aiSkipPtProgram": "PT 없이 개인운동만 짜기",
+  "aiPersonalRationaleLabel": "AI 추천 사유 · 트레이너만 봐요",
   "aiPersonalStepBadge": "AI 제안 {count}",
   "@aiPersonalStepBadge": {
     "placeholders": { "count": { "type": "int" } }
@@ -1038,8 +1039,6 @@
   },
   "aiPersonalStepLoadFailed": "AI 개인운동 제안을 불러오지 못했어요",
   "aiPersonalStepNoSuggestion": "오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.",
-  "aiPersonalReason": "회원에게 전달할 메모",
-  "aiPersonalReasonHint": "오른쪽 어깨에 통증이 생기면 중단하세요",
   "aiPersonalDismissTooltip": "이 제안 빼기",
   "aiPersonalDismissed": "{name}은(는) 추천하지 않아요",
   "@aiPersonalDismissed": {
@@ -1062,8 +1061,6 @@
     "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
   },
   "aiRoutineOnlyWeeklyHint": "보낸 날부터 7일간 회원 앱에 매일 떠요. 다음 주 분은 그때 다시 보내 주세요.",
-  "aiRoutineOnlyMessage": "회원에게 한마디 (선택)",
-  "aiRoutineOnlyMessageHint": "이번 주는 PT 쉬어요, 이것만 챙겨 주세요",
   "aiRoutineOnlySend": "회원에게 보내기",
   "aiRoutineOnlySentLabel": "보냈어요",
   "aiRoutineOnlySent": "개인운동을 회원에게 보냈어요.",

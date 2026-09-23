@@ -4610,6 +4610,12 @@ abstract class AppLocalizations {
   /// **'Skip PT — personal exercise only'**
   String get aiSkipPtProgram;
 
+  /// No description provided for @aiPersonalRationaleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Why AI picked this · trainer only'**
+  String get aiPersonalRationaleLabel;
+
   /// No description provided for @aiPersonalStepBadge.
   ///
   /// In en, this message translates to:
@@ -4633,18 +4639,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No AI suggestion today. Add one below.'**
   String get aiPersonalStepNoSuggestion;
-
-  /// No description provided for @aiPersonalReason.
-  ///
-  /// In en, this message translates to:
-  /// **'A note for the member'**
-  String get aiPersonalReason;
-
-  /// No description provided for @aiPersonalReasonHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Stop if your right shoulder hurts'**
-  String get aiPersonalReasonHint;
 
   /// No description provided for @aiPersonalDismissTooltip.
   ///
@@ -4741,18 +4735,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Appears in the member app every day for 7 days from today. Send next week\'s set again then.'**
   String get aiRoutineOnlyWeeklyHint;
-
-  /// No description provided for @aiRoutineOnlyMessage.
-  ///
-  /// In en, this message translates to:
-  /// **'A note for the member (optional)'**
-  String get aiRoutineOnlyMessage;
-
-  /// No description provided for @aiRoutineOnlyMessageHint.
-  ///
-  /// In en, this message translates to:
-  /// **'No PT this week — just keep these up'**
-  String get aiRoutineOnlyMessageHint;
 
   /// No description provided for @aiRoutineOnlySend.
   ///

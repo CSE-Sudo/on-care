@@ -139,6 +139,10 @@ Map<String, Object?> programAssignToJson(
 /// 배정 입력과 같은 규칙으로, 유형에 맞지 않는 칸은 싣지 않는다 — 세트·횟수·
 /// 중량은 근력에만, 한 세트는 회로든 초로든 한 번만 잰다(#1969). 서버가 다시
 /// 거르지만, 보내지 않는 편이 "무엇을 정했는지"가 그대로 남는다.
+///
+/// **AI 추천 사유(`reason`)는 싣지 않는다.** 그 글은 트레이너가 이 제안을
+/// 그대로 둘지 판단하는 재료이지 회원이 읽을 문구가 아니다 — 회원 화면에는
+/// 운동 이름·유형·양만 선다.
 List<Map<String, Object?>> personalRoutinesToJson(
   List<RoutineExercise> routines,
 ) {
@@ -153,7 +157,6 @@ List<Map<String, Object?>> personalRoutinesToJson(
         if (e.type == '근력' && e.isHold && e.holdSeconds > 0)
           'hold_seconds': e.holdSeconds,
         if (e.type == '근력') 'weight': e.weight,
-        'reason': _cap(e.reason, 200),
         'source': kProgramExerciseSources.contains(e.source)
             ? e.source
             : 'trainer',

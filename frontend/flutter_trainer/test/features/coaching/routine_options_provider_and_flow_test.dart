@@ -623,13 +623,23 @@ void main() {
       await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
       await tester.pumpAndSettle();
 
-      // 제안이 목록의 출발점이다 — 줄마다 이름·회원에게 갈 메모·근거가 선다.
-      expect(find.text('가벼운 인터벌 러닝'), findsOneWidget);
-      expect(find.text('힙 브리지'), findsOneWidget);
+      // 제안이 목록의 출발점이다 — 줄마다 이름과, 트레이너가 판단에 쓰는
+      // 추천 사유·근거가 선다.
+      // 접힌 줄은 이름·유형·양을 한 줄(`Text.rich`)에 둔다.
+      expect(
+        find.textContaining('가벼운 인터벌 러닝', findRichText: true),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('힙 브리지', findRichText: true),
+        findsOneWidget,
+      );
       expect(find.text('AI 제안 2'), findsOneWidget);
       expect(find.text('숨이 차면 속도를 낮추세요'), findsOneWidget);
       expect(find.text('혈압 관리 목표'), findsOneWidget);
       expect(find.text('최근 근력운동 비중 높음'), findsOneWidget);
+      // 그 글은 트레이너 몫이라고 못 박는다 — 회원에게는 가지 않는다.
+      expect(find.text('AI 추천 사유 · 트레이너만 봐요'), findsNWidgets(2));
       // 제안이 채워졌으므로 빈 상태 문구는 없다.
       expect(
         find.byKey(const ValueKey<String>('personal-routine-empty')),
@@ -1189,13 +1199,6 @@ void main() {
     await _addPersonalRoutine(tester);
 
     // 마지막 칸이라 보낼 조건(시작일·한마디)도 이 화면에 있다.
-    await tester.enterText(
-      _textFieldUnder(
-        find.byKey(const ValueKey<String>('routine-only-member-message')),
-      ),
-      '이번 주는 PT 쉬어요',
-    );
-    await tester.pump();
     // 언제부터 언제까지인지와, 다음 주에 다시 보내야 한다는 것을 그 자리에서
     // 말한다.
     expect(
@@ -1216,7 +1219,8 @@ void main() {
     final sent = repository.programs.single;
     expect(sent.memberId, _client.id);
     expect(sent.payload['delivery_kind'], 'routine_only');
-    expect(sent.payload['trainer_message'], '이번 주는 PT 쉬어요');
+    // 전송 전체에 붙는 한마디는 두지 않는다 — 회원 앱에 받을 자리가 없다.
+    expect(sent.payload.containsKey('trainer_message'), isFalse);
     // 시작일은 고르지 않는다 — 보낸 날부터 이레라고 서버에 말할 뿐이다(#2223).
     expect(sent.payload['repeat_days'], 7);
     expect(sent.payload.containsKey('start_date'), isFalse);

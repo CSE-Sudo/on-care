@@ -164,15 +164,19 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
   /// 제안이 되살아난다.
   bool _personalSeeded = false;
 
+  /// 지금 펼쳐서 고치고 있는 개인운동 줄. 없으면 null. (#2223)
+  ///
+  /// 목록은 기본적으로 **읽는 자리**다 — 줄마다 편집 칸을 펼쳐 두면 무엇을
+  /// 추천받았는지 한눈에 훑을 수가 없다. 한 번에 하나만 연다: 여러 줄을
+  /// 동시에 펼치면 다시 긴 폼 더미가 된다.
+  int? _editingPersonal;
+
   /// 개인운동 줄이 어느 AI 제안에서 왔나 — 줄 번호 → 제안 id·근거.
   ///
   /// [RoutineExercise] 는 프로그램 후보와 함께 쓰는 값이라 제안 id 나 근거를
   /// 담지 않는다. 그 둘은 이 화면에서만 필요하므로(근거 표시·거절 호출) 목록
   /// 옆에 따로 들고 있는다. 줄을 지우면 뒤 번호가 당겨지므로 함께 옮긴다.
   final List<_PersonalOrigin?> _personalOrigins = <_PersonalOrigin?>[];
-
-  /// `개인운동만` 전송에 붙이는 회원에게 한마디(선택).
-  final TextEditingController _memberMessage = TextEditingController();
 
   bool _sendingRoutineOnly = false;
 
@@ -230,7 +234,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     _prompt.dispose();
     _trainerMemo.dispose();
     _newExerciseName.dispose();
-    _memberMessage.dispose();
     super.dispose();
   }
 
@@ -374,7 +377,11 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       _newExerciseWeight = 20;
       _showAddExercise = false;
       // 직접 넣은 줄은 제안에서 온 것이 아니다 — 자리만 맞춰 비워 둔다.
-      if (_currentStep == _Step.personal) _personalOrigins.add(null);
+      if (_currentStep == _Step.personal) {
+        _personalOrigins.add(null);
+        // 방금 폼에서 다 정하고 넣은 줄이라 접힌 채로 둔다.
+        _editingPersonal = null;
+      }
     });
   }
 
@@ -498,6 +505,9 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         _personalOrigins.removeAt(index);
       }
       _activeMeasureChosen.clear();
+      // 뒤 줄의 번호가 당겨지므로 열어 둔 자리를 그대로 두면 엉뚱한 줄이
+      // 펼쳐진다 — 닫는다.
+      if (personal) _editingPersonal = null;
     });
     if (origin == null) return;
     unawaited(_dismissSuggestion(origin.id, name));
@@ -628,7 +638,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               },
             ],
             'delivery_kind': 'routine_only',
-            'trainer_message': _memberMessage.text.trim(),
             // 시작일은 보내지 않는다 — 서버가 받은 날(KST)부터 이레를 만든다.
             'repeat_days': _routineOnlyDays,
             'client_request_id': requestId,
@@ -1530,43 +1539,67 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
                 list[index] = list[index].copyWith(minutes: minutes);
               }),
             ),
-          // 개인운동은 사유가 **회원에게 그대로 가는 글**이다(#790) — 없앤
-          // 카드가 보여 주던 그 문구이고, 여기서는 고칠 수도 있다. PT 프로그램
-          // 후보에는 이 칸이 없다: 그쪽 사유는 트레이너 메모 한 곳으로 모인다.
-          if (_currentStep == _Step.personal) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s8),
-            _ExerciseNameField(
-              key: ValueKey<String>('personal-reason-$index-${exercise.name}'),
-              initialValue: exercise.reason,
-              label: l.aiPersonalReason,
-              hint: l.aiPersonalReasonHint,
-              maxLength: _personalReasonMaxLength,
-              onChanged: (String reason) {
-                list[index] = list[index].copyWith(reason: reason);
-              },
-            ),
-            if (_evidenceOf(index).isNotEmpty) ...<Widget>[
-              const SizedBox(height: OnCareSpacing.s8),
-              // 근거는 서버가 만든 짧은 표시다 — 트레이너가 판단에 쓰는
-              // 재료이고 회원에게는 가지 않는다(#790).
-              Wrap(
-                key: ValueKey<String>('personal-evidence-$index'),
-                spacing: OnCareSpacing.s4,
-                runSpacing: OnCareSpacing.s4,
-                children: <Widget>[
-                  for (final String item in _evidenceOf(index))
-                    AppTag(label: item, tone: AppTagTone.brand),
-                ],
-              ),
-            ],
-          ],
+          // 고치는 동안에도 AI 가 왜 이 운동을 골랐는지는 그대로 보인다 —
+          // 판단하면서 읽는 글이다. 트레이너만 보는 것이라 편집 칸이 아니다.
+          if (_currentStep == _Step.personal)
+            _aiRationale(index, compact: true),
         ],
       ),
     );
   }
 
-  /// 회원에게 가는 사유의 상한 — 서버 `reason` 과 같다.
-  static const int _personalReasonMaxLength = 200;
+  /// AI 가 이 운동을 고른 이유 — **트레이너만 보는 글이다.** (#2223)
+  ///
+  /// 회원에게는 가지 않는다. 회원 화면에는 운동 이름·유형·양만 서고, 이 글은
+  /// 트레이너가 이 제안을 그대로 둘지 판단하는 재료다 — 근거 태그와 같은 층
+  /// 이다(#790).
+  Widget _aiRationale(int index, {bool compact = false}) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final RoutineExercise exercise = _personal[index];
+    final List<String> evidence = _evidenceOf(index);
+    if (exercise.reason.isEmpty && evidence.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: OnCareSpacing.s8),
+      child: Column(
+        key: ValueKey<String>('personal-rationale-$index'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            l.aiPersonalRationaleLabel,
+            style: _text(
+              OnCareTypography.strong(OnCareTypography.caption),
+              OnCareColors.textTertiary,
+            ),
+          ),
+          if (exercise.reason.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s2),
+            Text(
+              exercise.reason,
+              maxLines: compact ? 2 : null,
+              overflow: compact ? TextOverflow.ellipsis : null,
+              style: _text(
+                OnCareTypography.bodySmall,
+                OnCareColors.textSecondary,
+              ),
+            ),
+          ],
+          if (evidence.isNotEmpty) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s8),
+            Wrap(
+              spacing: OnCareSpacing.s4,
+              runSpacing: OnCareSpacing.s4,
+              children: <Widget>[
+                for (final String item in evidence)
+                  AppTag(label: item, tone: AppTagTone.brand),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 
   /// 단계 표시줄에 적을 이름들. 고른 종류에 따라 3칸·4칸이 된다. (#2223)
   List<String> _stepLabels(AppLocalizations l) => <String>[
@@ -1659,7 +1692,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
               ),
             ),
           for (int index = 0; index < _personal.length; index++) ...<Widget>[
-            _exerciseEditor(index),
+            if (_editingPersonal == index)
+              _exerciseEditor(index)
+            else
+              _personalSummaryRow(index),
             const SizedBox(height: OnCareSpacing.s8),
           ],
           if (_personal.isEmpty && !suggestions.hasError)
@@ -1697,13 +1733,102 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     );
   }
 
-  /// `개인운동만` 을 보낼 조건 — 언제부터 언제까지인지와 회원에게 한마디.
-  /// (#2223)
+  /// 접혀 있는 개인운동 한 줄 — 무엇을, 얼마나, 왜. (#2223)
+  ///
+  /// 없앤 `AI 개인운동 제안` 카드의 한 장과 같은 모양이다: 이름·유형·양을 한
+  /// 줄에 두고 그 아래 회원에게 갈 메모와 근거를 붙인다. 고칠 때만 연필로
+  /// 펼친다 — 줄마다 편집 칸이 늘 열려 있으면 목록을 훑을 수가 없다.
+  Widget _personalSummaryRow(int index) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final RoutineExercise exercise = _personal[index];
+    final TextStyle metaStyle = _text(
+      OnCareTypography.strong(OnCareTypography.caption),
+      OnCareColors.textTertiary,
+    );
+    return AppCard(
+      key: ValueKey<String>('personal-routine-row-$index'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Expanded(
+                // 이름 · 유형 · 양을 한 줄에 둔다 — 줄을 나누면 셋을 훑는 데
+                // 시선이 세 번 움직인다.
+                child: Text.rich(
+                  TextSpan(
+                    children: <InlineSpan>[
+                      TextSpan(
+                        text: exercise.name,
+                        style: _text(
+                          OnCareTypography.strong(OnCareTypography.bodySmall),
+                          OnCareColors.textPrimary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' · ',
+                        style: _text(
+                          OnCareTypography.caption,
+                          OnCareColors.textTertiary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: routineTypeLabel(l, exercise.type),
+                        style: metaStyle,
+                      ),
+                      TextSpan(
+                        text: ' · ',
+                        style: _text(
+                          OnCareTypography.caption,
+                          OnCareColors.textTertiary,
+                        ),
+                      ),
+                      TextSpan(
+                        text: exercise.type == '근력'
+                            ? _strengthSummary(l, exercise)
+                            : l.minutesShort(exercise.minutes),
+                        style: metaStyle,
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: OnCareSpacing.s4),
+              AppIconButton(
+                key: ValueKey<String>('personal-routine-edit-$index'),
+                icon: Icons.edit_rounded,
+                tooltip: l.actionEdit,
+                color: context.oncare.brand.primary,
+                onPressed: () =>
+                    setState(() => _editingPersonal = index),
+              ),
+              AppIconButton(
+                key: ValueKey<String>('personal-routine-remove-$index'),
+                icon: Icons.delete_outline_rounded,
+                tooltip: l.aiPersonalDismissTooltip,
+                color: OnCareColors.textSecondary,
+                onPressed: () => _removeExerciseAt(index),
+              ),
+            ],
+          ),
+          _aiRationale(index),
+        ],
+      ),
+    );
+  }
+
+  /// `개인운동만` 을 보낼 조건 — 언제부터 언제까지 회원에게 뜨는지. (#2223)
   ///
   /// 시작일을 고르게 하지 않는다. 이 전송은 **보낸 날부터 한 주**가 규칙이고,
   /// 날짜를 묻는 순간 트레이너는 매번 같은 답(오늘)을 고르게 된다. 대신 언제
   /// 부터 언제까지 회원에게 뜨는지를 적어 둔다 — 다음 주 분은 다시 보내야
   /// 한다는 것도 여기서 말한다.
+  ///
+  /// 전송 전체에 붙이는 `회원에게 한마디` 는 두지 않는다 — 회원 앱에 그 글을
+  /// 받을 자리가 없어, 적어도 아무에게도 닿지 않는다. 회원에게 하는 말은
+  /// 운동 줄마다 있는 메모로 한다.
   Widget _routineOnlySendFields() {
     final AppLocalizations l = AppLocalizations.of(context);
     final DateTime start = todayKst();
@@ -1741,16 +1866,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
             key: const ValueKey<String>('routine-only-weekly-hint'),
             style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
           ),
-          const SizedBox(height: OnCareSpacing.s16),
-          AppTextField(
-            key: const ValueKey<String>('routine-only-member-message'),
-            controller: _memberMessage,
-            label: l.aiRoutineOnlyMessage,
-            hint: l.aiRoutineOnlyMessageHint,
-            minLines: 2,
-            maxLines: 3,
-            maxLength: _memberMessageMaxLength,
-          ),
         ],
       ),
     );
@@ -1764,9 +1879,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       '${date.year.toString().padLeft(4, '0')}-'
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
-
-  /// 서버 `trainer_message` 의 상한. 여기서 막으면 422 왕복이 없다.
-  static const int _memberMessageMaxLength = 200;
 
   Widget _addExerciseForm() {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -2118,18 +2230,12 @@ class _ExerciseNameField extends StatefulWidget {
     required this.initialValue,
     required this.hint,
     required this.onChanged,
-    this.label,
-    this.maxLength,
     super.key,
   });
 
   final String initialValue;
   final String hint;
   final ValueChanged<String> onChanged;
-
-  /// 칸 위에 붙는 이름. 운동 이름 칸은 무엇을 적는지가 자명해 비워 둔다.
-  final String? label;
-  final int? maxLength;
 
   @override
   State<_ExerciseNameField> createState() => _ExerciseNameFieldState();
@@ -2150,9 +2256,7 @@ class _ExerciseNameFieldState extends State<_ExerciseNameField> {
   Widget build(BuildContext context) {
     return AppTextField(
       controller: _controller,
-      label: widget.label,
       hint: widget.hint,
-      maxLength: widget.maxLength,
       onChanged: widget.onChanged,
     );
   }

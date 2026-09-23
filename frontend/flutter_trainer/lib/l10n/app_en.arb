@@ -1618,6 +1618,7 @@
   "aiStepReview": "Program selection",
   "aiStepDone": "Final review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
+  "aiPersonalRationaleLabel": "Why AI picked this · trainer only",
   "aiPersonalStepBadge": "{count} AI suggested",
   "@aiPersonalStepBadge": {
     "placeholders": { "count": { "type": "int" } }
@@ -1628,8 +1629,6 @@
   },
   "aiPersonalStepLoadFailed": "Could not load the AI personal-exercise suggestions",
   "aiPersonalStepNoSuggestion": "No AI suggestion today. Add one below.",
-  "aiPersonalReason": "A note for the member",
-  "aiPersonalReasonHint": "Stop if your right shoulder hurts",
   "aiPersonalDismissTooltip": "Drop this suggestion",
   "aiPersonalDismissed": "{name} will not be recommended",
   "@aiPersonalDismissed": {
@@ -1652,8 +1651,6 @@
     "placeholders": { "start": { "type": "String" }, "end": { "type": "String" } }
   },
   "aiRoutineOnlyWeeklyHint": "Appears in the member app every day for 7 days from today. Send next week's set again then.",
-  "aiRoutineOnlyMessage": "A note for the member (optional)",
-  "aiRoutineOnlyMessageHint": "No PT this week — just keep these up",
   "aiRoutineOnlySend": "Send to member",
   "aiRoutineOnlySentLabel": "Sent",
   "aiRoutineOnlySent": "Personal exercise sent to the member.",
