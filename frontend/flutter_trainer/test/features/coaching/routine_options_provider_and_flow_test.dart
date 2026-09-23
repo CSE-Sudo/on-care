@@ -511,6 +511,45 @@ void main() {
       expect(find.text('추천 완료'), findsNothing);
     });
 
+    testWidgets('단계 원은 화면 폭과 무관하게 같은 간격으로 가운데 모인다 (#2219)', (
+      tester,
+    ) async {
+      // 원 중심 사이 거리는 창이 넓든 좁든 같은 고정값이다 — 예전에는 폭을
+      // n등분해, 창이 넓어질수록 원들이 좌우 끝으로 멀어졌다.
+      double circleGap() =>
+          tester
+              .getCenter(find.byKey(const ValueKey<String>('routine-stage-1')))
+              .dx -
+          tester
+              .getCenter(find.byKey(const ValueKey<String>('routine-stage-0')))
+              .dx;
+
+      // pumpFlow 는 1000 폭으로 띄운다.
+      await pumpFlow(tester);
+      final double wide = circleGap();
+
+      tester.view.physicalSize = const Size(520, 2400);
+      await tester.pumpAndSettle();
+      final double narrow = circleGap();
+
+      expect(narrow, wide);
+      // 칸 폭(원 지름 32 + 간격 40)이 곧 중심 사이 거리다.
+      expect(wide, 72);
+
+      // 원들은 표시줄 가운데에 모인다 — 첫 원 왼쪽과 마지막 원 오른쪽의
+      // 여백이 같다.
+      final double left = tester
+          .getCenter(find.byKey(const ValueKey<String>('routine-stage-0')))
+          .dx;
+      final double right = tester
+          .getCenter(find.byKey(const ValueKey<String>('routine-stage-3')))
+          .dx;
+      expect(
+        (left - 0).toStringAsFixed(1),
+        (520 - right).toStringAsFixed(1),
+      );
+    });
+
     testWidgets('개인운동만을 고르면 프로그램 선택이 빠진 세 단계가 된다 (#2223)', (
       tester,
     ) async {

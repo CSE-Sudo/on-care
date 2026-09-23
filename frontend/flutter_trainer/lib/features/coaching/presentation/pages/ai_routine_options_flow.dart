@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -2109,6 +2110,17 @@ class _ProgressStepper extends StatelessWidget {
   /// 번호 원의 지름.
   static const double _circle = OnCareSize.avatarMedium;
 
+  /// 원 하나가 차지하는 칸의 폭 — 원 지름 + 원 사이 간격. (#2219)
+  ///
+  /// 칸 폭이 곧 **원 중심 사이의 거리**다. 예전에는 [Expanded] 로 화면 폭을
+  /// n등분해서, 창이 넓어질수록 원들이 좌우 끝으로 멀어졌다. 단계 표시는
+  /// 화면을 채우는 물건이 아니라 "몇 걸음 중 몇 번째"를 읽는 작은 눈금이라,
+  /// 폭과 무관하게 같은 간격으로 모여 가운데에 선다.
+  ///
+  /// 라벨도 이 폭 안에서 한 줄로 말줄임된다 — 칸이 겹치지 않으니 라벨끼리
+  /// 겹칠 일도 없다.
+  static const double _stepWidth = _circle + OnCareSpacing.s40;
+
   void _tap(int index) {
     if (index <= maxReachedStage) onStageTap(index);
   }
@@ -2118,62 +2130,66 @@ class _ProgressStepper extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final List<String> steps = labels;
-    final int last = steps.length - 1;
     return Semantics(
       label: l.aiStepperLabel,
-      child: Stack(
-        children: <Widget>[
-          // 첫 원의 가운데에서 마지막 원의 가운데까지 잇는 가는 선. 원이
-          // 불투명해 선은 원 사이에서만 보인다.
-          const Positioned(
-            top: (_circle - OnCareSize.hairline) / 2,
-            left: _circle / 2,
-            right: _circle / 2,
-            child: ColoredBox(
-              color: OnCareColors.lineSubtle,
-              child: SizedBox(height: OnCareSize.hairline),
-            ),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              for (int index = 0; index < steps.length; index++)
-                Expanded(
-                  child: Align(
-                    alignment: index == 0
-                        ? Alignment.topLeft
-                        : index == last
-                        ? Alignment.topRight
-                        : Alignment.topCenter,
-                    child: _step(tokens, steps[index], index, last),
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // 칸을 다 늘어놓을 폭이 없으면(아주 좁은 창) 그만큼 좁힌다 —
+          // 고정 간격을 지키느라 표시줄이 화면 밖으로 넘치지는 않는다.
+          final double available = constraints.maxWidth.isFinite
+              ? constraints.maxWidth
+              : _stepWidth * steps.length;
+          final double stepWidth = math.min(
+            _stepWidth,
+            available / steps.length,
+          );
+          final double totalWidth = stepWidth * steps.length;
+          return Center(
+            child: SizedBox(
+              width: totalWidth,
+              child: Stack(
+                children: <Widget>[
+                  // 첫 원의 가운데에서 마지막 원의 가운데까지만 잇는 가는 선 —
+                  // 원이 모인 만큼만 그려진다. 원이 불투명해 선은 원 사이에서만
+                  // 보인다.
+                  Positioned(
+                    top: (_circle - OnCareSize.hairline) / 2,
+                    left: stepWidth / 2,
+                    right: stepWidth / 2,
+                    child: const ColoredBox(
+                      color: OnCareColors.lineSubtle,
+                      child: SizedBox(height: OnCareSize.hairline),
+                    ),
                   ),
-                ),
-            ],
-          ),
-        ],
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      for (int index = 0; index < steps.length; index++)
+                        SizedBox(
+                          width: stepWidth,
+                          child: _step(tokens, steps[index], index),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _step(OnCareTokens tokens, String label, int index, int last) {
+  Widget _step(OnCareTokens tokens, String label, int index) {
     final bool current = index == stage;
-    final CrossAxisAlignment align = index == 0
-        ? CrossAxisAlignment.start
-        : index == last
-        ? CrossAxisAlignment.end
-        : CrossAxisAlignment.center;
-    final TextAlign textAlign = index == 0
-        ? TextAlign.start
-        : index == last
-        ? TextAlign.end
-        : TextAlign.center;
+    // 칸마다 같은 폭을 쓰므로 원도 라벨도 그 칸 가운데에 선다(#2219) — 예전에는
+    // 첫 칸을 왼쪽 끝, 마지막 칸을 오른쪽 끝에 붙여 화면 폭을 가로질렀다.
     return InkWell(
       key: ValueKey<String>('routine-stage-$index'),
       borderRadius: OnCareRadius.smAll,
       onTap: index <= maxReachedStage ? () => _tap(index) : null,
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: align,
         children: <Widget>[
           Container(
             width: _circle,
@@ -2202,7 +2218,7 @@ class _ProgressStepper extends StatelessWidget {
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            textAlign: textAlign,
+            textAlign: TextAlign.center,
             style: tokens
                 .text(
                   current
