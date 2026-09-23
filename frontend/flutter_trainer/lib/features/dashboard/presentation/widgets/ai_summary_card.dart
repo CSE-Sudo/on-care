@@ -58,11 +58,7 @@ class AiSummaryCard extends StatelessWidget {
                 // 거의 같아 보이지 않았다 — 셸 머리·사이드바 경계와 같은 회색
                 // 선(lineStrong)으로 항목을 나눈다(#2202).
                 const SizedBox(height: OnCareSpacing.s16),
-                const Divider(
-                  height: OnCareSize.hairline,
-                  thickness: OnCareSize.hairline,
-                  color: OnCareColors.lineStrong,
-                ),
+                const AppDivider(color: OnCareColors.lineStrong),
                 const SizedBox(height: OnCareSpacing.s16),
               ],
               _ActivityFeedbackDetail(item: active[i]),
