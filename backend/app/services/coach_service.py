@@ -69,7 +69,7 @@ def diet_period_context(db: Session, user_id: str) -> str:
     if not week.empty:
         lines.append(
             f"- 이번 주 {week.days_logged}일 기록, "
-            f"나트륨 권장량({diet_service.DASH_SODIUM_LIMIT_MG}mg) 초과 {week.days_over_sodium}일, "
+            f"나트륨 권장량({diet_service.SODIUM_LIMIT_MG}mg) 초과 {week.days_over_sodium}일, "
             f"평균 나트륨 {week.avg_sodium_mg}mg"
         )
     if not month.empty:
@@ -111,11 +111,11 @@ def _diet_today_priority(db: Session, user_id: str) -> CoachSuggestion | None:
             tag="diet", title="오늘 식단을 기록해 보세요",
             body="사진 한 장이면 칼로리와 나트륨을 분석해 드려요. 첫 끼니부터 시작해 볼까요?",
         )
-    if total_na > diet_service.DASH_SODIUM_LIMIT_MG:
+    if total_na > diet_service.SODIUM_LIMIT_MG:
         return CoachSuggestion(
             tag="diet", title="나트륨 섭취가 많아요",
             body=f"오늘 나트륨이 약 {total_na}mg 으로 권장량을 넘었어요. "
-                 "저녁은 국물을 남기고 채소를 늘려 DASH 식단에 가깝게 맞춰봐요.",
+                 "저녁은 국물을 남기고 채소를 늘려 균형을 맞춰봐요.",
         )
     return None
 
@@ -199,7 +199,7 @@ def _hydration_suggestion(db: Session, user_id: str) -> CoachSuggestion:
             .where(DietEntry.date == today)
         ).all()
     )
-    if total_na > diet_service.DASH_SODIUM_LIMIT_MG:
+    if total_na > diet_service.SODIUM_LIMIT_MG:
         return CoachSuggestion(
             tag="hydration", title="물을 더 챙기세요",
             body=(
