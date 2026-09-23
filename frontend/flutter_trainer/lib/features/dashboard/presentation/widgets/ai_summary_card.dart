@@ -93,45 +93,47 @@ class _ActivityFeedbackDetail extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     final destination = _destination();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    // 제목·설명은 왼쪽에서 넓게 숨 쉬고, 버튼은 오른쪽에 붙는다 — 세 항목이
+    // 같은 두 칸 그리드로 줄을 맞춰야 나란히 훑어 읽힌다. 버튼은 제목까지 포함한
+    // 글 덩어리 전체의 세로 가운데에 선다(#2202) — 설명 두 줄에만 맞추면 제목
+    // 쪽이 비어 버튼이 아래로 처져 보였다.
+    return Row(
       children: <Widget>[
-        Text(
-          item.kind.title(l),
-          style: tokens
-              .text(OnCareTypography.label)
-              .copyWith(color: OnCareColors.textPrimary),
-        ),
-        const SizedBox(height: OnCareSpacing.s4),
-        // 설명은 왼쪽에서 넓게 숨 쉬고, 버튼은 오른쪽에 붙는다 — 세 항목이 같은
-        // 두 칸 그리드로 줄을 맞춰야 나란히 훑어 읽힌다.
-        Row(
-          children: <Widget>[
-            Expanded(
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                item.kind.title(l),
+                style: tokens
+                    .text(OnCareTypography.label)
+                    .copyWith(color: OnCareColors.textPrimary),
+              ),
+              const SizedBox(height: OnCareSpacing.s4),
               // 추천 행동("프로그램에서 루틴을 조정해보세요")을 설명 문장에
               // 이어 붙인다 — 버튼은 그 탭으로 가는 짧은 링크일 뿐, 무엇을
               // 해야 하는지는 이 문장이 전부 말한다.
-              child: Text(
+              Text(
                 '${item.kind.description(l, _names(l, item.clientNames))} '
                 '${item.kind.recommendation(l)}',
                 style: tokens
                     .text(OnCareTypography.bodySmall)
                     .copyWith(color: OnCareColors.textSecondary),
               ),
-            ),
-            const SizedBox(width: OnCareSpacing.s8),
-            if (destination != null)
-              AppButton(
-                key: ValueKey<String>('ai-summary-cta-${item.kind.name}'),
-                label: item.kind.tabLabel(l),
-                onPressed: () => context.go(destination),
-                // 옅은 남색 카드 위에서 묻히지 않도록 진한 네이비로 채운다(#2202).
-                variant: AppButtonVariant.strong,
-                size: OnCareButtonSize.small,
-                trailingIcon: Icons.chevron_right_rounded,
-              ),
-          ],
+            ],
+          ),
         ),
+        const SizedBox(width: OnCareSpacing.s8),
+        if (destination != null)
+          AppButton(
+            key: ValueKey<String>('ai-summary-cta-${item.kind.name}'),
+            label: item.kind.tabLabel(l),
+            onPressed: () => context.go(destination),
+            // 옅은 남색 카드 위에서 묻히지 않도록 진한 네이비로 채운다(#2202).
+            variant: AppButtonVariant.strong,
+            size: OnCareButtonSize.small,
+            trailingIcon: Icons.chevron_right_rounded,
+          ),
       ],
     );
   }
