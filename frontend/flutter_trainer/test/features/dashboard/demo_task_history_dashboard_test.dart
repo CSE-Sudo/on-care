@@ -104,10 +104,11 @@ void main() {
       ],
     );
 
-    await tester.tap(
+    // 넘어온 일이 없으면 `지난 할 일` 상자 자체가 없다(#2228).
+    expect(
       find.byKey(const ValueKey<String>('dashboard-category-toggle-지난 할 일')),
+      findsNothing,
     );
-    await settle(tester);
     expect(_demoCarryOverRow, findsNothing);
     expect(_filledBars(tester), 0);
   });

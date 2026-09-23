@@ -346,8 +346,9 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
     final remaining = allKeys.difference(_checkedKeys).length;
     final allDone = allKeys.isNotEmpty && remaining == 0;
 
-    // 항목이 하나도 없어도 여섯 카테고리는 항상 그 자리에 있다 — 매일 다시
+    // 항목이 하나도 없어도 다섯 카테고리는 항상 그 자리에 있다 — 매일 다시
     // 확인할 자리가 매번 다른 곳에서 나타났다 사라지면 습관이 안 붙는다.
+    // "지난 할 일" 은 고정 카테고리가 아니라 넘어온 일이 있을 때만 뜬다(#2228).
     final categoryOrder = <MapEntry<String, Color>>[
       MapEntry(l.dashTodoConsultation, context.oncare.brand.primary),
       MapEntry(l.dashTodoWorkout, OnCareColors.danger),
@@ -367,19 +368,24 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
       byCategory[mission.keyword]?.add(mission);
     }
 
+    // 상자마다 제목으로 키를 단다 — "지난 할 일" 이 빠졌다 들어오면 자리
+    // 순서로 짝지어진 펼침 상태가 옆 카테고리로 한 칸씩 밀린다.
     final sections = <Widget>[
-      _CategorySection(
-        title: l.dashTaskCarriedOverTitle,
-        // 할 일 진행률 차트의 "지난 할 일" 막대와 같은 색이다(#2214).
-        color: OnCareColors.chartGoalLine,
-        tinted: true,
-        missions: carriedOver,
-        checkedKeys: _checkedKeys,
-        onToggle: (m) => unawaited(_toggle(m, allKeys)),
-        onDismiss: (key) => _dismiss(key, allKeys),
-      ),
+      if (carriedOver.isNotEmpty)
+        _CategorySection(
+          key: ValueKey<String>(l.dashTaskCarriedOverTitle),
+          title: l.dashTaskCarriedOverTitle,
+          // 할 일 진행률 차트의 "지난 할 일" 막대와 같은 색이다(#2214).
+          color: OnCareColors.chartGoalLine,
+          tinted: true,
+          missions: carriedOver,
+          checkedKeys: _checkedKeys,
+          onToggle: (m) => unawaited(_toggle(m, allKeys)),
+          onDismiss: (key) => _dismiss(key, allKeys),
+        ),
       for (final category in categoryOrder)
         _CategorySection(
+          key: ValueKey<String>(category.key),
           title: category.key,
           color: category.value,
           missions: byCategory[category.key]!,
@@ -412,8 +418,8 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
             ],
           ),
           const SizedBox(height: OnCareSpacing.s12),
-          // 카테고리 여섯은 항목이 없어도 항상 그 자리에 있다 — "오늘 할 일이
-          // 하나도 없다"는 빈 화면이 아니라 "전부 완료"로 읽혀야 한다. 화면
+          // 카테고리 다섯은 항목이 없어도 항상 그 자리에 있다 — "오늘 할 일이
+          // 하나도 없다"는 빈 화면이 아니라 카테고리마다 "없음"으로 읽힌다. 화면
           // 안에 들어오면 그대로, 넘치면 카드 자체가 커지는 대신 이 안에서만
           // 스크롤된다 — 옆 칸(오늘의 일정 + 활동 피드백)과 상관없이 미션이
           // 몇십 건이어도 대시보드 전체가 한없이 길어지지 않는다.
@@ -433,6 +439,7 @@ class _TodayTasksCardState extends ConsumerState<TodayTasksCard> {
 /// 목록이 펼쳐지는 아코디언. 기본은 접힌 상태다.
 class _CategorySection extends StatefulWidget {
   const _CategorySection({
+    super.key,
     required this.title,
     required this.color,
     required this.missions,
@@ -459,12 +466,34 @@ class _CategorySection extends StatefulWidget {
 class _CategorySectionState extends State<_CategorySection> {
   bool _expanded = false;
 
+  static TextStyle _countStyle(OnCareTokens tokens) =>
+      tokens.text(OnCareTypography.strong(OnCareTypography.caption));
+
+  /// 헤더 오른쪽 "남은 건수·완료 + 화살표" 묶음.
+  Widget _status(String label, Color color, IconData icon) {
+    final OnCareTokens tokens = context.oncare;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(label, style: _countStyle(tokens).copyWith(color: color)),
+        Icon(
+          icon,
+          size: OnCareSize.iconMedium,
+          color: OnCareColors.textDisabled,
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final remaining = widget.missions
         .where((m) => !widget.checkedKeys.contains(m.key))
         .length;
+    // 그날 할 일이 처음부터 없는 칸은 "완료"가 아니라 "없음"이다 — 둘 다
+    // 초록 "완료"면 끝낸 일과 없던 일이 구분되지 않는다. 펼칠 것도 없다(#2228).
+    final empty = widget.missions.isEmpty;
 
     final OnCareTokens tokens = context.oncare;
     return Container(
@@ -483,7 +512,7 @@ class _CategorySectionState extends State<_CategorySection> {
         children: <Widget>[
           InkWell(
             key: ValueKey<String>('dashboard-category-toggle-${widget.title}'),
-            onTap: () => setState(() => _expanded = !_expanded),
+            onTap: empty ? null : () => setState(() => _expanded = !_expanded),
             borderRadius: OnCareRadius.mdAll,
             child: Padding(
               padding: const EdgeInsets.all(OnCareSpacing.s12),
@@ -498,30 +527,50 @@ class _CategorySectionState extends State<_CategorySection> {
                         .copyWith(color: OnCareColors.textPrimary),
                   ),
                   const Spacer(),
-                  Text(
-                    remaining == 0
-                        ? l.dashTaskCategoryDone
-                        : l.dashTaskCategoryRemaining(remaining),
-                    style: tokens
-                        .text(OnCareTypography.strong(OnCareTypography.caption))
-                        .copyWith(
-                          color: remaining == 0
-                              ? OnCareColors.success
-                              : OnCareColors.textSecondary,
+                  if (empty)
+                    // 펼칠 수 없는 칸은 화살표 없이 "없음"만 두되, 다른 칸의
+                    // "완료 >" 가 차지하는 칸의 가운데에 선다 — 그 묶음을 보이지
+                    // 않게 깔아 자리(폭·줄 높이)만 잡고 위에 얹는다.
+                    Stack(
+                      alignment: Alignment.center,
+                      children: <Widget>[
+                        Visibility(
+                          visible: false,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: _status(
+                            l.dashTaskCategoryDone,
+                            OnCareColors.success,
+                            Icons.chevron_right_rounded,
+                          ),
                         ),
-                  ),
-                  Icon(
-                    _expanded
-                        ? Icons.expand_less_rounded
-                        : Icons.chevron_right_rounded,
-                    size: OnCareSize.iconMedium,
-                    color: OnCareColors.textDisabled,
-                  ),
+                        Text(
+                          l.dashTaskCategoryEmpty,
+                          style: _countStyle(
+                            tokens,
+                          ).copyWith(color: OnCareColors.textTertiary),
+                        ),
+                      ],
+                    )
+                  else
+                    _status(
+                      remaining == 0
+                          ? l.dashTaskCategoryDone
+                          : l.dashTaskCategoryRemaining(remaining),
+                      remaining == 0
+                          ? OnCareColors.success
+                          : OnCareColors.textSecondary,
+                      _expanded
+                          ? Icons.expand_less_rounded
+                          : Icons.chevron_right_rounded,
+                    ),
                 ],
               ),
             ),
           ),
-          if (_expanded)
+          // 펼친 채로 마지막 항목을 지우면 빈 칸이 열린 채 남지 않게 한다.
+          if (_expanded && !empty)
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 OnCareSpacing.s8,

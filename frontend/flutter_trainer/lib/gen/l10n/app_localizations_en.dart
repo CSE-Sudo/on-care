@@ -3114,6 +3114,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashTaskCategoryDone => 'Done';
 
   @override
+  String get dashTaskCategoryEmpty => 'None';
+
+  @override
   String dashTaskCategoryRemaining(int count) {
     return '+$count';
   }

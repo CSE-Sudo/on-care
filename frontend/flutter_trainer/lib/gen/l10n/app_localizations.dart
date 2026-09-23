@@ -5480,6 +5480,12 @@ abstract class AppLocalizations {
   /// **'Done'**
   String get dashTaskCategoryDone;
 
+  /// No description provided for @dashTaskCategoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get dashTaskCategoryEmpty;
+
   /// No description provided for @dashTaskCategoryRemaining.
   ///
   /// In en, this message translates to:

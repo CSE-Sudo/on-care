@@ -1183,6 +1183,7 @@
   "dashTaskDismissBody": "할 일 목록에서만 사라져요. 실제 처리(상담·프로그램·리포트)는 각 화면에서 해야 해요.",
   "dashTaskCarriedOverTitle": "지난 할 일",
   "dashTaskCategoryDone": "완료",
+  "dashTaskCategoryEmpty": "없음",
   "dashTaskCategoryRemaining": "+{count}",
   "dashTaskUncheckTitle": "'{name}' 완료를 취소할까요?",
   "dashTaskUncheckBody": "할 일 진행률에서도 빠져요.",

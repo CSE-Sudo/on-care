@@ -323,6 +323,63 @@ void main() {
     expect(find.textContaining('/ 5 완료'), findsNothing);
   });
 
+  // #2228 — 끝낸 칸은 "완료", 처음부터 없던 칸은 "없음"이다. 넘어온 일이
+  // 없으면 "지난 할 일" 상자는 그리지 않는다.
+  testWidgets('오늘 할 일은 없던 칸을 없음으로, 끝낸 칸을 완료로 가른다', (tester) async {
+    // 회원이 없으면 회원에게서 나오는 운동·식단·프로그램·리포트는 0건이고,
+    // 상담 요청만 남는다.
+    await openDashboard(
+      tester,
+      extraOverrides: <Override>[
+        clientsProvider.overrideWith(
+          (ref) => Stream<List<TrainerClient>>.value(const <TrainerClient>[]),
+        ),
+      ],
+    );
+    await settle(tester);
+
+    Finder toggle(String title) =>
+        find.byKey(ValueKey<String>('dashboard-category-toggle-$title'));
+    Finder labelIn(String title, String label) =>
+        find.descendant(of: toggle(title), matching: find.text(label));
+
+    expect(toggle('지난 할 일'), findsNothing);
+    for (final String title in <String>['운동', '식단', '프로그램', '리포트']) {
+      expect(labelIn(title, '없음'), findsOneWidget, reason: title);
+      // 자리 잡기용으로 보이지 않게 깔린 "완료 >" 는 세지 않는다.
+      expect(
+        find
+            .descendant(
+              of: toggle(title),
+              matching: find.byIcon(Icons.chevron_right_rounded),
+            )
+            .hitTestable(),
+        findsNothing,
+        reason: '$title 은 펼칠 것이 없다',
+      );
+    }
+    // 빈 칸은 눌러도 펼쳐지지 않는다.
+    await tester.tap(toggle('운동'));
+    await settle(tester);
+    expect(find.byIcon(Icons.expand_less_rounded), findsNothing);
+
+    // 상담 두 건을 모두 체크하면 그 칸은 "없음"이 아니라 "완료"다.
+    expect(labelIn('상담', '+2'), findsOneWidget);
+    await tester.tap(toggle('상담'));
+    await settle(tester);
+    final Finder boxes = find.descendant(
+      of: find.byType(TodayTasksCard),
+      matching: find.byType(Checkbox),
+    );
+    expect(boxes, findsNWidgets(2));
+    await tester.tap(boxes.first);
+    await settle(tester);
+    await tester.tap(boxes.last);
+    await settle(tester);
+    expect(labelIn('상담', '완료'), findsOneWidget);
+    expect(labelIn('상담', '없음'), findsNothing);
+  });
+
   testWidgets('wide dashboard follows the 4-KPI + 2-column body layout', (
     tester,
   ) async {

@@ -1965,6 +1965,7 @@
   "dashTaskDismissBody": "It only disappears from the task list. Actually handling it (consultation, program, report) still happens on its own screen.",
   "dashTaskCarriedOverTitle": "Carried over",
   "dashTaskCategoryDone": "Done",
+  "dashTaskCategoryEmpty": "None",
   "dashTaskCategoryRemaining": "+{count}",
   "@dashTaskCategoryRemaining": {
     "placeholders": {

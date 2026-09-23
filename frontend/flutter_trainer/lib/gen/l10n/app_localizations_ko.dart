@@ -2981,6 +2981,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get dashTaskCategoryDone => '완료';
 
   @override
+  String get dashTaskCategoryEmpty => '없음';
+
+  @override
   String dashTaskCategoryRemaining(int count) {
     return '+$count';
   }
