@@ -931,6 +931,9 @@ def trainer_assign_program(
         name=name,
         sessions=payload.sessions,
         client_request_id=payload.client_request_id,
+        delivery_kind=payload.delivery_kind,
+        trainer_message=payload.trainer_message.strip(),
+        start_date=payload.start_date,
     )
 
 
@@ -1565,6 +1568,7 @@ def trainer_assign_program_with_schedule(
             client_name=payload.client_name,
             client_request_id=payload.client_request_id,
             session_id=payload.session_id,
+            personal_routines=payload.personal_routines,
         )
     except trainer_service.IdempotencyConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1582,6 +1586,24 @@ def trainer_assign_program_with_schedule(
     if result is None:
         raise HTTPException(status_code=404, detail="담당 고객을 찾을 수 없습니다.")
     return result
+
+
+@router.get(
+    "/trainer/schedule/{session_id}/routines", response_model=list[RoutineOut]
+)
+def trainer_schedule_routines(
+    session_id: str,
+    trainer: RequireTrainer,
+    db: Annotated[Session, Depends(get_db)],
+) -> list[RoutineOut]:
+    """그 PT 일정에 붙어 있는(아직 회원에게 가지 않은) 개인운동. (#2223)
+
+    일정 상세가 "이 PT 와 함께 갈 개인운동"을 보여 주는 데 쓴다(#2224). 보낸
+    뒤에는 배정 목록(`GET .../routines`)으로 옮겨 가므로 여기서는 빠진다. 남의
+    일정은 조건에서 걸러져 빈 목록이 된다 — 없는 일정과 같은 답이라 어느 id 가
+    실재하는지 알려 주지 않는다.
+    """
+    return trainer_service.list_scheduled_routines(db, trainer.id, session_id)
 
 
 @router.put("/trainer/schedule/{session_id}", response_model=ScheduleSessionOut)
