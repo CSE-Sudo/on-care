@@ -216,6 +216,10 @@
   "dietEatenFood": "먹은 음식",
   "dietNewFood": "새 음식",
   "dietAddFood": "음식 추가",
+  "dietManualAdd": "직접 추가",
+  "dietManualAddTitle": "식단 직접 추가",
+  "dietManualAddHint": "음식 이름을 적으면 영양 정보를 찾아 채워요",
+  "dietManualAddEmpty": "음식을 하나 이상 적어 주세요",
   "dietEditFoodHint": "내용량을 고치면 영양이 비례해 따라와요",
   "dietTotalCalories": "총 칼로리",
   "dietNutritionInfo": "영양 정보",
@@ -268,7 +272,6 @@
   "exViewDetail": "상세보기",
   "exRegister": "등록하기",
   "exGymRegistered": "{gym}을(를) 등록했어요",
-  "actionClose": "닫기",
   "exWeekNumber": "{n}주",
   "exTodayTotalTime": "오늘 총 운동 시간",
   "exRest": "휴식",
@@ -585,6 +588,20 @@
   },
   "myGraphProtectDone": "연속을 이어 붙였어요",
   "myGraphProtectFailed": "보호권을 쓰지 못했어요",
+  "myGraphProtectBuyConfirmTitle": "보호권을 구매할까요?",
+  "myGraphProtectBuyConfirmMessage": "지금 가진 보호권이 없어요. {cost}로 보호권을 구매하고 {date}을 바로 기록 연속에 이어 붙여요.",
+  "@myGraphProtectBuyConfirmMessage": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "cost": {
+        "type": "String"
+      }
+    }
+  },
+  "myGraphProtectBuyAction": "구매하고 쓰기",
+  "myGraphProtectBoughtNotUsed": "보호권은 구매했지만 쓰지 못했어요. 내 혜택에 보관돼요.",
   "myGraphColorTitle": "그래프 색",
   "myGraphColorPickTitle": "열 색 고르기",
   "myGraphColorLocked": "{cost}로 열기",
@@ -740,6 +757,7 @@
   "myPointsReasonShield": "연속 기록 보호권",
   "myPointsReasonGraphColor": "그래프 색",
   "myPointsReasonEmotePass": "채팅 이모티콘 24시간",
+  "myPointsReasonEmoteUnlock": "채팅 이모티콘",
   "myPointsReasonProfilePet": "프로필 펫 이모지",
   "myPointsReasonWeeklyReport": "주간 리포트",
   "myPointsReasonChallengeStake": "주간 챌린지 참가",
@@ -930,6 +948,69 @@
   "myCouponStatus": "상태",
   "myCouponStaffNote": "트레이너·헬스장 직원이 확인한 뒤 눌러 주세요",
   "myCouponGymStaffNote": "헬스장 직원이 확인한 뒤 눌러 주세요",
+  "myCouponNoExpiry": "기한 없음",
+  "myDietTrayTitle": "분석용 식판 무료 제공",
+  "myDietTrayFree": "무료",
+  "myDietTrayDescription": "최근 {window}일 중 {days}일 식단 사진을 남기면 분석에 맞춘 규격 식판을 드려요. 같은 식판에 담아 찍으면 양을 더 정확하게 분석해요.",
+  "@myDietTrayDescription": {
+    "placeholders": {
+      "window": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayProgressLabel": "최근 {window}일 사진 기록",
+  "@myDietTrayProgressLabel": {
+    "placeholders": {
+      "window": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayProgress": "{days} / {required}일",
+  "@myDietTrayProgress": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayDaysLeft": "{days}일 더 찍으면 받을 수 있어요",
+  "@myDietTrayDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "myDietTrayNeedTrainer": "담당 트레이너를 연결하면 받을 수 있어요",
+  "myDietTrayClaimable": "조건을 채웠어요! 담당 트레이너의 헬스장에서 받아요",
+  "myDietTrayIssued": "{gym}에서 받아요. 가기 전에 담당 트레이너에게 준비됐는지 채팅으로 물어보세요",
+  "@myDietTrayIssued": {
+    "placeholders": {
+      "gym": {
+        "type": "String"
+      }
+    }
+  },
+  "myDietTrayReceived": "식판을 받았어요. 식판에 담아 찍어 보세요",
+  "myDietTrayClaim": "받기",
+  "myDietTrayViewCoupon": "쿠폰 보기",
+  "myDietTrayClaimConfirmTitle": "식판 수령 쿠폰을 받을까요?",
+  "myDietTrayClaimConfirmMessage": "담당 트레이너의 헬스장에서 받아요. 기한은 없고, 식판은 한 사람당 한 번 받을 수 있어요.",
+  "myDietTrayClaimDone": "식판 수령 쿠폰을 받았어요",
+  "myDietTrayClaimFailed": "식판 수령 쿠폰을 받지 못했어요",
+  "myDietTrayNotice": "1인 1회 · 사진으로 기록한 날만 세요(손으로 적은 끼니, 보호권으로 이은 날 제외) · 수령 기한 없음 · 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 확인해 주세요 · 재고와 운영 사정에 따라 조건이 바뀔 수 있어요",
+  "myDietTrayCouponBenefit": "분석용 규격 식판",
+  "myDietTrayStaffNote": "헬스장 직원에게 식판을 받은 뒤 눌러 주세요",
+  "myDietTrayIssuedOn": "받은 날",
+  "myDietTrayExpireNotice": "기한 없이 쓸 수 있어요. 헬스장에 가기 전에 담당 트레이너에게 식판이 준비됐는지 채팅으로 물어보세요.",
   "myCouponStaffConfirmTitle": "쿠폰을 사용 완료할까요?",
   "myCouponStaffConfirmMessage": "직원 확인용 · 사용 후 되돌릴 수 없어요",
   "myCouponUsedAt": "사용 시각",
@@ -952,20 +1033,13 @@
   "myLogout": "로그아웃",
   "myLogoutConfirm": "로그아웃 하시겠어요?",
   "emoteSheetTitle": "이모티콘",
-  "emotePassActive": "이모티콘 쓰는 중",
-  "emotePassRemaining": "{left} 남았어요",
-  "emotePassOffer": "{cost}P로 {hours}시간 동안 모두 쓰기",
-  "emotePassBalance": "지금 {balance}P 있어요",
-  "emotePassShortfall": "{shortfall}P 더 모으면 쓸 수 있어요 (지금 {balance}P)",
-  "emoteBuyTitle": "이모티콘 이용권",
-  "emoteBuyConfirm": "{cost}P를 써서 {hours}시간 동안 이모티콘을 모두 쓸까요? 산 때부터 시간이 흘러가요.",
-  "emoteBuyAction": "이용권 사기",
-  "emoteBought": "이제 이모티콘을 보낼 수 있어요",
-  "emoteBuyFailed": "이용권을 사지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "emoteBuyTitle": "이모티콘 사기",
+  "emoteBuyConfirm": "{cost}P로 {days}일 동안 쓸까요?\n산 때부터 기간이 흘러가요.",
+  "emoteBuyAction": "사기",
+  "emoteBought": "이제 이 이모티콘을 보낼 수 있어요",
+  "emoteBuyFailed": "이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.",
+  "emoteShortfall": "포인트가 부족해요",
   "emoteLoadFailed": "이모티콘을 불러오지 못했어요",
-  "emoteRemainingHm": "{hours}시간 {minutes}분",
-  "emoteRemainingM": "{minutes}분",
-  "emoteRemainingSoon": "곧 끝나요",
   "emoteSendFailed": "이모티콘을 보내지 못했어요",
   "a11yOpenEmotes": "이모티콘",
   "a11yEmote": "이모티콘",
@@ -1608,6 +1682,7 @@
   "coachPointsTitle": "이번 코칭 포인트",
   "coachRoutineTitle": "추천 개인운동",
   "coachRoutineAiTitle": "AI 추천 개인운동",
+  "coachRoutinePastReadOnly": "그날 한 운동이에요. 지난 날짜는 체크할 수 없어요.",
   "coachRoutineByTrainer": "트레이너 직접 추천",
   "coachRoutineAiChecked": "AI 추천 · {name} 확인",
   "coachRoutineAiAuto": "AI 자동 추천",
@@ -1644,15 +1719,22 @@
   "coachRoutineTrainerFeedback": "트레이너 피드백: {feedback}",
   "coachRoutineCompleteTitle": "개인운동 수행 완료",
   "coachRoutineIntensity": "수행 강도",
-  "coachIntensityLight": "가벼움",
-  "coachIntensityModerate": "보통",
-  "coachIntensityHigh": "높음",
+  "coachRoutinePlannedIntensity": "권장 {level}",
+  "coachRoutineDoneIntensity": "수행 {level}",
   "coachRoutineSubmit": "완료 기록",
   "coachChatWithTrainer": "트레이너와 채팅",
   "coachTrainerLoading": "담당 트레이너를 불러오는 중이에요",
   "coachTrainerNone": "담당 트레이너가 아직 없어요. 운동 탭에서 헬스장·트레이너를 연결해 보세요",
   "alertCategoryReminder": "리마인더",
-  "alertCategoryHealth": "건강",
+  "alertCategoryCoachChat": "트레이너 메시지",
+  "alertCategoryCoachReport": "주간 리포트",
+  "alertCategoryRoutine": "운동 루틴",
+  "alertCategorySchedule": "PT 일정",
+  "alertCategoryTrainer": "담당 트레이너",
+  "alertCategoryConsultation": "상담 요청",
+  "alertCategoryHealthGoals": "건강 목표",
+  "alertCategoryBenefits": "혜택",
+  "alertCategoryChallenge": "챌린지",
   "alertCategoryAchievement": "달성",
   "alertCategorySystem": "시스템",
   "alertMarkAllRead": "모두 읽음",
@@ -1754,5 +1836,59 @@
   "gymLocateAction": "현재 위치로 찾기",
   "gymLocationSettings": "설정",
   "exGymCopyPhone": "전화번호 복사",
-  "exGymPhoneCopied": "전화번호를 복사했어요."
+  "exGymPhoneCopied": "전화번호를 복사했어요.",
+  "exerciseAdviceRecordEmptyToday": "오늘 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?",
+  "exerciseAdviceRecordEmptyWeek": "이번 주 운동 기록이 아직 없어요. 10분 걷기부터 시작해 볼까요?",
+  "exerciseAdviceRecordEmptyAll": "기록이 쌓이면 운동량과 유형의 흐름을 짚어 드릴게요.",
+  "exerciseAdviceRecordToday": "오늘 {type, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 위주로 {minutes}분, {calories}kcal 썼어요. 스트레칭으로 마무리해요.",
+  "exerciseAdviceRecordWeekOneDay": "이번 주는 {minutes}분 하루뿐이에요. 한 번 더 나가면 흐름이 이어져요.",
+  "exerciseAdviceRecordWeekSkew": "이번 주 {days}일 {minutes}분이 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}에 몰렸어요. {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}도 섞어 볼까요?",
+  "exerciseAdviceRecordWeekBalanced": "이번 주 {days}일 {minutes}분, 유형도 고르게 섞였어요.",
+  "exerciseAdviceRecordAllUp": "최근 4주 운동량이 그 전보다 늘었어요. 지금 방식이 잘 맞아요.",
+  "exerciseAdviceRecordAllDown": "최근 4주 운동량이 줄고 있어요. 짧게라도 주 3일을 지켜 봐요.",
+  "exerciseAdviceRecordAllSteady": "{weeks}주 동안 {days}일 {minutes}분, 기복 없이 이어가고 있어요.",
+  "exerciseAdviceRoutineTodayAllDone": "오늘 추천 운동 {count}개를 모두 마쳤어요. 잘했어요!",
+  "exerciseAdviceRoutineTodayDoneNextOrder": "{done}{doneObj} 마쳤어요. 다음은 {next} → {then} 순서로 해 보세요.",
+  "exerciseAdviceRoutineTodayDoneNext": "{done}{doneObj} 마쳤어요. 다음은 {next} 차례예요.",
+  "exerciseAdviceRoutineTodayNextOrder": "다음은 {next} → {then} 순서로 해 보세요.",
+  "exerciseAdviceRoutineTodayNext": "다음은 {next} 차례예요.",
+  "exerciseAdviceRoutineTodayLeft": "남은 추천 운동이 {count}개예요. 목록 순서대로 해 보세요.",
+  "exerciseAdviceRoutineTodayStartOrder": "오늘 추천 운동은 {next} → {then} 순서로 시작해 보세요.",
+  "exerciseAdviceRoutineTodayStart": "오늘은 {next}부터 시작해 보세요.",
+  "exerciseAdviceRoutineWeekNoneToday": "이번 주엔 추천 운동을 아직 안 했어요. 오늘 {next}부터 해 볼까요?",
+  "exerciseAdviceRoutineWeekNoneNext": "이번 주엔 추천 운동을 아직 안 했어요. {next}부터 해 봐요.",
+  "exerciseAdviceRoutineWeekNone": "이번 주엔 추천 운동을 아직 안 했어요. 오늘 하나부터 해 봐요.",
+  "exerciseAdviceRoutineWeekOnly": "이번 주엔 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 추천 운동만 했어요. {rest, select, next_week{다음 주엔} other{남은 날엔}} {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}부터 해 보세요.",
+  "exerciseAdviceRoutineWeekOnlyShort": "이번 주엔 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 추천 운동만 했어요.",
+  "exerciseAdviceRoutineWeekSkew": "이번 주 추천 운동 중 {top, select, cardio{유산소가} strength{근력이} stretching{스트레칭이} other{기타가}} {share}%예요. {rest, select, next_week{다음 주엔} other{남은 날엔}} {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}부터 해 보세요.",
+  "exerciseAdviceRoutineWeekSkewShort": "이번 주 추천 운동은 {top, select, cardio{유산소가} strength{근력이} stretching{스트레칭이} other{기타가}} {share}%예요.",
+  "exerciseAdviceRoutineWeekPraise": "이번 주 추천 운동을 {how, select, even{고르게} other{꾸준히}} 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineWeekCountsToday": "이번 주 추천 운동 {assigned}개 중 {completed}개를 했어요. 오늘 {next}부터 이어 가요.",
+  "exerciseAdviceRoutineWeekCountsKeep": "이번 주 추천 운동 {assigned}개 중 {completed}개를 했어요. {rest, select, next_week{다음 주도 이어 가요.} other{남은 날도 이어 가요.}}",
+  "exerciseAdviceRoutineWeekCounts": "이번 주 추천 운동 {assigned}개 중 {completed}개를 했어요.",
+  "exerciseAdviceRoutineLastWeekNoneNext": "지난주엔 추천 운동을 못 했어요. 이번 주는 {next}부터 해 봐요.",
+  "exerciseAdviceRoutineLastWeekNone": "지난주엔 추천 운동을 못 했어요. 이번 주는 하나씩 해 봐요.",
+  "exerciseAdviceRoutineLastWeekOnly": "지난주엔 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 추천 운동만 했어요. 이번 주는 {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}부터 해 보세요.",
+  "exerciseAdviceRoutineLastWeekOnlyShort": "지난주엔 {top, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}} 추천 운동만 했어요.",
+  "exerciseAdviceRoutineLastWeekSkew": "지난주 추천 운동 중 {top, select, cardio{유산소가} strength{근력이} stretching{스트레칭이} other{기타가}} {share}%였어요. 이번 주는 {missing, select, cardio{유산소} strength{근력} stretching{스트레칭} other{기타}}부터 해 보세요.",
+  "exerciseAdviceRoutineLastWeekSkewShort": "지난주 추천 운동은 {top, select, cardio{유산소가} strength{근력이} stretching{스트레칭이} other{기타가}} {share}%였어요.",
+  "exerciseAdviceRoutineLastWeekPraise": "지난주 추천 운동을 {how, select, even{고르게} other{꾸준히}} 해냈어요. 이번 주도 이어 가요!",
+  "exerciseAdviceRoutineLastWeekCountsMore": "지난주 추천 운동 {assigned}개 중 {completed}개를 했어요. 이번 주는 더 채워 봐요.",
+  "exerciseAdviceRoutineLastWeekCounts": "지난주 추천 운동 {assigned}개 중 {completed}개를 했어요.",
+  "exerciseAdviceRoutineAllNew": "추천 목록을 받은 지 {days}일째예요. 일주일 뒤 빠진 운동을 짚어 드릴게요.",
+  "exerciseAdviceRoutineAllNoneNext": "추천 목록을 받은 지 {days}일째예요. 오늘 {next}부터 시작해 볼까요?",
+  "exerciseAdviceRoutineAllNone": "추천 목록을 받은 지 {days}일째예요. 오늘 하나부터 시작해 봐요.",
+  "exerciseAdviceRoutineAllDoneTodayPart": "자주 빠지던 {part, select, lower{하체} upper{상체} core{코어} full{전신} other{전신}} 운동을 오늘 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineAllDoneTodayName": "자주 빠지던 {name}{nameObj} 오늘 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineAllDoneTodayNamePlain": "자주 빠지던 {name}, 오늘 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineAllDoneToday": "자주 빠지던 운동을 오늘 해냈어요. 이대로 이어 가요!",
+  "exerciseAdviceRoutineAllMissedPart": "추천 운동 중 {part, select, lower{하체} upper{상체} core{코어} full{전신} other{전신}} 운동이 자주 빠졌어요. {part, select, lower{하체} upper{상체} core{코어} full{전신} other{전신}} 운동을 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissedPartShort": "{part, select, lower{하체} upper{상체} core{코어} full{전신} other{전신}} 추천 운동이 자주 빠졌어요. 먼저 하는 순서로 바꿔 볼까요?",
+  "exerciseAdviceRoutineAllMissedName": "추천 운동 중 {name}{nameSubj} 자주 빠졌어요. 다음엔 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissedNameShort": "{name}{nameSubj} 자주 빠졌어요. 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissedNamePlain": "추천 운동 {name}, 자주 빠졌어요. 다음엔 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissedNamePlainShort": "{name}, 자주 빠졌어요. 먼저 해 볼까요?",
+  "exerciseAdviceRoutineAllMissed": "자주 빠진 추천 운동이 있어요. 목록 순서를 바꿔 볼까요?",
+  "exerciseAdviceRoutineAllPraise": "추천 운동을 {weeks}주째 꾸준히 하고 있어요. 앞으로도 화이팅!",
+  "exerciseAdviceRoutineAllRate": "지금 추천 운동의 {pct}%를 했어요. 빠지는 날 없이 이어 가 봐요."
 }

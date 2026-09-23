@@ -47,7 +47,7 @@ OUT_DART = _ROOT / "shared/demo_fixture/lib/src/fixture_json.g.dart"
 HISTORY_WEEKS = 35
 
 # ── 개인 운동(배정 루틴) ───────────────────────────────────────────────────
-# (id, 이름, 분, 유형, 이유, 출처)
+# (id, 이름, 분, 유형, 이유, 출처, 권장 강도)
 #
 # 회원 앱 `추천 개인운동`, 트레이너 고객 탭 `아직 하지 않은 개인 운동`, 트레이너
 # 프로그램 탭이 **모두 이 목록 하나**를 읽는다(#1170). 예전에는 세 화면이 각자
@@ -70,16 +70,18 @@ HISTORY_WEEKS = 35
 ROUTINES: list[dict] = [
     {"id": "seed-routine-user-7d4e9a2c5f18-0", "name": "저강도 유산소 (걷기)",
      "minutes": 30, "type": "유산소", "reason": "혈압 안정에 효과적",
-     "source": "ai"},
+     "source": "ai", "intensity": "light"},
     {"id": "seed-routine-user-7d4e9a2c5f18-1", "name": "하체 스트레칭",
      "minutes": 15, "type": "스트레칭", "reason": "혈액순환 개선",
-     "source": "trainer"},
+     "source": "trainer", "intensity": "light"},
     {"id": "seed-routine-user-7d4e9a2c5f18-2", "name": "코어 강화",
      "minutes": 10, "type": "근력", "reason": "기초대사량 향상",
-     "source": "ai", "sets": 3, "reps": 15, "weight": 0},
+     "source": "ai", "sets": 3, "reps": 15, "weight": 0,
+     "intensity": "moderate"},
     {"id": "seed-routine-user-7d4e9a2c5f18-3", "name": "어깨 관절 보호 스트레칭",
      "minutes": 8, "type": "스트레칭",
-     "reason": "PT 피드백 반영 · 오른쪽 어깨 보호", "source": "trainer"},
+     "reason": "PT 피드백 반영 · 오른쪽 어깨 보호", "source": "trainer",
+     "intensity": "light"},
 ]
 
 # ── 음식 ───────────────────────────────────────────────────────────────────

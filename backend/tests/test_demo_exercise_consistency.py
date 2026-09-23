@@ -15,6 +15,7 @@ import pytest
 
 from app.core import clock
 from app.db.demo_fixture import load_fixture
+from app.services import exercise_advice
 from app.services.exercise_service import monday_of_str
 
 #: 두 API 가 **완전히 같아야 하는** 필드. 이행률·코치 문구처럼 화면마다 다른
@@ -151,3 +152,28 @@ def test_seeded_strength_keeps_the_sets_the_fixture_wrote(client):
     # 기록 한 행이 운동 하나다(#1902) — 그날 근력 세트의 **합**을 견준다. 예전에는
     # 하루·유형으로 묶여 한 행에 합계가 들어 있었다.
     assert sum(s["sets"] or 0 for s in strength) == expected
+
+
+@pytest.mark.parametrize("period", ["today", "week", "all"])
+def test_member_and_trainer_hear_the_same_exercise_advice(client, period):
+    """운동 AI 맞춤 조언은 추천 개인운동까지 읽는다(#2162). 그 재료를 두 화면이
+    같은 함수로 읽어야 같은 회원의 같은 기간에 같은 말을 한다."""
+    member_id = load_fixture().user_app_seed_id
+    member = client.get(
+        f"/v1/exercise/advice?period={period}",
+        headers=_auth(_member_token(client)),
+    )
+    trainer = client.get(
+        f"/v1/trainer/clients/{member_id}/exercise-advice?period={period}",
+        headers=_auth(_trainer_token(client)),
+    )
+    assert member.status_code == 200, member.text
+    assert trainer.status_code == 200, trainer.text
+    left, right = member.json(), trainer.json()
+    assert left["message"] == right["message"]
+    # 앱이 자기 언어로 그리는 키와 값도 함께 온다(#2210). 키가 그리는 한국어가
+    # 같이 온 문장과 같아야 옛 앱과 새 앱이 같은 말을 한다.
+    assert left["advice_key"] == right["advice_key"]
+    assert left["advice_params"] == right["advice_params"]
+    rendered = exercise_advice.advice(left["advice_key"], **left["advice_params"]).text
+    assert rendered == left["message"]

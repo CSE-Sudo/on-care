@@ -21,7 +21,8 @@ from app.core import clock
 from app.models.models import DietEntry
 from app.schemas.diet import DietAnalysis, RecognizedFood
 from app.schemas.diet_api import (
-    DietEntryOut, DietEntryUpdate, DietTodayResponse, calculate_macros,
+    DietEntryCreate, DietEntryOut, DietEntryUpdate, DietTodayResponse,
+    calculate_macros,
 )
 from app.services import diet_photo_service, period_window, streak_shield_service
 from app.services.coach.personal_ingest import record_diet, refresh_diet
@@ -42,8 +43,11 @@ _FOOD_STORAGE_FIELDS = (
     "name", "amount_g", "calories", "sodium_mg", "sugar_g",
     "carbs_g", "protein_g", "fat_g", "source",
 )
-# DASH 권고 나트륨 상한(고혈압 특화 코칭 기준).
-DASH_SODIUM_LIMIT_MG = 2000
+# 하루 나트륨 상한. WHO 권고(2,000mg)를 쓴다 — 2025 한국인 영양소 섭취기준의
+# 성인 만성질환위험감소섭취량 2,300mg 보다 엄격한 쪽이다. 예전에는 이 값이
+# DASH(고혈압 식이) 상한이라는 이름을 달고 있었는데, 지금 타깃은 고혈압
+# 위험군이 아니라 PT 회원이라 근거를 섭취기준 쪽으로 옮겼다(#1652).
+SODIUM_LIMIT_MG = 2000
 
 
 def today_str() -> str:
@@ -122,8 +126,8 @@ def _entry_out(entry: DietEntry, photo_id: str | None = None) -> DietEntryOut:
 
 
 def coach_message(total_sodium_mg: int, has_entries: bool) -> str:
-    """오늘 나트륨 기준 코칭 메시지(고혈압 특화). DASH 권고 초과 시 경고."""
-    if total_sodium_mg > DASH_SODIUM_LIMIT_MG:
+    """오늘 나트륨 기준 코칭 메시지. 하루 상한을 넘으면 알린다."""
+    if total_sodium_mg > SODIUM_LIMIT_MG:
         return "오늘 나트륨 섭취가 많았어요. 저녁은 담백한 구이/샐러드로 균형을 맞춰봐요!"
     if not has_entries:
         return "아직 오늘 식단 기록이 없어요. 첫 끼니를 기록해 볼까요?"
@@ -290,7 +294,7 @@ def period_stats(db: Session, user_id: str, start: str, end: str) -> DietPeriodS
         return DietPeriodStats(0, 0, 0, 0.0, 0)
 
     days_over_sodium = sum(
-        1 for d in daily.values() if d["sodium"] > DASH_SODIUM_LIMIT_MG
+        1 for d in daily.values() if d["sodium"] > SODIUM_LIMIT_MG
     )
     return DietPeriodStats(
         days_logged=days_logged,
@@ -312,7 +316,7 @@ class DietDayTotals:
 
     @property
     def over_sodium(self) -> bool:
-        return self.sodium_mg > DASH_SODIUM_LIMIT_MG
+        return self.sodium_mg > SODIUM_LIMIT_MG
 
 
 def daily_totals(
@@ -424,6 +428,86 @@ def save_analyzed_entry(
             type(exc).__name__,
         )
     return entry, True
+
+
+#: 손으로 적은 끼니의 `engine` 값(#2151). 인식 엔진이 없는 기록이라는 표시다.
+MANUAL_ENGINE = "manual"
+
+
+def save_manual_entry(
+    db: Session, user_id: str, payload: DietEntryCreate
+) -> DietEntryOut:
+    """회원이 사진 없이 적은 끼니를 저장한다(#2151).
+
+    사진 분석 저장(`save_analyzed_entry`)과 같은 규칙을 따른다 — 멱등키로 재시도를
+    막고, 보호한 날이면 보호권을 되돌리고, 개인 RAG 로 적재한다. 다른 것은 둘이다.
+    합계를 인식기가 아니라 음식 목록에서 내고, **포인트를 적립하지 않는다**(라우터가
+    부르지 않는다). 사진이 없으니 식단평(`ai_comment`)도 없다.
+    """
+    if payload.idempotency_key:
+        existing = find_by_idempotency(db, user_id, payload.idempotency_key)
+        if existing is not None:
+            return _entry_out(existing)
+    # 회원이 적은 값이라 탄수화물 0 도 적은 값이다 — 수정에서 방금 0 으로 바꾼
+    # 것과 같이 본다(#1893).
+    for number, food in enumerate(payload.foods, start=1):
+        if _sugar_exceeds_carbs(food.carbs_g, food.sugar_g, carbs_recorded=True):
+            raise NutritionInconsistentError(
+                f"{number}번째 음식({food.name})의 당류는 탄수화물보다 "
+                f"클 수 없습니다. 당류 {food.sugar_g}g, 탄수화물 {food.carbs_g}g"
+            )
+    totals = totals_from_foods(payload.foods)
+    foods_for_storage = store_foods(payload.foods)
+    recorded_at = clock.now()
+    entry = DietEntry(
+        id=f"diet-{uuid.uuid4().hex[:12]}",
+        user_id=user_id,
+        date=payload.date or recorded_at.date().isoformat(),
+        meal_type=payload.meal_type,
+        time_label=recorded_at.strftime("%H:%M"),
+        foods_json=json.dumps(foods_for_storage, ensure_ascii=False),
+        total_calories=totals.total_calories,
+        carbs_g=totals.total_carbs_g,
+        protein_g=totals.total_protein_g,
+        fat_g=totals.total_fat_g,
+        sodium_mg=totals.total_sodium_mg,
+        sugar_g=totals.total_sugar_g,
+        engine=MANUAL_ENGINE,
+        idempotency_key=payload.idempotency_key,
+    )
+    out_date = entry.date
+    db.add(entry)
+    # 기록이 놓이는 날이 보호한 날이면 보호권을 되돌린다(#1788).
+    streak_shield_service.refund_for_record(db, user_id, _parsed_date(entry.date))
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = (
+            find_by_idempotency(db, user_id, payload.idempotency_key)
+            if payload.idempotency_key
+            else None
+        )
+        if existing is not None:
+            return _entry_out(existing)
+        raise
+    db.refresh(entry)
+    # RAG 적재가 롤백하면 이 인스턴스가 만료된다 — 응답은 그 전에 만든다.
+    out = _entry_out(entry)
+
+    try:
+        record_diet(
+            db, user_id, date=out_date, foods=foods_for_storage,
+            total_calories=out.total_calories, sodium_mg=out.sodium_mg,
+            sugar_g=out.sugar_g, source_ref=out.id,
+        )
+    except Exception as exc:  # noqa: BLE001 — 개인 RAG 적재는 best-effort
+        db.rollback()
+        logger.warning(
+            "개인 RAG 적재 실패(%s) — 식단 저장은 유지",
+            type(exc).__name__,
+        )
+    return out
 
 
 def get_owned_entry(db: Session, user_id: str, entry_id: str) -> DietEntry | None:

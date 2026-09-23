@@ -23,6 +23,13 @@ class MemberCoach {
   final String goal;
 }
 
+/// 하루치 추천 개인운동 — 그날 걸려 있던 목록과 그날 완료(`completed`). (#2161)
+///
+/// 추천 개인운동은 매일 새로 체크하는 목록이라, 기간을 되짚는 쪽(운동 AI 맞춤
+/// 조언, #2162)은 날마다 "무엇이 걸려 있었고 무엇을 했나" 를 읽는다. 실서버의
+/// `trainer_service.member_routine_days` 와 같은 모양이다.
+typedef RoutineDay = ({DateTime date, List<CoachRoutine> routines});
+
 /// A routine the member received from their coach — `/me/coach/routines`.
 class CoachRoutine {
   const CoachRoutine({
@@ -32,6 +39,7 @@ class CoachRoutine {
     required this.type,
     required this.reason,
     required this.source,
+    this.intensity = 'moderate',
     this.completed = false,
     this.completedAt,
     this.completedMinutes,
@@ -59,6 +67,13 @@ class CoachRoutine {
 
   /// `ai` (AI-suggested) or `trainer` (hand-assigned).
   final String source;
+
+  /// 트레이너가 권하는 강도 — `light` | `moderate` | `high`. (#2160)
+  ///
+  /// 서버가 배정마다 들고 있던 값인데 회원 앱은 받지 않아, 회원은 이 운동을 어느
+  /// 강도로 하라는 것인지 모르고 시작했다. 이 필드를 모르는 옛 응답은 서버
+  /// 기본값과 같은 `moderate` 로 읽는다.
+  final String intensity;
   final bool completed;
   final DateTime? completedAt;
   final int? completedMinutes;

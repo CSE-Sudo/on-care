@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
@@ -26,12 +27,12 @@ class DioExerciseRepository implements ExerciseRepository {
   }
 
   @override
-  Future<String> fetchAdvice(String period) async {
+  Future<ExerciseAdvice> fetchAdvice(String period) async {
     final res = await _dio.get<Map<String, Object?>>(
       '/exercise/advice',
       queryParameters: <String, Object?>{'period': period},
     );
-    return (res.data?['message'] as String?) ?? '';
+    return ExerciseAdvice.fromJson(res.data ?? const <String, Object?>{});
   }
 
   static String _dateString(DateTime d) =>

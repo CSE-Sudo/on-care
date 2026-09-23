@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -32,18 +32,22 @@ ROUTINE_APPROVED = "approved"
 
 #: 하루에 준비하는 추천. 개수를 묶어 두는 이유는 "할 일 목록" 이 되지 않게
 #: 하려는 것이다 — PT 사이를 메우는 운동이지 프로그램이 아니다.
-SAFE_ROUTINES: tuple[tuple[str, int, str, str], ...] = (
+#: 한 줄은 (이름, 분, 유형, 이유, 권장 강도). 강도는 회원 앱이 줄마다 적는다
+#: (#2160) — 승인할 트레이너가 없는 경로라 둘 다 `light` 다.
+SAFE_ROUTINES: tuple[tuple[str, int, str, str, str], ...] = (
     (
         "저강도 걷기",
         20,
         "유산소",
         "회복 목적의 가벼운 유산소예요. 대화할 수 있는 속도로 걸어 보세요.",
+        "light",
     ),
     (
         "전신 스트레칭",
         10,
         "스트레칭",
         "굳은 근육을 풀어 다음 운동을 준비해요. 통증이 있으면 멈추세요.",
+        "light",
     ),
 )
 
@@ -88,15 +92,15 @@ def _adjust_for_insights(db: Session, member_id: str) -> list[tuple[str, int, st
     avoid_weight_bearing = bool(sore_parts & _LOAD_SENSITIVE_PARTS)
     struggled = any(r.kind == insights.KIND_NEGATIVE for r in records)
 
-    adjusted: list[tuple[str, int, str, str]] = []
-    for name, minutes, type_, reason in SAFE_ROUTINES:
+    adjusted: list[tuple[str, int, str, str, str]] = []
+    for name, minutes, type_, reason, intensity in SAFE_ROUTINES:
         if avoid_weight_bearing and name in _WEIGHT_BEARING:
             continue
         if struggled:
             # 진단하거나 원인을 단정하지 않는다 — 줄였다는 사실만 말한다.
             minutes = max(_MIN_MINUTES, minutes // 2)
             reason = f"{reason} 오늘은 짧게 가도 괜찮아요."
-        adjusted.append((name, minutes, type_, reason))
+        adjusted.append((name, minutes, type_, reason, intensity))
     return adjusted
 
 
@@ -139,10 +143,19 @@ def ensure_auto_routines(db: Session, member_id: str) -> None:
 
     알림을 보내지 않는다 — 회원이 직접 열어 본 화면에서 이미 보고 있다.
     """
-    key = _key_for(clock.now().date())
+    today = clock.now().date()
+    key = _key_for(today)
     # 대화에서 찾은 불편을 반영해 좁힌다(#2016).
     todays = _adjust_for_insights(db, member_id)
     existing = _existing_for(db, member_id, key)
+    # 회원이 오늘 지운 추천은 목록에서 내려와 있다(#2161). 다시 만들지 않는다 —
+    # 고쳐 만들 때마다 지운 것이 되살아나면 회원은 지울 수 없는 목록을 보게 된다.
+    removed_names = {
+        r.name for r in existing
+        if r.ended_on is not None and r.ended_on <= today.isoformat()
+    }
+    existing = [r for r in existing if r.name not in removed_names]
+    todays = [t for t in todays if t[0] not in removed_names]
 
     done_ids = (
         set(
@@ -164,7 +177,7 @@ def ensure_auto_routines(db: Session, member_id: str) -> None:
 
     # 바뀐 것이 없으면 그대로 둔다 — 같은 날 다시 열었을 때 id 가 바뀌지 않는다.
     if [(r.name, r.minutes, r.reason) for r in pending] == [
-        (name, minutes, reason) for name, minutes, _, reason in wanted
+        (name, minutes, reason) for name, minutes, _, reason, _ in wanted
     ]:
         return
 
@@ -172,7 +185,9 @@ def ensure_auto_routines(db: Session, member_id: str) -> None:
         db.delete(row)
     now = clock.now()
     start = max((r.sort_order for r in done), default=-1) + 1
-    for order, (name, minutes, type_, reason) in enumerate(wanted, start=start):
+    for order, (name, minutes, type_, reason, intensity) in enumerate(
+        wanted, start=start
+    ):
         db.add(
             TrainerRoutine(
                 id=f"auto-{uuid.uuid4().hex[:12]}",
@@ -183,11 +198,17 @@ def ensure_auto_routines(db: Session, member_id: str) -> None:
                 type=type_,
                 reason=reason,
                 source="ai",
+                # 권장 강도도 함께 내려간다 — 회원 화면이 줄마다 적는다(#2160).
+                intensity=intensity,
                 # 승인할 사람이 없으므로 바로 보이는 상태로 만든다. 보수적인
                 # 범위로 좁힌 것이 여기서의 안전장치다.
                 status=ROUTINE_APPROVED,
                 sort_order=order,
                 client_request_id=key,
+                # 하루치 추천이다 — 오늘만 걸리고 내일은 그날 추천으로 바뀐다
+                # (#2161). 지난 날짜 화면은 이 창으로 그날 목록을 되살린다.
+                active_from=today.isoformat(),
+                ended_on=(today + timedelta(days=1)).isoformat(),
                 created_at=now,
             )
         )

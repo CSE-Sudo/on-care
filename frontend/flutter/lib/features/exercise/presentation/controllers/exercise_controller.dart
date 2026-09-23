@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:oncare/core/advice/exercise_advice.dart';
 import 'package:oncare/core/config/app_config.dart';
 import 'package:oncare/core/network/dio_client.dart';
 import 'package:oncare/core/points/demo_coupon_book.dart';
@@ -20,11 +21,18 @@ import 'package:oncare/features/exercise/domain/entities/trainer_slot.dart';
 import 'package:oncare/features/exercise/domain/repositories/exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/repositories/gym_repository.dart';
 import 'package:oncare/features/exercise/presentation/controllers/gym_location_controller.dart';
+import 'package:oncare/features/member_coach/data/repositories/mock_member_coach_repository.dart';
+import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
+import 'package:oncare/features/member_coach/domain/repositories/member_coach_repository.dart';
+import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
 import 'package:oncare/features/place/domain/entities/place.dart';
 import 'package:oncare/features/place/domain/entities/place_query.dart';
 import 'package:oncare/features/place/presentation/controllers/place_controller.dart';
 
-final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
+// 타입을 적어 둔다 — 목업 코치 저장소와 서로를 읽어(추천 개인운동, #2161)
+// 추론이 둘 사이를 돈다.
+final Provider<ExerciseRepository>
+exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
   // Local/demo mode serves the mock "오늘 PT 받은 날" scenario week (12회차 PT,
   // 코치 피드백·짬뽕 식단 반영 AI 루틴) so the exercise tab renders the intended
   // context with no backend. The real REST repo is used otherwise.
@@ -36,6 +44,17 @@ final exerciseRepositoryProvider = Provider<ExerciseRepository>((ref) {
     final MockExerciseRepository repo = MockExerciseRepository(
       points: ref.watch(demoPointsLedgerProvider),
       shields: ref.watch(demoStreakShieldBookProvider),
+      // 추천 개인운동의 날짜별 목록·완료는 목업 코치 저장소가 들고 있다(#2161).
+      // 그 저장소는 이 저장소를 받아 만들어지므로 여기서 watch 하면 서로를
+      // 기다린다 — 조언이 부를 때 읽어 온다.
+      routineDays: (DateTime from, DateTime to) {
+        final MemberCoachRepository coach = ref.read(
+          memberCoachRepositoryProvider,
+        );
+        return coach is MockMemberCoachRepository
+            ? coach.routineDaysBetween(from, to)
+            : const <RoutineDay>[];
+      },
     );
     // 주간 챌린지 목업은 운동한 날을 이 저장소에서 센다(#1789) — 목업 모드에서
     // 회원이 추가한 운동은 여기에만 있다.
@@ -60,7 +79,7 @@ final exerciseWeekProvider = FutureProvider<ExerciseWeek>((ref) {
 /// 지금 보고 있는 기간의 카드를 덮어쓰지 않는다.
 ///
 /// 구간 경계는 서버가 정한다 — 앱이 따로 계산해 넘기지 않는다.
-final exerciseAdviceProvider = FutureProvider.family<String, String>((
+final exerciseAdviceProvider = FutureProvider.family<ExerciseAdvice, String>((
   ref,
   String period,
 ) async {
@@ -74,8 +93,7 @@ DateTime mondayOfWeek(DateTime date) {
 }
 
 /// 지난 주 운동 기록. 이번 주는 [exerciseWeekViewProvider] 가 담당하므로 여기서
-/// 다루지 않는다 — 오늘 체크한 AI 추천 운동이 더해진 값과 두 벌이 되면 같은 주가
-/// 화면마다 다른 수치를 갖게 된다(#671).
+/// 다루지 않는다 — 같은 주를 두 벌로 읽으면 화면마다 다른 수치를 갖게 된다(#671).
 final exercisePastWeekProvider = FutureProvider.family<ExerciseWeek, DateTime>((
   ref,
   DateTime weekStart,
@@ -119,8 +137,8 @@ class ExerciseDayBar {
 /// 이어 붙인다 — 서버가 운동 이력을 주 단위로 들고 있어서다(트레이너 화면도
 /// 같은 방식으로 읽는다).
 ///
-/// 이번 주만 [exerciseWeekViewProvider] 에서 가져온다. 오늘 체크한 AI 추천 운동이
-/// 더해진 값과 두 벌이 되면 같은 주가 화면마다 다른 수치를 갖는다(#671).
+/// 이번 주만 [exerciseWeekProvider] 에서 가져온다 — 같은 주를 두 곳에서 따로
+/// 읽으면 화면마다 다른 수치를 갖는다(#671).
 final exerciseAllPeriodProvider = FutureProvider<List<ExerciseDayBar>>((
   ref,
 ) async {
@@ -142,11 +160,7 @@ final exerciseAllPeriodProvider = FutureProvider<List<ExerciseDayBar>>((
       ),
   ];
   final List<ExerciseWeek> past = await Future.wait(pending);
-  final ExerciseWeek current = await ref.watch(exerciseWeekProvider.future);
-  final ExerciseWeek thisWeek = applyTodayBonus(
-    current,
-    ref.watch(exerciseTodayBonusProvider),
-  );
+  final ExerciseWeek thisWeek = await ref.watch(exerciseWeekProvider.future);
 
   double at(List<double> xs, int i) => i < xs.length ? xs[i] : 0;
 
@@ -180,125 +194,19 @@ final exerciseAllPeriodProvider = FutureProvider<List<ExerciseDayBar>>((
   return days;
 }, name: 'exerciseAllPeriod');
 
-/// Today's activity delta for one AI recommendation. Shared so the exercise
-/// tab's check and the home "주간 추이" chart read the same numbers.
-class AiRoutineDelta {
-  const AiRoutineDelta({
-    required this.cardioMin,
-    required this.stretchMin,
-    required this.calories,
-  });
-  final double cardioMin;
-  final double stretchMin;
-  final int calories;
-}
-
-/// [0] = 어깨 관절 보호 스트레칭(8분), [1] = 가벼운 인터벌 러닝(30분·250kcal).
-const List<AiRoutineDelta> kAiRoutineDeltas = <AiRoutineDelta>[
-  AiRoutineDelta(cardioMin: 0, stretchMin: 8, calories: 45),
-  AiRoutineDelta(cardioMin: 30, stretchMin: 0, calories: 250),
-];
-
-/// Completion state of the two AI recommended workouts. Owned here (not in
-/// the exercise tab's local state) so checking one on the 운동 tab also
-/// updates the home 운동 카드's 주간 추이 today bar.
-final exerciseRoutineDoneProvider = StateProvider<List<bool>>(
-  (ref) => <bool>[false, false],
-  name: 'exerciseRoutineDone',
+/// 화면이 읽는 이번 주 — 저장된 주 그대로다. 홈 운동 카드와 운동 탭이 모두 이
+/// provider 를 읽어 오늘 막대·도넛과 주간 합계가 한 값에서 나온다. 다시 받아오려면
+/// [exerciseWeekProvider] 를 invalidate 한다.
+///
+/// 한때 여기서 **오늘 체크한 AI 추천 운동**을 화면에만 더했지만(#671), 체크를
+/// 켜는 코드가 사라진 뒤로 늘 빈 값을 얹고 있어 걷어냈다(#2197). 지금은 회원이
+/// 추천 운동을 체크하면 서버가 운동 기록으로 남기므로, 저장된 주에 이미 들어
+/// 있다. 자리를 남겨 두는 이유는 앱 가이드가 이 provider 를 통째로 덮어써
+/// 샘플 주를 보여 주기 때문이다(`guide_sample_data.dart`).
+final exerciseWeekViewProvider = Provider<AsyncValue<ExerciseWeek>>(
+  (ref) => ref.watch(exerciseWeekProvider),
+  name: 'exerciseWeekView',
 );
-
-/// Today's activity added by the checked AI routines, summed across
-/// [kAiRoutineDeltas].
-class ExerciseTodayBonus {
-  const ExerciseTodayBonus({
-    this.cardioMinutes = 0,
-    this.stretchMinutes = 0,
-    this.calories = 0,
-  });
-
-  final double cardioMinutes;
-  final double stretchMinutes;
-  final int calories;
-
-  double get minutes => cardioMinutes + stretchMinutes;
-  bool get isEmpty => minutes == 0 && calories == 0;
-}
-
-/// Activity delta from the AI routines checked today.
-final exerciseTodayBonusProvider = Provider<ExerciseTodayBonus>((ref) {
-  final List<bool> done = ref.watch(exerciseRoutineDoneProvider);
-  double cardio = 0;
-  double stretch = 0;
-  int kcal = 0;
-  for (int i = 0; i < done.length && i < kAiRoutineDeltas.length; i++) {
-    if (!done[i]) continue;
-    cardio += kAiRoutineDeltas[i].cardioMin;
-    stretch += kAiRoutineDeltas[i].stretchMin;
-    kcal += kAiRoutineDeltas[i].calories;
-  }
-  return ExerciseTodayBonus(
-    cardioMinutes: cardio,
-    stretchMinutes: stretch,
-    calories: kcal,
-  );
-}, name: 'exerciseTodayBonus');
-
-/// [week] with [bonus] folded into today's column and the weekly totals, so
-/// the per-day series, the 주간 합계 tiles and the 운동 일수 count all move
-/// together instead of the chart alone. Returns [week] untouched when there
-/// is nothing to add. [now] is injectable for deterministic tests.
-ExerciseWeek applyTodayBonus(
-  ExerciseWeek week,
-  ExerciseTodayBonus bonus, {
-  DateTime? now,
-}) {
-  final int n = week.dailyMinutes.length;
-  if (bonus.isEmpty || n == 0) return week;
-  final int today = ((now ?? nowKst()).weekday - 1).clamp(0, n - 1);
-
-  /// Adds [delta] to today's slot, leaving series the payload omitted
-  /// (length mismatch) alone so a partial payload can't be misaligned.
-  List<double> bump(List<double> series, double delta) {
-    if (series.length != n || delta == 0) return series;
-    return <double>[
-      for (int i = 0; i < n; i++) i == today ? series[i] + delta : series[i],
-    ];
-  }
-
-  final List<double> dailyMinutes = bump(week.dailyMinutes, bonus.minutes);
-
-  return ExerciseWeek(
-    sessions: week.sessions,
-    dailyMinutes: dailyMinutes,
-    dailyCalories: bump(week.dailyCalories, bonus.calories.toDouble()),
-    cardioMinutes: bump(week.cardioMinutes, bonus.cardioMinutes),
-    strengthMinutes: week.strengthMinutes,
-    stretchingMinutes: bump(week.stretchingMinutes, bonus.stretchMinutes),
-    // 추천 루틴에 `기타` 는 없다 — 그대로 넘긴다. 빠뜨리면 오늘 루틴을 체크한
-    // 순간 기타 분이 사라져, 세 유형 합과 일별 총합이 어긋난다.
-    otherMinutes: week.otherMinutes,
-    // 추천 루틴에 근력은 없다 — 세트도 그대로 넘긴다.
-    strengthSets: week.strengthSets,
-    dayLabels: week.dayLabels,
-    totalMinutes: week.totalMinutes + bonus.minutes.round(),
-    totalCalories: week.totalCalories + bonus.calories,
-    // 휴식일이던 오늘이 보너스로 활성일이 되면 연속 일수도 늘어야 한다. 저장된
-    // 값을 그대로 넘기면 '운동 일수'(dailyMinutes 기반)와 '연속' 카드가 어긋난다.
-    streakDays: longestActiveStreak(dailyMinutes),
-    aiCoachMessage: week.aiCoachMessage,
-  );
-}
-
-/// The week as the UI shows it: stored data plus today's checked AI routines.
-/// 홈 운동 카드와 운동 탭이 모두 이 provider 를 읽어, 오늘 막대·도넛뿐 아니라
-/// 주간 시간·칼로리·일수 합계까지 하나의 값에서 나온다. Invalidate the
-/// underlying [exerciseWeekProvider] to refetch.
-final exerciseWeekViewProvider = Provider<AsyncValue<ExerciseWeek>>((ref) {
-  final ExerciseTodayBonus bonus = ref.watch(exerciseTodayBonusProvider);
-  return ref
-      .watch(exerciseWeekProvider)
-      .whenData((ExerciseWeek w) => applyTodayBonus(w, bonus));
-}, name: 'exerciseWeekView');
 
 /// 헬스장·트레이너 디렉터리. 실 API 는 `/gyms`·`/trainers`(#324).
 ///

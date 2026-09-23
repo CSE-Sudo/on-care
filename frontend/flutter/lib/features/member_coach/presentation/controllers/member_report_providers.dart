@@ -69,12 +69,6 @@ final _memberWeekProvider = FutureProvider.family<MemberWeeklyReport, DateTime>(
     );
     // 나트륨 초과 일수는 회원 자신의 목표로 센다 — MY 화면이 쓰는 값과 같다.
     final Future<UserProfile> profile = ref.watch(profileProvider.future);
-    // 이번 주는 오늘 체크한 AI 추천 운동을 얹은 값이 화면의 진실이다(#671).
-    // 리포트만 얹지 않은 값을 쓰면 같은 주가 문서와 화면에서 달라진다.
-    final ExerciseTodayBonus bonus = isThisWeek
-        ? ref.watch(exerciseTodayBonusProvider)
-        : const ExerciseTodayBonus();
-
     final ExerciseWeek week = await exercise;
     final DateTime sunday = DateTime(monday.year, monday.month, monday.day + 6);
     final List<CoachSession> inWeek = (await sessions)
@@ -86,12 +80,9 @@ final _memberWeekProvider = FutureProvider.family<MemberWeeklyReport, DateTime>(
         })
         .toList(growable: false);
 
-    final ExerciseWeek applied = isThisWeek
-        ? applyTodayBonus(week, bonus)
-        : week;
     return MemberWeeklyReport(
       weekStart: monday,
-      exercise: applied,
+      exercise: week,
       diet: await diet,
       // 취소된 PT 는 잡혀 있던 것으로 세지 않는다 — 진행되지 않은 일정을
       // 분모에 두면 출석률이 실제보다 낮게 읽힌다(#871 과 같은 규칙).
@@ -101,7 +92,7 @@ final _memberWeekProvider = FutureProvider.family<MemberWeeklyReport, DateTime>(
       // 진행한 PT 를 운동 기록에서 센다. 둘 다 없을 때만 잡힌 일정이 없다고
       // 적는다(#1613).
       sessionsDone: inWeek.isEmpty
-          ? applied.sessions
+          ? week.sessions
                 .where(
                   (ExerciseSession s) => s.source == ExerciseSource.trainerPt,
                 )

@@ -83,6 +83,10 @@ class _SessionMemberCoachRepository implements MemberCoachRepository {
   Future<MemberCoach?> fetchCoach() async => coach;
   @override
   Future<List<CoachRoutine>> fetchRoutines() async => const <CoachRoutine>[];
+
+  @override
+  Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async =>
+      const <CoachRoutine>[];
   @override
   Future<CoachRoutine> completeRoutine(
     String routineId, {
@@ -168,7 +172,9 @@ void main() {
           accountRepositoryProvider.overrideWithValue(
             MockAccountRepository(profile: profile),
           ),
-          exerciseWeekProvider.overrideWith((ref) async => exerciseWeek ?? week),
+          exerciseWeekProvider.overrideWith(
+            (ref) async => exerciseWeek ?? week,
+          ),
           memberCoachRepositoryProvider.overrideWithValue(
             coachRepository ?? MockMemberCoachRepository(),
           ),
@@ -381,12 +387,12 @@ void main() {
       ),
     );
 
-    await tester.scrollUntilVisible(find.text('레그프레스 · 4세트 · 12회 · 70kg'), 400);
+    await tester.scrollUntilVisible(find.text('레그프레스 · 4세트 · 12회 · 70kg · 보통'), 400);
 
-    expect(find.text('레그프레스 · 4세트 · 12회 · 70kg'), findsOneWidget);
-    expect(find.text('러닝머신 · 15분'), findsOneWidget);
-    expect(find.text('하체 스트레칭 · 10분'), findsOneWidget);
-    expect(find.text('밸런스 훈련 · 5분'), findsOneWidget);
+    expect(find.text('레그프레스 · 4세트 · 12회 · 70kg · 보통'), findsOneWidget);
+    expect(find.text('러닝머신 · 15분 · 보통'), findsOneWidget);
+    expect(find.text('하체 스트레칭 · 10분 · 보통'), findsOneWidget);
+    expect(find.text('밸런스 훈련 · 5분 · 보통'), findsOneWidget);
   });
 
   testWidgets('담당 트레이너가 없으면 완료한 PT 칸이 서지 않는다 (#2014)', (

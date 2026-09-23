@@ -215,39 +215,45 @@ class _GymDetails extends ConsumerWidget {
             ],
             if (gym.phone != null) ...<Widget>[
               const SizedBox(height: OnCareSpacing.cardGap),
-              _DetailSection(
-                icon: AppIcons.phone,
-                title: l.exPhone,
-                child: InkWell(
+              // 번호 한 줄뿐이라 머리·구분선을 따로 두지 않고 한 줄 카드로 둔다.
+              // 누르면 전화·복사 시트를 띄운다(#1873) — 상담 자리가 없을 때 회원이
+              // 나갈 곳이 이 번호라 걸 수 있어야 한다.
+              Semantics(
+                button: true,
+                label: '${l.exGymCall} ${gym.phone!}',
+                excludeSemantics: true,
+                child: AppCard(
                   key: const Key('gym-detail-phone'),
-                  borderRadius: OnCareRadius.mdAll,
                   onTap: () => showGymPhoneSheet(context, gym.name, gym.phone!),
-                  child: Semantics(
-                    button: true,
-                    label: '${l.exGymCall} ${gym.phone!}',
-                    excludeSemantics: true,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        minHeight: OnCareSpacing.s48,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: OnCareSpacing.cardPadding,
+                    vertical: OnCareSpacing.s12,
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      AppIcon(
+                        AppIcons.phone,
+                        size: OnCareSize.iconMedium,
+                        color: tokens.brand.primary,
                       ),
-                      child: Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: Text(
-                              gym.phone!,
-                              style: tokens
-                                  .text(OnCareTypography.body)
-                                  .copyWith(color: OnCareColors.textPrimary),
-                            ),
-                          ),
-                          AppIcon(
-                            AppIcons.phone,
-                            size: OnCareSize.iconSmall,
-                            color: tokens.brand.primary,
-                          ),
-                        ],
+                      const SizedBox(width: OnCareSpacing.s8),
+                      Text(
+                        l.exPhone,
+                        style: tokens
+                            .text(OnCareTypography.titleSmall)
+                            .copyWith(color: OnCareColors.textPrimary),
                       ),
-                    ),
+                      const SizedBox(width: OnCareSpacing.s12),
+                      Expanded(
+                        child: Text(
+                          gym.phone!,
+                          overflow: TextOverflow.ellipsis,
+                          style: tokens
+                              .text(OnCareTypography.body)
+                              .copyWith(color: OnCareColors.textPrimary),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -311,6 +317,7 @@ class _TrainerPickerSheet extends ConsumerWidget {
     );
 
     return AppSheet(
+      showClose: false,
       title: l.exGymConsultPickTrainer,
       subtitle: l.exGymConsultPickTrainerHint,
       child: trainers.isEmpty
@@ -445,16 +452,9 @@ class _AffiliatedTrainerRow extends StatelessWidget {
           ? null
           : (onTap ??
                 () => context.push(AppRoutes.trainerDetailPath(trainer.id))),
-      leading: Container(
-        width: OnCareSize.avatarLarge,
-        height: OnCareSize.avatarLarge,
-        alignment: Alignment.center,
-        child: AppIcon(
-          AppIcons.person,
-          size: OnCareSize.iconMedium,
-          color: tokens.brand.primary,
-        ),
-      ),
+      // 트레이너 상세·채팅과 같은 성씨 프로필로 선다 (#2154) — 고르는 자리와
+      // 눌러 들어간 자리에서 같은 사람이 다른 얼굴이 되지 않게.
+      leading: AppAvatar(name: trainer.name, size: AppAvatarSize.large),
       // 여기가 상담할 트레이너를 고르는 자리다 — 헬스장 찾기에서 봤던 근거를
       // 정작 고르는 화면에서 다시 찾게 두지 않는다 (#1881).
       below: trainer.reasons.isEmpty

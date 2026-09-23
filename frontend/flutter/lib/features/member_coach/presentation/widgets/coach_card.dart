@@ -9,10 +9,12 @@ import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sh
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
+import 'package:oncare/features/exercise/domain/entities/exercise_week.dart'
+    show ExerciseIntensity, exerciseIntensityFromName;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
-    show exerciseAmountLabelOf;
+    show exerciseAmountLabelOf, exerciseIntensityLabel;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -138,16 +140,29 @@ class CoachCard extends ConsumerWidget {
 /// 운동**이다. 그래서 추천할 것이 없는 날은 빈 카드를 만들지 않고 코칭 포인트만
 /// 남긴다 — AI 가 매번 운동을 억지로 만들어 낼 이유가 없다.
 class AiCoachingCard extends ConsumerWidget {
-  const AiCoachingCard({super.key});
+  const AiCoachingCard({super.key, this.day});
+
+  /// 지난 날짜를 볼 때 그날. 비어 있으면 오늘이다. (#2161)
+  ///
+  /// 추천 개인운동은 매일 새로 체크하는 목록이라, 지난 날짜에도 그날 걸려 있던
+  /// 목록과 그날 한 것을 오늘과 같은 모양으로 보여 준다. 다만 **체크할 수
+  /// 없다** — 지나간 날의 기록을 뒤늦게 고치면 트레이너가 본 기록과 갈린다.
+  final DateTime? day;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
+    final DateTime? pastDay = day;
+    final bool readOnly = pastDay != null;
     // 트레이너 추천과 AI 추천을 한 목록으로 합친다. 회원에게는 "지금 무엇을
     // 하면 되는가" 라는 한 가지 질문이고, 누가 정했는지는 각 줄의 출처가 말한다.
     final List<CoachRoutine> routines =
-        ref.watch(coachRoutinesProvider).valueOrNull ?? const <CoachRoutine>[];
+        (pastDay != null
+                ? ref.watch(coachRoutinesOnDayProvider(dateOnly(pastDay)))
+                : ref.watch(coachRoutinesProvider))
+            .valueOrNull ??
+        const <CoachRoutine>[];
     final AsyncValue<MemberCoach?> coachState = ref.watch(memberCoachProvider);
     final MemberCoach? coach = coachState.valueOrNull;
     // **담당이 없다고 확인됐을 때만** 담당 없는 회원의 모양을 쓴다. 조회가 오는
@@ -165,7 +180,7 @@ class AiCoachingCard extends ConsumerWidget {
     if (routines.isEmpty) return const SizedBox.shrink();
 
     return AppCard(
-      key: const Key('aiCoachingCard'),
+      key: Key(readOnly ? 'aiCoachingCardPast' : 'aiCoachingCard'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
@@ -194,7 +209,9 @@ class AiCoachingCard extends ConsumerWidget {
               //
               // 담당이 있으면 이 카드는 트레이너 배정을 싣고, 감지 기록 자체가
               // 그 회원의 것이 아니다 — 서버도 403 으로 막는다(#1823).
-              if (unassigned)
+              //
+              // 지난 날짜는 그날 무엇을 했는지 보는 자리라 두지 않는다(#2161).
+              if (unassigned && !readOnly)
                 AppButton(
                   key: const Key('routineInsightHistoryButton'),
                   label: l.aicInsightHistoryAction,
@@ -208,6 +225,19 @@ class AiCoachingCard extends ConsumerWidget {
           ),
           // 카드 제목이 이미 `추천 개인운동` 이라 안에 같은 말을 또 두지
           // 않는다. `PT 와 다음 PT 사이…` 안내도 뺐다 (#1130).
+          //
+          // 지난 날짜는 체크 박스가 눌리지 않는 까닭을 한 줄로 말한다(#2161).
+          // 말없이 막히면 고장으로 읽힌다.
+          if (readOnly) ...<Widget>[
+            const SizedBox(height: OnCareSpacing.s4),
+            Text(
+              l.coachRoutinePastReadOnly,
+              key: const Key('coachRoutinePastReadOnly'),
+              style: tokens
+                  .text(OnCareTypography.caption)
+                  .copyWith(color: OnCareColors.textTertiary),
+            ),
+          ],
           const SizedBox(height: OnCareSpacing.s12),
           for (final (int index, CoachRoutine routine)
               in routines.indexed) ...<Widget>[
@@ -245,7 +275,8 @@ class AiCoachingCard extends ConsumerWidget {
               sourceLabel: routineSourceLabel(l, routine, coach),
               // 담당이 배정한 것을 회원이 조용히 없애면 다음 상담에서 둘이
               // 서로 다른 기록을 본다. 담당이 없을 때만 스스로 물린다. (#1020)
-              cancellable: unassigned,
+              cancellable: unassigned && !readOnly,
+              readOnly: readOnly,
             ),
             const SizedBox(height: OnCareSpacing.s8),
           ],
@@ -270,7 +301,9 @@ class _RoutineCheckbox extends StatelessWidget {
 
   final bool done;
   final bool saving;
-  final VoidCallback onCheck;
+
+  /// 누르면 할 일. 비어 있으면 읽기 전용이다 — 지난 날짜의 목록(#2161).
+  final VoidCallback? onCheck;
 
   @override
   Widget build(BuildContext context) {
@@ -287,7 +320,7 @@ class _RoutineCheckbox extends StatelessWidget {
                 label: l.coachRoutineDone,
                 child: Checkbox(
                   value: done,
-                  onChanged: (bool? _) => onCheck(),
+                  onChanged: onCheck == null ? null : (bool? _) => onCheck!(),
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
@@ -318,7 +351,11 @@ class _RecommendedExerciseRow extends ConsumerStatefulWidget {
     required this.routine,
     required this.sourceLabel,
     required this.cancellable,
+    this.readOnly = false,
   });
+
+  /// 지난 날짜의 줄 — 했는지만 보이고 체크할 수 없다. (#2161)
+  final bool readOnly;
 
   /// 회원이 읽는 출처 한 줄 — `AI 추천 · 김태오 확인` 처럼.
   final String sourceLabel;
@@ -357,7 +394,7 @@ class _RecommendedExerciseRowState
     setState(() => _saving = true);
     try {
       await ref.read(memberCoachRepositoryProvider).deleteRoutine(routine.id);
-      ref.invalidate(coachRoutinesProvider);
+      refreshCoachRoutines(ref);
       if (mounted) {
         showAppToast(
           context,
@@ -403,7 +440,9 @@ class _RecommendedExerciseRowState
       await ref
           .read(memberCoachRepositoryProvider)
           .uncompleteRoutine(routine.id);
-      ref.invalidate(coachRoutinesProvider);
+      // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
+      // 보고 말한다(#2161, #2162).
+      refreshCoachRoutines(ref);
       ref.invalidate(exerciseWeekProvider);
       // 되돌린 완료의 적립은 회수된다 — MY 잔액을 다시 읽는다(#1786).
       refreshPointsBalance(ref);
@@ -450,7 +489,9 @@ class _RecommendedExerciseRowState
             minutes: routine.minutes > 0 ? routine.minutes : 1,
             intensity: input.intensity,
           );
-      ref.invalidate(coachRoutinesProvider);
+      // 목록과 함께 운동 AI 조언도 다시 읽는다 — 조언이 오늘 한 추천 운동을
+      // 보고 말한다(#2161, #2162).
+      refreshCoachRoutines(ref);
       ref.invalidate(exerciseWeekProvider);
       // 완료 기록이 보호한 날에 떨어지면 보호권이 돌아온다 — 다시 읽는다(#1788).
       // 그날 달력 칸도 달라졌다(#2075).
@@ -472,7 +513,7 @@ class _RecommendedExerciseRowState
       debugPrint('completeRoutine failed: $error\n$stackTrace');
       if (mounted) {
         if (error is NotFoundError) {
-          ref.invalidate(coachRoutinesProvider);
+          refreshCoachRoutines(ref);
         }
         final String message = switch (error) {
           NotFoundError() => l.coachRoutineGone,
@@ -485,6 +526,16 @@ class _RecommendedExerciseRowState
       if (mounted) setState(() => _saving = false);
     }
   }
+
+  /// 트레이너가 권한 강도. 이 값을 모르는 옛 응답은 `보통` 으로 읽힌다(#2160).
+  ExerciseIntensity get _plannedIntensity =>
+      exerciseIntensityFromName(widget.routine.intensity);
+
+  /// 회원이 실제로 고른 강도 — 완료한 줄에만 있다. 되돌리면 다시 사라진다.
+  ExerciseIntensity? get _doneIntensity =>
+      widget.routine.completed && widget.routine.completedIntensity != null
+      ? exerciseIntensityFromName(widget.routine.completedIntensity)
+      : null;
 
   @override
   Widget build(BuildContext context) {
@@ -530,7 +581,11 @@ class _RecommendedExerciseRowState
                 key: Key('completeRoutine-${routine.id}'),
                 done: routine.completed,
                 saving: _saving,
-                onCheck: routine.completed ? _undoComplete : _complete,
+                onCheck: widget.readOnly
+                    ? null
+                    : routine.completed
+                    ? _undoComplete
+                    : _complete,
               ),
               Expanded(
                 flex: 3,
@@ -622,6 +677,47 @@ class _RecommendedExerciseRowState
                               .copyWith(color: tokens.brand.primary),
                         ),
                       ),
+                      const SizedBox(height: OnCareSpacing.s4),
+                      // 어느 강도로 하라는 것인지 줄에서 바로 읽힌다(#2160).
+                      // 태그 모양·문구는 직접 기록한 운동 줄과 같다 — 같은 값을
+                      // 화면마다 다른 말로 적으면 회원이 다른 것으로 읽는다.
+                      // 완료한 줄에는 **회원이 고른 강도**를 적고, 권장과 다르게
+                      // 했으면 권장 태그를 함께 남긴다: 무엇을 권했고 무엇을
+                      // 했는지가 나중에 갈리면 안 된다.
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: OnCareSpacing.s4,
+                        runSpacing: OnCareSpacing.s4,
+                        children: <Widget>[
+                          // 좁은 화면·큰 글자에서는 태그가 통째로 줄어든다 —
+                          // 알약 안의 글자를 말줄임하면 어느 강도인지가 사라진다
+                          // (#766 의 `_fitTag` 와 같은 규칙).
+                          if (_doneIntensity != null)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: AppTag(
+                                key: Key('routineDoneIntensity-${routine.id}'),
+                                label: l.coachRoutineDoneIntensity(
+                                  exerciseIntensityLabel(l, _doneIntensity!),
+                                ),
+                                tone: AppTagTone.brand,
+                              ),
+                            ),
+                          if (_doneIntensity == null ||
+                              _doneIntensity != _plannedIntensity)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: AppTag(
+                                key: Key(
+                                  'routinePlannedIntensity-${routine.id}',
+                                ),
+                                label: l.coachRoutinePlannedIntensity(
+                                  exerciseIntensityLabel(l, _plannedIntensity),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                       // 아직 하지 않은 것만 물릴 수 있다 — 이미 한 운동을 목록에서
                       // 지우면 기록과 화면이 갈린다. 목록에서 지우는 동작이라
                       // 화면 안의 트리거는 위험 글자 버튼이다.
@@ -697,6 +793,7 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     return AppSheet(
+      showClose: false,
       title: l.coachRoutineCompleteTitle,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,
@@ -727,9 +824,9 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
             children: <Widget>[
               for (final ({String value, String label}) option
                   in <({String value, String label})>[
-                    (value: 'light', label: l.coachIntensityLight),
-                    (value: 'moderate', label: l.coachIntensityModerate),
-                    (value: 'high', label: l.coachIntensityHigh),
+                    (value: 'light', label: l.exLevelLight),
+                    (value: 'moderate', label: l.exLevelModerate),
+                    (value: 'high', label: l.exLevelHigh),
                   ]) ...<Widget>[
                 if (option.value != 'light')
                   const SizedBox(width: OnCareSpacing.s8),
@@ -813,7 +910,6 @@ class _ChatButton extends StatelessWidget {
     );
   }
 }
-
 
 /// 루틴 한 줄이 말하는 **양**. 근력은 세트·횟수(·중량)로, 나머지는 분으로
 /// 읽는다 — 회원이 직접 적은 기록과 **같은 규칙**(`exerciseAmountLabelOf`)이다.

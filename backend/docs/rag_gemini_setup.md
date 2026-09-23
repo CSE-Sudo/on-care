@@ -42,14 +42,17 @@ psql -d oncare  -c "CREATE EXTENSION IF NOT EXISTS vector; GRANT ALL ON SCHEMA p
 ```bash
 cd backend && uvicorn app.main:app --reload
 ```
-기동 시 `init_db` 가 공공 코칭 가이드 8종(`app/data/coach_public_docs.py`: DASH·나트륨·당류·운동…)을 **Gemini 임베딩(768)** 으로 시드(멱등).
+기동 시 `init_db` 가 공개 근거 문서(`app/data/coach_public_docs.py` 의 목록, 본문은 `app/data/coach_docs/*.txt`)를 **Gemini 임베딩(768)** 으로 시드합니다. 목록의 지문이 `reference_data_versions` 에 남아, 문서가 그대로면 다시 임베딩하지 않고 바뀌면 시드가 넣은 문서를 통째로 갈아 끼웁니다(#1652).
+
+근거 문서는 한국인을 위한 신체활동 지침서(2023 개정판, 보건복지부)와 2025 한국인 영양소 섭취기준(보건복지부/한국영양학회)의 원문 발췌입니다. 원본 PDF 에서 다시 뽑으려면 `python -m scripts.extract_coach_docs` 를 돌립니다(받는 경로는 그 스크립트의 머리말에 적혀 있습니다).
 
 ## 5. 공공문서 추가 적재 (선택)
-공식 출처(질병관리청·대한고혈압학회 등) 텍스트를 `.txt` 로 준비 후:
+시드 목록에 없는 공식 출처 텍스트를 `.txt` 로 준비 후:
 ```bash
 python -m scripts.ingest_public docs/public_guidelines/sodium_dash_sample.txt \
   --domain diet --title "저염·DASH 식단 가이드"
 ```
+이렇게 넣은 문서는 `source` 가 달라(`public`) 시드 재적재가 지우지 않습니다.
 샘플 템플릿: [`docs/public_guidelines/sodium_dash_sample.txt`](public_guidelines/sodium_dash_sample.txt) (공식 텍스트로 교체용).
 
 ## 6. 임베딩 모델/차원 변경 시

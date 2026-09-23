@@ -27,7 +27,7 @@ from app.schemas.exercise_api import (
 from app.schemas.points_api import PointsOut
 from app.services import (
     exercise_activity, exercise_service, exercise_types, points_service,
-    streak_shield_service,
+    streak_shield_service, trainer_service,
 )
 from app.services.coach import personal_ingest
 from app.services.exercise_service import (
@@ -124,14 +124,22 @@ def exercise_advice(
     회원의 같은 기간을 두고 다른 이야기를 들고 앉으면 안 된다.
 
     경계도 앱이 아니라 서버가 정한다.
+
+    오늘 걸린 추천 개인운동이 있으면 그 목록과 날짜별 완료를 기준으로 말한다
+    (#2162) — 읽는 구간은 트레이너웹과 같은 함수가 정한다.
     """
     start, end, days = exercise_service.period_days(db, current_user.id, period)
+    routine_days = trainer_service.advice_routine_days(db, current_user.id, period)
+    advice = exercise_service.period_advice(days, period, routine_days)
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=exercise_service.period_coach_message(days, period),
+        message=advice.text,
+        # 앱이 자기 언어로 그릴 수 있게 문장 키와 값도 함께 준다(#2210).
+        advice_key=advice.key,
+        advice_params=advice.params,
     )
 
 

@@ -28,7 +28,7 @@
       }
     }
   },
-  "schedCancelSource": "Cancelled by",
+  "schedCancelSource": "Type",
   "schedCancelByMember": "Member",
   "schedCancelByTrainer": "Trainer",
   "schedCancelByOther": "Other",
@@ -548,7 +548,6 @@
   "clientDormant": "Dormant",
   "clientStatusChangeFailed": "Couldn't change the status. Please try again.",
   "clientClosePanel": "Close panel",
-  "clientChat": "Chat",
   "chatTooLong": "Message is too long (2000 characters max)",
   "chatSendFailed": "Couldn't send the message. Please try again",
   "chatPdfOpenFailed": "Couldn't open the PDF. Please try again",
@@ -853,7 +852,7 @@
   "exBurnMonthTitle": "Burned this month",
   "exBurnDayTitle": "Burned",
   "exBurnAllTitle": "Average burned",
-  "exWeekOfMonthLabel": "Week {week}, {month}/",
+  "exWeekOfMonthLabel": "Burned in week {week}, {month}/",
   "@exWeekOfMonthLabel": {
     "placeholders": {
       "month": {
@@ -1257,17 +1256,10 @@
   "slotClosed": "New bookings closed.",
   "slotActionFailed": "Couldn't complete the request. Please try again in a moment.",
   "slotManageTitle": "Manage booking slots",
-  "slotIntro": "Open times for members to book on {date}.",
-  "@slotIntro": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
+  "slotIntro": "Open times for members to book. Every upcoming slot is listed below by date.",
   "slotOpenAction": "Open",
   "slotReload": "Reload",
-  "slotEmpty": "No booking slots open on this day.",
+  "slotEmpty": "No booking slots are open.",
   "slotClosedSummary": "Closed",
   "slotBookedSummary": "Booked",
   "slotOpenSummary": "Open",
@@ -1861,7 +1853,8 @@
     }
   },
   "routineAlreadyGone": "That program is already gone",
-  "workoutPendingTitle": "Not done yet",
+  "workoutPendingTitle": "Daily personal exercises",
+  "workoutRoutineDoneToday": "Done today",
   "workoutUndatedTitle": "Records without a date",
   "workoutPendingCancel": "Cancel assignment",
   "routineUpdateFailed": "Couldn't update the program. Please try again in a moment",
@@ -1974,8 +1967,8 @@
     }
   },
   "dashTaskProgressTitle": "Task completion",
-  "dashTaskProgressToday": "Done today",
-  "dashTaskProgressCarriedOver": "Done (carried over)",
+  "dashTaskProgressToday": "Today's tasks",
+  "dashTaskProgressCarriedOver": "Carried over",
   "dashTodoConsultation": "Consult",
   "dashTodoDiet": "Diet",
   "dashTodoWorkout": "Workout",
@@ -2027,6 +2020,7 @@
   "dashTaskDismissBody": "It only disappears from the task list. Actually handling it (consultation, program, report) still happens on its own screen.",
   "dashTaskCarriedOverTitle": "Carried over",
   "dashTaskCategoryDone": "Done",
+  "dashTaskCategoryEmpty": "None",
   "dashTaskCategoryRemaining": "+{count}",
   "@dashTaskCategoryRemaining": {
     "placeholders": {
@@ -2273,7 +2267,8 @@
   "reportsAverageSodium": "Average sodium",
   "reportsFeedbackTitle": "Trainer feedback",
   "reportsFeedbackDraftNote": "A draft filled in from this week's figures. Check it over before sending.",
-  "reportsFeedbackRestore": "Restore draft",
+  "reportsFeedbackUndo": "Undo",
+  "reportsFeedbackRedo": "Redo",
   "reportsFeedbackSave": "Save feedback",
   "reportsFeedbackSaving": "Saving…",
   "reportsFeedbackSaved": "Saved the feedback draft.",

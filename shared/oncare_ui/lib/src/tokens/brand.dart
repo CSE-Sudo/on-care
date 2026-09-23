@@ -39,7 +39,12 @@ class OnCareBrand {
   /// 트레이너웹 — 남색.
   static const OnCareBrand trainer = OnCareBrand._(
     name: 'trainer',
-    primary: Color(0xFF2E7DAB),
+    // 로고(`assets/images/oncare-logo.png`)의 남색 그대로다. 예전에는 한 톤
+    // 밝은 `#2E7DAB` 이라, 사이드바에서 로고와 바로 옆 `트레이너` 글씨가 서로
+    // 다른 남색이었다 — 메인 색이 쓰이는 자리 전부가 로고보다 밝았다(#2207).
+    primary: Color(0xFF235C88),
+    // 눌림은 메인 색보다 한 단계 어둡다. 메인 색이 로고 값으로 내려오면서 이
+    // 자리를 비켜 준 값이고, 앱이 오래 쓰던 '더 진한 남색' 이다(#2173, #2207).
     strong: Color(0xFF17435F),
     surface: Color(0xFFEAF2F9),
     surfaceSoft: Color(0xFFF2F7FB),

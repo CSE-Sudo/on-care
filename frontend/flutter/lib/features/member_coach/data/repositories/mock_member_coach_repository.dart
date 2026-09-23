@@ -3,6 +3,7 @@ import 'package:demo_fixture/demo_fixture.dart';
 import 'package:oncare/core/points/demo_points_ledger.dart';
 import 'package:oncare/core/points/points_award.dart';
 import 'package:oncare/core/utils/clock.dart';
+import 'package:oncare/core/utils/wire_date.dart';
 import 'package:oncare/features/exercise/data/repositories/mock_exercise_repository.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_week.dart';
@@ -44,14 +45,37 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 담당이 살아 있는가. 끊겼으면 코치도, 배정 운동도, 대화도 내 것이 아니다.
   bool _hasCoach() => _linked?.call() ?? true;
 
-  /// 완료로 만들어 둔 운동 기록 — `루틴 id → 세션 id`. 되돌릴 때 무엇을 지울지
-  /// 알아야 한다.
+  /// 날마다 한 완료 — `그날(YYYY-MM-DD) → 루틴 id → 완료한 모양`. (#2161)
+  ///
+  /// 추천 개인운동은 매일 새로 체크하는 목록이다. 실서버는 완료를 `(배정, 그날)`
+  /// 로 한 번씩 남기므로, 데모도 날짜별로 들고 있어야 어제 한 운동이 오늘 체크된
+  /// 채로 보이지 않는다.
+  final Map<String, Map<String, CoachRoutine>> _doneByDay =
+      <String, Map<String, CoachRoutine>>{};
+
+  /// 완료로 만들어 둔 운동 기록 — `그날|루틴 id → 세션 id`. 되돌릴 때 무엇을
+  /// 지울지 알아야 한다.
   final Map<String, String> _completionSessions = <String, String>{};
 
-  /// 완료 적립의 근거 기록 — `루틴 id → 기록 id`. 운동 저장소가 없으면 세션 id 가
-  /// 없어 완료마다 새 id 를 만든다. 실서버처럼 되돌린 뒤 다시 완료하면 새 기록이다.
+  /// 완료 적립의 근거 기록 — `그날|루틴 id → 기록 id`. 운동 저장소가 없으면 세션
+  /// id 가 없어 완료마다 새 id 를 만든다. 실서버처럼 되돌린 뒤 다시 완료하면 새
+  /// 기록이다.
   final Map<String, String> _completionSources = <String, String>{};
   int _completionSeq = 0;
+
+  /// 목록에서 내린 날 — `루틴 id → 그날(YYYY-MM-DD)`. (#2161)
+  ///
+  /// 실서버는 취소한 배정을 지우지 않고 그날부터 목록에서 뺀다. 데모도 행을
+  /// 남겨 두어야 지난 날짜를 열었을 때 그날 걸려 있던 목록이 그대로 보인다.
+  final Map<String, String> _endedOn = <String, String>{};
+
+  static String _dayKey(DateTime day) => wireDate(day);
+
+  /// 데모의 트레이너 배정이 걸리기 시작한 날 — 오늘 포함 4주의 첫날. (#2162)
+  static String _routineSinceKey() {
+    final DateTime today = todayKst();
+    return _dayKey(DateTime(today.year, today.month, today.day - 27));
+  }
 
   static const _coach = MemberCoach(
     trainerId: 'seed-trainer',
@@ -79,6 +103,9 @@ class MockMemberCoachRepository implements MemberCoachRepository {
         type: r.type,
         reason: r.reason,
         source: r.source,
+        // 권장 강도도 픽스처가 정한다 — 실서버와 같은 값이어야 모드를 바꿔도
+        // 같은 안내가 뜬다(#2160).
+        intensity: r.intensity,
         sets: r.sets,
         reps: r.reps,
         weight: r.weight,
@@ -98,6 +125,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       type: '유산소',
       reason: '회복 목적의 가벼운 유산소예요. 대화할 수 있는 속도로 걸어 보세요.',
       source: 'ai',
+      intensity: 'light',
     ),
     CoachRoutine(
       id: 'auto-stretch',
@@ -106,6 +134,7 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       type: '스트레칭',
       reason: '굳은 근육을 풀어 다음 운동을 준비해요. 통증이 있으면 멈추세요.',
       source: 'ai',
+      intensity: 'light',
     ),
   ];
 
@@ -296,12 +325,106 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   Future<MemberCoach?> fetchCoach() async => _hasCoach() ? _coach : null;
 
   @override
-  Future<List<CoachRoutine>> fetchRoutines() async => _hasCoach()
-      ? List<CoachRoutine>.unmodifiable(_routines)
-      // 담당이 없으면 서버가 보수적으로 좁힌 추천을 내려준다(#782). 데모가 빈
-      // 목록을 돌려주면 연결을 끊은 회원의 운동 탭에 받을 것이 하나도 남지
-      // 않는다 — 실서버와 같은 모양을 낸다(#2014).
-      : _autoRoutines;
+  Future<List<CoachRoutine>> fetchRoutines() async =>
+      _routinesOn(todayKst(), today: true);
+
+  @override
+  Future<List<CoachRoutine>> fetchRoutinesOn(DateTime day) async {
+    final DateTime today = todayKst();
+    final DateTime date = DateTime(day.year, day.month, day.day);
+    // 실서버처럼 아직 오지 않은 날은 목록이 없다(422).
+    if (date.isAfter(today)) {
+      throw ArgumentError.value(day, 'day', '아직 오지 않은 날입니다.');
+    }
+    return _routinesOn(date, today: date == today);
+  }
+
+  /// 그날 걸려 있던 목록에 그날 완료를 얹는다. (#2161)
+  ///
+  /// 담당이 없으면 서버가 보수적으로 좁힌 추천을 내려준다(#782). 데모가 빈
+  /// 목록을 돌려주면 연결을 끊은 회원의 운동 탭에 받을 것이 하나도 남지
+  /// 않는다 — 실서버와 같은 모양을 낸다(#2014).
+  List<CoachRoutine> _routinesOn(DateTime day, {required bool today}) {
+    final String key = _dayKey(day);
+    // 트레이너 배정은 4주 전부터 걸려 있던 목록이다 — 서버 시드
+    // (`seed_member_data._seed_routine_since`)와 같은 날부터다. 그보다 앞선 날에
+    // 목록을 보이면 운동 AI 맞춤 조언(#2162)의 "몇 주째" 가 두 경로에서 갈린다.
+    if (_hasCoach() && key.compareTo(_routineSinceKey()) < 0) {
+      return const <CoachRoutine>[];
+    }
+    final Map<String, CoachRoutine> done =
+        _doneByDay[key] ?? const <String, CoachRoutine>{};
+    return List<CoachRoutine>.unmodifiable(<CoachRoutine>[
+      for (final CoachRoutine routine
+          in _hasCoach() ? _routines : _autoRoutines)
+        if (_isListedOn(routine.id, key))
+          done[routine.id] ??
+              (today ? routine : _fixtureCompletion(routine, key) ?? routine),
+    ]);
+  }
+
+  /// [from]~[to](양끝 포함)의 날마다 그날 걸려 있던 목록과 그날 완료 — 날짜순.
+  /// (#2161)
+  ///
+  /// 데모의 운동 AI 맞춤 조언(#2162)이 읽는 자리다. 실서버의
+  /// `trainer_service.member_routine_days` 와 같은 모양이라, 조언 규칙은 두 경로에서
+  /// 같은 입력을 받는다. 아직 오지 않은 날은 담지 않는다.
+  List<RoutineDay> routineDaysBetween(DateTime from, DateTime to) {
+    final DateTime today = todayKst();
+    final DateTime last = DateTime(to.year, to.month, to.day).isAfter(today)
+        ? today
+        : DateTime(to.year, to.month, to.day);
+    return <RoutineDay>[
+      for (
+        DateTime day = DateTime(from.year, from.month, from.day);
+        !day.isAfter(last);
+        day = DateTime(day.year, day.month, day.day + 1)
+      )
+        (date: day, routines: _routinesOn(day, today: day == today)),
+    ];
+  }
+
+  /// 그날 목록에 걸려 있었나 — 취소한 날부터는 없다.
+  bool _isListedOn(String routineId, String key) {
+    final String? ended = _endedOn[routineId];
+    return ended == null || key.compareTo(ended) < 0;
+  }
+
+  /// 지난 날짜의 완료는 **공유 픽스처의 그날 운동 기록**에서 읽는다. (#2161)
+  ///
+  /// 데모의 지난 날짜 운동 기록은 픽스처가 정하고, 거기에는 개인 운동을 했는지
+  /// (`done`) 가 이미 적혀 있다. 체크 목록이 그 기록과 다르게 말하면 같은 날의
+  /// 두 카드가 서로 다른 이야기를 한다. PT 날의 운동은 PT 기록이라 보지 않는다.
+  CoachRoutine? _fixtureCompletion(CoachRoutine routine, String key) {
+    for (final FixtureDay day in _fixtureDays) {
+      if (day.date != key || day.isPt) continue;
+      for (final FixtureExercise exercise in day.exercises) {
+        if (exercise.name == routine.name && exercise.done) {
+          return routine.copyWith(
+            completed: true,
+            completedMinutes: exercise.minutes,
+          );
+        }
+      }
+    }
+    return null;
+  }
+
+  late final List<FixtureDay> _fixtureDays = DemoFixture.load().daysFor(
+    nowKst(),
+  );
+
+  /// 오늘 목록의 [routineId]. 없으면(취소했거나 남의 것) 실서버처럼 못 찾는다.
+  CoachRoutine _todayRoutine(String routineId) {
+    final String key = _dayKey(todayKst());
+    for (final CoachRoutine routine
+        in _hasCoach() ? _routines : _autoRoutines) {
+      if (routine.id == routineId && _isListedOn(routineId, key)) {
+        return routine;
+      }
+    }
+    throw StateError('Routine not found.');
+  }
 
   @override
   Future<CoachRoutine> completeRoutine(
@@ -309,88 +432,80 @@ class MockMemberCoachRepository implements MemberCoachRepository {
     required int minutes,
     String intensity = 'moderate',
   }) async {
-    final int index = _routines.indexWhere(
-      (CoachRoutine routine) => routine.id == routineId,
-    );
-    if (index < 0) throw StateError('Routine not found.');
-    final CoachRoutine current = _routines[index];
-    if (current.completed) {
-      // 재전송은 새로 적립하지 않고 처음 받은 값을 돌려준다 — 실서버와 같다.
-      final String? source = _completionSources[routineId];
+    final CoachRoutine routine = _todayRoutine(routineId);
+    final String day = _dayKey(todayKst());
+    final String slot = '$day|$routineId';
+    final CoachRoutine? already = _doneByDay[day]?[routineId];
+    if (already != null) {
+      // 같은 날 재전송은 새로 적립하지 않고 처음 받은 값을 돌려준다 — 실서버와
+      // 같다.
+      final String? source = _completionSources[slot];
       final DemoPointsLedger? points = _points;
-      if (points == null || source == null) return current;
-      return current.copyWith(
+      if (points == null || source == null) return already;
+      return already.copyWith(
         pointsAward: points.awardedFor(PointsRule.routineComplete, source),
       );
     }
-    final CoachRoutine completed = current.copyWith(
+    final CoachRoutine completed = routine.copyWith(
       completed: true,
       completedAt: nowKst(),
       completedMinutes: minutes,
       completedIntensity: intensity,
     );
-    _routines[index] = completed;
-    await _logSession(completed, minutes: minutes, intensity: intensity);
-    final PointsAward? award = _awardCompletion(completed);
+    (_doneByDay[day] ??= <String, CoachRoutine>{})[routineId] = completed;
+    await _logSession(
+      completed,
+      slot: slot,
+      minutes: minutes,
+      intensity: intensity,
+    );
+    final PointsAward? award = _awardCompletion(slot);
     return award == null ? completed : completed.copyWith(pointsAward: award);
   }
 
   /// 완료 적립(#1786). AI 추천이든 트레이너 배정이든 `추천·배정 운동 완료` 한
   /// 규칙이라 하루 한도를 함께 쓴다 — 실서버와 같다.
-  PointsAward? _awardCompletion(CoachRoutine routine) {
+  PointsAward? _awardCompletion(String slot) {
     final DemoPointsLedger? points = _points;
     if (points == null) return null;
     final String source =
-        _completionSessions[routine.id] ??
-        'mock-routine-${routine.id}-${++_completionSeq}';
-    _completionSources[routine.id] = source;
+        _completionSessions[slot] ?? 'mock-routine-$slot-${++_completionSeq}';
+    _completionSources[slot] = source;
     return points.award(PointsRule.routineComplete, source);
   }
 
   @override
   Future<CoachRoutine> uncompleteRoutine(String routineId) async {
-    final int index = _routines.indexWhere(
-      (CoachRoutine routine) => routine.id == routineId,
-    );
-    if (index < 0) throw StateError('Routine not found.');
-    final CoachRoutine current = _routines[index];
-    if (!current.completed) return current;
-    // 완료 흔적을 모두 지운다 — 시간·강도·메모는 그 수행에 딸린 값이라
-    // 되돌린 뒤에도 남으면 다음 완료 때 옛 값이 섞인다.
-    final CoachRoutine reverted = CoachRoutine(
-      id: current.id,
-      name: current.name,
-      minutes: current.minutes,
-      type: current.type,
-      reason: current.reason,
-      source: current.source,
-      programName: current.programName,
-      sessionName: current.sessionName,
-      sessionOrder: current.sessionOrder,
-      exercises: current.exercises,
-      trainerFeedback: current.trainerFeedback,
-      // 배정 값이라 완료를 물려도 그대로 남는다.
-      sets: current.sets,
-      reps: current.reps,
-      weight: current.weight,
-    );
-    _routines[index] = reverted;
+    // 오늘 취소한 배정이라도 오늘 남긴 완료는 되돌릴 수 있다 — 실서버와 같다.
+    final String day = _dayKey(todayKst());
+    final CoachRoutine? done = _doneByDay[day]?.remove(routineId);
+    final CoachRoutine base = <CoachRoutine>[..._routines, ..._autoRoutines]
+        .firstWhere(
+          (CoachRoutine routine) => routine.id == routineId,
+          orElse: () => throw StateError('Routine not found.'),
+        );
+    // 지난 날짜의 완료는 건드리지 않는다 — 지난 날짜는 읽기 전용이다.
+    if (done == null) return base;
+    final String slot = '$day|$routineId';
     // 이 완료로 받은 포인트를 회수한다(#1786).
-    final String? source = _completionSources.remove(routineId);
+    final String? source = _completionSources.remove(slot);
     if (source != null) {
       _points?.revoke(PointsRule.routineComplete.sourceType, source);
     }
-    final String? sessionId = _completionSessions.remove(routineId);
+    final String? sessionId = _completionSessions.remove(slot);
     if (sessionId != null) {
       await _exercise?.removeAssignedRoutineSession(sessionId);
     }
-    return reverted;
+    // 완료 흔적이 없는 배정 그대로다 — 시간·강도는 그 수행에 딸린 값이라
+    // 되돌린 뒤에도 남으면 다음 완료 때 옛 값이 섞인다.
+    return base;
   }
 
   /// 완료한 루틴을 이번 주 운동 기록에 남긴다. 유형·칼로리는 `운동 추가` 시트와
   /// 같은 표를 쓴다 — 같은 운동이 화면마다 다른 칼로리로 적히면 안 된다.
   Future<void> _logSession(
     CoachRoutine routine, {
+    required String slot,
     required int minutes,
     required String intensity,
   }) async {
@@ -412,15 +527,19 @@ class MockMemberCoachRepository implements MemberCoachRepository {
       intensity: level,
     );
     final String? id = session.id;
-    if (id != null) _completionSessions[routine.id] = id;
+    if (id != null) _completionSessions[slot] = id;
   }
 
   @override
   Future<void> deleteRoutine(String routineId) async {
     // 데모에는 담당 트레이너가 있다 — 실서버라면 403 이다. 목업에서까지 막으면
-    // 데모에서 이 동작을 보여 줄 수 없으므로 목록에서만 지운다. 화면은 담당이
+    // 데모에서 이 동작을 보여 줄 수 없으므로 목록에서만 내린다. 화면은 담당이
     // 없을 때만 이 버튼을 그린다. (#1020)
-    _routines.removeWhere((CoachRoutine routine) => routine.id == routineId);
+    //
+    // 실서버처럼 행은 남기고 오늘부터 목록에서 뺀다 — 지난 날짜에 걸려 있던
+    // 목록은 그대로다(#2161).
+    _todayRoutine(routineId);
+    _endedOn[routineId] = _dayKey(todayKst());
   }
 
   /// 데모에는 트레이너가 잡은 일정이 없다. (#490)

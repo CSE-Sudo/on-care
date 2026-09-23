@@ -109,6 +109,13 @@ void main() {
       expect(find.text('3세트 · 3회'), findsOneWidget);
     });
 
+    testWidgets('운동 항목 바탕은 기본 구획보다 한 단계 옅다 (#2177)', (tester) async {
+      await pumpRow(tester, const ProgramItem(name: '플랭크', sets: 3, reps: 3));
+
+      final AppTile tile = tester.widget<AppTile>(find.byType(AppTile));
+      expect(tile.tone, AppTileTone.brandSoft);
+    });
+
     testWidgets('유산소는 시간만 적는다', (tester) async {
       await pumpRow(
         tester,

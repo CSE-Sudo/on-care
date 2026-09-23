@@ -9,7 +9,12 @@
   사용 가능한 쿠폰은 회원당 한 장이고, 교환은 KST 달력 한 달에 한 번이다. 담당
   해제·헬스장 해제로 취소돼 포인트를 돌려받은 쿠폰은 세지 않는다.
 
-두 쿠폰 모두 헬스장에서 회원이 휴대폰으로 쿠폰 화면을 열고, 직원(PT 재등록은
+- **분석용 식판**(#2150) — 사용처 항목이 아니라 달성 보상이다. 포인트로 교환하지
+  않고 `diet_tray_service` 가 조건을 확인해 0P 쿠폰으로 발급한다. 쿠폰 목록·상세·
+  사용 처리는 두 쿠폰과 같은 길을 탄다. **기한이 없다**([NO_EXPIRY]) — 식판이
+  헬스장에 언제 닿을지는 우리 사정이라, 그 때문에 회원의 쿠폰이 만료되면 안 된다.
+
+모든 쿠폰은 헬스장에서 회원이 휴대폰으로 쿠폰 화면을 열고, 직원(PT 재등록은
 트레이너·헬스장 직원)이 확인한 뒤 **회원 휴대폰에서** `사용 완료` 를 누른다
 (직원 확인 버튼). 트레이너웹에는 처리 화면이 없다.
 
@@ -30,7 +35,8 @@
   탭·재전송이 두 번 처리되지 않고 오류도 보지 않는다. 되돌리기는 없다.
 - **담당 연결이 끊기면** 사용 가능한 PT 재등록 쿠폰을, **헬스장 연결이 끊기면**
   사용 가능한 락커 쿠폰을 취소하고 교환에 쓴 포인트를 돌려준다(내역 `refund`).
-  쓸 곳이 없는 쿠폰을 남겨 두면 포인트만 묶인다.
+  쓸 곳이 없는 쿠폰을 남겨 두면 포인트만 묶인다. 담당이 끊기면 받지 않은 식판
+  쿠폰(#2150)도 취소한다 — 0P 라 돌려줄 포인트는 없다.
 """
 from __future__ import annotations
 
@@ -52,7 +58,6 @@ from app.schemas.points_api import (
 )
 from app.schemas.profile_pet_api import ProfilePetOut
 from app.services import (
-    emote_service,
     graph_color_service,
     notification_service,
     points_service,
@@ -75,12 +80,15 @@ BLOCK_MONTHLY_LIMIT = "monthly_limit"
 BLOCK_INSUFFICIENT = "insufficient_points"
 #: 쓰지 않은 연속 기록 보호권을 이미 최대로 가지고 있다(#1788).
 BLOCK_SHIELD_LIMIT = "shield_limit"
-#: 이용 중인 이모티콘 이용권이 있다(#2020). 남은 시간이 지나야 다시 산다.
-BLOCK_ACTIVE_PASS = "active_pass"
 #: 기간이 남은 프로필 펫 이모지를 달고 있다(#2021). 기간이 끝나야 다시 산다.
 BLOCK_ACTIVE_PET = "active_pet"
 #: 지난주 주간 리포트를 이미 받았다(#2022). 다음 주가 끝나야 다시 산다.
 BLOCK_WEEK_OWNED = "week_owned"
+
+#: 기한 없는 쿠폰의 `expires_at`(#2150). 컬럼이 NULL 을 받지 않고, 만료·알림 경로가
+#: 모두 `expires_at` 을 시각으로 비교하므로 닿지 않는 먼 시각을 넣는다. 응답은
+#: `no_expiry` 로 알린다.
+NO_EXPIRY = datetime(9999, 1, 1, tzinfo=clock.SEOUL)
 
 #: 만료 알림을 보내기 시작하는 남은 날 수.
 REMIND_DAYS_BEFORE = 3
@@ -155,21 +163,6 @@ GRAPH_COLOR = ShopItem(
     valid_days=0,
 )
 
-#: 채팅 이모티콘 24시간 이용권(#2020) — 쿠폰이 아니다. 교환하면 `emote_passes` 에
-#: 한 장이 생기고, 그 시각부터 24시간 동안 트레이너 채팅에서 이모티콘을 보낸다.
-#: 기한이 날이 아니라 시간이라 `valid_days` 는 1 이다(화면은 이 값을 쓰지 않는다).
-#: 트레이너 채팅에만 쓰이므로 담당이 있어야 교환한다(#2142). 목록에서 빼지 않고
-#: `no_trainer` 로 막아 둔다 — 트레이너와 연결하면 쓸 수 있다는 것이 보여야 한다.
-EMOTE_PASS = ShopItem(
-    id=emote_service.ITEM_ID,
-    title="채팅 이모티콘 24시간",
-    benefit="트레이너 채팅 이모티콘 24시간",
-    description="산 때부터 24시간 동안 트레이너 채팅에서 이모티콘을 모두 쓸 수 있어요.",
-    cost=emote_service.COST,
-    valid_days=1,
-    requires_trainer=True,
-)
-
 #: MY 프로필 펫 이모지(#2021) — 쿠폰이 아니다. 교환하면 고른 펫(강아지·고양이)이
 #: 7일 동안 MY 프로필 이름 옆에 붙는다. 고른 펫은 교환 요청의 `option` 이 싣는다.
 #: 규칙은 `profile_pet_service` 가 들고 있다.
@@ -194,17 +187,32 @@ WEEKLY_REPORT = ShopItem(
     valid_days=0,
 )
 
+#: 분석용 식판(#2150) — 사용처 항목이 아니라 달성 보상이라 [CATALOG] 에 없다. 쿠폰
+#: 목록·상세가 이름을 찾도록 [_ITEMS] 에만 둔다. 포인트 교환으로는 받을 수 없고
+#: (`exchange` 가 404), 조건 확인과 발급은 `diet_tray_service` 가 한다.
+DIET_TRAY = ShopItem(
+    id="diet_tray",
+    title="분석용 식판",
+    benefit="분석용 규격 식판",
+    description="식단 사진 분석에 맞춘 규격 식판을 담당 트레이너의 헬스장에서 받아요.",
+    cost=0,
+    # 기한 없음 — `expires_at` 은 [NO_EXPIRY] 다.
+    valid_days=0,
+    requires_trainer=True,
+    one_active=True,
+)
+
 #: 화면에 서는 순서 그대로다.
 CATALOG: tuple[ShopItem, ...] = (
     PT_RENEWAL,
     LOCKER_MONTH,
     STREAK_SHIELD,
     GRAPH_COLOR,
-    EMOTE_PASS,
     PROFILE_PET,
     WEEKLY_REPORT,
 )
-_ITEMS: dict[str, ShopItem] = {item.id: item for item in CATALOG}
+_CATALOG_IDS = frozenset(item.id for item in CATALOG)
+_ITEMS: dict[str, ShopItem] = {item.id: item for item in (*CATALOG, DIET_TRAY)}
 
 
 class CouponError(Exception):
@@ -259,8 +267,10 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
 
     막힌 이유는 하나만 준다. 순서는 교환([exchange])이 거절하는 순서와 같다 —
     자격(담당 없음·헬스장 없음) → 사용 가능한 같은 쿠폰 → 보호권 최대 보유 →
-    이용 중인 이모티콘 이용권 → 달고 있는 프로필 펫 → 이미 받은 지난주 리포트 →
-    이번 달 교환 → 잔액 부족.
+    달고 있는 프로필 펫 → 이미 받은 지난주 리포트 → 이번 달 교환 → 잔액 부족.
+
+    채팅 이모티콘은 여기서 팔지 않는다(#2153) — 하나씩 사므로 무엇을 사는지는
+    채팅의 이모티콘 창에서 봐야 알 수 있다.
 
     주간 리포트는 **담당 트레이너가 있는 회원에게는 싣지 않는다**(#2022) — 트레이너가
     등록해 주므로 살 이유가 없고, 막힌 카드로 남겨 두면 목록만 길어진다.
@@ -284,9 +294,6 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
     # 네 색을 모두 연 회원에게는 그래프 색 항목을 아예 싣지 않는다(#2076) — 더 살 게
     # 없는 카드를 막힌 채 남겨 두면 목록만 길어진다. 색 바꾸기는 기록 그래프에서 한다.
     all_colors = graph_color_service.all_unlocked(db, member_id)
-    # 이용 중인 이모티콘 이용권이 있으면 또 사지 못한다 — 같은 하루를 두 번 사는
-    # 셈이 된다. 남은 시간은 채팅의 고르는 창이 보여 준다(#2020).
-    emote_pass_active = emote_service.active_pass(db, member_id) is not None
     # 달고 있는 펫이 있으면 또 사지 못한다 — 대신 카드가 남은 기간을 보여 준다(#2021).
     pet = profile_pet_service.pet_out(profile_pet_service.active_pet(db, member_id))
     # 지난주 리포트를 이미 받았으면 같은 주를 또 사지 못한다(#2022).
@@ -312,8 +319,6 @@ def build_shop(db: Session, member_id: str) -> PointsShopOut:
             and shields_held >= streak_shield_service.MAX_HELD
         ):
             blocked = BLOCK_SHIELD_LIMIT
-        elif item.id == EMOTE_PASS.id and emote_pass_active:
-            blocked = BLOCK_ACTIVE_PASS
         elif item.id == PROFILE_PET.id and pet is not None:
             blocked = BLOCK_ACTIVE_PET
         elif item.id == WEEKLY_REPORT.id and report_owned:
@@ -404,7 +409,7 @@ def exchange(
     """
     from app.services import gym_service, trainer_service
 
-    item = _ITEMS.get(item_id)
+    item = _ITEMS.get(item_id) if item_id in _CATALOG_IDS else None
     if item is None:
         raise UnknownItem("없는 교환 항목이에요.")
     if item.id == GRAPH_COLOR.id:
@@ -421,12 +426,6 @@ def exchange(
         # 쿠폰이 아니라 고른 펫이 7일 동안 이름 옆에 붙는다 — 펫은 `option` 이 싣는다(#2021).
         return profile_pet_service.exchange(
             db, member_id, option, client_request_id=client_request_id
-        )
-    if item.id == EMOTE_PASS.id:
-        # 쿠폰이 아니라 24시간 이용권이 생긴다 — 표도 규칙도 따로다(#2020).
-        emote_service.buy(db, member_id, client_request_id=client_request_id)
-        return ExchangeOut(
-            spent=EMOTE_PASS.cost, balance=points_service.balance(db, member_id)
         )
     if item.id == STREAK_SHIELD.id:
         # 쿠폰이 아니라 보호권 한 장이 생긴다 — 보유 한도와 표가 따로다(#1788).
@@ -594,19 +593,29 @@ def remind_expiring(db: Session, member_id: str) -> int:
 def cancel_renewal_coupons(db: Session, member_id: str) -> int:
     """담당 연결이 끊긴 회원의 PT 재등록 쿠폰을 취소하고 포인트를 돌려준다.
 
-    취소한 장수를 돌려준다. 커밋하지 않는다 — 담당 해제와 같은 트랜잭션이어야
+    받지 않은 식판 쿠폰(#2150)도 함께 취소한다. 취소한 장수를 돌려준다. 커밋하지 않는다 — 담당 해제와 같은 트랜잭션이어야
     "연결은 끊겼는데 쿠폰은 살아 있는" 반쪽 상태가 생기지 않는다.
 
     이미 기한이 지난 쿠폰은 돌려주지 않고 만료로 내린다(소멸 규칙). 잔액 행을
     쿠폰보다 먼저 잠근다 — 교환과 같은 순서라 서로 기다리다 멈추지 않는다.
     """
-    return _cancel_unused(
+    renewal = _cancel_unused(
         db,
         member_id,
         PT_RENEWAL,
         title="재등록 쿠폰이 취소됐어요",
         reason="담당 트레이너 연결이 해제되어",
     )
+    # 식판(#2150)도 담당 트레이너의 헬스장에서 받는 것이라 함께 취소한다. 0P 라
+    # 돌려줄 포인트는 없고, 새 담당이 생기면 조건을 채운 채로 다시 받는다.
+    tray = _cancel_unused(
+        db,
+        member_id,
+        DIET_TRAY,
+        title="식판 수령 쿠폰이 취소됐어요",
+        reason="담당 트레이너 연결이 해제되어",
+    )
+    return renewal + tray
 
 
 def cancel_locker_coupons(db: Session, member_id: str) -> int:
@@ -665,19 +674,24 @@ def _cancel_unused(
             continue
         row.status = CANCELLED
         row.cancelled_at = now
-        refunded = points_service.refund(
-            db, member_id, points_service.SOURCE_POINTS_COUPON, row.id
-        )
+        if row.cost > 0:
+            refunded = points_service.refund(
+                db, member_id, points_service.SOURCE_POINTS_COUPON, row.id
+            )
+            body = (
+                f"{reason} {item.benefit} 쿠폰을 취소하고 "
+                f"{refunded:,}P를 돌려드렸어요."
+            )
+        else:
+            # 포인트로 사지 않은 쿠폰(식판, #2150) — 돌려줄 것이 없다.
+            body = f"{reason} {item.benefit} 쿠폰을 취소했어요."
         notification_service.queue(
             db,
             member_id=member_id,
             kind=notification_service.POINTS_COUPON,
             category=notification_service.MEMBER_BENEFITS,
             title=title,
-            body=(
-                f"{reason} {item.benefit} 쿠폰을 취소하고 "
-                f"{refunded:,}P를 돌려드렸어요."
-            ),
+            body=body,
         )
         cancelled += 1
     db.flush()
@@ -692,6 +706,7 @@ def coupon_out(row: PointsCoupon, now: datetime | None = None) -> CouponOut:
     item = _ITEMS.get(row.item)
     status = _status(row, now)
     last_day = _expires_on(row)
+    no_expiry = row.expires_at >= NO_EXPIRY
     return CouponOut(
         id=row.id,
         item=row.item,
@@ -705,7 +720,8 @@ def coupon_out(row: PointsCoupon, now: datetime | None = None) -> CouponOut:
         issued_on=clock.to_seoul(row.issued_at).date().isoformat(),
         expires_at=row.expires_at,
         expires_on=last_day.isoformat(),
-        days_left=_days_left(last_day) if status == ISSUED else 0,
+        days_left=_days_left(last_day) if status == ISSUED and not no_expiry else 0,
+        no_expiry=no_expiry,
         used_at=row.used_at,
         cancelled_at=row.cancelled_at,
     )
@@ -742,6 +758,14 @@ def _claim(db: Session, row: PointsCoupon) -> bool:
         db.commit()
         raise CouponNotUsable(EXPIRED)
     raise CouponNotUsable(row.status)
+
+
+def expire_stale(db: Session, member_id: str) -> None:
+    """기한이 지난 사용 가능 쿠폰을 만료로 내린다. 커밋하지 않는다.
+
+    식판 받기(#2150)처럼 이 모듈 밖에서 쿠폰을 만드는 쪽이 쓴다.
+    """
+    _expire_stale(db, member_id)
 
 
 def _expire_stale(db: Session, member_id: str) -> None:

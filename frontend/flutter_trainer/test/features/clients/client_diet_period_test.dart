@@ -116,7 +116,7 @@ void main() {
       );
     });
 
-    testWidgets('나트륨으로 바꾸면 쌓지 않는다', (tester) async {
+    testWidgets('지표는 칼로리 하나라 칩 줄이 없다 — 회원 앱 #1986 (#2156)', (tester) async {
       await openDiet(tester);
       await tester.tap(_periodSegment('전체'));
       await tester.pumpAndSettle();
@@ -124,27 +124,20 @@ void main() {
       final AppLocalizations l = AppLocalizations.of(
         tester.element(find.byType(DietView)),
       );
-      await tester.tap(find.text(l.metricSodium));
-      await tester.pumpAndSettle();
-
-      // 나트륨에는 쌓을 성분이 없다 — 한 색 막대로 돌아가고 머리의 탄단지
-      // 줄도 사라진다. 카드 안으로 범위를 좁힌다 — `OnCareBrand.trainer.primary`
-      // 와 `OnCareBrand.trainer.primary` 가 같은 색이라, 넓은 화면에서 옆에 함께
-      // 뜨는 회원 목록의 정렬 툴바(선택 회원 주간 이행률 바)까지 훑으면
-      // 이 카드와 무관한 primary색 막대까지 걸린다.
+      // 회원 앱은 나트륨·당류를 그래프에서 내리고 칩 줄을 걷어냈다. 트레이너만
+      // 회원이 볼 수 없는 그래프를 보면 같은 기간을 두 사람이 다르게 말한다.
+      expect(find.byType(AppChoiceChip), findsNothing);
+      expect(find.text(l.metricSodium), findsNothing);
+      expect(find.text(l.metricSugar), findsNothing);
+      // 날짜 기간은 카드 **안** 오른쪽 위다(회원 앱 #2009).
       expect(
         find.descendant(
           of: find.byKey(const ValueKey<String>('client-diet-period-card')),
-          matching: find.byWidgetPredicate(
-            (Widget w) =>
-                w is ColoredBox && w.color == OnCareBrand.trainer.primary,
+          matching: find.byKey(
+            const ValueKey<String>('client-diet-period-range'),
           ),
         ),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey<String>('client-diet-period-macros')),
-        findsNothing,
+        findsOneWidget,
       );
     });
 

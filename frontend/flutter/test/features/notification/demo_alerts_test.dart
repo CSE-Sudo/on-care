@@ -37,8 +37,10 @@ void main() {
 
   test('예시 알림은 승인한 갈래와 목적지로 이어진다', () {
     final expected = <String, (AlertCategory, AlertTarget)>{
-      '새 운동 루틴이 도착했어요': (AlertCategory.reminder, AlertTarget.exercise),
-      '이번 주 리포트가 등록됐어요': (AlertCategory.achievement, AlertTarget.coachChat),
+      '새 운동 루틴이 도착했어요': (AlertCategory.routine, AlertTarget.exercise),
+      // 서버 시드와 같은 갈래다(#2084·#2085).
+      '이번 주 리포트가 등록됐어요': (AlertCategory.coachReport, AlertTarget.coachChat),
+      '트레이너 피드백 도착': (AlertCategory.coachChat, AlertTarget.coachChat),
       '저녁 식단을 기록해 주세요': (AlertCategory.reminder, AlertTarget.diet),
       '식단 기록을 꾸준히 이어가고 있어요': (AlertCategory.achievement, AlertTarget.dashboard),
       '이번 주 운동 목표까지 조금 남았어요': (AlertCategory.reminder, AlertTarget.exercise),
@@ -131,40 +133,43 @@ void main() {
   });
 
   group('서버 갈래 해석', () {
-    test('트레이너 활동이 만든 회원 알림은 리마인더다', () {
-      for (final String wire in <String>[
-        'coach_chat',
-        'routine',
-        'member_schedule',
-        'consultation_result',
+    // 서버 갈래를 접지 않고 갈래마다 아이콘을 고른다(#2084).
+    test('서버 갈래마다 앱 갈래가 따로 있다', () {
+      const Map<String, AlertCategory> expected = <String, AlertCategory>{
+        'reminder': AlertCategory.reminder,
+        'coach_chat': AlertCategory.coachChat,
+        // 주간 리포트는 트레이너 메시지와 다른 갈래다(#2085).
+        'coach_report': AlertCategory.coachReport,
+        'routine': AlertCategory.routine,
+        'member_schedule': AlertCategory.schedule,
+        'coach_invite': AlertCategory.trainerLink,
+        'consultation_result': AlertCategory.trainerLink,
         // 상담 요청의 승인·거절·만료(#2067).
-        'consult_decision',
-      ]) {
+        'consult_decision': AlertCategory.consultDecision,
+        // 예전에는 빠져 있어 시스템 공지로 떨어졌다(#1832).
+        'health_goals': AlertCategory.healthGoals,
+        'benefits': AlertCategory.benefits,
+        'points_shop': AlertCategory.challenge,
+        'achievement': AlertCategory.achievement,
+        'system': AlertCategory.system,
+      };
+      expected.forEach((String wire, AlertCategory want) {
         expect(
           DioNotificationRepository.categoryFromWire(wire),
-          AlertCategory.reminder,
+          want,
           reason: wire,
         );
-      }
+      });
     });
 
-    test('기존 갈래는 그대로, 모르는 갈래는 시스템이다', () {
-      expect(
-        DioNotificationRepository.categoryFromWire('reminder'),
-        AlertCategory.reminder,
-      );
+    test('보내는 곳이 없는 health_check 는 리마인더로 그린다', () {
       expect(
         DioNotificationRepository.categoryFromWire('health_check'),
-        AlertCategory.healthCheck,
+        AlertCategory.reminder,
       );
-      expect(
-        DioNotificationRepository.categoryFromWire('achievement'),
-        AlertCategory.achievement,
-      );
-      expect(
-        DioNotificationRepository.categoryFromWire('system'),
-        AlertCategory.system,
-      );
+    });
+
+    test('모르는 갈래는 시스템이다', () {
       expect(
         DioNotificationRepository.categoryFromWire('brand_new'),
         AlertCategory.system,

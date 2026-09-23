@@ -101,7 +101,7 @@ class _PurchasedReportCardState extends ConsumerState<PurchasedReportCard> {
             insightLines: insights,
           );
       if (!mounted) return;
-      await showPdfPreviewDialog(
+      await openPdfPreviewPage(
         context,
         bytes,
         l.coachReportPdfFileName(_ymd(widget.weekStart)),

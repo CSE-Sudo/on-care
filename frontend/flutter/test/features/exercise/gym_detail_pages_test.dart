@@ -14,6 +14,7 @@ import 'package:oncare/features/exercise/domain/entities/trainer.dart';
 import 'package:oncare/features/exercise/presentation/controllers/consultation_request_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/gen/l10n/app_localizations.dart';
+import 'package:oncare_ui/oncare_ui.dart';
 
 import '../../support/consultation_test_support.dart';
 
@@ -186,6 +187,36 @@ void main() {
 
     expect(find.text('헬스장 상세'), findsOneWidget);
     expect(find.text('헬스장 상담 요청하기'), findsNothing);
+  });
+
+  // 트레이너를 고르는 자리와 눌러 들어간 트레이너 상세·채팅이 같은 얼굴이다
+  // (#2154). 예전에는 사람 아이콘이라 줄마다 같은 그림이 반복됐다.
+  testWidgets('소속 트레이너 행은 성씨 프로필로 선다 (#2154)', (WidgetTester tester) async {
+    await pumpRoute(
+      tester,
+      location: AppRoutes.gymDetailPath(_gymWithTrainer.id),
+      trainers: const <Trainer>[_trainer, _longRoleTrainer],
+    );
+
+    for (final Trainer trainer in <Trainer>[_trainer, _longRoleTrainer]) {
+      final Finder avatar = find.byWidgetPredicate(
+        (Widget w) => w is AppAvatar && w.name == trainer.name,
+      );
+      await tester.scrollUntilVisible(
+        avatar,
+        250,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(avatar, findsOneWidget);
+      expect(tester.widget<AppAvatar>(avatar).size, AppAvatarSize.large);
+      expect(
+        find.descendant(
+          of: avatar,
+          matching: find.text(trainer.name.characters.first),
+        ),
+        findsOneWidget,
+      );
+    }
   });
 
   // 이름과 직함은 한 줄에 읽힌다 — 헬스장 찾기·내 헬스장 카드의 트레이너 줄과
