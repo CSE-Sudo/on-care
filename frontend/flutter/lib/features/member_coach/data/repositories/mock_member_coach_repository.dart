@@ -71,6 +71,12 @@ class MockMemberCoachRepository implements MemberCoachRepository {
 
   static String _dayKey(DateTime day) => wireDate(day);
 
+  /// 데모의 트레이너 배정이 걸리기 시작한 날 — 오늘 포함 4주의 첫날. (#2162)
+  static String _routineSinceKey() {
+    final DateTime today = todayKst();
+    return _dayKey(DateTime(today.year, today.month, today.day - 27));
+  }
+
   static const _coach = MemberCoach(
     trainerId: 'seed-trainer',
     name: kDemoTrainerName,
@@ -335,6 +341,12 @@ class MockMemberCoachRepository implements MemberCoachRepository {
   /// 않는다 — 실서버와 같은 모양을 낸다(#2014).
   List<CoachRoutine> _routinesOn(DateTime day, {required bool today}) {
     final String key = _dayKey(day);
+    // 트레이너 배정은 4주 전부터 걸려 있던 목록이다 — 서버 시드
+    // (`seed_member_data._seed_routine_since`)와 같은 날부터다. 그보다 앞선 날에
+    // 목록을 보이면 운동 AI 맞춤 조언(#2162)의 "몇 주째" 가 두 경로에서 갈린다.
+    if (_hasCoach() && key.compareTo(_routineSinceKey()) < 0) {
+      return const <CoachRoutine>[];
+    }
     final Map<String, CoachRoutine> done =
         _doneByDay[key] ?? const <String, CoachRoutine>{};
     return List<CoachRoutine>.unmodifiable(<CoachRoutine>[

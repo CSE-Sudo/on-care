@@ -13,13 +13,16 @@
 """
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
+from pathlib import Path
 
 import pytest
 
-from app.services import diet_service, exercise_service, period_window
+from app.services import diet_service, exercise_service, period_window, routine_advice
 from app.services.diet_service import DietDayTotals
 from app.services.exercise_service import ExerciseDayTotals
+from app.services.trainer_service import RoutineDay, RoutineDayItem
 
 #: 한 문장 반. 이보다 길어지면 카드가 두 줄을 넘겨 화면이 밀린다.
 MAX_LEN = 45
@@ -114,3 +117,84 @@ def test_diet_messages_stay_short(days, period):
 def test_exercise_messages_stay_short(days, period):
     message = exercise_service.period_coach_message(days, period)
     assert len(message) <= MAX_LEN, message
+
+
+# --- 추천 개인운동 기준 조언 (#2162) -------------------------------------------
+#
+# 서버와 데모(`core/demo/period_advice.dart`)가 **같은 사례 파일**을 읽어 같은
+# 문장을 내는지 본다. 규칙을 바꾸면 그 파일의 expected 도 함께 고친다.
+
+_ROUTINE_CASES_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "frontend/flutter/test/core/demo/routine_advice_cases.json"
+)
+_ROUTINE_CASES = json.loads(_ROUTINE_CASES_PATH.read_text(encoding="utf-8"))
+
+
+def _routine_days(raw: list[dict]) -> list[RoutineDay]:
+    return [
+        RoutineDay(
+            date=date.fromisoformat(day["date"]),
+            routines=[
+                RoutineDayItem(
+                    routine_id=f"r{index}",
+                    name=item["name"],
+                    type=item["type"],
+                    minutes=item["minutes"],
+                    sort_order=index,
+                    source="trainer",
+                    done=item["done"],
+                    completed_minutes=item["completed_minutes"],
+                )
+                for index, item in enumerate(day["routines"])
+            ],
+        )
+        for day in raw
+    ]
+
+
+@pytest.mark.parametrize(
+    "case", _ROUTINE_CASES["cases"], ids=[c["name"] for c in _ROUTINE_CASES["cases"]]
+)
+def test_routine_advice_matches_the_shared_cases(case):
+    message = routine_advice.coach_message(_routine_days(case["days"]), case["period"])
+    assert message == case["expected"]
+
+
+@pytest.mark.parametrize(
+    "case", _ROUTINE_CASES["cases"], ids=[c["name"] for c in _ROUTINE_CASES["cases"]]
+)
+def test_routine_advice_stays_short(case):
+    """트레이너가 긴 이름을 적어도 카드 한도를 넘지 않는다."""
+    message = routine_advice.coach_message(_routine_days(case["days"]), case["period"])
+    assert message is None or len(message) <= MAX_LEN, message
+
+
+def test_routine_advice_limit_is_the_card_limit():
+    assert routine_advice.ADVICE_MAX_LEN == MAX_LEN
+
+
+@pytest.mark.parametrize("name, part", sorted(_ROUTINE_CASES["body_parts"].items()))
+def test_body_part_is_read_from_the_exercise_name(name, part):
+    assert routine_advice.body_part_of(name) == part
+
+
+def test_routine_list_takes_over_the_advice():
+    """오늘 걸린 추천이 있으면 직접 기록보다 그 목록으로 말한다."""
+    case = next(c for c in _ROUTINE_CASES["cases"] if c["period"] == "today" and c["expected"])
+    days = [_exercise_day(date.fromisoformat(case["days"][-1]["date"]))]
+    message = exercise_service.period_coach_message(
+        days, period_window.PERIOD_TODAY, _routine_days(case["days"])
+    )
+    assert message == case["expected"]
+
+
+@pytest.mark.parametrize("period", PERIODS)
+def test_without_routines_the_record_advice_stays(period):
+    """추천 목록이 없는 회원은 지금까지의 직접 기록 기준 조언을 그대로 듣는다."""
+    today = date(2026, 9, 23)
+    days = [_exercise_day(today)]
+    expected = exercise_service.period_coach_message(days, period)
+    empty_today = [RoutineDay(date=today, routines=[])]
+    assert exercise_service.period_coach_message(days, period, empty_today) == expected
+    assert exercise_service.period_coach_message(days, period, []) == expected

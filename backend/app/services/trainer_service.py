@@ -52,6 +52,7 @@ from app.services import (
     notification_service,
     points_coupon_service,
     points_service,
+    routine_advice,
     routine_suggestion_service,
     schedule_parse,
     streak_shield_service,
@@ -4423,6 +4424,23 @@ def member_routine_days(
         days.append(RoutineDay(date=day, routines=items))
         day += timedelta(days=1)
     return days
+
+
+def advice_routine_days(db: Session, member_id: str, period: str) -> list[RoutineDay]:
+    """운동 AI 맞춤 조언이 읽는 추천 개인운동 — 기간에 맞는 날들. (#2162)
+
+    회원 앱(`/exercise/advice`)과 트레이너웹이 이 함수 하나를 함께 쓴다 — 읽는
+    구간이 갈리면 같은 회원의 같은 기간을 두고 두 화면이 다른 말을 한다.
+
+    담당이 없는 회원의 오늘 AI 추천은 운동 탭을 열 때 만들어진다. 조언이 먼저
+    불리면 오늘 칸이 비어 "추천이 없는 회원" 으로 읽히므로 여기서도 준비한다.
+    """
+    today = clock.today()
+    if get_member_trainer_id(db, member_id) is None:
+        auto_routine_service.ensure_auto_routines(db, member_id)
+    return member_routine_days(
+        db, member_id, routine_advice.fetch_start(period, today), today
+    )
 
 
 class RoutineDayInFuture(Exception):

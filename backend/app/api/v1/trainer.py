@@ -608,12 +608,14 @@ def trainer_client_exercise_advice(
     # 조회·집계는 회원 앱과 **같은 함수**다(#1574) — 규칙이 갈리면 같은 회원의
     # 같은 기간을 두 화면이 다른 날부터 세게 된다.
     start, end, days = exercise_service.period_days(db, member_id, period)
+    # 추천 개인운동 기준 조언(#2162)도 회원 앱과 같은 함수로 읽는다.
+    routine_days = trainer_service.advice_routine_days(db, member_id, period)
     return ExerciseAdviceResponse(
         period=period,
         from_date=start,
         to_date=end,
         days_logged=len(days),
-        message=exercise_service.period_coach_message(days, period),
+        message=exercise_service.period_coach_message(days, period, routine_days),
     )
 
 
