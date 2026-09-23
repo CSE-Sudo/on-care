@@ -1029,6 +1029,10 @@
   "aiStepDone": "최종 검토",
   "aiSkipPtProgram": "PT 없이 개인운동만 짜기",
   "aiPersonalRationaleLabel": "AI 추천 사유",
+  "aiPersonalStepFull": "개인운동은 한 번에 {count}개까지 정할 수 있어요.",
+  "@aiPersonalStepFull": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "aiPersonalStepBadge": "AI 제안 {count}",
   "@aiPersonalStepBadge": {
     "placeholders": { "count": { "type": "int" } }

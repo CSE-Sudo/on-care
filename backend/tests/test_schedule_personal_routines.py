@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 
 from app.core import clock
 from app.models.models import TrainerRoutine, TrainerSchedule
@@ -40,7 +40,10 @@ def _cleanup_routines(db_session) -> None:
     for routine in db_session.scalars(
         select(TrainerRoutine).where(
             TrainerRoutine.member_id == MEMBER,
-            TrainerRoutine.name.like(f"{_NAME_PREFIX}%"),
+            or_(
+                TrainerRoutine.name.like(f"{_NAME_PREFIX}%"),
+                TrainerRoutine.program_name.like(f"{_NAME_PREFIX}%"),
+            ),
         )
     ).all():
         db_session.delete(routine)
@@ -196,17 +199,34 @@ def test_program_schedule_without_personal_routines_still_works(client, db_sessi
 
 
 def _routine_only_body(request_id: str) -> dict:
+    """`개인운동만` 전송 본문 — 운동 하나가 세션 하나다. (#2223)
+
+    트레이너 웹이 이렇게 보낸다: 운동 하나가 배정 한 건이 되어야 회원이 운동
+    하나씩 완료를 표시할 수 있다.
+    """
     return {
         "name": f"{_NAME_PREFIX} 이번 주 개인운동",
         "sessions": [
             {
-                "id": "session-1",
-                "name": "세션 A",
+                "id": "session-walk",
+                "name": "걷기",
                 "exercises": [{"id": "ex-1", "name": "걷기", "duration": 30}],
-            }
+            },
+            {
+                "id": "session-plank",
+                "name": "플랭크",
+                "exercises": [
+                    {
+                        "id": "ex-2",
+                        "name": "플랭크",
+                        "type": "근력",
+                        "sets": 3,
+                        "hold_seconds": 45,
+                    }
+                ],
+            },
         ],
         "delivery_kind": "routine_only",
-        "trainer_message": "이번 주는 PT 쉬어요, 이것만 챙겨 주세요",
         "repeat_days": 7,
         "client_request_id": request_id,
     }
@@ -230,13 +250,15 @@ def test_routine_only_delivery_covers_a_week_from_today(client, db_session):
         rows = r.json()
 
         today = clock.today()
-        assert [row["exercise_date"] for row in rows] == [
+        week = [
             (today + timedelta(days=offset)).isoformat() for offset in range(7)
         ]
+        # 운동 하나가 배정 한 건이고, 그것이 이레 동안 날마다 선다.
+        assert [row["session_name"] for row in rows] == ["걷기"] * 7 + [
+            "플랭크"
+        ] * 7
+        assert [row["exercise_date"] for row in rows] == week * 2
         assert {row["delivery_kind"] for row in rows} == {"routine_only"}
-        assert {row["trainer_message"] for row in rows} == {
-            "이번 주는 PT 쉬어요, 이것만 챙겨 주세요"
-        }
         # 붙일 PT 일정이 없다.
         assert {row["schedule_id"] for row in rows} == {None}
 
@@ -261,7 +283,8 @@ def test_routine_only_retry_does_not_send_a_second_week(client, db_session):
 
         assert first.status_code == 201, first.text
         assert retry.status_code == 201, retry.text
-        assert len(first.json()) == 7
+        # 운동 둘 × 이레.
+        assert len(first.json()) == 14
         assert [row["id"] for row in retry.json()] == [
             row["id"] for row in first.json()
         ]
@@ -269,9 +292,10 @@ def test_routine_only_retry_does_not_send_a_second_week(client, db_session):
         rows = db_session.scalars(
             select(TrainerRoutine).where(
                 TrainerRoutine.member_id == MEMBER,
-                TrainerRoutine.name.like(f"{_NAME_PREFIX} 이번 주 개인운동"),
+                TrainerRoutine.program_name
+                == f"{_NAME_PREFIX} 이번 주 개인운동",
             )
         ).all()
-        assert len(rows) == 7
+        assert len(rows) == 14
     finally:
         _cleanup_routines(db_session)

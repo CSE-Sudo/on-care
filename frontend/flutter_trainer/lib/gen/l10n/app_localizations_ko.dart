@@ -2501,6 +2501,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiPersonalRationaleLabel => 'AI 추천 사유';
 
   @override
+  String aiPersonalStepFull(int count) {
+    return '개인운동은 한 번에 $count개까지 정할 수 있어요.';
+  }
+
+  @override
   String aiPersonalStepBadge(int count) {
     return 'AI 제안 $count';
   }

@@ -2610,6 +2610,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiPersonalRationaleLabel => 'Why AI picked this';
 
   @override
+  String aiPersonalStepFull(int count) {
+    return 'You can set up to $count personal exercises at once.';
+  }
+
+  @override
   String aiPersonalStepBadge(int count) {
     return '$count AI suggested';
   }

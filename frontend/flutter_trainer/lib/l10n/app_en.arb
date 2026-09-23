@@ -1619,6 +1619,10 @@
   "aiStepDone": "Final review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
   "aiPersonalRationaleLabel": "Why AI picked this",
+  "aiPersonalStepFull": "You can set up to {count} personal exercises at once.",
+  "@aiPersonalStepFull": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "aiPersonalStepBadge": "{count} AI suggested",
   "@aiPersonalStepBadge": {
     "placeholders": { "count": { "type": "int" } }

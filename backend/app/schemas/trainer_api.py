@@ -794,8 +794,9 @@ class PersonalRoutineItem(BaseModel):
 
 
 #: 한 PT 일정에 붙일 수 있는 개인운동 수의 상한. 프로그램 세션 상한과 같은
-#: 이유로 둔다 — 화면이 다 보여 줄 수 있는 만큼만 받는다.
-_MAX_PERSONAL_ROUTINES = 20
+#: 값이다(#2223) — `개인운동만` 은 운동 하나가 세션 하나가 되므로, 두 경로에
+#: 다른 상한을 두면 같은 목록이 한쪽에서만 거절된다.
+_MAX_PERSONAL_ROUTINES = _PROGRAM_MAX_SESSIONS
 
 
 class ProgramAssignRequest(BaseModel):

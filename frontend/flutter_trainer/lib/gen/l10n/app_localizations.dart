@@ -4616,6 +4616,12 @@ abstract class AppLocalizations {
   /// **'Why AI picked this'**
   String get aiPersonalRationaleLabel;
 
+  /// No description provided for @aiPersonalStepFull.
+  ///
+  /// In en, this message translates to:
+  /// **'You can set up to {count} personal exercises at once.'**
+  String aiPersonalStepFull(int count);
+
   /// No description provided for @aiPersonalStepBadge.
   ///
   /// In en, this message translates to:

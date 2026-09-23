@@ -1217,6 +1217,11 @@ void main() {
         overrides: <Override>[
           appConfigProvider.overrideWithValue(_mockConfig),
           trainerRoutineRepositoryProvider.overrideWithValue(repository),
+          // 제안 없이 시작해 직접 넣은 한 줄만 보게 한다 — 무엇이 나갔는지
+          // 세는 테스트라 목록이 고정이어야 한다.
+          trainerRoutineSuggestionRepositoryProvider.overrideWithValue(
+            _StaticSuggestionRepository(const <RoutineSuggestion>[]),
+          ),
         ],
         child: MaterialApp(
           locale: const Locale('ko'),
@@ -1262,6 +1267,13 @@ void main() {
     expect(repository.programs, hasLength(1));
     final sent = repository.programs.single;
     expect(sent.memberId, _client.id);
+    // 운동 하나가 세션 하나다 — 배정도 운동별로 나뉘어, 회원이 하나씩 완료를
+    // 표시할 수 있다(#2223).
+    final sessions = sent.payload['sessions']! as List<Object?>;
+    expect(sessions, hasLength(1));
+    final session = sessions.single! as Map<String, Object?>;
+    expect(session['name'], '걷기');
+    expect((session['exercises']! as List<Object?>), hasLength(1));
     expect(sent.payload['delivery_kind'], 'routine_only');
     // 전송 전체에 붙는 한마디는 두지 않는다 — 회원 앱에 받을 자리가 없다.
     expect(sent.payload.containsKey('trainer_message'), isFalse);

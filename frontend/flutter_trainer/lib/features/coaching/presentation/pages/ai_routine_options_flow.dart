@@ -646,14 +646,18 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           .read(trainerRoutineRepositoryProvider)
           .assignProgram(widget.client.id, <String, Object?>{
             'name': l.aiRoutineOnlyProgramName,
+            // 운동 하나가 배정 한 건이다 — PT 에 붙이는 개인운동과 같은 모양
+            // 이고, 그래야 회원이 `걷기는 했고 플랭크는 안 했다` 를 하나씩
+            // 표시할 수 있다. 한 덩어리로 보내면 체크도 한 번뿐이다.
             'sessions': <Map<String, Object?>>[
-              <String, Object?>{
-                'id': 'routine-only',
-                'name': '',
-                'exercises': <Map<String, Object?>>[
-                  for (final e in _personal) _personalExerciseToJson(e),
-                ],
-              },
+              for (final e in _personal)
+                <String, Object?>{
+                  'id': 'routine-only-${e.name.hashCode}',
+                  'name': e.name,
+                  'exercises': <Map<String, Object?>>[
+                    _personalExerciseToJson(e),
+                  ],
+                },
             ],
             'delivery_kind': 'routine_only',
             // 시작일은 보내지 않는다 — 서버가 받은 날(KST)부터 이레를 만든다.
@@ -1737,11 +1741,24 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
           AppButton(
             key: const ValueKey<String>('show-add-personal-exercise-form'),
             label: l.aiAddExerciseManually,
-            onPressed: () => setState(() => _showAddExercise = true),
+            // 운동 하나가 배정 한 건이 되므로 서버의 세션 상한을 넘길 수
+            // 없다. 넘기기 전에 여기서 막는다 — 다 적은 뒤 422 로 되돌려
+            //받는 것보다 낫다.
+            onPressed: _personal.length >= _maxPersonalRoutines
+                ? null
+                : () => setState(() => _showAddExercise = true),
             variant: AppButtonVariant.secondary,
             leadingIcon: Icons.add_rounded,
             fullWidth: true,
           ),
+        if (_personal.length >= _maxPersonalRoutines) ...<Widget>[
+          const SizedBox(height: OnCareSpacing.s4),
+          Text(
+            l.aiPersonalStepFull(_maxPersonalRoutines),
+            key: const ValueKey<String>('personal-routine-full'),
+            style: _text(OnCareTypography.caption, OnCareColors.textSecondary),
+          ),
+        ],
         // 마지막 칸이면 보낼 조건(시작일·한마디)도 여기서 정한다.
         if (_kind == ProgramKind.routineOnly) ...<Widget>[
           const SizedBox(height: OnCareSpacing.s16),
@@ -1891,6 +1908,10 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
 
   /// `개인운동만` 이 덮는 날 수 — 보낸 날부터 한 주. 서버에 그대로 나간다.
   static const int _routineOnlyDays = 7;
+
+  /// 한 번에 정할 수 있는 개인운동 수. 운동 하나가 배정 한 건(=프로그램 세션
+  /// 하나)이 되므로 서버의 세션 상한과 같은 값이다.
+  static const int _maxPersonalRoutines = 12;
 
   /// 날짜 한 줄(YYYY-MM-DD) — 서버가 받는 모양이고 화면에도 그대로 쓴다.
   String _ymd(DateTime date) =>
