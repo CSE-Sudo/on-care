@@ -37,6 +37,7 @@ const CoachRoutine _planned = CoachRoutine(
 );
 
 /// 권장대로 한 배정 — 한 강도만 남기고 권장 태그는 되풀이하지 않는다.
+/// 권장 강도는 기본값 `moderate` 이라 따로 적지 않는다.
 const CoachRoutine _doneAsPlanned = CoachRoutine(
   id: 'r-done-same',
   name: '코어 강화',
@@ -44,7 +45,6 @@ const CoachRoutine _doneAsPlanned = CoachRoutine(
   type: '근력',
   reason: '기초대사량 향상',
   source: 'trainer',
-  intensity: 'moderate',
   completed: true,
   completedIntensity: 'moderate',
 );
