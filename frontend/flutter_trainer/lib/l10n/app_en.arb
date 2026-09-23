@@ -1618,6 +1618,25 @@
   "aiStepReview": "Program selection",
   "aiStepDone": "Final review",
   "aiSkipPtProgram": "Skip PT — personal exercise only",
+  "aiPersonalStepBadge": "{count} AI suggested",
+  "@aiPersonalStepBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "aiPersonalStepIntro": "Based on recent PT feedback and workout history, here is personal exercise for {name}. Only what stays here goes to the member.",
+  "@aiPersonalStepIntro": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "aiPersonalStepLoadFailed": "Could not load the AI personal-exercise suggestions",
+  "aiPersonalStepNoSuggestion": "No AI suggestion today. Add one below.",
+  "aiPersonalReason": "A note for the member",
+  "aiPersonalReasonHint": "Stop if your right shoulder hurts",
+  "aiPersonalDismissTooltip": "Drop this suggestion",
+  "aiPersonalDismissed": "{name} will not be recommended",
+  "@aiPersonalDismissed": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "aiPersonalDismissFailed": "Could not complete that. Please try again shortly.",
+  "aiStepSkipped": "Skipped",
   "aiStepPersonal": "Personal exercise",
   "aiGoToPersonalStep": "Next · plan personal exercise",
   "aiPersonalStepTitle": "Personal exercise between PT",

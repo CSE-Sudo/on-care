@@ -533,8 +533,8 @@ void main() {
       final double narrow = circleGap();
 
       expect(narrow, wide);
-      // 칸 폭(원 지름 32 + 간격 64)이 곧 중심 사이 거리다.
-      expect(wide, 96);
+      // 칸 폭(원 지름 32 + 간격 80)이 곧 중심 사이 거리다.
+      expect(wide, 112);
 
       // 원들은 표시줄 가운데에 모인다 — 첫 원 왼쪽과 마지막 원 오른쪽의
       // 여백이 같다.
@@ -550,24 +550,32 @@ void main() {
       );
     });
 
-    testWidgets('PT 프로그램 짜기를 건너뛰면 세 단계가 되고 바로 개인운동으로 간다 (#2223)', (
-      tester,
-    ) async {
+    testWidgets('PT 프로그램 짜기를 건너뛰어도 칸은 넷 그대로고, 지나친 칸은 '
+        '`건너뜀` 으로 남는다 (#2223)', (tester) async {
       final repo = await pumpFlow(tester);
 
       await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
       await tester.pumpAndSettle();
 
-      expect(find.text('조건 설정'), findsOneWidget);
-      expect(find.text('개인운동'), findsOneWidget);
-      expect(find.text('최종 검토'), findsOneWidget);
-      // PT 프로그램을 짜지 않으므로 그 단계도, 네 번째 칸도 없다.
-      expect(find.text('프로그램 선택'), findsNothing);
+      // 흐름이 짧아진 것처럼 보이지 않게 네 칸을 그대로 둔다.
+      for (final label in <String>['조건 설정', '프로그램 선택', '최종 검토', '개인운동']) {
+        expect(find.text(label), findsOneWidget);
+      }
       expect(
         find.byKey(const ValueKey<String>('routine-stage-3')),
-        findsNothing,
+        findsOneWidget,
       );
-      // 곧바로 개인운동 단계다.
+      // 고를 PT 도, 검토할 PT 도 없는 가운데 두 칸만 지나친다.
+      expect(
+        find.byKey(const ValueKey<String>('routine-stage-skipped-1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('routine-stage-skipped-2')),
+        findsOneWidget,
+      );
+      expect(find.text('건너뜀'), findsNWidgets(2));
+      // 곧바로 마지막 칸(개인운동)이다.
       expect(
         find.byKey(const ValueKey<String>('personal-routine-step')),
         findsOneWidget,
@@ -1088,7 +1096,7 @@ void main() {
     },
   );
 
-  testWidgets('개인운동만은 최종 검토에서 바로 회원에게 보낸다 (#2223)', (tester) async {
+  testWidgets('개인운동만은 마지막 칸에서 바로 회원에게 보낸다 (#2223)', (tester) async {
     // PT 가 없으므로 붙일 일정이 없다 — 편집기를 거치지 않고 이 화면이
     // 곧바로 배정을 부른다. 시작일과 회원에게 한마디가 함께 나간다.
     final repository = _RoutineOnlyRepository();
@@ -1125,14 +1133,8 @@ void main() {
     );
 
     await _addPersonalRoutine(tester);
-    await tester.ensureVisible(
-      find.byKey(const ValueKey<String>('complete-personal-routines')),
-    );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('complete-personal-routines')),
-    );
-    await tester.pumpAndSettle();
 
+    // 마지막 칸이라 보낼 조건(시작일·한마디)도 이 화면에 있다.
     await tester.enterText(
       _textFieldUnder(
         find.byKey(const ValueKey<String>('routine-only-member-message')),

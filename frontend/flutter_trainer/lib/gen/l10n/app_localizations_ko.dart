@@ -2498,6 +2498,42 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
 
   @override
+  String aiPersonalStepBadge(int count) {
+    return 'AI 제안 $count';
+  }
+
+  @override
+  String aiPersonalStepIntro(String name) {
+    return '최근 PT 피드백과 운동 기록을 바탕으로 $name님에게 도움이 될 개인운동을 준비했어요. 여기 남긴 것만 회원에게 가요.';
+  }
+
+  @override
+  String get aiPersonalStepLoadFailed => 'AI 개인운동 제안을 불러오지 못했어요';
+
+  @override
+  String get aiPersonalStepNoSuggestion => '오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.';
+
+  @override
+  String get aiPersonalReason => '회원에게 전달할 메모';
+
+  @override
+  String get aiPersonalReasonHint => '오른쪽 어깨에 통증이 생기면 중단하세요';
+
+  @override
+  String get aiPersonalDismissTooltip => '이 제안 빼기';
+
+  @override
+  String aiPersonalDismissed(String name) {
+    return '$name은(는) 추천하지 않아요';
+  }
+
+  @override
+  String get aiPersonalDismissFailed => '처리하지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get aiStepSkipped => '건너뜀';
+
+  @override
   String get aiStepPersonal => '개인운동';
 
   @override

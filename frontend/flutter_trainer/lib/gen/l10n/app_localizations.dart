@@ -4610,6 +4610,66 @@ abstract class AppLocalizations {
   /// **'Skip PT — personal exercise only'**
   String get aiSkipPtProgram;
 
+  /// No description provided for @aiPersonalStepBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} AI suggested'**
+  String aiPersonalStepBadge(int count);
+
+  /// No description provided for @aiPersonalStepIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Based on recent PT feedback and workout history, here is personal exercise for {name}. Only what stays here goes to the member.'**
+  String aiPersonalStepIntro(String name);
+
+  /// No description provided for @aiPersonalStepLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the AI personal-exercise suggestions'**
+  String get aiPersonalStepLoadFailed;
+
+  /// No description provided for @aiPersonalStepNoSuggestion.
+  ///
+  /// In en, this message translates to:
+  /// **'No AI suggestion today. Add one below.'**
+  String get aiPersonalStepNoSuggestion;
+
+  /// No description provided for @aiPersonalReason.
+  ///
+  /// In en, this message translates to:
+  /// **'A note for the member'**
+  String get aiPersonalReason;
+
+  /// No description provided for @aiPersonalReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop if your right shoulder hurts'**
+  String get aiPersonalReasonHint;
+
+  /// No description provided for @aiPersonalDismissTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Drop this suggestion'**
+  String get aiPersonalDismissTooltip;
+
+  /// No description provided for @aiPersonalDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} will not be recommended'**
+  String aiPersonalDismissed(String name);
+
+  /// No description provided for @aiPersonalDismissFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not complete that. Please try again shortly.'**
+  String get aiPersonalDismissFailed;
+
+  /// No description provided for @aiStepSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Skipped'**
+  String get aiStepSkipped;
+
   /// No description provided for @aiStepPersonal.
   ///
   /// In en, this message translates to:

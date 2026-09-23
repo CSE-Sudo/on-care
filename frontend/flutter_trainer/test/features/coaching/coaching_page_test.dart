@@ -513,11 +513,13 @@ Future<void> _completePersonalStep(
   Finder scrollable,
 ) async {
   // 제안이 늦게 도착할 수 있다 — 한 번 더 정착시킨 뒤 비어 있는지 본다.
+  // 줄이 하나라도 있으면 그 줄의 빼기 버튼이 있다 — 빈 상태 문구는 제안이
+  // 없을 때와 못 읽었을 때가 달라, 줄 자체로 판단한다.
   await tester.pumpAndSettle();
   if (find
-      .byKey(const ValueKey<String>('personal-routine-empty'))
+      .byKey(const ValueKey<String>('routine-remove-personal-0'))
       .evaluate()
-      .isNotEmpty) {
+      .isEmpty) {
     final addForm = find.byKey(
       const ValueKey<String>('show-add-personal-exercise-form'),
     );

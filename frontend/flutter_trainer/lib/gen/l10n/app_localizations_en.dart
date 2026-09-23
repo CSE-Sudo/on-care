@@ -2607,6 +2607,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiSkipPtProgram => 'Skip PT — personal exercise only';
 
   @override
+  String aiPersonalStepBadge(int count) {
+    return '$count AI suggested';
+  }
+
+  @override
+  String aiPersonalStepIntro(String name) {
+    return 'Based on recent PT feedback and workout history, here is personal exercise for $name. Only what stays here goes to the member.';
+  }
+
+  @override
+  String get aiPersonalStepLoadFailed =>
+      'Could not load the AI personal-exercise suggestions';
+
+  @override
+  String get aiPersonalStepNoSuggestion =>
+      'No AI suggestion today. Add one below.';
+
+  @override
+  String get aiPersonalReason => 'A note for the member';
+
+  @override
+  String get aiPersonalReasonHint => 'Stop if your right shoulder hurts';
+
+  @override
+  String get aiPersonalDismissTooltip => 'Drop this suggestion';
+
+  @override
+  String aiPersonalDismissed(String name) {
+    return '$name will not be recommended';
+  }
+
+  @override
+  String get aiPersonalDismissFailed =>
+      'Could not complete that. Please try again shortly.';
+
+  @override
+  String get aiStepSkipped => 'Skipped';
+
+  @override
   String get aiStepPersonal => 'Personal exercise';
 
   @override

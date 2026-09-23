@@ -1028,6 +1028,25 @@
   "aiStepReview": "프로그램 선택",
   "aiStepDone": "최종 검토",
   "aiSkipPtProgram": "PT 없이 개인운동만 짜기",
+  "aiPersonalStepBadge": "AI 제안 {count}",
+  "@aiPersonalStepBadge": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "aiPersonalStepIntro": "최근 PT 피드백과 운동 기록을 바탕으로 {name}님에게 도움이 될 개인운동을 준비했어요. 여기 남긴 것만 회원에게 가요.",
+  "@aiPersonalStepIntro": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "aiPersonalStepLoadFailed": "AI 개인운동 제안을 불러오지 못했어요",
+  "aiPersonalStepNoSuggestion": "오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.",
+  "aiPersonalReason": "회원에게 전달할 메모",
+  "aiPersonalReasonHint": "오른쪽 어깨에 통증이 생기면 중단하세요",
+  "aiPersonalDismissTooltip": "이 제안 빼기",
+  "aiPersonalDismissed": "{name}은(는) 추천하지 않아요",
+  "@aiPersonalDismissed": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "aiPersonalDismissFailed": "처리하지 못했어요. 잠시 후 다시 시도해 주세요",
+  "aiStepSkipped": "건너뜀",
   "aiStepPersonal": "개인운동",
   "aiGoToPersonalStep": "다음 · 개인운동 짜기",
   "aiPersonalStepTitle": "PT 사이에 할 개인운동",
