@@ -104,6 +104,28 @@ class EditedFood(RecognizedFood):
     source: FoodSource = "member"
 
 
+def _past_or_today(value: str | None) -> str | None:
+    """달력에 있는 날짜여야 하고, 아직 오지 않은 날은 받지 않는다.
+
+    먹지 않은 식사를 기록할 수는 없다. 앞날을 허용하면 오늘까지를 세는
+    평균·연속 기록이 미래 값을 함께 세어 화면마다 다른 수를 말한다.
+    """
+    if value is None:
+        return None
+    # `fromisoformat` 은 `20260801` 같은 축약형도 받는다. 계약은 한 가지
+    # 표기뿐이라 형태부터 걸러 낸다 — 두 표기가 섞이면 화면과 로그에서
+    # 같은 날짜가 다른 문자열로 남는다.
+    if not _YMD.fullmatch(value):
+        raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.")
+    try:
+        parsed = _date.fromisoformat(value)
+    except ValueError as e:
+        raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.") from e
+    if parsed > clock.today():
+        raise ValueError("date 는 오늘보다 뒤일 수 없습니다.")
+    return parsed.isoformat()
+
+
 class DietEntryUpdate(PartialUpdate):
     """PUT /diet/entries/{id} — 끼니 정보와 영양소 부분 수정.
 
@@ -133,25 +155,35 @@ class DietEntryUpdate(PartialUpdate):
     @field_validator("date")
     @classmethod
     def _valid_past_or_today(cls, value: str | None) -> str | None:
-        """달력에 있는 날짜여야 하고, 아직 오지 않은 날은 받지 않는다.
+        return _past_or_today(value)
 
-        먹지 않은 식사를 기록할 수는 없다. 앞날을 허용하면 오늘까지를 세는
-        평균·연속 기록이 미래 값을 함께 세어 화면마다 다른 수를 말한다.
-        """
-        if value is None:
-            return None
-        # `fromisoformat` 은 `20260801` 같은 축약형도 받는다. 계약은 한 가지
-        # 표기뿐이라 형태부터 걸러 낸다 — 두 표기가 섞이면 화면과 로그에서
-        # 같은 날짜가 다른 문자열로 남는다.
-        if not _YMD.fullmatch(value):
-            raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.")
-        try:
-            parsed = _date.fromisoformat(value)
-        except ValueError as e:
-            raise ValueError("date 는 YYYY-MM-DD 형식이어야 합니다.") from e
-        if parsed > clock.today():
-            raise ValueError("date 는 오늘보다 뒤일 수 없습니다.")
-        return parsed.isoformat()
+
+class DietEntryCreate(BaseModel):
+    """POST /diet/entries — 사진 없이 회원이 직접 적은 끼니(#2151).
+
+    합계는 받지 않는다. 음식 목록에서 서버가 낸다 — 수정(`foods` 가 온 PUT)과
+    같은 규칙이라, 한 기록 안에서 합계와 내역이 갈릴 틈을 처음부터 두지 않는다.
+    """
+    #: 기록 날짜(`YYYY-MM-DD`). 빠지면 저장하는 날(KST)이다. 앞날은 받지 않는다.
+    date: str | None = None
+    meal_type: Literal["breakfast", "lunch", "dinner", "snack", "lateNight"]
+    #: 음식이 하나도 없는 끼니는 기록이 아니다.
+    foods: list[EditedFood] = Field(..., min_length=1)
+    #: 재시도 중복 저장 방지 키(선택). 사진 분석과 같은 컬럼·같은 제약을 쓴다.
+    idempotency_key: str | None = Field(None, min_length=1, max_length=64)
+
+    @field_validator("date")
+    @classmethod
+    def _valid_past_or_today(cls, value: str | None) -> str | None:
+        return _past_or_today(value)
+
+    @field_validator("foods")
+    @classmethod
+    def _named_foods(cls, foods: list[EditedFood]) -> list[EditedFood]:
+        """이름 없는 음식은 받지 않는다 — 목록과 코치 문장에 빈 줄로 남는다."""
+        if any(not food.name.strip() for food in foods):
+            raise ValueError("음식 이름은 비울 수 없습니다.")
+        return foods
 
 
 class FoodNutritionRequest(BaseModel):

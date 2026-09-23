@@ -197,6 +197,12 @@ def unread_count(db: Session, member_id: str) -> int:
 #: 기존 값(reminder·health_check·achievement·system)은 "성격" 에 가깝고 목적지를
 #: 구분하지 못했다. 트레이너가 한 일은 모두 `system` 으로 뭉쳐 갈 곳이 없었다(#636).
 MEMBER_COACH_CHAT = "coach_chat"
+#: 트레이너가 등록한 주간 리포트(#2085). 목적지는 [MEMBER_COACH_CHAT] 과 같은 코치
+#: 대화다 — 리포트도 대화 스레드로 도착한다. 갈래를 나눈 까닭은 회원 앱 알림함이
+#: 갈래로 아이콘을 고르기 때문이다(리포트는 문서, 메시지는 말풍선). 제목 글자로
+#: 가르면 문구가 바뀔 때 깨진다.
+#: `notifications.category` 가 `String(20)` 이라 20자를 넘기면 안 된다.
+MEMBER_COACH_REPORT = "coach_report"
 MEMBER_ROUTINE = "routine"
 MEMBER_SCHEDULE = "member_schedule"
 #: 담당 연결 — 연결됨·연결 해제. 이름은 예전에 상담
@@ -242,6 +248,9 @@ TRAINER_HEALTH_GOAL_KIND = "health_goal"
 #: 담당 회원이 이름을 바꿨다 → 그 회원 상세(`subject_id`). 이미 받은 알림은 옛
 #: 이름으로 남으므로 둘을 잇는다. (#2065)
 TRAINER_MEMBER_NAME_KIND = "member_name"
+#: 담당 회원이 떠났다 — 탈퇴했거나 담당 연결을 끊었다(#2174). 회원이 목록에서
+#: 사라진 뒤라 갈 곳이 없고, 알림함에서 확인만 한다.
+TRAINER_MEMBER_LEFT_KIND = "member_left"
 
 #: 종류별 트레이너 수신 설정 컬럼. 없으면 항상 보낸다 — 상담 요청·예약은 끄면
 #: 트레이너가 놓쳐도 되는 종류가 아니고, 설정 화면에도 그 스위치가 없다.

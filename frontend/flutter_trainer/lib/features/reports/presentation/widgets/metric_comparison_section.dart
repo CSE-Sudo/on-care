@@ -107,7 +107,7 @@ class MetricComparisonSection extends StatelessWidget {
   }
 }
 
-/// 흰 상자 하나 — 제목 · 알약 · 그래프 · 변화량.
+/// 흰 상자 하나 — 제목 · 알약 · 그래프(변화량은 두 막대를 잇는 선 위).
 class _ComparisonBox extends StatelessWidget {
   const _ComparisonBox({
     required this.title,
@@ -160,9 +160,33 @@ class _ComparisonBox extends StatelessWidget {
   final String emptyLabel;
   final String semanticsLabel;
 
+  /// 지난 주 대비 변화. 두 주 중 하나라도 값이 없으면 견줄 것이 없다.
+  ///
+  /// 제목 줄 오른쪽 끝에 따로 두던 것을 두 막대를 잇는 선 위로 옮겼다 —
+  /// 떨어져 있으면 어느 두 막대 사이의 차이인지 한눈에 들어오지 않았다(#2186).
+  BarLineDelta? _delta() {
+    final double? delta = current == null || previous == null
+        ? null
+        : current! - previous!;
+    if (delta == null) return null;
+    // null 이면 좋고 나쁨을 가리지 않는다 — 칼로리처럼 목표에 가까울수록 좋은
+    // 지표는 늘거나 줄었다는 사실만 적는다.
+    final Color color = higherIsBetter == null
+        ? OnCareColors.textSecondary
+        : (delta >= 0) == higherIsBetter!
+        ? OnCareColors.success
+        : OnCareColors.danger;
+    return (
+      text: '${delta >= 0 ? '+' : '-'}${format(delta.abs())}',
+      color: color,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final OnCareTokens tokens = context.oncare;
+    final l = AppLocalizations.of(context);
+    final BarLineDelta? delta = _delta();
     // 눈금 끝은 두 주와 목표를 모두 담는다. 그 주의 최댓값에 맞춰 늘이면 두 주가
     // 늘 같은 높이에서 조금 다른 그림이 된다.
     final double ceiling = <double>[
@@ -197,12 +221,6 @@ class _ComparisonBox extends StatelessWidget {
                       .text(OnCareTypography.caption)
                       .copyWith(color: OnCareColors.textTertiary),
                 ),
-              ),
-              _DeltaBadge(
-                current: current,
-                previous: previous,
-                format: format,
-                higherIsBetter: higherIsBetter,
               ),
             ],
           ),
@@ -250,7 +268,13 @@ class _ComparisonBox extends StatelessWidget {
               highlightIndex: 1,
               height: _chartHeight,
               maxBarWidth: _maxBarWidth,
-              semanticsLabel: semanticsLabel,
+              delta: delta,
+              // 운동·식단 상자가 나란히 서므로, 한쪽만 기록이 없어도 높이를 맞춘다.
+              reserveDeltaSpace: true,
+              // 변화는 캔버스에 그려지므로 음성 안내에는 문장으로 넘긴다.
+              semanticsLabel: delta == null
+                  ? semanticsLabel
+                  : '$semanticsLabel · ${l.reportsCompareWith} ${delta.text}',
             ),
         ],
       ),
@@ -522,44 +546,6 @@ class _MacroLegend extends StatelessWidget {
             ],
           ),
       ],
-    );
-  }
-}
-
-/// 지난 주 대비 변화 한 칸.
-class _DeltaBadge extends StatelessWidget {
-  const _DeltaBadge({
-    required this.current,
-    required this.previous,
-    required this.format,
-    required this.higherIsBetter,
-  });
-
-  final double? current;
-  final double? previous;
-  final String Function(double) format;
-
-  /// null 이면 좋고 나쁨을 가리지 않는다 — 칼로리처럼 목표에 가까울수록 좋은
-  /// 지표는 늘거나 줄었다는 사실만 적는다.
-  final bool? higherIsBetter;
-
-  @override
-  Widget build(BuildContext context) {
-    final double? delta = current == null || previous == null
-        ? null
-        : current! - previous!;
-    if (delta == null) return const SizedBox.shrink();
-    final Color color = higherIsBetter == null
-        ? OnCareColors.textSecondary
-        : (delta >= 0) == higherIsBetter!
-        ? OnCareColors.success
-        : OnCareColors.danger;
-    return Text(
-      '${delta >= 0 ? '+' : '-'}${format(delta.abs())}',
-      maxLines: 1,
-      style: OnCareTypography.numeric(
-        context.oncare.text(OnCareTypography.strong(OnCareTypography.caption)),
-      ).copyWith(color: color),
     );
   }
 }

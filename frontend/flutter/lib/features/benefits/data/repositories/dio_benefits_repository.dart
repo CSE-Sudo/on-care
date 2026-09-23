@@ -2,14 +2,15 @@ import 'package:dio/dio.dart';
 
 import 'package:oncare/core/errors/app_error.dart';
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/diet_tray.dart';
 import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
 import 'package:oncare/features/benefits/domain/entities/weekly_report_purchase.dart';
 import 'package:oncare/features/benefits/domain/repositories/benefits_repository.dart';
 
-/// `/me/points/*`·`/me/coupons`·`/me/profile-pet`·`/me/weekly-reports` 를 읽고 쓴다.
-/// (#1787, #2021, #2022)
+/// `/me/points/*`·`/me/coupons`·`/me/diet-tray`·`/me/profile-pet`·`/me/weekly-reports`
+/// 를 읽고 쓴다. (#1787, #2150, #2021, #2022)
 ///
 /// 실모드는 백엔드로, 데모 모드는 `LocalApiInterceptor` 가 같은 경로를 받는다.
 class DioBenefitsRepository implements BenefitsRepository {
@@ -89,6 +90,33 @@ class DioBenefitsRepository implements BenefitsRepository {
         _ok(
           await _dio.post<Map<String, Object?>>(
             '/me/coupons/${Uri.encodeComponent(couponId)}/use',
+          ),
+        ),
+      );
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Future<DietTray> fetchDietTray() async {
+    try {
+      return DietTray.fromJson(
+        _ok(await _dio.get<Map<String, Object?>>('/me/diet-tray')),
+      );
+    } on DioException catch (e) {
+      throw AppError.fromDio(e);
+    }
+  }
+
+  @override
+  Future<DietTray> claimDietTray({String? clientRequestId}) async {
+    try {
+      return DietTray.fromJson(
+        _ok(
+          await _dio.post<Map<String, Object?>>(
+            '/me/diet-tray/claim',
+            data: <String, Object?>{'client_request_id': ?clientRequestId},
           ),
         ),
       );

@@ -1057,8 +1057,17 @@ class _RangeMonthGrid extends StatelessWidget {
                     child: SizedBox(
                       width: halfBand == null ? box.maxWidth : box.maxWidth / 2,
                       height: diameter,
+                      // 브랜드 옅은 바탕(`surface`)이던 때에는 흰 창과 거의
+                      // 구분되지 않아 고른 기간이 잘 보이지 않았다(#2183).
+                      // 눌림·강조 채움 단계로 한 칸 진하게 — 사이 날 숫자(진한
+                      // 브랜드)는 그대로 읽힌다.
                       child: DecoratedBox(
-                        decoration: BoxDecoration(color: tokens.brand.surface),
+                        decoration: BoxDecoration(
+                          color: OnCareColors.onWhite(
+                            tokens.brand.primary,
+                            OnCareAlpha.medium,
+                          ),
+                        ),
                       ),
                     ),
                   ),

@@ -75,7 +75,11 @@ void main() {
         reason: route,
       );
       firstCenter ??= center;
-      expect(center, moreOrLessEquals(firstCenter, epsilon: 0.5), reason: route);
+      expect(
+        center,
+        moreOrLessEquals(firstCenter, epsilon: 0.5),
+        reason: route,
+      );
     }
   });
 
@@ -179,6 +183,30 @@ void main() {
       await settle(tester);
       expect(location(tester), expected, reason: route);
     }
+  });
+
+  // #2185 — 날짜만 넘기던 때에는 그날 첫 세션(12:00 이지수)이 상세에 열렸다.
+  testWidgets('스케줄 탭에서 회원을 고르면 그 회원의 PT 가 상세에 열린다', (tester) async {
+    await openDesktop(tester, AppRoutes.schedule);
+    await search(tester, '김민수');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    // 고른 순간 그 회원의 세션을 drift 에서 한 번 읽는다 — 가짜 시계 밖에서
+    // 흘려 보내야 읽기가 끝난다.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await settle(tester);
+
+    final uri = Uri.parse(location(tester));
+    expect(uri.path, AppRoutes.schedule);
+    expect(uri.queryParameters['session'], isNotNull);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('week-detail')),
+        matching: find.text('김민수'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('이름이 아닌 최근 메시지로도 회원을 통합 검색한다', (tester) async {

@@ -274,6 +274,22 @@ void main() {
       );
     });
 
+    testWidgets('사람 아이콘을 그대로 둔다 (#2154)', (WidgetTester tester) async {
+      await pumpGymTab(tester);
+
+      // 성씨 프로필은 헬스장 찾기·헬스장 상세에서만 쓴다 — 여기는 위 헬스장
+      // 줄의 덤벨 아이콘과 한 격자에 서는 아이콘 자리다.
+      final Finder line = find.byKey(const Key('gym-trainer-line-mine'));
+      expect(
+        find.descendant(of: line, matching: find.byIcon(AppIcons.person)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: line, matching: find.byType(AppAvatar)),
+        findsNothing,
+      );
+    });
+
     testWidgets('한 명뿐이라 줄을 두르지 않는다 (#1881)', (WidgetTester tester) async {
       await pumpGymTab(tester);
 
@@ -339,6 +355,30 @@ void main() {
       expect(find.textContaining('추천 이유:'), findsNothing);
       // 아직 아무와도 연결되지 않았다 — 배지는 뜨지 않는다.
       expect(find.text('연결됨'), findsNothing);
+    });
+
+    testWidgets('트레이너마다 성씨 프로필로 선다 (#2154)', (WidgetTester tester) async {
+      await pumpGymTab(tester, hasMyGym: false);
+
+      // 트레이너 상세·채팅과 같은 얼굴이라, 눌러 들어가도 같은 사람으로 읽힌다.
+      for (final Trainer trainer in <Trainer>[_kim, _park]) {
+        final Finder line = find.byKey(Key('gym-trainer-${trainer.id}'));
+        final Finder avatar = find.descendant(
+          of: line,
+          matching: find.byType(AppAvatar),
+        );
+        expect(avatar, findsOneWidget);
+        expect(tester.widget<AppAvatar>(avatar).name, trainer.name);
+        expect(tester.widget<AppAvatar>(avatar).size, AppAvatarSize.small);
+        expect(
+          find.descendant(of: avatar, matching: find.text(trainer.name[0])),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: line, matching: find.byIcon(AppIcons.person)),
+          findsNothing,
+        );
+      }
     });
 
     testWidgets('잇달아 서는 줄은 회색 실선으로 서로를 가른다 (#1881)', (

@@ -79,6 +79,8 @@ class CouponOut(BaseModel):
     (당일 0, 사용 가능이 아니면 0).
     `trainer_name` 은 교환할 때의 담당 트레이너(PT 재등록만), `gym_name` 은 교환할
     때의 헬스장(PT 재등록·개인 락커)이다.
+    `no_expiry` 가 참이면 기한이 없는 쿠폰(분석용 식판, #2150)이다 — `expires_on` 은
+    뜻이 없고 `days_left` 는 0 이다.
     """
 
     id: str
@@ -94,6 +96,7 @@ class CouponOut(BaseModel):
     expires_at: datetime
     expires_on: str
     days_left: int
+    no_expiry: bool = False
     used_at: datetime | None = None
     cancelled_at: datetime | None = None
 

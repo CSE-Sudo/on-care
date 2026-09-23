@@ -56,8 +56,7 @@ class AppIcons {
   static const IconData notifications = Symbols.notifications_rounded;
   static const IconData notificationsOff = Symbols.notifications_off_rounded;
 
-  /// 알림 갈래 — 건강 확인·달성.
-  static const IconData healthCheck = Symbols.monitor_heart_rounded;
+  /// 알림 갈래 — 달성.
   static const IconData achievement = Symbols.emoji_events_rounded;
   static const IconData chat = Symbols.chat_bubble_rounded;
   static const IconData help = Symbols.help_rounded;
@@ -92,6 +91,9 @@ class AppIcons {
   /// 교환 항목 — PT 재등록 할인·개인 락커 무료.
   static const IconData ptRenewal = Symbols.card_membership_rounded;
   static const IconData locker = Symbols.checkroom_rounded;
+
+  /// 분석용 식판 — 사진 기록 달성 보상 카드·수령 쿠폰(#2150).
+  static const IconData dietTray = Symbols.bento_rounded;
 
   /// 연속 기록 보호권 — 사용처 카드·내 혜택(#1788).
   static const IconData streakShield = Symbols.shield_rounded;

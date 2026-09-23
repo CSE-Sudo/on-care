@@ -589,7 +589,7 @@ void main() {
       expect(_exerciseLines.evaluate().length, linesBefore);
     });
 
-    testWidgets('이미 수행한 배정에는 취소가 없다 (#1020)', (tester) async {
+    testWidgets('오늘 한 개인 운동도 남아 오늘 완료로 보이고 취소할 수 있다 (#2161)', (tester) async {
       _useTallSurface(tester);
       await pumpTrainerApp(
         tester,
@@ -602,17 +602,28 @@ void main() {
         ],
       );
 
-      // 안 한 것만 이 자리에 온다. 이미 한 운동의 배정을 지운다고 그 기록이
-      // 없던 일이 되지 않으므로, 취소 버튼을 걸어 두면 오해를 만든다.
+      // 개인 운동은 매일 새로 체크하는 목록이다 — 오늘 한 것도 내일 다시
+      // 걸리므로 이 자리에 남고, 오늘 했는지만 표시한다.
+      expect(find.text('매일 하는 개인 운동'), findsOneWidget);
       expect(find.textContaining('아직 안 한 루틴'), findsOneWidget);
-      expect(find.textContaining('이미 한 루틴'), findsNothing);
+      expect(find.textContaining('이미 한 루틴'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-done-done-1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('workout-routine-done-todo-1')),
+        findsNothing,
+      );
+      // 취소는 목록에서 내릴 뿐 이미 한 기록을 지우지 않으니, 완료한 것도
+      // 물릴 수 있다 — 서버는 행을 남기고 그날부터 목록에서 뺀다.
       expect(
         find.byKey(const ValueKey<String>('workout-cancel-routine-todo-1')),
         findsOneWidget,
       );
       expect(
         find.byKey(const ValueKey<String>('workout-cancel-routine-done-1')),
-        findsNothing,
+        findsOneWidget,
       );
     });
 
