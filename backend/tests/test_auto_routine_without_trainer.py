@@ -83,7 +83,7 @@ def test_member_without_a_trainer_now_gets_routines(client, lone_member):
     body = mine.json()
     assert body, "담당이 없어도 받을 것이 있어야 한다"
     assert {r["name"] for r in body} == {
-        name for name, _, _, _ in auto_routine_service.SAFE_ROUTINES
+        name for name, _, _, _, _ in auto_routine_service.SAFE_ROUTINES
     }
 
 
@@ -130,7 +130,7 @@ def test_a_member_with_a_trainer_gets_no_auto_recommendation(client):
         "/v1/me/coach/routines", headers=_h(_token(client, "jisu@oncare.com"))
     ).json()
 
-    safe_names = {name for name, _, _, _ in auto_routine_service.SAFE_ROUTINES}
+    safe_names = {name for name, _, _, _, _ in auto_routine_service.SAFE_ROUTINES}
     assert not (safe_names & {r["name"] for r in mine})
 
 
@@ -190,7 +190,10 @@ def test_saying_it_was_hard_shortens_the_routines(client, lone_member):
     }
     db.close()
 
-    base = {name: minutes for name, minutes, _, _ in auto_routine_service.SAFE_ROUTINES}
+    base = {
+        name: minutes
+        for name, minutes, _, _, _ in auto_routine_service.SAFE_ROUTINES
+    }
     assert rows
     for name, minutes in rows.items():
         assert minutes < base[name]
