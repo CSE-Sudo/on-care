@@ -875,6 +875,15 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
         models.RoutineHistory.id.like("seed-%"),
     ).delete(synchronize_session=False)
 
+    # 지난 날 한 운동 중 추천 개인운동과 이름이 같은 것은 그 추천의 완료로 잇는다
+    # (#2162). 잇지 않으면 실연동 데모의 회원은 추천 운동을 한 번도 하지 않은
+    # 사람으로 읽혀, 운동 AI 맞춤 조언이 "0% 해냈어요" 를 말한다 — 목업은 같은
+    # 픽스처를 이름으로 이어 완료로 보여 준다(`MockMemberCoachRepository`). PT 날은
+    # PT 기록이라 잇지 않고, 오늘은 회원이 직접 체크한다. 추천이 걸린 날만이다.
+    routine_ids = {r.name: r.id for r in _routine_rows(member_id)}
+    routine_since = _seed_routine_since()
+    linked: set[tuple[str, str]] = set()
+
     for day in days:
         # 행 id 는 **날짜에서 만든다**. 픽스처가 시연용으로 못 박아 둔 id 는 사용자
         # 앱의 로컬 DB 것이다 — 백엔드는 과거를 지우지 않고 쌓아 두므로 날짜가
@@ -927,6 +936,16 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
         for index, exercise in enumerate(day.done_exercises):
             kind = exercise_types.normalize(exercise.type)
             strength = kind == exercise_types.STRENGTH
+            routine_id = routine_ids.get(exercise.name)
+            if (
+                routine_id is None
+                or day.is_pt
+                or not (routine_since <= day.iso < today.isoformat())
+                or (routine_id, day.iso) in linked
+            ):
+                routine_id = None
+            else:
+                linked.add((routine_id, day.iso))
             db.add(models.ExerciseSession(
                 id=f"{_FIXTURE_ID_PREFIX}ex-{member_id}-{day.iso}-{index}",
                 user_id=member_id,
@@ -947,6 +966,7 @@ def _seed_from_fixture(db: Session, member_id: str) -> None:
                 # 재시드 시각이라, 이것이 없으면 35주 전 운동도 방금 만든 행으로
                 # 남아 최근 활동 판단이 어긋난다.
                 completed_at=exercise_activity.noon(day.day),
+                assigned_routine_id=routine_id,
             ))
 
     _safe_commit(db)
