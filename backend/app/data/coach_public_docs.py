@@ -61,5 +61,8 @@ PUBLIC_DOCS: tuple[PublicDoc, ...] = (
     PublicDoc("kdri_fiber.txt", f"{_KDRI} — 식이섬유", "diet"),
     PublicDoc("kdri_protein.txt", f"{_KDRI} — 단백질과 아미노산", "diet"),
     PublicDoc("kdri_fat.txt", f"{_KDRI} — 지질과 지방산", "diet"),
+    # 앱이 식단을 나트륨·당류로 평가한다. 그 상한의 근거가 DASH(고혈압 식이)뿐
+    # 이었어서, 만성질환위험감소섭취량을 다룬 이 절로 근거를 옮긴다.
+    PublicDoc("kdri_sodium.txt", f"{_KDRI} — 나트륨과 염소", "diet"),
     PublicDoc("kdri_water.txt", f"{_KDRI} — 수분", "general"),
 )

@@ -46,6 +46,21 @@ def test_운동_권고_원문이_그대로_실린다():
     assert "근력 운동을 일주일에 2일 이상" in body
 
 
+def test_나트륨_당류_상한의_근거가_실린다():
+    """앱이 식단을 나트륨·당류로 평가하는 근거. (#1652)
+
+    대시보드 주간 점수와 식단 코칭 한 줄이 두 수치를 상한과 견주는데, 그 상한의
+    근거가 DASH(고혈압 식이)뿐이었다. 같은 수치를 다루는 국내 기준을 원문으로 싣고
+    코치가 그쪽을 인용하게 한다.
+    """
+    sodium = next(doc for doc in PUBLIC_DOCS if doc.file == "kdri_sodium.txt")
+    assert sodium.domain == "diet"
+    assert "만성질환위험감소섭취량" in sodium.read()
+
+    carb = next(doc for doc in PUBLIC_DOCS if doc.file == "kdri_carbohydrate.txt")
+    assert "첨가당" in carb.read()
+
+
 def test_공개_문서_시드가_문서_교체를_따라간다(client, db_session, monkeypatch):
     """목록이 바뀌면 이미 적재된 공공 문서를 통째로 바꾼다.
 
