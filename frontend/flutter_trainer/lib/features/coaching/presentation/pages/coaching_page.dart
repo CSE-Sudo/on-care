@@ -29,7 +29,6 @@ import 'package:oncare_trainer/features/coaching/presentation/widgets/program_ed
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_final_review_card.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_nutrition_summary_card.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_template_dialog.dart';
-import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_suggestion_review_card.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart'
     show elapsedWeekdays, weekdayCount, weekdayLabels;
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -74,6 +73,13 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
   final Map<String, String> _typeEdits = <String, String>{};
   final Map<String, List<AiRoutineItem>> _generatedRecommendations =
       <String, List<AiRoutineItem>>{};
+
+  /// 위저드의 개인운동 단계에서 정한, 이 PT 와 함께 보낼 개인운동. (#2223)
+  ///
+  /// 편집기는 PT 구성만 다루므로 여기서 들고 있다가 `일정 추가` 에 함께 실어
+  /// 보낸다 — 서버가 그 PT 일정에 붙여 두고, 회원에게는 PT 완료 때 간다(#2224).
+  final Map<String, List<RoutineExercise>> _personalRoutines =
+      <String, List<RoutineExercise>>{};
   ProgramTemplate? _appliedTemplate;
   int _templateRevision = 0;
   int _editorRevision = 0;
@@ -255,6 +261,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     if (!mounted || !_isStillSelected(client.id)) return;
+    final personalRoutines =
+        _personalRoutines[client.id] ?? const <RoutineExercise>[];
     final confirmation = await showProgramAssignConfirmDialog(
       context,
       clientName: client.name,
@@ -262,6 +270,10 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       registerStartTime: _registerStartTime,
       registerEndTime: _registerEndTime,
       candidates: candidates,
+      // PT 와 함께 갈 개인운동을 저장 직전에 한 번 더 보여 준다 — 편집기에는
+      // 개인운동 자리가 없어, 여기가 둘을 한 화면에서 확인하는 유일한 곳이다
+      // (#2223).
+      personalRoutines: personalRoutines,
     );
     if (confirmation == null || !mounted || !_isStillSelected(client.id)) {
       return;
@@ -279,6 +291,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       time,
       durationMinutes,
       confirmation.sessionId,
+      // 개인운동이 달라지면 다른 전송이다 — 같은 키를 쓰면 바뀐 개인운동이
+      // 재시도에서 조용히 무시된다.
+      personalRoutinesToJson(personalRoutines),
     ]);
     setState(() => _sendingClientIds.add(sentFor));
     final bool attachedToExisting;
@@ -294,6 +309,7 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
             assignment: programAssignToJson(draft, clientRequestId: requestId),
             program: _draftProgram(draft),
             sessionId: confirmation.sessionId,
+            personalRoutines: personalRoutines,
           );
     } catch (error) {
       if (!mounted) return;
@@ -308,6 +324,8 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
       return;
     }
     _sendRequests.remove(sentFor);
+    // 보냈다 — 같은 개인운동이 다음 전송에 다시 딸려 가지 않게 비운다.
+    _personalRoutines.remove(sentFor);
     if (!mounted) return;
     // 3열 `전송 이력`(`assignedRoutinesProvider`)은 실 API 모드에서 1회성
     // fetch 라 다시 읽으라고 말해 줘야 한다(#1029). 일정 쪽은 저장소가
@@ -542,7 +560,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                       // the templates would bury it.
                       ..._contextChildren(l, clients, selected),
                       const SizedBox(height: OnCareSpacing.s16),
-                      ..._suggestionChildren(selected),
                       ..._editorChildren(selected),
                       const SizedBox(height: OnCareSpacing.s16),
                       ..._libraryChildren(selected),
@@ -649,11 +666,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                       ),
                                       client: selected,
                                     ),
-                                    const SizedBox(height: OnCareSpacing.s12),
-                                    // 3열이 따로 생기지 않는 너비에서도 AI
-                                    // 개인운동 제안은 고객 데이터 바로 아래,
-                                    // 작은 카드로 유지한다.
-                                    _suggestionColumn(selected),
                                     const SizedBox(height: OnCareSpacing.s16),
                                   ],
                                   ..._editorChildren(selected),
@@ -684,8 +696,6 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: <Widget>[
                                     _ClientDataSwitcher(client: selected),
-                                    const SizedBox(height: OnCareSpacing.s16),
-                                    _suggestionColumn(selected),
                                     const SizedBox(height: OnCareSpacing.s16),
                                     _SendHistoryCard(client: selected),
                                   ],
@@ -772,32 +782,14 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
 
   void _startManualProgram(String clientId) => setState(() {
     _generatedRecommendations.remove(clientId);
+    // 빈 편집기로 새로 시작한다 — 앞서 위저드에서 정한 개인운동도 함께 버린다.
+    _personalRoutines.remove(clientId);
     _appliedTemplate = null;
     _templateRevision = 0;
     _editorRevision++;
     _aiWizardVisible = false;
     _sent = false;
   });
-
-  /// AI 가 준비한 개인운동 제안. (#790)
-  ///
-  /// 개인운동은 PT 사이를 메우는 짧은 운동이고 정규 프로그램은 기간 전체의
-  /// 계획이라, 같은 프로그램 탭 안에 두더라도 편집기에 섞지 않는다. 넓은
-  /// 화면에서는 오른쪽 고객 데이터 열의 식단·운동 바로 아래, 전송 이력 위에
-  /// 작은 카드로 두고, 열을 나눌 폭이 없는 화면에서만 이 목록으로 편집기 위에
-  /// 쌓인다.
-  List<Widget> _suggestionChildren(TrainerClient client) {
-    return <Widget>[
-      _suggestionColumn(client),
-      const SizedBox(height: OnCareSpacing.s16),
-    ];
-  }
-
-  Widget _suggestionColumn(TrainerClient client) => RoutineSuggestionReviewCard(
-    key: ValueKey<String>('routine-suggestions-${client.id}'),
-    clientId: client.id,
-    clientName: client.name,
-  );
 
   /// The routine editor column (right column on wide).
   ///
@@ -839,8 +831,9 @@ class _CoachingPageState extends ConsumerState<CoachingPage> {
                 recommendedReason: items.isEmpty
                     ? ''
                     : items.map((item) => item.reason).join(' · '),
-                onReviewCompleted: (exercises) {
+                onReviewCompleted: (exercises, personalRoutines) {
                   setState(() {
+                    _personalRoutines[client.id] = personalRoutines;
                     _generatedRecommendations[client.id] = <AiRoutineItem>[
                       for (var index = 0; index < exercises.length; index++)
                         AiRoutineItem(

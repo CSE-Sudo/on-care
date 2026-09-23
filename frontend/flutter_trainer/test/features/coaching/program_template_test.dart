@@ -136,6 +136,42 @@ void main() {
       await tester.tap(apply);
       await settle(tester);
 
+      // 최종 검토 다음은 개인운동 단계다(#2223) — 반영은 거기서 일어난다.
+      final addPersonal = find.byKey(
+        const ValueKey<String>('show-add-personal-exercise-form'),
+      );
+      await tester.scrollUntilVisible(addPersonal, 150, scrollable: scrollable);
+      await tester.ensureVisible(addPersonal);
+      await tester.pump();
+      await tester.tap(addPersonal);
+      await settle(tester);
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('new-exercise-name')),
+          matching: find.byType(TextField),
+        ),
+        '걷기',
+      );
+      await tester.pump();
+      final addSubmit = find.byKey(
+        const ValueKey<String>('add-exercise-submit'),
+      );
+      await tester.ensureVisible(addSubmit);
+      await tester.tap(addSubmit);
+      await settle(tester);
+      final donePersonal = find.byKey(
+        const ValueKey<String>('complete-personal-routines'),
+      );
+      await tester.scrollUntilVisible(
+        donePersonal,
+        150,
+        scrollable: scrollable,
+      );
+      await tester.ensureVisible(donePersonal);
+      await tester.pump();
+      await tester.tap(donePersonal);
+      await settle(tester);
+
       // A seeded AI suggestion for 김민수 that must survive the apply. AI
       // 흐름 자신의 검토 목록에도 같은 이름이 남아 있을 수 있어 편집기 안
       // 으로 범위를 좁힌다.

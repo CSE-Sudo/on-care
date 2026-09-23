@@ -27,11 +27,11 @@ import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routi
 import 'package:oncare_trainer/features/coaching/data/repositories/trainer_routine_repository.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/ai_routine_item.dart';
 import 'package:oncare_trainer/features/coaching/domain/entities/assigned_routine.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_template.dart';
 import 'package:oncare_trainer/features/coaching/presentation/pages/ai_routine_options_flow.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_editor_workspace.dart';
 import 'package:oncare_trainer/features/coaching/presentation/widgets/program_nutrition_summary_card.dart';
-import 'package:oncare_trainer/features/coaching/presentation/widgets/routine_suggestion_review_card.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
 import 'package:oncare_trainer/features/schedule/domain/entities/schedule_session.dart';
 import 'package:oncare_trainer/shared/models/client_chat_message.dart';
@@ -119,6 +119,7 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
     String? sessionId,
+    List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
   }) async {
     registerCalls++;
     // Keep the write in flight across client-switching/scroll animations.
@@ -132,6 +133,7 @@ class _SlowCountingScheduleRepository extends DriftScheduleRepository {
       assignment: assignment,
       program: program,
       sessionId: sessionId,
+      personalRoutines: personalRoutines,
     );
     completedFor.add(clientId);
     return attached;
@@ -154,6 +156,10 @@ class _CapturingScheduleRepository extends DriftScheduleRepository {
   /// 시도마다 넘어온 배정 본문(세션·운동·멱등키).
   final List<Map<String, Object?>> assignments = <Map<String, Object?>>[];
 
+  /// 시도마다 함께 온 개인운동(#2223).
+  final List<List<RoutineExercise>> personalRoutineCalls =
+      <List<RoutineExercise>>[];
+
   @override
   Future<bool> registerProgramSchedule({
     required String date,
@@ -164,9 +170,11 @@ class _CapturingScheduleRepository extends DriftScheduleRepository {
     required Map<String, Object?> assignment,
     required List<ProgramItem> program,
     String? sessionId,
+    List<RoutineExercise> personalRoutines = const <RoutineExercise>[],
   }) async {
     registerCalls++;
     assignments.add(assignment);
+    personalRoutineCalls.add(personalRoutines);
     if (error != null) throw error!;
     this.clientId = clientId;
     this.time = time;
@@ -492,6 +500,74 @@ Future<void> _applyRecommendedRoutine(WidgetTester tester) async {
   await tester.pump();
   await tester.tap(apply);
   await tester.pumpAndSettle();
+
+  // 최종 검토 다음은 개인운동 단계다(#2223) — 거기서 `프로그램에 반영` 을
+  // 눌러야 PT 구성과 개인운동이 함께 편집기로 간다.
+  await _completePersonalStep(tester, scrollable);
+}
+
+/// 개인운동 단계를 통과한다. AI 제안이 채워져 있으면 그대로, 비어 있으면
+/// 한 줄을 직접 더해 최소 한 개 조건을 채운다. (#2223)
+Future<void> _completePersonalStep(
+  WidgetTester tester,
+  Finder scrollable,
+) async {
+  // 제안이 늦게 도착할 수 있다 — 한 번 더 정착시킨 뒤 비어 있는지 본다.
+  await tester.pumpAndSettle();
+  if (find
+      .byKey(const ValueKey<String>('personal-routine-empty'))
+      .evaluate()
+      .isNotEmpty) {
+    final addForm = find.byKey(
+      const ValueKey<String>('show-add-personal-exercise-form'),
+    );
+    await tester.scrollUntilVisible(
+      addForm,
+      150,
+      scrollable: scrollable,
+      maxScrolls: 100,
+    );
+    await _ensureCentered(tester, addForm);
+    await tester.tap(addForm);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('new-exercise-name')),
+        matching: find.byType(TextField),
+      ),
+      '걷기',
+    );
+    await tester.pump();
+    final submit = find.byKey(const ValueKey<String>('add-exercise-submit'));
+    // 화면 아래쪽 토스트가 떠 있으면 그 오버레이가 탭을 가로챈다 — 사라질
+    // 때까지 기다린 뒤 누른다.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    await _ensureCentered(tester, submit);
+    await tester.tap(submit);
+    await tester.pumpAndSettle();
+  }
+
+  final done = find.byKey(
+    const ValueKey<String>('complete-personal-routines'),
+  );
+  await tester.scrollUntilVisible(
+    done,
+    150,
+    scrollable: scrollable,
+    maxScrolls: 100,
+  );
+  await _ensureCentered(tester, done);
+  await tester.pump();
+  await tester.tap(done);
+  await tester.pumpAndSettle();
+  // 넘어가지 못했다면 최소 한 개 조건에 걸린 것이다 — 조용히 지나치면 그
+  // 다음 단언이 엉뚱한 곳에서 실패한다.
+  if (done.evaluate().isNotEmpty) {
+    throw StateError(
+      '개인운동 단계를 통과하지 못했습니다 — 최소 한 개를 정해야 넘어갑니다(#2223).',
+    );
+  }
 }
 
 Future<void> _openManualProgram(WidgetTester tester) async {
@@ -1509,6 +1585,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // 최종 검토 다음은 개인운동 단계다(#2223) — 거기서 반영해야 편집기로
+      // 넘어간다.
+      await _completePersonalStep(tester, find.byType(Scrollable).first);
+
       expect(find.byType(AiRoutineOptionsFlow), findsNothing);
 
       // 편집기 안으로 범위를 좁힌다 — 같은 이름의 운동이 오른쪽 `AI 개인운동
@@ -2314,21 +2394,25 @@ void main() {
       expect(tester.widget<AppButton>(send).onPressed, isNotNull);
     });
 
-    testWidgets('AI 요청 흐름과 AI 개인운동 제안은 클릭 없이 동시에 보인다 (#1028 후속)', (
-      tester,
-    ) async {
+    testWidgets('프로그램 탭에 AI 개인운동 제안 카드가 더는 없다 (#2223)', (tester) async {
       await openTab(tester, size: const Size(1920, 1200));
 
-      // 둘 다 처음부터 트리에 있다 — 하나를 열기 위해 다른 하나가
-      // 자리를 비켜 주지 않는다.
+      // 개인운동을 보내는 입구는 프로그램 만들기 하나로 모였다 — 따로 떨어진
+      // 카드는 사라졌고, 위저드는 그대로 처음부터 보인다.
       expect(find.byType(AiRoutineOptionsFlow), findsOneWidget);
-      expect(find.byType(RoutineSuggestionReviewCard), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('routine-suggestion-review-card')),
+        findsNothing,
+      );
     });
 
-    testWidgets('좁은 화면에서도 AI 개인운동 제안이 사라지지 않는다', (tester) async {
+    testWidgets('좁은 화면에서도 제안 카드 자리가 남지 않는다 (#2223)', (tester) async {
       await openTab(tester, size: const Size(800, 1600));
 
-      expect(find.byType(RoutineSuggestionReviewCard), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('routine-suggestion-review-card')),
+        findsNothing,
+      );
       expect(find.byType(AiRoutineOptionsFlow), findsOneWidget);
     });
   });

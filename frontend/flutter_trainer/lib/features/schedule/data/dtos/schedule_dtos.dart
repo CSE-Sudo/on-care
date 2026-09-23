@@ -43,6 +43,7 @@ Map<String, Object?> programScheduleToJson({
   required int durationMinutes,
   required String clientName,
   String? sessionId,
+  List<Map<String, Object?>> personalRoutines = const <Map<String, Object?>>[],
 }) => <String, Object?>{
   ...assignment,
   'date': date,
@@ -50,6 +51,9 @@ Map<String, Object?> programScheduleToJson({
   'duration_minutes': durationMinutes,
   'client_name': clientName,
   'session_id': ?sessionId,
+  // 이 PT 에 붙일 개인운동(#2223). 비어 있으면 아예 싣지 않는다 — 개인운동
+  // 단계가 없던 옛 요청과 같은 본문이 나간다.
+  if (personalRoutines.isNotEmpty) 'personal_routines': personalRoutines,
 };
 
 /// 항목 하나의 계약 형태. 서버 `ProgramItem` 스키마와 1:1 이다 (#1276).

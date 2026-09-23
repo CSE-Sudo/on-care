@@ -2604,6 +2604,80 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepDone => 'Final review';
 
   @override
+  String get aiStepPersonal => 'Personal exercise';
+
+  @override
+  String get aiProgramKindTitle => 'This program';
+
+  @override
+  String get aiProgramKindPt => 'PT + personal exercise';
+
+  @override
+  String get aiProgramKindRoutineOnly => 'Personal exercise only';
+
+  @override
+  String get aiProgramKindRoutineOnlyHint => 'No PT this time';
+
+  @override
+  String get aiGoToPersonalStep => 'Next · plan personal exercise';
+
+  @override
+  String get aiPersonalStepTitle => 'Personal exercise between PT';
+
+  @override
+  String get aiPersonalStepBlurb =>
+      'Attached to this PT and sent to the member when you complete it. Pick at least one.';
+
+  @override
+  String get aiPersonalStepBlurbRoutineOnly =>
+      'What the member does on their own this week. Pick at least one.';
+
+  @override
+  String get aiPersonalStepEmpty => 'No personal exercise yet. Add one below.';
+
+  @override
+  String get aiPersonalStepNext => 'Next';
+
+  @override
+  String get aiKeepOnePersonalRoutine => 'Keep at least one personal exercise.';
+
+  @override
+  String get aiRoutineOnlyReviewTitle => 'Sending this to the member';
+
+  @override
+  String get aiRoutineOnlyStartDate => 'Start date';
+
+  @override
+  String get aiRoutineOnlyMessage => 'A note for the member (optional)';
+
+  @override
+  String get aiRoutineOnlyMessageHint => 'No PT this week — just keep these up';
+
+  @override
+  String get aiRoutineOnlySend => 'Send to member';
+
+  @override
+  String get aiRoutineOnlySentLabel => 'Sent';
+
+  @override
+  String get aiRoutineOnlySent => 'Personal exercise sent to the member.';
+
+  @override
+  String get aiRoutineOnlySendFailed =>
+      'Could not send the personal exercise. Please try again shortly.';
+
+  @override
+  String get aiRoutineOnlyProgramName => 'This week\'s personal exercise';
+
+  @override
+  String get progPersonalRoutinesTitle => 'Personal exercise going with it';
+
+  @override
+  String progPersonalRoutinesCount(int count) {
+    return '$count personal exercises going with it';
+  }
+
+  @override
   String get aiStepperLabel => 'Custom suggestion progress';
 
   @override
@@ -3335,73 +3409,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programSavedNew => 'New program';
-
-  @override
-  String get suggestionReviewTitle => 'AI personal exercises';
-
-  @override
-  String suggestionReviewBadge(int count) {
-    return '$count to review';
-  }
-
-  @override
-  String suggestionReviewIntro(String name) {
-    return 'Prepared for $name from recent PT feedback and exercise records. The member sees only what you recommend.';
-  }
-
-  @override
-  String get suggestionReviewEmpty =>
-      'No AI personal exercises are waiting for review.';
-
-  @override
-  String get suggestionReviewLoadFailed => 'Couldn\'t load the AI suggestions.';
-
-  @override
-  String get suggestionApprove => 'Recommend to member';
-
-  @override
-  String get suggestionConfirmTitle => 'Final review · recommend to member';
-
-  @override
-  String suggestionConfirmBody(String client) {
-    return 'Exactly what you see below is what $client receives. Once recommended it shows up in their app.';
-  }
-
-  @override
-  String get suggestionDismiss => 'Don\'t recommend';
-
-  @override
-  String suggestionApproved(String name, String client) {
-    return 'Recommended $name to $client.';
-  }
-
-  @override
-  String suggestionDismissed(String name) {
-    return '$name won\'t be recommended.';
-  }
-
-  @override
-  String get suggestionActionFailed =>
-      'Couldn\'t finish that. Please try again.';
-
-  @override
-  String get suggestionAlreadyReviewed =>
-      'This suggestion was already reviewed. The list has been refreshed.';
-
-  @override
-  String get suggestionEditTitle => 'Edit personal exercise';
-
-  @override
-  String get suggestionEditSubmit => 'Edit and recommend';
-
-  @override
-  String get suggestionEditName => 'Exercise';
-
-  @override
-  String get suggestionEditMemo => 'Note for the member';
-
-  @override
-  String get suggestionEditMemoHint => 'Stop if your right shoulder hurts.';
 
   @override
   String get programDraftSaved => 'Program saved.';

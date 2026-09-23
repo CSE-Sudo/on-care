@@ -89,11 +89,21 @@ class RoutineExercise {
     this.holdSeconds = 0,
     this.isHold = false,
     this.weight = 0,
+    this.reason = '',
+    this.source = 'trainer',
   });
 
   final String name;
   final int minutes;
   final String type;
+
+  /// 회원에게 그대로 전달되는 사유 문구. PT 프로그램 후보는 비어 있고,
+  /// 개인운동 단계가 AI 제안에서 받아 온 항목만 값이 있다. (#2223)
+  final String reason;
+
+  /// 이 항목이 어디서 왔나 — 'ai' 는 AI 제안을 그대로 둔 것, 'trainer' 는
+  /// 트레이너가 직접 넣은 것. 개인운동을 보낼 때 출처로 나간다. (#2223)
+  final String source;
 
   /// 근력 운동에서만 쓴다(#1029, #1310) — 세트 수·한 세트당 횟수·중량(kg).
   /// 서버가 주는 A/B 후보는 아직 이 값을 모르니 0 으로 시작하고, 트레이너가
@@ -121,6 +131,8 @@ class RoutineExercise {
     int? holdSeconds,
     bool? isHold,
     double? weight,
+    String? reason,
+    String? source,
   }) => RoutineExercise(
     name: name ?? this.name,
     minutes: minutes ?? this.minutes,
@@ -130,6 +142,8 @@ class RoutineExercise {
     holdSeconds: holdSeconds ?? this.holdSeconds,
     isHold: isHold ?? this.isHold,
     weight: weight ?? this.weight,
+    reason: reason ?? this.reason,
+    source: source ?? this.source,
   );
 }
 

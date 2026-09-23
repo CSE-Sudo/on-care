@@ -1,5 +1,6 @@
 import 'package:oncare_trainer/core/utils/date_format.dart';
 import 'package:oncare_trainer/features/coaching/data/dtos/routine_dtos.dart';
+import 'package:oncare_trainer/features/coaching/domain/entities/routine_options.dart';
 import 'package:oncare_trainer/features/coaching/domain/program_editor_state.dart';
 import 'package:oncare_trainer/features/schedule/data/dtos/schedule_dtos.dart';
 import 'package:oncare_trainer/shared/exercise_limits.dart';
@@ -132,3 +133,30 @@ Map<String, Object?> programAssignToJson(
   ],
   'client_request_id': ?clientRequestId,
 };
+
+/// 개인운동 목록 → `ProgramScheduleRequest.personal_routines` JSON. (#2223)
+///
+/// 배정 입력과 같은 규칙으로, 유형에 맞지 않는 칸은 싣지 않는다 — 세트·횟수·
+/// 중량은 근력에만, 한 세트는 회로든 초로든 한 번만 잰다(#1969). 서버가 다시
+/// 거르지만, 보내지 않는 편이 "무엇을 정했는지"가 그대로 남는다.
+List<Map<String, Object?>> personalRoutinesToJson(
+  List<RoutineExercise> routines,
+) {
+  return <Map<String, Object?>>[
+    for (final e in routines)
+      <String, Object?>{
+        'name': _cap(e.name, _kNameMax),
+        'minutes': e.type == '근력' ? 0 : e.minutes,
+        'type': e.type,
+        if (e.type == '근력' && e.sets > 0) 'sets': e.sets,
+        if (e.type == '근력' && !e.isHold && e.reps > 0) 'reps': e.reps,
+        if (e.type == '근력' && e.isHold && e.holdSeconds > 0)
+          'hold_seconds': e.holdSeconds,
+        if (e.type == '근력') 'weight': e.weight,
+        'reason': _cap(e.reason, 200),
+        'source': kProgramExerciseSources.contains(e.source)
+            ? e.source
+            : 'trainer',
+      },
+  ];
+}

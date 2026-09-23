@@ -4604,6 +4604,144 @@ abstract class AppLocalizations {
   /// **'Final review'**
   String get aiStepDone;
 
+  /// No description provided for @aiStepPersonal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise'**
+  String get aiStepPersonal;
+
+  /// No description provided for @aiProgramKindTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This program'**
+  String get aiProgramKindTitle;
+
+  /// No description provided for @aiProgramKindPt.
+  ///
+  /// In en, this message translates to:
+  /// **'PT + personal exercise'**
+  String get aiProgramKindPt;
+
+  /// No description provided for @aiProgramKindRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise only'**
+  String get aiProgramKindRoutineOnly;
+
+  /// No description provided for @aiProgramKindRoutineOnlyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No PT this time'**
+  String get aiProgramKindRoutineOnlyHint;
+
+  /// No description provided for @aiGoToPersonalStep.
+  ///
+  /// In en, this message translates to:
+  /// **'Next · plan personal exercise'**
+  String get aiGoToPersonalStep;
+
+  /// No description provided for @aiPersonalStepTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise between PT'**
+  String get aiPersonalStepTitle;
+
+  /// No description provided for @aiPersonalStepBlurb.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached to this PT and sent to the member when you complete it. Pick at least one.'**
+  String get aiPersonalStepBlurb;
+
+  /// No description provided for @aiPersonalStepBlurbRoutineOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'What the member does on their own this week. Pick at least one.'**
+  String get aiPersonalStepBlurbRoutineOnly;
+
+  /// No description provided for @aiPersonalStepEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No personal exercise yet. Add one below.'**
+  String get aiPersonalStepEmpty;
+
+  /// No description provided for @aiPersonalStepNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get aiPersonalStepNext;
+
+  /// No description provided for @aiKeepOnePersonalRoutine.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep at least one personal exercise.'**
+  String get aiKeepOnePersonalRoutine;
+
+  /// No description provided for @aiRoutineOnlyReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending this to the member'**
+  String get aiRoutineOnlyReviewTitle;
+
+  /// No description provided for @aiRoutineOnlyStartDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Start date'**
+  String get aiRoutineOnlyStartDate;
+
+  /// No description provided for @aiRoutineOnlyMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A note for the member (optional)'**
+  String get aiRoutineOnlyMessage;
+
+  /// No description provided for @aiRoutineOnlyMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No PT this week — just keep these up'**
+  String get aiRoutineOnlyMessageHint;
+
+  /// No description provided for @aiRoutineOnlySend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send to member'**
+  String get aiRoutineOnlySend;
+
+  /// No description provided for @aiRoutineOnlySentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent'**
+  String get aiRoutineOnlySentLabel;
+
+  /// No description provided for @aiRoutineOnlySent.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise sent to the member.'**
+  String get aiRoutineOnlySent;
+
+  /// No description provided for @aiRoutineOnlySendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send the personal exercise. Please try again shortly.'**
+  String get aiRoutineOnlySendFailed;
+
+  /// No description provided for @aiRoutineOnlyProgramName.
+  ///
+  /// In en, this message translates to:
+  /// **'This week\'s personal exercise'**
+  String get aiRoutineOnlyProgramName;
+
+  /// No description provided for @progPersonalRoutinesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal exercise going with it'**
+  String get progPersonalRoutinesTitle;
+
+  /// No description provided for @progPersonalRoutinesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} personal exercises going with it'**
+  String progPersonalRoutinesCount(int count);
+
   /// No description provided for @aiStepperLabel.
   ///
   /// In en, this message translates to:
@@ -5869,114 +6007,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New program'**
   String get programSavedNew;
-
-  /// No description provided for @suggestionReviewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'AI personal exercises'**
-  String get suggestionReviewTitle;
-
-  /// No description provided for @suggestionReviewBadge.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} to review'**
-  String suggestionReviewBadge(int count);
-
-  /// No description provided for @suggestionReviewIntro.
-  ///
-  /// In en, this message translates to:
-  /// **'Prepared for {name} from recent PT feedback and exercise records. The member sees only what you recommend.'**
-  String suggestionReviewIntro(String name);
-
-  /// No description provided for @suggestionReviewEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No AI personal exercises are waiting for review.'**
-  String get suggestionReviewEmpty;
-
-  /// No description provided for @suggestionReviewLoadFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t load the AI suggestions.'**
-  String get suggestionReviewLoadFailed;
-
-  /// No description provided for @suggestionApprove.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommend to member'**
-  String get suggestionApprove;
-
-  /// No description provided for @suggestionConfirmTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Final review · recommend to member'**
-  String get suggestionConfirmTitle;
-
-  /// No description provided for @suggestionConfirmBody.
-  ///
-  /// In en, this message translates to:
-  /// **'Exactly what you see below is what {client} receives. Once recommended it shows up in their app.'**
-  String suggestionConfirmBody(String client);
-
-  /// No description provided for @suggestionDismiss.
-  ///
-  /// In en, this message translates to:
-  /// **'Don\'t recommend'**
-  String get suggestionDismiss;
-
-  /// No description provided for @suggestionApproved.
-  ///
-  /// In en, this message translates to:
-  /// **'Recommended {name} to {client}.'**
-  String suggestionApproved(String name, String client);
-
-  /// No description provided for @suggestionDismissed.
-  ///
-  /// In en, this message translates to:
-  /// **'{name} won\'t be recommended.'**
-  String suggestionDismissed(String name);
-
-  /// No description provided for @suggestionActionFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Couldn\'t finish that. Please try again.'**
-  String get suggestionActionFailed;
-
-  /// No description provided for @suggestionAlreadyReviewed.
-  ///
-  /// In en, this message translates to:
-  /// **'This suggestion was already reviewed. The list has been refreshed.'**
-  String get suggestionAlreadyReviewed;
-
-  /// No description provided for @suggestionEditTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit personal exercise'**
-  String get suggestionEditTitle;
-
-  /// No description provided for @suggestionEditSubmit.
-  ///
-  /// In en, this message translates to:
-  /// **'Edit and recommend'**
-  String get suggestionEditSubmit;
-
-  /// No description provided for @suggestionEditName.
-  ///
-  /// In en, this message translates to:
-  /// **'Exercise'**
-  String get suggestionEditName;
-
-  /// No description provided for @suggestionEditMemo.
-  ///
-  /// In en, this message translates to:
-  /// **'Note for the member'**
-  String get suggestionEditMemo;
-
-  /// No description provided for @suggestionEditMemoHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Stop if your right shoulder hurts.'**
-  String get suggestionEditMemoHint;
 
   /// No description provided for @programDraftSaved.
   ///
