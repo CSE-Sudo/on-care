@@ -26,8 +26,3 @@ package-lock.json
 
 # 공공 표준데이터 원본 CSV(5.9MB) — 집계본만 커밋한다
 backend/data/raw/
-
-# 공공 운동 MET 집계본 — 원본이 KOGL 제4유형(상업적 이용금지·변경금지)이라
-# 식단 집계본과 달리 산출본도 커밋하지 않는다. 받는 경로는
-# backend/scripts/import_exercise_catalog.py 다. (#1312)
-backend/app/data/exercise_catalog_public.csv

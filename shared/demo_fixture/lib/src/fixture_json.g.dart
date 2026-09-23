@@ -9257,7 +9257,8 @@ const String kimMinsuFixtureJson = r'''
       "minutes": 30,
       "type": "유산소",
       "reason": "혈압 안정에 효과적",
-      "source": "ai"
+      "source": "ai",
+      "intensity": "light"
     },
     {
       "id": "seed-routine-user-7d4e9a2c5f18-1",
@@ -9265,7 +9266,8 @@ const String kimMinsuFixtureJson = r'''
       "minutes": 15,
       "type": "스트레칭",
       "reason": "혈액순환 개선",
-      "source": "trainer"
+      "source": "trainer",
+      "intensity": "light"
     },
     {
       "id": "seed-routine-user-7d4e9a2c5f18-2",
@@ -9276,7 +9278,8 @@ const String kimMinsuFixtureJson = r'''
       "source": "ai",
       "sets": 3,
       "reps": 15,
-      "weight": 0
+      "weight": 0,
+      "intensity": "moderate"
     },
     {
       "id": "seed-routine-user-7d4e9a2c5f18-3",
@@ -9284,7 +9287,8 @@ const String kimMinsuFixtureJson = r'''
       "minutes": 8,
       "type": "스트레칭",
       "reason": "PT 피드백 반영 · 오른쪽 어깨 보호",
-      "source": "trainer"
+      "source": "trainer",
+      "intensity": "light"
     }
   ]
 }
