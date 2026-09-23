@@ -1,142 +1,81 @@
-"""공공 운동 MET 데이터 → `app/data/exercise_catalog_public.csv` 생성. (#1312)
+"""운동 종목 참조표 점검 — 무엇이 몇 건 적재되고 이름이 얼마나 붙는지 본다. (#1651)
 
-원본(공공데이터포털):
-  data/raw/보건소_모바일_헬스케어_운동.csv
-      한국건강증진개발원 `보건소 모바일 헬스케어 운동`
-      컬럼: 운동명, 운동설명, METS(단위체중당에너지소비량) — 376행
+예전 `import_exercise_catalog.py` 는 공공데이터 원본을 받아 유형 열을 붙이고 행을
+걸러 낸 산출본(`app/data/exercise_catalog_public.csv`)을 만들었다. 그 가공이야말로
+원본의 이용허락범위(**KOGL 제4유형** — 출처표시·상업적 이용금지·**변경금지**)에
+걸리는 쪽이었다. 재배포 자체는 막지 않으므로 지금은 원본을 받은 **그대로**
+`app/data/exercise_met_public.csv` 에 두고, 유형 매핑·이름 정규화는 적재 시점
+(`app.db.init_db._seed_exercise_catalog`)의 코드로 붙인다.
+
+그래서 이 스크립트는 더 이상 파일을 만들지 않는다. DB 없이 시드 행만 만들어 보고
+무엇이 들어가는지 눈으로 확인한다 — 출처·유형 분포와, 회원이 실제로 적는 말이
+얼마나 표에 붙는지(이름 매칭율)다. 매칭 실패율이 곧 기능 실패율이다(#1312).
 
 사용법:
-    python -m scripts.import_exercise_catalog
-    python -m scripts.import_exercise_catalog --src data/raw/내려받은파일.csv
+    cd backend && python -m scripts.check_exercise_catalog
+    cd backend && python -m scripts.check_exercise_catalog --probe 러닝머신 계단오르기
 
-## 원본을 저장소에 넣지 않는 이유 — 식단과 다른 점
-
-식단 원본(식약처)은 용량 때문에 뺐지만, 이쪽은 **이용허락범위** 때문이다. 이
-데이터의 공공저작물 유형은 **KOGL 제4유형(출처표시 · 상업적 이용금지 · 변경금지)**
-이다. 값을 바꾸지 않고 그대로 옮기는 것이 전제이므로:
-
-  - MET 값을 **가공하지 않는다.** 중앙값으로 모으거나 반올림하지 않는다
-    (식단 임포트가 대표식품 중앙값을 취하는 것과 다른 점이다).
-  - 원본 파일은 커밋하지 않는다. 받은 사람이 이 스크립트로 산출본을 만든다.
-  - 출처를 남긴다 — 산출본의 `source` 열과 `app/data/exercise_catalog_seed.py`
-    머리말이 그 자리다.
-
-집계본도 커밋하지 않는다(`app/data/exercise_catalog_public.csv` 는 gitignore).
-없으면 큐레이션 목록만으로 돌고, 이름 매칭율만 낮아진다.
-
-## 운동 유형은 이름에서 짐작한다
-
-원본에는 우리 집계 축(유산소/근력/스트레칭/기타)이 없다. 이름의 조각으로 접되,
-모르면 `기타` 다 — 잘못된 유형으로 우겨 넣으면 주간 그래프의 버킷이 틀어진다.
-유형을 못 정한 항목도 계수는 맞으므로 칼로리 계산에는 지장이 없다.
+출처: 한국건강증진개발원 `보건소 모바일 헬스케어 운동`(공공데이터포털
+https://www.data.go.kr/data/15068730/fileData.do) · Compendium of Physical Activities.
 """
 from __future__ import annotations
 
 import argparse
-import csv
+import collections
 import pathlib
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
-DEFAULT_SRC = ROOT / "data" / "raw" / "보건소_모바일_헬스케어_운동.csv"
-OUT = ROOT / "app" / "data" / "exercise_catalog_public.csv"
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-#: 원본 컬럼명 후보. 공공데이터 파일은 배포 회차마다 표기가 조금씩 다르다.
-_NAME_KEYS = ("운동명", "운동 명", "name")
-_MET_KEYS = ("METS", "METs", "MET", "단위체중당에너지소비량", "met")
-
-#: 이름 조각 → 집계 유형. 위에서부터 먼저 걸리는 것을 쓴다.
-_TYPE_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("stretching", ("스트레칭", "요가", "필라테스", "체조", "이완", "태극권")),
-    (
-        "strength",
-        ("근력", "웨이트", "덤벨", "바벨", "머신", "스쿼트", "프레스", "리프트",
-         "턱걸이", "팔굽혀", "윗몸", "플랭크", "런지", "케틀벨"),
-    ),
-    (
-        "cardio",
-        ("걷기", "달리기", "뛰기", "조깅", "러닝", "자전거", "사이클", "수영",
-         "등산", "줄넘기", "에어로빅", "계단", "유산소", "로잉", "스피닝"),
-    ),
+#: 회원이 실제로 적을 법한 말. 붙어야 정상인 것들만 둔다 — 여기가 비면 이름
+#: 해석이 유형 표 폴백으로 내려가 체중이 빠진 값이 적힌다.
+PROBES = (
+    "러닝머신", "걷기", "달리기", "자전거", "수영", "줄넘기", "등산", "계단오르기",
+    "스쿼트", "데드리프트", "벤치프레스", "랫풀다운", "레그프레스", "플랭크",
+    "요가", "필라테스", "스트레칭", "복싱", "배드민턴", "축구", "농구", "테니스",
 )
-
-
-def _type_of(name: str) -> str:
-    for code, tokens in _TYPE_HINTS:
-        if any(token in name for token in tokens):
-            return code
-    return "other"
-
-
-def _pick(row: dict, keys: tuple[str, ...]) -> str:
-    for key in keys:
-        if key in row and (row[key] or "").strip():
-            return row[key].strip()
-    return ""
-
-
-def _read(src: pathlib.Path) -> list[dict]:
-    # 공공데이터포털 CSV 는 CP949 로 내려오는 일이 잦다. UTF-8 을 먼저 보고
-    # 실패하면 CP949 로 되읽는다 — 인코딩 때문에 빈 결과를 내고 조용히
-    # 끝나는 것이 가장 알아채기 어렵다.
-    for encoding in ("utf-8-sig", "cp949"):
-        try:
-            with src.open(encoding=encoding, newline="") as fh:
-                return list(csv.DictReader(fh))
-        except UnicodeDecodeError:
-            continue
-    raise SystemExit(f"인코딩을 읽지 못했습니다(UTF-8/CP949 아님): {src}")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--src", type=pathlib.Path, default=DEFAULT_SRC)
+    parser.add_argument(
+        "--probe", nargs="*", default=None, help="이름 매칭을 시험할 말(기본: 내장 목록)"
+    )
     args = parser.parse_args()
 
-    if not args.src.exists():
-        print(f"원본이 없습니다: {args.src}", file=sys.stderr)
-        print(
-            "공공데이터포털 '한국건강증진개발원_보건소 모바일 헬스케어 운동' 을 "
-            "내려받아 위 경로에 두세요.",
-            file=sys.stderr,
-        )
+    from app.db.init_db import PUBLIC_EXERCISE_CSV, _exercise_catalog_seed_rows
+    from app.services.exercise_catalog.matcher import normalize
+
+    if not PUBLIC_EXERCISE_CSV.exists():
+        print(f"공공데이터 원본이 없습니다: {PUBLIC_EXERCISE_CSV}", file=sys.stderr)
         return 1
 
-    seen: set[str] = set()
-    rows: list[dict] = []
-    for raw in _read(args.src):
-        name = _pick(raw, _NAME_KEYS)
-        met_text = _pick(raw, _MET_KEYS)
-        if not name or not met_text:
-            continue
-        try:
-            met = float(met_text)
-        except ValueError:
-            continue
-        # 계수가 없거나 0 이면 칼로리가 0 이 된다 — 표에 있을 이유가 없다.
-        if met <= 0 or name in seen:
-            continue
-        seen.add(name)
-        rows.append(
-            {
-                "name": name,
-                "type": _type_of(name),
-                # 원본 값 그대로. 반올림·환산하지 않는다(변경금지).
-                "met": met_text,
-                "aliases": "",
-                "source": "khpi",
-            }
-        )
+    rows = _exercise_catalog_seed_rows()
+    by_source = collections.Counter(row["source"] for row in rows)
+    by_type = collections.Counter(row["type"] for row in rows)
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    with OUT.open("w", encoding="utf-8", newline="") as fh:
-        writer = csv.DictWriter(
-            fh, fieldnames=["name", "type", "met", "aliases", "source"]
-        )
-        writer.writeheader()
-        writer.writerows(rows)
+    print(f"적재 대상 {len(rows)}종")
+    print("  출처: " + ", ".join(f"{k} {v}" for k, v in by_source.most_common()))
+    print("  유형: " + ", ".join(f"{k} {v}" for k, v in by_type.most_common()))
 
-    print(f"{len(rows)}종 → {OUT}")
+    index: dict[str, dict] = {}
+    for row in rows:
+        index[row["name_norm"]] = row
+        for alias in row["aliases_norm"].split("|"):
+            if alias:
+                index.setdefault(alias, row)
+
+    probes = tuple(args.probe) if args.probe else PROBES
+    hit = 0
+    print(f"\n이름 매칭 {len(probes)}건")
+    for probe in probes:
+        row = index.get(normalize(probe))
+        if row is None:
+            print(f"  ✗ {probe}")
+            continue
+        hit += 1
+        print(f"  ✓ {probe} → {row['name']} ({row['type']}, {row['met']} MET)")
+    print(f"\n매칭율 {hit}/{len(probes)} ({hit / len(probes) * 100:.0f}%)")
     return 0
 
 
