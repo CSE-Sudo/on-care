@@ -346,11 +346,14 @@ void main() {
     expect(toggle('지난 할 일'), findsNothing);
     for (final String title in <String>['운동', '식단', '프로그램', '리포트']) {
       expect(labelIn(title, '없음'), findsOneWidget, reason: title);
+      // 자리 잡기용으로 보이지 않게 깔린 "완료 >" 는 세지 않는다.
       expect(
-        find.descendant(
-          of: toggle(title),
-          matching: find.byIcon(Icons.chevron_right_rounded),
-        ),
+        find
+            .descendant(
+              of: toggle(title),
+              matching: find.byIcon(Icons.chevron_right_rounded),
+            )
+            .hitTestable(),
         findsNothing,
         reason: '$title 은 펼칠 것이 없다',
       );
