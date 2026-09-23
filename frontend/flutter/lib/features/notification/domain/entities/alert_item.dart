@@ -1,4 +1,45 @@
-enum AlertCategory { reminder, healthCheck, achievement, system }
+/// 알림함 줄의 갈래 — 서버 갈래(`category`)마다 하나씩, 아이콘과 화면 읽기 라벨을
+/// 고르는 근거다(#2084).
+///
+/// 예전에는 네 가지(리마인더·건강·달성·시스템)로 접어서 트레이너가 한 일이 모두 종
+/// 아이콘으로 뭉쳤다. 서버 갈래를 그대로 따라가면 줄마다 무슨 알림인지 보인다.
+enum AlertCategory {
+  /// 식단·운동 기록 독려(`reminder`). 여러 독촉이 섞여 있어 종 아이콘이 기본이다.
+  reminder,
+
+  /// 트레이너 메시지·피드백(`coach_chat`).
+  coachChat,
+
+  /// 트레이너가 등록한 주간 리포트(`coach_report`, #2085).
+  coachReport,
+
+  /// 새 운동 루틴(`routine`).
+  routine,
+
+  /// PT 일정 등록·변경·취소(`member_schedule`).
+  schedule,
+
+  /// 담당 트레이너 요청·연결·해제(`coach_invite`·`consultation_result`).
+  trainerLink,
+
+  /// 상담 요청 승인·거절·만료(`consult_decision`).
+  consultDecision,
+
+  /// 담당 트레이너가 바꾼 건강 목표(`health_goals`).
+  healthGoals,
+
+  /// 쿠폰 취소·만료 임박(`benefits`).
+  benefits,
+
+  /// 주간 챌린지 결과(`points_shop`).
+  challenge,
+
+  /// 달성(`achievement`).
+  achievement,
+
+  /// 공지(`system`)와 앱이 모르는 갈래.
+  system,
+}
 
 /// 알림을 눌렀을 때 갈 곳. 서버가 알림마다 내려준다(`action.target`).
 ///

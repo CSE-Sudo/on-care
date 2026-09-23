@@ -13,6 +13,7 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/nutrition_s
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/models/trainer_client.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 끼니 카드 사진의 한 변 — 콘텐츠 고유 치수다.
@@ -131,7 +132,13 @@ class _TodayDiet extends ConsumerWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            NutritionSummaryCard(client: client),
+            NutritionSummaryCard(
+              client: client,
+              // 목표는 회원 프로필에서 읽는다(#2156). 읽는 중·실패면 기본값.
+              profile: ref
+                  .watch(memberHealthProfileProvider(client.id))
+                  .valueOrNull,
+            ),
             const SizedBox(height: OnCareSpacing.s12),
             // Nothing logged yet: say so, and withhold the verdict. The
             // summary tiles read 0 either way, and `_AiComment` would call

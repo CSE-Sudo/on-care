@@ -106,22 +106,25 @@ class DioNotificationRepository implements NotificationRepository {
     _ => AlertTarget.unknown,
   };
 
-  /// 서버 갈래 → 앱 갈래.
+  /// 서버 갈래 → 앱 갈래. 접지 않고 서버 갈래마다 따로 둔다(#2084).
   ///
-  /// 트레이너 활동이 만드는 회원 알림(`coach_chat`·`routine`·`member_schedule`·
-  /// `consultation_result`·`consult_decision`)은 회원이 확인하고 움직여야 하는
-  /// 알림이라 리마인더다.
-  /// 예전에는 모르는 갈래로 떨어져 시스템 공지(정보 아이콘)처럼 보였다(#1812).
+  /// 예전에는 트레이너가 한 일을 모두 리마인더로 접어 종 아이콘으로 뭉쳤고,
+  /// `health_goals` 는 빠져 있어 공지(정보 아이콘)처럼 보였다.
+  ///
+  /// `health_check` 는 지금 보내는 곳이 없다. 서버가 보내면 액션(기록하러 가기 →
+  /// 대시보드)이 같은 리마인더로 그린다. 모르는 갈래는 공지와 같은 정보 아이콘이다.
   @visibleForTesting
   static AlertCategory categoryFromWire(String s) => switch (s) {
-    'reminder' ||
-    'coach_chat' ||
-    'routine' ||
-    'member_schedule' ||
-    'coach_invite' ||
-    'consultation_result' ||
-    'consult_decision' => AlertCategory.reminder,
-    'health_check' => AlertCategory.healthCheck,
+    'reminder' || 'health_check' => AlertCategory.reminder,
+    'coach_chat' => AlertCategory.coachChat,
+    'coach_report' => AlertCategory.coachReport,
+    'routine' => AlertCategory.routine,
+    'member_schedule' => AlertCategory.schedule,
+    'coach_invite' || 'consultation_result' => AlertCategory.trainerLink,
+    'consult_decision' => AlertCategory.consultDecision,
+    'health_goals' => AlertCategory.healthGoals,
+    'benefits' => AlertCategory.benefits,
+    'points_shop' => AlertCategory.challenge,
     'achievement' => AlertCategory.achievement,
     _ => AlertCategory.system,
   };

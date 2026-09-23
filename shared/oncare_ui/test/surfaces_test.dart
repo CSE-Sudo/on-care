@@ -159,4 +159,32 @@ void main() {
     );
     expect(end.offset, greaterThan(name.length));
   });
+
+  testWidgets('옅은 브랜드 구획은 기본 구획보다 한 단계 옅다 (#2177)', (tester) async {
+    await _pump(
+      tester,
+      const Column(
+        children: <Widget>[
+          AppTile(key: ValueKey<String>('tile-brand'), child: Text('기본')),
+          AppTile(
+            key: ValueKey<String>('tile-soft'),
+            tone: AppTileTone.brandSoft,
+            child: Text('옅게'),
+          ),
+        ],
+      ),
+    );
+    Color fill(String key) => tester
+        .widget<Material>(
+          find
+              .descendant(
+                of: find.byKey(ValueKey<String>(key)),
+                matching: find.byType(Material),
+              )
+              .first,
+        )
+        .color!;
+    expect(fill('tile-brand'), OnCareBrand.member.surface);
+    expect(fill('tile-soft'), OnCareBrand.member.surfaceSoft);
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:oncare/features/benefits/domain/entities/coupon.dart';
+import 'package:oncare/features/benefits/domain/entities/diet_tray.dart';
 import 'package:oncare/features/benefits/domain/entities/points_history.dart';
 import 'package:oncare/features/benefits/domain/entities/points_shop.dart';
 import 'package:oncare/features/benefits/domain/entities/profile_pet.dart';
@@ -67,6 +68,39 @@ class FakeBenefitsRepository implements BenefitsRepository {
 
   @override
   Future<ProfilePet?> fetchProfilePet() async => pet;
+
+  /// 분석용 식판(#2150). 기본은 사진 기록 12/20일, 담당 있음.
+  DietTray tray = const DietTray(
+    status: DietTrayStatus.progress,
+    photoDays: 12,
+    requiredDays: 20,
+    windowDays: 28,
+    hasTrainer: true,
+  );
+  int trayClaims = 0;
+
+  @override
+  Future<DietTray> fetchDietTray() async => tray;
+
+  /// 서버처럼 수령 쿠폰을 만들어 내 쿠폰 앞에 세운다.
+  @override
+  Future<DietTray> claimDietTray({String? clientRequestId}) async {
+    trayClaims++;
+    final Coupon coupon = couponOf(
+      id: 'cpn-tray-$trayClaims',
+      item: 'diet_tray',
+    );
+    coupons = <Coupon>[coupon, ...coupons];
+    tray = DietTray(
+      status: DietTrayStatus.issued,
+      photoDays: tray.photoDays,
+      requiredDays: tray.requiredDays,
+      windowDays: tray.windowDays,
+      hasTrainer: true,
+      coupon: coupon,
+    );
+    return tray;
+  }
 
   /// 포인트로 받은 주간 리포트(#2022). 기본은 받은 주가 없다.
   WeeklyReportPurchases reports = WeeklyReportPurchases(
@@ -171,18 +205,25 @@ Coupon couponOf({
 }) {
   final bool renewal = item == 'pt_renewal';
   final bool locker = item == 'locker_month';
+  final bool tray = item == 'diet_tray';
   return Coupon(
     id: id,
     item: item,
     title: item,
     benefit: item,
-    cost: renewal ? 21000 : 7000,
+    cost: renewal
+        ? 21000
+        : tray
+        ? 0
+        : 7000,
     status: status,
-    trainerName: renewal ? '김트레이너' : '',
-    gymName: renewal || locker ? '온케어짐 신촌점' : '',
+    trainerName: renewal || tray ? '김트레이너' : '',
+    gymName: renewal || locker || tray ? '온케어짐 신촌점' : '',
     issuedOn: DateTime(2026, 9, 15),
     expiresOn: DateTime(2026, 10, 15),
     daysLeft: status == CouponStatus.issued ? daysLeft : 0,
     usedAt: status == CouponStatus.used ? kFakeUsedAt : null,
+    // 식판 수령 쿠폰은 기한이 없다(#2150).
+    noExpiry: tray,
   );
 }

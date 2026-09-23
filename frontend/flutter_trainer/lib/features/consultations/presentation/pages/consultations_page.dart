@@ -376,11 +376,13 @@ class _RequestCardState extends ConsumerState<_RequestCard> {
             Row(
               children: <Widget>[
                 const Spacer(),
-                // 거절은 사유를 받는 확인창을 연다 — 화면 안 트리거라 빨간 글자다.
+                // 거절은 사유를 받는 확인창을 연다. 빨간 글자만 있던 때에는 옆
+                // `승인` 과 모양이 달라, 흰 카드 위 네이비 외곽선으로 짝을
+                // 맞춘다(#2184). 위험 색은 확인창의 확정 버튼이 맡는다.
                 AppButton(
                   key: ValueKey<String>('consultation-reject-${request.id}'),
                   label: l.consultReject,
-                  variant: AppButtonVariant.destructiveText,
+                  variant: AppButtonVariant.strongOutline,
                   size: OnCareButtonSize.small,
                   onPressed: _busy ? null : _reject,
                 ),

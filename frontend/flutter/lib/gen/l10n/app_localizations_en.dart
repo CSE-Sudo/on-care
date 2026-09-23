@@ -552,6 +552,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dietAddFood => 'Add Food';
 
   @override
+  String get dietManualAdd => 'Add manually';
+
+  @override
+  String get dietManualAddTitle => 'Add Meal Manually';
+
+  @override
+  String get dietManualAddHint =>
+      'Type a food name and we\'ll fill in the nutrition';
+
+  @override
+  String get dietManualAddEmpty => 'Add at least one food';
+
+  @override
   String get dietEditFoodHint =>
       'Change the serving size and the nutrition follows';
 
@@ -1297,6 +1310,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myGraphProtectFailed => 'Couldn\'t use the shield';
 
   @override
+  String get myGraphProtectBuyConfirmTitle => 'Buy a streak shield?';
+
+  @override
+  String myGraphProtectBuyConfirmMessage(String date, String cost) {
+    return 'You don\'t have a shield. Buy one for $cost and use it right away to keep $date in your record streak.';
+  }
+
+  @override
+  String get myGraphProtectBuyAction => 'Buy and use';
+
+  @override
+  String get myGraphProtectBoughtNotUsed =>
+      'You bought a shield but couldn\'t use it. It\'s kept in My benefits.';
+
+  @override
   String get myGraphColorTitle => 'Graph colour';
 
   @override
@@ -1695,6 +1723,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get myCouponGymStaffNote => 'Tap only after gym staff has checked it';
+
+  @override
+  String get myCouponNoExpiry => 'No expiry';
+
+  @override
+  String get myDietTrayTitle => 'Free analysis tray';
+
+  @override
+  String get myDietTrayFree => 'Free';
+
+  @override
+  String myDietTrayDescription(int window, int days) {
+    return 'Log meal photos on $days of the last $window days and we\'ll give you a standard tray made for analysis. Meals shot on the same tray are measured more accurately.';
+  }
+
+  @override
+  String myDietTrayProgressLabel(int window) {
+    return 'Photo logs, last $window days';
+  }
+
+  @override
+  String myDietTrayProgress(int days, int required) {
+    return '$days / $required days';
+  }
+
+  @override
+  String myDietTrayDaysLeft(int days) {
+    return '$days more days of photos to go';
+  }
+
+  @override
+  String get myDietTrayNeedTrainer => 'Connect a trainer to receive it';
+
+  @override
+  String get myDietTrayClaimable =>
+      'You\'re eligible! Pick it up at your trainer\'s gym';
+
+  @override
+  String myDietTrayIssued(String gym) {
+    return 'Pick it up at $gym. Before you go, ask your trainer in chat whether it\'s ready';
+  }
+
+  @override
+  String get myDietTrayReceived =>
+      'You\'ve received your tray. Try shooting meals on it';
+
+  @override
+  String get myDietTrayClaim => 'Claim';
+
+  @override
+  String get myDietTrayViewCoupon => 'View coupon';
+
+  @override
+  String get myDietTrayClaimConfirmTitle => 'Get your tray pickup coupon?';
+
+  @override
+  String get myDietTrayClaimConfirmMessage =>
+      'Pick it up at your trainer\'s gym. There\'s no deadline, and it\'s one tray per member.';
+
+  @override
+  String get myDietTrayClaimDone => 'Tray pickup coupon added';
+
+  @override
+  String get myDietTrayClaimFailed => 'Couldn\'t get the tray pickup coupon';
+
+  @override
+  String get myDietTrayNotice =>
+      'One per member · Only days with meal photos count (typed meals and shield-protected days don\'t) · No pickup deadline · Check with your trainer that the tray is ready before visiting the gym · Terms may change depending on stock and operations';
+
+  @override
+  String get myDietTrayCouponBenefit => 'Standard analysis tray';
+
+  @override
+  String get myDietTrayStaffNote => 'Tap after gym staff hands you the tray';
+
+  @override
+  String get myDietTrayIssuedOn => 'Received on';
+
+  @override
+  String get myDietTrayExpireNotice =>
+      'No expiry. Before you go to the gym, ask your trainer in chat whether the tray is ready.';
 
   @override
   String get myCouponStaffConfirmTitle => 'Mark this coupon as used?';
@@ -3417,6 +3526,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineAiTitle => 'AI recommended solo workouts';
 
   @override
+  String get coachRoutinePastReadOnly =>
+      'What you did that day. Past days can\'t be checked.';
+
+  @override
   String get coachRoutineByTrainer => 'Recommended by your trainer';
 
   @override
@@ -3517,7 +3630,31 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alertCategoryReminder => 'Reminder';
 
   @override
-  String get alertCategoryHealth => 'Health';
+  String get alertCategoryCoachChat => 'Trainer message';
+
+  @override
+  String get alertCategoryCoachReport => 'Weekly report';
+
+  @override
+  String get alertCategoryRoutine => 'Workout routine';
+
+  @override
+  String get alertCategorySchedule => 'PT schedule';
+
+  @override
+  String get alertCategoryTrainer => 'Trainer';
+
+  @override
+  String get alertCategoryConsultation => 'Consultation request';
+
+  @override
+  String get alertCategoryHealthGoals => 'Health goals';
+
+  @override
+  String get alertCategoryBenefits => 'Benefits';
+
+  @override
+  String get alertCategoryChallenge => 'Challenge';
 
   @override
   String get alertCategoryAchievement => 'Achievement';

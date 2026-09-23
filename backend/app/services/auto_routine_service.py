@@ -16,7 +16,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -139,10 +139,19 @@ def ensure_auto_routines(db: Session, member_id: str) -> None:
 
     알림을 보내지 않는다 — 회원이 직접 열어 본 화면에서 이미 보고 있다.
     """
-    key = _key_for(clock.now().date())
+    today = clock.now().date()
+    key = _key_for(today)
     # 대화에서 찾은 불편을 반영해 좁힌다(#2016).
     todays = _adjust_for_insights(db, member_id)
     existing = _existing_for(db, member_id, key)
+    # 회원이 오늘 지운 추천은 목록에서 내려와 있다(#2161). 다시 만들지 않는다 —
+    # 고쳐 만들 때마다 지운 것이 되살아나면 회원은 지울 수 없는 목록을 보게 된다.
+    removed_names = {
+        r.name for r in existing
+        if r.ended_on is not None and r.ended_on <= today.isoformat()
+    }
+    existing = [r for r in existing if r.name not in removed_names]
+    todays = [t for t in todays if t[0] not in removed_names]
 
     done_ids = (
         set(
@@ -188,6 +197,10 @@ def ensure_auto_routines(db: Session, member_id: str) -> None:
                 status=ROUTINE_APPROVED,
                 sort_order=order,
                 client_request_id=key,
+                # 하루치 추천이다 — 오늘만 걸리고 내일은 그날 추천으로 바뀐다
+                # (#2161). 지난 날짜 화면은 이 창으로 그날 목록을 되살린다.
+                active_from=today.isoformat(),
+                ended_on=(today + timedelta(days=1)).isoformat(),
                 created_at=now,
             )
         )

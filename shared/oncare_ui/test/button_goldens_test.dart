@@ -93,7 +93,7 @@ void main() {
 
 void _goldens() {
   for (final app in _apps) {
-    testWidgets('AppButton 여섯 변형과 비활성 — ${app.name}', (tester) async {
+    testWidgets('AppButton 일곱 변형과 비활성 — ${app.name}', (tester) async {
       await _pump(
         tester,
         brand: app.brand,

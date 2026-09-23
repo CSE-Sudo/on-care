@@ -182,8 +182,13 @@ def test_protected_day_is_marked_without_a_record(client, db_session, thursday):
     assert protected["protected"] is True
     assert (protected["has_diet"], protected["has_exercise"]) == (False, False)
     assert body["record_streak_days"] == 1
-    # 창은 보유 수만 본다 — 어느 칸이 비었는지는 days[] 가 말한다.
-    assert (body["protectable_from"], body["protectable_to"]) == (None, None)
+    # 창은 보유 수와 상관없이 내려 온다 — 보호권이 없으면 앱이 교환과 사용을 잇는다.
+    # 어느 칸이 비었는지는 days[] 가 말한다.
+    assert body["shields_held"] == 0
+    assert (body["protectable_from"], body["protectable_to"]) == (
+        "2026-08-18",
+        YESTERDAY,
+    )
 
 
 def test_record_streak_counts_yesterday_when_today_is_empty(

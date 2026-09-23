@@ -132,25 +132,32 @@ class ActivityCalendar {
   final int shieldsHeld;
 
   /// 지금 보호권을 쓸 수 있는 날의 구간(양끝 포함) — 어제부터 거슬러 30일.
-  /// 보호권이 없으면 둘 다 null 이다. 구간 안이라고 다 쓸 수 있는 것은 아니다
-  /// ([isProtectable] 이 그날 기록까지 본다).
+  /// 보호권이 없어도 온다(그 칸에서 교환과 사용을 한 번에 잇는다). 구간 안이라고
+  /// 다 쓸 수 있는 것은 아니다([isProtectableDay] 가 그날 기록까지 본다).
   final DateTime? protectableFrom;
   final DateTime? protectableTo;
 
   final GraphColorState color;
 
-  /// [day] 가 지금 보호권으로 이어 붙일 수 있는 칸인가.
+  /// [day] 가 보호권으로 이어 붙일 수 있는 날인가 — 보유 수는 보지 않는다.
   ///
   /// 서버가 준 구간 안이고, 아무 기록도 없고, 아직 보호하지 않은 날이다. 구간
   /// 길이(30일)는 앱이 따로 들고 있지 않다 — 규칙이 바뀌면 응답만 바뀐다.
   /// 마지막 판정은 사용 요청이 하므로, 여기서는 누를 수 있게 보일지만 정한다.
-  bool isProtectable(ActivityDay day) {
+  /// 보호권이 없는 날에도 참이다 — 그래프가 `보호권 쓰기` 를 띄우고, 누르면
+  /// 교환부터 묻는다.
+  bool isProtectableDay(ActivityDay day) {
     final DateTime? first = protectableFrom;
     final DateTime? last = protectableTo;
-    if (first == null || last == null || shieldsHeld <= 0) return false;
+    if (first == null || last == null) return false;
     if (!day.isEmpty || day.protected) return false;
     return !day.date.isBefore(first) && !day.date.isAfter(last);
   }
+
+  /// [day] 를 지금 가진 보호권으로 바로 이어 붙일 수 있는가. 그래프가 이런 칸을
+  /// 테두리로 미리 표시한다.
+  bool isProtectable(ActivityDay day) =>
+      shieldsHeld > 0 && isProtectableDay(day);
 
   factory ActivityCalendar.fromJson(Map<String, Object?> json) => ActivityCalendar(
     days: <ActivityDay>[

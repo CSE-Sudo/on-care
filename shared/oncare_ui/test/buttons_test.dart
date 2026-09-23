@@ -96,6 +96,7 @@ void main() {
       AppButtonVariant.destructive: OnCareColors.textOnFill,
       AppButtonVariant.secondary: OnCareColors.textPrimary,
       AppButtonVariant.destructiveText: OnCareColors.danger,
+      AppButtonVariant.strongOutline: OnCareBrand.member.strong,
     };
     for (final MapEntry<AppButtonVariant, Color> entry in expected.entries) {
       await _pump(
@@ -128,6 +129,43 @@ void main() {
       ),
     );
     expect(iconColorOf(Icons.add_rounded), OnCareColors.textDisabled);
+  });
+
+  // #2180 — 칠하지 않아 놓인 바탕(페이지 배경·흰 카드)이 그대로 보이고,
+  // 테두리와 글자는 진한 브랜드 색이다. 비활성은 다른 외곽선 버튼과 같다.
+  testWidgets('strongOutline 은 투명 바탕에 진한 브랜드 테두리·글자다', (tester) async {
+    ButtonStyle styleOf() =>
+        tester.widget<TextButton>(find.byType(TextButton)).style!;
+
+    await _pump(
+      tester,
+      AppButton(
+        label: '오늘',
+        onPressed: () {},
+        variant: AppButtonVariant.strongOutline,
+      ),
+    );
+    final Set<WidgetState> idle = <WidgetState>{};
+    expect(styleOf().backgroundColor!.resolve(idle), Colors.transparent);
+    expect(
+      styleOf().foregroundColor!.resolve(idle),
+      OnCareBrand.member.strong,
+    );
+    expect(
+      styleOf().side!.resolve(idle),
+      BorderSide(color: OnCareBrand.member.strong),
+    );
+
+    final Set<WidgetState> disabled = <WidgetState>{WidgetState.disabled};
+    expect(styleOf().backgroundColor!.resolve(disabled), Colors.transparent);
+    expect(
+      styleOf().foregroundColor!.resolve(disabled),
+      OnCareColors.textDisabled,
+    );
+    expect(
+      styleOf().side!.resolve(disabled),
+      const BorderSide(color: OnCareColors.lineSubtle),
+    );
   });
 
   testWidgets('처리 중이면 탭이 막히고 스피너가 보인다', (tester) async {
