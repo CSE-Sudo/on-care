@@ -24,6 +24,10 @@ CoachRoutine coachRoutineFromJson(Map<String, Object?> json) {
     type: _str(json['type']),
     reason: _str(json['reason']),
     source: _str(json['source']),
+    // 권장 강도(#2160). 이 키가 없던 옛 응답은 서버 기본값과 같은 `moderate`.
+    intensity: json['intensity'] is String
+        ? json['intensity']! as String
+        : 'moderate',
     completed: json['completed'] == true,
     completedAt: DateTime.tryParse(_str(json['completed_at'])),
     completedMinutes: json['completed_minutes'] is num

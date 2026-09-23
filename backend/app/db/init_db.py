@@ -344,55 +344,115 @@ def _seed_food_nutrients() -> None:
     logger.info("food_nutrients 를 시드 데이터로 다시 맞췄다(%d행)", len(rows))
 
 
-def _public_exercise_rows() -> list[dict]:
-    """공공 운동 MET 집계본(scripts/import_exercise_catalog.py 산출물)을 읽는다.
+#: 원본 컬럼명 후보. 공공데이터 파일은 배포 회차마다 표기가 조금씩 다르다.
+_PUBLIC_NAME_KEYS = ("운동명", "운동 명", "name")
+_PUBLIC_MET_KEYS = ("단위체중당에너지소비량", "METS", "METs", "MET", "met")
 
-    파일이 없으면 빈 목록 — 큐레이션 목록만으로도 서비스는 돈다. 원본 공공데이터는
-    이용허락범위(KOGL 제4유형)상 저장소에 담지 않으므로, 이 파일은 받아서 넣는
-    사람만 갖고 있다.
+#: 이름 조각 → 집계 유형. 위에서부터 먼저 걸리는 것을 쓴다. 원본에는 우리 집계
+#: 축(유산소/근력/스트레칭/기타)이 없으므로 **적재할 때** 이름으로 짐작한다 —
+#: 원본 파일에 열을 더해 두면 그것이 곧 변경이라 KOGL 제4유형에 걸린다(#1651).
+#: 모르면 `other` 다. 잘못된 유형으로 우겨 넣으면 주간 그래프의 버킷이 틀어지는데,
+#: 유형을 못 정해도 계수는 맞으므로 칼로리 계산에는 지장이 없다.
+_PUBLIC_TYPE_HINTS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("stretching", ("스트레칭", "요가", "필라테스", "체조", "이완", "태극권")),
+    (
+        "strength",
+        ("근력", "웨이트", "덤벨", "바벨", "머신", "스쿼트", "프레스", "리프트",
+         "턱걸이", "팔굽혀", "윗몸", "플랭크", "런지", "케틀벨"),
+    ),
+    (
+        "cardio",
+        ("걷기", "달리기", "뛰기", "조깅", "러닝", "자전거", "사이클", "수영",
+         "등산", "줄넘기", "에어로빅", "계단", "유산소", "로잉", "스피닝"),
+    ),
+)
+
+#: 공공데이터 원본. 받은 바이트 그대로 커밋해 둔 파일이다(#1651).
+PUBLIC_EXERCISE_CSV = (
+    Path(__file__).resolve().parent.parent / "data" / "exercise_met_public.csv"
+)
+
+
+def public_exercise_type(name: str) -> str:
+    """종목 이름에서 집계 유형을 짐작한다. 모르면 `other`."""
+    for code, tokens in _PUBLIC_TYPE_HINTS:
+        if any(token in name for token in tokens):
+            return code
+    return "other"
+
+
+def _read_public_exercise_csv(path: Path) -> list[dict[str, str]]:
+    """원본 CSV 를 읽는다. 공공데이터포털 파일은 CP949 로 내려오는 일이 잦다.
+
+    인코딩 때문에 빈 결과를 내고 조용히 끝나는 것이 가장 알아채기 어려우므로,
+    UTF-8 을 먼저 보고 실패하면 CP949 로 되읽는다.
     """
     import csv
 
-    path = Path(__file__).resolve().parent.parent / "data" / "exercise_catalog_public.csv"
-    if not path.exists():
+    for encoding in ("utf-8-sig", "cp949"):
+        try:
+            with path.open(encoding=encoding, newline="") as fh:
+                return list(csv.DictReader(fh))
+        except UnicodeDecodeError:
+            continue
+    logger.warning("공공 운동 데이터의 인코딩을 읽지 못했다(UTF-8/CP949 아님): %s", path)
+    return []
+
+
+def _pick(row: dict[str, str], keys: tuple[str, ...]) -> str:
+    for key in keys:
+        if key in row and (row[key] or "").strip():
+            return row[key].strip()
+    return ""
+
+
+def _public_exercise_rows() -> list[dict]:
+    """공공 운동 MET 원본(`app/data/exercise_met_public.csv`)을 읽는다. (#1651)
+
+    한국건강증진개발원 `보건소 모바일 헬스케어 운동`(공공데이터포털) 파일을 받은
+    **그대로** 커밋해 두고, 여기서 읽는다. 예전에는 임포트 스크립트가 유형 열을
+    붙이고 행을 걸러 낸 산출본을 만들었는데, 그 가공이야말로 KOGL 제4유형의
+    변경금지에 걸리는 쪽이었다. 재배포 자체는 막지 않으므로, 원본을 그대로 두고
+    유형 매핑·정규화는 이 적재 시점의 코드로 붙인다.
+
+    파일이 없으면 빈 목록 — 큐레이션 목록만으로도 서비스는 돈다.
+    """
+    if not PUBLIC_EXERCISE_CSV.exists():
         return []
 
-    def num(value: str) -> float | None:
-        value = (value or "").strip()
-        if not value:
-            return None
+    rows: list[dict] = []
+    seen: set[str] = set()
+    for raw in _read_public_exercise_csv(PUBLIC_EXERCISE_CSV):
+        name = _pick(raw, _PUBLIC_NAME_KEYS)
+        met_text = _pick(raw, _PUBLIC_MET_KEYS)
+        if not name or not met_text or name in seen:
+            continue
         try:
-            return float(value)
+            met = float(met_text)
         except ValueError:
-            return None
-
-    with path.open(encoding="utf-8", newline="") as fh:
-        rows = []
-        for row in csv.DictReader(fh):
-            met = num(row.get("met", ""))
-            if not met or met <= 0:
-                # 계수가 없으면 이 표에 있을 이유가 없다 — 칼로리가 0 이 된다.
-                continue
-            rows.append(
-                {
-                    "name": row["name"],
-                    "type": row.get("type", ""),
-                    "met": met,
-                    "aliases": [
-                        a for a in (row.get("aliases", "") or "").split("|") if a
-                    ],
-                    "source": row.get("source", "khpi"),
-                }
-            )
-        return rows
+            continue
+        # 계수가 없거나 0 이면 칼로리가 0 이 된다 — 표에 있을 이유가 없다.
+        if met <= 0:
+            continue
+        seen.add(name)
+        rows.append(
+            {
+                "name": name,
+                "type": public_exercise_type(name),
+                # 원본 값 그대로. 반올림·환산하지 않는다(변경금지).
+                "met": met,
+                "aliases": [],
+                "source": "khpi",
+            }
+        )
+    return rows
 
 
-def _seed_exercise_catalog() -> None:
-    """운동 종목 참조표 시드(멱등). name_norm 은 매칭기와 동일 규칙으로 생성.
+def _exercise_catalog_seed_rows() -> list[dict]:
+    """운동 종목 참조표에 넣을 행. 큐레이션 목록이 **먼저** 다.
 
-    큐레이션 목록을 **먼저** 넣고, 공공 집계본에서 이름·별칭이 겹치는 것은
-    건너뛴다. 식단 시드와 같은 우선순위다 — 큐레이션 쪽은 회원이 실제로 적는
-    말(별칭 포함)로 손질한 것이라, 원본의 긴 항목명보다 이름 매칭이 잘 붙는다.
+    식단 시드와 같은 우선순위다 — 큐레이션 쪽은 회원이 실제로 적는 말(별칭 포함)로
+    손질한 것이라, 원본의 긴 항목명보다 이름 매칭이 잘 붙는다.
 
     정규화 이름이 겹치면 뒤엣것을 버린다. 매칭은 정규화 이름으로 하므로 중복이
     있으면 조회가 모호해진다 — 같은 이름에 계수가 둘이면 값이 흔들린다.
@@ -401,14 +461,12 @@ def _seed_exercise_catalog() -> None:
     from app.services import exercise_types
     from app.services.exercise_catalog.matcher import normalize
 
-    db: Session = SessionLocal()
-    try:
-        if db.scalar(select(models.ExerciseCatalogItem).limit(1)):
-            return
-        items = [*EXERCISE_CATALOG, *_public_exercise_rows()]
-        # 대표 이름을 먼저 전부 잡아 둔다. 별칭이 뒤 항목의 대표 이름을 막으면
+    seen: set[str] = set()
+    rows: list[dict] = []
+
+    def take(items: list[dict], default_source: str, *, with_aliases: bool) -> None:
+        # 대표 이름을 먼저 전부 잡는다. 별칭이 같은 묶음 뒤 항목의 대표 이름을 막으면
         # 목록에 적은 순서가 어느 종목이 살아남는지를 정하게 된다.
-        seen: set[str] = set()
         kept: list[tuple[dict, str]] = []
         for item in items:
             norm = normalize(item["name"])
@@ -419,23 +477,82 @@ def _seed_exercise_catalog() -> None:
 
         for item, norm in kept:
             aliases = []
-            for alias in item.get("aliases", []):
-                alias_norm = normalize(alias)
-                if alias_norm and alias_norm not in seen:
-                    seen.add(alias_norm)
-                    aliases.append(alias_norm)
-            db.add(models.ExerciseCatalogItem(
-                name=item["name"],
-                name_norm=norm,
-                aliases_norm="|".join(aliases),
-                type=exercise_types.normalize(item.get("type")),
-                met=float(item["met"]),
-                isometric=bool(item.get("isometric", False)),
-                source=item.get("source", "khpi"),
-            ))
+            if with_aliases:
+                for alias in item.get("aliases", []):
+                    alias_norm = normalize(alias)
+                    if alias_norm and alias_norm not in seen:
+                        seen.add(alias_norm)
+                        aliases.append(alias_norm)
+            rows.append({
+                "name": item["name"],
+                "name_norm": norm,
+                "aliases_norm": "|".join(aliases),
+                "type": exercise_types.normalize(item.get("type")),
+                "met": float(item["met"]),
+                "isometric": bool(item.get("isometric", False)),
+                # 어디서 온 행인지는 `source` 로만 구분된다 — 큐레이션은 두 자료를
+                # 참고해 손으로 추린 값이라 원본(khpi)과 같은 출처로 적을 수 없다.
+                "source": item.get("source", default_source),
+            })
+
+    # 큐레이션은 **별칭까지** 먼저 잡는다. 별칭을 나중에 잡으면 원본의 같은 이름
+    # 항목이 먼저 들어가, 손질해 둔 별칭이 통째로 떨어져 나간다("걷기"의 "산책").
+    take(EXERCISE_CATALOG, "curated", with_aliases=True)
+    # 원본은 운동명과 계수 두 열뿐이라 별칭이 없다.
+    take(_public_exercise_rows(), "khpi", with_aliases=False)
+    return rows
+
+
+_EXERCISE_CATALOG_VERSION = "exercise_catalog"
+
+
+def _seed_exercise_catalog() -> None:
+    """`exercise_catalog` 를 시드 행과 맞춘다(멱등). (#1651)
+
+    식단 참조표(`_seed_food_nutrients`, #2100)와 같은 방식이다 — 예전에는 표가
+    비었을 때만 채워서, 공공데이터 전건을 얹어도 이미 떠 있는 DB 에는 닿지 않고
+    큐레이션 60종에 머물렀다. 시드 행의 지문을 `reference_data_versions` 에 적어
+    두고, 다르면 표를 **통째로** 새 시드로 바꾼다. 읽기 전용 참조표이고 다른 표가
+    이 행을 참조하지 않으므로(행 id 를 저장하는 곳이 없다) 통째로 바꿔도 회원
+    기록에 영향이 없다.
+    """
+    from app.services.exercise_catalog.table import invalidate
+
+    rows = _exercise_catalog_seed_rows()
+    fingerprint = _fingerprint(rows)
+
+    def up_to_date(db: Session) -> bool:
+        stored = db.get(models.ReferenceDataVersion, _EXERCISE_CATALOG_VERSION)
+        return (
+            stored is not None
+            and stored.fingerprint == fingerprint
+            and db.scalar(select(models.ExerciseCatalogItem.id).limit(1)) is not None
+        )
+
+    db: Session = SessionLocal()
+    try:
+        if up_to_date(db):
+            return
+        # 같은 DB 를 쓰는 인스턴스가 동시에 뜨면 한 곳만 바꾼다.
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+            {"key": "seed:exercise_catalog"},
+        )
+        db.expire_all()
+        if up_to_date(db):
+            db.rollback()
+            return
+        db.execute(delete(models.ExerciseCatalogItem))
+        db.add_all(models.ExerciseCatalogItem(**row) for row in rows)
+        db.merge(models.ReferenceDataVersion(
+            name=_EXERCISE_CATALOG_VERSION, fingerprint=fingerprint
+        ))
         db.commit()
     finally:
         db.close()
+    # 표를 Core `DELETE` 로 비웠으므로 캐시 무효화 훅만 믿지 않고 직접 비운다.
+    invalidate()
+    logger.info("exercise_catalog 를 시드 데이터로 다시 맞췄다(%d행)", len(rows))
 
 
 _PUBLIC_COACH_DOCS_VERSION = "coach_public_docs"

@@ -499,14 +499,11 @@ class ProfilePet(Base):
 
 
 class EmotePass(Base):
-    """채팅 이모티콘 24시간 이용권. (#2020)
+    """채팅 이모티콘 24시간 이용권 — 지난 방식. (#2020)
 
-    한 번 사면 그 시각부터 24시간 동안 **모든** 이모티콘을 보낼 수 있다. 묶음별로
-    사지 않는 이유는, 회원이 무엇을 살지 고르는 동안 정작 하고 싶던 말을 놓치기
-    때문이다. 남은 시간은 `expires_at` 하나로 계산한다.
-
-    이용권이 끝나도 이미 보낸 이모티콘은 대화에 그대로 남는다 — 지난 대화는
-    기록이지 이용권의 대상이 아니다. 끝난 뒤에는 새로 보내는 것만 막힌다.
+    한 번 사면 24시간 동안 **모든** 이모티콘을 보냈다. 이모티콘을 하나씩 사는 방식
+    (#2153, [EmoteUnlock])으로 바뀌어 새로 생기지 않는다. 지난 원장과 짝이 맞게
+    표는 남겨 두고, 바뀌기 전에 산 이용권은 남은 시간 동안 그대로 쓴다.
     """
 
     __tablename__ = "emote_passes"
@@ -528,6 +525,39 @@ class EmotePass(Base):
         UniqueConstraint(
             "user_id", "client_request_id", name="uq_emote_pass_client_request"
         ),
+    )
+
+
+class EmoteUnlock(Base):
+    """채팅 이모티콘 하나를 7일 동안 쓰는 권리. (#2153)
+
+    이모티콘은 하나씩 산다. 산 때부터 7일 동안 그 이모티콘을 트레이너 채팅에서
+    보낸다. 남은 기간은 `expires_at` 하나로 계산한다. 기간이 끝나도 이미 보낸
+    이모티콘은 대화에 그대로 남고, 새로 보내는 것만 막힌다.
+    """
+
+    __tablename__ = "emote_unlocks"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    #: 산 이모티콘 id — `app.data.emotes.EMOTE_IDS` 의 값.
+    emote_id: Mapped[str] = mapped_column(String(40))
+    #: 쓴 포인트. 가격이 바뀌어도 그때 얼마였는지가 남는다.
+    cost: Mapped[int] = mapped_column(Integer, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    #: 재시도가 두 번 사지 않게 하는 멱등키.
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "client_request_id", name="uq_emote_unlock_client_request"
+        ),
+        Index("ix_emote_unlocks_user_emote", "user_id", "emote_id"),
     )
 
 
@@ -666,7 +696,8 @@ class ExerciseCatalogItem(Base):
     isometric: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
-    #: 데이터 출처. khpi=한국건강증진개발원 공공데이터, compendium=국제 표준표.
+    #: 데이터 출처. khpi=한국건강증진개발원 공공데이터 전건(#1651),
+    #: curated=손으로 추린 큐레이션 시드(공공데이터·Compendium 참고).
     source: Mapped[str] = mapped_column(String(20), default="khpi")
 
 

@@ -53,28 +53,32 @@
 
 `risk`: `{ title, body, level(low|medium|high) }`
 
-### 채팅 이모티콘 (#2020)
+### 채팅 이모티콘 (#2020, #2153)
 
 | Method | Path | 응답 핵심 필드 |
 |---|---|---|
-| GET | `/me/emotes` | `{ pass: {expires_at, remaining_seconds}\|null, cost, hours, balance }` |
-| POST | `/me/emotes/pass` | 같은 모양 — 산 뒤의 상태 |
+| GET | `/me/emotes` | `{ unlocked: [{emote_id, expires_at, remaining_seconds}], cost, days, balance }` |
+| POST | `/me/emotes/{emote_id}/unlock` | 같은 모양 — 산 뒤의 상태. 요청 `{ client_request_id? }` |
 
-이용권은 **24시간 전체 사용**이다. 한 번 사면 그동안 모든 이모티콘을 보낸다.
-남은 시간은 `remaining_seconds` 로 준다 — 기기 시계가 틀어져도 어긋나지 않는다.
-이용 중에 또 사면 409 이고, 포인트가 모자라면 400 이다. **담당 트레이너가 없으면 409 다**(#2142) — 이모티콘은 트레이너 채팅에만 있어서 사도 쓸 곳이 없다. 이미 산 이용권은 쓰던 중 담당이 끊겨도 남은 시간을 그대로 둔다. `client_request_id` 가 같은
-재시도는 두 번 쓰지 않는다. MY 탭에서는 같은 이용권을 포인트 사용처의
-`emote_pass_24h` 항목으로 산다(`POST /me/points/exchange`) — 담당이 없으면 `no_trainer`, 이용 중이면
-`blocked_reason: "active_pass"` 로 막힌다.
+이모티콘은 **하나씩 사서 산 때부터 7일 동안** 쓴다(하나에 50P). `unlocked` 는 지금 쓸 수 있는
+이모티콘이고 먼저 끝나는 것이 앞이다. 남은 기간은 `remaining_seconds` 로 준다 — 기기 시계가 틀어져도
+어긋나지 않는다. 모르는 id 는 404, 쓰고 있는 이모티콘을 또 사면 409, 포인트가 모자라면 400 이다.
+**담당 트레이너가 없으면 409 다**(#2142) — 이모티콘은 트레이너 채팅에만 있어서 사도 쓸 곳이 없다.
+이미 산 이모티콘은 쓰던 중 담당이 끊겨도 남은 기간을 그대로 둔다. `client_request_id` 가 같은 재시도는
+두 번 쓰지 않는다. 원장 사유는 `emote_unlock` 이다.
+
+포인트 사용처에서는 팔지 않는다 — 무엇을 사는지는 채팅의 이모티콘 창에서 봐야 알 수 있다. 예전 24시간
+이용권(`emote_pass_24h`, `POST /me/emotes/pass`)은 없어졌고, 사용처 교환으로 보내면 404 다. 바뀌기 전에 산
+이용권은 남은 시간 동안 모든 이모티콘을 쓰고, `unlocked` 에 이모티콘마다 그 끝나는 시각으로 실린다.
 
 이모티콘은 채팅 메시지에 실려 간다: `POST /me/coach/chat` 과
 `POST /trainer/clients/{id}/chat` 이 `emote_id` 를 받고, `ChatMessageOut` 이 같은 값을
-돌려준다. **회원은 이용권이 있어야 보낸다**(없으면 402). **트레이너는 이용권 없이
-보낸다** — 이용권은 회원이 포인트를 쓰는 자리다. 모르는 id 는 400 이다. 본문(`body`)은
+돌려준다. **회원은 그 이모티콘을 산 뒤 기간 안에만 보낸다**(아니면 402). **트레이너는 사지 않고
+모두 보낸다** — 이모티콘 구매는 회원이 포인트를 쓰는 자리다. 모르는 id 는 400 이다. 본문(`body`)은
 이모티콘을 그리지 못하는 자리(알림·로스터의 마지막 메시지)가 읽을 글로 채워 둔다.
 그림과 목록은 앱이 들고 있다(공용 패키지 `oncare_ui` 의 에셋).
 
-**이용권이 끝나도 이미 보낸 이모티콘은 그대로 보인다.** 지난 대화는 기록이라
+**기간이 끝나도 이미 보낸 이모티콘은 그대로 보인다.** 지난 대화는 기록이라
 새로 보내는 것만 막힌다.
 
 `activity_points`: 포인트 잔액(`health_profiles.activity_points`) 그대로다. 프로필 행이 없으면 0.
@@ -204,7 +208,6 @@
 | `locker_month` | 개인 락커 1개월 무료 | 7000 | 30일 | 연결한 헬스장(`GET /me/gym`) 필요, 사용 가능한 쿠폰은 회원당 1장, 교환은 KST 달마다 1회 |
 | `streak_shield` | 연속 기록 보호권(#1788, 쿠폰 아님) | 300 | 없음(0) | 쓰지 않은 보호권 최대 4개, 회원이 포인트 화면에서 사용 |
 | `graph_color` | 그래프 색 바꾸기(#2076, 쿠폰 아님) | 150 | 없음(0) | `option` 에 열 색 하나, 이미 연 색은 409, 모두 열면 목록에서 빠짐 |
-| `emote_pass_24h` | 채팅 이모티콘 24시간(#2020, 쿠폰 아님) | 300 | 24시간 | 활성 담당 필요(`no_trainer`, #2142), 이용 중이면 `active_pass` |
 | `profile_pet` | 프로필 펫 이모지(#2021, 쿠폰 아님) | 200 | 7일 | `option` 에 `dog`\|`cat`, 달고 있으면 `active_pet`(409) |
 | `weekly_report` | 주간 리포트(#2022, 쿠폰 아님) | 300 | 없음(0) | **담당이 없는 회원만** — 담당이 있으면 목록에서 빠지고 409, 지난주를 이미 받았으면 `week_owned`(409) |
 
@@ -218,7 +221,7 @@ partial unique index. 가진 종류는 교환 목록에서 `active_coupon` 으�
 
 `items[]`: `{ id, title, benefit, description, cost, valid_days, requires_trainer, requires_gym,
 available, blocked_reason, shortfall, active_option, active_until, remaining_seconds }`. `blocked_reason` 은
-`no_trainer` → `no_gym` → `active_coupon` → `shield_limit` → `active_pass` → `active_pet` → `week_owned` → `monthly_limit` →
+`no_trainer` → `no_gym` → `active_coupon` → `shield_limit` → `active_pet` → `week_owned` → `monthly_limit` →
 `insufficient_points` 순으로 하나만, 교환할 수 있으면 null. `shortfall` 은 모자란
 포인트(모자라지 않으면 0). `has_gym` 은 회원 헬스장 링크(`member_gyms`)가 있는지다. 교환 응답은 쿠폰이면 `coupon`,
 보호권이면 `coupon: null` 과 `shield`, 그래프 색이면 `graph_color` 다(아래 두 절).
@@ -232,7 +235,7 @@ available, blocked_reason, shortfall, active_option, active_until, remaining_sec
 **포인트 내역(#2146).** `items[]`: `{ id, kind, reason, delta, count, kst_date, created_at }` — 원장(`points_ledger`) 한 줄씩, 최신순.
 `kind` 는 `earn`(적립)·`spend`(사용)·`revoke`(회수 — 기록을 지워 적립을 되돌림)·`refund`(반환 — 쿠폰 취소 등). `delta` 는 잔액 변화량(적립·반환
 양수, 사용·회수 0 이하). `reason` 은 사유 코드(`diet_entry`·`exercise_manual`·`routine_complete`·`coupon_<항목>`·`streak_shield`·`graph_color`·
-`emote_pass_24h`·`profile_pet`·`weekly_report`·`challenge_stake`·`challenge_reward`·`ai_chat`)이고 앱이 문구로 바꾼다.
+`emote_unlock`·`emote_pass_24h`(지난 24시간 이용권)·`profile_pet`·`weekly_report`·`challenge_stake`·`challenge_reward`·`ai_chat`)이고 앱이 문구로 바꾼다.
 - **날짜 단위로 넘긴다.** 기록이 있는 날 기준 최근 14일치를 주고, 더 있으면 `next_before`(받은 날 중 가장 앞 날짜)를 `before` 로 넘겨 그보다 앞을 받는다.
 - **AI 코치 대화는 하루 한 줄로 묶는다**(#2145) — `count` 에 대화 수, `delta` 에 합계. 한 통마다 한 줄이면 내역이 채팅 기록처럼 길어진다.
 
