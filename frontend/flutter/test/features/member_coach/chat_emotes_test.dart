@@ -151,6 +151,8 @@ void main() {
     expect(emotes.bought, isEmpty);
     expect(coach.sentEmote, isNull);
     expect(find.byKey(const Key('emoteSheet')), findsOneWidget);
+    // 회원 앱의 부분 창에는 닫기 X 를 두지 않는다(#2170).
+    expect(find.byType(AppCloseButton), findsNothing);
   });
 
   testWidgets('사면 창은 그대로이고 그 이모티콘이 맨 앞으로 온다', (WidgetTester tester) async {

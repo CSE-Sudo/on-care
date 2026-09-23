@@ -793,6 +793,7 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
     final AppLocalizations l = AppLocalizations.of(context);
     final OnCareTokens tokens = context.oncare;
     return AppSheet(
+      showClose: false,
       title: l.coachRoutineCompleteTitle,
       footer: AppButtonPair(
         cancelLabel: l.actionCancel,

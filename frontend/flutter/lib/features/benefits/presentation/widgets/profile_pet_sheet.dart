@@ -18,6 +18,7 @@ class ProfilePetSheet extends StatelessWidget {
     final AppLocalizations l = AppLocalizations.of(context);
     return AppSheet(
       key: const Key('profilePetSheet'),
+      showClose: false,
       title: l.myProfilePetSheetTitle,
       child: Row(
         children: <Widget>[
