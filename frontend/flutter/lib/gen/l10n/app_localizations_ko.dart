@@ -1481,6 +1481,9 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myPointsReasonEmotePass => '채팅 이모티콘 24시간';
 
   @override
+  String get myPointsReasonEmoteUnlock => '채팅 이모티콘';
+
+  @override
   String get myPointsReasonProfilePet => '프로필 펫 이모지';
 
   @override
@@ -1792,60 +1795,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get emoteSheetTitle => '이모티콘';
 
   @override
-  String get emotePassActive => '이모티콘 쓰는 중';
+  String get emoteBuyTitle => '이모티콘 사기';
 
   @override
-  String emotePassRemaining(String left) {
-    return '$left 남았어요';
+  String emoteBuyConfirm(int cost, int days) {
+    return '${cost}P로 $days일 동안 쓸까요?\n산 때부터 기간이 흘러가요.';
   }
 
   @override
-  String emotePassOffer(int cost, int hours) {
-    return '${cost}P로 $hours시간 동안 모두 쓰기';
-  }
+  String get emoteBuyAction => '사기';
 
   @override
-  String emotePassBalance(int balance) {
-    return '지금 ${balance}P 있어요';
-  }
+  String get emoteBought => '이제 이 이모티콘을 보낼 수 있어요';
 
   @override
-  String emotePassShortfall(int shortfall, int balance) {
-    return '${shortfall}P 더 모으면 쓸 수 있어요 (지금 ${balance}P)';
-  }
+  String get emoteBuyFailed => '이모티콘을 사지 못했어요. 잠시 후 다시 시도해 주세요.';
 
   @override
-  String get emoteBuyTitle => '이모티콘 이용권';
-
-  @override
-  String emoteBuyConfirm(int cost, int hours) {
-    return '${cost}P를 써서 $hours시간 동안 이모티콘을 모두 쓸까요? 산 때부터 시간이 흘러가요.';
-  }
-
-  @override
-  String get emoteBuyAction => '이용권 사기';
-
-  @override
-  String get emoteBought => '이제 이모티콘을 보낼 수 있어요';
-
-  @override
-  String get emoteBuyFailed => '이용권을 사지 못했어요. 잠시 후 다시 시도해 주세요.';
+  String get emoteShortfall => '포인트가 부족해요';
 
   @override
   String get emoteLoadFailed => '이모티콘을 불러오지 못했어요';
-
-  @override
-  String emoteRemainingHm(int hours, int minutes) {
-    return '$hours시간 $minutes분';
-  }
-
-  @override
-  String emoteRemainingM(int minutes) {
-    return '$minutes분';
-  }
-
-  @override
-  String get emoteRemainingSoon => '곧 끝나요';
 
   @override
   String get emoteSendFailed => '이모티콘을 보내지 못했어요';

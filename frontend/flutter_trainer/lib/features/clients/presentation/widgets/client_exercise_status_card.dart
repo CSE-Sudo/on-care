@@ -442,30 +442,22 @@ class _Today extends ConsumerWidget {
   /// 회원의 목표. 도넛은 하루 소모 목표를 채운다(#2157).
   final ExerciseBurnGoals goals;
 
-  /// 이번 주 안에서 **활동한 날의 최장 연속 구간**. 회원 앱 `week.streakDays`
-  /// 와 같은 규칙이다(#1168) — 오늘 하루만 읽어서는 알 수 없어 같은 주를 함께
-  /// 본다. 이번 주는 기간 토글이 어차피 읽는 값이라 Riverpod 캐시를 나눠 쓴다.
-  int _streakOf(WidgetRef ref) {
-    final ClientExercisePeriod? week = ref
-        .watch(
-          clientExercisePeriodProvider(
-            clientPeriodKeyNow(clientId, ClientPeriod.week),
-          ),
-        )
-        .valueOrNull;
-    if (week == null) return 0;
-    int best = 0;
-    int run = 0;
-    for (final ClientExerciseDay d in week.days) {
-      if (d.logged) {
-        run += 1;
-        if (run > best) best = run;
-      } else {
-        run = 0;
-      }
-    }
-    return best;
-  }
+  /// 이번 주 운동 연속 일수 — **서버가 센 값**을 그대로 읽는다(#2195).
+  ///
+  /// 예전에는 이번 주 기록에서 다시 셌다(#1168). 서버는 `daily_minutes > 0` 인
+  /// 날만 세는데 이쪽은 분이 0 이고 칼로리만 있는 날까지 세어, 같은 주를 두
+  /// 앱이 다른 일수로 말할 수 있었다. 회원 앱도 서버 값을 읽는다. 이번 주는
+  /// 기간 토글이 어차피 읽는 값이라 Riverpod 캐시를 나눠 쓴다.
+  int _streakOf(WidgetRef ref) =>
+      ref
+          .watch(
+            clientExercisePeriodProvider(
+              clientPeriodKeyNow(clientId, ClientPeriod.week),
+            ),
+          )
+          .valueOrNull
+          ?.streakDays ??
+      0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
