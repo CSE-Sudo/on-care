@@ -666,7 +666,8 @@ class ExerciseCatalogItem(Base):
     isometric: Mapped[bool] = mapped_column(
         Boolean, default=False, server_default=text("false")
     )
-    #: 데이터 출처. khpi=한국건강증진개발원 공공데이터, compendium=국제 표준표.
+    #: 데이터 출처. khpi=한국건강증진개발원 공공데이터 전건(#1651),
+    #: curated=손으로 추린 큐레이션 시드(공공데이터·Compendium 참고).
     source: Mapped[str] = mapped_column(String(20), default="khpi")
 
 
