@@ -2495,19 +2495,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiStepDone => '최종 검토';
 
   @override
+  String get aiSkipPtProgram => 'PT 없이 개인운동만 짜기';
+
+  @override
   String get aiStepPersonal => '개인운동';
-
-  @override
-  String get aiProgramKindTitle => '이번 프로그램';
-
-  @override
-  String get aiProgramKindPt => 'PT + 개인운동';
-
-  @override
-  String get aiProgramKindRoutineOnly => '개인운동만';
-
-  @override
-  String get aiProgramKindRoutineOnlyHint => '이번엔 PT가 없어요';
 
   @override
   String get aiGoToPersonalStep => '다음 · 개인운동 짜기';

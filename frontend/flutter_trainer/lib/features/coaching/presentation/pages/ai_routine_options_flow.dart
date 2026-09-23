@@ -24,11 +24,12 @@ import 'package:oncare_trainer/shared/services/client_repository.dart';
 import 'package:oncare_trainer/shared/services/trainer_memo_repository.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
-/// 이번에 짜는 프로그램이 어떤 것인가 — 첫 단계 맨 위에서 고른다. (#2223)
+/// 이번에 짜는 프로그램이 어떤 것인가. (#2223)
 ///
-/// PT 가 있는 주는 PT 프로그램과 그 사이에 회원이 혼자 할 개인운동을 함께 짜고,
-/// 회원이 미리 "이번 주는 PT 를 못 한다"고 말한 주는 개인운동만 짜서 바로
-/// 보낸다. 고른 종류가 단계 수(4 / 3)를 정한다.
+/// **트레이너가 고르는 값이 아니다** — 조건 설정에서 `PT 없이 개인운동만 짜기`
+/// 로 PT 프로그램 짜기를 건너뛰면 [routineOnly] 가 된다. 시작할 때 종류부터
+/// 묻지 않는 것은, 대부분의 주가 PT 가 있는 주라 그 물음이 늘 같은 답을 받는
+/// 절차가 되기 때문이다. 건너뛴 결과가 단계 수(4 / 3)를 정한다.
 enum ProgramKind {
   /// PT 프로그램 + 그 PT 에 붙는 개인운동.
   ptWithRoutine,
@@ -373,14 +374,7 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
     final AppLocalizations l = AppLocalizations.of(context);
     switch (_currentStep) {
       case _Step.conditions:
-        // `개인운동만` 은 PT 프로그램을 고르지 않으므로 후보 생성을 건너뛴다 —
-        // 개인운동 제안은 회원의 목표·최근 기록에서 오는 다른 경로다.
-        if (_kind == ProgramKind.routineOnly) {
-          _seedPersonalFromSuggestions();
-          _advance();
-        } else {
-          unawaited(_generate());
-        }
+        unawaited(_generate());
       case _Step.program:
         if (_edited.isEmpty) {
           showAppToast(context, l.aiKeepOneExercise);
@@ -406,6 +400,24 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         }
         _applyToTemplate();
     }
+  }
+
+  /// PT 프로그램 짜기를 건너뛰고 개인운동만 짠다. (#2223)
+  ///
+  /// 회원이 미리 "이번 주는 PT 를 못 한다"고 말한 주다. 단계가 3칸(조건 설정 →
+  /// 개인운동 → 최종 검토)으로 줄고, 붙일 PT 일정이 없으므로 최종 검토에서
+  /// 곧바로 회원에게 보낸다. 후보 생성은 부르지 않는다 — 쓰지 않을 PT 프로그램을
+  /// 만드느라 기다릴 이유가 없다.
+  void _skipPtProgram() {
+    if (_generating) return;
+    setState(() {
+      _kind = ProgramKind.routineOnly;
+      _stage = 0;
+      _maxReachedStage = 0;
+      _showAddExercise = false;
+    });
+    _seedPersonalFromSuggestions();
+    _advance();
   }
 
   /// AI 개인운동 제안(대기 중)을 개인운동 목록의 출발점으로 삼는다. (#2223)
@@ -595,27 +607,32 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       const SizedBox(height: OnCareSpacing.s16),
       ...switch (_currentStep) {
         _Step.conditions => <Widget>[
-          _programKindSelector(),
-          const SizedBox(height: OnCareSpacing.s16),
           _assistantAnalysis(),
-          // 조건(시간·강도·요청문)은 PT 프로그램 후보를 만드는 재료다.
-          // `개인운동만` 은 그 생성을 거치지 않으므로 아무것도 바꾸지 못하는
-          // 칸을 내보이지 않는다.
-          if (_kind == ProgramKind.ptWithRoutine) ...<Widget>[
-            const SizedBox(height: OnCareSpacing.s16),
-            _promptField(),
-            const SizedBox(height: OnCareSpacing.s16),
-            _directionControls(),
-          ],
+          const SizedBox(height: OnCareSpacing.s16),
+          _promptField(),
+          const SizedBox(height: OnCareSpacing.s16),
+          _directionControls(),
           const SizedBox(height: OnCareSpacing.s16),
           _primaryButton(
             key: const ValueKey<String>('generate-routine-options'),
-            label: _kind == ProgramKind.routineOnly
-                ? l.aiPersonalStepNext
-                : (_generating ? l.aiAnalysing : _generateButtonLabel(l)),
+            label: _generating ? l.aiAnalysing : _generateButtonLabel(l),
             icon: Icons.auto_awesome_rounded,
             busy: _generating,
             onTap: _next,
+          ),
+          const SizedBox(height: OnCareSpacing.s8),
+          // 이번 주는 PT 가 없는 회원 — PT 프로그램 짜기를 통째로 건너뛰고
+          // 개인운동만 짜서 바로 보낸다(#2223). 후보 생성을 거치지 않으므로
+          // 기다릴 일도, 쓰지 않을 후보를 만들 일도 없다.
+          Align(
+            child: AppButton(
+              key: const ValueKey<String>('skip-pt-program'),
+              label: l.aiSkipPtProgram,
+              onPressed: _generating ? null : _skipPtProgram,
+              variant: AppButtonVariant.text,
+              size: OnCareButtonSize.small,
+              leadingIcon: Icons.directions_run_rounded,
+            ),
           ),
         ],
         _Step.program => <Widget>[
@@ -1433,59 +1450,6 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
       },
   ];
 
-  /// 첫 단계 맨 위 — 이번 프로그램이 `PT + 개인운동` 인지 `개인운동만` 인지.
-  /// (#2223)
-  ///
-  /// 고른 종류가 단계 수를 바꾸므로, 이미 나아간 뒤에는 바꿀 수 없다 —
-  /// 첫 단계에 있을 때만 보이고, 그때는 아직 아무것도 만들어지지 않았다.
-  Widget _programKindSelector() {
-    final AppLocalizations l = AppLocalizations.of(context);
-    return AppCard(
-      key: const ValueKey<String>('program-kind-selector'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            l.aiProgramKindTitle,
-            style: _text(OnCareTypography.titleSmall, OnCareColors.textPrimary),
-          ),
-          const SizedBox(height: OnCareSpacing.s8),
-          for (final kind in ProgramKind.values)
-            AppListRow(
-              key: ValueKey<String>('program-kind-${kind.name}'),
-              selected: _kind == kind,
-              leading: Icon(
-                _kind == kind
-                    ? Icons.radio_button_checked_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                size: OnCareSize.iconMedium,
-                color: _kind == kind
-                    ? context.oncare.brand.primary
-                    : OnCareColors.textTertiary,
-              ),
-              title: kind == ProgramKind.ptWithRoutine
-                  ? l.aiProgramKindPt
-                  : l.aiProgramKindRoutineOnly,
-              subtitle: kind == ProgramKind.routineOnly
-                  ? l.aiProgramKindRoutineOnlyHint
-                  : null,
-              onTap: () {
-                if (_kind == kind) return;
-                setState(() {
-                  _kind = kind;
-                  // 단계 구성이 통째로 바뀐다 — 첫 단계로 되돌려 이전 종류에서
-                  // 밟았던 자리가 남지 않게 한다.
-                  _stage = 0;
-                  _maxReachedStage = 0;
-                  _showAddExercise = false;
-                });
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
   /// 개인운동 단계 — AI 제안을 받아 고치고, 지우고, 직접 더한다. (#2223)
   ///
   /// 제안은 없애는 `AI 개인운동 제안` 카드가 읽던 그 목록이다. 아직 오지
@@ -2124,8 +2088,10 @@ class _ProgressStepper extends StatelessWidget {
   /// 폭과 무관하게 같은 간격으로 모여 가운데에 선다.
   ///
   /// 라벨도 이 폭 안에서 한 줄로 말줄임된다 — 칸이 겹치지 않으니 라벨끼리
-  /// 겹칠 일도 없다.
-  static const double _stepWidth = _circle + OnCareSpacing.s40;
+  /// 겹칠 일도 없다. 간격 토큰의 최대값(48)만으로는 원들이 서로 붙어 보여,
+  /// 두 칸(48 + 16)을 더해 눈에 띄게 띄운다.
+  static const double _stepWidth =
+      _circle + OnCareSpacing.s48 + OnCareSpacing.s16;
 
   void _tap(int index) {
     if (index <= maxReachedStage) onStageTap(index);

@@ -533,8 +533,8 @@ void main() {
       final double narrow = circleGap();
 
       expect(narrow, wide);
-      // 칸 폭(원 지름 32 + 간격 40)이 곧 중심 사이 거리다.
-      expect(wide, 72);
+      // 칸 폭(원 지름 32 + 간격 64)이 곧 중심 사이 거리다.
+      expect(wide, 96);
 
       // 원들은 표시줄 가운데에 모인다 — 첫 원 왼쪽과 마지막 원 오른쪽의
       // 여백이 같다.
@@ -550,25 +550,30 @@ void main() {
       );
     });
 
-    testWidgets('개인운동만을 고르면 프로그램 선택이 빠진 세 단계가 된다 (#2223)', (
+    testWidgets('PT 프로그램 짜기를 건너뛰면 세 단계가 되고 바로 개인운동으로 간다 (#2223)', (
       tester,
     ) async {
-      await pumpFlow(tester);
+      final repo = await pumpFlow(tester);
 
-      await tester.tap(
-        find.byKey(const ValueKey<String>('program-kind-routineOnly')),
-      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
       await tester.pumpAndSettle();
 
       expect(find.text('조건 설정'), findsOneWidget);
       expect(find.text('개인운동'), findsOneWidget);
       expect(find.text('최종 검토'), findsOneWidget);
-      // PT 프로그램을 고르지 않으므로 그 단계도, 네 번째 칸도 없다.
+      // PT 프로그램을 짜지 않으므로 그 단계도, 네 번째 칸도 없다.
       expect(find.text('프로그램 선택'), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('routine-stage-3')),
         findsNothing,
       );
+      // 곧바로 개인운동 단계다.
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-step')),
+        findsOneWidget,
+      );
+      // 쓰지 않을 PT 후보를 만드느라 기다리지 않는다 — 생성은 부르지 않는다.
+      expect(repo.calls, 0);
     });
 
     testWidgets('개인운동 없이는 프로그램에 반영되지 않는다 (#2223)', (tester) async {
@@ -1108,18 +1113,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('program-kind-routineOnly')),
-    );
-    await tester.pumpAndSettle();
-
-    // 조건 설정 다음이 곧바로 개인운동이다 — PT 프로그램 선택을 건너뛴다.
+    // PT 프로그램 짜기를 건너뛰면 곧바로 개인운동 단계다.
     await tester.ensureVisible(
-      find.byKey(const ValueKey<String>('generate-routine-options')),
+      find.byKey(const ValueKey<String>('skip-pt-program')),
     );
-    await tester.tap(
-      find.byKey(const ValueKey<String>('generate-routine-options')),
-    );
+    await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('personal-routine-step')),
@@ -1219,6 +1217,9 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
   String? lastIntensityPreference;
   String? lastTrainerNote;
 
+  /// 후보 생성을 몇 번 불렀나 — 건너뛰기가 생성을 부르지 않는지 본다(#2223).
+  int calls = 0;
+
   @override
   Future<RoutineOptions> generate(
     String memberId, {
@@ -1226,6 +1227,7 @@ class _CapturingOptionsRepository implements TrainerRoutineOptionsRepository {
     required String? intensityPreference,
     required String trainerNote,
   }) async {
+    calls++;
     lastAvailableMinutes = availableMinutes;
     lastIntensityPreference = intensityPreference;
     lastTrainerNote = trainerNote;

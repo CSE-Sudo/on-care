@@ -2604,19 +2604,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiStepDone => 'Final review';
 
   @override
+  String get aiSkipPtProgram => 'Skip PT — personal exercise only';
+
+  @override
   String get aiStepPersonal => 'Personal exercise';
-
-  @override
-  String get aiProgramKindTitle => 'This program';
-
-  @override
-  String get aiProgramKindPt => 'PT + personal exercise';
-
-  @override
-  String get aiProgramKindRoutineOnly => 'Personal exercise only';
-
-  @override
-  String get aiProgramKindRoutineOnlyHint => 'No PT this time';
 
   @override
   String get aiGoToPersonalStep => 'Next · plan personal exercise';

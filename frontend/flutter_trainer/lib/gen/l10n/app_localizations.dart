@@ -4604,35 +4604,17 @@ abstract class AppLocalizations {
   /// **'Final review'**
   String get aiStepDone;
 
+  /// No description provided for @aiSkipPtProgram.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip PT — personal exercise only'**
+  String get aiSkipPtProgram;
+
   /// No description provided for @aiStepPersonal.
   ///
   /// In en, this message translates to:
   /// **'Personal exercise'**
   String get aiStepPersonal;
-
-  /// No description provided for @aiProgramKindTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'This program'**
-  String get aiProgramKindTitle;
-
-  /// No description provided for @aiProgramKindPt.
-  ///
-  /// In en, this message translates to:
-  /// **'PT + personal exercise'**
-  String get aiProgramKindPt;
-
-  /// No description provided for @aiProgramKindRoutineOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Personal exercise only'**
-  String get aiProgramKindRoutineOnly;
-
-  /// No description provided for @aiProgramKindRoutineOnlyHint.
-  ///
-  /// In en, this message translates to:
-  /// **'No PT this time'**
-  String get aiProgramKindRoutineOnlyHint;
 
   /// No description provided for @aiGoToPersonalStep.
   ///
