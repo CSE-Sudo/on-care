@@ -20,10 +20,10 @@ class DioEmoteRepository implements EmoteRepository {
   }
 
   @override
-  Future<EmoteState> buyPass() async {
+  Future<EmoteState> unlock(String emoteId) async {
     try {
       final res = await _dio.post<Map<String, Object?>>(
-        '/me/emotes/pass',
+        '/me/emotes/${Uri.encodeComponent(emoteId)}/unlock',
         // 응답을 못 받고 다시 누른 구매가 포인트를 두 번 쓰지 않게 한다.
         data: <String, Object?>{'client_request_id': newClientRequestId()},
       );
