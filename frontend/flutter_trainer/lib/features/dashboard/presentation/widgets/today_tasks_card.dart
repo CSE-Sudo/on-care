@@ -524,10 +524,11 @@ class _CategorySectionState extends State<_CategorySection> {
                               : OnCareColors.textSecondary,
                         ),
                   ),
-                  // 펼칠 수 없는 칸은 화살표를 비워 두되, 글자가 다른 칸과 같은
-                  // 오른쪽 끝에 서도록 자리는 남긴다.
+                  // 펼칠 수 없는 칸은 화살표를 그리지 않는다. 빈 자리를 남기면
+                  // "없음" 오른쪽이 휑해 보여, 글자를 오른쪽 끝에 붙인다. 줄
+                  // 높이는 화살표가 정하므로, 폭 없는 버팀목으로 높이만 맞춘다.
                   if (empty)
-                    const SizedBox.square(dimension: OnCareSize.iconMedium)
+                    const SizedBox(height: OnCareSize.iconMedium)
                   else
                     Icon(
                       _expanded
