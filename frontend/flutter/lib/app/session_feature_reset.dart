@@ -42,7 +42,6 @@ Override sessionFeatureResetOverride() {
       ref.invalidate(dietTodayProvider);
       ref.invalidate(dietRecommendationsProvider);
       ref.invalidate(exerciseWeekProvider);
-      ref.invalidate(exerciseRoutineDoneProvider);
       ref.invalidate(myGymProvider);
       ref.invalidate(myTrainerProvider);
       // 예약 내역은 헬스장 저장소를 통해 이미 함께 무효화되지만, 같은 뿌리를 보는

@@ -120,10 +120,6 @@ void main() {
       await container
           .read(notificationControllerProvider.notifier)
           .markAllRead();
-      container.read(exerciseRoutineDoneProvider.notifier).state = <bool>[
-        true,
-        false,
-      ];
 
       final MemberCoachRepository memberCoachBefore = container.read(
         memberCoachRepositoryProvider,
@@ -175,7 +171,6 @@ void main() {
         container.read(notificationControllerProvider).unreadCount,
         greaterThan(0),
       );
-      expect(container.read(exerciseRoutineDoneProvider), <bool>[false, false]);
       expect(
         (await container.read(coachSessionsProvider.future)).single.id,
         'account-b-session',
