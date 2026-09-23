@@ -1360,7 +1360,7 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String exWeekOfMonthLabel(int month, int week) {
-    return '$month월 $week주차';
+    return '$month월 $week주차 소모';
   }
 
   @override

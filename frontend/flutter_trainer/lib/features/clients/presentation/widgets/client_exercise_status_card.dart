@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart' show DateFormat;
 
 import 'package:oncare_trainer/features/clients/domain/entities/client_exercise_item.dart';
 import 'package:oncare_trainer/features/clients/domain/entities/client_period.dart';
@@ -12,10 +11,12 @@ import 'package:oncare_trainer/features/clients/presentation/widgets/workout_vie
 import 'package:oncare_trainer/gen/l10n/app_localizations.dart';
 import 'package:oncare_trainer/shared/exercise_burn_goals.dart';
 import 'package:oncare_trainer/shared/services/client_repository.dart';
+import 'package:oncare_trainer/shared/services/member_health_profile_provider.dart';
 // 차트 그림(BurnDonut·BurnGoalRings·BurnBarChart·ActivityHeadlineLine)은 패키지에
 // 대응이 없어 앱 위젯을 그대로 쓴다. BurnBarChart 가 받는 선택 상태도 그 앱
 // 쪽 [PeriodChartSelection] 이라 이것만 가져온다.
 import 'package:oncare_trainer/shared/widgets/activity_charts.dart';
+import 'package:oncare_trainer/shared/widgets/period_range_label.dart';
 import 'package:oncare_ui/oncare_ui.dart';
 
 /// 데이터를 받는 동안 비워 두는 높이 — 받은 뒤의 그래프 자리와 크게 어긋나지
@@ -30,8 +31,11 @@ const double _loadingHeight = 170;
 /// 칸이 남는다.
 const double _allMaxHeight = 260;
 
-/// `전체` 카드 머리줄의 기준 높이 — 유형별 내역 세 줄이 들어간다.
-const double _allHeaderHeight = 44;
+/// `전체` 카드 머리줄의 기준 높이 — 오른쪽 칸이 날짜 기간 + 유형별 주 평균
+/// 세 줄을 담는다. 회원 앱과 같은 72 다(회원 앱 #2061, #2157). 44 에 두면 세
+/// 줄이 0.6 배 남짓으로 줄어 글자가 읽히지 않는다. 카드 높이는 고정이라
+/// 그만큼 그래프가 낮아진다.
+const double _allHeaderHeight = 72;
 
 /// 막대 영역의 최소 높이. 좁은 칸에서도 막대가 사라지지 않게 한다.
 const double _minBarHeight = 40;
@@ -80,6 +84,13 @@ class ClientExerciseStatusCard extends ConsumerWidget {
       clientExercisePeriodProvider(key),
     );
     final String? name = clientName;
+    // 목표는 회원 건강 프로필에서 읽는다 — 회원 앱이 MY 목표를 기준선으로 쓰는
+    // 것과 같다(회원 앱 #1139, #2157). 프로필을 받는 중이거나 실패했으면
+    // 회원 앱 기본값으로 그린다 — 목표 때문에 그래프가 로딩·에러에 막히지
+    // 않게 한다.
+    final ExerciseBurnGoals goals = ExerciseBurnGoals.fromProfile(
+      ref.watch(memberHealthProfileProvider(clientId)).valueOrNull,
+    );
     // 제목은 바깥 섹션 헤더가 그린다 — 카드는 흰 판만 맡는다.
     return AppCard(
       key: const ValueKey<String>('client-exercise-status-card'),
@@ -106,8 +117,8 @@ class ClientExerciseStatusCard extends ConsumerWidget {
               placement: AppStatePlacement.card,
             ),
             data: (ClientExercisePeriod data) => period == ClientPeriod.today
-                ? _Today(clientId: clientId, period: data)
-                : _Range(period: data),
+                ? _Today(clientId: clientId, period: data, goals: goals)
+                : _Range(period: data, goals: goals),
           ),
           if (name != null) ...<Widget>[
             const SizedBox(height: OnCareSpacing.s12),
@@ -419,10 +430,17 @@ class _ChartSlot extends StatelessWidget {
 }
 
 class _Today extends ConsumerWidget {
-  const _Today({required this.clientId, required this.period});
+  const _Today({
+    required this.clientId,
+    required this.period,
+    required this.goals,
+  });
 
   final String clientId;
   final ClientExercisePeriod period;
+
+  /// 회원의 목표. 도넛은 하루 소모 목표를 채운다(#2157).
+  final ExerciseBurnGoals goals;
 
   /// 이번 주 안에서 **활동한 날의 최장 연속 구간**. 회원 앱 `week.streakDays`
   /// 와 같은 규칙이다(#1168) — 오늘 하루만 읽어서는 알 수 없어 같은 주를 함께
@@ -467,7 +485,7 @@ class _Today extends ConsumerWidget {
       child: BurnDonut(
         title: l.exBurnTodayTitle,
         calories: period.totalCalories,
-        goal: kDailyBurnKcal,
+        goal: goals.dailyBurnKcal,
         streakDays: _streakOf(ref),
         split: ActivitySplit(
           cardioMinutes: split
@@ -483,9 +501,12 @@ class _Today extends ConsumerWidget {
 }
 
 class _Range extends StatefulWidget {
-  const _Range({required this.period});
+  const _Range({required this.period, required this.goals});
 
   final ClientExercisePeriod period;
+
+  /// 회원의 목표 — 링의 주간 목표와 `전체` 의 주간 소모 목표선(#2157).
+  final ExerciseBurnGoals goals;
 
   @override
   State<_Range> createState() => _RangeState();
@@ -505,9 +526,9 @@ class _RangeState extends State<_Range> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
-    final OnCareTokens tokens = context.oncare;
     final String locale = Localizations.localeOf(context).toString();
     final ClientExercisePeriod period = widget.period;
+    final ExerciseBurnGoals goals = widget.goals;
     final List<ClientExerciseDay> days = period.days;
     final bool all = days.length > 10;
 
@@ -518,6 +539,9 @@ class _RangeState extends State<_Range> {
         child: BurnGoalRings(
           title: l.exBurnWeekTitle,
           calories: period.totalCalories,
+          goals: goals,
+          // 이 카드가 집계한 주(월~일)를 머리줄 오른쪽에 적는다(회원 앱 #2007).
+          range: period.range,
           split: ActivitySplit(
             cardioMinutes: split
                 ? period.totalCardioMinutes
@@ -562,98 +586,162 @@ class _RangeState extends State<_Range> {
                               (int a, _WeekBucket w) => a + w.calories,
                             ) /
                             visible.length);
+              // 유형별 값도 **같은 규칙**(기록 없는 주 포함)으로 평균 낸다 —
+              // 머리 숫자가 보이는 구간의 주 평균이므로 그 옆의 내역도 같은
+              // 기준이어야 한 줄로 읽힌다(회원 앱 #2061).
+              double averageOf(num Function(_WeekBucket w) pick) =>
+                  visible.isEmpty
+                  ? 0
+                  : visible.fold<double>(
+                          0,
+                          (double a, _WeekBucket w) => a + pick(w),
+                        ) /
+                        visible.length;
+              final double otherAverage = averageOf(
+                (_WeekBucket w) => w.split.otherMinutes,
+              );
               // 머리줄은 **고른 주가 있든 없든 같은 높이**를 쓴다 (회원 앱
-              // #1194). 오른쪽 내용이 한 줄(기간)에서 서너 줄(유형별 내역)로
-              // 바뀌는 만큼 아래 그래프 몫이 줄어, 막대를 고를 때마다 그래프가
-              // 작아졌다.
+              // #1194). 오른쪽 내용이 바뀌는 만큼 아래 그래프 몫이 줄면, 막대를
+              // 고를 때마다 그래프가 작아진다.
               return SizedBox(
                 height: _allPeriodHeaderHeight(context),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Expanded(
-                      flex: 6,
-                      child: ActivityHeadlineLine(
-                        caption: week == null
-                            ? l.exBurnAllTitle
-                            : l.exWeekOfMonthLabel(
-                                week.monday.month,
-                                _weekOfMonth(week.monday),
+                // 주를 고르면 깔리는 회색 바탕은 머리 숫자와 그 옆의 내역을
+                // **함께** 감싼다 — 회원 앱 `전체` 와 같다(회원 앱 #2061). 숫자만
+                // 감싸면 바로 옆의 `유산소 90분` 이 같은 주의 값으로 묶이지
+                // 않는다.
+                child: PeriodChartHeadline(
+                  selected: week != null,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Expanded(
+                        flex: 6,
+                        child: ActivityHeadlineLine(
+                          // 이름을 위에, 숫자를 아래에 쌓는다(회원 앱 #2061) —
+                          // 오른쪽 칸이 여러 줄이라 한 줄 머리는 숫자 아래가
+                          // 통째로 빈다.
+                          stacked: true,
+                          // 고른 주도 `소모` 를 붙여 `평균 소모`·`이번 주 소모`
+                          // 와 같은 틀로 읽힌다(회원 앱 `…주차 소모`).
+                          caption: week == null
+                              ? l.exBurnAllTitle
+                              : l.exWeekOfMonthLabel(
+                                  week.monday.month,
+                                  _weekOfMonth(week.monday),
+                                ),
+                          value: activityValueOfGoal(
+                            locale,
+                            value,
+                            goals.weeklyBurnKcal,
+                          ),
+                          unit: l.unitKcal,
+                        ),
+                      ),
+                      // 고른 주의 내역은 kcal **오른쪽**에 붙는다 (#1129) —
+                      // 그래프 아래에 따로 두면 구분선까지 필요해져 카드가
+                      // 셋으로 갈린다.
+                      if (week != null) ...<Widget>[
+                        const SizedBox(width: OnCareSpacing.s8),
+                        Expanded(
+                          flex: 5,
+                          // `기타` 까지 네 줄이 되는 주도 있다 — 그때는 목록
+                          // 전체가 한 번에 줄어 같은 높이 안에 들어간다.
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.topRight,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                for (final ExerciseKind kind
+                                    in ExerciseKind.values)
+                                  _DetailLine(
+                                    label: kindLabel(l, kind),
+                                    value: kindValueText(
+                                      l,
+                                      kind,
+                                      week.split.valueOf(kind),
+                                    ),
+                                    color: kindColor(kind),
+                                  ),
+                                // `기타` 는 유형이 아니다 — 셋의 남색 램프에
+                                // 끼워 넣지 않고 회색으로 둔다.
+                                if (week.split.otherMinutes > 0)
+                                  _DetailLine(
+                                    label: l.exTypeOther,
+                                    value: l.minutesShort(
+                                      week.split.otherMinutes.round(),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ] else if (visible.isNotEmpty) ...<Widget>[
+                        const SizedBox(width: OnCareSpacing.s8),
+                        Expanded(
+                          flex: 5,
+                          // 고른 주의 내역과 같은 자리·같은 방식으로 줄어든다 —
+                          // 두 상태가 같은 칸을 번갈아 쓴다.
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.topRight,
+                            child: Column(
+                              key: const ValueKey<String>(
+                                'client-exercise-all-average',
                               ),
-                        value: activityValueOfGoal(
-                          locale,
-                          value,
-                          kWeeklyBurnKcal,
-                        ),
-                        unit: l.unitKcal,
-                      ),
-                    ),
-                    // 고른 주의 내역은 kcal **오른쪽**에 붙는다 (#1129) —
-                    // 그래프 아래에 따로 두면 구분선까지 필요해져 카드가 셋으로
-                    // 갈린다.
-                    if (week != null) ...<Widget>[
-                      const SizedBox(width: OnCareSpacing.s8),
-                      Expanded(
-                        flex: 5,
-                        // `기타` 까지 네 줄이 되는 주도 있다 — 그때는 목록
-                        // 전체가 한 번에 줄어 같은 높이 안에 들어간다.
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.topRight,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              for (final ExerciseKind kind
-                                  in ExerciseKind.values)
-                                _DetailLine(
-                                  label: kindLabel(l, kind),
-                                  value: kindValueText(
-                                    l,
-                                    kind,
-                                    week.split.valueOf(kind),
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                // 평균이 어느 구간의 것인지 숫자만으로는 알 수
+                                // 없다 — 밀 때마다 바뀌는 값이라 기간을 옆에
+                                // 붙여 둔다.
+                                PeriodRangeLabel(
+                                  key: const ValueKey<String>(
+                                    'client-exercise-all-range',
                                   ),
-                                  color: kindColor(kind),
-                                ),
-                              // `기타` 는 유형이 아니다 — 셋의 남색 램프에
-                              // 끼워 넣지 않고 회색으로 둔다.
-                              if (week.split.otherMinutes > 0)
-                                _DetailLine(
-                                  label: l.exTypeOther,
-                                  value: l.minutesShort(
-                                    week.split.otherMinutes.round(),
+                                  text: periodRangeText(
+                                    locale,
+                                    visible.first.monday,
+                                    _sundayOf(visible.last.monday),
                                   ),
                                 ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ] else if (visible.isNotEmpty) ...<Widget>[
-                      const SizedBox(width: OnCareSpacing.s8),
-                      // 평균이 어느 구간의 것인지 숫자만으로는 알 수 없다 — 밀
-                      // 때마다 바뀌는 값이라 기간을 옆에 붙여 둔다.
-                      Expanded(
-                        flex: 4,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            '${DateFormat.Md(locale).format(visible.first.monday)}'
-                            ' ~ '
-                            '${DateFormat.Md(locale).format(_sundayOf(visible.last.monday))}',
-                            maxLines: 1,
-                            style: tokens
-                                .text(
-                                  OnCareTypography.strong(
-                                    OnCareTypography.caption,
+                                const SizedBox(height: OnCareSpacing.s4),
+                                // 그 아래는 보이는 구간의 유형별 **주 평균**이다
+                                // (회원 앱 #2061). 표기는 고른 주의 내역과 같아
+                                // (이름을 그 색으로 칠한 글자) 막대 색의 범례를
+                                // 겸한다 — 고르면 이 줄들이 그 주의 값으로
+                                // 바뀐다.
+                                for (final ExerciseKind kind
+                                    in ExerciseKind.values)
+                                  _DetailLine(
+                                    label: kindLabel(l, kind),
+                                    value: kindValueText(
+                                      l,
+                                      kind,
+                                      averageOf(
+                                        (_WeekBucket w) =>
+                                            w.split.valueOf(kind),
+                                      ),
+                                    ),
+                                    color: kindColor(kind),
                                   ),
-                                )
-                                .copyWith(color: OnCareColors.textSecondary),
+                                // `기타` 도 적는다 — 머리 숫자(소모 칼로리)가
+                                // 기타 운동의 칼로리까지 세므로 여기서 빠지면
+                                // 숫자의 일부가 설명되지 않는다. 없으면 줄째로
+                                // 빠진다.
+                                if (otherAverage.round() > 0)
+                                  _DetailLine(
+                                    label: l.exTypeOther,
+                                    value: l.minutesShort(otherAverage.round()),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               );
             },
@@ -664,7 +752,7 @@ class _RangeState extends State<_Range> {
               builder: (BuildContext context, BoxConstraints c) => BurnBarChart(
                 title: l.clientTrendTitle,
                 selection: _selection,
-                goalKcal: kWeeklyBurnKcal,
+                goalKcal: goals.weeklyBurnKcal,
                 // 막대 영역만의 높이다 — 아래 날짜 라벨 줄은 따로 자리를
                 // 차지한다.
                 height: math.max(
@@ -790,8 +878,9 @@ class _WeekBucket {
 
 /// 날짜별 기록을 주 단위로 묶는다(오래된 → 최근).
 ///
-/// 첫 주는 기간이 주 가운데에서 시작해 잘려 있을 수 있다. 그래도 그 주의
-/// 자리는 남긴다 — 없애면 달 경계가 한 칸씩 밀린다.
+/// `전체` 범위는 월요일에서 시작하므로(`clientRangeFor`, #2157) 첫 주도 잘리지
+/// 않은 한 주다 — 회원 앱과 같은 35칸이다. 예전에는 오늘에서 245일을 거슬러
+/// 올라가 첫 주가 주 가운데에서 잘린 채 한 칸이 더 붙었다.
 List<_WeekBucket> _weekBucketsOf(List<ClientExerciseDay> days) {
   final List<_WeekBucket> out = <_WeekBucket>[];
   for (final ClientExerciseDay d in days) {

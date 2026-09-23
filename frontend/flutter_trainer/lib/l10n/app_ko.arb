@@ -521,7 +521,7 @@
   "exBurnMonthTitle": "이번 달 소모",
   "exBurnDayTitle": "소모",
   "exBurnAllTitle": "평균 소모",
-  "exWeekOfMonthLabel": "{month}월 {week}주차",
+  "exWeekOfMonthLabel": "{month}월 {week}주차 소모",
   "@exWeekOfMonthLabel": {
     "placeholders": {
       "month": {
