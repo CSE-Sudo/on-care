@@ -558,7 +558,7 @@ class _MessageRow extends ConsumerWidget {
           .read(chatPdfRepositoryProvider)
           .download(attachment.downloadPath);
       if (!context.mounted) return;
-      await showPdfPreviewDialog(context, bytes, attachment.fileName);
+      await openPdfPreviewPage(context, bytes, attachment.fileName);
     } catch (_) {
       toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
     }
@@ -575,75 +575,69 @@ class _MessageRow extends ConsumerWidget {
 /// PDF 한 부를 미리보기로 연다. 첨부 파일과 회원 기록으로 만든 문서가 같은
 /// 화면으로 열려야, 회원이 무엇을 보고 있는지 헷갈리지 않는다. (#1600)
 ///
-/// 모바일 전체 화면 시트다 — 위에 파일 이름과 닫기, 아래는 미리보기(#1702).
+/// 부분 창이 아니라 전체 화면 페이지다(#2170) — 회원 앱의 부분 창에는 닫기 X 를
+/// 두지 않는데, 여기는 A4 리포트를 확대·스크롤하며 오래 읽는 화면이라 시트로
+/// 두면 문서를 밀다가 창이 닫힌다. 다른 상세 화면과 같은 `<` 로 나간다. 채팅
+/// 페이지처럼 루트에 쌓아 하단 내비와 + 버튼을 가린다(#791).
+Future<void> openPdfPreviewPage(
+  BuildContext context,
+  Uint8List bytes,
+  String fileName,
+) {
+  return Navigator.of(context, rootNavigator: true).push<void>(
+    MaterialPageRoute<void>(
+      builder: (_) => PdfPreviewPage(bytes: bytes, fileName: fileName),
+    ),
+  );
+}
+
+/// [openPdfPreviewPage] 가 여는 화면 — 머리에 파일 이름과 `<`, 아래는 미리보기.
 ///
 /// `build` 는 **부를 때마다 복사본**을 준다. 웹에서 미리보기는 pdf.js 로 그리는데,
 /// pdf.js 는 받은 바이트의 버퍼를 워커로 넘기면서(transfer) 원본을 비워 버린다.
 /// 같은 바이트를 그대로 다시 주면 두 번째 렌더가 `ArrayBuffer ... is already
 /// detached` 로 죽고, 그리다 만 미리보기가 스피너만 도는 채로 남는다. 미리보기는
 /// 화면 크기·용지 설정이 바뀔 때마다 다시 그리므로 두 번째 호출은 반드시 온다.
-Future<void> showPdfPreviewDialog(
-  BuildContext context,
-  Uint8List bytes,
-  String fileName,
-) {
-  final AppLocalizations l = AppLocalizations.of(context);
-  return showAppSheet<void>(
-    context: context,
-    builder: (BuildContext sheetContext) {
-      final OnCareTokens tokens = sheetContext.oncare;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              OnCareSpacing.sheetPadding,
-              OnCareSpacing.s8,
-              OnCareSpacing.s8,
-              OnCareSpacing.s8,
-            ),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    fileName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: tokens
-                        .text(OnCareTypography.titleMedium)
-                        .copyWith(color: OnCareColors.textPrimary),
-                  ),
-                ),
-                const AppCloseButton(),
-              ],
-            ),
-          ),
-          const AppDivider(),
-          Expanded(
-            child: PdfPreview(
-              build: (_) async => Uint8List.fromList(bytes),
-              pdfFileName: fileName,
-              allowSharing: false,
-              // 미리보기가 실패했을 때 스피너를 계속 돌리면 회원은 느린 것과
-              // 안 되는 것을 구별할 수 없다.
-              onError: (_, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(OnCareSpacing.s24),
-                  child: Text(
-                    l.coachChatPdfOpenFailed,
-                    textAlign: TextAlign.center,
-                    style: tokens
-                        .text(OnCareTypography.bodySmall)
-                        .copyWith(color: OnCareColors.textSecondary),
-                  ),
-                ),
-              ),
+class PdfPreviewPage extends StatelessWidget {
+  const PdfPreviewPage({
+    required this.bytes,
+    required this.fileName,
+    super.key,
+  });
+
+  static const Key pageKey = Key('pdfPreviewPage');
+
+  final Uint8List bytes;
+  final String fileName;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l = AppLocalizations.of(context);
+    final OnCareTokens tokens = context.oncare;
+    return Scaffold(
+      key: pageKey,
+      appBar: AppTopBar(title: fileName),
+      body: PdfPreview(
+        build: (_) async => Uint8List.fromList(bytes),
+        pdfFileName: fileName,
+        allowSharing: false,
+        // 미리보기가 실패했을 때 스피너를 계속 돌리면 회원은 느린 것과
+        // 안 되는 것을 구별할 수 없다.
+        onError: (_, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(OnCareSpacing.s24),
+            child: Text(
+              l.coachChatPdfOpenFailed,
+              textAlign: TextAlign.center,
+              style: tokens
+                  .text(OnCareTypography.bodySmall)
+                  .copyWith(color: OnCareColors.textSecondary),
             ),
           ),
-        ],
-      );
-    },
-  );
+        ),
+      ),
+    );
+  }
 }
 
 /// 리포트 등록 안내 — 대화 가운데 안내 배너와 `PDF 미리보기`. (#1600, #1577)
@@ -709,7 +703,7 @@ class _ReportNoticeState extends ConsumerState<_ReportNotice> {
         fileName = l.coachReportPdfFileName(_ymd(widget.weekStart));
       }
       if (!mounted) return;
-      await showPdfPreviewDialog(context, bytes, fileName);
+      await openPdfPreviewPage(context, bytes, fileName);
     } catch (_) {
       toast.show(l.coachChatPdfOpenFailed, type: AppToastType.error);
     } finally {

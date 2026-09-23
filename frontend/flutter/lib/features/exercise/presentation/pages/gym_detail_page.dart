@@ -317,6 +317,7 @@ class _TrainerPickerSheet extends ConsumerWidget {
     );
 
     return AppSheet(
+      showClose: false,
       title: l.exGymConsultPickTrainer,
       subtitle: l.exGymConsultPickTrainerHint,
       child: trainers.isEmpty

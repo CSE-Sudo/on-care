@@ -723,6 +723,7 @@ class _ResultSheetState extends ConsumerState<_ResultSheet>
       // 지난 식사는 얼마든지 올릴 수 있지만, 앞날의 식사는 아직 먹지 않았다.
       firstDate: DateTime(today.year - 1),
       lastDate: today,
+      showClose: false,
     );
     if (picked == null || !mounted) return;
     final DateTime chosen = DateTime(picked.year, picked.month, picked.day);
@@ -2111,6 +2112,7 @@ class _MealCreatePageState extends ConsumerState<_MealCreatePage>
       // 지난 식사는 얼마든지 적을 수 있지만, 앞날의 식사는 아직 먹지 않았다.
       firstDate: DateTime(today.year - 1),
       lastDate: today,
+      showClose: false,
     );
     if (picked == null || !mounted) return;
     setState(() => _date = DateTime(picked.year, picked.month, picked.day));
@@ -2394,6 +2396,7 @@ class _MealEditSheetState extends ConsumerState<_MealEditSheet>
       // 지난 식사는 얼마든지 적을 수 있지만, 앞날의 식사는 아직 먹지 않았다.
       firstDate: DateTime(today.year - 1),
       lastDate: today,
+      showClose: false,
     );
     if (picked == null || !mounted) return;
     final DateTime chosen = DateTime(picked.year, picked.month, picked.day);

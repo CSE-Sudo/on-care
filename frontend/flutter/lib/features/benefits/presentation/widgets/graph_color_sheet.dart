@@ -44,6 +44,7 @@ class GraphColorSheet extends StatelessWidget {
     final List<String> colors = lockedOnly ? state.locked : state.palette;
     return AppSheet(
       key: const Key('graphColorSheet'),
+      showClose: false,
       title: lockedOnly ? l.myGraphColorPickTitle : l.myGraphColorTitle,
       child: Column(
         mainAxisSize: MainAxisSize.min,

@@ -49,6 +49,7 @@ class InsightHistorySheet extends ConsumerWidget {
     final int days = history.valueOrNull?.windowDays ?? kChatInsightWindowDays;
     return AppSheet(
       key: const Key('aiCoachInsightHistorySheet'),
+      showClose: false,
       title: l.aicInsightHistoryTitle,
       subtitle: l.aicInsightHistorySubtitle(days),
       child: history.when(

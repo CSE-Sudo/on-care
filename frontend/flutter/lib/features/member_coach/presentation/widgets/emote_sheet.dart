@@ -94,6 +94,7 @@ class _EmoteSheetState extends ConsumerState<_EmoteSheet> {
     final EmoteState? state = _state;
     return AppSheet(
       key: const Key('emoteSheet'),
+      showClose: false,
       title: l.emoteSheetTitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

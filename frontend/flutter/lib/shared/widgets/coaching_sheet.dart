@@ -136,8 +136,9 @@ class _CoachingSheet extends ConsumerWidget {
     final MemberCoach? coach = ref.watch(memberCoachProvider).valueOrNull;
 
     // 이전 디자인으로 되돌린다(#1831) — 시트 제목 줄 대신 **도우미가 조언을 건네는**
-    // 머리: 왼쪽 Oni 아바타, 옆에 파란 `AI 건강 도우미` 와 굵은 한 줄, 오른쪽 둥근
-    // 닫기. 핸들·높이·하단 여백은 [AppSheet] 가 그대로 맡는다.
+    // 머리: 왼쪽 Oni 아바타, 옆에 파란 `AI 건강 도우미` 와 굵은 한 줄. 회원 앱의
+    // 부분 창에는 닫기 X 를 두지 않는다 — 끌어내리기·바깥 누르기·뒤로가기로
+    // 닫는다(#2170). 핸들·높이·하단 여백은 [AppSheet] 가 그대로 맡는다.
     return AppSheet(
       key: const Key('coachingSheet'),
       showClose: false,
@@ -185,7 +186,7 @@ class _CoachingSheet extends ConsumerWidget {
   }
 }
 
-/// 도우미 창 머리 — Oni 아바타 · `AI 건강 도우미` · 오늘의 한 줄 · 닫기. (#1831)
+/// 도우미 창 머리 — Oni 아바타 · `AI 건강 도우미` · 오늘의 한 줄. (#1831)
 class _CoachingSheetHeader extends StatelessWidget {
   const _CoachingSheetHeader();
 
@@ -219,40 +220,7 @@ class _CoachingSheetHeader extends StatelessWidget {
             ],
           ),
         ),
-        const _RoundCloseButton(),
       ],
-    );
-  }
-}
-
-/// 옅은 회색 원 안의 닫기 — 이전 도우미 창의 닫기 모양이다. (#1831)
-class _RoundCloseButton extends StatelessWidget {
-  const _RoundCloseButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      // 아이콘만 있는 버튼이라 무엇을 하는지 말할 데가 없다(#972). 닫기는
-      // 플랫폼이 이미 제 언어로 부르는 이름이 있다.
-      label: MaterialLocalizations.of(context).closeButtonTooltip,
-      child: Material(
-        key: const Key('coachingSheetClose'),
-        color: OnCareColors.surfaceInput,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => Navigator.of(context).pop(),
-          child: SizedBox.square(
-            dimension: OnCareSize.backCloseTouch,
-            child: AppIcon(
-              AppIcon.setOf(context).close,
-              size: OnCareSize.iconMedium,
-              color: OnCareColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
