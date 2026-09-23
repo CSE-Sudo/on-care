@@ -3572,13 +3572,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachRoutineIntensity => 'Intensity';
 
   @override
-  String get coachIntensityLight => 'Light';
+  String coachRoutinePlannedIntensity(String level) {
+    return 'Suggested $level';
+  }
 
   @override
-  String get coachIntensityModerate => 'Moderate';
-
-  @override
-  String get coachIntensityHigh => 'High';
+  String coachRoutineDoneIntensity(String level) {
+    return 'Logged $level';
+  }
 
   @override
   String get coachRoutineSubmit => 'Save';

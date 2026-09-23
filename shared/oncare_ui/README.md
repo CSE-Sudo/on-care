@@ -6,7 +6,7 @@ On-Care 두 앱(회원앱 `frontend/flutter`, 트레이너웹 `frontend/flutter_
 
 - 화면 코드는 크기·색·모서리·간격·그림자 숫자를 직접 적지 않고, 이 패키지의 토큰·테마·컴포넌트만 씁니다.
 - 앱마다 다른 것은 브랜드·밀도, 그리고 아이콘 묶음입니다.
-  - `OnCareBrand` — 브랜드 색(회원 파랑 `#3EAFDF` / 트레이너 남색 `#2E7DAB`)
+  - `OnCareBrand` — 브랜드 색(회원 파랑 `#3EAFDF` / 트레이너 남색 `#235C88`)
   - `OnCareDensity` — 플랫폼 밀도(모바일 / 웹): 버튼·입력·칩 높이, 페이지 여백 등
   - `OnCareIconSet` — 공용 컴포넌트가 그리는 아이콘(뒤로·닫기·꺾쇠·빈 화면·배너·토스트 …)과 글꼴 변형(#1803).
     기본값은 Material Icons `_rounded`(트레이너웹)이고, 회원앱은 `AppIcons.oncare`(Material Symbols Rounded,

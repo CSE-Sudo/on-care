@@ -44,7 +44,11 @@ ExerciseType _exerciseTypeFromString(String s) => switch (s) {
 /// 가벼움 / 보통 / 높음 chips and the `_intensityFactor` multipliers.
 enum ExerciseIntensity { light, moderate, high }
 
-ExerciseIntensity _exerciseIntensityFromString(String? s) => ExerciseIntensity
+/// 서버 계약값(`light`|`moderate`|`high`) → [ExerciseIntensity].
+///
+/// 모르는 값과 누락은 서버 기본값과 같은 [ExerciseIntensity.moderate] 다. 배정
+/// 루틴의 권장 강도도 같은 어휘라 같은 함수로 읽는다(#2160).
+ExerciseIntensity exerciseIntensityFromName(String? s) => ExerciseIntensity
     .values
     .firstWhere((i) => i.name == s, orElse: () => ExerciseIntensity.moderate);
 
@@ -194,7 +198,7 @@ class ExerciseSession {
         minutes: (json['minutes']! as num).toInt(),
         calories: (json['calories']! as num).toInt(),
         calorieSource: ExerciseCalorieSource.fromJson(json['calorie_source']),
-        intensity: _exerciseIntensityFromString(json['intensity'] as String?),
+        intensity: exerciseIntensityFromName(json['intensity'] as String?),
         dateLabel: json['date_label'] as String?,
         timeLabel: json['time_label'] as String?,
         items: ((json['items'] as List<Object?>?) ?? const <Object?>[])

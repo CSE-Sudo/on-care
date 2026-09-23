@@ -9,10 +9,12 @@ import 'package:oncare/features/ai_coach/presentation/widgets/insight_history_sh
 import 'package:oncare/features/benefits/presentation/controllers/activity_calendar_providers.dart';
 import 'package:oncare/features/exercise/domain/entities/exercise_estimate.dart'
     show exerciseTypeFromLabel;
+import 'package:oncare/features/exercise/domain/entities/exercise_week.dart'
+    show ExerciseIntensity, exerciseIntensityFromName;
 import 'package:oncare/features/exercise/presentation/controllers/exercise_controller.dart';
 import 'package:oncare/features/exercise/presentation/controllers/streak_shield_providers.dart';
 import 'package:oncare/features/exercise/presentation/widgets/own_exercise_records.dart'
-    show exerciseAmountLabelOf;
+    show exerciseAmountLabelOf, exerciseIntensityLabel;
 import 'package:oncare/features/member_coach/domain/entities/member_coach.dart';
 import 'package:oncare/features/member_coach/presentation/coach_routine_detail.dart';
 import 'package:oncare/features/member_coach/presentation/controllers/member_coach_providers.dart';
@@ -525,6 +527,16 @@ class _RecommendedExerciseRowState
     }
   }
 
+  /// 트레이너가 권한 강도. 이 값을 모르는 옛 응답은 `보통` 으로 읽힌다(#2160).
+  ExerciseIntensity get _plannedIntensity =>
+      exerciseIntensityFromName(widget.routine.intensity);
+
+  /// 회원이 실제로 고른 강도 — 완료한 줄에만 있다. 되돌리면 다시 사라진다.
+  ExerciseIntensity? get _doneIntensity =>
+      widget.routine.completed && widget.routine.completedIntensity != null
+      ? exerciseIntensityFromName(widget.routine.completedIntensity)
+      : null;
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l = AppLocalizations.of(context);
@@ -665,6 +677,47 @@ class _RecommendedExerciseRowState
                               .copyWith(color: tokens.brand.primary),
                         ),
                       ),
+                      const SizedBox(height: OnCareSpacing.s4),
+                      // 어느 강도로 하라는 것인지 줄에서 바로 읽힌다(#2160).
+                      // 태그 모양·문구는 직접 기록한 운동 줄과 같다 — 같은 값을
+                      // 화면마다 다른 말로 적으면 회원이 다른 것으로 읽는다.
+                      // 완료한 줄에는 **회원이 고른 강도**를 적고, 권장과 다르게
+                      // 했으면 권장 태그를 함께 남긴다: 무엇을 권했고 무엇을
+                      // 했는지가 나중에 갈리면 안 된다.
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: OnCareSpacing.s4,
+                        runSpacing: OnCareSpacing.s4,
+                        children: <Widget>[
+                          // 좁은 화면·큰 글자에서는 태그가 통째로 줄어든다 —
+                          // 알약 안의 글자를 말줄임하면 어느 강도인지가 사라진다
+                          // (#766 의 `_fitTag` 와 같은 규칙).
+                          if (_doneIntensity != null)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: AppTag(
+                                key: Key('routineDoneIntensity-${routine.id}'),
+                                label: l.coachRoutineDoneIntensity(
+                                  exerciseIntensityLabel(l, _doneIntensity!),
+                                ),
+                                tone: AppTagTone.brand,
+                              ),
+                            ),
+                          if (_doneIntensity == null ||
+                              _doneIntensity != _plannedIntensity)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: AppTag(
+                                key: Key(
+                                  'routinePlannedIntensity-${routine.id}',
+                                ),
+                                label: l.coachRoutinePlannedIntensity(
+                                  exerciseIntensityLabel(l, _plannedIntensity),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                       // 아직 하지 않은 것만 물릴 수 있다 — 이미 한 운동을 목록에서
                       // 지우면 기록과 화면이 갈린다. 목록에서 지우는 동작이라
                       // 화면 안의 트리거는 위험 글자 버튼이다.
@@ -771,9 +824,9 @@ class _RoutineCompletionSheetState extends State<_RoutineCompletionSheet> {
             children: <Widget>[
               for (final ({String value, String label}) option
                   in <({String value, String label})>[
-                    (value: 'light', label: l.coachIntensityLight),
-                    (value: 'moderate', label: l.coachIntensityModerate),
-                    (value: 'high', label: l.coachIntensityHigh),
+                    (value: 'light', label: l.exLevelLight),
+                    (value: 'moderate', label: l.exLevelModerate),
+                    (value: 'high', label: l.exLevelHigh),
                   ]) ...<Widget>[
                 if (option.value != 'light')
                   const SizedBox(width: OnCareSpacing.s8),
