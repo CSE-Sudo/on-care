@@ -1,11 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:oncare_trainer/core/config/app_config.dart';
 import 'package:oncare_trainer/core/utils/clock.dart';
 import 'package:oncare_trainer/core/utils/date_format.dart';
-import 'package:oncare_trainer/features/dashboard/data/ai_coaching_summary_repository.dart';
 import 'package:oncare_trainer/features/dashboard/domain/activity_feedback.dart';
-import 'package:oncare_trainer/features/dashboard/domain/ai_coaching_summary.dart';
 import 'package:oncare_trainer/features/dashboard/domain/churn_risk.dart';
 import 'package:oncare_trainer/features/dashboard/domain/dashboard_summary.dart';
 import 'package:oncare_trainer/features/schedule/data/repositories/schedule_repository.dart';
@@ -107,21 +104,3 @@ final dashboardActivityFeedbackProvider =
         now: nowKst(),
       );
     }, name: 'dashboardActivityFeedback');
-
-/// 상세 코칭 요약은 별도 실패 경계를 둔다. LLM/API가 느리거나 실패해도 KPI와
-/// 일정은 즉시 표시되고, 카드 안에서만 로딩·재시도를 제공한다.
-final dashboardAiCoachingSummaryProvider = FutureProvider<AiCoachingSummary>((
-  ref,
-) async {
-  final repository = ref.watch(aiCoachingSummaryRepositoryProvider);
-  if (!ref.watch(appConfigProvider).useMockApi) {
-    return repository.fetch(DashboardSummary.empty);
-  }
-
-  final clients = await ref.watch(clientsProvider.future);
-  final unread =
-      ref.watch(unreadCountsProvider).valueOrNull ?? const <String, int>{};
-  return repository.fetch(
-    buildDashboardSummary(clients: clients, unread: unread),
-  );
-});
