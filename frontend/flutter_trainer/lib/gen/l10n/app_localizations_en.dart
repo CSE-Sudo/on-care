@@ -1974,6 +1974,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get myLegal => 'Terms & policies';
 
   @override
+  String get mySupportTitle => 'Customer Support';
+
+  @override
+  String get mySupportFaq => 'FAQ';
+
+  @override
+  String get mySupportInquiry => '1:1 Inquiry';
+
+  @override
+  String get mySupportExternalHint => 'Opens the KakaoTalk channel';
+
+  @override
+  String get mySupportOpenFailed =>
+      'Couldn\'t open the link. Please try again in a moment';
+
+  @override
+  String get mySupportEntryHint =>
+      'FAQ, inquiries, policies and account clean-up in one place';
+
+  @override
+  String get myAppVersion => 'On-Care Trainer · Version 0.1.0';
+
+  @override
   String get myLegalTermsTitle => 'Terms of Service';
 
   @override

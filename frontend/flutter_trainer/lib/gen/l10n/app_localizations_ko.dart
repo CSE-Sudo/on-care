@@ -1892,6 +1892,27 @@ class AppLocalizationsKo extends AppLocalizations {
   String get myLegal => '약관 및 정책';
 
   @override
+  String get mySupportTitle => '고객 지원';
+
+  @override
+  String get mySupportFaq => '자주 묻는 질문';
+
+  @override
+  String get mySupportInquiry => '1:1 문의';
+
+  @override
+  String get mySupportExternalHint => '카카오톡 채널로 연결돼요';
+
+  @override
+  String get mySupportOpenFailed => '링크를 열지 못했어요. 잠시 후 다시 시도해 주세요';
+
+  @override
+  String get mySupportEntryHint => 'FAQ·문의와 약관, 계정 정리를 한곳에서 볼 수 있어요';
+
+  @override
+  String get myAppVersion => 'On-Care 트레이너 · 버전 0.1.0';
+
+  @override
   String get myLegalTermsTitle => '이용약관';
 
   @override
