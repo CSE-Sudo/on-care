@@ -67,10 +67,9 @@ void main() {
             matching: find.byType(Material),
           )
           .first;
-      expect(
-        tester.getSize(arrow),
-        const Size.square(OnCareCalendar.weekArrow),
-      );
+      // 탭 영역은 날짜 숫자 상자 줄 안에 든다 — 높이는 그 상자를 따른다.
+      expect(tester.getSize(arrow).width, OnCareCalendar.weekArrow);
+      expect(tester.getSize(arrow).height, OnCareCalendar.weekDayBox);
       // 원 배경이 있으면 꺾쇠가 날짜와 따로 떠 보인다(#2215).
       expect(tester.widget<Material>(arrow).color, Colors.transparent);
       expect(

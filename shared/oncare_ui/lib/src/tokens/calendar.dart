@@ -19,11 +19,11 @@ class OnCareCalendar {
 
   // --- 주간 달력(회원앱 식단·운동) ---
   /// 날짜 줄 양옆 이전/다음 주 화살표가 받는 정사각 탭 영역의 한 변.
-  static const double weekArrow = 28;
+  static const double weekArrow = 36;
 
   /// 그 화살표 글리프의 크기. 원 배경 없이 꺾쇠만 두므로, 작은 아이콘으로는
   /// 날짜 숫자 옆에서 눌려 보인다(#2215).
-  static const double weekArrowIcon = 24;
+  static const double weekArrowIcon = 28;
 
   /// 날짜 칸 한 변(옛 30 × 1.1). 기기 글자 배율을 따라 함께 커진다 — 고정하면
   /// 숫자가 칸에 눌린다(#1004). 한 칸 폭보다 크면 칸 폭에 맞춰진다.
