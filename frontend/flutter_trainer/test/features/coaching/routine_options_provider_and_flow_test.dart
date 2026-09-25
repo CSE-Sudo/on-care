@@ -752,6 +752,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      // 고쳤다고 `AI 제안` 개수가 줄지는 않는다 — 지운 줄만 빠진다.
+      expect(find.text('AI 제안 2'), findsOneWidget);
+
       final apply = find.byKey(
         const ValueKey<String>('complete-personal-routines'),
       );

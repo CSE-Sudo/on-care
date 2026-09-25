@@ -1613,8 +1613,13 @@ class _AiRoutineOptionsFlowState extends ConsumerState<AiRoutineOptionsFlow> {
         if (mounted) setState(_seedPersonalFromSuggestions);
       });
     }
-    final int aiCount = _personal
-        .where((RoutineExercise e) => e.source == 'ai')
+    // AI 제안에서 **온** 줄을 센다 — `source` 로 세면 트레이너가 한 줄만
+    // 고쳐도(그때 출처가 트레이너가 된다) 지우지 않은 줄의 숫자가 줄고,
+    // 세 줄을 다 고치면 배지와 안내 문장이 통째로 사라진다. 지운 줄은
+    // [_personalOrigins] 에서도 함께 빠지므로 그때는 제대로 줄어든다.
+    final int aiCount = _personalOrigins
+        .take(_personal.length)
+        .whereType<_PersonalOrigin>()
         .length;
     return Column(
       key: const ValueKey<String>('personal-routine-step'),
