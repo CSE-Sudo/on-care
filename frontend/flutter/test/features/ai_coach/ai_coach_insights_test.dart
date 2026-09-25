@@ -256,7 +256,7 @@ void main() {
     // 회원 앱의 부분 창에는 닫기 X 를 두지 않는다(#2170).
     expect(find.byType(AppCloseButton), findsNothing);
     expect(
-      find.descendant(of: sheet, matching: find.text('감지 기록')),
+      find.descendant(of: sheet, matching: find.text('참고 기록')),
       findsOneWidget,
     );
     expect(
