@@ -655,6 +655,59 @@ void main() {
       );
     });
 
+    testWidgets('펼친 줄은 체크 아이콘으로 닫고, PT 후보는 다른 문구로 묻는다 '
+        '(#2223)', (tester) async {
+      await pumpFlow(
+        tester,
+        suggestions: const <RoutineSuggestion>[
+          RoutineSuggestion(
+            id: 'sug-1',
+            name: '가벼운 인터벌 러닝',
+            minutes: 30,
+            type: '유산소',
+            reason: '숨이 차면 속도를 낮추세요',
+          ),
+        ],
+      );
+
+      // PT 후보에서 빼는 것은 이번 구성에서 지우는 일이다 — 개인운동처럼
+      // `AI 제안이면 다시 올라오지 않아요` 라고 말하면 안 된다.
+      await generate(tester);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('routine-remove-A-0')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('이번 프로그램 구성에서 빼요'), findsOneWidget);
+      expect(find.textContaining('AI 제안이면'), findsNothing);
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+
+      // 개인운동 단계에서는 펼친 줄의 그 자리가 **닫기**가 된다.
+      await tester.tap(find.byKey(const ValueKey<String>('routine-stage-0')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('skip-pt-program')),
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('skip-pt-program')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personal-routine-edit-0')),
+      );
+      await tester.pumpAndSettle();
+      final done = find.byKey(
+        const ValueKey<String>('personal-routine-done-0'),
+      );
+      expect(done, findsOneWidget);
+      await tester.tap(done);
+      await tester.pumpAndSettle();
+      // 닫히면 다시 접힌 줄의 연필이 선다.
+      expect(
+        find.byKey(const ValueKey<String>('personal-routine-edit-0')),
+        findsOneWidget,
+      );
+      expect(done, findsNothing);
+    });
+
     testWidgets('AI 제안을 뺄 때는 한 번 묻는다 (#2223)', (tester) async {
       await pumpFlow(
         tester,

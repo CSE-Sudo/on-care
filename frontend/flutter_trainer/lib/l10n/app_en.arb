@@ -1626,6 +1626,10 @@
   },
   "aiPersonalStepLoadFailed": "Could not load the AI personal-exercise suggestions",
   "aiPersonalStepNoSuggestion": "No AI suggestion today. Add one below.",
+  "aiProgramExerciseRemoveBody": "Removes {name} from this program.",
+  "@aiProgramExerciseRemoveBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
   "aiPersonalDismissTitle": "Drop this exercise?",
   "aiPersonalDismissBody": "{name} will be dropped from this personal exercise. An AI suggestion will not come back.",
   "@aiPersonalDismissBody": {

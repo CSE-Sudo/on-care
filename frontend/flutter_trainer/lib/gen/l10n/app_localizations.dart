@@ -4646,6 +4646,12 @@ abstract class AppLocalizations {
   /// **'No AI suggestion today. Add one below.'**
   String get aiPersonalStepNoSuggestion;
 
+  /// No description provided for @aiProgramExerciseRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes {name} from this program.'**
+  String aiProgramExerciseRemoveBody(String name);
+
   /// No description provided for @aiPersonalDismissTitle.
   ///
   /// In en, this message translates to:

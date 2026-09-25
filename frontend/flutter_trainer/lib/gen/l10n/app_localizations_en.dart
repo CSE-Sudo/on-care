@@ -2632,6 +2632,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'No AI suggestion today. Add one below.';
 
   @override
+  String aiProgramExerciseRemoveBody(String name) {
+    return 'Removes $name from this program.';
+  }
+
+  @override
   String get aiPersonalDismissTitle => 'Drop this exercise?';
 
   @override

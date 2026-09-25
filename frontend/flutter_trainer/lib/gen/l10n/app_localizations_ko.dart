@@ -2520,6 +2520,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get aiPersonalStepNoSuggestion => '오늘은 AI 제안이 없어요. 아래에서 직접 더해 주세요.';
 
   @override
+  String aiProgramExerciseRemoveBody(String name) {
+    return '$name을(를) 이번 프로그램 구성에서 빼요.';
+  }
+
+  @override
   String get aiPersonalDismissTitle => '이 운동을 뺄까요?';
 
   @override
